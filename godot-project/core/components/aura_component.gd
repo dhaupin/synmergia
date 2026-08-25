@@ -234,3 +234,130 @@ func get_buff_count() -> int:
 
 func get_debuff_count() -> int:
 	return _active_debuffs.size()
+
+## Effect categories for dispel
+enum EffectCategory {
+	MAGIC,      # General magic effects
+	CURSE,      # Curses and hexes
+	POISON,     # Poison and disease
+	PHYSICAL,   # Physical debuffs
+	HOLY,       # Holy/light effects
+	SHADOW,     # Shadow/dark effects
+	FIRE,       # Fire effects
+	ICE,        # Frost effects
+	LIGHTNING,  # Lightning effects
+	ARCANE,     # Arcane effects
+	BLEED,      # Bleeding effects
+	STUN,       # Stun effects
+	FEAR,       # Fear effects
+	CHARM       # Charm effects
+}
+
+## Dispel magic effects
+func dispel_magic(caster: Entity = null) -> int:
+	return _dispel_by_category([EffectCategory.MAGIC, EffectCategory.CURSE, EffectCategory.POISON], caster)
+
+## Dispel curses specifically
+func dispel_curses(caster: Entity = null) -> int:
+	return _dispel_by_category([EffectCategory.CURSE], caster)
+
+## Dispel poison/disease
+func dispel_poison(caster: Entity = null) -> int:
+	return _dispel_by_category([EffectCategory.POISON], caster)
+
+## Dispel all dispellable effects
+func dispel_all(caster: Entity = null) -> int:
+	return _dispel_by_category([
+		EffectCategory.MAGIC, EffectCategory.CURSE, EffectCategory.POISON,
+		EffectCategory.HOLY, EffectCategory.SHADOW, EffectCategory.FIRE,
+		EffectCategory.ICE, EffectCategory.LIGHTNING, EffectCategory.ARCANE
+	], caster)
+
+## Cleanse (removes debuffs, often player ability)
+func cleanse(caster: Entity = null) -> int:
+	return _dispel_by_category([
+		EffectCategory.POISON, EffectCategory.DISEASE, EffectCategory.CURSE
+	], caster)
+
+## Internal dispel by categories
+func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
+	var dispelled := 0
+	
+	# Check debuffs
+	for debuff in _active_debuffs:
+		if _can_dispel_effect(debuff, categories):
+			if _check_dispel_resist(debuff, caster):
+				remove_debuff(debuff)
+				dispelled += 1
+				EventBus.effect_dispelled.emit(get_parent(), debuff, caster)
+	
+	# Check auras (some auras are dispellable)
+	for aura in _active_auras:
+		if aura.is_dispellable and _matches_category(aura.category, categories):
+			remove_aura(aura)
+			dispelled += 1
+			EventBus.aura_dispelled.emit(get_parent(), aura, caster)
+	
+	return dispelled
+
+## Check if effect can be dispelled by categories
+func _can_dispel_effect(effect: StatusEffect, categories: Array[int]) -> bool:
+	if not effect.is_dispellable:
+		return false
+	
+	return _matches_category(effect.category, categories)
+
+## Check if effect category matches
+func _matches_category(effect_category: int, dispel_categories: Array[int]) -> bool:
+	# Special categories (BLEED, STUN, FEAR, CHARM) aren't general dispels
+	var special_categories := [EffectCategory.BLEED, EffectCategory.STUN, EffectCategory.FEAR, EffectCategory.CHARM]
+	if special_categories.has(effect_category):
+		return dispel_categories.has(effect_category)
+	
+	# Magic, curse, poison are general dispel targets
+	return dispel_categories.has(EffectCategory.MAGIC) or dispel_categories.has(effect_category)
+
+## Check if dispel succeeds (some effects have resist chance)
+func _check_dispel_resist(effect: StatusEffect, caster: Entity) -> bool:
+	if caster == null:
+		return true  # No resist if no caster
+	
+	# Boss effects might resist
+	if effect. dispel_resist_chance > 0:
+		return randf() > effect.dispel_resist_chance
+	
+	return true
+
+## Check if entity has specific category of effects
+func has_category(category: int) -> bool:
+	for debuff in _active_debuffs:
+		if debuff.category == category:
+			return true
+	return false
+
+## Get all effects of category
+func get_effects_by_category(category: int) -> Array[StatusEffect]:
+	var effects: Array[StatusEffect] = []
+	for debuff in _active_debuffs:
+		if debuff.category == category:
+			effects.append(debuff)
+	return effects
+
+## Get dispel info for UI
+func get_dispel_info() -> Dictionary:
+	var categories: Dictionary = {}
+	
+	for debuff in _active_debuffs:
+		var cat_name := EffectCategory.keys()[debuff.category]
+		if not categories.has(cat_name):
+			categories[cat_name] = []
+		categories[cat_name].append({
+			"name": debuff.display_name,
+			"dispellable": debuff.is_dispellable,
+			"duration": debuff.duration_remaining if "duration_remaining" in debuff else -1
+		})
+	
+	return {
+		"debuff_count": _active_debuffs.size(),
+		"categories": categories
+	}

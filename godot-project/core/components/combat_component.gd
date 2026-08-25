@@ -13,15 +13,33 @@ signal cast_finished(skill: Skill)
 signal channel_started(skill: Skill)
 signal channel_updated(progress: float)
 signal channel_ended(skill: Skill, completed: bool)
+signal combat_entered()
+signal combat_exited()
+signal gcd_triggered(duration: float)
 
 @export var attack_power: int = 10
 @export var spell_power: int = 10
 @export var crit_chance: float = 0.05  # 5%
 @export var crit_multiplier: float = 1.5
 
-# Global Cooldown
+# Global Cooldown (GCD)
 var gcd_remaining: float = 0.0
 @export var gcd_duration: float = 1.0
+@export var gcd_affects_movement: bool = false  # Some games lock movement during GCD
+
+# Combat State
+var in_combat: bool = false
+var combat_start_time: int = 0
+@export var out_of_combat_time: float = 10.0  # Seconds after last damage to exit combat
+
+# Mana Regen
+@export var mana_regen_combat: float = 1.0    # Multiplier during combat
+@export var mana_regen_rest: float = 5.0     # Multiplier while resting
+var _current_mana_regen_multiplier: float = 1.0
+
+# Stamina Regen
+@export var stamina_regen_combat: float = 0.2
+@export var stamina_regen_rest: float = 1.0
 
 # Casting state (interrupted by damage)
 var is_casting: bool = false
@@ -56,6 +74,9 @@ func _physics_process(delta: float) -> void:
 	
 	if attack_cooldown > 0:
 		attack_cooldown = max(0, attack_cooldown - delta)
+	
+	# Update combat state
+	_update_combat_state(delta)
 	
 	# Update casting
 	if is_casting:
@@ -299,3 +320,122 @@ func is_gcd_active() -> bool:
 ## Get GCD remaining
 func get_gcd_remaining() -> float:
 	return gcd_remaining
+
+## Trigger GCD (called when using a skill)
+func trigger_gcd(skill: Skill = null) -> void:
+	if skill and not skill.uses_gcd:
+		return
+	
+	gcd_remaining = gcd_duration
+	gcd_triggered.emit(gcd_duration)
+
+## Combat state management
+var _last_damage_time: int = 0
+
+func _update_combat_state(delta: float) -> void:
+	var entity: Entity = get_parent()
+	
+	# Check if should enter combat (took/Dealt damage recently)
+	var now := Time.get_ticks_msec()
+	
+	# Enter combat
+	if not in_combat and (now - _last_damage_time < 1000):  # Damage in last second
+		_enter_combat()
+	
+	# Exit combat (OOC timer)
+	if in_combat:
+		var time_since_damage := (now - _last_damage_time) / 1000.0
+		if time_since_damage >= out_of_combat_time:
+			_exit_combat()
+
+func _enter_combat() -> void:
+	if in_combat:
+		return
+	
+	in_combat = true
+	combat_start_time = Time.get_ticks_msec()
+	_current_mana_regen_multiplier = mana_regen_combat
+	
+	combat_entered.emit()
+	EventBus.entity_entered_combat.emit(get_parent())
+
+func _exit_combat() -> void:
+	if not in_combat:
+		return
+	
+	in_combat = false
+	combat_start_time = 0
+	_current_mana_regen_multiplier = mana_regen_rest
+	
+	combat_exited.emit()
+	EventBus.entity_exited_combat.emit(get_parent())
+
+## Called when entity deals or takes damage
+func on_damage_dealt(damage: int, target: Entity, damage_type: String) -> void:
+	_last_damage_time = Time.get_ticks_msec()
+	if not in_combat:
+		_enter_combat()
+
+func on_damage_taken_global(damage: int, source: Entity, damage_type: String) -> void:
+	_last_damage_time = Time.get_ticks_msec()
+	if not in_combat:
+		_enter_combat()
+
+## Get combat duration
+func get_combat_duration() -> float:
+	if not in_combat:
+		return 0.0
+	return (Time.get_ticks_msec() - combat_start_time) / 1000.0
+
+## Get current mana regen multiplier
+func get_mana_regen_multiplier() -> float:
+	return _current_mana_regen_multiplier
+
+## Get stamina regen multiplier
+func get_stamina_regen_multiplier() -> float:
+	if in_combat:
+		return stamina_regen_combat
+	return stamina_regen_rest
+
+## Force exit combat (e.g., zone change)
+func force_exit_combat() -> void:
+	_last_damage_time = 0
+	_exit_combat()
+
+## Check if can use skill (GCD + cooldown check)
+func can_use_skill(skill: Skill) -> bool:
+	if is_gcd_active():
+		return false
+	
+	if skill.cooldown > 0:
+		# TODO: Check skill cooldown
+		pass
+	
+	return true
+
+## Queue a skill for when GCD expires
+func queue_skill(skill: Skill) -> bool:
+	if not _skill_queue_enabled:
+		return false
+	
+	if not can_use_skill(skill):
+		return false
+	
+	queued_skill = skill
+	return true
+
+## Cancel queued skill
+func cancel_queued_skill() -> void:
+	queued_skill = null
+
+## Get queued skill
+func get_queued_skill() -> Skill:
+	return queued_skill
+
+## Process queued skill (call when GCD expires)
+func process_queued_skill() -> void:
+	if queued_skill and not is_gcd_active():
+		var skill := queued_skill
+		queued_skill = null
+		# Execute queued skill
+		execute_skill(skill)
