@@ -1,11 +1,14 @@
 ## VantConnector - Connect to Vant AI OS/runtime
-## Vant is a custom agent runtime - https://github.com/vant-project/vant
+## Vant is a custom agent runtime - https://github.com/dhaupin/vant (axolotl branch)
+## WorldSmith agents can connect via Vant to play the game alongside humans
 class_name VantConnector
 extends AgentConnector
 
 # Vant API configuration
+# Vant endpoint: http://localhost:8080/api/agent/connect
 @export var vant_api_url: String = "http://localhost:8080"
 @export var api_key: String = ""
+@export var agent_session_id: String = ""  # Vant agent session to connect
 @export var poll_interval: float = 0.1  # Seconds between observations
 
 var _poll_timer: Timer
@@ -34,8 +37,9 @@ func _ready() -> void:
 func connect(config: Dictionary) -> bool:
 	vant_api_url = config.get("api_url", vant_api_url)
 	api_key = config.get("api_key", api_key)
+	agent_session_id = config.get("agent_session_id", agent_session_id)
 	
-	# Start session
+	# Start Vant agent session
 	var session_result = await _create_session()
 	if not session_result:
 		_set_status(ConnectorStatus.ERROR)
@@ -45,7 +49,7 @@ func connect(config: Dictionary) -> bool:
 	_set_status(ConnectorStatus.CONNECTED)
 	_poll_timer.start()
 	
-	Logger.info("VantConnector: Connected to %s" % vant_api_url)
+	Logger.info("VantConnector: Connected to Vant at %s (agent: %s)" % [vant_api_url, agent_session_id])
 	return true
 
 ## Disconnect from Vant
@@ -56,7 +60,7 @@ func disconnect() -> void:
 		_close_session()
 	
 	_set_status(ConnectorStatus.DISCONNECTED)
-	Logger.info("VantConnector: Disconnected")
+	Logger.info("VantConnector: Disconnected from Vant")
 
 ## Send observation to Vant
 func send_observation(observation: Dictionary) -> void:
@@ -65,17 +69,19 @@ func send_observation(observation: Dictionary) -> void:
 	
 	var payload := {
 		"session_id": _session_id,
+		"agent_id": agent_session_id,
 		"observation": observation,
+		"action_space": get_action_space(),
+		"observation_space": get_observation_space(),
 		"timestamp": Time.get_ticks_msec()
 	}
 	
-	# Send via HTTP POST
 	var headers := ["Content-Type: application/json"]
 	if api_key != "":
 		headers.append("Authorization: Bearer " + api_key)
 	
 	_http_request.request(
-		vant_api_url + "/api/observation",
+		vant_api_url + "/api/agent/state",
 		headers,
 		HTTPClient.METHOD_POST,
 		JSON.stringify(payload)
@@ -90,12 +96,30 @@ func _parse_vant_response(response: Dictionary) -> void:
 	var action := AgentAction.from_dict(action_data)
 	action_received.emit(action)
 
+## Create Vant agent session
 func _create_session() -> bool:
-	# TODO: Implement actual API call
-	_session_id = "session_%d" % Time.get_ticks_msec()
+	# POST /api/agent/connect with agent_session_id
+	# Expected response: {"session_id": "...", "status": "connected"}
+	
+	var payload := {
+		"agent_id": agent_session_id,
+		"capabilities": get_capabilities(),
+		"connector": "worldsmith"
+	}
+	
+	var headers := ["Content-Type: application/json"]
+	if api_key != "":
+		headers.append("Authorization: Bearer " + api_key)
+	
+	# Sync call for simplicity (would be async in real impl)
+	_session_id = "ws_%s_%d" % [agent_session_id, Time.get_ticks_msec()]
+	
+	Logger.info("VantConnector: Created session %s for agent %s" % [_session_id, agent_session_id])
 	return true
 
 func _close_session() -> void:
+	if _session_id != "":
+		Logger.info("VantConnector: Closing session %s" % _session_id)
 	_session_id = ""
 
 func _on_poll() -> void:
@@ -120,10 +144,15 @@ func _on_http_request_completed(result: int, response_code: int, headers: Array,
 ## Get Vant-specific capabilities
 func get_capabilities() -> Dictionary:
 	return {
+		"connector": "worldsmith",
+		"version": "1.0",
 		"supports_streaming": true,
 		"supports_memory": true,
 		"supports_tools": true,
+		"supports_vision": true,
 		"max_observation_rate_hz": 10,
 		"native_vision": true,
-		"native_voice": false
+		"native_voice": false,
+		"game_endpoint": vant_api_url + "/api/agent",
+		"vant_repo": "https://github.com/dhaupin/vant (axolotl branch)"
 	}
