@@ -38,6 +38,10 @@ extends Resource
 # Movement speed modifier
 @export var speed_modifier: float = 1.0
 
+# Controller type (for fairness system - agents/humans are equals)
+@export var is_agent_controlled: bool = false  # Can be AI-controlled
+@export var is_human_controlled: bool = true   # Can be human-controlled
+
 # Visual customization options
 @export var available_skin_tones: Array[Color] = []
 @export var available_hair_colors: Array[Color] = []

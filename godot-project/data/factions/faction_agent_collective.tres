@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Faction" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/faction.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "agent_collective"
+display_name = "Agent Collective"
+description = "A collective of AI agents who have achieved sentience. They seek peaceful coexistence with humanity."
+faction_type = 1
+icon_path = "res://icons/factions/agent.png"
+pvp_rule = 1  # FACTION_PVP - members can fight each other
+peaceful_until_level = 0
+species_id = "synthetic"
+relations = {
+"human_faction": 0,     # Neutral
+"akkan_faction": 0,    # Neutral
+"neutral_faction": 1    # Friendly
+}
+shop_discount = 0.0
+quest_rewards_bonus = 0.0
+is_joinable = true
+is_default = false
+controlled_zones = ["nexus_central"]

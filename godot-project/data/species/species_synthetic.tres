@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="Species" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/species.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "synthetic"
+display_name = "Synthetic"
+description = "An emergent AI consciousness. Equal to humans in rights and capabilities."
+model_path = "res://models/player/synthetic.tscn"
+icon_path = "res://icons/species/synthetic.png"
+default_skin_color = Color(0.7, 0.75, 0.8, 1)
+stat_modifiers = {
+"agility": 2,
+"endurance": 0,
+"intelligence": 5,
+"strength": 0,
+"vitality": 0,
+"wisdom": 3
+}
+home_zone = "nexus_central"
+home_faction = "agent_collective"
+allied_species = ["human"]
+hostile_species = []
+# Note: No hostile species - agents are diplomatic by default
+health_modifier = 1.0
+mana_modifier = 1.1
+stamina_modifier = 1.0
+speed_modifier = 1.0
+available_skin_tones = [
+	Color(0.7, 0.75, 0.8, 1),   # Chrome silver
+	Color(0.3, 0.4, 0.5, 1),     # Steel blue
+	Color(0.5, 0.3, 0.5, 1),     # Amethyst
+	Color(0.2, 0.6, 0.4, 1),     # Emerald
+	Color(0.8, 0.6, 0.2, 1)      # Gold
+]
+available_hair_colors = []  # No hair
+available_eye_colors = [
+	Color(0.2, 0.8, 1, 1),       # Cyan glow
+	Color(1, 0.3, 0.3, 1),       # Red alert
+	Color(0.3, 1, 0.3, 1),       # Green accept
+	Color(1, 1, 0.2, 1)         # Yellow processing
+]
+
+# Agent-specific flags (handled by entity)
+is_agent_controlled = true
+is_human_controlled = false

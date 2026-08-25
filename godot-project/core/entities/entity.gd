@@ -22,11 +22,22 @@ enum Faction {
 	HOSTILE
 }
 
+enum ControllerType {
+	HUMAN,      # Real human player
+	AGENT,      # AI agent
+	NPC,        # Scripted NPC
+	HOSTILE_AI  # Enemy AI
+}
+
 @export var entity_id: String = ""
 @export var display_name: String = "Entity"
 @export var level: int = 1
 @export var entity_type: EntityType = EntityType.NPC
 @export var faction: Faction = Faction.NEUTRAL
+
+# Controller type - for fairness system (HUMAN and AGENT are equals)
+@export var controller_type: ControllerType = ControllerType.NPC
+@export var connector_id: String = ""  # Which connector controls this (for agents)
 
 # Stats stored as dictionary
 var stats: Dictionary = {

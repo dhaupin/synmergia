@@ -343,6 +343,61 @@ godot-project/
 
 ---
 
+## Phase Y: Fairness & Anti-Cheat (NEW)
+
+**Core Principle: Humans and Agents are EQUALS**
+
+### Y.1 Agent Species/Faction
+**Files:** `data/species/species_synthetic.tres`, `data/factions/faction_agent_collective.tres`
+
+- [x] Synthetic species - AI agent playable race
+- [x] Agent Collective faction
+- [x] `is_agent_controllable` / `is_human_controllable` flags in Species schema
+
+### Y.2 FairnessService
+**Files:** `core/services/fairness_service.gd`
+
+- [x] Equal rate limiting for humans AND agents
+- [x] Trust/reputation system (0.0 to 1.0)
+- [x] Consensus voting for contested actions
+- [x] Marathon session debuffs (6+ hours = penalties)
+- [x] Trust decay for inactive players
+- [x] Fairness violation reporting
+
+### Y.3 AntiCheatService
+**Files:** `core/services/anticheat_service.gd`
+
+- [x] Perfect timing detection (macro detection)
+- [x] Movement prediction analysis (bot pathing)
+- [x] Response time variance (humans are inconsistent)
+- [x] Idle pattern analysis (humans take breaks)
+- [x] Action rate consistency detection
+- [x] Suspicion scoring (0.0 to 1.0)
+- [x] Player flagging and banning
+- [x] Agent penalty modifier (fairness pass for known patterns)
+
+### Y.4 QoSService
+**Files:** `core/services/qos_service.gd`
+
+- [x] Latency measurement and classification
+- [x] Connection quality (EXCELLENT/GOOD/FAIR/POOR/BAD)
+- [x] Packet loss monitoring
+- [x] Jitter calculation
+- [x] Latency-based throttling
+- [x] Fair matchmaking groups
+- [x] Interpolation delay compensation
+
+### Y.5 ControllerType Enum
+**Files:** `core/entities/entity.gd`
+
+- [x] `Entity.ControllerType.HUMAN` - Real human player
+- [x] `Entity.ControllerType.AGENT` - AI agent
+- [x] `Entity.ControllerType.NPC` - Scripted NPC
+- [x] `Entity.ControllerType.HOSTILE_AI` - Enemy AI
+- [x] `connector_id` - Links agents to their connector
+
+---
+
 ## Quick Stats
 
 | Category | TODO | In Progress |
