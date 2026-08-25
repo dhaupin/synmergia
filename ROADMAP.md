@@ -102,27 +102,31 @@ A playable demo with basic combat, one region, one playable class, one species, 
 ### 1.1 Projectile System [CRITICAL]
 **Files:** `godot-project/core/combat/projectile.gd`
 
-- [ ] Base Projectile class with position, velocity, lifetime
-- [ ] Projectile collision detection (hitbox vs entities)
-- [ ] Projectile expiration (max range, time, out of bounds)
-- [ ] Explosion on impact for PROJECTILE_AOE skills
-- [ ] Visual VFX integration (scene loading)
+- [x] Base Projectile class with position, velocity, lifetime
+- [x] Projectile collision detection (hitbox vs entities)
+- [x] Projectile expiration (max range, time, out of bounds)
+- [x] Explosion on impact for PROJECTILE_AOE skills
+- [x] Visual VFX integration (scene loading)
+- [x] Factory methods: create_arrow, create_fireball, create_magic_bolt
 
 ### 1.2 Interrupt System [CRITICAL]
 **Files:** `godot-project/core/components/combat_component.gd` (update)
 
-- [ ] Track channeling/casting skills per entity
-- [ ] Damage event triggers interrupt check
-- [ ] immune_interrupt flag check
-- [ ] Interrupted -> cancel cast, partial resource cost
+- [x] Track channeling/casting skills per entity
+- [x] Damage event triggers interrupt check
+- [x] `can_interrupt` flag on skills
+- [x] Interrupted -> cancel cast, partial resource cost (50%)
+- [x] Interrupt resistance stat/buffs
+- [x] Channel ticks for DOT-style channeling
 
 ### 1.3 Death and Respawn [CRITICAL]
 **Files:** `godot-project/core/components/health_component.gd` (update)
 
-- [ ] Death state (no input, no damage)
-- [ ] Corpse entity (visual, lootable)
-- [ ] Respawn timer (configurable per zone)
-- [ ] Respawn location selection (bind point, nearest, etc.)
+- [x] Death state (no input, no damage)
+- [x] Corpse entity (visual, lootable) - stubbed
+- [x] Respawn timer (configurable per zone)
+- [x] Respawn location selection (BIND_POINT, NEAR_CORPSE, CUSTOM)
+- [x] Respawn at specific location method
 
 ---
 
