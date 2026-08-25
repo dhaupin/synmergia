@@ -4,12 +4,14 @@ class_name Skill
 extends Resource
 
 enum SkillType {
-	MELEE,          # Close range attack
+	MELEE,           # Close range attack
 	RANGED,          # Projectile attack
 	INSTANT,         # Instant effect
-	GROUND_TARGETED,  # AoE at target location
+	GROUND_TARGETED, # AoE at target location
+	TARGETED_AOE,    # AoE centered on target
 	SELF,            # Affects self
-	CHANNEL          # Held to cast
+	CHANNEL,         # Held to cast
+	PROJECTILE_AOE   # Projectile that explodes on impact
 }
 
 enum TargetType {
@@ -17,7 +19,8 @@ enum TargetType {
 	MULTIPLE_ENEMY,
 	SELF,
 	ALLY,
-	GROUND
+	GROUND,
+	TARGETED_AOE,    # Target + nearby enemies
 }
 
 @export var skill_name: String = "Skill"
@@ -44,6 +47,17 @@ enum TargetType {
 @export var aoe_radius: float = 0.0  # 0 = single target
 @export var is_ground_targeted: bool = false
 @export var ground_target_range: float = 30.0  # Max distance for ground target
+
+# Targeted AOE (hits target + splash around them)
+@export var targeted_aoe_radius: float = 0.0  # Splash radius around target
+@export var targeted_aoe_max_targets: int = 0  # 0 = unlimited
+@export var targeted_aoe_los_required: bool = true  # Need line of sight to splash targets
+@export var targeted_aoe_respects_geometry: bool = false  # Walls block splash
+
+# Projectile AOE (explodes on impact)
+@export var projectile_speed: float = 20.0  # Projectile travel speed
+@export var projectile_piercing: bool = false  # Pierce through first target
+@export var projectile_explosion_radius: float = 0.0  # Explosion AoE on impact
 
 # Effects
 @export var damage: int = 0
