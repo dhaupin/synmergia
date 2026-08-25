@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="Species" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/species.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "akkan"
+display_name = "Akkan"
+description = "Ancient warriors from the dark lands. Known for their strength and martial prowess."
+model_path = "res://models/player/akkan.tscn"
+icon_path = "res://icons/species/akkan.png"
+default_skin_color = Color(0.6, 0.55, 0.7, 1)
+stat_modifiers = {
+"agility": 0,
+"endurance": 2,
+"intelligence": -2,
+"strength": 5,
+"vitality": 3,
+"wisdom": 0
+}
+home_zone = "dark_highlands"
+home_faction = "akkan_faction"
+allied_species = []
+hostile_species = ["human", "elf", "dwarf"]
+health_modifier = 1.1
+mana_modifier = 0.9
+stamina_modifier = 1.0
+speed_modifier = 0.95
+available_skin_tones = [Color(0.6, 0.55, 0.7, 1), Color(0.5, 0.45, 0.6, 1), Color(0.7, 0.65, 0.8, 1)]
+available_hair_colors = [Color(0.1, 0.1, 0.15, 1), Color(0.8, 0.2, 0.2, 1)]
+available_eye_colors = [Color(0.9, 0.3, 0.3, 1), Color(0.3, 0.1, 0.1, 1), Color(1, 0.8, 0, 1)]

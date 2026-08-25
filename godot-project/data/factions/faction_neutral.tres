@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Faction" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/faction.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "neutral_faction"
+display_name = "Neutral"
+description = "No PvP allowed until level 20. Safe for new players."
+faction_type = 2
+icon_path = "res://icons/factions/neutral.png"
+pvp_rule = 1
+peaceful_until_level = 20
+species_id = ""
+relations = {}
+shop_discount = 0.0
+quest_rewards_bonus = 0.0
+is_joinable = true
+is_default = false
+controlled_zones = []

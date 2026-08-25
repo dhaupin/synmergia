@@ -1,0 +1,221 @@
+## EntityService - Entity registry and management
+## Tracks all active entities in the world
+class_name EntityService
+extends Node
+
+var _entities: Dictionary = {}  # entity_id -> Entity
+var _players: Dictionary = {}   # player_id -> Entity (subset)
+var _enemies: Dictionary = {}    # entity_id -> Entity (subset)
+var _npcs: Dictionary = {}       # entity_id -> Entity (subset)
+
+var _next_entity_id: int = 1
+
+signal entity_registered(entity: Entity)
+signal entity_unregistered(entity: Entity)
+
+func _ready() -> void:
+	Logger.info("EntityService: Ready")
+
+## Register a new entity, returns assigned ID
+func register_entity(entity: Entity, id_override: String = "") -> String:
+	var entity_id: String
+	
+	if id_override != "":
+		entity_id = id_override
+	else:
+		entity_id = "entity_%d" % _next_entity_id
+		_next_entity_id += 1
+	
+	entity.entity_id = entity_id
+	_entities[entity_id] = entity
+	
+	# Track by type
+	if entity.entity_type == Entity.EntityType.PLAYER:
+		_players[entity_id] = entity
+	elif entity.entity_type == Entity.EntityType.ENEMY:
+		_enemies[entity_id] = entity
+	elif entity.entity_type == Entity.EntityType.NPC:
+		_npcs[entity_id] = entity
+	
+	entity_registered.emit(entity)
+	EventBus.entity_spawned.emit(entity)
+	
+	Logger.debug("EntityService: Registered %s as %s" % [entity.display_name, entity_id])
+	return entity_id
+
+## Unregister an entity
+func unregister_entity(entity: Entity) -> void:
+	if not entity.entity_id:
+		return
+	
+	var entity_id := entity.entity_id
+	
+	_entities.erase(entity_id)
+	_players.erase(entity_id)
+	_enemies.erase(entity_id)
+	_npcs.erase(entity_id)
+	
+	entity_unregistered.emit(entity)
+	EventBus.entity_despawned.emit(entity)
+	
+	Logger.debug("EntityService: Unregistered %s" % entity_id)
+
+## Get entity by ID
+func get_entity(entity_id: String) -> Entity:
+	return _entities.get(entity_id)
+
+## Get all entities
+func get_all_entities() -> Array[Entity]:
+	return _entities.values()
+
+## Get all players
+func get_all_players() -> Array[Entity]:
+	return _players.values()
+
+## Get all enemies
+func get_all_enemies() -> Array[Entity]:
+	return _enemies.values()
+
+## Get all NPCs
+func get_all_npcs() -> Array[Entity]:
+	return _npcs.values()
+
+## Get entities in radius (3D sphere)
+func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Entity.EntityType = Entity.EntityType.NPC) -> Array[Entity]:
+	var results: Array[Entity] = []
+	var target_dict: Dictionary
+	
+	match entity_type:
+		Entity.EntityType.PLAYER:
+			target_dict = _players
+		Entity.EntityType.ENEMY:
+			target_dict = _enemies
+		Entity.EntityType.NPC:
+			target_dict = _npcs
+		_:
+			target_dict = _entities
+	
+	for entity in target_dict.values():
+		if not is_instance_valid(entity):
+			continue
+		if entity.global_position.distance_to(origin) <= radius:
+			results.append(entity)
+	
+	return results
+
+## Get closest entity to position
+func get_closest_entity(origin: Vector3, entity_type: Entity.EntityType = Entity.EntityType.NPC, max_distance: float = -1.0) -> Entity:
+	var target_dict: Dictionary
+	
+	match entity_type:
+		Entity.EntityType.PLAYER:
+			target_dict = _players
+		Entity.EntityType.ENEMY:
+			target_dict = _enemies
+		Entity.EntityType.NPC:
+			target_dict = _npcs
+		_:
+			target_dict = _entities
+	
+	var closest: Entity = null
+	var closest_dist: float = -1.0
+	
+	for entity in target_dict.values():
+		if not is_instance_valid(entity):
+			continue
+		var dist := entity.global_position.distance_to(origin)
+		if dist < closest_dist or closest_dist < 0:
+			if max_distance < 0 or dist <= max_distance:
+				closest = entity
+				closest_dist = dist
+	
+	return closest
+
+## Get entities by faction
+func get_entities_by_faction(faction: Faction) -> Array[Entity]:
+	var results: Array[Entity] = []
+	for entity in _entities.values():
+		if not is_instance_valid(entity):
+			continue
+		if entity.faction == faction:
+			results.append(entity)
+	return results
+
+## Get entities by species
+func get_entities_by_species(species_id: String) -> Array[Entity]:
+	var results: Array[Entity] = []
+	for entity in _entities.values():
+		if not is_instance_valid(entity):
+			continue
+		if "species_id" in entity and entity.species_id == species_id:
+			results.append(entity)
+	return results
+
+## Check if entity is ally of another
+func is_ally(entity1: Entity, entity2: Entity) -> bool:
+	# Same team
+	if entity1.team_id != 0 and entity1.team_id == entity2.team_id:
+		return true
+	
+	# Same faction
+	if entity1.faction == entity2.faction:
+		return true
+	
+	# Check species alliance
+	if "species" in entity1 and "species" in entity2:
+		var species1: Species = entity1.species
+		var species2: Species = entity2.species
+		if species1 and species2:
+			if species1.allied_species.has(species2.id):
+				return true
+	
+	return false
+
+## Check if entity is enemy of another
+func is_enemy(entity1: Entity, entity2: Entity) -> bool:
+	# Different teams (if teams are set)
+	if entity1.team_id != 0 and entity2.team_id != 0:
+		if entity1.team_id != entity2.team_id:
+			return true
+	
+	# Hostile factions
+	if entity1.faction == Faction.HOSTILE or entity2.faction == Faction.HOSTILE:
+		return true
+	
+	# Check species hostility
+	if "species" in entity1 and "species" in entity2:
+		var species1: Species = entity1.species
+		var species2: Species = entity2.species
+		if species1 and species2:
+			if species1.hostile_species.has(species2.id):
+				return true
+	
+	return false
+
+## Get entity count
+func get_entity_count() -> int:
+	return _entities.size()
+
+func get_player_count() -> int:
+	return _players.size()
+
+func get_enemy_count() -> int:
+	return _enemies.size()
+
+func get_npc_count() -> int:
+	return _npcs.size()
+
+## Clear all entities (for server reset)
+func clear_all() -> void:
+	var entities_to_remove = _entities.values()
+	_entities.clear()
+	_players.clear()
+	_enemies.clear()
+	_npcs.clear()
+	
+	for entity in entities_to_remove:
+		if is_instance_valid(entity):
+			entity.queue_free()
+	
+	_next_entity_id = 1
+	Logger.info("EntityService: Cleared all entities")

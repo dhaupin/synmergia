@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="Species" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/species.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "human"
+display_name = "Human"
+description = "Versatile survivors of the eastern plains. Known for their adaptability and diplomatic skills."
+model_path = "res://models/player/human.tscn"
+icon_path = "res://icons/species/human.png"
+default_skin_color = Color(0.9, 0.75, 0.6, 1)
+stat_modifiers = {
+"agility": 0,
+"endurance": 0,
+"intelligence": 0,
+"strength": 0,
+"vitality": 5,
+"wisdom": 0
+}
+home_zone = "starter_plains"
+home_faction = "human_faction"
+allied_species = ["elf", "dwarf"]
+hostile_species = ["akkan"]
+health_modifier = 1.05
+mana_modifier = 1.0
+stamina_modifier = 1.0
+speed_modifier = 1.0
+available_skin_tones = [Color(0.9, 0.75, 0.6, 1), Color(0.75, 0.6, 0.45, 1), Color(0.5, 0.35, 0.25, 1)]
+available_hair_colors = [Color(0.2, 0.15, 0.1, 1), Color(0.8, 0.7, 0.5, 1), Color(0.1, 0.1, 0.1, 1)]
+available_eye_colors = [Color(0.3, 0.5, 0.8, 1), Color(0.2, 0.5, 0.3, 1), Color(0.6, 0.4, 0.2, 1)]

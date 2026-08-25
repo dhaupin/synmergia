@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "slime"
+display_name = "Slime"
+description = "A basic slime creature found in meadows and forests."
+enemy_type = 0
+level = 1
+faction = "hostile"
+health = 30
+mana = 0
+stamina = 20
+strength = 5
+agility = 3
+intelligence = 1
+vitality = 5
+attack_power = 8
+spell_power = 0
+armor = 2
+resistance = 0
+attack_range = 1.5
+attack_speed = 0.8
+move_speed = 2.0
+aggro_range = 8.0
+chase_range = 15.0
+wander_range = 3.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = false
+is_social = false
+loot_table_id = "loot_slime_basic"
+gold_min = 1
+gold_max = 5
+xp_reward = 15
+skills = []
+model_path = "res://models/enemies/slime.tscn"
+icon_path = "res://icons/enemies/slime.png"
+scale = 1.0
+animation_set = "slime"
+respawn_time = 30.0
+despawn_time = 0.0
+difficulty_modifier = 1.0
