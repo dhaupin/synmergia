@@ -30,14 +30,64 @@ const REVIVE_RANGE: float = 5.0      # Must be this close
 const REVIVE_COOLDOWN: float = 30.0  # Seconds between revives
 const REVIVE_KARMA_REWARD: int = 10  # Karma for friendly revive
 const REVIVE_KARMA_PENALTY_CROSS_FACTION: int = 5  # Extra karma for cross-faction revive
-const REVIVE_ABUSE_THRESHOLD: int = 10  # Revives per hour = abuse flag
+
+## Context-aware abuse detection thresholds
+## Different zones/modes have different expected revive frequencies
+class ReviveAbuseConfig:
+	var revives_per_hour: int = 20      # Threshold before flagging
+	var window_hours: float = 1.0       # Time window
+	var penalty: int = 5                 # Karma penalty on flag
+	var cooldown_minutes: float = 5.0    # Healer cooldown when flagged
+	
+	func _init(rph: int = 20, wh: float = 1.0, pen: int = 5, cm: float = 5.0):
+		revives_per_hour = rph
+		window_hours = wh
+		penalty = pen
+		cooldown_minutes = cm
+
+var _abuse_configs: Dictionary = {
+	"open_world": ReviveAbuseConfig.new(30, 1.0, 5, 5),      # PVE: Very forgiving
+	"dungeon": ReviveAbuseConfig.new(20, 1.0, 10, 5),        # Dungeon: Normal
+	"raid": ReviveAbuseConfig.new(15, 1.0, 15, 10),          # Raid: Strict (expected deaths)
+	"pvp_zone": ReviveAbuseConfig.new(25, 1.0, 10, 5),       # PVP zone: Medium
+	"arena": ReviveAbuseConfig.new(100, 1.0, 0, 0),          # Arena: No limit (it's the point)
+	"battleground": ReviveAbuseConfig.new(50, 1.0, 5, 5),   # Battleground: Forgiving
+	"contested": ReviveAbuseConfig.new(10, 1.0, 20, 15),     # Contested: Very strict
+}
+
+## Context-aware ability to revive
+class ReviveAbilityConfig:
+	var can_revive_others: bool = true
+	var can_be_revived: bool = true
+	var revive_limit_per_hour: int = 0   # 0 = unlimited
+	var self_revive_available: bool = true
+	var self_revive_cooldown_hours: float = 2.0  # Hours between self-revives
+	
+	func _init(cro: bool = true, cbr: bool = true, rlh: int = 0, sra: bool = true, srch: float = 2.0):
+		can_revive_others = cro
+		can_be_revived = cbr
+		revive_limit_per_hour = rlh
+		self_revive_available = sra
+		self_revive_cooldown_hours = srch
+
+var _ability_configs: Dictionary = {
+	"open_world": ReviveAbilityConfig.new(true, true, 0, true, 2.0),       # Full revive
+	"dungeon": ReviveAbilityConfig.new(true, true, 0, true, 2.0),         # Full revive
+	"raid": ReviveAbilityConfig.new(true, true, 0, true, 1.0),            # More self-revives
+	"pvp_zone": ReviveAbilityConfig.new(true, true, 50, true, 1.0),       # Limited revive others
+	"arena": ReviveAbilityConfig.new(true, true, 100, false, 0),           # No self-revive
+	"battleground": ReviveAbilityConfig.new(true, true, 0, true, 1.0),    # Full revive
+	"contested": ReviveAbilityConfig.new(false, true, 0, true, 0.5),     # Can't revive others
+}
 
 # State tracking
 var _active_revives: Dictionary = {}  # target_id -> {healer, start_time, cast_time}
 var _revive_cooldowns: Dictionary = {}  # healer_id -> last_revoke_time
 var _karma: Dictionary = {}  # entity_id -> karma amount
-var _revive_counts: Dictionary = {}  # entity_id -> count in last hour
+var _revive_counts: Dictionary = {}  # entity_id -> {context: count}
 var _abuse_flags: Dictionary = {}  # entity_id -> abuse_count
+var _current_context: String = "open_world"  # Current zone/mode context
+var _self_revive_timestamps: Dictionary = {}  # entity_id -> last_self_revive_time
 
 # Zone respawn configs
 var _zone_configs: Dictionary = {}  # zone_id -> ZoneRespawnConfig
@@ -174,7 +224,20 @@ func get_available_respawn_modes(player: Entity, zone_id: String = "") -> Array[
 	return available
 
 ## Start a revival attempt (healer initiates)
-func start_revival(healer: Entity, target: Entity) -> bool:
+func start_revival(healer: Entity, target: Entity, context: String = "") -> bool:
+	if context == "":
+		context = _current_context
+	
+	# Check if healer can revive others in this context
+	if not can_revive_others(healer, context):
+		Logger.warn("RespawnService: %s cannot revive others in %s context" % [healer.display_name, context])
+		return false
+	
+	# Check if target can be revived in this context
+	if not can_be_revived(target, context):
+		Logger.warn("RespawnService: %s cannot be revived in %s context" % [target.display_name, context])
+		return false
+	
 	# Check cooldown
 	if _is_on_revival_cooldown(healer):
 		return false
@@ -188,9 +251,14 @@ func start_revival(healer: Entity, target: Entity) -> bool:
 	if not target.health_component or not target.health_component.is_dead():
 		return false
 	
-	# Check karma (anti-abuse)
-	if _check_revive_abuse(healer):
-		Logger.warn("RespawnService: Revive abuse detected for %s" % healer.display_name)
+	# Check context-aware abuse detection
+	if _check_revoke_abuse(healer, context):
+		var config: ReviveAbuseConfig = _abuse_configs.get(context, ReviveAbuseConfig.new())
+		# Apply karma penalty
+		remove_karma(healer.entity_id, config.penalty, "Revive abuse in %s" % context)
+		# Apply temporary cooldown
+		_revive_cooldowns[healer.entity_id] = Time.get_ticks_msec() + (config.cooldown_minutes * 60000)
+		Logger.warn("RespawnService: Revive abuse detected for %s in %s context" % [healer.display_name, context])
 		return false
 	
 	# Start revive
@@ -198,13 +266,12 @@ func start_revival(healer: Entity, target: Entity) -> bool:
 		"healer": healer,
 		"target": target,
 		"start_time": Time.get_ticks_msec(),
-		"cast_time": REVIVE_CAST_TIME
+		"cast_time": REVIVE_CAST_TIME,
+		"context": context
 	}
 	
 	revive_started.emit(target, healer)
-	Logger.info("RespawnService: %s starting revival on %s" % [healer.display_name, target.display_name])
-	
-	# TODO: Start visual effect on target
+	Logger.info("RespawnService: %s starting revival on %s in %s" % [healer.display_name, target.display_name, context])
 	
 	return true
 
@@ -216,6 +283,7 @@ func complete_revival(target_id: String) -> bool:
 	var revive_data: Dictionary = _active_revives[target_id]
 	var healer: Entity = revive_data["healer"]
 	var target: Entity = revive_data["target"]
+	var context: String = revive_data.get("context", _current_context)
 	
 	# Remove from active
 	_active_revives.erase(target_id)
@@ -223,8 +291,8 @@ func complete_revival(target_id: String) -> bool:
 	# Set cooldown for healer
 	_revive_cooldowns[healer.entity_id] = Time.get_ticks_msec()
 	
-	# Track revive count
-	_increment_revoke_count(healer.entity_id)
+	# Track revive count (context-aware)
+	_increment_revoke_count(healer.entity_id, context)
 	
 	# Karma reward
 	var karma_amount := REVIVE_KARMA_REWARD
@@ -232,15 +300,15 @@ func complete_revival(target_id: String) -> bool:
 	# Cross-faction bonus
 	if healer.faction_id != target.faction_id:
 		karma_amount += REVIVE_KARMA_PENALTY_CROSS_FACTION
-		add_karma(healer.entity_id, karma_amount, "Cross-faction revival")
+		add_karma(healer.entity_id, karma_amount, "Cross-faction revival in %s" % context)
 	else:
-		add_karma(healer.entity_id, karma_amount, "Friendly revival")
+		add_karma(healer.entity_id, karma_amount, "Friendly revival in %s" % context)
 	
 	# Respawn target
 	_do_respawn_at(target, healer.global_position, RespawnMode.REVIVE)
 	
 	revive_completed.emit(target, healer)
-	Logger.info("RespawnService: %s revived %s" % [healer.display_name, target.display_name])
+	Logger.info("RespawnService: %s revived %s in %s" % [healer.display_name, target.display_name, context])
 	
 	return true
 
@@ -332,21 +400,125 @@ func _is_on_revival_cooldown(healer: Entity) -> bool:
 	return elapsed < (REVIVE_COOLDOWN * 1000)
 
 ## Internal: Check revive abuse
-func _check_revoke_abuse(healer: Entity) -> bool:
-	_cleanup_old_revoke_counts()
-	var count := _revive_counts.get(healer.entity_id, 0)
-	return count >= REVIVE_ABUSE_THRESHOLD
+## Check if healer is abusing revives in current context
+func _check_revoke_abuse(healer: Entity, context: String = "") -> bool:
+	if context == "":
+		context = _current_context
+	
+	var config: ReviveAbuseConfig = _abuse_configs.get(context)
+	if config == null:
+		config = ReviveAbuseConfig.new()
+	
+	_cleanup_old_revoke_counts(context)
+	
+	var counts: Dictionary = _revive_counts.get(healer.entity_id, {})
+	var context_count: int = counts.get(context, 0)
+	
+	return context_count >= config.revives_per_hour
 
-## Internal: Increment revive count
-func _increment_revoke_count(entity_id: String) -> void:
-	_cleanup_old_revoke_counts()
-	_revive_counts[entity_id] = _revive_counts.get(entity_id, 0) + 1
+## Increment revive count for context
+func _increment_revoke_count(entity_id: String, context: String = "") -> void:
+	if context == "":
+		context = _current_context
+	
+	if not _revive_counts.has(entity_id):
+		_revive_counts[entity_id] = {}
+	
+	var counts: Dictionary = _revive_counts[entity_id]
+	if not counts.has(context):
+		counts[context] = []
+	
+	var context_times: Array = counts[context]
+	context_times.append(Time.get_unix_time_from_system())
+	counts[context] = context_times
 
-## Internal: Cleanup old counts
-func _cleanup_old_revoke_counts() -> void:
-	# Reset counts hourly (simplified)
+## Cleanup old counts for context
+func _cleanup_old_revoke_counts(context: String) -> void:
 	var now := Time.get_unix_time_from_system()
-	# TODO: Implement hourly reset
+	var config: ReviveAbuseConfig = _abuse_configs.get(context, ReviveAbuseConfig.new())
+	var window_seconds := config.window_hours * 3600
+	var cutoff := now - window_seconds
+	
+	for entity_id in _revive_counts:
+		var counts: Dictionary = _revive_counts[entity_id]
+		if counts.has(context):
+			var context_times: Array = counts[context]
+			context_times = context_times.filter(func(t): return t > cutoff)
+			counts[context] = context_times
+
+## Set current context (called when entering zone)
+func set_context(context: String) -> void:
+	_current_context = context
+	Logger.info("RespawnService: Context set to %s" % context)
+
+## Get current context
+func get_context() -> String:
+	return _current_context
+
+## Check if entity can revive others in current context
+func can_revive_others(entity: Entity, context: String = "") -> bool:
+	if context == "":
+		context = _current_context
+	
+	var config: ReviveAbilityConfig = _ability_configs.get(context)
+	if config == null:
+		return true  # Default allow
+	
+	return config.can_revive_others
+
+## Check if entity can be revived in current context
+func can_be_revived(entity: Entity, context: String = "") -> bool:
+	if context == "":
+		context = _current_context
+	
+	var config: ReviveAbilityConfig = _ability_configs.get(context)
+	if config == null:
+		return true  # Default allow
+	
+	return config.can_be_revived
+
+## Check if entity can self-revive in current context
+func can_self_revive(entity: Entity, context: String = "") -> bool:
+	if context == "":
+		context = _current_context
+	
+	var config: ReviveAbilityConfig = _ability_configs.get(context)
+	if config == null or not config.self_revive_available:
+		return false
+	
+	# Check cooldown
+	var last_time: float = _self_revive_timestamps.get(entity.entity_id, 0)
+	var cooldown_seconds := config.self_revive_cooldown_hours * 3600
+	var now := Time.get_unix_time_from_system()
+	
+	return (now - last_time) >= cooldown_seconds
+
+## Use self-revive
+func use_self_revive(entity: Entity) -> bool:
+	if not can_self_revive(entity):
+		return false
+	
+	_self_revive_timestamps[entity.entity_id] = Time.get_unix_time_from_system()
+	return true
+
+## Get revive ability info for context
+func get_revive_ability_info(context: String = "") -> Dictionary:
+	if context == "":
+		context = _current_context
+	
+	var ability: ReviveAbilityConfig = _ability_configs.get(context, ReviveAbilityConfig.new())
+	var abuse: ReviveAbuseConfig = _abuse_configs.get(context, ReviveAbuseConfig.new())
+	
+	return {
+		"context": context,
+		"can_revive_others": ability.can_revive_others,
+		"can_be_revived": ability.can_be_revived,
+		"revive_limit_per_hour": ability.revive_limit_per_hour,
+		"self_revive_available": ability.self_revive_available,
+		"self_revive_cooldown_hours": ability.self_revive_cooldown_hours,
+		"abuse_threshold_per_hour": abuse.revives_per_hour,
+		"abuse_penalty": abuse.penalty
+	}
 
 ## Internal: Get nearby healers
 func _get_nearby_potential_healers(player: Entity) -> Array[Entity]:
