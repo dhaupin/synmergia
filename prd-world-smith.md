@@ -1,6 +1,8 @@
 # World Smith — Open World MMORPG
 
-> **Vision:** A 3D open-world MMORPG inspired by Risk Your Life 2 (RYL2) combat/action mechanics, infused with the depth and player-driven economy of Ultima Online. Mobile-first (Android/iOS), with PC support.
+> **Vision:** A 3D open-world MMORPG inspired by Risk Your Life 2 (RYL2) combat/action mechanics, infused with the depth and player-driven economy of Ultima Online. Built with **Godot 4.x**, mobile-first (Android/iOS), with PC support.
+
+**Engine:** Godot 4.2+ (MIT License)
 
 ---
 
@@ -1639,80 +1641,104 @@ PvP creates **risk vs reward** and **meaningful conflict**:
 
 > **Lead:** Engine selection, client/server architecture, networking, database, and DevOps infrastructure.
 
-### 10.1 Engine Selection
+### 10.1 Engine Selection: Godot 4.2+
 
-#### 10.1.1 Comparison Matrix
-| Engine | Mobile Support | Cost | Learning Curve | Asset Store | Recommendation |
-|--------|--------------|------|---------------|-------------|----------------|
-| **Unity 2023+** | Excellent | 1.8% after $100k revenue | Medium | Extensive | ✓ Recommended |
-| **Godot 4** | Good | Free (MIT) | Low-Medium | Limited | Consider for MVP |
-| **Unreal 5** | Good | 5% royalty | High | Moderate | Graphics-focused only |
+#### 10.1.1 Why Godot 4
 
-#### 10.1.2 Recommendation: Unity
-| Reason | Justification |
-|--------|----------------|
-| **Mobile Maturity** | Proven Android/iOS export, millions of players |
-| **DOTS/ECS** | Performance for large worlds (future) |
-| **Netcode** | Mirror, FishNet, Unity NetCode available |
-| **Asset Store** | Speed up development with pre-made assets |
-| **Documentation** | Extensive mobile optimization guides |
+| Factor | Benefit for World Smith |
+|--------|------------------------|
+| **MIT License** | 100% free, no royalties, full source access |
+| **Lightweight** | 30-50MB builds vs 100MB+, better mobile performance |
+| **GDScript** | Python-like, readable, fast iteration |
+| **Vulkan Renderer** | Modern, efficient, mobile-optimized |
+| **Open Source** | Community contributions, transparency |
 
-#### 10.1.3 Alternative: Godot 4
-| Reason | Justification |
-|--------|----------------|
-| **No Royalties** | 100% revenue to team |
-| **Lightweight** | Better for low-end mobile devices |
-| **Rapid Iteration** | Faster build times |
-| **Multiplayer** | Built-in High-Level Multiplayer (HLAPI) |
+#### 10.1.2 Key Features Used
+
+| Feature | Usage in World Smith |
+|---------|---------------------|
+| **GDScript** | Primary scripting language |
+| **C# Support** | Server-side高性能 if needed |
+| **GDExtension** | Performance-critical systems (C++) |
+| **ENet/PacketPeer** | Multiplayer networking |
+| **Resource System** | Skills, items, character data |
+| **NavigationServer3D** | Pathfinding |
+| **PhysicsServer3D** | Server-side physics |
 
 ### 10.2 Client Architecture
 
-#### 10.2.1 Unity Project Structure
+#### 10.2.1 Godot Project Structure
 ```
-WorldSmith/
-├── Assets/
-│   ├── Art/           # 3D models, textures, materials
-│   ├── Audio/         # Sound effects, music
-│   ├── Prefabs/       # Reusable game objects
-│   ├── Scenes/        # Level scenes
-│   ├── Scripts/       # All C# code
-│   │   ├── Core/      # Base classes, managers
-│   │   ├── Combat/    # Combat system
-│   │   ├── World/     # World generation, zones
-│   │   ├── Player/    # Player controls, UI
-│   │   ├── Network/   # Networking, sync
-│   │   └── UI/        # HUD, menus
-│   └── ScriptableObjects/  # Data definitions
-├── ProjectSettings/
-└── Packages/
+res://
+├── addons/                          # Third-party plugins
+├── assets/                          # External assets
+│   ├── art/models/, textures/, materials/
+│   ├── audio/music/, sfx/
+│   └── fonts/
+├── core/
+│   ├── autoload/                   # Singletons
+│   │   ├── game_manager.gd
+│   │   ├── network_manager.gd
+│   │   ├── player_manager.gd
+│   │   └── input_manager.gd
+│   ├── entities/                    # Base entity classes
+│   │   ├── entity.gd
+│   │   └── character_body.gd
+│   └── combat/                     # Combat system
+│       ├── combat_system.gd
+│       ├── skill.gd
+│       └── status_effect.gd
+├── data/                           # Game Resources (.tres)
+│   ├── skills/
+│   ├── items/
+│   ├── characters/races/, classes/
+│   └── zones/
+├── entities/                       # Game object scenes
+│   ├── player/
+│   │   ├── player.tscn
+│   │   ├── player_controller.gd
+│   │   ├── states/
+│   │   └── camera/
+│   ├── enemies/
+│   └── npcs/
+├── ui/
+│   ├── hud/
+│   ├── menus/
+│   └── scripts/
+├── world/zones/, dungeons/
+├── networking/
+│   ├── client/
+│   ├── server/
+│   └── protocol/
+├── scripts/                        # Utilities
+├── tests/
+├── project.godot
+└── export_presets.cfg
 ```
 
-#### 10.2.2 Core Client Systems
-| System | Description | Priority |
-|--------|-------------|----------|
-| **GameManager** | Master controller, state machine | P0 |
-| **SceneManager** | Zone loading, streaming | P0 |
-| **InputManager** | Touch, keyboard abstraction | P0 |
-| **CameraManager** | 3rd person camera logic | P0 |
-| **UIManager** | HUD, menus, popups | P0 |
-| **AudioManager** | Sound pool, music | P0 |
-| **NetworkManager** | Connection handling | P0 |
-| **EntityManager** | Spawn, despawn, pooling | P0 |
+#### 10.2.2 Core Systems
+| System | File | Responsibility | Priority |
+|--------|------|----------------|----------|
+| **GameManager** | game_manager.gd | State machine, overall control | P0 |
+| **NetworkManager** | network_manager.gd | Multiplayer connection | P0 |
+| **InputManager** | input_manager.gd | Unified touch/keyboard | P0 |
+| **PlayerManager** | player_manager.gd | Local player state | P0 |
+| **CameraController** | third_person_camera.gd | 3rd person camera | P0 |
+| **UIController** | hud_controller.gd | HUD management | P0 |
+| **AudioManager** | audio_manager.gd | Sound/music | P1 |
 
-#### 10.2.3 Rendering Pipeline
-| Setting | Low Quality | Medium Quality | High Quality |
-|---------|-------------|----------------|--------------|
-| **Render Pipeline** | Built-in | URP | URP/HDRP |
-| **Shadow Distance** | 50m | 100m | 200m |
-| **Shadow Resolution** | 512 | 1024 | 2048 |
-| **Texture Quality** | Half | Full | Full + Mipmap |
-| **Particle Density** | 50% | 75% | 100% |
-| **LOD Bias** | 2.0 | 1.5 | 1.0 |
-| **Max FPS** | 30 | 45 | 60 |
+#### 10.2.3 Mobile Quality Tiers
+| Setting | Low | Medium | High |
+|---------|-----|--------|------|
+| **Render Scale** | 0.5 | 0.75 | 1.0 |
+| **Physics FPS** | 30 | 60 | 60 |
+| **Shadows** | Off | Soft | Hard |
+| **Texture Filter** | Nearest | Linear | Linear+Mipmap |
+| **Target FPS** | 30 | 45 | 60 |
 
 ### 10.3 Server Architecture
 
-#### 10.3.1 Server Topology
+#### 10.3.1 Godot Headless Server
 ```
                     ┌─────────────────┐
                     │   Load Balancer │
@@ -1741,13 +1767,12 @@ WorldSmith/
 #### 10.3.2 Server Components
 | Component | Technology | Purpose | Priority |
 |-----------|-----------|---------|----------|
-| **Auth Server** | Node.js/Go | Login, account creation, token generation | P0 |
-| **Game Server** | Go/C++ (or Unity with Mirror) | Authoritative world simulation | P0 |
-| **Message Queue** | RabbitMQ/Redis | Async event processing | P0 |
+| **Godot Headless** | Godot 4.2+ | Authoritative game simulation | P0 |
+| **Auth Service** | Go | Login, token generation | P0 |
 | **Database** | PostgreSQL | Persistent player/world data | P0 |
 | **Cache** | Redis | Session data, real-time state | P0 |
 | **File Storage** | S3/MinIO | Asset storage, logs | P0 |
-| **CDN** | CloudFlare/CloudFront | Asset distribution | P0 |
+| **CDN** | CloudFlare | Asset distribution | P1 |
 
 #### 10.3.3 Game Server Features
 | Feature | Specification | Priority |
@@ -1765,15 +1790,15 @@ WorldSmith/
 #### 10.4.1 Network Protocol
 | Layer | Protocol | Purpose |
 |-------|----------|---------|
-| **Transport** | UDP (KCP) | Real-time game data, low latency |
-| **Reliable** | TCP | Account operations, trading |
-| **Encryption** | TLS 1.3 | All connections |
-| **Serialization** | FlatBuffers/Protobuf | Compact, fast |
+| **Transport** | ENet (UDP) | Low-latency game data |
+| **Reliable** | ENet reliable channel | Important game events |
+| **Unreliable** | ENet unreliable channel | Position updates |
+| **Serialization** | Godot VarToStr | Compact data |
 
 #### 10.4.2 Client-Side Prediction
 | Mechanism | Description |
 |-----------|-------------|
-| **Input Buffer** | Store last 10 inputs locally |
+| **Input Buffer** | Store last 5 inputs locally |
 | **Prediction** | Apply input immediately on client |
 | **Reconciliation** | Server sends correction, client interpolates |
 | **Smoothing** | Blend corrected position over 100ms |
@@ -1935,26 +1960,41 @@ CREATE TABLE guild_members (
 | Stage | Tool | Action |
 |-------|------|--------|
 | **Trigger** | GitHub Actions | On push/PR |
-| **Test** | Unity Test Runner | Unit tests |
-| **Build** | Unity Cloud Build | Android/iOS builds |
+| **Test** | Godot Test Runner | Unit tests |
+| **Build Android** | Docker + Godot CI | APK builds |
+| **Build Server** | Docker + Godot CI | Linux headless |
 | **Sign** | Platform tools | Code signing |
-| **Deploy** | Custom script | Push to CDN/store |
+| **Deploy** | Custom script | Push to stores |
 
 #### 10.8.2 Server Deployment
 | Stage | Tool | Action |
 |-------|------|--------|
-| **Build** | Docker | Containerize servers |
-| **Test** | Kubernetes | Deploy to staging |
-| **Deploy** | Helm/Kubectl | Rolling update to prod |
-| **Monitor** | Datadog | Watch metrics/logs |
+| **Build** | Docker | Containerize Godot headless |
+| **Test** | Docker Compose | Local staging |
+| **Deploy** | AWS ECS/GCP Cloud Run | Production servers |
+| **Monitor** | CloudWatch/Cloud Monitoring | Metrics/logs |
 
-### 10.9 Technical Open Questions
+### 10.9 Technical Open Questions (RESOLVED)
 
-- [ ] **Engine Decision:** Unity or Godot? (Need to decide for development to begin)
-- [ ] **Server Language:** Go for performance or C# for Unity parity?
-- [ ] **Database:** PostgreSQL sufficient or need sharding strategy?
-- [ ] **Launch Scale:** Target concurrent players at launch?
-- [ ] **Hosting:** Self-host, AWS, or game hosting provider?
+| Question | Resolution | Notes |
+|----------|-----------|-------|
+| **Engine** | ✅ Godot 4.2+ | MIT license, lightweight, performant |
+| **Server** | ✅ Godot headless + Go auth | Godot for game logic |
+| **Database** | ✅ PostgreSQL | Proven, scalable |
+| **Networking** | ✅ ENet + custom authority | Low-latency |
+| **Launch Scale** | ✅ 100-500 concurrent | Start small, scale as needed |
+| **Hosting** | ✅ AWS/GCP VMs | Full control, scalable |
+
+### 10.10 Development Roadmap
+
+| Phase | Deliverables |
+|-------|--------------|
+| **Setup** | Godot project, git, CI/CD |
+| **Core** | Movement, camera, basic combat |
+| **Multiplayer** | LAN test, then online |
+| **Persistence** | Database, character save/load |
+| **Content** | Zones, enemies, skills |
+| **Polish** | Mobile optimization, UI |
 
 ---
 
