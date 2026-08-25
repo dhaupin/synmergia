@@ -68,6 +68,14 @@ var is_dead: bool = false
 # Team (for friendly fire)
 var team_id: int = 0
 
+# Respawn state
+var respawn_point: Vector3 = Vector3.ZERO  # Last bound position
+var respawn_ankh_id: String = ""           # Bound ankh ID
+var pending_respawn: bool = false         # Waiting to respawn
+
+# Faction
+var faction_id: String = ""
+
 func _ready() -> void:
 	_calculate_max_resources()
 	current_health = max_health

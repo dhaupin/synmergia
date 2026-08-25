@@ -99,15 +99,37 @@ A playable demo with basic combat, one region, one playable class, one species, 
 
 **PRD References:** Section 3 Combat Systems, Section 3.6 Death & Resurrection
 
-### 1.1 Projectile System [CRITICAL]
+### 1.1 Projectile System [CRITICAL] - FLEXIBLE FOR ALL ENTITIES
 **Files:** `godot-project/core/combat/projectile.gd`
 
+#### Core Features
 - [x] Base Projectile class with position, velocity, lifetime
 - [x] Projectile collision detection (hitbox vs entities)
 - [x] Projectile expiration (max range, time, out of bounds)
 - [x] Explosion on impact for PROJECTILE_AOE skills
 - [x] Visual VFX integration (scene loading)
 - [x] Factory methods: create_arrow, create_fireball, create_magic_bolt
+
+#### Owner Classification
+- [x] ProjectileOwner enum: PLAYER_ONLY, ENEMY_ONLY, ALL
+- [x] Source detection (is player vs enemy)
+- [x] Bonus damage vs players/enemies configurable
+
+#### Advanced Projectile Types
+- [x] HEAVY_SHOT - Slow, high damage (enemy grunt)
+- [x] TRAP - Ground-targeted, triggered by proximity
+- [x] BEAM - Instant beam
+- [x] RICOCHET - Bounces between targets
+- [x] CHAIN - Chains to nearby enemies (chain lightning)
+- [x] HEALING_ORB - Homing healing projectile
+
+#### Advanced Mechanics
+- [x] Piercing (pass through N targets)
+- [x] Homing behavior with trajectory change signal
+- [x] Ricochet/bounce counting
+- [x] Chain lightning with target tracking
+- [x] Trap trigger radius and duration
+- [x] Damage falloff from explosion center
 
 ### 1.2 Interrupt System [CRITICAL]
 **Files:** `godot-project/core/components/combat_component.gd` (update)
@@ -119,14 +141,47 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] Interrupt resistance stat/buffs
 - [x] Channel ticks for DOT-style channeling
 
-### 1.3 Death and Respawn [CRITICAL]
-**Files:** `godot-project/core/components/health_component.gd` (update)
+### 1.3 Death and Respawn [CRITICAL] - FLEXIBLE SYSTEM
+**Files:** `godot-project/core/components/health_component.gd`, `core/services/respawn_service.gd`, `core/schemas/ankh.gd`
 
+#### Ankh System (UO-inspired)
+- [x] Ankh schema with multiple types (SHARED, PERSONAL, GUILD, FACTION, NEUTRAL, BLESSED, CURSED, ARENA)
+- [x] Ankh sizes (SMALL, MEDIUM, LARGE, COLOSSAL)
+- [x] Coverage radius (players in range can bind)
+- [x] Activation radius (must be close to activate)
+- [x] Respawn modifiers (time multiplier, blessed duration, debuffs)
+- [x] Zone/gateway linking
+- [x] Level/faction/quest restrictions
+
+#### Respawn Modes
+- [x] TIMED - Standard timed respawn
+- [x] ANKH - Respawn at bound ankh
+- [x] REVIVE - Resurrected by another player
+- [x] SELF_REVIVE - Item/spell self-resurrect
+- [x] ARENA_TEAM - Arena team respawn with limits
+- [x] CONTESTED - Fight for respawn
+- [x] GATEWAY - Respawn at zone gateway
+- [x] SAFE_ZONE - Safe area with invincibility
+
+#### Revive Mechanics
+- [x] Revive cast time (3 seconds)
+- [x] Revive range check
+- [x] Revive cooldown (30 seconds per healer)
+- [x] Karma rewards (10 for friendly, bonus for cross-faction)
+- [x] Abuse detection (10 revives/hour = flag)
+- [x] Progress tracking during revive cast
+
+#### PVP/Arena Modes
+- [x] Limited resurrections per team
+- [x] Contested respawn (fight to prevent enemy res)
+- [x] Central ankh with safe zone
+- [x] Invincibility duration on respawn (configurable)
+
+#### Death State
 - [x] Death state (no input, no damage)
 - [x] Corpse entity (visual, lootable) - stubbed
 - [x] Respawn timer (configurable per zone)
 - [x] Respawn location selection (BIND_POINT, NEAR_CORPSE, CUSTOM)
-- [x] Respawn at specific location method
 
 ---
 
