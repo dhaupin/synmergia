@@ -25,6 +25,11 @@ enum StackBehavior {
 @export var max_stacks: int = 1
 @export var stack_behavior: StackBehavior = StackBehavior.NONE
 
+# Dispel settings (for aura_component compatibility)
+@export var is_dispellable: bool = true
+@export var dispel_category: int = 0  # AuraComponent.EffectCategory
+@export var dispel_resist_chance: float = 0.0  # 0 = always dispel, 1 = never dispel
+
 var current_stacks: int = 1
 var remaining_duration: float = 0.0
 var source_entity: Entity = null

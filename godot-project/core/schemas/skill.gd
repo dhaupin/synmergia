@@ -43,6 +43,7 @@ enum TargetType {
 @export var animation_duration: float = 0.4
 @export var recovery_time: float = 0.0
 @export var can_interrupt: bool = true  # Can be interrupted by damage
+@export var uses_gcd: bool = true       # Triggers global cooldown
 
 # Targeting
 @export var range: float = 2.5

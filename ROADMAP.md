@@ -212,32 +212,51 @@ A playable demo with basic combat, one region, one playable class, one species, 
 **PRD References:** Section 3.4 Stats & Attributes, Section 3.5 Health & Resource Display
 
 ### 2.1 Global Cooldown (GCD)
-**Files:** `godot-project/core/services/combat_service.gd`
+**Files:** `godot-project/core/components/combat_component.gd`
 
-- [ ] GCD duration (default 1.0s)
-- [ ] Skills add to GCD (optional per skill)
-- [ ] GCD prevents skill queue
+- [x] GCD duration (default 1.0s)
+- [x] Skills add to GCD (optional per skill, `uses_gcd` flag)
+- [x] GCD prevents skill queue
+- [x] Skill queue methods (queue_skill, process_queued_skill)
+- [x] `gcd_affects_movement` option
 
 ### 2.2 Combat State Tracking
 **Files:** `godot-project/core/components/combat_component.gd`
 
-- [ ] in_combat flag per entity
-- [ ] Out-of-combat timer (default 5-10s no damage)
-- [ ] Mana regen rate changes (combat vs rest)
+- [x] `in_combat` flag per entity
+- [x] Out-of-combat timer (default 10s no damage)
+- [x] Mana regen rate changes (combat vs rest multipliers)
+- [x] Stamina regen rate changes
+- [x] Combat enter/exit signals
+- [x] Force exit combat (for zone changes)
+- [x] Combat duration tracking
 
 ### 2.3 Hit Calculation (Miss/Evade/Block/Dodge)
-**Files:** `godot-project/core/schemas/effect.gd`, combat math
+**Files:** `godot-project/core/services/combat_math.gd`
 
-- [ ] Hit chance calculation
-- [ ] Miss, Evade, Block, Parry calculations
-- [ ] Partial damage on block
+- [x] Hit chance calculation (level scaling)
+- [x] Miss, Evade, Dodge calculations
+- [x] Block (partial damage reduction)
+- [x] Parry (counter-attack chance)
+- [x] Crush (boss bonus vs low level)
+- [x] Magic resistance
+- [x] Crit avoidance
+- [x] Combat rating system (hit, crit, dodge, parry, block ratings)
+- [x] `calculate_hit()` and `calculate_magic_hit()` functions
 
 ### 2.4 Dispel/Cleanse System
-**Files:** `godot-project/core/components/aura_component.gd`
+**Files:** `godot-project/core/components/aura_component.gd`, `core/entities/status_effect.gd`
 
-- [ ] Effect categories (MAGIC, CURSE, POISON, PHYSICAL)
-- [ ] can_dispel(category) check
-- [ ] dispel_effect(category) removes matching effects
+- [x] Effect categories (MAGIC, CURSE, POISON, PHYSICAL, HOLY, SHADOW, FIRE, ICE, LIGHTNING, ARCANE, BLEED, STUN, FEAR, CHARM)
+- [x] `dispel_magic()` - dispel magic/curse/poison
+- [x] `dispel_curses()` - dispel curses only
+- [x] `dispel_poison()` - dispel poison only
+- [x] `cleanse()` - removes poison/disease/curse
+- [x] `dispel_all()` - removes all dispellable
+- [x] Special categories (BLEED, STUN, FEAR, CHARM) need specific dispel
+- [x] `is_dispellable` flag on effects
+- [x] `dispel_resist_chance` for boss mechanics
+- [x] `get_dispel_info()` for UI
 
 ---
 
