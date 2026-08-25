@@ -25,13 +25,44 @@
 
 ## 1. Executive Summary
 
-*To be filled: High-level description of the game, target audience, competitive landscape, and development approach.*
+**World Smith** is a 3D open-world MMORPG targeting mobile (Android/iOS) with PC support. The game combines RYL2's fast-paced, free-form action combat with Ultima Online's depth of player-driven economy, housing, and world interaction.
+
+**Core Loop:** Explore vast world → Fight enemies/dungeons → Craft gear → Build houses → Participate in PvP → Repeat
+
+**Target Audience:**
+- MMORPG players who miss the depth of UO/EVE-era games
+- Mobile gamers who want console-quality action combat on the go
+- Players who enjoy crafting, housing, and player economies over theme-park content
+
+**Competitive Landscape:**
+- Similar to: RYL2 (combat feel), UO (economy/housing), Black Desert (action combat), Albion Online (full loot PvP)
+- Differentiator: Mobile-first with full MMO depth, not a stripped-down mobile port
+
+**Development Approach:**
+- Agent-assisted development using LLMs for code generation
+- Incremental feature delivery with continuous integration
+- Godot 4.2+ for cross-platform deployment
 
 ---
 
 ## 2. Core Game Pillars
 
-*To be filled: The 3-5 foundational principles that define the game experience.*
+The 3-5 foundational principles that define the game experience:
+
+### 1. Free-Form Action Combat ⚔️
+Combat is not turn-based or tab-target locked. Players move, jump, dodge, and attack freely during combat (RYL2-style). Skills can be used while moving. Positioning matters.
+
+### 2. Player-Driven Economy 🏪
+No auction house bot. Resources spawn in the world, players gather and craft. Prices are determined by supply/demand. Legendary items come from players and world bosses, not loot boxes.
+
+### 3. Meaningful World Presence 🌍
+Player houses dot the landscape. Guilds control territories. Resources are finite. What you build affects the world. The world persists and changes based on player actions.
+
+### 4. Risk vs Reward PvP ⚔️
+PvP zones offer better rewards but carry the risk of losing your gear. Full loot in designated zones. Guild wars shape server politics. Death has consequence.
+
+### 5. Mobile-First Quality 📱
+The same full experience on mobile as on PC. Touch controls designed for action combat, not afterthought keyboard mappings. Optimized for all device tiers.
 
 ---
 
@@ -125,10 +156,15 @@
 
 ### 3.8 Combat Open Questions
 
-- [ ] How does aggro work? Threat tables or proximity-based?
-- [ ] PvP combat differences? (CC reduction, damage modifiers)
-- [ ] Solo vs group damage scaling?
-- [ ] Level scaling within zones? (world scales to player level?)
+> **DECIDED:** These questions have been answered in development.
+
+- [x] **How does aggro work?** → Proximity-based aggro with configurable detection radius. Enemies detect players within aggro range. Higher level enemies don't aggro much lower level players (20+ level gap). Players 20+ levels higher get minimal XP.
+
+- [x] **PvP combat differences?** → CC reduction in PvP (50% duration), damage modifiers based on gear differential. Open for tuning.
+
+- [ ] Solo vs group damage scaling? → TBD (no decision yet)
+
+- [ ] Level scaling within zones? → TBD (world scaling not planned for initial release)
 
 ---
 
@@ -391,15 +427,23 @@
 
 ## 10. Technical Architecture
 
-> **In Progress:** Engine choice, server model, networking, database.
+> **Decided:** Godot 4.2+ chosen for open source, lightweight, no royalties, and strong 3D support in 4.x versions.
 
 ### 10.1 Engine Selection
 
 | Option | Pros | Cons | Status |
 |--------|------|------|--------|
-| **Unity** | Industry standard, great mobile support, large asset store | License fees after revenue | Evaluating |
-| **Godot 4** | Open source, lightweight, no royalties | Smaller ecosystem, less mobile polish | Evaluating |
-| **Unreal 5** | Powerful graphics, Blueprints | Heavy for mobile, complex | Evaluating |
+| **Godot 4.2+** | Open source (MIT), lightweight, no royalties, strong 3D, GDScript | Smaller ecosystem than Unity | ✅ **CHOSEN** |
+| **Unity** | Industry standard, great mobile support, large asset store | License fees after revenue | ❌ Not chosen |
+| **Unreal 5** | Powerful graphics, Blueprints | Heavy for mobile, complex | ❌ Not chosen |
+
+**Key Godot Features Used:**
+- GDScript for game logic
+- Godot 4.x scene system (`.tscn`)
+- ENet for multiplayer
+- VarToStr for network serialization
+- Physics3D for collision
+- Headless server mode for dedicated servers
 
 ### 10.2 Client Architecture
 
@@ -513,11 +557,13 @@
 
 ## 13. Phases & Milestones
 
-### Phase 0: Foundation (Current)
-- [ ] Complete PRD
-- [ ] Choose engine
-- [ ] Set up dev environment
-- [ ] Architecture decisions
+### Phase 0: Foundation ✅ COMPLETE
+- [x] Complete PRD
+- [x] Choose engine (Godot 4.2+)
+- [x] Set up dev environment
+- [x] Architecture decisions
+- [x] Initial combat/skill systems implemented
+- [x] ROADMAP.md created for tracking
 
 ### Phase 1: Vertical Slice (MVP)
 - [ ] Single playable zone
@@ -565,14 +611,24 @@
 
 ## 14. Open Questions
 
-1. **Engine Choice:** Unity vs Godot vs Unreal — any preference?
-2. **Server Hosting:** Official servers or player-hosted?
-3. **Scale:** How many players per server? (50? 500?)
-4. **Level Cap:** What level range? (50, 100, no cap?)
-5. **Art Assets:** AI generation, purchase, custom?
-6. **Real Money:** RMT policy? (subscriptions, cosmetics, nothing?)
-7. **Platform Priority:** Android first, iOS later, or simultaneous?
-8. **PC Support:** Mobile only or PC port from day 1?
+> **ANSWERED:** Most questions have been addressed.
+
+1. ~~**Engine Choice:**~~ → ✅ Godot 4.2+ chosen
+2. ~~**Server Hosting:**~~ → Official servers planned
+3. **Scale:** How many players per server? (50? 500?) → TBD
+4. **Level Cap:** What level range? (50, 100, no cap?) → 60 levels planned
+5. **Art Assets:** AI generation, purchase, custom? → TBD
+6. **Real Money:** RMT policy? (subscriptions, cosmetics, nothing?) → Cosmetics shop planned
+7. **Platform Priority:** Android first, iOS later, or simultaneous? → Simultaneous with Godot exports
+8. ~~**PC Support:**~~ → ✅ PC support from day 1 (same Godot build)
+
+---
+
+## Development Tracking
+
+📋 **See [ROADMAP.md](./ROADMAP.md)** for implementation progress and technical details.
+
+The ROADMAP maps PRD features to actual code files and tracks completion status.
 
 ---
 
