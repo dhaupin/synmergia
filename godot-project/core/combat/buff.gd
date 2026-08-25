@@ -205,7 +205,8 @@ enum AuraType {
 }
 
 @export var aura_type: AuraType = AuraType.AREA_BUFF
-@export var aura_radius: float = 10.0  # Detection radius
+@export var aura_radius: float = 10.0  # 3D sphere radius
+@export var aura_respects_geometry: bool = false  # Walls block aura detection (false = goes through walls)
 
 # Toggle cost (continuous drain while active)
 @export var mana_drain_per_second: float = 5.0
@@ -230,6 +231,7 @@ var _effect_timer: Timer
 var _is_toggled_on: bool = false
 var _affected_allies: Array[Entity] = []
 var _affected_enemies: Array[Entity] = []
+var _physics_area: PhysicsArea  # 3D sphere detection
 
 func _init() -> void:
 	super._init()
@@ -385,22 +387,36 @@ func _get_entities_in_aura_range() -> Array[Entity]:
 	if not target_entity or not is_instance_valid(target_entity):
 		return entities
 	
-	var target_pos := target_entity.global_position
-	var space_state := target_entity.get_world_3d().direct_space_state
+	# Use 3D sphere detection with optional LOS blocking
+	var blocking_mode := PhysicsArea.BlockingMode.NONE
+	if aura_respects_geometry:
+		blocking_mode = PhysicsArea.BlockingMode.WALLS_ONLY
 	
-	# Use sphere overlap to find entities in range
+	var target_pos := target_entity.global_position
+	
+	# Direct sphere query for entities in range
+	var space_state := target_entity.get_world_3d().direct_space_state
 	var query := PhysicsShapeQueryParameters3D.new()
 	var shape := SphereShape3D.new()
 	shape.radius = aura_radius
 	query.shape = shape
 	query.transform = Transform3D(Basis.IDENTITY, target_pos)
-	query.collision_mask = 0b0000111  # Match entity layers
+	query.collision_mask = 0b0000001  # Entities layer
 	
 	var results := space_state.intersect_shape(query, 100)
 	
 	for result in results:
 		var entity = result["collider"]
 		if entity is Entity and entity != target_entity:
+			# If respecting geometry, check line of sight
+			if aura_respects_geometry:
+				var entity_pos := entity.global_position + Vector3(0, 1.0, 0)
+				var caster_pos := target_pos + Vector3(0, 1.5, 0)
+				var los_query := PhysicsRayQueryParameters3D.create(caster_pos, entity_pos)
+				los_query.collision_mask = 0b0000010  # Walls layer
+				var los_result := space_state.intersect_ray(los_query)
+				if not los_result.is_empty():
+					continue  # Blocked by wall
 			entities.append(entity)
 	
 	return entities
