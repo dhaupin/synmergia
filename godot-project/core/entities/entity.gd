@@ -8,9 +8,25 @@ signal died(killer: Entity)
 signal stat_changed(stat: String, value: int)
 signal state_changed(new_state: String)
 
+enum EntityType {
+	PLAYER,
+	ENEMY,
+	NPC,
+	Destructible,
+	Object
+}
+
+enum Faction {
+	NEUTRAL,
+	FRIENDLY,
+	HOSTILE
+}
+
 @export var entity_id: String = ""
 @export var display_name: String = "Entity"
 @export var level: int = 1
+@export var entity_type: EntityType = EntityType.NPC
+@export var faction: Faction = Faction.NEUTRAL
 
 # Stats stored as dictionary
 var stats: Dictionary = {
@@ -19,7 +35,11 @@ var stats: Dictionary = {
 	"intelligence": 10,
 	"vitality": 10,
 	"endurance": 10,
-	"wisdom": 10
+	"wisdom": 10,
+	"damage_multiplier": 1.0,
+	"defense_multiplier": 1.0,
+	"armor_multiplier": 1.0,
+	"movement_speed_multiplier": 1.0
 }
 
 # Resources
