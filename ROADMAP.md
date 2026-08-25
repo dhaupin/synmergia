@@ -244,49 +244,51 @@ A playable demo with basic combat, one region, one playable class, one species, 
 ```
 godot-project/
 ├── core/
-│   ├── services/               (NEW)
-│   │   ├── event_bus.gd        (NEW - signal hub)
-│   │   ├── data_service.gd    (NEW - resource loading)
-│   │   ├── entity_service.gd  (NEW - entity registry)
+│   ├── services/               # Autoloaded services
+│   │   ├── event_bus.gd        # Global signal hub
+│   │   ├── data_service.gd     # Resource loading
+│   │   ├── entity_service.gd  # Entity registry
+│   │   ├── connector_service.gd # AI agent connectors
 │   │   ├── combat_service.gd
 │   │   ├── spawn_service.gd
 │   │   └── xp_service.gd
-│   ├── schemas/                (NEW - base classes for data)
-│   │   ├── skill.gd           (NEW)
-│   │   ├── item.gd            (NEW)
-│   │   ├── enemy_data.gd      (NEW)
-│   │   ├── character_class.gd (NEW)
-│   │   ├── species.gd          (NEW)
-│   │   ├── faction.gd          (NEW)
-│   │   ├── zone_data.gd       (NEW)
-│   │   └── loot_table.gd      (NEW)
-│   ├── components/             (NEW - entity components)
-│   │   ├── health_component.gd (NEW)
-│   │   ├── combat_component.gd (NEW)
-│   │   ├── aura_component.gd  (NEW)
-│   │   ├── aggro_component.gd (NEW)
-│   │   └── inventory_component.gd (NEW)
-│   ├── ai/
-│   │   └── enemy_ai.gd        (NEW)
-│   ├── combat/                 (existing)
+│   ├── schemas/                # Base classes for data (.tres files)
 │   │   ├── skill.gd
-│   │   ├── buff.gd
-│   │   ├── healing.gd
-│   │   ├── status_handlers.gd
-│   │   ├── physics_area.gd
-│   │   └── projectile.gd       (TODO)
-│   ├── autoload/
-│   │   ├── game_manager.gd
-│   │   ├── network_manager.gd
-│   │   ├── input_manager.gd
-│   │   ├── player_manager.gd
-│   │   └── logger.gd
-│   └── entities/
-│       ├── entity.gd
-│       └── status_effect.gd
-├── data/                       (NEW - resource files)
+│   │   ├── item.gd
+│   │   ├── enemy_data.gd
+│   │   ├── character_class.gd
+│   │   ├── species.gd
+│   │   ├── faction.gd
+│   │   ├── zone_data.gd
+│   │   ├── event_data.gd      # Global events
+│   │   ├── dwelling_data.gd  # Housing items
+│   │   ├── agent_connector.gd # AI connector base
+│   │   └── agent_action.gd    # Agent action data
+│   ├── components/             # Entity components
+│   │   ├── health_component.gd
+│   │   ├── combat_component.gd
+│   │   ├── aura_component.gd
+│   │   ├── aggro_component.gd
+│   │   └── inventory_component.gd
+│   └── ai/
+│       └── enemy_ai.gd
+├── connectors/                 # AI Agent Connectors (NEW)
+│   ├── vant/                  # Vant runtime connector
+│   ├── mcp/                   # Model Context Protocol
+│   ├── claude/                # Anthropic Claude
+│   ├── openai/               # OpenAI GPT
+│   └── gemini/               # Google Gemini
+├── data/                       # Resource files (drop .tres = add content)
 │   ├── skills/
 │   ├── items/
+│   ├── weapons/
+│   ├── armors/
+│   ├── accessories/
+│   ├── consumables/
+│   ├── resources/
+│   ├── events/
+│   ├── dwellings/
+│   ├── misc/
 │   ├── enemies/
 │   ├── classes/
 │   ├── species/
@@ -300,6 +302,44 @@ godot-project/
     └── enemies/
         └── enemy_controller.gd
 ```
+
+---
+
+## Phase X: Agent Connectors (NEW)
+
+**PRD References:** AI Agent Support, Multiplayer Extensions
+
+### X.1 Connector Framework
+**Files:** `godot-project/core/schemas/agent_connector.gd`, `agent_action.gd`
+
+- [x] AgentConnector base class with observation/action space
+- [x] AgentAction data class
+- [ ] Connector discovery and loading
+- [ ] Hot-reload connectors
+
+### X.2 Connector Implementations
+**Files:** `godot-project/connectors/`
+
+- [x] VantConnector - Vant runtime connector
+- [x] MCPConnector - Model Context Protocol
+- [ ] ClaudeConnector - Anthropic Claude
+- [ ] OpenAIConnector - GPT-4/GPT-4o
+- [ ] GeminiConnector - Google Gemini
+- [ ] CustomConnector - Base for custom implementations
+
+### X.3 Connector Service
+**Files:** `godot-project/core/services/connector_service.gd`
+
+- [x] ConnectorService - Manages all connectors
+- [ ] Agent session management
+- [ ] Action execution pipeline
+- [ ] Observation broadcasting
+
+### X.4 Agent Training/Modes
+- [ ] Self-play mode (agents vs agents)
+- [ ] Human vs Agent mode
+- [ ] Agent tournament scoring
+- [ ] Replay/observation tools
 
 ---
 
