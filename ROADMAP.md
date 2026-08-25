@@ -168,8 +168,30 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] Revive range check
 - [x] Revive cooldown (30 seconds per healer)
 - [x] Karma rewards (10 for friendly, bonus for cross-faction)
-- [x] Abuse detection (10 revives/hour = flag)
+- [x] Context-aware abuse detection (varies by zone/mode)
 - [x] Progress tracking during revive cast
+- [x] Context-specific revive abilities
+
+#### Context-Aware Revive System
+**Abuse Thresholds (revives/hour):**
+- [x] `open_world`: 30 (PVE forgiving)
+- [x] `dungeon`: 20 (normal)
+- [x] `raid`: 15 (expected deaths)
+- [x] `pvp_zone`: 25 (medium)
+- [x] `arena`: 100 (no limit)
+- [x] `battleground`: 50 (forgiving)
+- [x] `contested`: 10 (very strict)
+
+**Ability Flags per Context:**
+- [x] `open_world/dungeon/raid/battleground`: Full revive
+- [x] `pvp_zone`: Limited revive others (50/hour)
+- [x] `arena`: No self-revive
+- [x] `contested`: Can't revive others (fight for res)
+
+**Penalty System:**
+- [x] Karma penalty varies by context
+- [x] Temporary cooldown when flagged
+- [x] Self-revive cooldown per context
 
 #### PVP/Arena Modes
 - [x] Limited resurrections per team
