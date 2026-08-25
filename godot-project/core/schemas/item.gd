@@ -3,16 +3,47 @@
 class_name Item
 extends Resource
 
-enum ItemType {
-	CONSUMABLE,   # Potions, food, scrolls
-	WEAPON,       # Swords, bows, staves
-	ARMOR,        # Helmet, chest, legs, boots, gloves
-	ACCESSORY,    # Ring, necklace, belt
-	QUEST_ITEM,   # Cannot be sold/traded
-	GEM,          # Socketable gems
-	MATERIAL,     # Crafting materials
-	CURRENCY,     # Gold, etc.
-	MISC          # Everything else
+enum ItemCategory {
+	WEAPON,       # Swords, bows, staves, daggers
+	ARMOR,        # Head, chest, legs, feet, gloves, shoulders
+	ACCESSORY,    # Rings, necklaces, belts, cloaks
+	CONSUMABLE,   # Potions, food, scrolls, reagents
+	RESOURCE,     # Crafting materials, gathering
+	GEM,          # Socketable gems, crafting ingredient
+	EVENT,        # Limited time event items
+	DWELLING,     # Housing items, furniture, decorations
+	MISC          # Everything else (quest items, vanity, garbage loot)
+}
+
+enum WeaponType {
+	NONE,
+	SWORD,
+	AXE,
+	MACE,
+	DAGGER,
+	BOW,
+	CROSSBOW,
+	STAFF,
+	WAND,
+	SPEAR,
+	SHIELD
+}
+
+enum ArmorType {
+	NONE,
+	CLOTH,
+	LEATHER,
+	MAIL,
+	PLATE
+}
+
+enum AccessoryType {
+	NONE,
+	RING,
+	NECKLACE,
+	BRACELET,
+	CLOAK,
+	BELT
 }
 
 enum Rarity {
@@ -45,9 +76,14 @@ enum EquipSlot {
 @export var icon_path: String = ""
 
 # Classification
-@export var item_type: ItemType = ItemType.MISC
+@export var item_category: ItemCategory = ItemCategory.MISC
 @export var rarity: Rarity = Rarity.COMMON
 @export var equip_slot: EquipSlot = EquipSlot.NONE
+
+# Subcategory (for organization)
+@export var weapon_type: WeaponType = WeaponType.NONE
+@export var armor_type: ArmorType = ArmorType.NONE
+@export var accessory_type: AccessoryType = AccessoryType.NONE
 
 # Stack & Trade
 @export var stack_size: int = 1
@@ -95,6 +131,23 @@ enum EquipSlot {
 # Cosmetic
 @export var model_path: String = ""
 @export var color: Color = Color.WHITE
+
+# Dwelling/Housing specific
+@export var dwelling_category: String = ""  # furniture, decoration, lighting, storage, etc.
+@export var dwelling_size: Vector3 = Vector3.ONE  # Size in housing grid units
+@export var is_placeable: bool = false
+@export var placement_zones: Array[String] = []  # Where it can be placed
+
+# Event specific
+@export var event_id: String = ""  # Links to event_system event
+@export var event_expires: bool = false
+@export var event_end_date: String = ""  # ISO date when item expires
+
+# Consumable specific
+@export var use_skill_id: String = ""  # Skill to execute on use
+@export var cooldown: float = 0.0
+@export var duration: float = 0.0  # For buffs that consume item
+@export var buff_effects: Array[Dictionary] = []  # Buffs granted by consumable
 
 func _init() -> void:
 	if id == "":

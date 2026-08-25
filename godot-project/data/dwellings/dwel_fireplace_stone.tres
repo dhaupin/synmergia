@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dwel_fireplace_stone"
+display_name = "Stone Fireplace"
+description = "A cozy stone fireplace. Provides ambient warmth and lighting."
+icon_path = "res://icons/dwellings/fireplace_stone.png"
+item_category = 7
+rarity = 1
+equip_slot = 0
+dwelling_category = "lighting"
+dwelling_size = Vector3(3, 2, 1)
+is_placeable = true
+placement_zones = ["housing_zone_1"]
+is_interactable = true
+interaction_type = "light_fire"
+interaction_radius = 1.0
+cooldown_seconds = 0.0
+provides_function = "ambient_light"
+function_capacity = 0
+tax_modifier = 0.05
+maintenance_cost = 10.0
+decay_time_days = 0.0
+allow_guild_access = true
+allow_friends_access = true
+allow_public_view = true
+dyeable = false
+is_animated = true
+animation_path = "res://animations/dwellings/fireplace_burn.tres"
+dismantle_returns = [{
+"amount": 20,
+"id": "res_stone",
+"type": "resource"
+}, {
+"amount": 5,
+"id": "res_iron",
+"type": "resource"
+}]
