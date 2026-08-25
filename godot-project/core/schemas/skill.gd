@@ -42,6 +42,7 @@ enum TargetType {
 @export var cast_time: float = 0.0  # 0 = instant
 @export var animation_duration: float = 0.4
 @export var recovery_time: float = 0.0
+@export var can_interrupt: bool = true  # Can be interrupted by damage
 
 # Targeting
 @export var range: float = 2.5

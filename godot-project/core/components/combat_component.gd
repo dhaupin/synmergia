@@ -7,9 +7,12 @@ signal attack_started()
 signal attack_finished()
 signal skill_started(skill: Skill)
 signal skill_finished(skill: Skill)
-signal interrupted(skill: Skill)
+signal interrupted(skill: Skill, reason: String)
 signal cast_started(skill: Skill)
 signal cast_finished(skill: Skill)
+signal channel_started(skill: Skill)
+signal channel_updated(progress: float)
+signal channel_ended(skill: Skill, completed: bool)
 
 @export var attack_power: int = 10
 @export var spell_power: int = 10
@@ -20,10 +23,20 @@ signal cast_finished(skill: Skill)
 var gcd_remaining: float = 0.0
 @export var gcd_duration: float = 1.0
 
-# Casting state
+# Casting state (interrupted by damage)
 var is_casting: bool = false
 var cast_skill: Skill = null
 var cast_time_remaining: float = 0.0
+var cast_time_total: float = 0.0
+var _interrupt_resistance: float = 0.0  # Chance to resist interrupt
+
+# Channeling state (progress-based, can be interrupted)
+var is_channeling: bool = false
+var channel_skill: Skill = null
+var channel_time_remaining: float = 0.0
+var channel_time_total: float = 0.0
+var channel_tick_interval: float = 0.0
+var _channel_ticks: int = 0
 
 # Attack state
 var is_attacking: bool = false
@@ -49,6 +62,10 @@ func _physics_process(delta: float) -> void:
 		cast_time_remaining -= delta
 		if cast_time_remaining <= 0:
 			_finish_cast()
+	
+	# Update channeling
+	if is_channeling:
+		_update_channeling(delta)
 
 ## Execute a skill
 func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> bool:
@@ -131,14 +148,117 @@ func _finish_cast() -> void:
 	cast_skill = null
 	cast_time_remaining = 0.0
 
-## Interrupt current casting
+## Interrupt current casting/channeling
 func interrupt() -> void:
+	_interrupt_cast("manual")
+
+## Interrupt check when taking damage
+## Called by health_component when entity takes damage
+func on_damage_taken(damage: int, source: Entity, damage_type: String) -> bool:
+	# Can only interrupt if casting or channeling
+	if not is_casting and not is_channeling:
+		return false
+	
+	# Check if skill is interruptible
+	var skill: Skill = cast_skill if is_casting else channel_skill
+	if skill == null:
+		return false
+	
+	if not skill.can_interrupt:
+		return false
+	
+	# Check interrupt resistance (base + buffs)
+	var resistance := _interrupt_resistance
+	var entity: Entity = get_parent()
+	if entity.aura_component:
+		# TODO: Check for interrupt resistance buffs
+		pass
+	
+	# Roll for resistance
+	if randf() < resistance:
+		# Resisted!
+		EventBus.interrupt_resisted.emit(entity, skill)
+		return false
+	
+	# Interrupted!
+	_interrupt_cast("damage")
+	return true
+
+func _interrupt_cast(reason: String) -> void:
+	var skill: Skill = null
+	
 	if is_casting:
-		interrupted.emit(cast_skill)
-		EventBus.entity_interrupted.emit(get_parent(), cast_skill)
+		skill = cast_skill
+		# Partial resource cost (50%)
+		var entity: Entity = get_parent()
+		entity.current_mana = int(entity.current_mana + skill.mana_cost * 0.5)
 		is_casting = false
 		cast_skill = null
 		cast_time_remaining = 0.0
+	elif is_channeling:
+		skill = channel_skill
+		is_channeling = false
+		channel_skill = null
+		channel_time_remaining = 0.0
+	
+	if skill:
+		interrupted.emit(skill, reason)
+		EventBus.entity_interrupted.emit(get_parent(), skill, reason)
+
+## Check if can be interrupted
+func can_be_interrupted() -> bool:
+	return is_casting or is_channeling
+
+## Update channeling
+func _update_channeling(delta: float) -> void:
+	channel_time_remaining -= delta
+	
+	var progress: float = 1.0 - (channel_time_remaining / channel_time_total)
+	channel_updated.emit(progress)
+	
+	# Channel ticks
+	if channel_tick_interval > 0:
+		var ticks_elapsed := int((channel_time_total - channel_time_remaining) / channel_tick_interval)
+		if ticks_elapsed > _channel_ticks:
+			for i in range(_channel_ticks, ticks_elapsed):
+				_execute_channel_tick()
+			_channel_ticks = ticks_elapsed
+	
+	# Channel complete?
+	if channel_time_remaining <= 0:
+		_finish_channel(true)
+
+func _execute_channel_tick() -> void:
+	if channel_skill == null:
+		return
+	
+	var entity: Entity = get_parent()
+	var target: Entity = null
+	
+	# Get target from skill
+	if channel_skill.target_type == Skill.TargetType.SELF:
+		target = entity
+	else:
+		target = entity.target
+	
+	if target and is_instance_valid(target):
+		channel_skill.execute(entity, target)
+		EventBus.channel_tick.emit(entity, channel_skill)
+
+func _finish_channel(completed: bool) -> void:
+	var skill := channel_skill
+	
+	is_channeling = false
+	channel_skill = null
+	channel_time_remaining = 0.0
+	_channel_ticks = 0
+	
+	if completed and skill:
+		# Execute final effect
+		skill.execute(get_parent(), get_parent().target)
+	
+	channel_ended.emit(skill, completed)
+	skill_finished.emit(skill)
 
 func _perform_attack(skill: Skill, target: Entity) -> void:
 	attack_started.emit()

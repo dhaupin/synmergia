@@ -29,6 +29,11 @@ func take_damage(amount: int, source: Entity = null, damage_type: String = "phys
 	if _is_dead:
 		return 0
 	
+	# Check for interrupt (before applying damage)
+	var entity: Entity = get_parent()
+	if entity.combat_component:
+		entity.combat_component.on_damage_taken(amount, source, damage_type)
+	
 	# Apply armor/mitigation (placeholder)
 	var mitigated := 0  # TODO: Calculate from armor
 	var actual_damage := max(1, amount - mitigated)
@@ -74,11 +79,99 @@ func die(killer: Entity = null) -> void:
 	_killer = killer
 	current_health = 0
 	
+	# Stop all combat state
+	var entity: Entity = get_parent()
+	if entity.combat_component:
+		entity.combat_component.interrupt()
+	
+	# Create corpse
+	_create_corpse(killer)
+	
 	health_depleted.emit()
-	EventBus.entity_died.emit(get_parent(), killer)
+	EventBus.entity_died.emit(entity, killer)
 	
 	# Start respawn timer
 	_start_respawn()
+
+## Create corpse entity
+var _corpse: Node3D = null
+
+func _create_corpse(killer: Entity) -> void:
+	var entity: Entity = get_parent()
+	
+	# TODO: Load corpse scene
+	# _corpse = load("res://scenes/corpse.tscn").instantiate()
+	# _corpse.global_position = entity.global_position
+	# _corpse.setup(entity, killer)
+	# get_tree().root.add_child(_corpse)
+	
+	# Enable corpse looting
+	# Corpse loot should be: dropped items + portion of carried gold
+
+## Remove corpse
+func _remove_corpse() -> void:
+	if _corpse:
+		_corpse.queue_free()
+		_corpse = null
+
+## Set respawn location options
+enum RespawnLocation {
+	BIND_POINT,      # Last bound location
+	NEAR_CORPSE,     # Near death location
+	NEAR_PARTY,      # Near party members
+	CUSTOM           # Specific location
+}
+
+@export var default_respawn_location: RespawnLocation = RespawnLocation.BIND_POINT
+@export var respawn_location: Vector3 = Vector3.ZERO  # For CUSTOM
+
+## Get available respawn locations
+func get_respawn_options() -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	var entity: Entity = get_parent()
+	
+	# Always available: Bind point
+	options.append({
+		"location": RespawnLocation.BIND_POINT,
+		"name": "Bind Point",
+		"position": _bind_position,
+		"delay": 0
+	})
+	
+	# Always available: Near corpse (if corpse exists)
+	if _corpse:
+		options.append({
+			"location": RespawnLocation.NEAR_CORPSE,
+			"name": "Near Corpse",
+			"position": entity.global_position,
+			"delay": _respawn_time * 0.5  # Faster respawn
+		})
+	
+	return options
+
+## Respawn at specific location
+func respawn_at(location: RespawnLocation, custom_position: Vector3 = Vector3.ZERO) -> void:
+	match location:
+		RespawnLocation.BIND_POINT:
+			_do_respawn_at(_bind_position)
+		RespawnLocation.NEAR_CORPSE:
+			var entity: Entity = get_parent()
+			_do_respawn_at(entity.global_position)
+		RespawnLocation.CUSTOM:
+			_do_respawn_at(custom_position)
+		_:
+			_do_respawn_at(_bind_position)
+
+func _do_respawn_at(position: Vector3) -> void:
+	_remove_corpse()
+	_is_dead = false
+	current_health = max_health
+	
+	var entity: Entity = get_parent()
+	entity.global_position = position
+	
+	respawned.emit()
+	EventBus.entity_spawned.emit(entity)
 
 ## Start respawn process
 func _start_respawn() -> void:
