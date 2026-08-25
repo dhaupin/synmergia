@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EventData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/event_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "event_double_xp_weekend"
+display_name = "Double XP Weekend"
+description = "Earn double experience points from all sources this weekend!"
+event_type = 0
+icon_path = "res://icons/events/xp_weekend.png"
+start_date = "2026-08-29T00:00:00"
+end_date = "2026-08-31T23:59:59"
+is_recurring = true
+recurrence_pattern = "weekly"
+xp_multiplier = 2.0
+gold_multiplier = 1.0
+drop_rate_multiplier = 1.0
+reputation_multiplier = 1.0
+crafting_cost_reduction = 0.0
+pvp_honor_multiplier = 1.0
+affected_zones = []
+affected_factions = []
+min_level = 0
+max_level = 0
+rewards = [{
+"amount": 10,
+"id": "token_event_xp",
+"type": "item"
+}]
+event_quests = []
+requirements = []

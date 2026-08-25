@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_wooden_bow"
+display_name = "Wooden Bow"
+description = "A simple bow carved from oak. Good for beginners."
+icon_path = "res://icons/items/bow_wood.png"
+item_category = 0
+rarity = 0
+equip_slot = 8
+weapon_type = 5
+stack_size = 1
+is_bound = false
+unique = false
+sell_price = 15
+buy_price = 60
+item_level = 3
+required_level = 1
+required_strength = 0
+required_agility = 5
+stats = {
+"agility": 3
+}
+weapon_damage_min = 6
+weapon_damage_max = 12
+attack_speed = 1.5

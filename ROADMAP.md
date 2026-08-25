@@ -64,13 +64,34 @@ A playable demo with basic combat, one region, one playable class, one species, 
 ### 0.5 Example Data Files
 **Files:** `godot-project/data/`
 
-- [ ] `skills/skill_basic_attack.tres`
-- [ ] `items/item_health_potion.tres`
-- [ ] `enemies/enemy_slime.tres`
-- [ ] `classes/class_warrior.tres`
-- [ ] `species/species_human.tres` (NEW - +5% vitality)
-- [ ] `factions/faction_human.tres` (NEW - default faction)
-- [ ] `zones/zone_starter_plains.tres` (NEW - SAFE zone)
+#### Equipment (data/weapons/, data/armors/, data/accessories/)
+- [x] `weapons/wep_iron_sword.tres`
+- [x] `weapons/wep_wooden_bow.tres`
+- [x] `armors/arm_leather_chest.tres`
+
+#### Consumables (data/consumables/)
+- [x] `consumables/potion_health_small.tres`
+
+#### Resources (data/resources/)
+- [x] `resources/res_iron_ore.tres`
+
+#### Dwellings (data/dwellings/)
+- [x] `dwellings/dwel_wooden_chair.tres`
+- [x] `dwellings/dwel_fireplace_stone.tres`
+
+#### Events (data/events/)
+- [x] `events/event_double_xp_weekend.tres`
+
+#### Misc (data/misc/)
+- [x] `misc/misc_ancient_coin.tres`
+
+#### Core Data (data/skills/, data/enemies/, etc.)
+- [x] `skills/skill_basic_attack.tres`
+- [x] `enemies/enemy_slime.tres`
+- [x] `classes/class_warrior.tres`
+- [x] `species/species_human.tres`
+- [x] `factions/faction_human.tres`
+- [x] `zones/zone_starter_plains.tres`
 
 ---
 

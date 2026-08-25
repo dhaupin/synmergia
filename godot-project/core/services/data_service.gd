@@ -5,11 +5,22 @@ extends Node
 
 var _skills: Dictionary = {}
 var _items: Dictionary = {}
+
+# Item subcategories
+var _weapons: Dictionary = {}
+var _armors: Dictionary = {}
+var _accessories: Dictionary = {}
+var _consumables: Dictionary = {}
+var _resources: Dictionary = {}
+var _misc: Dictionary = {}
+
 var _enemies: Dictionary = {}
 var _classes: Dictionary = {}
 var _species: Dictionary = {}
 var _factions: Dictionary = {}
 var _zones: Dictionary = {}
+var _events: Dictionary = {}
+var _dwellings: Dictionary = {}
 
 var _data_path: String = "res://data/"
 var _loaded: bool = false
@@ -29,6 +40,8 @@ func load_all_data() -> void:
 	load_species()
 	load_factions()
 	load_zones()
+	load_events()
+	load_dwellings()
 	
 	_loaded = true
 	Logger.info("DataService: Loaded all data")
@@ -114,6 +127,16 @@ func load_zones() -> void:
 	_zones = _scan_directory(_data_path + "zones", "zone")
 	Logger.info("DataService: Loaded %d zones" % _zones.size())
 
+## Load events from data/events/
+func load_events() -> void:
+	_events = _scan_directory(_data_path + "events", "event")
+	Logger.info("DataService: Loaded %d events" % _events.size())
+
+## Load dwellings from data/dwellings/
+func load_dwellings() -> void:
+	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
+	Logger.info("DataService: Loaded %d dwellings" % _dwellings.size())
+
 ## Get methods
 func get_skill(id: String) -> Skill:
 	return _skills.get(id)
@@ -136,6 +159,12 @@ func get_faction(id: String) -> Faction:
 func get_zone(id: String) -> ZoneData:
 	return _zones.get(id)
 
+func get_event(id: String) -> EventData:
+	return _events.get(id)
+
+func get_dwelling(id: String) -> DwellingData:
+	return _dwellings.get(id)
+
 ## Get all of a type
 func get_all_skills() -> Dictionary:
 	return _skills
@@ -157,6 +186,12 @@ func get_all_factions() -> Dictionary:
 
 func get_all_zones() -> Dictionary:
 	return _zones
+
+func get_all_events() -> Dictionary:
+	return _events
+
+func get_all_dwellings() -> Dictionary:
+	return _dwellings
 
 ## Reload data (for development)
 func reload_all() -> void:

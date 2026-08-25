@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wep_iron_sword"
+display_name = "Iron Sword"
+description = "A sturdy iron blade. Basic but reliable."
+icon_path = "res://icons/items/sword_iron.png"
+item_category = 0
+rarity = 0
+equip_slot = 8
+weapon_type = 1
+armor_type = 0
+accessory_type = 0
+stack_size = 1
+is_bound = false
+bind_on_equip = false
+unique = false
+sell_price = 25
+buy_price = 100
+item_level = 5
+required_level = 1
+required_class = ""
+required_strength = 0
+required_agility = 0
+required_intelligence = 0
+stats = {
+"strength": 5
+}
+primary_stats = {}
+secondary_stats = {}
+weapon_damage_min = 8
+weapon_damage_max = 15
+attack_speed = 1.2
+armor_value = 0

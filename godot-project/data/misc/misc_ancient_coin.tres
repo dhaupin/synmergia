@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "misc_ancient_coin"
+display_name = "Ancient Coin"
+description = "A mysterious coin from a forgotten civilization. What does it unlock?"
+icon_path = "res://icons/items/coin_ancient.png"
+item_category = 7
+rarity = 3
+equip_slot = 0
+stack_size = 1
+sell_price = 0
+buy_price = 0
+required_level = 0
+is_bound = true
