@@ -396,6 +396,38 @@ godot-project/
 - [x] `Entity.ControllerType.HOSTILE_AI` - Enemy AI
 - [x] `connector_id` - Links agents to their connector
 
+### Y.6 Identified Gaps (Future Work)
+**Status: Design Phase**
+
+- [ ] **Input Source Verification** - How to verify "real" human input vs AI-simulated?
+  - Challenge: Humans use keyboards/mice, but these can be scripted
+  - Options: Hardware attestation, behavioral biometrics, CAPTCHA integration
+  
+- [ ] **Proof of Attention/Work** - CAPTCHA-like challenges for suspicious patterns
+  - Periodic human-verification checkpoints
+  - Proof-of-work puzzles for high-value actions
+  - Anomaly-triggered challenges
+  
+- [ ] **Mirror Matching** - Option to queue only vs same controller type
+  - `matchmaking.prefer_controller_type` setting
+  - Agent-only queues for testing
+  - Human-only queues for competitive integrity
+  
+- [ ] **Agent Sandbox** - Separate agent vs agent matchmaking pools
+  - Train agents against agents without affecting human economy
+  - Separate loot/XPSinks for agent-only sessions
+  - Bot arena/gym environment
+  
+- [ ] **Exploit Reporting System** - Community-driven anti-cheat
+  - In-game `/report` command for exploits
+  - Bounty system for verified exploit reports
+  - Public exploit ledger (post-fix)
+
+- [ ] **Hardware Fingerprinting** - Detect multi-boxing, VPN abuse
+  - Link accounts by hardware ID
+  - Detect VPN/proxy usage patterns
+  - IP-based clustering analysis
+
 ---
 
 ## Quick Stats
