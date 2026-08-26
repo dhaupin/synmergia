@@ -52,6 +52,7 @@ var _subscriptions: Dictionary = {}
 var _player_last_message: Dictionary = {}  # entity_id -> timestamp
 const SPAM_COOLDOWN_MS: int = 500  # Half second between messages
 const SPAM_THRESHOLD: int = 5  # Messages per time window
+const MAX_MESSAGE_LENGTH: int = 500  # Maximum chat message length
 var _spam_count: Dictionary = {}  # entity_id -> count
 
 # Profanity filter
@@ -75,6 +76,10 @@ func _ready() -> void:
 
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
+        # Truncate message to max length
+        if message.length() > MAX_MESSAGE_LENGTH:
+                message = message.substr(0, MAX_MESSAGE_LENGTH)
+
         # Spam check
         if not _check_spam(sender_id):
                 Logger.debug("ChatService: Spam detected from %s" % sender_id)

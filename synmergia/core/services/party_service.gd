@@ -10,8 +10,8 @@ var _parties: Dictionary = {}
 var _player_parties: Dictionary = {}
 
 # Party limits
-const MAX_PARTY_SIZE: int = 5
-const MAX_PARTY_ROSTER_SIZE: int = 20  # For raids
+const MAX_PARTY_SIZE: int = 6  # Max players in a standard party
+const MAX_PARTY_ROSTER_SIZE: int = 30  # For raids
 const INVITE_TIMEOUT_SECONDS: float = 60.0
 
 # Pending invites (invite_id -> {from, to, timestamp})
@@ -320,6 +320,10 @@ func share_xp(party_id: String, base_xp: int, killer_id: String) -> Dictionary:
         
         var members := party["members"]
         var member_count := members.size()
+
+	# Guard against empty party
+	if member_count == 0:
+		return {}
         
         # XP sharing bonus per additional member
         var xp_bonus := 1.0 + (member_count - 1) * 0.1

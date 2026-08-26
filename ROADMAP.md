@@ -841,6 +841,31 @@ godot-project/
 - `cancel_trade()` now refunds items and gold to original inventories
 - Added `_refund_trade_items()` helper function
 
+## Security Fixes (2026-08-25) - Additional
+
+**Commit:** Additional security patches applied
+
+### chat_service.gd
+- Added `MAX_MESSAGE_LENGTH` constant (default 500 characters)
+- Messages are now truncated to max length before processing
+
+### party_service.gd
+- Updated `MAX_PARTY_SIZE` from 5 to 6 players
+- Updated `MAX_PARTY_ROSTER_SIZE` from 20 to 30 for raids
+- Added empty party check in `share_xp()` to prevent division by zero
+
+### entity_service.gd
+- Added duplicate entity ID check in `register_entity()` - returns empty string if ID already exists
+
+### trade_service.gd
+- Added `transfer_success` check before marking trade as COMPLETED
+- Trade state is now set to FAILED if transfer fails
+- Added `trade_failed` signal emission on failure
+
+### ROADMAP.md - Future Work
+- [ ] **Profanity Filter Enhancement** - Current word-list approach may be flagged by GitHub
+  - Consider: External API-based filtering, community moderation, or configurable blocklist
+
 ---
 
 ## Quick Stats

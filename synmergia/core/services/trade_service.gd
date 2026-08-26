@@ -38,6 +38,7 @@ signal trade_confirmed(trade_id: String, player_id: String)
 signal trade_unconfirmed(trade_id: String, player_id: String)
 signal trade_completed(trade_id: String, trades: Dictionary)
 signal trade_expired(trade_id: String)
+signal trade_failed(trade_id: String)
 signal item_added_to_trade(trade_id: String, player_id: String, item_id: String, quantity: int)
 signal item_removed_from_trade(trade_id: String, player_id: String, item_id: String, quantity: int)
 signal gold_added_to_trade(trade_id: String, player_id: String, amount: int)
@@ -282,54 +283,62 @@ func _unconfirm(trade: Dictionary, player_id: String) -> void:
 
 ## Complete the trade
 func _complete_trade(trade_id: String) -> bool:
-var trade: Dictionary = _active_trades.get(trade_id)
-if not trade:
-return false
+	var trade: Dictionary = _active_trades.get(trade_id)
+	if not trade:
+		return false
 
-var player1 := trade["player1"]
-var player2 := trade["player2"]
-var player1_items := trade["player1_items"]
-var player2_items := trade["player2_items"]
-var player1_gold := trade["player1_gold"]
-var player2_gold := trade["player2_gold"]
+	var player1 := trade["player1"]
+	var player2 := trade["player2"]
+	var player1_items := trade["player1_items"]
+	var player2_items := trade["player2_items"]
+	var player1_gold := trade["player1_gold"]
+	var player2_gold := trade["player2_gold"]
 
-# Execute the actual item/gold transfer
-if _inventory_service:
-	var transfer_result := _inventory_service.execute_trade(
-		trade_id, player1, player2,
-		player1_items, player2_items,
-		player1_gold, player2_gold
-	)
-	trade["transfer_result"] = transfer_result
+	# Execute the actual item/gold transfer
+	var transfer_success := true
+	if _inventory_service:
+		var transfer_result := _inventory_service.execute_trade(
+			trade_id, player1, player2,
+			player1_items, player2_items,
+			player1_gold, player2_gold
+		)
+		trade["transfer_result"] = transfer_result
+		transfer_success = transfer_result.get("success", false)
 
-trade["state"] = TradeState.COMPLETED
+	# Only mark as completed if transfer succeeded
+	if transfer_success:
+		trade["state"] = TradeState.COMPLETED
 
-var trades := {
-player1: {
-"items": player1_items,
-"gold": player1_gold
-},
-player2: {
-"items": player2_items,
-"gold": player2_gold
-}
-}
+		var trades := {
+		player1: {
+		"items": player1_items,
+		"gold": player1_gold
+		},
+		player2: {
+		"items": player2_items,
+		"gold": player2_gold
+		}
+		}
 
-# Log trade history
-_log_trade(player1, player2, player1_items, player2_items, player1_gold, player2_gold)
+		# Log trade history
+		_log_trade(player1, player2, player1_items, player2_items, player1_gold, player2_gold)
 
-# Set cooldowns
-_set_cooldown(player1)
-_set_cooldown(player2)
+		# Set cooldowns
+		_set_cooldown(player1)
+		_set_cooldown(player2)
 
-trade_completed.emit(trade_id, trades)
-Logger.info("TradeService: Trade %s completed" % trade_id)
+		trade_completed.emit(trade_id, trades)
+		Logger.info("TradeService: Trade %s completed" % trade_id)
+	else:
+		trade["state"] = TradeState.FAILED
+		Logger.error("TradeService: Trade %s failed during item/gold transfer" % trade_id)
+		trade_failed.emit(trade_id)
 
-# Clean up after a delay
-await get_tree().create_timer(5.0).timeout
-_active_trades.erase(trade_id)
+	# Clean up after a delay
+	await get_tree().create_timer(5.0).timeout
+	_active_trades.erase(trade_id)
 
-return true
+	return true
 
 
 ## Get trade info
