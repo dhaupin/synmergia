@@ -90,6 +90,11 @@ func disband_party(party_id: String) -> bool:
 
 ## Invite a player to party
 func invite_player(from_id: String, to_id: String) -> bool:
+        # QoS: Rate limit party invites
+        if not QoSService.rate_limit(from_id, "party"):
+                Logger.debug("PartyService: Rate limited invite from %s" % from_id)
+                return false
+        
         if from_id == to_id:
                 return false
         

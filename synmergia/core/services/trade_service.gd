@@ -50,6 +50,11 @@ func _ready() -> void:
 
 ## Request a trade
 func request_trade(from_id: String, to_id: String) -> bool:
+	# QoS: Rate limit trade requests
+	if not QoSService.rate_limit(from_id, "trade"):
+		Logger.debug("TradeService: Rate limited trade request from %s" % from_id)
+		return false
+	
 	# Check same-account trade
 	if _account_service and not _account_service.can_same_account_trade(from_id, to_id)["allowed"]:
 		Logger.info("TradeService: Same-account trade not allowed between %s and %s" % [from_id, to_id])
