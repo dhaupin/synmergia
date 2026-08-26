@@ -177,7 +177,7 @@ func _get_party_members(player_id: String) -> Array:
         return []
 
 ## Get guild members
-func _get_guild_members(player_id: String) -> Array:
+func _get_guild_members(player_id: String) -> Array[String]:
         var guild_service = GuildService if "GuildService" in get_parent() else null
         if not guild_service:
                 if has_node("/root/GuildService"):
@@ -188,8 +188,28 @@ func _get_guild_members(player_id: String) -> Array:
         
         return []
 
+## Send guild announcement (from guild system)
+func send_guild_announcement(guild_id: String, message: String, sender_name: String = "Guild") -> void:
+	var guild_service = GuildService if "GuildService" in get_parent() else null
+	if not guild_service:
+		if has_node("/root/GuildService"):
+			guild_service = get_node("/root/GuildService")
+
+	if guild_service:
+		var guild := guild_service.get_guild(guild_id)
+		if not guild.is_empty():
+			var roster: Array = guild_service.get_guild_roster(guild_id)
+			var member_ids: Array[String] = []
+			for member in roster:
+				if member is Dictionary and "id" in member:
+					member_ids.append(member["id"])
+				elif member is String:
+					member_ids.append(member)
+
+			message_received.emit("GUILD", Channel.GUILD, message, member_ids)
+
 ## Get alliance members
-func _get_alliance_members(player_id: String) -> Array:
+func _get_alliance_members(player_id: String) -> Array[String]:
         var guild_service = GuildService if "GuildService" in get_parent() else null
         if not guild_service:
                 if has_node("/root/GuildService"):

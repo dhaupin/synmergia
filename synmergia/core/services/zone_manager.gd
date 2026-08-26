@@ -340,6 +340,48 @@ func get_neighboring_zones(zone_id: String) -> Array[ZoneData]:
 			results.append(zone)
 	return results
 
+## Get all connected zones (BFS traversal for alerts)
+func get_all_connected_zones(zone_id: String, max_depth: int = 100) -> Array[ZoneData]:
+	var visited: Dictionary = {}
+	var results: Array[ZoneData] = []
+	var queue: Array = [zone_id]
+	var depth: int = 0
+	
+	while not queue.is_empty() and depth < max_depth:
+		var level_size := queue.size()
+		for _i in range(level_size):
+			var current_id: String = queue.pop_front()
+			if visited.has(current_id):
+				continue
+			visited[current_id] = true
+			
+			var zone: ZoneData = _zones.get(current_id)
+			if zone:
+				results.append(zone)
+			
+			# Add neighbors to queue
+			var neighbor_ids: Array = _zone_neighbors.get(current_id, [])
+			for neighbor_id in neighbor_ids:
+				if not visited.has(neighbor_id):
+					queue.append(neighbor_id)
+		depth += 1
+	
+	Logger.debug("ZoneManager: Found %d connected zones from %s (depth: %d)" % [results.size(), zone_id, depth])
+	return results
+
+## Get all player IDs in connected zones (for global alerts)
+func get_all_players_in_connected_zones(zone_id: String) -> Array[String]:
+	var connected_zones := get_all_connected_zones(zone_id)
+	var player_ids: Array[String] = []
+	
+	for zone: ZoneData in connected_zones:
+		var players: Array = _players_in_zone.get(zone.id, [])
+		for player in players:
+			if "entity_id" in player:
+				player_ids.append(player.entity_id)
+	
+	return player_ids
+
 ## Check if seamless transition should occur
 func check_seamless_transition(entity: Entity) -> ZoneData:
 	if not _seamless_enabled:
