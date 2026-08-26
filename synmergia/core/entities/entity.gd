@@ -76,6 +76,10 @@ var pending_respawn: bool = false         # Waiting to respawn
 # Faction
 var faction_id: String = ""
 
+# Species
+var species_id: String = ""
+var species: Species = null
+
 func _ready() -> void:
 	_calculate_max_resources()
 	current_health = max_health
@@ -100,6 +104,32 @@ func set_stat(stat_name: String, value: int) -> void:
 
 func add_stat(stat_name: String, amount: int) -> void:
 	set_stat(stat_name, get_stat(stat_name) + amount)
+
+## SPECIES
+
+func apply_species(new_species: Species) -> void:
+	if new_species == null:
+		return
+	
+	species = new_species
+	species_id = new_species.id
+	
+	# Apply stat modifiers
+	for stat in new_species.stat_modifiers:
+		var modifier := new_species.stat_modifiers[stat] as int
+		stats[stat] = stats.get(stat, 10) + modifier
+	
+	# Apply resource modifiers
+	max_health = int(max_health * new_species.health_modifier)
+	max_mana = int(max_mana * new_species.mana_modifier)
+	max_stamina = max_stamina * new_species.stamina_modifier
+	
+	# Apply movement speed modifier
+	stats["movement_speed_multiplier"] = new_species.speed_modifier
+	
+	_calculate_max_resources()
+	
+	Logger.debug("Entity: Applied species %s to %s" % [species_id, display_name])
 
 ## HEALTH
 
@@ -247,6 +277,8 @@ func get_entity_data() -> Dictionary:
 		"stats": stats,
 		"health": current_health,
 		"mana": current_mana,
+		"faction_id": faction_id,
+		"species_id": species_id,
 		"position": {
 			"x": global_position.x,
 			"y": global_position.y,
@@ -260,6 +292,8 @@ func load_entity_data(data: Dictionary) -> void:
 	display_name = data.get("display_name", display_name)
 	level = data.get("level", level)
 	stats = data.get("stats", stats)
+	faction_id = data.get("faction_id", faction_id)
+	species_id = data.get("species_id", species_id)
 	_calculate_max_resources()
 	
 	current_health = data.get("health", max_health)
