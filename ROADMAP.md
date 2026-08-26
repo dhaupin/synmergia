@@ -459,7 +459,44 @@ A playable demo with basic combat, one region, one playable class, one species, 
 
 **PRD References:** Section 6 Economy & Crafting
 
-### 4.1 Loot System
+### 4.1 Achievement System (TODO)
+**TODO:** Achievement tracking and rewards
+
+#### Achievement Types
+- [ ] Kill achievements (kill X enemies, kill X bosses)
+- [ ] Collect achievements (gather X resources, collect X items)
+- [ ] Exploration achievements (visit X zones, discover hidden areas)
+- [ ] Combat achievements (win X duels, survive X deaths)
+- [ ] Social achievements (join guild, make X friends, trade X times)
+- [ ] Crafting achievements (craft X items, reach artisan level)
+- [ ] Progression achievements (reach level X, complete X dungeons)
+
+#### Achievement Features
+- [ ] Achievement definition schema
+- [ ] AchievementService for tracking
+- [ ] Unlock notifications (integrated with NotificationService)
+- [ ] Achievement categories/tiers
+- [ ] Reward system (titles, items, cosmetics)
+- [ ] Progress tracking
+
+### 4.2 Leveling & XP System (TODO)
+**TODO:** Experience points and character leveling
+
+#### XP Sources
+- [ ] Kill XP (enemies, bosses)
+- [ ] Quest XP (story quests, daily quests)
+- [ ] Exploration XP (discovering zones, landmarks)
+- [ ] Crafting XP (successful crafts)
+- [ ] Event XP (double XP weekends)
+
+#### Level Features
+- [ ] XP calculation and storage
+- [ ] Level up notifications (integrated with NotificationService)
+- [ ] Stat gains per level
+- [ ] Level caps and soft caps
+- [ ] Level sync in PvP zones
+
+### 4.3 Loot System
 **Files:** `godot-project/core/schemas/loot_table.gd`
 
 - [ ] Loot tables per enemy type
@@ -467,7 +504,7 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [ ] Gold/currency drops
 - [ ] Auto-loot vs manual loot
 
-### 4.2 Equipment System
+### 4.3 Equipment System
 **Files:** `godot-project/core/schemas/item.gd`, inventory_component
 
 - [ ] Equipment slots (head, chest, weapon, etc.)
@@ -475,21 +512,45 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [ ] Stat calculations with equipment
 - [ ] Gear score/item level
 
+### 4.4 Trade System (TODO)
+**TODO:** Player-to-player trading
+
+#### Trade Features
+- [ ] Trade request system (send/accept/decline)
+- [ ] Trade window UI
+- [ ] Item slots for trade
+- [ ] Gold/currency trade
+- [ ] Trade confirmation (both must confirm)
+- [ ] Trade cancellation
+- [ ] Trade notifications (request, complete, cancelled)
+- [ ] Trade history/log
+- [ ] Trade restrictions (bind-on-pickup items, level requirements)
+
+#### Trade Safety
+- [ ] Anti-scam measures (trade confirmation countdown)
+- [ ] Trade cooldown timers
+- [ ] Blocked item types (soulbound, quest items)
+- [ ] Trade between characters on same account
+
+### 4.5 Inventory System (TODO)
+**TODO:** Player inventory management
+
+#### Inventory Features
+- [ ] Inventory slots management
+- [ ] Stack limits
+- [ ] Sort/arrange functionality
+- [ ] Bag expansion
+- [ ] Bank/storage (off-character storage)
+- [ ] Item pickup/drop
+- [ ] Item destruction/selling
+
 ---
 
 ## Phase 5: Player Progression
 
 **PRD References:** Section 5 Player Systems
 
-### 5.1 Leveling and XP
-**Files:** `godot-project/core/services/xp_service.gd`
-
-- [ ] XP gain on kill
-- [ ] Level up stats increase
-- [ ] XP curve formula
-- [ ] Level cap (60 per PRD)
-
-### 5.2 Class System
+### 5.1 Class System
 **Files:** `godot-project/core/schemas/character_class.gd`
 
 - [ ] Class definitions (Warrior, Mage, Rogue, etc.)
