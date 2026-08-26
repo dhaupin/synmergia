@@ -264,35 +264,103 @@ A playable demo with basic combat, one region, one playable class, one species, 
 
 **PRD References:** Section 4 World & Exploration, Section 8 PvP Systems
 
-### 3.1 Species System
-**Files:** `godot-project/core/schemas/species.gd`
+### 3.1 Species System ✅
+**Files:** `synmergia/core/schemas/species.gd`
 
-- [ ] Species schema with stat_modifiers
-- [ ] allied_species / hostile_species arrays
-- [ ] Species-faction binding
-- [ ] home_zone, home_faction defaults
+#### Core Features
+- [x] Species schema with stat_modifiers
+- [x] allied_species / hostile_species arrays
+- [x] Species-faction binding
+- [x] home_zone, home_faction defaults
+- [x] Stat calculation helpers
+- [x] Visual customization options (skin, hair, eyes)
 
-### 3.2 Faction System
-**Files:** `godot-project/core/schemas/faction.gd`
+#### Entity Integration
+- [ ] Add species_id to Entity base class
+- [ ] Apply species stat modifiers on entity creation
+- [ ] Species-based model loading
 
-- [ ] FactionType: SPECIES, POLITICAL, PvP_RULE, REPUTATION
-- [ ] PvP rule overrides (PEACEFUL until level, HUNTED always PvP)
-- [ ] relations dictionary (ALLIED, NEUTRAL, HOSTILE)
-- [ ] Faction reputation tracking
+### 3.2 Faction System ✅
+**Files:** `synmergia/core/schemas/faction.gd`
 
-### 3.3 Zone PvP Rules
-**Files:** `godot-project/core/schemas/zone_data.gd`
+#### Core Features
+- [x] FactionType: SPECIES, POLITICAL, PvP_RULE, REPUTATION
+- [x] PvP rule overrides (PEACEFUL until level, HUNTED always PvP)
+- [x] relations dictionary (ALLIED, NEUTRAL, HOSTILE)
+- [x] Faction reputation tracking
+- [x] `can_pvp_with()`, `can_attack_target()` checks
+- [x] Territory control (controlled_zones)
 
-- [ ] Zone PvP modes: SAFE, SPECIES_PVP, FACTION_PVP, FREE_PVP, WARZONE
-- [ ] Zone entry requirements (level, faction, species)
-- [ ] Zone transitions/loading
+#### Faction Service (NEW)
+- [ ] FactionManager singleton
+- [ ] Load all factions from data
+- [ ] War declaration system
+- [ ] War cooldown timers
+- [ ] Guild faction alliances
+- [ ] Cross-faction party restrictions
 
-### 3.4 Spawn System
-**Files:** `godot-project/core/services/spawn_service.gd`
+### 3.3 Zone System ✅
+**Files:** `synmergia/core/schemas/zone_data.gd`
 
-- [ ] Spawn points for enemies
+#### Core Features
+- [x] Zone PvP modes: SAFE, SPECIES_PVP, FACTION_PVP, FREE_PVP, WARZONE
+- [x] Zone entry requirements (level, faction, species)
+- [x] Zone bounds (AABB, circular)
+- [x] Bind points and spawn points
+- [x] `can_enter()`, `can_pvp()`, `contains_position()`
+
+#### Zone Service (NEW)
+- [ ] ZoneManager singleton
+- [ ] Track active players per zone
+- [ ] Zone transition handling
+- [ ] Instance management (dungeons)
+- [ ] Zone-specific loot/XP multipliers
+- [ ] Weather/environment effects
+
+### 3.4 Spawn System (NEW)
+**Files:** `synmergia/core/services/spawn_service.gd`
+
+#### Spawn Point Configuration
+- [ ] Spawn point schema with:
+  - Position (Vector3)
+  - Spawn radius
+  - Enemy template to spawn
+  - Respawn timer (base)
+  - Min/max enemies at point
+
+#### Spawn Logic
 - [ ] Respawn timers per spawn point
-- [ ] Spawn caps per area
+- [ ] Spawn caps per area/zone
+- [ ] Spawn proximity checks (not too close to players)
+- [ ] Dynamic spawn scaling (more enemies during events)
+- [ ] Spawn patterns (patrol routes, stationary, random)
+
+#### Spawn Types
+- [ ] Regular enemies
+- [ ] Elite/boss spawns
+- [ ] World bosses
+- [ ] Event spawns
+
+### 3.5 World Service (NEW)
+**Files:** `synmergia/core/services/world_service.gd`
+
+#### World State
+- [ ] WorldManager singleton
+- [ ] Track all zones and entities
+- [ ] Zone loading/unloading
+- [ ] Time of day / day-night cycle
+- [ ] World events system
+
+#### Gateway System
+- [ ] Gateway between zones
+- [ ] Gateway activation (proximity + interaction)
+- [ ] Gateway transitions
+- [ ] Ankh placement at gateways (respawn system integration)
+
+#### Procedural World
+- [ ] Zone generation templates
+- [ ] Seed-based world generation
+- [ ] Region connectivity
 
 ---
 
