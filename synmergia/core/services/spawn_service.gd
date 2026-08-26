@@ -3,14 +3,6 @@
 class_name SpawnService
 extends Node
 
-# Boss alert types
-enum BossAlertType {
-	SERVER_WIDE,      # Alert everyone on server
-	ZONE_AND_NEIGHBORS,  # Alert zone and nearby zones
-	ZONE_ONLY,        # Alert only players in the zone
-	NEARBY_ONLY      # Alert only players near the boss (mini-bosses, quest mobs)
-}
-
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
 
@@ -185,7 +177,13 @@ func spawn_enemy(spawn_point_id: String) -> Entity:
 	return enemy
 
 ## Spawn boss
-func spawn_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", alert_type: BossAlertType = BossAlertType.SERVER_WIDE) -> Entity:
+func spawn_boss(
+	boss_template_id: String,
+	position: Vector3,
+	zone_id: String,
+	boss_name: String = "",
+	alert_scopes: Array[NotificationService.AlertScope] = []
+) -> Entity:
 	var data_service = DataService
 	if data_service == null:
 		return null
@@ -229,72 +227,36 @@ func spawn_boss(boss_template_id: String, position: Vector3, zone_id: String, bo
 	
 	boss_spawned.emit(boss, boss.display_name)
 	EventBus.boss_spawned.emit(boss, boss.display_name)
-	Logger.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, position))
+	Logger.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, position])
 	
-	# Send alert based on type
-	_notify_boss_spawn(boss, zone, alert_type)
-	
-	return boss
-
-## Notify about boss spawn
-func _notify_boss_spawn(boss: Entity, zone: ZoneData, alert_type: BossAlertType) -> void:
-	var notification_service = NotificationService
-	if notification_service == null or zone == null:
-		return
-	
-	var message = "WORLD BOSS: %s has appeared in %s!" % [boss.display_name, zone.display_name]
-	
-	match alert_type:
-		BossAlertType.SERVER_WIDE:
-			notification_service.broadcast_all(
+	# Send alert based on scopes
+	if alert_scopes.size() > 0:
+		var notification_service = NotificationService
+		if notification_service and zone:
+			var message = "WORLD BOSS: %s has appeared in %s!" % [boss.display_name, zone.display_name]
+			notification_service.broadcast_alert(
 				message,
+				alert_scopes,
 				NotificationService.NotificationType.WORLD_EVENT,
 				NotificationService.Priority.HIGH,
 				NotificationService.DisplayLocation.CENTER_SCREEN,
 				NotificationService.SoundType.NOTIFICATION,
 				{"boss_name": boss.display_name, "zone_id": zone.id}
 			)
-		BossAlertType.ZONE_AND_NEIGHBORS:
-			# Alert this zone and neighboring zones
-			notification_service.broadcast_zone(
-				zone.id,
-				message,
-				NotificationService.NotificationType.WORLD_EVENT,
-				NotificationService.Priority.HIGH,
-				NotificationService.DisplayLocation.CENTER_SCREEN,
-				NotificationService.SoundType.NOTIFICATION
-			)
-			var zone_manager = ZoneManager
-			if zone_manager:
-				for neighbor in zone_manager.get_neighboring_zones(zone.id):
-					notification_service.broadcast_zone(
-						neighbor.id,
-						message,
-						NotificationService.NotificationType.WORLD_EVENT,
-						NotificationService.Priority.NORMAL,
-						NotificationService.DisplayLocation.CHAT_LOG,
-						NotificationService.SoundType.NONE
-					)
-		BossAlertType.ZONE_ONLY:
-			notification_service.broadcast_zone(
-				zone.id,
-				message,
-				NotificationService.NotificationType.WORLD_EVENT,
-				NotificationService.Priority.HIGH,
-				NotificationService.DisplayLocation.CENTER_SCREEN,
-				NotificationService.SoundType.NOTIFICATION
-			)
-		BossAlertType.NEARBY_ONLY:
-			# Just alert players near the boss (for mini-bosses, quest mobs, etc.)
-			notification_service.broadcast_nearby(
-				boss.global_position,
-				50.0,  # 50 unit radius
-				"BOSS: %s has appeared!" % boss.display_name,
-				NotificationService.NotificationType.COMBAT,
-				NotificationService.Priority.NORMAL,
-				NotificationService.DisplayLocation.CENTER_SCREEN,
-				NotificationService.SoundType.NOTIFICATION
-			)
+	
+	return boss
+
+## Spawn boss with server-wide alert (convenience method)
+func spawn_world_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "") -> Entity:
+	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.server_wide()])
+
+## Spawn boss with zone + neighbors alert (convenience method)
+func spawn_zone_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", include_neighbors: bool = true) -> Entity:
+	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.zone(zone_id, include_neighbors)])
+
+## Spawn mini-boss with nearby alert only (convenience method)
+func spawn_mini_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", radius: float = 50.0) -> Entity:
+	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.nearby(position, radius)])
 
 ## Despawn enemy
 func despawn_enemy(entity: Entity) -> void:
