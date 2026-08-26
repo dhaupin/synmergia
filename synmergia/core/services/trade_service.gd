@@ -3,6 +3,10 @@
 class_name TradeService
 extends Node
 
+# Service references
+var _account_service: AccountService
+var _inventory_service: InventoryService
+
 # Active trades (trade_id -> trade data)
 var _active_trades: Dictionary = {}
 
@@ -43,6 +47,11 @@ func _ready() -> void:
 
 ## Request a trade
 func request_trade(from_id: String, to_id: String) -> bool:
+	# Check same-account trade
+	if _account_service and not _account_service.can_same_account_trade(from_id, to_id)["allowed"]:
+		Logger.info("TradeService: Same-account trade not allowed between %s and %s" % [from_id, to_id])
+		return false
+
         if from_id == to_id:
                 return false
         
@@ -283,8 +292,14 @@ var player2_items := trade["player2_items"]
 var player1_gold := trade["player1_gold"]
 var player2_gold := trade["player2_gold"]
 
-# TODO: Actually transfer items and gold via inventory service
-# For now, emit completion signal with trade details
+# Execute the actual item/gold transfer
+if _inventory_service:
+	var transfer_result := _inventory_service.execute_trade(
+		trade_id, player1, player2,
+		player1_items, player2_items,
+		player1_gold, player2_gold
+	)
+	trade["transfer_result"] = transfer_result
 
 trade["state"] = TradeState.COMPLETED
 
