@@ -9,10 +9,10 @@ var _parties: Dictionary = {}
 # Player to party mapping (entity_id -> party_id)
 var _player_parties: Dictionary = {}
 
-# Party limits
-const MAX_PARTY_SIZE: int = 6  # Max players in a standard party
-const MAX_PARTY_ROSTER_SIZE: int = 30  # For raids
-const INVITE_TIMEOUT_SECONDS: float = 60.0
+# Party limits (using GameConfig for centralized configuration)
+const MAX_PARTY_SIZE: int = GameConfig.Party.MAX_SIZE
+const MAX_PARTY_ROSTER_SIZE: int = GameConfig.Party.MAX_ROSTER_SIZE
+const INVITE_TIMEOUT_SECONDS: float = GameConfig.Party.INVITE_TIMEOUT_SECONDS
 
 # Pending invites (invite_id -> {from, to, timestamp})
 var _pending_invites: Dictionary = {}
@@ -37,6 +37,7 @@ signal party_invite_expired(invite_id: String)
 signal leader_changed(party_id: String, old_leader_id: String, new_leader_id: String)
 signal loot_rule_changed(party_id: String, rule: LootRule)
 signal party_member_updated(party_id: String, player_id: String)
+signal xp_shared(party_id: String, base_xp: int, xp_distribution: Dictionary, killer_id: String)
 
 func _ready() -> void:
         Logger.info("PartyService: Ready")

@@ -9,11 +9,11 @@ signal rate_limit_exceeded(player_id: String, action_type: String)
 signal consensus_requested(action_id: String, voters: Array)
 signal consensus_reached(action_id: String, result: bool)
 
-## Rate limiting configuration (actions per second)
-const MAX_ACTIONS_PER_SECOND: float = 10.0
-const MAX_MOVEMENT_PER_SECOND: float = 20.0
-const MAX_COMBAT_ACTIONS_PER_SECOND: float = 5.0
-const MAX_CHAT_PER_MINUTE: float = 10.0
+## Rate limiting configuration (using GameConfig for centralized configuration)
+const MAX_ACTIONS_PER_SECOND: float = GameConfig.Fairness.MAX_ACTIONS_PER_SECOND
+const MAX_MOVEMENT_PER_SECOND: float = GameConfig.Fairness.MAX_MOVEMENT_PER_SECOND
+const MAX_COMBAT_ACTIONS_PER_SECOND: float = GameConfig.Fairness.MAX_COMBAT_ACTIONS_PER_SECOND
+const MAX_CHAT_PER_MINUTE: float = GameConfig.Fairness.MAX_CHAT_PER_MINUTE
 
 ## Trust configuration
 const INITIAL_TRUST: float = 0.5
@@ -22,7 +22,7 @@ const TRUST_GAIN_RATE: float = 0.01  # Per action (normal behavior)
 const TRUST_LOSS_SEVERITY: float = 0.1  # Per violation
 
 ## Session length (anti-marathon)
-const MARATHON_THRESHOLD_HOURS: float = 6.0
+const MARATHON_THRESHOLD_HOURS: float = GameConfig.Fairness.MARATHON_THRESHOLD_HOURS
 const MARATHON_DEBUFF_START: float = 0.05  # 5% debuff per hour after threshold
 
 var _player_trust: Dictionary = {}  # player_id -> trust score (0.0 to 1.0)

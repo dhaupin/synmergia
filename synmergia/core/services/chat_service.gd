@@ -43,7 +43,7 @@ var _ignored_players: Dictionary = {}
 
 # Chat history (limited per channel)
 var _chat_history: Dictionary = {}
-const MAX_HISTORY_PER_CHANNEL: int = 100
+const MAX_HISTORY_PER_CHANNEL: int = GameConfig.Chat.MAX_HISTORY_PER_CHANNEL
 
 # Channel subscriptions (entity_id -> [channels])
 var _subscriptions: Dictionary = {}
@@ -52,7 +52,7 @@ var _subscriptions: Dictionary = {}
 var _player_last_message: Dictionary = {}  # entity_id -> timestamp
 const SPAM_COOLDOWN_MS: int = 500  # Half second between messages
 const SPAM_THRESHOLD: int = 5  # Messages per time window
-const MAX_MESSAGE_LENGTH: int = 500  # Maximum chat message length
+const MAX_MESSAGE_LENGTH: int = GameConfig.Chat.MAX_MESSAGE_LENGTH
 var _spam_count: Dictionary = {}  # entity_id -> count
 
 # Profanity filter

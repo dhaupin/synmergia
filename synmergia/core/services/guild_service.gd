@@ -9,11 +9,11 @@ var _guilds: Dictionary = {}
 # Player to guild mapping (entity_id -> guild_id)
 var _player_guilds: Dictionary = {}
 
-# Guild limits
-const MAX_GUILD_NAME_LENGTH: int = 24
-const MAX_GUILD_SIZE: int = 100
-const MAX_ALLIANCE_SIZE: int = 5
-const GUILD_TAG_LENGTH: int = 4
+# Guild limits (using GameConfig for centralized configuration)
+const MAX_GUILD_NAME_LENGTH: int = GameConfig.Guild.MAX_NAME_LENGTH
+const MAX_GUILD_SIZE: int = GameConfig.Guild.MAX_SIZE
+const MAX_ALLIANCE_SIZE: int = GameConfig.Guild.MAX_ALLIANCE_SIZE
+const GUILD_TAG_LENGTH: int = GameConfig.Guild.MAX_TAG_LENGTH
 
 # Default ranks
 enum GuildRank {
