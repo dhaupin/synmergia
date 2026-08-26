@@ -210,7 +210,7 @@ func get_rarity_color() -> Color:
 func create_instance(quantity: int = 1) -> Item:
 	var instance := duplicate()
 	instance.id = id + "_instance_%d" % [randi()]
-	instance.set("stack_size", mini(quantity, stack_size))
+	instance.current_stack = mini(quantity, stack_size)
 	return instance
 
 ## Get display info for UI
