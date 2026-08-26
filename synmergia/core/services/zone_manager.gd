@@ -1,7 +1,14 @@
 ## ZoneManager - Zone state and transition management
-## Tracks all zones, players per zone, and handles zone transitions
+## Handles zone transitions (seamless & instanced), population, and zone boundaries
 class_name ZoneManager
 extends Node
+
+# Zone types
+enum ZoneType {
+	OPEN_WORLD,    # Seamless, players always in same world
+	INSTANCED,     # Separate instance (dungeon, raid)
+	SEAMLESS_INST # Instance but seamless (no loading screen)
+}
 
 # All loaded zones (zone_id -> zone_data)
 var _zones: Dictionary = {}
@@ -16,16 +23,32 @@ var _enemies_in_zone: Dictionary = {}
 var _instances: Dictionary = {}
 var _next_instance_id: int = 1
 
+# Zone transitions for seamless world (zone_id -> [connected_zone_ids])
+var _zone_neighbors: Dictionary = {}
+
 # Current zone for each entity
 var _entity_zones: Dictionary = {}  # entity_id -> zone_id
+
+# Seamless transition tracking
+var _transition_zones: Dictionary = {}  # zone_id -> [transition_bounds]
+var _seamless_enabled: bool = true
 
 signal zone_loaded(zone_data: ZoneData)
 signal zone_unloaded(zone_id: String)
 signal player_entered_zone(player: Entity, zone: ZoneData)
 signal player_exited_zone(player: Entity, zone: ZoneData)
 signal zone_population_changed(zone_id: String, count: int)
+
+# Seamless transition signals
+signal seamless_transition_started(entity: Entity, from_zone: ZoneData, to_zone: ZoneData)
+signal seamless_transition_completed(entity: Entity, to_zone: ZoneData)
+signal seamless_transition_cancelled(entity: Entity, reason: String)
+
+# Instance signals
 signal instance_created(instance_id: String, zone_data: ZoneData)
 signal instance_destroyed(instance_id: String)
+signal instance_joined(player: Entity, instance_id: String)
+signal instance_left(player: Entity, instance_id: String)
 
 func _ready() -> void:
 	Logger.info("ZoneManager: Ready")
@@ -261,3 +284,165 @@ func get_zones_for_level(level: int) -> Array[ZoneData]:
 		if level >= zone.level_requirement and (zone.max_level <= 0 or level <= zone.max_level):
 			results.append(zone)
 	return results
+
+# --- Seamless World Support ---
+
+## Enable/disable seamless transitions
+func set_seamless_enabled(enabled: bool) -> void:
+	_seamless_enabled = enabled
+	Logger.info("ZoneManager: Seamless transitions %s" % ("enabled" if enabled else "disabled"))
+
+## Register zones as neighbors (for seamless transitions)
+func register_zone_neighbors(zone1_id: String, zone2_id: String) -> void:
+	if not _zone_neighbors.has(zone1_id):
+		_zone_neighbors[zone1_id] = []
+	if not _zone_neighbors.has(zone2_id):
+		_zone_neighbors[zone2_id] = []
+	
+	if not _zone_neighbors[zone1_id].has(zone2_id):
+		_zone_neighbors[zone1_id].append(zone2_id)
+	if not _zone_neighbors[zone2_id].has(zone1_id):
+		_zone_neighbors[zone2_id].append(zone1_id)
+	
+	Logger.debug("ZoneManager: Registered neighbors: %s <-> %s" % [zone1_id, zone2_id])
+
+## Get neighboring zones
+func get_neighboring_zones(zone_id: String) -> Array[ZoneData]:
+	var results: Array[ZoneData] = []
+	var neighbor_ids = _zone_neighbors.get(zone_id, [])
+	for neighbor_id in neighbor_ids:
+		var zone = _zones.get(neighbor_id)
+		if zone:
+			results.append(zone)
+	return results
+
+## Check if seamless transition should occur
+func check_seamless_transition(entity: Entity) -> ZoneData:
+	if not _seamless_enabled:
+		return null
+	
+	var current_zone_id = _entity_zones.get(entity.entity_id, "")
+	if current_zone_id == "":
+		return null
+	
+	var current_zone = _zones.get(current_zone_id)
+	if current_zone == null:
+		return null
+	
+	# Check if entity crossed zone boundary
+	var neighbors = get_neighboring_zones(current_zone_id)
+	for neighbor in neighbors:
+		if neighbor.contains_position(entity.global_position):
+			return neighbor
+	
+	return null
+
+## Perform seamless transition
+func perform_seamless_transition(entity: Entity, to_zone: ZoneData) -> bool:
+	if to_zone == null:
+		return false
+	
+	var from_zone = _zones.get(_entity_zones.get(entity.entity_id, ""))
+	if from_zone == null:
+		return false
+	
+	# Emit start signal
+	seamless_transition_started.emit(entity, from_zone, to_zone)
+	
+	# Exit current zone
+	_entity_zones.erase(entity.entity_id)
+	_players_in_zone[from_zone.id].erase(entity)
+	_players_in_zone[from_zone.id].remove_at(_players_in_zone[from_zone.id].find(entity))
+	player_exited_zone.emit(entity, from_zone)
+	EventBus.entity_exited_zone.emit(entity, from_zone)
+	
+	# Enter new zone
+	_entity_zones[entity.entity_id] = to_zone.id
+	if not _players_in_zone.has(to_zone.id):
+		_players_in_zone[to_zone.id] = []
+	_players_in_zone[to_zone.id].append(entity)
+	player_entered_zone.emit(entity, to_zone)
+	EventBus.entity_entered_zone.emit(entity, to_zone)
+	
+	# Emit completion
+	seamless_transition_completed.emit(entity, to_zone)
+	Logger.debug("ZoneManager: %s seamless transitioned %s -> %s" % [entity.display_name, from_zone.id, to_zone.id])
+	return true
+
+## Process all entities for seamless transitions (call from _process)
+func process_seamless_transitions() -> void:
+	for entity_id in _entity_zones:
+		var entity_service = EntityService
+		if entity_service:
+			var entity = entity_service.get_entity(entity_id)
+			if entity and is_instance_valid(entity):
+				var new_zone = check_seamless_transition(entity)
+				if new_zone:
+					perform_seamless_transition(entity, new_zone)
+
+## Get zone type
+func get_zone_type(zone_id: String) -> ZoneType:
+	var zone = _zones.get(zone_id)
+	if zone == null:
+		return ZoneType.OPEN_WORLD
+	
+	if zone.is_instanced:
+		return ZoneType.INSTANCED
+	return ZoneType.OPEN_WORLD
+
+## Create seamless instance (no loading screen)
+func create_seamless_instance(base_zone_id: String, party_ids: Array[String] = []) -> String:
+	# Seamless instance = instanced but players transition without loading
+	var instance_id = create_instance(base_zone_id)
+	if instance_id != "":
+		var instance_data = _instances.get(instance_id, {})
+		instance_data["seamless"] = true
+	return instance_id
+
+## Check if entity can enter instance
+func can_enter_instance(entity: Entity, instance_id: String) -> bool:
+	var instance_data = _instances.get(instance_id, {})
+	if instance_data.is_empty():
+		return false
+	
+	# Check capacity
+	var max_capacity = instance_data.get("zone_data", {}).get("instance_capacity", 0)
+	if max_capacity > 0:
+		var current_count = instance_data.get("players", []).size()
+		if current_count >= max_capacity:
+			return false
+	
+	# Check entry requirements
+	var zone = instance_data.get("zone_data")
+	if zone and not zone.can_enter(entity):
+		return false
+	
+	return true
+
+## Auto-assign to party instance or create new
+func get_or_create_party_instance(base_zone_id: String, party_leader_id: String, party_ids: Array[String]) -> String:
+	# Check if party already has an instance
+	var existing_instance = _find_party_instance(base_zone_id, party_ids)
+	if existing_instance != "":
+		return existing_instance
+	
+	# Create new instance for party
+	var instance_id = create_instance(base_zone_id)
+	if instance_id != "":
+		var instance_data = _instances.get(instance_id, {})
+		instance_data["party_id"] = party_leader_id
+		instance_data["party_members"] = party_ids.duplicate()
+	
+	return instance_id
+
+func _find_party_instance(base_zone_id: String, party_ids: Array[String]) -> String:
+	for instance_id in _instances:
+		var instance_data = _instances[instance_id]
+		if instance_data.get("base_zone_id") != base_zone_id:
+			continue
+		
+		var members = instance_data.get("party_members", [])
+		for party_id in party_ids:
+			if members.has(party_id):
+				return instance_id
+	return ""

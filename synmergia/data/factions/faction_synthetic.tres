@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1")
-id = "agent_collective"
-display_name = "Agent Collective"
+id = "synthetic"
+display_name = "Synthetic Collective"
 description = "A collective of AI agents who have achieved sentience. They seek peaceful coexistence with humanity."
 faction_type = 1
 icon_path = "res://icons/factions/agent.png"

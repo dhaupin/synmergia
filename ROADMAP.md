@@ -276,12 +276,12 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] Visual customization options (skin, hair, eyes)
 
 #### Entity Integration
-- [ ] Add species_id to Entity base class
-- [ ] Apply species stat modifiers on entity creation
+- [x] Add species_id to Entity base class
+- [x] Apply species stat modifiers on entity creation
 - [ ] Species-based model loading
 
 ### 3.2 Faction System ✅
-**Files:** `synmergia/core/schemas/faction.gd`
+**Files:** `synmergia/core/schemas/faction.gd`, `synmergia/core/services/faction_manager.gd`
 
 #### Core Features
 - [x] FactionType: SPECIES, POLITICAL, PvP_RULE, REPUTATION
@@ -291,16 +291,16 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] `can_pvp_with()`, `can_attack_target()` checks
 - [x] Territory control (controlled_zones)
 
-#### Faction Service (NEW)
-- [ ] FactionManager singleton
-- [ ] Load all factions from data
-- [ ] War declaration system
-- [ ] War cooldown timers
-- [ ] Guild faction alliances
+#### FactionManager Service ✅
+- [x] FactionManager singleton (autoload)
+- [x] Load all factions from data
+- [x] War declaration system with cooldowns
+- [x] Player reputation tracking
+- [x] Guild faction alliances
 - [ ] Cross-faction party restrictions
 
 ### 3.3 Zone System ✅
-**Files:** `synmergia/core/schemas/zone_data.gd`
+**Files:** `synmergia/core/schemas/zone_data.gd`, `synmergia/core/services/zone_manager.gd`
 
 #### Core Features
 - [x] Zone PvP modes: SAFE, SPECIES_PVP, FACTION_PVP, FREE_PVP, WARZONE
@@ -309,19 +309,25 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] Bind points and spawn points
 - [x] `can_enter()`, `can_pvp()`, `contains_position()`
 
-#### Zone Service (NEW)
-- [ ] ZoneManager singleton
-- [ ] Track active players per zone
-- [ ] Zone transition handling
-- [ ] Instance management (dungeons)
-- [ ] Zone-specific loot/XP multipliers
-- [ ] Weather/environment effects
+#### ZoneManager Service ✅
+- [x] Track active players per zone
+- [x] Zone transition handling
+- [x] Instance management (dungeons, raids)
+- [x] Zone-specific loot/XP multipliers
+- [x] Party instance creation/joining
 
-### 3.4 Spawn System (NEW)
+#### Seamless World Support ✅
+- [x] Seamless transitions (no loading between zones)
+- [x] Zone neighbor registration
+- [x] `process_seamless_transitions()` for boundary detection
+- [x] Seamless instance support (instances without loading)
+- [x] Party-based instance creation
+
+### 3.4 Spawn System ✅
 **Files:** `synmergia/core/services/spawn_service.gd`
 
 #### Spawn Point Configuration
-- [ ] Spawn point schema with:
+- [x] Spawn point schema with:
   - Position (Vector3)
   - Spawn radius
   - Enemy template to spawn
@@ -329,38 +335,60 @@ A playable demo with basic combat, one region, one playable class, one species, 
   - Min/max enemies at point
 
 #### Spawn Logic
-- [ ] Respawn timers per spawn point
-- [ ] Spawn caps per area/zone
-- [ ] Spawn proximity checks (not too close to players)
-- [ ] Dynamic spawn scaling (more enemies during events)
+- [x] Respawn timers per spawn point
+- [x] Spawn caps per area/zone
+- [x] Spawn proximity checks (not too close to players)
+- [x] Dynamic spawn scaling (more enemies during events)
 - [ ] Spawn patterns (patrol routes, stationary, random)
 
 #### Spawn Types
-- [ ] Regular enemies
-- [ ] Elite/boss spawns
-- [ ] World bosses
-- [ ] Event spawns
+- [x] Regular enemies
+- [x] Elite/boss spawns
+- [x] World bosses
+- [x] Event spawns (via spawn_multiplier)
 
-### 3.5 World Service (NEW)
+### 3.5 World Service ✅
 **Files:** `synmergia/core/services/world_service.gd`
 
 #### World State
-- [ ] WorldManager singleton
-- [ ] Track all zones and entities
-- [ ] Zone loading/unloading
-- [ ] Time of day / day-night cycle
-- [ ] World events system
+- [x] WorldService singleton (autoload)
+- [x] Track all zones and entities
+- [x] Zone loading/unloading
+- [x] Time of day / day-night cycle
+- [x] World events system
 
 #### Gateway System
-- [ ] Gateway between zones
-- [ ] Gateway activation (proximity + interaction)
-- [ ] Gateway transitions
-- [ ] Ankh placement at gateways (respawn system integration)
+- [x] Gateway between zones
+- [x] Gateway activation (proximity + interaction)
+- [x] Gateway transitions
+- [x] Ankh placement at gateways (respawn system integration)
 
 #### Procedural World
 - [ ] Zone generation templates
 - [ ] Seed-based world generation
 - [ ] Region connectivity
+
+### 3.6 Shard/Multi-Server Support ✅ (NEW)
+**Files:** `synmergia/core/services/shard_manager.gd`
+
+#### ShardManager Service
+- [x] Shard ID and name configuration
+- [x] World size configuration (default 200 km²)
+- [x] Player count tracking per shard
+- [x] Max players per shard (soft cap)
+- [x] Server status (online/maintenance/full)
+
+#### Cross-Shard Support
+- [x] Connected shards tracking
+- [x] Cross-shard transfer eligibility check
+- [x] World coordinate offset for shard-based worlds
+- [x] Shard config generation for admin tools
+
+### World Design Decisions
+- **Scale:** Massive (~200+ km²), bigger than RYL2, room for housing
+- **Dungeons:** Support both open-world AND instanced (flexible)
+- **Transitions:** Seamless for open world, seamless preferred for instances
+- **Server:** Single shard ideal, multi-shard supported with meshing
 
 ---
 

@@ -30,6 +30,7 @@ ZoneManager="*res://core/services/zone_manager.gd"
 FactionManager="*res://core/services/faction_manager.gd"
 SpawnService="*res://core/services/spawn_service.gd"
 WorldService="*res://core/services/world_service.gd"
+ShardManager="*res://core/services/shard_manager.gd"
 
 [display]
 
