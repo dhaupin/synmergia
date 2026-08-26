@@ -87,9 +87,13 @@ enum EquipSlot {
 
 # Stack & Trade
 @export var stack_size: int = 1
+@export var current_stack: int = 1  # Runtime quantity (for stacked items)
 @export var is_bound: bool = false  # Binds on pickup
 @export var bind_on_equip: bool = false
 @export var unique: bool = false  # Only one can be owned
+
+# Weight & Encumbrance
+@export var weight: float = 0.0  # Weight per unit (ores heavier than leather)
 
 # Economy
 @export var sell_price: int = 0
@@ -182,6 +186,10 @@ func get_total_stats() -> Dictionary:
 		else:
 			total[key] = primary_stats[key]
 	return total
+
+## Get total weight for this stack
+func get_total_weight() -> float:
+	return weight * current_stack
 
 ## Get rarity color for UI
 func get_rarity_color() -> Color:
