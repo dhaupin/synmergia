@@ -23,6 +23,13 @@ PlayerManager="*res://core/autoload/player_manager.gd"
 InputManager="*res://core/autoload/input_manager.gd"
 AudioManager="*res://core/autoload/audio_manager.gd"
 Logger="*res://core/autoload/logger.gd"
+DataService="*res://core/services/data_service.gd"
+EntityService="*res://core/services/entity_service.gd"
+EventBus="*res://core/services/event_bus.gd"
+ZoneManager="*res://core/services/zone_manager.gd"
+FactionManager="*res://core/services/faction_manager.gd"
+SpawnService="*res://core/services/spawn_service.gd"
+WorldService="*res://core/services/world_service.gd"
 
 [display]
 
