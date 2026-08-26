@@ -272,38 +272,49 @@ func _unconfirm(trade: Dictionary, player_id: String) -> void:
 
 ## Complete the trade
 func _complete_trade(trade_id: String) -> bool:
-        var trade: Dictionary = _active_trades.get(trade_id)
-        if not trade:
-                return false
-        
-        # TODO: Actually transfer items and gold
-        # This would:
-        # 1. Remove items from each player's inventory
-        # 2. Remove gold from each player's inventory
-        # 3. Add items to each player's inventory
-        # 4. Add gold to each player's inventory
-        
-        trade["state"] = TradeState.COMPLETED
-        
-        var trades := {
-                trade["player1"]: {
-                        "items": trade["player1_items"],
-                        "gold": trade["player1_gold"]
-                },
-                trade["player2"]: {
-                        "items": trade["player2_items"],
-                        "gold": trade["player2_gold"]
-                }
-        }
-        
-        trade_completed.emit(trade_id, trades)
-        Logger.info("TradeService: Trade %s completed" % trade_id)
-        
-        # Clean up after a delay
-        await get_tree().create_timer(5.0).timeout
-        _active_trades.erase(trade_id)
-        
-        return true
+var trade: Dictionary = _active_trades.get(trade_id)
+if not trade:
+return false
+
+var player1 := trade["player1"]
+var player2 := trade["player2"]
+var player1_items := trade["player1_items"]
+var player2_items := trade["player2_items"]
+var player1_gold := trade["player1_gold"]
+var player2_gold := trade["player2_gold"]
+
+# TODO: Actually transfer items and gold via inventory service
+# For now, emit completion signal with trade details
+
+trade["state"] = TradeState.COMPLETED
+
+var trades := {
+player1: {
+"items": player1_items,
+"gold": player1_gold
+},
+player2: {
+"items": player2_items,
+"gold": player2_gold
+}
+}
+
+# Log trade history
+_log_trade(player1, player2, player1_items, player2_items, player1_gold, player2_gold)
+
+# Set cooldowns
+_set_cooldown(player1)
+_set_cooldown(player2)
+
+trade_completed.emit(trade_id, trades)
+Logger.info("TradeService: Trade %s completed" % trade_id)
+
+# Clean up after a delay
+await get_tree().create_timer(5.0).timeout
+_active_trades.erase(trade_id)
+
+return true
+
 
 ## Get trade info
 func get_trade(trade_id: String) -> Dictionary:
