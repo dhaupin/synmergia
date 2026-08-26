@@ -1,8 +1,8 @@
-# World Smith - Development Roadmap
+# Synmergia - Development Roadmap
 
 > 3D Open World MMORPG inspired by RYL2 combat and Ultima Online depth
 >
-> PRD: See [prd-world-smith.md](./prd-world-smith.md) for full design specification
+> PRD: See [prd-synmergia.md](./prd-synmergia.md) for full design specification
 
 ---
 

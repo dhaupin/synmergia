@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="World Smith"
+config/name="Synmergia"
 run/main_scene="res://ui/menus/main_menu.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"

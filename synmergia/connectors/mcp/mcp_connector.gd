@@ -101,7 +101,7 @@ func _send_initialize() -> void:
 				"streaming": false
 			},
 			"clientInfo": {
-				"name": "WorldSmith",
+				"name": "Synmergia",
 				"version": "1.0"
 			}
 		}

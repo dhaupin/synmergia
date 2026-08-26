@@ -1,4 +1,4 @@
-# World Smith
+# Synmergia
 
 An open-world MMORPG built with Godot 4.2+, inspired by RYL2 combat and Ultima Online depth.
 
@@ -28,7 +28,7 @@ godot-project/
 ├── data/           # Game resources (.tres files)
 └── assets/         # External assets
 
-prd-world-smith.md  # Complete Product Requirements Document
+prd-synmergia.md  # Complete Product Requirements Document
 ```
 
 ## Getting Started
@@ -67,7 +67,7 @@ godot --headless --server --path res://
 
 ## Documentation
 
-See [PRD-World-Smith.md](./prd-world-smith.md) for full game design.
+See [PRD-World-Smith.md](./prd-synmergia.md) for full game design.
 
 ## License
 
