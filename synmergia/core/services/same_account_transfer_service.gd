@@ -150,6 +150,12 @@ func get_cooldown_remaining(account_id: String) -> int:
 
 ## Execute same-account transfer
 func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids: Array = []) -> Dictionary:
+	# Security: Verify same account (defense in depth)
+	if not _account_service or not _account_service.is_same_account(from_char_id, to_char_id):
+		var fail_result := {"success": false, "reason": "Security: Characters not on same account"}
+		transfer_cancelled.emit(from_char_id, to_char_id, fail_result["reason"])
+		return fail_result
+
         var result := {
                 "success": false,
                 "reason": "",
