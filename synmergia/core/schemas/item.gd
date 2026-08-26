@@ -165,6 +165,15 @@ func _init() -> void:
 	# Initialize durability for equipment
 	if max_durability > 0 and current_durability == 0:
 		current_durability = max_durability
+	# Set default durability loss rate based on item type
+	if durability_loss_rate == 1.0:  # Only if not explicitly set
+		match item_category:
+			ItemCategory.WEAPON:
+				durability_loss_rate = 1.0  # Full rate
+			ItemCategory.ARMOR:
+				durability_loss_rate = 0.8  # Slower than weapons
+			ItemCategory.ACCESSORY:
+				durability_loss_rate = 0.5  # Accessories decay slowly
 
 ## Check if entity can use this item
 func can_use(entity: Entity) -> bool:
@@ -241,6 +250,36 @@ func is_broken() -> bool:
 	if max_durability <= 0:
 		return false  # Indestructible
 	return current_durability <= 0
+
+## Get effective damage (0 if broken)
+func get_effective_damage_min() -> int:
+	if is_broken():
+		return 0
+	return weapon_damage_min
+
+## Get effective damage (0 if broken)
+func get_effective_damage_max() -> int:
+	if is_broken():
+		return 0
+	return weapon_damage_max
+
+## Get effective armor value (0 if broken)
+func get_effective_armor_value() -> int:
+	if is_broken():
+		return 0
+	return armor_value
+
+## Get effective stat value (0 if broken)
+func get_effective_stat(stat_name: String) -> int:
+	if is_broken():
+		return 0
+	return stats.get(stat_name, 0)
+
+## Get all effective stats (0 if broken)
+func get_effective_stats() -> Dictionary:
+	if is_broken():
+		return {}
+	return get_total_stats()
 
 ## Can item be equipped (not broken)?
 func can_equip() -> bool:

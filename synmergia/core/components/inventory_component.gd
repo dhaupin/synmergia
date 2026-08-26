@@ -233,18 +233,34 @@ func get_equipment_stats() -> Dictionary:
         for item in _equipment.values():
                 if item == null:
                         continue
-
-                for stat in item.stats:
+                
+                # Use effective stats (0 if broken)
+                var effective_stats := item.get_effective_stats()
+                
+                for stat in effective_stats:
                         if not stats.has(stat):
                                 stats[stat] = 0
-                        stats[stat] += item.stats[stat]
-
-                for stat in item.primary_stats:
-                        if not stats.has(stat):
-                                stats[stat] = 0
-                        stats[stat] += item.primary_stats[stat]
+                        stats[stat] += effective_stats[stat]
 
         return stats
+
+## Get total armor from equipment (0 if broken)
+func get_equipment_armor() -> int:
+        var total := 0
+        for item in _equipment.values():
+                if item:
+                        total += item.get_effective_armor_value()
+        return total
+
+## Get main hand weapon damage range (0 if broken)
+func get_main_hand_damage() -> Dictionary:
+        var min_dmg := 0
+        var max_dmg := 0
+        var weapon: Item = _equipment.get(Item.EquipSlot.MAIN_HAND)
+        if weapon:
+                min_dmg = weapon.get_effective_damage_min()
+                max_dmg = weapon.get_effective_damage_max()
+        return {"min": min_dmg, "max": max_dmg}
 
 ## Get inventory count
 func get_inventory_count() -> int:
