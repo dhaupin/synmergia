@@ -429,3 +429,66 @@ func _create_enemy(spawn_point: SpawnPoint) -> Entity:
 	enemy.current_health = spawn_point.enemy_data.health
 	
 	return enemy
+## Spawn a Blacksmith NPC at a position
+func spawn_blacksmith(
+		zone_id: String,
+		position: Vector3,
+		name: String = "Blacksmith",
+		location_type: BlacksmithNPC.LocationType = BlacksmithNPC.LocationType.TOWN
+) -> BlacksmithNPC:
+		var blacksmith := BlacksmithNPC.new()
+		blacksmith.npc_name = name
+		blacksmith.display_name = name
+		blacksmith.location_type = location_type
+		blacksmith.entity_type = Entity.EntityType.NPC
+		blacksmith.faction = Entity.Faction.FRIENDLY
+		
+		# Register with EntityService
+		var entity_service = EntityService
+		if entity_service:
+			entity_service.register_entity(blacksmith)
+		
+		# Position NPC
+		blacksmith.global_position = position
+		
+		# Add to zone
+		var zone_manager = ZoneManager
+		if zone_manager:
+			var zone = zone_manager.get_zone(zone_id)
+			if zone:
+				zone_manager.entity_enter_zone(blacksmith, zone)
+		
+		Logger.info("SpawnService: Spawned Blacksmith '%s' at (%s) in zone %s" % [name, position, zone_id])
+		EventBus.npc_spawned.emit(blacksmith, zone_id)
+		
+		return blacksmith
+
+## Spawn all blacksmiths for a zone (called during zone load)
+func spawn_zone_blacksmiths(zone_id: String, zone_data: ZoneData) -> Array[BlacksmithNPC]:
+		var blacksmiths: Array[BlacksmithNPC] = []
+		
+		# Check zone NPCs list for blacksmith entries
+		if zone_data.npcs.size() > 0:
+			for npc_id in zone_data.npcs:
+				if npc_id.begins_with("blacksmith_"):
+					var location := BlacksmithNPC.LocationType.TOWN
+					if zone_id.begins_with("outpost_"):
+						location = BlacksmithNPC.LocationType.OUTPOST
+					elif zone_id.begins_with("village_") or zone_id.begins_with("hamlet_"):
+						location = BlacksmithNPC.LocationType.VILLAGE
+					elif zone_id.begins_with("capital_"):
+						location = BlacksmithNPC.LocationType.CAPITAL
+					
+					var spawn_pos := zone_data.bind_point if zone_data.bind_point != Vector3.ZERO else zone_data.zone_center
+					var blacksmith := spawn_blacksmith(zone_id, spawn_pos, npc_id, location)
+					if blacksmith:
+						blacksmiths.append(blacksmith)
+		
+		# Auto-spawn in safe zones if no blacksmith defined
+		if blacksmiths.is_empty() and zone_data.pvp_mode == ZoneData.PvPZoneMode.SAFE:
+			var spawn_pos := zone_data.bind_point if zone_data.bind_point != Vector3.ZERO else zone_data.zone_center
+			var blacksmith := spawn_blacksmith(zone_id, spawn_pos, "Blacksmith", BlacksmithNPC.LocationType.TOWN)
+			if blacksmith:
+				blacksmiths.append(blacksmith)
+		
+		return blacksmiths
