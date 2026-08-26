@@ -66,7 +66,11 @@ func _try_stack_item(item: Item, quantity: int) -> int:
                         var space := slot_item.stack_size - slot_item.current_stack
                         if space > 0:
                                 var to_add := mini(space, quantity)
+                                var old_stack := slot_item.current_stack
                                 slot_item.current_stack += to_add
+                                # Update weight for stacked items
+                                _current_weight += (slot_item.current_stack - old_stack) * slot_item.weight_per_unit
+                                weight_changed.emit(_current_weight, _max_weight, is_encumbered())
                                 return to_add
         return 0
 
