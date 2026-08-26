@@ -107,6 +107,42 @@ func _handle_character_select_state() -> void:
 
 func _handle_playing_state() -> void:
 	Logger.info("Entering gameplay")
+	_initialize_world_services()
+
+func _initialize_world_services() -> void:
+	# Only initialize once
+	if _world_initialized:
+		return
+	_world_initialized = true
+	
+	Logger.info("GameManager: Initializing world services...")
+	
+	# Initialize world (loads zones, factions)
+	if WorldService:
+		WorldService.initialize_world()
+	
+	# Initialize player tracking in ShardManager
+	if ShardManager:
+		ShardManager.start_server()
+	
+	# Connect EntityService player tracking to ShardManager
+	if EntityService:
+		EntityService.player_joined.connect(_on_player_joined)
+		EntityService.player_left.connect(_on_player_left)
+	
+	Logger.info("GameManager: World services initialized")
+
+func _on_player_joined(player: Entity) -> void:
+	if ShardManager:
+		ShardManager.player_connected()
+	Logger.info("Player joined: %s" % player.display_name)
+
+func _on_player_left(player: Entity) -> void:
+	if ShardManager:
+		ShardManager.player_disconnected()
+	Logger.info("Player left: %s" % player.display_name)
+
+var _world_initialized := false
 
 func is_gameplay_active() -> bool:
 	return current_state == GameState.PLAYING and not is_paused

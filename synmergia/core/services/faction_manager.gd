@@ -133,6 +133,20 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 	
 	war_declared.emit(faction1, faction2)
 	Logger.info("FactionManager: WAR declared between %s and %s" % [faction1_id, faction2_id])
+	
+	# Notify players
+	var notification_service = NotificationService
+	if notification_service:
+		var message = "FACTION WAR: %s has declared war on %s!" % [faction1.display_name, faction2.display_name]
+		notification_service.broadcast_all(
+			message,
+			NotificationService.NotificationType.FACTION,
+			NotificationService.Priority.HIGH,
+			NotificationService.DisplayLocation.CENTER_SCREEN,
+			NotificationService.SoundType.WARNING,
+			{"faction1": faction1_id, "faction2": faction2_id}
+		)
+	
 	return true
 
 ## End war between factions
@@ -156,6 +170,20 @@ func end_war(faction1_id: String, faction2_id: String) -> bool:
 	
 	war_ended.emit(faction1, faction2)
 	Logger.info("FactionManager: War ended between %s and %s" % [faction1_id, faction2_id])
+	
+	# Notify players
+	var notification_service = NotificationService
+	if notification_service and faction1 and faction2:
+		var message = "FACTION PEACE: The war between %s and %s has ended." % [faction1.display_name, faction2.display_name]
+		notification_service.broadcast_all(
+			message,
+			NotificationService.NotificationType.FACTION,
+			NotificationService.Priority.NORMAL,
+			NotificationService.DisplayLocation.CENTER_SCREEN,
+			NotificationService.SoundType.NOTIFICATION,
+			{"faction1": faction1_id, "faction2": faction2_id}
+		)
+	
 	return true
 
 ## Check if faction is on war declaration cooldown

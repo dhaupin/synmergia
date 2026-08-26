@@ -241,7 +241,7 @@ func get_nearby_gateway(entity: Entity) -> GatewayData:
 ## World events
 
 ## Start a world event
-func start_event(event_id: String, duration_seconds: float) -> void:
+func start_event(event_id: String, duration_seconds: float, message: String = "") -> void:
 	if _active_events.any(func(e): return e.get("id") == event_id):
 		return  # Already active
 	
@@ -260,9 +260,23 @@ func start_event(event_id: String, duration_seconds: float) -> void:
 	
 	event_started.emit(event_id, event_id)
 	Logger.info("WorldService: Event started: %s" % event_id)
+	
+	# Notify players
+	var notification_service = NotificationService
+	if notification_service:
+		if message == "":
+			message = "WORLD EVENT: %s has begun!" % event_id
+		notification_service.broadcast_server(
+			message,
+			NotificationService.NotificationType.WORLD_EVENT,
+			NotificationService.Priority.HIGH,
+			NotificationService.DisplayLocation.CENTER_SCREEN,
+			NotificationService.SoundType.NOTIFICATION,
+			{"event_id": event_id, "duration": duration_seconds}
+		)
 
 ## End an event
-func end_event(event_id: String) -> void:
+func end_event(event_id: String, message: String = "") -> void:
 	var event_index = _active_events.find(_active_events.filter(func(e): return e.get("id") == event_id).pop_front())
 	if event_index >= 0:
 		var event = _active_events[event_index]
@@ -273,6 +287,20 @@ func end_event(event_id: String) -> void:
 		
 		event_ended.emit(event_id, event.get("name", event_id))
 		Logger.info("WorldService: Event ended: %s" % event_id)
+		
+		# Notify players
+		var notification_service = NotificationService
+		if notification_service:
+			if message == "":
+				message = "WORLD EVENT: %s has ended." % event_id
+			notification_service.broadcast_server(
+				message,
+				NotificationService.NotificationType.WORLD_EVENT,
+				NotificationService.Priority.NORMAL,
+				NotificationService.DisplayLocation.CENTER_SCREEN,
+				NotificationService.SoundType.NOTIFICATION,
+				{"event_id": event_id}
+			)
 
 ## Check if event is active
 func is_event_active(event_id: String) -> bool:
