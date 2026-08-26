@@ -364,10 +364,18 @@ func perform_seamless_transition(entity: Entity, to_zone: ZoneData) -> bool:
 	player_entered_zone.emit(entity, to_zone)
 	EventBus.entity_entered_zone.emit(entity, to_zone)
 	
+	# Send notification
+	_notify_zone_change(entity, from_zone, to_zone)
+	
 	# Emit completion
 	seamless_transition_completed.emit(entity, to_zone)
 	Logger.debug("ZoneManager: %s seamless transitioned %s -> %s" % [entity.display_name, from_zone.id, to_zone.id])
 	return true
+
+func _notify_zone_change(entity: Entity, from_zone: ZoneData, to_zone: ZoneData) -> void:
+	var notification_service = NotificationService
+	if notification_service and entity.entity_type == Entity.EntityType.PLAYER:
+		notification_service.notify_zone_change(entity.entity_id, from_zone.id, to_zone.id)
 
 ## Process all entities for seamless transitions (call from _process)
 func process_seamless_transitions() -> void:
@@ -434,6 +442,19 @@ func get_or_create_party_instance(base_zone_id: String, party_leader_id: String,
 		instance_data["party_members"] = party_ids.duplicate()
 	
 	return instance_id
+
+## Notify dungeon entry/exit
+func notify_dungeon_enter(entity: Entity, zone_name: String) -> void:
+	if entity.entity_type == Entity.EntityType.PLAYER:
+		var notification_service = NotificationService
+		if notification_service:
+			notification_service.notify_dungeon_enter(entity.entity_id, zone_name)
+
+func notify_dungeon_exit(entity: Entity, zone_name: String, completed: bool) -> void:
+	if entity.entity_type == Entity.EntityType.PLAYER:
+		var notification_service = NotificationService
+		if notification_service:
+			notification_service.notify_dungeon_exit(entity.entity_id, zone_name, completed)
 
 func _find_party_instance(base_zone_id: String, party_ids: Array[String]) -> String:
 	for instance_id in _instances:

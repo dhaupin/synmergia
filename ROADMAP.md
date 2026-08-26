@@ -390,6 +390,69 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - **Transitions:** Seamless for open world, seamless preferred for instances
 - **Server:** Single shard ideal, multi-shard supported with meshing
 
+### 3.7 Zones & Dungeons (TODO)
+**TODO:** Define zones, dungeons, and world structure
+
+#### Zone Types
+- [ ] Starter zones (1-20, safe)
+- [ ] Mid-level zones (20-50)
+- [ ] High-level zones (50+)
+- [ ] PvP zones (various levels)
+- [ ] Dungeons (instanced)
+- [ ] Raids (large instanced)
+- [ ] World bosses (open-world elites)
+
+#### Dungeon Types
+- [ ] Solo dungeons (story, learning)
+- [ ] Group dungeons (5-man)
+- [ ] Raid dungeons (10-40 man)
+- [ ] World dungeons (open-world, server-wide)
+
+#### Special Areas
+- [ ] Housing districts (player-built areas)
+- [ ] Crafting zones (resources, workshops)
+- [ ] Arena/Battlegrounds (PvP)
+- [ ] Sky islands
+- [ ] Underworld
+- [ ] Dimensional planes
+
+---
+
+### 3.8 Player Notifications ✅
+**Files:** `synmergia/core/services/notification_service.gd`
+
+#### Notification System
+- [x] NotificationService singleton (autoload)
+- [x] NotificationType enum (SYSTEM, ZONE_CHANGE, DUNGEON, ACHIEVEMENT, etc.)
+- [x] Priority levels (LOW, NORMAL, HIGH, CRITICAL)
+- [x] DisplayLocation (CHAT_LOG, CENTER_SCREEN, CORNER, FLOATING)
+- [x] Sound types for different events
+
+#### Notification Types
+- [x] Zone entry/exit notifications (integrated with ZoneManager)
+- [x] Dungeon entry/exit notifications
+- [x] Achievement unlocked
+- [x] Level up announcements
+- [x] World event alerts
+- [x] Faction/guild notifications
+- [x] Combat notifications (crit, dodge, etc.)
+- [x] Item loot notifications (with rarity)
+- [x] Gold change notifications
+- [x] Quest notifications
+- [x] Warning/error messages
+
+#### Notification Methods
+- [x] send() - Send to single entity
+- [x] broadcast() - Send to multiple entities
+- [x] broadcast_zone() - Send to all players in zone
+- [x] broadcast_all() - Send to all online players
+- [x] get_unread() - Get unread notifications
+- [x] get_history() - Get notification history
+
+#### Integration
+- [x] ZoneManager integrates notifications for seamless transitions
+- [x] Dungeon entry/exit notification methods available
+
 ---
 
 ## Phase 4: Loot and Items
