@@ -70,16 +70,22 @@ func load_zones() -> void:
 	auto_register_zone_neighbors()
 
 ## Register a zone
-func register_zone(zone_data: ZoneData) -> void:
+func register_zone(zone_data: ZoneData) -> bool:
 	if zone_data == null:
-		return
-	
+		return false
+
+	# Defense in depth: Check for duplicate zone ID
+	if _zones.has(zone_data.id):
+		Logger.error("ZoneManager: Duplicate zone ID '%s' - cannot register" % zone_data.id)
+		return false
+
 	_zones[zone_data.id] = zone_data
 	_players_in_zone[zone_data.id] = []
 	_enemies_in_zone[zone_data.id] = []
-	
+
 	zone_loaded.emit(zone_data)
 	Logger.debug("ZoneManager: Registered zone %s" % zone_data.id)
+	return true
 
 ## Auto-register zone neighbors based on proximity
 func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
