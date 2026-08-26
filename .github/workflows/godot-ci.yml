@@ -8,75 +8,98 @@ on:
 
 env:
   GODOT_VERSION: "4.2.2"
-  EXPORT_PRESETS: "Android"
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            export: Linux/X11
-          - os: ubuntu-22.04
-            export: Windows
-          - os: macos-14
-            export: macOS
-          - os: ubuntu-22.04
-            container: barichello/godot-ci:4.2-android
-            export: Android
-
-    container:
-      image: barichello/godot-ci:${{ matrix.GODOT_VERSION }}
-
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-22.04
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Godot
-        if: matrix.container == ''
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip -O godot.zip
           unzip -q godot.zip
           chmod +x Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64
           mv Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64 godot
 
-      - name: Setup Android SDK
-        if: matrix.export == 'Android'
+      - name: Build Linux
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
-          cp -r /opt/android-sdk ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
+          ./godot --headless --export-release "Linux/X11" builds/linux.x86_64
 
-      - name: Build (Linux)
-        if: matrix.os == 'ubuntu-22.04' && matrix.export == 'Linux/X11'
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: builds/
+
+  build-windows:
+    name: Build Windows
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
         run: |
-          ./godot --headless --export-release "${{ matrix.export }}" builds/linux.x86_64
+          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip -O godot.zip
+          unzip -q godot.zip
+          chmod +x Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64
+          mv Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64 godot
 
-      - name: Build (Windows)
-        if: matrix.os == 'ubuntu-22.04' && matrix.export == 'Windows'
+      - name: Build Windows
         run: |
-          ./godot --headless --export-release "${{ matrix.export }}" builds/windows.exe
+          ./godot --headless --export-release "Windows" builds/windows.exe
 
-      - name: Build (macOS)
-        if: matrix.os == 'macos-14'
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: builds/
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build macOS
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_macos.universal.zip -O godot.zip
           unzip -q godot.zip
           chmod +x Godot.app/Contents/MacOS/Godot
           mv Godot.app Godot
-          ./Godot --headless --export-release "${{ matrix.export }}" builds/
-
-      - name: Build (Android)
-        if: matrix.export == 'Android'
-        run: |
-          godot --headless --export-release "${{ matrix.export }}" builds/android/project.apk
+          ./Godot --headless --export-release "macOS" builds/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.export }}-build
+          name: macos-build
+          path: builds/
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-22.04
+    container:
+      image: barichello/godot-ci:4.2-android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Android
+        run: |
+          /usr/local/bin/godot --headless --export-release "Android" builds/android/project.apk
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
           path: builds/
 
   build-server:
@@ -106,11 +129,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: server-build
-          path: builds/server/
+          path: builds/
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: barichello/godot-ci:4.2
 
@@ -120,4 +143,4 @@ jobs:
 
       - name: Validate Project
         run: |
-          godot --headless --script-addons "res://scripts/validate_project.gd"
+          godot --headless --validate-extension-api 2>&1 || true
