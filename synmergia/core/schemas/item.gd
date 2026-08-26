@@ -127,6 +127,12 @@ enum EquipSlot {
 @export var attack_speed: float = 1.0  # Attacks per second
 @export var armor_value: int = 0
 
+# Durability
+@export var max_durability: int = 100  # 0 = indestructible
+@export var current_durability: int = 100  # Runtime value (not exported, set on init)
+@export var durability_loss_rate: float = 1.0  # Durability per minute of combat at rate 1.0
+@export var can_repair: bool = true
+
 # Consumable-specific
 @export var use_skill_id: String = ""  # Skill to execute on use
 @export var cooldown: float = 0.0
@@ -156,6 +162,9 @@ enum EquipSlot {
 func _init() -> void:
 	if id == "":
 		id = display_name.to_lower().replace(" ", "_")
+	# Initialize durability for equipment
+	if max_durability > 0 and current_durability == 0:
+		current_durability = max_durability
 
 ## Check if entity can use this item
 func can_use(entity: Entity) -> bool:
@@ -170,10 +179,6 @@ func can_use(entity: Entity) -> bool:
 	if required_intelligence > 0 and entity.intelligence < required_intelligence:
 		return false
 	return true
-
-## Can this item be equipped?
-func can_equip() -> bool:
-	return equip_slot != EquipSlot.NONE
 
 ## Get total stat contribution
 func get_total_stats() -> Dictionary:
@@ -224,3 +229,50 @@ func get_info() -> Dictionary:
 		"stats": get_total_stats(),
 		"required_level": required_level
 	}
+
+## Get durability percentage (0.0 to 1.0)
+func get_durability_percent() -> float:
+	if max_durability <= 0:
+		return 1.0  # Indestructible
+	return float(current_durability) / float(max_durability)
+
+## Is item broken?
+func is_broken() -> bool:
+	if max_durability <= 0:
+		return false  # Indestructible
+	return current_durability <= 0
+
+## Can item be equipped (not broken)?
+func can_equip() -> bool:
+	return equip_slot != EquipSlot.NONE and not is_broken()
+
+## Apply durability loss from combat (returns actual amount lost)
+func apply_combat_durability_loss(delta_minutes: float) -> int:
+	if max_durability <= 0 or current_durability <= 0:
+		return 0  # Indestructible or already broken
+	
+	var loss := int(delta_minutes * durability_loss_rate)
+	if loss <= 0:
+		return 0
+	
+	var old_durability := current_durability
+	current_durability = maxi(0, current_durability - loss)
+	return old_durability - current_durability
+
+## Repair item to max durability
+func repair() -> bool:
+	if not can_repair:
+		return false
+	if max_durability <= 0:
+		return false  # Indestructible
+	current_durability = max_durability
+	return true
+
+## Repair item to specific amount
+func repair_to(amount: int) -> bool:
+	if not can_repair:
+		return false
+	if max_durability <= 0:
+		return false
+	current_durability = clampi(amount, 0, max_durability)
+	return true

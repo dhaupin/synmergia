@@ -16,6 +16,8 @@ signal channel_ended(skill: Skill, completed: bool)
 signal combat_entered()
 signal combat_exited()
 signal gcd_triggered(duration: float)
+signal durability_tick(total_loss: int)  # Emitted each minute of combat
+signal item_broken(item_id: String)  # Emitted when an item reaches 0 durability
 
 @export var attack_power: int = 10
 @export var spell_power: int = 10
@@ -31,6 +33,10 @@ var gcd_remaining: float = 0.0
 var in_combat: bool = false
 var combat_start_time: int = 0
 @export var out_of_combat_time: float = 10.0  # Seconds after last damage to exit combat
+
+# Durability Decay Tracking
+var _combat_time_accumulator: float = 0.0  # Accumulates combat time in seconds
+@export var durability_tick_interval: float = 60.0  # Apply durability loss every 60 seconds (1 minute)
 
 # Mana Regen
 @export var mana_regen_combat: float = 1.0    # Multiplier during combat
@@ -439,3 +445,44 @@ func process_queued_skill() -> void:
 		queued_skill = null
 		# Execute queued skill
 		execute_skill(skill)
+
+## Process durability decay during combat
+func _process(delta: float) -> void:
+	if not in_combat:
+		return
+	
+	# Accumulate combat time
+	_combat_time_accumulator += delta
+	
+	# Apply durability loss every tick interval
+	if _combat_time_accumulator >= durability_tick_interval:
+		var combat_minutes := _combat_time_accumulator / 60.0
+		_apply_durability_loss(combat_minutes)
+		_combat_time_accumulator = 0.0
+
+## Apply durability loss to all equipped items
+func _apply_durability_loss(combat_minutes: float) -> void:
+	var entity: Entity = get_parent()
+	if not entity or not entity.inventory_component:
+		return
+	
+	var total_loss := 0
+	var inventory: InventoryComponent = entity.inventory_component
+	
+	# Apply to each equipped item
+	for slot in InventoryComponent.EquipSlot.values():
+		var item: Item = inventory.get_equipped_item(slot)
+		if item and item.max_durability > 0:
+			var loss := item.apply_combat_durability_loss(combat_minutes)
+			total_loss += loss
+			
+			if loss > 0:
+				Logger.debug("CombatComponent: %s lost %d durability on %s" % [entity.name, loss, item.display_name])
+			
+			# Check if item broke
+			if item.is_broken():
+				item_broken.emit(item.id)
+				Logger.warn("CombatComponent: %s's %s broke!" % [entity.name, item.display_name])
+	
+	if total_loss > 0:
+		durability_tick.emit(total_loss)

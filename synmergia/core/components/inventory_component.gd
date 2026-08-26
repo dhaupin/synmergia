@@ -157,6 +157,49 @@ func get_equipped(equip_slot: int) -> Item:
 func get_all_equipment() -> Dictionary:
         return _equipment.duplicate()
 
+	## Get all equipped items as array
+	func get_all_equipped_items() -> Array[Item]:
+		var items: Array[Item] = []
+		for item in _equipment.values():
+			if item:
+				items.append(item)
+		return items
+	
+	## Get equipped items with low durability (below threshold)
+	func get_low_durability_items(threshold: float = 0.2) -> Array[Item]:
+		var items: Array[Item] = []
+		for item in _equipment.values():
+			if item and item.max_durability > 0 and item.get_durability_percent() < threshold:
+				items.append(item)
+		return items
+	
+	## Repair all equipped items (costs gold)
+	func repair_all_equipped(gold_per_durability: float = 1.0) -> int:
+		var total_cost := 0
+		
+		for item in _equipment.values():
+			if item and item.max_durability > 0 and item.can_repair:
+				var missing := item.max_durability - item.current_durability
+				if missing > 0:
+					var cost := int(missing * gold_per_durability)
+					total_cost += cost
+					item.repair()
+		
+		return total_cost
+	
+	## Repair specific equipped item
+	func repair_equipped_item(equip_slot: int, gold_per_durability: float = 1.0) -> int:
+		var item: Item = _equipment.get(equip_slot)
+		if not item or item.max_durability <= 0 or not item.can_repair:
+			return 0
+		
+		var missing := item.max_durability - item.current_durability
+		if missing <= 0:
+			return 0
+		
+		var cost := int(missing * gold_per_durability)
+		item.repair()
+		return cost
 ## Add gold
 func add_gold(amount: int) -> void:
 	# SECURITY: Reject negative or zero amounts
