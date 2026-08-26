@@ -19,6 +19,7 @@ enum EnemyType {
 @export var enemy_type: EnemyType = EnemyType.NORMAL
 @export var level: int = 1
 @export var faction: String = "hostile"
+@export var species_id: String = ""  # Links to Species for faction relationships
 
 # Stats (base values)
 @export var health: int = 100

@@ -66,6 +66,9 @@ func load_zones() -> void:
 	
 	Logger.info("ZoneManager: Loaded %d zones" % _zones.size())
 
+	# Auto-register zone neighbors based on proximity
+	auto_register_zone_neighbors()
+
 ## Register a zone
 func register_zone(zone_data: ZoneData) -> void:
 	if zone_data == null:
@@ -77,6 +80,27 @@ func register_zone(zone_data: ZoneData) -> void:
 	
 	zone_loaded.emit(zone_data)
 	Logger.debug("ZoneManager: Registered zone %s" % zone_data.id)
+
+## Auto-register zone neighbors based on proximity
+func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
+        var zones_array: Array[ZoneData] = _zones.values()
+        var registered_count: int = 0
+        
+        for i in range(zones_array.size()):
+                var zone1: ZoneData = zones_array[i]
+                for j in range(i + 1, zones_array.size()):
+                        var zone2: ZoneData = zones_array[j]
+                        
+                        # Calculate distance between zone centers
+                        var distance := zone1.zone_center.distance_to(zone2.zone_center)
+                        var combined_radius := zone1.zone_radius + zone2.zone_radius
+                        
+                        # If zones overlap or are close enough, register as neighbors
+                        if distance <= max_distance:
+                                register_zone_neighbors(zone1.id, zone2.id)
+                                registered_count += 1
+        
+        Logger.info("ZoneManager: Auto-registered %d zone neighbor connections" % registered_count)
 
 ## Get zone by ID
 func get_zone(zone_id: String) -> ZoneData:

@@ -23,6 +23,7 @@ class SpawnPoint:
 	var spawn_radius: float
 	var enemy_template_id: String
 	var enemy_data: EnemyData
+	var species_id: String  # Links to Species for faction relationships
 	var respawn_time: float  # Base respawn time in seconds
 	var min_enemies: int     # Min spawned at this point
 	var max_enemies: int     # Max spawned at this point
@@ -38,6 +39,7 @@ class SpawnPoint:
 		p_zone_id: String,
 		p_position: Vector3,
 		p_enemy_template: String,
+	\tp_species_id: String = "",
 		p_respawn: float = 60.0,
 		p_min: int = 1,
 		p_max: int = 1,
@@ -48,6 +50,7 @@ class SpawnPoint:
 		position = p_position
 		spawn_radius = 3.0
 		enemy_template_id = p_enemy_template
+	\tspecies_id = p_species_id
 		respawn_time = p_respawn
 		min_enemies = p_min
 		max_enemies = p_max
@@ -82,6 +85,7 @@ func register_spawn_point(
 	zone_id: String,
 	position: Vector3,
 	enemy_template_id: String,
+        species_id: String = "",
 	respawn_time: float = 60.0,
 	min_enemies: int = 1,
 	max_enemies: int = 1,
@@ -94,6 +98,7 @@ func register_spawn_point(
 		zone_id,
 		position,
 		enemy_template_id,
+		species_id,
 		respawn_time,
 		min_enemies,
 		max_enemies,
@@ -406,10 +411,11 @@ func _create_enemy(spawn_point: SpawnPoint) -> Entity:
 	enemy.faction_id = spawn_point.enemy_data.faction
 	
 	# Apply species if set
-	if spawn_point.enemy_data.get("species_id", "") != "":
+	var effective_species_id := spawn_point.species_id if spawn_point.species_id != "" else spawn_point.enemy_data.species_id
+	if effective_species_id != "":
 		var data_service = DataService
 		if data_service:
-			var species = data_service.get_species(spawn_point.enemy_data.species_id)
+			var species = data_service.get_species(effective_species_id)
 			if species:
 				enemy.apply_species(species)
 	
