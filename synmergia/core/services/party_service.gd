@@ -330,3 +330,19 @@ func share_xp(party_id: String, base_xp: int, killer_id: String) -> Dictionary:
                 xp_distribution[member_id] = xp
         
         return xp_distribution
+
+
+## Periodic cleanup of expired invites
+func _process(delta: float) -> void:
+var now := Time.get_unix_time_from_system()
+var to_remove: Array = []
+
+for invite_id in _pending_invites:
+var invite: Dictionary = _pending_invites[invite_id]
+var age := now - invite.get("timestamp", 0.0)
+if age > INVITE_TIMEOUT_SECONDS:
+to_remove.append(invite_id)
+
+for invite_id in to_remove:
+_pending_invites.erase(invite_id)
+party_invite_expired.emit(invite_id)
