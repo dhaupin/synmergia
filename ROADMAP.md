@@ -549,49 +549,49 @@ A playable demo with basic combat, one region, one playable class, one species, 
 ## Infrastructure Gaps (Technical Debt)
 
 ### Add species_id to EnemyData
-**Files:** `godot-project/core/schemas/enemy_data.gd`
+**Files:** `godot-project/core/schemas/enemy_data.gd`, `spawn_service.gd`
 
-- [ ] Add `species_id: String` export variable
-- [ ] Update spawn logic to use species for faction relationships
+- [x] Add `species_id: String` export variable
+- [x] Update spawn logic to use species for faction relationships
 
 ### Auto-register Zone Neighbors
 **Files:** `godot-project/core/services/zone_manager.gd`
 
-- [ ] On zone load, check for nearby zones based on position
-- [ ] Auto-register neighbors for seamless transitions
+- [x] On zone load, check for nearby zones based on position
+- [x] Auto-register neighbors for seamless transitions
 - [ ] Add method to get all connected zones (for alerts)
 
 ### Add PartyService
 **Files:** `godot-project/core/services/party_service.gd`
 
-- [ ] Party creation/deletion
-- [ ] Invite system (request/accept/decline)
-- [ ] Party member list
-- [ ] Party loot rules (free-for-all, round-robin, master looter)
-- [ ] Party XP sharing
-- [ ] Party chat channel
-- [ ] Party notifications (joined, left, kicked)
+- [x] Party creation/deletion
+- [x] Invite system (request/accept/decline)
+- [x] Party member list
+- [x] Party loot rules (free-for-all, round-robin, master looter)
+- [x] Party XP sharing
+- [x] Party chat channel (via ChatService)
+- [x] Party notifications (joined, left, kicked)
 
 ### Add GuildService
 **Files:** `godot-project/core/services/guild_service.gd`
 
-- [ ] Guild creation/deletion
-- [ ] Guild roster
-- [ ] Guild ranks/permissions
-- [ ] Guild chat
+- [x] Guild creation/deletion
+- [x] Guild roster
+- [x] Guild ranks/permissions
+- [ ] Guild chat (via ChatService)
 - [ ] Guild bank (shared storage)
-- [ ] Guild recruiting
-- [ ] Guild alliance system
-- [ ] Guild notifications
+- [x] Guild recruiting (applications)
+- [x] Guild alliance system
+- [x] Guild notifications
 
 ### Add ChatService
 **Files:** `godot-project/core/services/chat_service.gd`
 
-- [ ] Chat channels (Global, Zone, Whisper, Party, Guild, Trade, System)
-- [ ] Channel permissions
-- [ ] Chat filtering (profanity, spam)
-- [ ] Chat history
-- [ ] Chat commands (/whisper, /party, etc.)
+- [x] Chat channels (Global, Zone, Whisper, Party, Guild, Trade, System)
+- [x] Channel permissions
+- [x] Chat filtering (profanity, spam)
+- [x] Chat history
+- [x] Chat commands (/whisper, /party, etc.)
 
 ---
 
