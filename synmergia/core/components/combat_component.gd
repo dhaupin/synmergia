@@ -36,7 +36,10 @@ var combat_start_time: int = 0
 
 # Durability Decay Tracking
 var _combat_time_accumulator: float = 0.0  # Accumulates combat time in seconds
+var _active_combat_time_accumulator: float = 0.0  # Only counts when actively using items
+var _last_action_time: float = 0.0  # Time of last skill/attack
 @export var durability_tick_interval: float = 60.0  # Apply durability loss every 60 seconds (1 minute)
+@export var action_timeout: float = 5.0  # Stop counting active time after 5 seconds of no actions
 
 # Mana Regen
 @export var mana_regen_combat: float = 1.0    # Multiplier during combat
@@ -129,7 +132,10 @@ func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Ve
 			skill.execute(get_parent(), target, ground_pos)
 			skill_finished.emit(skill)
 	
-	EventBus.emit_skill_used(get_parent(), skill, target)
+			EventBus.emit_skill_used(get_parent(), skill, target)
+
+	# Record action for durability tracking
+	record_action()
 	return true
 
 func _can_execute_skill(skill: Skill) -> bool:
@@ -304,6 +310,7 @@ func _perform_attack(skill: Skill, target: Entity) -> void:
 	
 	attack_cooldown = 1.0 / skill.cast_time if skill.cast_time > 0 else 1.0
 	skill_finished.emit(skill)
+	record_action()
 
 ## Basic auto-attack
 func auto_attack(target: Entity, damage: int) -> void:
@@ -454,11 +461,20 @@ func _process(delta: float) -> void:
 	# Accumulate combat time
 	_combat_time_accumulator += delta
 	
-	# Apply durability loss every tick interval
-	if _combat_time_accumulator >= durability_tick_interval:
-		var combat_minutes := _combat_time_accumulator / 60.0
-		_apply_durability_loss(combat_minutes)
-		_combat_time_accumulator = 0.0
+	# Track active combat time (only when using items)
+	var time_since_action := _combat_time_accumulator - _last_action_time
+	if time_since_action < action_timeout:
+		_active_combat_time_accumulator += delta
+	
+	# Apply durability loss every tick interval using ACTIVE combat time
+	if _active_combat_time_accumulator >= durability_tick_interval:
+		var active_minutes := _active_combat_time_accumulator / 60.0
+		_apply_durability_loss(active_minutes)
+		_active_combat_time_accumulator = 0.0
+
+## Record an action (skill/attack used) - resets active combat timer
+func record_action() -> void:
+	_last_action_time = _combat_time_accumulator
 
 ## Apply durability loss to all equipped items
 func _apply_durability_loss(combat_minutes: float) -> void:
