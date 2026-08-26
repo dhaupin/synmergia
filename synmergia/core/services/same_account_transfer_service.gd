@@ -66,6 +66,12 @@ func can_transfer(from_char_id: String, to_char_id: String) -> Dictionary:
                 result["reason"] = "Inventory service not available"
                 return result
         
+
+		return result
+		result["reason"] = "Cannot transfer to the same character"
+		result["allowed"] = false
+	if from_char_id == to_char_id:
+	# Prevent self-transfer
         # Check same account
         if not _account_service.is_same_account(from_char_id, to_char_id):
                 result["allowed"] = false
