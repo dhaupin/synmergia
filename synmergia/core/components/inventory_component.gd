@@ -6,14 +6,15 @@ extends Node
 signal item_added(item: Item, slot: int)
 signal item_removed(item: Item, slot: int)
 signal item_swapped(slot1: int, slot2: int)
+signal item_bound(item: Item, bind_type: String)  # Emitted when item becomes bound (bind_type: "pickup", "equip", "soulbound")
 signal inventory_full()
 signal gold_changed(amount: int)
 
 # Weight / Encumbrance
 signal weight_changed(current: float, max_weight: float, encumbered: bool)
 
-@export var max_inventory_slots: int = 20
-@export var max_equipment_slots: int = 12
+@export var max_inventory_slots: int = GameConfig.Inventory.DEFAULT_SLOTS
+@export var max_equipment_slots: int = GameConfig.Inventory.MAX_EQUIPMENT_SLOTS
 
 var _inventory: Array[Item] = []
 var _equipment: Dictionary = {}  # EquipSlot -> Item
@@ -21,8 +22,8 @@ var _gold: int = 0
 
 # Weight / Encumbrance
 var _current_weight: float = 0.0
-var _max_weight: float = 100.0  # Base carry capacity
-var _encumbrance_penalty: float = 0.5  # Speed reduction when over weight
+var _max_weight: float = GameConfig.Inventory.DEFAULT_MAX_WEIGHT  # Base carry capacity
+var _encumbrance_penalty: float = GameConfig.Inventory.ENCUMBRANCE_PENALTY  # Speed reduction when over weight
 
 func _ready() -> void:
         # Initialize inventory slots
@@ -387,8 +388,8 @@ func recalculate_weight() -> void:
 # Extra bag slots (can be unlocked)
 var _extra_bags: Array[Array] = []
 var _unlocked_bags: int = 0
-const MAX_BAGS: int = 5
-const BAG_SIZE: int = 20
+const MAX_BAGS: int = GameConfig.Inventory.MAX_BAGS
+const BAG_SIZE: int = GameConfig.Inventory.BAG_SIZE
 
 signal bag_expanded(bag_index: int, new_size: int)
 signal bag_locked(bag_index: int)
@@ -455,7 +456,7 @@ func get_unlocked_bag_count() -> int:
 var _bank: Array = []
 var _bank_size: int = 98
 var _bank_expansion_count: int = 0
-const MAX_BANK_EXPANSIONS: int = 4
+const MAX_BANK_EXPANSIONS: int = GameConfig.Inventory.MAX_BANK_EXPANSIONS
 const BANK_EXPANSION_SIZE: int = 98
 
 signal bank_item_added(item: Item, slot: int)

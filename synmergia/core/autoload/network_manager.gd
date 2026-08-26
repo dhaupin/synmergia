@@ -9,8 +9,9 @@ signal peer_disconnected(peer_id: int)
 signal server_started
 signal server_stopped
 
-const DEFAULT_PORT := 9876
-const MAX_PLAYERS := 100
+# Network settings (using GameConfig for centralized configuration)
+const DEFAULT_PORT := GameConfig.Network.DEFAULT_PORT
+const MAX_PLAYERS := GameConfig.Network.MAX_PLAYERS
 const SERVER_IP := "127.0.0.1"
 
 enum ConnectionState {

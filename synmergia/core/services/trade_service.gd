@@ -27,8 +27,8 @@ enum TradeState {
         EXPIRED      # Request timed out
 }
 
-# Max trade slots
-const MAX_TRADE_SLOTS: int = 10
+# Trade limits (using GameConfig for centralized configuration)
+const MAX_TRADE_SLOTS: int = GameConfig.Trade.MAX_SLOTS
 
 signal trade_requested(from_id: String, to_id: String)
 signal trade_accepted(trade_id: String, player1: String, player2: String)
@@ -37,6 +37,7 @@ signal trade_cancelled(trade_id: String, cancelled_by: String)
 signal trade_confirmed(trade_id: String, player_id: String)
 signal trade_unconfirmed(trade_id: String, player_id: String)
 signal trade_completed(trade_id: String, trades: Dictionary)
+signal trade_started(trade_id: String, player1: String, player2: String)  # Emitted when trade actually begins (both accepted)
 signal trade_expired(trade_id: String)
 signal trade_failed(trade_id: String)
 signal item_added_to_trade(trade_id: String, player_id: String, item_id: String, quantity: int)
@@ -391,7 +392,7 @@ func get_pending_request(player_id: String) -> Dictionary:
 var _trade_history: Dictionary = {}
 
 # Max history per player
-const MAX_HISTORY: int = 50
+const MAX_HISTORY: int = GameConfig.Trade.MAX_HISTORY
 
 ## Get trade history for player
 
