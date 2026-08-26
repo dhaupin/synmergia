@@ -21,6 +21,7 @@ var _factions: Dictionary = {}
 var _zones: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
+var _npcs: Dictionary = {}
 
 var _data_path: String = "res://data/"
 var _loaded: bool = false
@@ -137,6 +138,11 @@ func load_dwellings() -> void:
 	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
 	Logger.info("DataService: Loaded %d dwellings" % _dwellings.size())
 
+## Load NPCs from data/npcs/
+func load_npcs() -> void:
+	_npcs = _scan_directory(_data_path + "npcs", "npc")
+	Logger.info("DataService: Loaded %d NPCs" % _npcs.size())
+
 ## Get methods
 func get_skill(id: String) -> Skill:
 	return _skills.get(id)
@@ -165,6 +171,9 @@ func get_event(id: String) -> EventData:
 func get_dwelling(id: String) -> DwellingData:
 	return _dwellings.get(id)
 
+func get_npc(id: String) -> NPCData:
+	return _npcs.get(id)
+
 ## Get all of a type
 func get_all_skills() -> Dictionary:
 	return _skills
@@ -192,6 +201,9 @@ func get_all_events() -> Dictionary:
 
 func get_all_dwellings() -> Dictionary:
 	return _dwellings
+
+func get_all_npcs() -> Dictionary:
+	return _npcs
 
 ## Reload data (for development)
 func reload_all() -> void:
@@ -229,6 +241,9 @@ func reload_category(category: String) -> void:
 		"zones":
 			_zones.clear()
 			load_zones()
+		"npcs":
+			_npcs.clear()
+			load_npcs()
 		_:
 			Logger.warn("DataService: Unknown category: " + category)
 
@@ -241,5 +256,6 @@ func get_counts() -> Dictionary:
 		"classes": _classes.size(),
 		"species": _species.size(),
 		"factions": _factions.size(),
-		"zones": _zones.size()
+		"zones": _zones.size(),
+		"npcs": _npcs.size()
 	}
