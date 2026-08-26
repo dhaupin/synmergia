@@ -234,3 +234,293 @@ func _apply_equipment_stats() -> void:
 	
 	# TODO: Apply these to entity's calculated stats
 	# This would modify the entity's effective stats
+
+
+# ============ BAG EXPANSION ============
+
+# Extra bag slots (can be unlocked)
+var _extra_bags: Array[Array] = []  # Array of bag arrays
+var _unlocked_bags: int = 0
+const MAX_BAGS: int = 5  # Max number of bags
+const BAG_SIZE: int = 20  # Slots per bag
+
+signal bag_expanded(bag_index: int, new_size: int)
+signal bag_locked(bag_index: int)
+
+## Expand inventory with a new bag
+func expand_inventory() -> bool:
+        if _unlocked_bags >= MAX_BAGS:
+                return false
+        
+        var new_bag: Array = []
+        for i in BAG_SIZE:
+                new_bag.append(null)
+        _extra_bags.append(new_bag)
+        _unlocked_bags += 1
+        
+        bag_expanded.emit(_unlocked_bags - 1, BAG_SIZE)
+        Logger.info("InventoryComponent: Expanded inventory with bag %d" % (_unlocked_bags - 1))
+        return true
+
+## Get total inventory slots (base + bags)
+func get_total_slots() -> int:
+        return max_inventory_slots + (_unlocked_bags * BAG_SIZE)
+
+## Get items from a specific bag
+func get_bag_items(bag_index: int) -> Array:
+        if bag_index < 0 or bag_index >= _extra_bags.size():
+                return []
+        return _extra_bags[bag_index]
+
+## Add item to bag
+func add_item_to_bag(bag_index: int, item: Item, slot: int = -1) -> bool:
+        if bag_index < 0 or bag_index >= _extra_bags.size():
+                return false
+        
+        var bag: Array = _extra_bags[bag_index]
+        
+        if slot < 0:
+                slot = _find_empty_slot_in_bag(bag)
+        
+        if slot < 0 or slot >= bag.size():
+                return false
+        
+        bag[slot] = item
+        return true
+
+## Find empty slot in bag
+func _find_empty_slot_in_bag(bag: Array) -> int:
+        for i in range(bag.size()):
+                if bag[i] == null:
+                        return i
+        return -1
+
+## Is bag unlocked?
+func is_bag_unlocked(bag_index: int) -> bool:
+        return bag_index < _unlocked_bags
+
+## Get unlocked bag count
+func get_unlocked_bag_count() -> int:
+        return _unlocked_bags
+
+# ============ BANK / STORAGE ============
+
+# Bank storage (off-character storage)
+var _bank: Array = []
+var _bank_size: int = 98  # Default bank size
+var _bank_expansion_count: int = 0
+const MAX_BANK_EXPANSIONS: int = 4
+const BANK_EXPANSION_SIZE: int = 98
+
+signal bank_item_added(item: Item, slot: int)
+signal bank_item_removed(item: Item, slot: int)
+signal bank_expanded(new_size: int)
+
+## Initialize bank
+func init_bank() -> void:
+        if _bank.is_empty():
+                for i in _bank_size:
+                        _bank.append(null)
+
+## Add item to bank
+func add_to_bank(item: Item, slot: int = -1) -> bool:
+        init_bank()
+        
+        # Try to stack
+        if item.stack_size > 1:
+                var stacked := _try_stack_in_bank(item)
+                if stacked >= 1:
+                        return true
+        
+        # Find slot
+        if slot < 0:
+                slot = _find_empty_bank_slot()
+        
+        if slot < 0:
+                return false
+        
+        _bank[slot] = item
+        bank_item_added.emit(item, slot)
+        return true
+
+## Try to stack item in bank
+func _try_stack_in_bank(item: Item) -> int:
+        for i in range(_bank.size()):
+                var bank_item: Item = _bank[i]
+                if bank_item and bank_item.id == item.id:
+                        var space := bank_item.stack_size - bank_item.current_stack
+                        if space > 0:
+                                var to_add := mini(space, item.current_stack)
+                                bank_item.current_stack += to_add
+                                item.current_stack -= to_add
+                                return to_add
+        return 0
+
+## Find empty bank slot
+func _find_empty_bank_slot() -> int:
+        for i in range(_bank.size()):
+                if _bank[i] == null:
+                        return i
+        return -1
+
+## Remove item from bank
+func remove_from_bank(slot: int) -> Item:
+        init_bank()
+        if slot < 0 or slot >= _bank.size():
+                return null
+        
+        var item: Item = _bank[slot]
+        _bank[slot] = null
+        if item:
+                bank_item_removed.emit(item, slot)
+        return item
+
+## Get bank item
+func get_bank_item(slot: int) -> Item:
+        init_bank()
+        if slot < 0 or slot >= _bank.size():
+                return null
+        return _bank[slot]
+
+## Get bank size
+func get_bank_size() -> int:
+        return _bank_size
+
+## Expand bank
+func expand_bank() -> bool:
+        if _bank_expansion_count >= MAX_BANK_EXPANSIONS:
+                return false
+        
+        for i in range(BANK_EXPANSION_SIZE):
+                _bank.append(null)
+        
+        _bank_size += BANK_EXPANSION_SIZE
+        _bank_expansion_count += 1
+        
+        bank_expanded.emit(_bank_size)
+        Logger.info("InventoryComponent: Bank expanded to %d slots" % _bank_size)
+        return true
+
+## Get all bank items
+func get_all_bank_items() -> Array:
+        init_bank()
+        var items: Array = []
+        for item in _bank:
+                if item:
+                        items.append(item)
+        return items
+
+## Move item from inventory to bank
+func move_to_bank(inv_slot: int, bank_slot: int = -1) -> bool:
+        var item: Item = remove_item(inv_slot)
+        if not item:
+                return false
+        
+        if not add_to_bank(item, bank_slot):
+                # Put back in inventory
+                add_item(item)
+                return false
+        
+        return true
+
+## Move item from bank to inventory
+func move_to_inventory(bank_slot: int, inv_slot: int = -1) -> bool:
+        var item: Item = remove_from_bank(bank_slot)
+        if not item:
+                return false
+        
+        if inv_slot >= 0:
+                # Swap with inventory slot
+                var existing: Item = _inventory[inv_slot] if inv_slot < _inventory.size() else null
+                _inventory[inv_slot] = item
+                if existing:
+                        add_to_bank(existing)
+        else:
+                if not add_item(item):
+                        add_to_bank(item)
+                        return false
+        
+        return true
+
+# ============ ITEM DESTRUCTION / SELLING ============
+
+# Sell prices (percentage of item value)
+var _sell_price_multiplier: float = 0.5  # 50% of item value
+
+signal item_sold(item: Item, gold_amount: int)
+signal item_destroyed(item: Item)
+
+## Sell item (removes and gives gold)
+func sell_item(slot: int, quantity: int = -1) -> int:
+        var item: Item = _inventory[slot]
+        if not item:
+                return 0
+        
+        # Calculate sell price
+        var price := _calculate_sell_price(item, quantity)
+        
+        # Remove from inventory
+        if quantity < 0 or quantity >= item.current_stack:
+                _inventory[slot] = null
+                item_removed.emit(item, slot)
+        else:
+                item.current_stack -= quantity
+        
+        # Add gold
+        add_gold(price)
+        
+        item_sold.emit(item, price)
+        Logger.info("InventoryComponent: Sold %s for %d gold" % [item.display_name, price])
+        
+        return price
+
+## Calculate sell price
+func _calculate_sell_price(item: Item, quantity: int = -1) -> int:
+        var base_price: int = item.get("vendor_price", 1)
+        if quantity < 0:
+                quantity = item.current_stack
+        return int(base_price * _sell_price_multiplier * quantity)
+
+## Destroy item (removes without gold)
+func destroy_item(slot: int, quantity: int = -1) -> bool:
+        var item: Item = _inventory[slot]
+        if not item:
+                return false
+        
+        if quantity < 0 or quantity >= item.current_stack:
+                _inventory[slot] = null
+                item_removed.emit(item, slot)
+                Logger.info("InventoryComponent: Destroyed %s" % item.display_name)
+        else:
+                item.current_stack -= quantity
+                Logger.info("InventoryComponent: Destroyed %d x %s" % [quantity, item.display_name])
+        
+        item_destroyed.emit(item)
+        return true
+
+## Set sell price multiplier
+func set_sell_price_multiplier(multiplier: float) -> void:
+        _sell_price_multiplier = clamp(multiplier, 0.0, 1.0)
+
+## Get item value
+func get_item_value(item: Item) -> int:
+        return item.get("vendor_price", 1) * _sell_price_multiplier
+
+## Sell all items of type
+func sell_all_of_type(item_id: String) -> int:
+        var total := 0
+        for i in range(_inventory.size()):
+                var item: Item = _inventory[i]
+                if item and item.id == item_id:
+                        total += sell_item(i)
+        return total
+
+## Destroy all items of type
+func destroy_all_of_type(item_id: String) -> int:
+        var count := 0
+        for i in range(_inventory.size()):
+                var item: Item = _inventory[i]
+                if item and item.id == item_id:
+                        destroy_item(i)
+                        count += 1
+        return count

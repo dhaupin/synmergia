@@ -516,19 +516,19 @@ A playable demo with basic combat, one region, one playable class, one species, 
 **Files:** `godot-project/core/services/trade_service.gd`
 
 - [x] Trade request system (send/accept/decline)
-- [ ] Trade window UI
+- [x] Trade window UI (helpers, signals)
 - [x] Item slots for trade
 - [x] Gold/currency trade
 - [x] Trade confirmation (both must confirm)
 - [x] Trade cancellation
 - [x] Trade notifications (request, complete, cancelled)
-- [ ] Trade history/log
-- [ ] Trade restrictions (bind-on-pickup items, level requirements)
+- [x] Trade history/log
+- [x] Trade restrictions (bind-on-pickup items, level requirements)
 
 #### Trade Safety
-- [ ] Anti-scam measures (trade confirmation countdown)
-- [ ] Trade cooldown timers
-- [ ] Blocked item types (soulbound, quest items)
+- [x] Anti-scam measures (trade confirmation countdown)
+- [x] Trade cooldown timers
+- [x] Blocked item types (soulbound, quest items)
 - [ ] Trade between characters on same account
 
 ### 4.5 Inventory System
@@ -537,10 +537,10 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] Inventory slots management
 - [x] Stack limits
 - [x] Sort/arrange functionality
-- [ ] Bag expansion
-- [ ] Bank/storage (off-character storage)
+- [x] Bag expansion
+- [x] Bank/storage (off-character storage)
 - [x] Item pickup/drop
-- [ ] Item destruction/selling
+- [x] Item destruction/selling
 
 ---
 
