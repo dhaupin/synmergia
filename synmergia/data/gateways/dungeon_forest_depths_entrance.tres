@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="GatewayData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/gateway_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dungeon_forest_depths_entrance"
+display_name = "Forest Depths Entrance"
+description = "A dark portal leading into the depths of the forest."
+gateway_type = 2
+source_zone_id = "zone_forest_meadow"
+source_position = Vector3(100, 1, 80)
+destination_zone_id = "zone_dungeon_forest_depths"
+destination_position = Vector3(0, 0, 0)
+model_path = "res://models/portals/dark_portal.tscn"
+particle_effect = "portal_dark_green"
+sound_idle = "portal_loop_dungeon"
+icon_path = "res://icons/portals/dungeon.png"
+min_level = 10
+max_level = 50
+dungeon_id = "dungeon_forest_depths"
+difficulty = 1
+required_party_size = 1
+combat_lockout = true
+is_two_way = true
+reverse_gateway_id = "dungeon_forest_depths_exit"

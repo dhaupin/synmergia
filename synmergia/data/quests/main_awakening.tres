@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "main_awakening"
+display_name = "The Awakening"
+description = "You awaken in an unfamiliar land. Speak with the Village Elder to learn about your new home."
+quest_type = 0
+difficulty = 0
+giver_npc_id = ""
+turn_in_npc_id = "npc_village_elder"
+min_level = 1
+max_level = 5
+auto_complete = true
+icon_path = "res://icons/quests/awakening.png"
+map_marker = "talk"
+next_quest_id = "main_teachings"
+xp_reward = 50

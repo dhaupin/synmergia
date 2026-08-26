@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="GatewayData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/gateway_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ankh_village_shrine"
+display_name = "Village Shrine"
+description = "A sacred ankh for binding your spirit."
+gateway_type = 0
+source_zone_id = "zone_village_center"
+source_position = Vector3(25, 0, 30)
+destination_zone_id = "zone_village_center"
+destination_position = Vector3(25, 0, 30)
+model_path = "res://models/ankh/village_ankh.tscn"
+particle_effect = "ankh_glow_gold"
+sound_idle = "ankh_idle_ambient"
+icon_path = "res://icons/ankh.png"
+min_level = 1
+is_two_way = false
