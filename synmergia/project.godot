@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameConfig="*res://core/autoload/game_config.gd"
+QoSService="*res://core/autoload/qos_service.gd"
 GameManager="*res://core/autoload/game_manager.gd"
 NetworkManager="*res://core/autoload/network_manager.gd"
 PlayerManager="*res://core/autoload/player_manager.gd"

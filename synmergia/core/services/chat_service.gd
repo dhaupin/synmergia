@@ -76,6 +76,12 @@ func _ready() -> void:
 
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
+        # QoS: Rate limit chat messages
+        var action_type = "chat" if channel != Channel.WHISPER else "whisper"
+        if not QoSService.rate_limit(sender_id, action_type):
+                Logger.debug("ChatService: Rate limited message from %s" % sender_id)
+                return false
+        
         # Truncate message to max length
         if message.length() > MAX_MESSAGE_LENGTH:
                 message = message.substr(0, MAX_MESSAGE_LENGTH)

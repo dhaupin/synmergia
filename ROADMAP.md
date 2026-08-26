@@ -868,6 +868,160 @@ godot-project/
 
 ---
 
+## Phase Z: Defensive Architecture (2026-08-25)
+
+**Core Principle: Defense in Depth - Layered protection across all systems**
+
+### Z.1 QoSService (Priority 1)
+**Files:** `core/autoload/qos_service.gd`
+
+Quality of Service infrastructure for traffic control and resource protection.
+
+#### Rate Limiter
+Token bucket algorithm for per-player action throttling.
+- `rate_limit(player_id, action_type, max_per_second)` → bool
+- Per-action-type tracking (movement, combat, chat, etc.)
+- Configurable limits via `GameConfig.QoS.RateLimits.*`
+
+#### Throttler
+Global action limits to prevent server overload.
+- `throttle(scope, action_type, max_per_second)` → bool
+- Scopes: "global", "per_zone", "per_party"
+- Queue system for deferred processing
+
+#### Bulkhead
+Isolate failure domains - one service failing shouldn't cascade.
+- `bulkhead_execute(service_name, callback)` → Variant
+- Separate thread pools per service category
+- Automatic failover behavior
+
+#### Debouncer
+Coalesce rapid repeated calls into single action.
+- `debounce(key, callback, delay_ms)` → void
+- Used for: UI events, auto-save, typing indicators
+- Cancel previous pending call on new call
+
+#### Config Settings (`game_config.gd`)
+```
+QoS.RateLimits.MAX_MOVEMENT_PER_SECOND: 20
+QoS.RateLimits.MAX_COMBAT_ACTIONS_PER_SECOND: 5
+QoS.RateLimits.MAX_CHAT_PER_MINUTE: 10
+QoS.RateLimits.MAX_TRADE_PER_MINUTE: 5
+QoS.RateLimits.MAX_PARTY_PER_MINUTE: 3
+QoS.RateLimits.MAX_WHISPER_PER_MINUTE: 20
+QoS.Bulkhead.MAX_CONCURRENT_GLOBAL: 100
+QoS.Bulkhead.MAX_CONCURRENT_PER_SERVICE: 25
+QoS.Debounce.DEFAULT_DELAY_MS: 300
+```
+
+### Z.2 CircuitBreaker
+**Files:** `core/utils/circuit_breaker.gd`
+
+Reusable circuit breaker pattern for protecting fallible operations.
+
+#### States
+- `CLOSED`: Normal operation, calls pass through
+- `OPEN`: Fail-fast mode, calls rejected immediately
+- `HALF_OPEN`: Probe mode, limited calls allowed
+
+#### Parameters
+- `failure_threshold`: Number of failures before opening (default: 5)
+- `recovery_timeout`: Seconds before attempting half-open (default: 30)
+- `success_threshold`: Successes needed to close (default: 3)
+
+#### Usage
+```gdscript
+var breaker := CircuitBreaker.new("external_api", 5, 30.0)
+var result = await breaker.execute(my_function)
+```
+
+### Z.3 RecursionGuard
+**Files:** `core/utils/recursion_guard.gd`
+
+Prevents stack overflow from unbounded recursion.
+
+#### Features
+- Maximum depth tracking
+- Per-context depth limits
+- Call stack introspection
+- Automatic depth reset
+
+#### Usage
+```gdscript
+var guard := RecursionGuard.new(max_depth: 100)
+if not guard.enter("process_tree"):
+    return  # Prevent infinite recursion
+# ... do work
+guard.exit("process_tree")
+```
+
+### Z.4 SecurityService
+**Files:** `core/autoload/security_service.gd`
+
+Input validation, anti-abuse, and permission management.
+
+#### InputValidator
+- Player name sanitization (length, characters, profanity)
+- Chat message sanitization (XSS prevention, length limits)
+- Command argument parsing and validation
+- SQL injection prevention (though Godot doesn't use SQL directly)
+
+#### SpamDetector
+- Message frequency tracking
+- Content similarity analysis (Levenshtein distance)
+- Pattern recognition for spam bots
+- Configurable thresholds
+
+#### PermissionGate
+- Role-based access control (RBAC)
+- Permission flags per action
+- Channel-specific permissions
+- Escalation management
+
+### Z.5 AppFirewall
+**Files:** `core/autoload/app_firewall.gd`
+
+Centralized validation layer for all incoming data.
+
+#### PacketValidator
+- Structure validation (required fields, types)
+- Size limits (max packet size, max array length)
+- Range validation (numeric bounds)
+- Sanitization on ingress
+
+#### AnomalyDetector
+- Statistical anomaly detection
+- Behavioral pattern analysis
+- Threshold-based alerting
+- Blacklist/greylist management
+
+#### Banhammer
+- Temporary ban management (duration-based)
+- Permanent ban registry
+- Ban appeal tracking
+- Auto-ban rules for severe violations
+
+### Z.6 Integration Points
+
+Services to wire with QoSService:
+- `party_service.gd` → rate_limit("invite"), throttle("party_create")
+- `chat_service.gd` → rate_limit("send_message"), debounce("typing_indicator")
+- `trade_service.gd` → rate_limit("trade_request")
+- `fairness_service.gd` → rate_limit("all_actions"), throttle("global")
+- `inventory_service.gd` → rate_limit("item_actions")
+
+Services to wrap with CircuitBreaker:
+- `inventory_service.gd` → External item lookups
+- `data_service.gd` → Resource loading
+- `network_manager.gd` → Connection operations
+
+Services to add RecursionGuard:
+- `entity_service.gd` → `get_all_entities_recursive()`
+- `zone_manager.gd` → `get_neighbor_zones_recursive()`
+- `aura_component.gd` → Effect application chains
+
+---
+
 ## Quick Stats
 
 | Category | TODO | In Progress |
