@@ -52,6 +52,37 @@ enum SoundType {
 	COMBAT = 8
 }
 
+# Alert scope - where to send the notification
+class AlertScope:
+	var position: Vector3 = Vector3.ZERO  # For NEARBY scope
+	var radius: float = 50.0             # For NEARBY scope
+	var zone_id: String = ""              # For ZONE scope
+	var include_neighbors: bool = false   # For ZONE scope (include neighboring zones)
+	var player_ids: Array[String] = []  # For CUSTOM scope
+	var is_server_wide: bool = false     # For SERVER scope
+	
+	static func server_wide() -> AlertScope:
+		var scope := AlertScope.new()
+		scope.is_server_wide = true
+		return scope
+	
+	static func zone(zone: String, neighbors: bool = false) -> AlertScope:
+		var scope := AlertScope.new()
+		scope.zone_id = zone
+		scope.include_neighbors = neighbors
+		return scope
+	
+	static func nearby(pos: Vector3, rad: float = 50.0) -> AlertScope:
+		var scope := AlertScope.new()
+		scope.position = pos
+		scope.radius = rad
+		return scope
+	
+	static func players(ids: Array[String]) -> AlertScope:
+		var scope := AlertScope.new()
+		scope.player_ids = ids
+		return scope
+
 # Pending notifications queue
 var _notification_queue: Array[Dictionary] = []
 var _max_queue_size: int = 50
@@ -107,20 +138,82 @@ func send(
 	notification_sent.emit(entity_id, notification)
 	Logger.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
 
-## Send notification to multiple entities
-func broadcast(
-	entity_ids: Array[String],
+## Broadcast notification to multiple scopes (server, zone, nearby, players)
+## Can combine multiple scopes - e.g., server + zone, or zone + neighbors
+func broadcast_alert(
 	message: String,
+	scopes: Array[AlertScope],
 	notif_type: NotificationType = NotificationType.SYSTEM,
 	priority: Priority = Priority.NORMAL,
-	location: DisplayLocation = DisplayLocation.CHAT_LOG,
+	location: DisplayLocation = DisplayLocation.CENTER_SCREEN,
 	sound: SoundType = SoundType.NOTIFICATION,
 	data: Dictionary = {}
 ) -> void:
-	for entity_id in entity_ids:
-		send(entity_id, message, notif_type, priority, location, sound, data)
+	var notified_players: Dictionary = {}  # entity_id -> true (avoid duplicates)
+	
+	for scope in scopes:
+		var players_to_notify = _get_players_for_scope(scope)
+		for player in players_to_notify:
+			if not notified_players.has(player.entity_id):
+				notified_players[player.entity_id] = true
+				send(player.entity_id, message, notif_type, priority, location, sound, data)
 
-## Send notification to entire zone
+## Get players matching a scope
+func _get_players_for_scope(scope: AlertScope) -> Array[Entity]:
+	var results: Array[Entity] = []
+	var entity_service = EntityService
+	if entity_service == null:
+		return results
+	
+	var all_players = entity_service.get_all_players()
+	
+	if scope.is_server_wide:
+		return all_players
+	
+	for player in all_players:
+		var should_notify := false
+		
+		if scope.player_ids.size() > 0:
+			# Custom player list
+			should_notify = scope.player_ids.has(player.entity_id)
+		
+		elif scope.zone_id != "":
+			# Zone-based
+			var zone_manager = ZoneManager
+			if zone_manager:
+				var player_zone = zone_manager.get_entity_zone_id(player)
+				should_notify = player_zone == scope.zone_id
+				
+				# Include neighbors if requested
+				if should_notify == false and scope.include_neighbors:
+					var neighbors = zone_manager.get_neighboring_zones(scope.zone_id)
+					for neighbor in neighbors:
+						if neighbor.id == player_zone:
+							should_notify = true
+							break
+		
+		elif scope.position != Vector3.ZERO:
+			# Position-based (nearby)
+			if is_instance_valid(player):
+				should_notify = player.global_position.distance_to(scope.position) <= scope.radius
+		
+		if should_notify:
+			results.append(player)
+	
+	return results
+
+## Convenience: Server-wide alert
+func broadcast_server(
+	message: String,
+	notif_type: NotificationType = NotificationType.SYSTEM,
+	priority: Priority = Priority.HIGH,
+	location: DisplayLocation = DisplayLocation.CENTER_SCREEN,
+	sound: SoundType = SoundType.NOTIFICATION,
+	data: Dictionary = {}
+) -> void:
+	broadcast_alert(message, [AlertScope.server_wide()], notif_type, priority, location, sound, data)
+
+## Convenience: Zone alert (with optional neighbors)
 func broadcast_zone(
 	zone_id: String,
 	message: String,
@@ -128,30 +221,12 @@ func broadcast_zone(
 	priority: Priority = Priority.NORMAL,
 	location: DisplayLocation = DisplayLocation.CHAT_LOG,
 	sound: SoundType = SoundType.NOTIFICATION,
+	include_neighbors: bool = false,
 	data: Dictionary = {}
 ) -> void:
-	var zone_manager = ZoneManager
-	if zone_manager:
-		var players = zone_manager.get_players_in_zone(zone_id)
-		for player in players:
-			send(player.entity_id, message, notif_type, priority, location, sound, data)
+	broadcast_alert(message, [AlertScope.zone(zone_id, include_neighbors)], notif_type, priority, location, sound, data)
 
-## Send notification to all online players
-func broadcast_all(
-	message: String,
-	notif_type: NotificationType = NotificationType.SYSTEM,
-	priority: Priority = Priority.NORMAL,
-	location: DisplayLocation = DisplayLocation.CENTER_SCREEN,
-	sound: SoundType = SoundType.NOTIFICATION,
-	data: Dictionary = {}
-) -> void:
-	var entity_service = EntityService
-	if entity_service:
-		var players = entity_service.get_all_players()
-		for player in players:
-			send(player.entity_id, message, notif_type, priority, location, sound, data)
-
-## Send notification to players near a position
+## Convenience: Nearby players alert
 func broadcast_nearby(
 	position: Vector3,
 	radius: float,
@@ -162,12 +237,35 @@ func broadcast_nearby(
 	sound: SoundType = SoundType.NOTIFICATION,
 	data: Dictionary = {}
 ) -> void:
-	var entity_service = EntityService
-	if entity_service:
-		var players = entity_service.get_all_players()
-		for player in players:
-			if is_instance_valid(player) and player.global_position.distance_to(position) <= radius:
-				send(player.entity_id, message, notif_type, priority, location, sound, data)
+	broadcast_alert(message, [AlertScope.nearby(position, radius)], notif_type, priority, location, sound, data)
+
+## Convenience: Specific players
+func broadcast_to_players(
+	player_ids: Array[String],
+	message: String,
+	notif_type: NotificationType = NotificationType.SYSTEM,
+	priority: Priority = Priority.NORMAL,
+	location: DisplayLocation = DisplayLocation.CHAT_LOG,
+	sound: SoundType = SoundType.NOTIFICATION,
+	data: Dictionary = {}
+) -> void:
+	broadcast_alert(message, [AlertScope.players(player_ids)], notif_type, priority, location, sound, data)
+
+## Combined example: Server + nearby zone
+func broadcast_event_alert(
+	message: String,
+	event_zone_id: String,
+	event_position: Vector3,
+	radius: float = 100.0,
+	notif_type: NotificationType = NotificationType.WORLD_EVENT,
+	priority: Priority = Priority.HIGH
+) -> void:
+	var scopes: Array[AlertScope] = [
+		AlertScope.server_wide(),
+		AlertScope.zone(event_zone_id, true),
+		AlertScope.nearby(event_position, radius)
+	]
+	broadcast_alert(message, scopes, notif_type, priority)
 
 ## --- Convenience Methods for Common Notifications ---
 
