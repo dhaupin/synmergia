@@ -813,6 +813,36 @@ godot-project/
 
 ---
 
+
+## Security Fixes (2026-08-25)
+
+**Commit:** `e199e40` - Critical security exploits patched
+
+### inventory_service.gd
+- Added input validation (empty strings, null checks)
+- Added same-account check for self-transfer
+- Added item ownership verification (source_item != item)
+- Added gold amount validation (amount <= 0)
+- Enhanced logging for security events
+
+### inventory_component.gd
+- `add_gold()` now rejects negative/zero amounts
+- `set_gold()` uses maxi() for int safety
+- `_try_stack_item()` now updates weight when stacking items
+
+### fairness_service.gd
+- `_check_rate()` now appends to original action_list (was appending to filtered copy)
+- `_get_action_rate()` fixed to count from action arrays instead of int field
+
+### party_service.gd
+- Added `_process()` to auto-cleanup expired invites
+
+### trade_service.gd
+- `cancel_trade()` now refunds items and gold to original inventories
+- Added `_refund_trade_items()` helper function
+
+---
+
 ## Quick Stats
 
 | Category | TODO | In Progress |
