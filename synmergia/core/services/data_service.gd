@@ -22,6 +22,9 @@ var _zones: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
 var _npcs: Dictionary = {}
+var _status_effects: Dictionary = {}
+var _quests: Dictionary = {}
+var _gateways: Dictionary = {}
 
 var _data_path: String = "res://data/"
 var _loaded: bool = false
@@ -138,10 +141,27 @@ func load_dwellings() -> void:
 	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
 	Logger.info("DataService: Loaded %d dwellings" % _dwellings.size())
 
+
 ## Load NPCs from data/npcs/
 func load_npcs() -> void:
 	_npcs = _scan_directory(_data_path + "npcs", "npc")
 	Logger.info("DataService: Loaded %d NPCs" % _npcs.size())
+
+## Load status effects from data/status_effects/
+func load_status_effects() -> void:
+	_status_effects = _scan_directory(_data_path + "status_effects", "status_effect")
+	Logger.info("DataService: Loaded %d status effects" % _status_effects.size())
+
+## Load quests from data/quests/
+func load_quests() -> void:
+	_quests = _scan_directory(_data_path + "quests", "quest")
+	Logger.info("DataService: Loaded %d quests" % _quests.size())
+
+## Load gateways from data/gateways/
+func load_gateways() -> void:
+	_gateways = _scan_directory(_data_path + "gateways", "gateway")
+	Logger.info("DataService: Loaded %d gateways" % _gateways.size())
+
 
 ## Get methods
 func get_skill(id: String) -> Skill:
@@ -171,8 +191,19 @@ func get_event(id: String) -> EventData:
 func get_dwelling(id: String) -> DwellingData:
 	return _dwellings.get(id)
 
+
 func get_npc(id: String) -> NPCData:
 	return _npcs.get(id)
+
+func get_status_effect(id: String) -> StatusEffectData:
+	return _status_effects.get(id)
+
+func get_quest(id: String) -> QuestData:
+	return _quests.get(id)
+
+func get_gateway(id: String) -> GatewayData:
+	return _gateways.get(id)
+
 
 ## Get all of a type
 func get_all_skills() -> Dictionary:
@@ -202,8 +233,19 @@ func get_all_events() -> Dictionary:
 func get_all_dwellings() -> Dictionary:
 	return _dwellings
 
+
 func get_all_npcs() -> Dictionary:
 	return _npcs
+
+func get_all_status_effects() -> Dictionary:
+	return _status_effects
+
+func get_all_quests() -> Dictionary:
+	return _quests
+
+func get_all_gateways() -> Dictionary:
+	return _gateways
+
 
 ## Reload data (for development)
 func reload_all() -> void:
@@ -244,6 +286,15 @@ func reload_category(category: String) -> void:
 		"npcs":
 			_npcs.clear()
 			load_npcs()
+		"status_effects":
+			_status_effects.clear()
+			load_status_effects()
+		"quests":
+			_quests.clear()
+			load_quests()
+		"gateways":
+			_gateways.clear()
+			load_gateways()
 		_:
 			Logger.warn("DataService: Unknown category: " + category)
 
@@ -257,5 +308,8 @@ func get_counts() -> Dictionary:
 		"species": _species.size(),
 		"factions": _factions.size(),
 		"zones": _zones.size(),
-		"npcs": _npcs.size()
+		"npcs": _npcs.size(),
+		"status_effects": _status_effects.size(),
+		"quests": _quests.size(),
+		"gateways": _gateways.size()
 	}

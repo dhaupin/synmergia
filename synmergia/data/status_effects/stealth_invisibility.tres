@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "stealth_invisibility"
+display_name = "Invisibility"
+description = "Cannot be seen by enemies."
+category = 0
+effect_type = 3
+duration = 8.0
+max_stacks = 1
+can_refresh = false
+stealth_type = 1
+break_on_damage = true
+break_on_action = false
+show_in_buff_bar = true
+icon_path = "res://icons/buffs/invis.png"
+particle_effect = "fade_out"

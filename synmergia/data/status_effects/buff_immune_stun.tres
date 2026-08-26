@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "buff_immune_stun"
+display_name = "Stun Immunity"
+description = "Immune to stun effects."
+category = 0
+effect_type = 2
+duration = 10.0
+max_stacks = 1
+can_refresh = true
+immune_stun = true
+show_in_buff_bar = true
+icon_path = "res://icons/buffs/immune_stun.png"
+particle_effect = "shield_blue"

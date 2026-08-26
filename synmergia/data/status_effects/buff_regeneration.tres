@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "buff_regeneration"
+display_name = "Regeneration"
+description = "Recovering health over time."
+category = 0
+effect_type = 1
+duration = 10.0
+max_stacks = 1
+can_refresh = true
+heal_per_tick = 25
+tick_interval = 2.0
+show_in_buff_bar = true
+icon_path = "res://icons/buffs/regen.png"
+particle_effect = "heal_glow"
