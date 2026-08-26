@@ -20,6 +20,12 @@ func _ready() -> void:
 
 ## Register a new entity, returns assigned ID
 func register_entity(entity: Entity, id_override: String = "") -> String:
+
+	# SECURITY: Prevent duplicate entity IDs
+	if id_override != "" and _entities.has(id_override):
+		Logger.error("EntityService: Entity ID %s already exists" % id_override)
+		return ""
+
 	var entity_id: String
 	
 	if id_override != "":
