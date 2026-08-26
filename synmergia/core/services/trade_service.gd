@@ -597,3 +597,49 @@ func validate_trade(player_id: String, item: Item) -> Dictionary:
 ## Check if same account
 func is_same_account(player1_id: String, player2_id: String) -> bool:
         return false  # TODO: Implement with account system
+
+
+## Refund all items and gold when trade is cancelled
+func _refund_trade_items(trade: Dictionary) -> void:
+if not _inventory_service:
+return
+
+var player1 := trade["player1"]
+var player2 := trade["player2"]
+
+# Refund player1's items
+var p1_items: Array = trade.get("player1_items", [])
+for item_data in p1_items:
+var item_id := item_data.get("item_id", "")
+var quantity: int = item_data.get("quantity", 1)
+if _inventory_service.has_inventory(player1):
+var inv: InventoryComponent = _inventory_service.get_inventory(player1)
+var slot := inv.find_item(item_id)
+if slot >= 0:
+inv.remove_item(slot, quantity)
+
+# Refund player2's items
+var p2_items: Array = trade.get("player2_items", [])
+for item_data in p2_items:
+var item_id := item_data.get("item_id", "")
+var quantity: int = item_data.get("quantity", 1)
+if _inventory_service.has_inventory(player2):
+var inv: InventoryComponent = _inventory_service.get_inventory(player2)
+var slot := inv.find_item(item_id)
+if slot >= 0:
+inv.remove_item(slot, quantity)
+
+# Refund gold
+var p1_gold: int = trade.get("player1_gold", 0)
+var p2_gold: int = trade.get("player2_gold", 0)
+
+if p1_gold > 0 and _inventory_service.has_inventory(player1):
+# Find and remove the gold from player2's side (it was added during trade)
+var inv1: InventoryComponent = _inventory_service.get_inventory(player1)
+inv1.add_gold(p1_gold)
+
+if p2_gold > 0 and _inventory_service.has_inventory(player2):
+var inv2: InventoryComponent = _inventory_service.get_inventory(player2)
+inv2.add_gold(p2_gold)
+
+Logger.debug("TradeService: Refunded items and gold for cancelled trade")
