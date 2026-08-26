@@ -575,3 +575,126 @@ func get_guild_alliance(guild_id: String) -> Dictionary:
         if guild.is_empty():
                 return {}
         return get_alliance(guild.get("alliance_id", ""))
+
+# ============ GUILD BANK ============
+
+## Initialize guild bank
+func _init_guild_bank(guild: Dictionary) -> void:
+        if not guild.has("bank"):
+                guild["bank"] = {"gold": 0, "items": [], "logs": []}
+                guild["bank_tabs"] = [{"name": "Main", "size": 98, "unlocked": true}]
+
+## Get guild bank
+func get_guild_bank(guild_id: String) -> Dictionary:
+        var guild := _guilds.get(guild_id, {})
+        if guild.is_empty():
+                return {}
+        if not guild.has("bank"):
+                _init_guild_bank(guild)
+        return guild.get("bank", {})
+
+## Deposit gold to guild bank
+func deposit_gold(player_id: String, amount: int) -> bool:
+        var guild_id := _player_guilds.get(player_id, "")
+        if guild_id == "":
+                return false
+        var guild := _guilds.get(guild_id)
+        if not guild:
+                return false
+        if not guild.has("bank"):
+                _init_guild_bank(guild)
+        guild["bank"]["gold"] += amount
+        _log_bank_transaction(guild, "deposit_gold", player_id, {"amount": amount})
+        Logger.info("GuildService: %s deposited %d gold" % [player_id, amount])
+        return true
+
+## Withdraw gold from guild bank
+func withdraw_gold(player_id: String, amount: int) -> bool:
+        var guild_id := _player_guilds.get(player_id, "")
+        if guild_id == "":
+                return false
+        var guild := _guilds.get(guild_id)
+        if not guild:
+                return false
+        if not guild.has("bank"):
+                _init_guild_bank(guild)
+        if guild["bank"]["gold"] < amount:
+                return false
+        guild["bank"]["gold"] -= amount
+        _log_bank_transaction(guild, "withdraw_gold", player_id, {"amount": amount})
+        return true
+
+## Deposit item to guild bank
+func deposit_item(player_id: String, item_id: String, quantity: int, tab_index: int = 0) -> bool:
+        var guild_id := _player_guilds.get(player_id, "")
+        if guild_id == "":
+                return false
+        var guild := _guilds.get(guild_id)
+        if not guild:
+                return false
+        if not guild.has("bank"):
+                _init_guild_bank(guild)
+        var items: Array = guild["bank"]["items"]
+        for item in items:
+                if item["item_id"] == item_id:
+                        item["quantity"] += quantity
+                        _log_bank_transaction(guild, "deposit_item", player_id, {"item_id": item_id, "quantity": quantity})
+                        return true
+        items.append({"item_id": item_id, "quantity": quantity, "deposited_by": player_id, "deposited_at": Time.get_unix_time_from_system(), "tab": tab_index})
+        _log_bank_transaction(guild, "deposit_item", player_id, {"item_id": item_id, "quantity": quantity})
+        return true
+
+## Withdraw item from guild bank
+func withdraw_item(player_id: String, item_id: String, quantity: int) -> bool:
+        var guild_id := _player_guilds.get(player_id, "")
+        if guild_id == "":
+                return false
+        var guild := _guilds.get(guild_id)
+        if not guild or not guild.has("bank"):
+                return false
+        var items: Array = guild["bank"]["items"]
+        for i in range(items.size()):
+                var item: Dictionary = items[i]
+                if item["item_id"] == item_id and item["quantity"] >= quantity:
+                        item["quantity"] -= quantity
+                        if item["quantity"] <= 0:
+                                items.remove_at(i)
+                        _log_bank_transaction(guild, "withdraw_item", player_id, {"item_id": item_id, "quantity": quantity})
+                        return true
+        return false
+
+## Get bank items for a tab
+func get_bank_items(guild_id: String, tab_index: int = 0) -> Array:
+        var guild := _guilds.get(guild_id, {})
+        if guild.is_empty():
+                return []
+        var items: Array = guild.get("bank", {}).get("items", [])
+        var tab_items: Array = []
+        for item in items:
+                if item.get("tab", 0) == tab_index:
+                        tab_items.append(item)
+        return tab_items
+
+## Get bank gold
+func get_bank_gold(guild_id: String) -> int:
+        var guild := _guilds.get(guild_id, {})
+        if guild.is_empty():
+                return 0
+        return guild.get("bank", {}).get("gold", 0)
+
+## Get bank logs
+func get_bank_logs(guild_id: String, limit: int = 20) -> Array:
+        var guild := _guilds.get(guild_id, {})
+        if guild.is_empty():
+                return []
+        var logs: Array = guild.get("bank", {}).get("logs", [])
+        return logs.slice(max(0, logs.size() - limit), logs.size())
+
+## Log bank transaction
+func _log_bank_transaction(guild: Dictionary, transaction_type: String, player_id: String, data: Dictionary) -> void:
+        if not guild.has("bank"):
+                return
+        var logs: Array = guild["bank"]["logs"]
+        logs.append({"type": transaction_type, "player_id": player_id, "data": data, "timestamp": Time.get_unix_time_from_system()})
+        while logs.size() > 100:
+                logs.pop_front()

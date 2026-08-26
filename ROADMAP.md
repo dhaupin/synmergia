@@ -559,7 +559,7 @@ A playable demo with basic combat, one region, one playable class, one species, 
 
 - [x] On zone load, check for nearby zones based on position
 - [x] Auto-register neighbors for seamless transitions
-- [ ] Add method to get all connected zones (for alerts)
+- [x] Add method to get all connected zones (for alerts)
 
 ### Add PartyService
 **Files:** `godot-project/core/services/party_service.gd`
@@ -578,8 +578,8 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] Guild creation/deletion
 - [x] Guild roster
 - [x] Guild ranks/permissions
-- [ ] Guild chat (via ChatService)
-- [ ] Guild bank (shared storage)
+- [x] Guild chat (via ChatService)
+- [x] Guild bank (shared storage)
 - [x] Guild recruiting (applications)
 - [x] Guild alliance system
 - [x] Guild notifications
