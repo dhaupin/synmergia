@@ -151,6 +151,24 @@ func broadcast_all(
 		for player in players:
 			send(player.entity_id, message, notif_type, priority, location, sound, data)
 
+## Send notification to players near a position
+func broadcast_nearby(
+	position: Vector3,
+	radius: float,
+	message: String,
+	notif_type: NotificationType = NotificationType.SYSTEM,
+	priority: Priority = Priority.NORMAL,
+	location: DisplayLocation = DisplayLocation.CHAT_LOG,
+	sound: SoundType = SoundType.NOTIFICATION,
+	data: Dictionary = {}
+) -> void:
+	var entity_service = EntityService
+	if entity_service:
+		var players = entity_service.get_all_players()
+		for player in players:
+			if is_instance_valid(player) and player.global_position.distance_to(position) <= radius:
+				send(player.entity_id, message, notif_type, priority, location, sound, data)
+
 ## --- Convenience Methods for Common Notifications ---
 
 ## Zone change notification
