@@ -497,32 +497,31 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [ ] Level sync in PvP zones
 
 ### 4.3 Loot System
-**Files:** `godot-project/core/schemas/loot_table.gd`
+**Files:** `godot-project/core/schemas/loot_table.gd`, `loot_service.gd`
 
-- [ ] Loot tables per enemy type
-- [ ] Drop rates (common, rare, epic)
-- [ ] Gold/currency drops
-- [ ] Auto-loot vs manual loot
+- [x] Loot tables per enemy type
+- [x] Drop rates (common, rare, epic)
+- [x] Gold/currency drops
+- [x] Auto-loot vs manual loot
 
 ### 4.3 Equipment System
-**Files:** `godot-project/core/schemas/item.gd`, inventory_component
+**Files:** `godot-project/core/schemas/item.gd`, `inventory_component.gd`
 
-- [ ] Equipment slots (head, chest, weapon, etc.)
-- [ ] Item stats (primary, secondary, tertiary)
-- [ ] Stat calculations with equipment
-- [ ] Gear score/item level
+- [x] Equipment slots (head, chest, weapon, etc.)
+- [x] Item stats (primary, secondary, tertiary)
+- [x] Stat calculations with equipment
+- [x] Gear score/item level
 
-### 4.4 Trade System (TODO)
-**TODO:** Player-to-player trading
+### 4.4 Trade System
+**Files:** `godot-project/core/services/trade_service.gd`
 
-#### Trade Features
-- [ ] Trade request system (send/accept/decline)
+- [x] Trade request system (send/accept/decline)
 - [ ] Trade window UI
-- [ ] Item slots for trade
-- [ ] Gold/currency trade
-- [ ] Trade confirmation (both must confirm)
-- [ ] Trade cancellation
-- [ ] Trade notifications (request, complete, cancelled)
+- [x] Item slots for trade
+- [x] Gold/currency trade
+- [x] Trade confirmation (both must confirm)
+- [x] Trade cancellation
+- [x] Trade notifications (request, complete, cancelled)
 - [ ] Trade history/log
 - [ ] Trade restrictions (bind-on-pickup items, level requirements)
 
@@ -532,16 +531,15 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [ ] Blocked item types (soulbound, quest items)
 - [ ] Trade between characters on same account
 
-### 4.5 Inventory System (TODO)
-**TODO:** Player inventory management
+### 4.5 Inventory System
+**Files:** `godot-project/core/components/inventory_component.gd`
 
-#### Inventory Features
-- [ ] Inventory slots management
-- [ ] Stack limits
-- [ ] Sort/arrange functionality
+- [x] Inventory slots management
+- [x] Stack limits
+- [x] Sort/arrange functionality
 - [ ] Bag expansion
 - [ ] Bank/storage (off-character storage)
-- [ ] Item pickup/drop
+- [x] Item pickup/drop
 - [ ] Item destruction/selling
 
 ---
