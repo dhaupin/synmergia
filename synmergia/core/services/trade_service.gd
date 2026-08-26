@@ -347,3 +347,168 @@ func can_trade_item(item: Item) -> bool:
 ## Get pending trade request for player
 func get_pending_request(player_id: String) -> Dictionary:
         return _pending_requests.get(player_id, {})
+
+
+# ============ TRADE HISTORY ============
+
+# Trade history (player_id -> [completed trades])
+var _trade_history: Dictionary = {}
+
+# Max history per player
+const MAX_HISTORY: int = 50
+
+## Get trade history for player
+func get_trade_history(player_id: String, limit: int = 20) -> Array:
+        var history: Array = _trade_history.get(player_id, [])
+        return history.slice(max(0, history.size() - limit), history.size())
+
+## Log completed trade
+func _log_trade(player1: String, player2: String, player1_items: Array, player2_items: Array, 
+                player1_gold: int, player2_gold: int) -> void:
+        var timestamp := Time.get_unix_time_from_system()
+        
+        # Log for player 1
+        if not _trade_history.has(player1):
+                _trade_history[player1] = []
+        _trade_history[player1].append({
+                "timestamp": timestamp,
+                "partner_id": player2,
+                "items_given": player1_items,
+                "items_received": player2_items,
+                "gold_given": player1_gold,
+                "gold_received": player2_gold
+        })
+        
+        # Log for player 2
+        if not _trade_history.has(player2):
+                _trade_history[player2] = []
+        _trade_history[player2].append({
+                "timestamp": timestamp,
+                "partner_id": player1,
+                "items_given": player2_items,
+                "items_received": player1_items,
+                "gold_given": player2_gold,
+                "gold_received": player1_gold
+        })
+        
+        # Trim history
+        while _trade_history[player1].size() > MAX_HISTORY:
+                _trade_history[player1].pop_front()
+        while _trade_history[player2].size() > MAX_HISTORY:
+                _trade_history[player2].pop_front()
+
+# ============ ANTI-SCAM MEASURES ============
+
+# Anti-scam settings
+var _confirmation_countdown_seconds: float = 3.0
+var _trade_cooldown_seconds: float = 10.0
+var _player_last_trade: Dictionary = {}
+
+signal confirmation_countdown_started(trade_id: String, seconds: float)
+signal confirmation_countdown_cancelled(trade_id: String, cancelled_by: String)
+signal confirmation_countdown_tick(trade_id: String, seconds_remaining: float)
+signal confirmation_countdown_complete(trade_id: String)
+
+## Start confirmation countdown (anti-scam)
+func start_confirmation_countdown(trade_id: String) -> bool:
+        var trade: Dictionary = _active_trades.get(trade_id)
+        if not trade:
+                return false
+        if trade["state"] != TradeState.CONFIRMING:
+                return false
+        if not (trade["player1_confirmed"] and trade["player2_confirmed"]):
+                return false
+        trade["countdown_started"] = Time.get_unix_time_from_system()
+        trade["countdown_seconds"] = _confirmation_countdown_seconds
+        confirmation_countdown_started.emit(trade_id, _confirmation_countdown_seconds)
+        Logger.info("TradeService: Countdown started for trade %s" % trade_id)
+        return true
+
+## Cancel confirmation countdown
+func cancel_confirmation_countdown(trade_id: String, player_id: String) -> bool:
+        var trade: Dictionary = _active_trades.get(trade_id)
+        if not trade or not trade.has("countdown_started"):
+                return false
+        trade.erase("countdown_started")
+        trade.erase("countdown_seconds")
+        trade["player1_confirmed"] = false
+        trade["player2_confirmed"] = false
+        confirmation_countdown_cancelled.emit(trade_id, player_id)
+        return true
+
+## Check trade cooldown
+func can_trade(player_id: String) -> bool:
+        if _player_last_trade.has(player_id):
+                var elapsed := Time.get_unix_time_from_system() - _player_last_trade[player_id]
+                if elapsed < _trade_cooldown_seconds:
+                        return false
+        return true
+
+## Get cooldown remaining
+func get_cooldown_remaining(player_id: String) -> float:
+        if not _player_last_trade.has(player_id):
+                return 0.0
+        var elapsed := Time.get_unix_time_from_system() - _player_last_trade[player_id]
+        return max(0.0, _trade_cooldown_seconds - elapsed)
+
+## Set cooldown (called after trade completes)
+func _set_cooldown(player_id: String) -> void:
+        _player_last_trade[player_id] = Time.get_unix_time_from_system()
+
+# ============ TRADE WINDOW UI HELPERS ============
+
+## Get trade summary for UI
+func get_trade_summary(trade_id: String, player_id: String) -> Dictionary:
+        var trade: Dictionary = _active_trades.get(trade_id, {})
+        if trade.is_empty():
+                return {}
+        var is_player1 := trade["player1"] == player_id
+        var other_id := trade["player2"] if is_player1 else trade["player1"]
+        var my_items: Array = trade["player1_items"] if is_player1 else trade["player2_items"]
+        var other_items: Array = trade["player2_items"] if is_player1 else trade["player1_items"]
+        var my_gold: int = trade["player1_gold"] if is_player1 else trade["player2_gold"]
+        var other_gold: int = trade["player2_gold"] if is_player1 else trade["player1_gold"]
+        return {
+                "trade_id": trade_id,
+                "other_player_id": other_id,
+                "my_items": my_items,
+                "other_items": other_items,
+                "my_gold": my_gold,
+                "other_gold": other_gold,
+                "my_confirmed": trade["player1_confirmed"] if is_player1 else trade["player2_confirmed"],
+                "other_confirmed": trade["player2_confirmed"] if is_player1 else trade["player1_confirmed"],
+                "state": trade["state"],
+                "countdown_remaining": _get_countdown_remaining(trade)
+        }
+
+## Get countdown remaining
+func _get_countdown_remaining(trade: Dictionary) -> float:
+        if not trade.has("countdown_started"):
+                return 0.0
+        var elapsed := Time.get_unix_time_from_system() - trade["countdown_started"]
+        return max(0.0, _confirmation_countdown_seconds - elapsed)
+
+## Validate trade (for restrictions)
+func validate_trade(player_id: String, item: Item) -> Dictionary:
+        var result := {"valid": true, "reason": ""}
+        if item.get("soulbound", false):
+                result["valid"] = false
+                result["reason"] = "Soulbound items cannot be traded"
+                return result
+        if item.get("bind_on_pickup", false):
+                result["valid"] = false
+                result["reason"] = "Bind-on-pickup items cannot be traded"
+                return result
+        if item.get("is_quest_item", false):
+                result["valid"] = false
+                result["reason"] = "Quest items cannot be traded"
+                return result
+        if not can_trade(player_id):
+                result["valid"] = false
+                result["reason"] = "Trade cooldown active"
+                return result
+        return result
+
+## Check if same account
+func is_same_account(player1_id: String, player2_id: String) -> bool:
+        return false  # TODO: Implement with account system
