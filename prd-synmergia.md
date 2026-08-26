@@ -482,6 +482,8 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | Feature | Description | Priority |
 |---------|-------------|----------|
 | **CI/CD Pipeline** | Automated builds, testing | P0 |
+
+> ⚠️ **Note:** CI is currently disabled (`.github/workflows/godot-ci.yml.disabled`). Re-enable when a playable slice exists. See `ROADMAP.md` → Phase 8: Launch Readiness → "Enable CI/CD Pipeline".
 | **Server Hosting** | Cloud provider (AWS/GCP/Azure) | P0 |
 | **Monitoring** | Player counts, server health | P0 |
 | **Analytics** | Track player behavior, economy | P1 |
