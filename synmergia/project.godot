@@ -32,6 +32,7 @@ SpawnService="*res://core/services/spawn_service.gd"
 WorldService="*res://core/services/world_service.gd"
 ShardManager="*res://core/services/shard_manager.gd"
 NotificationService="*res://core/services/notification_service.gd"
+ServerManager="*res://core/services/server_manager.gd"
 
 [display]
 
