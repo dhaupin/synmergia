@@ -10,132 +10,11 @@ env:
   GODOT_VERSION: "4.2.2"
 
 jobs:
-  build-linux:
-    name: Build Linux
-    runs-on: ubuntu-22.04
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Godot
-        run: |
-          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip -O godot.zip
-          unzip -q godot.zip
-          chmod +x Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64
-          mv Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64 godot
-
-      - name: Build Linux
-        run: |
-          ./godot --headless --export-release "Linux/X11" builds/linux.x86_64
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: builds/
-
-  build-windows:
-    name: Build Windows
-    runs-on: ubuntu-22.04
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Godot
-        run: |
-          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip -O godot.zip
-          unzip -q godot.zip
-          chmod +x Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64
-          mv Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64 godot
-
-      - name: Build Windows
-        run: |
-          ./godot --headless --export-release "Windows" builds/windows.exe
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: builds/
-
-  build-macos:
-    name: Build macOS
-    runs-on: macos-14
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build macOS
-        run: |
-          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_macos.universal.zip -O godot.zip
-          unzip -q godot.zip
-          chmod +x Godot.app/Contents/MacOS/Godot
-          mv Godot.app Godot
-          ./Godot --headless --export-release "macOS" builds/
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          path: builds/
-
-  build-android:
-    name: Build Android
+  validate:
+    name: Validate Project
     runs-on: ubuntu-22.04
     container:
-      image: barichello/godot-ci:4.2-android
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build Android
-        run: |
-          /usr/local/bin/godot --headless --export-release "Android" builds/android/project.apk
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-build
-          path: builds/
-
-  build-server:
-    name: Build Server
-    runs-on: ubuntu-22.04
-    container:
-      image: barichello/godot-ci:4.2
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build Server
-        run: |
-          godot --headless --export-release "Linux/X11" builds/server/linux_server.x86_64
-
-      - name: Create Docker Image
-        run: |
-          cat > builds/server/Dockerfile << 'EOF'
-          FROM barichello/godot-ci:4.2
-          WORKDIR /app
-          COPY res ./res
-          CMD ["godot", "--headless", "--server", "--path", "res://"]
-          EOF
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-build
-          path: builds/
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-22.04
-    container:
-      image: barichello/godot-ci:4.2
+      image: barichello/godot-ci:${{ env.GODOT_VERSION }}
 
     steps:
       - name: Checkout
@@ -143,4 +22,4 @@ jobs:
 
       - name: Validate Project
         run: |
-          godot --headless --validate-extension-api 2>&1 || true
+          godot --headless --check-only
