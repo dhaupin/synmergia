@@ -155,9 +155,12 @@ func get_all_equipment() -> Dictionary:
 
 ## Add gold
 func add_gold(amount: int) -> void:
-        _gold += amount
-        gold_changed.emit(amount)
-        EventBus.gold_changed.emit(get_parent(), amount)
+	# SECURITY: Reject negative or zero amounts
+	if amount <= 0:
+		return
+	_gold += amount
+	gold_changed.emit(amount)
+	EventBus.gold_changed.emit(get_parent(), amount)
 
 ## Remove gold
 func remove_gold(amount: int) -> bool:
