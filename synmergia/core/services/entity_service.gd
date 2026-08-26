@@ -12,6 +12,8 @@ var _next_entity_id: int = 1
 
 signal entity_registered(entity: Entity)
 signal entity_unregistered(entity: Entity)
+signal player_joined(player: Entity)
+signal player_left(player: Entity)
 
 func _ready() -> void:
 	Logger.info("EntityService: Ready")
@@ -32,6 +34,7 @@ func register_entity(entity: Entity, id_override: String = "") -> String:
 	# Track by type
 	if entity.entity_type == Entity.EntityType.PLAYER:
 		_players[entity_id] = entity
+			player_joined.emit(entity)
 	elif entity.entity_type == Entity.EntityType.ENEMY:
 		_enemies[entity_id] = entity
 	elif entity.entity_type == Entity.EntityType.NPC:
@@ -49,6 +52,7 @@ func unregister_entity(entity: Entity) -> void:
 		return
 	
 	var entity_id := entity.entity_id
+		var was_player := _players.has(entity_id)
 	
 	_entities.erase(entity_id)
 	_players.erase(entity_id)
@@ -57,6 +61,9 @@ func unregister_entity(entity: Entity) -> void:
 	
 	entity_unregistered.emit(entity)
 	EventBus.entity_despawned.emit(entity)
+
+	if was_player:
+		player_left.emit(entity)
 	
 	Logger.debug("EntityService: Unregistered %s" % entity_id)
 

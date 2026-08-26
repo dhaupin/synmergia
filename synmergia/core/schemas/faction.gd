@@ -82,7 +82,12 @@ func is_at_war_with(other_faction_id: String) -> bool:
 ## Set relation with another faction
 func set_relation(other_faction_id: String, relation: Relation) -> void:
 	relations[other_faction_id] = relation
-	EventBus.faction_hostility_changed.emit(self, other_faction_id if other_faction_id else null)
+	var other_faction: Faction = null
+	if other_faction_id != "":
+		var data_service = DataService
+		if data_service:
+			other_faction = data_service.get_faction(other_faction_id)
+	EventBus.faction_hostility_changed.emit(self, other_faction)
 
 ## Can members of this faction PvP with members of another?
 func can_pvp_with(other_faction_id: String, player_level: int = 1) -> bool:

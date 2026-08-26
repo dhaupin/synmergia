@@ -227,7 +227,7 @@ func spawn_boss(
 	
 	boss_spawned.emit(boss, boss.display_name)
 	EventBus.boss_spawned.emit(boss, boss.display_name)
-	Logger.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, position])
+	Logger.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, str(position)])
 	
 	# Send alert based on scopes
 	if alert_scopes.size() > 0:
