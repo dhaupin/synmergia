@@ -1,6 +1,6 @@
 ## VantConnector - Connect to Vant AI OS/runtime
 ## Vant is a custom agent runtime - https://github.com/dhaupin/vant (axolotl branch)
-## WorldSmith agents can connect via Vant to play the game alongside humans
+## Synmergia agents can connect via Vant to play the game alongside humans
 class_name VantConnector
 extends AgentConnector
 
@@ -104,7 +104,7 @@ func _create_session() -> bool:
 	var payload := {
 		"agent_id": agent_session_id,
 		"capabilities": get_capabilities(),
-		"connector": "worldsmith"
+		"connector": "synmergia"
 	}
 	
 	var headers := ["Content-Type: application/json"]
@@ -144,7 +144,7 @@ func _on_http_request_completed(result: int, response_code: int, headers: Array,
 ## Get Vant-specific capabilities
 func get_capabilities() -> Dictionary:
 	return {
-		"connector": "worldsmith",
+		"connector": "synmergia",
 		"version": "1.0",
 		"supports_streaming": true,
 		"supports_memory": true,

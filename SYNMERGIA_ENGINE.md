@@ -1,4 +1,4 @@
-# WorldSmith Engine
+# Synmergia Engine
 
 > A generalized 3D game engine built on Godot 4.2+, designed for MMORPGs with AI agent support.
 
@@ -52,8 +52,8 @@
 
 ### 1. Clone the Engine
 ```bash
-git clone https://github.com/dhaupin/world-smith.git
-cd world-smith
+git clone https://github.com/dhaupin/synmergia.git
+cd synmergia
 ```
 
 ### 2. Open in Godot
@@ -199,6 +199,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [WorldSmith Game](https://github.com/dhaupin/world-smith) - The MMORPG built on this engine
+- [Synmergia Game](https://github.com/dhaupin/synmergia) - The MMORPG built on this engine
 - [Vant Runtime](https://github.com/vant-project/vant) - AI agent runtime
 - [Godot Engine](https://godotengine.org) - The game engine

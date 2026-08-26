@@ -1,4 +1,4 @@
-# World Smith — Open World MMORPG
+# Synmergia — Open World MMORPG
 
 > **Vision:** A 3D open-world MMORPG inspired by Risk Your Life 2 (RYL2) combat/action mechanics, infused with the depth and player-driven economy of Ultima Online. Mobile-first (Android/iOS), with PC support.
 
@@ -25,7 +25,7 @@
 
 ## 1. Executive Summary
 
-**World Smith** is a 3D open-world MMORPG targeting mobile (Android/iOS) with PC support. The game combines RYL2's fast-paced, free-form action combat with Ultima Online's depth of player-driven economy, housing, and world interaction.
+**Synmergia** is a 3D open-world MMORPG targeting mobile (Android/iOS) with PC support. The game combines RYL2's fast-paced, free-form action combat with Ultima Online's depth of player-driven economy, housing, and world interaction.
 
 **Core Loop:** Explore vast world → Fight enemies/dungeons → Craft gear → Build houses → Participate in PvP → Repeat
 
