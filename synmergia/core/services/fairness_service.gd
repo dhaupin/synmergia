@@ -82,7 +82,8 @@ func _check_rate(action_list: Array, max_per_second: float, window_seconds: floa
 	if recent.size() >= max_per_second:
 		return false
 	
-	recent.append(now)
+	# Append to the ORIGINAL action_list, not the filtered copy
+	action_list.append(now)
 	return true
 
 ## Record an action
@@ -213,6 +214,13 @@ func _get_action_rate(player_id: String) -> float:
 	var now := Time.get_ticks_msec()
 	var window_ms := 60000  # Last minute
 	var cutoff := now - window_ms
+
+	# Count recent actions from all arrays
+	var recent_total := 0
+	for key in ["movement", "combat", "chat"]:
+		if actions.has(key) and typeof(actions[key]) == TYPE_ARRAY:
+			recent_total += actions[key].filter(func(t): return t > cutoff).size()
+	return float(recent_total)
 	
 	var recent := actions["total"].filter(func(t): return t > cutoff) if typeof(actions["total"]) == TYPE_ARRAY else 0
 	return float(recent.size()) if typeof(recent) == TYPE_ARRAY else 0.0
