@@ -595,6 +595,22 @@ A playable demo with basic combat, one region, one playable class, one species, 
 
 ---
 
+## Phase 8: Launch Readiness
+
+### Enable CI/CD Pipeline
+**Files:** `.github/workflows/godot-ci.yml.disabled`
+
+> ⚠️ CI is currently disabled to conserve GitHub Actions minutes (free tier: 2,000 min/month).
+> Re-enable when a playable slice exists.
+
+- [ ] Move `godot-ci.yml.disabled` → `godot-ci.yml`
+- [ ] Add `export_presets.cfg` with export templates
+- [ ] Configure build matrix (Linux, Windows, macOS, Android, Server)
+- [ ] Add automated tests
+- [ ] Set up artifact publishing
+
+---
+
 ## Phase 5: Player Progression
 
 **PRD References:** Section 5 Player Systems
