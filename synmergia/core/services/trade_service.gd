@@ -6,6 +6,7 @@ extends Node
 # Service references
 var _account_service: AccountService
 var _inventory_service: InventoryService
+var _same_account_transfer: SameAccountTransferService
 
 # Active trades (trade_id -> trade data)
 var _active_trades: Dictionary = {}
@@ -384,6 +385,64 @@ var _trade_history: Dictionary = {}
 const MAX_HISTORY: int = 50
 
 ## Get trade history for player
+
+## Quick same-account trade (bypasses trade window)
+## Returns result dict with success status
+func quick_same_account_trade(from_id: String, to_id: String, 
+                               from_gold: int, to_gold: int = 0,
+                               from_items: Array = [], to_items: Array = []) -> Dictionary:
+var result := {
+"success": false,
+"reason": "",
+"trade_id": ""
+}
+
+# Check same account
+if not is_same_account(from_id, to_id):
+result["reason"] = "Not same account"
+return result
+
+# Check if quick trade is allowed for this account
+var account_id: String = ""
+if _account_service:
+account_id = _account_service._character_to_account.get(from_id, "")
+if account_id != "":
+var allowed := _account_service.get_account_setting(account_id, "allow_same_account_trade", true)
+if not allowed:
+result["reason"] = "Same-account trade disabled"
+return result
+
+# Use SameAccountTransferService if available
+if _same_account_transfer:
+# Transfer from -> to
+var r1 := _same_account_transfer.transfer(from_id, to_id, from_gold, from_items)
+# Transfer to -> from (if any)
+var r2 := {"success": true, "items_transferred": []}
+if to_gold > 0 or not to_items.is_empty():
+r2 = _same_account_transfer.transfer(to_id, from_id, to_gold, to_items)
+
+result["success"] = r1["success"] and r2["success"]
+result["from_transfer"] = r1
+result["to_transfer"] = r2
+trade_completed.emit("", result)
+return result
+
+# Fallback to inventory service
+if _inventory_service:
+var exec_result := _inventory_service.execute_trade(
+"quick_%s_%s" % [from_id, to_id],
+from_id, to_id,
+from_items, to_items,
+from_gold, to_gold
+)
+result["success"] = exec_result["success"]
+trade_completed.emit("", result)
+return result
+
+result["reason"] = "No transfer service available"
+return result
+
+
 func get_trade_history(player_id: String, limit: int = 20) -> Array:
         var history: Array = _trade_history.get(player_id, [])
         return history.slice(max(0, history.size() - limit), history.size())
