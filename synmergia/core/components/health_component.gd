@@ -23,6 +23,33 @@ var _killer: Entity = null
 
 func _ready() -> void:
 	current_health = max_health
+	
+	# Connect death notification to EventBus
+	health_depleted.connect(_on_health_depleted)
+
+func _on_health_depleted() -> void:
+	var entity: Entity = get_parent()
+	var killer_name := ""
+	var killer_type := "monster"
+	
+	if _killer:
+		killer_name = _killer.display_name
+		if _killer is PlayerController:
+			killer_type = "player"
+		elif _killer.faction_id != entity.faction_id:
+			killer_type = "pvp"
+	
+	if NotificationService:
+		NotificationService.notify_death(entity.entity_id, killer_name, killer_type)
+		
+		# Notify party members
+		if entity.has_method("get_party_id"):
+			var party_id = entity.get_party_id()
+			if party_id != "":
+				var party = PartyService.get_party(party_id) if PartyService else null
+				if party:
+					for member_id in party.get("members", []):
+						NotificationService.notify_party_member_died(member_id, entity.display_name, killer_name)
 
 ## Take damage
 func take_damage(amount: int, source: Entity = null, damage_type: String = "physical") -> int:

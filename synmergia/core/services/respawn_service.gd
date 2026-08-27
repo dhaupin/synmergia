@@ -265,6 +265,11 @@ func start_revival(healer: Entity, target: Entity, context: String = "") -> bool
 		remove_karma(healer.entity_id, config.penalty, "Revive abuse in %s" % context)
 		# Apply temporary cooldown
 		_revive_cooldowns[healer.entity_id] = Time.get_ticks_msec() + (config.cooldown_minutes * 60000)
+		
+		# Send abuse warning notification
+		if NotificationService:
+			NotificationService.notify_revive_abuse_warning(healer.entity_id, context)
+		
 		Logger.warn("RespawnService: Revive abuse detected for %s in %s context" % [healer.display_name, context])
 		return false
 	
@@ -277,7 +282,12 @@ func start_revival(healer: Entity, target: Entity, context: String = "") -> bool
 		"context": context
 	}
 	
-	revive_started.emit(target, healer)
+					revive_started.emit(target, healer)
+	
+	# Send notification to target
+	if NotificationService:
+		NotificationService.notify_revive_started(target.entity_id, healer.display_name)
+	
 	Logger.info("RespawnService: %s starting revival on %s in %s" % [healer.display_name, target.display_name, context])
 	
 	return true
@@ -330,6 +340,11 @@ func complete_revival(target_id: String) -> bool:
 	_do_respawn_at(target, healer.global_position, RespawnMode.REVIVE)
 	
 	revive_completed.emit(target, healer)
+	
+	# Send notifications
+	if NotificationService:
+		NotificationService.notify_revive_completed(target.entity_id, healer.display_name)
+	
 	Logger.info("RespawnService: %s revived %s in %s" % [healer.display_name, target.display_name, context])
 	
 	return true
@@ -345,7 +360,9 @@ func interrupt_revival(target_id: String, reason: String) -> void:
 	
 	_active_revives.erase(target_id)
 	
-	# Possible karma penalty for interrupted revive?
+	# Send notification
+	if NotificationService:
+		NotificationService.notify_revive_failed(target.entity_id, reason)
 	
 	revive_interrupted.emit(target, healer, reason)
 	Logger.info("RespawnService: Revival of %s interrupted by %s: %s" % [target.display_name, healer.display_name, reason])
