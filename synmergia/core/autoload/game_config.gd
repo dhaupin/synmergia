@@ -532,6 +532,38 @@ class Security:
         const FIREWALL_CLEANUP_INTERVAL: int = 300
 
 ## ============================================================================
+## AUTO-RESPONSE CONFIGURATION
+## Automated actions when exploits are detected
+## ============================================================================
+class AutoResponse:
+    ## Enable/disable auto-response
+    const ENABLED: bool = false
+    
+    ## Auto-mute duration when spam detected (seconds)
+    const SPAM_MUTE_DURATION: int = 300  # 5 minutes
+    
+    ## Auto-kick after N exploit detections
+    const AUTO_KICK_THRESHOLD: int = 3
+    
+    ## Auto-ban for speed hack (requires multiple confirmations)
+    const AUTO_BAN_SPEEDHACK: bool = false
+    const SPEEDHACK_CONFIRMATIONS_REQUIRED: int = 3
+    
+    ## Auto-ban for teleport hack
+    const AUTO_BAN_TELEPORTHACK: bool = false
+    const TELEPORTHACK_CONFIRMATIONS_REQUIRED: int = 2
+    
+    ## Auto-ban for item duplication
+    const AUTO_BAN_ITEM_DUPLICATION: bool = false
+    const ITEM_DUP_CONFIRMATIONS_REQUIRED: int = 2
+    
+    ## Notify admins via in-game message
+    const NOTIFY_ADMINS: bool = true
+    
+    ## Notify via Discord webhook (if configured)
+    const NOTIFY_DISCORD: bool = false
+
+## ============================================================================
 ## DEBUG CONFIGURATION
 ## Development and debugging settings
 ## ============================================================================
