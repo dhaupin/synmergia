@@ -287,6 +287,14 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
                         return _cmd_unignore(sender_id, args)
                 "muted":
                         return _cmd_muted(sender_id, args)
+                "report":
+                        return _cmd_report(sender_id, args)
+                "bug":
+                        return _cmd_bug(sender_id, args)
+                "feedback":
+                        return _cmd_feedback(sender_id, args)
+                "suggest":
+                        return _cmd_suggest(sender_id, args)
         
         return false
 
@@ -356,6 +364,96 @@ func _cmd_muted(sender_id: String, args: Array) -> bool:
                 send_system_message(sender_id, "You are not ignoring anyone")
         else:
                 send_system_message(sender_id, "Ignored: %s" % ", ".join(muted))
+        return true
+
+## Command: Report player abuse
+func _cmd_report(sender_id: String, args: Array) -> bool:
+        if args.size() < 2:
+                send_system_message(sender_id, "Usage: /report <player> <reason>")
+                send_system_message(sender_id, "Reports are reviewed by moderators. For bugs, use /bug")
+                return true
+        
+        var target := args[0]
+        var reason := args.slice(1, args.size()).join(" ")
+        
+        if PlayerReporter:
+                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.ABUSE, {
+                        "target": target,
+                        "reason": reason
+                })
+                if result.success:
+                        send_system_message(sender_id, "Report submitted. Thank you for helping keep the community safe.")
+                else:
+                        send_system_message(sender_id, "Failed to submit report: %s" % result.message)
+        else:
+                send_system_message(sender_id, "Report system not available. Please try again later.")
+        
+        return true
+
+## Command: Report bug
+func _cmd_bug(sender_id: String, args: Array) -> bool:
+        if args.is_empty():
+                send_system_message(sender_id, "Usage: /bug <description>")
+                send_system_message(sender_id, "Describe the bug clearly: what happened, what you expected, steps to reproduce.")
+                return true
+        
+        var description := args.join(" ")
+        
+        if PlayerReporter:
+                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.BUG, {
+                        "description": description
+                })
+                if result.success:
+                        send_system_message(sender_id, "Bug report submitted. Thank you!")
+                else:
+                        send_system_message(sender_id, "Failed to submit bug report: %s" % result.message)
+        else:
+                send_system_message(sender_id, "Bug report system not available. Please try again later.")
+        
+        return true
+
+## Command: Send feedback
+func _cmd_feedback(sender_id: String, args: Array) -> bool:
+        if args.is_empty():
+                send_system_message(sender_id, "Usage: /feedback <message>")
+                send_system_message(sender_id, "Share your thoughts, suggestions, or concerns.")
+                return true
+        
+        var message := args.join(" ")
+        
+        if PlayerReporter:
+                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.FEEDBACK, {
+                        "message": message
+                })
+                if result.success:
+                        send_system_message(sender_id, "Feedback submitted. Thank you for your input!")
+                else:
+                        send_system_message(sender_id, "Failed to submit feedback: %s" % result.message)
+        else:
+                send_system_message(sender_id, "Feedback system not available. Please try again later.")
+        
+        return true
+
+## Command: Suggest feature
+func _cmd_suggest(sender_id: String, args: Array) -> bool:
+        if args.is_empty():
+                send_system_message(sender_id, "Usage: /suggest <idea>")
+                send_system_message(sender_id, "Share your feature ideas with the community.")
+                return true
+        
+        var suggestion := args.join(" ")
+        
+        if PlayerReporter:
+                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.SUGGESTION, {
+                        "suggestion": suggestion
+                })
+                if result.success:
+                        send_system_message(sender_id, "Suggestion submitted! The community can vote on it.")
+                else:
+                        send_system_message(sender_id, "Failed to submit suggestion: %s" % result.message)
+        else:
+                send_system_message(sender_id, "Suggestion system not available. Please try again later.")
+        
         return true
 
 ## Check if player is ignored
