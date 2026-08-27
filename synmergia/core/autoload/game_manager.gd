@@ -132,12 +132,12 @@ func _initialize_world_services() -> void:
 	
 	Logger.info("GameManager: World services initialized")
 
-func _on_player_joined(player: Entity) -> void:
+func _on_player_joined(player: Entity, _metadata: EventBus.SpawnMetadata) -> void:
 	if ShardManager:
 		ShardManager.player_connected()
 	Logger.info("Player joined: %s" % player.display_name)
 
-func _on_player_left(player: Entity) -> void:
+func _on_player_left(player: Entity, _metadata: EventBus.SpawnMetadata) -> void:
 	if ShardManager:
 		ShardManager.player_disconnected()
 	Logger.info("Player left: %s" % player.display_name)

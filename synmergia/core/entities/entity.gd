@@ -9,11 +9,15 @@ signal stat_changed(stat: String, value: int)
 signal state_changed(new_state: String)
 
 enum EntityType {
-	PLAYER,
-	ENEMY,
-	NPC,
-	Destructible,
-	Object
+	NONE = 0,
+	PLAYER = 1,
+	ENEMY = 2,
+	NPC = 4,
+	DESTRUCTIBLE = 8,
+	OBJECT = 16,
+	TELEPORT = 32,
+	LOOT = 64,
+	ALL = 0xFFFFFFFF
 }
 
 enum Faction {

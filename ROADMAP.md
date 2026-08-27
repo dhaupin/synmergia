@@ -1297,65 +1297,141 @@ class Database:
 - [ ] Add UI theme customization
 - [ ] Export/import customization presets
 
-### Targeting & Interaction System (TODO)
+### Targeting & Interaction System (IN PROGRESS)
+
+**Design Principles:**
+- Single source of truth via TargetingManager autoload
+- Data-driven via `data/targets/target_*.tres` schemas
+- EventBus for decoupled entity registration
+- Schema caching/memoization for performance
+- Permission-based action execution via PermissionManager
+
 #### Core Architecture (core/targeting/, core/input/)
-- [x] TargetingSystem - Generic targeting (core/targeting/targeting_system.gd)
-  - Entity types: PLAYER, NPC, ENEMY, OBJECT, TELEPORT, LOOT
-  - Target history (restore previous)
-  - Allowed types filtering
-  - Single/Multi/Radial selection modes
-- [x] InteractionLayer - Platform abstraction (core/input/interaction_layer.gd)
+
+- [x] **TargetingManager** - Unified targeting system (autoload)
+  - `core/targeting/targeting_manager.gd`
+  - Single target state with history
+  - Action execution (social, moderation, admin, interaction)
+  - 3D highlight management
+  - EventBus integration for entity registration
+  - Schema caching with lazy loading
+
+- [x] **InteractionLayer** - Platform abstraction (core/input/interaction_layer.gd)
   - TAP, LONG_PRESS, DRAG, DOUBLE_TAP, SWIPE, HOVER
   - Auto-detect: Desktop, Mobile, Gamepad
   - Platform-aware button sizes
-- [ ] EntityTargeter - Handles specific entity interactions
-- [ ] 3D target highlight component
+  - Registered as autoload
 
-#### UI Components (ui/targeting/)
-- [x] TargetTooltip - Generic tooltip (ui/targeting/target_tooltip.gd)
-  - Sticky mode, draggable
-  - Action buttons with platform-aware sizing
-  - Type-specific status display
-- [ ] PlayerTargetTooltip - Player-specific (extends TargetTooltip)
-- [ ] NPCTargetTooltip - NPC dialogue/interaction
-- [ ] LootTooltip - Loot interaction
-- [ ] TeleportTooltip - Warp/portal interaction
+- [ ] **TargetTooltip** - Generic tooltip (ui/targeting/target_tooltip.gd)
+  - Wire to TargetingManager signals
+  - Add action buttons from schema
+  - Integrate ObjectiveManager for objective display
+
+- [ ] **3D Target Highlight** - Visual indicator
+  - Create highlight node management
+  - Add to 3D world scene
+  - Color per entity type from schema
+
+#### Target Schemas (data/targets/*.tres)
+
+- [x] target_player.tres - Player targeting config
+- [x] target_enemy.tres - Enemy targeting config
+- [x] target_npc.tres - NPC targeting config
+- [x] target_loot.tres - Loot targeting config
+- [x] target_gateway.tres - Gateway/teleport config
+- [x] target_dwelling.tres - Housing object config
+- [ ] target_custom_*.tres - Modder-extensible schemas
+
+#### Schema Design (core/schemas/target_schema.gd)
+
+- [x] TargetSchema - Base schema class
+  - entity_type mapping (PLAYER, ENEMY, NPC, etc.)
+  - interaction_mode (HOVER, CLICK, PROXIMITY)
+  - selection_mode (SINGLE, MULTI, RADIAL)
+  - highlight_color and highlight_size
+  - available_actions array
+  - tooltip configuration
 
 #### Integration Phases
-**Phase 1: Input Layer**
-- [x] Make InteractionLayer an autoload singleton
-- [x] Wire existing input handling to InteractionLayer
-- [x] Update InputManager to use InteractionLayer
-- [ ] Test desktop/mobile/gamepad detection
 
-**Phase 2: Targeting System**
-- [x] Make TargetingSystem an autoload singleton
-- [ ] Wire raycast-based targeting to TargetingSystem
-- [ ] Replace old PlayerTargetSystem with new TargetingSystem
-- [ ] Wire Tab key cycling to TargetingSystem
-- [ ] Update enemy/NPC targeting to use TargetingSystem
+**Phase 1: Foundation** ✅ DONE
+- [x] Create TargetingManager autoload
+- [x] Create TargetSchema base class
+- [x] Create data/targets/ directory with 6 schemas
+- [x] Register TargetingManager in project.godot
+- [x] Add targeting signals to EventBus
+- [x] Delete legacy files (player_target_*.gd, targeting_system.gd)
 
-**Phase 3: Tooltip System**
-- [ ] Make TargetTooltip scene-based
-- [ ] Wire TargetTooltip to TargetingSystem
-- [ ] Replace old player_target_tooltip with TargetTooltip
-- [ ] Create NPC/Loot/Teleport tooltip variants
+**Phase 2: Raycast & Input Integration** ✅ DONE
+- [x] Add raycast methods to TargetingManager
+  - `raycast_from_camera(screen_pos, camera)`
+  - `raycast_from_mouse(camera)`
+  - `raycast_from_touch(touch_pos, camera)`
+  - `raycast_from_center(camera)`
+  - `get_target_in_direction(origin, direction, max_distance)`
+  - `_get_active_camera()` helper
+- [x] Wire PlayerController → TargetingManager
+  - Click-to-target via `_unhandled_input`
+  - Tab cycling uses `TargetingManager.cycle_target()`
+  - Right-click context menu support
+  - Touch targeting via InteractionLayer signals
+- [x] Connect InteractionLayer to PlayerController
+  - `tap` → `_on_interaction_tap` → `_handle_left_click`
+  - `double_tap` → quick target nearest
+  - `long_press` → context menu
+  - `action_triggered` → target_next, target_prev, cancel
 
-**Phase 4: 3D Highlight**
-- [ ] Wire PlayerTargetHighlight to TargetingSystem
-- [ ] Add to 3D world scene
-- [ ] Connect to entity types
-- [ ] Add highlight colors per entity type
+**Phase 3: Tooltip System** ✅ DONE
+- [x] Wire TargetTooltip to TargetingManager signals
+  - `target_acquired` → shows tooltip with fade animation
+  - `target_cleared` → hides tooltip (unless sticky)
+  - `target_updated` → refreshes tooltip data
+- [x] Dynamic action buttons from schema (`available_actions`)
+- [x] QoS rate limiting on action execution
+- [x] Permission checks for sensitive actions
+- [x] Entity-type-specific status display (HP, online status, etc.)
+- [x] Sticky/pinned mode with visual feedback
+- [x] Touch-friendly draggable interface
 
-**Phase 5: Permission Integration**
-- [ ] Update ChatService to use PermissionManager
-- [ ] Update SecurityService to use PermissionManager
-- [ ] Update AdminDashboard to use PermissionManager
+**Phase 4: 3D Highlight** ✅ DONE
+- [x] 3D highlight management in TargetingManager
+  - `_update_3d_highlight()` - Updates highlight for new target
+  - `_create_or_update_highlight_mesh()` - Creates glowing ring mesh
+  - `_create_ring_mesh()` - Procedural ring geometry
+  - `_start_highlight_pulse()` - Pulsing glow animation
+  - `_hide_3d_highlight()` - Hides when target cleared
+- [x] Color-coded by entity type (from schema `highlight_color`)
+- [x] Configurable pulse animation via `set_highlight_pulse()`
+- [x] Layer management for rendering control
+
+**Phase 5: Permission Integration** ✅ DONE
+- [x] TargetTooltip action buttons check `PermissionManager.has_permission()`
+- [x] Sensitive actions require `target_<action>` permission
+- [x] Rate limiting via `QoSService.rate_limit()` on all actions
+- [x] EventBus integration for action logging
 
 **Phase 6: Cleanup**
-- [ ] Delete old duplicate systems
-- [ ] Consolidate autoload registrations
-- [ ] Remove debug/temp code
+- [x] Delete core/player_target_system.gd
+- [x] Delete core/player_target_controller.gd
+- [x] Delete core/player_target_highlight.gd
+- [x] Delete core/targeting/targeting_system.gd
+- [x] Delete ui/player/player_target_tooltip.gd
+
+**Phase 7: Entity Spawn Integration** ✅ DONE
+- [x] SpawnService registers enemies with TargetingManager on spawn
+- [x] SpawnService registers bosses with TargetingManager on spawn
+- [x] SpawnService registers NPCs with TargetingManager on spawn
+- [x] SpawnService unregisters from TargetingManager on despawn
+- [x] Added `update_targetable_position()` for moving entities
+- [x] Added `update_targetable_node()` for node reference updates
+
+**Phase 8: UI Integration** ✅ DONE
+- [x] Created UIManager singleton (core/ui/ui_manager.gd)
+- [x] Registered UIManager as autoload in project.godot
+- [x] UIManager instantiates TargetTooltip on game start
+- [x] TargetTooltip connects to TargetingManager signals
+- [x] Fixed signal handler signatures (TargetInfo vs String)
+- [x] UIManager shows/hides UI based on game state
 
 ### Webhook Connector System (TODO)
 - [x] WebhookBase abstract connector (connectors/webhook/webhook_base.gd)
@@ -1409,6 +1485,131 @@ class Database:
 
 ---
 
+## Unified Spawn/Notification Architecture ✅
+
+**Status:** Implemented - 2026-08-27
+
+### Overview
+Consolidated spawn and notification systems into a unified pattern using `EventBus.SpawnMetadata` (inner class) for decoupled event routing.
+
+### Architecture
+
+```
+SpawnService.spawn_*()
+    │
+    ├── Creates EventBus.SpawnMetadata (spawn_type, zone, position, notification_config)
+    │
+    ├── EntityService.register_entity(entity, metadata)
+    │       │
+    │       └── EventBus.entity_spawned.emit(entity, metadata)
+    │               │
+    │               ├── NotificationService._on_entity_spawned()
+    │               │       └── Auto-broadcasts based on metadata.notification_enabled
+    │               │
+    │               ├── MinimapManager._on_entity_spawned()
+    │               │       └── Adds boss markers based on spawn_type
+    │               │
+    │               ├── QuestManager._on_entity_spawned()
+    │               │       └── Updates kill counters based on spawn_type
+    │               │
+    │               └── ChatService._on_entity_spawned()
+    │                       └── Posts to chat channels based on spawn_type
+    │
+    └── Service-specific signal (spawn_point context)
+            └── SpawnService.enemy_spawned.emit(entity, spawn_point_id, metadata)
+```
+
+### SpawnMetadata (Inner Class of EventBus)
+**Location:** `synmergia/core/services/event_bus.gd` (lines 67-249)
+
+```gdscript
+# Access via: EventBus.SpawnMetadata.world_boss(...)
+# or: EventBus.SpawnMetadata.SpawnType.WORLD_BOSS
+# or: EventBus.SpawnMetadata.NotificationPriority.CRITICAL
+
+class SpawnMetadata:
+    # Core info
+    spawn_type: SpawnType  # NORMAL, ELITE, BOSS, WORLD_BOSS, NPC, LOOT, etc.
+    display_name: String
+    entity_id: String
+    zone_id: String
+    position: Vector3      # Required for radius-based notifications
+    
+    # Notification config
+    notification_enabled: bool
+    notification_scopes: Array[AlertScope]  # server_wide, zone, nearby, players
+    notification_message: String
+    notification_priority: NotificationPriority
+    
+    # Context
+    spawn_point_id: String
+    spawner_entity_id: String  # For summoned minions
+    faction: int
+    level: int
+    tags: Array[String]
+    quest_id: String
+```
+
+### Factory Methods
+
+```gdscript
+# Normal enemy - no notification
+EventBus.SpawnMetadata.enemy(display_name, zone_id, position, spawn_point_id, level)
+
+# Elite - zone notification
+EventBus.SpawnMetadata.elite(display_name, zone_id, position, spawn_point_id, level)
+# Result: notification_enabled=true, scopes=[zone(zone_id)], priority=NORMAL
+
+# Boss - zone + neighbors notification
+EventBus.SpawnMetadata.boss(display_name, zone_id, position, level)
+# Result: notification_enabled=true, scopes=[zone(zone_id, true)], priority=HIGH
+
+# World Boss - server-wide notification
+EventBus.SpawnMetadata.world_boss(display_name, zone_id, position, level)
+# Result: notification_enabled=true, scopes=[server_wide()], priority=CRITICAL
+```
+
+### EventBus Signals
+
+```gdscript
+# Unified entity events (all carry EventBus.SpawnMetadata)
+signal entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata)
+signal entity_despawned(entity: Entity, metadata: EventBus.SpawnMetadata)
+signal entity_died(entity: Entity, killer: Entity, metadata: EventBus.SpawnMetadata)
+
+# Removed redundant signals:
+# ❌ enemy_spawned(enemy, spawn_point) - replaced by entity_spawned + enemy_spawned service signal
+# ❌ boss_spawned(enemy, boss_name) - replaced by entity_spawned with metadata
+# ❌ enemy_despawned(enemy) - replaced by entity_despawned with metadata
+```
+
+### Benefits
+
+1. **Decoupled** - SpawnService doesn't call NotificationService directly
+2. **Position data** - Available for radius-based notifications
+3. **Extensible** - Any entity type can have notifications
+4. **Self-documenting** - Metadata structure is explicit
+5. **Testable** - Can unit test metadata creation independently
+6. **Consistent** - Inner class pattern matches existing `AlertScope` in NotificationService
+
+### Design Notes
+
+- **Inner class pattern** matches existing codebase conventions (e.g., `AlertScope` in NotificationService)
+- **Factory methods** provide clean instantiation with sensible defaults
+- **Fluent API** for optional configuration (`.with_tags()`, `.for_quest()`)
+
+### Files Changed
+
+```
+D   synmergia/core/schemas/spawn_metadata.gd    # Removed (moved to inner class)
+M   synmergia/core/services/event_bus.gd         # Added SpawnMetadata inner class + unified signals
+M   synmergia/core/services/entity_service.gd   # Uses EventBus.SpawnMetadata
+M   synmergia/core/services/spawn_service.gd     # Uses EventBus.SpawnMetadata
+M   synmergia/core/services/notification_service.gd  # Uses EventBus.SpawnMetadata
+```
+
+---
+
 ## Future: Discord/Webhook Alerts for Security
 
 **Status:** Not Started - For Discussion
@@ -1455,4 +1656,4 @@ class Discord:
 
 ---
 
-Last updated: 2026-08-25
+Last updated: 2026-08-27

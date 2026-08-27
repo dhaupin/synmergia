@@ -5,8 +5,8 @@ extends Node
 
 # Zone types
 enum ZoneType {
-	OPEN_WORLD,    # Seamless, players always in same world
-	INSTANCED,     # Separate instance (dungeon, raid)
+	OPEN_WORLD,		 # Seamless, players always in same world
+	INSTANCED,		 # Separate instance (dungeon, raid)
 	SEAMLESS_INST # Instance but seamless (no loading screen)
 }
 
@@ -27,10 +27,10 @@ var _next_instance_id: int = 1
 var _zone_neighbors: Dictionary = {}
 
 # Current zone for each entity
-var _entity_zones: Dictionary = {}  # entity_id -> zone_id
+var _entity_zones: Dictionary = {}	# entity_id -> zone_id
 
 # Seamless transition tracking
-var _transition_zones: Dictionary = {}  # zone_id -> [transition_bounds]
+var _transition_zones: Dictionary = {}	# zone_id -> [transition_bounds]
 var _seamless_enabled: bool = true
 
 signal zone_loaded(zone_data: ZoneData)
@@ -89,24 +89,24 @@ func register_zone(zone_data: ZoneData) -> bool:
 
 ## Auto-register zone neighbors based on proximity
 func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
-        var zones_array: Array[ZoneData] = _zones.values()
-        var registered_count: int = 0
-        
-        for i in range(zones_array.size()):
-                var zone1: ZoneData = zones_array[i]
-                for j in range(i + 1, zones_array.size()):
-                        var zone2: ZoneData = zones_array[j]
-                        
-                        # Calculate distance between zone centers
-                        var distance := zone1.zone_center.distance_to(zone2.zone_center)
-                        var combined_radius := zone1.zone_radius + zone2.zone_radius
-                        
-                        # If zones overlap or are close enough, register as neighbors
-                        if distance <= max_distance:
-                                register_zone_neighbors(zone1.id, zone2.id)
-                                registered_count += 1
-        
-        Logger.info("ZoneManager: Auto-registered %d zone neighbor connections" % registered_count)
+				var zones_array: Array[ZoneData] = _zones.values()
+				var registered_count: int = 0
+				
+				for i in range(zones_array.size()):
+								var zone1: ZoneData = zones_array[i]
+								for j in range(i + 1, zones_array.size()):
+												var zone2: ZoneData = zones_array[j]
+												
+												# Calculate distance between zone centers
+												var distance := zone1.zone_center.distance_to(zone2.zone_center)
+												var combined_radius := zone1.zone_radius + zone2.zone_radius
+												
+												# If zones overlap or are close enough, register as neighbors
+												if distance <= max_distance:
+																register_zone_neighbors(zone1.id, zone2.id)
+																registered_count += 1
+				
+				Logger.info("ZoneManager: Auto-registered %d zone neighbor connections" % registered_count)
 
 ## Get zone by ID
 func get_zone(zone_id: String) -> ZoneData:

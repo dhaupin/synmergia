@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TargetSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/target_schema.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc"
+display_name = "NPC"
+description = "A non-player character"
+entity_type = 4
+interaction_mode = 1
+selection_mode = 0
+max_selection = 1
+selection_range = 5.0
+can_target_self = false
+can_target_while_dead = false
+requires_line_of_sight = true
+highlight_color = Color(1.0, 0.8, 0.0, 1.0)
+highlight_size = 1.0
+highlight_speed = 0.8
+available_actions = ["talk"]
+default_action = "talk"
+tooltip_scene = ""
+show_health = false
+show_level = false
+show_status = false
+min_targeter_level = 1
+max_level_difference = 0
+required_faction = ""

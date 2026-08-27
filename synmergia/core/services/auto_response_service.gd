@@ -165,7 +165,11 @@ func _notify_admins(message: String) -> void:
 	
 	# Send to all admins if configured
 	if GameConfig.AutoResponse.NOTIFY_ADMINS and NotificationService:
-		NotificationService.broadcast_alert("[ADMIN] " + message, NotificationService.AlertType.WARNING)
+		NotificationService.broadcast_alert(
+			"[ADMIN] " + message,
+			[NotificationService.AlertScope.server_wide()],
+			NotificationService.NotificationType.WARNING
+		)
 
 ## ============================================================================
 ## CONFIGURATION

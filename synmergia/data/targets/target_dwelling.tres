@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TargetSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/target_schema.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dwelling"
+display_name = "Object"
+description = "An interactable object"
+entity_type = 8
+interaction_mode = 1
+selection_mode = 0
+max_selection = 1
+selection_range = 4.0
+can_target_self = false
+can_target_while_dead = true
+requires_line_of_sight = true
+highlight_color = Color(0.7, 0.5, 0.3, 1.0)
+highlight_size = 0.8
+highlight_speed = 0.5
+available_actions = ["use"]
+default_action = "use"
+tooltip_scene = ""
+show_health = false
+show_level = false
+show_status = false
+min_targeter_level = 1
+max_level_difference = 0
+required_faction = ""
