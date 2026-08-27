@@ -161,6 +161,12 @@ enum EquipSlot {
 @export var duration: float = 0.0  # For buffs that consume item
 @export var buff_effects: Array[Dictionary] = []  # Buffs granted by consumable
 
+# Self-rez specific
+@export var is_self_rez_item: bool = false  # This item can self-resurrect
+@export var self_rez_health_percent: float = 0.5  # Health % restored on self-rez
+@export var self_rez_mana_percent: float = 0.5  # Mana % restored on self-rez
+@export var self_rez_cooldown: float = 300.0  # Cooldown before can use again
+
 func _init() -> void:
 	if id == "":
 		id = display_name.to_lower().replace(" ", "_")

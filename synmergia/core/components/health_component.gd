@@ -96,7 +96,7 @@ func die(killer: Entity = null) -> void:
 	_start_respawn()
 
 ## Create corpse entity
-var _corpse: Node3D = null
+var _corpse: Corpse = null
 
 func _create_corpse(killer: Entity) -> void:
 	var entity: Entity = get_parent()
@@ -213,7 +213,12 @@ func _process(delta: float) -> void:
 		if regen > 0 and current_health < max_health:
 			var heal_amount := int(regen * delta)
 			if heal_amount > 0:
-				heal(heal_amount)
+				current_health = mini(current_health + heal_amount, max_health)
+				health_changed.emit(current_health, max_health, heal_amount)
+	
+	# Self-rez cooldown
+	if _self_rez_cooldown > 0:
+		_self_rez_cooldown -= delta
 
 func _do_respawn() -> void:
 	_is_dead = false
@@ -237,3 +242,110 @@ func set_max_health(new_max: int) -> void:
 		current_health = int(float(current_health) / old_max * max_health)
 	
 	health_changed.emit(current_health, max_health, 0)
+
+## Get corpse reference (if exists)
+func get_corpse() -> Corpse:
+	return _corpse
+
+## Check if corpse exists
+func has_corpse() -> bool:
+	return _corpse != null
+
+## Get corpse loot info for UI
+func get_corpse_loot_info() -> Dictionary:
+	if not _corpse:
+		return {}
+	return {
+		"corpse_id": _corpse.corpse_id,
+		"items": _corpse.get_loot_items(),
+		"owner_info": _corpse.get_owner_info(),
+		"remaining_time": _corpse.get_remaining_time()
+	}
+
+## Loot from corpse
+func loot_from_corpse(looter: Entity, item_index: int = -1) -> Dictionary:
+	if not _corpse:
+		return {"success": false, "reason": "No corpse"}
+	
+	if not _corpse.can_loot(looter):
+		return {"success": false, "reason": "Too far from corpse"}
+	
+	if item_index >= 0:
+		return _corpse.loot_item(looter, item_index)
+	else:
+		# Loot all
+		return {"success": true, "items": _corpse.loot_all(looter)}
+
+## Self-rez using an item (soul gem)
+var _self_rez_cooldown: float = 0.0
+
+func use_self_rez_item(item: Item) -> Dictionary:
+	if not _is_dead:
+		return {"success": false, "reason": "Not dead"}
+	
+	if not item.is_self_rez_item:
+		return {"success": false, "reason": "Item cannot self-resurrect"}
+	
+	# Check cooldown
+	if _self_rez_cooldown > 0:
+		return {"success": false, "reason": "Self-rez on cooldown (%.0fs remaining)" % _self_rez_cooldown}
+	
+	# Check config
+	if not GameConfig.Respawn.ENABLE_SELF_REZ:
+		return {"success": false, "reason": "Self-rez disabled"}
+	
+	var entity: Entity = get_parent()
+	
+	# Remove the item from inventory
+	if entity.inventory_component:
+		var removed := entity.inventory_component.remove_item_by_id(item.id, 1)
+		if not removed:
+			return {"success": false, "reason": "No self-rez item in inventory"}
+	
+	# Perform the res
+	var health_percent := item.self_rez_health_percent if item.self_rez_health_percent > 0 else GameConfig.Respawn.SELF_REZ_HEALTH_PERCENT
+	var mana_percent := item.self_rez_mana_percent if item.self_rez_mana_percent > 0 else GameConfig.Respawn.SELF_REZ_MANA_PERCENT
+	
+	current_health = int(max_health * health_percent)
+	current_health = maxi(1, current_health)  # At least 1 HP
+	_is_dead = false
+	_respawn_timer = 0.0
+	
+	# Restore mana if entity has mana
+	if entity.has_method("restore_mana"):
+		var mana_to_restore := int(entity.max_mana * mana_percent)
+		entity.restore_mana(mana_to_restore)
+	
+	# Remove corpse
+	_remove_corpse()
+	
+	# Set cooldown
+	_self_rez_cooldown = item.self_rez_cooldown if item.self_rez_cooldown > 0 else GameConfig.Respawn.SELF_REZ_COOLDOWN
+	
+	# Emit signals
+	respawned.emit()
+	EventBus.entity_spawned.emit(entity)
+	EventBus.self_resurrected.emit(entity, item)
+	
+	Logger.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])
+	
+	return {
+		"success": true,
+		"health_restored": current_health,
+		"mana_restored": entity.max_mana * mana_percent if entity.has_method("restore_mana") else 0
+	}
+
+
+## Get self-rez cooldown remaining
+func get_self_rez_cooldown() -> float:
+	return _self_rez_cooldown
+
+## Check if can use self-rez item
+func can_use_self_rez_item() -> bool:
+	if not _is_dead:
+		return false
+	if _self_rez_cooldown > 0:
+		return false
+	if not GameConfig.Respawn.ENABLE_SELF_REZ:
+		return false
+	return true
