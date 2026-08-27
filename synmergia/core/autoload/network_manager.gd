@@ -9,6 +9,9 @@ signal peer_disconnected(peer_id: int)
 signal server_started
 signal server_stopped
 
+# Firewall instance
+var _firewall: AppFirewall
+
 # Network settings (using GameConfig for centralized configuration)
 const DEFAULT_PORT := GameConfig.Network.DEFAULT_PORT
 const MAX_PLAYERS := GameConfig.Network.MAX_PLAYERS
@@ -35,6 +38,7 @@ var tick_timer: Timer
 func _ready() -> void:
 	Logger.info("NetworkManager initialized")
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_firewall = AppFirewall.new(300, 5, 3)  # 5min block, 5 attempts, 3 conns/IP
 
 func _process(_delta: float) -> void:
 	match connection_state:
@@ -106,12 +110,29 @@ func _receive_world_state(state: Dictionary) -> void:
 	pass
 
 func _on_server_peer_connected(id: int) -> void:
+	# Get IP from peer (if available)
+	var ip := "unknown"
+	if multiplayer.multiplayer_peer and multiplayer.multiplayer_peer.get_peer(id):
+		# ENet doesn't expose IP directly in Godot 4, use peer ID as identifier
+		ip = "peer_%d" % id
+
+	# Check firewall
+	var fw_check := _firewall.can_connect(ip)
+	if not fw_check.allowed:
+		Logger.warn("Firewall blocked connection from %s: %s" % [ip, fw_check.reason])
+		multiplayer.multiplayer_peer.disconnect_peer(id, true)
+		return
+
 	Logger.info("Client connected: %d" % id)
-	connected_peers[id] = {"joined": Time.get_ticks_msec()}
+	connected_peers[id] = {"joined": Time.get_ticks_msec(), "ip": ip}
+	_firewall.register_connection("peer_%d" % id, ip)
 	peer_connected.emit(id)
 
 func _on_server_peer_disconnected(id: int) -> void:
 	Logger.info("Client disconnected: %d" % id)
+	# Cleanup firewall tracking
+	var ip = connected_peers.get(id, {}).get("ip", "unknown")
+	_firewall.unregister_connection("peer_%d" % id)
 	connected_peers.erase(id)
 	peer_disconnected.emit(id)
 
@@ -213,3 +234,42 @@ func get_connection_info() -> Dictionary:
 		"peer_id": peer_id,
 		"connected_peers": connected_peers.size()
 	}
+
+## ============================================================================
+## FIREWALL HELPERS
+## ============================================================================
+
+## Get the firewall instance for external use
+func get_firewall() -> AppFirewall:
+	return _firewall
+
+## Block a player/IP (admin function)
+func block_player(player_id: String, reason: String, duration_seconds: int) -> void:
+	if _firewall:
+		var ip = _player_ip_from_id(player_id)
+		_firewall.block_ip(ip, reason, duration_seconds)
+		Logger.info("Blocked %s for %d seconds: %s" % [player_id, duration_seconds, reason])
+
+## Issue a permanent ban (admin function)
+func ban_player(player_id: String, reason: String, banned_by: String = "system") -> void:
+	if _firewall:
+		var ip = _player_ip_from_id(player_id)
+		_firewall.issue_ban(player_id, reason, banned_by, -1)
+		Logger.info("Permanently banned %s: %s" % [player_id, reason])
+
+## Flag an IP for suspicious activity
+func flag_ip(ip: String, flag_type: String, count: int = 1) -> void:
+	if _firewall:
+		_firewall.flag_ip(ip, flag_type, count)
+
+## Track a failed authentication attempt
+func track_failed_attempt(ip: String) -> void:
+	if _firewall:
+		_firewall.track_failed_attempt(ip)
+
+func _player_ip_from_id(player_id: String) -> String:
+	# Look up IP from connected peers
+	for peer_id in connected_peers:
+		if "peer_%d" % peer_id == player_id:
+			return connected_peers[peer_id].get("ip", "unknown")
+	return "unknown"
