@@ -1287,12 +1287,34 @@ class Database:
 - [ ] Add UI theme customization
 - [ ] Export/import customization presets
 
-### Player Target System (TODO)
-- [x] PlayerTargetSystem core implemented (core/player_target_system.gd)
-- [x] PlayerTargetTooltip UI implemented (ui/player/player_target_tooltip.gd)
-- [ ] Integrate with player selection/targeting system
-- [ ] Add remaining action callbacks (friends, faction, trade)
-- [ ] Add proximity-based target highlighting
+### Targeting & Interaction System (TODO)
+#### Core Architecture (core/targeting/, core/input/)
+- [x] TargetingSystem - Generic targeting (core/targeting/targeting_system.gd)
+  - Entity types: PLAYER, NPC, ENEMY, OBJECT, TELEPORT, LOOT
+  - Target history (restore previous)
+  - Allowed types filtering
+  - Single/Multi/Radial selection modes
+- [x] InteractionLayer - Platform abstraction (core/input/interaction_layer.gd)
+  - TAP, LONG_PRESS, DRAG, DOUBLE_TAP, SWIPE, HOVER
+  - Auto-detect: Desktop, Mobile, Gamepad
+  - Platform-aware button sizes
+- [ ] EntityTargeter - Handles specific entity interactions
+- [ ] 3D target highlight component
+
+#### UI Components (ui/targeting/)
+- [x] TargetTooltip - Generic tooltip (ui/targeting/target_tooltip.gd)
+  - Sticky mode, draggable
+  - Action buttons with platform-aware sizing
+  - Type-specific status display
+- [ ] PlayerTargetTooltip - Player-specific (extends TargetTooltip)
+- [ ] NPCTargetTooltip - NPC dialogue/interaction
+- [ ] LootTooltip - Loot interaction
+- [ ] TeleportTooltip - Warp/portal interaction
+
+#### Integration
+- [ ] Wire TargetingSystem to game world (raycast/selection)
+- [ ] Connect InteractionLayer to all UI components
+- [ ] Integrate with PlayerTargetHighlight (3D ring)
 - [ ] Persist player relationships (friends, ignored) to database
 
 ### Webhook Connector System (TODO)
