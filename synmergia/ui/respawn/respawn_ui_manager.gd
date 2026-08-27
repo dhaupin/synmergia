@@ -8,14 +8,12 @@ var _current_player: Entity = null
 var _pending_respawn: Dictionary = {}
 
 func _ready() -> void:
-	# Listen for death events
-	EventBus.entity_died.connect(_on_entity_died)
+	# Listen for player death events specifically
+	EventBus.player_died.connect(_on_player_died)
 	Logger.info("RespawnUIManager: Initialized")
 
-func _on_entity_died(entity: Entity, killer: Entity) -> void:
-	# Only show UI for players, not NPCs/enemies
-	if entity is PlayerController:
-		_show_respawn_ui(entity)
+func _on_player_died(entity: Entity, killer: Entity) -> void:
+	_show_respawn_ui(entity)
 
 func _show_respawn_ui(player: Entity) -> void:
 	_current_player = player
