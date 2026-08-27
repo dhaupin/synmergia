@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://player_target_tooltip_01"]
+
+[ext_resource type="Script" path="res://ui/player/player_target_tooltip.gd" id="1"]
+
+[node name="PlayerTargetTooltip" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1")

@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://voting_ui_01"]
+
+[ext_resource type="Script" path="res://ui/community/voting_ui.gd" id="1"]
+
+[node name="VotingUI" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1")
