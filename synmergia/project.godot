@@ -38,6 +38,7 @@ SecurityService="*res://core/services/security_service.gd"
 AppFirewall="*res://core/utils/app_firewall.gd"
 SecurityMonitor="*res://core/autoload/security_monitor.gd"
 AdminCommands="*res://core/utils/admin_commands.gd"
+AutoResponseService="*res://core/services/auto_response_service.gd"
 ServerManager="*res://core/services/server_manager.gd"
 
 [display]

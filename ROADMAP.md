@@ -1044,6 +1044,213 @@ Services to add RecursionGuard:
 
 ---
 
+## Future: Automated Exploit Response
+
+**Status:** Implemented (disabled by default)
+
+### Overview
+Automatically respond to exploit detections based on configurable thresholds. Can mute, kick, or ban players without admin intervention.
+
+### Configuration (`game_config.gd`)
+```gdscript
+class AutoResponse:
+    ## Master switch
+    const ENABLED: bool = false
+    
+    ## Spam: Auto-mute duration
+    const SPAM_MUTE_DURATION: int = 300  # 5 minutes
+    
+    ## Global: Auto-kick after N total exploit detections
+    const AUTO_KICK_THRESHOLD: int = 3
+    
+    ## Speed Hack: Auto-ban settings
+    const AUTO_BAN_SPEEDHACK: bool = false
+    const SPEEDHACK_CONFIRMATIONS_REQUIRED: int = 3
+    
+    ## Teleport Hack: Auto-ban settings
+    const AUTO_BAN_TELEPORTHACK: bool = false
+    const TELEPORTHACK_CONFIRMATIONS_REQUIRED: int = 2
+    
+    ## Item Duplication: Auto-ban settings
+    const AUTO_BAN_ITEM_DUPLICATION: bool = false
+    const ITEM_DUP_CONFIRMATIONS_REQUIRED: int = 2
+    
+    ## Notifications
+    const NOTIFY_ADMINS: bool = true
+    const NOTIFY_DISCORD: bool = false
+```
+
+### Response Flow
+```
+Exploit Detected
+       ↓
+Track Confirmation Count
+       ↓
+   ┌───────────────────────────────────────┐
+   │ Exploit Type    │ Threshold │ Action  │
+   ├───────────────────────────────────────┤
+   │ spam            │ 1         │ Warn    │
+   │ spam            │ 2+        │ Mute    │
+   │ speed_hack      │ 3 (cfg)   │ Ban*    │
+   │ teleport_hack   │ 2 (cfg)   │ Ban*    │
+   │ item_duplication│ 2 (cfg)   │ Ban*    │
+   │ ANY (total)     │ 3 (cfg)   │ Kick    │
+   └───────────────────────────────────────┘
+   * Only if AUTO_BAN_* is true
+```
+
+### Tuning Recommendations
+
+#### Conservative (Low False Positive)
+```
+ENABLED = true
+AUTO_KICK_THRESHOLD = 5
+AUTO_BAN_SPEEDHACK = false
+SPEEDHACK_CONFIRMATIONS_REQUIRED = 5
+# Admins review manually
+```
+
+#### Moderate (Balanced)
+```
+ENABLED = true
+AUTO_KICK_THRESHOLD = 3
+AUTO_BAN_SPEEDHACK = true
+SPEEDHACK_CONFIRMATIONS_REQUIRED = 3
+AUTO_BAN_TELEPORTHACK = true
+TELEPORTHACK_CONFIRMATIONS_REQUIRED = 2
+```
+
+#### Aggressive (High Security)
+```
+ENABLED = true
+AUTO_KICK_THRESHOLD = 2
+AUTO_BAN_SPEEDHACK = true
+SPEEDHACK_CONFIRMATIONS_REQUIRED = 2
+AUTO_BAN_TELEPORTHACK = true
+TELEPORTHACK_CONFIRMATIONS_REQUIRED = 1
+AUTO_BAN_ITEM_DUPLICATION = true
+ITEM_DUP_CONFIRMATIONS_REQUIRED = 1
+```
+
+### Implementation Status
+- `AutoResponseService` created and autoloaded
+- Connected to `SecurityService.exploit_detected`
+- Config class added to `GameConfig`
+- **Disabled by default** - enable in config when ready
+
+### Future Enhancements
+- [ ] Graduated responses (warn → mute → kick → ban)
+- [ ] Time-based forgiveness (reset counts after X minutes clean)
+- [ ] Trust score integration (higher trust = more lenient)
+- [ ] Discord webhook for auto-bans
+- [ ] Admin override for flagged players
+
+---
+
+## Future: Database Considerations (Persistence)
+
+**Status:** Not Started - Architecture Discussion Needed
+
+### Overview
+Security, firewall, and rate-limiting data is currently in-memory only. For production, this needs persistence.
+
+### Data That Needs Persistence
+
+#### Firewall Data
+```
+banned_players:     player_id → {reason, banned_by, timestamp, expires?}
+blocked_ips:         ip → {reason, blocked_until}
+flagged_ips:         ip → {flags, count, last_activity}
+connection_counts:   ip → count
+```
+
+#### Security Data
+```
+restricted_players:  player_id → {action_type, expires, reason}
+player_trust:        player_id → trust_score (FairnessService)
+exploit_log:         player_id → [{type, details, timestamp}]
+```
+
+#### QoS/Rate Limit Data
+```
+rate_limit_buckets:  player_id → {action_type → {count, window_start}}
+```
+
+### Database Schema Options
+
+#### Option 1: Simple Key-Value (Redis)
+```json
+{
+  "banned:player123": {"reason": "hacking", "by": "admin1"},
+  "blocked:192.168.1.1": {"until": 1724500000},
+  "trust:player456": 0.85
+}
+```
+- Pros: Fast, simple, TTL support
+- Cons: No complex queries
+
+#### Option 2: SQL Tables
+```sql
+CREATE TABLE bans (
+    id SERIAL PRIMARY KEY,
+    player_id VARCHAR(64) NOT NULL,
+    reason TEXT,
+    banned_by VARCHAR(64),
+    created_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP,
+    UNIQUE(player_id)
+);
+
+CREATE TABLE exploit_logs (
+    id SERIAL PRIMARY KEY,
+    player_id VARCHAR(64) NOT NULL,
+    exploit_type VARCHAR(64),
+    details JSONB,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE ip_blocks (
+    ip VARCHAR(45) PRIMARY KEY,
+    reason TEXT,
+    blocked_until TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+```
+- Pros: Queryable, relationships, backupable
+- Cons: Slower than Redis for high-frequency reads
+
+#### Option 3: Hybrid (Both)
+- Redis for active data (current bans, rate limits)
+- SQL for audit logs (exploit history, admin actions)
+
+### Config Options
+```gdscript
+# game_config.gd
+class Database:
+    ## Persistence mode
+    enum PersistenceMode { NONE, REDIS, SQL, HYBRID }
+    const PERSISTENCE_MODE: PersistenceMode = PersistenceMode.NONE
+    
+    ## Redis config
+    const REDIS_HOST: String = "localhost"
+    const REDIS_PORT: int = 6379
+    
+    ## SQL config
+    const SQL_HOST: String = "localhost"
+    const SQL_DATABASE: String = "synmergia"
+    
+    ## Persistence intervals
+    const SYNC_INTERVAL_SECONDS: int = 60  # How often to persist to DB
+```
+
+### Implementation Notes
+1. Start with in-memory only (current state)
+2. Add interface layer for persistence
+3. Implement Redis first (simpler for rate limiting)
+4. Add SQL for audit logs (compliance, admin queries)
+
+---
+
 ## Future: Discord/Webhook Alerts for Security
 
 **Status:** Not Started - For Discussion
