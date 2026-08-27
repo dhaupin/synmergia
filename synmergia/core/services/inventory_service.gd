@@ -35,6 +35,11 @@ func has_inventory(player_id: String) -> bool:
 
 ## Transfer item from one player to another
 func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -1) -> bool:
+	# QoS: Rate limit inventory transfers
+	if not QoSService.rate_limit(from_id, "inventory_transfer"):
+		Logger.debug("InventoryService: Rate limited transfer for %s" % from_id)
+		return false
+	
 	# SECURITY: Validate inputs
 	if from_id == "" or to_id == "" or item == null:
 		Logger.error("InventoryService: Invalid transfer parameters")
@@ -82,6 +87,11 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 
 ## Transfer gold from one player to another
 func transfer_gold(from_id: String, to_id: String, amount: int) -> bool:
+	# QoS: Rate limit gold transfers
+	if not QoSService.rate_limit(from_id, "gold_transfer"):
+		Logger.debug("InventoryService: Rate limited gold transfer for %s" % from_id)
+		return false
+	
 	# SECURITY: Validate inputs
 	if from_id == "" or to_id == "":
 		Logger.error("InventoryService: Invalid gold transfer parameters")
@@ -155,6 +165,14 @@ func transfer_items(from_id: String, to_id: String, items: Array) -> Dictionary:
 func execute_trade(trade_id: String, player1: String, player2: String, 
 				   player1_items: Array, player2_items: Array,
 				   player1_gold: int, player2_gold: int) -> Dictionary:
+	# QoS: Rate limit trades for both players
+	if not QoSService.rate_limit(player1, "inventory_trade"):
+		Logger.debug("InventoryService: Rate limited trade for %s" % player1)
+		return {"success": false, "error": "Rate limited"}
+	if not QoSService.rate_limit(player2, "inventory_trade"):
+		Logger.debug("InventoryService: Rate limited trade for %s" % player2)
+		return {"success": false, "error": "Rate limited"}
+
 	var results := {
 		"trade_id": trade_id,
 		"player1": {

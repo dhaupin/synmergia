@@ -117,6 +117,11 @@ func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
 
 ## Roll for loot (Need/Greed)
 func roll_for_loot(loot_id: String, player_id: String, roll_type: RollType, roll_value: int) -> bool:
+	# QoS: Rate limit loot rolls
+	if not QoSService.rate_limit(player_id, "loot_roll"):
+		Logger.debug("LootService: Rate limited roll for %s" % player_id)
+		return false
+
         if not _active_loot.has(loot_id):
                 return false
         
@@ -197,6 +202,11 @@ func assign_loot(loot_id: String, player_id: String) -> bool:
 
 ## Pick up loot for a player
 func pickup_loot(player_id: String, loot_id: String = "") -> Array:
+	# QoS: Rate limit loot pickups
+	if not QoSService.rate_limit(player_id, "loot_pickup"):
+		Logger.debug("LootService: Rate limited pickup for %s" % player_id)
+		return []
+
         var items_received: Array = []
         
         if loot_id != "":
@@ -298,6 +308,11 @@ func has_pending_loot(player_id: String) -> bool:
 
 ## Abandon loot (player walks away)
 func abandon_loot(player_id: String, loot_id: String) -> bool:
+	# QoS: Rate limit loot abandonment
+	if not QoSService.rate_limit(player_id, "loot_abandon"):
+		Logger.debug("LootService: Rate limited abandon for %s" % player_id)
+		return false
+
         if _player_loot.has(player_id):
                 var loot_list: Array = _player_loot[player_id]
                 for i in range(loot_list.size()):
