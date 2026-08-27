@@ -495,23 +495,25 @@ class Security:
 	const ADMIN_LEVEL: int = 100
 	
 	## ============================================================================
-	## PLAYER NOTIFICATIONS
+	## SECURITY/QOS ALERT NOTIFICATIONS
+	## Toggle whether players receive in-game messages about security and rate limit events
+	## Set to false for "silent" servers that only log to admin channels
 	## ============================================================================
 	
-	## Enable/disable player notifications (rate limits, restrictions, etc.)
-	const ENABLE_PLAYER_NOTIFICATIONS: bool = true
+	## Master toggle: Enable all security/QoS player notifications
+	const ENABLE_SECURITY_ALERTS: bool = true
 	
-	## Notify players when they are rate limited
-	const NOTIFY_ON_RATE_LIMIT: bool = true
+	## Alert when player hits a rate limit (e.g., "Slow down! Wait 0.5s")
+	const ALERT_ON_RATE_LIMIT: bool = true
 	
-	## Notify players when they are restricted (muted, trade-banned, etc.)
-	const NOTIFY_ON_RESTRICTION: bool = true
+	## Alert when player is restricted/muted/banned (e.g., "You have been muted")
+	const ALERT_ON_RESTRICTION: bool = true
 	
-	## Notify players when restrictions expire
-	const NOTIFY_ON_UNRESTRICTION: bool = true
+	## Alert when restriction expires (e.g., "Your mute has been lifted")
+	const ALERT_ON_UNRESTRICTION: bool = true
 	
-	## Notify players on exploit detection (careful - could tip off hackers)
-	const NOTIFY_ON_EXPLOIT: bool = false
+	## Alert on exploit detection (default off - don't tip off potential hackers)
+	const ALERT_ON_EXPLOIT_DETECTED: bool = false
 
 	## Anti-exploit thresholds
 	const MAX_SPEED_HACK_MULTIPLIER: float = 2.5  # Max speed allowed (vs normal max)

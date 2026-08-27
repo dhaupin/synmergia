@@ -178,9 +178,13 @@ func disband_guild(leader_id: String) -> bool:
 
 ## Invite player to guild
 func invite_player(inviter_id: String, target_id: String) -> bool:
-        # QoS: Rate limit guild invites
+        # QoS: Rate limit guild invites (player notified by QoSService)
         if not QoSService.rate_limit(inviter_id, "guild"):
-                Logger.debug("GuildService: Rate limited guild invite for %s" % inviter_id)
+                return false
+        
+        # Security: Check if player is guild restricted
+        if SecurityService.is_restricted(inviter_id, "guild"):
+                _notify_player(inviter_id, "You are temporarily restricted from guild invites.")
                 return false
         
         if inviter_id == target_id:
@@ -714,3 +718,19 @@ func _log_bank_transaction(guild: Dictionary, transaction_type: String, player_i
         logs.append({"type": transaction_type, "player_id": player_id, "data": data, "timestamp": Time.get_unix_time_from_system()})
         while logs.size() > 100:
                 logs.pop_at(0)
+
+
+## ============================================================================
+## PLAYER NOTIFICATIONS
+## ============================================================================
+
+## Send notification to player
+func _notify_player(player_id: String, message: String) -> void:
+if NotificationService:
+NotificationService.send_to_player(
+player_id,
+message,
+NotificationService.NotificationType.WARNING,
+NotificationService.Priority.HIGH
+)
+Logger.debug("GuildService: Notified %s: %s" % [player_id, message])
