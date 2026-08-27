@@ -1,5 +1,7 @@
-## InputManager - Unified input handling for mobile and desktop
-## Supports touch controls, keyboard, and gamepad
+## InputManager - Movement input handling for mobile and desktop
+## 
+## Uses InteractionLayer for UI interactions (tap, swipe, etc.)
+## Handles movement joystick and camera control
 extends Node
 
 signal player_input(action: String, pressed: bool)
@@ -21,14 +23,27 @@ var joystick_center: Vector2 = Vector2.ZERO
 var joystick_offset: Vector2 = Vector2.ZERO
 var joystick_deadzone: float = 0.15
 
+# Reference to InteractionLayer (set by InteractionLayer when ready)
+var _interaction_layer: Node = null
+
 func _ready() -> void:
 	Logger.info("InputManager initialized")
 	
 	# Enable touch emulation on desktop for testing
 	DisplayServer.touchscreen_is_available()
 	Input.set_use_accumulated_input(true)
+	
+	# Try to get InteractionLayer
+	_interaction_layer = get_tree().root.find_child("InteractionLayer", true, false)
+	if _interaction_layer:
+		Logger.info("InputManager: Connected to InteractionLayer")
 
 func _input(event: InputEvent) -> void:
+	# Forward to InteractionLayer for UI interactions (tap, swipe, etc.)
+	if _interaction_layer and _interaction_layer.has_method("_process_input"):
+		_interaction_layer._process_input(event)
+	
+	# Handle movement input
 	_handle_touch_events(event)
 	_handle_mouse_events(event)
 	_emit_input_actions(event)

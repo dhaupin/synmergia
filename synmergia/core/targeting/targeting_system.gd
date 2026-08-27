@@ -1,7 +1,11 @@
 ## TargetingSystem - Generic, reusable targeting system
 ## Supports any entity type: players, NPCs, enemies, objects
+##
+## Autoload: Access via `TargetingSystem` globally
 class_name TargetingSystem
 extends Node
+
+static var instance: TargetingSystem
 
 enum EntityType {
 	NONE = 0
@@ -48,7 +52,11 @@ signal target_cleared(previous_target: Target)
 signal target_updated(target: Target)
 
 func _ready() -> void:
+	instance = self
 	Logger.info("TargetingSystem: Initialized")
+
+static func get() -> TargetingSystem:
+	return instance
 
 func set_allowed_types(types: int) -> void:
 	_allowed_types = types
