@@ -55,6 +55,9 @@ const SPAM_THRESHOLD: int = 5	 # Messages per time window
 const MAX_MESSAGE_LENGTH: int = GameConfig.Chat.MAX_MESSAGE_LENGTH
 var _spam_count: Dictionary = {}	# entity_id -> count
 
+# Whisper tracking (sender_id -> last whisper target entity_id)
+var _player_last_whisper: Dictionary = {}
+
 # Profanity filter
 var _profanity_list: Array = [
 				"badword1", "badword2"	# TODO: Load from config
@@ -364,6 +367,31 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 				return false
 
 ## Command: Whisper
+
+	## Find player ID by name (case-insensitive partial match)
+	func _find_player_id_by_name(player_name: String) -> String:
+		if not EntityService:
+			return ""
+		
+		var name_lower := player_name.to_lower()
+		var all_players := EntityService.get_all_players()
+		
+		for player in all_players:
+			if not is_instance_valid(player):
+				continue
+			var player_name_str := player.name if "name" in player else ""
+			if player_name_str.to_lower() == name_lower:
+				return player.entity_id
+		
+		# Try partial match
+		for player in all_players:
+			if not is_instance_valid(player):
+				continue
+			var player_name_str := player.name if "name" in player else ""
+			if player_name_str.to_lower().find(name_lower) >= 0:
+				return player.entity_id
+		
+		return ""
 func _cmd_whisper(sender_id: String, args: Array) -> bool:
 				if args.size() < 2:
 								send_system_message(sender_id, "Usage: /w <player> <message>")
@@ -372,19 +400,26 @@ func _cmd_whisper(sender_id: String, args: Array) -> bool:
 				var target := args[0]
 				var message := args.slice(1, args.size()).join(" ")
 				
-				# TODO: Look up player by name
-				return send_message(sender_id, Channel.WHISPER, message, target)
+				# Look up player by name
+				var target_id := _find_player_id_by_name(target)
+				if target_id == "":
+					send_system_message(sender_id, "Player not found: " + target)
+					return false
+				
+				# Track last whisper target
+				_player_last_whisper[sender_id] = target_id
+				
+				return send_message(sender_id, Channel.WHISPER, message, target_id)
 
 ## Command: Reply
 func _cmd_reply(sender_id: String, args: Array) -> bool:
-				# TODO: Track last whisper target per player
-				if args.is_empty():
+								var last_target_id: String = _player_last_whisper.get(sender_id, "")
+				if last_target_id == "":
+								send_system_message(sender_id, "No one to reply to. Use /w <player> first.")
 								return false
 				
 				var message := args.join(" ")
-				# var last_target = _player_last_whisper.get(sender_id, "")
-				# return send_message(sender_id, Channel.WHISPER, message, last_target)
-				return false
+				return send_message(sender_id, Channel.WHISPER, message, last_target_id)
 
 ## Command: Emote
 func _cmd_emote(sender_id: String, args: Array) -> bool:
