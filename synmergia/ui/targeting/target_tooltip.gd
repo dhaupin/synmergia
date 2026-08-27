@@ -329,6 +329,8 @@ func _get_action_icon(action_id: String) -> String:
 		"loot": return "📦"
 		"talk": return "💬"
 		"use": return "🔧"
+		"resurrect": return "✨"
+		"revive": return "💚"
 		_: return "•"
 
 func _get_action_name(action_id: String) -> String:
@@ -344,6 +346,8 @@ func _get_action_name(action_id: String) -> String:
 		"loot": return "Loot"
 		"talk": return "Talk"
 		"use": return "Use"
+		"resurrect": return "Resurrect"
+		"revive": return "Revive"
 		_: return action_id.capitalize()
 
 func _get_action_category(action_id: String) -> String:
@@ -396,7 +400,7 @@ func _on_action_button_pressed(action_id: String, target_id: String) -> void:
 		_show_action_failed(action_id)
 
 func _requires_permission(action_id: String) -> bool:
-	return action_id in ["report", "kick", "ban", "teleport", "freeze", "invisible", "spawn"]
+	return action_id in ["report", "kick", "ban", "teleport", "freeze", "invisible", "spawn", "resurrect", "revive"]
 
 func _flash_rate_limit_warning() -> void:
 	var original_color := _panel.get_theme_stylebox("panel").bg_color

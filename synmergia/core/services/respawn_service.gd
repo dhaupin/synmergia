@@ -130,6 +130,11 @@ func remove_karma(entity_id: String, amount: int, reason: String) -> void:
 
 ## Initiate respawn for a player
 func initiate_respawn(player: Entity, zone_id: String = "") -> bool:
+	# Prevent respawn if a revive is in progress
+	if _active_revives.has(player.entity_id):
+		Logger.info("RespawnService: Respawn blocked for %s - revive in progress" % player.display_name)
+		return false
+	
 	var config := _get_zone_config(zone_id)
 	var mode: RespawnMode = config.default_mode
 	var respawn_data := {}
@@ -276,6 +281,21 @@ func start_revival(healer: Entity, target: Entity, context: String = "") -> bool
 	Logger.info("RespawnService: %s starting revival on %s in %s" % [healer.display_name, target.display_name, context])
 	
 	return true
+
+## Check if a player is currently being revived
+func is_being_revived(entity_id: String) -> bool:
+	return _active_revives.has(entity_id)
+
+## Get revive progress for a player (0.0 to 1.0)
+func get_revival_progress(entity_id: String) -> float:
+	if not _active_revives.has(entity_id):
+		return 0.0
+	
+	var revive_data: Dictionary = _active_revives[entity_id]
+	var elapsed := (Time.get_ticks_msec() - revive_data["start_time"]) / 1000.0
+	var cast_time: float = revive_data["cast_time"]
+	
+	return clamp(elapsed / cast_time, 0.0, 1.0)
 
 ## Complete a revival
 func complete_revival(target_id: String) -> bool:

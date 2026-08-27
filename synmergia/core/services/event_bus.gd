@@ -15,6 +15,18 @@ signal corpse_created(entity: Entity, corpse: Node3D, killer: Entity)
 signal entity_health_changed(entity: Entity, current: int, maximum: int, delta: int)
 signal entity_level_up(entity: Entity, new_level: int)
 
+# Respawn Events
+## player_resurrected: Emitted when a player is resurrected (source: "admin", "revive_skill", "item", "timed")
+signal player_resurrected(entity: Entity, source: String)
+## self_resurrected: Emitted when player self-resurrects using an item
+signal self_resurrected(entity: Entity, item: Item)
+## revive_started: Emitted when a revive cast begins
+signal revive_started(caster: Entity, target: Entity)
+## revive_completed: Emitted when revive cast completes successfully
+signal revive_completed(caster: Entity, target: Entity)
+## revive_failed: Emitted when revive fails (abuse, interruption, etc)
+signal revive_failed(caster: Entity, target: Entity, reason: String)
+
 # Combat Events
 signal skill_executed(caster: Entity, skill: Skill, targets: Array)
 signal skill_hit(caster: Entity, target: Entity, skill: Skill, damage: int)

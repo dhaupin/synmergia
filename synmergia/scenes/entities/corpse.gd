@@ -110,8 +110,15 @@ func get_loot_items() -> Array[Dictionary]:
 
 ## Loot an item from the corpse
 func loot_item(looter: Entity, item_index: int) -> Dictionary:
+	# Re-check corpse state
+	if _is_looted:
+		return {"success": false, "reason": "Corpse already fully looted"}
+	
+	if _decay_timer <= 0:
+		return {"success": false, "reason": "Corpse has expired"}
+	
 	if not can_loot(looter):
-		return {"success": false, "reason": "Cannot loot"}
+		return {"success": false, "reason": "Too far from corpse"}
 	
 	if item_index < 0 or item_index >= _loot_items.size():
 		return {"success": false, "reason": "Invalid item index"}
@@ -119,6 +126,10 @@ func loot_item(looter: Entity, item_index: int) -> Dictionary:
 	var item: Dictionary = _loot_items[item_index]
 	if item.get("looted", false):
 		return {"success": false, "reason": "Already looted"}
+	
+	# Atomically mark as looted to prevent race conditions
+	if item.get("looted", false):
+		return {"success": false, "reason": "Already looted (race condition prevented)"}
 	
 	# Mark as looted
 	item["looted"] = true

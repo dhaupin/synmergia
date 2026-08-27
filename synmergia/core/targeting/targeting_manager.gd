@@ -328,6 +328,14 @@ func _register_default_actions() -> void:
 		GameConfig.Security.ADMIN_LEVEL
 	))
 	
+	register_action(ActionDef.new(
+		"resurrect", "Resurrect", "✨",
+		ActionDef.ActionCategory.ADMIN,
+		func(src, tgt): return _action_resurrect(src, tgt),
+		true, false,  # requires_target=true, requires_line_of_sight=false
+		GameConfig.Security.MOD_LEVEL
+	))
+	
 	# === INTERACTION ===
 	register_action(ActionDef.new(
 		"talk", "Talk", "💬",
@@ -421,6 +429,60 @@ func _action_restrict(source_id: String, target_id: String) -> Dictionary:
 	if PermissionManager:
 		return PermissionManager.restrict(source_id, target_id, "all", 3600, "Restricted by %s" % source_id)
 	return {"success": false, "message": "Permission manager unavailable"}
+
+func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
+	# Find the target entity
+	var target_entity = get_entity_by_id(target_id)
+	if not target_entity:
+		return {"success": false, "message": "Target not found"}
+	
+	# Check if target is a player
+	if not target_entity is PlayerController:
+		return {"success": false, "message": "Can only resurrect players"}
+	
+	# Check if target is dead
+	var health_comp = target_entity.health_component
+	if not health_comp:
+		return {"success": false, "message": "Target has no health component"}
+	
+	if not health_comp.is_dead():
+		return {"success": false, "message": "Target is not dead"}
+	
+	# Check permission (already done by action system, but double-check)
+	var player_level = _get_player_permission_level()
+	var mod_level = GameConfig.Security.MOD_LEVEL if GameConfig.Security else 1
+	if player_level < mod_level:
+		return {"success": false, "message": "Permission denied"}
+	
+	# Perform resurrection via AdminCommands
+	if AdminCommands:
+		var result = AdminCommands._do_resurrect(target_entity, 1.0, 1.0)
+		if result.get("success", false):
+			return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
+		else:
+			return {"success": false, "message": result.get("reason", "Failed to resurrect")}
+	
+	# Fallback if AdminCommands not available
+	_do_resurrect_fallback(target_entity)
+	return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
+
+func _do_resurrect_fallback(entity: Entity) -> void:
+	var health_comp = entity.health_component
+	
+	# Remove corpse if exists
+	if health_comp._corpse:
+		health_comp._corpse.queue_free()
+		health_comp._corpse = null
+	
+	# Restore health
+	health_comp.current_health = health_comp.max_health
+	health_comp._is_dead = false
+	health_comp._respawn_timer = 0.0
+	
+	# Clear death state
+	entity.health_component.respawned.emit()
+	EventBus.entity_spawned.emit(entity)
+	EventBus.player_resurrected.emit(entity, "tooltip_action")
 
 func _action_talk(_source_id: String, _target_id: String) -> Dictionary:
 	return {"success": true, "message": "Opening dialogue", "action": "open_dialogue"}
@@ -668,6 +730,30 @@ func get_available_actions_for(target_id: String) -> Array[String]:
 			var player_level = _get_player_permission_level()
 			if player_level >= action.min_permission_level:
 				available.append(action_id)
+	
+	# Check for resurrect action if target is dead player
+	available = _add_resurrect_action_if_applicable(target_id, available)
+	
+	return available
+
+## Add resurrect action if target is a dead player and caster has permission
+func _add_resurrect_action_if_applicable(target_id: String, available: Array[String]) -> Array[String]:
+	var target_entity = get_entity_by_id(target_id)
+	if not target_entity:
+		return available
+	
+	# Check if target is a dead player
+	if target_entity is PlayerController:
+		var health_comp = target_entity.health_component
+		if health_comp and health_comp.is_dead():
+			# Check if caster (local player) has permission
+			var player_level = _get_player_permission_level()
+			var mod_level = GameConfig.Security.MOD_LEVEL if GameConfig.Security else 1
+			
+			if player_level >= mod_level:
+				# Add resurrect action if not already present
+				if not "resurrect" in available:
+					available.append("resurrect")
 	
 	return available
 
