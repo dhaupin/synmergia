@@ -75,7 +75,17 @@ func _is_valid_target(target: Entity) -> bool:
 		return false
 	
 	# Check if can see (stealth check)
-	# TODO: Implement stealth detection
+		# Stealth detection
+		if target.status_handler:
+			var stealth_effect = target.status_handler.get_effect_by_type(StatusEffectData.EffectType.BUFF, "stealth")
+			if stealth_effect and stealth_effect.is_active():
+				# Check if this enemy can see stealth
+				var entity: Entity = get_parent()
+				if entity and entity.enemy_data:
+					if not entity.enemy_data.see_stealth:
+						return false  # Can't see stealthed targets
+				else:
+					return false  # No enemy_data, assume can't see stealth
 	
 	# Check faction/enemy status
 	if EntityService.is_enemy(get_parent(), target):

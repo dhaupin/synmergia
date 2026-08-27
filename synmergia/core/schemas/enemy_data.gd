@@ -123,7 +123,16 @@ func roll_loot() -> Dictionary:
 		"items": []
 	}
 	
-	# TODO: Roll against loot table
+	# Roll against loot table if configured
+	if not loot_table_id.is_empty():
+		var table: LootTable = null
+		if ResourceLoader.exists(loot_table_id):
+			table = ResourceLoader.load(loot_table_id)
+		if table != null:
+			var roll_result := table.roll_drop()
+			loot["items"] = roll_result.get("items", [])
+			if roll_result.get("currency"):
+				loot["gold"] += roll_result["currency"].get("gold", 0)
 	return loot
 
 ## Get display info for UI
