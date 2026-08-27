@@ -50,6 +50,12 @@ enum SoundType {
 	DUNGEON_ENTER = 6
 	DUNGEON_COMPLETE = 7
 	COMBAT = 8
+	DEATH = 9
+	REVIVE_START = 10
+	REVIVE_COMPLETE = 11
+	SELF_REZ = 12
+	INVINCIBILITY = 13
+	KILL_STREAK = 14
 }
 
 # Alert scope - where to send the notification
@@ -466,16 +472,12 @@ func notify_quest(entity_id: String, quest_name: String, action: String, message
 func notify_death(entity_id: String, killer_name: String = "", killer_type: String = "monster") -> void:
 	var message: String
 	var priority: Priority = Priority.HIGH
-	var sound: SoundType = SoundType.COMBAT
+	var sound: SoundType = SoundType.DEATH
 	
 	if killer_name != "":
 		match killer_type:
-			"player":
+			"player", "pvp":
 				message = "You have been slain by %s" % killer_name
-				priority = Priority.HIGH
-				sound = SoundType.WARNING
-			"pvp":
-				message = "You were killed in PvP by %s" % killer_name
 				priority = Priority.HIGH
 				sound = SoundType.WARNING
 			_:
@@ -533,7 +535,7 @@ func notify_revive_failed(target_id: String, reason: String = "The revival was i
 ## Self-resurrection notification
 func notify_self_resurrect(entity_id: String, item_name: String = "Soul Gem") -> void:
 	send(entity_id, "You have self-resurrected using %s!" % item_name, NotificationType.SYSTEM, Priority.HIGH, 
-		DisplayLocation.BOTH, SoundType.ACHIEVEMENT, {
+		DisplayLocation.BOTH, SoundType.SELF_REZ, {
 		"item_name": item_name,
 		"action": "self_resurrect"
 	})
@@ -614,6 +616,50 @@ func notify_revive_abuse_warning(entity_id: String, context: String) -> void:
 		NotificationType.WARNING, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.WARNING, {
 		"context": context,
 		"type": "abuse_warning"
+	})
+
+## Invincibility gained notification
+func notify_invincibility_gained(entity_id: String, duration: float, reason: String = "") -> void:
+	var message := "🛡️ Invincible for %.0f seconds" % duration
+	if reason == "respawn":
+		message = "🛡️ Respawn protection: %s" % message
+	elif reason == "griefing_protection":
+		message = "🛡️ Griefing protection active"
+	send(entity_id, message, NotificationType.SYSTEM, Priority.NORMAL, 
+		DisplayLocation.CENTER_SCREEN, SoundType.INVINCIBILITY, {
+		"duration": duration,
+		"reason": reason
+	})
+
+## Invincibility lost notification
+func notify_invincibility_lost(entity_id: String, reason: String = "") -> void:
+	var message := "⚠️ Invincibility ended"
+	if reason == "expired":
+		message = "🛡️ Respawn protection has worn off"
+	send(entity_id, message, NotificationType.WARNING, Priority.NORMAL, 
+		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
+		"reason": reason
+	})
+
+## Kill streak notification
+func notify_kill_streak(entity_id: String, streak: int, xp_bonus: int, gold_bonus: int) -> void:
+	var emojis := ["🔥", "🔥🔥", "🔥🔥🔥", "⚡", "💀"]
+	var idx := min(streak / 5, emojis.size() - 1)
+	var emoji := emojis[idx]
+	var message := "%s Kill streak %d! +%d XP, +%d gold" % [emoji, streak, xp_bonus, gold_bonus]
+	send(entity_id, message, NotificationType.COMBAT, Priority.HIGH, 
+		DisplayLocation.BOTH, SoundType.KILL_STREAK, {
+		"streak": streak,
+		"xp_bonus": xp_bonus,
+		"gold_bonus": gold_bonus
+	})
+
+## Griefing protection notification
+func notify_griefing_protection(entity_id: String, duration: float) -> void:
+	send(entity_id, "🛡️ Griefing protection activated for %.0f seconds!" % duration,
+		NotificationType.WARNING, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.INVINCIBILITY, {
+		"duration": duration,
+		"type": "griefing_protection"
 	})
 
 ## ============================================================================

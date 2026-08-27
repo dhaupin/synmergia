@@ -417,7 +417,97 @@ class Respawn:
 	
 	## Death sickness duration (debuff in seconds)
 	const DEATH_SICKNESS_DURATION: float = 0.0
-	
+
+		## Equipment repair cost multiplier after death
+		const DEATH_REPAIR_COST_MULTIPLIER: float = 1.5
+		
+		## ============================================================================
+		## INVINCIBILITY AFTER RESPAWN
+		## ============================================================================
+		
+		## Invincibility duration after respawn (seconds)
+		const RESPAWN_INVINCIBILITY_DURATION: float = 5.0
+		
+		## Invincibility applies to PvP damage
+		const INVINCIBILITY_BLOCKS_PVP: bool = true
+		
+		## Invincibility blocks all damage types
+		const INVINCIBILITY_BLOCKS_ALL: bool = false
+		
+		## Show invincibility indicator to player
+		const SHOW_INVINCIBILITY_UI: bool = true
+		
+		## ============================================================================
+		## GRIEFING PROTECTION
+		## ============================================================================
+		
+		## Enable griefing protection
+		const ENABLE_GRIEFING_PROTECTION: bool = true
+		
+		## Number of kills by same player before triggering protection
+		const GRIEFING_KILL_THRESHOLD: int = 3
+		
+		## Time window for griefing detection (seconds)
+		const GRIEFING_TIME_WINDOW: float = 60.0
+		
+		## After griefing threshold, redirect to safe zone
+		const GRIEFING_SAFE_ZONE_REDIRECT: bool = true
+		
+		## Safe zone ankh ID for griefing redirect
+		const GRIEFING_SAFE_ZONE_ANKH: String = "safe_zone_main"
+		
+		## Duration of griefing protection (seconds)
+		const GRIEFING_PROTECTION_DURATION: float = 120.0
+		
+		## ============================================================================
+		## KILL STREAK BONUSES
+		## ============================================================================
+		
+		## Enable kill streak bonuses
+		const ENABLE_KILL_STREAK_BONUS: bool = true
+		
+		## Kill streak thresholds (must be in order)
+		const KILL_STREAK_THRESHOLDS: Array[int] = [3, 5, 10, 25, 50]
+		
+		## Bonus XP multiplier per streak level
+		const KILL_STREAK_XP_MULTIPLIER: float = 0.1
+		
+		## Bonus gold per kill at streak level
+		const KILL_STREAK_GOLD_BONUS: int = 10
+		
+		## Announce kill streaks server-wide
+		const ANNOUNCE_KILL_STREAKS: bool = true
+		
+		## Kill streak announcement threshold
+		const KILL_STREAK_ANNOUNCE_THRESHOLD: int = 5
+		
+		## ============================================================================
+		## ZONE TRANSFER WHILE DEAD
+		## ============================================================================
+		
+		## Allow zone transfer while dead
+		const ALLOW_ZONE_TRANSFER_WHILE_DEAD: bool = false
+		
+		## If dead, only allow transfer to safe zones
+		const DEAD_ONLY_SAFE_ZONE_TRANSFER: bool = true
+		
+		## Timer before dead players can transfer zones
+		const DEAD_ZONE_TRANSFER_DELAY: float = 10.0
+		
+		## ============================================================================
+		## DEATH STATISTICS
+		## ============================================================================
+		
+		## Track death statistics per player
+		const TRACK_DEATH_STATS: bool = true
+		
+		## Reset stats after X days of inactivity
+		const STATS_INACTIVITY_DAYS: int = 30
+		
+		## Maximum deaths to track in history
+		const MAX_DEATH_HISTORY: int = 100
+		
+		
 	## ============================================================================
 	## CONTEXT-SPECIFIC ABUSE DETECTION (REVIVES PER HOUR)
 	## ============================================================================
