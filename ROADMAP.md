@@ -1287,6 +1287,41 @@ class Database:
 - [ ] Add UI theme customization
 - [ ] Export/import customization presets
 
+### Player Target System (TODO)
+- [x] PlayerTargetSystem core implemented (core/player_target_system.gd)
+- [x] PlayerTargetTooltip UI implemented (ui/player/player_target_tooltip.gd)
+- [ ] Integrate with player selection/targeting system
+- [ ] Add remaining action callbacks (friends, faction, trade)
+- [ ] Add proximity-based target highlighting
+- [ ] Persist player relationships (friends, ignored) to database
+
+### Webhook Connector System (TODO)
+- [x] WebhookBase abstract connector (connectors/webhook/webhook_base.gd)
+- [x] DiscordWebhook connector (connectors/webhook/discord_webhook.gd)
+- [ ] Connect to PermissionManager.admin_action signal
+- [ ] Connect to PlayerReporter.urgent_report signal
+- [ ] Connect to CommunityGovernance signals
+- [ ] Add Slack webhook connector
+- [ ] Add generic HTTP webhook connector
+- [ ] Store webhook URLs in database/config
+
+### Community Governance & Voting (TODO)
+- [x] CommunityGovernance class implemented (core/community/community_governance.gd)
+- [ ] Persist votes to database
+- [ ] Persist player vote history
+- [ ] Implement vote reputation system
+- [ ] Connect report validation votes to PlayerReporter
+- [ ] Add feature suggestion voting
+- [ ] Add UI for voting interface
+- [ ] Implement community moderator role progression
+
+### Friends & Social System (TODO)
+- [ ] Friends list storage (friendships table)
+- [ ] Friend requests system
+- [ ] Online status tracking
+- [ ] Block/ignore list persistence
+- [ ] Social graph analysis for recommendations
+
 ---
 
 ## Future: Discord/Webhook Alerts for Security
