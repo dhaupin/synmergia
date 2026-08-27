@@ -107,7 +107,14 @@ func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
 								# Auto-assign to initiator
 								return assign_loot(loot_id, initiator_id)
 				
-				loot["eligible_players"] = [initiator_id]	 # TODO: Get party members
+					# Get party members if initiator is in a party
+					var party := PartyService.get_player_party(initiator_id)
+					if party.is_empty() or not party.has("id"):
+						loot["eligible_players"] = [initiator_id]
+						Logger.debug("LootService: No party found, loot %s eligible for %s only" % [loot_id, initiator_id])
+					else:
+						loot["eligible_players"] = PartyService.get_party_members(party["id"])
+						Logger.debug("LootService: Party found, loot %s eligible for %d members" % [loot_id, loot["eligible_players"].size()])
 				_need_greed_rolls[loot_id] = {}
 				
 				loot_need_before_greed_started.emit(loot_id, loot["eligible_players"])
@@ -292,8 +299,13 @@ func _process(delta: float) -> void:
 func distribute_party_loot(party_id: String, loot_id: String, items: Array) -> Dictionary:
 				var distributions: Dictionary = {}
 				
-				# TODO: Get party members from PartyService
-				# For now, assign to first eligible or roll
+					# Get party members from PartyService
+					var party_members := PartyService.get_party_members(party_id)
+					if party_members.is_empty():
+						Logger.warn("LootService: No party members found for party %s" % party_id)
+						return distributions
+					
+					Logger.debug("LootService: Distributing loot to %d party members" % party_members.size())
 				
 				loot_distributed.emit(loot_id, distributions)
 				return distributions
