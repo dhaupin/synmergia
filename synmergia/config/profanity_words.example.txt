@@ -1,0 +1,23 @@
+# Profanity Word List for Chat Filter
+# =====================================
+# 
+# This file contains words that will be filtered from chat messages.
+# One word per line. Lines starting with # are comments.
+# Matching is case-insensitive.
+#
+# IMPORTANT: To use profanity filtering:
+# 1. Copy this file to your user data directory:
+#    - Desktop/Laptop: ~/Library/Application Support/Godot/projects/<project>/user://config/
+#    - Or set the path via GameConfig.Chat.PROFANITY_WORDS_FILE
+# 2. Rename from profanity_words.example.txt to profanity_words.txt
+# 3. Add words one per line (without the # prefix)
+#
+# Example:
+# badword1
+# badword2
+# inappropriate
+#
+# The filter will replace matching words with asterisks (*) of the same length.
+#
+# To disable the profanity filter entirely, set:
+#   GameConfig.Chat.PROFANITY_FILTER_ENABLED = false

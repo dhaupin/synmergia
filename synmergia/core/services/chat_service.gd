@@ -58,10 +58,9 @@ var _spam_count: Dictionary = {}	# entity_id -> count
 # Whisper tracking (sender_id -> last whisper target entity_id)
 var _player_last_whisper: Dictionary = {}
 
-# Profanity filter
-var _profanity_list: Array = [
-				"badword1", "badword2"	# TODO: Load from config
-]
+# Profanity filter - loaded from config file at runtime
+var _profanity_list: Array = []
+var _profanity_filter_enabled: bool = true
 
 signal message_received(sender_id: String, channel: Channel, message: String, targets: Array)
 signal channel_joined(entity_id: String, channel: Channel)
@@ -76,6 +75,9 @@ func _ready() -> void:
 				# Initialize history for each channel
 				for channel in Channel:
 								_chat_history[channel] = []
+				
+				# Load profanity filter words from config file
+				_load_profanity_list()
 
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
@@ -155,12 +157,45 @@ func _check_spam(entity_id: String) -> bool:
 				
 				return _spam_count[entity_id] <= SPAM_THRESHOLD * 10	# Allow burst
 
+## Load profanity word list from file
+func _load_profanity_list() -> void:
+				_profanity_filter_enabled = GameConfig.Chat.PROFANITY_FILTER_ENABLED
+				if not _profanity_filter_enabled:
+								Logger.info("ChatService: Profanity filter disabled")
+								return
+				
+				var file_path := GameConfig.Chat.PROFANITY_WORDS_FILE
+				var file := FileAccess.open(file_path, FileAccess.READ)
+				if file == null:
+								# Try user:// path as fallback
+								file_path = "user://config/profanity_words.txt"
+								file = FileAccess.open(file_path, FileAccess.READ)
+				
+				if file == null:
+								Logger.warn("ChatService: Profanity word list not found at %s (filter disabled)" % file_path)
+								_profanity_list = []
+								return
+				
+				_profanity_list = []
+				while not file.eof_reached():
+								var line := file.get_line().strip_edges()
+								if line.is_empty() or line.begins_with("#"):
+										continue  # Skip empty lines and comments
+								_profanity_list.append(line.to_lower())
+				
+				file.close()
+				Logger.info("ChatService: Loaded %d profanity filter words" % _profanity_list.size())
+
 ## Filter profanity
 func _filter_profanity(message: String) -> String:
+				if not _profanity_filter_enabled or _profanity_list.is_empty():
+								return message
+				
 				for word in _profanity_list:
 								var regex := RegEx.new()
 								regex.compile(word)
-								message = regex.sub(message, "*".repeat(word.length()), true)
+								var replacement := GameConfig.Chat.PROFANITY_REPLACEMENT_CHAR.repeat(word.length())
+								message = regex.sub(message, replacement, true)
 				return message
 
 ## Get targets for channel
