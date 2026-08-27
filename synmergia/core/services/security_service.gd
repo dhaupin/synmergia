@@ -368,6 +368,11 @@ func is_restricted(player_id: String, restriction_type: String) -> bool:
 
 ## Notify player they've been restricted
 func _notify_player_restricted(player_id: String, restriction_type: String, duration_seconds: int) -> void:
+	# Respect config toggle
+	if not GameConfig.Security.ENABLE_PLAYER_NOTIFICATIONS:
+		return
+	if not GameConfig.Security.NOTIFY_ON_RESTRICTION:
+		return
 	if not NotificationService:
 		return
 	
@@ -396,6 +401,11 @@ func _notify_player_restricted(player_id: String, restriction_type: String, dura
 
 ## Notify player their restriction has been lifted
 func _notify_player_unrestricted(player_id: String, restriction_type: String) -> void:
+	# Respect config toggle
+	if not GameConfig.Security.ENABLE_PLAYER_NOTIFICATIONS:
+		return
+	if not GameConfig.Security.NOTIFY_ON_UNRESTRICTION:
+		return
 	if not NotificationService:
 		return
 	

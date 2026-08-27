@@ -147,6 +147,11 @@ func rate_limit(player_id: String, action_type: String) -> bool:
 
 ## Notify player they've been rate limited
 func _notify_player_rate_limit(player_id: String, action_type: String, max_rate: float) -> void:
+	# Respect config toggle
+	if not GameConfig.Security.ENABLE_PLAYER_NOTIFICATIONS:
+		return
+	if not GameConfig.Security.NOTIFY_ON_RATE_LIMIT:
+		return
 	if not NotificationService:
 		return
 	
