@@ -367,6 +367,36 @@ class EventBus:
 	const ENABLE_LOGGING: bool = true
 
 ## ============================================================================
+## SECURITY CONFIGURATION
+## Security thresholds and limits
+## ============================================================================
+class Security:
+	## Minimum player name length
+	const MIN_NAME_LENGTH: int = 3
+
+	## Maximum player name length
+	const MAX_NAME_LENGTH: int = 20
+
+	## Reserved names (blocked)
+	const RESERVED_NAMES: Array = [
+		"admin", "moderator", "system", "server", "null", "undefined"
+	]
+
+	## Maximum message length
+	const MAX_MESSAGE_LENGTH: int = 500
+
+	## Permission levels
+	const PLAYER_LEVEL: int = 0
+	const VIP_LEVEL: int = 10
+	const MOD_LEVEL: int = 50
+	const ADMIN_LEVEL: int = 100
+
+	## Anti-exploit thresholds
+	const MAX_SPEED_HACK_MULTIPLIER: float = 2.5  # Max speed allowed (vs normal max)
+	const MAX_ITEMS_PER_MINUTE: int = 100        # Suspicious item creation rate
+	const MAX_INPUT_VALUE: float = 10000.0        # Max input value before anomaly
+
+## ============================================================================
 ## DEBUG CONFIGURATION
 ## Development and debugging settings
 ## ============================================================================
