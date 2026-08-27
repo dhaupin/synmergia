@@ -47,6 +47,11 @@ signal gold_removed_from_trade(trade_id: String, player_id: String, amount: int)
 
 func _ready() -> void:
 				Logger.info("TradeService: Ready")
+				
+				# Initialize service references from autoloads
+				_account_service = AccountService if AccountService else null
+				_inventory_service = InventoryService if InventoryService else null
+				_same_account_transfer = SameAccountTransferService if SameAccountTransferService else null
 
 ## Request a trade
 func request_trade(from_id: String, to_id: String) -> bool:
