@@ -52,6 +52,13 @@ var _rank_permissions: Dictionary = {
 
 # Pending applications (guild_id -> [applications])
 var _pending_applications: Dictionary = {}
+var _pending_guild_invites: Dictionary = {}
+var _next_invite_id: int = 1
+var _INVITE_TIMEOUT_SECONDS: int = 300
+
+# Pending alliance invites (alliance_invite_id -> {alliance_id, from_guild_id, to_guild_id, timestamp})
+var _pending_alliance_invites: Dictionary = {}
+var _next_alliance_invite_id: int = 1
 
 # Alliances (alliance_id -> {name, guild_ids})
 var _alliances: Dictionary = {}
@@ -70,6 +77,14 @@ signal alliance_guild_left(alliance_id: String, guild_id: String)
 signal guild_info_updated(guild_id: String)
 signal guild_notice_updated(guild_id: String, notice: String)
 signal guildMOTD_updated(guild_id: String, motd: String)
+signal guild_invite_sent(guild_id: String, from_id: String, to_id: String)
+signal guild_invite_accepted(guild_id: String, from_id: String, to_id: String)
+signal guild_invite_declined(guild_id: String, from_id: String, to_id: String)
+signal guild_invite_expired(guild_id: String, to_id: String)
+signal alliance_invite_sent(alliance_id: String, from_guild_id: String, to_guild_id: String)
+signal alliance_invite_accepted(alliance_id: String, to_guild_id: String)
+signal alliance_invite_declined(alliance_id: String, to_guild_id: String)
+signal alliance_invite_expired(alliance_id: String, to_guild_id: String)
 
 func _ready() -> void:
 				Logger.info("GuildService: Ready")
@@ -211,8 +226,18 @@ func invite_player(inviter_id: String, target_id: String) -> bool:
 				if _player_guilds.has(target_id):
 								return false
 				
-				# TODO: Send actual invite (reuse party invite system or create guild invite)
-				Logger.info("GuildService: %s invited %s to guild %s" % [inviter_id, target_id, guild_id])
+				# Create guild invite
+				var invite_id := str(_next_invite_id)
+				_next_invite_id += 1
+				_pending_guild_invites[invite_id] = {
+					"guild_id": guild_id,
+					"from_id": inviter_id,
+					"to_id": target_id,
+					"created_at": Time.get_unix_time_from_system(),
+					"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
+				}
+				guild_invite_sent.emit(guild_id, inviter_id, target_id)
+				Logger.info("GuildService: %s invited %s to guild %s (invite_id: %s)" % [inviter_id, target_id, guild_id, invite_id])
 				
 				return true
 
@@ -450,8 +475,18 @@ func invite_to_alliance(inviter_id: String, target_guild_id: String) -> bool:
 				if alliance["guild_ids"].size() >= MAX_ALLIANCE_SIZE:
 								return false
 				
-				# TODO: Send invite to target guild leader
-				Logger.info("GuildService: Guild %s invited to alliance %s" % [target_guild_id, alliance["id"]])
+				# Create alliance invite
+				var invite_id := str(_next_alliance_invite_id)
+				_next_alliance_invite_id += 1
+				_pending_alliance_invites[invite_id] = {
+					"alliance_id": alliance["id"],
+					"from_guild_id": guild_id,
+					"to_guild_id": target_guild_id,
+					"created_at": Time.get_unix_time_from_system(),
+					"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
+				}
+				alliance_invite_sent.emit(alliance["id"], guild_id, target_guild_id)
+				Logger.info("GuildService: Guild %s invited to alliance %s (invite_id: %s)" % [target_guild_id, alliance["id"], invite_id])
 				
 				return true
 
