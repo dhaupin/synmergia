@@ -50,9 +50,13 @@ func _ready() -> void:
 
 ## Request a trade
 func request_trade(from_id: String, to_id: String) -> bool:
-	# QoS: Rate limit trade requests
+	# QoS: Rate limit trade requests (player notified by QoSService)
 	if not QoSService.rate_limit(from_id, "trade"):
-		Logger.debug("TradeService: Rate limited trade request from %s" % from_id)
+		return false
+	
+	# Security: Check if player is trade restricted
+	if SecurityService.is_restricted(from_id, "trade"):
+		_notify_player(from_id, "You are temporarily restricted from trading.")
 		return false
 	
 	# Check same-account trade
@@ -658,3 +662,18 @@ var inv2: InventoryComponent = _inventory_service.get_inventory(player2)
 inv2.add_gold(p2_gold)
 
 Logger.debug("TradeService: Refunded items and gold for cancelled trade")
+
+## ============================================================================
+## PLAYER NOTIFICATIONS
+## ============================================================================
+
+## Send notification to player
+func _notify_player(player_id: String, message: String) -> void:
+if NotificationService:
+NotificationService.send_to_player(
+player_id,
+message,
+NotificationService.NotificationType.WARNING,
+NotificationService.Priority.HIGH
+)
+Logger.debug("TradeService: Notified %s: %s" % [player_id, message])

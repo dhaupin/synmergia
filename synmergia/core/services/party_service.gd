@@ -44,9 +44,13 @@ func _ready() -> void:
 
 ## Create a new party
 func create_party(leader_id: String, is_raid: bool = false) -> String:
-        # QoS: Rate limit party creation
+        # QoS: Rate limit party creation (player notified by QoSService)
         if not QoSService.rate_limit(leader_id, "party"):
-                Logger.debug("PartyService: Rate limited party creation for %s" % leader_id)
+                return ""
+        
+        # Security: Check if player is party restricted
+        if SecurityService.is_restricted(leader_id, "party"):
+                _notify_player(leader_id, "You are temporarily restricted from creating parties.")
                 return ""
         
         if _player_parties.has(leader_id):
@@ -100,9 +104,13 @@ func disband_party(party_id: String) -> bool:
 
 ## Invite a player to party
 func invite_player(from_id: String, to_id: String) -> bool:
-        # QoS: Rate limit party invites
+        # QoS: Rate limit party invites (player notified by QoSService)
         if not QoSService.rate_limit(from_id, "party"):
-                Logger.debug("PartyService: Rate limited invite from %s" % from_id)
+                return false
+        
+        # Security: Check if player is party restricted
+        if SecurityService.is_restricted(from_id, "party"):
+                _notify_player(from_id, "You are temporarily restricted from party invites.")
                 return false
         
         if from_id == to_id:

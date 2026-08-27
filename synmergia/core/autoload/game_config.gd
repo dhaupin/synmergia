@@ -493,6 +493,25 @@ class Security:
 	const VIP_LEVEL: int = 10
 	const MOD_LEVEL: int = 50
 	const ADMIN_LEVEL: int = 100
+	
+	## ============================================================================
+	## PLAYER NOTIFICATIONS
+	## ============================================================================
+	
+	## Enable/disable player notifications (rate limits, restrictions, etc.)
+	const ENABLE_PLAYER_NOTIFICATIONS: bool = true
+	
+	## Notify players when they are rate limited
+	const NOTIFY_ON_RATE_LIMIT: bool = true
+	
+	## Notify players when they are restricted (muted, trade-banned, etc.)
+	const NOTIFY_ON_RESTRICTION: bool = true
+	
+	## Notify players when restrictions expire
+	const NOTIFY_ON_UNRESTRICTION: bool = true
+	
+	## Notify players on exploit detection (careful - could tip off hackers)
+	const NOTIFY_ON_EXPLOIT: bool = false
 
 	## Anti-exploit thresholds
 	const MAX_SPEED_HACK_MULTIPLIER: float = 2.5  # Max speed allowed (vs normal max)
