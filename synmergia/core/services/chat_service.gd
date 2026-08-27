@@ -76,9 +76,10 @@ func _ready() -> void:
 
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
-        # Security: Check if player is muted
-        if SecurityService.is_restricted(sender_id, "chat"):
-                _notify_player(sender_id, "You are muted and cannot send messages.")
+        # Security: Check channel-specific restrictions
+        var restriction_msg := _get_channel_restriction_message(sender_id, channel)
+        if restriction_msg != "":
+                _notify_player(sender_id, restriction_msg)
                 return false
         
         # QoS: Rate limit chat messages (player is already notified by QoSService)
@@ -440,6 +441,47 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 ## ============================================================================
 ## PLAYER NOTIFICATIONS
 ## ============================================================================
+
+## Check if player is restricted from a chat channel
+## Returns "" if allowed, or error message if restricted
+func _get_channel_restriction_message(player_id: String, channel: Channel) -> String:
+        match channel:
+                Channel.SAY, Channel.YELL, Channel.ZONE, Channel.GLOBAL, Channel.TRADE, Channel.COMBAT, Channel.EMOTE:
+                        # General chat channels - check "chat" restriction
+                        if SecurityService.is_restricted(player_id, "chat"):
+                                return "You are muted and cannot send messages."
+                
+                Channel.WHISPER:
+                        # Whisper channel - check "chat" restriction
+                        if SecurityService.is_restricted(player_id, "chat"):
+                                return "You are muted and cannot send whispers."
+                
+                Channel.PARTY:
+                        # Party chat - check party restriction
+                        if SecurityService.is_restricted(player_id, "party"):
+                                return "You are restricted from party chat."
+                        if SecurityService.is_restricted(player_id, "chat"):
+                                return "You are muted and cannot send party messages."
+                
+                Channel.GUILD:
+                        # Guild chat - check guild restriction
+                        if SecurityService.is_restricted(player_id, "guild"):
+                                return "You are restricted from guild chat."
+                        if SecurityService.is_restricted(player_id, "chat"):
+                                return "You are muted and cannot send guild messages."
+                
+                Channel.ALLIANCE:
+                        # Alliance chat - check guild restriction (alliance uses guild perms)
+                        if SecurityService.is_restricted(player_id, "guild"):
+                                return "You are restricted from alliance chat."
+                        if SecurityService.is_restricted(player_id, "chat"):
+                                return "You are muted and cannot send alliance messages."
+                
+                Channel.SYSTEM:
+                        # System messages are read-only
+                        return "Cannot send to system channel."
+        
+        return ""  # No restriction
 
 ## Send notification to player
 func _notify_player(player_id: String, message: String) -> void:
