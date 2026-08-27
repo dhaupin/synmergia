@@ -1044,4 +1044,50 @@ Services to add RecursionGuard:
 
 ---
 
+## Future: Discord/Webhook Alerts for Security
+
+**Status:** Not Started - For Discussion
+
+### Overview
+Send security alerts to Discord when critical exploits are detected.
+
+### Implementation Options
+
+1. **Webhook-only (Simple)**
+   - Add `DISCORD_WEBHOOK_URL` secret
+   - POST JSON to webhook on critical exploit
+   - No bot required
+
+2. **Bot Token (Rich)**
+   - Add `DISCORD_BOT_TOKEN` secret
+   - Post to specific channel
+   - Can @mention moderators
+
+### Alert Types
+- `speed_hack` - Player moving too fast
+- `teleport_hack` - Instant position change
+- `item_duplication` - Suspicious item creation
+- `ban_triggered` - Player banned
+- `connection_blocked` - IP blocked by firewall
+
+### Example Alert
+```
+🚨 SECURITY: Player xyz123 detected speed_hack
+   Speed: 1250 units/sec (max: 500)
+   Location: (123, 45, 678)
+   Time: 2026-08-25 03:15:00
+```
+
+### Configuration
+```gdscript
+# game_config.gd
+class Discord:
+    const WEBHOOK_URL: String = ""  # Set via environment
+    const BOT_TOKEN: String = ""     # Alternative
+    const ALERT_CHANNEL: String = "security-alerts"
+    const MENTION_MODS: bool = true
+```
+
+---
+
 Last updated: 2026-08-25

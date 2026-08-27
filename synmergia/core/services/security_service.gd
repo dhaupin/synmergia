@@ -164,6 +164,26 @@ func log_permission_denied(player_id: String, action: String, required_level: in
 ## Track suspicious activity patterns
 var _suspicious_activity: Dictionary = {}
 
+## Detect potential teleport hack (instant movement across large distance)
+func check_teleport(player_id: String, from_pos: Vector3, to_pos: Vector3, time_delta: float) -> bool:
+if time_delta <= 0:
+return false
+
+var distance := from_pos.distance_to(to_pos)
+var speed := distance / time_delta
+
+if speed > GameConfig.Security.MAX_TELEPORT_DISTANCE:
+_report_exploit(player_id, "teleport_hack", {
+"from": {"x": from_pos.x, "y": from_pos.y, "z": from_pos.z},
+"to": {"x": to_pos.x, "y": to_pos.y, "z": to_pos.z},
+"distance": distance,
+"speed": speed,
+"max_allowed": GameConfig.Security.MAX_TELEPORT_DISTANCE
+})
+return true
+
+return false
+
 ## Detect potential speed hack (movement too fast)
 func check_movement_speed(player_id: String, reported_distance: float, time_delta: float, max_speed: float) -> bool:
 	if time_delta <= 0:
