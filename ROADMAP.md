@@ -1656,4 +1656,27 @@ class Discord:
 
 ---
 
+## Completed: 2026-08-27
+
+### Core TODOs Cleared
+
+| Feature | File | Implementation |
+|---------|------|----------------|
+| Per-team arena respawn tracking | `core/schemas/ankh.gd` | `_team_respawn_counts` dictionary |
+| Party-based team assignment | `core/services/respawn_service.gd` | `_get_arena_team()` queries PartyService |
+| Gateway-based respawn | `core/services/respawn_service.gd` | `_get_nearest_gateway()` distance calculation |
+| Guild invite system | `core/services/guild_service.gd` | `_pending_guild_invites` + signals |
+| Alliance invite system | `core/services/guild_service.gd` | `_pending_alliance_invites` + signals |
+| Enemy stealth detection | `core/ai/enemy_ai.gd` | `_is_valid_target()` checks `see_stealth` |
+| Enemy loot table rolling | `core/schemas/enemy_data.gd` | `roll_loot()` loads LootTable |
+
+### Architecture Updates
+
+- **RespawnService** now integrates with PartyService for team-based arena respawns
+- **GuildService** now tracks invite lifecycle with sent/accepted/declined/expired signals
+- **Ankh Schema** supports per-team respawn counting for arena modes
+- **EnemyAI** respects stealth status with configurable `see_stealth` detection
+
+---
+
 Last updated: 2026-08-27
