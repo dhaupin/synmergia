@@ -378,6 +378,7 @@ func _do_resurrect(entity: Entity, health_percent: float, mana_percent: float) -
 	entity.health_component.respawned.emit()
 	EventBus.entity_spawned.emit(entity)
 	EventBus.player_resurrected.emit(entity, "admin")
+	EventBus.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE if RespawnService else 0)
 	
 	Logger.info("Respawn: %s resurrected by admin" % entity.display_name)
 	
