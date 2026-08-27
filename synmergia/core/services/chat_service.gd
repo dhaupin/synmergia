@@ -76,16 +76,20 @@ func _ready() -> void:
 
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
-        # QoS: Rate limit chat messages
+        # Security: Check if player is muted
+        if SecurityService.is_restricted(sender_id, "chat"):
+                _notify_player(sender_id, "You are muted and cannot send messages.")
+                return false
+        
+        # QoS: Rate limit chat messages (player is already notified by QoSService)
         var action_type = "chat" if channel != Channel.WHISPER else "whisper"
         if not QoSService.rate_limit(sender_id, action_type):
-                Logger.debug("ChatService: Rate limited message from %s" % sender_id)
                 return false
         
         # Security: Validate message content
         var validation := SecurityService.validate_message(message, sender_id)
         if not validation.valid:
-                Logger.debug("ChatService: Invalid message from %s: %s" % [sender_id, validation.reason])
+                _notify_player(sender_id, "Message blocked: %s" % validation.reason)
                 return false
         message = validation.sanitized
 
@@ -95,7 +99,7 @@ func send_message(sender_id: String, channel: Channel, message: String, target_i
 
         # Spam check
         if not _check_spam(sender_id):
-                Logger.debug("ChatService: Spam detected from %s" % sender_id)
+                _notify_player(sender_id, "Slow down! You are sending messages too fast.")
                 return false
         
         # Check if ignored
@@ -432,3 +436,18 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
                 return "[color=%s]%s[/color] [color=#FFFFFF]%s:[/color] %s" % [color, prefix, sender_name, message]
         else:
                 return "[color=%s]%s:[/color] %s" % [color, sender_name, message]
+
+## ============================================================================
+## PLAYER NOTIFICATIONS
+## ============================================================================
+
+## Send notification to player
+func _notify_player(player_id: String, message: String) -> void:
+        if NotificationService:
+                NotificationService.send_to_player(
+                        player_id,
+                        message,
+                        NotificationService.NotificationType.SYSTEM,
+                        NotificationService.Priority.HIGH
+                )
+        Logger.debug("ChatService: Notified %s: %s" % [player_id, message])

@@ -164,6 +164,9 @@ func log_permission_denied(player_id: String, action: String, required_level: in
 ## Track suspicious activity patterns
 var _suspicious_activity: Dictionary = {}
 
+## Track player restrictions (muted, trade-banned, etc.)
+var _player_restrictions: Dictionary = {}
+
 ## Detect potential teleport hack (instant movement across large distance)
 func check_teleport(player_id: String, from_pos: Vector3, to_pos: Vector3, time_delta: float) -> bool:
 if time_delta <= 0:
@@ -302,6 +305,117 @@ func get_action_count(player_id: String, action_type: String, window_ms: int = 1
 	var now := Time.get_ticks_msec()
 	var actions := _action_tracker[player_id][action_type]
 	return actions.filter(func(t): return now - t < window_ms).size()
+
+## ============================================================================
+## PLAYER RESTRICTIONS
+## ============================================================================
+
+## Restrict a player's action (e.g., mute)
+func restrict_player(player_id: String, restriction_type: String, duration_seconds: int) -> void:
+	if not _player_restrictions.has(player_id):
+		_player_restrictions[player_id] = {}
+	
+	var expires_at := Time.get_ticks_msec() + (duration_seconds * 1000)
+	_player_restrictions[player_id][restriction_type] = {
+		"expires_at": expires_at,
+		"duration": duration_seconds
+	}
+	
+	# Notify player
+	_notify_player_restricted(player_id, restriction_type, duration_seconds)
+	
+	Logger.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
+
+## Remove restriction from player
+func unrestrict_player(player_id: String, restriction_type: String) -> bool:
+	if not _player_restrictions.has(player_id):
+		return false
+	
+	if not _player_restrictions[player_id].has(restriction_type):
+		return false
+	
+	_player_restrictions[player_id].erase(restriction_type)
+	
+	if _player_restrictions[player_id].is_empty():
+		_player_restrictions.erase(player_id)
+	
+	# Notify player
+	_notify_player_unrestricted(player_id, restriction_type)
+	
+	Logger.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
+	return true
+
+## Check if player is restricted from an action
+func is_restricted(player_id: String, restriction_type: String) -> bool:
+	if not _player_restrictions.has(player_id):
+		return false
+	
+	if not _player_restrictions[player_id].has(restriction_type):
+		return false
+	
+	var restriction := _player_restrictions[player_id][restriction_type]
+	var expires_at: int = restriction["expires_at"]
+	var now := Time.get_ticks_msec()
+	
+	# Check if expired
+	if now > expires_at:
+		_player_restrictions[player_id].erase(restriction_type)
+		if _player_restrictions[player_id].is_empty():
+			_player_restrictions.erase(player_id)
+		return false
+	
+	return true
+
+## Notify player they've been restricted
+func _notify_player_restricted(player_id: String, restriction_type: String, duration_seconds: int) -> void:
+	if not NotificationService:
+		return
+	
+	var message := ""
+	match restriction_type:
+		"chat":
+			if duration_seconds >= 3600:
+				message = "You have been muted for %.1f hours for spam." % (duration_seconds / 3600.0)
+			elif duration_seconds >= 60:
+				message = "You have been muted for %d minutes for spam." % (duration_seconds / 60)
+			else:
+				message = "You have been muted for %d seconds for spam." % duration_seconds
+		"trade":
+			message = "You have been temporarily restricted from trading for %d seconds." % duration_seconds
+		"party":
+			message = "You have been temporarily restricted from creating parties for %d seconds." % duration_seconds
+		_:
+			message = "You have been restricted from %s for %d seconds." % [restriction_type, duration_seconds]
+	
+	NotificationService.send_to_player(
+		player_id,
+		message,
+		NotificationService.NotificationType.WARNING,
+		NotificationService.Priority.HIGH
+	)
+
+## Notify player their restriction has been lifted
+func _notify_player_unrestricted(player_id: String, restriction_type: String) -> void:
+	if not NotificationService:
+		return
+	
+	var message := ""
+	match restriction_type:
+		"chat":
+			message = "Your mute has been lifted. Please follow chat guidelines."
+		"trade":
+			message = "Trading restriction lifted. You can trade again."
+		"party":
+			message = "Party creation restriction lifted. You can create parties again."
+		_:
+			message = "Your restriction on %s has been lifted." % restriction_type
+	
+	NotificationService.send_to_player(
+		player_id,
+		message,
+		NotificationService.NotificationType.SYSTEM,
+		NotificationService.Priority.NORMAL
+	)
 
 ## ============================================================================
 ## CLEANUP
