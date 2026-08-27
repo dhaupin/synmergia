@@ -1,0 +1,552 @@
+## AdminShell - Internal admin command system
+## Provides a sandboxed command interface for game administration
+## Not connected to OS shell - game-internal commands only
+class_name AdminShell
+extends Node
+
+## Command result structure
+class CommandResult:
+	var success: bool
+	var output: String
+	var error: String
+	
+	func _init(p_success: bool = false, p_output: String = "", p_error: String = ""):
+		success = p_success
+		output = p_output
+		error = p_error
+
+## Command definition
+class Command:
+	var name: String
+	var aliases: Array
+	var description: String
+	var usage: String
+	var permission_level: int  # From GameConfig.Security
+	var callback: Callable
+	
+	func _init(p_name: String, p_callback: Callable, p_desc: String = "", p_usage: String = "", 
+			p_aliases: Array = [], p_perm: int = GameConfig.Security.ADMIN_LEVEL):
+		name = p_name
+		callback = p_callback
+		description = p_desc
+		usage = p_usage
+		aliases = p_aliases
+		permission_level = p_perm
+
+## Signal emitted when command is executed
+signal command_executed(cmd: String, result: CommandResult, executor_id: String)
+
+## All registered commands
+var _commands: Dictionary = {}
+var _aliases: Dictionary = {}
+
+## Command history
+var history: Array = []
+var history_index: int = -1
+const MAX_HISTORY: int = 100
+
+## Current executor (who is using the shell)
+var _current_executor_id: String = ""
+
+func _ready() -> void:
+	_register_default_commands()
+	Logger.info("AdminShell: Initialized with %d commands" % _commands.size())
+
+## Register a command
+func register_command(cmd: Command) -> void:
+	_commands[cmd.name.to_lower()] = cmd
+	for alias in cmd.aliases:
+		_aliases[alias.to_lower()] = cmd.name.to_lower()
+
+## Execute a command string
+func execute(command_line: String, executor_id: String = "") -> CommandResult:
+	_current_executor_id = executor_id
+	
+	# Add to history
+	if command_line.strip_edges() != "":
+		history.push_front(command_line)
+		if history.size() > MAX_HISTORY:
+			history.pop_back()
+		history_index = -1
+	
+	# Parse command
+	var parts := command_line.strip_edges().split(" ", false, 2)
+	if parts.is_empty() or parts[0] == "":
+		return CommandResult.new(false, "", "No command entered. Type 'help' for commands.")
+	
+	var cmd_name := parts[0].to_lower()
+	var args := parts[1] if parts.size() > 1 else ""
+	
+	# Check if command exists (check aliases first)
+	var actual_name := _aliases.get(cmd_name, cmd_name)
+	if not _commands.has(actual_name):
+		return CommandResult.new(false, "", "Unknown command: %s. Type 'help' for commands." % cmd_name)
+	
+	var cmd: Command = _commands[actual_name]
+	
+	# Check permission
+	if executor_id != "" and not _has_permission(executor_id, cmd.permission_level):
+		return CommandResult.new(false, "", "Permission denied. Required level: %d" % cmd.permission_level)
+	
+	# Execute command
+	var result: CommandResult
+	if cmd.callback.is_valid():
+		result = cmd.callback.call(args, executor_id)
+		if result == null:
+			result = CommandResult.new(false, "", "Command execution failed")
+	else:
+		result = CommandResult.new(false, "", "Command callback invalid")
+	
+	command_executed.emit(command_line, result, executor_id)
+	return result
+
+## Get tab completion suggestions
+func get_suggestions(partial: String, executor_id: String = "") -> Array:
+	var suggestions: Array = []
+	var search := partial.to_lower()
+	
+	for cmd_name in _commands.keys():
+		if cmd_name.begins_with(search):
+			var cmd: Command = _commands[cmd_name]
+			if executor_id == "" or _has_permission(executor_id, cmd.permission_level):
+				suggestions.append(cmd_name)
+	
+	# Also check aliases
+	for alias in _aliases.keys():
+		if alias.begins_with(search):
+			var actual := _aliases[alias]
+			if actual in suggestions:
+				continue
+			var cmd: Command = _commands[actual]
+			if executor_id == "" or _has_permission(executor_id, cmd.permission_level):
+				suggestions.append(actual)
+	
+	return suggestions
+
+## Get help for a command
+func get_help(cmd_name: String = "") -> String:
+	if cmd_name == "":
+		return _get_general_help()
+	
+	var actual := _aliases.get(cmd_name.to_lower(), cmd_name.to_lower())
+	if not _commands.has(actual):
+		return "Unknown command: %s" % cmd_name
+	
+	var cmd: Command = _commands[actual]
+	var help_text := "[color=yellow]%s[/color]" % cmd.name
+	
+	if not cmd.aliases.is_empty():
+		help_text += " (aliases: %s)" % ", ".join(cmd.aliases)
+	
+	help_text += "\n  " + cmd.description
+	
+	if cmd.usage != "":
+		help_text += "\n  [color=cyan]Usage:[/color] %s" % cmd.usage
+	
+	help_text += "\n  [color=gray]Permission level:[/color] %d" % cmd.permission_level
+	
+	return help_text
+
+func _get_general_help() -> String:
+	var help_text := "[color=yellow]=== Admin Shell Commands ===[/color]\n"
+	help_text += "Type 'help <command>' for detailed info.\n\n"
+	
+	for cmd_name in _commands.keys():
+		var cmd: Command = _commands[cmd_name]
+		if _current_executor_id == "" or _has_permission(_current_executor_id, cmd.permission_level):
+			help_text += "  [color=cyan]%s[/color] - %s\n" % [cmd.name, cmd.description]
+	
+	help_text += "\n[color=gray]Use Tab for auto-complete, Up/Down for history[/color]"
+	return help_text
+
+func _has_permission(player_id: String, required_level: int) -> bool:
+	# Check SecurityService for player permission level
+	if SecurityService:
+		return SecurityService.get_player_permission_level(player_id) >= required_level
+	return required_level <= GameConfig.Security.PLAYER_LEVEL
+
+func _register_default_commands() -> void:
+	# Help command
+	register_command(Command.new("help", _cmd_help, "Show help for commands", "help [command]"))
+	
+	# Player lookup
+	register_command(Command.new("lookup", _cmd_lookup, "Look up player info", "lookup <player_id>"))
+	register_command(Command.new("players", _cmd_players, "List online players", "players [filter]"))
+	register_command(Command.new("count", _cmd_count, "Count online players", "count"))
+	
+	# Restrictions
+	register_command(Command.new("restrict", _cmd_restrict, "Restrict a player", "restrict <player> <type> [duration_sec]"))
+	register_command(Command.new("unrestrict", _cmd_unrestrict, "Remove player restriction", "unrestrict <player> [type]"))
+	register_command(Command.new("restrictions", _cmd_restrictions, "List active restrictions", "restrictions [player]"))
+	
+	# Mute/Kick/Ban
+	register_command(Command.new("mute", _cmd_mute, "Mute a player", "mute <player> [duration_sec]"))
+	register_command(Command.new("unmute", _cmd_unmute, "Unmute a player", "unmute <player>"))
+	register_command(Command.new("kick", _cmd_kick, "Kick a player", "kick <player> [reason]"))
+	register_command(Command.new("ban", _cmd_ban, "Ban a player", "ban <player> [duration_sec] [reason]"))
+	
+	# QoS
+	register_command(Command.new("qos", _cmd_qos, "Check QoS status for player", "qos <player>"))
+	register_command(Command.new("rateinfo", _cmd_rateinfo, "Get rate limit info", "rateinfo"))
+	
+	# Admin shell
+	register_command(Command.new("clear", _cmd_clear, "Clear the terminal", "clear", [], GameConfig.Security.PLAYER_LEVEL))
+	register_command(Command.new("history", _cmd_history, "Show command history", "history", [], GameConfig.Security.PLAYER_LEVEL))
+	register_command(Command.new("whoami", _cmd_whoami, "Show current admin info", "whoami", [], GameConfig.Security.PLAYER_LEVEL))
+	
+	# System
+	register_command(Command.new("status", _cmd_status, "Show system status", "status"))
+	register_command(Command.new("uptime", _cmd_uptime, "Show uptime", "uptime"))
+	register_command(Command.new("stats", _cmd_stats, "Show service statistics", "stats"))
+	
+	# Config
+	register_command(Command.new("config", _cmd_config, "View/modify config", "config [key] [value]"))
+	register_command(Command.new("toggles", _cmd_toggles, "List security toggles", "toggles"))
+
+## ============================================================================
+## COMMAND IMPLEMENTATIONS
+## ============================================================================
+
+func _cmd_help(args: String, executor_id: String) -> CommandResult:
+	return CommandResult.new(true, get_help(args), "")
+
+func _cmd_lookup(args: String, executor_id: String) -> CommandResult:
+	if args == "":
+		return CommandResult.new(false, "", "Usage: lookup <player_id>")
+	
+	var player_id := args.strip_edges()
+	var info := _get_player_info(player_id)
+	
+	if info == "":
+		return CommandResult.new(false, "", "Player not found: %s" % player_id)
+	
+	return CommandResult.new(true, info, "")
+
+func _cmd_players(args: String, executor_id: String) -> CommandResult:
+	var filter := args.strip_edges().to_lower()
+	var output := "[color=yellow]=== Online Players ===[/color]\n"
+	
+	var count := 0
+	var players := _get_online_players()
+	
+	for player in players:
+		var id: String = player if player is String else str(player)
+		if filter == "" or id.to_lower().contains(filter):
+			var restricted := ""
+			if SecurityService and SecurityService.is_restricted(id, "chat"):
+				restricted = " [color=red](MUTED)[/color]"
+			output += "  %s%s\n" % [id, restricted]
+			count += 1
+	
+	output += "\n[color=gray]Total: %d player(s)[/color]" % count
+	return CommandResult.new(true, output, "")
+
+func _cmd_count(args: String, executor_id: String) -> CommandResult:
+	var players := _get_online_players()
+	return CommandResult.new(true, "Online players: %d" % players.size(), "")
+
+func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
+	var parts := args.split(" ", false, 2)
+	if parts.size() < 2:
+		return CommandResult.new(false, "", "Usage: restrict <player> <type> [duration_sec]")
+	
+	var player_id := parts[0].strip_edges()
+	var restriction_type := parts[1].strip_edges()
+	var duration := 300  # 5 minutes default
+	
+	if parts.size() > 2:
+		duration = int(parts[2])
+	
+	if not SecurityService:
+		return CommandResult.new(false, "", "SecurityService not available")
+	
+	var success := SecurityService.restrict_player(player_id, restriction_type, duration)
+	if success:
+		var type_str := restriction_type if restriction_type != "chat" else "mute"
+		return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
+	else:
+		return CommandResult.new(false, "", "Failed to restrict %s" % player_id)
+
+func _cmd_unrestrict(args: String, executor_id: String) -> CommandResult:
+	var parts := args.split(" ", false, 1)
+	if parts.is_empty():
+		return CommandResult.new(false, "", "Usage: unrestrict <player> [type]")
+	
+	var player_id := parts[0].strip_edges()
+	var restriction_type := "" if parts.size() < 2 else parts[1].strip_edges()
+	
+	if not SecurityService:
+		return CommandResult.new(false, "", "SecurityService not available")
+	
+	var success := SecurityService.unrestrict_player(player_id, restriction_type)
+	if success:
+		return CommandResult.new(true, "Unrestricted %s" % player_id, "")
+	else:
+		return CommandResult.new(false, "", "Failed to unrestrict %s" % player_id)
+
+func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
+	var player_id := args.strip_edges()
+	var output := "[color=yellow]=== Active Restrictions ===[/color]\n"
+	
+	if player_id != "":
+		output += "[color=cyan]Player:[/color] %s\n\n" % player_id
+		if SecurityService:
+			var restrictions := SecurityService.get_active_restrictions(player_id)
+			if restrictions.is_empty():
+				output += "  No active restrictions"
+			else:
+				for r in restrictions:
+					var expires := int(r.get("expires_at", 0)) - int(Time.get_unix_time_from_system())
+					var time_str := "%d seconds" % expires if expires > 0 else "expired"
+					output += "  [color=red]%s[/color] - expires in %s\n" % [r.get("type", "?"), time_str]
+	else:
+		# List all restrictions
+		if SecurityService:
+			var all := SecurityService.get_all_restrictions()
+			if all.is_empty():
+				output += "  No active restrictions"
+			else:
+				for player in all.keys():
+					output += "  [color=cyan]%s:[/color] %s\n" % [player, ", ".join(all[player])]
+	
+	return CommandResult.new(true, output, "")
+
+func _cmd_mute(args: String, executor_id: String) -> CommandResult:
+	var parts := args.split(" ", false, 1)
+	if parts.is_empty():
+		return CommandResult.new(false, "", "Usage: mute <player> [duration_sec]")
+	
+	var player_id := parts[0].strip_edges()
+	var duration := 300
+	
+	if parts.size() > 1:
+		duration = int(parts[1])
+	
+	return _cmd_restrict("%s chat %d" % [player_id, duration], executor_id)
+
+func _cmd_unmute(args: String, executor_id: String) -> CommandResult:
+	if args == "":
+		return CommandResult.new(false, "", "Usage: unmute <player>")
+	
+	return _cmd_unrestrict("%s chat" % args.strip_edges(), executor_id)
+
+func _cmd_kick(args: String, executor_id: String) -> CommandResult:
+	var parts := args.split(" ", false, 1)
+	if parts.is_empty():
+		return CommandResult.new(false, "", "Usage: kick <player> [reason]")
+	
+	var player_id := parts[0].strip_edges()
+	var reason := parts[1] if parts.size() > 1 else "Kicked by admin"
+	
+	# Emit kick signal (handled by game server)
+	player_kicked.emit(player_id, reason, executor_id)
+	
+	return CommandResult.new(true, "Kicked %s: %s" % [player_id, reason], "")
+
+func _cmd_ban(args: String, executor_id: String) -> CommandResult:
+	var parts := args.split(" ", false, 2)
+	if parts.is_empty():
+		return CommandResult.new(false, "", "Usage: ban <player> [duration_sec] [reason]")
+	
+	var player_id := parts[0].strip_edges()
+	var duration := -1  # Permanent
+	
+	if parts.size() > 1:
+		duration = int(parts[1])
+	
+	var reason := parts[2] if parts.size() > 2 else "Banned by admin"
+	
+	# Restrict player (duration -1 = permanent)
+	if SecurityService:
+		var actual_duration := 31536000 if duration == -1 else duration  # 1 year for permanent
+		SecurityService.restrict_player(player_id, "all", actual_duration)
+	
+	player_banned.emit(player_id, duration, reason, executor_id)
+	
+	var dur_str := "permanently" if duration == -1 else "for %d seconds" % duration
+	return CommandResult.new(true, "Banned %s %s: %s" % [player_id, dur_str, reason], "")
+
+func _cmd_qos(args: String, executor_id: String) -> CommandResult:
+	if args == "":
+		return CommandResult.new(false, "", "Usage: qos <player>")
+	
+	var player_id := args.strip_edges()
+	var output := "[color=yellow]=== QoS Status for %s ===[/color]\n" % player_id
+	
+	if QoSService:
+		var rates := QoSService.get_player_rates(player_id)
+		if rates.is_empty():
+			output += "  No recent activity"
+		else:
+			for action in rates.keys():
+				var rate: float = rates[action]
+				output += "  %s: %.2f/sec\n" % [action, rate]
+	else:
+		output += "  QoSService not available"
+	
+	return CommandResult.new(true, output, "")
+
+func _cmd_rateinfo(args: String, executor_id: String) -> CommandResult:
+	var output := "[color=yellow]=== Rate Limit Configuration ===[/color]\n"
+	
+	if QoSService:
+		var info := QoSService.get_rate_limit_info()
+		for action in info.keys():
+			var limit: Dictionary = info[action]
+			output += "  [color=cyan]%s:[/color] max %.2f/sec\n" % [action, limit.get("max_rate", 0)]
+	
+	return CommandResult.new(true, output, "")
+
+func _cmd_clear(args: String, executor_id: String) -> CommandResult:
+	return CommandResult.new(true, "", "")  # UI handles clearing
+
+func _cmd_history(args: String, executor_id: String) -> CommandResult:
+	var output := "[color=yellow]=== Command History ===[/color]\n"
+	
+	var limit := 20
+	if args != "":
+		limit = int(args)
+	
+	var shown := 0
+	for cmd in history:
+		if shown >= limit:
+			break
+		output += "  %s\n" % cmd
+		shown += 1
+	
+	return CommandResult.new(true, output, "")
+
+func _cmd_whoami(args: String, executor_id: String) -> CommandResult:
+	var output := "[color=yellow]=== Current Admin ===[/color]\n"
+	output += "  ID: %s\n" % (_current_executor_id if _current_executor_id != "" else "(none)")
+	
+	if SecurityService and _current_executor_id != "":
+		var level: int = SecurityService.get_player_permission_level(_current_executor_id)
+		output += "  Level: %d\n" % level
+	
+	return CommandResult.new(true, output, "")
+
+func _cmd_status(args: String, executor_id: String) -> CommandResult:
+	var output := "[color=yellow]=== System Status ===[/color]\n"
+	
+	# Player count
+	var players := _get_online_players()
+	output += "[color=green]Players online:[/color] %d\n" % players.size()
+	
+	# Restrictions
+	if SecurityService:
+		var restrictions := SecurityService.get_all_restrictions()
+		output += "[color=red]Active restrictions:[/color] %d\n" % restrictions.size()
+	
+	# Services
+	output += "\n[color=cyan]Services:[/color]\n"
+	output += "  SecurityService: %s\n" % ("[color=green]OK[/color]" if SecurityService else "[color=red]OFFLINE[/color]")
+	output += "  QoSService: %s\n" % ("[color=green]OK[/color]" if QoSService else "[color=red]OFFLINE[/color]")
+	output += "  NotificationService: %s\n" % ("[color=green]OK[/color]" if NotificationService else "[color=red]OFFLINE[/color]")
+	
+	return CommandResult.new(true, output, "")
+
+func _cmd_uptime(args: String, executor_id: String) -> CommandResult:
+	var elapsed := Time.get_ticks_msec() / 1000.0
+	var hours := int(elapsed / 3600)
+	var minutes := int(fmod(elapsed, 3600) / 60)
+	var seconds := int(fmod(elapsed, 60))
+	return CommandResult.new(true, "Uptime: %02d:%02d:%02d" % [hours, minutes, seconds], "")
+
+func _cmd_stats(args: String, executor_id: String) -> CommandResult:
+	var output := "[color=yellow]=== Service Statistics ===[/color]\n"
+	
+	if QoSService:
+		var stats := QoSService.get_statistics()
+		output += "[color=cyan]QoS:[/color]\n"
+		output += "  Total checks: %d\n" % stats.get("total_checks", 0)
+		output += "  Rate limited: %d\n" % stats.get("rate_limited_count", 0)
+	
+	if SecurityService:
+		var stats := SecurityService.get_statistics()
+		output += "[color=cyan]Security:[/color]\n"
+		output += "  Blocks: %d\n" % stats.get("blocks", 0)
+		output += "  Restrictions: %d\n" % stats.get("restrictions", 0)
+	
+	return CommandResult.new(true, output, "")
+
+func _cmd_config(args: String, executor_id: String) -> CommandResult:
+	var parts := args.split(" ", false, 1)
+	var key := parts[0] if not parts.is_empty() else ""
+	var value := parts[1] if parts.size() > 1 else ""
+	
+	if key == "":
+		return _cmd_toggles("", executor_id)
+	
+	# For now, just show the config (no runtime modification)
+	return CommandResult.new(false, "", "Runtime config modification not implemented. Use toggles command.")
+
+func _cmd_toggles(args: String, executor_id: String) -> CommandResult:
+	var output := "[color=yellow]=== Security/QoS Toggles ===[/color]\n"
+	output += "[color=cyan]GameConfig.Security:[/color]\n"
+	output += "  ENABLE_SECURITY_ALERTS: %s\n" % GameConfig.Security.ENABLE_SECURITY_ALERTS
+	output += "  ALERT_ON_RATE_LIMIT: %s\n" % GameConfig.Security.ALERT_ON_RATE_LIMIT
+	output += "  ALERT_ON_RESTRICTION: %s\n" % GameConfig.Security.ALERT_ON_RESTRICTION
+	output += "  ALERT_ON_UNRESTRICTION: %s\n" % GameConfig.Security.ALERT_ON_UNRESTRICTION
+	output += "  ALERT_ON_EXPLOIT_DETECTED: %s\n" % GameConfig.Security.ALERT_ON_EXPLOIT_DETECTED
+	
+	return CommandResult.new(true, output, "")
+
+## ============================================================================
+## HELPER FUNCTIONS
+## ============================================================================
+
+func _get_player_info(player_id: String) -> String:
+	var info := "[color=yellow]=== Player Info: %s ===[/color]\n" % player_id
+	
+	# Online status
+	var online := _is_player_online(player_id)
+	info += "[color=cyan]Status:[/color] %s\n" % ("[color=green]Online[/color]" if online else "[color=gray]Offline[/color]")
+	
+	# Permissions
+	if SecurityService:
+		var level: int = SecurityService.get_player_permission_level(player_id)
+		var perm_name := "Player"
+		if level >= GameConfig.Security.ADMIN_LEVEL:
+			perm_name = "Admin"
+		elif level >= GameConfig.Security.MOD_LEVEL:
+			perm_name = "Moderator"
+		elif level >= GameConfig.Security.VIP_LEVEL:
+			perm_name = "VIP"
+		info += "[color=cyan]Permission:[/color] %s (level %d)\n" % [perm_name, level]
+	
+	# Restrictions
+	if SecurityService:
+		var restricted := SecurityService.is_restricted(player_id, "chat")
+		if restricted:
+			info += "[color=red]MUTED[/color]\n"
+		restricted = SecurityService.is_restricted(player_id, "trade")
+		if restricted:
+			info += "[color=red]TRADE RESTRICTED[/color]\n"
+	
+	# QoS rates
+	if QoSService:
+		var rates := QoSService.get_player_rates(player_id)
+		if not rates.is_empty():
+			info += "\n[color=cyan]Recent activity:[/color]\n"
+			for action in rates.keys():
+				info += "  %s: %.2f/sec\n" % [action, rates[action]]
+	
+	return info
+
+func _is_player_online(player_id: String) -> bool:
+	# This should check the actual player manager
+	# For now, return true if we have any data about them
+	return PlayerManager != null and PlayerManager.has_player(player_id)
+
+func _get_online_players() -> Array:
+	if PlayerManager:
+		return PlayerManager.get_online_player_ids()
+	return []
+
+## ============================================================================
+## SIGNALS
+## ============================================================================
+
+signal player_kicked(player_id: String, reason: String, admin_id: String)
+signal player_banned(player_id: String, duration: int, reason: String, admin_id: String)

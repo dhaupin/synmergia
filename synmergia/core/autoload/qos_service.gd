@@ -590,3 +590,55 @@ func _cleanup_stale_data() -> void:
 			var elapsed = (now / 1000.0 - breaker.get("last_failure_time", 0))
 			if elapsed > 600:  # 10 minutes
 				_circuit_breakers.erase(service_name)
+
+## ============================================================================
+## ADMIN HELPERS (for AdminShell)
+## ============================================================================
+
+## Get rate limit info for all action types
+func get_rate_limit_info() -> Dictionary:
+	var info: Dictionary = {}
+	for action_type in _rate_limit_config.keys():
+		info[action_type] = {
+			"max_rate": _rate_limit_config[action_type]
+		}
+	# Add defaults for known action types
+	for action_type in ["chat", "whisper", "trade", "party", "guild"]:
+		if not info.has(action_type):
+			info[action_type] = {
+				"max_rate": GameConfig.QoS.MAX_ACTIONS_PER_SECOND
+			}
+	return info
+
+## Get player's current rates
+func get_player_rates(player_id: String) -> Dictionary:
+	var rates: Dictionary = {}
+	var now := Time.get_ticks_msec()
+	
+	if _rate_limit_buckets.has(player_id):
+		var buckets: Dictionary = _rate_limit_buckets[player_id]
+		for action_type in buckets.keys():
+			var bucket: Array = buckets[action_type]
+			# Calculate rate over last second
+			var recent: Array = bucket.filter(func(t): return now - t < 1000)
+			if not recent.is_empty():
+				rates[action_type] = float(recent.size())
+	
+	return rates
+
+## Get QoS statistics
+func get_statistics() -> Dictionary:
+	var stats: Dictionary = {
+		"total_checks": _total_checks,
+		"rate_limited_count": _rate_limited_count,
+		"circuit_open_count": 0,
+		"active_players": _rate_limit_buckets.keys().size()
+	}
+	
+	# Count open circuits
+	for service_name in _circuit_breakers.keys():
+		var breaker = _circuit_breakers[service_name]
+		if breaker["state"] == CircuitState.OPEN:
+			stats["circuit_open_count"] += 1
+	
+	return stats

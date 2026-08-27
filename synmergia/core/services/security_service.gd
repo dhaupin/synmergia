@@ -458,3 +458,62 @@ func _process(delta: float) -> void:
 				actions[action_type] = recent
 		if not has_recent:
 			_action_tracker.erase(player_id)
+
+## ============================================================================
+## ADMIN HELPERS (for AdminShell)
+## ============================================================================
+
+## Get player permission level
+func get_player_permission_level(player_id: String) -> int:
+	# In a real implementation, this would check a player database or session
+	# For now, return default player level
+	return GameConfig.Security.PLAYER_LEVEL
+
+## Get active restrictions for a player
+func get_active_restrictions(player_id: String) -> Array:
+	var restrictions: Array = []
+	var now := Time.get_unix_time_from_system()
+	
+	if _player_restrictions.has(player_id):
+		var player_res := _player_restrictions[player_id]
+		for restriction_type in player_res.keys():
+			var data: Dictionary = player_res[restriction_type]
+			var expires_at: float = data.get("expires_at", 0)
+			if expires_at > now:
+				restrictions.append({
+					"type": restriction_type,
+					"expires_at": expires_at,
+					"reason": data.get("reason", "")
+				})
+	
+	return restrictions
+
+## Get all active restrictions across all players
+func get_all_restrictions() -> Dictionary:
+	var all_restrictions: Dictionary = {}
+	var now := Time.get_unix_time_from_system()
+	
+	for player_id in _player_restrictions.keys():
+		var player_res := _player_restrictions[player_id]
+		var active_types: Array = []
+		
+		for restriction_type in player_res.keys():
+			var data: Dictionary = player_res[restriction_type]
+			var expires_at: float = data.get("expires_at", 0)
+			if expires_at > now:
+				active_types.append(restriction_type)
+		
+		if not active_types.is_empty():
+			all_restrictions[player_id] = active_types
+	
+	return all_restrictions
+
+## Get service statistics for admin dashboard
+func get_statistics() -> Dictionary:
+	var stats: Dictionary = {
+		"blocks": _blocks,
+		"restrictions": _player_restrictions.keys().size(),
+		"suspicious_players": _suspicious_activity.keys().size(),
+		"recent_actions": _action_tracker.keys().size()
+	}
+	return stats
