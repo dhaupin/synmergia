@@ -9,12 +9,6 @@ signal rate_limit_exceeded(player_id: String, action_type: String)
 signal consensus_requested(action_id: String, voters: Array)
 signal consensus_reached(action_id: String, result: bool)
 
-## Rate limiting configuration (using GameConfig for centralized configuration)
-const MAX_ACTIONS_PER_SECOND: float = GameConfig.Fairness.MAX_ACTIONS_PER_SECOND
-const MAX_MOVEMENT_PER_SECOND: float = GameConfig.Fairness.MAX_MOVEMENT_PER_SECOND
-const MAX_COMBAT_ACTIONS_PER_SECOND: float = GameConfig.Fairness.MAX_COMBAT_ACTIONS_PER_SECOND
-const MAX_CHAT_PER_MINUTE: float = GameConfig.Fairness.MAX_CHAT_PER_MINUTE
-
 ## Trust configuration
 const INITIAL_TRUST: float = 0.5
 const TRUST_DECAY_RATE: float = 0.001  # Per minute of inactivity
@@ -55,36 +49,15 @@ func unregister_player(player_id: String) -> void:
 
 ## Check if action is allowed (rate limiting)
 func check_action_rate(player_id: String, action_type: String) -> bool:
+	# Delegate to QoSService for rate limiting (consolidation)
 	if not _player_actions.has(player_id):
 		register_player(player_id)
 	
-	var actions: Dictionary = _player_actions[player_id]
-	var now := Time.get_ticks_msec()
-	
-	match action_type:
-		"movement":
-			return _check_rate(actions["movement"], MAX_MOVEMENT_PER_SECOND, 1.0)
-		"combat", "skill":
-			return _check_rate(actions["combat"], MAX_COMBAT_ACTIONS_PER_SECOND, 1.0)
-		"chat":
-			return _check_rate(actions["chat"], MAX_CHAT_PER_MINUTE, 60.0)
-		_:
-			return _check_rate([actions["total"]], MAX_ACTIONS_PER_SECOND, 1.0)
+	var result = QoSService.rate_limit(player_id, action_type)
+	if not result:
+		rate_limit_exceeded.emit(player_id, action_type)
+	return result
 
-func _check_rate(action_list: Array, max_per_second: float, window_seconds: float) -> bool:
-	var now := Time.get_ticks_msec()
-	var window_ms := window_seconds * 1000
-	var cutoff := now - window_ms
-	
-	# Filter to recent actions
-	var recent := action_list.filter(func(t): return t > cutoff)
-	
-	if recent.size() >= max_per_second:
-		return false
-	
-	# Append to the ORIGINAL action_list, not the filtered copy
-	action_list.append(now)
-	return true
 
 ## Record an action
 func record_action(player_id: String, action_type: String) -> void:
