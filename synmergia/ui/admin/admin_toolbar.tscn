@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://admin_toolbar_01"]
+
+[ext_resource type="Script" path="res://ui/admin/admin_toolbar.gd" id="1"]
+
+[node name="AdminToolbar" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1")
