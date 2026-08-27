@@ -160,7 +160,11 @@ func _get_general_help() -> String:
 	return help_text
 
 func _has_permission(player_id: String, required_level: int) -> bool:
-	# Check SecurityService for player permission level
+	# Use PermissionManager for ALL permission checks
+	if PermissionManager:
+		return PermissionManager.has_permission(player_id, required_level)
+	
+	# Fallback (should not be used in production)
 	if SecurityService:
 		return SecurityService.get_player_permission_level(player_id) >= required_level
 	return required_level <= GameConfig.Security.PLAYER_LEVEL
@@ -202,6 +206,9 @@ func _register_default_commands() -> void:
 	# Config
 	register_command(Command.new("config", _cmd_config, "View/modify config", "config [key] [value]"))
 	register_command(Command.new("toggles", _cmd_toggles, "List security toggles", "toggles"))
+	
+	# Audit (ADMIN level required)
+	register_command(Command.new("audit", _cmd_audit, "View admin audit log", "audit [limit] [admin] [action]"))
 
 ## ============================================================================
 ## COMMAND IMPLEMENTATIONS
@@ -215,11 +222,19 @@ func _cmd_lookup(args: String, executor_id: String) -> CommandResult:
 		return CommandResult.new(false, "", "Usage: lookup <player_id>")
 	
 	var player_id := args.strip_edges()
-	var info := _get_player_info(player_id)
 	
+	# Use PermissionManager for secured lookup
+	if PermissionManager:
+		var result := PermissionManager.lookup_player(executor_id, player_id)
+		if result.success:
+			return CommandResult.new(true, _format_player_info(result.info), "")
+		else:
+			return CommandResult.new(false, "", "Failed: %s" % result.message)
+	
+	# Fallback
+	var info := _get_player_info(player_id)
 	if info == "":
 		return CommandResult.new(false, "", "Player not found: %s" % player_id)
-	
 	return CommandResult.new(true, info, "")
 
 func _cmd_players(args: String, executor_id: String) -> CommandResult:
@@ -257,15 +272,22 @@ func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
 	if parts.size() > 2:
 		duration = int(parts[2])
 	
+	# Use PermissionManager for secured operation
+	if PermissionManager:
+		var result := PermissionManager.restrict(executor_id, player_id, restriction_type, duration)
+		if result.success:
+			var type_str := restriction_type if restriction_type != "chat" else "mute"
+			return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
+		else:
+			return CommandResult.new(false, "", "Failed: %s" % result.message)
+	
+	# Fallback
 	if not SecurityService:
 		return CommandResult.new(false, "", "SecurityService not available")
 	
-	var success := SecurityService.restrict_player(player_id, restriction_type, duration)
-	if success:
-		var type_str := restriction_type if restriction_type != "chat" else "mute"
-		return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
-	else:
-		return CommandResult.new(false, "", "Failed to restrict %s" % player_id)
+	SecurityService.restrict_player(player_id, restriction_type, duration)
+	var type_str := restriction_type if restriction_type != "chat" else "mute"
+	return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
 
 func _cmd_unrestrict(args: String, executor_id: String) -> CommandResult:
 	var parts := args.split(" ", false, 1)
@@ -275,14 +297,20 @@ func _cmd_unrestrict(args: String, executor_id: String) -> CommandResult:
 	var player_id := parts[0].strip_edges()
 	var restriction_type := "" if parts.size() < 2 else parts[1].strip_edges()
 	
+	# Use PermissionManager for secured operation
+	if PermissionManager:
+		var result := PermissionManager.unrestrict(executor_id, player_id, restriction_type)
+		if result.success:
+			return CommandResult.new(true, "Unrestricted %s" % player_id, "")
+		else:
+			return CommandResult.new(false, "", "Failed: %s" % result.message)
+	
+	# Fallback
 	if not SecurityService:
 		return CommandResult.new(false, "", "SecurityService not available")
 	
-	var success := SecurityService.unrestrict_player(player_id, restriction_type)
-	if success:
-		return CommandResult.new(true, "Unrestricted %s" % player_id, "")
-	else:
-		return CommandResult.new(false, "", "Failed to unrestrict %s" % player_id)
+	SecurityService.unrestrict_player(player_id, restriction_type)
+	return CommandResult.new(true, "Unrestricted %s" % player_id, "")
 
 func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
 	var player_id := args.strip_edges()
@@ -322,13 +350,33 @@ func _cmd_mute(args: String, executor_id: String) -> CommandResult:
 	if parts.size() > 1:
 		duration = int(parts[1])
 	
+	# Use PermissionManager for secured operation
+	if PermissionManager:
+		var result := PermissionManager.mute(executor_id, player_id, duration)
+		if result.success:
+			return CommandResult.new(true, "Muted %s for %d seconds" % [player_id, duration], "")
+		else:
+			return CommandResult.new(false, "", "Failed: %s" % result.message)
+	
+	# Fallback
 	return _cmd_restrict("%s chat %d" % [player_id, duration], executor_id)
 
 func _cmd_unmute(args: String, executor_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: unmute <player>")
 	
-	return _cmd_unrestrict("%s chat" % args.strip_edges(), executor_id)
+	var player_id := args.strip_edges()
+	
+	# Use PermissionManager for secured operation
+	if PermissionManager:
+		var result := PermissionManager.unmute(executor_id, player_id)
+		if result.success:
+			return CommandResult.new(true, "Unmuted %s" % player_id, "")
+		else:
+			return CommandResult.new(false, "", "Failed: %s" % result.message)
+	
+	# Fallback
+	return _cmd_unrestrict("%s chat" % player_id, executor_id)
 
 func _cmd_kick(args: String, executor_id: String) -> CommandResult:
 	var parts := args.split(" ", false, 1)
@@ -336,11 +384,18 @@ func _cmd_kick(args: String, executor_id: String) -> CommandResult:
 		return CommandResult.new(false, "", "Usage: kick <player> [reason]")
 	
 	var player_id := parts[0].strip_edges()
-	var reason := parts[1] if parts.size() > 1 else "Kicked by admin"
+	var reason := "" if parts.size() < 2 else parts[1]
 	
-	# Emit kick signal (handled by game server)
+	# Use PermissionManager for secured operation (includes hierarchy check)
+	if PermissionManager:
+		var result := PermissionManager.kick(executor_id, player_id, reason)
+		if result.success:
+			return CommandResult.new(true, "Kicked %s: %s" % [player_id, reason], "")
+		else:
+			return CommandResult.new(false, "", "Failed: %s" % result.message)
+	
+	# Fallback (emit signal anyway)
 	player_kicked.emit(player_id, reason, executor_id)
-	
 	return CommandResult.new(true, "Kicked %s: %s" % [player_id, reason], "")
 
 func _cmd_ban(args: String, executor_id: String) -> CommandResult:
@@ -354,15 +409,23 @@ func _cmd_ban(args: String, executor_id: String) -> CommandResult:
 	if parts.size() > 1:
 		duration = int(parts[1])
 	
-	var reason := parts[2] if parts.size() > 2 else "Banned by admin"
+	var reason := "" if parts.size() < 3 else parts[2]
 	
-	# Restrict player (duration -1 = permanent)
+	# Use PermissionManager for secured operation (includes hierarchy check)
+	if PermissionManager:
+		var result := PermissionManager.ban(executor_id, player_id, duration, reason)
+		if result.success:
+			var dur_str := "permanently" if duration == -1 else "for %d seconds" % duration
+			return CommandResult.new(true, "Banned %s %s: %s" % [player_id, dur_str, reason], "")
+		else:
+			return CommandResult.new(false, "", "Failed: %s" % result.message)
+	
+	# Fallback
 	if SecurityService:
-		var actual_duration := 31536000 if duration == -1 else duration  # 1 year for permanent
+		var actual_duration := 31536000 if duration == -1 else duration
 		SecurityService.restrict_player(player_id, "all", actual_duration)
 	
 	player_banned.emit(player_id, duration, reason, executor_id)
-	
 	var dur_str := "permanently" if duration == -1 else "for %d seconds" % duration
 	return CommandResult.new(true, "Banned %s %s: %s" % [player_id, dur_str, reason], "")
 
@@ -543,6 +606,62 @@ func _get_online_players() -> Array:
 	if PlayerManager:
 		return PlayerManager.get_online_player_ids()
 	return []
+
+func _cmd_audit(args: String, executor_id: String) -> CommandResult:
+	# Parse arguments
+	var parts := args.split(" ", false, 3)
+	var limit := 50
+	var admin_filter := ""
+	var action_filter := ""
+	
+	if parts.size() >= 1 and parts[0].is_valid_int():
+		limit = int(parts[0])
+	if parts.size() >= 2:
+		admin_filter = parts[1]
+	if parts.size() >= 3:
+		action_filter = parts[2]
+	
+	# Use PermissionManager to get audit log
+	if PermissionManager:
+		var log := PermissionManager.get_audit_log(limit, admin_filter, action_filter)
+		var output := "[color=yellow]=== Admin Audit Log ===[/color]\n\n"
+		
+		if log.is_empty():
+			output += "[color=gray]No audit entries found[/color]"
+		else:
+			for entry in log:
+				var time_str := Time.get_datetime_string_from_unix_time(entry.timestamp)
+				var status := "[color=green]✓[/color]" if entry.success else "[color=red]✗[/color]"
+				output += "[%s] %s %s: %s -> %s\n" % [
+					time_str,
+					status,
+					entry.admin_id,
+					entry.action,
+					entry.target_id if entry.target_id != "" else "(none)"
+				]
+		
+		return CommandResult.new(true, output, "")
+	
+	return CommandResult.new(false, "", "PermissionManager not available")
+
+func _format_player_info(info: Dictionary) -> String:
+	var output := "[color=yellow]=== Player: %s ===[/color]\n" % info.get("id", "?")
+	output += "[color=cyan]Level:[/color] %s (Lvl %d)\n" % [info.get("level_name", "?"), info.get("level", 0)]
+	output += "[color=cyan]Online:[/color] %s\n" % ("Yes" if info.get("online", false) else "No")
+	
+	if info.get("restricted_chat", false):
+		output += "[color=red]MUTED[/color]\n"
+	if info.get("restricted_trade", false):
+		output += "[color=red]TRADE RESTRICTED[/color]\n"
+	
+	var restrictions: Array = info.get("active_restrictions", [])
+	if not restrictions.is_empty():
+		output += "\n[color=yellow]Active Restrictions:[/color]\n"
+		for r in restrictions:
+			var expires_in := int(r.get("expires_at", 0)) - int(Time.get_unix_time_from_system())
+			output += "  - %s (expires in %ds)\n" % [r.get("type", "?"), expires_in]
+	
+	return output
 
 ## ============================================================================
 ## SIGNALS

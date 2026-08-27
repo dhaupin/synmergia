@@ -441,7 +441,50 @@ func _autocomplete() -> void:
 ## ============================================================================
 
 func set_admin_id(admin_id: String) -> void:
+	# Validate admin has proper permissions
+	if PermissionManager:
+		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.MOD):
+			Logger.warn("AdminDashboard: Access denied for %s - insufficient permissions" % admin_id)
+			_admin_id = ""
+			return
+		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.ADMIN):
+			# Show MOD-level warning in UI
+			_show_permission_warning()
+	
 	_admin_id = admin_id
+	Logger.info("AdminDashboard: Admin %s connected" % admin_id)
+	
+	# Connect to PermissionManager signals for real-time updates
+	if PermissionManager:
+		PermissionManager.admin_action.connect(_on_admin_action)
 
 func execute_command(cmd: String) -> void:
 	_on_command_submitted(cmd)
+
+func _show_permission_warning() -> void:
+	if _terminal_output:
+		_terminal_output.append_text("\n[color=yellow]⚠ WARNING: MOD-LEVEL ACCESS[/color]\n")
+		_terminal_output.append_text("Some features are restricted. ADMIN level required for:\n")
+		_terminal_output.append_text("  - ban, restrict (non-chat), config changes\n")
+		_terminal_output.append_text("  - View audit log\n\n")
+
+func _on_admin_action(entry) -> void:
+	# Log admin actions in real-time
+	if _terminal_output and entry.admin_id == _admin_id:
+		_terminal_output.append_text("[color=cyan]>[/color] Your action: %s\n" % entry.action)
+
+## Check if user has permission level
+func has_permission(required_level: int) -> bool:
+	if _admin_id == "":
+		return false
+	if PermissionManager:
+		return PermissionManager.has_permission(_admin_id, required_level)
+	return false
+
+## Check if user is admin level
+func is_admin() -> bool:
+	return has_permission(PermissionManager.Level.ADMIN if PermissionManager else 50)
+
+## Check if user is moderator level
+func is_moderator() -> bool:
+	return has_permission(PermissionManager.Level.MOD if PermissionManager else 10)
