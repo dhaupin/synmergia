@@ -140,9 +140,59 @@ func rate_limit(player_id: String, action_type: String) -> bool:
 		bucket["tokens"] -= 1.0
 		return true
 	
-	# Rate limited
+	# Rate limited - notify player
 	rate_limited.emit(player_id, action_type, bucket["tokens"], max_rate)
+	_notify_player_rate_limit(player_id, action_type, max_rate)
 	return false
+
+## Notify player they've been rate limited
+func _notify_player_rate_limit(player_id: String, action_type: String, max_rate: float) -> void:
+	if not NotificationService:
+		return
+	
+	var message := _get_rate_limit_message(action_type, max_rate)
+	var cooldown := _get_cooldown_seconds(action_type, max_rate)
+	
+	if cooldown > 0:
+		message += " Wait %.1fs." % cooldown
+	
+	NotificationService.send_to_player(
+		player_id,
+		message,
+		NotificationService.NotificationType.SYSTEM,
+		NotificationService.Priority.HIGH
+	)
+
+## Get human-readable action name
+func _get_action_display_name(action_type: String) -> String:
+	var names := {
+		"chat": "chat messages",
+		"whisper": "whispers",
+		"trade": "trade requests",
+		"party": "party invites",
+		"guild": "guild actions",
+		"inventory_transfer": "item transfers",
+		"gold_transfer": "gold transfers",
+		"inventory_trade": "trades",
+		"loot_roll": "loot rolls",
+		"loot_pickup": "loot pickups",
+		"loot_abandon": "loot abandons",
+		"movement": "movements",
+		"combat": "combat actions",
+		"item_action": "item actions"
+	}
+	return names.get(action_type, action_type)
+
+## Get human-readable rate limit message
+func _get_rate_limit_message(action_type: String, max_rate: float) -> String:
+	var action_name := _get_action_display_name(action_type)
+	return "Too many %s! Slow down." % action_name
+
+## Calculate cooldown in seconds until next token available
+func _get_cooldown_seconds(action_type: String, max_rate: float) -> float:
+	if max_rate <= 0:
+		return 1.0
+	return 1.0 / max_rate
 
 ## Set custom rate limit for an action type
 func set_rate_limit(action_type: String, max_per_second: float) -> void:
