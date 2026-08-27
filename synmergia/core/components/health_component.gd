@@ -126,6 +126,10 @@ func die(killer: Entity = null) -> void:
 	# Emit entity killed (for kill streak tracking)
 	if killer:
 		EventBus.entity_killed.emit(killer, entity, "physical")
+		
+		# Emit player_killed_player for PvP tracking
+		if killer is PlayerController and entity is PlayerController:
+			EventBus.player_killed_player.emit(killer, entity)
 	
 	# Start respawn timer
 	_start_respawn()
