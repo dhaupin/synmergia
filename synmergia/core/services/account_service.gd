@@ -79,7 +79,14 @@ func link_character(character_id: String, account_id: String, character_data: Di
         if not _accounts.has(account_id):
                 Logger.warn("AccountService: Account %s does not exist" % account_id)
                 return false
-        
+
+        # Security: Validate character name if provided
+        if character_data.has("name"):
+                var name_validation := SecurityService.validate_player_name(character_data["name"])
+                if not name_validation.valid:
+                        Logger.warn("AccountService: Invalid character name '%s': %s" % [character_data["name"], name_validation.reason])
+                        return false
+
         if _character_to_account.has(character_id):
                 Logger.warn("AccountService: Character %s already linked" % character_id)
                 return false

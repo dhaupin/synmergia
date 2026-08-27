@@ -35,6 +35,13 @@ func _init() -> void:
 
 ## Add item to inventory
 func add_item(item: Item, quantity: int = 1) -> bool:
+        # Security: Check for item duplication exploit
+        if item and item.id != "":
+                var exploit_detected := SecurityService.check_item_duplication(_owner_id, item.id, quantity)
+                if exploit_detected:
+                        Logger.warn("InventoryComponent: Item duplication detected for player %s" % _owner_id)
+                        return false
+
         # Try to stack first
         if item.stack_size > 1:
                 var stacked := _try_stack_item(item, quantity)

@@ -85,6 +85,12 @@ func create_guild(name: String, tag: String, leader_id: String) -> String:
                 Logger.warn("GuildService: Player %s already in a guild" % leader_id)
                 return ""
         
+        # Security: Validate guild name
+        var name_validation := SecurityService.validate_channel_name(name)
+        if not name_validation.valid:
+                Logger.warn("GuildService: Invalid guild name '%s': %s" % [name, name_validation.reason])
+                return ""
+
         # Validate name and tag
         if name.length() > MAX_GUILD_NAME_LENGTH or name.length() < 3:
                 Logger.warn("GuildService: Invalid guild name length")
