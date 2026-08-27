@@ -585,6 +585,27 @@ class AutoResponse:
     const NOTIFY_DISCORD: bool = false
 
 ## ============================================================================
+## WEBHOOK CONFIGURATION
+## External notification settings
+## ============================================================================
+class Webhooks:
+	## Enable webhook notifications
+	const ENABLED: bool = true
+	
+	## Discord webhook URL (for notifications)
+	const DISCORD_WEBHOOK_URL: String = ""
+	
+	## Notification toggles
+	const NOTIFY_ADMIN_ACTIONS: bool = true
+	const NOTIFY_REPORTS: bool = true
+	const NOTIFY_URGENT: bool = true
+	const NOTIFY_EXPLOITS: bool = true
+	const NOTIFY_SERVER_STATUS: bool = false
+	
+	## Rate limiting
+	const MAX_MESSAGES_PER_MINUTE: int = 30
+
+## ============================================================================
 ## DEBUG CONFIGURATION
 ## Development and debugging settings
 ## ============================================================================
