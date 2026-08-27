@@ -1321,11 +1321,41 @@ class Database:
 - [ ] LootTooltip - Loot interaction
 - [ ] TeleportTooltip - Warp/portal interaction
 
-#### Integration
-- [ ] Wire TargetingSystem to game world (raycast/selection)
-- [ ] Connect InteractionLayer to all UI components
-- [ ] Integrate with PlayerTargetHighlight (3D ring)
-- [ ] Persist player relationships (friends, ignored) to database
+#### Integration Phases
+**Phase 1: Input Layer**
+- [x] Make InteractionLayer an autoload singleton
+- [x] Wire existing input handling to InteractionLayer
+- [x] Update InputManager to use InteractionLayer
+- [ ] Test desktop/mobile/gamepad detection
+
+**Phase 2: Targeting System**
+- [x] Make TargetingSystem an autoload singleton
+- [ ] Wire raycast-based targeting to TargetingSystem
+- [ ] Replace old PlayerTargetSystem with new TargetingSystem
+- [ ] Wire Tab key cycling to TargetingSystem
+- [ ] Update enemy/NPC targeting to use TargetingSystem
+
+**Phase 3: Tooltip System**
+- [ ] Make TargetTooltip scene-based
+- [ ] Wire TargetTooltip to TargetingSystem
+- [ ] Replace old player_target_tooltip with TargetTooltip
+- [ ] Create NPC/Loot/Teleport tooltip variants
+
+**Phase 4: 3D Highlight**
+- [ ] Wire PlayerTargetHighlight to TargetingSystem
+- [ ] Add to 3D world scene
+- [ ] Connect to entity types
+- [ ] Add highlight colors per entity type
+
+**Phase 5: Permission Integration**
+- [ ] Update ChatService to use PermissionManager
+- [ ] Update SecurityService to use PermissionManager
+- [ ] Update AdminDashboard to use PermissionManager
+
+**Phase 6: Cleanup**
+- [ ] Delete old duplicate systems
+- [ ] Consolidate autoload registrations
+- [ ] Remove debug/temp code
 
 ### Webhook Connector System (TODO)
 - [x] WebhookBase abstract connector (connectors/webhook/webhook_base.gd)

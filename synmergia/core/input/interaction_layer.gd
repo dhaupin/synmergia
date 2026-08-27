@@ -1,7 +1,11 @@
 ## InteractionLayer - Abstracts input handling for different platforms
 ## Handles desktop (mouse/keyboard), mobile (touch), and gamepad input
+##
+## Autoload: Access via `InteractionLayer` globally
 class_name InteractionLayer
 extends Node
+
+static var instance: InteractionLayer
 
 enum Platform {
 	AUTO = 0
@@ -47,6 +51,7 @@ signal action_triggered(action_name: String)
 signal platform_changed(platform: Platform)
 
 func _ready() -> void:
+	instance = self
 	_detect_platform()
 	Logger.info("InteractionLayer: Initialized for %s" % _get_platform_name())
 
@@ -219,3 +224,6 @@ func should_show_tooltips() -> bool:
 
 func get_button_size() -> Vector2:
 	return Vector2(90, 50) if _is_mobile else Vector2(80, 35)
+
+static func get() -> InteractionLayer:
+	return instance
