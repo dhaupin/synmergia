@@ -658,7 +658,9 @@ func validate_trade(player_id: String, item: Item) -> Dictionary:
 
 ## Check if same account
 func is_same_account(player1_id: String, player2_id: String) -> bool:
-				return false	# TODO: Implement with account system
+				if AccountService:
+					return AccountService.is_same_account(player1_id, player2_id)
+				return false
 
 
 ## Refund all items and gold when trade is cancelled

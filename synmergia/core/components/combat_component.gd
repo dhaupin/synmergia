@@ -211,8 +211,11 @@ func on_damage_taken(damage: int, source: Entity, damage_type: String) -> bool:
 	var resistance := _interrupt_resistance
 	var entity: Entity = get_parent()
 	if entity.aura_component:
-		# TODO: Check for interrupt resistance buffs
-		pass
+		# Check for interrupt immunity buffs
+		for buff in entity.aura_component.get_all_buffs():
+			if buff.status_data and buff.status_data.immune_interrupt:
+				resistance = 1.0  # Full immunity
+				break
 	
 	# Roll for resistance
 	if randf() < resistance:
@@ -427,9 +430,8 @@ func can_use_skill(skill: Skill) -> bool:
 	if is_gcd_active():
 		return false
 	
-	if skill.cooldown > 0:
-		# TODO: Check skill cooldown
-		pass
+	if skill.cooldown > 0 and skill.get_cooldown_remaining() > 0:
+		return false
 	
 	return true
 

@@ -388,8 +388,19 @@ func _get_ankh_by_id(ankh_id: String) -> Ankh:
 
 ## Internal: Get default respawn position
 func _get_default_respawn_position(player: Entity) -> Vector3:
-	# Fallback: zone spawn point
-	return Vector3(0, 0, 0)  # TODO: Zone spawn point
+	# Get zone spawn point from ZoneManager
+	if ZoneManager:
+		var zone := ZoneManager.get_entity_zone(player)
+		if zone:
+			return zone.get_respawn_position()
+	# Fallback to zone center
+	var zone_id := ZoneManager.get_entity_zone_id(player)
+	if zone_id != "":
+		var zone := ZoneManager.get_zone(zone_id)
+		if zone:
+			return zone.get_respawn_position()
+	# Ultimate fallback
+	return Vector3(0, 0, 0)
 
 ## Internal: Check revive cooldown
 func _is_on_revival_cooldown(healer: Entity) -> bool:

@@ -318,10 +318,10 @@ func _apply_equipment_stats() -> void:
 				if entity == null:
 								return
 
-				var stats := get_equipment_stats()
-
-				# TODO: Apply these to entity's calculated stats
-				# This would modify the entity's effective stats
+				var equipment_stats := get_equipment_stats()
+				for stat_name in equipment_stats:
+								var value: int = equipment_stats[stat_name]
+								entity.add_stat(stat_name, value)
 
 
 # ============ WEIGHT / ENCUMBRANCE ============

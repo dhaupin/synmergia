@@ -10,6 +10,8 @@ signal entity_spawned(entity: Entity, metadata: SpawnMetadata)
 signal entity_despawned(entity: Entity, metadata: SpawnMetadata)
 ## entity_died: Emitted when entity dies, killer info included for PvP tracking
 signal entity_died(entity: Entity, killer: Entity, metadata: SpawnMetadata)
+## corpse_created: Emitted when a corpse is created for a dead entity
+signal corpse_created(entity: Entity, corpse: Node3D, killer: Entity)
 signal entity_health_changed(entity: Entity, current: int, maximum: int, delta: int)
 signal entity_level_up(entity: Entity, new_level: int)
 
