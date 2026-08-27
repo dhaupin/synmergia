@@ -88,6 +88,8 @@ var _revive_counts: Dictionary = {}  # entity_id -> {context: count}
 var _abuse_flags: Dictionary = {}  # entity_id -> abuse_count
 var _current_context: String = "open_world"  # Current zone/mode context
 var _self_revive_timestamps: Dictionary = {}  # entity_id -> last_self_revive_time
+var _team_respawn_counts: Dictionary = {}  # team_id -> respawns_remaining
+var _gateway_positions: Dictionary = {}  # gateway_id -> Vector3
 
 # Zone respawn configs
 var _zone_configs: Dictionary = {}  # zone_id -> ZoneRespawnConfig
@@ -543,19 +545,33 @@ func _get_nearby_potential_healers(player: Entity) -> Array[Entity]:
 
 ## Internal: Get arena team
 func _get_arena_team(player: Entity) -> int:
-	# TODO: Get from party/raid system
+	var party := PartyService.get_player_party(player.entity_id)
+	if not party.is_empty() and party.has("id"):
+		return party["id"].hash() % 2  # Split party into teams
 	return player.team_id
 
 ## Internal: Get team respawns remaining
 func _get_team_respawns(player: Entity, config: ZoneRespawnConfig) -> int:
-	# TODO: Per-team tracking
-	return config.max_arena_respawns_per_team
+	var team := _get_arena_team(player)
+	if not _team_respawn_counts.has(team):
+		_team_respawn_counts[team] = config.max_arena_respawns_per_team
+	return _team_respawn_counts[team]
 
 ## Internal: Get nearest gateway
 func _get_nearest_gateway(player: Entity, gateway_ids: Array[String]) -> String:
-	# TODO: Implement gateway lookup
-	return gateway_ids[0] if not gateway_ids.is_empty() else ""
-
+	if gateway_ids.is_empty():
+		return ""
+	var nearest_id: String = gateway_ids[0]
+	var nearest_dist: float = INF
+	var player_pos := player.global_position
+	for gateway_id in gateway_ids:
+		if _gateway_positions.has(gateway_id):
+			var gateway_pos := _gateway_positions[gateway_id]
+			var dist := player_pos.distance_to(gateway_pos)
+			if dist < nearest_dist:
+				nearest_dist = dist
+				nearest_id = gateway_id
+	return nearest_id
 ## Internal: Get safe zone position
 func _get_safe_zone_position(player: Entity, safe_zone_ankh_id: String) -> Vector3:
 	var ankh := _get_ankh_by_id(safe_zone_ankh_id)
