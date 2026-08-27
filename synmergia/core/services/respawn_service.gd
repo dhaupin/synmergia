@@ -374,11 +374,45 @@ func _get_zone_config(zone_id: String) -> ZoneRespawnConfig:
 		_zone_configs[zone_id] = ZoneRespawnConfig.new()
 	return _zone_configs[zone_id]
 
+## Get zone respawn config (public accessor)
+func get_zone_config(zone_id: String) -> Dictionary:
+	var config := _get_zone_config(zone_id)
+	return {
+		"default_mode": config.default_mode,
+		"timed_respawn_seconds": config.timed_respawn_seconds,
+		"ankh_required": config.ankh_required,
+		"arena_mode": config.arena_mode,
+		"max_arena_respawns_per_team": config.max_arena_respawns_per_team,
+		"contested_respawn": config.contested_respawn,
+		"safe_zone_ankh_id": config.safe_zone_ankh_id,
+		"invincibility_duration": config.invincibility_duration,
+		"gateway_ids": config.gateway_ids
+	}
+
 ## Internal: Get player's bound ankh
 func _get_bound_ankh(player: Entity) -> Ankh:
 	if player.respawn_ankh_id == "":
 		return null
 	return _get_ankh_by_id(player.respawn_ankh_id)
+
+## Get player's bound ankh info (public)
+func get_bound_ankh(player: Entity) -> Dictionary:
+	var ankh := _get_bound_ankh(player)
+	if not ankh:
+		return {}
+	return {
+		"ankh_id": ankh.ankh_id,
+		"display_name": ankh.display_name,
+		"ankh_type": ankh.ankh_type,
+		"zone_id": ankh.zone_id,
+		"position": {
+			"x": ankh.global_position.x,
+			"y": ankh.global_position.y,
+			"z": ankh.global_position.z
+		},
+		"respawn_time_modifier": ankh.respawn_time_modifier,
+		"blessed_duration": ankh.blessed_duration
+	}
 
 ## Internal: Get ankh by ID
 func _get_ankh_by_id(ankh_id: String) -> Ankh:

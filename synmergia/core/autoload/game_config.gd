@@ -251,6 +251,10 @@ class Combat:
 ## Death and respawn settings
 ## ============================================================================
 class Respawn:
+	## ============================================================================
+	## BASIC RESPAN SETTINGS
+	## ============================================================================
+	
 	## Default respawn timer in seconds
 	const DEFAULT_RESPAWN_TIME: float = 30.0
 	
@@ -259,6 +263,35 @@ class Respawn:
 	
 	## Maximum respawn time
 	const MAX_RESPAWN_TIME: float = 300.0
+	
+	## Time before respawn UI appears (seconds) - 0 = immediate
+	const RESPAWN_UI_DELAY: float = 0.0
+	
+	## Auto-respawn after UI timeout (seconds) - 0 = no auto-respawn
+	const AUTO_RESPAWN_TIMEOUT: float = 0.0
+	
+	## Allow player to skip respawn UI and respawn immediately
+	const ALLOW_SKIP_RESPAWN_UI: bool = true
+	
+	## ============================================================================
+	## ANKH/BIND POINT SETTINGS
+	## ============================================================================
+	
+	## Enable ankh binding system
+	const ENABLE_ANHK_BINDING: bool = true
+	
+	## Cooldown between binding to new ankh (seconds)
+	const ANKH_BIND_COOLDOWN: float = 60.0
+	
+	## Maximum ankhs a player can have bound (0 = unlimited)
+	const MAX_BOUND_ANKHS: int = 5
+	
+	## Default ankh for new players (zone_id)
+	const DEFAULT_SPAWN_ZONE: String = "starter_plains"
+	
+	## ============================================================================
+	## REVIVE (PLAYER-INITIATED) SETTINGS
+	## ============================================================================
 	
 	## Revive cast time in seconds
 	const REVIVE_CAST_TIME: float = 3.0
@@ -271,6 +304,140 @@ class Respawn:
 	
 	## Karma reward for friendly revive
 	const REVIVE_KARMA_REWARD: int = 10
+	
+	## Cross-faction bonus karma
+	const REVIVE_KARMA_CROSS_FACTION_BONUS: int = 5
+	
+	## Revive cost (% of max health lost on revive)
+	const REVIVE_HEALTH_COST: float = 0.0
+	
+	## Revive cost (% of max mana lost on revive)
+	const REVIVE_MANA_COST: float = 0.0
+	
+	## Can revive during combat
+	const REVIVE_IN_COMBAT: bool = false
+	
+	## ============================================================================
+	## SELF-REZ (ITEM/SKILL) SETTINGS
+	## ============================================================================
+	
+	## Enable self-rez items (soul gems, etc.)
+	const ENABLE_SELF_REZ: bool = true
+	
+	## Self-rez item ID (must exist in item database)
+	const SELF_REZ_ITEM_ID: String = "soul_gem"
+	
+	## Cooldown between self-rez items (seconds)
+	const SELF_REZ_COOLDOWN: float = 300.0
+	
+	## Self-rez returns % health (0.0 - 1.0)
+	const SELF_REZ_HEALTH_PERCENT: float = 0.5
+	
+	## Self-rez returns % mana (0.0 - 1.0)
+	const SELF_REZ_MANA_PERCENT: float = 0.5
+	
+	## Self-rez casts instantly
+	const SELF_REZ_INSTANT: bool = true
+	
+	## Self-rez item is consumed on use
+	const SELF_REZ_CONSUMES_ITEM: bool = true
+	
+	## ============================================================================
+	## ARENA/TEAM RESPAN SETTINGS
+	## ============================================================================
+	
+	## Default respawns per team in arena
+	const ARENA_DEFAULT_RESPAWNS: int = 5
+	
+	## Maximum respawns per team in arena
+	const ARENA_MAX_RESPAWNS: int = 10
+	
+	## Arena respawn timer (seconds)
+	const ARENA_RESPAWN_TIME: float = 5.0
+	
+	## Arena invincibility duration after respawn (seconds)
+	const ARENA_INVINCIBILITY_DURATION: float = 3.0
+	
+	## Respawn at nearest ally or central point
+	const ARENA_SPAWN_AT_ALLIES: bool = true
+	
+	## ============================================================================
+	## PVP ZONE SETTINGS
+	## ============================================================================
+	
+	## Default respawns per party in PVP
+	const PVP_RESPAWNS_PER_PARTY: int = 10
+	
+	## PVP respawn timer (seconds)
+	const PVP_RESPAWN_TIME: float = 10.0
+	
+	## Can rez teammates in PVP
+	const PVP_CAN_REVIVE_TEAMMATES: bool = true
+	
+	## Revive limit per hour in PVP (0 = unlimited)
+	const PVP_REVIVE_LIMIT_PER_HOUR: int = 50
+	
+	## ============================================================================
+	## CORPSE/LOOT SETTINGS
+	## ============================================================================
+	
+	## Corpse duration (seconds) - 0 = permanent until looted
+	const CORPSE_DURATION: float = 300.0
+	
+	## Corpse despawn if not looted within time (seconds)
+	const CORPSE_DESPAWN_TIME: float = 600.0
+	
+	## Can loot own corpse
+	const CAN_LOOT_OWN_CORPSE: bool = true
+	
+	## Corpse loot radius (units)
+	const CORPSE_LOOT_RADIUS: float = 5.0
+	
+	## Auto-loot quest items from corpse
+	const AUTO_LOOT_QUEST_ITEMS: bool = true
+	
+	## Corpse decay starts when leaving zone
+	const CORPSE_DECAY_ON_ZONE: bool = true
+	
+	## ============================================================================
+	## DEATH PENALTIES
+	## ============================================================================
+	
+	## XP loss on death (% of current XP)
+	const XP_LOSS_PERCENT: float = 0.0
+	
+	## Gold loss on death (% of carried gold)
+	const GOLD_LOSS_PERCENT: float = 0.0
+	
+	## Durability loss on equipment (%)
+	const DURABILITY_LOSS_PERCENT: float = 10.0
+	
+	## Karma loss on death (PVP)
+	const PVP_KARMA_LOSS: int = 5
+	
+	## Death sickness duration (debuff in seconds)
+	const DEATH_SICKNESS_DURATION: float = 0.0
+	
+	## ============================================================================
+	## CONTEXT-SPECIFIC ABUSE DETECTION (REVIVES PER HOUR)
+	## ============================================================================
+	
+	const ABUSE_THRESHOLD_OPEN_WORLD: int = 30
+	const ABUSE_THRESHOLD_DUNGEON: int = 20
+	const ABUSE_THRESHOLD_RAID: int = 15
+	const ABUSE_THRESHOLD_PVP_ZONE: int = 25
+	const ABUSE_THRESHOLD_ARENA: int = 100
+	const ABUSE_THRESHOLD_BATTLEGROUND: int = 50
+	const ABUSE_THRESHOLD_CONTESTED: int = 10
+	
+	## Abuse detection window (hours)
+	const ABUSE_DETECTION_WINDOW: float = 1.0
+	
+	## Karma penalty when flagged for abuse
+	const ABUSE_KARMA_PENALTY: int = 5
+	
+	## Healer cooldown when flagged (minutes)
+	const ABUSE_COOLDOWN_MINUTES: float = 5.0
 
 ## ============================================================================
 ## SPAWN CONFIGURATION
