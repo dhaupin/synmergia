@@ -28,6 +28,14 @@ signal revive_completed(caster: Entity, target: Entity)
 signal revive_interrupted(caster: Entity, target: Entity, reason: String)
 ## revive_failed: Emitted when revive fails (abuse, interruption, etc)
 signal revive_failed(caster: Entity, target: Entity, reason: String)
+## player_died: Emitted specifically when a player dies (for systems tracking player death)
+signal player_died(entity: Entity, killer: Entity)
+## player_respawned: Emitted when a player respawns after death
+signal player_respawned(entity: Entity, respawn_point: Vector3, mode: int)
+
+# Combat Events (additional)
+## entity_killed: Emitted when any entity is killed (by another entity)
+signal entity_killed(killer: Entity, victim: Entity, damage_type: String)
 
 # Combat Events
 signal skill_executed(caster: Entity, skill: Skill, targets: Array)

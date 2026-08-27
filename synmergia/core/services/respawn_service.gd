@@ -402,6 +402,7 @@ func _do_respawn_at(player: Entity, position: Vector3, mode: RespawnMode) -> voi
 	
 	player.health_component.respawned.emit()
 	EventBus.entity_spawned.emit(player)
+	EventBus.player_respawned.emit(player, position, mode)
 	
 	respawn_completed.emit(player, position)
 

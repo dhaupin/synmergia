@@ -117,7 +117,15 @@ func die(killer: Entity = null) -> void:
 	_create_corpse(killer)
 	
 	health_depleted.emit()
-	EventBus.entity_died.emit(entity, killer)
+	EventBus.entity_died.emit(entity, killer, null)
+	
+	# Emit player-specific signals
+	if entity is PlayerController:
+		EventBus.player_died.emit(entity, killer)
+	
+	# Emit entity killed (for kill streak tracking)
+	if killer:
+		EventBus.entity_killed.emit(killer, entity, "physical")
 	
 	# Start respawn timer
 	_start_respawn()
