@@ -353,9 +353,112 @@ class QoS:
 	const MAX_JITTER: int = 50
 	
 	## Latency compensation interpolation delay
-	const INTERPOLATION_DELAY: float = 0.1
 
 ## ============================================================================
+## RATE LIMIT CONFIGURATION
+	## Rate limiting thresholds per action type
+	## ============================================================================
+	class RateLimits:
+	## Movement rate limit (per second)
+		const MAX_MOVEMENT_PER_SECOND: float = 20.0
+
+	## Combat action rate limit (per second)
+		const MAX_COMBAT_PER_SECOND: float = 5.0
+
+	## Chat message rate limit (per minute)
+		const MAX_CHAT_PER_MINUTE: float = 60.0
+
+	## Whisper message rate limit (per minute)
+		const MAX_WHISPER_PER_MINUTE: float = 20.0
+
+	## Trade request rate limit (per minute)
+		const MAX_TRADE_PER_MINUTE: float = 6.0
+
+	## Party action rate limit (per minute)
+		const MAX_PARTY_PER_MINUTE: float = 6.0
+
+	## Guild action rate limit (per minute)
+		const MAX_GUILD_PER_MINUTE: float = 6.0
+
+	## Item action rate limit (per minute)
+		const MAX_ITEM_ACTIONS_PER_MINUTE: float = 30.0
+
+	## General action rate limit (per second)
+		const MAX_GENERAL_PER_SECOND: float = 10.0
+
+	## ============================================================================
+	## THROTTLE CONFIGURATION
+	## Global action throttling
+	## ============================================================================
+	class Throttle:
+	## Maximum chat messages per second globally
+		const MAX_GLOBAL_CHAT_PER_SECOND: float = 100.0
+
+	## Maximum combat actions per second globally
+		const MAX_GLOBAL_COMBAT_PER_SECOND: float = 50.0
+
+	## ============================================================================
+	## BULKHEAD CONFIGURATION
+	## Concurrency limits
+	## ============================================================================
+	class Bulkhead:
+	## Maximum concurrent global actions
+		const MAX_CONCURRENT_GLOBAL: int = 1000
+
+	## Maximum concurrent actions per service
+		const MAX_CONCURRENT_PER_SERVICE: int = 100
+
+	## Maximum concurrent actions per player
+		const MAX_CONCURRENT_PER_PLAYER: int = 10
+
+	## ============================================================================
+	## CIRCUIT BREAKER CONFIGURATION
+	## Circuit breaker thresholds
+	## ============================================================================
+	class CircuitBreaker:
+	## Failure threshold to open circuit
+		const FAILURE_THRESHOLD: int = 5
+
+	## Success threshold to close circuit
+		const SUCCESS_THRESHOLD: int = 2
+
+	## Timeout in seconds to try half-open state
+		const RECOVERY_TIMEOUT_SEC: float = 30.0
+
+	## Maximum queued actions per player
+		const MAX_QUEUED_ACTIONS: int = 50
+
+	## Queue timeout in seconds
+		const QUEUE_TIMEOUT_SEC: float = 60.0
+
+	## ============================================================================
+	## DEBOUNCE CONFIGURATION
+	## Debounce timing settings
+	## ============================================================================
+	class Debounce:
+		## Default debounce delay in milliseconds
+		const DEFAULT_DELAY_MS: int = 100
+
+		## Maximum debounce delay in milliseconds
+		const MAX_DELAY_MS: int = 5000
+
+	## ============================================================================
+	## RECURSION CONFIGURATION
+	## Recursion depth limits
+	## ============================================================================
+	class Recursion:
+		## Default max recursion depth
+		const DEFAULT_MAX_DEPTH: int = 100
+
+		## Entity tree max depth
+		const ENTITY_TREE_MAX_DEPTH: int = 50
+
+		## Zone neighbor traversal max depth
+		const ZONE_NEIGHBOR_MAX_DEPTH: int = 20
+
+		## Aura chain max depth
+		const AURA_CHAIN_MAX_DEPTH: int = 10
+
 ## EVENT BUS CONFIGURATION
 ## Event system settings
 ## ============================================================================

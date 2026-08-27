@@ -74,7 +74,7 @@ func log_event(event_name: String, data: Dictionary = {}) -> void:
 	
 	# Trim history if needed
 	if _event_history.size() > _max_history:
-		_event_history.pop_front()
+		_event_history.pop_at(0)
 
 ## Get recent events
 func get_recent_events(count: int = 100) -> Array[Dictionary]:

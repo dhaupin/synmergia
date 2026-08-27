@@ -66,7 +66,7 @@ func update_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 	
 	_latency_history[player_id].append(latency_ms)
 	if _latency_history[player_id].size() > 20:  # Keep last 20 samples
-		_latency_history[player_id].pop_front()
+		_latency_history[player_id].pop_at(0)
 	
 	# Calculate jitter (variance)
 	var history: Array = _latency_history[player_id]

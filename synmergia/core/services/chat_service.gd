@@ -380,7 +380,7 @@ func _add_to_history(channel: Channel, message: Dictionary) -> void:
         
         # Trim history
         while _chat_history[channel].size() > MAX_HISTORY_PER_CHANNEL:
-                _chat_history[channel].pop_front()
+                _chat_history[channel].pop_at(0)
 
 ## Get chat history
 func get_channel_history(channel: Channel, limit: int = 20) -> Array:
