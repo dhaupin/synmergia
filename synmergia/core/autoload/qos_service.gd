@@ -110,6 +110,10 @@ func _ready() -> void:
 ## Check if an action is rate limited for a player
 ## Returns true if allowed, false if rate limited
 func rate_limit(player_id: String, action_type: String) -> bool:
+	# Defensive: reject empty player IDs
+	if player_id == "":
+		return false
+
 	var max_rate: float = _rate_limit_config.get(action_type, _rate_limit_config["general"])
 	
 	if not _rate_limit_buckets.has(player_id):
@@ -210,7 +214,7 @@ func get_next_queued(player_id: String, action_type: String) -> Dictionary:
 	if queue.is_empty():
 		return {}
 	
-	var action = queue.pop_front()
+	var action = queue.pop_at(0)
 	_action_queues[player_id][action_type] = queue
 	return action.get("data", {})
 
@@ -410,7 +414,7 @@ func record_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 	# Add to history (keep last 20 samples)
 	data["latency_history"].append(latency_ms)
 	if data["latency_history"].size() > 20:
-		data["latency_history"].pop_front()
+		data["latency_history"].pop_at(0)
 	
 	# Update packet loss (exponential moving average)
 	data["packet_loss"] = data["packet_loss"] * 0.9 + packet_loss * 0.1
@@ -420,7 +424,7 @@ func record_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 		var jitter = absi(data["latency_history"][-1] - data["latency_history"][-2])
 		data["jitter_history"].append(jitter)
 		if data["jitter_history"].size() > 10:
-			data["jitter_history"].pop_front()
+			data["jitter_history"].pop_at(0)
 
 ## Get connection quality for a player
 func get_connection_quality(player_id: String) -> ConnectionQuality:
