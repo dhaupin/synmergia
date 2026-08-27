@@ -99,6 +99,13 @@ func _physics_process(delta: float) -> void:
 
 ## Execute a skill
 func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> bool:
+	# QoS: Rate limit combat actions
+	var entity: Entity = get_parent()
+	if entity and entity.entity_id != "":
+		if not QoSService.rate_limit(entity.entity_id, "combat"):
+			Logger.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
+			return false
+	
 	if not _can_execute_skill(skill):
 		return false
 	

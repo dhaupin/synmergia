@@ -71,7 +71,11 @@ func _physics_process(delta: float) -> void:
 	if not is_local_player:
 		return
 	
-	move_and_slide()
+	# QoS: Rate limit movement
+	if QoSService.rate_limit(entity_id, "movement"):
+		move_and_slide()
+	else:
+		Logger.debug("PlayerController: Rate limited movement for %s" % entity_id)
 
 func is_moving() -> bool:
 	var input := InputManager.get_movement_input()
