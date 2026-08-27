@@ -1,5 +1,8 @@
 ## DiscordWebhook - Discord webhook connector
 ## Sends formatted messages to Discord channels via webhooks
+##
+## Inherits from WebhookBase for generic webhook handling.
+## Contains only Discord-specific formatting and color constants.
 class_name DiscordWebhook
 extends WebhookBase
 
@@ -11,6 +14,15 @@ const COLOR_GREEN: int = 3066993
 const COLOR_BLUE: int = 3447003
 const COLOR_PURPLE: int = 10181046
 const COLOR_GRAY: int = 9807270
+
+func _ready() -> void:
+	super._ready()
+	
+	# Load Discord-specific config from GameConfig
+	if GameConfig:
+		webhook_url = GameConfig.Webhooks.DISCORD_WEBHOOK_URL
+	
+	Logger.info("DiscordWebhook: Initialized with URL: %s" % ["set" if webhook_url != "" else "not configured"])
 
 ## Send simple text message
 func send_message(content: String, username: String = "Synmergia") -> void:

@@ -1298,12 +1298,35 @@ class Database:
 ### Webhook Connector System (TODO)
 - [x] WebhookBase abstract connector (connectors/webhook/webhook_base.gd)
 - [x] DiscordWebhook connector (connectors/webhook/discord_webhook.gd)
-- [ ] Connect to PermissionManager.admin_action signal
-- [ ] Connect to PlayerReporter.urgent_report signal
-- [ ] Connect to CommunityGovernance signals
+- [x] WebhookManager auto-load (core/autoload/webhook_manager.gd)
+- [x] Connect to PermissionManager.admin_action signal
+- [x] Connect to PlayerReporter.urgent_report signal
+- [x] Connect to CommunityGovernance signals
 - [ ] Add Slack webhook connector
 - [ ] Add generic HTTP webhook connector
 - [ ] Store webhook URLs in database/config
+
+### Player Reporting System (TODO)
+- [x] PlayerReporter class implemented (core/admin/player_reporter.gd)
+- [x] ReportDialog UI with rate limiting (ui/player/report_dialog.gd)
+- [ ] Add database persistence for reports
+- [ ] Implement report voting system (community moderation)
+- [ ] Add report categories: Bug, Abuse, Feedback, Suggestion, Exploit
+- [ ] Connect urgent_report signal to Discord webhook
+- [ ] Add report status notifications to reporters
+- [ ] Implement automated report resolution for duplicates
+- [ ] Add CAPTCHA for report submission (prevent flooding)
+- [ ] Integrate form security with SecurityService
+
+### Form Security & Anti-Abuse (TODO)
+- [ ] CAPTCHA integration (hCaptcha/reCAPTCHA) for reports
+- [ ] Rate limiting per player (via SecurityService)
+- [ ] Content filtering/sanitization
+- [ ] Spam detection patterns
+- [ ] Report cooldown enforcement (client + server)
+- [ ] Max reports per hour/day limits
+- [ ] Input validation (XSS prevention)
+- [ ] Audit logging for all form submissions
 
 ### Community Governance & Voting (TODO)
 - [x] CommunityGovernance class implemented (core/community/community_governance.gd)

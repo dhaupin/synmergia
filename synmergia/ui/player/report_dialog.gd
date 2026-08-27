@@ -16,6 +16,11 @@ var _reporter_id: String = ""
 var _target_player: String = ""
 var _report_type: ReportType = ReportType.PLAYER_ABUSE
 
+## Rate limiting (QoS integration)
+var _submit_cooldown: float = 0.0
+var _cooldown_duration: float = 60.0  # 60 seconds between submissions
+var _max_reports_per_hour: int = 10
+
 ## UI Elements
 var _panel: PanelContainer
 var _title_label: Label
@@ -24,10 +29,12 @@ var _description_field: TextEdit
 var _type_options: OptionButton
 var _submit_btn: Button
 var _cancel_btn: Button
+var _cooldown_label: Label
 
 ## Signals
 signal report_submitted(type: int, data: Dictionary)
 signal closed()
+signal rate_limited(remaining_seconds: float)
 
 func _ready() -> void:
 	_setup_ui()
@@ -193,10 +200,19 @@ func _on_type_changed(index: int) -> void:
 			get_node_or_null("Panel/MarginContainer/VBoxContainer/HelpLabel").show()
 
 func _on_submit() -> void:
+	# Check rate limiting
+	if not _check_rate_limit():
+		return
+	
 	var description := _description_field.text.strip_edges()
 	
 	if description == "":
 		_show_error("Please enter a description")
+		return
+	
+	# Basic content validation
+	if description.length() < 10:
+		_show_error("Description too short. Please provide more detail.")
 		return
 	
 	var target := _target_field.text.strip_edges()
@@ -213,7 +229,7 @@ func _on_submit() -> void:
 		"target": target
 	}
 	
-	# Submit to PlayerReporter
+	# Submit to PlayerReporter (has its own rate limiting)
 	if PlayerReporter:
 		var report_type: int
 		match _report_type:
@@ -227,6 +243,8 @@ func _on_submit() -> void:
 		var result := PlayerReporter.submit_report(_reporter_id, report_type, data)
 		
 		if result.get("success", false):
+			# Start cooldown after successful submission
+			_start_cooldown()
 			_show_success("Report submitted successfully. Thank you!")
 			report_submitted.emit(_report_type, data)
 			await get_tree().create_timer(1.5).timeout
@@ -237,6 +255,46 @@ func _on_submit() -> void:
 		_show_error("Report system not available")
 		report_submitted.emit(_report_type, data)
 		hide()
+
+func _check_rate_limit() -> bool:
+	# Check cooldown
+	if _submit_cooldown > 0:
+		_show_error("Please wait %.0f seconds before submitting another report" % _submit_cooldown)
+		rate_limited.emit(_submit_cooldown)
+		return false
+	
+	# Check hourly limit via SecurityService if available
+	if SecurityService:
+		var rate_limit_key := "reports_%s" % _reporter_id
+		if SecurityService.is_rate_limited(rate_limit_key, _max_reports_per_hour, 3600):
+			_show_error("Hourly report limit reached. Please try again later.")
+			rate_limited.emit(3600)
+			return false
+	
+	return true
+
+func _start_cooldown() -> void:
+	_submit_cooldown = _cooldown_duration
+	_submit_btn.disabled = true
+	
+	# Update cooldown label
+	if _cooldown_label:
+		_cooldown_label.show()
+		_update_cooldown_display()
+
+func _update_cooldown_display() -> void:
+	if _cooldown_label:
+		_cooldown_label.text = "Wait %.0fs" % _submit_cooldown
+
+func _process(delta: float) -> void:
+	if _submit_cooldown > 0:
+		_submit_cooldown -= delta
+		_update_cooldown_display()
+		if _submit_cooldown <= 0:
+			_submit_cooldown = 0
+			_submit_btn.disabled = false
+			if _cooldown_label:
+				_cooldown_label.hide()
 
 func _show_error(message: String) -> void:
 	var error_label := Label.new()

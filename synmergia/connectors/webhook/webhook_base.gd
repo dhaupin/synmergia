@@ -1,9 +1,22 @@
-## WebhookBase - Generic webhook connector
-## Abstract base for sending messages to external services
+## WebhookBase - Generic webhook connector (abstract base)
+## 
+## This is the base handler that all webhook connectors inherit from.
+## Keeps webhook logic DRY in one place.
+##
+## Architecture:
+##   webhook_base.gd (generic handler) ← discord_webhook.gd (Discord-specific)
+##                          ← slack_webhook.gd (future)
+##                          ← generic_http_webhook.gd (future)
+##
+## Usage:
+##   1. Set webhook_url from GameConfig
+##   2. Call send() to queue messages
+##   3. Use derived classes for platform-specific formatting
+
 class_name WebhookBase
 extends Node
 
-## Webhook message
+## Webhook message (generic format)
 class WebhookMessage:
 	var content: String
 	var embeds: Array
@@ -30,7 +43,7 @@ class WebhookMessage:
 			data["tts"] = true
 		return data
 
-## Embed object
+## Embed object (generic format)
 class Embed:
 	var title: String
 	var description: String
@@ -73,22 +86,39 @@ class Embed:
 		if not fields.is_empty(): data["fields"] = fields
 		return data
 
+## Signal when message is sent
 signal message_sent(success: bool, response_code: int)
 
+## HTTP client
 var _http_request: HTTPRequest
+
+## Message queue for rate limiting
 var _message_queue: Array = []
 var _is_sending: bool = false
 var _rate_limit_remaining: int = -1
 var _rate_limit_reset: float = 0
 
+## Configuration (loaded from GameConfig)
 var webhook_url: String = ""
 var enabled: bool = true
 var rate_limit_per_second: int = 5
+
+func _init() -> void:
+	pass
 
 func _ready() -> void:
 	_http_request = HTTPRequest.new()
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_request_completed)
+	
+	# Load config from GameConfig
+	_load_config()
+
+func _load_config() -> void:
+	if GameConfig:
+		var cfg := GameConfig.Webhooks
+		enabled = cfg.ENABLED
+		rate_limit_per_second = cfg.MAX_MESSAGES_PER_MINUTE / 60.0
 
 func send(message: WebhookMessage) -> void:
 	if not enabled:
