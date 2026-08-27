@@ -76,6 +76,11 @@ func _ready() -> void:
 
 ## Create a new guild
 func create_guild(name: String, tag: String, leader_id: String) -> String:
+        # QoS: Rate limit guild creation
+        if not QoSService.rate_limit(leader_id, "guild"):
+                Logger.debug("GuildService: Rate limited guild creation for %s" % leader_id)
+                return ""
+        
         if _player_guilds.has(leader_id):
                 Logger.warn("GuildService: Player %s already in a guild" % leader_id)
                 return ""
@@ -167,6 +172,11 @@ func disband_guild(leader_id: String) -> bool:
 
 ## Invite player to guild
 func invite_player(inviter_id: String, target_id: String) -> bool:
+        # QoS: Rate limit guild invites
+        if not QoSService.rate_limit(inviter_id, "guild"):
+                Logger.debug("GuildService: Rate limited guild invite for %s" % inviter_id)
+                return false
+        
         if inviter_id == target_id:
                 return false
         
