@@ -58,6 +58,10 @@ signal bound_to(player: Entity, ankh: Ankh)
 var _team_respawn_counts: Dictionary = {}  # team_id -> remaining respawns
 @export var contested_respawn: bool = false  # Fight for res
 
+# Binding cooldown
+@export var bind_cooldown_seconds: float = 60.0  # Cooldown between re-binds
+var _player_bind_times: Dictionary = {}  # player_id -> last_bind_timestamp
+
 # Visual
 @export var model_path: String = ""
 @export var glow_color: Color = Color.WHITE
@@ -94,6 +98,13 @@ func can_bind(player: Entity) -> bool:
 		if player.guild_rank < required_guild_rank:
 			return false
 	
+	# Cooldown check (anti-exploit)
+	if _player_bind_times.has(player.entity_id):
+		var last_bind := _player_bind_times[player.entity_id]
+		var elapsed := Time.get_unix_time_from_system() - last_bind
+		if elapsed < bind_cooldown_seconds:
+			return false
+	
 	return true
 
 ## Bind player to this ankh
@@ -101,8 +112,16 @@ func bind_player(player: Entity) -> bool:
 	if not can_bind(player):
 		return false
 	
+	# Prevent binding while dead (exploit prevention)
+	if player.health_component and player.health_component.is_dead():
+		Logger.warn("Ankh '%s': Player '%s' tried to bind while dead" % [ankh_id, player.display_name])
+		return false
+	
 	if not _bound_players.has(player.entity_id):
 		_bound_players.append(player.entity_id)
+	
+	# Record binding time for cooldown
+	_player_bind_times[player.entity_id] = Time.get_unix_time_from_system()
 	
 	# Set as player's respawn point
 	player.respawn_point = global_position

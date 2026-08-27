@@ -85,6 +85,36 @@ func _register_commands() -> void:
 			"description": "Send server-wide message",
 			"usage": "/broadcast <message>",
 			"handler": _cmd_broadcast
+		},
+		"resurrect": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Resurrect a dead player",
+			"usage": "/resurrect <player_id> [health_percent] [mana_percent]",
+			"handler": _cmd_resurrect
+		},
+		"rez": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Alias for /resurrect",
+			"usage": "/rez <player_id> [health_percent] [mana_percent]",
+			"handler": _cmd_resurrect
+		},
+		"kill": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Kill a player (for testing)",
+			"usage": "/kill <player_id> [reason]",
+			"handler": _cmd_kill_player
+		},
+		"goto": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Teleport to a player's location",
+			"usage": "/goto <player_id>",
+			"handler": _cmd_goto_player
+		},
+		"summon": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Teleport a player to your location",
+			"usage": "/summon <player_id>",
+			"handler": _cmd_summon_player
 		}
 	}
 
@@ -206,3 +236,149 @@ func _cmd_broadcast(args: Array) -> Dictionary:
 		return {"success": false, "message": "Usage: /broadcast <message>"}
 	NotificationService.broadcast_alert(" ".join(args))
 	return {"success": true, "message": "Broadcast sent"}
+
+func _cmd_resurrect(args: Array) -> Dictionary:
+	if args.size() < 1:
+		return {"success": false, "message": "Usage: /resurrect <player_id> [health_percent] [mana_percent]"}
+	
+	var player_id: String = args[0]
+	var health_percent: float = 1.0
+	var mana_percent: float = 1.0
+	
+	if args.size() >= 2:
+		health_percent = float(args[1]) / 100.0
+	if args.size() >= 3:
+		mana_percent = float(args[2]) / 100.0
+	
+	# Find the player entity
+	var entity: Entity = _find_entity_by_id(player_id)
+	if not entity:
+		return {"success": false, "message": "Player not found: " + player_id}
+	
+	# Check if they're actually dead
+	if not entity.health_component:
+		return {"success": false, "message": "Player has no health component"}
+	
+	if not entity.health_component.is_dead():
+		return {"success": false, "message": "Player is not dead"}
+	
+	# Perform the resurrection
+	var result := _do_resurrect(entity, health_percent, mana_percent)
+	
+	if result["success"]:
+		var msg := "Resurrected %s (HP: %d%%, MP: %d%%)" % [
+			entity.display_name,
+			int(health_percent * 100),
+			int(mana_percent * 100)
+		]
+		Logger.info("AdminCommand: %s" % msg)
+		return {"success": true, "message": msg}
+	else:
+		return {"success": false, "message": result.get("reason", "Failed to resurrect")}
+
+func _cmd_kill_player(args: Array) -> Dictionary:
+	if args.size() < 1:
+		return {"success": false, "message": "Usage: /kill <player_id> [reason]"}
+	
+	var player_id: String = args[0]
+	var reason: String = "Killed by admin"
+	if args.size() >= 2:
+		reason = " ".join(args.slice(1, args.size()))
+	
+	var entity: Entity = _find_entity_by_id(player_id)
+	if not entity:
+		return {"success": false, "message": "Player not found: " + player_id}
+	
+	if not entity.health_component:
+		return {"success": false, "message": "Player has no health component"}
+	
+	entity.health_component.take_damage(entity.health_component.current_health + 100, null, "admin_kill")
+	
+	return {"success": true, "message": "Killed: %s (%s)" % [entity.display_name, reason]}
+
+func _cmd_goto_player(args: Array) -> Dictionary:
+	if args.size() < 1:
+		return {"success": false, "message": "Usage: /goto <player_id>"}
+	
+	var player_id: String = args[0]
+	var caller_entity: Entity = _find_entity_by_id(caller_id if "_caller" in self else player_id)
+	
+	var target: Entity = _find_entity_by_id(player_id)
+	if not target:
+		return {"success": false, "message": "Player not found: " + player_id}
+	
+	# Find the caller (admin using the command)
+	var admin: Entity = _get_caller_entity(caller_id)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	admin.global_position = target.global_position
+	
+	return {"success": true, "message": "Teleported to: %s" % target.display_name}
+
+func _cmd_summon_player(args: Array) -> Dictionary:
+	if args.size() < 1:
+		return {"success": false, "message": "Usage: /summon <player_id>"}
+	
+	var player_id: String = args[0]
+	var target: Entity = _find_entity_by_id(player_id)
+	if not target:
+		return {"success": false, "message": "Player not found: " + player_id}
+	
+	# Find the caller (admin using the command)
+	var admin: Entity = _get_caller_entity(caller_id if "_caller" in self else player_id)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	target.global_position = admin.global_position
+	
+	return {"success": true, "message": "Summoned: %s" % target.display_name}
+
+## Helper: Find entity by ID
+func _find_entity_by_id(entity_id: String) -> Entity:
+	# Try to find in EntityService
+	if EntityService:
+		var entity = EntityService.get_entity_by_id(entity_id)
+		if entity:
+			return entity
+	
+	# Try to find in player manager
+	var players = PlayerManager.get_all_players()
+	for p in players:
+		if p.get("entity_id") == entity_id or p.get("name") == entity_id:
+			return p as Entity
+	
+	return null
+
+## Helper: Get caller entity
+func _get_caller_entity(caller_id: String) -> Entity:
+	return _find_entity_by_id(caller_id)
+
+## Helper: Perform resurrection
+func _do_resurrect(entity: Entity, health_percent: float, mana_percent: float) -> Dictionary:
+	var health_comp = entity.health_component
+	
+	# Remove corpse if exists
+	if health_comp._corpse:
+		health_comp._corpse.queue_free()
+		health_comp._corpse = null
+	
+	# Restore health
+	health_comp.current_health = int(health_comp.max_health * health_percent)
+	health_comp.current_health = maxi(1, health_comp.current_health)
+	health_comp._is_dead = false
+	health_comp._respawn_timer = 0.0
+	
+	# Restore mana if applicable
+	if entity.has_method("restore_mana"):
+		var mana_to_restore := int(entity.max_mana * mana_percent)
+		entity.restore_mana(mana_to_restore)
+	
+	# Clear death state
+	entity.health_component.respawned.emit()
+	EventBus.entity_spawned.emit(entity)
+	EventBus.player_resurrected.emit(entity, "admin")
+	
+	Logger.info("Respawn: %s resurrected by admin" % entity.display_name)
+	
+	return {"success": true}

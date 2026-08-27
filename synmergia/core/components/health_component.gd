@@ -286,6 +286,10 @@ func use_self_rez_item(item: Item) -> Dictionary:
 	if not item.is_self_rez_item:
 		return {"success": false, "reason": "Item cannot self-resurrect"}
 	
+	# Check if being revived (prevent self-rez while healer is casting)
+	if RespawnService and RespawnService.is_being_revived(get_parent().entity_id):
+		return {"success": false, "reason": "Cannot self-rez while being revived"}
+	
 	# Check cooldown
 	if _self_rez_cooldown > 0:
 		return {"success": false, "reason": "Self-rez on cooldown (%.0fs remaining)" % _self_rez_cooldown}
@@ -318,6 +322,10 @@ func use_self_rez_item(item: Item) -> Dictionary:
 	
 	# Remove corpse
 	_remove_corpse()
+	
+	# Cancel any active revive on this player
+	if RespawnService:
+		RespawnService.interrupt_revival(entity.entity_id, "Self-rez used")
 	
 	# Set cooldown
 	_self_rez_cooldown = item.self_rez_cooldown if item.self_rez_cooldown > 0 else GameConfig.Respawn.SELF_REZ_COOLDOWN
