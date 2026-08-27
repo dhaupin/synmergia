@@ -55,6 +55,7 @@ signal bound_to(player: Entity, ankh: Ankh)
 @export var is_in_arena: bool = false
 @export var arena_team_id: int = 0  # For arena ankhs
 @export var respawn_count_limit: int = 0  # 0 = unlimited
+var _team_respawn_counts: Dictionary = {}  # team_id -> remaining respawns
 @export var contested_respawn: bool = false  # Fight for res
 
 # Visual
@@ -155,12 +156,20 @@ func get_team_respawns(team_id: int) -> int:
 		return -1  # Unlimited
 	
 	# Track respawns per team (simplified)
-	return respawn_count_limit  # TODO: Per-team tracking
+	# Initialize team respawn count if not set
+if not _team_respawn_counts.has(team_id):
+_team_respawn_counts[team_id] = respawn_count_limit
+return _team_respawn_counts[team_id]
 
 ## Decrement team respawn (arena mode)
 func use_team_respawn(team_id: int) -> bool:
 	if respawn_count_limit <= 0:
 		return true  # Unlimited
 	
-	# TODO: Decrement team-specific counter
-	return true
+	# Decrement team-specific counter
+	if not _team_respawn_counts.has(team_id):
+		_team_respawn_counts[team_id] = respawn_count_limit
+	if _team_respawn_counts[team_id] > 0:
+		_team_respawn_counts[team_id] -= 1
+		return true
+	return false
