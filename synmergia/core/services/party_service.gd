@@ -44,6 +44,11 @@ func _ready() -> void:
 
 ## Create a new party
 func create_party(leader_id: String, is_raid: bool = false) -> String:
+        # QoS: Rate limit party creation
+        if not QoSService.rate_limit(leader_id, "party"):
+                Logger.debug("PartyService: Rate limited party creation for %s" % leader_id)
+                return ""
+        
         if _player_parties.has(leader_id):
                 Logger.warn("PartyService: Player %s already in a party" % leader_id)
                 return ""
@@ -70,6 +75,11 @@ func create_party(leader_id: String, is_raid: bool = false) -> String:
 
 ## Disband a party
 func disband_party(party_id: String) -> bool:
+        # QoS: Rate limit party disband
+        if not QoSService.rate_limit(party_id, "party"):
+                Logger.debug("PartyService: Rate limited party disband for %s" % party_id)
+                return false
+        
         var party := _parties.get(party_id)
         if not party:
                 return false

@@ -498,6 +498,38 @@ class Security:
 	const MAX_SPEED_HACK_MULTIPLIER: float = 2.5  # Max speed allowed (vs normal max)
 	const MAX_ITEMS_PER_MINUTE: int = 100        # Suspicious item creation rate
 	const MAX_INPUT_VALUE: float = 10000.0        # Max input value before anomaly
+        const MAX_INPUT_VALUE: float = 10000.0        # Max input value before anomaly
+
+        ## Teleport detection: max distance in units per second
+        const MAX_TELEPORT_DISTANCE: float = 500.0
+
+        ## Rapid action threshold (actions per second)
+        const RAPID_ACTION_THRESHOLD: float = 10.0
+
+        ## Spam detection: repeated characters threshold
+        const SPAM_REPEATED_CHARS: int = 5
+
+        ## Spam detection: unique character ratio minimum
+        const SPAM_UNIQUE_RATIO: float = 0.3
+
+        ## Allowed characters in names (regex-style)
+        const NAME_ALLOWED_CHARS: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.\'"
+
+        ## ============================================================================
+        ## FIREWALL SETTINGS
+        ## ============================================================================
+
+        ## Default IP block duration (seconds)
+        const FIREWALL_BLOCK_DURATION: int = 300  # 5 minutes
+
+        ## Max failed attempts before temporary block
+        const FIREWALL_MAX_ATTEMPTS: int = 5
+
+        ## Max connections per IP
+        const FIREWALL_MAX_CONNECTIONS_PER_IP: int = 3
+
+        ## Cleanup interval for expired blocks (seconds)
+        const FIREWALL_CLEANUP_INTERVAL: int = 300
 
 ## ============================================================================
 ## DEBUG CONFIGURATION

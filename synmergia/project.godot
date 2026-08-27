@@ -34,6 +34,10 @@ SpawnService="*res://core/services/spawn_service.gd"
 WorldService="*res://core/services/world_service.gd"
 ShardManager="*res://core/services/shard_manager.gd"
 NotificationService="*res://core/services/notification_service.gd"
+SecurityService="*res://core/services/security_service.gd"
+AppFirewall="*res://core/utils/app_firewall.gd"
+SecurityMonitor="*res://core/autoload/security_monitor.gd"
+AdminCommands="*res://core/utils/admin_commands.gd"
 ServerManager="*res://core/services/server_manager.gd"
 
 [display]

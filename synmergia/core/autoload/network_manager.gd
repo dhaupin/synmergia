@@ -38,7 +38,12 @@ var tick_timer: Timer
 func _ready() -> void:
 	Logger.info("NetworkManager initialized")
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_firewall = AppFirewall.new(300, 5, 3)  # 5min block, 5 attempts, 3 conns/IP
+	# Initialize firewall with GameConfig values
+	_firewall = AppFirewall.new(
+		GameConfig.Security.FIREWALL_BLOCK_DURATION,
+		GameConfig.Security.FIREWALL_MAX_ATTEMPTS,
+		GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
+	)
 
 func _process(_delta: float) -> void:
 	match connection_state:
