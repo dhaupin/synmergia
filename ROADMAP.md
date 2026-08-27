@@ -1176,6 +1176,20 @@ exploit_log:         player_id → [{type, details, timestamp}]
 rate_limit_buckets:  player_id → {action_type → {count, window_start}}
 ```
 
+#### Admin/Permission Data
+```
+player_permissions:  player_id → permission_level (VIP, MOD, ADMIN, OWNER)
+audit_log:          [{admin_id, action, target, timestamp, success, details}]
+admin_session_log:  [{admin_id, action, timestamp, ip}]
+```
+
+#### Player Reporting Data
+```
+player_reports:     report_id → {type, reporter, target, subject, description, status, priority}
+abuse_reports:     target_id → [report_ids]
+report_votes:       report_id → {voter_id: upvote/downvote}
+```
+
 ### Database Schema Options
 
 #### Option 1: Simple Key-Value (Redis)
@@ -1248,6 +1262,30 @@ class Database:
 2. Add interface layer for persistence
 3. Implement Redis first (simpler for rate limiting)
 4. Add SQL for audit logs (compliance, admin queries)
+
+### Permission & Audit Persistence (TODO)
+- [ ] Connect PermissionManager to database
+- [ ] Store player permission levels persistently
+- [ ] Persist audit log entries to database
+- [ ] Add admin session logging with IP tracking
+- [ ] Implement permission inheritance/group system
+- [ ] Add "report admin abuse" feature for players
+
+### Player Reporting System (TODO)
+- [x] PlayerReporter class implemented (core/admin/player_reporter.gd)
+- [ ] Add database persistence for reports
+- [ ] Implement report voting system (community moderation)
+- [ ] Add report categories: Bug, Abuse, Feedback, Suggestion, Exploit
+- [ ] Connect urgent_report signal to Discord webhook
+- [ ] Add report status notifications to reporters
+- [ ] Implement automated report resolution for duplicates
+
+### Player Shell Customization (TODO)
+- [ ] Persist player aliases and macros to database
+- [ ] Add macro variables: `$player`, `$target`, `$time`
+- [ ] Implement command aliases (shortcuts)
+- [ ] Add UI theme customization
+- [ ] Export/import customization presets
 
 ---
 
