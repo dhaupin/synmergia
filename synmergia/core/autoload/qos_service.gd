@@ -46,6 +46,9 @@ var _rate_limit_config: Dictionary = {
 	"party": GameConfig.QoS.RateLimits.MAX_PARTY_PER_MINUTE / 60.0,
 	"guild": GameConfig.QoS.RateLimits.MAX_GUILD_PER_MINUTE / 60.0,
 	"item_action": GameConfig.QoS.RateLimits.MAX_ITEM_ACTIONS_PER_MINUTE / 60.0,
+	"account_create": 0.1,  # 1 per 10 seconds max
+	"instance": 0.05,       # 1 per 20 seconds max
+	"transfer": 0.033,       # 1 per 30 seconds max
 	"general": GameConfig.QoS.RateLimits.MAX_GENERAL_PER_SECOND
 }
 
