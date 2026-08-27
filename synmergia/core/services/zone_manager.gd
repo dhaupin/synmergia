@@ -361,7 +361,7 @@ func get_all_connected_zones(zone_id: String, max_depth: int = 100) -> Array[Zon
 	while not queue.is_empty() and depth < max_depth:
 		var level_size := queue.size()
 		for _i in range(level_size):
-			var current_id: String = queue.pop_front()
+			var current_id: String = queue.pop_at(0)
 			if visited.has(current_id):
 				continue
 			visited[current_id] = true

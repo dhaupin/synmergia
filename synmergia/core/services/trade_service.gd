@@ -493,9 +493,9 @@ func _log_trade(player1: String, player2: String, player1_items: Array, player2_
         
         # Trim history
         while _trade_history[player1].size() > MAX_HISTORY:
-                _trade_history[player1].pop_front()
+                _trade_history[player1].pop_at(0)
         while _trade_history[player2].size() > MAX_HISTORY:
-                _trade_history[player2].pop_front()
+                _trade_history[player2].pop_at(0)
 
 # ============ ANTI-SCAM MEASURES ============
 

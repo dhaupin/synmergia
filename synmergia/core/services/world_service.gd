@@ -277,7 +277,7 @@ func start_event(event_id: String, duration_seconds: float, message: String = ""
 
 ## End an event
 func end_event(event_id: String, message: String = "") -> void:
-	var event_index = _active_events.find(_active_events.filter(func(e): return e.get("id") == event_id).pop_front())
+	var event_index = _active_events.find(_active_events.filter(func(e): return e.get("id") == event_id).pop_at(0))
 	if event_index >= 0:
 		var event = _active_events[event_index]
 		_active_events.remove_at(event_index)

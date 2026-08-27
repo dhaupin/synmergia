@@ -258,7 +258,7 @@ class ComboTracker:
 		# Track history (keep last 5)
 		combo_history.append(skill.skill_id)
 		if combo_history.size() > 5:
-			combo_history.pop_front()
+			combo_history.pop_at(0)
 	
 	func can_combo(skill: Skill) -> bool:
 		if last_skill == null:

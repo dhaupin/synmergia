@@ -125,7 +125,7 @@ func send(
 	# Add to queue
 	_notification_queue.append(notification)
 	if _notification_queue.size() > _max_queue_size:
-		_notification_queue.pop_front()
+		_notification_queue.pop_at(0)
 	
 	# Track for entity
 	if not _entity_notifications.has(entity_id):
@@ -447,4 +447,4 @@ func _add_to_history(entity_id: String, notification: Dictionary) -> void:
 	
 	# Trim history
 	while _notification_history[entity_id].size() > _max_history:
-		_notification_history[entity_id].pop_front()
+		_notification_history[entity_id].pop_at(0)

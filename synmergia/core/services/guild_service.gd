@@ -707,4 +707,4 @@ func _log_bank_transaction(guild: Dictionary, transaction_type: String, player_i
         var logs: Array = guild["bank"]["logs"]
         logs.append({"type": transaction_type, "player_id": player_id, "data": data, "timestamp": Time.get_unix_time_from_system()})
         while logs.size() > 100:
-                logs.pop_front()
+                logs.pop_at(0)
