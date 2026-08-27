@@ -6,9 +6,24 @@ extends Node3D
 signal corpse_looted(corpse: Corpse, looter: Entity)
 signal corpse_despawned(corpse: Corpse, reason: String)
 
+enum Visibility {
+	EVERYONE,        # All players can see
+	FACTION_ONLY,    # Same faction only
+	GUILD_ONLY,      # Same guild only
+	PARTY_ONLY,      # Same party only
+	OWNER_ONLY,      # Only owner can see (private loot)
+	ENEMIES_ONLY     # Only enemies can see (for enemy loot)
+}
+
 @export var corpse_id: String = ""
 @export var owner_entity_id: String = ""
 @export var loot_radius: float = 5.0
+
+# Visibility settings
+@export var visibility_mode: Visibility = Visibility.EVERYONE
+@export var owner_faction_id: String = ""
+@export var owner_guild_id: String = ""
+@export var owner_party_id: String = ""
 
 var _owner: Entity = null
 var _killer: Entity = null
@@ -32,6 +47,11 @@ func setup(owner: Entity, killer: Entity = null) -> void:
 	_killer = killer
 	owner_entity_id = owner.entity_id
 	corpse_id = "corpse_%s_%d" % [owner.entity_id, Time.get_unix_time_from_system()]
+	
+	# Store faction/guild/party info for visibility
+	owner_faction_id = owner.faction_id if owner.has("faction_id") else ""
+	owner_guild_id = owner.guild_id if owner.has("guild_id") else ""
+	owner_party_id = owner.party_id if owner.has("party_id") else ""
 	
 	# Copy position
 	if owner.has_method("get_global_position"):
@@ -90,6 +110,27 @@ func _start_decay_visual() -> void:
 	# TODO: Implement visual decay effect
 	# Could reduce opacity, change color, etc.
 	pass
+
+## Check if a player can SEE this corpse (visibility)
+func can_see(observer: Entity) -> bool:
+	match visibility_mode:
+		Visibility.EVERYONE:
+			return true
+		Visibility.FACTION_ONLY:
+			return observer.faction_id == owner_faction_id if observer.has("faction_id") else false
+		Visibility.GUILD_ONLY:
+			return observer.guild_id == owner_guild_id if observer.has("guild_id") else false
+		Visibility.PARTY_ONLY:
+			return observer.party_id == owner_party_id if observer.has("party_id") else false
+		Visibility.OWNER_ONLY:
+			return observer.entity_id == owner_entity_id
+		Visibility.ENEMIES_ONLY:
+			return observer.faction_id != owner_faction_id if observer.has("faction_id") else true
+	return true
+
+## Set visibility mode (can be changed based on zone rules)
+func set_visibility_mode(mode: Visibility) -> void:
+	visibility_mode = mode
 
 ## Check if a player can loot this corpse
 func can_loot(looter: Entity) -> bool:
