@@ -483,6 +483,7 @@ func _do_resurrect_fallback(entity: Entity) -> void:
 	entity.health_component.respawned.emit()
 	EventBus.entity_spawned.emit(entity)
 	EventBus.player_resurrected.emit(entity, "tooltip_action")
+	EventBus.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE)
 
 func _action_talk(_source_id: String, _target_id: String) -> Dictionary:
 	return {"success": true, "message": "Opening dialogue", "action": "open_dialogue"}
