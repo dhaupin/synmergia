@@ -291,40 +291,22 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 
 ## Get party members
 func _get_party_members(player_id: String) -> Array:
-				var party_service = PartyService if "PartyService" in get_parent() else null
-				if not party_service:
-								# Try to get from autoload
-								if has_node("/root/PartyService"):
-												party_service = get_node("/root/PartyService")
-				
-				if party_service and party_service.is_in_party(player_id):
-								return party_service.get_party_members(party_service.get_player_party(player_id).get("id", ""))
-				
+				if PartyService and PartyService.is_in_party(player_id):
+								return PartyService.get_party_members(PartyService.get_player_party(player_id).get("id", ""))
 				return []
 
 ## Get guild members
 func _get_guild_members(player_id: String) -> Array[String]:
-				var guild_service = GuildService if "GuildService" in get_parent() else null
-				if not guild_service:
-								if has_node("/root/GuildService"):
-												guild_service = get_node("/root/GuildService")
-				
-				if guild_service and guild_service.is_in_guild(player_id):
-								return guild_service.get_guild_roster(guild_service.get_player_guild(player_id).get("id", ""))
-				
+				if GuildService and GuildService.is_in_guild(player_id):
+								return GuildService.get_guild_roster(GuildService.get_player_guild(player_id).get("id", ""))
 				return []
 
 ## Send guild announcement (from guild system)
 func send_guild_announcement(guild_id: String, message: String, sender_name: String = "Guild") -> void:
-	var guild_service = GuildService if "GuildService" in get_parent() else null
-	if not guild_service:
-		if has_node("/root/GuildService"):
-			guild_service = get_node("/root/GuildService")
-
-	if guild_service:
-		var guild := guild_service.get_guild(guild_id)
+	if GuildService:
+		var guild := GuildService.get_guild(guild_id)
 		if not guild.is_empty():
-			var roster: Array = guild_service.get_guild_roster(guild_id)
+			var roster: Array = GuildService.get_guild_roster(guild_id)
 			var member_ids: Array[String] = []
 			for member in roster:
 				if member is Dictionary and "id" in member:
@@ -336,16 +318,10 @@ func send_guild_announcement(guild_id: String, message: String, sender_name: Str
 
 ## Get alliance members
 func _get_alliance_members(player_id: String) -> Array[String]:
-				var guild_service = GuildService if "GuildService" in get_parent() else null
-				if not guild_service:
-								if has_node("/root/GuildService"):
-												guild_service = get_node("/root/GuildService")
-				
-				if guild_service and guild_service.is_in_guild(player_id):
-								var guild := guild_service.get_player_guild(player_id)
-								var alliance := guild_service.get_guild_alliance(guild.get("id", ""))
-								return alliance.get("guild_ids", [])
-				
+				if GuildService and GuildService.is_in_guild(player_id):
+					var guild := GuildService.get_player_guild(player_id)
+					var alliance := GuildService.get_guild_alliance(guild.get("id", ""))
+					return alliance.get("guild_ids", [])
 				return []
 
 ## Route message to handlers
