@@ -104,6 +104,19 @@ class Chat:
 	
 	## Cooldown between same messages (seconds) to prevent spam
 	const MESSAGE_COOLDOWN: float = 2.0
+	
+	## Profanity filter settings
+	## Note: Word list should be configured via external file or environment variable
+	## Set PROFANITY_WORDS_FILE env var to path of word list (one word per line)
+	## Example: "res://config/profanity_words.txt"
+	const PROFANITY_FILTER_ENABLED: bool = true
+	
+	## Path to profanity word list file (loaded at runtime)
+	## Format: one word per line, case-insensitive matching
+	const PROFANITY_WORDS_FILE: String = "user://config/profanity_words.txt"
+	
+	## Replacement character for filtered words (e.g., "*" becomes "****")
+	const PROFANITY_REPLACEMENT_CHAR: String = "*"
 
 ## ============================================================================
 ## TRADE CONFIGURATION
