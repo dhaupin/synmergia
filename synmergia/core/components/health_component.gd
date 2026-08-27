@@ -34,8 +34,10 @@ func take_damage(amount: int, source: Entity = null, damage_type: String = "phys
 	if entity.combat_component:
 		entity.combat_component.on_damage_taken(amount, source, damage_type)
 	
-	# Apply armor/mitigation (placeholder)
-	var mitigated := 0  # TODO: Calculate from armor
+	# Apply armor/mitigation
+	var mitigated := 0
+	if entity.inventory_component:
+		mitigated = entity.inventory_component.get_equipment_armor()
 	var actual_damage := max(1, amount - mitigated)
 	
 	current_health = max(0, current_health - actual_damage)
@@ -99,14 +101,20 @@ var _corpse: Node3D = null
 func _create_corpse(killer: Entity) -> void:
 	var entity: Entity = get_parent()
 	
-	# TODO: Load corpse scene
-	# _corpse = load("res://scenes/corpse.tscn").instantiate()
-	# _corpse.global_position = entity.global_position
-	# _corpse.setup(entity, killer)
-	# get_tree().root.add_child(_corpse)
+	# Try to load corpse scene if it exists
+	var corpse_scene_path := "res://scenes/entities/corpse.tscn"
+	var corpse_scene := load(corpse_scene_path)
 	
-	# Enable corpse looting
-	# Corpse loot should be: dropped items + portion of carried gold
+	if corpse_scene:
+		_corpse = corpse_scene.instantiate()
+		_corpse.global_position = entity.global_position
+		if _corpse.has_method("setup"):
+			_corpse.setup(entity, killer)
+		get_tree().root.add_child(_corpse)
+		EventBus.corpse_created.emit(entity, _corpse, killer)
+		Logger.debug("HealthComponent: Created corpse at %s" % entity.global_position)
+	else:
+		Logger.warn("HealthComponent: Corpse scene not found at %s" % corpse_scene_path)
 
 ## Remove corpse
 func _remove_corpse() -> void:
@@ -198,7 +206,9 @@ func _process(delta: float) -> void:
 	else:
 		# Health regen
 		var regen := health_regen
-		# TODO: Check in_combat and use combat regen
+		var entity: Entity = get_parent()
+		if entity.combat_component and entity.combat_component.in_combat:
+			regen = health_regen_combat
 		
 		if regen > 0 and current_health < max_health:
 			var heal_amount := int(regen * delta)

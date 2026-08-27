@@ -110,8 +110,20 @@ func execute_restart() -> void:
 		NotificationService.SoundType.WARNING
 	)
 	
-	# TODO: Trigger actual server restart/shutdown
-	# This would typically call GameManager.shutdown() or similar
+	# Trigger actual server shutdown via event bus
+	EventBus.server_shutdown.emit()
+	
+	# Schedule actual process quit after a brief delay
+	var t = Timer.new()
+	t.timeout.connect(_do_actual_shutdown)
+	t.one_shot = true
+	t.wait_time = 2.0
+	add_child(t)
+	t.start()
+
+func _do_actual_shutdown() -> void:
+	Logger.info("ServerManager: Quitting process")
+	get_tree().quit()
 
 ## Get time until restart
 func get_restart_seconds_remaining() -> int:
@@ -245,8 +257,12 @@ func kick_player(entity_id: String, reason: String = "You have been disconnected
 		NotificationService.SoundType.ERROR
 	)
 	
-	# TODO: Actually disconnect the player
-	# This would typically call NetworkManager.disconnect_player(entity_id)
+	# Actually disconnect the player
+	if PlayerManager and PlayerManager.has_player(entity_id):
+		var info = PlayerManager.get_player_info(entity_id)
+		var peer_id: int = info.get("peer_id", -1)
+		if peer_id > 0 and NetworkManager:
+			NetworkManager.kick_player(peer_id, reason)
 
 ## Kick all players (for maintenance/shutdown)
 func kick_all_players(reason: String = "Server is shutting down") -> void:

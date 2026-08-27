@@ -33,6 +33,20 @@ class CombatRatings:
 	func _init():
 		pass
 
+## Get combat ratings from entity
+static func get_entity_ratings(entity: Entity) -> CombatRatings:
+	var ratings := CombatRatings.new()
+	if entity == null:
+		return ratings
+	
+	# Check for ratings in entity stats
+	if entity.stats.has("crit_rating"):
+		ratings.crit_rating = entity.stats.get("crit_rating", 0.0)
+	if entity.stats.has("hit_rating"):
+		ratings.hit_rating = entity.stats.get("hit_rating", 0.0)
+	
+	return ratings
+
 ## Calculate hit chance
 static func calculate_hit_chance(attacker_level: int, defender_level: int, hit_rating: float = 0.0) -> float:
 	var base_hit := 0.95  # 95% base hit
@@ -115,9 +129,10 @@ static func calculate_hit(attacker: Entity, defender: Entity, skill: Skill = nul
 		return result
 	
 	# Roll for crit
+	var attacker_ratings := get_entity_ratings(attacker)
 	var crit_chance := calculate_crit_chance(
 		attacker.combat_component.crit_chance if attacker.combat_component else 0.05,
-		0.0  # TODO: Get from ratings
+		attacker_ratings.crit_rating
 	)
 	
 	if randf() < crit_chance:
@@ -226,8 +241,9 @@ static func calculate_damage(base_damage: int, hit_result: Dictionary) -> int:
 ## Helper to check if defender has shield equipped
 static func _has_shield(entity: Entity) -> bool:
 	if entity.inventory_component:
-		# TODO: Check for shield in offhand slot
-		pass
+		var offhand := entity.inventory_component.get_equipped(Item.EquipSlot.OFF_HAND)
+		if offhand and offhand.equip_slot == Item.EquipSlot.OFF_HAND:
+			return true
 	return false
 
 ## Get rating for level (for scaling)
