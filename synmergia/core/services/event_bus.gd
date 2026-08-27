@@ -24,6 +24,8 @@ signal self_resurrected(entity: Entity, item: Item)
 signal revive_started(caster: Entity, target: Entity)
 ## revive_completed: Emitted when revive cast completes successfully
 signal revive_completed(caster: Entity, target: Entity)
+## revive_interrupted: Emitted when revive is interrupted (target moved, died, etc)
+signal revive_interrupted(caster: Entity, target: Entity, reason: String)
 ## revive_failed: Emitted when revive fails (abuse, interruption, etc)
 signal revive_failed(caster: Entity, target: Entity, reason: String)
 

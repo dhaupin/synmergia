@@ -458,7 +458,185 @@ func notify_quest(entity_id: String, quest_name: String, action: String, message
 		"action": action  # "started", "completed", "failed", "progress"
 	})
 
-## --- Utility Methods ---
+## ============================================================================
+## DEATH & RESPAWN NOTIFICATIONS
+## ============================================================================
+
+## Death notification - sent to the dead player
+func notify_death(entity_id: String, killer_name: String = "", killer_type: String = "monster") -> void:
+	var message: String
+	var priority: Priority = Priority.HIGH
+	var sound: SoundType = SoundType.COMBAT
+	
+	if killer_name != "":
+		match killer_type:
+			"player":
+				message = "You have been slain by %s" % killer_name
+				priority = Priority.HIGH
+				sound = SoundType.WARNING
+			"pvp":
+				message = "You were killed in PvP by %s" % killer_name
+				priority = Priority.HIGH
+				sound = SoundType.WARNING
+			_:
+				message = "You have been defeated by %s" % killer_name
+	else:
+		message = "You have died"
+	
+	send(entity_id, message, NotificationType.SYSTEM, priority, DisplayLocation.CENTER_SCREEN, sound, {
+		"killer_name": killer_name,
+		"killer_type": killer_type
+	})
+
+## Party member death notification
+func notify_party_member_died(entity_id: String, dead_player_name: String, killer_name: String = "") -> void:
+	var message: String
+	if killer_name != "":
+		message = "⚔️ %s has been slain by %s" % [dead_player_name, killer_name]
+	else:
+		message = "⚔️ %s has died" % dead_player_name
+	
+	send(entity_id, message, NotificationType.COMBAT, Priority.NORMAL, DisplayLocation.CHAT_LOG, SoundType.WARNING, {
+		"player_name": dead_player_name,
+		"killer_name": killer_name
+	})
+
+## Revive started notification - to the target being revived
+func notify_revive_started(target_id: String, healer_name: String) -> void:
+	send(target_id, "%s is reviving you... Stay still!" % healer_name, NotificationType.SYSTEM, Priority.NORMAL, 
+		DisplayLocation.BOTH, SoundType.NOTIFICATION, {
+		"healer_name": healer_name,
+		"action": "revive_started"
+	})
+
+## Revive completed notification
+func notify_revive_completed(target_id: String, healer_name: String) -> void:
+	send(target_id, "You have been resurrected by %s!" % healer_name, NotificationType.SYSTEM, Priority.HIGH, 
+		DisplayLocation.BOTH, SoundType.ACHIEVEMENT, {
+		"healer_name": healer_name,
+		"action": "revive_completed"
+	})
+	# Also notify the healer
+	send_to_player_name(healer_name, "You have resurrected %s!" % target_id, NotificationType.SYSTEM, Priority.NORMAL,
+		DisplayLocation.CHAT_LOG, SoundType.NOTIFICATION, {
+		"target_id": target_id,
+		"action": "revive_completed"
+	})
+
+## Revive failed/interrupted notification
+func notify_revive_failed(target_id: String, reason: String = "The revival was interrupted") -> void:
+	send(target_id, "Revival failed: %s" % reason, NotificationType.WARNING, Priority.NORMAL, 
+		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
+		"reason": reason
+	})
+
+## Self-resurrection notification
+func notify_self_resurrect(entity_id: String, item_name: String = "Soul Gem") -> void:
+	send(entity_id, "You have self-resurrected using %s!" % item_name, NotificationType.SYSTEM, Priority.HIGH, 
+		DisplayLocation.BOTH, SoundType.ACHIEVEMENT, {
+		"item_name": item_name,
+		"action": "self_resurrect"
+	})
+
+## Respawn at ankh notification
+func notify_respawn_ankh(entity_id: String, ankh_name: String) -> void:
+	send(entity_id, "Respawning at %s..." % ankh_name, NotificationType.SYSTEM, Priority.NORMAL, 
+		DisplayLocation.CHAT_LOG, SoundType.NONE, {
+		"ankh_name": ankh_name,
+		"method": "ankh"
+	})
+
+## Respawn timer notification
+func notify_respawn_timer(entity_id: String, seconds_remaining: int) -> void:
+	if seconds_remaining <= 5:
+		send(entity_id, "Respawning in %d..." % seconds_remaining, NotificationType.SYSTEM, Priority.LOW, 
+			DisplayLocation.CENTER_SCREEN, SoundType.NOTIFICATION, {
+			"seconds": seconds_remaining
+		})
+
+## Corpse expiring soon warning
+func notify_corpse_expiring(entity_id: String, seconds_remaining: int) -> void:
+	send(entity_id, "⚠️ Your corpse will disappear in %d seconds!" % seconds_remaining, NotificationType.WARNING, Priority.NORMAL,
+		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
+		"seconds": seconds_remaining
+	})
+
+## Corpse looted by another player
+func notify_corpse_looted_victim(entity_id: String, looter_name: String, item_name: String = "") -> void:
+	var message := "%s has looted your corpse" % looter_name
+	if item_name != "":
+		message += ": %s" % item_name
+	send(entity_id, message, NotificationType.ITEM, Priority.LOW, DisplayLocation.CHAT_LOG, SoundType.NONE, {
+		"looter_name": looter_name,
+		"item_name": item_name
+	})
+
+## Cannot loot notification
+func notify_cannot_loot(entity_id: String, reason: String) -> void:
+	send(entity_id, "Cannot loot: %s" % reason, NotificationType.WARNING, Priority.LOW, 
+		DisplayLocation.CHAT_LOG, SoundType.NONE, {
+		"reason": reason
+	})
+
+## Ankh bound notification
+func notify_ankh_bound(entity_id: String, ankh_name: String) -> void:
+	send(entity_id, "✝️ Bound to %s" % ankh_name, NotificationType.SYSTEM, Priority.NORMAL, 
+		DisplayLocation.CHAT_LOG, SoundType.NOTIFICATION, {
+		"ankh_name": ankh_name
+	})
+
+## Cannot bind to ankh notification
+func notify_cannot_bind_ankh(entity_id: String, reason: String) -> void:
+	send(entity_id, "Cannot bind to ankh: %s" % reason, NotificationType.WARNING, Priority.NORMAL, 
+		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
+		"reason": reason
+	})
+
+## PvP kill feed notification
+func notify_pvp_kill(killer_name: String, victim_name: String, zone_name: String = "") -> void:
+	var message := "%s defeated %s" % [killer_name, victim_name]
+	if zone_name != "":
+		message += " in %s" % zone_name
+	
+	# Broadcast to nearby players
+	var scope := AlertScope.new()
+	scope.is_server_wide = GameConfig.Social.BROADCAST_PVP_KILLS if GameConfig and GameConfig.Social else false
+	broadcast_alert(message, scope, NotificationType.COMBAT, Priority.NORMAL, DisplayLocation.CHAT_LOG, SoundType.WARNING, {
+		"killer_name": killer_name,
+		"victim_name": victim_name,
+		"zone_name": zone_name,
+		"type": "pvp_kill"
+	})
+
+## Revive abuse detected warning
+func notify_revive_abuse_warning(entity_id: String, context: String) -> void:
+	send(entity_id, "⚠️ Revive abuse detected in %s. Further abuse will result in karma loss." % context,
+		NotificationType.WARNING, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.WARNING, {
+		"context": context,
+		"type": "abuse_warning"
+	})
+
+## ============================================================================
+## UTILITY METHODS
+## ============================================================================
+
+## Send notification to a player by their name
+func send_to_player_name(player_name: String, message: String, notif_type: NotificationType = NotificationType.SYSTEM,
+		priority: Priority = Priority.NORMAL, location: DisplayLocation = DisplayLocation.CHAT_LOG,
+		sound: SoundType = SoundType.NOTIFICATION, data: Dictionary = {}) -> bool:
+	var entity_service = EntityService
+	if entity_service == null:
+		Logger.warn("NotificationService: Cannot find player by name - EntityService not available")
+		return false
+	
+	var players = entity_service.get_all_players()
+	for player in players:
+		if player.has("display_name") and player.display_name == player_name:
+			send(player.entity_id, message, notif_type, priority, location, sound, data)
+			return true
+	
+	Logger.debug("NotificationService: Player not found: %s" % player_name)
+	return false
 
 ## Get unread notifications for entity
 func get_unread(entity_id: String) -> Array[Dictionary]:
