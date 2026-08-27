@@ -110,9 +110,9 @@ func get_available_actions(source_id: String) -> Array:
 			continue
 		
 		# Check category requirements
-		if action.category == ActionCategory.MODERATION and source_level < PermissionSystem.Global.MOD:
+		if action.category == ActionCategory.MODERATION and source_level < PermissionManager.Level.MOD:
 			continue
-		if action.category == ActionCategory.ADMIN and source_level < PermissionSystem.Global.ADMIN:
+		if action.category == ActionCategory.ADMIN and source_level < PermissionManager.Level.ADMIN:
 			continue
 		
 		# Check if target is online for online-required actions
@@ -264,7 +264,7 @@ func _register_default_actions() -> void:
 		ActionCategory.VIP_SOCIAL,
 		func(src, tgt): return _action_trade(src, tgt),
 		true,
-		PermissionSystem.Global.VIP
+		PermissionManager.Level.VIP
 	))
 	
 	# === MODERATION (Requires MOD) ===
@@ -275,7 +275,7 @@ func _register_default_actions() -> void:
 		ActionCategory.MODERATION,
 		func(src, tgt): return _action_mute(src, tgt),
 		true,
-		PermissionSystem.Global.MOD
+		PermissionManager.Level.MOD
 	))
 	
 	register_action(PlayerAction.new(
@@ -285,7 +285,7 @@ func _register_default_actions() -> void:
 		ActionCategory.MODERATION,
 		func(src, tgt): return _action_kick(src, tgt),
 		true,
-		PermissionSystem.Global.MOD
+		PermissionManager.Level.MOD
 	))
 	
 	register_action(PlayerAction.new(
@@ -295,7 +295,7 @@ func _register_default_actions() -> void:
 		ActionCategory.MODERATION,
 		func(src, tgt): return _action_mod_lookup(src, tgt),
 		true,
-		PermissionSystem.Global.MOD
+		PermissionManager.Level.MOD
 	))
 	
 	# === ADMIN (Requires ADMIN) ===
@@ -306,7 +306,7 @@ func _register_default_actions() -> void:
 		ActionCategory.ADMIN,
 		func(src, tgt): return _action_ban(src, tgt),
 		true,
-		PermissionSystem.Global.ADMIN
+		PermissionManager.Level.ADMIN
 	))
 	
 	register_action(PlayerAction.new(
@@ -316,7 +316,7 @@ func _register_default_actions() -> void:
 		ActionCategory.ADMIN,
 		func(src, tgt): return _action_restrict(src, tgt),
 		true,
-		PermissionSystem.Global.ADMIN
+		PermissionManager.Level.ADMIN
 	))
 
 ## ============================================================================
@@ -404,8 +404,8 @@ func _action_restrict(source_id: String, target_id: String) -> Dictionary:
 ## ============================================================================
 
 func _get_player_level(player_id: String) -> int:
-	if PermissionSystem:
-		return PermissionSystem.get().get_global_level(player_id)
+	if PermissionManager:
+		return PermissionManager.get_player_level(player_id)
 	return 0
 
 func _is_target_online() -> bool:
