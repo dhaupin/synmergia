@@ -82,6 +82,13 @@ func send_message(sender_id: String, channel: Channel, message: String, target_i
                 Logger.debug("ChatService: Rate limited message from %s" % sender_id)
                 return false
         
+        # Security: Validate message content
+        var validation := SecurityService.validate_message(message, sender_id)
+        if not validation.valid:
+                Logger.debug("ChatService: Invalid message from %s: %s" % [sender_id, validation.reason])
+                return false
+        message = validation.sanitized
+
         # Truncate message to max length
         if message.length() > MAX_MESSAGE_LENGTH:
                 message = message.substr(0, MAX_MESSAGE_LENGTH)
