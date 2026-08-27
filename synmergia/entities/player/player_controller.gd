@@ -24,7 +24,6 @@ var is_invincible: bool = false
 var is_attacking: bool = false
 var is_sprinting: bool = false
 var is_targeting: bool = false
-var current_target: Node3D = null
 
 # Components
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
@@ -48,7 +47,116 @@ func _ready() -> void:
 	if basic_attack == null:
 		basic_attack = _create_basic_attack()
 	
+	# Register with TargetingManager
+	TargetingManager.register_targetable(
+		entity_id,
+		"player",
+		self,
+		name,
+		global_position,
+		Entity.EntityType.PLAYER
+	)
+	
+	# Set local player for TargetingManager
+	TargetingManager.set_local_player(entity_id)
+	
+	# Connect to InteractionLayer for touch targeting
+	_connect_interaction_layer()
+	
 	Logger.info("PlayerController ready")
+
+func _connect_interaction_layer() -> void:
+	if InteractionLayer:
+		InteractionLayer.tap.connect(_on_interaction_tap)
+		InteractionLayer.double_tap.connect(_on_interaction_double_tap)
+		InteractionLayer.long_press.connect(_on_interaction_long_press)
+		InteractionLayer.action_triggered.connect(_on_interaction_action)
+
+## Handle tap (touch) - target entity
+func _on_interaction_tap(position: Vector2) -> void:
+	if not is_local_player:
+		return
+	
+	# Only handle taps on right side of screen (for movement)
+	var viewport_size := get_viewport_rect().size
+	if position.x < viewport_size.x * 0.3:
+		return  # Left side is movement joystick
+	
+	_handle_left_click(position)
+
+## Handle double tap - quick target
+func _on_interaction_double_tap(position: Vector2) -> void:
+	if not is_local_player:
+		return
+	
+	# Quick target nearest enemy
+	_find_and_set_nearest_target()
+
+## Handle long press - context menu
+func _on_interaction_long_press(position: Vector2) -> void:
+	if not is_local_player:
+		return
+	
+	# Raycast to find target
+	var camera := _get_camera()
+	if camera:
+		var target_info := TargetingManager.raycast_from_touch(position, camera)
+		if target_info:
+			_show_target_context_menu(target_info)
+
+## Handle action triggers from InteractionLayer
+func _on_interaction_action(action_name: String) -> void:
+	if not is_local_player:
+		return
+	
+	match action_name:
+		"target_next":
+			cycle_target()
+		"target_prev":
+			cycle_target_previous()
+		"focus":
+			# Focus on current target
+			pass
+		"target_self":
+			_target_self()
+		"cancel":
+			clear_target()
+
+## Target self
+func _target_self() -> void:
+	TargetingManager.set_target(
+		entity_id,
+		"player",
+		name,
+		global_position,
+		self,
+		Entity.EntityType.PLAYER
+	)
+	is_targeting = false  # Self-target doesn't enable targeting mode
+
+## Show target context menu
+func _show_target_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+	match target_info.entity_type:
+		Entity.EntityType.PLAYER:
+			_show_player_context_menu(target_info)
+		Entity.EntityType.NPC:
+			_show_npc_context_menu(target_info)
+		Entity.EntityType.LOOT:
+			_show_loot_context_menu(target_info)
+		Entity.EntityType.TELEPORT:
+			_show_gateway_context_menu(target_info)
+
+func _show_npc_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+	# Show NPC interaction menu (talk, trade, etc.)
+	pass
+
+func _show_loot_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+	# Show loot interaction (loot, pass)
+	pass
+
+func _show_gateway_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+	# Show gateway interaction (enter, cancel)
+	pass
 
 func _create_basic_attack() -> Skill:
 	var skill := Skill.new()
@@ -112,6 +220,61 @@ func _on_player_input(action: String, pressed: bool) -> void:
 		"target_next":
 			if pressed:
 				cycle_target()
+		"target_previous":
+			if pressed:
+				cycle_target_previous()
+
+## Cycle to next target (Tab)
+func cycle_target() -> void:
+	var camera := _get_camera()
+	if not camera:
+		return
+	
+	# Raycast in look direction to find targetable
+	var look_dir := -camera.global_transform.basis.z
+	var target_info := TargetingManager.get_target_in_direction(global_position, look_dir, 50.0)
+	
+	if target_info:
+		TargetingManager.set_target(
+			target_info.id,
+			target_info.schema_id,
+			target_info.display_name,
+			target_info.world_position,
+			target_info.node,
+			target_info.entity_type
+		)
+		is_targeting = true
+	else:
+		# Find nearest targetable if raycast didn't hit
+		_find_and_set_nearest_target()
+
+## Cycle to previous target (Shift+Tab)
+func cycle_target_previous() -> void:
+	TargetingManager.restore_previous()
+
+func _find_and_set_nearest_target() -> void:
+	# Get all enemies and find nearest
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return
+	
+	# Sort by distance
+	enemies.sort_custom(func(a, b): 
+		return global_position.distance_to(a.global_position) < global_position.distance_to(b.global_position)
+	)
+	
+	# Target nearest
+	var nearest = enemies[0]
+	if nearest.has("entity_id"):
+		TargetingManager.set_target(
+			nearest.entity_id,
+			"enemy",
+			nearest.get("display_name", "Enemy"),
+			nearest.global_position,
+			nearest,
+			Entity.EntityType.ENEMY
+		)
+		is_targeting = true
 
 ## SKILL SYSTEM
 
@@ -121,12 +284,18 @@ func use_skill(slot: int) -> void:
 	
 	var skill: Skill = skillbar[slot]
 	if skill and skill.can_cast(self):
+		# Get target from TargetingManager
+		var target: Node = null
+		var target_info := TargetingManager.get_current_target()
+		if target_info:
+			target = target_info.node
+		
 		# Check if ground targeted
 		if skill.is_ground_targeted:
 			var ground_pos := _get_ground_target_position(skill.ground_target_range)
 			CombatSystem.execute_skill(self, skill, null, ground_pos)
 		else:
-			CombatSystem.execute_skill(self, skill, current_target)
+			CombatSystem.execute_skill(self, skill, target as Entity)
 
 func _get_ground_target_position(max_range: float) -> Vector3:
 	var direction := InputManager.last_direction
@@ -137,27 +306,97 @@ func _get_ground_target_position(max_range: float) -> Vector3:
 
 ## TARGETING
 
-func cycle_target(previous: bool = false) -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	if enemies.is_empty():
-		current_target = null
-		is_targeting = false
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_local_player:
 		return
 	
-	# Sort by distance
-	enemies.sort_custom(func(a, b): 
-		return global_position.distance_to(a.global_position) < global_position.distance_to(b.global_position)
-	)
+	# Left click - target entity
+	if event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_handle_left_click(event.position)
+		# Right click - clear target or context menu
+		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			_handle_right_click()
 	
-	var current_idx := enemies.find(current_target) if current_target in enemies else -1
-	var next_idx := (current_idx + 1) % enemies.size() if not previous else (current_idx - 1 + enemies.size()) % enemies.size()
+	# Escape - clear target
+	if event is InputEventKey:
+		if event.pressed and event.keycode == KEY_ESCAPE:
+			clear_target()
+
+func _handle_left_click(screen_pos: Vector2) -> void:
+	var camera := _get_camera()
+	if not camera:
+		return
 	
-	current_target = enemies[next_idx]
-	is_targeting = true
+	# Raycast from camera
+	var target_info := TargetingManager.raycast_from_camera(screen_pos, camera)
+	
+	if target_info:
+		# Target the entity
+		TargetingManager.set_target(
+			target_info.id,
+			target_info.schema_id,
+			target_info.display_name,
+			target_info.world_position,
+			target_info.node,
+			target_info.entity_type
+		)
+		is_targeting = true
+		
+		# Show tooltip if applicable
+		_show_target_tooltip(target_info)
+	else:
+		# Clicked on nothing - clear target if not clicking on UI
+		if not _is_click_on_ui(screen_pos):
+			clear_target()
+
+func _handle_right_click() -> void:
+	# Right click while targeting opens context menu or clears target
+	if TargetingManager.has_target():
+		var target := TargetingManager.get_current_target()
+		if target and target.entity_type == Entity.EntityType.PLAYER:
+			_show_player_context_menu(target)
 
 func clear_target() -> void:
-	current_target = null
+	TargetingManager.clear_target()
 	is_targeting = false
+	_hide_target_tooltip()
+
+func _get_camera() -> Camera3D:
+	if camera_pivot and camera_pivot.get_child_count() > 0:
+		var cam = camera_pivot.get_child(0)
+		if cam is Camera3D:
+			return cam
+	return null
+
+func _is_click_on_ui(screen_pos: Vector2) -> bool:
+	var tree := get_tree()
+	if not tree:
+		return false
+	var root := tree.root
+	if not root:
+		return false
+	
+	# Check for UI elements at position
+	var controls := root.get_nodes_in_group("clickable")
+	for control in controls:
+		if control is Control:
+			var rect := Rect2(control.global_position, control.size)
+			if rect.has_point(screen_pos):
+				return true
+	return false
+
+func _show_target_tooltip(target_info: TargetingManager.TargetInfo) -> void:
+	# Emit signal or show tooltip UI
+	EventBus.entity_targeted.emit(entity_id, target_info.id, target_info.entity_type)
+
+func _hide_target_tooltip() -> void:
+	# Hide tooltip UI
+	pass
+
+func _show_player_context_menu(target: TargetingManager.TargetInfo) -> void:
+	# Show player interaction context menu
+	pass
 
 ## HITBOX & COMBAT
 

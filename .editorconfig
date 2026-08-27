@@ -1,0 +1,43 @@
+# EditorConfig for Synmergia
+# https://editorconfig.org
+
+root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# GDScript files (.gd)
+[*.gd]
+indent_style = tab
+indent_size = 4  # Visual tab width (actual tab character)
+tab_width = 4
+
+# Godot resource files
+[*.tres]
+indent_style = space
+indent_size = 2
+
+# Godot scene files
+[*.tscn]
+indent_style = space
+indent_size = 2
+
+# JSON (for any configs)
+[*.json]
+indent_style = space
+indent_size = 2
+
+# Markdown (for docs)
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+
+# Shell scripts
+[*.sh]
+indent_style = space
+indent_size = 4

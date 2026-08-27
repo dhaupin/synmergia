@@ -40,6 +40,9 @@ SecurityMonitor="*res://core/autoload/security_monitor.gd"
 AdminCommands="*res://core/utils/admin_commands.gd"
 AutoResponseService="*res://core/services/auto_response_service.gd"
 ServerManager="*res://core/services/server_manager.gd"
+InteractionLayer="*res://core/input/interaction_layer.gd"
+TargetingManager="*res://core/targeting/targeting_manager.gd"
+UIManager="*res://core/ui/ui_manager.gd"
 
 [display]
 

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TargetSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/target_schema.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "player"
+display_name = "Player"
+description = "Another player in the world"
+entity_type = 1
+interaction_mode = 1
+selection_mode = 0
+max_selection = 1
+selection_range = 10.0
+can_target_self = false
+can_target_while_dead = false
+requires_line_of_sight = true
+highlight_color = Color(0.3, 0.6, 1.0, 1.0)
+highlight_size = 1.0
+highlight_speed = 1.0
+available_actions = ["whisper", "invite_party", "invite_guild", "trade", "add_friend", "ignore", "report", "mod_mute", "mod_kick", "mod_lookup", "admin_ban", "admin_restrict"]
+default_action = ""
+tooltip_scene = ""
+show_health = true
+show_level = true
+show_status = true
+min_targeter_level = 1
+max_level_difference = 0
+required_faction = ""

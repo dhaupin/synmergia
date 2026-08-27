@@ -5,34 +5,34 @@ extends Node
 
 # Chat channels
 enum Channel {
-        SAY = 0,          # Local say
-        WHISPER = 1,      # Private message
-        YELL = 2,         # Large radius shout
-        ZONE = 3,         # Zone-wide chat
-        GLOBAL = 4,       # Server-wide chat
-        PARTY = 5,        # Party chat
-        GUILD = 6,        # Guild chat
-        ALLIANCE = 7,     # Alliance chat
-        TRADE = 8,        # Trade channel
-        SYSTEM = 9,       # System messages
-        COMBAT = 10,      # Combat log
-        EMOTE = 11        # Emotes
+				SAY = 0,					# Local say
+				WHISPER = 1,			# Private message
+				YELL = 2,					# Large radius shout
+				ZONE = 3,					# Zone-wide chat
+				GLOBAL = 4,				# Server-wide chat
+				PARTY = 5,				# Party chat
+				GUILD = 6,				# Guild chat
+				ALLIANCE = 7,			# Alliance chat
+				TRADE = 8,				# Trade channel
+				SYSTEM = 9,				# System messages
+				COMBAT = 10,			# Combat log
+				EMOTE = 11				# Emotes
 }
 
 # Channel info
 var _channel_info: Dictionary = {
-        Channel.SAY: {"name": "Say", "range": 20.0, "color": "#FFFFFF", "prefix": ""},
-        Channel.WHISPER: {"name": "Whisper", "range": 0.0, "color": "#FF99FF", "prefix": "From"},
-        Channel.YELL: {"name": "Yell", "range": 100.0, "color": "#FFFF00", "prefix": ""},
-        Channel.ZONE: {"name": "Zone", "range": 0.0, "color": "#00FF00", "prefix": ""},
-        Channel.GLOBAL: {"name": "Global", "range": 0.0, "color": "#00FFFF", "prefix": ""},
-        Channel.PARTY: {"name": "Party", "range": 0.0, "color": "#00FF88", "prefix": "[Party]"},
-        Channel.GUILD: {"name": "Guild", "range": 0.0, "color": "#FFAA00", "prefix": "[Guild]"},
-        Channel.ALLIANCE: {"name": "Alliance", "range": 0.0, "color": "#FF8800", "prefix": "[Alliance]"},
-        Channel.TRADE: {"name": "Trade", "range": 0.0, "color": "#FFFF88", "prefix": "[Trade]"},
-        Channel.SYSTEM: {"name": "System", "range": 0.0, "color": "#FF0000", "prefix": "[System]"},
-        Channel.COMBAT: {"name": "Combat", "range": 0.0, "color": "#FF4444", "prefix": ""},
-        Channel.EMOTE: {"name": "Emote", "range": 20.0, "color": "#FFAAFF", "prefix": ""}
+				Channel.SAY: {"name": "Say", "range": 20.0, "color": "#FFFFFF", "prefix": ""},
+				Channel.WHISPER: {"name": "Whisper", "range": 0.0, "color": "#FF99FF", "prefix": "From"},
+				Channel.YELL: {"name": "Yell", "range": 100.0, "color": "#FFFF00", "prefix": ""},
+				Channel.ZONE: {"name": "Zone", "range": 0.0, "color": "#00FF00", "prefix": ""},
+				Channel.GLOBAL: {"name": "Global", "range": 0.0, "color": "#00FFFF", "prefix": ""},
+				Channel.PARTY: {"name": "Party", "range": 0.0, "color": "#00FF88", "prefix": "[Party]"},
+				Channel.GUILD: {"name": "Guild", "range": 0.0, "color": "#FFAA00", "prefix": "[Guild]"},
+				Channel.ALLIANCE: {"name": "Alliance", "range": 0.0, "color": "#FF8800", "prefix": "[Alliance]"},
+				Channel.TRADE: {"name": "Trade", "range": 0.0, "color": "#FFFF88", "prefix": "[Trade]"},
+				Channel.SYSTEM: {"name": "System", "range": 0.0, "color": "#FF0000", "prefix": "[System]"},
+				Channel.COMBAT: {"name": "Combat", "range": 0.0, "color": "#FF4444", "prefix": ""},
+				Channel.EMOTE: {"name": "Emote", "range": 20.0, "color": "#FFAAFF", "prefix": ""}
 }
 
 # Player chat settings (entity_id -> settings)
@@ -49,15 +49,15 @@ const MAX_HISTORY_PER_CHANNEL: int = GameConfig.Chat.MAX_HISTORY_PER_CHANNEL
 var _subscriptions: Dictionary = {}
 
 # Spam protection
-var _player_last_message: Dictionary = {}  # entity_id -> timestamp
-const SPAM_COOLDOWN_MS: int = 500  # Half second between messages
-const SPAM_THRESHOLD: int = 5  # Messages per time window
+var _player_last_message: Dictionary = {}	 # entity_id -> timestamp
+const SPAM_COOLDOWN_MS: int = 500	 # Half second between messages
+const SPAM_THRESHOLD: int = 5	 # Messages per time window
 const MAX_MESSAGE_LENGTH: int = GameConfig.Chat.MAX_MESSAGE_LENGTH
-var _spam_count: Dictionary = {}  # entity_id -> count
+var _spam_count: Dictionary = {}	# entity_id -> count
 
 # Profanity filter
 var _profanity_list: Array = [
-        "badword1", "badword2"  # TODO: Load from config
+				"badword1", "badword2"	# TODO: Load from config
 ]
 
 signal message_received(sender_id: String, channel: Channel, message: String, targets: Array)
@@ -68,148 +68,213 @@ signal player_unignored(ignorer_id: String, ignored_id: String)
 signal channel_settings_changed(entity_id: String, channel: Channel)
 
 func _ready() -> void:
-        Logger.info("ChatService: Ready")
-        
-        # Initialize history for each channel
-        for channel in Channel:
-                _chat_history[channel] = []
+				Logger.info("ChatService: Ready")
+				
+				# Initialize history for each channel
+				for channel in Channel:
+								_chat_history[channel] = []
 
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
-        # Security: Check channel-specific restrictions
-        var restriction_msg := _get_channel_restriction_message(sender_id, channel)
-        if restriction_msg != "":
-                _notify_player(sender_id, restriction_msg)
-                return false
-        
-        # QoS: Rate limit chat messages (player is already notified by QoSService)
-        var action_type = "chat" if channel != Channel.WHISPER else "whisper"
-        if not QoSService.rate_limit(sender_id, action_type):
-                return false
-        
-        # Security: Validate message content
-        var validation := SecurityService.validate_message(message, sender_id)
-        if not validation.valid:
-                _notify_player(sender_id, "Message blocked: %s" % validation.reason)
-                return false
-        message = validation.sanitized
+				# Security: Check channel-specific restrictions
+				var restriction_msg := _get_channel_restriction_message(sender_id, channel)
+				if restriction_msg != "":
+								_notify_player(sender_id, restriction_msg)
+								return false
+				
+				# QoS: Rate limit chat messages (player is already notified by QoSService)
+				var action_type = "chat" if channel != Channel.WHISPER else "whisper"
+				if not QoSService.rate_limit(sender_id, action_type):
+								return false
+				
+				# Security: Validate message content
+				var validation := SecurityService.validate_message(message, sender_id)
+				if not validation.valid:
+								_notify_player(sender_id, "Message blocked: %s" % validation.reason)
+								return false
+				message = validation.sanitized
 
-        # Truncate message to max length
-        if message.length() > MAX_MESSAGE_LENGTH:
-                message = message.substr(0, MAX_MESSAGE_LENGTH)
+				# Truncate message to max length
+				if message.length() > MAX_MESSAGE_LENGTH:
+								message = message.substr(0, MAX_MESSAGE_LENGTH)
 
-        # Spam check
-        if not _check_spam(sender_id):
-                _notify_player(sender_id, "Slow down! You are sending messages too fast.")
-                return false
-        
-        # Check if ignored
-        if channel == Channel.WHISPER and target_id != "":
-                if _is_ignored(target_id, sender_id):
-                        return false
-        
-        # Filter profanity
-        message = _filter_profanity(message)
-        
-        # Get targets based on channel
-        var targets: Array = _get_channel_targets(sender_id, channel, target_id)
-        
-        if targets.is_empty():
-                return false
-        
-        # Create chat message
-        var chat_message := {
-                "id": "msg_%d" % Time.get_ticks_msec(),
-                "sender_id": sender_id,
-                "channel": channel,
-                "message": message,
-                "timestamp": Time.get_unix_time_from_system(),
-                "target_id": target_id
-        }
-        
-        # Store in history
-        _add_to_history(channel, chat_message)
-        
-        # Emit signal
-        message_received.emit(sender_id, channel, message, targets)
-        
-        # Route to appropriate handler
-        _route_message(sender_id, channel, message, targets, target_id)
-        
-        return true
+				# Spam check
+				if not _check_spam(sender_id):
+								_notify_player(sender_id, "Slow down! You are sending messages too fast.")
+								return false
+				
+				# Check if ignored
+				if channel == Channel.WHISPER and target_id != "":
+								if _is_ignored(target_id, sender_id):
+												return false
+				
+				# Filter profanity
+				message = _filter_profanity(message)
+				
+				# Get targets based on channel
+				var targets: Array = _get_channel_targets(sender_id, channel, target_id)
+				
+				if targets.is_empty():
+								return false
+				
+				# Create chat message
+				var chat_message := {
+								"id": "msg_%d" % Time.get_ticks_msec(),
+								"sender_id": sender_id,
+								"channel": channel,
+								"message": message,
+								"timestamp": Time.get_unix_time_from_system(),
+								"target_id": target_id
+				}
+				
+				# Store in history
+				_add_to_history(channel, chat_message)
+				
+				# Emit signal
+				message_received.emit(sender_id, channel, message, targets)
+				
+				# Route to appropriate handler
+				_route_message(sender_id, channel, message, targets, target_id)
+				
+				return true
 
 ## Check for spam
 func _check_spam(entity_id: String) -> bool:
-        var now := Time.get_ticks_msec()
-        var last := _player_last_message.get(entity_id, 0)
-        
-        # Reset if cooldown passed
-        if now - last > SPAM_COOLDOWN_MS:
-                _spam_count[entity_id] = 0
-        
-        _player_last_message[entity_id] = now
-        _spam_count[entity_id] = _spam_count.get(entity_id, 0) + 1
-        
-        return _spam_count[entity_id] <= SPAM_THRESHOLD * 10  # Allow burst
+				var now := Time.get_ticks_msec()
+				var last := _player_last_message.get(entity_id, 0)
+				
+				# Reset if cooldown passed
+				if now - last > SPAM_COOLDOWN_MS:
+								_spam_count[entity_id] = 0
+				
+				_player_last_message[entity_id] = now
+				_spam_count[entity_id] = _spam_count.get(entity_id, 0) + 1
+				
+				return _spam_count[entity_id] <= SPAM_THRESHOLD * 10	# Allow burst
 
 ## Filter profanity
 func _filter_profanity(message: String) -> String:
-        for word in _profanity_list:
-                var regex := RegEx.new()
-                regex.compile(word)
-                message = regex.sub(message, "*".repeat(word.length()), true)
-        return message
+				for word in _profanity_list:
+								var regex := RegEx.new()
+								regex.compile(word)
+								message = regex.sub(message, "*".repeat(word.length()), true)
+				return message
 
 ## Get targets for channel
 func _get_channel_targets(sender_id: String, channel: Channel, target_id: String) -> Array:
-        match channel:
-                Channel.SAY, Channel.YELL, Channel.ZONE:
-                        # Return players in range or zone
-                        return _get_players_in_channel_range(sender_id, channel)
-                Channel.WHISPER:
-                        return [target_id] if target_id != "" else []
-                Channel.PARTY:
-                        return _get_party_members(sender_id)
-                Channel.GUILD:
-                        return _get_guild_members(sender_id)
-                Channel.ALLIANCE:
-                        return _get_alliance_members(sender_id)
-                Channel.GLOBAL, Channel.TRADE:
-                        return []  # Handled server-side
-                Channel.SYSTEM:
-                        return []  # System messages don't route
-        return []
+				match channel:
+								Channel.SAY, Channel.YELL, Channel.ZONE:
+												# Return players in range or zone
+												return _get_players_in_channel_range(sender_id, channel)
+								Channel.WHISPER:
+												return [target_id] if target_id != "" else []
+								Channel.PARTY:
+												return _get_party_members(sender_id)
+								Channel.GUILD:
+												return _get_guild_members(sender_id)
+								Channel.ALLIANCE:
+												return _get_alliance_members(sender_id)
+								Channel.GLOBAL, Channel.TRADE:
+												return []	 # Handled server-side
+								Channel.SYSTEM:
+												return []	 # System messages don't route
+				return []
 
 ## Get players in range
 func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array:
-        # TODO: Implement actual range checking with zone manager
-        # For now, return empty (handled client-side or server-side)
-        return []
+				if not EntityService:
+								Logger.warn("ChatService: EntityService not available for range check")
+								return []
+				
+				# Get sender entity
+				var sender: Entity = EntityService.get_entity(sender_id)
+				if not sender or not is_instance_valid(sender):
+								Logger.warn("ChatService: Sender entity not found for range check: %s" % sender_id)
+								return []
+				
+				# Get range from channel config
+				var channel_range: float = 0.0
+				match channel:
+								Channel.SAY:
+												channel_range = 20.0
+								Channel.YELL:
+												channel_range = 100.0
+								Channel.EMOTE:
+												channel_range = 20.0
+								Channel.ZONE:
+												# Zone-wide = no range limit, return all players in zone
+												return _get_players_in_same_zone(sender_id)
+				
+				if channel_range <= 0:
+								return []
+				
+				# Get players within range
+				var nearby_entities := EntityService.get_entities_in_radius(
+								sender.global_position if sender is Node3D else Vector3.ZERO,
+								channel_range,
+								Entity.EntityType.PLAYER
+				)
+				
+				# Convert to player IDs, excluding sender
+				var player_ids: Array[String] = []
+				for entity in nearby_entities:
+								if is_instance_valid(entity) and entity.entity_id != sender_id:
+												player_ids.append(entity.entity_id)
+				
+				return player_ids
+
+## Get all players in the same zone
+func _get_players_in_same_zone(sender_id: String) -> Array[String]:
+				if not EntityService:
+								return []
+				
+				var sender: Entity = EntityService.get_entity(sender_id)
+				if not sender or not is_instance_valid(sender):
+								return []
+				
+				# Get sender's zone from metadata
+				var metadata: EventBus.SpawnMetadata = EntityService.get_entity_metadata(sender_id)
+				if not metadata or metadata.zone_id == "":
+								Logger.debug("ChatService: No zone info for sender, returning empty range list")
+								return []
+				
+				# Find all players in the same zone
+				var all_players := EntityService.get_all_players()
+				var zone_players: Array[String] = []
+				
+				for player in all_players:
+								if not is_instance_valid(player) or player.entity_id == sender_id:
+												continue
+								var player_metadata: EventBus.SpawnMetadata = EntityService.get_entity_metadata(player.entity_id)
+								if player_metadata and player_metadata.zone_id == metadata.zone_id:
+												zone_players.append(player.entity_id)
+				
+				return zone_players
 
 ## Get party members
 func _get_party_members(player_id: String) -> Array:
-        var party_service = PartyService if "PartyService" in get_parent() else null
-        if not party_service:
-                # Try to get from autoload
-                if has_node("/root/PartyService"):
-                        party_service = get_node("/root/PartyService")
-        
-        if party_service and party_service.is_in_party(player_id):
-                return party_service.get_party_members(party_service.get_player_party(player_id).get("id", ""))
-        
-        return []
+				var party_service = PartyService if "PartyService" in get_parent() else null
+				if not party_service:
+								# Try to get from autoload
+								if has_node("/root/PartyService"):
+												party_service = get_node("/root/PartyService")
+				
+				if party_service and party_service.is_in_party(player_id):
+								return party_service.get_party_members(party_service.get_player_party(player_id).get("id", ""))
+				
+				return []
 
 ## Get guild members
 func _get_guild_members(player_id: String) -> Array[String]:
-        var guild_service = GuildService if "GuildService" in get_parent() else null
-        if not guild_service:
-                if has_node("/root/GuildService"):
-                        guild_service = get_node("/root/GuildService")
-        
-        if guild_service and guild_service.is_in_guild(player_id):
-                return guild_service.get_guild_roster(guild_service.get_player_guild(player_id).get("id", ""))
-        
-        return []
+				var guild_service = GuildService if "GuildService" in get_parent() else null
+				if not guild_service:
+								if has_node("/root/GuildService"):
+												guild_service = get_node("/root/GuildService")
+				
+				if guild_service and guild_service.is_in_guild(player_id):
+								return guild_service.get_guild_roster(guild_service.get_player_guild(player_id).get("id", ""))
+				
+				return []
 
 ## Send guild announcement (from guild system)
 func send_guild_announcement(guild_id: String, message: String, sender_name: String = "Guild") -> void:
@@ -233,308 +298,308 @@ func send_guild_announcement(guild_id: String, message: String, sender_name: Str
 
 ## Get alliance members
 func _get_alliance_members(player_id: String) -> Array[String]:
-        var guild_service = GuildService if "GuildService" in get_parent() else null
-        if not guild_service:
-                if has_node("/root/GuildService"):
-                        guild_service = get_node("/root/GuildService")
-        
-        if guild_service and guild_service.is_in_guild(player_id):
-                var guild := guild_service.get_player_guild(player_id)
-                var alliance := guild_service.get_guild_alliance(guild.get("id", ""))
-                return alliance.get("guild_ids", [])
-        
-        return []
+				var guild_service = GuildService if "GuildService" in get_parent() else null
+				if not guild_service:
+								if has_node("/root/GuildService"):
+												guild_service = get_node("/root/GuildService")
+				
+				if guild_service and guild_service.is_in_guild(player_id):
+								var guild := guild_service.get_player_guild(player_id)
+								var alliance := guild_service.get_guild_alliance(guild.get("id", ""))
+								return alliance.get("guild_ids", [])
+				
+				return []
 
 ## Route message to handlers
 func _route_message(sender_id: String, channel: Channel, message: String, targets: Array, target_id: String) -> void:
-        # Check for commands
-        if message.begins_with("/"):
-                _handle_command(sender_id, channel, message.substr(1), target_id)
-                return
-        
-        # Log chat
-        var channel_name := _channel_info[channel]["name"]
-        Logger.debug("ChatService: [%s] %s: %s" % [channel_name, sender_id, message])
+				# Check for commands
+				if message.begins_with("/"):
+								_handle_command(sender_id, channel, message.substr(1), target_id)
+								return
+				
+				# Log chat
+				var channel_name := _channel_info[channel]["name"]
+				Logger.debug("ChatService: [%s] %s: %s" % [channel_name, sender_id, message])
 
 ## Handle chat commands
 func _handle_command(sender_id: String, channel: Channel, command: String, target_id: String) -> bool:
-        var parts := command.split(" ")
-        var cmd := parts[0].to_lower()
-        var args := parts.slice(1, parts.size())
-        
-        match cmd:
-                "w", "whisper", "tell":
-                        return _cmd_whisper(sender_id, args)
-                "r", "reply":
-                        return _cmd_reply(sender_id, args)
-                "s", "say":
-                        return send_message(sender_id, Channel.SAY, args.join(" "))
-                "y", "yell":
-                        return send_message(sender_id, Channel.YELL, args.join(" "))
-                "p", "party":
-                        return send_message(sender_id, Channel.PARTY, args.join(" "))
-                "g", "guild":
-                        return send_message(sender_id, Channel.GUILD, args.join(" "))
-                "a", "alliance":
-                        return send_message(sender_id, Channel.ALLIANCE, args.join(" "))
-                "t", "trade":
-                        return send_message(sender_id, Channel.TRADE, args.join(" "))
-                "emote", "me", "e":
-                        return _cmd_emote(sender_id, args)
-                "ignore":
-                        return _cmd_ignore(sender_id, args)
-                "unignore":
-                        return _cmd_unignore(sender_id, args)
-                "muted":
-                        return _cmd_muted(sender_id, args)
-                "report":
-                        return _cmd_report(sender_id, args)
-                "bug":
-                        return _cmd_bug(sender_id, args)
-                "feedback":
-                        return _cmd_feedback(sender_id, args)
-                "suggest":
-                        return _cmd_suggest(sender_id, args)
-        
-        return false
+				var parts := command.split(" ")
+				var cmd := parts[0].to_lower()
+				var args := parts.slice(1, parts.size())
+				
+				match cmd:
+								"w", "whisper", "tell":
+												return _cmd_whisper(sender_id, args)
+								"r", "reply":
+												return _cmd_reply(sender_id, args)
+								"s", "say":
+												return send_message(sender_id, Channel.SAY, args.join(" "))
+								"y", "yell":
+												return send_message(sender_id, Channel.YELL, args.join(" "))
+								"p", "party":
+												return send_message(sender_id, Channel.PARTY, args.join(" "))
+								"g", "guild":
+												return send_message(sender_id, Channel.GUILD, args.join(" "))
+								"a", "alliance":
+												return send_message(sender_id, Channel.ALLIANCE, args.join(" "))
+								"t", "trade":
+												return send_message(sender_id, Channel.TRADE, args.join(" "))
+								"emote", "me", "e":
+												return _cmd_emote(sender_id, args)
+								"ignore":
+												return _cmd_ignore(sender_id, args)
+								"unignore":
+												return _cmd_unignore(sender_id, args)
+								"muted":
+												return _cmd_muted(sender_id, args)
+								"report":
+												return _cmd_report(sender_id, args)
+								"bug":
+												return _cmd_bug(sender_id, args)
+								"feedback":
+												return _cmd_feedback(sender_id, args)
+								"suggest":
+												return _cmd_suggest(sender_id, args)
+				
+				return false
 
 ## Command: Whisper
 func _cmd_whisper(sender_id: String, args: Array) -> bool:
-        if args.size() < 2:
-                send_system_message(sender_id, "Usage: /w <player> <message>")
-                return false
-        
-        var target := args[0]
-        var message := args.slice(1, args.size()).join(" ")
-        
-        # TODO: Look up player by name
-        return send_message(sender_id, Channel.WHISPER, message, target)
+				if args.size() < 2:
+								send_system_message(sender_id, "Usage: /w <player> <message>")
+								return false
+				
+				var target := args[0]
+				var message := args.slice(1, args.size()).join(" ")
+				
+				# TODO: Look up player by name
+				return send_message(sender_id, Channel.WHISPER, message, target)
 
 ## Command: Reply
 func _cmd_reply(sender_id: String, args: Array) -> bool:
-        # TODO: Track last whisper target per player
-        if args.is_empty():
-                return false
-        
-        var message := args.join(" ")
-        # var last_target = _player_last_whisper.get(sender_id, "")
-        # return send_message(sender_id, Channel.WHISPER, message, last_target)
-        return false
+				# TODO: Track last whisper target per player
+				if args.is_empty():
+								return false
+				
+				var message := args.join(" ")
+				# var last_target = _player_last_whisper.get(sender_id, "")
+				# return send_message(sender_id, Channel.WHISPER, message, last_target)
+				return false
 
 ## Command: Emote
 func _cmd_emote(sender_id: String, args: Array) -> bool:
-        var emote := args.join(" ")
-        return send_message(sender_id, Channel.EMOTE, emote)
+				var emote := args.join(" ")
+				return send_message(sender_id, Channel.EMOTE, emote)
 
 ## Command: Ignore
 func _cmd_ignore(sender_id: String, args: Array) -> bool:
-        if args.is_empty():
-                return false
-        
-        var target := args[0]
-        
-        if not _ignored_players.has(sender_id):
-                _ignored_players[sender_id] = []
-        
-        if not _ignored_players[sender_id].has(target):
-                _ignored_players[sender_id].append(target)
-                player_ignored.emit(sender_id, target)
-                send_system_message(sender_id, "Ignored %s" % target)
-        
-        return true
+				if args.is_empty():
+								return false
+				
+				var target := args[0]
+				
+				if not _ignored_players.has(sender_id):
+								_ignored_players[sender_id] = []
+				
+				if not _ignored_players[sender_id].has(target):
+								_ignored_players[sender_id].append(target)
+								player_ignored.emit(sender_id, target)
+								send_system_message(sender_id, "Ignored %s" % target)
+				
+				return true
 
 ## Command: Unignore
 func _cmd_unignore(sender_id: String, args: Array) -> bool:
-        if args.is_empty():
-                return false
-        
-        var target := args[0]
-        
-        if _ignored_players.has(sender_id) and _ignored_players[sender_id].has(target):
-                _ignored_players[sender_id].erase(target)
-                player_unignored.emit(sender_id, target)
-                send_system_message(sender_id, "Stopped ignoring %s" % target)
-        
-        return true
+				if args.is_empty():
+								return false
+				
+				var target := args[0]
+				
+				if _ignored_players.has(sender_id) and _ignored_players[sender_id].has(target):
+								_ignored_players[sender_id].erase(target)
+								player_unignored.emit(sender_id, target)
+								send_system_message(sender_id, "Stopped ignoring %s" % target)
+				
+				return true
 
 ## Command: Muted
 func _cmd_muted(sender_id: String, args: Array) -> bool:
-        var muted := _ignored_players.get(sender_id, [])
-        if muted.is_empty():
-                send_system_message(sender_id, "You are not ignoring anyone")
-        else:
-                send_system_message(sender_id, "Ignored: %s" % ", ".join(muted))
-        return true
+				var muted := _ignored_players.get(sender_id, [])
+				if muted.is_empty():
+								send_system_message(sender_id, "You are not ignoring anyone")
+				else:
+								send_system_message(sender_id, "Ignored: %s" % ", ".join(muted))
+				return true
 
 ## Command: Report player abuse
 func _cmd_report(sender_id: String, args: Array) -> bool:
-        if args.size() < 2:
-                send_system_message(sender_id, "Usage: /report <player> <reason>")
-                send_system_message(sender_id, "Reports are reviewed by moderators. For bugs, use /bug")
-                return true
-        
-        var target := args[0]
-        var reason := args.slice(1, args.size()).join(" ")
-        
-        if PlayerReporter:
-                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.ABUSE, {
-                        "target": target,
-                        "reason": reason
-                })
-                if result.success:
-                        send_system_message(sender_id, "Report submitted. Thank you for helping keep the community safe.")
-                else:
-                        send_system_message(sender_id, "Failed to submit report: %s" % result.message)
-        else:
-                send_system_message(sender_id, "Report system not available. Please try again later.")
-        
-        return true
+				if args.size() < 2:
+								send_system_message(sender_id, "Usage: /report <player> <reason>")
+								send_system_message(sender_id, "Reports are reviewed by moderators. For bugs, use /bug")
+								return true
+				
+				var target := args[0]
+				var reason := args.slice(1, args.size()).join(" ")
+				
+				if PlayerReporter:
+								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.ABUSE, {
+												"target": target,
+												"reason": reason
+								})
+								if result.success:
+												send_system_message(sender_id, "Report submitted. Thank you for helping keep the community safe.")
+								else:
+												send_system_message(sender_id, "Failed to submit report: %s" % result.message)
+				else:
+								send_system_message(sender_id, "Report system not available. Please try again later.")
+				
+				return true
 
 ## Command: Report bug
 func _cmd_bug(sender_id: String, args: Array) -> bool:
-        if args.is_empty():
-                send_system_message(sender_id, "Usage: /bug <description>")
-                send_system_message(sender_id, "Describe the bug clearly: what happened, what you expected, steps to reproduce.")
-                return true
-        
-        var description := args.join(" ")
-        
-        if PlayerReporter:
-                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.BUG, {
-                        "description": description
-                })
-                if result.success:
-                        send_system_message(sender_id, "Bug report submitted. Thank you!")
-                else:
-                        send_system_message(sender_id, "Failed to submit bug report: %s" % result.message)
-        else:
-                send_system_message(sender_id, "Bug report system not available. Please try again later.")
-        
-        return true
+				if args.is_empty():
+								send_system_message(sender_id, "Usage: /bug <description>")
+								send_system_message(sender_id, "Describe the bug clearly: what happened, what you expected, steps to reproduce.")
+								return true
+				
+				var description := args.join(" ")
+				
+				if PlayerReporter:
+								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.BUG, {
+												"description": description
+								})
+								if result.success:
+												send_system_message(sender_id, "Bug report submitted. Thank you!")
+								else:
+												send_system_message(sender_id, "Failed to submit bug report: %s" % result.message)
+				else:
+								send_system_message(sender_id, "Bug report system not available. Please try again later.")
+				
+				return true
 
 ## Command: Send feedback
 func _cmd_feedback(sender_id: String, args: Array) -> bool:
-        if args.is_empty():
-                send_system_message(sender_id, "Usage: /feedback <message>")
-                send_system_message(sender_id, "Share your thoughts, suggestions, or concerns.")
-                return true
-        
-        var message := args.join(" ")
-        
-        if PlayerReporter:
-                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.FEEDBACK, {
-                        "message": message
-                })
-                if result.success:
-                        send_system_message(sender_id, "Feedback submitted. Thank you for your input!")
-                else:
-                        send_system_message(sender_id, "Failed to submit feedback: %s" % result.message)
-        else:
-                send_system_message(sender_id, "Feedback system not available. Please try again later.")
-        
-        return true
+				if args.is_empty():
+								send_system_message(sender_id, "Usage: /feedback <message>")
+								send_system_message(sender_id, "Share your thoughts, suggestions, or concerns.")
+								return true
+				
+				var message := args.join(" ")
+				
+				if PlayerReporter:
+								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.FEEDBACK, {
+												"message": message
+								})
+								if result.success:
+												send_system_message(sender_id, "Feedback submitted. Thank you for your input!")
+								else:
+												send_system_message(sender_id, "Failed to submit feedback: %s" % result.message)
+				else:
+								send_system_message(sender_id, "Feedback system not available. Please try again later.")
+				
+				return true
 
 ## Command: Suggest feature
 func _cmd_suggest(sender_id: String, args: Array) -> bool:
-        if args.is_empty():
-                send_system_message(sender_id, "Usage: /suggest <idea>")
-                send_system_message(sender_id, "Share your feature ideas with the community.")
-                return true
-        
-        var suggestion := args.join(" ")
-        
-        if PlayerReporter:
-                var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.SUGGESTION, {
-                        "suggestion": suggestion
-                })
-                if result.success:
-                        send_system_message(sender_id, "Suggestion submitted! The community can vote on it.")
-                else:
-                        send_system_message(sender_id, "Failed to submit suggestion: %s" % result.message)
-        else:
-                send_system_message(sender_id, "Suggestion system not available. Please try again later.")
-        
-        return true
+				if args.is_empty():
+								send_system_message(sender_id, "Usage: /suggest <idea>")
+								send_system_message(sender_id, "Share your feature ideas with the community.")
+								return true
+				
+				var suggestion := args.join(" ")
+				
+				if PlayerReporter:
+								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.SUGGESTION, {
+												"suggestion": suggestion
+								})
+								if result.success:
+												send_system_message(sender_id, "Suggestion submitted! The community can vote on it.")
+								else:
+												send_system_message(sender_id, "Failed to submit suggestion: %s" % result.message)
+				else:
+								send_system_message(sender_id, "Suggestion system not available. Please try again later.")
+				
+				return true
 
 ## Check if player is ignored
 func _is_ignored(ignorer_id: String, ignored_id: String) -> bool:
-        var ignored := _ignored_players.get(ignorer_id, [])
-        return ignored.has(ignored_id)
+				var ignored := _ignored_players.get(ignorer_id, [])
+				return ignored.has(ignored_id)
 
 ## Send system message
 func send_system_message(target_id: String, message: String) -> void:
-        var chat_message := {
-                "id": "msg_%d" % Time.get_ticks_msec(),
-                "sender_id": "SYSTEM",
-                "channel": Channel.SYSTEM,
-                "message": message,
-                "timestamp": Time.get_unix_time_from_system(),
-                "target_id": target_id
-        }
-        
-        message_received.emit("SYSTEM", Channel.SYSTEM, message, [target_id])
+				var chat_message := {
+								"id": "msg_%d" % Time.get_ticks_msec(),
+								"sender_id": "SYSTEM",
+								"channel": Channel.SYSTEM,
+								"message": message,
+								"timestamp": Time.get_unix_time_from_system(),
+								"target_id": target_id
+				}
+				
+				message_received.emit("SYSTEM", Channel.SYSTEM, message, [target_id])
 
 ## Add to chat history
 func _add_to_history(channel: Channel, message: Dictionary) -> void:
-        if not _chat_history.has(channel):
-                _chat_history[channel] = []
-        
-        _chat_history[channel].append(message)
-        
-        # Trim history
-        while _chat_history[channel].size() > MAX_HISTORY_PER_CHANNEL:
-                _chat_history[channel].pop_at(0)
+				if not _chat_history.has(channel):
+								_chat_history[channel] = []
+				
+				_chat_history[channel].append(message)
+				
+				# Trim history
+				while _chat_history[channel].size() > MAX_HISTORY_PER_CHANNEL:
+								_chat_history[channel].pop_at(0)
 
 ## Get chat history
 func get_channel_history(channel: Channel, limit: int = 20) -> Array:
-        var history: Array = _chat_history.get(channel, [])
-        return history.slice(max(0, history.size() - limit), history.size())
+				var history: Array = _chat_history.get(channel, [])
+				return history.slice(max(0, history.size() - limit), history.size())
 
 ## Subscribe to channel
 func subscribe_to_channel(entity_id: String, channel: Channel) -> void:
-        if not _subscriptions.has(entity_id):
-                _subscriptions[entity_id] = []
-        
-        if not _subscriptions[entity_id].has(channel):
-                _subscriptions[entity_id].append(channel)
-                channel_joined.emit(entity_id, channel)
+				if not _subscriptions.has(entity_id):
+								_subscriptions[entity_id] = []
+				
+				if not _subscriptions[entity_id].has(channel):
+								_subscriptions[entity_id].append(channel)
+								channel_joined.emit(entity_id, channel)
 
 ## Unsubscribe from channel
 func unsubscribe_from_channel(entity_id: String, channel: Channel) -> void:
-        if _subscriptions.has(entity_id):
-                _subscriptions[entity_id].erase(channel)
-                channel_left.emit(entity_id, channel)
+				if _subscriptions.has(entity_id):
+								_subscriptions[entity_id].erase(channel)
+								channel_left.emit(entity_id, channel)
 
 ## Check if subscribed
 func is_subscribed(entity_id: String, channel: Channel) -> bool:
-        return _subscriptions.get(entity_id, []).has(channel)
+				return _subscriptions.get(entity_id, []).has(channel)
 
 ## Get channel info
 func get_channel_info(channel: Channel) -> Dictionary:
-        return _channel_info.get(channel, {})
+				return _channel_info.get(channel, {})
 
 ## Get channel name
 func get_channel_name(channel: Channel) -> String:
-        return _channel_info.get(channel, {}).get("name", "Unknown")
+				return _channel_info.get(channel, {}).get("name", "Unknown")
 
 ## Get channel color
 func get_channel_color(channel: Channel) -> String:
-        return _channel_info.get(channel, {}).get("color", "#FFFFFF")
+				return _channel_info.get(channel, {}).get("color", "#FFFFFF")
 
 ## Format message for display
 func format_message(sender_id: String, channel: Channel, message: String, sender_name: String = "") -> String:
-        var info := get_channel_info(channel)
-        var prefix := info.get("prefix", "")
-        var color := info.get("color", "#FFFFFF")
-        
-        if channel == Channel.WHISPER:
-                return "[color=%s]%s %s:[/color] %s" % [color, prefix, sender_name, message]
-        elif channel == Channel.EMOTE:
-                return "[color=%s]*%s %s*[/color]" % [color, sender_name, message]
-        elif prefix != "":
-                return "[color=%s]%s[/color] [color=#FFFFFF]%s:[/color] %s" % [color, prefix, sender_name, message]
-        else:
-                return "[color=%s]%s:[/color] %s" % [color, sender_name, message]
+				var info := get_channel_info(channel)
+				var prefix := info.get("prefix", "")
+				var color := info.get("color", "#FFFFFF")
+				
+				if channel == Channel.WHISPER:
+								return "[color=%s]%s %s:[/color] %s" % [color, prefix, sender_name, message]
+				elif channel == Channel.EMOTE:
+								return "[color=%s]*%s %s*[/color]" % [color, sender_name, message]
+				elif prefix != "":
+								return "[color=%s]%s[/color] [color=#FFFFFF]%s:[/color] %s" % [color, prefix, sender_name, message]
+				else:
+								return "[color=%s]%s:[/color] %s" % [color, sender_name, message]
 
 ## ============================================================================
 ## PLAYER NOTIFICATIONS
@@ -543,51 +608,51 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 ## Check if player is restricted from a chat channel
 ## Returns "" if allowed, or error message if restricted
 func _get_channel_restriction_message(player_id: String, channel: Channel) -> String:
-        match channel:
-                Channel.SAY, Channel.YELL, Channel.ZONE, Channel.GLOBAL, Channel.TRADE, Channel.COMBAT, Channel.EMOTE:
-                        # General chat channels - check "chat" restriction
-                        if SecurityService.is_restricted(player_id, "chat"):
-                                return "You are muted and cannot send messages."
-                
-                Channel.WHISPER:
-                        # Whisper channel - check "chat" restriction
-                        if SecurityService.is_restricted(player_id, "chat"):
-                                return "You are muted and cannot send whispers."
-                
-                Channel.PARTY:
-                        # Party chat - check party restriction
-                        if SecurityService.is_restricted(player_id, "party"):
-                                return "You are restricted from party chat."
-                        if SecurityService.is_restricted(player_id, "chat"):
-                                return "You are muted and cannot send party messages."
-                
-                Channel.GUILD:
-                        # Guild chat - check guild restriction
-                        if SecurityService.is_restricted(player_id, "guild"):
-                                return "You are restricted from guild chat."
-                        if SecurityService.is_restricted(player_id, "chat"):
-                                return "You are muted and cannot send guild messages."
-                
-                Channel.ALLIANCE:
-                        # Alliance chat - check guild restriction (alliance uses guild perms)
-                        if SecurityService.is_restricted(player_id, "guild"):
-                                return "You are restricted from alliance chat."
-                        if SecurityService.is_restricted(player_id, "chat"):
-                                return "You are muted and cannot send alliance messages."
-                
-                Channel.SYSTEM:
-                        # System messages are read-only
-                        return "Cannot send to system channel."
-        
-        return ""  # No restriction
+				match channel:
+								Channel.SAY, Channel.YELL, Channel.ZONE, Channel.GLOBAL, Channel.TRADE, Channel.COMBAT, Channel.EMOTE:
+												# General chat channels - check "chat" restriction
+												if SecurityService.is_restricted(player_id, "chat"):
+																return "You are muted and cannot send messages."
+								
+								Channel.WHISPER:
+												# Whisper channel - check "chat" restriction
+												if SecurityService.is_restricted(player_id, "chat"):
+																return "You are muted and cannot send whispers."
+								
+								Channel.PARTY:
+												# Party chat - check party restriction
+												if SecurityService.is_restricted(player_id, "party"):
+																return "You are restricted from party chat."
+												if SecurityService.is_restricted(player_id, "chat"):
+																return "You are muted and cannot send party messages."
+								
+								Channel.GUILD:
+												# Guild chat - check guild restriction
+												if SecurityService.is_restricted(player_id, "guild"):
+																return "You are restricted from guild chat."
+												if SecurityService.is_restricted(player_id, "chat"):
+																return "You are muted and cannot send guild messages."
+								
+								Channel.ALLIANCE:
+												# Alliance chat - check guild restriction (alliance uses guild perms)
+												if SecurityService.is_restricted(player_id, "guild"):
+																return "You are restricted from alliance chat."
+												if SecurityService.is_restricted(player_id, "chat"):
+																return "You are muted and cannot send alliance messages."
+								
+								Channel.SYSTEM:
+												# System messages are read-only
+												return "Cannot send to system channel."
+				
+				return ""	 # No restriction
 
 ## Send notification to player
 func _notify_player(player_id: String, message: String) -> void:
-        if NotificationService:
-                NotificationService.send_to_player(
-                        player_id,
-                        message,
-                        NotificationService.NotificationType.SYSTEM,
-                        NotificationService.Priority.HIGH
-                )
-        Logger.debug("ChatService: Notified %s: %s" % [player_id, message])
+				if NotificationService:
+								NotificationService.send_to_player(
+												player_id,
+												message,
+												NotificationService.NotificationType.SYSTEM,
+												NotificationService.Priority.HIGH
+								)
+				Logger.debug("ChatService: Notified %s: %s" % [player_id, message])

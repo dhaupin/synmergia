@@ -100,6 +100,60 @@ signal notification_queued(entity_id: String, queue_size: int)
 
 func _ready() -> void:
 	Logger.info("NotificationService: Ready")
+	
+	# Listen to unified spawn events for automatic notifications
+	if EventBus:
+		EventBus.entity_spawned.connect(_on_entity_spawned)
+
+## Handle unified entity spawn event - auto-send notifications based on metadata
+func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> void:
+	if metadata == null or not metadata.notification_enabled:
+		return
+	
+	# Build notification message
+	var message: String
+	match metadata.spawn_type:
+		EventBus.SpawnMetadata.SpawnType.WORLD_BOSS:
+			message = "WORLD BOSS: %s has appeared in %s!" % [metadata.display_name, metadata.zone_id]
+		EventBus.SpawnMetadata.SpawnType.BOSS:
+			message = "Boss %s has appeared!" % metadata.display_name
+		EventBus.SpawnMetadata.SpawnType.ELITE:
+			message = "Elite enemy %s has appeared!" % metadata.display_name
+		_:
+			message = metadata.notification_message % [metadata.display_name, metadata.zone_id]
+	
+	# Determine notification settings from metadata
+	var notif_type := NotificationType.WORLD_EVENT
+	var priority := Priority.NORMAL
+	match metadata.notification_priority:
+		EventBus.SpawnMetadata.NotificationPriority.LOW:
+			priority = Priority.LOW
+		EventBus.SpawnMetadata.NotificationPriority.NORMAL:
+			priority = Priority.NORMAL
+		EventBus.SpawnMetadata.NotificationPriority.HIGH:
+			priority = Priority.HIGH
+		EventBus.SpawnMetadata.NotificationPriority.CRITICAL:
+			priority = Priority.CRITICAL
+	
+	# Build extra data
+	var data := {
+		"spawn_type": metadata.get_spawn_type_string(),
+		"zone_id": metadata.zone_id,
+		"level": metadata.level
+	}
+	
+	# Broadcast to configured scopes
+	broadcast_alert(
+		message,
+		metadata.notification_scopes,
+		notif_type,
+		priority,
+		DisplayLocation.CENTER_SCREEN,
+		SoundType.NOTIFICATION,
+		data
+	)
+	
+	Logger.info("NotificationService: Auto-broadcast spawn notification for %s" % metadata.display_name)
 
 ## Send a notification to a player
 func send(
