@@ -33,6 +33,11 @@ func _ready() -> void:
 
 ## Create a new account
 func create_account(account_id: String, email: String = "") -> Dictionary:
+        # QoS: Rate limit account creation
+        if not QoSService.rate_limit(account_id, "account_create"):
+                Logger.debug("AccountService: Rate limited account creation for %s" % account_id)
+                return {}
+        
         if _accounts.has(account_id):
                 Logger.warn("AccountService: Account %s already exists" % account_id)
                 return {}

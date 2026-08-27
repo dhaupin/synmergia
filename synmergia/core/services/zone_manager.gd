@@ -212,6 +212,11 @@ func can_pvp(entity1: Entity, entity2: Entity) -> bool:
 
 ## Create an instance (dungeon, etc.)
 func create_instance(base_zone_id: String, owner_id: String = "") -> String:
+	# QoS: Rate limit instance creation
+	if owner_id != "" and not QoSService.rate_limit(owner_id, "instance"):
+		Logger.debug("ZoneManager: Rate limited instance creation for %s" % owner_id)
+		return ""
+	
 	var base_zone = _zones.get(base_zone_id)
 	if base_zone == null:
 		Logger.warn("ZoneManager: Cannot create instance, base zone %s not found" % base_zone_id)

@@ -156,6 +156,11 @@ func get_cooldown_remaining(account_id: String) -> int:
 
 ## Execute same-account transfer
 func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids: Array = []) -> Dictionary:
+	# QoS: Rate limit transfers
+	if not QoSService.rate_limit(from_char_id, "transfer"):
+		Logger.debug("SameAccountTransferService: Rate limited transfer for %s" % from_char_id)
+		return {"success": false, "reason": "Rate limited"}
+	
 	# Prevent self-transfer
 	if from_char_id == to_char_id:
 		return {"success": false, "reason": "Cannot transfer to the same character"}
