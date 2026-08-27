@@ -1264,7 +1264,13 @@ class Database:
 4. Add SQL for audit logs (compliance, admin queries)
 
 ### Permission & Audit Persistence (TODO)
-- [ ] Connect PermissionManager to database
+- [x] PermissionSystem unified class (core/permissions/permission_system.gd)
+  - Global: PLAYER, VIP, MOD, ADMIN, OWNER
+  - Party: MEMBER, OFFICER, LEADER
+  - Guild: RECRUIT, MEMBER, OFFICER, GUILD_MASTER
+  - Faction: INITIATE, MEMBER, VETERAN, COMMANDER, LEADER
+  - get_player_summary() for complete permission info
+- [ ] Connect PermissionSystem to database
 - [ ] Store player permission levels persistently
 - [ ] Persist audit log entries to database
 - [ ] Add admin session logging with IP tracking
