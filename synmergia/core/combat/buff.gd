@@ -228,8 +228,8 @@ enum AuraType {
 var _drain_timer: Timer
 var _effect_timer: Timer
 var _is_toggled_on: bool = false
-var _affected_allies: Array[SynmergiaEntity] = []
-var _affected_enemies: Array[SynmergiaEntity] = []
+var _affected_allies: Array = []
+var _affected_enemies: Array = []
 var _physics_area: PhysicsArea  # 3D sphere detection
 
 func _init() -> void:
@@ -353,8 +353,8 @@ func _update_aura_effects() -> void:
 	# Find entities in range
 	var entities_in_range := _get_entities_in_aura_range()
 	
-	var new_allies: Array[SynmergiaEntity] = []
-	var new_enemies: Array[SynmergiaEntity] = []
+	var new_allies: Array = []
+	var new_enemies: Array = []
 	
 	for entity in entities_in_range:
 		if _is_ally(target_entity, entity):
@@ -380,8 +380,8 @@ func _update_aura_effects() -> void:
 	_affected_allies = new_allies
 	_affected_enemies = new_enemies
 
-func _get_entities_in_aura_range() -> Array[SynmergiaEntity]:
-	var entities: Array[SynmergiaEntity] = []
+func _get_entities_in_aura_range() -> Array:
+	var entities: Array = []
 	
 	if not target_entity or not is_instance_valid(target_entity):
 		return entities

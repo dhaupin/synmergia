@@ -16,7 +16,7 @@ signal weight_changed(current: float, max_weight: float, encumbered: bool)
 @export var max_inventory_slots: int = GameConfig.Inventory.DEFAULT_SLOTS
 @export var max_equipment_slots: int = GameConfig.Inventory.MAX_EQUIPMENT_SLOTS
 
-var _inventory: Array[Item] = []
+var _inventory: Array = []
 var _equipment: Dictionary = {}	 # EquipSlot -> Item
 var _gold: int = 0
 
@@ -166,16 +166,16 @@ func get_all_equipment() -> Dictionary:
 				return _equipment.duplicate()
 
 	## Get all equipped items as array
-	func get_all_equipped_items() -> Array[Item]:
-		var items: Array[Item] = []
+	func get_all_equipped_items() -> Array:
+		var items: Array = []
 		for item in _equipment.values():
 			if item:
 				items.append(item)
 		return items
 	
 	## Get equipped items with low durability (below threshold)
-	func get_low_durability_items(threshold: float = 0.2) -> Array[Item]:
-		var items: Array[Item] = []
+	func get_low_durability_items(threshold: float = 0.2) -> Array:
+		var items: Array = []
 		for item in _equipment.values():
 			if item and item.max_durability > 0 and item.get_durability_percent() < threshold:
 				items.append(item)
@@ -294,8 +294,8 @@ func find_item(item_id: String) -> int:
 				return -1
 
 ## Get all items
-func get_all_items() -> Array[Item]:
-				var items: Array[Item] = []
+func get_all_items() -> Array:
+				var items: Array = []
 				for item in _inventory:
 								if item:
 												items.append(item)

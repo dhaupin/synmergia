@@ -299,17 +299,9 @@ func load_entity_data(data: Dictionary) -> void:
 	faction_id = data.get("faction_id", faction_id)
 	species_id = data.get("species_id", species_id)
 	_calculate_max_resources()
-	
 	current_health = data.get("health", max_health)
 	current_mana = data.get("mana", max_mana)
-	
 	var pos_data = data.get("position", {})
 	if not pos_data.is_empty():
-		global_position = Vector3(
-			pos_data.get("x", 0),
-			pos_data.get("y", 0),
-			pos_data.get("z", 0)
-		)
-	
+		global_position = Vector3(pos_data.get("x", 0), pos_data.get("y", 0), pos_data.get("z", 0))
 	rotation.y = data.get("rotation", 0)
-}

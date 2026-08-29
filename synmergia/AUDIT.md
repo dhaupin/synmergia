@@ -9,12 +9,16 @@
 
 ## Roadmap
 
-### Phase 1: Core Infrastructure
+### Phase 1: Core Infrastructure ✅ COMPLETED
 - [x] Upgrade Godot to 4.7.2
 - [x] Fix game_config.gd (removed class_name conflict, fixed Logger calls)
 - [x] Fix qos_service.gd (removed class_name, fixed GameConfig paths, added missing variables)
 - [x] Fix respawn_service.gd indentation
-- [ ] Fix remaining ~40 scripts with parse errors
+- [x] Fix event files (entity_events, combat_events, inventory_events, system_events) - indentation issues
+- [x] Fix id_registry.gd - converted enum to constants, fixed extends
+- [x] Fix EventBus -> EventHub references in notification_service, entity_service, etc.
+- [x] Fix entity.gd indentation (converted spaces to tabs)
+- [ ] Fix remaining autoload scripts with parse errors
 
 ### Phase 2: Type Dependencies (Main Blocker)
 Services that use custom types (Entity, Item, etc.) in signal definitions fail because those types aren't registered yet.

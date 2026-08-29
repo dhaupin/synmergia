@@ -89,7 +89,7 @@ func get_threat(target: SynmergiaEntity) -> int:
 	return _threat_table.get(target, 0)
 
 ## Get all threat targets
-func get_all_threat_targets() -> Array[SynmergiaEntity]:
+func get_all_threat_targets() -> Array:
 	return _threat_table.keys()
 
 ## Set target

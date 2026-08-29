@@ -28,45 +28,45 @@ static func get_instance() -> BlacksmithService:
 	return instance
 
 ## Calculate repair cost for a single item
-func calculate_repair_cost(item: Item) -> int:
+func calculate_repair_cost(item) -> int:
 	if item == null or item.max_durability <= 0:
 		return 0
 	
 	if not item.can_repair:
 		return 0
 	
-	var missing_durability := item.max_durability - item.current_durability
+	var missing_durability: int = int(item.max_durability) - int(item.current_durability)
 	if missing_durability <= 0:
 		return 0
 	
-	var cost := missing_durability * base_repair_cost_per_durability
+	var cost: int = int(missing_durability) * int(base_repair_cost_per_durability)
 	
 	# Apply multiplier based on item type
 	match item.item_category:
-		Item.ItemCategory.WEAPON:
+		"weapon":
 			cost = int(cost * weapon_multiplier)
-		Item.ItemCategory.ARMOR:
+		"armor":
 			cost = int(cost * armor_multiplier)
-		Item.ItemCategory.ACCESSORY:
+		"accessory":
 			cost = int(cost * accessory_multiplier)
 	
 	# Apply rarity penalty (higher rarity = more expensive)
 	match item.rarity:
-		Item.Rarity.COMMON:
+		"common":
 			pass  # No penalty
-		Item.Rarity.UNCOMMON:
+		"uncommon":
 			cost = int(cost * 1.1)
-		Item.Rarity.RARE:
+		"rare":
 			cost = int(cost * 1.25)
-		Item.Rarity.EPIC:
+		"epic":
 			cost = int(cost * 1.5)
-		Item.Rarity.LEGENDARY:
+		"legendary":
 			cost = int(cost * 2.0)
 	
 	return maxi(1, cost)  # Minimum cost of 1 gold
 
 ## Calculate total repair cost for multiple items
-func calculate_bulk_repair_cost(items: Array[Item], apply_discount: bool = true) -> int:
+func calculate_bulk_repair_cost(items: Array, apply_discount: bool = true) -> int:
 	var total := 0
 	for item in items:
 		total += calculate_repair_cost(item)
@@ -78,8 +78,8 @@ func calculate_bulk_repair_cost(items: Array[Item], apply_discount: bool = true)
 	return total
 
 ## Repair a single item (removes gold from player)
-func repair_item(player_id: String, inventory: InventoryComponent, equip_slot: int) -> Dictionary:
-	var item: Item = inventory.get_equipped_item(equip_slot)
+func repair_item(player_id: String, inventory, equip_slot: int) -> Dictionary:
+	var item = inventory.get_equipped_item(equip_slot)
 	
 	if item == null:
 		return {"success": false, "reason": "No item in that slot"}
@@ -96,7 +96,7 @@ func repair_item(player_id: String, inventory: InventoryComponent, equip_slot: i
 	var cost := calculate_repair_cost(item)
 	
 	# Check if player has enough gold
-	var player_gold := inventory.get_gold()
+	var player_gold: int = int(inventory.get_gold())
 	if player_gold < cost:
 		return {"success": false, "reason": "Not enough gold", "cost": cost, "has": player_gold}
 	
@@ -114,11 +114,11 @@ func repair_item(player_id: String, inventory: InventoryComponent, equip_slot: i
 	}
 
 ## Repair all equipped items
-func repair_all_equipped(player_id: String, inventory: InventoryComponent, apply_discount: bool = true) -> Dictionary:
-	var items: Array[Item] = inventory.get_all_equipped_items()
+func repair_all_equipped(player_id: String, inventory, apply_discount: bool = true) -> Dictionary:
+	var items: Array = inventory.get_all_equipped_items()
 	
 	# Filter to only items that need repair
-	var items_needing_repair: Array[Item] = []
+	var items_needing_repair: Array = []
 	for item in items:
 		if item and item.max_durability > 0 and item.can_repair:
 			if item.is_broken() or item.current_durability < item.max_durability:
@@ -130,7 +130,7 @@ func repair_all_equipped(player_id: String, inventory: InventoryComponent, apply
 	var cost := calculate_bulk_repair_cost(items_needing_repair, apply_discount)
 	
 	# Check if player has enough gold
-	var player_gold := inventory.get_gold()
+	var player_gold: int = int(inventory.get_gold())
 	if player_gold < cost:
 		return {"success": false, "reason": "Not enough gold", "cost": cost, "has": player_gold}
 	
@@ -154,11 +154,11 @@ func repair_all_equipped(player_id: String, inventory: InventoryComponent, apply
 	}
 
 ## Get repair preview (what would be repaired and cost)
-func get_repair_preview(inventory: InventoryComponent, apply_discount: bool = true) -> Dictionary:
-	var items: Array[Item] = inventory.get_all_equipped_items()
+func get_repair_preview(inventory, apply_discount: bool = true) -> Dictionary:
+	var items: Array = inventory.get_all_equipped_items()
 	
 	var items_needing_repair: Array[Dictionary] = []
-	var total_cost := 0
+	var total_cost: int = 0
 	
 	for item in items:
 		if item and item.max_durability > 0 and item.can_repair:
@@ -188,6 +188,6 @@ func get_repair_preview(inventory: InventoryComponent, apply_discount: bool = tr
 	}
 
 ## Check if player can afford repair
-func can_afford_repair(inventory: InventoryComponent, apply_discount: bool = true) -> bool:
+func can_afford_repair(inventory, apply_discount: bool = true) -> bool:
 	var preview := get_repair_preview(inventory, apply_discount)
 	return inventory.get_gold() >= preview.get("total_cost", 0)

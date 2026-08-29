@@ -46,8 +46,8 @@ class CurrencyDrop:
 @export var description: String = ""
 
 # Drop configuration
-@export var entries: Array[LootEntry] = []
-@export var currency_drops: Array[CurrencyDrop] = []
+@export var entries: Array = []
+@export var currency_drops: Array = []
 
 # Drop rate modifiers
 @export var base_drop_chance: float = 1.0  # Overall chance to drop anything

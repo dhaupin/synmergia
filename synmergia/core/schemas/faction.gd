@@ -64,15 +64,6 @@ func get_relation(other_faction_id: String) -> Relation:
 	# Check explicit relations first
 	if relations.has(other_faction_id):
 		return relations[other_faction_id]
-	
-	# Check species-based auto-alliance
-	if faction_type == FactionType.SPECIES and species_id != "":
-		var data_service = DataService
-		if data_service:
-			var other_faction: Faction = data_service.get_faction(other_faction_id)
-			if other_faction and other_faction.species_id == species_id:
-				return Relation.ALLIED
-	
 	return Relation.NEUTRAL
 
 ## Check if at war with another faction
@@ -82,12 +73,6 @@ func is_at_war_with(other_faction_id: String) -> bool:
 ## Set relation with another faction
 func set_relation(other_faction_id: String, relation: Relation) -> void:
 	relations[other_faction_id] = relation
-	var other_faction: Faction = null
-	if other_faction_id != "":
-		var data_service = DataService
-		if data_service:
-			other_faction = data_service.get_faction(other_faction_id)
-	EventHub.faction_hostility_changed.emit(self, other_faction)
 
 ## Can members of this faction PvP with members of another?
 func can_pvp_with(other_faction_id: String, player_level: int = 1) -> bool:
@@ -99,23 +84,11 @@ func can_pvp_with(other_faction_id: String, player_level: int = 1) -> bool:
 		PvPRule.HUNTED:
 			return true
 	
-	# Check other faction's rule
-	var data_service = DataService
-	if data_service:
-		var other_faction: Faction = data_service.get_faction(other_faction_id)
-		if other_faction:
-			match other_faction.pvp_rule:
-				PvPRule.PEACEFUL:
-					if player_level < other_faction.peaceful_until_level:
-						return false
-				PvPRule.HUNTED:
-					return true
-	
 	# Default: check relation
 	return is_at_war_with(other_faction_id)
 
 ## Check if player in this faction can attack target in another
-func can_attack_target(target_faction: Faction, attacker_level: int = 1, target_level: int = 1) -> bool:
+func can_attack_target(target_faction, attacker_level: int = 1, target_level: int = 1) -> bool:
 	# Both must be able to PvP
 	if not can_pvp_with(target_faction.id, attacker_level):
 		return false

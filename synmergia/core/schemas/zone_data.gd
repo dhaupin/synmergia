@@ -65,7 +65,7 @@ func _init() -> void:
 		id = display_name.to_lower().replace(" ", "_")
 
 ## Check if a player can enter this zone
-func can_enter(entity: SynmergiaEntity) -> bool:
+func can_enter(entity) -> bool:
 	# Level check
 	if entity.level < level_requirement:
 		return false
@@ -89,7 +89,7 @@ func can_enter(entity: SynmergiaEntity) -> bool:
 	return true
 
 ## Can entity1 attack entity2 in this zone?
-func can_pvp(entity1: SynmergiaEntity, entity2: SynmergiaEntity) -> bool:
+func can_pvp(entity1, entity2) -> bool:
 	match pvp_mode:
 		PvPZoneMode.SAFE:
 			return false
