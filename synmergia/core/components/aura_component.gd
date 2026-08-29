@@ -34,10 +34,9 @@ func add_buff(buff: Buff, source: Entity = null) -> bool:
 	if buff.source == null and source != null:
 		buff.source = source
 	
-	buff.target_entity = get_parent()
 	_active_buffs.append(buff)
 	
-	buff.start()
+	buff.apply(get_parent())
 	buff_added.emit(buff)
 	EventHub.buff_applied.emit(get_parent(), buff, source)
 	
@@ -48,7 +47,7 @@ func remove_buff(buff: Buff) -> void:
 	if not _active_buffs.has(buff):
 		return
 	
-	buff.stop()
+	buff.remove()
 	_active_buffs.erase(buff)
 	
 	buff_removed.emit(buff)
@@ -68,10 +67,9 @@ func add_debuff(debuff: StatusEffect, source: Entity = null) -> bool:
 	if debuff.source == null and source != null:
 		debuff.source = source
 	
-	debuff.target_entity = get_parent()
 	_active_debuffs.append(debuff)
 	
-	debuff.start()
+	debuff.apply(get_parent())
 	debuff_added.emit(debuff)
 	EventHub.debuff_applied.emit(get_parent(), debuff, source)
 	
@@ -82,7 +80,7 @@ func remove_debuff(debuff: StatusEffect) -> void:
 	if not _active_debuffs.has(debuff):
 		return
 	
-	debuff.stop()
+	debuff.remove()
 	_active_debuffs.erase(debuff)
 	
 	debuff_removed.emit(debuff)
@@ -96,10 +94,9 @@ func add_aura(aura: AuraBuff, source: Entity = null) -> bool:
 	if aura.source == null and source != null:
 		aura.source = source
 	
-	aura.target_entity = get_parent()
 	_active_auras.append(aura)
 	
-	aura.start()
+	aura.apply(get_parent())
 	aura_activated.emit(aura)
 	EventHub.aura_activated.emit(get_parent(), aura)
 	
@@ -110,7 +107,7 @@ func remove_aura(aura: AuraBuff) -> void:
 	if not _active_auras.has(aura):
 		return
 	
-	aura.stop()
+	aura.remove()
 	_active_auras.erase(aura)
 	
 	aura_deactivated.emit(aura)
@@ -135,7 +132,7 @@ func has_buff(effect_id: String) -> bool:
 ## Check if has debuff
 func has_debuff(debuff_type: String) -> bool:
 	for debuff in _active_debuffs:
-		if debuff.status_type == debuff_type:
+		if StatusEffect.EffectCategory.keys()[debuff.effect_category] == debuff_type:
 			return true
 	return false
 
@@ -164,7 +161,8 @@ func dispel_buffs(category: String) -> int:
 	var buffs_to_remove := []
 	
 	for buff in _active_buffs:
-		if buff.category == category:
+		var cat_enum := _get_category_enum(category)
+		if cat_enum >= 0 and buff.effect_category == cat_enum:
 			buffs_to_remove.append(buff)
 	
 	for buff in buffs_to_remove:
@@ -179,7 +177,7 @@ func dispel_debuffs(category: String) -> int:
 	var debuffs_to_remove := []
 	
 	for debuff in _active_debuffs:
-		if debuff.category == category:
+		if debuff.effect_category == category:
 			debuffs_to_remove.append(debuff)
 	
 	for debuff in debuffs_to_remove:
@@ -224,7 +222,6 @@ func get_stat_modifiers() -> Dictionary:
 ## Process physics (for DOTs, etc.)
 func _physics_process(delta: float) -> void:
 	# Process DOTs
-	for debuff in _active_debuffs:
 		if debuff is DamageOverTime:
 			debuff.tick(delta)
 
@@ -236,47 +233,38 @@ func get_debuff_count() -> int:
 	return _active_debuffs.size()
 
 ## Effect categories for dispel
-enum EffectCategory {
-	MAGIC,      # General magic effects
-	CURSE,      # Curses and hexes
-	POISON,     # Poison and disease
-	PHYSICAL,   # Physical debuffs
-	HOLY,       # Holy/light effects
-	SHADOW,     # Shadow/dark effects
-	FIRE,       # Fire effects
-	ICE,        # Frost effects
-	LIGHTNING,  # Lightning effects
-	ARCANE,     # Arcane effects
-	BLEED,      # Bleeding effects
-	STUN,       # Stun effects
-	FEAR,       # Fear effects
-	CHARM       # Charm effects
-}
+
+## Convert category string to enum
+func _get_category_enum(category: String) -> int:
+	for key in StatusEffect.EffectCategory.keys():
+		if key.to_lower() == category.to_lower():
+			return StatusEffect.EffectCategory.get(key)
+	return -1
 
 ## Dispel magic effects
 func dispel_magic(caster: Entity = null) -> int:
-	return _dispel_by_category([EffectCategory.MAGIC, EffectCategory.CURSE, EffectCategory.POISON], caster)
+	return _dispel_by_category([StatusEffect.EffectCategory.MAGIC, StatusEffect.EffectCategory.CURSE, StatusEffect.EffectCategory.POISON], caster)
 
 ## Dispel curses specifically
 func dispel_curses(caster: Entity = null) -> int:
-	return _dispel_by_category([EffectCategory.CURSE], caster)
+	return _dispel_by_category([StatusEffect.EffectCategory.CURSE], caster)
 
 ## Dispel poison/disease
 func dispel_poison(caster: Entity = null) -> int:
-	return _dispel_by_category([EffectCategory.POISON], caster)
+	return _dispel_by_category([StatusEffect.EffectCategory.POISON], caster)
 
 ## Dispel all dispellable effects
 func dispel_all(caster: Entity = null) -> int:
 	return _dispel_by_category([
-		EffectCategory.MAGIC, EffectCategory.CURSE, EffectCategory.POISON,
-		EffectCategory.HOLY, EffectCategory.SHADOW, EffectCategory.FIRE,
-		EffectCategory.ICE, EffectCategory.LIGHTNING, EffectCategory.ARCANE
+		StatusEffect.EffectCategory.MAGIC, StatusEffect.EffectCategory.CURSE, StatusEffect.EffectCategory.POISON,
+		StatusEffect.EffectCategory.HOLY, StatusEffect.EffectCategory.SHADOW, StatusEffect.EffectCategory.FIRE,
+		StatusEffect.EffectCategory.ICE, StatusEffect.EffectCategory.LIGHTNING, StatusEffect.EffectCategory.ARCANE
 	], caster)
 
 ## Cleanse (removes debuffs, often player ability)
 func cleanse(caster: Entity = null) -> int:
 	return _dispel_by_category([
-		EffectCategory.POISON, EffectCategory.DISEASE, EffectCategory.CURSE
+		StatusEffect.EffectCategory.POISON, StatusEffect.EffectCategory.DISEASE, StatusEffect.EffectCategory.CURSE
 	], caster)
 
 ## Internal dispel by categories
@@ -293,7 +281,7 @@ func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
 	
 	# Check auras (some auras are dispellable)
 	for aura in _active_auras:
-		if aura.is_dispellable and _matches_category(aura.category, categories):
+		if aura.is_dispellable and _matches_category(aura.effect_category, categories):
 			remove_aura(aura)
 			dispelled += 1
 			EventHub.aura_dispelled.emit(get_parent(), aura, caster)
@@ -310,12 +298,12 @@ func _can_dispel_effect(effect: StatusEffect, categories: Array[int]) -> bool:
 ## Check if effect category matches
 func _matches_category(effect_category: int, dispel_categories: Array[int]) -> bool:
 	# Special categories (BLEED, STUN, FEAR, CHARM) aren't general dispels
-	var special_categories := [EffectCategory.BLEED, EffectCategory.STUN, EffectCategory.FEAR, EffectCategory.CHARM]
+	var special_categories := [StatusEffect.EffectCategory.BLEED, StatusEffect.EffectCategory.STUN, StatusEffect.EffectCategory.FEAR, StatusEffect.EffectCategory.CHARM]
 	if special_categories.has(effect_category):
 		return dispel_categories.has(effect_category)
 	
 	# Magic, curse, poison are general dispel targets
-	return dispel_categories.has(EffectCategory.MAGIC) or dispel_categories.has(effect_category)
+	return dispel_categories.has(StatusEffect.EffectCategory.MAGIC) or dispel_categories.has(effect_category)
 
 ## Check if dispel succeeds (some effects have resist chance)
 func _check_dispel_resist(effect: StatusEffect, caster: Entity) -> bool:
@@ -331,7 +319,7 @@ func _check_dispel_resist(effect: StatusEffect, caster: Entity) -> bool:
 ## Check if entity has specific category of effects
 func has_category(category: int) -> bool:
 	for debuff in _active_debuffs:
-		if debuff.category == category:
+		if debuff.effect_category == category:
 			return true
 	return false
 
@@ -339,7 +327,7 @@ func has_category(category: int) -> bool:
 func get_effects_by_category(category: int) -> Array[StatusEffect]:
 	var effects: Array[StatusEffect] = []
 	for debuff in _active_debuffs:
-		if debuff.category == category:
+		if debuff.effect_category == category:
 			effects.append(debuff)
 	return effects
 
@@ -348,13 +336,13 @@ func get_dispel_info() -> Dictionary:
 	var categories: Dictionary = {}
 	
 	for debuff in _active_debuffs:
-		var cat_name := EffectCategory.keys()[debuff.category]
+		var cat_name := StatusEffect.EffectCategory.keys()[debuff.effect_category]
 		if not categories.has(cat_name):
 			categories[cat_name] = []
 		categories[cat_name].append({
-			"name": debuff.display_name,
+			"name": debuff.effect_name,
 			"dispellable": debuff.is_dispellable,
-			"duration": debuff.duration_remaining if "duration_remaining" in debuff else -1
+			"duration": debuff.get_remaining_duration() if "duration_remaining" in debuff else -1
 		})
 	
 	return {
