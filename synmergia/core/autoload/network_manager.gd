@@ -35,7 +35,7 @@ var tick_rate: int = 20  # 20 Hz
 var tick_timer: Timer
 
 func _ready() -> void:
-	Logger.info("NetworkManager initialized")
+	GameLogger.info("NetworkManager initialized")
 	DEFAULT_PORT = GameConfig.Network.DEFAULT_PORT
 	MAX_PLAYERS = GameConfig.Network.MAX_PLAYERS
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -57,14 +57,14 @@ func _process(_delta: float) -> void:
 
 func start_server(port: int = DEFAULT_PORT) -> bool:
 	if connection_state != ConnectionState.DISCONNECTED:
-		Logger.warn("Cannot start server: already connected")
+		GameLogger.warn("Cannot start server: already connected")
 		return false
 	
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, MAX_PLAYERS)
 	
 	if error != OK:
-		Logger.error("Failed to start server on port %d: %s" % [port, error])
+		GameLogger.error("Failed to start server on port %d: %s" % [port, error])
 		return false
 	
 	multiplayer.multiplayer_peer = peer
@@ -77,7 +77,7 @@ func start_server(port: int = DEFAULT_PORT) -> bool:
 	
 	_start_server_loop()
 	
-	Logger.info("Server started on port %d" % port)
+	GameLogger.info("Server started on port %d" % port)
 	server_started.emit()
 	return true
 
@@ -125,17 +125,17 @@ func _on_server_peer_connected(id: int) -> void:
 	# Check firewall
 	var fw_check := _firewall.can_connect(ip)
 	if not fw_check.allowed:
-		Logger.warn("Firewall blocked connection from %s: %s" % [ip, fw_check.reason])
+		GameLogger.warn("Firewall blocked connection from %s: %s" % [ip, fw_check.reason])
 		multiplayer.multiplayer_peer.disconnect_peer(id, true)
 		return
 
-	Logger.info("Client connected: %d" % id)
+	GameLogger.info("Client connected: %d" % id)
 	connected_peers[id] = {"joined": Time.get_ticks_msec(), "ip": ip}
 	_firewall.register_connection("peer_%d" % id, ip)
 	peer_connected.emit(id)
 
 func _on_server_peer_disconnected(id: int) -> void:
-	Logger.info("Client disconnected: %d" % id)
+	GameLogger.info("Client disconnected: %d" % id)
 	# Cleanup firewall tracking
 	var ip = connected_peers.get(id, {}).get("ip", "unknown")
 	_firewall.unregister_connection("peer_%d" % id)
@@ -146,7 +146,7 @@ func _on_server_peer_disconnected(id: int) -> void:
 
 func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool:
 	if connection_state != ConnectionState.DISCONNECTED:
-		Logger.warn("Cannot connect: already connected")
+		GameLogger.warn("Cannot connect: already connected")
 		return false
 	
 	connection_state = ConnectionState.CONNECTING
@@ -155,7 +155,7 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 	var error := peer.create_client(ip, port)
 	
 	if error != OK:
-		Logger.error("Failed to create client: %s" % error)
+		GameLogger.error("Failed to create client: %s" % error)
 		connection_state = ConnectionState.DISCONNECTED
 		return false
 	
@@ -166,23 +166,23 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 	peer.connection_failed.connect(_on_client_connection_failed)
 	peer.server_disconnected.connect(_on_server_disconnected)
 	
-	Logger.info("Connecting to server at %s:%d..." % [ip, port])
+	GameLogger.info("Connecting to server at %s:%d..." % [ip, port])
 	return true
 
 func _on_client_connected() -> void:
 	connection_state = ConnectionState.CONNECTED
 	peer_id = multiplayer.get_unique_id()
-	Logger.info("Connected to server! Peer ID: %d" % peer_id)
+	GameLogger.info("Connected to server! Peer ID: %d" % peer_id)
 	connected_to_server.emit()
 
 func _on_client_connection_failed() -> void:
 	connection_state = ConnectionState.DISCONNECTED
 	is_client = false
-	Logger.error("Connection to server failed")
+	GameLogger.error("Connection to server failed")
 	connection_failed.emit()
 
 func _on_server_disconnected() -> void:
-	Logger.warn("Disconnected from server")
+	GameLogger.warn("Disconnected from server")
 	disconnect_from_server()
 	connection_failed.emit()
 
@@ -194,7 +194,7 @@ func disconnect_from_server() -> void:
 	connection_state = ConnectionState.DISCONNECTED
 	is_client = false
 	peer_id = 0
-	Logger.info("Disconnected from server")
+	GameLogger.info("Disconnected from server")
 
 ## COMMON FUNCTIONS
 
@@ -207,7 +207,7 @@ func _check_connection_health() -> void:
 		var peer_data = connected_peers[peer_id]
 		var timeout_ms := 30000  # 30 seconds
 		if Time.get_ticks_msec() - peer_data.get("last_heartbeat", 0) > timeout_ms:
-			Logger.warn("Kicking inactive peer: %d" % peer_id)
+			GameLogger.warn("Kicking inactive peer: %d" % peer_id)
 			multiplayer.multiplayer_peer.disconnect_peer(peer_id, true)
 
 func stop_server() -> void:
@@ -226,7 +226,7 @@ func stop_server() -> void:
 	server_ticks = 0
 	connected_peers.clear()
 	
-	Logger.info("Server stopped")
+	GameLogger.info("Server stopped")
 	server_stopped.emit()
 
 func is_multiplayer_active() -> bool:
@@ -254,14 +254,14 @@ func block_player(player_id: String, reason: String, duration_seconds: int) -> v
 	if _firewall:
 		var ip = _player_ip_from_id(player_id)
 		_firewall.block_ip(ip, reason, duration_seconds)
-		Logger.info("Blocked %s for %d seconds: %s" % [player_id, duration_seconds, reason])
+		GameLogger.info("Blocked %s for %d seconds: %s" % [player_id, duration_seconds, reason])
 
 ## Issue a permanent ban (admin function)
 func ban_player(player_id: String, reason: String, banned_by: String = "system") -> void:
 	if _firewall:
 		var ip = _player_ip_from_id(player_id)
 		_firewall.issue_ban(player_id, reason, banned_by, -1)
-		Logger.info("Permanently banned %s: %s" % [player_id, reason])
+		GameLogger.info("Permanently banned %s: %s" % [player_id, reason])
 
 ## Flag an IP for suspicious activity
 func flag_ip(ip: String, flag_type: String, count: int = 1) -> void:

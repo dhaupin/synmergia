@@ -39,23 +39,7 @@ enum DisplayLocation {
 }
 
 # Sound effect types
-enum SoundType {
-	NONE = 0
-	NOTIFICATION = 1
-	ACHIEVEMENT = 2
-	LEVEL_UP = 3
-	WARNING = 4
-	ERROR = 5
-	DUNGEON_ENTER = 6
-	DUNGEON_COMPLETE = 7
-	COMBAT = 8
-	DEATH = 9
-	REVIVE_START = 10
-	REVIVE_COMPLETE = 11
-	SELF_REZ = 12
-	INVINCIBILITY = 13
-	KILL_STREAK = 14
-}
+enum SoundType { NONE, NOTIFICATION, ACHIEVEMENT, LEVEL_UP, WARNING, ERROR, DUNGEON_ENTER, DUNGEON_COMPLETE, COMBAT, DEATH, REVIVE_START, REVIVE_COMPLETE, SELF_REZ, INVINCIBILITY, KILL_STREAK }
 
 # Alert scope - where to send the notification
 class AlertScope:
@@ -104,7 +88,7 @@ signal notification_received(entity_id: String, notification: Dictionary)
 signal notification_queued(entity_id: String, queue_size: int)
 
 func _ready() -> void:
-	Logger.info("NotificationService: Ready")
+	GameLogger.info("NotificationService: Ready")
 	
 	# Listen to unified spawn events for automatic notifications
 	if EventBus:
@@ -158,7 +142,7 @@ func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> voi
 		data
 	)
 	
-	Logger.info("NotificationService: Auto-broadcast spawn notification for %s" % metadata.display_name)
+	GameLogger.info("NotificationService: Auto-broadcast spawn notification for %s" % metadata.display_name)
 
 ## Send a notification to a player
 func send(
@@ -195,7 +179,7 @@ func send(
 	_add_to_history(entity_id, notification)
 	
 	notification_sent.emit(entity_id, notification)
-	Logger.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
+	GameLogger.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
 
 ## Broadcast notification to multiple scopes (server, zone, nearby, players)
 ## Can combine multiple scopes - e.g., server + zone, or zone + neighbors
@@ -671,7 +655,7 @@ func send_to_player_name(player_name: String, message: String, notif_type: Notif
 		sound: SoundType = SoundType.NOTIFICATION, data: Dictionary = {}) -> bool:
 	var entity_service = EntityService
 	if entity_service == null:
-		Logger.warn("NotificationService: Cannot find player by name - EntityService not available")
+		GameLogger.warn("NotificationService: Cannot find player by name - EntityService not available")
 		return false
 	
 	var players = entity_service.get_all_players()
@@ -680,7 +664,7 @@ func send_to_player_name(player_name: String, message: String, notif_type: Notif
 			send(player.entity_id, message, notif_type, priority, location, sound, data)
 			return true
 	
-	Logger.debug("NotificationService: Player not found: %s" % player_name)
+	GameLogger.debug("NotificationService: Player not found: %s" % player_name)
 	return false
 
 ## Get unread notifications for entity
@@ -706,7 +690,7 @@ func get_history(entity_id: String, limit: int = 20) -> Array[Dictionary]:
 ## Clear notifications for entity
 func clear_notifications(entity_id: String) -> void:
 	_entity_notifications.erase(entity_id)
-	Logger.debug("NotificationService: Cleared notifications for %s" % entity_id)
+	GameLogger.debug("NotificationService: Cleared notifications for %s" % entity_id)
 
 ## Get unread count
 func get_unread_count(entity_id: String) -> int:

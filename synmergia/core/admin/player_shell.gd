@@ -75,7 +75,7 @@ var _current_player_id: String = ""
 
 func _ready() -> void:
 	_register_default_commands()
-	Logger.info("PlayerShell: Initialized with %d commands" % _commands.size())
+	GameLogger.info("PlayerShell: Initialized with %d commands" % _commands.size())
 
 ## Register a player command
 func register_command(cmd: PlayerCommand) -> void:
@@ -597,4 +597,4 @@ func _save_player_customization(player_id: String) -> void:
 	
 	# In production, this would save to database
 	# For now, just log
-	Logger.debug("PlayerShell: Saved customization for %s: %s" % [player_id, JSON.stringify(data)])
+	GameLogger.debug("PlayerShell: Saved customization for %s: %s" % [player_id, JSON.stringify(data)])

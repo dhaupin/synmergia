@@ -69,7 +69,7 @@ signal player_unignored(ignorer_id: String, ignored_id: String)
 signal channel_settings_changed(entity_id: String, channel: Channel)
 
 func _ready() -> void:
-				Logger.info("ChatService: Ready")
+				GameLogger.info("ChatService: Ready")
 				
 				# Initialize history for each channel
 				for channel in Channel:
@@ -160,7 +160,7 @@ func _check_spam(entity_id: String) -> bool:
 func _load_profanity_list() -> void:
 				_profanity_filter_enabled = GameConfig.Chat.PROFANITY_FILTER_ENABLED
 				if not _profanity_filter_enabled:
-								Logger.info("ChatService: Profanity filter disabled")
+								GameLogger.info("ChatService: Profanity filter disabled")
 								return
 				
 				var file_path := GameConfig.Chat.PROFANITY_WORDS_FILE
@@ -171,7 +171,7 @@ func _load_profanity_list() -> void:
 								file = FileAccess.open(file_path, FileAccess.READ)
 				
 				if file == null:
-								Logger.warn("ChatService: Profanity word list not found at %s (filter disabled)" % file_path)
+								GameLogger.warn("ChatService: Profanity word list not found at %s (filter disabled)" % file_path)
 								_profanity_list = []
 								return
 				
@@ -183,7 +183,7 @@ func _load_profanity_list() -> void:
 								_profanity_list.append(line.to_lower())
 				
 				file.close()
-				Logger.info("ChatService: Loaded %d profanity filter words" % _profanity_list.size())
+				GameLogger.info("ChatService: Loaded %d profanity filter words" % _profanity_list.size())
 
 ## Filter profanity
 func _filter_profanity(message: String) -> String:
@@ -220,13 +220,13 @@ func _get_channel_targets(sender_id: String, channel: Channel, target_id: String
 ## Get players in range
 func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array:
 				if not EntityService:
-								Logger.warn("ChatService: EntityService not available for range check")
+								GameLogger.warn("ChatService: EntityService not available for range check")
 								return []
 				
 				# Get sender entity
 				var sender: Entity = EntityService.get_entity(sender_id)
 				if not sender or not is_instance_valid(sender):
-								Logger.warn("ChatService: Sender entity not found for range check: %s" % sender_id)
+								GameLogger.warn("ChatService: Sender entity not found for range check: %s" % sender_id)
 								return []
 				
 				# Get range from channel config
@@ -272,7 +272,7 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 				# Get sender's zone from metadata
 				var metadata: EventBus.SpawnMetadata = EntityService.get_entity_metadata(sender_id)
 				if not metadata or metadata.zone_id == "":
-								Logger.debug("ChatService: No zone info for sender, returning empty range list")
+								GameLogger.debug("ChatService: No zone info for sender, returning empty range list")
 								return []
 				
 				# Find all players in the same zone
@@ -332,7 +332,7 @@ func _route_message(sender_id: String, channel: Channel, message: String, target
 				
 				# Log chat
 				var channel_name := _channel_info[channel]["name"]
-				Logger.debug("ChatService: [%s] %s: %s" % [channel_name, sender_id, message])
+				GameLogger.debug("ChatService: [%s] %s: %s" % [channel_name, sender_id, message])
 
 ## Handle chat commands
 func _handle_command(sender_id: String, channel: Channel, command: String, target_id: String) -> bool:
@@ -700,4 +700,4 @@ func _notify_player(player_id: String, message: String) -> void:
 												NotificationService.NotificationType.SYSTEM,
 												NotificationService.Priority.HIGH
 								)
-				Logger.debug("ChatService: Notified %s: %s" % [player_id, message])
+				GameLogger.debug("ChatService: Notified %s: %s" % [player_id, message])

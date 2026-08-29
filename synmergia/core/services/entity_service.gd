@@ -16,7 +16,7 @@ signal player_joined(player: Entity, metadata: EventBus.SpawnMetadata)
 signal player_left(player: Entity, metadata: EventBus.SpawnMetadata)
 
 func _ready() -> void:
-	Logger.info("EntityService: Ready")
+	GameLogger.info("EntityService: Ready")
 
 ## Register a new entity with spawn metadata
 ## Returns assigned entity_id
@@ -24,7 +24,7 @@ func register_entity(entity: Entity, metadata: EventBus.SpawnMetadata = null, id
 
 	# SECURITY: Prevent duplicate entity IDs
 	if id_override != "" and _entities.has(id_override):
-		Logger.error("EntityService: Entity ID %s already exists" % id_override)
+		GameLogger.error("EntityService: Entity ID %s already exists" % id_override)
 		return ""
 
 	# Create default metadata if not provided
@@ -59,7 +59,7 @@ func register_entity(entity: Entity, metadata: EventBus.SpawnMetadata = null, id
 	entity_registered.emit(entity, metadata)
 	EventBus.entity_spawned.emit(entity, metadata)
 	
-	Logger.debug("EntityService: Registered %s as %s (type: %s)" % [
+	GameLogger.debug("EntityService: Registered %s as %s (type: %s)" % [
 		entity.display_name, entity_id, metadata.get_spawn_type_string()])
 	return entity_id
 
@@ -112,7 +112,7 @@ func unregister_entity(entity: Entity, reason: String = "despawn") -> void:
 	if was_player:
 		player_left.emit(entity, metadata)
 	
-	Logger.debug("EntityService: Unregistered %s (reason: %s)" % [entity_id, reason])
+	GameLogger.debug("EntityService: Unregistered %s (reason: %s)" % [entity_id, reason])
 
 ## Unregister by entity ID
 func unregister_by_id(entity_id: String, reason: String = "despawn") -> void:
@@ -141,7 +141,7 @@ func get_all_npcs() -> Array[Entity]:
 	return _npcs.values()
 
 ## Get entities in radius (3D sphere)
-func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Entity.EntityType = Entity.EntityType.NPC) -> Array[Entity]:
+func get_entities_in_radius(origin: Vector3, radius: float, entity_type: GameEntity.EntityType = Entity.EntityType.NPC) -> Array[Entity]:
 	var results: Array[Entity] = []
 	var target_dict: Dictionary
 	
@@ -164,7 +164,7 @@ func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Entity.
 	return results
 
 ## Get closest entity to position
-func get_closest_entity(origin: Vector3, entity_type: Entity.EntityType = Entity.EntityType.NPC, max_distance: float = -1.0) -> Entity:
+func get_closest_entity(origin: Vector3, entity_type: GameEntity.EntityType = Entity.EntityType.NPC, max_distance: float = -1.0) -> Entity:
 	var target_dict: Dictionary
 	
 	match entity_type:
@@ -278,4 +278,4 @@ func clear_all() -> void:
 			entity.queue_free()
 	
 	_next_entity_id = 1
-	Logger.info("EntityService: Cleared all entities")
+	GameLogger.info("EntityService: Cleared all entities")

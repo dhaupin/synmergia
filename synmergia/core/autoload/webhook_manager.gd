@@ -30,7 +30,7 @@ func _ready() -> void:
 	# Connect to signals
 	_connect_signals()
 	
-	Logger.info("WebhookManager: Initialized")
+	GameLogger.info("WebhookManager: Initialized")
 
 func _load_config() -> void:
 	# Load from GameConfig if available

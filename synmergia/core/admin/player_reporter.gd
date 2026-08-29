@@ -5,29 +5,29 @@ extends Node
 
 ## Report types
 enum ReportType {
-	ABUSE = 0       # Player abuse/harassment
-	BUG = 1          # Game bug or glitch
-	FEEDBACK = 2     # General feedback
-	SUGGESTION = 3   # Feature suggestion
-	EXPLOIT = 4      # Suspected exploit/hack
-	OTHER = 5        # Other issue
+	ABUSE = 0,       # Player abuse/harassment
+	BUG = 1,          # Game bug or glitch
+	FEEDBACK = 2,     # General feedback
+	SUGGESTION = 3,   # Feature suggestion
+	EXPLOIT = 4,      # Suspected exploit/hack
+	OTHER = 5         # Other issue
 }
 
 ## Report priority
 enum Priority {
-	LOW = 0
-	NORMAL = 1
-	HIGH = 2
+	LOW = 0,
+	NORMAL = 1,
+	HIGH = 2,
 	URGENT = 3
 }
 
 ## Report status
 enum Status {
-	PENDING = 0      # Awaiting review
-	REVIEWING = 1   # Being reviewed
-	RESOLVED = 2    # Issue addressed
-	DISMISSED = 3   # Report not valid
-	ESCALATED = 4   # Escalated to higher authority
+	PENDING = 0,      # Awaiting review
+	REVIEWING = 1,   # Being reviewed
+	RESOLVED = 2,    # Issue addressed
+	DISMISSED = 3,   # Report not valid
+	ESCALATED = 4    # Escalated to higher authority
 }
 
 ## Report entry
@@ -154,7 +154,7 @@ const MAX_REPORTS_PER_HOUR: int = 10
 var _hourly_reports: Dictionary = {}  # reporter_id -> {count, window_start}
 
 func _ready() -> void:
-	Logger.info("PlayerReporter: Initialized")
+	GameLogger.info("PlayerReporter: Initialized")
 
 ## ============================================================================
 ## PUBLIC API
@@ -329,7 +329,7 @@ func update_report_status(admin_id: String, report_id: String, new_status: Statu
 		report.assigned_to = admin_id
 	
 	# Log status change
-	Logger.info("PlayerReporter: Report %s status changed to %s by %s" % [report_id, new_status, admin_id])
+	GameLogger.info("PlayerReporter: Report %s status changed to %s by %s" % [report_id, new_status, admin_id])
 	
 	# Notify reporter
 	_notify_reporter(report)
@@ -394,11 +394,11 @@ func _log_report(report: Report) -> void:
 		log_msg += " against %s" % report.target_id
 	
 	if report.priority == Priority.URGENT:
-		Logger.warn(log_msg)
+		GameLogger.warn(log_msg)
 	elif report.priority == Priority.HIGH:
-		Logger.info(log_msg)
+		GameLogger.info(log_msg)
 	else:
-		Logger.debug(log_msg)
+		GameLogger.debug(log_msg)
 
 func _notify_reporter(report: Report) -> void:
 	if NotificationService:
@@ -424,7 +424,7 @@ func _emit_urgent_alert(report: Report) -> void:
 	urgent_report.emit(report)
 	
 	# Log prominently
-	Logger.warn("URGENT REPORT: %s - %s" % [report.id, report.subject])
+	GameLogger.warn("URGENT REPORT: %s - %s" % [report.id, report.subject])
 
 ## ============================================================================
 ## MAINTENANCE

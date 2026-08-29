@@ -104,7 +104,7 @@ var _report_vote_cooldowns: Dictionary = {}
 var _current_voter: String = ""
 
 func _ready() -> void:
-	Logger.info("CommunityGovernance: Initialized")
+	GameLogger.info("CommunityGovernance: Initialized")
 
 func create_vote(type: VoteType, subject_id: String, question: String, 
 		description: String, options: Array, creator: String, duration_hours: int = 24) -> Dictionary:
@@ -126,7 +126,7 @@ func create_vote(type: VoteType, subject_id: String, question: String,
 		_player_vote_history[creator] = []
 	_player_vote_history[creator].append(vote_id)
 	
-	Logger.info("CommunityGovernance: Created vote %s" % vote_id)
+	GameLogger.info("CommunityGovernance: Created vote %s" % vote_id)
 	vote_created.emit(vote)
 	
 	return {"success": true, "vote_id": vote_id, "vote": vote}
@@ -211,7 +211,7 @@ func close_vote(admin_id: String, vote_id: String) -> Dictionary:
 	var vote: Vote = _votes[vote_id]
 	vote.status = VoteStatus.CLOSED
 	
-	Logger.info("CommunityGovernance: Vote %s closed" % vote_id)
+	GameLogger.info("CommunityGovernance: Vote %s closed" % vote_id)
 	vote_closed.emit(vote)
 	
 	return {"success": true, "results": vote.get_results(), "passed": vote.is_passed()}

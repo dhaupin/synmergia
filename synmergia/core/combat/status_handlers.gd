@@ -2,7 +2,6 @@
 ## Speed, stealth, immunity, damage over time
 extends Node
 
-
 ## SpeedModifier - Adjusts movement speed
 class_name SpeedModifier
 extends StatusEffect
@@ -65,7 +64,6 @@ func _revert_speed_change(target: Entity) -> void:
 	if target is PlayerController:
 		target.move_speed = _original_move_speed
 		target.sprint_speed = _original_sprint_speed
-
 
 ## StealthHandler - Invisible/stealth system
 class_name StealthHandler
@@ -136,7 +134,6 @@ func on_action(target: Entity) -> void:
 	if break_on_action and is_active:
 		remove(target)
 
-
 ## ImmunityHandler - Invincibility and immunities
 class_name ImmunityHandler
 extends StatusEffect
@@ -194,7 +191,6 @@ func on_damage(target: Entity, damage: int, damage_type: String = "") -> int:
 		_damage_absorbed += damage
 		return 0
 	return damage
-
 
 ## DamageOverTime - Poison, burn, negative aura damage
 class_name DamageOverTime

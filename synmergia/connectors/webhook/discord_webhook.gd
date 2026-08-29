@@ -22,7 +22,7 @@ func _ready() -> void:
 	if GameConfig:
 		webhook_url = GameConfig.Webhooks.DISCORD_WEBHOOK_URL
 	
-	Logger.info("DiscordWebhook: Initialized with URL: %s" % ["set" if webhook_url != "" else "not configured"])
+	GameLogger.info("DiscordWebhook: Initialized with URL: %s" % ["set" if webhook_url != "" else "not configured"])
 
 ## Send simple text message
 func send_message(content: String, username: String = "Synmergia") -> void:

@@ -86,32 +86,32 @@ signal alliance_invite_declined(alliance_id: String, to_guild_id: String)
 signal alliance_invite_expired(alliance_id: String, to_guild_id: String)
 
 func _ready() -> void:
-				Logger.info("GuildService: Ready")
+				GameLogger.info("GuildService: Ready")
 
 ## Create a new guild
 func create_guild(name: String, tag: String, leader_id: String) -> String:
 				# QoS: Rate limit guild creation
 				if not QoSService.rate_limit(leader_id, "guild"):
-								Logger.debug("GuildService: Rate limited guild creation for %s" % leader_id)
+								GameLogger.debug("GuildService: Rate limited guild creation for %s" % leader_id)
 								return ""
 				
 				if _player_guilds.has(leader_id):
-								Logger.warn("GuildService: Player %s already in a guild" % leader_id)
+								GameLogger.warn("GuildService: Player %s already in a guild" % leader_id)
 								return ""
 				
 				# Security: Validate guild name
 				var name_validation := SecurityService.validate_channel_name(name)
 				if not name_validation.valid:
-								Logger.warn("GuildService: Invalid guild name '%s': %s" % [name, name_validation.reason])
+								GameLogger.warn("GuildService: Invalid guild name '%s': %s" % [name, name_validation.reason])
 								return ""
 
 				# Validate name and tag
 				if name.length() > MAX_GUILD_NAME_LENGTH or name.length() < 3:
-								Logger.warn("GuildService: Invalid guild name length")
+								GameLogger.warn("GuildService: Invalid guild name length")
 								return ""
 				
 				if tag.length() > GUILD_TAG_LENGTH or tag.length() < 2:
-								Logger.warn("GuildService: Invalid guild tag length")
+								GameLogger.warn("GuildService: Invalid guild tag length")
 								return ""
 				
 				var guild_id := "guild_%s_%d" % [tag.to_lower(), Time.get_ticks_msec()]
@@ -149,7 +149,7 @@ func create_guild(name: String, tag: String, leader_id: String) -> String:
 				_player_guilds[leader_id] = guild_id
 				
 				guild_created.emit(guild_id, name, leader_id)
-				Logger.info("GuildService: Created guild %s (%s)" % [name, guild_id])
+				GameLogger.info("GuildService: Created guild %s (%s)" % [name, guild_id])
 				
 				return guild_id
 
@@ -170,7 +170,7 @@ func disband_guild(leader_id: String) -> bool:
 				
 				var guild := _guilds.get(guild_id)
 				if not guild or guild["leader_id"] != leader_id:
-								Logger.warn("GuildService: Only guildmaster can disband")
+								GameLogger.warn("GuildService: Only guildmaster can disband")
 								return false
 				
 				# Leave alliance first
@@ -186,7 +186,7 @@ func disband_guild(leader_id: String) -> bool:
 				
 				_guilds.erase(guild_id)
 				guild_disbanded.emit(guild_id)
-				Logger.info("GuildService: Disbanded guild %s" % guild_id)
+				GameLogger.info("GuildService: Disbanded guild %s" % guild_id)
 				
 				return true
 
@@ -236,7 +236,7 @@ func invite_player(inviter_id: String, target_id: String) -> bool:
 					"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
 				}
 				guild_invite_sent.emit(guild_id, inviter_id, target_id)
-				Logger.info("GuildService: %s invited %s to guild %s (invite_id: %s)" % [inviter_id, target_id, guild_id, invite_id])
+				GameLogger.info("GuildService: %s invited %s to guild %s (invite_id: %s)" % [inviter_id, target_id, guild_id, invite_id])
 				
 				return true
 
@@ -263,7 +263,7 @@ func apply_to_guild(player_id: String, guild_id: String) -> bool:
 								"message": ""
 				})
 				
-				Logger.info("GuildService: %s applied to guild %s" % [player_id, guild_id])
+				GameLogger.info("GuildService: %s applied to guild %s" % [player_id, guild_id])
 				return true
 
 ## Accept application
@@ -410,7 +410,7 @@ func transfer_leadership(current_leader_id: String, new_leader_id: String) -> bo
 												member["rank"] = GuildRank.GUILDMASTER
 				
 				leader_changed.emit(guild_id, current_leader_id, new_leader_id)
-				Logger.info("GuildService: Leadership transferred from %s to %s" % [current_leader_id, new_leader_id])
+				GameLogger.info("GuildService: Leadership transferred from %s to %s" % [current_leader_id, new_leader_id])
 				
 				return true
 
@@ -450,7 +450,7 @@ func create_alliance(leader_id: String, name: String) -> String:
 				
 				guild["alliance_id"] = alliance_id
 				alliance_created.emit(alliance_id, name, [guild_id])
-				Logger.info("GuildService: Created alliance %s" % alliance_id)
+				GameLogger.info("GuildService: Created alliance %s" % alliance_id)
 				
 				return alliance_id
 
@@ -485,7 +485,7 @@ func invite_to_alliance(inviter_id: String, target_guild_id: String) -> bool:
 					"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
 				}
 				alliance_invite_sent.emit(alliance["id"], guild_id, target_guild_id)
-				Logger.info("GuildService: Guild %s invited to alliance %s (invite_id: %s)" % [target_guild_id, alliance["id"], invite_id])
+				GameLogger.info("GuildService: Guild %s invited to alliance %s (invite_id: %s)" % [target_guild_id, alliance["id"], invite_id])
 				
 				return true
 
@@ -659,7 +659,7 @@ func deposit_gold(player_id: String, amount: int) -> bool:
 								_init_guild_bank(guild)
 				guild["bank"]["gold"] += amount
 				_log_bank_transaction(guild, "deposit_gold", player_id, {"amount": amount})
-				Logger.info("GuildService: %s deposited %d gold" % [player_id, amount])
+				GameLogger.info("GuildService: %s deposited %d gold" % [player_id, amount])
 				return true
 
 ## Withdraw gold from guild bank
@@ -753,7 +753,6 @@ func _log_bank_transaction(guild: Dictionary, transaction_type: String, player_i
 				while logs.size() > 100:
 								logs.pop_at(0)
 
-
 ## ============================================================================
 ## PLAYER NOTIFICATIONS
 ## ============================================================================
@@ -767,4 +766,4 @@ message,
 NotificationService.NotificationType.WARNING,
 NotificationService.Priority.HIGH
 )
-Logger.debug("GuildService: Notified %s: %s" % [player_id, message])
+GameLogger.debug("GuildService: Notified %s: %s" % [player_id, message])

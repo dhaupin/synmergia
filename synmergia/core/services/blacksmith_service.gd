@@ -21,7 +21,7 @@ signal item_too_broken(player_id: String, item_id: String)
 
 func _ready() -> void:
 	instance = self
-	Logger.info("BlacksmithService: Ready")
+	GameLogger.info("BlacksmithService: Ready")
 
 ## Get singleton instance
 static func get_instance() -> BlacksmithService:

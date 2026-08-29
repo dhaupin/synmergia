@@ -69,7 +69,7 @@ signal zone_transfer_blocked_due_to_death(entity_id: String, reason: String)
 
 func _ready() -> void:
 	instance = self
-	Logger.info("DeathFeatures: Ready")
+	GameLogger.info("DeathFeatures: Ready")
 	
 	# Connect to relevant events
 	if EventBus:
@@ -127,7 +127,7 @@ func grant_invincibility(entity_id: String, duration: float, reason: String = "r
 		}
 		player_became_invincible.emit(entity_id, duration, reason)
 	
-	Logger.debug("DeathFeatures: %s granted %ss invincibility (%s)" % [entity_id, duration, reason])
+	GameLogger.debug("DeathFeatures: %s granted %ss invincibility (%s)" % [entity_id, duration, reason])
 
 ## Remove invincibility from a player
 func remove_invincibility(entity_id: String, reason: String = "expired") -> void:
@@ -135,7 +135,7 @@ func remove_invincibility(entity_id: String, reason: String = "expired") -> void
 		var was_reason = _player_invincible[entity_id]["reason"]
 		_player_invincible.erase(entity_id)
 		player_lost_invincibility.emit(entity_id, reason)
-		Logger.debug("DeathFeatures: %s lost invincibility (%s)" % [entity_id, was_reason])
+		GameLogger.debug("DeathFeatures: %s lost invincibility (%s)" % [entity_id, was_reason])
 
 ## Check if damage should be blocked based on invincibility
 func should_block_damage(entity_id: String, damage_source: Entity = null, is_pvp: bool = false) -> bool:
@@ -219,7 +219,7 @@ func apply_death_penalties(entity: Entity, killer: Entity = null, is_pvp: bool =
 	# Log and emit
 	if penalties.xp_loss > 0 or penalties.gold_loss > 0 or penalties.durability_loss > 0:
 		death_penalty_applied.emit(entity.entity_id, penalties.xp_loss, penalties.gold_loss, penalties.durability_loss)
-		Logger.info("DeathFeatures: Penalties applied to %s: %s" % [entity.display_name, JSON.stringify(penalties)])
+		GameLogger.info("DeathFeatures: Penalties applied to %s: %s" % [entity.display_name, JSON.stringify(penalties)])
 	
 	# Notify player
 	if NotificationService and (penalties.xp_loss > 0 or penalties.gold_loss > 0):
@@ -302,7 +302,7 @@ func _activate_griefing_protection(entity_id: String) -> void:
 			"duration": Config.GRIEFING_PROTECTION_DURATION
 		})
 	
-	Logger.info("DeathFeatures: Griefing protection activated for %s" % entity_id)
+	GameLogger.info("DeathFeatures: Griefing protection activated for %s" % entity_id)
 
 ## Check if player has griefing protection
 func has_griefing_protection(entity_id: String) -> bool:
@@ -374,7 +374,7 @@ func record_kill_for_streak(killer_id: String, victim_id: String) -> void:
 				_announce_kill_streak(killer_id, streak_data["streak"])
 			break
 	
-	Logger.debug("DeathFeatures: Kill streak for %s: %d" % [killer_id, streak_data["streak"]])
+	GameLogger.debug("DeathFeatures: Kill streak for %s: %d" % [killer_id, streak_data["streak"]])
 
 ## Get current kill streak for a player
 func get_kill_streak(killer_id: String) -> int:

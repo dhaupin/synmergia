@@ -229,7 +229,6 @@ func calculate_damage_output(attacker: Entity, skill: Skill) -> int:
 		return 0
 	return skill.calculate_damage(attacker, null)
 
-
 ## ComboTracker - Tracks skill combos
 class ComboTracker:
 	var combo_count: int = 0
@@ -269,7 +268,6 @@ class ComboTracker:
 		var current_time := Time.get_ticks_msec() / 1000.0
 		if current_time - last_skill_time > COMBO_WINDOW:
 			combo_count = 0
-
 
 ## DoTEffect - Damage over time effect
 class DoTEffect:

@@ -12,7 +12,7 @@ var _connectors: Dictionary = {}  # connector_name -> AgentConnector
 var _connected_agents: Dictionary = {}  # agent_id -> {connector, entity}
 
 func _ready() -> void:
-	Logger.info("ConnectorService: Ready")
+	GameLogger.info("ConnectorService: Ready")
 	_register_default_connectors()
 
 ## Register a connector
@@ -23,7 +23,7 @@ func register_connector(connector: AgentConnector) -> void:
 	connector.action_received.connect(_on_connector_action_received)
 	connector.error_occurred.connect(_on_connector_error)
 	connector_registered.emit(connector)
-	Logger.info("ConnectorService: Registered connector '%s'" % name)
+	GameLogger.info("ConnectorService: Registered connector '%s'" % name)
 
 ## Unregister a connector
 func unregister_connector(connector_name: String) -> void:
@@ -31,12 +31,12 @@ func unregister_connector(connector_name: String) -> void:
 		var connector: AgentConnector = _connectors[connector_name]
 		connector.disconnect()
 		_connectors.erase(connector_name)
-		Logger.info("ConnectorService: Unregistered connector '%s'" % connector_name)
+		GameLogger.info("ConnectorService: Unregistered connector '%s'" % connector_name)
 
 ## Connect an agent using a specific connector
 func connect_agent(agent_id: String, connector_name: String, config: Dictionary, entity: Entity) -> bool:
 	if not _connectors.has(connector_name):
-		Logger.error("ConnectorService: Unknown connector '%s'" % connector_name)
+		GameLogger.error("ConnectorService: Unknown connector '%s'" % connector_name)
 		return false
 	
 	var connector: AgentConnector = _connectors[connector_name]
@@ -50,7 +50,7 @@ func connect_agent(agent_id: String, connector_name: String, config: Dictionary,
 	}
 	
 	agent_connected.emit(agent_id, connector.agent_type)
-	Logger.info("ConnectorService: Agent '%s' connected via '%s'" % [agent_id, connector_name])
+	GameLogger.info("ConnectorService: Agent '%s' connected via '%s'" % [agent_id, connector_name])
 	return true
 
 ## Disconnect an agent
@@ -61,7 +61,7 @@ func disconnect_agent(agent_id: String) -> void:
 		connector.disconnect()
 		_connected_agents.erase(agent_id)
 		agent_disconnected.emit(agent_id)
-		Logger.info("ConnectorService: Agent '%s' disconnected" % agent_id)
+		GameLogger.info("ConnectorService: Agent '%s' disconnected" % agent_id)
 
 ## Send observation to agent
 func send_observation(agent_id: String, observation: Dictionary) -> void:
@@ -169,7 +169,7 @@ func _on_connector_status_changed(status: AgentConnector.ConnectorStatus) -> voi
 
 func _on_connector_error(error_message: String) -> void:
 	var connector: AgentConnector = get_parent()
-	Logger.error("ConnectorService: Connector '%s' error: %s" % [connector.connector_name, error_message])
+	GameLogger.error("ConnectorService: Connector '%s' error: %s" % [connector.connector_name, error_message])
 
 ## Get all registered connectors
 func get_connectors() -> Dictionary:

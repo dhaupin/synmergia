@@ -4,7 +4,7 @@ class_name Entity
 extends Node3D
 
 signal health_changed(current: int, maximum: int)
-signal died(killer: Entity)
+signal died(killer)  # Entity type omitted to avoid circular reference during parsing
 signal stat_changed(stat: String, value: int)
 signal state_changed(new_state: String)
 
@@ -20,7 +20,7 @@ enum EntityType {
 	ALL = 0xFFFFFFFF
 }
 
-enum Faction {
+enum Relation {
 	NEUTRAL,
 	FRIENDLY,
 	HOSTILE
@@ -37,7 +37,7 @@ enum ControllerType {
 @export var display_name: String = "Entity"
 @export var level: int = 1
 @export var entity_type: EntityType = EntityType.NPC
-@export var faction: Faction = Faction.NEUTRAL
+@export var relation: Relation = Relation.NEUTRAL
 
 # Controller type - for fairness system (HUMAN and AGENT are equals)
 @export var controller_type: ControllerType = ControllerType.NPC
@@ -65,8 +65,8 @@ var current_mana: int = 100
 var max_stamina: float = 100.0
 var current_stamina: float = 100.0
 
-# Status effects
-var status_effects: Array[StatusEffect] = []
+# Status effects (using Array to avoid circular dependency with StatusEffect)
+var status_effects: Array = []
 var is_dead: bool = false
 
 # Team (for friendly fire)
@@ -80,9 +80,9 @@ var pending_respawn: bool = false         # Waiting to respawn
 # Faction
 var faction_id: String = ""
 
-# Species
+# Species (using untyped var to avoid circular dependency with Species schema)
 var species_id: String = ""
-var species: Species = null
+var species = null
 
 func _ready() -> void:
 	_calculate_max_resources()
@@ -111,7 +111,7 @@ func add_stat(stat_name: String, amount: int) -> void:
 
 ## SPECIES
 
-func apply_species(new_species: Species) -> void:
+func apply_species(new_species) -> void:
 	if new_species == null:
 		return
 	
@@ -133,11 +133,11 @@ func apply_species(new_species: Species) -> void:
 	
 	_calculate_max_resources()
 	
-	Logger.debug("Entity: Applied species %s to %s" % [species_id, display_name])
+	# GameLogger.debug("Entity: Applied species %s to %s" % [species_id, display_name])
 
 ## HEALTH
 
-func take_damage(amount: int, source: Entity = null) -> int:
+func take_damage(amount: int, source = null) -> int:
 	if is_dead:
 		return 0
 	
@@ -214,17 +214,17 @@ func get_crit_multiplier() -> float:
 
 ## STATUS EFFECTS
 
-func apply_status_effect(effect: StatusEffect) -> void:
+func apply_status_effect(effect) -> void:
 	if effect.is_expired():
 		return
 	status_effects.append(effect)
 	effect.apply(self)
 	effect.effect_expired.connect(_on_status_effect_expired)
 
-func _on_status_effect_expired(effect: StatusEffect) -> void:
+func _on_status_effect_expired(effect) -> void:
 	status_effects.erase(effect)
 
-func remove_status_effect(effect: StatusEffect) -> void:
+func remove_status_effect(effect) -> void:
 	if status_effects.has(effect):
 		effect.remove(self)
 		status_effects.erase(effect)
@@ -242,7 +242,7 @@ func clear_all_status_effects() -> void:
 
 ## DEATH
 
-func die(killer: Entity = null) -> void:
+func die(killer = null) -> void:
 	if is_dead:
 		return
 	is_dead = true
@@ -257,12 +257,12 @@ func resurrect(health_percent: float = 0.5) -> void:
 
 ## UTILITY
 
-func is_in_range(target: Entity, range: float) -> bool:
+func is_in_range(target, range: float) -> bool:
 	if target == null or not is_instance_valid(target):
 		return false
 	return global_position.distance_to(target.global_position) <= range
 
-func can_attack(target: Entity) -> bool:
+func can_attack(target) -> bool:
 	if target == null or not is_instance_valid(target):
 		return false
 	if is_dead or target.is_dead:

@@ -63,7 +63,7 @@ func _ready() -> void:
 	# Connect to InteractionLayer for touch targeting
 	_connect_interaction_layer()
 	
-	Logger.info("PlayerController ready")
+	GameLogger.info("PlayerController ready")
 
 func _connect_interaction_layer() -> void:
 	if InteractionLayer:
@@ -183,7 +183,7 @@ func _physics_process(delta: float) -> void:
 	if QoSService.rate_limit(entity_id, "movement"):
 		move_and_slide()
 	else:
-		Logger.debug("PlayerController: Rate limited movement for %s" % entity_id)
+		GameLogger.debug("PlayerController: Rate limited movement for %s" % entity_id)
 
 func is_moving() -> bool:
 	var input := InputManager.get_movement_input()

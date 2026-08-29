@@ -50,20 +50,20 @@ signal instance_joined(player: Entity, instance_id: String)
 signal instance_left(player: Entity, instance_id: String)
 
 func _ready() -> void:
-	Logger.info("ZoneManager: Ready")
+	GameLogger.info("ZoneManager: Ready")
 
 ## Load all zones from data
 func load_zones() -> void:
 	var data_service = DataService
 	if not data_service:
-		Logger.warn("ZoneManager: DataService not available")
+		GameLogger.warn("ZoneManager: DataService not available")
 		return
 	
 	var zone_data_dict = data_service.get_all_zones()
 	for zone_id in zone_data_dict:
 		register_zone(zone_data_dict[zone_id])
 	
-	Logger.info("ZoneManager: Loaded %d zones" % _zones.size())
+	GameLogger.info("ZoneManager: Loaded %d zones" % _zones.size())
 
 	# Auto-register zone neighbors based on proximity
 	auto_register_zone_neighbors()
@@ -75,7 +75,7 @@ func register_zone(zone_data: ZoneData) -> bool:
 
 	# Defense in depth: Check for duplicate zone ID
 	if _zones.has(zone_data.id):
-		Logger.error("ZoneManager: Duplicate zone ID '%s' - cannot register" % zone_data.id)
+		GameLogger.error("ZoneManager: Duplicate zone ID '%s' - cannot register" % zone_data.id)
 		return false
 
 	_zones[zone_data.id] = zone_data
@@ -83,7 +83,7 @@ func register_zone(zone_data: ZoneData) -> bool:
 	_enemies_in_zone[zone_data.id] = []
 
 	zone_loaded.emit(zone_data)
-	Logger.debug("ZoneManager: Registered zone %s" % zone_data.id)
+	GameLogger.debug("ZoneManager: Registered zone %s" % zone_data.id)
 	return true
 
 ## Auto-register zone neighbors based on proximity
@@ -105,7 +105,7 @@ func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
 																register_zone_neighbors(zone1.id, zone2.id)
 																registered_count += 1
 				
-				Logger.info("ZoneManager: Auto-registered %d zone neighbor connections" % registered_count)
+				GameLogger.info("ZoneManager: Auto-registered %d zone neighbor connections" % registered_count)
 
 ## Get zone by ID
 func get_zone(zone_id: String) -> ZoneData:
@@ -145,7 +145,7 @@ func entity_enter_zone(entity: Entity, zone: ZoneData) -> bool:
 	
 	# Check entry requirements
 	if not zone.can_enter(entity):
-		Logger.debug("ZoneManager: %s cannot enter zone %s" % [entity.display_name, zone.id])
+		GameLogger.debug("ZoneManager: %s cannot enter zone %s" % [entity.display_name, zone.id])
 		return false
 	
 	# Remove from old zone
@@ -164,7 +164,7 @@ func entity_enter_zone(entity: Entity, zone: ZoneData) -> bool:
 		_enemies_in_zone[zone.id].append(entity)
 	
 	EventBus.entity_entered_zone.emit(entity, zone)
-	Logger.debug("ZoneManager: %s entered zone %s" % [entity.display_name, zone.id])
+	GameLogger.debug("ZoneManager: %s entered zone %s" % [entity.display_name, zone.id])
 	return true
 
 ## Handle entity exiting a zone
@@ -187,7 +187,7 @@ func entity_exit_zone(entity: Entity) -> bool:
 	if zone:
 		EventBus.entity_exited_zone.emit(entity, zone)
 	
-	Logger.debug("ZoneManager: %s exited zone %s" % [entity.display_name, zone_id])
+	GameLogger.debug("ZoneManager: %s exited zone %s" % [entity.display_name, zone_id])
 	return true
 
 ## Check if entity can enter a zone
@@ -213,12 +213,12 @@ func can_pvp(entity1: Entity, entity2: Entity) -> bool:
 func create_instance(base_zone_id: String, owner_id: String = "") -> String:
 	# QoS: Rate limit instance creation
 	if owner_id != "" and not QoSService.rate_limit(owner_id, "instance"):
-		Logger.debug("ZoneManager: Rate limited instance creation for %s" % owner_id)
+		GameLogger.debug("ZoneManager: Rate limited instance creation for %s" % owner_id)
 		return ""
 	
 	var base_zone = _zones.get(base_zone_id)
 	if base_zone == null:
-		Logger.warn("ZoneManager: Cannot create instance, base zone %s not found" % base_zone_id)
+		GameLogger.warn("ZoneManager: Cannot create instance, base zone %s not found" % base_zone_id)
 		return ""
 	
 	var instance_id = "instance_%d" % _next_instance_id
@@ -242,7 +242,7 @@ func create_instance(base_zone_id: String, owner_id: String = "") -> String:
 	register_zone(instance_data.zone_data)
 	
 	instance_created.emit(instance_id, instance_data.zone_data)
-	Logger.info("ZoneManager: Created instance %s from %s" % [instance_id, base_zone_id])
+	GameLogger.info("ZoneManager: Created instance %s from %s" % [instance_id, base_zone_id])
 	return instance_id
 
 ## Destroy an instance
@@ -265,7 +265,7 @@ func destroy_instance(instance_id: String) -> bool:
 	_enemies_in_zone.erase(instance_id)
 	
 	instance_destroyed.emit(instance_id)
-	Logger.info("ZoneManager: Destroyed instance %s" % instance_id)
+	GameLogger.info("ZoneManager: Destroyed instance %s" % instance_id)
 	return true
 
 ## Get instance data
@@ -324,7 +324,7 @@ func get_zones_for_level(level: int) -> Array[ZoneData]:
 ## Enable/disable seamless transitions
 func set_seamless_enabled(enabled: bool) -> void:
 	_seamless_enabled = enabled
-	Logger.info("ZoneManager: Seamless transitions %s" % ("enabled" if enabled else "disabled"))
+	GameLogger.info("ZoneManager: Seamless transitions %s" % ("enabled" if enabled else "disabled"))
 
 ## Register zones as neighbors (for seamless transitions)
 func register_zone_neighbors(zone1_id: String, zone2_id: String) -> void:
@@ -338,7 +338,7 @@ func register_zone_neighbors(zone1_id: String, zone2_id: String) -> void:
 	if not _zone_neighbors[zone2_id].has(zone1_id):
 		_zone_neighbors[zone2_id].append(zone1_id)
 	
-	Logger.debug("ZoneManager: Registered neighbors: %s <-> %s" % [zone1_id, zone2_id])
+	GameLogger.debug("ZoneManager: Registered neighbors: %s <-> %s" % [zone1_id, zone2_id])
 
 ## Get neighboring zones
 func get_neighboring_zones(zone_id: String) -> Array[ZoneData]:
@@ -376,7 +376,7 @@ func get_all_connected_zones(zone_id: String, max_depth: int = 100) -> Array[Zon
 					queue.append(neighbor_id)
 		depth += 1
 	
-	Logger.debug("ZoneManager: Found %d connected zones from %s (depth: %d)" % [results.size(), zone_id, depth])
+	GameLogger.debug("ZoneManager: Found %d connected zones from %s (depth: %d)" % [results.size(), zone_id, depth])
 	return results
 
 ## Get all player IDs in connected zones (for global alerts)
@@ -445,7 +445,7 @@ func perform_seamless_transition(entity: Entity, to_zone: ZoneData) -> bool:
 	
 	# Emit completion
 	seamless_transition_completed.emit(entity, to_zone)
-	Logger.debug("ZoneManager: %s seamless transitioned %s -> %s" % [entity.display_name, from_zone.id, to_zone.id])
+	GameLogger.debug("ZoneManager: %s seamless transitioned %s -> %s" % [entity.display_name, from_zone.id, to_zone.id])
 	return true
 
 func _notify_zone_change(entity: Entity, from_zone: ZoneData, to_zone: ZoneData) -> void:

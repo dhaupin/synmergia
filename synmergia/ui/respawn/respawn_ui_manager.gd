@@ -9,7 +9,7 @@ var _pending_respawn: Dictionary = {}
 func _ready() -> void:
 	# Listen for player death events specifically
 	EventBus.player_died.connect(_on_player_died)
-	Logger.info("RespawnUIManager: Initialized")
+	GameLogger.info("RespawnUIManager: Initialized")
 
 func _on_player_died(entity: Entity, killer: Entity) -> void:
 	_show_respawn_ui(entity)

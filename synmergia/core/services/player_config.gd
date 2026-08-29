@@ -127,7 +127,7 @@ signal settings_loaded()
 signal settings_saved()
 
 func _ready() -> void:
-	Logger.info("PlayerConfig: Ready")
+	GameLogger.info("PlayerConfig: Ready")
 	_init_defaults()
 	_load_global_settings()
 
@@ -155,7 +155,7 @@ func load_account_settings(account_id: String) -> bool:
 		for key in DEFAULT_ACCOUNT_SETTINGS.keys():
 			_account_settings[key] = _account_config.get_value("account", key, DEFAULT_ACCOUNT_SETTINGS[key])
 		settings_loaded.emit()
-		Logger.info("PlayerConfig: Account settings loaded")
+		GameLogger.info("PlayerConfig: Account settings loaded")
 		return true
 	
 	# Use defaults if file doesn't exist
@@ -173,10 +173,10 @@ func save_account_settings() -> bool:
 	var err = _account_config.save(ACCOUNT_SETTINGS_FILE)
 	if err == OK:
 		settings_saved.emit()
-		Logger.info("PlayerConfig: Account settings saved")
+		GameLogger.info("PlayerConfig: Account settings saved")
 		return true
 	
-	Logger.error("PlayerConfig: Failed to save account settings")
+	GameLogger.error("PlayerConfig: Failed to save account settings")
 	return false
 
 ## Load character-specific settings
@@ -194,7 +194,7 @@ func load_character_settings(character_id: String) -> bool:
 		for key in DEFAULT_CHARACTER_SETTINGS.keys():
 			_character_settings[key] = _character_config.get_value("character", key, DEFAULT_CHARACTER_SETTINGS[key])
 		settings_loaded.emit()
-		Logger.info("PlayerConfig: Character settings loaded for %s" % character_id)
+		GameLogger.info("PlayerConfig: Character settings loaded for %s" % character_id)
 		return true
 	
 	_character_settings = DEFAULT_CHARACTER_SETTINGS.duplicate(true)
@@ -203,7 +203,7 @@ func load_character_settings(character_id: String) -> bool:
 ## Save character settings
 func save_character_settings() -> bool:
 	if _current_character_id.is_empty():
-		Logger.warn("PlayerConfig: No character ID set, cannot save")
+		GameLogger.warn("PlayerConfig: No character ID set, cannot save")
 		return false
 	
 	if not _character_config:
@@ -217,10 +217,10 @@ func save_character_settings() -> bool:
 	
 	if err == OK:
 		settings_saved.emit()
-		Logger.info("PlayerConfig: Character settings saved")
+		GameLogger.info("PlayerConfig: Character settings saved")
 		return true
 	
-	Logger.error("PlayerConfig: Failed to save character settings")
+	GameLogger.error("PlayerConfig: Failed to save character settings")
 	return false
 
 ## Get account setting

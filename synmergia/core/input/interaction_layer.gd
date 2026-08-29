@@ -7,18 +7,18 @@ extends Node
 static var instance: InteractionLayer
 
 enum Platform {
-	AUTO = 0
-	DESKTOP = 1
-	MOBILE = 2
+	AUTO = 0,
+	DESKTOP = 1,
+	MOBILE = 2,
 	GAMEPAD = 3
 }
 
 enum InteractionType {
-	TAP = 0
-	LONG_PRESS = 1
-	DRAG = 2
-	DOUBLE_TAP = 3
-	SWIPE = 4
+	TAP = 0,
+	LONG_PRESS = 1,
+	DRAG = 2,
+	DOUBLE_TAP = 3,
+	SWIPE = 4,
 	HOVER = 5
 }
 
@@ -52,7 +52,7 @@ signal platform_changed(platform: Platform)
 func _ready() -> void:
 	instance = self
 	_detect_platform()
-	Logger.info("InteractionLayer: Initialized for %s" % _get_platform_name())
+	GameLogger.info("InteractionLayer: Initialized for %s" % _get_platform_name())
 
 func _input(event: InputEvent) -> void:
 	_process_input(event)
