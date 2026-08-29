@@ -159,7 +159,7 @@ func build_observation(entity: Entity) -> Dictionary:
 	if entity.aura_component:
 		obs["active_buffs"] = []
 		for buff in entity.aura_component.get_all_buffs():
-			obs["active_buffs"].append(buff.buff_id)
+			obs["active_buffs"].append(buff.effect_id)
 		obs["active_debuffs"] = []
 		for debuff in entity.aura_component.get_all_debuffs():
 			obs["active_debuffs"].append(debuff.status_type)
