@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-Synmergia is a Godot 4.2+ based MMORPG with an authoritative server architecture.
+Synmergia is a Godot 4.7+ based MMORPG with an authoritative server architecture.
 - **Language:** GDScript
-- **Engine:** Godot 4.2+
+- **Engine:** Godot 4.7+
 - **Architecture:** Client + Authoritative Server
 
 ---
@@ -28,6 +28,8 @@ Synmergia is a Godot 4.2+ based MMORPG with an authoritative server architecture
   - `EventBus.SpawnMetadata`
   - `NotificationService.AlertScope`
   - `NotificationService.NotificationType`
+  - `CommunityGovernance.Vote`
+  - `CommunityGovernance.ModeratorProgression`
 - **Signal naming:** verb past tense (`entity_spawned`, `player_left`)
 - **Factory methods** for complex object creation
 - **Service singletons** via autoload
@@ -58,6 +60,10 @@ Synmergia is a Godot 4.2+ based MMORPG with an authoritative server architecture
 | `FactionManager` | Faction relationships and PvP modes |
 | `AutoResponseService` | Admin alerts and moderation |
 | `SecurityService` | Anti-cheat and rate limiting |
+| `FriendsService` | Friends list, requests, block/ignore |
+| `QoSService` | Latency and rate limiting |
+| `CommunityGovernance` | Voting, moderator progression |
+| `BlacksmithService` | Item crafting/upgrading |
 
 ### Components (Attached to Entities)
 
@@ -68,6 +74,22 @@ Synmergia is a Godot 4.2+ based MMORPG with an authoritative server architecture
 | `AuraComponent` | Buffs/debuffs |
 | `AggroComponent` | Threat/aggro management |
 | `InventoryComponent` | Item storage and equipment |
+
+### UI Components
+
+| Component | Purpose |
+|-----------|---------|
+| `UIStyles` | Common styling, colors, fonts |
+| `UIPanel` | Base panel class with overlay |
+| `ActionMenu` | Context menus (mouse/touch) |
+| `TooltipManager` | Unified tooltip system |
+| `MenuManager` | HUD management |
+| `InventoryUI` | Player inventory grid |
+| `BuffBar` | Buff/debuff display |
+| `GuildUI` | Guild management |
+| `PartyUI` | Party management |
+| `TradeUI` | Item trading interface |
+| `CharacterTransferUI` | Same-account transfers |
 
 ### Event Patterns
 
@@ -150,6 +172,7 @@ synmergia/
 ├── core/
 │   ├── autoload/       # Global singletons (GameManager, NetworkManager)
 │   ├── components/     # Entity components (Health, Combat, Inventory, etc.)
+│   ├── community/      # Community governance
 │   ├── entities/       # Base entity classes
 │   ├── schemas/        # Data schemas (Item, TargetSchema, Skill, etc.)
 │   ├── services/       # Game services (30+ services)
@@ -162,6 +185,11 @@ synmergia/
 │   ├── enemies/         # Enemy templates
 │   └── zones/           # Zone definitions
 └── ui/                # User interface
+    ├── admin/          # Admin dashboard
+    ├── community/      # Voting UI
+    ├── components/     # Common UI (UIStyles, ActionMenu, etc.)
+    ├── menus/          # Game menus
+    ├── social/         # Friends, Guild, Party, Trade
     └── targeting/      # Target tooltip
 ```
 

@@ -529,7 +529,7 @@ A playable demo with basic combat, one region, one playable class, one species, 
 - [x] Anti-scam measures (trade confirmation countdown)
 - [x] Trade cooldown timers
 - [x] Blocked item types (soulbound, quest items)
-- [ ] Trade between characters on same account
+- [x] Trade between characters on same account
 
 ### 4.5 Inventory System
 **Files:** `godot-project/core/components/inventory_component.gd`
@@ -1466,22 +1466,22 @@ class Database:
 - [ ] Input validation (XSS prevention)
 - [ ] Audit logging for all form submissions
 
-### Community Governance & Voting (TODO)
+### Community Governance & Voting (DONE)
 - [x] CommunityGovernance class implemented (core/community/community_governance.gd)
-- [ ] Persist votes to database
-- [ ] Persist player vote history
-- [ ] Implement vote reputation system
-- [ ] Connect report validation votes to PlayerReporter
-- [ ] Add feature suggestion voting
-- [ ] Add UI for voting interface
-- [ ] Implement community moderator role progression
+- [x] Persist votes to database
+- [x] Persist player vote history
+- [x] Implement vote reputation system
+- [x] Connect report validation votes to PlayerReporter
+- [x] Add feature suggestion voting
+- [x] Add UI for voting interface
+- [x] Implement community moderator role progression (10-level system)
 
-### Friends & Social System (TODO)
-- [ ] Friends list storage (friendships table)
-- [ ] Friend requests system
-- [ ] Online status tracking
-- [ ] Block/ignore list persistence
-- [ ] Social graph analysis for recommendations
+### Friends & Social System (DONE)
+- [x] Friends list storage (friendships table)
+- [x] Friend requests system
+- [x] Online status tracking
+- [x] Block/ignore list persistence
+- [x] Social graph analysis for recommendations
 
 ---
 

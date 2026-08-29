@@ -15,6 +15,15 @@ An open-world MMORPG built with Godot 4.2+, inspired by RYL2 combat and Ultima O
 - **3D Combat System** - Skills, projectiles, AoE, buffs/debuffs, status effects
 - **Entity-Component System** - Flexible entity composition with attachable components
 - **Targeting System** - Data-driven targeting with configurable schemas
+- **UI Framework** - Common styling, action menus, tooltips, HUD management
+
+### Social & Community
+- **Friends System** - Friends list, requests, block/ignore with QoS protection
+- **Party System** - Party management, invites, loot rules, XP sharing
+- **Guild System** - Guilds with ranks, permissions, bank, alliances
+- **Trading** - Item/currency trading with safety confirmations
+- **Community Governance** - Player voting, moderator progression, reputation
+- **Context Menus** - Right-click and touch-long-press interaction menus
 
 ### Species & Factions
 - **Species System** - Races with stat modifiers and cross-species relationships
@@ -28,7 +37,7 @@ An open-world MMORPG built with Godot 4.2+, inspired by RYL2 combat and Ultima O
 
 ## Tech Stack
 
-- **Engine:** Godot 4.2+ (MIT License)
+- **Engine:** Godot 4.7+ (MIT License)
 - **Language:** GDScript
 - **Platforms:** Android, iOS, PC
 - **Architecture:** Client + Authoritative Server
@@ -71,14 +80,19 @@ synmergia/
 │   ├── enemies/        # Enemy templates
 │   └── zones/          # Zone definitions
 └── ui/                # User interface
-    └── targeting/      # Target tooltip and UI
+    ├── admin/          # Admin dashboard and toolbar
+    ├── community/      # Voting UI
+    ├── components/     # Common UI (UIStyles, ActionMenu, TooltipManager, etc.)
+    ├── menus/          # Game menus
+    ├── social/         # Friends, Guild, Party, Trade UI
+    └── targeting/      # Target tooltip
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Godot 4.2+ ([godotengine.org](https://godotengine.org))
+- Godot 4.7+ ([godotengine.org](https://godotengine.org))
 - Android SDK (for mobile builds)
 
 ### Running the Project
@@ -89,7 +103,7 @@ git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
 ```
 
-2. Open in Godot 4.2+
+2. Open in Godot 4.7+
 ```bash
 godot --editor synmergia/
 ```
