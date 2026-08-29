@@ -38,7 +38,7 @@ class SpawnPoint:
 		p_zone_id: String,
 		p_position: Vector3,
 		p_enemy_template: String,
-	\tp_species_id: String = "",
+		p_species_id: String = "",
 		p_respawn: float = 60.0,
 		p_min: int = 1,
 		p_max: int = 1,
@@ -49,7 +49,7 @@ class SpawnPoint:
 		position = p_position
 		spawn_radius = 3.0
 		enemy_template_id = p_enemy_template
-	\tspecies_id = p_species_id
+		species_id = p_species_id
 		respawn_time = p_respawn
 		min_enemies = p_min
 		max_enemies = p_max
