@@ -1,28 +1,23 @@
 ## ReportDialog - Modal dialog for submitting player reports
+## Migrated onto UIPanel base class.
 class_name ReportDialog
-extends Control
+extends UIPanel
 
-## Dialog type
 enum ReportType {
-	PLAYER_ABUSE = 0
-	BUG = 1
-	FEEDBACK = 2
-	SUGGESTION = 3
-	EXPLOIT = 4
+	PLAYER_ABUSE = 0,
+	BUG = 1,
+	FEEDBACK = 2,
+	SUGGESTION = 3,
+	EXPLOIT = 4,
 }
 
-## Current reporter
 var _reporter_id: String = ""
 var _target_player: String = ""
 var _report_type: ReportType = ReportType.PLAYER_ABUSE
-
-## Rate limiting (QoS integration)
 var _submit_cooldown: float = 0.0
-var _cooldown_duration: float = 60.0  # 60 seconds between submissions
+var _cooldown_duration: float = 60.0
 var _max_reports_per_hour: int = 10
 
-## UI Elements
-var _panel: PanelContainer
 var _title_label: Label
 var _target_field: LineEdit
 var _description_field: TextEdit
@@ -30,80 +25,48 @@ var _type_options: OptionButton
 var _submit_btn: Button
 var _cancel_btn: Button
 var _cooldown_label: Label
+var _help_label: Label
+var _target_label: Label
 
-## Signals
 signal report_submitted(type: int, data: Dictionary)
-signal closed()
+signal closed()  # Alias of panel_closed for back-compat.
 signal rate_limited(remaining_seconds: float)
 
 func _ready() -> void:
-	_setup_ui()
-	hide()
+	super._ready()
+	panel_closed.connect(func() -> void: closed.emit())
 
-func _setup_ui() -> void:
-	# Semi-transparent overlay
-	var overlay := ColorRect.new()
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0, 0, 0, 0.7)
-	overlay.gui_input.connect(func(e): 
-		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
-			hide()
-	)
-	add_child(overlay)
-	
-	# Main panel
-	_panel = PanelContainer.new()
-	_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_panel.custom_minimum_size = Vector2(450, 400)
-	
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.16, 0.98)
-	style.border_color = Color(0.4, 0.3, 0.2)
-	style.border_width_left = 3
-	style.border_width_right = 3
-	style.border_width_top = 3
-	style.border_width_bottom = 3
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.corner_radius_bottom_left = 12
-	style.corner_radius_bottom_right = 12
-	style.content_margin_left = 20
-	style.content_margin_top = 20
-	style.content_margin_right = 20
-	style.content_margin_bottom = 20
-	_panel.add_theme_stylebox_override("panel", style)
-	
-	add_child(_panel)
-	
+func _setup_panel() -> void:
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(450, 400)
+	panel.add_theme_stylebox_override("panel", UIStyles.create_panel_style(
+		UIStyles.COLORS.background,
+		UIStyles.COLORS.accent_warning,
+		3,
+		12,
+		20
+	))
+	panel.name = "Panel"
+	add_child(panel)
+
 	var main := VBoxContainer.new()
+	main.name = "Main"
 	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_panel.add_child(main)
-	
-	# Header
-	var header := HBoxContainer.new()
-	main.add_child(header)
-	
+	panel.add_child(main)
+
 	_title_label = Label.new()
 	_title_label.text = "🚩 Submit Report"
 	_title_label.add_theme_font_size_override("font_size", 18)
-	_title_label.add_theme_color_override("font_color", Color(1, 1, 1))
-	header.add_child(_title_label)
-	
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer)
-	
-	var close_btn := Button.new()
-	close_btn.text = "✕"
-	close_btn.pressed.connect(hide)
-	header.add_child(close_btn)
-	
-	# Type selector
+	_title_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	_title_label.name = "Title"
+	main.add_child(_title_label)
+
 	var type_label := Label.new()
 	type_label.text = "Report Type:"
-	type_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	type_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	main.add_child(type_label)
-	
+
 	_type_options = OptionButton.new()
 	_type_options.add_item("Player Abuse / Harassment", ReportType.PLAYER_ABUSE)
 	_type_options.add_item("Game Bug / Glitch", ReportType.BUG)
@@ -112,124 +75,145 @@ func _setup_ui() -> void:
 	_type_options.add_item("Suspected Exploit / Hack", ReportType.EXPLOIT)
 	_type_options.item_selected.connect(_on_type_changed)
 	main.add_child(_type_options)
-	
-	# Target field (for player abuse)
-	var target_label := Label.new()
-	target_label.name = "TargetLabel"
-	target_label.text = "Player Name:"
-	target_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	main.add_child(target_label)
-	
+
+	_target_label = Label.new()
+	_target_label.name = "TargetLabel"
+	_target_label.text = "Player Name:"
+	_target_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	main.add_child(_target_label)
+
 	_target_field = LineEdit.new()
 	_target_field.placeholder_text = "Enter player name..."
 	_target_field.custom_minimum_size.y = 35
 	main.add_child(_target_field)
-	
-	# Description field
+
 	var desc_label := Label.new()
 	desc_label.text = "Description:"
-	desc_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	desc_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	main.add_child(desc_label)
-	
+
 	_description_field = TextEdit.new()
 	_description_field.custom_minimum_size.y = 150
 	_description_field.placeholder_text = "Describe the issue in detail..."
 	main.add_child(_description_field)
-	
-	# Help text
-	var help_label := Label.new()
-	help_label.name = "HelpLabel"
-	help_label.text = "Include any evidence, witnesses, or steps to reproduce."
-	help_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	help_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	main.add_child(help_label)
-	
-	# Buttons
+
+	_help_label = Label.new()
+	_help_label.name = "HelpLabel"
+	_help_label.text = "Include any evidence, witnesses, or steps to reproduce."
+	_help_label.add_theme_color_override("font_color", UIStyles.COLORS.text_disabled)
+	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	main.add_child(_help_label)
+
 	var btn_container := HBoxContainer.new()
 	btn_container.alignment = BoxContainer.ALIGNMENT_END
 	main.add_child(btn_container)
-	
-	spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_container.add_child(spacer)
-	
+
+	var btn_spacer := Control.new()
+	btn_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_container.add_child(btn_spacer)
+
 	_cancel_btn = Button.new()
 	_cancel_btn.text = "Cancel"
-	_cancel_btn.pressed.connect(hide)
+	_cancel_btn.pressed.connect(close)
 	btn_container.add_child(_cancel_btn)
-	
+
 	_submit_btn = Button.new()
 	_submit_btn.text = "Submit Report"
 	_submit_btn.pressed.connect(_on_submit)
 	btn_container.add_child(_submit_btn)
 
+	_cooldown_label = Label.new()
+	_cooldown_label.text = ""
+	_cooldown_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+	_cooldown_label.name = "CooldownLabel"
+	main.add_child(_cooldown_label)
+
+func _setup_header() -> void:
+	# ReportDialog embeds the title in the body (Title label) so users see the
+	# dynamic type-specific header. The UIPanel's standard header would
+	# duplicate it. Provide a minimal close-button-only header.
+	var panel := get_panel()
+	if not panel:
+		return
+	var main := panel.get_node_or_null("Main") as VBoxContainer
+	if not main:
+		return
+
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	main.add_child(header)
+	main.move_child(header, 0)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+
+	var close_btn := Button.new()
+	close_btn.text = "✕"
+	close_btn.pressed.connect(close)
+	header.add_child(close_btn)
+
 func _on_type_changed(index: int) -> void:
 	_report_type = index as ReportType
-	
-	# Update UI based on type
+
 	match _report_type:
 		ReportType.PLAYER_ABUSE:
 			_title_label.text = "🚩 Report Player"
 			_target_field.show()
-			get_node("Panel/MarginContainer/VBoxContainer/TargetLabel").show()
+			_target_label.show()
 			_description_field.placeholder_text = "Describe the abuse, include chat logs or evidence if possible..."
-			get_node_or_null("Panel/MarginContainer/VBoxContainer/HelpLabel").hide()
+			if _help_label: _help_label.hide()
 		ReportType.BUG:
 			_title_label.text = "🐛 Report Bug"
 			_target_field.hide()
-			get_node("Panel/MarginContainer/VBoxContainer/TargetLabel").hide()
+			_target_label.hide()
 			_description_field.placeholder_text = "Describe what happened, what you expected, and steps to reproduce..."
-			get_node_or_null("Panel/MarginContainer/VBoxContainer/HelpLabel").show()
+			if _help_label: _help_label.show()
 		ReportType.FEEDBACK:
 			_title_label.text = "💬 Send Feedback"
 			_target_field.hide()
-			get_node("Panel/MarginContainer/VBoxContainer/TargetLabel").hide()
+			_target_label.hide()
 			_description_field.placeholder_text = "Share your thoughts, ideas, or suggestions..."
-			get_node_or_null("Panel/MarginContainer/VBoxContainer/HelpLabel").hide()
+			if _help_label: _help_label.hide()
 		ReportType.SUGGESTION:
 			_title_label.text = "💡 Make Suggestion"
 			_target_field.hide()
-			get_node("Panel/MarginContainer/VBoxContainer/TargetLabel").hide()
+			_target_label.hide()
 			_description_field.placeholder_text = "Describe your feature idea..."
-			get_node_or_null("Panel/MarginContainer/VBoxContainer/HelpLabel").hide()
+			if _help_label: _help_label.hide()
 		ReportType.EXPLOIT:
 			_title_label.text = "⚠️ Report Exploit"
 			_target_field.show()
-			get_node("Panel/MarginContainer/VBoxContainer/TargetLabel").show()
+			_target_label.show()
 			_description_field.placeholder_text = "Describe the exploit in detail. Include any player names involved..."
-			get_node_or_null("Panel/MarginContainer/VBoxContainer/HelpLabel").show()
+			if _help_label: _help_label.show()
 
 func _on_submit() -> void:
-	# Check rate limiting
 	if not _check_rate_limit():
 		return
-	
-	var description := _description_field.text.strip_edges()
-	
+
+	var description: String = _description_field.text.strip_edges()
+
 	if description == "":
 		_show_error("Please enter a description")
 		return
-	
-	# Basic content validation
+
 	if description.length() < 10:
 		_show_error("Description too short. Please provide more detail.")
 		return
-	
-	var target: Variant = _target_field.text.strip_edges()
-	
-	# Validate target for player reports
-	if _report_type in [ReportType.PLAYER_ABUSE, ReportType.EXPLOIT]:
+
+	var target: String = _target_field.text.strip_edges()
+
+	if _report_type == ReportType.PLAYER_ABUSE or _report_type == ReportType.EXPLOIT:
 		if target == "":
 			_show_error("Please enter a player name")
 			return
-	
-	# Build report data
+
 	var data: Dictionary = {
 		"description": description,
-		"target": target
+		"target": target,
 	}
-	
-	# Submit to PlayerReporter (has its own rate limiting)
+
 	if PlayerReporter:
 		var report_type: int
 		match _report_type:
@@ -239,120 +223,83 @@ func _on_submit() -> void:
 			ReportType.SUGGESTION: report_type = PlayerReporter.ReportType.SUGGESTION
 			ReportType.EXPLOIT: report_type = PlayerReporter.ReportType.EXPLOIT
 			_: report_type = PlayerReporter.ReportType.OTHER
-		
-		var result := PlayerReporter.submit_report(_reporter_id, report_type, data)
-		
+
+		var result: Dictionary = PlayerReporter.submit_report(_reporter_id, report_type, data)
+
 		if result.get("success", false):
-			# Start cooldown after successful submission
 			_start_cooldown()
 			_show_success("Report submitted successfully. Thank you!")
 			report_submitted.emit(_report_type, data)
 			await get_tree().create_timer(1.5).timeout
-			hide()
+			close()
 		else:
 			_show_error(result.get("message", "Failed to submit report"))
 	else:
 		_show_error("Report system not available")
 		report_submitted.emit(_report_type, data)
-		hide()
+		close()
 
 func _check_rate_limit() -> bool:
-	# Check cooldown
 	if _submit_cooldown > 0:
-		_show_error("Please wait %.0f seconds before submitting another report" % _submit_cooldown)
+		_show_error("Please wait %d seconds before submitting another report" % int(_submit_cooldown))
 		rate_limited.emit(_submit_cooldown)
 		return false
-	
-	# Check hourly limit via SecurityService if available
-	if SecurityService:
-		var rate_limit_key := "reports_%s" % _reporter_id
-		if SecurityService.is_rate_limited(rate_limit_key, _max_reports_per_hour, 3600):
-			_show_error("Hourly report limit reached. Please try again later.")
-			rate_limited.emit(3600)
-			return false
-	
 	return true
 
 func _start_cooldown() -> void:
 	_submit_cooldown = _cooldown_duration
-	_submit_btn.disabled = true
-	
-	# Update cooldown label
-	if _cooldown_label:
-		_cooldown_label.show()
-		_update_cooldown_display()
 
 func _update_cooldown_display() -> void:
-	if _cooldown_label:
-		_cooldown_label.text = "Wait %.0fs" % _submit_cooldown
+	if _submit_cooldown > 0 and _cooldown_label:
+		_cooldown_label.text = "Cooldown: %ds" % int(_submit_cooldown)
+		_submit_btn.disabled = true
+	else:
+		if _cooldown_label: _cooldown_label.text = ""
+		if _submit_btn: _submit_btn.disabled = false
 
 func _process(delta: float) -> void:
 	if _submit_cooldown > 0:
-		_submit_cooldown -= delta
+		_submit_cooldown = max(0.0, _submit_cooldown - delta)
 		_update_cooldown_display()
-		if _submit_cooldown <= 0:
-			_submit_cooldown = 0
-			_submit_btn.disabled = false
-			if _cooldown_label:
-				_cooldown_label.hide()
 
 func _show_error(message: String) -> void:
-	var error_label := Label.new()
-	error_label.text = message
-	error_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
-	error_label.z_index = 100
-	_panel.add_child(error_label)
-	
-	var tween := create_tween()
-	tween.tween_interval(3.0)
-	tween.tween_callback(error_label.queue_free)
+	if _cooldown_label:
+		_cooldown_label.text = "[color=#ff6666]%s[/color]" % message
+		_cooldown_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
 
 func _show_success(message: String) -> void:
-	var success_label := Label.new()
-	success_label.text = message
-	success_label.add_theme_color_override("font_color", Color(0.3, 1, 0.3))
-	success_label.z_index = 100
-	_panel.add_child(success_label)
-	
-	var tween := create_tween()
-	tween.tween_interval(2.0)
-	tween.tween_callback(success_label.queue_free)
+	if _cooldown_label:
+		_cooldown_label.text = message
+		_cooldown_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
 
-## Open the dialog for a specific reporter
-func open(reporter_id: String, default_type: ReportType = ReportType.PLAYER_ABUSE, 
+## Open the dialog for a specific reporter. UIPanel.open only takes a
+## player_id, so we capture the full state here and forward the reporter
+## id as the panel's player_id.
+func open(reporter_id: String, default_type: ReportType = ReportType.PLAYER_ABUSE,
 		target_player: String = "") -> void:
-	
 	_reporter_id = reporter_id
 	_target_player = target_player
 	_report_type = default_type
-	
-	# Reset fields
-	_description_field.text = ""
-	_target_field.text = target_player
-	
-	# Set type
-	_type_options.selected = default_type
-	_on_type_changed(default_type)
-	
-	show()
 
-## Open specifically to report a player
+	if _description_field:
+		_description_field.text = ""
+	if _target_field:
+		_target_field.text = target_player
+
+	if _type_options:
+		_type_options.selected = default_type
+	_on_type_changed(default_type)
+
+	super(reporter_id)
+
 func open_player_report(reporter_id: String, target_player: String) -> void:
 	open(reporter_id, ReportType.PLAYER_ABUSE, target_player)
 
-## Open specifically to report a bug
 func open_bug_report(reporter_id: String) -> void:
 	open(reporter_id, ReportType.BUG, "")
 
-## Open specifically for feedback
 func open_feedback(reporter_id: String) -> void:
 	open(reporter_id, ReportType.FEEDBACK, "")
 
-## Open specifically for a suggestion
 func open_suggestion(reporter_id: String) -> void:
 	open(reporter_id, ReportType.SUGGESTION, "")
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_VISIBILITY_CHANGED:
-		if not visible:
-			closed.emit()

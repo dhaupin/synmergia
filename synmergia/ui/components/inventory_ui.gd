@@ -1,141 +1,159 @@
 ## InventoryUI - Player inventory panel
+## Migrated onto UIPanel base class.
 class_name InventoryUI
-extends Control
-
-var _player_id: String = ""
-var _grid: GridContainer
-var _slots: Array = []
-var _selected_slot: int = -1
+extends UIPanel
 
 const COLS: int = 5
 const ROWS: int = 6
 const SLOT_SIZE: int = 50
 
+var _grid: GridContainer
+var _slots: Array = []
+var _selected_slot: int = -1
+var _info_label: Label
+var _gold_label: Label
+
 signal item_selected(slot_index: int, item_id: String)
 signal item_used(slot_index: int, item_id: String)
 signal item_dropped(slot_index: int, item_id: String)
-signal closed()
 
-func _ready() -> void:
-	_setup_ui()
-	hide()
-
-func _setup_ui() -> void:
-	# Overlay
-	var overlay := ColorRect.new()
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0, 0, 0, 0.6)
-	overlay.gui_input.connect(func(e): 
-		if e is InputEventMouseButton and e.pressed: close()
-	)
-	add_child(overlay)
-	
-	# Panel
+func _setup_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	panel.offset_left = -450
-	panel.custom_minimum_size = Vector2(400, 500)
-	
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.98)
-	style.border_color = Color(0.3, 0.3, 0.4)
-	style.corner_radius_top_left = 12
-	panel.add_theme_stylebox_override("panel", style)
+	panel.offset_left = -470
+	panel.custom_minimum_size = Vector2(440, 520)
+	panel.add_theme_stylebox_override("panel", UIStyles.create_panel_style())
+	panel.name = "Panel"
 	add_child(panel)
-	
+
 	var main := VBoxContainer.new()
+	main.name = "Main"
 	panel.add_child(main)
-	
-	# Header
-	var header := HBoxContainer.new()
-	main.add_child(header)
-	
-	var title := Label.new()
-	title.text = "Inventory"
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
-	header.add_child(title)
-	
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer)
-	
-	var gold_label := Label.new()
-	gold_label.text = "Gold: 0"
-	gold_label.name = "GoldLabel"
-	gold_label.add_theme_color_override("font_color", Color(1, 0.8, 0.2))
-	header.add_child(gold_label)
-	
-	var close_btn := Button.new()
-	close_btn.text = "X"
-	close_btn.pressed.connect(close)
-	header.add_child(close_btn)
-	
-	# Grid
+
 	_grid = GridContainer.new()
+	_grid.name = "Grid"
 	_grid.columns = COLS
 	_grid.custom_minimum_size.y = SLOT_SIZE * ROWS
 	_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(_grid)
-	
-	# Create slots
+
 	for i in range(COLS * ROWS):
 		var slot := _create_slot(i)
 		_grid.add_child(slot)
 		_slots.append(slot)
-	
-	# Item info panel
+
 	var info_panel := HBoxContainer.new()
 	info_panel.custom_minimum_size.y = 60
 	main.add_child(info_panel)
-	
-	var info_label := Label.new()
-	info_label.name = "ItemInfo"
-	info_label.text = "Select an item"
-	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_panel.add_child(info_label)
-	
-	# Action buttons
+
+	_info_label = Label.new()
+	_info_label.name = "ItemInfo"
+	_info_label.text = "Select an item"
+	_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_panel.add_child(_info_label)
+
 	var btn_row := HBoxContainer.new()
 	main.add_child(btn_row)
-	
+
 	var use_btn := Button.new()
 	use_btn.text = "Use"
 	use_btn.pressed.connect(_on_use_item)
 	btn_row.add_child(use_btn)
-	
+
 	var equip_btn := Button.new()
 	equip_btn.text = "Equip"
 	equip_btn.pressed.connect(_on_equip_item)
 	btn_row.add_child(equip_btn)
-	
+
 	var drop_btn := Button.new()
 	drop_btn.text = "Drop"
 	drop_btn.pressed.connect(_on_drop_item)
 	btn_row.add_child(drop_btn)
 
+func _setup_header() -> void:
+	var panel := get_panel()
+	if not panel:
+		return
+	var main := panel.get_node_or_null("Main") as VBoxContainer
+	if not main:
+		return
+
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	main.add_child(header)
+	main.move_child(header, 0)
+
+	var title := Label.new()
+	title.text = "Inventory"
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	header.add_child(title)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+
+	_gold_label = Label.new()
+	_gold_label.text = "Gold: 0"
+	_gold_label.name = "GoldLabel"
+	_gold_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	header.add_child(_gold_label)
+
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.pressed.connect(close)
+	header.add_child(close_btn)
+
+func _on_open() -> void:
+	_refresh_inventory()
+
+func _on_close() -> void:
+	_selected_slot = -1
+
+func _refresh_inventory() -> void:
+	var comp: InventoryComponent = _get_inventory_component()
+	var items: Array = []
+	if comp:
+		var count: int = comp.get_inventory_count()
+		for i in range(count):
+			var item: Item = comp.get_item(i)
+			if item:
+				items.append(item)
+
+	for slot in _slots:
+		_clear_slot(slot)
+
+	for i in range(mini(items.size(), _slots.size())):
+		_set_slot_item(i, items[i])
+
+	if _gold_label:
+		var gold: int = 0
+		if comp:
+			gold = comp.get_gold()
+		_gold_label.text = "Gold: %d" % gold
+
+func _get_inventory_component() -> InventoryComponent:
+	if not InventoryService or _player_id == "":
+		return null
+	return InventoryService.get_inventory(_player_id)
+
 func _create_slot(index: int) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
-	
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.12, 0.9)
-	style.border_color = Color(0.2, 0.2, 0.25)
-	style.border_width_left = 1
-	style.border_width_right = 1
-	style.border_width_top = 1
-	style.border_width_bottom = 1
-	slot.add_theme_stylebox_override("panel", style)
-	
-	# Icon
+	slot.add_theme_stylebox_override("panel", UIStyles.create_panel_style(
+		UIStyles.COLORS.background_dark,
+		UIStyles.COLORS.border,
+		1,
+		4
+	))
+
 	var icon := TextureRect.new()
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 	icon.name = "Icon"
 	slot.add_child(icon)
-	
-	# Stack count
+
 	var count := Label.new()
 	count.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	count.offset_left = -25
@@ -145,43 +163,13 @@ func _create_slot(index: int) -> PanelContainer:
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	count.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	count.add_theme_font_size_override("font_size", 12)
-	count.add_theme_color_override("font_color", Color(1, 1, 1))
+	count.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	count.name = "Count"
 	count.visible = false
 	slot.add_child(count)
-	
-	slot.gui_input.connect(func(e): _on_slot_input(index, e))
-	
+
+	slot.gui_input.connect(func(e: InputEvent) -> void: _on_slot_input(index, e))
 	return slot
-
-func open(player_id: String) -> void:
-	_player_id = player_id
-	_refresh_inventory()
-	show()
-
-func close() -> void:
-	hide()
-	closed.emit()
-
-func _refresh_inventory() -> void:
-	if not InventoryService:
-		return
-	
-	var items: Array = InventoryService.get_player_inventory(_player_id)
-	
-	# Clear all slots
-	for slot in _slots:
-		_clear_slot(slot)
-	
-	# Fill slots with items
-	for i in range(mini(items.size(), _slots.size())):
-		var item: Dictionary = items[i]
-		_set_slot_item(i, item)
-	
-	# Update gold
-	var gold: Label = get_node_or_null("Panel/GoldLabel")
-	if gold:
-		gold.text = "Gold: %d" % InventoryService.get_player_gold(_player_id)
 
 func _clear_slot(slot: PanelContainer) -> void:
 	var icon: TextureRect = slot.get_node_or_null("Icon")
@@ -192,93 +180,91 @@ func _clear_slot(slot: PanelContainer) -> void:
 		count.visible = false
 	slot.tooltip_text = ""
 
-func _set_slot_item(index: int, item: Dictionary) -> void:
-	if index >= _slots.size():
+func _set_slot_item(index: int, item: Item) -> void:
+	if index >= _slots.size() or item == null:
 		return
-	
+
 	var slot: PanelContainer = _slots[index]
-	
-	# Set icon (placeholder for now)
-	var color := _get_rarity_color(item.get("rarity", "common"))
+
+	var color := _get_rarity_color(item.rarity)
 	var tex := _create_color_texture(color, SLOT_SIZE)
-	
+
 	var icon: TextureRect = slot.get_node_or_null("Icon")
 	if icon:
 		icon.texture = tex
-	
-	# Stack count
-	var stack_size: int = item.get("stack_size", 1)
+
+	var stack_size: int = item.current_stack if item.current_stack > 0 else item.stack_size
 	var count: Label = slot.get_node_or_null("Count")
 	if count and stack_size > 1:
 		count.text = str(stack_size)
 		count.visible = true
-	
-	# Tooltip
-	var name: String = item.get("name", "Unknown Item")
-	var rarity: String = item.get("rarity", "common")
-	slot.tooltip_text = "%s [%s]" % [name, rarity]
 
-func _get_rarity_color(rarity: String) -> Color:
-	match rarity.to_lower():
-		"common": return Color(0.6, 0.6, 0.6)
-		"uncommon": return Color(0.2, 0.9, 0.2)
-		"rare": return Color(0.2, 0.4, 1.0)
-		"epic": return Color(0.6, 0.2, 0.9)
-		"legendary": return Color(1.0, 0.6, 0.1)
+	slot.tooltip_text = "%s [%s]" % [item.display_name, _rarity_name(item.rarity)]
+
+func _rarity_name(rarity: int) -> String:
+	match rarity:
+		Item.Rarity.COMMON: return "common"
+		Item.Rarity.UNCOMMON: return "uncommon"
+		Item.Rarity.RARE: return "rare"
+		Item.Rarity.EPIC: return "epic"
+		Item.Rarity.LEGENDARY: return "legendary"
+		_: return "common"
+
+func _get_rarity_color(rarity: int) -> Color:
+	match rarity:
+		Item.Rarity.COMMON: return Color(0.6, 0.6, 0.6)
+		Item.Rarity.UNCOMMON: return Color(0.2, 0.9, 0.2)
+		Item.Rarity.RARE: return Color(0.2, 0.4, 1.0)
+		Item.Rarity.EPIC: return Color(0.6, 0.2, 0.9)
+		Item.Rarity.LEGENDARY: return Color(1.0, 0.6, 0.1)
 		_: return Color(0.6, 0.6, 0.6)
 
 func _create_color_texture(color: Color, size: int = 32) -> ImageTexture:
 	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(color)
-	var tex := ImageTexture.create_from_image(img)
-	return tex
+	return ImageTexture.create_from_image(img)
 
 func _on_slot_input(slot_index: int, event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		if event.pressed:
-			if event.button_index == MOUSE_BUTTON_LEFT:
-				_select_slot(slot_index)
-			elif event.button_index == MOUSE_BUTTON_RIGHT:
-				_use_item(slot_index)
+	if event is InputEventMouseButton and event.pressed:
+		match event.button_index:
+			MOUSE_BUTTON_LEFT: _select_slot(slot_index)
+			MOUSE_BUTTON_RIGHT: _use_item(slot_index)
+	elif event is InputEventScreenTouch and event.pressed:
+		_select_slot(slot_index)
 
 func _select_slot(index: int) -> void:
-	# Deselect previous
 	if _selected_slot >= 0 and _selected_slot < _slots.size():
 		_set_slot_selected(_selected_slot, false)
-	
 	_selected_slot = index
 	_set_slot_selected(index, true)
-	
-	# Update info
-	var items: Array = InventoryService.get_player_inventory(_player_id) if InventoryService else []
-	if index < items.size():
-		var item: Dictionary = items[index]
-		var info: Label = get_node_or_null("Panel/ItemInfo")
-		if info:
-			info.text = item.get("name", "Unknown")
+
+	var comp: InventoryComponent = _get_inventory_component()
+	if not _info_label:
+		return
+	if comp and index < comp.get_inventory_count():
+		var item: Item = comp.get_item(index)
+		_info_label.text = item.display_name if item else "Empty slot"
 	else:
-		var info: Label = get_node_or_null("Panel/ItemInfo")
-		if info:
-			info.text = "Empty slot"
+		_info_label.text = "Empty slot"
 
 func _set_slot_selected(index: int, selected: bool) -> void:
 	if index >= _slots.size():
 		return
-	
 	var slot: PanelContainer = _slots[index]
 	var style := slot.get_theme_stylebox("panel")
 	if style:
-		style.border_color = Color(1, 0.8, 0.2) if selected else Color(0.2, 0.2, 0.25)
+		style.border_color = UIStyles.COLORS.accent_gold if selected else UIStyles.COLORS.border
 
 func _use_item(slot_index: int) -> void:
-	if not InventoryService:
+	var comp: InventoryComponent = _get_inventory_component()
+	if not comp:
 		return
-	
-	var items: Array = InventoryService.get_player_inventory(_player_id)
-	if slot_index < items.size():
-		var item: Dictionary = items[slot_index]
-		var result := InventoryService.use_item(_player_id, item.get("id", ""))
-		if result.get("success", false):
+	if slot_index < comp.get_inventory_count():
+		# Phase C will wire InventoryComponent.item_used signal back to refresh.
+		# For now, mark the slot dropped so the user sees feedback.
+		var item: Item = comp.get_item(slot_index)
+		if item and comp.remove_item(slot_index) != null:
+			item_used.emit(slot_index, item.id)
 			_refresh_inventory()
 
 func _on_use_item() -> void:
@@ -286,24 +272,23 @@ func _on_use_item() -> void:
 		_use_item(_selected_slot)
 
 func _on_equip_item() -> void:
-	if _selected_slot >= 0 and InventoryService:
-		var items: Array = InventoryService.get_player_inventory(_player_id)
-		if _selected_slot < items.size():
-			var item: Dictionary = items[_selected_slot]
-			var result := InventoryService.equip_item(_player_id, item.get("id", ""))
-			if result.get("success", false):
-				_refresh_inventory()
+	if _selected_slot < 0:
+		return
+	var comp: InventoryComponent = _get_inventory_component()
+	if not comp:
+		return
+	if _selected_slot < comp.get_inventory_count():
+		if comp.equip_item(_selected_slot):
+			_refresh_inventory()
 
 func _on_drop_item() -> void:
-	if _selected_slot >= 0 and InventoryService:
-		var items: Array = InventoryService.get_player_inventory(_player_id)
-		if _selected_slot < items.size():
-			var item: Dictionary = items[_selected_slot]
-			var result := InventoryService.drop_item(_player_id, item.get("id", ""))
-			if result.get("success", false):
-				_refresh_inventory()
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_VISIBILITY_CHANGED and not visible:
-		_selected_slot = -1
-		closed.emit()
+	if _selected_slot < 0:
+		return
+	var comp: InventoryComponent = _get_inventory_component()
+	if not comp:
+		return
+	if _selected_slot < comp.get_inventory_count():
+		var item: Item = comp.get_item(_selected_slot)
+		if item and comp.remove_item(_selected_slot) != null:
+			item_dropped.emit(_selected_slot, item.id)
+			_refresh_inventory()
