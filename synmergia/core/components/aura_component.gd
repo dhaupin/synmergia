@@ -126,9 +126,9 @@ func toggle_aura(aura: AuraBuff, enabled: bool) -> void:
 		aura.deactivate()
 
 ## Check if has buff
-func has_buff(buff_id: String) -> bool:
+func has_buff(effect_id: String) -> bool:
 	for buff in _active_buffs:
-		if buff.buff_id == buff_id:
+		if buff.effect_id == effect_id:
 			return true
 	return false
 
@@ -140,9 +140,9 @@ func has_debuff(debuff_type: String) -> bool:
 	return false
 
 ## Get buff by ID
-func get_buff(buff_id: String) -> Buff:
+func get_buff(effect_id: String) -> Buff:
 	for buff in _active_buffs:
-		if buff.buff_id == buff_id:
+		if buff.effect_id == effect_id:
 			return buff
 	return null
 

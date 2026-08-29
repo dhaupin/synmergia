@@ -20,8 +20,8 @@ enum Target {
 	TEAM,            # Affects all party/guild members
 }
 
-@export var buff_name: String = "Buff"
-@export var buff_id: String = ""
+@export var effect_name: String = "Buff"
+@export var effect_id: String = ""
 @export var buff_type: BuffType = BuffType.STAT_BOOST
 @export var target: Target = Target.SELF
 
@@ -75,8 +75,8 @@ var _timer: Timer
 
 func _init() -> void:
 	effect_type = EffectType.BUFF
-	if buff_id == "":
-		buff_id = buff_name.to_lower().replace(" ", "_")
+	if effect_id == "":
+		buff_id = effect_id.to_lower().replace(" ", "_")
 
 ## ACTIVATION
 
@@ -184,7 +184,7 @@ func add_stack() -> void:
 
 func get_buff_info() -> Dictionary:
 	return {
-		"name": buff_name,
+		"name": effect_name,
 		"type": BuffType.keys()[buff_type],
 		"duration": duration,
 		"stacks": stack_count,
@@ -235,8 +235,8 @@ var _physics_area: PhysicsArea  # 3D sphere detection
 func _init() -> void:
 	super._init()
 	effect_type = EffectType.BUFF
-	if buff_id == "":
-		buff_id = buff_name.to_lower().replace(" ", "_") + "_aura"
+	if effect_id == "":
+		buff_id = effect_id.to_lower().replace(" ", "_") + "_aura"
 
 ## TOGGLE
 
@@ -504,7 +504,7 @@ func is_active() -> bool:
 
 func get_aura_info() -> Dictionary:
 	return {
-		"name": buff_name,
+		"name": effect_name,
 		"type": AuraType.keys()[aura_type],
 		"active": _is_toggled_on,
 		"radius": aura_radius,
