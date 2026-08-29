@@ -36,7 +36,7 @@ var _player_jitter: Dictionary = {}  # player_id -> jitter in ms
 var _latency_history: Dictionary = {}  # player_id -> Array of recent latencies
 
 func _ready() -> void:
-	GameLogger.info("QoSService: Quality of Service initialized")
+	GameLog.info("QoSService: Quality of Service initialized")
 
 ## Register a player connection
 func register_connection(player_id: String, estimated_latency: int = 100) -> void:
@@ -45,7 +45,7 @@ func register_connection(player_id: String, estimated_latency: int = 100) -> voi
 	_player_packet_loss[player_id] = 0.0
 	_player_jitter[player_id] = 0
 	_latency_history[player_id] = []
-	GameLogger.info("QoSService: Registered %s (latency: %dms)" % [player_id, estimated_latency])
+	GameLog.info("QoSService: Registered %s (latency: %dms)" % [player_id, estimated_latency])
 
 ## Unregister player
 func unregister_connection(player_id: String) -> void:
@@ -188,7 +188,7 @@ func get_poor_quality_players() -> Array:
 ## Throttle a player
 func throttle_player(player_id: String, reason: String, duration_ms: int = 5000) -> void:
 	throttled.emit(player_id, reason)
-	GameLogger.warn("QoSService: Throttled %s: %s" % [player_id, reason])
+	GameLog.warn("QoSService: Throttled %s: %s" % [player_id, reason])
 	
 	# Auto-unthrottle after duration
 	await get_tree().create_timer(duration_ms / 1000.0).timeout

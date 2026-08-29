@@ -103,7 +103,7 @@ func execute_skill(skill: Skill, target: SynmergiaEntity = null, ground_pos: Vec
 	var entity: SynmergiaEntity = get_parent()
 	if entity and entity.entity_id != "":
 		if not QoSService.rate_limit(entity.entity_id, "combat"):
-			GameLogger.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
+			GameLog.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
 			return false
 	
 	if not _can_execute_skill(skill):
@@ -502,12 +502,12 @@ func _apply_durability_loss(combat_minutes: float) -> void:
 			total_loss += loss
 			
 			if loss > 0:
-				GameLogger.debug("CombatComponent: %s lost %d durability on %s" % [entity.name, loss, item.display_name])
+				GameLog.debug("CombatComponent: %s lost %d durability on %s" % [entity.name, loss, item.display_name])
 			
 			# Check if item broke
 			if item.is_broken():
 				item_broken.emit(item.id)
-				GameLogger.warn("CombatComponent: %s's %s broke!" % [entity.name, item.display_name])
+				GameLog.warn("CombatComponent: %s's %s broke!" % [entity.name, item.display_name])
 	
 	if total_loss > 0:
 		durability_tick.emit(total_loss)

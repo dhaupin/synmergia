@@ -1676,7 +1676,7 @@ class Debug:
 
 func _ready() -> void:
 
-	pass  # GameLogger.info
+	pass  # GameLog.info
 
 	_log_summary()
 
@@ -1684,4 +1684,4 @@ func _ready() -> void:
 
 func _log_summary() -> void:
 
-	pass  # GameLogger.debug
+	pass  # GameLog.debug

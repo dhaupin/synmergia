@@ -88,7 +88,7 @@ signal notification_received(entity_id: String, notification: Dictionary)
 signal notification_queued(entity_id: String, queue_size: int)
 
 func _ready() -> void:
-	GameLogger.info("NotificationService: Ready")
+	GameLog.info("NotificationService: Ready")
 	
 	# Listen to unified spawn events for automatic notifications
 	if EventBus:
@@ -142,7 +142,7 @@ func _on_entity_spawned(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadat
 		data
 	)
 	
-	GameLogger.info("NotificationService: Auto-broadcast spawn notification for %s" % metadata.display_name)
+	GameLog.info("NotificationService: Auto-broadcast spawn notification for %s" % metadata.display_name)
 
 ## Send a notification to a player
 func send(
@@ -179,7 +179,7 @@ func send(
 	_add_to_history(entity_id, notification)
 	
 	notification_sent.emit(entity_id, notification)
-	GameLogger.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
+	GameLog.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
 
 ## Broadcast notification to multiple scopes (server, zone, nearby, players)
 ## Can combine multiple scopes - e.g., server + zone, or zone + neighbors
@@ -586,7 +586,7 @@ func notify_pvp_kill(killer_name: String, victim_name: String, zone_name: String
 	# Broadcast to nearby players
 	var scope := AlertScope.new()
 	scope.is_server_wide = GameConfig.Social.BROADCAST_PVP_KILLS if GameConfig and GameConfig.Social else false
-	broadcast_alert(message, scope, NotificationType.COMBAT, Priority.NORMAL, DisplayLocation.CHAT_LOG, SoundType.WARNING, {
+	broadcast_alert(message, [scope], NotificationType.COMBAT, Priority.NORMAL, DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"killer_name": killer_name,
 		"victim_name": victim_name,
 		"zone_name": zone_name,
@@ -626,9 +626,9 @@ func notify_invincibility_lost(entity_id: String, reason: String = "") -> void:
 
 ## Kill streak notification
 func notify_kill_streak(entity_id: String, streak: int, xp_bonus: int, gold_bonus: int) -> void:
-	var emojis := ["🔥", "🔥🔥", "🔥🔥🔥", "⚡", "💀"]
-	var idx := min(streak / 5, emojis.size() - 1)
-	var emoji := emojis[idx]
+	var emojis: Array[String] = ["🔥", "🔥🔥", "🔥🔥🔥", "⚡", "💀"]
+	var idx := mini(streak / 5, emojis.size() - 1)
+	var emoji: String = emojis[idx]
 	var message := "%s Kill streak %d! +%d XP, +%d gold" % [emoji, streak, xp_bonus, gold_bonus]
 	send(entity_id, message, NotificationType.COMBAT, Priority.HIGH, 
 		DisplayLocation.BOTH, SoundType.KILL_STREAK, {
@@ -655,7 +655,7 @@ func send_to_player_name(player_name: String, message: String, notif_type: Notif
 		sound: SoundType = SoundType.NOTIFICATION, data: Dictionary = {}) -> bool:
 	var entity_service = EntityService
 	if entity_service == null:
-		GameLogger.warn("NotificationService: Cannot find player by name - EntityService not available")
+		GameLog.warn("NotificationService: Cannot find player by name - EntityService not available")
 		return false
 	
 	var players = entity_service.get_all_players()
@@ -664,7 +664,7 @@ func send_to_player_name(player_name: String, message: String, notif_type: Notif
 			send(player.entity_id, message, notif_type, priority, location, sound, data)
 			return true
 	
-	GameLogger.debug("NotificationService: Player not found: %s" % player_name)
+	GameLog.debug("NotificationService: Player not found: %s" % player_name)
 	return false
 
 ## Get unread notifications for entity
@@ -690,7 +690,7 @@ func get_history(entity_id: String, limit: int = 20) -> Array[Dictionary]:
 ## Clear notifications for entity
 func clear_notifications(entity_id: String) -> void:
 	_entity_notifications.erase(entity_id)
-	GameLogger.debug("NotificationService: Cleared notifications for %s" % entity_id)
+	GameLog.debug("NotificationService: Cleared notifications for %s" % entity_id)
 
 ## Get unread count
 func get_unread_count(entity_id: String) -> int:

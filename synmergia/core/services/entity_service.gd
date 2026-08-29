@@ -16,7 +16,7 @@ signal player_joined(player: SynmergiaEntity, metadata: EventBus.SpawnMetadata)
 signal player_left(player: SynmergiaEntity, metadata: EventBus.SpawnMetadata)
 
 func _ready() -> void:
-	GameLogger.info("EntityService: Ready")
+	GameLog.info("EntityService: Ready")
 
 ## Register a new entity with spawn metadata
 ## Returns assigned entity_id
@@ -24,7 +24,7 @@ func register_entity(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadata =
 
 	# SECURITY: Prevent duplicate entity IDs
 	if id_override != "" and _entities.has(id_override):
-		GameLogger.error("EntityService: SynmergiaEntity ID %s already exists" % id_override)
+		GameLog.error("EntityService: SynmergiaEntity ID %s already exists" % id_override)
 		return ""
 
 	# Create default metadata if not provided
@@ -59,7 +59,7 @@ func register_entity(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadata =
 	entity_registered.emit(entity, metadata)
 	EventBus.entity_spawned.emit(entity, metadata)
 	
-	GameLogger.debug("EntityService: Registered %s as %s (type: %s)" % [
+	GameLog.debug("EntityService: Registered %s as %s (type: %s)" % [
 		entity.display_name, entity_id, metadata.get_spawn_type_string()])
 	return entity_id
 
@@ -112,7 +112,7 @@ func unregister_entity(entity: SynmergiaEntity, reason: String = "despawn") -> v
 	if was_player:
 		player_left.emit(entity, metadata)
 	
-	GameLogger.debug("EntityService: Unregistered %s (reason: %s)" % [entity_id, reason])
+	GameLog.debug("EntityService: Unregistered %s (reason: %s)" % [entity_id, reason])
 
 ## Unregister by entity ID
 func unregister_by_id(entity_id: String, reason: String = "despawn") -> void:
@@ -278,4 +278,4 @@ func clear_all() -> void:
 			entity.queue_free()
 	
 	_next_entity_id = 1
-	GameLogger.info("EntityService: Cleared all entities")
+	GameLog.info("EntityService: Cleared all entities")

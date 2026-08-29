@@ -1,6 +1,5 @@
 ## GameLogger - Simple logging utility
 ## Provides colored console output and optional file logging
-## Note: Named GameLogger to avoid conflict with Godot's native Logger class
 extends Node
 
 enum Level {

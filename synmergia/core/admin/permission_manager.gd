@@ -66,7 +66,7 @@ var _validation_cache: Dictionary = {}  # player_id -> {time, level}
 const VALIDATION_CACHE_TTL: int = 5000  # 5 seconds
 
 func _ready() -> void:
-	GameLogger.info("PermissionManager: Initialized")
+	GameLog.info("PermissionManager: Initialized")
 
 ## ============================================================================
 ## CORE PERMISSION CHECKS
@@ -406,7 +406,7 @@ func _audit(admin_id: String, action: String, target_id: String = "",
 	
 	# Log to file/console
 	var entry_str := entry.to_string()
-	GameLogger.info("AUDIT: " + entry_str)
+	GameLog.info("AUDIT: " + entry_str)
 	
 	# Emit signal for external logging (Discord, etc.)
 	admin_action.emit(entry)
@@ -416,7 +416,7 @@ func _log_deny(admin_id: String, action: String, target_id: String,
 	var entry := AuditEntry.new(admin_id, action, target_id, details, false, ip_address)
 	_audit_log.push_front(entry)
 	
-	GameLogger.warn("AUDIT_DENIED: " + entry.to_string())
+	GameLog.warn("AUDIT_DENIED: " + entry.to_string())
 
 ## ============================================================================
 ## INTERNAL HELPERS

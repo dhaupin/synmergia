@@ -44,7 +44,7 @@ func register_player(player_id: String, is_agent: bool = false) -> void:
 	if not _player_profiles.has(player_id):
 		_player_profiles[player_id] = PlayerProfile.new(player_id, is_agent)
 		_suspicion_scores[player_id] = 0.0
-		GameLogger.info("AntiCheatService: Monitoring %s (%s)" % [player_id, "Agent" if is_agent else "Human"])
+		GameLog.info("AntiCheatService: Monitoring %s (%s)" % [player_id, "Agent" if is_agent else "Human"])
 
 ## Unregister player
 func unregister_player(player_id: String) -> void:
@@ -252,7 +252,7 @@ func _check_action_rate(profile: PlayerProfile) -> float:
 ## Flag a player for review
 func _flag_player(player_id: String, flag_type: String) -> void:
 	player_flagged.emit(player_id, flag_type)
-	GameLogger.warn("AntiCheatService: Player %s flagged: %s" % [player_id, flag_type])
+	GameLog.warn("AntiCheatService: Player %s flagged: %s" % [player_id, flag_type])
 
 ## Check if player is banned
 func is_banned(player_id: String) -> bool:
@@ -265,14 +265,14 @@ func ban_player(player_id: String, reason: String) -> void:
 		"timestamp": Time.get_ticks_msec()
 	}
 	player_banned.emit(player_id, reason)
-	GameLogger.info("AntiCheatService: Player %s banned: %s" % [player_id, reason])
+	GameLog.info("AntiCheatService: Player %s banned: %s" % [player_id, reason])
 
 ## Unban a player
 func unban_player(player_id: String) -> void:
 	_banned_players.erase(player_id)
 	_suspicion_scores[player_id] = 0.0
 	player_unbanned.emit(player_id)
-	GameLogger.info("AntiCheatService: Player %s unbanned" % player_id)
+	GameLog.info("AntiCheatService: Player %s unbanned" % player_id)
 
 ## Get suspicion score
 func get_suspicion(player_id: String) -> float:

@@ -16,8 +16,9 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
+RegisterTypes="*res://core/autoload/type_registry.gd"
 
-GameLogger="*res://core/autoload/logger.gd"
+GameLog="*res://core/autoload/logger.gd"
 GameConfig="*res://core/autoload/game_config.gd"
 QoSService="*res://core/autoload/qos_service.gd"
 GameManager="*res://core/autoload/game_manager.gd"

@@ -54,7 +54,7 @@ func _init(
 	else:
 		_success_threshold = success_threshold
 	
-	GameLogger.debug("CircuitBreaker '%s': Initialized with threshold=%d, timeout=%.1f, success=%d" % [
+	GameLog.debug("CircuitBreaker '%s': Initialized with threshold=%d, timeout=%.1f, success=%d" % [
 		_name, _failure_threshold, _recovery_timeout, _success_threshold
 	])
 
@@ -177,7 +177,7 @@ func _transition_to_open() -> void:
 	if _state != State.OPEN:
 		_state = State.OPEN
 		_success_count = 0
-		GameLogger.warn("CircuitBreaker '%s': Transitioned to OPEN after %d failures" % [
+		GameLog.warn("CircuitBreaker '%s': Transitioned to OPEN after %d failures" % [
 			_name, _failure_count
 		])
 
@@ -185,14 +185,14 @@ func _transition_to_half_open() -> void:
 	if _state != State.HALF_OPEN:
 		_state = State.HALF_OPEN
 		_success_count = 0
-		GameLogger.info("CircuitBreaker '%s': Transitioned to HALF_OPEN (recovery timeout reached)" % _name)
+		GameLog.info("CircuitBreaker '%s': Transitioned to HALF_OPEN (recovery timeout reached)" % _name)
 
 func _transition_to_closed() -> void:
 	if _state != State.CLOSED:
 		_state = State.CLOSED
 		_failure_count = 0
 		_success_count = 0
-		GameLogger.info("CircuitBreaker '%s': Transitioned to CLOSED after %d consecutive successes" % [
+		GameLog.info("CircuitBreaker '%s': Transitioned to CLOSED after %d consecutive successes" % [
 			_name, _success_threshold
 		])
 
@@ -216,7 +216,7 @@ func reset() -> void:
 	_failure_count = 0
 	_success_count = 0
 	_last_failure_time = 0.0
-	GameLogger.debug("CircuitBreaker '%s': Reset to initial state" % _name)
+	GameLog.debug("CircuitBreaker '%s': Reset to initial state" % _name)
 
 ## ============================================================================
 ## INSPECTION

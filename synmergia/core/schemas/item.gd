@@ -155,10 +155,7 @@ enum EquipSlot {
 @export var event_expires: bool = false
 @export var event_end_date: String = ""  # ISO date when item expires
 
-# Consumable specific
-@export var use_skill_id: String = ""  # Skill to execute on use
-@export var cooldown: float = 0.0
-@export var duration: float = 0.0  # For buffs that consume item
+# Consumable effects (also used for self-rez)
 @export var buff_effects: Array[Dictionary] = []  # Buffs granted by consumable
 
 # Self-rez specific
@@ -242,7 +239,7 @@ func get_info() -> Dictionary:
 		"name": display_name,
 		"rarity": Rarity.keys()[rarity],
 		"rarity_color": get_rarity_color(),
-		"item_type": ItemType.keys()[item_type],
+		"item_type": ItemCategory.keys()[item_category],
 		"stats": get_total_stats(),
 		"required_level": required_level
 	}

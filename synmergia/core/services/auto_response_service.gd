@@ -19,7 +19,7 @@ var _enabled: bool = false
 func _ready() -> void:
 	_enabled = GameConfig.AutoResponse.ENABLED
 	_connect_signals()
-	GameLogger.info("AutoResponseService: %s" % ("Enabled" if _enabled else "Disabled"))
+	GameLog.info("AutoResponseService: %s" % ("Enabled" if _enabled else "Disabled"))
 
 func _connect_signals() -> void:
 	if SecurityService:
@@ -45,7 +45,7 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 	var count = counts[exploit_type]
 	
 	# Log the detection
-	GameLogger.info("AutoResponse: %s detected %s (count: %d)" % [player_id, exploit_type, count])
+	GameLog.info("AutoResponse: %s detected %s (count: %d)" % [player_id, exploit_type, count])
 	
 	# Check thresholds and take action
 	match exploit_type:
@@ -120,7 +120,7 @@ func _handle_item_duplication(player_id: String, count: int) -> void:
 ## ============================================================================
 
 func _auto_kick(player_id: String, reason: String) -> void:
-	GameLogger.warn("AutoResponse: Kicking %s: %s" % [player_id, reason])
+	GameLog.warn("AutoResponse: Kicking %s: %s" % [player_id, reason])
 	
 	# Find peer ID and kick
 	var peer_id = _get_peer_for_player(player_id)
@@ -130,7 +130,7 @@ func _auto_kick(player_id: String, reason: String) -> void:
 	_notify_admins("Auto-kicked %s: %s" % [player_id, reason])
 
 func _auto_ban(player_id: String, reason: String) -> void:
-	GameLogger.warn("AutoResponse: Banning %s: %s" % [player_id, reason])
+	GameLog.warn("AutoResponse: Banning %s: %s" % [player_id, reason])
 	
 	# Issue permanent ban
 	NetworkManager.ban_player(player_id, reason, "auto_response")
@@ -160,7 +160,7 @@ func _notify_player(player_id: String, message: String) -> void:
 
 func _notify_admins(message: String) -> void:
 	# Log for admin review
-	GameLogger.warn("ADMIN: " + message)
+	GameLog.warn("ADMIN: " + message)
 	
 	# Send to all admins if configured
 	if GameConfig.AutoResponse.NOTIFY_ADMINS and NotificationService:
@@ -176,11 +176,11 @@ func _notify_admins(message: String) -> void:
 
 func enable() -> void:
 	_enabled = true
-	GameLogger.info("AutoResponseService: Enabled")
+	GameLog.info("AutoResponseService: Enabled")
 
 func disable() -> void:
 	_enabled = false
-	GameLogger.info("AutoResponseService: Disabled")
+	GameLog.info("AutoResponseService: Disabled")
 
 func is_enabled() -> bool:
 	return _enabled

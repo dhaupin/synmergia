@@ -27,7 +27,7 @@ var joystick_deadzone: float = 0.15
 var _interaction_layer: Node = null
 
 func _ready() -> void:
-	GameLogger.info("InputManager initialized")
+	GameLog.info("InputManager initialized")
 	
 	# Enable touch emulation on desktop for testing
 	DisplayServer.touchscreen_is_available()
@@ -36,7 +36,7 @@ func _ready() -> void:
 	# Try to get InteractionLayer
 	_interaction_layer = get_tree().root.find_child("InteractionLayer", true, false)
 	if _interaction_layer:
-		GameLogger.info("InputManager: Connected to InteractionLayer")
+		GameLog.info("InputManager: Connected to InteractionLayer")
 
 func _input(event: InputEvent) -> void:
 	# Forward to InteractionLayer for UI interactions (tap, swipe, etc.)

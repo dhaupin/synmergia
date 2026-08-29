@@ -26,7 +26,7 @@ func _ready() -> void:
 				
 				# Reset stats periodically (once per day check)
 				_check_daily_reset()
-				GameLogger.info("SameAccountTransferService: Ready")
+				GameLog.info("SameAccountTransferService: Ready")
 
 ## Check and reset daily limits
 func _check_daily_reset() -> void:
@@ -157,7 +157,7 @@ func get_cooldown_remaining(account_id: String) -> int:
 func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids: Array = []) -> Dictionary:
 	# QoS: Rate limit transfers
 	if not QoSService.rate_limit(from_char_id, "transfer"):
-		GameLogger.debug("SameAccountTransferService: Rate limited transfer for %s" % from_char_id)
+		GameLog.debug("SameAccountTransferService: Rate limited transfer for %s" % from_char_id)
 		return {"success": false, "reason": "Rate limited"}
 	
 	# Prevent self-transfer
@@ -211,7 +211,7 @@ func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids:
 								if from_inv.remove_gold(gold):
 												to_inv.add_gold(gold)
 												result["gold_transferred"] = gold
-												GameLogger.info("SameAccountTransfer: Transferred %d gold from %s to %s" % [gold, from_char_id, to_char_id])
+												GameLog.info("SameAccountTransfer: Transferred %d gold from %s to %s" % [gold, from_char_id, to_char_id])
 								else:
 												result["reason"] = "Insufficient gold"
 												transfer_cancelled.emit(from_char_id, to_char_id, result["reason"])
@@ -236,7 +236,7 @@ func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids:
 								
 								if to_inv.add_item(removed):
 												result["items_transferred"].append(item_id)
-												GameLogger.info("SameAccountTransfer: Transferred %s from %s to %s" % [item_id, from_char_id, to_char_id])
+												GameLog.info("SameAccountTransfer: Transferred %s from %s to %s" % [item_id, from_char_id, to_char_id])
 								else:
 												# Put back in source
 												from_inv.add_item(removed)
@@ -294,4 +294,4 @@ func reset_daily_limits(account_id: String) -> void:
 								_transfer_stats[account_id]["gold_today"] = 0
 								_transfer_stats[account_id]["items_today"] = 0
 								_transfer_stats[account_id]["last_reset"] = Time.get_unix_time_from_system()
-								GameLogger.info("SameAccountTransferService: Reset limits for %s" % account_id)
+								GameLog.info("SameAccountTransferService: Reset limits for %s" % account_id)

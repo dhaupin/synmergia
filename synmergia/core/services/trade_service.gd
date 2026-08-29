@@ -45,7 +45,7 @@ signal gold_added_to_trade(trade_id: String, player_id: String, amount: int)
 signal gold_removed_from_trade(trade_id: String, player_id: String, amount: int)
 
 func _ready() -> void:
-				GameLogger.info("TradeService: Ready")
+				GameLog.info("TradeService: Ready")
 				
 				# Initialize service references from autoloads
 				_account_service = AccountService if AccountService else null
@@ -65,7 +65,7 @@ func request_trade(from_id: String, to_id: String) -> bool:
 	
 	# Check same-account trade
 	if _account_service and not _account_service.can_same_account_trade(from_id, to_id)["allowed"]:
-		GameLogger.info("TradeService: Same-account trade not allowed between %s and %s" % [from_id, to_id])
+		GameLog.info("TradeService: Same-account trade not allowed between %s and %s" % [from_id, to_id])
 		return false
 
 				if from_id == to_id:
@@ -88,7 +88,7 @@ func request_trade(from_id: String, to_id: String) -> bool:
 				
 				_pending_requests[to_id] = request
 				trade_requested.emit(from_id, to_id)
-				GameLogger.info("TradeService: Trade request from %s to %s" % [from_id, to_id])
+				GameLog.info("TradeService: Trade request from %s to %s" % [from_id, to_id])
 				
 				return true
 
@@ -125,7 +125,7 @@ func accept_trade(to_id: String) -> String:
 				_pending_requests.erase(to_id)
 				
 				trade_accepted.emit(trade_id, from_id, to_id)
-				GameLogger.info("TradeService: Trade %s accepted" % trade_id)
+				GameLog.info("TradeService: Trade %s accepted" % trade_id)
 				
 				return trade_id
 
@@ -139,7 +139,7 @@ func decline_trade(to_id: String) -> bool:
 				_pending_requests.erase(to_id)
 				
 				trade_declined.emit(from_id, to_id)
-				GameLogger.info("TradeService: Trade declined by %s" % to_id)
+				GameLog.info("TradeService: Trade declined by %s" % to_id)
 				
 				return true
 
@@ -154,7 +154,7 @@ func cancel_trade(trade_id: String, player_id: String) -> bool:
 				
 				_active_trades.erase(trade_id)
 				trade_cancelled.emit(trade_id, player_id)
-				GameLogger.info("TradeService: Trade %s cancelled by %s" % [trade_id, player_id))
+				GameLog.info("TradeService: Trade %s cancelled by %s" % [trade_id, player_id))
 				
 				return true
 
@@ -184,7 +184,7 @@ func add_item(trade_id: String, player_id: String, item_id: String, quantity: in
 				_unconfirm(trade, player_id)
 				
 				item_added_to_trade.emit(trade_id, player_id, item_id, quantity)
-				GameLogger.debug("TradeService: %s added %s x%d to trade %s" % [player_id, item_id, quantity, trade_id])
+				GameLog.debug("TradeService: %s added %s x%d to trade %s" % [player_id, item_id, quantity, trade_id])
 				
 				return true
 
@@ -231,7 +231,7 @@ func add_gold(trade_id: String, player_id: String, amount: int) -> bool:
 				_unconfirm(trade, player_id)
 				
 				gold_added_to_trade.emit(trade_id, player_id, amount)
-				GameLogger.debug("TradeService: %s added %d gold to trade %s" % [player_id, amount, trade_id])
+				GameLog.debug("TradeService: %s added %d gold to trade %s" % [player_id, amount, trade_id])
 				
 				return true
 
@@ -342,10 +342,10 @@ func _complete_trade(trade_id: String) -> bool:
 		_set_cooldown(player2)
 
 		trade_completed.emit(trade_id, trades)
-		GameLogger.info("TradeService: Trade %s completed" % trade_id)
+		GameLog.info("TradeService: Trade %s completed" % trade_id)
 	else:
 		trade["state"] = TradeState.FAILED
-		GameLogger.error("TradeService: Trade %s failed during item/gold transfer" % trade_id)
+		GameLog.error("TradeService: Trade %s failed during item/gold transfer" % trade_id)
 		trade_failed.emit(trade_id)
 
 	# Clean up after a delay
@@ -395,12 +395,12 @@ func can_trade_item(item: Item) -> bool:
 				
 				# Soulbound items cannot be traded
 				if item.soulbound:
-								GameLogger.debug("TradeService: Item %s cannot be traded (soulbound)" % item.display_name)
+								GameLog.debug("TradeService: Item %s cannot be traded (soulbound)" % item.display_name)
 								return false
 				
 				# Items bound on pickup cannot be traded
 				if item.bind_on_pickup or item.is_bound:
-								GameLogger.debug("TradeService: Item %s cannot be traded (bound)" % item.display_name)
+								GameLog.debug("TradeService: Item %s cannot be traded (bound)" % item.display_name)
 								return false
 				
 				# Items bound on equip cannot be traded (only after equip - handled separately)
@@ -410,12 +410,12 @@ func can_trade_item(item: Item) -> bool:
 				# Check for quest items (would need quest system integration)
 				# For now, items with required_class are assumed to be quest/achievement items
 				if item.required_class == "QUEST_ONLY":
-								GameLogger.debug("TradeService: Item %s cannot be traded (quest item)" % item.display_name)
+								GameLog.debug("TradeService: Item %s cannot be traded (quest item)" % item.display_name)
 								return false
 				
 				# Check if item is unique and already owned
 				if item.unique and _is_item_owned_by_anyone(item.id):
-								GameLogger.debug("TradeService: Item %s cannot be traded (unique, already owned)" % item.display_name)
+								GameLog.debug("TradeService: Item %s cannot be traded (unique, already owned)" % item.display_name)
 								return false
 				
 				return true
@@ -569,7 +569,7 @@ func start_confirmation_countdown(trade_id: String) -> bool:
 				trade["countdown_started"] = Time.get_unix_time_from_system()
 				trade["countdown_seconds"] = _confirmation_countdown_seconds
 				confirmation_countdown_started.emit(trade_id, _confirmation_countdown_seconds)
-				GameLogger.info("TradeService: Countdown started for trade %s" % trade_id)
+				GameLog.info("TradeService: Countdown started for trade %s" % trade_id)
 				return true
 
 ## Cancel confirmation countdown
@@ -706,7 +706,7 @@ if p2_gold > 0 and _inventory_service.has_inventory(player2):
 var inv2: InventoryComponent = _inventory_service.get_inventory(player2)
 inv2.add_gold(p2_gold)
 
-GameLogger.debug("TradeService: Refunded items and gold for cancelled trade")
+GameLog.debug("TradeService: Refunded items and gold for cancelled trade")
 
 ## ============================================================================
 ## PLAYER NOTIFICATIONS
@@ -721,4 +721,4 @@ message,
 NotificationService.NotificationType.WARNING,
 NotificationService.Priority.HIGH
 )
-GameLogger.debug("TradeService: Notified %s: %s" % [player_id, message])
+GameLog.debug("TradeService: Notified %s: %s" % [player_id, message])

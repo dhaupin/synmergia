@@ -1,7 +1,7 @@
 ## Entity - Base class for all game entities
 ## Characters, NPCs, enemies all inherit from this
 class_name SynmergiaEntity
-extends Node
+extends Node3D
 
 signal health_changed(current: int, maximum: int)
 signal died(killer)  # Entity type omitted to avoid circular reference during parsing
@@ -133,7 +133,7 @@ func apply_species(new_species) -> void:
 	
 	_calculate_max_resources()
 	
-	# GameLogger.debug("Entity: Applied species %s to %s" % [species_id, display_name])
+	# GameLog.debug("Entity: Applied species %s to %s" % [species_id, display_name])
 
 ## HEALTH
 
@@ -312,3 +312,4 @@ func load_entity_data(data: Dictionary) -> void:
 		)
 	
 	rotation.y = data.get("rotation", 0)
+}

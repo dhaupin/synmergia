@@ -31,7 +31,7 @@ signal loot_need_before_greed_started(loot_id: String, eligible_players: Array)
 signal loot_distributed(loot_id: String, distributions: Dictionary)
 
 func _ready() -> void:
-				GameLogger.info("LootService: Ready")
+				GameLog.info("LootService: Ready")
 
 ## Create loot from enemy death
 func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1, context: Dictionary = {}) -> String:
@@ -58,7 +58,7 @@ func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1
 				
 				if result["got_any"]:
 								loot_dropped.emit(source_id, loot_id, result["items"], result["currency"])
-								GameLogger.info("LootService: Created loot %s with %d items" % [loot_id, result["items"].size()])
+								GameLog.info("LootService: Created loot %s with %d items" % [loot_id, result["items"].size()])
 				
 				return loot_id
 
@@ -94,7 +94,7 @@ func set_eligible_players(loot_id: String, player_ids: Array) -> void:
 				var loot := _active_loot.get(loot_id)
 				if loot:
 								loot["eligible_players"] = player_ids
-								GameLogger.debug("LootService: Set %d eligible players for loot %s" % [player_ids.size(), loot_id])
+								GameLog.debug("LootService: Set %d eligible players for loot %s" % [player_ids.size(), loot_id])
 
 ## Start Need/Greed rolling
 func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
@@ -110,14 +110,14 @@ func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
 					var party := PartyService.get_player_party(initiator_id)
 					if party.is_empty() or not party.has("id"):
 						loot["eligible_players"] = [initiator_id]
-						GameLogger.debug("LootService: No party found, loot %s eligible for %s only" % [loot_id, initiator_id])
+						GameLog.debug("LootService: No party found, loot %s eligible for %s only" % [loot_id, initiator_id])
 					else:
 						loot["eligible_players"] = PartyService.get_party_members(party["id"])
-						GameLogger.debug("LootService: Party found, loot %s eligible for %d members" % [loot_id, loot["eligible_players"].size()])
+						GameLog.debug("LootService: Party found, loot %s eligible for %d members" % [loot_id, loot["eligible_players"].size()])
 				_need_greed_rolls[loot_id] = {}
 				
 				loot_need_before_greed_started.emit(loot_id, loot["eligible_players"])
-				GameLogger.info("LootService: Started NBG for loot %s" % loot_id)
+				GameLog.info("LootService: Started NBG for loot %s" % loot_id)
 				
 				return true
 
@@ -125,7 +125,7 @@ func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
 func roll_for_loot(loot_id: String, player_id: String, roll_type: RollType, roll_value: int) -> bool:
 	# QoS: Rate limit loot rolls
 	if not QoSService.rate_limit(player_id, "loot_roll"):
-		GameLogger.debug("LootService: Rate limited roll for %s" % player_id)
+		GameLog.debug("LootService: Rate limited roll for %s" % player_id)
 		return false
 
 				if not _active_loot.has(loot_id):
@@ -142,7 +142,7 @@ func roll_for_loot(loot_id: String, player_id: String, roll_type: RollType, roll
 				_need_greed_rolls[loot_id] = rolls
 				
 				loot_rolled.emit(loot_id, player_id, roll_type, roll_value)
-				GameLogger.debug("LootService: Player %s rolled %s: %d" % [player_id, RollType.keys()[roll_type], roll_value])
+				GameLog.debug("LootService: Player %s rolled %s: %d" % [player_id, RollType.keys()[roll_type], roll_value])
 				
 				# Check if all eligible have rolled
 				var loot: Dictionary = _active_loot[loot_id]
@@ -202,7 +202,7 @@ func assign_loot(loot_id: String, player_id: String) -> bool:
 				})
 				
 				loot_assigned.emit(loot_id, player_id, items)
-				GameLogger.info("LootService: Assigned loot %s to %s" % [loot_id, player_id])
+				GameLog.info("LootService: Assigned loot %s to %s" % [loot_id, player_id])
 				
 				return true
 
@@ -210,7 +210,7 @@ func assign_loot(loot_id: String, player_id: String) -> bool:
 func pickup_loot(player_id: String, loot_id: String = "") -> Array:
 	# QoS: Rate limit loot pickups
 	if not QoSService.rate_limit(player_id, "loot_pickup"):
-		GameLogger.debug("LootService: Rate limited pickup for %s" % player_id)
+		GameLog.debug("LootService: Rate limited pickup for %s" % player_id)
 		return []
 
 				var items_received: Array = []
@@ -235,7 +235,7 @@ func pickup_loot(player_id: String, loot_id: String = "") -> Array:
 				
 				if not items_received.is_empty():
 								loot_picked_up.emit(player_id, items_received)
-								GameLogger.info("LootService: %s picked up %d items" % [player_id, items_received.size()])
+								GameLog.info("LootService: %s picked up %d items" % [player_id, items_received.size()])
 				
 				return items_received
 
@@ -279,7 +279,7 @@ func expire_loot(loot_id: String) -> void:
 								_need_greed_rolls.erase(loot_id)
 								
 								loot_expired.emit(loot_id)
-								GameLogger.info("LootService: Loot %s expired" % loot_id)
+								GameLog.info("LootService: Loot %s expired" % loot_id)
 
 ## Check and expire old loot
 func _process(delta: float) -> void:
@@ -301,10 +301,10 @@ func distribute_party_loot(party_id: String, loot_id: String, items: Array) -> D
 					# Get party members from PartyService
 					var party_members := PartyService.get_party_members(party_id)
 					if party_members.is_empty():
-						GameLogger.warn("LootService: No party members found for party %s" % party_id)
+						GameLog.warn("LootService: No party members found for party %s" % party_id)
 						return distributions
 					
-					GameLogger.debug("LootService: Distributing loot to %d party members" % party_members.size())
+					GameLog.debug("LootService: Distributing loot to %d party members" % party_members.size())
 				
 				loot_distributed.emit(loot_id, distributions)
 				return distributions
@@ -321,7 +321,7 @@ func has_pending_loot(player_id: String) -> bool:
 func abandon_loot(player_id: String, loot_id: String) -> bool:
 	# QoS: Rate limit loot abandonment
 	if not QoSService.rate_limit(player_id, "loot_abandon"):
-		GameLogger.debug("LootService: Rate limited abandon for %s" % player_id)
+		GameLog.debug("LootService: Rate limited abandon for %s" % player_id)
 		return false
 
 				if _player_loot.has(player_id):
@@ -329,6 +329,6 @@ func abandon_loot(player_id: String, loot_id: String) -> bool:
 								for i in range(loot_list.size()):
 												if loot_list[i]["loot_id"] == loot_id:
 																loot_list.remove_at(i)
-																GameLogger.info("LootService: %s abandoned loot %s" % [player_id, loot_id])
+																GameLog.info("LootService: %s abandoned loot %s" % [player_id, loot_id])
 																return true
 				return false

@@ -28,20 +28,20 @@ signal alliance_formed(guild_id: String, faction: Faction)
 signal alliance_broken(guild_id: String, faction: Faction)
 
 func _ready() -> void:
-	GameLogger.info("FactionManager: Ready")
+	GameLog.info("FactionManager: Ready")
 
 ## Load all factions from data
 func load_factions() -> void:
 	var data_service = DataService
 	if not data_service:
-		GameLogger.warn("FactionManager: DataService not available")
+		GameLog.warn("FactionManager: DataService not available")
 		return
 	
 	var faction_data_dict = data_service.get_all_factions()
 	for faction_id in faction_data_dict:
 		register_faction(faction_data_dict[faction_id])
 	
-	GameLogger.info("FactionManager: Loaded %d factions" % _factions.size())
+	GameLog.info("FactionManager: Loaded %d factions" % _factions.size())
 
 ## Register a faction
 func register_faction(faction: Faction) -> void:
@@ -50,7 +50,7 @@ func register_faction(faction: Faction) -> void:
 	
 	_factions[faction.id] = faction
 	faction_loaded.emit(faction)
-	GameLogger.debug("FactionManager: Registered faction %s" % faction.id)
+	GameLog.debug("FactionManager: Registered faction %s" % faction.id)
 
 ## Get faction by ID
 func get_faction(faction_id: String) -> Faction:
@@ -91,17 +91,17 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 	var faction2 = _factions.get(faction2_id)
 	
 	if faction1 == null or faction2 == null:
-		GameLogger.warn("FactionManager: Cannot declare war, faction not found")
+		GameLog.warn("FactionManager: Cannot declare war, faction not found")
 		return false
 	
 	# Check cooldowns
 	if is_on_cooldown(faction1_id) or is_on_cooldown(faction2_id):
-		GameLogger.info("FactionManager: War declaration on cooldown for %s or %s" % [faction1_id, faction2_id])
+		GameLog.info("FactionManager: War declaration on cooldown for %s or %s" % [faction1_id, faction2_id])
 		return false
 	
 	# Already at war
 	if is_at_war(faction1_id, faction2_id):
-		GameLogger.info("FactionManager: %s and %s are already at war" % [faction1_id, faction2_id])
+		GameLog.info("FactionManager: %s and %s are already at war" % [faction1_id, faction2_id])
 		return false
 	
 	# Set war data
@@ -131,7 +131,7 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 	faction2.set_relation(faction1_id, Faction.Relation.HOSTILE)
 	
 	war_declared.emit(faction1, faction2)
-	GameLogger.info("FactionManager: WAR declared between %s and %s" % [faction1_id, faction2_id])
+	GameLog.info("FactionManager: WAR declared between %s and %s" % [faction1_id, faction2_id])
 	
 	# Notify players
 	var notification_service = NotificationService
@@ -168,7 +168,7 @@ func end_war(faction1_id: String, faction2_id: String) -> bool:
 		faction2.set_relation(faction1_id, Faction.Relation.NEUTRAL)
 	
 	war_ended.emit(faction1, faction2)
-	GameLogger.info("FactionManager: War ended between %s and %s" % [faction1_id, faction2_id])
+	GameLog.info("FactionManager: War ended between %s and %s" % [faction1_id, faction2_id])
 	
 	# Notify players
 	var notification_service = NotificationService
@@ -234,7 +234,7 @@ func modify_reputation(player_id: String, faction_id: String, delta: int) -> voi
 	_player_reputations[player_id][faction_id] = new_rep
 	
 	reputation_changed.emit(player_id, faction_id, old_rep, new_rep)
-	GameLogger.debug("FactionManager: %s reputation with %s: %d -> %d" % [player_id, faction_id, old_rep, new_rep])
+	GameLog.debug("FactionManager: %s reputation with %s: %d -> %d" % [player_id, faction_id, old_rep, new_rep])
 
 ## Set player reputation with a faction
 func set_reputation(player_id: String, faction_id: String, value: int) -> void:
@@ -282,7 +282,7 @@ func form_alliance(guild_id: String, faction_id: String) -> bool:
 	
 	_guild_alliances[guild_id].append(faction_id)
 	alliance_formed.emit(guild_id, faction)
-	GameLogger.info("FactionManager: Guild %s allied with faction %s" % [guild_id, faction_id])
+	GameLog.info("FactionManager: Guild %s allied with faction %s" % [guild_id, faction_id])
 	return true
 
 ## Break alliance between guild and faction
@@ -296,7 +296,7 @@ func break_alliance(guild_id: String, faction_id: String) -> bool:
 	
 	_guild_alliances[guild_id].erase(faction_id)
 	alliance_broken.emit(guild_id, faction)
-	GameLogger.info("FactionManager: Guild %s broke alliance with faction %s" % [guild_id, faction_id])
+	GameLog.info("FactionManager: Guild %s broke alliance with faction %s" % [guild_id, faction_id])
 	return true
 
 ## Get guild alliances

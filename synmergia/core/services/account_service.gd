@@ -28,17 +28,17 @@ signal same_account_trade_attempted(character1: String, character2: String, allo
 
 func _ready() -> void:
 				instance = self
-				GameLogger.info("AccountService: Ready")
+				GameLog.info("AccountService: Ready")
 
 ## Create a new account
 func create_account(account_id: String, email: String = "") -> Dictionary:
 				# QoS: Rate limit account creation
 				if not QoSService.rate_limit(account_id, "account_create"):
-								GameLogger.debug("AccountService: Rate limited account creation for %s" % account_id)
+								GameLog.debug("AccountService: Rate limited account creation for %s" % account_id)
 								return {}
 				
 				if _accounts.has(account_id):
-								GameLogger.warn("AccountService: Account %s already exists" % account_id)
+								GameLog.warn("AccountService: Account %s already exists" % account_id)
 								return {}
 				
 				var account := {
@@ -58,7 +58,7 @@ func create_account(account_id: String, email: String = "") -> Dictionary:
 				_account_characters[account_id] = []
 				
 				account_created.emit(account_id)
-				GameLogger.info("AccountService: Created account %s" % account_id)
+				GameLog.info("AccountService: Created account %s" % account_id)
 				
 				return account
 
@@ -76,23 +76,23 @@ func get_account_by_character(character_id: String) -> Dictionary:
 ## Link a character to an account
 func link_character(character_id: String, account_id: String, character_data: Dictionary = {}) -> bool:
 				if not _accounts.has(account_id):
-								GameLogger.warn("AccountService: Account %s does not exist" % account_id)
+								GameLog.warn("AccountService: Account %s does not exist" % account_id)
 								return false
 
 				# Security: Validate character name if provided
 				if character_data.has("name"):
 								var name_validation := SecurityService.validate_player_name(character_data["name"])
 								if not name_validation.valid:
-												GameLogger.warn("AccountService: Invalid character name '%s': %s" % [character_data["name"], name_validation.reason])
+												GameLog.warn("AccountService: Invalid character name '%s': %s" % [character_data["name"], name_validation.reason])
 												return false
 
 				if _character_to_account.has(character_id):
-								GameLogger.warn("AccountService: Character %s already linked" % character_id)
+								GameLog.warn("AccountService: Character %s already linked" % character_id)
 								return false
 				
 				var chars: Array = _account_characters[account_id]
 				if chars.size() >= _max_characters_per_account:
-								GameLogger.warn("AccountService: Max characters reached for account %s" % account_id)
+								GameLog.warn("AccountService: Max characters reached for account %s" % account_id)
 								return false
 				
 				# Store character data
@@ -107,7 +107,7 @@ func link_character(character_id: String, account_id: String, character_data: Di
 				_accounts[account_id]["characters"] = _account_characters[account_id]
 				
 				character_linked.emit(character_id, account_id)
-				GameLogger.info("AccountService: Linked character %s to account %s" % [character_id, account_id])
+				GameLog.info("AccountService: Linked character %s to account %s" % [character_id, account_id])
 				
 				return true
 
@@ -126,7 +126,7 @@ func unlink_character(character_id: String) -> bool:
 				_characters.erase(character_id)
 				
 				character_unlinked.emit(character_id)
-				GameLogger.info("AccountService: Unlinked character %s from account %s" % [character_id, account_id])
+				GameLog.info("AccountService: Unlinked character %s from account %s" % [character_id, account_id])
 				
 				return true
 
@@ -184,7 +184,7 @@ func set_same_account_trade(account_id: String, enabled: bool) -> bool:
 								return false
 				
 				_accounts[account_id]["settings"]["allow_same_account_trade"] = enabled
-				GameLogger.info("AccountService: Same-account trade %s for %s" % ("enabled" if enabled else "disabled", account_id))
+				GameLog.info("AccountService: Same-account trade %s for %s" % ("enabled" if enabled else "disabled", account_id))
 				return true
 
 ## Update last login
@@ -242,5 +242,5 @@ func delete_account(account_id: String) -> bool:
 				_accounts.erase(account_id)
 				_account_characters.erase(account_id)
 				
-				GameLogger.info("AccountService: Deleted account %s" % account_id)
+				GameLog.info("AccountService: Deleted account %s" % account_id)
 				return true
