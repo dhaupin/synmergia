@@ -164,7 +164,7 @@ func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Synmerg
 	return results
 
 ## Get closest entity to position
-func get_closest_entity(origin: Vector3, entity_type: SynmergiaEntity.EntityType = SynmergiaEntity.EntityType.NPC, max_distance: float = -1.0) -> :
+func get_closest_entity(origin: Vector3, entity_type: SynmergiaEntity.EntityType = SynmergiaEntity.EntityType.NPC, max_distance: float = -1.0) -> Variant:
 	var target_dict: Dictionary
 	
 	match entity_type:

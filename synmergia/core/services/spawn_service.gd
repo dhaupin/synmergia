@@ -144,7 +144,7 @@ func get_zone_spawn_points(zone_id: String) -> Array:
 	return _spawn_points.get(zone_id, [])
 
 ## Spawn enemy at a spawn point
-func spawn_enemy(spawn_point_id: String) -> :
+func spawn_enemy(spawn_point_id: String) -> Variant:
 	var spawn_point = _get_spawn_point(spawn_point_id)
 	if spawn_point == null or not spawn_point.should_spawn():
 		return null
@@ -229,7 +229,7 @@ func spawn_boss(
 	zone_id: String,
 	boss_name: String = "",
 	alert_scopes: Array = []
-) -> :
+) -> Variant:
 	var data_service = DataService
 	if data_service == null:
 		return null
@@ -322,15 +322,15 @@ func despawn_boss(entity) -> void:
 	GameLog.info("SpawnService: Despawned boss %s" % entity.display_name)
 
 ## Spawn boss with server-wide alert (convenience method)
-func spawn_world_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "") -> :
+func spawn_world_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "") -> Variant:
 	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.server_wide()])
 
 ## Spawn boss with zone + neighbors alert (convenience method)
-func spawn_zone_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", include_neighbors: bool = true) -> :
+func spawn_zone_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", include_neighbors: bool = true) -> Variant:
 	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.zone(zone_id, include_neighbors)])
 
 ## Spawn mini-boss with nearby alert only (convenience method)
-func spawn_mini_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", radius: float = 50.0) -> :
+func spawn_mini_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", radius: float = 50.0) -> Variant:
 	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.nearby(position, radius)])
 
 ## Despawn enemy
@@ -475,7 +475,7 @@ func _clear_spawn_point(spawn_point: SpawnPoint) -> void:
 	_spawn_timers.erase(spawn_point.id)
 	spawn_point_cleared.emit(spawn_point.id)
 
-func _create_enemy(spawn_point: SpawnPoint) -> :
+func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 	if spawn_point.enemy_data == null:
 		GameLog.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
 		return null
