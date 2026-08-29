@@ -2,7 +2,6 @@
 ## Handles desktop (mouse/keyboard), mobile (touch), and gamepad input
 ##
 ## Autoload: Access via `InteractionLayer` globally
-class_name InteractionLayer
 extends Node
 
 static var instance: InteractionLayer

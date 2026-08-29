@@ -1,6 +1,5 @@
 ## ZoneManager - Zone state and transition management
 ## Handles zone transitions (seamless & instanced), population, and zone boundaries
-class_name ZoneManager
 extends Node
 
 # Zone types

@@ -1,6 +1,5 @@
 ## WebhookManager - Central webhook integration manager
 ## Connects DiscordWebhook to all game signals
-class_name WebhookManager
 extends Node
 
 ## Singleton instance

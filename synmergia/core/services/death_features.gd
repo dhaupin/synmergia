@@ -1,6 +1,5 @@
 ## DeathFeatures - Comprehensive death system manager
 ## Handles: penalties, invincibility, griefing protection, kill streaks, stats
-class_name DeathFeatures
 extends Node
 
 # Singleton reference
@@ -375,7 +374,7 @@ func record_kill_for_streak(killer_id: String, victim_id: String) -> void:
 				_announce_kill_streak(killer_id, streak_data["streak"])
 			break
 	
-	Logger.debug("DeathFeatures: Kill streak for %s: %d" % [killer_id, streak_data["streak"])
+	Logger.debug("DeathFeatures: Kill streak for %s: %d" % [killer_id, streak_data["streak"]])
 
 ## Get current kill streak for a player
 func get_kill_streak(killer_id: String) -> int:

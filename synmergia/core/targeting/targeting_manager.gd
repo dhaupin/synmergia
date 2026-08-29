@@ -8,7 +8,6 @@
 ## - Action execution with PermissionManager
 ## - 3D highlight management
 ## - Target history (restore previous)
-class_name TargetingManager
 extends Node
 
 ## ============================================================================

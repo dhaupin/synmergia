@@ -1,6 +1,5 @@
 ## NotificationService - Player notification system
 ## Handles all player notifications: zone changes, achievements, combat, events, etc.
-class_name NotificationService
 extends Node
 
 # Notification types

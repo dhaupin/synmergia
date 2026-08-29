@@ -1,6 +1,5 @@
 ## UIManager - Manages game UI elements including targeting UI
 ## Handles instantiation and lifecycle of UI components
-class_name UIManager
 extends Node
 
 var _tooltip: TargetTooltip = null

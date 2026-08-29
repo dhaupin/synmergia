@@ -1,6 +1,5 @@
 ## RespawnService - Manages all respawn modes
 ## Flexible respawn system supporting timed, ankh, revive, and PVP modes
-class_name RespawnService
 extends Node
 
 signal respawn_initiated(player: Entity, mode: RespawnMode, data: Dictionary)

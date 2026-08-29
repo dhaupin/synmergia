@@ -1,6 +1,5 @@
 ## TradeService - Player-to-player trading
 ## Handles trade requests, windows, confirmations, and completion
-class_name TradeService
 extends Node
 
 # Service references

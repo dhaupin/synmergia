@@ -1,6 +1,5 @@
 ## AppFirewall - Application-level firewall utility
 ## Tracks connections, blocks suspicious IPs, and manages bans
-class_name AppFirewall
 extends RefCounted
 
 ## ============================================================================

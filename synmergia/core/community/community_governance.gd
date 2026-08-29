@@ -1,5 +1,4 @@
 ## CommunityGovernance - Player voting and community moderation
-class_name CommunityGovernance
 extends Node
 
 enum VoteType {

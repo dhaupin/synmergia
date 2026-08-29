@@ -1,6 +1,5 @@
 ## PartyService - Party management
 ## Handles party creation, invites, member management, loot rules, and XP sharing
-class_name PartyService
 extends Node
 
 # Party data (party_id -> party data dict)

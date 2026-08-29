@@ -1,7 +1,6 @@
 ## PlayerReporter - Unified player reporting system
 ## Handles bug reports, abuse reports, feedback, and suggestions
 ## All player reports flow through this central system
-class_name PlayerReporter
 extends Node
 
 ## Report types

@@ -1,6 +1,5 @@
 ## ServerManager - Server state, maintenance, and restart scheduling
 ## Handles server restarts, maintenance windows, and player notifications
-class_name ServerManager
 extends Node
 
 # Server state

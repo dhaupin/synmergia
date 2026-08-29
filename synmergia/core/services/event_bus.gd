@@ -1,6 +1,5 @@
 ## EventBus - Global signal hub for decoupled communication
 ## All services and components emit through here
-class_name EventBus
 extends Node
 
 # Entity Events - UNIFIED SPAWN/DESPAWN

@@ -1,6 +1,5 @@
 ## SecurityMonitor - Centralized security event monitoring
 ## Listens to security events and logs/alerts appropriately
-class_name SecurityMonitor
 extends Node
 
 ## ============================================================================

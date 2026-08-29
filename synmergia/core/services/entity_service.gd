@@ -1,6 +1,5 @@
 ## EntityService - Entity registry and management
 ## Tracks all active entities in the world with unified spawn/despawn via EventBus
-class_name EntityService
 extends Node
 
 var _entities: Dictionary = {}       # entity_id -> Entity

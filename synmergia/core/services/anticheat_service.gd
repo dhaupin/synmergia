@@ -1,6 +1,5 @@
 ## AntiCheatService - Detects and prevents cheating for humans AND agents
 ## Includes bot detection, macro detection, speed hacks, and anomaly detection
-class_name AntiCheatService
 extends Node
 
 signal cheat_detected(player_id: String, cheat_type: String, confidence: float, evidence: Dictionary)
