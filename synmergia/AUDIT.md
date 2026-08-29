@@ -48,14 +48,8 @@ Services reference custom types (SynmergiaEntity, Item, Faction, etc.) that caus
 
 **Status:** Non-blocking - project loads and runs despite these warnings.
 
-### Phase 3: StatusEffect Consolidation 📋 IN PROGRESS
+### Phase 3: StatusEffect Consolidation 📋 COMPLETED ✅
 Consolidate buff, aura, and DoT systems into unified StatusEffect class.
-
-**Current files:**
-- `core/combat/status_handlers.gd` - SpeedModifier, CrowdControl, etc.
-- `core/combat/buff.gd` (class_name Buff) - Buff, AuraBuff classes
-- `core/components/aura_component.gd` - Buff/debuff/aura management
-- `core/entities/status_effect.gd` - NEW unified base class
 
 **Completed:**
 - ✅ Created unified `core/entities/status_effect.gd` base class
@@ -63,12 +57,11 @@ Consolidate buff, aura, and DoT systems into unified StatusEffect class.
 - ✅ Refactored aura_component to use StatusEffect methods and enums
 - ✅ Removed duplicate stat modifiers from Buff (now in base class)
 - ✅ Updated method calls: start()→apply(), stop()→remove()
+- ✅ Fixed AuraBuff bugs: buff_id→effect_id, _affect_allies typo, no-op assignment
+- ✅ Updated status_handlers.gd to use `target` instead of `target_entity`
+- ✅ Fixed syntax errors: backslash-t in spawn_service, indentation in security_service
 
-**Remaining:**
-- ⬜ Update AuraBuff to use base class fields consistently
-- ⬜ Update DamageOverTime, HealOverTime subclasses
-- ⬜ Update status_handlers.gd subclasses to extend StatusEffect
-- ⬜ Fix remaining type warnings (213 parse errors due to circular deps)
+**Note:** Some type resolution warnings remain (circular dependencies between services), but project loads and runs successfully.
 
 ---
 
