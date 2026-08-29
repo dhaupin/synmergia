@@ -15,7 +15,7 @@ extends CharacterBody3D
 
 # Combat
 @export var basic_attack: Skill = null
-@export var skillbar: Array[Skill] = []
+@export var skillbar: Array = []
 @export var attack_range: float = 2.5
 
 # State

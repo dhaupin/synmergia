@@ -92,8 +92,8 @@ func get_scaled_health() -> int:
 	return get_scaled_stat(health)
 
 ## Get scaled damage
-func get_scaled_damage() -> int:
-	return get_scaled_stat(attack_power)
+func get_scaled_damage(lvl_override: int = -1) -> int:
+	return get_scaled_stat(attack_power, lvl_override)
 
 ## Create actual stats dictionary for spawning
 func get_stats_for_level(lvl_override: int = -1) -> Dictionary:
@@ -112,7 +112,7 @@ func get_stats_for_level(lvl_override: int = -1) -> Dictionary:
 	}
 
 ## Check if this is a boss
-func is_boss() -> bool:
+func is_boss_type() -> bool:
 	return enemy_type == EnemyType.WORLD_BOSS or enemy_type == EnemyType.RAID_BOSS or is_boss
 
 ## Get loot drop
@@ -125,11 +125,11 @@ func roll_loot() -> Dictionary:
 	
 	# Roll against loot table if configured
 	if not loot_table_id.is_empty():
-		var table: LootTable = null
+		var table = null
 		if ResourceLoader.exists(loot_table_id):
 			table = ResourceLoader.load(loot_table_id)
 		if table != null:
-			var roll_result := table.roll_drop()
+			var roll_result: Dictionary = table.roll_drop()
 			loot["items"] = roll_result.get("items", [])
 			if roll_result.get("currency"):
 				loot["gold"] += roll_result["currency"].get("gold", 0)
@@ -142,6 +142,6 @@ func get_info() -> Dictionary:
 		"name": display_name,
 		"level": level,
 		"type": EnemyType.keys()[enemy_type],
-		"is_boss": is_boss(),
+		"is_boss": is_boss_type(),
 		"health": get_scaled_health()
 	}

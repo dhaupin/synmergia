@@ -5,8 +5,9 @@ extends Node
 ## Singleton instance
 static var instance: WebhookManager
 
-## Discord webhook
-var _discord: DiscordWebhook
+## Discord webhook (lazy load to avoid type resolution issues)
+var _discord = null
+var _discord_initialized: bool = false
 
 ## Config
 var discord_webhook_url: String = ""
@@ -17,12 +18,15 @@ var notify_on_urgent: bool = true
 var notify_on_exploit: bool = true
 var notify_on_server_status: bool = false  # Only on start/stop
 
+func _get_discord() -> Node:
+	if not _discord_initialized:
+		_discord = load("res://connectors/webhook/discord_webhook.gd").new()
+		add_child(_discord)
+		_discord_initialized = true
+	return _discord
+
 func _ready() -> void:
 	instance = self
-	
-	# Create Discord webhook
-	_discord = DiscordWebhook.new()
-	add_child(_discord)
 	
 	# Load config
 	_load_config()
@@ -33,20 +37,18 @@ func _ready() -> void:
 	GameLog.info("WebhookManager: Initialized")
 
 func _load_config() -> void:
-	# Load from GameConfig if available
-	if GameConfig.has("Webhooks"):
-		var webhooks: Dictionary = GameConfig.Webhooks
-		discord_webhook_url = webhooks.get("DISCORD_WEBHOOK_URL", "")
-		enabled = webhooks.get("ENABLED", true)
-		notify_on_admin_action = webhooks.get("NOTIFY_ADMIN_ACTIONS", true)
-		notify_on_report = webhooks.get("NOTIFY_REPORTS", true)
-		notify_on_urgent = webhooks.get("NOTIFY_URGENT", true)
-		notify_on_exploit = webhooks.get("NOTIFY_EXPLOITS", true)
+	# Load from GameConfig Webhooks class
+	discord_webhook_url = GameConfig.Webhooks.DISCORD_WEBHOOK_URL
+	enabled = GameConfig.Webhooks.ENABLED
+	notify_on_admin_action = GameConfig.Webhooks.NOTIFY_ADMIN_ACTIONS
+	notify_on_report = GameConfig.Webhooks.NOTIFY_REPORTS
+	notify_on_urgent = GameConfig.Webhooks.NOTIFY_URGENT
+	notify_on_exploit = GameConfig.Webhooks.NOTIFY_EXPLOITS
 	
 	# Apply to connector
-	if _discord:
-		_discord.webhook_url = discord_webhook_url
-		_discord.enabled = enabled
+	if _discord_initialized:
+		_get_discord().webhook_url = discord_webhook_url
+		_get_discord().enabled = enabled
 
 func _connect_signals() -> void:
 	# PermissionManager signals
@@ -79,7 +81,7 @@ func _on_admin_action(entry) -> void:
 	if not _discord or discord_webhook_url == "":
 		return
 	
-	_discord.send_admin_action(
+	_get_discord().send_admin_action(
 		entry.admin_id,
 		entry.action,
 		entry.target_id,
@@ -97,7 +99,7 @@ func _on_player_kicked(player_id: String, reason: String, admin_id: String) -> v
 		"admin": admin_id
 	}
 	
-	_discord.send_admin_action(admin_id, "KICK", player_id, true)
+	_get_discord().send_admin_action(admin_id, "KICK", player_id, true)
 
 func _on_player_banned(player_id: String, duration: int, reason: String, admin_id: String) -> void:
 	if not enabled or not notify_on_admin_action:
@@ -105,7 +107,7 @@ func _on_player_banned(player_id: String, duration: int, reason: String, admin_i
 	if not _discord or discord_webhook_url == "":
 		return
 	
-	_discord.send_admin_action(admin_id, "BAN", player_id, true)
+	_get_discord().send_admin_action(admin_id, "BAN", player_id, true)
 
 func _on_report_submitted(report) -> void:
 	if not enabled or not notify_on_report:
@@ -113,7 +115,7 @@ func _on_report_submitted(report) -> void:
 	if not _discord or discord_webhook_url == "":
 		return
 	
-	_discord.send_player_report(
+	_get_discord().send_player_report(
 		report.id,
 		report._type_to_string(),
 		report.reporter_id,
@@ -127,7 +129,7 @@ func _on_urgent_report(report) -> void:
 	if not _discord or discord_webhook_url == "":
 		return
 	
-	_discord.send_urgent_report(
+	_get_discord().send_urgent_report(
 		report.id,
 		report.reporter_id,
 		report.target_id,
@@ -141,7 +143,7 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Stri
 	if not _discord or discord_webhook_url == "":
 		return
 	
-	_discord.send_exploit_alert(player_id, exploit_type, details)
+	_get_discord().send_exploit_alert(player_id, exploit_type, details)
 
 func _on_vote_created(vote) -> void:
 	if not enabled:
@@ -151,10 +153,10 @@ func _on_vote_created(vote) -> void:
 	
 	# Only notify on important votes
 	if vote.type == CommunityGovernance.VoteType.REPORT_VALIDATION:
-		var embed := _discord.create_embed(
+		var embed = _get_discord().create_embed(
 			"🗳️ New Community Vote",
 			"A new vote has been created for report validation.",
-			DiscordWebhook.COLOR_BLUE
+			3447003
 		)
 		embed.fields.append({
 			"name": "Vote ID",
@@ -167,7 +169,7 @@ func _on_vote_created(vote) -> void:
 			"inline": true
 		})
 		
-		_discord.send_embed(embed, "Synmergia Governance")
+		_get_discord().send_embed(embed, "Synmergia Governance")
 
 func _on_vote_closed(vote) -> void:
 	if not enabled:
@@ -175,11 +177,11 @@ func _on_vote_closed(vote) -> void:
 	if not _discord or discord_webhook_url == "":
 		return
 	
-	var results := vote.get_results()
-	var passed := vote.is_passed()
-	var color := DiscordWebhook.COLOR_GREEN if passed else DiscordWebhook.COLOR_RED
+	var results = vote.get_results()
+	var passed = vote.is_passed()
+	var color := 3066993 if passed else 15158332
 	
-	var embed := _discord.create_embed(
+	var embed = _get_discord().create_embed(
 		"🗳️ Vote Closed: %s" % ("PASSED" if passed else "FAILED"),
 		vote.question,
 		color
@@ -192,45 +194,45 @@ func _on_vote_closed(vote) -> void:
 	})
 	
 	if not results.is_empty():
-		var top_result := results[0]
+		var top_result = results[0]
 		embed.fields.append({
 			"name": "Winner",
 			"value": "%s (%d votes)" % [top_result.text, top_result.votes],
 			"inline": true
 		})
 	
-	_discord.send_embed(embed, "Synmergia Governance")
+	_get_discord().send_embed(embed, "Synmergia Governance")
 
 ## ============================================================================
 ## PUBLIC API
 ## ============================================================================
 
 ## Send a custom alert
-func send_alert(title: String, description: String, color: int = DiscordWebhook.COLOR_RED) -> void:
+func send_alert(title: String, description: String, color: int = 15158332) -> void:
 	if not enabled or discord_webhook_url == "":
 		return
 	
-	var embed := _discord.create_embed(title, description, color)
-	_discord.send_embed(embed, "Synmergia Alert")
+	var embed = _get_discord().create_embed(title, description, color)
+	_get_discord().send_embed(embed, "Synmergia Alert")
 
 ## Send server status
 func send_server_status(status: String, player_count: int, details: Dictionary = {}) -> void:
 	if not enabled or not notify_on_server_status or discord_webhook_url == "":
 		return
 	
-	_discord.send_server_status(status, player_count, details)
+	_get_discord().send_server_status(status, player_count, details)
 
 ## Update webhook URL
 func set_webhook_url(url: String) -> void:
 	discord_webhook_url = url
 	if _discord:
-		_discord.webhook_url = url
+		_get_discord().webhook_url = url
 
 ## Enable/disable
 func set_enabled(enable: bool) -> void:
 	enabled = enable
 	if _discord:
-		_discord.enabled = enable
+		_get_discord().enabled = enable
 
 ## Toggle notification types
 func set_notify_admin_actions(enabled: bool) -> void:

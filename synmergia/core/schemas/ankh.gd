@@ -21,9 +21,9 @@ enum AnkhSize {
 	COLOSSAL     # City-wide
 }
 
-signal activated(player: SynmergiaEntity, ankh: Ankh)
-signal deactivated(player: SynmergiaEntity, ankh: Ankh)
-signal bound_to(player: SynmergiaEntity, ankh: Ankh)
+signal activated(player, ankh: Ankh)
+signal deactivated(player, ankh: Ankh)
+signal bound_to(player, ankh: Ankh)
 
 @export var ankh_id: String = ""
 @export var display_name: String = "Ankh"
@@ -79,7 +79,7 @@ func _ready() -> void:
 	add_to_group("ankhs")
 
 ## Check if a player can bind to this ankh
-func can_bind(player: SynmergiaEntity) -> bool:
+func can_bind(player) -> bool:
 	# Level check
 	if player.level < min_level or player.level > max_level:
 		return false
@@ -100,15 +100,15 @@ func can_bind(player: SynmergiaEntity) -> bool:
 	
 	# Cooldown check (anti-exploit)
 	if _player_bind_times.has(player.entity_id):
-		var last_bind := _player_bind_times[player.entity_id]
-		var elapsed := Time.get_unix_time_from_system() - last_bind
+		var last_bind: float = _player_bind_times[player.entity_id]
+		var elapsed: float = Time.get_unix_time_from_system() - last_bind
 		if elapsed < bind_cooldown_seconds:
 			return false
 	
 	return true
 
 ## Bind player to this ankh
-func bind_player(player: SynmergiaEntity) -> bool:
+func bind_player(player) -> bool:
 	if not can_bind(player):
 		return false
 	
@@ -134,7 +134,7 @@ func bind_player(player: SynmergiaEntity) -> bool:
 	return true
 
 ## Unbind player from this ankh
-func unbind_player(player: SynmergiaEntity) -> void:
+func unbind_player(player) -> void:
 	_bound_players.erase(player.entity_id)
 	deactivated.emit(player, self)
 
@@ -143,7 +143,7 @@ func get_respawn_time(base_time: float) -> float:
 	return base_time * respawn_time_modifier
 
 ## Get respawn info for a player
-func get_respawn_info(player: SynmergiaEntity) -> Dictionary:
+func get_respawn_info(player) -> Dictionary:
 	return {
 		"ankh_id": ankh_id,
 		"ankh_name": display_name,
@@ -176,9 +176,9 @@ func get_team_respawns(team_id: int) -> int:
 	
 	# Track respawns per team (simplified)
 	# Initialize team respawn count if not set
-if not _team_respawn_counts.has(team_id):
-_team_respawn_counts[team_id] = respawn_count_limit
-return _team_respawn_counts[team_id]
+	if not _team_respawn_counts.has(team_id):
+		_team_respawn_counts[team_id] = respawn_count_limit
+	return _team_respawn_counts[team_id]
 
 ## Decrement team respawn (arena mode)
 func use_team_respawn(team_id: int) -> bool:

@@ -1,27 +1,31 @@
 ## IDRegistry - Centralized ID generation and validation
 ## Defines ID prefixes for all entity types to prevent collisions
-class_name IDRegistry
-extends RefCounted
+extends Node
 
 ## ID Prefixes (reserved ranges)
-enum Prefix {
-	PLAYER = "plr_",      # Player characters
-	ENTITY = "ent_",       # Generic entities
-	ENEMY  = "eny_",       # Enemies
-	NPC    = "npc_",       # Non-player characters
-	ITEM   = "itm_",       # Items, equipment
-	SKILL  = "skl_",       # Skills, spells, abilities
-	ZONE   = "zn_",        # Zones
-	QUEST  = "qst_",       # Quests
-	FACTION= "fct_",       # Factions
-	OBJECT = "obj_",       # World objects, furniture
-	LOOT   = "lto_",       # Loot drops
-	EVENT  = "evt_",       # World events
-	GUILD  = "gld_",       # Guilds
-	PARTY  = "prt_",       # Parties
-	CHAT   = "cht_",       # Chat channels
-	SCENE  = "scn_",       # Scene spawns
-}
+const PREFIX_PLAYER := "plr_"
+const PREFIX_ENTITY := "ent_"
+const PREFIX_ENEMY := "eny_"
+const PREFIX_NPC := "npc_"
+const PREFIX_ITEM := "itm_"
+const PREFIX_SKILL := "skl_"
+const PREFIX_ZONE := "zn_"
+const PREFIX_QUEST := "qst_"
+const PREFIX_FACTION := "fct_"
+const PREFIX_OBJECT := "obj_"
+const PREFIX_LOOT := "lto_"
+const PREFIX_EVENT := "evt_"
+const PREFIX_GUILD := "gld_"
+const PREFIX_PARTY := "prt_"
+const PREFIX_CHAT := "cht_"
+const PREFIX_SCENE := "scn_"
+
+const ALL_PREFIXES := [
+	PREFIX_PLAYER, PREFIX_ENTITY, PREFIX_ENEMY, PREFIX_NPC,
+	PREFIX_ITEM, PREFIX_SKILL, PREFIX_ZONE, PREFIX_QUEST,
+	PREFIX_FACTION, PREFIX_OBJECT, PREFIX_LOOT, PREFIX_EVENT,
+	PREFIX_GUILD, PREFIX_PARTY, PREFIX_CHAT, PREFIX_SCENE,
+]
 
 ## Reserved ID ranges (for special purposes)
 const RESERVED_RANGES := {
@@ -34,11 +38,9 @@ const RESERVED_RANGES := {
 func is_valid_id(id: String) -> bool:
 	if id.is_empty():
 		return false
-	# Check custom prefixes
-	for prefix in Prefix.values():
+	for prefix in ALL_PREFIXES:
 		if id.begins_with(prefix):
 			return true
-	# Check reserved ranges
 	for prefix in RESERVED_RANGES:
 		if id.begins_with(prefix):
 			return true
@@ -46,11 +48,11 @@ func is_valid_id(id: String) -> bool:
 
 ## Get the type category from an ID
 func get_type(id: String) -> String:
-	for prefix in Prefix.values():
+	for prefix: String in ALL_PREFIXES:
 		if id.begins_with(prefix):
-			var name := prefix.trim_suffix("_")
+			var name: String = prefix.trim_suffix("_")
 			return name.to_upper()
-	for prefix in RESERVED_RANGES:
+	for prefix: String in RESERVED_RANGES:
 		if id.begins_with(prefix):
 			return prefix.trim_suffix("_").to_upper()
 	return "UNKNOWN"
@@ -68,27 +70,27 @@ func generate(prefix: String, unique_id: String = "") -> String:
 func generate_player(steam_id: String = "") -> String:
 	if steam_id != "":
 		return "plr_%s" % steam_id
-	return generate("plr_")
+	return generate(PREFIX_PLAYER)
 
 ## Generate enemy ID
 func generate_enemy(template_id: String = "") -> String:
-	return generate("eny_", template_id)
+	return generate(PREFIX_ENEMY, template_id)
 
 ## Generate NPC ID
 func generate_npc(template_id: String = "") -> String:
-	return generate("npc_", template_id)
+	return generate(PREFIX_NPC, template_id)
 
 ## Generate item ID
 func generate_item(template_id: String = "") -> String:
-	return generate("itm_", template_id)
+	return generate(PREFIX_ITEM, template_id)
 
 ## Generate zone ID
 func generate_zone(template_id: String = "") -> String:
-	return generate("zn_", template_id)
+	return generate(PREFIX_ZONE, template_id)
 
 ## Generate loot ID
 func generate_loot(spawner_id: String = "") -> String:
-	return generate("lto_", spawner_id)
+	return generate(PREFIX_LOOT, spawner_id)
 
 ## Parse ID to extract components
 func parse_id(id: String) -> Dictionary:
@@ -98,30 +100,29 @@ func parse_id(id: String) -> Dictionary:
 		"type": "UNKNOWN",
 		"is_valid": false
 	}
-	
+
 	if not is_valid_id(id):
 		return result
-	
+
 	result.is_valid = true
 	result.type = get_type(id)
-	
-	# Find the underscore position
-	var underscore_pos := id.find("_")
+
+	var underscore_pos: int = id.find("_")
 	if underscore_pos >= 0:
 		result.prefix = id.substr(0, underscore_pos + 1)
 		result.suffix = id.substr(underscore_pos + 1)
-	
+
 	return result
 
 ## Validate ID is of expected type
 func validate_type(id: String, expected_type: String) -> bool:
-	var actual_type := get_type(id)
+	var actual_type: String = get_type(id)
 	return actual_type.to_lower() == expected_type.to_lower()
 
 ## Get all registered prefixes
 func get_all_prefixes() -> Array[String]:
 	var prefixes: Array[String] = []
-	for prefix in Prefix.values():
+	for prefix in ALL_PREFIXES:
 		prefixes.append(prefix)
 	for prefix in RESERVED_RANGES:
 		prefixes.append(prefix)
@@ -136,7 +137,7 @@ func get_type_display_name(id: String) -> String:
 		"npc": "NPC",
 		"itm": "Item",
 		"skl": "Skill",
-		"zn":  "Zone",
+		"zn": "Zone",
 		"qst": "Quest",
 		"fct": "Faction",
 		"obj": "Object",
@@ -147,14 +148,13 @@ func get_type_display_name(id: String) -> String:
 		"cht": "Chat",
 		"scn": "Scene",
 	}
-	
-	var parsed := parse_id(id)
+
+	var parsed: Dictionary = parse_id(id)
 	return type_map.get(parsed.prefix.trim_suffix("_"), "Unknown")
-}
 
 ## Internal: Generate timestamp-based unique ID
 func _generate_timestamp_id() -> String:
-	var ts := Time.get_datetime_string_from_system()
+	var ts: String = Time.get_datetime_string_from_system()
 	ts = ts.replace("-", "").replace(":", "").replace("T", "_")
 	ts += "_%d" % randi_range(1000, 9999)
 	return ts

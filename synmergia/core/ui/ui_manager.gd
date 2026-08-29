@@ -2,7 +2,7 @@
 ## Handles instantiation and lifecycle of UI components
 extends Node
 
-var _tooltip: TargetTooltip = null
+var _tooltip = null
 var _initialized: bool = false
 
 func _ready() -> void:
@@ -30,21 +30,21 @@ func _initialize_ui() -> void:
 	if _initialized:
 		return
 	_initialized = true
-	
+
 	# Create TargetTooltip
 	_tooltip = TargetTooltip.new()
 	_tooltip.name = "TargetTooltip"
-	
+
 	# Add to root (CanvasLayer would be better, but keeping simple)
 	get_tree().root.add_child(_tooltip)
-	
+
 	GameLog.debug("UIManager: Initialized TargetTooltip")
 
 ## Show game UI elements
 func _show_game_ui() -> void:
 	if not _initialized:
 		_initialize_ui()
-	
+
 	if _tooltip:
 		_tooltip.show()
 
@@ -60,15 +60,14 @@ func _cleanup_ui() -> void:
 		_tooltip = null
 	_initialized = false
 
-## Get tooltip instance
-func get_tooltip() -> TargetTooltip:
+func get_tooltip():
 	return _tooltip
 
 ## Show tooltip with target (convenience method)
 func show_target_tooltip(target_id: String) -> void:
 	if not _tooltip:
 		return
-	
+
 	var target := TargetingManager.get_target_info(target_id)
 	if target:
 		_tooltip.show()

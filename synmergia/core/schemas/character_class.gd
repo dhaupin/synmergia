@@ -88,8 +88,8 @@ func _init() -> void:
 
 ## Calculate stat at given level
 func calculate_stat(stat: String, level: int) -> int:
-	var base := base_stats.get(stat, 10)
-	var growth := stat_growth.get(stat, 1)
+	var base: int = int(base_stats.get(stat, 10))
+	var growth: float = float(stat_growth.get(stat, 1))
 	return base + (growth * (level - 1))
 
 ## Calculate resource at given level
@@ -120,15 +120,15 @@ func get_skills_for_level(level: int) -> Array[String]:
 	return skills
 
 ## Check if class can equip item
-func can_equip_item(item: Item) -> bool:
+func can_equip_item(item) -> bool:
 	if not item.can_equip():
 		return true  # Non-equippable items are fine
 	
 	# Weapon check
-	if item.equip_slot == Item.EquipSlot.MAIN_HAND or item.equip_slot == Item.EquipSlot.OFF_HAND:
-		if item.item_category == Item.ItemCategory.WEAPON:
+	if item.equip_slot == "main_hand" or item.equip_slot == "off_hand":
+		if item.item_category == "weapon":
 			match item.equip_slot:
-				Item.EquipSlot.MAIN_HAND:
+				"main_hand":
 					var weapon_type = item.get("weapon_type", "sword")
 					if weapon_type == "staff" and not can_use_staves:
 						return false
@@ -138,7 +138,7 @@ func can_equip_item(item: Item) -> bool:
 						return false
 	
 	# Armor check
-	if item.equip_slot in [Item.EquipSlot.HEAD, Item.EquipSlot.CHEST, Item.EquipSlot.LEGS, Item.EquipSlot.FEET, Item.EquipSlot.GLOVES, Item.EquipSlot.SHOULDERS]:
+	if item.equip_slot in ["head", "chest", "legs", "feet", "gloves", "shoulders"]:
 		var armor_type = item.get("armor_type", "leather")
 		if not can_use_armor.get(armor_type, false):
 			return false

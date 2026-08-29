@@ -53,6 +53,12 @@ func _process(_delta: float) -> void:
 		ConnectionState.SERVER:
 			_process_server_ticks()
 
+
+## Stub for server tick processing
+func _process_server_ticks() -> void:
+	# TODO: Implement server tick processing
+	pass
+
 ## SERVER FUNCTIONS
 
 func start_server(port: int = DEFAULT_PORT) -> bool:

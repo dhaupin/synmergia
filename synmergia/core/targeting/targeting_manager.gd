@@ -465,7 +465,7 @@ func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
 	_do_resurrect_fallback(target_entity)
 	return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
 
-func _do_resurrect_fallback(entity: SynmergiaEntity) -> void:
+func _do_resurrect_fallback(entity) -> void:
 	var health_comp = entity.health_component
 	
 	# Remove corpse if exists
@@ -982,7 +982,7 @@ func get_targets_in_radius(origin: Vector3, radius: float, entity_type: int = 0)
 ## EVENT HANDLERS
 ## ============================================================================
 
-func _on_entity_spawned(entity: SynmergiaEntity, _metadata: EventHub.SpawnMetadata) -> void:
+func _on_entity_spawned(entity, _metadata: EventHub.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		var entity_type = entity.get("entity_type", 0)
 		var schema_id = _entity_type_to_schema.get(entity_type, "")
@@ -998,11 +998,11 @@ func _on_entity_spawned(entity: SynmergiaEntity, _metadata: EventHub.SpawnMetada
 			entity_type
 		)
 
-func _on_entity_despawned(entity: SynmergiaEntity, _metadata: EventHub.SpawnMetadata) -> void:
+func _on_entity_despawned(entity, _metadata: EventHub.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		unregister_targetable(entity.entity_id)
 
-func _on_entity_died(entity: SynmergiaEntity, _killer: SynmergiaEntity, _metadata: EventHub.SpawnMetadata) -> void:
+func _on_entity_died(entity, _killer, _metadata: EventHub.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		# Optionally clear target if they died
 		if _current_target and _current_target.id == entity.entity_id:
