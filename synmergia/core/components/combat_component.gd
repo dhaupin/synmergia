@@ -98,9 +98,9 @@ func _physics_process(delta: float) -> void:
 		_update_channeling(delta)
 
 ## Execute a skill
-func execute_skill(skill: Skill, target: SynmergiaEntity = null, ground_pos: Vector3 = Vector3.ZERO) -> bool:
+func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> bool:
 	# QoS: Rate limit combat actions
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	if entity and entity.entity_id != "":
 		if not QoSService.rate_limit(entity.entity_id, "combat"):
 			GameLog.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
@@ -146,7 +146,7 @@ func execute_skill(skill: Skill, target: SynmergiaEntity = null, ground_pos: Vec
 	return true
 
 func _can_execute_skill(skill: Skill) -> bool:
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	
 	# Check if casting
 	if is_casting:
@@ -160,7 +160,7 @@ func _can_execute_skill(skill: Skill) -> bool:
 	return skill.can_cast(entity)
 
 func _consume_skill_costs(skill: Skill) -> bool:
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	
 	if entity.current_mana < skill.mana_cost:
 		return false
@@ -172,7 +172,7 @@ func _consume_skill_costs(skill: Skill) -> bool:
 	
 	return true
 
-func _start_cast(skill: Skill, target: SynmergiaEntity) -> void:
+func _start_cast(skill: Skill, target: Entity) -> void:
 	is_casting = true
 	cast_skill = skill
 	cast_time_remaining = skill.cast_time
@@ -194,7 +194,7 @@ func interrupt() -> void:
 
 ## Interrupt check when taking damage
 ## Called by health_component when entity takes damage
-func on_damage_taken(damage: int, source: SynmergiaEntity, damage_type: String) -> bool:
+func on_damage_taken(damage: int, source: Entity, damage_type: String) -> bool:
 	# Can only interrupt if casting or channeling
 	if not is_casting and not is_channeling:
 		return false
@@ -209,7 +209,7 @@ func on_damage_taken(damage: int, source: SynmergiaEntity, damage_type: String) 
 	
 	# Check interrupt resistance (base + buffs)
 	var resistance := _interrupt_resistance
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	if entity.aura_component:
 		# Check for interrupt immunity buffs
 		for buff in entity.aura_component.get_all_buffs():
@@ -233,7 +233,7 @@ func _interrupt_cast(reason: String) -> void:
 	if is_casting:
 		skill = cast_skill
 		# Partial resource cost (50%)
-		var entity: SynmergiaEntity = get_parent()
+		var entity: Entity = get_parent()
 		entity.current_mana = int(entity.current_mana + skill.mana_cost * 0.5)
 		is_casting = false
 		cast_skill = null
@@ -275,8 +275,8 @@ func _execute_channel_tick() -> void:
 	if channel_skill == null:
 		return
 	
-	var entity: SynmergiaEntity = get_parent()
-	var target: SynmergiaEntity = null
+	var entity: Entity = get_parent()
+	var target: Entity = null
 	
 	# Get target from skill
 	if channel_skill.target_type == Skill.TargetType.SELF:
@@ -303,7 +303,7 @@ func _finish_channel(completed: bool) -> void:
 	channel_ended.emit(skill, completed)
 	skill_finished.emit(skill)
 
-func _perform_attack(skill: Skill, target: SynmergiaEntity) -> void:
+func _perform_attack(skill: Skill, target: Entity) -> void:
 	attack_started.emit()
 	
 	# Calculate damage
@@ -323,7 +323,7 @@ func _perform_attack(skill: Skill, target: SynmergiaEntity) -> void:
 	record_action()
 
 ## Basic auto-attack
-func auto_attack(target: SynmergiaEntity, damage: int) -> void:
+func auto_attack(target: Entity, damage: int) -> void:
 	if attack_cooldown > 0:
 		return
 	
@@ -356,7 +356,7 @@ func trigger_gcd(skill: Skill = null) -> void:
 var _last_damage_time: int = 0
 
 func _update_combat_state(delta: float) -> void:
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	
 	# Check if should enter combat (took/Dealt damage recently)
 	var now := Time.get_ticks_msec()
@@ -394,12 +394,12 @@ func _exit_combat() -> void:
 	EventHub.entity_exited_combat.emit(get_parent())
 
 ## Called when entity deals or takes damage
-func on_damage_dealt(damage: int, target: SynmergiaEntity, damage_type: String) -> void:
+func on_damage_dealt(damage: int, target: Entity, damage_type: String) -> void:
 	_last_damage_time = Time.get_ticks_msec()
 	if not in_combat:
 		_enter_combat()
 
-func on_damage_taken_global(damage: int, source: SynmergiaEntity, damage_type: String) -> void:
+func on_damage_taken_global(damage: int, source: Entity, damage_type: String) -> void:
 	_last_damage_time = Time.get_ticks_msec()
 	if not in_combat:
 		_enter_combat()
@@ -487,7 +487,7 @@ func record_action() -> void:
 
 ## Apply durability loss to all equipped items
 func _apply_durability_loss(combat_minutes: float) -> void:
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	if not entity or not entity.inventory_component:
 		return
 	

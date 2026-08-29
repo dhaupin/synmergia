@@ -23,7 +23,7 @@ var _original_sprint_speed: float = 0.0
 func _init() -> void:
 	effect_type = EffectType.DEBUFF if speed_type in [SpeedType.SLOW, SpeedType.ROOT, SpeedType.SNARE] else EffectType.BUFF
 
-func apply(target: SynmergiaEntity) -> void:
+func apply(target: Entity) -> void:
 	super.apply(target)
 	
 	# Store original speeds
@@ -34,11 +34,11 @@ func apply(target: SynmergiaEntity) -> void:
 	elif "move_speed" in target:
 		_original_move_speed = target.move_speed
 
-func remove(target: SynmergiaEntity) -> void:
+func remove(target: Entity) -> void:
 	_revert_speed_change(target)
 	super.remove(target)
 
-func _apply_speed_change(target: SynmergiaEntity) -> void:
+func _apply_speed_change(target: Entity) -> void:
 	match speed_type:
 		SpeedType.ROOT:
 			if target is PlayerController:
@@ -59,7 +59,7 @@ func _apply_speed_change(target: SynmergiaEntity) -> void:
 	if flat_speed_change != 0.0 and target is PlayerController:
 		target.move_speed = max(0.5, _original_move_speed + flat_speed_change)
 
-func _revert_speed_change(target: SynmergiaEntity) -> void:
+func _revert_speed_change(target: Entity) -> void:
 	target.stats.movement_speed_multiplier = 1.0
 	if target is PlayerController:
 		target.move_speed = _original_move_speed
@@ -86,19 +86,19 @@ var _was_visible: bool = true
 func _init() -> void:
 	effect_type = EffectType.BUFF
 
-func apply(target: SynmergiaEntity) -> void:
+func apply(target: Entity) -> void:
 	super.apply(target)
 	
 	if target is PlayerController:
 		_was_visible = target.visible
 		_apply_stealth(target)
 
-func remove(target: SynmergiaEntity) -> void:
+func remove(target: Entity) -> void:
 	if target is PlayerController:
 		_revert_stealth(target)
 	super.remove(target)
 
-func _apply_stealth(target: SynmergiaEntity) -> void:
+func _apply_stealth(target: Entity) -> void:
 	match stealth_type:
 		StealthType.INVISIBLE:
 			target.visible = false
@@ -116,7 +116,7 @@ func _apply_stealth(target: SynmergiaEntity) -> void:
 			target.collision_mask = 0b0000100
 			# Would also need to clear aggro from enemies
 
-func _revert_stealth(target: SynmergiaEntity) -> void:
+func _revert_stealth(target: Entity) -> void:
 	target.visible = _was_visible
 	target.collision_layer = 0b0000001  # Default player layer
 	target.collision_mask = 0b0000111
@@ -125,12 +125,12 @@ func is_stealthed() -> bool:
 	return is_active
 
 ## Called when target takes damage (to break stealth)
-func on_damaged(target: SynmergiaEntity, damage: int, source: SynmergiaEntity) -> void:
+func on_damaged(target: Entity, damage: int, source: Entity) -> void:
 	if break_on_damage and is_active:
 		remove(target)
 
 ## Called when target uses a skill (to break stealth)
-func on_action(target: SynmergiaEntity) -> void:
+func on_action(target: Entity) -> void:
 	if break_on_action and is_active:
 		remove(target)
 
@@ -155,20 +155,20 @@ func _init() -> void:
 	if invincible:
 		duration = 0  # Permanent until removed
 
-func apply(target: SynmergiaEntity) -> void:
+func apply(target: Entity) -> void:
 	super.apply(target)
 	_apply_immunities(target)
 
-func remove(target: SynmergiaEntity) -> void:
+func remove(target: Entity) -> void:
 	_revert_immunities(target)
 	super.remove(target)
 
-func _apply_immunities(target: SynmergiaEntity) -> void:
+func _apply_immunities(target: Entity) -> void:
 	if invincible:
 		target.stats.damage_multiplier = 0.0  # All damage dealt is 0
 		target.collision_layer = 0  # Cannot be hit
 
-func _revert_immunities(target: SynmergiaEntity) -> void:
+func _revert_immunities(target: Entity) -> void:
 	target.stats.damage_multiplier = 1.0
 	target.collision_layer = 0b0000001
 
@@ -186,7 +186,7 @@ func is_immune_to(effect: String) -> bool:
 	return false
 
 ## Handle incoming damage (returns actual damage after immunity check)
-func on_damage(target: SynmergiaEntity, damage: int, damage_type: String = "") -> int:
+func on_damage(target: Entity, damage: int, damage_type: String = "") -> int:
 	if invincible:
 		_damage_absorbed += damage
 		return 0
@@ -224,17 +224,17 @@ func _init() -> void:
 	effect_type = EffectType.DEBUFF
 	duration = tick_interval * total_ticks
 
-func apply(target: SynmergiaEntity) -> void:
+func apply(target: Entity) -> void:
 	super.apply(target)
 	_start_dot(target)
 
-func remove(target: SynmergiaEntity) -> void:
+func remove(target: Entity) -> void:
 	_stop_dot()
 	if dot_type == DotType.MARK and _mark_ready_to_detonate and detonate_damage > 0:
 		_detonate(target)
 	super.remove(target)
 
-func _start_dot(target: SynmergiaEntity) -> void:
+func _start_dot(target: Entity) -> void:
 	_current_ticks = 0
 	_timer = Timer.new()
 	_timer.one_shot = false
@@ -283,7 +283,7 @@ func _calculate_damage() -> int:
 			return dmg
 	return dmg
 
-func _apply_damage(target: SynmergiaEntity, amount: int) -> void:
+func _apply_damage(target: Entity, amount: int) -> void:
 	match damage_type.to_lower():
 		"physical":
 			target.take_damage(amount)
@@ -295,7 +295,7 @@ func _apply_damage(target: SynmergiaEntity, amount: int) -> void:
 			if target.current_health <= 0:
 				target.die(null)
 
-func _detonate(target: SynmergiaEntity) -> void:
+func _detonate(target: Entity) -> void:
 	if detonate_damage > 0:
 		_apply_damage(target, detonate_damage)
 

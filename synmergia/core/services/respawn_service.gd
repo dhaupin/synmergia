@@ -610,7 +610,7 @@ func _get_nearby_potential_healers(player) -> Array:
 	var entities := EntityService.get_entities_in_radius(player.global_position, REVIVE_RANGE)
 	for entity in entities:
 		if entity != player and entity.health_component and not entity.health_component.is_dead():
-			if entity is Player or entity.controller_type == SynmergiaEntity.ControllerType.HUMAN:
+			if entity is Player or entity.controller_type == Entity.ControllerType.HUMAN:
 				nearby.append(entity)
 	return nearby
 

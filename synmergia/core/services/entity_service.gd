@@ -48,12 +48,12 @@ func register_entity(entity, metadata: EventHub.SpawnMetadata = null, id_overrid
 	_entity_metadata[entity_id] = metadata
 	
 	# Track by type
-	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
+	if entity.entity_type == Entity.EntityType.PLAYER:
 		_players[entity_id] = entity
 		player_joined.emit(entity, metadata)
-	elif entity.entity_type == SynmergiaEntity.EntityType.ENEMY:
+	elif entity.entity_type == Entity.EntityType.ENEMY:
 		_enemies[entity_id] = entity
-	elif entity.entity_type == SynmergiaEntity.EntityType.NPC:
+	elif entity.entity_type == Entity.EntityType.NPC:
 		_npcs[entity_id] = entity
 	
 	entity_registered.emit(entity, metadata)
@@ -68,11 +68,11 @@ func _create_default_metadata(entity) -> EventHub.SpawnMetadata:
 	var spawn_type := EventHub.SpawnMetadata.SpawnType.NORMAL
 	
 	match entity.entity_type:
-		SynmergiaEntity.EntityType.PLAYER:
+		Entity.EntityType.PLAYER:
 			spawn_type = EventHub.SpawnMetadata.SpawnType.NORMAL
-		SynmergiaEntity.EntityType.ENEMY:
+		Entity.EntityType.ENEMY:
 			spawn_type = EventHub.SpawnMetadata.SpawnType.NORMAL
-		SynmergiaEntity.EntityType.NPC:
+		Entity.EntityType.NPC:
 			spawn_type = EventHub.SpawnMetadata.SpawnType.NPC
 		_:
 			spawn_type = EventHub.SpawnMetadata.SpawnType.NORMAL
@@ -141,16 +141,16 @@ func get_all_npcs() -> Array:
 	return _npcs.values()
 
 ## Get entities in radius (3D sphere)
-func get_entities_in_radius(origin: Vector3, radius: float, entity_type: SynmergiaEntity.EntityType = SynmergiaEntity.EntityType.NPC) -> Array:
+func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Entity.EntityType = Entity.EntityType.NPC) -> Array:
 	var results: Array = []
 	var target_dict: Dictionary
 	
 	match entity_type:
-		SynmergiaEntity.EntityType.PLAYER:
+		Entity.EntityType.PLAYER:
 			target_dict = _players
-		SynmergiaEntity.EntityType.ENEMY:
+		Entity.EntityType.ENEMY:
 			target_dict = _enemies
-		SynmergiaEntity.EntityType.NPC:
+		Entity.EntityType.NPC:
 			target_dict = _npcs
 		_:
 			target_dict = _entities
@@ -164,15 +164,15 @@ func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Synmerg
 	return results
 
 ## Get closest entity to position
-func get_closest_entity(origin: Vector3, entity_type: SynmergiaEntity.EntityType = SynmergiaEntity.EntityType.NPC, max_distance: float = -1.0) -> Variant:
+func get_closest_entity(origin: Vector3, entity_type: Entity.EntityType = Entity.EntityType.NPC, max_distance: float = -1.0) -> Variant:
 	var target_dict: Dictionary
 	
 	match entity_type:
-		SynmergiaEntity.EntityType.PLAYER:
+		Entity.EntityType.PLAYER:
 			target_dict = _players
-		SynmergiaEntity.EntityType.ENEMY:
+		Entity.EntityType.ENEMY:
 			target_dict = _enemies
-		SynmergiaEntity.EntityType.NPC:
+		Entity.EntityType.NPC:
 			target_dict = _npcs
 		_:
 			target_dict = _entities
