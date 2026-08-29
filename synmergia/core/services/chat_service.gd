@@ -224,7 +224,7 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 								return []
 				
 				# Get sender entity
-				var sender: Entity = EntityService.get_entity(sender_id)
+				var sender: SynmergiaEntity = EntityService.get_entity(sender_id)
 				if not sender or not is_instance_valid(sender):
 								GameLogger.warn("ChatService: Sender entity not found for range check: %s" % sender_id)
 								return []
@@ -249,7 +249,7 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 				var nearby_entities := EntityService.get_entities_in_radius(
 								sender.global_position if sender is Node3D else Vector3.ZERO,
 								channel_range,
-								Entity.EntityType.PLAYER
+								SynmergiaEntity.EntityType.PLAYER
 				)
 				
 				# Convert to player IDs, excluding sender
@@ -265,7 +265,7 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 				if not EntityService:
 								return []
 				
-				var sender: Entity = EntityService.get_entity(sender_id)
+				var sender: SynmergiaEntity = EntityService.get_entity(sender_id)
 				if not sender or not is_instance_valid(sender):
 								return []
 				

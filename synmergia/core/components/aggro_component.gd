@@ -3,9 +3,9 @@
 class_name AggroComponent
 extends Node
 
-signal target_changed(old_target: Entity, new_target: Entity)
-signal threat_changed(target: Entity, threat_amount: int)
-signal threat_overflow(source: Entity)
+signal target_changed(old_target: SynmergiaEntity, new_target: SynmergiaEntity)
+signal threat_changed(target: SynmergiaEntity, threat_amount: int)
+signal threat_overflow(source: SynmergiaEntity)
 signal out_of_combat()
 
 @export var aggro_range: float = 15.0  # Detection radius
@@ -14,7 +14,7 @@ signal out_of_combat()
 @export var threat_transfer_on_death: bool = true
 
 var _threat_table: Dictionary = {}  # Entity -> threat amount
-var _current_target: Entity = null
+var _current_target: SynmergiaEntity = null
 var _is_in_combat: bool = false
 var _out_of_combat_timer: float = 0.0
 @export var out_of_combat_delay: float = 5.0  # Seconds before out of combat
@@ -34,7 +34,7 @@ func _process(delta: float) -> void:
 		_decay_threat(delta)
 
 ## Add threat for a target
-func add_threat(target: Entity, amount: int) -> void:
+func add_threat(target: SynmergiaEntity, amount: int) -> void:
 	if not is_instance_valid(target):
 		return
 	
@@ -55,13 +55,13 @@ func add_threat(target: Entity, amount: int) -> void:
 	_update_target()
 
 ## Reduce threat on a target (taunt removal, etc.)
-func reduce_threat(target: Entity, amount: int) -> void:
+func reduce_threat(target: SynmergiaEntity, amount: int) -> void:
 	if _threat_table.has(target):
 		_threat_table[target] = max(0, _threat_table[target] - amount)
 		threat_changed.emit(target, _threat_table[target])
 
 ## Remove all threat from a target
-func clear_threat(target: Entity) -> void:
+func clear_threat(target: SynmergiaEntity) -> void:
 	_threat_table.erase(target)
 	if _current_target == target:
 		_update_target()
@@ -72,9 +72,9 @@ func clear_all_threat() -> void:
 	_set_target(null)
 
 ## Get highest threat target
-func get_highest_threat_target() -> Entity:
+func get_highest_threat_target() -> SynmergiaEntity:
 	var highest_threat := 0
-	var highest_target: Entity = null
+	var highest_target: SynmergiaEntity = null
 	
 	for target in _threat_table:
 		if is_instance_valid(target):
@@ -85,21 +85,21 @@ func get_highest_threat_target() -> Entity:
 	return highest_target
 
 ## Get threat amount for target
-func get_threat(target: Entity) -> int:
+func get_threat(target: SynmergiaEntity) -> int:
 	return _threat_table.get(target, 0)
 
 ## Get all threat targets
-func get_all_threat_targets() -> Array[Entity]:
+func get_all_threat_targets() -> Array[SynmergiaEntity]:
 	return _threat_table.keys()
 
 ## Set target
-func set_target(new_target: Entity) -> void:
+func set_target(new_target: SynmergiaEntity) -> void:
 	if _current_target != new_target:
 		var old := _current_target
 		_current_target = new_target
 		target_changed.emit(old, new_target)
 
-func _set_target(new_target: Entity) -> void:
+func _set_target(new_target: SynmergiaEntity) -> void:
 	if _current_target != new_target:
 		var old := _current_target
 		_current_target = new_target
@@ -110,7 +110,7 @@ func _update_target() -> void:
 	_set_target(new_target)
 
 ## Enter combat state
-func _enter_combat(first_target: Entity) -> void:
+func _enter_combat(first_target: SynmergiaEntity) -> void:
 	_is_in_combat = true
 	_out_of_combat_timer = 0.0
 	
@@ -143,7 +143,7 @@ func _decay_threat(delta: float) -> void:
 		_update_target()
 
 ## Transfer threat to another source (on death, etc.)
-func transfer_threat_to(source: Entity) -> void:
+func transfer_threat_to(source: SynmergiaEntity) -> void:
 	if not threat_transfer_on_death:
 		return
 	
@@ -158,7 +158,7 @@ func is_in_aggro_range(position: Vector3, target_position: Vector3) -> bool:
 	return position.distance_to(target_position) <= aggro_range
 
 ## Handle target death
-func on_target_death(target: Entity) -> void:
+func on_target_death(target: SynmergiaEntity) -> void:
 	_threat_table.erase(target)
 	
 	if _current_target == target:

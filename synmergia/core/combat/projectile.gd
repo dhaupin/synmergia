@@ -4,7 +4,7 @@
 class_name Projectile
 extends Node3D
 
-signal hit(target: Entity, damage: int)
+signal hit(target: SynmergiaEntity, damage: int)
 signal expired()
 signal destroyed()
 signal trajectory_changed(old_dir: Vector3, new_dir: Vector3)
@@ -43,9 +43,9 @@ enum ProjectileOwner {
 @export var bonus_damage_vs_players: float = 0.0
 @export var bonus_damage_vs_enemies: float = 0.0
 
-var source: Entity = null
+var source: SynmergiaEntity = null
 var _source_is_player: bool = false
-var target: Entity = null
+var target: SynmergiaEntity = null
 var target_position: Vector3 = Vector3.ZERO
 var is_homing: bool = false
 
@@ -56,13 +56,13 @@ var _velocity: Vector3 = Vector3.ZERO
 
 @export var pierce_count: int = 0
 var _pierce_remaining: int = 0
-var _hit_entities: Array[Entity] = []
+var _hit_entities: Array[SynmergiaEntity] = []
 
 @export var ricochet_count: int = 0
 @export var chain_count: int = 0
 @export var chain_range: float = 10.0
 var _ricochet_remaining: int = 0
-var _chain_targets: Array[Entity] = []
+var _chain_targets: Array[SynmergiaEntity] = []
 
 @export var vfx_scene: String = ""
 @export var sfx_hit: String = ""
@@ -125,12 +125,12 @@ func _physics_process(delta: float) -> void:
 	
 	_check_collision(old_pos, global_position)
 
-func initialize(from: Entity, to: Vector3, skill: Skill = null) -> void:
+func initialize(from: SynmergiaEntity, to: Vector3, skill: Skill = null) -> void:
 	source = from
 	target_position = to
 	
-	_source_is_player = (from.controller_type == Entity.ControllerType.HUMAN or 
-						 from.controller_type == Entity.ControllerType.AGENT)
+	_source_is_player = (from.controller_type == SynmergiaEntity.ControllerType.HUMAN or 
+						 from.controller_type == SynmergiaEntity.ControllerType.AGENT)
 	
 	var direction := (to - global_position).normalized()
 	_velocity = direction * speed
@@ -146,7 +146,7 @@ func initialize(from: Entity, to: Vector3, skill: Skill = null) -> void:
 		pierce_count = skill.pierce_count
 		_pierce_remaining = pierce_count
 
-func set_homing(target_entity: Entity, homing_strength: float = 0.1) -> void:
+func set_homing(target_entity: SynmergiaEntity, homing_strength: float = 0.1) -> void:
 	is_homing = true
 	target = target_entity
 
@@ -169,7 +169,7 @@ func _check_collision(from: Vector3, to: Vector3) -> void:
 			if collider != source and not _hit_entities.has(collider):
 				_on_hit(collider)
 		elif collider.has_method("get_entity"):
-			var entity: Entity = collider.get_entity()
+			var entity: SynmergiaEntity = collider.get_entity()
 			if entity and entity != source and not _hit_entities.has(entity):
 				_on_hit(entity)
 		else:
@@ -187,7 +187,7 @@ func _check_trap_activation() -> void:
 			_trigger_trap(entity)
 			return
 
-func _trigger_trap(trigger_entity: Entity) -> void:
+func _trigger_trap(trigger_entity: SynmergiaEntity) -> void:
 	_trap_triggered = true
 	
 	if explosion_radius > 0:
@@ -197,16 +197,16 @@ func _trigger_trap(trigger_entity: Entity) -> void:
 	
 	_expire()
 
-func _is_hostile(target: Entity) -> bool:
+func _is_hostile(target: SynmergiaEntity) -> bool:
 	if source == null:
 		return true
 	
 	if _source_is_player:
-		return target.entity_type == Entity.EntityType.ENEMY
+		return target.entity_type == SynmergiaEntity.EntityType.ENEMY
 	else:
-		return target.entity_type == Entity.EntityType.PLAYER
+		return target.entity_type == SynmergiaEntity.EntityType.PLAYER
 
-func _on_hit(target: Entity) -> void:
+func _on_hit(target: SynmergiaEntity) -> void:
 	if _has_hit and _pierce_remaining <= 0:
 		return
 	
@@ -235,9 +235,9 @@ func _on_hit(target: Entity) -> void:
 	
 	_destroy()
 
-func _ricochet(from_target: Entity) -> void:
+func _ricochet(from_target: SynmergiaEntity) -> void:
 	var nearby := EntityService.get_entities_in_radius(from_target.global_position, chain_range)
-	var next_target: Entity = null
+	var next_target: SynmergiaEntity = null
 	var min_dist := INF
 	
 	for entity in nearby:
@@ -256,9 +256,9 @@ func _ricochet(from_target: Entity) -> void:
 	else:
 		_expire()
 
-func _chain_to_next(from_target: Entity) -> void:
+func _chain_to_next(from_target: SynmergiaEntity) -> void:
 	var nearby := EntityService.get_entities_in_radius(from_target.global_position, chain_range)
-	var next_target: Entity = null
+	var next_target: SynmergiaEntity = null
 	var min_dist := INF
 	
 	for entity in nearby:
@@ -278,7 +278,7 @@ func _chain_to_next(from_target: Entity) -> void:
 		if _chain_targets.size() < chain_count:
 			_chain_to_next(next_target)
 
-func _calculate_damage(target: Entity) -> int:
+func _calculate_damage(target: SynmergiaEntity) -> int:
 	var damage := base_damage
 	
 	if _source_is_player:
@@ -352,7 +352,7 @@ func _spawn_vfx(position: Vector3) -> void:
 func _spawn_sfx(position: Vector3) -> void:
 	pass
 
-static func create_arrow(from: Entity, to: Vector3, damage: int) -> Projectile:
+static func create_arrow(from: SynmergiaEntity, to: Vector3, damage: int) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.ARROW
 	p.base_damage = damage
@@ -361,7 +361,7 @@ static func create_arrow(from: Entity, to: Vector3, damage: int) -> Projectile:
 	p.allowed_owners = ProjectileOwner.ALL
 	return p
 
-static func create_fireball(from: Entity, to: Vector3, damage: int, radius: float) -> Projectile:
+static func create_fireball(from: SynmergiaEntity, to: Vector3, damage: int, radius: float) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.FIREBALL
 	p.base_damage = damage
@@ -372,7 +372,7 @@ static func create_fireball(from: Entity, to: Vector3, damage: int, radius: floa
 	p.allowed_owners = ProjectileOwner.ALL
 	return p
 
-static func create_magic_bolt(from: Entity, to: Vector3, damage: int) -> Projectile:
+static func create_magic_bolt(from: SynmergiaEntity, to: Vector3, damage: int) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.MAGIC_BOLT
 	p.base_damage = damage
@@ -381,7 +381,7 @@ static func create_magic_bolt(from: Entity, to: Vector3, damage: int) -> Project
 	p.allowed_owners = ProjectileOwner.ALL
 	return p
 
-static func create_heavy_shot(from: Entity, to: Vector3, damage: int) -> Projectile:
+static func create_heavy_shot(from: SynmergiaEntity, to: Vector3, damage: int) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.HEAVY_SHOT
 	p.base_damage = damage
@@ -390,7 +390,7 @@ static func create_heavy_shot(from: Entity, to: Vector3, damage: int) -> Project
 	p.allowed_owners = ProjectileOwner.ENEMY_ONLY
 	return p
 
-static func create_healing_orb(from: Entity, to: Vector3, heal_amount: int) -> Projectile:
+static func create_healing_orb(from: SynmergiaEntity, to: Vector3, heal_amount: int) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.HEALING_ORB
 	p.base_damage = -heal_amount
@@ -400,7 +400,7 @@ static func create_healing_orb(from: Entity, to: Vector3, heal_amount: int) -> P
 	p.allowed_owners = ProjectileOwner.ALL
 	return p
 
-static func create_trap(from: Entity, position: Vector3, radius: float) -> Projectile:
+static func create_trap(from: SynmergiaEntity, position: Vector3, radius: float) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.TRAP
 	p.is_trap = true
@@ -409,7 +409,7 @@ static func create_trap(from: Entity, position: Vector3, radius: float) -> Proje
 	p.allowed_owners = ProjectileOwner.ALL
 	return p
 
-static func create_chain_lightning(from: Entity, target: Entity, damage: int, chains: int) -> Projectile:
+static func create_chain_lightning(from: SynmergiaEntity, target: SynmergiaEntity, damage: int, chains: int) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.CHAIN
 	p.base_damage = damage
@@ -420,7 +420,7 @@ static func create_chain_lightning(from: Entity, target: Entity, damage: int, ch
 	p.allowed_owners = ProjectileOwner.ALL
 	return p
 
-static func create_ricochet(from: Entity, to: Vector3, damage: int, bounces: int) -> Projectile:
+static func create_ricochet(from: SynmergiaEntity, to: Vector3, damage: int, bounces: int) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.RICOCHET
 	p.base_damage = damage
@@ -431,7 +431,7 @@ static func create_ricochet(from: Entity, to: Vector3, damage: int, bounces: int
 	p.allowed_owners = ProjectileOwner.ALL
 	return p
 
-static func create_beam(from: Entity, to: Vector3, damage: int, duration: float) -> Projectile:
+static func create_beam(from: SynmergiaEntity, to: Vector3, damage: int, duration: float) -> Projectile:
 	var p := Projectile.new()
 	p.projectile_type = ProjectileType.BEAM
 	p.base_damage = damage

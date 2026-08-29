@@ -3,7 +3,7 @@
 extends Node
 
 ## Simple instant heal (call directly or from effects)
-static func heal_instant(target: Entity, amount: int) -> int:
+static func heal_instant(target: SynmergiaEntity, amount: int) -> int:
 	if target.is_dead:
 		return 0
 	
@@ -18,7 +18,7 @@ static func heal_instant(target: Entity, amount: int) -> int:
 	return amount - overheal  # Return actual healed amount
 
 ## Instant mana restore
-static func restore_mana_instant(target: Entity, amount: int) -> int:
+static func restore_mana_instant(target: SynmergiaEntity, amount: int) -> int:
 	if target.is_dead:
 		return 0
 	
@@ -33,7 +33,7 @@ static func restore_mana_instant(target: Entity, amount: int) -> int:
 	return amount - overrestore
 
 ## Instant stamina restore
-static func restore_stamina_instant(target: Entity, amount: float) -> float:
+static func restore_stamina_instant(target: SynmergiaEntity, amount: float) -> float:
 	if target.is_dead:
 		return 0.0
 	
@@ -50,8 +50,8 @@ static func restore_stamina_instant(target: Entity, amount: float) -> float:
 class_name RegenerationOverTime
 extends Node
 
-signal regen_tick(entity: Entity, amount: int, resource: String)
-signal regen_complete(entity: Entity)
+signal regen_tick(entity: SynmergiaEntity, amount: int, resource: String)
+signal regen_complete(entity: SynmergiaEntity)
 
 enum Resource {
 	HEALTH,
@@ -65,7 +65,7 @@ enum Resource {
 @export var total_ticks: int = 10       # 0 = infinite
 @export var delay_first_tick: bool = true  # Wait tick_interval before first tick
 
-var _target: Entity
+var _target: SynmergiaEntity
 var _current_ticks: int = 0
 var _timer: Timer
 var _is_active: bool = false
@@ -73,7 +73,7 @@ var _is_active: bool = false
 func _init() -> void:
 	pass
 
-func start(target: Entity) -> void:
+func start(target: SynmergiaEntity) -> void:
 	if _is_active:
 		return
 	
@@ -136,16 +136,16 @@ func _on_tick() -> void:
 		regen_complete.emit(_target)
 		stop()
 
-func _apply_healing(entity: Entity, amount: int) -> int:
+func _apply_healing(entity: SynmergiaEntity, amount: int) -> int:
 	entity.current_health = min(entity.max_health, entity.current_health + amount)
 	entity.health_changed.emit(entity.current_health, entity.max_health)
 	return amount
 
-func _apply_mana_restore(entity: Entity, amount: int) -> int:
+func _apply_mana_restore(entity: SynmergiaEntity, amount: int) -> int:
 	entity.current_mana = min(entity.max_mana, entity.current_mana + amount)
 	return amount
 
-func _apply_stamina_restore(entity: Entity, amount: float) -> float:
+func _apply_stamina_restore(entity: SynmergiaEntity, amount: float) -> float:
 	entity.current_stamina = min(entity.max_stamina, entity.current_stamina + amount)
 	return amount
 
@@ -164,7 +164,7 @@ func _init() -> void:
 	effect_type = EffectType.BUFF
 	duration = tick_interval * total_ticks if not delay_first_tick else tick_interval * total_ticks + tick_interval
 
-func apply(target: Entity) -> void:
+func apply(target: SynmergiaEntity) -> void:
 	super.apply(target)
 	
 	_regen = RegenerationOverTime.new()
@@ -176,14 +176,14 @@ func apply(target: Entity) -> void:
 	_regen.regen_complete.connect(_on_regen_complete)
 	_regen.start(target)
 
-func remove(target: Entity) -> void:
+func remove(target: SynmergiaEntity) -> void:
 	if _regen:
 		_regen.stop()
 		_regen.queue_free()
 		_regen = null
 	super.remove(target)
 
-func _on_regen_complete(entity: Entity) -> void:
+func _on_regen_complete(entity: SynmergiaEntity) -> void:
 	effect_expired.emit()
 
 ## MoT - Mana over time buff
@@ -201,7 +201,7 @@ func _init() -> void:
 	effect_type = EffectType.BUFF
 	duration = tick_interval * total_ticks if not delay_first_tick else tick_interval * total_ticks + tick_interval
 
-func apply(target: Entity) -> void:
+func apply(target: SynmergiaEntity) -> void:
 	super.apply(target)
 	
 	_regen = RegenerationOverTime.new()
@@ -213,14 +213,14 @@ func apply(target: Entity) -> void:
 	_regen.regen_complete.connect(_on_regen_complete)
 	_regen.start(target)
 
-func remove(target: Entity) -> void:
+func remove(target: SynmergiaEntity) -> void:
 	if _regen:
 		_regen.stop()
 		_regen.queue_free()
 		_regen = null
 	super.remove(target)
 
-func _on_regen_complete(entity: Entity) -> void:
+func _on_regen_complete(entity: SynmergiaEntity) -> void:
 	effect_expired.emit()
 
 ## SoT - Stamina over time buff
@@ -238,7 +238,7 @@ func _init() -> void:
 	effect_type = EffectType.BUFF
 	duration = tick_interval * total_ticks if not delay_first_tick else tick_interval * total_ticks + tick_interval
 
-func apply(target: Entity) -> void:
+func apply(target: SynmergiaEntity) -> void:
 	super.apply(target)
 	
 	_regen = RegenerationOverTime.new()
@@ -250,12 +250,12 @@ func apply(target: Entity) -> void:
 	_regen.regen_complete.connect(_on_regen_complete)
 	_regen.start(target)
 
-func remove(target: Entity) -> void:
+func remove(target: SynmergiaEntity) -> void:
 	if _regen:
 		_regen.stop()
 		_regen.queue_free()
 		_regen = null
 	super.remove(target)
 
-func _on_regen_complete(entity: Entity) -> void:
+func _on_regen_complete(entity: SynmergiaEntity) -> void:
 	effect_expired.emit()

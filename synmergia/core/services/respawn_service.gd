@@ -2,12 +2,12 @@
 ## Flexible respawn system supporting timed, ankh, revive, and PVP modes
 extends Node
 
-signal respawn_initiated(player: Entity, mode: RespawnMode, data: Dictionary)
-signal respawn_completed(player: Entity, respawn_point: Vector3)
-signal respawn_canceled(player: Entity, reason: String)
-signal revive_started(target: Entity, healer: Entity)
-signal revive_completed(target: Entity, healer: Entity)
-signal revive_interrupted(target: Entity, healer: Entity, reason: String)
+signal respawn_initiated(player: SynmergiaEntity, mode: RespawnMode, data: Dictionary)
+signal respawn_completed(player: SynmergiaEntity, respawn_point: Vector3)
+signal respawn_canceled(player: SynmergiaEntity, reason: String)
+signal revive_started(target: SynmergiaEntity, healer: SynmergiaEntity)
+signal revive_completed(target: SynmergiaEntity, healer: SynmergiaEntity)
+signal revive_interrupted(target: SynmergiaEntity, healer: SynmergiaEntity, reason: String)
 signal karma_gained(entity_id: String, amount: int, reason: String)
 signal karma_lost(entity_id: String, amount: int, reason: String)
 
@@ -108,7 +108,7 @@ func _ready() -> void:
 	GameLogger.info("RespawnService: Flexible respawn system initialized")
 
 ## Register a player
-func register_player(player: Entity) -> void:
+func register_player(player: SynmergiaEntity) -> void:
 	if not _karma.has(player.entity_id):
 		_karma[player.entity_id] = 0
 		_revive_counts[player.entity_id] = 0
@@ -128,7 +128,7 @@ func remove_karma(entity_id: String, amount: int, reason: String) -> void:
 	karma_lost.emit(entity_id, amount, reason)
 
 ## Initiate respawn for a player
-func initiate_respawn(player: Entity, zone_id: String = "") -> bool:
+func initiate_respawn(player: SynmergiaEntity, zone_id: String = "") -> bool:
 	# Prevent respawn if a revive is in progress
 	if _active_revives.has(player.entity_id):
 		GameLogger.info("RespawnService: Respawn blocked for %s - revive in progress" % player.display_name)
@@ -197,7 +197,7 @@ func initiate_respawn(player: Entity, zone_id: String = "") -> bool:
 	return true
 
 ## Get available respawn modes for a player
-func get_available_respawn_modes(player: Entity, zone_id: String = "") -> Array[RespawnMode]:
+func get_available_respawn_modes(player: SynmergiaEntity, zone_id: String = "") -> Array[RespawnMode]:
 	var available: Array[RespawnMode] = []
 	var config := _get_zone_config(zone_id)
 	
@@ -230,7 +230,7 @@ func get_available_respawn_modes(player: Entity, zone_id: String = "") -> Array[
 	return available
 
 ## Start a revival attempt (healer initiates)
-func start_revival(healer: Entity, target: Entity, context: String = "") -> bool:
+func start_revival(healer: SynmergiaEntity, target: SynmergiaEntity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
 	
@@ -312,8 +312,8 @@ func complete_revival(target_id: String) -> bool:
 		return false
 	
 	var revive_data: Dictionary = _active_revives[target_id]
-	var healer: Entity = revive_data["healer"]
-	var target: Entity = revive_data["target"]
+	var healer: SynmergiaEntity = revive_data["healer"]
+	var target: SynmergiaEntity = revive_data["target"]
 	var context: String = revive_data.get("context", _current_context)
 	
 	# Remove from active
@@ -354,8 +354,8 @@ func interrupt_revival(target_id: String, reason: String) -> void:
 		return
 	
 	var revive_data: Dictionary = _active_revives[target_id]
-	var healer: Entity = revive_data["healer"]
-	var target: Entity = revive_data["target"]
+	var healer: SynmergiaEntity = revive_data["healer"]
+	var target: SynmergiaEntity = revive_data["target"]
 	
 	_active_revives.erase(target_id)
 	
@@ -387,14 +387,14 @@ func get_revival_progress(target_id: String) -> float:
 	return clamp(elapsed / data["cast_time"], 0.0, 1.0)
 
 ## Internal: Start respawn
-func _start_respawn(player: Entity, mode: RespawnMode, data: Dictionary) -> void:
+func _start_respawn(player: SynmergiaEntity, mode: RespawnMode, data: Dictionary) -> void:
 	# This would be connected to a timer in the player's health component
 	player.health_component._pending_respawn = true
 	player.health_component._respawn_mode = mode
 	player.health_component._respawn_data = data
 
 ## Internal: Execute respawn
-func _do_respawn_at(player: Entity, position: Vector3, mode: RespawnMode) -> void:
+func _do_respawn_at(player: SynmergiaEntity, position: Vector3, mode: RespawnMode) -> void:
 	player.health_component._is_dead = false
 	player.health_component.current_health = player.health_component.max_health
 	player.global_position = position
@@ -427,13 +427,13 @@ func get_zone_config(zone_id: String) -> Dictionary:
 	}
 
 ## Internal: Get player's bound ankh
-func _get_bound_ankh(player: Entity) -> Ankh:
+func _get_bound_ankh(player: SynmergiaEntity) -> Ankh:
 	if player.respawn_ankh_id == "":
 		return null
 	return _get_ankh_by_id(player.respawn_ankh_id)
 
 ## Get player's bound ankh info (public)
-func get_bound_ankh(player: Entity) -> Dictionary:
+func get_bound_ankh(player: SynmergiaEntity) -> Dictionary:
 	var ankh := _get_bound_ankh(player)
 	if not ankh:
 		return {}
@@ -460,7 +460,7 @@ func _get_ankh_by_id(ankh_id: String) -> Ankh:
 	return null
 
 ## Internal: Get default respawn position
-func _get_default_respawn_position(player: Entity) -> Vector3:
+func _get_default_respawn_position(player: SynmergiaEntity) -> Vector3:
 	# Get zone spawn point from ZoneManager
 	if ZoneManager:
 		var zone := ZoneManager.get_entity_zone(player)
@@ -476,7 +476,7 @@ func _get_default_respawn_position(player: Entity) -> Vector3:
 	return Vector3(0, 0, 0)
 
 ## Internal: Check revive cooldown
-func _is_on_revival_cooldown(healer: Entity) -> bool:
+func _is_on_revival_cooldown(healer: SynmergiaEntity) -> bool:
 	if not _revive_cooldowns.has(healer.entity_id):
 		return false
 	var last_revoke_ms: int = _revive_cooldowns[healer.entity_id]
@@ -485,7 +485,7 @@ func _is_on_revival_cooldown(healer: Entity) -> bool:
 
 ## Internal: Check revive abuse
 ## Check if healer is abusing revives in current context
-func _check_revoke_abuse(healer: Entity, context: String = "") -> bool:
+func _check_revoke_abuse(healer: SynmergiaEntity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
 	
@@ -540,7 +540,7 @@ func get_context() -> String:
 	return _current_context
 
 ## Check if entity can revive others in current context
-func can_revive_others(entity: Entity, context: String = "") -> bool:
+func can_revive_others(entity: SynmergiaEntity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
 	
@@ -551,7 +551,7 @@ func can_revive_others(entity: Entity, context: String = "") -> bool:
 	return config.can_revive_others
 
 ## Check if entity can be revived in current context
-func can_be_revived(entity: Entity, context: String = "") -> bool:
+func can_be_revived(entity: SynmergiaEntity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
 	
@@ -562,7 +562,7 @@ func can_be_revived(entity: Entity, context: String = "") -> bool:
 	return config.can_be_revived
 
 ## Check if entity can self-revive in current context
-func can_self_revive(entity: Entity, context: String = "") -> bool:
+func can_self_revive(entity: SynmergiaEntity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
 	
@@ -578,7 +578,7 @@ func can_self_revive(entity: Entity, context: String = "") -> bool:
 	return (now - last_time) >= cooldown_seconds
 
 ## Use self-revive
-func use_self_revive(entity: Entity) -> bool:
+func use_self_revive(entity: SynmergiaEntity) -> bool:
 	if not can_self_revive(entity):
 		return false
 	
@@ -605,31 +605,31 @@ func get_revive_ability_info(context: String = "") -> Dictionary:
 	}
 
 ## Internal: Get nearby healers
-func _get_nearby_potential_healers(player: Entity) -> Array[Entity]:
-	var nearby: Array[Entity] = []
+func _get_nearby_potential_healers(player: SynmergiaEntity) -> Array[SynmergiaEntity]:
+	var nearby: Array[SynmergiaEntity] = []
 	var entities := EntityService.get_entities_in_radius(player.global_position, REVIVE_RANGE)
 	for entity in entities:
 		if entity != player and entity.health_component and not entity.health_component.is_dead():
-			if entity is Player or entity.controller_type == Entity.ControllerType.HUMAN:
+			if entity is Player or entity.controller_type == SynmergiaEntity.ControllerType.HUMAN:
 				nearby.append(entity)
 	return nearby
 
 ## Internal: Get arena team
-func _get_arena_team(player: Entity) -> int:
+func _get_arena_team(player: SynmergiaEntity) -> int:
 	var party := PartyService.get_player_party(player.entity_id)
 	if not party.is_empty() and party.has("id"):
 		return party["id"].hash() % 2  # Split party into teams
 	return player.team_id
 
 ## Internal: Get team respawns remaining
-func _get_team_respawns(player: Entity, config: ZoneRespawnConfig) -> int:
+func _get_team_respawns(player: SynmergiaEntity, config: ZoneRespawnConfig) -> int:
 	var team := _get_arena_team(player)
 	if not _team_respawn_counts.has(team):
 		_team_respawn_counts[team] = config.max_arena_respawns_per_team
 	return _team_respawn_counts[team]
 
 ## Internal: Get nearest gateway
-func _get_nearest_gateway(player: Entity, gateway_ids: Array[String]) -> String:
+func _get_nearest_gateway(player: SynmergiaEntity, gateway_ids: Array[String]) -> String:
 	if gateway_ids.is_empty():
 		return ""
 	var nearest_id: String = gateway_ids[0]
@@ -644,7 +644,7 @@ func _get_nearest_gateway(player: Entity, gateway_ids: Array[String]) -> String:
 				nearest_id = gateway_id
 	return nearest_id
 ## Internal: Get safe zone position
-func _get_safe_zone_position(player: Entity, safe_zone_ankh_id: String) -> Vector3:
+func _get_safe_zone_position(player: SynmergiaEntity, safe_zone_ankh_id: String) -> Vector3:
 	var ankh := _get_ankh_by_id(safe_zone_ankh_id)
 	if ankh:
 		return ankh.global_position
@@ -660,8 +660,8 @@ func _process(delta: float) -> void:
 		var elapsed := now - data["start_time"]
 		
 		# Check if healer moved too far
-		var healer: Entity = data["healer"]
-		var target: Entity = data["target"]
+		var healer: SynmergiaEntity = data["healer"]
+		var target: SynmergiaEntity = data["target"]
 		var distance := healer.global_position.distance_to(target.global_position)
 		
 		if distance > REVIVE_RANGE:

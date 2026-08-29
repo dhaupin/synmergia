@@ -138,7 +138,7 @@ func remove_invincibility(entity_id: String, reason: String = "expired") -> void
 		GameLogger.debug("DeathFeatures: %s lost invincibility (%s)" % [entity_id, was_reason])
 
 ## Check if damage should be blocked based on invincibility
-func should_block_damage(entity_id: String, damage_source: Entity = null, is_pvp: bool = false) -> bool:
+func should_block_damage(entity_id: String, damage_source: SynmergiaEntity = null, is_pvp: bool = false) -> bool:
 	if not is_invincible(entity_id):
 		return false
 	
@@ -160,7 +160,7 @@ func should_block_damage(entity_id: String, damage_source: Entity = null, is_pvp
 	return false
 
 ## Apply respawn invincibility
-func apply_respawn_invincibility(entity: Entity) -> void:
+func apply_respawn_invincibility(entity: SynmergiaEntity) -> void:
 	if Config.RESPAWN_INVINCIBILITY_DURATION <= 0:
 		return
 	
@@ -180,7 +180,7 @@ func apply_respawn_invincibility(entity: Entity) -> void:
 ## ============================================================================
 
 ## Apply death penalties to a player
-func apply_death_penalties(entity: Entity, killer: Entity = null, is_pvp: bool = false) -> Dictionary:
+func apply_death_penalties(entity: SynmergiaEntity, killer: SynmergiaEntity = null, is_pvp: bool = false) -> Dictionary:
 	var penalties := {
 		"xp_loss": 0,
 		"gold_loss": 0,
@@ -460,7 +460,7 @@ func get_death_stats(entity_id: String) -> DeathStats:
 	return _death_stats[entity_id]
 
 ## Record a death
-func record_death(entity: Entity, killer: Entity = null, zone_id: String = "", cause: String = "unknown") -> void:
+func record_death(entity: SynmergiaEntity, killer: SynmergiaEntity = null, zone_id: String = "", cause: String = "unknown") -> void:
 	if not Config.TRACK_DEATH_STATS:
 		return
 	
@@ -524,7 +524,7 @@ func get_stats_dict(entity_id: String) -> Dictionary:
 ## ============================================================================
 
 ## Check if player can transfer zones while dead
-func can_transfer_zone_while_dead(entity: Entity, target_zone: String = "") -> Dictionary:
+func can_transfer_zone_while_dead(entity: SynmergiaEntity, target_zone: String = "") -> Dictionary:
 	var result := {
 		"can_transfer": true,
 		"reason": "",
@@ -563,7 +563,7 @@ func _is_safe_zone(zone_id: String) -> bool:
 ## EVENT HANDLERS
 ## ============================================================================
 
-func _on_player_died(entity: Entity, killer: Entity) -> void:
+func _on_player_died(entity: SynmergiaEntity, killer: SynmergiaEntity) -> void:
 	# Apply death penalties
 	var is_pvp := killer is PlayerController if killer else false
 	apply_death_penalties(entity, killer, is_pvp)
@@ -578,20 +578,20 @@ func _on_player_died(entity: Entity, killer: Entity) -> void:
 	if killer:
 		record_kill(entity.entity_id, killer.entity_id)
 
-func _on_player_respawned(entity: Entity, respawn_point: Vector3, mode: RespawnService.RespawnMode) -> void:
+func _on_player_respawned(entity: SynmergiaEntity, respawn_point: Vector3, mode: RespawnService.RespawnMode) -> void:
 	# Apply respawn invincibility
 	apply_respawn_invincibility(entity)
 
-func _on_player_resurrected(entity: Entity, source: String) -> void:
+func _on_player_resurrected(entity: SynmergiaEntity, source: String) -> void:
 	record_revive_received(entity.entity_id)
 
-func _on_self_resurrected(entity: Entity, item: Item) -> void:
+func _on_self_resurrected(entity: SynmergiaEntity, item: Item) -> void:
 	record_self_rez(entity.entity_id)
 
-func _on_revive_completed(caster: Entity, target: Entity) -> void:
+func _on_revive_completed(caster: SynmergiaEntity, target: SynmergiaEntity) -> void:
 	record_revive_given(caster.entity_id)
 
-func _on_entity_killed(killer: Entity, victim: Entity, damage_type: String) -> void:
+func _on_entity_killed(killer: SynmergiaEntity, victim: SynmergiaEntity, damage_type: String) -> void:
 	# Record kill for streak tracking
 	if killer and killer is PlayerController:
 		record_kill_for_streak(killer.entity_id, victim.entity_id)

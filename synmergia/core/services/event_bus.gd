@@ -4,73 +4,73 @@ extends Node
 
 # Entity Events - UNIFIED SPAWN/DESPAWN
 ## entity_spawned: Emitted when any entity spawns, carries SpawnMetadata for notification routing
-signal entity_spawned(entity: Entity, metadata: SpawnMetadata)
+signal entity_spawned(entity: SynmergiaEntity, metadata: SpawnMetadata)
 ## entity_despawned: Emitted when any entity despawns, metadata contains spawn type for cleanup routing
-signal entity_despawned(entity: Entity, metadata: SpawnMetadata)
+signal entity_despawned(entity: SynmergiaEntity, metadata: SpawnMetadata)
 ## entity_died: Emitted when entity dies, killer info included for PvP tracking
-signal entity_died(entity: Entity, killer: Entity, metadata: SpawnMetadata)
+signal entity_died(entity: SynmergiaEntity, killer: SynmergiaEntity, metadata: SpawnMetadata)
 ## corpse_created: Emitted when a corpse is created for a dead entity
-signal corpse_created(entity: Entity, corpse: Node3D, killer: Entity)
-signal entity_health_changed(entity: Entity, current: int, maximum: int, delta: int)
-signal entity_level_up(entity: Entity, new_level: int)
+signal corpse_created(entity: SynmergiaEntity, corpse: Node3D, killer: SynmergiaEntity)
+signal entity_health_changed(entity: SynmergiaEntity, current: int, maximum: int, delta: int)
+signal entity_level_up(entity: SynmergiaEntity, new_level: int)
 
 # Respawn Events
 ## player_resurrected: Emitted when a player is resurrected (source: "admin", "revive_skill", "item", "timed")
-signal player_resurrected(entity: Entity, source: String)
+signal player_resurrected(entity: SynmergiaEntity, source: String)
 ## self_resurrected: Emitted when player self-resurrects using an item
-signal self_resurrected(entity: Entity, item: Item)
+signal self_resurrected(entity: SynmergiaEntity, item: Item)
 ## revive_started: Emitted when a revive cast begins
-signal revive_started(caster: Entity, target: Entity)
+signal revive_started(caster: SynmergiaEntity, target: SynmergiaEntity)
 ## revive_completed: Emitted when revive cast completes successfully
-signal revive_completed(caster: Entity, target: Entity)
+signal revive_completed(caster: SynmergiaEntity, target: SynmergiaEntity)
 ## revive_interrupted: Emitted when revive is interrupted (target moved, died, etc)
-signal revive_interrupted(caster: Entity, target: Entity, reason: String)
+signal revive_interrupted(caster: SynmergiaEntity, target: SynmergiaEntity, reason: String)
 ## revive_failed: Emitted when revive fails (abuse, interruption, etc)
-signal revive_failed(caster: Entity, target: Entity, reason: String)
+signal revive_failed(caster: SynmergiaEntity, target: SynmergiaEntity, reason: String)
 ## player_died: Emitted specifically when a player dies (for systems tracking player death)
-signal player_died(entity: Entity, killer: Entity)
+signal player_died(entity: SynmergiaEntity, killer: SynmergiaEntity)
 ## player_respawned: Emitted when a player respawns after death
-signal player_respawned(entity: Entity, respawn_point: Vector3, mode: int)
+signal player_respawned(entity: SynmergiaEntity, respawn_point: Vector3, mode: int)
 
 # Combat Events (additional)
 ## entity_killed: Emitted when any entity is killed (by another entity)
-signal entity_killed(killer: Entity, victim: Entity, damage_type: String)
+signal entity_killed(killer: SynmergiaEntity, victim: SynmergiaEntity, damage_type: String)
 
 # Combat Events
-signal skill_executed(caster: Entity, skill: Skill, targets: Array)
-signal skill_hit(caster: Entity, target: Entity, skill: Skill, damage: int)
-signal skill_missed(caster: Entity, skill: Skill, target: Entity)
-signal damage_dealt(damager: Entity, target: Entity, amount: int, damage_type: String)
-signal entity_interrupted(entity: Entity, skill: Skill)
+signal skill_executed(caster: SynmergiaEntity, skill: Skill, targets: Array)
+signal skill_hit(caster: SynmergiaEntity, target: SynmergiaEntity, skill: Skill, damage: int)
+signal skill_missed(caster: SynmergiaEntity, skill: Skill, target: SynmergiaEntity)
+signal damage_dealt(damager: SynmergiaEntity, target: SynmergiaEntity, amount: int, damage_type: String)
+signal entity_interrupted(entity: SynmergiaEntity, skill: Skill)
 
 # Buff/Effect Events
-signal buff_applied(entity: Entity, buff: Buff, source: Entity)
-signal buff_removed(entity: Entity, buff: Buff)
-signal buff_refreshed(entity: Entity, buff: Buff)
-signal debuff_applied(entity: Entity, debuff: StatusEffect, source: Entity)
-signal aura_activated(entity: Entity, aura: AuraBuff)
-signal aura_deactivated(entity: Entity, aura: AuraBuff)
-signal dot_applied(entity: Entity, dot: DamageOverTime, source: Entity)
-signal dot_ticked(entity: Entity, dot: DamageOverTime, damage: int)
-signal effect_dispelled(entity: Entity, effect: StatusEffect, dispeller: Entity)
+signal buff_applied(entity: SynmergiaEntity, buff: Buff, source: SynmergiaEntity)
+signal buff_removed(entity: SynmergiaEntity, buff: Buff)
+signal buff_refreshed(entity: SynmergiaEntity, buff: Buff)
+signal debuff_applied(entity: SynmergiaEntity, debuff: StatusEffect, source: SynmergiaEntity)
+signal aura_activated(entity: SynmergiaEntity, aura: AuraBuff)
+signal aura_deactivated(entity: SynmergiaEntity, aura: AuraBuff)
+signal dot_applied(entity: SynmergiaEntity, dot: DamageOverTime, source: SynmergiaEntity)
+signal dot_ticked(entity: SynmergiaEntity, dot: DamageOverTime, damage: int)
+signal effect_dispelled(entity: SynmergiaEntity, effect: StatusEffect, dispeller: SynmergiaEntity)
 
 # Movement/Position Events
-signal entity_entered_zone(entity: Entity, zone: ZoneData)
-signal entity_exited_zone(entity: Entity, zone: ZoneData)
-signal entity_teleported(entity: Entity, from: Vector3, to: Vector3)
+signal entity_entered_zone(entity: SynmergiaEntity, zone: ZoneData)
+signal entity_exited_zone(entity: SynmergiaEntity, zone: ZoneData)
+signal entity_teleported(entity: SynmergiaEntity, from: Vector3, to: Vector3)
 
 # PvP Events
-signal player_killed_player(killer: Entity, victim: Entity)
+signal player_killed_player(killer: SynmergiaEntity, victim: SynmergiaEntity)
 signal faction_hostility_changed(faction1: Faction, faction2: Faction)
 
 # Resource Events
-signal item_picked_up(entity: Entity, item: Item)
-signal item_dropped(entity: Entity, item: Item)
-signal gold_changed(entity: Entity, amount: int)
-signal inventory_full(entity: Entity)
+signal item_picked_up(entity: SynmergiaEntity, item: Item)
+signal item_dropped(entity: SynmergiaEntity, item: Item)
+signal gold_changed(entity: SynmergiaEntity, amount: int)
+signal inventory_full(entity: SynmergiaEntity)
 
 # Chat Events
-signal chat_message(sender: Entity, channel: String, message: String)
+signal chat_message(sender: SynmergiaEntity, channel: String, message: String)
 
 # System Events
 signal game_paused()
@@ -300,6 +300,6 @@ func clear_history() -> void:
 	_event_history.clear()
 
 ## Helper methods for common patterns
-func emit_skill_used(caster: Entity, skill: Skill, target: Entity = null) -> void:
+func emit_skill_used(caster: SynmergiaEntity, skill: Skill, target: SynmergiaEntity = null) -> void:
 	log_event("skill_used", {"caster": caster.name if caster else "", "skill": skill.skill_name if skill else "", "target": target.name if target else ""})
 	skill_executed.emit(caster, skill, [target] if target else [])

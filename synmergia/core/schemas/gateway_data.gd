@@ -90,7 +90,7 @@ func _init() -> void:
 		id = display_name.to_lower().replace(" ", "_")
 
 ## Check if player meets requirements
-func check_requirements(player: Entity) -> Dictionary:
+func check_requirements(player: SynmergiaEntity) -> Dictionary:
 	# Level check
 	if player.level < min_level:
 		return {

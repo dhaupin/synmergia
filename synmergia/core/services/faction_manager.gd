@@ -318,7 +318,7 @@ func is_guild_allied(guild_id: String, faction_id: String) -> bool:
 	return _guild_alliances[guild_id].has(faction_id)
 
 ## Can entity attack target based on faction/pvp rules
-func can_attack(attacker: Entity, target: Entity) -> bool:
+func can_attack(attacker: SynmergiaEntity, target: SynmergiaEntity) -> bool:
 	# Same entity
 	if attacker == target:
 		return false

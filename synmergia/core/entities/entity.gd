@@ -1,7 +1,7 @@
 ## Entity - Base class for all game entities
 ## Characters, NPCs, enemies all inherit from this
-class_name Entity
-extends Node3D
+class_name SynmergiaEntity
+extends Node
 
 signal health_changed(current: int, maximum: int)
 signal died(killer)  # Entity type omitted to avoid circular reference during parsing

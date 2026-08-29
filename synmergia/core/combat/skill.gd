@@ -115,7 +115,7 @@ func _init() -> void:
 	if skill_id == "":
 		skill_id = skill_name.to_lower().replace(" ", "_")
 
-func can_cast(caster: Entity) -> bool:
+func can_cast(caster: SynmergiaEntity) -> bool:
 	# Check cooldown
 	if remaining_cooldown > 0:
 		return false
@@ -138,7 +138,7 @@ func can_cast(caster: Entity) -> bool:
 	
 	return true
 
-func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
+func execute(caster: SynmergiaEntity, target: SynmergiaEntity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
 	var result := {
 		"success": false,
 		"damage_dealt": 0,
@@ -182,7 +182,7 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 	result.success = true
 	return result
 
-func consume_resources(caster: Entity) -> bool:
+func consume_resources(caster: SynmergiaEntity) -> bool:
 	if caster.current_mana < mana_cost:
 		return false
 	if caster.current_stamina < stamina_cost:
@@ -196,7 +196,7 @@ func consume_resources(caster: Entity) -> bool:
 	
 	return true
 
-func calculate_damage(caster: Entity, target: Entity) -> int:
+func calculate_damage(caster: SynmergiaEntity, target: SynmergiaEntity) -> int:
 	var base_damage := damage
 	
 	# Apply caster's attack power
@@ -218,7 +218,7 @@ func calculate_damage(caster: Entity, target: Entity) -> int:
 	
 	return max(1, base_damage)
 
-func applyCrowdControl(caster: Entity, target: Entity, _ground_position: Vector3) -> void:
+func applyCrowdControl(caster: SynmergiaEntity, target: SynmergiaEntity, _ground_position: Vector3) -> void:
 	# Apply CC effect based on type
 	match crowd_control_type:
 		"stun":
@@ -228,19 +228,19 @@ func applyCrowdControl(caster: Entity, target: Entity, _ground_position: Vector3
 		"slow":
 			target.apply_status_effect(create_slow_effect(caster))
 
-func applyShield(caster: Entity) -> void:
+func applyShield(caster: SynmergiaEntity) -> void:
 	# Create shield buff
 	pass
 
-func applyInvincibility(caster: Entity) -> void:
+func applyInvincibility(caster: SynmergiaEntity) -> void:
 	# Create invincibility buff
 	pass
 
-func applyDoT(caster: Entity, target: Entity) -> void:
+func applyDoT(caster: SynmergiaEntity, target: SynmergiaEntity) -> void:
 	# Create DoT effect
 	pass
 
-func applyTeleport(caster: Entity, ground_position: Vector3) -> void:
+func applyTeleport(caster: SynmergiaEntity, ground_position: Vector3) -> void:
 	if ground_position != Vector3.ZERO:
 		caster.global_position = ground_position
 	else:
@@ -249,21 +249,21 @@ func applyTeleport(caster: Entity, ground_position: Vector3) -> void:
 		forward.y = 0
 		caster.global_position += forward * teleport_distance
 
-func create_stun_effect(_caster: Entity) -> StatusEffect:
+func create_stun_effect(_caster: SynmergiaEntity) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Stunned"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
 	effect.duration = crowd_control_duration
 	return effect
 
-func create_root_effect(_caster: Entity) -> StatusEffect:
+func create_root_effect(_caster: SynmergiaEntity) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Rooted"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
 	effect.duration = crowd_control_duration
 	return effect
 
-func create_slow_effect(_caster: Entity) -> StatusEffect:
+func create_slow_effect(_caster: SynmergiaEntity) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Slowed"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF

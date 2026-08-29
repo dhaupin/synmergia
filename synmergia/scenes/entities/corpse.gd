@@ -3,7 +3,7 @@
 class_name Corpse
 extends Node3D
 
-signal corpse_looted(corpse: Corpse, looter: Entity)
+signal corpse_looted(corpse: Corpse, looter: SynmergiaEntity)
 signal corpse_despawned(corpse: Corpse, reason: String)
 
 enum Visibility {
@@ -25,8 +25,8 @@ enum Visibility {
 @export var owner_guild_id: String = ""
 @export var owner_party_id: String = ""
 
-var _owner: Entity = null
-var _killer: Entity = null
+var _owner: SynmergiaEntity = null
+var _killer: SynmergiaEntity = null
 var _loot_items: Array[Dictionary] = []
 var _is_looted: bool = false
 var _decay_timer: float = 0.0
@@ -42,7 +42,7 @@ func _ready() -> void:
 	# Start decay timer
 	_decay_timer = _decay_duration
 
-func setup(owner: Entity, killer: Entity = null) -> void:
+func setup(owner: SynmergiaEntity, killer: SynmergiaEntity = null) -> void:
 	_owner = owner
 	_killer = killer
 	owner_entity_id = owner.entity_id
@@ -113,7 +113,7 @@ func _start_decay_visual() -> void:
 	GameLogger.debug("Corpse %s: Starting decay visual (will fade out)" % corpse_id)
 
 ## Check if a player can SEE this corpse (visibility)
-func can_see(observer: Entity) -> bool:
+func can_see(observer: SynmergiaEntity) -> bool:
 	match visibility_mode:
 		Visibility.EVERYONE:
 			return true
@@ -134,7 +134,7 @@ func set_visibility_mode(mode: Visibility) -> void:
 	visibility_mode = mode
 
 ## Check if a player can loot this corpse
-func can_loot(looter: Entity) -> bool:
+func can_loot(looter: SynmergiaEntity) -> bool:
 	if _is_looted:
 		return false
 	
@@ -151,7 +151,7 @@ func get_loot_items() -> Array[Dictionary]:
 	return _loot_items.duplicate(true)  # Return a copy
 
 ## Loot an item from the corpse
-func loot_item(looter: Entity, item_index: int) -> Dictionary:
+func loot_item(looter: SynmergiaEntity, item_index: int) -> Dictionary:
 	# Re-check corpse state
 	if _is_looted:
 		return {"success": false, "reason": "Corpse already fully looted"}
@@ -191,7 +191,7 @@ func loot_item(looter: Entity, item_index: int) -> Dictionary:
 	return result
 
 ## Loot all items at once
-func loot_all(looter: Entity) -> Array[Dictionary]:
+func loot_all(looter: SynmergiaEntity) -> Array[Dictionary]:
 	var results: Array[Dictionary] = []
 	
 	for i in range(_loot_items.size()):

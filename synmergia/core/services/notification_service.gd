@@ -95,7 +95,7 @@ func _ready() -> void:
 		EventBus.entity_spawned.connect(_on_entity_spawned)
 
 ## Handle unified entity spawn event - auto-send notifications based on metadata
-func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_spawned(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadata) -> void:
 	if metadata == null or not metadata.notification_enabled:
 		return
 	
@@ -202,8 +202,8 @@ func broadcast_alert(
 				send(player.entity_id, message, notif_type, priority, location, sound, data)
 
 ## Get players matching a scope
-func _get_players_for_scope(scope: AlertScope) -> Array[Entity]:
-	var results: Array[Entity] = []
+func _get_players_for_scope(scope: AlertScope) -> Array[SynmergiaEntity]:
+	var results: Array[SynmergiaEntity] = []
 	var entity_service = EntityService
 	if entity_service == null:
 		return results

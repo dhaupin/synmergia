@@ -21,9 +21,9 @@ enum AnkhSize {
 	COLOSSAL     # City-wide
 }
 
-signal activated(player: Entity, ankh: Ankh)
-signal deactivated(player: Entity, ankh: Ankh)
-signal bound_to(player: Entity, ankh: Ankh)
+signal activated(player: SynmergiaEntity, ankh: Ankh)
+signal deactivated(player: SynmergiaEntity, ankh: Ankh)
+signal bound_to(player: SynmergiaEntity, ankh: Ankh)
 
 @export var ankh_id: String = ""
 @export var display_name: String = "Ankh"
@@ -79,7 +79,7 @@ func _ready() -> void:
 	add_to_group("ankhs")
 
 ## Check if a player can bind to this ankh
-func can_bind(player: Entity) -> bool:
+func can_bind(player: SynmergiaEntity) -> bool:
 	# Level check
 	if player.level < min_level or player.level > max_level:
 		return false
@@ -108,7 +108,7 @@ func can_bind(player: Entity) -> bool:
 	return true
 
 ## Bind player to this ankh
-func bind_player(player: Entity) -> bool:
+func bind_player(player: SynmergiaEntity) -> bool:
 	if not can_bind(player):
 		return false
 	
@@ -134,7 +134,7 @@ func bind_player(player: Entity) -> bool:
 	return true
 
 ## Unbind player from this ankh
-func unbind_player(player: Entity) -> void:
+func unbind_player(player: SynmergiaEntity) -> void:
 	_bound_players.erase(player.entity_id)
 	deactivated.emit(player, self)
 
@@ -143,7 +143,7 @@ func get_respawn_time(base_time: float) -> float:
 	return base_time * respawn_time_modifier
 
 ## Get respawn info for a player
-func get_respawn_info(player: Entity) -> Dictionary:
+func get_respawn_info(player: SynmergiaEntity) -> Dictionary:
 	return {
 		"ankh_id": ankh_id,
 		"ankh_name": display_name,

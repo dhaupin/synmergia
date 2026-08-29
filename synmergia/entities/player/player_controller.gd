@@ -54,7 +54,7 @@ func _ready() -> void:
 		self,
 		name,
 		global_position,
-		Entity.EntityType.PLAYER
+		SynmergiaEntity.EntityType.PLAYER
 	)
 	
 	# Set local player for TargetingManager
@@ -130,20 +130,20 @@ func _target_self() -> void:
 		name,
 		global_position,
 		self,
-		Entity.EntityType.PLAYER
+		SynmergiaEntity.EntityType.PLAYER
 	)
 	is_targeting = false  # Self-target doesn't enable targeting mode
 
 ## Show target context menu
 func _show_target_context_menu(target_info: TargetingManager.TargetInfo) -> void:
 	match target_info.entity_type:
-		Entity.EntityType.PLAYER:
+		SynmergiaEntity.EntityType.PLAYER:
 			_show_player_context_menu(target_info)
-		Entity.EntityType.NPC:
+		SynmergiaEntity.EntityType.NPC:
 			_show_npc_context_menu(target_info)
-		Entity.EntityType.LOOT:
+		SynmergiaEntity.EntityType.LOOT:
 			_show_loot_context_menu(target_info)
-		Entity.EntityType.TELEPORT:
+		SynmergiaEntity.EntityType.TELEPORT:
 			_show_gateway_context_menu(target_info)
 
 func _show_npc_context_menu(target_info: TargetingManager.TargetInfo) -> void:
@@ -272,7 +272,7 @@ func _find_and_set_nearest_target() -> void:
 			nearest.get("display_name", "Enemy"),
 			nearest.global_position,
 			nearest,
-			Entity.EntityType.ENEMY
+			SynmergiaEntity.EntityType.ENEMY
 		)
 		is_targeting = true
 
@@ -354,7 +354,7 @@ func _handle_right_click() -> void:
 	# Right click while targeting opens context menu or clears target
 	if TargetingManager.has_target():
 		var target := TargetingManager.get_current_target()
-		if target and target.entity_type == Entity.EntityType.PLAYER:
+		if target and target.entity_type == SynmergiaEntity.EntityType.PLAYER:
 			_show_player_context_menu(target)
 
 func clear_target() -> void:
@@ -400,7 +400,7 @@ func _show_player_context_menu(target: TargetingManager.TargetInfo) -> void:
 
 ## HITBOX & COMBAT
 
-func create_hitbox(skill: Skill, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> void:
+func create_hitbox(skill: Skill, target: SynmergiaEntity = null, ground_pos: Vector3 = Vector3.ZERO) -> void:
 	CombatSystem.create_hitbox(self, skill, target, ground_pos)
 
 func show_aoe_indicator(skill: Skill) -> void:

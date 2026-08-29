@@ -3,7 +3,7 @@
 extends Node
 
 var _ui: RespawnUI = null
-var _current_player: Entity = null
+var _current_player: SynmergiaEntity = null
 var _pending_respawn: Dictionary = {}
 
 func _ready() -> void:
@@ -11,10 +11,10 @@ func _ready() -> void:
 	EventBus.player_died.connect(_on_player_died)
 	GameLogger.info("RespawnUIManager: Initialized")
 
-func _on_player_died(entity: Entity, killer: Entity) -> void:
+func _on_player_died(entity: SynmergiaEntity, killer: SynmergiaEntity) -> void:
 	_show_respawn_ui(entity)
 
-func _show_respawn_ui(player: Entity) -> void:
+func _show_respawn_ui(player: SynmergiaEntity) -> void:
 	_current_player = player
 	
 	# Create/instantiate UI if needed
@@ -41,7 +41,7 @@ func _show_respawn_ui(player: Entity) -> void:
 	_ui.auto_respawn_timeout = GameConfig.Respawn.AUTO_RESPAWN_TIMEOUT
 	_ui.show_respawn_options(options)
 
-func _get_respawn_options(player: Entity) -> Array[Dictionary]:
+func _get_respawn_options(player: SynmergiaEntity) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var zone_id: String = player.current_zone if player.has("current_zone") else ""
 	
@@ -100,7 +100,7 @@ func _on_respawn_selected(mode: String, location_data: Dictionary) -> void:
 	if not _pending_respawn.has("player"):
 		return
 	
-	var player: Entity = _pending_respawn["player"]
+	var player: SynmergiaEntity = _pending_respawn["player"]
 	_pending_respawn = {}
 	
 	# Store selected respawn info

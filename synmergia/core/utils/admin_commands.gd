@@ -250,7 +250,7 @@ func _cmd_resurrect(args: Array) -> Dictionary:
 		mana_percent = float(args[2]) / 100.0
 	
 	# Find the player entity
-	var entity: Entity = _find_entity_by_id(player_id)
+	var entity: SynmergiaEntity = _find_entity_by_id(player_id)
 	if not entity:
 		return {"success": false, "message": "Player not found: " + player_id}
 	
@@ -284,7 +284,7 @@ func _cmd_kill_player(args: Array) -> Dictionary:
 	if args.size() >= 2:
 		reason = " ".join(args.slice(1, args.size()))
 	
-	var entity: Entity = _find_entity_by_id(player_id)
+	var entity: SynmergiaEntity = _find_entity_by_id(player_id)
 	if not entity:
 		return {"success": false, "message": "Player not found: " + player_id}
 	
@@ -300,14 +300,14 @@ func _cmd_goto_player(args: Array) -> Dictionary:
 		return {"success": false, "message": "Usage: /goto <player_id>"}
 	
 	var player_id: String = args[0]
-	var caller_entity: Entity = _find_entity_by_id(caller_id if "_caller" in self else player_id)
+	var caller_entity: SynmergiaEntity = _find_entity_by_id(caller_id if "_caller" in self else player_id)
 	
-	var target: Entity = _find_entity_by_id(player_id)
+	var target: SynmergiaEntity = _find_entity_by_id(player_id)
 	if not target:
 		return {"success": false, "message": "Player not found: " + player_id}
 	
 	# Find the caller (admin using the command)
-	var admin: Entity = _get_caller_entity(caller_id)
+	var admin: SynmergiaEntity = _get_caller_entity(caller_id)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
@@ -320,12 +320,12 @@ func _cmd_summon_player(args: Array) -> Dictionary:
 		return {"success": false, "message": "Usage: /summon <player_id>"}
 	
 	var player_id: String = args[0]
-	var target: Entity = _find_entity_by_id(player_id)
+	var target: SynmergiaEntity = _find_entity_by_id(player_id)
 	if not target:
 		return {"success": false, "message": "Player not found: " + player_id}
 	
 	# Find the caller (admin using the command)
-	var admin: Entity = _get_caller_entity(caller_id if "_caller" in self else player_id)
+	var admin: SynmergiaEntity = _get_caller_entity(caller_id if "_caller" in self else player_id)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
@@ -334,7 +334,7 @@ func _cmd_summon_player(args: Array) -> Dictionary:
 	return {"success": true, "message": "Summoned: %s" % target.display_name}
 
 ## Helper: Find entity by ID
-func _find_entity_by_id(entity_id: String) -> Entity:
+func _find_entity_by_id(entity_id: String) -> SynmergiaEntity:
 	# Try to find in EntityService
 	if EntityService:
 		var entity = EntityService.get_entity_by_id(entity_id)
@@ -345,16 +345,16 @@ func _find_entity_by_id(entity_id: String) -> Entity:
 	var players = PlayerManager.get_all_players()
 	for p in players:
 		if p.get("entity_id") == entity_id or p.get("name") == entity_id:
-			return p as Entity
+			return p as SynmergiaEntity
 	
 	return null
 
 ## Helper: Get caller entity
-func _get_caller_entity(caller_id: String) -> Entity:
+func _get_caller_entity(caller_id: String) -> SynmergiaEntity:
 	return _find_entity_by_id(caller_id)
 
 ## Helper: Perform resurrection
-func _do_resurrect(entity: Entity, health_percent: float, mana_percent: float) -> Dictionary:
+func _do_resurrect(entity: SynmergiaEntity, health_percent: float, mana_percent: float) -> Dictionary:
 	var health_comp = entity.health_component
 	
 	# Remove corpse if exists

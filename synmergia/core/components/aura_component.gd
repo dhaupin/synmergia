@@ -21,7 +21,7 @@ func _ready() -> void:
 	pass
 
 ## Add a buff
-func add_buff(buff: Buff, source: Entity = null) -> bool:
+func add_buff(buff: Buff, source: SynmergiaEntity = null) -> bool:
 	if buff == null:
 		return false
 	
@@ -55,7 +55,7 @@ func remove_buff(buff: Buff) -> void:
 	EventBus.buff_removed.emit(get_parent(), buff)
 
 ## Add a debuff
-func add_debuff(debuff: StatusEffect, source: Entity = null) -> bool:
+func add_debuff(debuff: StatusEffect, source: SynmergiaEntity = null) -> bool:
 	if debuff == null:
 		return false
 	
@@ -89,7 +89,7 @@ func remove_debuff(debuff: StatusEffect) -> void:
 	EventBus.buff_removed.emit(get_parent(), debuff)
 
 ## Add an aura (toggleable buff)
-func add_aura(aura: AuraBuff, source: Entity = null) -> bool:
+func add_aura(aura: AuraBuff, source: SynmergiaEntity = null) -> bool:
 	if not aura:
 		return false
 	
@@ -254,19 +254,19 @@ enum EffectCategory {
 }
 
 ## Dispel magic effects
-func dispel_magic(caster: Entity = null) -> int:
+func dispel_magic(caster: SynmergiaEntity = null) -> int:
 	return _dispel_by_category([EffectCategory.MAGIC, EffectCategory.CURSE, EffectCategory.POISON], caster)
 
 ## Dispel curses specifically
-func dispel_curses(caster: Entity = null) -> int:
+func dispel_curses(caster: SynmergiaEntity = null) -> int:
 	return _dispel_by_category([EffectCategory.CURSE], caster)
 
 ## Dispel poison/disease
-func dispel_poison(caster: Entity = null) -> int:
+func dispel_poison(caster: SynmergiaEntity = null) -> int:
 	return _dispel_by_category([EffectCategory.POISON], caster)
 
 ## Dispel all dispellable effects
-func dispel_all(caster: Entity = null) -> int:
+func dispel_all(caster: SynmergiaEntity = null) -> int:
 	return _dispel_by_category([
 		EffectCategory.MAGIC, EffectCategory.CURSE, EffectCategory.POISON,
 		EffectCategory.HOLY, EffectCategory.SHADOW, EffectCategory.FIRE,
@@ -274,13 +274,13 @@ func dispel_all(caster: Entity = null) -> int:
 	], caster)
 
 ## Cleanse (removes debuffs, often player ability)
-func cleanse(caster: Entity = null) -> int:
+func cleanse(caster: SynmergiaEntity = null) -> int:
 	return _dispel_by_category([
 		EffectCategory.POISON, EffectCategory.DISEASE, EffectCategory.CURSE
 	], caster)
 
 ## Internal dispel by categories
-func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
+func _dispel_by_category(categories: Array[int], caster: SynmergiaEntity = null) -> int:
 	var dispelled := 0
 	
 	# Check debuffs
@@ -318,7 +318,7 @@ func _matches_category(effect_category: int, dispel_categories: Array[int]) -> b
 	return dispel_categories.has(EffectCategory.MAGIC) or dispel_categories.has(effect_category)
 
 ## Check if dispel succeeds (some effects have resist chance)
-func _check_dispel_resist(effect: StatusEffect, caster: Entity) -> bool:
+func _check_dispel_resist(effect: StatusEffect, caster: SynmergiaEntity) -> bool:
 	if caster == null:
 		return true  # No resist if no caster
 	
