@@ -23,6 +23,7 @@ func _ready() -> void:
 	_preload_type("res://entities/player/player_controller.gd")
 	_preload_type("res://entities/enemy/enemy.gd")
 	_preload_type("res://entities/npc/npc.gd")
+	_preload_type("res://core/services/spawn_service.gd")
 	_preload_type("res://ui/targeting/target_tooltip.gd")
 	GameLog.debug("TypeRegistry: All types registered")
 
