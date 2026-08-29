@@ -250,21 +250,21 @@ func _stop_dot() -> void:
 		_timer = null
 
 func _on_tick() -> void:
-	if not is_active or not target_entity or not is_instance_valid(target_entity):
+	if not is_active or not target or not is_instance_valid(target):
 		_stop_dot()
 		return
 	
 	_current_ticks += 1
 	
 	var actual_damage := _calculate_damage()
-	_apply_damage(target_entity, actual_damage)
+	_apply_damage(target, actual_damage)
 	
 	if dot_type == DotType.MARK:
 		_mark_ready_to_detonate = true
 	
 	if _current_ticks >= total_ticks:
 		if detonate_damage > 0 and dot_type != DotType.MARK:
-			_apply_damage(target_entity, detonate_damage)
+			_apply_damage(target, detonate_damage)
 		effect_expired.emit()
 		_stop_dot()
 
@@ -275,11 +275,11 @@ func _calculate_damage() -> int:
 	
 	match damage_type.to_lower():
 		"physical":
-			return target_entity.take_damage(dmg)
+			return target.take_damage(dmg)
 		"magical":
-			return target_entity.take_damage(dmg)  # Would factor in magic resist
+			return target.take_damage(dmg)  # Would factor in magic resist
 		"true":
-			target_entity.current_health -= dmg
+			target.current_health -= dmg
 			return dmg
 	return dmg
 

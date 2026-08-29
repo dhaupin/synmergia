@@ -76,7 +76,7 @@ var _timer: Timer
 func _init() -> void:
 	effect_type = EffectType.BUFF
 	if effect_id == "":
-		buff_id = effect_id.to_lower().replace(" ", "_")
+		effect_id = effect_name.to_lower().replace(" ", "_")
 
 ## ACTIVATION
 
@@ -236,7 +236,7 @@ func _init() -> void:
 	super._init()
 	effect_type = EffectType.BUFF
 	if effect_id == "":
-		buff_id = effect_id.to_lower().replace(" ", "_") + "_aura"
+		effect_id = effect_name.to_lower().replace(" ", "_") + "_aura"
 
 ## TOGGLE
 
@@ -262,7 +262,6 @@ func activate(target_entity: Entity) -> bool:
 	target_entity.current_stamina -= stamina_cost
 	
 	_is_toggled_on = true
-	target_entity = target_entity
 	
 	# Apply self effects
 	_apply_self_effects(target_entity, true)
@@ -311,7 +310,7 @@ func deactivate(target_entity: Entity) -> void:
 	# Remove effects from affected entities
 	_remove_effects_from_allies()
 	_remove_effects_from_enemies()
-	_affect_allies.clear()
+	_affected_allies.clear()
 	_affected_enemies.clear()
 
 ## DRAIN
