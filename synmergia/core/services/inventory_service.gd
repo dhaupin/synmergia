@@ -13,12 +13,12 @@ signal gold_transferred(from_id: String, to_id: String, amount: int)
 
 func _ready() -> void:
 	instance = self
-	Logger.info("InventoryService: Ready")
+	GameLogger.info("InventoryService: Ready")
 
 ## Register a player's inventory
 func register_inventory(player_id: String, inventory: InventoryComponent) -> void:
 	_player_inventories[player_id] = inventory
-	Logger.debug("InventoryService: Registered inventory for %s" % player_id)
+	GameLogger.debug("InventoryService: Registered inventory for %s" % player_id)
 
 ## Unregister a player's inventory
 func unregister_inventory(player_id: String) -> void:
@@ -36,35 +36,35 @@ func has_inventory(player_id: String) -> bool:
 func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -1) -> bool:
 	# QoS: Rate limit inventory transfers
 	if not QoSService.rate_limit(from_id, "inventory_transfer"):
-		Logger.debug("InventoryService: Rate limited transfer for %s" % from_id)
+		GameLogger.debug("InventoryService: Rate limited transfer for %s" % from_id)
 		return false
 	
 	# SECURITY: Validate inputs
 	if from_id == "" or to_id == "" or item == null:
-		Logger.error("InventoryService: Invalid transfer parameters")
+		GameLogger.error("InventoryService: Invalid transfer parameters")
 		return false
 	
 	if from_id == to_id:
-		Logger.warn("InventoryService: Cannot transfer to self")
+		GameLogger.warn("InventoryService: Cannot transfer to self")
 		return false
 	
 	# SECURITY: Check both players are registered
 	var from_inv: InventoryComponent = get_inventory(from_id)
 	var to_inv: InventoryComponent = get_inventory(to_id)
 	if not from_inv or not to_inv:
-		Logger.error("InventoryService: Missing inventory for transfer %s -> %s" % [from_id, to_id])
+		GameLogger.error("InventoryService: Missing inventory for transfer %s -> %s" % [from_id, to_id])
 		return false
 
 	# Find item in source inventory
 	var slot := from_inv.find_item(item.id)
 	if slot < 0:
-		Logger.warn("InventoryService: Item %s not found in %s" % [item.id, from_id])
+		GameLogger.warn("InventoryService: Item %s not found in %s" % [item.id, from_id])
 		return false
 
 	# SECURITY: Verify item is actually at this slot (ownership check)
 	var source_item: Item = from_inv.get_item(slot)
 	if source_item == null or source_item != item:
-		Logger.error("InventoryService: Item ownership verification failed for %s" % item.id)
+		GameLogger.error("InventoryService: Item ownership verification failed for %s" % item.id)
 		return false
 
 	# Remove from source
@@ -76,11 +76,11 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 	if not to_inv.add_item(removed):
 		# Failed to add - return to source
 		from_inv.add_item(removed)
-		Logger.warn("InventoryService: Transfer failed - destination full")
+		GameLogger.warn("InventoryService: Transfer failed - destination full")
 		return false
 
 	item_transferred.emit(from_id, to_id, removed, removed.current_stack)
-	Logger.info("InventoryService: Transferred %s x%d from %s to %s" % [item.id, removed.current_stack, from_id, to_id])
+	GameLogger.info("InventoryService: Transferred %s x%d from %s to %s" % [item.id, removed.current_stack, from_id, to_id])
 
 	return true
 
@@ -88,36 +88,36 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 func transfer_gold(from_id: String, to_id: String, amount: int) -> bool:
 	# QoS: Rate limit gold transfers
 	if not QoSService.rate_limit(from_id, "gold_transfer"):
-		Logger.debug("InventoryService: Rate limited gold transfer for %s" % from_id)
+		GameLogger.debug("InventoryService: Rate limited gold transfer for %s" % from_id)
 		return false
 	
 	# SECURITY: Validate inputs
 	if from_id == "" or to_id == "":
-		Logger.error("InventoryService: Invalid gold transfer parameters")
+		GameLogger.error("InventoryService: Invalid gold transfer parameters")
 		return false
 	
 	if from_id == to_id:
-		Logger.warn("InventoryService: Cannot transfer gold to self")
+		GameLogger.warn("InventoryService: Cannot transfer gold to self")
 		return false
 	
 	if amount <= 0:
-		Logger.warn("InventoryService: Cannot transfer negative or zero gold")
+		GameLogger.warn("InventoryService: Cannot transfer negative or zero gold")
 		return false
 	
 	# Check both players are registered
 	var from_inv: InventoryComponent = get_inventory(from_id)
 	var to_inv: InventoryComponent = get_inventory(to_id)
 	if not from_inv or not to_inv:
-		Logger.error("InventoryService: Missing inventory for gold transfer %s -> %s" % [from_id, to_id])
+		GameLogger.error("InventoryService: Missing inventory for gold transfer %s -> %s" % [from_id, to_id])
 		return false
 
 	if not from_inv.remove_gold(amount):
-		Logger.warn("InventoryService: %s has insufficient gold for transfer" % from_id)
+		GameLogger.warn("InventoryService: %s has insufficient gold for transfer" % from_id)
 		return false
 
 	to_inv.add_gold(amount)
 	gold_transferred.emit(from_id, to_id, amount)
-	Logger.info("InventoryService: Transferred %d gold from %s to %s" % [amount, from_id, to_id])
+	GameLogger.info("InventoryService: Transferred %d gold from %s to %s" % [amount, from_id, to_id])
 
 	return true
 
@@ -166,10 +166,10 @@ func execute_trade(trade_id: String, player1: String, player2: String,
 				   player1_gold: int, player2_gold: int) -> Dictionary:
 	# QoS: Rate limit trades for both players
 	if not QoSService.rate_limit(player1, "inventory_trade"):
-		Logger.debug("InventoryService: Rate limited trade for %s" % player1)
+		GameLogger.debug("InventoryService: Rate limited trade for %s" % player1)
 		return {"success": false, "error": "Rate limited"}
 	if not QoSService.rate_limit(player2, "inventory_trade"):
-		Logger.debug("InventoryService: Rate limited trade for %s" % player2)
+		GameLogger.debug("InventoryService: Rate limited trade for %s" % player2)
 		return {"success": false, "error": "Rate limited"}
 
 	var results := {
@@ -232,7 +232,7 @@ func execute_trade(trade_id: String, player1: String, player2: String,
 		if item and transfer_item(player2, player1, item, quantity):
 			results["player2"]["items_transferred"].append(item_id)
 
-	Logger.info("InventoryService: Trade %s completed - success: %s" % [trade_id, results["success"]])
+	GameLogger.info("InventoryService: Trade %s completed - success: %s" % [trade_id, results["success"]])
 	return results
 
 ## Get player's gold

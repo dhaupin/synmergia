@@ -110,7 +110,7 @@ func _start_decay_visual() -> void:
 	# Visual decay effect: start fading out the corpse
 	# This would typically modify the mesh material's albedo alpha
 	# For now, just log it - actual implementation would depend on visual system
-	Logger.debug("Corpse %s: Starting decay visual (will fade out)" % corpse_id)
+	GameLogger.debug("Corpse %s: Starting decay visual (will fade out)" % corpse_id)
 
 ## Check if a player can SEE this corpse (visibility)
 func can_see(observer: Entity) -> bool:

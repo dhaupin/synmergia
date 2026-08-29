@@ -50,7 +50,7 @@ var _current_executor_id: String = ""
 
 func _ready() -> void:
 	_register_default_commands()
-	Logger.info("AdminShell: Initialized with %d commands" % _commands.size())
+	GameLogger.info("AdminShell: Initialized with %d commands" % _commands.size())
 
 ## Register a command
 func register_command(cmd: Command) -> void:

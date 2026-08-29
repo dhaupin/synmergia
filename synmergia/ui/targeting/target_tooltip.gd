@@ -374,7 +374,7 @@ func _on_action_button_pressed(action_id: String, target_id: String) -> void:
 	
 	# Rate limit check
 	if QoSService.rate_limit(_current_target_id, "tooltip_action"):
-		Logger.debug("TargetTooltip: Rate limited action %s" % action_id)
+		GameLogger.debug("TargetTooltip: Rate limited action %s" % action_id)
 		_flash_rate_limit_warning()
 		return
 	

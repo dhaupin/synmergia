@@ -46,7 +46,6 @@ static func restore_stamina_instant(target: Entity, amount: float) -> float:
 	
 	return amount - overrestore
 
-
 ## RegenerationOverTime - Tick-based resource regen
 class_name RegenerationOverTime
 extends Node
@@ -150,7 +149,6 @@ func _apply_stamina_restore(entity: Entity, amount: float) -> float:
 	entity.current_stamina = min(entity.max_stamina, entity.current_stamina + amount)
 	return amount
 
-
 ## HoT - Health over time buff
 class_name HoT
 extends StatusEffect
@@ -188,7 +186,6 @@ func remove(target: Entity) -> void:
 func _on_regen_complete(entity: Entity) -> void:
 	effect_expired.emit()
 
-
 ## MoT - Mana over time buff
 class_name MoT
 extends StatusEffect
@@ -225,7 +222,6 @@ func remove(target: Entity) -> void:
 
 func _on_regen_complete(entity: Entity) -> void:
 	effect_expired.emit()
-
 
 ## SoT - Stamina over time buff
 class_name SoT

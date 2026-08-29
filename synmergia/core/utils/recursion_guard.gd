@@ -26,7 +26,7 @@ func _init(default_max_depth: int = -1) -> void:
 	else:
 		_default_max_depth = default_max_depth
 	
-	Logger.debug("RecursionGuard: Initialized with default max depth=%d" % _default_max_depth)
+	GameLogger.debug("RecursionGuard: Initialized with default max depth=%d" % _default_max_depth)
 
 ## ============================================================================
 ## GUARD ENTER/EXIT
@@ -41,7 +41,7 @@ func enter(context: String) -> bool:
 	if current_depth >= max_depth:
 		_total_guards_triggered += 1
 		_guard_trigger_counts[context] = _guard_trigger_counts.get(context, 0) + 1
-		Logger.warn("RecursionGuard: Max depth %d exceeded for context '%s' (current: %d)" % [
+		GameLogger.warn("RecursionGuard: Max depth %d exceeded for context '%s' (current: %d)" % [
 			max_depth, context, current_depth
 		])
 		return false
@@ -74,7 +74,7 @@ func execute(context: String, callable: Callable, default_result: Variant = null
 ## Set maximum depth for a specific context
 func set_max_depth(context: String, max_depth: int) -> void:
 	_max_depth_config[context] = max_depth
-	Logger.debug("RecursionGuard: Set max depth for '%s' to %d" % [context, max_depth])
+	GameLogger.debug("RecursionGuard: Set max depth for '%s' to %d" % [context, max_depth])
 
 ## Remove custom max depth for a context (reverts to default)
 func clear_max_depth(context: String) -> void:
@@ -118,7 +118,7 @@ func get_stats() -> Dictionary:
 func reset_stats() -> void:
 	_total_guards_triggered = 0
 	_guard_trigger_counts.clear()
-	Logger.debug("RecursionGuard: Statistics reset")
+	GameLogger.debug("RecursionGuard: Statistics reset")
 
 ## ============================================================================
 ## STATIC HELPERS

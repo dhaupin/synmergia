@@ -69,7 +69,7 @@ func _init(
 	if max_connections_per_ip > 0:
 		_max_connections_per_ip = max_connections_per_ip
 	
-	Logger.debug("AppFirewall: Initialized (block=%ds, max_attempts=%d, max_conn=%d)" % [
+	GameLogger.debug("AppFirewall: Initialized (block=%ds, max_attempts=%d, max_conn=%d)" % [
 		_block_duration, _max_failed_attempts, _max_connections_per_ip
 	])
 
@@ -130,7 +130,7 @@ func register_connection(player_id: String, ip: String) -> void:
 	_player_ips[player_id] = ip
 	_connection_counts[ip] = _connection_counts.get(ip, 0) + 1
 	_clear_failed_attempts(ip)
-	Logger.debug("AppFirewall: %s connected from %s (conns: %d)" % [
+	GameLogger.debug("AppFirewall: %s connected from %s (conns: %d)" % [
 		player_id, ip, _connection_counts[ip]
 	])
 
@@ -186,14 +186,14 @@ func block_ip(ip: String, reason: String, duration: int = -1) -> void:
 	}
 	
 	ip_blocked.emit(ip, reason, duration)
-	Logger.warn("AppFirewall: Blocked IP %s for %ds: %s" % [ip, duration, reason])
+	GameLogger.warn("AppFirewall: Blocked IP %s for %ds: %s" % [ip, duration, reason])
 
 ## Unblock an IP
 func unblock_ip(ip: String) -> void:
 	if _blocked_ips.has(ip):
 		_blocked_ips.erase(ip)
 		ip_unblocked.emit(ip)
-		Logger.info("AppFirewall: Unblocked IP %s" % ip)
+		GameLogger.info("AppFirewall: Unblocked IP %s" % ip)
 
 ## Check if an IP is blocked
 func is_blocked(ip: String) -> bool:
@@ -214,7 +214,7 @@ func ban_player(player_id: String, reason: String, banned_by: String = "system")
 	
 	var ip = _player_ips.get(player_id, "unknown")
 	ban_issued.emit(player_id, ip, reason, -1)
-	Logger.warn("AppFirewall: Permanent ban issued for %s (IP: %s): %s" % [player_id, ip, reason])
+	GameLogger.warn("AppFirewall: Permanent ban issued for %s (IP: %s): %s" % [player_id, ip, reason])
 
 ## Issue a temporary ban
 func temp_ban_player(player_id: String, duration_seconds: int, reason: String) -> void:
@@ -226,7 +226,7 @@ func temp_ban_player(player_id: String, duration_seconds: int, reason: String) -
 	
 	var ip = _player_ips.get(player_id, "unknown")
 	ban_issued.emit(player_id, ip, reason, duration_seconds)
-	Logger.warn("AppFirewall: Temporary ban for %s (IP: %s, %ds): %s" % [player_id, ip, duration_seconds, reason])
+	GameLogger.warn("AppFirewall: Temporary ban for %s (IP: %s, %ds): %s" % [player_id, ip, duration_seconds, reason])
 
 ## Lift a ban
 func lift_ban(player_id: String) -> void:
@@ -237,7 +237,7 @@ func lift_ban(player_id: String) -> void:
 	
 	if was_banned:
 		ban_lifted.emit(player_id)
-		Logger.info("AppFirewall: Ban lifted for %s" % player_id)
+		GameLogger.info("AppFirewall: Ban lifted for %s" % player_id)
 
 ## Check if player is banned
 func is_banned(player_id: String) -> bool:
@@ -350,7 +350,7 @@ func cleanup() -> int:
 			_connection_counts.erase(ip)
 	
 	if cleaned > 0:
-		Logger.debug("AppFirewall: Cleaned %d expired entries" % cleaned)
+		GameLogger.debug("AppFirewall: Cleaned %d expired entries" % cleaned)
 	
 	return cleaned
 

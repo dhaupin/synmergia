@@ -25,7 +25,7 @@ var _player_session_start: Dictionary = {}  # player_id -> session start time
 var _consensus_quests: Dictionary = {}  # action_id -> {votes, required, deadline}
 
 func _ready() -> void:
-	Logger.info("FairnessService: Initialized - Humans and Agents are equals")
+	GameLogger.info("FairnessService: Initialized - Humans and Agents are equals")
 
 ## Register a player (human or agent)
 func register_player(player_id: String, is_agent: bool = false) -> void:
@@ -39,7 +39,7 @@ func register_player(player_id: String, is_agent: bool = false) -> void:
 			"chat": [],
 			"last_action": 0
 		}
-		Logger.info("FairnessService: Registered %s (%s)" % [player_id, "Agent" if is_agent else "Human"])
+		GameLogger.info("FairnessService: Registered %s (%s)" % [player_id, "Agent" if is_agent else "Human"])
 
 ## Unregister player
 func unregister_player(player_id: String) -> void:
@@ -57,7 +57,6 @@ func check_action_rate(player_id: String, action_type: String) -> bool:
 	if not result:
 		rate_limit_exceeded.emit(player_id, action_type)
 	return result
-
 
 ## Record an action
 func record_action(player_id: String, action_type: String) -> void:
@@ -156,11 +155,11 @@ func report_violation(player_id: String, violation_type: String, severity: int =
 	
 	match severity:
 		1:  # Minor
-			Logger.warn("FairnessService: Minor violation by %s: %s" % [player_id, violation_type])
+			GameLogger.warn("FairnessService: Minor violation by %s: %s" % [player_id, violation_type])
 		2:  # Moderate
-			Logger.warn("FairnessService: Moderate violation by %s: %s" % [player_id, violation_type])
+			GameLogger.warn("FairnessService: Moderate violation by %s: %s" % [player_id, violation_type])
 		3:  # Severe
-			Logger.error("FairnessService: SEVERE violation by %s: %s" % [player_id, violation_type])
+			GameLogger.error("FairnessService: SEVERE violation by %s: %s" % [player_id, violation_type])
 
 func _adjust_trust(player_id: String, delta: float) -> void:
 	if not _player_trust.has(player_id):

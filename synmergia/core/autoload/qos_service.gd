@@ -100,7 +100,7 @@ var _rate_limited_count: int = 0
 ## ============================================================================
 
 func _ready() -> void:
-	pass  # Logger.info removed
+	pass  # GameLogger.info removed
 	# Start cleanup timer for stale data
 	var cleanup_timer := Timer.new()
 	cleanup_timer.timeout.connect(_cleanup_stale_data)
@@ -393,7 +393,7 @@ func circuit_execute(service_name: String, operation: Callable) -> Dictionary:
 			# Check if recovery timeout has passed
 			if now - breaker["last_failure_time"] >= GameConfig.QoS.CircuitBreaker.RECOVERY_TIMEOUT_SEC:
 				breaker["state"] = CircuitState.HALF_OPEN
-				pass  # Logger.debug removed
+				pass  # GameLogger.debug removed
 			else:
 				return {"success": false, "error": "Circuit OPEN", "rejected": true}
 		
@@ -428,7 +428,7 @@ func _on_circuit_success(breaker: Dictionary, service_name: String) -> void:
 			breaker["state"] = CircuitState.CLOSED
 			breaker["failures"] = 0
 			breaker["successes"] = 0
-			pass  # Logger.info removed
+			pass  # GameLogger.info removed
 
 func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
 	breaker["failures"] += 1
@@ -437,10 +437,10 @@ func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
 	if breaker["state"] == CircuitState.HALF_OPEN:
 		breaker["state"] = CircuitState.OPEN
 		breaker["successes"] = 0
-		pass  # Logger.warn removed
+		pass  # GameLogger.warn removed
 	elif breaker["failures"] >= GameConfig.QoS.CircuitBreaker.FAILURE_THRESHOLD:
 		breaker["state"] = CircuitState.OPEN
-		pass  # Logger.warn removed
+		pass  # GameLogger.warn removed
 
 ## Get circuit breaker state
 func get_circuit_state(service_name: String) -> String:

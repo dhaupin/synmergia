@@ -138,7 +138,7 @@ func build_observation(entity: Entity) -> Dictionary:
 		nearby.append({
 			"id": e.entity_id,
 			"name": e.display_name,
-			"type": Entity.EntityType.keys()[e.entity_type],
+			"type": GameEntity.EntityType.keys()[e.entity_type],
 			"distance": entity.global_position.distance_to(e.global_position),
 			"is_enemy": EntityService.is_enemy(entity, e)
 		})

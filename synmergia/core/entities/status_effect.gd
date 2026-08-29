@@ -32,8 +32,8 @@ enum StackBehavior {
 
 var current_stacks: int = 1
 var remaining_duration: float = 0.0
-var source_entity: Entity = null
-var target_entity: Entity = null
+var source_entity = null
+var target_entity = null
 var is_active: bool = false
 
 var _timer: Timer
@@ -41,7 +41,7 @@ var _timer: Timer
 func _init() -> void:
 	remaining_duration = duration
 
-func apply(target: Entity) -> void:
+func apply(target) -> void:
 	if is_active:
 		_handle_stacking()
 		return
@@ -60,7 +60,7 @@ func apply(target: Entity) -> void:
 	_apply_effect()
 	stack_changed.emit(current_stacks)
 
-func remove(target: Entity) -> void:
+func remove(target) -> void:
 	if not is_active:
 		return
 	

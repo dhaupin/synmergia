@@ -42,7 +42,7 @@ var base_stats: Dictionary = {
 var gold: int = 0
 
 func _ready() -> void:
-	Logger.info("PlayerManager initialized")
+	GameLogger.info("PlayerManager initialized")
 
 func set_local_player(player: Node) -> void:
 	local_player = player
@@ -169,12 +169,12 @@ func level_up_function() -> void:
 	mana_changed.emit(current_mana, max_mana)
 	
 	level_up.emit(level)
-	Logger.info("Level up! Now level %d" % level)
+	GameLogger.info("Level up! Now level %d" % level)
 
 ## DEATH
 
 func die() -> void:
-	Logger.info("Player died!")
+	GameLogger.info("Player died!")
 	died.emit()
 
 func resurrect(health_percent: float = 0.5) -> void:

@@ -25,7 +25,7 @@ var _log_level: SecurityLevel = SecurityLevel.INFO
 
 func _ready() -> void:
 	_connect_signals()
-	Logger.info("SecurityMonitor: Initialized")
+	GameLogger.info("SecurityMonitor: Initialized")
 
 func _connect_signals() -> void:
 	if SecurityService:
@@ -48,16 +48,16 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 	
 	match severity:
 		SecurityLevel.CRITICAL:
-			Logger.error("SECURITY CRITICAL: Player %s detected %s exploit! Details: %s" % [
+			GameLogger.error("SECURITY CRITICAL: Player %s detected %s exploit! Details: %s" % [
 				player_id, exploit_type, JSON.stringify(details)
 			])
 			_alert_admin("CRITICAL", player_id, exploit_type, details)
 		SecurityLevel.WARN:
-			Logger.warn("SECURITY WARNING: Player %s flagged for %s. Details: %s" % [
+			GameLogger.warn("SECURITY WARNING: Player %s flagged for %s. Details: %s" % [
 				player_id, exploit_type, JSON.stringify(details)
 			])
 		_:
-			Logger.debug("Security: Player %s %s attempt (details: %s)" % [
+			GameLogger.debug("Security: Player %s %s attempt (details: %s)" % [
 				player_id, exploit_type, JSON.stringify(details)
 			])
 
@@ -65,7 +65,7 @@ func _on_permission_denied(player_id: String, action: String, required_level: in
 	if not enabled:
 		return
 
-	Logger.warn("Permission Denied: Player %s attempted '%s' (requires level %d)" % [
+	GameLogger.warn("Permission Denied: Player %s attempted '%s' (requires level %d)" % [
 		player_id, action, required_level
 	])
 
@@ -73,13 +73,13 @@ func _on_invalid_input(player_id: String, input_type: String, reason: String) ->
 	if not enabled:
 		return
 
-	Logger.debug("Invalid Input: Player %s - %s: %s" % [player_id, input_type, reason])
+	GameLogger.debug("Invalid Input: Player %s - %s: %s" % [player_id, input_type, reason])
 
 func _on_rate_limited(player_id: String, action_type: String, current_rate: float, max_rate: float) -> void:
 	if not enabled:
 		return
 
-	Logger.debug("Rate limited: Player %s - %s (%.2f/%.2f)" % [
+	GameLogger.debug("Rate limited: Player %s - %s (%.2f/%.2f)" % [
 		player_id, action_type, current_rate, max_rate
 	])
 
@@ -113,8 +113,8 @@ func set_log_level(level: SecurityLevel) -> void:
 
 func disable() -> void:
 	enabled = false
-	Logger.info("SecurityMonitor: Disabled")
+	GameLogger.info("SecurityMonitor: Disabled")
 
 func enable() -> void:
 	enabled = true
-	Logger.info("SecurityMonitor: Enabled")
+	GameLogger.info("SecurityMonitor: Enabled")

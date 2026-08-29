@@ -164,7 +164,7 @@ func _ready() -> void:
 	# Connect to EventBus for entity registration
 	_connect_eventbus()
 	
-	Logger.info("TargetingManager: Initialized with %d schemas, %d actions" % [
+	GameLogger.info("TargetingManager: Initialized with %d schemas, %d actions" % [
 		_schema_cache.size(), _actions.size()
 	])
 
@@ -187,7 +187,7 @@ func _load_schemas() -> void:
 	
 	var dir := DirAccess.open(schema_dir)
 	if dir == null:
-		Logger.warn("TargetingManager: Cannot open schema directory: " + schema_dir)
+		GameLogger.warn("TargetingManager: Cannot open schema directory: " + schema_dir)
 		return
 	
 	dir.list_dir_begin()
@@ -200,7 +200,7 @@ func _load_schemas() -> void:
 			if schema and schema.id != "":
 				_schema_cache[schema.id] = schema
 				_entity_type_to_schema[schema.entity_type] = schema.id
-				Logger.debug("TargetingManager: Loaded schema: " + schema.id)
+				GameLogger.debug("TargetingManager: Loaded schema: " + schema.id)
 		
 		file_name = dir.get_next()
 	

@@ -22,7 +22,7 @@ var is_paused: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	Logger.info("GameManager initialized")
+	GameLogger.info("GameManager initialized")
 	
 func _process(delta: float) -> void:
 	if current_state == GameState.LOADING:
@@ -42,7 +42,7 @@ func change_state(new_state: GameState) -> void:
 	previous_state = current_state
 	current_state = new_state
 	
-	Logger.info("Game state changed: %s → %s" % [GameState.keys()[previous_state], GameState.keys()[new_state]])
+	GameLogger.info("Game state changed: %s → %s" % [GameState.keys()[previous_state], GameState.keys()[new_state]])
 	game_state_changed.emit(new_state)
 	
 	match new_state:
@@ -67,7 +67,7 @@ func pause_game() -> void:
 	previous_state = current_state
 	current_state = GameState.PAUSED
 	
-	Logger.info("Game paused")
+	GameLogger.info("Game paused")
 	paused.emit()
 
 func resume_game() -> void:
@@ -79,16 +79,16 @@ func resume_game() -> void:
 	
 	current_state = GameState.PLAYING
 	
-	Logger.info("Game resumed")
+	GameLogger.info("Game resumed")
 	resumed.emit()
 
 func start_game() -> void:
-	Logger.info("Starting game...")
+	GameLogger.info("Starting game...")
 	change_state(GameState.PLAYING)
 	game_started.emit()
 
 func end_game() -> void:
-	Logger.info("Ending game...")
+	GameLogger.info("Ending game...")
 	change_state(GameState.MAIN_MENU)
 	game_ended.emit()
 
@@ -97,7 +97,7 @@ func _check_loading_complete() -> void:
 	pass
 
 func _handle_loading_state() -> void:
-	Logger.info("Loading resources...")
+	GameLogger.info("Loading resources...")
 
 func _handle_main_menu_state() -> void:
 	get_tree().change_scene_to_file("res://ui/menus/main_menu.tscn")
@@ -106,7 +106,7 @@ func _handle_character_select_state() -> void:
 	get_tree().change_scene_to_file("res://ui/menus/character_select.tscn")
 
 func _handle_playing_state() -> void:
-	Logger.info("Entering gameplay")
+	GameLogger.info("Entering gameplay")
 	_initialize_world_services()
 
 func _initialize_world_services() -> void:
@@ -115,7 +115,7 @@ func _initialize_world_services() -> void:
 		return
 	_world_initialized = true
 	
-	Logger.info("GameManager: Initializing world services...")
+	GameLogger.info("GameManager: Initializing world services...")
 	
 	# Initialize world (loads zones, factions)
 	if WorldService:
@@ -130,17 +130,17 @@ func _initialize_world_services() -> void:
 		EntityService.player_joined.connect(_on_player_joined)
 		EntityService.player_left.connect(_on_player_left)
 	
-	Logger.info("GameManager: World services initialized")
+	GameLogger.info("GameManager: World services initialized")
 
 func _on_player_joined(player: Entity, _metadata: EventBus.SpawnMetadata) -> void:
 	if ShardManager:
 		ShardManager.player_connected()
-	Logger.info("Player joined: %s" % player.display_name)
+	GameLogger.info("Player joined: %s" % player.display_name)
 
 func _on_player_left(player: Entity, _metadata: EventBus.SpawnMetadata) -> void:
 	if ShardManager:
 		ShardManager.player_disconnected()
-	Logger.info("Player left: %s" % player.display_name)
+	GameLogger.info("Player left: %s" % player.display_name)
 
 var _world_initialized := false
 

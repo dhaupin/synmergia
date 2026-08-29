@@ -36,7 +36,7 @@ signal maintenance_ended()
 signal player_kicked(entity_id: String, reason: String)
 
 func _ready() -> void:
-	Logger.info("ServerManager: Ready")
+	GameLogger.info("ServerManager: Ready")
 
 func _process(delta: float) -> void:
 	if _restart_scheduled:
@@ -66,8 +66,8 @@ func schedule_restart(seconds_from_now: int, message: String = "Server restart s
 	_restart_countdown_seconds = seconds_from_now
 	_restart_warned_players = false
 	
-	Logger.info("ServerManager: Restart scheduled in %d seconds" % seconds_from_now)
-	Logger.info("ServerManager: Message: %s" % message)
+	GameLogger.info("ServerManager: Restart scheduled in %d seconds" % seconds_from_now)
+	GameLogger.info("ServerManager: Message: %s" % message)
 	
 	restart_scheduled.emit(_restart_time, seconds_from_now)
 	
@@ -83,7 +83,7 @@ func cancel_restart() -> void:
 	var seconds_remaining = _restart_countdown_seconds
 	_restart_countdown_seconds = 0
 	
-	Logger.info("ServerManager: Restart cancelled")
+	GameLogger.info("ServerManager: Restart cancelled")
 	restart_cancelled.emit()
 	
 	# Notify players restart was cancelled
@@ -97,7 +97,7 @@ func cancel_restart() -> void:
 
 ## Execute restart immediately
 func execute_restart() -> void:
-	Logger.info("ServerManager: Executing restart")
+	GameLogger.info("ServerManager: Executing restart")
 	restart_executed.emit()
 	
 	# Final warning
@@ -121,7 +121,7 @@ func execute_restart() -> void:
 	t.start()
 
 func _do_actual_shutdown() -> void:
-	Logger.info("ServerManager: Quitting process")
+	GameLogger.info("ServerManager: Quitting process")
 	get_tree().quit()
 
 ## Get time until restart
@@ -198,8 +198,8 @@ func start_maintenance(message: String = "Server under maintenance", duration_se
 	_maintenance_message = message
 	_maintenance_start_time = Time.get_unix_time_from_system()
 	
-	Logger.info("ServerManager: Entering maintenance mode")
-	Logger.info("ServerManager: Message: %s" % message)
+	GameLogger.info("ServerManager: Entering maintenance mode")
+	GameLogger.info("ServerManager: Message: %s" % message)
 	
 	maintenance_started.emit(message)
 	
@@ -220,7 +220,7 @@ func end_maintenance() -> void:
 	_state = _was_online if _was_online != ServerState.MAINTENANCE else ServerState.ONLINE
 	var duration = Time.get_unix_time_from_system() - _maintenance_start_time
 	
-	Logger.info("ServerManager: Ending maintenance mode (duration: %d seconds)" % duration)
+	GameLogger.info("ServerManager: Ending maintenance mode (duration: %d seconds)" % duration)
 	maintenance_ended.emit()
 	
 	NotificationService.broadcast_all(
@@ -236,14 +236,14 @@ func set_state(new_state: ServerState) -> void:
 	var old_state = _state
 	_state = new_state
 	
-	Logger.info("ServerManager: State changed from %s to %s" % [ServerState.keys()[old_state], ServerState.keys()[new_state]])
+	GameLogger.info("ServerManager: State changed from %s to %s" % [ServerState.keys()[old_state], ServerState.keys()[new_state]])
 	server_state_changed.emit(new_state, old_state)
 
 # --- Player Management ---
 
 ## Kick player from server
 func kick_player(entity_id: String, reason: String = "You have been disconnected") -> void:
-	Logger.info("ServerManager: Kicking player %s: %s" % [entity_id, reason])
+	GameLogger.info("ServerManager: Kicking player %s: %s" % [entity_id, reason])
 	player_kicked.emit(entity_id, reason)
 	
 	# Send kick notification
@@ -279,7 +279,7 @@ var _server_start_time: int = 0
 func start_server() -> void:
 	_server_start_time = Time.get_unix_time_from_system()
 	_state = ServerState.ONLINE
-	Logger.info("ServerManager: Server started, uptime tracking begun")
+	GameLogger.info("ServerManager: Server started, uptime tracking begun")
 
 func get_uptime_seconds() -> int:
 	if _server_start_time == 0:

@@ -105,7 +105,7 @@ class ZoneRespawnConfig:
 	var gateway_ids: Array[String] = []
 
 func _ready() -> void:
-	Logger.info("RespawnService: Flexible respawn system initialized")
+	GameLogger.info("RespawnService: Flexible respawn system initialized")
 
 ## Register a player
 func register_player(player: Entity) -> void:
@@ -131,7 +131,7 @@ func remove_karma(entity_id: String, amount: int, reason: String) -> void:
 func initiate_respawn(player: Entity, zone_id: String = "") -> bool:
 	# Prevent respawn if a revive is in progress
 	if _active_revives.has(player.entity_id):
-		Logger.info("RespawnService: Respawn blocked for %s - revive in progress" % player.display_name)
+		GameLogger.info("RespawnService: Respawn blocked for %s - revive in progress" % player.display_name)
 		return false
 	
 	var config := _get_zone_config(zone_id)
@@ -142,7 +142,7 @@ func initiate_respawn(player: Entity, zone_id: String = "") -> bool:
 	var available_modes := get_available_respawn_modes(player, zone_id)
 	
 	if available_modes.is_empty():
-		Logger.warn("RespawnService: No respawn modes available for %s" % player.display_name)
+		GameLogger.warn("RespawnService: No respawn modes available for %s" % player.display_name)
 		return false
 	
 	# Priority: Revive > Ankh > Timed
@@ -190,7 +190,7 @@ func initiate_respawn(player: Entity, zone_id: String = "") -> bool:
 			}
 	
 	respawn_initiated.emit(player, mode, respawn_data)
-	Logger.info("RespawnService: %s initiating respawn in mode %s" % [player.display_name, RespawnMode.keys()[mode]])
+	GameLogger.info("RespawnService: %s initiating respawn in mode %s" % [player.display_name, RespawnMode.keys()[mode]])
 	
 	# Start the respawn
 	_start_respawn(player, mode, respawn_data)
@@ -236,12 +236,12 @@ func start_revival(healer: Entity, target: Entity, context: String = "") -> bool
 	
 	# Check if healer can revive others in this context
 	if not can_revive_others(healer, context):
-		Logger.warn("RespawnService: %s cannot revive others in %s context" % [healer.display_name, context])
+		GameLogger.warn("RespawnService: %s cannot revive others in %s context" % [healer.display_name, context])
 		return false
 	
 	# Check if target can be revived in this context
 	if not can_be_revived(target, context):
-		Logger.warn("RespawnService: %s cannot be revived in %s context" % [target.display_name, context])
+		GameLogger.warn("RespawnService: %s cannot be revived in %s context" % [target.display_name, context])
 		return false
 	
 	# Check cooldown
@@ -269,7 +269,7 @@ func start_revival(healer: Entity, target: Entity, context: String = "") -> bool
 		if NotificationService:
 			NotificationService.notify_revive_abuse_warning(healer.entity_id, context)
 		
-		Logger.warn("RespawnService: Revive abuse detected for %s in %s context" % [healer.display_name, context])
+		GameLogger.warn("RespawnService: Revive abuse detected for %s in %s context" % [healer.display_name, context])
 		return false
 	
 	# Start revive
@@ -287,7 +287,7 @@ func start_revival(healer: Entity, target: Entity, context: String = "") -> bool
 	if NotificationService:
 		NotificationService.notify_revive_started(target.entity_id, healer.display_name)
 	
-	Logger.info("RespawnService: %s starting revival on %s in %s" % [healer.display_name, target.display_name, context])
+	GameLogger.info("RespawnService: %s starting revival on %s in %s" % [healer.display_name, target.display_name, context])
 	
 	return true
 
@@ -344,7 +344,7 @@ func complete_revival(target_id: String) -> bool:
 	if NotificationService:
 		NotificationService.notify_revive_completed(target.entity_id, healer.display_name)
 	
-	Logger.info("RespawnService: %s revived %s in %s" % [healer.display_name, target.display_name, context])
+	GameLogger.info("RespawnService: %s revived %s in %s" % [healer.display_name, target.display_name, context])
 	
 	return true
 
@@ -364,7 +364,7 @@ func interrupt_revival(target_id: String, reason: String) -> void:
 		NotificationService.notify_revive_failed(target.entity_id, reason)
 	
 	revive_interrupted.emit(target, healer, reason)
-	Logger.info("RespawnService: Revival of %s interrupted by %s: %s" % [target.display_name, healer.display_name, reason])
+	GameLogger.info("RespawnService: Revival of %s interrupted by %s: %s" % [target.display_name, healer.display_name, reason])
 
 ## Cancel a revival
 func cancel_revival(healer_id: String) -> void:
@@ -533,7 +533,7 @@ func _cleanup_old_revoke_counts(context: String) -> void:
 ## Set current context (called when entering zone)
 func set_context(context: String) -> void:
 	_current_context = context
-	Logger.info("RespawnService: Context set to %s" % context)
+	GameLogger.info("RespawnService: Context set to %s" % context)
 
 ## Get current context
 func get_context() -> String:

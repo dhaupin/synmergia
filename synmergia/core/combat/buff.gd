@@ -191,7 +191,6 @@ func get_buff_info() -> Dictionary:
 		"shield": _shield_remaining
 	}
 
-
 ## AuraBuff - Toggle aura that affects nearby entities
 ## Continuous mana/stamina drain while active, AoE effects
 class_name AuraBuff

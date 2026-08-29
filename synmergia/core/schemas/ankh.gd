@@ -114,7 +114,7 @@ func bind_player(player: Entity) -> bool:
 	
 	# Prevent binding while dead (exploit prevention)
 	if player.health_component and player.health_component.is_dead():
-		Logger.warn("Ankh '%s': Player '%s' tried to bind while dead" % [ankh_id, player.display_name])
+		GameLogger.warn("Ankh '%s': Player '%s' tried to bind while dead" % [ankh_id, player.display_name])
 		return false
 	
 	if not _bound_players.has(player.entity_id):
@@ -130,7 +130,7 @@ func bind_player(player: Entity) -> bool:
 	bound_to.emit(player, self)
 	activated.emit(player, self)
 	
-	Logger.info("Ankh '%s': Player '%s' bound" % [ankh_id, player.display_name])
+	GameLogger.info("Ankh '%s': Player '%s' bound" % [ankh_id, player.display_name])
 	return true
 
 ## Unbind player from this ankh
