@@ -434,7 +434,7 @@ func _autocomplete() -> void:
 		_command_input.text = suggestions[0] + " "
 		_command_input.caret_position = _command_input.text.length()
 	elif suggestions.size() > 1:
-		_terminal_output.append_text("[color=cyan]Completions:[/color] " + ", ".join(suggestions) + "\n")
+		_terminal_output.append_text("[color=cyan]Completions:[/color] " + suggestions.join(", ") + "\n")
 
 ## ============================================================================
 ## PUBLIC API

@@ -118,8 +118,8 @@ func _process_hitboxes(_delta: float) -> void:
 			hitbox.hit_entities.append(entity.entity_id)
 			_apply_hit(hitbox, entity)
 
-func get_entities_in_hitbox(hitbox: HitboxData) -> Array[SynmergiaEntity]:
-	var entities_in_range: Array[SynmergiaEntity] = []
+func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
+	var entities_in_range: Array = []
 	
 	for entity_id in registered_entities:
 		var entity: SynmergiaEntity = registered_entities[entity_id]

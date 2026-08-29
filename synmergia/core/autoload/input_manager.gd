@@ -30,7 +30,8 @@ func _ready() -> void:
 	GameLog.info("InputManager initialized")
 	
 	# Enable touch emulation on desktop for testing
-	DisplayServer.touchscreen_is_available()
+	if DisplayServer.touchscreen_is_available():
+		pass  # touch emulation on desktop  # static call
 	Input.set_use_accumulated_input(true)
 	
 	# Try to get InteractionLayer
@@ -63,7 +64,7 @@ func _handle_touch_events(event: InputEvent) -> void:
 	
 	elif event is InputEventScreenDrag:
 		current_touch_position = event.position
-		var delta := event.relative
+		var delta: Vector2 = event.relative
 		touch_moved.emit(event.position, delta)
 		
 		if joystick_active:
@@ -75,7 +76,7 @@ func _handle_mouse_events(event: InputEvent) -> void:
 		last_direction = event.relative / 100.0
 
 func _process_touch_zone(position: Vector2) -> void:
-	var screen_size := get_viewport_rect().size
+	var screen_size := get_viewport().get_visible_rect().size
 	var normalized_pos := position / screen_size
 	
 	if left_zone.has_point(normalized_pos):

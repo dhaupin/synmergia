@@ -24,7 +24,7 @@ var world_seed: int = 0
 
 signal time_changed(time_of_day: String, hour: int)
 signal day_changed(day_number: int)
-signal gateway_activated(gateway_id: String, entity: SynmergiaEntity)
+signal gateway_activated(gateway_id: String, entity)
 signal event_started(event_id: String, event_name: String)
 signal event_ended(event_id: String, event_name: String)
 
@@ -44,7 +44,7 @@ class GatewayData:
 	var unlock_requirement: String = ""
 	var activation_radius: float = 3.0
 	
-	func can_use(entity: SynmergiaEntity) -> bool:
+	func can_use(entity) -> bool:
 		if is_locked:
 			return false
 		if entity.level < required_level:
@@ -112,15 +112,14 @@ func _update_time_of_day() -> void:
 	var hour = get_current_hour()
 	var old_time = _current_time_of_day
 	
-	match hour:
-		var h if h >= 6 and h < 8:
-			_current_time_of_day = "dawn"
-		var h if h >= 8 and h < 18:
-			_current_time_of_day = "day"
-		var h if h >= 18 and h < 20:
-			_current_time_of_day = "dusk"
-		_:
-			_current_time_of_day = "night"
+	if hour >= 6 and hour < 8:
+		_current_time_of_day = "dawn"
+	elif hour >= 8 and hour < 18:
+		_current_time_of_day = "day"
+	elif hour >= 18 and hour < 20:
+		_current_time_of_day = "dusk"
+	else:
+		_current_time_of_day = "night"
 	
 	if old_time != _current_time_of_day:
 		time_changed.emit(_current_time_of_day, hour)
@@ -169,23 +168,23 @@ func get_gateway(gateway_id: String) -> GatewayData:
 	return _gateways.get(gateway_id)
 
 ## Get all gateways in a zone
-func get_zone_gateways(zone_id: String) -> Array[GatewayData]:
-	var results: Array[GatewayData] = []
+func get_zone_gateways(zone_id: String) -> Array:
+	var results: Array = []
 	for gateway in _gateways.values():
 		if gateway.from_zone_id == zone_id:
 			results.append(gateway)
 	return results
 
 ## Get gateways at position
-func get_gateways_at_position(position: Vector3, radius: float = 10.0) -> Array[GatewayData]:
-	var results: Array[GatewayData] = []
+func get_gateways_at_position(position: Vector3, radius: float = 10.0) -> Array:
+	var results: Array = []
 	for gateway in _gateways.values():
 		if gateway.position.distance_to(position) <= radius + gateway.radius:
 			results.append(gateway)
 	return results
 
 ## Use a gateway
-func use_gateway(gateway_id: String, entity: SynmergiaEntity) -> Dictionary:
+func use_gateway(gateway_id: String, entity) -> Dictionary:
 	var gateway = _gateways.get(gateway_id)
 	if gateway == null:
 		return {}
@@ -222,7 +221,7 @@ func set_gateway_locked(gateway_id: String, locked: bool) -> void:
 		GameLog.info("WorldService: Gateway %s %s" % [gateway_id, "locked" if locked else "unlocked"])
 
 ## Check gateway proximity and return usable gateways
-func get_nearby_gateway(entity: SynmergiaEntity) -> GatewayData:
+func get_nearby_gateway(entity) -> GatewayData:
 	var zone_manager = ZoneManager
 	if zone_manager == null:
 		return null

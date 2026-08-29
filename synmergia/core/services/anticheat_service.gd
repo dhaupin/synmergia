@@ -159,7 +159,7 @@ func _check_perfect_timing(profile: PlayerProfile) -> float:
 	
 	var variance := 0.0
 	for t in intervals:
-		var diff := t - mean
+		var diff: float = float(t) - float(mean)
 		variance += diff * diff
 	variance /= intervals.size()
 	
@@ -207,7 +207,7 @@ func _check_response_variance(profile: PlayerProfile) -> float:
 	
 	var variance := 0.0
 	for t in profile.response_times:
-		var diff := t - mean
+		var diff: float = float(t) - float(mean)
 		variance += diff * diff
 	variance /= profile.response_times.size()
 	
