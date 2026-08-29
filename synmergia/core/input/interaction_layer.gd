@@ -52,7 +52,7 @@ signal platform_changed(platform: Platform)
 func _ready() -> void:
 	instance = self
 	_detect_platform()
-	GameLogger.info("InteractionLayer: Initialized for %s" % _get_platform_name())
+	GameLog.info("InteractionLayer: Initialized for %s" % _get_platform_name())
 
 func _input(event: InputEvent) -> void:
 	_process_input(event)

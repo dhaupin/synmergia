@@ -47,7 +47,7 @@ func load_all_data() -> void:
 	load_dwellings()
 	
 	_loaded = true
-	GameLogger.info("DataService: Loaded all data")
+	GameLog.info("DataService: Loaded all data")
 
 ## Scan directory for .tres files
 func _scan_directory(path: String, resource_type: String) -> Dictionary:
@@ -55,7 +55,7 @@ func _scan_directory(path: String, resource_type: String) -> Dictionary:
 	
 	var dir := DirAccess.open(path)
 	if dir == null:
-		GameLogger.warn("DataService: Cannot open directory: " + path)
+		GameLog.warn("DataService: Cannot open directory: " + path)
 		return results
 	
 	dir.list_dir_begin()
@@ -74,7 +74,7 @@ func _scan_directory(path: String, resource_type: String) -> Dictionary:
 				if resource:
 					var id := _get_resource_id(resource, file_name)
 					results[id] = resource
-					GameLogger.debug("DataService: Loaded " + resource_type + ": " + id)
+					GameLog.debug("DataService: Loaded " + resource_type + ": " + id)
 		
 		file_name = dir.get_next()
 	
@@ -85,7 +85,7 @@ func _scan_directory(path: String, resource_type: String) -> Dictionary:
 func load_resource(path: String) -> Resource:
 	var resource = load(path)
 	if resource == null:
-		GameLogger.warn("DataService: Failed to load: " + path)
+		GameLog.warn("DataService: Failed to load: " + path)
 	return resource
 
 ## Extract ID from resource or filename
@@ -98,67 +98,67 @@ func _get_resource_id(resource: Resource, filename: String) -> String:
 ## Load skills from data/skills/
 func load_skills() -> void:
 	_skills = _scan_directory(_data_path + "skills", "skill")
-	GameLogger.info("DataService: Loaded %d skills" % _skills.size())
+	GameLog.info("DataService: Loaded %d skills" % _skills.size())
 
 ## Load items from data/items/
 func load_items() -> void:
 	_items = _scan_directory(_data_path + "items", "item")
-	GameLogger.info("DataService: Loaded %d items" % _items.size())
+	GameLog.info("DataService: Loaded %d items" % _items.size())
 
 ## Load enemies from data/enemies/
 func load_enemies() -> void:
 	_enemies = _scan_directory(_data_path + "enemies", "enemy")
-	GameLogger.info("DataService: Loaded %d enemies" % _enemies.size())
+	GameLog.info("DataService: Loaded %d enemies" % _enemies.size())
 
 ## Load classes from data/classes/
 func load_classes() -> void:
 	_classes = _scan_directory(_data_path + "classes", "class")
-	GameLogger.info("DataService: Loaded %d classes" % _classes.size())
+	GameLog.info("DataService: Loaded %d classes" % _classes.size())
 
 ## Load species from data/species/
 func load_species() -> void:
 	_species = _scan_directory(_data_path + "species", "species")
-	GameLogger.info("DataService: Loaded %d species" % _species.size())
+	GameLog.info("DataService: Loaded %d species" % _species.size())
 
 ## Load factions from data/factions/
 func load_factions() -> void:
 	_factions = _scan_directory(_data_path + "factions", "faction")
-	GameLogger.info("DataService: Loaded %d factions" % _factions.size())
+	GameLog.info("DataService: Loaded %d factions" % _factions.size())
 
 ## Load zones from data/zones/
 func load_zones() -> void:
 	_zones = _scan_directory(_data_path + "zones", "zone")
-	GameLogger.info("DataService: Loaded %d zones" % _zones.size())
+	GameLog.info("DataService: Loaded %d zones" % _zones.size())
 
 ## Load events from data/events/
 func load_events() -> void:
 	_events = _scan_directory(_data_path + "events", "event")
-	GameLogger.info("DataService: Loaded %d events" % _events.size())
+	GameLog.info("DataService: Loaded %d events" % _events.size())
 
 ## Load dwellings from data/dwellings/
 func load_dwellings() -> void:
 	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
-	GameLogger.info("DataService: Loaded %d dwellings" % _dwellings.size())
+	GameLog.info("DataService: Loaded %d dwellings" % _dwellings.size())
 
 ## Load NPCs from data/npcs/
 func load_npcs() -> void:
 	_npcs = _scan_directory(_data_path + "npcs", "npc")
-	GameLogger.info("DataService: Loaded %d NPCs" % _npcs.size())
+	GameLog.info("DataService: Loaded %d NPCs" % _npcs.size())
 
 ## Load status effects from data/status_effects/
 func load_status_effects() -> void:
 	_status_effects = _scan_directory(_data_path + "status_effects", "status_effect")
-	GameLogger.info("DataService: Loaded %d status effects" % _status_effects.size())
+	GameLog.info("DataService: Loaded %d status effects" % _status_effects.size())
 
 ## Load quests from data/quests/
 func load_quests() -> void:
 	_quests = _scan_directory(_data_path + "quests", "quest")
-	GameLogger.info("DataService: Loaded %d quests" % _quests.size())
+	GameLog.info("DataService: Loaded %d quests" % _quests.size())
 
 ## Load gateways from data/gateways/
 func load_gateways() -> void:
 	_gateways = _scan_directory(_data_path + "gateways", "gateway")
-	GameLogger.info("DataService: Loaded %d gateways" % _gateways.size())
+	GameLog.info("DataService: Loaded %d gateways" % _gateways.size())
 
 ## Get methods
 func get_skill(id: String) -> Skill:
@@ -289,7 +289,7 @@ func reload_category(category: String) -> void:
 			_gateways.clear()
 			load_gateways()
 		_:
-			GameLogger.warn("DataService: Unknown category: " + category)
+			GameLog.warn("DataService: Unknown category: " + category)
 
 ## Get counts
 func get_counts() -> Dictionary:

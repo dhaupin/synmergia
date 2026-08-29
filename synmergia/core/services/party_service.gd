@@ -39,7 +39,7 @@ signal party_member_updated(party_id: String, player_id: String)
 signal xp_shared(party_id: String, base_xp: int, xp_distribution: Dictionary, killer_id: String)
 
 func _ready() -> void:
-				GameLogger.info("PartyService: Ready")
+				GameLog.info("PartyService: Ready")
 
 ## Create a new party
 func create_party(leader_id: String, is_raid: bool = false) -> String:
@@ -53,7 +53,7 @@ func create_party(leader_id: String, is_raid: bool = false) -> String:
 								return ""
 				
 				if _player_parties.has(leader_id):
-								GameLogger.warn("PartyService: Player %s already in a party" % leader_id)
+								GameLog.warn("PartyService: Player %s already in a party" % leader_id)
 								return ""
 				
 				var party_id := "party_%s_%d" % [leader_id, Time.get_ticks_msec()]
@@ -72,7 +72,7 @@ func create_party(leader_id: String, is_raid: bool = false) -> String:
 				_player_parties[leader_id] = party_id
 				
 				party_created.emit(party_id, leader_id)
-				GameLogger.info("PartyService: Created party %s with leader %s" % [party_id, leader_id])
+				GameLog.info("PartyService: Created party %s with leader %s" % [party_id, leader_id])
 				
 				return party_id
 
@@ -80,7 +80,7 @@ func create_party(leader_id: String, is_raid: bool = false) -> String:
 func disband_party(party_id: String) -> bool:
 				# QoS: Rate limit party disband
 				if not QoSService.rate_limit(party_id, "party"):
-								GameLogger.debug("PartyService: Rate limited party disband for %s" % party_id)
+								GameLog.debug("PartyService: Rate limited party disband for %s" % party_id)
 								return false
 				
 				var party := _parties.get(party_id)
@@ -97,7 +97,7 @@ func disband_party(party_id: String) -> bool:
 				
 				_parties.erase(party_id)
 				party_disbanded.emit(party_id)
-				GameLogger.info("PartyService: Disbanded party %s" % party_id)
+				GameLog.info("PartyService: Disbanded party %s" % party_id)
 				
 				return true
 
@@ -118,7 +118,7 @@ func invite_player(from_id: String, to_id: String) -> bool:
 				# Check if inviter is in a party
 				var inviter_party_id := _player_parties.get(from_id, "")
 				if inviter_party_id == "":
-								GameLogger.warn("PartyService: Inviter %s not in a party" % from_id)
+								GameLog.warn("PartyService: Inviter %s not in a party" % from_id)
 								return false
 				
 				var party := _parties.get(inviter_party_id)
@@ -127,12 +127,12 @@ func invite_player(from_id: String, to_id: String) -> bool:
 				
 				# Check party size
 				if party["members"].size() >= party["max_size"]:
-								GameLogger.warn("PartyService: Party %s is full" % inviter_party_id)
+								GameLog.warn("PartyService: Party %s is full" % inviter_party_id)
 								return false
 				
 				# Check if invitee is already in a party
 				if _player_parties.has(to_id):
-								GameLogger.warn("PartyService: Target %s already in a party" % to_id)
+								GameLog.warn("PartyService: Target %s already in a party" % to_id)
 								return false
 				
 				# Create invite
@@ -147,7 +147,7 @@ func invite_player(from_id: String, to_id: String) -> bool:
 				}
 				
 				party_invite_sent.emit(from_id, to_id)
-				GameLogger.info("PartyService: Invite %s from %s to %s" % [invite_id, from_id, to_id])
+				GameLog.info("PartyService: Invite %s from %s to %s" % [invite_id, from_id, to_id])
 				
 				# Set up expire timer (simplified - in production use a proper timer)
 				return true
@@ -177,7 +177,7 @@ func accept_invite(to_id: String) -> bool:
 																
 																player_joined_party.emit(party_id, to_id)
 																party_invite_accepted.emit(from_id, to_id)
-																GameLogger.info("PartyService: %s joined party %s" % [to_id, party_id])
+																GameLog.info("PartyService: %s joined party %s" % [to_id, party_id])
 																return true
 				
 				return false
@@ -190,7 +190,7 @@ func decline_invite(to_id: String) -> bool:
 												var from_id := invite["from"]
 												_pending_invites.erase(invite_id)
 												party_invite_declined.emit(from_id, to_id)
-												GameLogger.info("PartyService: %s declined invite from %s" % [to_id, from_id])
+												GameLog.info("PartyService: %s declined invite from %s" % [to_id, from_id])
 												return true
 				
 				return false
@@ -215,14 +215,14 @@ func leave_party(player_id: String) -> bool:
 								if party["members"].size() > 0:
 												party["leader_id"] = party["members"][0]
 												leader_changed.emit(party_id, old_leader, party["leader_id"])
-												GameLogger.info("PartyService: New leader %s for party %s" % [party["leader_id"], party_id])
+												GameLog.info("PartyService: New leader %s for party %s" % [party["leader_id"], party_id])
 								else:
 												# No members left, disband
 												disband_party(party_id)
 												return true
 				
 				player_left_party.emit(party_id, player_id, "Left party")
-				GameLogger.info("PartyService: %s left party %s" % [player_id, party_id])
+				GameLog.info("PartyService: %s left party %s" % [player_id, party_id])
 				
 				# Check if party should be disbanded
 				if party["members"].size() == 0:
@@ -238,7 +238,7 @@ func kick_player(leader_id: String, target_id: String) -> bool:
 				
 				var party := _parties.get(party_id)
 				if not party or party["leader_id"] != leader_id:
-								GameLogger.warn("PartyService: Only leader can kick players")
+								GameLog.warn("PartyService: Only leader can kick players")
 								return false
 				
 				if not party["members"].has(target_id):
@@ -247,7 +247,7 @@ func kick_player(leader_id: String, target_id: String) -> bool:
 				party["members"].erase(target_id)
 				_player_parties.erase(target_id)
 				player_left_party.emit(party_id, target_id, "Kicked by leader")
-				GameLogger.info("PartyService: Kicked %s from party %s" % [target_id, party_id])
+				GameLog.info("PartyService: Kicked %s from party %s" % [target_id, party_id])
 				
 				return true
 
@@ -286,7 +286,7 @@ func set_loot_rule(leader_id: String, rule: LootRule) -> bool:
 				
 				party["loot_rule"] = rule
 				loot_rule_changed.emit(party_id, rule)
-				GameLogger.info("PartyService: Loot rule changed to %s for party %s" % [LootRule.keys()[rule], party_id])
+				GameLog.info("PartyService: Loot rule changed to %s for party %s" % [LootRule.keys()[rule], party_id])
 				
 				return true
 
@@ -312,7 +312,7 @@ func promote_to_leader(current_leader_id: String, new_leader_id: String) -> bool
 				party["members"].append(old_leader)
 				
 				leader_changed.emit(party_id, old_leader, new_leader_id)
-				GameLogger.info("PartyService: Promoted %s to leader of party %s" % [new_leader_id, party_id])
+				GameLog.info("PartyService: Promoted %s to leader of party %s" % [new_leader_id, party_id])
 				
 				return true
 

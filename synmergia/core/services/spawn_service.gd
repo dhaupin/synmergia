@@ -80,7 +80,7 @@ signal npc_spawned(npc: SynmergiaEntity, npc_id: String, metadata: EventBus.Spaw
 signal spawn_point_cleared(spawn_point_id: String)
 
 func _ready() -> void:
-	GameLogger.info("SpawnService: Ready")
+	GameLog.info("SpawnService: Ready")
 
 ## Register a spawn point
 func register_spawn_point(
@@ -124,7 +124,7 @@ func register_spawn_point(
 		"enemy_template": enemy_template_id
 	})
 	
-	GameLogger.debug("SpawnService: Registered spawn point %s in zone %s" % [spawn_point_id, zone_id])
+	GameLog.debug("SpawnService: Registered spawn point %s in zone %s" % [spawn_point_id, zone_id])
 	return spawn_point_id
 
 ## Register spawn point from config
@@ -218,7 +218,7 @@ func spawn_enemy(spawn_point_id: String) -> SynmergiaEntity:
 	
 	# Emit service-specific signal with spawn point context
 	enemy_spawned.emit(enemy, spawn_point_id, metadata)
-	GameLogger.debug("SpawnService: Spawned %s at %s" % [enemy.display_name, spawn_point_id])
+	GameLog.debug("SpawnService: Spawned %s at %s" % [enemy.display_name, spawn_point_id])
 	
 	return enemy
 
@@ -236,7 +236,7 @@ func spawn_boss(
 	
 	var boss_data = data_service.get_enemy(boss_template_id)
 	if boss_data == null:
-		GameLogger.warn("SpawnService: Boss template %s not found" % boss_template_id)
+		GameLog.warn("SpawnService: Boss template %s not found" % boss_template_id)
 		return null
 	
 	var boss = SynmergiaEntity.new()
@@ -291,7 +291,7 @@ func spawn_boss(
 	
 	# Emit service-specific signal with spawn context
 	boss_spawned.emit(boss, boss.display_name, metadata)
-	GameLogger.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, str(position)])
+	GameLog.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, str(position)])
 	
 	# Notification is now handled by NotificationService listening to EventBus.entity_spawned
 	
@@ -319,7 +319,7 @@ func despawn_boss(entity: SynmergiaEntity) -> void:
 	if is_instance_valid(entity):
 		entity.queue_free()
 	
-	GameLogger.info("SpawnService: Despawned boss %s" % entity.display_name)
+	GameLog.info("SpawnService: Despawned boss %s" % entity.display_name)
 
 ## Spawn boss with server-wide alert (convenience method)
 func spawn_world_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "") -> SynmergiaEntity:
@@ -390,13 +390,13 @@ func is_zone_at_cap(zone_id: String) -> bool:
 func set_spawn_multiplier(zone_id: String, multiplier: float) -> void:
 	for spawn_point in _spawn_points.get(zone_id, []):
 		spawn_point.spawn_multiplier = multiplier
-	GameLogger.info("SpawnService: Set spawn multiplier to %.1f for zone %s" % [multiplier, zone_id])
+	GameLog.info("SpawnService: Set spawn multiplier to %.1f for zone %s" % [multiplier, zone_id])
 
 ## Clear all spawns in a zone
 func clear_zone_spawns(zone_id: String) -> void:
 	for spawn_point in _spawn_points.get(zone_id, []):
 		_clear_spawn_point(spawn_point)
-	GameLogger.info("SpawnService: Cleared all spawns in zone %s" % zone_id)
+	GameLog.info("SpawnService: Cleared all spawns in zone %s" % zone_id)
 
 ## Enable/disable spawn point
 func set_spawn_point_active(spawn_point_id: String, active: bool) -> void:
@@ -477,7 +477,7 @@ func _clear_spawn_point(spawn_point: SpawnPoint) -> void:
 
 func _create_enemy(spawn_point: SpawnPoint) -> SynmergiaEntity:
 	if spawn_point.enemy_data == null:
-		GameLogger.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
+		GameLog.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
 		return null
 	
 	var enemy = SynmergiaEntity.new()
@@ -554,7 +554,7 @@ func spawn_blacksmith(
 			if zone:
 				zone_manager.entity_enter_zone(blacksmith, zone)
 		
-		GameLogger.info("SpawnService: Spawned Blacksmith '%s' at (%s) in zone %s" % [blacksmith.display_name, position, zone_id])
+		GameLog.info("SpawnService: Spawned Blacksmith '%s' at (%s) in zone %s" % [blacksmith.display_name, position, zone_id])
 		# Note: EventBus.entity_spawned is already emitted by EntityService.register_entity()
 		
 		return blacksmith
@@ -610,4 +610,4 @@ func despawn_npc(entity: SynmergiaEntity) -> void:
 	if is_instance_valid(entity):
 		entity.queue_free()
 	
-	GameLogger.info("SpawnService: Despawned NPC %s" % entity.display_name)
+	GameLog.info("SpawnService: Despawned NPC %s" % entity.display_name)

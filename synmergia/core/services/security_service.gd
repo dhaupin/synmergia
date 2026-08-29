@@ -152,7 +152,7 @@ func can_moderate(player_level: int) -> bool:
 ## Log permission denial
 func log_permission_denied(player_id: String, action: String, required_level: int) -> void:
 	permission_denied.emit(player_id, action, required_level)
-	GameLogger.warn("SecurityService: Permission denied for %s on action '%s' (required: %d)" % [
+	GameLog.warn("SecurityService: Permission denied for %s on action '%s' (required: %d)" % [
 		player_id, action, required_level
 	])
 
@@ -251,7 +251,7 @@ func check_input_anomaly(player_id: String, input_type: String, value: float) ->
 ## Internal: Report exploit
 func _report_exploit(player_id: String, exploit_type: String, details: Dictionary) -> void:
 	exploit_detected.emit(player_id, exploit_type, details)
-	GameLogger.warn("SecurityService: Exploit detected - %s for player %s: %s" % [
+	GameLog.warn("SecurityService: Exploit detected - %s for player %s: %s" % [
 		exploit_type, player_id, JSON.stringify(details)
 	])
 
@@ -323,7 +323,7 @@ func restrict_player(player_id: String, restriction_type: String, duration_secon
 	# Notify player
 	_notify_player_restricted(player_id, restriction_type, duration_seconds)
 	
-	GameLogger.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
+	GameLog.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
 
 ## Remove restriction from player
 func unrestrict_player(player_id: String, restriction_type: String) -> bool:
@@ -341,7 +341,7 @@ func unrestrict_player(player_id: String, restriction_type: String) -> bool:
 	# Notify player
 	_notify_player_unrestricted(player_id, restriction_type)
 	
-	GameLogger.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
+	GameLog.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
 	return true
 
 ## Check if player is restricted from an action

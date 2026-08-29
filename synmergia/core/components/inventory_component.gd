@@ -39,7 +39,7 @@ func add_item(item: Item, quantity: int = 1) -> bool:
 				if item and item.id != "":
 								var exploit_detected := SecurityService.check_item_duplication(_owner_id, item.id, quantity)
 								if exploit_detected:
-												GameLogger.warn("InventoryComponent: Item duplication detected for player %s" % _owner_id)
+												GameLog.warn("InventoryComponent: Item duplication detected for player %s" % _owner_id)
 												return false
 
 				# Try to stack first
@@ -411,7 +411,7 @@ func expand_inventory() -> bool:
 				_unlocked_bags += 1
 
 				bag_expanded.emit(_unlocked_bags - 1, BAG_SIZE)
-				GameLogger.info("InventoryComponent: Expanded inventory with bag %d" % (_unlocked_bags - 1))
+				GameLog.info("InventoryComponent: Expanded inventory with bag %d" % (_unlocked_bags - 1))
 				return true
 
 ## Get total inventory slots (base + bags)
@@ -547,7 +547,7 @@ func expand_bank() -> bool:
 				_bank_expansion_count += 1
 
 				bank_expanded.emit(_bank_size)
-				GameLogger.info("InventoryComponent: Bank expanded to %d slots" % _bank_size)
+				GameLog.info("InventoryComponent: Bank expanded to %d slots" % _bank_size)
 				return true
 
 ## Get all bank items
@@ -612,7 +612,7 @@ func sell_item(slot: int, quantity: int = -1) -> int:
 
 				add_gold(price)
 				item_sold.emit(item, price)
-				GameLogger.info("InventoryComponent: Sold %s for %d gold" % [item.display_name, price])
+				GameLog.info("InventoryComponent: Sold %s for %d gold" % [item.display_name, price])
 
 				return price
 
@@ -632,10 +632,10 @@ func destroy_item(slot: int, quantity: int = -1) -> bool:
 				if quantity < 0 or quantity >= item.current_stack:
 								_inventory[slot] = null
 								item_removed.emit(item, slot)
-								GameLogger.info("InventoryComponent: Destroyed %s" % item.display_name)
+								GameLog.info("InventoryComponent: Destroyed %s" % item.display_name)
 				else:
 								item.current_stack -= quantity
-								GameLogger.info("InventoryComponent: Destroyed %d x %s" % [quantity, item.display_name])
+								GameLog.info("InventoryComponent: Destroyed %d x %s" % [quantity, item.display_name])
 
 				item_destroyed.emit(item)
 				return true

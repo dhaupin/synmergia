@@ -60,7 +60,7 @@ class GatewayData:
 		}
 
 func _ready() -> void:
-	GameLogger.info("WorldService: Ready")
+	GameLog.info("WorldService: Ready")
 
 ## Initialize the world
 func initialize_world() -> void:
@@ -74,7 +74,7 @@ func initialize_world() -> void:
 	if faction_manager:
 		faction_manager.load_factions()
 	
-	GameLogger.info("WorldService: World initialized")
+	GameLog.info("WorldService: World initialized")
 
 ## Get current time of day string
 func get_time_of_day() -> String:
@@ -161,7 +161,7 @@ func register_gateway(config: Dictionary) -> String:
 	gateway.activation_radius = config.get("activation_radius", 3.0)
 	
 	_gateways[gateway_id] = gateway
-	GameLogger.debug("WorldService: Registered gateway %s" % gateway_id)
+	GameLog.debug("WorldService: Registered gateway %s" % gateway_id)
 	return gateway_id
 
 ## Get gateway by ID
@@ -191,7 +191,7 @@ func use_gateway(gateway_id: String, entity: SynmergiaEntity) -> Dictionary:
 		return {}
 	
 	if not gateway.can_use(entity):
-		GameLogger.debug("WorldService: %s cannot use gateway %s" % [entity.display_name, gateway_id])
+		GameLog.debug("WorldService: %s cannot use gateway %s" % [entity.display_name, gateway_id])
 		return {}
 	
 	# Exit current zone
@@ -211,7 +211,7 @@ func use_gateway(gateway_id: String, entity: SynmergiaEntity) -> Dictionary:
 	gateway_activated.emit(gateway_id, entity)
 	EventBus.entity_teleported.emit(entity, gateway.position, destination.position)
 	
-	GameLogger.debug("WorldService: %s used gateway %s to %s" % [entity.display_name, gateway_id, destination.zone_id])
+	GameLog.debug("WorldService: %s used gateway %s to %s" % [entity.display_name, gateway_id, destination.zone_id])
 	return destination
 
 ## Lock/unlock gateway
@@ -219,7 +219,7 @@ func set_gateway_locked(gateway_id: String, locked: bool) -> void:
 	var gateway = _gateways.get(gateway_id)
 	if gateway:
 		gateway.is_locked = locked
-		GameLogger.info("WorldService: Gateway %s %s" % [gateway_id, "locked" if locked else "unlocked"])
+		GameLog.info("WorldService: Gateway %s %s" % [gateway_id, "locked" if locked else "unlocked"])
 
 ## Check gateway proximity and return usable gateways
 func get_nearby_gateway(entity: SynmergiaEntity) -> GatewayData:
@@ -258,7 +258,7 @@ func start_event(event_id: String, duration_seconds: float, message: String = ""
 	_apply_event_effects(event_id, true)
 	
 	event_started.emit(event_id, event_id)
-	GameLogger.info("WorldService: Event started: %s" % event_id)
+	GameLog.info("WorldService: Event started: %s" % event_id)
 	
 	# Notify players
 	var notification_service = NotificationService
@@ -285,7 +285,7 @@ func end_event(event_id: String, message: String = "") -> void:
 		_apply_event_effects(event_id, false)
 		
 		event_ended.emit(event_id, event.get("name", event_id))
-		GameLogger.info("WorldService: Event ended: %s" % event_id)
+		GameLog.info("WorldService: Event ended: %s" % event_id)
 		
 		# Notify players
 		var notification_service = NotificationService
@@ -343,7 +343,7 @@ func _apply_event_effects(event_id: String, is_start: bool) -> void:
 func generate_world_from_seed(seed_value: int) -> void:
 	world_seed = seed_value
 	seed(seed_value)
-	GameLogger.info("WorldService: Generating world from seed %d" % seed_value)
+	GameLog.info("WorldService: Generating world from seed %d" % seed_value)
 	# Zone generation would happen here
 	# For now, we assume zones are pre-defined
 

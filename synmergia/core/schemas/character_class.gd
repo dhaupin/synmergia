@@ -126,7 +126,7 @@ func can_equip_item(item: Item) -> bool:
 	
 	# Weapon check
 	if item.equip_slot == Item.EquipSlot.MAIN_HAND or item.equip_slot == Item.EquipSlot.OFF_HAND:
-		if item.item_type == Item.ItemType.WEAPON:
+		if item.item_category == Item.ItemCategory.WEAPON:
 			match item.equip_slot:
 				Item.EquipSlot.MAIN_HAND:
 					var weapon_type = item.get("weapon_type", "sword")

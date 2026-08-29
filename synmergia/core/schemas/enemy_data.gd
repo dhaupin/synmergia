@@ -98,7 +98,7 @@ func get_scaled_damage() -> int:
 ## Create actual stats dictionary for spawning
 func get_stats_for_level(lvl_override: int = -1) -> Dictionary:
 	return {
-		"health": get_scaled_health(lvl_override),
+		"health": get_scaled_stat(health, lvl_override),
 		"mana": get_scaled_stat(mana, lvl_override),
 		"stamina": get_scaled_stat(stamina, lvl_override),
 		"strength": get_scaled_stat(strength, lvl_override),

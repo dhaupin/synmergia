@@ -9,7 +9,7 @@ var _commands: Dictionary = {}
 
 func _ready() -> void:
 	_register_commands()
-	GameLogger.info("AdminCommands: Initialized")
+	GameLog.info("AdminCommands: Initialized")
 
 func _register_commands() -> void:
 	_commands = {
@@ -131,7 +131,7 @@ func execute_command(cmd_name: String, args: Array, caller_id: String) -> Dictio
 	
 	var handler: Callable = cmd["handler"]
 	var result = handler.call(args)
-	GameLogger.info("AdminCommand: %s executed /%s" % [caller_id, cmd_name])
+	GameLog.info("AdminCommand: %s executed /%s" % [caller_id, cmd_name])
 	
 	return result
 
@@ -270,7 +270,7 @@ func _cmd_resurrect(args: Array) -> Dictionary:
 			int(health_percent * 100),
 			int(mana_percent * 100)
 		]
-		GameLogger.info("AdminCommand: %s" % msg)
+		GameLog.info("AdminCommand: %s" % msg)
 		return {"success": true, "message": msg}
 	else:
 		return {"success": false, "message": result.get("reason", "Failed to resurrect")}
@@ -379,6 +379,6 @@ func _do_resurrect(entity: SynmergiaEntity, health_percent: float, mana_percent:
 	EventBus.player_resurrected.emit(entity, "admin")
 	EventBus.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE if RespawnService else 0)
 	
-	GameLogger.info("Respawn: %s resurrected by admin" % entity.display_name)
+	GameLog.info("Respawn: %s resurrected by admin" % entity.display_name)
 	
 	return {"success": true}

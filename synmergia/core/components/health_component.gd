@@ -151,9 +151,9 @@ func _create_corpse(killer: SynmergiaEntity) -> void:
 			_corpse.setup(entity, killer)
 		get_tree().root.add_child(_corpse)
 		EventBus.corpse_created.emit(entity, _corpse, killer)
-		GameLogger.debug("HealthComponent: Created corpse at %s" % entity.global_position)
+		GameLog.debug("HealthComponent: Created corpse at %s" % entity.global_position)
 	else:
-		GameLogger.warn("HealthComponent: Corpse scene not found at %s" % corpse_scene_path)
+		GameLog.warn("HealthComponent: Corpse scene not found at %s" % corpse_scene_path)
 
 ## Remove corpse
 func _remove_corpse() -> void:
@@ -374,7 +374,7 @@ func use_self_rez_item(item: Item) -> Dictionary:
 	EventBus.entity_spawned.emit(entity)
 	EventBus.self_resurrected.emit(entity, item)
 	
-	GameLogger.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])
+	GameLog.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])
 	
 	return {
 		"success": true,

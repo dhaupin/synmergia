@@ -38,7 +38,7 @@ func _initialize_ui() -> void:
 	# Add to root (CanvasLayer would be better, but keeping simple)
 	get_tree().root.add_child(_tooltip)
 	
-	GameLogger.debug("UIManager: Initialized TargetTooltip")
+	GameLog.debug("UIManager: Initialized TargetTooltip")
 
 ## Show game UI elements
 func _show_game_ui() -> void:

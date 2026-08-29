@@ -154,7 +154,7 @@ const MAX_REPORTS_PER_HOUR: int = 10
 var _hourly_reports: Dictionary = {}  # reporter_id -> {count, window_start}
 
 func _ready() -> void:
-	GameLogger.info("PlayerReporter: Initialized")
+	GameLog.info("PlayerReporter: Initialized")
 
 ## ============================================================================
 ## PUBLIC API
@@ -329,7 +329,7 @@ func update_report_status(admin_id: String, report_id: String, new_status: Statu
 		report.assigned_to = admin_id
 	
 	# Log status change
-	GameLogger.info("PlayerReporter: Report %s status changed to %s by %s" % [report_id, new_status, admin_id])
+	GameLog.info("PlayerReporter: Report %s status changed to %s by %s" % [report_id, new_status, admin_id])
 	
 	# Notify reporter
 	_notify_reporter(report)
@@ -394,11 +394,11 @@ func _log_report(report: Report) -> void:
 		log_msg += " against %s" % report.target_id
 	
 	if report.priority == Priority.URGENT:
-		GameLogger.warn(log_msg)
+		GameLog.warn(log_msg)
 	elif report.priority == Priority.HIGH:
-		GameLogger.info(log_msg)
+		GameLog.info(log_msg)
 	else:
-		GameLogger.debug(log_msg)
+		GameLog.debug(log_msg)
 
 func _notify_reporter(report: Report) -> void:
 	if NotificationService:
@@ -424,7 +424,7 @@ func _emit_urgent_alert(report: Report) -> void:
 	urgent_report.emit(report)
 	
 	# Log prominently
-	GameLogger.warn("URGENT REPORT: %s - %s" % [report.id, report.subject])
+	GameLog.warn("URGENT REPORT: %s - %s" % [report.id, report.subject])
 
 ## ============================================================================
 ## MAINTENANCE

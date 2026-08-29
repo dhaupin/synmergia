@@ -24,7 +24,7 @@ signal shard_status_changed(shard_id: String, status: String)
 signal player_count_changed(count: int)
 
 func _ready() -> void:
-	GameLogger.info("ShardManager: Ready as %s (%s)" % [shard_id, shard_name])
+	GameLog.info("ShardManager: Ready as %s (%s)" % [shard_id, shard_name])
 
 ## Configure this shard
 func configure(config: Dictionary) -> void:
@@ -35,7 +35,7 @@ func configure(config: Dictionary) -> void:
 	world_size_km2 = config.get("world_size_km2", 200.0)
 	max_players_per_shard = config.get("max_players_per_shard", 5000)
 	
-	GameLogger.info("ShardManager: Configured as %s (%s), world size: %.0f km²" % [shard_id, shard_name, world_size_km2])
+	GameLog.info("ShardManager: Configured as %s (%s), world size: %.0f km²" % [shard_id, shard_name, world_size_km2])
 
 ## Player tracking
 func player_connected() -> void:
@@ -56,7 +56,7 @@ func is_full() -> bool:
 func set_status(status: String) -> void:
 	_server_status = status
 	shard_status_changed.emit(shard_id, status)
-	GameLogger.info("ShardManager: Status changed to %s" % status)
+	GameLog.info("ShardManager: Status changed to %s" % status)
 
 func get_status() -> String:
 	return _server_status
@@ -66,12 +66,12 @@ func register_connected_shard(other_shard_id: String, info: Dictionary = {}) -> 
 	if not _connected_shards.has(other_shard_id):
 		_connected_shards.append(other_shard_id)
 	_shard_info[other_shard_id] = info
-	GameLogger.debug("ShardManager: Connected to shard %s" % other_shard_id)
+	GameLog.debug("ShardManager: Connected to shard %s" % other_shard_id)
 
 func unregister_shard(other_shard_id: String) -> void:
 	_connected_shards.erase(other_shard_id)
 	_shard_info.erase(other_shard_id)
-	GameLogger.debug("ShardManager: Disconnected from shard %s" % other_shard_id)
+	GameLog.debug("ShardManager: Disconnected from shard %s" % other_shard_id)
 
 func get_connected_shards() -> Array[String]:
 	return _connected_shards
