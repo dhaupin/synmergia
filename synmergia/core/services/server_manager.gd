@@ -110,7 +110,7 @@ func execute_restart() -> void:
 	)
 	
 	# Trigger actual server shutdown via event bus
-	EventBus.server_shutdown.emit()
+	EventHub.server_shutdown.emit()
 	
 	# Schedule actual process quit after a brief delay
 	var t = Timer.new()

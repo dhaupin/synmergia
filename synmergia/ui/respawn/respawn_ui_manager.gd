@@ -8,7 +8,7 @@ var _pending_respawn: Dictionary = {}
 
 func _ready() -> void:
 	# Listen for player death events specifically
-	EventBus.player_died.connect(_on_player_died)
+	EventHub.player_died.connect(_on_player_died)
 	GameLogger.info("RespawnUIManager: Initialized")
 
 func _on_player_died(entity: SynmergiaEntity, killer: SynmergiaEntity) -> void:

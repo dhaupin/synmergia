@@ -87,7 +87,7 @@ func set_relation(other_faction_id: String, relation: Relation) -> void:
 		var data_service = DataService
 		if data_service:
 			other_faction = data_service.get_faction(other_faction_id)
-	EventBus.faction_hostility_changed.emit(self, other_faction)
+	EventHub.faction_hostility_changed.emit(self, other_faction)
 
 ## Can members of this faction PvP with members of another?
 func can_pvp_with(other_faction_id: String, player_level: int = 1) -> bool:

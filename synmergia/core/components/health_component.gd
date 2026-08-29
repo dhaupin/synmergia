@@ -71,7 +71,7 @@ func take_damage(amount: int, source: SynmergiaEntity = null, damage_type: Strin
 	health_changed.emit(current_health, max_health, -actual_damage)
 	
 	# Emit combat events
-	EventBus.damage_dealt.emit(source, get_parent(), actual_damage, damage_type)
+	EventHub.damage_dealt.emit(source, get_parent(), actual_damage, damage_type)
 	
 	if current_health <= 0:
 		die(source)
@@ -117,19 +117,19 @@ func die(killer: SynmergiaEntity = null) -> void:
 	_create_corpse(killer)
 	
 	health_depleted.emit()
-	EventBus.entity_died.emit(entity, killer, null)
+	EventHub.entity_died.emit(entity, killer, null)
 	
 	# Emit player-specific signals
 	if entity is PlayerController:
-		EventBus.player_died.emit(entity, killer)
+		EventHub.player_died.emit(entity, killer)
 	
 	# Emit entity killed (for kill streak tracking)
 	if killer:
-		EventBus.entity_killed.emit(killer, entity, "physical")
+		EventHub.entity_killed.emit(killer, entity, "physical")
 		
 		# Emit player_killed_player for PvP tracking
 		if killer is PlayerController and entity is PlayerController:
-			EventBus.player_killed_player.emit(killer, entity)
+			EventHub.player_killed_player.emit(killer, entity)
 	
 	# Start respawn timer
 	_start_respawn()
@@ -150,7 +150,7 @@ func _create_corpse(killer: SynmergiaEntity) -> void:
 		if _corpse.has_method("setup"):
 			_corpse.setup(entity, killer)
 		get_tree().root.add_child(_corpse)
-		EventBus.corpse_created.emit(entity, _corpse, killer)
+		EventHub.corpse_created.emit(entity, _corpse, killer)
 		GameLog.debug("HealthComponent: Created corpse at %s" % entity.global_position)
 	else:
 		GameLog.warn("HealthComponent: Corpse scene not found at %s" % corpse_scene_path)
@@ -218,7 +218,7 @@ func _do_respawn_at(position: Vector3) -> void:
 	entity.global_position = position
 	
 	respawned.emit()
-	EventBus.entity_spawned.emit(entity)
+	EventHub.entity_spawned.emit(entity)
 
 ## Start respawn process
 func _start_respawn() -> void:
@@ -269,7 +269,7 @@ func _do_respawn() -> void:
 	entity.global_position = _bind_position
 	
 	respawned.emit()
-	EventBus.entity_spawned.emit(entity)
+	EventHub.entity_spawned.emit(entity)
 
 ## Set max health
 func set_max_health(new_max: int) -> void:
@@ -371,8 +371,8 @@ func use_self_rez_item(item: Item) -> Dictionary:
 	
 	# Emit signals
 	respawned.emit()
-	EventBus.entity_spawned.emit(entity)
-	EventBus.self_resurrected.emit(entity, item)
+	EventHub.entity_spawned.emit(entity)
+	EventHub.self_resurrected.emit(entity, item)
 	
 	GameLog.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])
 	

@@ -1,119 +1,85 @@
 ## EventHub - Unified event system interface
 ## Wraps all domain-specific event buses under one autoload
-## Replaces the monolithic event_bus.gd
-class_name EventHub
 extends Node
 
-## Domain-specific event buses
-var entity: EntityEvents
-var combat: CombatEvents
-var inventory: InventoryEvents
-var system: SystemEvents
+## Spawn metadata for entity lifecycle events
+class SpawnMetadata:
+	var spawn_type: int = 0
+	var entity_id: String = ""
+	var display_name: String = ""
+	var zone_id: String = ""
+	var position: Vector3 = Vector3.ZERO
+	var spawner_entity_id: String = ""
+	var spawn_point_id: String = ""
+	var level: int = 1
+	var tags: Array = []
+	var quest_id: String = ""
+	var notification_enabled: bool = false
+	var notification_scopes: Array = []
+	var notification_message: String = ""
+	var notification_priority: int = 0
+	
+	enum SpawnType {
+		NORMAL = 0,
+		ELITE = 1,
+		BOSS = 2,
+		WORLD_BOSS = 3,
+		NPC = 4,
+		LOOT = 5,
+		DWELLING = 6,
+		GATEWAY = 7,
+	}
+	
+	enum NotificationPriority {
+		LOW = 0,
+		NORMAL = 1,
+		HIGH = 2,
+		CRITICAL = 3,
+	}
+	
+	func _init(p_type: int = 0, p_name: String = "", p_zone: String = "", p_pos: Vector3 = Vector3.ZERO):
+		spawn_type = p_type
+		display_name = p_name
+		zone_id = p_zone
+		position = p_pos
+	
+	func get_spawn_type_string() -> String:
+		match spawn_type:
+			0: return "Normal"
+			1: return "Elite"
+			2: return "Boss"
+			3: return "World Boss"
+			4: return "NPC"
+			5: return "Loot"
+			_: return "Unknown"
 
-## Legacy signal aliases (for backward compatibility)
-## These forward to the new domain buses
-signal entity_spawned(entity_id: String, zone_id: String, position: Vector3)
-signal entity_despawned(entity_id: String, reason: String)
-signal entity_died(entity_id: String, killer_id: String, damage_type: String)
-signal player_resurrected(entity_id: String, source: String)
-signal player_died(entity_id: String, killer_id: String)
-signal player_respawned(entity_id: String, position: Vector3, mode: int)
-
-signal skill_executed(caster_id: String, skill_id: String, targets: Array)
-signal damage_dealt(attacker_id: String, target_id: String, damage: int, damage_type: String)
-signal buff_applied(target_id: String, buff_id: String, source_id: String)
-
-signal item_picked_up(entity_id: String, item_id: String)
-signal gold_changed(entity_id: String, amount: int)
-
-signal server_started(version: String)
-signal server_shutdown()
-signal player_connected(player_id: String)
-signal player_disconnected(player_id: String, reason: String)
+## Domain-specific event buses (use these to emit/listen)
+var entity
+var combat
+var inventory
+var system
 
 func _ready() -> void:
-	_initialize_buses()
-	_connect_legacy_signals()
-	GameLog.info("EventHub: Initialized with %d event buses" % 4)
-
-func _initialize_buses() -> void:
-	entity = EntityEvents.new()
-	combat = CombatEvents.new()
-	inventory = InventoryEvents.new()
-	system = SystemEvents.new()
+	# Load and instantiate domain event buses
+	# Using load() to ensure classes are available
+	var entity_class = load("res://core/events/entity_events.gd")
+	var combat_class = load("res://core/events/combat_events.gd")
+	var inventory_class = load("res://core/events/inventory_events.gd")
+	var system_class = load("res://core/events/system_events.gd")
+	
+	entity = entity_class.new()
+	combat = combat_class.new()
+	inventory = inventory_class.new()
+	system = system_class.new()
 	
 	add_child(entity)
 	add_child(combat)
 	add_child(inventory)
 	add_child(system)
-
-func _connect_legacy_signals() -> void:
-	# Entity -> Legacy forwarding
-	entity.spawned.connect(_forward_spawned)
-	entity.despawned.connect(_forward_despawned)
-	entity.died.connect(_forward_died)
-	entity.resurrected.connect(_forward_resurrected)
 	
-	# Combat -> Legacy forwarding
-	combat.skill_executed.connect(_forward_skill)
-	combat.damage_dealt.connect(_forward_damage)
-	combat.buff_applied.connect(_forward_buff)
-	
-	# Inventory -> Legacy forwarding
-	inventory.item_picked_up.connect(_forward_item_pickup)
-	inventory.gold_gained.connect(_forward_gold_gained)
-	inventory.gold_spent.connect(_forward_gold_spent)
-	
-	# System -> Legacy forwarding
-	system.server_started.connect(_forward_server_started)
-	system.server_stopping.connect(_forward_server_shutdown)
-	system.player_connected.connect(_forward_player_connected)
-	system.player_disconnected.connect(_forward_player_disconnected)
+	GameLog.info("EventHub: Initialized")
 
-## Legacy signal forwarders
-func _forward_spawned(entity_id: String, zone_id: String, position: Vector3) -> void:
-	entity_spawned.emit(entity_id, zone_id, position)
-
-func _forward_despawned(entity_id: String, reason: String) -> void:
-	entity_despawned.emit(entity_id, reason)
-
-func _forward_died(entity_id: String, killer_id: String, damage_type: String) -> void:
-	entity_died.emit(entity_id, killer_id, damage_type)
-
-func _forward_resurrected(entity_id: String, source: String) -> void:
-	player_resurrected.emit(entity_id, source)
-
-func _forward_skill(caster_id: String, skill_id: String, targets: Array) -> void:
-	skill_executed.emit(caster_id, skill_id, targets)
-
-func _forward_damage(attacker_id: String, target_id: String, damage: int, damage_type: String, critical: bool) -> void:
-	damage_dealt.emit(attacker_id, target_id, damage, damage_type)
-
-func _forward_buff(target_id: String, buff_id: String, source_id: String, duration: float) -> void:
-	buff_applied.emit(target_id, buff_id, source_id)
-
-func _forward_item_pickup(entity_id: String, item_id: String, slot: int) -> void:
-	item_picked_up.emit(entity_id, item_id)
-
-func _forward_gold_gained(entity_id: String, amount: int, source: String) -> void:
-	gold_changed.emit(entity_id, amount)
-
-func _forward_gold_spent(entity_id: String, amount: int, destination: String) -> void:
-	gold_changed.emit(entity_id, -amount)
-
-func _forward_server_started(version: String, port: int) -> void:
-	server_started.emit(version)
-
-func _forward_server_shutdown(reason: String) -> void:
-	server_shutdown.emit()
-
-func _forward_player_connected(player_id: String) -> void:
-	player_connected.emit(player_id)
-
-func _forward_player_disconnected(player_id: String, reason: String) -> void:
-	player_disconnected.emit(player_id, reason)
-
-## Utility: Get event summary
+## Get event summary for debugging
 func get_summary() -> Dictionary:
 	return {
 		"entity_events": entity.get_event_count(),
@@ -121,3 +87,10 @@ func get_summary() -> Dictionary:
 		"inventory_events": inventory.get_event_count(),
 		"system_events": system.get_event_count(),
 	}
+
+## Clear all event history
+func clear_all_history() -> void:
+	entity.clear_history()
+	combat.clear_history()
+	inventory.clear_history()
+	system.clear_history()

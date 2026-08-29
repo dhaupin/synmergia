@@ -390,7 +390,7 @@ func _on_action_button_pressed(action_id: String, target_id: String) -> void:
 	if success:
 		action_clicked.emit(action_id, target_id)
 		# Emit to EventBus for other systems
-		EventBus.target_action_executed.emit(
+		EventHub.target_action_executed.emit(
 			TargetingManager.get_local_player_id(),
 			target_id,
 			action_id,

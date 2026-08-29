@@ -270,7 +270,7 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 								return []
 				
 				# Get sender's zone from metadata
-				var metadata: EventBus.SpawnMetadata = EntityService.get_entity_metadata(sender_id)
+				var metadata: EventHub.SpawnMetadata = EntityService.get_entity_metadata(sender_id)
 				if not metadata or metadata.zone_id == "":
 								GameLog.debug("ChatService: No zone info for sender, returning empty range list")
 								return []
@@ -282,7 +282,7 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 				for player in all_players:
 								if not is_instance_valid(player) or player.entity_id == sender_id:
 												continue
-								var player_metadata: EventBus.SpawnMetadata = EntityService.get_entity_metadata(player.entity_id)
+								var player_metadata: EventHub.SpawnMetadata = EntityService.get_entity_metadata(player.entity_id)
 								if player_metadata and player_metadata.zone_id == metadata.zone_id:
 												zone_players.append(player.entity_id)
 				

@@ -171,12 +171,12 @@ func _ready() -> void:
 func _connect_eventbus() -> void:
 	if EventBus:
 		# Entity events
-		EventBus.entity_spawned.connect(_on_entity_spawned)
-		EventBus.entity_despawned.connect(_on_entity_despawned)
-		EventBus.entity_died.connect(_on_entity_died)
+		EventHub.entity_spawned.connect(_on_entity_spawned)
+		EventHub.entity_despawned.connect(_on_entity_despawned)
+		EventHub.entity_died.connect(_on_entity_died)
 		
 		# Combat events
-		EventBus.skill_executed.connect(_on_skill_executed)
+		EventHub.skill_executed.connect(_on_skill_executed)
 
 ## ============================================================================
 ## SCHEMA LOADING
@@ -480,9 +480,9 @@ func _do_resurrect_fallback(entity: SynmergiaEntity) -> void:
 	
 	# Clear death state
 	entity.health_component.respawned.emit()
-	EventBus.entity_spawned.emit(entity)
-	EventBus.player_resurrected.emit(entity, "tooltip_action")
-	EventBus.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE)
+	EventHub.entity_spawned.emit(entity)
+	EventHub.player_resurrected.emit(entity, "tooltip_action")
+	EventHub.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE)
 
 func _action_talk(_source_id: String, _target_id: String) -> Dictionary:
 	return {"success": true, "message": "Opening dialogue", "action": "open_dialogue"}
@@ -982,7 +982,7 @@ func get_targets_in_radius(origin: Vector3, radius: float, entity_type: int = 0)
 ## EVENT HANDLERS
 ## ============================================================================
 
-func _on_entity_spawned(entity: SynmergiaEntity, _metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_spawned(entity: SynmergiaEntity, _metadata: EventHub.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		var entity_type = entity.get("entity_type", 0)
 		var schema_id = _entity_type_to_schema.get(entity_type, "")
@@ -998,11 +998,11 @@ func _on_entity_spawned(entity: SynmergiaEntity, _metadata: EventBus.SpawnMetada
 			entity_type
 		)
 
-func _on_entity_despawned(entity: SynmergiaEntity, _metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_despawned(entity: SynmergiaEntity, _metadata: EventHub.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		unregister_targetable(entity.entity_id)
 
-func _on_entity_died(entity: SynmergiaEntity, _killer: SynmergiaEntity, _metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_died(entity: SynmergiaEntity, _killer: SynmergiaEntity, _metadata: EventHub.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		# Optionally clear target if they died
 		if _current_target and _current_target.id == entity.entity_id:

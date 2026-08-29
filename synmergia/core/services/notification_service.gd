@@ -92,21 +92,21 @@ func _ready() -> void:
 	
 	# Listen to unified spawn events for automatic notifications
 	if EventBus:
-		EventBus.entity_spawned.connect(_on_entity_spawned)
+		EventHub.entity_spawned.connect(_on_entity_spawned)
 
 ## Handle unified entity spawn event - auto-send notifications based on metadata
-func _on_entity_spawned(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_spawned(entity: SynmergiaEntity, metadata: EventHub.SpawnMetadata) -> void:
 	if metadata == null or not metadata.notification_enabled:
 		return
 	
 	# Build notification message
 	var message: String
 	match metadata.spawn_type:
-		EventBus.SpawnMetadata.SpawnType.WORLD_BOSS:
+		EventHub.SpawnMetadata.SpawnType.WORLD_BOSS:
 			message = "WORLD BOSS: %s has appeared in %s!" % [metadata.display_name, metadata.zone_id]
-		EventBus.SpawnMetadata.SpawnType.BOSS:
+		EventHub.SpawnMetadata.SpawnType.BOSS:
 			message = "Boss %s has appeared!" % metadata.display_name
-		EventBus.SpawnMetadata.SpawnType.ELITE:
+		EventHub.SpawnMetadata.SpawnType.ELITE:
 			message = "Elite enemy %s has appeared!" % metadata.display_name
 		_:
 			message = metadata.notification_message % [metadata.display_name, metadata.zone_id]
@@ -115,13 +115,13 @@ func _on_entity_spawned(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadat
 	var notif_type := NotificationType.WORLD_EVENT
 	var priority := Priority.NORMAL
 	match metadata.notification_priority:
-		EventBus.SpawnMetadata.NotificationPriority.LOW:
+		EventHub.SpawnMetadata.NotificationPriority.LOW:
 			priority = Priority.LOW
-		EventBus.SpawnMetadata.NotificationPriority.NORMAL:
+		EventHub.SpawnMetadata.NotificationPriority.NORMAL:
 			priority = Priority.NORMAL
-		EventBus.SpawnMetadata.NotificationPriority.HIGH:
+		EventHub.SpawnMetadata.NotificationPriority.HIGH:
 			priority = Priority.HIGH
-		EventBus.SpawnMetadata.NotificationPriority.CRITICAL:
+		EventHub.SpawnMetadata.NotificationPriority.CRITICAL:
 			priority = Priority.CRITICAL
 	
 	# Build extra data

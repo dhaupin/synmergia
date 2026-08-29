@@ -57,12 +57,12 @@ func add_item(item: Item, quantity: int = 1) -> bool:
 				var empty_slot := _find_empty_slot()
 				if empty_slot < 0:
 								inventory_full.emit()
-								EventBus.inventory_full.emit(get_parent())
+								EventHub.inventory_full.emit(get_parent())
 								return false
 
 				_inventory[empty_slot] = item
 				item_added.emit(item, empty_slot)
-				EventBus.item_picked_up.emit(get_parent(), item)
+				EventHub.item_picked_up.emit(get_parent(), item)
 				_update_weight(item)
 				return true
 
@@ -101,7 +101,7 @@ func remove_item(slot: int, quantity: int = -1) -> Item:
 				if quantity < 0 or quantity >= item.current_stack:
 								_inventory[slot] = null
 								item_removed.emit(item, slot)
-								EventBus.item_dropped.emit(get_parent(), item)
+								EventHub.item_dropped.emit(get_parent(), item)
 				else:
 								item.current_stack -= quantity
 								if item.current_stack <= 0:
@@ -215,7 +215,7 @@ func add_gold(amount: int) -> void:
 		return
 	_gold += amount
 	gold_changed.emit(amount)
-	EventBus.gold_changed.emit(get_parent(), amount)
+	EventHub.gold_changed.emit(get_parent(), amount)
 
 ## Remove gold
 func remove_gold(amount: int) -> bool:
@@ -223,7 +223,7 @@ func remove_gold(amount: int) -> bool:
 								return false
 				_gold -= amount
 				gold_changed.emit(-amount)
-				EventBus.gold_changed.emit(get_parent(), -amount)
+				EventHub.gold_changed.emit(get_parent(), -amount)
 				return true
 
 ## Get gold

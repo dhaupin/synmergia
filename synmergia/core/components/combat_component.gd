@@ -139,7 +139,7 @@ func execute_skill(skill: Skill, target: SynmergiaEntity = null, ground_pos: Vec
 			skill.execute(get_parent(), target, ground_pos)
 			skill_finished.emit(skill)
 	
-			EventBus.emit_skill_used(get_parent(), skill, target)
+			EventHub.emit_skill_used(get_parent(), skill, target)
 
 	# Record action for durability tracking
 	record_action()
@@ -220,7 +220,7 @@ func on_damage_taken(damage: int, source: SynmergiaEntity, damage_type: String) 
 	# Roll for resistance
 	if randf() < resistance:
 		# Resisted!
-		EventBus.interrupt_resisted.emit(entity, skill)
+		EventHub.interrupt_resisted.emit(entity, skill)
 		return false
 	
 	# Interrupted!
@@ -246,7 +246,7 @@ func _interrupt_cast(reason: String) -> void:
 	
 	if skill:
 		interrupted.emit(skill, reason)
-		EventBus.entity_interrupted.emit(get_parent(), skill, reason)
+		EventHub.entity_interrupted.emit(get_parent(), skill, reason)
 
 ## Check if can be interrupted
 func can_be_interrupted() -> bool:
@@ -286,7 +286,7 @@ func _execute_channel_tick() -> void:
 	
 	if target and is_instance_valid(target):
 		channel_skill.execute(entity, target)
-		EventBus.channel_tick.emit(entity, channel_skill)
+		EventHub.channel_tick.emit(entity, channel_skill)
 
 func _finish_channel(completed: bool) -> void:
 	var skill := channel_skill
@@ -380,7 +380,7 @@ func _enter_combat() -> void:
 	_current_mana_regen_multiplier = mana_regen_combat
 	
 	combat_entered.emit()
-	EventBus.entity_entered_combat.emit(get_parent())
+	EventHub.entity_entered_combat.emit(get_parent())
 
 func _exit_combat() -> void:
 	if not in_combat:
@@ -391,7 +391,7 @@ func _exit_combat() -> void:
 	_current_mana_regen_multiplier = mana_regen_rest
 	
 	combat_exited.emit()
-	EventBus.entity_exited_combat.emit(get_parent())
+	EventHub.entity_exited_combat.emit(get_parent())
 
 ## Called when entity deals or takes damage
 func on_damage_dealt(damage: int, target: SynmergiaEntity, damage_type: String) -> void:

@@ -71,12 +71,12 @@ class SpawnPoint:
 		return current_count < effective_max
 
 ## SpawnService-specific signals for spawn-point-aware listeners
-## These complement the unified EventBus.entity_spawned with spawn-point context
+## These complement the unified EventHub.entity_spawned with spawn-point context
 signal spawn_point_registered(spawn_point: Dictionary)
-signal enemy_spawned(entity: SynmergiaEntity, spawn_point_id: String, metadata: EventBus.SpawnMetadata)
-signal enemy_despawned(entity: SynmergiaEntity, spawn_point_id: String, metadata: EventBus.SpawnMetadata)
-signal boss_spawned(entity: SynmergiaEntity, boss_name: String, metadata: EventBus.SpawnMetadata)
-signal npc_spawned(npc: SynmergiaEntity, npc_id: String, metadata: EventBus.SpawnMetadata)
+signal enemy_spawned(entity: SynmergiaEntity, spawn_point_id: String, metadata: EventHub.SpawnMetadata)
+signal enemy_despawned(entity: SynmergiaEntity, spawn_point_id: String, metadata: EventHub.SpawnMetadata)
+signal boss_spawned(entity: SynmergiaEntity, boss_name: String, metadata: EventHub.SpawnMetadata)
+signal npc_spawned(npc: SynmergiaEntity, npc_id: String, metadata: EventHub.SpawnMetadata)
 signal spawn_point_cleared(spawn_point_id: String)
 
 func _ready() -> void:
@@ -163,7 +163,7 @@ func spawn_enemy(spawn_point_id: String) -> SynmergiaEntity:
 	_spawned_entities[spawn_point_id].append(enemy.entity_id)
 	
 	# Create spawn metadata with position for zone notifications
-	var metadata := EventBus.SpawnMetadata.enemy(
+	var metadata := EventHub.SpawnMetadata.enemy(
 		enemy.display_name,
 		spawn_point.zone_id,
 		spawn_point.position,
@@ -174,7 +174,7 @@ func spawn_enemy(spawn_point_id: String) -> SynmergiaEntity:
 	
 	# Apply elite/boss notification settings based on enemy type
 	if spawn_point.spawn_type == EnemyData.EnemyType.ELITE:
-		metadata = EventBus.SpawnMetadata.elite(
+		metadata = EventHub.SpawnMetadata.elite(
 			enemy.display_name,
 			spawn_point.zone_id,
 			spawn_point.position,
@@ -182,14 +182,14 @@ func spawn_enemy(spawn_point_id: String) -> SynmergiaEntity:
 			enemy.level
 		)
 	elif spawn_point.spawn_type == EnemyData.EnemyType.BOSS:
-		metadata = EventBus.SpawnMetadata.boss(
+		metadata = EventHub.SpawnMetadata.boss(
 			enemy.display_name,
 			spawn_point.zone_id,
 			spawn_point.position,
 			enemy.level
 		)
 	
-	# Register with EntityService (emits EventBus.entity_spawned with metadata)
+	# Register with EntityService (emits EventHub.entity_spawned with metadata)
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.register_entity(enemy, metadata)
@@ -256,13 +256,13 @@ func spawn_boss(
 	boss.current_health = boss_data.health
 	
 	# Create spawn metadata with notification settings
-	var metadata := EventBus.SpawnMetadata.world_boss(boss.display_name, zone_id, position, boss.level)
+	var metadata := EventHub.SpawnMetadata.world_boss(boss.display_name, zone_id, position, boss.level)
 	metadata.faction = boss.faction
 	if alert_scopes.size() > 0:
 		metadata.notification_enabled = true
 		metadata.notification_scopes = alert_scopes
 	
-	# Register with EntityService (emits EventBus.entity_spawned with metadata)
+	# Register with EntityService (emits EventHub.entity_spawned with metadata)
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.register_entity(boss, metadata)
@@ -293,7 +293,7 @@ func spawn_boss(
 	boss_spawned.emit(boss, boss.display_name, metadata)
 	GameLog.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, str(position)])
 	
-	# Notification is now handled by NotificationService listening to EventBus.entity_spawned
+	# Notification is now handled by NotificationService listening to EventHub.entity_spawned
 	
 	return boss
 
@@ -340,7 +340,7 @@ func despawn_enemy(entity: SynmergiaEntity) -> void:
 	
 	# Find spawn point
 	var spawn_point_id = _find_entity_spawn_point(entity.entity_id)
-	var metadata: EventBus.SpawnMetadata = EntityService.get_entity_metadata(entity.entity_id) if EntityService else null
+	var metadata: EventHub.SpawnMetadata = EntityService.get_entity_metadata(entity.entity_id) if EntityService else null
 	
 	if spawn_point_id != "":
 		var spawn_point = _get_spawn_point(spawn_point_id)
@@ -359,7 +359,7 @@ func despawn_enemy(entity: SynmergiaEntity) -> void:
 	if targeting_manager:
 		targeting_manager.unregister_targetable(entity.entity_id)
 	
-	# Remove from services (emits EventBus.entity_despawned with metadata)
+	# Remove from services (emits EventHub.entity_despawned with metadata)
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.unregister_entity(entity, "spawn_despawn")
@@ -555,7 +555,7 @@ func spawn_blacksmith(
 				zone_manager.entity_enter_zone(blacksmith, zone)
 		
 		GameLog.info("SpawnService: Spawned Blacksmith '%s' at (%s) in zone %s" % [blacksmith.display_name, position, zone_id])
-		# Note: EventBus.entity_spawned is already emitted by EntityService.register_entity()
+		# Note: EventHub.entity_spawned is already emitted by EntityService.register_entity()
 		
 		return blacksmith
 

@@ -209,7 +209,7 @@ func use_gateway(gateway_id: String, entity: SynmergiaEntity) -> Dictionary:
 		zone_manager.entity_enter_zone(entity, dest_zone)
 	
 	gateway_activated.emit(gateway_id, entity)
-	EventBus.entity_teleported.emit(entity, gateway.position, destination.position)
+	EventHub.entity_teleported.emit(entity, gateway.position, destination.position)
 	
 	GameLog.debug("WorldService: %s used gateway %s to %s" % [entity.display_name, gateway_id, destination.zone_id])
 	return destination

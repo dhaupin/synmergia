@@ -400,8 +400,8 @@ func _do_respawn_at(player: SynmergiaEntity, position: Vector3, mode: RespawnMod
 	player.global_position = position
 	
 	player.health_component.respawned.emit()
-	EventBus.entity_spawned.emit(player)
-	EventBus.player_respawned.emit(player, position, mode)
+	EventHub.entity_spawned.emit(player)
+	EventHub.player_respawned.emit(player, position, mode)
 	
 	respawn_completed.emit(player, position)
 
