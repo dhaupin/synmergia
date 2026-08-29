@@ -118,9 +118,9 @@ func toggle_aura(aura: AuraBuff, enabled: bool) -> void:
 	if enabled:
 		if not _active_auras.has(aura):
 			add_aura(aura)
-		aura.activate()
+		aura.apply(get_parent())
 	else:
-		aura.deactivate()
+		aura.remove()
 
 ## Check if has buff
 func has_buff(effect_id: String) -> bool:
