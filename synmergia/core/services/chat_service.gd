@@ -224,7 +224,7 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 								return []
 				
 				# Get sender entity
-				var sender: SynmergiaEntity = EntityService.get_entity(sender_id)
+				var sender = EntityService.get_entity(sender_id)
 				if not sender or not is_instance_valid(sender):
 								GameLog.warn("ChatService: Sender entity not found for range check: %s" % sender_id)
 								return []
@@ -265,7 +265,7 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 				if not EntityService:
 								return []
 				
-				var sender: SynmergiaEntity = EntityService.get_entity(sender_id)
+				var sender = EntityService.get_entity(sender_id)
 				if not sender or not is_instance_valid(sender):
 								return []
 				
@@ -473,7 +473,7 @@ func _cmd_muted(sender_id: String, args: Array) -> bool:
 				if muted.is_empty():
 								send_system_message(sender_id, "You are not ignoring anyone")
 				else:
-								send_system_message(sender_id, "Ignored: %s" % ", ".join(muted))
+								send_system_message(sender_id, "Ignored: %s" % muted.join(", "))
 				return true
 
 ## Command: Report player abuse

@@ -2,24 +2,24 @@
 ## Coordinates between HealthComponent death and RespawnService options
 extends Node
 
-var _ui: RespawnUI = null
-var _current_player: SynmergiaEntity = null
+var _ui = null
+var _current_player = null
 var _pending_respawn: Dictionary = {}
 
 func _ready() -> void:
 	# Listen for player death events specifically
 	EventHub.player_died.connect(_on_player_died)
-	GameLogger.info("RespawnUIManager: Initialized")
+	GameLog.info("RespawnUIManager: Initialized")
 
-func _on_player_died(entity: SynmergiaEntity, killer: SynmergiaEntity) -> void:
+func _on_player_died(entity, killer) -> void:
 	_show_respawn_ui(entity)
 
-func _show_respawn_ui(player: SynmergiaEntity) -> void:
+func _show_respawn_ui(player) -> void:
 	_current_player = player
 	
 	# Create/instantiate UI if needed
 	if not _ui:
-		var scene := load("res://ui/respawn/respawn_ui.tscn")
+		var scene = load("res://ui/respawn/respawn_ui.tscn")
 		if scene:
 			_ui = scene.instantiate()
 			get_tree().root.add_child(_ui)
@@ -31,7 +31,7 @@ func _show_respawn_ui(player: SynmergiaEntity) -> void:
 		return
 	
 	# Get available respawn options from RespawnService
-	var options := _get_respawn_options(player)
+	var options = _get_respawn_options(player)
 	
 	# Store pending respawn for later
 	_pending_respawn = {"player": player, "options": options}
@@ -41,18 +41,18 @@ func _show_respawn_ui(player: SynmergiaEntity) -> void:
 	_ui.auto_respawn_timeout = GameConfig.Respawn.AUTO_RESPAWN_TIMEOUT
 	_ui.show_respawn_options(options)
 
-func _get_respawn_options(player: SynmergiaEntity) -> Array[Dictionary]:
+func _get_respawn_options(player) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var zone_id: String = player.current_zone if player.has("current_zone") else ""
 	
 	# Check what respawn modes are available
-	var available_modes := RespawnService.get_available_respawn_modes(player, zone_id)
-	var zone_config := RespawnService.get_zone_config(zone_id)
+	var available_modes = RespawnService.get_available_respawn_modes(player, zone_id)
+	var zone_config = RespawnService.get_zone_config(zone_id)
 	
 	for mode in available_modes:
 		match mode:
 			RespawnService.RespawnMode.ANKH:
-				var ankh_data := RespawnService.get_bound_ankh(player)
+				var ankh_data = RespawnService.get_bound_ankh(player)
 				if not ankh_data.is_empty():
 					options.append({
 						"mode": "ankh",
@@ -100,7 +100,7 @@ func _on_respawn_selected(mode: String, location_data: Dictionary) -> void:
 	if not _pending_respawn.has("player"):
 		return
 	
-	var player: SynmergiaEntity = _pending_respawn["player"]
+	var player = _pending_respawn["player"]
 	_pending_respawn = {}
 	
 	# Store selected respawn info

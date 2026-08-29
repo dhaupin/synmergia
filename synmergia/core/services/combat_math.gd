@@ -34,7 +34,7 @@ class CombatRatings:
 		pass
 
 ## Get combat ratings from entity
-static func get_entity_ratings(entity: SynmergiaEntity) -> CombatRatings:
+static func get_entity_ratings(entity) -> CombatRatings:
 	var ratings := CombatRatings.new()
 	if entity == null:
 		return ratings
@@ -102,7 +102,7 @@ static func calculate_block_value(block_rating: float, strength: int) -> float:
 	return base_block + strength_contribution + rating_contribution
 
 ## Calculate full hit result
-static func calculate_hit(attacker: SynmergiaEntity, defender: SynmergiaEntity, skill: Skill = null) -> Dictionary:
+static func calculate_hit(attacker, defender, skill: Skill = null) -> Dictionary:
 	var result := {
 		"hit_result": HitResult.HIT,
 		"hit_chance": 1.0,
@@ -174,7 +174,7 @@ static func calculate_hit(attacker: SynmergiaEntity, defender: SynmergiaEntity, 
 	return result
 
 ## Calculate magic hit
-static func calculate_magic_hit(attacker: SynmergiaEntity, defender: SynmergiaEntity, spell_school: String = "arcane") -> Dictionary:
+static func calculate_magic_hit(attacker, defender, spell_school: String = "arcane") -> Dictionary:
 	var result := {
 		"hit_result": HitResult.HIT,
 		"hit_chance": 0.96,  # Base spell hit is higher
@@ -239,7 +239,7 @@ static func calculate_damage(base_damage: int, hit_result: Dictionary) -> int:
 	return max(1, int(damage))
 
 ## Helper to check if defender has shield equipped
-static func _has_shield(entity: SynmergiaEntity) -> bool:
+static func _has_shield(entity) -> bool:
 	if entity.inventory_component:
 		var offhand := entity.inventory_component.get_equipped(Item.EquipSlot.OFF_HAND)
 		if offhand and offhand.equip_slot == Item.EquipSlot.OFF_HAND:

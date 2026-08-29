@@ -211,7 +211,7 @@ func _get_general_help() -> String:
 	
 	for cat in _categories:
 		if by_category.has(cat):
-			help_text += "[color=cyan]%s:[/color] %s\n" % [cat.capitalize(), ", ".join(by_category[cat])]
+			help_text += "[color=cyan]%s:[/color] %s\n" % [cat.capitalize(), by_category[cat].join(", ")]
 	
 	help_text += "\n[color=gray]Player Customization:[/color]\n"
 	help_text += "  alias <name> <command> - Create alias\n"
@@ -458,7 +458,7 @@ func _cmd_settings(args: String, player_id: String) -> CommandResult:
 	for macro in custom.macros.keys():
 		output += "  %s -> %s\n" % [macro, custom.macros[macro]]
 	
-	output += "\n[color=cyan]Hidden Categories:[/color] %s\n" % ", ".join(custom.hidden_categories) if custom.hidden_categories else "None"
+	output += "\n[color=cyan]Hidden Categories:[/color] %s\n" % custom.hidden_categories.join(", ") if custom.hidden_categories else "None"
 	
 	output += "\n[color=cyan]Commands:[/color]\n"
 	output += "  alias <name> <cmd> - Create alias\n"

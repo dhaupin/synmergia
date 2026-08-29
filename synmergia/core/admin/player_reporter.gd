@@ -415,7 +415,7 @@ func _notify_reporter(report: Report) -> void:
 			NotificationService.send_to_player(
 				report.reporter_id,
 				status_msg,
-				NotificationService.NotificationType.INFO,
+				NotificationService.NotificationType.SYSTEM,
 				NotificationService.Priority.NORMAL
 			)
 

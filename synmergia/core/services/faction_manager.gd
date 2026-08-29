@@ -57,7 +57,7 @@ func get_faction(faction_id: String) -> Faction:
 	return _factions.get(faction_id)
 
 ## Get all factions
-func get_all_factions() -> Array[Faction]:
+func get_all_factions() -> Array:
 	return _factions.values()
 
 ## Get faction relation between two factions
@@ -205,8 +205,8 @@ func get_war_data(faction1_id: String, faction2_id: String) -> Dictionary:
 	return _active_wars[faction1_id].get(faction2_id, {})
 
 ## Get active wars for a faction
-func get_faction_wars(faction_id: String) -> Array[Faction]:
-	var wars: Array[Faction] = []
+func get_faction_wars(faction_id: String) -> Array:
+	var wars: Array = []
 	if not _active_wars.has(faction_id):
 		return wars
 	
@@ -248,23 +248,22 @@ func set_reputation(player_id: String, faction_id: String, value: int) -> void:
 
 ## Get reputation rank name
 func get_reputation_rank(reputation: int) -> String:
-	match reputation:
-		var r if r >= 9000:
-			return "Exalted"
-		var r if r >= 6000:
-			return "Revered"
-		var r if r >= 3000:
-			return "Honored"
-		var r if r >= 1000:
-			return "Friendly"
-		var r if r >= 0:
-			return "Neutral"
-		var r if r >= -999:
-			return "Unfriendly"
-		var r if r >= -3000:
-			return "Hostile"
-		_:
-			return "Hated"
+	if reputation >= 9000:
+		return "Exalted"
+	elif reputation >= 6000:
+		return "Revered"
+	elif reputation >= 3000:
+		return "Honored"
+	elif reputation >= 1000:
+		return "Friendly"
+	elif reputation >= 0:
+		return "Neutral"
+	elif reputation >= -999:
+		return "Unfriendly"
+	elif reputation >= -3000:
+		return "Hostile"
+	else:
+		return "Hated"
 
 ## Guild alliances
 
@@ -300,8 +299,8 @@ func break_alliance(guild_id: String, faction_id: String) -> bool:
 	return true
 
 ## Get guild alliances
-func get_guild_alliances(guild_id: String) -> Array[Faction]:
-	var results: Array[Faction] = []
+func get_guild_alliances(guild_id: String) -> Array:
+	var results: Array = []
 	if not _guild_alliances.has(guild_id):
 		return results
 	
@@ -318,7 +317,7 @@ func is_guild_allied(guild_id: String, faction_id: String) -> bool:
 	return _guild_alliances[guild_id].has(faction_id)
 
 ## Can entity attack target based on faction/pvp rules
-func can_attack(attacker: SynmergiaEntity, target: SynmergiaEntity) -> bool:
+func can_attack(attacker, target) -> bool:
 	# Same entity
 	if attacker == target:
 		return false

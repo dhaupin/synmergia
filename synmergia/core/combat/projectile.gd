@@ -56,13 +56,13 @@ var _velocity: Vector3 = Vector3.ZERO
 
 @export var pierce_count: int = 0
 var _pierce_remaining: int = 0
-var _hit_entities: Array[SynmergiaEntity] = []
+var _hit_entities: Array = []
 
 @export var ricochet_count: int = 0
 @export var chain_count: int = 0
 @export var chain_range: float = 10.0
 var _ricochet_remaining: int = 0
-var _chain_targets: Array[SynmergiaEntity] = []
+var _chain_targets: Array = []
 
 @export var vfx_scene: String = ""
 @export var sfx_hit: String = ""

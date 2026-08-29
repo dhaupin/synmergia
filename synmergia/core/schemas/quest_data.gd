@@ -61,7 +61,7 @@ enum Difficulty {
 # Requirements
 @export var min_level: int = 1
 @export var max_level: int = 100
-@export var required_quests: Array[String] = []  # Quest IDs that must be complete
+@export var required_quests: Array = []  # Quest IDs that must be complete
 @export var required_faction: String = ""         # Faction required
 @export var required_faction_rank: int = 0         # Minimum faction rank
 @export var zone_restriction: String = ""         # Must be in zone to accept
@@ -75,7 +75,7 @@ class Objective extends Resource:
 	@export var optional: bool = false              # Can skip this objective
 	@export var description: String = ""             # Custom description
 
-@export var objectives: Array[Resource] = []
+@export var objectives: Array = []
 
 # Rewards
 class Reward extends Resource:
@@ -84,7 +84,7 @@ class Reward extends Resource:
 	@export var quantity: int = 1
 	@export var chance: float = 1.0                  # 0.0-1.0, for random rewards
 
-@export var rewards: Array[Resource] = []
+@export var rewards: Array = []
 @export var reward_choice_count: int = 0            # Choose X from rewards
 @export var gold_reward: int = 0
 @export var xp_reward: int = 0
@@ -131,7 +131,7 @@ func check_completion(progress: Dictionary) -> bool:
 		if obj is Objective:
 			if obj.optional:
 				continue
-			var current := progress.get(obj.id, 0)
+			var current: int = progress.get(obj.id, 0)
 			if current < obj.count:
 				return false
 	return true
@@ -147,7 +147,7 @@ func get_progress_percentage(progress: Dictionary) -> float:
 		if obj is Objective:
 			if obj.optional:
 				continue
-			var current := progress.get(obj.id, 0)
+			var current: int = progress.get(obj.id, 0)
 			if current >= obj.count:
 				completed += 1
 	
@@ -171,7 +171,7 @@ func get_reward_summary() -> Array[Dictionary]:
 	
 	for reward in rewards:
 		if reward is Reward:
-			var chance_pct := reward.chance * 100.0
+			var chance_pct: float = float(reward.chance) * 100.0
 			summary.append({
 				"type": reward.type,
 				"id": reward.id,

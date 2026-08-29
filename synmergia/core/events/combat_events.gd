@@ -38,12 +38,12 @@ var _history: Array = []
 const MAX_HISTORY := 1000
 
 func _log_event(name: String, data: Dictionary = {}) -> void:
-_history.append({"name": name, "data": data, "time": Time.get_ticks_msec()})
-if _history.size() > MAX_HISTORY:
-_history.pop_front()
+	_history.append({"name": name, "data": data, "time": Time.get_ticks_msec()})
+	if _history.size() > MAX_HISTORY:
+		_history.pop_front()
 
 func get_event_count() -> int:
-return _history.size()
+	return _history.size()
 
 func clear_history() -> void:
-_history.clear()
+	_history.clear()

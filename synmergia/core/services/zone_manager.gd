@@ -32,22 +32,22 @@ var _entity_zones: Dictionary = {}	# entity_id -> zone_id
 var _transition_zones: Dictionary = {}	# zone_id -> [transition_bounds]
 var _seamless_enabled: bool = true
 
-signal zone_loaded(zone_data: ZoneData)
+signal zone_loaded(zone_data)
 signal zone_unloaded(zone_id: String)
-signal player_entered_zone(player: SynmergiaEntity, zone: ZoneData)
-signal player_exited_zone(player: SynmergiaEntity, zone: ZoneData)
+signal player_entered_zone(player, zone)
+signal player_exited_zone(player, zone)
 signal zone_population_changed(zone_id: String, count: int)
 
 # Seamless transition signals
-signal seamless_transition_started(entity: SynmergiaEntity, from_zone: ZoneData, to_zone: ZoneData)
-signal seamless_transition_completed(entity: SynmergiaEntity, to_zone: ZoneData)
-signal seamless_transition_cancelled(entity: SynmergiaEntity, reason: String)
+signal seamless_transition_started(entity, from_zone, to_zone)
+signal seamless_transition_completed(entity, to_zone)
+signal seamless_transition_cancelled(entity, reason)
 
 # Instance signals
-signal instance_created(instance_id: String, zone_data: ZoneData)
+signal instance_created(instance_id: String, zone_data)
 signal instance_destroyed(instance_id: String)
-signal instance_joined(player: SynmergiaEntity, instance_id: String)
-signal instance_left(player: SynmergiaEntity, instance_id: String)
+signal instance_joined(player, instance_id)
+signal instance_left(player, instance_id)
 
 func _ready() -> void:
 	GameLog.info("ZoneManager: Ready")
@@ -69,7 +69,7 @@ func load_zones() -> void:
 	auto_register_zone_neighbors()
 
 ## Register a zone
-func register_zone(zone_data: ZoneData) -> bool:
+func register_zone(zone_data) -> bool:
 	if zone_data == null:
 		return false
 
@@ -88,13 +88,13 @@ func register_zone(zone_data: ZoneData) -> bool:
 
 ## Auto-register zone neighbors based on proximity
 func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
-		var zones_array: Array[ZoneData] = _zones.values()
+		var zones_array: Array = _zones.values()
 		var registered_count: int = 0
 		
 		for i in range(zones_array.size()):
-						var zone1: ZoneData = zones_array[i]
+						var zone1 = zones_array[i]
 						for j in range(i + 1, zones_array.size()):
-										var zone2: ZoneData = zones_array[j]
+										var zone2 = zones_array[j]
 										
 										# Calculate distance between zone centers
 										var distance := zone1.zone_center.distance_to(zone2.zone_center)
@@ -112,15 +112,15 @@ func get_zone(zone_id: String) -> ZoneData:
 	return _zones.get(zone_id)
 
 ## Get all loaded zones
-func get_all_zones() -> Array[ZoneData]:
+func get_all_zones() -> Array:
 	return _zones.values()
 
 ## Get players in a zone
-func get_players_in_zone(zone_id: String) -> Array[SynmergiaEntity]:
+func get_players_in_zone(zone_id: String) -> Array:
 	return _players_in_zone.get(zone_id, [])
 
 ## Get enemies in a zone
-func get_enemies_in_zone(zone_id: String) -> Array[SynmergiaEntity]:
+func get_enemies_in_zone(zone_id: String) -> Array:
 	return _enemies_in_zone.get(zone_id, [])
 
 ## Get zone population
@@ -128,18 +128,18 @@ func get_zone_population(zone_id: String) -> int:
 	return _players_in_zone.get(zone_id, []).size()
 
 ## Get current zone for an entity
-func get_entity_zone(entity: SynmergiaEntity) -> ZoneData:
+func get_entity_zone(entity) -> ZoneData:
 	var zone_id = _entity_zones.get(entity.entity_id, "")
 	if zone_id == "":
 		return null
 	return _zones.get(zone_id)
 
 ## Get current zone ID for an entity
-func get_entity_zone_id(entity: SynmergiaEntity) -> String:
+func get_entity_zone_id(entity) -> String:
 	return _entity_zones.get(entity.entity_id, "")
 
 ## Handle entity entering a zone
-func entity_enter_zone(entity: SynmergiaEntity, zone: ZoneData) -> bool:
+func entity_enter_zone(entity, zone) -> bool:
 	if entity == null or zone == null:
 		return false
 	
@@ -168,7 +168,7 @@ func entity_enter_zone(entity: SynmergiaEntity, zone: ZoneData) -> bool:
 	return true
 
 ## Handle entity exiting a zone
-func entity_exit_zone(entity: SynmergiaEntity) -> bool:
+func entity_exit_zone(entity) -> bool:
 	var zone_id = _entity_zones.get(entity.entity_id, "")
 	if zone_id == "":
 		return false
@@ -191,14 +191,14 @@ func entity_exit_zone(entity: SynmergiaEntity) -> bool:
 	return true
 
 ## Check if entity can enter a zone
-func can_enter_zone(entity: SynmergiaEntity, zone_id: String) -> bool:
+func can_enter_zone(entity, zone_id: String) -> bool:
 	var zone = _zones.get(zone_id)
 	if zone == null:
 		return false
 	return zone.can_enter(entity)
 
 ## Check if PvP is allowed between two entities in current zone
-func can_pvp(entity1: SynmergiaEntity, entity2: SynmergiaEntity) -> bool:
+func can_pvp(entity1, entity2) -> bool:
 	var zone_id = _entity_zones.get(entity1.entity_id, "")
 	if zone_id == "":
 		return false
@@ -273,7 +273,7 @@ func get_instance(instance_id: String) -> Dictionary:
 	return _instances.get(instance_id, {})
 
 ## Add entity to instance
-func add_to_instance(entity: SynmergiaEntity, instance_id: String) -> bool:
+func add_to_instance(entity, instance_id: String) -> bool:
 	if not _instances.has(instance_id):
 		return false
 	
@@ -284,8 +284,8 @@ func add_to_instance(entity: SynmergiaEntity, instance_id: String) -> bool:
 	return entity_enter_zone(entity, instance_data.zone_data)
 
 ## Get nearby zones (for gateway system)
-func get_nearby_zones(from_zone_id: String, max_distance: float = 1000.0) -> Array[ZoneData]:
-	var results: Array[ZoneData] = []
+func get_nearby_zones(from_zone_id: String, max_distance: float = 1000.0) -> Array:
+	var results: Array = []
 	var from_zone = _zones.get(from_zone_id)
 	if from_zone == null:
 		return results
@@ -302,16 +302,16 @@ func get_nearby_zones(from_zone_id: String, max_distance: float = 1000.0) -> Arr
 	return results
 
 ## Get zones by PvP mode
-func get_zones_by_pvp_mode(pvp_mode: ZoneData.PvPZoneMode) -> Array[ZoneData]:
-	var results: Array[ZoneData] = []
+func get_zones_by_pvp_mode(pvp_mode) -> Array:
+	var results: Array = []
 	for zone in _zones.values():
 		if zone.pvp_mode == pvp_mode:
 			results.append(zone)
 	return results
 
 ## Get zones for level range
-func get_zones_for_level(level: int) -> Array[ZoneData]:
-	var results: Array[ZoneData] = []
+func get_zones_for_level(level: int) -> Array:
+	var results: Array = []
 	for zone in _zones.values():
 		if zone.is_instanced:
 			continue
@@ -341,8 +341,8 @@ func register_zone_neighbors(zone1_id: String, zone2_id: String) -> void:
 	GameLog.debug("ZoneManager: Registered neighbors: %s <-> %s" % [zone1_id, zone2_id])
 
 ## Get neighboring zones
-func get_neighboring_zones(zone_id: String) -> Array[ZoneData]:
-	var results: Array[ZoneData] = []
+func get_neighboring_zones(zone_id: String) -> Array:
+	var results: Array = []
 	var neighbor_ids = _zone_neighbors.get(zone_id, [])
 	for neighbor_id in neighbor_ids:
 		var zone = _zones.get(neighbor_id)
@@ -351,9 +351,9 @@ func get_neighboring_zones(zone_id: String) -> Array[ZoneData]:
 	return results
 
 ## Get all connected zones (BFS traversal for alerts)
-func get_all_connected_zones(zone_id: String, max_depth: int = 100) -> Array[ZoneData]:
+func get_all_connected_zones(zone_id: String, max_depth: int = 100) -> Array:
 	var visited: Dictionary = {}
-	var results: Array[ZoneData] = []
+	var results: Array = []
 	var queue: Array = [zone_id]
 	var depth: int = 0
 	
@@ -365,7 +365,7 @@ func get_all_connected_zones(zone_id: String, max_depth: int = 100) -> Array[Zon
 				continue
 			visited[current_id] = true
 			
-			var zone: ZoneData = _zones.get(current_id)
+			var zone = _zones.get(current_id)
 			if zone:
 				results.append(zone)
 			
@@ -384,7 +384,7 @@ func get_all_players_in_connected_zones(zone_id: String) -> Array[String]:
 	var connected_zones := get_all_connected_zones(zone_id)
 	var player_ids: Array[String] = []
 	
-	for zone: ZoneData in connected_zones:
+	for zone in connected_zones:
 		var players: Array = _players_in_zone.get(zone.id, [])
 		for player in players:
 			if "entity_id" in player:
@@ -393,7 +393,7 @@ func get_all_players_in_connected_zones(zone_id: String) -> Array[String]:
 	return player_ids
 
 ## Check if seamless transition should occur
-func check_seamless_transition(entity: SynmergiaEntity) -> ZoneData:
+func check_seamless_transition(entity) -> ZoneData:
 	if not _seamless_enabled:
 		return null
 	
@@ -414,7 +414,7 @@ func check_seamless_transition(entity: SynmergiaEntity) -> ZoneData:
 	return null
 
 ## Perform seamless transition
-func perform_seamless_transition(entity: SynmergiaEntity, to_zone: ZoneData) -> bool:
+func perform_seamless_transition(entity, to_zone) -> bool:
 	if to_zone == null:
 		return false
 	
@@ -448,7 +448,7 @@ func perform_seamless_transition(entity: SynmergiaEntity, to_zone: ZoneData) -> 
 	GameLog.debug("ZoneManager: %s seamless transitioned %s -> %s" % [entity.display_name, from_zone.id, to_zone.id])
 	return true
 
-func _notify_zone_change(entity: SynmergiaEntity, from_zone: ZoneData, to_zone: ZoneData) -> void:
+func _notify_zone_change(entity, from_zone, to_zone) -> void:
 	var notification_service = NotificationService
 	if notification_service and entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
 		notification_service.notify_zone_change(entity.entity_id, from_zone.id, to_zone.id)
@@ -484,7 +484,7 @@ func create_seamless_instance(base_zone_id: String, party_ids: Array[String] = [
 	return instance_id
 
 ## Check if entity can enter instance
-func can_enter_instance(entity: SynmergiaEntity, instance_id: String) -> bool:
+func can_enter_instance(entity, instance_id: String) -> bool:
 	var instance_data = _instances.get(instance_id, {})
 	if instance_data.is_empty():
 		return false
@@ -520,13 +520,13 @@ func get_or_create_party_instance(base_zone_id: String, party_leader_id: String,
 	return instance_id
 
 ## Notify dungeon entry/exit
-func notify_dungeon_enter(entity: SynmergiaEntity, zone_name: String) -> void:
+func notify_dungeon_enter(entity, zone_name: String) -> void:
 	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
 		var notification_service = NotificationService
 		if notification_service:
 			notification_service.notify_dungeon_enter(entity.entity_id, zone_name)
 
-func notify_dungeon_exit(entity: SynmergiaEntity, zone_name: String, completed: bool) -> void:
+func notify_dungeon_exit(entity, zone_name: String, completed: bool) -> void:
 	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
 		var notification_service = NotificationService
 		if notification_service:
