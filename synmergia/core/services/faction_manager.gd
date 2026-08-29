@@ -1,6 +1,5 @@
 ## FactionManager - Faction relationships and war management
 ## Handles faction reputation, war declarations, and guild alliances
-class_name FactionManager
 extends Node
 
 # All factions (faction_id -> Faction)

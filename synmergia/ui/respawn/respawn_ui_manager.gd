@@ -1,6 +1,5 @@
 ## RespawnUIManager - Manages the death/respawn UI
 ## Coordinates between HealthComponent death and RespawnService options
-class_name RespawnUIManager
 extends Node
 
 var _ui: RespawnUI = null

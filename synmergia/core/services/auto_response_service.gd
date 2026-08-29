@@ -1,6 +1,5 @@
 ## AutoResponseService - Automated responses to exploit detection
 ## Takes actions based on configured thresholds
-class_name AutoResponseService
 extends Node
 
 ## ============================================================================

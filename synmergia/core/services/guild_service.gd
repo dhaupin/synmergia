@@ -1,6 +1,5 @@
 ## GuildService - Guild management
 ## Handles guild creation, roster, ranks, permissions, alliances, and guild vs guild
-class_name GuildService
 extends Node
 
 # Guild data (guild_id -> guild data dict)

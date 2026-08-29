@@ -1,6 +1,5 @@
 ## WorldService - World state and gateway management
 ## Coordinates zones, gateways, day/night cycle, and world events
-class_name WorldService
 extends Node
 
 # World time (in minutes, 0 = midnight)

@@ -1,6 +1,5 @@
 ## LootService - Loot distribution and management
 ## Handles loot rolling, party loot sharing, auto-loot, and loot rules
-class_name LootService
 extends Node
 
 # Active loot rolls (loot_id -> loot data)

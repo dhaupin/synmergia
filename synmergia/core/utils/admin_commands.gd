@@ -1,5 +1,4 @@
 ## AdminCommands - Administrative command handlers for server management
-class_name AdminCommands
 extends Node
 
 ## ============================================================================

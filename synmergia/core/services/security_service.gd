@@ -1,6 +1,5 @@
 ## SecurityService - Centralized security utilities
 ## Handles input validation, permission checks, and anti-exploit measures
-class_name SecurityService
 extends Node
 
 ## ============================================================================

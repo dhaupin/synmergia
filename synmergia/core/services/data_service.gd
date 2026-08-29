@@ -1,6 +1,5 @@
 ## DataService - Resource discovery and loading
 ## Scans data/ folder for .tres files and provides access by ID
-class_name DataService
 extends Node
 
 var _skills: Dictionary = {}

@@ -1,6 +1,5 @@
 ## ChatService - Chat channels and messaging
 ## Handles all chat channels, filters, commands, and channel permissions
-class_name ChatService
 extends Node
 
 # Chat channels

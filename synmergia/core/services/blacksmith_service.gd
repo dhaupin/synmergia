@@ -1,6 +1,5 @@
 ## BlacksmithService - Equipment repair system
 ## Handles NPC interactions for repairing durability on equipment
-class_name BlacksmithService
 extends Node
 
 # Singleton reference

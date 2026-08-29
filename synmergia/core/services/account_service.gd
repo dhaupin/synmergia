@@ -1,6 +1,5 @@
 ## AccountService - Account-level operations
 ## Manages accounts, character linking, and account-wide features
-class_name AccountService
 extends Node
 
 # Singleton instance

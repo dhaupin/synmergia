@@ -1,6 +1,5 @@
 ## SpawnService - Enemy/NPC spawn management
 ## Handles spawn points, respawn timers, spawn caps, and dynamic spawning
-class_name SpawnService
 extends Node
 
 # Spawn points organized by zone (zone_id -> [SpawnPoint])

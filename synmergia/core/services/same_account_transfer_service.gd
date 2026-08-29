@@ -1,6 +1,5 @@
 ## SameAccountTransferService - Quick transfers between own characters
 ## Handles fast item/gold transfers without trade window
-class_name SameAccountTransferService
 extends Node
 
 # Singleton

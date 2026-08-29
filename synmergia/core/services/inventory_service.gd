@@ -1,6 +1,5 @@
 ## InventoryService - Player inventory operations
 ## Handles inventory-related operations and cross-player inventory access
-class_name InventoryService
 extends Node
 
 # Singleton instance

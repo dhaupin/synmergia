@@ -1,6 +1,5 @@
 ## ShardManager - Multi-shard/multi-server support
 ## Manages shard ID, player routing, and cross-shard awareness
-class_name ShardManager
 extends Node
 
 # Shard identification

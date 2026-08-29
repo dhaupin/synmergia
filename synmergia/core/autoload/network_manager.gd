@@ -12,10 +12,9 @@ signal server_stopped
 # Firewall instance
 var _firewall: AppFirewall
 
-# Network settings (using GameConfig for centralized configuration)
-const DEFAULT_PORT := GameConfig.Network.DEFAULT_PORT
-const MAX_PLAYERS := GameConfig.Network.MAX_PLAYERS
-const SERVER_IP := "127.0.0.1"
+var DEFAULT_PORT: int = 10555
+var MAX_PLAYERS: int = 100
+const SERVER_IP: String = "127.0.0.1"
 
 enum ConnectionState {
 	DISCONNECTED,
@@ -37,6 +36,8 @@ var tick_timer: Timer
 
 func _ready() -> void:
 	Logger.info("NetworkManager initialized")
+	DEFAULT_PORT = GameConfig.Network.DEFAULT_PORT
+	MAX_PLAYERS = GameConfig.Network.MAX_PLAYERS
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Initialize firewall with GameConfig values
 	_firewall = AppFirewall.new(

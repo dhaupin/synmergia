@@ -1,6 +1,5 @@
 ## PermissionManager - Central permission and audit system
 ## All admin operations MUST go through this system
-class_name PermissionManager
 extends Node
 
 ## Permission levels (must match GameConfig.Security)
