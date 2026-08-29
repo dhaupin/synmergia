@@ -388,7 +388,7 @@ func _is_click_on_ui(screen_pos: Vector2) -> bool:
 
 func _show_target_tooltip(target_info: TargetingManager.TargetInfo) -> void:
 	# Emit signal or show tooltip UI
-	EventBus.entity_targeted.emit(entity_id, target_info.id, target_info.entity_type)
+	EventHub.entity_targeted.emit(entity_id, target_info.id, target_info.entity_type)
 
 func _hide_target_tooltip() -> void:
 	# Hide tooltip UI

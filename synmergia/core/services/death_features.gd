@@ -73,12 +73,12 @@ func _ready() -> void:
 	
 	# Connect to relevant events
 	if EventBus:
-		EventBus.player_died.connect(_on_player_died)
-		EventBus.player_respawned.connect(_on_player_respawned)
-		EventBus.player_resurrected.connect(_on_player_resurrected)
-		EventBus.self_resurrected.connect(_on_self_resurrected)
-		EventBus.revive_completed.connect(_on_revive_completed)
-		EventBus.entity_killed.connect(_on_entity_killed)
+		EventHub.player_died.connect(_on_player_died)
+		EventHub.player_respawned.connect(_on_player_respawned)
+		EventHub.player_resurrected.connect(_on_player_resurrected)
+		EventHub.self_resurrected.connect(_on_self_resurrected)
+		EventHub.revive_completed.connect(_on_revive_completed)
+		EventHub.entity_killed.connect(_on_entity_killed)
 	
 	# Start cleanup timer
 	var cleanup_timer := Timer.new()

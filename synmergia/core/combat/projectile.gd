@@ -217,7 +217,7 @@ func _on_hit(target: SynmergiaEntity) -> void:
 		target.health_component.take_damage(damage, source, damage_type)
 	
 	hit.emit(target, damage)
-	EventBus.projectile_hit.emit(self, target, damage)
+	EventHub.projectile_hit.emit(self, target, damage)
 	
 	if _ricochet_remaining > 0 and ricochet_count > 0:
 		_ricochet(target)
@@ -273,7 +273,7 @@ func _chain_to_next(from_target: SynmergiaEntity) -> void:
 		var chain_damage := int(base_damage * 0.5)
 		if next_target.health_component:
 			next_target.health_component.take_damage(chain_damage, source, damage_type)
-		EventBus.projectile_hit.emit(self, next_target, chain_damage)
+		EventHub.projectile_hit.emit(self, next_target, chain_damage)
 		
 		if _chain_targets.size() < chain_count:
 			_chain_to_next(next_target)
@@ -318,9 +318,9 @@ func _explode(position: Vector3) -> void:
 		if entity.health_component:
 			entity.health_component.take_damage(damage, source, damage_type)
 		
-		EventBus.area_damage.emit(source, entity, damage, damage_type)
+		EventHub.area_damage.emit(source, entity, damage, damage_type)
 	
-	EventBus.explosion_occurred.emit(position, explosion_radius, source)
+	EventHub.explosion_occurred.emit(position, explosion_radius, source)
 
 func _expire() -> void:
 	if _has_hit:
@@ -330,7 +330,7 @@ func _expire() -> void:
 		_spawn_sfx(global_position)
 	
 	expired.emit()
-	EventBus.projectile_expired.emit(self)
+	EventHub.projectile_expired.emit(self)
 	_destroy()
 
 func _destroy() -> void:

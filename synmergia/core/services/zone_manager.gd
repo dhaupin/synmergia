@@ -163,7 +163,7 @@ func entity_enter_zone(entity: SynmergiaEntity, zone: ZoneData) -> bool:
 	elif entity.entity_type == SynmergiaEntity.EntityType.ENEMY:
 		_enemies_in_zone[zone.id].append(entity)
 	
-	EventBus.entity_entered_zone.emit(entity, zone)
+	EventHub.entity_entered_zone.emit(entity, zone)
 	GameLog.debug("ZoneManager: %s entered zone %s" % [entity.display_name, zone.id])
 	return true
 
@@ -185,7 +185,7 @@ func entity_exit_zone(entity: SynmergiaEntity) -> bool:
 		_enemies_in_zone[zone_id].erase(entity)
 	
 	if zone:
-		EventBus.entity_exited_zone.emit(entity, zone)
+		EventHub.entity_exited_zone.emit(entity, zone)
 	
 	GameLog.debug("ZoneManager: %s exited zone %s" % [entity.display_name, zone_id])
 	return true
@@ -430,7 +430,7 @@ func perform_seamless_transition(entity: SynmergiaEntity, to_zone: ZoneData) -> 
 	_players_in_zone[from_zone.id].erase(entity)
 	_players_in_zone[from_zone.id].remove_at(_players_in_zone[from_zone.id].find(entity))
 	player_exited_zone.emit(entity, from_zone)
-	EventBus.entity_exited_zone.emit(entity, from_zone)
+	EventHub.entity_exited_zone.emit(entity, from_zone)
 	
 	# Enter new zone
 	_entity_zones[entity.entity_id] = to_zone.id
@@ -438,7 +438,7 @@ func perform_seamless_transition(entity: SynmergiaEntity, to_zone: ZoneData) -> 
 		_players_in_zone[to_zone.id] = []
 	_players_in_zone[to_zone.id].append(entity)
 	player_entered_zone.emit(entity, to_zone)
-	EventBus.entity_entered_zone.emit(entity, to_zone)
+	EventHub.entity_entered_zone.emit(entity, to_zone)
 	
 	# Send notification
 	_notify_zone_change(entity, from_zone, to_zone)

@@ -39,7 +39,7 @@ func add_buff(buff: Buff, source: SynmergiaEntity = null) -> bool:
 	
 	buff.start()
 	buff_added.emit(buff)
-	EventBus.buff_applied.emit(get_parent(), buff, source)
+	EventHub.buff_applied.emit(get_parent(), buff, source)
 	
 	return true
 
@@ -52,7 +52,7 @@ func remove_buff(buff: Buff) -> void:
 	_active_buffs.erase(buff)
 	
 	buff_removed.emit(buff)
-	EventBus.buff_removed.emit(get_parent(), buff)
+	EventHub.buff_removed.emit(get_parent(), buff)
 
 ## Add a debuff
 func add_debuff(debuff: StatusEffect, source: SynmergiaEntity = null) -> bool:
@@ -73,7 +73,7 @@ func add_debuff(debuff: StatusEffect, source: SynmergiaEntity = null) -> bool:
 	
 	debuff.start()
 	debuff_added.emit(debuff)
-	EventBus.debuff_applied.emit(get_parent(), debuff, source)
+	EventHub.debuff_applied.emit(get_parent(), debuff, source)
 	
 	return true
 
@@ -86,7 +86,7 @@ func remove_debuff(debuff: StatusEffect) -> void:
 	_active_debuffs.erase(debuff)
 	
 	debuff_removed.emit(debuff)
-	EventBus.buff_removed.emit(get_parent(), debuff)
+	EventHub.buff_removed.emit(get_parent(), debuff)
 
 ## Add an aura (toggleable buff)
 func add_aura(aura: AuraBuff, source: SynmergiaEntity = null) -> bool:
@@ -101,7 +101,7 @@ func add_aura(aura: AuraBuff, source: SynmergiaEntity = null) -> bool:
 	
 	aura.start()
 	aura_activated.emit(aura)
-	EventBus.aura_activated.emit(get_parent(), aura)
+	EventHub.aura_activated.emit(get_parent(), aura)
 	
 	return true
 
@@ -114,7 +114,7 @@ func remove_aura(aura: AuraBuff) -> void:
 	_active_auras.erase(aura)
 	
 	aura_deactivated.emit(aura)
-	EventBus.aura_deactivated.emit(get_parent(), aura)
+	EventHub.aura_deactivated.emit(get_parent(), aura)
 
 ## Toggle an aura on/off
 func toggle_aura(aura: AuraBuff, enabled: bool) -> void:
@@ -289,14 +289,14 @@ func _dispel_by_category(categories: Array[int], caster: SynmergiaEntity = null)
 			if _check_dispel_resist(debuff, caster):
 				remove_debuff(debuff)
 				dispelled += 1
-				EventBus.effect_dispelled.emit(get_parent(), debuff, caster)
+				EventHub.effect_dispelled.emit(get_parent(), debuff, caster)
 	
 	# Check auras (some auras are dispellable)
 	for aura in _active_auras:
 		if aura.is_dispellable and _matches_category(aura.category, categories):
 			remove_aura(aura)
 			dispelled += 1
-			EventBus.aura_dispelled.emit(get_parent(), aura, caster)
+			EventHub.aura_dispelled.emit(get_parent(), aura, caster)
 	
 	return dispelled
 
