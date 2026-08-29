@@ -131,7 +131,7 @@ func _update_idle(delta: float) -> void:
 		return
 	
 	# Look for targets
-	var target := _check_for_targets()
+	var target: Variant = _check_for_targets()
 	if target:
 		_set_target(target)
 		set_state(AIState.CHASE)
@@ -148,7 +148,7 @@ func _update_patrol(delta: float) -> void:
 		return
 	
 	# Check for targets first
-	var target := _check_for_targets()
+	var target: Variant = _check_for_targets()
 	if target:
 		_set_target(target)
 		set_state(AIState.CHASE)
@@ -161,7 +161,7 @@ func _update_patrol(delta: float) -> void:
 	
 	# Move to patrol target
 	var dir := (_patrol_target - entity.global_position).normalized()
-	var dist := entity.global_position.distance_to(_patrol_target)
+	var dist: float = entity.global_position.distance_to(_patrol_target)
 	
 	if dist < 1.0:
 		# Reached patrol point, wait
@@ -181,7 +181,7 @@ func _set_new_patrol_target() -> void:
 	
 	# Random point within patrol radius
 	var angle := randf() * TAU
-	var dist := randf() * 10.0 + 5.0
+	var dist: float = randf() * 10.0 + 5.0
 	_patrol_target = _spawn_position + Vector3(cos(angle), 0, sin(angle)) * dist
 
 ## CHASE: Move toward target
@@ -197,7 +197,7 @@ func _update_chase(delta: float) -> void:
 		set_state(AIState.RETURN)
 		return
 	
-	var dist := entity.global_position.distance_to(_target.global_position)
+	var dist: float = entity.global_position.distance_to(_target.global_position)
 	
 	# In attack range? Start combat
 	if dist <= attack_range:
@@ -227,7 +227,7 @@ func _update_combat(delta: float) -> void:
 		set_state(AIState.RETURN)
 		return
 	
-	var dist := entity.global_position.distance_to(_target.global_position)
+	var dist: float = entity.global_position.distance_to(_target.global_position)
 	
 	# Target out of range? Chase again
 	if dist > attack_range:
@@ -271,7 +271,7 @@ func _update_flee(delta: float) -> void:
 	entity.move_direction = dir
 	
 	# Stop fleeing when far enough
-	var dist := entity.global_position.distance_to(_target.global_position)
+	var dist: float = entity.global_position.distance_to(_target.global_position)
 	if dist > chase_range:
 		_clear_target()
 		set_state(AIState.RETURN)
@@ -282,7 +282,7 @@ func _update_return(delta: float) -> void:
 	if not entity:
 		return
 	
-	var dist := entity.global_position.distance_to(_spawn_position)
+	var dist: float = entity.global_position.distance_to(_spawn_position)
 	
 	# Back at spawn?
 	if dist < 1.0:

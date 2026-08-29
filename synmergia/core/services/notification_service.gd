@@ -314,7 +314,7 @@ func broadcast_event_alert(
 
 ## Zone change notification
 func notify_zone_change(entity_id: String, from_zone: String, to_zone: String) -> void:
-	var message := "Entered %s" % to_zone
+	var message: String = "Entered %s" % to_zone
 	send(entity_id, message, NotificationType.ZONE_CHANGE, Priority.NORMAL, DisplayLocation.BOTH, SoundType.NOTIFICATION, {
 		"from_zone": from_zone,
 		"to_zone": to_zone
@@ -322,7 +322,7 @@ func notify_zone_change(entity_id: String, from_zone: String, to_zone: String) -
 
 ## Dungeon entry notification
 func notify_dungeon_enter(entity_id: String, dungeon_name: String) -> void:
-	var message := "Entering %s" % dungeon_name
+	var message: String = "Entering %s" % dungeon_name
 	send(entity_id, message, NotificationType.DUNGEON, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.DUNGEON_ENTER, {
 		"dungeon_name": dungeon_name,
 		"action": "enter"
@@ -330,7 +330,7 @@ func notify_dungeon_enter(entity_id: String, dungeon_name: String) -> void:
 
 ## Dungeon exit notification
 func notify_dungeon_exit(entity_id: String, dungeon_name: String, completed: bool) -> void:
-	var message := "Left %s" % dungeon_name
+	var message: String = "Left %s" % dungeon_name
 	if completed:
 		message = "Completed %s!" % dungeon_name
 	send(entity_id, message, NotificationType.DUNGEON, Priority.HIGH if completed else Priority.NORMAL, DisplayLocation.BOTH, SoundType.DUNGEON_COMPLETE if completed else SoundType.NONE, {
@@ -341,14 +341,14 @@ func notify_dungeon_exit(entity_id: String, dungeon_name: String, completed: boo
 
 ## Level up notification
 func notify_level_up(entity_id: String, new_level: int) -> void:
-	var message := "Level Up! You are now level %d" % new_level
+	var message: String = "Level Up! You are now level %d" % new_level
 	send(entity_id, message, NotificationType.LEVEL_UP, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.LEVEL_UP, {
 		"new_level": new_level
 	})
 
 ## Achievement notification
 func notify_achievement(entity_id: String, achievement_name: String, description: String = "") -> void:
-	var message := "Achievement Unlocked: %s" % achievement_name
+	var message: String = "Achievement Unlocked: %s" % achievement_name
 	if description != "":
 		message += "\n%s" % description
 	send(entity_id, message, NotificationType.ACHIEVEMENT, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.ACHIEVEMENT, {
@@ -401,7 +401,7 @@ func notify_combat(entity_id: String, combat_type: String, message: String, is_p
 
 ## Item loot notification
 func notify_item_loot(entity_id: String, item_name: String, rarity: String = "common") -> void:
-	var message := "Looted: %s" % item_name
+	var message: String = "Looted: %s" % item_name
 	var priority := Priority.NORMAL
 	var sound := SoundType.NOTIFICATION
 	
@@ -424,7 +424,7 @@ func notify_item_loot(entity_id: String, item_name: String, rarity: String = "co
 ## Gold change notification
 func notify_gold_change(entity_id: String, amount: int, reason: String = "") -> void:
 	var prefix := "+" if amount > 0 else ""
-	var message := "%s%d Gold" % [prefix, amount]
+	var message: String = "%s%d Gold" % [prefix, amount]
 	if reason != "":
 		message += " (%s)" % reason
 	send(entity_id, message, NotificationType.GOLD, Priority.LOW, DisplayLocation.CHAT_LOG, SoundType.NONE, {
@@ -548,7 +548,7 @@ func notify_corpse_expiring(entity_id: String, seconds_remaining: int) -> void:
 
 ## Corpse looted by another player
 func notify_corpse_looted_victim(entity_id: String, looter_name: String, item_name: String = "") -> void:
-	var message := "%s has looted your corpse" % looter_name
+	var message: String = "%s has looted your corpse" % looter_name
 	if item_name != "":
 		message += ": %s" % item_name
 	send(entity_id, message, NotificationType.ITEM, Priority.LOW, DisplayLocation.CHAT_LOG, SoundType.NONE, {
@@ -579,7 +579,7 @@ func notify_cannot_bind_ankh(entity_id: String, reason: String) -> void:
 
 ## PvP kill feed notification
 func notify_pvp_kill(killer_name: String, victim_name: String, zone_name: String = "") -> void:
-	var message := "%s defeated %s" % [killer_name, victim_name]
+	var message: String = "%s defeated %s" % [killer_name, victim_name]
 	if zone_name != "":
 		message += " in %s" % zone_name
 	
@@ -603,7 +603,7 @@ func notify_revive_abuse_warning(entity_id: String, context: String) -> void:
 
 ## Invincibility gained notification
 func notify_invincibility_gained(entity_id: String, duration: float, reason: String = "") -> void:
-	var message := "🛡️ Invincible for %.0f seconds" % duration
+	var message: String = "🛡️ Invincible for %.0f seconds" % duration
 	if reason == "respawn":
 		message = "🛡️ Respawn protection: %s" % message
 	elif reason == "griefing_protection":
@@ -616,7 +616,7 @@ func notify_invincibility_gained(entity_id: String, duration: float, reason: Str
 
 ## Invincibility lost notification
 func notify_invincibility_lost(entity_id: String, reason: String = "") -> void:
-	var message := "⚠️ Invincibility ended"
+	var message: String = "⚠️ Invincibility ended"
 	if reason == "expired":
 		message = "🛡️ Respawn protection has worn off"
 	send(entity_id, message, NotificationType.WARNING, Priority.NORMAL, 
@@ -629,7 +629,7 @@ func notify_kill_streak(entity_id: String, streak: int, xp_bonus: int, gold_bonu
 	var emojis: Array[String] = ["🔥", "🔥🔥", "🔥🔥🔥", "⚡", "💀"]
 	var idx := mini(streak / 5, emojis.size() - 1)
 	var emoji: String = emojis[idx]
-	var message := "%s Kill streak %d! +%d XP, +%d gold" % [emoji, streak, xp_bonus, gold_bonus]
+	var message: String = "%s Kill streak %d! +%d XP, +%d gold" % [emoji, streak, xp_bonus, gold_bonus]
 	send(entity_id, message, NotificationType.COMBAT, Priority.HIGH, 
 		DisplayLocation.BOTH, SoundType.KILL_STREAK, {
 		"streak": streak,

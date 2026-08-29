@@ -126,7 +126,7 @@ func _handle_touch_end(position: Vector2) -> void:
 		return
 	
 	var duration := Time.get_ticks_msec() / 1000.0 - _touch_start_time
-	var distance := _touch_start_pos.distance_to(position)
+	var distance: float = _touch_start_pos.distance_to(position)
 	
 	if distance < _tap_max_distance and duration < _tap_max_time:
 		_emit_interaction(InteractionType.TAP, position)

@@ -56,7 +56,7 @@ func send_observation(observation: Dictionary) -> void:
 	if not is_connected():
 		return
 	
-	var message := {
+	var message: Dictionary = {
 		"jsonrpc": "2.0",
 		"method": "observation",
 		"params": {
@@ -75,7 +75,7 @@ func request_action(prompt: String = "") -> void:
 	
 	var request_id := "req_%d" % Time.get_ticks_msec()
 	
-	var message := {
+	var message: Dictionary = {
 		"jsonrpc": "2.0",
 		"id": request_id,
 		"method": "game/action",
@@ -90,7 +90,7 @@ func request_action(prompt: String = "") -> void:
 	_ws_client.send_text(JSON.stringify(message))
 
 func _send_initialize() -> void:
-	var message := {
+	var message: Dictionary = {
 		"jsonrpc": "2.0",
 		"id": "init",
 		"method": "initialize",

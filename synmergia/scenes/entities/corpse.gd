@@ -140,7 +140,7 @@ func can_loot(looter: SynmergiaEntity) -> bool:
 	
 	# Range check
 	if looter.has_method("get_global_position"):
-		var distance := global_position.distance_to(looter.get_global_position())
+		var distance: float = global_position.distance_to(looter.get_global_position())
 		if distance > loot_radius:
 			return false
 	

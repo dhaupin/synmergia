@@ -91,7 +91,7 @@ func unregister_entity(entity, reason: String = "despawn") -> void:
 	if not entity.entity_id:
 		return
 	
-	var entity_id := entity.entity_id
+	var entity_id: String = entity.entity_id
 	var was_player := _players.has(entity_id)
 	
 	# Get stored metadata for despawn event
@@ -183,7 +183,7 @@ func get_closest_entity(origin: Vector3, entity_type: SynmergiaEntity.EntityType
 	for entity in target_dict.values():
 		if not is_instance_valid(entity):
 			continue
-		var dist := entity.global_position.distance_to(origin)
+		var dist: float = entity.global_position.distance_to(origin)
 		if dist < closest_dist or closest_dist < 0:
 			if max_distance < 0 or dist <= max_distance:
 				closest = entity

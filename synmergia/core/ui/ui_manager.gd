@@ -68,7 +68,7 @@ func show_target_tooltip(target_id: String) -> void:
 	if not _tooltip:
 		return
 
-	var target := TargetingManager.get_target_info(target_id)
+	var target: Variant = TargetingManager.get_target_info(target_id)
 	if target:
 		_tooltip.show()
 		_tooltip._refresh_tooltip()

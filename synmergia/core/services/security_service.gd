@@ -171,7 +171,7 @@ func check_teleport(player_id: String, from_pos: Vector3, to_pos: Vector3, time_
 if time_delta <= 0:
 return false
 
-var distance := from_pos.distance_to(to_pos)
+var distance: float = from_pos.distance_to(to_pos)
 var speed := distance / time_delta
 
 if speed > GameConfig.Security.MAX_TELEPORT_DISTANCE:
@@ -219,7 +219,7 @@ func check_item_duplication(player_id: String, item_id: String, quantity_change:
 		player_data["item_creations"][item_id] = []
 	
 	var now := Time.get_ticks_msec()
-	var recent := player_data["item_creations"][item_id].filter(func(t): return now - t < 60000)
+	var recent: Array = player_data["item_creations"][item_id].filter(func(t): return now - t < 60000)
 	recent.append(now)
 	player_data["item_creations"][item_id] = recent
 	
@@ -259,7 +259,7 @@ func _report_exploit(player_id: String, exploit_type: String, details: Dictionar
 func _detect_spam_pattern(message: String) -> bool:
 	# Check for repeated characters (> 5 same char in a row)
 	var last_char := ""
-	var count := 0
+	var count: int = 0
 	for ch in message:
 		if ch == last_char:
 			count += 1
@@ -290,7 +290,7 @@ func track_action(player_id: String, action_type: String) -> int:
 	
 	var actions := _action_tracker[player_id][action_type]
 	# Filter to recent
-	var recent := actions.filter(func(t): return now - t < window)
+	var recent: Array = actions.filter(func(t): return now - t < window)
 	recent.append(now)
 	_action_tracker[player_id][action_type] = recent
 	
@@ -375,7 +375,7 @@ func _notify_player_restricted(player_id: String, restriction_type: String, dura
 	if not NotificationService:
 		return
 	
-	var message := ""
+	var message: String = ""
 	match restriction_type:
 		"chat":
 			if duration_seconds >= 3600:
@@ -408,7 +408,7 @@ func _notify_player_unrestricted(player_id: String, restriction_type: String) ->
 	if not NotificationService:
 		return
 	
-	var message := ""
+	var message: String = ""
 	match restriction_type:
 		"chat":
 			message = "Your mute has been lifted. Please follow chat guidelines."
@@ -439,7 +439,7 @@ func _process(delta: float) -> void:
 		var data := _suspicious_activity[player_id]
 		var has_recent := false
 		for item_id in data["item_creations"].keys():
-			var recent := data["item_creations"][item_id].filter(func(t): return now - t < 300000)
+			var recent: Array = data["item_creations"][item_id].filter(func(t): return now - t < 300000)
 			if not recent.is_empty():
 				has_recent = true
 				data["item_creations"][item_id] = recent
@@ -451,7 +451,7 @@ func _process(delta: float) -> void:
 		var actions := _action_tracker[player_id]
 		var has_recent := false
 		for action_type in actions.keys():
-			var recent := actions[action_type].filter(func(t): return now - t < 60000)
+			var recent: Array = actions[action_type].filter(func(t): return now - t < 60000)
 			if not recent.is_empty():
 				has_recent = true
 				actions[action_type] = recent

@@ -157,7 +157,7 @@ func _notify_player_rate_limit(player_id: String, action_type: String, max_rate:
 	if not NotificationService:
 		return
 	
-	var message := _get_rate_limit_message(action_type, max_rate)
+	var message: String = _get_rate_limit_message(action_type, max_rate)
 	var cooldown := _get_cooldown_seconds(action_type, max_rate)
 	
 	if cooldown > 0:

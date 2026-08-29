@@ -249,7 +249,7 @@ func start_revival(healer, target, context: String = "") -> bool:
 		return false
 	
 	# Check range
-	var distance := healer.global_position.distance_to(target.global_position)
+	var distance: float = healer.global_position.distance_to(target.global_position)
 	if distance > REVIVE_RANGE:
 		return false
 	
@@ -301,7 +301,7 @@ func get_revival_progress(entity_id: String) -> float:
 		return 0.0
 	
 	var revive_data: Dictionary = _active_revives[entity_id]
-	var elapsed := (Time.get_ticks_msec() - revive_data["start_time"]) / 1000.0
+	var elapsed: float = (Time.get_ticks_msec() - revive_data["start_time"]) / 1000.0
 	var cast_time: float = revive_data["cast_time"]
 	
 	return clamp(elapsed / cast_time, 0.0, 1.0)
@@ -382,7 +382,7 @@ func get_revival_progress(target_id: String) -> float:
 	
 	var data: Dictionary = _active_revives[target_id]
 	var elapsed_ms := Time.get_ticks_msec() - data["start_time"]
-	var elapsed := elapsed_ms / 1000.0
+	var elapsed: float = elapsed_ms / 1000.0
 	
 	return clamp(elapsed / data["cast_time"], 0.0, 1.0)
 
@@ -480,7 +480,7 @@ func _is_on_revival_cooldown(healer) -> bool:
 	if not _revive_cooldowns.has(healer.entity_id):
 		return false
 	var last_revoke_ms: int = _revive_cooldowns[healer.entity_id]
-	var elapsed := Time.get_ticks_msec() - last_revoke_ms
+	var elapsed: float = Time.get_ticks_msec() - last_revoke_ms
 	return elapsed < (REVIVE_COOLDOWN * 1000)
 
 ## Internal: Check revive abuse
@@ -638,7 +638,7 @@ func _get_nearest_gateway(player, gateway_ids: Array[String]) -> String:
 	for gateway_id in gateway_ids:
 		if _gateway_positions.has(gateway_id):
 			var gateway_pos := _gateway_positions[gateway_id]
-			var dist := player_pos.distance_to(gateway_pos)
+			var dist: float = player_pos.distance_to(gateway_pos)
 			if dist < nearest_dist:
 				nearest_dist = dist
 				nearest_id = gateway_id
@@ -657,12 +657,12 @@ func _process(delta: float) -> void:
 	
 	for target_id in _active_revives.keys():
 		var data: Dictionary = _active_revives[target_id]
-		var elapsed := now - data["start_time"]
+		var elapsed: float = now - data["start_time"]
 		
 		# Check if healer moved too far
 		var healer = data["healer"]
 		var target = data["target"]
-		var distance := healer.global_position.distance_to(target.global_position)
+		var distance: float = healer.global_position.distance_to(target.global_position)
 		
 		if distance > REVIVE_RANGE:
 			interrupt_revival(target_id, "Healer moved out of range")

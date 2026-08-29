@@ -534,7 +534,7 @@ func set_target(entity_id: String, schema_id: String, display_name: String = "",
 	new_target.metadata = metadata
 	
 	# Get schema for computed properties
-	var schema := get_schema(schema_id)
+	var schema: Variant = get_schema(schema_id)
 	if schema:
 		new_target.actions = schema.available_actions
 		new_target.highlight_color = schema.highlight_color
@@ -845,7 +845,7 @@ func raycast_from_center(camera: Camera3D = null) -> TargetInfo:
 	if not camera:
 		return null
 	
-	var viewport_size := camera.get_viewport().get_visible_rect().size
+	var viewport_size: Vector2 = camera.get_viewport().get_visible_rect().size
 	var center_pos := viewport_size / 2.0
 	return raycast_from_camera(center_pos, camera)
 
@@ -938,7 +938,7 @@ func _create_target_info_from_node(node: Node, hit_position: Vector3 = Vector3.Z
 	info.node = node
 	
 	# Get schema for computed properties
-	var schema := get_schema(schema_id)
+	var schema: Variant = get_schema(schema_id)
 	if schema:
 		info.actions = schema.available_actions
 		info.highlight_color = schema.highlight_color
@@ -955,7 +955,7 @@ func get_tooltip_data() -> Dictionary:
 	if not has_target():
 		return {}
 	
-	var data := {
+	var data: Dictionary = {
 		"target": _current_target.to_dict(),
 		"actions": get_available_actions(),
 		"schema": null

@@ -119,7 +119,7 @@ func get_total_objective_count() -> int:
 
 ## Get required (non-optional) objective count
 func get_required_objective_count() -> int:
-	var count := 0
+	var count: int = 0
 	for obj in objectives:
 		if obj is Objective and not obj.optional:
 			count += 1

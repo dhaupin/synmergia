@@ -160,7 +160,7 @@ func _process_restart_countdown(delta: float) -> void:
 		_broadcast_restart_warning(remaining)
 
 func _broadcast_restart_warning(seconds_remaining: int, custom_message: String = "") -> void:
-	var message := custom_message if custom_message != "" else "Server restart"
+	var message: String = custom_message if custom_message != "" else "Server restart"
 	
 	if seconds_remaining >= 3600:
 		var minutes = seconds_remaining / 60

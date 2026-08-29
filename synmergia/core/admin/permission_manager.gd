@@ -383,7 +383,7 @@ func get_audit_log(limit: int = 100, admin_filter: String = "",
 func get_audit_log_string(limit: int = 50) -> String:
 	var output := "[color=yellow]=== Recent Admin Actions ===[/color]\n\n"
 	
-	var count := 0
+	var count: int = 0
 	for entry: AuditEntry in _audit_log:
 		output += entry.to_string() + "\n"
 		count += 1

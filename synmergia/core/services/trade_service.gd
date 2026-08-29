@@ -674,22 +674,22 @@ var player2 := trade["player2"]
 # Refund player1's items
 var p1_items: Array = trade.get("player1_items", [])
 for item_data in p1_items:
-var item_id := item_data.get("item_id", "")
+var item_id: String = item_data.get("item_id", "")
 var quantity: int = item_data.get("quantity", 1)
 if _inventory_service.has_inventory(player1):
 var inv: InventoryComponent = _inventory_service.get_inventory(player1)
-var slot := inv.find_item(item_id)
+var slot: int = inv.find_item(item_id)
 if slot >= 0:
 inv.remove_item(slot, quantity)
 
 # Refund player2's items
 var p2_items: Array = trade.get("player2_items", [])
 for item_data in p2_items:
-var item_id := item_data.get("item_id", "")
+var item_id: String = item_data.get("item_id", "")
 var quantity: int = item_data.get("quantity", 1)
 if _inventory_service.has_inventory(player2):
 var inv: InventoryComponent = _inventory_service.get_inventory(player2)
-var slot := inv.find_item(item_id)
+var slot: int = inv.find_item(item_id)
 if slot >= 0:
 inv.remove_item(slot, quantity)
 

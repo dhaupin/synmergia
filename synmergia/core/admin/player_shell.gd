@@ -335,7 +335,7 @@ func _cmd_online(args: String, player_id: String) -> CommandResult:
 	var filter := args.strip_edges().to_lower()
 	var output := "[color=yellow]=== Online Players ===[/color]\n"
 	
-	var count := 0
+	var count: int = 0
 	var players := []
 	if PlayerManager:
 		players = PlayerManager.get_online_player_ids()
@@ -471,7 +471,7 @@ func _cmd_whois(args: String, player_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: whois <player>")
 	
-	var target := args.strip_edges()
+	var target: Variant = args.strip_edges()
 	
 	# Use PermissionManager for lookup
 	if PermissionManager:
@@ -493,7 +493,7 @@ func _cmd_ignore(args: String, player_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: ignore <player>")
 	
-	var target := args.strip_edges()
+	var target: Variant = args.strip_edges()
 	
 	# Use ChatService ignore system
 	if ChatService:
@@ -506,7 +506,7 @@ func _cmd_unignore(args: String, player_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: unignore <player>")
 	
-	var target := args.strip_edges()
+	var target: Variant = args.strip_edges()
 	
 	if ChatService:
 		ChatService.unignore_player(player_id, target)
@@ -538,7 +538,7 @@ func _cmd_report(args: String, player_id: String) -> CommandResult:
 	if parts.size() < 2:
 		return CommandResult.new(false, "", "Usage: report <player> <reason>")
 	
-	var target := parts[0].strip_edges()
+	var target: Variant = parts[0].strip_edges()
 	var reason := parts[1].strip_edges()
 	
 	# Use PlayerReporter
@@ -570,7 +570,7 @@ func _cmd_feedback(args: String, player_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: feedback <message>")
 	
-	var message := args.strip_edges()
+	var message: Dictionary = args.strip_edges()
 	
 	# Use PlayerReporter
 	if PlayerReporter:
@@ -593,7 +593,7 @@ func _format_player_info(info: Dictionary) -> String:
 
 func _save_player_customization(player_id: String) -> void:
 	var custom := _get_player_customization(player_id)
-	var data := custom.to_dict()
+	var data: Dictionary = custom.to_dict()
 	
 	# In production, this would save to database
 	# For now, just log

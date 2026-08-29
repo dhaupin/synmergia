@@ -407,8 +407,8 @@ func _cmd_whisper(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "Usage: /w <player> <message>")
 								return false
 				
-				var target := args[0]
-				var message := args.slice(1, args.size()).join(" ")
+				var target: String = args[0]
+				var message: String = args.slice(1, args.size()).join(" ")
 				
 				# Look up player by name
 				var target_id := _find_player_id_by_name(target)
@@ -428,7 +428,7 @@ func _cmd_reply(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "No one to reply to. Use /w <player> first.")
 								return false
 				
-				var message := args.join(" ")
+				var message: String = args.join(" ")
 				return send_message(sender_id, Channel.WHISPER, message, last_target_id)
 
 ## Command: Emote
@@ -441,7 +441,7 @@ func _cmd_ignore(sender_id: String, args: Array) -> bool:
 				if args.is_empty():
 								return false
 				
-				var target := args[0]
+				var target: String = args[0]
 				
 				if not _ignored_players.has(sender_id):
 								_ignored_players[sender_id] = []
@@ -458,7 +458,7 @@ func _cmd_unignore(sender_id: String, args: Array) -> bool:
 				if args.is_empty():
 								return false
 				
-				var target := args[0]
+				var target: String = args[0]
 				
 				if _ignored_players.has(sender_id) and _ignored_players[sender_id].has(target):
 								_ignored_players[sender_id].erase(target)
@@ -483,7 +483,7 @@ func _cmd_report(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "Reports are reviewed by moderators. For bugs, use /bug")
 								return true
 				
-				var target := args[0]
+				var target: String = args[0]
 				var reason := args.slice(1, args.size()).join(" ")
 				
 				if PlayerReporter:
@@ -529,7 +529,7 @@ func _cmd_feedback(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "Share your thoughts, suggestions, or concerns.")
 								return true
 				
-				var message := args.join(" ")
+				var message: String = args.join(" ")
 				
 				if PlayerReporter:
 								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.FEEDBACK, {

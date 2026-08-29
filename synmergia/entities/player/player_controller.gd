@@ -78,7 +78,7 @@ func _on_interaction_tap(position: Vector2) -> void:
 		return
 	
 	# Only handle taps on right side of screen (for movement)
-	var viewport_size := get_viewport_rect().size
+	var viewport_size: Vector2 = get_viewport_rect().size
 	if position.x < viewport_size.x * 0.3:
 		return  # Left side is movement joystick
 	
@@ -100,7 +100,7 @@ func _on_interaction_long_press(position: Vector2) -> void:
 	# Raycast to find target
 	var camera := _get_camera()
 	if camera:
-		var target_info := TargetingManager.raycast_from_touch(position, camera)
+		var target_info: Variant = TargetingManager.raycast_from_touch(position, camera)
 		if target_info:
 			_show_target_context_menu(target_info)
 
@@ -159,7 +159,7 @@ func _show_gateway_context_menu(target_info: TargetingManager.TargetInfo) -> voi
 	pass
 
 func _create_basic_attack() -> Skill:
-	var skill := Skill.new()
+	var skill: Skill = Skill.new()
 	skill.skill_name = "Strike"
 	skill.skill_id = "strike"
 	skill.skill_type = Skill.SkillType.MELEE
@@ -232,7 +232,7 @@ func cycle_target() -> void:
 	
 	# Raycast in look direction to find targetable
 	var look_dir := -camera.global_transform.basis.z
-	var target_info := TargetingManager.get_target_in_direction(global_position, look_dir, 50.0)
+	var target_info: Variant = TargetingManager.get_target_in_direction(global_position, look_dir, 50.0)
 	
 	if target_info:
 		TargetingManager.set_target(
@@ -286,7 +286,7 @@ func use_skill(slot: int) -> void:
 	if skill and skill.can_cast(self):
 		# Get target from TargetingManager
 		var target: Node = null
-		var target_info := TargetingManager.get_current_target()
+		var target_info: Variant = TargetingManager.get_current_target()
 		if target_info:
 			target = target_info.node
 		
@@ -329,7 +329,7 @@ func _handle_left_click(screen_pos: Vector2) -> void:
 		return
 	
 	# Raycast from camera
-	var target_info := TargetingManager.raycast_from_camera(screen_pos, camera)
+	var target_info: Variant = TargetingManager.raycast_from_camera(screen_pos, camera)
 	
 	if target_info:
 		# Target the entity
@@ -353,7 +353,7 @@ func _handle_left_click(screen_pos: Vector2) -> void:
 func _handle_right_click() -> void:
 	# Right click while targeting opens context menu or clears target
 	if TargetingManager.has_target():
-		var target := TargetingManager.get_current_target()
+		var target: String = TargetingManager.get_current_target()
 		if target and target.entity_type == SynmergiaEntity.EntityType.PLAYER:
 			_show_player_context_menu(target)
 
@@ -378,7 +378,7 @@ func _is_click_on_ui(screen_pos: Vector2) -> bool:
 		return false
 	
 	# Check for UI elements at position
-	var controls := root.get_nodes_in_group("clickable")
+	var controls: Array = root.get_nodes_in_group("clickable")
 	for control in controls:
 		if control is Control:
 			var rect := Rect2(control.global_position, control.size)
