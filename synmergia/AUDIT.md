@@ -7,6 +7,41 @@
 
 ---
 
+## Roadmap
+
+### Phase 1: Core Infrastructure
+- [x] Upgrade Godot to 4.7.2
+- [x] Fix game_config.gd (removed class_name conflict, fixed Logger calls)
+- [x] Fix qos_service.gd (removed class_name, fixed GameConfig paths, added missing variables)
+- [x] Fix respawn_service.gd indentation
+- [ ] Fix remaining ~40 scripts with parse errors
+
+### Phase 2: Type Dependencies (Main Blocker)
+Services that use custom types (Entity, Item, etc.) in signal definitions fail because those types aren't registered yet.
+
+**Options:**
+1. Add Entity, Item, etc. as singletons/autoloads to force load order
+2. Remove type hints from signal definitions (use Variant)
+3. Create interface/base classes that are autoloaded
+4. Restructure service architecture to use composition over inheritance
+
+### Phase 3: StatusEffect Consolidation
+Consolidate buff, aura, and DoT systems into unified StatusEffect class.
+
+**Current files:**
+- `core/combat/status_handlers.gd`
+- `core/combat/buff.gd` (class_name Buff)
+- `core/components/aura_component.gd`
+
+**Target:** Single `core/entities/status_effect.gd` with:
+- Base StatusEffect class
+- Buff (stat modifiers, duration-based)
+- Aura (area-effect, continuous)
+- DamageOverTime (DoT)
+- HealOverTime (HoT)
+
+---
+
 ## Executive Summary
 
 The Synmergia MMORPG Engine has **41 scripts with parse/compilation errors** preventing the project from loading. The root cause was `game_config.gd` which has been fixed. The remaining issues stem from missing type definitions, a missing Logger autoload, space vs tab indentation inconsistencies, and some syntax errors.
