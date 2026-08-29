@@ -34,7 +34,7 @@ func unregister_connector(connector_name: String) -> void:
 		GameLogger.info("ConnectorService: Unregistered connector '%s'" % connector_name)
 
 ## Connect an agent using a specific connector
-func connect_agent(agent_id: String, connector_name: String, config: Dictionary, entity: Entity) -> bool:
+func connect_agent(agent_id: String, connector_name: String, config: Dictionary, entity: SynmergiaEntity) -> bool:
 	if not _connectors.has(connector_name):
 		GameLogger.error("ConnectorService: Unknown connector '%s'" % connector_name)
 		return false
@@ -105,7 +105,7 @@ func _execute_action(agent_id: String, action: AgentAction) -> void:
 	if not _connected_agents.has(agent_id):
 		return
 	
-	var entity: Entity = _connected_agents[agent_id]["entity"]
+	var entity: SynmergiaEntity = _connected_agents[agent_id]["entity"]
 	if not is_instance_valid(entity):
 		return
 	
@@ -132,7 +132,7 @@ func _execute_action(agent_id: String, action: AgentAction) -> void:
 				"nearest_enemy":
 					var nearest := EntityService.get_closest_entity(
 						entity.global_position,
-						Entity.EntityType.ENEMY,
+						SynmergiaEntity.EntityType.ENEMY,
 						50.0
 					)
 					entity.target = nearest
@@ -148,17 +148,17 @@ func _execute_action(agent_id: String, action: AgentAction) -> void:
 		AgentAction.ActionType.CHAT:
 			ChatService.send_message(entity, action.chat_message, action.chat_channel)
 
-func _interact_with_target(entity: Entity, target_id: String) -> void:
-	var target: Entity = EntityService.get_entity(target_id)
+func _interact_with_target(entity: SynmergiaEntity, target_id: String) -> void:
+	var target: SynmergiaEntity = EntityService.get_entity(target_id)
 	if target and entity.global_position.distance_to(target.global_position) < 3.0:
 		if target.has_method("on_interact"):
 			target.on_interact(entity)
 
-func _pickup_nearby(entity: Entity) -> void:
+func _pickup_nearby(entity: SynmergiaEntity) -> void:
 	# Find nearby items
 	var nearby := EntityService.get_entities_in_radius(entity.global_position, 3.0)
 	for e in nearby:
-		if e.entity_type == Entity.EntityType.ITEM_DROP:
+		if e.entity_type == SynmergiaEntity.EntityType.ITEM_DROP:
 			if e.has_method("on_pickup"):
 				e.on_pickup(entity)
 				return

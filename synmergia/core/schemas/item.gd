@@ -184,7 +184,7 @@ func _init() -> void:
 				durability_loss_rate = 0.5  # Accessories decay slowly
 
 ## Check if entity can use this item
-func can_use(entity: Entity) -> bool:
+func can_use(entity: SynmergiaEntity) -> bool:
 	if entity.level < required_level:
 		return false
 	if required_class != "" and entity.character_class != required_class:

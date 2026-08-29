@@ -2,11 +2,11 @@
 ## Free-form combat system inspired by RYL2
 extends Node
 
-signal skill_executed(caster: Entity, skill: Skill, targets: Array)
-signal skill_hit(caster: Entity, target: Entity, skill: Skill, damage: int)
-signal skill_missed(caster: Entity, skill: Skill)
-signal damage_dealt(damager: Entity, target: Entity, amount: int, skill: Skill)
-signal entity_died(victim: Entity, killer: Entity)
+signal skill_executed(caster: SynmergiaEntity, skill: Skill, targets: Array)
+signal skill_hit(caster: SynmergiaEntity, target: SynmergiaEntity, skill: Skill, damage: int)
+signal skill_missed(caster: SynmergiaEntity, skill: Skill)
+signal damage_dealt(damager: SynmergiaEntity, target: SynmergiaEntity, amount: int, skill: Skill)
+signal entity_died(victim: SynmergiaEntity, killer: SynmergiaEntity)
 
 var registered_entities: Dictionary = {}
 var active_hitboxes: Array[HitboxData] = []
@@ -28,25 +28,25 @@ func _physics_process(_delta: float) -> void:
 
 ## ENTITY MANAGEMENT
 
-func register_entity(entity: Entity) -> void:
+func register_entity(entity: SynmergiaEntity) -> void:
 	registered_entities[entity.entity_id] = entity
 	entity.died.connect(_on_entity_died)
 	combo_trackers[entity.entity_id] = ComboTracker.new()
 
-func unregister_entity(entity: Entity) -> void:
+func unregister_entity(entity: SynmergiaEntity) -> void:
 	registered_entities.erase(entity.entity_id)
 	combo_trackers.erase(entity.entity_id)
 	entity.died.disconnect(_on_entity_died)
 
-func get_entity(entity_id: String) -> Entity:
+func get_entity(entity_id: String) -> SynmergiaEntity:
 	return registered_entities.get(entity_id)
 
-func _on_entity_died(entity: Entity, killer: Entity) -> void:
+func _on_entity_died(entity: SynmergiaEntity, killer: SynmergiaEntity) -> void:
 	entity_died.emit(entity, killer)
 
 ## SKILL EXECUTION
 
-func execute_skill(caster: Entity, skill: Skill, target: Entity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
+func execute_skill(caster: SynmergiaEntity, skill: Skill, target: SynmergiaEntity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
 	if not skill.can_cast(caster):
 		return {"success": false, "reason": "cannot_cast"}
 	
@@ -66,7 +66,7 @@ func execute_skill(caster: Entity, skill: Skill, target: Entity = null, ground_p
 	
 	return result
 
-func create_hitbox(caster: Entity, skill: Skill, target: Entity, ground_position: Vector3) -> void:
+func create_hitbox(caster: SynmergiaEntity, skill: Skill, target: SynmergiaEntity, ground_position: Vector3) -> void:
 	var hitbox := HitboxData.new()
 	hitbox.owner_id = caster.entity_id if caster.entity_id else -1
 	hitbox.skill = skill
@@ -118,11 +118,11 @@ func _process_hitboxes(_delta: float) -> void:
 			hitbox.hit_entities.append(entity.entity_id)
 			_apply_hit(hitbox, entity)
 
-func get_entities_in_hitbox(hitbox: HitboxData) -> Array[Entity]:
-	var entities_in_range: Array[Entity] = []
+func get_entities_in_hitbox(hitbox: HitboxData) -> Array[SynmergiaEntity]:
+	var entities_in_range: Array[SynmergiaEntity] = []
 	
 	for entity_id in registered_entities:
-		var entity: Entity = registered_entities[entity_id]
+		var entity: SynmergiaEntity = registered_entities[entity_id]
 		
 		if not is_instance_valid(entity):
 			continue
@@ -132,7 +132,7 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array[Entity]:
 	
 	return entities_in_range
 
-func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
+func _apply_hit(hitbox: HitboxData, target: SynmergiaEntity) -> void:
 	var caster := get_entity(hitbox.owner_id) if hitbox.owner_id != -1 else null
 	
 	# Calculate and apply damage
@@ -150,7 +150,7 @@ func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
 	# Apply additional effects from skill
 	_apply_skill_effects(hitbox.skill, caster, target)
 
-func _apply_skill_effects(skill: Skill, caster: Entity, target: Entity) -> void:
+func _apply_skill_effects(skill: Skill, caster: SynmergiaEntity, target: SynmergiaEntity) -> void:
 	# Apply DoT if skill has duration
 	if skill.is_dot:
 		_apply_dot(caster, target, skill)
@@ -163,7 +163,7 @@ func _apply_skill_effects(skill: Skill, caster: Entity, target: Entity) -> void:
 	if skill.teleport_distance > 0:
 		_apply_teleport(caster, target, skill)
 
-func _apply_dot(caster: Entity, target: Entity, skill: Skill) -> void:
+func _apply_dot(caster: SynmergiaEntity, target: SynmergiaEntity, skill: Skill) -> void:
 	# Create and apply DoT effect
 	var effect := DoTEffect.new()
 	effect.damage_per_tick = skill.damage / int(skill.dot_duration / skill.dot_tick_rate)
@@ -173,14 +173,14 @@ func _apply_dot(caster: Entity, target: Entity, skill: Skill) -> void:
 	
 	target.apply_status_effect(effect)
 
-func _apply_cc(skill: Skill, caster: Entity, target: Entity) -> void:
+func _apply_cc(skill: Skill, caster: SynmergiaEntity, target: SynmergiaEntity) -> void:
 	var effect := skill.create_slow_effect(caster) if skill.crowd_control_type == "slow" else \
 		skill.create_stun_effect(caster) if skill.crowd_control_type == "stun" else \
 		skill.create_root_effect(caster)
 	
 	target.apply_status_effect(effect)
 
-func _apply_teleport(caster: Entity, _target: Entity, skill: Skill) -> void:
+func _apply_teleport(caster: SynmergiaEntity, _target: SynmergiaEntity, skill: Skill) -> void:
 	var forward := -caster.global_transform.basis.z
 	forward.y = 0
 	caster.global_position += forward * skill.teleport_distance
@@ -204,7 +204,7 @@ func can_combo(entity_id: String, skill: Skill) -> bool:
 
 ## GROUND TARGETING
 
-func get_ground_target_position(caster: Entity, direction: Vector2, max_range: float) -> Vector3:
+func get_ground_target_position(caster: SynmergiaEntity, direction: Vector2, max_range: float) -> Vector3:
 	# Raycast to ground
 	var from := caster.global_position + Vector3.UP * 2
 	var to := caster.global_position + Vector3(direction.x, 0, direction.y) * max_range
@@ -224,7 +224,7 @@ func get_ground_target_position(caster: Entity, direction: Vector2, max_range: f
 
 ## UTILITY
 
-func calculate_damage_output(attacker: Entity, skill: Skill) -> int:
+func calculate_damage_output(attacker: SynmergiaEntity, skill: Skill) -> int:
 	if not skill:
 		return 0
 	return skill.calculate_damage(attacker, null)
@@ -277,17 +277,17 @@ class DoTEffect:
 	var tick_rate: float = 1.0
 	var total_duration: float = 0.0
 	var ticks_remaining: int = 0
-	var source: Entity = null
+	var source: SynmergiaEntity = null
 	var tick_timer: float = 0.0
 	
 	func _init() -> void:
 		effect_type = EffectType.DEBUFF
 	
-	func apply(target: Entity) -> void:
+	func apply(target: SynmergiaEntity) -> void:
 		ticks_remaining = int(total_duration / tick_rate)
 		target.damage_dealt.connect(_on_target_take_damage)
 	
-	func remove(target: Entity) -> void:
+	func remove(target: SynmergiaEntity) -> void:
 		target.damage_dealt.disconnect(_on_target_take_damage)
 	
 	func _physics_process(delta: float) -> void:
@@ -297,5 +297,5 @@ class DoTEffect:
 			# Damage applied via signal
 			ticks_remaining -= 1
 	
-	func _on_target_take_damage(_damager: Entity, _target: Entity, _amount: int) -> void:
+	func _on_target_take_damage(_damager: SynmergiaEntity, _target: SynmergiaEntity, _amount: int) -> void:
 		pass  # Could modify damage or apply effects

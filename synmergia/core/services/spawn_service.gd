@@ -11,7 +11,7 @@ var _spawn_timers: Dictionary = {}
 # Spawned entities (spawn_point_id -> [entity_ids])
 var _spawned_entities: Dictionary = {}
 
-# World bosses (boss_id -> Entity)
+# World bosses (boss_id -> SynmergiaEntity)
 var _world_bosses: Dictionary = {}
 
 # Spawn point schema
@@ -73,10 +73,10 @@ class SpawnPoint:
 ## SpawnService-specific signals for spawn-point-aware listeners
 ## These complement the unified EventBus.entity_spawned with spawn-point context
 signal spawn_point_registered(spawn_point: Dictionary)
-signal enemy_spawned(entity: Entity, spawn_point_id: String, metadata: EventBus.SpawnMetadata)
-signal enemy_despawned(entity: Entity, spawn_point_id: String, metadata: EventBus.SpawnMetadata)
-signal boss_spawned(entity: Entity, boss_name: String, metadata: EventBus.SpawnMetadata)
-signal npc_spawned(npc: Entity, npc_id: String, metadata: EventBus.SpawnMetadata)
+signal enemy_spawned(entity: SynmergiaEntity, spawn_point_id: String, metadata: EventBus.SpawnMetadata)
+signal enemy_despawned(entity: SynmergiaEntity, spawn_point_id: String, metadata: EventBus.SpawnMetadata)
+signal boss_spawned(entity: SynmergiaEntity, boss_name: String, metadata: EventBus.SpawnMetadata)
+signal npc_spawned(npc: SynmergiaEntity, npc_id: String, metadata: EventBus.SpawnMetadata)
 signal spawn_point_cleared(spawn_point_id: String)
 
 func _ready() -> void:
@@ -144,7 +144,7 @@ func get_zone_spawn_points(zone_id: String) -> Array:
 	return _spawn_points.get(zone_id, [])
 
 ## Spawn enemy at a spawn point
-func spawn_enemy(spawn_point_id: String) -> Entity:
+func spawn_enemy(spawn_point_id: String) -> SynmergiaEntity:
 	var spawn_point = _get_spawn_point(spawn_point_id)
 	if spawn_point == null or not spawn_point.should_spawn():
 		return null
@@ -229,7 +229,7 @@ func spawn_boss(
 	zone_id: String,
 	boss_name: String = "",
 	alert_scopes: Array = []
-) -> Entity:
+) -> SynmergiaEntity:
 	var data_service = DataService
 	if data_service == null:
 		return null
@@ -239,11 +239,11 @@ func spawn_boss(
 		GameLogger.warn("SpawnService: Boss template %s not found" % boss_template_id)
 		return null
 	
-	var boss = Entity.new()
+	var boss = SynmergiaEntity.new()
 	boss.display_name = boss_name if boss_name != "" else boss_data.display_name
-	boss.entity_type = Entity.EntityType.ENEMY
+	boss.entity_type = SynmergiaEntity.EntityType.ENEMY
 	boss.level = boss_data.level
-	boss.faction = Entity.Relation.HOSTILE
+	boss.faction = SynmergiaEntity.Relation.HOSTILE
 	boss.faction_id = boss_data.faction
 	
 	# Apply stats from template
@@ -298,7 +298,7 @@ func spawn_boss(
 	return boss
 
 ## Despawn a world boss
-func despawn_boss(entity: Entity) -> void:
+func despawn_boss(entity: SynmergiaEntity) -> void:
 	if entity == null:
 		return
 	
@@ -322,19 +322,19 @@ func despawn_boss(entity: Entity) -> void:
 	GameLogger.info("SpawnService: Despawned boss %s" % entity.display_name)
 
 ## Spawn boss with server-wide alert (convenience method)
-func spawn_world_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "") -> Entity:
+func spawn_world_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "") -> SynmergiaEntity:
 	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.server_wide()])
 
 ## Spawn boss with zone + neighbors alert (convenience method)
-func spawn_zone_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", include_neighbors: bool = true) -> Entity:
+func spawn_zone_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", include_neighbors: bool = true) -> SynmergiaEntity:
 	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.zone(zone_id, include_neighbors)])
 
 ## Spawn mini-boss with nearby alert only (convenience method)
-func spawn_mini_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", radius: float = 50.0) -> Entity:
+func spawn_mini_boss(boss_template_id: String, position: Vector3, zone_id: String, boss_name: String = "", radius: float = 50.0) -> SynmergiaEntity:
 	return spawn_boss(boss_template_id, position, zone_id, boss_name, [NotificationService.AlertScope.nearby(position, radius)])
 
 ## Despawn enemy
-func despawn_enemy(entity: Entity) -> void:
+func despawn_enemy(entity: SynmergiaEntity) -> void:
 	if entity == null:
 		return
 	
@@ -475,16 +475,16 @@ func _clear_spawn_point(spawn_point: SpawnPoint) -> void:
 	_spawn_timers.erase(spawn_point.id)
 	spawn_point_cleared.emit(spawn_point.id)
 
-func _create_enemy(spawn_point: SpawnPoint) -> Entity:
+func _create_enemy(spawn_point: SpawnPoint) -> SynmergiaEntity:
 	if spawn_point.enemy_data == null:
 		GameLogger.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
 		return null
 	
-	var enemy = Entity.new()
+	var enemy = SynmergiaEntity.new()
 	enemy.display_name = spawn_point.enemy_data.display_name
-	enemy.entity_type = Entity.EntityType.ENEMY
+	enemy.entity_type = SynmergiaEntity.EntityType.ENEMY
 	enemy.level = spawn_point.enemy_data.level
-	enemy.faction = Entity.Relation.HOSTILE
+	enemy.faction = SynmergiaEntity.Relation.HOSTILE
 	enemy.faction_id = spawn_point.enemy_data.faction
 	
 	# Apply species if set
@@ -524,8 +524,8 @@ func spawn_blacksmith(
 			# Default values if no data provided
 			blacksmith.display_name = "Blacksmith"
 		
-		blacksmith.entity_type = Entity.EntityType.NPC
-		blacksmith.faction = Entity.Relation.FRIENDLY
+		blacksmith.entity_type = SynmergiaEntity.EntityType.NPC
+		blacksmith.faction = SynmergiaEntity.Relation.FRIENDLY
 		
 		# Register with EntityService
 		var entity_service = EntityService
@@ -592,7 +592,7 @@ func spawn_zone_blacksmiths(zone_id: String, zone_data: ZoneData) -> Array[Black
 		return blacksmiths
 
 ## Despawn an NPC
-func despawn_npc(entity: Entity) -> void:
+func despawn_npc(entity: SynmergiaEntity) -> void:
 	if entity == null:
 		return
 	

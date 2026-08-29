@@ -13,7 +13,7 @@ enum AIState {
 }
 
 signal state_changed(from: AIState, to: AIState)
-signal target_acquired(target: Entity)
+signal target_acquired(target: SynmergiaEntity)
 signal target_lost()
 
 @export var state: AIState = AIState.IDLE
@@ -24,7 +24,7 @@ signal target_lost()
 @export var patrol_speed: float = 2.0
 @export var chase_speed: float = 5.0
 
-var _target: Entity = null
+var _target: SynmergiaEntity = null
 var _spawn_position: Vector3 = Vector3.ZERO
 var _patrol_target: Vector3 = Vector3.ZERO
 var _patrol_wait_time: float = 0.0
@@ -32,7 +32,7 @@ var _attack_timer: float = 0.0
 var _aggro_timer: float = 0.0
 
 func _ready() -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if entity:
 		_spawn_position = entity.global_position
 
@@ -52,15 +52,15 @@ func _physics_process(delta: float) -> void:
 			_update_return(delta)
 
 ## Check for nearby targets (aggro detection)
-func _check_for_targets() -> Entity:
-	var entity: Entity = get_parent()
+func _check_for_targets() -> SynmergiaEntity:
+	var entity: SynmergiaEntity = get_parent()
 	if not entity:
 		return null
 	
 	var nearby := EntityService.get_entities_in_radius(
 		entity.global_position,
 		aggro_range,
-		Entity.EntityType.PLAYER
+		SynmergiaEntity.EntityType.PLAYER
 	)
 	
 	for target in nearby:
@@ -69,7 +69,7 @@ func _check_for_targets() -> Entity:
 	
 	return null
 
-func _is_valid_target(target: Entity) -> bool:
+func _is_valid_target(target: SynmergiaEntity) -> bool:
 	# Check if dead
 	if target.health_component and target.health_component.is_dead():
 		return false
@@ -80,7 +80,7 @@ func _is_valid_target(target: Entity) -> bool:
 			var stealth_effect = target.status_handler.get_effect_by_type(StatusEffectData.EffectType.BUFF, "stealth")
 			if stealth_effect and stealth_effect.is_active():
 				# Check if this enemy can see stealth
-				var entity: Entity = get_parent()
+				var entity: SynmergiaEntity = get_parent()
 				if entity and entity.enemy_data:
 					if not entity.enemy_data.see_stealth:
 						return false  # Can't see stealthed targets
@@ -105,7 +105,7 @@ func set_state(new_state: AIState) -> void:
 	_match_state_behavior()
 
 func _match_state_behavior() -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity:
 		return
 	
@@ -126,7 +126,7 @@ func _match_state_behavior() -> void:
 
 ## IDLE: Wait and look for targets
 func _update_idle(delta: float) -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity:
 		return
 	
@@ -143,7 +143,7 @@ func _update_idle(delta: float) -> void:
 
 ## PATROL: Wander around spawn point
 func _update_patrol(delta: float) -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity:
 		return
 	
@@ -175,7 +175,7 @@ func _start_patrol() -> void:
 	set_state(AIState.PATROL)
 
 func _set_new_patrol_target() -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity:
 		return
 	
@@ -186,7 +186,7 @@ func _set_new_patrol_target() -> void:
 
 ## CHASE: Move toward target
 func _update_chase(delta: float) -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity or not _target:
 		set_state(AIState.RETURN)
 		return
@@ -216,7 +216,7 @@ func _update_chase(delta: float) -> void:
 
 ## COMBAT: Attack target
 func _update_combat(delta: float) -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity or not _target:
 		set_state(AIState.RETURN)
 		return
@@ -247,7 +247,7 @@ func _perform_attack() -> void:
 	if not _target or not is_instance_valid(_target):
 		return
 	
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity:
 		return
 	
@@ -261,7 +261,7 @@ func _perform_attack() -> void:
 
 ## FLEE: Run away from target
 func _update_flee(delta: float) -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity or not _target:
 		set_state(AIState.RETURN)
 		return
@@ -278,7 +278,7 @@ func _update_flee(delta: float) -> void:
 
 ## RETURN: Go back to spawn
 func _update_return(delta: float) -> void:
-	var entity: Entity = get_parent()
+	var entity: SynmergiaEntity = get_parent()
 	if not entity:
 		return
 	
@@ -294,7 +294,7 @@ func _update_return(delta: float) -> void:
 	entity.move_direction = dir
 
 ## Set target
-func _set_target(new_target: Entity) -> void:
+func _set_target(new_target: SynmergiaEntity) -> void:
 	if _target == new_target:
 		return
 	
@@ -310,13 +310,13 @@ func _clear_target() -> void:
 	target_lost.emit()
 
 ## Force engage target (called by EventBus when aggro'd)
-func engage_target(target: Entity) -> void:
+func engage_target(target: SynmergiaEntity) -> void:
 	if _is_valid_target(target):
 		_set_target(target)
 		set_state(AIState.CHASE)
 
 ## Handle being damaged
-func on_damaged(source: Entity) -> void:
+func on_damaged(source: SynmergiaEntity) -> void:
 	if state == AIState.IDLE or state == AIState.PATROL:
 		# Become aware
 		engage_target(source)

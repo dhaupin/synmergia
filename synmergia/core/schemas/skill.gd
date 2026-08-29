@@ -74,7 +74,7 @@ func _init() -> void:
 		id = display_name.to_lower().replace(" ", "_")
 
 ## Check if entity can cast this skill
-func can_cast(caster: Entity) -> bool:
+func can_cast(caster: SynmergiaEntity) -> bool:
 	if remaining_cooldown > 0:
 		return false
 	if caster.current_mana < mana_cost:
@@ -88,7 +88,7 @@ func can_cast(caster: Entity) -> bool:
 	return true
 
 ## Execute the skill
-func execute(caster: Entity, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> Dictionary:
+func execute(caster: SynmergiaEntity, target: SynmergiaEntity = null, ground_pos: Vector3 = Vector3.ZERO) -> Dictionary:
 	var result := {
 		"success": false,
 		"damage_dealt": 0,
@@ -111,12 +111,12 @@ func execute(caster: Entity, target: Entity = null, ground_pos: Vector3 = Vector
 	result["success"] = true
 	return result
 
-func _consume_resources(caster: Entity) -> void:
+func _consume_resources(caster: SynmergiaEntity) -> void:
 	caster.current_mana -= mana_cost
 	caster.current_stamina -= stamina_cost
 	caster.current_health -= health_cost
 
-func _apply_effects(caster: Entity, target: Entity, ground_pos: Vector3, result: Dictionary) -> void:
+func _apply_effects(caster: SynmergiaEntity, target: SynmergiaEntity, ground_pos: Vector3, result: Dictionary) -> void:
 	for effect in effects:
 		match effect.get("type", ""):
 			"damage":
@@ -142,7 +142,7 @@ func _apply_effects(caster: Entity, target: Entity, ground_pos: Vector3, result:
 				pass
 
 ## Apply revive effect
-func _apply_revive(caster: Entity, target: Entity, effect: Dictionary, result: Dictionary) -> bool:
+func _apply_revive(caster: SynmergiaEntity, target: SynmergiaEntity, effect: Dictionary, result: Dictionary) -> bool:
 	if not target or not caster:
 		return false
 	
@@ -182,8 +182,8 @@ func get_cooldown_remaining() -> float:
 	return remaining_cooldown
 
 ## Find dead allies within range (for revive skills)
-static func find_dead_allies(caster: Entity, max_range: float) -> Array[Entity]:
-	var dead_allies: Array[Entity] = []
+static func find_dead_allies(caster: SynmergiaEntity, max_range: float) -> Array[SynmergiaEntity]:
+	var dead_allies: Array[SynmergiaEntity] = []
 	
 	if not caster or not caster.health_component:
 		return dead_allies
@@ -207,7 +207,7 @@ static func find_dead_allies(caster: Entity, max_range: float) -> Array[Entity]:
 	return dead_allies
 
 ## Check if two entities are allies
-static func _is_ally(entity_a: Entity, entity_b: Entity) -> bool:
+static func _is_ally(entity_a: SynmergiaEntity, entity_b: SynmergiaEntity) -> bool:
 	# Same entity
 	if entity_a == entity_b:
 		return true

@@ -24,7 +24,7 @@ var world_seed: int = 0
 
 signal time_changed(time_of_day: String, hour: int)
 signal day_changed(day_number: int)
-signal gateway_activated(gateway_id: String, entity: Entity)
+signal gateway_activated(gateway_id: String, entity: SynmergiaEntity)
 signal event_started(event_id: String, event_name: String)
 signal event_ended(event_id: String, event_name: String)
 
@@ -44,7 +44,7 @@ class GatewayData:
 	var unlock_requirement: String = ""
 	var activation_radius: float = 3.0
 	
-	func can_use(entity: Entity) -> bool:
+	func can_use(entity: SynmergiaEntity) -> bool:
 		if is_locked:
 			return false
 		if entity.level < required_level:
@@ -185,7 +185,7 @@ func get_gateways_at_position(position: Vector3, radius: float = 10.0) -> Array[
 	return results
 
 ## Use a gateway
-func use_gateway(gateway_id: String, entity: Entity) -> Dictionary:
+func use_gateway(gateway_id: String, entity: SynmergiaEntity) -> Dictionary:
 	var gateway = _gateways.get(gateway_id)
 	if gateway == null:
 		return {}
@@ -222,7 +222,7 @@ func set_gateway_locked(gateway_id: String, locked: bool) -> void:
 		GameLogger.info("WorldService: Gateway %s %s" % [gateway_id, "locked" if locked else "unlocked"])
 
 ## Check gateway proximity and return usable gateways
-func get_nearby_gateway(entity: Entity) -> GatewayData:
+func get_nearby_gateway(entity: SynmergiaEntity) -> GatewayData:
 	var zone_manager = ZoneManager
 	if zone_manager == null:
 		return null

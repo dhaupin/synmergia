@@ -37,7 +37,7 @@ signal action_blocked(action_id: String, target_id: String, reason: String)
 class TargetInfo:
 	var id: String = ""
 	var schema_id: String = ""
-	var entity_type: int = 0  # Uses Entity.EntityType bitflags
+	var entity_type: int = 0  # Uses SynmergiaEntity.EntityType bitflags
 	var display_name: String = ""
 	var position: Vector3 = Vector3.ZERO
 	var world_position: Vector3 = Vector3.ZERO  # For 3D highlighting
@@ -106,7 +106,7 @@ var _target_history: Array[TargetInfo] = []
 const MAX_HISTORY: int = 10
 
 ## Allowed entity types (bitmask)
-var _allowed_types: int = Entity.EntityType.ALL
+var _allowed_types: int = SynmergiaEntity.EntityType.ALL
 
 ## Selection mode
 var _selection_mode: TargetSchema.SelectionMode = TargetSchema.SelectionMode.SINGLE
@@ -465,7 +465,7 @@ func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
 	_do_resurrect_fallback(target_entity)
 	return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
 
-func _do_resurrect_fallback(entity: Entity) -> void:
+func _do_resurrect_fallback(entity: SynmergiaEntity) -> void:
 	var health_comp = entity.health_component
 	
 	# Remove corpse if exists
@@ -515,7 +515,7 @@ func has_target() -> bool:
 ## Set target
 func set_target(entity_id: String, schema_id: String, display_name: String = "",
 		position: Vector3 = Vector3.ZERO, node: Node = null,
-		entity_type: int = Entity.EntityType.NONE,
+		entity_type: int = SynmergiaEntity.EntityType.NONE,
 		metadata: Dictionary = {}) -> void:
 	
 	# Check if type is allowed
@@ -982,7 +982,7 @@ func get_targets_in_radius(origin: Vector3, radius: float, entity_type: int = 0)
 ## EVENT HANDLERS
 ## ============================================================================
 
-func _on_entity_spawned(entity: Entity, _metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_spawned(entity: SynmergiaEntity, _metadata: EventBus.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		var entity_type = entity.get("entity_type", 0)
 		var schema_id = _entity_type_to_schema.get(entity_type, "")
@@ -998,11 +998,11 @@ func _on_entity_spawned(entity: Entity, _metadata: EventBus.SpawnMetadata) -> vo
 			entity_type
 		)
 
-func _on_entity_despawned(entity: Entity, _metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_despawned(entity: SynmergiaEntity, _metadata: EventBus.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		unregister_targetable(entity.entity_id)
 
-func _on_entity_died(entity: Entity, _killer: Entity, _metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_died(entity: SynmergiaEntity, _killer: SynmergiaEntity, _metadata: EventBus.SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		# Optionally clear target if they died
 		if _current_target and _current_target.id == entity.entity_id:
@@ -1179,26 +1179,26 @@ func is_highlight_visible() -> bool:
 ## ============================================================================
 
 ## Convert entity type int to human-readable string
-## Uses Entity.EntityType (see core/entities/entity.gd)
+## Uses SynmergiaEntity.EntityType (see core/entities/entity.gd)
 static func entity_type_to_string(entity_type: int) -> String:
 	match entity_type:
-		Entity.EntityType.PLAYER: return "Player"
-		Entity.EntityType.ENEMY: return "Enemy"
-		Entity.EntityType.NPC: return "NPC"
-		Entity.EntityType.DESTRUCTIBLE: return "Destructible"
-		Entity.EntityType.OBJECT: return "Object"
-		Entity.EntityType.TELEPORT: return "Teleport"
-		Entity.EntityType.LOOT: return "Loot"
+		SynmergiaEntity.EntityType.PLAYER: return "Player"
+		SynmergiaEntity.EntityType.ENEMY: return "Enemy"
+		SynmergiaEntity.EntityType.NPC: return "NPC"
+		SynmergiaEntity.EntityType.DESTRUCTIBLE: return "Destructible"
+		SynmergiaEntity.EntityType.OBJECT: return "Object"
+		SynmergiaEntity.EntityType.TELEPORT: return "Teleport"
+		SynmergiaEntity.EntityType.LOOT: return "Loot"
 		_: return "Unknown"
 
 ## Convert entity type string to int
 static func string_to_entity_type(type_str: String) -> int:
 	match type_str.to_lower():
-		"player": return Entity.EntityType.PLAYER
-		"enemy": return Entity.EntityType.ENEMY
-		"npc": return Entity.EntityType.NPC
-		"destructible": return Entity.EntityType.DESTRUCTIBLE
-		"object": return Entity.EntityType.OBJECT
-		"teleport": return Entity.EntityType.TELEPORT
-		"loot": return Entity.EntityType.LOOT
-		_: return Entity.EntityType.NONE
+		"player": return SynmergiaEntity.EntityType.PLAYER
+		"enemy": return SynmergiaEntity.EntityType.ENEMY
+		"npc": return SynmergiaEntity.EntityType.NPC
+		"destructible": return SynmergiaEntity.EntityType.DESTRUCTIBLE
+		"object": return SynmergiaEntity.EntityType.OBJECT
+		"teleport": return SynmergiaEntity.EntityType.TELEPORT
+		"loot": return SynmergiaEntity.EntityType.LOOT
+		_: return SynmergiaEntity.EntityType.NONE

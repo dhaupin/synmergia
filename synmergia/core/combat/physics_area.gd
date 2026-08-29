@@ -4,9 +4,9 @@
 class_name PhysicsArea
 extends Node3D
 
-signal entity_entered(entity: Entity)
-signal entity_exited(entity: Entity)
-signal area_updated(entities_in_area: Array[Entity])
+signal entity_entered(entity: SynmergiaEntity)
+signal entity_exited(entity: SynmergiaEntity)
+signal area_updated(entities_in_area: Array[SynmergiaEntity])
 
 enum Shape {
 	SPHERE,           # 3D sphere (default)
@@ -26,10 +26,10 @@ enum BlockingMode {
 @export var height: float = 0.0           # Optional: cylinder height override (0 = infinite/unrestricted)
 
 @export var blocking_mode: BlockingMode = BlockingMode.NONE
-@export var source_entity: Entity = null  # Origin of the area
+@export var source_entity: SynmergiaEntity = null  # Origin of the area
 @export var update_interval: float = 0.1  # How often to refresh (0 = every frame)
 
-var _entities_in_area: Array[Entity] = []
+var _entities_in_area: Array[SynmergiaEntity] = []
 var _collision_shape: CollisionShape3D
 var _area: Area3D
 var _monitoring: bool = false
@@ -104,7 +104,7 @@ func _process(delta: float) -> void:
 
 func _refresh_area() -> void:
 	# Remove invalid entities
-	var valid_entities: Array[Entity] = []
+	var valid_entities: Array[SynmergiaEntity] = []
 	for entity in _entities_in_area:
 		if is_instance_valid(entity):
 			valid_entities.append(entity)
@@ -112,8 +112,8 @@ func _refresh_area() -> void:
 
 ## SPHERE DETECTION
 
-func get_entities_in_sphere(origin: Vector3, sphere_radius: float, ignore_source: bool = true) -> Array[Entity]:
-	var entities: Array[Entity] = []
+func get_entities_in_sphere(origin: Vector3, sphere_radius: float, ignore_source: bool = true) -> Array[SynmergiaEntity]:
+	var entities: Array[SynmergiaEntity] = []
 	
 	# Use physics sphere query
 	var space_state := get_world_3d().direct_space_state
@@ -161,9 +161,9 @@ func has_line_of_sight(from: Vector3, to: Vector3) -> bool:
 	return result.is_empty()
 
 ## Get all entities in sphere that have line of sight from origin
-func get_entities_with_los(origin: Vector3, sphere_radius: float) -> Array[Entity]:
+func get_entities_with_los(origin: Vector3, sphere_radius: float) -> Array[SynmergiaEntity]:
 	var all_entities := get_entities_in_sphere(origin, sphere_radius)
-	var los_entities: Array[Entity] = []
+	var los_entities: Array[SynmergiaEntity] = []
 	
 	for entity in all_entities:
 		# Check LOS to entity's center
@@ -200,7 +200,7 @@ func get_blocking_objects(from: Vector3, to: Vector3) -> Array[Dictionary]:
 	return blockers
 
 ## Check if entity is within effective range considering geometry
-func is_in_range_and_visible(origin: Vector3, target: Entity, max_range: float) -> bool:
+func is_in_range_and_visible(origin: Vector3, target: SynmergiaEntity, max_range: float) -> bool:
 	if not is_instance_valid(target):
 		return false
 	
@@ -226,13 +226,13 @@ func _on_body_shape_exited(body_rid: RID, body: Node3D, body_shape_index: int, l
 		entity_exited.emit(body)
 		area_updated.emit(_entities_in_area)
 
-func get_entities() -> Array[Entity]:
+func get_entities() -> Array[SynmergiaEntity]:
 	return _entities_in_area.duplicate()
 
 func get_entity_count() -> int:
 	return _entities_in_area.size()
 
-func has_entity(entity: Entity) -> bool:
+func has_entity(entity: SynmergiaEntity) -> bool:
 	return _entities_in_area.has(entity)
 
 func clear() -> void:

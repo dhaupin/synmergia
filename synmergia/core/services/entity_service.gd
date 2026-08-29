@@ -2,29 +2,29 @@
 ## Tracks all active entities in the world with unified spawn/despawn via EventBus
 extends Node
 
-var _entities: Dictionary = {}       # entity_id -> Entity
-var _players: Dictionary = {}        # player_id -> Entity (subset)
-var _enemies: Dictionary = {}       # entity_id -> Entity (subset)
-var _npcs: Dictionary = {}           # entity_id -> Entity (subset)
+var _entities: Dictionary = {}       # entity_id -> SynmergiaEntity
+var _players: Dictionary = {}        # player_id -> SynmergiaEntity (subset)
+var _enemies: Dictionary = {}       # entity_id -> SynmergiaEntity (subset)
+var _npcs: Dictionary = {}           # entity_id -> SynmergiaEntity (subset)
 var _entity_metadata: Dictionary = {}  # entity_id -> EventBus.SpawnMetadata
 
 var _next_entity_id: int = 1
 
-signal entity_registered(entity: Entity, metadata: EventBus.SpawnMetadata)
-signal entity_unregistered(entity: Entity, metadata: EventBus.SpawnMetadata)
-signal player_joined(player: Entity, metadata: EventBus.SpawnMetadata)
-signal player_left(player: Entity, metadata: EventBus.SpawnMetadata)
+signal entity_registered(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadata)
+signal entity_unregistered(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadata)
+signal player_joined(player: SynmergiaEntity, metadata: EventBus.SpawnMetadata)
+signal player_left(player: SynmergiaEntity, metadata: EventBus.SpawnMetadata)
 
 func _ready() -> void:
 	GameLogger.info("EntityService: Ready")
 
 ## Register a new entity with spawn metadata
 ## Returns assigned entity_id
-func register_entity(entity: Entity, metadata: EventBus.SpawnMetadata = null, id_override: String = "") -> String:
+func register_entity(entity: SynmergiaEntity, metadata: EventBus.SpawnMetadata = null, id_override: String = "") -> String:
 
 	# SECURITY: Prevent duplicate entity IDs
 	if id_override != "" and _entities.has(id_override):
-		GameLogger.error("EntityService: Entity ID %s already exists" % id_override)
+		GameLogger.error("EntityService: SynmergiaEntity ID %s already exists" % id_override)
 		return ""
 
 	# Create default metadata if not provided
@@ -48,12 +48,12 @@ func register_entity(entity: Entity, metadata: EventBus.SpawnMetadata = null, id
 	_entity_metadata[entity_id] = metadata
 	
 	# Track by type
-	if entity.entity_type == Entity.EntityType.PLAYER:
+	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
 		_players[entity_id] = entity
 		player_joined.emit(entity, metadata)
-	elif entity.entity_type == Entity.EntityType.ENEMY:
+	elif entity.entity_type == SynmergiaEntity.EntityType.ENEMY:
 		_enemies[entity_id] = entity
-	elif entity.entity_type == Entity.EntityType.NPC:
+	elif entity.entity_type == SynmergiaEntity.EntityType.NPC:
 		_npcs[entity_id] = entity
 	
 	entity_registered.emit(entity, metadata)
@@ -64,15 +64,15 @@ func register_entity(entity: Entity, metadata: EventBus.SpawnMetadata = null, id
 	return entity_id
 
 ## Create default metadata based on entity type
-func _create_default_metadata(entity: Entity) -> EventBus.SpawnMetadata:
+func _create_default_metadata(entity: SynmergiaEntity) -> EventBus.SpawnMetadata:
 	var spawn_type := EventBus.SpawnMetadata.SpawnType.NORMAL
 	
 	match entity.entity_type:
-		Entity.EntityType.PLAYER:
+		SynmergiaEntity.EntityType.PLAYER:
 			spawn_type = EventBus.SpawnMetadata.SpawnType.NORMAL
-		Entity.EntityType.ENEMY:
+		SynmergiaEntity.EntityType.ENEMY:
 			spawn_type = EventBus.SpawnMetadata.SpawnType.NORMAL
-		Entity.EntityType.NPC:
+		SynmergiaEntity.EntityType.NPC:
 			spawn_type = EventBus.SpawnMetadata.SpawnType.NPC
 		_:
 			spawn_type = EventBus.SpawnMetadata.SpawnType.NORMAL
@@ -87,7 +87,7 @@ func get_entity_metadata(entity_id: String) -> EventBus.SpawnMetadata:
 	return _entity_metadata.get(entity_id)
 
 ## Unregister an entity and emit unified despawn event
-func unregister_entity(entity: Entity, reason: String = "despawn") -> void:
+func unregister_entity(entity: SynmergiaEntity, reason: String = "despawn") -> void:
 	if not entity.entity_id:
 		return
 	
@@ -121,36 +121,36 @@ func unregister_by_id(entity_id: String, reason: String = "despawn") -> void:
 		unregister_entity(entity, reason)
 
 ## Get entity by ID
-func get_entity(entity_id: String) -> Entity:
+func get_entity(entity_id: String) -> SynmergiaEntity:
 	return _entities.get(entity_id)
 
 ## Get all entities
-func get_all_entities() -> Array[Entity]:
+func get_all_entities() -> Array[SynmergiaEntity]:
 	return _entities.values()
 
 ## Get all players
-func get_all_players() -> Array[Entity]:
+func get_all_players() -> Array[SynmergiaEntity]:
 	return _players.values()
 
 ## Get all enemies
-func get_all_enemies() -> Array[Entity]:
+func get_all_enemies() -> Array[SynmergiaEntity]:
 	return _enemies.values()
 
 ## Get all NPCs
-func get_all_npcs() -> Array[Entity]:
+func get_all_npcs() -> Array[SynmergiaEntity]:
 	return _npcs.values()
 
 ## Get entities in radius (3D sphere)
-func get_entities_in_radius(origin: Vector3, radius: float, entity_type: GameEntity.EntityType = Entity.EntityType.NPC) -> Array[Entity]:
-	var results: Array[Entity] = []
+func get_entities_in_radius(origin: Vector3, radius: float, entity_type: GameSynmergiaEntity.EntityType = SynmergiaEntity.EntityType.NPC) -> Array[SynmergiaEntity]:
+	var results: Array[SynmergiaEntity] = []
 	var target_dict: Dictionary
 	
 	match entity_type:
-		Entity.EntityType.PLAYER:
+		SynmergiaEntity.EntityType.PLAYER:
 			target_dict = _players
-		Entity.EntityType.ENEMY:
+		SynmergiaEntity.EntityType.ENEMY:
 			target_dict = _enemies
-		Entity.EntityType.NPC:
+		SynmergiaEntity.EntityType.NPC:
 			target_dict = _npcs
 		_:
 			target_dict = _entities
@@ -164,20 +164,20 @@ func get_entities_in_radius(origin: Vector3, radius: float, entity_type: GameEnt
 	return results
 
 ## Get closest entity to position
-func get_closest_entity(origin: Vector3, entity_type: GameEntity.EntityType = Entity.EntityType.NPC, max_distance: float = -1.0) -> Entity:
+func get_closest_entity(origin: Vector3, entity_type: GameSynmergiaEntity.EntityType = SynmergiaEntity.EntityType.NPC, max_distance: float = -1.0) -> SynmergiaEntity:
 	var target_dict: Dictionary
 	
 	match entity_type:
-		Entity.EntityType.PLAYER:
+		SynmergiaEntity.EntityType.PLAYER:
 			target_dict = _players
-		Entity.EntityType.ENEMY:
+		SynmergiaEntity.EntityType.ENEMY:
 			target_dict = _enemies
-		Entity.EntityType.NPC:
+		SynmergiaEntity.EntityType.NPC:
 			target_dict = _npcs
 		_:
 			target_dict = _entities
 	
-	var closest: Entity = null
+	var closest: SynmergiaEntity = null
 	var closest_dist: float = -1.0
 	
 	for entity in target_dict.values():
@@ -192,8 +192,8 @@ func get_closest_entity(origin: Vector3, entity_type: GameEntity.EntityType = En
 	return closest
 
 ## Get entities by faction
-func get_entities_by_faction(faction: Faction) -> Array[Entity]:
-	var results: Array[Entity] = []
+func get_entities_by_faction(faction: Faction) -> Array[SynmergiaEntity]:
+	var results: Array[SynmergiaEntity] = []
 	for entity in _entities.values():
 		if not is_instance_valid(entity):
 			continue
@@ -202,8 +202,8 @@ func get_entities_by_faction(faction: Faction) -> Array[Entity]:
 	return results
 
 ## Get entities by species
-func get_entities_by_species(species_id: String) -> Array[Entity]:
-	var results: Array[Entity] = []
+func get_entities_by_species(species_id: String) -> Array[SynmergiaEntity]:
+	var results: Array[SynmergiaEntity] = []
 	for entity in _entities.values():
 		if not is_instance_valid(entity):
 			continue
@@ -212,7 +212,7 @@ func get_entities_by_species(species_id: String) -> Array[Entity]:
 	return results
 
 ## Check if entity is ally of another
-func is_ally(entity1: Entity, entity2: Entity) -> bool:
+func is_ally(entity1: SynmergiaEntity, entity2: SynmergiaEntity) -> bool:
 	# Same team
 	if entity1.team_id != 0 and entity1.team_id == entity2.team_id:
 		return true
@@ -232,7 +232,7 @@ func is_ally(entity1: Entity, entity2: Entity) -> bool:
 	return false
 
 ## Check if entity is enemy of another
-func is_enemy(entity1: Entity, entity2: Entity) -> bool:
+func is_enemy(entity1: SynmergiaEntity, entity2: SynmergiaEntity) -> bool:
 	# Different teams (if teams are set)
 	if entity1.team_id != 0 and entity2.team_id != 0:
 		if entity1.team_id != entity2.team_id:

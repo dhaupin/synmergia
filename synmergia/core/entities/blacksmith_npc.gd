@@ -11,10 +11,10 @@ var _shop_title: String = "The Smithy"
 var _greeting: String = "What can I fix for ye?"
 var _farewell: String = "Stay safe out there."
 
-signal interacted(player: Entity)
-signal repair_initiated(player: Entity, items: int, cost: int)
-signal repair_completed(player: Entity, items: int, cost: int)
-signal repair_cancelled(player: Entity)
+signal interacted(player: SynmergiaEntity)
+signal repair_initiated(player: SynmergiaEntity, items: int, cost: int)
+signal repair_completed(player: SynmergiaEntity, items: int, cost: int)
+signal repair_cancelled(player: SynmergiaEntity)
 
 func _ready() -> void:
 	super._ready()
@@ -63,7 +63,7 @@ func get_total_cost_modifier() -> float:
 	return 1.0
 
 ## Handle player interaction
-func interact(player: Entity) -> Dictionary:
+func interact(player: SynmergiaEntity) -> Dictionary:
 	interacted.emit(player)
 
 	if not player.inventory_component:
@@ -111,7 +111,7 @@ func interact(player: Entity) -> Dictionary:
 	}
 
 ## Execute repair for a player
-func repair_all(player: Entity) -> Dictionary:
+func repair_all(player: SynmergiaEntity) -> Dictionary:
 	repair_initiated.emit(player, 0, 0)
 
 	if not player.inventory_component:
