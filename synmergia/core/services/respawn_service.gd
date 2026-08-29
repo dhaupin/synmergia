@@ -281,7 +281,7 @@ func start_revival(healer: Entity, target: Entity, context: String = "") -> bool
 		"context": context
 	}
 	
-					revive_started.emit(target, healer)
+		revive_started.emit(target, healer)
 	
 	# Send notification to target
 	if NotificationService:

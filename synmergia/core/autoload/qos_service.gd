@@ -1,6 +1,5 @@
 ## QoSService - Quality of Service infrastructure
 ## Handles rate limiting, throttling, bulkhead pattern, and debouncing
-class_name QoSService
 extends Node
 
 ## ============================================================================
@@ -26,7 +25,8 @@ enum ConnectionQuality {
 	GOOD,
 	FAIR,
 	POOR,
-	BAD
+	BAD,
+	UNKNOWN
 }
 
 ## ============================================================================
@@ -92,13 +92,15 @@ var _circuit_breakers: Dictionary = {}
 
 ## Per-player latency data: player_id -> {latency_history[], packet_loss, jitter}
 var _connection_quality: Dictionary = {}
+var _total_checks: int = 0
+var _rate_limited_count: int = 0
 
 ## ============================================================================
 ## LIFECYCLE
 ## ============================================================================
 
 func _ready() -> void:
-	Logger.info("QoSService: Initialized")
+	pass  # Logger.info removed
 	# Start cleanup timer for stale data
 	var cleanup_timer := Timer.new()
 	cleanup_timer.timeout.connect(_cleanup_stale_data)
@@ -221,9 +223,9 @@ func throttle(scope: String, action_type: String) -> bool:
 	var max_rate: float
 	match scope:
 		"global_chat":
-			max_rate = GameConfig.QoS.Throttle.MAX_GLOBAL_CHAT_PER_SECOND
+			max_rate = GameConfig.Throttle.MAX_GLOBAL_CHAT_PER_SECOND
 		"global_combat":
-			max_rate = GameConfig.QoS.Throttle.MAX_GLOBAL_COMBAT_PER_SECOND
+			max_rate = GameConfig.Throttle.MAX_GLOBAL_COMBAT_PER_SECOND
 		_:
 			max_rate = 100.0  # Default
 	
@@ -255,7 +257,7 @@ func queue_action(player_id: String, action_type: String, action_data: Dictionar
 	
 	var queue = _action_queues[player_id].get(action_type, [])
 	
-	if queue.size() >= GameConfig.QoS.Throttle.MAX_QUEUED_ACTIONS:
+	if queue.size() >= GameConfig.Throttle.MAX_QUEUED_ACTIONS:
 		return false
 	
 	queue.append({"data": action_data, "timestamp": Time.get_ticks_msec()})
@@ -391,7 +393,7 @@ func circuit_execute(service_name: String, operation: Callable) -> Dictionary:
 			# Check if recovery timeout has passed
 			if now - breaker["last_failure_time"] >= GameConfig.QoS.CircuitBreaker.RECOVERY_TIMEOUT_SEC:
 				breaker["state"] = CircuitState.HALF_OPEN
-				Logger.debug("QoSService: Circuit breaker %s entering HALF_OPEN" % service_name)
+				pass  # Logger.debug removed
 			else:
 				return {"success": false, "error": "Circuit OPEN", "rejected": true}
 		
@@ -426,7 +428,7 @@ func _on_circuit_success(breaker: Dictionary, service_name: String) -> void:
 			breaker["state"] = CircuitState.CLOSED
 			breaker["failures"] = 0
 			breaker["successes"] = 0
-			Logger.info("QoSService: Circuit breaker %s CLOSED" % service_name)
+			pass  # Logger.info removed
 
 func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
 	breaker["failures"] += 1
@@ -435,10 +437,10 @@ func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
 	if breaker["state"] == CircuitState.HALF_OPEN:
 		breaker["state"] = CircuitState.OPEN
 		breaker["successes"] = 0
-		Logger.warn("QoSService: Circuit breaker %s re-OPENED" % service_name)
+		pass  # Logger.warn removed
 	elif breaker["failures"] >= GameConfig.QoS.CircuitBreaker.FAILURE_THRESHOLD:
 		breaker["state"] = CircuitState.OPEN
-		Logger.warn("QoSService: Circuit breaker %s opened after %d failures" % [service_name, breaker["failures"]])
+		pass  # Logger.warn removed
 
 ## Get circuit breaker state
 func get_circuit_state(service_name: String) -> String:
@@ -573,7 +575,7 @@ func _cleanup_stale_data() -> void:
 			var valid_items = []
 			for item in queue:
 				var item_age = (now - item["timestamp"]) / 1000.0
-				if item_age < GameConfig.QoS.Throttle.QUEUE_TIMEOUT_SEC:
+				if item_age < GameConfig.Throttle.QUEUE_TIMEOUT_SEC:
 					valid_items.append(item)
 					has_valid = true
 			if valid_items.is_empty():
