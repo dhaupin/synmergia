@@ -16,6 +16,69 @@ enum VoteStatus {
 	CANCELED = 3
 }
 
+
+class ModeratorProgression:
+	var player_id: String
+	var level: int = 1
+	var experience: int = 0
+	var votes_participated: int = 0
+	var votes_correct: int = 0
+	var badges: Array = []
+	var privileges: Array = []
+	var last_activity: float = 0
+	
+	const MAX_LEVEL: int = 10
+	const XP_PER_VOTE: int = 10
+	const XP_PER_CORRECT: int = 25
+	const XP_PER_LEVEL: int = 100
+	
+	func _init(p_player_id: String):
+		player_id = p_player_id
+		last_activity = Time.get_unix_time_from_system()
+	
+	func record_vote(correct: bool) -> void:
+		votes_participated += 1
+		last_activity = Time.get_unix_time_from_system()
+		add_xp(XP_PER_VOTE)
+		if correct:
+			votes_correct += 1
+			add_xp(XP_PER_CORRECT)
+	
+	func add_xp(amount: int) -> void:
+		experience += amount
+		while experience >= XP_PER_LEVEL and level < MAX_LEVEL:
+			experience -= XP_PER_LEVEL
+			level += 1
+			_update_privileges()
+			_update_badges()
+	
+	func _update_privileges() -> void:
+		privileges.clear()
+		if level >= 1: privileges.append("vote_basic")
+		if level >= 3: privileges.append("vote_priority")
+		if level >= 5: privileges.append("create_poll")
+		if level >= 7: privileges.append("moderate_votes")
+		if level >= 9: privileges.append("trusted_jury")
+	
+	func _update_badges() -> void:
+		if level >= 2 and not badges.has("voting_initiate"): badges.append("voting_initiate")
+		if level >= 5 and not badges.has("community_pillar"): badges.append("community_pillar")
+		if level >= 8 and not badges.has("justice_keeper"): badges.append("justice_keeper")
+		if level == 10 and not badges.has("elder_council"): badges.append("elder_council")
+	
+	func to_dict() -> Dictionary:
+		return {
+			"player_id": player_id,
+			"level": level,
+			"experience": experience,
+			"xp_to_next": XP_PER_LEVEL - experience,
+			"votes_participated": votes_participated,
+			"votes_correct": votes_correct,
+			"accuracy": float(votes_correct) / float(votes_participated) if votes_participated > 0 else 0.0,
+			"badges": badges,
+			"privileges": privileges
+		}
+
 class Vote:
 	var id: String
 	var type: VoteType
@@ -318,3 +381,58 @@ signal vote_created(vote: Vote)
 signal vote_cast(vote_id: String, voter_id: String, option_id)
 signal vote_closed(vote: Vote)
 signal vote_expired(vote: Vote)
+signal level_up(player_id: String, new_level: int)
+signal badge_earned(player_id: String, badge: String)
+
+## MODERATOR PROGRESSION API
+
+func get_progression(player_id: String) -> Dictionary:
+	if not _moderator_progression.has(player_id):
+		_moderator_progression[player_id] = ModeratorProgression.new(player_id)
+	return _moderator_progression[player_id].to_dict()
+
+func record_participation(player_id: String, vote_outcome: bool) -> void:
+	if not _moderator_progression.has(player_id):
+		_moderator_progression[player_id] = ModeratorProgression.new(player_id)
+	var prog: ModeratorProgression = _moderator_progression[player_id]
+	var old_level := prog.level
+	prog.record_vote(vote_outcome)
+	if prog.level > old_level:
+		level_up.emit(player_id, prog.level)
+
+func has_privilege(player_id: String, privilege: String) -> bool:
+	if not _moderator_progression.has(player_id):
+		return false
+	return _moderator_progression[player_id].privileges.has(privilege)
+
+func get_leaderboard(limit: int = 10) -> Array:
+	var now := Time.get_unix_time_from_system()
+	if now - _leaderboard_cache_time < LEADERBOARD_CACHE_DURATION and not _leaderboard_cache.is_empty():
+		return _leaderboard_cache.slice(0, limit)
+	var entries: Array = []
+	for pid in _moderator_progression.keys():
+		var prog: ModeratorProgression = _moderator_progression[pid]
+		entries.append({
+			"player_id": pid,
+			"level": prog.level,
+			"experience": prog.experience,
+			"votes_participated": prog.votes_participated,
+			"accuracy": float(prog.votes_correct) / float(prog.votes_participated) if prog.votes_participated > 0 else 0.0,
+			"badges": prog.badges
+		})
+	entries.sort_custom(func(a, b): 
+		if a.level != b.level: return a.level > b.level
+		return a.experience > b.experience
+	)
+	_leaderboard_cache = entries
+	_leaderboard_cache_time = now
+	return entries.slice(0, limit)
+
+func get_privilege_requirements() -> Dictionary:
+	return {
+		"vote_basic": {"level": 1, "description": "Participate in community votes"},
+		"vote_priority": {"level": 3, "description": "Priority voting on controversial items"},
+		"create_poll": {"level": 5, "description": "Create community polls"},
+		"moderate_votes": {"level": 7, "description": "Close/manage community votes"},
+		"trusted_jury": {"level": 9, "description": "Final say on report validation"}
+	}

@@ -34,6 +34,9 @@ var is_targeting: bool = false
 var player_id: int = 1
 var is_local_player: bool = true
 
+# Context menu
+var _action_menu: ActionMenu = null
+
 func _ready() -> void:
 	# Connect to input
 	InputManager.player_input.connect(_on_player_input)
@@ -147,16 +150,53 @@ func _show_target_context_menu(target_info: TargetingManager.TargetInfo) -> void
 			_show_gateway_context_menu(target_info)
 
 func _show_npc_context_menu(target_info: TargetingManager.TargetInfo) -> void:
-	# Show NPC interaction menu (talk, trade, etc.)
-	pass
+	if not _action_menu:
+		_action_menu = ActionMenu.new()
+		add_child(_action_menu)
+		_action_menu.action_selected.connect(_on_context_action)
+	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
 
 func _show_loot_context_menu(target_info: TargetingManager.TargetInfo) -> void:
-	# Show loot interaction (loot, pass)
-	pass
+	if not _action_menu:
+		_action_menu = ActionMenu.new()
+		add_child(_action_menu)
+		_action_menu.action_selected.connect(_on_context_action)
+	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
 
 func _show_gateway_context_menu(target_info: TargetingManager.TargetInfo) -> void:
-	# Show gateway interaction (enter, cancel)
-	pass
+	if not _action_menu:
+		_action_menu = ActionMenu.new()
+		add_child(_action_menu)
+		_action_menu.action_selected.connect(_on_context_action)
+	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
+
+func _show_player_context_menu(target_info) -> void:
+	if not _action_menu:
+		_action_menu = ActionMenu.new()
+		add_child(_action_menu)
+		_action_menu.action_selected.connect(_on_context_action)
+	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
+
+func _on_context_action(action_id: String, target_id: String) -> void:
+	match action_id:
+		"whisper":
+			ChatService.send_whisper(player_id, target_id, "")
+		"invite_party":
+			if PartyService: PartyService.invite_player(str(player_id), target_id)
+		"invite_guild":
+			if GuildService: GuildService.invite_player(str(player_id), target_id)
+		"trade":
+			if TradeService: TradeService.initiate_trade(str(player_id), target_id)
+		"add_friend":
+			if FriendsService: FriendsService.send_friend_request(str(player_id), str(player_id), target_id)
+		"report":
+			_open_report_dialog(target_id)
+		"talk":
+			NotificationService.send_to_player(str(player_id), "Opening dialogue...", NotificationService.NotificationType.INFO)
+		"loot":
+			LootService.loot_all(str(player_id), target_id)
+		"enter":
+			pass
 
 func _create_basic_attack() -> Skill:
 	var skill: Skill = Skill.new()
@@ -351,11 +391,9 @@ func _handle_left_click(screen_pos: Vector2) -> void:
 			clear_target()
 
 func _handle_right_click() -> void:
-	# Right click while targeting opens context menu or clears target
 	if TargetingManager.has_target():
-		var target: String = TargetingManager.get_current_target()
-		if target and target.entity_type == Entity.EntityType.PLAYER:
-			_show_player_context_menu(target)
+		var target_info = TargetingManager.get_current_target()
+		_show_target_context_menu(target_info)
 
 func clear_target() -> void:
 	TargetingManager.clear_target()

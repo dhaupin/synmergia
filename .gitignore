@@ -1,0 +1,21 @@
+# Godot
+.godot/
+*.import
+
+# Build outputs
+*.pck
+*.exe
+*.dll
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+*.code-workspace
+.vscode/
+*.sublime-*
+
+# Temp
+*.tmp
+*.bak
