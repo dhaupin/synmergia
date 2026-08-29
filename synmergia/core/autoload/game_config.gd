@@ -1082,7 +1082,7 @@ class Spawn:
 
 ## ============================================================================
 
-class Faction:
+class FactionConfig:
 
 	## Maximum reputation level
 
