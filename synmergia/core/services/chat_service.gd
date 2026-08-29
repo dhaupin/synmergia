@@ -249,7 +249,7 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 				var nearby_entities := EntityService.get_entities_in_radius(
 								sender.global_position if sender is Node3D else Vector3.ZERO,
 								channel_range,
-								SynmergiaEntity.EntityType.PLAYER
+								Entity.EntityType.PLAYER
 				)
 				
 				# Convert to player IDs, excluding sender

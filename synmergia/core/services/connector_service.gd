@@ -132,7 +132,7 @@ func _execute_action(agent_id: String, action: AgentAction) -> void:
 				"nearest_enemy":
 					var nearest := EntityService.get_closest_entity(
 						entity.global_position,
-						SynmergiaEntity.EntityType.ENEMY,
+						Entity.EntityType.ENEMY,
 						50.0
 					)
 					entity.target = nearest
@@ -158,7 +158,7 @@ func _pickup_nearby(entity) -> void:
 	# Find nearby items
 	var nearby := EntityService.get_entities_in_radius(entity.global_position, 3.0)
 	for e in nearby:
-		if e.entity_type == SynmergiaEntity.EntityType.ITEM_DROP:
+		if e.entity_type == Entity.EntityType.ITEM_DROP:
 			if e.has_method("on_pickup"):
 				e.on_pickup(entity)
 				return

@@ -221,30 +221,30 @@ func _refresh_tooltip() -> void:
 
 func _get_name_color(entity_type: int) -> Color:
 	match entity_type:
-		SynmergiaEntity.EntityType.PLAYER: return Color(0.3, 0.7, 1.0)    # Blue
-		SynmergiaEntity.EntityType.ENEMY: return Color(1.0, 0.3, 0.3)    # Red
-		SynmergiaEntity.EntityType.NPC: return Color(0.3, 1.0, 0.5)     # Green
-		SynmergiaEntity.EntityType.LOOT: return Color(1.0, 0.8, 0.3)     # Gold
-		SynmergiaEntity.EntityType.TELEPORT: return Color(0.6, 0.3, 1.0) # Purple
+		Entity.EntityType.PLAYER: return Color(0.3, 0.7, 1.0)    # Blue
+		Entity.EntityType.ENEMY: return Color(1.0, 0.3, 0.3)    # Red
+		Entity.EntityType.NPC: return Color(0.3, 1.0, 0.5)     # Green
+		Entity.EntityType.LOOT: return Color(1.0, 0.8, 0.3)     # Gold
+		Entity.EntityType.TELEPORT: return Color(0.6, 0.3, 1.0) # Purple
 		_: return Color(1.0, 1.0, 1.0)
 
 func _get_status_text(target: TargetingManager.TargetInfo) -> String:
 	match target.entity_type:
-		SynmergiaEntity.EntityType.PLAYER:
+		Entity.EntityType.PLAYER:
 			return "● Online" if target.node and target.node.get("is_online", false) else "○ Offline"
-		SynmergiaEntity.EntityType.ENEMY:
+		Entity.EntityType.ENEMY:
 			if target.node and target.node.has("health"):
 				var hp: int = target.node.get("health", 0)
 				var max_hp: int = target.node.get("max_health", 1)
 				return "⚔️ %d/%d HP" % [hp, max_hp]
 			return "⚔️ Hostile"
-		SynmergiaEntity.EntityType.NPC:
+		Entity.EntityType.NPC:
 			return "💬 Click to interact"
-		SynmergiaEntity.EntityType.LOOT:
+		Entity.EntityType.LOOT:
 			return "📦 Press to loot"
-		SynmergiaEntity.EntityType.TELEPORT:
+		Entity.EntityType.TELEPORT:
 			return "🌀 Enter to teleport"
-		SynmergiaEntity.EntityType.OBJECT:
+		Entity.EntityType.OBJECT:
 			return "🔧 Interact"
 		_:
 			return ""

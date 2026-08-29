@@ -314,7 +314,7 @@ func clear_equipment() -> void:
 
 ## Apply equipment stats to entity
 func _apply_equipment_stats() -> void:
-				var entity: SynmergiaEntity = get_parent()
+				var entity: Entity = get_parent()
 				if entity == null:
 								return
 

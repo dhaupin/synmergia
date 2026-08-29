@@ -239,11 +239,11 @@ func spawn_boss(
 		GameLog.warn("SpawnService: Boss template %s not found" % boss_template_id)
 		return null
 	
-	var boss = SynmergiaEntity.new()
+	var boss = Entity.new()
 	boss.display_name = boss_name if boss_name != "" else boss_data.display_name
-	boss.entity_type = SynmergiaEntity.EntityType.ENEMY
+	boss.entity_type = Entity.EntityType.ENEMY
 	boss.level = boss_data.level
-	boss.faction = SynmergiaEntity.Relation.HOSTILE
+	boss.faction = Entity.Relation.HOSTILE
 	boss.faction_id = boss_data.faction
 	
 	# Apply stats from template
@@ -480,11 +480,11 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 		GameLog.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
 		return null
 	
-	var enemy = SynmergiaEntity.new()
+	var enemy = Entity.new()
 	enemy.display_name = spawn_point.enemy_data.display_name
-	enemy.entity_type = SynmergiaEntity.EntityType.ENEMY
+	enemy.entity_type = Entity.EntityType.ENEMY
 	enemy.level = spawn_point.enemy_data.level
-	enemy.faction = SynmergiaEntity.Relation.HOSTILE
+	enemy.faction = Entity.Relation.HOSTILE
 	enemy.faction_id = spawn_point.enemy_data.faction
 	
 	# Apply species if set
@@ -524,8 +524,8 @@ func spawn_blacksmith(
 			# Default values if no data provided
 			blacksmith.display_name = "Blacksmith"
 		
-		blacksmith.entity_type = SynmergiaEntity.EntityType.NPC
-		blacksmith.faction = SynmergiaEntity.Relation.FRIENDLY
+		blacksmith.entity_type = Entity.EntityType.NPC
+		blacksmith.faction = Entity.Relation.FRIENDLY
 		
 		# Register with EntityService
 		var entity_service = EntityService

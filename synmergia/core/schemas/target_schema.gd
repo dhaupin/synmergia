@@ -12,7 +12,7 @@ extends Resource
 ## ============================================================================
 
 ## Entity types that can be targeted
-## NOTE: These MUST match SynmergiaEntity.EntityType values (core/entities/entity.gd)
+## NOTE: These MUST match Entity.EntityType values (core/entities/entity.gd)
 enum EntityType {
 	NONE = 0,
 	PLAYER = 1,       # Player characters

@@ -107,7 +107,7 @@ func _set_status(new_status: ConnectorStatus) -> void:
 		status_changed.emit(new_status)
 
 ## Build observation from entity state
-func build_observation(entity: SynmergiaEntity) -> Dictionary:
+func build_observation(entity: Entity) -> Dictionary:
 	var obs: Dictionary = {
 		"timestamp": Time.get_ticks_msec(),
 		"entity_id": entity.entity_id,
@@ -138,7 +138,7 @@ func build_observation(entity: SynmergiaEntity) -> Dictionary:
 		nearby.append({
 			"id": e.entity_id,
 			"name": e.display_name,
-"type": SynmergiaEntity.EntityType.keys()[e.entity_type],
+"type": Entity.EntityType.keys()[e.entity_type],
 			"distance": entity.global_position.distance_to(e.global_position),
 			"is_enemy": EntityService.is_enemy(entity, e)
 		})

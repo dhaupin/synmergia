@@ -4,8 +4,8 @@
 class_name PhysicsArea
 extends Node3D
 
-signal entity_entered(entity: SynmergiaEntity)
-signal entity_exited(entity: SynmergiaEntity)
+signal entity_entered(entity: Entity)
+signal entity_exited(entity: Entity)
 signal area_updated(entities_in_area: Array)
 
 enum Shape {
@@ -26,7 +26,7 @@ enum BlockingMode {
 @export var height: float = 0.0           # Optional: cylinder height override (0 = infinite/unrestricted)
 
 @export var blocking_mode: BlockingMode = BlockingMode.NONE
-@export var source_entity: SynmergiaEntity = null  # Origin of the area
+@export var source_entity: Entity = null  # Origin of the area
 @export var update_interval: float = 0.1  # How often to refresh (0 = every frame)
 
 var _entities_in_area: Array = []
@@ -200,7 +200,7 @@ func get_blocking_objects(from: Vector3, to: Vector3) -> Array[Dictionary]:
 	return blockers
 
 ## Check if entity is within effective range considering geometry
-func is_in_range_and_visible(origin: Vector3, target: SynmergiaEntity, max_range: float) -> bool:
+func is_in_range_and_visible(origin: Vector3, target: Entity, max_range: float) -> bool:
 	if not is_instance_valid(target):
 		return false
 	
@@ -232,7 +232,7 @@ func get_entities() -> Array:
 func get_entity_count() -> int:
 	return _entities_in_area.size()
 
-func has_entity(entity: SynmergiaEntity) -> bool:
+func has_entity(entity: Entity) -> bool:
 	return _entities_in_area.has(entity)
 
 func clear() -> void:

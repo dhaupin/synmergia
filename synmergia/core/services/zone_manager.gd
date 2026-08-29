@@ -156,11 +156,11 @@ func entity_enter_zone(entity, zone) -> bool:
 	# Add to new zone
 	_entity_zones[entity.entity_id] = zone.id
 	
-	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
+	if entity.entity_type == Entity.EntityType.PLAYER:
 		_players_in_zone[zone.id].append(entity)
 		player_entered_zone.emit(entity, zone)
 		zone_population_changed.emit(zone.id, get_zone_population(zone.id))
-	elif entity.entity_type == SynmergiaEntity.EntityType.ENEMY:
+	elif entity.entity_type == Entity.EntityType.ENEMY:
 		_enemies_in_zone[zone.id].append(entity)
 	
 	EventHub.entity_entered_zone.emit(entity, zone)
@@ -176,12 +176,12 @@ func entity_exit_zone(entity) -> bool:
 	var zone = _zones.get(zone_id)
 	_entity_zones.erase(entity.entity_id)
 	
-	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
+	if entity.entity_type == Entity.EntityType.PLAYER:
 		_players_in_zone[zone_id].erase(entity)
 		if zone:
 			player_exited_zone.emit(entity, zone)
 		zone_population_changed.emit(zone_id, get_zone_population(zone_id))
-	elif entity.entity_type == SynmergiaEntity.EntityType.ENEMY:
+	elif entity.entity_type == Entity.EntityType.ENEMY:
 		_enemies_in_zone[zone_id].erase(entity)
 	
 	if zone:
@@ -450,7 +450,7 @@ func perform_seamless_transition(entity, to_zone) -> bool:
 
 func _notify_zone_change(entity, from_zone, to_zone) -> void:
 	var notification_service = NotificationService
-	if notification_service and entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
+	if notification_service and entity.entity_type == Entity.EntityType.PLAYER:
 		notification_service.notify_zone_change(entity.entity_id, from_zone.id, to_zone.id)
 
 ## Process all entities for seamless transitions (call from _process)
@@ -521,13 +521,13 @@ func get_or_create_party_instance(base_zone_id: String, party_leader_id: String,
 
 ## Notify dungeon entry/exit
 func notify_dungeon_enter(entity, zone_name: String) -> void:
-	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
+	if entity.entity_type == Entity.EntityType.PLAYER:
 		var notification_service = NotificationService
 		if notification_service:
 			notification_service.notify_dungeon_enter(entity.entity_id, zone_name)
 
 func notify_dungeon_exit(entity, zone_name: String, completed: bool) -> void:
-	if entity.entity_type == SynmergiaEntity.EntityType.PLAYER:
+	if entity.entity_type == Entity.EntityType.PLAYER:
 		var notification_service = NotificationService
 		if notification_service:
 			notification_service.notify_dungeon_exit(entity.entity_id, zone_name, completed)

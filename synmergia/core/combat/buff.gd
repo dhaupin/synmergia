@@ -80,7 +80,7 @@ func _init() -> void:
 
 ## ACTIVATION
 
-func apply(target_entity: SynmergiaEntity) -> bool:
+func apply(target_entity: Entity) -> bool:
 	# Check resources
 	if target_entity.current_mana < mana_cost:
 		return false
@@ -110,7 +110,7 @@ func apply(target_entity: SynmergiaEntity) -> bool:
 	
 	return true
 
-func remove(target_entity: SynmergiaEntity) -> void:
+func remove(target_entity: Entity) -> void:
 	if _timer:
 		_timer.stop()
 		_timer.queue_free()
@@ -126,7 +126,7 @@ func _on_duration_expired() -> void:
 
 ## STAT APPLICATION
 
-func _apply_stat_bonuses(entity: SynmergiaEntity, applying: bool) -> void:
+func _apply_stat_bonuses(entity: Entity, applying: bool) -> void:
 	var multiplier := stack_count if applying else 1
 	var sign := 1 if applying else -1
 	
@@ -155,7 +155,7 @@ func absorb_damage(amount: int) -> int:
 
 ## REGENERATION
 
-func _start_regen_tick(entity: SynmergiaEntity) -> void:
+func _start_regen_tick(entity: Entity) -> void:
 	var regen_timer := Timer.new()
 	regen_timer.one_shot = false
 	regen_timer.wait_time = 1.0
@@ -163,7 +163,7 @@ func _start_regen_tick(entity: SynmergiaEntity) -> void:
 	entity.add_child(regen_timer)
 	regen_timer.start()
 
-func _tick_regen(entity: SynmergiaEntity) -> void:
+func _tick_regen(entity: Entity) -> void:
 	if health_regen_bonus > 0:
 		entity.current_health = min(entity.max_health, entity.current_health + health_regen_bonus)
 	if mana_regen_bonus > 0:
@@ -240,14 +240,14 @@ func _init() -> void:
 
 ## TOGGLE
 
-func toggle(target_entity: SynmergiaEntity) -> bool:
+func toggle(target_entity: Entity) -> bool:
 	if _is_toggled_on:
 		deactivate(target_entity)
 		return false
 	else:
 		return activate(target_entity)
 
-func activate(target_entity: SynmergiaEntity) -> bool:
+func activate(target_entity: Entity) -> bool:
 	if _is_toggled_on:
 		return true
 	
@@ -288,7 +288,7 @@ func activate(target_entity: SynmergiaEntity) -> bool:
 	
 	return true
 
-func deactivate(target_entity: SynmergiaEntity) -> void:
+func deactivate(target_entity: Entity) -> void:
 	if not _is_toggled_on:
 		return
 	
@@ -420,7 +420,7 @@ func _get_entities_in_aura_range() -> Array:
 	
 	return entities
 
-func _is_ally(source: SynmergiaEntity, target: SynmergiaEntity) -> bool:
+func _is_ally(source: Entity, target: Entity) -> bool:
 	# Check if target is an ally (same party/guild, or friendly NPC)
 	# For now, simplified: if target has team_id and matches
 	if source.team_id != 0 and source.team_id == target.team_id:
@@ -430,7 +430,7 @@ func _is_ally(source: SynmergiaEntity, target: SynmergiaEntity) -> bool:
 		return true
 	return false
 
-func _is_enemy(source: SynmergiaEntity, target: SynmergiaEntity) -> bool:
+func _is_enemy(source: Entity, target: Entity) -> bool:
 	# Check if target is an enemy
 	if source.team_id != 0 and source.team_id != target.team_id:
 		return true
@@ -442,7 +442,7 @@ func _is_enemy(source: SynmergiaEntity, target: SynmergiaEntity) -> bool:
 
 ## EFFECT APPLICATION
 
-func _apply_self_effects(entity: SynmergiaEntity, applying: bool) -> void:
+func _apply_self_effects(entity: Entity, applying: bool) -> void:
 	var sign := 1 if applying else -1
 	
 	if self_damage_boost != 0:
@@ -451,7 +451,7 @@ func _apply_self_effects(entity: SynmergiaEntity, applying: bool) -> void:
 	if self_defense_boost != 0:
 		entity.stats.defense_multiplier += sign * self_defense_boost
 
-func _apply_effects_to_ally(ally: SynmergiaEntity) -> void:
+func _apply_effects_to_ally(ally: Entity) -> void:
 	if ally_damage_boost != 0:
 		ally.stats.damage_multiplier += ally_damage_boost
 	if ally_defense_boost != 0:
@@ -461,7 +461,7 @@ func _apply_effects_to_ally(ally: SynmergiaEntity) -> void:
 	if ally_mana_regen > 0:
 		ally.current_mana = min(ally.max_mana, ally.current_mana + ally_mana_regen)
 
-func _remove_effects_from_ally(ally: SynmergiaEntity) -> void:
+func _remove_effects_from_ally(ally: Entity) -> void:
 	if not is_instance_valid(ally):
 		return
 	if ally_damage_boost != 0:
@@ -469,7 +469,7 @@ func _remove_effects_from_ally(ally: SynmergiaEntity) -> void:
 	if ally_defense_boost != 0:
 		ally.stats.defense_multiplier -= ally_defense_boost
 
-func _apply_effects_to_enemy(enemy: SynmergiaEntity) -> void:
+func _apply_effects_to_enemy(enemy: Entity) -> void:
 	if enemy_damage_reduction != 0:
 		enemy.stats.damage_multiplier -= enemy_damage_reduction
 	if enemy_slow_percent != 0:
@@ -477,7 +477,7 @@ func _apply_effects_to_enemy(enemy: SynmergiaEntity) -> void:
 	if enemy_armor_reduction != 0:
 		enemy.stats.armor_multiplier -= enemy_armor_reduction
 
-func _remove_effects_from_enemy(enemy: SynmergiaEntity) -> void:
+func _remove_effects_from_enemy(enemy: Entity) -> void:
 	if not is_instance_valid(enemy):
 		return
 	if enemy_damage_reduction != 0:
@@ -514,6 +514,6 @@ func get_aura_info() -> Dictionary:
 		"affected_enemies": _affected_enemies.size()
 	}
 
-func remove(target_entity: SynmergiaEntity) -> void:
+func remove(target_entity: Entity) -> void:
 	deactivate(target_entity)
 	super.remove(target_entity)

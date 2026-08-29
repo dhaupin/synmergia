@@ -5,7 +5,7 @@ extends Node
 
 signal health_changed(current: int, maximum: int, delta: int)
 signal health_depleted()
-signal died(killer: SynmergiaEntity)
+signal died(killer: Entity)
 signal resurrecting(respawn_time: float)
 signal respawned()
 
@@ -19,7 +19,7 @@ var _is_dead: bool = false
 var _respawn_timer: float = 0.0
 var _respawn_time: float = 10.0
 var _bind_position: Vector3 = Vector3.ZERO
-var _killer: SynmergiaEntity = null
+var _killer: Entity = null
 
 func _ready() -> void:
 	current_health = max_health
@@ -28,7 +28,7 @@ func _ready() -> void:
 	health_depleted.connect(_on_health_depleted)
 
 func _on_health_depleted() -> void:
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	var killer_name := ""
 	var killer_type := "monster"
 	
@@ -52,12 +52,12 @@ func _on_health_depleted() -> void:
 						NotificationService.notify_party_member_died(member_id, entity.display_name, killer_name)
 
 ## Take damage
-func take_damage(amount: int, source: SynmergiaEntity = null, damage_type: String = "physical") -> int:
+func take_damage(amount: int, source: Entity = null, damage_type: String = "physical") -> int:
 	if _is_dead:
 		return 0
 	
 	# Check for interrupt (before applying damage)
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	if entity.combat_component:
 		entity.combat_component.on_damage_taken(amount, source, damage_type)
 	
@@ -79,7 +79,7 @@ func take_damage(amount: int, source: SynmergiaEntity = null, damage_type: Strin
 	return actual_damage
 
 ## Heal
-func heal(amount: int, source: SynmergiaEntity = null) -> int:
+func heal(amount: int, source: Entity = null) -> int:
 	if _is_dead:
 		return 0
 	
@@ -100,7 +100,7 @@ func is_dead() -> bool:
 	return _is_dead
 
 ## Die
-func die(killer: SynmergiaEntity = null) -> void:
+func die(killer: Entity = null) -> void:
 	if _is_dead:
 		return
 	
@@ -109,7 +109,7 @@ func die(killer: SynmergiaEntity = null) -> void:
 	current_health = 0
 	
 	# Stop all combat state
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	if entity.combat_component:
 		entity.combat_component.interrupt()
 	
@@ -137,8 +137,8 @@ func die(killer: SynmergiaEntity = null) -> void:
 ## Create corpse entity
 var _corpse: Corpse = null
 
-func _create_corpse(killer: SynmergiaEntity) -> void:
-	var entity: SynmergiaEntity = get_parent()
+func _create_corpse(killer: Entity) -> void:
+	var entity: Entity = get_parent()
 	
 	# Try to load corpse scene if it exists
 	var corpse_scene_path := "res://scenes/entities/corpse.tscn"
@@ -175,7 +175,7 @@ enum RespawnLocation {
 ## Get available respawn locations
 func get_respawn_options() -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	
 	# Always available: Bind point
 	options.append({
@@ -202,7 +202,7 @@ func respawn_at(location: RespawnLocation, custom_position: Vector3 = Vector3.ZE
 		RespawnLocation.BIND_POINT:
 			_do_respawn_at(_bind_position)
 		RespawnLocation.NEAR_CORPSE:
-			var entity: SynmergiaEntity = get_parent()
+			var entity: Entity = get_parent()
 			_do_respawn_at(entity.global_position)
 		RespawnLocation.CUSTOM:
 			_do_respawn_at(custom_position)
@@ -214,7 +214,7 @@ func _do_respawn_at(position: Vector3) -> void:
 	_is_dead = false
 	current_health = max_health
 	
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	entity.global_position = position
 	
 	respawned.emit()
@@ -245,7 +245,7 @@ func _process(delta: float) -> void:
 	else:
 		# Health regen
 		var regen := health_regen
-		var entity: SynmergiaEntity = get_parent()
+		var entity: Entity = get_parent()
 		if entity.combat_component and entity.combat_component.in_combat:
 			regen = health_regen_combat
 		
@@ -265,7 +265,7 @@ func _do_respawn() -> void:
 	_respawn_timer = 0.0
 	
 	# Move to respawn position
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	entity.global_position = _bind_position
 	
 	respawned.emit()
@@ -302,7 +302,7 @@ func get_corpse_loot_info() -> Dictionary:
 	}
 
 ## Loot from corpse
-func loot_from_corpse(looter: SynmergiaEntity, item_index: int = -1) -> Dictionary:
+func loot_from_corpse(looter: Entity, item_index: int = -1) -> Dictionary:
 	if not _corpse:
 		return {"success": false, "reason": "No corpse"}
 	
@@ -337,7 +337,7 @@ func use_self_rez_item(item: Item) -> Dictionary:
 	if not GameConfig.Respawn.ENABLE_SELF_REZ:
 		return {"success": false, "reason": "Self-rez disabled"}
 	
-	var entity: SynmergiaEntity = get_parent()
+	var entity: Entity = get_parent()
 	
 	# Remove the item from inventory
 	if entity.inventory_component:
