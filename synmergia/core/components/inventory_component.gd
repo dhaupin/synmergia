@@ -272,7 +272,7 @@ func get_main_hand_damage() -> Dictionary:
 
 ## Get inventory count
 func get_inventory_count() -> int:
-				var count := 0
+				var count: int = 0
 				for item in _inventory:
 								if item != null:
 												count += 1
@@ -280,7 +280,7 @@ func get_inventory_count() -> int:
 
 ## Get free slot count
 func get_free_slot_count() -> int:
-				var count := 0
+				var count: int = 0
 				for slot in _inventory:
 								if slot == null:
 												count += 1
@@ -659,7 +659,7 @@ func sell_all_of_type(item_id: String) -> int:
 
 ## Destroy all items of type
 func destroy_all_of_type(item_id: String) -> int:
-				var count := 0
+				var count: int = 0
 				for i in range(_inventory.size()):
 								var item: Item = _inventory[i]
 								if item and item.id == item_id:

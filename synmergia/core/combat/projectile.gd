@@ -242,7 +242,7 @@ func _ricochet(from_target: SynmergiaEntity) -> void:
 	
 	for entity in nearby:
 		if entity != source and not _hit_entities.has(entity) and _is_hostile(entity):
-			var dist := entity.global_position.distance_to(from_target.global_position)
+			var dist: float = entity.global_position.distance_to(from_target.global_position)
 			if dist < min_dist:
 				min_dist = dist
 				next_target = entity
@@ -263,7 +263,7 @@ func _chain_to_next(from_target: SynmergiaEntity) -> void:
 	
 	for entity in nearby:
 		if entity != source and not _hit_entities.has(entity) and _is_hostile(entity):
-			var dist := entity.global_position.distance_to(from_target.global_position)
+			var dist: float = entity.global_position.distance_to(from_target.global_position)
 			if dist < min_dist:
 				min_dist = dist
 				next_target = entity
@@ -308,7 +308,7 @@ func _explode(position: Vector3) -> void:
 		if entity == source:
 			continue
 		
-		var distance := position.distance_to(entity.global_position)
+		var distance: float = position.distance_to(entity.global_position)
 		var falloff := 1.0
 		if explosion_damage_falloff:
 			falloff = 1.0 - (distance / explosion_radius) * 0.5

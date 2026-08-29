@@ -219,7 +219,7 @@ func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids:
 				
 				# Transfer items
 				for item_id in item_ids:
-								var slot := from_inv.find_item(item_id)
+								var slot: int = from_inv.find_item(item_id)
 								if slot < 0:
 												result["items_failed"].append(item_id)
 												continue

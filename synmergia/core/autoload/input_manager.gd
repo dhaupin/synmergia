@@ -91,7 +91,7 @@ func _update_joystick(position: Vector2) -> void:
 	
 	# Clamp to joystick radius
 	var max_radius := 60.0  # pixels
-	var distance := joystick_offset.length()
+	var distance: float = joystick_offset.length()
 	if distance > max_radius:
 		joystick_offset = joystick_offset.normalized() * max_radius
 	

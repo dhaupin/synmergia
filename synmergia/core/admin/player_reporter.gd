@@ -89,7 +89,7 @@ class Report:
 		}
 	
 	func to_string() -> String:
-		var type_str := _type_to_string()
+		var type_str: String = _type_to_string()
 		var status_str := _status_to_string()
 		var priority_str := _priority_to_string()
 		var time_str := Time.get_datetime_string_from_unix_time(created_at)
@@ -348,8 +348,8 @@ func assign_report(admin_id: String, report_id: String) -> Dictionary:
 
 func _check_cooldown(reporter_id: String) -> Dictionary:
 	if _report_cooldowns.has(reporter_id):
-		var last_report := _report_cooldowns[reporter_id]
-		var elapsed := Time.get_unix_time_from_system() - last_report
+		var last_report: int = _report_cooldowns[reporter_id]
+		var elapsed: float = Time.get_unix_time_from_system() - last_report
 		if elapsed < REPORT_COOLDOWN_SECONDS:
 			var remaining := REPORT_COOLDOWN_SECONDS - int(elapsed)
 			return {

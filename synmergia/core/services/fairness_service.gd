@@ -194,7 +194,7 @@ func _get_action_rate(player_id: String) -> float:
 			recent_total += actions[key].filter(func(t): return t > cutoff).size()
 	return float(recent_total)
 	
-	var recent := actions["total"].filter(func(t): return t > cutoff) if typeof(actions["total"]) == TYPE_ARRAY else 0
+	var recent: Array = actions["total"].filter(func(t): return t > cutoff) if typeof(actions["total"]) == TYPE_ARRAY else 0
 	return float(recent.size()) if typeof(recent) == TYPE_ARRAY else 0.0
 
 ## Periodic maintenance

@@ -215,7 +215,7 @@ func _on_submit() -> void:
 		_show_error("Description too short. Please provide more detail.")
 		return
 	
-	var target := _target_field.text.strip_edges()
+	var target: Variant = _target_field.text.strip_edges()
 	
 	# Validate target for player reports
 	if _report_type in [ReportType.PLAYER_ABUSE, ReportType.EXPLOIT]:
@@ -224,7 +224,7 @@ func _on_submit() -> void:
 			return
 	
 	# Build report data
-	var data := {
+	var data: Dictionary = {
 		"description": description,
 		"target": target
 	}

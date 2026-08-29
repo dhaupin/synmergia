@@ -97,8 +97,8 @@ func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
 										var zone2 = zones_array[j]
 										
 										# Calculate distance between zone centers
-										var distance := zone1.zone_center.distance_to(zone2.zone_center)
-										var combined_radius := zone1.zone_radius + zone2.zone_radius
+										var distance: float = zone1.zone_center.distance_to(zone2.zone_center)
+										var combined_radius: float = zone1.zone_radius + zone2.zone_radius
 										
 										# If zones overlap or are close enough, register as neighbors
 										if distance <= max_distance:
@@ -295,7 +295,7 @@ func get_nearby_zones(from_zone_id: String, max_distance: float = 1000.0) -> Arr
 		if zone_id == from_zone_id or zone.is_instanced:
 			continue
 		
-		var distance := from_zone.zone_center.distance_to(zone.zone_center)
+		var distance: float = from_zone.zone_center.distance_to(zone.zone_center)
 		if distance <= max_distance:
 			results.append(zone)
 	

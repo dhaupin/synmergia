@@ -289,7 +289,7 @@ func _execute_channel_tick() -> void:
 		EventHub.channel_tick.emit(entity, channel_skill)
 
 func _finish_channel(completed: bool) -> void:
-	var skill := channel_skill
+	var skill: Skill = channel_skill
 	
 	is_channeling = false
 	channel_skill = null
@@ -457,7 +457,7 @@ func get_queued_skill() -> Skill:
 ## Process queued skill (call when GCD expires)
 func process_queued_skill() -> void:
 	if queued_skill and not is_gcd_active():
-		var skill := queued_skill
+		var skill: Skill = queued_skill
 		queued_skill = null
 		# Execute queued skill
 		execute_skill(skill)

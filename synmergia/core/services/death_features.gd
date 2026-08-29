@@ -206,7 +206,7 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 	
 	# Durability Loss
 	if Config.DURABILITY_LOSS_PERCENT > 0 and entity.inventory_component:
-		var durability_loss := entity.inventory_component.apply_durability_loss(Config.DURABILITY_LOSS_PERCENT)
+		var durability_loss: float = entity.inventory_component.apply_durability_loss(Config.DURABILITY_LOSS_PERCENT)
 		penalties["durability_loss"] = durability_loss
 	
 	# Karma Loss (PVP only)
@@ -231,7 +231,7 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 		if penalties.durability_loss > 0:
 			msg_parts.append("%.0f%% durability" % penalties.durability_loss)
 		
-		var penalty_msg := "Death penalty: " + msg_parts.join(", ")
+		var penalty_msg: String = "Death penalty: " + msg_parts.join(", ")
 		NotificationService.send(entity.entity_id, penalty_msg, 
 			NotificationService.NotificationType.WARNING, NotificationService.Priority.NORMAL,
 			NotificationService.DisplayLocation.CHAT_LOG, NotificationService.SoundType.WARNING, penalties)
@@ -429,7 +429,7 @@ func _announce_kill_streak(killer_id: String, streak: int) -> void:
 	}
 	
 	var suffix = announcements.get(streak, " has a %d kill streak!" % streak)
-	var message := killer_name + suffix
+	var message: String = killer_name + suffix
 	
 	NotificationService.broadcast_server(message, 
 		NotificationService.NotificationType.COMBAT, NotificationService.Priority.HIGH,
@@ -444,7 +444,7 @@ func break_kill_streak(killer_id: String) -> void:
 	if not _kill_streaks.has(killer_id):
 		return
 	
-	var streak := _kill_streaks[killer_id]["streak"]
+	var streak: int = _kill_streaks[killer_id]["streak"]
 	if streak > 0:
 		_kill_streaks[killer_id]["streak"] = 0
 		kill_streak_broken.emit(killer_id, streak)
@@ -565,7 +565,7 @@ func _is_safe_zone(zone_id: String) -> bool:
 
 func _on_player_died(entity, killer) -> void:
 	# Apply death penalties
-	var is_pvp := killer if killer else false
+	var is_pvp: bool = killer if killer else false
 	apply_death_penalties(entity, killer, is_pvp)
 	
 	# Record for death stats

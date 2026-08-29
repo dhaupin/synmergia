@@ -59,7 +59,7 @@ class Vote:
 		return true
 	
 	func get_vote_count(option_id) -> int:
-		var count := 0
+		var count: int = 0
 		for voter_id in vote_counts.keys():
 			if vote_counts[voter_id] == option_id:
 				count += 1
@@ -287,7 +287,7 @@ func get_player_mod_stats(player_id: String) -> Dictionary:
 func _check_vote_cooldown(player_id: String) -> bool:
 	if _report_vote_cooldowns.has(player_id):
 		var last_vote := _report_vote_cooldowns[player_id]
-		var elapsed := Time.get_unix_time_from_system() - last_vote
+		var elapsed: float = Time.get_unix_time_from_system() - last_vote
 		return elapsed > 60
 	return true
 

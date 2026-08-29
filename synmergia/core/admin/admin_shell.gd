@@ -241,7 +241,7 @@ func _cmd_players(args: String, executor_id: String) -> CommandResult:
 	var filter := args.strip_edges().to_lower()
 	var output := "[color=yellow]=== Online Players ===[/color]\n"
 	
-	var count := 0
+	var count: int = 0
 	var players := _get_online_players()
 	
 	for player in players:
@@ -276,7 +276,7 @@ func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
 	if PermissionManager:
 		var result := PermissionManager.restrict(executor_id, player_id, restriction_type, duration)
 		if result.success:
-			var type_str := restriction_type if restriction_type != "chat" else "mute"
+			var type_str: String = restriction_type if restriction_type != "chat" else "mute"
 			return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
 		else:
 			return CommandResult.new(false, "", "Failed: %s" % result.message)
@@ -286,7 +286,7 @@ func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
 		return CommandResult.new(false, "", "SecurityService not available")
 	
 	SecurityService.restrict_player(player_id, restriction_type, duration)
-	var type_str := restriction_type if restriction_type != "chat" else "mute"
+	var type_str: String = restriction_type if restriction_type != "chat" else "mute"
 	return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
 
 func _cmd_unrestrict(args: String, executor_id: String) -> CommandResult:

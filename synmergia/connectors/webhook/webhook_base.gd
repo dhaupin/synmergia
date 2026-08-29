@@ -32,7 +32,7 @@ class WebhookMessage:
 		tts = false
 	
 	func to_dict() -> Dictionary:
-		var data := {"content": content}
+		var data: Dictionary = {"content": content}
 		if not embeds.is_empty():
 			data["embeds"] = embeds
 		if username != "":
@@ -73,7 +73,7 @@ class Embed:
 		color = int("0x" + hex)
 	
 	func to_dict() -> Dictionary:
-		var data := {}
+		var data: Dictionary = {}
 		if title != "": data["title"] = title
 		if description != "": data["description"] = description
 		if color != 0: data["color"] = color
@@ -149,7 +149,7 @@ func _process_queue() -> void:
 	
 	_is_sending = true
 	var message: WebhookMessage = _message_queue.pop_front() as WebhookMessage
-	var success := send_immediate(message)
+	var success: bool = send_immediate(message)
 	
 	if not success and _rate_limit_remaining == 0:
 		var delay := max(0.1, _rate_limit_reset - Time.get_unix_time_from_system())

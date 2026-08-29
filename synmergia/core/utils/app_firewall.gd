@@ -92,7 +92,7 @@ func can_connect(ip: String) -> Dictionary:
 	
 	# Check temporary bans
 	for player_id in _temporary_bans.keys():
-		var ban := _temporary_bans[player_id]
+		var ban: Dictionary = _temporary_bans[player_id]
 		if _player_ips.get(player_id) == ip and ban["expires"] > now:
 			return {
 				"allowed": false,
@@ -102,7 +102,7 @@ func can_connect(ip: String) -> Dictionary:
 	
 	# Check if IP is blocked
 	if _blocked_ips.has(ip):
-		var block := _blocked_ips[ip]
+		var block: Dictionary = _blocked_ips[ip]
 		if block["blocked_until"] > now:
 			return {
 				"allowed": false,
@@ -156,11 +156,11 @@ func record_failed_attempt(ip: String, attempt_type: String = "login") -> bool:
 		_failed_attempts[ip] = []
 	
 	# Clean old attempts
-	var recent := _failed_attempts[ip].filter(func(t): return now - t < window)
+	var recent: Array = _failed_attempts[ip].filter(func(t): return now - t < window)
 	recent.append(now)
 	_failed_attempts[ip] = recent
 	
-	var count := recent.size()
+	var count: int = recent.size()
 	
 	if count >= _max_failed_attempts:
 		block_ip(ip, "Too many failed %s attempts" % attempt_type, _block_duration)
@@ -244,7 +244,7 @@ func is_banned(player_id: String) -> bool:
 	if _permanent_bans.has(player_id):
 		return true
 	if _temporary_bans.has(player_id):
-		var ban := _temporary_bans[player_id]
+		var ban: Dictionary = _temporary_bans[player_id]
 		return ban["expires"] > Time.get_unix_time_from_system()
 	return false
 
@@ -259,7 +259,7 @@ func get_ban_info(player_id: String) -> Dictionary:
 			"timestamp": _permanent_bans[player_id]["timestamp"]
 		}
 	if _temporary_bans.has(player_id):
-		var ban := _temporary_bans[player_id]
+		var ban: Dictionary = _temporary_bans[player_id]
 		return {
 			"banned": true,
 			"permanent": false,
@@ -278,7 +278,7 @@ func _flag_ip(ip: String, flag_type: String, count: int) -> void:
 	if not _flagged_ips.has(ip):
 		_flagged_ips[ip] = {"flags": {}, "last_activity": Time.get_unix_time_from_system()}
 	
-	var data := _flagged_ips[ip]
+	var data: Dictionary = _flagged_ips[ip]
 	data["flags"][flag_type] = count
 	data["last_activity"] = Time.get_unix_time_from_system()
 	
@@ -288,7 +288,7 @@ func _flag_ip(ip: String, flag_type: String, count: int) -> void:
 func get_flagged_ips(min_flags: int = 1) -> Array:
 	var result := []
 	for ip in _flagged_ips.keys():
-		var data := _flagged_ips[ip]
+		var data: Dictionary = _flagged_ips[ip]
 		var total_flags := 0
 		for flag_type in data["flags"].keys():
 			total_flags += data["flags"][flag_type]

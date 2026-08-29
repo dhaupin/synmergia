@@ -213,7 +213,7 @@ func _on_spawn_pressed() -> void:
 		var quantity: int = int(_quantity_spin.value)
 		
 		# Determine spawn type and call appropriate service
-		var success := _spawn_by_id(template_id, quantity)
+		var success: bool = _spawn_by_id(template_id, quantity)
 		
 		if success:
 			GameLog.info("AdminCatalog: Spawned %d x %s" % [quantity, template_id])

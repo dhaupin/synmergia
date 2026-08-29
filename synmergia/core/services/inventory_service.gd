@@ -56,7 +56,7 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 		return false
 
 	# Find item in source inventory
-	var slot := from_inv.find_item(item.id)
+	var slot: int = from_inv.find_item(item.id)
 	if slot < 0:
 		GameLog.warn("InventoryService: Item %s not found in %s" % [item.id, from_id])
 		return false
@@ -130,7 +130,7 @@ func transfer_items(from_id: String, to_id: String, items: Array) -> Dictionary:
 	}
 
 	for item_data in items:
-		var item_id := item_data.get("item_id", "")
+		var item_id: String = item_data.get("item_id", "")
 		var quantity: int = item_data.get("quantity", -1)
 
 		if item_id == "":
@@ -145,7 +145,7 @@ func transfer_items(from_id: String, to_id: String, items: Array) -> Dictionary:
 			results["success"] = false
 			continue
 
-		var slot := from_inv.find_item(item_id)
+		var slot: int = from_inv.find_item(item_id)
 		if slot < 0:
 			results["failed"].append({"item_id": item_id, "reason": "Item not found"})
 			results["success"] = false
@@ -200,14 +200,14 @@ func execute_trade(trade_id: String, player1: String, player2: String,
 
 	# Transfer items from player1 to player2
 	for item_data in player1_items:
-		var item_id := item_data.get("item_id", "")
+		var item_id: String = item_data.get("item_id", "")
 		var quantity: int = item_data.get("quantity", -1)
 
 		var from_inv: InventoryComponent = get_inventory(player1)
 		if not from_inv:
 			continue
 
-		var slot := from_inv.find_item(item_id)
+		var slot: int = from_inv.find_item(item_id)
 		if slot < 0:
 			continue
 
@@ -217,14 +217,14 @@ func execute_trade(trade_id: String, player1: String, player2: String,
 
 	# Transfer items from player2 to player1
 	for item_data in player2_items:
-		var item_id := item_data.get("item_id", "")
+		var item_id: String = item_data.get("item_id", "")
 		var quantity: int = item_data.get("quantity", -1)
 
 		var from_inv: InventoryComponent = get_inventory(player2)
 		if not from_inv:
 			continue
 
-		var slot := from_inv.find_item(item_id)
+		var slot: int = from_inv.find_item(item_id)
 		if slot < 0:
 			continue
 

@@ -204,7 +204,7 @@ func is_in_range_and_visible(origin: Vector3, target: SynmergiaEntity, max_range
 	if not is_instance_valid(target):
 		return false
 	
-	var distance := origin.distance_to(target.global_position)
+	var distance: float = origin.distance_to(target.global_position)
 	if distance > max_range:
 		return false
 	

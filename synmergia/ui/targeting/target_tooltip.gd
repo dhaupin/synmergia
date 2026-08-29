@@ -53,7 +53,7 @@ func _on_target_acquired(target: TargetingManager.TargetInfo) -> void:
 		return
 	
 	# Only show tooltip for local player targeting
-	var local_id := TargetingManager.get_local_player_id()
+	var local_id: int = TargetingManager.get_local_player_id()
 	if target.id == "" or not target.node:
 		return
 	
@@ -194,7 +194,7 @@ func _setup_ui() -> void:
 ## ============================================================================
 
 func _refresh_tooltip() -> void:
-	var target := TargetingManager.get_current_target()
+	var target: Variant = TargetingManager.get_current_target()
 	if not target:
 		return
 	
@@ -204,7 +204,7 @@ func _refresh_tooltip() -> void:
 	_header_label.add_theme_color_override("font_color", _get_name_color(target.entity_type))
 	
 	# Entity type info
-	var type_str := TargetingManager.entity_type_to_string(target.entity_type)
+	var type_str: String = TargetingManager.entity_type_to_string(target.entity_type)
 	_info_label.text = type_str
 	
 	# Status
@@ -258,7 +258,7 @@ func _update_action_buttons_from_schema(schema_id: String) -> void:
 	if not TargetingManager:
 		return
 	
-	var schema := TargetingManager.get_schema(schema_id)
+	var schema: Variant = TargetingManager.get_schema(schema_id)
 	if not schema:
 		return
 	
@@ -272,7 +272,7 @@ func _update_action_buttons_from_schema(schema_id: String) -> void:
 		_action_buttons.append(btn)
 
 func _create_action_button(action_id: String, size: Vector2) -> Button:
-	var action_def := TargetingManager.get_action_definition(action_id)
+	var action_def: Variant = TargetingManager.get_action_definition(action_id)
 	
 	var btn := Button.new()
 	btn.text = _get_action_icon(action_id) + " " + _get_action_name(action_id)
@@ -385,7 +385,7 @@ func _on_action_button_pressed(action_id: String, target_id: String) -> void:
 			return
 	
 	# Execute action through TargetingManager
-	var success := TargetingManager.execute_action(action_id, target_id)
+	var success: bool = TargetingManager.execute_action(action_id, target_id)
 	
 	if success:
 		action_clicked.emit(action_id, target_id)
@@ -403,7 +403,7 @@ func _requires_permission(action_id: String) -> bool:
 	return action_id in ["report", "kick", "ban", "teleport", "freeze", "invisible", "spawn", "resurrect", "revive"]
 
 func _flash_rate_limit_warning() -> void:
-	var original_color := _panel.get_theme_stylebox("panel").bg_color
+	var original_color: Color = _panel.get_theme_stylebox("panel").bg_color
 	var style := _panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if style:
 		style.bg_color = Color(0.8, 0.2, 0.2)
