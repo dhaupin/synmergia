@@ -48,20 +48,27 @@ Services reference custom types (SynmergiaEntity, Item, Faction, etc.) that caus
 
 **Status:** Non-blocking - project loads and runs despite these warnings.
 
-### Phase 3: StatusEffect Consolidation 📋 BACKLOG
+### Phase 3: StatusEffect Consolidation 📋 IN PROGRESS
 Consolidate buff, aura, and DoT systems into unified StatusEffect class.
 
 **Current files:**
-- `core/combat/status_handlers.gd`
-- `core/combat/buff.gd` (class_name Buff)
-- `core/components/aura_component.gd`
+- `core/combat/status_handlers.gd` - SpeedModifier, CrowdControl, etc.
+- `core/combat/buff.gd` (class_name Buff) - Buff, AuraBuff classes
+- `core/components/aura_component.gd` - Buff/debuff/aura management
+- `core/entities/status_effect.gd` - NEW unified base class
 
-**Target:** Single `core/entities/status_effect.gd` with:
-- Base StatusEffect class
-- Buff (stat modifiers, duration-based)
-- Aura (area-effect, continuous)
-- DamageOverTime (DoT)
-- HealOverTime (HoT)
+**Completed:**
+- ✅ Created unified `core/entities/status_effect.gd` base class
+- ✅ Refactored Buff class: buff_name→effect_name, buff_id→effect_id
+- ✅ Refactored aura_component to use StatusEffect methods and enums
+- ✅ Removed duplicate stat modifiers from Buff (now in base class)
+- ✅ Updated method calls: start()→apply(), stop()→remove()
+
+**Remaining:**
+- ⬜ Update AuraBuff to use base class fields consistently
+- ⬜ Update DamageOverTime, HealOverTime subclasses
+- ⬜ Update status_handlers.gd subclasses to extend StatusEffect
+- ⬜ Fix remaining type warnings (213 parse errors due to circular deps)
 
 ---
 
