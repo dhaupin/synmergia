@@ -79,14 +79,14 @@ func open(player_id: String) -> void:
 	visible = true
 	_on_open()
 	panel_opened.emit()
-	GameLog.debug("UIPanel: Opened %s" % name)
+	print("UIPanel: Opened %s" % name)
 
 func close() -> void:
 	_is_open = false
 	visible = false
 	_on_close()
 	panel_closed.emit()
-	GameLog.debug("UIPanel: Closed %s" % name)
+	print("UIPanel: Closed %s" % name)
 
 func toggle(player_id: String) -> void:
 	if _is_open:

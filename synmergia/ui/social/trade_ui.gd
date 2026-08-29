@@ -1,6 +1,9 @@
 ## TradeUI - Item trading panel
+## Migrated onto UIPanel base class.
 class_name TradeUI
-extends Control
+extends UIPanel
+
+enum TradeState { IDLE, PROPOSING, COUNTER_OFFER, ACCEPTED, COMPLETED, CANCELED }
 
 var _initiator_id: String = ""
 var _target_id: String = ""
@@ -9,147 +12,184 @@ var _target_items: ItemList
 var _initiator_gold: int = 0
 var _target_gold: int = 0
 var _trade_state: int = TradeState.IDLE
-
-enum TradeState { IDLE, PROPOSING, COUNTER_OFFER, ACCEPTED, COMPLETED, CANCELED }
+var _status_value: Label
+var _gold_label: Label
+var _their_gold_label: Label
 
 signal trade_completed(initiator_id: String, target_id: String)
 signal trade_canceled()
-signal closed()
+signal closed()  # Alias of panel_closed for back-compat.
 
 func _ready() -> void:
-	_setup_ui()
-	hide()
+	super._ready()
+	panel_closed.connect(func() -> void: closed.emit())
 
-func _setup_ui() -> void:
-	# Overlay
-	var overlay := ColorRect.new()
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0, 0, 0, 0.6)
-	overlay.gui_input.connect(func(e): 
-		if e is InputEventMouseButton and e.pressed: _on_cancel()
-	)
-	add_child(overlay)
-	
-	# Panel
+func _setup_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.custom_minimum_size = Vector2(600, 400)
-	
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.98)
-	style.border_color = Color(0.3, 0.3, 0.4)
-	style.corner_radius_top_left = 12
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", UIStyles.create_panel_style(
+		UIStyles.COLORS.background_dark,
+		UIStyles.COLORS.border,
+		2,
+		12
+	))
+	panel.name = "Panel"
 	add_child(panel)
-	
+
 	var main := HBoxContainer.new()
+	main.name = "Main"
 	panel.add_child(main)
-	
-	# Left side - Your offer
+
 	var left_vbox := VBoxContainer.new()
 	left_vbox.custom_minimum_size.x = 250
+	left_vbox.name = "YourOffer"
 	main.add_child(left_vbox)
-	
+
 	var your_label := Label.new()
 	your_label.text = "Your Offer"
 	your_label.add_theme_font_size_override("font_size", 16)
 	left_vbox.add_child(your_label)
-	
+
 	_initiator_items = ItemList.new()
 	_initiator_items.custom_minimum_size.y = 250
 	left_vbox.add_child(_initiator_items)
-	
-	var gold_label := Label.new()
-	gold_label.text = "Gold: 0"
-	gold_label.name = "GoldLabel"
-	left_vbox.add_child(gold_label)
-	
+
+	_gold_label = Label.new()
+	_gold_label.text = "Gold: 0"
+	_gold_label.name = "GoldLabel"
+	left_vbox.add_child(_gold_label)
+
 	var left_btns := HBoxContainer.new()
 	left_vbox.add_child(left_btns)
-	
+
 	var add_item_btn := Button.new()
 	add_item_btn.text = "+ Item"
 	add_item_btn.pressed.connect(_on_add_item)
 	left_btns.add_child(add_item_btn)
-	
+
 	var add_gold_btn := Button.new()
 	add_gold_btn.text = "+ Gold"
 	add_gold_btn.pressed.connect(_on_add_gold)
 	left_btns.add_child(add_gold_btn)
-	
-	# Center - Trade status
+
 	var center := VBoxContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.name = "Center"
 	main.add_child(center)
-	
+
 	var status_label := Label.new()
 	status_label.text = "Trade Status"
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.name = "StatusLabel"
 	center.add_child(status_label)
-	
-	var status_value := Label.new()
-	status_value.text = "Waiting..."
-	status_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_value.name = "StatusValue"
-	center.add_child(status_value)
-	
+
+	_status_value = Label.new()
+	_status_value.text = "Waiting..."
+	_status_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_value.name = "StatusValue"
+	center.add_child(_status_value)
+
 	var center_spacer := Control.new()
 	center_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.add_child(center_spacer)
-	
+
 	var accept_btn := Button.new()
 	accept_btn.text = "Accept Trade"
 	accept_btn.custom_minimum_size.y = 40
 	accept_btn.pressed.connect(_on_accept)
 	center.add_child(accept_btn)
-	
+
 	var cancel_btn := Button.new()
 	cancel_btn.text = "Cancel"
 	cancel_btn.pressed.connect(_on_cancel)
 	center.add_child(cancel_btn)
-	
-	# Right side - Their offer
+
 	var right_vbox := VBoxContainer.new()
 	right_vbox.custom_minimum_size.x = 250
+	right_vbox.name = "TheirOffer"
 	main.add_child(right_vbox)
-	
+
 	var their_label := Label.new()
 	their_label.text = "Their Offer"
 	their_label.add_theme_font_size_override("font_size", 16)
 	right_vbox.add_child(their_label)
-	
+
 	_target_items = ItemList.new()
 	_target_items.custom_minimum_size.y = 250
 	right_vbox.add_child(_target_items)
-	
-	var their_gold_label := Label.new()
-	their_gold_label.text = "Gold: -"
-	their_gold_label.name = "TheirGoldLabel"
-	right_vbox.add_child(their_gold_label)
+
+	_their_gold_label = Label.new()
+	_their_gold_label.text = "Gold: -"
+	_their_gold_label.name = "TheirGoldLabel"
+	right_vbox.add_child(_their_gold_label)
+
+func _setup_header() -> void:
+	# TradeUI is a special case: the "main" content is HBoxContainer (not VBox),
+	# so we inject a top banner via a VBox wrapper. Easiest approach: put a
+	# header row into a wrapper that contains both the header and the HBox.
+	# For now, place a header row at the top of the panel directly so it
+	# sits above the HBox content.
+	var panel := get_panel()
+	if not panel:
+		return
+
+	# Replace the existing HBox "Main" with a VBox wrapper that contains
+	# the header and the existing HBox.
+	var old_main: Node = panel.get_node_or_null("Main")
+	if not old_main:
+		return
+
+	var wrapper := VBoxContainer.new()
+	wrapper.name = "Wrapper"
+	panel.remove_child(old_main)
+	panel.add_child(wrapper)
+	wrapper.add_child(old_main)
+
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	wrapper.add_child(header)
+	wrapper.move_child(header, 0)
+
+	var title := Label.new()
+	title.text = "Trade"
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	header.add_child(title)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.pressed.connect(close)
+	header.add_child(close_btn)
 
 func open_trade(initiator_id: String, target_id: String) -> void:
 	_initiator_id = initiator_id
 	_target_id = target_id
 	_trade_state = TradeState.PROPOSING
 	_update_status("Waiting for %s to add items..." % target_id)
-	show()
+	# Use UIPanel's open with initiator_id; that sets _player_id and shows us.
+	open(initiator_id)
+
+func _on_close() -> void:
+	_trade_state = TradeState.IDLE
+	_initiator_id = ""
+	_target_id = ""
 
 func _update_status(message: String) -> void:
-	var status: Label = get_node_or_null("Panel/StatusLabel/../StatusValue")
-	if status:
-		status.text = message
+	if _status_value:
+		_status_value.text = message
 
 func _refresh_items() -> void:
 	_initiator_items.clear()
 	_target_items.clear()
-	
-	# TODO: Get actual items from TradeService or InventoryService
+	# TODO: Get actual items from TradeService or InventoryService (Phase C).
 	_initiator_items.add_item("(No items)")
 	_target_items.add_item("(No items)")
 
 func _on_add_item() -> void:
-	# TODO: Open inventory to select item
 	show_notification("Select item from inventory (not implemented)")
 
 func _on_add_gold() -> void:
@@ -158,33 +198,28 @@ func _on_add_gold() -> void:
 	dialog.title = "Add Gold"
 	add_child(dialog)
 	dialog.popup_centered()
-	
+
 	await dialog.confirmed
 	var gold_text: String = dialog.dialog_text.strip_edges()
 	dialog.queue_free()
-	
+
 	if gold_text.is_valid_int():
-		var gold := gold_text.to_int()
-		_initiator_gold = gold
+		_initiator_gold = gold_text.to_int()
 		_update_gold_labels()
 	else:
 		show_notification("Invalid gold amount")
 
 func _update_gold_labels() -> void:
-	var my_gold: Label = get_node_or_null("Panel/YourOffer/GoldLabel")
-	var their_gold: Label = get_node_or_null("Panel/TheirOffer/TheirGoldLabel")
-	
-	if my_gold:
-		my_gold.text = "Gold: %d" % _initiator_gold
-	if their_gold:
-		their_gold.text = "Gold: %d" % _target_gold
+	if _gold_label:
+		_gold_label.text = "Gold: %d" % _initiator_gold
+	if _their_gold_label:
+		_their_gold_label.text = "Gold: %d" % _target_gold
 
 func _on_accept() -> void:
 	if _trade_state == TradeState.PROPOSING:
 		_trade_state = TradeState.COUNTER_OFFER
 		_update_status("Waiting for %s to accept..." % _target_id)
 		show_notification("Trade offer sent!")
-		# TODO: Notify target via network
 	elif _trade_state == TradeState.COUNTER_OFFER:
 		_complete_trade()
 
@@ -196,30 +231,23 @@ func _on_cancel() -> void:
 
 func _complete_trade() -> void:
 	_trade_state = TradeState.COMPLETED
-	
+
 	if TradeService:
-		var result := TradeService.complete_trade(_initiator_id, _target_id)
+		var result: Dictionary = TradeService.complete_trade(_initiator_id, _target_id)
 		if result.get("success", false):
 			show_notification("Trade completed!")
 			trade_completed.emit(_initiator_id, _target_id)
 		else:
 			show_notification("Trade failed: " + result.get("message", ""))
-	
+
 	close()
 
 func show_notification(message: String) -> void:
 	var notif := Label.new()
 	notif.text = message
-	notif.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+	notif.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	notif.z_index = 1000
 	notif.global_position = Vector2(100, 100)
 	get_tree().root.add_child(notif)
 	await get_tree().create_timer(2.0).timeout
 	notif.queue_free()
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_VISIBILITY_CHANGED and not visible:
-		closed.emit()
-		_trade_state = TradeState.IDLE
-		_initiator_id = ""
-		_target_id = ""
