@@ -1,4 +1,5 @@
 ## ActionMenu - Context/right-click action menu for entities
+## Supports both mouse (right-click) and touch (long-press)
 class_name ActionMenu
 extends Control
 
@@ -9,12 +10,26 @@ var _target_id: String = ""
 var _target_type: int = 0
 var _item_buttons: Array = []
 
+## Touch support
+var _long_press_timer: Timer
+var _touch_start_pos: Vector2 = Vector2.ZERO
+var _is_touch_opened: bool = false
+const LONG_PRESS_DURATION: float = 0.5
+
 signal action_selected(action_id: String, target_id: String)
 signal menu_closed()
 
 func _ready() -> void:
 	_setup_ui()
+	_setup_touch()
 	hide()
+
+func _setup_touch() -> void:
+	_long_press_timer = Timer.new()
+	_long_press_timer.wait_time = LONG_PRESS_DURATION
+	_long_press_timer.one_shot = true
+	_long_press_timer.timeout.connect(_on_long_press)
+	add_child(_long_press_timer)
 
 func _setup_ui() -> void:
 	_menu_panel = PanelContainer.new()
@@ -149,9 +164,29 @@ func hide() -> void:
 	super.hide()
 	_target_id = ""
 	_target_type = 0
+	_is_touch_opened = false
 
 func _input(event: InputEvent) -> void:
+	# Mouse click to close
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if is_visible() and not _menu_panel.get_global_rect().has_point(event.position):
 			hide()
 			menu_closed.emit()
+	
+	# Touch handling for long-press
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_touch_start_pos = event.position
+			_long_press_timer.start()
+		else:
+			_long_press_timer.stop()
+			if _is_touch_opened:
+				# Tap on menu item handled by button press
+				pass
+			_is_touch_opened = false
+
+func _on_long_press() -> void:
+	# Long press detected - show menu if we have a target
+	if _target_id != "":
+		_is_touch_opened = true
+		show_menu(_touch_start_pos, _target_id, _target_type)

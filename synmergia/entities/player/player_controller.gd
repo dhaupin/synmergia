@@ -36,6 +36,7 @@ var is_local_player: bool = true
 
 # Context menu
 var _action_menu: ActionMenu = null
+var _current_target_info: TargetingManager.TargetInfo = null
 
 func _ready() -> void:
 	# Connect to input
