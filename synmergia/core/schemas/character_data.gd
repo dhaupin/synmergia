@@ -11,6 +11,10 @@ extends Resource
 @export var zone_id: String = "zone_starter_plains"
 @export var spawn_position: Vector3 = Vector3(0, 1, 0)
 
+# Skill Academy
+@export var spent_skill_points: int = 0         # total points consumed on upgrades
+@export var skill_upgrades: Dictionary = {}    # { skill_id: upgrade_level (0-5) }
+
 var species_data: Species
 var class_data: CharacterClass
 
@@ -79,3 +83,24 @@ func get_resource_type_name() -> String:
 	if class_data:
 		return CharacterClass.ResourceType.keys()[class_data.resource_type]
 	return "MANA"
+
+## Skill Academy helpers
+
+## Total skill points earned based on current level (floor(level * 2.5))
+func get_earned_skill_points() -> int:
+	return int(level * 2.5)
+
+## Available (unspent) skill points
+func get_available_skill_points() -> int:
+	return get_earned_skill_points() - spent_skill_points
+
+## Get upgrade level for a skill (0 if not upgraded)
+func get_skill_upgrade_level(skill_id: String) -> int:
+	return skill_upgrades.get(skill_id, 0)
+
+## Total upgrade levels across all skills
+func get_total_upgrade_levels() -> int:
+	var total := 0
+	for v in skill_upgrades.values():
+		total += v as int
+	return total

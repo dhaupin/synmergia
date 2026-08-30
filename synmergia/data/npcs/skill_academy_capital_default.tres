@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "skill_academy_capital_default"
+display_name = "Master Trainer"
+description = "A seasoned master who teaches warriors the ancient arts of combat mastery."
+npc_type = 8
+level = 60
+faction = "friendly"
+model_path = "res://models/npcs/skill_trainer_elder_01.tscn"
+greeting = "Greetings, warrior. Would you like to expand your combat knowledge?"
+farewell = "May your blade stay sharp. Return when you are ready to learn more."
+shop_title = "Skill Academy"
+location_type = 0
+base_repair_cost_multiplier = 1.0
+offers_bulk_discount = false
+bulk_discount_percent = 0.0
+bulk_discount_threshold = 0
+services = ["skill_books", "skill_upgrade", "respec"]

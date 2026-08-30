@@ -165,7 +165,12 @@ func get_skill(id: String) -> Skill:
 	return _skills.get(id)
 
 func get_item(id: String) -> Item:
-	return _items.get(id)
+	if _items.has(id):
+		return _items.get(id)
+	# Handle dynamically-generated SkillBook IDs (book_<skill_id>_<tier>)
+	if id.begins_with("book_"):
+		return _create_skill_book_from_id(id)
+	return null
 
 func get_enemy(id: String) -> EnemyData:
 	return _enemies.get(id)
@@ -306,3 +311,23 @@ func get_counts() -> Dictionary:
 		"quests": _quests.size(),
 		"gateways": _gateways.size()
 	}
+
+## Construct a SkillBook from a loot-table item_id string (book_<skill_id>_<tier>).
+## tier names: common/rare/epic/legendary/mythic → upgrade_level 1..5.
+func _create_skill_book_from_id(item_id: String) -> Item:
+	# Format: book_<skill_id>_<tier>
+	var parts := item_id.split("_")
+	if parts.size() < 3:
+		return null
+	var tier_str := parts[parts.size() - 1]
+	var skill_id := "_".join(parts.slice(1, parts.size() - 1))
+
+	var tier_map := {
+		"common": 1, "rare": 2, "epic": 3, "legendary": 4, "mythic": 5
+	}
+	var upgrade_level: int = tier_map.get(tier_str, 1)
+
+	var skill: Skill = _skills.get(skill_id)
+	var display_name := skill.display_name if skill else skill_id
+
+	return SkillBook.create(skill_id, upgrade_level, display_name)

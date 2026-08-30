@@ -68,6 +68,32 @@ enum TargetType {
 @export var sfx_cast: String = ""
 @export var sfx_impact: String = ""
 
+# Skill Academy — skill book upgrades
+# Signature/ultimate skills should set upgradable = false in their .tres.
+@export var upgradable: bool = true
+@export var upgrade_tiers: Array[Dictionary] = [
+	# level 1 = COMMON: +12% damage, -5% cooldown, etc.
+	{"level": 1, "books_required": 4, "tier": "common",
+		"delta": {"damage_mult": 1.12, "range_mult": 1.05, "cooldown_mult": 0.95,
+		          "mana_cost_mult": 0.97, "cast_time_mult": 0.95, "aoe_mult": 1.03}},
+	# level 2 = RARE
+	{"level": 2, "books_required": 4, "tier": "rare",
+		"delta": {"damage_mult": 1.24, "range_mult": 1.10, "cooldown_mult": 0.90,
+		          "mana_cost_mult": 0.94, "cast_time_mult": 0.90, "aoe_mult": 1.06}},
+	# level 3 = EPIC
+	{"level": 3, "books_required": 4, "tier": "epic",
+		"delta": {"damage_mult": 1.36, "range_mult": 1.15, "cooldown_mult": 0.85,
+		          "mana_cost_mult": 0.91, "cast_time_mult": 0.85, "aoe_mult": 1.09}},
+	# level 4 = LEGENDARY
+	{"level": 4, "books_required": 4, "tier": "legendary",
+		"delta": {"damage_mult": 1.48, "range_mult": 1.20, "cooldown_mult": 0.80,
+		          "mana_cost_mult": 0.88, "cast_time_mult": 0.80, "aoe_mult": 1.12}},
+	# level 5 = MYTHIC
+	{"level": 5, "books_required": 4, "tier": "mythic",
+		"delta": {"damage_mult": 1.60, "range_mult": 1.25, "cooldown_mult": 0.75,
+		          "mana_cost_mult": 0.85, "cast_time_mult": 0.75, "aoe_mult": 1.15}}
+]
+
 var remaining_cooldown: float = 0.0
 
 func _init() -> void:
@@ -244,3 +270,28 @@ func get_info() -> Dictionary:
 		"cooldown": cooldown,
 		"range": range
 	}
+
+## Get the upgrade tier definition for upgrade level 1-5.
+func get_upgrade_tier(level: int) -> Dictionary:
+	for tier in upgrade_tiers:
+		if tier.get("level") == level:
+			return tier
+	return {}
+
+## Get cumulative deltas for upgrade levels 1 through upgrade_level.
+## Apply these multipliers to the base skill attributes.
+func get_upgrade_deltas(upgrade_level: int) -> Dictionary:
+	var total := {
+		"damage_mult": 1.0,
+		"range_mult": 1.0,
+		"cooldown_mult": 1.0,
+		"mana_cost_mult": 1.0,
+		"cast_time_mult": 1.0,
+		"aoe_mult": 1.0
+	}
+	for tier in upgrade_tiers:
+		if tier.get("level") <= upgrade_level:
+			var d: Dictionary = tier.get("delta", {})
+			for key in d:
+				total[key] *= d[key]
+	return total

@@ -557,6 +557,46 @@ func spawn_blacksmith(
 		
 		return blacksmith
 
+## Spawn a Skill Academy NPC at a position
+func spawn_skill_academy(
+		zone_id: String,
+		position: Vector3,
+		npc_data_id: String = ""
+) -> SkillAcademyNPC:
+	var academy := SkillAcademyNPC.new()
+
+	# Load NPC data if provided
+	var data_service = DataService
+	if data_service and npc_data_id != "":
+		var npc_data: NPCData = data_service.get_npc(npc_data_id)
+		if npc_data:
+			academy.apply_data(npc_data)
+	else:
+		academy.display_name = "Master Trainer"
+
+	academy.entity_type = Entity.EntityType.NPC
+	academy.faction = Faction.FRIENDLY
+
+	# Register with EntityService
+	var entity_service = EntityService
+	if entity_service:
+		entity_service.register_entity(academy)
+
+	# Register with TargetingManager
+	var targeting_manager = TargetingManager
+	if targeting_manager:
+		targeting_manager.register_targetable(
+			academy.entity_id,
+			"npc",
+			academy,
+			academy.display_name,
+			academy.global_position
+		)
+
+	GameLog.info("SpawnService: Spawned Skill Academy '%s' at (%s) in zone %s" % [academy.display_name, position, zone_id])
+
+	return academy
+
 ## Spawn all blacksmiths for a zone (called during zone load)
 func spawn_zone_blacksmiths(zone_id: String, zone_data: ZoneData) -> Array[BlacksmithNPC]:
 		var blacksmiths: Array[BlacksmithNPC] = []
