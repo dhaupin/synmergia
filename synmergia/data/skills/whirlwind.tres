@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "whirlwind"
+display_name = "Whirlwind"
+description = "Spin in a devastating arc, striking all nearby enemies for moderate damage."
+icon_path = ""
+skill_type = 0
+target_type = 1
+mana_cost = 0
+stamina_cost = 30.0
+health_cost = 0
+cooldown = 15.0
+cast_time = 0.0
+animation_duration = 0.7
+recovery_time = 0.3
+can_interrupt = false
+uses_gcd = true
+range = 4.0
+aoe_radius = 4.0
+targeted_aoe_radius = 0.0
+max_targets = 0
+effects = [{
+"type": "damage",
+"value": 25
+}]
+required_level = 20
+required_class = "warrior"
+required_stance = ""
+vfx_cast = ""
+vfx_impact = ""
+sfx_cast = ""
+sfx_impact = ""
