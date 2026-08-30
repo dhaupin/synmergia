@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_dungeon_forest_depths"
+display_name = "Gloomwood Depths"
+description = "The dark heart of Gloomwood Forest. Ancient roots twist through the cavern walls. Looters and cultists have made this dungeon their lair. Difficulty: Normal."
+pvp_mode = 0
+level_requirement = 10
+max_level = 30
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 5.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 200.0
+ambient_light_color = Color(0.15, 0.2, 0.15, 1)
+ambient_light_energy = 0.5
+environment_path = ""
+has_weather = true
+weather_type = "fog"
+spawn_points = [Vector3(0, 0, 0)]
+bind_point = Vector3(0, 0, 0)
+npcs = []
+loot_multiplier = 2.0
+xp_multiplier = 2.0
+is_instanced = true
+instance_capacity = 5

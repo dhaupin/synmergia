@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_forest_meadow"
+display_name = "Gloomwood Meadow"
+description = "A misty meadow at the edge of Gloomwood Forest. Grey wolves hunt in packs near the treeline. Safe from PvP, but dangerous wildlife roams freely."
+pvp_mode = 0
+level_requirement = 1
+max_level = 15
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 8.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 300.0
+ambient_light_color = Color(0.4, 0.55, 0.35, 1)
+ambient_light_energy = 0.85
+environment_path = ""
+has_weather = true
+weather_type = "fog"
+spawn_points = [Vector3(0, 0, 0), Vector3(50, 0, 30), Vector3(-30, 0, 50), Vector3(100, 0, 80)]
+bind_point = Vector3(0, 0, 0)
+npcs = []
+loot_multiplier = 1.0
+xp_multiplier = 1.2
+is_instanced = false
+instance_capacity = 0
