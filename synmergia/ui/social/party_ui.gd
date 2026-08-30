@@ -112,13 +112,16 @@ func _refresh_members() -> void:
 		_members_list.add_item("Not in a party")
 		return
 
-	var members: Array = PartyService.get_party_members(party_id)
+	var members: Array = PartyService.get_party_member_details(party_id)
 	for member in members:
 		var member_data: Dictionary = member
 		var member_name: String = member_data.get("name", "?")
-		var role: String = member_data.get("role", "?")
-		var leader_icon: String = "*" if member_data.get("is_leader", false) else ""
-		_members_list.add_item("%s %s [%s]" % [leader_icon, member_name, role])
+		var member_class: String = member_data.get("class", "?")
+		var is_gm: bool = member_data.get("is_gm", false)
+		var is_leader: bool = member_data.get("is_leader", false)
+		var leader_icon: String = "*" if is_leader else ""
+		var gm_icon: String = "⭐" if is_gm else ""
+		_members_list.add_item("%s %s%s [%s]" % [leader_icon, gm_icon, member_name, member_class])
 
 func _refresh_pending() -> void:
 	if not _pending_list:

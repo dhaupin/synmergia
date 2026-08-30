@@ -70,7 +70,18 @@ func _ready() -> void:
 	# Connect to InteractionLayer for touch targeting
 	_connect_interaction_layer()
 	
+	# Add GM indicator if this is a GM character
+	_add_gm_indicator()
+	
 	GameLog.info("PlayerController ready")
+
+func _add_gm_indicator() -> void:
+	var char_data := _get_character_data()
+	if char_data and char_data.is_gm():
+		var indicator := GMIndicator.new()
+		indicator.name = "GMIndicator"
+		add_child(indicator)
+		GameLog.info("Added GM star indicator")
 
 func _connect_interaction_layer() -> void:
 	if InteractionLayer:

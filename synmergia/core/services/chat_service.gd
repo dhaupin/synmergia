@@ -636,15 +636,33 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 	var info := get_channel_info(channel)
 	var prefix: String = info.get("prefix", "")
 	var color: String = info.get("color", "#FFFFFF")
+	
+	# Check if sender is a GM
+	var is_gm: bool = false
+	if sender_id != "":
+		var entity = EntityService.get_entity(sender_id) if EntityService else null
+		if entity:
+			var char_data = entity.get("character_data") if entity else null
+			if char_data:
+				if char_data.has("is_gm"):
+					is_gm = char_data.is_gm()
+				elif char_data.has("class_id"):
+					is_gm = CharacterData.is_gm_class(char_data.get("class_id"))
+	
+	# Add GM indicator to name
+	var display_name: String = sender_name
+	if is_gm:
+		display_name = "[GM] " + sender_name
+		color = "#FFD700"  # Gold color for GM messages
 				
 	if channel == Channel.WHISPER:
-		return "[color=%s]%s %s:[/color] %s" % [color, prefix, sender_name, message]
+		return "[color=%s]%s %s:[/color] %s" % [color, prefix, display_name, message]
 	elif channel == Channel.EMOTE:
-		return "[color=%s]*%s %s*[/color]" % [color, sender_name, message]
+		return "[color=%s]*%s %s*[/color]" % [color, display_name, message]
 	elif prefix != "":
-		return "[color=%s]%s[/color] [color=#FFFFFF]%s:[/color] %s" % [color, prefix, sender_name, message]
+		return "[color=%s]%s[/color] [color=#FFFFFF]%s:[/color] %s" % [color, prefix, display_name, message]
 	else:
-		return "[color=%s]%s:[/color] %s" % [color, sender_name, message]
+		return "[color=%s]%s:[/color] %s" % [color, display_name, message]
 
 ## ============================================================================
 ## PLAYER NOTIFICATIONS
