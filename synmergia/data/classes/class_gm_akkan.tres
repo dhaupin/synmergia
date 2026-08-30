@@ -6,7 +6,7 @@
 script = ExtResource("1")
 
 id = "gm_akkan"
-display_name = "GM"
+display_name = "GM Akkan"
 description = "Game Master role for Akkan admins. All permissions enabled."
 icon_path = "res://ui/icons/classes/gm_akkan.png"
 

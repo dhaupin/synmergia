@@ -6,7 +6,7 @@
 script = ExtResource("1")
 
 id = "gm_synthetic"
-display_name = "GM"
+display_name = "GM Synthetic"
 description = "Game Master role for Synthetic admins. All permissions enabled."
 icon_path = "res://ui/icons/classes/gm_synthetic.png"
 
