@@ -226,7 +226,6 @@ the frame (`labs/`). When working on the game, you're in
 │   └── godot/                          # Godot editor / export helpers
 │
 ├── ROADMAP.md                          # implementation tracker
-├── AUDIT.md                            # running log
 ├── AGENTS.md                           # this file
 └── README.md                           # the project overview
 ```

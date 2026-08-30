@@ -315,8 +315,9 @@ sudo is the human override). These don't translate:
 - `lib/sudo.js` — vant's human-override layer.
   Synmergia has AdminService.
 - `lib/audit.js` — vant's audit log. Synmergia's
-  AUDIT.md is the design-side equivalent; runtime
-  audit can be a thin shim.
+  `labs/AUDIT.md.legacy` is the design-side equivalent
+  (legacy, frozen 2026-08-30); runtime audit can be a
+  thin shim.
 - `lib/storage.js` — vant's disk I/O. Synmergia uses
   Postgres + the snapshot store; the patterns are
   different.
