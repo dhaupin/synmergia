@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "akkan_rune_tremor"
 display_name = "Rune Tremor"
 description = "SIGNATURE Akkan technique. Unleashes a seismic wave of rune energy that travels outward, damaging and stunning all enemies in its path. Solo clear or party setup."

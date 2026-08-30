@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "human_last_stand"
 display_name = "Last Stand"
 description = "SIGNATURE Human technique. Refuses to fall. Immune to death for 5 seconds while dealing increased damage and generating maximum aggro. Toggle that saves groups."

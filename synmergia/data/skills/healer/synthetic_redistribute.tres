@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "synthetic_redistribute"
 display_name = "Redistribute"
 description = "SIGNATURE Synthetic technique. Fully restores all allies health, mana, and removes all debuffs. 45s cooldown."

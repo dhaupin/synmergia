@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "human_time_stop"
 display_name = "Time Stop"
 description = "SIGNATURE Human technique. Completely halts time in a massive area. All enemies freeze; allies act freely. Devastating setup for coordinated groups."

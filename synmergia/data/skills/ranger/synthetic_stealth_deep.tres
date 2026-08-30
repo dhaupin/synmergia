@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "synthetic_stealth_deep"
 display_name = "Deep Stealth"
 description = "Heavy shadow concealment. Reduces detection range by 60%. Breaks on damage or action."
