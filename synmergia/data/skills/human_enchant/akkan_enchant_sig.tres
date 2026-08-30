@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+upgradable = false
+
+id = "akkan_enchant_sig"
+display_name = "Arcane Weaving"
+description = "SIGNATURE Human Enchant art through Akkan structure. Enhances all weapons in range with bonus elemental damage."
+skill_type = 5
+target_type = 2
+mana_cost = 90
+cooldown = 90.0
+cast_time = 2.0
+animation_duration = 1.0
+range = 0.0
+aoe_radius = 15.0
+effects = [{"type": "buff", "effect_id": "buff_elemental_weapon", "duration": 10.0}]
+required_level = 25
+required_class = "human_enchant"

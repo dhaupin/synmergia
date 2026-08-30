@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "akkan_ancestral_guardian"
 display_name = "Ancestral Guardian"
 description = "SIGNATURE Akkan technique. Calls forth an ancestral spirit to defend the target ally. Essential for sustained fights."

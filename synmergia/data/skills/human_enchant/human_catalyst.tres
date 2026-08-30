@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "human_catalyst"
 display_name = "Catalyst"
 description = "SIGNATURE Human technique. Channels accumulated arcane energy into a violent burst at the target location. All allies in the blast gain increased critical strike chance. Powerful solo or in a group."

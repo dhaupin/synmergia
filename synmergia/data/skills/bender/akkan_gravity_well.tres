@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "akkan_gravity_well"
 display_name = "Gravity Well"
 description = "SIGNATURE Akkan technique. Creates a localized singularity. Enemies are pulled to the center and cannot move or act. Stuns, roots, and devastates enemy formations."

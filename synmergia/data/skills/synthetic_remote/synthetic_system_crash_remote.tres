@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 
+upgradable = false
+
 id = "synthetic_system_crash_remote"
 display_name = "System Crash"
 description = "SIGNATURE Synthetic technique. Broadcasts a corrupted signal that crashes the target's processes entirely. Massive damage and silence. Works at extreme range. Powerful in any group composition."
