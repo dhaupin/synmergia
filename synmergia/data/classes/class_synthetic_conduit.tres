@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "synthetic_conduit"
+display_name = "Conduit"
+description = "Synthetic energy conduit. Redistributes power throughout the party. Shields, energy transfer, AoE healing bursts, and enough damage to self-level. All classes have long and short range."
+role = 4
+resource_type = 1
+base_stats = {"strength": 5, "agility": 8, "vitality": 10, "intelligence": 14, "wisdom": 10, "endurance": 7}
+stat_growth = {"strength": 1, "agility": 2, "vitality": 2, "intelligence": 3, "wisdom": 1, "endurance": 1}
+base_resource = 120
+resource_per_level = 14
+resource_regen_per_second = 5.0
+resource_regen_combat = 2.5
+base_attack_power = 4
+attack_power_per_level = 1
+base_spell_power = 13
+spell_power_per_level = 4
+starting_skills = ["energy_transfer"]
+skill_tree_unlocks = {5: ["shield_all"], 10: ["drain_pulse"], 15: ["overcharge_ally"], 20: ["barrier_field"], 25: ["redistribute"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {"cloth": true, "leather": true, "mail": false, "plate": false}

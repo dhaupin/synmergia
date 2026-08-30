@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "human_ranger"
+display_name = "Ranger"
+description = "Human survivalist. Expert with both bow and blade. Sets traps, strikes from stealth, and controls the battlefield. Stealth at 3 levels. All classes have long and short range."
+role = 2
+resource_type = 1
+base_stats = {"strength": 8, "agility": 12, "vitality": 8, "intelligence": 6, "wisdom": 7, "endurance": 9}
+stat_growth = {"strength": 1, "agility": 3, "vitality": 1, "intelligence": 1, "wisdom": 1, "endurance": 2}
+base_resource = 80
+resource_per_level = 10
+resource_regen_per_second = 3.0
+resource_regen_combat = 1.5
+base_attack_power = 12
+attack_power_per_level = 3
+base_spell_power = 4
+spell_power_per_level = 1
+starting_skills = ["ambush"]
+skill_tree_unlocks = {5: ["trap_roots"], 10: ["aimed_shot"], 15: ["stealth_light"], 20: ["multi_shot"], 25: ["stealth_deep"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {"cloth": false, "leather": true, "mail": true, "plate": false}

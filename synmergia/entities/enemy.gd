@@ -5,7 +5,7 @@ extends Entity
 @export var enemy_data: Resource
 @export var starting_health: int = 30
 @export var starting_level: int = 1
-@export var loot_factory_class: String = ""
+@export var loot_table_id: String = ""
 
 @onready var health_component: HealthComponent = $HealthComponent
 
@@ -95,23 +95,17 @@ func _on_died() -> void:
 
 
 func _roll_and_drop_loot() -> void:
-	if loot_factory_class.is_empty():
+	if loot_table_id.is_empty():
 		return
 
-	var script_path := "res://data/loot_tables/%s.gd" % loot_factory_class
-	var script := load(script_path)
-	if not script:
+	var path := "res://data/loot_tables/%s.tres" % loot_table_id
+	var table: LootTable = load(path) as LootTable
+	if not table:
 		return
 
-	var factory_class = script.new()
-	if not factory_class or not "create" in factory_class:
-		return
-
-	var table: LootTable = factory_class.create()
 	var result := table.roll_drop()
-
 	for item in result.items:
-		GameLog.info("  loot: %s x%d" % [item.item_id, item.quantity])
+		GameLog.info("  loot: %s x%d" % [item.get("item_id", ""), item.get("quantity", 1)])
 
-	for currency_id in result.currency:
-		GameLog.info("  currency: %s %d" % [currency_id, result.currency[currency_id]])
+	for cid in result.currency:
+		GameLog.info("  currency: %s %d" % [cid, result.currency[cid]])

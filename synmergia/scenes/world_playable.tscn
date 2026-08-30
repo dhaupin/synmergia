@@ -166,7 +166,7 @@ script = ExtResource("3")
 enemy_data = ExtResource("11")
 display_name = "Grey Wolf"
 starting_health = 55
-loot_factory_class = "loot_wolf"
+loot_table_id = "loot_wolf"
 
 [node name="HealthComponent" type="Node" parent="Wolf"]
 script = ExtResource("5")
@@ -189,7 +189,7 @@ script = ExtResource("3")
 enemy_data = ExtResource("12")
 display_name = "Bandit"
 starting_health = 90
-loot_factory_class = "loot_bandit"
+loot_table_id = "loot_bandit"
 
 [node name="HealthComponent" type="Node" parent="Bandit"]
 script = ExtResource("5")

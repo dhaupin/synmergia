@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "barrier_field"
+display_name = "Barrier Field"
+description = "Generates a localized barrier around an ally that absorbs a large amount of damage before shattering."
+skill_type = 5
+target_type = 3
+mana_cost = 50
+cooldown = 30.0
+cast_time = 0.5
+animation_duration = 0.4
+range = 20.0
+effects = [{"type": "buff", "effect_id": "buff_barrier_field", "duration": 12.0}]
+required_level = 20
+required_class = "synthetic_conduit"

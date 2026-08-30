@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "human_cleric"
+display_name = "Cleric"
+description = "Human divine healer. Channels sacred light to mend wounds and protect the party. Auras, stuns, and enough damage to clear solo. All classes have long and short range."
+role = 4
+resource_type = 1
+base_stats = {"strength": 6, "agility": 5, "vitality": 10, "intelligence": 10, "wisdom": 14, "endurance": 10}
+stat_growth = {"strength": 1, "agility": 1, "vitality": 2, "intelligence": 2, "wisdom": 3, "endurance": 2}
+base_resource = 140
+resource_per_level = 16
+resource_regen_per_second = 6.0
+resource_regen_combat = 3.0
+base_attack_power = 5
+attack_power_per_level = 1
+base_spell_power = 10
+spell_power_per_level = 3
+starting_skills = ["holy_light"]
+skill_tree_unlocks = {5: ["sanctuary_aura"], 10: ["smite"], 15: ["blinding_light"], 20: ["divine_shield"], 25: ["resurrection"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = false
+can_use_staves = true
+can_use_armor = {"cloth": true, "leather": true, "mail": true, "plate": false}

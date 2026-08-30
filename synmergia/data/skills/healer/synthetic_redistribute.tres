@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "redistribute"
+display_name = "Redistribute"
+description = "SIGNATURE Synthetic technique. Fully restores all allies health, mana, and removes all debuffs. 45s cooldown."
+skill_type = 5
+target_type = 2
+mana_cost = 80
+cooldown = 45.0
+cast_time = 1.5
+animation_duration = 0.8
+range = 0.0
+aoe_radius = 20.0
+effects = [{"type": "heal", "value": 100}, {"type": "cleanse", "value": 0}]
+required_level = 25
+required_class = "synthetic_conduit"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "enchant_weapon"
+display_name = "Enchant Weapon"
+description = "Imbues a party member's weapon with arcane power. Their attacks deal bonus spell damage for the duration."
+skill_type = 5
+target_type = 3
+mana_cost = 30
+cooldown = 12.0
+cast_time = 0.8
+animation_duration = 0.5
+range = 15.0
+effects = [{"type": "buff", "effect_id": "buff_enchant_weapon", "duration": 30.0}]
+required_level = 10
+required_class = "human_enchant"
