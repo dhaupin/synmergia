@@ -35,14 +35,14 @@
 ## Architecture documentation
 
 This PRD is the product spec. The architecture is in
-[`docs/architecture/`](../../synmergia/docs/architecture/) (in the
+[`docs/architecture/`](../docs/architecture/) (in the
 `synmergia/` subdirectory because it ships with the game):
 
-- [`multi-iso-frame.md`](../../synmergia/docs/architecture/multi-iso-frame.md) — the multi-iso orchestrator (Part 1)
-- [`multi-iso-lod-prediction.md`](../../synmergia/docs/architecture/multi-iso-lod-prediction.md) — LOD + materialized + prediction (Part 2)
-- [`labs-organization.md`](../../synmergia/docs/architecture/labs-organization.md) — the `/labs/` convention
-- [`nsc9-honest-evaluation.md`](../../synmergia/docs/architecture/nsc9-honest-evaluation.md) — why the geometry is a layer, not a replacement
-- [`NEXT-AGENT-PICKUP.md`](../../synmergia/docs/architecture/NEXT-AGENT-PICKUP.md) — survival guide
+- [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md) — the multi-iso orchestrator (Part 1)
+- [`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md) — LOD + materialized + prediction (Part 2)
+- [`labs-organization.md`](../docs/architecture/labs-organization.md) — the `/labs/` convention
+- [`nsc9-honest-evaluation.md`](../docs/architecture/nsc9-honest-evaluation.md) — why the geometry is a layer, not a replacement
+- [`NEXT-AGENT-PICKUP.md`](../docs/architecture/NEXT-AGENT-PICKUP.md) — survival guide
 
 Section 10 of this PRD links to these for the technical details.
 
@@ -82,7 +82,7 @@ Craft gear → Build houses → Participate in PvP → Repeat
   **Track B** develops the frame (math primitives,
   multi-iso orchestrator, materialized intersection, LOD,
   prediction). See the [Frame appendix](#frame-appendix) and
-  [`multi-iso-frame.md`](../../synmergia/docs/architecture/multi-iso-frame.md).
+  [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md).
 
 ---
 
@@ -508,10 +508,10 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 |-----------|-------------|----------|
 | **Auth Server** | Login, account creation | P0 |
 | **Game Server** | Authoritative game world simulation | P0 |
-| **Multi-Iso Orchestrator** | Multi-dimensional state queries (spatial ∩ faction ∩ temporal ∩ social). The control plane for the state tree. See [`multi-iso-frame.md`](../../synmergia/docs/architecture/multi-iso-frame.md). | P0 |
+| **Multi-Iso Orchestrator** | Multi-dimensional state queries (spatial ∩ faction ∩ temporal ∩ social). The control plane for the state tree. See [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md). | P0 |
 | **State Tree (content-hash)** | Each entity is a content-hashed node. Server tick = re-rooting the tree. Client sync = diff between hashes. See section 10.7. | P0 |
 | **Snapshot Store (Postgres)** | `state_snapshots` table persists root hashes. Lazy load on restart. | P0 |
-| **Cache Layer (in-memory)** | LRU-backed materialized intersection tables for hot queries. See [`multi-iso-lod-prediction.md`](../../synmergia/docs/architecture/multi-iso-lod-prediction.md). | P0 |
+| **Cache Layer (in-memory)** | LRU-backed materialized intersection tables for hot queries. See [`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md). | P0 |
 | **Message Queue** | Handle real-time messages | P0 |
 | **Load Balancer** | Distribute players across servers | P0 |
 | **Anti-Cheat** | Server-side validation, hash-chain tick verification | P0 |
@@ -581,9 +581,9 @@ contains its axis coordinates. The geometry integrates with
 state, not a separate layer.
 
 Full design in
-[`multi-iso-frame.md`](../../synmergia/docs/architecture/multi-iso-frame.md)
+[`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md)
 (Part 1) and
-[`multi-iso-lod-prediction.md`](../../synmergia/docs/architecture/multi-iso-lod-prediction.md)
+[`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md)
 (Part 2).
 
 ### 10.8 NSC-9 Reserved Space Identifiers
@@ -734,7 +734,7 @@ is incremental: profile, port, re-profile, ship.
 
 > **Modernized 2026-08-30:** Phases are now aligned with the
 > **Track A** (product) and **Track B** (frame research) plan in
-> [`NEXT-AGENT-PICKUP.md`](../../synmergia/docs/architecture/NEXT-AGENT-PICKUP.md).
+> [`NEXT-AGENT-PICKUP.md`](../docs/architecture/NEXT-AGENT-PICKUP.md).
 > Track A ships the game. Track B develops the frame in parallel.
 
 ### Phase 0: Foundation ✅ COMPLETE
@@ -869,17 +869,17 @@ is incremental: profile, port, re-profile, ship.
 
 ## Development Tracking
 
-📋 **See [ROADMAP.md](../../ROADMAP.md)** for implementation
+📋 **See [ROADMAP.md](../ROADMAP.md)** for implementation
 progress and technical details. The ROADMAP maps PRD features to
 actual code files and tracks completion status.
 
 The architecture is in `docs/architecture/`:
 
-- [multi-iso-frame.md](../../synmergia/docs/architecture/multi-iso-frame.md)
-- [multi-iso-lod-prediction.md](../../synmergia/docs/architecture/multi-iso-lod-prediction.md)
-- [labs-organization.md](../../synmergia/docs/architecture/labs-organization.md)
-- [nsc9-honest-evaluation.md](../../synmergia/docs/architecture/nsc9-honest-evaluation.md)
-- [NEXT-AGENT-PICKUP.md](../../synmergia/docs/architecture/NEXT-AGENT-PICKUP.md)
+- [multi-iso-frame.md](../docs/architecture/multi-iso-frame.md)
+- [multi-iso-lod-prediction.md](../docs/architecture/multi-iso-lod-prediction.md)
+- [labs-organization.md](../docs/architecture/labs-organization.md)
+- [nsc9-honest-evaluation.md](../docs/architecture/nsc9-honest-evaluation.md)
+- [NEXT-AGENT-PICKUP.md](../docs/architecture/NEXT-AGENT-PICKUP.md)
 
 ---
 

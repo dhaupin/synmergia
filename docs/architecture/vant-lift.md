@@ -405,11 +405,11 @@ we change the frame, vant's tests are the spec.
   lift enforces this contract.
 - [`labs-organization.md`](./labs-organization.md) — the
   /labs/ convention. Lifted primitives land here first.
-- [`labs/jolt-playground/`](../labs/jolt-playground/README.md) —
+- [`labs/jolt-playground/`](../../labs/jolt-playground/README.md) —
   the C++ tier (Jolt). Not a vant lift, but a sister lab.
-- [`labs/polyglot-ffi/`](../labs/polyglot-ffi/README.md) —
+- [`labs/polyglot-ffi/`](../../labs/polyglot-ffi/README.md) —
   the Julia tier. The polyglot FFI is itself a lift of
   vant's compute.js + connectors/.
-- [`labs/prd.md §10.10`](../labs/prd.md#1010-three-tiers-of-computation-the-frame-runtime) —
+- [`labs/prd.md §10.10`](../../labs/prd.md#1010-three-tiers-of-computation-the-frame-runtime) —
   the three computation tiers. The lift is the Tier 1
   (GDScript) realization of vant's patterns.
