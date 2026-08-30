@@ -166,6 +166,9 @@ var _suspicious_activity: Dictionary = {}
 ## Track player restrictions (muted, trade-banned, etc.)
 var _player_restrictions: Dictionary = {}
 
+## Track blocked actions count (for statistics)
+var _blocks: Dictionary = {}
+
 ## Detect potential teleport hack (instant movement across large distance)
 func check_teleport(player_id: String, from_pos: Vector3, to_pos: Vector3, time_delta: float) -> bool:
 	if time_delta <= 0:
@@ -214,7 +217,7 @@ func check_item_duplication(player_id: String, item_id: String, quantity_change:
 	if not _suspicious_activity.has(player_id):
 		_suspicious_activity[player_id] = {"item_creations": {}}
 	
-	var player_data := _suspicious_activity[player_id]
+	var player_data: Dictionary = _suspicious_activity[player_id]
 	if not player_data["item_creations"].has(item_id):
 		player_data["item_creations"][item_id] = []
 	
@@ -288,7 +291,7 @@ func track_action(player_id: String, action_type: String) -> int:
 	if not _action_tracker[player_id].has(action_type):
 		_action_tracker[player_id][action_type] = []
 	
-	var actions := _action_tracker[player_id][action_type]
+	var actions: Array = _action_tracker[player_id][action_type]
 	# Filter to recent
 	var recent: Array = actions.filter(func(t): return now - t < window)
 	recent.append(now)
@@ -302,7 +305,7 @@ func get_action_count(player_id: String, action_type: String, window_ms: int = 1
 		return 0
 	
 	var now := Time.get_ticks_msec()
-	var actions := _action_tracker[player_id][action_type]
+	var actions: Array = _action_tracker[player_id][action_type]
 	return actions.filter(func(t): return now - t < window_ms).size()
 
 ## ============================================================================
@@ -352,7 +355,7 @@ func is_restricted(player_id: String, restriction_type: String) -> bool:
 	if not _player_restrictions[player_id].has(restriction_type):
 		return false
 	
-	var restriction := _player_restrictions[player_id][restriction_type]
+	var restriction: Dictionary = _player_restrictions[player_id][restriction_type]
 	var expires_at: int = restriction["expires_at"]
 	var now := Time.get_ticks_msec()
 	
@@ -436,7 +439,7 @@ func _process(delta: float) -> void:
 	
 	# Cleanup suspicious activity (older than 5 minutes)
 	for player_id in _suspicious_activity.keys():
-		var data := _suspicious_activity[player_id]
+		var data: Dictionary = _suspicious_activity[player_id]
 		var has_recent := false
 		for item_id in data["item_creations"].keys():
 			var recent: Array = data["item_creations"][item_id].filter(func(t): return now - t < 300000)
@@ -448,7 +451,7 @@ func _process(delta: float) -> void:
 	
 	# Cleanup action tracker (older than 1 minute)
 	for player_id in _action_tracker.keys():
-		var actions := _action_tracker[player_id]
+		var actions: Dictionary = _action_tracker[player_id]
 		var has_recent := false
 		for action_type in actions.keys():
 			var recent: Array = actions[action_type].filter(func(t): return now - t < 60000)
@@ -474,7 +477,7 @@ func get_active_restrictions(player_id: String) -> Array:
 	var now := Time.get_unix_time_from_system()
 	
 	if _player_restrictions.has(player_id):
-		var player_res := _player_restrictions[player_id]
+		var player_res: Dictionary = _player_restrictions[player_id]
 		for restriction_type in player_res.keys():
 			var data: Dictionary = player_res[restriction_type]
 			var expires_at: float = data.get("expires_at", 0)
@@ -493,7 +496,7 @@ func get_all_restrictions() -> Dictionary:
 	var now := Time.get_unix_time_from_system()
 	
 	for player_id in _player_restrictions.keys():
-		var player_res := _player_restrictions[player_id]
+		var player_res: Dictionary = _player_restrictions[player_id]
 		var active_types: Array = []
 		
 		for restriction_type in player_res.keys():
