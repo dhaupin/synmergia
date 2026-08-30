@@ -65,8 +65,13 @@ synmergia/
 │   ├── community/     # CommunityGovernance
 │   ├── entities/      # Entity base class
 │   ├── events/        # event_hub.gd (EventBus)
+│   ├── futures/       # PLANNED: independent primitives for the frame
+│   │   ├── math/      # NSC-9, icosahedral, quasicrystal (B-1)
+│   │   ├── kv/        # LRU, content_hash, state_tree (A-3, B-6)
+│   │   ├── srv/       # markov, predictor, composite_table, LOD (B-6/7/8)
+│   │   └── db/        # snapshot_store, migrations (A-3)
 │   ├── schemas/       # Item, EnemyData, TargetSchema, etc.
-│   ├── services/      # 30+ services
+│   ├── services/      # 30+ services (consume primitives from futures/)
 │   ├── targeting/     # TargetingManager
 │   └── ui/            # UIManager
 ├── data/              # .tres files (factions, species, zones, items, ...)
@@ -83,8 +88,8 @@ synmergia/
 │   ├── respawn/       # respawn_ui
 │   ├── social/        # guild/party/trade UIs
 │   └── targeting/     # target_frame
-├── tests/             # test_islands.gd (19 tests)
-├── docs/architecture/ # 4 design docs
+├── tests/             # test_islands.gd (19 tests, cross-cutting)
+├── docs/architecture/ # 7 design docs
 ├── project.godot      # autoload list lives here
 └── AUDIT.md           # session log
 
@@ -108,7 +113,9 @@ synmergia/
 | `docs/architecture/nsc9-honest-evaluation.md` | Why we demoted most of the unified design (revised 2026-08-30) |
 | `docs/architecture/multi-iso-frame.md` | The multi-iso orchestrator (Part 1: the basic pattern) |
 | `docs/architecture/multi-iso-lod-prediction.md` | Part 2: LOD + materialized + prediction (the golden state) |
+| `docs/architecture/futures-organization.md` | Independent primitives in `core/futures/` (the frame staging area) |
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
+| `synmergia/core/futures/README.md` | In-tree convention for primitives |
 | `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
 | `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
 | `synmergia/ui/islands/island_manager.gd` | Mount orchestrator |
