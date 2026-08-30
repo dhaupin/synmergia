@@ -108,6 +108,14 @@ func _handle_character_select_state() -> void:
 func _handle_playing_state() -> void:
 	GameLog.info("Entering gameplay")
 	_initialize_world_services()
+	# Load the playable world scene
+	var world_scene := preload("res://scenes/world_playable.tscn")
+	if world_scene:
+		var world := world_scene.instantiate()
+		get_tree().root.add_child(world)
+		GameLog.info("World scene loaded")
+	else:
+		GameLog.warn("Could not load world scene")
 
 func _initialize_world_services() -> void:
 	# Only initialize once
