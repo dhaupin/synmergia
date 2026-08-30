@@ -339,4 +339,17 @@ two flavors:
 - Static shims for autoloads that declare `class_name`.
 - `GameConfig.*` → `_get_config_*` helpers migration.
 
+**TypeRegistry preload additions (this session):**
+- `core/autoload/type_registry.gd`: added `action_menu.gd` and
+  `inventory_component.gd` to the preload list so the parser
+  can resolve their `class_name` references when other autoloads
+  are parsed at boot. Other 20 missing types are in the existing
+  list and are pre-existing cascade noise that doesn't block the
+  "Main menu loaded" smoke test (326 SCRIPT ERROR lines but the
+  menu still mounts). Investigation of those cascades is deferred
+  — root cause is autoload script parse order vs the global
+  class_name registration table; needs a dedicated session and
+  probably a `preload()` sweep in the consumer scripts rather
+  than fighting the autoload order.
+
 Updated as the session progresses.

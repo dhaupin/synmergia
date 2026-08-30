@@ -25,6 +25,8 @@ func _ready() -> void:
 	_preload_type("res://entities/npc/npc.gd")
 	_preload_type("res://core/services/spawn_service.gd")
 	_preload_type("res://ui/targeting/target_tooltip.gd")
+	_preload_type("res://ui/components/action_menu.gd")
+	_preload_type("res://core/components/inventory_component.gd")
 	GameLog.debug("TypeRegistry: All types registered")
 
 func _preload_type(path: String) -> void:
