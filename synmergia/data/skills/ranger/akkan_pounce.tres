@@ -45,4 +45,4 @@ upgrade_tiers = [
 ]
 
 required_level = 1
-required_class = "akkan_ranger"
+required_class = "akkan_stalker"

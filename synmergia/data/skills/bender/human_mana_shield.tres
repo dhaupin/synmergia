@@ -5,17 +5,17 @@
 [resource]
 script = ExtResource("1")
 
-id = "human_enchant_weapon"
-display_name = "Enchant Weapon"
-description = "Imbues a party member's weapon with arcane power. Their attacks deal bonus spell damage for the duration."
+id = "human_mana_shield"
+display_name = "Mana Shield"
+description = "Wraps the caster in a protective barrier of mana. Absorbs incoming damage before health is reduced."
 skill_type = 5
-target_type = 3
-mana_cost = 30
-cooldown = 12.0
-cast_time = 0.8
+target_type = 2
+mana_cost = 25
+cooldown = 18.0
+cast_time = 0.5
 animation_duration = 0.5
-range = 15.0
-effects = [{"type": "buff", "effect_id": "buff_enchant_weapon", "duration": 30.0}]
+range = 0.0
+effects = [{"type": "buff", "effect_id": "buff_mana_shield", "duration": 8.0}]
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,5 +44,5 @@ upgrade_tiers = [
 },
 ]
 
-required_level = 10
-required_class = "human_enchant"
+required_level = 5
+required_class = "human_temporalist"
