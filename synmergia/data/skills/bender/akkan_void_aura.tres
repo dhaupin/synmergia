@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "void_aura"
+id = "akkan_void_aura"
 display_name = "Void Aura"
 description = "Dark aura that continuously reduces enemy resistances and slows their regeneration."
 skill_type = 5

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "aimed_shot"
+id = "synthetic_aimed_shot"
 display_name = "Aimed Shot"
 description = "Precisely calibrated energy shot at extreme range."
 skill_type = 2

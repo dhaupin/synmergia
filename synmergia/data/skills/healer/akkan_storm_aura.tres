@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "storm_aura"
+id = "akkan_storm_aura"
 display_name = "Storm Aura"
 description = "Summons a storm aura that damages nearby enemies and provides an attack speed buff to allies."
 skill_type = 5

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "charge"
+id = "human_charge"
 display_name = "Shield Charge"
 description = "Charges forward, slamming into enemies in your path and knocking them back."
 skill_type = 1

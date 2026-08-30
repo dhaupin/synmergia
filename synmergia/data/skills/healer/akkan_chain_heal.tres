@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "chain_heal"
+id = "akkan_chain_heal"
 display_name = "Chain Heal"
 description = "Healing wave that bounces between up to 3 allies, each bounce reducing in power."
 skill_type = 5

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "revive_ally"
+id = "akkan_revive_ally"
 display_name = "Revive Ally"
 description = "Reaches into the void to pull a fallen ally back from death door."
 skill_type = 5

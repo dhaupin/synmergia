@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "blinding_light"
+id = "human_blinding_light"
 display_name = "Blinding Light"
 description = "Burst of divine light that stuns all enemies in a cone ahead of the caster."
 skill_type = 5

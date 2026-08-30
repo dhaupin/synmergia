@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "multi_shot"
+id = "synthetic_multi_shot"
 display_name = "Multi-Shot"
 description = "Fires a spread of targeted projectiles hitting up to 4 enemies."
 skill_type = 2

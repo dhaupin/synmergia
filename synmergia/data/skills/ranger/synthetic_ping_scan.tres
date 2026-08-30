@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "ping_scan"
+id = "synthetic_ping_scan"
 display_name = "Ping Scan"
 description = "Sonar ping that reveals and marks enemies for your party."
 skill_type = 2

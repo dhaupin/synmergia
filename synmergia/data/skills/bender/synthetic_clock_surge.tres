@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "clock_surge"
+id = "synthetic_clock_surge"
 display_name = "Clock Surge"
 description = "Overclocks the target processing cycles, dealing damage and slowing them."
 skill_type = 5

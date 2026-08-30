@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "reflect"
+id = "akkan_reflect"
 display_name = "Reflect"
 description = "Raises a barrier that reflects a portion of melee damage back to attackers."
 skill_type = 5

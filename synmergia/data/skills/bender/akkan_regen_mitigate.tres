@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "regen_mitigate"
+id = "akkan_regen_mitigate"
 display_name = "Regen Mitigate"
 description = "Curse that prevents the target from regenerating health or mana for the duration."
 skill_type = 5

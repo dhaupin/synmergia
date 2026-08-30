@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "warden_taunt"
+id = "synthetic_warden_taunt"
 display_name = "Warden Taunt"
 description = "Broadcasts a priority-interrupt signal that forces all nearby enemies to target you."
 skill_type = 5

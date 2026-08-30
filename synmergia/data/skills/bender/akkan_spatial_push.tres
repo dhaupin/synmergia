@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "spatial_push"
+id = "akkan_spatial_push"
 display_name = "Spatial Push"
 description = "Bends space to push all nearby enemies away from the caster. Interrupts and creates distance."
 skill_type = 5

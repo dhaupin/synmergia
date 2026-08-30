@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "system_lockdown"
+id = "synthetic_system_lockdown"
 display_name = "System Lockdown"
 description = "Overloads a target system, dealing damage and preventing them from moving or acting for a moment."
 skill_type = 1

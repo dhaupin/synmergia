@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "holy_light"
+id = "human_holy_light"
 display_name = "Holy Light"
 description = "Channels divine energy to heal a single ally. Strong single-target heal."
 skill_type = 5

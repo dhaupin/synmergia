@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "shield_wall"
+id = "human_shield_wall"
 display_name = "Shield Wall"
 description = "Raises your shield, dramatically reducing all damage taken for a short duration."
 skill_type = 5

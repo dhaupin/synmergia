@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "overclock_ally"
+id = "synthetic_overclock_ally"
 display_name = "Overclock Ally"
 description = "Overclocks an ally systems, dramatically increasing their attack and cast speed."
 skill_type = 5

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "full_stall"
+id = "synthetic_full_stall"
 display_name = "Full Stall"
 description = "SIGNATURE Synthetic technique. System-wide halt signal. All enemies freeze — no movement, no actions, no regeneration. Ultimate team setup."
 skill_type = 5

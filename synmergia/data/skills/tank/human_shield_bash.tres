@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "shield_bash"
+id = "human_shield_bash"
 display_name = "Shield Bash"
 description = "Bashes an enemy with your shield, dealing damage and briefly stunning them."
 skill_type = 1

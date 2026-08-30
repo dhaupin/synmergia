@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "backdoor"
+id = "synthetic_backdoor"
 display_name = "Backdoor"
 description = "Exploits a security vulnerability to deal massive damage from any range."
 skill_type = 2

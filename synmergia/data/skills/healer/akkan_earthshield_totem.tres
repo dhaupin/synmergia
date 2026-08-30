@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "earthshield_totem"
+id = "akkan_earthshield_totem"
 display_name = "Earthshield Totem"
 description = "Plants a totem that pulses healing energy to the nearest ally and reduces damage taken."
 skill_type = 5

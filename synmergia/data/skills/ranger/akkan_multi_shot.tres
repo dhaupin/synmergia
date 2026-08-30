@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "multi_shot"
+id = "akkan_multi_shot"
 display_name = "Multi-Shot"
 description = "Fires multiple arrows in a cone, striking up to 4 nearby enemies."
 skill_type = 2

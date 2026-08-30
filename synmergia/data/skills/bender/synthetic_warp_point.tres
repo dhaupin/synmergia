@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "warp_point"
+id = "synthetic_warp_point"
 display_name = "Warp Point"
 description = "Teleports an ally to the Overclocker location, removing them from danger instantly."
 skill_type = 5

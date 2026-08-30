@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "drain_pulse"
+id = "synthetic_drain_pulse"
 display_name = "Drain Pulse"
 description = "Pulse that drains energy from a single enemy, dealing damage and healing the caster. Sustain for solo."
 skill_type = 5

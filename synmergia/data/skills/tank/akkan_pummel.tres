@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "pummel"
+id = "akkan_pummel"
 display_name = "Pummel"
 description = "Rapidly strikes an enemy with overwhelming force, dealing damage and silencing their abilities briefly."
 skill_type = 1

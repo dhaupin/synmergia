@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "barrier_field"
+id = "synthetic_barrier_field"
 display_name = "Barrier Field"
 description = "Generates a localized barrier around an ally that absorbs a large amount of damage before shattering."
 skill_type = 5

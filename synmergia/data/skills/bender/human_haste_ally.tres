@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "haste_ally"
+id = "human_haste_ally"
 display_name = "Haste Ally"
 description = "Accelerates a single ally, dramatically increasing their movement and attack speed."
 skill_type = 5

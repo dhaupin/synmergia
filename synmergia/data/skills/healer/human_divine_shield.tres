@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "divine_shield"
+id = "human_divine_shield"
 display_name = "Divine Shield"
 description = "Wraps an ally in divine protection, making them immune to all damage for a short time."
 skill_type = 5

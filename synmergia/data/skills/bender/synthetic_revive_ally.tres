@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "revive_ally"
+id = "synthetic_revive_ally"
 display_name = "Revive Ally"
 description = "Initiates a system reboot on a fallen ally, restoring them to consciousness."
 skill_type = 5

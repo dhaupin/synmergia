@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "resistance_drain"
+id = "akkan_resistance_drain"
 display_name = "Resistance Drain"
 description = "Drains the target magical resistance and transfers a portion to the caster."
 skill_type = 5

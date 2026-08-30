@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "battle_cry"
+id = "akkan_battle_cry"
 display_name = "Battle Cry"
 description = "Lets out a primal roar that taunts nearby enemies and boosts your own damage briefly."
 skill_type = 5

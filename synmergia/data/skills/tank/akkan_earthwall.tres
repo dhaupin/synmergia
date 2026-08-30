@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "earthwall"
+id = "akkan_earthwall"
 display_name = "Earthwall"
 description = "Raises an earthen barrier that blocks enemy movement and protects nearby allies."
 skill_type = 4

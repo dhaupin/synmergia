@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "aimed_shot"
+id = "akkan_aimed_shot"
 display_name = "Aimed Shot"
 description = "Carefully aimed long-range shot that deals high damage."
 skill_type = 2

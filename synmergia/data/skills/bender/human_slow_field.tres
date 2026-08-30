@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "slow_field"
+id = "human_slow_field"
 display_name = "Slow Field"
 description = "Creates a temporal anomaly at the target location. All enemies inside are dramatically slowed."
 skill_type = 4

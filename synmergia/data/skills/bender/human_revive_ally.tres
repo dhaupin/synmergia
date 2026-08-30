@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "revive_ally"
+id = "human_revive_ally"
 display_name = "Revive Ally"
 description = "Channels temporal energy to pull a fallen ally back from the edge of time."
 skill_type = 5
