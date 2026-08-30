@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="Species" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/species.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "elf"
+display_name = "Elf"
+description = "Ancient forest dwellers with keen senses and deep arcane attunement. Nimble and intelligent, but physically slight."
+model_path = ""
+icon_path = ""
+default_skin_color = Color(0.85, 0.75, 0.65, 1)
+stat_modifiers = {
+"agility": 3,
+"endurance": -1,
+"intelligence": 3,
+"strength": -2,
+"vitality": 0,
+"wisdom": 2
+}
+home_zone = "starter_plains"
+home_faction = "elf_faction"
+allied_species = ["human", "dwarf"]
+hostile_species = ["akkan"]
+health_modifier = 0.95
+mana_modifier = 1.2
+stamina_modifier = 1.0
+speed_modifier = 1.05
+available_skin_tones = [Color(0.85, 0.75, 0.65, 1), Color(0.9, 0.8, 0.7, 1), Color(0.7, 0.6, 0.5, 1)]
+available_hair_colors = [Color(0.1, 0.05, 0.0, 1), Color(0.8, 0.6, 0.2, 1), Color(0.2, 0.5, 0.1, 1)]
+available_eye_colors = [Color(0.2, 0.6, 0.3, 1), Color(0.4, 0.2, 0.8, 1), Color(0.8, 0.6, 0.1, 1)]

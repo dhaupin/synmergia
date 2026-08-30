@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="Species" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/species.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "orc"
+display_name = "Orc"
+description = "Fierce warriors from the ashlands. Imposing and powerful, with a strong warrior tradition and deep clan loyalty."
+model_path = ""
+icon_path = ""
+default_skin_color = Color(0.45, 0.65, 0.35, 1)
+stat_modifiers = {
+"agility": 0,
+"endurance": 2,
+"intelligence": -2,
+"strength": 4,
+"vitality": 2,
+"wisdom": -1
+}
+home_zone = "starter_plains"
+home_faction = "orc_faction"
+allied_species = ["akkan"]
+hostile_species = ["human", "elf"]
+health_modifier = 1.1
+mana_modifier = 0.8
+stamina_modifier = 1.1
+speed_modifier = 0.95
+available_skin_tones = [Color(0.45, 0.65, 0.35, 1), Color(0.35, 0.55, 0.25, 1), Color(0.55, 0.75, 0.45, 1)]
+available_hair_colors = [Color(0.1, 0.1, 0.1, 1), Color(0.5, 0.3, 0.1, 1), Color(0.8, 0.8, 0.8, 1)]
+available_eye_colors = [Color(0.8, 0.2, 0.1, 1), Color(0.9, 0.6, 0.1, 1), Color(0.6, 0.1, 0.1, 1)]
