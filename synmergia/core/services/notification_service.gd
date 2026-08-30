@@ -347,6 +347,13 @@ func notify_level_up(entity_id: String, new_level: int) -> void:
 	send(entity_id, message, NotificationType.LEVEL_UP, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.LEVEL_UP, {
 		"new_level": new_level
 	})
+	
+	# Special message at level 10: signature unlock
+	if new_level == 10:
+		send(entity_id, "Level 10! Visit the Skill Academy to choose your Signature ability. First selection is FREE!", NotificationType.ACHIEVEMENT, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.ACHIEVEMENT, {
+			"unlock_type": "signature",
+			"academy_location": "capital"
+		})
 
 ## Achievement notification
 func notify_achievement(entity_id: String, achievement_name: String, description: String = "") -> void:

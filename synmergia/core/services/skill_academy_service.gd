@@ -284,3 +284,96 @@ func get_next_tier_name(skill_id: String, current_level: int) -> String:
 		return ""
 	var tier: Dictionary = schema.get_upgrade_tier(current_level + 1)
 	return tier.get("tier", "")
+
+## Signature Selection ================================================================
+
+## Get all 3 signature skill IDs for a class
+func get_class_signatures(class_id: String) -> Array[String]:
+	var signatures: Array[String] = []
+	var all_skills: Dictionary = DataService.get_all_skills()
+	for skill_id in all_skills:
+		var schema: SkillSchema = all_skills[skill_id]
+		if not schema is SkillSchema:
+			continue
+		if schema.required_class == class_id and not schema.upgradable:
+			signatures.append(skill_id)
+	return signatures
+
+## Get signature schema by ID
+func get_signature_schema(skill_id: String) -> SkillSchema:
+	var entry: Dictionary = _catalog.get(skill_id, {})
+	return entry.get("schema", null) as SkillSchema
+
+## Change player's active signature
+func change_signature(
+	player_id: String,
+	skill_data: CharacterData,
+	new_signature_id: String,
+	player_level: int,
+	gold: int,
+	inventory: Node
+) -> Dictionary:
+	# Validate level requirement
+	if player_level < 10:
+		return {"success": false, "reason": "Must be level 10+ to select a signature"}
+	
+	# Validate the signature belongs to the player's class
+	var class_signatures: Array[String] = get_class_signatures(skill_data.class_id)
+	if not class_signatures.has(new_signature_id):
+		return {"success": false, "reason": "Invalid signature for your class"}
+	
+	# Check if already selected
+	if skill_data.active_signature == new_signature_id:
+		return {"success": false, "reason": "Signature already active"}
+	
+	# Check gold cost
+	var cost: int = skill_data.get_signature_change_cost()
+	if gold < cost:
+		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
+	
+	# Deduct gold
+	if inventory and "remove_gold" in inventory:
+		inventory.remove_gold(cost)
+	elif inventory and inventory.inventory_component and "remove_gold" in inventory.inventory_component:
+		inventory.inventory_component.remove_gold(cost)
+	
+	# Update character data
+	var old_signature: String = skill_data.active_signature
+	skill_data.active_signature = new_signature_id
+	skill_data.signature_switches += 1
+	
+	return {
+		"success": true,
+		"old_signature": old_signature,
+		"new_signature": new_signature_id,
+		"cost": cost,
+		"is_free": skill_data.signature_switches == 1,
+		"message": "Signature changed to %s!" % new_signature_id
+	}
+
+## Get player's signature info
+func get_signature_info(skill_data: CharacterData, player_level: int) -> Dictionary:
+	var class_sigs: Array[String] = get_class_signatures(skill_data.class_id)
+	var available_sigs: Array[Dictionary] = []
+	
+	for sig_id in class_sigs:
+		var schema: SkillSchema = get_signature_schema(sig_id)
+		if schema:
+			available_sigs.append({
+				"skill_id": sig_id,
+				"display_name": schema.display_name,
+				"description": schema.description,
+				"is_active": skill_data.active_signature == sig_id,
+				"is_locked": player_level < 10
+			})
+	
+	return {
+		"class_id": skill_data.class_id,
+		"active_signature": skill_data.active_signature,
+		"available_signatures": available_sigs,
+		"signature_switches": skill_data.signature_switches,
+		"change_cost": skill_data.get_signature_change_cost(),
+		"is_free": skill_data.signature_switches == 0,
+		"can_change": player_level >= 10 and skill_data.active_signature != "",
+		"must_select": player_level >= 10 and skill_data.active_signature == ""
+	}

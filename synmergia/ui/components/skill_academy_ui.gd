@@ -8,7 +8,7 @@
 class_name SkillAcademyUI
 extends UIPanel
 
-enum Tab { SKILLS, BOOKS, UPGRADE, RESPEC }
+enum Tab { SKILLS, BOOKS, UPGRADE, SIGNATURE, RESPEC }
 
 const HEADER_HEIGHT: int = 50
 const TAB_BAR_HEIGHT: int = 44
@@ -100,7 +100,7 @@ func _build_tab_bar() -> Control:
 	bar.custom_minimum_size.y = TAB_BAR_HEIGHT
 	bar.name = "TabBar"
 
-	var tabs := ["Skills", "Books", "Upgrade", "Respec"]
+	var tabs := ["Skills", "Books", "Upgrade", "Signature", "Respec"]
 	for i in tabs.size():
 		var btn := Button.new()
 		btn.text = tabs[i]
@@ -120,6 +120,7 @@ func _build_tab_contents() -> Control:
 	_tab_contents[Tab.SKILLS] = _build_skills_tab()
 	_tab_contents[Tab.BOOKS] = _build_books_tab()
 	_tab_contents[Tab.UPGRADE] = _build_upgrade_tab()
+	_tab_contents[Tab.SIGNATURE] = _build_signature_tab()
 	_tab_contents[Tab.RESPEC] = _build_respec_tab()
 
 	for i in _tab_contents.size():
@@ -247,6 +248,33 @@ func _build_upgrade_tab() -> Control:
 	btn.disabled = true
 	root.add_child(btn)
 	_upgrade_button = btn
+
+	return root
+
+func _build_signature_tab() -> Control:
+	var root := VBoxContainer.new()
+	root.name = "SignatureTab"
+
+	var header := Label.new()
+	header.name = "Header"
+	header.text = "Choose Your Signature"
+	header.add_theme_font_size_override("font_size", 18)
+	root.add_child(header)
+
+	var info := Label.new()
+	info.name = "Info"
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD
+	info.text = "Your signature is a defining ability unique to your class. Choose one of three variants at level 10. The first selection is FREE. Subsequent changes cost %d gold." % CharacterData.new().signature_change_cost
+	root.add_child(info)
+
+	var divider := HSeparator.new()
+	divider.name = "Divider"
+	root.add_child(divider)
+
+	var sig_list := VBoxContainer.new()
+	sig_list.name = "SignatureList"
+	sig_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(sig_list)
 
 	return root
 
@@ -508,6 +536,103 @@ func _on_upgrade_pressed() -> void:
 			NotificationService.NotificationType.WARNING
 		)
 
+func _refresh_signature_tab() -> void:
+	if not is_instance_valid(_skill_data):
+		return
+	
+	var panel: PanelContainer = get_panel()
+	if not panel:
+		return
+	var sig_list: VBoxContainer = panel.get_node_or_null("Main/ContentStack/SignatureTab/SignatureList")
+	if not sig_list:
+		return
+	
+	# Clear existing
+	for child in sig_list.get_children():
+		sig_list.remove_child(child)
+		child.queue_free()
+	
+	# Get player level from entity
+	var player_level: int = 1
+	var player: Node = EntityService.get_entity(_player_id) if EntityService else null
+	if player and "level" in player:
+		player_level = player.level
+	
+	var info: SkillAcademyService.get_signature_info(_skill_data, player_level)
+	
+	# Update info text based on state
+	var info_lbl: Label = panel.get_node_or_null("Main/ContentStack/SignatureTab/Info")
+	if info_lbl:
+		if info.get("must_select", false):
+			info_lbl.text = "You reached level 10! Choose your signature ability. First selection is FREE."
+			info_lbl.add_theme_color_override("font_color", UIStyles.COLORS.success)
+		elif info.get("can_change", false):
+			var cost: int = info.get("change_cost", 1000)
+			var free_text: String = " (FREE)" if info.get("is_free", false) else " (%d gold)" % cost
+			info_lbl.text = "Your signature: %s. Click another to change it.%s" % [
+				info.get("active_signature", "None"),
+				free_text
+			]
+		else:
+			info_lbl.text = "Reach level 10 to unlock signature selection."
+	
+	# Populate signature list
+	var available_sigs: Array = info.get("available_signatures", [])
+	for sig_info in available_sigs:
+		var sig_id: String = sig_info.get("skill_id", "")
+		var display_name: String = sig_info.get("display_name", sig_id)
+		var desc: String = sig_info.get("description", "")
+		var is_active: bool = sig_info.get("is_active", false)
+		var is_locked: bool = sig_info.get("is_locked", true)
+		
+		var card := PanelContainer.new()
+		card.custom_minimum_size.y = 80
+		card.add_theme_stylebox_override("panel", UIStyles.create_panel_style())
+		if is_active:
+			card.add_theme_color_override("border_color", UIStyles.COLORS.success)
+		
+		var card_inner := VBoxContainer.new()
+		card.add_child(card_inner)
+		
+		var name_row := HBoxContainer.new()
+		card_inner.add_child(name_row)
+		
+		var name_lbl := Label.new()
+		name_lbl.text = display_name
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if is_active:
+			name_lbl.add_theme_color_override("font_color", UIStyles.COLORS.success)
+		name_row.add_child(name_lbl)
+		
+		if is_active:
+			var active_lbl := Label.new()
+			active_lbl.text = " [ACTIVE]"
+			active_lbl.add_theme_color_override("font_color", UIStyles.COLORS.success)
+			name_row.add_child(active_lbl)
+		
+		var desc_lbl := Label.new()
+		desc_lbl.text = desc
+		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card_inner.add_child(desc_lbl)
+		
+		if is_locked:
+			var locked_lbl := Label.new()
+			locked_lbl.text = "Unlock at level 10"
+			locked_lbl.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+			card_inner.add_child(locked_lbl)
+		else:
+			var select_btn := Button.new()
+			if is_active:
+				select_btn.text = "Active"
+				select_btn.disabled = true
+			else:
+				select_btn.text = "Select" if info.get("is_free", false) else "Select (1000g)"
+			select_btn.pressed.connect(func(): _on_signature_selected(sig_id))
+			card_inner.add_child(select_btn)
+		
+		sig_list.add_child(card)
+
 func _refresh_respec_tab() -> void:
 	if not is_instance_valid(_skill_data):
 		_respec_label.text = "Character data unavailable."
@@ -524,6 +649,42 @@ func _refresh_respec_tab() -> void:
 			total_spent, _skill_data.get_total_upgrade_levels())
 		_respec_cost_label.text = "Respec cost: %d gold" % cost
 		_respec_button.disabled = false
+
+func _on_signature_selected(sig_id: String) -> void:
+	if sig_id == "" or not is_instance_valid(_skill_data):
+		return
+	
+	var player_level: int = 1
+	var player: Node = EntityService.get_entity(_player_id) if EntityService else null
+	if player and "level" in player:
+		player_level = player.level
+	
+	var gold: int = 0
+	var inventory: Node = null
+	if player and player.inventory_component:
+		inventory = player.inventory_component
+		gold = inventory.get_gold()
+	
+	var result: Dictionary = SkillAcademyService.change_signature(
+		_player_id, _skill_data, sig_id, player_level, gold, inventory
+	)
+	
+	if result.get("success", false):
+		var msg: String = "Signature set to %s!" % sig_id
+		if result.get("cost", 0) > 0:
+			msg += " (-%d gold)" % result.get("cost", 0)
+		NotificationService.send_to_player(
+			_player_id,
+			msg,
+			NotificationService.NotificationType.SUCCESS
+		)
+		_refresh_all()
+	else:
+		NotificationService.send_to_player(
+			_player_id,
+			"Failed to change signature: %s" % result.get("reason", "Unknown error"),
+			NotificationService.NotificationType.WARNING
+		)
 
 func _on_respec_pressed() -> void:
 	if not is_instance_valid(_skill_data):
@@ -588,6 +749,7 @@ func _refresh_all() -> void:
 	_refresh_skills_tab()
 	_refresh_books_tab()
 	_refresh_upgrade_tab()
+	_refresh_signature_tab()
 	_refresh_respec_tab()
 	_refresh_footer()
 
