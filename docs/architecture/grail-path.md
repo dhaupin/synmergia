@@ -266,12 +266,12 @@ That's it. One contract. Five changes. The grail.
   Part 2: LOD + materialized + prediction. The composite
   tables and the Markov predictor are the grail's building
   blocks.
-- [`labs/prd.md §10.10`](../labs/prd.md#1010-three-tiers-of-computation-the-frame-runtime) —
+- [`labs/prd.md §10.10`](../../labs/prd.md#1010-three-tiers-of-computation-the-frame-runtime) —
   the three computation tiers. Tier 1 (GDScript) handles the
   pre/mid/post glue. Tier 2 (Julia) handles the math on tick.
   Tier 3 (C++/GDExtension) handles the absolute hot path
   within the tick.
-- [`labs/polyglot-ffi/`](../labs/polyglot-ffi/) — the math
+- [`labs/polyglot-ffi/`](../../labs/polyglot-ffi/) — the math
   that the tick dispatches to.
 
 ## Status
