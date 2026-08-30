@@ -509,3 +509,46 @@ agents should know about:
 - **AUDIT.md moved to `labs/AUDIT.md.legacy`** (frozen).
   Live session log is at `synmergia/AUDIT.md.session-log`
   (still inside the project for now).
+
+---
+
+## Skill Academy System
+
+The Skill Academy allows players to upgrade skills and select their class signature.
+
+### Class System (18 classes = 6 archetypes × 3 species)
+
+| Archetype | Akkan | Human | Synthetic |
+|-----------|-------|-------|-----------|
+| **Tank** | Bulwark | Guardian | Warden |
+| **DD** | Attacker | Warrior | Exploiter |
+| **Mage** | Rune | Sorcerer | Psion |
+| **Rogue** | Stalker | Marksman | Tracker |
+| **Bender** | Seer | Temporalist | Overclocker |
+| **Healer** | Shaman | Cleric | Conduit |
+
+### Skills Per Class
+
+- **6 Upgradable Skills** (5 upgrade tiers: common → mythic)
+- **3 Signature Skills** (non-upgradable, unlock at level 10)
+
+### Signature Selection
+
+Players choose 1 of 3 signature abilities at level 10:
+- First selection is **FREE**
+- Subsequent changes cost **1000 gold**
+- Signatures are stored in `CharacterData.active_signature`
+- Signature switch count tracked in `CharacterData.signature_switches`
+
+### Skill Upgrade System
+
+- Players earn skill points based on level (30 + level × 2)
+- Upgrading requires: 1 skill point + 4 books of matching tier
+- Books drop from: bosses (any tier), vendors (common only)
+- Respec cost: 500 gold base + 20 gold per point spent
+
+### Key Files
+
+- `core/schemas/character_data.gd` — CharacterData with signature fields
+- `core/services/skill_academy_service.gd` — Upgrade and signature logic
+- `ui/components/skill_academy_ui.gd` — 5-tab UI (Skills, Books, Upgrade, **Signature**, Respec)

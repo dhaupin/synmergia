@@ -14,6 +14,9 @@ extends Resource
 # Skill Academy
 @export var spent_skill_points: int = 0         # total points consumed on upgrades
 @export var skill_upgrades: Dictionary = {}    # { skill_id: upgrade_level (0-5) }
+@export var active_signature: String = ""        # selected signature skill ID (non-upgradable)
+@export var signature_switches: int = 0         # number of times signature has been changed
+@export var signature_change_cost: int = 1000   # gold cost to change signature (after first free switch)
 
 var species_data: Species
 var class_data: CharacterClass
@@ -104,3 +107,19 @@ func get_total_upgrade_levels() -> int:
 	for v in skill_upgrades.values():
 		total += v as int
 	return total
+
+## Signature helpers
+
+## Get the cost to change signature (free on first switch)
+func get_signature_change_cost() -> int:
+	if signature_switches == 0:
+		return 0  # First switch is free
+	return signature_change_cost
+
+## Check if signature has been set
+func has_signature() -> bool:
+	return active_signature != ""
+
+## Check if signature can be changed (must be level 10+)
+func can_change_signature(player_level: int) -> bool:
+	return player_level >= 10
