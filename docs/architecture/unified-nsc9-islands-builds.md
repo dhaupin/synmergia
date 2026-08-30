@@ -1,18 +1,25 @@
 # Unified Architecture: NSC-9 + Islands + Builds for Synmergia
 
-> **Status: EXPLORATION, NOT ADOPTION ROADMAP**
+> **Status: REVISED 2026-08-30 after user feedback**
 >
-> This document records a design exploration. The Islands + Builds
-> parts are good and being adopted. The NSC-9 / Icosahedral /
-> Quasicrystal parts were evaluated honestly and **demoted** — see
-> [`nsc9-honest-evaluation.md`](./nsc9-honest-evaluation.md) for the
-> full reasoning and the revised migration plan.
+> Original framing was "the geometry extends the architecture." My
+> first honest evaluation framed it as "replacement for things
+> Synmergia already has" and dismissed it. The user pointed out
+> the framing was wrong. **The geometry is right as a redis-like
+> extension, not a replacement.** The state tree content-hash
+> pattern is the real win.
 >
-> **TL;DR of the demotion:** Synmergia is an MMORPG with a real
-> database backend and a few thousand entities per shard, not a
-> distributed Git storage system with unbounded entity count. The
-> geometry is beautiful math but solves problems we don't have.
-> Keep content-hash for templates + saves, drop the rest.
+> See:
+> - [`nsc9-honest-evaluation.md`](./nsc9-honest-evaluation.md) — the
+>   corrected eval with concrete Synmergia use cases
+> - [`NEXT-AGENT-PICKUP.md`](./NEXT-AGENT-PICKUP.md) — current plan
+>
+> **TL;DR of the revised framing:** the geometry is a Redis-like
+> layer in front of Postgres, not a replacement. State tree (with
+> content-hash nodes) is the foundation for sync, save games,
+> cross-shard, and P2P. NSC-9 specifically is still deferred
+> (SHA-256 hex is fine for now), but content-hash as a layer is
+> strongly recommended.
 
 **Cross-pollinated from:**
 - [prestruct](https://github.com/dhaupin/prestruct) — static prerender + islands of interactivity
@@ -451,38 +458,83 @@ class_names. Race solved structurally.
 
 ---
 
-## Part 8: Migration plan (5 sessions)
+## Part 8: Migration plan (revised 2026-08-30)
 
-### Session 1 — Geometry core
-- Land `core/geometry/nsc9.gd`
-- Land `core/geometry/icosahedral.gd`
-- Land `core/geometry/quasicrystal.gd`
-- Tests: round-trip barcode parse, icosahedral projection stability,
-  quasicrystal path uniqueness
-- Keep existing IDRegistry as a shim during transition
+**Important:** This plan was revised after the user pointed out
+the original framing (replace Postgres) was wrong. The geometry is
+now a redis-like *layer* in front of Postgres. The state tree
+content-hash pattern is the foundation. See
+[`nsc9-honest-evaluation.md`](./nsc9-honest-evaluation.md).
 
-### Session 2 — Islands POC
-- Land `ui/islands/island_placeholder.gd`
-- Land `ui/islands/island_registry.gd`
-- Land `ui/islands/island_manager.gd`
-- Convert 1-2 UI panels (e.g. health_bar, chat) to islands as proof
-- Verify main menu still loads
+### Session 1 — Islands POC
+**DONE** (commit `3e942bb`). 3 files in `synmergia/ui/islands/`,
+19/19 tests pass.
 
-### Session 3 — Migrate remaining UI
-- Convert all `extends UIPanel` scenes to islands
-- Delete UIPanel
-- Verify zone transition mounts all 8+ islands
+### Session 2 — Migrate remaining UI
+- 8-12 panels currently extend UIPanel
+- Each becomes a PackedScene with IslandPlaceholder root
+- Each added to `IslandRegistry.ISLANDS`
+- UIPanel base class deleted (it was a thin wrapper)
 
-### Session 4 — Quasicrystal for persistence
-- Land `core/services/persistence_service.gd` (wraps Quasicrystal)
-- Migrate `InventoryComponent` to use it
-- Migrate `LootService` to use it
-- Backup/restore test
+### Session 3 — State tree content-hash (the redis-like core)
+**This is the foundation session.** Everything else builds on it.
 
-### Session 5 — Shard routing
-- Land `core/services/shard_router.gd` (wraps Icosahedral)
-- Update `NetworkManager` to use it
-- Test with 2 simulated shards on localhost
+- `core/state/state_tree.gd` — content-addressed tree
+  - `node = { path, hash, value, children[] }`
+  - `compute_hash(node)` = SHA-256(serialize(node))
+  - `diff(old_root, new_root)` = list of (path, new_hash, new_value)
+  - `apply_diff(root, diff)` = new_root
+  - `get_subtree(root, path)`, `set_subtree(root, path, value)`
+- `core/state/state_sync.gd` — sync protocol
+  - `client_request_sync(server_endpoint, my_root_hash)` → diff
+  - `server_announce_tick(root_hash, diff)` → client applies
+- `core/state/snapshot_service.gd` — Postgres integration
+  - `state_snapshots` table: (root_hash, payload, timestamp)
+  - In-memory content-hash cache for hot paths
+  - Periodic snapshots, lazy load on restart
+
+### Session 4 — State tree applied to game state
+- `core/entities/` entities become state tree nodes
+- `core/components/` components are sub-nodes
+- Each entity: hash = SHA-256(component_hashes + base_template)
+- Each zone: hash = SHA-256(zone_metadata + chunk_hashes)
+- Server tick = `state_root = hash(previous_state_root + inputs)`
+- Client prediction rollback via hash-based diff
+
+### Session 5 — Save games as content-hashed trees
+- Save file = content-hash tree
+- Save upgrade = diff between save root hashes
+- Tampering detection = server re-verifies hash on load
+
+### Session 6 — Item template content-hash (cross-shard dedup)
+- Item templates identified by content-hash
+- Cross-shard reference = "I have hash X, you don't? Here."
+- Reduces template storage across shards
+
+### Session 7 — Asset addressing (pck + CDN)
+- Build pck with content-hashed asset paths
+- CDN serves by hash
+- Old clients can still find old assets (no broken refs on update)
+
+### Session 8 — Build pipeline (data.pck + CI)
+- `tools/build.sh` for the actual build
+- Separate `client.pck` and `data.pck`
+- CI rebuilds on changes to `synmergia/data/`
+
+### (Deferred) Geometry-specific primitives
+
+The icosahedral / quasicrystal / NSC-9 specific implementations
+from vant are deferred unless profiling shows they're needed:
+
+- `core/geometry/icosahedral.gd` — only useful if Synmergia
+  tile-based world needs aperiodic tiling
+- `core/geometry/nsc9.gd` — only useful if SHA-256 hex is too
+  verbose on the wire (profiling will tell)
+- `core/geometry/quasicrystal.gd` — not needed; hash table is
+  the path
+
+If any of these become needed, the work is straightforward
+GDScript ports of the vant `lib/geometry/` files.
 
 ---
 
@@ -490,16 +542,19 @@ class_names. Race solved structurally.
 
 | Thing | Frameworked version | Raw-dog version |
 |-------|---------------------|-----------------|
-| Entity IDs | UUIDGenerator singleton + IDRegistry + reserved ranges + collision checks | `NSC9.from_content(data)` |
-| Shard routing | ShardManager autoload + registry + heartbeat + rebalancer | `Icosahedral.project(barcode).vertex` |
-| Item storage | InventoryService + DB + migrations + ORM | `Quasicrystal.store(barcode, item_dict)` |
-| Save data | save_service + serializer + versioning | `Quasicrystal.store("9-10001-00001-1", player_data)` |
+| State sync | StateServer autoload + RPC + diffing + cache + version vector | `state_tree.diff(old_root, new_root)` over content-hash |
+| Cross-shard refs | Cross-shard service + message bus + serialization | "I have hash X" via content-hash equality |
+| Save data | save_service + serializer + versioning | content-hash tree, diff between versions |
 | UI panels | UIPanel base + scene manager + lifecycle hooks | IslandPlaceholder + IslandManager |
 | Content updates | CMS + live ops service + patch server | `godot --export-pack data data.pck` |
 | Build | Build pipeline + bundler + chunking | `godot --headless --export-release` |
 
-We get all the same guarantees. We skip all the machinery. Same
-paradigm as prestruct, same math as vant, but on a Godot MMORPG.
+**Note:** The original raw-dog table had entries like
+`InventoryService + DB + migrations + ORM → Quasicrystal.store(...)`
+which framed the geometry as a *replacement* for the DB. After
+user feedback, the geometry is a *layer in front of* the DB.
+Postgres still exists; the state tree sits on top of it as a
+content-addressed cache / sync protocol.
 
 ---
 
