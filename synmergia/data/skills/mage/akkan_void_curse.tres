@@ -7,7 +7,7 @@ script = ExtResource("1")
 
 id = "akkan_void_curse"
 display_name = "Void Curse"
-description = "Curses the target with void energy, reducing their resistance."
+description = "Curses the target reducing their resistance."
 skill_type = 2
 target_type = 0
 mana_cost = 20
@@ -19,7 +19,7 @@ aoe_radius = 0.0
 effects = [{"type": "debuff", "effect_id": "debuff_void_curse", "duration": 10.0}]
 
 required_level = 10
-required_class = "akkan_sorcerer"
+required_class = "akkan_rune"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -34,7 +34,7 @@ upgrade_tiers = [
 {
 "level": 3, "books_required": 4, "tier": "epic",
 "delta": {"damage_mult": 1.30, "cooldown_mult": 0.85, "duration_mult": 1.15, "aoe_mult": 1.09, "cast_time_mult": 1.15, "cost_mult": 0.91},
-"unlocks": [{"type": "aoe_mult", "value": 1.05}],
+"unlocks": [],
 },
 {
 "level": 4, "books_required": 4, "tier": "legendary",
@@ -44,6 +44,6 @@ upgrade_tiers = [
 {
 "level": 5, "books_required": 4, "tier": "mythic",
 "delta": {"damage_mult": 1.54, "cooldown_mult": 0.75, "duration_mult": 1.25, "aoe_mult": 1.15, "cast_time_mult": 1.25, "cost_mult": 0.85},
-"unlocks": [{"type": "aoe_mult", "value": 1.10}],
+"unlocks": [],
 },
 ]

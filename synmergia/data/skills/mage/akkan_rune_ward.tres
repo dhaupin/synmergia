@@ -5,17 +5,17 @@
 [resource]
 script = ExtResource("1")
 
-id = "human_time_anchor"
-display_name = "Time Anchor"
-description = "Plants a temporal anchor on an ally. They become immune to all slow and speed effects."
+id = "akkan_rune_ward_attacker"
+display_name = "Rune Ward (Attacker)"
+description = "Places a protective rune on an ally that absorbs damage and reflects a portion back to attackers."
 skill_type = 5
 target_type = 3
-mana_cost = 30
-cooldown = 20.0
+mana_cost = 28
+cooldown = 15.0
 cast_time = 0.6
 animation_duration = 0.5
-range = 25.0
-effects = [{"type": "buff", "effect_id": "buff_time_anchor", "duration": 12.0}]
+range = 20.0
+effects = [{"type": "buff", "effect_id": "buff_rune_ward", "duration": 10.0}]
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,5 +44,5 @@ upgrade_tiers = [
 },
 ]
 
-required_level = 10
-required_class = "human_temporalist"
+required_level = 5
+required_class = "akkan_attacker"

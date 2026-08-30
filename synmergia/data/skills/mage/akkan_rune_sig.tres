@@ -7,17 +7,17 @@ script = ExtResource("1")
 
 upgradable = false
 
-id = "akkan_sorcerer_akkan_sig"
-display_name = "Void Arcane"
-description = "SIGNATURE Akkan Sorcerer technique. Channels pure Akkan void energy into a devastating arcane attack that ignores magical resistance."
+id = "akkan_rune_sig"
+display_name = "Rune Mastery"
+description = "SIGNATURE Akkan Mage technique. Channels void energy into devastating rune-based attacks that pierce magical barriers."
 skill_type = 2
 target_type = 0
-mana_cost = 40
-cooldown = 45.0
+mana_cost = 35
+cooldown = 40.0
 cast_time = 2.0
 animation_duration = 1.5
 range = 30.0
 aoe_radius = 0.0
-effects = [{"type": "damage", "value": 350}]
+effects = [{"type": "damage", "value": 320}]
 required_level = 10
-required_class = "akkan_sorcerer"
+required_class = "akkan_rune"

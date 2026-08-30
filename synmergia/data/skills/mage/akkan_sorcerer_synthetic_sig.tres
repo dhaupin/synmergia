@@ -20,4 +20,4 @@ range = 30.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 310}]
 required_level = 10
-required_class = "synthetic_sorcerer"
+required_class = "synthetic_psion"
