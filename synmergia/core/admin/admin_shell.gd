@@ -209,6 +209,17 @@ func _register_default_commands() -> void:
 	
 	# Audit (ADMIN level required)
 	register_command(Command.new("audit", _cmd_audit, "View admin audit log", "audit [limit] [admin] [action]"))
+	
+	# GM Movement Commands
+	register_command(Command.new("invisible", _cmd_invisible, "Toggle invisibility mode", "invisible [0|1]", ["inv"], GameConfig.Security.ADMIN_LEVEL))
+	register_command(Command.new("fly", _cmd_fly, "Toggle fly mode (no gravity)", "fly [0|1]", [], GameConfig.Security.ADMIN_LEVEL))
+	register_command(Command.new("noclip", _cmd_noclip, "Toggle noclip mode (pass through walls)", "noclip [0|1]", [], GameConfig.Security.ADMIN_LEVEL))
+	register_command(Command.new("speed", _cmd_speed, "Set movement speed multiplier", "speed [multiplier]", [], GameConfig.Security.ADMIN_LEVEL))
+	register_command(Command.new("godmode", _cmd_godmode, "Toggle godmode (invincible)", "godmode [0|1]", ["god"], GameConfig.Security.ADMIN_LEVEL))
+	register_command(Command.new("teleport", _cmd_teleport, "Teleport to coords or player", "teleport <x> <y> <z> OR <player_id>", ["tp"], GameConfig.Security.MOD_LEVEL))
+	register_command(Command.new("goto", _cmd_goto_shell, "Teleport to a player", "goto <player_id>", [], GameConfig.Security.MOD_LEVEL))
+	register_command(Command.new("summon", _cmd_summon, "Summon a player to you", "summon <player_id>", [], GameConfig.Security.MOD_LEVEL))
+	register_command(Command.new("heal", _cmd_heal, "Heal yourself or another player", "heal [player_id]", [], GameConfig.Security.MOD_LEVEL))
 
 ## ============================================================================
 ## COMMAND IMPLEMENTATIONS
@@ -662,6 +673,184 @@ func _format_player_info(info: Dictionary) -> String:
 			output += "  - %s (expires in %ds)\n" % [r.get("type", "?"), expires_in]
 	
 	return output
+
+## ============================================================================
+## GM MOVEMENT COMMANDS
+## ============================================================================
+
+func _cmd_invisible(args: String, executor_id: String) -> CommandResult:
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	var enable := true
+	if args == "0":
+		enable = false
+	
+	if enable:
+		admin.collision_layer = 0b0000000
+		admin.collision_mask = 0b0000000
+		if admin.has_method("set_visible"):
+			admin.set_visible(false)
+	else:
+		admin.collision_layer = 0b0000001
+		admin.collision_mask = 0b0000111
+		if admin.has_method("set_visible"):
+			admin.set_visible(true)
+	
+	return CommandResult.new(true, "You are now %s" % ("invisible" if enable else "visible"), "")
+
+func _cmd_fly(args: String, executor_id: String) -> CommandResult:
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	var enable := true
+	if args == "0":
+		enable = false
+	
+	if admin is CharacterBody3D:
+		admin.set("gravity_scale", 0.0 if enable else 1.0)
+	
+	return CommandResult.new(true, "Fly mode %s" % ("enabled" if enable else "disabled"), "")
+
+func _cmd_noclip(args: String, executor_id: String) -> CommandResult:
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	var enable := true
+	if args == "0":
+		enable = false
+	
+	if enable:
+		admin.collision_layer = 0b0000000
+		admin.collision_mask = 0b0000000
+		admin.set("gravity_scale", 0.0)
+	else:
+		admin.collision_layer = 0b0000001
+		admin.collision_mask = 0b0000111
+		admin.set("gravity_scale", 1.0)
+	
+	return CommandResult.new(true, "Noclip %s" % ("enabled" if enable else "disabled"), "")
+
+func _cmd_speed(args: String, executor_id: String) -> CommandResult:
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	if args == "":
+		var current := admin.get("move_speed") if admin.has("move_speed") else "unknown"
+		return CommandResult.new(true, "Current speed: %s" % str(current), "")
+	
+	var multiplier := float(args)
+	if multiplier <= 0:
+		return CommandResult.new(false, "", "Speed must be > 0")
+	
+	if not admin.has("_original_move_speed"):
+		admin.set("_original_move_speed", admin.get("move_speed") if admin.has("move_speed") else 5.0)
+	
+	var original := admin.get("_original_move_speed")
+	admin.set("move_speed", original * multiplier)
+	
+	return CommandResult.new(true, "Speed set to %.1fx (%.1f)" % [multiplier, original * multiplier], "")
+
+func _cmd_godmode(args: String, executor_id: String) -> CommandResult:
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	var enable := true
+	if args == "0":
+		enable = false
+	
+	if not admin.has("is_invincible"):
+		admin.set("is_invincible", false)
+	admin.set("is_invincible", enable)
+	
+	return CommandResult.new(true, "Godmode %s" % ("enabled" if enable else "disabled"), "")
+
+func _cmd_teleport(args: String, executor_id: String) -> CommandResult:
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	var parts := args.split(" ", false)
+	if parts.is_empty():
+		return CommandResult.new(false, "", "Usage: teleport <x> <y> <z> OR <player_id>")
+	
+	if parts.size() >= 3:
+		var x := float(parts[0])
+		var y := float(parts[1])
+		var z := float(parts[2])
+		admin.global_position = Vector3(x, y, z)
+		return CommandResult.new(true, "Teleported to (%.1f, %.1f, %.1f)" % [x, y, z], "")
+	else:
+		var target_id := parts[0]
+		var target := _find_entity_by_id_shell(target_id)
+		if not target:
+			return CommandResult.new(false, "", "Player not found: " + target_id)
+		admin.global_position = target.global_position
+		return CommandResult.new(true, "Teleported to: %s" % target.display_name, "")
+
+func _cmd_goto_shell(args: String, executor_id: String) -> CommandResult:
+	return _cmd_teleport(args, executor_id)
+
+func _cmd_summon(args: String, executor_id: String) -> CommandResult:
+	if args == "":
+		return CommandResult.new(false, "", "Usage: summon <player_id>")
+	
+	var target := _find_entity_by_id_shell(args)
+	if not target:
+		return CommandResult.new(false, "", "Player not found: " + args)
+	
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	target.global_position = admin.global_position
+	return CommandResult.new(true, "Summoned: %s" % target.display_name, "")
+
+func _cmd_heal(args: String, executor_id: String) -> CommandResult:
+	var admin := _get_executor_entity(executor_id)
+	if not admin:
+		return CommandResult.new(false, "", "Could not find your entity")
+	
+	var target := admin
+	var target_name := "yourself"
+	
+	if args != "":
+		target = _find_entity_by_id_shell(args)
+		if not target:
+			return CommandResult.new(false, "", "Player not found: " + args)
+		target_name = target.display_name
+	
+	if not target.health_component:
+		return CommandResult.new(false, "", "Target has no health component")
+	
+	target.health_component.current_health = target.health_component.max_health
+	if target.has_method("restore_mana"):
+		target.restore_mana(target.max_mana if target.has("max_mana") else 1000)
+	
+	return CommandResult.new(true, "Healed %s to full HP" % target_name, "")
+
+func _get_executor_entity(executor_id: String) -> Entity:
+	if executor_id == "" and PlayerManager:
+		var local := PlayerManager.get_local_player()
+		return local as Entity
+	return _find_entity_by_id_shell(executor_id)
+
+func _find_entity_by_id_shell(entity_id: String) -> Entity:
+	if EntityService:
+		var entity = EntityService.get_entity(entity_id)
+		if entity:
+			return entity
+	if PlayerManager:
+		var players := PlayerManager.get_all_players()
+		for p in players:
+			if p.get("entity_id") == entity_id or p.get("name") == entity_id:
+				return p as Entity
+	return null
 
 ## ============================================================================
 ## SIGNALS
