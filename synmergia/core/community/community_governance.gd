@@ -349,7 +349,7 @@ func get_player_mod_stats(player_id: String) -> Dictionary:
 
 func _check_vote_cooldown(player_id: String) -> bool:
 	if _report_vote_cooldowns.has(player_id):
-		var last_vote := _report_vote_cooldowns[player_id]
+		var last_vote: float = _report_vote_cooldowns[player_id]
 		var elapsed: float = Time.get_unix_time_from_system() - last_vote
 		return elapsed > 60
 	return true
