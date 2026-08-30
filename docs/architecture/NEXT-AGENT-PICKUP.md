@@ -1,9 +1,12 @@
 # Next Agent Pickup Guide
 
 **Last session:** 2026-08-29 / 2026-08-30 (OpenHands, west coast throttling)
-**Last push:** `3e942bb` on `main`, `origin/main`
+**Last push:** `a39cdc0` on `main`, `origin/main` (was `3e942bb`, this push
+  revises the eval doc after the user corrected the framing)
 **Status:** Islands POC shipped (19/19 tests). Project still has 22
 class_name cascade errors (deferred). Most architecture decisions made.
+**Latest design decision:** content-hash is a Redis-like *layer* in front
+  of Postgres, not a replacement. State tree is the new big thing.
 
 This document is the survival guide. Read this first, then the linked
 docs in order.
@@ -17,17 +20,22 @@ Synmergia is a Godot 4.7.2 MMORPG engine. The previous session:
 1. Fixed 30+ parse errors across services, UI, and `.tres` files
 2. Built a working Islands POC (3 files + 19 passing tests)
 3. Wrote 4 design docs (`docs/architecture/`)
-4. Honest evaluation: dropped the icosahedral/NSC-9/quasicrystal
-   overengineering, kept the parts that actually pay off
+4. First honest evaluation: "demote the geometry" — **was wrong**
+5. Revised honest evaluation: "geometry is right for a Redis-like
+   layer, not a replacement" — current state
+
+The user caught a framing error in my first eval: I was treating
+the geometry as a *replacement* for things Synmergia already has.
+The user meant it as an *extension*. With the extension framing,
+the state-tree content-hash pattern is the real win.
 
 **Where to pick up:**
-- If the user wants to keep working on UI: **Session 2** (migrate
-  remaining UIPanels to islands)
-- If the user wants to keep working on infrastructure: **Session 4**
-  (content-hash for templates + saves)
-- If the user wants to keep working on the autoload race: finish
-  the shim approach in `autoload-race-solutions.md` (mostly
-  independent of the islands work)
+- **Session 3** (state tree content-hash) is the new big one.
+  It's the foundation for sync, save games, cross-shard, etc.
+- **Session 2** (UIPanel → islands) is still the right next step
+  if the user wants UI work.
+- The shim approach for the 22 cascade is still independent and
+  still worth finishing.
 
 **The 22 cascade failures are still there.** They're non-fatal
 ("Main menu loaded" still prints) but they pollute the log. Fix
