@@ -293,20 +293,20 @@ blocking. The plan splits into two tracks:
 
 ### Track B: Research (the frame, alongside vant)
 - **Session B1**: Math primitives in GDScript
-  - `core/geometry/nsc9.gd` — 12-digit code, axis reservation
-  - `core/geometry/icosahedral.gd` — projection + depth recursion
-  - `core/geometry/quasicrystal.gd` — paths from content
+  - `labs/multi-iso/math/nsc9.gd` — 12-digit code, axis reservation
+  - `labs/multi-iso/math/icosahedral.gd` — projection + depth recursion
+  - `labs/multi-iso/math/quasicrystal.gd` — paths from content
   - Tests for all three (round-trip, edge cases)
 - **Session B2**: Single-axis orchestrator prototype
-  - `core/orchestrator/axis.gd` — base class
-  - `core/orchestrator/spatial_axis.gd` — iso_spatial
-  - `core/orchestrator/faction_axis.gd` — iso_faction
+  - `labs/multi-iso/srv/axis.gd` — base class
+  - `labs/multi-iso/srv/spatial_axis.gd` — iso_spatial
+  - `labs/multi-iso/srv/faction_axis.gd` — iso_faction
   - Test: project 1000 entities, query by range, verify result
 - **Session B3**: Multi-axis intersection
-  - `core/orchestrator/intersect.gd` — hash-set / range / spatial
+  - `labs/multi-iso/srv/intersect.gd` — hash-set / range / spatial
   - Test: 3-axis query, verify intersection is correct
 - **Session B4**: NSC-9 axis reservation
-  - `core/orchestrator/axis_registry.gd` — load axis_registry.tres
+  - `labs/multi-iso/srv/axis_registry.gd` — load axis_registry.tres
   - Test: reserve axis 100 for faction 7, verify NSC-9 code format
 - **Session B5**: Frame extraction
   - Identify which parts are Synmergia-specific vs generic
