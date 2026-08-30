@@ -1,7 +1,7 @@
 # Next Agent Pickup Guide
 
 **Last session:** 2026-08-29 / 2026-08-30 (OpenHands, west coast throttling)
-**Sessions 2026-08-30:** Morning (7 commits, fun-side) + Afternoon (5 commits, species/classes/char select) + (class/skill fixes, scene wiring, loot, NPC verification) + Late evening (mage/ranger/healer classes, loot schema fix)
+**Sessions 2026-08-30:** Morning (7 commits, fun-side) + Afternoon (5 commits, species/classes/char select) + (class/skill fixes, scene wiring, loot, NPC verification) + Late evening (mage/ranger/healer classes, loot schema fix) + Tank session (guardian/bulwark/warden, 21 skills)
 **Last push:** `a39cdc0` on `main`, `origin/main`
 **Current HEAD:** `c2435a9` — 18 commits ahead of `origin/main`, NOT pushed yet
 **Status:** Islands POC shipped (19/19 tests). Project still has 22
