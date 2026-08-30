@@ -225,7 +225,7 @@ ConnectorService.connect_agent("agent_001", "mcp", {
 
 ## Documentation
 
-- [PRD](./prd-synmergia.md) - Full product requirements
+- [PRD](./labs/prd.md) - Full product requirements
 - [ROADMAP](./ROADMAP.md) - Development roadmap
 - [AGENTS](./AGENTS.md) - Developer notes for AI agents
 
