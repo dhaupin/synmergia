@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hack_pulse"
+display_name = "Hack Pulse"
+description = "Broadcasts a disruptive electromagnetic pulse that scrambles enemy targeting systems. Ranged, hits multiple targets, causes brief target acquisition errors (miss chance)."
+icon_path = ""
+skill_type = 1
+target_type = 1
+mana_cost = 12
+stamina_cost = 0.0
+health_cost = 0
+cooldown = 12.0
+cast_time = 0.0
+animation_duration = 0.4
+recovery_time = 0.2
+can_interrupt = false
+uses_gcd = true
+range = 15.0
+aoe_radius = 0.0
+targeted_aoe_radius = 0.0
+max_targets = 5
+effects = [{
+"type": "damage",
+"value": 10
+}, {
+"type": "debuff",
+"effect_id": "debuff_hack",
+"duration": 4.0
+}]
+required_level = 5
+required_class = "synthetic_warrior"
+required_stance = ""
+vfx_cast = ""
+vfx_impact = ""
+sfx_cast = ""
+sfx_impact = ""
