@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "debuff_time_warp"
+display_name = "Time Warped"
+description = "Time moves slowly around this unit."
+category = 1
+effect_type = 4
+duration = 6.0
+show_in_buff_bar = true

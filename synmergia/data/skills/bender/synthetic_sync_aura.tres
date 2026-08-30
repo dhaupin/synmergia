@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "sync_aura"
+id = "synthetic_sync_aura"
 display_name = "Sync Aura"
 description = "Broadcasts a synchronization pulse. Allies speed up; enemies slow down."
 skill_type = 5

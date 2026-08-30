@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "sanctuary_aura"
+id = "human_sanctuary_aura"
 display_name = "Sanctuary Aura"
 description = "Protective aura. Allies within range receive passive healing and damage reduction."
 skill_type = 5

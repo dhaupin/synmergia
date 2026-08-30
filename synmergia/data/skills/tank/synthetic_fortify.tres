@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "fortify"
+id = "synthetic_fortify"
 display_name = "Fortify"
 description = "Hardens local defenses, granting a significant armor and resistance boost to yourself and nearby allies."
 skill_type = 5

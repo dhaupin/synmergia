@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "shield_toss"
+id = "human_shield_toss"
 display_name = "Shield Toss"
 description = "Hurls your shield at an enemy, dealing damage and reducing their armor."
 skill_type = 1

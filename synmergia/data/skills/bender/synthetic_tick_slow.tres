@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "tick_slow"
+id = "synthetic_tick_slow"
 display_name = "Tick Slow"
 description = "Reduces the target processing frequency, dramatically slowing all their actions and movement."
 skill_type = 5

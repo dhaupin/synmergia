@@ -30,6 +30,10 @@ static func load_class(class_id: String) -> CharacterClass:
 	var res := load(path)
 	return res if res is CharacterClass else null
 
+## Filter: exclude GM class from player-facing lists.
+static func _is_gm_class(cls: CharacterClass) -> bool:
+	return cls.role == CharacterClass.Role.GM
+
 static func get_available_classes_for_species(species_id: String) -> Array[CharacterClass]:
 	var result: Array[CharacterClass] = []
 	var dir := DirAccess.open("res://data/classes/")
@@ -39,7 +43,7 @@ static func get_available_classes_for_species(species_id: String) -> Array[Chara
 		while file != "":
 			if file.ends_with(".tres"):
 				var res := load("res://data/classes/" + file)
-				if res is CharacterClass:
+				if res is CharacterClass and not _is_gm_class(res):
 					result.append(res)
 			file = dir.get_next()
 	return result

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "trap_roots"
+id = "human_trap_roots"
 display_name = "Trap: Roots"
 description = "Places a concealed trap that roots the first enemy to step on it."
 skill_type = 4

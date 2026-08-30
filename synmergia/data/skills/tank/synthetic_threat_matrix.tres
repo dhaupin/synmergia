@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "threat_matrix"
+id = "synthetic_threat_matrix"
 display_name = "Threat Matrix"
 description = "Activates a threat-generation matrix that dramatically increases aggro on all nearby enemies."
 skill_type = 5

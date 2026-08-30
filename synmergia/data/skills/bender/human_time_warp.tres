@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "time_warp"
+id = "human_time_warp"
 display_name = "Time Warp"
 description = "Bends local time around a target enemy, dramatically slowing their movement and attack speed."
 skill_type = 5

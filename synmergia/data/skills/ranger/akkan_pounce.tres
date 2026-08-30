@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "pounce"
+id = "akkan_pounce"
 display_name = "Pounce"
 description = "Leaps at a target and strikes, dealing massive melee damage and briefly stunning."
 skill_type = 1

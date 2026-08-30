@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "shield_all"
+id = "synthetic_shield_all"
 display_name = "Shield All"
 description = "Deploys energy barriers on all nearby allies simultaneously, absorbing incoming damage."
 skill_type = 5

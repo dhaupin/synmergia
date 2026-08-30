@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "void_bolt"
+id = "akkan_void_bolt"
 display_name = "Void Bolt"
 description = "Fires a bolt of void energy that deals damage and reduces the target resistance."
 skill_type = 5

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "ambush"
+id = "akkan_ambush"
 display_name = "Ambush"
 description = "Strikes an unaware enemy from stealth for massive bonus damage."
 skill_type = 1

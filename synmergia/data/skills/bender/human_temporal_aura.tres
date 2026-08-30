@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "temporal_aura"
+id = "human_temporal_aura"
 display_name = "Temporal Aura"
 description = "Emanates an aura that slows nearby enemies while hastening nearby allies simultaneously."
 skill_type = 5

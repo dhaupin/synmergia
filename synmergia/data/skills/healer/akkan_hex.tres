@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "hex"
+id = "akkan_hex"
 display_name = "Hex"
 description = "Places a debilitating curse on an enemy, slowing movement and reducing damage output."
 skill_type = 5

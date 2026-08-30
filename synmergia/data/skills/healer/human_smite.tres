@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "smite"
+id = "human_smite"
 display_name = "Smite"
 description = "Strikes an enemy with divine wrath. Reliable damage for solo leveling."
 skill_type = 5

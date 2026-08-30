@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "bulwark_strike"
+id = "akkan_bulwark_strike"
 display_name = "Bulwark Strike"
 description = "A devastating AoE strike that damages and slows all enemies around you."
 skill_type = 1

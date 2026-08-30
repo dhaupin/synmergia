@@ -12,11 +12,11 @@ enum ResourceType {
 }
 
 enum Role {
-	TANK,
-	HEALER,
-	DPS_MELEE,
-	DPS_RANGED,
-	SUPPORT
+	GM = 0,         ## Reserved. Never assigned via .tres. Guarded at login.
+	TANK = 1,       ## Guardian, Bulwark, Warden
+	DPS_MELEE = 2,  ## Stalker, Ranger, Infiltrator (ranged physical)
+	DPS_RANGED = 3, ## Runesmith, Enchanter, Operative (ranged caster)
+	SUPPORT = 4    ## Cleric, Shaman, Seer, Temporalist, Conduit, Overclocker
 }
 
 @export var id: String = ""
@@ -65,6 +65,9 @@ enum Role {
 @export var skill_tree_unlocks: Dictionary = {
 	# "level": ["skill_id1", "skill_id2"]
 }
+
+# Respec (skill reset) cost in gold at the Skill Academy
+@export var respec_cost_gold: int = 500
 
 # Equipment restrictions
 @export var can_use_melee_weapons: bool = true

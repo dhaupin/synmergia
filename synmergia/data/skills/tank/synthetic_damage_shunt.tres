@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "damage_shunt"
+id = "synthetic_damage_shunt"
 display_name = "Damage Shunt"
 description = "Redistributes incoming damage across your shields instead of health. Absorbs a large amount of damage over time."
 skill_type = 5

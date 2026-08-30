@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "energy_transfer"
+id = "synthetic_energy_transfer"
 display_name = "Energy Transfer"
 description = "Restores a large portion of a single ally mana by routing energy through the conduit."
 skill_type = 5

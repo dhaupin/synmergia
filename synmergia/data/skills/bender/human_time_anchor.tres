@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "time_anchor"
+id = "human_time_anchor"
 display_name = "Time Anchor"
 description = "Plants a temporal anchor on an ally. They become immune to all slow and speed effects."
 skill_type = 5

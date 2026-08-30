@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "resurrection"
+id = "human_resurrection"
 display_name = "Resurrection"
 description = "SIGNATURE Divine technique. Channels sacred light to resurrect a fallen ally with partial health. Essential in any group."
 skill_type = 5

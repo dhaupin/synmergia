@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "taunt"
+id = "akkan_taunt"
 display_name = "Taunt"
 description = "Provokes all enemies within range into attacking you. Essential aggro grab."
 skill_type = 5

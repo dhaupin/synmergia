@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "ancestral_guardian"
+id = "akkan_ancestral_guardian"
 display_name = "Ancestral Guardian"
 description = "SIGNATURE Akkan technique. Calls forth an ancestral spirit to defend the target ally. Essential for sustained fights."
 skill_type = 5

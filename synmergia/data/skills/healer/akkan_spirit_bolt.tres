@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-id = "spirit_bolt"
+id = "akkan_spirit_bolt"
 display_name = "Spirit Bolt"
 description = "Channels ancestral energy into a damaging bolt. Solid damage for solo play."
 skill_type = 5
