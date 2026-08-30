@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "akkan_stealth_deep"
+display_name = "Deep Stealth"
+description = "Melds into deep shadow. Reduces detection range by 60%. Breaks on damage or combat actions."
+skill_type = 5
+target_type = 2
+mana_cost = 0
+cooldown = 1.0
+cast_time = 0.5
+animation_duration = 0.4
+range = 0.0
+effects = [{"type": "buff", "effect_id": "stealth_deep", "duration": 0.0}]
+required_level = 25
+required_class = "akkan_ranger"

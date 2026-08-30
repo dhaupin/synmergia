@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterClass" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
 
@@ -7,7 +7,7 @@ script = ExtResource("1")
 id = "mage"
 display_name = "Mage"
 description = "Masters of the arcane arts. Fragile but devastating at range with powerful spells and elemental attacks."
-role = 1
+role = 3
 resource_type = 1
 base_stats = {
 "agility": 8,
