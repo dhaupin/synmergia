@@ -1,21 +1,23 @@
 # Synmergia
 
-An open-world MMORPG built with Godot 4.2+, inspired by RYL2 combat and Ultima Online depth.
+An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima Online depth. Built on a reusable **frame** (multi-iso orchestrator + content-hash state tree) that can be extracted to its own project.
 
-> **Engine:** A generalized 3D game engine designed for MMORPGs with AI agent support.
+> **Game:** A 3D open-world MMORPG with RYL2-style action combat and UO-style economy, housing, and depth.
+> **Frame:** A multi-iso orchestrator + state tree that any state-heavy multiplayer game can build on. See [`labs/`](./labs/).
 
-[![Godot 4.2+](https://img.shields.io/badge/Godot-4.2+-blue)](https://godotengine.org)
+[![Godot 4.7.2](https://img.shields.io/badge/Godot-4.7.2-blue)](https://godotengine.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Status: Pre-vertical-slice](https://img.shields.io/badge/Status-Pre--vertical--slice-orange)]()
 
 ## Features
 
-### Core Engine Features
+### Core Game Features
 - **Event-Driven Architecture** - Services, components, and event bus for clean separation
 - **Data-Driven Design** - Drop `.tres` files to add content (skills, items, enemies, etc.)
 - **3D Combat System** - Skills, projectiles, AoE, buffs/debuffs, status effects
 - **Entity-Component System** - Flexible entity composition with attachable components
 - **Targeting System** - Data-driven targeting with configurable schemas
-- **UI Framework** - Common styling, action menus, tooltips, HUD management
+- **UI Islands** - Each panel is a PackedScene with `IslandPlaceholder` root. Mounted by `IslandManager` from a static `IslandRegistry`. 19/19 POC tests passing.
 
 ### Social & Community
 - **Friends System** - Friends list, requests, block/ignore with QoS protection
@@ -35,64 +37,143 @@ An open-world MMORPG built with Godot 4.2+, inspired by RYL2 combat and Ultima O
 - **MCP Protocol** - Model Context Protocol support for standard AI interfaces
 - **Observation/Action Space** - Structured game state for agent decision-making
 
+### The Frame (experimental, in `/labs/`)
+- **Multi-iso orchestrator** - Multi-dimensional state queries: spatial ∩ factional ∩ temporal ∩ social. Materialized intersection tables make hot queries O(1).
+- **Content-hash state tree** - Every node is SHA-256-hashed. Server tick = re-rooting. Client sync = diff between hashes.
+- **LOD pyramid** - 4 levels of detail. Inactive regions serialize and unload.
+- **Predictive prefetch** - Markov over player transitions pre-loads regions before arrival.
+- **Frame extraction** - The frame is designed to lift out of Synmergia and into its own project. The game becomes the example consumer.
+
 ## Tech Stack
 
-- **Engine:** Godot 4.7+ (MIT License)
+- **Engine:** Godot 4.7.2 (MIT License)
 - **Language:** GDScript
 - **Platforms:** Android, iOS, PC
-- **Architecture:** Client + Authoritative Server
+- **Architecture:** Client + Authoritative Server + Multi-iso orchestrator + Content-hash state tree
+- **Persistence:** Postgres (snapshots) + in-memory LRU (intersection cache)
 
 ## Architecture
 
+The stack is five layers. The first three are the game (in
+`synmergia/`). The bottom two are the frame (in `/labs/`).
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    AGENT CONNECTORS                           │
+│              AGENT CONNECTORS (in synmergia/connectors)     │
 │  Vant | MCP | Claude | OpenAI | Gemini | Custom            │
 ├─────────────────────────────────────────────────────────────┤
-│                    SERVICES (Autoloaded)                     │
-│  EntityService | SpawnService | EventBus | TargetingMgr    │
+│              UI ISLANDS (in synmergia/ui/islands)           │
+│  Each panel = PackedScene with IslandPlaceholder root      │
+│  Mounted by IslandManager from static IslandRegistry       │
+├─────────────────────────────────────────────────────────────┤
+│              SERVICES (in synmergia/core/services)          │
+│  GameManager | EntityService | EventBus | TargetingMgr    │
 │  NotificationService | ZoneManager | TradeService | etc.   │
 ├─────────────────────────────────────────────────────────────┤
-│                    COMPONENTS (Attached)                    │
+│              COMPONENTS (in synmergia/core/components)      │
 │  HealthComponent | CombatComponent | AuraComponent          │
 │  AggroComponent | InventoryComponent                        │
 ├─────────────────────────────────────────────────────────────┤
-│                    DATA (Resource Files)                    │
+│              DATA (in synmergia/data, .tres files)          │
 │  skills/ | items/ | enemies/ | zones/ | targets/            │
+├─────────────────────────────────────────────────────────────┤
+│              MULTI-ISO ORCHESTRATOR (in labs/multi-iso)    │
+│  Spatial ∩ Faction ∩ Temporal ∩ Social axes                │
+│  Materialized intersection tables (LRU cache)               │
+│  LOD pyramid + predictive prefetch (Markov)                 │
+├─────────────────────────────────────────────────────────────┤
+│              STATE TREE (in labs/multi-iso/kv)              │
+│  Content-hash nodes | diff/apply | server tick = re-root   │
+│  LRU cache | LRU intersection cache                         │
+├─────────────────────────────────────────────────────────────┤
+│              DURABLE STORAGE (Postgres + CDN)               │
+│  state_snapshots (root hashes) | state (entities)           │
+│  asset pcks by content-hash | migrations                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+The game lives in the top three layers. The frame lives in the
+bottom two. When the frame extracts, it takes the bottom two
+layers with it.
+
 ## Project Structure
 
+The repo has two top-level areas: the game (`synmergia/`) and
+the frame (`labs/`). The game is the Godot project. The frame
+is experimental work that could extract to its own repo.
+
 ```
-synmergia/
-├── core/
-│   ├── autoload/       # Global singletons (GameManager, NetworkManager)
-│   ├── components/     # Entity components (Health, Combat, Inventory, etc.)
-│   ├── schemas/        # Data schemas (Item, TargetSchema, Skill, etc.)
-│   ├── services/       # Game services (30+ services)
-│   ├── targeting/      # Targeting system (TargetingManager)
-│   └── ui/             # Core UI (UIManager)
-├── entities/           # Entity types (Player, Enemy, NPC)
-├── connectors/        # AI agent connectors
-├── data/              # Game resources (.tres files)
-│   ├── targets/        # Target schemas for targeting system
-│   ├── enemies/        # Enemy templates
-│   └── zones/          # Zone definitions
-└── ui/                # User interface
-    ├── admin/          # Admin dashboard and toolbar
-    ├── community/      # Voting UI
-    ├── components/     # Common UI (UIStyles, ActionMenu, TooltipManager, etc.)
-    ├── menus/          # Game menus
-    ├── social/         # Friends, Guild, Party, Trade UI
-    └── targeting/      # Target tooltip
+.
+├── synmergia/                  # the Godot 4.7.2 project
+│   ├── core/
+│   │   ├── autoload/           # Global singletons (GameManager, NetworkManager)
+│   │   ├── components/         # Entity components (Health, Combat, Inventory, etc.)
+│   │   ├── community/          # Community governance
+│   │   ├── entities/           # Base entity classes
+│   │   ├── schemas/            # Data schemas (Item, TargetSchema, Skill, etc.)
+│   │   ├── services/           # Game services (30+ services)
+│   │   ├── targeting/          # Targeting system (TargetingManager)
+│   │   └── ui/                 # Core UI (UIManager)
+│   ├── entities/               # Entity types (Player, Enemy, NPC)
+│   ├── connectors/             # AI agent connectors (Vant, MCP, Claude, GPT)
+│   ├── data/                   # Game resources (.tres files)
+│   │   ├── targets/            # 6 target schemas
+│   │   ├── enemies/            # Enemy templates
+│   │   ├── zones/              # Zone definitions
+│   │   ├── skills/             # Skill templates
+│   │   ├── items/              # Item templates
+│   │   ├── classes/            # Player classes
+│   │   ├── species/            # Races
+│   │   └── factions/           # Factions
+│   ├── ui/                     # User interface
+│   │   ├── admin/              # Admin dashboard
+│   │   ├── community/          # Voting UI
+│   │   ├── components/         # Common UI (UIStyles, ActionMenu, TooltipManager)
+│   │   ├── islands/            # ⭐ UI Islands POC (PackedScene per panel)
+│   │   ├── menus/              # Game menus
+│   │   ├── social/             # Friends, Guild, Party, Trade UI
+│   │   └── targeting/          # Target tooltip
+│   └── tests/                  # Smoke tests (19/19 islands tests passing)
+│
+├── labs/                       # ⭐ Experimental work, root-level
+│   ├── README.md               # the /labs/ convention
+│   ├── prd.md                  # the modernized product spec
+│   └── multi-iso/              # the multi-iso frame work (planned, see docs)
+│       ├── math/               # NSC-9, icosahedral, quasicrystal (B-1)
+│       ├── kv/                 # LRU, content_hash, state_tree (A-3)
+│       ├── srv/                # markov, predictor, composite_table, LOD (B-6,7,8)
+│       └── db/                 # snapshot_store, migrations (A-3)
+│
+├── docs/
+│   └── architecture/           # Architecture design docs
+│       ├── NEXT-AGENT-PICKUP.md         # survival guide for the next session
+│       ├── multi-iso-frame.md           # Part 1: the multi-iso pattern
+│       ├── multi-iso-lod-prediction.md  # Part 2: LOD + materialized + prediction
+│       ├── labs-organization.md         # the /labs/ convention (long form)
+│       ├── nsc9-honest-evaluation.md    # why geometry is a layer, not a replacement
+│       ├── islands-builds-godot.md      # the Islands POC design
+│       ├── unified-nsc9-islands-builds.md  # the original exploration
+│       └── autoload-race-solutions.md   # the 4 candidate fixes
+│
+├── tools/
+│   └── godot/                  # Godot editor / export helpers
+│
+├── ROADMAP.md                  # implementation tracker (1682 lines)
+├── AUDIT.md                    # running log of what's done, deferred, broken
+├── AGENTS.md                   # developer notes for AI agents
+└── README.md                   # this file
 ```
+
+The Godot project root is `synmergia/`. Open that folder in the
+Godot editor. The `labs/` and `docs/` directories are outside
+the project so they don't taint the stable build with
+experimental work.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Godot 4.7+ ([godotengine.org](https://godotengine.org))
+- Godot 4.7.2 ([godotengine.org](https://godotengine.org))
 - Android SDK (for mobile builds)
 
 ### Running the Project
@@ -103,7 +184,7 @@ git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
 ```
 
-2. Open in Godot 4.7+
+2. Open in Godot 4.7.2
 ```bash
 godot --editor synmergia/
 ```
@@ -225,9 +306,45 @@ ConnectorService.connect_agent("agent_001", "mcp", {
 
 ## Documentation
 
-- [PRD](./labs/prd.md) - Full product requirements
-- [ROADMAP](./ROADMAP.md) - Development roadmap
-- [AGENTS](./AGENTS.md) - Developer notes for AI agents
+The full design space is twelve documents. They split into four
+buckets:
+
+**Product**
+- [PRD](./labs/prd.md) — the modernized product spec, with the frame appendix
+
+**Architecture** (in `docs/architecture/`)
+- [multi-iso-frame.md](./docs/architecture/multi-iso-frame.md) — Part 1: the orchestrator pattern
+- [multi-iso-lod-prediction.md](./docs/architecture/multi-iso-lod-prediction.md) — Part 2: LOD + materialized + prediction
+- [nsc9-honest-evaluation.md](./docs/architecture/nsc9-honest-evaluation.md) — why geometry is a layer, not a replacement
+- [labs-organization.md](./docs/architecture/labs-organization.md) — the `/labs/` convention (long form)
+
+**UI & Build** (in `docs/architecture/`)
+- [islands-builds-godot.md](./docs/architecture/islands-builds-godot.md) — the Islands POC design
+- [unified-nsc9-islands-builds.md](./docs/architecture/unified-nsc9-islands-builds.md) — the original exploration
+- [autoload-race-solutions.md](./docs/architecture/autoload-race-solutions.md) — the 4 candidate fixes for the cascade
+
+**Operations** (root-level)
+- [NEXT-AGENT-PICKUP.md](./docs/architecture/NEXT-AGENT-PICKUP.md) — survival guide for the next session
+- [ROADMAP.md](./ROADMAP.md) — implementation tracker (1682 lines)
+- [AUDIT.md](./AUDIT.md) — running log of what's done, deferred, broken
+- [AGENTS.md](./AGENTS.md) — developer notes for AI agents (code conventions)
+
+**Start here:** the [NEXT-AGENT-PICKUP](./docs/architecture/NEXT-AGENT-PICKUP.md) doc is the
+entry point. It has a key-files table and a Track A / Track B
+plan.
+
+## Status
+
+**Current phase:** Pre-vertical-slice.
+
+- ✅ Phase 0: Foundation (services, components, .tres, AGENTS.md)
+- ✅ Phase 0.5: UI modernization + Islands POC (19/19 tests)
+- 🔄 Phase 0.6: Cleanup (parse errors, lint, helper rename)
+- 📋 Phase 1: State tree + Track A foundation (NEXT)
+- 📋 Phase 4: Track B (multi-iso frame research, parallel)
+
+See [ROADMAP.md](./ROADMAP.md) and [labs/prd.md §13](./labs/prd.md#13-phases--milestones)
+for the full breakdown.
 
 ## License
 
