@@ -106,7 +106,8 @@ synmergia/
 | `docs/architecture/islands-builds-godot.md` | The Islands design |
 | `docs/architecture/unified-nsc9-islands-builds.md` | The unified design (mark as exploration) |
 | `docs/architecture/nsc9-honest-evaluation.md` | Why we demoted most of the unified design (revised 2026-08-30) |
-| `docs/architecture/multi-iso-frame.md` | The multi-iso orchestrator (the actual frontier) |
+| `docs/architecture/multi-iso-frame.md` | The multi-iso orchestrator (Part 1: the basic pattern) |
+| `docs/architecture/multi-iso-lod-prediction.md` | Part 2: LOD + materialized + prediction (the golden state) |
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
 | `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
 | `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
