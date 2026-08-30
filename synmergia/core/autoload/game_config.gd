@@ -1318,7 +1318,7 @@ class QoS:
 
 	## ============================================================================
 
-	class CircuitBreaker:
+	class CircuitBreakerCfg:
 
 	## Failure threshold to open circuit
 
