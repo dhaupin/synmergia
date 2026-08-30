@@ -40,15 +40,23 @@ enum Role {
 	"wisdom": 8
 }
 
-# Stat growth per level
+# Stat growth per level (+1 base for all stats)
 @export var stat_growth: Dictionary = {
-	"strength": 2,
+	"strength": 1,
 	"agility": 1,
 	"intelligence": 1,
-	"vitality": 2,
+	"vitality": 1,
 	"endurance": 1,
 	"wisdom": 1
 }
+
+# Focal stats get +2 per level (instead of +1)
+@export var focal_stat_1: String = ""
+@export var focal_stat_2: String = ""
+
+# Points per level for player allocation
+const ALLOCATABLE_POINTS_PER_LEVEL: int = 2
+const MAX_STAT_VALUE: int = 200
 
 # Resource settings
 @export var base_resource: int = 100  # Starting mana/energy/rage
@@ -91,11 +99,20 @@ func _init() -> void:
 	if id == "":
 		id = display_name.to_lower().replace(" ", "_")
 
-## Calculate stat at given level
+## Calculate stat at given level (base + growth, focal stats get +2)
 func calculate_stat(stat: String, level: int) -> int:
 	var base: int = int(base_stats.get(stat, 10))
 	var growth: float = float(stat_growth.get(stat, 1))
-	return base + (growth * (level - 1))
+	
+	# Focal stats get +1 bonus per level (total +2 instead of +1)
+	if stat == focal_stat_1 or stat == focal_stat_2:
+		growth += 1.0
+	
+	return base + int(growth * (level - 1))
+
+## Get total stat points available for allocation up to this level
+func get_allocatable_points_for_level(level: int) -> int:
+	return (level - 1) * ALLOCATABLE_POINTS_PER_LEVEL
 
 ## Calculate resource at given level
 func calculate_resource(level: int) -> int:

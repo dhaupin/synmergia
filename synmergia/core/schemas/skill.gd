@@ -101,8 +101,19 @@ enum TargetType {
 ##     { "type": "hot", "ticks": int, "heal_mult": float }
 ##     { "type": "chain", "max_targets": int, "damage_mult": float }
 ##     { "type": "armor_pierce", "percent": float }
+## Stat thresholds for upgrade tiers (30-point intervals)
+## min_stat: which stat is required (e.g., "intelligence", "strength")
+## min_stat_value: minimum stat value needed (30=common, 60=rare, 90=epic, 120=legendary, 150=mythic)
+const STAT_TIER_THRESHOLDS: Dictionary = {
+	"common": {"min_stat_value": 30},
+	"rare": {"min_stat_value": 60},
+	"epic": {"min_stat_value": 90},
+	"legendary": {"min_stat_value": 120},
+	"mythic": {"min_stat_value": 150}
+}
+
 @export var upgrade_tiers: Array[Dictionary] = [
-	{"level": 1, "books_required": 4, "tier": "common",
+	{"level": 1, "books_required": 4, "tier": "common", "min_stat": "", "min_stat_value": 30,
 		"delta": {
 			"damage_mult": 1.12, "heal_mult": 1.12, "range_mult": 1.05,
 			"cooldown_mult": 0.95, "cast_time_mult": 1.05, "aoe_mult": 1.03,
@@ -110,7 +121,7 @@ enum TargetType {
 			"cost_mult": 0.97, "charge_mult": 1.05, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 2, "books_required": 4, "tier": "rare",
+	{"level": 2, "books_required": 4, "tier": "rare", "min_stat": "", "min_stat_value": 60,
 		"delta": {
 			"damage_mult": 1.24, "heal_mult": 1.24, "range_mult": 1.10,
 			"cooldown_mult": 0.90, "cast_time_mult": 1.10, "aoe_mult": 1.06,
@@ -118,7 +129,7 @@ enum TargetType {
 			"cost_mult": 0.94, "charge_mult": 1.10, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 3, "books_required": 4, "tier": "epic",
+	{"level": 3, "books_required": 4, "tier": "epic", "min_stat": "", "min_stat_value": 90,
 		"delta": {
 			"damage_mult": 1.36, "heal_mult": 1.36, "range_mult": 1.15,
 			"cooldown_mult": 0.85, "cast_time_mult": 1.15, "aoe_mult": 1.09,
@@ -126,7 +137,7 @@ enum TargetType {
 			"cost_mult": 0.91, "charge_mult": 1.15, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 4, "books_required": 4, "tier": "legendary",
+	{"level": 4, "books_required": 4, "tier": "legendary", "min_stat": "", "min_stat_value": 120,
 		"delta": {
 			"damage_mult": 1.48, "heal_mult": 1.48, "range_mult": 1.20,
 			"cooldown_mult": 0.80, "cast_time_mult": 1.20, "aoe_mult": 1.12,
@@ -134,7 +145,7 @@ enum TargetType {
 			"cost_mult": 0.88, "charge_mult": 1.20, "max_targets_mult": 1.0
 		},
 		"unlocks": []},
-	{"level": 5, "books_required": 4, "tier": "mythic",
+	{"level": 5, "books_required": 4, "tier": "mythic", "min_stat": "", "min_stat_value": 150,
 		"delta": {
 			"damage_mult": 1.60, "heal_mult": 1.60, "range_mult": 1.25,
 			"cooldown_mult": 0.75, "cast_time_mult": 1.25, "aoe_mult": 1.15,
@@ -369,3 +380,66 @@ func get_upgrade_deltas(upgrade_level: int) -> Dictionary:
 				else:
 					total[key] *= d[key]       # multiplicative for multipliers
 	return total
+
+## ============================================================================
+## STAT THRESHOLD METHODS
+## ============================================================================
+
+## Get the stat required for a given upgrade level
+func get_required_stat_for_tier(upgrade_level: int) -> Dictionary:
+	if upgrade_level <= 0:
+		return {"stat": "", "value": 0}
+	for tier in upgrade_tiers:
+		if tier.get("level") == upgrade_level:
+			return {
+				"stat": tier.get("min_stat", ""),
+				"value": tier.get("min_stat_value", 0)
+			}
+	return {"stat": "", "value": 0}
+
+## Check if player stat meets the requirement for an upgrade tier
+func check_stat_requirement(player_stat_value: int, upgrade_level: int) -> Dictionary:
+	var required := get_required_stat_for_tier(upgrade_level)
+	var stat_name := required.get("stat", "")
+	var required_value := required.get("value", 0)
+	
+	# No stat required for this tier
+	if stat_name == "" or required_value == 0:
+		return {"meets_requirement": true, "stat": "", "required": 0, "current": player_stat_value}
+	
+	var meets := player_stat_value >= required_value
+	return {
+		"meets_requirement": meets,
+		"stat": stat_name,
+		"required": required_value,
+		"current": player_stat_value
+	}
+
+## Get the max upgrade tier achievable with current stat value
+func get_max_upgrade_tier_for_stat(stat_name: String, stat_value: int) -> int:
+	var max_tier := 0
+	for tier in upgrade_tiers:
+		var tier_stat: String = tier.get("min_stat", "")
+		var tier_value: int = tier.get("min_stat_value", 0)
+		if tier_stat == stat_name and stat_value >= tier_value:
+			max_tier = tier.get("level", 0)
+	return max_tier
+
+## Check all skills and return which would be downgraded
+func get_skills_affected_by_stat_reduction(stats: Dictionary) -> Array[Dictionary]:
+	var affected := []
+	for stat_name in stats.keys():
+		var current_value: int = stats[stat_name]
+		# Check if any upgrade tier requires this stat
+		for tier in upgrade_tiers:
+			var tier_stat: String = tier.get("min_stat", "")
+			var tier_value: int = tier.get("min_stat_value", 0)
+			if tier_stat == stat_name and tier_value > current_value:
+				affected.append({
+					"tier": tier.get("tier", ""),
+					"level": tier.get("level", 0),
+					"required_stat": stat_name,
+					"required_value": tier_value,
+					"current_value": current_value
+				})
+	return affected

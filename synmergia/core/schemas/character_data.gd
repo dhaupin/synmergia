@@ -18,6 +18,17 @@ extends Resource
 @export var signature_switches: int = 0         # number of times signature has been changed
 @export var signature_change_cost: int = 1000   # gold cost to change signature (after first free switch)
 
+# Stat Allocation (player-assigned points)
+@export var allocated_stats: Dictionary = {
+	"strength": 0,
+	"agility": 0,
+	"intelligence": 0,
+	"vitality": 0,
+	"endurance": 0,
+	"wisdom": 0
+}
+@export var total_stat_respecs: int = 0        # track respec usage
+
 var species_data: Species
 var class_data: CharacterClass
 
@@ -162,3 +173,71 @@ func has_signature() -> bool:
 ## Check if signature can be changed (must be level 10+)
 func can_change_signature(player_level: int) -> bool:
 	return player_level >= 10
+
+## Stat Allocation helpers
+
+## Total stat points earned based on current level
+func get_earned_stat_points() -> int:
+	if not class_data:
+		class_data = load_class(class_id)
+	if class_data:
+		return class_data.get_allocatable_points_for_level(level)
+	return 0
+
+## Available (unspent) stat points
+func get_available_stat_points() -> int:
+	return get_earned_stat_points() - get_total_allocated_points()
+
+## Total points allocated across all stats
+func get_total_allocated_points() -> int:
+	var total := 0
+	for v in allocated_stats.values():
+		total += v as int
+	return total
+
+## Allocate a point to a stat (returns false if not enough points available)
+func allocate_stat_point(stat_name: String) -> bool:
+	if not allocated_stats.has(stat_name):
+		return false
+	if get_available_stat_points() <= 0:
+		return false
+	
+	var cls := load_class(class_id)
+	if cls:
+		var current_total := get_stat_total(stat_name)
+		if current_total >= cls.MAX_STAT_VALUE:
+			return false  # Max stat cap reached
+	
+	allocated_stats[stat_name] += 1
+	return true
+
+## Remove a point from a stat (returns false if stat is at 0)
+func deallocate_stat_point(stat_name: String) -> bool:
+	if not allocated_stats.has(stat_name):
+		return false
+	if allocated_stats[stat_name] <= 0:
+		return false
+	allocated_stats[stat_name] -= 1
+	return true
+
+## Get allocated points for a specific stat
+func get_allocated_points(stat_name: String) -> int:
+	return allocated_stats.get(stat_name, 0)
+
+## Get total stat value (base + allocated)
+func get_stat_total(stat_name: String) -> int:
+	if not class_data:
+		class_data = load_class(class_id)
+	if not class_data:
+		return 0
+	
+	var base := class_data.calculate_stat(stat_name, level)
+	var allocated := get_allocated_points(stat_name)
+	return base + allocated
+
+## Get all stats with allocated values
+func get_all_stats_with_allocated() -> Dictionary:
+	var result := {}
+	for stat in allocated_stats.keys():
+		result[stat] = get_stat_total(stat)
+	return result

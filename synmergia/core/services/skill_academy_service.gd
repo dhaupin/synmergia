@@ -117,8 +117,60 @@ func purchase_book(player_id: String, skill_id: String, gold: int) -> Dictionary
 		"cost": COMMON_BOOK_PRICE
 	}
 
+## ============================================================================
+## STAT REQUIREMENT CHECKS
+## ============================================================================
+
+## Check if player meets stat requirement for an upgrade tier
+func _check_stat_requirement(schema: SkillSchema, tier: Dictionary, skill_data: CharacterData) -> Dictionary:
+	var required_stat: String = tier.get("min_stat", "")
+	var required_value: int = tier.get("min_stat_value", 0)
+	
+	# No stat required
+	if required_stat == "" or required_value == 0:
+		return {"meets_requirement": true}
+	
+	# Get player's stat value (base + allocated)
+	var player_stat_value: int = skill_data.get_stat_total(required_stat)
+	
+	return {
+		"meets_requirement": player_stat_value >= required_value,
+		"stat": required_stat,
+		"required": required_value,
+		"current": player_stat_value
+	}
+
+## Check all player stats for what upgrade levels are achievable
+func check_available_upgrades(skill_id: String, skill_data: CharacterData) -> Dictionary:
+	var schema: SkillSchema = get_skill_schema(skill_id)
+	if schema == null:
+		return {}
+	
+	var result := {
+		"skill_id": skill_id,
+		"current_level": skill_data.get_skill_upgrade_level(skill_id),
+		"available_tiers": []
+	}
+	
+	var current := skill_data.get_stat_total("strength")  # placeholder - get all stats
+	var all_stats := skill_data.get_all_stats_with_allocated()
+	
+	# Check each tier
+	for tier in schema.upgrade_tiers:
+		var stat_check := _check_stat_requirement(schema, tier, skill_data)
+		result["available_tiers"].append({
+			"level": tier.get("level", 0),
+			"tier": tier.get("tier", ""),
+			"stat_requirement_met": stat_check.get("meets_requirement", true),
+			"required_stat": stat_check.get("stat", ""),
+			"required_value": stat_check.get("required", 0),
+			"current_value": stat_check.get("current", 0)
+		})
+	
+	return result
+
 ## Apply an upgrade to a skill for a player.
-## Requires: 4 books of the correct tier in inventory + 1 available skill point.
+## Requires: 4 books of the correct tier in inventory + 1 available skill point + stat requirements.
 ## Books are consumed. Skill point is spent.
 func apply_upgrade(
 	player_id: String,
@@ -140,6 +192,18 @@ func apply_upgrade(
 		return {"success": false, "reason": "No upgrade tier defined for level %d" % next_level}
 
 	var tier_name: String = tier.get("tier", "common")
+
+	# Check: does player meet stat requirements?
+	var stat_check := _check_stat_requirement(schema, tier, skill_data)
+	if not stat_check.get("meets_requirement", true):
+		return {
+			"success": false,
+			"reason": "Requires %s %d (you have %d)" % [
+				stat_check.get("stat", "?").capitalize(),
+				stat_check.get("required", 0),
+				stat_check.get("current", 0)
+			]
+		}
 
 	# Check: does player have enough skill points?
 	if skill_data.get_available_skill_points() < 1:
@@ -252,6 +316,120 @@ func get_respec_cost(spent_points: int) -> int:
 	if spent_points <= 0:
 		return 0
 	return RESPEC_BASE_COST + (spent_points * RESPEC_GOLD_PER_POINT)
+
+## ============================================================================
+## STAT ALLOCATION RESPEC
+## ============================================================================
+
+## Cost to respec stats: similar to skill respec
+const STAT_RESPEC_BASE_COST: int = 500
+const STAT_RESPEC_GOLD_PER_POINT: int = 20
+
+func get_stat_respec_cost(points_to_reset: int) -> int:
+	if points_to_reset <= 0:
+		return 0
+	return STAT_RESPEC_BASE_COST + (points_to_reset * STAT_RESPEC_GOLD_PER_POINT)
+
+## Preview stat respec - check what skill upgrades would be affected
+func preview_stat_respec(skill_data: CharacterData) -> Dictionary:
+	var current_stats := skill_data.get_all_stats_with_allocated()
+	var affected_skills := []
+	var total_points := skill_data.get_total_allocated_points()
+	
+	# Check all upgradable skills
+	for skill_id in _catalog.keys():
+		var schema: SkillSchema = get_skill_schema(skill_id)
+		if schema == null:
+			continue
+		
+		var current_level: int = skill_data.get_skill_upgrade_level(skill_id)
+		if current_level <= 0:
+			continue
+		
+		# Check if reducing stats would downgrade this skill
+		for tier in schema.upgrade_tiers:
+			var tier_level: int = tier.get("level", 0)
+			if tier_level > current_level:
+				continue  # Not currently at this tier
+			
+			var required_stat: String = tier.get("min_stat", "")
+			var required_value: int = tier.get("min_stat_value", 0)
+			
+			if required_stat == "" or required_value == 0:
+				continue
+			
+			# If we reset all allocated points, what's the base stat?
+			var base_stat := skill_data.get_stat_total(required_stat) - skill_data.get_allocated_points(required_stat)
+			if base_stat < required_value:
+				affected_skills.append({
+					"skill_id": skill_id,
+					"display_name": schema.display_name,
+					"current_level": current_level,
+					"downgrade_to": tier_level - 1,
+					"required_stat": required_stat,
+					"required_value": required_value,
+					"new_value_after_respec": base_stat
+				})
+				break  # Only report highest affected tier
+	
+	return {
+		"total_allocated_points": total_points,
+		"estimated_cost": get_stat_respec_cost(total_points),
+		"affected_skills": affected_skills,
+		"has_warnings": not affected_skills.is_empty()
+	}
+
+## Execute stat respec - reset all allocated stat points
+func execute_stat_respec(
+	player_id: String,
+	skill_data: CharacterData,
+	inventory,
+	gold: int
+) -> Dictionary:
+	var total_points := skill_data.get_total_allocated_points()
+	if total_points <= 0:
+		return {"success": false, "reason": "No stat points to reset"}
+	
+	var cost := get_stat_respec_cost(total_points)
+	if gold < cost:
+		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
+	
+	# Check for skill downgrade warnings
+	var preview := preview_stat_respec(skill_data)
+	var downgrades := preview.get("affected_skills", [])
+	
+	# Apply gold cost
+	if inventory and "remove_gold" in inventory:
+		inventory.remove_gold(cost)
+	elif inventory and inventory.inventory_component and "remove_gold" in inventory.inventory_component:
+		inventory.inventory_component.remove_gold(cost)
+	
+	# Reset allocated stats
+	for stat in skill_data.allocated_stats.keys():
+		skill_data.allocated_stats[stat] = 0
+	
+	# Apply skill downgrades
+	var downgraded_skills := []
+	for downgrade in downgrades:
+		var skill_id: String = downgrade.get("skill_id", "")
+		var new_level: int = downgrade.get("downgrade_to", 0)
+		if new_level < 0:
+			new_level = 0
+		skill_data.skill_upgrades[skill_id] = new_level
+		downgraded_skills.append({
+			"skill_id": skill_id,
+			"new_level": new_level
+		})
+	
+	skill_data.total_stat_respecs += 1
+	
+	return {
+		"success": true,
+		"points_reset": total_points,
+		"cost": cost,
+		"downgraded_skills": downgraded_skills,
+		"message": "Stat respec complete. %d points refunded. %d skills downgraded." % [total_points, downgraded_skills.size()]
+	}
 
 func get_player_summary(player_id: String, skill_data: CharacterData) -> Dictionary:
 	return {

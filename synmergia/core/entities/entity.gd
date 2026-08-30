@@ -84,6 +84,9 @@ var faction_id: String = ""
 var species_id: String = ""
 var species = null
 
+# CharacterData reference for player entities (for allocated stats)
+var character_data: CharacterData = null
+
 func _ready() -> void:
 	_calculate_max_resources()
 	current_health = max_health
@@ -97,8 +100,15 @@ func _calculate_max_resources() -> void:
 
 ## STATS
 
+## Get stat value including allocated stats from CharacterData
 func get_stat(stat_name: String) -> int:
-	return stats.get(stat_name, 0)
+	var base: int = stats.get(stat_name, 0)
+	
+	# Add allocated stats from CharacterData if available
+	if character_data != null:
+		base += character_data.get_allocated_points(stat_name)
+	
+	return base
 
 func set_stat(stat_name: String, value: int) -> void:
 	stats[stat_name] = value
