@@ -115,6 +115,68 @@ func _register_commands() -> void:
 			"description": "Teleport a player to your location",
 			"usage": "/summon <player_id>",
 			"handler": _cmd_summon_player
+		},
+		
+		# GM Movement Commands (ADMIN level)
+		"invisible": {
+			"permission": GameConfig.Security.ADMIN_LEVEL,
+			"description": "Toggle invisibility mode",
+			"usage": "/invisible [0|1]",
+			"handler": _cmd_invisible
+		},
+		"inv": {
+			"permission": GameConfig.Security.ADMIN_LEVEL,
+			"description": "Alias for /invisible",
+			"usage": "/inv [0|1]",
+			"handler": _cmd_invisible
+		},
+		"fly": {
+			"permission": GameConfig.Security.ADMIN_LEVEL,
+			"description": "Toggle fly mode",
+			"usage": "/fly [0|1]",
+			"handler": _cmd_fly
+		},
+		"noclip": {
+			"permission": GameConfig.Security.ADMIN_LEVEL,
+			"description": "Toggle noclip mode (pass through walls)",
+			"usage": "/noclip [0|1]",
+			"handler": _cmd_noclip
+		},
+		"speed": {
+			"permission": GameConfig.Security.ADMIN_LEVEL,
+			"description": "Set movement speed multiplier",
+			"usage": "/speed [multiplier]",
+			"handler": _cmd_speed
+		},
+		"teleport": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Teleport to coordinates or player",
+			"usage": "/teleport <x> <y> <z> OR /teleport <player_id>",
+			"handler": _cmd_teleport
+		},
+		"tp": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Alias for /teleport",
+			"usage": "/tp <x> <y> <z> OR /tp <player_id>",
+			"handler": _cmd_teleport
+		},
+		"heal": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Heal yourself or another player",
+			"usage": "/heal [player_id]",
+			"handler": _cmd_heal
+		},
+		"godmode": {
+			"permission": GameConfig.Security.ADMIN_LEVEL,
+			"description": "Toggle godmode (invincible)",
+			"usage": "/godmode [0|1]",
+			"handler": _cmd_godmode
+		},
+		"goto": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Teleport to a player",
+			"usage": "/goto <player_id>",
+			"handler": _cmd_goto_player
 		}
 	}
 
@@ -333,6 +395,176 @@ func _cmd_summon_player(args: Array) -> Dictionary:
 	target.global_position = admin.global_position
 
 	return {"success": true, "message": "Summoned: %s" % target.display_name}
+
+## ============================================================================
+## GM MOVEMENT COMMANDS
+## ============================================================================
+
+func _cmd_invisible(args: Array) -> Dictionary:
+	var admin: Entity = _get_caller_entity(_caller)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	# Determine toggle state
+	var enable := true
+	if args.size() >= 1:
+		enable = args[0] != "0"
+	
+	# Toggle collision layer (bit 0 = player)
+	if enable:
+		admin.collision_layer = 0b0000000  # No collision
+		admin.collision_mask = 0b0000000
+	else:
+		admin.collision_layer = 0b0000001  # Restore
+		admin.collision_mask = 0b0000111
+	
+	# Also hide the visual
+	if admin.has_method("set_visible"):
+		admin.set_visible(not enable)
+	
+	var status := "invisible" if enable else "visible"
+	return {"success": true, "message": "You are now %s" % status}
+
+func _cmd_fly(args: Array) -> Dictionary:
+	var admin: Entity = _get_caller_entity(_caller)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	# Determine toggle state
+	var enable := true
+	if args.size() >= 1:
+		enable = args[0] != "0"
+	
+	# Use CharacterBody3D mode
+	if admin is CharacterBody3D:
+		if enable:
+			admin.set("gravity_scale", 0.0)
+			# Can't directly set mode to FLYING, but we can disable gravity
+			# The player controller handles vertical movement when gravity is 0
+		else:
+			admin.set("gravity_scale", 1.0)
+	
+	var status := "fly mode enabled" if enable else "fly mode disabled"
+	return {"success": true, "message": status}
+
+func _cmd_noclip(args: Array) -> Dictionary:
+	var admin: Entity = _get_caller_entity(_caller)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	# Determine toggle state
+	var enable := true
+	if args.size() >= 1:
+		enable = args[0] != "0"
+	
+	# Disable collision completely
+	if enable:
+		admin.collision_layer = 0b0000000
+		admin.collision_mask = 0b0000000
+		admin.set("gravity_scale", 0.0)
+	else:
+		admin.collision_layer = 0b0000001
+		admin.collision_mask = 0b0000111
+		admin.set("gravity_scale", 1.0)
+	
+	var status := "noclip enabled" if enable else "noclip disabled"
+	return {"success": true, "message": status}
+
+func _cmd_speed(args: Array) -> Dictionary:
+	var admin: Entity = _get_caller_entity(_caller)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	if args.size() < 1:
+		# Report current speed
+		var current_speed := admin.get("move_speed") if admin.has("move_speed") else "unknown"
+		return {"success": true, "message": "Current speed: %s" % str(current_speed)}
+	
+	var multiplier := float(args[0])
+	if multiplier <= 0:
+		return {"success": false, "message": "Speed must be > 0"}
+	
+	# Store original speed if not already stored
+	if not admin.has("_original_move_speed"):
+		admin.set("_original_move_speed", admin.get("move_speed") if admin.has("move_speed") else 5.0)
+	
+	var original := admin.get("_original_move_speed")
+	admin.set("move_speed", original * multiplier)
+	
+	return {"success": true, "message": "Speed set to %.1fx (%.1f)" % [multiplier, original * multiplier]}
+
+func _cmd_teleport(args: Array) -> Dictionary:
+	var admin: Entity = _get_caller_entity(_caller)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	if args.size() < 1:
+		return {"success": false, "message": "Usage: /teleport <x> <y> <z> OR /teleport <player_id>"}
+	
+	# Check if teleporting to coordinates or player
+	if args.size() >= 3:
+		# Teleport to coordinates
+		var x := float(args[0])
+		var y := float(args[1])
+		var z := float(args[2])
+		admin.global_position = Vector3(x, y, z)
+		return {"success": true, "message": "Teleported to (%.1f, %.1f, %.1f)" % [x, y, z]}
+	else:
+		# Teleport to player
+		var target_id: String = args[0]
+		var target: Entity = _find_entity_by_id(target_id)
+		if not target:
+			return {"success": false, "message": "Player not found: " + target_id}
+		admin.global_position = target.global_position
+		return {"success": true, "message": "Teleported to: %s" % target.display_name}
+
+func _cmd_heal(args: Array) -> Dictionary:
+	var admin: Entity = _get_caller_entity(_caller)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	var target: Entity = admin
+	var target_name := "yourself"
+	
+	if args.size() >= 1:
+		target = _find_entity_by_id(args[0])
+		if not target:
+			return {"success": false, "message": "Player not found: " + args[0]}
+		target_name = target.display_name
+	
+	if not target.health_component:
+		return {"success": false, "message": "Target has no health component"}
+	
+	var max_health := target.health_component.max_health
+	target.health_component.current_health = max_health
+	
+	# Also heal mana if available
+	if target.has_method("restore_mana"):
+		target.restore_mana(target.max_mana if target.has("max_mana") else 1000)
+	
+	return {"success": true, "message": "Healed %s to full HP" % target_name}
+
+func _cmd_godmode(args: Array) -> Dictionary:
+	var admin: Entity = _get_caller_entity(_caller)
+	if not admin:
+		return {"success": false, "message": "Could not find your entity"}
+	
+	# Determine toggle state
+	var enable := true
+	if args.size() >= 1:
+		enable = args[0] != "0"
+	
+	if not admin.has("is_invincible"):
+		admin.set("is_invincible", false)
+	
+	admin.set("is_invincible", enable)
+	
+	# Also make collision ignore damage
+	if enable:
+		admin.set("collision_layer", 0b0000001)  # Keep visible but invincible layer
+	
+	var status := "enabled" if enable else "disabled"
+	return {"success": true, "message": "Godmode %s" % status}
 
 ## Helper: Find entity by ID
 func _find_entity_by_id(entity_id: String) -> Entity:
