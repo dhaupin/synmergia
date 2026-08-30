@@ -315,6 +315,8 @@ buckets:
 **Architecture** (in `docs/architecture/`)
 - [multi-iso-frame.md](./docs/architecture/multi-iso-frame.md) — Part 1: the orchestrator pattern
 - [multi-iso-lod-prediction.md](./docs/architecture/multi-iso-lod-prediction.md) — Part 2: LOD + materialized + prediction
+- [grail-path.md](./docs/architecture/grail-path.md) — **NEW** the pre-materialized orchestration contract (the read = lookup commitment)
+- [vant-lift.md](./docs/architecture/vant-lift.md) — **NEW** the lift manifest: 9 vant libs → multi-iso frame primitives
 - [nsc9-honest-evaluation.md](./docs/architecture/nsc9-honest-evaluation.md) — why geometry is a layer, not a replacement
 - [labs-organization.md](./docs/architecture/labs-organization.md) — the `/labs/` convention (long form)
 
