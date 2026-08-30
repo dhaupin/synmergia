@@ -38,8 +38,8 @@ skill_tree_unlocks = {
 5: ["charge"],
 10: ["battle_shout"],
 15: ["shield_wall"],
-20: ["whirlwind"],
-25: ["shield_toss"]
+25: ["shield_toss"],
+30: ["war_cry"]
 }
 can_use_melee_weapons = true
 can_use_ranged_weapons = false
