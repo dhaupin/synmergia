@@ -1,10 +1,9 @@
 # Next Agent Pickup Guide
 
 **Last session:** 2026-08-29 / 2026-08-30 (OpenHands, west coast throttling)
-**This session:** 2026-08-30 (morning) — fun-side buildup, 7 commits
-**Last push:** `a39cdc0` on `main`, `origin/main` (was `3e942bb`, this push
-  revises the eval doc after the user corrected the framing)
-**Current HEAD:** `aee17d2` — 7 commits ahead of `origin/main`, NOT pushed yet
+**Sessions 2026-08-30:** Morning (7 commits, fun-side) + Afternoon (5 commits, species/classes/char select)
+**Last push:** `a39cdc0` on `main`, `origin/main`
+**Current HEAD:** `302d516` — 12 commits ahead of `origin/main`, NOT pushed yet
 **Status:** Islands POC shipped (19/19 tests). Project still has 22
 class_name cascade errors (deferred). Most architecture decisions made.
 **Latest design decision:** content-hash is a Redis-like *layer* in front
@@ -19,12 +18,34 @@ class_name cascade errors (deferred). Most architecture decisions made.
 | Skills (12 total) | basic_attack, shield_bash, charge, battle_shout, shield_wall, whirlwind (warrior); magic_missile, arcane_shield, fireball, frost_nova, arcane_barrage, chain_lightning (mage) |
 | Enemies | enemy_wolf.tres (lvl 3 social aggro), enemy_bandit.tres (lvl 5 humanoid) |
 | Zones | zone_forest_meadow, zone_dungeon_forest_depths, zone_village_center (wires up existing gateways) |
-| Species | species_elf.tres (+3 agi/int), species_orc.tres (+4 str/vit) |
+| Species | (removed elf/orc — too cliche; human/akkan/synthetic already existed) |
 | Classes | class_mage.tres (glass cannon, mana, cloth only) |
 | Scenes | entities/enemy.gd (Enemy class), scenes/world_playable.tscn (player + 2 slimes), wired into GameManager |
 | Misc | main_menu.gd Play button → PLAYING; zone data wires all existing gateways |
 
-**Play path:** Main menu → Play → world_playable.tscn (green floor, WASD + right-drag camera + jump, 2 green slime enemies targetable by Tab)
+## What Was Done This Session (2026-08-30 afternoon)
+
+5 commits — 3 species, 2 new warrior classes, character select, full flow:
+
+### Species (3 — human/akkan/synthetic all pre-existed, very distinct)
+All 3 species were already in data/species/ with detailed stat modifiers, factions, visual options.
+
+### Classes per Species
+- **Human warrior** — +shield_toss (lvl 25 signature: ranged stun, 20dmg)
+- **Akkan attacker** — 6 skills: stomp+rend @ lvl 1; battle_cry @ 5; **ground_bash** @ 10 (SIGNATURE: ground-targeted AoE, 35 dmg + slow); blood_fury @ 15; seismic_slam @ 20
+- **Synthetic warrior** — 6 skills: energy_strike+**overclock** @ lvl 1 (SIGNATURE: 8s speed buff); hack_pulse @ 5; plasma_cutter @ 10; nanite_swarm @ 15 (heal+dmg); system_crash @ 20
+- **Mage** kept as human-only (glass cannon, mana)
+
+### Character Select Screen
+- **species_card.tscn/.gd** — card with name, faction, description, stat modifiers
+- **class_card.tscn/.gd** — card with name, role, resource type, armor types, skill count
+- **character_select.tscn/.gd** — grid of species cards → class cards on selection → Enter World
+- **character_data.gd** — CharacterData schema with get_all_species(), load_class(), get_available_classes_for_species()
+- **world_playable.gd** — scene root reads GameManager.selected_character_data
+- **game_manager.gd** — selected_character_data field; PLAYING uses change_scene_to_file (clean replacement)
+- **main_menu.gd** — restored CHARACTER_SELECT path
+
+**Play path:** Main menu → Character Select (species → class → Enter World) → World (green floor, player + 2 slimes)
 
 This document is the survival guide. Read this first, then the linked
 docs in order.
