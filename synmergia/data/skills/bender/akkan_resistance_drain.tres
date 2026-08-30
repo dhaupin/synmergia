@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "resistance_drain"
+display_name = "Resistance Drain"
+description = "Drains the target magical resistance and transfers a portion to the caster."
+skill_type = 5
+target_type = 0
+mana_cost = 25
+cooldown = 12.0
+cast_time = 0.6
+animation_duration = 0.5
+range = 25.0
+effects = [{"type": "debuff", "effect_id": "debuff_resistance_drain", "duration": 8.0}, {"type": "buff", "effect_id": "buff_resistance_stolen", "duration": 8.0}]
+required_level = 5
+required_class = "akkan_seer"

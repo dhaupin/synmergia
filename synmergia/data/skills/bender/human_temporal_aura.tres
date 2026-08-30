@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "temporal_aura"
+display_name = "Temporal Aura"
+description = "Emanates an aura that slows nearby enemies while hastening nearby allies simultaneously."
+skill_type = 5
+target_type = 2
+mana_cost = 40
+cooldown = 20.0
+cast_time = 1.0
+animation_duration = 0.6
+range = 0.0
+aoe_radius = 12.0
+effects = [{"type": "debuff", "effect_id": "debuff_slow_field", "duration": 12.0}, {"type": "buff", "effect_id": "buff_haste", "duration": 12.0}]
+required_level = 20
+required_class = "human_temporalist"

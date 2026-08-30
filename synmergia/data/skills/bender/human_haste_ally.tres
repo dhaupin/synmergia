@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "haste_ally"
+display_name = "Haste Ally"
+description = "Accelerates a single ally, dramatically increasing their movement and attack speed."
+skill_type = 5
+target_type = 3
+mana_cost = 25
+cooldown = 12.0
+cast_time = 0.5
+animation_duration = 0.4
+range = 25.0
+effects = [{"type": "buff", "effect_id": "buff_haste", "duration": 10.0}]
+required_level = 5
+required_class = "human_temporalist"
