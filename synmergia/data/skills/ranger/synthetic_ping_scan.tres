@@ -46,4 +46,4 @@ upgrade_tiers = [
 ]
 
 required_level = 1
-required_class = "synthetic_ranger"
+required_class = "synthetic_tracker"

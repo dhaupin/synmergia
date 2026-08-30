@@ -7,9 +7,9 @@ script = ExtResource("1")
 
 upgradable = false
 
-id = "akkan_ranger_sig_human_ranger"
+id = "akkan_tracker_sig"
 display_name = "Void Snare"
-description = "SIGNATURE Human Ranger technique through Akkan void energy. Places a void snare that traps enemies and detonates for massive void damage."
+description = "SIGNATURE Synthetic Tracker technique through Akkan void manipulation. Places a void snare that traps enemies and detonates for massive void damage."
 skill_type = 5
 target_type = 2
 mana_cost = 60
@@ -20,4 +20,4 @@ range = 30.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 300}, {"type": "debuff", "effect_id": "debuff_void_snare", "duration": 6.0}]
 required_level = 10
-required_class = "human_ranger"
+required_class = "synthetic_tracker"

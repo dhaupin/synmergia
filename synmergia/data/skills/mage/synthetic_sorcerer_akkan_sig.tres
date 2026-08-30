@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+upgradable = false
+
+id = "synthetic_sorcerer_akkan_sig"
+display_name = "System Arcane"
+description = "SIGNATURE Akkan Sorcerer technique through synthetic data manipulation. Corrupts arcane channels with synthetic interference."
+skill_type = 2
+target_type = 0
+mana_cost = 40
+cooldown = 45.0
+cast_time = 2.0
+animation_duration = 1.5
+range = 30.0
+aoe_radius = 0.0
+effects = [{"type": "damage", "value": 280}, {"type": "debuff", "effect_id": "debuff_arcane_disruption", "duration": 6.0}]
+required_level = 10
+required_class = "akkan_sorcerer"

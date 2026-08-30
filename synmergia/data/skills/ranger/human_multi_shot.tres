@@ -46,4 +46,4 @@ upgrade_tiers = [
 ]
 
 required_level = 20
-required_class = "human_ranger"
+required_class = "human_marksman"

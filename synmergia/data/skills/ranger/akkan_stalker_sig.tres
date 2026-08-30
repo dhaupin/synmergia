@@ -7,7 +7,7 @@ script = ExtResource("1")
 
 upgradable = false
 
-id = "akkan_ranger_sig"
+id = "akkan_stalker_sig"
 display_name = "Void Mark"
 description = "SIGNATURE Akkan Ranger technique channeling pure void energy. A devastating mark that detonates on impact, dealing massive void damage and applying a stacking vulnerability debuff to all enemies in the blast radius."
 skill_type = 5
@@ -20,4 +20,4 @@ range = 40.0
 aoe_radius = 0.0
 effects = [{"type": "damage", "value": 400}, {"type": "debuff", "effect_id": "debuff_void_mark", "duration": 8.0}]
 required_level = 10
-required_class = "akkan_ranger"
+required_class = "akkan_stalker"

@@ -5,17 +5,17 @@
 [resource]
 script = ExtResource("1")
 
-id = "human_arcane_bolt"
-display_name = "Arcane Bolt"
-description = "Launches a focused bolt of arcane energy at a single target. Fast casting, reliable damage."
+id = "human_shatter"
+display_name = "Shatter"
+description = "Delivers a precise arcane strike that deals massive damage to targets affected by magical barriers or shields. Devastating against protected enemies."
 skill_type = 2
 target_type = 0
-mana_cost = 15
-cooldown = 2.0
-cast_time = 0.3
-animation_duration = 0.4
+mana_cost = 20
+cooldown = 5.0
+cast_time = 0.2
+animation_duration = 0.3
 range = 20.0
-effects = [{"type": "damage", "value": 20}]
+effects = [{"type": "damage", "value": 28}]
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,5 +44,5 @@ upgrade_tiers = [
 },
 ]
 
-required_level = 1
-required_class = "human_enchant"
+required_level = 15
+required_class = "human_warrior"
