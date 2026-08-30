@@ -1,9 +1,9 @@
 # Next Agent Pickup Guide
 
 **Last session:** 2026-08-29 / 2026-08-30 (OpenHands, west coast throttling)
-**Sessions 2026-08-30:** Morning (7 commits, fun-side) + Afternoon (5 commits, species/classes/char select)
+**Sessions 2026-08-30:** Morning (7 commits, fun-side) + Afternoon (5 commits, species/classes/char select) + Evening (class/skill fixes + scene wiring + loot + NPC verification)
 **Last push:** `a39cdc0` on `main`, `origin/main`
-**Current HEAD:** `302d516` — 12 commits ahead of `origin/main`, NOT pushed yet
+**Current HEAD:** `f148862` — 15 commits ahead of `origin/main`, NOT pushed yet
 **Status:** Islands POC shipped (19/19 tests). Project still has 22
 class_name cascade errors (deferred). Most architecture decisions made.
 **Latest design decision:** content-hash is a Redis-like *layer* in front
@@ -45,7 +45,29 @@ All 3 species were already in data/species/ with detailed stat modifiers, factio
 - **game_manager.gd** — selected_character_data field; PLAYING uses change_scene_to_file (clean replacement)
 - **main_menu.gd** — restored CHARACTER_SELECT path
 
-**Play path:** Main menu → Character Select (species → class → Enter World) → World (green floor, player + 2 slimes)
+**Play path:** Main menu → Character Select (species → class → Enter World) → World (green floor, player + 2 slimes + wolf + bandit with loot)
+
+## What Was Done This Session (2026-08-30 evening)
+
+15 commits total ahead of `origin/main`:
+
+### Data fixes
+- Human warrior: removed whirlwind (7 → 6), added war_cry @ lvl 30 (SIGNATURE: party dmg buff, self-buff doubled if solo)
+- Akkan attacker: unchanged, ground_bash is signature (ground-targeted AoE)
+- Synthetic Exploiter: renamed from warrior, all 6 skill files renamed with _exploiter suffix, IDs updated, overclock now says "skill cooldowns regenerate faster" + "doubled self-buff if no party"
+- Whirlwind removed (was leftover from 7-skill warrior plan)
+
+### Scene wiring
+- StateMachine node has state_machine.gd script attached
+- 4 state children wired: Idle (idle.gd), Run (run.gd), Jump (jump.gd), Fall (fall.gd)
+- Added wolf at (-5, 0.4, 6) with loot_wolf factory
+- Added bandit at (8, 0.9, 3) with loot_bandit factory
+
+### Loot system
+- loot_tables/loot_wolf.gd: health potions, soul gems (rare), ancient coins, gold 2-8
+- loot_tables/loot_bandit.gd: health potions, ancient coins, iron sword (10%), leather chest (rare), gold 5-20
+- enemy.gd: added loot_factory_class export, _roll_and_drop_loot() called on death, logs loot to console
+- NPCs confirmed: blacksmith_village_default + merchant_general_default already exist with full data
 
 This document is the survival guide. Read this first, then the linked
 docs in order.
@@ -284,22 +306,15 @@ everything else serves them.
    `tools/build.sh` — `godot --headless --export-pack data data.pck`.
    CI on changes to `synmergia/data/`.
 
-8. **Loot tables** — `loot_wolf_basic`, `loot_bandit_basic` referenced
-   in enemy data but no .tres files exist yet.
+8. **Loot tables** — ✅ `loot_tables/loot_wolf.gd` and `loot_bandit.gd` done. Wired into enemy.gd via `loot_factory_class` export.
 
-9. **NPCs** — `blacksmith_village_default`,
-   `merchant_general_default` referenced in zone_village_center but
-   no .tres files exist yet.
+9. **NPCs** — ✅ `blacksmith_village_default` and `merchant_general_default` already existed in data/npcs/. Confirmed complete.
 
-10. **Ranger class** — hunter archetype, pet mechanics, ranged
-    skills (aimed_shot, multi_shot, traps).
+10. **Ranger class** — hunter archetype, pet mechanics, ranged skills (aimed_shot, multi_shot, traps).
 
-11. **StateMachine scene wiring** — the world scene has
-    `StateMachine/Idle` etc. nodes but they reference the wrong scripts.
-    Should use actual `IdleState`, `RunState`, etc.
+11. **StateMachine scene wiring** — ✅ Done. StateMachine node has script, all 4 states wired.
 
-12. **Add wolf and bandit to world scene** — or wire SpawnService to
-    spawn them in zone_forest_meadow.
+12. **Add wolf and bandit to world scene** — ✅ Done. Added to world_playable.tscn with loot.
 
 ---
 
