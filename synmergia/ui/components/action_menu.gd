@@ -22,7 +22,7 @@ signal menu_closed()
 func _ready() -> void:
 	_setup_ui()
 	_setup_touch()
-	hide()
+	hide_menu()
 
 func _setup_touch() -> void:
 	_long_press_timer = Timer.new()
@@ -157,11 +157,11 @@ func _create_menu_item(action: Dictionary) -> Button:
 
 func _on_action_selected(action_id: String) -> void:
 	action_selected.emit(action_id, _target_id)
-	hide()
+	hide_menu()
 	menu_closed.emit()
 
-func hide() -> void:
-	super.hide()
+func hide_menu() -> void:
+	visible = false
 	_target_id = ""
 	_target_type = 0
 	_is_touch_opened = false
@@ -170,7 +170,7 @@ func _input(event: InputEvent) -> void:
 	# Mouse click to close
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if is_visible() and not _menu_panel.get_global_rect().has_point(event.position):
-			hide()
+			hide_menu()
 			menu_closed.emit()
 	
 	# Touch handling for long-press
