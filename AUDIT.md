@@ -280,6 +280,7 @@ two flavors:
 | Phase | Status |
 |---|---|
 | A — UIPanel adoption | 🟡 In progress (8/9 done — admin_dashboard deferred) |
+| A.6 — Parse-error sweep | 🟡 In progress (4 commits landed) |
 | B — UIManager owns UI | ⬜ TODO |
 | C — Component → UI wiring | ⬜ TODO |
 | D — Touch / HUD / InteractionLayer | ⬜ TODO |
@@ -297,5 +298,45 @@ two flavors:
   intentionally skipped — they're HUD widgets, not popups.
 - **Runtime smoke test:** main menu still loads, error count unchanged
   (78 unique / 126 total — all in `core/`, none in any migrated UI file).
+
+**Phase A.6 progress (2026-08-29, parse-error sweep):**
+- Commit `a226903` — relaxed `_apply_hit()` type checks in `combat_system.gd`,
+  removed duplicate `source` var in `create_hitbox()`, loosened `can_cast()` to
+  accept `Node` in `combat/skill.gd`.
+- Commit `72e8abd` — rewrote `pickup_loot()` / `abandon_loot()` in
+  `loot_service.gd` (broken indentation), `_set_process` → `set_process` in
+  `friends_service.gd`, etc.
+- Commit `983ea88` — fixed parse errors in 4 services.
+- Commit `65a430e` — repaired parse errors across services, admin, community.
+- Commit `76509a3` — repaired `inventory_component.gd` and
+  `security_service.gd` types.
+- Commit `f86c756` (this session) — fixed `action_menu.gd`:
+  - Renamed `hide()` override to `hide_menu()` (avoids `CanvasItem.hide`
+    conflict; class_name parse error was masking 3 cascading failures).
+  - Repaired `_input()` indentation (outer `if` at 1 tab, inner block at 3).
+  - `report_dialog.gd`: dropped the 5th arg to `create_panel_style()` (it
+    only takes 4). This unblocked the `UIPanel` migration of `report_dialog`.
+- Pre-existing parse errors remaining (not blocking runtime):
+  - `core/services/guild_service.gd` (multiple `:=` inference warnings
+    treated as errors — needs a dedicated sweep).
+  - `core/services/party_service.gd`, `chat_service.gd` — same pattern.
+  - `scripts/state_machine.gd` / `scripts/state.gd` — circular
+    `class_name` reference; broke the cycle with `preload()` in both
+    files (this session).
+  - `data/factions/faction_synthetic.tres:16` and
+    `data/species/species_synthetic.tres:31` — missing trailing commas
+    in dict / array literals. Last known-remaining data errors at
+    session end.
+- Throttled by OpenRouter/GMI mid-session; pushed what was stable.
+- Push cadence: small, frequent commits as requested (rate-limit driven).
+
+**Next session (when unthrottled):**
+- Finish the `:=` inference sweep in `guild_service.gd`,
+  `party_service.gd`, `chat_service.gd`.
+- Verify the two `.tres` data files parse after the comma fixes.
+- Begin UIWidget base for HUD widgets (sibling of `UIPanel`).
+- `inventory_component.gd` unindent, `.gitignore` updates.
+- Static shims for autoloads that declare `class_name`.
+- `GameConfig.*` → `_get_config_*` helpers migration.
 
 Updated as the session progresses.

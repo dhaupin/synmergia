@@ -15,7 +15,7 @@ species_id = "synthetic"
 relations = {
 "human_faction": 0,     # Neutral
 "akkan_faction": 0,    # Neutral
-"neutral_faction": 1    # Friendly
+"neutral_faction": 1,    # Friendly
 }
 shop_discount = 0.0
 quest_rewards_bonus = 0.0
