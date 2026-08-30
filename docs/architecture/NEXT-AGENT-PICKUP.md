@@ -65,6 +65,14 @@ the state tree but are otherwise independent.
 - **Three tiers of computation.** GDScript for game logic,
   Julia for vector math, C++/GDExtension for the absolute hot
   path. The frame's design budget assumes all three exist.
+- **The grail path** (`docs/architecture/grail-path.md`) —
+  the pre-materialized orchestration contract. The state IS
+  the answer; the math is the rebuild step, async, batched,
+  off the read path. The multi-iso orchestrator already has
+  the components; the grail is the commitment (5 small
+  changes: `tick()` method, composite tables as canonical
+  read source, re-root on tick not demand, math as pure
+  function, pre/mid/post types explicit).
 
 ---
 
@@ -134,6 +142,8 @@ Graduated work moves into the game.
 | `docs/architecture/nsc9-honest-evaluation.md` | Why we demoted most of the unified design (revised 2026-08-30) |
 | `docs/architecture/multi-iso-frame.md` | The multi-iso orchestrator (Part 1: the basic pattern) |
 | `docs/architecture/multi-iso-lod-prediction.md` | Part 2: LOD + materialized + prediction (the golden state) |
+| `docs/architecture/grail-path.md` | **NEW** The pre-materialized orchestration contract (the read = lookup commitment) |
+| `docs/architecture/vant-lift.md` | **NEW** Lift manifest: 9 vant libs → multi-iso frame primitives, with priority order |
 | `docs/architecture/labs-organization.md` | Independent primitives in `labs/multi-iso/` (the frame staging area) |
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
 | `labs/README.md` | In-tree convention for labs (root-level) |
