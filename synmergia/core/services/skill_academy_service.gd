@@ -25,7 +25,7 @@ const COMMON_BOOK_PRICE: int = 100
 
 ## Respec cost: base gold + gold per skill point being refunded
 const RESPEC_BASE_COST: int = 500
-const RESPEC_GOLD_PER_POINT: int = 50
+const RESPEC_GOLD_PER_POINT: int = 20
 
 ## In-memory catalog: skill_id → catalog entry
 var _catalog: Dictionary = {}

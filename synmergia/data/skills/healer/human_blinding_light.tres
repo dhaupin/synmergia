@@ -17,5 +17,47 @@ animation_duration = 0.5
 range = 15.0
 aoe_radius = 6.0
 effects = [{"type": "debuff", "effect_id": "stun_common", "duration": 2.0}]
+upgrade_tiers = [{
+"level": 1, "books_required": 4, "tier": "common",
+"delta": {
+"damage_mult": 1.08, "range_mult": 1.05, "cooldown_mult": 0.95,
+"cast_time_mult": 1.05, "aoe_mult": 1.06, "duration_mult": 1.10,
+"cost_mult": 0.97
+},
+"unlocks": []
+}, {
+"level": 2, "books_required": 4, "tier": "rare",
+"delta": {
+"damage_mult": 1.16, "range_mult": 1.10, "cooldown_mult": 0.90,
+"cast_time_mult": 1.10, "aoe_mult": 1.12, "duration_mult": 1.20,
+"cost_mult": 0.94
+},
+"unlocks": []
+}, {
+"level": 3, "books_required": 4, "tier": "epic",
+"delta": {
+"damage_mult": 1.24, "range_mult": 1.15, "cooldown_mult": 0.85,
+"cast_time_mult": 1.15, "aoe_mult": 1.18, "duration_mult": 1.30,
+"cost_mult": 0.91
+},
+"unlocks": [{"type": "extra_stun_target", "value": 1}]
+}, {
+"level": 4, "books_required": 4, "tier": "legendary",
+"delta": {
+"damage_mult": 1.32, "range_mult": 1.20, "cooldown_mult": 0.80,
+"cast_time_mult": 1.20, "aoe_mult": 1.24, "duration_mult": 1.40,
+"cost_mult": 0.88
+},
+"unlocks": []
+}, {
+"level": 5, "books_required": 4, "tier": "mythic",
+"delta": {
+"damage_mult": 1.40, "range_mult": 1.25, "cooldown_mult": 0.75,
+"cast_time_mult": 1.25, "aoe_mult": 1.30, "duration_mult": 1.50,
+"cost_mult": 0.85
+},
+"unlocks": [{"type": "chain_count", "value": 2}]
+}]
+
 required_level = 15
 required_class = "human_cleric"
