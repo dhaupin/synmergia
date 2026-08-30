@@ -43,6 +43,10 @@ static func is_gm_class(cls_or_role) -> bool:
 		return cls_or_role.role == CharacterClass.Role.GM
 	return cls_or_role == CharacterClass.Role.GM
 
+## Check if this character data is a GM character
+func is_gm() -> bool:
+	return is_gm_class(class_id)
+
 ## Get available classes for a species.
 ## FILTERS OUT GM classes by default for security.
 ## For admin use, get_all_classes_for_species() includes GM classes.
