@@ -44,8 +44,7 @@ func _setup_panel() -> void:
 		UIStyles.COLORS.background,
 		UIStyles.COLORS.accent_warning,
 		3,
-		12,
-		20
+		12
 	))
 	panel.name = "Panel"
 	add_child(panel)

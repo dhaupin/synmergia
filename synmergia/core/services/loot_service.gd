@@ -323,11 +323,11 @@ func abandon_loot(player_id: String, loot_id: String) -> bool:
 		GameLog.debug("LootService: Rate limited abandon for %s" % player_id)
 		return false
 
-		if _player_loot.has(player_id):
-			var loot_list: Array = _player_loot[player_id]
-			for i in range(loot_list.size()):
-				if loot_list[i]["loot_id"] == loot_id:
-					loot_list.remove_at(i)
-					GameLog.info("LootService: %s abandoned loot %s" % [player_id, loot_id])
-					return true
-		return false
+	if _player_loot.has(player_id):
+		var loot_list: Array = _player_loot[player_id]
+		for i in range(loot_list.size()):
+			if loot_list[i]["loot_id"] == loot_id:
+				loot_list.remove_at(i)
+				GameLog.info("LootService: %s abandoned loot %s" % [player_id, loot_id])
+				return true
+	return false
