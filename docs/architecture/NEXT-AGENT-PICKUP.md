@@ -1,9 +1,9 @@
 # Next Agent Pickup Guide
 
 **Last session:** 2026-08-29 / 2026-08-30 (OpenHands, west coast throttling)
-**Sessions 2026-08-30:** Morning (7 commits, fun-side) + Afternoon (5 commits, species/classes/char select) + Evening (class/skill fixes + scene wiring + loot + NPC verification)
+**Sessions 2026-08-30:** Morning (7 commits, fun-side) + Afternoon (5 commits, species/classes/char select) + (class/skill fixes, scene wiring, loot, NPC verification) + Late evening (mage/ranger/healer classes, loot schema fix)
 **Last push:** `a39cdc0` on `main`, `origin/main`
-**Current HEAD:** `f148862` — 15 commits ahead of `origin/main`, NOT pushed yet
+**Current HEAD:** `c2435a9` — 18 commits ahead of `origin/main`, NOT pushed yet
 **Status:** Islands POC shipped (19/19 tests). Project still has 22
 class_name cascade errors (deferred). Most architecture decisions made.
 **Latest design decision:** content-hash is a Redis-like *layer* in front
@@ -47,9 +47,35 @@ All 3 species were already in data/species/ with detailed stat modifiers, factio
 
 **Play path:** Main menu → Character Select (species → class → Enter World) → World (green floor, player + 2 slimes + wolf + bandit with loot)
 
+## What Was Done This Session (2026-08-30 late evening)
+
+18 commits total ahead of origin/main.
+
+### 3 Mage Classes (18 skills, 3 signatures)
+- Human Enchanter: arcane bolt, mana shield, enchant weapon, shatter, mana surge, **catalyst** (sig: party AoE dmg burst + crit buff)
+- Akkan Runesmith: rune strike, rune ward, rune chain, exploding rune, rune transfer, **rune tremor** (sig: seismic AoE stun wave)
+- Synthetic Operative: pulse beam, system shield, packet flood, firewall, redirect, **system crash** (sig: massive single-target + silence)
+
+### 3 Ranger Classes (12 skills, stealth at 3 levels)
+- Human Ranger: ambush, trap roots, aimed shot, stealth_light, multi shot, stealth_deep
+- Akkan Stalker: pounce, ambush, trap roots, aimed shot, stealth_light, multi shot
+- Synthetic Infiltrator: ping scan, backdoor, stealth_vanish, aimed shot, multi shot, stealth_deep
+- All rangers: both melee + ranged abilities; stealth effects: light (30s), deep (20s, breaks on action), vanish (8s, full aggro clear)
+
+### 3 Healer Classes (18 skills, 3 signatures)
+- Human Cleric: holy light, sanctuary aura, smite, blinding light, divine shield, **resurrection** (sig: ally revive)
+- Akkan Shaman: spirit bolt, earthshield totem, hex, chain heal, storm aura, **ancestral guardian** (sig: spirit pet)
+- Synthetic Conduit: energy transfer, shield all, drain pulse, overcharge ally, barrier field, **redistribute** (sig: full group heal/mana/cleanse)
+- All healers: enough solo DPS to level without grouping (smite, spirit bolt, drain pulse)
+- All healers: auras + stuns (sanctuary aura, blinding light, hex, storm aura)
+
+### 3 Status Effects (new)
+- stealth_light.tres: BUFF/STEALTH, 30s, detection 8m, breaks on damage
+- stealth_deep.tres: STEALTH, 20s, detection 4m, breaks on action or damage
+- stealth_vanish.tres: VANISH, 8s, detection 0m, breaks on damage only
 ## What Was Done This Session (2026-08-30 evening)
 
-15 commits total ahead of `origin/main`:
+18 commits total ahead of `origin/main`:
 
 ### Data fixes
 - Human warrior: removed whirlwind (7 → 6), added war_cry @ lvl 30 (SIGNATURE: party dmg buff, self-buff doubled if solo)
@@ -63,11 +89,11 @@ All 3 species were already in data/species/ with detailed stat modifiers, factio
 - Added wolf at (-5, 0.4, 6) with loot_wolf factory
 - Added bandit at (8, 0.9, 3) with loot_bandit factory
 
-### Loot system
-- loot_tables/loot_wolf.gd: health potions, soul gems (rare), ancient coins, gold 2-8
-- loot_tables/loot_bandit.gd: health potions, ancient coins, iron sword (10%), leather chest (rare), gold 5-20
-- enemy.gd: added loot_factory_class export, _roll_and_drop_loot() called on death, logs loot to console
-- NPCs confirmed: blacksmith_village_default + merchant_general_default already exist with full data
+### Loot system (schema fix)
+- LootTable schema: entries/currency_drops now Array[Dictionary] — .tres files declarative
+- loot_tables/loot_wolf.tres + loot_bandit.tres: proper .tres with declarative entries
+- enemy.gd: loot_table_id field (res://data/loot_tables/{id}.tres) replaces factory approach
+- NPCs confirmed: blacksmith_village_default + merchant_general_default already existed with full data
 
 This document is the survival guide. Read this first, then the linked
 docs in order.
