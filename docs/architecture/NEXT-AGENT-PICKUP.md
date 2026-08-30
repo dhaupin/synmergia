@@ -1,12 +1,30 @@
 # Next Agent Pickup Guide
 
 **Last session:** 2026-08-29 / 2026-08-30 (OpenHands, west coast throttling)
+**This session:** 2026-08-30 (morning) — fun-side buildup, 7 commits
 **Last push:** `a39cdc0` on `main`, `origin/main` (was `3e942bb`, this push
   revises the eval doc after the user corrected the framing)
+**Current HEAD:** `aee17d2` — 7 commits ahead of `origin/main`, NOT pushed yet
 **Status:** Islands POC shipped (19/19 tests). Project still has 22
 class_name cascade errors (deferred). Most architecture decisions made.
 **Latest design decision:** content-hash is a Redis-like *layer* in front
   of Postgres, not a replacement. State tree is the new big thing.
+
+## What Was Done This Session (2026-08-30 morning)
+
+7 commits, 979 lines, 24 files changed (all ahead of `origin/main`):
+
+| Category | Files |
+|----------|-------|
+| Skills (12 total) | basic_attack, shield_bash, charge, battle_shout, shield_wall, whirlwind (warrior); magic_missile, arcane_shield, fireball, frost_nova, arcane_barrage, chain_lightning (mage) |
+| Enemies | enemy_wolf.tres (lvl 3 social aggro), enemy_bandit.tres (lvl 5 humanoid) |
+| Zones | zone_forest_meadow, zone_dungeon_forest_depths, zone_village_center (wires up existing gateways) |
+| Species | species_elf.tres (+3 agi/int), species_orc.tres (+4 str/vit) |
+| Classes | class_mage.tres (glass cannon, mana, cloth only) |
+| Scenes | entities/enemy.gd (Enemy class), scenes/world_playable.tscn (player + 2 slimes), wired into GameManager |
+| Misc | main_menu.gd Play button → PLAYING; zone data wires all existing gateways |
+
+**Play path:** Main menu → Play → world_playable.tscn (green floor, WASD + right-drag camera + jump, 2 green slime enemies targetable by Tab)
 
 This document is the survival guide. Read this first, then the linked
 docs in order.
@@ -217,6 +235,8 @@ direction. All other parts of the codebase are fair game
 for refactor. The schemas and data are the contract;
 everything else serves them.
 
+### Still Pending
+
 1. **`guild_service.gd`, `party_service.gd`, `chat_service.gd`** still
    have `:=` inference warnings (treated as errors by parser). 8
    warnings × multiple lines. Need explicit type annotations.
@@ -231,17 +251,34 @@ everything else serves them.
 4. **`GameConfig.*` → `_get_config_*` helpers** — large migration,
    pre-existing pending item. Not blocking.
 
-5. **UIPanel → Island migration (Session 2 of revised plan).**
-   Currently 8-12 panels still extend UIPanel. Convert each to a
-   PackedScene with IslandPlaceholder as root. Add to registry.
+5. **UIPanel → Island migration.** Currently 8-12 panels still extend
+   UIPanel. Convert each to a PackedScene with IslandPlaceholder as
+   root. Add to registry. See cookbook above.
 
-6. **Content-hash for templates (Session 4 of revised plan).**
-   `core/geometry/content_hash.gd` — SHA-256 helper. Apply to
-   item templates, loot rolls, save verification.
+6. **Content-hash for templates.**
+   `core/geometry/content_hash.gd` — SHA-256 helper. Apply to item
+   templates, loot rolls, save verification.
 
-7. **Build pipeline (Session 3 of revised plan).**
+7. **Build pipeline.**
    `tools/build.sh` — `godot --headless --export-pack data data.pck`.
    CI on changes to `synmergia/data/`.
+
+8. **Loot tables** — `loot_wolf_basic`, `loot_bandit_basic` referenced
+   in enemy data but no .tres files exist yet.
+
+9. **NPCs** — `blacksmith_village_default`,
+   `merchant_general_default` referenced in zone_village_center but
+   no .tres files exist yet.
+
+10. **Ranger class** — hunter archetype, pet mechanics, ranged
+    skills (aimed_shot, multi_shot, traps).
+
+11. **StateMachine scene wiring** — the world scene has
+    `StateMachine/Idle` etc. nodes but they reference the wrong scripts.
+    Should use actual `IdleState`, `RunState`, etc.
+
+12. **Add wolf and bandit to world scene** — or wire SpawnService to
+    spawn them in zone_forest_meadow.
 
 ---
 
