@@ -451,3 +451,61 @@ The full design is in
 - **Test co-location:** `/labs/` primitives have tests next to them. If you write a primitive without a test, it's not done.
 - **Engine version:** Godot 4.7.2. `var_to_bytes` / `bytes_to_var` (not `VarToStr`).
 - **Project root:** `synmergia/` is the Godot project. `labs/` and `docs/` are outside.
+
+---
+
+## Session insights (2026-08-30)
+
+The last session added three core design docs that all
+agents should know about:
+
+- **The grail path** ([`docs/architecture/grail-path.md`](./docs/architecture/grail-path.md))
+  — the pre-materialized orchestration contract. The state
+  IS the answer; the math is the rebuild step, async, off
+  the read path. Pattern: CQRS over multi-iso axes
+  (pre/mid/post). Three methods: `query()` (O(1) lookup),
+  `emit()` (event), `tick()` (math, batched). 5 commitments
+  make it real: tick() method, composite tables canonical,
+  re-root on tick, math as pure function, types explicit.
+
+- **The vant lift** ([`docs/architecture/vant-lift.md`](./docs/architecture/vant-lift.md))
+  — 9 vant libs map directly to multi-iso frame primitives.
+  Tier 1: recursion, event, cache, geometry (the NSC-9 +
+  icosahedral + quasicrystal math). Tier 2: pipeline, qos,
+  sync. Tier 3: realm (lineage, trust, gates) for
+  governance. 3,500 lines of translation over 4 sessions.
+  vant is a sibling repo by the same author; lift is
+  non-copyright.
+
+- **Security** ([`docs/architecture/security.md`](./docs/architecture/security.md))
+  — 7 defense layers for an agent framework. Layer 0
+  (recursion guard) is the foundation; it's the only
+  layer that's truly universal. AI agents (Claude/GPT) make
+  recursive tool calls; without per-agent+per-tool guard,
+  an agent's tool chain eventually DoSes the server. The
+  guard is the agent framework's seatbelt. The user
+  emphasized this is "neglected" — don't skip it.
+
+- **UI framework** ([`docs/architecture/ui-framework.md`](./docs/architecture/ui-framework.md))
+  — the reactive bridge (AxisQuery) that closes the loop
+  between the orchestrator and the UI. One framework for
+  humans and agents: humans via Godot rendering, agents via
+  query signature + schema. The "complete the circle" the
+  user mentioned.
+
+- **Scale at 200 km²** ([`docs/architecture/scale-200km2.md`](./docs/architecture/scale-200km2.md))
+  — 8 innovations that make 200km² cheap: LOD pyramid,
+  predictive prefetch, multi-axis intersection, state diff
+  sync, hierarchical sync, content-hash addressing, RAM +
+  Postgres split, procedural assimilation. 20,000-200,000x
+  reductions vs naive. They compose because the multi-iso
+  frame is the substrate.
+
+- **Schemas & data are stable.** Recorded 2026-08-30:
+  `synmergia/core/schemas/` and `/data/*` are NOT to be
+  refactored without explicit user direction. Everything
+  else is fair game.
+
+- **AUDIT.md moved to `labs/AUDIT.md.legacy`** (frozen).
+  Live session log is at `synmergia/AUDIT.md.session-log`
+  (still inside the project for now).
