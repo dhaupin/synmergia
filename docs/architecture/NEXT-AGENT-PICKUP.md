@@ -19,27 +19,39 @@ Synmergia is a Godot 4.7.2 MMORPG engine. The previous session:
 
 1. Fixed 30+ parse errors across services, UI, and `.tres` files
 2. Built a working Islands POC (3 files + 19 passing tests)
-3. Wrote 4 design docs (`docs/architecture/`)
+3. Wrote 5 design docs (`docs/architecture/`)
 4. First honest evaluation: "demote the geometry" — **was wrong**
 5. Revised honest evaluation: "geometry is right for a Redis-like
-   layer, not a replacement" — current state
+   layer, not a replacement" — was on the right track but flat
+6. The actual frontier: **multi-iso orchestrator as a frame**, not
+   a feature. Spawn 2+ isos, intersect them, reserve NSC-9 ranges
+   per axis. See `multi-iso-frame.md`.
 
-The user caught a framing error in my first eval: I was treating
-the geometry as a *replacement* for things Synmergia already has.
-The user meant it as an *extension*. With the extension framing,
-the state-tree content-hash pattern is the real win.
+The user caught TWO framing errors:
+- First: I was treating the geometry as a *replacement* for
+  things Synmergia already has. The user meant it as an
+  *extension*. → Revised to redis-like layer.
+- Second: even as a layer, treating it as flat KV is "overbuilt
+  for internal KV." The actual leverage is **multi-dimensional
+  intersection**: spawn N isos, intersect them, get
+  multi-dimensional queries. → Multi-iso orchestrator pattern.
 
 **Where to pick up:**
-- **Session 3** (state tree content-hash) is the new big one.
-  It's the foundation for sync, save games, cross-shard, etc.
-- **Session 2** (UIPanel → islands) is still the right next step
-  if the user wants UI work.
+- **Track A, Session 3** (state tree) is the practical foundation.
+- **Track A, Session 2** (UIPanel → islands) is UI work.
+- **Track B, Session B1** (math primitives) is the research
+  start for the multi-iso frame. The frame can be extracted
+  later to a separate repo alongside vant.
 - The shim approach for the 22 cascade is still independent and
   still worth finishing.
 
 **The 22 cascade failures are still there.** They're non-fatal
 ("Main menu loaded" still prints) but they pollute the log. Fix
 them with the shim approach when convenient. They're not blocking.
+
+**Two-track plan.** Track A is the product (Synmergia). Track B
+is the frame (multi-iso orchestrator, alongside vant). They share
+the state tree but are otherwise independent.
 
 ---
 
@@ -93,7 +105,8 @@ synmergia/
 | `docs/architecture/NEXT-AGENT-PICKUP.md` | This file |
 | `docs/architecture/islands-builds-godot.md` | The Islands design |
 | `docs/architecture/unified-nsc9-islands-builds.md` | The unified design (mark as exploration) |
-| `docs/architecture/nsc9-honest-evaluation.md` | Why we demoted most of the unified design |
+| `docs/architecture/nsc9-honest-evaluation.md` | Why we demoted most of the unified design (revised 2026-08-30) |
+| `docs/architecture/multi-iso-frame.md` | The multi-iso orchestrator (the actual frontier) |
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
 | `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
 | `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
