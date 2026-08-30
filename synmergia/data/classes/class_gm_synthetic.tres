@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="CharacterClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "gm_synthetic"
+display_name = "GM Synthetic"
+description = "Game Master role for Synthetic admins. All permissions enabled."
+icon_path = "res://ui/icons/classes/gm_synthetic.png"
+
+role = 0
+
+base_stats = {
+"strength": 20,
+"agility": 20,
+"intelligence": 20,
+"vitality": 20,
+"endurance": 20,
+"wisdom": 20
+}
+
+stat_growth = {
+"strength": 2,
+"agility": 2,
+"intelligence": 2,
+"vitality": 2,
+"endurance": 2,
+"wisdom": 2
+}
+
+base_resource = 200
+resource_per_level = 20
+resource_regen_per_second = 10.0
+resource_regen_combat = 5.0
+
+base_attack_power = 20
+attack_power_per_level = 5
+base_spell_power = 20
+spell_power_per_level = 5
+
+starting_skills = []
+skill_tree_unlocks = {}
+
+respec_cost_gold = 0
+
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = true
+can_use_armor = {
+"cloth": true,
+"leather": true,
+"mail": true,
+"plate": true
+}

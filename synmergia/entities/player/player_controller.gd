@@ -38,6 +38,7 @@ var entity_id: String = ""
 
 # Context menu
 var _action_menu: ActionMenu = null
+var _skill_academy_ui: SkillAcademyUI = null
 var _current_target_info: TargetingManager.TargetInfo = null
 
 func _ready() -> void:
@@ -69,7 +70,18 @@ func _ready() -> void:
 	# Connect to InteractionLayer for touch targeting
 	_connect_interaction_layer()
 	
+	# Add GM indicator if this is a GM character
+	_add_gm_indicator()
+	
 	GameLog.info("PlayerController ready")
+
+func _add_gm_indicator() -> void:
+	var char_data := _get_character_data()
+	if char_data and char_data.is_gm():
+		var indicator := GMIndicator.new()
+		indicator.name = "GMIndicator"
+		add_child(indicator)
+		GameLog.info("Added GM star indicator")
 
 func _connect_interaction_layer() -> void:
 	if InteractionLayer:
@@ -157,7 +169,7 @@ func _show_npc_context_menu(target_info: TargetingManager.TargetInfo) -> void:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
 		_action_menu.action_selected.connect(_on_context_action)
-	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
+	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type, target_info.npc_data)
 
 func _show_loot_context_menu(target_info: TargetingManager.TargetInfo) -> void:
 	if not _action_menu:
@@ -200,6 +212,31 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 			LootService.loot_all(str(player_id), target_id)
 		"enter":
 			pass
+
+		"skill_academy":
+			_open_skill_academy_ui()
+
+
+func _get_character_data() -> CharacterData:
+	if GameManager and is_instance_valid(GameManager.selected_character_data):
+		return GameManager.selected_character_data as CharacterData
+	return null
+
+func _get_inventory_books() -> Array:
+	var books: Array = []
+	if InventoryService:
+		var items: Array = InventoryService.get_player_items(str(player_id))
+		for item in items:
+			if item is SkillBook:
+				books.append(item)
+	return books
+
+func _open_skill_academy_ui() -> void:
+	if not _skill_academy_ui:
+		_skill_academy_ui = SkillAcademyUI.new()
+		add_child(_skill_academy_ui)
+	_skill_academy_ui.load_player_context(str(player_id))
+	_skill_academy_ui.open_with_context(str(player_id), _get_character_data(), _get_inventory_books())
 
 func _create_basic_attack() -> Skill:
 	var skill: Skill = Skill.new()

@@ -3,6 +3,8 @@
 class_name FriendsListUI
 extends UIPanel
 
+const CharacterData := preload("res://core/schemas/character_data.gd")
+
 var _tab_container: TabContainer
 var _friends_list: ItemList
 var _requests_list: ItemList
@@ -162,8 +164,12 @@ func _refresh_friends() -> void:
 		var friend_name: String = friend_data.get("player_name", "Unknown")
 		var online: bool = friend_data.get("online", false)
 		var zone: String = friend_data.get("zone", "")
+		var class_id: String = friend_data.get("class_id", "")
+		var is_gm: bool = CharacterData.is_gm_class(class_id) if class_id else false
 
 		var display: String = friend_name
+		if is_gm:
+			display = "[GM] " + display
 		if online and zone != "":
 			display += " (%s)" % zone
 

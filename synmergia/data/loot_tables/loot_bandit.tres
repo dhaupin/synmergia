@@ -43,8 +43,7 @@ entries = [{
 "rarity_weight": 2.0,
 "is_guaranteed": false,
 "conditions": []
-}]
-currency_drops = [{
+}, {
 "currency_id": "gold",
 "min_amount": 5,
 "max_amount": 20,

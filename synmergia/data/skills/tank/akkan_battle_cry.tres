@@ -8,7 +8,7 @@ script = ExtResource("1")
 id = "akkan_battle_cry"
 display_name = "Battle Cry"
 description = "Lets out a primal roar that taunts nearby enemies and boosts your own damage briefly."
-skill_type = 5
+skill_type = 0
 target_type = 2
 mana_cost = 15
 cooldown = 10.0
@@ -17,5 +17,33 @@ animation_duration = 0.3
 range = 0.0
 aoe_radius = 10.0
 effects = [{"type": "debuff", "effect_id": "debuff_taunt", "duration": 3.0}, {"type": "buff", "effect_id": "buff_battle_cry_dmg", "duration": 4.0}]
+upgrade_tiers = [
+{
+"level": 1, "books_required": 4, "tier": "common",
+"delta": {"cooldown_mult": 0.95, "cast_time_mult": 1.05, "cost_mult": 0.97, "range_mult": 1.05},
+"unlocks": [],
+},
+{
+"level": 2, "books_required": 4, "tier": "rare",
+"delta": {"cooldown_mult": 0.9, "cast_time_mult": 1.1, "cost_mult": 0.94, "range_mult": 1.1},
+"unlocks": [],
+},
+{
+"level": 3, "books_required": 4, "tier": "epic",
+"delta": {"cooldown_mult": 0.85, "cast_time_mult": 1.15, "cost_mult": 0.91, "range_mult": 1.15},
+"unlocks": [{"type": "cooldown_mult", "value": 0.95}],
+},
+{
+"level": 4, "books_required": 4, "tier": "legendary",
+"delta": {"cooldown_mult": 0.8, "cast_time_mult": 1.2, "cost_mult": 0.88, "range_mult": 1.2},
+"unlocks": [],
+},
+{
+"level": 5, "books_required": 4, "tier": "mythic",
+"delta": {"cooldown_mult": 0.75, "cast_time_mult": 1.25, "cost_mult": 0.85, "range_mult": 1.25},
+"unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
+},
+]
+
 required_level = 1
 required_class = "akkan_bulwark"

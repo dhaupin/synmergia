@@ -43,6 +43,7 @@ class TargetInfo:
 	var world_position: Vector3 = Vector3.ZERO  # For 3D highlighting
 	var node: Node = null
 	var metadata: Dictionary = {}
+	var npc_data: NPCData = null  # Populated if entity_type == NPC
 	
 	# Computed from schema
 	var actions: Array[String] = []
@@ -946,6 +947,9 @@ func _create_target_info_from_node(node: Node, hit_position: Vector3 = Vector3.Z
 	info.world_position = node.global_position if node is Node3D else hit_position
 	info.position = hit_position
 	info.node = node
+	# Extract npc_data if this is an NPC
+	if entity_type == Entity.EntityType.NPC and node.has("npc_data"):
+		info.npc_data = node.npc_data
 	
 	# Get schema for computed properties
 	var schema: Variant = get_schema(schema_id)

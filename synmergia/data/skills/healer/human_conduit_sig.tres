@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+upgradable = false
+
+id = "human_conduit_sig"
+display_name = "Bio Feedback"
+description = "SIGNATURE Synthetic Conduit translated to human biology. Converts the caster's health into mana for emergency burst healing."
+skill_type = 5
+target_type = 2
+mana_cost = 0
+cooldown = 120.0
+cast_time = 2.0
+animation_duration = 1.0
+range = 0.0
+aoe_radius = 20.0
+effects = [{"type": "heal", "value": 100}]
+required_level = 10
+required_class = "synthetic_conduit"

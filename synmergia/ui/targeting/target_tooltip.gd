@@ -3,6 +3,8 @@
 class_name TargetTooltip
 extends Control
 
+const CharacterData := preload("res://core/schemas/character_data.gd")
+
 var _interaction_layer: InteractionLayer
 var _current_target_id: String = ""
 var _current_entity_type: int = 0
@@ -200,17 +202,32 @@ func _refresh_tooltip() -> void:
 	if not target:
 		return
 	
-	_header_label.text = target.display_name
+	# Check if this is a GM player
+	var is_gm_player: bool = false
+	var char_data = target.node.get("character_data") if target.node else null
+	if char_data and char_data.has("is_gm"):
+		is_gm_player = char_data.is_gm()
+	elif target.node and target.node.has("class_id"):
+		is_gm_player = CharacterData.is_gm_class(target.node.get("class_id"))
 	
-	# Set color based on entity type
-	_header_label.add_theme_color_override("font_color", _get_name_color(target.entity_type))
+	# Build display name with GM prefix
+	var display_name: String = target.display_name
+	if is_gm_player:
+		display_name = "[GM] " + display_name
+	
+	_header_label.text = display_name
+	
+	# Set color based on entity type (gold for GM players)
+	_header_label.add_theme_color_override("font_color", _get_name_color(target.entity_type, is_gm_player))
 	
 	# Entity type info
 	var type_str: String = TargetingManager.entity_type_to_string(target.entity_type)
+	if is_gm_player:
+		type_str = "⭐ GAME MASTER"
 	_info_label.text = type_str
 	
 	# Status
-	_status_label.text = _get_status_text(target)
+	_status_label.text = _get_status_text(target, is_gm_player)
 	
 	# Update action buttons
 	_update_action_buttons_from_schema(target.schema_id)
@@ -221,7 +238,9 @@ func _refresh_tooltip() -> void:
 	else:
 		_level_label.text = ""
 
-func _get_name_color(entity_type: int) -> Color:
+func _get_name_color(entity_type: int, is_gm: bool = false) -> Color:
+	if is_gm:
+		return Color(1.0, 0.84, 0.0)  # Gold for GM players
 	match entity_type:
 		Entity.EntityType.PLAYER: return Color(0.3, 0.7, 1.0)    # Blue
 		Entity.EntityType.ENEMY: return Color(1.0, 0.3, 0.3)    # Red
@@ -230,10 +249,12 @@ func _get_name_color(entity_type: int) -> Color:
 		Entity.EntityType.TELEPORT: return Color(0.6, 0.3, 1.0) # Purple
 		_: return Color(1.0, 1.0, 1.0)
 
-func _get_status_text(target: TargetingManager.TargetInfo) -> String:
+func _get_status_text(target: TargetingManager.TargetInfo, is_gm: bool = false) -> String:
 	match target.entity_type:
 		Entity.EntityType.PLAYER:
 			var online_val = target.node.get("is_online") if target.node else null
+			if is_gm:
+				return "● Online ⭐"
 			return "● Online" if online_val else "○ Offline"
 		Entity.EntityType.ENEMY:
 			if target.node and target.node.has("health"):

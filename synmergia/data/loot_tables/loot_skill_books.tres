@@ -1,0 +1,114 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_skill_books"
+name = "Skill Book Drops"
+description = "Drops epic/legendary/mythic skill books. Attach to elite and boss enemies. Common and rare books are purchased at the Skill Academy."
+level = 1
+min_items_dropped = 0
+max_items_dropped = 2
+base_drop_chance = 0.05
+rarity_weights = {
+"COMMON": 1.0,
+"UNCOMMON": 0.5,
+"RARE": 0.2,
+"EPIC": 0.05,
+"LEGENDARY": 0.01,
+"MYTHIC": 0.002
+}
+entries = [
+{
+"item_id": "book_akkan_gravity_well_epic",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.04,
+"rarity_weight": 0.2,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_human_time_stop_epic",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.04,
+"rarity_weight": 0.2,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_synthetic_full_stall_epic",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.04,
+"rarity_weight": 0.2,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_human_time_warp_epic",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.04,
+"rarity_weight": 0.2,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_human_time_anchor_epic",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.03,
+"rarity_weight": 0.2,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_akkan_gravity_well_legendary",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.008,
+"rarity_weight": 0.05,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_human_time_stop_legendary",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.008,
+"rarity_weight": 0.05,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_synthetic_full_stall_legendary",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.008,
+"rarity_weight": 0.05,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_akkan_gravity_well_mythic",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.002,
+"rarity_weight": 0.01,
+"is_guaranteed": false,
+"conditions": []
+},
+{
+"item_id": "book_human_time_stop_mythic",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.002,
+"rarity_weight": 0.01,
+"is_guaranteed": false,
+"conditions": []
+}
+]
+currency_drops = []

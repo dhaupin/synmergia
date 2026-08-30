@@ -68,6 +68,82 @@ enum TargetType {
 @export var sfx_cast: String = ""
 @export var sfx_impact: String = ""
 
+# Skill Academy — skill book upgrades
+# Signature/ultimate skills should set upgradable = false in their .tres.
+# Skill Academy — skill book upgrades
+# Signature/ultimate skills should set upgradable = false in their .tres.
+@export var upgradable: bool = true
+
+## Charge system — set charge_time_max > 0 to enable charging.
+## charge_damage_curve: "linear" | "stepped" | "exponential"
+## Skills without charge_time_max are instant or have fixed cast_time.
+@export var charge_time_max: float = 0.0
+@export var charge_damage_curve: String = "linear"
+
+## Delta fields per upgrade tier (cumulative):
+##   damage_mult      — direct damage multiplier
+##   heal_mult        — heal amount multiplier
+##   range_mult       — targeting/cast range
+##   radius_mult      — AOE radius
+##   cooldown_mult    — lower = faster (multiplicative with gear CDR)
+##   cast_time_mult   — longer cast at higher tiers (higher = slower)
+##   duration_mult    — buff/DoT/HoT duration
+##   dot_mult         — damage-over-time tick multiplier
+##   hot_mult         — heal-over-time tick multiplier
+##   cost_mult        — mana/stamina cost multiplier (lower = cheaper)
+##   charge_mult      — max charge time multiplier (higher = longer charge window)
+##   max_targets_mult — additional targets at higher tiers
+##   unlocks[]        — mechanics unlocked at this tier
+##     { "type": "aoe", "radius": float }
+##     { "type": "knockback", "force": float }
+##     { "type": "shield", "amount_mult": float }
+##     { "type": "dot", "ticks": int, "damage_mult": float }
+##     { "type": "hot", "ticks": int, "heal_mult": float }
+##     { "type": "chain", "max_targets": int, "damage_mult": float }
+##     { "type": "armor_pierce", "percent": float }
+@export var upgrade_tiers: Array[Dictionary] = [
+	{"level": 1, "books_required": 4, "tier": "common",
+		"delta": {
+			"damage_mult": 1.12, "heal_mult": 1.12, "range_mult": 1.05,
+			"cooldown_mult": 0.95, "cast_time_mult": 1.05, "aoe_mult": 1.03,
+			"duration_mult": 1.05, "dot_mult": 1.12, "hot_mult": 1.12,
+			"cost_mult": 0.97, "charge_mult": 1.05, "max_targets_mult": 1.0
+		},
+		"unlocks": []},
+	{"level": 2, "books_required": 4, "tier": "rare",
+		"delta": {
+			"damage_mult": 1.24, "heal_mult": 1.24, "range_mult": 1.10,
+			"cooldown_mult": 0.90, "cast_time_mult": 1.10, "aoe_mult": 1.06,
+			"duration_mult": 1.10, "dot_mult": 1.24, "hot_mult": 1.24,
+			"cost_mult": 0.94, "charge_mult": 1.10, "max_targets_mult": 1.0
+		},
+		"unlocks": []},
+	{"level": 3, "books_required": 4, "tier": "epic",
+		"delta": {
+			"damage_mult": 1.36, "heal_mult": 1.36, "range_mult": 1.15,
+			"cooldown_mult": 0.85, "cast_time_mult": 1.15, "aoe_mult": 1.09,
+			"duration_mult": 1.15, "dot_mult": 1.36, "hot_mult": 1.36,
+			"cost_mult": 0.91, "charge_mult": 1.15, "max_targets_mult": 1.0
+		},
+		"unlocks": []},
+	{"level": 4, "books_required": 4, "tier": "legendary",
+		"delta": {
+			"damage_mult": 1.48, "heal_mult": 1.48, "range_mult": 1.20,
+			"cooldown_mult": 0.80, "cast_time_mult": 1.20, "aoe_mult": 1.12,
+			"duration_mult": 1.20, "dot_mult": 1.48, "hot_mult": 1.48,
+			"cost_mult": 0.88, "charge_mult": 1.20, "max_targets_mult": 1.0
+		},
+		"unlocks": []},
+	{"level": 5, "books_required": 4, "tier": "mythic",
+		"delta": {
+			"damage_mult": 1.60, "heal_mult": 1.60, "range_mult": 1.25,
+			"cooldown_mult": 0.75, "cast_time_mult": 1.25, "aoe_mult": 1.15,
+			"duration_mult": 1.25, "dot_mult": 1.60, "hot_mult": 1.60,
+			"cost_mult": 0.85, "charge_mult": 1.25, "max_targets_mult": 1.0
+		},
+		"unlocks": []}
+]
+
 var remaining_cooldown: float = 0.0
 
 func _init() -> void:
@@ -244,3 +320,52 @@ func get_info() -> Dictionary:
 		"cooldown": cooldown,
 		"range": range
 	}
+
+## Get the upgrade tier definition for upgrade level 1-5.
+func get_upgrade_tier(level: int) -> Dictionary:
+	for tier in upgrade_tiers:
+		if tier.get("level") == level:
+			return tier
+	return {}
+
+## Get cumulative deltas for upgrade levels 1 through upgrade_level.
+## Apply these multipliers to the base skill attributes.
+f
+## Get unlock entries that are active at upgrade_level.
+## Returns an array of unlock dictionaries (empty if not upgradable or no unlocks at this level).
+func get_unlocks_at_level(upgrade_level: int) -> Array:
+	if upgrade_level <= 0 or not upgradable:
+		return []
+	var result: Array = []
+	for tier in upgrade_tiers:
+		if tier.get("level") <= upgrade_level:
+			var unlocks: Array = tier.get("unlocks", [])
+			for unlock in unlocks:
+				result.append(unlock)
+	return result
+
+## Get the tier name (common/rare/epic/legendary/mythic) for a given upgrade level.
+func get_tier_name(upgrade_level: int) -> String:
+	for tier in upgrade_tiers:
+		if tier.get("level") == upgrade_level:
+			return tier.get("tier", "common")
+	return "common"
+
+func get_upgrade_deltas(upgrade_level: int) -> Dictionary:
+	var total := {
+		"damage_mult": 1.0, "heal_mult": 1.0, "range_mult": 1.0,
+		"cooldown_mult": 1.0, "cast_time_mult": 1.0, "aoe_mult": 1.0,
+		"duration_mult": 1.0, "dot_mult": 1.0, "hot_mult": 1.0,
+		"cost_mult": 1.0, "charge_mult": 1.0, "max_targets_mult": 1.0,
+		"chain_count": 0, "projectile_count": 0,
+		"effect_strength_mult": 1.0, "effect_duration_mult": 1.0
+	}
+	for tier in upgrade_tiers:
+		if tier.get("level") <= upgrade_level:
+			var d: Dictionary = tier.get("delta", {})
+			for key in d:
+				if key in ["chain_count", "projectile_count"]:
+					total[key] += int(d[key])  # additive for counts
+				else:
+					total[key] *= d[key]       # multiplicative for multipliers
+	return total

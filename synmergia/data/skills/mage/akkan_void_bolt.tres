@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "akkan_void_bolt"
+display_name = "Void Bolt"
+description = "Channels Akkan void energy into a bolt of destruction."
+skill_type = 1
+target_type = 0
+mana_cost = 15
+cooldown = 4.0
+cast_time = 1.0
+animation_duration = 1.0
+range = 30.0
+aoe_radius = 0.0
+effects = [{"type": "damage", "value": 25}]
+
+required_level = 5
+required_class = "akkan_rune"
+upgrade_tiers = [
+{
+"level": 1, "books_required": 4, "tier": "common",
+"delta": {"damage_mult": 1.08, "cooldown_mult": 0.95, "duration_mult": 1.05, "aoe_mult": 1.03, "cast_time_mult": 1.05, "cost_mult": 0.97},
+"unlocks": [],
+},
+{
+"level": 2, "books_required": 4, "tier": "rare",
+"delta": {"damage_mult": 1.18, "cooldown_mult": 0.90, "duration_mult": 1.10, "aoe_mult": 1.06, "cast_time_mult": 1.10, "cost_mult": 0.94},
+"unlocks": [],
+},
+{
+"level": 3, "books_required": 4, "tier": "epic",
+"delta": {"damage_mult": 1.30, "cooldown_mult": 0.85, "duration_mult": 1.15, "aoe_mult": 1.09, "cast_time_mult": 1.15, "cost_mult": 0.91},
+"unlocks": [],
+},
+{
+"level": 4, "books_required": 4, "tier": "legendary",
+"delta": {"damage_mult": 1.42, "cooldown_mult": 0.80, "duration_mult": 1.20, "aoe_mult": 1.12, "cast_time_mult": 1.20, "cost_mult": 0.88},
+"unlocks": [],
+},
+{
+"level": 5, "books_required": 4, "tier": "mythic",
+"delta": {"damage_mult": 1.54, "cooldown_mult": 0.75, "duration_mult": 1.25, "aoe_mult": 1.15, "cast_time_mult": 1.25, "cost_mult": 0.85},
+"unlocks": [],
+},
+]

@@ -13,6 +13,7 @@ enum NPCType {
 	INNKEEPER,     # Rest/respawn point
 	MERCHANT,      # General merchant
 	SPECIALIST,    # Skill trainer, etc.
+	SKILL_ACADEMY # Skill book vendor + upgrades + respec
 }
 
 ## Location Type (affects pricing)

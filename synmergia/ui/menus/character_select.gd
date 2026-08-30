@@ -72,10 +72,8 @@ func _on_play_pressed() -> void:
 	if selected_class_id == "" or selected_species_id == "":
 		return
 
-	# Server-side guard: GM class is admin-only.
-	if selected_class != null and selected_class.role == CharacterClass.Role.GM:
-		GameLog.warn("character_select: blocked GM class selection attempt")
-		return
+	# GM classes are filtered out by get_available_classes_for_species()
+	# so non-admins can never select them. Server should still validate.
 
 	var data := CharacterData.new(selected_species_id, selected_class_id, player_name)
 	data.species_data = selected_species
