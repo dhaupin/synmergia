@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "loot_skill_books"
 name = "Skill Book Drops"
-description = "Drops skill books across all tiers. Attach to boss/elite enemies. Common from wild spawns, higher tiers from bosses."
+description = "Drops epic/legendary/mythic skill books. Attach to elite and boss enemies. Common and rare books are purchased at the Skill Academy."
 level = 1
 min_items_dropped = 0
 max_items_dropped = 2
@@ -20,132 +20,6 @@ rarity_weights = {
 "MYTHIC": 0.002
 }
 entries = [
-{
-"item_id": "book_akkan_gravity_well_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.4,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_human_time_stop_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.4,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_synthetic_full_stall_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.4,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_human_haste_ally_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.4,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_akkan_regen_mitigate_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.3,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_human_aimed_shot_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.3,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_synthetic_overclock_ally_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.3,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_human_revive_ally_common",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.3,
-"rarity_weight": 1.0,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_akkan_gravity_well_rare",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.15,
-"rarity_weight": 0.5,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_human_time_stop_rare",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.15,
-"rarity_weight": 0.5,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_synthetic_full_stall_rare",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.15,
-"rarity_weight": 0.5,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_human_slow_field_rare",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.15,
-"rarity_weight": 0.5,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_akkan_void_bolt_rare",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.12,
-"rarity_weight": 0.5,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_synthetic_clock_surge_rare",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.12,
-"rarity_weight": 0.5,
-"is_guaranteed": false,
-"conditions": []
-},
 {
 "item_id": "book_akkan_gravity_well_epic",
 "min_quantity": 1,
