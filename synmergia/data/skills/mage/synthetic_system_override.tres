@@ -19,7 +19,7 @@ aoe_radius = 0.0
 effects = [{"type": "damage", "value": 20}, {"type": "debuff", "effect_id": "debuff_silence", "duration": 3.0}]
 
 required_level = 10
-required_class = "synthetic_sorcerer"
+required_class = "synthetic_psion"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",

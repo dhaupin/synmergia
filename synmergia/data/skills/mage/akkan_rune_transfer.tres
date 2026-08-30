@@ -5,17 +5,17 @@
 [resource]
 script = ExtResource("1")
 
-id = "synthetic_damage_shunt"
-display_name = "Damage Shunt"
-description = "Redistributes incoming damage across your shields instead of health. Absorbs a large amount of damage over time."
+id = "akkan_rune_transfer_attacker"
+display_name = "Rune Transfer (Attacker)"
+description = "Channels rune energy into an ally, transferring a portion of the caster's mana to them."
 skill_type = 5
-target_type = 2
-mana_cost = 22
-cooldown = 20.0
-cast_time = 0.0
-animation_duration = 0.3
-range = 0.0
-effects = [{"type": "buff", "effect_id": "buff_damage_shunt", "duration": 8.0}]
+target_type = 3
+mana_cost = 0
+cooldown = 25.0
+cast_time = 1.5
+animation_duration = 0.6
+range = 20.0
+effects = [{"type": "buff", "effect_id": "buff_rune_transfer", "duration": 0.0}]
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -44,5 +44,5 @@ upgrade_tiers = [
 },
 ]
 
-required_level = 10
-required_class = "synthetic_warden"
+required_level = 20
+required_class = "akkan_attacker"

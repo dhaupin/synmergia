@@ -5,20 +5,18 @@
 [resource]
 script = ExtResource("1")
 
-upgradable = false
-
-id = "akkan_rune_tremor"
-display_name = "Rune Tremor"
-description = "SIGNATURE Akkan technique. Unleashes a seismic wave of rune energy that travels outward, damaging and stunning all enemies in its path. Solo clear or party setup."
-skill_type = 3
-target_type = 5
-mana_cost = 55
-cooldown = 35.0
-cast_time = 1.5
-animation_duration = 0.8
-range = 30.0
-aoe_radius = 10.0
-effects = [{"type": "damage", "value": 70}, {"type": "debuff", "effect_id": "stun_common", "duration": 2.5}]
+id = "akkan_rune_chain_attacker"
+display_name = "Rune Chain (Attacker)"
+description = "Chains arcane runes between up to 3 enemies, dealing damage to each and slowing them."
+skill_type = 2
+target_type = 1
+mana_cost = 25
+cooldown = 8.0
+cast_time = 0.5
+animation_duration = 0.5
+range = 22.0
+max_targets = 3
+effects = [{"type": "damage", "value": 18}, {"type": "debuff", "effect_id": "slow_common", "duration": 3.0}]
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
@@ -48,4 +46,4 @@ upgrade_tiers = [
 ]
 
 required_level = 10
-required_class = "akkan_rune"
+required_class = "akkan_attacker"
