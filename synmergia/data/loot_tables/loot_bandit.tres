@@ -43,6 +43,22 @@ entries = [{
 "rarity_weight": 2.0,
 "is_guaranteed": false,
 "conditions": []
+}, {
+"item_id": "book_akkan_regen_mitigate_common",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.08,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "book_human_haste_ally_common",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.08,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
 }]
 currency_drops = [{
 "currency_id": "gold",
