@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CharacterClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mage"
+display_name = "Mage"
+description = "Masters of the arcane arts. Fragile but devastating at range with powerful spells and elemental attacks."
+role = 1
+resource_type = 1
+base_stats = {
+"agility": 8,
+"endurance": 6,
+"intelligence": 14,
+"strength": 4,
+"vitality": 6,
+"wisdom": 12
+}
+stat_growth = {
+"agility": 1,
+"endurance": 1,
+"intelligence": 3,
+"strength": 1,
+"vitality": 1,
+"wisdom": 2
+}
+base_resource = 100
+resource_per_level = 15
+resource_regen_per_second = 8.0
+resource_regen_combat = 3.0
+base_attack_power = 5
+attack_power_per_level = 2
+base_spell_power = 12
+spell_power_per_level = 4
+starting_skills = ["magic_missile", "arcane_shield"]
+skill_tree_unlocks = {
+5: ["fireball"],
+10: ["frost_nova"],
+15: ["arcane_barrage"],
+20: ["chain_lightning"]
+}
+can_use_melee_weapons = false
+can_use_ranged_weapons = true
+can_use_staves = true
+can_use_armor = {
+"cloth": true,
+"leather": false,
+"mail": false,
+"plate": false
+}
+model_override = ""
+default_weapon_path = ""
+class_specific_animation_set = "mage"

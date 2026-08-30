@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arcane_barrage"
+display_name = "Arcane Barrage"
+description = "Channels raw arcane energy for 3 seconds, unleashing a rapid barrage of arcane bolts at the target."
+icon_path = ""
+skill_type = 7
+target_type = 0
+mana_cost = 50
+stamina_cost = 0.0
+health_cost = 0
+cooldown = 20.0
+cast_time = 3.0
+animation_duration = 3.0
+recovery_time = 0.5
+can_interrupt = false
+uses_gcd = true
+range = 20.0
+aoe_radius = 0.0
+targeted_aoe_radius = 0.0
+max_targets = 1
+effects = [{
+"type": "damage",
+"value": 80
+}]
+required_level = 15
+required_class = "mage"
+required_stance = ""
+vfx_cast = ""
+vfx_impact = ""
+sfx_cast = ""
+sfx_impact = ""
