@@ -431,18 +431,18 @@ This is what the user meant by "we would be golden."
 Sessions B1-B5 (from Part 1) plus:
 
 ### Session B6 — Materialized intersection tables
-- `core/orchestrator/composite_table.gd` — LRU cache of (axis_combo) → entity_set
-- `core/orchestrator/materializer.gd` — on_entity_update, on_query
+- `labs/multi-iso/srv/composite_table.gd` — LRU cache of (axis_combo) → entity_set
+- `labs/multi-iso/srv/materializer.gd` — on_entity_update, on_query
 - Test: 10K entities, 1000 hot combos, verify hit rate
 
 ### Session B7 — LOD pyramid
-- `core/orchestrator/lod_manager.gd` — promote/demote regions
-- `core/orchestrator/lod_state.gd` — LOD 0/1/2/3 representations
+- `labs/multi-iso/srv/lod_manager.gd` — promote/demote regions
+- `labs/multi-iso/srv/lod_state.gd` — LOD 0/1/2/3 representations
 - Test: 100 regions, 90 hot, 9 warm, 1 cold, verify memory profile
 
 ### Session B8 — Predictive prefetch
-- `core/orchestrator/predictor.gd` — Markov chain over player transitions
-- `core/orchestrator/prefetcher.gd` — promote predicted regions
+- `labs/multi-iso/srv/predictor.gd` — Markov chain over player transitions
+- `labs/multi-iso/srv/prefetcher.gd` — promote predicted regions
 - Test: 1000 player movements, verify prediction accuracy
 
 ### Session B9 — Performance budget

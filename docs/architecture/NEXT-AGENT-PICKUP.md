@@ -58,46 +58,54 @@ the state tree but are otherwise independent.
 ## Repo layout
 
 ```
-synmergia/
-├── core/
-│   ├── autoload/      # 30+ autoloads (the source of the cascade)
-│   ├── components/    # HealthComponent, CombatComponent, etc.
-│   ├── community/     # CommunityGovernance
-│   ├── entities/      # Entity base class
-│   ├── events/        # event_hub.gd (EventBus)
-│   ├── futures/       # PLANNED: independent primitives for the frame
-│   │   ├── math/      # NSC-9, icosahedral, quasicrystal (B-1)
-│   │   ├── kv/        # LRU, content_hash, state_tree (A-3, B-6)
-│   │   ├── srv/       # markov, predictor, composite_table, LOD (B-6/7/8)
-│   │   └── db/        # snapshot_store, migrations (A-3)
-│   ├── schemas/       # Item, EnemyData, TargetSchema, etc.
-│   ├── services/      # 30+ services (consume primitives from futures/)
-│   ├── targeting/     # TargetingManager
-│   └── ui/            # UIManager
-├── data/              # .tres files (factions, species, zones, items, ...)
-├── entities/          # Player, Enemy, NPC concrete entities
-├── scenes/            # Main scene
-├── scripts/           # state.gd, state_machine.gd
-├── ui/
-│   ├── admin/         # admin_dashboard, admin_toolbar
-│   ├── community/     # voting_ui
-│   ├── components/    # cooldown_bar, action_menu, tooltip
-│   ├── islands/       # THE POC — placeholder, registry, manager
-│   ├── menus/         # main_menu
-│   ├── player/        # report_dialog, player_target_tooltip
-│   ├── respawn/       # respawn_ui
-│   ├── social/        # guild/party/trade UIs
-│   └── targeting/     # target_frame
-├── tests/             # test_islands.gd (19 tests, cross-cutting)
-├── docs/architecture/ # 7 design docs
-├── project.godot      # autoload list lives here
-└── AUDIT.md           # session log
-
-../
-├── .gitignore         # .godot/, *.uid, tools/ all ignored
+.
+├── synmergia/         # the Godot 4.7.2 project
+│   ├── core/
+│   │   ├── autoload/      # 30+ autoloads (the source of the cascade)
+│   │   ├── components/    # HealthComponent, CombatComponent, etc.
+│   │   ├── community/     # CommunityGovernance
+│   │   ├── entities/      # Entity base class
+│   │   ├── events/        # event_hub.gd (EventBus)
+│   │   ├── schemas/       # Item, EnemyData, TargetSchema, etc.
+│   │   ├── services/      # 30+ services (consume primitives from /labs)
+│   │   ├── targeting/     # TargetingManager
+│   │   └── ui/            # UIManager
+│   ├── data/              # .tres files (factions, species, zones, items, ...)
+│   ├── entities/          # Player, Enemy, NPC concrete entities
+│   ├── scenes/            # Main scene
+│   ├── scripts/           # state.gd, state_machine.gd
+│   ├── ui/
+│   │   ├── admin/         # admin_dashboard, admin_toolbar
+│   │   ├── community/     # voting_ui
+│   │   ├── components/    # cooldown_bar, action_menu, tooltip
+│   │   ├── islands/       # THE POC — placeholder, registry, manager
+│   │   ├── menus/         # main_menu
+│   │   ├── player/        # report_dialog, player_target_tooltip
+│   │   ├── respawn/       # respawn_ui
+│   │   ├── social/        # guild/party/trade UIs
+│   │   └── targeting/     # target_frame
+│   ├── tests/             # test_islands.gd (19 tests, cross-cutting)
+│   ├── docs/architecture/ # 7 design docs
+│   ├── project.godot      # autoload list lives here
+│   └── AUDIT.md           # session log
+├── labs/                # ROOT-LEVEL: experimental work, aside from game
+│   ├── README.md          # the convention
+│   └── multi-iso/         # PLANNED: the multi-iso frame work
+│       ├── math/          # NSC-9, icosahedral, quasicrystal (B-1)
+│       ├── kv/            # LRU, content_hash, state_tree (A-3, B-6)
+│       ├── srv/           # markov, predictor, composite_table, LOD, axes (B-6/7/8)
+│       ├── db/            # snapshot_store, migrations (A-3)
+│       └── tests/
+├── docs/                # ROOT-LEVEL: top-level docs (this file lives here)
+├── .gitignore           # .godot/, *.uid, tools/ all ignored
 └── tools/
-    └── godot          # Godot 4.7.2 binary (gitignored, ~150MB)
+    └── godot            # Godot 4.7.2 binary (gitignored, ~150MB)
 ```
+
+**Why `/labs` at the root?** The user wanted it aside from the
+Godot project so experimental code doesn't taint the stable game.
+The Godot folder stays clean. Labs work happens in `/labs`.
+Graduated work moves into the game.
 
 ---
 
@@ -106,16 +114,16 @@ synmergia/
 | File | Why it matters |
 |------|----------------|
 | `AUDIT.md` | The running log of what's been done, deferred, broken |
-| `AGENTS.md` (root) | Project-wide conventions, naming, services list |
+| `AGENTS.md` (repo root) | Project-wide conventions, naming, services list |
 | `docs/architecture/NEXT-AGENT-PICKUP.md` | This file |
 | `docs/architecture/islands-builds-godot.md` | The Islands design |
 | `docs/architecture/unified-nsc9-islands-builds.md` | The unified design (mark as exploration) |
 | `docs/architecture/nsc9-honest-evaluation.md` | Why we demoted most of the unified design (revised 2026-08-30) |
 | `docs/architecture/multi-iso-frame.md` | The multi-iso orchestrator (Part 1: the basic pattern) |
 | `docs/architecture/multi-iso-lod-prediction.md` | Part 2: LOD + materialized + prediction (the golden state) |
-| `docs/architecture/futures-organization.md` | Independent primitives in `core/futures/` (the frame staging area) |
+| `docs/architecture/labs-organization.md` | Independent primitives in `labs/multi-iso/` (the frame staging area) |
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
-| `synmergia/core/futures/README.md` | In-tree convention for primitives |
+| `labs/README.md` | In-tree convention for labs (root-level) |
 | `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
 | `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
 | `synmergia/ui/islands/island_manager.gd` | Mount orchestrator |
