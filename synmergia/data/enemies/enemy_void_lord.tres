@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "void_lord"
+display_name = "Void Lord"
+description = "A transcended being of pure temporal distortion. Drop rates for rare skill books are dramatically increased."
+enemy_type = 4
+level = 60
+faction = "hostile"
+health = 8000
+mana = 500
+stamina = 200
+strength = 80
+agility = 40
+intelligence = 100
+vitality = 120
+attack_power = 150
+spell_power = 200
+armor = 100
+resistance = 80
+attack_range = 40.0
+attack_speed = 0.5
+move_speed = 3.5
+aggro_range = 20.0
+chase_range = 50.0
+wander_range = 15.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = true
+is_social = false
+loot_table_id = "loot_skill_books"
+gold_min = 500
+gold_max = 1000
+xp_reward = 5000
+skills = []
+model_path = ""
+icon_path = ""
+scale = 2.0
+animation_set = "void"
+respawn_time = 3600.0
+despawn_time = 0.0
+difficulty_modifier = 3.0
