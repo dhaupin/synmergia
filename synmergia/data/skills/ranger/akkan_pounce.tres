@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "pounce"
+display_name = "Pounce"
+description = "Leaps at a target and strikes, dealing massive melee damage and briefly stunning."
+skill_type = 1
+target_type = 0
+mana_cost = 22
+cooldown = 8.0
+cast_time = 0.0
+animation_duration = 0.5
+range = 8.0
+effects = [{"type": "damage", "value": 45}, {"type": "debuff", "effect_id": "stun_common", "duration": 1.0}]
+required_level = 1
+required_class = "akkan_ranger"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "rune_ward"
+display_name = "Rune Ward"
+description = "Places a protective rune on an ally that absorbs damage and reflects a portion back to attackers."
+skill_type = 5
+target_type = 3
+mana_cost = 28
+cooldown = 15.0
+cast_time = 0.6
+animation_duration = 0.5
+range = 20.0
+effects = [{"type": "buff", "effect_id": "buff_rune_ward", "duration": 10.0}]
+required_level = 5
+required_class = "akkan_rune"

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "stealth_vanish"
+display_name = "Vanish"
+description = "Complete removal from enemy awareness. Zero detection radius. Breaks only on taking direct damage."
+category = 0
+effect_type = 3
+duration = 8.0
+stealth_type = 3
+break_on_damage = true
+break_on_action = false
+detection_radius = 0.0
+can_refresh = false

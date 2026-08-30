@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "hex"
+display_name = "Hex"
+description = "Places a debilitating curse on an enemy, slowing movement and reducing damage output."
+skill_type = 5
+target_type = 0
+mana_cost = 25
+cooldown = 12.0
+cast_time = 0.6
+animation_duration = 0.5
+range = 20.0
+effects = [{"type": "debuff", "effect_id": "debuff_hex", "duration": 6.0}]
+required_level = 10
+required_class = "akkan_shaman"

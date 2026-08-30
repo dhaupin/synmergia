@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "human_enchant"
+display_name = "Enchanter"
+description = "Human arcane specialist. Weaves raw mana into destructive bolts and protective enchantments. Excels at burst damage and buffing allies."
+role = 3
+resource_type = 1
+base_stats = {"strength": 5, "agility": 6, "vitality": 6, "intelligence": 14, "wisdom": 12, "endurance": 7}
+stat_growth = {"strength": 1, "agility": 1, "vitality": 1, "intelligence": 3, "wisdom": 2, "endurance": 1}
+base_resource = 120
+resource_per_level = 14
+resource_regen_per_second = 5.0
+resource_regen_combat = 2.5
+base_attack_power = 5
+attack_power_per_level = 1
+base_spell_power = 14
+spell_power_per_level = 4
+starting_skills = ["arcane_bolt"]
+skill_tree_unlocks = {5: ["mana_shield"], 10: ["enchant_weapon"], 15: ["shatter"], 20: ["mana_surge"], 25: ["catalyst"]}
+can_use_melee_weapons = false
+can_use_ranged_weapons = false
+can_use_staves = true
+can_use_armor = {"cloth": true, "leather": true, "mail": false, "plate": false}

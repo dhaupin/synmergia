@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "akkan_rune"
+display_name = "Runesmith"
+description = "Akkan rune specialist. Inscribes explosive sigils that detonate on command. Ground-targeted area damage and protective wards for allies."
+role = 3
+resource_type = 1
+base_stats = {"strength": 8, "agility": 5, "vitality": 8, "intelligence": 12, "wisdom": 10, "endurance": 8}
+stat_growth = {"strength": 2, "agility": 1, "vitality": 2, "intelligence": 2, "wisdom": 1, "endurance": 1}
+base_resource = 110
+resource_per_level = 13
+resource_regen_per_second = 4.5
+resource_regen_combat = 2.0
+base_attack_power = 6
+attack_power_per_level = 2
+base_spell_power = 12
+spell_power_per_level = 3
+starting_skills = ["rune_strike"]
+skill_tree_unlocks = {5: ["rune_ward"], 10: ["rune_chain"], 15: ["exploding_rune"], 20: ["rune_transfer"], 25: ["rune_tremor"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = false
+can_use_staves = true
+can_use_armor = {"cloth": true, "leather": true, "mail": true, "plate": false}

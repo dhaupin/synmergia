@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "synthetic_remote"
+display_name = "Operative"
+description = "Synthetic signal specialist. Exploits system vulnerabilities from extreme range. Packets, firewalls, and process termination. Devastating at range with utility for allies."
+role = 3
+resource_type = 1
+base_stats = {"strength": 5, "agility": 14, "vitality": 6, "intelligence": 12, "wisdom": 8, "endurance": 5}
+stat_growth = {"strength": 1, "agility": 3, "vitality": 1, "intelligence": 2, "wisdom": 1, "endurance": 1}
+base_resource = 100
+resource_per_level = 12
+resource_regen_per_second = 4.0
+resource_regen_combat = 2.0
+base_attack_power = 4
+attack_power_per_level = 1
+base_spell_power = 13
+spell_power_per_level = 3
+starting_skills = ["pulse_beam"]
+skill_tree_unlocks = {5: ["system_shield"], 10: ["packet_flood"], 15: ["firewall"], 20: ["redirect"], 25: ["system_crash_remote"]}
+can_use_melee_weapons = false
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {"cloth": true, "leather": true, "mail": false, "plate": false}

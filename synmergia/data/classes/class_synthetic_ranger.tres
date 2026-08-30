@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "synthetic_ranger"
+display_name = "Infiltrator"
+description = "Synthetic infiltration unit. Advanced stealth protocols and precision targeting. Vanish for complete removal from aggro. Stealth at 3 levels. All classes have long and short range."
+role = 2
+resource_type = 1
+base_stats = {"strength": 6, "agility": 14, "vitality": 7, "intelligence": 8, "wisdom": 5, "endurance": 6}
+stat_growth = {"strength": 1, "agility": 3, "vitality": 1, "intelligence": 2, "wisdom": 1, "endurance": 1}
+base_resource = 90
+resource_per_level = 11
+resource_regen_per_second = 4.0
+resource_regen_combat = 2.0
+base_attack_power = 10
+attack_power_per_level = 3
+base_spell_power = 6
+spell_power_per_level = 2
+starting_skills = ["ping_scan"]
+skill_tree_unlocks = {5: ["backdoor"], 10: ["stealth_vanish"], 15: ["aimed_shot"], 20: ["multi_shot"], 25: ["stealth_deep"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {"cloth": false, "leather": true, "mail": true, "plate": false}

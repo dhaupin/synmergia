@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "chain_heal"
+display_name = "Chain Heal"
+description = "Healing wave that bounces between up to 3 allies, each bounce reducing in power."
+skill_type = 5
+target_type = 3
+mana_cost = 40
+cooldown = 8.0
+cast_time = 0.6
+animation_duration = 0.5
+range = 25.0
+max_targets = 3
+effects = [{"type": "heal", "value": 30}]
+required_level = 15
+required_class = "akkan_shaman"
