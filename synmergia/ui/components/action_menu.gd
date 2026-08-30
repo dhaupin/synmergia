@@ -8,6 +8,7 @@ var _menu_panel: PanelContainer
 var _menu_items: VBoxContainer
 var _target_id: String = ""
 var _target_type: int = 0
+var _npc_data: NPCData = null
 var _item_buttons: Array = []
 
 ## Touch support
@@ -54,9 +55,14 @@ func _setup_ui() -> void:
 	_menu_items.name = "MenuItems"
 	_menu_panel.add_child(_menu_items)
 
-func show_menu(position: Vector2, target_id: String, target_type: int) -> void:
+## Show the action menu for an NPC, with NPC-specific action filtering.
+func show_menu_for_npc(position: Vector2, target_id: String, npc_data: NPCData) -> void:
+	show_menu(position, target_id, Entity.EntityType.NPC, npc_data)
+
+func show_menu(position: Vector2, target_id: String, target_type: int, npc_data: NPCData = null) -> void:
 	_target_id = target_id
 	_target_type = target_type
+	_npc_data = npc_data
 	
 	_populate_menu()
 	
@@ -71,6 +77,21 @@ func show_menu(position: Vector2, target_id: String, target_type: int) -> void:
 		_menu_panel.global_position.y = viewport_size.y - menu_size.y - 10
 	
 	show()
+
+func _filter_npc_actions(actions: Array, npc_data: NPCData) -> Array:
+	var filtered := []
+	for action in actions:
+		var id: String = action.get("id", "")
+		match id:
+			"skill_academy":
+				if npc_data.npc_type == NPCData.NPCType.SKILL_ACADEMY:
+					filtered.append(action)
+			"bank":
+				# Bank is available on generic NPCs too, no filtering needed
+				filtered.append(action)
+			_:
+				filtered.append(action)
+	return filtered
 
 func _populate_menu() -> void:
 	# Clear existing items
@@ -106,6 +127,7 @@ func _get_actions_for_type(target_type: int) -> Array:
 				{"id": "trade", "text": "Trade", "icon": "💱"},
 				{"id": "quest", "text": "Quests", "icon": "📜"},
 				{"id": "bank", "text": "Bank", "icon": "🏦"}
+{				{"id": "skill_academy", "text": "Skill Academy", "icon": "📖"}
 			]
 		3:  # Entity.EntityType.LOOT
 			actions = [
