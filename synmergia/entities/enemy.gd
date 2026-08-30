@@ -17,6 +17,7 @@ func _ready() -> void:
 	entity_type = EntityType.ENEMY
 	relation = Relation.HOSTILE
 	controller_type = ControllerType.HOSTILE_AI
+	add_to_group("enemies")
 
 	if enemy_data:
 		_load_from_data()
