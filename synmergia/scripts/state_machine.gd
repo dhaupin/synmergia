@@ -3,6 +3,8 @@
 class_name StateMachine
 extends Node
 
+const State = preload("res://scripts/state.gd")
+
 signal state_changed(from: String, to: String)
 signal state_entered(state_name: String)
 signal state_exited(state_name: String)

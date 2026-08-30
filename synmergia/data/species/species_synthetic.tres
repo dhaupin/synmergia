@@ -32,7 +32,7 @@ available_skin_tones = [
 	Color(0.3, 0.4, 0.5, 1),     # Steel blue
 	Color(0.5, 0.3, 0.5, 1),     # Amethyst
 	Color(0.2, 0.6, 0.4, 1),     # Emerald
-	Color(0.8, 0.6, 0.2, 1)      # Gold
+	Color(0.8, 0.6, 0.2, 1),     # Gold
 ]
 available_hair_colors = []  # No hair
 available_eye_colors = [

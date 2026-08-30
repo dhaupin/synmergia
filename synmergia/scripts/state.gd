@@ -2,6 +2,7 @@
 class_name State
 extends Node
 
+const StateMachine = preload("res://scripts/state_machine.gd")
 var state_machine: StateMachine
 
 func enter(_data: Dictionary = {}) -> void:
