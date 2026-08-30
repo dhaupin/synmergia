@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CharacterClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "synthetic_warrior"
+display_name = "Warrior"
+description = "Synthetic combat unit. Combines precision algorithms with overwhelming force. Surgically efficient — every strike calculated, every movement optimized. Mana-powered energy blade techniques."
+role = 2
+resource_type = 1
+base_stats = {
+"agility": 12,
+"endurance": 8,
+"intelligence": 10,
+"strength": 10,
+"vitality": 8,
+"wisdom": 8
+}
+stat_growth = {
+"agility": 2,
+"endurance": 1,
+"intelligence": 2,
+"strength": 2,
+"vitality": 1,
+"wisdom": 1
+}
+base_resource = 100
+resource_per_level = 12
+resource_regen_per_second = 6.0
+resource_regen_combat = 3.0
+base_attack_power = 10
+attack_power_per_level = 3
+base_spell_power = 5
+spell_power_per_level = 2
+starting_skills = ["energy_strike", "overclock"]
+skill_tree_unlocks = {
+5: ["hack_pulse"],
+10: ["plasma_cutter"],
+15: ["nanite_swarm"],
+20: ["system_crash"]
+}
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {
+"cloth": true,
+"leather": true,
+"mail": true,
+"plate": false
+}
+model_override = ""
+default_weapon_path = ""
+class_specific_animation_set = "synthetic_warrior"
