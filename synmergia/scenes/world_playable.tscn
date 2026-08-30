@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scenes/world_playable.gd" id="0"]
 [ext_resource type="Script" path="res://entities/player/player_controller.gd" id="1"]
@@ -6,6 +6,13 @@
 [ext_resource type="Script" path="res://entities/enemy.gd" id="3"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_slime.tres" id="4"]
 [ext_resource type="Script" path="res://core/components/health_component.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/state_machine.gd" id="6"]
+[ext_resource type="Script" path="res://entities/player/states/idle.gd" id="7"]
+[ext_resource type="Script" path="res://entities/player/states/run.gd" id="8"]
+[ext_resource type="Script" path="res://entities/player/states/jump.gd" id="9"]
+[ext_resource type="Script" path="res://entities/player/states/fall.gd" id="10"]
+[ext_resource type="Resource" path="res://data/enemies/enemy_wolf.tres" id="11"]
+[ext_resource type="Resource" path="res://data/enemies/enemy_bandit.tres" id="12"]
 
 [sub_resource type="StandardMaterial3D" id="SubResource_floor_mat"]
 albedo_color = Color(0.35, 0.55, 0.25, 1)
@@ -26,6 +33,28 @@ height = 1.2
 albedo_color = Color(0.2, 0.75, 0.3, 1)
 metallic = 0.0
 roughness = 0.7
+
+[sub_resource type="BoxMesh" id="SubResource_wolf_mesh"]
+size = Vector3(1.2, 0.8, 2.0)
+
+[sub_resource type="StandardMaterial3D" id="SubResource_wolf_mat"]
+albedo_color = Color(0.45, 0.45, 0.5, 1)
+metallic = 0.0
+roughness = 0.8
+
+[sub_resource type="BoxShape3D" id="SubResource_wolf_hitbox"]
+size = Vector3(1.2, 0.8, 2.0)
+
+[sub_resource type="BoxMesh" id="SubResource_bandit_mesh"]
+size = Vector3(0.8, 1.8, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="SubResource_bandit_mat"]
+albedo_color = Color(0.4, 0.3, 0.2, 1)
+metallic = 0.0
+roughness = 0.8
+
+[sub_resource type="BoxShape3D" id="SubResource_bandit_hitbox"]
+size = Vector3(0.8, 1.8, 0.6)
 
 [node name="WorldPlayable" type="Node3D"]
 script = ExtResource("0")
@@ -63,9 +92,19 @@ material_override = SubResource("SubResource_floor_mat")
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Player"]
 
 [node name="StateMachine" type="Node" parent="Player"]
+script = ExtResource("6")
 
 [node name="Idle" type="Node" parent="Player/StateMachine"]
-script = ExtResource("1")
+script = ExtResource("7")
+
+[node name="Run" type="Node" parent="Player/StateMachine"]
+script = ExtResource("8")
+
+[node name="Jump" type="Node" parent="Player/StateMachine"]
+script = ExtResource("9")
+
+[node name="Fall" type="Node" parent="Player/StateMachine"]
+script = ExtResource("10")
 
 [node name="CameraPivot" type="Marker3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
@@ -118,3 +157,49 @@ shape = SubResource("SubResource_slime_hitbox")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="SlimeB"]
 material_override = SubResource("SubResource_slime_mat")
 mesh = SubResource("SubResource_slime_mesh")
+
+# ── WOLF ────────────────────────────────────────────────────────────────
+
+[node name="Wolf" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.4, 6)
+script = ExtResource("3")
+enemy_data = ExtResource("11")
+display_name = "Grey Wolf"
+starting_health = 55
+loot_factory_class = "loot_wolf"
+
+[node name="HealthComponent" type="Node" parent="Wolf"]
+script = ExtResource("5")
+max_health = 55
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Wolf"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Wolf/StaticBody3D"]
+shape = SubResource("SubResource_wolf_hitbox")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Wolf"]
+material_override = SubResource("SubResource_wolf_mat")
+mesh = SubResource("SubResource_wolf_mesh")
+
+# ── BANDIT ──────────────────────────────────────────────────────────────
+
+[node name="Bandit" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.9, 3)
+script = ExtResource("3")
+enemy_data = ExtResource("12")
+display_name = "Bandit"
+starting_health = 90
+loot_factory_class = "loot_bandit"
+
+[node name="HealthComponent" type="Node" parent="Bandit"]
+script = ExtResource("5")
+max_health = 90
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Bandit"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bandit/StaticBody3D"]
+shape = SubResource("SubResource_bandit_hitbox")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Bandit"]
+material_override = SubResource("SubResource_bandit_mat")
+mesh = SubResource("SubResource_bandit_mesh")
