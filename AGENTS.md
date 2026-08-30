@@ -258,6 +258,28 @@ Items with:
 - `soulbound`, `bind_on_pickup`, `bind_on_equip`
 - `unique`, `stack_size`, `rarity`
 
+### GM Classes
+Three admin-only classes hidden from normal character selection:
+- `gm_akkan` (Akkan species)
+- `gm_human` (Human species)
+- `gm_synthetic` (Synthetic species)
+
+All have `role = 0` (Role.GM).
+
+**GM Visibility:**
+- Character selection: GM classes filtered out for non-admins
+- Target tooltip: `[GM]` prefix + gold name color + `⭐ GAME MASTER` badge
+- Chat: `[GM]` prefix + gold color (#FFD700) on all messages
+- Party UI: `⭐` icon next to GM names
+- In-world: Gold floating star above GM heads (GMIndicator component)
+
+**Key methods:**
+```gdscript
+CharacterData.is_gm_class(class_id_or_CharacterClass) -> bool
+character_data.is_gm() -> bool
+CharacterData.play_accepted(class_id, account_level) -> {allowed, reason}
+```
+
 ---
 
 ## Important Patterns
