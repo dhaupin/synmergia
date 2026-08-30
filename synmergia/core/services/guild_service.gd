@@ -86,672 +86,672 @@ signal alliance_invite_declined(alliance_id: String, to_guild_id: String)
 signal alliance_invite_expired(alliance_id: String, to_guild_id: String)
 
 func _ready() -> void:
-				GameLog.info("GuildService: Ready")
+	GameLog.info("GuildService: Ready")
 
 ## Create a new guild
 func create_guild(name: String, tag: String, leader_id: String) -> String:
 				# QoS: Rate limit guild creation
-				if not QoSService.rate_limit(leader_id, "guild"):
-								GameLog.debug("GuildService: Rate limited guild creation for %s" % leader_id)
-								return ""
+	if not QoSService.rate_limit(leader_id, "guild"):
+		GameLog.debug("GuildService: Rate limited guild creation for %s" % leader_id)
+		return ""
 				
-				if _player_guilds.has(leader_id):
-								GameLog.warn("GuildService: Player %s already in a guild" % leader_id)
-								return ""
+	if _player_guilds.has(leader_id):
+		GameLog.warn("GuildService: Player %s already in a guild" % leader_id)
+		return ""
 				
 				# Security: Validate guild name
-				var name_validation := SecurityService.validate_channel_name(name)
-				if not name_validation.valid:
-								GameLog.warn("GuildService: Invalid guild name '%s': %s" % [name, name_validation.reason])
-								return ""
+	var name_validation := SecurityService.validate_channel_name(name)
+	if not name_validation.valid:
+		GameLog.warn("GuildService: Invalid guild name '%s': %s" % [name, name_validation.reason])
+		return ""
 
 				# Validate name and tag
-				if name.length() > MAX_GUILD_NAME_LENGTH or name.length() < 3:
-								GameLog.warn("GuildService: Invalid guild name length")
-								return ""
+	if name.length() > MAX_GUILD_NAME_LENGTH or name.length() < 3:
+		GameLog.warn("GuildService: Invalid guild name length")
+		return ""
 				
-				if tag.length() > GUILD_TAG_LENGTH or tag.length() < 2:
-								GameLog.warn("GuildService: Invalid guild tag length")
-								return ""
+	if tag.length() > GUILD_TAG_LENGTH or tag.length() < 2:
+		GameLog.warn("GuildService: Invalid guild tag length")
+		return ""
 				
-				var guild_id := "guild_%s_%d" % [tag.to_lower(), Time.get_ticks_msec()]
+	var guild_id := "guild_%s_%d" % [tag.to_lower(), Time.get_ticks_msec()]
 				
-				var guild := {
-								"id": guild_id,
-								"name": name,
-								"tag": tag.to_upper(),
-								"leader_id": leader_id,
-								"members": [{
-												"id": leader_id,
-												"rank": GuildRank.GUILDMASTER,
-												"joined_at": Time.get_unix_time_from_system()
-								}],
-								"ranks": _get_default_ranks(),
-								"rank_permissions": _rank_permissions.duplicate(),
-								"info": {
-												"description": "",
-												"level": 1,
-												"experience": 0,
-												"gold": 0,
-												"created_at": Time.get_unix_time_from_system()
-								},
-								"settings": {
-												"min_invite_rank": GuildRank.RECRUIT,
-												"public_applications": true,
-												"allow_alts": true
-								},
-								"alliance_id": "",
-								"notice": "",
-								"motd": "Welcome to the guild!"
-				}
+	var guild := {
+	"id": guild_id,
+	"name": name,
+	"tag": tag.to_upper(),
+	"leader_id": leader_id,
+	"members": [{
+	"id": leader_id,
+	"rank": GuildRank.GUILDMASTER,
+	"joined_at": Time.get_unix_time_from_system()
+	}],
+	"ranks": _get_default_ranks(),
+	"rank_permissions": _rank_permissions.duplicate(),
+	"info": {
+	"description": "",
+	"level": 1,
+	"experience": 0,
+	"gold": 0,
+	"created_at": Time.get_unix_time_from_system()
+	},
+	"settings": {
+	"min_invite_rank": GuildRank.RECRUIT,
+	"public_applications": true,
+	"allow_alts": true
+	},
+	"alliance_id": "",
+	"notice": "",
+	"motd": "Welcome to the guild!"
+	}
 				
-				_guilds[guild_id] = guild
-				_player_guilds[leader_id] = guild_id
+	_guilds[guild_id] = guild
+	_player_guilds[leader_id] = guild_id
 				
-				guild_created.emit(guild_id, name, leader_id)
-				GameLog.info("GuildService: Created guild %s (%s)" % [name, guild_id])
+	guild_created.emit(guild_id, name, leader_id)
+	GameLog.info("GuildService: Created guild %s (%s)" % [name, guild_id])
 				
-				return guild_id
+	return guild_id
 
 ## Get default ranks
 func _get_default_ranks() -> Dictionary:
-				return {
-								GuildRank.GUILDMASTER: "Guildmaster",
-								GuildRank.OFFICER: "Officer",
-								GuildRank.MEMBER: "Member",
-								GuildRank.RECRUIT: "Recruit"
-				}
+	return {
+	GuildRank.GUILDMASTER: "Guildmaster",
+	GuildRank.OFFICER: "Officer",
+	GuildRank.MEMBER: "Member",
+	GuildRank.RECRUIT: "Recruit"
+	}
 
 ## Disband a guild
 func disband_guild(leader_id: String) -> bool:
-				var guild_id := _player_guilds.get(leader_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(leader_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild or guild["leader_id"] != leader_id:
-								GameLog.warn("GuildService: Only guildmaster can disband")
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild or guild["leader_id"] != leader_id:
+		GameLog.warn("GuildService: Only guildmaster can disband")
+		return false
 				
 				# Leave alliance first
-				if guild["alliance_id"] != "":
-								leave_alliance(leader_id)
+	if guild["alliance_id"] != "":
+		leave_alliance(leader_id)
 				
 				# Remove all members
-				for member in guild["members"]:
-								_player_guilds.erase(member["id"])
+	for member in guild["members"]:
+		_player_guilds.erase(member["id"])
 				
 				# Clean up applications
-				_pending_applications.erase(guild_id)
+	_pending_applications.erase(guild_id)
 				
-				_guilds.erase(guild_id)
-				guild_disbanded.emit(guild_id)
-				GameLog.info("GuildService: Disbanded guild %s" % guild_id)
+	_guilds.erase(guild_id)
+	guild_disbanded.emit(guild_id)
+	GameLog.info("GuildService: Disbanded guild %s" % guild_id)
 				
-				return true
+	return true
 
 ## Invite player to guild
 func invite_player(inviter_id: String, target_id: String) -> bool:
 				# QoS: Rate limit guild invites (player notified by QoSService)
-				if not QoSService.rate_limit(inviter_id, "guild"):
-								return false
+	if not QoSService.rate_limit(inviter_id, "guild"):
+		return false
 				
 				# Security: Check if player is guild restricted
-				if SecurityService.is_restricted(inviter_id, "guild"):
-								_notify_player(inviter_id, "You are temporarily restricted from guild invites.")
-								return false
+	if SecurityService.is_restricted(inviter_id, "guild"):
+		_notify_player(inviter_id, "You are temporarily restricted from guild invites.")
+		return false
 				
-				if inviter_id == target_id:
-								return false
+	if inviter_id == target_id:
+		return false
 				
-				var guild_id := _player_guilds.get(inviter_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(inviter_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
 				
 				# Check if inviter has permission
-				var inviter_rank := _get_member_rank(guild, inviter_id)
-				if not _has_permission(inviter_rank, Permission.INVITE):
-								return false
+	var inviter_rank := _get_member_rank(guild, inviter_id)
+	if not _has_permission(inviter_rank, Permission.INVITE):
+		return false
 				
 				# Check guild size
-				if guild["members"].size() >= MAX_GUILD_SIZE:
-								return false
+	if guild["members"].size() >= MAX_GUILD_SIZE:
+		return false
 				
 				# Check if target is already in a guild
-				if _player_guilds.has(target_id):
-								return false
+	if _player_guilds.has(target_id):
+		return false
 				
 				# Create guild invite
-				var invite_id := str(_next_invite_id)
-				_next_invite_id += 1
-				_pending_guild_invites[invite_id] = {
-					"guild_id": guild_id,
-					"from_id": inviter_id,
-					"to_id": target_id,
-					"created_at": Time.get_unix_time_from_system(),
-					"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
-				}
-				guild_invite_sent.emit(guild_id, inviter_id, target_id)
-				GameLog.info("GuildService: %s invited %s to guild %s (invite_id: %s)" % [inviter_id, target_id, guild_id, invite_id])
+	var invite_id := str(_next_invite_id)
+	_next_invite_id += 1
+	_pending_guild_invites[invite_id] = {
+	"guild_id": guild_id,
+	"from_id": inviter_id,
+	"to_id": target_id,
+	"created_at": Time.get_unix_time_from_system(),
+	"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
+	}
+	guild_invite_sent.emit(guild_id, inviter_id, target_id)
+	GameLog.info("GuildService: %s invited %s to guild %s (invite_id: %s)" % [inviter_id, target_id, guild_id, invite_id])
 				
-				return true
+	return true
 
 ## Apply to join guild
 func apply_to_guild(player_id: String, guild_id: String) -> bool:
-				if _player_guilds.has(player_id):
-								return false
+	if _player_guilds.has(player_id):
+		return false
 				
-				if not _guilds.has(guild_id):
-								return false
+	if not _guilds.has(guild_id):
+		return false
 				
-				if not _pending_applications.has(guild_id):
-								_pending_applications[guild_id] = []
+	if not _pending_applications.has(guild_id):
+		_pending_applications[guild_id] = []
 				
 				# Check if already applied
-				var applications: Array = _pending_applications[guild_id]
-				for app in applications:
-								if app["id"] == player_id:
-												return false
+	var applications: Array = _pending_applications[guild_id]
+	for app in applications:
+		if app["id"] == player_id:
+			return false
 				
-				applications.append({
-								"id": player_id,
-								"applied_at": Time.get_unix_time_from_system(),
-								"message": ""
-				})
+	applications.append({
+	"id": player_id,
+	"applied_at": Time.get_unix_time_from_system(),
+	"message": ""
+	})
 				
-				GameLog.info("GuildService: %s applied to guild %s" % [player_id, guild_id])
-				return true
+	GameLog.info("GuildService: %s applied to guild %s" % [player_id, guild_id])
+	return true
 
 ## Accept application
 func accept_application(approver_id: String, applicant_id: String) -> bool:
-				var guild_id := _player_guilds.get(approver_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(approver_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
 				
 				# Check permission
-				var approver_rank := _get_member_rank(guild, approver_id)
-				if not _has_permission(approver_rank, Permission.INVITE):
-								return false
+	var approver_rank := _get_member_rank(guild, approver_id)
+	if not _has_permission(approver_rank, Permission.INVITE):
+		return false
 				
 				# Remove from applications
-				var applications: Array = _pending_applications.get(guild_id, [])
-				var removed := false
-				for i in range(applications.size()):
-								if applications[i]["id"] == applicant_id:
-												applications.remove_at(i)
-												removed = true
-												break
+	var applications: Array = _pending_applications.get(guild_id, [])
+	var removed := false
+	for i in range(applications.size()):
+		if applications[i]["id"] == applicant_id:
+			applications.remove_at(i)
+			removed = true
+			break
 				
-				if not removed:
-								return false
+	if not removed:
+		return false
 				
 				# Add to guild
-				return _add_member(guild_id, applicant_id, GuildRank.RECRUIT)
+	return _add_member(guild_id, applicant_id, GuildRank.RECRUIT)
 
 ## Add member to guild
 func _add_member(guild_id: String, player_id: String, rank: GuildRank) -> bool:
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
 				
-				if guild["members"].size() >= MAX_GUILD_SIZE:
-								return false
+	if guild["members"].size() >= MAX_GUILD_SIZE:
+		return false
 				
-				if _player_guilds.has(player_id):
-								return false
+	if _player_guilds.has(player_id):
+		return false
 				
-				guild["members"].append({
-								"id": player_id,
-								"rank": rank,
-								"joined_at": Time.get_unix_time_from_system()
-				})
+	guild["members"].append({
+	"id": player_id,
+	"rank": rank,
+	"joined_at": Time.get_unix_time_from_system()
+	})
 				
-				_player_guilds[player_id] = guild_id
-				player_joined_guild.emit(guild_id, player_id, rank)
+	_player_guilds[player_id] = guild_id
+	player_joined_guild.emit(guild_id, player_id, rank)
 				
-				return true
+	return true
 
 ## Remove member from guild
 func remove_member(remover_id: String, target_id: String) -> bool:
-				var guild_id := _player_guilds.get(remover_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(remover_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
 				
 				# Check if remover has kick permission or is removing self
-				var remover_rank := _get_member_rank(guild, remover_id)
-				if remover_id != target_id and not _has_permission(remover_rank, Permission.KICK):
-								return false
+	var remover_rank := _get_member_rank(guild, remover_id)
+	if remover_id != target_id and not _has_permission(remover_rank, Permission.KICK):
+		return false
 				
 				# Can't kick the guildmaster
-				var target_rank := _get_member_rank(guild, target_id)
-				if target_rank == GuildRank.GUILDMASTER:
-								return false
+	var target_rank := _get_member_rank(guild, target_id)
+	if target_rank == GuildRank.GUILDMASTER:
+		return false
 				
-				guild["members"].erase({"id": target_id})
-				_player_guilds.erase(target_id)
+	guild["members"].erase({"id": target_id})
+	_player_guilds.erase(target_id)
 				
-				if remover_id != target_id:
-								player_kicked.emit(guild_id, target_id, remover_id)
-				else:
-								player_left_guild.emit(guild_id, target_id, "Left guild")
+	if remover_id != target_id:
+		player_kicked.emit(guild_id, target_id, remover_id)
+	else:
+		player_left_guild.emit(guild_id, target_id, "Left guild")
 				
-				return true
+	return true
 
 ## Leave guild
 func leave_guild(player_id: String) -> bool:
-				return remove_member(player_id, player_id)
+	return remove_member(player_id, player_id)
 
 ## Change member rank
 func change_rank(changer_id: String, target_id: String, new_rank: GuildRank) -> bool:
-				var guild_id := _player_guilds.get(changer_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(changer_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
 				
-				var changer_rank := _get_member_rank(guild, changer_id)
+	var changer_rank := _get_member_rank(guild, changer_id)
 				
 				# Can only promote/demote to ranks at or below your own rank
-				if not _has_permission(changer_rank, Permission.PROMOTE if new_rank < changer_rank else Permission.DEMOTE):
-								return false
+	if not _has_permission(changer_rank, Permission.PROMOTE if new_rank < changer_rank else Permission.DEMOTE):
+		return false
 				
-				var old_rank := _get_member_rank(guild, target_id)
+	var old_rank := _get_member_rank(guild, target_id)
 				
 				# Can't change guildmaster rank
-				if old_rank == GuildRank.GUILDMASTER:
-								return false
+	if old_rank == GuildRank.GUILDMASTER:
+		return false
 				
 				# Update member
-				for member in guild["members"]:
-								if member["id"] == target_id:
-												member["rank"] = new_rank
-												rank_changed.emit(guild_id, target_id, old_rank, new_rank)
-												return true
+	for member in guild["members"]:
+		if member["id"] == target_id:
+			member["rank"] = new_rank
+			rank_changed.emit(guild_id, target_id, old_rank, new_rank)
+			return true
 				
-				return false
+	return false
 
 ## Transfer guild leadership
 func transfer_leadership(current_leader_id: String, new_leader_id: String) -> bool:
-				var guild_id := _player_guilds.get(current_leader_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(current_leader_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild or guild["leader_id"] != current_leader_id:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild or guild["leader_id"] != current_leader_id:
+		return false
 				
 				# Verify new leader is a member
-				var new_rank := _get_member_rank(guild, new_leader_id)
-				if new_rank == -1:
-								return false
+	var new_rank := _get_member_rank(guild, new_leader_id)
+	if new_rank == -1:
+		return false
 				
 				# Update leader
-				guild["leader_id"] = new_leader_id
+	guild["leader_id"] = new_leader_id
 				
 				# Update ranks
-				for member in guild["members"]:
-								if member["id"] == current_leader_id:
-												member["rank"] = GuildRank.OFFICER
-								elif member["id"] == new_leader_id:
-												member["rank"] = GuildRank.GUILDMASTER
+	for member in guild["members"]:
+		if member["id"] == current_leader_id:
+			member["rank"] = GuildRank.OFFICER
+		elif member["id"] == new_leader_id:
+			member["rank"] = GuildRank.GUILDMASTER
 				
-				leader_changed.emit(guild_id, current_leader_id, new_leader_id)
-				GameLog.info("GuildService: Leadership transferred from %s to %s" % [current_leader_id, new_leader_id])
+	leader_changed.emit(guild_id, current_leader_id, new_leader_id)
+	GameLog.info("GuildService: Leadership transferred from %s to %s" % [current_leader_id, new_leader_id])
 				
-				return true
+	return true
 
 ## Get member rank
 func _get_member_rank(guild: Dictionary, player_id: String) -> GuildRank:
-				for member in guild["members"]:
-								if member["id"] == player_id:
-												return member["rank"]
-				return -1
+	for member in guild["members"]:
+		if member["id"] == player_id:
+			return member["rank"]
+	return -1
 
 ## Check if player has permission
 func _has_permission(rank: GuildRank, permission: int) -> bool:
-				var perms = _rank_permissions.get(rank, 0)
-				return (perms & permission) != 0
+	var perms = _rank_permissions.get(rank, 0)
+	return (perms & permission) != 0
 
 ## Create alliance
 func create_alliance(leader_id: String, name: String) -> String:
-				var guild_id := _player_guilds.get(leader_id, "")
-				if guild_id == "":
-								return ""
+	var guild_id := _player_guilds.get(leader_id, "")
+	if guild_id == "":
+		return ""
 				
-				var guild := _guilds.get(guild_id)
-				if not guild or guild["leader_id"] != leader_id:
-								return ""
+	var guild := _guilds.get(guild_id)
+	if not guild or guild["leader_id"] != leader_id:
+		return ""
 				
 				# Check if already in alliance
-				if guild["alliance_id"] != "":
-								return ""
+	if guild["alliance_id"] != "":
+		return ""
 				
-				var alliance_id := "alliance_%d" % Time.get_ticks_msec()
+	var alliance_id := "alliance_%d" % Time.get_ticks_msec()
 				
-				_alliances[alliance_id] = {
-								"id": alliance_id,
-								"name": name,
-								"guild_ids": [guild_id]
-				}
+	_alliances[alliance_id] = {
+	"id": alliance_id,
+	"name": name,
+	"guild_ids": [guild_id]
+	}
 				
-				guild["alliance_id"] = alliance_id
-				alliance_created.emit(alliance_id, name, [guild_id])
-				GameLog.info("GuildService: Created alliance %s" % alliance_id)
+	guild["alliance_id"] = alliance_id
+	alliance_created.emit(alliance_id, name, [guild_id])
+	GameLog.info("GuildService: Created alliance %s" % alliance_id)
 				
-				return alliance_id
+	return alliance_id
 
 ## Invite guild to alliance
 func invite_to_alliance(inviter_id: String, target_guild_id: String) -> bool:
-				var guild_id := _player_guilds.get(inviter_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(inviter_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild or guild["leader_id"] != inviter_id:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild or guild["leader_id"] != inviter_id:
+		return false
 				
-				if guild["alliance_id"] == "":
-								return false
+	if guild["alliance_id"] == "":
+		return false
 				
-				var alliance: Dictionary = _alliances.get(guild["alliance_id"], {})
-				if alliance.is_empty():
-								return false
+	var alliance: Dictionary = _alliances.get(guild["alliance_id"], {})
+	if alliance.is_empty():
+		return false
 				
-				if alliance["guild_ids"].size() >= MAX_ALLIANCE_SIZE:
-								return false
+	if alliance["guild_ids"].size() >= MAX_ALLIANCE_SIZE:
+		return false
 				
 				# Create alliance invite
-				var invite_id := str(_next_alliance_invite_id)
-				_next_alliance_invite_id += 1
-				_pending_alliance_invites[invite_id] = {
-					"alliance_id": alliance["id"],
-					"from_guild_id": guild_id,
-					"to_guild_id": target_guild_id,
-					"created_at": Time.get_unix_time_from_system(),
-					"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
-				}
-				alliance_invite_sent.emit(alliance["id"], guild_id, target_guild_id)
-				GameLog.info("GuildService: Guild %s invited to alliance %s (invite_id: %s)" % [target_guild_id, alliance["id"], invite_id])
+	var invite_id := str(_next_alliance_invite_id)
+	_next_alliance_invite_id += 1
+	_pending_alliance_invites[invite_id] = {
+	"alliance_id": alliance["id"],
+	"from_guild_id": guild_id,
+	"to_guild_id": target_guild_id,
+	"created_at": Time.get_unix_time_from_system(),
+	"expires_at": Time.get_unix_time_from_system() + _INVITE_TIMEOUT_SECONDS
+	}
+	alliance_invite_sent.emit(alliance["id"], guild_id, target_guild_id)
+	GameLog.info("GuildService: Guild %s invited to alliance %s (invite_id: %s)" % [target_guild_id, alliance["id"], invite_id])
 				
-				return true
+	return true
 
 ## Join alliance
 func join_alliance(leader_id: String, alliance_id: String) -> bool:
-				var guild_id := _player_guilds.get(leader_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(leader_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild or guild["leader_id"] != leader_id:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild or guild["leader_id"] != leader_id:
+		return false
 				
-				if guild["alliance_id"] != "":
-								return false
+	if guild["alliance_id"] != "":
+		return false
 				
-				var alliance: Dictionary = _alliances.get(alliance_id, {})
-				if alliance.is_empty():
-								return false
+	var alliance: Dictionary = _alliances.get(alliance_id, {})
+	if alliance.is_empty():
+		return false
 				
-				if alliance["guild_ids"].size() >= MAX_ALLIANCE_SIZE:
-								return false
+	if alliance["guild_ids"].size() >= MAX_ALLIANCE_SIZE:
+		return false
 				
-				alliance["guild_ids"].append(guild_id)
-				guild["alliance_id"] = alliance_id
-				alliance_guild_joined.emit(alliance_id, guild_id)
+	alliance["guild_ids"].append(guild_id)
+	guild["alliance_id"] = alliance_id
+	alliance_guild_joined.emit(alliance_id, guild_id)
 				
-				return true
+	return true
 
 ## Leave alliance
 func leave_alliance(leader_id: String) -> bool:
-				var guild_id := _player_guilds.get(leader_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(leader_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild or guild["leader_id"] != leader_id:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild or guild["leader_id"] != leader_id:
+		return false
 				
-				var alliance_id := guild["alliance_id"]
-				if alliance_id == "":
-								return false
+	var alliance_id := guild["alliance_id"]
+	if alliance_id == "":
+		return false
 				
-				var alliance: Dictionary = _alliances.get(alliance_id, {})
-				if not alliance.is_empty():
-								alliance["guild_ids"].erase(guild_id)
+	var alliance: Dictionary = _alliances.get(alliance_id, {})
+	if not alliance.is_empty():
+		alliance["guild_ids"].erase(guild_id)
 								
 								# Disband if only one guild left
-								if alliance["guild_ids"].size() <= 1:
-												_alliances.erase(alliance_id)
-												alliance_disbanded.emit(alliance_id)
+		if alliance["guild_ids"].size() <= 1:
+			_alliances.erase(alliance_id)
+			alliance_disbanded.emit(alliance_id)
 												# Update remaining guild
-												for remaining_id in alliance["guild_ids"]:
-																var remaining_guild: Dictionary = _guilds.get(remaining_id, {})
-																if not remaining_guild.is_empty():
-																				remaining_guild["alliance_id"] = ""
+			for remaining_id in alliance["guild_ids"]:
+				var remaining_guild: Dictionary = _guilds.get(remaining_id, {})
+				if not remaining_guild.is_empty():
+					remaining_guild["alliance_id"] = ""
 								
-								alliance_guild_left.emit(alliance_id, guild_id)
+		alliance_guild_left.emit(alliance_id, guild_id)
 				
-				guild["alliance_id"] = ""
-				return true
+	guild["alliance_id"] = ""
+	return true
 
 ## Get guild by ID
 func get_guild(guild_id: String) -> Dictionary:
-				return _guilds.get(guild_id, {})
+	return _guilds.get(guild_id, {})
 
 ## Get player's guild
 func get_player_guild(player_id: String) -> Dictionary:
-				var guild_id := _player_guilds.get(player_id, "")
-				return get_guild(guild_id)
+	var guild_id := _player_guilds.get(player_id, "")
+	return get_guild(guild_id)
 
 ## Check if player is in a guild
 func is_in_guild(player_id: String) -> bool:
-				return _player_guilds.has(player_id)
+	return _player_guilds.has(player_id)
 
 ## Get guild roster
 func get_guild_roster(guild_id: String) -> Array:
-				var guild := _guilds.get(guild_id, {})
-				return guild.get("members", [])
+	var guild := _guilds.get(guild_id, {})
+	return guild.get("members", [])
 
 ## Set guild info
 func set_guild_info(leader_id: String, description: String) -> bool:
-				var guild_id := _player_guilds.get(leader_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(leader_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild or guild["leader_id"] != leader_id:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild or guild["leader_id"] != leader_id:
+		return false
 				
-				guild["info"]["description"] = description
-				guild_info_updated.emit(guild_id)
+	guild["info"]["description"] = description
+	guild_info_updated.emit(guild_id)
 				
-				return true
+	return true
 
 ## Set guild notice
 func set_guild_notice(leader_id: String, notice: String) -> bool:
-				var guild_id := _player_guilds.get(leader_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(leader_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
 				
-				var rank := _get_member_rank(guild, leader_id)
-				if not _has_permission(rank, Permission.MANAGE_NOTICES):
-								return false
+	var rank := _get_member_rank(guild, leader_id)
+	if not _has_permission(rank, Permission.MANAGE_NOTICES):
+		return false
 				
-				guild["notice"] = notice
-				guild_notice_updated.emit(guild_id, notice)
+	guild["notice"] = notice
+	guild_notice_updated.emit(guild_id, notice)
 				
-				return true
+	return true
 
 ## Set MOTD
 func set_guild_motd(leader_id: String, motd: String) -> bool:
-				var guild_id := _player_guilds.get(leader_id, "")
-				if guild_id == "":
-								return false
+	var guild_id := _player_guilds.get(leader_id, "")
+	if guild_id == "":
+		return false
 				
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
 				
-				var rank := _get_member_rank(guild, leader_id)
-				if not _has_permission(rank, Permission.MANAGE_NOTICES):
-								return false
+	var rank := _get_member_rank(guild, leader_id)
+	if not _has_permission(rank, Permission.MANAGE_NOTICES):
+		return false
 				
-				guild["motd"] = motd
-				guildMOTD_updated.emit(guild_id, motd)
+	guild["motd"] = motd
+	guildMOTD_updated.emit(guild_id, motd)
 				
-				return true
+	return true
 
 ## Get alliance info
 func get_alliance(alliance_id: String) -> Dictionary:
-				return _alliances.get(alliance_id, {})
+	return _alliances.get(alliance_id, {})
 
 ## Get guild's alliance
 func get_guild_alliance(guild_id: String) -> Dictionary:
-				var guild := _guilds.get(guild_id, {})
-				if guild.is_empty():
-								return {}
-				return get_alliance(guild.get("alliance_id", ""))
+	var guild := _guilds.get(guild_id, {})
+	if guild.is_empty():
+		return {}
+	return get_alliance(guild.get("alliance_id", ""))
 
 # ============ GUILD BANK ============
 
 ## Initialize guild bank
 func _init_guild_bank(guild: Dictionary) -> void:
-				if not guild.has("bank"):
-								guild["bank"] = {"gold": 0, "items": [], "logs": []}
-								guild["bank_tabs"] = [{"name": "Main", "size": 98, "unlocked": true}]
+	if not guild.has("bank"):
+		guild["bank"] = {"gold": 0, "items": [], "logs": []}
+		guild["bank_tabs"] = [{"name": "Main", "size": 98, "unlocked": true}]
 
 ## Get guild bank
 func get_guild_bank(guild_id: String) -> Dictionary:
-				var guild := _guilds.get(guild_id, {})
-				if guild.is_empty():
-								return {}
-				if not guild.has("bank"):
-								_init_guild_bank(guild)
-				return guild.get("bank", {})
+	var guild := _guilds.get(guild_id, {})
+	if guild.is_empty():
+		return {}
+	if not guild.has("bank"):
+		_init_guild_bank(guild)
+	return guild.get("bank", {})
 
 ## Deposit gold to guild bank
 func deposit_gold(player_id: String, amount: int) -> bool:
-				var guild_id := _player_guilds.get(player_id, "")
-				if guild_id == "":
-								return false
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
-				if not guild.has("bank"):
-								_init_guild_bank(guild)
-				guild["bank"]["gold"] += amount
-				_log_bank_transaction(guild, "deposit_gold", player_id, {"amount": amount})
-				GameLog.info("GuildService: %s deposited %d gold" % [player_id, amount])
-				return true
+	var guild_id := _player_guilds.get(player_id, "")
+	if guild_id == "":
+		return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
+	if not guild.has("bank"):
+		_init_guild_bank(guild)
+	guild["bank"]["gold"] += amount
+	_log_bank_transaction(guild, "deposit_gold", player_id, {"amount": amount})
+	GameLog.info("GuildService: %s deposited %d gold" % [player_id, amount])
+	return true
 
 ## Withdraw gold from guild bank
 func withdraw_gold(player_id: String, amount: int) -> bool:
-				var guild_id := _player_guilds.get(player_id, "")
-				if guild_id == "":
-								return false
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
-				if not guild.has("bank"):
-								_init_guild_bank(guild)
-				if guild["bank"]["gold"] < amount:
-								return false
-				guild["bank"]["gold"] -= amount
-				_log_bank_transaction(guild, "withdraw_gold", player_id, {"amount": amount})
-				return true
+	var guild_id := _player_guilds.get(player_id, "")
+	if guild_id == "":
+		return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
+	if not guild.has("bank"):
+		_init_guild_bank(guild)
+	if guild["bank"]["gold"] < amount:
+		return false
+	guild["bank"]["gold"] -= amount
+	_log_bank_transaction(guild, "withdraw_gold", player_id, {"amount": amount})
+	return true
 
 ## Deposit item to guild bank
 func deposit_item(player_id: String, item_id: String, quantity: int, tab_index: int = 0) -> bool:
-				var guild_id := _player_guilds.get(player_id, "")
-				if guild_id == "":
-								return false
-				var guild := _guilds.get(guild_id)
-				if not guild:
-								return false
-				if not guild.has("bank"):
-								_init_guild_bank(guild)
-				var items: Array = guild["bank"]["items"]
-				for item in items:
-								if item["item_id"] == item_id:
-												item["quantity"] += quantity
-												_log_bank_transaction(guild, "deposit_item", player_id, {"item_id": item_id, "quantity": quantity})
-												return true
-				items.append({"item_id": item_id, "quantity": quantity, "deposited_by": player_id, "deposited_at": Time.get_unix_time_from_system(), "tab": tab_index})
-				_log_bank_transaction(guild, "deposit_item", player_id, {"item_id": item_id, "quantity": quantity})
-				return true
+	var guild_id := _player_guilds.get(player_id, "")
+	if guild_id == "":
+		return false
+	var guild := _guilds.get(guild_id)
+	if not guild:
+		return false
+	if not guild.has("bank"):
+		_init_guild_bank(guild)
+	var items: Array = guild["bank"]["items"]
+	for item in items:
+		if item["item_id"] == item_id:
+			item["quantity"] += quantity
+			_log_bank_transaction(guild, "deposit_item", player_id, {"item_id": item_id, "quantity": quantity})
+			return true
+	items.append({"item_id": item_id, "quantity": quantity, "deposited_by": player_id, "deposited_at": Time.get_unix_time_from_system(), "tab": tab_index})
+	_log_bank_transaction(guild, "deposit_item", player_id, {"item_id": item_id, "quantity": quantity})
+	return true
 
 ## Withdraw item from guild bank
 func withdraw_item(player_id: String, item_id: String, quantity: int) -> bool:
-				var guild_id := _player_guilds.get(player_id, "")
-				if guild_id == "":
-								return false
-				var guild := _guilds.get(guild_id)
-				if not guild or not guild.has("bank"):
-								return false
-				var items: Array = guild["bank"]["items"]
-				for i in range(items.size()):
-								var item: Dictionary = items[i]
-								if item["item_id"] == item_id and item["quantity"] >= quantity:
-												item["quantity"] -= quantity
-												if item["quantity"] <= 0:
-																items.remove_at(i)
-												_log_bank_transaction(guild, "withdraw_item", player_id, {"item_id": item_id, "quantity": quantity})
-												return true
-				return false
+	var guild_id := _player_guilds.get(player_id, "")
+	if guild_id == "":
+		return false
+	var guild := _guilds.get(guild_id)
+	if not guild or not guild.has("bank"):
+		return false
+	var items: Array = guild["bank"]["items"]
+	for i in range(items.size()):
+		var item: Dictionary = items[i]
+		if item["item_id"] == item_id and item["quantity"] >= quantity:
+			item["quantity"] -= quantity
+			if item["quantity"] <= 0:
+				items.remove_at(i)
+			_log_bank_transaction(guild, "withdraw_item", player_id, {"item_id": item_id, "quantity": quantity})
+			return true
+	return false
 
 ## Get bank items for a tab
 func get_bank_items(guild_id: String, tab_index: int = 0) -> Array:
-				var guild := _guilds.get(guild_id, {})
-				if guild.is_empty():
-								return []
-				var items: Array = guild.get("bank", {}).get("items", [])
-				var tab_items: Array = []
-				for item in items:
-								if item.get("tab", 0) == tab_index:
-												tab_items.append(item)
-				return tab_items
+	var guild := _guilds.get(guild_id, {})
+	if guild.is_empty():
+		return []
+	var items: Array = guild.get("bank", {}).get("items", [])
+	var tab_items: Array = []
+	for item in items:
+		if item.get("tab", 0) == tab_index:
+			tab_items.append(item)
+	return tab_items
 
 ## Get bank gold
 func get_bank_gold(guild_id: String) -> int:
-				var guild := _guilds.get(guild_id, {})
-				if guild.is_empty():
-								return 0
-				return guild.get("bank", {}).get("gold", 0)
+	var guild := _guilds.get(guild_id, {})
+	if guild.is_empty():
+		return 0
+	return guild.get("bank", {}).get("gold", 0)
 
 ## Get bank logs
 func get_bank_logs(guild_id: String, limit: int = 20) -> Array:
-				var guild := _guilds.get(guild_id, {})
-				if guild.is_empty():
-								return []
-				var logs: Array = guild.get("bank", {}).get("logs", [])
-				return logs.slice(max(0, logs.size() - limit), logs.size())
+	var guild := _guilds.get(guild_id, {})
+	if guild.is_empty():
+		return []
+	var logs: Array = guild.get("bank", {}).get("logs", [])
+	return logs.slice(max(0, logs.size() - limit), logs.size())
 
 ## Log bank transaction
 func _log_bank_transaction(guild: Dictionary, transaction_type: String, player_id: String, data: Dictionary) -> void:
-				if not guild.has("bank"):
-								return
-				var logs: Array = guild["bank"]["logs"]
-				logs.append({"type": transaction_type, "player_id": player_id, "data": data, "timestamp": Time.get_unix_time_from_system()})
-				while logs.size() > 100:
-								logs.pop_at(0)
+	if not guild.has("bank"):
+		return
+	var logs: Array = guild["bank"]["logs"]
+	logs.append({"type": transaction_type, "player_id": player_id, "data": data, "timestamp": Time.get_unix_time_from_system()})
+	while logs.size() > 100:
+		logs.pop_at(0)
 
 ## ============================================================================
 ## PLAYER NOTIFICATIONS
@@ -759,11 +759,11 @@ func _log_bank_transaction(guild: Dictionary, transaction_type: String, player_i
 
 ## Send notification to player
 func _notify_player(player_id: String, message: String) -> void:
-if NotificationService:
-NotificationService.send_to_player(
-player_id,
-message,
-NotificationService.NotificationType.WARNING,
-NotificationService.Priority.HIGH
-)
-GameLog.debug("GuildService: Notified %s: %s" % [player_id, message])
+	if NotificationService:
+		NotificationService.send_to_player(
+		player_id,
+		message,
+		NotificationService.NotificationType.WARNING,
+		NotificationService.Priority.HIGH
+	)
+	GameLog.debug("GuildService: Notified %s: %s" % [player_id, message])
