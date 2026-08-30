@@ -47,5 +47,5 @@ upgrade_tiers = [
 },
 ]
 
-required_level = 25
+required_level = 10
 required_class = "akkan_seer"

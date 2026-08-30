@@ -19,5 +19,5 @@ animation_duration = 1.0
 range = 0.0
 aoe_radius = 25.0
 effects = [{"type": "debuff", "effect_id": "debuff_vulnerability", "duration": 10.0}]
-required_level = 25
+required_level = 10
 required_class = "akkan_seer"
