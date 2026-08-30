@@ -15,6 +15,6 @@ cooldown = 90.0
 cast_time = 0.0
 animation_duration = 0.3
 range = 0.0
-effects = [{"type": "buff", "effect_id": "buff_last_stand", "duration": 5.0}, {"type": "debuff", "effect_id": "debuff_taunt_aoe", "duration": 5.0}]
+effects = [{"type": "buff", "effect_id": "buff_last_stand", "duration": 5.0}, {"type": "debuff", "effect_id": "debuff_aggro_horn", "duration": 5.0}]
 required_level = 25
 required_class = "human_guardian"

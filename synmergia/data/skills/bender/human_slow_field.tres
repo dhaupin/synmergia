@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "slow_field"
+display_name = "Slow Field"
+description = "Creates a temporal anomaly at the target location. All enemies inside are dramatically slowed."
+skill_type = 4
+target_type = 5
+mana_cost = 30
+cooldown = 15.0
+cast_time = 0.5
+animation_duration = 0.5
+range = 25.0
+aoe_radius = 8.0
+effects = [{"type": "debuff", "effect_id": "debuff_slow_field", "duration": 8.0}]
+required_level = 5
+required_class = "human_temporalist"

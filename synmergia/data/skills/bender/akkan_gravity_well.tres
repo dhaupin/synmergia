@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "gravity_well"
+display_name = "Gravity Well"
+description = "SIGNATURE Akkan technique. Creates a localized singularity. Enemies are pulled to the center and cannot move or act. Stuns, roots, and devastates enemy formations."
+skill_type = 4
+target_type = 5
+mana_cost = 75
+cooldown = 90.0
+cast_time = 1.0
+animation_duration = 0.7
+range = 30.0
+aoe_radius = 10.0
+effects = [{"type": "debuff", "effect_id": "root_common", "duration": 4.0}]
+required_level = 25
+required_class = "akkan_seer"

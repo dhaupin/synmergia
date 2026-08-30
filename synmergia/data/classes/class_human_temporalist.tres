@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "human_temporalist"
+display_name = "Temporalist"
+description = "Human time weaver. Manipulates the flow of time itself — slowing enemies, hastening allies, and warping space. Revives, teleports, and controls the pace of battle."
+role = 4
+resource_type = 1
+base_stats = {"strength": 5, "agility": 8, "vitality": 8, "intelligence": 14, "wisdom": 12, "endurance": 7}
+stat_growth = {"strength": 1, "agility": 1, "vitality": 1, "intelligence": 3, "wisdom": 2, "endurance": 1}
+base_resource = 130
+resource_per_level = 15
+resource_regen_per_second = 5.5
+resource_regen_combat = 2.5
+base_attack_power = 5
+attack_power_per_level = 1
+base_spell_power = 14
+spell_power_per_level = 4
+starting_skills = ["time_warp"]
+skill_tree_unlocks = {5: ["slow_field", "haste_ally"], 10: ["time_anchor"], 15: ["revive_ally"], 20: ["temporal_aura"], 25: ["time_stop"]}
+can_use_melee_weapons = false
+can_use_ranged_weapons = true
+can_use_staves = true
+can_use_armor = {"cloth": true, "leather": true, "mail": false, "plate": false}

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "clock_surge"
+display_name = "Clock Surge"
+description = "Overclocks the target processing cycles, dealing damage and slowing them."
+skill_type = 5
+target_type = 0
+mana_cost = 18
+cooldown = 6.0
+cast_time = 0.4
+animation_duration = 0.4
+range = 25.0
+effects = [{"type": "damage", "value": 20}, {"type": "debuff", "effect_id": "debuff_clock_surge", "duration": 5.0}]
+required_level = 1
+required_class = "synthetic_overclocker"

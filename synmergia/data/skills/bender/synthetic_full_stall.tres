@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "full_stall"
+display_name = "Full Stall"
+description = "SIGNATURE Synthetic technique. System-wide halt signal. All enemies freeze — no movement, no actions, no regeneration. Ultimate team setup."
+skill_type = 5
+target_type = 2
+mana_cost = 80
+cooldown = 120.0
+cast_time = 2.0
+animation_duration = 0.8
+range = 0.0
+aoe_radius = 25.0
+effects = [{"type": "debuff", "effect_id": "debuff_full_stall", "duration": 4.0}]
+required_level = 25
+required_class = "synthetic_overclocker"

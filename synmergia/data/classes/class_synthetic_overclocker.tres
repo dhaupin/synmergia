@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "synthetic_overclocker"
+display_name = "Overclocker"
+description = "Synthetic chronomancy unit. Manipulates system clocks and processing cycles. Slows enemy operations, accelerates ally throughput, and teleports team members through network space."
+role = 4
+resource_type = 1
+base_stats = {"strength": 6, "agility": 10, "vitality": 8, "intelligence": 14, "wisdom": 6, "endurance": 6}
+stat_growth = {"strength": 1, "agility": 2, "vitality": 1, "intelligence": 3, "wisdom": 1, "endurance": 1}
+base_resource = 120
+resource_per_level = 14
+resource_regen_per_second = 5.0
+resource_regen_combat = 2.5
+base_attack_power = 4
+attack_power_per_level = 1
+base_spell_power = 15
+spell_power_per_level = 4
+starting_skills = ["clock_surge"]
+skill_tree_unlocks = {5: ["tick_slow", "overclock_ally"], 10: ["warp_point"], 15: ["revive_ally"], 20: ["sync_aura"], 25: ["full_stall"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {"cloth": true, "leather": true, "mail": false, "plate": false}
