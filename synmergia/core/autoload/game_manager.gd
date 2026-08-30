@@ -20,6 +20,8 @@ var current_state: GameState = GameState.LOADING
 var previous_state: GameState = GameState.LOADING
 var is_paused: bool = false
 
+var selected_character_data: Resource = null
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	GameLog.info("GameManager initialized")
@@ -108,14 +110,9 @@ func _handle_character_select_state() -> void:
 func _handle_playing_state() -> void:
 	GameLog.info("Entering gameplay")
 	_initialize_world_services()
-	# Load the playable world scene
-	var world_scene := preload("res://scenes/world_playable.tscn")
-	if world_scene:
-		var world := world_scene.instantiate()
-		get_tree().root.add_child(world)
-		GameLog.info("World scene loaded")
-	else:
-		GameLog.warn("Could not load world scene")
+	# Load the playable world scene, replacing current scene
+	get_tree().change_scene_to_file("res://scenes/world_playable.tscn")
+	GameLog.info("World scene loaded")
 
 func _initialize_world_services() -> void:
 	# Only initialize once

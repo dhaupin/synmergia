@@ -14,8 +14,7 @@ func _ready() -> void:
 
 func _on_play_pressed() -> void:
 	print("Play button pressed")
-	# Skip character select for now — go straight to gameplay
-	GameManager.change_state(GameManager.GameState.PLAYING)
+	GameManager.change_state(GameManager.GameState.CHARACTER_SELECT)
 
 func _on_settings_pressed() -> void:
 	print("Settings button pressed")
