@@ -1,5 +1,19 @@
 # Unified Architecture: NSC-9 + Islands + Builds for Synmergia
 
+> **Status: EXPLORATION, NOT ADOPTION ROADMAP**
+>
+> This document records a design exploration. The Islands + Builds
+> parts are good and being adopted. The NSC-9 / Icosahedral /
+> Quasicrystal parts were evaluated honestly and **demoted** — see
+> [`nsc9-honest-evaluation.md`](./nsc9-honest-evaluation.md) for the
+> full reasoning and the revised migration plan.
+>
+> **TL;DR of the demotion:** Synmergia is an MMORPG with a real
+> database backend and a few thousand entities per shard, not a
+> distributed Git storage system with unbounded entity count. The
+> geometry is beautiful math but solves problems we don't have.
+> Keep content-hash for templates + saves, drop the rest.
+
 **Cross-pollinated from:**
 - [prestruct](https://github.com/dhaupin/prestruct) — static prerender + islands of interactivity
 - [vant/axolotl](https://github.com/dhaupin/vant/tree/axolotl) — icosahedral geometry, NSC-9 barcodes, quasicrystal storage, AI memory islands

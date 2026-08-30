@@ -1,0 +1,270 @@
+# Next Agent Pickup Guide
+
+**Last session:** 2026-08-29 / 2026-08-30 (OpenHands, west coast throttling)
+**Last push:** `3e942bb` on `main`, `origin/main`
+**Status:** Islands POC shipped (19/19 tests). Project still has 22
+class_name cascade errors (deferred). Most architecture decisions made.
+
+This document is the survival guide. Read this first, then the linked
+docs in order.
+
+---
+
+## TL;DR for the next agent
+
+Synmergia is a Godot 4.7.2 MMORPG engine. The previous session:
+
+1. Fixed 30+ parse errors across services, UI, and `.tres` files
+2. Built a working Islands POC (3 files + 19 passing tests)
+3. Wrote 4 design docs (`docs/architecture/`)
+4. Honest evaluation: dropped the icosahedral/NSC-9/quasicrystal
+   overengineering, kept the parts that actually pay off
+
+**Where to pick up:**
+- If the user wants to keep working on UI: **Session 2** (migrate
+  remaining UIPanels to islands)
+- If the user wants to keep working on infrastructure: **Session 4**
+  (content-hash for templates + saves)
+- If the user wants to keep working on the autoload race: finish
+  the shim approach in `autoload-race-solutions.md` (mostly
+  independent of the islands work)
+
+**The 22 cascade failures are still there.** They're non-fatal
+("Main menu loaded" still prints) but they pollute the log. Fix
+them with the shim approach when convenient. They're not blocking.
+
+---
+
+## Repo layout
+
+```
+synmergia/
+├── core/
+│   ├── autoload/      # 30+ autoloads (the source of the cascade)
+│   ├── components/    # HealthComponent, CombatComponent, etc.
+│   ├── community/     # CommunityGovernance
+│   ├── entities/      # Entity base class
+│   ├── events/        # event_hub.gd (EventBus)
+│   ├── schemas/       # Item, EnemyData, TargetSchema, etc.
+│   ├── services/      # 30+ services
+│   ├── targeting/     # TargetingManager
+│   └── ui/            # UIManager
+├── data/              # .tres files (factions, species, zones, items, ...)
+├── entities/          # Player, Enemy, NPC concrete entities
+├── scenes/            # Main scene
+├── scripts/           # state.gd, state_machine.gd
+├── ui/
+│   ├── admin/         # admin_dashboard, admin_toolbar
+│   ├── community/     # voting_ui
+│   ├── components/    # cooldown_bar, action_menu, tooltip
+│   ├── islands/       # THE POC — placeholder, registry, manager
+│   ├── menus/         # main_menu
+│   ├── player/        # report_dialog, player_target_tooltip
+│   ├── respawn/       # respawn_ui
+│   ├── social/        # guild/party/trade UIs
+│   └── targeting/     # target_frame
+├── tests/             # test_islands.gd (19 tests)
+├── docs/architecture/ # 4 design docs
+├── project.godot      # autoload list lives here
+└── AUDIT.md           # session log
+
+../
+├── .gitignore         # .godot/, *.uid, tools/ all ignored
+└── tools/
+    └── godot          # Godot 4.7.2 binary (gitignored, ~150MB)
+```
+
+---
+
+## Key files (read these first)
+
+| File | Why it matters |
+|------|----------------|
+| `AUDIT.md` | The running log of what's been done, deferred, broken |
+| `AGENTS.md` (root) | Project-wide conventions, naming, services list |
+| `docs/architecture/NEXT-AGENT-PICKUP.md` | This file |
+| `docs/architecture/islands-builds-godot.md` | The Islands design |
+| `docs/architecture/unified-nsc9-islands-builds.md` | The unified design (mark as exploration) |
+| `docs/architecture/nsc9-honest-evaluation.md` | Why we demoted most of the unified design |
+| `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
+| `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
+| `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
+| `synmergia/ui/islands/island_manager.gd` | Mount orchestrator |
+| `synmergia/tests/test_islands.gd` | 19 passing smoke tests |
+| `synmergia/core/autoload/type_registry.gd` | Preload table (modified but uncommitted if any) |
+
+---
+
+## How to run the tests
+
+```bash
+cd /workspace/project/synmergia
+chmod +x tools/godot
+tools/godot --headless --path synmergia --script res://tests/test_islands.gd
+```
+
+Expected output: `=== Results: 19 passed, 0 failed ===` at the end.
+
+The 22 "Could not find type" cascade errors are still in the log
+but they don't fail the test. They're noise from a separate problem
+(see autoload-race-solutions.md).
+
+---
+
+## What is the Islands POC?
+
+Three files in `synmergia/ui/islands/`:
+
+1. **`island_placeholder.gd`** (`class_name IslandPlaceholder`)
+   - Drop into any scene
+   - Set `island_name` (e.g. "inventory") and `load_strategy` (eager/visible/idle)
+   - Set `island_scene` (optional override)
+   - On `_init`, adds itself to group `"island_placeholders"`
+
+2. **`island_registry.gd`** (`class_name IslandRegistry`)
+   - Static const map: `ISLANDS = { "name": PackedScene, ... }`
+   - 8 existing scenes wired in, 12 future ones pre-commented
+   - Static helpers: `resolve(name)`, `has(name)`, `all_names()`,
+     `islands_triggered_by(text)` (for chat hydration)
+
+3. **`island_manager.gd`** (`class_name IslandManager`)
+   - `mount_placeholders(root: Node) -> int`
+   - Scans root for placeholders, replaces each with the registered scene
+   - Strategies: eager (immediate), visible (when in viewport), idle (3 frames later)
+   - Emits `island_mounted` / `island_skipped` signals
+   - Idempotent (mounted placeholders skipped on second pass)
+
+Plus the test file (`synmergia/tests/test_islands.gd`) — 19 tests
+covering registry, placeholder lifecycle, manager mount/skip paths.
+
+---
+
+## What's NOT done (pending)
+
+From `AUDIT.md` and session notes:
+
+1. **`guild_service.gd`, `party_service.gd`, `chat_service.gd`** still
+   have `:=` inference warnings (treated as errors by parser). 8
+   warnings × multiple lines. Need explicit type annotations.
+
+2. **Autoload class_name shim layer.** The pending item is
+   `core/type_shims.gd` — `const Entity = preload(...)` etc. for
+   ~22 cascade-affected types. This closes the parse-time race
+   without restructuring the autoload list.
+
+3. **`inventory_component.gd` unindent** — pre-existing issue, deferred.
+
+4. **`GameConfig.*` → `_get_config_*` helpers** — large migration,
+   pre-existing pending item. Not blocking.
+
+5. **UIPanel → Island migration (Session 2 of revised plan).**
+   Currently 8-12 panels still extend UIPanel. Convert each to a
+   PackedScene with IslandPlaceholder as root. Add to registry.
+
+6. **Content-hash for templates (Session 4 of revised plan).**
+   `core/geometry/content_hash.gd` — SHA-256 helper. Apply to
+   item templates, loot rolls, save verification.
+
+7. **Build pipeline (Session 3 of revised plan).**
+   `tools/build.sh` — `godot --headless --export-pack data data.pck`.
+   CI on changes to `synmergia/data/`.
+
+---
+
+## What's been DEMOTED (do not implement)
+
+The following are in `unified-nsc9-islands-builds.md` but should NOT
+be implemented (see `nsc9-honest-evaluation.md` for why):
+
+- `core/geometry/nsc9.gd` — 12-digit barcode ID format
+- `core/geometry/icosahedral.gd` — icosahedral projection for shards
+- `core/geometry/quasicrystal.gd` — file-paths-from-content scheme
+- The "fragment across 5 backends" / "Penrose tiling" / "shard by
+  icosahedral vertex" patterns
+
+If the user asks to implement these, point them to the honest
+evaluation first. We agreed not to.
+
+---
+
+## How to add a new Island (cookbook)
+
+User: "I want a settings panel to mount when the player opens settings."
+
+1. Create the panel scene at `res://ui/panels/settings_panel.tscn`
+   with a script that extends Control (NOT UIPanel — see Session 2
+   migration).
+
+2. In `synmergia/ui/islands/island_registry.gd`, add:
+   ```gdscript
+   const SETTINGS := preload("res://ui/panels/settings_panel.tscn")
+   ```
+   And in the `ISLANDS` dict:
+   ```gdscript
+   "settings": SETTINGS,
+   ```
+   (Add to TRIGGERS too if you want chat-command hydration.)
+
+3. In the scene where you want it, add an IslandPlaceholder:
+   ```gdscript
+   [node name="SettingsPlaceholder" type="Node" parent="UI"]
+   script = ExtResource("island_placeholder.gd")
+   island_name = "settings"
+   load_strategy = "idle"
+   ```
+
+4. Call `IslandManager.mount_placeholders(scene_root)` after scene
+   load (typically in `GameManager._ready()` or
+   `ZoneManager._on_zone_loaded()`).
+
+5. To pre-load on chat input:
+   ```gdscript
+   IslandManager.hydrate_for_input("/settings")
+   ```
+
+6. Run the tests: `tools/godot --headless --path synmergia --script res://tests/test_islands.gd`.
+   All 19 should still pass.
+
+---
+
+## What the user wants (personality notes)
+
+- **Frequent small pushes.** Push after every meaningful change, not
+  in big batches. Rate limits are real; small commits are easy to
+  rebase / recover.
+- **Go slow during west coast prime time** (~6-10pm Pacific).
+  OpenRouter throttling has caused real issues this session.
+- **Honest about uncertainty.** "I don't wanna pressure if it's not
+  an efficient angle for real world use" — when the user pushes back
+  on a design, take it seriously. Don't defend an idea past its
+  useful life. The honest evaluation doc came directly from this.
+- **Cross-pollinates from other projects.** User maintains
+  `prestruct` (React SEO prerender) and `vant` (Node AI memory
+  system). Pattern reuse is encouraged. Cross-project ideas are
+  welcome but should be evaluated honestly before adoption.
+- **Uses "raw dog" to mean "unframeworked / build-it-yourself."**
+  Anti-framework, pro-direct-code. When in doubt, fewer abstractions
+  win.
+
+---
+
+## If you crash, the user has said:
+
+> "Please ensure this is all documented in case we crash, so next
+> agent picks up."
+
+So this doc exists. If you (the next agent) are reading this
+because the previous session crashed, the most important things
+are:
+
+1. **Last push is at `3e942bb`.** That's the working state.
+2. **Tests pass at that commit.** Run them to confirm.
+3. **22 cascade failures are noise, not blockers.** Don't chase
+   them before shipping features.
+4. **The honest evaluation is binding.** Don't re-implement the
+   icosahedral/NSC-9 stuff without the user explicitly asking
+   for it after reading the evaluation.
+
+If anything is unclear, read `AUDIT.md` (the running log) and
+`docs/architecture/` (the design space). The git history has the
+actual diffs.
