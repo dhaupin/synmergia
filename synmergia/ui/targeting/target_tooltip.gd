@@ -3,6 +3,8 @@
 class_name TargetTooltip
 extends Control
 
+const CharacterData := preload("res://core/schemas/character_data.gd")
+
 var _interaction_layer: InteractionLayer
 var _current_target_id: String = ""
 var _current_entity_type: int = 0
