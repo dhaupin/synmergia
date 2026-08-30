@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "damage_shunt"
+display_name = "Damage Shunt"
+description = "Redistributes incoming damage across your shields instead of health. Absorbs a large amount of damage over time."
+skill_type = 5
+target_type = 2
+mana_cost = 22
+cooldown = 20.0
+cast_time = 0.0
+animation_duration = 0.3
+range = 0.0
+effects = [{"type": "buff", "effect_id": "buff_damage_shunt", "duration": 8.0}]
+required_level = 10
+required_class = "synthetic_warden"

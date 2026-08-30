@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "shield_wall"
+display_name = "Shield Wall"
+description = "Raises your shield, dramatically reducing all damage taken for a short duration."
+skill_type = 5
+target_type = 2
+mana_cost = 20
+cooldown = 18.0
+cast_time = 0.0
+animation_duration = 0.3
+range = 0.0
+effects = [{"type": "buff", "effect_id": "buff_shield_wall", "duration": 6.0}]
+required_level = 10
+required_class = "human_guardian"

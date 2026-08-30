@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "charge"
+display_name = "Shield Charge"
+description = "Charges forward, slamming into enemies in your path and knocking them back."
+skill_type = 1
+target_type = 5
+mana_cost = 18
+cooldown = 10.0
+cast_time = 0.0
+animation_duration = 0.5
+range = 15.0
+aoe_radius = 3.0
+effects = [{"type": "damage", "value": 25}, {"type": "debuff", "effect_id": "knockback_common", "duration": 1.0}]
+required_level = 15
+required_class = "human_guardian"

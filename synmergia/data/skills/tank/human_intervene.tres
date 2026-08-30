@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "intervene"
+display_name = "Intervene"
+description = "Dashes to an ally and absorbs a portion of the damage they would take for a short time."
+skill_type = 1
+target_type = 3
+mana_cost = 25
+cooldown = 20.0
+cast_time = 0.0
+animation_duration = 0.4
+range = 20.0
+effects = [{"type": "buff", "effect_id": "buff_intervene", "duration": 5.0}]
+required_level = 20
+required_class = "human_guardian"

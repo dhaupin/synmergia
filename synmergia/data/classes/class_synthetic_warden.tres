@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "synthetic_warden"
+display_name = "Warden"
+description = "Synthetic defensive matrix. Locks down threat vectors and redistributes incoming damage. Agile positioning, deaggro, and counter-exploits. Aggro and protection."
+role = 1
+resource_type = 1
+base_stats = {"strength": 8, "agility": 10, "vitality": 12, "intelligence": 8, "wisdom": 6, "endurance": 10}
+stat_growth = {"strength": 2, "agility": 2, "vitality": 2, "intelligence": 2, "wisdom": 1, "endurance": 2}
+base_resource = 70
+resource_per_level = 9
+resource_regen_per_second = 2.5
+resource_regen_combat = 1.2
+base_attack_power = 10
+attack_power_per_level = 3
+base_spell_power = 6
+spell_power_per_level = 2
+starting_skills = ["threat_matrix"]
+skill_tree_unlocks = {5: ["system_lockdown", "warden_taunt"], 10: ["damage_shunt"], 15: ["fortify"], 20: ["deaggro_pulse"], 25: ["emergency_override"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {"cloth": false, "leather": true, "mail": true, "plate": true}

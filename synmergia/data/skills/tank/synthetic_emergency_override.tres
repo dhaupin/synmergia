@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "emergency_override"
+display_name = "Emergency Override"
+description = "SIGNATURE Synthetic technique. Triggers a full-system emergency override. All party members become immune to aggro, receive massive damage reduction, and generate high threat on all enemies in range. Panic button that saves raids."
+skill_type = 5
+target_type = 2
+mana_cost = 50
+cooldown = 90.0
+cast_time = 0.3
+animation_duration = 0.5
+range = 0.0
+aoe_radius = 25.0
+effects = [{"type": "buff", "effect_id": "buff_emergency_override", "duration": 5.0}, {"type": "debuff", "effect_id": "debuff_taunt_aoe", "duration": 5.0}]
+required_level = 25
+required_class = "synthetic_warden"
