@@ -19,5 +19,5 @@ animation_duration = 1.0
 range = 20.0
 aoe_radius = 6.0
 effects = [{"type": "damage", "value": 200}, {"type": "debuff", "effect_id": "debuff_holy_wound", "duration": 6.0}]
-required_level = 25
+required_level = 10
 required_class = "human_cleric"

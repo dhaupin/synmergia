@@ -46,4 +46,4 @@ upgrade_tiers = [
 ]
 
 required_level = 15
-required_class = "synthetic_remote"
+required_class = "synthetic_conduit"

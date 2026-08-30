@@ -45,4 +45,4 @@ upgrade_tiers = [
 ]
 
 required_level = 20
-required_class = "synthetic_remote"
+required_class = "synthetic_overclocker"

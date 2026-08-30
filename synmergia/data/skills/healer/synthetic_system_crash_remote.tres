@@ -5,9 +5,7 @@
 [resource]
 script = ExtResource("1")
 
-upgradable = false
-
-id = "synthetic_system_crash_remote"
+id = "synthetic_system_crash"
 display_name = "System Crash"
 description = "SIGNATURE Synthetic technique. Broadcasts a corrupted signal that crashes the target's processes entirely. Massive damage and silence. Works at extreme range. Powerful in any group composition."
 skill_type = 2
@@ -18,33 +16,33 @@ cast_time = 1.0
 animation_duration = 0.7
 range = 35.0
 effects = [{"type": "damage", "value": 75}, {"type": "debuff", "effect_id": "debuff_silence", "duration": 4.0}]
+
+required_level = 10
+required_class = "synthetic_conduit"
 upgrade_tiers = [
 {
 "level": 1, "books_required": 4, "tier": "common",
-"delta": {"duration_mult": 1.05, "cooldown_mult": 0.95, "aoe_mult": 1.03, "range_mult": 1.05, "cast_time_mult": 1.05, "cost_mult": 0.97},
+"delta": {"damage_mult": 1.08, "cooldown_mult": 0.95, "duration_mult": 1.05, "aoe_mult": 1.03, "cast_time_mult": 1.05, "cost_mult": 0.97},
 "unlocks": [],
 },
 {
 "level": 2, "books_required": 4, "tier": "rare",
-"delta": {"duration_mult": 1.1, "cooldown_mult": 0.9, "aoe_mult": 1.06, "range_mult": 1.1, "cast_time_mult": 1.1, "cost_mult": 0.94},
+"delta": {"damage_mult": 1.18, "cooldown_mult": 0.90, "duration_mult": 1.10, "aoe_mult": 1.06, "cast_time_mult": 1.10, "cost_mult": 0.94},
 "unlocks": [],
 },
 {
 "level": 3, "books_required": 4, "tier": "epic",
-"delta": {"duration_mult": 1.15, "cooldown_mult": 0.85, "aoe_mult": 1.09, "range_mult": 1.15, "cast_time_mult": 1.15, "cost_mult": 0.91},
+"delta": {"damage_mult": 1.30, "cooldown_mult": 0.85, "duration_mult": 1.15, "aoe_mult": 1.09, "cast_time_mult": 1.15, "cost_mult": 0.91},
 "unlocks": [{"type": "aoe_mult", "value": 1.05}],
 },
 {
 "level": 4, "books_required": 4, "tier": "legendary",
-"delta": {"duration_mult": 1.2, "cooldown_mult": 0.8, "aoe_mult": 1.12, "range_mult": 1.2, "cast_time_mult": 1.2, "cost_mult": 0.88},
+"delta": {"damage_mult": 1.42, "cooldown_mult": 0.80, "duration_mult": 1.20, "aoe_mult": 1.12, "cast_time_mult": 1.20, "cost_mult": 0.88},
 "unlocks": [],
 },
 {
 "level": 5, "books_required": 4, "tier": "mythic",
-"delta": {"duration_mult": 1.25, "cooldown_mult": 0.75, "aoe_mult": 1.15, "range_mult": 1.25, "cast_time_mult": 1.25, "cost_mult": 0.85},
-"unlocks": [{"type": "duration_mult", "value": 1.1}],
+"delta": {"damage_mult": 1.54, "cooldown_mult": 0.75, "duration_mult": 1.25, "aoe_mult": 1.15, "cast_time_mult": 1.25, "cost_mult": 0.85},
+"unlocks": [{"type": "duration_mult", "value": 1.10}],
 },
 ]
-
-required_level = 25
-required_class = "synthetic_remote"

@@ -19,5 +19,5 @@ animation_duration = 1.0
 range = 30.0
 aoe_radius = 6.0
 effects = [{"type": "damage", "value": 120}, {"type": "debuff", "effect_id": "debuff_rune_burn", "duration": 4.0}]
-required_level = 25
+required_level = 10
 required_class = "akkan_rune"

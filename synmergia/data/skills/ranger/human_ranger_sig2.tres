@@ -19,5 +19,5 @@ animation_duration = 1.0
 range = 25.0
 aoe_radius = 0.0
 effects = [{"type": "debuff", "effect_id": "debuff_adaptive_trap", "duration": 8.0}]
-required_level = 25
+required_level = 10
 required_class = "synthetic_ranger"
