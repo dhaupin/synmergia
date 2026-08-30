@@ -16,5 +16,33 @@ cast_time = 5.0
 animation_duration = 0.6
 range = 25.0
 effects = [{"type": "revive", "value": 50}]
+upgrade_tiers = [
+{
+"level": 1, "books_required": 4, "tier": "common",
+"delta": {"cooldown_mult": 0.95, "cast_time_mult": 1.05, "cost_mult": 0.97, "range_mult": 1.05},
+"unlocks": [],
+},
+{
+"level": 2, "books_required": 4, "tier": "rare",
+"delta": {"cooldown_mult": 0.9, "cast_time_mult": 1.1, "cost_mult": 0.94, "range_mult": 1.1},
+"unlocks": [],
+},
+{
+"level": 3, "books_required": 4, "tier": "epic",
+"delta": {"cooldown_mult": 0.85, "cast_time_mult": 1.15, "cost_mult": 0.91, "range_mult": 1.15},
+"unlocks": [{"type": "cooldown_mult", "value": 0.95}],
+},
+{
+"level": 4, "books_required": 4, "tier": "legendary",
+"delta": {"cooldown_mult": 0.8, "cast_time_mult": 1.2, "cost_mult": 0.88, "range_mult": 1.2},
+"unlocks": [],
+},
+{
+"level": 5, "books_required": 4, "tier": "mythic",
+"delta": {"cooldown_mult": 0.75, "cast_time_mult": 1.25, "cost_mult": 0.85, "range_mult": 1.25},
+"unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
+},
+]
+
 required_level = 15
 required_class = "human_temporalist"
