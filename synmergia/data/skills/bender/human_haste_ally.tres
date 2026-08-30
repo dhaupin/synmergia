@@ -16,5 +16,33 @@ cast_time = 0.5
 animation_duration = 0.4
 range = 25.0
 effects = [{"type": "buff", "effect_id": "buff_haste", "duration": 10.0}]
+upgrade_tiers = [
+{
+"level": 1, "books_required": 4, "tier": "common",
+"delta": {"effect_duration_mult": 1.05, "cooldown_mult": 0.95, "effect_strength_mult": 1.05, "max_targets_mult": 1.0, "cast_time_mult": 1.05, "cost_mult": 0.97},
+"unlocks": [],
+},
+{
+"level": 2, "books_required": 4, "tier": "rare",
+"delta": {"effect_duration_mult": 1.1, "cooldown_mult": 0.9, "effect_strength_mult": 1.1, "max_targets_mult": 1.0, "cast_time_mult": 1.1, "cost_mult": 0.94},
+"unlocks": [],
+},
+{
+"level": 3, "books_required": 4, "tier": "epic",
+"delta": {"effect_duration_mult": 1.15, "cooldown_mult": 0.85, "effect_strength_mult": 1.15, "max_targets_mult": 1.0, "cast_time_mult": 1.15, "cost_mult": 0.91},
+"unlocks": [{"type": "max_targets_mult", "value": 1}],
+},
+{
+"level": 4, "books_required": 4, "tier": "legendary",
+"delta": {"effect_duration_mult": 1.2, "cooldown_mult": 0.8, "effect_strength_mult": 1.2, "max_targets_mult": 1.0, "cast_time_mult": 1.2, "cost_mult": 0.88},
+"unlocks": [],
+},
+{
+"level": 5, "books_required": 4, "tier": "mythic",
+"delta": {"effect_duration_mult": 1.25, "cooldown_mult": 0.75, "effect_strength_mult": 1.25, "max_targets_mult": 1.0, "cast_time_mult": 1.25, "cost_mult": 0.85},
+"unlocks": [{"type": "effect_duration_mult", "value": 1.1}],
+},
+]
+
 required_level = 5
 required_class = "human_temporalist"

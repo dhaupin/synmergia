@@ -17,5 +17,33 @@ animation_duration = 0.8
 range = 0.0
 aoe_radius = 20.0
 effects = [{"type": "heal", "value": 100}, {"type": "cleanse", "value": 0}]
+upgrade_tiers = [
+{
+"level": 1, "books_required": 4, "tier": "common",
+"delta": {"heal_mult": 1.08, "cooldown_mult": 0.95, "aoe_mult": 1.03, "hot_mult": 1.08, "cast_time_mult": 1.05, "cost_mult": 0.97},
+"unlocks": [],
+},
+{
+"level": 2, "books_required": 4, "tier": "rare",
+"delta": {"heal_mult": 1.18, "cooldown_mult": 0.9, "aoe_mult": 1.06, "hot_mult": 1.18, "cast_time_mult": 1.1, "cost_mult": 0.94},
+"unlocks": [],
+},
+{
+"level": 3, "books_required": 4, "tier": "epic",
+"delta": {"heal_mult": 1.3, "cooldown_mult": 0.85, "aoe_mult": 1.09, "hot_mult": 1.3, "cast_time_mult": 1.15, "cost_mult": 0.91},
+"unlocks": [{"type": "max_targets_mult", "value": 1}],
+},
+{
+"level": 4, "books_required": 4, "tier": "legendary",
+"delta": {"heal_mult": 1.44, "cooldown_mult": 0.8, "aoe_mult": 1.12, "hot_mult": 1.44, "cast_time_mult": 1.2, "cost_mult": 0.88},
+"unlocks": [],
+},
+{
+"level": 5, "books_required": 4, "tier": "mythic",
+"delta": {"heal_mult": 1.6, "cooldown_mult": 0.75, "aoe_mult": 1.15, "hot_mult": 1.6, "cast_time_mult": 1.25, "cost_mult": 0.85},
+"unlocks": [{"type": "hot_mult", "value": 1.05}],
+},
+]
+
 required_level = 25
 required_class = "synthetic_conduit"

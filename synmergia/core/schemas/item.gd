@@ -350,7 +350,7 @@ static func create(skill_id: String, upgrade_level: int, skill_display_name: Str
 	book.display_name = "Manual of %s %s" % [skill_display_name, tier_roman[upgrade_level]]
 	book.description = "A weathered manual containing techniques to enhance %s. Consume 4 of the same tier to upgrade." % skill_display_name
 	book.item_category = ItemCategory.SKILL_BOOK
-	var rarities := [Rarity.COMMON, Rarity.UNCOMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY, Rarity.MYTHIC]
+	var rarities := [Rarity.COMMON, Rarity.COMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY, Rarity.MYTHIC]
 	book.rarity = rarities[upgrade_level] if upgrade_level < rarities.size() else Rarity.COMMON
 	book.soulbound = false
 	book.stack_size = 1
