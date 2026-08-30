@@ -3,6 +3,9 @@
 class_name CombatComponent
 extends Node
 
+const SkillSchema := preload("res://core/schemas/skill.gd")
+const CharacterData := preload("res://core/schemas/character_data.gd")
+
 signal attack_started()
 signal attack_finished()
 signal skill_started(skill: Skill)
@@ -55,6 +58,7 @@ var is_casting: bool = false
 var cast_skill: Skill = null
 var cast_time_remaining: float = 0.0
 var cast_time_total: float = 0.0
+var charge_progress: float = 0.0  # 0.0-1.0 charge level during channeling
 var _interrupt_resistance: float = 0.0  # Chance to resist interrupt
 
 # Channeling state (progress-based, can be interrupted)
@@ -90,6 +94,10 @@ func _physics_process(delta: float) -> void:
 	# Update casting
 	if is_casting:
 		cast_time_remaining -= delta
+		# Track charge progress for charge-based skills
+		if cast_skill and cast_skill.charge_time_max > 0:
+			var elapsed: float = cast_time_total - cast_time_remaining
+			charge_progress = min(elapsed / cast_skill.charge_time_max, 1.0)
 		if cast_time_remaining <= 0:
 			_finish_cast()
 	
@@ -106,7 +114,10 @@ func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Ve
 			GameLog.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
 			return false
 	
-	if not _can_execute_skill(skill):
+	# Apply Skill Academy upgrade deltas (returns duplicated schema with bonuses applied)
+	var upgraded_skill: Skill = _apply_skill_upgrade_deltas(skill, entity)
+
+	if not _can_execute_skill(upgraded_skill):
 		return false
 	
 	# Check GCD
@@ -114,36 +125,131 @@ func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Ve
 		return false
 	
 	# Consume resources
-	if not _consume_skill_costs(skill):
+	if not _consume_skill_costs(upgraded_skill):
 		return false
 	
 	# Start cooldown
-	skill.remaining_cooldown = skill.cooldown
+	upgraded_skill.remaining_cooldown = upgraded_skill.cooldown
 	
 	# Start GCD
 	gcd_remaining = gcd_duration
 	
 	# Execute based on skill type
-	match skill.skill_type:
+	match upgraded_skill.skill_type:
 		Skill.SkillType.INSTANT, Skill.SkillType.SELF:
-			skill.execute(get_parent(), target, ground_pos)
-			skill_finished.emit(skill)
+			upgraded_skill.execute(get_parent(), target, ground_pos)
+			skill_finished.emit(upgraded_skill)
 		
 		Skill.SkillType.MELEE, Skill.SkillType.RANGED:
-			_perform_attack(skill, target)
+			_perform_attack(upgraded_skill, target)
 		
 		Skill.SkillType.CHANNEL:
-			_start_cast(skill, target)
+			_start_cast(upgraded_skill, target)
 		
 		Skill.SkillType.GROUND_TARGETED, Skill.SkillType.TARGETED_AOE:
-			skill.execute(get_parent(), target, ground_pos)
-			skill_finished.emit(skill)
+			upgraded_skill.execute(get_parent(), target, ground_pos)
+			skill_finished.emit(upgraded_skill)
 	
-			EventHub.emit_skill_used(get_parent(), skill, target)
+			EventHub.emit_skill_used(get_parent(), upgraded_skill, target)
 
 	# Record action for durability tracking
 	record_action()
 	return true
+
+## Read CharacterData.skill_upgrades for the entity and apply upgrade deltas
+## to the skill's runtime parameters. Call before any skill execution.
+## Duplicate the schema and apply upgrade deltas.
+## Returns a copy of the skill with upgrade bonuses applied.
+## The original schema (from .tres / DataService) is never mutated.
+func _apply_skill_upgrade_deltas(schema: SkillSchema, entity: Entity) -> Skill:
+	# schema is the SkillSchema resource (loaded from .tres, shared — must duplicate)
+	if not schema.upgradable:
+		return schema
+
+	# Get upgrade level from CharacterData via GameManager
+	var upgrade_level: int = 0
+	if GameManager and is_instance_valid(GameManager.selected_character_data):
+		var cd = GameManager.selected_character_data as CharacterData
+		upgrade_level = cd.get_skill_upgrade_level(schema.id)
+	if upgrade_level <= 0:
+		return schema
+
+	# Duplicate the schema so runtime modifications don't leak into the shared resource
+	var skill: Skill = schema.duplicate()
+
+	var deltas: Dictionary = schema.get_upgrade_deltas(upgrade_level)
+
+	# Apply multipliers
+	if deltas.has("damage_mult"):
+		skill.damage = int(skill.damage * deltas["damage_mult"])
+	if deltas.has("heal_mult"):
+		skill.heal_amount = int(skill.heal_amount * deltas["heal_mult"])
+	if deltas.has("range_mult"):
+		skill.range *= deltas["range_mult"]
+	if deltas.has("cooldown_mult"):
+		skill.cooldown *= deltas["cooldown_mult"]
+	if deltas.has("aoe_mult") and skill.aoe_radius > 0:
+		skill.aoe_radius *= deltas["aoe_mult"]
+	if deltas.has("duration_mult"):
+		skill.dot_duration *= deltas["duration_mult"]
+	if deltas.has("dot_mult"):
+		skill.dot_damage = int(skill.dot_damage * deltas["dot_mult"])
+	if deltas.has("hot_mult"):
+		skill.hot_heal = int(skill.hot_heal * deltas["hot_mult"])
+	if deltas.has("cost_mult"):
+		skill.mana_cost = int(skill.mana_cost * deltas["cost_mult"])
+		skill.stamina_cost *= deltas["cost_mult"]
+	if deltas.has("cast_time_mult"):
+		skill.cast_time *= deltas["cast_time_mult"]
+	if deltas.has("charge_mult") and skill.charge_time_max > 0:
+		skill.charge_time_max *= deltas["charge_mult"]
+	if deltas.has("max_targets_mult") and skill.targeted_aoe_max_targets > 0:
+		skill.targeted_aoe_max_targets = int(skill.targeted_aoe_max_targets * deltas["max_targets_mult"])
+
+	# Process unlocks
+	var unlocks: Array = schema.get_unlocks_at_level(upgrade_level)
+	if not unlocks.is_empty():
+		skill.upgrade_unlocks = unlocks
+
+	# Cache upgrade level
+	skill.upgrade_level = upgrade_level
+
+	# Scale effect values in the effects array (schema's execute() reads effects[i].value)
+	for i in range(skill.effects.size()):
+		var eff: Dictionary = skill.effects[i]
+		var eff_type: String = eff.get("type", "")
+		if eff_type == "damage" and deltas.has("damage_mult"):
+			var base_val: int = eff.get("value", 0)
+			skill.effects[i]["value"] = int(base_val * deltas["damage_mult"])
+		elif eff_type == "heal" and deltas.has("heal_mult"):
+			var base_val: int = eff.get("value", 0)
+			skill.effects[i]["value"] = int(base_val * deltas["heal_mult"])
+
+	return skill
+
+## Apply charge scaling: duplicate the skill and scale effects by charge level.
+## charge_time_max defines the max charge window. charge_progress is 0.0-1.0.
+## Tier 1 (0% charge) = 0.5x min, scales linearly to 1.0x at full charge.
+## Returns a new Skill with scaled damage/heal values.
+func _apply_charge_scaling(skill: Skill, charge_level: float) -> Skill:
+	var scaled: Skill = skill.duplicate() if skill else null
+	if not scaled:
+		return skill
+
+	# Scale effect values by charge level
+	for i in range(scaled.effects.size()):
+		var eff: Dictionary = scaled.effects[i]
+		var eff_type: String = eff.get("type", "")
+		if eff_type in ["damage", "heal"]:
+			var base_val: int = eff.get("value", 0)
+			var charge_mult: float = 0.5 + (charge_level * 0.5)
+			var scaled_val: int = int(base_val * charge_mult)
+			scaled.effects[i]["value"] = max(scaled_val, 1)  # minimum 1 on any charge
+
+	# Store charge level on skill for any effect handlers that need it
+	scaled.charge_level = charge_level
+
+	return scaled
 
 func _can_execute_skill(skill: Skill) -> bool:
 	var entity: Entity = get_parent()
@@ -175,18 +281,26 @@ func _consume_skill_costs(skill: Skill) -> bool:
 func _start_cast(skill: Skill, target: Entity) -> void:
 	is_casting = true
 	cast_skill = skill
+	cast_time_total = skill.cast_time
 	cast_time_remaining = skill.cast_time
+	charge_progress = 0.0
 	cast_started.emit(skill)
 
 func _finish_cast() -> void:
 	if cast_skill:
-		cast_skill.execute(get_parent(), null)
-		cast_finished.emit(cast_skill)
-		skill_finished.emit(cast_skill)
+		# Apply charge scaling to damage/heal effects if charge_time_max > 0
+		var executed_skill: Skill = cast_skill
+		if charge_progress > 0.0 and cast_skill.charge_time_max > 0:
+			executed_skill = _apply_charge_scaling(cast_skill, charge_progress)
+		executed_skill.execute(get_parent(), null)
+		cast_finished.emit(executed_skill)
+		skill_finished.emit(executed_skill)
+		EventHub.emit_skill_used(get_parent(), executed_skill, null)
 	
 	is_casting = false
 	cast_skill = null
 	cast_time_remaining = 0.0
+	charge_progress = 0.0
 
 ## Interrupt current casting/channeling
 func interrupt() -> void:
@@ -301,7 +415,7 @@ func _finish_channel(completed: bool) -> void:
 		skill.execute(get_parent(), get_parent().target)
 	
 	channel_ended.emit(skill, completed)
-	skill_finished.emit(skill)
+	skill_finished.emit(upgraded_skill)
 
 func _perform_attack(skill: Skill, target: Entity) -> void:
 	attack_started.emit()
@@ -319,7 +433,7 @@ func _perform_attack(skill: Skill, target: Entity) -> void:
 		target.health_component.take_damage(damage, get_parent())
 	
 	attack_cooldown = 1.0 / skill.cast_time if skill.cast_time > 0 else 1.0
-	skill_finished.emit(skill)
+	skill_finished.emit(upgraded_skill)
 	record_action()
 
 ## Basic auto-attack
