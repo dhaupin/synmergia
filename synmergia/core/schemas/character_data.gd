@@ -37,10 +37,28 @@ static func load_class(class_id: String) -> CharacterClass:
 	var res := load(path)
 	return res if res is CharacterClass else null
 
-## Filter: exclude GM class from player-facing lists.
-static func _is_gm_class(cls: CharacterClass) -> bool:
-	return cls.role == CharacterClass.Role.GM
+## Check if a class is GM-only (role = 0)
+static func is_gm_class(cls_or_role) -> bool:
+	if cls_or_role is CharacterClass:
+		return cls_or_role.role == CharacterClass.Role.GM
+	return cls_or_role == CharacterClass.Role.GM
 
+## Server-side validation: Can this account play this class?
+## Returns {allowed: bool, reason: String}
+## Call this when a player clicks "Play" to validate class selection.
+static func play_accepted(class_id: String, account_level: int) -> Dictionary:
+	var cls := load_class(class_id)
+	if cls == null:
+		return {"allowed": false, "reason": "Class not found"}
+	
+	# GM classes require admin level
+	if is_gm_class(cls) and account_level < GameConfig.Security.ADMIN_LEVEL:
+		return {"allowed": false, "reason": "GM class requires admin privileges"}
+	
+	return {"allowed": true, "reason": ""}
+
+## Get all classes for a species (including GM classes).
+## Use is_admin() + play_accepted to validate admin-only classes server-side.
 static func get_available_classes_for_species(species_id: String) -> Array[CharacterClass]:
 	var result: Array[CharacterClass] = []
 	var dir := DirAccess.open("res://data/classes/")
@@ -50,7 +68,7 @@ static func get_available_classes_for_species(species_id: String) -> Array[Chara
 		while file != "":
 			if file.ends_with(".tres"):
 				var res := load("res://data/classes/" + file)
-				if res is CharacterClass and not _is_gm_class(res):
+				if res is CharacterClass:
 					result.append(res)
 			file = dir.get_next()
 	return result

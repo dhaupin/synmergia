@@ -73,6 +73,12 @@ func get_account_by_character(character_id: String) -> Dictionary:
 		return {}
 	return get_account(account_id)
 
+## Check if an account has admin privileges
+func is_admin(account_id: String) -> bool:
+	var account: Dictionary = get_account(account_id)
+	var level: int = account.get("account_level", 0)
+	return level >= GameConfig.Security.ADMIN_LEVEL
+
 ## Link a character to an account
 func link_character(character_id: String, account_id: String, character_data: Dictionary = {}) -> bool:
 	if not _accounts.has(account_id):

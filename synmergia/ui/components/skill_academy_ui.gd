@@ -1,10 +1,11 @@
 ## SkillAcademyUI - Skill book upgrades and Skill Academy NPC panel
 ##
-## 4 tabs:
-##   1. Skills  — all upgradable skills, current level, available upgrades
-##   2. Books   — books in inventory, grouped by tier
-##   3. Upgrade — select a skill + consume 4 books to upgrade
-##   4. Respec  — reset all upgrades (books NOT returned)
+## 5 tabs:
+##   1. Skills     — all upgradable skills, current level, available upgrades
+##   2. Books     — books in inventory, grouped by tier
+##   3. Upgrade   — select a skill + consume 4 books to upgrade
+##   4. Signature — choose 1 of 3 class signatures (level 10+)
+##   5. Respec    — reset all upgrades (books NOT returned)
 class_name SkillAcademyUI
 extends UIPanel
 

@@ -35,6 +35,7 @@ var _player_data: Dictionary = {}
 
 signal upgrade_applied(player_id: String, skill_id: String, new_level: int)
 signal respec_completed(player_id: String, points_refunded: int)
+signal signature_selected(player_id: String, signature_id: String, is_free: bool)
 
 func _ready() -> void:
 	instance = self
@@ -206,9 +207,6 @@ func get_upgrade_preview(skill_id: String, current_level: int) -> Dictionary:
 
 ## Full respec for a player.
 ## WARNING: Clears ALL skill upgrades and refunds skill points.
-## Books are consumed and NOT returned. This is intentional.
-## Full respec for a player.
-## WARNING: Clears ALL skill upgrades and refunds skill points.
 ## Books are consumed and NOT returned. Gold is deducted.
 func respec(
 	player_id: String,
@@ -341,6 +339,8 @@ func change_signature(
 	var old_signature: String = skill_data.active_signature
 	skill_data.active_signature = new_signature_id
 	skill_data.signature_switches += 1
+	
+	signature_selected.emit(player_id, new_signature_id, skill_data.signature_switches == 1)
 	
 	return {
 		"success": true,
