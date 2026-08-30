@@ -625,6 +625,43 @@ same NSC-9 code (within their axis) are the same entity.
 | **Analytics** | Track player behavior, economy, prediction accuracy | P1 |
 | **Auto-scaling** | Respond to player load; prefetch more on scale-up | P1 |
 
+### 10.10 Three Tiers of Computation (the frame runtime)
+
+The frame can ship in three runtime tiers. The rule is: write
+the algorithm in the language that's best at the problem. The
+GDScript side calls into the appropriate tier for each call
+site.
+
+| Tier | Language | When | Example |
+|------|----------|------|---------|
+| 1 | **GDScript** | Game logic, UI, event handling, scene composition | All autoloads, UI, services |
+| 2 | **Julia** (via polyglot FFI) | Vector math, ML inference, hot loops | Spatial query, state hashing, intersection materialization, LOD batch |
+| 3 | **C++ / GDExtension** | Absolute hot path, physics, low-level | Jolt Physics, future SIMD paths |
+
+**Tier 1 (GDScript) is the default.** Most of the game lives here.
+
+**Tier 2 (Julia) is the vector processor.** When GDScript is
+too slow for a math-heavy hot path, the polyglot FFI
+([`labs/polyglot-ffi/`](polyglot-ffi/)) calls into a Julia
+sidecar. The pattern is lifted from vant
+[`lib/compute.js`](https://github.com/dhaupin/vant/blob/axolotl/lib/compute.js)
+(adapted for GDScript). The first concrete implementation is
+[`labs/polyglot-ffi/julia-runtime/`](polyglot-ffi/julia-runtime/).
+
+**Tier 3 (C++ / GDExtension) is the absolute hot path.**
+Physics is the first example: Jolt Physics
+([`labs/jolt-playground/`](jolt-playground/)) is C++ with a
+Godot 4.3+ binding. Future SIMD ops land here.
+
+The frame is **runtime-agnostic**. The game passes the
+orchestrator + state tree around via dependency injection, not
+via singleton access. Each tier plugs in via the polyglot FFI
+or GDExtension — the game logic doesn't change.
+
+When a path needs more than Julia, it moves to GDExtension C++.
+When a path needs less, it stays in GDScript. The migration
+is incremental: profile, port, re-profile, ship.
+
 ---
 
 ## 11. Art & Audio Direction
@@ -867,6 +904,8 @@ The architecture is in `docs/architecture/`:
 | **Mobile build size** (Godot exports bloat with all features) | Medium | Asset content-hash → only what the player needs. A-6. |
 | **Anti-cheat** (state tree hashes are forgeable) | High | Server-side hash chain. Each tick is signed by previous. |
 | **Frame over-engineering** (build abstractions no game uses) | Medium | Frame is a byproduct of game work, not a goal. If no game needs it, it doesn't extract. |
+| **Jolt integration cost** (swap-in breaks physics assumptions) | Low | Game is `PhysicsServer3D`-agnostic. Jolt drop-in via project setting. Phase 5 benchmark first. |
+| **Polyglot FFI boundary cost** (Julia subprocess round-trips add latency) | Low | Tier 1 (GDScript) for anything latency-sensitive. Tier 2 only for batch ops. Migration to GDExtension C++ if needed. |
 
 ### D. Frame Appendix
 

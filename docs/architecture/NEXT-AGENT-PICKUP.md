@@ -53,6 +53,19 @@ them with the shim approach when convenient. They're not blocking.
 is the frame (multi-iso orchestrator, alongside vant). They share
 the state tree but are otherwise independent.
 
+**Future-work candidates (also drafted 2026-08-30):**
+- **Jolt Physics** (`labs/jolt-playground/`) — swap-in benchmark.
+  Decision deadline is Phase 5 (World Building). Important for
+  hash determinism, which the state tree depends on.
+- **Polyglot FFI** (`labs/polyglot-ffi/`) — pattern lifted from
+  vant `lib/compute.js`. Lets the frame call into Julia, Python,
+  Rust from GDScript. The `julia-runtime/` is the first concrete
+  implementation. Use case: vector math hot paths (spatial
+  queries, intersection materialization, LOD batch ops).
+- **Three tiers of computation.** GDScript for game logic,
+  Julia for vector math, C++/GDExtension for the absolute hot
+  path. The frame's design budget assumes all three exist.
+
 ---
 
 ## Repo layout
@@ -125,6 +138,9 @@ Graduated work moves into the game.
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
 | `labs/README.md` | In-tree convention for labs (root-level) |
 | `labs/prd.md` | The Synmergia PRD (modernized 2026-08-30, includes the frame appendix) |
+| `labs/jolt-playground/README.md` | The Jolt Physics decision (Phase 5 deadline) |
+| `labs/polyglot-ffi/README.md` | The Polyglot FFI (lifted from vant) |
+| `labs/polyglot-ffi/julia-runtime/README.md` | The Julia server-side math runtime |
 | `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
 | `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
 | `synmergia/ui/islands/island_manager.gd` | Mount orchestrator |

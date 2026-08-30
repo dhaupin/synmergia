@@ -33,11 +33,22 @@ labs/
 │   ├── srv/                     # markov, predictor, composite_table, lod_manager, axis
 │   ├── db/                      # snapshot_store, migrations
 │   └── tests/                   # cross-cutting tests
-├── (future labs as needed)
+├── jolt-playground/             # Jolt Physics swap-in benchmark (Phase 5 decision)
+├── polyglot-ffi/                # Polyglot FFI, lifted from vant
+│   ├── compute.gd               # the registry
+│   ├── connectors/              # base + language-specific
+│   └── julia-runtime/           # Julia-side scripts (HTTP server)
+├── prd.md                       # the modernized product spec
+└── (future labs as needed)
 ```
 
 The `multi-iso/` subdirectory is the first lab. Future labs can
 go alongside it (`labs/vr-prototype/`, `labs/audio-engine/`, etc).
+
+Two non-multi-iso labs are already drafted:
+
+- [`jolt-playground/`](./jolt-playground/) — Jolt Physics swap-in benchmark
+- [`polyglot-ffi/`](./polyglot-ffi/) — Polyglot FFI, lifted from vant, with [`julia-runtime/`](./polyglot-ffi/julia-runtime/) as the first implementation
 
 ## The principles (full list in the design doc)
 
@@ -46,6 +57,10 @@ go alongside it (`labs/vr-prototype/`, `labs/audio-engine/`, etc).
 3. No autoload, no `class_name` for primitives. Liftable.
 4. No GameManager / EventBus / autoload dependencies. Pure.
 5. New code goes here first. The game consumes from here.
+6. The frame can ship in **three tiers of computation**:
+   - **GDScript** for game logic (default)
+   - **Julia** for vector math (via the polyglot FFI)
+   - **C++ / GDExtension** for the absolute hot path (Jolt lives here)
 
 ## What goes where (mapping)
 
