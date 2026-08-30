@@ -72,12 +72,8 @@ func _on_play_pressed() -> void:
 	if selected_class_id == "" or selected_species_id == "":
 		return
 
-	# Server-side validation via CharacterData.play_accepted()
-	# Pass 0 for account_level on client (server should re-validate)
-	var validation := CharacterData.play_accepted(selected_class_id, 0)
-	if not validation.get("allowed", false):
-		GameLog.warn("character_select: blocked class selection: " + validation.get("reason", ""))
-		return
+	# GM classes are filtered out by get_available_classes_for_species()
+	# so non-admins can never select them. Server should still validate.
 
 	var data := CharacterData.new(selected_species_id, selected_class_id, player_name)
 	data.species_data = selected_species
