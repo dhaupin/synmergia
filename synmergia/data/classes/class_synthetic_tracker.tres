@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="CharacterClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "synthetic_tracker"
+display_name = "Tracker"
+description = "Synthetic ranged damage dealer. Fires from the shadows."
+icon_path = "res://ui/icons/classes/synthetic_tracker.png"
+
+role = 2
+resource_type = 1
+
+base_stats = {
+"strength": 14,
+"agility": 10,
+"intelligence": 8,
+"vitality": 10,
+"endurance": 10,
+"wisdom": 6
+}
+
+stat_growth = {
+"strength": 2,
+"agility": 1,
+"intelligence": 1,
+"vitality": 2,
+"endurance": 1,
+"wisdom": 1
+}
+
+base_resource = 100
+resource_per_level = 10
+resource_regen_per_second = 5.0
+resource_regen_combat = 1.0
+
+base_attack_power = 12
+attack_power_per_level = 2
+base_spell_power = 5
+spell_power_per_level = 1
+
+starting_skills = []
+skill_tree_unlocks = {}
+
+respec_cost_gold = 500
+
+can_use_melee_weapons = true
+can_use_ranged_weapons = true
+can_use_staves = false
+can_use_armor = {
+"cloth": true,
+"leather": true,
+"mail": true,
+"plate": false
+}
