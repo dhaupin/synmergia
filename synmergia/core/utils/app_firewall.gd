@@ -114,7 +114,7 @@ func can_connect(ip: String) -> Dictionary:
 			_blocked_ips.erase(ip)
 	
 	# Check connection limit
-	var conn_count := _connection_counts.get(ip, 0)
+	var conn_count: int = _connection_counts.get(ip, 0)
 	if conn_count >= _max_connections_per_ip:
 		_flag_ip(ip, "connection_limit", 1)
 		return {

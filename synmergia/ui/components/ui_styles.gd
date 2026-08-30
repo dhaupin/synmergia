@@ -133,7 +133,7 @@ static func show_notification(message: String, success: bool = true, duration: f
 	notif.z_index = 1000
 	notif.global_position = Vector2(100, 100)
 	
-	var root := Engine.get_main_loop().root
+	var root: Window = Engine.get_main_loop().root
 	root.add_child(notif)
 	
 	var tween := notif.create_tween()

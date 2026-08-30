@@ -91,7 +91,7 @@ func _recalculate_derived_stats() -> void:
 ## HEALTH
 
 func take_damage(amount: int) -> void:
-	var final_damage := max(1, amount - get_defense())
+	var final_damage: int = max(1, amount - get_defense())
 	current_health = max(0, current_health - final_damage)
 	health_changed.emit(current_health, max_health)
 	

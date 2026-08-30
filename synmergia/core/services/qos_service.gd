@@ -1,6 +1,6 @@
 ## QoSService - Quality of Service for fair matchmaking
 ## Handles latency compensation, throttling, and connection quality
-class_name QoSService
+class_name MatchmakingQoS
 extends Node
 
 signal connection_quality_changed(player_id: String, quality: ConnectionQuality)

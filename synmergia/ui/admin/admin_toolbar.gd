@@ -1,21 +1,25 @@
-## AdminToolbar - Quick access admin toolbar for HUD
-## Minimal toolbar to open admin dashboard
+## AdminToolbar - Quick access admin toolbar for HUD.
+## Migrated onto UIWidget base class. F3 toggles the dashboard.
 class_name AdminToolbar
-extends Control
+extends UIWidget
 
-## Reference to admin dashboard
-var _dashboard: Control
-var _dashboard_instance: AdminDashboard
-
-## Toggle button
+# Typed loosely because AdminDashboard itself has a pre-existing parse
+# error (deferred to a dedicated session). All access is duck-typed.
+var _dashboard_instance: Control
 var _toggle_btn: Button
 
-func _ready() -> void:
-	_setup_ui()
+func _setup_widget() -> void:
+	# Default hidden until F3 toggles it. UIWidget defaults to
+	# always_visible=true; flip it for this widget.
+	set_always_visible(false)
+	# Add a hotkey for F3.
+	set_hotkey(KEY_F3)
+	_build_toolbar()
 
-func _setup_ui() -> void:
-	# Create minimal toolbar
+func _build_toolbar() -> void:
+	# Anchor the toolbar to the top-right corner of the screen.
 	var hbox := HBoxContainer.new()
+	hbox.name = "Layout"
 	hbox.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hbox.anchor_left = 1.0
 	hbox.anchor_bottom = 0.0
@@ -23,34 +27,19 @@ func _setup_ui() -> void:
 	hbox.offset_bottom = 40
 	hbox.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	add_child(hbox)
-	
-	# Admin button
+
 	_toggle_btn = Button.new()
 	_toggle_btn.text = "⚙ Admin"
 	_toggle_btn.custom_minimum_size.x = 100
 	_toggle_btn.pressed.connect(_toggle_dashboard)
 	hbox.add_child(_toggle_btn)
-	
-	# Style the button
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.2, 0.2, 0.25, 0.9)
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
-	style.content_margin_left = 8
-	style.content_margin_right = 8
-	style.content_margin_top = 4
-	style.content_margin_bottom = 4
-	_toggle_btn.add_theme_stylebox_override("normal", style)
-	
-	var hover_style := StyleBoxFlat.new()
-	hover_style.bg_color = Color(0.3, 0.3, 0.4, 0.9)
-	hover_style.corner_radius_top_left = 4
-	hover_style.corner_radius_top_right = 4
-	hover_style.corner_radius_bottom_left = 4
-	hover_style.corner_radius_bottom_right = 4
-	_toggle_btn.add_theme_stylebox_override("hover", hover_style)
+
+	UIStyles.apply_button_styles(_toggle_btn, UIStyles.create_button_style(
+		Color(0.2, 0.2, 0.25, 0.9),
+		Color(0.3, 0.3, 0.4, 0.9),
+		Color(0.1, 0.1, 0.15, 0.9),
+		Color(0.1, 0.1, 0.12, 0.9)
+	))
 
 func _toggle_dashboard() -> void:
 	if _dashboard_instance and is_instance_valid(_dashboard_instance):
@@ -59,7 +48,6 @@ func _toggle_dashboard() -> void:
 		_open_dashboard()
 
 func _open_dashboard() -> void:
-	# Load and instantiate dashboard
 	var scene_path := "res://ui/admin/admin_dashboard.tscn"
 	var packed_scene := load(scene_path)
 	if packed_scene:
@@ -79,14 +67,16 @@ func _on_dashboard_closed() -> void:
 	_close_dashboard()
 
 func _get_admin_id() -> String:
-	# Get current admin ID from game state
-	# This should be connected to your actual player session
+	# Get current admin ID from game state.
+	# This should be connected to your actual player session.
 	if PlayerManager and PlayerManager.local_player:
-		return PlayerManager.local_player.get("id", "")
+		var player: Node = PlayerManager.local_player
+		# Duck-typed: Player entities expose either `.id` (var) or
+		# `get_id()` (method) depending on the entity class.
+		if "id" in player and player.id is String and player.id != "":
+			return player.id
+		if player.has_method("get_id"):
+			var id_val: Variant = player.call("get_id")
+			if id_val is String and id_val != "":
+				return id_val
 	return "admin_test"
-
-func _input(event: InputEvent) -> void:
-	# Quick toggle with F3
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_F3:
-			_toggle_dashboard()

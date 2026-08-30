@@ -53,6 +53,34 @@ class SpawnMetadata:
 			5: return "Loot"
 			_: return "Unknown"
 
+	# Factory methods used by SpawnService and others.
+	static func enemy(p_name: String, p_zone: String, p_pos: Vector3, p_level: int = 1) -> SpawnMetadata:
+		var m := SpawnMetadata.new(SpawnType.NORMAL, p_name, p_zone, p_pos)
+		m.level = p_level
+		m.notification_enabled = true
+		return m
+
+	static func elite(p_name: String, p_zone: String, p_pos: Vector3, p_level: int = 1) -> SpawnMetadata:
+		var m := SpawnMetadata.new(SpawnType.ELITE, p_name, p_zone, p_pos)
+		m.level = p_level
+		m.notification_enabled = true
+		m.notification_priority = NotificationPriority.HIGH
+		return m
+
+	static func boss(p_name: String, p_zone: String, p_pos: Vector3, p_level: int = 1) -> SpawnMetadata:
+		var m := SpawnMetadata.new(SpawnType.BOSS, p_name, p_zone, p_pos)
+		m.level = p_level
+		m.notification_enabled = true
+		m.notification_priority = NotificationPriority.HIGH
+		return m
+
+	static func world_boss(p_name: String, p_zone: String, p_pos: Vector3, p_level: int = 1) -> SpawnMetadata:
+		var m := SpawnMetadata.new(SpawnType.WORLD_BOSS, p_name, p_zone, p_pos)
+		m.level = p_level
+		m.notification_enabled = true
+		m.notification_priority = NotificationPriority.CRITICAL
+		return m
+
 ## Domain-specific event buses (use these to emit/listen)
 var entity
 var combat

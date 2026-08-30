@@ -346,17 +346,17 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 								"r", "reply":
 												return _cmd_reply(sender_id, args)
 								"s", "say":
-												return send_message(sender_id, Channel.SAY, args.join(" "))
+												return send_message(sender_id, Channel.SAY, " ".join(args))
 								"y", "yell":
-												return send_message(sender_id, Channel.YELL, args.join(" "))
+												return send_message(sender_id, Channel.YELL, " ".join(args))
 								"p", "party":
-												return send_message(sender_id, Channel.PARTY, args.join(" "))
+												return send_message(sender_id, Channel.PARTY, " ".join(args))
 								"g", "guild":
-												return send_message(sender_id, Channel.GUILD, args.join(" "))
+												return send_message(sender_id, Channel.GUILD, " ".join(args))
 								"a", "alliance":
-												return send_message(sender_id, Channel.ALLIANCE, args.join(" "))
+												return send_message(sender_id, Channel.ALLIANCE, " ".join(args))
 								"t", "trade":
-												return send_message(sender_id, Channel.TRADE, args.join(" "))
+												return send_message(sender_id, Channel.TRADE, " ".join(args))
 								"emote", "me", "e":
 												return _cmd_emote(sender_id, args)
 								"ignore":
@@ -408,7 +408,7 @@ func _cmd_whisper(sender_id: String, args: Array) -> bool:
 								return false
 				
 				var target: String = args[0]
-				var message: String = args.slice(1, args.size()).join(" ")
+				var message: String = " ".join(args.slice(1, args.size()))
 				
 				# Look up player by name
 				var target_id := _find_player_id_by_name(target)
@@ -428,12 +428,12 @@ func _cmd_reply(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "No one to reply to. Use /w <player> first.")
 								return false
 				
-				var message: String = args.join(" ")
+				var message: String = " ".join(args)
 				return send_message(sender_id, Channel.WHISPER, message, last_target_id)
 
 ## Command: Emote
 func _cmd_emote(sender_id: String, args: Array) -> bool:
-				var emote := args.join(" ")
+				var emote := " ".join(args)
 				return send_message(sender_id, Channel.EMOTE, emote)
 
 ## Command: Ignore
@@ -473,7 +473,7 @@ func _cmd_muted(sender_id: String, args: Array) -> bool:
 				if muted.is_empty():
 								send_system_message(sender_id, "You are not ignoring anyone")
 				else:
-								send_system_message(sender_id, "Ignored: %s" % muted.join(", "))
+								send_system_message(sender_id, "Ignored: %s" % ", ".join(muted))
 				return true
 
 ## Command: Report player abuse
@@ -484,7 +484,7 @@ func _cmd_report(sender_id: String, args: Array) -> bool:
 								return true
 				
 				var target: String = args[0]
-				var reason := args.slice(1, args.size()).join(" ")
+				var reason := " ".join(args.slice(1, args.size()))
 				
 				if PlayerReporter:
 								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.ABUSE, {
@@ -507,7 +507,7 @@ func _cmd_bug(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "Describe the bug clearly: what happened, what you expected, steps to reproduce.")
 								return true
 				
-				var description := args.join(" ")
+				var description := " ".join(args)
 				
 				if PlayerReporter:
 								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.BUG, {
@@ -529,7 +529,7 @@ func _cmd_feedback(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "Share your thoughts, suggestions, or concerns.")
 								return true
 				
-				var message: String = args.join(" ")
+				var message: String = " ".join(args)
 				
 				if PlayerReporter:
 								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.FEEDBACK, {
@@ -551,7 +551,7 @@ func _cmd_suggest(sender_id: String, args: Array) -> bool:
 								send_system_message(sender_id, "Share your feature ideas with the community.")
 								return true
 				
-				var suggestion := args.join(" ")
+				var suggestion := " ".join(args)
 				
 				if PlayerReporter:
 								var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.SUGGESTION, {

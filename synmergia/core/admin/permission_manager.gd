@@ -25,7 +25,12 @@ class AuditEntry:
 	func _init(p_admin_id: String, p_action: String, p_target: String = "", p_details: Dictionary = {}, p_success: bool = true, p_ip: String = ""):
 		timestamp = Time.get_unix_time_from_system()
 		admin_id = p_admin_id
-		admin_level = get_player_level(p_admin_id)
+		# Inner class can't see outer class methods; resolve level via the
+		# autoload shim that handles security + cache lookups.
+		if SecurityService and p_admin_id != "":
+			admin_level = SecurityService.get_player_permission_level(p_admin_id)
+		else:
+			admin_level = GameConfig.Security.PLAYER_LEVEL
 		action = p_action
 		target_id = p_target
 		details = p_details
@@ -44,7 +49,7 @@ class AuditEntry:
 			"ip_address": ip_address
 		}
 	
-	func to_string() -> String:
+	func format_entry() -> String:
 		var time_str := Time.get_datetime_string_from_unix_time(timestamp)
 		var status := "[color=green]SUCCESS[/color]" if success else "[color=red]DENIED[/color]"
 		return "[%s] %s (Lvl %d) %s -> %s %s" % [time_str, admin_id, admin_level, action, target_id, status]
@@ -342,7 +347,13 @@ func set_config(admin_id: String, key: String, value) -> Dictionary:
 		return {"success": false, "message": "ADMIN level required", "code": "INSUFFICIENT_PERMS"}
 	
 	# Verify key exists
-	if not GameConfig.Security.has(key):
+	var valid_keys := [
+		"MIN_NAME_LENGTH", "MAX_NAME_LENGTH", "RESERVED_NAMES",
+		"MAX_MESSAGE_LENGTH", "PLAYER_LEVEL", "VIP_LEVEL",
+		"ENABLE_SECURITY_ALERTS", "ALERT_ON_RATE_LIMIT", "ALERT_ON_CHEAT",
+		"MAX_LOGIN_ATTEMPTS", "LOCKOUT_DURATION_MINUTES", "PASSWORD_MIN_LENGTH"
+	]
+	if key not in valid_keys:
 		return {"success": false, "message": "Invalid config key", "code": "INVALID_KEY"}
 	
 	# Check for dangerous keys
@@ -385,7 +396,7 @@ func get_audit_log_string(limit: int = 50) -> String:
 	
 	var count: int = 0
 	for entry: AuditEntry in _audit_log:
-		output += entry.to_string() + "\n"
+		output += entry.format_entry() + "\n"
 		count += 1
 		if count >= limit:
 			break
@@ -405,18 +416,27 @@ func _audit(admin_id: String, action: String, target_id: String = "",
 		_audit_log.pop_back()
 	
 	# Log to file/console
-	var entry_str := entry.to_string()
+	var entry_str := entry.format_entry()
 	GameLog.info("AUDIT: " + entry_str)
 	
 	# Emit signal for external logging (Discord, etc.)
 	admin_action.emit(entry)
 
-func _log_deny(admin_id: String, action: String, target_id: String, 
+func _log_deny(admin_id: String, action: String, target_id: String,
 		details: Dictionary, ip_address: String) -> void:
 	var entry := AuditEntry.new(admin_id, action, target_id, details, false, ip_address)
 	_audit_log.push_front(entry)
-	
-	GameLog.warn("AUDIT_DENIED: " + entry.to_string())
+
+	GameLog.warn("AUDIT_DENIED: " + entry.format_entry())
+
+func _log_action(admin_id: String, action: String, target_id: String,
+		details: Dictionary, success: bool, ip_address: String) -> void:
+	var entry := AuditEntry.new(admin_id, action, target_id, details, success, ip_address)
+	_audit_log.push_front(entry)
+	if success:
+		GameLog.info("AUDIT_ALLOWED: " + entry.format_entry())
+	else:
+		GameLog.warn("AUDIT_DENIED: " + entry.format_entry())
 
 ## ============================================================================
 ## INTERNAL HELPERS

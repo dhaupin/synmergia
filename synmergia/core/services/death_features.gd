@@ -72,7 +72,7 @@ func _ready() -> void:
 	GameLog.info("DeathFeatures: Ready")
 	
 	# Connect to relevant events
-	if EventBus:
+	if EventHub:
 		EventHub.player_died.connect(_on_player_died)
 		EventHub.player_respawned.connect(_on_player_respawned)
 		EventHub.player_resurrected.connect(_on_player_resurrected)
@@ -231,7 +231,7 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 		if penalties.durability_loss > 0:
 			msg_parts.append("%.0f%% durability" % penalties.durability_loss)
 		
-		var penalty_msg: String = "Death penalty: " + msg_parts.join(", ")
+		var penalty_msg: String = "Death penalty: " + ", ".join(msg_parts)
 		NotificationService.send(entity.entity_id, penalty_msg, 
 			NotificationService.NotificationType.WARNING, NotificationService.Priority.NORMAL,
 			NotificationService.DisplayLocation.CHAT_LOG, NotificationService.SoundType.WARNING, penalties)

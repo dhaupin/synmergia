@@ -30,7 +30,7 @@ func _ready() -> void:
 	GameLog.info("InputManager initialized")
 	
 	# Enable touch emulation on desktop for testing
-	if DisplayServer.touchscreen_is_available():
+	if DisplayServer.is_touchscreen_available():
 		pass  # touch emulation on desktop  # static call
 	Input.set_use_accumulated_input(true)
 	

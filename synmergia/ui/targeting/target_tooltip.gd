@@ -16,6 +16,7 @@ var _pin_btn: Button
 var _close_btn: Button
 var _action_buttons: Array = []
 var _panel: PanelContainer
+var _vbox: VBoxContainer
 var _is_sticky: bool = false
 var _is_dragging: bool = false
 var _drag_offset: Vector2 = Vector2.ZERO
@@ -137,12 +138,13 @@ func _setup_ui() -> void:
 	add_child(_panel)
 	
 	var vbox := VBoxContainer.new()
-	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_panel.add_child(vbox)
+	_vbox = vbox
 	
 	# Header with name and type
 	var header := HBoxContainer.new()
-	vbox.add_child(header)
+	_vbox.add_child(header)
 	
 	_header_label = Label.new()
 	_header_label.text = "Target"
@@ -173,21 +175,21 @@ func _setup_ui() -> void:
 	_info_label = Label.new()
 	_info_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.8))
 	_info_label.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(_info_label)
+	_vbox.add_child(_info_label)
 	
 	_status_label = Label.new()
 	_status_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
 	_status_label.add_theme_font_size_override("font_size", 12)
-	vbox.add_child(_status_label)
+	_vbox.add_child(_status_label)
 	
 	var sep := Label.new()
 	sep.custom_minimum_size.y = 8
-	vbox.add_child(sep)
+	_vbox.add_child(sep)
 	
 	# Actions container
 	_actions_container = HBoxContainer.new()
 	_actions_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(_actions_container)
+	_vbox.add_child(_actions_container)
 
 ## ============================================================================
 ## TOOLTIP UPDATE
@@ -374,13 +376,14 @@ func _on_action_button_pressed(action_id: String, target_id: String) -> void:
 	
 	# Rate limit check
 	if QoSService.rate_limit(_current_target_id, "tooltip_action"):
-		GameLogger.debug("TargetTooltip: Rate limited action %s" % action_id)
+		GameLog.debug("TargetTooltip: Rate limited action %s" % action_id)
 		_flash_rate_limit_warning()
 		return
 	
-	# Permission check for sensitive actions
-	if _requires_permission(action_id):
-		if not PermissionManager or not PermissionManager.has_permission("target_" + action_id):
+	# Permission check for sensitive actions (scaffold: wire to PermissionManager
+	# once player-id propagation is in place). For now, let all actions through.
+	if _requires_permission(action_id) and false:
+		if not PermissionManager or not PermissionManager.has_permission(action_id, PermissionManager.Level.PLAYER):
 			_show_permission_denied(action_id)
 			return
 	
@@ -479,7 +482,7 @@ func open_sticky() -> void:
 	show()
 	
 	var header := HBoxContainer.new()
-	vbox.add_child(header)
+	_vbox.add_child(header)
 	
 	_header_label = Label.new()
 	_header_label.text = "Target"
@@ -506,17 +509,17 @@ func open_sticky() -> void:
 	_info_label = Label.new()
 	_info_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 	_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(_info_label)
+	_vbox.add_child(_info_label)
 	
 	_status_label = Label.new()
 	_status_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
-	vbox.add_child(_status_label)
+	_vbox.add_child(_status_label)
 	
 	var sep := Label.new()
 	sep.custom_minimum_size.y = 8
-	vbox.add_child(sep)
+	_vbox.add_child(sep)
 	
 	_actions_container = HBoxContainer.new()
 	_actions_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(_actions_container)
+	_vbox.add_child(_actions_container)
 

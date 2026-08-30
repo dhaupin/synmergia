@@ -84,10 +84,10 @@ func _process_input(event: InputEvent) -> void:
 func _detect_platform() -> void:
 	var display_size := DisplayServer.window_get_size()
 	
-	if display_size.x < 768 or DisplayServer.touchscreen_is_available():
+	if display_size.x < 768 or DisplayServer.is_touchscreen_available():
 		_current_platform = Platform.MOBILE
 		_is_mobile = true
-	elif Input.is_joypad_connected(0):
+	elif Input.get_connected_joypads().has(0):
 		_current_platform = Platform.GAMEPAD
 		_has_gamepad = true
 	else:
@@ -224,5 +224,5 @@ func should_show_tooltips() -> bool:
 func get_button_size() -> Vector2:
 	return Vector2(90, 50) if _is_mobile else Vector2(80, 35)
 
-static func get() -> InteractionLayer:
+static func get_instance() -> InteractionLayer:
 	return instance

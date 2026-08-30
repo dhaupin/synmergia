@@ -7,6 +7,7 @@ enum EnemyType {
 	NORMAL,
 	ELITE,
 	CHAMPION,
+	BOSS,
 	WORLD_BOSS,
 	RAID_BOSS
 }
