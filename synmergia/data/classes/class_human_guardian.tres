@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "human_guardian"
+display_name = "Guardian"
+description = "Human bulwark. Intercepts danger and holds the line. Taunt, shield walls, and counter-attacks protect the party. Aggro management and AoE damage."
+role = 1
+resource_type = 1
+base_stats = {"strength": 10, "agility": 5, "vitality": 14, "intelligence": 6, "wisdom": 8, "endurance": 14}
+stat_growth = {"strength": 2, "agility": 1, "vitality": 3, "intelligence": 1, "wisdom": 1, "endurance": 3}
+base_resource = 60
+resource_per_level = 8
+resource_regen_per_second = 2.0
+resource_regen_combat = 1.0
+base_attack_power = 12
+attack_power_per_level = 3
+base_spell_power = 4
+spell_power_per_level = 1
+starting_skills = ["shield_toss"]
+skill_tree_unlocks = {5: ["shield_bash", "taunt"], 10: ["shield_wall"], 15: ["charge"], 20: ["intervene"], 25: ["last_stand"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = false
+can_use_staves = false
+can_use_armor = {"cloth": false, "leather": true, "mail": true, "plate": true}

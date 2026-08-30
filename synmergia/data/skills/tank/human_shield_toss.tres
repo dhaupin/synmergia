@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "shield_toss"
+display_name = "Shield Toss"
+description = "Hurls your shield at an enemy, dealing damage and reducing their armor."
+skill_type = 1
+target_type = 0
+mana_cost = 15
+cooldown = 8.0
+cast_time = 0.0
+animation_duration = 0.4
+range = 15.0
+effects = [{"type": "damage", "value": 30}, {"type": "debuff", "effect_id": "debuff_armor_reduce", "duration": 5.0}]
+required_level = 1
+required_class = "human_guardian"

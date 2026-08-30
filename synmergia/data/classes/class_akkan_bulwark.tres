@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/character_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "akkan_bulwark"
+display_name = "Bulwark"
+description = "Akkan fortress. Unmovable anchor in combat. Taunts, area denial, and damage reflection keep enemies locked on. Aggro control and AoE disruption."
+role = 1
+resource_type = 1
+base_stats = {"strength": 12, "agility": 5, "vitality": 14, "intelligence": 5, "wisdom": 6, "endurance": 14}
+stat_growth = {"strength": 2, "agility": 1, "vitality": 3, "intelligence": 1, "wisdom": 1, "endurance": 2}
+base_resource = 55
+resource_per_level = 7
+resource_regen_per_second = 1.8
+resource_regen_combat = 0.9
+base_attack_power = 14
+attack_power_per_level = 4
+base_spell_power = 3
+spell_power_per_level = 1
+starting_skills = ["battle_cry"]
+skill_tree_unlocks = {5: ["pummel", "taunt"], 10: ["reflect"], 15: ["bulwark_strike"], 20: ["earthwall"], 25: ["immortal_form"]}
+can_use_melee_weapons = true
+can_use_ranged_weapons = false
+can_use_staves = false
+can_use_armor = {"cloth": false, "leather": true, "mail": true, "plate": true}
