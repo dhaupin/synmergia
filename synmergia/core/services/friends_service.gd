@@ -82,7 +82,7 @@ const MAX_BLOCKS_PER_DAY: int = 10
 
 func _ready() -> void:
 	GameLog.info("FriendsService: Initialized")
-	_set_process(true)
+	set_process(true)
 
 func _check_rate_limit(player_id: String, action_type: String) -> Dictionary:
 	# Check via QoSService if available

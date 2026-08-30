@@ -128,7 +128,7 @@ func send(message: WebhookMessage) -> void:
 
 func send_immediate(message: WebhookMessage) -> bool:
 	if webhook_url == "":
-		GameLogger.warn("WebhookBase: No webhook URL configured")
+		GameLog.warn("WebhookBase: No webhook URL configured")
 		return false
 	
 	if _rate_limit_remaining == 0:
@@ -173,7 +173,7 @@ func _on_request_completed(result: int, response_code: int, headers: Array, body
 	message_sent.emit(response_code == 200 or response_code == 204, response_code)
 	
 	if response_code != 200 and response_code != 204:
-		GameLogger.warn("WebhookBase: Request failed with code %d" % response_code)
+		GameLog.warn("WebhookBase: Request failed with code %d" % response_code)
 
 static func create_embed(title: String = "", description: String = "", color: int = 0) -> Embed:
 	var embed := Embed.new()

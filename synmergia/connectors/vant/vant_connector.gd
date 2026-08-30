@@ -49,7 +49,7 @@ func connect(config: Dictionary) -> bool:
 	_set_status(ConnectorStatus.CONNECTED)
 	_poll_timer.start()
 	
-	GameLogger.info("VantConnector: Connected to Vant at %s (agent: %s)" % [vant_api_url, agent_session_id])
+	GameLog.info("VantConnector: Connected to Vant at %s (agent: %s)" % [vant_api_url, agent_session_id])
 	return true
 
 ## Disconnect from Vant
@@ -60,7 +60,7 @@ func disconnect() -> void:
 		_close_session()
 	
 	_set_status(ConnectorStatus.DISCONNECTED)
-	GameLogger.info("VantConnector: Disconnected from Vant")
+	GameLog.info("VantConnector: Disconnected from Vant")
 
 ## Send observation to Vant
 func send_observation(observation: Dictionary) -> void:
@@ -114,12 +114,12 @@ func _create_session() -> bool:
 	# Sync call for simplicity (would be async in real impl)
 	_session_id = "ws_%s_%d" % [agent_session_id, Time.get_ticks_msec()]
 	
-	GameLogger.info("VantConnector: Created session %s for agent %s" % [_session_id, agent_session_id])
+	GameLog.info("VantConnector: Created session %s for agent %s" % [_session_id, agent_session_id])
 	return true
 
 func _close_session() -> void:
 	if _session_id != "":
-		GameLogger.info("VantConnector: Closing session %s" % _session_id)
+		GameLog.info("VantConnector: Closing session %s" % _session_id)
 	_session_id = ""
 
 func _on_poll() -> void:

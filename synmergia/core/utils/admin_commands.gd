@@ -6,6 +6,7 @@ extends Node
 ## ============================================================================
 
 var _commands: Dictionary = {}
+var _caller: String = ""
 
 func _ready() -> void:
 	_register_commands()
@@ -121,18 +122,19 @@ func _register_commands() -> void:
 func execute_command(cmd_name: String, args: Array, caller_id: String) -> Dictionary:
 	if not _commands.has(cmd_name):
 		return {"success": false, "message": "Unknown command: " + cmd_name}
-	
+
 	var cmd = _commands[cmd_name]
 	var caller_level = _get_caller_permission_level(caller_id)
-	
+
 	if caller_level < cmd["permission"]:
 		SecurityService.log_permission_denied(caller_id, "admin_command:" + cmd_name, cmd["permission"])
 		return {"success": false, "message": "Permission denied"}
-	
+
 	var handler: Callable = cmd["handler"]
+	_caller = caller_id
 	var result = handler.call(args)
 	GameLog.info("AdminCommand: %s executed /%s" % [caller_id, cmd_name])
-	
+
 	return result
 
 func _get_caller_permission_level(caller_id: String) -> int:
@@ -221,7 +223,7 @@ func _cmd_firewall_status(args: Array) -> Dictionary:
 
 func _cmd_shutdown(args: Array) -> Dictionary:
 	var delay = 0 if args.size() < 1 else int(args[0])
-	NotificationService.broadcast_alert("Server shutdown in %d seconds!" % delay)
+	NotificationService.broadcast_alert("Server shutdown in %d seconds!" % delay, [NotificationService.AlertScope.server_wide()], NotificationService.NotificationType.ALERT)
 	var t = Timer.new()
 	t.timeout.connect(func(): get_tree().quit())
 	t.one_shot = true
@@ -233,7 +235,7 @@ func _cmd_shutdown(args: Array) -> Dictionary:
 func _cmd_broadcast(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /broadcast <message>"}
-	NotificationService.broadcast_alert(" ".join(args))
+	NotificationService.broadcast_alert(" ".join(args), [NotificationService.AlertScope.server_wide()], NotificationService.NotificationType.ALERT)
 	return {"success": true, "message": "Broadcast sent"}
 
 func _cmd_resurrect(args: Array) -> Dictionary:
@@ -298,39 +300,38 @@ func _cmd_kill_player(args: Array) -> Dictionary:
 func _cmd_goto_player(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /goto <player_id>"}
-	
+
 	var player_id: String = args[0]
-	var caller_entity: Entity = _find_entity_by_id(caller_id if "_caller" in self else player_id)
-	
+
 	var target: Entity = _find_entity_by_id(player_id)
 	if not target:
 		return {"success": false, "message": "Player not found: " + player_id}
-	
+
 	# Find the caller (admin using the command)
-	var admin: Entity = _get_caller_entity(caller_id)
+	var admin: Entity = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	admin.global_position = target.global_position
-	
+
 	return {"success": true, "message": "Teleported to: %s" % target.display_name}
 
 func _cmd_summon_player(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /summon <player_id>"}
-	
+
 	var player_id: String = args[0]
 	var target: Entity = _find_entity_by_id(player_id)
 	if not target:
 		return {"success": false, "message": "Player not found: " + player_id}
-	
+
 	# Find the caller (admin using the command)
-	var admin: Entity = _get_caller_entity(caller_id if "_caller" in self else player_id)
+	var admin: Entity = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	target.global_position = admin.global_position
-	
+
 	return {"success": true, "message": "Summoned: %s" % target.display_name}
 
 ## Helper: Find entity by ID

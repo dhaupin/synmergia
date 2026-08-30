@@ -46,7 +46,7 @@ func _on_entity_died(entity: Entity, killer: Entity) -> void:
 
 ## SKILL EXECUTION
 
-func execute_skill(caster: Entity, skill: Skill, target: Entity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
+func execute_skill(caster: Node, skill: Skill, target: Node = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
 	if not skill.can_cast(caster):
 		return {"success": false, "reason": "cannot_cast"}
 	
@@ -57,7 +57,7 @@ func execute_skill(caster: Entity, skill: Skill, target: Entity = null, ground_p
 		skill_executed.emit(caster, skill, result.targets_hit)
 		
 		# Track combo
-		if caster.entity_id in combo_trackers:
+		if "entity_id" in caster and caster.entity_id in combo_trackers:
 			combo_trackers[caster.entity_id].record_skill(skill)
 		
 		# Create hitbox if applicable
@@ -66,11 +66,11 @@ func execute_skill(caster: Entity, skill: Skill, target: Entity = null, ground_p
 	
 	return result
 
-func create_hitbox(caster: Entity, skill: Skill, target: Entity, ground_position: Vector3) -> void:
+func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Vector3) -> void:
 	var hitbox := HitboxData.new()
-	hitbox.owner_id = caster.entity_id if caster.entity_id else -1
+	hitbox.owner_id = caster.entity_id if "entity_id" in caster and caster.entity_id else -1
 	hitbox.skill = skill
-	hitbox.team_id = caster.team_id
+	hitbox.team_id = caster.team_id if "team_id" in caster else 0 if "team_id" in caster else 0
 	hitbox.hit_entities = []
 	hitbox.start_time = Time.get_ticks_msec() / 1000.0
 	hitbox.duration = skill.animation_duration * 0.5  # Hitbox active for half animation
@@ -82,7 +82,7 @@ func create_hitbox(caster: Entity, skill: Skill, target: Entity, ground_position
 		hitbox.position = target.global_position
 	else:
 		# Position in front of caster
-		var forward := -caster.global_transform.basis.z
+		var forward: Vector3 = -caster.global_transform.basis.z
 		hitbox.position = caster.global_position + forward * skill.hitbox_offset.z + Vector3(0, skill.hitbox_offset.y, 0)
 	
 	hitbox.size = skill.aoe_radius if skill.aoe_radius > 0 else skill.hitbox_size
@@ -133,7 +133,7 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 	return entities_in_range
 
 func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
-	var caster := get_entity(hitbox.owner_id) if hitbox.owner_id != -1 else null
+	var caster := get_entity(str(hitbox.owner_id)) if hitbox.owner_id != -1 else null
 	
 	# Calculate and apply damage
 	var damage: int = 0
@@ -181,7 +181,7 @@ func _apply_cc(skill: Skill, caster: Entity, target: Entity) -> void:
 	target.apply_status_effect(effect)
 
 func _apply_teleport(caster: Entity, _target: Entity, skill: Skill) -> void:
-	var forward := -caster.global_transform.basis.z
+	var forward: Vector3 = -caster.global_transform.basis.z
 	forward.y = 0
 	caster.global_position += forward * skill.teleport_distance
 
@@ -189,7 +189,7 @@ func _apply_teleport(caster: Entity, _target: Entity, skill: Skill) -> void:
 
 func _process_combos(_delta: float) -> void:
 	for entity_id in combo_trackers:
-		var tracker := combo_trackers[entity_id]
+		var tracker: Node = combo_trackers[entity_id]
 		tracker._physics_process(_delta)
 
 func get_combo_count(entity_id: String) -> int:
@@ -204,17 +204,17 @@ func can_combo(entity_id: String, skill: Skill) -> bool:
 
 ## GROUND TARGETING
 
-func get_ground_target_position(caster: Entity, direction: Vector2, max_range: float) -> Vector3:
+func get_ground_target_position(caster: Node, direction: Vector2, max_range: float) -> Vector3:
 	# Raycast to ground
-	var from := caster.global_position + Vector3.UP * 2
-	var to := caster.global_position + Vector3(direction.x, 0, direction.y) * max_range
+	var from: Vector3 = caster.global_position + Vector3.UP * 2
+	var to: Vector3 = caster.global_position + Vector3(direction.x, 0, direction.y) * max_range
 	
-	var space_state := caster.get_world_3d().direct_space_state
+	var space_state: PhysicsDirectSpaceState3D = caster.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collide_with_bodies = true
 	query.collision_mask = 0b0000111  # World layers
 	
-	var result := space_state.intersect_ray(query)
+	var result: Dictionary = space_state.intersect_ray(query)
 	
 	if result:
 		return result.position
@@ -277,18 +277,19 @@ class DoTEffect:
 	var tick_rate: float = 1.0
 	var total_duration: float = 0.0
 	var ticks_remaining: int = 0
-	var source: Entity = null
 	var tick_timer: float = 0.0
 	
 	func _init() -> void:
 		effect_type = EffectType.DEBUFF
 	
-	func apply(target: Entity) -> void:
+	func apply(target_entity: Node) -> bool:
 		ticks_remaining = int(total_duration / tick_rate)
-		target.damage_dealt.connect(_on_target_take_damage)
+		if target_entity.damage_dealt.connect(_on_target_take_damage) == OK:
+			pass
+		return true
 	
-	func remove(target: Entity) -> void:
-		target.damage_dealt.disconnect(_on_target_take_damage)
+	func remove(target_entity: Node) -> void:
+		target_entity.damage_dealt.disconnect(_on_target_take_damage)
 	
 	func _physics_process(delta: float) -> void:
 		tick_timer += delta

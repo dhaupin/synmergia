@@ -375,17 +375,6 @@ func cancel_revival(healer_id: String) -> void:
 			revive_interrupted.emit(data["target"], data["healer"], "Cancelled")
 			break
 
-## Get revival progress
-func get_revival_progress(target_id: String) -> float:
-	if not _active_revives.has(target_id):
-		return 0.0
-	
-	var data: Dictionary = _active_revives[target_id]
-	var elapsed_ms := Time.get_ticks_msec() - data["start_time"]
-	var elapsed: float = elapsed_ms / 1000.0
-	
-	return clamp(elapsed / data["cast_time"], 0.0, 1.0)
-
 ## Internal: Start respawn
 func _start_respawn(player, mode: RespawnMode, data: Dictionary) -> void:
 	# This would be connected to a timer in the player's health component
@@ -605,17 +594,17 @@ func get_revive_ability_info(context: String = "") -> Dictionary:
 	}
 
 ## Internal: Get nearby healers
-func _get_nearby_potential_healers(player) -> Array:
+func _get_nearby_potential_healers(player: Entity) -> Array:
 	var nearby: Array = []
 	var entities := EntityService.get_entities_in_radius(player.global_position, REVIVE_RANGE)
 	for entity in entities:
 		if entity != player and entity.health_component and not entity.health_component.is_dead():
-			if entity is Player or entity.controller_type == Entity.ControllerType.HUMAN:
+			if entity.controller_type == Entity.ControllerType.HUMAN:
 				nearby.append(entity)
 	return nearby
 
 ## Internal: Get arena team
-func _get_arena_team(player) -> int:
+func _get_arena_team(player: Entity) -> int:
 	var party := PartyService.get_player_party(player.entity_id)
 	if not party.is_empty() and party.has("id"):
 		return party["id"].hash() % 2  # Split party into teams
@@ -629,7 +618,7 @@ func _get_team_respawns(player, config: ZoneRespawnConfig) -> int:
 	return _team_respawn_counts[team]
 
 ## Internal: Get nearest gateway
-func _get_nearest_gateway(player, gateway_ids: Array[String]) -> String:
+func _get_nearest_gateway(player: Entity, gateway_ids: Array[String]) -> String:
 	if gateway_ids.is_empty():
 		return ""
 	var nearest_id: String = gateway_ids[0]
@@ -637,7 +626,7 @@ func _get_nearest_gateway(player, gateway_ids: Array[String]) -> String:
 	var player_pos := player.global_position
 	for gateway_id in gateway_ids:
 		if _gateway_positions.has(gateway_id):
-			var gateway_pos := _gateway_positions[gateway_id]
+			var gateway_pos: Vector3 = _gateway_positions[gateway_id]
 			var dist: float = player_pos.distance_to(gateway_pos)
 			if dist < nearest_dist:
 				nearest_dist = dist

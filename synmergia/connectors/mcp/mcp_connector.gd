@@ -42,14 +42,14 @@ func connect(config: Dictionary) -> bool:
 	await _send_initialize()
 	
 	_set_status(ConnectorStatus.CONNECTED)
-	GameLogger.info("MCPConnector: Connected to %s" % mcp_server_url)
+	GameLog.info("MCPConnector: Connected to %s" % mcp_server_url)
 	return true
 
 ## Disconnect from MCP
 func disconnect() -> void:
 	_ws_client.close()
 	_set_status(ConnectorStatus.DISCONNECTED)
-	GameLogger.info("MCPConnector: Disconnected")
+	GameLog.info("MCPConnector: Disconnected")
 
 ## Send observation via MCP
 func send_observation(observation: Dictionary) -> void:
@@ -140,11 +140,11 @@ func _on_ws_message(message: String) -> void:
 				pass
 
 func _on_ws_connected() -> void:
-	GameLogger.debug("MCPConnector: WebSocket connected")
+	GameLog.debug("MCPConnector: WebSocket connected")
 
 func _on_ws_disconnected() -> void:
 	_set_status(ConnectorStatus.DISCONNECTED)
-	GameLogger.info("MCPConnector: WebSocket disconnected")
+	GameLog.info("MCPConnector: WebSocket disconnected")
 
 ## Get MCP capabilities
 func get_capabilities() -> Dictionary:

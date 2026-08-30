@@ -71,57 +71,57 @@ signal channel_settings_changed(entity_id: String, channel: Channel)
 func _ready() -> void:
 	GameLog.info("ChatService: Ready")
 				
-				# Initialize history for each channel
+		# Initialize history for each channel
 	for channel in Channel:
 		_chat_history[channel] = []
 				
-				# Load profanity filter words from config file
+		# Load profanity filter words from config file
 	_load_profanity_list()
 
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
-				# Security: Check channel-specific restrictions
+		# Security: Check channel-specific restrictions
 	var restriction_msg := _get_channel_restriction_message(sender_id, channel)
 	if restriction_msg != "":
 		_notify_player(sender_id, restriction_msg)
 		return false
 				
-				# QoS: Rate limit chat messages (player is already notified by QoSService)
+		# QoS: Rate limit chat messages (player is already notified by QoSService)
 	var action_type = "chat" if channel != Channel.WHISPER else "whisper"
 	if not QoSService.rate_limit(sender_id, action_type):
 		return false
 				
-				# Security: Validate message content
+		# Security: Validate message content
 	var validation := SecurityService.validate_message(message, sender_id)
 	if not validation.valid:
 		_notify_player(sender_id, "Message blocked: %s" % validation.reason)
 		return false
 	message = validation.sanitized
 
-				# Truncate message to max length
+		# Truncate message to max length
 	if message.length() > MAX_MESSAGE_LENGTH:
 		message = message.substr(0, MAX_MESSAGE_LENGTH)
 
-				# Spam check
+		# Spam check
 	if not _check_spam(sender_id):
 		_notify_player(sender_id, "Slow down! You are sending messages too fast.")
 		return false
 				
-				# Check if ignored
+		# Check if ignored
 	if channel == Channel.WHISPER and target_id != "":
 		if _is_ignored(target_id, sender_id):
 			return false
 				
-				# Filter profanity
+		# Filter profanity
 	message = _filter_profanity(message)
 				
-				# Get targets based on channel
+		# Get targets based on channel
 	var targets: Array = _get_channel_targets(sender_id, channel, target_id)
 				
 	if targets.is_empty():
 		return false
 				
-				# Create chat message
+		# Create chat message
 	var chat_message := {
 	"id": "msg_%d" % Time.get_ticks_msec(),
 	"sender_id": sender_id,
@@ -131,13 +131,13 @@ func send_message(sender_id: String, channel: Channel, message: String, target_i
 	"target_id": target_id
 	}
 				
-				# Store in history
+		# Store in history
 	_add_to_history(channel, chat_message)
 				
-				# Emit signal
+		# Emit signal
 	message_received.emit(sender_id, channel, message, targets)
 				
-				# Route to appropriate handler
+		# Route to appropriate handler
 	_route_message(sender_id, channel, message, targets, target_id)
 				
 	return true
@@ -147,7 +147,7 @@ func _check_spam(entity_id: String) -> bool:
 	var now := Time.get_ticks_msec()
 	var last := _player_last_message.get(entity_id, 0)
 				
-				# Reset if cooldown passed
+		# Reset if cooldown passed
 	if now - last > SPAM_COOLDOWN_MS:
 		_spam_count[entity_id] = 0
 				
@@ -166,7 +166,7 @@ func _load_profanity_list() -> void:
 	var file_path := GameConfig.Chat.PROFANITY_WORDS_FILE
 	var file := FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
-								# Try user:// path as fallback
+		# Try user:// path as fallback
 		file_path = "user://config/profanity_words.txt"
 		file = FileAccess.open(file_path, FileAccess.READ)
 				
@@ -201,7 +201,7 @@ func _filter_profanity(message: String) -> String:
 func _get_channel_targets(sender_id: String, channel: Channel, target_id: String) -> Array:
 	match channel:
 		Channel.SAY, Channel.YELL, Channel.ZONE:
-												# Return players in range or zone
+		# Return players in range or zone
 			return _get_players_in_channel_range(sender_id, channel)
 		Channel.WHISPER:
 			return [target_id] if target_id != "" else []
@@ -223,13 +223,13 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 		GameLog.warn("ChatService: EntityService not available for range check")
 		return []
 				
-				# Get sender entity
+		# Get sender entity
 	var sender = EntityService.get_entity(sender_id)
 	if not sender or not is_instance_valid(sender):
 		GameLog.warn("ChatService: Sender entity not found for range check: %s" % sender_id)
 		return []
 				
-				# Get range from channel config
+		# Get range from channel config
 	var channel_range: float = 0.0
 	match channel:
 		Channel.SAY:
@@ -239,20 +239,20 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 		Channel.EMOTE:
 			channel_range = 20.0
 		Channel.ZONE:
-												# Zone-wide = no range limit, return all players in zone
+		# Zone-wide = no range limit, return all players in zone
 			return _get_players_in_same_zone(sender_id)
 				
 	if channel_range <= 0:
 		return []
 				
-				# Get players within range
+		# Get players within range
 	var nearby_entities := EntityService.get_entities_in_radius(
 	sender.global_position if sender is Node3D else Vector3.ZERO,
 	channel_range,
 	Entity.EntityType.PLAYER
 	)
 				
-				# Convert to player IDs, excluding sender
+		# Convert to player IDs, excluding sender
 	var player_ids: Array[String] = []
 	for entity in nearby_entities:
 		if is_instance_valid(entity) and entity.entity_id != sender_id:
@@ -269,13 +269,13 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 	if not sender or not is_instance_valid(sender):
 		return []
 				
-				# Get sender's zone from metadata
+		# Get sender's zone from metadata
 	var metadata: EventHub.SpawnMetadata = EntityService.get_entity_metadata(sender_id)
 	if not metadata or metadata.zone_id == "":
 		GameLog.debug("ChatService: No zone info for sender, returning empty range list")
 		return []
 				
-				# Find all players in the same zone
+		# Find all players in the same zone
 	var all_players := EntityService.get_all_players()
 	var zone_players: Array[String] = []
 				
@@ -325,13 +325,13 @@ func _get_alliance_members(player_id: String) -> Array[String]:
 
 ## Route message to handlers
 func _route_message(sender_id: String, channel: Channel, message: String, targets: Array, target_id: String) -> void:
-				# Check for commands
+		# Check for commands
 	if message.begins_with("/"):
 		_handle_command(sender_id, channel, message.substr(1), target_id)
 		return
 				
-				# Log chat
-	var channel_name := _channel_info[channel]["name"]
+		# Log chat
+	var channel_name: String = _channel_info[channel]["name"]
 	GameLog.debug("ChatService: [%s] %s: %s" % [channel_name, sender_id, message])
 
 ## Handle chat commands
@@ -378,30 +378,30 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 
 ## Command: Whisper
 
-	## Find player ID by name (case-insensitive partial match)
-	func _find_player_id_by_name(player_name: String) -> String:
-		if not EntityService:
-			return ""
-		
-		var name_lower := player_name.to_lower()
-		var all_players := EntityService.get_all_players()
-		
-		for player in all_players:
-			if not is_instance_valid(player):
-				continue
-			var player_name_str := player.name if "name" in player else ""
-			if player_name_str.to_lower() == name_lower:
-				return player.entity_id
-		
-		# Try partial match
-		for player in all_players:
-			if not is_instance_valid(player):
-				continue
-			var player_name_str := player.name if "name" in player else ""
-			if player_name_str.to_lower().find(name_lower) >= 0:
-				return player.entity_id
-		
+## Find player ID by name (case-insensitive partial match)
+func _find_player_id_by_name(player_name: String) -> String:
+	if not EntityService:
 		return ""
+	
+	var name_lower := player_name.to_lower()
+	var all_players := EntityService.get_all_players()
+	
+	for player in all_players:
+		if not is_instance_valid(player):
+			continue
+		var player_name_str: String = player.name if "name" in player else ""
+		if player_name_str.to_lower() == name_lower:
+			return player.entity_id
+	
+	# Try partial match
+	for player in all_players:
+		if not is_instance_valid(player):
+			continue
+		var player_name_str: String = player.name if "name" in player else ""
+		if player_name_str.to_lower().find(name_lower) >= 0:
+			return player.entity_id
+	
+	return ""
 func _cmd_whisper(sender_id: String, args: Array) -> bool:
 	if args.size() < 2:
 		send_system_message(sender_id, "Usage: /w <player> <message>")
@@ -410,13 +410,13 @@ func _cmd_whisper(sender_id: String, args: Array) -> bool:
 	var target: String = args[0]
 	var message: String = " ".join(args.slice(1, args.size()))
 				
-				# Look up player by name
+		# Look up player by name
 	var target_id := _find_player_id_by_name(target)
 	if target_id == "":
 		send_system_message(sender_id, "Player not found: " + target)
 		return false
 				
-				# Track last whisper target
+		# Track last whisper target
 	_player_last_whisper[sender_id] = target_id
 				
 	return send_message(sender_id, Channel.WHISPER, message, target_id)
@@ -488,13 +488,13 @@ func _cmd_report(sender_id: String, args: Array) -> bool:
 				
 	if PlayerReporter:
 		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.ABUSE, {
-		"target": target,
-		"reason": reason
-	})
-	if result.success:
-		send_system_message(sender_id, "Report submitted. Thank you for helping keep the community safe.")
-	else:
-		send_system_message(sender_id, "Failed to submit report: %s" % result.message)
+			"target": target,
+			"reason": reason
+		})
+		if result.success:
+			send_system_message(sender_id, "Report submitted. Thank you for helping keep the community safe.")
+		else:
+			send_system_message(sender_id, "Failed to submit report: %s" % result.message)
 	else:
 		send_system_message(sender_id, "Report system not available. Please try again later.")
 				
@@ -511,12 +511,12 @@ func _cmd_bug(sender_id: String, args: Array) -> bool:
 				
 	if PlayerReporter:
 		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.BUG, {
-		"description": description
-	})
-	if result.success:
-		send_system_message(sender_id, "Bug report submitted. Thank you!")
-	else:
-		send_system_message(sender_id, "Failed to submit bug report: %s" % result.message)
+			"description": description
+		})
+		if result.success:
+			send_system_message(sender_id, "Bug report submitted. Thank you!")
+		else:
+			send_system_message(sender_id, "Failed to submit bug report: %s" % result.message)
 	else:
 		send_system_message(sender_id, "Bug report system not available. Please try again later.")
 				
@@ -533,12 +533,12 @@ func _cmd_feedback(sender_id: String, args: Array) -> bool:
 				
 	if PlayerReporter:
 		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.FEEDBACK, {
-		"message": message
-	})
-	if result.success:
-		send_system_message(sender_id, "Feedback submitted. Thank you for your input!")
-	else:
-		send_system_message(sender_id, "Failed to submit feedback: %s" % result.message)
+			"message": message
+		})
+		if result.success:
+			send_system_message(sender_id, "Feedback submitted. Thank you for your input!")
+		else:
+			send_system_message(sender_id, "Failed to submit feedback: %s" % result.message)
 	else:
 		send_system_message(sender_id, "Feedback system not available. Please try again later.")
 				
@@ -555,12 +555,12 @@ func _cmd_suggest(sender_id: String, args: Array) -> bool:
 				
 	if PlayerReporter:
 		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.SUGGESTION, {
-		"suggestion": suggestion
-	})
-	if result.success:
-		send_system_message(sender_id, "Suggestion submitted! The community can vote on it.")
-	else:
-		send_system_message(sender_id, "Failed to submit suggestion: %s" % result.message)
+			"suggestion": suggestion
+		})
+		if result.success:
+			send_system_message(sender_id, "Suggestion submitted! The community can vote on it.")
+		else:
+			send_system_message(sender_id, "Failed to submit suggestion: %s" % result.message)
 	else:
 		send_system_message(sender_id, "Suggestion system not available. Please try again later.")
 				
@@ -591,7 +591,7 @@ func _add_to_history(channel: Channel, message: Dictionary) -> void:
 				
 	_chat_history[channel].append(message)
 				
-				# Trim history
+		# Trim history
 	while _chat_history[channel].size() > MAX_HISTORY_PER_CHANNEL:
 		_chat_history[channel].pop_at(0)
 
@@ -634,8 +634,8 @@ func get_channel_color(channel: Channel) -> String:
 ## Format message for display
 func format_message(sender_id: String, channel: Channel, message: String, sender_name: String = "") -> String:
 	var info := get_channel_info(channel)
-	var prefix := info.get("prefix", "")
-	var color := info.get("color", "#FFFFFF")
+	var prefix: String = info.get("prefix", "")
+	var color: String = info.get("color", "#FFFFFF")
 				
 	if channel == Channel.WHISPER:
 		return "[color=%s]%s %s:[/color] %s" % [color, prefix, sender_name, message]
@@ -655,38 +655,38 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 func _get_channel_restriction_message(player_id: String, channel: Channel) -> String:
 	match channel:
 		Channel.SAY, Channel.YELL, Channel.ZONE, Channel.GLOBAL, Channel.TRADE, Channel.COMBAT, Channel.EMOTE:
-												# General chat channels - check "chat" restriction
+		# General chat channels - check "chat" restriction
 			if SecurityService.is_restricted(player_id, "chat"):
 				return "You are muted and cannot send messages."
 								
 		Channel.WHISPER:
-												# Whisper channel - check "chat" restriction
+		# Whisper channel - check "chat" restriction
 			if SecurityService.is_restricted(player_id, "chat"):
 				return "You are muted and cannot send whispers."
 								
 		Channel.PARTY:
-												# Party chat - check party restriction
+		# Party chat - check party restriction
 			if SecurityService.is_restricted(player_id, "party"):
 				return "You are restricted from party chat."
 			if SecurityService.is_restricted(player_id, "chat"):
 				return "You are muted and cannot send party messages."
 								
 		Channel.GUILD:
-												# Guild chat - check guild restriction
+		# Guild chat - check guild restriction
 			if SecurityService.is_restricted(player_id, "guild"):
 				return "You are restricted from guild chat."
 			if SecurityService.is_restricted(player_id, "chat"):
 				return "You are muted and cannot send guild messages."
 								
 		Channel.ALLIANCE:
-												# Alliance chat - check guild restriction (alliance uses guild perms)
+		# Alliance chat - check guild restriction (alliance uses guild perms)
 			if SecurityService.is_restricted(player_id, "guild"):
 				return "You are restricted from alliance chat."
 			if SecurityService.is_restricted(player_id, "chat"):
 				return "You are muted and cannot send alliance messages."
 								
 		Channel.SYSTEM:
-												# System messages are read-only
+		# System messages are read-only
 			return "Cannot send to system channel."
 				
 	return ""	 # No restriction

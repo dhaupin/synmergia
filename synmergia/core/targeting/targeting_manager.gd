@@ -379,18 +379,18 @@ func _action_whisper(source_id: String, target_id: String) -> Dictionary:
 
 func _action_invite_party(source_id: String, target_id: String) -> Dictionary:
 	if PartyService:
-		var result := PartyService.invite_player(source_id, target_id)
-		if result.success:
+		var result: bool = PartyService.invite_player(source_id, target_id)
+		if result:
 			return {"success": true, "message": "Party invite sent to %s" % target_id}
-		return result
+		return {"success": false, "message": "Failed to invite %s to party" % target_id}
 	return {"success": false, "message": "Party service unavailable"}
 
 func _action_invite_guild(source_id: String, target_id: String) -> Dictionary:
 	if GuildService:
-		var result := GuildService.invite_player(source_id, target_id)
-		if result.success:
+		var result: bool = GuildService.invite_player(source_id, target_id)
+		if result:
 			return {"success": true, "message": "Guild invite sent to %s" % target_id}
-		return result
+		return {"success": false, "message": "Failed to invite %s to guild" % target_id}
 	return {"success": false, "message": "Guild service unavailable"}
 
 func _action_add_friend(_source_id: String, target_id: String) -> Dictionary:
@@ -879,18 +879,21 @@ func get_entity_at_screen_position(screen_pos: Vector2, camera: Camera3D = null)
 
 ## Get first targetable entity in direction from origin
 func get_target_in_direction(origin: Vector3, direction: Vector3, max_distance: float = 50.0) -> TargetInfo:
-	var space_state := get_world_3d().direct_space_state
+	var camera := _get_active_camera()
+	if not camera:
+		return null
+	var space_state := camera.get_world_3d().direct_space_state
 	var to := origin + direction * max_distance
-	
+
 	var query := PhysicsRayQueryParameters3D.create(origin, to)
 	query.collision_mask = 0b0000001  # Entity layer
-	
+
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:
 		var collider: Node = result["collider"]
 		if collider and collider.has("entity_id"):
 			return _create_target_info_from_node(collider, result.get("position", Vector3.ZERO))
-	
+
 	return null
 
 ## Cycle to next target in list
@@ -928,18 +931,18 @@ func _create_target_info_from_node(node: Node, hit_position: Vector3 = Vector3.Z
 		return null
 	
 	var entity_id = node.entity_id
-	var entity_type = node.get("entity_type", 0) if node.has("entity_type") else 0
-	
+	var entity_type: int = node.entity_type if node.has("entity_type") else 0
+
 	# Get schema for this entity type
 	var schema_id = _entity_type_to_schema.get(entity_type, "")
 	if schema_id == "":
 		schema_id = _infer_schema_id(node)
-	
+
 	var info := TargetInfo.new()
 	info.id = entity_id
 	info.schema_id = schema_id
 	info.entity_type = entity_type
-	info.display_name = node.get("display_name", entity_id) if node.has("display_name") else entity_id
+	info.display_name = node.display_name if node.has("display_name") else entity_id
 	info.world_position = node.global_position if node is Node3D else hit_position
 	info.position = hit_position
 	info.node = node

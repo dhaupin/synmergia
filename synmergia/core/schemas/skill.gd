@@ -1,6 +1,7 @@
-## Skill - Combat skill definition
+## SkillSchema - Combat skill definition
 ## Base schema for all skills (spells, attacks, abilities)
-class_name Skill
+## The runtime Skill class lives in core/combat/skill.gd
+class_name SkillSchema
 extends Resource
 
 enum SkillType {
@@ -74,16 +75,16 @@ func _init() -> void:
 		id = display_name.to_lower().replace(" ", "_")
 
 ## Check if entity can cast this skill
-func can_cast(caster: ) -> bool:
+func can_cast(caster: Node) -> bool:
 	if remaining_cooldown > 0:
 		return false
-	if caster.current_mana < mana_cost:
+	if mana_cost > 0 and "current_mana" in caster and caster.current_mana < mana_cost:
 		return false
-	if caster.current_stamina < stamina_cost:
+	if stamina_cost > 0 and "current_stamina" in caster and caster.current_stamina < stamina_cost:
 		return false
-	if caster.current_health < health_cost:
+	if health_cost > 0 and "current_health" in caster and caster.current_health < health_cost:
 		return false
-	if caster.level < required_level:
+	if "level" in caster and caster.level < required_level:
 		return false
 	return true
 

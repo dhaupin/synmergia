@@ -91,14 +91,14 @@ func create_container_loot(container_id: String, items: Array, currency: Diction
 
 ## Set eligible players for loot (for parties)
 func set_eligible_players(loot_id: String, player_ids: Array) -> void:
-	var loot := _active_loot.get(loot_id)
+	var loot: Dictionary = _active_loot.get(loot_id)
 	if loot:
 		loot["eligible_players"] = player_ids
 		GameLog.debug("LootService: Set %d eligible players for loot %s" % [player_ids.size(), loot_id])
 
 ## Start Need/Greed rolling
 func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
-	var loot := _active_loot.get(loot_id)
+	var loot: Dictionary = _active_loot.get(loot_id)
 	if not loot or loot["assigned_to"] != "":
 		return false
 				
@@ -128,32 +128,32 @@ func roll_for_loot(loot_id: String, player_id: String, roll_type: RollType, roll
 		GameLog.debug("LootService: Rate limited roll for %s" % player_id)
 		return false
 
-		if not _active_loot.has(loot_id):
-			return false
-				
-		if not _need_greed_rolls.has(loot_id):
-			return false
-				
-		var rolls: Dictionary = _need_greed_rolls[loot_id]
-		if rolls.has(player_id):
-			return false	# Already rolled
-				
-		rolls[player_id] = {"type": roll_type, "value": roll_value, "timestamp": Time.get_unix_time_from_system()}
-		_need_greed_rolls[loot_id] = rolls
-				
-		loot_rolled.emit(loot_id, player_id, roll_type, roll_value)
-		GameLog.debug("LootService: Player %s rolled %s: %d" % [player_id, RollType.keys()[roll_type], roll_value])
-				
-				# Check if all eligible have rolled
-		var loot: Dictionary = _active_loot[loot_id]
-		if rolls.size() >= loot["eligible_players"].size():
-			_resolve_need_greed(loot_id)
-				
-		return true
+	if not _active_loot.has(loot_id):
+		return false
+			
+	if not _need_greed_rolls.has(loot_id):
+		return false
+			
+	var rolls: Dictionary = _need_greed_rolls[loot_id]
+	if rolls.has(player_id):
+		return false	# Already rolled
+			
+	rolls[player_id] = {"type": roll_type, "value": roll_value, "timestamp": Time.get_unix_time_from_system()}
+	_need_greed_rolls[loot_id] = rolls
+			
+	loot_rolled.emit(loot_id, player_id, roll_type, roll_value)
+	GameLog.debug("LootService: Player %s rolled %s: %d" % [player_id, RollType.keys()[roll_type], roll_value])
+			
+			# Check if all eligible have rolled
+	var loot: Dictionary = _active_loot[loot_id]
+	if rolls.size() >= loot["eligible_players"].size():
+		_resolve_need_greed(loot_id)
+			
+	return true
 
 ## Resolve Need/Greed
 func _resolve_need_greed(loot_id: String) -> void:
-	var loot := _active_loot.get(loot_id)
+	var loot: Dictionary = _active_loot.get(loot_id)
 	if not loot:
 		return
 				
@@ -181,14 +181,14 @@ func _resolve_need_greed(loot_id: String) -> void:
 
 ## Assign loot to a player
 func assign_loot(loot_id: String, player_id: String) -> bool:
-	var loot := _active_loot.get(loot_id)
+	var loot: Dictionary = _active_loot.get(loot_id)
 	if not loot or loot["assigned_to"] != "":
 		return false
 				
 	loot["assigned_to"] = player_id
 				
-	var items := loot["items"]
-	var currency := loot["currency"]
+	var items: Dictionary = loot["items"]
+	var currency: int = loot["currency"]
 				
 				# Store for player pickup
 	if not _player_loot.has(player_id):
@@ -213,33 +213,32 @@ func pickup_loot(player_id: String, loot_id: String = "") -> Array:
 		GameLog.debug("LootService: Rate limited pickup for %s" % player_id)
 		return []
 
-		var items_received: Array = []
-				
-		if loot_id != "":
-								# Pick up specific loot
-			var found := false
-			for i in range(_player_loot.get(player_id, []).size()):
-				var loot: Dictionary = _player_loot[player_id][i]
-				if loot["loot_id"] == loot_id:
-					items_received = loot["items"]
-					_player_loot[player_id].remove_at(i)
-					found = true
-					break
-			if not found:
-				return []
-		else:
-								# Pick up all available loot
-			for loot_data in _player_loot.get(player_id, []):
-				items_received.append_array(loot_data["items"])
-			_player_loot[player_id] = []
-				
-		if not items_received.is_empty():
-			loot_picked_up.emit(player_id, items_received)
-			GameLog.info("LootService: %s picked up %d items" % [player_id, items_received.size()])
-				
-		return items_received
+	var items_received: Array = []
 
-## Pass on loot (for NBG)
+	if loot_id != "":
+		# Pick up specific loot
+		var found := false
+		for i in range(_player_loot.get(player_id, []).size()):
+			var loot: Dictionary = _player_loot[player_id][i]
+			if loot["loot_id"] == loot_id:
+				items_received = loot["items"]
+				_player_loot[player_id].remove_at(i)
+				found = true
+				break
+		if not found:
+			return []
+	else:
+		# Pick up all available loot
+		for loot_data in _player_loot.get(player_id, []):
+			items_received.append_array(loot_data["items"])
+		_player_loot[player_id] = []
+
+	if not items_received.is_empty():
+		loot_picked_up.emit(player_id, items_received)
+		GameLog.info("LootService: %s picked up %d items" % [player_id, items_received.size()])
+
+	return items_received
+
 func pass_loot(loot_id: String, player_id: String) -> bool:
 	if not _active_loot.has(loot_id):
 		return false
@@ -266,7 +265,7 @@ func get_loot_at_position(position: Vector3, radius: float = 5.0) -> Array:
 ## Expire old loot
 func expire_loot(loot_id: String) -> void:
 	if _active_loot.has(loot_id):
-		var loot := _active_loot[loot_id]
+		var loot: Dictionary = _active_loot[loot_id]
 								
 								# Clean up assignments
 		for player_id in _player_loot:

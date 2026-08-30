@@ -115,21 +115,21 @@ func _init() -> void:
 	if skill_id == "":
 		skill_id = skill_name.to_lower().replace(" ", "_")
 
-func can_cast(caster: Entity) -> bool:
+func can_cast(caster: Node) -> bool:
 	# Check cooldown
 	if remaining_cooldown > 0:
 		return false
 	
 	# Check resources
-	if caster.current_mana < mana_cost:
+	if "current_mana" in caster and caster.current_mana < mana_cost:
 		return false
-	if caster.current_stamina < stamina_cost:
+	if "current_stamina" in caster and caster.current_stamina < stamina_cost:
 		return false
-	if caster.current_health < health_cost:
+	if "current_health" in caster and caster.current_health < health_cost:
 		return false
 	
 	# Check level
-	if caster.level < required_level:
+	if "level" in caster and caster.level < required_level:
 		return false
 	
 	# Check class
@@ -183,11 +183,11 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 	return result
 
 func consume_resources(caster: Entity) -> bool:
-	if caster.current_mana < mana_cost:
+	if "current_mana" in caster and caster.current_mana < mana_cost:
 		return false
-	if caster.current_stamina < stamina_cost:
+	if "current_stamina" in caster and caster.current_stamina < stamina_cost:
 		return false
-	if caster.current_health < health_cost:
+	if "current_health" in caster and caster.current_health < health_cost:
 		return false
 	
 	caster.current_mana -= mana_cost
