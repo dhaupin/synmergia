@@ -185,7 +185,7 @@ func _cmd_block_ip(args: Array) -> Dictionary:
 		return {"success": false, "message": "Usage: /block_ip <ip> <duration> <reason>"}
 	var firewall = NetworkManager.get_firewall()
 	if firewall:
-		firewall.block_ip(args[0], args.slice(2, args.size()).join(" "), int(args[1]))
+		firewall.block_ip(args[0], " ".join(args.slice(2, args.size())), int(args[1]))
 		return {"success": true, "message": "Blocked IP: " + args[0]}
 	return {"success": false, "message": "Firewall not available"}
 

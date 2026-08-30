@@ -1,6 +1,10 @@
 # Godot
 .godot/
 *.import
+# Godot 4.4+ stable resource identifiers. Regenerated on first import.
+# We don't track them so the public repo stays clean of engine-generated
+# files; Godot will rebuild them on the first local import.
+*.uid
 
 # Build outputs
 *.pck
@@ -19,3 +23,7 @@ Thumbs.db
 # Temp
 *.tmp
 *.bak
+
+# Local Godot engine binary (downloaded into ./tools/ for runtime checks).
+# The repo's official build process is documented in AGENTS.md.
+tools/

@@ -88,7 +88,7 @@ class Report:
 			"metadata": metadata
 		}
 	
-	func to_string() -> String:
+	func format_report() -> String:
 		var type_str: String = _type_to_string()
 		var status_str := _status_to_string()
 		var priority_str := _priority_to_string()
@@ -185,7 +185,7 @@ func submit_report(reporter_id: String, report_type: ReportType, data: Dictionar
 	match report_type:
 		ReportType.ABUSE:
 			target_id = data.get("target", "")
-			var reason := data.get("reason", "")
+			var reason: String = data.get("reason", "")
 			subject = "Abuse Report: %s" % target_id
 			description = reason
 			metadata = {

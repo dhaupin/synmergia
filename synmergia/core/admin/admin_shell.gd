@@ -136,7 +136,7 @@ func get_help(cmd_name: String = "") -> String:
 	var help_text := "[color=yellow]%s[/color]" % cmd.name
 	
 	if not cmd.aliases.is_empty():
-		help_text += " (aliases: %s)" % cmd.aliases.join(", ")
+		help_text += " (aliases: %s)" % ", ".join(cmd.aliases)
 	
 	help_text += "\n  " + cmd.description
 	
@@ -335,7 +335,7 @@ func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
 				output += "  No active restrictions"
 			else:
 				for player in all.keys():
-					output += "  [color=cyan]%s:[/color] %s\n" % [player, all[player].join(", ")]
+					output += "  [color=cyan]%s:[/color] %s\n" % [player, ", ".join(all[player])]
 	
 	return CommandResult.new(true, output, "")
 

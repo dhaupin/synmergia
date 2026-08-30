@@ -170,7 +170,7 @@ func get_item(id: String) -> Item:
 func get_enemy(id: String) -> EnemyData:
 	return _enemies.get(id)
 
-func get_class(id: String) -> CharacterClass:
+func get_character_class(id: String) -> CharacterClass:
 	return _classes.get(id)
 
 func get_species(id: String) -> Species:

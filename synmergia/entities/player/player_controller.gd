@@ -433,10 +433,6 @@ func _hide_target_tooltip() -> void:
 	# Hide tooltip UI
 	pass
 
-func _show_player_context_menu(target: TargetingManager.TargetInfo) -> void:
-	# Show player interaction context menu
-	pass
-
 ## HITBOX & COMBAT
 
 func create_hitbox(skill: Skill, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> void:

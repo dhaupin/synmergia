@@ -33,8 +33,9 @@ func _ready() -> void:
 	_bar_scene = preload("res://ui/components/cooldown_bar.tscn")
 	
 	# Listen to QoS rate limit events
-	if QoSService:
-		QoSService.rate_limited.connect(_on_rate_limited)
+	var qos: Node = QoSService.get_instance()
+	if qos != null:
+		qos.rate_limited.connect(_on_rate_limited)
 	
 	hide()
 

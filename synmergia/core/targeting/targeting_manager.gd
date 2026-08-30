@@ -16,7 +16,7 @@ extends Node
 
 static var instance: TargetingManager
 
-static func get() -> TargetingManager:
+static func get_instance() -> TargetingManager:
 	return instance
 
 ## ============================================================================
@@ -75,11 +75,11 @@ class ActionDef:
 	var callback: Callable
 	
 	enum ActionCategory {
-		SOCIAL = 0       # Available to all
-		VIP_SOCIAL = 1   # Requires VIP
-		MODERATION = 2   # Requires MOD
-		ADMIN = 3        # Requires ADMIN
-		INTERACTION = 4   # General interactions
+		SOCIAL,        # Available to all
+		VIP_SOCIAL,    # Requires VIP
+		MODERATION,    # Requires MOD
+		ADMIN,         # Requires ADMIN
+		INTERACTION,   # General interactions
 	}
 	
 	func _init(p_id: String, p_name: String, p_icon: String, p_category: ActionCategory,
@@ -138,11 +138,18 @@ var _actions_by_category: Dictionary = {}  # category -> [action_ids]
 
 var _targetables: Dictionary = {}  # entity_id -> {schema_id, node, position, name, entity_type}
 
+## Look up a registered targetable by entity id. Returns the underlying node
+## so callers can access domain-specific properties (e.g. health_component).
+func get_entity_by_id(entity_id: String) -> Node:
+	if entity_id == "" or not _targetables.has(entity_id):
+		return null
+	var info: Dictionary = _targetables[entity_id]
+	return info.get("node", null)
+
 ## ============================================================================
 ## 3D HIGHLIGHT SYSTEM
 ## ============================================================================
 
-var _highlight_node: Node3D = null
 var _highlight_mesh: MeshInstance3D = null
 var _highlight_tween: Tween = null
 var _highlight_pulse_enabled: bool = true
@@ -169,7 +176,7 @@ func _ready() -> void:
 	])
 
 func _connect_eventbus() -> void:
-	if EventBus:
+	if EventHub:
 		# Entity events
 		EventHub.entity_spawned.connect(_on_entity_spawned)
 		EventHub.entity_despawned.connect(_on_entity_despawned)

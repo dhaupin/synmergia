@@ -167,7 +167,6 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 		enemy.display_name,
 		spawn_point.zone_id,
 		spawn_point.position,
-		spawn_point_id,
 		enemy.level
 	)
 	metadata.faction = enemy.faction
@@ -178,7 +177,6 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 			enemy.display_name,
 			spawn_point.zone_id,
 			spawn_point.position,
-			spawn_point_id,
 			enemy.level
 		)
 	elif spawn_point.spawn_type == EnemyData.EnemyType.BOSS:

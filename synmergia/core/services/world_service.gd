@@ -28,8 +28,9 @@ signal gateway_activated(gateway_id: String, entity)
 signal event_started(event_id: String, event_name: String)
 signal event_ended(event_id: String, event_name: String)
 
-# Gateway schema
-class GatewayData:
+# Gateway schema (renamed from GatewayData to avoid shadowing the
+# global class_name GatewayData in core/schemas/gateway_data.gd)
+class GatewayRecord:
 	var id: String
 	var display_name: String
 	var position: Vector3
@@ -43,7 +44,7 @@ class GatewayData:
 	var is_locked: bool = false
 	var unlock_requirement: String = ""
 	var activation_radius: float = 3.0
-	
+
 	func can_use(entity) -> bool:
 		if is_locked:
 			return false
@@ -144,7 +145,7 @@ func get_daylight_percentage() -> float:
 func register_gateway(config: Dictionary) -> String:
 	var gateway_id = "gateway_%s_to_%s" % [config.get("from_zone", ""), config.get("to_zone", "")]
 	
-	var gateway := GatewayData.new()
+	var gateway := GatewayRecord.new()
 	gateway.id = gateway_id
 	gateway.display_name = config.get("display_name", "Gateway")
 	gateway.position = config.get("position", Vector3.ZERO)
@@ -164,7 +165,7 @@ func register_gateway(config: Dictionary) -> String:
 	return gateway_id
 
 ## Get gateway by ID
-func get_gateway(gateway_id: String) -> GatewayData:
+func get_gateway(gateway_id: String) -> GatewayRecord:
 	return _gateways.get(gateway_id)
 
 ## Get all gateways in a zone
@@ -221,7 +222,7 @@ func set_gateway_locked(gateway_id: String, locked: bool) -> void:
 		GameLog.info("WorldService: Gateway %s %s" % [gateway_id, "locked" if locked else "unlocked"])
 
 ## Check gateway proximity and return usable gateways
-func get_nearby_gateway(entity) -> GatewayData:
+func get_nearby_gateway(entity) -> GatewayRecord:
 	var zone_manager = ZoneManager
 	if zone_manager == null:
 		return null

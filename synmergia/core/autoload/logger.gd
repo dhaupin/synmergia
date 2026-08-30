@@ -1,5 +1,6 @@
-## GameLogger - Simple logging utility
+## GameLog - Simple logging utility
 ## Provides colored console output and optional file logging
+## Registered as the `GameLog` autoload.
 extends Node
 
 enum Level {

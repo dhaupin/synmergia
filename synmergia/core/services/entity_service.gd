@@ -116,7 +116,7 @@ func unregister_entity(entity, reason: String = "despawn") -> void:
 
 ## Unregister by entity ID
 func unregister_by_id(entity_id: String, reason: String = "despawn") -> void:
-	var entity := get_entity(entity_id)
+	var entity = get_entity(entity_id)
 	if entity:
 		unregister_entity(entity, reason)
 

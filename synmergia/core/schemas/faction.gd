@@ -22,6 +22,15 @@ enum Relation {
 	HOSTILE       # Can attack in PvP zones
 }
 
+# Top-level hostility sentinel for callers that don't distinguish
+# relation context. Use this when assigning / comparing `entity.faction`
+# (the per-entity hostility state).
+enum {
+	FRIENDLY = 0,
+	NEUTRAL = 1,
+	HOSTILE = 2
+}
+
 @export var id: String = ""
 @export var display_name: String = "Unknown Faction"
 @export var description: String = ""
