@@ -124,6 +124,7 @@ Graduated work moves into the game.
 | `docs/architecture/labs-organization.md` | Independent primitives in `labs/multi-iso/` (the frame staging area) |
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
 | `labs/README.md` | In-tree convention for labs (root-level) |
+| `labs/prd.md` | The Synmergia PRD (modernized 2026-08-30, includes the frame appendix) |
 | `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
 | `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
 | `synmergia/ui/islands/island_manager.gd` | Mount orchestrator |
