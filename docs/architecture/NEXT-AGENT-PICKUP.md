@@ -108,7 +108,7 @@ the state tree but are otherwise independent.
 │   ├── tests/             # test_islands.gd (19 tests, cross-cutting)
 │   ├── docs/architecture/ # 7 design docs
 │   ├── project.godot      # autoload list lives here
-│   └── AUDIT.md           # session log
+│   └── AUDIT.md.session-log           # session log (legacy)
 ├── labs/                # ROOT-LEVEL: experimental work, aside from game
 │   ├── README.md          # the convention
 │   └── multi-iso/         # PLANNED: the multi-iso frame work
@@ -134,7 +134,7 @@ Graduated work moves into the game.
 
 | File | Why it matters |
 |------|----------------|
-| `AUDIT.md` | The running log of what's been done, deferred, broken |
+| `AUDIT.md` | The running log of what's been done, deferred, broken (legacy, now at `labs/AUDIT.md.legacy`) |
 | `AGENTS.md` (repo root) | Project-wide conventions, naming, services list |
 | `docs/architecture/NEXT-AGENT-PICKUP.md` | This file |
 | `docs/architecture/islands-builds-godot.md` | The Islands design |
@@ -144,6 +144,9 @@ Graduated work moves into the game.
 | `docs/architecture/multi-iso-lod-prediction.md` | Part 2: LOD + materialized + prediction (the golden state) |
 | `docs/architecture/grail-path.md` | **NEW** The pre-materialized orchestration contract (the read = lookup commitment) |
 | `docs/architecture/vant-lift.md` | **NEW** Lift manifest: 9 vant libs → multi-iso frame primitives, with priority order |
+| `docs/architecture/security.md` | **NEW** Security analysis: 7 defense layers, recursion guard as foundation, agent framework threat model |
+| `docs/architecture/ui-framework.md` | **NEW** UI reactive bridge: the AxisQuery + UIAction model, the schema-driven framework that humans and agents can both render |
+| `docs/architecture/scale-200km2.md` | **NEW** 8 innovations for the 200km² world: LOD pyramid, predictive prefetch, multi-axis intersection, state diff sync, hierarchical sync, content-hash addressing, RAM+Postgres split, procedural assimilation |
 | `docs/architecture/labs-organization.md` | Independent primitives in `labs/multi-iso/` (the frame staging area) |
 | `docs/architecture/autoload-race-solutions.md` | The 4 candidate fixes for the cascade |
 | `labs/README.md` | In-tree convention for labs (root-level) |
@@ -205,7 +208,14 @@ covering registry, placeholder lifecycle, manager mount/skip paths.
 
 ## What's NOT done (pending)
 
-From `AUDIT.md` and session notes:
+From `labs/AUDIT.md.legacy` and session notes:
+
+**Architectural decision (recorded 2026-08-30):** Schemas
+(`synmergia/core/schemas/`) and `/data/*` extensions are
+**stable** and not to be refactored without explicit user
+direction. All other parts of the codebase are fair game
+for refactor. The schemas and data are the contract;
+everything else serves them.
 
 1. **`guild_service.gd`, `party_service.gd`, `chat_service.gd`** still
    have `:=` inference warnings (treated as errors by parser). 8
@@ -329,6 +339,6 @@ are:
    icosahedral/NSC-9 stuff without the user explicitly asking
    for it after reading the evaluation.
 
-If anything is unclear, read `AUDIT.md` (the running log) and
-`docs/architecture/` (the design space). The git history has the
-actual diffs.
+If anything is unclear, read `labs/AUDIT.md.legacy` (the old
+session log) and `docs/architecture/` (the design space). The
+git history has the actual diffs.

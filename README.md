@@ -159,7 +159,6 @@ is experimental work that could extract to its own repo.
 │   └── godot/                  # Godot editor / export helpers
 │
 ├── ROADMAP.md                  # implementation tracker (1682 lines)
-├── AUDIT.md                    # running log of what's done, deferred, broken
 ├── AGENTS.md                   # developer notes for AI agents
 └── README.md                   # this file
 ```
@@ -315,8 +314,11 @@ buckets:
 **Architecture** (in `docs/architecture/`)
 - [multi-iso-frame.md](./docs/architecture/multi-iso-frame.md) — Part 1: the orchestrator pattern
 - [multi-iso-lod-prediction.md](./docs/architecture/multi-iso-lod-prediction.md) — Part 2: LOD + materialized + prediction
-- [grail-path.md](./docs/architecture/grail-path.md) — **NEW** the pre-materialized orchestration contract (the read = lookup commitment)
-- [vant-lift.md](./docs/architecture/vant-lift.md) — **NEW** the lift manifest: 9 vant libs → multi-iso frame primitives
+- [grail-path.md](./docs/architecture/grail-path.md) — the pre-materialized orchestration contract (the read = lookup commitment)
+- [vant-lift.md](./docs/architecture/vant-lift.md) — the lift manifest: 9 vant libs → multi-iso frame primitives
+- [security.md](./docs/architecture/security.md) — 7 defense layers; recursion guard is the foundation; agent framework threat model
+- [ui-framework.md](./docs/architecture/ui-framework.md) — the reactive bridge: AxisQuery + UIAction; one framework for humans + agents
+- [scale-200km2.md](./docs/architecture/scale-200km2.md) — 8 innovations for the 200km² world (LOD pyramid, predictive prefetch, state diff sync, …)
 - [nsc9-honest-evaluation.md](./docs/architecture/nsc9-honest-evaluation.md) — why geometry is a layer, not a replacement
 - [labs-organization.md](./docs/architecture/labs-organization.md) — the `/labs/` convention (long form)
 
@@ -328,7 +330,7 @@ buckets:
 **Operations** (root-level)
 - [NEXT-AGENT-PICKUP.md](./docs/architecture/NEXT-AGENT-PICKUP.md) — survival guide for the next session
 - [ROADMAP.md](./ROADMAP.md) — implementation tracker (1682 lines)
-- [AUDIT.md](./AUDIT.md) — running log of what's done, deferred, broken
+- [`labs/AUDIT.md.legacy`](./labs/AUDIT.md.legacy) — old session log (legacy, frozen 2026-08-30)
 - [AGENTS.md](./AGENTS.md) — developer notes for AI agents (code conventions)
 
 **Start here:** the [NEXT-AGENT-PICKUP](./docs/architecture/NEXT-AGENT-PICKUP.md) doc is the
