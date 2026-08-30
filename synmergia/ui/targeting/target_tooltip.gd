@@ -233,11 +233,14 @@ func _get_name_color(entity_type: int) -> Color:
 func _get_status_text(target: TargetingManager.TargetInfo) -> String:
 	match target.entity_type:
 		Entity.EntityType.PLAYER:
-			return "● Online" if target.node and target.node.get("is_online", false) else "○ Offline"
+			var online_val = target.node.get("is_online") if target.node else null
+			return "● Online" if online_val else "○ Offline"
 		Entity.EntityType.ENEMY:
 			if target.node and target.node.has("health"):
-				var hp: int = target.node.get("health", 0)
-				var max_hp: int = target.node.get("max_health", 1)
+				var hp_val = target.node.get("health")
+				var hp: int = hp_val if hp_val != null else 0
+				var max_hp_val = target.node.get("max_health")
+				var max_hp: int = max_hp_val if max_hp_val != null else 1
 				return "⚔️ %d/%d HP" % [hp, max_hp]
 			return "⚔️ Hostile"
 		Entity.EntityType.NPC:
@@ -388,7 +391,8 @@ func _on_action_button_pressed(action_id: String, target_id: String) -> void:
 			return
 	
 	# Execute action through TargetingManager
-	var success: bool = TargetingManager.execute_action(action_id, target_id)
+	var result: Dictionary = TargetingManager.execute_action_on(action_id, target_id)
+	var success: bool = result.get("success") if result.get("success") != null else false
 	
 	if success:
 		action_clicked.emit(action_id, target_id)

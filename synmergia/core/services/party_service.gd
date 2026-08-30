@@ -43,11 +43,11 @@ func _ready() -> void:
 
 ## Create a new party
 func create_party(leader_id: String, is_raid: bool = false) -> String:
-				# QoS: Rate limit party creation (player notified by QoSService)
+		# QoS: Rate limit party creation (player notified by QoSService)
 	if not QoSService.rate_limit(leader_id, "party"):
 		return ""
 				
-				# Security: Check if player is party restricted
+		# Security: Check if player is party restricted
 	if SecurityService.is_restricted(leader_id, "party"):
 		_notify_player(leader_id, "You are temporarily restricted from creating parties.")
 		return ""
@@ -78,7 +78,7 @@ func create_party(leader_id: String, is_raid: bool = false) -> String:
 
 ## Disband a party
 func disband_party(party_id: String) -> bool:
-				# QoS: Rate limit party disband
+		# QoS: Rate limit party disband
 	if not QoSService.rate_limit(party_id, "party"):
 		GameLog.debug("PartyService: Rate limited party disband for %s" % party_id)
 		return false
@@ -87,11 +87,11 @@ func disband_party(party_id: String) -> bool:
 	if not party:
 		return false
 				
-				# Remove all members from party tracking
+		# Remove all members from party tracking
 	for member_id in party["members"]:
 		_player_parties.erase(member_id)
 				
-				# Emit events for each member
+		# Emit events for each member
 	for member_id in party["members"]:
 		player_left_party.emit(party_id, member_id, "Party disbanded")
 				
@@ -103,11 +103,11 @@ func disband_party(party_id: String) -> bool:
 
 ## Invite a player to party
 func invite_player(from_id: String, to_id: String) -> bool:
-				# QoS: Rate limit party invites (player notified by QoSService)
+		# QoS: Rate limit party invites (player notified by QoSService)
 	if not QoSService.rate_limit(from_id, "party"):
 		return false
 				
-				# Security: Check if player is party restricted
+		# Security: Check if player is party restricted
 	if SecurityService.is_restricted(from_id, "party"):
 		_notify_player(from_id, "You are temporarily restricted from party invites.")
 		return false
@@ -115,7 +115,7 @@ func invite_player(from_id: String, to_id: String) -> bool:
 	if from_id == to_id:
 		return false
 				
-				# Check if inviter is in a party
+		# Check if inviter is in a party
 	var inviter_party_id := _player_parties.get(from_id, "")
 	if inviter_party_id == "":
 		GameLog.warn("PartyService: Inviter %s not in a party" % from_id)
@@ -125,17 +125,17 @@ func invite_player(from_id: String, to_id: String) -> bool:
 	if not party:
 		return false
 				
-				# Check party size
+		# Check party size
 	if party["members"].size() >= party["max_size"]:
 		GameLog.warn("PartyService: Party %s is full" % inviter_party_id)
 		return false
 				
-				# Check if invitee is already in a party
+		# Check if invitee is already in a party
 	if _player_parties.has(to_id):
 		GameLog.warn("PartyService: Target %s already in a party" % to_id)
 		return false
 				
-				# Create invite
+		# Create invite
 	var invite_id := "invite_%d" % _next_invite_id
 	_next_invite_id += 1
 				
@@ -149,26 +149,26 @@ func invite_player(from_id: String, to_id: String) -> bool:
 	party_invite_sent.emit(from_id, to_id)
 	GameLog.info("PartyService: Invite %s from %s to %s" % [invite_id, from_id, to_id])
 				
-				# Set up expire timer (simplified - in production use a proper timer)
+		# Set up expire timer (simplified - in production use a proper timer)
 	return true
 
 ## Accept a party invite
 func accept_invite(to_id: String) -> bool:
-				# Find the invite for this player
+		# Find the invite for this player
 	for invite_id in _pending_invites:
 		var invite: Dictionary = _pending_invites[invite_id]
 		if invite["to"] == to_id:
-			var party_id := invite["party_id"]
-			var from_id := invite["from"]
+			var party_id: String = invite["party_id"]
+			var from_id: String = invite["from"]
 												
-												# Remove expired invites
-			var age := Time.get_unix_time_from_system() - invite["timestamp"]
+		# Remove expired invites
+			var age: float = Time.get_unix_time_from_system() - invite["timestamp"]
 			if age > INVITE_TIMEOUT_SECONDS:
 				_pending_invites.erase(invite_id)
 				party_invite_expired.emit(invite_id)
 				return false
 												
-												# Add to party
+		# Add to party
 			var party := _parties.get(party_id)
 			if party and party["members"].size() < party["max_size"]:
 				party["members"].append(to_id)
@@ -187,7 +187,7 @@ func decline_invite(to_id: String) -> bool:
 	for invite_id in _pending_invites:
 		var invite: Dictionary = _pending_invites[invite_id]
 		if invite["to"] == to_id:
-			var from_id := invite["from"]
+			var from_id: String = invite["from"]
 			_pending_invites.erase(invite_id)
 			party_invite_declined.emit(from_id, to_id)
 			GameLog.info("PartyService: %s declined invite from %s" % [to_id, from_id])
@@ -205,26 +205,26 @@ func leave_party(player_id: String) -> bool:
 	if not party:
 		return false
 				
-				# Remove from members
+		# Remove from members
 	party["members"].erase(player_id)
 	_player_parties.erase(player_id)
 				
-				# If leader left, assign new leader
-	var old_leader := party["leader_id"]
+		# If leader left, assign new leader
+	var old_leader: String = party["leader_id"]
 	if player_id == old_leader:
 		if party["members"].size() > 0:
 			party["leader_id"] = party["members"][0]
 			leader_changed.emit(party_id, old_leader, party["leader_id"])
 			GameLog.info("PartyService: New leader %s for party %s" % [party["leader_id"], party_id])
 		else:
-												# No members left, disband
+		# No members left, disband
 			disband_party(party_id)
 			return true
 				
 	player_left_party.emit(party_id, player_id, "Left party")
 	GameLog.info("PartyService: %s left party %s" % [player_id, party_id])
 				
-				# Check if party should be disbanded
+		# Check if party should be disbanded
 	if party["members"].size() == 0:
 		disband_party(party_id)
 				
@@ -303,10 +303,10 @@ func promote_to_leader(current_leader_id: String, new_leader_id: String) -> bool
 	if not party["members"].has(new_leader_id):
 		return false
 				
-	var old_leader := party["leader_id"]
+	var old_leader: String = party["leader_id"]
 	party["leader_id"] = new_leader_id
 				
-				# Move old leader to end of members list
+		# Move old leader to end of members list
 	party["members"].erase(new_leader_id)
 	party["members"].insert(0, new_leader_id)
 	party["members"].append(old_leader)
@@ -326,8 +326,8 @@ func get_nearby_members(player_id: String, range: float = 100.0) -> Array[String
 	if not party:
 		return []
 				
-				# This would need access to player positions
-				# For now, return all members except self
+		# This would need access to player positions
+		# For now, return all members except self
 	var nearby: Array[String] = []
 	for member_id in party["members"]:
 		if member_id != player_id:
@@ -341,22 +341,22 @@ func share_xp(party_id: String, base_xp: int, killer_id: String) -> Dictionary:
 	if not party:
 		return {}
 				
-	var members := party["members"]
-	var member_count := members.size()
+	var members: Array = party["members"]
+	var member_count: int = members.size()
 
 	# Guard against empty party
 	if member_count == 0:
 		return {}
-				
-				# XP sharing bonus per additional member
-		var xp_bonus := 1.0 + (member_count - 1) * 0.1
-				
-		var xp_distribution: Dictionary = {}
-		for member_id in members:
-			var xp := int(base_xp * xp_bonus / member_count)
-			xp_distribution[member_id] = xp
-				
-		return xp_distribution
+
+	# XP sharing bonus per additional member
+	var xp_bonus: float = 1.0 + (member_count - 1) * 0.1
+
+	var xp_distribution: Dictionary = {}
+	for member_id in members:
+		var xp := int(base_xp * xp_bonus / member_count)
+		xp_distribution[member_id] = xp
+
+	return xp_distribution
 
 ## Periodic cleanup of expired invites
 func _process(delta: float) -> void:
@@ -365,7 +365,7 @@ func _process(delta: float) -> void:
 
 	for invite_id in _pending_invites:
 		var invite: Dictionary = _pending_invites[invite_id]
-		var age := now - invite.get("timestamp", 0.0)
+		var age: float = now - invite.get("timestamp", 0.0)
 		if age > INVITE_TIMEOUT_SECONDS:
 			to_remove.append(invite_id)
 

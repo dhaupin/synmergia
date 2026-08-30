@@ -24,6 +24,7 @@ var is_invincible: bool = false
 var is_attacking: bool = false
 var is_sprinting: bool = false
 var is_targeting: bool = false
+var current_target: Node3D = null
 
 # Components
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
@@ -33,6 +34,7 @@ var is_targeting: bool = false
 # Multiplayer
 var player_id: int = 1
 var is_local_player: bool = true
+var entity_id: String = ""
 
 # Context menu
 var _action_menu: ActionMenu = null
@@ -67,7 +69,7 @@ func _ready() -> void:
 	# Connect to InteractionLayer for touch targeting
 	_connect_interaction_layer()
 	
-	GameLogger.info("PlayerController ready")
+	GameLog.info("PlayerController ready")
 
 func _connect_interaction_layer() -> void:
 	if InteractionLayer:
@@ -82,7 +84,7 @@ func _on_interaction_tap(position: Vector2) -> void:
 		return
 	
 	# Only handle taps on right side of screen (for movement)
-	var viewport_size: Vector2 = get_viewport_rect().size
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	if position.x < viewport_size.x * 0.3:
 		return  # Left side is movement joystick
 	
@@ -224,7 +226,7 @@ func _physics_process(delta: float) -> void:
 	if QoSService.rate_limit(entity_id, "movement"):
 		move_and_slide()
 	else:
-		GameLogger.debug("PlayerController: Rate limited movement for %s" % entity_id)
+		GameLog.debug("PlayerController: Rate limited movement for %s" % entity_id)
 
 func is_moving() -> bool:
 	var input := InputManager.get_movement_input()
@@ -310,7 +312,7 @@ func _find_and_set_nearest_target() -> void:
 		TargetingManager.set_target(
 			nearest.entity_id,
 			"enemy",
-			nearest.get("display_name", "Enemy"),
+			nearest.get("display_name") if nearest.get("display_name") != null else "Enemy",
 			nearest.global_position,
 			nearest,
 			Entity.EntityType.ENEMY
@@ -474,3 +476,8 @@ func get_network_state() -> Dictionary:
 		"velocity": velocity,
 		"state": state_machine.get_state_name()
 	}
+
+func _open_report_dialog(target_id: String) -> void:
+	var dialog := ReportDialog.new()
+	add_child(dialog)
+	dialog.open(str(player_id))

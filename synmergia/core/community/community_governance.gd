@@ -165,6 +165,10 @@ var min_votes_for_result: int = 5
 var default_vote_duration_hours: int = 24
 var _report_vote_cooldowns: Dictionary = {}
 var _current_voter: String = ""
+var _moderator_progression: Dictionary = {}
+var _leaderboard_cache: Array = []
+var _leaderboard_cache_time: float = 0.0
+const LEADERBOARD_CACHE_DURATION: float = 30.0
 
 func _ready() -> void:
 	GameLog.info("CommunityGovernance: Initialized")

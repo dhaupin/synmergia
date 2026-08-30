@@ -444,7 +444,7 @@ func set_admin_id(admin_id: String) -> void:
 	# Validate admin has proper permissions
 	if PermissionManager:
 		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.MOD):
-			GameLogger.warn("AdminDashboard: Access denied for %s - insufficient permissions" % admin_id)
+			GameLog.warn("AdminDashboard: Access denied for %s - insufficient permissions" % admin_id)
 			_admin_id = ""
 			return
 		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.ADMIN):
@@ -452,7 +452,7 @@ func set_admin_id(admin_id: String) -> void:
 			_show_permission_warning()
 	
 	_admin_id = admin_id
-	GameLogger.info("AdminDashboard: Admin %s connected" % admin_id)
+	GameLog.info("AdminDashboard: Admin %s connected" % admin_id)
 	
 	# Connect to PermissionManager signals for real-time updates
 	if PermissionManager:

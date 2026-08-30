@@ -4,6 +4,7 @@ extends Node
 
 # Notification types
 enum NotificationType {
+	INFO,             # Informational messages
 	SYSTEM,           # General system messages
 	ZONE_CHANGE,      # Entered/exited zone
 	DUNGEON,          # Dungeon entry/exit
@@ -17,6 +18,7 @@ enum NotificationType {
 	GOLD,             # Gold changes
 	QUEST,            # Quest progress/completion
 	WARNING,          # Warnings/cautions
+	ALERT,            # Important alerts requiring attention
 	ERROR,            # Error messages
 	CUSTOM            # Custom messages
 }

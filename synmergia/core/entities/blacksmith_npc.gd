@@ -6,6 +6,9 @@ extends Entity
 # NPC template data
 var npc_data: NPCData = null
 
+# Faction stance (Faction.FRIENDLY/NEUTRAL/HOSTILE)
+var faction: int = 1  # Faction.NEUTRAL
+
 # Cached values from NPCData
 var _shop_title: String = "The Smithy"
 var _greeting: String = "What can I fix for ye?"

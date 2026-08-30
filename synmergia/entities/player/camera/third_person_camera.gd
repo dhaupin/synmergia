@@ -24,7 +24,7 @@ func _ready() -> void:
 	# Find player target
 	target = get_parent()
 	if not target:
-		GameLogger.warn("ThirdPersonCamera: No target (parent) found")
+		GameLog.warn("ThirdPersonCamera: No target (parent) found")
 
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(target):

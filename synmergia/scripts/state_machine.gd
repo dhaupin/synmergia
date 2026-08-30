@@ -33,7 +33,7 @@ func _physics_process(delta: float) -> void:
 
 func transition_to(state_name: String, data: Dictionary = {}) -> void:
 	if not states.has(state_name):
-		GameLogger.warn("State '%s' not found in StateMachine" % state_name)
+		GameLog.warn("State '%s' not found in StateMachine" % state_name)
 		return
 	
 	var new_state: State = states[state_name]
@@ -59,24 +59,6 @@ func has_state(state_name: String) -> bool:
 
 func get_current_state() -> State:
 	return current_state
-
-## State - Base state class for the state machine
-class_name State
-extends Node
-
-var state_machine: StateMachine
-
-func enter(_data: Dictionary = {}) -> void:
-	pass
-
-func exit() -> void:
-	pass
-
-func update(_delta: float) -> void:
-	pass
-
-func physics_update(_delta: float) -> void:
-	pass
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []

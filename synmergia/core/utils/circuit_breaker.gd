@@ -4,14 +4,14 @@ class_name CircuitBreaker
 extends RefCounted
 
 ## Circuit states
-enum State {
+enum BreakerState {
 	CLOSED,    ## Normal operation, calls pass through
 	OPEN,      ## Fail-fast mode, calls rejected immediately
 	HALF_OPEN  ## Probe mode, limited calls allowed
 }
 
 ## Current state
-var _state: State = State.CLOSED
+var _state: BreakerState = BreakerState.CLOSED
 
 ## Configuration
 var _failure_threshold: int
@@ -69,7 +69,7 @@ func execute(operation: Callable) -> Dictionary:
 	
 	# Check state transition
 	match _state:
-		State.OPEN:
+		BreakerState.OPEN:
 			if now - _last_failure_time >= _recovery_timeout:
 				_transition_to_half_open()
 			else:
@@ -80,11 +80,11 @@ func execute(operation: Callable) -> Dictionary:
 					"rejected": true
 				}
 		
-		State.HALF_OPEN:
+		BreakerState.HALF_OPEN:
 			# Allow limited calls in half-open state
 			pass
 		
-		State.CLOSED:
+		BreakerState.CLOSED:
 			# Normal operation
 			pass
 	
@@ -104,7 +104,7 @@ func execute_async(operation: Callable) -> Dictionary:
 	
 	# Check state transition
 	match _state:
-		State.OPEN:
+		BreakerState.OPEN:
 			if now - _last_failure_time >= _recovery_timeout:
 				_transition_to_half_open()
 			else:
@@ -153,11 +153,11 @@ func _do_execute(operation: Callable) -> Dictionary:
 
 func _on_success() -> void:
 	match _state:
-		State.HALF_OPEN:
+		BreakerState.HALF_OPEN:
 			_success_count += 1
 			if _success_count >= _success_threshold:
 				_transition_to_closed()
-		State.CLOSED:
+		BreakerState.CLOSED:
 			# Reset failure count on success
 			_failure_count = 0
 
@@ -166,30 +166,30 @@ func _on_failure() -> void:
 	_last_failure_time = Time.get_ticks_msec() / 1000.0
 	
 	match _state:
-		State.HALF_OPEN:
+		BreakerState.HALF_OPEN:
 			# Any failure in half-open goes back to open
 			_transition_to_open()
-		State.CLOSED:
+		BreakerState.CLOSED:
 			if _failure_count >= _failure_threshold:
 				_transition_to_open()
 
 func _transition_to_open() -> void:
-	if _state != State.OPEN:
-		_state = State.OPEN
+	if _state != BreakerState.OPEN:
+		_state = BreakerState.OPEN
 		_success_count = 0
 		GameLog.warn("CircuitBreaker '%s': Transitioned to OPEN after %d failures" % [
 			_name, _failure_count
 		])
 
 func _transition_to_half_open() -> void:
-	if _state != State.HALF_OPEN:
-		_state = State.HALF_OPEN
+	if _state != BreakerState.HALF_OPEN:
+		_state = BreakerState.HALF_OPEN
 		_success_count = 0
 		GameLog.info("CircuitBreaker '%s': Transitioned to HALF_OPEN (recovery timeout reached)" % _name)
 
 func _transition_to_closed() -> void:
-	if _state != State.CLOSED:
-		_state = State.CLOSED
+	if _state != BreakerState.CLOSED:
+		_state = BreakerState.CLOSED
 		_failure_count = 0
 		_success_count = 0
 		GameLog.info("CircuitBreaker '%s': Transitioned to CLOSED after %d consecutive successes" % [
@@ -201,18 +201,18 @@ func _transition_to_closed() -> void:
 ## ============================================================================
 
 ## Force the circuit to a specific state
-func set_state(state: State) -> void:
+func set_state(state: BreakerState) -> void:
 	match state:
-		State.CLOSED:
+		BreakerState.CLOSED:
 			_transition_to_closed()
-		State.OPEN:
+		BreakerState.OPEN:
 			_transition_to_open()
-		State.HALF_OPEN:
+		BreakerState.HALF_OPEN:
 			_transition_to_half_open()
 
 ## Reset the circuit to initial state
 func reset() -> void:
-	_state = State.CLOSED
+	_state = BreakerState.CLOSED
 	_failure_count = 0
 	_success_count = 0
 	_last_failure_time = 0.0
@@ -223,22 +223,22 @@ func reset() -> void:
 ## ============================================================================
 
 ## Get current state
-func get_state() -> State:
+func get_state() -> BreakerState:
 	return _state
 
 ## Get state as string
 func get_state_string() -> String:
-	return State.keys()[_state]
+	return BreakerState.keys()[_state]
 
 ## Check if circuit allows execution
 func is_closed() -> bool:
-	return _state == State.CLOSED
+	return _state == BreakerState.CLOSED
 
 func is_open() -> bool:
-	return _state == State.OPEN
+	return _state == BreakerState.OPEN
 
 func is_half_open() -> bool:
-	return _state == State.HALF_OPEN
+	return _state == BreakerState.HALF_OPEN
 
 ## Get statistics
 func get_stats() -> Dictionary:
@@ -251,7 +251,7 @@ func get_stats() -> Dictionary:
 		"recovery_timeout": _recovery_timeout,
 		"success_threshold": _success_threshold,
 		"last_failure_time": _last_failure_time,
-		"time_until_half_open": maxi(0.0, _recovery_timeout - (Time.get_ticks_msec() / 1000.0 - _last_failure_time)) if _state == State.OPEN else 0.0
+		"time_until_half_open": maxi(0.0, _recovery_timeout - (Time.get_ticks_msec() / 1000.0 - _last_failure_time)) if _state == BreakerState.OPEN else 0.0
 	}
 
 ## ============================================================================
