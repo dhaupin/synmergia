@@ -23,6 +23,10 @@ const BOOKS_PER_UPGRADE: int = 4
 ## Gold price for a common-tier skill book at the academy vendor
 const COMMON_BOOK_PRICE: int = 100
 
+## Respec cost: base gold + gold per skill point being refunded
+const RESPEC_BASE_COST: int = 500
+const RESPEC_GOLD_PER_POINT: int = 50
+
 ## In-memory catalog: skill_id → catalog entry
 var _catalog: Dictionary = {}
 
@@ -203,11 +207,28 @@ func get_upgrade_preview(skill_id: String, current_level: int) -> Dictionary:
 ## Full respec for a player.
 ## WARNING: Clears ALL skill upgrades and refunds skill points.
 ## Books are consumed and NOT returned. This is intentional.
-func respec(player_id: String, skill_data: CharacterData) -> Dictionary:
+## Full respec for a player.
+## WARNING: Clears ALL skill upgrades and refunds skill points.
+## Books are consumed and NOT returned. Gold is deducted.
+func respec(
+	player_id: String,
+	skill_data: CharacterData,
+	gold: int,
+	inventory: Node
+) -> Dictionary:
 	if skill_data.skill_upgrades.is_empty():
 		return {"success": false, "reason": "No upgrades to reset"}
 
 	var refunded: int = skill_data.spent_skill_points
+	var cost: int = get_respec_cost(refunded)
+	if gold < cost:
+		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
+
+	if inventory and "remove_gold" in inventory:
+		inventory.remove_gold(cost)
+	elif inventory and inventory.inventory_component and "remove_gold" in inventory.inventory_component:
+		inventory.inventory_component.remove_gold(cost)
+
 	skill_data.skill_upgrades.clear()
 	skill_data.spent_skill_points = 0
 
@@ -216,7 +237,8 @@ func respec(player_id: String, skill_data: CharacterData) -> Dictionary:
 	return {
 		"success": true,
 		"points_refunded": refunded,
-		"message": "All upgrades reset. Collect your books again to rebuild."
+		"cost": cost,
+		"message": "Respec complete. %d points refunded. Collect your books again." % refunded
 	}
 
 ## Load persisted upgrade data for a player (called on login).
@@ -227,6 +249,12 @@ func load_player_data(player_id: String, spent_pts: int, upgrades: Dictionary) -
 	}
 
 ## Check if the respec warning has been shown (UI-level concern, tracked here for convenience).
+## Calculate the gold cost to respec a player with spent_points spent.
+func get_respec_cost(spent_points: int) -> int:
+	if spent_points <= 0:
+		return 0
+	return RESPEC_BASE_COST + (spent_points * RESPEC_GOLD_PER_POINT)
+
 func get_player_summary(player_id: String, skill_data: CharacterData) -> Dictionary:
 	return {
 		"total_upgrade_levels": skill_data.get_total_upgrade_levels(),

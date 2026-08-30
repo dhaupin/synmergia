@@ -88,7 +88,7 @@ func get_resource_type_name() -> String:
 
 ## Total skill points earned based on current level (floor(level * 2.5))
 func get_earned_skill_points() -> int:
-	return int(level * 2.5)
+	return int(30 + level * 2)
 
 ## Available (unspent) skill points
 func get_available_skill_points() -> int:

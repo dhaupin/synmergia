@@ -35,6 +35,7 @@ var _upgrade_button: Button
 # Respec tab
 var _respec_label: Label
 var _respec_button: Button
+var _respec_cost_label: Label
 
 var _skill_data: CharacterData = null
 var _inventory_books: Array = []
@@ -271,6 +272,11 @@ func _build_respec_tab() -> Control:
 	_respec_label = Label.new()
 	_respec_label.name = "RespecLabel"
 	confirm_box.add_child(_respec_label)
+
+	_respec_cost_label = Label.new()
+	_respec_cost_label.name = "RespecCostLabel"
+	_respec_cost_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))
+	confirm_box.add_child(_respec_cost_label)
 
 	_respec_button = Button.new()
 	_respec_button.name = "RespecButton"
@@ -513,19 +519,27 @@ func _refresh_respec_tab() -> void:
 		_respec_label.text = "No skill points spent. Nothing to reset."
 		_respec_button.disabled = true
 	else:
+		var cost: int = SkillAcademyService.get_respec_cost(total_spent)
 		_respec_label.text = "You have spent %d skill points on %d upgrade levels." % (
 			total_spent, _skill_data.get_total_upgrade_levels())
+		_respec_cost_label.text = "Respec cost: %d gold" % cost
 		_respec_button.disabled = false
 
 func _on_respec_pressed() -> void:
 	if not is_instance_valid(_skill_data):
 		return
 
-	var result: Dictionary = SkillAcademyService.respec(_player_id, _skill_data)
+	var player: Node = EntityService.get_entity(_player_id)
+	if not player or not player.inventory_component:
+		return
+	var inventory: Node = player.inventory_component
+	var gold: int = inventory.get_gold()
+
+	var result: Dictionary = SkillAcademyService.respec(_player_id, _skill_data, gold, player)
 	if result.get("success", false):
 		NotificationService.send_to_player(
 			_player_id,
-			"Respec complete. %d points refunded. Collect your books again to rebuild." % result.get("points_refunded", 0),
+			"Respec complete. %d points refunded for %d gold." % [result.get("points_refunded", 0), result.get("cost", 0)],
 			NotificationService.NotificationType.WARNING
 		)
 		_refresh_all()
