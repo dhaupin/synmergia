@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+id = "akkan_rune_chain_attacker"
+display_name = "Rune Chain (Attacker)"
+description = "Chains arcane runes between up to 3 enemies, dealing damage to each and slowing them."
+skill_type = 0
+target_type = 1
+mana_cost = 25
+cooldown = 8.0
+cast_time = 0.5
+animation_duration = 0.5
+range = 22.0
+max_targets = 3
+effects = [{"type": "damage", "value": 18}, {"type": "debuff", "effect_id": "slow_common", "duration": 3.0}]
+upgrade_tiers = [
+{
+"level": 1, "books_required": 4, "tier": "common",
+"delta": {"duration_mult": 1.05, "cooldown_mult": 0.95, "aoe_mult": 1.03, "range_mult": 1.05, "cast_time_mult": 1.05, "cost_mult": 0.97},
+"unlocks": [],
+},
+{
+"level": 2, "books_required": 4, "tier": "rare",
+"delta": {"duration_mult": 1.1, "cooldown_mult": 0.9, "aoe_mult": 1.06, "range_mult": 1.1, "cast_time_mult": 1.1, "cost_mult": 0.94},
+"unlocks": [],
+},
+{
+"level": 3, "books_required": 4, "tier": "epic",
+"delta": {"duration_mult": 1.15, "cooldown_mult": 0.85, "aoe_mult": 1.09, "range_mult": 1.15, "cast_time_mult": 1.15, "cost_mult": 0.91},
+"unlocks": [{"type": "aoe_mult", "value": 1.05}],
+},
+{
+"level": 4, "books_required": 4, "tier": "legendary",
+"delta": {"duration_mult": 1.2, "cooldown_mult": 0.8, "aoe_mult": 1.12, "range_mult": 1.2, "cast_time_mult": 1.2, "cost_mult": 0.88},
+"unlocks": [],
+},
+{
+"level": 5, "books_required": 4, "tier": "mythic",
+"delta": {"duration_mult": 1.25, "cooldown_mult": 0.75, "aoe_mult": 1.15, "range_mult": 1.25, "cast_time_mult": 1.25, "cost_mult": 0.85},
+"unlocks": [{"type": "duration_mult", "value": 1.1}],
+},
+]
+
+required_level = 10
+required_class = "akkan_attacker"

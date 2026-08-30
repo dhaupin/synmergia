@@ -265,6 +265,39 @@ func get_party_members(party_id: String) -> Array:
 	var party := _parties.get(party_id, {})
 	return party.get("members", [])
 
+## Get enriched party member data with names, classes, and GM status
+func get_party_member_details(party_id: String) -> Array[Dictionary]:
+	var party := _parties.get(party_id, {})
+	var member_ids: Array = party.get("members", [])
+	var details: Array[Dictionary] = []
+	
+	for member_id in member_ids:
+		var detail: Dictionary = {"id": member_id, "name": "?", "class": "?", "is_gm": false, "is_leader": false}
+		
+		# Get player entity data
+		var entity = EntityService.get_entity(member_id) if EntityService else null
+		if entity:
+			var char_data = entity.get("character_data") if entity else null
+			if char_data:
+				detail["name"] = char_data.get("display_name", member_id)
+				detail["class"] = char_data.get("class_id", "?")
+				if char_data.has("is_gm"):
+					detail["is_gm"] = char_data.is_gm()
+				elif char_data.has("class_id"):
+					detail["is_gm"] = CharacterData.is_gm_class(char_data.get("class_id"))
+			else:
+				detail["name"] = entity.get("display_name", member_id)
+		else:
+			detail["name"] = member_id
+		
+		# Check if leader
+		if party.get("leader_id", "") == member_id:
+			detail["is_leader"] = true
+		
+		details.append(detail)
+	
+	return details
+
 ## Check if player is in a party
 func is_in_party(player_id: String) -> bool:
 	return _player_parties.has(player_id)

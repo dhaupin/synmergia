@@ -109,6 +109,26 @@ enum TargetType {
 @export var sfx_cast: String = ""
 @export var sfx_impact: String = ""
 
+# Skill Academy upgrade state
+var upgrade_level: int = 0
+var upgrade_unlocks: Array = []
+
+# Heals
+@export var heal_amount: int = 0
+@export var hot_heal: int = 0
+@export var hot_duration: float = 0.0
+@export var hot_tick_rate: float = 1.0
+
+# DoT
+@export var dot_damage: int = 0
+
+# Charge system (set charge_time_max > 0 to enable)
+@export var charge_time_max: float = 0.0
+@export var charge_damage_curve: String = "linear"
+
+# Schema reference for upgrade lookups
+var schema: SkillSchema = null
+
 var remaining_cooldown: float = 0.0
 
 func _init() -> void:

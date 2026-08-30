@@ -64,6 +64,7 @@ DeathFeatures="*res://core/services/death_features.gd"
 RespawnUIManager="*res://ui/respawn/respawn_ui_manager.gd"
 WebhookManager="*res://core/autoload/webhook_manager.gd"
 BlacksmithService="*res://core/services/blacksmith_service.gd"
+SkillAcademyService="*res://core/services/skill_academy_service.gd"
 AntiCheatService="*res://core/services/anticheat_service.gd"
 
 [display]

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+upgradable = false
+
+id = "human_sorcerer_human_sig"
+display_name = "Arcane Surge"
+description = "SIGNATURE Human Sorcerer technique. A devastating arcane blast that bypasses magical resistance."
+skill_type = 1
+target_type = 0
+mana_cost = 40
+cooldown = 45.0
+cast_time = 2.0
+animation_duration = 1.5
+range = 30.0
+aoe_radius = 0.0
+effects = [{"type": "damage", "value": 300}]
+required_level = 10
+required_class = "human_sorcerer"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillSchema" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+upgradable = false
+
+id = "synthetic_shaman_sig"
+display_name = "Redundancy Link"
+description = "SIGNATURE Akkan Shaman technique filtered through synthetic logic. A failsafe healing network that prioritizes the most critical ally."
+skill_type = 5
+target_type = 2
+mana_cost = 130
+cooldown = 100.0
+cast_time = 2.0
+animation_duration = 1.0
+range = 0.0
+aoe_radius = 15.0
+effects = [{"type": "heal", "value": 50}, {"type": "buff", "effect_id": "buff_smart_link", "duration": 10.0}]
+required_level = 10
+required_class = "akkan_shaman"

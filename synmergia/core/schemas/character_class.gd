@@ -12,12 +12,14 @@ enum ResourceType {
 }
 
 enum Role {
-	GM = 0,         ## Reserved. Never assigned via .tres. Guarded at login.
-	TANK = 1,       ## Guardian, Bulwark, Warden
-	DPS_MELEE = 2,  ## Stalker, Ranger, Infiltrator (ranged physical)
-	DPS_RANGED = 3, ## Runesmith, Enchanter, Operative (ranged caster)
-	SUPPORT = 4    ## Cleric, Shaman, Seer, Temporalist, Conduit, Overclocker
-}
+		GM = 0,         # Reserved. Never via .tres. Admin-only, guarded at login.
+		TANK = 1,       # Bulwark, Guardian, Warden
+		DD = 2,         # Attacker, Warrior, Exploiter
+		MAGE = 3,       # Rune, Sorcerer, Psion
+		RANGER = 4,     # Stalker, Marksman, Tracker (stealth/ranged)
+		BENDER = 5,     # Seer, Temporalist, Overclocker (utility/buff)
+		HEALER = 6      # Shaman, Cleric, Conduit (restoration)
+	}
 
 @export var id: String = ""
 @export var display_name: String = "Warrior"
