@@ -43,6 +43,39 @@ static func is_gm_class(cls_or_role) -> bool:
 		return cls_or_role.role == CharacterClass.Role.GM
 	return cls_or_role == CharacterClass.Role.GM
 
+## Get available classes for a species.
+## FILTERS OUT GM classes by default for security.
+## For admin use, get_all_classes_for_species() includes GM classes.
+static func get_available_classes_for_species(species_id: String) -> Array[CharacterClass]:
+	var result: Array[CharacterClass] = []
+	var dir := DirAccess.open("res://data/classes/")
+	if dir:
+		dir.list_dir_begin()
+		var file := dir.get_next()
+		while file != "":
+			if file.ends_with(".tres"):
+				var res := load("res://data/classes/" + file)
+				if res is CharacterClass and not is_gm_class(res):
+					result.append(res)
+			file = dir.get_next()
+	return result
+
+## Get ALL classes for a species (including GM classes).
+## ONLY for server-side use when sending class list to admin clients.
+static func get_all_classes_for_species(species_id: String) -> Array[CharacterClass]:
+	var result: Array[CharacterClass] = []
+	var dir := DirAccess.open("res://data/classes/")
+	if dir:
+		dir.list_dir_begin()
+		var file := dir.get_next()
+		while file != "":
+			if file.ends_with(".tres"):
+				var res := load("res://data/classes/" + file)
+				if res is CharacterClass:
+					result.append(res)
+			file = dir.get_next()
+	return result
+
 ## Server-side validation: Can this account play this class?
 ## Returns {allowed: bool, reason: String}
 ## Call this when a player clicks "Play" to validate class selection.
@@ -56,22 +89,6 @@ static func play_accepted(class_id: String, account_level: int) -> Dictionary:
 		return {"allowed": false, "reason": "GM class requires admin privileges"}
 	
 	return {"allowed": true, "reason": ""}
-
-## Get all classes for a species (including GM classes).
-## Use is_admin() + play_accepted to validate admin-only classes server-side.
-static func get_available_classes_for_species(species_id: String) -> Array[CharacterClass]:
-	var result: Array[CharacterClass] = []
-	var dir := DirAccess.open("res://data/classes/")
-	if dir:
-		dir.list_dir_begin()
-		var file := dir.get_next()
-		while file != "":
-			if file.ends_with(".tres"):
-				var res := load("res://data/classes/" + file)
-				if res is CharacterClass:
-					result.append(res)
-			file = dir.get_next()
-	return result
 
 static func get_all_species() -> Array[Species]:
 	var result: Array[Species] = []
