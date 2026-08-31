@@ -150,29 +150,29 @@ func _on_target_changed(target_id: String, target_data: Dictionary) -> void:
 
 func _update_display(data: Dictionary) -> void:
 	_name_label.text = data.get("name", "Unknown")
+	_apply_faction_color(data)
 
-var level: int = data.get("level", 1)
-var elite_type: String = data.get("elite_type", "")
-if elite_type == "BOSS":
-	_level_label.text = "[Boss] %d" % level
-	_level_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
+	var level: int = data.get("level", 1)
+	var elite_type: String = data.get("elite_type", "")
+	if elite_type == "BOSS":
+		_level_label.text = "[Boss] %d" % level
+		_level_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
 	elif elite_type == "ELITE":
 		_level_label.text = "[Elite] %d" % level
 		_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
-		else:
+	else:
 		_level_label.text = "Lv.%d" % level
 		_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
 
 	_class_label.text = data.get("class", "")
 	_guild_label.text = data.get("guild", "")
 
-_current_hp = data.get("health", 100)
-_max_hp = data.get("max_health", 100)
-_current_mp = data.get("mana", 50)
-_max_mp = data.get("max_mana", 50)
+	_current_hp = data.get("health", 100)
+	_max_hp = data.get("max_health", 100)
+	_current_mp = data.get("mana", 50)
+	_max_mp = data.get("max_mana", 50)
 
-_update_bars()
-
+	_update_bars()
 func _update_bars() -> void:
 	if _hp_bar:
 		_hp_bar.max_value = _max_hp if _max_hp > 0 else 1
@@ -182,26 +182,26 @@ func _update_bars() -> void:
 		var hp_percent := float(_current_hp) / float(_max_hp) if _max_hp > 0 else 0
 		if hp_percent > 0.5:
 			_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.success)
-			elif hp_percent > 0.25:
-				_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.warning)
-				else:
-				_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.error)
+		elif hp_percent > 0.25:
+			_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.warning)
+		else:
+			_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.error)
 
-				if _mp_bar:
-					_mp_bar.max_value = _max_mp if _max_mp > 0 else 1
-					_mp_bar.value = _current_mp
+		if _mp_bar:
+			_mp_bar.max_value = _max_mp if _max_mp > 0 else 1
+			_mp_bar.value = _current_mp
 
-					# Update HP/MP labels
-					var vbox: VBoxContainer = get_child(0)
-					if vbox:
-						var hp_row: HBoxContainer = vbox.get_child(5)
-						if hp_row:
-							var hp_label: Label = hp_row.get_child(0)
-							var mp_label: Label = hp_row.get_child(1)
-							if hp_label:
-								hp_label.text = "HP: %d / %d" % [_current_hp, _max_hp]
-								if mp_label:
-									mp_label.text = "  MP: %d / %d" % [_current_mp, _max_mp]
+			# Update HP/MP labels
+			var vbox: VBoxContainer = get_child(0)
+			if vbox:
+				var hp_row: HBoxContainer = vbox.get_child(5)
+				if hp_row:
+					var hp_label: Label = hp_row.get_child(0)
+					var mp_label: Label = hp_row.get_child(1)
+					if hp_label:
+						hp_label.text = "HP: %d / %d" % [_current_hp, _max_hp]
+						if mp_label:
+							mp_label.text = "  MP: %d / %d" % [_current_mp, _max_mp]
 
 func update_health(current: int, maximum: int) -> void:
 	_current_hp = current
@@ -219,3 +219,28 @@ func clear_target() -> void:
 
 func get_target_id() -> String:
 	return _target_id
+
+
+# ── Faction coloring ─────────────────────────────────────────────────────
+
+# Tint the name label based on the target's relation to the local player.
+# hostile = red (player can attack), friendly = green, neutral = white.
+# Falls back to the data's pre-baked color if relation is unknown.
+func _apply_faction_color(data: Dictionary) -> void:
+	if not _name_label:
+		return
+	var relation: String = str(data.get("relation", "")).to_lower()
+	var color: Color
+	match relation:
+		"hostile", "enemy":
+			color = UIStyles.COLORS.error
+		"friendly", "ally":
+			color = UIStyles.COLORS.success
+		"neutral":
+			color = UIStyles.COLORS.text_primary
+		_:
+			if data.has("color") and data["color"] is Color:
+				color = data["color"]
+			else:
+				color = UIStyles.COLORS.text_primary
+	_name_label.add_theme_color_override("font_color", color)
