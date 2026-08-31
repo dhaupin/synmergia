@@ -2,6 +2,13 @@
 ## Wraps all domain-specific event buses under one autoload
 extends Node
 
+## Forwarding signals for backward compatibility (maps to entity_events)
+signal entity_spawned(entity, metadata: SpawnMetadata)
+signal player_died(entity, killer)
+signal entity_despawned(entity_id: String, reason: String)
+signal entity_killed(entity_id: String, killer_id: String)
+signal entity_targeted(target_id: String, source_id: String)
+
 ## Spawn metadata for entity lifecycle events
 class SpawnMetadata:
 	var spawn_type: int = 0
@@ -105,7 +112,17 @@ func _ready() -> void:
 	add_child(inventory)
 	add_child(system)
 	
+	# Forward entity_events to direct signals for backward compatibility
+	entity.spawned.connect(_on_entity_spawned)
+	entity.died.connect(_on_entity_died)
+	
 	GameLog.info("EventHub: Initialized")
+
+func _on_entity_spawned(entity_id: String, zone_id: String, position: Vector3) -> void:
+	entity_spawned.emit(entity_id, null)
+
+func _on_entity_died(entity_id: String, killer_id: String, damage_type: String) -> void:
+	player_died.emit(entity_id, killer_id)
 
 ## Get event summary for debugging
 func get_summary() -> Dictionary:
