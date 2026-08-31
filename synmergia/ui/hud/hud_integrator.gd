@@ -242,6 +242,10 @@ func _target_to_dict(target) -> Dictionary:
 		d["max_health"] = target.max_health
 	if "level" in target:
 		d["level"] = target.level
+	if "faction" in target:
+		d["faction"] = str(target.faction)
+	if "relation" in target:
+		d["relation"] = str(target.relation)
 	return d
 
 
