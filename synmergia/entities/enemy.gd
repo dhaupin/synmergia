@@ -35,12 +35,12 @@ func _ready() -> void:
 
 
 func _load_from_data() -> void:
-	if enemy_data.has("display_name"):
+	if "display_name" in enemy_data and enemy_data.display_name:
 		display_name = enemy_data.display_name
-	if enemy_data.has("level"):
-		level = enemy_data.level
-	if enemy_data.has("health"):
-		max_health = enemy_data.health
+	if "level" in enemy_data:
+		level = int(enemy_data.level)
+	if "health" in enemy_data:
+		max_health = int(enemy_data.health)
 		current_health = max_health
 
 

@@ -39,6 +39,17 @@ func _ready() -> void:
 	layer = LAYER_HUD
 	_wire_widgets()
 	_bind_to_world()
+	_install_integrator()
+
+
+func _install_integrator() -> void:
+	var IntegratorScript := load("res://ui/hud/hud_integrator.gd")
+	if not IntegratorScript:
+		return
+	var integrator: Node = IntegratorScript.new()
+	integrator.name = "HudIntegrator"
+	add_child(integrator)
+	integrator.bind(self)
 
 
 func _find(node_name: String) -> Node:
@@ -92,9 +103,13 @@ func _toggle_world_map() -> void:
 
 
 func _is_admin() -> bool:
-	if not AdminCommands:
+	if not PermissionManager:
 		return false
-	return AdminCommands.has_permission("admin.access")
+	# In single-player / dev mode the local player IS the admin.
+	var player_id: String = "local"
+	if PlayerManager and "character_name" in PlayerManager:
+		player_id = PlayerManager.character_name
+	return PermissionManager.has_permission(player_id, GameConfig.Security.ADMIN_LEVEL) if GameConfig else false
 
 
 func open_settings() -> void:
