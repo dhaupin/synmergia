@@ -14,7 +14,11 @@ func _initialize() -> void:
 		return
 	gm.change_state(gm.GameState.CHARACTER_SELECT)
 	await process_frame
+	await process_frame
 	gm.change_state(gm.GameState.PLAYING)
+	# change_scene_to_file defers the swap to a subsequent idle frame,
+	# so wait two frames to let the world scene actually attach.
+	await process_frame
 	await process_frame
 	var world: Node = root.get_node_or_null("WorldPlayable")
 	if not world:
