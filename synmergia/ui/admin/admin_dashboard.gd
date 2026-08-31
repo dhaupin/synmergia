@@ -1,4 +1,5 @@
 ## AdminDashboard - In-game admin UI panel
+## Uses UIStyles for consistent theming
 ## Provides visual interface for admin commands and player management
 class_name AdminDashboard
 extends Control
@@ -39,7 +40,7 @@ func _ready() -> void:
 
 func _setup_ui() -> void:
 	# Main panel with dark theme
-	theme.set_color("background_color", TabContainer, Color(0.15, 0.15, 0.18))
+	theme.set_color("background_color", TabContainer, UIStyles.COLORS.background)
 	
 	# Create main container
 	_main_vbox = VBoxContainer.new()
@@ -53,7 +54,7 @@ func _setup_ui() -> void:
 	title_bar.custom_minimum_size.y = 40
 	var title := Label.new()
 	title.text = "⚙ Admin Dashboard"
-	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
+	title.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_bar.add_child(title)
 	
