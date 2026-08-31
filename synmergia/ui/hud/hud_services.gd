@@ -99,6 +99,17 @@ func _connect_services() -> void:
 		if TradeService.has_signal("trade_completed"):
 			TradeService.trade_completed.connect(_on_trade_completed)
 
+	# Quest events → QuestUI.
+	if _quest and QuestService:
+		if QuestService.has_signal("quest_accepted"):
+			QuestService.quest_accepted.connect(_on_quest_changed)
+		if QuestService.has_signal("quest_updated"):
+			QuestService.quest_updated.connect(_on_quest_changed)
+		if QuestService.has_signal("quest_completed"):
+			QuestService.quest_completed.connect(_on_quest_changed)
+		if QuestService.has_signal("quest_failed"):
+			QuestService.quest_failed.connect(_on_quest_changed)
+
 	# Character creation events → CharacterPanel refresh.
 	if GameManager:
 		GameManager.game_state_changed.connect(_on_game_state_changed)
@@ -168,3 +179,10 @@ func _on_trade_started(initiator_id: String, target_id: String) -> void:
 func _on_trade_completed(_initiator_id: String, _target_id: String, _success: bool) -> void:
 	if _mm and _mm.has_method("close_menu"):
 		_mm.close_menu("trade")
+
+
+# ── Quest ────────────────────────────────────────────────────────────────
+
+func _on_quest_changed(_a = null, _b = null, _c = null, _d = null) -> void:
+	if _quest and _quest.has_method("refresh"):
+		_quest.refresh()
