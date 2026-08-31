@@ -50,6 +50,17 @@ func _install_integrator() -> void:
 	integrator.name = "HudIntegrator"
 	add_child(integrator)
 	integrator.bind(self)
+	_install_services()
+
+
+func _install_services() -> void:
+	var ServicesScript := load("res://ui/hud/hud_services.gd")
+	if not ServicesScript:
+		return
+	var services: Node = ServicesScript.new()
+	services.name = "HudServices"
+	add_child(services)
+	services.bind(self)
 
 
 func _find(node_name: String) -> Node:
