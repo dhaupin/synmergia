@@ -95,6 +95,10 @@ func _connect_all() -> void:
 		if NotificationService.has_signal("notification_sent"):
 			NotificationService.notification_sent.connect(_on_notification)
 
+	# Buff/Debuff signals from the local player's AuraComponent.
+	# Use a call_deferred so PlayerManager.local_player is settled.
+	_bind_aura_signals()
+
 	# Player position → Minimap (poll via process loop).
 	set_process(true)
 
@@ -324,6 +328,72 @@ func _notification_color(notification: Dictionary) -> Color:
 			"reward", "loot":
 				return _color_gold()
 	return Color(0.85, 0.85, 0.9)
+
+
+# ── Buffs / Debuffs ──────────────────────────────────────────────────────
+
+# Find the local player's AuraComponent and subscribe to its buff/debuff
+# signals. Buffs go to the BuffBar; status effects as debuffs to the
+# BuffBar's debuff slot. We rebind every time local_player changes so
+# scene transitions don't strand old connections.
+func _bind_aura_signals() -> void:
+	if not PlayerManager or not PlayerManager.local_player:
+		return
+	var player: Node = PlayerManager.local_player
+	var aura: Node = player.get_node_or_null("AuraComponent")
+	if not aura:
+		# AuraComponent may be attached under a different name; try a
+		# recursive search by class name.
+		for child in player.get_children():
+			if child.get_script() and child.get_class() == "AuraComponent":
+				aura = child
+				break
+	if not aura:
+		return
+	if aura.has_signal("buff_added") and not aura.is_connected("buff_added", _on_buff_added):
+		aura.buff_added.connect(_on_buff_added)
+	if aura.has_signal("buff_removed") and not aura.is_connected("buff_removed", _on_buff_removed):
+		aura.buff_removed.connect(_on_buff_removed)
+	if aura.has_signal("debuff_added") and not aura.is_connected("debuff_added", _on_debuff_added):
+		aura.debuff_added.connect(_on_debuff_added)
+	if aura.has_signal("debuff_removed") and not aura.is_connected("debuff_removed", _on_debuff_removed):
+		aura.debuff_removed.connect(_on_debuff_removed)
+
+
+func _on_buff_added(buff) -> void:
+	if not _buff_bar or not _buff_bar.has_method("add_buff"):
+		return
+	var id: String = str(buff.get("id", ""))
+	var duration: float = float(buff.get("duration", 0))
+	if id == "":
+		return
+	_buff_bar.add_buff(id, null, duration, 1, false)
+
+
+func _on_buff_removed(buff) -> void:
+	if not _buff_bar or not _buff_bar.has_method("remove_buff"):
+		return
+	var id: String = str(buff.get("id", ""))
+	if id != "":
+		_buff_bar.remove_buff(id)
+
+
+func _on_debuff_added(debuff) -> void:
+	if not _buff_bar or not _buff_bar.has_method("add_buff"):
+		return
+	var id: String = str(debuff.get("id", ""))
+	var duration: float = float(debuff.get("duration", 0))
+	if id == "":
+		return
+	_buff_bar.add_buff(id, null, duration, 1, true)
+
+
+func _on_debuff_removed(debuff) -> void:
+	if not _buff_bar or not _buff_bar.has_method("remove_buff"):
+		return
+	var id: String = str(debuff.get("id", ""))
+	if id != "":
+		_buff_bar.remove_buff(id)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
