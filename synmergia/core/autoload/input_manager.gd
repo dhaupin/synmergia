@@ -73,8 +73,13 @@ var _keybindings: Dictionary = {
 	"open_quests": [KEY_J],
 	"open_map": [KEY_M],
 	"open_chat": [KEY_ENTER],
+	"open_friends": [KEY_F],
+	"open_party": [KEY_P],
+	"open_guild": [KEY_G],
+	"open_admin": [KEY_F3],
+	"open_settings": [KEY_ESCAPE],
 	"close_ui": [KEY_ESCAPE],
-	"toggle_pvp": [KEY_P],
+	"toggle_pvp": [KEY_H],
 	"sit": [KEY_Z],
 	"emote": [KEY_SLASH]
 }
