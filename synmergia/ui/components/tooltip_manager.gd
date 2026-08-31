@@ -1,260 +1,323 @@
-## TooltipManager - Centralized tooltip system for Synmergia
+## TooltipManager - Unified tooltip system
+## Item tooltips, ability tooltips, NPC info tooltips
 class_name TooltipManager
-extends CanvasLayer
-
-## Singleton instance
-static var instance: TooltipManager = null
-
-## Tooltip panel
-var _tooltip: PanelContainer
-var _tooltip_label: RichTextLabel
-var _tooltip_timer: Timer
-var _fade_tween: Tween
-
-## Tooltip data
-var _current_data: Dictionary = {}
-var _tooltip_type: String = ""
-var _position_offset: Vector2 = Vector2(15, 15)
+extends Control
 
 ## Tooltip types
-enum Type { NONE, ITEM, SKILL, ENTITY, STATUS, QUEST }
+enum TooltipType { ITEM, ABILITY, NPC, QUEST, PLAYER }
+
+## Singleton
+static var instance: TooltipManager
+
+## Current tooltip
+var _current_type: TooltipType = TooltipType.ITEM
+var _data: Dictionary = {}
+var _owner: Control = null
+
+## Components
+var _panel: PanelContainer
+var _content: VBoxContainer
+
+## Positioning
+var _offset: Vector2 = Vector2(10, 10)
+var _follow_mouse: bool = true
 
 func _ready() -> void:
-	if instance == null:
-		instance = self
-	else:
-		queue_free()
-		return
-	
-	_setup_tooltip()
-	_process_mode = Node.PROCESS_MODE_ALWAYS
+instance = self
+_setup_ui()
+hide()
 
-func _setup_tooltip() -> void:
-	_tooltip = PanelContainer.new()
-	_tooltip.z_index = 5000
-	_tooltip.hide()
-	add_child(_tooltip)
-	
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.12, 0.95)
-	style.border_color = Color(0.4, 0.35, 0.3)
-	style.border_width_left = 1
-	style.border_width_right = 1
-	style.border_width_top = 1
-	style.border_width_bottom = 1
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	_tooltip.add_theme_stylebox_override("panel", style)
-	
-	_tooltip_label = RichTextLabel.new()
-	_tooltip_label.bbcode_enabled = true
-	_tooltip_label.fit_content = true
-	_tooltip_label.custom_minimum_size = Vector2(200, 0)
-	_tooltip_label.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
-	_tooltip.add_child(_tooltip_label)
-	
-	_tooltip_timer = Timer.new()
-	_tooltip_timer.wait_time = 0.3
-	_tooltip_timer.one_shot = true
-	_tooltip_timer.timeout.connect(_on_tooltip_timer)
-	add_child(_tooltip_timer)
+func _setup_ui() -> void:
+name = "TooltipManager"
+set_anchors_preset(Control.PRESET_FULL_RECT)
+mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+_panel = PanelContainer.new()
+_panel.name = "TooltipPanel"
+_panel.custom_minimum_size = Vector2(250, 100)
+_panel.z_index = 1000
+add_child(_panel)
+
+var style := StyleBoxFlat.new()
+style.bg_color = Color(0.15, 0.15, 0.2, 0.95)
+style.border_color = UIStyles.COLORS.accent_gold
+style.border_width_left = 2
+style.border_width_right = 2
+style.border_width_top = 2
+style.border_width_bottom = 2
+style.corner_radius_top_left = 6
+style.corner_radius_top_right = 6
+style.corner_radius_bottom_left = 6
+style.corner_radius_bottom_right = 6
+_panel.add_theme_stylebox_override("panel", style)
+
+_content = VBoxContainer.new()
+_content.name = "Content"
+_panel.add_child(_content)
+
+func _process(_delta: float) -> void:
+if visible and _follow_mouse:
+_update_position()
+
+func _update_position() -> void:
+var mouse_pos := get_viewport().get_mouse_position()
+var screen_size := get_viewport().get_visible_rect().size
+
+var pos := mouse_pos + _offset
+
+# Keep on screen
+if pos.x + _panel.custom_minimum_size.x > screen_size.x:
+pos.x = mouse_pos.x - _panel.custom_minimum_size.x - _offset.x
+if pos.y + _panel.custom_minimum_size.y > screen_size.y:
+pos.y = mouse_pos.y - _panel.custom_minimum_size.y - _offset.y
+
+_panel.global_position = pos
 
 ## ============================================================================
 ## PUBLIC API
 ## ============================================================================
 
-static func show_item(item_data: Dictionary, position: Vector2 = Vector2.ZERO) -> void:
-	if instance:
-		instance._show_tooltip_internal(item_data, Type.ITEM, position)
+static func get_instance() -> TooltipManager:
+return instance
 
-static func show_skill(skill_data: Dictionary, position: Vector2 = Vector2.ZERO) -> void:
-	if instance:
-		instance._show_tooltip_internal(skill_data, Type.SKILL, position)
+func show_item(item_data: Dictionary, at_owner: Control = null) -> void:
+_current_type = TooltipType.ITEM
+_data = item_data
+_owner = at_owner
+_populate_item_tooltip()
+_update_size()
+show()
+_update_position()
 
-static func show_entity(entity_data: Dictionary, position: Vector2 = Vector2.ZERO) -> void:
-	if instance:
-		instance._show_tooltip_internal(entity_data, Type.ENTITY, position)
+func show_ability(ability_data: Dictionary, at_owner: Control = null) -> void:
+_current_type = TooltipType.ABILITY
+_data = ability_data
+_owner = at_owner
+_populate_ability_tooltip()
+_update_size()
+show()
+_update_position()
 
-static func show_status(status_data: Dictionary, position: Vector2 = Vector2.ZERO) -> void:
-	if instance:
-		instance._show_tooltip_internal(status_data, Type.STATUS, position)
+func show_npc(npc_data: Dictionary, at_owner: Control = null) -> void:
+_current_type = TooltipType.NPC
+_data = npc_data
+_owner = at_owner
+_populate_npc_tooltip()
+_update_size()
+show()
+_update_position()
 
-static func show_custom(title: String, description: String, position: Vector2 = Vector2.ZERO) -> void:
-	if instance:
-		var data := {"title": title, "description": description}
-		instance._show_tooltip_internal(data, Type.NONE, position)
+func show_player(player_data: Dictionary, at_owner: Control = null) -> void:
+_current_type = TooltipType.PLAYER
+_data = player_data
+_owner = at_owner
+_populate_player_tooltip()
+_update_size()
+show()
+_update_position()
 
-static func hide_tooltip() -> void:
-	if instance:
-		instance._hide_tooltip_internal()
+func show_quest(quest_data: Dictionary, at_owner: Control = null) -> void:
+_current_type = TooltipType.QUEST
+_data = quest_data
+_owner = at_owner
+_populate_quest_tooltip()
+_update_size()
+show()
+_update_position()
+
+func hide_tooltip() -> void:
+hide()
+_data = {}
+_owner = null
+
+func is_visible_for(owner: Control) -> bool:
+return visible and _owner == owner
 
 ## ============================================================================
-## INTERNAL METHODS
+## TOOLTIP CONTENT
 ## ============================================================================
 
-func _show_tooltip_internal(data: Dictionary, tooltip_type: int, position: Vector2) -> void:
-	_current_data = data
-	_tooltip_type = _tooltip_type_for(tooltip_type)
-	
-	# Reset timer to delay tooltip appearance
-	_tooltip_timer.stop()
-	_tooltip_timer.start()
-	
-	# Build content
-	_tooltip_label.clear()
-	_build_tooltip_content(data, tooltip_type)
-	
-	# Position
-	if position != Vector2.ZERO:
-		_tooltip.global_position = position + _position_offset
-	else:
-		# Show near mouse
-		var mouse_pos := get_viewport().get_mouse_position()
-		_tooltip.global_position = mouse_pos + _position_offset
-	
-	# Keep on screen
-	_keep_on_screen()
-	
-	_tooltip.show()
+func _clear_content() -> void:
+for child in _content.get_children():
+child.queue_free()
 
-func _on_tooltip_timer() -> void:
-	pass  # Tooltip already shown
+func _add_title(text: String, color: Color = UIStyles.COLORS.text_primary) -> void:
+var label := Label.new()
+label.text = text
+label.add_theme_font_size_override("font_size", 14)
+label.add_theme_color_override("font_color", color)
+_content.add_child(label)
 
-func _hide_tooltip_internal() -> void:
-	_tooltip_timer.stop()
-	
-	if _fade_tween and _fade_tween.is_valid():
-		_fade_tween.kill()
-	
-	_tooltip.hide()
-	_current_data = {}
-	_tooltip_type = ""
+func _add_line(text: String, color: Color = UIStyles.COLORS.text_secondary) -> void:
+var label := Label.new()
+label.text = text
+label.add_theme_color_override("font_color", color)
+label.autowrap_mode = TextServer.AUTOWRAP_WORD
+_content.add_child(label)
 
-func _keep_on_screen() -> void:
-	var viewport_size := get_viewport_rect().size
-	var tooltip_size := _tooltip.get_minimum_size()
-	
-	if _tooltip.global_position.x + tooltip_size.x > viewport_size.x:
-		_tooltip.global_position.x = viewport_size.x - tooltip_size.x - 10
-	if _tooltip.global_position.y + tooltip_size.y > viewport_size.y:
-		_tooltip.global_position.y = viewport_size.y - tooltip_size.y - 10
-	if _tooltip.global_position.x < 0:
-		_tooltip.global_position.x = 10
-	if _tooltip.global_position.y < 0:
-		_tooltip.global_position.y = 10
+func _add_spacer(height: int = 5) -> void:
+var spacer := Control.new()
+spacer.custom_minimum_size.y = height
+_content.add_child(spacer)
 
-func _tooltip_type_for(t: int) -> String:
-	match t:
-		Type.ITEM: return "item"
-		Type.SKILL: return "skill"
-		Type.ENTITY: return "entity"
-		Type.STATUS: return "status"
-		Type.QUEST: return "quest"
-		_: return ""
+func _add_divider() -> void:
+var sep := HSeparator.new()
+_content.add_child(sep)
 
-func _build_tooltip_content(data: Dictionary, tooltip_type: int) -> void:
-	var title: String = data.get("title", data.get("name", "Unknown"))
-	var description: String = data.get("description", data.get("desc", ""))
-	
-	# Header
-	_tooltip_label.append_text("[b]%s[/b]\n" % title)
-	
-	# Type-specific content
-	match tooltip_type:
-		Type.ITEM:
-			_build_item_content(data)
-		Type.SKILL:
-			_build_skill_content(data)
-		Type.ENTITY:
-			_build_entity_content(data)
-		Type.STATUS:
-			_build_status_content(data)
-	
-	# Generic description
-	if description != "":
-		_tooltip_label.append_text("\n%s" % description)
+func _popuplate_item_tooltip() -> void:
+_clear_content()
 
-func _build_item_content(data: Dictionary) -> void:
-	var rarity: String = data.get("rarity", "common")
-	var rarity_color := _rarity_color(rarity)
-	
-	_tooltip_label.append_text("[color=%s][%s][/color]\n" % [_color_to_hex(rarity_color), rarity.to_upper()])
-	
-	# Stats
-	var stats: Dictionary = data.get("stats", {})
-	for stat_name in stats.keys():
-		var value = stats[stat_name]
-		_tooltip_label.append_text("+ %s: %s\n" % [stat_name, str(value)])
-	
-	# Item type
-	var item_type: String = data.get("type", "")
-	if item_type != "":
-		_tooltip_label.append_text("Type: %s\n" % item_type)
-	
-	# Requirements
-	var level_req: int = data.get("level_req", 0)
-	if level_req > 0:
-		_tooltip_label.append_text("[color=#ff6666]Requires Level %d[/color]\n" % level_req)
+var item_name: String = _data.get("name", "Unknown Item")
+var rarity: String = _data.get("rarity", "common")
 
-func _build_skill_content(data: Dictionary) -> void:
-	var skill_type: String = data.get("type", "")
-	if skill_type != "":
-		_tooltip_label.append_text("[color=#888888]%s[/color]\n" % skill_type)
-	
-	var damage: int = data.get("damage", 0)
-	if damage > 0:
-		_tooltip_label.append_text("Damage: %d\n" % damage)
-	
-	var mana_cost: int = data.get("mana_cost", 0)
-	if mana_cost > 0:
-		_tooltip_label.append_text("Mana Cost: %d\n" % mana_cost)
-	
-	var cooldown: float = data.get("cooldown", 0)
-	if cooldown > 0:
-		_tooltip_label.append_text("Cooldown: %.1fs\n" % cooldown)
+var rarity_color := UIStyles.COLORS.text_primary
+match rarity.to_lower():
+"common": rarity_color = Color(0.6, 0.6, 0.6)
+"uncommon": rarity_color = Color(0.2, 0.9, 0.2)
+"rare": rarity_color = Color(0.2, 0.6, 1.0)
+"epic": rarity_color = Color(0.7, 0.3, 1.0)
+"legendary": rarity_color = Color(1.0, 0.6, 0.1)
 
-func _build_entity_content(data: Dictionary) -> void:
-	var level: int = data.get("level", 1)
-	var health: int = data.get("health", 0)
-	var max_health: int = data.get("max_health", 0)
-	var entity_type: String = data.get("entity_type", "")
-	
-	_tooltip_label.append_text("[color=#888888]Level %d %s[/color]\n" % [level, entity_type])
-	
-	if max_health > 0:
-		var health_pct := int((float(health) / float(max_health)) * 100)
-		_tooltip_label.append_text("Health: %d/%d (%d%%)\n" % [health, max_health, health_pct])
+_add_title(item_name, rarity_color)
 
-func _build_status_content(data: Dictionary) -> void:
-	var duration: float = data.get("duration", 0)
-	var stacks: int = data.get("stacks", 1)
-	var is_debuff: bool = data.get("is_debuff", false)
-	
-	var status_color := "66ff66" if not is_debuff else "ff6666"
-	_tooltip_label.append_text("[color=#%s]%s[/color]\n" % [status_color, data.get("type", "Status")])
-	
-	if duration > 0:
-		_tooltip_label.append_text("Duration: %.1fs\n" % duration)
-	if stacks > 1:
-		_tooltip_label.append_text("Stacks: x%d\n" % stacks)
+var item_type: String = _data.get("type", "Item")
+_add_line(item_type, UIStyles.COLORS.text_secondary)
 
-func _rarity_color(rarity: String) -> Color:
-	match rarity.to_lower():
-		"common": return Color(0.6, 0.6, 0.6)
-		"uncommon": return Color(0.2, 0.9, 0.2)
-		"rare": return Color(0.2, 0.4, 1.0)
-		"epic": return Color(0.6, 0.2, 0.9)
-		"legendary": return Color(1.0, 0.6, 0.1)
-		_: return Color.WHITE
+_add_spacer()
 
-func _color_to_hex(c: Color) -> String:
-	return "#%02x%02x%02x" % [int(c.r * 255), int(c.g * 255), int(c.b * 255)]
+# Stats
+var stats: Array = _data.get("stats", [])
+for stat in stats:
+var stat_text := "  %s: +%d" % [stat.get("name", ""), stat.get("value", 0)]
+_add_line(stat_text, UIStyles.COLORS.success)
 
-func _process(_delta: float) -> void:
-	if _tooltip.visible and _tooltip_type == "item":
-		# Keep tooltip near mouse for items
-		var mouse_pos := get_viewport().get_mouse_position()
-		_tooltip.global_position = mouse_pos + _position_offset
-		_keep_on_screen()
+_add_spacer()
+
+# Description
+var desc: String = _data.get("description", "")
+if not desc.is_empty():
+_add_line(desc, UIStyles.COLORS.text_secondary)
+
+_add_spacer()
+
+# Bind status
+if _data.get("soulbound", false):
+_add_line("Soulbound", UIStyles.COLORS.warning)
+elif _data.get("bind_on_pickup", false):
+_add_line("Binds on pickup", UIStyles.COLORS.warning)
+
+# Stack info
+if _data.get("stack_size", 1) > 1:
+_add_line("Stack: %d" % _data.get("stack_size", 1), UIStyles.COLORS.text_secondary)
+
+func _populate_ability_tooltip() -> void:
+_clear_content()
+
+var ability_name: String = _data.get("name", "Unknown Ability")
+_add_title(ability_name, UIStyles.COLORS.accent_gold)
+
+var ability_type: String = _data.get("type", "Ability")
+_add_line(ability_type, UIStyles.COLORS.text_secondary)
+
+_add_spacer()
+
+# Cost
+var mana_cost: int = _data.get("mana_cost", 0)
+if mana_cost > 0:
+_add_line("Mana Cost: %d" % mana_cost, UIStyles.COLORS.info)
+
+# Cooldown
+var cooldown: float = _data.get("cooldown", 0.0)
+if cooldown > 0:
+_add_line("Cooldown: %.1fs" % cooldown, UIStyles.COLORS.warning)
+
+_add_spacer()
+
+# Range
+var range_val: float = _data.get("range", 0.0)
+if range_val > 0:
+_add_line("Range: %.1fm" % range_val, UIStyles.COLORS.text_secondary)
+
+# Cast time
+var cast_time: float = _data.get("cast_time", 0.0)
+if cast_time > 0:
+_add_line("Cast Time: %.1fs" % cast_time, UIStyles.COLORS.text_secondary)
+
+_add_spacer()
+
+# Description
+var desc: String = _data.get("description", "")
+if not desc.is_empty():
+_add_line(desc, UIStyles.COLORS.text_secondary)
+
+func _populate_npc_tooltip() -> void:
+_clear_content()
+
+var npc_name: String = _data.get("name", "Unknown NPC")
+_add_title(npc_name, UIStyles.COLORS.accent_gold)
+
+var npc_type: String = _data.get("type", "NPC")
+_add_line(npc_type, UIStyles.COLORS.text_secondary)
+
+_add_spacer()
+
+# Level (if combat NPC)
+var level: int = _data.get("level", 0)
+if level > 0:
+_add_line("Level: %d" % level, UIStyles.COLORS.text_primary)
+
+# Services
+var services: Array = _data.get("services", [])
+for service in services:
+_add_line("[%s]" % service, UIStyles.COLORS.info)
+
+func _populate_player_tooltip() -> void:
+_clear_content()
+
+var player_name: String = _data.get("name", "Unknown")
+var guild_name: String = _data.get("guild", "")
+
+_add_title(player_name, UIStyles.COLORS.accent_gold)
+
+if not guild_name.is_empty():
+_add_line("[%s]" % guild_name, UIStyles.COLORS.info)
+
+_add_spacer()
+
+var level: int = _data.get("level", 1)
+var class_name: String = _data.get("class", "Adventurer")
+_add_line("Level %d %s" % [level, class_name], UIStyles.COLORS.text_secondary)
+
+# PvP status
+if _data.get("pvp_enabled", false):
+_add_line("PvP Enabled", UIStyles.COLORS.warning)
+
+func _populate_quest_tooltip() -> void:
+_clear_content()
+
+var quest_name: String = _data.get("name", "Unknown Quest")
+var quest_type: String = _data.get("type", "Side")
+
+var type_color := UIStyles.COLORS.text_secondary
+match quest_type.to_lower():
+"main": type_color = UIStyles.COLORS.accent_gold
+"side": type_color = UIStyles.COLORS.info
+"daily": type_color = UIStyles.COLORS.success
+
+_add_title(quest_name, type_color)
+_add_line("[%s Quest]" % quest_type, type_color)
+
+_add_spacer()
+
+var desc: String = _data.get("description", "")
+if not desc.is_empty():
+_add_line(desc, UIStyles.COLORS.text_secondary)
+
+func _update_size() -> void:
+# Auto-size based on content
+var height := 0.0
+for child in _content.get_children():
+if child is Control:
+height += child.get_combined_minimum_size().y
+
+_panel.custom_minimum_size.y = maxi(60, height + 20)
