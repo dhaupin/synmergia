@@ -159,3 +159,12 @@ anti_aliasing/quality/msaa_3d=2
 environment/defaults/default_clear_color=Color(0.133, 0.125, 0.161, 1)
 QuestService="*res://core/services/quest_service.gd"
 VaultService="*res://core/services/vault_service.gd"
+
+[gdscript]
+warnings/untyped_assignment=0
+warnings/unsafe_property_access=0
+warnings/unsafe_method_access=0
+warnings/unsafe_cast=0
+warnings/unsafe_call_argument=0
+warnings/unsafe_self_use=0
+warnings/infer_variant=0

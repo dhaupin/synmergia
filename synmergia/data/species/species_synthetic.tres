@@ -22,26 +22,26 @@ home_zone = "nexus_central"
 home_faction = "agent_collective"
 allied_species = ["human"]
 hostile_species = []
-# Note: No hostile species - agents are diplomatic by default
+
 health_modifier = 1.0
 mana_modifier = 1.1
 stamina_modifier = 1.0
 speed_modifier = 1.0
 available_skin_tones = [
-	Color(0.7, 0.75, 0.8, 1),   # Chrome silver
-	Color(0.3, 0.4, 0.5, 1),     # Steel blue
-	Color(0.5, 0.3, 0.5, 1),     # Amethyst
-	Color(0.2, 0.6, 0.4, 1),     # Emerald
-	Color(0.8, 0.6, 0.2, 1),     # Gold
+	Color(0.7, 0.75, 0.8, 1),
+	Color(0.3, 0.4, 0.5, 1),
+	Color(0.5, 0.3, 0.5, 1),
+	Color(0.2, 0.6, 0.4, 1),
+	Color(0.8, 0.6, 0.2, 1),
 ]
-available_hair_colors = []  # No hair
+available_hair_colors = []
 available_eye_colors = [
-	Color(0.2, 0.8, 1, 1),       # Cyan glow
-	Color(1, 0.3, 0.3, 1),       # Red alert
-	Color(0.3, 1, 0.3, 1),       # Green accept
-	Color(1, 1, 0.2, 1)         # Yellow processing
+	Color(0.2, 0.8, 1, 1),
+	Color(1, 0.3, 0.3, 1),
+	Color(0.3, 1, 0.3, 1),
+	Color(1, 1, 0.2, 1)
 ]
 
-# Agent-specific flags (handled by entity)
+
 is_agent_controlled = true
 is_human_controlled = false

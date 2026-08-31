@@ -76,18 +76,18 @@ func _create_star_texture() -> ImageTexture:
 			var ly := int(ppy + (py - ppy) * t)
 			if lx >= 0 and lx < size and ly >= 0 and ly < size:
 				# Golden color with soft edge
-				var dist := sqrt(pow(lx - cx, 2) + pow(ly - cy, 2))
-				var alpha := clamp(1.0 - (dist - inner_r) / (outer_r - inner_r), 0.0, 1.0)
+				var dist: float = sqrt(pow(lx - cx, 2) + pow(ly - cy, 2))
+				var alpha: float = clamp(1.0 - (dist - inner_r) / (outer_r - inner_r), 0.0, 1.0)
 				image.set_pixel(lx, ly, Color(1.0, 0.84, 0.0, alpha))
 	
-	var texture := ImageTexture.create_from_image(image)
+	var texture: ImageTexture = ImageTexture.create_from_image(image)
 	return texture
 
 func _process(delta: float) -> void:
 	_time += delta
 	
 	# Bob up and down
-	var new_y := _base_y + sin(_time * bob_speed) * bob_amount
+	var new_y: float = _base_y + sin(_time * bob_speed) * bob_amount
 	position.y = lerpf(position.y, new_y, 0.1)
 	
 	# Slow rotation

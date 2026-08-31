@@ -73,10 +73,10 @@ class SpawnPoint:
 ## SpawnService-specific signals for spawn-point-aware listeners
 ## These complement the unified EventHub.entity_spawned with spawn-point context
 signal spawn_point_registered(spawn_point: Dictionary)
-signal enemy_spawned(entity, spawn_point_id: String, metadata: EventHub.SpawnMetadata)
-signal enemy_despawned(entity, spawn_point_id: String, metadata: EventHub.SpawnMetadata)
-signal boss_spawned(entity, boss_name: String, metadata: EventHub.SpawnMetadata)
-signal npc_spawned(npc, npc_id: String, metadata: EventHub.SpawnMetadata)
+signal enemy_spawned(entity, spawn_point_id: String, metadata: SpawnMetadata)
+signal enemy_despawned(entity, spawn_point_id: String, metadata: SpawnMetadata)
+signal boss_spawned(entity, boss_name: String, metadata: SpawnMetadata)
+signal npc_spawned(npc, npc_id: String, metadata: SpawnMetadata)
 signal spawn_point_cleared(spawn_point_id: String)
 
 func _ready() -> void:
@@ -163,7 +163,7 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 	_spawned_entities[spawn_point_id].append(enemy.entity_id)
 	
 	# Create spawn metadata with position for zone notifications
-	var metadata := EventHub.SpawnMetadata.enemy(
+	var metadata := SpawnMetadata.enemy(
 		enemy.display_name,
 		spawn_point.zone_id,
 		spawn_point.position,
@@ -173,14 +173,14 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 	
 	# Apply elite/boss notification settings based on enemy type
 	if spawn_point.spawn_type == EnemyData.EnemyType.ELITE:
-		metadata = EventHub.SpawnMetadata.elite(
+		metadata = SpawnMetadata.elite(
 			enemy.display_name,
 			spawn_point.zone_id,
 			spawn_point.position,
 			enemy.level
 		)
 	elif spawn_point.spawn_type == EnemyData.EnemyType.BOSS:
-		metadata = EventHub.SpawnMetadata.boss(
+		metadata = SpawnMetadata.boss(
 			enemy.display_name,
 			spawn_point.zone_id,
 			spawn_point.position,
@@ -254,7 +254,7 @@ func spawn_boss(
 	boss.current_health = boss_data.health
 	
 	# Create spawn metadata with notification settings
-	var metadata := EventHub.SpawnMetadata.world_boss(boss.display_name, zone_id, position, boss.level)
+	var metadata := SpawnMetadata.world_boss(boss.display_name, zone_id, position, boss.level)
 	metadata.faction = boss.faction
 	if alert_scopes.size() > 0:
 		metadata.notification_enabled = true
@@ -338,7 +338,7 @@ func despawn_enemy(entity) -> void:
 	
 	# Find spawn point
 	var spawn_point_id = _find_entity_spawn_point(entity.entity_id)
-	var metadata: EventHub.SpawnMetadata = EntityService.get_entity_metadata(entity.entity_id) if EntityService else null
+	var metadata: SpawnMetadata = EntityService.get_entity_metadata(entity.entity_id) if EntityService else null
 	
 	if spawn_point_id != "":
 		var spawn_point = _get_spawn_point(spawn_point_id)

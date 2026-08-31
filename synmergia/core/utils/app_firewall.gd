@@ -1,6 +1,6 @@
 ## AppFirewall - Application-level firewall utility
 ## Tracks connections, blocks suspicious IPs, and manages bans
-extends RefCounted
+extends Node
 
 ## ============================================================================
 ## SIGNALS

@@ -1,26 +1,29 @@
 ## EntityService - Entity registry and management
+##
 ## Tracks all active entities in the world with unified spawn/despawn via EventBus
 extends Node
+
+
 
 var _entities: Dictionary = {}       # entity_id -> 
 var _players: Dictionary = {}        # player_id ->  (subset)
 var _enemies: Dictionary = {}       # entity_id ->  (subset)
 var _npcs: Dictionary = {}           # entity_id ->  (subset)
-var _entity_metadata: Dictionary = {}  # entity_id -> EventHub.SpawnMetadata
+var _entity_metadata: Dictionary = {}  # entity_id -> SpawnMetadata
 
 var _next_entity_id: int = 1
 
-signal entity_registered(entity, metadata: EventHub.SpawnMetadata)
-signal entity_unregistered(entity, metadata: EventHub.SpawnMetadata)
-signal player_joined(player, metadata: EventHub.SpawnMetadata)
-signal player_left(player, metadata: EventHub.SpawnMetadata)
+signal entity_registered(entity, metadata: SpawnMetadata)
+signal entity_unregistered(entity, metadata: SpawnMetadata)
+signal player_joined(player, metadata: SpawnMetadata)
+signal player_left(player, metadata: SpawnMetadata)
 
 func _ready() -> void:
 	GameLog.info("EntityService: Ready")
 
 ## Register a new entity with spawn metadata
 ## Returns assigned entity_id
-func register_entity(entity, metadata: EventHub.SpawnMetadata = null, id_override: String = "") -> String:
+func register_entity(entity, metadata: SpawnMetadata = null, id_override: String = "") -> String:
 
 	# SECURITY: Prevent duplicate entity IDs
 	if id_override != "" and _entities.has(id_override):
@@ -64,26 +67,26 @@ func register_entity(entity, metadata: EventHub.SpawnMetadata = null, id_overrid
 	return entity_id
 
 ## Create default metadata based on entity type
-func _create_default_metadata(entity) -> EventHub.SpawnMetadata:
-	var spawn_type := EventHub.SpawnMetadata.SpawnType.NORMAL
+func _create_default_metadata(entity) -> SpawnMetadata:
+	var spawn_type := SpawnMetadata.SpawnType.NORMAL
 	
 	match entity.entity_type:
 		Entity.EntityType.PLAYER:
-			spawn_type = EventHub.SpawnMetadata.SpawnType.NORMAL
+			spawn_type = SpawnMetadata.SpawnType.NORMAL
 		Entity.EntityType.ENEMY:
-			spawn_type = EventHub.SpawnMetadata.SpawnType.NORMAL
+			spawn_type = SpawnMetadata.SpawnType.NORMAL
 		Entity.EntityType.NPC:
-			spawn_type = EventHub.SpawnMetadata.SpawnType.NPC
+			spawn_type = SpawnMetadata.SpawnType.NPC
 		_:
-			spawn_type = EventHub.SpawnMetadata.SpawnType.NORMAL
+			spawn_type = SpawnMetadata.SpawnType.NORMAL
 	
-	var metadata := EventHub.SpawnMetadata.new(spawn_type, entity.display_name, "", entity.global_position)
+	var metadata := SpawnMetadata.new(spawn_type, entity.display_name, "", entity.global_position)
 	metadata.level = entity.level
 	metadata.faction = entity.faction
 	return metadata
 
 ## Get spawn metadata for an entity
-func get_entity_metadata(entity_id: String) -> EventHub.SpawnMetadata:
+func get_entity_metadata(entity_id: String) -> SpawnMetadata:
 	return _entity_metadata.get(entity_id)
 
 ## Unregister an entity and emit unified despawn event
@@ -95,7 +98,7 @@ func unregister_entity(entity, reason: String = "despawn") -> void:
 	var was_player := _players.has(entity_id)
 	
 	# Get stored metadata for despawn event
-	var metadata: EventHub.SpawnMetadata = _entity_metadata.get(entity_id)
+	var metadata: SpawnMetadata = _entity_metadata.get(entity_id)
 	if metadata == null:
 		metadata = _create_default_metadata(entity)
 	metadata.notification_message = reason  # Reuse for despawn reason

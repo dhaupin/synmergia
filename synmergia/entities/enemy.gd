@@ -71,7 +71,7 @@ func _ai_update(delta: float) -> void:
 			pass  # TODO: path toward target
 
 
-func take_damage(amount: int, source: Entity = null) -> void:
+func take_damage(amount: int, source = null) -> int:
 	if health_component:
 		health_component.current_health -= amount
 		health_component.health_changed.emit(
@@ -86,6 +86,7 @@ func take_damage(amount: int, source: Entity = null) -> void:
 		health_changed.emit(current_health, max_health, -amount)
 		if current_health <= 0:
 			died.emit(source)
+	return amount
 
 
 func _on_died() -> void:

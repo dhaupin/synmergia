@@ -17,21 +17,21 @@ var _continue_btn: Button
 var _portrait: TextureRect
 
 func _ready() -> void:
-_setup_ui()
-hide()
+	_setup_ui()
+	hide()
 
 func _setup_ui() -> void:
-name = "DialogUI"
-set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-offset_left = 50
-offset_top = -200
-offset_right = -50
-offset_bottom = -20
+	name = "DialogUI"
+	set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	offset_left = 50
+	offset_top = -200
+	offset_right = -50
+	offset_bottom = -20
 
-# Background panel
-var panel := PanelContainer.new()
-panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-add_child(panel)
+	# Background panel
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(panel)
 
 var style := StyleBoxFlat.new()
 style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
@@ -94,56 +94,56 @@ _continue_btn.pressed.connect(_on_continue_pressed)
 vbox.add_child(_continue_btn)
 
 func show_dialog(npc_id: String, dialogue_id: String) -> void:
-_current_npc = npc_id
-_dialogue_id = dialogue_id
-_current_node = 0
+	_current_npc = npc_id
+	_dialogue_id = dialogue_id
+	_current_node = 0
 
-# TODO: Load dialogue data
-_show_node(0)
-show()
+	# TODO: Load dialogue data
+	_show_node(0)
+	show()
 
 func _show_node(node_index: int) -> void:
-# TODO: Load from dialogue data
-# For demo, show placeholder
-_speaker_label.text = "NPC"
-_text_rich_label.clear()
-_text_rich_label.append_text("[color=%s]Hello, traveler![/color]" % UIStyles.COLORS.text_primary.to_html())
+	# TODO: Load from dialogue data
+	# For demo, show placeholder
+	_speaker_label.text = "NPC"
+	_text_rich_label.clear()
+	_text_rich_label.append_text("[color=%s]Hello, traveler![/color]" % UIStyles.COLORS.text_primary.to_html())
 
-# Clear choices
-for child in _choice_buttons.get_children():
-child.queue_free()
-_choices.clear()
+	# Clear choices
+	for child in _choice_buttons.get_children():
+		child.queue_free()
+		_choices.clear()
 
-# Show demo choices
-var demo_choices := [
-{"text": "What do you have for me?", "next": 1},
-{"text": "I need to go.", "next": -1}
-]
+		# Show demo choices
+		var demo_choices := [
+		{"text": "What do you have for me?", "next": 1},
+		{"text": "I need to go.", "next": -1}
+		]
 
-for choice in demo_choices:
-var btn := Button.new()
-btn.text = choice.text
-btn.pressed.connect(_on_choice_selected.bind(choice))
-_choice_buttons.add_child(btn)
-_choices.append(choice)
+		for choice in demo_choices:
+			var btn := Button.new()
+			btn.text = choice.text
+			btn.pressed.connect(_on_choice_selected.bind(choice))
+			_choice_buttons.add_child(btn)
+			_choices.append(choice)
 
-_continue_btn.visible = false
+		_continue_btn.visible = false
 
 func _on_choice_selected(choice: Dictionary) -> void:
-var next: int = choice.get("next", -1)
+	var next: int = choice.get("next", -1)
 
-if next < 0:
-hide()
-return
+	if next < 0:
+		hide()
+		return
 
-_show_node(next)
+	_show_node(next)
 
 func _on_continue_pressed() -> void:
-# Advance to next node
-_current_node += 1
-_show_node(_current_node)
+	# Advance to next node
+	_current_node += 1
+	_show_node(_current_node)
 
 func close() -> void:
-hide()
-_current_npc = ""
-_dialogue_id = ""
+	hide()
+	_current_npc = ""
+	_dialogue_id = ""

@@ -328,6 +328,6 @@ func _create_skill_book_from_id(item_id: String) -> Item:
 	var upgrade_level: int = tier_map.get(tier_str, 1)
 
 	var skill: Skill = _skills.get(skill_id)
-	var display_name := skill.display_name if skill else skill_id
+	var display_name: String = skill.display_name if skill else skill_id
 
 	return SkillBook.create(skill_id, upgrade_level, display_name)

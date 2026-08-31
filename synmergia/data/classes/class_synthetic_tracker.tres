@@ -23,8 +23,8 @@ base_stats = {
 }
 
 stat_growth = {
-focal_stat_1 = "strength"
-focal_stat_2 = "agility"
+"focal_stat_1": "strength",
+"focal_stat_2": "agility",
 "strength": 2,
 "agility": 1,
 "intelligence": 1,

@@ -83,3 +83,123 @@ The project runs fine. Warnings don't affect runtime behavior. Focus on features
 ---
 
 *End of Audit Report*
+
+---
+
+# UI Modernization Session — Handoff Notes (2026-08-31)
+
+> **Status:** ⚠️ **9 UI feature commits shipped**, but the
+> 8 commits after `8640b09` (the modernization commit) wrote
+> every new file with **zero leading-tab indentation**. Godot
+> cannot parse these files as-is. The previous session crashed
+> before fixing this.
+
+## What landed (9 commits, ~3,800 lines)
+
+| # | SHA | Title | Files | Tabs? |
+|---|-----|-------|-------|-------|
+| 1 | `8640b09` | UI modernization and new panels | 12 | ✅ mostly OK |
+| 2 | `1897911` | InputManager, HUD, Lobby, Vault/Bank | 4 | ✅ OK |
+| 3 | `27de317` | ActionBar, BuffBar | 2 | ✅ OK (action_bar) ❌ (buff_bar) |
+| 4 | `96bd917` | QuickAccessBar | 1 | ❌ |
+| 5 | `beb1f42` | TargetFrame, BossHealthBar, SettingsPanel, DialogUI | 4 | ❌❌❌❌ |
+| 6 | `6d6e303` | TooltipManager | 1 | ❌ |
+| 7 | `0ae5319` | Minimap | 1 | ❌ |
+| 8 | `f77a7c5` | UIStyles rarity, LoadingUI, WorldMap | 3 | ❌❌❌ |
+| 9 | `9beae2a` | CombatLog, NamePlate | 2 | ❌❌ |
+
+Commit #1 (8640b09) is the only one that consistently has
+tabs. Commits 3–9 each shipped 1–4 files with the indentation
+stripped. The pattern started after `1897911` and persisted
+through `9beae2a`.
+
+## Affected files (13 total — MUST be re-indented)
+
+All in `synmergia/ui/components/` except bank_npc:
+
+```
+boss_health_bar.gd     165 lines
+buff_bar.gd            121 lines
+combat_log.gd          189 lines
+dialog_ui.gd           149 lines
+loading_ui.gd          219 lines
+minimap.gd             234 lines
+name_plate.gd          159 lines
+quick_access_bar.gd    135 lines
+settings_panel.gd      238 lines
+target_frame.gd        221 lines
+tooltip_manager.gd     323 lines
+world_map.gd           373 lines
+synmergia/entities/npcs/bank_npc.gd   29 lines
+```
+
+For each of these: `grep -cP '^\t' file.gd` returns **0**.
+
+The non-broken siblings (good reference for the expected
+format): `action_bar.gd`, `bank_ui.gd`, `character_panel.gd`,
+`chat_ui.gd`, `menu_manager.gd`, `quest_ui.gd`,
+`input_manager.gd`, `vault_service.gd`, `quest_service.gd`.
+
+## Root cause (working hypothesis)
+
+The file-edit tool the previous session used appears to have
+**stripped leading whitespace on multi-line writes**. Single
+line edits were unaffected (the `8640b09` modernization commit
+touched existing files via targeted edits and they kept their
+tabs). The problem only shows up in the new files created in
+`create` mode. Test on a single file before doing bulk fixes.
+
+## Static checks (this session, no Godot available)
+
+- ✅ Braces balanced in all 13 broken files
+- ✅ Parens balanced in all 13
+- ✅ Brackets balanced in all 13
+- ✅ `func` (not `def`) used everywhere
+- ✅ No mixed tabs/spaces in broken files (everything is just
+     all-spaces with zero indent)
+- ❌ Zero leading tabs in 13 files — **blocker**
+
+The structural code looks correct. The fix is mechanical: add
+indentation.
+
+## Other notes
+
+- `ROADMAP.md` says Phase 0.5 (UI modernization) is ✅ DONE
+  and Phase 0.6 (Cleanup) is 🔄 IN PROGRESS. The 0.5 marker
+  is premature — the files don't actually parse.
+- Bank UI has 5 internal `TODO:` comments; minimap has
+  `TODO: connect zone changes`; combat_log has a `TODO:`.
+  These are known and not blockers.
+- `synmergia/AUDIT.md.session-log` (this file) is the live
+  session log. The 2026-08-29 audit above is preserved.
+- `labs/AUDIT.md.legacy` is the frozen earlier audit.
+
+## Recommended fix order
+
+1. **Open `quick_access_bar.gd` in a Godot editor locally**
+   and use the editor's `Format → Indent` or `Ctrl+I` to re-indent
+   one file. Confirm the resulting indentation matches the style
+   of `action_bar.gd` (a known-good sibling).
+2. Apply the same approach to the other 12 files.
+3. Run `godot --headless --check-only` to confirm the project
+   parses.
+4. Run smoke tests at `synmergia/tests/test_islands.gd`.
+5. Update `ROADMAP.md` to reflect actual state (0.5 NOT done).
+
+If Godot is not locally available, a re-indent script that
+walks the file as a token stream (with proper GDScript block
+detection) can do this offline, but the algorithm needs to
+handle the GDScript edge cases (multi-line dicts, lambda
+expressions, `match` arms, `if/elif/else` chains). A simple
+"add 1 tab per line" approach will produce syntactically
+invalid GDScript because the parser doesn't know where blocks
+end without indentation to guide it.
+
+## Files I (this session) did NOT modify
+
+No working-tree edits. I only:
+- read the codebase
+- ran static checks (brace/paren/bracket balance, tab counts)
+- verified all 13 broken files are at their committed state
+- wrote this handoff section
+

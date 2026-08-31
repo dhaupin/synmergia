@@ -21,26 +21,26 @@ var _current_mp: int = 50
 var _max_mp: int = 50
 
 func _ready() -> void:
-_setup_ui()
-_connect_signals()
-hide()
+	_setup_ui()
+	_connect_signals()
+	hide()
 
 func _setup_ui() -> void:
-name = "TargetFrame"
-set_anchors_preset(Control.PRESET_TOP_CENTER)
-offset_left = -150
-offset_top = 80
-offset_right = 150
-offset_bottom = 180
+	name = "TargetFrame"
+	set_anchors_preset(Control.PRESET_TOP_CENTER)
+	offset_left = -150
+	offset_top = 80
+	offset_right = 150
+	offset_bottom = 180
 
-# Main container
-var vbox := VBoxContainer.new()
-vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-add_child(vbox)
+	# Main container
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_child(vbox)
 
-# Name and level row
-var name_row := HBoxContainer.new()
-vbox.add_child(name_row)
+	# Name and level row
+	var name_row := HBoxContainer.new()
+	vbox.add_child(name_row)
 
 _name_label = Label.new()
 _name_label.text = "No Target"
@@ -135,36 +135,36 @@ _debuff_container = HBoxContainer.new()
 debuffs_row.add_child(_debuff_container)
 
 func _connect_signals() -> void:
-if TargetingManager:
-TargetingManager.target_changed.connect(_on_target_changed)
+	if TargetingManager:
+		TargetingManager.target_changed.connect(_on_target_changed)
 
 func _on_target_changed(target_id: String, target_data: Dictionary) -> void:
-_target_id = target_id
+	_target_id = target_id
 
-if target_id.is_empty():
-hide()
-return
+	if target_id.is_empty():
+		hide()
+		return
 
-show()
-_update_display(target_data)
+	show()
+	_update_display(target_data)
 
 func _update_display(data: Dictionary) -> void:
-_name_label.text = data.get("name", "Unknown")
+	_name_label.text = data.get("name", "Unknown")
 
 var level: int = data.get("level", 1)
 var elite_type: String = data.get("elite_type", "")
 if elite_type == "BOSS":
-_level_label.text = "[Boss] %d" % level
-_level_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
-elif elite_type == "ELITE":
-_level_label.text = "[Elite] %d" % level
-_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
-else:
-_level_label.text = "Lv.%d" % level
-_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+	_level_label.text = "[Boss] %d" % level
+	_level_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
+	elif elite_type == "ELITE":
+		_level_label.text = "[Elite] %d" % level
+		_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+		else:
+		_level_label.text = "Lv.%d" % level
+		_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
 
-_class_label.text = data.get("class", "")
-_guild_label.text = data.get("guild", "")
+	_class_label.text = data.get("class", "")
+	_guild_label.text = data.get("guild", "")
 
 _current_hp = data.get("health", 100)
 _max_hp = data.get("max_health", 100)
@@ -174,48 +174,48 @@ _max_mp = data.get("max_mana", 50)
 _update_bars()
 
 func _update_bars() -> void:
-if _hp_bar:
-_hp_bar.max_value = _max_hp if _max_hp > 0 else 1
-_hp_bar.value = _current_hp
+	if _hp_bar:
+		_hp_bar.max_value = _max_hp if _max_hp > 0 else 1
+		_hp_bar.value = _current_hp
 
-# HP bar color based on percentage
-var hp_percent := float(_current_hp) / float(_max_hp) if _max_hp > 0 else 0
-if hp_percent > 0.5:
-_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.success)
-elif hp_percent > 0.25:
-_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.warning)
-else:
-_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.error)
+		# HP bar color based on percentage
+		var hp_percent := float(_current_hp) / float(_max_hp) if _max_hp > 0 else 0
+		if hp_percent > 0.5:
+			_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.success)
+			elif hp_percent > 0.25:
+				_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.warning)
+				else:
+				_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.error)
 
-if _mp_bar:
-_mp_bar.max_value = _max_mp if _max_mp > 0 else 1
-_mp_bar.value = _current_mp
+				if _mp_bar:
+					_mp_bar.max_value = _max_mp if _max_mp > 0 else 1
+					_mp_bar.value = _current_mp
 
-# Update HP/MP labels
-var vbox: VBoxContainer = get_child(0)
-if vbox:
-var hp_row: HBoxContainer = vbox.get_child(5)
-if hp_row:
-var hp_label: Label = hp_row.get_child(0)
-var mp_label: Label = hp_row.get_child(1)
-if hp_label:
-hp_label.text = "HP: %d / %d" % [_current_hp, _max_hp]
-if mp_label:
-mp_label.text = "  MP: %d / %d" % [_current_mp, _max_mp]
+					# Update HP/MP labels
+					var vbox: VBoxContainer = get_child(0)
+					if vbox:
+						var hp_row: HBoxContainer = vbox.get_child(5)
+						if hp_row:
+							var hp_label: Label = hp_row.get_child(0)
+							var mp_label: Label = hp_row.get_child(1)
+							if hp_label:
+								hp_label.text = "HP: %d / %d" % [_current_hp, _max_hp]
+								if mp_label:
+									mp_label.text = "  MP: %d / %d" % [_current_mp, _max_mp]
 
 func update_health(current: int, maximum: int) -> void:
-_current_hp = current
-_max_hp = maximum
-_update_bars()
+	_current_hp = current
+	_max_hp = maximum
+	_update_bars()
 
 func update_mana(current: int, maximum: int) -> void:
-_current_mp = current
-_max_mp = maximum
-_update_bars()
+	_current_mp = current
+	_max_mp = maximum
+	_update_bars()
 
 func clear_target() -> void:
-_target_id = ""
-hide()
+	_target_id = ""
+	hide()
 
 func get_target_id() -> String:
-return _target_id
+	return _target_id

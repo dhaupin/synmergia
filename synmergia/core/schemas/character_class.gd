@@ -18,7 +18,9 @@ enum Role {
 		MAGE = 3,       # Rune, Sorcerer, Psion
 		RANGER = 4,     # Stalker, Marksman, Tracker (stealth/ranged)
 		BENDER = 5,     # Seer, Temporalist, Overclocker (utility/buff)
-		HEALER = 6      # Shaman, Cleric, Conduit (restoration)
+		HEALER = 6,
+		DPS_MELEE = 7,   # legacy alias
+		DPS_RANGED = 8,  # legacy alias      # Shaman, Cleric, Conduit (restoration)
 	}
 
 @export var id: String = ""

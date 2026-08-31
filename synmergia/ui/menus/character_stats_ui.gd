@@ -267,9 +267,9 @@ func _refresh() -> void:
 	_stat_points_label.text = "Available Points: %d" % available
 	
 	# Update stats
-	var all_stats := _character_data.get_all_stats_with_allocated()
+	var all_stats: Dictionary = _character_data.get_all_stats_with_allocated()
 	for stat_name in ["strength", "agility", "intelligence", "vitality", "endurance", "wisdom"]:
-		var row_data := _stat_rows.get(stat_name)
+		var row_data: Dictionary = _stat_rows.get(stat_name)
 		if not row_data:
 			continue
 		
@@ -280,12 +280,12 @@ func _refresh() -> void:
 		row_data["alloc_lbl"].text = "+%d" % allocated if allocated > 0 else ""
 		
 		# Update tier indicator
-		var tier := get_stat_tier(total)
+		var tier: Dictionary = get_stat_tier(total)
 		row_data["tier_lbl"].text = tier["label"]
 		row_data["tier_lbl"].add_theme_color_override("font_color", tier["color"])
 		
 		# Focal indicator
-		var is_focal := stat_name == focal1 or stat_name == focal2
+		var is_focal: bool = stat_name == focal1 or stat_name == focal2
 		row_data["focal_lbl"].text = "★" if is_focal else ""
 		
 		# Button states
@@ -293,7 +293,7 @@ func _refresh() -> void:
 		row_data["minus_btn"].disabled = allocated <= 0
 	
 	# Update derived stats
-	var entity := _get_entity()
+	var entity: Node3D = _get_entity()
 	if entity:
 		_stat_rows["max_health"]["value_lbl"].text = str(entity.max_health)
 		_stat_rows["max_mana"]["value_lbl"].text = str(entity.max_mana)
@@ -316,7 +316,7 @@ func _on_stat_minus(stat_name: String) -> void:
 		_notify_change()
 
 func _notify_change() -> void:
-	var entity := _get_entity()
+	var entity: Node3D = _get_entity()
 	if entity and entity.has_method("on_stats_changed"):
 		entity.on_stats_changed()
 
@@ -329,7 +329,7 @@ func open(player_id: String) -> void:
 	_player_id = player_id
 	_character_data = null
 	
-	var entity := _get_entity()
+	var entity: Node3D = _get_entity()
 	if entity and entity.character_data:
 		_character_data = entity.character_data
 	
