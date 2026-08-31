@@ -341,7 +341,25 @@ func get_upgrade_tier(level: int) -> Dictionary:
 
 ## Get cumulative deltas for upgrade levels 1 through upgrade_level.
 ## Apply these multipliers to the base skill attributes.
-f
+func get_upgrade_deltas(upgrade_level: int) -> Dictionary:
+	var total := {
+		"damage_mult": 1.0, "heal_mult": 1.0, "range_mult": 1.0,
+		"cooldown_mult": 1.0, "cast_time_mult": 1.0, "aoe_mult": 1.0,
+		"duration_mult": 1.0, "dot_mult": 1.0, "hot_mult": 1.0,
+		"cost_mult": 1.0, "charge_mult": 1.0, "max_targets_mult": 1.0,
+		"chain_count": 0, "projectile_count": 0,
+		"effect_strength_mult": 1.0, "effect_duration_mult": 1.0
+	}
+	for tier in upgrade_tiers:
+		if tier.get("level") <= upgrade_level:
+			var d: Dictionary = tier.get("delta", {})
+			for key in d:
+				if key in ["chain_count", "projectile_count"]:
+					total[key] += int(d[key])  # additive for counts
+				else:
+					total[key] *= float(d[key])  # multiplicative for multipliers
+	return total
+
 ## Get unlock entries that are active at upgrade_level.
 ## Returns an array of unlock dictionaries (empty if not upgradable or no unlocks at this level).
 func get_unlocks_at_level(upgrade_level: int) -> Array:
