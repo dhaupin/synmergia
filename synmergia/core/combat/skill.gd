@@ -192,6 +192,22 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 		else:
 			caster.heal(actual_heal)
 	
+	# Apply heal-over-time (HoT)
+	if hot_heal > 0 and hot_duration > 0:
+		var hot := StatusEffect.new()
+		hot.effect_id = skill_id + "_hot"
+		hot.effect_name = skill_name + " HoT"
+		hot.effect_type = StatusEffect.EffectType.BUFF
+		hot.tick_behavior = StatusEffect.TickBehavior.TICKED
+		hot.tick_interval = hot_tick_rate if hot_tick_rate > 0 else 1.0
+		hot.duration = hot_duration
+		hot.tick_heal = hot_heal
+		
+		if target:
+			target.apply_status_effect(hot)
+		else:
+			caster.apply_status_effect(hot)
+	
 	# Apply crowd control
 	if crowd_control_type != "":
 		applyCrowdControl(caster, target, ground_position)
@@ -275,8 +291,20 @@ func applyInvincibility(caster: Entity) -> void:
 	pass
 
 func applyDoT(caster: Entity, target: Entity) -> void:
-	# Create DoT effect
-	pass
+	if target == null:
+		return
+	
+	var dot := StatusEffect.new()
+	dot.effect_id = skill_id + "_dot"
+	dot.effect_name = skill_name + " DoT"
+	dot.effect_type = StatusEffect.EffectType.DEBUFF
+	dot.effect_category = StatusEffect.EffectCategory.POISON
+	dot.tick_behavior = StatusEffect.TickBehavior.TICKED
+	dot.tick_interval = dot_tick_rate if dot_tick_rate > 0 else 1.0
+	dot.duration = dot_duration
+	dot.tick_damage = dot_damage
+	
+	target.apply_status_effect(dot)
 
 func applyTeleport(caster: Entity, ground_position: Vector3) -> void:
 	if ground_position != Vector3.ZERO:
