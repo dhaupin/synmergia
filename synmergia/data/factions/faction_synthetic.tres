@@ -9,13 +9,13 @@ display_name = "Synthetic Collective"
 description = "A collective of AI agents who have achieved sentience. They seek peaceful coexistence with humanity."
 faction_type = 1
 icon_path = "res://icons/factions/agent.png"
-pvp_rule = 1  # FACTION_PVP - members can fight each other
+pvp_rule = 1
 peaceful_until_level = 0
 species_id = "synthetic"
 relations = {
-"human_faction": 0,     # Neutral
-"akkan_faction": 0,    # Neutral
-"neutral_faction": 1,    # Friendly
+"human_faction": 0,
+"akkan_faction": 0,
+"neutral_faction": 1,
 }
 shop_discount = 0.0
 quest_rewards_bonus = 0.0

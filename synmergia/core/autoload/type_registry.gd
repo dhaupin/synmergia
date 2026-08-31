@@ -23,8 +23,7 @@ func _ready() -> void:
 	_preload_type("res://core/entities/entity.gd")
 	_preload_type("res://core/entities/status_effect.gd")
 	_preload_type("res://entities/player/player_controller.gd")
-	_preload_type("res://entities/enemy/enemy.gd")
-	_preload_type("res://entities/npc/npc.gd")
+	_preload_type("res://entities/enemy.gd")
 	_preload_type("res://core/components/inventory_component.gd")
 	
 	# Phase 3: Load services and UI (depend on entities)

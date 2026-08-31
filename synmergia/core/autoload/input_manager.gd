@@ -139,11 +139,10 @@ func _setup_input_actions() -> void:
 			InputMap.add_action(action)
 
 func _check_controller() -> void:
-	for i in range(Input.get_joy_guid_max()):
-		if Input.get_joy_guid(i):
-			_controller_id = i
-			controller_connected.emit()
-			break
+	for i in Input.get_connected_joypads():
+		_controller_id = i
+		controller_connected.emit()
+		break
 
 func _input(event: InputEvent) -> void:
 	_detect_input_type(event)

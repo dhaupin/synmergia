@@ -12,8 +12,8 @@ role = 1
 resource_type = 1
 base_stats = {"strength": 10, "agility": 5, "vitality": 14, "intelligence": 6, "wisdom": 8, "endurance": 14}
 stat_growth = {"strength": 2, "agility": 1, "vitality": 3, "intelligence": 1, "wisdom": 1, "endurance": 3}
-focal_stat_1 = "vitality"
-focal_stat_2 = "strength"
+"focal_stat_1": "vitality",
+"focal_stat_2": "strength",
 base_resource = 60
 resource_per_level = 8
 resource_regen_per_second = 2.0

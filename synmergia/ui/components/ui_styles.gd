@@ -24,12 +24,13 @@ const COLORS := {
 	"online": Color(0.3, 0.9, 0.3),
 	"offline": Color(0.4, 0.4, 0.4),
 }
-        "rarity_common": Color(0.6, 0.6, 0.6),     # Grey
-        "rarity_rare": Color(0.3, 0.7, 1.0),        # Light blue
-        "rarity_epic": Color(0.8, 0.3, 1.0),       # Purple
-        "rarity_legendary": Color(1.0, 0.8, 0.2),  # Gold
-        "rarity_mythic": Color(1.0, 0.4, 0.1),     # Red-orange
 
+const RARITY_COLORS := {
+	"rarity_common": Color(0.6, 0.6, 0.6),
+	"rarity_rare": Color(0.3, 0.7, 1.0),
+	"rarity_epic": Color(0.8, 0.3, 1.0),
+	"rarity_legendary": Color(1.0, 0.8, 0.2),
+	"rarity_mythic": Color(1.0, 0.4, 0.1),
 }
 
 ## ============================================================================
@@ -60,30 +61,30 @@ static func create_button_style(normal_bg: Color = Color(0.15, 0.15, 0.2),
 		"hover": _make_button_stylebox(hover_bg),
 		"pressed": _make_button_stylebox(pressed_bg),
 		"disabled": _make_button_stylebox(disabled_bg)
-	
+	}
+
 ## ============================================================================
 ## RARITY HELPERS
 ## ============================================================================
 
 static func get_rarity_color(rarity: String) -> Color:
-        match rarity.to_lower():
-                "common": return COLORS.rarity_common
-                "rare", "uncommon": return COLORS.rarity_rare
-                "epic": return COLORS.rarity_epic
-                "legendary": return COLORS.rarity_legendary
-                "mythic": return COLORS.rarity_mythic
-        return COLORS.text_primary
+	match rarity.to_lower():
+		"common": return RARITY_COLORS.rarity_common
+		"rare", "uncommon": return RARITY_COLORS.rarity_rare
+		"epic": return RARITY_COLORS.rarity_epic
+		"legendary": return RARITY_COLORS.rarity_legendary
+		"mythic": return RARITY_COLORS.rarity_mythic
+		_: return COLORS.text_primary
 
 static func get_rarity_display_name(rarity: String) -> String:
-        match rarity.to_lower():
-                "common": return "Common"
-                "rare", "uncommon": return "Rare"
-                "epic": return "Epic"
-                "legendary": return "Legendary"
-                "mythic": return "Mythic"
-        return rarity
+	match rarity.to_lower():
+		"common": return "Common"
+		"rare", "uncommon": return "Rare"
+		"epic": return "Epic"
+		"legendary": return "Legendary"
+		"mythic": return "Mythic"
+		_: return rarity
 
-}
 
 static func _make_button_stylebox(bg: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

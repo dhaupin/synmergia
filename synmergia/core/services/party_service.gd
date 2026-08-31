@@ -83,7 +83,7 @@ func disband_party(party_id: String) -> bool:
 		GameLog.debug("PartyService: Rate limited party disband for %s" % party_id)
 		return false
 				
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	if not party:
 		return false
 				
@@ -116,12 +116,12 @@ func invite_player(from_id: String, to_id: String) -> bool:
 		return false
 				
 		# Check if inviter is in a party
-	var inviter_party_id := _player_parties.get(from_id, "")
+	var inviter_party_id: String = _player_parties.get(from_id, "")
 	if inviter_party_id == "":
 		GameLog.warn("PartyService: Inviter %s not in a party" % from_id)
 		return false
 				
-	var party := _parties.get(inviter_party_id)
+	var party: Dictionary = _parties.get(inviter_party_id)
 	if not party:
 		return false
 				
@@ -169,7 +169,7 @@ func accept_invite(to_id: String) -> bool:
 				return false
 												
 		# Add to party
-			var party := _parties.get(party_id)
+			var party: Dictionary = _parties.get(party_id)
 			if party and party["members"].size() < party["max_size"]:
 				party["members"].append(to_id)
 				_player_parties[to_id] = party_id
@@ -197,11 +197,11 @@ func decline_invite(to_id: String) -> bool:
 
 ## Leave a party
 func leave_party(player_id: String) -> bool:
-	var party_id := _player_parties.get(player_id, "")
+	var party_id: String = _player_parties.get(player_id, "")
 	if party_id == "":
 		return false
 				
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	if not party:
 		return false
 				
@@ -232,11 +232,11 @@ func leave_party(player_id: String) -> bool:
 
 ## Kick a player from party
 func kick_player(leader_id: String, target_id: String) -> bool:
-	var party_id := _player_parties.get(leader_id, "")
+	var party_id: String = _player_parties.get(leader_id, "")
 	if party_id == "":
 		return false
 				
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	if not party or party["leader_id"] != leader_id:
 		GameLog.warn("PartyService: Only leader can kick players")
 		return false
@@ -257,17 +257,17 @@ func get_party(party_id: String) -> Dictionary:
 
 ## Get player's party
 func get_player_party(player_id: String) -> Dictionary:
-	var party_id := _player_parties.get(player_id, "")
+	var party_id: String = _player_parties.get(player_id, "")
 	return get_party(party_id)
 
 ## Get party members
 func get_party_members(party_id: String) -> Array:
-	var party := _parties.get(party_id, {})
+	var party: Dictionary = _parties.get(party_id, {})
 	return party.get("members", [])
 
 ## Get enriched party member data with names, classes, and GM status
 func get_party_member_details(party_id: String) -> Array[Dictionary]:
-	var party := _parties.get(party_id, {})
+	var party: Dictionary = _parties.get(party_id, {})
 	var member_ids: Array = party.get("members", [])
 	var details: Array[Dictionary] = []
 	
@@ -304,16 +304,16 @@ func is_in_party(player_id: String) -> bool:
 
 ## Get party size
 func get_party_size(party_id: String) -> int:
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	return party["members"].size() if party else 0
 
 ## Set loot rule
 func set_loot_rule(leader_id: String, rule: LootRule) -> bool:
-	var party_id := _player_parties.get(leader_id, "")
+	var party_id: String = _player_parties.get(leader_id, "")
 	if party_id == "":
 		return false
 				
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	if not party or party["leader_id"] != leader_id:
 		return false
 				
@@ -325,11 +325,11 @@ func set_loot_rule(leader_id: String, rule: LootRule) -> bool:
 
 ## Promote member to leader
 func promote_to_leader(current_leader_id: String, new_leader_id: String) -> bool:
-	var party_id := _player_parties.get(current_leader_id, "")
+	var party_id: String = _player_parties.get(current_leader_id, "")
 	if party_id == "":
 		return false
 				
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	if not party or party["leader_id"] != current_leader_id:
 		return false
 				
@@ -351,11 +351,11 @@ func promote_to_leader(current_leader_id: String, new_leader_id: String) -> bool
 
 ## Get nearby party members (for sharing buffs, XP, etc.)
 func get_nearby_members(player_id: String, range: float = 100.0) -> Array[String]:
-	var party_id := _player_parties.get(player_id, "")
+	var party_id: String = _player_parties.get(player_id, "")
 	if party_id == "":
 		return []
 				
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	if not party:
 		return []
 				
@@ -370,7 +370,7 @@ func get_nearby_members(player_id: String, range: float = 100.0) -> Array[String
 
 ## Share XP with party members
 func share_xp(party_id: String, base_xp: int, killer_id: String) -> Dictionary:
-	var party := _parties.get(party_id)
+	var party: Dictionary = _parties.get(party_id)
 	if not party:
 		return {}
 				

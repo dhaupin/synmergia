@@ -144,8 +144,8 @@ func send_message(sender_id: String, channel: Channel, message: String, target_i
 
 ## Check for spam
 func _check_spam(entity_id: String) -> bool:
-	var now := Time.get_ticks_msec()
-	var last := _player_last_message.get(entity_id, 0)
+	var now: int = Time.get_ticks_msec()
+	var last: int = _player_last_message.get(entity_id, 0)
 				
 		# Reset if cooldown passed
 	if now - last > SPAM_COOLDOWN_MS:
@@ -270,7 +270,7 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 		return []
 				
 		# Get sender's zone from metadata
-	var metadata: EventHub.SpawnMetadata = EntityService.get_entity_metadata(sender_id)
+	var metadata: SpawnMetadata = EntityService.get_entity_metadata(sender_id)
 	if not metadata or metadata.zone_id == "":
 		GameLog.debug("ChatService: No zone info for sender, returning empty range list")
 		return []
@@ -282,7 +282,7 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 	for player in all_players:
 		if not is_instance_valid(player) or player.entity_id == sender_id:
 			continue
-		var player_metadata: EventHub.SpawnMetadata = EntityService.get_entity_metadata(player.entity_id)
+		var player_metadata: SpawnMetadata = EntityService.get_entity_metadata(player.entity_id)
 		if player_metadata and player_metadata.zone_id == metadata.zone_id:
 			zone_players.append(player.entity_id)
 				
@@ -469,7 +469,7 @@ func _cmd_unignore(sender_id: String, args: Array) -> bool:
 
 ## Command: Muted
 func _cmd_muted(sender_id: String, args: Array) -> bool:
-	var muted := _ignored_players.get(sender_id, [])
+	var muted: Array = _ignored_players.get(sender_id, [])
 	if muted.is_empty():
 		send_system_message(sender_id, "You are not ignoring anyone")
 	else:
@@ -568,7 +568,7 @@ func _cmd_suggest(sender_id: String, args: Array) -> bool:
 
 ## Check if player is ignored
 func _is_ignored(ignorer_id: String, ignored_id: String) -> bool:
-	var ignored := _ignored_players.get(ignorer_id, [])
+	var ignored: Array = _ignored_players.get(ignorer_id, [])
 	return ignored.has(ignored_id)
 
 ## Send system message

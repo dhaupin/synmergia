@@ -130,7 +130,7 @@ func _build_tab_bar() -> Control:
 	return bar
 
 func _build_tab_contents() -> Control:
-	var stack := StackContainer.new()
+	var stack := VBoxContainer.new()
 	stack.name = "ContentStack"
 	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
@@ -432,7 +432,7 @@ func _refresh_stats_tab() -> void:
 	var focal2 := cls.focal_stat_2 if cls else ""
 	
 	# Update focal indicator label
-	var focal_lbl := root.get_node_or_null("Header/FocalLabel") as Label
+	var focal_lbl := self.get_node_or_null("Header/FocalLabel") as Label
 	if focal_lbl:
 		focal_lbl.text = "Focal: %s + %s" % [focal1.capitalize(), focal2.capitalize()]
 	
@@ -443,7 +443,7 @@ func _refresh_stats_tab() -> void:
 	# Update each stat row
 	var all_stats := _skill_data.get_all_stats_with_allocated()
 	for stat_name in _stat_rows.keys():
-		var row_data := _stat_rows[stat_name]
+		var row_data: Dictionary = _stat_rows[stat_name]
 		var total: int = all_stats.get(stat_name, 0)
 		var allocated: int = _skill_data.get_allocated_points(stat_name)
 		var base: int = total - allocated
@@ -472,7 +472,7 @@ func _refresh_stats_tab() -> void:
 		row_data["tier_lbl"].add_theme_color_override("font_color", tier_color)
 		
 		# Highlight focal stats
-		var is_focal := stat_name == focal1 or stat_name == focal2
+		var is_focal: bool = stat_name == focal1 or stat_name == focal2
 		row_data["focal_lbl"].text = "★" if is_focal else ""
 		
 		# Enable/disable buttons
@@ -505,8 +505,8 @@ func _on_stat_respec_pressed() -> void:
 	if _skill_data == null:
 		return
 	
-	var preview := SkillAcademyService.get_instance().preview_stat_respec(_skill_data)
-	var downgrades := preview.get("affected_skills", [])
+	var preview: Dictionary = SkillAcademyService.get_instance().preview_stat_respec(_skill_data)
+	var downgrades: Array = preview.get("affected_skills", [])
 	
 	if not downgrades.is_empty():
 		var msg := "WARNING: The following skills will be DOWNGRADED:\n"
@@ -520,7 +520,7 @@ func _on_stat_respec_pressed() -> void:
 func _notify_stat_changed() -> void:
 	# Notify GameManager that player stats changed (for derived stat recalculation)
 	if GameManager and _player_id != "":
-		var entity = GameManager.get_player_entity(_player_id)
+		var entity = EntityService.get_entity(_player_id)
 		if entity and entity.has_method("on_stats_changed"):
 			entity.on_stats_changed()
 
@@ -581,7 +581,7 @@ func _switch_tab(tab: Tab) -> void:
 
 	_active_tab = tab
 	_tab_contents[tab].visible = true
-	_tab_buttons[tab].add_theme_stylebox_override("normal", UIStyles.create_button_style_active())
+	_tab_buttons[tab].add_theme_stylebox_override("normal", UIStyles.create_button_style()["normal"])
 
 	_refresh_active_tab()
 
@@ -609,15 +609,15 @@ func _refresh_skills_tab() -> void:
 	if not is_instance_valid(_skill_data):
 		return
 
-	var catalog_ids: Array = SkillAcademyService.get_catalog_skill_ids()
+	var catalog_ids: Array = SkillAcademyService.get_instance().get_catalog_skill_ids()
 	for skill_id in catalog_ids:
-		var schema: SkillSchema = SkillAcademyService.get_skill_schema(skill_id)
+		var schema: SkillSchema = SkillAcademyService.get_instance().get_skill_schema(skill_id)
 		if schema == null:
 			continue
 
 		var current_level: int = _skill_data.get_skill_upgrade_level(skill_id)
 		var maxed: bool = current_level >= 5
-		var next_tier: String = SkillAcademyService.get_next_tier_name(skill_id, current_level)
+		var next_tier: String = SkillAcademyService.get_instance().get_next_tier_name(skill_id, current_level)
 
 		var row := HBoxContainer.new()
 		row.custom_minimum_size.y = SLOT_SIZE
@@ -656,10 +656,10 @@ func _refresh_books_tab() -> void:
 	# Rebuild buy-picker with current catalog
 	if _buy_skill_picker:
 		_buy_skill_picker.clear()
-		var skill_ids: Array = SkillAcademyService.get_catalog_skill_ids()
+		var skill_ids: Array = SkillAcademyService.get_instance().get_catalog_skill_ids()
 		for sid in skill_ids:
-			var schema: SkillSchema = SkillAcademyService.get_skill_schema(sid)
-			var label := schema.display_name if schema else sid
+			var schema: SkillSchema = SkillAcademyService.get_instance().get_skill_schema(sid)
+			var label: String = schema.display_name if schema else sid
 			_buy_skill_picker.add_item(label)
 
 	# Count books by skill_id + tier
@@ -721,7 +721,7 @@ func _refresh_upgrade_tab() -> void:
 		_upgrade_button.disabled = true
 		return
 
-	var schema: SkillSchema = SkillAcademyService.get_skill_schema(_selected_skill_id)
+	var schema: SkillSchema = SkillAcademyService.get_instance().get_skill_schema(_selected_skill_id)
 	if schema == null:
 		_upgrade_skill_label.text = "Unknown skill."
 		return
@@ -738,7 +738,7 @@ func _refresh_upgrade_tab() -> void:
 
 	_upgrade_skill_label.text = "%s — Level %d / 5" % [schema.display_name, current_level]
 
-	var preview: Dictionary = SkillAcademyService.get_upgrade_preview(_selected_skill_id, current_level)
+	var preview: Dictionary = SkillAcademyService.get_instance().get_upgrade_preview(_selected_skill_id, current_level)
 	if preview.is_empty() or preview.get("maxed", false):
 		_upgrade_preview_label.text = "No more upgrade tiers."
 		_upgrade_button.disabled = true
@@ -767,7 +767,7 @@ func _on_upgrade_pressed() -> void:
 	if _selected_skill_id == "" or not is_instance_valid(_skill_data):
 		return
 
-	var result: Dictionary = SkillAcademyService.apply_upgrade(
+	var result: Dictionary = SkillAcademyService.get_instance().apply_upgrade(
 		_player_id, _selected_skill_id, _skill_data, _inventory_books
 	)
 
@@ -775,9 +775,9 @@ func _on_upgrade_pressed() -> void:
 		NotificationService.send_to_player(
 			_player_id,
 			"Upgraded %s to level %d!" % [_selected_skill_id, result.get("new_level", "?")],
-			NotificationService.NotificationType.SUCCESS
+			NotificationService.NotificationType.WARNING
 		)
-			_inventory_books = result.get("remaining_books", [])
+		_inventory_books = result.get("remaining_books", [])
 		_refresh_all()
 	else:
 		NotificationService.send_to_player(
@@ -808,7 +808,7 @@ func _refresh_signature_tab() -> void:
 	if player and "level" in player:
 		player_level = player.level
 	
-	var info: SkillAcademyService.get_signature_info(_skill_data, player_level)
+	var info: Dictionary = SkillAcademyService.get_instance().get_signature_info(_skill_data, player_level)
 	
 	# Update info text based on state
 	var info_lbl: Label = panel.get_node_or_null("Main/ContentStack/SignatureTab/Info")
@@ -894,9 +894,8 @@ func _refresh_respec_tab() -> void:
 		_respec_label.text = "No skill points spent. Nothing to reset."
 		_respec_button.disabled = true
 	else:
-		var cost: int = SkillAcademyService.get_respec_cost(total_spent)
-		_respec_label.text = "You have spent %d skill points on %d upgrade levels." % (
-			total_spent, _skill_data.get_total_upgrade_levels())
+		var cost: int = SkillAcademyService.get_instance().get_respec_cost(total_spent)
+		_respec_label.text = "You have spent %d skill points on %d upgrade levels." % [total_spent, _skill_data.get_total_upgrade_levels()]
 		_respec_cost_label.text = "Respec cost: %d gold" % cost
 		_respec_button.disabled = false
 
@@ -915,7 +914,7 @@ func _on_signature_selected(sig_id: String) -> void:
 		inventory = player.inventory_component
 		gold = inventory.get_gold()
 	
-	var result: Dictionary = SkillAcademyService.change_signature(
+	var result: Dictionary = SkillAcademyService.get_instance().change_signature(
 		_player_id, _skill_data, sig_id, player_level, gold, inventory
 	)
 	
@@ -926,7 +925,7 @@ func _on_signature_selected(sig_id: String) -> void:
 		NotificationService.send_to_player(
 			_player_id,
 			msg,
-			NotificationService.NotificationType.SUCCESS
+			NotificationService.NotificationType.WARNING
 		)
 		_refresh_all()
 	else:
@@ -946,7 +945,7 @@ func _on_respec_pressed() -> void:
 	var inventory: Node = player.inventory_component
 	var gold: int = inventory.get_gold()
 
-	var result: Dictionary = SkillAcademyService.respec(_player_id, _skill_data, gold, player)
+	var result: Dictionary = SkillAcademyService.get_instance().respec(_player_id, _skill_data, gold, player)
 	if result.get("success", false):
 		NotificationService.send_to_player(
 			_player_id,
@@ -965,7 +964,7 @@ func _on_buy_book_pressed() -> void:
 	if not _buy_skill_picker or _buy_skill_picker.selected < 0:
 		return
 
-	var skill_ids: Array = SkillAcademyService.get_catalog_skill_ids()
+	var skill_ids: Array = SkillAcademyService.get_instance().get_catalog_skill_ids()
 	if _buy_skill_picker.selected >= skill_ids.size():
 		return
 
@@ -978,7 +977,7 @@ func _on_buy_book_pressed() -> void:
 	var inventory: InventoryComponent = player.inventory_component
 	var gold: int = inventory.get_gold()
 
-	var result: Dictionary = SkillAcademyService.purchase_book(_player_id, skill_id, gold)
+	var result: Dictionary = SkillAcademyService.get_instance().purchase_book(_player_id, skill_id, gold)
 	if result.get("success", false):
 		inventory.remove_gold(result.get("cost", 0))
 		var book: SkillBook = result.get("book")
@@ -1036,7 +1035,7 @@ func load_player_context(player_id: String) -> void:
 	if not GameManager:
 		return
 
-	var player_entity = GameManager.get_player_entity(player_id)
+	var player_entity = EntityService.get_entity(player_id)
 	if player_entity and player_entity.has("character_data"):
 		_skill_data = player_entity.character_data
 

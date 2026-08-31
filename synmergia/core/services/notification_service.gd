@@ -97,18 +97,18 @@ func _ready() -> void:
 		EventHub.entity_spawned.connect(_on_entity_spawned)
 
 ## Handle unified entity spawn event - auto-send notifications based on metadata
-func _on_entity_spawned(entity_or_id, metadata: EventHub.SpawnMetadata) -> void:
+func _on_entity_spawned(entity_or_id, metadata: SpawnMetadata) -> void:
 	if metadata == null or not metadata.notification_enabled:
 		return
 	
 	# Build notification message
 	var message: String
 	match metadata.spawn_type:
-		EventHub.SpawnMetadata.SpawnType.WORLD_BOSS:
+		SpawnMetadata.SpawnType.WORLD_BOSS:
 			message = "WORLD BOSS: %s has appeared in %s!" % [metadata.display_name, metadata.zone_id]
-		EventHub.SpawnMetadata.SpawnType.BOSS:
+		SpawnMetadata.SpawnType.BOSS:
 			message = "Boss %s has appeared!" % metadata.display_name
-		EventHub.SpawnMetadata.SpawnType.ELITE:
+		SpawnMetadata.SpawnType.ELITE:
 			message = "Elite enemy %s has appeared!" % metadata.display_name
 		_:
 			message = metadata.notification_message % [metadata.display_name, metadata.zone_id]
@@ -117,13 +117,13 @@ func _on_entity_spawned(entity_or_id, metadata: EventHub.SpawnMetadata) -> void:
 	var notif_type := NotificationType.WORLD_EVENT
 	var priority := Priority.NORMAL
 	match metadata.notification_priority:
-		EventHub.SpawnMetadata.NotificationPriority.LOW:
+		SpawnMetadata.NotificationPriority.LOW:
 			priority = Priority.LOW
-		EventHub.SpawnMetadata.NotificationPriority.NORMAL:
+		SpawnMetadata.NotificationPriority.NORMAL:
 			priority = Priority.NORMAL
-		EventHub.SpawnMetadata.NotificationPriority.HIGH:
+		SpawnMetadata.NotificationPriority.HIGH:
 			priority = Priority.HIGH
-		EventHub.SpawnMetadata.NotificationPriority.CRITICAL:
+		SpawnMetadata.NotificationPriority.CRITICAL:
 			priority = Priority.CRITICAL
 	
 	# Build extra data

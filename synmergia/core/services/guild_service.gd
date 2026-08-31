@@ -164,11 +164,11 @@ func _get_default_ranks() -> Dictionary:
 
 ## Disband a guild
 func disband_guild(leader_id: String) -> bool:
-	var guild_id := _player_guilds.get(leader_id, "")
+	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		GameLog.warn("GuildService: Only guildmaster can disband")
 		return false
@@ -204,11 +204,11 @@ func invite_player(inviter_id: String, target_id: String) -> bool:
 	if inviter_id == target_id:
 		return false
 				
-	var guild_id := _player_guilds.get(inviter_id, "")
+	var guild_id : String = _player_guilds.get(inviter_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 				
@@ -268,11 +268,11 @@ func apply_to_guild(player_id: String, guild_id: String) -> bool:
 
 ## Accept application
 func accept_application(approver_id: String, applicant_id: String) -> bool:
-	var guild_id := _player_guilds.get(approver_id, "")
+	var guild_id : String = _player_guilds.get(approver_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 				
@@ -298,7 +298,7 @@ func accept_application(approver_id: String, applicant_id: String) -> bool:
 
 ## Add member to guild
 func _add_member(guild_id: String, player_id: String, rank: GuildRank) -> bool:
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 				
@@ -321,11 +321,11 @@ func _add_member(guild_id: String, player_id: String, rank: GuildRank) -> bool:
 
 ## Remove member from guild
 func remove_member(remover_id: String, target_id: String) -> bool:
-	var guild_id := _player_guilds.get(remover_id, "")
+	var guild_id : String = _player_guilds.get(remover_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 				
@@ -355,11 +355,11 @@ func leave_guild(player_id: String) -> bool:
 
 ## Change member rank
 func change_rank(changer_id: String, target_id: String, new_rank: GuildRank) -> bool:
-	var guild_id := _player_guilds.get(changer_id, "")
+	var guild_id : String = _player_guilds.get(changer_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 				
@@ -386,11 +386,11 @@ func change_rank(changer_id: String, target_id: String, new_rank: GuildRank) -> 
 
 ## Transfer guild leadership
 func transfer_leadership(current_leader_id: String, new_leader_id: String) -> bool:
-	var guild_id := _player_guilds.get(current_leader_id, "")
+	var guild_id : String = _player_guilds.get(current_leader_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != current_leader_id:
 		return false
 				
@@ -428,11 +428,11 @@ func _has_permission(rank: GuildRank, permission: int) -> bool:
 
 ## Create alliance
 func create_alliance(leader_id: String, name: String) -> String:
-	var guild_id := _player_guilds.get(leader_id, "")
+	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return ""
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return ""
 				
@@ -456,11 +456,11 @@ func create_alliance(leader_id: String, name: String) -> String:
 
 ## Invite guild to alliance
 func invite_to_alliance(inviter_id: String, target_guild_id: String) -> bool:
-	var guild_id := _player_guilds.get(inviter_id, "")
+	var guild_id : String = _player_guilds.get(inviter_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != inviter_id:
 		return false
 				
@@ -491,11 +491,11 @@ func invite_to_alliance(inviter_id: String, target_guild_id: String) -> bool:
 
 ## Join alliance
 func join_alliance(leader_id: String, alliance_id: String) -> bool:
-	var guild_id := _player_guilds.get(leader_id, "")
+	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return false
 				
@@ -517,11 +517,11 @@ func join_alliance(leader_id: String, alliance_id: String) -> bool:
 
 ## Leave alliance
 func leave_alliance(leader_id: String) -> bool:
-	var guild_id := _player_guilds.get(leader_id, "")
+	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return false
 				
@@ -554,7 +554,7 @@ func get_guild(guild_id: String) -> Dictionary:
 
 ## Get player's guild
 func get_player_guild(player_id: String) -> Dictionary:
-	var guild_id := _player_guilds.get(player_id, "")
+	var guild_id : String = _player_guilds.get(player_id, "")
 	return get_guild(guild_id)
 
 ## Check if player is in a guild
@@ -563,16 +563,16 @@ func is_in_guild(player_id: String) -> bool:
 
 ## Get guild roster
 func get_guild_roster(guild_id: String) -> Array:
-	var guild := _guilds.get(guild_id, {})
+	var guild : Dictionary = _guilds.get(guild_id, {})
 	return guild.get("members", [])
 
 ## Set guild info
 func set_guild_info(leader_id: String, description: String) -> bool:
-	var guild_id := _player_guilds.get(leader_id, "")
+	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return false
 				
@@ -583,11 +583,11 @@ func set_guild_info(leader_id: String, description: String) -> bool:
 
 ## Set guild notice
 func set_guild_notice(leader_id: String, notice: String) -> bool:
-	var guild_id := _player_guilds.get(leader_id, "")
+	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 				
@@ -602,11 +602,11 @@ func set_guild_notice(leader_id: String, notice: String) -> bool:
 
 ## Set MOTD
 func set_guild_motd(leader_id: String, motd: String) -> bool:
-	var guild_id := _player_guilds.get(leader_id, "")
+	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
 				
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 				
@@ -625,7 +625,7 @@ func get_alliance(alliance_id: String) -> Dictionary:
 
 ## Get guild's alliance
 func get_guild_alliance(guild_id: String) -> Dictionary:
-	var guild := _guilds.get(guild_id, {})
+	var guild : Dictionary = _guilds.get(guild_id, {})
 	if guild.is_empty():
 		return {}
 	return get_alliance(guild.get("alliance_id", ""))
@@ -640,7 +640,7 @@ func _init_guild_bank(guild: Dictionary) -> void:
 
 ## Get guild bank
 func get_guild_bank(guild_id: String) -> Dictionary:
-	var guild := _guilds.get(guild_id, {})
+	var guild : Dictionary = _guilds.get(guild_id, {})
 	if guild.is_empty():
 		return {}
 	if not guild.has("bank"):
@@ -649,10 +649,10 @@ func get_guild_bank(guild_id: String) -> Dictionary:
 
 ## Deposit gold to guild bank
 func deposit_gold(player_id: String, amount: int) -> bool:
-	var guild_id := _player_guilds.get(player_id, "")
+	var guild_id : String = _player_guilds.get(player_id, "")
 	if guild_id == "":
 		return false
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 	if not guild.has("bank"):
@@ -664,10 +664,10 @@ func deposit_gold(player_id: String, amount: int) -> bool:
 
 ## Withdraw gold from guild bank
 func withdraw_gold(player_id: String, amount: int) -> bool:
-	var guild_id := _player_guilds.get(player_id, "")
+	var guild_id : String = _player_guilds.get(player_id, "")
 	if guild_id == "":
 		return false
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 	if not guild.has("bank"):
@@ -680,10 +680,10 @@ func withdraw_gold(player_id: String, amount: int) -> bool:
 
 ## Deposit item to guild bank
 func deposit_item(player_id: String, item_id: String, quantity: int, tab_index: int = 0) -> bool:
-	var guild_id := _player_guilds.get(player_id, "")
+	var guild_id : String = _player_guilds.get(player_id, "")
 	if guild_id == "":
 		return false
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
 	if not guild.has("bank"):
@@ -700,10 +700,10 @@ func deposit_item(player_id: String, item_id: String, quantity: int, tab_index: 
 
 ## Withdraw item from guild bank
 func withdraw_item(player_id: String, item_id: String, quantity: int) -> bool:
-	var guild_id := _player_guilds.get(player_id, "")
+	var guild_id : String = _player_guilds.get(player_id, "")
 	if guild_id == "":
 		return false
-	var guild := _guilds.get(guild_id)
+	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or not guild.has("bank"):
 		return false
 	var items: Array = guild["bank"]["items"]
@@ -719,7 +719,7 @@ func withdraw_item(player_id: String, item_id: String, quantity: int) -> bool:
 
 ## Get bank items for a tab
 func get_bank_items(guild_id: String, tab_index: int = 0) -> Array:
-	var guild := _guilds.get(guild_id, {})
+	var guild : Dictionary = _guilds.get(guild_id, {})
 	if guild.is_empty():
 		return []
 	var items: Array = guild.get("bank", {}).get("items", [])
@@ -731,14 +731,14 @@ func get_bank_items(guild_id: String, tab_index: int = 0) -> Array:
 
 ## Get bank gold
 func get_bank_gold(guild_id: String) -> int:
-	var guild := _guilds.get(guild_id, {})
+	var guild : Dictionary = _guilds.get(guild_id, {})
 	if guild.is_empty():
 		return 0
 	return guild.get("bank", {}).get("gold", 0)
 
 ## Get bank logs
 func get_bank_logs(guild_id: String, limit: int = 20) -> Array:
-	var guild := _guilds.get(guild_id, {})
+	var guild : Dictionary = _guilds.get(guild_id, {})
 	if guild.is_empty():
 		return []
 	var logs: Array = guild.get("bank", {}).get("logs", [])

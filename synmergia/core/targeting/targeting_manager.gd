@@ -996,7 +996,7 @@ func get_targets_in_radius(origin: Vector3, radius: float, entity_type: int = 0)
 ## EVENT HANDLERS
 ## ============================================================================
 
-func _on_entity_spawned(entity, _metadata: EventHub.SpawnMetadata) -> void:
+func _on_entity_spawned(entity, _metadata: SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		var entity_type = entity.get("entity_type", 0)
 		var schema_id = _entity_type_to_schema.get(entity_type, "")
@@ -1012,11 +1012,11 @@ func _on_entity_spawned(entity, _metadata: EventHub.SpawnMetadata) -> void:
 			entity_type
 		)
 
-func _on_entity_despawned(entity, _metadata: EventHub.SpawnMetadata) -> void:
+func _on_entity_despawned(entity, _metadata: SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		unregister_targetable(entity.entity_id)
 
-func _on_entity_died(entity, _killer, _metadata: EventHub.SpawnMetadata) -> void:
+func _on_entity_died(entity, _killer, _metadata: SpawnMetadata) -> void:
 	if entity.has("entity_id"):
 		# Optionally clear target if they died
 		if _current_target and _current_target.id == entity.entity_id:

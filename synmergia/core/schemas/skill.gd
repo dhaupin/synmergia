@@ -380,30 +380,6 @@ func get_tier_name(upgrade_level: int) -> String:
 			return tier.get("tier", "common")
 	return "common"
 
-func get_upgrade_deltas(upgrade_level: int) -> Dictionary:
-	var total := {
-		"damage_mult": 1.0, "heal_mult": 1.0, "range_mult": 1.0,
-		"cooldown_mult": 1.0, "cast_time_mult": 1.0, "aoe_mult": 1.0,
-		"duration_mult": 1.0, "dot_mult": 1.0, "hot_mult": 1.0,
-		"cost_mult": 1.0, "charge_mult": 1.0, "max_targets_mult": 1.0,
-		"chain_count": 0, "projectile_count": 0,
-		"effect_strength_mult": 1.0, "effect_duration_mult": 1.0
-	}
-	for tier in upgrade_tiers:
-		if tier.get("level") <= upgrade_level:
-			var d: Dictionary = tier.get("delta", {})
-			for key in d:
-				if key in ["chain_count", "projectile_count"]:
-					total[key] += int(d[key])  # additive for counts
-				else:
-					total[key] *= d[key]       # multiplicative for multipliers
-	return total
-
-## ============================================================================
-## STAT THRESHOLD METHODS
-## ============================================================================
-
-## Get the stat required for a given upgrade level
 func get_required_stat_for_tier(upgrade_level: int) -> Dictionary:
 	if upgrade_level <= 0:
 		return {"stat": "", "value": 0}
@@ -417,15 +393,15 @@ func get_required_stat_for_tier(upgrade_level: int) -> Dictionary:
 
 ## Check if player stat meets the requirement for an upgrade tier
 func check_stat_requirement(player_stat_value: int, upgrade_level: int) -> Dictionary:
-	var required := get_required_stat_for_tier(upgrade_level)
-	var stat_name := required.get("stat", "")
-	var required_value := required.get("value", 0)
+	var required: Dictionary = get_required_stat_for_tier(upgrade_level)
+	var stat_name: String = required.get("stat", "")
+	var required_value: int = required.get("value", 0)
 	
 	# No stat required for this tier
 	if stat_name == "" or required_value == 0:
 		return {"meets_requirement": true, "stat": "", "required": 0, "current": player_stat_value}
 	
-	var meets := player_stat_value >= required_value
+	var meets: bool = player_stat_value >= required_value
 	return {
 		"meets_requirement": meets,
 		"stat": stat_name,

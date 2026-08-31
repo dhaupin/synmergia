@@ -12,8 +12,8 @@ description = "Akkan void bender. Warps space and drains energy from reality its
 resource_type = 1
 base_stats = {"strength": 8, "agility": 6, "vitality": 10, "intelligence": 12, "wisdom": 10, "endurance": 10}
 stat_growth = {"strength": 2, "agility": 1, "vitality": 2, "intelligence": 2, "wisdom": 1, "endurance": 2}
-focal_stat_1 = "wisdom"
-focal_stat_2 = "endurance"
+"focal_stat_1": "wisdom",
+"focal_stat_2": "endurance",
 base_resource = 125
 resource_per_level = 14
 resource_regen_per_second = 5.0

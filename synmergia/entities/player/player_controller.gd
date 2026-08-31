@@ -387,7 +387,7 @@ func use_skill(slot: int) -> void:
 			CombatSystem.execute_skill(self, skill, target as Entity)
 
 func _get_ground_target_position(max_range: float) -> Vector3:
-	var direction := InputManager.last_direction
+	var direction: Vector2 = InputManager.last_direction
 	if direction == Vector2.ZERO:
 		direction = Vector2(0, -1)  # Default forward
 	

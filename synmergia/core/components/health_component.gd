@@ -19,7 +19,7 @@ var _is_dead: bool = false
 var _respawn_timer: float = 0.0
 var _respawn_time: float = 10.0
 var _bind_position: Vector3 = Vector3.ZERO
-var _killer: Entity = null
+var _killer: Node3D = null
 
 func _ready() -> void:
 	current_health = max_health
@@ -28,7 +28,7 @@ func _ready() -> void:
 	health_depleted.connect(_on_health_depleted)
 
 func _on_health_depleted() -> void:
-	var entity: Entity = get_parent()
+	var entity: Node3D = get_parent()
 	var killer_name := ""
 	var killer_type := "monster"
 	
@@ -57,15 +57,15 @@ func take_damage(amount: int, source: Entity = null, damage_type: String = "phys
 		return 0
 	
 	# Check for interrupt (before applying damage)
-	var entity: Entity = get_parent()
+	var entity: Node3D = get_parent()
 	if entity.combat_component:
 		entity.combat_component.on_damage_taken(amount, source, damage_type)
 	
 	# Apply armor/mitigation
-	var mitigated := 0
+	var mitigated: int = 0
 	if entity.inventory_component:
 		mitigated = entity.inventory_component.get_equipment_armor()
-	var actual_damage := max(1, amount - mitigated)
+	var actual_damage: int = max(1, amount - mitigated)
 	
 	current_health = max(0, current_health - actual_damage)
 	health_changed.emit(current_health, max_health, -actual_damage)
@@ -83,7 +83,7 @@ func heal(amount: int, source: Entity = null) -> int:
 	if _is_dead:
 		return 0
 	
-	var actual_heal := min(amount, max_health - current_health)
+	var actual_heal: int = min(amount, max_health - current_health)
 	current_health += actual_heal
 	health_changed.emit(current_health, max_health, actual_heal)
 	
@@ -100,7 +100,7 @@ func is_dead() -> bool:
 	return _is_dead
 
 ## Die
-func die(killer: Entity = null) -> void:
+func die(killer: Node3D = null) -> void:
 	if _is_dead:
 		return
 	
@@ -109,7 +109,7 @@ func die(killer: Entity = null) -> void:
 	current_health = 0
 	
 	# Stop all combat state
-	var entity: Entity = get_parent()
+	var entity: Node3D = get_parent()
 	if entity.combat_component:
 		entity.combat_component.interrupt()
 	
@@ -137,8 +137,8 @@ func die(killer: Entity = null) -> void:
 ## Create corpse entity
 var _corpse: Corpse = null
 
-func _create_corpse(killer: Entity) -> void:
-	var entity: Entity = get_parent()
+func _create_corpse(killer: Node3D) -> void:
+	var entity: Node3D = get_parent()
 	
 	# Try to load corpse scene if it exists
 	var corpse_scene_path := "res://scenes/entities/corpse.tscn"
@@ -175,7 +175,7 @@ enum RespawnLocation {
 ## Get available respawn locations
 func get_respawn_options() -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
-	var entity: Entity = get_parent()
+	var entity: Node3D = get_parent()
 	
 	# Always available: Bind point
 	options.append({
@@ -202,7 +202,7 @@ func respawn_at(location: RespawnLocation, custom_position: Vector3 = Vector3.ZE
 		RespawnLocation.BIND_POINT:
 			_do_respawn_at(_bind_position)
 		RespawnLocation.NEAR_CORPSE:
-			var entity: Entity = get_parent()
+			var entity: Node3D = get_parent()
 			_do_respawn_at(entity.global_position)
 		RespawnLocation.CUSTOM:
 			_do_respawn_at(custom_position)
@@ -214,7 +214,7 @@ func _do_respawn_at(position: Vector3) -> void:
 	_is_dead = false
 	current_health = max_health
 	
-	var entity: Entity = get_parent()
+	var entity: Node3D = get_parent()
 	entity.global_position = position
 	
 	respawned.emit()
@@ -245,7 +245,7 @@ func _process(delta: float) -> void:
 	else:
 		# Health regen
 		var regen := health_regen
-		var entity: Entity = get_parent()
+		var entity: Node3D = get_parent()
 		if entity.combat_component and entity.combat_component.in_combat:
 			regen = health_regen_combat
 		
@@ -265,7 +265,7 @@ func _do_respawn() -> void:
 	_respawn_timer = 0.0
 	
 	# Move to respawn position
-	var entity: Entity = get_parent()
+	var entity: Node3D = get_parent()
 	entity.global_position = _bind_position
 	
 	respawned.emit()
@@ -337,11 +337,11 @@ func use_self_rez_item(item: Item) -> Dictionary:
 	if not GameConfig.Respawn.ENABLE_SELF_REZ:
 		return {"success": false, "reason": "Self-rez disabled"}
 	
-	var entity: Entity = get_parent()
+	var entity: Node3D = get_parent()
 	
 	# Remove the item from inventory
 	if entity.inventory_component:
-		var removed := entity.inventory_component.remove_item_by_id(item.id, 1)
+		var removed: bool = entity.inventory_component.remove_item_by_id(item.id, 1)
 		if not removed:
 			return {"success": false, "reason": "No self-rez item in inventory"}
 	

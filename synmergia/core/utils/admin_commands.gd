@@ -171,12 +171,6 @@ func _register_commands() -> void:
 			"description": "Toggle godmode (invincible)",
 			"usage": "/godmode [0|1]",
 			"handler": _cmd_godmode
-		},
-		"goto": {
-			"permission": GameConfig.Security.MOD_LEVEL,
-			"description": "Teleport to a player",
-			"usage": "/goto <player_id>",
-			"handler": _cmd_goto_player
 		}
 	}
 
@@ -314,7 +308,7 @@ func _cmd_resurrect(args: Array) -> Dictionary:
 		mana_percent = float(args[2]) / 100.0
 	
 	# Find the player entity
-	var entity: Entity = _find_entity_by_id(player_id)
+	var entity: Node3D = _find_entity_by_id(player_id)
 	if not entity:
 		return {"success": false, "message": "Player not found: " + player_id}
 	
@@ -348,7 +342,7 @@ func _cmd_kill_player(args: Array) -> Dictionary:
 	if args.size() >= 2:
 		reason = " ".join(args.slice(1, args.size()))
 	
-	var entity: Entity = _find_entity_by_id(player_id)
+	var entity: Node3D = _find_entity_by_id(player_id)
 	if not entity:
 		return {"success": false, "message": "Player not found: " + player_id}
 	
@@ -365,12 +359,12 @@ func _cmd_goto_player(args: Array) -> Dictionary:
 
 	var player_id: String = args[0]
 
-	var target: Entity = _find_entity_by_id(player_id)
+	var target: Node3D = _find_entity_by_id(player_id)
 	if not target:
 		return {"success": false, "message": "Player not found: " + player_id}
 
 	# Find the caller (admin using the command)
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 
@@ -383,12 +377,12 @@ func _cmd_summon_player(args: Array) -> Dictionary:
 		return {"success": false, "message": "Usage: /summon <player_id>"}
 
 	var player_id: String = args[0]
-	var target: Entity = _find_entity_by_id(player_id)
+	var target: Node3D = _find_entity_by_id(player_id)
 	if not target:
 		return {"success": false, "message": "Player not found: " + player_id}
 
 	# Find the caller (admin using the command)
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 
@@ -401,7 +395,7 @@ func _cmd_summon_player(args: Array) -> Dictionary:
 ## ============================================================================
 
 func _cmd_invisible(args: Array) -> Dictionary:
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
@@ -426,7 +420,7 @@ func _cmd_invisible(args: Array) -> Dictionary:
 	return {"success": true, "message": "You are now %s" % status}
 
 func _cmd_fly(args: Array) -> Dictionary:
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
@@ -448,7 +442,7 @@ func _cmd_fly(args: Array) -> Dictionary:
 	return {"success": true, "message": status}
 
 func _cmd_noclip(args: Array) -> Dictionary:
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
@@ -471,16 +465,16 @@ func _cmd_noclip(args: Array) -> Dictionary:
 	return {"success": true, "message": status}
 
 func _cmd_speed(args: Array) -> Dictionary:
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
 	if args.size() < 1:
 		# Report current speed
-		var current_speed := admin.get("move_speed") if admin.has("move_speed") else "unknown"
+		var current_speed: String = str(admin.get("move_speed") if admin.has("move_speed") else "unknown")
 		return {"success": true, "message": "Current speed: %s" % str(current_speed)}
 	
-	var multiplier := float(args[0])
+	var multiplier: float = float(args[0])
 	if multiplier <= 0:
 		return {"success": false, "message": "Speed must be > 0"}
 	
@@ -488,13 +482,13 @@ func _cmd_speed(args: Array) -> Dictionary:
 	if not admin.has("_original_move_speed"):
 		admin.set("_original_move_speed", admin.get("move_speed") if admin.has("move_speed") else 5.0)
 	
-	var original := admin.get("_original_move_speed")
+	var original: float = admin.get("_original_move_speed")
 	admin.set("move_speed", original * multiplier)
 	
 	return {"success": true, "message": "Speed set to %.1fx (%.1f)" % [multiplier, original * multiplier]}
 
 func _cmd_teleport(args: Array) -> Dictionary:
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
@@ -512,18 +506,18 @@ func _cmd_teleport(args: Array) -> Dictionary:
 	else:
 		# Teleport to player
 		var target_id: String = args[0]
-		var target: Entity = _find_entity_by_id(target_id)
+		var target: Node3D = _find_entity_by_id(target_id)
 		if not target:
 			return {"success": false, "message": "Player not found: " + target_id}
 		admin.global_position = target.global_position
 		return {"success": true, "message": "Teleported to: %s" % target.display_name}
 
 func _cmd_heal(args: Array) -> Dictionary:
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
-	var target: Entity = admin
+	var target: Node3D = admin
 	var target_name := "yourself"
 	
 	if args.size() >= 1:
@@ -535,7 +529,7 @@ func _cmd_heal(args: Array) -> Dictionary:
 	if not target.health_component:
 		return {"success": false, "message": "Target has no health component"}
 	
-	var max_health := target.health_component.max_health
+	var max_health: int = target.health_component.max_health
 	target.health_component.current_health = max_health
 	
 	# Also heal mana if available
@@ -545,7 +539,7 @@ func _cmd_heal(args: Array) -> Dictionary:
 	return {"success": true, "message": "Healed %s to full HP" % target_name}
 
 func _cmd_godmode(args: Array) -> Dictionary:
-	var admin: Entity = _get_caller_entity(_caller)
+	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
 	
@@ -567,7 +561,7 @@ func _cmd_godmode(args: Array) -> Dictionary:
 	return {"success": true, "message": "Godmode %s" % status}
 
 ## Helper: Find entity by ID
-func _find_entity_by_id(entity_id: String) -> Entity:
+func _find_entity_by_id(entity_id: String) -> Node3D:
 	# Try to find in EntityService
 	if EntityService:
 		var entity = EntityService.get_entity_by_id(entity_id)
@@ -578,16 +572,16 @@ func _find_entity_by_id(entity_id: String) -> Entity:
 	var players = PlayerManager.get_all_players()
 	for p in players:
 		if p.get("entity_id") == entity_id or p.get("name") == entity_id:
-			return p as Entity
+			return p as Node3D
 	
 	return null
 
 ## Helper: Get caller entity
-func _get_caller_entity(caller_id: String) -> Entity:
+func _get_caller_entity(caller_id: String) -> Node3D:
 	return _find_entity_by_id(caller_id)
 
 ## Helper: Perform resurrection
-func _do_resurrect(entity: Entity, health_percent: float, mana_percent: float) -> Dictionary:
+func _do_resurrect(entity: Node3D, health_percent: float, mana_percent: float) -> Dictionary:
 	var health_comp = entity.health_component
 	
 	# Remove corpse if exists

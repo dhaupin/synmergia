@@ -3,7 +3,6 @@
 ## Procedurally generates skill book items at startup from loaded skills.
 ## No .tres files needed for skill books — they are runtime items.
 ## Players spend skill points + consume 4 matching-tier books to upgrade skills.
-class_name SkillAcademyService
 extends Node
 
 # Singleton
@@ -395,8 +394,8 @@ func execute_stat_respec(
 		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
 	
 	# Check for skill downgrade warnings
-	var preview := preview_stat_respec(skill_data)
-	var downgrades := preview.get("affected_skills", [])
+	var preview: Dictionary = preview_stat_respec(skill_data)
+	var downgrades: Array = preview.get("affected_skills", [])
 	
 	# Apply gold cost
 	if inventory and "remove_gold" in inventory:

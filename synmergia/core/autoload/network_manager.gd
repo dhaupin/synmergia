@@ -40,11 +40,13 @@ func _ready() -> void:
 	MAX_PLAYERS = GameConfig.Network.MAX_PLAYERS
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Initialize firewall with GameConfig values
-	_firewall = AppFirewall.new(
-		GameConfig.Security.FIREWALL_BLOCK_DURATION,
-		GameConfig.Security.FIREWALL_MAX_ATTEMPTS,
-		GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
-	)
+	if AppFirewall:
+		AppFirewall._init(
+			GameConfig.Security.FIREWALL_BLOCK_DURATION,
+			GameConfig.Security.FIREWALL_MAX_ATTEMPTS,
+			GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
+		)
+	_firewall = AppFirewall
 
 func _process(_delta: float) -> void:
 	match connection_state:
