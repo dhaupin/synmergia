@@ -61,6 +61,17 @@ func _install_services() -> void:
 	services.name = "HudServices"
 	add_child(services)
 	services.bind(self)
+	_install_hotkeys()
+
+
+func _install_hotkeys() -> void:
+	var HotkeyScript := load("res://ui/hud/hud_hotkeys.gd")
+	if not HotkeyScript:
+		return
+	var hotkeys: Node = HotkeyScript.new()
+	hotkeys.name = "HudHotkeys"
+	add_child(hotkeys)
+	hotkeys.bind(self)
 
 
 func _find(node_name: String) -> Node:
