@@ -1,4 +1,5 @@
 ## ActionMenu - Context/right-click action menu for entities
+## Uses UIStyles for consistent theming
 ## Supports both mouse (right-click) and touch (long-press)
 class_name ActionMenu
 extends Control
@@ -36,7 +37,12 @@ func _setup_ui() -> void:
 	_menu_panel = PanelContainer.new()
 	_menu_panel.custom_minimum_size = Vector2(180, 0)
 	
-	var style := StyleBoxFlat.new()
+	var style := UIStyles.create_panel_style(
+			UIStyles.COLORS.background,
+			UIStyles.COLORS.border_highlight,
+			2,
+			6
+		)
 	style.bg_color = Color(0.12, 0.12, 0.18, 0.98)
 	style.border_color = Color(0.4, 0.35, 0.3)
 	style.border_width_left = 2
@@ -112,7 +118,7 @@ func _get_actions_for_type(target_type: int) -> Array:
 	var actions := []
 	
 	match target_type:
-		1:  # Entity.EntityType.PLAYER
+		Entity.EntityType.PLAYER:
 			actions = [
 				{"id": "whisper", "text": "Whisper", "icon": "💬"},
 				{"id": "invite_party", "text": "Invite to Party", "icon": "⚔️"},
@@ -121,7 +127,7 @@ func _get_actions_for_type(target_type: int) -> Array:
 				{"id": "add_friend", "text": "Add Friend", "icon": "👤"},
 				{"id": "report", "text": "Report Player", "icon": "⚠️", "danger": true}
 			]
-		2:  # Entity.EntityType.NPC
+		Entity.EntityType.NPC:
 			actions = [
 				{"id": "talk", "text": "Talk", "icon": "💬"},
 				{"id": "trade", "text": "Trade", "icon": "💱"},
@@ -129,17 +135,17 @@ func _get_actions_for_type(target_type: int) -> Array:
 				{"id": "bank", "text": "Bank", "icon": "🏦"}
 {				{"id": "skill_academy", "text": "Skill Academy", "icon": "📖"}
 			]
-		3:  # Entity.EntityType.LOOT
+		Entity.EntityType.LOOT:
 			actions = [
 				{"id": "loot", "text": "Loot", "icon": "📦"},
 				{"id": "pass", "text": "Pass", "icon": "➡️"}
 			]
-		4:  # Entity.EntityType.TELEPORT
+		Entity.EntityType.TELEPORT:
 			actions = [
 				{"id": "enter", "text": "Enter", "icon": "🚪"},
 				{"id": "cancel", "text": "Cancel", "icon": "✕"}
 			]
-		5:  # Entity.EntityType.ENEMY
+		Entity.EntityType.ENEMY:
 			actions = [
 				{"id": "attack", "text": "Attack", "icon": "⚔️"},
 				{"id": "spell", "text": "Cast Spell", "icon": "✨"}
@@ -156,7 +162,7 @@ func _create_menu_item(action: Dictionary) -> Button:
 	
 	# Color for dangerous actions
 	if action.get("danger", false):
-		btn.add_theme_color_override("font_color", Color(1, 0.4, 0.4))
+		btn.add_theme_color_override("font_color", UIStyles.COLORS.error)
 	
 	var normal_style := StyleBoxFlat.new()
 	normal_style.bg_color = Color(0.12, 0.12, 0.18, 0)

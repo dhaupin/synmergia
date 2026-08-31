@@ -1,4 +1,5 @@
 ## CharacterSelect - Species and class selection screen
+## Uses UIStyles for consistent theming
 extends Control
 
 const SpeciesCard := preload("res://ui/menus/species_card.tscn")
@@ -22,6 +23,7 @@ func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
 	play_button.pressed.connect(_on_play_pressed)
 	play_button.disabled = true
+		_apply_button_styles()
 	_load_species()
 
 
@@ -51,7 +53,7 @@ func _show_class_selection() -> void:
 	label.text = "CLASSES — " + selected_species.display_name.to_upper()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 18)
-	label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.6))
+	label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	species_container.add_child(label)
 
 	var all_classes := CharacterData.get_available_classes_for_species(selected_species_id)
@@ -83,6 +85,11 @@ func _on_play_pressed() -> void:
 	GameManager.selected_character_data = data
 	GameManager.change_state(GameManager.GameState.PLAYING)
 
+
+func _apply_button_styles() -> void:
+	var button_styles := UIStyles.create_button_style()
+	UIStyles.apply_button_styles(play_button, button_styles)
+	UIStyles.apply_button_styles(back_button, button_styles)
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://ui/menus/main_menu.tscn")

@@ -120,8 +120,8 @@ func _setup_ui() -> void:
 	_panel.modulate = Color.WHITE
 	
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-	style.border_color = Color(0.3, 0.3, 0.4)
+	style.bg_color = UIStyles.COLORS.background_dark
+	style.border_color = UIStyles.COLORS.border
 	style.border_width_left = 2
 	style.border_width_top = 2
 	style.border_width_right = 2
@@ -151,13 +151,13 @@ func _setup_ui() -> void:
 	_header_label = Label.new()
 	_header_label.text = "Target"
 	_header_label.add_theme_font_size_override("font_size", 20)
-	_header_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	_header_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	_header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_header_label)
 	
 	_level_label = Label.new()
 	_level_label.text = "Lv.1"
-	_level_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	_level_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(_level_label)
 	
@@ -175,12 +175,12 @@ func _setup_ui() -> void:
 	
 	# Entity type/status
 	_info_label = Label.new()
-	_info_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.8))
+	_info_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
 	_info_label.add_theme_font_size_override("font_size", 14)
 	_vbox.add_child(_info_label)
 	
 	_status_label = Label.new()
-	_status_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+	_status_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	_status_label.add_theme_font_size_override("font_size", 12)
 	_vbox.add_child(_status_label)
 	
@@ -240,11 +240,11 @@ func _refresh_tooltip() -> void:
 
 func _get_name_color(entity_type: int, is_gm: bool = false) -> Color:
 	if is_gm:
-		return Color(1.0, 0.84, 0.0)  # Gold for GM players
+		return UIStyles.COLORS.accent_gold
 	match entity_type:
-		Entity.EntityType.PLAYER: return Color(0.3, 0.7, 1.0)    # Blue
-		Entity.EntityType.ENEMY: return Color(1.0, 0.3, 0.3)    # Red
-		Entity.EntityType.NPC: return Color(0.3, 1.0, 0.5)     # Green
+		Entity.EntityType.PLAYER: return UIStyles.COLORS.info
+		Entity.EntityType.ENEMY: return UIStyles.COLORS.error
+		Entity.EntityType.NPC: return UIStyles.COLORS.success
 		Entity.EntityType.LOOT: return Color(1.0, 0.8, 0.3)     # Gold
 		Entity.EntityType.TELEPORT: return Color(0.6, 0.3, 1.0) # Purple
 		_: return Color(1.0, 1.0, 1.0)
@@ -309,9 +309,9 @@ func _create_action_button(action_id: String, size: Vector2) -> Button:
 	var style := StyleBoxFlat.new()
 	match _get_action_category(action_id):
 		"moderation":
-			style.bg_color = Color(0.8, 0.2, 0.2)  # Red
+			style.bg_color = UIStyles.COLORS.error
 		"admin":
-			style.bg_color = Color(0.6, 0.0, 0.8)  # Purple
+			style.bg_color = UIStyles.COLORS.warning
 		"social":
 			style.bg_color = Color(0.2, 0.4, 0.6)  # Blue
 		"interaction":
@@ -440,7 +440,7 @@ func _flash_rate_limit_warning() -> void:
 
 func _show_permission_denied(action_id: String) -> void:
 	_status_label.text = "❌ Permission denied"
-	_status_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	_status_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
 
 func _show_action_failed(action_id: String) -> void:
 	_status_label.text = "❌ Action failed"
@@ -512,7 +512,7 @@ func open_sticky() -> void:
 	_header_label = Label.new()
 	_header_label.text = "Target"
 	_header_label.add_theme_font_size_override("font_size", 18)
-	_header_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	_header_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	header.add_child(_header_label)
 	
 	var spacer := Control.new()
@@ -537,7 +537,7 @@ func open_sticky() -> void:
 	_vbox.add_child(_info_label)
 	
 	_status_label = Label.new()
-	_status_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+	_status_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	_vbox.add_child(_status_label)
 	
 	var sep := Label.new()

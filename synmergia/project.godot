@@ -157,3 +157,4 @@ renderer/rendering_method="forward_plus"
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=2
 environment/defaults/default_clear_color=Color(0.133, 0.125, 0.161, 1)
+QuestService="*res://core/services/quest_service.gd"

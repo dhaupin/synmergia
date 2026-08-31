@@ -1,4 +1,5 @@
 ## CooldownIndicator - Visual feedback for rate-limited actions
+## Uses UIStyles for default styling
 ## Shows a countdown timer when an action is on cooldown
 class_name CooldownIndicator
 extends Control
@@ -10,9 +11,9 @@ signal cooldown_complete(action_type: String)
 var _active_cooldowns: Dictionary = {}
 
 ## Configurable appearance
-@export var bar_color: Color = Color("FF6B6B")  # Red-ish
-@export var bar_background: Color = Color("333333")
-@export var text_color: Color = Color("FFFFFF")
+@export var bar_color: Color = UIStyles.COLORS.error  # Default from UIStyles
+@export var bar_background: Color = UIStyles.COLORS.background_dark
+@export var text_color: Color = UIStyles.COLORS.text_primary
 @export var icon_size: Vector2 = Vector2(24, 24)
 @export var bar_height: float = 4.0
 @export var show_action_name: bool = true
