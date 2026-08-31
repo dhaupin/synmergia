@@ -119,6 +119,8 @@ func _get_keyboard_action(event: InputEventKey) -> String:
 			return "target_next"
 		KEY_ESCAPE:
 			return "pause"
+		KEY_C:
+			return "character_stats"
 	return ""
 
 func get_movement_input() -> Vector2:
