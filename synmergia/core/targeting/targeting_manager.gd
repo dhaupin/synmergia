@@ -191,7 +191,7 @@ func _connect_eventbus() -> void:
 ## ============================================================================
 
 func _load_schemas() -> void:
-	var schema_dir := "res://synmergia/data/targets/"
+	var schema_dir := "res://data/targets/"
 	
 	var dir := DirAccess.open(schema_dir)
 	if dir == null:
@@ -221,7 +221,7 @@ func get_schema(schema_id: String) -> TargetSchema:
 	
 	if not _schema_cache.has(schema_id):
 		# Lazy load
-		var schema_path := "res://synmergia/data/targets/target_%s.tres" % schema_id
+		var schema_path := "res://data/targets/target_%s.tres" % schema_id
 		var schema: TargetSchema = load(schema_path)
 		if schema:
 			_schema_cache[schema_id] = schema
