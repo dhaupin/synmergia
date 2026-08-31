@@ -7,7 +7,14 @@ extends Entity
 @export var starting_level: int = 1
 @export var loot_table_id: String = ""
 
-@onready var health_component: HealthComponent = $HealthComponent
+## The health component is looked up at runtime (via _resolve_health)
+## rather than via @onready. The @onready form used to fail in 4.7 with a
+## "Parent path vanished" warning when the enemy was instantiated
+## together with its HealthComponent in the same scene, because the
+## child subtree isn't fully resolved at the moment the parent's
+## @onready block runs. The deferred lookup runs from _ready after
+## the node is fully in the tree.
+var health_component: HealthComponent = null
 
 var _ai_state: String = "idle"
 var _wander_target: Vector3 = Vector3.ZERO
@@ -26,6 +33,7 @@ func _ready() -> void:
 		max_health = starting_health
 		current_health = starting_health
 
+	_resolve_health()
 	if health_component:
 		health_component.max_health = max_health
 		health_component.current_health = current_health
@@ -42,6 +50,24 @@ func _load_from_data() -> void:
 	if "health" in enemy_data:
 		max_health = int(enemy_data.health)
 		current_health = max_health
+
+
+## Walks the local subtree to find a HealthComponent. The scene attaches
+## a child node literally named "HealthComponent" in world_playable.tscn;
+## enemies spawned at runtime (e.g. via SpawnService) may use any name, so
+## we also fall back to a type-based search.
+func _resolve_health() -> void:
+	if health_component:
+		return
+	var named: Node = get_node_or_null("HealthComponent")
+	if named and named is HealthComponent:
+		health_component = named
+		return
+	# Type-based fallback: walk children.
+	for child in get_children():
+		if child is HealthComponent:
+			health_component = child
+			return
 
 
 func _physics_process(delta: float) -> void:
