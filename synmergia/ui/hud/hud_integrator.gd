@@ -88,6 +88,13 @@ func _connect_all() -> void:
 	if ChatService:
 		ChatService.message_received.connect(_on_chat_received)
 
+	# Notifications → CombatLog system messages.
+	if NotificationService:
+		if NotificationService.has_signal("notification_received"):
+			NotificationService.notification_received.connect(_on_notification)
+		if NotificationService.has_signal("notification_sent"):
+			NotificationService.notification_sent.connect(_on_notification)
+
 	# Player position → Minimap (poll via process loop).
 	set_process(true)
 
@@ -282,6 +289,37 @@ func _on_entity_died(entity, _killer, _metadata) -> void:
 func _on_chat_received(sender_id: String, channel: int, message: String, _targets: Array) -> void:
 	if _chat and _chat.has_method("add_message"):
 		_chat.add_message(sender_id, channel, message)
+
+
+# ── Notifications ────────────────────────────────────────────────────────
+
+func _on_notification(_entity_id: String, notification: Dictionary) -> void:
+	# NotificationService passes a Dictionary; render the text into the
+	# combat log as a system message so it shows up in the same stream
+	# the player already watches. We also fall through to a ToastBar if
+	# the HUD has one.
+	if not notification:
+		return
+	var text: String = str(notification.get("message", notification.get("text", "")))
+	if text == "":
+		return
+	var color: Color = _notification_color(notification)
+	_log(text, color)
+	if _tooltip and _tooltip.has_method("show_toast"):
+		_tooltip.show_toast(text, color, 3.0)
+
+
+func _notification_color(notification: Dictionary) -> Color:
+	var t: Variant = notification.get("type", "")
+	if t is String:
+		match t.to_lower():
+			"error", "alert":
+				return _color_error()
+			"warning":
+				return Color(1, 0.7, 0.2)
+			"reward", "loot":
+				return _color_gold()
+	return Color(0.85, 0.85, 0.9)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
