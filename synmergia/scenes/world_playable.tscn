@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scenes/world_playable.gd" id="0"]
 [ext_resource type="Script" path="res://entities/player/player_controller.gd" id="1"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://entities/player/states/fall.gd" id="10"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_wolf.tres" id="11"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_bandit.tres" id="12"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud_layer.tscn" id="13_hud"]
 
 [sub_resource type="StandardMaterial3D" id="SubResource_floor_mat"]
 albedo_color = Color(0.35, 0.55, 0.25, 1)
@@ -203,3 +204,5 @@ shape = SubResource("SubResource_bandit_hitbox")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Bandit"]
 material_override = SubResource("SubResource_bandit_mat")
 mesh = SubResource("SubResource_bandit_mesh")
+
+[node name="HudLayer" parent="." instance=ExtResource("13_hud")]
