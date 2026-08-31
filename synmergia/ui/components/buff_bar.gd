@@ -1,89 +1,121 @@
-## BuffBar - HUD widget that displays active buffs/debuffs as a row of slots.
-## Migrated onto UIWidget base class.
+## BuffBar - Active effects display
+## Shows buffs/debuffs with duration timers
 class_name BuffBar
-extends UIWidget
+extends Control
 
-var _buff_slots: Array = []
-var _max_slots: int = 8
+## Buff types
+enum BuffType { BUFF, DEBUFF }
 
-signal buff_clicked(buff_id: String)
-signal buff_expired(buff_id: String)
+## Max visible buffs
+const MAX_BUFFS: int = 8
+const MAX_DEBUFFS: int = 8
 
-func _setup_widget() -> void:
-	custom_minimum_size.y = 40
-	# The root is a UIWidget (Control). We embed an HBoxContainer to do
-	# the actual horizontal layout that the original HBoxContainer root
-	# provided.
-	var layout := HBoxContainer.new()
-	layout.name = "Layout"
-	layout.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(layout)
-	_setup_slots(layout)
+var _buffs: Array = []
+var _debuffs: Array = []
+var _timer: Timer
 
-func _setup_slots(parent: Container) -> void:
-	for i in range(_max_slots):
-		var slot: TextureRect = _create_buff_slot()
-		slot.name = "BuffSlot%d" % i
-		parent.add_child(slot)
-		_buff_slots.append(slot)
+signal buff_added(buff_id: String)
+signal buff_removed(buff_id: String)
 
-func _create_buff_slot() -> TextureRect:
-	var slot := TextureRect.new()
-	slot.custom_minimum_size = Vector2(32, 32)
-	slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	slot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	slot.add_theme_stylebox_override("normal", UIStyles.create_panel_style(
-		Color(0.1, 0.1, 0.15, 0.8),
-		UIStyles.COLORS.border,
-		1,
-		4
-	))
-	return slot
+func _ready() -> void:
+_setup_ui()
+_create_timer()
 
-func set_buffs(buffs: Array) -> void:
-	for slot in _buff_slots:
-		slot.texture = null
-		slot.tooltip_text = ""
+func _setup_ui() -> void:
+name = "BuffBar"
 
-	for i in range(mini(buffs.size(), _max_slots)):
-		var buff: Dictionary = buffs[i]
-		_set_buff_slot(i, buff)
+func _create_timer() -> void:
+_timer = Timer.new()
+_timer.wait_time = 1.0
+_timer.timeout.connect(_on_timer_tick)
+add_child(_timer)
+_timer.start()
 
-func _set_buff_slot(index: int, buff: Dictionary) -> void:
-	if index >= _buff_slots.size():
-		return
+func _on_timer_tick() -> void:
+_update_buffs()
+_update_debuffs()
 
-	var slot: TextureRect = _buff_slots[index]
-	var icon_path: String = buff.get("icon", "")
-	var buff_name: String = buff.get("name", "Unknown")
-	var duration: float = buff.get("duration", 0)
-	var stack_count: int = buff.get("stacks", 1)
-	var is_debuff: bool = buff.get("is_debuff", false)
+func add_buff(buff_id: String, icon: Texture2D, duration: float, stack_count: int = 1, is_debuff: bool = false) -> void:
+var buff := {
+"id": buff_id,
+"icon": icon,
+"duration": duration,
+"remaining": duration,
+"stack": stack_count,
+"is_debuff": is_debuff
+}
 
-	var color: Color = UIStyles.COLORS.info if not is_debuff else UIStyles.COLORS.error
-	var tex := _create_color_texture(color)
-	slot.texture = tex
+if is_debuff:
+if _debuffs.size() < MAX_DEBUFFS:
+_debuffs.append(buff)
+else:
+if _buffs.size() < MAX_BUFFS:
+_buffs.append(buff)
 
-	var duration_str := "%.1fs" % duration if duration > 0 else "Permanent"
-	var stack_str := " (x%d)" % stack_count if stack_count > 1 else ""
-	slot.tooltip_text = "%s%s\nDuration: %s\n%s" % [
-		buff_name, stack_str, duration_str,
-		"[color=#ff6666]Debuff[/color]" if is_debuff else "[color=#66ff66]Buff[/color]"
-	]
+buff_added.emit(buff_id)
 
-	var style := slot.get_theme_stylebox("normal")
-	if style:
-		style.border_color = color
+func remove_buff(buff_id: String) -> void:
+var removed := false
 
-func _create_color_texture(color: Color) -> ImageTexture:
-	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
-	img.fill(color)
-	var tex := ImageTexture.create_from_image(img)
-	return tex
+for i in range(_buffs.size()):
+if _buffs[i].id == buff_id:
+_buffs.remove_at(i)
+removed = true
+break
 
-func get_buff_at_position(local_pos: Vector2) -> String:
-	for i in range(_buff_slots.size()):
-		var slot: Control = _buff_slots[i]
-		if slot.get_global_rect().has_point(local_pos + global_position):
-			return slot.tooltip_text
-	return ""
+if not removed:
+for i in range(_debuffs.size()):
+if _debuffs[i].id == buff_id:
+_debuffs.remove_at(i)
+removed = true
+break
+
+if removed:
+buff_removed.emit(buff_id)
+
+func update_buff_duration(buff_id: String, remaining: float) -> void:
+for buff in _buffs:
+if buff.id == buff_id:
+buff.remaining = remaining
+return
+for buff in _debuffs:
+if buff.id == buff_id:
+buff.remaining = remaining
+return
+
+func _update_buffs() -> void:
+var to_remove := []
+
+for buff in _buffs:
+buff.remaining -= 1.0
+if buff.remaining <= 0:
+to_remove.append(buff.id)
+
+for buff_id in to_remove:
+remove_buff(buff_id)
+
+func _update_debuffs() -> void:
+var to_remove := []
+
+for buff in _debuffs:
+buff.remaining -= 1.0
+if buff.remaining <= 0:
+to_remove.append(buff.id)
+
+for buff_id in to_remove:
+remove_buff(buff_id)
+
+func get_buffs() -> Array:
+return _buffs
+
+func get_debuffs() -> Array:
+return _debuffs
+
+func has_buff(buff_id: String) -> bool:
+for buff in _buffs:
+if buff.id == buff_id:
+return true
+for buff in _debuffs:
+if buff.id == buff_id:
+return true
+return false
