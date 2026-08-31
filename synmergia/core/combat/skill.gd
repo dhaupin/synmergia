@@ -182,6 +182,16 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 			target.take_damage(actual_damage, caster)
 			result.targets_hit.append(target)
 	
+	# Apply healing
+	if heal_amount > 0:
+		var actual_heal := calculate_healing(caster)
+		result.heal_amount = actual_heal
+		
+		if target:
+			target.heal(actual_heal)
+		else:
+			caster.heal(actual_heal)
+	
 	# Apply crowd control
 	if crowd_control_type != "":
 		applyCrowdControl(caster, target, ground_position)
@@ -219,7 +229,7 @@ func consume_resources(caster: Entity) -> bool:
 func calculate_damage(caster: Entity, target: Entity) -> int:
 	var base_damage := damage
 	
-	# Apply caster's attack power
+	# Apply caster's attack power based on damage type
 	if damage_type == "physical":
 		base_damage += caster.get_attack_power()
 	elif damage_type == "magical":
@@ -237,6 +247,14 @@ func calculate_damage(caster: Entity, target: Entity) -> int:
 	base_damage = int(base_damage * (1.0 - reduction))
 	
 	return max(1, base_damage)
+
+func calculate_healing(caster: Entity) -> int:
+	var base_heal := heal_amount
+	
+	# Apply caster's healing power (WIS-based)
+	base_heal += caster.get_healing_power()
+	
+	return base_heal
 
 func applyCrowdControl(caster: Entity, target: Entity, _ground_position: Vector3) -> void:
 	# Apply CC effect based on type

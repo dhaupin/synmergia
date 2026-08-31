@@ -218,19 +218,33 @@ func get_magic_resistance() -> int:
 	return stats.wisdom * 2
 
 func get_attack_power() -> int:
-	return stats.strength * 2
+	# Physical damage: STR-based
+	return get_stat("strength") * 2
 
 func get_spell_power() -> int:
-	return stats.intelligence * 2
+	# Magical damage: INT-based
+	return get_stat("intelligence") * 2
+
+func get_healing_power() -> int:
+	# Healing power: WIS-based
+	return get_stat("wisdom") * 2
 
 func get_attack_speed() -> float:
-	return 1.0 + (stats.agility * 0.01)
+	return 1.0 + (get_stat("agility") * 0.01)
 
 func get_crit_chance() -> float:
-	return 0.05 + (stats.agility * 0.003)
+	return 0.05 + (get_stat("agility") * 0.003)
 
 func get_crit_multiplier() -> float:
 	return 1.5
+
+func get_armor() -> int:
+	# Physical mitigation: VIT-based
+	return get_stat("vitality")
+
+func get_spell_resist() -> int:
+	# Magic mitigation: WIS-based
+	return get_stat("wisdom")
 
 ## STATUS EFFECTS
 

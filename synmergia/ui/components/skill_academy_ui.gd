@@ -39,6 +39,17 @@ var _stat_points_label: Label
 var _stat_respec_button: Button
 var _stat_warnings_label: Label
 
+# Stat tier colors
+const _TIER_COLORS := {
+	"common": Color(0.6, 0.6, 0.6),
+	"rare": Color(0.3, 0.7, 1.0),
+	"epic": Color(0.8, 0.3, 1.0),
+	"legendary": Color(1.0, 0.6, 0.1),
+	"mythic": Color(1.0, 0.2, 0.2)
+}
+
+const _TIER_THRESHOLDS := {"rare": 30, "epic": 60, "legendary": 90, "mythic": 120}
+
 # Respec tab
 var _respec_label: Label
 var _respec_button: Button
@@ -386,6 +397,14 @@ func _build_stat_row(stat_name: String) -> HBoxContainer:
 	plus_btn.pressed.connect(func(): _on_stat_plus(stat_name))
 	row.add_child(plus_btn)
 
+	# Tier indicator
+	var tier_lbl := Label.new()
+	tier_lbl.name = "TierIndicator"
+	tier_lbl.text = "[C]"
+	tier_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	tier_lbl.custom_minimum_size.x = 35
+	row.add_child(tier_lbl)
+
 	# Focal indicator
 	var focal_lbl := Label.new()
 	focal_lbl.name = "FocalIndicator"
@@ -398,6 +417,7 @@ func _build_stat_row(stat_name: String) -> HBoxContainer:
 		"value_label": value_lbl,
 		"plus_btn": plus_btn,
 		"minus_btn": minus_btn,
+		"tier_lbl": tier_lbl,
 		"focal_lbl": focal_lbl
 	}
 
@@ -429,6 +449,27 @@ func _refresh_stats_tab() -> void:
 		var base: int = total - allocated
 		
 		row_data["value_label"].text = "%d (+%d)" % [total, allocated]
+		
+		# Update tier indicator
+		var tier_color: Color
+		var tier_text: String
+		if total >= _TIER_THRESHOLDS.get("mythic", 120):
+			tier_color = _TIER_COLORS["mythic"]
+			tier_text = "[M]"
+		elif total >= _TIER_THRESHOLDS.get("legendary", 90):
+			tier_color = _TIER_COLORS["legendary"]
+			tier_text = "[L]"
+		elif total >= _TIER_THRESHOLDS.get("epic", 60):
+			tier_color = _TIER_COLORS["epic"]
+			tier_text = "[E]"
+		elif total >= _TIER_THRESHOLDS.get("rare", 30):
+			tier_color = _TIER_COLORS["rare"]
+			tier_text = "[R]"
+		else:
+			tier_color = _TIER_COLORS["common"]
+			tier_text = "[C]"
+		row_data["tier_lbl"].text = tier_text
+		row_data["tier_lbl"].add_theme_color_override("font_color", tier_color)
 		
 		# Highlight focal stats
 		var is_focal := stat_name == focal1 or stat_name == focal2

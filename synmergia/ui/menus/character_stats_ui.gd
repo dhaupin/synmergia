@@ -6,10 +6,48 @@ extends UIPanel
 const HEADER_HEIGHT: int = 40
 const ROW_HEIGHT: int = 32
 
+# Stat tier thresholds: Common/Rare/Epic/Legendary/Mythic
+const TIER_THRESHOLDS: Dictionary = {
+	"common": 0,
+	"rare": 30,
+	"epic": 60,
+	"legendary": 90,
+	"mythic": 120
+}
+
+const TIER_COLORS: Dictionary = {
+	"common": Color(0.6, 0.6, 0.6),    # Gray
+	"rare": Color(0.3, 0.7, 1.0),       # Blue
+	"epic": Color(0.8, 0.3, 1.0),       # Purple
+	"legendary": Color(1.0, 0.6, 0.1),  # Orange
+	"mythic": Color(1.0, 0.2, 0.2)     # Red
+}
+
+const TIER_NAMES: Dictionary = {
+	"common": "Common",
+	"rare": "Rare",
+	"epic": "Epic",
+	"legendary": "Legendary",
+	"mythic": "Mythic"
+}
+
 var _stat_rows: Dictionary = {}
 var _stat_points_label: Label
 var _focal_label: Label
+var _academy_hint_label: Label
 var _character_data: CharacterData = null
+
+static func get_stat_tier(stat_value: int) -> Dictionary:
+	if stat_value >= TIER_THRESHOLDS["mythic"]:
+		return {"name": "mythic", "color": TIER_COLORS["mythic"], "label": "[M]"}
+	elif stat_value >= TIER_THRESHOLDS["legendary"]:
+		return {"name": "legendary", "color": TIER_COLORS["legendary"], "label": "[L]"}
+	elif stat_value >= TIER_THRESHOLDS["epic"]:
+		return {"name": "epic", "color": TIER_COLORS["epic"], "label": "[E]"}
+	elif stat_value >= TIER_THRESHOLDS["rare"]:
+		return {"name": "rare", "color": TIER_COLORS["rare"], "label": "[R]"}
+	else:
+		return {"name": "common", "color": TIER_COLORS["common"], "label": "[C]"}
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()
@@ -88,6 +126,37 @@ func _setup_panel() -> void:
 		var row := _build_derived_row(stat)
 		content.add_child(row)
 
+	# Academy hint
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 10
+	content.add_child(spacer)
+	
+	var academy_box := HBoxContainer.new()
+	academy_box.name = "AcademyBox"
+	academy_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	
+	var hint_lbl := Label.new()
+	hint_lbl.name = "AcademyHint"
+	hint_lbl.text = "Visit the Skill Academy to respec stats"
+	hint_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	hint_lbl.add_theme_font_size_override("font_size", 10)
+	academy_box.add_child(hint_lbl)
+	content.add_child(academy_box)
+	_academy_hint_label = hint_lbl
+	
+	# Tier legend
+	var legend_box := HBoxContainer.new()
+	legend_box.name = "LegendBox"
+	legend_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	
+	var legend_lbl := Label.new()
+	legend_lbl.name = "Legend"
+	legend_lbl.text = "[C]Common  [R]Rare  [E]Epic  [L]Legendary  [M]Mythic"
+	legend_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
+	legend_lbl.add_theme_font_size_override("font_size", 9)
+	legend_box.add_child(legend_lbl)
+	content.add_child(legend_box)
+
 func _build_stat_row(stat_name: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.name = stat_name.capitalize() + "Row"
@@ -132,6 +201,14 @@ func _build_stat_row(stat_name: String) -> HBoxContainer:
 	plus_btn.pressed.connect(func(): _on_stat_plus(stat_name))
 	row.add_child(plus_btn)
 
+	# Tier indicator
+	var tier_lbl := Label.new()
+	tier_lbl.name = "Tier"
+	tier_lbl.text = "[C]"
+	tier_lbl.add_theme_color_override("font_color", TIER_COLORS["common"])
+	tier_lbl.custom_minimum_size.x = 30
+	row.add_child(tier_lbl)
+
 	# Focal indicator
 	var focal_lbl := Label.new()
 	focal_lbl.name = "Focal"
@@ -145,6 +222,7 @@ func _build_stat_row(stat_name: String) -> HBoxContainer:
 		"alloc_lbl": alloc_lbl,
 		"plus_btn": plus_btn,
 		"minus_btn": minus_btn,
+		"tier_lbl": tier_lbl,
 		"focal_lbl": focal_lbl
 	}
 
@@ -200,6 +278,11 @@ func _refresh() -> void:
 		
 		row_data["value_lbl"].text = str(total)
 		row_data["alloc_lbl"].text = "+%d" % allocated if allocated > 0 else ""
+		
+		# Update tier indicator
+		var tier := get_stat_tier(total)
+		row_data["tier_lbl"].text = tier["label"]
+		row_data["tier_lbl"].add_theme_color_override("font_color", tier["color"])
 		
 		# Focal indicator
 		var is_focal := stat_name == focal1 or stat_name == focal2
