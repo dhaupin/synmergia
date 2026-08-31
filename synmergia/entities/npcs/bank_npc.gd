@@ -1,0 +1,29 @@
+## BankNPC - Bank NPC controller
+class_name BankNPC
+extends CharacterBody3D
+
+@export var npc_id: String = "bank_npc"
+@export var npc_name: String = "Banker"
+@export var welcome_message: String = "Welcome to the bank."
+var _interacting_players: Array = []
+
+func _ready() -> void:
+set_physics_layer_mask(0)
+GameLog.debug("BankNPC: Initialized")
+
+func interact(player_id: String) -> void:
+if _interacting_players.has(player_id):
+return
+_interacting_players.append(player_id)
+NotificationService.send_to_player(player_id, welcome_message, 3, 1)
+if MenuManager:
+MenuManager.open_menu("bank")
+
+func stop_interact(player_id: String) -> void:
+if _interacting_players.has(player_id):
+_interacting_players.erase(player_id)
+if MenuManager:
+MenuManager.close_menu("bank")
+
+func get_interaction_options() -> Array:
+return [{"id": "bank", "text": "Access Bank"}]

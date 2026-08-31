@@ -1,0 +1,314 @@
+## BankUI - Vault/Bank interface panel
+## Provides access to personal, guild, and account vaults
+class_name BankUI
+extends UIPanel
+
+## Vault tabs
+enum VaultTab { PERSONAL, GUILD, ACCOUNT }
+var _current_tab: VaultTab = VaultTab.PERSONAL
+
+## Components
+var _vault_grid: GridContainer
+var _gold_label: Label
+var _slot_count_label: Label
+var _tab_buttons: Array = []
+var _deposit_btn: Button
+var _withdraw_btn: Button
+
+## State
+var _vault_data: Dictionary = {}
+var _selected_slot: int = -1
+
+const GRID_COLS: int = 5
+const GRID_ROWS: int = 10
+const SLOT_SIZE: int = 48
+
+func _ready() -> void:
+	super._ready()
+	set_title("Bank")
+	set_size(Vector2(480, 580))
+	_setup_ui()
+	_connect_signals()
+
+func _setup_ui() -> void:
+	var panel := get_panel()
+	if not panel:
+		return
+
+	var main: VBoxContainer = panel.get_node_or_null("Main")
+	if not main:
+		return
+
+	# Tab bar
+	var tab_bar := HBoxContainer.new()
+	tab_bar.custom_minimum_size.y = 40
+	main.add_child(tab_bar)
+
+	var tabs := [
+		{VaultTab.PERSONAL, "Personal"},
+		{VaultTab.GUILD, "Guild"},
+		{VaultTab.ACCOUNT, "Account"}
+	]
+
+	for tab in tabs:
+		var btn := Button.new()
+		btn.text = tab.name
+		btn.toggle_mode = true
+		btn.custom_minimum_size.x = 100
+		btn.pressed.connect(_on_tab_clicked.bind(tab.id))
+		_tab_buttons.append(btn)
+		tab_bar.add_child(btn)
+
+	# Gold display
+	var gold_row := HBoxContainer.new()
+	gold_row.custom_minimum_size.y = 30
+	main.add_child(gold_row)
+
+	var gold_title := Label.new()
+	gold_title.text = "Gold: "
+	gold_title.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	gold_row.add_child(gold_title)
+
+	_gold_label = Label.new()
+	_gold_label.text = "0"
+	_gold_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	gold_row.add_child(_gold_label)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gold_row.add_child(spacer)
+
+	_slot_count_label = Label.new()
+	_slot_count_label.text = "0/0"
+	_slot_count_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	gold_row.add_child(_slot_count_label)
+
+	# Vault grid
+	_scroll := ScrollContainer.new()
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main.add_child(_scroll)
+
+	var grid_container := HBoxContainer.new()
+	_scroll.add_child(grid_container)
+
+	_vault_grid = GridContainer.new()
+	_vault_grid.name = "VaultGrid"
+	_vault_grid.columns = GRID_COLS
+	grid_container.add_child(_vault_grid)
+
+	# Create slots
+	for i in range(GRID_COLS * GRID_ROWS):
+		var slot := _create_slot(i)
+		_vault_grid.add_child(slot)
+
+	# Action buttons
+	var action_row := HBoxContainer.new()
+	action_row.custom_minimum_size.y = 40
+	main.add_child(action_row)
+
+	_deposit_btn = Button.new()
+	_deposit_btn.text = "Deposit"
+	_deposit_btn.pressed.connect(_on_deposit)
+	action_row.add_child(_deposit_btn)
+
+	_withdraw_btn = Button.new()
+	_withdraw_btn.text = "Withdraw"
+	_withdraw_btn.pressed.connect(_on_withdraw)
+	action_row.add_child(_withdraw_btn)
+
+	var expand_btn := Button.new()
+	expand_btn.text = "Expand"
+	expand_btn.pressed.connect(_on_expand)
+	action_row.add_child(expand_btn)
+
+	# Set initial tab
+	_update_tabs(0)
+	_refresh_vault()
+
+var _scroll: ScrollContainer
+
+func _connect_signals() -> void:
+	if VaultService:
+		VaultService.item_deposited.connect(_on_item_changed)
+		VaultService.item_withdrawn.connect(_on_item_changed)
+		VaultService.gold_deposited.connect(_on_gold_changed)
+		VaultService.gold_withdrawn.connect(_on_gold_changed)
+
+func _on_tab_clicked(tab_id: int) -> void:
+	_update_tabs(tab_id)
+	_refresh_vault()
+
+func _update_tabs(active_index: int) -> void:
+	_current_tab = active_index
+	for i in range(_tab_buttons.size()):
+		var btn: Button = _tab_buttons[i]
+		btn.button_pressed = (i == active_index)
+		if btn.button_pressed:
+			btn.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+		else:
+			btn.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+
+	# Update buttons based on vault type
+	var can_access_guild := _can_access_guild_vault()
+	_tab_buttons[VaultTab.GUILD].disabled = not can_access_guild
+
+func _can_access_guild_vault() -> bool:
+	# TODO: Check GuildService membership
+	return true
+
+func _refresh_vault() -> void:
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var vault_type: int
+	match _current_tab:
+		VaultTab.PERSONAL:
+			vault_type = VaultService.VaultType.PERSONAL
+		VaultTab.GUILD:
+			vault_type = VaultService.VaultType.GUILD
+		VaultTab.ACCOUNT:
+			vault_type = VaultService.VaultType.ACCOUNT
+		_:
+			return
+
+	_vault_data = VaultService.open_vault(player_id, vault_type)
+
+	# Update UI
+	_update_gold_display()
+	_update_slot_display()
+	_populate_grid()
+
+func _update_gold_display() -> void:
+	var gold: int = _vault_data.get("gold", 0)
+	_gold_label.text = str(gold)
+
+func _update_slot_display() -> void:
+	var size: int = _vault_data.get("size", 0)
+	var used: int = 0
+	for slot in _vault_data.get("slots", []):
+		if not slot.is_empty():
+			used += 1
+	_slot_count_label.text = "%d/%d" % [used, size]
+
+func _populate_grid() -> void:
+	var slots: Array = _vault_data.get("slots", [])
+	for i in range(_vault_grid.get_child_count()):
+		var slot: Control = _vault_grid.get_child(i)
+		if slot and slot.has_node("ItemIcon"):
+			var icon: TextureRect = slot.get_node("ItemIcon")
+			if i < slots.size() and not slots[i].is_empty():
+				icon.visible = true
+				# TODO: Set actual icon texture
+				icon.modulate = UIStyles.COLORS.accent_gold
+			else:
+				icon.visible = false
+
+		# Update selection highlight
+		var style_name := "selected" if i == _selected_slot else "normal"
+		var style := _get_slot_style(style_name)
+		slot.add_theme_stylebox_override("panel", style)
+
+func _create_slot(index: int) -> Control:
+	var slot := PanelContainer.new()
+	slot.name = "Slot_%d" % index
+	slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
+
+	var style := _get_slot_style("normal")
+	slot.add_theme_stylebox_override("panel", style)
+
+	# Item icon placeholder
+	var icon := TextureRect.new()
+	icon.name = "ItemIcon"
+	icon.visible = false
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(SLOT_SIZE - 8, SLOT_SIZE - 8)
+	slot.add_child(icon)
+
+	# Quantity label
+	var qty := Label.new()
+	qty.name = "Quantity"
+	qty.visible = false
+	qty.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	qty.add_theme_font_size_override("font_size", 10)
+	qty.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	slot.add_child(qty)
+
+	# Slot number
+	var num := Label.new()
+	num.text = str(index + 1)
+	num.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	num.add_theme_font_size_override("font_size", 8)
+	num.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	slot.add_child(num)
+
+	return slot
+
+func _get_slot_style(type: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	match type:
+		"normal":
+			style.bg_color = UIStyles.COLORS.background_dark
+			style.border_color = UIStyles.COLORS.border
+		"hover":
+			style.bg_color = Color(0.2, 0.2, 0.25)
+			style.border_color = UIStyles.COLORS.border_highlight
+		"selected":
+			style.bg_color = Color(0.15, 0.2, 0.3)
+			style.border_color = UIStyles.COLORS.accent_gold
+	style.border_width_left = 1
+	style.border_width_right = 1
+	style.border_width_top = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	return style
+
+func _on_slot_clicked(index: int) -> void:
+	_selected_slot = index
+	_populate_grid()
+
+func _on_deposit() -> void:
+	# TODO: Open inventory to select items
+	NotificationService.send_to_local_player("Select item from inventory to deposit", NotificationService.NotificationType.INFO)
+
+func _on_withdraw() -> void:
+	if _selected_slot < 0:
+		NotificationService.send_to_local_player("Select a slot to withdraw from", NotificationService.NotificationType.WARNING)
+		return
+
+	# TODO: Withdraw item to inventory
+	NotificationService.send_to_local_player("Withdrawing item...", NotificationService.NotificationType.INFO)
+
+func _on_expand() -> void:
+	var cost := VaultService.get_expansion_cost(_current_tab, _vault_data.get("size", 0))
+	var gold_cost: int = cost.get("gold", 0)
+
+	# TODO: Show confirmation dialog
+	NotificationService.send_to_local_player(
+		"Expand vault (+10 slots) for %d gold?" % gold_cost,
+		NotificationService.NotificationType.INFO
+	)
+
+func _on_item_changed(player_id: String, vault_type: int, item_id: String, quantity: int) -> void:
+	_refresh_vault()
+
+func _on_gold_changed(player_id: String, vault_type: int, amount: int) -> void:
+	_refresh_vault()
+
+func close() -> void:
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if not player_id.is_empty():
+		var vault_type: int
+		match _current_tab:
+			VaultTab.PERSONAL:
+				vault_type = VaultService.VaultType.PERSONAL
+			VaultTab.GUILD:
+				vault_type = VaultService.VaultType.GUILD
+			VaultTab.ACCOUNT:
+				vault_type = VaultService.VaultType.ACCOUNT
+		VaultService.close_vault(player_id, vault_type)
+
+	super.close()
