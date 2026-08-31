@@ -39,6 +39,7 @@ var entity_id: String = ""
 # Context menu
 var _action_menu: ActionMenu = null
 var _skill_academy_ui: SkillAcademyUI = null
+var _character_stats_ui: CharacterStatsUI = null
 var _current_target_info: TargetingManager.TargetInfo = null
 
 func _ready() -> void:
@@ -215,6 +216,8 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 
 		"skill_academy":
 			_open_skill_academy_ui()
+		"character_stats":
+			_open_character_stats_ui()
 
 
 func _get_character_data() -> CharacterData:
@@ -237,6 +240,12 @@ func _open_skill_academy_ui() -> void:
 		add_child(_skill_academy_ui)
 	_skill_academy_ui.load_player_context(str(player_id))
 	_skill_academy_ui.open_with_context(str(player_id), _get_character_data(), _get_inventory_books())
+
+func _open_character_stats_ui() -> void:
+	if not _character_stats_ui:
+		_character_stats_ui = CharacterStatsUI.new()
+		add_child(_character_stats_ui)
+	_character_stats_ui.open(str(player_id))
 
 func _create_basic_attack() -> Skill:
 	var skill: Skill = Skill.new()

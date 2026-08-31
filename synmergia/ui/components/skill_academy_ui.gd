@@ -9,7 +9,7 @@
 class_name SkillAcademyUI
 extends UIPanel
 
-enum Tab { SKILLS, BOOKS, UPGRADE, SIGNATURE, RESPEC }
+enum Tab { SKILLS, BOOKS, UPGRADE, SIGNATURE, STATS, RESPEC }
 
 const HEADER_HEIGHT: int = 50
 const TAB_BAR_HEIGHT: int = 44
@@ -32,6 +32,12 @@ var _books_list: VBoxContainer
 var _upgrade_skill_label: Label
 var _upgrade_preview_label: Label
 var _upgrade_button: Button
+
+# Stats tab
+var _stat_rows: Dictionary = {}  # stat_name -> {container, value_label, plus_btn, minus_btn}
+var _stat_points_label: Label
+var _stat_respec_button: Button
+var _stat_warnings_label: Label
 
 # Respec tab
 var _respec_label: Label
@@ -101,7 +107,7 @@ func _build_tab_bar() -> Control:
 	bar.custom_minimum_size.y = TAB_BAR_HEIGHT
 	bar.name = "TabBar"
 
-	var tabs := ["Skills", "Books", "Upgrade", "Signature", "Respec"]
+	var tabs := ["Skills", "Books", "Upgrade", "Signature", "Stats", "Respec"]
 	for i in tabs.size():
 		var btn := Button.new()
 		btn.text = tabs[i]
@@ -122,6 +128,7 @@ func _build_tab_contents() -> Control:
 	_tab_contents[Tab.BOOKS] = _build_books_tab()
 	_tab_contents[Tab.UPGRADE] = _build_upgrade_tab()
 	_tab_contents[Tab.SIGNATURE] = _build_signature_tab()
+	_tab_contents[Tab.STATS] = _build_stats_tab()
 	_tab_contents[Tab.RESPEC] = _build_respec_tab()
 
 	for i in _tab_contents.size():
@@ -279,6 +286,203 @@ func _build_signature_tab() -> Control:
 
 	return root
 
+func _build_stats_tab() -> Control:
+	var root := VBoxContainer.new()
+	root.name = "StatsTab"
+
+	# Points available header
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	
+	var pts_lbl := Label.new()
+	pts_lbl.name = "PointsLabel"
+	pts_lbl.text = "Available Points: --"
+	pts_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
+	header.add_child(pts_lbl)
+	_stat_points_label = pts_lbl
+	
+	var focal_lbl := Label.new()
+	focal_lbl.name = "FocalLabel"
+	focal_lbl.text = ""
+	focal_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 1.0))
+	header.add_child(focal_lbl)
+	
+	root.add_child(header)
+
+	# Stats list
+	var stats_scroll := ScrollContainer.new()
+	stats_scroll.name = "StatsScroll"
+	stats_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(stats_scroll)
+
+	var stats_list := VBoxContainer.new()
+	stats_list.name = "StatsList"
+	stats_scroll.add_child(stats_list)
+
+	var stats := ["strength", "agility", "intelligence", "vitality", "endurance", "wisdom"]
+	for stat in stats:
+		var row := _build_stat_row(stat)
+		stats_list.add_child(row)
+
+	# Warnings section
+	_stat_warnings_label = Label.new()
+	_stat_warnings_label.name = "Warnings"
+	_stat_warnings_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.2))
+	_stat_warnings_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	root.add_child(_stat_warnings_label)
+
+	# Respec button
+	var respec_box := HBoxContainer.new()
+	respec_box.name = "RespecBox"
+	respec_box.alignment = BoxContainer.ALIGNMENT_END
+	
+	var respec_lbl := Label.new()
+	respec_lbl.text = "Reset all points: "
+	respec_box.add_child(respec_lbl)
+	
+	_stat_respec_button = Button.new()
+	_stat_respec_button.name = "StatRespecButton"
+	_stat_respec_button.text = "Respec Stats (-- gold)"
+	_stat_respec_button.pressed.connect(_on_stat_respec_pressed)
+	respec_box.add_child(_stat_respec_button)
+	
+	root.add_child(respec_box)
+
+	return root
+
+func _build_stat_row(stat_name: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = stat_name.capitalize() + "Row"
+	row.custom_minimum_size.y = 36
+
+	# Stat name
+	var name_lbl := Label.new()
+	name_lbl.name = "Name"
+	name_lbl.text = stat_name.capitalize()
+	name_lbl.custom_minimum_size.x = 100
+	row.add_child(name_lbl)
+
+	# Value display
+	var value_lbl := Label.new()
+	value_lbl.name = "Value"
+	value_lbl.text = "--"
+	value_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_lbl.custom_minimum_size.x = 60
+	row.add_child(value_lbl)
+
+	# Minus button
+	var minus_btn := Button.new()
+	minus_btn.name = "Minus"
+	minus_btn.text = "-"
+	minus_btn.custom_minimum_size.x = 36
+	minus_btn.pressed.connect(func(): _on_stat_minus(stat_name))
+	row.add_child(minus_btn)
+
+	# Plus button
+	var plus_btn := Button.new()
+	plus_btn.name = "Plus"
+	plus_btn.text = "+"
+	plus_btn.custom_minimum_size.x = 36
+	plus_btn.pressed.connect(func(): _on_stat_plus(stat_name))
+	row.add_child(plus_btn)
+
+	# Focal indicator
+	var focal_lbl := Label.new()
+	focal_lbl.name = "FocalIndicator"
+	focal_lbl.text = ""
+	focal_lbl.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))
+	row.add_child(focal_lbl)
+
+	_stat_rows[stat_name] = {
+		"container": row,
+		"value_label": value_lbl,
+		"plus_btn": plus_btn,
+		"minus_btn": minus_btn,
+		"focal_lbl": focal_lbl
+	}
+
+	return row
+
+func _refresh_stats_tab() -> void:
+	if _skill_data == null:
+		return
+	
+	var cls := _skill_data.class_data
+	var focal1 := cls.focal_stat_1 if cls else ""
+	var focal2 := cls.focal_stat_2 if cls else ""
+	
+	# Update focal indicator label
+	var focal_lbl := root.get_node_or_null("Header/FocalLabel") as Label
+	if focal_lbl:
+		focal_lbl.text = "Focal: %s + %s" % [focal1.capitalize(), focal2.capitalize()]
+	
+	# Update available points
+	var available := _skill_data.get_available_stat_points()
+	_stat_points_label.text = "Available Points: %d" % available
+	
+	# Update each stat row
+	var all_stats := _skill_data.get_all_stats_with_allocated()
+	for stat_name in _stat_rows.keys():
+		var row_data := _stat_rows[stat_name]
+		var total: int = all_stats.get(stat_name, 0)
+		var allocated: int = _skill_data.get_allocated_points(stat_name)
+		var base: int = total - allocated
+		
+		row_data["value_label"].text = "%d (+%d)" % [total, allocated]
+		
+		# Highlight focal stats
+		var is_focal := stat_name == focal1 or stat_name == focal2
+		row_data["focal_lbl"].text = "★" if is_focal else ""
+		
+		# Enable/disable buttons
+		row_data["plus_btn"].disabled = available <= 0
+		row_data["minus_btn"].disabled = allocated <= 0
+	
+	# Update respec cost
+	var total_allocated := _skill_data.get_total_allocated_points()
+	var respec_cost := SkillAcademyService.get_instance().get_stat_respec_cost(total_allocated)
+	_stat_respec_button.text = "Respec Stats (%d gold)" % respec_cost
+	_stat_respec_button.disabled = total_allocated <= 0
+
+func _on_stat_plus(stat_name: String) -> void:
+	if _skill_data == null:
+		return
+	
+	if _skill_data.allocate_stat_point(stat_name):
+		_refresh_stats_tab()
+		_notify_stat_changed()
+
+func _on_stat_minus(stat_name: String) -> void:
+	if _skill_data == null:
+		return
+	
+	if _skill_data.deallocate_stat_point(stat_name):
+		_refresh_stats_tab()
+		_notify_stat_changed()
+
+func _on_stat_respec_pressed() -> void:
+	if _skill_data == null:
+		return
+	
+	var preview := SkillAcademyService.get_instance().preview_stat_respec(_skill_data)
+	var downgrades := preview.get("affected_skills", [])
+	
+	if not downgrades.is_empty():
+		var msg := "WARNING: The following skills will be DOWNGRADED:\n"
+		for d in downgrades:
+			msg += "- %s (Lvl %d → Lvl %d)\n" % [d.get("display_name", ""), d.get("current_level", 0), d.get("downgrade_to", 0)]
+		msg += "\nContinue?"
+		_stat_warnings_label.text = msg
+	else:
+		_stat_warnings_label.text = ""
+
+func _notify_stat_changed() -> void:
+	# Notify GameManager that player stats changed (for derived stat recalculation)
+	if GameManager and _player_id != "":
+		var entity = GameManager.get_player_entity(_player_id)
+		if entity and entity.has_method("on_stats_changed"):
+			entity.on_stats_changed()
+
 func _build_respec_tab() -> Control:
 	var root := VBoxContainer.new()
 	root.name = "RespecTab"
@@ -348,6 +552,10 @@ func _refresh_active_tab() -> void:
 			_refresh_books_tab()
 		Tab.UPGRADE:
 			_refresh_upgrade_tab()
+		Tab.SIGNATURE:
+			_refresh_signature_tab()
+		Tab.STATS:
+			_refresh_stats_tab()
 		Tab.RESPEC:
 			_refresh_respec_tab()
 

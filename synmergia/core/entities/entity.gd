@@ -4,6 +4,8 @@ class_name Entity
 extends Node3D
 
 signal health_changed(current: int, maximum: int)
+signal mana_changed(current: int, maximum: int)
+signal stamina_changed(current: float, maximum: float)
 signal died(killer)  # Entity type omitted to avoid circular reference during parsing
 signal stat_changed(stat: String, value: int)
 signal state_changed(new_state: String)
@@ -94,9 +96,9 @@ func _ready() -> void:
 	health_changed.emit(current_health, max_health)
 
 func _calculate_max_resources() -> void:
-	max_health = 100 + (stats.vitality * 10)
-	max_mana = 100 + (stats.intelligence * 8)
-	max_stamina = 100.0 + (stats.endurance * 5)
+	max_health = 100 + (get_stat("vitality") * 10)
+	max_mana = 100 + (get_stat("intelligence") * 8)
+	max_stamina = 100.0 + (get_stat("endurance") * 5)
 
 ## STATS
 
@@ -109,6 +111,14 @@ func get_stat(stat_name: String) -> int:
 		base += character_data.get_allocated_points(stat_name)
 	
 	return base
+
+## Called when allocated stats change (e.g., from UI)
+func on_stats_changed() -> void:
+	_calculate_max_resources()
+	# Emit health/mana changed to update UI
+	health_changed.emit(current_health, max_health)
+	mana_changed.emit(current_mana, max_mana)
+	stamina_changed.emit(current_stamina, max_stamina)
 
 func set_stat(stat_name: String, value: int) -> void:
 	stats[stat_name] = value
