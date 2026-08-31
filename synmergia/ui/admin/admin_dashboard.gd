@@ -39,8 +39,6 @@ func _ready() -> void:
 	timer.start()
 
 func _setup_ui() -> void:
-	# Main panel with dark theme
-	theme.set_color("background_color", TabContainer, UIStyles.COLORS.background)
 	
 	# Create main container
 	_main_vbox = VBoxContainer.new()
@@ -249,25 +247,21 @@ func _create_settings_tab() -> void:
 	var alerts_on := CheckBox.new()
 	alerts_on.button_pressed = GameConfig.Security.ENABLE_SECURITY_ALERTS
 	alerts_on.text = "Enable Security Alerts to Players"
-	alerts_on.toggled.connect(func(v): GameConfig.Security.ENABLE_SECURITY_ALERTS = v)
 	section1.add_child(alerts_on)
 	
 	var rate_alerts := CheckBox.new()
 	rate_alerts.button_pressed = GameConfig.Security.ALERT_ON_RATE_LIMIT
 	rate_alerts.text = "Alert on Rate Limit"
-	rate_alerts.toggled.connect(func(v): GameConfig.Security.ALERT_ON_RATE_LIMIT = v)
 	section1.add_child(rate_alerts)
 	
 	var restrict_alerts := CheckBox.new()
 	restrict_alerts.button_pressed = GameConfig.Security.ALERT_ON_RESTRICTION
 	restrict_alerts.text = "Alert on Restriction"
-	restrict_alerts.toggled.connect(func(v): GameConfig.Security.ALERT_ON_RESTRICTION = v)
 	section1.add_child(restrict_alerts)
 	
 	var exploit_alerts := CheckBox.new()
 	exploit_alerts.button_pressed = GameConfig.Security.ALERT_ON_EXPLOIT_DETECTED
 	exploit_alerts.text = "Alert on Exploit Detected (NOT RECOMMENDED)"
-	exploit_alerts.toggled.connect(func(v): GameConfig.Security.ALERT_ON_EXPLOIT_DETECTED = v)
 	section1.add_child(exploit_alerts)
 	
 	# Section: Debug
@@ -275,9 +269,8 @@ func _create_settings_tab() -> void:
 	content.add_child(section2)
 	
 	var debug_logging := CheckBox.new()
-	debug_logging.button_pressed = GameConfig.Security.ENABLE_DEBUG_LOGGING
+	debug_logging.button_pressed = GameConfig.Debug.ENABLE_DEBUG_LOGGING
 	debug_logging.text = "Enable Debug Logging"
-	debug_logging.toggled.connect(func(v): GameConfig.Security.ENABLE_DEBUG_LOGGING = v)
 	section2.add_child(debug_logging)
 
 func _create_settings_section(title: String) -> VBoxContainer:
@@ -335,7 +328,7 @@ func _on_tab_changed(tab_index: int) -> void:
 
 func _on_command_executed(cmd: String, result, executor_id: String) -> void:
 	# Update relevant tabs based on command output
-	var current_tab := _tab_container.get_child(_tab_container.current_tab
+	var current_tab := _tab_container.get_child(_tab_container.current_tab)
 	
 	if current_tab.has_node("RestrictionsOutput"):
 		var output: RichTextLabel = current_tab.get_node("RestrictionsOutput")
