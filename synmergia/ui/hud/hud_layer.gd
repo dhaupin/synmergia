@@ -1,0 +1,117 @@
+## HudLayer - Top-level CanvasLayer that hosts every in-world HUD widget.
+## Instantiated as a child of the playable world scene.
+##
+## Composition (all created at runtime; no manual scene editing required):
+##   - MenuManager (CanvasLayer; owns all panels + slot rows)
+##   - ActionBar, QuickAccessBar, BuffBar (HUD widgets)
+##   - CombatLog (right side, scrollable)
+##   - TargetFrame, BossHealthBar (combat feedback)
+##   - Minimap + WorldMap (top-right corner; click expands)
+##   - DialogUI (NPC dialog)
+##   - SettingsPanel (Esc; toggled by MenuManager)
+##   - AdminToolbar (F3; visible to admins only)
+##
+## All children are added under a single CanvasLayer so they render above
+## the 3D world and below any full-screen menu.
+extends CanvasLayer
+
+const CharacterData := preload("res://core/schemas/character_data.gd")
+
+const LAYER_HUD: int = 10
+
+## All widget children are optional; missing widgets just disable their
+## own panel. We look them up by name and skip wiring if absent.
+@onready var _menu_manager: Node = _find("MenuManager")
+@onready var _action_bar: Node = _find("ActionBar")
+@onready var _quick_access_bar: Node = _find("QuickAccessBar")
+@onready var _buff_bar: Node = _find("BuffBar")
+@onready var _combat_log: Node = _find("CombatLog")
+@onready var _target_frame: Node = _find("TargetFrame")
+@onready var _boss_health_bar: Node = _find("BossHealthBar")
+@onready var _minimap: Node = _find("Minimap")
+@onready var _world_map: Node = _find("WorldMap")
+@onready var _dialog_ui: Node = _find("DialogUI")
+@onready var _settings_panel: Node = _find("SettingsPanel")
+@onready var _admin_toolbar: Node = _find("AdminToolbar")
+
+
+func _ready() -> void:
+	layer = LAYER_HUD
+	_wire_widgets()
+	_bind_to_world()
+
+
+func _find(node_name: String) -> Node:
+	return get_node_or_null(NodePath(node_name))
+
+
+func _wire_widgets() -> void:
+	if _combat_log and _combat_log.has_method("clear"):
+		_combat_log.clear()
+	if _settings_panel:
+		_settings_panel.visible = false
+	if _dialog_ui:
+		_dialog_ui.visible = false
+		if _dialog_ui.has_signal("dialog_finished"):
+			_dialog_ui.dialog_finished.connect(func(_id): _dialog_ui.visible = false)
+	if _boss_health_bar:
+		_boss_health_bar.visible = false
+	if _admin_toolbar:
+		_admin_toolbar.visible = _is_admin()
+	if _world_map and _minimap:
+		# Wire minimap click → toggle WorldMap, if the minimap exposes
+		# a `map_button_pressed` signal. Otherwise the user opens the
+		# full map via the WorldMap's own UI (M key by default).
+		if _minimap.has_signal("map_button_pressed"):
+			_minimap.map_button_pressed.connect(_toggle_world_map)
+
+
+func _bind_to_world() -> void:
+	if GameManager:
+		GameManager.game_state_changed.connect(_on_state_changed)
+		visible = GameManager.is_gameplay_active()
+		_push_character_to_widgets()
+
+
+func _push_character_to_widgets() -> void:
+	var data: Resource = GameManager.selected_character_data
+	if not (data is CharacterData):
+		return
+	if _action_bar and _action_bar.has_method("set_player_name"):
+		_action_bar.set_player_name(data.display_name)
+
+
+func _on_state_changed(_state: int) -> void:
+	var st := GameManager.get_state()
+	visible = st == GameManager.GameState.PLAYING or st == GameManager.GameState.PAUSED
+
+
+func _toggle_world_map() -> void:
+	if _world_map and _world_map.has_method("toggle"):
+		_world_map.toggle()
+
+
+func _is_admin() -> bool:
+	if not AdminCommands:
+		return false
+	return AdminCommands.has_permission("admin.access")
+
+
+func open_settings() -> void:
+	if _settings_panel:
+		_settings_panel.visible = true
+
+
+func close_settings() -> void:
+	if _settings_panel:
+		_settings_panel.visible = false
+
+
+func show_dialog(dialogue_id: String, npc_id: String = "") -> void:
+	if not _dialog_ui:
+		return
+	_dialog_ui.visible = true
+	if _dialog_ui.has_method("show_dialog"):
+		_dialog_ui.show_dialog(npc_id, dialogue_id)
+	elif _dialog_ui.has_method("start_dialogue"):
+		_dialog_ui.start_dialogue(dialogue_id, npc_id)
