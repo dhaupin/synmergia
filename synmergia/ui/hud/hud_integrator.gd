@@ -70,8 +70,14 @@ func _connect_all() -> void:
 
 	# Entity lifecycle → CombatLog + NamePlate.
 	if EntityService:
-		EntityService.entity_spawned.connect(_on_entity_spawned)
-		EntityService.entity_despawned.connect(_on_entity_despawned)
+		if EntityService.has_signal("entity_registered"):
+			EntityService.entity_registered.connect(_on_entity_spawned)
+		if EntityService.has_signal("entity_unregistered"):
+			EntityService.entity_unregistered.connect(_on_entity_unregistered)
+		if EntityService.has_signal("player_joined"):
+			EntityService.player_joined.connect(_on_entity_spawned)
+		if EntityService.has_signal("player_left"):
+			EntityService.player_left.connect(_on_entity_unregistered)
 
 	# Death events → kill messages in the combat log.
 	if EventHub:
@@ -258,8 +264,11 @@ func _on_entity_spawned(entity, _metadata) -> void:
 			_minimap.add_marker(entity.entity_id, pos, 0, label)
 
 
-func _on_entity_despawned(entity_id: String, _reason: String) -> void:
-	if _minimap and _minimap.has_method("remove_marker"):
+func _on_entity_unregistered(entity, _metadata = null) -> void:
+	if not entity:
+		return
+	var entity_id: String = entity.entity_id if "entity_id" in entity else (entity.name if entity else "")
+	if entity_id != "" and _minimap and _minimap.has_method("remove_marker"):
 		_minimap.remove_marker(entity_id)
 
 

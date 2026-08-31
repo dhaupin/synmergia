@@ -245,8 +245,8 @@ func _process(delta: float) -> void:
 	else:
 		# Health regen
 		var regen := health_regen
-		var entity: Node3D = get_parent()
-		if entity.combat_component and entity.combat_component.in_combat:
+		var entity: Node = get_parent()
+		if entity and "combat_component" in entity and entity.combat_component and "in_combat" in entity.combat_component and entity.combat_component.in_combat:
 			regen = health_regen_combat
 		
 		if regen > 0 and current_health < max_health:
