@@ -87,7 +87,7 @@ var species_id: String = ""
 var species = null
 
 # CharacterData reference for player entities (for allocated stats)
-var character_data: CharacterData = null
+var character_data = null  # Untyped to avoid circular dependency with CharacterData schema
 
 func _ready() -> void:
 	_calculate_max_resources()
