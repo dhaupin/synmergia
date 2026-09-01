@@ -157,8 +157,8 @@ func _on_message_submitted(text: String) -> void:
 
 	# Send via ChatService
 	var local_player_id := ""
-	if PlayerManager:
-		local_player_id = str(PlayerManager.get_local_player_id())
+	if PlayerManager and PlayerManager.local_player:
+		local_player_id = str(PlayerManager.local_player.entity_id)
 
 	var success := ChatService.send_message(
 		local_player_id,
@@ -407,7 +407,7 @@ func _on_admin_command(text: String) -> void:
 			if coords.size() >= 3:
 				var pos := Vector3(float(coords[0]), float(coords[1]), float(coords[2]))
 				if PlayerManager:
-					var local_player = PlayerManager.get_local_player()
+					var local_player = PlayerManager.local_player
 					if local_player:
 						local_player.global_position = pos
 					result = "[color=%s]Teleported:[/color] to %s" % [UIStyles.COLORS.success.to_html(), str(pos)]
@@ -420,7 +420,7 @@ func _on_admin_command(text: String) -> void:
 				result = "[color=%s]Spawn:[/color] %s (use admin console for full spawn)" % [UIStyles.COLORS.info.to_html(), args]
 		"heal":
 			if PlayerManager:
-				var local_player = PlayerManager.get_local_player()
+				var local_player = PlayerManager.local_player
 				if local_player and local_player.has("health_component"):
 					local_player.health_component.current_health = local_player.health_component.max_health
 					result = "[color=%s]Healed:[/color] You are now at full health" % UIStyles.COLORS.success.to_html()
