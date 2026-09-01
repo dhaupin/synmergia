@@ -18,6 +18,9 @@ signal quest_completed(player_id: String, quest_id: String)
 signal quest_rewarded(player_id: String, quest_id: String, rewards: Dictionary)
 signal quest_failed(player_id: String, quest_id: String, reason: String)
 
+# Frame-level notification dispatch (typed-Kind pipeline).
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 func _ready() -> void:
 	instance = self
 	GameLog.info("QuestService: Ready")
@@ -190,12 +193,20 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 			quest_state["state"] = QuestData.QuestState.COMPLETE
 			quest_completed.emit(player_id, quest_id)
 
-			# Notify player
-			NotificationService.send_to_player(
-				player_id,
-				"Quest Complete: %s - Return to quest giver!" % quest_state.get("data", {}).get("display_name", "Unknown"),
-				NotificationService.NotificationType.QUEST
-			)
+			# Frame-level dispatch. QUEST_COMPLETED → NotifKind.QUEST
+			# (autoload maps the kind to NotificationType.QUEST for the
+			# legacy render path). Dedupe on (player, quest_id) so a
+			# follow-up objective tick that re-evaluates to complete
+			# does not double-toast.
+			if is_instance_valid(NotificationService):
+				NotificationService.notify(
+					NotifKind.QUEST_COMPLETED,
+					"Quest Complete: %s - Return to quest giver!" % quest_state.get("data", {}).get("display_name", "Unknown"),
+					"QuestService",
+					"quest_complete:%s:%s" % [player_id, quest_id],
+					{"quest_id": quest_id, "player_id": player_id},
+					player_id
+				)
 
 	if updated.is_empty():
 		return
