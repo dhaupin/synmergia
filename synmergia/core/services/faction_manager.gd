@@ -27,6 +27,29 @@ signal reputation_changed(player_id: String, faction_id: String, old_rep: int, n
 signal alliance_formed(guild_id: String, faction: Faction)
 signal alliance_broken(guild_id: String, faction: Faction)
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Faction events broadcast server-wide (war/peace) or target a single
+# player (rep changes). Dedupe is keyed on (kind, target, identifier)
+# so rep ticks during a long quest don't flood the toast panel.
+const NotificationContext = preload("res://core/notifications/notification_context.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+func _emit_faction(
+	kind: int,
+	message: String,
+	dedupe_key: String,
+	data: Dictionary,
+	recipient: String = ""
+) -> void:
+	if not NotificationService:
+		return
+	var ctx
+	if recipient == "":
+		ctx = NotificationContext.broadcast(kind, message, "FactionManager", data, dedupe_key)
+	else:
+		ctx = NotificationContext.for_player(recipient, kind, message, "FactionManager", data, dedupe_key)
+	NotificationService.send_event(ctx)
+
 func _ready() -> void:
 	GameLog.info("FactionManager: Ready")
 
@@ -132,7 +155,7 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 	
 	war_declared.emit(faction1, faction2)
 	GameLog.info("FactionManager: WAR declared between %s and %s" % [faction1_id, faction2_id])
-	
+
 	# Notify players
 	var notification_service = NotificationService
 	if notification_service:
@@ -145,7 +168,16 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 			NotificationService.SoundType.WARNING,
 			{"faction1": faction1_id, "faction2": faction2_id}
 		)
-	
+	# Frame-level toast. Dedupe on the war pair so a re-emit during the same
+	# 5s window (e.g. multiple systems reacting to the same event) collapses
+	# to one toast.
+	_emit_faction(
+		NotifKind.FACTION_CHANGED,
+		"FACTION WAR: %s has declared war on %s!" % [faction1.display_name, faction2.display_name],
+		"war:%s:%s" % [faction1_id, faction2_id],
+		{"faction1": faction1_id, "faction2": faction2_id, "attacker_id": attacker_id, "event": "war_declared"}
+	)
+
 	return true
 
 ## End war between factions
@@ -169,7 +201,7 @@ func end_war(faction1_id: String, faction2_id: String) -> bool:
 	
 	war_ended.emit(faction1, faction2)
 	GameLog.info("FactionManager: War ended between %s and %s" % [faction1_id, faction2_id])
-	
+
 	# Notify players
 	var notification_service = NotificationService
 	if notification_service and faction1 and faction2:
@@ -182,7 +214,14 @@ func end_war(faction1_id: String, faction2_id: String) -> bool:
 			NotificationService.SoundType.NOTIFICATION,
 			{"faction1": faction1_id, "faction2": faction2_id}
 		)
-	
+	# Frame-level toast.
+	_emit_faction(
+		NotifKind.FACTION_CHANGED,
+		"FACTION PEACE: The war between %s and %s has ended." % [faction1.display_name, faction2.display_name],
+		"peace:%s:%s" % [faction1_id, faction2_id],
+		{"faction1": faction1_id, "faction2": faction2_id, "event": "war_ended"}
+	)
+
 	return true
 
 ## Check if faction is on war declaration cooldown
@@ -228,13 +267,29 @@ func get_reputation(player_id: String, faction_id: String) -> int:
 func modify_reputation(player_id: String, faction_id: String, delta: int) -> void:
 	if not _player_reputations.has(player_id):
 		_player_reputations[player_id] = {}
-	
+
 	var old_rep = _player_reputations[player_id].get(faction_id, 0)
 	var new_rep = clampi(old_rep + delta, -10000, 10000)
 	_player_reputations[player_id][faction_id] = new_rep
-	
+
 	reputation_changed.emit(player_id, faction_id, old_rep, new_rep)
 	GameLog.debug("FactionManager: %s reputation with %s: %d -> %d" % [player_id, faction_id, old_rep, new_rep])
+
+	# Frame-level toast on rank transitions only. A quest chain can tick
+	# +5 rep a hundred times; only the moments where the player crosses
+	# into a new rank (Neutral → Friendly, Friendly → Honored, etc.) are
+	# interesting. Dedupe on the rank so a quick double-cross doesn't
+	# double-toast.
+	var old_rank: String = get_reputation_rank(old_rep)
+	var new_rank: String = get_reputation_rank(new_rep)
+	if old_rank != new_rank:
+		_emit_faction(
+			NotifKind.FACTION_REP_CHANGED,
+			"Reputation with %s: %s → %s" % [faction_id, old_rank, new_rank],
+			"rep_rank:%s:%s" % [player_id, new_rank],
+			{"faction_id": faction_id, "old_rank": old_rank, "new_rank": new_rank, "old_rep": old_rep, "new_rep": new_rep, "delta": delta},
+			player_id
+		)
 
 ## Set player reputation with a faction
 func set_reputation(player_id: String, faction_id: String, value: int) -> void:
@@ -272,15 +327,23 @@ func form_alliance(guild_id: String, faction_id: String) -> bool:
 	var faction = _factions.get(faction_id)
 	if faction == null:
 		return false
-	
+
 	if not _guild_alliances.has(guild_id):
 		_guild_alliances[guild_id] = []
-	
+
 	if _guild_alliances[guild_id].has(faction_id):
 		return false  # Already allied
-	
+
 	_guild_alliances[guild_id].append(faction_id)
 	alliance_formed.emit(guild_id, faction)
+	# Frame-level broadcast: alliances affect the whole guild, so the
+	# toast is server-wide. Dedupe on the alliance pair.
+	_emit_faction(
+		NotifKind.FACTION_CHANGED,
+		"Guild %s formed an alliance with %s" % [guild_id, faction.display_name],
+		"alliance_formed:%s:%s" % [guild_id, faction_id],
+		{"guild_id": guild_id, "faction_id": faction_id, "event": "alliance_formed"}
+	)
 	GameLog.info("FactionManager: Guild %s allied with faction %s" % [guild_id, faction_id])
 	return true
 
@@ -288,13 +351,19 @@ func form_alliance(guild_id: String, faction_id: String) -> bool:
 func break_alliance(guild_id: String, faction_id: String) -> bool:
 	if not _guild_alliances.has(guild_id):
 		return false
-	
+
 	var faction = _factions.get(faction_id)
 	if faction == null:
 		return false
-	
+
 	_guild_alliances[guild_id].erase(faction_id)
 	alliance_broken.emit(guild_id, faction)
+	_emit_faction(
+		NotifKind.FACTION_CHANGED,
+		"Guild %s broke its alliance with %s" % [guild_id, faction.display_name],
+		"alliance_broken:%s:%s" % [guild_id, faction_id],
+		{"guild_id": guild_id, "faction_id": faction_id, "event": "alliance_broken"}
+	)
 	GameLog.info("FactionManager: Guild %s broke alliance with faction %s" % [guild_id, faction_id])
 	return true
 
