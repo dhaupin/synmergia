@@ -36,6 +36,9 @@ func _initialize() -> void:
 	_test_action_taken_on_ban()
 	_test_action_taken_on_kick()
 	_test_action_taken_signal_emits_without_crash()
+	_test_auto_kick_toasts_player_via_frame()
+	_test_auto_mute_toasts_player_via_frame()
+	_test_admin_alert_routes_through_frame()
 
 	_finish()
 
@@ -137,6 +140,87 @@ func _test_action_taken_signal_emits_without_crash() -> void:
 		_fail("action_taken.emit() did not propagate to listener")
 		return
 	_ok("action_taken.emit() propagates to listeners")
+
+
+func _test_auto_kick_toasts_player_via_frame() -> void:
+	# When AutoResponseService auto-kicks a player, the player should
+	# see a toast via the notification frame BEFORE the connection
+	# drops. We hook the notification_sent signal (player-scoped path)
+	# to capture the delivery to the kicked player.
+	_notif.reset_dedupe()
+	var captured: Array = []
+	_notif.notification_sent.connect(
+		func(entity_id: String, n: Dictionary) -> void:
+			if entity_id == "p_test_kick_toast":
+				captured.append(n)
+	)
+	_ars._auto_kick("p_test_kick_toast", "toast test reason", "speed_hack")
+	if captured.size() != 1:
+		_fail("_auto_kick should toast the player once via the frame, got %d" % captured.size())
+		return
+	var msg: String = captured[0].get("message", "")
+	if msg.find("kicked") < 0:
+		_fail("kick toast message should mention 'kicked', got '%s'" % msg)
+		return
+	# The kick reason should be in the message (clarity).
+	if msg.find("toast test reason") < 0:
+		_fail("kick toast should include the reason, got '%s'" % msg)
+		return
+	_ok("_auto_kick toasts player with reason via the frame")
+
+
+func _test_auto_mute_toasts_player_via_frame() -> void:
+	# The spam → mute path should deliver exactly ONE player-facing
+	# toast (with the duration included). AutoResponseService triggers
+	# the mute via SecurityService.restrict_player, which is the
+	# canonical source of the player toast -- we don't double-toast.
+	_notif.reset_dedupe()
+	var captured: Array = []
+	_notif.notification_sent.connect(
+		func(entity_id: String, n: Dictionary) -> void:
+			if entity_id == "p_test_mute_toast":
+				captured.append(n)
+	)
+	_ars._handle_spam("p_test_mute_toast", 5)
+	if captured.size() != 1:
+		_fail("auto-mute should deliver exactly one player toast, got %d" % captured.size())
+		return
+	var msg: String = captured[0].get("message", "")
+	if msg.find("muted") < 0:
+		_fail("auto-mute toast should mention 'muted', got '%s'" % msg)
+		return
+	# Clarity: include the duration in the toast. The 5-minute branch
+	# in SecurityService._notify_player_restricted should match here.
+	if msg.find("minutes") < 0 and msg.find("seconds") < 0:
+		_fail("auto-mute toast should include a duration (minutes/seconds), got '%s'" % msg)
+		return
+	_ok("auto-mute delivers one clear player toast with the duration via the frame")
+
+
+func _test_admin_alert_routes_through_frame() -> void:
+	# The admin path for auto-mute should produce a notification via
+	# the frame (server-wide broadcast, entity_id == ""), with
+	# ADMIN_ALERT kind (highest priority, never deduped).
+	_notif.reset_dedupe()
+	var captured: Array = []
+	_notif.notification_received.connect(
+		func(entity_id: String, n: Dictionary) -> void:
+			if entity_id == "":
+				captured.append(n)
+	)
+	_ars._handle_spam("p_test_admin", 5)
+	# We expect at least one broadcast (admin alert). Filter for the
+	# AutoResponseService-sourced one to avoid coupling to other
+	# services that may broadcast during test setup.
+	var ars_alert_found := false
+	for n in captured:
+		if n.get("source_service", "") == "AutoResponseService":
+			ars_alert_found = true
+			break
+	if not ars_alert_found:
+		_fail("auto-mute should produce an admin alert via the frame, got %d broadcasts" % captured.size())
+		return
+	_ok("admin alert for auto-mute routes through the frame (source_service=AutoResponseService)")
 
 
 func _ok(msg: String) -> void:
