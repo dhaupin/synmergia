@@ -11,6 +11,27 @@ var _player_inventories: Dictionary = {}
 signal item_transferred(from_id: String, to_id: String, item: Item, quantity: int)
 signal gold_transferred(from_id: String, to_id: String, amount: int)
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# InventoryService surfaces add/remove/full/soulbound/trade-reject events
+# through the toast pipeline. Dedupe keys are item-aware so a player
+# looting 50 of the same item sees one toast for the burst, not 50.
+const NotificationContext = preload("res://core/notifications/notification_context.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+func _emit_inventory(
+	player_id: String,
+	kind: int,
+	message: String,
+	dedupe_key: String = "",
+	data: Dictionary = {}
+) -> void:
+	if not NotificationService:
+		return
+	var ctx = NotificationContext.for_player(
+		player_id, kind, message, "InventoryService", data, dedupe_key
+	)
+	NotificationService.send_event(ctx)
+
 func _ready() -> void:
 	instance = self
 	GameLog.info("InventoryService: Ready")
@@ -67,6 +88,19 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 		GameLog.error("InventoryService: Item ownership verification failed for %s" % item.id)
 		return false
 
+	# SECURITY: Reject soulbound items. bind_on_pickup binds at first pickup;
+	# soulbound is the explicit flag the schema exposes.
+	if source_item.soulbound or source_item.bind_on_pickup:
+		GameLog.warn("InventoryService: Refusing to transfer soulbound item %s from %s" % [item.id, from_id])
+		_emit_inventory(
+			from_id,
+			NotifKind.ITEM_SOULBOUND_REJECT,
+			"%s is soulbound and cannot be transferred" % item.display_name,
+			"inv_soulbound:%s:%s" % [from_id, item.id],
+			{"item_id": item.id, "reason": "soulbound"}
+		)
+		return false
+
 	# Remove from source
 	var removed: Item = from_inv.remove_item(slot, quantity)
 	if not removed:
@@ -77,9 +111,34 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 		# Failed to add - return to source
 		from_inv.add_item(removed)
 		GameLog.warn("InventoryService: Transfer failed - destination full")
+		# Frame-level toast on the destination player. Dedupe on (to, item)
+		# so a series of failed transfers for the same item doesn't spam.
+		_emit_inventory(
+			to_id,
+			NotifKind.ITEM_FULL,
+			"Inventory full — couldn't receive %s" % item.display_name,
+			"inv_full:%s:%s" % [to_id, item.id],
+			{"item_id": item.id, "from_id": from_id, "qty": removed.current_stack}
+		)
 		return false
 
 	item_transferred.emit(from_id, to_id, removed, removed.current_stack)
+	# Frame-level toasts: recipient sees "received", sender sees "sent".
+	# Two distinct players → two distinct dedupe keys, both fire normally.
+	_emit_inventory(
+		to_id,
+		NotifKind.ITEM_ADDED,
+		"Received %s x%d" % [item.display_name, removed.current_stack],
+		"inv_recv:%s:%s" % [to_id, item.id],
+		{"item_id": item.id, "from_id": from_id, "qty": removed.current_stack}
+	)
+	_emit_inventory(
+		from_id,
+		NotifKind.ITEM_REMOVED,
+		"Sent %s x%d" % [item.display_name, removed.current_stack],
+		"inv_sent:%s:%s" % [from_id, item.id],
+		{"item_id": item.id, "to_id": to_id, "qty": removed.current_stack}
+	)
 	GameLog.info("InventoryService: Transferred %s x%d from %s to %s" % [item.id, removed.current_stack, from_id, to_id])
 
 	return true
@@ -157,6 +216,19 @@ func transfer_items(from_id: String, to_id: String, items: Array) -> Dictionary:
 			results["success"] = false
 		else:
 			results["transferred"].append(item_id)
+
+	# Frame-level toast on the sender: if the whole batch failed and nothing
+	# transferred, surface a single trade-reject. The per-item toasts already
+	# fire from transfer_item, so this is just the summary line.
+	if not results["success"] and results["transferred"].is_empty() and not results["failed"].is_empty():
+		var first_fail: Dictionary = results["failed"][0]
+		_emit_inventory(
+			from_id,
+			NotifKind.ITEM_TRADE_REJECT,
+			"Trade rejected (%d item(s) failed)" % results["failed"].size(),
+			"trade_reject:%s:%s" % [from_id, first_fail.get("item_id", "unknown")],
+			{"failed_count": results["failed"].size(), "to_id": to_id}
+		)
 
 	return results
 
