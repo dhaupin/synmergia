@@ -3,6 +3,28 @@
 extends Node
 
 ## ============================================================================
+## SIGNALS
+## ============================================================================
+
+## Emitted whenever the service takes an automated action against a player.
+## action is one of ActionType. Listeners (admin UI, QoS dashboards) can route
+## this into the notification pipeline or audit log.
+signal action_taken(player_id: String, action: int, exploit_type: String, reason: String)
+
+## Emitted when a player receives a non-punitive warning (e.g. first spam
+## offense). Separate from action_taken so UIs can render a softer style.
+signal player_warned(player_id: String, exploit_type: String, message: String)
+
+## Action types for the action_taken signal
+enum ActionType {
+	WARN,        ## First offense warning (no restriction)
+	MUTE,        ## Chat restriction applied
+	RESTRICT,    ## Generic restriction (e.g. chat)
+	KICK,        ## Disconnected from server
+	BAN,         ## Permanent ban issued
+}
+
+## ============================================================================
 ## STATE
 ## ============================================================================
 
@@ -61,7 +83,7 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 	# Check total exploit count for auto-kick
 	var total = counts.values().reduce(func(a, b): return a + b, 0)
 	if total >= GameConfig.AutoResponse.AUTO_KICK_THRESHOLD:
-		_auto_kick(player_id, "Too many exploit detections")
+		_auto_kick(player_id, "Too many exploit detections", exploit_type)
 
 ## ============================================================================
 ## HANDLER FUNCTIONS
@@ -70,77 +92,89 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 func _handle_spam(player_id: String, count: int) -> void:
 	# First offense: just warn
 	if count == 1:
-		_notify_player(player_id, "Warning: Spam detected. Continued spam will result in mute.")
+		var msg := "Warning: Spam detected. Continued spam will result in mute."
+		_notify_player(player_id, msg)
+		player_warned.emit(player_id, "spam", msg)
 		return
-	
+
 	# Subsequent: mute
 	if count >= 2:
 		var duration = GameConfig.AutoResponse.SPAM_MUTE_DURATION
 		SecurityService.restrict_player(player_id, "chat", duration)
 		_notify_admins("Auto-muted %s for %d seconds (spam count: %d)" % [player_id, duration, count])
 		_notify_player(player_id, "Muted for %d seconds for spam." % duration)
+		action_taken.emit(player_id, ActionType.MUTE, "spam",
+			"Auto-muted for %d seconds (count: %d)" % [duration, count])
 
 func _handle_speed_hack(player_id: String, count: int) -> void:
 	var required = GameConfig.AutoResponse.SPEEDHACK_CONFIRMATIONS_REQUIRED
-	
+
 	# Notify but don't auto-act unless configured
 	if not GameConfig.AutoResponse.AUTO_BAN_SPEEDHACK:
 		if count >= required:
 			_notify_admins("Speed hack confirmed for %s (count: %d). Manual review needed." % [player_id, count])
+			action_taken.emit(player_id, ActionType.WARN, "speed_hack",
+				"Speed hack confirmed (count: %d), manual review needed" % count)
 		return
-	
+
 	# Auto-ban if configured
 	if count >= required:
-		_auto_ban(player_id, "Speed hack (auto-banned after %d confirmations)" % required)
+		_auto_ban(player_id, "Speed hack (auto-banned after %d confirmations)" % required, "speed_hack")
 
 func _handle_teleport_hack(player_id: String, count: int) -> void:
 	var required = GameConfig.AutoResponse.TELEPORTHACK_CONFIRMATIONS_REQUIRED
-	
+
 	if not GameConfig.AutoResponse.AUTO_BAN_TELEPORTHACK:
 		if count >= required:
 			_notify_admins("Teleport hack confirmed for %s (count: %d). Manual review needed." % [player_id, count])
+			action_taken.emit(player_id, ActionType.WARN, "teleport_hack",
+				"Teleport hack confirmed (count: %d), manual review needed" % count)
 		return
-	
+
 	if count >= required:
-		_auto_ban(player_id, "Teleport hack (auto-banned after %d confirmations)" % required)
+		_auto_ban(player_id, "Teleport hack (auto-banned after %d confirmations)" % required, "teleport_hack")
 
 func _handle_item_duplication(player_id: String, count: int) -> void:
 	var required = GameConfig.AutoResponse.ITEM_DUP_CONFIRMATIONS_REQUIRED
-	
+
 	if not GameConfig.AutoResponse.AUTO_BAN_ITEM_DUPLICATION:
 		if count >= required:
 			_notify_admins("Item duplication confirmed for %s (count: %d). Manual review needed." % [player_id, count])
+			action_taken.emit(player_id, ActionType.WARN, "item_duplication",
+				"Item duplication confirmed (count: %d), manual review needed" % count)
 		return
-	
+
 	if count >= required:
-		_auto_ban(player_id, "Item duplication (auto-banned after %d confirmations)" % required)
+		_auto_ban(player_id, "Item duplication (auto-banned after %d confirmations)" % required, "item_duplication")
 
 ## ============================================================================
 ## AUTO ACTIONS
 ## ============================================================================
 
-func _auto_kick(player_id: String, reason: String) -> void:
+func _auto_kick(player_id: String, reason: String, exploit_type: String = "exploit_threshold") -> void:
 	GameLog.warn("AutoResponse: Kicking %s: %s" % [player_id, reason])
-	
+
 	# Find peer ID and kick
 	var peer_id = _get_peer_for_player(player_id)
 	if peer_id > 0:
 		NetworkManager.kick_player(peer_id, reason)
-	
-	_notify_admins("Auto-kicked %s: %s" % [player_id, reason])
 
-func _auto_ban(player_id: String, reason: String) -> void:
+	_notify_admins("Auto-kicked %s: %s" % [player_id, reason])
+	action_taken.emit(player_id, ActionType.KICK, exploit_type, reason)
+
+func _auto_ban(player_id: String, reason: String, exploit_type: String = "exploit_threshold") -> void:
 	GameLog.warn("AutoResponse: Banning %s: %s" % [player_id, reason])
-	
+
 	# Issue permanent ban
 	NetworkManager.ban_player(player_id, reason, "auto_response")
-	
+
 	# Kick if still connected
 	var peer_id = _get_peer_for_player(player_id)
 	if peer_id > 0:
 		NetworkManager.kick_player(peer_id, "Banned: " + reason)
-	
+
 	_notify_admins("Auto-banned %s: %s" % [player_id, reason])
+	action_taken.emit(player_id, ActionType.BAN, exploit_type, reason)
 
 ## ============================================================================
 ## HELPERS
