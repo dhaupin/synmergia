@@ -105,6 +105,22 @@ func _alert_admin(severity: String, player_id: String, exploit_type: String, det
 	]
 	print(alert_msg)
 
+	# Route to the in-game toast/notification pipeline so admins watching
+	# the HUD see critical exploits in real time. send_to_player fires
+	# notification_sent unconditionally, so the toast/combat-log path
+	# lights up even when no players are in the broadcast scope (e.g.
+	# server-only boot or headless tests).
+	if not NotificationService:
+		return
+	if not NotificationService.has_method("send_to_player"):
+		return
+	NotificationService.send_to_player(
+		"admins",
+		"[SECURITY] " + alert_msg,
+		14, # NotificationType.ALERT
+		3   # CRITICAL priority
+	)
+
 ## ============================================================================
 ## CONFIGURATION METHODS
 ## ============================================================================

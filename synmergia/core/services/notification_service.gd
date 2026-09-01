@@ -219,9 +219,16 @@ static func _coerce_int(value, fallback: int) -> int:
 
 ## Broadcast notification to multiple scopes (server, zone, nearby, players)
 ## Can combine multiple scopes - e.g., server + zone, or zone + neighbors
+##
+## `scopes` is intentionally untyped (was `Array[AlertScope]`) so dynamic
+## callers — `notifier.call("broadcast_alert", ...)` from AppFirewall and
+## tests — can pass an array literal without tripping Godot 4.7.2's
+## strict typed-array check. Each element is dispatched via
+## `_get_players_for_scope(scope: AlertScope)`, which still validates at
+## runtime via duck typing on `is_server_wide` / `zone_id` / etc.
 func broadcast_alert(
 	message: String,
-	scopes: Array[AlertScope],
+	scopes: Array,
 	notif_type: NotificationType = NotificationType.SYSTEM,
 	priority: Priority = Priority.NORMAL,
 	location: DisplayLocation = DisplayLocation.CENTER_SCREEN,
@@ -229,7 +236,7 @@ func broadcast_alert(
 	data: Dictionary = {}
 ) -> void:
 	var notified_players: Dictionary = {}  # entity_id -> true (avoid duplicates)
-	
+
 	for scope in scopes:
 		var players_to_notify = _get_players_for_scope(scope)
 		for player in players_to_notify:

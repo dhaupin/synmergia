@@ -28,6 +28,10 @@ var _max_connections_per_ip: int = 3
 ## Cleanup interval (seconds)
 var _cleanup_interval: int = 300
 
+## Recursion guard for security-sensitive recursive calls.
+## Owned by AppFirewall so block events route to admin alerts.
+var _recursion_guard: RecursionGuard
+
 ## ============================================================================
 ## TRACKING DATA
 ## ============================================================================
@@ -68,10 +72,20 @@ func _init(
 		_max_failed_attempts = max_failed_attempts
 	if max_connections_per_ip > 0:
 		_max_connections_per_ip = max_connections_per_ip
-	
+
 	GameLog.debug("AppFirewall: Initialized (block=%ds, max_attempts=%d, max_conn=%d)" % [
 		_block_duration, _max_failed_attempts, _max_connections_per_ip
 	])
+
+func _ready() -> void:
+	# RecursionGuard is the security layer 0 (per docs/architecture/security.md).
+	# AppFirewall owns the canonical instance and routes block events to
+	# admin notifications. Using a low default depth so suspicious recursive
+	# activity surfaces quickly during testing/load.
+	_recursion_guard = RecursionGuard.new(32)
+	_recursion_guard.set_max_depth("agent_tool_call", 16)
+	_recursion_guard.set_max_depth("connectors_run", 8)
+	_recursion_guard.block_triggered.connect(_on_recursion_block)
 
 ## ============================================================================
 ## CONNECTION MANAGEMENT
@@ -406,6 +420,22 @@ func get_stats() -> Dictionary:
 ## NotificationService is autoloaded — it just no-ops.
 
 func _broadcast_admin_alert(message: String) -> void:
+	# Fast path: if NotificationService is autoloaded, use the typed
+	# `send_to_player` alias. This bypasses broadcast_alert's
+	# scope→player resolution (which silently no-ops when no players
+	# are registered, e.g. in headless tests) and guarantees the
+	# notification_sent signal fires so the HUD toast path lights up.
+	if is_inside_tree() and NotificationService and NotificationService.has_method("send_to_player"):
+		NotificationService.send_to_player(
+			"admins",
+			"[FIREWALL] " + message,
+			14, # NotificationType.ALERT
+			3   # Priority.CRITICAL
+		)
+		return
+
+	# Fallback: pre-autoload or stripped-down boot — try the dynamic
+	# broadcast_alert path (older callers + tests without autoloads).
 	var notifier: Node = null
 	if Engine.has_singleton("NotificationService"):
 		notifier = Engine.get_singleton("NotificationService")
@@ -441,3 +471,24 @@ func _broadcast_admin_alert(message: String) -> void:
 		[scope],
 		14 # NotificationType.ALERT — literal int; NotificationService has no class_name
 	)
+
+## ============================================================================
+## RECURSION GUARD INTEGRATION
+## ============================================================================
+##
+## Per docs/architecture/security.md, the recursion guard is the
+## agent-framework seatbelt. A block means an agent (or a runaway game
+## loop) hit a depth limit — that's a security event admins need to see.
+
+func _on_recursion_block(context: String, current_depth: int, max_depth: int) -> void:
+	_broadcast_admin_alert(
+		"RecursionGuard: '%s' exceeded max depth %d (current=%d) — possible DoS" % [
+			context, max_depth, current_depth
+		]
+	)
+
+## Expose the firewall-owned guard so other services (connectors, agent
+## tool calls, deep entity-tree walks) can call .enter() / .exit() against
+## the same security-tracked instance.
+func get_recursion_guard() -> RecursionGuard:
+	return _recursion_guard

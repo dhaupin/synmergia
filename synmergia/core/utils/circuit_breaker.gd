@@ -3,6 +3,11 @@
 class_name CircuitBreaker
 extends RefCounted
 
+## Emitted whenever the breaker changes state. Listeners (admin UI,
+## QoS dashboards) can route this into the notification pipeline.
+## Carries the previous state for context.
+signal state_changed(from: BreakerState, to: BreakerState, breaker_name: String)
+
 ## Circuit states
 enum BreakerState {
 	CLOSED,    ## Normal operation, calls pass through
@@ -40,23 +45,21 @@ func _init(
 	
 	# Use GameConfig defaults if not specified
 	if failure_threshold < 0:
-		_failure_threshold = GameConfig.QoS.CircuitBreaker.FAILURE_THRESHOLD
+		_failure_threshold = GameConfig.QoS.CircuitBreakerCfg.FAILURE_THRESHOLD
 	else:
 		_failure_threshold = failure_threshold
-	
+
 	if recovery_timeout < 0.0:
-		_recovery_timeout = GameConfig.QoS.CircuitBreaker.RECOVERY_TIMEOUT_SEC
+		_recovery_timeout = GameConfig.QoS.CircuitBreakerCfg.RECOVERY_TIMEOUT_SEC
 	else:
 		_recovery_timeout = recovery_timeout
-	
+
 	if success_threshold < 0:
-		_success_threshold = GameConfig.QoS.CircuitBreaker.SUCCESS_THRESHOLD
+		_success_threshold = GameConfig.QoS.CircuitBreakerCfg.SUCCESS_THRESHOLD
 	else:
 		_success_threshold = success_threshold
-	
-	GameLog.debug("CircuitBreaker '%s': Initialized with threshold=%d, timeout=%.1f, success=%d" % [
-		_name, _failure_threshold, _recovery_timeout, _success_threshold
-	])
+
+	pass
 
 ## ============================================================================
 ## EXECUTION
@@ -175,26 +178,25 @@ func _on_failure() -> void:
 
 func _transition_to_open() -> void:
 	if _state != BreakerState.OPEN:
+		var prev := _state
 		_state = BreakerState.OPEN
 		_success_count = 0
-		GameLog.warn("CircuitBreaker '%s': Transitioned to OPEN after %d failures" % [
-			_name, _failure_count
-		])
+		state_changed.emit(prev, _state, _name)
 
 func _transition_to_half_open() -> void:
 	if _state != BreakerState.HALF_OPEN:
+		var prev := _state
 		_state = BreakerState.HALF_OPEN
 		_success_count = 0
-		GameLog.info("CircuitBreaker '%s': Transitioned to HALF_OPEN (recovery timeout reached)" % _name)
+		state_changed.emit(prev, _state, _name)
 
 func _transition_to_closed() -> void:
 	if _state != BreakerState.CLOSED:
+		var prev := _state
 		_state = BreakerState.CLOSED
 		_failure_count = 0
 		_success_count = 0
-		GameLog.info("CircuitBreaker '%s': Transitioned to CLOSED after %d consecutive successes" % [
-			_name, _success_threshold
-		])
+		state_changed.emit(prev, _state, _name)
 
 ## ============================================================================
 ## MANUAL CONTROL
@@ -216,7 +218,6 @@ func reset() -> void:
 	_failure_count = 0
 	_success_count = 0
 	_last_failure_time = 0.0
-	GameLog.debug("CircuitBreaker '%s': Reset to initial state" % _name)
 
 ## ============================================================================
 ## INSPECTION
