@@ -34,9 +34,9 @@ func _load_species() -> void:
 	var all_species := CharacterData.get_all_species()
 	for sp in all_species:
 		var card := SpeciesCard.instantiate()
-		card.setup(sp)
-		card.species_selected.connect(_on_species_card_selected)
 		species_container.add_child(card)
+		card.species_selected.connect(_on_species_card_selected)
+		card.setup(sp)
 
 
 func _on_species_card_selected(species_id: String) -> void:
@@ -59,9 +59,9 @@ func _show_class_selection() -> void:
 	var all_classes := CharacterData.get_available_classes_for_species(selected_species_id)
 	for cls in all_classes:
 		var card := ClassCard.instantiate()
-		card.setup(cls, selected_species)
-		card.class_selected.connect(_on_class_selected)
 		species_container.add_child(card)
+		card.class_selected.connect(_on_class_selected)
+		card.setup(cls, selected_species)
 
 
 func _on_class_selected(class_id: String) -> void:
