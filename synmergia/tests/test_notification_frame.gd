@@ -36,6 +36,8 @@ func _initialize() -> void:
 	_test_dispatcher_distinguishes_targets()
 	_test_dispatcher_no_dedupe_key_always_delivers()
 	_test_dispatcher_reset_clears_state()
+	_test_dispatcher_per_kind_override_zero_always_delivers()
+	_test_dispatcher_per_kind_override_shorter_window()
 	_test_send_event_to_player_calls_send()
 	_test_send_event_broadcast_calls_broadcast()
 	_test_send_event_returns_false_for_null()
@@ -51,8 +53,12 @@ func _initialize() -> void:
 
 func _test_dispatcher_dedupes_same_key_within_window() -> void:
 	var d = NotificationDispatcher.new(5000)  # 5s window
+	# Use a kind that has no per-kind override (defaults to the
+	# instance's 5s window). See KIND_WINDOW_OVERRIDES in the
+	# dispatcher. ITEM_FULL is now an override (0 = never dedupe);
+	# ITEM_ADDED is the closest neutral kind for this test.
 	var ctx = NotificationContext.for_player(
-		"p1", NotifKind.ITEM_FULL, "Inventory full", "InventoryService", {}, "inv:bag"
+		"p1", NotifKind.ITEM_ADDED, "Picked up sword", "InventoryService", {}, "inv:add"
 	)
 	if not d.should_deliver(ctx):
 		_fail("first context with key should deliver")
@@ -65,9 +71,10 @@ func _test_dispatcher_dedupes_same_key_within_window() -> void:
 
 func _test_dispatcher_lets_through_after_window_expires() -> void:
 	# Wall-clock path: 50ms window, sleep 200ms. Stable across throttled hosts.
+	# ITEM_ADDED (no per-kind override) so the instance window applies.
 	var d = NotificationDispatcher.new(50)
 	var ctx = NotificationContext.for_player(
-		"p1", NotifKind.ITEM_FULL, "Inventory full", "InventoryService", {}, "inv:bag"
+		"p1", NotifKind.ITEM_ADDED, "Picked up sword", "InventoryService", {}, "inv:add"
 	)
 	if not d.should_deliver(ctx):
 		_fail("first delivery should pass")
@@ -146,6 +153,54 @@ func _test_dispatcher_reset_clears_state() -> void:
 		_fail("delivery should pass after reset")
 		return
 	_ok("reset() clears dedupe state")
+
+
+func _test_dispatcher_per_kind_override_zero_always_delivers() -> void:
+	# Kinds in KIND_WINDOW_OVERRIDES mapped to 0 (bans, admin alerts,
+	# item full, etc.) must deliver every time, regardless of the
+	# instance's default window. We use SECURITY_BLOCKED as the
+	# representative example.
+	var d = NotificationDispatcher.new(5000)  # default 5s window
+	var ctx = NotificationContext.for_player(
+		"p1", NotifKind.SECURITY_BLOCKED, "Banned: cheating", "AppFirewall", {}, "ban:p1"
+	)
+	if not d.should_deliver(ctx):
+		_fail("first ban should deliver")
+		return
+	# Second call within the default 5s window -- must still deliver
+	# because SECURITY_BLOCKED has a per-kind override of 0.
+	if not d.should_deliver(ctx):
+		_fail("second ban within default window should also deliver (per-kind override = 0)")
+		return
+	# And a third for good measure.
+	if not d.should_deliver(ctx):
+		_fail("third ban should also deliver (per-kind override = 0)")
+		return
+	_ok("per-kind override of 0 disables dedupe for that kind")
+
+
+func _test_dispatcher_per_kind_override_shorter_window() -> void:
+	# RATE_LIMITED has a 2000ms per-kind override. Construct the
+	# dispatcher with a 5000ms default; the per-kind window should win.
+	var d = NotificationDispatcher.new(5000)
+	var ctx = NotificationContext.for_player(
+		"p1", NotifKind.RATE_LIMITED, "Slow down", "QoSService", {}, "rl:p1"
+	)
+	if not d.should_deliver(ctx):
+		_fail("first rate-limit should deliver")
+		return
+	# 50ms is well inside the 2000ms override window -- should be deduped.
+	OS.delay_msec(50)
+	if d.should_deliver(ctx):
+		_fail("rate-limit 50ms later should be deduped (per-kind window = 2000ms)")
+		return
+	# 2100ms is past the 2000ms override window but well inside the
+	# 5000ms default -- the per-kind window must be honored.
+	OS.delay_msec(2100)
+	if not d.should_deliver(ctx):
+		_fail("rate-limit 2150ms later should deliver (per-kind window expired, default would still be active)")
+		return
+	_ok("per-kind window shorter than default is honored (2000 < 5000)")
 
 
 # --- autoload-level (NotificationService.send_event) ---
