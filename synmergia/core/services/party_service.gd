@@ -2,6 +2,11 @@
 ## Handles party creation, invites, member management, loot rules, and XP sharing
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# kick_player dispatches a PARTY kind toast to the kicked member so
+# they know it was a leader action (vs. a disconnect or a disband).
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 # Party data (party_id -> party data dict)
 var _parties: Dictionary = {}
 
@@ -248,7 +253,23 @@ func kick_player(leader_id: String, target_id: String) -> bool:
 	_player_parties.erase(target_id)
 	player_left_party.emit(party_id, target_id, "Kicked by leader")
 	GameLog.info("PartyService: Kicked %s from party %s" % [target_id, party_id])
-				
+
+	# Frame-level dispatch. PLAYER_WARNED -> ALERT + NORMAL. The kicked
+	# member needs to know it was a leader action (so they don't think
+	# the party just disbanded or they disconnected). Dedupe on
+	# (target, party_id) so a kick from a different party leader within
+	# the 2s PLAYER_WARNED window still surfaces, but a re-kick from
+	# the same leader for the same party (e.g. a UI double-fire) collapses.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.PLAYER_WARNED,
+			"You were kicked from the party by %s." % leader_id,
+			"PartyService",
+			"party_kick:%s:%s" % [target_id, party_id],
+			{"party_id": party_id, "leader_id": leader_id, "event": "kicked"},
+			target_id
+		)
+
 	return true
 
 ## Get party by ID

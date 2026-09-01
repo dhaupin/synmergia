@@ -287,6 +287,58 @@ func _initialize() -> void:
 		else:
 			_fail("AdminCommands /unban did not produce ADMIN_ALERT")
 
+	# ServerManager.kick_player dispatches SECURITY_BLOCKED to the kicked
+	# player. We don't drive the underlying NetworkManager.kick_player
+	# (that path is incomplete at the network layer); the toast layer
+	# is correct regardless.
+	var sm: Node = root.get_node_or_null("ServerManager")
+	if sm == null:
+		_fail("ServerManager autoload missing — cannot exercise kick dispatch")
+	else:
+		_notif.reset_dedupe()
+		sm.call("kick_player", "frame_sm_kick", "maintenance")
+		await process_frame
+		var sm_hist: Array = _notif.get_history("frame_sm_kick", 100)
+		var sm_blocked: bool = false
+		for n in sm_hist:
+			if n.get("data", {}).get("kind", -1) == NotifKind.SECURITY_BLOCKED:
+				sm_blocked = true
+				break
+		if sm_blocked:
+			_ok("ServerManager.kick_player dispatches SECURITY_BLOCKED")
+		else:
+			_fail("ServerManager.kick_player did not produce SECURITY_BLOCKED")
+
+	# PartyService.kick_player dispatches PLAYER_WARNED to the kicked
+	# member. We have to set up a real party (leader + member) so the
+	# function passes its permission checks. PartyService membership is
+	# invite_player + accept_invite, not a direct join.
+	var ps: Node = root.get_node_or_null("PartyService")
+	if ps == null:
+		_fail("PartyService autoload missing — cannot exercise kick dispatch")
+	else:
+		var ps_party_id: String = ps.call("create_party", "frame_ps_leader")
+		var ps_invite: bool = ps.call("invite_player", "frame_ps_leader", "frame_ps_target")
+		var ps_accept: bool = ps.call("accept_invite", "frame_ps_target")
+		if not ps_party_id or not ps_invite or not ps_accept:
+			_fail("PartyService kick setup failed (party=%s invite=%s accept=%s)" % [
+				ps_party_id, ps_invite, ps_accept
+			])
+		else:
+			_notif.reset_dedupe()
+			ps.call("kick_player", "frame_ps_leader", "frame_ps_target")
+			await process_frame
+			var ps_hist: Array = _notif.get_history("frame_ps_target", 100)
+			var ps_warned: bool = false
+			for n in ps_hist:
+				if n.get("data", {}).get("kind", -1) == NotifKind.PLAYER_WARNED:
+					ps_warned = true
+					break
+			if ps_warned:
+				_ok("PartyService.kick_player dispatches PLAYER_WARNED")
+			else:
+				_fail("PartyService.kick_player did not produce PLAYER_WARNED")
+
 	_finish()
 
 
