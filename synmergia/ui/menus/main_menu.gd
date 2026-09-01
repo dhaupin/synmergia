@@ -39,7 +39,29 @@ func _on_play_pressed() -> void:
 
 func _on_settings_pressed() -> void:
 	print("Settings button pressed")
-	UIStyles.show_notification("Settings coming soon", true, 2.0)
+	_open_settings_panel()
+
+func _open_settings_panel() -> void:
+	var player_id: String = ""
+	if LoginService and LoginService.is_logged_in():
+		player_id = LoginService.get_current_account_id()
+	# Look for an existing SettingsPanel on the HUD layer first.
+	var hud: Node = get_tree().root.get_node_or_null("HudLayer")
+	if hud and hud.has_node("SettingsPanel"):
+		var panel: Node = hud.get_node("SettingsPanel")
+		if panel and panel.has_method("open"):
+			panel.open(player_id)
+			return
+	# Otherwise instantiate a fresh SettingsPanel overlay.
+	var script: GDScript = load("res://ui/components/settings_panel.gd")
+	if not script:
+		UIStyles.show_notification("Settings unavailable", true, 2.0)
+		return
+	var panel2: Control = script.new()
+	panel2.name = "SettingsPanelOverlay"
+	get_tree().root.add_child.call_deferred(panel2)
+	if panel2.has_method("open"):
+		panel2.call_deferred("open", player_id)
 
 func _on_quit_pressed() -> void:
 	print("Quit button pressed")
