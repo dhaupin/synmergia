@@ -2,6 +2,12 @@
 ## Handles trade requests, windows, confirmations, and completion
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# _notify_player dispatches via the typed-Kind pipeline so trade
+# messages land on the same toast feed as the rest of the security
+# surface (kick, ban, restriction).
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 # Service references
 var _account_service: AccountService
 var _inventory_service: InventoryService
@@ -692,13 +698,17 @@ func _refund_trade_items(trade: Dictionary) -> void:
 ## PLAYER NOTIFICATIONS
 ## ============================================================================
 
-## Send notification to player
-func _notify_player(player_id: String, message: String) -> void:
-	if NotificationService:
-		NotificationService.send_to_player(
-			player_id,
+## Send notification to player. The kind defaults to SECURITY_BLOCKED
+## because the only call site today is the trade-restriction block;
+## callers can override for softer/warning-style messages.
+func _notify_player(player_id: String, message: String, kind: int = NotifKind.SECURITY_BLOCKED, dedupe_key_suffix: String = "trade") -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			kind,
 			message,
-			NotificationService.NotificationType.WARNING,
-			NotificationService.Priority.HIGH
+			"TradeService",
+			"trade_notif:%s:%s:%s" % [player_id, dedupe_key_suffix, message.hash()],
+			{"player_id": player_id},
+			player_id
 		)
 		GameLog.debug("TradeService: Notified %s: %s" % [player_id, message])

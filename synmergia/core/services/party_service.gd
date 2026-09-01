@@ -428,8 +428,18 @@ func _process(delta: float) -> void:
 		party_invite_expired.emit(invite_id)
 
 
-func _notify_player(player_id: String, message: String) -> void:
-	if not NotificationService:
+func _notify_player(player_id: String, message: String, kind: int = NotifKind.SECURITY_BLOCKED) -> void:
+	if not is_instance_valid(NotificationService):
 		GameLog.warn("PartyService: NotificationService not available, cannot notify %s" % player_id)
 		return
-	NotificationService.send_to_player(player_id, message, NotificationService.NotificationType.INFO)
+	# Frame-level dispatch. Default kind is SECURITY_BLOCKED because
+	# both call sites (line 57/117) are security-driven restrictions
+	# from SecurityService.is_restricted.
+	NotificationService.notify(
+		kind,
+		message,
+		"PartyService",
+		"party_notif:%s:%s" % [player_id, message.hash()],
+		{"player_id": player_id},
+		player_id
+	)
