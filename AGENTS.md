@@ -786,9 +786,6 @@ Five things that are now true and that future agents can rely on:
    code that should be migrated.
 
 **Open items for next session** (not blocking):
-- Per-kind dedupe window override — the kind table currently has
-  one default 5s window; some events (e.g. ban) probably want
-  "never dedupe, always toast" semantics.
 - AppFirewall `block_ip` / `unblock_ip` are still admin-scope only.
   The recursion-guard and ban flows were wired this round; the
   raw IP-block path was not (it doesn't carry a player_id in the
@@ -844,6 +841,55 @@ family:
 
 Verified across all three commits: 11/11 toast, 14/14 frame,
 8/8 ARS, 7/7 HUD smoke.
+
+## Session insights (2026-09-02, early morning)
+
+- **`23cf7e9` feat(notifications): per-kind dedupe window override**
+  The dispatcher had one window for every kind. Now each kind
+  can declare its own. `KIND_WINDOW_OVERRIDES` in
+  `notification_dispatcher.gd` is the source of truth; 0 means
+  "never dedupe" and any positive ms overrides the default.
+
+  Wired:
+  - never dedupe: SECURITY_BLOCKED, ADMIN_ALERT, AUTO_ACTION,
+    CIRCUIT_OPEN, QOS_RECOVERED, QOS_DEGRADED, ITEM_FULL
+  - 2s window: PLAYER_WARNED, RATE_LIMITED, THROTTLED
+  - default 5s: everything else
+
+  Two new tests in `test_notification_frame.gd`:
+  - `per_kind_override_zero_always_delivers` -- three bans in
+    one window all deliver.
+  - `per_kind_override_shorter_window` -- RATE_LIMITED dedupes
+    at 50ms but lets through at 2150ms (still inside the 5s
+    default) -- the per-kind window wins.
+
+  Two existing tests were updated to use `ITEM_ADDED` instead of
+  `ITEM_FULL`, because `ITEM_FULL` is now an override-0 kind
+  and would never dedupe within any window. Test name and
+  intent preserved.
+
+  Frame test suite 14 -> 16. Full suite 56/56.
+
+**What "cohesive signals/events/notifs" looks like now** for the
+qos/security/firewall family:
+- The signal is emitted (for any future listener -- analytics,
+  audit log, webhook).
+- The frame receives the same event through `notify()`.
+- The dispatcher applies the right per-kind window.
+- The HUD shows the toast (or the center-screen overlay for
+  HIGH+).
+- The chat log gets the line.
+- Admins see the admin-scope alert on the same trigger.
+
+**What was deferred, and why:**
+- `AppFirewall.block_ip` / `unblock_ip` -- these are admin/infra
+  primitives, not player actions. The admin already gets a toast
+  via `_broadcast_admin_alert`. The signals have no listeners,
+  but that's a "future analytics hook" hole, not a "the player
+  is missing a toast" hole.
+- The 16 stragglers in chat/party/guild/quest/trade/skill_academy/
+  admin -- out of scope this round, per "fill in the other stuff
+  later".
 
 ---
 
