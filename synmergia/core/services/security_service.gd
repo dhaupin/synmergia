@@ -161,6 +161,22 @@ func log_permission_denied(player_id: String, action: String, required_level: in
 	GameLog.warn("SecurityService: Permission denied for %s on action '%s' (required: %d)" % [
 		player_id, action, required_level
 	])
+	# Player-facing notice: the player should know the action was refused.
+	# Currently the only caller is admin_commands, so this is "you don't have
+	# permission to run that command". Generic message -- no internal
+	# action/required_level leaked. SECURITY_WARNING (not BLOCKED -- the
+	# action was refused, not the player). Dedupe on (player, action) so
+	# the player doesn't get a fresh toast for every failed attempt at
+	# the same command in a 5s window.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_WARNING,
+			"You don't have permission to do that.",
+			"SecurityService",
+			"perm_denied:%s:%s" % [player_id, action],
+			{"action": action, "required_level": required_level},
+			player_id
+		)
 
 ## ============================================================================
 ## EXPLOIT DETECTION
@@ -263,6 +279,21 @@ func _report_exploit(player_id: String, exploit_type: String, details: Dictionar
 	GameLog.warn("SecurityService: Exploit detected - %s for player %s: %s" % [
 		exploit_type, player_id, JSON.stringify(details)
 	])
+	# Player-facing notice: the player should know their action was
+	# flagged. We don't block (the *check_X functions returned false
+	# before calling _report_exploit), so SECURITY_WARNING, not
+	# SECURITY_BLOCKED. The message is intentionally generic -- no
+	# internal exploit_type leaked. Dedupe on (player, exploit_type)
+	# so an attacker hammering the same vector collapses to one toast.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_WARNING,
+			"Your recent action has been flagged for review.",
+			"SecurityService",
+			"exploit:%s:%s" % [player_id, exploit_type],
+			{"exploit_type": exploit_type, "details": details},
+			player_id
+		)
 
 ## Internal: Detect spam patterns
 func _detect_spam_pattern(message: String) -> bool:
