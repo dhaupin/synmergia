@@ -243,7 +243,17 @@ func _notify_player_rate_limit(player_id: String, action_type: String, max_rate:
 	if cooldown > 0:
 		message += " Wait %.1fs." % cooldown
 
-	notifier.call("send_to_player", player_id, message, 4, 3)
+	# WARNING + HIGH priority: rate-limit is a transient nudge, not a fatal.
+	# We pass raw ints (NotificationType.WARNING=13, Priority.HIGH=2) because
+	# enums aren't introspectable on a Node instance and NotificationService
+	# has no class_name (autoload-only).
+	notifier.call(
+		"send_to_player",
+		player_id,
+		message,
+		13, # NotificationType.WARNING
+		2   # Priority.HIGH
+	)
 
 ## Get human-readable action name
 func _get_action_display_name(action_type: String) -> String:

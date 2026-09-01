@@ -149,6 +149,89 @@ func is_visible_for(p_owner: Control) -> bool:
 
 
 ## ============================================================================
+## TOAST BAR
+## ============================================================================
+##
+## Lightweight floating notification. Stacks from the top-right, fades in
+## and auto-dismisses after `duration`. Called by HudIntegrator when
+## NotificationService signals fire (and any other system that wants a
+## non-blocking player-visible alert).
+
+const _TOAST_STACK_LIMIT: int = 5
+const _TOAST_FADE_SECONDS: float = 0.25
+
+var _toast_root: VBoxContainer
+var _active_toasts: Array[Control] = []
+
+func _ensure_toast_root() -> void:
+	if _toast_root and is_instance_valid(_toast_root):
+		return
+	_toast_root = VBoxContainer.new()
+	_toast_root.name = "ToastStack"
+	_toast_root.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_toast_root.anchor_left = 1.0
+	_toast_root.anchor_right = 1.0
+	_toast_root.offset_left = -360.0
+	_toast_root.offset_top = 24.0
+	_toast_root.offset_right = -24.0
+	_toast_root.add_theme_constant_override("separation", 6)
+	_toast_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_toast_root)
+
+func show_toast(text: String, color: Color = Color(0.9, 0.9, 1.0), duration: float = 3.0) -> void:
+	if text == "":
+		return
+	_ensure_toast_root()
+	# Trim the stack so a flood of notifications doesn't bury the player.
+	while _active_toasts.size() >= _TOAST_STACK_LIMIT:
+		var oldest: Control = _active_toasts.pop_front()
+		if is_instance_valid(oldest):
+			oldest.queue_free()
+
+	var panel := PanelContainer.new()
+	panel.modulate = Color(1, 1, 1, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.12, 0.92)
+	style.border_color = color
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	panel.add_theme_stylebox_override("panel", style)
+	_toast_root.add_child(panel)
+
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", color)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size = Vector2(320, 0)
+	panel.add_child(label)
+
+	_active_toasts.append(panel)
+
+	# Fade-in.
+	var tween := create_tween()
+	tween.tween_property(panel, "modulate:a", 1.0, _TOAST_FADE_SECONDS)
+	tween.tween_interval(maxf(0.1, duration))
+	tween.tween_property(panel, "modulate:a", 0.0, _TOAST_FADE_SECONDS)
+	tween.tween_callback(Callable(panel, "queue_free"))
+	# Keep the stack list in sync if Godot frees it earlier.
+	tween.tween_callback(func() -> void:
+		var idx := _active_toasts.find(panel)
+		if idx >= 0:
+			_active_toasts.remove_at(idx)
+	)
+
+
+## ============================================================================
 ## TOOLTIP CONTENT
 ## ============================================================================
 
