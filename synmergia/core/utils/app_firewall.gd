@@ -246,6 +246,21 @@ func ban_player(player_id: String, reason: String, banned_by: String = "system")
 	_broadcast_admin_alert(
 		"Player permanently banned: %s (reason: %s, by: %s)" % [player_id, reason, banned_by]
 	)
+	# Player-facing toast: the banned player must know. We don't know
+	# whether they're still connected (they're about to be disconnected)
+	# but the toast lands on their last-known client if any, and in the
+	# reconnect attempt on a future login. SECURITY_BLOCKED → ALERT + HIGH.
+	# Dedupe on ban:<player> so a chain of admin actions doesn't stack
+	# toasts in the audit log.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_BLOCKED,
+			"You have been permanently banned. Reason: %s" % reason,
+			"AppFirewall",
+			"ban:%s" % player_id,
+			{"reason": reason, "banned_by": banned_by, "duration": -1, "kind": "permanent"},
+			player_id
+		)
 
 ## Alias for ban_player with explicit duration arg (matches the call
 ## sites in NetworkManager.ban_player(..., -1) and AdminCommands).
@@ -269,6 +284,15 @@ func temp_ban_player(player_id: String, duration_seconds: int, reason: String) -
 	_broadcast_admin_alert(
 		"Player temp-banned %ds: %s (reason: %s)" % [duration_seconds, player_id, reason]
 	)
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_BLOCKED,
+			"You have been temporarily banned for %d seconds. Reason: %s" % [duration_seconds, reason],
+			"AppFirewall",
+			"ban:%s" % player_id,
+			{"reason": reason, "duration": duration_seconds, "kind": "temporary"},
+			player_id
+		)
 
 ## Lift a ban
 func lift_ban(player_id: String) -> void:
@@ -281,6 +305,16 @@ func lift_ban(player_id: String) -> void:
 		ban_lifted.emit(player_id)
 		GameLog.info("AppFirewall: Ban lifted for %s" % player_id)
 		_broadcast_admin_alert("Ban lifted for %s" % player_id)
+		# SECURITY_WARNING → WARNING + LOW. Informational, not alert.
+		if is_instance_valid(NotificationService):
+			NotificationService.notify(
+				NotifKind.SECURITY_WARNING,
+				"Your ban has been lifted. You may reconnect.",
+				"AppFirewall",
+				"ban_lift:%s" % player_id,
+				{"event": "ban_lifted"},
+				player_id
+			)
 
 ## Check if player is banned
 func is_banned(player_id: String) -> bool:
