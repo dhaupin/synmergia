@@ -17,6 +17,7 @@ An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima 
 - **3D Combat System** - Skills, projectiles, AoE, buffs/debuffs, status effects
 - **Entity-Component System** - Flexible entity composition with attachable components
 - **Targeting System** - Data-driven targeting with configurable schemas
+- **Notification → Toast Pipeline** - `NotificationService` routes every event through `TooltipManager.show_toast()` in the `HudLayer`. QoS, security, firewall, and auto-response all use the same channel. 47/47 smoke tests green.
 - **UI Islands** - Each panel is a PackedScene with `IslandPlaceholder` root. Mounted by `IslandManager` from a static `IslandRegistry`. 19/19 POC tests passing.
 
 ### Social & Community
@@ -257,6 +258,34 @@ highlight_color = Color(1.0, 0.5, 0.0)  # Orange
 show_health_bar = true
 show_level = true
 ```
+
+## Testing
+
+Smoke tests live next to the code in `synmergia/tests/`. Each is a
+`SceneTree` script that runs with `tools/godot --headless` and
+prints a per-test pass/fail line plus a final summary.
+
+```bash
+# from the repo root
+./tools/godot --headless --path synmergia --script res://tests/test_notification_toast.gd
+./tools/godot --headless --path synmergia --script res://tests/test_hud_integration.gd
+./tools/godot --headless --path synmergia --script res://tests/test_login_flow.gd
+./tools/godot --headless --path synmergia --script res://tests/test_auto_response_signals.gd
+```
+
+| Test | Covers |
+|------|--------|
+| `test_notification_toast.gd` | NotificationService → TooltipManager.show_toast() end-to-end; RecursionGuard + CircuitBreaker integration. 11/11 |
+| `test_hud_integration.gd` | HudIntegrator handlers, NotificationService → CombatLog round-trip. 7/7 |
+| `test_login_flow.gd` | Account + login + character flow. 21/21 |
+| `test_auto_response_signals.gd` | AutoResponseService `action_taken` / `player_warned` signals and ActionType enum. 8/8 |
+
+Total: **47/47 green** as of 2026-09-01.
+
+> **Note:** `--script` mode does not pre-load autoloads, so tests
+> resolve them via `root.get_node_or_null("NotificationService")`
+> rather than the global identifier. Pattern is shown in
+> `AGENTS.md § Common Operations`.
 
 ## Data Structure
 
