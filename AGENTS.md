@@ -162,6 +162,35 @@ NotificationService.broadcast_alert(
 )
 ```
 
+### Notification → Toast Pipeline
+Every service-level event ends up in a toast panel in `HudLayer`.
+The flow is:
+
+```
+Service (QoS, Security, AutoResponse, AppFirewall, ...)
+  └── emits structured signal (action_taken, player_warned, …)
+       └── NotificationService.send_to_player / broadcast_alert
+            └── TooltipManager.show_toast()  (single render entry point)
+                 └── Panel in HudLayer (queue, stack-limited)
+```
+
+When you add a new service, prefer **emitting a typed signal** over
+calling `NotificationService` directly. That keeps the service
+unit-testable (no autoload dependency) and gives admin UI / QoS
+dashboards a uniform subscription point.
+
+```gdscript
+# GOOD: emit a structured signal, NotificationService listens if it cares
+signal action_taken(player_id: String, action: int, exploit_type: String, reason: String)
+action_taken.emit(player_id, ActionType.MUTE, "spam", "auto-muted for 300s")
+
+# OK: call NotificationService directly for one-off messages
+NotificationService.send_to_player(player_id, "Welcome!", NotificationService.NotificationType.INFO)
+```
+
+Tests that exercise the full pipeline live in
+`tests/test_notification_toast.gd` and `tests/test_auto_response_signals.gd`.
+
 ### Getting Nearby Players (Chat Range)
 ```gdscript
 # For SAY/YELL chat channels
@@ -310,6 +339,33 @@ func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> voi
     pass
 ```
 
+### Defensive Helper Pattern
+When a helper bridges two services (e.g. `_get_peer_for_player`
+calls into `PlayerManager` from `AutoResponseService`), the
+callee's API may differ between environments (test vs. runtime,
+fresh autoload vs. initialized). Prefer a try-known-methods
+fallback over a hard assumption:
+
+```gdscript
+func _get_peer_for_player(player_id: String) -> int:
+    if PlayerManager == null:
+        return -1
+    for method_name in ["get_player_info", "get_player", "find_player"]:
+        if PlayerManager.has_method(method_name):
+            var result = PlayerManager.call(method_name, player_id)
+            if result is Dictionary:
+                var info: Dictionary = result
+                var peer_id = info.get("peer_id", -1)
+                if peer_id is int and peer_id > 0:
+                    return peer_id
+    return -1
+```
+
+The signal still fires (the action is observable) even when the
+helper returns `-1`. This pattern is what kept
+`AutoResponseService.action_taken` green in `--script` test
+mode where `PlayerManager` has no `has_player` method.
+
 ---
 
 ## Testing
@@ -319,6 +375,34 @@ func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> voi
 3. Check console for signal connection errors
 4. Verify entity spawning and targeting
 5. Run smoke tests via the islands test runner (`synmergia/tests/test_islands.gd`)
+
+### Headless smoke tests
+
+Each `tests/test_*.gd` is a `SceneTree` script that prints per-case
+`[OK] / [FAIL]` lines and a final summary. Run from the repo root:
+
+```bash
+./tools/godot --headless --path synmergia --script res://tests/test_notification_toast.gd
+./tools/godot --headless --path synmergia --script res://tests/test_hud_integration.gd
+./tools/godot --headless --path synmergia --script res://tests/test_login_flow.gd
+./tools/godot --headless --path synmergia --script res://tests/test_auto_response_signals.gd
+```
+
+| Test | Coverage |
+|------|----------|
+| `test_notification_toast.gd` | NotificationService → TooltipManager.show_toast() end-to-end; RecursionGuard + CircuitBreaker. 11/11 |
+| `test_hud_integration.gd` | HudIntegrator handlers, NotificationService → CombatLog. 7/7 |
+| `test_login_flow.gd` | Account + login + character flow. 21/21 |
+| `test_auto_response_signals.gd` | AutoResponseService `action_taken` / `player_warned` + ActionType enum. 8/8 |
+
+**Total: 47/47 green** as of 2026-09-01.
+
+> **Gotcha:** `--script` mode does not pre-load autoloads. Inside
+> the script, `NotificationService` is not a valid identifier even
+> if `if typeof(NotificationService) != TYPE_NIL` wraps the call
+> (GDScript does static identifier resolution). Resolve autoloads
+> via `root.get_node_or_null("NotificationService")` instead, as
+> the existing test files do.
 
 For `/labs/` frame work: each primitive is co-located with its
 test (`kv/state_tree.gd` + `kv/test_state_tree.gd`). Run tests
@@ -531,6 +615,57 @@ agents should know about:
 - **AUDIT.md moved to `labs/AUDIT.md.legacy`** (frozen).
   Live session log is at `synmergia/AUDIT.md.session-log`
   (still inside the project for now).
+
+---
+
+## Session insights (2026-09-01)
+
+The notification → toast pipeline is now the single channel for
+service-level events. Three commits on `main`:
+
+- **`f794480` Wire notification→toast pipeline across QoS/security/firewall services**
+  TooltipManager.show_toast() + notification_toast layer in
+  HudLayer; QoSService, SecurityMonitor, AppFirewall, and
+  AutoResponseService all route through NotificationService.
+
+- **`58e960e` feat(auto-response): emit action_taken + player_warned signals**
+  New `AutoResponseService` signals: `action_taken(player_id,
+  action, exploit_type, reason)` and `player_warned(player_id,
+  exploit_type, message)`. `ActionType` enum (WARN, MUTE,
+  RESTRICT, KICK, BAN). Test: `test_auto_response_signals.gd`
+  (8/8).
+
+- **`0d737ec` fix(auto-response): defensive _get_peer_for_player**
+  Try-known-methods fallback when the callee autoload is fresh
+  in `--script` mode. Signal still fires even if the peer lookup
+  returns -1. See **Defensive Helper Pattern** above.
+
+**Conventions codified for next sessions:**
+
+- New service? Emit a typed signal first; call
+  `NotificationService` only for one-off messages. See
+  **Notification → Toast Pipeline** above.
+- New helper that bridges two services? Wrap in try-known-methods
+  so a missing method on a fresh autoload doesn't crash the
+  caller's signal path.
+- New smoke test? Use `root.get_node_or_null("X")` to resolve
+  autoloads, never the bare identifier (the parser resolves it
+  statically even inside `typeof(X) != TYPE_NIL` guards).
+- Push to `dhaupin/synmergia main` after every few completed
+  tasks. The user explicitly asked for frequent pushes; the
+  session log is short, and crashed sessions have lost work
+  before.
+
+**Pending for next session** (full list in task tracker):
+- Frame: `NotificationContext` + `NotifKind` under
+  `synmergia/core/notifications/` so all game services use one
+  dispatch shape.
+- TTL-based dedupe layer (default 5s window) so spam-of-spam
+  can't toast.
+- Wire RespawnService / InventoryService / FactionManager
+  through the new frame.
+- Harden QoS / SecurityMonitor / AppFirewall paths when
+  downstream is missing.
 
 ---
 
