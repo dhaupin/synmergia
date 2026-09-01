@@ -181,10 +181,31 @@ func _auto_ban(player_id: String, reason: String, exploit_type: String = "exploi
 ## ============================================================================
 
 func _get_peer_for_player(player_id: String) -> int:
-	# Try to find peer ID from NetworkManager or PlayerManager
-	if PlayerManager and PlayerManager.has_player(player_id):
-		var info = PlayerManager.get_player_info(player_id)
-		return info.get("peer_id", -1)
+	# Defensive: PlayerManager may not expose the lookup methods we expect
+	# in every environment (fresh autoloads in tests, headless mode, etc.).
+	# We try a few known method names and return -1 if any step fails so
+	# callers can still proceed with the action (e.g. the ban path doesn't
+	# strictly need a peer id, since NetworkManager routes via firewall).
+	if PlayerManager == null:
+		return -1
+	for method_name in ["get_player_info", "get_player", "find_player"]:
+		if PlayerManager.has_method(method_name):
+			var result = PlayerManager.call(method_name, player_id)
+			if result is Dictionary:
+				var info: Dictionary = result
+				var peer_id = info.get("peer_id", -1)
+				if peer_id is int and peer_id > 0:
+					return peer_id
+			elif result is int and result > 0:
+				return result
+	# Fallback: scan NetworkManager.connected_peers by player_id key.
+	if NetworkManager and NetworkManager.has_method("get"):
+		var connected = NetworkManager.get("connected_peers")
+		if connected is Dictionary:
+			var connected_dict: Dictionary = connected
+			for peer_id in connected_dict.keys():
+				if "peer_%d" % peer_id == player_id:
+					return int(peer_id)
 	return -1
 
 func _notify_player(player_id: String, message: String) -> void:
