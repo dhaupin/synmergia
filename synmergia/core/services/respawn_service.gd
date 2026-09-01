@@ -11,6 +11,26 @@ signal revive_interrupted(target, healer, reason: String)
 signal karma_gained(entity_id: String, amount: int, reason: String)
 signal karma_lost(entity_id: String, amount: int, reason: String)
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# RespawnService surfaces respawn / revive events through the toast pipeline
+# with per-event dedupe keys so a stuck respawn loop can't toast 100 times.
+const NotificationContext = preload("res://core/notifications/notification_context.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+func _emit_lifecycle(
+	player_id: String,
+	kind: int,
+	message: String,
+	dedupe_key: String = "",
+	data: Dictionary = {}
+) -> void:
+	if not NotificationService:
+		return
+	var ctx = NotificationContext.for_player(
+		player_id, kind, message, "RespawnService", data, dedupe_key
+	)
+	NotificationService.send_event(ctx)
+
 ## Respawn modes
 enum RespawnMode {
 	TIMED,           # Standard timed respawn
@@ -268,7 +288,17 @@ func start_revival(healer, target, context: String = "") -> bool:
 		# Send abuse warning notification
 		if NotificationService:
 			NotificationService.notify_revive_abuse_warning(healer.entity_id, context)
-		
+		# Frame-level toast: penalty applied, surfaces in the toast panel
+		# alongside the legacy chat-log line. Dedupe on the context so the
+		# same player spamming revives doesn't toast 100 times.
+		_emit_lifecycle(
+			healer.entity_id,
+			NotifKind.RESPAWN_PENALTY_APPLIED,
+			"Revive abuse: karma penalty applied (%s)" % context,
+			"respawn_abuse:%s:%s" % [healer.entity_id, context],
+			{"context": context, "penalty": config.penalty, "cooldown_minutes": config.cooldown_minutes}
+		)
+
 		GameLog.warn("RespawnService: Revive abuse detected for %s in %s context" % [healer.display_name, context])
 		return false
 	
@@ -339,10 +369,20 @@ func complete_revival(target_id: String) -> bool:
 	_do_respawn_at(target, healer.global_position, RespawnMode.REVIVE)
 	
 	revive_completed.emit(target, healer)
-	
+
 	# Send notifications
 	if NotificationService:
 		NotificationService.notify_revive_completed(target.entity_id, healer.display_name)
+	# Frame-level toast: the player sees "revived by X" (not the generic
+	# respawn message). Dedupe key combines target + healer so a fresh
+	# revive from a different healer is a separate toast.
+	_emit_lifecycle(
+		target.entity_id,
+		NotifKind.RESPAWNED,
+		"Revived by %s" % healer.display_name,
+		"revive:%s:%s" % [target.entity_id, healer.entity_id],
+		{"healer_id": healer.entity_id, "context": context}
+	)
 	
 	GameLog.info("RespawnService: %s revived %s in %s" % [healer.display_name, target.display_name, context])
 	
@@ -358,12 +398,20 @@ func interrupt_revival(target_id: String, reason: String) -> void:
 	var target = revive_data["target"]
 	
 	_active_revives.erase(target_id)
-	
+
 	# Send notification
 	if NotificationService:
 		NotificationService.notify_revive_failed(target.entity_id, reason)
-	
+
 	revive_interrupted.emit(target, healer, reason)
+	# Frame-level toast: HIGH priority so it lands in the center-screen slot.
+	_emit_lifecycle(
+		target.entity_id,
+		NotifKind.RESPAWN_FAILED,
+		"Revival interrupted: %s" % reason,
+		"revive_interrupted:%s:%s" % [target.entity_id, reason],
+		{"healer_id": healer.entity_id, "reason": reason}
+	)
 	GameLog.info("RespawnService: Revival of %s interrupted by %s: %s" % [target.display_name, healer.display_name, reason])
 
 ## Cancel a revival
@@ -371,8 +419,19 @@ func cancel_revival(healer_id: String) -> void:
 	for target_id in _active_revives.keys():
 		var data: Dictionary = _active_revives[target_id]
 		if data["healer"].entity_id == healer_id:
+			var target = data["target"]
+			var healer = data["healer"]
 			_active_revives.erase(target_id)
-			revive_interrupted.emit(data["target"], data["healer"], "Cancelled")
+			revive_interrupted.emit(target, healer, "Cancelled")
+			# Frame-level toast (the cancelled-by-healer case). Without this,
+			# a healer-initiated cancel would not surface in the toast panel.
+			_emit_lifecycle(
+				target.entity_id,
+				NotifKind.RESPAWN_FAILED,
+				"Revival cancelled by healer",
+				"revive_cancelled:%s:%s" % [target.entity_id, healer.entity_id],
+				{"healer_id": healer.entity_id, "reason": "Cancelled"}
+			)
 			break
 
 ## Internal: Start respawn
@@ -387,12 +446,22 @@ func _do_respawn_at(player, position: Vector3, mode: RespawnMode) -> void:
 	player.health_component._is_dead = false
 	player.health_component.current_health = player.health_component.max_health
 	player.global_position = position
-	
+
 	player.health_component.respawned.emit()
 	EventHub.entity_spawned.emit(player)
 	EventHub.player_respawned.emit(player, position, mode)
-	
+
 	respawn_completed.emit(player, position)
+	# Frame-level toast. Dedupe key includes the mode so a player who cycles
+	# modes (timed → ankh) gets one toast per event, not one per spam.
+	var mode_name: String = RespawnMode.keys()[mode] if mode >= 0 and mode < RespawnMode.size() else "unknown"
+	_emit_lifecycle(
+		player.entity_id,
+		NotifKind.RESPAWNED,
+		"You have respawned (%s)" % mode_name,
+		"respawn:%s:%s" % [player.entity_id, mode_name],
+		{"mode": mode, "position_x": position.x, "position_y": position.y, "position_z": position.z}
+	)
 
 ## Internal: Get zone config
 func _get_zone_config(zone_id: String) -> ZoneRespawnConfig:
