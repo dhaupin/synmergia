@@ -493,10 +493,31 @@ func _broadcast_admin_alert(message: String) -> void:
 ## loop) hit a depth limit — that's a security event admins need to see.
 
 func _on_recursion_block(context: String, current_depth: int, max_depth: int) -> void:
-	_broadcast_admin_alert(
+	# The recursion alert is a high-signal security event; we dispatch
+	# it directly via NotificationService.notify() with SECURITY_BLOCKED
+	# (not ADMIN_ALERT) so dashboards can subscribe to the kind
+	# independently. The dedupe key includes the context so two
+	# different runaway loops surface separately; the time bucket
+	# (second resolution) lets repeat blocks within the same second
+	# collapse but not across seconds. 0 dedupe window for this kind
+	# (per KIND_WINDOW_OVERRIDES) means the time bucket is the only
+	# deduplication.
+	if not is_instance_valid(NotificationService):
+		return
+	NotificationService.notify(
+		NotifKind.SECURITY_BLOCKED,
 		"RecursionGuard: '%s' exceeded max depth %d (current=%d) — possible DoS" % [
 			context, max_depth, current_depth
-		]
+		],
+		"AppFirewall.RecursionGuard",
+		"firewall:recursion:%s:%d" % [context, Time.get_ticks_msec() / 1000],
+		{
+			"context": context,
+			"current_depth": current_depth,
+			"max_depth": max_depth,
+			"source": "firewall",
+		},
+		"admins"
 	)
 
 ## Expose the firewall-owned guard so other services (connectors, agent

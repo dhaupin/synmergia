@@ -46,6 +46,51 @@ func _initialize() -> void:
 	_test_notify_delivers_broadcast()
 	_test_notify_dedupes_identical_calls()
 
+	# Inlined (not a helper) because SceneTree _initialize is where
+	# awaits reliably resume. Helper functions with await behave
+	# inconsistently when the script IS the SceneTree.
+	_notif.reset_dedupe()
+	var firewall: Node = root.get_node_or_null("AppFirewall")
+	if firewall == null:
+		_fail("AppFirewall autoload missing — cannot exercise recursion dispatch")
+	else:
+		var guard: RefCounted = firewall.get_recursion_guard()
+		if guard == null:
+			_fail("AppFirewall.get_recursion_guard() returned null")
+		else:
+			# AF routes admin-scope notifications as player_id="admins" via
+			# NotificationService.notify(recipient="admins"). That hits
+			# the per-player branch in send_event(), so the message
+			# lands in get_history("admins"). The notification dict has
+			# "kind" and "data" (our metadata).
+			guard.set_max_depth("frame_test:recursion_a", 1)
+			guard.enter("frame_test:recursion_a")
+			guard.enter("frame_test:recursion_a")
+			guard.set_max_depth("frame_test:recursion_b", 1)
+			guard.enter("frame_test:recursion_b")
+			guard.enter("frame_test:recursion_b")
+			await process_frame
+			var admins_history: Array = _notif.get_history("admins", 100)
+			var captured: Array = []
+			# In the per-player path, the top-level dict carries "type"
+			# (legacy NotificationType) but the NotifKind is inside the
+			# nested "data" dict (because send_event copies kind into
+			# data before calling send()).
+			for n in admins_history:
+				var data: Dictionary = n.get("data", {})
+				if data.get("kind", -1) == NotifKind.SECURITY_BLOCKED:
+					captured.append(n)
+			var contexts_seen: Dictionary = {}
+			for notif in captured:
+				var data: Dictionary = notif.get("data", {})
+				contexts_seen[data.get("context", "")] = true
+			if captured.size() < 2:
+				_fail("recursion block should produce 2 SECURITY_BLOCKED events (got %d)" % captured.size())
+			elif not contexts_seen.has("frame_test:recursion_a") or not contexts_seen.has("frame_test:recursion_b"):
+				_fail("recursion block dedupe collapsed different contexts (saw %s)" % str(contexts_seen.keys()))
+			else:
+				_ok("AppFirewall recursion block dispatches SECURITY_BLOCKED per-context (saw %d events)" % captured.size())
+
 	_finish()
 
 
@@ -350,7 +395,6 @@ func _test_notify_dedupes_identical_calls() -> void:
 		_fail("notify() should dedupe 10 identical calls to 1 (got %d)" % delivered_count)
 		return
 	_ok("notify() collapses 10 identical calls within the dedupe window to 1 delivery")
-
 
 func _ok(msg: String) -> void:
 	_passed += 1
