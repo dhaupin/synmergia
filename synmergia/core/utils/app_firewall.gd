@@ -2,6 +2,11 @@
 ## Tracks connections, blocks suspicious IPs, and manages bans
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# AppFirewall surfaces ban / block / recursion-guard events to admins
+# through the typed-Kind pipeline. ADMIN_ALERT → ALERT + HIGH.
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
@@ -420,57 +425,30 @@ func get_stats() -> Dictionary:
 ## NotificationService is autoloaded — it just no-ops.
 
 func _broadcast_admin_alert(message: String) -> void:
-	# Fast path: if NotificationService is autoloaded, use the typed
-	# `send_to_player` alias. This bypasses broadcast_alert's
-	# scope→player resolution (which silently no-ops when no players
-	# are registered, e.g. in headless tests) and guarantees the
-	# notification_sent signal fires so the HUD toast path lights up.
-	if is_inside_tree() and NotificationService and NotificationService.has_method("send_to_player"):
-		NotificationService.send_to_player(
-			"admins",
+	# Fast path: frame-level dispatch through the typed-Kind pipeline.
+	# ADMIN_ALERT maps to ALERT + HIGH. send_event() fires
+	# notification_received unconditionally, so the toast/chat pipeline
+	# lights up even when no players are in scope (server-only boot,
+	# headless tests).
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
 			"[FIREWALL] " + message,
-			14, # NotificationType.ALERT
-			3   # Priority.CRITICAL
+			"AppFirewall",
+			"firewall:%s" % message.hash(),
+			{"message": message},
+			"admins"
 		)
 		return
 
-	# Fallback: pre-autoload or stripped-down boot — try the dynamic
-	# broadcast_alert path (older callers + tests without autoloads).
-	var notifier: Node = null
-	if Engine.has_singleton("NotificationService"):
-		notifier = Engine.get_singleton("NotificationService")
-	if notifier == null and is_inside_tree():
-		var root := get_tree().get_root()
-		if root:
-			notifier = root.get_node_or_null("NotificationService")
-	if notifier == null or not notifier.has_method("broadcast_alert"):
-		GameLog.info("[FIREWALL] %s" % message)
-		return
-
-	# Reach into the notifier's script to construct a server-wide
-	# AlertScope. AlertScope is an inner class on NotificationService —
-	# the cleanest path is the static factory on the class itself.
-	var scope_script: Script = notifier.get_script()
-	if scope_script == null:
-		GameLog.warn("[FIREWALL] %s" % message)
-		return
-	var AlertScopeClass: Script = scope_script.get("AlertScope")
-	if AlertScopeClass == null:
-		GameLog.warn("[FIREWALL] %s" % message)
-		return
-	# AlertScope has a static factory `server_wide()`. Invoke it via
-	# Script.call(); falls back to a manually-flagged instance if the
-	# static method isn't present (older builds).
-	var scope = AlertScopeClass.call("server_wide")
-	if scope == null:
-		scope = AlertScopeClass.new()
-		scope.set("is_server_wide", true)
-	notifier.call(
-		"broadcast_alert",
-		"[FIREWALL] " + message,
-		[scope],
-		14 # NotificationType.ALERT — literal int; NotificationService has no class_name
-	)
+	# Fallback: pre-autoload or stripped-down boot (e.g. test mode without
+	# the autoload tree). Just log it. The previous code tried a long chain
+	# of dynamic fallbacks (Engine.has_singleton → get_node_or_null →
+	# get_script().get("AlertScope") → .call("server_wide") → ...), all of
+	# which were workarounds for the missing class_name on
+	# NotificationService. With the frame's notify() verb, the typed entry
+	# point is reachable in one call.
+	GameLog.info("[FIREWALL] %s" % message)
 
 ## ============================================================================
 ## RECURSION GUARD INTEGRATION

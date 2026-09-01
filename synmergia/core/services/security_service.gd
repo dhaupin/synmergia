@@ -2,6 +2,12 @@
 ## Handles input validation, permission checks, and anti-exploit measures
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# SecurityService surfaces restriction / un-restriction events through the
+# typed-Kind pipeline. The dispatch goes through NotificationService.notify
+# (the service-level verb that wraps send_event).
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
@@ -375,9 +381,9 @@ func _notify_player_restricted(player_id: String, restriction_type: String, dura
 		return
 	if not GameConfig.Security.ALERT_ON_RESTRICTION:
 		return
-	if not NotificationService:
+	if not is_instance_valid(NotificationService):
 		return
-	
+
 	var message: String = ""
 	match restriction_type:
 		"chat":
@@ -393,12 +399,19 @@ func _notify_player_restricted(player_id: String, restriction_type: String, dura
 			message = "You have been temporarily restricted from creating parties for %d seconds." % duration_seconds
 		_:
 			message = "You have been restricted from %s for %d seconds." % [restriction_type, duration_seconds]
-	
-	NotificationService.send_to_player(
-		player_id,
+
+	# Frame-level dispatch. SECURITY_BLOCKED → ALERT + HIGH (slightly louder
+	# than the legacy WARNING + HIGH, but a block IS an alert-worthy event).
+	# Dedupe on (player, type) so a quick double-click on the admin button
+	# doesn't toast twice; the 5s window is far shorter than any real
+	# restriction, so a lifted-then-reapplied restriction still toasts.
+	NotificationService.notify(
+		NotifKind.SECURITY_BLOCKED,
 		message,
-		NotificationService.NotificationType.WARNING,
-		NotificationService.Priority.HIGH
+		"SecurityService",
+		"sec_blocked:%s:%s" % [player_id, restriction_type],
+		{"restriction_type": restriction_type, "duration_seconds": duration_seconds},
+		player_id
 	)
 
 ## Notify player their restriction has been lifted
@@ -408,9 +421,9 @@ func _notify_player_unrestricted(player_id: String, restriction_type: String) ->
 		return
 	if not GameConfig.Security.ALERT_ON_UNRESTRICTION:
 		return
-	if not NotificationService:
+	if not is_instance_valid(NotificationService):
 		return
-	
+
 	var message: String = ""
 	match restriction_type:
 		"chat":
@@ -421,12 +434,17 @@ func _notify_player_unrestricted(player_id: String, restriction_type: String) ->
 			message = "Party creation restriction lifted. You can create parties again."
 		_:
 			message = "Your restriction on %s has been lifted." % restriction_type
-	
-	NotificationService.send_to_player(
-		player_id,
+
+	# Frame-level dispatch. SECURITY_WARNING → WARNING + LOW (the lift is
+	# informational, not an alert). Dedupe on (player, type) so a tickle
+	# of the unrestrict API doesn't spam the player with "lifted!" toasts.
+	NotificationService.notify(
+		NotifKind.SECURITY_WARNING,
 		message,
-		NotificationService.NotificationType.SYSTEM,
-		NotificationService.Priority.NORMAL
+		"SecurityService",
+		"sec_unblocked:%s:%s" % [player_id, restriction_type],
+		{"restriction_type": restriction_type, "event": "unrestricted"},
+		player_id
 	)
 
 ## ============================================================================
