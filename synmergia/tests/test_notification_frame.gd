@@ -91,6 +91,39 @@ func _initialize() -> void:
 			else:
 				_ok("AppFirewall recursion block dispatches SECURITY_BLOCKED per-context (saw %d events)" % captured.size())
 
+		# QoS autoload rate-limit → RATE_LIMITED notification. The
+		# autoload's script has class_name QoSService, which collides
+		# with the autoload's registered name. Godot renames the
+		# autoload node to "#ServicesQoSService" to disambiguate;
+		# looking it up by that name avoids parsing the script
+		# during the test's own compile pass (which would fail
+		# because NotificationService isn't visible yet).
+		var qos_inst: Node = root.get_node_or_null("#ServicesQoSService")
+		if qos_inst == null:
+			_fail("QoSService autoload missing")
+		else:
+			# Touch the config first so the lazy build runs and the
+			# cached dict is materialised; set_rate_limit() then mutates
+			# the live cached dict (otherwise the cache reassigns on
+			# the first read and the override is dropped).
+			qos_inst.call("_get_rate_limit_config")
+			qos_inst.call("set_rate_limit", "frame_test_action", 1.0)
+			_notif.reset_dedupe()
+			var rate_limited_seen: bool = false
+			for i in 5:
+				qos_inst.call("_rate_limit_impl", "frame_test_qos_p", "frame_test_action")
+			await process_frame
+			var qos_hist: Array = _notif.get_history("frame_test_qos_p", 100)
+			for n in qos_hist:
+				var data: Dictionary = n.get("data", {})
+				if data.get("kind", -1) == NotifKind.RATE_LIMITED:
+					rate_limited_seen = true
+					break
+			if not rate_limited_seen:
+				_fail("QoSService rate-limit did not produce RATE_LIMITED notification")
+			else:
+				_ok("QoSService rate-limit dispatches RATE_LIMITED")
+
 	_finish()
 
 

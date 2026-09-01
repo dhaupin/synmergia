@@ -3,6 +3,8 @@
 class_name MatchmakingQoS
 extends Node
 
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 signal connection_quality_changed(player_id: String, quality: ConnectionQuality)
 signal latency_warning(player_id: String, latency_ms: int)
 signal throttled(player_id: String, reason: String)
@@ -87,7 +89,30 @@ func update_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 	
 	if old_quality != new_quality:
 		connection_quality_changed.emit(player_id, new_quality)
-	
+		# Frame notification: surface the transition to the toast
+		# pipeline. Worse than before → QOS_DEGRADED; better →
+		# QOS_RECOVERED. The dedupe key includes the player and the
+		# second-resolution bucket so a flapping connection doesn't
+		# spam the toasts but a real recovery does surface.
+		if is_instance_valid(NotificationService):
+			var kind: int = NotifKind.QOS_DEGRADED if new_quality > old_quality else NotifKind.QOS_RECOVERED
+			NotificationService.notify(
+				kind,
+				"Connection quality: %s (latency %dms, loss %.0f%%)" % [
+					ConnectionQuality.keys()[new_quality], latency_ms, packet_loss * 100.0
+				],
+				"QoSService",
+				"qos:quality:%s:%d" % [player_id, Time.get_ticks_msec() / 1000],
+				{
+					"player_id": player_id,
+					"old_quality": ConnectionQuality.keys()[old_quality],
+					"new_quality": ConnectionQuality.keys()[new_quality],
+					"latency_ms": latency_ms,
+					"packet_loss": packet_loss,
+				},
+				player_id
+			)
+
 	# Warnings
 	if new_quality == ConnectionQuality.POOR:
 		latency_warning.emit(player_id, latency_ms)
@@ -189,7 +214,24 @@ func get_poor_quality_players() -> Array:
 func throttle_player(player_id: String, reason: String, duration_ms: int = 5000) -> void:
 	throttled.emit(player_id, reason)
 	GameLog.warn("QoSService: Throttled %s: %s" % [player_id, reason])
-	
+	# Frame notification: THROTTLED maps to WARNING + NORMAL (per
+	# _priority_for_kind). The dedupe key includes the player and the
+	# second-resolution bucket so repeated throttles within the same
+	# second collapse.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.THROTTLED,
+			"You're casting too fast. %s" % reason,
+			"QoSService",
+			"qos:throttle:%s:%d" % [player_id, Time.get_ticks_msec() / 1000],
+			{
+				"player_id": player_id,
+				"reason": reason,
+				"duration_ms": duration_ms,
+			},
+			player_id
+		)
+
 	# Auto-unthrottle after duration
 	await get_tree().create_timer(duration_ms / 1000.0).timeout
 	# Notify unthrottled (would need more complex state management for this)

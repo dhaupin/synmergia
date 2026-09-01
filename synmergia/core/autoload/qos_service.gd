@@ -229,15 +229,13 @@ func _rate_limit_impl(player_id: String, action_type: String) -> bool:
 
 ## Notify player they've been rate limited
 func _notify_player_rate_limit(player_id: String, action_type: String, max_rate: float) -> void:
-	# Respect config toggle. GameConfig is an autoload; access it via the
-	# scene tree so check-only mode parses without class_name.
-	var config: Node = _resolve_autoload("GameConfig")
-	if config == null:
+	# Respect config toggle. GameConfig.Security is an inner class with
+	# const booleans; the previous runtime-dict lookup (config.get("Security"))
+	# never matched because Node has no generic .get(String) for an inner-class
+	# const, so the function bailed early. Access the const directly.
+	if not GameConfig.Security.ENABLE_SECURITY_ALERTS:
 		return
-	var security: Dictionary = config.get("Security") if config.get("Security") is Dictionary else {}
-	if not security.get("ENABLE_SECURITY_ALERTS", false):
-		return
-	if not security.get("ALERT_ON_RATE_LIMIT", false):
+	if not GameConfig.Security.ALERT_ON_RATE_LIMIT:
 		return
 
 	if not is_instance_valid(NotificationService):
