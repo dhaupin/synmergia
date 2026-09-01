@@ -124,6 +124,82 @@ func _initialize() -> void:
 			else:
 				_ok("QoSService rate-limit dispatches RATE_LIMITED")
 
+	# Firewall: ban_player (permanent and temporary) and block_ip must
+	# dispatch SECURITY_BLOCKED to the affected player. The previous
+	# dedupe-key design used `ban:%s` for both perm and temp, which
+	# collapsed back-to-back admin actions on the same player into a
+	# single toast. Verify the per-action dedupe keys disambiguate.
+	# Reuse the autoload's instance: it's already on the tree with the
+	# right config (GameConfig.Security.*) from NetworkManager._ready().
+	# We don't instantiate a fresh one because the autoload is the
+	# canonical firewall.
+	var fw: Node = root.get_node_or_null("AppFirewall")
+	if fw == null:
+		_fail("AppFirewall autoload missing — cannot exercise firewall dispatch")
+	else:
+		# Permanent ban → SECURITY_BLOCKED, key `ban_perm:<player>`
+		_notif.reset_dedupe()
+		fw.call("ban_player", "frame_fw_perm", "spam", "admin")
+		await process_frame
+		var perm_hist: Array = _notif.get_history("frame_fw_perm", 100)
+		var perm_blocked: bool = false
+		for n in perm_hist:
+			if n.get("data", {}).get("kind", -1) == NotifKind.SECURITY_BLOCKED:
+				perm_blocked = true
+				break
+		if perm_blocked:
+			_ok("Firewall permanent ban dispatches SECURITY_BLOCKED")
+		else:
+			_fail("Firewall permanent ban did not produce SECURITY_BLOCKED")
+
+		# Temporary ban → SECURITY_BLOCKED, key `ban_temp:<player>`. Reset
+		# the dedupe table between the two so the perm key from above
+		# doesn't poison the temp lookup.
+		_notif.reset_dedupe()
+		fw.call("temp_ban_player", "frame_fw_temp", 30, "spam")
+		await process_frame
+		var temp_hist: Array = _notif.get_history("frame_fw_temp", 100)
+		var temp_blocked: bool = false
+		for n in temp_hist:
+			if n.get("data", {}).get("kind", -1) == NotifKind.SECURITY_BLOCKED:
+				temp_blocked = true
+				break
+		if temp_blocked:
+			_ok("Firewall temporary ban dispatches SECURITY_BLOCKED")
+		else:
+			_fail("Firewall temporary ban did not produce SECURITY_BLOCKED")
+
+		# Lift ban → SECURITY_WARNING
+		_notif.reset_dedupe()
+		fw.call("lift_ban", "frame_fw_perm")
+		await process_frame
+		var lift_hist: Array = _notif.get_history("frame_fw_perm", 100)
+		var lift_warned: bool = false
+		for n in lift_hist:
+			if n.get("data", {}).get("kind", -1) == NotifKind.SECURITY_WARNING:
+				lift_warned = true
+				break
+		if lift_warned:
+			_ok("Firewall lift_ban dispatches SECURITY_WARNING")
+		else:
+			_fail("Firewall lift_ban did not produce SECURITY_WARNING")
+
+		# block_ip → ADMIN_ALERT (admins only; the IP owner may not even
+		# be in the system, so this is the right audience).
+		_notif.reset_dedupe()
+		fw.call("block_ip", "10.0.0.99", "spam-source", 120)
+		await process_frame
+		var admin_hist: Array = _notif.get_history("admins", 100)
+		var admin_alert: bool = false
+		for n in admin_hist:
+			if n.get("data", {}).get("kind", -1) == NotifKind.ADMIN_ALERT:
+				admin_alert = true
+				break
+		if admin_alert:
+			_ok("Firewall block_ip dispatches ADMIN_ALERT")
+		else:
+			_fail("Firewall block_ip did not produce ADMIN_ALERT")
+
 	_finish()
 
 
