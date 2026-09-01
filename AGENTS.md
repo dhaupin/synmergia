@@ -150,17 +150,44 @@ if TradeService.can_trade_item(item):
 ```
 
 ### Sending Notifications
-```gdscript
-# To a specific player
-NotificationService.send_to_player(player_id, "Hello!", NotificationService.NotificationType.INFO)
 
-# Server-wide alert
-NotificationService.broadcast_alert(
-    "Server announcement!",
-    [NotificationService.AlertScope.server_wide()],
-    NotificationService.NotificationType.ALERT
+Use the **typed-Kind pipeline** (`NotificationService.notify()`) for
+all service-level toasts. The frame handles dedupe, type-mapping, and
+priority automatically based on the kind.
+
+```gdscript
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+# To a specific player
+NotificationService.notify(
+    NotifKind.ITEM_ADDED,
+    "Picked up Sword of Truth",
+    "InventoryService",                       # source_service label
+    "inv_add:%s:%s" % [player_id, item_id],   # dedupe key (5s window)
+    {"item_id": item_id, "rarity": "epic"},
+    player_id                                  # recipient
+)
+
+# Server-wide / admin scope (recipient = "")
+NotificationService.notify(
+    NotifKind.ADMIN_ALERT,
+    "RecursionGuard exceeded depth 16",
+    "AppFirewall",
+    "fw:%s" % message.hash(),
+    {"context": "agent_tool_call", "depth": 16}
 )
 ```
+
+The kinds are coarse-grained. Pick a fine-grained one (RATE_LIMITED,
+SECURITY_BLOCKED, ITEM_FULL, RESPAWNED) over a broad one (SYSTEM) so
+the toast panel / admin dashboards can subscribe to one kind without
+parsing the message. The full enum is in
+`synmergia/core/notifications/notification_kind.gd`.
+
+**Don't** call `NotificationService.send_to_player()` directly for
+new code — that's the legacy path. If you need a raw message that
+doesn't fit any kind, use `NotifKind.CUSTOM` and consider whether a
+new kind should be added.
 
 ### Notification → Toast Pipeline
 Every service-level event ends up in a toast panel in `HudLayer`.
@@ -168,28 +195,45 @@ The flow is:
 
 ```
 Service (QoS, Security, AutoResponse, AppFirewall, ...)
-  └── emits structured signal (action_taken, player_warned, …)
-       └── NotificationService.send_to_player / broadcast_alert
-            └── TooltipManager.show_toast()  (single render entry point)
-                 └── Panel in HudLayer (queue, stack-limited)
+  └── NotificationService.notify(kind, msg, source, dedupe_key, data, recipient)
+       └── builds NotificationContext, calls send_event()
+            └── NotificationDispatcher (5s dedupe gate)
+                 └── send() (player) / broadcast_alert() (server-wide)
+                      └── TooltipManager.show_toast()  (single render entry point)
+                           └── Panel in HudLayer (queue, stack-limited)
 ```
 
+There are two entry points on `NotificationService`:
+
+- **`send_event(context)`** — the frame-level "shape" entry. Takes a
+  `NotificationContext`. Used by tests and by code that already has a
+  context object.
+- **`notify(kind, msg, source, dedupe_key, data, recipient)`** — the
+  service-level "verb". Builds the context and forwards. **This is
+  what new service code should call.** All four infrastructure
+  services (QoS, Security, SecurityMonitor, AppFirewall) use it.
+
 When you add a new service, prefer **emitting a typed signal** over
-calling `NotificationService` directly. That keeps the service
-unit-testable (no autoload dependency) and gives admin UI / QoS
-dashboards a uniform subscription point.
+calling `NotificationService` directly for *in-game* state changes
+(death, level-up, item equipped). For *infrastructure* events
+(throttled, restricted, banned, recursion-blocked), the user must
+see a toast — call `notify()` directly so the message is delivered.
 
 ```gdscript
-# GOOD: emit a structured signal, NotificationService listens if it cares
-signal action_taken(player_id: String, action: int, exploit_type: String, reason: String)
-action_taken.emit(player_id, ActionType.MUTE, "spam", "auto-muted for 300s")
+# GOOD (infrastructure): the player must know they were throttled
+NotificationService.notify(
+    NotifKind.RATE_LIMITED, "You're casting too fast",
+    "QoSService", "qos_rl:%s:cast" % player_id, {}, player_id
+)
 
-# OK: call NotificationService directly for one-off messages
-NotificationService.send_to_player(player_id, "Welcome!", NotificationService.NotificationType.INFO)
+# GOOD (in-game state): emit a signal, NotificationService listens if it cares
+signal item_equipped(player_id: String, item_id: String)
+item_equipped.emit(player_id, item_id)
 ```
 
 Tests that exercise the full pipeline live in
-`tests/test_notification_toast.gd` and `tests/test_auto_response_signals.gd`.
+`tests/test_notification_toast.gd`, `tests/test_notification_frame.gd`,
+and `tests/test_auto_response_signals.gd`.
 
 ### Getting Nearby Players (Chat Range)
 ```gdscript
@@ -666,6 +710,89 @@ service-level events. Three commits on `main`:
   through the new frame.
 - Harden QoS / SecurityMonitor / AppFirewall paths when
   downstream is missing.
+
+---
+
+## Session insights (2026-09-01, evening)
+
+The frame + service-wiring pass from the morning is now
+**structurally complete** and the four infrastructure services
+(QoS, Security, SecurityMonitor, AppFirewall) have been refactored
+to use it. Two new commits on `main`:
+
+- **`e8e0d72` feat(notifications): add NotificationService.notify() verb**
+  The frame had two entry points after the morning work:
+  `send_event(context)` (frame-level "shape") and direct calls to
+  `send_to_player` (legacy). The new `notify(kind, msg, source,
+  dedupe_key, data, recipient)` is the service-level "verb" —
+  builds a `NotificationContext` and forwards. New service code
+  uses notify(); the frame/tests still use send_event(). Frame
+  suite: 11 → 14 passing.
+
+- **`c61c7c7` refactor(qos,security,firewall): route all toasts through notify()**
+  QoSService, SecurityService, SecurityMonitor, and AppFirewall
+  now dispatch via `notify()`. The refactor removed three classes
+  of band-aid code that existed only because `NotificationService`
+  has no `class_name`:
+    1. `notifier.call("send_to_player", ..., 13, 2)` dynamic
+       dispatch with raw-int enums (13=WARNING, 2=HIGH).
+    2. `if NotificationService.has_method("send_to_player")` boot
+       paranoia.
+    3. The ~50-line `Engine.has_singleton → get_node_or_null →
+       get_script → .get("AlertScope") → .call("server_wide") →
+       .new() → .set("is_server_wide", true) → .call("broadcast_alert")`
+       fallback chain in AppFirewall. notify() collapses it to
+       one line.
+
+  Net diff: -57 lines (the AppFirewall fallback alone dropped
+  from ~50 lines to ~10). **Total session suite: 61/61 green**
+  (toast 11, frame 14, hud 7, ARS 8, login 21).
+
+**What "clean" looks like now** (the pattern for future services):
+
+```gdscript
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+func _on_throttled(player_id: String, action: String) -> void:
+    if not is_instance_valid(NotificationService):
+        return
+    NotificationService.notify(
+        NotifKind.RATE_LIMITED,
+        "You're doing that too fast",
+        "MyService",
+        "mysvc:%s:%s" % [player_id, action],  # dedupe key
+        {"action": action},
+        player_id
+    )
+```
+
+Five things that are now true and that future agents can rely on:
+
+1. **One entry point for service code:** `NotificationService.notify(...)`.
+   Anything else is legacy.
+2. **Dedupe is automatic.** Pass a stable key (e.g. `<svc>:<player>:<event>`)
+   and you get a 5s window for free. The window is short enough that
+   legitimate "the same event happening again" toasts still work
+   (a chat-mute that lasts hours will toast on re-mute; only the
+   in-window duplicate collapses).
+3. **Type/priority come from the kind.** Don't pass them. The
+   kind→type/priority tables are in `notification_service.gd` and
+   the tests cover the mapping.
+4. **The frame is the autoload-only "shape" entry.** Tests and any
+   code that already has a `NotificationContext` use `send_event()`
+   directly. Service code uses `notify()`.
+5. **The dynamic-dispatch / raw-int / has_method fallback patterns
+   are dead.** If you see them in a service, it's pre-frame
+   code that should be migrated.
+
+**Open items for next session** (not blocking):
+- A user-facing "you've been blocked" toast in AppFirewall when a
+  *player*'s connection is rejected (currently the recursion-block
+  and ban events are admin-scoped only). The player would benefit
+  from a clear "Connection rejected: suspicious activity" toast.
+- Per-kind dedupe window override — the kind table currently has
+  one default 5s window; some events (e.g. ban) probably want
+  "never dedupe, always toast" semantics.
 
 ---
 
