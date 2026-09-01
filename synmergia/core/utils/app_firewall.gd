@@ -250,14 +250,15 @@ func ban_player(player_id: String, reason: String, banned_by: String = "system")
 	# whether they're still connected (they're about to be disconnected)
 	# but the toast lands on their last-known client if any, and in the
 	# reconnect attempt on a future login. SECURITY_BLOCKED → ALERT + HIGH.
-	# Dedupe on ban:<player> so a chain of admin actions doesn't stack
-	# toasts in the audit log.
+	# Dedupe key disambiguates permanent from temporary: an admin perm-banning
+	# then temp-banning the same player (rare but valid) surfaces as two
+	# distinct toasts in the audit log instead of collapsing to one.
 	if is_instance_valid(NotificationService):
 		NotificationService.notify(
 			NotifKind.SECURITY_BLOCKED,
 			"You have been permanently banned. Reason: %s" % reason,
 			"AppFirewall",
-			"ban:%s" % player_id,
+			"ban_perm:%s" % player_id,
 			{"reason": reason, "banned_by": banned_by, "duration": -1, "kind": "permanent"},
 			player_id
 		)
@@ -289,7 +290,7 @@ func temp_ban_player(player_id: String, duration_seconds: int, reason: String) -
 			NotifKind.SECURITY_BLOCKED,
 			"You have been temporarily banned for %d seconds. Reason: %s" % [duration_seconds, reason],
 			"AppFirewall",
-			"ban:%s" % player_id,
+			"ban_temp:%s" % player_id,
 			{"reason": reason, "duration": duration_seconds, "kind": "temporary"},
 			player_id
 		)
@@ -465,11 +466,18 @@ func _broadcast_admin_alert(message: String) -> void:
 	# lights up even when no players are in scope (server-only boot,
 	# headless tests).
 	if is_instance_valid(NotificationService):
+		# Dedupe key includes a second-resolution time bucket plus the
+		# message hash. The previous key was just the message hash, which
+		# means two distinct admin actions with the same payload (rare but
+		# real: two IP blocks for the same reason) collapse to one toast.
+		# The time bucket is the only dedupe axis now; multiple distinct
+		# actions in the same second still surface, but a single action
+		# re-firing in the next second also surfaces (no false collapse).
 		NotificationService.notify(
 			NotifKind.ADMIN_ALERT,
 			"[FIREWALL] " + message,
 			"AppFirewall",
-			"firewall:%s" % message.hash(),
+			"firewall:%d:%d" % [Time.get_ticks_msec() / 1000, message.hash()],
 			{"message": message},
 			"admins"
 		)
