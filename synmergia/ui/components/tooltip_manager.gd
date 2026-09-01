@@ -317,8 +317,8 @@ func _populate_player_tooltip() -> void:
 	_add_spacer()
 
 	var level: int = _data.get("level", 1)
-	var class_name: String = _data.get("class", "Adventurer")
-	_add_line("Level %d %s" % [level, class_name], Color(0.7, 0.7, 0.7))
+	var class_label: String = _data.get("class", "Adventurer")
+	_add_line("Level %d %s" % [level, class_label], Color(0.7, 0.7, 0.7))
 
 	# PvP status
 	if _data.get("pvp_enabled", false):

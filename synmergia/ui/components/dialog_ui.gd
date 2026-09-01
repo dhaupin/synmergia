@@ -33,65 +33,65 @@ func _setup_ui() -> void:
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)
 
-var style := StyleBoxFlat.new()
-style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-style.border_color = UIStyles.COLORS.accent_gold
-style.border_width_left = 2
-style.border_width_right = 2
-style.border_width_top = 2
-style.border_width_bottom = 2
-style.corner_radius_top_left = 8
-style.corner_radius_top_right = 8
-style.corner_radius_bottom_left = 8
-style.corner_radius_bottom_right = 8
-panel.add_theme_stylebox_override("panel", style)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
+	style.border_color = UIStyles.COLORS.accent_gold
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	panel.add_theme_stylebox_override("panel", style)
 
-var vbox := VBoxContainer.new()
-vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-panel.add_child(vbox)
+	var vbox := VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.add_child(vbox)
 
-# Portrait row
-var portrait_row := HBoxContainer.new()
-portrait_row.custom_minimum_size.y = 60
-vbox.add_child(portrait_row)
+	# Portrait row
+	var portrait_row := HBoxContainer.new()
+	portrait_row.custom_minimum_size.y = 60
+	vbox.add_child(portrait_row)
 
-_portrait = TextureRect.new()
-_portrait.name = "Portrait"
-_portrait.custom_minimum_size = Vector2(60, 60)
-_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-portrait_row.add_child(_portrait)
+	_portrait = TextureRect.new()
+	_portrait.name = "Portrait"
+	_portrait.custom_minimum_size = Vector2(60, 60)
+	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait_row.add_child(_portrait)
 
-var portrait_spacer := Control.new()
-portrait_spacer.custom_minimum_size.x = 10
-portrait_row.add_child(portrait_spacer)
+	var portrait_spacer := Control.new()
+	portrait_spacer.custom_minimum_size.x = 10
+	portrait_row.add_child(portrait_spacer)
 
-_speaker_label = Label.new()
-_speaker_label.name = "Speaker"
-_speaker_label.add_theme_font_size_override("font_size", 16)
-_speaker_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-portrait_row.add_child(_speaker_label)
+	_speaker_label = Label.new()
+	_speaker_label.name = "Speaker"
+	_speaker_label.add_theme_font_size_override("font_size", 16)
+	_speaker_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	portrait_row.add_child(_speaker_label)
 
-# Dialog text
-_text_rich_label = RichTextLabel.new()
-_text_rich_label.name = "DialogText"
-_text_rich_label.bbcode_enabled = true
-_text_rich_label.custom_minimum_size.y = 60
-_text_rich_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-_text_rich_label.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
-vbox.add_child(_text_rich_label)
+	# Dialog text
+	_text_rich_label = RichTextLabel.new()
+	_text_rich_label.name = "DialogText"
+	_text_rich_label.bbcode_enabled = true
+	_text_rich_label.custom_minimum_size.y = 60
+	_text_rich_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_text_rich_label.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
+	vbox.add_child(_text_rich_label)
 
-# Choices container
-_choice_buttons = VBoxContainer.new()
-_choice_buttons.name = "Choices"
-vbox.add_child(_choice_buttons)
+	# Choices container
+	_choice_buttons = VBoxContainer.new()
+	_choice_buttons.name = "Choices"
+	vbox.add_child(_choice_buttons)
 
-# Continue button
-_continue_btn = Button.new()
-_continue_btn.name = "Continue"
-_continue_btn.text = "Continue..."
-_continue_btn.alignment = HORIZONTAL_ALIGNMENT_RIGHT
-_continue_btn.pressed.connect(_on_continue_pressed)
-vbox.add_child(_continue_btn)
+	# Continue button
+	_continue_btn = Button.new()
+	_continue_btn.name = "Continue"
+	_continue_btn.text = "Continue..."
+	_continue_btn.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_continue_btn.pressed.connect(_on_continue_pressed)
+	vbox.add_child(_continue_btn)
 
 func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	_current_npc = npc_id

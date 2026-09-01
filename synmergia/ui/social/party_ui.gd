@@ -107,7 +107,12 @@ func _refresh_members() -> void:
 	if not PartyService:
 		return
 
-	var party_id: String = PartyService.get_player_party(_player_id)
+	var party_data: Dictionary = PartyService.get_player_party(_player_id)
+	if party_data.is_empty():
+		_members_list.add_item("Not in a party")
+		return
+
+	var party_id: String = party_data.get("id", "")
 	if party_id == "":
 		_members_list.add_item("Not in a party")
 		return
@@ -130,7 +135,11 @@ func _refresh_pending() -> void:
 	if not PartyService:
 		return
 
-	var party_id: String = PartyService.get_player_party(_player_id)
+	var party_data: Dictionary = PartyService.get_player_party(_player_id)
+	if party_data.is_empty():
+		return
+
+	var party_id: String = party_data.get("id", "")
 	if party_id == "":
 		return
 
@@ -151,25 +160,26 @@ func _on_invite() -> void:
 	dialog.queue_free()
 
 	if target_name != "" and PartyService:
-		var result: Dictionary = PartyService.invite_player(_player_id, target_name)
-		show_notification(result.get("message", ""))
+		var ok: bool = PartyService.invite_player(_player_id, target_name)
+		show_notification("Invite sent." if ok else "Failed to send invite.")
 
 func _on_leave() -> void:
 	if PartyService:
-		var result: Dictionary = PartyService.leave_party(_player_id)
-		show_notification(result.get("message", ""))
+		var ok: bool = PartyService.leave_party(_player_id)
+		show_notification("Left the party." if ok else "Failed to leave the party.", ok)
 		_refresh_members()
 
 func _on_disband() -> void:
 	if not PartyService:
 		return
-	var party_id: String = PartyService.get_player_party(_player_id)
+	var party_data: Dictionary = PartyService.get_player_party(_player_id)
+	var party_id: String = party_data.get("id", "")
 	if party_id != "":
-		var result: Dictionary = PartyService.disband_party(_player_id, party_id)
-		if result.get("success", false):
+		var ok: bool = PartyService.disband_party(party_id)
+		if ok:
 			close()
 
-func show_notification(message: String) -> void:
+func show_notification(message: String, _success: bool = true) -> void:
 	var notif := Label.new()
 	notif.text = message
 	notif.add_theme_color_override("font_color", UIStyles.COLORS.success)

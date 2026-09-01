@@ -17,7 +17,7 @@ var _tab_buttons: Array = []
 func _ready() -> void:
 	super._ready()
 	set_title("Quest Journal")
-	set_size(Vector2(500, 450))
+	set_panel_size(Vector2(500, 450))
 	_setup_ui()
 	_connect_signals()
 
@@ -36,9 +36,9 @@ func _setup_ui() -> void:
 	main.add_child(_tab_bar)
 
 	var tabs := [
-		{Tab.ACTIVE, "Active"},
-		{Tab.COMPLETE, "Complete"},
-		{Tab.AVAILABLE, "Available"}
+		{"id": Tab.ACTIVE, "name": "Active"},
+		{"id": Tab.COMPLETE, "name": "Complete"},
+		{"id": Tab.AVAILABLE, "name": "Available"}
 	]
 
 	for tab_data in tabs:
@@ -84,7 +84,7 @@ func _connect_signals() -> void:
 		QuestService.quest_rewarded.connect(_on_quest_rewarded)
 
 	# Load quests for local player
-	var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
 	if not local_id.is_empty():
 		refresh_quest_list()
 
@@ -107,7 +107,7 @@ func refresh_quest_list() -> void:
 	for child in _quest_list.get_children():
 		child.queue_free()
 
-	var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
 	if local_id.is_empty():
 		return
 
@@ -171,7 +171,7 @@ func _show_quest_detail(quest_id: String) -> void:
 	for child in _quest_detail.get_children():
 		child.queue_free()
 
-	var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
 	var progress := QuestService.get_quest_progress(local_id, quest_id)
 	if progress.is_empty():
 		_show_empty_detail()
@@ -268,7 +268,7 @@ func _get_quest_type_color(state: int) -> Color:
 	return UIStyles.COLORS.text_primary
 
 func _on_accept_quest(quest_id: String) -> void:
-	var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
 	if local_id.is_empty():
 		return
 
@@ -278,7 +278,7 @@ func _on_accept_quest(quest_id: String) -> void:
 		refresh_quest_list()
 
 func _on_turn_in_quest(quest_id: String) -> void:
-	var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
 	if local_id.is_empty():
 		return
 
@@ -288,7 +288,7 @@ func _on_turn_in_quest(quest_id: String) -> void:
 		refresh_quest_list()
 
 func _on_abandon_quest(quest_id: String) -> void:
-	var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
 	if local_id.is_empty():
 		return
 
@@ -298,18 +298,18 @@ func _on_abandon_quest(quest_id: String) -> void:
 		_show_empty_detail()
 
 func _on_quest_accepted(player_id: String, quest_id: String) -> void:
-	if player_id == str(PlayerManager.get_local_player_id()):
+	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
 		refresh_quest_list()
 
 func _on_quest_updated(player_id: String, quest_id: String, objective_id: String, progress: int) -> void:
-	if player_id == str(PlayerManager.get_local_player_id()):
+	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
 		if _selected_quest == quest_id:
 			_show_quest_detail(quest_id)
 
 func _on_quest_completed(player_id: String, quest_id: String) -> void:
-	if player_id == str(PlayerManager.get_local_player_id()):
+	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
 		refresh_quest_list()
 
 func _on_quest_rewarded(player_id: String, quest_id: String, rewards: Dictionary) -> void:
-	if player_id == str(PlayerManager.get_local_player_id()):
+	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
 		refresh_quest_list()

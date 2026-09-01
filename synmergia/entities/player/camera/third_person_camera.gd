@@ -46,12 +46,12 @@ func _input(event: InputEvent) -> void:
 	
 	# Touch rotation
 	if event is InputEventScreenDrag:
-		if event.position.x > get_viewport_rect().size.x * 0.5:
+		if event.position.x > get_viewport().get_visible_rect().size.x * 0.5:
 			# Right side of screen - camera control
 			yaw -= event.relative.x * rotation_speed * 2
 			pitch -= event.relative.y * rotation_speed * 2
 			pitch = clamp(pitch, min_pitch, max_pitch)
-		elif event.position.y < get_viewport_rect().size.y * 0.3:
+		elif event.position.y < get_viewport().get_visible_rect().size.y * 0.3:
 			# Top of screen - zoom
 			current_distance = clamp(current_distance - event.relative.y * 0.05, min_distance, max_distance)
 

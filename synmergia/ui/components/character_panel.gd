@@ -11,16 +11,16 @@ var _current_tab: Tab = Tab.INVENTORY
 ## Equipment slots
 enum EquipSlot { HEAD, CHEST, HANDS, LEGS, FEET, WEAPON, OFFHAND, RING1, RING2, AMULET }
 const EQUIP_SLOTS: Array = [
-	{EquipSlot.HEAD, "Head", "helmet"},
-	{EquipSlot.CHEST, "Chest", "armor"},
-	{EquipSlot.HANDS, "Hands", "gloves"},
-	{EquipSlot.LEGS, "Legs", "boots"},
-	{EquipSlot.FEET, "Feet", "boots"},
-	{EquipSlot.WEAPON, "Weapon", "weapon"},
-	{EquipSlot.OFFHAND, "Off-Hand", "shield"},
-	{EquipSlot.RING1, "Ring", "ring"},
-	{EquipSlot.RING2, "Ring", "ring"},
-	{EquipSlot.AMULET, "Amulet", "amulet"}
+	{"id": EquipSlot.HEAD, "name": "Head", "icon": "helmet"},
+	{"id": EquipSlot.CHEST, "name": "Chest", "icon": "armor"},
+	{"id": EquipSlot.HANDS, "name": "Hands", "icon": "gloves"},
+	{"id": EquipSlot.LEGS, "name": "Legs", "icon": "boots"},
+	{"id": EquipSlot.FEET, "name": "Feet", "icon": "boots"},
+	{"id": EquipSlot.WEAPON, "name": "Weapon", "icon": "weapon"},
+	{"id": EquipSlot.OFFHAND, "name": "Off-Hand", "icon": "shield"},
+	{"id": EquipSlot.RING1, "name": "Ring", "icon": "ring"},
+	{"id": EquipSlot.RING2, "name": "Ring", "icon": "ring"},
+	{"id": EquipSlot.AMULET, "name": "Amulet", "icon": "amulet"}
 ]
 
 ## Components
@@ -31,11 +31,12 @@ var _selected_equip_slot: int = -1
 
 ## Tab buttons
 var _tab_buttons: Array = []
+var _char_data: CharacterData = null
 
 func _ready() -> void:
 	super._ready()
 	set_title("Character")
-	set_size(Vector2(600, 550))
+	set_panel_size(Vector2(600, 550))
 
 	_setup_tabs()
 	_show_tab(Tab.INVENTORY)
@@ -58,10 +59,10 @@ func _setup_tabs() -> void:
 
 	# Create tab buttons
 	var tabs := [
-		{Tab.INVENTORY, "Inventory", KEY_I},
-		{Tab.EQUIP, "Equipment", KEY_E},
-		{Tab.STATS, "Stats", KEY_S},
-		{Tab.SKILLS, "Skills", KEY_K}
+		{"id": Tab.INVENTORY, "name": "Inventory", "key": KEY_I},
+		{"id": Tab.EQUIP, "name": "Equipment", "key": KEY_E},
+		{"id": Tab.STATS, "name": "Stats", "key": KEY_S},
+		{"id": Tab.SKILLS, "name": "Skills", "key": KEY_K}
 	]
 
 	for tab_data in tabs:

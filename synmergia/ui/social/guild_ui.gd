@@ -140,7 +140,12 @@ func _refresh_members() -> void:
 	if not GuildService:
 		return
 
-	var guild_id: String = GuildService.get_player_guild(_player_id)
+	var guild_data: Dictionary = GuildService.get_player_guild(_player_id)
+	if guild_data.is_empty():
+		_members_list.add_item("Not in a guild")
+		return
+
+	var guild_id: String = guild_data.get("id", "")
 	if guild_id == "":
 		_members_list.add_item("Not in a guild")
 		return
@@ -159,7 +164,11 @@ func _refresh_invites() -> void:
 	if not GuildService:
 		return
 
-	var guild_id: String = GuildService.get_player_guild(_player_id)
+	var guild_data: Dictionary = GuildService.get_player_guild(_player_id)
+	if guild_data.is_empty():
+		return
+
+	var guild_id: String = guild_data.get("id", "")
 	if guild_id == "":
 		return
 
@@ -181,8 +190,8 @@ func _on_invite_player() -> void:
 	dialog.queue_free()
 
 	if target_name != "" and GuildService:
-		var result: Dictionary = GuildService.invite_player(_player_id, target_name)
-		show_notification(result.get("message", ""))
+		var ok: bool = GuildService.invite_player(_player_id, target_name)
+		show_notification("Invite sent." if ok else "Failed to send invite.")
 
 func _on_leave_guild() -> void:
 	var confirm := ConfirmationDialog.new()
@@ -194,12 +203,14 @@ func _on_leave_guild() -> void:
 	confirm.queue_free()
 
 	if GuildService:
-		var result: Dictionary = GuildService.leave_guild(_player_id)
-		show_notification(result.get("message", ""))
-		if result.get("success", false):
+		var ok: bool = GuildService.leave_guild(_player_id)
+		if ok:
+			show_notification("Left the guild.")
 			close()
+		else:
+			show_notification("Failed to leave the guild.", false)
 
-func show_notification(message: String) -> void:
+func show_notification(message: String, _success: bool = true) -> void:
 	var notif := Label.new()
 	notif.text = message
 	notif.add_theme_color_override("font_color", UIStyles.COLORS.success)

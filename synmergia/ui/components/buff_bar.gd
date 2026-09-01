@@ -48,62 +48,55 @@ func add_buff(buff_id: String, icon: Texture2D, duration: float, stack_count: in
 	if is_debuff:
 		if _debuffs.size() < MAX_DEBUFFS:
 			_debuffs.append(buff)
-			else:
-			if _buffs.size() < MAX_BUFFS:
-				_buffs.append(buff)
+	else:
+		if _buffs.size() < MAX_BUFFS:
+			_buffs.append(buff)
 
-			buff_added.emit(buff_id)
+	buff_added.emit(buff_id)
 
 func remove_buff(buff_id: String) -> void:
 	var removed := false
-
 	for i in range(_buffs.size()):
 		if _buffs[i].id == buff_id:
 			_buffs.remove_at(i)
 			removed = true
 			break
-
-			if not removed:
-				for i in range(_debuffs.size()):
-					if _debuffs[i].id == buff_id:
-						_debuffs.remove_at(i)
-						removed = true
-						break
-
-						if removed:
-							buff_removed.emit(buff_id)
+	if not removed:
+		for j in range(_debuffs.size()):
+			if _debuffs[j].id == buff_id:
+				_debuffs.remove_at(j)
+				removed = true
+				break
+	if removed:
+		buff_removed.emit(buff_id)
 
 func update_buff_duration(buff_id: String, remaining: float) -> void:
 	for buff in _buffs:
 		if buff.id == buff_id:
 			buff.remaining = remaining
 			return
-			for buff in _debuffs:
-				if buff.id == buff_id:
-					buff.remaining = remaining
-					return
+	for debuff in _debuffs:
+		if debuff.id == buff_id:
+			debuff.remaining = remaining
+			return
 
 func _update_buffs() -> void:
 	var to_remove := []
-
 	for buff in _buffs:
 		buff.remaining -= 1.0
 		if buff.remaining <= 0:
 			to_remove.append(buff.id)
-
-			for buff_id in to_remove:
-				remove_buff(buff_id)
+	for buff_id in to_remove:
+		remove_buff(buff_id)
 
 func _update_debuffs() -> void:
 	var to_remove := []
-
 	for buff in _debuffs:
 		buff.remaining -= 1.0
 		if buff.remaining <= 0:
 			to_remove.append(buff.id)
-
-			for buff_id in to_remove:
-				remove_buff(buff_id)
+	for buff_id in to_remove:
+		remove_buff(buff_id)
 
 func get_buffs() -> Array:
 	return _buffs
@@ -115,7 +108,7 @@ func has_buff(buff_id: String) -> bool:
 	for buff in _buffs:
 		if buff.id == buff_id:
 			return true
-			for buff in _debuffs:
-				if buff.id == buff_id:
-					return true
-					return false
+	for debuff in _debuffs:
+		if debuff.id == buff_id:
+			return true
+	return false

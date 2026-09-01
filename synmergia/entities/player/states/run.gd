@@ -34,13 +34,13 @@ func physics_update(delta: float) -> void:
 	var parent := state_machine.get_parent()
 	
 	# Get movement direction
-	var move_dir := parent.get_movement_direction()
+	var move_dir: Vector3 = parent.get_movement_direction()
 	
 	# Calculate speed
-	var speed := parent.sprint_speed if parent.is_sprinting else parent.move_speed
+	var speed: float = parent.sprint_speed if parent.is_sprinting else parent.move_speed
 	
 	# Apply movement
-	var target_velocity := move_dir * speed
+	var target_velocity: Vector3 = move_dir * speed
 	parent.velocity.x = lerp(parent.velocity.x, target_velocity.x, 15.0 * delta)
 	parent.velocity.z = lerp(parent.velocity.z, target_velocity.z, 15.0 * delta)
 	

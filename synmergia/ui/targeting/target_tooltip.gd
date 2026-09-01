@@ -140,9 +140,9 @@ func _setup_ui() -> void:
 	add_child(_panel)
 	
 	var vbox := VBoxContainer.new()
-	_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_panel.add_child(vbox)
 	_vbox = vbox
+	_panel.add_child(vbox)
+	_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	
 	# Header with name and type
 	var header := HBoxContainer.new()

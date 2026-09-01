@@ -27,7 +27,7 @@ func _ready() -> void:
 
 func _setup_ui() -> void:
 	name = "TargetFrame"
-	set_anchors_preset(Control.PRESET_TOP_CENTER)
+	set_anchors_preset(Control.PRESET_CENTER_TOP)
 	offset_left = -150
 	offset_top = 80
 	offset_right = 150
@@ -42,111 +42,111 @@ func _setup_ui() -> void:
 	var name_row := HBoxContainer.new()
 	vbox.add_child(name_row)
 
-_name_label = Label.new()
-_name_label.text = "No Target"
-_name_label.add_theme_font_size_override("font_size", 16)
-_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-name_row.add_child(_name_label)
-
-_level_label = Label.new()
-_level_label.text = ""
-_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
-name_row.add_child(_level_label)
-
-# Class and guild
-var info_row := HBoxContainer.new()
-vbox.add_child(info_row)
-
-_class_label = Label.new()
-_class_label.text = ""
-_class_label.add_theme_font_size_override("font_size", 10)
-_class_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-info_row.add_child(_class_label)
-
-var spacer := Control.new()
-spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-info_row.add_child(spacer)
-
-_guild_label = Label.new()
-_guild_label.text = ""
-_guild_label.add_theme_font_size_override("font_size", 10)
-_guild_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
-info_row.add_child(_guild_label)
-
-# Health bar
-_hp_bar = ProgressBar.new()
-_hp_bar.name = "HPBar"
-_hp_bar.min_value = 0
-_hp_bar.max_value = 100
-_hp_bar.value = 100
-_hp_bar.custom_minimum_size.y = 20
-_hp_bar.show_percentage = false
-vbox.add_child(_hp_bar)
-
-# Mana bar (smaller)
-_mp_bar = ProgressBar.new()
-_mp_bar.name = "MPBar"
-_mp_bar.min_value = 0
-_mp_bar.max_value = 100
-_mp_bar.value = 50
-_mp_bar.custom_minimum_size.y = 12
-_mp_bar.show_percentage = false
-vbox.add_child(_mp_bar)
-
-# HP/MP text
-var hp_row := HBoxContainer.new()
-vbox.add_child(hp_row)
-
-var hp_label := Label.new()
-hp_label.name = "HPLabel"
-hp_label.add_theme_font_size_override("font_size", 11)
-hp_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
-hp_row.add_child(hp_label)
-
-var mp_label := Label.new()
-mp_label.name = "MPLabel"
-mp_label.add_theme_font_size_override("font_size", 10)
-mp_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
-hp_row.add_child(mp_label)
-
-# Buffs row
-var buffs_row := HBoxContainer.new()
-vbox.add_child(buffs_row)
-
-var buffs_label := Label.new()
-buffs_label.text = "Buffs:"
-buffs_label.add_theme_font_size_override("font_size", 10)
-buffs_row.add_child(buffs_label)
-
-_buff_container = HBoxContainer.new()
-buffs_row.add_child(_buff_container)
-
-# Debuffs row
-var debuffs_row := HBoxContainer.new()
-vbox.add_child(debuffs_row)
-
-var debuffs_label := Label.new()
-debuffs_label.text = "Debuffs:"
-debuffs_label.add_theme_font_size_override("font_size", 10)
-debuffs_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
-debuffs_row.add_child(debuffs_label)
-
-_debuff_container = HBoxContainer.new()
-debuffs_row.add_child(_debuff_container)
+	_name_label = Label.new()
+	_name_label.text = "No Target"
+	_name_label.add_theme_font_size_override("font_size", 16)
+	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(_name_label)
+	
+	_level_label = Label.new()
+	_level_label.text = ""
+	_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+	name_row.add_child(_level_label)
+	
+	# Class and guild
+	var info_row := HBoxContainer.new()
+	vbox.add_child(info_row)
+	
+	_class_label = Label.new()
+	_class_label.text = ""
+	_class_label.add_theme_font_size_override("font_size", 10)
+	_class_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	info_row.add_child(_class_label)
+	
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_row.add_child(spacer)
+	
+	_guild_label = Label.new()
+	_guild_label.text = ""
+	_guild_label.add_theme_font_size_override("font_size", 10)
+	_guild_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
+	info_row.add_child(_guild_label)
+	
+	# Health bar
+	_hp_bar = ProgressBar.new()
+	_hp_bar.name = "HPBar"
+	_hp_bar.min_value = 0
+	_hp_bar.max_value = 100
+	_hp_bar.value = 100
+	_hp_bar.custom_minimum_size.y = 20
+	_hp_bar.show_percentage = false
+	vbox.add_child(_hp_bar)
+	
+	# Mana bar (smaller)
+	_mp_bar = ProgressBar.new()
+	_mp_bar.name = "MPBar"
+	_mp_bar.min_value = 0
+	_mp_bar.max_value = 100
+	_mp_bar.value = 50
+	_mp_bar.custom_minimum_size.y = 12
+	_mp_bar.show_percentage = false
+	vbox.add_child(_mp_bar)
+	
+	# HP/MP text
+	var hp_row := HBoxContainer.new()
+	vbox.add_child(hp_row)
+	
+	var hp_label := Label.new()
+	hp_label.name = "HPLabel"
+	hp_label.add_theme_font_size_override("font_size", 11)
+	hp_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
+	hp_row.add_child(hp_label)
+	
+	var mp_label := Label.new()
+	mp_label.name = "MPLabel"
+	mp_label.add_theme_font_size_override("font_size", 10)
+	mp_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
+	hp_row.add_child(mp_label)
+	
+	# Buffs row
+	var buffs_row := HBoxContainer.new()
+	vbox.add_child(buffs_row)
+	
+	var buffs_label := Label.new()
+	buffs_label.text = "Buffs:"
+	buffs_label.add_theme_font_size_override("font_size", 10)
+	buffs_row.add_child(buffs_label)
+	
+	_buff_container = HBoxContainer.new()
+	buffs_row.add_child(_buff_container)
+	
+	# Debuffs row
+	var debuffs_row := HBoxContainer.new()
+	vbox.add_child(debuffs_row)
+	
+	var debuffs_label := Label.new()
+	debuffs_label.text = "Debuffs:"
+	debuffs_label.add_theme_font_size_override("font_size", 10)
+	debuffs_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+	debuffs_row.add_child(debuffs_label)
+	
+	_debuff_container = HBoxContainer.new()
+	debuffs_row.add_child(_debuff_container)
 
 func _connect_signals() -> void:
 	if TargetingManager:
-		TargetingManager.target_changed.connect(_on_target_changed)
+		TargetingManager.target_acquired.connect(_on_target_acquired)
+		TargetingManager.target_cleared.connect(_on_target_cleared)
 
-func _on_target_changed(target_id: String, target_data: Dictionary) -> void:
-	_target_id = target_id
-
-	if target_id.is_empty():
+func _on_target_acquired(target) -> void:
+		_target_id = target.entity_id if target and "entity_id" in target else ""
+		if _target_id.is_empty():
+			hide()
+	
+func _on_target_cleared(_previous_target) -> void:
+		_target_id = ""
 		hide()
-		return
-
-	show()
-	_update_display(target_data)
 
 func _update_display(data: Dictionary) -> void:
 	_name_label.text = data.get("name", "Unknown")
@@ -179,7 +179,9 @@ func _update_bars() -> void:
 		_hp_bar.value = _current_hp
 
 		# HP bar color based on percentage
-		var hp_percent := float(_current_hp) / float(_max_hp) if _max_hp > 0 else 0
+		var hp_percent: float = 0.0
+		if _max_hp > 0:
+			hp_percent = float(_current_hp) / float(_max_hp)
 		if hp_percent > 0.5:
 			_hp_bar.add_theme_color_override("fill", UIStyles.COLORS.success)
 		elif hp_percent > 0.25:
