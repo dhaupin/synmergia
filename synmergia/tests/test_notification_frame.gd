@@ -40,6 +40,9 @@ func _initialize() -> void:
 	_test_send_event_broadcast_calls_broadcast()
 	_test_send_event_returns_false_for_null()
 	_test_send_event_known_kind_maps_to_known_type()
+	_test_notify_delivers_to_player()
+	_test_notify_delivers_broadcast()
+	_test_notify_dedupes_identical_calls()
 
 	_finish()
 
@@ -212,6 +215,86 @@ func _test_send_event_known_kind_maps_to_known_type() -> void:
 	# We just want to confirm the mapping path executed; specific value is
 	# checked by the dispatcher's match arms in the autoload source.
 	_ok("send_event resolved kind→type (notification_received fired with type=%d)" % captured_type[0])
+
+
+# --- service-level verb (NotificationService.notify) ---
+#
+# notify() is the convenience that builds a NotificationContext and forwards
+# to send_event(). It exists so call sites (QoS, Security, AppFirewall) can
+# fire a typed notification without constructing the context shape.
+# These tests confirm the verb: (1) builds a context that delivers to a
+# player, (2) builds one that broadcasts, (3) honors the dedupe key.
+
+func _test_notify_delivers_to_player() -> void:
+	_notif.reset_dedupe()
+	# This is exactly the call shape a wired service would use:
+	#   NotificationService.notify(NotifKind.RATE_LIMITED, msg, source, key, data, player)
+	var delivered: bool = _notif.notify(
+		NotifKind.RATE_LIMITED,
+		"You're casting too fast",
+		"QoSService",
+		"frame_test:qos_rl:p1:cast",
+		{"action_type": "cast", "max_rate": 5.0},
+		"frame_test_player_p1"
+	)
+	if not delivered:
+		_fail("notify() should return true for first delivery to a player")
+		return
+	var history = _notif.get_history("frame_test_player_p1")
+	if history.size() == 0:
+		_fail("notify() should have routed through send() to the per-player history")
+		return
+	# The first entry should carry the source label + kind via the data dict
+	# (send_event copies kind/source_service into the data payload).
+	var entry: Dictionary = history[0]
+	var data: Dictionary = entry.get("data", {})
+	if data.get("source_service", "") != "QoSService":
+		_fail("notify() should propagate source_service into data (got '%s')" % data.get("source_service", ""))
+		return
+	if int(data.get("kind", -1)) != NotifKind.RATE_LIMITED:
+		_fail("notify() should propagate kind into data (got %d)" % int(data.get("kind", -1)))
+		return
+	_ok("notify() builds context, delivers to player, propagates kind+source")
+
+func _test_notify_delivers_broadcast() -> void:
+	_notif.reset_dedupe()
+	# Empty recipient → broadcast (server-wide). Same call shape that
+	# AppFirewall / SecurityMonitor use for admin scope.
+	var delivered: bool = _notif.notify(
+		NotifKind.ADMIN_ALERT,
+		"RecursionGuard exceeded depth 16",
+		"AppFirewall",
+		"frame_test:fw_alert:1",
+		{"context": "agent_tool_call", "depth": 16}
+	)
+	if not delivered:
+		_fail("notify() should return true for broadcast (no recipient)")
+		return
+	if _notif.dedupe_tracked_count() < 1:
+		_fail("dedupe should track the broadcast key after notify()")
+		return
+	_ok("notify() builds broadcast context and routes through broadcast_alert()")
+
+func _test_notify_dedupes_identical_calls() -> void:
+	_notif.reset_dedupe()
+	# A spam loop on the same key within 5s should collapse to a single
+	# delivery. This is the whole reason QoS / Security moved to the
+	# frame: a rate-limited action firing 50x/sec used to toast 50x.
+	var delivered_count: int = 0
+	for i in 10:
+		if _notif.notify(
+			NotifKind.RATE_LIMITED,
+			"tick %d" % i,
+			"QoSService",
+			"frame_test:qos_dedupe:loop",
+			{},
+			"frame_test_dedupe_p"
+		):
+			delivered_count += 1
+	if delivered_count != 1:
+		_fail("notify() should dedupe 10 identical calls to 1 (got %d)" % delivered_count)
+		return
+	_ok("notify() collapses 10 identical calls within the dedupe window to 1 delivery")
 
 
 func _ok(msg: String) -> void:
