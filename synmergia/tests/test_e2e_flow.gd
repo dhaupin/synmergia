@@ -133,6 +133,20 @@ func _run() -> void:
 	# Restore: log out so we don't leave the test environment rate-limited.
 	LoginServiceInternal.logout()
 
+	# 12) Settings panel script loads + main_menu wires the button
+	var settings_script: GDScript = load("res://ui/components/settings_panel.gd")
+	_assert("SettingsPanel script loads", settings_script != null)
+	var main_menu_script: GDScript = load("res://ui/menus/main_menu.gd")
+	_assert("MainMenu script loads", main_menu_script != null)
+	var main_menu_scene_2: PackedScene = load("res://ui/menus/main_menu.tscn")
+	_assert("MainMenu scene loads", main_menu_scene_2 != null)
+	# Verify main_menu has the open method (compile-time check that the
+	# new code path landed).
+	var sample_main: Node = main_menu_script.new()
+	_assert("MainMenu has _open_settings_panel method", sample_main.has_method("_open_settings_panel"))
+	_assert("MainMenu has _on_settings_pressed method", sample_main.has_method("_on_settings_pressed"))
+	sample_main.queue_free()
+
 func _assert(label: String, cond: bool) -> void:
 	if cond:
 		print("  [OK] %s" % label)
