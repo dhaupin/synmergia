@@ -549,19 +549,37 @@ func _on_circuit_success(breaker: Dictionary, service_name: String) -> void:
 			breaker["state"] = CircuitState.CLOSED
 			breaker["failures"] = 0
 			breaker["successes"] = 0
-			pass  # GameLog.info removed
+			# Recovery complete — let admins know service is healthy again.
+			_notify_circuit_change(service_name, "CLOSED", "recovered after probes")
 
 func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
 	breaker["failures"] += 1
 	breaker["last_failure_time"] = Time.get_ticks_msec() / 1000.0
-	
+
 	if breaker["state"] == CircuitState.HALF_OPEN:
 		breaker["state"] = CircuitState.OPEN
 		breaker["successes"] = 0
-		pass  # GameLog.warn removed
+		_notify_circuit_change(service_name, "OPEN", "probe failed; back to fail-fast")
 	elif breaker["failures"] >= _get_config_int("QoS", "FAILURE_THRESHOLD", 5):
 		breaker["state"] = CircuitState.OPEN
-		pass  # GameLog.warn removed
+		_notify_circuit_change(service_name, "OPEN", "failure threshold reached")
+
+## Send a notification when a service's circuit breaker changes state.
+## Uses the local send_to_player alias so the same HudIntegrator path
+## (combat log + toast) lights up for both player and admin alerts.
+func _notify_circuit_change(service_name: String, new_state: String, detail: String) -> void:
+	if not NotificationService:
+		return
+	var msg := "[QoS] Circuit '%s' → %s (%s)" % [service_name, new_state, detail]
+	# send_to_player always fires notification_sent, so the toast
+	# pipeline lights up even when no players are registered for
+	# scope resolution (e.g., headless test, server boot).
+	NotificationService.send_to_player(
+		"admins",
+		msg,
+		14, # ALERT
+		3   # CRITICAL priority
+	)
 
 ## Get circuit breaker state
 func get_circuit_state(service_name: String) -> String:
