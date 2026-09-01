@@ -2,6 +2,11 @@
 ## Listens to security events and logs/alerts appropriately
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# SecurityMonitor surfaces anti-cheat / exploit alerts to the admin
+# scope through the typed-Kind pipeline. ADMIN_ALERT → ALERT + HIGH.
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## ============================================================================
 ## CONFIGURATION
 ## ============================================================================
@@ -106,19 +111,23 @@ func _alert_admin(severity: String, player_id: String, exploit_type: String, det
 	print(alert_msg)
 
 	# Route to the in-game toast/notification pipeline so admins watching
-	# the HUD see critical exploits in real time. send_to_player fires
-	# notification_sent unconditionally, so the toast/combat-log path
-	# lights up even when no players are in the broadcast scope (e.g.
-	# server-only boot or headless tests).
-	if not NotificationService:
+	# the HUD see critical exploits in real time. The frame dispatch fires
+	# notification_received / notification_sent unconditionally, so the
+	# toast/combat-log path lights up even when no players are in scope
+	# (server-only boot, headless tests).
+	if not is_instance_valid(NotificationService):
 		return
-	if not NotificationService.has_method("send_to_player"):
-		return
-	NotificationService.send_to_player(
-		"admins",
+
+	# Frame-level dispatch. ADMIN_ALERT → ALERT + HIGH in the kind table.
+	# Dedupe on (player, exploit_type) so a single attack that fires 20
+	# signals in 200ms collapses to one admin toast.
+	NotificationService.notify(
+		NotifKind.ADMIN_ALERT,
 		"[SECURITY] " + alert_msg,
-		14, # NotificationType.ALERT
-		3   # CRITICAL priority
+		"SecurityMonitor",
+		"sec_alert:%s:%s" % [player_id, exploit_type],
+		{"severity": severity, "player_id": player_id, "exploit_type": exploit_type, "details": details},
+		"admins"
 	)
 
 ## ============================================================================
