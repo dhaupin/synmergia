@@ -241,3 +241,24 @@ func get_all_stats_with_allocated() -> Dictionary:
 	for stat in allocated_stats.keys():
 		result[stat] = get_stat_total(stat)
 	return result
+
+## Serialize to a plain Dictionary for disk persistence.
+## Server-authoritative fields (level, zone, etc.) are stored client-side
+## for offline / single-machine mode; in a real network session the
+## server is the source of truth.
+func to_dict() -> Dictionary:
+	return {
+		"character_id": character_id,
+		"display_name": display_name,
+		"species_id": species_id,
+		"class_id": class_id,
+		"level": level,
+		"zone_id": zone_id,
+		"spawn_position": [spawn_position.x, spawn_position.y, spawn_position.z],
+		"allocated_stats": allocated_stats.duplicate(),
+		"skill_upgrades": skill_upgrades.duplicate(),
+		"active_signature": active_signature,
+		"signature_switches": signature_switches,
+		"spent_skill_points": spent_skill_points,
+		"total_stat_respecs": total_stat_respecs,
+	}

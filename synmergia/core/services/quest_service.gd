@@ -237,34 +237,36 @@ func turn_in_quest(player_id: String, quest_id: String) -> bool:
 	return true
 
 func _apply_rewards(player_id: String, quest: QuestData) -> Dictionary:
-	var rewards := {
+	# quest.rewards is Array[Reward] (one entry per reward line). We
+	# fold the array into a summary dict the rest of the game can read
+	# without depending on the Reward schema. Inventory/XP/gold grants
+	# are TODO and live in their respective services.
+	var summary := {
 		"experience": 0,
 		"gold": 0,
 		"items": [],
-		"reputation": {}
+		"reputation": {},
+		"titles": []
 	}
-
-	# Experience
-	if quest.rewards.has("experience"):
-		rewards.experience = quest.rewards.experience
-		# TODO: Add to player XP
-
-	# Gold
-	if quest.rewards.has("gold"):
-		rewards.gold = quest.rewards.gold
-		# TODO: Add to player gold
-
-	# Items
-	if quest.rewards.has("items"):
-		for item_id in quest.rewards.items:
-			rewards.items.append(item_id)
-			# TODO: Add to player inventory
-
-	# Reputation
-	if quest.rewards.has("reputation"):
-		rewards.reputation = quest.rewards.reputation
-
-	return rewards
+	for reward in quest.rewards:
+		if not (reward is Resource):
+			continue
+		var rtype: String = str(reward.get("type", ""))
+		match rtype:
+			"experience":
+				summary["experience"] += int(reward.get("quantity", 0))
+			"gold":
+				summary["gold"] += int(reward.get("quantity", 0))
+			"item":
+				summary["items"].append({
+					"id": reward.get("id", ""),
+					"quantity": int(reward.get("quantity", 1)),
+				})
+			"reputation":
+				summary["reputation"][reward.get("id", "")] = int(reward.get("quantity", 0))
+			"title":
+				summary["titles"].append(reward.get("id", ""))
+	return summary
 
 ## ============================================================================
 ## QUEST TRACKING
