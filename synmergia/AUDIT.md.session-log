@@ -7,9 +7,9 @@
 
 ---
 
-## Executive Summary ✅ MAJOR PROGRESS
+## Executive Summary ‚úÖ MAJOR PROGRESS
 
-**Project Status:** ✅ LOADS SUCCESSFULLY in Godot 4.7.2
+**Project Status:** ‚úÖ LOADS SUCCESSFULLY in Godot 4.7.2
 
 - **Main menu loaded** confirmed via `--headless --quit` test
 - All blocking parse errors resolved
@@ -22,13 +22,13 @@
 
 ## Roadmap
 
-### ✅ Phase 1: Core Infrastructure - COMPLETED
+### ‚úÖ Phase 1: Core Infrastructure - COMPLETED
 All blocking parse errors resolved. Project loads in Godot 4.7.2.
 
-### ✅ Phase 2: Type Dependencies - NON-BLOCKING  
+### ‚úÖ Phase 2: Type Dependencies - NON-BLOCKING  
 ~90 type resolution warnings remain but project runs fine. See warning section.
 
-### ✅ Phase 3: StatusEffect Consolidation - COMPLETED
+### ‚úÖ Phase 3: StatusEffect Consolidation - COMPLETED
 Unified StatusEffect system implemented. See completed items above.
 
 ### Future Work (Optional)
@@ -38,18 +38,18 @@ Unified StatusEffect system implemented. See completed items above.
 
 ---
 
-## ✅ Completed Fixes (Summary)
+## ‚úÖ Completed Fixes (Summary)
 
 All Phase 1-3 work is complete. Key fixes included:
-- 40+ scripts with parse errors → all resolved
-- 60+ type inference warnings → all resolved  
-- Mixed tab/space indentation → standardized to tabs
-- StatusEffect system → unified and simplified
+- 40+ scripts with parse errors ‚Üí all resolved
+- 60+ type inference warnings ‚Üí all resolved  
+- Mixed tab/space indentation ‚Üí standardized to tabs
+- StatusEffect system ‚Üí unified and simplified
 - Various syntax errors (backslashes, unindented blocks, etc.)
 
 ---
 
-## ⚠️ Non-Blocking Warnings (~90 warnings)
+## ‚öÝÔ∏è Non-Blocking Warnings (~90 warnings)
 
 These are **type resolution warnings** that occur during script reload - the types exist but aren't loaded yet in Godot's dependency order. They don't prevent the game from running.
 
@@ -86,9 +86,9 @@ The project runs fine. Warnings don't affect runtime behavior. Focus on features
 
 ---
 
-# UI Modernization Session — Handoff Notes (2026-08-31)
+# UI Modernization Session ‚Äî Handoff Notes (2026-08-31)
 
-> **Status:** ⚠️ **9 UI feature commits shipped**, but the
+> **Status:** ‚öÝÔ∏è **9 UI feature commits shipped**, but the
 > 8 commits after `8640b09` (the modernization commit) wrote
 > every new file with **zero leading-tab indentation**. Godot
 > cannot parse these files as-is. The previous session crashed
@@ -98,22 +98,22 @@ The project runs fine. Warnings don't affect runtime behavior. Focus on features
 
 | # | SHA | Title | Files | Tabs? |
 |---|-----|-------|-------|-------|
-| 1 | `8640b09` | UI modernization and new panels | 12 | ✅ mostly OK |
-| 2 | `1897911` | InputManager, HUD, Lobby, Vault/Bank | 4 | ✅ OK |
-| 3 | `27de317` | ActionBar, BuffBar | 2 | ✅ OK (action_bar) ❌ (buff_bar) |
-| 4 | `96bd917` | QuickAccessBar | 1 | ❌ |
-| 5 | `beb1f42` | TargetFrame, BossHealthBar, SettingsPanel, DialogUI | 4 | ❌❌❌❌ |
-| 6 | `6d6e303` | TooltipManager | 1 | ❌ |
-| 7 | `0ae5319` | Minimap | 1 | ❌ |
-| 8 | `f77a7c5` | UIStyles rarity, LoadingUI, WorldMap | 3 | ❌❌❌ |
-| 9 | `9beae2a` | CombatLog, NamePlate | 2 | ❌❌ |
+| 1 | `8640b09` | UI modernization and new panels | 12 | ‚úÖ mostly OK |
+| 2 | `1897911` | InputManager, HUD, Lobby, Vault/Bank | 4 | ‚úÖ OK |
+| 3 | `27de317` | ActionBar, BuffBar | 2 | ‚úÖ OK (action_bar) ‚ùå (buff_bar) |
+| 4 | `96bd917` | QuickAccessBar | 1 | ‚ùå |
+| 5 | `beb1f42` | TargetFrame, BossHealthBar, SettingsPanel, DialogUI | 4 | ‚ùå‚ùå‚ùå‚ùå |
+| 6 | `6d6e303` | TooltipManager | 1 | ‚ùå |
+| 7 | `0ae5319` | Minimap | 1 | ‚ùå |
+| 8 | `f77a7c5` | UIStyles rarity, LoadingUI, WorldMap | 3 | ‚ùå‚ùå‚ùå |
+| 9 | `9beae2a` | CombatLog, NamePlate | 2 | ‚ùå‚ùå |
 
 Commit #1 (8640b09) is the only one that consistently has
-tabs. Commits 3–9 each shipped 1–4 files with the indentation
+tabs. Commits 3‚Äì9 each shipped 1‚Äì4 files with the indentation
 stripped. The pattern started after `1897911` and persisted
 through `9beae2a`.
 
-## Affected files (13 total — MUST be re-indented)
+## Affected files (13 total ‚Äî MUST be re-indented)
 
 All in `synmergia/ui/components/` except bank_npc:
 
@@ -151,22 +151,22 @@ tabs). The problem only shows up in the new files created in
 
 ## Static checks (this session, no Godot available)
 
-- ✅ Braces balanced in all 13 broken files
-- ✅ Parens balanced in all 13
-- ✅ Brackets balanced in all 13
-- ✅ `func` (not `def`) used everywhere
-- ✅ No mixed tabs/spaces in broken files (everything is just
+- ‚úÖ Braces balanced in all 13 broken files
+- ‚úÖ Parens balanced in all 13
+- ‚úÖ Brackets balanced in all 13
+- ‚úÖ `func` (not `def`) used everywhere
+- ‚úÖ No mixed tabs/spaces in broken files (everything is just
      all-spaces with zero indent)
-- ❌ Zero leading tabs in 13 files — **blocker**
+- ‚ùå Zero leading tabs in 13 files ‚Äî **blocker**
 
 The structural code looks correct. The fix is mechanical: add
 indentation.
 
 ## Other notes
 
-- `ROADMAP.md` says Phase 0.5 (UI modernization) is ✅ DONE
-  and Phase 0.6 (Cleanup) is 🔄 IN PROGRESS. The 0.5 marker
-  is premature — the files don't actually parse.
+- `ROADMAP.md` says Phase 0.5 (UI modernization) is ‚úÖ DONE
+  and Phase 0.6 (Cleanup) is üîÑ IN PROGRESS. The 0.5 marker
+  is premature ‚Äî the files don't actually parse.
 - Bank UI has 5 internal `TODO:` comments; minimap has
   `TODO: connect zone changes`; combat_log has a `TODO:`.
   These are known and not blockers.
@@ -177,7 +177,7 @@ indentation.
 ## Recommended fix order
 
 1. **Open `quick_access_bar.gd` in a Godot editor locally**
-   and use the editor's `Format → Indent` or `Ctrl+I` to re-indent
+   and use the editor's `Format ‚Üí Indent` or `Ctrl+I` to re-indent
    one file. Confirm the resulting indentation matches the style
    of `action_bar.gd` (a known-good sibling).
 2. Apply the same approach to the other 12 files.
@@ -251,3 +251,57 @@ https://github.com/dhaupin/synmergia/commits/main/
 - HUD integration tests pass; 14 widget children instantiated.
 - Admin UI exists but not yet wired into a visible scene.
 - Gap/edge/bug/vuln/QoS analysis: next phase after wiring is complete.
+
+---
+
+## Session 2026-08-31 (cont.): wire settings, gap analysis, more tests
+
+This session continued from the resumed-then-paused state above. Verified
+the working tree was clean at HEAD 3be7674, then made two more commits
+on top.
+
+### Test results (all green, all 4 suites)
+
+- test_login_flow.gd -- 21/21 pass
+- test_hud_integration.gd -- 7/7 OK
+- test_islands.gd -- 19/19 PASS
+- test_e2e_flow.gd -- 40/40 pass (was 35, added 5 for main menu + settings)
+
+Total: 87/87 assertions across 4 suites.
+
+### Commits pushed to main this session
+
+- f07539b -- docs: gap analysis 2026-08-31
+  - new file synmergia/docs/architecture/gap-analysis-2026-08-31.md (79 lines)
+  - catalogues verified-working, gaps, bug scan, security review, perf notes
+  - 0 hardcoded creds detected, 0 unhandled null derefs in tested paths
+- f274a1b -- feat(ui): wire main menu settings button to SettingsPanel
+  - ui/menus/main_menu.gd: 23 new lines, replaced notification stub
+  - 2 new test assertions baked into test_e2e_flow.gd (+5 net new)
+
+### Settings wire-up
+
+`main_menu.gd._on_settings_pressed` used to show "Settings coming soon"
+as a notification. Now:
+- checks for an existing SettingsPanel under HudLayer
+- opens it if present
+- otherwise instantiates a fresh SettingsPanel as an overlay
+- threads the current LoginService account_id (or '' for guest) through
+  to satisfy `UIPanel.open(player_id: String)`
+
+### world_playable.tscn engine noise (still benign)
+
+The engine still logs "Script inherits from native type
+'CharacterBody3D'..." at scene load. The script/class references in
+the .tscn file all check out (Player is CharacterBody3D, all child
+scripts match their node types). Scene still loads, all 7/7 hud
+integration tests pass. The warning is non-fatal; suspect stale
+PackedScene cache from earlier revisions. Not blocking.
+
+### Next steps
+
+- Investigate world_playable misattach in editor to clear the warning
+- Resolve TODO backlog in quest_service (4 TODOs) and vault_service (8 TODOs)
+- Ship profanity word list for ChatService filter
+- Add an end-to-end MAIN_MENU → LOBBY → CHARACTER_SELECT → PLAYING walk test
+  that exercises the full state machine (currently each is isolated)
