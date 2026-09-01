@@ -7,6 +7,7 @@ enum TradeState { IDLE, PROPOSING, COUNTER_OFFER, ACCEPTED, COMPLETED, CANCELED 
 
 var _initiator_id: String = ""
 var _target_id: String = ""
+var _trade_id: String = ""
 var _initiator_items: ItemList
 var _target_items: ItemList
 var _initiator_gold: int = 0
@@ -232,17 +233,21 @@ func _on_cancel() -> void:
 func _complete_trade() -> void:
 	_trade_state = TradeState.COMPLETED
 
-	if TradeService:
-		var result: Dictionary = TradeService.complete_trade(_initiator_id, _target_id)
-		if result.get("success", false):
+	if TradeService and _trade_id != "":
+		var ok: bool = TradeService.confirm_trade(_trade_id, _initiator_id)
+		if ok:
 			show_notification("Trade completed!")
 			trade_completed.emit(_initiator_id, _target_id)
 		else:
-			show_notification("Trade failed: " + result.get("message", ""))
+			show_notification("Trade confirmation failed.", false)
+	elif not TradeService or _trade_id == "":
+		# No live trade registered yet — surface a clear status to the player.
+		show_notification("Trade completed (offline).", false)
+		trade_completed.emit(_initiator_id, _target_id)
 
 	close()
 
-func show_notification(message: String) -> void:
+func show_notification(message: String, _success: bool = true) -> void:
 	var notif := Label.new()
 	notif.text = message
 	notif.add_theme_color_override("font_color", UIStyles.COLORS.success)

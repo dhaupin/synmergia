@@ -30,47 +30,47 @@ func _create_slot(index: int) -> Control:
 	var slot := PanelContainer.new()
 	slot.name = "QuickSlot_%d" % index
 	slot.custom_minimum_size = Vector2(45, 45)
-
-var style := StyleBoxFlat.new()
-style.bg_color = UIStyles.COLORS.background_dark
-style.border_color = UIStyles.COLORS.border
-style.corner_radius_top_left = 4
-style.corner_radius_top_right = 4
-style.corner_radius_bottom_left = 4
-style.corner_radius_bottom_right = 4
-slot.add_theme_stylebox_override("panel", style)
-
-# Item icon placeholder
-var icon := Panel.new()
-icon.name = "Icon"
-icon.modulate = Color(1, 1, 1, 0.3)
-slot.add_child(icon)
-
-# Keybind label
-var keybind := Label.new()
-keybind.name = "Keybind"
-keybind.text = "F%d" % (index + 1)
-keybind.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-keybind.add_theme_font_size_override("font_size", 9)
-keybind.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-slot.add_child(keybind)
-
-# Stack count
-var stack := Label.new()
-stack.name = "Stack"
-stack.visible = false
-stack.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-stack.add_theme_font_size_override("font_size", 10)
-stack.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
-slot.add_child(stack)
-
-# Cooldown sweep
-var cooldown := Panel.new()
-cooldown.name = "Cooldown"
-cooldown.visible = false
-slot.add_child(cooldown)
-
-return slot
+	
+	var style := StyleBoxFlat.new()
+	style.bg_color = UIStyles.COLORS.background_dark
+	style.border_color = UIStyles.COLORS.border
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	slot.add_theme_stylebox_override("panel", style)
+	
+	# Item icon placeholder
+	var icon := Panel.new()
+	icon.name = "Icon"
+	icon.modulate = Color(1, 1, 1, 0.3)
+	slot.add_child(icon)
+	
+	# Keybind label
+	var keybind := Label.new()
+	keybind.name = "Keybind"
+	keybind.text = "F%d" % (index + 1)
+	keybind.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	keybind.add_theme_font_size_override("font_size", 9)
+	keybind.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	slot.add_child(keybind)
+	
+	# Stack count
+	var stack := Label.new()
+	stack.name = "Stack"
+	stack.visible = false
+	stack.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	stack.add_theme_font_size_override("font_size", 10)
+	stack.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	slot.add_child(stack)
+	
+	# Cooldown sweep
+	var cooldown := Panel.new()
+	cooldown.name = "Cooldown"
+	cooldown.visible = false
+	slot.add_child(cooldown)
+	
+	return slot
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:

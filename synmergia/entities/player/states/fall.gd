@@ -26,7 +26,7 @@ func physics_update(delta: float) -> void:
 	var parent := state_machine.get_parent()
 	
 	# Air control
-	var move_dir := parent.get_movement_direction()
+	var move_dir: Vector3 = parent.get_movement_direction()
 	var air_control := 0.5
 	
 	if move_dir.length() > 0:

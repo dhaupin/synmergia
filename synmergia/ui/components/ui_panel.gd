@@ -132,3 +132,28 @@ func show_notification(message: String, success: bool = true) -> void:
 	get_tree().root.add_child(notif)
 	await get_tree().create_timer(3.0).timeout
 	notif.queue_free()
+
+func set_title(text: String) -> void:
+	var title: Label = get_node_or_null("Panel/Header/Title")
+	if title == null:
+		var panel := get_panel()
+		if panel == null:
+			return
+		var header := HBoxContainer.new()
+		header.name = "Header"
+		panel.add_child(header)
+		header.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		title = Label.new()
+		title.name = "Title"
+		title.text = text
+		title.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+		title.add_theme_font_size_override("font_size", 18)
+		header.add_child(title)
+	else:
+		title.text = text
+
+func set_panel_size(size: Vector2) -> void:
+	var panel := get_panel()
+	if panel:
+		panel.custom_minimum_size = size
+

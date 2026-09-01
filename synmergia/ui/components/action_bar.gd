@@ -202,7 +202,7 @@ func select_slot(index: int) -> void:
 	# Deselect previous
 	if _selected_slot >= 0 and _selected_slot < _slots.size():
 		var prev: Control = _slots[_selected_slot]
-		_prev.set_slot_border(UIStyles.COLORS.border)
+		prev.set_slot_border(UIStyles.COLORS.border)
 
 	# Select new
 	_selected_slot = index

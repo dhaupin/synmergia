@@ -37,6 +37,13 @@ func configure(config: Dictionary) -> void:
 	
 	GameLog.info("ShardManager: Configured as %s (%s), world size: %.0f km²" % [shard_id, shard_name, world_size_km2])
 
+## Start the shard server (initialize state, accept players)
+func start_server() -> void:
+	_server_status = "online"
+	shard_status_changed.emit(shard_id, _server_status)
+	GameLog.info("ShardManager: Server started for %s" % shard_id)
+
+
 ## Player tracking
 func player_connected() -> void:
 	_online_players += 1

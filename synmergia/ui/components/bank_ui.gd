@@ -26,7 +26,7 @@ const SLOT_SIZE: int = 48
 func _ready() -> void:
 	super._ready()
 	set_title("Bank")
-	set_size(Vector2(480, 580))
+	set_panel_size(Vector2(480, 580))
 	_setup_ui()
 	_connect_signals()
 
@@ -45,9 +45,9 @@ func _setup_ui() -> void:
 	main.add_child(tab_bar)
 
 	var tabs := [
-		{VaultTab.PERSONAL, "Personal"},
-		{VaultTab.GUILD, "Guild"},
-		{VaultTab.ACCOUNT, "Account"}
+		{"id": VaultTab.PERSONAL, "name": "Personal"},
+		{"id": VaultTab.GUILD, "name": "Guild"},
+		{"id": VaultTab.ACCOUNT, "name": "Account"}
 	]
 
 	for tab in tabs:

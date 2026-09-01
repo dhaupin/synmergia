@@ -84,7 +84,7 @@ func _setup_ui() -> void:
 	var zone_label := Label.new()
 	zone_label.name = "ZoneName"
 	zone_label.text = "Zone"
-	zone_label.set_anchors_preset(Control.PRESET_BOTTOM_HCENTER)
+	zone_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	zone_label.offset_bottom = -20
 	zone_label.add_theme_font_size_override("font_size", 14)
 	zone_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
@@ -113,63 +113,63 @@ func _create_marker(name: String, color: Color) -> Control:
 	marker.name = name
 	marker.custom_minimum_size = Vector2(8, 8)
 
-var style := StyleBoxFlat.new()
-style.bg_color = color
-style.corner_radius_top_left = 4
-style.corner_radius_top_right = 4
-style.corner_radius_bottom_left = 4
-style.corner_radius_bottom_right = 4
-marker.add_theme_stylebox_override("panel", style)
-
-return marker
-
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	marker.add_theme_stylebox_override("panel", style)
+	
+	return marker
+	
 func _create_compass() -> Control:
 	var compass := Control.new()
 	compass.name = "Compass"
-	compass.set_anchors_preset(Control.PRESET_TOP_CENTER)
+	compass.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	compass.offset_top = 10
 	compass.custom_minimum_size = Vector2(60, 30)
 
-var label := Label.new()
-label.text = "N"
-label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-label.add_theme_font_size_override("font_size", 16)
-label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-compass.add_child(label)
+	var label := Label.new()
+	label.text = "N"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	compass.add_child(label)
 
-return compass
+	return compass
 
 func _create_controls() -> Control:
 	var controls := Control.new()
 	controls.set_anchors_preset(Control.PRESET_FULL_RECT)
 
-var hbox := HBoxContainer.new()
-hbox.set_anchors_preset(Control.PRESET_BOTTOM_HCENTER)
-hbox.offset_bottom = -60
-controls.add_child(hbox)
+	var hbox := HBoxContainer.new()
+	hbox.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	hbox.offset_bottom = -60
+	controls.add_child(hbox)
 
-# Zoom controls
-var zoom_label := Label.new()
-zoom_label.text = "Zoom:"
-hbox.add_child(zoom_label)
+	# Zoom controls
+	var zoom_label := Label.new()
+	zoom_label.text = "Zoom:"
+	hbox.add_child(zoom_label)
 
-var zoom_out := Button.new()
-zoom_out.text = "-"
-zoom_out.pressed.connect(_on_zoom_out)
-hbox.add_child(zoom_out)
+	var zoom_out := Button.new()
+	zoom_out.text = "-"
+	zoom_out.pressed.connect(_on_zoom_out)
+	hbox.add_child(zoom_out)
 
-var zoom_in := Button.new()
-zoom_in.text = "+"
-zoom_in.pressed.connect(_on_zoom_in)
-hbox.add_child(zoom_in)
+	var zoom_in := Button.new()
+	zoom_in.text = "+"
+	zoom_in.pressed.connect(_on_zoom_in)
+	hbox.add_child(zoom_in)
 
-# Center button
-var center_btn := Button.new()
-center_btn.text = "Center"
-center_btn.pressed.connect(_on_center_pressed)
-hbox.add_child(center_btn)
+	# Center button
+	var center_btn := Button.new()
+	center_btn.text = "Center"
+	center_btn.pressed.connect(_on_center_pressed)
+	hbox.add_child(center_btn)
 
-return controls
+	return controls
 
 func _set_minimap_mode() -> void:
 	_minimap_mode = true
@@ -209,7 +209,7 @@ static func get_instance() -> WorldMap:
 func toggle() -> void:
 	if visible:
 		hide()
-		else:
+	else:
 		show()
 
 func show_map() -> void:
@@ -259,17 +259,17 @@ func add_waypoint(quest_id: String, position: Vector3, label: String = "", icon_
 	# Create marker
 	var marker_color := UIStyles.COLORS.warning  # Quest yellow
 	if icon_type == 1:  # Boss
-	marker_color = UIStyles.COLORS.error
+		marker_color = UIStyles.COLORS.error
 	elif icon_type == 2:  # NPC
-	marker_color = UIStyles.COLORS.accent_gold
+		marker_color = UIStyles.COLORS.accent_gold
 
-var marker := _create_marker(quest_id, marker_color)
-marker.custom_minimum_size = Vector2(10, 10)
-_marker_container.add_child(marker)
+	var marker := _create_marker(quest_id, marker_color)
+	marker.custom_minimum_size = Vector2(10, 10)
+	_marker_container.add_child(marker)
 
-waypoint.marker = marker
-_waypoints.append(waypoint)
-_entity_markers[quest_id] = waypoint
+	waypoint.marker = marker
+	_waypoints.append(waypoint)
+	_entity_markers[quest_id] = waypoint
 
 func remove_waypoint(quest_id: String) -> void:
 	for i in range(_waypoints.size()):
@@ -302,22 +302,28 @@ func add_marker(entity_id: String, world_pos: Vector3, marker_type: int, label: 
 		return
 
 	var color := UIStyles.COLORS.info
-	match marker_type:
-		1: color = UIStyles.COLORS.success      # Player
-		2: color = UIStyles.COLORS.accent_gold   # NPC
-		3: color = UIStyles.COLORS.warning       # Quest
-		4: color = UIStyles.COLORS.error        # Enemy
-		5: color = UIStyles.COLORS.info        # Item
+	if marker_type == 1:
+		color = UIStyles.COLORS.success
+	elif marker_type == 2:
+		color = UIStyles.COLORS.accent_gold
+	elif marker_type == 3:
+		color = UIStyles.COLORS.warning
+	elif marker_type == 4:
+		color = UIStyles.COLORS.error
+	elif marker_type == 5:
+		color = UIStyles.COLORS.info
+	else:
+		color = UIStyles.COLORS.info
 
 	var marker := _create_marker(entity_id, color)
 	_marker_container.add_child(marker)
 
-_entity_markers[entity_id] = {
-"marker": marker,
-"position": world_pos,
-"type": marker_type,
-"label": label
-}
+	_entity_markers[entity_id] = {
+	"marker": marker,
+	"position": world_pos,
+	"type": marker_type,
+	"label": label
+	}
 
 func remove_marker(entity_id: String) -> void:
 	if not _entity_markers.has(entity_id):
@@ -335,16 +341,14 @@ func remove_marker(entity_id: String) -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-
-		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-				if _minimap_mode:
-					expand_to_fullscreen()
-					else:
-					_handle_map_click(event.position)
-
-					if event is InputEventMouseMotion and _is_dragging:
-						_pan_offset += event.relative
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			if _minimap_mode:
+				expand_to_fullscreen()
+			else:
+				_handle_map_click(event.position)
+	elif event is InputEventMouseMotion and _is_dragging:
+		_pan_offset += event.relative
 
 func _handle_map_click(screen_pos: Vector2) -> void:
 	var map_pos := _screen_to_world(screen_pos)

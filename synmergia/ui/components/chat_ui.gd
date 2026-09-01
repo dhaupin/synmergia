@@ -81,11 +81,11 @@ func _setup_ui() -> void:
 func _create_channel_tabs() -> void:
 	# Create tabs for common channels
 	var channels := [
-		{ChatService.Channel.SAY, "Say", UIStyles.COLORS.text_primary},
-		{ChatService.Channel.ZONE, "Zone", Color(0.0, 1.0, 0.0)},
-		{ChatService.Channel.PARTY, "Party", Color(0.0, 1.0, 0.53)},
-		{ChatService.Channel.GUILD, "Guild", Color(1.0, 0.67, 0.0)},
-		{ChatService.Channel.WHISPER, "Whisper", Color(1.0, 0.6, 1.0)},
+		{"id": ChatService.Channel.SAY, "name": "Say", "color": UIStyles.COLORS.text_primary},
+		{"id": ChatService.Channel.ZONE, "name": "Zone", "color": Color(0.0, 1.0, 0.0)},
+		{"id": ChatService.Channel.PARTY, "name": "Party", "color": Color(0.0, 1.0, 0.53)},
+		{"id": ChatService.Channel.GUILD, "name": "Guild", "color": Color(1.0, 0.67, 0.0)},
+		{"id": ChatService.Channel.WHISPER, "name": "Whisper", "color": Color(1.0, 0.6, 1.0)},
 	]
 
 	for ch in channels:
@@ -183,22 +183,22 @@ func _handle_command(text: String) -> void:
 				var target_name: String = target_and_msg[0]
 				var msg: String = target_and_msg[1]
 				ChatService.send_whisper("", target_name, msg)
-		else:
-			add_system_message("Usage: /w PlayerName message")
-	"r", "reply":
-		# Reply to last whisper
-		ChatService.send_whisper_to_last("", args)
-	"party":
-		add_system_message("Party commands: /invite, /leave, /kick")
-	"guild":
-		add_system_message("Guild commands: /g message")
-	"me":
-		# Emote
-		if not args.is_empty():
-			var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
-			ChatService.send_emote(local_id, args)
-	_:
-		add_system_message("Unknown command: %s" % cmd)
+			else:
+				add_system_message("Usage: /w PlayerName message")
+		"r", "reply":
+			# Reply to last whisper
+			ChatService.send_whisper_to_last("", args)
+		"party":
+			add_system_message("Party commands: /invite, /leave, /kick")
+		"guild":
+			add_system_message("Guild commands: /g message")
+		"me":
+			# Emote
+			if not args.is_empty():
+				var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+				ChatService.send_emote(local_id, args)
+		_:
+			add_system_message("Unknown command: %s" % cmd)
 
 func _on_chat_message(sender_id: String, channel: int, message: String, targets: Array) -> void:
 	add_message(sender_id, channel, message)
@@ -238,7 +238,8 @@ func _trim_history() -> void:
 		_chat_history.append_text("\n".join(new_lines))
 		_message_count = new_lines.size()
 
-func # Player info header
+func _add_player_info_row(vbox: VBoxContainer) -> void:
+	# Player info header
 	var player_header := HBoxContainer.new()
 	player_header.custom_minimum_size.y = 24
 	_add_player_info_header(player_header)

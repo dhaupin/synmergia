@@ -42,7 +42,7 @@ func _ready() -> void:
 func _setup_hud() -> void:
 	# Action bar (bottom center) - skills/actions
 	_action_bar = HBoxContainer.new()
-	_action_bar.set_anchors_preset(Control.PRESET_BOTTOM_HCENTER)
+	_action_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_action_bar.offset_top = -80
 	_action_bar.offset_bottom = -10
 	_action_bar.custom_minimum_size.y = 60
@@ -69,7 +69,7 @@ func _setup_hud() -> void:
 
 	# Status bar (top center) - HP, MP, XP
 	_status_bar = HBoxContainer.new()
-	_status_bar.set_anchors_preset(Control.PRESET_TOP_HCENTER)
+	_status_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_status_bar.offset_top = 10
 	_status_bar.z_index = 100
 	add_child(_status_bar)
@@ -344,6 +344,13 @@ func _close_panel(menu_name: String, panel: Control) -> void:
 	if _open_panels.is_empty():
 		_is_menu_open = false
 	menu_toggled.emit(menu_name, false)
+
+func _open_panel(menu_name: String, panel: Control) -> void:
+	if not _open_panels.has(menu_name):
+		_open_panels.append(menu_name)
+	_is_menu_open = true
+	panel.visible = true
+	menu_toggled.emit(menu_name, true)
 
 func _close_all_menus_internal() -> void:
 	for panel_name in _open_panels:
