@@ -317,7 +317,7 @@ func expand_vault(player_id: String, vault_type: VaultType, slots: int) -> bool:
 		return false
 
 	# Maximum expansion limits
-	var max_size := vault_type == VaultType.GUILD ? 500 : 200
+	var max_size: int = 500 if vault_type == VaultType.GUILD else 200
 	if vault.size + slots > max_size:
 		return false
 
@@ -329,7 +329,7 @@ func expand_vault(player_id: String, vault_type: VaultType, slots: int) -> bool:
 func get_expansion_cost(vault_type: VaultType, current_size: int) -> Dictionary:
 	# TODO: Calculate actual cost
 	return {
-		"gold": 10000 * ((current_size - (vault_type == VaultType.GUILD ? GUILD_VAULT_SIZE : PERSONAL_VAULT_SIZE)) / 10),
+		"gold": 10000 * (int((current_size - (GUILD_VAULT_SIZE if vault_type == VaultType.GUILD else PERSONAL_VAULT_SIZE)) / 10)),
 		"premium": 0
 	}
 

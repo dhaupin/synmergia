@@ -29,8 +29,13 @@ func _apply_styles() -> void:
 
 func _on_play_pressed() -> void:
 	print("Play button pressed")
+	# Send the player to login first; on success they land in the
+	# character lobby, which is the canonical entry point to the world.
 	if GameManager:
-		GameManager.change_state(GameManager.GameState.CHARACTER_SELECT)
+		if LoginService and LoginService.is_logged_in():
+			GameManager.change_state(GameManager.GameState.LOBBY)
+		else:
+			GameManager.change_state(GameManager.GameState.LOGIN)
 
 func _on_settings_pressed() -> void:
 	print("Settings button pressed")

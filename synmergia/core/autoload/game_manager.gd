@@ -13,7 +13,9 @@ signal game_ended
 
 enum GameState {
     LOADING,
+    LOGIN,
     MAIN_MENU,
+    LOBBY,
     CHARACTER_SELECT,
     PLAYING,
     PAUSED
@@ -53,8 +55,12 @@ func change_state(new_state: GameState) -> void:
     match new_state:
         GameState.LOADING:
             _handle_loading_state()
+        GameState.LOGIN:
+            _handle_login_state()
         GameState.MAIN_MENU:
             _handle_main_menu_state()
+        GameState.LOBBY:
+            _handle_lobby_state()
         GameState.CHARACTER_SELECT:
             _handle_character_select_state()
         GameState.PLAYING:
@@ -104,8 +110,19 @@ func _check_loading_complete() -> void:
 func _handle_loading_state() -> void:
     GameLog.info("Loading resources...")
 
+func _handle_login_state() -> void:
+    get_tree().change_scene_to_file("res://ui/menus/login.tscn")
+
 func _handle_main_menu_state() -> void:
     get_tree().change_scene_to_file("res://ui/menus/main_menu.tscn")
+
+func _handle_lobby_state() -> void:
+    if not LoginService or not LoginService.is_logged_in():
+        # Defensive: route to login if state machine was reached without auth
+        GameLog.warn("GameManager: LOBBY reached without login, redirecting")
+        change_state(GameState.LOGIN)
+        return
+    get_tree().change_scene_to_file("res://ui/menus/lobby.tscn")
 
 func _handle_character_select_state() -> void:
     get_tree().change_scene_to_file("res://ui/menus/character_select.tscn")
