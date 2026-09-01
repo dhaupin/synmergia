@@ -1,6 +1,8 @@
 ## AdminCommands - Administrative command handlers for server management
 extends Node
 
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## ============================================================================
 ## ADMIN COMMANDS REGISTRY
 ## ============================================================================
@@ -279,7 +281,17 @@ func _cmd_firewall_status(args: Array) -> Dictionary:
 
 func _cmd_shutdown(args: Array) -> Dictionary:
 	var delay = 0 if args.size() < 1 else int(args[0])
-	NotificationService.broadcast_alert("Server shutdown in %d seconds!" % delay, [NotificationService.AlertScope.server_wide()], NotificationService.NotificationType.ALERT)
+	# Frame-level admin alert. ADMIN_ALERT kind has a 0 dedupe window --
+	# the same /shutdown command fired twice in 5s should still toast
+	# both times (it's admin intent, not noise).
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
+			"Server shutdown in %d seconds!" % delay,
+			"AdminCommands",
+			"admin:shutdown:%d:%d" % [delay, Time.get_ticks_msec()],
+			{"delay_seconds": delay}
+		)
 	var t = Timer.new()
 	t.timeout.connect(func(): get_tree().quit())
 	t.one_shot = true
@@ -291,7 +303,15 @@ func _cmd_shutdown(args: Array) -> Dictionary:
 func _cmd_broadcast(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /broadcast <message>"}
-	NotificationService.broadcast_alert(" ".join(args), [NotificationService.AlertScope.server_wide()], NotificationService.NotificationType.ALERT)
+	var msg := " ".join(args)
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
+			msg,
+			"AdminCommands",
+			"admin:broadcast:%d" % Time.get_ticks_msec(),
+			{"command": "/broadcast"}
+		)
 	return {"success": true, "message": "Broadcast sent"}
 
 func _cmd_resurrect(args: Array) -> Dictionary:

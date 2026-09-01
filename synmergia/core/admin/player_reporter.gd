@@ -3,6 +3,8 @@
 ## All player reports flow through this central system
 extends Node
 
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## Report types
 enum ReportType {
 	ABUSE = 0,       # Player abuse/harassment
@@ -412,12 +414,21 @@ func _notify_reporter(report: Report) -> void:
 				status_msg = "Your report has been escalated for urgent review."
 		
 		if status_msg != "":
-			NotificationService.send_to_player(
-				report.reporter_id,
-				status_msg,
-				NotificationService.NotificationType.SYSTEM,
-				NotificationService.Priority.NORMAL
-			)
+			# Frame-level notify. The reporter's status is admin-mediated
+			# free-form feedback; CUSTOM is the right kind (no dedicated
+			# REPORT_STATUS slot). Dedupe key includes the report id and
+			# status so a /status check on the same report doesn't
+			# double-toast, but a status change to resolved then
+			# escalated will.
+			if is_instance_valid(NotificationService):
+				NotificationService.notify(
+					NotifKind.CUSTOM,
+					status_msg,
+					"PlayerReporter",
+					"report:%s:%s" % [report.id, report.status],
+					{"report_id": report.id, "status": report.status},
+					report.reporter_id
+				)
 
 func _emit_urgent_alert(report: Report) -> void:
 	# Emit signal for Discord webhook, email, etc.

@@ -2,6 +2,8 @@
 ## Takes actions based on configured thresholds
 extends Node
 
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
@@ -100,9 +102,12 @@ func _handle_spam(player_id: String, count: int) -> void:
 	# Subsequent: mute
 	if count >= 2:
 		var duration = GameConfig.AutoResponse.SPAM_MUTE_DURATION
+		# SecurityService.restrict_player emits the player-facing mute
+		# toast (with the right units: "5 minutes" instead of "300
+		# seconds"). Don't add a second one here -- clarity means one
+		# message, not two.
 		SecurityService.restrict_player(player_id, "chat", duration)
 		_notify_admins("Auto-muted %s for %d seconds (spam count: %d)" % [player_id, duration, count])
-		_notify_player(player_id, "Muted for %d seconds for spam." % duration)
 		action_taken.emit(player_id, ActionType.MUTE, "spam",
 			"Auto-muted for %d seconds (count: %d)" % [duration, count])
 
@@ -153,6 +158,11 @@ func _handle_item_duplication(player_id: String, count: int) -> void:
 
 func _auto_kick(player_id: String, reason: String, exploit_type: String = "exploit_threshold") -> void:
 	GameLog.warn("AutoResponse: Kicking %s: %s" % [player_id, reason])
+
+	# Player-facing toast BEFORE the disconnect. NetworkManager.kick_player
+	# drops the connection; the player needs a moment to see WHY. The
+	# AppFirewall ban/lift path is the precedent for this.
+	_notify_player(player_id, "You have been kicked: %s" % reason, NotifKind.AUTO_ACTION, "kick:" + exploit_type)
 
 	# Find peer ID and kick
 	var peer_id = _get_peer_for_player(player_id)
@@ -208,21 +218,41 @@ func _get_peer_for_player(player_id: String) -> int:
 					return int(peer_id)
 	return -1
 
-func _notify_player(player_id: String, message: String) -> void:
-	# Send in-game notification to player
-	if NotificationService:
-		NotificationService.send_to_player(player_id, message, NotificationService.NotificationType.WARNING)
+func _notify_player(player_id: String, message: String, kind: int = NotifKind.PLAYER_WARNED, dedupe_suffix: String = "") -> void:
+	# Frame-level notify(). The dispatcher applies the per-kind window
+	# (PLAYER_WARNED = 2s, AUTO_ACTION = 0 -> never dedupe), so callers
+	# don't need to manage dedupe state. dedupe_suffix lets callers
+	# collapse multiple identical toasts for the same (player, exploit).
+	if is_instance_valid(NotificationService):
+		var key := "ars:%s:%s" % [_action_key_for_kind(kind), player_id]
+		if dedupe_suffix != "":
+			key += ":" + dedupe_suffix
+		NotificationService.notify(kind, message, "AutoResponseService", key, {}, player_id)
+
+func _action_key_for_kind(kind: int) -> String:
+	# Short tag for the dedupe key. Keeps the key readable in the
+	# dispatcher's tracked map.
+	match kind:
+		NotifKind.PLAYER_WARNED: return "warn"
+		NotifKind.AUTO_ACTION: return "action"
+		NotifKind.SECURITY_BLOCKED: return "block"
+		NotifKind.SECURITY_WARNING: return "secwarn"
+		_: return "x"
 
 func _notify_admins(message: String) -> void:
 	# Log for admin review
 	GameLog.warn("ADMIN: " + message)
-	
-	# Send to all admins if configured
-	if GameConfig.AutoResponse.NOTIFY_ADMINS and NotificationService:
-		NotificationService.broadcast_alert(
-			"[ADMIN] " + message,
-			[NotificationService.AlertScope.server_wide()],
-			NotificationService.NotificationType.WARNING
+
+	# Frame-level admin alert. ADMIN_ALERT kind has a 0 window in the
+	# dispatcher -- admins never want a dropped alert, even if the same
+	# auto-action fires twice in 5s.
+	if GameConfig.AutoResponse.NOTIFY_ADMINS and is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
+			message,
+			"AutoResponseService",
+			"ars_admin:%s:%d" % [message, Time.get_ticks_msec()],
+			{}
 		)
 
 ## ============================================================================
