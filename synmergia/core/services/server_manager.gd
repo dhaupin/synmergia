@@ -2,6 +2,13 @@
 ## Handles server restarts, maintenance windows, and player notifications
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# kick_player dispatches SECURITY_BLOCKED via the typed-Kind pipeline so
+# the kick lands on the player's toast feed through the same channel
+# the firewall/admin commands use. The legacy NotificationService.send
+# call is kept for clients that haven't migrated to the new pipeline.
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 # Server state
 enum ServerState {
 	ONLINE,        # Normal operation
@@ -245,8 +252,28 @@ func set_state(new_state: ServerState) -> void:
 func kick_player(entity_id: String, reason: String = "You have been disconnected") -> void:
 	GameLog.info("ServerManager: Kicking player %s: %s" % [entity_id, reason])
 	player_kicked.emit(entity_id, reason)
-	
-	# Send kick notification
+
+	# Frame-level dispatch. SECURITY_BLOCKED → ALERT + HIGH. The player
+	# must know the disconnect was deliberate (so they don't blame their
+	# own connection). Dedupe on (player, reason) so a kick then a
+	# re-kick for the same reason collapses, but a different reason (e.g.
+	# admin kicks first, then a maintenance shutdown kicks for a
+	# different reason) both surface.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_BLOCKED,
+			reason,
+			"ServerManager",
+			"server_kick:%s:%s" % [entity_id, reason],
+			{"reason": reason, "kind": "server_kick"},
+			entity_id
+		)
+
+	# Legacy dispatch (NotificationService.send). Kept for clients that
+	# still listen to the legacy ERROR-type channel. The two dispatches
+	# share no dedupe key namespace, so a kick fires both toasts; the
+	# client-side toast manager is responsible for collapsing duplicate
+	# visual toasts from the same source event.
 	NotificationService.send(
 		entity_id,
 		reason,
@@ -255,12 +282,18 @@ func kick_player(entity_id: String, reason: String = "You have been disconnected
 		NotificationService.DisplayLocation.CENTER_SCREEN,
 		NotificationService.SoundType.ERROR
 	)
-	
+
+	# TODO(server): wire the actual disconnect once NetworkManager exposes
+	# kick_player / disconnect_peer and PlayerManager has a player-registry
+	# query. Today the underlying chain (PlayerManager.has_player /
+	# PlayerManager.get_player_info / NetworkManager.kick_player) does not
+	# exist, so the toast layer is correct but the peer is not actually
+	# disconnected. Tracked separately from this PR.
 	# Actually disconnect the player
-	if PlayerManager and PlayerManager.has_player(entity_id):
+	if PlayerManager and PlayerManager.has_method("has_player") and PlayerManager.has_player(entity_id):
 		var info = PlayerManager.get_player_info(entity_id)
 		var peer_id: int = info.get("peer_id", -1)
-		if peer_id > 0 and NetworkManager:
+		if peer_id > 0 and NetworkManager and NetworkManager.has_method("kick_player"):
 			NetworkManager.kick_player(peer_id, reason)
 
 ## Kick all players (for maintenance/shutdown)
