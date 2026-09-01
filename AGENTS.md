@@ -786,13 +786,64 @@ Five things that are now true and that future agents can rely on:
    code that should be migrated.
 
 **Open items for next session** (not blocking):
-- A user-facing "you've been blocked" toast in AppFirewall when a
-  *player*'s connection is rejected (currently the recursion-block
-  and ban events are admin-scoped only). The player would benefit
-  from a clear "Connection rejected: suspicious activity" toast.
 - Per-kind dedupe window override — the kind table currently has
   one default 5s window; some events (e.g. ban) probably want
   "never dedupe, always toast" semantics.
+- AppFirewall `block_ip` / `unblock_ip` are still admin-scope only.
+  The recursion-guard and ban flows were wired this round; the
+  raw IP-block path was not (it doesn't carry a player_id in the
+  current API, so adding a player toast needs API work first).
+- The "audit showed 16 stragglers" list — chat/party/guild/quest/
+  trade/skill_academy/admin services still call send_to_player /
+  broadcast_alert directly. Deferred per "fill in the other stuff
+  later" — they're not qos/security/firewall.
+
+## Session insights (2026-09-01, late night)
+
+Three small commits rounding out the qos/security/firewall family
+to user-visible feedback. Each fills a gap where the service was
+emitting a signal and logging, but the player had no toast.
+
+- **`411fc06` feat(firewall): add player-facing toasts for ban / ban-lift**
+  `ban_player`, `temp_ban_player`, `lift_ban` now toast the player
+  (SECURITY_BLOCKED for ban, SECURITY_WARNING for lift) in addition
+  to the existing admin-scope _broadcast_admin_alert. The banned
+  player previously had no in-client signal that they were banned,
+  why, or how long — they just got disconnected.
+
+- **`4fa3942` feat(qos): toast player on per-player bulkhead saturation**
+  `bulkhead_execute()` had three reject paths; the per-player one
+  (line 413) was silent. A player firing 4 concurrent heavy
+  requests would get nothing back. Now THROTTLED toasts the player
+  with the service name ("X is busy — please slow down"). Dedupe
+  on (player, service).
+
+- **`3922b96` feat(security): player-facing toast for exploit_detected and permission_denied**
+  `_report_exploit` and `log_permission_denied` were both silent
+  to the player. Both now toast SECURITY_WARNING with a generic
+  message (no internal exploit_type or required_level leaked to
+  the client). Dedupe on (player, exploit_type) and (player, action).
+
+**Pattern observation:** every "silent to the player" gap in this
+family is the same shape — a function that emits a signal, logs
+to GameLog, and returns, with no path to the UI. The fix is also
+the same shape: a single `NotificationService.notify(...)` call
+at the same site, deduped on a stable per-event key. Three
+commits, +67 net lines.
+
+**What "complete" looks like now** for the qos/security/firewall
+family:
+- A player who hits any of the three concerns gets a toast with
+  the right kind, the right severity, and the right scope.
+- An admin watching the same flows gets admin-scope ALERTs for
+  every action.
+- No toasts are duplicated within a 5s window.
+- No internal type strings (exploit_type, required_level) leak
+  to the client — messages are written for the player, not the
+  admin log.
+
+Verified across all three commits: 11/11 toast, 14/14 frame,
+8/8 ARS, 7/7 HUD smoke.
 
 ---
 
