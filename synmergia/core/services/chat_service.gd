@@ -719,15 +719,16 @@ func _get_channel_restriction_message(player_id: String, channel: Channel) -> St
 func _notify_player(player_id: String, message: String) -> void:
 	# Frame-level dispatch. The three call sites (restriction, validation
 	# block, rate-limit) are all chat-send feedback, so the kind is
-	# SECURITY_BLOCKED with HIGH priority via the autoload's kind→priority
-	# map. Dedupe on (player, message hash) so a player mashing the same
-	# rate-limit message doesn't get 5 toasts in a row.
+	# SECURITY_BLOCKED. The dispatcher's KIND_WINDOW_OVERRIDES table
+	# disables dedupe for SECURITY_BLOCKED (rate-limit feedback must
+	# always show), so we don't pass a per-call dedupe_key — the
+	# kind-level policy wins regardless.
 	if is_instance_valid(NotificationService):
 		NotificationService.notify(
 			NotifKind.SECURITY_BLOCKED,
 			message,
 			"ChatService",
-			"chat_block:%s:%s" % [player_id, message.hash()],
+			"",
 			{"player_id": player_id},
 			player_id
 		)
