@@ -208,6 +208,20 @@ func _cmd_ban(args: Array) -> Dictionary:
 	var player_id = args[0]
 	var reason = " ".join(args.slice(1, args.size()))
 	NetworkManager.ban_player(player_id, reason, "admin")
+	# Admin audit toast: distinct from the player's SECURITY_BLOCKED so
+	# the audit log shows "admin X did this" not just "player got banned".
+	# Dedupe on (admin, action, target) inside a 5s window so a /ban
+	# double-tap (admin re-typing the same command) collapses to one
+	# entry in the admin toast feed.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
+			"Admin %s banned %s: %s" % [_caller, player_id, reason],
+			"AdminCommands",
+			"admin_cmd:ban:%s:%s" % [_caller, player_id],
+			{"target": player_id, "reason": reason, "command": "ban"},
+			"admins"
+		)
 	return {"success": true, "message": "Banned: " + player_id}
 
 func _cmd_unban(args: Array) -> Dictionary:
@@ -216,28 +230,83 @@ func _cmd_unban(args: Array) -> Dictionary:
 	var firewall = NetworkManager.get_firewall()
 	if firewall:
 		firewall.lift_ban(args[0])
+		if is_instance_valid(NotificationService):
+			NotificationService.notify(
+				NotifKind.ADMIN_ALERT,
+				"Admin %s unbanned %s" % [_caller, args[0]],
+				"AdminCommands",
+				"admin_cmd:unban:%s:%s" % [_caller, args[0]],
+				{"target": args[0], "command": "unban"},
+				"admins"
+			)
 		return {"success": true, "message": "Unbanned: " + args[0]}
 	return {"success": false, "message": "Firewall not available"}
 
 func _cmd_kick(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /kick <player_id> [reason]"}
-	var peer_id = int(args[0])
+	var player_id = args[0]
 	var reason = "Kicked" if args.size() < 2 else " ".join(args.slice(1, args.size()))
-	NetworkManager.kick_player(peer_id, reason)
-	return {"success": true, "message": "Kicked: " + args[0]}
+	# NetworkManager.kick_player takes a peer_id, not a player_id, and the
+	# underlying disconnect path lives there. We dispatch the audit/player
+	# toasts here so /kick is observably correct at the notification layer
+	# even if the peer disconnect is a no-op.
+	# Player-facing: SECURITY_BLOCKED → ALERT + HIGH. Dedupe on
+	# (target, reason) so a "kicked for spam" /kick and a quick re-/kick
+	# for the same reason collapse.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_BLOCKED,
+			"You have been kicked: %s" % reason,
+			"AdminCommands",
+			"admin_cmd:kick:%s:%s" % [player_id, reason],
+			{"reason": reason, "command": "kick"},
+			player_id
+		)
+	# Admin audit: same dedupe pattern as ban.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
+			"Admin %s kicked %s: %s" % [_caller, player_id, reason],
+			"AdminCommands",
+			"admin_cmd:kick:%s:%s" % [_caller, player_id],
+			{"target": player_id, "reason": reason, "command": "kick"},
+			"admins"
+		)
+	return {"success": true, "message": "Kicked: " + player_id}
 
 func _cmd_mute(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /mute <player_id> [duration]"}
 	var duration = 60 if args.size() < 2 else int(args[1]) * 60
 	SecurityService.restrict_player(args[0], "chat", duration)
+	# SecurityService already fires the player-facing SECURITY_BLOCKED.
+	# The admin audit here is a separate stream so the audit log can
+	# see "admin did this" without double-toasting the muted player.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
+			"Admin %s muted %s for %ds" % [_caller, args[0], duration],
+			"AdminCommands",
+			"admin_cmd:mute:%s:%s" % [_caller, args[0]],
+			{"target": args[0], "duration": duration, "command": "mute"},
+			"admins"
+		)
 	return {"success": true, "message": "Muted: " + args[0]}
 
 func _cmd_unmute(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /unmute <player_id>"}
 	SecurityService.unrestrict_player(args[0], "chat")
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ADMIN_ALERT,
+			"Admin %s unmuted %s" % [_caller, args[0]],
+			"AdminCommands",
+			"admin_cmd:unmute:%s:%s" % [_caller, args[0]],
+			{"target": args[0], "command": "unmute"},
+			"admins"
+		)
 	return {"success": true, "message": "Unmuted: " + args[0]}
 
 func _cmd_block_ip(args: Array) -> Dictionary:
@@ -246,6 +315,19 @@ func _cmd_block_ip(args: Array) -> Dictionary:
 	var firewall = NetworkManager.get_firewall()
 	if firewall:
 		firewall.block_ip(args[0], " ".join(args.slice(2, args.size())), int(args[1]))
+		# AppFirewall already fires an ADMIN_ALERT ("IP blocked...") to the
+		# admin channel. AdminCommands adds a more specific audit entry
+		# naming the admin who issued the block, so the audit log can
+		# attribute the action.
+		if is_instance_valid(NotificationService):
+			NotificationService.notify(
+				NotifKind.ADMIN_ALERT,
+				"Admin %s blocked IP %s for %ds" % [_caller, args[0], int(args[1])],
+				"AdminCommands",
+				"admin_cmd:block_ip:%s:%s" % [_caller, args[0]],
+				{"target": args[0], "duration": int(args[1]), "command": "block_ip"},
+				"admins"
+			)
 		return {"success": true, "message": "Blocked IP: " + args[0]}
 	return {"success": false, "message": "Firewall not available"}
 
@@ -255,6 +337,15 @@ func _cmd_unblock_ip(args: Array) -> Dictionary:
 	var firewall = NetworkManager.get_firewall()
 	if firewall:
 		firewall.unblock_ip(args[0])
+		if is_instance_valid(NotificationService):
+			NotificationService.notify(
+				NotifKind.ADMIN_ALERT,
+				"Admin %s unblocked IP %s" % [_caller, args[0]],
+				"AdminCommands",
+				"admin_cmd:unblock_ip:%s:%s" % [_caller, args[0]],
+				{"target": args[0], "command": "unblock_ip"},
+				"admins"
+			)
 		return {"success": true, "message": "Unblocked IP: " + args[0]}
 	return {"success": false, "message": "Firewall not available"}
 

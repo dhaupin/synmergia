@@ -200,6 +200,93 @@ func _initialize() -> void:
 		else:
 			_fail("Firewall block_ip did not produce ADMIN_ALERT")
 
+	# AdminCommands: every mutating command must dispatch ADMIN_ALERT
+	# (and _cmd_kick must additionally dispatch SECURITY_BLOCKED to the
+	# kicked player). The audit trail is the whole point of the
+	# command surface -- if any of these go silent, the admin has no
+	# way to know another admin is acting in the world.
+	var ac: Node = root.get_node_or_null("AdminCommands")
+	if ac == null:
+		_fail("AdminCommands autoload missing — cannot exercise admin dispatch")
+	else:
+		# /ban
+		_notif.reset_dedupe()
+		ac.set("_caller", "frame_admin_alice")
+		ac.call("_cmd_ban", ["frame_ac_ban", "spam"])
+		await process_frame
+		var ban_hist: Array = _notif.get_history("admins", 100)
+		var ban_alert: bool = false
+		for n in ban_hist:
+			var data: Dictionary = n.get("data", {})
+			if data.get("kind", -1) == NotifKind.ADMIN_ALERT and data.get("command", "") == "ban":
+				ban_alert = true
+				break
+		if ban_alert:
+			_ok("AdminCommands /ban dispatches ADMIN_ALERT")
+		else:
+			_fail("AdminCommands /ban did not produce ADMIN_ALERT")
+
+		# /kick — both player-facing SECURITY_BLOCKED and admin
+		# ADMIN_ALERT must fire (player wants to know they were
+		# kicked; admins want to know who issued the kick).
+		_notif.reset_dedupe()
+		ac.set("_caller", "frame_admin_alice")
+		ac.call("_cmd_kick", ["frame_ac_kick", "spam"])
+		await process_frame
+		var kick_player_hist: Array = _notif.get_history("frame_ac_kick", 100)
+		var kick_blocked: bool = false
+		for n in kick_player_hist:
+			if n.get("data", {}).get("kind", -1) == NotifKind.SECURITY_BLOCKED:
+				kick_blocked = true
+				break
+		var kick_admin_hist: Array = _notif.get_history("admins", 100)
+		var kick_alert: bool = false
+		for n in kick_admin_hist:
+			var data: Dictionary = n.get("data", {})
+			if data.get("kind", -1) == NotifKind.ADMIN_ALERT and data.get("command", "") == "kick":
+				kick_alert = true
+				break
+		if kick_blocked and kick_alert:
+			_ok("AdminCommands /kick dispatches SECURITY_BLOCKED + ADMIN_ALERT")
+		elif not kick_blocked:
+			_fail("AdminCommands /kick did not produce SECURITY_BLOCKED for kicked player")
+		else:
+			_fail("AdminCommands /kick did not produce ADMIN_ALERT")
+
+		# /mute
+		_notif.reset_dedupe()
+		ac.set("_caller", "frame_admin_bob")
+		ac.call("_cmd_mute", ["frame_ac_mute", "5"])
+		await process_frame
+		var mute_hist: Array = _notif.get_history("admins", 100)
+		var mute_alert: bool = false
+		for n in mute_hist:
+			var data: Dictionary = n.get("data", {})
+			if data.get("kind", -1) == NotifKind.ADMIN_ALERT and data.get("command", "") == "mute":
+				mute_alert = true
+				break
+		if mute_alert:
+			_ok("AdminCommands /mute dispatches ADMIN_ALERT")
+		else:
+			_fail("AdminCommands /mute did not produce ADMIN_ALERT")
+
+		# /unban
+		_notif.reset_dedupe()
+		ac.set("_caller", "frame_admin_bob")
+		ac.call("_cmd_unban", ["frame_ac_ban"])
+		await process_frame
+		var unban_hist: Array = _notif.get_history("admins", 100)
+		var unban_alert: bool = false
+		for n in unban_hist:
+			var data: Dictionary = n.get("data", {})
+			if data.get("kind", -1) == NotifKind.ADMIN_ALERT and data.get("command", "") == "unban":
+				unban_alert = true
+				break
+		if unban_alert:
+			_ok("AdminCommands /unban dispatches ADMIN_ALERT")
+		else:
+			_fail("AdminCommands /unban did not produce ADMIN_ALERT")
+
 	_finish()
 
 
