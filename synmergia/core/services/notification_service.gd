@@ -166,22 +166,56 @@ func send(
 		"timestamp": Time.get_ticks_msec(),
 		"read": false
 	}
-	
+
 	# Add to queue
 	_notification_queue.append(notification)
 	if _notification_queue.size() > _max_queue_size:
 		_notification_queue.pop_at(0)
-	
+
 	# Track for entity
 	if not _entity_notifications.has(entity_id):
 		_entity_notifications[entity_id] = []
 	_entity_notifications[entity_id].append(notification)
-	
+
 	# Add to history
 	_add_to_history(entity_id, notification)
-	
+
 	notification_sent.emit(entity_id, notification)
 	GameLog.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
+
+## Convenience alias for send() — used by HUD/services that route a
+## notification to a specific player by id. Accepts both enum values
+## and raw ints (legacy callers pass ints from older enums).
+func send_to_player(
+	player_id: String,
+	message: String,
+	notif_type = NotificationType.SYSTEM,
+	priority = Priority.NORMAL,
+	location = DisplayLocation.CHAT_LOG,
+	sound = SoundType.NOTIFICATION,
+	data: Dictionary = {}
+) -> void:
+	var nt: int = _coerce_int(notif_type, NotificationType.SYSTEM)
+	var pr: int = _coerce_int(priority, Priority.NORMAL)
+	var loc: int = _coerce_int(location, DisplayLocation.CHAT_LOG)
+	var snd: int = _coerce_int(sound, SoundType.NOTIFICATION)
+	send(
+		player_id,
+		message,
+		nt as NotificationType,
+		pr as Priority,
+		loc as DisplayLocation,
+		snd as SoundType,
+		data
+	)
+
+## Coerce Variant to int with fallback (handles legacy int callers).
+static func _coerce_int(value, fallback: int) -> int:
+	if value is int:
+		return value
+	if value is float:
+		return int(value)
+	return fallback
 
 ## Broadcast notification to multiple scopes (server, zone, nearby, players)
 ## Can combine multiple scopes - e.g., server + zone, or zone + neighbors

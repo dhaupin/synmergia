@@ -174,19 +174,27 @@ func record_failed_attempt(ip: String, attempt_type: String = "login") -> bool:
 func _clear_failed_attempts(ip: String) -> void:
 	_failed_attempts.erase(ip)
 
+## Public alias for NetworkManager.track_failed_attempt — preferred
+## caller-facing name. Keeps the legacy record_failed_attempt working.
+func track_failed_attempt(ip: String, attempt_type: String = "login") -> bool:
+	return record_failed_attempt(ip, attempt_type)
+
 ## Block an IP temporarily
 func block_ip(ip: String, reason: String, duration: int = -1) -> void:
 	if duration < 0:
 		duration = _block_duration
-	
+
 	var blocked_until := Time.get_unix_time_from_system() + duration
 	_blocked_ips[ip] = {
 		"blocked_until": blocked_until,
 		"reason": reason
 	}
-	
+
 	ip_blocked.emit(ip, reason, duration)
 	GameLog.warn("AppFirewall: Blocked IP %s for %ds: %s" % [ip, duration, reason])
+	_broadcast_admin_alert(
+		"IP blocked %ds: %s (reason: %s)" % [duration, ip, reason]
+	)
 
 ## Unblock an IP
 func unblock_ip(ip: String) -> void:
@@ -194,6 +202,7 @@ func unblock_ip(ip: String) -> void:
 		_blocked_ips.erase(ip)
 		ip_unblocked.emit(ip)
 		GameLog.info("AppFirewall: Unblocked IP %s" % ip)
+		_broadcast_admin_alert("IP unblocked: %s" % ip)
 
 ## Check if an IP is blocked
 func is_blocked(ip: String) -> bool:
@@ -211,10 +220,21 @@ func ban_player(player_id: String, reason: String, banned_by: String = "system")
 		"banned_by": banned_by,
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	
+
 	var ip = _player_ips.get(player_id, "unknown")
 	ban_issued.emit(player_id, ip, reason, -1)
 	GameLog.warn("AppFirewall: Permanent ban issued for %s (IP: %s): %s" % [player_id, ip, reason])
+	_broadcast_admin_alert(
+		"Player permanently banned: %s (reason: %s, by: %s)" % [player_id, reason, banned_by]
+	)
+
+## Alias for ban_player with explicit duration arg (matches the call
+## sites in NetworkManager.ban_player(..., -1) and AdminCommands).
+func issue_ban(player_id: String, reason: String, banned_by: String = "system", duration_seconds: int = -1) -> void:
+	if duration_seconds < 0:
+		ban_player(player_id, reason, banned_by)
+	else:
+		temp_ban_player(player_id, duration_seconds, reason)
 
 ## Issue a temporary ban
 func temp_ban_player(player_id: String, duration_seconds: int, reason: String) -> void:
@@ -223,21 +243,25 @@ func temp_ban_player(player_id: String, duration_seconds: int, reason: String) -
 		"expires": expires,
 		"reason": reason
 	}
-	
+
 	var ip = _player_ips.get(player_id, "unknown")
 	ban_issued.emit(player_id, ip, reason, duration_seconds)
 	GameLog.warn("AppFirewall: Temporary ban for %s (IP: %s, %ds): %s" % [player_id, ip, duration_seconds, reason])
+	_broadcast_admin_alert(
+		"Player temp-banned %ds: %s (reason: %s)" % [duration_seconds, player_id, reason]
+	)
 
 ## Lift a ban
 func lift_ban(player_id: String) -> void:
 	var was_banned := _permanent_bans.has(player_id) or _temporary_bans.has(player_id)
-	
+
 	_permanent_bans.erase(player_id)
 	_temporary_bans.erase(player_id)
-	
+
 	if was_banned:
 		ban_lifted.emit(player_id)
 		GameLog.info("AppFirewall: Ban lifted for %s" % player_id)
+		_broadcast_admin_alert("Ban lifted for %s" % player_id)
 
 ## Check if player is banned
 func is_banned(player_id: String) -> bool:
@@ -273,15 +297,20 @@ func get_ban_info(player_id: String) -> Dictionary:
 ## IP FLAGGING (for monitoring)
 ## ============================================================================
 
-## Flag an IP for suspicious activity
+## Public alias so NetworkManager can flag IPs without poking internals.
+## Forwards to the internal _flag_ip bookkeeping.
+func flag_ip(ip: String, flag_type: String, count: int = 1) -> void:
+	_flag_ip(ip, flag_type, count)
+
+## Flag an IP for suspicious activity (internal)
 func _flag_ip(ip: String, flag_type: String, count: int) -> void:
 	if not _flagged_ips.has(ip):
 		_flagged_ips[ip] = {"flags": {}, "last_activity": Time.get_unix_time_from_system()}
-	
+
 	var data: Dictionary = _flagged_ips[ip]
 	data["flags"][flag_type] = count
 	data["last_activity"] = Time.get_unix_time_from_system()
-	
+
 	connection_flagged.emit(ip, flag_type, count)
 
 ## Get flagged IPs
@@ -364,3 +393,51 @@ func get_stats() -> Dictionary:
 		"active_connections": _player_ips.size(),
 		"tracked_ips": _connection_counts.size()
 	}
+
+## ============================================================================
+## ADMIN ALERTING
+## ============================================================================
+##
+## Firewalls don't normally speak to the player, but admins need to know
+## when bans, blocks, and other actions happen. We piggy-back on
+## NotificationService so the in-game toast/chat pipeline that
+## HudIntegrator already consumes shows admin alerts without each call
+## site having to know about UI plumbing. Safe to call before
+## NotificationService is autoloaded — it just no-ops.
+
+func _broadcast_admin_alert(message: String) -> void:
+	var notifier: Node = null
+	if Engine.has_singleton("NotificationService"):
+		notifier = Engine.get_singleton("NotificationService")
+	if notifier == null and is_inside_tree():
+		var root := get_tree().get_root()
+		if root:
+			notifier = root.get_node_or_null("NotificationService")
+	if notifier == null or not notifier.has_method("broadcast_alert"):
+		GameLog.info("[FIREWALL] %s" % message)
+		return
+
+	# Reach into the notifier's script to construct a server-wide
+	# AlertScope. AlertScope is an inner class on NotificationService —
+	# the cleanest path is the static factory on the class itself.
+	var scope_script: Script = notifier.get_script()
+	if scope_script == null:
+		GameLog.warn("[FIREWALL] %s" % message)
+		return
+	var AlertScopeClass: Script = scope_script.get("AlertScope")
+	if AlertScopeClass == null:
+		GameLog.warn("[FIREWALL] %s" % message)
+		return
+	# AlertScope has a static factory `server_wide()`. Invoke it via
+	# Script.call(); falls back to a manually-flagged instance if the
+	# static method isn't present (older builds).
+	var scope = AlertScopeClass.call("server_wide")
+	if scope == null:
+		scope = AlertScopeClass.new()
+		scope.set("is_server_wide", true)
+	notifier.call(
+		"broadcast_alert",
+		"[FIREWALL] " + message,
+		[scope],
+		14 # NotificationType.ALERT — literal int; NotificationService has no class_name
+	)
