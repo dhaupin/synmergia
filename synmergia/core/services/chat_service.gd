@@ -2,6 +2,12 @@
 ## Handles all chat channels, filters, commands, and channel permissions
 extends Node
 
+# Frame-level notification dispatch (typed-Kind pipeline).
+# All chat-service-toasts are feedback to the sender about their own
+# blocked/limited message (rate-limit, validation, restriction), so
+# the Kind is SECURITY_BLOCKED uniformly.
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 # Chat channels
 enum Channel {
 				SAY = 0,					# Local say
@@ -711,11 +717,18 @@ func _get_channel_restriction_message(player_id: String, channel: Channel) -> St
 
 ## Send notification to player
 func _notify_player(player_id: String, message: String) -> void:
-	if NotificationService:
-		NotificationService.send_to_player(
-		player_id,
-		message,
-		NotificationService.NotificationType.SYSTEM,
-		NotificationService.Priority.HIGH
-	)
+	# Frame-level dispatch. The three call sites (restriction, validation
+	# block, rate-limit) are all chat-send feedback, so the kind is
+	# SECURITY_BLOCKED with HIGH priority via the autoload's kind→priority
+	# map. Dedupe on (player, message hash) so a player mashing the same
+	# rate-limit message doesn't get 5 toasts in a row.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_BLOCKED,
+			message,
+			"ChatService",
+			"chat_block:%s:%s" % [player_id, message.hash()],
+			{"player_id": player_id},
+			player_id
+		)
 	GameLog.debug("ChatService: Notified %s: %s" % [player_id, message])

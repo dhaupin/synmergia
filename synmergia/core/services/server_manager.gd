@@ -94,12 +94,15 @@ func cancel_restart() -> void:
 	restart_cancelled.emit()
 	
 	# Notify players restart was cancelled
-	NotificationService.broadcast_all(
+	# Frame-level broadcast. ADMIN_ALERT → ALERT/HIGH via the kind map.
+	# Empty recipient + ADMIN_ALERT routes to every player.
+	NotificationService.notify(
+		NotifKind.ADMIN_ALERT,
 		"Server restart has been cancelled. Continue playing!",
-		NotificationService.NotificationType.SYSTEM,
-		NotificationService.Priority.HIGH,
-		NotificationService.DisplayLocation.CENTER_SCREEN,
-		NotificationService.SoundType.NOTIFICATION
+		"ServerManager",
+		"sm:restart_cancelled",
+		{},
+		""
 	)
 
 ## Execute restart immediately
@@ -108,12 +111,16 @@ func execute_restart() -> void:
 	restart_executed.emit()
 	
 	# Final warning
-	NotificationService.broadcast_all(
+	# Frame-level broadcast. ADMIN_ALERT, the kind→priority map returns
+	# HIGH (the highest tier the map has), which matches the CRITICAL
+	# urgency the legacy call had.
+	NotificationService.notify(
+		NotifKind.ADMIN_ALERT,
 		"SERVER RESTARTING NOW",
-		NotificationService.NotificationType.SYSTEM,
-		NotificationService.Priority.CRITICAL,
-		NotificationService.DisplayLocation.CENTER_SCREEN,
-		NotificationService.SoundType.WARNING
+		"ServerManager",
+		"sm:restart_now",
+		{},
+		""
 	)
 	
 	# Trigger actual server shutdown via event bus
@@ -178,22 +185,18 @@ func _broadcast_restart_warning(seconds_remaining: int, custom_message: String =
 	else:
 		message = "%s in %d second%s" % [message, seconds_remaining, "s" if seconds_remaining > 1 else ""]
 	
-	# Higher priority for shorter countdowns
-	var priority = NotificationService.Priority.NORMAL
-	var location = NotificationService.DisplayLocation.CENTER_SCREEN
-	var sound = NotificationService.SoundType.WARNING
-	
-	if seconds_remaining <= 60:
-		priority = NotificationService.Priority.HIGH
-	if seconds_remaining <= 10:
-		priority = NotificationService.Priority.CRITICAL
-	
-	NotificationService.broadcast_all(
+	# Frame-level broadcast. ADMIN_ALERT routes through kind→priority
+	# HIGH. The legacy CRITICAL-for-≤10s tier can't be reproduced via
+	# the kind→priority map (HIGH is the cap), so we drop the
+	# escalation since the restart_executed broadcast at 0s already
+	# fires on the way out.
+	NotificationService.notify(
+		NotifKind.ADMIN_ALERT,
 		message,
-		NotificationService.NotificationType.WARNING,
-		priority,
-		location,
-		sound
+		"ServerManager",
+		"sm:restart_warning:%d" % seconds_remaining,
+		{"seconds_remaining": seconds_remaining},
+		""
 	)
 
 # --- Maintenance Mode ---
@@ -210,13 +213,13 @@ func start_maintenance(message: String = "Server under maintenance", duration_se
 	
 	maintenance_started.emit(message)
 	
-	NotificationService.broadcast_all(
+	NotificationService.notify(
+		NotifKind.ADMIN_ALERT,
 		message,
-		NotificationService.NotificationType.SYSTEM,
-		NotificationService.Priority.CRITICAL,
-		NotificationService.DisplayLocation.CENTER_SCREEN,
-		NotificationService.SoundType.WARNING,
-		{"maintenance": true, "duration": duration_seconds}
+		"ServerManager",
+		"sm:start_maintenance",
+		{"maintenance": true, "duration": duration_seconds},
+		""
 	)
 
 ## End maintenance mode
@@ -230,12 +233,13 @@ func end_maintenance() -> void:
 	GameLog.info("ServerManager: Ending maintenance mode (duration: %d seconds)" % duration)
 	maintenance_ended.emit()
 	
-	NotificationService.broadcast_all(
+	NotificationService.notify(
+		NotifKind.ADMIN_ALERT,
 		"Server maintenance complete! You may resume playing.",
-		NotificationService.NotificationType.SYSTEM,
-		NotificationService.Priority.HIGH,
-		NotificationService.DisplayLocation.CENTER_SCREEN,
-		NotificationService.SoundType.NOTIFICATION
+		"ServerManager",
+		"sm:end_maintenance",
+		{},
+		""
 	)
 
 ## Set server state directly

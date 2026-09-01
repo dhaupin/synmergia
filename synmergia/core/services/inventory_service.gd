@@ -15,7 +15,6 @@ signal gold_transferred(from_id: String, to_id: String, amount: int)
 # InventoryService surfaces add/remove/full/soulbound/trade-reject events
 # through the toast pipeline. Dedupe keys are item-aware so a player
 # looting 50 of the same item sees one toast for the burst, not 50.
-const NotificationContext = preload("res://core/notifications/notification_context.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 func _emit_inventory(
@@ -25,12 +24,20 @@ func _emit_inventory(
 	dedupe_key: String = "",
 	data: Dictionary = {}
 ) -> void:
-	if not NotificationService:
+	if not is_instance_valid(NotificationService):
 		return
-	var ctx = NotificationContext.for_player(
-		player_id, kind, message, "InventoryService", data, dedupe_key
+	# Frame-level dispatch via the typed-Kind pipeline. notify()
+	# builds the context internally and forwards through dedupe +
+	# send(); the legacy NotificationContext wrapper is no longer
+	# needed at this call site.
+	NotificationService.notify(
+		kind,
+		message,
+		"InventoryService",
+		dedupe_key,
+		data,
+		player_id
 	)
-	NotificationService.send_event(ctx)
 
 func _ready() -> void:
 	instance = self

@@ -2,6 +2,12 @@
 ## Handles: penalties, invincibility, griefing protection, kill streaks, stats
 extends Node
 
+# Frame-level notification dispatch (typed-Kind pipeline).
+# Death events route through NotifKind.* with sender "DeathFeatures".
+# Dedupe keys carry event identity so a 5-second respawn-invincibility
+# countdown doesn't re-toast every frame.
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 # Singleton reference
 static var instance: DeathFeatures
 
@@ -166,14 +172,19 @@ func apply_respawn_invincibility(entity) -> void:
 	
 	grant_invincibility(entity.entity_id, Config.RESPAWN_INVINCIBILITY_DURATION, "respawn")
 	
-	if Config.SHOW_INVINCIBILITY_UI and NotificationService:
+	if Config.SHOW_INVINCIBILITY_UI and is_instance_valid(NotificationService):
 		var remaining := Config.RESPAWN_INVINCIBILITY_DURATION
-		NotificationService.send(entity.entity_id, "🛡️ Invincible for %.0f seconds" % remaining, 
-			NotificationService.NotificationType.SYSTEM, NotificationService.Priority.NORMAL,
-			NotificationService.DisplayLocation.CENTER_SCREEN, NotificationService.SoundType.NOTIFICATION, {
-			"type": "respawn_invincibility",
-			"duration": remaining
-		})
+		# Frame-level dispatch. RESPAWNED → SYSTEM/HIGH via the
+		# kind→type+priority map. Dedupe on (entity, "respawn_inv")
+		# so re-application in the same frame is one toast.
+		NotificationService.notify(
+			NotifKind.RESPAWNED,
+			"🛡️ Invincible for %.0f seconds" % remaining,
+			"DeathFeatures",
+			"respawn_inv:%s" % entity.entity_id,
+			{"type": "respawn_invincibility", "duration": remaining},
+			entity.entity_id
+		)
 
 ## ============================================================================
 ## DEATH PENALTIES
@@ -222,7 +233,7 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 		GameLog.info("DeathFeatures: Penalties applied to %s: %s" % [entity.display_name, JSON.stringify(penalties)])
 	
 	# Notify player
-	if NotificationService and (penalties.xp_loss > 0 or penalties.gold_loss > 0):
+	if is_instance_valid(NotificationService) and (penalties.xp_loss > 0 or penalties.gold_loss > 0):
 		var msg_parts: Array = []
 		if penalties.xp_loss > 0:
 			msg_parts.append("%d XP" % penalties.xp_loss)
@@ -230,11 +241,21 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 			msg_parts.append("%d gold" % penalties.gold_loss)
 		if penalties.durability_loss > 0:
 			msg_parts.append("%.0f%% durability" % penalties.durability_loss)
-		
+
 		var penalty_msg: String = "Death penalty: " + ", ".join(msg_parts)
-		NotificationService.send(entity.entity_id, penalty_msg, 
-			NotificationService.NotificationType.WARNING, NotificationService.Priority.NORMAL,
-			NotificationService.DisplayLocation.CHAT_LOG, NotificationService.SoundType.WARNING, penalties)
+		# Frame-level dispatch. RESPAWN_PENALTY_APPLIED → WARNING/NORMAL.
+		# Dedupe on (entity, "penalty") so a same-frame double-apply is
+		# one toast. Different magnitudes (re-dying with a different
+		# penalty) still surface because the dedupe window is short and
+		# the kind stays the same.
+		NotificationService.notify(
+			NotifKind.RESPAWN_PENALTY_APPLIED,
+			penalty_msg,
+			"DeathFeatures",
+			"penalty:%s" % entity.entity_id,
+			penalties,
+			entity.entity_id
+		)
 	
 	return penalties
 
@@ -293,14 +314,19 @@ func _activate_griefing_protection(entity_id: String) -> void:
 	grant_invincibility(entity_id, Config.GRIEFING_PROTECTION_DURATION, "griefing_protection")
 	
 	# Notify player
-	if NotificationService:
-		NotificationService.send(entity_id, 
-			"🛡️ Griefing protection activated! You are now in a safe zone.", 
-			NotificationService.NotificationType.WARNING, NotificationService.Priority.HIGH,
-			NotificationService.DisplayLocation.CENTER_SCREEN, NotificationService.SoundType.WARNING, {
-			"type": "griefing_protection",
-			"duration": Config.GRIEFING_PROTECTION_DURATION
-		})
+	if is_instance_valid(NotificationService):
+		# Frame-level dispatch. SECURITY_WARNING → WARNING/HIGH.
+		# Dedupe on (entity, "griefing") so a re-activation within the
+		# window collapses; a fresh griefing event after the window
+		# expires surfaces.
+		NotificationService.notify(
+			NotifKind.SECURITY_WARNING,
+			"🛡️ Griefing protection activated! You are now in a safe zone.",
+			"DeathFeatures",
+			"griefing:%s" % entity_id,
+			{"type": "griefing_protection", "duration": Config.GRIEFING_PROTECTION_DURATION},
+			entity_id
+		)
 	
 	GameLog.info("DeathFeatures: Griefing protection activated for %s" % entity_id)
 
@@ -399,15 +425,20 @@ func _apply_kill_streak_reward(killer_id: String, streak: int) -> void:
 	kill_streak_rewarded.emit(killer_id, streak, xp_bonus, gold_bonus)
 	
 	# Notify
-	if NotificationService:
+	if is_instance_valid(NotificationService):
 		var msg := "🔥 Kill streak %d! +%d XP, +%d gold" % [streak, xp_bonus, gold_bonus]
-		NotificationService.send(killer_id, msg, 
-			NotificationService.NotificationType.COMBAT, NotificationService.Priority.HIGH,
-			NotificationService.DisplayLocation.BOTH, NotificationService.SoundType.ACHIEVEMENT, {
-			"streak": streak,
-			"xp_bonus": xp_bonus,
-			"gold_bonus": gold_bonus
-		})
+		# Frame-level dispatch. CUSTOM (no dedicated kill_streak kind).
+		# Dedupe on (killer, streak) so re-entering the same streak tier
+		# within the window collapses, but stepping up (5→10) is a new
+		# key and surfaces.
+		NotificationService.notify(
+			NotifKind.CUSTOM,
+			msg,
+			"DeathFeatures",
+			"kill_streak:%s:%d" % [killer_id, streak],
+			{"streak": streak, "xp_bonus": xp_bonus, "gold_bonus": gold_bonus},
+			killer_id
+		)
 
 ## Announce kill streak server-wide
 func _announce_kill_streak(killer_id: String, streak: int) -> void:
@@ -431,13 +462,17 @@ func _announce_kill_streak(killer_id: String, streak: int) -> void:
 	var suffix = announcements.get(streak, " has a %d kill streak!" % streak)
 	var message: String = killer_name + suffix
 	
-	NotificationService.broadcast_server(message, 
-		NotificationService.NotificationType.COMBAT, NotificationService.Priority.HIGH,
-		NotificationService.DisplayLocation.CENTER_SCREEN, NotificationService.SoundType.ACHIEVEMENT, {
-		"type": "kill_streak_announcement",
-		"killer_id": killer_id,
-		"streak": streak
-	})
+	# Frame-level dispatch, broadcast (recipient = ""). CUSTOM (no
+	# dedicated kill_streak kind). Dedupe on (killer, streak) so the
+	# same announcement isn't fanned out twice within the window.
+	NotificationService.notify(
+		NotifKind.CUSTOM,
+		message,
+		"DeathFeatures",
+		"kill_streak_ann:%s:%d" % [killer_id, streak],
+		{"type": "kill_streak_announcement", "killer_id": killer_id, "streak": streak},
+		""
+	)
 
 ## Break a kill streak (called when killer dies)
 func break_kill_streak(killer_id: String) -> void:

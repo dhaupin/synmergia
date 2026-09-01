@@ -31,7 +31,6 @@ signal alliance_broken(guild_id: String, faction: Faction)
 # Faction events broadcast server-wide (war/peace) or target a single
 # player (rep changes). Dedupe is keyed on (kind, target, identifier)
 # so rep ticks during a long quest don't flood the toast panel.
-const NotificationContext = preload("res://core/notifications/notification_context.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 func _emit_faction(
@@ -41,14 +40,18 @@ func _emit_faction(
 	data: Dictionary,
 	recipient: String = ""
 ) -> void:
-	if not NotificationService:
+	if not is_instance_valid(NotificationService):
 		return
-	var ctx
-	if recipient == "":
-		ctx = NotificationContext.broadcast(kind, message, "FactionManager", data, dedupe_key)
-	else:
-		ctx = NotificationContext.for_player(recipient, kind, message, "FactionManager", data, dedupe_key)
-	NotificationService.send_event(ctx)
+	# notify() handles both broadcast and per-player routing internally.
+	# A blank recipient is broadcast; a real recipient is targeted.
+	NotificationService.notify(
+		kind,
+		message,
+		"FactionManager",
+		dedupe_key,
+		data,
+		recipient
+	)
 
 func _ready() -> void:
 	GameLog.info("FactionManager: Ready")

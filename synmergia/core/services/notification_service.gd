@@ -892,6 +892,9 @@ func _notif_type_for_kind(kind: int) -> int:
 			return NotificationType.WARNING
 		NotifKind.FACTION_CHANGED, NotifKind.FACTION_REP_CHANGED, NotifKind.FACTION_PVP_MODE_CHANGED:
 			return NotificationType.FACTION
+		NotifKind.QUEST_ACCEPTED, NotifKind.QUEST_UPDATED, NotifKind.QUEST_COMPLETED, \
+		NotifKind.QUEST_FAILED, NotifKind.QUEST_TURNED_IN, NotifKind.QUEST_REWARDED:
+			return NotificationType.QUEST
 		NotifKind.SECURITY_WARNING:
 			return NotificationType.WARNING
 		NotifKind.SECURITY_BLOCKED, NotifKind.ADMIN_ALERT, NotifKind.PLAYER_WARNED, NotifKind.AUTO_ACTION:
