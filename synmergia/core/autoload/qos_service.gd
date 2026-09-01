@@ -3,6 +3,13 @@
 class_name QoSService
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# QoSService surfaces rate-limit and circuit-breaker events through the
+# typed-Kind pipeline so the toast panel + admin alert can subscribe by
+# kind, and the 5s dedupe window stops runaway loops from spamming.
+const NotificationContext = preload("res://core/notifications/notification_context.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
@@ -243,17 +250,20 @@ func _notify_player_rate_limit(player_id: String, action_type: String, max_rate:
 	if cooldown > 0:
 		message += " Wait %.1fs." % cooldown
 
-	# WARNING + HIGH priority: rate-limit is a transient nudge, not a fatal.
-	# We pass raw ints (NotificationType.WARNING=13, Priority.HIGH=2) because
-	# enums aren't introspectable on a Node instance and NotificationService
-	# has no class_name (autoload-only).
-	notifier.call(
-		"send_to_player",
+	# Frame-level dispatch: routes through the typed NotifKind.RATE_LIMITED,
+	# gets dedupe (5s window per (player, action) so a spam loop can't
+	# toast 100x/sec), and the type/priority are derived from the kind
+	# table in NotificationService.send_event. The legacy send_to_player
+	# call is replaced — the frame call is the single dispatch entry point.
+	var ctx = NotificationContext.for_player(
 		player_id,
+		NotifKind.RATE_LIMITED,
 		message,
-		13, # NotificationType.WARNING
-		2   # Priority.HIGH
+		"QoSService",
+		{"action_type": action_type, "max_rate": max_rate, "cooldown": cooldown},
+		"qos_rl:%s:%s" % [player_id, action_type]
 	)
+	notifier.send_event(ctx)
 
 ## Get human-readable action name
 func _get_action_display_name(action_type: String) -> String:
@@ -565,21 +575,24 @@ func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
 		_notify_circuit_change(service_name, "OPEN", "failure threshold reached")
 
 ## Send a notification when a service's circuit breaker changes state.
-## Uses the local send_to_player alias so the same HudIntegrator path
-## (combat log + toast) lights up for both player and admin alerts.
+## Routes through the typed NotifKind pipeline. CLOSED-after-recovery
+## uses QOS_RECOVERED (NORMAL priority); OPEN uses CIRCUIT_OPEN (HIGH).
+## Dedupe on (service, state) so a chatter of probe failures during a
+## single recovery cycle doesn't toast admins 20 times in a row.
 func _notify_circuit_change(service_name: String, new_state: String, detail: String) -> void:
 	if not NotificationService:
 		return
 	var msg := "[QoS] Circuit '%s' → %s (%s)" % [service_name, new_state, detail]
-	# send_to_player always fires notification_sent, so the toast
-	# pipeline lights up even when no players are registered for
-	# scope resolution (e.g., headless test, server boot).
-	NotificationService.send_to_player(
+	var kind: int = NotifKind.QOS_RECOVERED if new_state == "CLOSED" else NotifKind.CIRCUIT_OPEN
+	var ctx = NotificationContext.for_player(
 		"admins",
+		kind,
 		msg,
-		14, # ALERT
-		3   # CRITICAL priority
+		"QoSService",
+		{"service_name": service_name, "new_state": new_state, "detail": detail},
+		"qos_circuit:%s:%s" % [service_name, new_state]
 	)
+	NotificationService.send_event(ctx)
 
 ## Get circuit breaker state
 func get_circuit_state(service_name: String) -> String:
