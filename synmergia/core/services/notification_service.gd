@@ -85,13 +85,22 @@ var _entity_notifications: Dictionary = {}  # entity_id -> [notifications]
 var _notification_history: Dictionary = {}  # entity_id -> [notification dicts]
 var _max_history: int = 100
 
+# Frame-level dispatcher: handles TTL dedupe of NotificationContext events
+# before they hit the per-player queue. Owned here so it shares the autoload
+# lifecycle but can be tested in isolation (see notification_dispatcher.gd).
+const NotificationDispatcher = preload("res://core/notifications/notification_dispatcher.gd")
+var _dispatcher: RefCounted = null
+
 signal notification_sent(entity_id: String, notification: Dictionary)
 signal notification_received(entity_id: String, notification: Dictionary)
 signal notification_queued(entity_id: String, queue_size: int)
 
 func _ready() -> void:
 	GameLog.info("NotificationService: Ready")
-	
+
+	# Initialize the frame-level dispatcher (TTL dedupe of contexts).
+	_dispatcher = NotificationDispatcher.new()
+
 	# Listen to unified spawn events for automatic notifications
 	if EventHub:
 		EventHub.entity_spawned.connect(_on_entity_spawned)
@@ -729,7 +738,7 @@ func mark_read(entity_id: String, index: int) -> void:
 		_entity_notifications[entity_id][index]["read"] = true
 
 ## Get notification history for entity
-func get_history(entity_id: String, limit: int = 20) -> Array[Dictionary]:
+func get_history(entity_id: String, limit: int = 20) -> Array:
 	if not _notification_history.has(entity_id):
 		return []
 	var history = _notification_history[entity_id]
@@ -759,3 +768,125 @@ func _add_to_history(entity_id: String, notification: Dictionary) -> void:
 	# Trim history
 	while _notification_history[entity_id].size() > _max_history:
 		_notification_history[entity_id].pop_at(0)
+
+# ============================================================================
+# FRAME-LEVEL ENTRY POINT
+# ============================================================================
+#
+# send_event(ctx) is the single dispatch shape every game service should use
+# to surface something to a player (or to admins). It runs the context through
+# the TTL dedupe gate (see notification_dispatcher.gd), maps the NotifKind
+# to a NotificationType/Priority/DisplayLocation, and forwards to send()
+# (player scope) or broadcast_alert() (server-wide / admin scope).
+#
+# Returns true if the context was delivered, false if it was dropped by dedupe
+# or had no resolvable recipient.
+
+const NotificationContext = preload("res://core/notifications/notification_context.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+func send_event(ctx) -> bool:
+	if ctx == null:
+		return false
+	if _dispatcher == null:
+		# Defensive: autoload may be in a partial state during early init
+		# or in --script test mode. Defer to a fresh dispatcher so callers
+		# never get a Null call.
+		_dispatcher = NotificationDispatcher.new()
+	if not _dispatcher.should_deliver(ctx):
+		return false
+
+	var notif_type: int = _notif_type_for_kind(ctx.kind)
+	var priority: int = _priority_for_kind(ctx.kind)
+	# HIGH+ kinds render in the center of the screen; everything else is a
+	# corner toast (the show_toast() entry point in TooltipManager).
+	var location: int = DisplayLocation.CENTER_SCREEN if priority >= Priority.HIGH else DisplayLocation.CORNER
+
+	var data: Dictionary = ctx.data.duplicate()
+	data["kind"] = ctx.kind
+	data["source_service"] = ctx.source_service
+	if ctx.dedupe_key != "":
+		data["dedupe_key"] = ctx.dedupe_key
+
+	# player_id == "" means broadcast (server-wide or admin scope). Otherwise
+	# the target is that one player.
+	if ctx.player_id == "":
+		broadcast_alert(
+			ctx.message,
+			[AlertScope.server_wide()],
+			notif_type
+		)
+		# Also emit the typed signal so listeners (admin UI, audit) can hook
+		# without parsing the message.
+		notification_received.emit("", {
+			"message": ctx.message,
+			"type": notif_type,
+			"kind": ctx.kind,
+			"source_service": ctx.source_service,
+			"data": data,
+		})
+		return true
+	else:
+		send(
+			ctx.player_id,
+			ctx.message,
+			notif_type,
+			priority,
+			location,
+			SoundType.NOTIFICATION,
+			data
+		)
+		return true
+
+
+# Map a NotifKind to the legacy NotificationType so the existing render
+# pipeline (toast / chat / center screen) keeps working without changes.
+func _notif_type_for_kind(kind: int) -> int:
+	match kind:
+		NotifKind.RESPAWNED, NotifKind.RESPAWN_FAILED, NotifKind.RESPAWN_PENALTY_APPLIED:
+			return NotificationType.SYSTEM
+		NotifKind.ITEM_ADDED, NotifKind.ITEM_REMOVED:
+			return NotificationType.ITEM
+		NotifKind.ITEM_FULL, NotifKind.ITEM_SOULBOUND_REJECT, NotifKind.ITEM_TRADE_REJECT:
+			return NotificationType.WARNING
+		NotifKind.FACTION_CHANGED, NotifKind.FACTION_REP_CHANGED, NotifKind.FACTION_PVP_MODE_CHANGED:
+			return NotificationType.FACTION
+		NotifKind.SECURITY_WARNING:
+			return NotificationType.WARNING
+		NotifKind.SECURITY_BLOCKED, NotifKind.ADMIN_ALERT, NotifKind.PLAYER_WARNED, NotifKind.AUTO_ACTION:
+			return NotificationType.ALERT
+		NotifKind.QOS_DEGRADED, NotifKind.THROTTLED, NotifKind.RATE_LIMITED, NotifKind.CIRCUIT_OPEN:
+			return NotificationType.WARNING
+		NotifKind.QOS_RECOVERED:
+			return NotificationType.INFO
+		_:
+			return NotificationType.SYSTEM
+
+
+func _priority_for_kind(kind: int) -> int:
+	match kind:
+		NotifKind.SECURITY_BLOCKED, NotifKind.ADMIN_ALERT, NotifKind.AUTO_ACTION, \
+		NotifKind.RESPAWN_FAILED, NotifKind.ITEM_SOULBOUND_REJECT, NotifKind.CIRCUIT_OPEN:
+			return Priority.HIGH
+		NotifKind.PLAYER_WARNED, NotifKind.ITEM_FULL, NotifKind.ITEM_TRADE_REJECT, \
+		NotifKind.QOS_DEGRADED, NotifKind.RATE_LIMITED, NotifKind.RESPAWN_PENALTY_APPLIED, \
+		NotifKind.FACTION_PVP_MODE_CHANGED:
+			return Priority.NORMAL
+		_:
+			return Priority.LOW
+
+
+## Public hook for tests / admin "clear toasts" command. Resets the dedupe
+## gate so the next context with a given key is always delivered.
+func reset_dedupe() -> void:
+	if _dispatcher:
+		_dispatcher.reset()
+
+
+## Read-only view into the dedupe state. Used by tests; may be wired to a
+## future debug overlay.
+func dedupe_tracked_count() -> int:
+	if _dispatcher:
+		return _dispatcher.tracked_count()
+	return 0
+
