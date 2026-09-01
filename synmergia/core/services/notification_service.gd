@@ -839,6 +839,47 @@ func send_event(ctx) -> bool:
 		return true
 
 
+# ---------------------------------------------------------------------------
+# Service-level convenience: notify(...)
+#
+# Most call sites (QoS, Security, Faction, Inventory, ...) don't care about
+# the NotificationContext shape — they just want to fire a typed notification
+# and let the frame dedupe, type-map, and route. notify() builds the context
+# for them and forwards to send_event().
+#
+# This is the "verb" of the notification pipeline. send_event() is the
+# "shape" — kept as the frame entry point for tests and for callers that
+# already have a context. New code should prefer notify().
+# ---------------------------------------------------------------------------
+
+## Fire a typed notification through the frame.
+##
+## `kind`        : int from NotifKind (e.g. NotifKind.RATE_LIMITED)
+## `message`     : the visible toast text
+## `source_service`: string label for the caller ("QoSService",
+##                  "SecurityService", "AppFirewall", ...)
+## `dedupe_key`  : stable key for the 5s dedupe window. Pass "" to disable
+##                 dedupe for this context (e.g. one-shot admin alerts).
+## `data`        : optional payload dict (routed to listeners verbatim)
+## `recipient`   : player_id, or "" for server-wide broadcast. Defaults to "".
+##
+## Returns true if delivered, false if dedupe-dropped or invalid.
+func notify(
+	kind: int,
+	message: String,
+	source_service: String,
+	dedupe_key: String = "",
+	data: Dictionary = {},
+	recipient: String = ""
+) -> bool:
+	var ctx
+	if recipient == "":
+		ctx = NotificationContext.broadcast(kind, message, source_service, data, dedupe_key)
+	else:
+		ctx = NotificationContext.for_player(recipient, kind, message, source_service, data, dedupe_key)
+	return send_event(ctx)
+
+
 # Map a NotifKind to the legacy NotificationType so the existing render
 # pipeline (toast / chat / center screen) keeps working without changes.
 func _notif_type_for_kind(kind: int) -> int:
