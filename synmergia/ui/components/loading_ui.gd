@@ -27,119 +27,117 @@ var _sub_label: Label
 var _spinner_rotation: float = 0.0
 var _pulse_time: float = 0.0
 
+
 func _ready() -> void:
 	instance = self
 	_setup_ui()
 	hide()
 
+
 func _setup_ui() -> void:
 	name = "LoadingUI"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	# Semi-transparent background
 	var bg := ColorRect.new()
 	bg.name = "Background"
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color(0, 0, 0, 0.7)
 	add_child(bg)
 
-	# Center container
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_CENTER)
 	center.custom_minimum_size = Vector2(300, 150)
 	add_child(center)
 
-	# Main panel
 	_panel = PanelContainer.new()
 	_panel.name = "Panel"
 	_panel.custom_minimum_size = Vector2(300, 150)
-	_panel.add_theme_stylebox_override("panel", UIStyles.create_panel_style())
+	if UIStyles:
+		_panel.add_theme_stylebox_override("panel", UIStyles.create_panel_style())
 	center.add_child(_panel)
 
-var vbox := VBoxContainer.new()
-vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-_panel.add_child(vbox)
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	_panel.add_child(vbox)
 
-# Spinner container
-_icon_container = Control.new()
-_icon_container.custom_minimum_size = Vector2(50, 50)
-vbox.add_child(_icon_container)
+	_icon_container = Control.new()
+	_icon_container.custom_minimum_size = Vector2(50, 50)
+	vbox.add_child(_icon_container)
 
-_create_spinner()
+	_create_spinner()
 
-# Progress bar (hidden by default)
-_progress_bar = ProgressBar.new()
-_progress_bar.name = "ProgressBar"
-_progress_bar.min_value = 0
-_progress_bar.max_value = 100
-_progress_bar.value = 0
-_progress_bar.custom_minimum_size.x = 200
-_progress_bar.custom_minimum_size.y = 8
-_progress_bar.show_percentage = false
-_progress_bar.visible = false
-vbox.add_child(_progress_bar)
+	_progress_bar = ProgressBar.new()
+	_progress_bar.name = "ProgressBar"
+	_progress_bar.min_value = 0
+	_progress_bar.max_value = 100
+	_progress_bar.value = 0
+	_progress_bar.custom_minimum_size = Vector2(200, 8)
+	_progress_bar.show_percentage = false
+	_progress_bar.visible = false
+	vbox.add_child(_progress_bar)
 
-# Status label
-_status_label = Label.new()
-_status_label.name = "Status"
-_status_label.text = "Loading..."
-_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-_status_label.add_theme_font_size_override("font_size", 16)
-vbox.add_child(_status_label)
+	_status_label = Label.new()
+	_status_label.name = "Status"
+	_status_label.text = "Loading..."
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_label.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(_status_label)
 
-# Sub label
-_sub_label = Label.new()
-_sub_label.name = "SubStatus"
-_sub_label.text = ""
-_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-_sub_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-vbox.add_child(_sub_label)
+	_sub_label = Label.new()
+	_sub_label.name = "SubStatus"
+	_sub_label.text = ""
+	_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if UIStyles:
+		_sub_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	vbox.add_child(_sub_label)
+
 
 func _create_spinner() -> void:
-	# Create a circular spinner
 	_spinner = Control.new()
 	_spinner.name = "Spinner"
 	_spinner.custom_minimum_size = Vector2(40, 40)
 	_spinner.set_anchors_preset(Control.PRESET_CENTER)
 	_icon_container.add_child(_spinner)
 
+
 func _process(delta: float) -> void:
 	if not visible:
 		return
 
-		match _current_state:
-			LoadingState.LOADING:
+	match _current_state:
+		LoadingState.LOADING:
 			_spinner_rotation += 180.0 * delta
-			_spinner.rotation = deg_to_rad(_spinner_rotation)
+			if _spinner:
+				_spinner.rotation = deg_to_rad(_spinner_rotation)
 			_pulse_time += delta
-
 		LoadingState.PROGRESS:
-		_pulse_time += delta
+			_pulse_time += delta
+		_:
+			pass
 
 	_update_display()
+
 
 func _update_display() -> void:
 	if _progress_bar:
 		_progress_bar.value = _progress
 
-		if _status_label:
-			_status_label.text = _status_text
-			if _current_state == LoadingState.ERROR:
-				_status_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
-				elif _current_state == LoadingState.SUCCESS:
-					_status_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
-					else:
-					_status_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	if _status_label:
+		_status_label.text = _status_text
+		if _current_state == LoadingState.ERROR and UIStyles:
+			_status_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
+		elif _current_state == LoadingState.SUCCESS and UIStyles:
+			_status_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
+		elif UIStyles:
+			_status_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 
-					if _sub_label:
-						_sub_label.text = _sub_text
+	if _sub_label:
+		_sub_label.text = _sub_text
 
-						## ============================================================================
-						## PUBLIC API
-						## ============================================================================
 
 static func get_instance() -> LoadingUI:
 	return instance
+
 
 func show_loading(message: String = "Loading...", sub_message: String = "") -> void:
 	_current_state = LoadingState.LOADING
@@ -149,11 +147,11 @@ func show_loading(message: String = "Loading...", sub_message: String = "") -> v
 
 	if _progress_bar:
 		_progress_bar.visible = false
+	if _spinner:
+		_spinner.visible = true
 
-		if _spinner:
-			_spinner.visible = true
+	show()
 
-		show()
 
 func show_progress(progress: float, message: String = "", sub_message: String = "") -> void:
 	_current_state = LoadingState.PROGRESS
@@ -163,11 +161,11 @@ func show_progress(progress: float, message: String = "", sub_message: String = 
 
 	if _progress_bar:
 		_progress_bar.visible = true
+	if _spinner:
+		_spinner.visible = true
 
-		if _spinner:
-			_spinner.visible = true
+	show()
 
-		show()
 
 func show_success(message: String = "Complete!", sub_message: String = "") -> void:
 	_current_state = LoadingState.SUCCESS
@@ -176,13 +174,14 @@ func show_success(message: String = "Complete!", sub_message: String = "") -> vo
 
 	if _progress_bar:
 		_progress_bar.visible = false
+	if _spinner:
+		_spinner.visible = true
 
-		if _spinner:
-			_spinner.visible = true
+	show()
 
-			# Auto-hide after 1 second
-			await get_tree().create_timer(1.0).timeout
-			hide()
+	await get_tree().create_timer(1.0).timeout
+	hide()
+
 
 func show_error(message: String = "Error", sub_message: String = "") -> void:
 	_current_state = LoadingState.ERROR
@@ -191,29 +190,32 @@ func show_error(message: String = "Error", sub_message: String = "") -> void:
 
 	if _progress_bar:
 		_progress_bar.visible = false
+	if _spinner:
+		_spinner.visible = true
 
-		if _spinner:
-			_spinner.visible = true
-
-			# Don't auto-hide on error - let caller dismiss
 
 func hide_loading() -> void:
 	_current_state = LoadingState.IDLE
 	hide()
 
+
 func set_status(message: String) -> void:
 	_status_text = message
 
+
 func set_sub_status(message: String) -> void:
 	_sub_text = message
+
 
 func set_progress(value: float) -> void:
 	_progress = clampf(value, 0, 100)
 	if _progress_bar:
 		_progress_bar.value = _progress
 
+
 func is_loading() -> bool:
 	return visible and (_current_state == LoadingState.LOADING or _current_state == LoadingState.PROGRESS)
+
 
 func get_state() -> LoadingState:
 	return _current_state
