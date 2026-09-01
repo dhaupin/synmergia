@@ -411,6 +411,20 @@ func bulkhead_execute(service_name: String, player_id: String, callback: Callabl
 	# Check per-player limit
 	var player_active = _bulkhead_active.get(player_id, 0)
 	if player_active >= _get_config_int("QoS", "MAX_CONCURRENT_PER_PLAYER", 3):
+		# Per-player saturation. The bulkhead_rejected signal (above) is
+		# service-scoped, so we toast the player here directly via the
+		# frame. THROTTLED → WARNING + NORMAL. Dedupe on
+		# (player, service) so a flood of rejections in a second doesn't
+		# spam toasts.
+		if is_instance_valid(NotificationService):
+			NotificationService.notify(
+				NotifKind.THROTTLED,
+				"%s is busy — please slow down." % service_name,
+				"QoSService",
+				"bulkhead_player:%s:%s" % [player_id, service_name],
+				{"service": service_name, "active": player_active, "max": _get_config_int("QoS", "MAX_CONCURRENT_PER_PLAYER", 3)},
+				player_id
+			)
 		return null
 	
 	# Increment counters
