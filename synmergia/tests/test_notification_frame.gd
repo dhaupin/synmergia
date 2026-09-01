@@ -1,6 +1,6 @@
 ## test_notification_frame.gd
 ## End-to-end test for the notification frame:
-##   NotificationContext → NotificationService.send_event()
+##   NotificationContext → NotificationService.notify()
 ##     → dedupe (NotificationDispatcher) → send() / broadcast_alert()
 ##
 ## Run with:
@@ -38,10 +38,6 @@ func _initialize() -> void:
 	_test_dispatcher_reset_clears_state()
 	_test_dispatcher_per_kind_override_zero_always_delivers()
 	_test_dispatcher_per_kind_override_shorter_window()
-	_test_send_event_to_player_calls_send()
-	_test_send_event_broadcast_calls_broadcast()
-	_test_send_event_returns_false_for_null()
-	_test_send_event_known_kind_maps_to_known_type()
 	_test_notify_delivers_to_player()
 	_test_notify_delivers_broadcast()
 	_test_notify_dedupes_identical_calls()
@@ -339,6 +335,60 @@ func _initialize() -> void:
 			else:
 				_fail("PartyService.kick_player did not produce PLAYER_WARNED")
 
+	# TradeService._notify_player (called from the trade restriction
+	# path) must dispatch SECURITY_BLOCKED to the restricted player.
+	# We don't drive the full trade request flow (it would need both
+	# players + an inventory), only the helper that downstream call
+	# sites use.
+	var ts: Node = root.get_node_or_null("TradeService")
+	if ts == null:
+		_fail("TradeService autoload missing — cannot exercise trade notif")
+	else:
+		_notif.reset_dedupe()
+		ts.call("_notify_player", "frame_ts_blocked", "test trade block")
+		await process_frame
+		var ts_hist: Array = _notif.get_history("frame_ts_blocked", 100)
+		var ts_blocked: bool = false
+		for n in ts_hist:
+			if n.get("data", {}).get("kind", -1) == NotifKind.SECURITY_BLOCKED:
+				ts_blocked = true
+				break
+		if ts_blocked:
+			_ok("TradeService._notify_player dispatches SECURITY_BLOCKED")
+		else:
+			_fail("TradeService._notify_player did not produce SECURITY_BLOCKED")
+
+	# GuildService.remove_member with a non-self remover must dispatch
+	# PLAYER_WARNED to the kicked member. Membership is apply + accept;
+	# the leader is always a GUILDMASTER with KICK permission, so we
+	# don't need a separate promote step.
+	var gs: Node = root.get_node_or_null("GuildService")
+	if gs == null:
+		_fail("GuildService autoload missing — cannot exercise guild kick")
+	else:
+		# create_guild(name, tag, leader_id) -> guild_id
+		var gs_guild_id: String = gs.call("create_guild", "TestGuild", "TG", "frame_gs_leader")
+		var gs_apply: bool = gs.call("apply_to_guild", "frame_gs_target", gs_guild_id)
+		var gs_accept: bool = gs.call("accept_application", "frame_gs_leader", "frame_gs_target")
+		if not gs_guild_id or not gs_apply or not gs_accept:
+			_fail("GuildService kick setup failed (guild=%s apply=%s accept=%s)" % [
+				gs_guild_id, gs_apply, gs_accept
+			])
+		else:
+			_notif.reset_dedupe()
+			gs.call("remove_member", "frame_gs_leader", "frame_gs_target")
+			await process_frame
+			var gs_hist: Array = _notif.get_history("frame_gs_target", 100)
+			var gs_warned: bool = false
+			for n in gs_hist:
+				if n.get("data", {}).get("kind", -1) == NotifKind.PLAYER_WARNED:
+					gs_warned = true
+					break
+			if gs_warned:
+				_ok("GuildService.remove_member dispatches PLAYER_WARNED to kicked member")
+			else:
+				_fail("GuildService.remove_member did not produce PLAYER_WARNED")
+
 	_finish()
 
 
@@ -494,75 +544,6 @@ func _test_dispatcher_per_kind_override_shorter_window() -> void:
 		_fail("rate-limit 2150ms later should deliver (per-kind window expired, default would still be active)")
 		return
 	_ok("per-kind window shorter than default is honored (2000 < 5000)")
-
-
-# --- autoload-level (NotificationService.send_event) ---
-
-func _test_send_event_to_player_calls_send() -> void:
-	_notif.reset_dedupe()
-	var ctx = NotificationContext.for_player(
-		"frame_test_player", NotifKind.ITEM_ADDED, "Picked up sword", "InventoryService",
-		{"item_id": "sword_01"}, "frame_test:add"
-	)
-	var delivered: bool = _notif.send_event(ctx)
-	if not delivered:
-		_fail("send_event should return true on first delivery")
-		return
-	# Verify the notification landed on the per-player entity store.
-	var history = _notif.get_history("frame_test_player")
-	if history.size() == 0:
-		_fail("expected at least one notification on frame_test_player history")
-		return
-	_ok("send_event to player routes through send() (history has the entry)")
-
-
-func _test_send_event_broadcast_calls_broadcast() -> void:
-	_notif.reset_dedupe()
-	var ctx = NotificationContext.broadcast(
-		NotifKind.ADMIN_ALERT, "Server restart in 5m", "ServerManager", {}, "frame_test:server_restart"
-	)
-	var delivered: bool = _notif.send_event(ctx)
-	if not delivered:
-		_fail("send_event should return true for broadcast")
-		return
-	# broadcast_alert emits notification_received; the signal listener is the
-	# signal-not-yet-arrived check. We just confirm no crash and the dedupe
-	# gate is now tracking the key.
-	if _notif.dedupe_tracked_count() < 1:
-		_fail("dedupe should track the broadcast key")
-		return
-	_ok("send_event broadcast routes through broadcast_alert()")
-
-
-func _test_send_event_returns_false_for_null() -> void:
-	var delivered: bool = _notif.send_event(null)
-	if delivered:
-		_fail("send_event(null) should return false")
-		return
-	_ok("send_event(null) returns false safely")
-
-
-func _test_send_event_known_kind_maps_to_known_type() -> void:
-	_notif.reset_dedupe()
-	# Use a kind that should map to ALERT (so we can grep the kind→type
-	# mapping). The notification_received signal carries the resolved type.
-	var captured_type: Array = [-1]
-	_notif.notification_received.connect(
-		func(_entity_id: String, notification: Dictionary) -> void:
-			captured_type[0] = notification.get("type", -1)
-	)
-	var ctx = NotificationContext.broadcast(
-		NotifKind.ADMIN_ALERT, "audit ping", "AuditService", {}, "frame_test:audit"
-	)
-	_notif.send_event(ctx)
-	# NotificationType.ALERT == 20 in the autoload's enum (we don't import the
-	# enum here, so check it's not the default SYSTEM and not -1).
-	if captured_type[0] == -1:
-		_fail("notification_received never fired with the resolved type")
-		return
-	# We just want to confirm the mapping path executed; specific value is
-	# checked by the dispatcher's match arms in the autoload source.
-	_ok("send_event resolved kind→type (notification_received fired with type=%d)" % captured_type[0])
 
 
 # --- service-level verb (NotificationService.notify) ---

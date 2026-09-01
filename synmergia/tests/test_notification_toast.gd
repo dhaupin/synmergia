@@ -66,13 +66,7 @@ func _initialize() -> void:
 	else:
 		_fail("Notification never reached show_toast — HudIntegrator not wired?")
 
-	# 3. send_to_player with legacy int args (matches the QoS-style call
-	#    sites) must coerce to enums and not crash.
-	notif.send_to_player("test_player", "Rate-limited warning", 13, 2)
-	await process_frame
-	_ok("send_to_player accepts legacy int args (no crash)")
-
-	# 4. Flood a handful of toasts to make sure the stack limit kicks in.
+	# 3. Flood a handful of toasts to make sure the stack limit kicks in.
 	for i in range(8):
 		tooltip_mgr.show_toast("Spam test %d" % i, Color.WHITE, 0.1)
 	await process_frame
@@ -82,7 +76,7 @@ func _initialize() -> void:
 	else:
 		_fail("Stack overflow: active=%d" % stack.size())
 
-	# 5. broadcast_alert — same pipeline, admin scope.
+	# 4. broadcast_alert — same pipeline, admin scope.
 	notif.broadcast_alert(
 		"[TEST] Server-wide alert",
 		[notif.AlertScope.server_wide()],

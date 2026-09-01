@@ -2,6 +2,11 @@
 ## Handles guild creation, roster, ranks, permissions, alliances, and guild vs guild
 extends Node
 
+# Frame-level notification dispatch (see synmergia/core/notifications/).
+# _notify_player uses the typed-Kind pipeline; remove_member uses
+# PLAYER_WARNED to tell the kicked member that an officer acted.
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 # Guild data (guild_id -> guild data dict)
 var _guilds: Dictionary = {}
 
@@ -344,9 +349,20 @@ func remove_member(remover_id: String, target_id: String) -> bool:
 				
 	if remover_id != target_id:
 		player_kicked.emit(guild_id, target_id, remover_id)
+		# Frame-level dispatch to the kicked member. PLAYER_WARNED is
+		# the right kind: an officer (a player, not the system) acted
+		# against the kicked member, and the message reads as a notice
+		# rather than a security block. Dedupe on (target, guild_id)
+		# so a UI double-fire (officer re-clicks "kick") collapses.
+		_notify_player(
+			target_id,
+			"You were removed from the guild by %s." % remover_id,
+			NotifKind.PLAYER_WARNED,
+			"kick:%s" % guild_id
+		)
 	else:
 		player_left_guild.emit(guild_id, target_id, "Left guild")
-				
+
 	return true
 
 ## Leave guild
@@ -757,13 +773,17 @@ func _log_bank_transaction(guild: Dictionary, transaction_type: String, player_i
 ## PLAYER NOTIFICATIONS
 ## ============================================================================
 
-## Send notification to player
-func _notify_player(player_id: String, message: String) -> void:
-	if NotificationService:
-		NotificationService.send_to_player(
-		player_id,
-		message,
-		NotificationService.NotificationType.WARNING,
-		NotificationService.Priority.HIGH
-	)
-	GameLog.debug("GuildService: Notified %s: %s" % [player_id, message])
+## Send notification to player. Defaults to SECURITY_BLOCKED because
+## today's call sites (e.g. bank deposit failures) surface as warnings
+## a player needs to act on; callers can override.
+func _notify_player(player_id: String, message: String, kind: int = NotifKind.SECURITY_BLOCKED, dedupe_key_suffix: String = "guild") -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			kind,
+			message,
+			"GuildService",
+			"guild_notif:%s:%s:%s" % [player_id, dedupe_key_suffix, message.hash()],
+			{"player_id": player_id},
+			player_id
+		)
+		GameLog.debug("GuildService: Notified %s: %s" % [player_id, message])

@@ -269,27 +269,12 @@ func kick_player(entity_id: String, reason: String = "You have been disconnected
 			entity_id
 		)
 
-	# Legacy dispatch (NotificationService.send). Kept for clients that
-	# still listen to the legacy ERROR-type channel. The two dispatches
-	# share no dedupe key namespace, so a kick fires both toasts; the
-	# client-side toast manager is responsible for collapsing duplicate
-	# visual toasts from the same source event.
-	NotificationService.send(
-		entity_id,
-		reason,
-		NotificationService.NotificationType.ERROR,
-		NotificationService.Priority.HIGH,
-		NotificationService.DisplayLocation.CENTER_SCREEN,
-		NotificationService.SoundType.ERROR
-	)
-
 	# TODO(server): wire the actual disconnect once NetworkManager exposes
 	# kick_player / disconnect_peer and PlayerManager has a player-registry
 	# query. Today the underlying chain (PlayerManager.has_player /
 	# PlayerManager.get_player_info / NetworkManager.kick_player) does not
 	# exist, so the toast layer is correct but the peer is not actually
 	# disconnected. Tracked separately from this PR.
-	# Actually disconnect the player
 	if PlayerManager and PlayerManager.has_method("has_player") and PlayerManager.has_player(entity_id):
 		var info = PlayerManager.get_player_info(entity_id)
 		var peer_id: int = info.get("peer_id", -1)
