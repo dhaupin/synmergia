@@ -399,8 +399,8 @@ func _on_debuff_removed(debuff) -> void:
 # ── Helpers ──────────────────────────────────────────────────────────────
 
 func _log(text: String, color: Color) -> void:
-	if _combat_log and _combat_log.has_method("add_message"):
-		_combat_log.add_message("System", 0, text, 3)
+	if _combat_log and _combat_log.has_method("log_system"):
+		_combat_log.log_system(text)
 
 
 func _color_gold() -> Color:

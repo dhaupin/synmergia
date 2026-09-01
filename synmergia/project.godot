@@ -66,6 +66,8 @@ WebhookManager="*res://core/autoload/webhook_manager.gd"
 BlacksmithService="*res://core/services/blacksmith_service.gd"
 SkillAcademyService="*res://core/services/skill_academy_service.gd"
 AntiCheatService="*res://core/services/anticheat_service.gd"
+QuestService="*res://core/services/quest_service.gd"
+VaultService="*res://core/services/vault_service.gd"
 
 [display]
 
@@ -157,8 +159,6 @@ renderer/rendering_method="forward_plus"
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=2
 environment/defaults/default_clear_color=Color(0.133, 0.125, 0.161, 1)
-QuestService="*res://core/services/quest_service.gd"
-VaultService="*res://core/services/vault_service.gd"
 
 [gdscript]
 warnings/untyped_assignment=0
