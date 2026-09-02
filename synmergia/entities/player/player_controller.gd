@@ -39,6 +39,7 @@ var entity_id: String = ""
 # Context menu
 var _action_menu: ActionMenu = null
 var _skill_academy_ui: SkillAcademyUI = null
+var _blacksmith_ui: BlacksmithUI = null
 var _character_stats_ui: CharacterStatsUI = null
 var _current_target_info: TargetingManager.TargetInfo = null
 
@@ -226,6 +227,8 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 
 		"skill_academy":
 			_open_skill_academy_ui()
+		"blacksmith":
+			_open_blacksmith_ui()
 		"character_stats":
 			_open_character_stats_ui()
 
@@ -250,6 +253,21 @@ func _open_skill_academy_ui() -> void:
 		add_child(_skill_academy_ui)
 	_skill_academy_ui.load_player_context(str(player_id))
 	_skill_academy_ui.open_with_context(str(player_id), _get_character_data(), _get_inventory_books())
+
+func _open_blacksmith_ui() -> void:
+	if not _blacksmith_ui:
+		_blacksmith_ui = BlacksmithUI.new()
+		add_child(_blacksmith_ui)
+	var inventory: InventoryComponent = null
+	if InventoryService:
+		inventory = InventoryService.get_inventory(str(player_id))
+	var cost_modifier: float = 1.0
+	var offers_discount: bool = true
+	if _current_target_info and _current_target_info.npc_data:
+		cost_modifier = _current_target_info.npc_data.get_total_cost_modifier()
+		offers_discount = _current_target_info.npc_data.offers_bulk_discount
+	_blacksmith_ui.open_with_context(str(player_id), inventory, cost_modifier, offers_discount)
+	_blacksmith_ui.open(str(player_id))
 
 func _open_character_stats_ui() -> void:
 	if not _character_stats_ui:
