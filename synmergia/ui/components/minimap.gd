@@ -105,8 +105,24 @@ func _setup_ui() -> void:
 	panel.add_child(zone_label)
 
 func _connect_signals() -> void:
-	# TODO: Connect to zone changes
-	pass
+	if not ZoneManager:
+		return
+	if ZoneManager.has_signal("zone_loaded"):
+		if not ZoneManager.zone_loaded.is_connected(_on_zone_loaded):
+			ZoneManager.zone_loaded.connect(_on_zone_loaded)
+	if ZoneManager.has_signal("player_entered_zone"):
+		if not ZoneManager.player_entered_zone.is_connected(_on_player_entered_zone):
+			ZoneManager.player_entered_zone.connect(_on_player_entered_zone)
+
+
+func _on_zone_loaded(zone_data) -> void:
+	if zone_data and zone_data.has("bounds"):
+		_map_size = zone_data.bounds.size
+
+
+func _on_player_entered_zone(_player, zone) -> void:
+	if zone and zone.has("bounds"):
+		_map_size = zone.bounds.size
 
 func _process(_delta: float) -> void:
 	_update_player_marker()

@@ -309,7 +309,7 @@ func _on_command_submitted(text: String) -> void:
 	if result.output != "":
 		_terminal_output.append_text(result.output + "\n")
 	if result.error != "":
-		_terminal_output.append_text("[color=red]Error:[/color] %s\n" % result.error)
+		_terminal_output.append_text("[color=red]Error:[/color] %s\n" % _esc(result.error))
 	if result.success:
 		_terminal_output.append_text("\n")
 
