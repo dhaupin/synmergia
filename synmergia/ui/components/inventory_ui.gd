@@ -110,6 +110,9 @@ func _on_open() -> void:
 func _on_close() -> void:
 	_selected_slot = -1
 
+func refresh_inventory() -> void:
+	_refresh_inventory()
+
 func _refresh_inventory() -> void:
 	var comp: InventoryComponent = _get_inventory_component()
 	var items: Array = []
