@@ -3,6 +3,10 @@
 class_name ChatUI
 extends Control
 
+## Escape BBCode brackets in user-supplied content.
+static func _esc(text: String) -> String:
+	return text.replace('[', '［').replace(']', '］')
+
 ## Chat history display
 var _chat_history: RichTextLabel
 var _chat_input: LineEdit
@@ -377,7 +381,7 @@ func _on_admin_command(text: String) -> void:
 				result = "[color=%s]Usage: /announce <message>[/color]" % UIStyles.COLORS.error.to_html()
 			else:
 				NotificationService.broadcast_alert(args, [NotificationService.AlertScope.server_wide()], NotificationService.NotificationType.ALERT)
-				result = "[color=%s]Announcement sent:[/color] %s" % [UIStyles.COLORS.success.to_html(), args]
+				result = "[color=%s]Announcement sent:[/color] %s" % [UIStyles.COLORS.success.to_html(), _esc(args)]
 		"kick":
 			if args.is_empty():
 				result = "[color=%s]Usage: /kick <player> [reason][/color]" % UIStyles.COLORS.error.to_html()
@@ -385,7 +389,7 @@ func _on_admin_command(text: String) -> void:
 				var target: String = args.split(" ")[0]
 				var reason: String = " ".join(args.split(" ").slice(1)) if args.split(" ").size() > 1 else "No reason"
 				AdminCommands.kick_player(target, reason)
-				result = "[color=%s]Kicked:[/color] %s (reason: %s)" % [UIStyles.COLORS.warning.to_html(), target, reason]
+				result = "[color=%s]Kicked:[/color] %s (reason: %s)" % [UIStyles.COLORS.warning.to_html(), _esc(target), _esc(reason)]
 		"ban":
 			if args.is_empty():
 				result = "[color=%s]Usage: /ban <player> [reason][/color]" % UIStyles.COLORS.error.to_html()
@@ -393,7 +397,7 @@ func _on_admin_command(text: String) -> void:
 				var target: String = args.split(" ")[0]
 				var reason: String = " ".join(args.split(" ").slice(1)) if args.split(" ").size() > 1 else "Banned by admin"
 				AdminCommands.ban_player(target, reason)
-				result = "[color=%s]Banned:[/color] %s" % [UIStyles.COLORS.error.to_html(), target]
+				result = "[color=%s]Banned:[/color] %s" % [UIStyles.COLORS.error.to_html(), _esc(target)]
 		"mute":
 			if args.is_empty():
 				result = "[color=%s]Usage: /mute <player> [duration][/color]" % UIStyles.COLORS.error.to_html()
@@ -401,7 +405,7 @@ func _on_admin_command(text: String) -> void:
 				var target: String = args.split(" ")[0]
 				var duration: String = args.split(" ")[1] if args.split(" ").size() > 1 else "60"
 				SecurityService.restrict_player(target, "chat", int(duration))
-				result = "[color=%s]Muted:[/color] %s for %s seconds" % [UIStyles.COLORS.warning.to_html(), target, duration]
+				result = "[color=%s]Muted:[/color] %s for %s seconds" % [UIStyles.COLORS.warning.to_html(), _esc(target), _esc(duration)]
 		"teleport", "tp":
 			var coords: PackedStringArray = args.split(" ")
 			if coords.size() >= 3:
@@ -410,14 +414,14 @@ func _on_admin_command(text: String) -> void:
 					var local_player = PlayerManager.local_player
 					if local_player:
 						local_player.global_position = pos
-					result = "[color=%s]Teleported:[/color] to %s" % [UIStyles.COLORS.success.to_html(), str(pos)]
+					result = "[color=%s]Teleported:[/color] to %s" % [UIStyles.COLORS.success.to_html(), _esc(str(pos))]
 				else:
 					result = "[color=%s]Usage: /tp <x> <y> <z>[/color]" % UIStyles.COLORS.error.to_html()
 		"spawn":
 			if args.is_empty():
 				result = "[color=%s]Usage: /spawn <entity_type> [count][/color]" % UIStyles.COLORS.error.to_html()
 			else:
-				result = "[color=%s]Spawn:[/color] %s (use admin console for full spawn)" % [UIStyles.COLORS.info.to_html(), args]
+				result = "[color=%s]Spawn:[/color] %s (use admin console for full spawn)" % [UIStyles.COLORS.info.to_html(), _esc(args)]
 		"heal":
 			if PlayerManager:
 				var local_player = PlayerManager.local_player
@@ -435,9 +439,9 @@ func _on_admin_command(text: String) -> void:
 			admin_output.clear()
 			return
 		_:
-			result = "[color=%s]Unknown command:[/color] %s (type 'help')" % [UIStyles.COLORS.error.to_html(), cmd]
+			result = "[color=%s]Unknown command:[/color] %s (type 'help')" % [UIStyles.COLORS.error.to_html(), _esc(cmd)]
 
-	admin_output.append_text("\n> " + text)
+	admin_output.append_text("\n> " + _esc(text))
 	admin_output.append_text("\n" + result)
 
 func focus_input() -> void:

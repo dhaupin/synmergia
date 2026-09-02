@@ -49,10 +49,13 @@ class AuditEntry:
 			"ip_address": ip_address
 		}
 	
+	static func _esc(text: String) -> String:
+		return text.replace('[', '［').replace(']', '］')
+
 	func format_entry() -> String:
 		var time_str := Time.get_datetime_string_from_unix_time(timestamp)
 		var status := "[color=green]SUCCESS[/color]" if success else "[color=red]DENIED[/color]"
-		return "[%s] %s (Lvl %d) %s -> %s %s" % [time_str, admin_id, admin_level, action, target_id, status]
+		return "[%s] %s (Lvl %d) %s -> %s %s" % [time_str, _esc(admin_id), admin_level, _esc(action), _esc(target_id), status]
 
 ## Player permission cache: player_id -> level
 var _player_levels: Dictionary = {}

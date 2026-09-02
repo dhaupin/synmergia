@@ -2,6 +2,9 @@
 ## Handles quest acceptance, progress tracking, and completion
 extends Node
 
+static func _esc(text: String) -> String:
+	return text.replace('[', '［').replace(']', '］')
+
 ## Singleton
 static var instance: QuestService
 
@@ -313,15 +316,15 @@ func get_quest_objectives_text(player_id: String, quest_id: String) -> Array:
 		var text := ""
 		match obj_type:
 			QuestData.ObjectiveType.KILL:
-				text = "Kill %s: %d/%d" % [target, current, required]
+				text = "Kill %s: %d/%d" % [_esc(target), current, required]
 			QuestData.ObjectiveType.COLLECT:
-				text = "Collect %s: %d/%d" % [target, current, required]
+				text = "Collect %s: %d/%d" % [_esc(target), current, required]
 			QuestData.ObjectiveType.TALK:
-				text = "Talk to %s" % target
+				text = "Talk to %s" % _esc(target)
 			QuestData.ObjectiveType.EXPLORE:
-				text = "Explore %s" % target
+				text = "Explore %s" % _esc(target)
 			_:
-				text = "%s: %d/%d" % [target, current, required]
+				text = "%s: %d/%d" % [_esc(target), current, required]
 
 		if completed:
 			text = "[color=%s]%s[/color]" % [UIStyles.COLORS.success.to_html(), text]
