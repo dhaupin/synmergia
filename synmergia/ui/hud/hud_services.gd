@@ -160,10 +160,13 @@ func _connect_services() -> void:
 		if LootService.has_signal("loot_expired"):
 			LootService.loot_expired.connect(_on_loot_expired)
 
-	# Achievement events → toast player.
-	if AchievementService:
-		if AchievementService.has_signal("achievement_unlocked"):
-			AchievementService.achievement_unlocked.connect(_on_achievement_unlocked)
+	# Achievement events → toast player (AchievementService is not autoloaded).
+	for method_name in ["get_instance"]:
+		if AchievementService.has_method(method_name):
+			var ach_inst = AchievementService.call(method_name)
+			if ach_inst and ach_inst.has_signal("achievement_unlocked"):
+				ach_inst.achievement_unlocked.connect(_on_achievement_unlocked)
+			break
 
 	# Faction events → toast player.
 	if FactionManager:
