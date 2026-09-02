@@ -3,6 +3,9 @@
 ## Registered as the `GameLog` autoload.
 extends Node
 
+static func _esc(text: String) -> String:
+	return text.replace('[', '［').replace(']', '］')
+
 enum Level {
 	DEBUG,
 	INFO,
@@ -46,7 +49,7 @@ static func log_message(level: Level, message: String) -> void:
 	
 	# Print to console with color
 	if OS.is_debug_build():
-		print_rich("[color=#%s]%s[/color]" % [color.to_html(), formatted])
+		print_rich("[color=#%s]%s[/color]" % [color.to_html(), _esc(formatted)])
 	else:
 		print(formatted)
 	
