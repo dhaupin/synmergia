@@ -142,6 +142,45 @@ func _connect_services() -> void:
 		if SameAccountTransferService.has_signal("transfer_limit_reached"):
 			SameAccountTransferService.transfer_limit_reached.connect(_on_transfer_limit_reached)
 
+	# Blacksmith events → BlacksmithUI.
+	if BlacksmithService:
+		if BlacksmithService.has_signal("repair_completed"):
+			BlacksmithService.repair_completed.connect(_on_repair_completed)
+		if BlacksmithService.has_signal("repair_failed"):
+			BlacksmithService.repair_failed.connect(_on_repair_failed)
+		if BlacksmithService.has_signal("item_too_broken"):
+			BlacksmithService.item_too_broken.connect(_on_item_too_broken)
+
+	# Loot events → toast player.
+	if LootService:
+		if LootService.has_signal("loot_picked_up"):
+			LootService.loot_picked_up.connect(_on_loot_picked_up)
+		if LootService.has_signal("loot_assigned"):
+			LootService.loot_assigned.connect(_on_loot_assigned)
+		if LootService.has_signal("loot_expired"):
+			LootService.loot_expired.connect(_on_loot_expired)
+
+	# Achievement events → toast player.
+	if AchievementService:
+		if AchievementService.has_signal("achievement_unlocked"):
+			AchievementService.achievement_unlocked.connect(_on_achievement_unlocked)
+
+	# Faction events → toast player.
+	if FactionManager:
+		if FactionManager.has_signal("war_declared"):
+			FactionManager.war_declared.connect(_on_faction_war_declared)
+		if FactionManager.has_signal("war_ended"):
+			FactionManager.war_ended.connect(_on_faction_war_ended)
+		if FactionManager.has_signal("reputation_changed"):
+			FactionManager.reputation_changed.connect(_on_reputation_changed)
+
+	# Entity events (player join/leave).
+	if EntityService:
+		if EntityService.has_signal("player_joined"):
+			EntityService.player_joined.connect(_on_player_joined)
+		if EntityService.has_signal("player_left"):
+			EntityService.player_left.connect(_on_player_left)
+
 	# Character creation events → CharacterPanel refresh.
 	if GameManager:
 		GameManager.game_state_changed.connect(_on_game_state_changed)
@@ -332,3 +371,144 @@ func _on_transfer_limit_reached(account_id: String, limit_type: String) -> void:
 			{"limit_type": limit_type},
 			""
 		)
+# ── Blacksmith ─────────────────────────────────────────────────────────
+
+func _on_repair_completed(player_id: String, items_repaired: int, total_cost: int) -> void:
+	var bs_panel: Node = _find_panel(["BlacksmithUI"])
+	if bs_panel and bs_panel.has_method("refresh"):
+		bs_panel.refresh()
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.ITEM_REPAIRED,
+			"Repaired %d items for %d gold!" % [items_repaired, total_cost],
+			"BlacksmithService",
+			"repair:%s:%d" % [player_id, items_repaired],
+			{"items_repaired": items_repaired, "total_cost": total_cost},
+			player_id
+		)
+
+func _on_repair_failed(player_id: String, reason: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.SYSTEM,
+			reason,
+			"BlacksmithService",
+			"repair_fail:%s:%d" % [player_id, reason.hash()],
+			{"reason": reason},
+			player_id
+		)
+
+func _on_item_too_broken(player_id: String, item_id: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.ITEM_FULL,
+			"Item %s is too damaged to repair." % item_id,
+			"BlacksmithService",
+			"too_broken:%s:%s" % [player_id, item_id],
+			{"item_id": item_id},
+			player_id
+		)
+
+# ── Loot ────────────────────────────────────────────────────────────────
+
+func _on_loot_picked_up(player_id: String, items: Array) -> void:
+	if is_instance_valid(NotificationService):
+		var names := items.map(func(it): return it.get("display_name", "?") if it else "?")
+		var msg := "Loot: %s" % ", ".join(names) if not names.is_empty() else "Loot picked up"
+		NotificationService.notify(
+			NotificationService.NotifKind.LOOT_DROPPED,
+			msg,
+			"LootService",
+			"loot:%s:%d" % [player_id, items.size()],
+			{"item_count": items.size()},
+			player_id
+		)
+
+func _on_loot_assigned(loot_id: String, player_id: String, items: Array) -> void:
+	if is_instance_valid(NotificationService):
+		var names := items.map(func(it): return it.get("display_name", "?") if it else "?")
+		var msg := "You won: %s" % ", ".join(names)
+		NotificationService.notify(
+			NotificationService.NotifKind.ITEM_ADDED,
+			msg,
+			"LootService",
+			"loot_win:%s:%s" % [loot_id, player_id],
+			{"loot_id": loot_id, "item_count": items.size()},
+			player_id
+		)
+
+func _on_loot_expired(loot_id: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.SYSTEM,
+			"Loot expired and was discarded.",
+			"LootService",
+			"loot_expired:%s" % loot_id,
+			{"loot_id": loot_id},
+			""
+		)
+
+# ── Achievement ────────────────────────────────────────────────────────
+
+func _on_achievement_unlocked(player_id: String, achievement_id: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.ACHIEVEMENT_UNLOCKED,
+			"Achievement unlocked: %s" % achievement_id,
+			"AchievementService",
+			"achieve:%s:%s" % [player_id, achievement_id],
+			{"achievement_id": achievement_id},
+			player_id
+		)
+
+# ── Faction ────────────────────────────────────────────────────────────
+
+func _on_faction_war_declared(faction1, faction2) -> void:
+	if is_instance_valid(NotificationService):
+		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
+		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
+		NotificationService.notify(
+			NotificationService.NotifKind.SYSTEM,
+			"War declared: %s vs %s" % [n1, n2],
+			"FactionManager",
+			"war_declared:%s:%s" % [n1, n2],
+			{},
+			""
+		)
+
+func _on_faction_war_ended(faction1, faction2) -> void:
+	if is_instance_valid(NotificationService):
+		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
+		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
+		NotificationService.notify(
+			NotificationService.NotifKind.SYSTEM,
+			"War ended between %s and %s" % [n1, n2],
+			"FactionManager",
+			"war_ended:%s:%s" % [n1, n2],
+			{},
+			""
+		)
+
+func _on_reputation_changed(player_id: String, faction_id: String, old_rep: int, new_rep: int) -> void:
+	var delta := new_rep - old_rep
+	if delta == 0:
+		return
+	var sign := "+" if delta > 0 else ""
+	var msg := "Faction reputation %s%d (now %d)" % [sign, delta, new_rep]
+	NotificationService.notify(
+		NotificationService.NotifKind.SYSTEM,
+		msg,
+		"FactionManager",
+		"rep:%s:%s:%d" % [player_id, faction_id, new_rep],
+		{"faction_id": faction_id, "old": old_rep, "new": new_rep, "delta": delta},
+		player_id
+	)
+
+# ── Entity ─────────────────────────────────────────────────────────────
+
+func _on_player_joined(player, metadata) -> void:
+	pass  # Future: update player count in minimap/HUD
+
+func _on_player_left(player, metadata) -> void:
+	pass  # Future: update player count in minimap/HUD
+
