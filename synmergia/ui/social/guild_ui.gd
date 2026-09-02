@@ -12,6 +12,38 @@ signal closed()  # Alias of panel_closed for back-compat.
 func _ready() -> void:
 	super._ready()
 	panel_closed.connect(func() -> void: closed.emit())
+	_bind_service_signals()
+
+
+func _bind_service_signals() -> void:
+	if not GuildService:
+		return
+	var sigs := {
+		"guild_info_updated": _on_guild_updated,
+		"player_joined_guild": _on_guild_updated,
+		"player_left_guild": _on_guild_updated,
+		"player_kicked": _on_player_kicked,
+		"guild_disbanded": _on_guild_disbanded,
+	}
+	for sig_name in sigs:
+		if GuildService.has_signal(sig_name):
+			var handler = sigs[sig_name]
+			if not GuildService.get(sig_name).is_connected(handler):
+				GuildService.get(sig_name).connect(handler)
+
+
+func _on_guild_updated(_guild_id: String = "") -> void:
+	if is_open():
+		_refresh_all()
+
+
+func _on_player_kicked(_guild_id: String, player_id: String, _kicker_id: String) -> void:
+	if player_id == _player_id:
+		close()
+
+
+func _on_guild_disbanded(_guild_id: String) -> void:
+	close()
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()

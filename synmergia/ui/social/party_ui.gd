@@ -11,6 +11,32 @@ signal closed()  # Alias of panel_closed for back-compat.
 func _ready() -> void:
 	super._ready()
 	panel_closed.connect(func() -> void: closed.emit())
+	_bind_service_signals()
+
+
+func _bind_service_signals() -> void:
+	if not PartyService:
+		return
+	var sigs := {
+		"party_member_updated": _on_party_updated,
+		"player_joined_party": _on_party_updated,
+		"player_left_party": _on_party_updated,
+		"party_disbanded": _on_party_disbanded,
+	}
+	for sig_name in sigs:
+		if PartyService.has_signal(sig_name):
+			var handler = sigs[sig_name]
+			if not PartyService.get(sig_name).is_connected(handler):
+				PartyService.get(sig_name).connect(handler)
+
+
+func _on_party_updated(_party_id: String = "", _pid: String = "") -> void:
+	if is_open():
+		_refresh_all()
+
+
+func _on_party_disbanded(_party_id: String) -> void:
+	close()
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()

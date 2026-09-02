@@ -62,6 +62,33 @@ var _buy_skill_picker: OptionButton
 var _buy_button: Button
 var _buy_result_label: Label
 
+
+func _ready() -> void:
+	super._ready()
+	_bind_service_signals()
+
+
+func _bind_service_signals() -> void:
+	var svc = SkillAcademyService.get_instance() if SkillAcademyService else null
+	if not svc:
+		return
+	if svc.has_signal("upgrade_applied"):
+		if not svc.upgrade_applied.is_connected(_on_upgrade_applied):
+			svc.upgrade_applied.connect(_on_upgrade_applied)
+	if svc.has_signal("respec_completed"):
+		if not svc.respec_completed.is_connected(_on_respec_completed):
+			svc.respec_completed.connect(_on_respec_completed)
+
+
+func _on_upgrade_applied(_player_id: String, skill_id: String, _new_level: int) -> void:
+	if is_open():
+		_refresh_active_tab()
+
+
+func _on_respec_completed(_player_id: String, points_refunded: int) -> void:
+	if is_open():
+		_refresh_active_tab()
+
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)

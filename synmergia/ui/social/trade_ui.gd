@@ -24,6 +24,37 @@ signal closed()  # Alias of panel_closed for back-compat.
 func _ready() -> void:
 	super._ready()
 	panel_closed.connect(func() -> void: closed.emit())
+	_bind_service_signals()
+
+
+func _bind_service_signals() -> void:
+	if not TradeService:
+		return
+	var sigs := {
+		"trade_completed": _on_trade_completed,
+		"trade_cancelled": _on_trade_cancelled,
+		"trade_expired": _on_trade_expired,
+	}
+	for sig_name in sigs:
+		if TradeService.has_signal(sig_name):
+			var handler = sigs[sig_name]
+			if not TradeService.get(sig_name).is_connected(handler):
+				TradeService.get(sig_name).connect(handler)
+
+
+func _on_trade_completed(_trade_id: String, _trades: Dictionary) -> void:
+	trade_completed.emit(_initiator_id, _target_id)
+	close()
+
+
+func _on_trade_cancelled(_trade_id: String, _cancelled_by: String) -> void:
+	trade_canceled.emit()
+	close()
+
+
+func _on_trade_expired(_trade_id: String) -> void:
+	trade_canceled.emit()
+	close()
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()
