@@ -24,6 +24,11 @@ enum Channel {
 				EMOTE = 11				# Emotes
 }
 
+
+## BBCode escape for user-supplied content.
+static func _escape_bbcode(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］")
+
 # Channel info
 var _channel_info: Dictionary = {
 				Channel.SAY: {"name": "Say", "range": 20.0, "color": "#FFFFFF", "prefix": ""},
@@ -661,14 +666,17 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 		display_name = "[GM] " + sender_name
 		color = "#FFD700"  # Gold color for GM messages
 				
+	# Escape brackets so player messages and names cannot inject BBCode markup.
+	var safe_name := _escape_bbcode(display_name)
+	var safe_message := _escape_bbcode(message)
 	if channel == Channel.WHISPER:
-		return "[color=%s]%s %s:[/color] %s" % [color, prefix, display_name, message]
+		return "[color=%s]%s %s:[/color] %s" % [color, prefix, safe_name, safe_message]
 	elif channel == Channel.EMOTE:
-		return "[color=%s]*%s %s*[/color]" % [color, display_name, message]
+		return "[color=%s]*%s %s*[/color]" % [color, safe_name, safe_message]
 	elif prefix != "":
-		return "[color=%s]%s[/color] [color=#FFFFFF]%s:[/color] %s" % [color, prefix, display_name, message]
+		return "[color=%s]%s[/color] [color=#FFFFFF]%s:[/color] %s" % [color, prefix, safe_name, safe_message]
 	else:
-		return "[color=%s]%s:[/color] %s" % [color, display_name, message]
+		return "[color=%s]%s:[/color] %s" % [color, safe_name, safe_message]
 
 ## ============================================================================
 ## PLAYER NOTIFICATIONS
