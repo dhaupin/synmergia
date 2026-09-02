@@ -39,7 +39,20 @@ func _ready() -> void:
 	instance = self
 	_setup_ui()
 	_set_minimap_mode()
+	_bind_zone_signals()
 	hide()
+
+
+func _bind_zone_signals() -> void:
+	if ZoneManager:
+		if ZoneManager.has_signal("zone_loaded"):
+			if not ZoneManager.zone_loaded.is_connected(_on_zone_loaded):
+				ZoneManager.zone_loaded.connect(_on_zone_loaded)
+
+
+func _on_zone_loaded(zone_data) -> void:
+	if zone_data and "name" in zone_data:
+		set_zone_name(zone_data.name)
 
 func _setup_ui() -> void:
 	name = "WorldMap"

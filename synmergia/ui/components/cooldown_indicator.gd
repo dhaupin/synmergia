@@ -4,6 +4,8 @@
 class_name CooldownIndicator
 extends Control
 
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 ## Emitted when cooldown completes
 signal cooldown_complete(action_type: String)
 
@@ -33,24 +35,24 @@ func _ready() -> void:
 	# Load bar scene
 	_bar_scene = preload("res://ui/components/cooldown_bar.tscn")
 	
-	# Listen to QoS rate limit events
-	var qos: Node = QoSService.get_instance()
-	if qos != null:
-		qos.rate_limited.connect(_on_rate_limited)
-	
+	# Wire via NotificationService to catch RATE_LIMITED toasts
+	if NotificationService:
+		if NotificationService.has_signal("notification_sent"):
+			if not NotificationService.notification_sent.is_connected(_on_notification_sent):
+				NotificationService.notification_sent.connect(_on_notification_sent)
+
 	hide()
 
-## Called when a player action is rate limited
-func _on_rate_limited(player_id: String, action_type: String, current_rate: float, max_rate: float) -> void:
-	# Calculate cooldown time
-	var cooldown := _calculate_cooldown(action_type, max_rate)
-	if cooldown <= 0:
+
+func _on_notification_sent(entity_id: String, notification: Dictionary) -> void:
+	var kind: int = notification.get("kind", -1)
+	if kind != NotifKind.RATE_LIMITED:
 		return
-	
-	# Get player-specific cooldown
-	# In a real implementation, you'd check if this is for the local player
-	# For now, we'll show all cooldowns
+	var data: Dictionary = notification.get("data", {})
+	var action_type: String = data.get("action", "unknown")
+	var cooldown: float = data.get("cooldown", 1.0)
 	_show_cooldown(action_type, cooldown)
+
 
 ## Show cooldown bar for an action
 func _show_cooldown(action_type: String, duration: float) -> void:
