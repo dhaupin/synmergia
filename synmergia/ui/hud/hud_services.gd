@@ -569,7 +569,12 @@ func _on_transfer_cooldown_active(account_id: String, seconds_remaining: int) ->
 # --- QoS -----------------------------------------------------------
 
 func _on_connection_quality_changed(player_id: String, quality) -> void:
-	var quality_str := str(quality) if quality else "UNKNOWN"
+	# ConnectionQuality enum: QoSService.ConnectionQuality.keys()[value] -> name string.
+	var quality_str := str(quality)  # fallback to integer if not resolved
+	if QoSService and typeof(quality) == TYPE_INTEGER:
+		var keys := QoSService.ConnectionQuality.keys()
+		if quality >= 0 and quality < keys.size():
+			quality_str = keys[quality]
 	if is_instance_valid(NotificationService):
 		NotificationService.notify(
 			NotificationService.NotifKind.CONNECTION_QUALITY,
