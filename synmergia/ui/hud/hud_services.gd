@@ -539,13 +539,15 @@ func _on_loot_dropped(source_id: String, loot_id: String, items: Array, currency
 func _on_loot_rolled(loot_id: String, player_id: String, roll_type, roll_value: int) -> void:
 	if not is_instance_valid(NotificationService):
 		return
-	var roll_name := "Need" if roll_type == 0 else "Greed" if roll_type == 1 else "Pass"
+	var roll_names := ["Need", "Greed", "Pass"]
+	var roll_idx := roll_type as int  # RollType enum is backed by int
+	var roll_name := roll_names[roll_idx] if roll_idx < roll_names.size() else "Roll"
 	NotificationService.notify(
 		NotificationService.NotifKind.SYSTEM,
 		"You rolled %s: %d" % [roll_name, roll_value],
 		"LootService",
 		"loot_roll:%s:%s" % [loot_id, player_id],
-		{"loot_id": loot_id, "roll_type": roll_type, "roll_value": roll_value},
+		{"loot_id": loot_id, "roll_type": roll_idx, "roll_value": roll_value},
 		player_id
 	)
 
