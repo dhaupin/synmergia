@@ -5,6 +5,9 @@ extends Node
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
+static func _esc(text: String) -> String:
+	return text.replace('[', '［').replace(']', '］')
+
 ## Report types
 enum ReportType {
 	ABUSE = 0,       # Player abuse/harassment
@@ -96,19 +99,19 @@ class Report:
 		var priority_str := _priority_to_string()
 		var time_str := Time.get_datetime_string_from_unix_time(created_at)
 		
-		var output := "[color=yellow]=== %s ===[/color]\n" % id
-		output += "[color=cyan]Type:[/color] %s | [color=cyan]Priority:[/color] %s | [color=cyan]Status:[/color] %s\n" % [type_str, priority_str, status_str]
-		output += "[color=cyan]Reporter:[/color] %s\n" % reporter_id
+		var output := "[color=yellow]=== %s ===[/color]\n" % _esc(id)
+		output += "[color=cyan]Type:[/color] %s | [color=cyan]Priority:[/color] %s | [color=cyan]Status:[/color] %s\n" % [_esc(type_str), _esc(priority_str), _esc(status_str)]
+		output += "[color=cyan]Reporter:[/color] %s\n" % _esc(reporter_id)
 		if target_id != "":
-			output += "[color=cyan]Target:[/color] %s\n" % target_id
-		output += "[color=cyan]Subject:[/color] %s\n" % subject
-		output += "[color=cyan]Description:[/color] %s\n" % description
+			output += "[color=cyan]Target:[/color] %s\n" % _esc(target_id)
+		output += "[color=cyan]Subject:[/color] %s\n" % _esc(subject)
+		output += "[color=cyan]Description:[/color] %s\n" % _esc(description)
 		output += "[color=gray]Submitted:[/color] %s\n" % time_str
 		
 		if assigned_to != "":
-			output += "[color=cyan]Assigned to:[/color] %s\n" % assigned_to
+			output += "[color=cyan]Assigned to:[/color] %s\n" % _esc(assigned_to)
 		if resolution_notes != "":
-			output += "[color=cyan]Resolution:[/color] %s\n" % resolution_notes
+			output += "[color=cyan]Resolution:[/color] %s\n" % _esc(resolution_notes)
 		
 		return output
 	

@@ -4,6 +4,9 @@
 class_name AdminShell
 extends Node
 
+static func _esc(text: String) -> String:
+	return text.replace('[', '［').replace(']', '］')
+
 ## Command result structure
 class CommandResult:
 	var success: bool
@@ -328,7 +331,7 @@ func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
 	var output := "[color=yellow]=== Active Restrictions ===[/color]\n"
 	
 	if player_id != "":
-		output += "[color=cyan]Player:[/color] %s\n\n" % player_id
+		output += "[color=cyan]Player:[/color] %s\n\n" % _esc(player_id)
 		if SecurityService:
 			var restrictions := SecurityService.get_active_restrictions(player_id)
 			if restrictions.is_empty():
@@ -346,7 +349,7 @@ func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
 				output += "  No active restrictions"
 			else:
 				for player in all.keys():
-					output += "  [color=cyan]%s:[/color] %s\n" % [player, ", ".join(all[player])]
+					output += "  [color=cyan]%s:[/color] %s\n" % [_esc(player), ", ".join(all[player])]
 	
 	return CommandResult.new(true, output, "")
 
@@ -445,7 +448,7 @@ func _cmd_qos(args: String, executor_id: String) -> CommandResult:
 		return CommandResult.new(false, "", "Usage: qos <player>")
 	
 	var player_id := args.strip_edges()
-	var output := "[color=yellow]=== QoS Status for %s ===[/color]\n" % player_id
+	var output := "[color=yellow]=== QoS Status for %s ===[/color]\n" % _esc(player_id)
 	
 	if QoSService:
 		var rates := QoSService.get_player_rates(player_id)
@@ -571,7 +574,7 @@ func _cmd_toggles(args: String, executor_id: String) -> CommandResult:
 ## ============================================================================
 
 func _get_player_info(player_id: String) -> String:
-	var info := "[color=yellow]=== Player Info: %s ===[/color]\n" % player_id
+	var info := "[color=yellow]=== Player Info: %s ===[/color]\n" % _esc(player_id)
 	
 	# Online status
 	var online := _is_player_online(player_id)
@@ -656,7 +659,7 @@ func _cmd_audit(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(false, "", "PermissionManager not available")
 
 func _format_player_info(info: Dictionary) -> String:
-	var output := "[color=yellow]=== Player: %s ===[/color]\n" % info.get("id", "?")
+	var output := "[color=yellow]=== Player: %s ===[/color]\n" % _esc(info.get("id", "?"))
 	output += "[color=cyan]Level:[/color] %s (Lvl %d)\n" % [info.get("level_name", "?"), info.get("level", 0)]
 	output += "[color=cyan]Online:[/color] %s\n" % ("Yes" if info.get("online", false) else "No")
 	
