@@ -134,6 +134,7 @@ func _get_actions_for_type(target_type: int) -> Array:
 				{"id": "quest", "text": "Quests", "icon": "📜"},
 				{"id": "bank", "text": "Bank", "icon": "🏦"},
 				{"id": "skill_academy", "text": "Skill Academy", "icon": "📖"},
+				{"id": "blacksmith", "text": "Blacksmith", "icon": "⚒️"},
 			]
 		Entity.EntityType.LOOT:
 			actions = [

@@ -116,6 +116,22 @@ func _connect_services() -> void:
 		if QuestService.has_signal("quest_failed"):
 			QuestService.quest_failed.connect(_on_quest_changed)
 
+	# SkillAcademy events → CharacterPanel.
+	if _character and SkillAcademyService:
+		if SkillAcademyService.has_signal("upgrade_applied"):
+			SkillAcademyService.upgrade_applied.connect(_on_skill_upgrade_applied)
+		if SkillAcademyService.has_signal("respec_completed"):
+			SkillAcademyService.respec_completed.connect(_on_skill_respec_completed)
+		if SkillAcademyService.has_signal("signature_selected"):
+			SkillAcademyService.signature_selected.connect(_on_signature_selected)
+
+	# Inventory events → InventoryUI + notifications.
+	if InventoryService:
+		if InventoryService.has_signal("item_transferred"):
+			InventoryService.item_transferred.connect(_on_item_transferred)
+		if InventoryService.has_signal("gold_transferred"):
+			InventoryService.gold_transferred.connect(_on_gold_transferred)
+
 	# Character creation events → CharacterPanel refresh.
 	if GameManager:
 		GameManager.game_state_changed.connect(_on_game_state_changed)
@@ -207,3 +223,66 @@ func _on_trade_failed(_trade_id: String) -> void:
 func _on_quest_changed(_a = null, _b = null, _c = null, _d = null) -> void:
 	if _quest and _quest.has_method("refresh_quest_list"):
 		_quest.refresh_quest_list()
+
+
+# ── SkillAcademy ─────────────────────────────────────────────────────────
+
+func _on_skill_upgrade_applied(_player_id: String, skill_id: String, new_level: int) -> void:
+	if _character and _character.has_method("refresh_skills"):
+		_character.refresh_skills()
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.SKILL_UPGRADED,
+			"Skill upgraded to level %d" % new_level,
+			"SkillAcademyService",
+			"skill_upgrade:%s:%s" % [_player_id, skill_id],
+			{"skill_id": skill_id, "new_level": new_level},
+			_player_id
+		)
+
+func _on_skill_respec_completed(_player_id: String, points_refunded: int) -> void:
+	if _character and _character.has_method("refresh_skills"):
+		_character.refresh_skills()
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.SKILL_RESPEC,
+			"Respec complete: %d points refunded" % points_refunded,
+			"SkillAcademyService",
+			"skill_respec:%s" % _player_id,
+			{"points_refunded": points_refunded},
+			_player_id
+		)
+
+func _on_signature_selected(_player_id: String, signature_id: String, _is_free: bool) -> void:
+	if _character and _character.has_method("refresh_skills"):
+		_character.refresh_skills()
+
+
+# ── Inventory ────────────────────────────────────────────────────────────
+
+func _on_item_transferred(from_id: String, to_id: String, _item, quantity: int) -> void:
+	if _inventory and _inventory.has_method("refresh_inventory"):
+		_inventory.refresh_inventory()
+	if is_instance_valid(NotificationService):
+		var msg := "Transferred %d items" % quantity
+		NotificationService.notify(
+			NotificationService.NotifKind.ITEM_TRANSFERRED,
+			msg,
+			"InventoryService",
+			"item_transfer:%s:%s:%d" % [from_id, to_id, quantity],
+			{"from": from_id, "to": to_id, "quantity": quantity},
+			""
+		)
+
+func _on_gold_transferred(from_id: String, to_id: String, amount: int) -> void:
+	if _inventory and _inventory.has_method("refresh_inventory"):
+		_inventory.refresh_inventory()
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.GOLD_TRANSFERRED,
+			"Transferred %d gold" % amount,
+			"InventoryService",
+			"gold_transfer:%s:%s:%d" % [from_id, to_id, amount],
+			{"from": from_id, "to": to_id, "amount": amount},
+			""
+		)
