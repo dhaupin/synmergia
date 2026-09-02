@@ -264,7 +264,7 @@ func _cmd_players(args: String, executor_id: String) -> CommandResult:
 			var restricted := ""
 			if SecurityService and SecurityService.is_restricted(id, "chat"):
 				restricted = " [color=red](MUTED)[/color]"
-			output += "  %s%s\n" % [id, restricted]
+			output += "  %s%s\n" % [_esc(id), restricted]
 			count += 1
 	
 	output += "\n[color=gray]Total: %d player(s)[/color]" % count
