@@ -284,9 +284,32 @@ func _on_withdraw() -> void:
 	if _selected_slot < 0:
 		show_notification("Select a slot to withdraw from", false)
 		return
+	if not VaultService:
+		show_notification("VaultService unavailable", false)
+		return
 
-	# TODO: Withdraw item to inventory
-	show_notification("Withdrawing item...")
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var vault_type: int
+	match _current_tab:
+		VaultTab.PERSONAL:
+			vault_type = VaultService.VaultType.PERSONAL
+		VaultTab.GUILD:
+			vault_type = VaultService.VaultType.GUILD
+		VaultTab.ACCOUNT:
+			vault_type = VaultService.VaultType.ACCOUNT
+		_:
+			return
+
+	var result: Dictionary = VaultService.withdraw_item(player_id, vault_type, _selected_slot)
+	if result.is_empty():
+		show_notification("Failed to withdraw item", false)
+	else:
+		var item_name: String = result.get("item_name", "item")
+		show_notification("Withdrew: %s" % item_name)
+		_refresh_vault()
 
 func _on_expand() -> void:
 	var cost := VaultService.get_expansion_cost(_current_tab, _vault_data.get("size", 0))
