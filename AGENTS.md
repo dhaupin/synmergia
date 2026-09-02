@@ -612,10 +612,14 @@ static func _esc(text: String) -> String:
 | `core/services/chat_service.gd` | `display_name`, `message`, `prefix` in `format_message()` |
 | `ui/components/combat_log.gd` | All 11 log functions: damage, crit, miss, heal, system, loot, quest, achievement, guild, trade |
 | `core/admin/player_shell.gd` | `player_id`, `name`, `level_name`, `pid`, `alias`, command descriptions |
+| `core/autoload/logger.gd` | `entity.name`, `entity_id`, `player.display_name` in `print_rich()` calls |
+| `core/services/qos_service.gd` | `player_id` in `_send_latency_alert()` toast |
+| `core/services/security_service.gd` | `player_id` in `_report_exploit()` toast |
 
 **Files verified safe (no BBCode embedding of user input):**
 - `ui/targeting/target_tooltip.gd` — uses plain `.text =`, not BBCode
 - `ui/components/dialog_ui.gd` — only hardcoded strings
+- `ui/components/action_menu.gd` — only sets `btn.text = text` (plain, not BBCode)
 
 **Pattern for new code:** If you're building a `RichTextLabel` message with `%s` interpolation and the interpolated value comes from any user source (player name, chat message, item name, command output), always pass it through `_esc()` first.
 
