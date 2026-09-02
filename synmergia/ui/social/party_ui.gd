@@ -96,6 +96,9 @@ func _setup_header() -> void:
 func _on_open() -> void:
 	_refresh_all()
 
+func refresh() -> void:
+	_refresh_all()
+
 func _refresh_all() -> void:
 	_refresh_members()
 	_refresh_pending()

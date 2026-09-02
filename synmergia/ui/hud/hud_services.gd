@@ -162,15 +162,15 @@ func _on_party_disbanded(_party_id: String) -> void:
 # ── Guild ────────────────────────────────────────────────────────────────
 
 func _on_guild_changed(_a = null, _b = null, _c = null) -> void:
-	if _guild and _guild.has_method("refresh"):
-		_guild.refresh()
+	if _guild and _guild.has_method("refresh_all"):
+		_guild.refresh_all()
 
 
 # ── Friends ──────────────────────────────────────────────────────────────
 
 func _on_friends_changed(_a = null, _b = null) -> void:
-	if _friends and _friends.has_method("refresh"):
-		_friends.refresh()
+	if _friends and _friends.has_method("refresh_all"):
+		_friends.refresh_all()
 
 
 # ── Trade ───────────────────────────────────────────────────────────────
@@ -205,5 +205,5 @@ func _on_trade_failed(_trade_id: String) -> void:
 # ── Quest ────────────────────────────────────────────────────────────────
 
 func _on_quest_changed(_a = null, _b = null, _c = null, _d = null) -> void:
-	if _quest and _quest.has_method("refresh"):
-		_quest.refresh()
+	if _quest and _quest.has_method("refresh_quest_list"):
+		_quest.refresh_quest_list()
