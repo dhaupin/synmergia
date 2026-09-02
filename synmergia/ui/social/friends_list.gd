@@ -15,6 +15,35 @@ signal closed()  # Alias of panel_closed for back-compat.
 func _ready() -> void:
 	super._ready()
 	panel_closed.connect(func() -> void: closed.emit())
+	_bind_service_signals()
+
+
+func _bind_service_signals() -> void:
+	if not FriendsService:
+		return
+	var sigs := {
+		"friend_added": _on_friends_changed,
+		"friend_removed": _on_friends_changed,
+		"friend_request_received": _on_friends_changed,
+		"friend_request_accepted": _on_friends_changed,
+		"friend_request_declined": _on_friends_changed,
+		"player_status_changed": _on_status_changed,
+	}
+	for sig_name in sigs:
+		if FriendsService.has_signal(sig_name):
+			var handler = sigs[sig_name]
+			if not FriendsService.get(sig_name).is_connected(handler):
+				FriendsService.get(sig_name).connect(handler)
+
+
+func _on_friends_changed(_a = null, _b = null) -> void:
+	if is_open():
+		_refresh_all()
+
+
+func _on_status_changed(_player_id: String, _online: bool) -> void:
+	if is_open():
+		_refresh_all()
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()
