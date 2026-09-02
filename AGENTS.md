@@ -590,6 +590,37 @@ The full design is in
 
 ---
 
+## BBCode XSS — RichTextLabel Injection
+
+All `RichTextLabel` nodes in the UI have `bbcode_enabled = true`. Any user-supplied string embedded in BBCode format strings is a potential injection vector. The pattern to look for:
+
+```gdscript
+"[color=%s]%s[/color]" % [color, user_string]   # DANGEROUS if user_string is unescaped
+```
+
+**The fix:** Replace `[` and `]` with full-width equivalents (U+FF3B `［` and U+FF3D `］`) which are visually identical but are NOT BBCode delimiters.
+
+```gdscript
+static func _esc(text: String) -> String:
+    return text.replace("[", "［").replace("]", "］")
+```
+
+**Files with this pattern (as of 2026-09-02):**
+
+| File | Components Fixed |
+|------|-----------------|
+| `core/services/chat_service.gd` | `display_name`, `message`, `prefix` in `format_message()` |
+| `ui/components/combat_log.gd` | All 11 log functions: damage, crit, miss, heal, system, loot, quest, achievement, guild, trade |
+| `core/admin/player_shell.gd` | `player_id`, `name`, `level_name`, `pid`, `alias`, command descriptions |
+
+**Files verified safe (no BBCode embedding of user input):**
+- `ui/targeting/target_tooltip.gd` — uses plain `.text =`, not BBCode
+- `ui/components/dialog_ui.gd` — only hardcoded strings
+
+**Pattern for new code:** If you're building a `RichTextLabel` message with `%s` interpolation and the interpolated value comes from any user source (player name, chat message, item name, command output), always pass it through `_esc()` first.
+
+---
+
 ## Gotchas
 
 - **Enums:** Use `Service.EnumClass.VALUE` not `Service.AlertType` (doesn't exist)
