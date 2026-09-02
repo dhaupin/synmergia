@@ -4,6 +4,10 @@
 class_name PlayerShell
 extends Node
 
+## Escape BBCode brackets in user-supplied strings.
+static func _esc(text: String) -> String:
+	return text.replace('[', '［').replace(']', '］')
+
 ## Player command definition
 class PlayerCommand:
 	var name: String
@@ -211,7 +215,7 @@ func _get_general_help() -> String:
 	
 	for cat in _categories:
 		if by_category.has(cat):
-			help_text += "[color=cyan]%s:[/color] %s\n" % [cat.capitalize(), ", ".join(by_category[cat])]
+			help_text += "[color=cyan]%s:[/color] %s\n" % [_esc(cat.capitalize()), ", ".join(by_category[cat])]
 	
 	help_text += "\n[color=gray]Player Customization:[/color]\n"
 	help_text += "  alias <name> <command> - Create alias\n"
@@ -234,9 +238,9 @@ func _get_category_help(category: String) -> String:
 		if category in custom.hidden_categories:
 			continue
 		
-		help_text += "  [color=cyan]%s[/color] - %s\n" % [cmd.name, cmd.description]
+		help_text += "  [color=cyan]%s[/color] - %s\n" % [_esc(cmd.name), _esc(cmd.description)]
 		if cmd.usage != "":
-			help_text += "    Usage: %s\n" % cmd.usage
+			help_text += "    Usage: %s\n" % _esc(cmd.usage)
 	
 	return help_text
 
@@ -289,11 +293,11 @@ func _cmd_help(args: String, player_id: String) -> CommandResult:
 
 func _cmd_me(args: String, player_id: String) -> CommandResult:
 	var output := "[color=yellow]=== Your Info ===[/color]\n"
-	output += "[color=cyan]ID:[/color] %s\n" % player_id
+	output += "[color=cyan]ID:[/color] %s\n" % _esc(player_id)
 	
 	if PlayerManager and PlayerManager.local_player:
 		var data: Dictionary = PlayerManager.local_player
-		output += "[color=cyan]Name:[/color] %s\n" % data.get("name", "Unknown")
+		output += "[color=cyan]Name:[/color] %s\n" % _esc(data.get("name", "Unknown"))
 		output += "[color=cyan]Level:[/color] %d\n" % data.get("level", 1)
 	
 	# Check permissions
@@ -306,7 +310,7 @@ func _cmd_me(args: String, player_id: String) -> CommandResult:
 			level_name = "Moderator"
 		if level >= PermissionManager.Level.ADMIN:
 			level_name = "Admin"
-		output += "[color=cyan]Status:[/color] %s\n" % level_name
+		output += "[color=cyan]Status:[/color] %s\n" % _esc(level_name)
 	
 	return CommandResult.new(true, output, "")
 
@@ -342,7 +346,7 @@ func _cmd_online(args: String, player_id: String) -> CommandResult:
 	
 	for pid in players:
 		if filter == "" or pid.to_lower().contains(filter):
-			output += "  %s\n" % pid
+			output += "  %s\n" % _esc(pid)
 			count += 1
 	
 	output += "\n[color=gray]Total: %d[/color]" % count
@@ -452,7 +456,7 @@ func _cmd_settings(args: String, player_id: String) -> CommandResult:
 	
 	output += "\n[color=cyan]Aliases (%d):[/color]\n" % custom.aliases.size()
 	for alias in custom.aliases.keys():
-		output += "  %s -> %s\n" % [alias, custom.aliases[alias]]
+		output += "  %s -> %s\n" % [_esc(alias), _esc(custom.aliases[alias])]
 	
 	output += "\n[color=cyan]Macros (%d):[/color]\n" % custom.macros.size()
 	for macro in custom.macros.keys():
