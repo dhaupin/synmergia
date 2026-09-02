@@ -15,6 +15,36 @@ signal vote_cast(vote_id: String, option_id)
 func _ready() -> void:
 	super._ready()
 	panel_closed.connect(func() -> void: closed.emit())
+	_bind_service_signals()
+
+
+func _bind_service_signals() -> void:
+	if not CommunityGovernance:
+		return
+	if CommunityGovernance.has_signal("vote_created"):
+		if not CommunityGovernance.vote_created.is_connected(_on_vote_created):
+			CommunityGovernance.vote_created.connect(_on_vote_created)
+	if CommunityGovernance.has_signal("vote_closed"):
+		if not CommunityGovernance.vote_closed.is_connected(_on_vote_closed):
+			CommunityGovernance.vote_closed.connect(_on_vote_closed)
+	if CommunityGovernance.has_signal("vote_expired"):
+		if not CommunityGovernance.vote_expired.is_connected(_on_vote_expired):
+			CommunityGovernance.vote_expired.connect(_on_vote_expired)
+
+
+func _on_vote_created(_vote) -> void:
+	if is_open():
+		_refresh_vote_list()
+
+
+func _on_vote_closed(_vote) -> void:
+	if is_open():
+		_refresh_vote_list()
+
+
+func _on_vote_expired(_vote) -> void:
+	if is_open():
+		_refresh_vote_list()
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()

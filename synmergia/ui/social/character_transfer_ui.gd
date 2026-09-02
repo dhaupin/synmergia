@@ -14,6 +14,43 @@ signal closed()  # Alias of panel_closed for back-compat.
 func _ready() -> void:
 	super._ready()
 	panel_closed.connect(func() -> void: closed.emit())
+	_bind_service_signals()
+
+
+func _bind_service_signals() -> void:
+	if not SameAccountTransferService:
+		return
+	if SameAccountTransferService.has_signal("transfer_completed"):
+		if not SameAccountTransferService.transfer_completed.is_connected(_on_transfer_completed):
+			SameAccountTransferService.transfer_completed.connect(_on_transfer_completed)
+	if SameAccountTransferService.has_signal("transfer_cancelled"):
+		if not SameAccountTransferService.transfer_cancelled.is_connected(_on_transfer_cancelled):
+			SameAccountTransferService.transfer_cancelled.connect(_on_transfer_cancelled)
+	if SameAccountTransferService.has_signal("transfer_limit_reached"):
+		if not SameAccountTransferService.transfer_limit_reached.is_connected(_on_transfer_limit_reached):
+			SameAccountTransferService.transfer_limit_reached.connect(_on_transfer_limit_reached)
+	if SameAccountTransferService.has_signal("cooldown_active"):
+		if not SameAccountTransferService.cooldown_active.is_connected(_on_cooldown_active):
+			SameAccountTransferService.cooldown_active.connect(_on_cooldown_active)
+
+
+func _on_transfer_completed(_from: String, _to: String, _gold: int, _items: Array) -> void:
+	close()
+
+
+func _on_transfer_cancelled(_from: String, _to: String, _reason: String) -> void:
+	if is_open():
+		_refresh_targets()
+
+
+func _on_transfer_limit_reached(_account_id: String, _limit_type: String) -> void:
+	if is_open():
+		_update_limits()
+
+
+func _on_cooldown_active(_account_id: String, _seconds_remaining: int) -> void:
+	if is_open():
+		_update_cooldown()
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()
