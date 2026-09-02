@@ -464,7 +464,7 @@ func _on_repair_completed(player_id: String, items_repaired: int, total_cost: in
 func _on_repair_failed(player_id: String, reason: String) -> void:
 	if is_instance_valid(NotificationService):
 		NotificationService.notify(
-			NotificationService.NotifKind.SYSTEM,
+			NotificationService.NotifKind.CUSTOM,
 			reason,
 			"BlacksmithService",
 			"repair_fail:%s:%d" % [player_id, reason.hash()],
@@ -514,7 +514,7 @@ func _on_loot_assigned(loot_id: String, player_id: String, items: Array) -> void
 func _on_loot_expired(loot_id: String) -> void:
 	if is_instance_valid(NotificationService):
 		NotificationService.notify(
-			NotificationService.NotifKind.SYSTEM,
+			NotificationService.NotifKind.CUSTOM,
 			"Loot expired and was discarded.",
 			"LootService",
 			"loot_expired:%s" % loot_id,
@@ -543,7 +543,7 @@ func _on_loot_rolled(loot_id: String, player_id: String, roll_type, roll_value: 
 	var roll_idx := roll_type as int  # RollType enum is backed by int
 	var roll_name := roll_names[roll_idx] if roll_idx < roll_names.size() else "Roll"
 	NotificationService.notify(
-		NotificationService.NotifKind.SYSTEM,
+		NotificationService.NotifKind.CUSTOM,
 		"You rolled %s: %d" % [roll_name, roll_value],
 		"LootService",
 		"loot_roll:%s:%s" % [loot_id, player_id],
@@ -582,7 +582,7 @@ func _on_faction_war_declared(faction1, faction2) -> void:
 		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
 		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
 		NotificationService.notify(
-			NotificationService.NotifKind.SYSTEM,
+			NotificationService.NotifKind.CUSTOM,
 			"War declared: %s vs %s" % [n1, n2],
 			"FactionManager",
 			"war_declared:%s:%s" % [n1, n2],
@@ -595,7 +595,7 @@ func _on_faction_war_ended(faction1, faction2) -> void:
 		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
 		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
 		NotificationService.notify(
-			NotificationService.NotifKind.SYSTEM,
+			NotificationService.NotifKind.CUSTOM,
 			"War ended between %s and %s" % [n1, n2],
 			"FactionManager",
 			"war_ended:%s:%s" % [n1, n2],
@@ -610,7 +610,7 @@ func _on_reputation_changed(player_id: String, faction_id: String, old_rep: int,
 	var sign := "+" if delta > 0 else ""
 	var msg := "Faction reputation %s%d (now %d)" % [sign, delta, new_rep]
 	NotificationService.notify(
-		NotificationService.NotifKind.SYSTEM,
+		NotificationService.NotifKind.CUSTOM,
 		msg,
 		"FactionManager",
 		"rep:%s:%s:%d" % [player_id, faction_id, new_rep],
@@ -691,7 +691,7 @@ func _on_alliance_formed(guild_id: String, faction) -> void:
 	if is_instance_valid(NotificationService):
 		var faction_name := faction.get("faction_name", "?") if faction else "?"
 		NotificationService.notify(
-			NotificationService.NotifKind.SYSTEM,
+			NotificationService.NotifKind.CUSTOM,
 			"Alliance formed: %s" % faction_name,
 			"FactionManager",
 			"alliance:%s:%s" % [guild_id, faction_name],
@@ -771,7 +771,7 @@ func _on_respawn_canceled(player, reason: String) -> void:
 	var pid := player.entity_id if player and "entity_id" in player else ""
 	if is_instance_valid(NotificationService):
 		NotificationService.notify(
-			NotificationService.NotifKind.SYSTEM,
+			NotificationService.NotifKind.CUSTOM,
 			"Respawn cancelled: %s" % reason,
 			"RespawnService",
 			"respawn_canceled:%s" % pid,
