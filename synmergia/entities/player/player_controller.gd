@@ -42,6 +42,8 @@ var _skill_academy_ui: SkillAcademyUI = null
 var _character_stats_ui: CharacterStatsUI = null
 var _current_target_info: TargetingManager.TargetInfo = null
 
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 func _ready() -> void:
 	# Connect to input
 	InputManager.player_input.connect(_on_player_input)
@@ -208,7 +210,15 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 		"report":
 			_open_report_dialog(target_id)
 		"talk":
-			NotificationService.send_to_player(str(player_id), "Opening dialogue...", NotificationService.NotificationType.INFO)
+			if is_instance_valid(NotificationService):
+				NotificationService.notify(
+					NotifKind.CUSTOM,
+					"Opening dialogue...",
+					"PlayerController",
+					"npc_talk:%s:%s" % [str(player_id), target_id],
+					{"target_id": target_id},
+					str(player_id)
+				)
 		"loot":
 			LootService.loot_all(str(player_id), target_id)
 		"enter":

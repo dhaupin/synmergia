@@ -11,13 +11,23 @@ func _ready() -> void:
 	set_physics_layer_mask(0)
 	GameLog.debug("BankNPC: Initialized")
 
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
 func interact(player_id: String) -> void:
 	if _interacting_players.has(player_id):
 		return
-		_interacting_players.append(player_id)
-		NotificationService.send_to_player(player_id, welcome_message, 3, 1)
-		if MenuManager:
-			MenuManager.open_menu("bank")
+	_interacting_players.append(player_id)
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.CUSTOM,
+			welcome_message,
+			"BankNPC",
+			"bank_greet:%s" % player_id,
+			{},
+			player_id
+		)
+	if MenuManager:
+		MenuManager.open_menu("bank")
 
 func stop_interact(player_id: String) -> void:
 	if _interacting_players.has(player_id):

@@ -9,6 +9,11 @@ var _pending_respawn: Dictionary = {}
 func _ready() -> void:
 	# Listen for player death events specifically
 	EventHub.player_died.connect(_on_player_died)
+	# Close the respawn UI when respawn actually completes.
+	RespawnService.respawn_completed.connect(_on_respawn_completed)
+	# Also close on cancellation or revive completion.
+	RespawnService.respawn_canceled.connect(_on_respawn_canceled)
+	RespawnService.revive_completed.connect(_on_respawn_completed)
 	GameLog.info("RespawnUIManager: Initialized")
 
 func _on_player_died(entity, killer) -> void:
@@ -109,3 +114,16 @@ func _on_respawn_selected(mode: String, location_data: Dictionary) -> void:
 	
 	# Trigger respawn via RespawnService
 	RespawnService.initiate_respawn(player)
+
+
+func _on_respawn_completed(player, _position) -> void:
+	_hide_ui()
+
+
+func _on_respawn_canceled(player, _reason: String) -> void:
+	_hide_ui()
+
+
+func _hide_ui() -> void:
+	if _ui:
+		_ui._hide()

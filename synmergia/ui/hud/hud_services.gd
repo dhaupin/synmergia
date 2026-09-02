@@ -98,6 +98,12 @@ func _connect_services() -> void:
 			TradeService.trade_started.connect(_on_trade_started)
 		if TradeService.has_signal("trade_completed"):
 			TradeService.trade_completed.connect(_on_trade_completed)
+		if TradeService.has_signal("trade_cancelled"):
+			TradeService.trade_cancelled.connect(_on_trade_cancelled)
+		if TradeService.has_signal("trade_expired"):
+			TradeService.trade_expired.connect(_on_trade_expired)
+		if TradeService.has_signal("trade_failed"):
+			TradeService.trade_failed.connect(_on_trade_failed)
 
 	# Quest events → QuestUI.
 	if _quest and QuestService:
@@ -169,14 +175,29 @@ func _on_friends_changed(_a = null, _b = null) -> void:
 
 # ── Trade ───────────────────────────────────────────────────────────────
 
-func _on_trade_started(initiator_id: String, target_id: String) -> void:
+func _on_trade_started(trade_id: String, player1: String, player2: String) -> void:
 	if _trade and _trade.has_method("open_trade"):
-		_trade.open_trade(initiator_id, target_id)
+		_trade.open_trade(player1, player2)
 	if _mm and _mm.has_method("open_menu"):
 		_mm.open_menu("trade")
 
 
-func _on_trade_completed(_initiator_id: String, _target_id: String, _success: bool) -> void:
+func _on_trade_completed(_trade_id: String, _trades: Dictionary) -> void:
+	if _mm and _mm.has_method("close_menu"):
+		_mm.close_menu("trade")
+
+
+func _on_trade_cancelled(_trade_id: String, _cancelled_by: String) -> void:
+	if _mm and _mm.has_method("close_menu"):
+		_mm.close_menu("trade")
+
+
+func _on_trade_expired(_trade_id: String) -> void:
+	if _mm and _mm.has_method("close_menu"):
+		_mm.close_menu("trade")
+
+
+func _on_trade_failed(_trade_id: String) -> void:
 	if _mm and _mm.has_method("close_menu"):
 		_mm.close_menu("trade")
 

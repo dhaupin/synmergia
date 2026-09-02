@@ -159,18 +159,6 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 	war_declared.emit(faction1, faction2)
 	GameLog.info("FactionManager: WAR declared between %s and %s" % [faction1_id, faction2_id])
 
-	# Notify players
-	var notification_service = NotificationService
-	if notification_service:
-		var message = "FACTION WAR: %s has declared war on %s!" % [faction1.display_name, faction2.display_name]
-		notification_service.broadcast_all(
-			message,
-			NotificationService.NotificationType.FACTION,
-			NotificationService.Priority.HIGH,
-			NotificationService.DisplayLocation.CENTER_SCREEN,
-			NotificationService.SoundType.WARNING,
-			{"faction1": faction1_id, "faction2": faction2_id}
-		)
 	# Frame-level toast. Dedupe on the war pair so a re-emit during the same
 	# 5s window (e.g. multiple systems reacting to the same event) collapses
 	# to one toast.
@@ -205,18 +193,6 @@ func end_war(faction1_id: String, faction2_id: String) -> bool:
 	war_ended.emit(faction1, faction2)
 	GameLog.info("FactionManager: War ended between %s and %s" % [faction1_id, faction2_id])
 
-	# Notify players
-	var notification_service = NotificationService
-	if notification_service and faction1 and faction2:
-		var message = "FACTION PEACE: The war between %s and %s has ended." % [faction1.display_name, faction2.display_name]
-		notification_service.broadcast_all(
-			message,
-			NotificationService.NotificationType.FACTION,
-			NotificationService.Priority.NORMAL,
-			NotificationService.DisplayLocation.CENTER_SCREEN,
-			NotificationService.SoundType.NOTIFICATION,
-			{"faction1": faction1_id, "faction2": faction2_id}
-		)
 	# Frame-level toast.
 	_emit_faction(
 		NotifKind.FACTION_CHANGED,
