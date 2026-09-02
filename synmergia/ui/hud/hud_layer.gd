@@ -50,7 +50,17 @@ func _install_integrator() -> void:
 	integrator.name = "HudIntegrator"
 	add_child(integrator)
 	integrator.bind(self)
+	_install_respawn_ui()
 	_install_services()
+
+
+func _install_respawn_ui() -> void:
+	var RespawnScript := load("res://ui/respawn/respawn_ui_manager.gd")
+	if not RespawnScript:
+		return
+	var respawn_ui: Node = RespawnScript.new()
+	respawn_ui.name = "RespawnUIManager"
+	add_child(respawn_ui)
 
 
 func _install_services() -> void:
