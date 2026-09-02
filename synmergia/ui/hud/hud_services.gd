@@ -23,6 +23,7 @@ var _admin_toolbar: Node
 
 ## Active state.
 var _character_data: Resource = null
+var _minimap: Node
 
 
 func bind(hud: CanvasLayer) -> void:
@@ -49,6 +50,9 @@ func _resolve_panels() -> void:
 	_quest = _find_panel(["QuestUI", "QuestJournal"])
 	_chat = _hud.get_node_or_null("ChatUI")
 	_admin_toolbar = _hud.get_node_or_null("AdminToolbar")
+	_minimap = _hud.get_node_or_null("Minimap")
+	if not _minimap:
+		_minimap = _hud.get_node_or_null("WorldMap")
 
 
 func _find_panel(names: Array) -> Node:
@@ -627,18 +631,21 @@ func _on_player_left(player, metadata) -> void:
 	pass  # Future: update player count in minimap/HUD
 
 func _on_player_entered_zone(player, zone) -> void:
-	if not is_instance_valid(NotificationService):
-		return
 	var pid := player.entity_id if player and "entity_id" in player else ""
 	var zone_name := zone.get("zone_name", "?") if zone else "?"
-	NotificationService.notify(
-		NotificationService.NotifKind.ZONE_CHANGED,
-		"Entered: %s" % zone_name,
-		"ZoneManager",
-		"zone_enter:%s:%s" % [pid, zone_name],
-		{"zone_name": zone_name},
-		pid
-	)
+	# Update minimap zone name
+	if is_instance_valid(_minimap) and _minimap.has_method("set_zone_name"):
+		_minimap.set_zone_name(zone_name)
+	# Toast the player
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.ZONE_CHANGED,
+			"Entered: %s" % zone_name,
+			"ZoneManager",
+			"zone_enter:%s:%s" % [pid, zone_name],
+			{"zone_name": zone_name},
+			pid
+		)
 
 func _on_level_up(player_id: String, new_level: int) -> void:
 	if is_instance_valid(NotificationService):
