@@ -170,6 +170,10 @@ func _connect_services() -> void:
 			LootService.loot_assigned.connect(_on_loot_assigned)
 		if LootService.has_signal("loot_expired"):
 			LootService.loot_expired.connect(_on_loot_expired)
+		if LootService.has_signal("loot_dropped"):
+			LootService.loot_dropped.connect(_on_loot_dropped)
+		if LootService.has_signal("loot_rolled"):
+			LootService.loot_rolled.connect(_on_loot_rolled)
 
 	# Achievement events → toast player (AchievementService is not autoloaded).
 	for method_name in ["get_instance"]:
@@ -177,6 +181,8 @@ func _connect_services() -> void:
 			var ach_inst = AchievementService.call(method_name)
 			if ach_inst and ach_inst.has_signal("achievement_unlocked"):
 				ach_inst.achievement_unlocked.connect(_on_achievement_unlocked)
+				if ach_inst and ach_inst.has_signal("achievement_progressed"):
+					ach_inst.achievement_progressed.connect(_on_achievement_progressed)
 			break
 
 	# Faction events → toast player.
@@ -221,6 +227,33 @@ func _connect_services() -> void:
 			EntityService.player_joined.connect(_on_player_joined)
 		if EntityService.has_signal("player_left"):
 			EntityService.player_left.connect(_on_player_left)
+
+
+	# ZoneManager events.
+	if ZoneManager:
+		if ZoneManager.has_signal("player_entered_zone"):
+			ZoneManager.player_entered_zone.connect(_on_player_entered_zone)
+
+	# CommunityGovernance events.
+	if CommunityGovernance:
+		if CommunityGovernance.has_signal("level_up"):
+			CommunityGovernance.level_up.connect(_on_level_up)
+		if CommunityGovernance.has_signal("vote_created"):
+			CommunityGovernance.vote_created.connect(_on_vote_created)
+		if CommunityGovernance.has_signal("vote_closed"):
+			CommunityGovernance.vote_closed.connect(_on_vote_closed)
+		if CommunityGovernance.has_signal("vote_expired"):
+			CommunityGovernance.vote_expired.connect(_on_vote_expired)
+
+	# FactionManager: alliance_formed.
+	if FactionManager:
+		if FactionManager.has_signal("alliance_formed"):
+			FactionManager.alliance_formed.connect(_on_alliance_formed)
+
+	# RespawnService: respawn_canceled.
+	if RespawnService:
+		if RespawnService.has_signal("respawn_canceled"):
+			RespawnService.respawn_canceled.connect(_on_respawn_canceled)
 
 	# Character creation events → CharacterPanel refresh.
 	if GameManager:
@@ -489,6 +522,33 @@ func _on_loot_expired(loot_id: String) -> void:
 			""
 		)
 
+func _on_loot_dropped(source_id: String, loot_id: String, items: Array, currency: Dictionary) -> void:
+	if not is_instance_valid(NotificationService):
+		return
+	var item_count := items.size() if items else 0
+	var msg := "Loot dropped: %d item%s" % [item_count, "s" if item_count != 1 else ""]
+	NotificationService.notify(
+		NotificationService.NotifKind.LOOT_DROPPED,
+		msg,
+		"LootService",
+		"loot_dropped:%s" % loot_id,
+		{"loot_id": loot_id, "item_count": item_count, "source_id": source_id},
+		""
+	)
+
+func _on_loot_rolled(loot_id: String, player_id: String, roll_type, roll_value: int) -> void:
+	if not is_instance_valid(NotificationService):
+		return
+	var roll_name := "Need" if roll_type == 0 else "Greed" if roll_type == 1 else "Pass"
+	NotificationService.notify(
+		NotificationService.NotifKind.SYSTEM,
+		"You rolled %s: %d" % [roll_name, roll_value],
+		"LootService",
+		"loot_roll:%s:%s" % [loot_id, player_id],
+		{"loot_id": loot_id, "roll_type": roll_type, "roll_value": roll_value},
+		player_id
+	)
+
 # ── Achievement ────────────────────────────────────────────────────────
 
 func _on_achievement_unlocked(player_id: String, achievement_id: String) -> void:
@@ -499,6 +559,17 @@ func _on_achievement_unlocked(player_id: String, achievement_id: String) -> void
 			"AchievementService",
 			"achieve:%s:%s" % [player_id, achievement_id],
 			{"achievement_id": achievement_id},
+			player_id
+		)
+
+func _on_achievement_progressed(player_id: String, achievement_id: String, progress: float) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.ACHIEVEMENT_PROGRESSED,
+			"Achievement progress: %s (%.0f%%)" % [achievement_id, progress * 100.0],
+			"AchievementService",
+			"achieve_progress:%s:%s" % [player_id, achievement_id],
+			{"achievement_id": achievement_id, "progress": progress},
 			player_id
 		)
 
@@ -552,6 +623,79 @@ func _on_player_joined(player, metadata) -> void:
 
 func _on_player_left(player, metadata) -> void:
 	pass  # Future: update player count in minimap/HUD
+
+func _on_player_entered_zone(player, zone) -> void:
+	if not is_instance_valid(NotificationService):
+		return
+	var pid := player.entity_id if player and "entity_id" in player else ""
+	var zone_name := zone.get("zone_name", "?") if zone else "?"
+	NotificationService.notify(
+		NotificationService.NotifKind.ZONE_CHANGED,
+		"Entered: %s" % zone_name,
+		"ZoneManager",
+		"zone_enter:%s:%s" % [pid, zone_name],
+		{"zone_name": zone_name},
+		pid
+	)
+
+func _on_level_up(player_id: String, new_level: int) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.LEVEL_UP,
+			"Level up! You are now level %d" % new_level,
+			"CommunityGovernance",
+			"level_up:%s:%d" % [player_id, new_level],
+			{"new_level": new_level},
+			player_id
+		)
+
+func _on_vote_created(vote) -> void:
+	if is_instance_valid(NotificationService):
+		var title := vote.get("title", "?") if vote else "?"
+		NotificationService.notify(
+			NotificationService.NotifKind.VOTE_CREATED,
+			"New vote: %s" % title,
+			"CommunityGovernance",
+			"vote_created:%s" % title.hash(),
+			{"title": title},
+			""
+		)
+
+func _on_vote_closed(vote) -> void:
+	if is_instance_valid(NotificationService):
+		var title := vote.get("title", "?") if vote else "?"
+		NotificationService.notify(
+			NotificationService.NotifKind.VOTE_ENDED,
+			"Vote closed: %s" % title,
+			"CommunityGovernance",
+			"vote_closed:%s" % title.hash(),
+			{"title": title},
+			""
+		)
+
+func _on_vote_expired(vote) -> void:
+	if is_instance_valid(NotificationService):
+		var title := vote.get("title", "?") if vote else "?"
+		NotificationService.notify(
+			NotificationService.NotifKind.VOTE_ENDED,
+			"Vote expired: %s" % title,
+			"CommunityGovernance",
+			"vote_expired:%s" % title.hash(),
+			{"title": title},
+			""
+		)
+
+func _on_alliance_formed(guild_id: String, faction) -> void:
+	if is_instance_valid(NotificationService):
+		var faction_name := faction.get("faction_name", "?") if faction else "?"
+		NotificationService.notify(
+			NotificationService.NotifKind.SYSTEM,
+			"Alliance formed: %s" % faction_name,
+			"FactionManager",
+			"alliance:%s:%s" % [guild_id, faction_name],
+			{"faction_name": faction_name},
+			""
+		)
 
 # --- SameAccountTransfer ---------------------------------------------
 
@@ -618,6 +762,18 @@ func _on_respawn_completed(player, respawn_point) -> void:
 			"RespawnService",
 			"respawn:%s" % pid,
 			{},
+			pid
+		)
+
+func _on_respawn_canceled(player, reason: String) -> void:
+	var pid := player.entity_id if player and "entity_id" in player else ""
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.SYSTEM,
+			"Respawn cancelled: %s" % reason,
+			"RespawnService",
+			"respawn_canceled:%s" % pid,
+			{"reason": reason},
 			pid
 		)
 
