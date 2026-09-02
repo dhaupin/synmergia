@@ -609,8 +609,10 @@ static func _esc(text: String) -> String:
 
 | File | Components Fixed |
 |------|-----------------|
-| `core/services/chat_service.gd` | `display_name`, `message`, `prefix` in `format_message()` |
+| `core/services/chat_service.gd` | `display_name`, `message`, `prefix` in `format_message()` via `_escape_bbcode()` |
 | `ui/components/combat_log.gd` | All 11 log functions: damage, crit, miss, heal, system, loot, quest, achievement, guild, trade |
+| `ui/components/chat_ui.gd` | `target`, `reason`, `duration`, `pos` in admin command output |
+| `ui/admin/admin_dashboard.gd` | `player_id`, `exploit_type`, `action_type`, `message` in terminal output |
 | `core/admin/player_shell.gd` | `player_id`, `name`, `level_name`, `pid`, `alias`, command descriptions |
 | `core/autoload/logger.gd` | `entity.name`, `entity_id`, `player.display_name` in `print_rich()` calls |
 | `core/services/qos_service.gd` | `player_id` in `_send_latency_alert()` toast |
