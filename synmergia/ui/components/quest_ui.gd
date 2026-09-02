@@ -273,7 +273,7 @@ func _on_accept_quest(quest_id: String) -> void:
 		return
 
 	if QuestService.accept_quest(local_id, quest_id):
-		NotificationService.send_to_local_player("Quest accepted!", NotificationService.NotificationType.QUEST)
+		show_notification("Quest accepted!")
 		_current_tab = Tab.ACTIVE
 		refresh_quest_list()
 
@@ -283,7 +283,7 @@ func _on_turn_in_quest(quest_id: String) -> void:
 		return
 
 	if QuestService.turn_in_quest(local_id, quest_id):
-		NotificationService.send_to_local_player("Quest completed! Rewards received.", NotificationService.NotificationType.QUEST)
+		show_notification("Quest completed! Rewards received.")
 		_current_tab = Tab.COMPLETE
 		refresh_quest_list()
 
@@ -293,7 +293,7 @@ func _on_abandon_quest(quest_id: String) -> void:
 		return
 
 	if QuestService.abandon_quest(local_id, quest_id):
-		NotificationService.send_to_local_player("Quest abandoned.", NotificationService.NotificationType.WARNING)
+		show_notification("Quest abandoned.", false)
 		refresh_quest_list()
 		_show_empty_detail()
 

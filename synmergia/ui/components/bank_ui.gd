@@ -272,25 +272,22 @@ func _on_slot_clicked(index: int) -> void:
 
 func _on_deposit() -> void:
 	# TODO: Open inventory to select items
-	NotificationService.send_to_local_player("Select item from inventory to deposit", NotificationService.NotificationType.INFO)
+	show_notification("Select item from inventory to deposit")
 
 func _on_withdraw() -> void:
 	if _selected_slot < 0:
-		NotificationService.send_to_local_player("Select a slot to withdraw from", NotificationService.NotificationType.WARNING)
+		show_notification("Select a slot to withdraw from", false)
 		return
 
 	# TODO: Withdraw item to inventory
-	NotificationService.send_to_local_player("Withdrawing item...", NotificationService.NotificationType.INFO)
+	show_notification("Withdrawing item...")
 
 func _on_expand() -> void:
 	var cost := VaultService.get_expansion_cost(_current_tab, _vault_data.get("size", 0))
 	var gold_cost: int = cost.get("gold", 0)
 
 	# TODO: Show confirmation dialog
-	NotificationService.send_to_local_player(
-		"Expand vault (+10 slots) for %d gold?" % gold_cost,
-		NotificationService.NotificationType.INFO
-	)
+	show_notification("Expand vault (+10 slots) for %d gold?" % gold_cost)
 
 func _on_item_changed(player_id: String, vault_type: int, item_id: String, quantity: int) -> void:
 	_refresh_vault()

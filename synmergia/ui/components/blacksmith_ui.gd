@@ -122,6 +122,9 @@ func open_with_context(player_id: String, inventory: InventoryComponent, cost_mo
 	_offers_discount = offers_discount
 	_refresh()
 
+func refresh() -> void:
+	_refresh()
+
 func _refresh() -> void:
 	if not is_instance_valid(_inventory):
 		_clear_items()

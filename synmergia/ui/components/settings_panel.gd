@@ -217,11 +217,11 @@ func _populate_accessibility_settings(parent: VBoxContainer) -> void:
 
 func _on_save() -> void:
 	# TODO: Save settings to config
-	NotificationService.send_to_local_player("Settings saved", NotificationService.NotificationType.SYSTEM)
+	show_notification("Settings saved")
 	close()
 
 func _on_cancel() -> void:
 	close()
 
 func _on_defaults() -> void:
-	NotificationService.send_to_local_player("Settings reset to defaults", NotificationService.NotificationType.INFO)
+	show_notification("Settings reset to defaults")
