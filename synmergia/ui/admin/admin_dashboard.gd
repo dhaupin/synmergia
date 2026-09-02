@@ -22,6 +22,12 @@ var _selected_player: String = ""
 var _shell: AdminShell
 var _admin_id: String = ""
 
+
+## Escape [ and ] for BBCode safety
+static func _esc(text: String) -> String:
+return text.replace("[", "［").replace("]", "］")
+
+
 func _ready() -> void:
 	# Get or create admin shell
 	_shell = AdminShell.new()
@@ -30,6 +36,7 @@ func _ready() -> void:
 	
 	_setup_ui()
 	_refresh_player_list()
+	_bind_admin_signals()
 	
 	# Auto-refresh player list
 	var timer := Timer.new()
@@ -352,6 +359,29 @@ func _on_player_search(text: String) -> void:
 ## ============================================================================
 ## ACTIONS
 ## ============================================================================
+
+
+func _bind_admin_signals() -> void:
+	if AutoResponseService:
+		if AutoResponseService.has_signal("action_taken") and not AutoResponseService.action_taken.is_connected(_on_auto_response_action):
+			AutoResponseService.action_taken.connect(_on_auto_response_action)
+		if AutoResponseService.has_signal("player_warned") and not AutoResponseService.player_warned.is_connected(_on_auto_response_warn):
+			AutoResponseService.player_warned.connect(_on_auto_response_warn)
+
+
+func _on_auto_response_action(player_id: String, action: int, exploit_type: String, reason: String) -> void:
+	if not _terminal_output:
+		return
+	var action_names := ["WARN", "MUTE", "RESTRICT", "KICK", "BAN"]
+	var action_name := action_names[action] if action < action_names.size() else "UNKNOWN"
+	_terminal_output.append_text("[color=red]>[/color] Auto-action: %s %s (reason: %s)\n" % [action_name, _esc(player_id), _esc(exploit_type)])
+
+
+func _on_auto_response_warn(player_id: String, exploit_type: String, message: String) -> void:
+	if not _terminal_output:
+		return
+	_terminal_output.append_text("[color=yellow]>[/color] Auto-warn: %s — %s\n" % [_esc(player_id), _esc(exploit_type)])
+
 
 func _refresh_player_list(filter: String = "") -> void:
 	_player_list.clear()
