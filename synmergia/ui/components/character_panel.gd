@@ -204,10 +204,10 @@ func _create_inventory_slot(index: int) -> PanelContainer:
 	return slot
 
 func _on_sort_inventory() -> void:
-	NotificationService.send_to_local_player("Inventory sorted", NotificationService.NotificationType.INFO)
+	show_notification("Inventory sorted")
 
 func _on_organize_inventory() -> void:
-	NotificationService.send_to_local_player("Inventory organized", NotificationService.NotificationType.INFO)
+	show_notification("Inventory organized")
 
 ## ============================================================================
 ## EQUIPMENT TAB

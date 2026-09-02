@@ -110,6 +110,9 @@ func _on_open() -> void:
 	_update_cooldown()
 	_update_limits()
 
+func refresh() -> void:
+	_refresh_targets()
+
 func _refresh_targets() -> void:
 	if not _targets_list:
 		return

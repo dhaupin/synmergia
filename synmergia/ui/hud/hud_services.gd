@@ -132,6 +132,16 @@ func _connect_services() -> void:
 		if InventoryService.has_signal("gold_transferred"):
 			InventoryService.gold_transferred.connect(_on_gold_transferred)
 
+	# SameAccountTransfer events → CharacterTransferUI.
+	var char_transfer: Node = _find_panel(["CharacterTransferUI"])
+	if char_transfer and SameAccountTransferService:
+		if SameAccountTransferService.has_signal("transfer_completed"):
+			SameAccountTransferService.transfer_completed.connect(_on_transfer_completed)
+		if SameAccountTransferService.has_signal("transfer_cancelled"):
+			SameAccountTransferService.transfer_cancelled.connect(_on_transfer_cancelled)
+		if SameAccountTransferService.has_signal("transfer_limit_reached"):
+			SameAccountTransferService.transfer_limit_reached.connect(_on_transfer_limit_reached)
+
 	# Character creation events → CharacterPanel refresh.
 	if GameManager:
 		GameManager.game_state_changed.connect(_on_game_state_changed)
@@ -284,5 +294,41 @@ func _on_gold_transferred(from_id: String, to_id: String, amount: int) -> void:
 			"InventoryService",
 			"gold_transfer:%s:%s:%d" % [from_id, to_id, amount],
 			{"from": from_id, "to": to_id, "amount": amount},
+			""
+		)
+
+
+# ── SameAccountTransfer ────────────────────────────────────────
+
+func _on_transfer_completed(from_char: String, to_char: String, gold: int, items: Array) -> void:
+	var char_transfer: Node = _find_panel(["CharacterTransferUI"])
+	if char_transfer and char_transfer.has_method("refresh"):
+		char_transfer.refresh()
+	if _inventory and _inventory.has_method("refresh_inventory"):
+		_inventory.refresh_inventory()
+	if is_instance_valid(NotificationService):
+		var msg := "Transfer complete: %d gold, %d items" % [gold, items.size()]
+		NotificationService.notify(
+			NotificationService.NotifKind.ITEM_TRANSFERRED,
+			msg,
+			"SameAccountTransferService",
+			"transfer:%s:%s" % [from_char, to_char],
+			{"from": from_char, "to": to_char, "gold": gold, "items": items.size()},
+			from_char
+		)
+
+func _on_transfer_cancelled(from_char: String, to_char: String, reason: String) -> void:
+	var char_transfer: Node = _find_panel(["CharacterTransferUI"])
+	if char_transfer and char_transfer.has_method("refresh"):
+		char_transfer.refresh()
+
+func _on_transfer_limit_reached(account_id: String, limit_type: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.ITEM_FULL,
+			"Transfer limit reached: %s" % limit_type,
+			"SameAccountTransferService",
+			"transfer_limit:%s:%s" % [account_id, limit_type],
+			{"limit_type": limit_type},
 			""
 		)

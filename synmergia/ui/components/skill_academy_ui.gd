@@ -772,19 +772,11 @@ func _on_upgrade_pressed() -> void:
 	)
 
 	if result.get("success", false):
-		NotificationService.send_to_player(
-			_player_id,
-			"Upgraded %s to level %d!" % [_selected_skill_id, result.get("new_level", "?")],
-			NotificationService.NotificationType.WARNING
-		)
+		show_notification("Upgraded %s to level %d!" % [_selected_skill_id, result.get("new_level", "?")])
 		_inventory_books = result.get("remaining_books", [])
 		_refresh_all()
 	else:
-		NotificationService.send_to_player(
-			_player_id,
-			"Upgrade failed: %s" % result.get("reason", "Unknown error"),
-			NotificationService.NotificationType.WARNING
-		)
+		show_notification("Upgrade failed: %s" % result.get("reason", "Unknown error"), false)
 
 func _refresh_signature_tab() -> void:
 	if not is_instance_valid(_skill_data):
@@ -922,18 +914,10 @@ func _on_signature_selected(sig_id: String) -> void:
 		var msg: String = "Signature set to %s!" % sig_id
 		if result.get("cost", 0) > 0:
 			msg += " (-%d gold)" % result.get("cost", 0)
-		NotificationService.send_to_player(
-			_player_id,
-			msg,
-			NotificationService.NotificationType.WARNING
-		)
+		show_notification(msg)
 		_refresh_all()
 	else:
-		NotificationService.send_to_player(
-			_player_id,
-			"Failed to change signature: %s" % result.get("reason", "Unknown error"),
-			NotificationService.NotificationType.WARNING
-		)
+		show_notification("Failed to change signature: %s" % result.get("reason", "Unknown error"), false)
 
 func _on_respec_pressed() -> void:
 	if not is_instance_valid(_skill_data):
@@ -947,18 +931,10 @@ func _on_respec_pressed() -> void:
 
 	var result: Dictionary = SkillAcademyService.get_instance().respec(_player_id, _skill_data, gold, player)
 	if result.get("success", false):
-		NotificationService.send_to_player(
-			_player_id,
-			"Respec complete. %d points refunded for %d gold." % [result.get("points_refunded", 0), result.get("cost", 0)],
-			NotificationService.NotificationType.WARNING
-		)
+		show_notification("Respec complete. %d points refunded for %d gold." % [result.get("points_refunded", 0), result.get("cost", 0)])
 		_refresh_all()
 	else:
-		NotificationService.send_to_player(
-			_player_id,
-			"Respec failed: %s" % result.get("reason", "Unknown error"),
-			NotificationService.NotificationType.WARNING
-		)
+		show_notification("Respec failed: %s" % result.get("reason", "Unknown error"), false)
 
 func _on_buy_book_pressed() -> void:
 	if not _buy_skill_picker or _buy_skill_picker.selected < 0:
