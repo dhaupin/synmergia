@@ -61,6 +61,10 @@ func _setup_ui() -> void:
 	_rich_label.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
 	_scroll.add_child(_rich_label)
 
+## Escape BBCode brackets in user-supplied content.
+static func _esc(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］")
+
 ## ============================================================================
 ## PUBLIC API
 ## ============================================================================
@@ -72,36 +76,36 @@ func log_damage(target: String, amount: int, damage_type: String = "Physical") -
 	if not _show_damage or not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.error.to_html()
-	var text := "[color=%s]%s took %d %s damage[/color]" % [color, target, amount, damage_type]
+	var text := "[color=%s]%s took %d %s damage[/color]" % [color, _esc(target), amount, _esc(damage_type)]
 	_add_entry(text, EntryType.DAMAGE)
 
 func log_critical(target: String, amount: int) -> void:
 	if not _show_damage or not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.warning.to_html()
-	var text := "[color=%s][CRITICAL] %s took %d damage![/color]" % [color, target, amount]
+	var text := "[color=%s][CRITICAL] %s took %d damage![/color]" % [color, _esc(target), amount]
 	_add_entry(text, EntryType.DAMAGE)
 
 func log_miss(target: String) -> void:
 	if not _show_damage or not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.text_secondary.to_html()
-	var text := "[color=%s]Attack missed %s[/color]" % [color, target]
+	var text := "[color=%s]Attack missed %s[/color]" % [color, _esc(target)]
 	_add_entry(text, EntryType.DAMAGE)
 
 func log_heal(target: String, amount: int, source: String = "") -> void:
 	if not _show_healing or not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.success.to_html()
-	var src_text := " from %s" % source if not source.is_empty() else ""
-	var text := "[color=%s]%s healed%s for %d[/color]" % [color, target, src_text, amount]
+	var src_text := " from %s" % _esc(source) if not source.is_empty() else ""
+	var text := "[color=%s]%s healed%s for %d[/color]" % [color, _esc(target), src_text, amount]
 	_add_entry(text, EntryType.HEAL)
 
 func log_system(message: String) -> void:
 	if not _show_system or not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.info.to_html()
-	var text := "[color=%s]%s[/color]" % [color, message]
+	var text := "[color=%s]%s[/color]" % [color, _esc(message)]
 	_add_entry(text, EntryType.SYSTEM)
 
 func log_loot(item_name: String, quantity: int = 1) -> void:
@@ -109,21 +113,21 @@ func log_loot(item_name: String, quantity: int = 1) -> void:
 		return
 	var color: String = UIStyles.COLORS.accent_gold.to_html()
 	var qty_text := " x%d" % quantity if quantity > 1 else ""
-	var text := "[color=%s]Looted: %s%s[/color]" % [color, item_name, qty_text]
+	var text := "[color=%s]Looted: %s%s[/color]" % [color, _esc(item_name), qty_text]
 	_add_entry(text, EntryType.LOOT)
 
 func log_quest(message: String) -> void:
 	if not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.warning.to_html()
-	var text := "[color=%s][Quest] %s[/color]" % [color, message]
+	var text := "[color=%s][Quest] %s[/color]" % [color, _esc(message)]
 	_add_entry(text, EntryType.QUEST)
 
 func log_achievement(name: String) -> void:
 	if not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.rarity_legendary.to_html()
-	var text := "[color=%s][Achievement] %s[/color]" % [color, name]
+	var text := "[color=%s][Achievement] %s[/color]" % [color, _esc(name)]
 	_add_entry(text, EntryType.ACHIEVEMENT)
 	_show_achievement_popup(name)
 
@@ -131,14 +135,14 @@ func log_guild(message: String) -> void:
 	if not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.info.to_html()
-	var text := "[color=%s][Guild] %s[/color]" % [color, message]
+	var text := "[color=%s][Guild] %s[/color]" % [color, _esc(message)]
 	_add_entry(text, EntryType.GUILD)
 
 func log_trade(message: String) -> void:
 	if not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.success.to_html()
-	var text := "[color=%s][Trade] %s[/color]" % [color, message]
+	var text := "[color=%s][Trade] %s[/color]" % [color, _esc(message)]
 	_add_entry(text, EntryType.TRADE)
 
 func clear() -> void:
