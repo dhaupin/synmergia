@@ -141,6 +141,17 @@ func _connect_services() -> void:
 			SameAccountTransferService.transfer_cancelled.connect(_on_transfer_cancelled)
 		if SameAccountTransferService.has_signal("transfer_limit_reached"):
 			SameAccountTransferService.transfer_limit_reached.connect(_on_transfer_limit_reached)
+		if SameAccountTransferService.has_signal("cooldown_active"):
+			SameAccountTransferService.cooldown_active.connect(_on_transfer_cooldown_active)
+
+	# QoS events → toast + status bar.
+	if QoSService:
+		if QoSService.has_signal("connection_quality_changed"):
+			QoSService.connection_quality_changed.connect(_on_connection_quality_changed)
+		if QoSService.has_signal("latency_warning"):
+			QoSService.latency_warning.connect(_on_latency_warning)
+		if QoSService.has_signal("throttled"):
+			QoSService.throttled.connect(_on_qos_throttled)
 
 	# Blacksmith events → BlacksmithUI.
 	if BlacksmithService:
@@ -176,6 +187,33 @@ func _connect_services() -> void:
 			FactionManager.war_ended.connect(_on_faction_war_ended)
 		if FactionManager.has_signal("reputation_changed"):
 			FactionManager.reputation_changed.connect(_on_reputation_changed)
+
+	# RespawnService events -> toast.
+	if RespawnService:
+		if RespawnService.has_signal("respawn_completed"):
+			RespawnService.respawn_completed.connect(_on_respawn_completed)
+		if RespawnService.has_signal("karma_gained"):
+			RespawnService.karma_gained.connect(_on_karma_gained)
+		if RespawnService.has_signal("karma_lost"):
+			RespawnService.karma_lost.connect(_on_karma_lost)
+
+	# DeathFeatures events -> toast.
+	if DeathFeatures:
+		if DeathFeatures.has_signal("kill_streak_rewarded"):
+			DeathFeatures.kill_streak_rewarded.connect(_on_kill_streak_rewarded)
+		if DeathFeatures.has_signal("death_penalty_applied"):
+			DeathFeatures.death_penalty_applied.connect(_on_death_penalty_applied)
+
+	# VaultService events -> refresh BankUI.
+	if VaultService:
+		if VaultService.has_signal("item_deposited"):
+			VaultService.item_deposited.connect(_on_vault_item_changed)
+		if VaultService.has_signal("item_withdrawn"):
+			VaultService.item_withdrawn.connect(_on_vault_item_changed)
+		if VaultService.has_signal("gold_deposited"):
+			VaultService.gold_deposited.connect(_on_vault_gold_changed)
+		if VaultService.has_signal("gold_withdrawn"):
+			VaultService.gold_withdrawn.connect(_on_vault_gold_changed)
 
 	# Entity events (player join/leave).
 	if EntityService:
@@ -514,4 +552,134 @@ func _on_player_joined(player, metadata) -> void:
 
 func _on_player_left(player, metadata) -> void:
 	pass  # Future: update player count in minimap/HUD
+
+# --- SameAccountTransfer ---------------------------------------------
+
+func _on_transfer_cooldown_active(account_id: String, seconds_remaining: int) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.SAME_ACCOUNT_TRANSFER_COOLDOWN,
+			"Transfer on cooldown: %d seconds remaining" % seconds_remaining,
+			"SameAccountTransferService",
+			"cooldown:%s:%d" % [account_id, seconds_remaining],
+			{"seconds_remaining": seconds_remaining},
+			""
+		)
+
+# --- QoS -----------------------------------------------------------
+
+func _on_connection_quality_changed(player_id: String, quality) -> void:
+	var quality_str := str(quality) if quality else "UNKNOWN"
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.CONNECTION_QUALITY,
+			"Connection: %s" % quality_str,
+			"QoSService",
+			"qos_conn:%s:%s" % [player_id, quality_str],
+			{"quality": quality_str},
+			player_id
+		)
+
+func _on_latency_warning(player_id: String, latency_ms: int) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.QOS_DEGRADED,
+			"High latency: %dms" % latency_ms,
+			"QoSService",
+			"qos_lat:%s:%d" % [player_id, latency_ms],
+			{"latency_ms": latency_ms},
+			player_id
+		)
+
+func _on_qos_throttled(player_id: String, reason: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.THROTTLED,
+			reason,
+			"QoSService",
+			"qos_throttle:%s" % player_id,
+			{"reason": reason},
+			player_id
+		)
+
+# --- Respawn -------------------------------------------------------
+
+func _on_respawn_completed(player, respawn_point) -> void:
+	var pid := player.entity_id if player and "entity_id" in player else ""
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.RESPAWNED,
+			"You have respawned.",
+			"RespawnService",
+			"respawn:%s" % pid,
+			{},
+			pid
+		)
+
+func _on_karma_gained(entity_id: String, amount: int, reason: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.KARMA_CHANGED,
+			"Karma +%d (%s)" % [amount, reason],
+			"RespawnService",
+			"karma_gain:%s:%d" % [entity_id, amount],
+			{"amount": amount, "reason": reason},
+			entity_id
+		)
+
+func _on_karma_lost(entity_id: String, amount: int, reason: String) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.KARMA_CHANGED,
+			"Karma -%d (%s)" % [amount, reason],
+			"RespawnService",
+			"karma_loss:%s:%d" % [entity_id, amount],
+			{"amount": amount, "reason": reason},
+			entity_id
+		)
+
+# --- DeathFeatures -------------------------------------------------
+
+func _on_kill_streak_rewarded(killer_id: String, streak: int, xp_bonus: int, gold_bonus: int) -> void:
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotificationService.NotifKind.KILL_STREAK,
+			"Kill streak %d! +%d XP, +%d gold" % [streak, xp_bonus, gold_bonus],
+			"DeathFeatures",
+			"kill_streak:%s:%d" % [killer_id, streak],
+			{"streak": streak, "xp_bonus": xp_bonus, "gold_bonus": gold_bonus},
+			killer_id
+		)
+
+func _on_death_penalty_applied(entity_id: String, xp_loss: int, gold_loss: int, durability_loss: float) -> void:
+	if is_instance_valid(NotificationService):
+		var parts := []
+		if xp_loss > 0:
+			parts.append("-%d XP" % xp_loss)
+		if gold_loss > 0:
+			parts.append("-%d gold" % gold_loss)
+		if durability_loss > 0:
+			parts.append("-%.0f%% durability" % (durability_loss * 100))
+		var msg := "Death penalty: " + ", ".join(parts) if not parts.is_empty() else "Death penalty applied"
+		NotificationService.notify(
+			NotificationService.NotifKind.RESPAWN_PENALTY_APPLIED,
+			msg,
+			"DeathFeatures",
+			"death_penalty:%s" % entity_id,
+			{"xp_loss": xp_loss, "gold_loss": gold_loss, "durability_loss": durability_loss},
+			entity_id
+		)
+
+# --- Vault ---------------------------------------------------------
+
+func _on_vault_item_changed(player_id: String, vault_type, item_id: String, quantity: int) -> void:
+	var bank_panel: Node = _find_panel(["BankUI", "VaultUI"])
+	if bank_panel and bank_panel.has_method("_refresh_vault"):
+		bank_panel._refresh_vault()
+
+func _on_vault_gold_changed(player_id: String, vault_type, amount: int) -> void:
+	var bank_panel: Node = _find_panel(["BankUI", "VaultUI"])
+	if bank_panel and bank_panel.has_method("_refresh_vault"):
+		bank_panel._refresh_vault()
+
 
