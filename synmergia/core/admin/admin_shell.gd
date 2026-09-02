@@ -660,7 +660,7 @@ func _cmd_audit(args: String, executor_id: String) -> CommandResult:
 
 func _format_player_info(info: Dictionary) -> String:
 	var output := "[color=yellow]=== Player: %s ===[/color]\n" % _esc(info.get("id", "?"))
-	output += "[color=cyan]Level:[/color] %s (Lvl %d)\n" % [info.get("level_name", "?"), info.get("level", 0)]
+	output += "[color=cyan]Level:[/color] %s (Lvl %d)\n" % [_esc(str(info.get("level_name", "?"))), info.get("level", 0)]
 	output += "[color=cyan]Online:[/color] %s\n" % ("Yes" if info.get("online", false) else "No")
 	
 	if info.get("restricted_chat", false):

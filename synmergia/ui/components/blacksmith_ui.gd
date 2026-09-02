@@ -113,7 +113,25 @@ func _setup_ui() -> void:
 	btn_row.add_child(_repair_btn)
 
 func _connect_signals() -> void:
-	pass
+	var bs = BlacksmithService.get_instance() if BlacksmithService else null
+	if not bs:
+		return
+	if bs.has_signal("repair_completed"):
+		if not bs.repair_completed.is_connected(_on_repair_completed):
+			bs.repair_completed.connect(_on_repair_completed)
+	if bs.has_signal("repair_failed"):
+		if not bs.repair_failed.is_connected(_on_repair_failed):
+			bs.repair_failed.connect(_on_repair_failed)
+
+
+func _on_repair_completed(_player_id: String, _items_repaired: int, _total_cost: int) -> void:
+	if is_open():
+		_refresh()
+
+
+func _on_repair_failed(_player_id: String, _reason: String) -> void:
+	if is_open():
+		_refresh()
 
 func open_with_context(player_id: String, inventory: InventoryComponent, cost_modifier: float = 1.0, offers_discount: bool = true) -> void:
 	_player_id = player_id
