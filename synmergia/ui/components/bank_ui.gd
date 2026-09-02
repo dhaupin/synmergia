@@ -153,8 +153,14 @@ func _update_tabs(active_index: int) -> void:
 	_tab_buttons[VaultTab.GUILD].disabled = not can_access_guild
 
 func _can_access_guild_vault() -> bool:
-	# TODO: Check GuildService membership
-	return true
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return false
+	if not GuildService:
+		return false
+	if not GuildService.has_method("is_in_guild"):
+		return false
+	return GuildService.is_in_guild(player_id)
 
 func _refresh_vault() -> void:
 	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
