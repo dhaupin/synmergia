@@ -142,8 +142,7 @@ func _refresh() -> void:
 
 	var preview: Dictionary = bs.get_repair_preview(_inventory, _offers_discount)
 	var items: Array = preview.get("items", [])
-	var base_cost: int = preview.get("total_cost", 0)
-	var adjusted_cost: int = int(base_cost * _cost_modifier)
+	var adjusted_cost: int = int(preview.get("total_cost", 0) * _cost_modifier)
 	var has_discount: bool = preview.get("discount_applied", false)
 	var player_gold: int = _inventory.get_gold()
 
@@ -243,11 +242,11 @@ func _on_repair_pressed() -> void:
 	var result: Dictionary = bs.repair_all_equipped(_player_id, _inventory, _offers_discount)
 
 	if result.get("success", false):
-		# Deduct adjusted cost if any modifier was applied
-		var adjusted_cost: int = int(result.get("total_cost", 0) * _cost_modifier)
-		if adjusted_cost > 0:
-			_inventory.remove_gold(adjusted_cost)
-
+		show_notification("Repaired %d items for %d gold!" % [
+			result.get("items_repaired", 0),
+			result.get("total_cost", 0)
+		])
 		_refresh()
 	else:
+		show_notification(result.get("reason", "Repair failed"), false)
 		_repair_btn.disabled = true
