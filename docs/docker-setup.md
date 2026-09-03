@@ -51,11 +51,37 @@ docker compose run --rm synmergia bash -c "DISPLAY=:99 godot --path /workspace/p
 # Run server (headless)
 docker compose run --rm synmergia godot --headless --path /workspace/project/synmergia --server
 
-# Screenshot
-docker exec synmergia bash -c "DISPLAY=:99 scrot /workspace/project/synmergia/captures/shot.png"
+# Screenshot (via VNC browser - recommended)
+open http://localhost:6080/vnc.html
 
-# Video (inside container)
-DISPLAY=:99 ffmpeg -f x11grab -framerate 30 -i :99 output.mp4
+# Screenshot via command line
+docker exec synmergia bash -c "DISPLAY=:99 ffmpeg -f x11grab -i :99 -vframes 1 -update 1 /workspace/project/synmergia/captures/shot.png"
+
+# Video recording
+docker exec synmergia bash -c "DISPLAY=:99 ffmpeg -f x11grab -framerate 30 -i :99 -c:v libx264 /workspace/project/synmergia/captures/gameplay.mp4"
+
+# Note: Xvfb uses software rendering (llvmpipe). For visible screenshots,
+# use noVNC browser viewing or connect via VNC client (port 5900).
+# See docs/screenshots/video-capture.md for details.
+```
+
+## noVNC Browser Access
+
+The noVNC service provides browser-based GUI access:
+
+```bash
+# View game in browser
+open http://localhost:6080/vnc.html
+
+# Connect button auto-connects to localhost:5900
+```
+
+## Captures Directory
+
+All screenshots and videos save to `./captures/`:
+```bash
+ls ./captures/
+# screenshots/  videos/  *.png  *.mp4
 ```
 
 ## Files
