@@ -5,8 +5,6 @@ extends Node
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
-static func _esc(text: String) -> String:
-	return text.replace('[', '［').replace(']', '］')
 
 ## Report types
 enum ReportType {
@@ -93,25 +91,28 @@ class Report:
 			"metadata": metadata
 		}
 	
+	static func esc(text: String) -> String:
+		return text.replace('[', '［').replace(']', '］')
+
 	func format_report() -> String:
 		var type_str: String = _type_to_string()
 		var status_str := _status_to_string()
 		var priority_str := _priority_to_string()
 		var time_str := Time.get_datetime_string_from_unix_time(created_at)
 		
-		var output := "[color=yellow]=== %s ===[/color]\n" % _esc(id)
-		output += "[color=cyan]Type:[/color] %s | [color=cyan]Priority:[/color] %s | [color=cyan]Status:[/color] %s\n" % [_esc(type_str), _esc(priority_str), _esc(status_str)]
-		output += "[color=cyan]Reporter:[/color] %s\n" % _esc(reporter_id)
+		var output := "[color=yellow]=== %s ===[/color]\n" % esc(id)
+		output += "[color=cyan]Type:[/color] %s | [color=cyan]Priority:[/color] %s | [color=cyan]Status:[/color] %s\n" % [esc(type_str), esc(priority_str), esc(status_str)]
+		output += "[color=cyan]Reporter:[/color] %s\n" % esc(reporter_id)
 		if target_id != "":
-			output += "[color=cyan]Target:[/color] %s\n" % _esc(target_id)
-		output += "[color=cyan]Subject:[/color] %s\n" % _esc(subject)
-		output += "[color=cyan]Description:[/color] %s\n" % _esc(description)
+			output += "[color=cyan]Target:[/color] %s\n" % esc(target_id)
+		output += "[color=cyan]Subject:[/color] %s\n" % esc(subject)
+		output += "[color=cyan]Description:[/color] %s\n" % esc(description)
 		output += "[color=gray]Submitted:[/color] %s\n" % time_str
 		
 		if assigned_to != "":
-			output += "[color=cyan]Assigned to:[/color] %s\n" % _esc(assigned_to)
+			output += "[color=cyan]Assigned to:[/color] %s\n" % esc(assigned_to)
 		if resolution_notes != "":
-			output += "[color=cyan]Resolution:[/color] %s\n" % _esc(resolution_notes)
+			output += "[color=cyan]Resolution:[/color] %s\n" % esc(resolution_notes)
 		
 		return output
 	

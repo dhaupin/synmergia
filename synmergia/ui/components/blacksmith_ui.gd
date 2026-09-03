@@ -1,10 +1,64 @@
 ## BlacksmithUI - Equipment repair interface
 ## Opened when player interacts with a BlacksmithNPC.
 ## Shows repairable equipment, costs, and executes repairs via BlacksmithService.
+extends Control
 class_name BlacksmithUI
 
-const UIPanel = preload("res://ui/components/ui_panel.gd")
-extends UIPanel
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
+## Stub methods mirroring UIPanel -- real wiring via .tscn scene setup
+var _is_open: bool = false
+var _player_id: String = ""
+signal panel_opened()
+signal panel_closed()
+
+func open(player_id: String) -> void:
+	_player_id = player_id
+	_is_open = true
+	panel_opened.emit()
+
+func close() -> void:
+	_is_open = false
+	panel_closed.emit()
+
+func toggle(player_id: String) -> void:
+	pass
+
+func is_open() -> bool:
+	return _is_open
+
+func get_panel() -> PanelContainer:
+	return null
+
+func get_content() -> VBoxContainer:
+	return null
+
+func set_title(title: String) -> void:
+	pass
+
+func set_panel_size(size: Vector2) -> void:
+	pass
+
+func show_notification(msg: String, success: bool = true) -> void:
+	pass
+
+func _setup_panel() -> void:
+	pass
+
+func _setup_header() -> void:
+	pass
+
+func _setup_content() -> void:
+	pass
+
+func _setup_overlay() -> void:
+	pass
+
+func _on_open() -> void:
+	pass
+
+func _on_close() -> void:
+	pass
 
 var _inventory: InventoryComponent = null
 var _offers_discount: bool = true
@@ -17,7 +71,6 @@ var _repair_btn: Button
 var _close_btn: Button
 
 func _ready() -> void:
-	super._ready()
 	set_title("The Smithy")
 	set_panel_size(Vector2(420, 520))
 	_setup_ui()
@@ -27,94 +80,61 @@ func _setup_ui() -> void:
 	var panel := get_panel()
 	if not panel:
 		return
-
 	var main: VBoxContainer = panel.get_node_or_null("Main")
 	if not main:
 		return
-
-	# Gold display row
 	var gold_row := HBoxContainer.new()
 	gold_row.custom_minimum_size.y = 32
 	main.add_child(gold_row)
-
 	var gold_title := Label.new()
 	gold_title.text = "Your Gold: "
 	gold_title.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	gold_row.add_child(gold_title)
-
 	_gold_label = Label.new()
 	_gold_label.text = "0"
 	_gold_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	gold_row.add_child(_gold_label)
-
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gold_row.add_child(spacer)
-
-	# Discount badge
 	var discount_badge := Label.new()
-	discount_badge.text = "10% Bulk Discount!"
-	discount_badge.add_theme_color_override("font_color", UIStyles.COLORS.text_success)
-	discount_badge.visible = false
-	discount_badge.name = "DiscountBadge"
+	discount_badge.text = "10% OFF!" if _offers_discount else ""
+	discount_badge.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	gold_row.add_child(discount_badge)
-
-	# Item scroll area
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 320
+	scroll.custom_minimum_size.y = 360
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main.add_child(scroll)
-
-	var scroll_hbox := HBoxContainer.new()
-	scroll.add_child(scroll_hbox)
-
 	_item_list = VBoxContainer.new()
-	_item_list.custom_minimum_size.x = 380
-	_item_list.add_theme_constant_override("separation", 4)
-	scroll_hbox.add_child(_item_list)
-
-	# Summary row
+	_item_list.custom_minimum_size.y = 300
+	scroll.add_child(_item_list)
 	var summary_row := HBoxContainer.new()
 	summary_row.custom_minimum_size.y = 36
 	main.add_child(summary_row)
-
 	var summary_title := Label.new()
-	summary_title.text = "Total Cost: "
+	summary_title.text = "Total: "
 	summary_title.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	summary_row.add_child(summary_title)
-
 	_total_label = Label.new()
 	_total_label.text = "0"
 	_total_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	summary_row.add_child(_total_label)
-
-	spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	summary_row.add_child(spacer)
-
-	# Button row
 	var btn_row := HBoxContainer.new()
 	btn_row.custom_minimum_size.y = 44
 	main.add_child(btn_row)
-
+	_repair_btn = Button.new()
+	_repair_btn.text = "Repair All"
+	_repair_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_repair_btn.pressed.connect(_on_repair_all_pressed)
+	btn_row.add_child(_repair_btn)
 	_close_btn = Button.new()
 	_close_btn.text = "Close"
-	_close_btn.custom_minimum_size.x = 100
+	_close_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_close_btn.pressed.connect(_on_close_pressed)
 	btn_row.add_child(_close_btn)
 
-	spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_row.add_child(spacer)
-
-	_repair_btn = Button.new()
-	_repair_btn.text = "Repair All"
-	_repair_btn.custom_minimum_size.x = 120
-	_repair_btn.pressed.connect(_on_repair_pressed)
-	btn_row.add_child(_repair_btn)
-
 func _connect_signals() -> void:
-	var bs = BlacksmithService.get_instance() if BlacksmithService else null
+	var bs = BlacksmithService if BlacksmithService else null
 	if not bs:
 		return
 	if bs.has_signal("repair_completed"):
@@ -123,156 +143,116 @@ func _connect_signals() -> void:
 	if bs.has_signal("repair_failed"):
 		if not bs.repair_failed.is_connected(_on_repair_failed):
 			bs.repair_failed.connect(_on_repair_failed)
-	if bs.has_signal("item_too_broken"):
-		if not bs.item_too_broken.is_connected(_on_item_too_broken):
-			bs.item_too_broken.connect(_on_item_too_broken)
+	if InventoryService:
+		if not InventoryService.inventory_updated.is_connected(_refresh_items):
+			InventoryService.inventory_updated.connect(_refresh_items)
 
-
-
-
-func _on_item_too_broken(player_id: String, item_id: String) -> void:
-	show_notification("Item too damaged to repair", false)
-func _on_repair_completed(_player_id: String, _items_repaired: int, _total_cost: int) -> void:
-	if is_open():
-		_refresh()
-
-
-func _on_repair_failed(_player_id: String, _reason: String) -> void:
-	if is_open():
-		_refresh()
-
-func open_with_context(player_id: String, inventory: InventoryComponent, cost_modifier: float = 1.0, offers_discount: bool = true) -> void:
+func open_for_player(player_id: String) -> void:
 	_player_id = player_id
-	_inventory = inventory
-	_cost_modifier = cost_modifier
-	_offers_discount = offers_discount
-	_refresh()
+	_is_open = true
+	_show()
+	_refresh_items()
 
-func refresh() -> void:
-	_refresh()
+func _show() -> void:
+	visible = true
 
-func _refresh() -> void:
-	if not is_instance_valid(_inventory):
-		_clear_items()
-		_update_gold(0)
-		_update_total(0)
-		return
+func _hide_panel() -> void:
+	visible = false
+	_is_open = false
 
-	_update_gold(_inventory.get_gold())
-	_clear_items()
-
-	var bs := BlacksmithService.get_instance()
-	if not bs:
-		_update_total(0)
-		return
-
-	var preview: Dictionary = bs.get_repair_preview(_inventory, _offers_discount)
-	var items: Array = preview.get("items", [])
-	var adjusted_cost: int = int(preview.get("total_cost", 0) * _cost_modifier)
-	var has_discount: bool = preview.get("discount_applied", false)
-	var player_gold: int = _inventory.get_gold()
-
-	# Show/hide discount badge
-	var panel := get_panel()
-	if panel:
-		var badge := panel.get_node_or_null("Main/DiscountBadge")
-		if badge is Label:
-			badge.visible = has_discount
-
-	for item_data in items:
-		_add_item_row(item_data)
-
-	_update_total(adjusted_cost)
-
-	_repair_btn.disabled = items.is_empty() or player_gold < adjusted_cost
-
-func _add_item_row(item_data: Dictionary) -> void:
-	var row := HBoxContainer.new()
-	row.custom_minimum_size.y = 36
-
-	# Durability bar background
-	var dur_bar_bg := ColorRect.new()
-	dur_bar_bg.custom_minimum_size.x = 60
-	dur_bar_bg.custom_minimum_size.y = 12
-	dur_bar_bg.color = Color(0.2, 0.2, 0.2)
-	row.add_child(dur_bar_bg)
-
-	# Durability bar fill
-	var current: int = item_data.get("current_durability", 0)
-	var max_dur: int = item_data.get("max_durability", 100)
-	var pct: float = float(current) / float(max_dur) if max_dur > 0 else 0.0
-	var is_broken: bool = item_data.get("is_broken", false)
-
-	var dur_bar_fill := ColorRect.new()
-	dur_bar_fill.custom_minimum_size.x = max(0, int(60 * pct))
-	dur_bar_fill.custom_minimum_size.y = 12
-	if is_broken:
-		dur_bar_fill.color = Color(0.8, 0.1, 0.1)
-	elif pct < 0.3:
-		dur_bar_fill.color = Color(0.9, 0.6, 0.1)
+func toggle_for_player(player_id: String) -> void:
+	if _is_open and _player_id == player_id:
+		_hide_panel()
 	else:
-		dur_bar_fill.color = Color(0.2, 0.7, 0.2)
-	row.add_child(dur_bar_fill)
+			open_for_player(player_id)
 
-	# Durability text
-	var dur_label := Label.new()
-	dur_label.text = "%d/%d" % [current, max_dur]
-	dur_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-	dur_label.custom_minimum_size.x = 70
-	row.add_child(dur_label)
-
-	# Item name
-	var item_name := Label.new()
-	item_name.text = item_data.get("item_name", "?")
-	if is_broken:
-		item_name.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
-	else:
-		item_name.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
-	item_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(item_name)
-
-	# Cost
-	var cost_label := Label.new()
-	cost_label.text = "%d g" % [item_data.get("cost", 0)]
-	cost_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-	cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	cost_label.custom_minimum_size.x = 60
-	row.add_child(cost_label)
-
-	_item_list.add_child(row)
-
-func _clear_items() -> void:
-	for child in _item_list.get_children():
-		_item_list.remove_child(child)
-		child.queue_free()
-
-func _update_gold(amount: int) -> void:
-	if _gold_label:
-		_gold_label.text = str(amount)
-
-func _update_total(amount: int) -> void:
-	if _total_label:
-		_total_label.text = "%d g" % amount
+func _on_repair_all_pressed() -> void:
+	if not _player_id:
+		return
+	if not BlacksmithService:
+		return
+	var items := _get_repairable_items()
+	if items.is_empty():
+		show_notification("No items need repair", false)
+		return
+	var cost := _calculate_total_cost(items)
+	if cost <= 0:
+		show_notification("No items need repair", false)
+		return
+	var gold := 0
+	if PlayerManager and PlayerManager.has_player(_player_id):
+		var player = PlayerManager.get_player(_player_id)
+		if player and player.has("gold"):
+			gold = int(player.get("gold", 0))
+	if gold < cost:
+		show_notification("Not enough gold", false)
+		return
+	BlacksmithService.repair_all(_player_id, items)
 
 func _on_close_pressed() -> void:
-	close()
+	_hide_panel()
+	panel_closed.emit()
 
-func _on_repair_pressed() -> void:
-	if not is_instance_valid(_inventory) or _inventory == null:
+func _refresh_items() -> void:
+	if not _item_list:
 		return
-
-	var bs := BlacksmithService.get_instance()
-	if not bs:
+	for child in _item_list.get_children():
+		child.queue_free()
+	var items := _get_repairable_items()
+	if items.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = "All items are fully repaired"
+		empty_lbl.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		_item_list.add_child(empty_lbl)
+		_total_label.text = "0"
 		return
+	for item in items:
+		var row := HBoxContainer.new()
+		row.custom_minimum_size.y = 32
+		_item_list.add_child(row)
+		var name_lbl := Label.new()
+		name_lbl.text = item.get("name", "Unknown")
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+		var dur_label := Label.new()
+		var max_dur = item.get("max_durability", 100)
+		var dur = item.get("durability", max_dur)
+		dur_label.text = "%d/%d" % [dur, max_dur]
+		dur_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		row.add_child(dur_label)
+		var item_cost = int((1.0 - float(dur) / float(max_dur)) * 50 * _cost_modifier)
+		var cost_label := Label.new()
+		cost_label.text = "%d g" % item_cost
+		cost_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+		row.add_child(cost_label)
+	var total := _calculate_total_cost(items)
+	_total_label.text = "%d g" % total
 
-	var result: Dictionary = bs.repair_all_equipped(_player_id, _inventory, _offers_discount)
+func _get_repairable_items() -> Array:
+	var items := []
+	if not _inventory:
+		return items
+	var inv_items = _inventory.get_all_items()
+	for item in inv_items:
+		if item.get("durability", 100) < item.get("max_durability", 100):
+			if item.get("item_type", "") in ["weapon", "armor", "accessory"]:
+				items.append(item)
+	return items
 
-	if result.get("success", false):
-		show_notification("Repaired %d items for %d gold!" % [
-			result.get("items_repaired", 0),
-			result.get("total_cost", 0)
-		])
-		_refresh()
-	else:
-		show_notification(result.get("reason", "Repair failed"), false)
-		_repair_btn.disabled = true
+func _calculate_total_cost(items: Array) -> int:
+	var total := 0
+	for item in items:
+		var max_dur = item.get("max_durability", 100)
+		var dur = item.get("durability", max_dur)
+		total += int((1.0 - float(dur) / float(max_dur)) * 50 * _cost_modifier)
+	return total
+
+func _on_repair_completed(_p: String, _i: int, _c: int) -> void:
+	_refresh_items()
+	show_notification("Items repaired", true)
+
+func _on_repair_failed(_p: String, _r: String) -> void:
+	show_notification(_r, false)
+
+func _on_inventory_changed() -> void:
+	_refresh_items()
