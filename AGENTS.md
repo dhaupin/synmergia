@@ -641,6 +641,42 @@ static func _esc(text: String) -> String:
 
 ---
 
+## Session insights (2026-09-03)
+
+### Fixes applied
+
+Six parse/compile errors resolved across HUD and UI files:
+
+1. **`player_reporter.gd` — static method visibility:** `escape()` was defined in outer class but called from `Report` inner class's `format_report()`. Fixed by moving `escape()` (as `static func esc()`) inside the `Report` class.
+
+2. **`chat_service.gd` — mixed indentation:** Line 673 had 8 spaces instead of 1 tab. Godot requires consistent indentation throughout a file. Fixed the single line.
+
+3. **`report_dialog.gd` — class_name/extends ordering:** `class_name ReportDialog` appeared before `extends UIPanel`. GDScript requires `extends` before `class_name`. Fixed ordering.
+
+4. **`character_stats_ui.gd` — missing header:** File was missing `extends Control`, UIPanel stubs (open/close/toggle), and required signals (panel_opened/panel_closed). Added all.
+
+5. **`blacksmith_ui.gd` — missing header:** Same pattern as character_stats_ui. Added `extends Control`, UIStyles const, UIPanel stubs, `_is_open`/`_player_id` vars.
+
+6. **`skill_academy_ui.gd` — class_name/extends ordering:** Same fix as report_dialog.
+
+### Key Godot GDScript rules learned
+
+- **`extends` must precede `class_name`** when both are present in a class definition
+- **Mixed indentation is fatal:** Once a file uses tabs, every subsequent line must use tabs. A single line with spaces causes a parse error on that line.
+- **Inner class methods cannot call outer class methods** without qualification. Static methods in outer class are not visible inside inner class scope.
+- **`extends Control` for scene-instantiated UIs:** Use `extends Control` + manual stubs for UIPanel methods rather than `extends UIPanel` when the class is instantiated from a .tscn scene.
+- **Test co-location:** `/labs/` primitives have tests next to them. Game files (synmergia/) have smoke tests in `tests/test_*.gd`.
+
+### Test status
+
+- Frame: 26/26 ✓
+- ARS: 11/11 ✓
+- Login: 21/21 ✓
+- HUD integration: 6/7 (pre-existing: CombatLog lacks `get_message_count()`)
+- Toast: hangs on recursion guard async test (pre-existing)
+
+---
+
 ## Session insights (2026-08-30)
 
 The last session added three core design docs that all
