@@ -638,6 +638,7 @@ static func _esc(text: String) -> String:
 - **Test co-location:** `/labs/` primitives have tests next to them. If you write a primitive without a test, it's not done.
 - **Engine version:** Godot 4.7.2. `var_to_bytes` / `bytes_to_var` (not `VarToStr`).
 - **Project root:** `synmergia/` is the Godot project. `labs/` and `docs/` are outside.
+- **Compile errors for late-autoloaded singletons:** Godot parses ALL function bodies at compile time. If a service references `NetworkManager.X()` or `PlayerManager.X()` and NM/PM is lower in the autoload order, you get `"Identifier not declared in the current scope"`. Solution: add `_nm()/_pm()` helpers using `Engine.get_singleton()` (runtime resolution) and call those inside function bodies. Never use bare autoload identifiers in function bodies of services that load after them.
 
 ---
 
