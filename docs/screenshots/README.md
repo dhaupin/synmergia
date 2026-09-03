@@ -2,14 +2,6 @@
 
 UI/HUD screenshots captured via the noVNC → Puppeteer pipeline.
 
-## Captured Screens
-
-| File | Scene | Description |
-|------|-------|-------------|
-| `01-main-menu.png` | `ui/menus/main_menu.tscn` | Main menu with Synmergia logo |
-| `02-after-enter.png` | — | Welcome / login screen (New Player / Returning Player) |
-| `04-after-tab.png` | — | Character class selection (Akkan archetypes) |
-
 ## How to Capture
 
 Run inside the dev container:
