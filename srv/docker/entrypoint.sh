@@ -9,8 +9,8 @@ set -euo pipefail
 START_MODE="${START_MODE:-dev}"
 
 # Ensure capture dirs exist
-mkdir -p /workspace/project/synmergia/captures/screenshots
-mkdir -p /workspace/project/synmergia/captures/videos
+mkdir -p /workspace/project/game/captures/screenshots
+mkdir -p /workspace/project/game/captures/videos
 
 log() { echo "[entrypoint] $*"; }
 
@@ -41,11 +41,11 @@ _setup_nginx() {
 # Run smoke tests then exit. Used by CI.
 if [[ "$START_MODE" == "test" ]]; then
     log "Mode: TEST — running smoke tests"
-    cd /workspace/project/synmergia
-    for test_file in synmergia/tests/test_*.gd; do
+    cd /workspace/project/game
+    for test_file in game/tests/test_*.gd; do
         [[ -f "$test_file" ]] || continue
         log "  Running: $test_file"
-        godot --headless --path /workspace/project/synmergia \
+        godot --headless --path /workspace/project/game \
             --script "res://$(basename "$test_file")" || {
             log "FAIL: $test_file"
             exit 1
@@ -77,7 +77,7 @@ if [[ "$START_MODE" == "dev" ]]; then
 
     # Godot (with GUI rendering to Xvfb)
     log "Starting Godot (DISPLAY=:99)..."
-    DISPLAY=:99 godot --path /workspace/project/synmergia &
+    DISPLAY=:99 godot --path /workspace/project/game &
 
     log ""
     log "============================================"
@@ -91,8 +91,8 @@ if [[ "$START_MODE" == "dev" ]]; then
     log "============================================"
     log ""
     log "Screenshots:"
-    log "  node /workspace/project/synmergia/synmergia/scripts/screenshot.js \\"
-    log "    --output /workspace/project/synmergia/captures/screenshots/<name>.png"
+    log "  node /workspace/project/game/scripts/screenshot.js \\"
+    log "    --output /workspace/project/game/captures/screenshots/<name>.png"
     log ""
 
     tail -f /dev/null
@@ -110,7 +110,7 @@ if [[ "$START_MODE" == "prod" ]]; then
 
     # Godot headless
     log "Starting Godot (headless)..."
-    godot --headless --path /workspace/project/synmergia \
+    godot --headless --path /workspace/project/game \
         --server-port "${GODOT_PORT:-9000}" &
 
     log ""
@@ -136,7 +136,7 @@ fi
 if [[ "$START_MODE" == "headless" ]]; then
     log "Mode: HEADLESS — Godot headless only"
 
-    godot --headless --path /workspace/project/synmergia \
+    godot --headless --path /workspace/project/game \
         --server-port "${GODOT_PORT:-9000}" &
 
     log "Godot headless running on port ${GODOT_PORT:-9000}"

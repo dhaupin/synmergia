@@ -37,7 +37,7 @@ ENV GODOT_VERSION=4.7.2 \
     GO_VERSION=1.23.1 \
     NODE_VERSION=20 \
     GODOT_PORT=9000 \
-    GODOT_PATH=/workspace/project/synmergia
+    GODOT_PATH=/workspace/project/game
 
 # ── Base system ────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -101,11 +101,11 @@ RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Working dir ────────────────────────────────────────────────────────────
-WORKDIR /workspace/project/synmergia
+WORKDIR /workspace/project/game
 
 # ── Puppeteer (screenshots) ───────────────────────────────────────────────
 # Copy package files, install deps, download Chromium
-COPY synmergia/scripts/package.json synmergia/scripts/package-lock.json synmergia/scripts/
+COPY game/scripts/package.json game/scripts/package-lock.json game/scripts/
 RUN cd synmergia/scripts && npm install --no-audit --no-fund \
     && npx puppeteer browsers install chrome
 
@@ -121,8 +121,8 @@ RUN mkdir -p /etc/nginx/ssl \
     && mkdir -p /var/www/html /etc/nginx/snippets
 
 # ── Capture dirs ───────────────────────────────────────────────────────────
-RUN mkdir -p /workspace/project/synmergia/captures/screenshots \
-                /workspace/project/synmergia/captures/videos \
+RUN mkdir -p /workspace/project/game/captures/screenshots \
+                /workspace/project/game/captures/videos \
                 /var/lib/synmergia
 
 # ── Health check ───────────────────────────────────────────────────────────

@@ -467,7 +467,7 @@ content-hash pattern is the foundation. See
 [`nsc9-honest-evaluation.md`](./nsc9-honest-evaluation.md).
 
 ### Session 1 — Islands POC
-**DONE** (commit `3e942bb`). 3 files in `synmergia/ui/islands/`,
+**DONE** (commit `3e942bb`). 3 files in `game/ui/islands/`,
 19/19 tests pass.
 
 ### Session 2 — Migrate remaining UI
@@ -519,7 +519,7 @@ content-hash pattern is the foundation. See
 ### Session 8 — Build pipeline (data.pck + CI)
 - `tools/build.sh` for the actual build
 - Separate `client.pck` and `data.pck`
-- CI rebuilds on changes to `synmergia/data/`
+- CI rebuilds on changes to `game/data/`
 
 ### (Deferred) Geometry-specific primitives
 

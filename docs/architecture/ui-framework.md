@@ -47,7 +47,7 @@ reactivity, or SolidJS's signals. The difference: the
 ## The reactive bridge
 
 ```gdscript
-# synmergia/core/ui/axis_query.gd
+# game/core/ui/axis_query.gd
 class_name AxisQuery
 extends RefCounted
 
@@ -147,7 +147,7 @@ panel system).
 ## The action model
 
 ```gdscript
-# synmergia/core/ui/action.gd
+# game/core/ui/action.gd
 class_name UIAction
 extends RefCounted
 
@@ -179,10 +179,10 @@ because there's something to attack. The UI never shows
 ## The 5 things to do
 
 1. **Lift the `AxisQuery` class** from this doc into
-   `synmergia/core/ui/axis_query.gd` (Tier 1, A-3)
+   `game/core/ui/axis_query.gd` (Tier 1, A-3)
 2. **Wrap every `UIPanel`** in a `UIPanel.react_to(state)`
    method that uses `AxisQuery`
-3. **Add the `UIAction` model** to `synmergia/core/ui/`
+3. **Add the `UIAction` model** to `game/core/ui/`
 4. **Add the schema layer** for `UIPanel` (lift from vant's
    `forum.js` panels)
 5. **Wire `UIManager` to the orchestrator** so panels

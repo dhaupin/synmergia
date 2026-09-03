@@ -4,7 +4,7 @@
 > architecture (state tree, multi-iso orchestrator, content-hash
 > layer, predictive LOD) and the Track A / Track B plan. This
 > document lives in `labs/` because the architecture is
-> experimental; the game itself is in `synmergia/`.
+> experimental; the game itself is in `game/`.
 
 > **Vision:** A 3D open-world MMORPG inspired by Risk Your Life 2
 > (RYL2) combat/action mechanics, infused with the depth and
@@ -36,7 +36,7 @@
 
 This PRD is the product spec. The architecture is in
 [`docs/architecture/`](../docs/architecture/) (in the
-`synmergia/` subdirectory because it ships with the game):
+`game/` subdirectory because it ships with the game):
 
 - [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md) — the multi-iso orchestrator (Part 1)
 - [`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md) — LOD + materialized + prediction (Part 2)

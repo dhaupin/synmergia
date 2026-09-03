@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test-headless.sh — Run Godot smoke tests in a headless Docker container
 #
-# This script runs the Godot smoke tests from synmergia/tests/ against
+# This script runs the Godot smoke tests from game/tests/ against
 # a Docker container, verifying autoloads, services, and core game logic
 # without requiring a GPU or display.
 #
@@ -11,7 +11,7 @@
 #
 # Or mount-only (no rebuild needed):
 #   docker run --rm \
-#     -v "$(pwd)/synmergia:/workspace/project/synmergia:ro" \
+#     -v "$(pwd)/game:/workspace/project/game:ro" \
 #     synmergia:test \
 #     ./docker/test-headless.sh
 #
@@ -89,7 +89,7 @@ run_test() {
 
     # Capture both stdout and stderr; Godot --script prints to stderr sometimes
     output=$(
-        "$GODOT" --headless --path "$PROJECT_ROOT/synmergia" \
+        "$GODOT" --headless --path "$PROJECT_ROOT/game" \
             --script "$test_path" 2>&1
     ) || exit_code=$?
 

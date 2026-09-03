@@ -59,7 +59,7 @@ The Synmergia MMORPG Engine has **41 scripts with parse/compilation errors** pre
 - Binary is executable and validated
 
 ### 2. game_config.gd - Fixed
-**Location:** `synmergia/core/autoload/game_config.gd`
+**Location:** `game/core/autoload/game_config.gd`
 
 **Issues Fixed:**
 - Removed `class_name GameConfig` (conflicted with autoload singleton)
@@ -199,7 +199,7 @@ res://ui/respawn/respawn_ui_manager.gd
 
 ### Phase 1: Create Missing Infrastructure
 1. Create `Logger` autoload (stub implementation)
-2. Create base types in `synmergia/core/types/`:
+2. Create base types in `game/core/types/`:
    - Entity.gd
    - Item.gd
    - Buff.gd (base for AuraBuff, DamageOverTime, StatusEffect)
@@ -254,7 +254,7 @@ Address individual parse errors in remaining scripts.
 ## 📁 Project Structure
 
 ```
-synmergia/
+game/
 ├── core/
 │   ├── autoload/
 │   │   ├── game_config.gd ✅ FIXED

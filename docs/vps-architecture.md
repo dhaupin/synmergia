@@ -150,7 +150,7 @@ docker compose -f docker-compose.yml --profile prod up -d
 ## File Structure
 
 ```
-synmergia/
+game/
 ├── Dockerfile              # Unified: dev/prod/headless/test
 ├── docker-compose.yml      # Profiles: dev, prod, headless
 ├── docker/entrypoint.sh    # Mode dispatcher

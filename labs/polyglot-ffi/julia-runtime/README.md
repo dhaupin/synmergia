@@ -161,7 +161,7 @@ HTTP.serve(handle, "127.0.0.1", 9999)
 ## GDScript side
 
 ```gdscript
-# synmergia/core/services/spatial_query_service.gd
+# game/core/services/spatial_query_service.gd
 extends Node
 
 var _ffi: Polyglot

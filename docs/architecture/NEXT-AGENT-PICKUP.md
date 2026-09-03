@@ -167,7 +167,7 @@ the state tree but are otherwise independent.
 
 ```
 .
-├── synmergia/         # the Godot 4.7.2 project
+├── game/         # the Godot 4.7.2 project
 │   ├── core/
 │   │   ├── autoload/      # 30+ autoloads (the source of the cascade)
 │   │   ├── components/    # HealthComponent, CombatComponent, etc.
@@ -241,11 +241,11 @@ Graduated work moves into the game.
 | `labs/jolt-playground/README.md` | The Jolt Physics decision (Phase 5 deadline) |
 | `labs/polyglot-ffi/README.md` | The Polyglot FFI (lifted from vant) |
 | `labs/polyglot-ffi/julia-runtime/README.md` | The Julia server-side math runtime |
-| `synmergia/ui/islands/island_placeholder.gd` | POC entry point |
-| `synmergia/ui/islands/island_registry.gd` | Static island → PackedScene map |
-| `synmergia/ui/islands/island_manager.gd` | Mount orchestrator |
-| `synmergia/tests/test_islands.gd` | 19 passing smoke tests |
-| `synmergia/core/autoload/type_registry.gd` | Preload table (modified but uncommitted if any) |
+| `game/ui/islands/island_placeholder.gd` | POC entry point |
+| `game/ui/islands/island_registry.gd` | Static island → PackedScene map |
+| `game/ui/islands/island_manager.gd` | Mount orchestrator |
+| `game/tests/test_islands.gd` | 19 passing smoke tests |
+| `game/core/autoload/type_registry.gd` | Preload table (modified but uncommitted if any) |
 
 ---
 
@@ -267,7 +267,7 @@ but they don't fail the test. They're noise from a separate problem
 
 ## What is the Islands POC?
 
-Three files in `synmergia/ui/islands/`:
+Three files in `game/ui/islands/`:
 
 1. **`island_placeholder.gd`** (`class_name IslandPlaceholder`)
    - Drop into any scene
@@ -288,7 +288,7 @@ Three files in `synmergia/ui/islands/`:
    - Emits `island_mounted` / `island_skipped` signals
    - Idempotent (mounted placeholders skipped on second pass)
 
-Plus the test file (`synmergia/tests/test_islands.gd`) — 19 tests
+Plus the test file (`game/tests/test_islands.gd`) — 19 tests
 covering registry, placeholder lifecycle, manager mount/skip paths.
 
 ---
@@ -298,7 +298,7 @@ covering registry, placeholder lifecycle, manager mount/skip paths.
 From `labs/AUDIT.md.legacy` and session notes:
 
 **Architectural decision (recorded 2026-08-30):** Schemas
-(`synmergia/core/schemas/`) and `/data/*` extensions are
+(`game/core/schemas/`) and `/data/*` extensions are
 **stable** and not to be refactored without explicit user
 direction. All other parts of the codebase are fair game
 for refactor. The schemas and data are the contract;
@@ -330,7 +330,7 @@ everything else serves them.
 
 7. **Build pipeline.**
    `tools/build.sh` — `godot --headless --export-pack data data.pck`.
-   CI on changes to `synmergia/data/`.
+   CI on changes to `game/data/`.
 
 8. **Loot tables** — ✅ `loot_tables/loot_wolf.gd` and `loot_bandit.gd` done. Wired into enemy.gd via `loot_factory_class` export.
 
@@ -368,7 +368,7 @@ User: "I want a settings panel to mount when the player opens settings."
    with a script that extends Control (NOT UIPanel — see Session 2
    migration).
 
-2. In `synmergia/ui/islands/island_registry.gd`, add:
+2. In `game/ui/islands/island_registry.gd`, add:
    ```gdscript
    const SETTINGS := preload("res://ui/panels/settings_panel.tscn")
    ```

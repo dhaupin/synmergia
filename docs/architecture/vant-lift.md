@@ -81,7 +81,7 @@ emit/on registry. Vant's is a full event platform with:
 - PubSub channels with rooms (we need it for the spatial
   axis broadcasts)
 
-**Maps to:** `synmergia/core/events/event_hub.gd` (rewrite
+**Maps to:** `game/core/events/event_hub.gd` (rewrite
 to match vant's API) + `labs/multi-iso/srv/event_bus.gd`
 (frame-side equivalent, no autoload).
 
@@ -187,7 +187,7 @@ pipeline is what enforces:
 
 **Maps to:** `labs/multi-iso/srv/pipeline.gd` (the
 orchestrator's enforcement layer). Plus a thin wrapper
-in `synmergia/core/services/pipeline.gd` for game-side
+in `game/core/services/pipeline.gd` for game-side
 operations.
 
 **Priority:** **P1 — lift in A-3 (with the state tree).**
@@ -217,7 +217,7 @@ limiting. Used by the orchestrator's tick.
 
 ---
 
-#### 7. `lib/sync.js` (623 lines) → `synmergia/core/services/sync_service.gd`
+#### 7. `lib/sync.js` (623 lines) → `game/core/services/sync_service.gd`
 
 **What it is:** Multi-provider sync with circuit breaker +
 escrow budget. `pushAll` (broadcast to all), `pullAny` (read
@@ -235,7 +235,7 @@ disconnects mid-sync?" — the breaker opens for that client,
 the system continues for others, the breaker closes when
 the client reconnects.
 
-**Maps to:** `synmergia/core/services/sync_service.gd` (or
+**Maps to:** `game/core/services/sync_service.gd` (or
 `labs/multi-iso/srv/sync.gd` if it stays in the frame).
 
 **Priority:** **P1 — lift in A-3 or A-4 (state tree +
@@ -271,7 +271,7 @@ lineage (audit), trust (per-player weight), org-scoping
 (multi-tenant isolation), cron governance (scheduled
 decisions).
 
-**Maps to:** `synmergia/core/services/community_governance.gd`
+**Maps to:** `game/core/services/community_governance.gd`
 v2 (extends the existing service). Or a new
 `labs/multi-iso/srv/governance.gd` for the frame's
 governance primitives.
@@ -294,7 +294,7 @@ servers have updates to the same axis range, they
 need to merge. The consensus module is the merge
 protocol.
 
-**Maps to:** `synmergia/core/services/shard_coordinator.gd`
+**Maps to:** `game/core/services/shard_coordinator.gd`
 or `labs/multi-iso/srv/consensus.gd`. Reaches for the
 multi-server work in Phase 6.
 

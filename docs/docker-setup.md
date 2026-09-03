@@ -64,8 +64,8 @@ docker run --rm -e START_MODE=test synmergia
 Run inside the container:
 
 ```bash
-docker exec <container> node /workspace/project/synmergia/synmergia/scripts/screenshot.js \
-  --output /workspace/project/synmergia/captures/screenshots/<name>.png \
+docker exec <container> node /workspace/project/game/scripts/screenshot.js \
+  --output /workspace/project/game/captures/screenshots/<name>.png \
   --wait 10000
 ```
 

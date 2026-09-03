@@ -50,7 +50,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
     volumes:
       - synmergia-data:/var/lib/synmergia
-      - ./captures:/workspace/project/synmergia/captures
+      - ./captures:/workspace/project/game/captures
     shm_size: 256mb  # Xvfb needs shared memory
     restart: unless-stopped
     healthcheck:
