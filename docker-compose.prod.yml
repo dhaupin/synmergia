@@ -1,5 +1,7 @@
 # Synmergia Production VPS
 # Usage: docker compose -f docker-compose.prod.yml up -d
+#
+# Note: Requires .env file with POSTGRES_PASSWORD and JWT_SECRET
 
 services:
   synmergia:
@@ -7,30 +9,20 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     ports:
-      - "80:80"        # HTTP (redirects to HTTPS)
-      - "443:443"      # HTTPS
-      - "9000:9000"    # Game WebSocket
+      - "9000:9000"   # Game WebSocket
     environment:
-      - GODOT_MODE=prod
+      - GODOT_MODE=run
       - GODOT_PORT=9000
       - POSTGRES_DB=synmergia
       - POSTGRES_USER=synmergia
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
-      - DOMAIN=${DOMAIN:-localhost}
     volumes:
-      - ./synmergia:/workspace/project/synmergia:ro
-      - ./certs:/certs:ro
       - synmergia-data:/var/lib/synmergia
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     networks:
       - synmergia-net
 
@@ -60,8 +52,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./synmergia:/workspace/project/synmergia:ro
-      - ./certs:/certs:ro
+      - ./certs:/certs:ro  # SSL certs (optional)
     depends_on:
       - synmergia
     restart: unless-stopped
