@@ -14,7 +14,7 @@ services:
       - ./captures:/workspace/project/synmergia/captures
     environment:
       - DISPLAY=:99
-      - GODOT_MODE=dev
+      - START_GODOT=normal
     shm_size: 256mb  # Xvfb needs shared memory
     restart: unless-stopped
     healthcheck:
