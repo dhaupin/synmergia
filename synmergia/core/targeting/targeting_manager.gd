@@ -10,10 +10,6 @@
 ## - Target history (restore previous)
 extends Node
 
-# Defensive runtime autoload accessors
-func _nm(): return Engine.get_singleton("NetworkManager")
-func _pm(): return Engine.get_singleton("PlayerManager")
-
 
 const PlayerController = preload("res://entities/player/player_controller.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
@@ -1054,7 +1050,7 @@ func _get_player_permission_level() -> int:
 
 func _is_target_online(target_id: String) -> bool:
 	if PlayerManager:
-		var pm = _pm(); return pm.is_player_online(target_id) if pm else false
+		return PlayerManager.is_player_online(target_id)
 	return false
 
 func _infer_schema_id(entity: Node) -> String:

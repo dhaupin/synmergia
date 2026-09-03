@@ -16,7 +16,7 @@
 extends RefCounted
 
 const NotificationContext = preload("res://core/notifications/notification_context.gd")
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 const DEFAULT_WINDOW_MS: int = 5000
 

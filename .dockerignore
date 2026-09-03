@@ -3,11 +3,8 @@
 
 # Include these
 !synmergia/
-!labs/
-!Dockerfile*
+!Dockerfile.godot-*
 !docker-compose*.yml
-!docker/
 !docs/docker-setup.md
-!docs/screenshots/
 !.dockerignore
 !.gitignore

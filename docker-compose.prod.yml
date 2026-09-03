@@ -28,7 +28,6 @@ services:
       - REDIS_HOST=redis
       - REDIS_ENABLED=${REDIS_ENABLED:-true}
       - SQLITE_ENABLED=${SQLITE_ENABLED:-false}
-      - JULIA_SERVER_URL=http://julia-orchestrator:8080
     volumes:
       - synmergia-data:/var/lib/synmergia
     depends_on:
@@ -36,8 +35,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-      julia-orchestrator:
-        condition: service_healthy
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -125,30 +122,15 @@ services:
   #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h; certbot renew; done'"
   #   command: certonly --webroot -w /var/www/html --email ${CERT_EMAIL:-admin@localhost} -d ${DOMAIN:-localhost} --agree-tos --noninteractive
 
-  # Julia multi-iso orchestrator — HTTP API for spatial/faction/temporal queries
-  # The Godot game calls this via MultiIsoService.gd (HTTP bridge).
-  # Install deps: julia --project=. -e 'using Pkg; Pkg.instantiate()'
-  julia-orchestrator:
-    image: julia:1.11
-    ports:
-      - "8080:8080"   # HTTP API (called by Godot + MultiIsoService.gd)
-    volumes:
-      - ./labs/multi-iso/srv:/workspace/project/synmergia/srv:ro
-    working_dir: /workspace/project/synmergia/srv
-    # Pre-install HTTP.jl + JSON.jl so the server starts fast
-    # (Julia package install is slow; do it at build time in CI instead)
-    command: >
-      julia --project=. -e 'using Pkg; Pkg.instantiate()' &&
-      julia --project=. server.jl --port 8080
-    healthcheck:
-      test: ["CMD-SHELL", "julia --project=. -e 'using HTTP; HTTP.get(\"http://localhost:8080/health\")'"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    restart: unless-stopped
-    networks:
-      - synmergia-net
+  # Julia modeling pipeline (for hot math / content generation)
+  # Uncomment to enable Julia runtime for server-side calculations
+  # julia:
+  #   image: julia:1.11
+  #   volumes:
+  #     - ./models:/workspace/project/synmergia/models
+  #   working_dir: /workspace/project/synmergia/models
+  #   networks:
+  #     - synmergia-net
 
 volumes:
   postgres-data:

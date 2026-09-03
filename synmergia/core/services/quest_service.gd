@@ -23,7 +23,7 @@ signal quest_rewarded(player_id: String, quest_id: String, rewards: Dictionary)
 signal quest_failed(player_id: String, quest_id: String, reason: String)
 
 # Frame-level notification dispatch (typed-Kind pipeline).
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 func _ready() -> void:
 	instance = self

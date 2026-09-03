@@ -2,10 +2,6 @@
 ## All admin operations MUST go through this system
 extends Node
 
-# Defensive runtime autoload accessors
-func _nm(): return Engine.get_singleton("NetworkManager")
-func _pm(): return Engine.get_singleton("PlayerManager")
-
 ## Permission levels (must match GameConfig.Security)
 enum Level {
 	PLAYER = 0,
@@ -171,7 +167,7 @@ func _validate_admin_session(admin_id: String, ip_address: String) -> Dictionary
 		return {"success": false, "message": "Insufficient permissions", "code": "INSUFFICIENT_PERMS"}
 	
 	# Check if player is online (if PlayerManager exists)
-	var pm = _pm(); if pm and not pm.is_player_online(admin_id):
+	if PlayerManager and not PlayerManager.is_player_online(admin_id):
 		# Admins should be online to use admin tools
 		return {"success": false, "message": "Admin must be online", "code": "NOT_ONLINE"}
 	
@@ -479,7 +475,7 @@ func _get_player_info(player_id: String) -> Dictionary:
 	
 	# Add online status
 	if PlayerManager:
-		var pm = _pm(); info["online"] = pm.is_player_online(player_id) if pm else false
+		info["online"] = PlayerManager.is_player_online(player_id)
 	
 	return info
 

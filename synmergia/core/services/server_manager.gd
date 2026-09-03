@@ -2,17 +2,13 @@
 ## Handles server restarts, maintenance windows, and player notifications
 extends Node
 
-# Defensive runtime autoload accessors
-func _nm(): return Engine.get_singleton("NetworkManager")
-func _pm(): return Engine.get_singleton("PlayerManager")
-
 const State = preload("res://scripts/state.gd")
 # Frame-level notification dispatch (see synmergia/core/notifications/).
 # kick_player dispatches SECURITY_BLOCKED via the typed-Kind pipeline so
 # the kick lands on the player's toast feed through the same channel
 # the firewall/admin commands use. The legacy NotificationService.send
 # call is kept for clients that haven't migrated to the new pipeline.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 # Server state
 enum ServerState {
@@ -284,11 +280,11 @@ func kick_player(entity_id: String, reason: String = "You have been disconnected
 	# PlayerManager.get_player_info / NetworkManager.kick_player) does not
 	# exist, so the toast layer is correct but the peer is not actually
 	# disconnected. Tracked separately from this PR.
-	var pm = _pm(); if pm and pm.has_method("has_player") and pm.has_player(entity_id):
-		var info = pm.get_player_info(entity_id)
+	if PlayerManager and PlayerManager.has_method("has_player") and PlayerManager.has_player(entity_id):
+		var info = PlayerManager.get_player_info(entity_id)
 		var peer_id: int = info.get("peer_id", -1)
-		var nm = _nm(); if peer_id > 0 and nm and nm.has_method("kick_player"):
-			nm.kick_player(peer_id, reason)
+		if peer_id > 0 and NetworkManager and NetworkManager.has_method("kick_player"):
+			NetworkManager.kick_player(peer_id, reason)
 
 ## Kick all players (for maintenance/shutdown)
 func kick_all_players(reason: String = "Server is shutting down") -> void:

@@ -55,7 +55,7 @@ var _blacksmith_ui: BlacksmithUI = null
 var _character_stats_ui: CharacterStatsUI = null
 var _current_target_info: TargetingManager.TargetInfo = null
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 func _ready() -> void:
 	# Connect to input

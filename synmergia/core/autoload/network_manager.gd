@@ -287,9 +287,3 @@ func _player_ip_from_id(player_id: String) -> String:
 		if "peer_%d" % peer_id == player_id:
 			return connected_peers[peer_id].get("ip", "unknown")
 	return "unknown"
-
-
-func kick_player(peer_id: int, reason: String = "Kicked") -> void:
-	if multiplayer and multiplayer.multiplayer_peer:
-		multiplayer.multiplayer_peer.disconnect_peer(peer_id, true)
-		GameLog.info("Kicked peer %d: %s" % [peer_id, reason])

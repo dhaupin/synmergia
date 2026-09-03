@@ -5,7 +5,7 @@ extends Node
 # Frame-level notification dispatch (see synmergia/core/notifications/).
 # _notify_player uses the typed-Kind pipeline; remove_member uses
 # PLAYER_WARNED to tell the kicked member that an officer acted.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 # Guild data (guild_id -> guild data dict)
 var _guilds: Dictionary = {}
