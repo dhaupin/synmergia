@@ -1119,3 +1119,91 @@ Players choose 1 of 3 signature abilities at level 10:
 - `core/schemas/character_data.gd` — CharacterData with signature fields
 - `core/services/skill_academy_service.gd` — Upgrade and signature logic
 - `ui/components/skill_academy_ui.gd` — 5-tab UI (Skills, Books, Upgrade, **Signature**, Respec)
+
+---
+
+## Docker Dev Environment
+
+The `labs/docker` branch has a full Docker setup for running the game with
+a visual UI accessible via browser.
+
+### Quick Start
+
+```bash
+docker compose up --build
+# then open http://localhost:6080/vnc.html
+```
+
+### Screenshot / Video Capture (noVNC → Puppeteer)
+
+The Xvfb/llvmpipe approach produces dark frames with `ffmpeg x11grab`. Instead,
+use the Puppeteer → noVNC bridge:
+
+```bash
+# Inside container or on host
+node synmergia/scripts/screenshot.js
+
+# Record 30s video
+node synmergia/scripts/screenshot.js --video 30
+
+# Custom output
+node synmergia/scripts/screenshot.js --output my-shot.png
+```
+
+The script navigates to `http://localhost:6080/vnc.html`, auto-connects via
+noVNC, and screenshots the rendered canvas. Full docs: `docs/screenshots/agent-pipeline.md`.
+
+### Docker Files
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Dev image — Godot + Xvfb + VNC + noVNC + Node/Puppeteer |
+| `Dockerfile.prod` | Minimal headless server image |
+| `docker-compose.yml` | Dev (GUI + noVNC) |
+| `docker-compose.prod.yml` | Prod (Godot server + Postgres + Redis + Nginx + Julia) |
+| `synmergia/scripts/screenshot.js` | Puppeteer screenshot/recording tool |
+
+### Julia Multi-iso Orchestrator
+
+The multi-iso orchestrator (spatial × faction × temporal × social axes)
+runs as a Julia HTTP service alongside the game server.
+
+**Files:**
+- `labs/multi-iso/srv/orchestrator.jl` — the orchestrator (frame primitive)
+- `labs/multi-iso/srv/server.jl` — HTTP API server
+- `synmergia/core/services/multi_iso_service.gd` — Godot HTTP bridge
+
+**API endpoints (Julia server, port 8080):**
+```
+GET  /health              — health check
+GET  /stats              — orchestrator statistics
+POST /register           — register an entity
+GET  /spatial/:v         — entities at vertex v
+GET  /faction/:f         — entities in faction f
+GET  /social/:s          — entities in social group s
+POST /intersect          — multi-axis intersection query
+```
+
+**Docker usage:**
+```bash
+# In docker-compose.prod.yml, the julia-orchestrator service is started
+# automatically. The Godot service waits for it (healthcheck).
+docker compose -f docker-compose.prod.yml up -d
+
+# Or locally for testing:
+cd labs/multi-iso/srv
+julia --project=. -e 'using Pkg; Pkg.instantiate()'  # one-time
+julia --project=. server.jl --port 8080
+```
+
+**Godot usage:**
+```gdscript
+# Register a player on all axes
+MultiIsoService.register_entity(player_id, spatial_vertex, faction_id)
+
+# Query: players at vertex 3 who are in faction 7
+var nearby := await MultiIsoService.query_intersect(spatial_vertex=3, faction_id=7)
+for entity_id in nearby:
+    print("Nearby: ", entity_id)
+```
+
