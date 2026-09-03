@@ -1,0 +1,18 @@
+# Synmergia Docker - Full Stack
+# Usage: docker compose up
+
+services:
+  synmergia:
+    build: .
+    ports:
+      - "80:80"       # HTTP
+      - "6080:6080"   # noVNC
+      - "5900:5900"   # VNC
+      - "9000:9000"   # WebSocket
+    volumes:
+      - ./synmergia:/workspace/project/synmergia
+      - ./captures:/workspace/project/synmergia/captures
+      - ./tools/docker/scripts:/tools
+    environment:
+      - DISPLAY=:99
+    restart: unless-stopped
