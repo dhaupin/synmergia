@@ -78,6 +78,9 @@ func _bind_service_signals() -> void:
 	if svc.has_signal("respec_completed"):
 		if not svc.respec_completed.is_connected(_on_respec_completed):
 			svc.respec_completed.connect(_on_respec_completed)
+	if svc.has_signal("signature_selected"):
+		if not svc.signature_selected.is_connected(_on_signature_selected):
+			svc.signature_selected.connect(_on_signature_selected)
 
 
 func _on_upgrade_applied(_player_id: String, skill_id: String, _new_level: int) -> void:
