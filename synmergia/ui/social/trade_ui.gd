@@ -31,9 +31,15 @@ func _bind_service_signals() -> void:
 	if not TradeService:
 		return
 	var sigs := {
+		"trade_started": _on_trade_started,
 		"trade_completed": _on_trade_completed,
 		"trade_cancelled": _on_trade_cancelled,
 		"trade_expired": _on_trade_expired,
+		"item_added_to_trade": _on_item_added_to_trade,
+		"item_removed_from_trade": _on_item_removed_from_trade,
+		"trade_confirmed": _on_trade_confirmed,
+		"trade_unconfirmed": _on_trade_unconfirmed,
+		"confirmation_countdown_tick": _on_countdown_tick,
 	}
 	for sig_name in sigs:
 		if TradeService.has_signal(sig_name):
@@ -41,6 +47,33 @@ func _bind_service_signals() -> void:
 			if not TradeService.get(sig_name).is_connected(handler):
 				TradeService.get(sig_name).connect(handler)
 
+
+
+func _on_trade_started(trade_id: String, player1: String, player2: String) -> void:
+	# Sync trade state when trade actually begins (both players accepted).
+	_trade_id = trade_id
+	_trade_state = TradeState.ACCEPTED
+	_update_status("Trade started with %s" % _target_id)
+
+func _on_item_added_to_trade(trade_id: String, player_id: String, item_id: String, quantity: int) -> void:
+	if _trade_id == trade_id and is_open():
+		_refresh_items()
+
+func _on_item_removed_from_trade(trade_id: String, player_id: String, item_id: String, quantity: int) -> void:
+	if _trade_id == trade_id and is_open():
+		_refresh_items()
+
+func _on_trade_confirmed(trade_id: String, player_id: String) -> void:
+	if _trade_id == trade_id and is_open():
+		_update_status("Trade confirmed by %s" % player_id)
+
+func _on_trade_unconfirmed(trade_id: String, player_id: String) -> void:
+	if _trade_id == trade_id and is_open():
+		_update_status("Trade unconfirmed by %s" % player_id)
+
+func _on_countdown_tick(trade_id: String, seconds_remaining: float) -> void:
+	if _trade_id == trade_id and is_open():
+		_update_status("Confirm in %.0fs..." % seconds_remaining)
 
 func _on_trade_completed(_trade_id: String, _trades: Dictionary) -> void:
 	trade_completed.emit(_initiator_id, _target_id)
@@ -196,6 +229,22 @@ func _setup_header() -> void:
 	close_btn.text = "X"
 	close_btn.pressed.connect(close)
 	header.add_child(close_btn)
+
+func _on_open() -> void:
+	# Try to load any active trade for the local player.
+	if TradeService and PlayerManager:
+		var pid := str(PlayerManager.get_local_player_id())
+		if not pid.is_empty():
+			var active: Dictionary = TradeService.get_player_trade(pid)
+			if not active.is_empty():
+				_trade_id = active.get("trade_id", "")
+				_initiator_id = active.get("player1", "")
+				_target_id = active.get("player2", "")
+				_trade_state = TradeState.ACCEPTED
+				_update_status("Trade in progress with %s" % _target_id)
+				_refresh_items()
+
+
 
 func open_trade(initiator_id: String, target_id: String) -> void:
 	_initiator_id = initiator_id
