@@ -11,7 +11,7 @@ func _ready() -> void:
 	set_physics_layer_mask(0)
 	GameLog.debug("BankNPC: Initialized")
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 func interact(player_id: String) -> void:
 	if _interacting_players.has(player_id):

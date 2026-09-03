@@ -1,7 +1,7 @@
 ## AdminCommands - Administrative command handlers for server management
 extends Node
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 ## ============================================================================
 ## ADMIN COMMANDS REGISTRY

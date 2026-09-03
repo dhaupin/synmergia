@@ -4,7 +4,7 @@
 extends Control
 class_name CooldownIndicator
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 ## Emitted when cooldown completes
 signal cooldown_complete(action_type: String)

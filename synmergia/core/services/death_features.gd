@@ -7,7 +7,7 @@ const Item = preload("res://core/schemas/item.gd")
 # Death events route through NotifKind.* with sender "DeathFeatures".
 # Dedupe keys carry event identity so a 5-second respawn-invincibility
 # countdown doesn't re-toast every frame.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 # Singleton reference
 static var instance: DeathFeatures

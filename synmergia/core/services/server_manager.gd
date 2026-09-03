@@ -8,7 +8,7 @@ const State = preload("res://scripts/state.gd")
 # the kick lands on the player's toast feed through the same channel
 # the firewall/admin commands use. The legacy NotificationService.send
 # call is kept for clients that haven't migrated to the new pipeline.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 # Server state
 enum ServerState {

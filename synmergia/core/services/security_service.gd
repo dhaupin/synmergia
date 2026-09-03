@@ -6,7 +6,7 @@ extends Node
 # SecurityService surfaces restriction / un-restriction events through the
 # typed-Kind pipeline. The dispatch goes through NotificationService.notify
 # (the service-level verb that wraps send_event).
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 ## ============================================================================
 ## SIGNALS

@@ -33,7 +33,7 @@ signal alliance_broken(guild_id: String, faction: Faction)
 # Faction events broadcast server-wide (war/peace) or target a single
 # player (rep changes). Dedupe is keyed on (kind, target, identifier)
 # so rep ticks during a long quest don't flood the toast panel.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 func _emit_faction(
 	kind: int,

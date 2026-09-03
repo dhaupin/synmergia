@@ -13,7 +13,7 @@
 ## free-form messages.
 extends RefCounted
 
-enum NotifKind {
+enum Kind {
 	# Lifecycle
 	RESPAWNED,
 	RESPAWN_FAILED,

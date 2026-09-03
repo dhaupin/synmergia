@@ -3,7 +3,7 @@
 extends Node
 class_name MatchmakingQoS
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 signal connection_quality_changed(player_id: String, quality: ConnectionQuality)
 signal latency_warning(player_id: String, latency_ms: int)

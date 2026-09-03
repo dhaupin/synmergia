@@ -2,7 +2,7 @@
 ## Takes actions based on configured thresholds
 extends Node
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 ## ============================================================================
 ## SIGNALS
