@@ -66,10 +66,11 @@ services:
     networks:
       - synmergia-net
 
-  # ── PostgreSQL (prod profile) ────────────────────────────────────────────
+  # ── PostgreSQL (dev + prod profiles) ─────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     profiles:
+      - dev
       - prod
     environment:
       - POSTGRES_DB=synmergia
@@ -87,10 +88,11 @@ services:
     networks:
       - synmergia-net
 
-  # ── Redis (prod profile) ─────────────────────────────────────────────────
+  # ── Redis (dev + prod profiles) ──────────────────────────────────────────
   redis:
     image: redis:7-alpine
     profiles:
+      - dev
       - prod
     command: >
       redis-server

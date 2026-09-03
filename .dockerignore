@@ -1,13 +1,15 @@
 # Ignore everything by default
 *
 
-# Include synmergia/ (the game source)
-!synmergia/
+# Include game/ (the Godot project)
+!game/
+
+# Include srv/ (deployment configs)
+!srv/
 
 # Include Docker files
 !Dockerfile
 !docker-compose*.yml
-!docker/
 !.dockerignore
 
 # Include root-level config
