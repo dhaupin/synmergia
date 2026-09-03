@@ -1,7 +1,7 @@
 ## CombatComponent - Attack/skill execution
 ## Attached to entities that can fight
-class_name CombatComponent
 extends Node
+class_name CombatComponent
 const Skill = preload("res://core/combat/skill.gd")
 const Item = preload("res://core/schemas/item.gd")
 const Entity = preload("res://core/entities/entity.gd")

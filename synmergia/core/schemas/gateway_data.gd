@@ -1,7 +1,7 @@
 ## GatewayData - Teleportation gateway definition
 ## Defines teleportation points between zones
-class_name GatewayData
 extends Resource
+class_name GatewayData
 
 ## Gateway Types
 enum GatewayType {

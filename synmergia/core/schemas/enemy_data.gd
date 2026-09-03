@@ -1,7 +1,7 @@
 ## EnemyData - Enemy/NPC template definition
 ## Base schema for enemy templates
-class_name EnemyData
 extends Resource
+class_name EnemyData
 
 enum EnemyType {
 	NORMAL,

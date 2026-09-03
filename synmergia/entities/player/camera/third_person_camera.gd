@@ -1,7 +1,7 @@
 ## ThirdPersonCamera - 3rd person camera following player
 ## Supports mouse/keyboard and touch input
-class_name ThirdPersonCamera
 extends Camera3D
+class_name ThirdPersonCamera
 
 @export var distance: float = 6.0
 @export var height: float = 2.5

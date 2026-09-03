@@ -1,7 +1,7 @@
 ## AgentAction - Action data from an agent connector
 ## Represents an action the agent wants to take
-class_name AgentAction
 extends Resource
+class_name AgentAction
 
 const __AgentAction__ = preload("res://core/schemas/agent_action.gd")
 enum ActionType {

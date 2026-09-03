@@ -1,8 +1,8 @@
 ## PhysicsArea - 3D sphere-based area detection
 ## For AoE skills, auras, and radius effects
 ## Supports line-of-sight blocking and configurable geometry collision
-class_name PhysicsArea
 extends Node3D
+class_name PhysicsArea
 const Entity = preload("res://core/entities/entity.gd")
 
 

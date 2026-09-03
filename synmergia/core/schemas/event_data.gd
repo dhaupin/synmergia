@@ -1,7 +1,7 @@
 ## EventData - Global event modifier definition
 ## Defines time-limited events that modify gameplay
-class_name EventData
 extends Resource
+class_name EventData
 
 enum EventType {
 	XP_BOOST,         # Double XP weekend

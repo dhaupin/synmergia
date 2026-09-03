@@ -1,7 +1,7 @@
 ## Faction - Grouping/organization definition
 ## Factions can be species-based, political, or PvP rule modifiers
-class_name Faction
 extends Resource
+class_name Faction
 
 enum FactionType {
 	SPECIES,      # Race-based allegiance (Human Faction, Akkan Faction)

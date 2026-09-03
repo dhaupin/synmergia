@@ -1,8 +1,8 @@
 ## AdminDashboard - In-game admin UI panel
 ## Uses UIStyles for consistent theming
 ## Provides visual interface for admin commands and player management
-class_name AdminDashboard
 extends Control
+class_name AdminDashboard
 const AdminShell = preload("res://core/admin/admin_shell.gd")
 
 

@@ -1,7 +1,7 @@
 ## DialogUI - NPC dialog system
 ## Quest offers, conversation, choices
-class_name DialogUI
 extends Control
+class_name DialogUI
 
 const DialogService = preload("res://core/services/dialog_service.gd")
 

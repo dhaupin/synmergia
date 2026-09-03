@@ -1,9 +1,9 @@
 ## TradeUI - Item trading panel
 ## Migrated onto UIPanel base class.
-class_name TradeUI
+extends UIPanel
 
 const UIPanel = preload("res://ui/components/ui_panel.gd")
-extends UIPanel
+class_name TradeUI
 
 enum TradeState { IDLE, PROPOSING, COUNTER_OFFER, ACCEPTED, COMPLETED, CANCELED }
 

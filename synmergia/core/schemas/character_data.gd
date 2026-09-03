@@ -1,7 +1,7 @@
 ## CharacterData - Runtime player character definition
 ## Created at character selection, used to instantiate the player entity
-class_name CharacterData
 extends Resource
+class_name CharacterData
 const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
 

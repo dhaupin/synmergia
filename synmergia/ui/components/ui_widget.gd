@@ -12,8 +12,8 @@
 ## Subclasses override `_setup_widget()` to build their content. The base
 ## does no anchor/margin work of its own — subclasses set their own
 ## position via anchor presets in `_setup_widget()`.
-class_name UIWidget
 extends Control
+class_name UIWidget
 
 var _hotkey_keycode: int = KEY_NONE
 var _is_always_visible: bool = true

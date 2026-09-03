@@ -1,7 +1,7 @@
 ## ZoneData - Zone/area definition
 ## Defines zone boundaries, entry requirements, and PvP rules
-class_name ZoneData
 extends Resource
+class_name ZoneData
 
 enum PvPZoneMode {
 	SAFE,         # No PvP at all - all species coexist

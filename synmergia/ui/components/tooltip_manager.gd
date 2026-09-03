@@ -1,7 +1,7 @@
 ## TooltipManager - Unified tooltip system
 ## Item tooltips, ability tooltips, NPC info tooltips
-class_name TooltipManager
 extends Control
+class_name TooltipManager
 
 ## Tooltip types
 enum TooltipType { ITEM, ABILITY, NPC, QUEST, PLAYER }

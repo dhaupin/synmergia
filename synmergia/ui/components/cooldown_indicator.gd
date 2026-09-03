@@ -1,8 +1,8 @@
 ## CooldownIndicator - Visual feedback for rate-limited actions
 ## Uses UIStyles for default styling
 ## Shows a countdown timer when an action is on cooldown
-class_name CooldownIndicator
 extends Control
+class_name CooldownIndicator
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 

@@ -1,6 +1,6 @@
 ## State - Base state class for the state machine
-class_name State
 extends Node
+class_name State
 
 const StateMachine = preload("res://scripts/state_machine.gd")
 var state_machine: StateMachine

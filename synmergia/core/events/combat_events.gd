@@ -1,6 +1,6 @@
 ## CombatEvents - Domain events for combat actions
-class_name CombatEvents
 extends Node
+class_name CombatEvents
 
 # Skill events
 signal skill_started(caster_id: String, skill_id: String, target_ids: Array)

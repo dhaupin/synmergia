@@ -1,7 +1,7 @@
 ## QoSService - Quality of Service for fair matchmaking
 ## Handles latency compensation, throttling, and connection quality
-class_name MatchmakingQoS
 extends Node
+class_name MatchmakingQoS
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 

@@ -1,8 +1,8 @@
 ## Jump State - Player is airborne
-class_name JumpState
+extends State
 
 const State = preload("res://scripts/state.gd")
-extends State
+class_name JumpState
 
 var has_jumped: bool = false
 

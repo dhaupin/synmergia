@@ -1,7 +1,7 @@
 ## Ankh - Respawn point object
 ## UO-style ankhs scattered through the world as respawn points
-class_name Ankh
 extends Node3D
+class_name Ankh
 
 enum AnkhType {
 	SHARED,      # All players can bind here

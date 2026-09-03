@@ -1,6 +1,6 @@
 ## AchievementService - Player achievements and progression
-class_name AchievementService
 extends Node
+class_name AchievementService
 
 signal achievement_unlocked(player_id: String, achievement_id: String)
 signal achievement_progressed(player_id: String, achievement_id: String, progress: float)

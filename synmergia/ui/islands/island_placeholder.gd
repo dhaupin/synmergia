@@ -10,8 +10,8 @@
 ## Children placed under the placeholder act as fallback content shown
 ## before the island mounts. They are removed when the real scene
 ## attaches.
-class_name IslandPlaceholder
 extends Node
+class_name IslandPlaceholder
 
 @export var island_name: String = ""
 @export var load_strategy: String = "eager"

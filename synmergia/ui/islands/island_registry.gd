@@ -15,8 +15,8 @@
 ## the project are wired in. Other entries are pre-commented for the
 ## next migration session -- they will be added when the matching
 ## scenes are created or moved to the [code]res://ui/[/code] tree.
-class_name IslandRegistry
 extends Node
+class_name IslandRegistry
 
 # --- Existing scenes (wired in) ---
 const COOLDOWN_BAR := preload("res://ui/components/cooldown_bar.tscn")

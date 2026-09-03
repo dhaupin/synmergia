@@ -1,7 +1,7 @@
 ## RespawnUI - Death screen with respawn options
 ## Shows available respawn locations and allows player to choose
-class_name RespawnUI
 extends Control
+class_name RespawnUI
 
 signal respawn_selected(mode: String, location_data: Dictionary)
 signal respawn_skipped()

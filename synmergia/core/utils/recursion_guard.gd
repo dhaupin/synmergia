@@ -1,7 +1,7 @@
 ## RecursionGuard - Prevents stack overflow from unbounded recursion
 ## Tracks call depth per context and enforces maximum depth limits
-class_name RecursionGuard
 extends RefCounted
+class_name RecursionGuard
 
 const __RecursionGuard__ = preload("res://core/utils/recursion_guard.gd")
 ## Emitted when enter() rejects a call because max depth was exceeded.

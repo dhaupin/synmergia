@@ -1,8 +1,8 @@
 ## Projectile - Base class for all projectiles (arrows, fireballs, spells)
 ## Handles movement, collision, and impact effects
 ## Works for PLAYERS, ENEMIES, NPCs - any Entity can fire projectiles
-class_name Projectile
 extends Node3D
+class_name Projectile
 
 const __Projectile__ = preload("res://core/combat/projectile.gd")
 signal hit(target: Entity, damage: int)

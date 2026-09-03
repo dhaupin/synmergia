@@ -1,7 +1,7 @@
 ## DialogueData - NPC dialogue tree definition
 ## Loaded from data/dialogues/*.tres
-class_name DialogueData
 extends Resource
+class_name DialogueData
 
 @export var id: String = ""
 @export var npc_id: String = ""

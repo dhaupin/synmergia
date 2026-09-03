@@ -1,6 +1,6 @@
 ## SystemEvents - Domain events for server lifecycle
-class_name SystemEvents
 extends Node
+class_name SystemEvents
 
 # Server lifecycle events
 signal server_starting(version: String, mode: String)

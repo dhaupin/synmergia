@@ -1,7 +1,7 @@
 ## WorldMap - Full-screen world map with quest waypoints
 ## Expanded from Minimap, supports click-to-navigate
-class_name WorldMap
 extends Control
+class_name WorldMap
 
 ## Singleton
 static var instance: WorldMap

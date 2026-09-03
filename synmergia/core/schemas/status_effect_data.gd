@@ -1,7 +1,7 @@
 ## StatusEffectData - Status effect template definition
 ## Defines reusable status effects for skills and items
-class_name StatusEffectData
 extends Resource
+class_name StatusEffectData
 
 ## Effect Categories
 enum EffectCategory {

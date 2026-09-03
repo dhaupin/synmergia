@@ -13,8 +13,8 @@
 ##   2. Call send() to queue messages
 ##   3. Use derived classes for platform-specific formatting
 
-class_name WebhookBase
 extends Node
+class_name WebhookBase
 
 ## Webhook message (generic format)
 class WebhookMessage:

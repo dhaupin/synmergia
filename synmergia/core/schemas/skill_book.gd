@@ -1,8 +1,8 @@
 ## SkillBook - A consumable item that upgrades a skill
 ## Instantiated at runtime by SkillAcademyService — not a .tres file
-class_name SkillBook
-
 extends Item
+
+class_name SkillBook
 
 const __SkillBook__ = preload("res://core/schemas/skill_book.gd")
 var book_skill_id: String = ""

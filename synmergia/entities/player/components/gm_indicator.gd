@@ -1,7 +1,7 @@
 ## GMIndicator - Floating star indicator above GM players
 ## Add this as a child of a PlayerController to show the GM star
-class_name GMIndicator
 extends Node3D
+class_name GMIndicator
 
 @export var star_size: float = 0.3
 @export var float_height: float = 2.0

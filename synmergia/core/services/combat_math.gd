@@ -1,7 +1,7 @@
 ## CombatMath - Hit calculation for combat
 ## Handles hit chance, miss, evade, block, parry, crush
-class_name CombatMath
 extends Node
+class_name CombatMath
 const Skill = preload("res://core/combat/skill.gd")
 
 

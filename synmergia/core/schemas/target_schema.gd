@@ -4,8 +4,8 @@
 ## Usage:
 ##   var schema = TargetingManager.get_schema("player")
 ##   var color = schema.highlight_color
-class_name TargetSchema
 extends Resource
+class_name TargetSchema
 
 ## ============================================================================
 ## ENUMS

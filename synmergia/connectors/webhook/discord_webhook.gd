@@ -3,10 +3,10 @@
 ##
 ## Inherits from WebhookBase for generic webhook handling.
 ## Contains only Discord-specific formatting and color constants.
-class_name DiscordWebhook
+extends WebhookBase
 
 const WebhookBase = preload("res://connectors/webhook/webhook_base.gd")
-extends WebhookBase
+class_name DiscordWebhook
 
 ## Discord color constants
 const COLOR_RED: int = 15158332

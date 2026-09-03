@@ -1,8 +1,8 @@
 ## PlayerShell - Power user command interface for players
 ## Provides a customizable command interface for regular players
 ## Completely separate from admin tools - sandboxed to player actions only
-class_name PlayerShell
 extends Node
+class_name PlayerShell
 
 ## Escape BBCode brackets in user-supplied strings.
 static func _esc(text: String) -> String:

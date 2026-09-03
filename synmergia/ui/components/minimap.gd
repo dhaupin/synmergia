@@ -1,7 +1,7 @@
 ## Minimap - World map component
 ## Interactive minimap with player position and markers
-class_name Minimap
 extends Control
+class_name Minimap
 
 ## Components
 var _map_texture: TextureRect

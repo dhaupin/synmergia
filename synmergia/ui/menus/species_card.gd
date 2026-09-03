@@ -1,6 +1,6 @@
 ## SpeciesCard - Species selection card for character select
-class_name SpeciesCard
 extends PanelContainer
+class_name SpeciesCard
 const Species = preload("res://core/schemas/species.gd")
 
 

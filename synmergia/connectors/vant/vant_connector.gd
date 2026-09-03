@@ -1,10 +1,10 @@
 ## VantConnector - Connect to Vant AI OS/runtime
 ## Vant is a custom agent runtime - https://github.com/dhaupin/vant (axolotl branch)
 ## Synmergia agents can connect via Vant to play the game alongside humans
-class_name VantConnector
+extends AgentConnector
 
 const AgentConnector = preload("res://core/schemas/agent_connector.gd")
-extends AgentConnector
+class_name VantConnector
 
 # Vant API configuration
 # Vant endpoint: http://localhost:8080/api/agent/connect

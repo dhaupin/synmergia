@@ -1,7 +1,7 @@
 ## AuraComponent - Buff/debuff and aura management
 ## Attached to entities that can have effects
-class_name AuraComponent
 extends Node
+class_name AuraComponent
 const Buff = preload("res://core/combat/buff.gd")
 const Entity = preload("res://core/entities/entity.gd")
 const StatusEffect = preload("res://core/entities/status_effect.gd")

@@ -1,7 +1,7 @@
 ## FairnessService - Ensures fair play for humans AND agents
 ## All players (human/agent) are equals with same capabilities and limits
-class_name FairnessService
 extends Node
+class_name FairnessService
 
 signal fairness_violation(player_id: String, violation_type: String, severity: int)
 signal trust_updated(player_id: String, new_trust: float)

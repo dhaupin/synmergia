@@ -1,7 +1,7 @@
 ## QuestData - Quest definition
 ## Defines quest requirements, objectives, and rewards
-class_name QuestData
 extends Resource
+class_name QuestData
 
 ## Quest Types
 enum QuestType {

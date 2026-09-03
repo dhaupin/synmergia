@@ -1,8 +1,8 @@
 ## SkillSchema - Combat skill definition
 ## Base schema for all skills (spells, attacks, abilities)
 ## The runtime Skill class lives in core/combat/skill.gd
-class_name SkillSchema
 extends Resource
+class_name SkillSchema
 
 enum SkillType {
 	MELEE,
