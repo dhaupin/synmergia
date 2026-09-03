@@ -3,7 +3,7 @@
 extends Node
 
 const RecursionGuard = preload("res://core/utils/recursion_guard.gd")
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # AppFirewall surfaces ban / block / recursion-guard events to admins
 # through the typed-Kind pipeline. ADMIN_ALERT → ALERT + HIGH.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind

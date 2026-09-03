@@ -103,6 +103,6 @@ DOMAIN=play.example.com       # For Let's Encrypt
 
 - `Dockerfile` — Unified image (all modes)
 - `docker-compose.yml` — Dev + prod profiles
-- `docker/entrypoint.sh` — Mode dispatcher
+- `srv/docker/entrypoint.sh` — Mode dispatcher
 - `nginx.conf` — Reverse proxy config
 - `captures/` — Screenshots and videos (host mount)

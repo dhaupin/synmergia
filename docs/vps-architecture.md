@@ -150,14 +150,15 @@ docker compose -f docker-compose.yml --profile prod up -d
 ## File Structure
 
 ```
-game/
-├── Dockerfile              # Unified: dev/prod/headless/test
-├── docker-compose.yml      # Profiles: dev, prod, headless
-├── docker/entrypoint.sh    # Mode dispatcher
+./
+├── game/                  # Godot 4.7.2 project
+├── srv/                   # Deployment configs
+│   └── docker/            # Docker (dev/prod/headless/test)
+├── Dockerfile              # Unified image
+├── docker-compose.yml      # Dev + prod profiles
 ├── nginx.conf              # Reverse proxy + WebSocket
 ├── .env.example            # Environment template
-├── certs/                 # SSL certificates (bind-mount in prod)
-│   └── ...
-└── backups/               # Database backups (prod)
-    └── daily/
+├── tools/                   # Dev tooling (Puppeteer, Godot binary)
+├── labs/                   # Experimental (orchestrator, state tree)
+└── docs/                   # Architecture docs
 ```

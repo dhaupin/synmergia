@@ -4,7 +4,7 @@ extends Node
 
 const Item = preload("res://core/schemas/item.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # _notify_player dispatches via the typed-Kind pipeline so trade
 # messages land on the same toast feed as the rest of the security
 # surface (kick, ban, restriction).

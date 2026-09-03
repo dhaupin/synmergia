@@ -3,7 +3,7 @@ orchestrator.jl — Julia multi-iso orchestrator (frame primitive)
 
 Upgraded from the Python prototype and placed in the canonical
 `labs/multi-iso/srv/` slot per the /labs/ convention:
-  https://github.com/dhaupin/synmergia/blob/labs/docker/docs/architecture/labs-organization.md
+  https://github.com/dhaupin/synmergia/blob/main/docs/architecture/labs-organization.md
 
 This is a pure Julia orchestrator with no external dependencies.
 The Godot game consumes it via the HTTP server wrapper (server.jl)

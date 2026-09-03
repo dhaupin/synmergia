@@ -2,7 +2,7 @@
 ## Listens to security events and logs/alerts appropriately
 extends Node
 
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # SecurityMonitor surfaces anti-cheat / exploit alerts to the admin
 # scope through the typed-Kind pipeline. ADMIN_ALERT → ALERT + HIGH.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind

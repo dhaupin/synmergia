@@ -13,7 +13,7 @@ var _player_inventories: Dictionary = {}
 signal item_transferred(from_id: String, to_id: String, item: Item, quantity: int)
 signal gold_transferred(from_id: String, to_id: String, amount: int)
 
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # InventoryService surfaces add/remove/full/soulbound/trade-reject events
 # through the toast pipeline. Dedupe keys are item-aware so a player
 # looting 50 of the same item sees one toast for the burst, not 50.
