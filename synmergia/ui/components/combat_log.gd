@@ -160,9 +160,14 @@ func clear() -> void:
 func get_message_count() -> int:
 	return _entries.size()
 
-	## ============================================================================
-	## PRIVATE
-	## ============================================================================
+func add_message(text: String, entry_type: int = 2) -> void:
+	_add_entry(text, entry_type)
+
+
+
+## ============================================================================
+## PRIVATE
+## ============================================================================
 
 func _add_entry(text: String, entry_type: int) -> void:
 	var timestamp := _get_timestamp()
@@ -253,7 +258,7 @@ func _create_popup(name: String) -> PanelContainer:
 
 	# Start off-screen (translated right by 310px)
 	var tw := Tween.new()
-	panel.add_child(tw)
+	panel.add_child(tw as Node)
 	tw.interpolate_property(panel, "offset_left", 310, 0, 0.4, Tween.TRANS_QUAD, Tween.EASE_OUT)
 	tw.start()
 	return panel
@@ -272,13 +277,13 @@ func _display_next_popup() -> void:
 		tw.stop_all()
 	# Hold then slide out
 	var hold := Tween.new()
-	popup.add_child(hold)
+	popup.add_child(hold as Node)
 	var slide_out := func() -> void:
 		if not is_instance_valid(popup):
 			_display_next_popup()
 			return
 		var out := Tween.new()
-		popup.add_child(out)
+		popup.add_child(out as Node)
 		out.interpolate_property(popup, "offset_left", 0, 310, 0.35, Tween.TRANS_QUAD, Tween.EASE_IN)
 		out.start()
 		out.tween_callback(_display_next_popup)

@@ -69,120 +69,140 @@ func _find_panel(names: Array) -> Node:
 
 
 func _connect_services() -> void:
+	# Resolve autoload instances (script is loaded+instantiated, not autoloaded).
+	var _party_svc := get_node_or_null("/root/PartyService")
+	var _guild_svc := get_node_or_null("/root/GuildService")
+	var _friends_svc := get_node_or_null("/root/FriendsService")
+	var _trade_svc := get_node_or_null("/root/TradeService")
+	var _quest_svc := get_node_or_null("/root/QuestService")
+	var _skill_svc := get_node_or_null("/root/SkillAcademyService")
+	var _inv_svc := get_node_or_null("/root/InventoryService")
+	var _xfer_svc := get_node_or_null("/root/SameAccountTransferService")
+	var _qos := get_node_or_null("/root/QoSService")
+	var _blacksmith_svc := get_node_or_null("/root/BlacksmithService")
+	var _loot_svc := get_node_or_null("/root/LootService")
+	var _faction_svc := get_node_or_null("/root/FactionService")
+	var _chat_svc := get_node_or_null("/root/ChatService")
+	var _respawn_svc := get_node_or_null("/root/RespawnService")
+	var _vault_svc := get_node_or_null("/root/VaultService")
+	var _entity_svc := get_node_or_null("/root/EntityService")
+	var _notif := get_node_or_null("/root/NotificationService")
+	var _ach := get_node_or_null("/root/AchievementService")
+
 	# Party events → PartyUI.
-	if _party and PartyService:
-		if PartyService.has_signal("player_joined_party"):
-			PartyService.player_joined_party.connect(_on_party_member_changed)
-		if PartyService.has_signal("player_left_party"):
-			PartyService.player_left_party.connect(_on_party_member_changed)
-		if PartyService.has_signal("party_created"):
-			PartyService.party_created.connect(_on_party_member_changed)
-		if PartyService.has_signal("party_disbanded"):
-			PartyService.party_disbanded.connect(_on_party_disbanded)
+	if _party and _party_svc:
+		if _party_svc.has_signal("player_joined_party"):
+			_party_svc.player_joined_party.connect(_on_party_member_changed)
+		if _party_svc.has_signal("player_left_party"):
+			_party_svc.player_left_party.connect(_on_party_member_changed)
+		if _party_svc.has_signal("party_created"):
+			_party_svc.party_created.connect(_on_party_member_changed)
+		if _party_svc.has_signal("party_disbanded"):
+			_party_svc.party_disbanded.connect(_on_party_disbanded)
 
 	# Guild events → GuildUI.
-	if _guild and GuildService:
-		if GuildService.has_signal("player_joined_guild"):
-			GuildService.player_joined_guild.connect(_on_guild_changed)
-		if GuildService.has_signal("player_left_guild"):
-			GuildService.player_left_guild.connect(_on_guild_changed)
-		if GuildService.has_signal("guild_info_updated"):
-			GuildService.guild_info_updated.connect(_on_guild_changed)
+	if _guild and _guild_svc:
+		if _guild_svc.has_signal("player_joined_guild"):
+			_guild_svc.player_joined_guild.connect(_on_guild_changed)
+		if _guild_svc.has_signal("player_left_guild"):
+			_guild_svc.player_left_guild.connect(_on_guild_changed)
+		if _guild_svc.has_signal("guild_info_updated"):
+			_guild_svc.guild_info_updated.connect(_on_guild_changed)
 
 	# Friends events → FriendsListUI.
-	if _friends and FriendsService:
-		if FriendsService.has_signal("friend_added"):
-			FriendsService.friend_added.connect(_on_friends_changed)
-		if FriendsService.has_signal("friend_removed"):
-			FriendsService.friend_removed.connect(_on_friends_changed)
+	if _friends and _friends_svc:
+		if _friends_svc.has_signal("friend_added"):
+			_friends_svc.friend_added.connect(_on_friends_changed)
+		if _friends_svc.has_signal("friend_removed"):
+			_friends_svc.friend_removed.connect(_on_friends_changed)
 
 	# Trade events → TradeUI.
-	if _trade and TradeService:
-		if TradeService.has_signal("trade_started"):
-			TradeService.trade_started.connect(_on_trade_started)
-		if TradeService.has_signal("trade_completed"):
-			TradeService.trade_completed.connect(_on_trade_completed)
-		if TradeService.has_signal("trade_cancelled"):
-			TradeService.trade_cancelled.connect(_on_trade_cancelled)
-		if TradeService.has_signal("trade_expired"):
-			TradeService.trade_expired.connect(_on_trade_expired)
-		if TradeService.has_signal("trade_failed"):
-			TradeService.trade_failed.connect(_on_trade_failed)
+	if _trade and _trade_svc:
+		if _trade_svc.has_signal("trade_started"):
+			_trade_svc.trade_started.connect(_on_trade_started)
+		if _trade_svc.has_signal("trade_completed"):
+			_trade_svc.trade_completed.connect(_on_trade_completed)
+		if _trade_svc.has_signal("trade_cancelled"):
+			_trade_svc.trade_cancelled.connect(_on_trade_cancelled)
+		if _trade_svc.has_signal("trade_expired"):
+			_trade_svc.trade_expired.connect(_on_trade_expired)
+		if _trade_svc.has_signal("trade_failed"):
+			_trade_svc.trade_failed.connect(_on_trade_failed)
 
 	# Quest events → QuestUI.
-	if _quest and QuestService:
-		if QuestService.has_signal("quest_accepted"):
-			QuestService.quest_accepted.connect(_on_quest_changed)
-		if QuestService.has_signal("quest_updated"):
-			QuestService.quest_updated.connect(_on_quest_changed)
-		if QuestService.has_signal("quest_completed"):
-			QuestService.quest_completed.connect(_on_quest_changed)
-		if QuestService.has_signal("quest_failed"):
-			QuestService.quest_failed.connect(_on_quest_changed)
+	if _quest and _quest_svc:
+		if _quest_svc.has_signal("quest_accepted"):
+			_quest_svc.quest_accepted.connect(_on_quest_changed)
+		if _quest_svc.has_signal("quest_updated"):
+			_quest_svc.quest_updated.connect(_on_quest_changed)
+		if _quest_svc.has_signal("quest_completed"):
+			_quest_svc.quest_completed.connect(_on_quest_changed)
+		if _quest_svc.has_signal("quest_failed"):
+			_quest_svc.quest_failed.connect(_on_quest_changed)
 
 	# SkillAcademy events → CharacterPanel.
-	if _character and SkillAcademyService:
-		if SkillAcademyService.has_signal("upgrade_applied"):
-			SkillAcademyService.upgrade_applied.connect(_on_skill_upgrade_applied)
-		if SkillAcademyService.has_signal("respec_completed"):
-			SkillAcademyService.respec_completed.connect(_on_skill_respec_completed)
-		if SkillAcademyService.has_signal("signature_selected"):
-			SkillAcademyService.signature_selected.connect(_on_signature_selected)
+	if _character and _skill_svc:
+		if _skill_svc.has_signal("upgrade_applied"):
+			_skill_svc.upgrade_applied.connect(_on_skill_upgrade_applied)
+		if _skill_svc.has_signal("respec_completed"):
+			_skill_svc.respec_completed.connect(_on_skill_respec_completed)
+		if _skill_svc.has_signal("signature_selected"):
+			_skill_svc.signature_selected.connect(_on_signature_selected)
 
 	# Inventory events → InventoryUI + notifications.
-	if InventoryService:
-		if InventoryService.has_signal("item_transferred"):
-			InventoryService.item_transferred.connect(_on_item_transferred)
-		if InventoryService.has_signal("gold_transferred"):
-			InventoryService.gold_transferred.connect(_on_gold_transferred)
+	if _inv_svc:
+		if _inv_svc.has_signal("item_transferred"):
+			_inv_svc.item_transferred.connect(_on_item_transferred)
+		if _inv_svc.has_signal("gold_transferred"):
+			_inv_svc.gold_transferred.connect(_on_gold_transferred)
 
 	# SameAccountTransfer events → CharacterTransferUI.
 	var char_transfer: Node = _find_panel(["CharacterTransferUI"])
 	if char_transfer and SameAccountTransferService:
-		if SameAccountTransferService.has_signal("transfer_completed"):
-			SameAccountTransferService.transfer_completed.connect(_on_transfer_completed)
-		if SameAccountTransferService.has_signal("transfer_cancelled"):
-			SameAccountTransferService.transfer_cancelled.connect(_on_transfer_cancelled)
-		if SameAccountTransferService.has_signal("transfer_limit_reached"):
-			SameAccountTransferService.transfer_limit_reached.connect(_on_transfer_limit_reached)
-		if SameAccountTransferService.has_signal("cooldown_active"):
-			SameAccountTransferService.cooldown_active.connect(_on_transfer_cooldown_active)
+		if _xfer_svc.has_signal("transfer_completed"):
+			_xfer_svc.transfer_completed.connect(_on_transfer_completed)
+		if _xfer_svc.has_signal("transfer_cancelled"):
+			_xfer_svc.transfer_cancelled.connect(_on_transfer_cancelled)
+		if _xfer_svc.has_signal("transfer_limit_reached"):
+			_xfer_svc.transfer_limit_reached.connect(_on_transfer_limit_reached)
+		if _xfer_svc.has_signal("cooldown_active"):
+			_xfer_svc.cooldown_active.connect(_on_transfer_cooldown_active)
 
 	# QoS events → toast + status bar.
-	if QoSService:
-		if QoSService.has_signal("connection_quality_changed"):
-			QoSService.connection_quality_changed.connect(_on_connection_quality_changed)
-		if QoSService.has_signal("latency_warning"):
-			QoSService.latency_warning.connect(_on_latency_warning)
-		if QoSService.has_signal("throttled"):
-			QoSService.throttled.connect(_on_qos_throttled)
+	if _qos:
+		if _qos.has_signal("connection_quality_changed"):
+			_qos.connection_quality_changed.connect(_on_connection_quality_changed)
+		if _qos.has_signal("latency_warning"):
+			_qos.latency_warning.connect(_on_latency_warning)
+		if _qos.has_signal("throttled"):
+			_qos.throttled.connect(_on_qos_throttled)
 
 	# Blacksmith events → BlacksmithUI.
-	if BlacksmithService:
-		if BlacksmithService.has_signal("repair_completed"):
-			BlacksmithService.repair_completed.connect(_on_repair_completed)
-		if BlacksmithService.has_signal("repair_failed"):
-			BlacksmithService.repair_failed.connect(_on_repair_failed)
-		if BlacksmithService.has_signal("item_too_broken"):
-			BlacksmithService.item_too_broken.connect(_on_item_too_broken)
+	if _blacksmith_svc:
+		if _blacksmith_svc.has_signal("repair_completed"):
+			_blacksmith_svc.repair_completed.connect(_on_repair_completed)
+		if _blacksmith_svc.has_signal("repair_failed"):
+			_blacksmith_svc.repair_failed.connect(_on_repair_failed)
+		if _blacksmith_svc.has_signal("item_too_broken"):
+			_blacksmith_svc.item_too_broken.connect(_on_item_too_broken)
 
 	# Loot events → toast player.
-	if LootService:
-		if LootService.has_signal("loot_picked_up"):
-			LootService.loot_picked_up.connect(_on_loot_picked_up)
-		if LootService.has_signal("loot_assigned"):
-			LootService.loot_assigned.connect(_on_loot_assigned)
-		if LootService.has_signal("loot_expired"):
-			LootService.loot_expired.connect(_on_loot_expired)
-		if LootService.has_signal("loot_dropped"):
-			LootService.loot_dropped.connect(_on_loot_dropped)
-		if LootService.has_signal("loot_rolled"):
-			LootService.loot_rolled.connect(_on_loot_rolled)
+	if _loot_svc:
+		if _loot_svc.has_signal("loot_picked_up"):
+			_loot_svc.loot_picked_up.connect(_on_loot_picked_up)
+		if _loot_svc.has_signal("loot_assigned"):
+			_loot_svc.loot_assigned.connect(_on_loot_assigned)
+		if _loot_svc.has_signal("loot_expired"):
+			_loot_svc.loot_expired.connect(_on_loot_expired)
+		if _loot_svc.has_signal("loot_dropped"):
+			_loot_svc.loot_dropped.connect(_on_loot_dropped)
+		if _loot_svc.has_signal("loot_rolled"):
+			_loot_svc.loot_rolled.connect(_on_loot_rolled)
 
 	# Achievement events → toast player (AchievementService is not autoloaded).
 	for method_name in ["get_instance"]:
-		if AchievementService.has_method(method_name):
-			var ach_inst = AchievementService.call(method_name)
+		if _ach.has_method(method_name):
+			var ach_inst = _ach.call(method_name)
 			if ach_inst and ach_inst.has_signal("achievement_unlocked"):
 				ach_inst.achievement_unlocked.connect(_on_achievement_unlocked)
 				if ach_inst and ach_inst.has_signal("achievement_progressed"):
@@ -200,12 +220,12 @@ func _connect_services() -> void:
 
 	# RespawnService events -> toast.
 	if RespawnService:
-		if RespawnService.has_signal("respawn_completed"):
-			RespawnService.respawn_completed.connect(_on_respawn_completed)
-		if RespawnService.has_signal("karma_gained"):
-			RespawnService.karma_gained.connect(_on_karma_gained)
-		if RespawnService.has_signal("karma_lost"):
-			RespawnService.karma_lost.connect(_on_karma_lost)
+		if _respawn_svc.has_signal("respawn_completed"):
+			_respawn_svc.respawn_completed.connect(_on_respawn_completed)
+		if _respawn_svc.has_signal("karma_gained"):
+			_respawn_svc.karma_gained.connect(_on_karma_gained)
+		if _respawn_svc.has_signal("karma_lost"):
+			_respawn_svc.karma_lost.connect(_on_karma_lost)
 
 	# DeathFeatures events -> toast.
 	if DeathFeatures:
@@ -216,21 +236,21 @@ func _connect_services() -> void:
 
 	# VaultService events -> refresh BankUI.
 	if VaultService:
-		if VaultService.has_signal("item_deposited"):
-			VaultService.item_deposited.connect(_on_vault_item_changed)
-		if VaultService.has_signal("item_withdrawn"):
-			VaultService.item_withdrawn.connect(_on_vault_item_changed)
-		if VaultService.has_signal("gold_deposited"):
-			VaultService.gold_deposited.connect(_on_vault_gold_changed)
-		if VaultService.has_signal("gold_withdrawn"):
-			VaultService.gold_withdrawn.connect(_on_vault_gold_changed)
+		if _vault_svc.has_signal("item_deposited"):
+			_vault_svc.item_deposited.connect(_on_vault_item_changed)
+		if _vault_svc.has_signal("item_withdrawn"):
+			_vault_svc.item_withdrawn.connect(_on_vault_item_changed)
+		if _vault_svc.has_signal("gold_deposited"):
+			_vault_svc.gold_deposited.connect(_on_vault_gold_changed)
+		if _vault_svc.has_signal("gold_withdrawn"):
+			_vault_svc.gold_withdrawn.connect(_on_vault_gold_changed)
 
 	# Entity events (player join/leave).
 	if EntityService:
-		if EntityService.has_signal("player_joined"):
-			EntityService.player_joined.connect(_on_player_joined)
-		if EntityService.has_signal("player_left"):
-			EntityService.player_left.connect(_on_player_left)
+		if _entity_svc.has_signal("player_joined"):
+			_entity_svc.player_joined.connect(_on_player_joined)
+		if _entity_svc.has_signal("player_left"):
+			_entity_svc.player_left.connect(_on_player_left)
 
 
 	# ZoneManager events.
@@ -256,8 +276,8 @@ func _connect_services() -> void:
 
 	# RespawnService: respawn_canceled.
 	if RespawnService:
-		if RespawnService.has_signal("respawn_canceled"):
-			RespawnService.respawn_canceled.connect(_on_respawn_canceled)
+		if _respawn_svc.has_signal("respawn_canceled"):
+			_respawn_svc.respawn_canceled.connect(_on_respawn_canceled)
 
 	# Character creation events → CharacterPanel refresh.
 	if GameManager:
@@ -357,9 +377,9 @@ func _on_quest_changed(_a = null, _b = null, _c = null, _d = null) -> void:
 func _on_skill_upgrade_applied(_player_id: String, skill_id: String, new_level: int) -> void:
 	if _character and _character.has_method("refresh_skills"):
 		_character.refresh_skills()
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.SKILL_UPGRADED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.SKILL_UPGRADED,
 			"Skill upgraded to level %d" % new_level,
 			"SkillAcademyService",
 			"skill_upgrade:%s:%s" % [_player_id, skill_id],
@@ -370,9 +390,9 @@ func _on_skill_upgrade_applied(_player_id: String, skill_id: String, new_level: 
 func _on_skill_respec_completed(_player_id: String, points_refunded: int) -> void:
 	if _character and _character.has_method("refresh_skills"):
 		_character.refresh_skills()
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.SKILL_RESPEC,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.SKILL_RESPEC,
 			"Respec complete: %d points refunded" % points_refunded,
 			"SkillAcademyService",
 			"skill_respec:%s" % _player_id,
@@ -390,10 +410,10 @@ func _on_signature_selected(_player_id: String, signature_id: String, _is_free: 
 func _on_item_transferred(from_id: String, to_id: String, _item, quantity: int) -> void:
 	if _inventory and _inventory.has_method("refresh_inventory"):
 		_inventory.refresh_inventory()
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var msg := "Transferred %d items" % quantity
-		NotificationService.notify(
-			NotificationService.NotifKind.ITEM_TRANSFERRED,
+		_notif.notify(
+			_notif.NotifKind.ITEM_TRANSFERRED,
 			msg,
 			"InventoryService",
 			"item_transfer:%s:%s:%d" % [from_id, to_id, quantity],
@@ -404,9 +424,9 @@ func _on_item_transferred(from_id: String, to_id: String, _item, quantity: int) 
 func _on_gold_transferred(from_id: String, to_id: String, amount: int) -> void:
 	if _inventory and _inventory.has_method("refresh_inventory"):
 		_inventory.refresh_inventory()
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.GOLD_TRANSFERRED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.GOLD_TRANSFERRED,
 			"Transferred %d gold" % amount,
 			"InventoryService",
 			"gold_transfer:%s:%s:%d" % [from_id, to_id, amount],
@@ -423,10 +443,10 @@ func _on_transfer_completed(from_char: String, to_char: String, gold: int, items
 		char_transfer.refresh()
 	if _inventory and _inventory.has_method("refresh_inventory"):
 		_inventory.refresh_inventory()
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var msg := "Transfer complete: %d gold, %d items" % [gold, items.size()]
-		NotificationService.notify(
-			NotificationService.NotifKind.ITEM_TRANSFERRED,
+		_notif.notify(
+			_notif.NotifKind.ITEM_TRANSFERRED,
 			msg,
 			"SameAccountTransferService",
 			"transfer:%s:%s" % [from_char, to_char],
@@ -440,9 +460,9 @@ func _on_transfer_cancelled(from_char: String, to_char: String, reason: String) 
 		char_transfer.refresh()
 
 func _on_transfer_limit_reached(account_id: String, limit_type: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.ITEM_FULL,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.ITEM_FULL,
 			"Transfer limit reached: %s" % limit_type,
 			"SameAccountTransferService",
 			"transfer_limit:%s:%s" % [account_id, limit_type],
@@ -455,9 +475,9 @@ func _on_repair_completed(player_id: String, items_repaired: int, total_cost: in
 	var bs_panel: Node = _find_panel(["BlacksmithUI"])
 	if bs_panel and bs_panel.has_method("refresh"):
 		bs_panel.refresh()
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.ITEM_REPAIRED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.ITEM_REPAIRED,
 			"Repaired %d items for %d gold!" % [items_repaired, total_cost],
 			"BlacksmithService",
 			"repair:%s:%d" % [player_id, items_repaired],
@@ -466,9 +486,9 @@ func _on_repair_completed(player_id: String, items_repaired: int, total_cost: in
 		)
 
 func _on_repair_failed(player_id: String, reason: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.CUSTOM,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.CUSTOM,
 			reason,
 			"BlacksmithService",
 			"repair_fail:%s:%d" % [player_id, reason.hash()],
@@ -477,9 +497,9 @@ func _on_repair_failed(player_id: String, reason: String) -> void:
 		)
 
 func _on_item_too_broken(player_id: String, item_id: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.ITEM_FULL,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.ITEM_FULL,
 			"Item %s is too damaged to repair." % item_id,
 			"BlacksmithService",
 			"too_broken:%s:%s" % [player_id, item_id],
@@ -490,11 +510,11 @@ func _on_item_too_broken(player_id: String, item_id: String) -> void:
 # ── Loot ────────────────────────────────────────────────────────────────
 
 func _on_loot_picked_up(player_id: String, items: Array) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var names := items.map(func(it): return it.get("display_name", "?") if it else "?")
 		var msg := "Loot: %s" % ", ".join(names) if not names.is_empty() else "Loot picked up"
-		NotificationService.notify(
-			NotificationService.NotifKind.LOOT_DROPPED,
+		_notif.notify(
+			_notif.NotifKind.LOOT_DROPPED,
 			msg,
 			"LootService",
 			"loot:%s:%d" % [player_id, items.size()],
@@ -503,11 +523,11 @@ func _on_loot_picked_up(player_id: String, items: Array) -> void:
 		)
 
 func _on_loot_assigned(loot_id: String, player_id: String, items: Array) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var names := items.map(func(it): return it.get("display_name", "?") if it else "?")
 		var msg := "You won: %s" % ", ".join(names)
-		NotificationService.notify(
-			NotificationService.NotifKind.ITEM_ADDED,
+		_notif.notify(
+			_notif.NotifKind.ITEM_ADDED,
 			msg,
 			"LootService",
 			"loot_win:%s:%s" % [loot_id, player_id],
@@ -516,9 +536,9 @@ func _on_loot_assigned(loot_id: String, player_id: String, items: Array) -> void
 		)
 
 func _on_loot_expired(loot_id: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.CUSTOM,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.CUSTOM,
 			"Loot expired and was discarded.",
 			"LootService",
 			"loot_expired:%s" % loot_id,
@@ -527,12 +547,12 @@ func _on_loot_expired(loot_id: String) -> void:
 		)
 
 func _on_loot_dropped(source_id: String, loot_id: String, items: Array, currency: Dictionary) -> void:
-	if not is_instance_valid(NotificationService):
+	if not is_instance_valid(_notif):
 		return
 	var item_count := items.size() if items else 0
 	var msg := "Loot dropped: %d item%s" % [item_count, "s" if item_count != 1 else ""]
-	NotificationService.notify(
-		NotificationService.NotifKind.LOOT_DROPPED,
+	_notif.notify(
+		_notif.NotifKind.LOOT_DROPPED,
 		msg,
 		"LootService",
 		"loot_dropped:%s" % loot_id,
@@ -541,13 +561,13 @@ func _on_loot_dropped(source_id: String, loot_id: String, items: Array, currency
 	)
 
 func _on_loot_rolled(loot_id: String, player_id: String, roll_type, roll_value: int) -> void:
-	if not is_instance_valid(NotificationService):
+	if not is_instance_valid(_notif):
 		return
 	var roll_names := ["Need", "Greed", "Pass"]
 	var roll_idx := roll_type as int  # RollType enum is backed by int
 	var roll_name := roll_names[roll_idx] if roll_idx < roll_names.size() else "Roll"
-	NotificationService.notify(
-		NotificationService.NotifKind.CUSTOM,
+	_notif.notify(
+		_notif.NotifKind.CUSTOM,
 		"You rolled %s: %d" % [roll_name, roll_value],
 		"LootService",
 		"loot_roll:%s:%s" % [loot_id, player_id],
@@ -558,9 +578,9 @@ func _on_loot_rolled(loot_id: String, player_id: String, roll_type, roll_value: 
 # ── Achievement ────────────────────────────────────────────────────────
 
 func _on_achievement_unlocked(player_id: String, achievement_id: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.ACHIEVEMENT_UNLOCKED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.ACHIEVEMENT_UNLOCKED,
 			"Achievement unlocked: %s" % achievement_id,
 			"AchievementService",
 			"achieve:%s:%s" % [player_id, achievement_id],
@@ -569,9 +589,9 @@ func _on_achievement_unlocked(player_id: String, achievement_id: String) -> void
 		)
 
 func _on_achievement_progressed(player_id: String, achievement_id: String, progress: float) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.ACHIEVEMENT_PROGRESSED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.ACHIEVEMENT_PROGRESSED,
 			"Achievement progress: %s (%.0f%%)" % [achievement_id, progress * 100.0],
 			"AchievementService",
 			"achieve_progress:%s:%s" % [player_id, achievement_id],
@@ -582,11 +602,11 @@ func _on_achievement_progressed(player_id: String, achievement_id: String, progr
 # ── Faction ────────────────────────────────────────────────────────────
 
 func _on_faction_war_declared(faction1, faction2) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
 		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
-		NotificationService.notify(
-			NotificationService.NotifKind.CUSTOM,
+		_notif.notify(
+			_notif.NotifKind.CUSTOM,
 			"War declared: %s vs %s" % [n1, n2],
 			"FactionManager",
 			"war_declared:%s:%s" % [n1, n2],
@@ -595,11 +615,11 @@ func _on_faction_war_declared(faction1, faction2) -> void:
 		)
 
 func _on_faction_war_ended(faction1, faction2) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
 		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
-		NotificationService.notify(
-			NotificationService.NotifKind.CUSTOM,
+		_notif.notify(
+			_notif.NotifKind.CUSTOM,
 			"War ended between %s and %s" % [n1, n2],
 			"FactionManager",
 			"war_ended:%s:%s" % [n1, n2],
@@ -613,8 +633,8 @@ func _on_reputation_changed(player_id: String, faction_id: String, old_rep: int,
 		return
 	var sign := "+" if delta > 0 else ""
 	var msg := "Faction reputation %s%d (now %d)" % [sign, delta, new_rep]
-	NotificationService.notify(
-		NotificationService.NotifKind.CUSTOM,
+	_notif.notify(
+		_notif.NotifKind.CUSTOM,
 		msg,
 		"FactionManager",
 		"rep:%s:%s:%d" % [player_id, faction_id, new_rep],
@@ -637,9 +657,9 @@ func _on_player_entered_zone(player, zone) -> void:
 	if is_instance_valid(_minimap) and _minimap.has_method("set_zone_name"):
 		_minimap.set_zone_name(zone_name)
 	# Toast the player
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.ZONE_CHANGED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.ZONE_CHANGED,
 			"Entered: %s" % zone_name,
 			"ZoneManager",
 			"zone_enter:%s:%s" % [pid, zone_name],
@@ -648,9 +668,9 @@ func _on_player_entered_zone(player, zone) -> void:
 		)
 
 func _on_level_up(player_id: String, new_level: int) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.LEVEL_UP,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.LEVEL_UP,
 			"Level up! You are now level %d" % new_level,
 			"CommunityGovernance",
 			"level_up:%s:%d" % [player_id, new_level],
@@ -659,10 +679,10 @@ func _on_level_up(player_id: String, new_level: int) -> void:
 		)
 
 func _on_vote_created(vote) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var title := vote.get("title", "?") if vote else "?"
-		NotificationService.notify(
-			NotificationService.NotifKind.VOTE_CREATED,
+		_notif.notify(
+			_notif.NotifKind.VOTE_CREATED,
 			"New vote: %s" % title,
 			"CommunityGovernance",
 			"vote_created:%s" % title.hash(),
@@ -671,10 +691,10 @@ func _on_vote_created(vote) -> void:
 		)
 
 func _on_vote_closed(vote) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var title := vote.get("title", "?") if vote else "?"
-		NotificationService.notify(
-			NotificationService.NotifKind.VOTE_ENDED,
+		_notif.notify(
+			_notif.NotifKind.VOTE_ENDED,
 			"Vote closed: %s" % title,
 			"CommunityGovernance",
 			"vote_closed:%s" % title.hash(),
@@ -683,10 +703,10 @@ func _on_vote_closed(vote) -> void:
 		)
 
 func _on_vote_expired(vote) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var title := vote.get("title", "?") if vote else "?"
-		NotificationService.notify(
-			NotificationService.NotifKind.VOTE_ENDED,
+		_notif.notify(
+			_notif.NotifKind.VOTE_ENDED,
 			"Vote expired: %s" % title,
 			"CommunityGovernance",
 			"vote_expired:%s" % title.hash(),
@@ -695,10 +715,10 @@ func _on_vote_expired(vote) -> void:
 		)
 
 func _on_alliance_formed(guild_id: String, faction) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var faction_name := faction.get("faction_name", "?") if faction else "?"
-		NotificationService.notify(
-			NotificationService.NotifKind.CUSTOM,
+		_notif.notify(
+			_notif.NotifKind.CUSTOM,
 			"Alliance formed: %s" % faction_name,
 			"FactionManager",
 			"alliance:%s:%s" % [guild_id, faction_name],
@@ -709,9 +729,9 @@ func _on_alliance_formed(guild_id: String, faction) -> void:
 # --- SameAccountTransfer ---------------------------------------------
 
 func _on_transfer_cooldown_active(account_id: String, seconds_remaining: int) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.SAME_ACCOUNT_TRANSFER_COOLDOWN,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.SAME_ACCOUNT_TRANSFER_COOLDOWN,
 			"Transfer on cooldown: %d seconds remaining" % seconds_remaining,
 			"SameAccountTransferService",
 			"cooldown:%s:%d" % [account_id, seconds_remaining],
@@ -722,15 +742,15 @@ func _on_transfer_cooldown_active(account_id: String, seconds_remaining: int) ->
 # --- QoS -----------------------------------------------------------
 
 func _on_connection_quality_changed(player_id: String, quality) -> void:
-	# ConnectionQuality enum: QoSService.ConnectionQuality.keys()[value] -> name string.
+	# ConnectionQuality enum: _qos.ConnectionQuality.keys()[value] -> name string.
 	var quality_str := str(quality)  # fallback to integer if not resolved
-	if QoSService and typeof(quality) == TYPE_INTEGER:
-		var keys := QoSService.ConnectionQuality.keys()
+	if _qos and typeof(quality) == 2:
+		var keys := _qos.ConnectionQuality.keys()
 		if quality >= 0 and quality < keys.size():
 			quality_str = keys[quality]
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.CONNECTION_QUALITY,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.CONNECTION_QUALITY,
 			"Connection: %s" % quality_str,
 			"QoSService",
 			"qos_conn:%s:%s" % [player_id, quality_str],
@@ -739,9 +759,9 @@ func _on_connection_quality_changed(player_id: String, quality) -> void:
 		)
 
 func _on_latency_warning(player_id: String, latency_ms: int) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.QOS_DEGRADED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.QOS_DEGRADED,
 			"High latency: %dms" % latency_ms,
 			"QoSService",
 			"qos_lat:%s:%d" % [player_id, latency_ms],
@@ -750,9 +770,9 @@ func _on_latency_warning(player_id: String, latency_ms: int) -> void:
 		)
 
 func _on_qos_throttled(player_id: String, reason: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.THROTTLED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.THROTTLED,
 			reason,
 			"QoSService",
 			"qos_throttle:%s" % player_id,
@@ -764,9 +784,9 @@ func _on_qos_throttled(player_id: String, reason: String) -> void:
 
 func _on_respawn_completed(player, respawn_point) -> void:
 	var pid := player.entity_id if player and "entity_id" in player else ""
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.RESPAWNED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.RESPAWNED,
 			"You have respawned.",
 			"RespawnService",
 			"respawn:%s" % pid,
@@ -776,9 +796,9 @@ func _on_respawn_completed(player, respawn_point) -> void:
 
 func _on_respawn_canceled(player, reason: String) -> void:
 	var pid := player.entity_id if player and "entity_id" in player else ""
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.CUSTOM,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.CUSTOM,
 			"Respawn cancelled: %s" % reason,
 			"RespawnService",
 			"respawn_canceled:%s" % pid,
@@ -787,9 +807,9 @@ func _on_respawn_canceled(player, reason: String) -> void:
 		)
 
 func _on_karma_gained(entity_id: String, amount: int, reason: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.KARMA_CHANGED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.KARMA_CHANGED,
 			"Karma +%d (%s)" % [amount, reason],
 			"RespawnService",
 			"karma_gain:%s:%d" % [entity_id, amount],
@@ -798,9 +818,9 @@ func _on_karma_gained(entity_id: String, amount: int, reason: String) -> void:
 		)
 
 func _on_karma_lost(entity_id: String, amount: int, reason: String) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.KARMA_CHANGED,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.KARMA_CHANGED,
 			"Karma -%d (%s)" % [amount, reason],
 			"RespawnService",
 			"karma_loss:%s:%d" % [entity_id, amount],
@@ -811,9 +831,9 @@ func _on_karma_lost(entity_id: String, amount: int, reason: String) -> void:
 # --- DeathFeatures -------------------------------------------------
 
 func _on_kill_streak_rewarded(killer_id: String, streak: int, xp_bonus: int, gold_bonus: int) -> void:
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
-			NotificationService.NotifKind.KILL_STREAK,
+	if is_instance_valid(_notif):
+		_notif.notify(
+			_notif.NotifKind.KILL_STREAK,
 			"Kill streak %d! +%d XP, +%d gold" % [streak, xp_bonus, gold_bonus],
 			"DeathFeatures",
 			"kill_streak:%s:%d" % [killer_id, streak],
@@ -822,7 +842,7 @@ func _on_kill_streak_rewarded(killer_id: String, streak: int, xp_bonus: int, gol
 		)
 
 func _on_death_penalty_applied(entity_id: String, xp_loss: int, gold_loss: int, durability_loss: float) -> void:
-	if is_instance_valid(NotificationService):
+	if is_instance_valid(_notif):
 		var parts := []
 		if xp_loss > 0:
 			parts.append("-%d XP" % xp_loss)
@@ -831,8 +851,8 @@ func _on_death_penalty_applied(entity_id: String, xp_loss: int, gold_loss: int, 
 		if durability_loss > 0:
 			parts.append("-%.0f%% durability" % (durability_loss * 100))
 		var msg := "Death penalty: " + ", ".join(parts) if not parts.is_empty() else "Death penalty applied"
-		NotificationService.notify(
-			NotificationService.NotifKind.RESPAWN_PENALTY_APPLIED,
+		_notif.notify(
+			_notif.NotifKind.RESPAWN_PENALTY_APPLIED,
 			msg,
 			"DeathFeatures",
 			"death_penalty:%s" % entity_id,
