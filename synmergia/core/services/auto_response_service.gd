@@ -2,6 +2,10 @@
 ## Takes actions based on configured thresholds
 extends Node
 
+# Defensive runtime autoload accessors
+func _nm(): return Engine.get_singleton("NetworkManager")
+func _pm(): return Engine.get_singleton("PlayerManager")
+
 const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 ## ============================================================================
@@ -167,7 +171,7 @@ func _auto_kick(player_id: String, reason: String, exploit_type: String = "explo
 	# Find peer ID and kick
 	var peer_id = _get_peer_for_player(player_id)
 	if peer_id > 0:
-		NetworkManager.kick_player(peer_id, reason)
+		(_nm().kick_player(peer_id, reason) if _nm() else null)
 
 	_notify_admins("Auto-kicked %s: %s" % [player_id, reason])
 	action_taken.emit(player_id, ActionType.KICK, exploit_type, reason)
@@ -176,12 +180,12 @@ func _auto_ban(player_id: String, reason: String, exploit_type: String = "exploi
 	GameLog.warn("AutoResponse: Banning %s: %s" % [player_id, reason])
 
 	# Issue permanent ban
-	NetworkManager.ban_player(player_id, reason, "auto_response")
+	(_nm().ban_player(player_id, reason, "auto_response") if _nm() else null)
 
 	# Kick if still connected
 	var peer_id = _get_peer_for_player(player_id)
 	if peer_id > 0:
-		NetworkManager.kick_player(peer_id, "Banned: " + reason)
+		(_nm().kick_player(peer_id, "Banned: " + reason) if _nm() else null)
 
 	_notify_admins("Auto-banned %s: %s" % [player_id, reason])
 	action_taken.emit(player_id, ActionType.BAN, exploit_type, reason)
@@ -209,8 +213,9 @@ func _get_peer_for_player(player_id: String) -> int:
 			elif result is int and result > 0:
 				return result
 	# Fallback: scan NetworkManager.connected_peers by player_id key.
-	if NetworkManager and NetworkManager.has_method("get"):
-		var connected = NetworkManager.get("connected_peers")
+	var nm = _nm()
+	if nm and nm.has_method("get"):
+		var connected = nm.get("connected_peers")
 		if connected is Dictionary:
 			var connected_dict: Dictionary = connected
 			for peer_id in connected_dict.keys():
