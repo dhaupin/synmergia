@@ -1,0 +1,34 @@
+# Godot 4 GUI testing with Xvfb (virtual framebuffer)
+# Usage: docker build -f Dockerfile.godot-gui -t synmergia-gui .
+#        docker run --rm -p 6080:6080 -p 5900:5900 synmergia-gui
+# Then open: http://localhost:6080/vnc.html
+
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Xvfb, VNC, noVNC
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb \
+    x11vnc \
+    novnc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy pre-downloaded Godot binary from host
+COPY bin/godot /usr/local/bin/godot
+RUN chmod +x /usr/local/bin/godot
+
+# Copy game project
+WORKDIR /workspace/project/synmergia
+COPY synmergia /workspace/project/synmergia
+
+# Expose VNC and noVNC
+EXPOSE 6080 5900
+
+# Start Xvfb + VNC + noVNC
+CMD ["bash", "-c", "\
+    Xvfb :99 -screen 0 1920x1080x24 & \
+    x11vnc -display :99 -rfbport 5900 -forever -shared & \
+    websockify --web=/usr/share/novnc 6080 localhost:5900 & \
+    echo 'VNC: localhost:5900 | noVNC: http://localhost:6080/vnc.html' && \
+    tail -f /dev/null"]

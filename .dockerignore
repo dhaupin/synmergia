@@ -1,0 +1,10 @@
+# Ignore everything by default
+*
+
+# Include these
+!synmergia/
+!Dockerfile.godot-*
+!docker-compose*.yml
+!docs/docker-setup.md
+!.dockerignore
+!.gitignore

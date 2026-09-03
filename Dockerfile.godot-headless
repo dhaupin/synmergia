@@ -1,0 +1,33 @@
+# Godot 4 headless test runner
+# Usage: docker build -f Dockerfile.godot-headless -t synmergia-test .
+#        docker run --rm synmergia-test
+#        docker run --rm synmergia-test godot --headless --path /workspace/project/synmergia --script res://tests/test_hud_integration.gd
+
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /workspace/project/synmergia
+
+# Install dependencies and ca-certificates for HTTPS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libc6 \
+    libgl1-mesa-glx \
+    libasound2 \
+    ca-certificates \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download Godot 4.7.2 (using curl with fresh certs)
+RUN curl -fsSL https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o godot.zip && \
+    unzip -q godot.zip && \
+    mv Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot && \
+    chmod +x /usr/local/bin/godot && \
+    rm godot.zip
+
+# Copy game project
+COPY synmergia /workspace/project/synmergia
+
+# Run tests
+CMD ["/usr/local/bin/godot", "--headless", "--path", "/workspace/project/synmergia", "--script", "res://tests/test_hud_integration.gd"]
