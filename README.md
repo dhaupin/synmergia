@@ -1,9 +1,9 @@
 # Synmergia
 
-An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima Online depth. Built on a reusable **frame** (multi-iso orchestrator + content-hash state tree) that can be extracted to its own project.
+An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima Online depth. Experimental work (multi-iso orchestration, content-hash state tree, Julia pipelines) lives in [`labs/`](./labs/).
 
 > **Game:** A 3D open-world MMORPG with RYL2-style action combat and UO-style economy, housing, and depth.
-> **Frame:** A multi-iso orchestrator + state tree that any state-heavy multiplayer game can build on. See [`labs/`](./labs/).
+> **Labs:** Experimental work-in-progress (orchestrator, state tree, Julia pipelines) that may eventually graduate into `synmergia/`.
 
 [![Godot 4.7.2](https://img.shields.io/badge/Godot-4.7.2-blue)](https://godotengine.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -38,12 +38,12 @@ An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima 
 - **MCP Protocol** - Model Context Protocol support for standard AI interfaces
 - **Observation/Action Space** - Structured game state for agent decision-making
 
-### The Frame (experimental, in `/labs/`)
+### Experimental Work (in `/labs/`)
 - **Multi-iso orchestrator** - Multi-dimensional state queries: spatial ∩ factional ∩ temporal ∩ social. Materialized intersection tables make hot queries O(1).
 - **Content-hash state tree** - Every node is SHA-256-hashed. Server tick = re-rooting. Client sync = diff between hashes.
 - **LOD pyramid** - 4 levels of detail. Inactive regions serialize and unload.
 - **Predictive prefetch** - Markov over player transitions pre-loads regions before arrival.
-- **Frame extraction** - The frame is designed to lift out of Synmergia and into its own project. The game becomes the example consumer.
+- **Julia pipelines** - Julia-based modeling and orchestration for the multi-iso frame.
 
 ## Tech Stack
 
@@ -55,8 +55,8 @@ An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima 
 
 ## Architecture
 
-The stack is five layers. The first three are the game (in
-`synmergia/`). The bottom two are the frame (in `/labs/`).
+The game lives in `synmergia/`. Experimental work (orchestrator, state tree,
+pipelines) is in `labs/`.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -93,15 +93,13 @@ The stack is five layers. The first three are the game (in
 └─────────────────────────────────────────────────────────────┘
 ```
 
-The game lives in the top three layers. The frame lives in the
-bottom two. When the frame extracts, it takes the bottom two
-layers with it.
+The game lives in the top three layers. `labs/` contains experimental work
+that may graduate into `synmergia/` or eventually extract to its own project.
 
 ## Project Structure
 
 The repo has two top-level areas: the game (`synmergia/`) and
-the frame (`labs/`). The game is the Godot project. The frame
-is experimental work that could extract to its own repo.
+experimental work in `labs/`. The game is the Godot project.
 
 ```
 .
