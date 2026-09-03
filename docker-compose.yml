@@ -1,5 +1,5 @@
-# Synmergia Docker - Full Stack
-# Usage: docker compose up
+# Synmergia Docker
+# Usage: docker compose up --build
 
 services:
   synmergia:
@@ -12,7 +12,6 @@ services:
     volumes:
       - ./synmergia:/workspace/project/synmergia
       - ./captures:/workspace/project/synmergia/captures
-      - ./tools/docker/scripts:/tools
     environment:
       - DISPLAY=:99
     restart: unless-stopped
