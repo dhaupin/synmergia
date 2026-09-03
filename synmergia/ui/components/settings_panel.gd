@@ -1,6 +1,8 @@
 ## SettingsPanel - Game settings UI
 ## Audio, video, keybinds, accessibility options
 class_name SettingsPanel
+
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
 
 ## Settings categories

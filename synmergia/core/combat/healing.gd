@@ -2,6 +2,7 @@
 ## Instant heals, regen over time, and resource replenishment
 extends Node
 
+const __RegenerationOverTime__ = preload("res://core/combat/healing.gd")
 ## Simple instant heal (call directly or from effects)
 static func heal_instant(target: Entity, amount: int) -> int:
 	if target.is_dead:
@@ -167,7 +168,7 @@ func _init() -> void:
 func apply(target: Entity) -> void:
 	super.apply(target)
 	
-	_regen = RegenerationOverTime.new()
+	_regen = __RegenerationOverTime__.new()
 	_regen.resource_type = RegenerationOverTime.Resource.HEALTH
 	_regen.tick_amount = tick_amount
 	_regen.tick_interval = tick_interval
@@ -204,7 +205,7 @@ func _init() -> void:
 func apply(target: Entity) -> void:
 	super.apply(target)
 	
-	_regen = RegenerationOverTime.new()
+	_regen = __RegenerationOverTime__.new()
 	_regen.resource_type = RegenerationOverTime.Resource.MANA
 	_regen.tick_amount = tick_amount
 	_regen.tick_interval = tick_interval
@@ -241,7 +242,7 @@ func _init() -> void:
 func apply(target: Entity) -> void:
 	super.apply(target)
 	
-	_regen = RegenerationOverTime.new()
+	_regen = __RegenerationOverTime__.new()
 	_regen.resource_type = RegenerationOverTime.Resource.STAMINA
 	_regen.tick_amount = tick_amount
 	_regen.tick_interval = tick_interval

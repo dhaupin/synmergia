@@ -1,5 +1,7 @@
 ## Fall State - Player is falling
 class_name FallState
+
+const State = preload("res://scripts/state.gd")
 extends State
 
 var has_dodged_air: bool = false

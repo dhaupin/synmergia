@@ -2,6 +2,7 @@
 ## Handles quest acceptance, progress tracking, and completion
 extends Node
 
+const QuestData = preload("res://core/schemas/quest_data.gd")
 static func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')
 

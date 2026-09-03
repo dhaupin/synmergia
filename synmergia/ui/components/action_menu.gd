@@ -3,6 +3,8 @@
 ## Supports both mouse (right-click) and touch (long-press)
 class_name ActionMenu
 extends Control
+const NPCData = preload("res://core/schemas/npc_data.gd")
+
 
 ## Menu items
 var _menu_panel: PanelContainer

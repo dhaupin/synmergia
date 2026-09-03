@@ -1,5 +1,7 @@
 ## Run State - Player is moving
 class_name RunState
+
+const State = preload("res://scripts/state.gd")
 extends State
 
 var animation_playing: bool = false

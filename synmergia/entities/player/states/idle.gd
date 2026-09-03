@@ -1,5 +1,7 @@
 ## Idle State - Player is standing still
 class_name IdleState
+
+const State = preload("res://scripts/state.gd")
 extends State
 
 var idle_timer: float = 0.0

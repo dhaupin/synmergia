@@ -2,6 +2,7 @@
 ## Handles all chat channels, filters, commands, and channel permissions
 extends Node
 
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 # Frame-level notification dispatch (typed-Kind pipeline).
 # All chat-service-toasts are feedback to the sender about their own
 # blocked/limited message (rate-limit, validation, restriction), so

@@ -2,6 +2,8 @@
 ## Handles faction reputation, war declarations, and guild alliances
 extends Node
 
+
+const Faction = preload("res://core/schemas/faction.gd")
 # All factions (faction_id -> Faction)
 var _factions: Dictionary = {}
 

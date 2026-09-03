@@ -5,6 +5,9 @@
 ## Players spend skill points + consume 4 matching-tier books to upgrade skills.
 extends Node
 
+const SkillBook = preload("res://core/schemas/skill_book.gd")
+const CharacterData = preload("res://core/schemas/character_data.gd")
+const SkillSchema = preload("res://core/schemas/skill.gd")
 # Singleton
 static var instance: SkillAcademyService
 

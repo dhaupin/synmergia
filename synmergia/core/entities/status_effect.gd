@@ -2,6 +2,8 @@
 ## Single base class for all temporary effects on entities
 class_name StatusEffect
 extends Resource
+const Entity = preload("res://core/entities/entity.gd")
+
 
 ## Effect type classification
 enum EffectType {

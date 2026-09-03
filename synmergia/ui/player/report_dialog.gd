@@ -1,6 +1,8 @@
 ## ReportDialog - Modal dialog for submitting player reports
 ## Migrated onto UIPanel base class.
 class_name ReportDialog
+
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
 
 enum ReportType {

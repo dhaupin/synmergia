@@ -2,6 +2,9 @@
 ## Allows AI agents (Vant, Claude, GPT, Gemini, etc.) to connect and play
 class_name AgentConnector
 extends Node
+const AgentAction = preload("res://core/schemas/agent_action.gd")
+const Entity = preload("res://core/entities/entity.gd")
+
 
 enum ConnectorStatus {
 	DISCONNECTED,

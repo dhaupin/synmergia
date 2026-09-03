@@ -2,6 +2,10 @@
 ## Handles connecting/disconnecting AI agents to the game
 class_name ConnectorService
 extends Node
+const AgentConnector = preload("res://core/schemas/agent_connector.gd")
+const Skill = preload("res://core/combat/skill.gd")
+const AgentAction = preload("res://core/schemas/agent_action.gd")
+
 
 signal connector_registered(connector: AgentConnector)
 signal connector_status_changed(connector_name: String, status: AgentConnector.ConnectorStatus)

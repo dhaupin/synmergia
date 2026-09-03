@@ -10,6 +10,11 @@
 ## - Target history (restore previous)
 extends Node
 
+
+const PlayerController = preload("res://entities/player/player_controller.gd")
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+const NPCData = preload("res://core/schemas/npc_data.gd")
+const TargetSchema = preload("res://core/schemas/target_schema.gd")
 ## ============================================================================
 ## SINGLETON
 ## ============================================================================

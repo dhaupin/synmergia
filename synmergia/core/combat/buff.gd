@@ -1,7 +1,11 @@
 ## Buff - Temporary stat/effect modifiers
 ## One-time cost, duration-based enhancement
 class_name Buff
+
 extends StatusEffect
+const PhysicsArea = preload("res://core/combat/physics_area.gd")
+const Entity = preload("res://core/entities/entity.gd")
+
 
 enum BuffType {
 	STAT_BOOST,     # Increase stats temporarily

@@ -5,6 +5,11 @@ extends Node
 
 
 
+
+const Entity = preload("res://core/entities/entity.gd")
+const Species = preload("res://core/schemas/species.gd")
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+const Faction = preload("res://core/schemas/faction.gd")
 var _entities: Dictionary = {}       # entity_id -> 
 var _players: Dictionary = {}        # player_id ->  (subset)
 var _enemies: Dictionary = {}       # entity_id ->  (subset)

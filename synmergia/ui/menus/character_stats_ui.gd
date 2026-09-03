@@ -1,7 +1,11 @@
 ## CharacterStatsUI - In-game character stats panel
 ## Shows all stats, allocated points, and allows allocation
 class_name CharacterStatsUI
+
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
+const CharacterData = preload("res://core/schemas/character_data.gd")
+
 
 const HEADER_HEIGHT: int = 40
 const ROW_HEIGHT: int = 32

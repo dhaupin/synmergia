@@ -1,6 +1,8 @@
 ## VotingUI - In-game UI for community voting
 ## Migrated onto UIPanel base class.
 class_name VotingUI
+
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
 
 var _tab_container: TabContainer

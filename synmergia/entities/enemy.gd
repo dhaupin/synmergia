@@ -1,6 +1,10 @@
 ## Enemy — basic enemy entity with health and simple AI
 class_name Enemy
+
 extends Entity
+const LootTable = preload("res://core/schemas/loot_table.gd")
+const HealthComponent = preload("res://core/components/health_component.gd")
+
 
 @export var enemy_data: Resource
 @export var starting_health: int = 30

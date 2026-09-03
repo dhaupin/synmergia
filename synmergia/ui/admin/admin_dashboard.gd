@@ -3,6 +3,8 @@
 ## Provides visual interface for admin commands and player management
 class_name AdminDashboard
 extends Control
+const AdminShell = preload("res://core/admin/admin_shell.gd")
+
 
 ## Signal when dashboard is closed
 signal closed()

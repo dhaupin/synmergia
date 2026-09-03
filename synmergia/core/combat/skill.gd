@@ -2,6 +2,9 @@
 ## Can be instant, channeled, or ground-targeted
 class_name Skill
 extends Resource
+const Entity = preload("res://core/entities/entity.gd")
+const SkillSchema = preload("res://core/schemas/skill.gd")
+
 
 enum SkillType {
 	MELEE,           # Close range attack

@@ -2,6 +2,8 @@
 ## Handles hit chance, miss, evade, block, parry, crush
 class_name CombatMath
 extends Node
+const Skill = preload("res://core/combat/skill.gd")
+
 
 ## Hit results
 enum HitResult {

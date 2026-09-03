@@ -1,8 +1,10 @@
 ## SkillBook - A consumable item that upgrades a skill
 ## Instantiated at runtime by SkillAcademyService — not a .tres file
 class_name SkillBook
+
 extends Item
 
+const __SkillBook__ = preload("res://core/schemas/skill_book.gd")
 var book_skill_id: String = ""
 var book_upgrade_level: int = 0  # 1 = common, 2 = rare, ..., 5 = mythic
 
@@ -15,7 +17,7 @@ static func create(skill_id: String, upgrade_level: int, skill_display_name: Str
 	var tier_roman := ["", "I", "II", "III", "IV", "V"]
 	var tier: String = tier_names[upgrade_level] if upgrade_level in tier_names else "common"
 
-	var book := SkillBook.new()
+	var book := __SkillBook__.new()
 	book.book_skill_id = skill_id
 	book.book_upgrade_level = upgrade_level
 	book.id = "book_%s_%s" % [skill_id, tier]

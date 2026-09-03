@@ -2,6 +2,7 @@
 ## Interactable NPC that provides access to the Skill Academy UI.
 ## No trading or state — delegates entirely to SkillAcademyService + SkillAcademyUI.
 class_name SkillAcademyNPC
+
 extends Entity
 
 var npc_data: NPCData = null

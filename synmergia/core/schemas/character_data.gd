@@ -2,6 +2,9 @@
 ## Created at character selection, used to instantiate the player entity
 class_name CharacterData
 extends Resource
+const CharacterClass = preload("res://core/schemas/character_class.gd")
+const Species = preload("res://core/schemas/species.gd")
+
 
 @export var character_id: String = ""
 @export var display_name: String = "Hero"

@@ -3,6 +3,7 @@
 class_name RecursionGuard
 extends RefCounted
 
+const __RecursionGuard__ = preload("res://core/utils/recursion_guard.gd")
 ## Emitted when enter() rejects a call because max depth was exceeded.
 ## Listeners (AppFirewall, admin UI) can route this into the notification
 ## pipeline. Per docs/architecture/security.md, this guard is the agent
@@ -128,20 +129,20 @@ func reset_stats() -> void:
 
 ## Create a guard with preset configurations
 static func create_entity_guard() -> RecursionGuard:
-	var guard = RecursionGuard.new(GameConfig.QoS.Recursion.ENTITY_TREE_MAX_DEPTH)
+	var guard = __RecursionGuard__.new(GameConfig.QoS.Recursion.ENTITY_TREE_MAX_DEPTH)
 	guard.set_max_depth("entity_tree", GameConfig.QoS.Recursion.ENTITY_TREE_MAX_DEPTH)
 	guard.set_max_depth("get_children_recursive", GameConfig.QoS.Recursion.ENTITY_TREE_MAX_DEPTH)
 	guard.set_max_depth("get_all_entities_recursive", GameConfig.QoS.Recursion.ENTITY_TREE_MAX_DEPTH)
 	return guard
 
 static func create_zone_guard() -> RecursionGuard:
-	var guard = RecursionGuard.new(GameConfig.QoS.Recursion.ZONE_NEIGHBOR_MAX_DEPTH)
+	var guard = __RecursionGuard__.new(GameConfig.QoS.Recursion.ZONE_NEIGHBOR_MAX_DEPTH)
 	guard.set_max_depth("zone_neighbors", GameConfig.QoS.Recursion.ZONE_NEIGHBOR_MAX_DEPTH)
 	guard.set_max_depth("get_neighbor_zones_recursive", GameConfig.QoS.Recursion.ZONE_NEIGHBOR_MAX_DEPTH)
 	return guard
 
 static func create_aura_guard() -> RecursionGuard:
-	var guard = RecursionGuard.new(GameConfig.QoS.Recursion.AURA_CHAIN_MAX_DEPTH)
+	var guard = __RecursionGuard__.new(GameConfig.QoS.Recursion.AURA_CHAIN_MAX_DEPTH)
 	guard.set_max_depth("aura_chain", GameConfig.QoS.Recursion.AURA_CHAIN_MAX_DEPTH)
 	guard.set_max_depth("apply_effects_recursive", GameConfig.QoS.Recursion.AURA_CHAIN_MAX_DEPTH)
 	return guard

@@ -1,6 +1,8 @@
 ## BankUI - Vault/Bank interface panel
 ## Provides access to personal, guild, and account vaults
 class_name BankUI
+
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
 
 ## Vault tabs
