@@ -99,25 +99,24 @@ function resolveOutputPath(suffix) {
 // --- NoVNC connection state ---
 async function waitForNoVNCConnected(page, retries = 20, interval = 500) {
   for (let i = 0; i < retries; i++) {
-    const connected = await page.evaluate(() => {
-      // noVNC stores connection state in the RFB object
-      // After connecting, the "state" property transitions to 'connected'
-      const state = window.RFB ? window.RFB.connectionState : null;
-      return state;
-    }).catch(() => null);
-
-    if (connected === 'connected') {
-      log('noVNC connected');
-      return true;
-    }
-    // Also check the DOM: noVNC removes the connecting overlay
-    const overlay = await page.$('#noVNC_connecting').catch(() => null);
-    if (overlay) {
-      const visible = await overlay.isVisible().catch(() => false);
-      if (!visible) {
-        log('noVNC connection overlay hidden, assuming connected');
+    // Check if the connecting overlay is gone or hidden (noVNC removes it on connect)
+    try {
+      const overlay = await page.$('#noVNC_connecting');
+      if (overlay) {
+        const visible = await overlay.isVisible();
+        if (!visible) {
+          log('noVNC connecting overlay hidden — connected');
+          return true;
+        }
+      } else {
+        // No overlay at all means already connected (or already gone)
+        log('noVNC connecting overlay not found — connected');
         return true;
       }
+    } catch (_) {
+      // Element not found or error — assume connected
+      log('noVNC check error — assuming connected');
+      return true;
     }
     await new Promise(r => setTimeout(r, interval));
   }
@@ -239,8 +238,19 @@ async function recordVideo(browser, page) {
 async function main() {
   log('Launching browser...');
 
+  // Resolve Chrome binary: prefer Puppeteer-installed browser, fall back to system
+  const { sync: whichSync } = require('which');
+  const chromePath = (
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    whichSync('google-chrome', { nothrow: true }) ||
+    whichSync('chromium-browser', { nothrow: true }) ||
+    '/root/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome'
+  );
+  log('Using Chrome:', chromePath);
+
   const browser = await puppeteer.launch({
     headless: 'new',
+    executablePath: chromePath,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
