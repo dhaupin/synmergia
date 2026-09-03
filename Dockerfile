@@ -1,6 +1,6 @@
 # ============================================================================
 # Synmergia - Development Container
-# One image. Build what you need.
+# One image. No build args needed for screenshot+Godot dev.
 #
 # Usage:
 #   docker build -t synmergia .
@@ -28,12 +28,16 @@ ENV NODE_VERSION=20
 # BASE - always needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget unzip ca-certificates git build-essential \
-    xvfb x11vnc novnc \
+    xvfb x11vnc novnc websockify \
     libx11-6 libx11-xcb1 libxcb1 libxext6 libxrandr2 libxcursor1 \
     libxi6 libxinerama1 libxrender1 libxkbcommon0 \
     libgl1-mesa-glx libasound2 libpulse0 \
     nginx openssl \
     python3 python3-pip ffmpeg imagemagick x11-apps gnupg \
+    # Chromium / GTK for Puppeteer
+    libnss3 libatk-bridge2.0-0 libxcomposite1 libxdamage1 \
+    libgbm1 libpangocairo-1.0-0 libpango-1.0-0 libgtk-3-0 \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -41,7 +45,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN sed -i 's/^<policy domain="coder" rights="none" pattern="\(PS\|PDF\|EPS\|VIDEO\|HTTPD\|DOSMEXEC\)"\/>/<policy domain="coder" rights="none" pattern="PS"\/><policy domain="coder" rights="none" pattern="PDF"\/>/' \
     /etc/ImageMagick-6/policy.xml 2>/dev/null || true
 
-RUN pip3 install --no-cache-dir --break-system-packages websockify
 
 # GODOT
 RUN curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" \
@@ -81,24 +84,17 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# PUPPETEER - Chromium browser for screenshot.js
-# Puppeteer's bundled Chromium needs these deps on Debian
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libnss3 libatk-bridge2.0-0 libxcomposite1 libxdamage1 libxrandr2 \
-    libgbm1 libasound2 libpangocairo-1.0-0 libpango-1.0-0 libgtk-3-0 \
-    fonts-liberation \
-    && rm -rf /var/lib/apt/lists/*
-
 # SETUP
 WORKDIR /workspace/project/synmergia
 
-RUN mkdir -p /var/www/html /etc/nginx/ssl /workspace/project/synmergia/captures
+RUN mkdir -p /var/www/html /etc/nginx/ssl /workspace/project/synmergia/captures/screenshots
 
-# Screenshot/agent tooling — Puppeteer
+# Screenshot/agent tooling — Puppeteer + Chromium
 # Installs puppeteer + minimist into synmergia/scripts/node_modules
 # so agents can run screenshot.js inside the container
-COPY synmergia/scripts/package.json synmergia/scripts/
-RUN cd synmergia/scripts && npm install --no-audit --no-fund
+COPY synmergia/scripts/ synmergia/scripts/
+RUN cd synmergia/scripts && npm install --no-audit --no-fund \
+ && npx puppeteer browsers install chrome
 
 # Nginx config
 RUN printf '%s\n' \
@@ -133,23 +129,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 EXPOSE 80 6080 5900 9000
 
-ENTRYPOINT ["/bin/bash", "-c", "\
-echo 'Starting Synmergia...'; \
-Xvfb :99 -screen 0 1920x1080x24 & \
-sleep 1; \
-x11vnc -display :99 -forever -shared -rfbport 5900 -nopw -bg 2>/dev/null || true; \
-websockify --web=/usr/share/novnc 6080 localhost:5900 &>/dev/null & \
-sleep 1; \
-nginx -g 'daemon off;' & \
-echo ''; \
-echo '================================================'; \
-echo ' Synmergia Dev Container'; \
-echo '================================================'; \
-echo ' HTTP:   http://localhost'; \
-echo ' noVNC:  http://localhost:6080/vnc.html'; \
-echo ' VNC:    localhost:5900'; \
-echo ' Godot:  DISPLAY=:99 godot --path /workspace/project/synmergia'; \
-echo '================================================'; \
-tail -f /dev/null"]
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-CMD ["tail", "-f", "/dev/null"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
