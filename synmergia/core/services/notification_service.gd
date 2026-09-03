@@ -784,7 +784,7 @@ func _add_to_history(entity_id: String, notification: Dictionary) -> void:
 # or had no resolvable recipient.
 
 const NotificationContext = preload("res://core/notifications/notification_context.gd")
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 func send_event(ctx) -> bool:
 	if ctx == null:

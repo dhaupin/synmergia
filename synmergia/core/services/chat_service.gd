@@ -7,7 +7,7 @@ const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 # All chat-service-toasts are feedback to the sender about their own
 # blocked/limited message (rate-limit, validation, restriction), so
 # the Kind is SECURITY_BLOCKED uniformly.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 # Chat channels
 enum Channel {

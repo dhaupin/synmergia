@@ -9,7 +9,7 @@ extends SceneTree
 
 const NotificationContext = preload("res://core/notifications/notification_context.gd")
 const NotificationDispatcher = preload("res://core/notifications/notification_dispatcher.gd")
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 var _passed: int = 0
 var _failed: int = 0

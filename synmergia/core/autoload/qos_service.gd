@@ -8,7 +8,7 @@ class_name QoSService
 # typed-Kind pipeline. The dispatch goes through NotificationService.notify
 # (the service-level verb that wraps send_event), so call sites only need
 # the kind enum and a dedupe key.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 ## ============================================================================
 ## SIGNALS

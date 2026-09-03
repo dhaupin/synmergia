@@ -168,7 +168,7 @@ func _init() -> void:
 func apply(target: Entity) -> void:
 	super.apply(target)
 	
-	_regen = __RegenerationOverTime__.new()
+	_regen = RegenerationOverTime.new()
 	_regen.resource_type = RegenerationOverTime.Resource.HEALTH
 	_regen.tick_amount = tick_amount
 	_regen.tick_interval = tick_interval
@@ -205,7 +205,7 @@ func _init() -> void:
 func apply(target: Entity) -> void:
 	super.apply(target)
 	
-	_regen = __RegenerationOverTime__.new()
+	_regen = RegenerationOverTime.new()
 	_regen.resource_type = RegenerationOverTime.Resource.MANA
 	_regen.tick_amount = tick_amount
 	_regen.tick_interval = tick_interval
@@ -242,7 +242,7 @@ func _init() -> void:
 func apply(target: Entity) -> void:
 	super.apply(target)
 	
-	_regen = __RegenerationOverTime__.new()
+	_regen = RegenerationOverTime.new()
 	_regen.resource_type = RegenerationOverTime.Resource.STAMINA
 	_regen.tick_amount = tick_amount
 	_regen.tick_interval = tick_interval

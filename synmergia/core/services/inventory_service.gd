@@ -17,7 +17,7 @@ signal gold_transferred(from_id: String, to_id: String, amount: int)
 # InventoryService surfaces add/remove/full/soulbound/trade-reject events
 # through the toast pipeline. Dedupe keys are item-aware so a player
 # looting 50 of the same item sees one toast for the burst, not 50.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 func _emit_inventory(
 	player_id: String,

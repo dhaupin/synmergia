@@ -43,7 +43,7 @@ func _init() -> void:
 
 ## Parse from dictionary
 static func from_dict(data: Dictionary) -> AgentAction:
-	var action := __AgentAction__.new()
+	var action := AgentAction.new()
 	
 	action.action_name = data.get("action", "unknown")
 	action.parameters = data.get("parameters", {})
