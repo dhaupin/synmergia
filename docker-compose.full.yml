@@ -1,0 +1,44 @@
+# Docker Compose - Full Stack Synmergia
+# Usage: docker compose -f docker-compose.full.yml up
+#
+# Services:
+#   - synmergia: Main game server (Godot headless)
+#   - godot-gui: GUI testing with VNC/noVNC
+#   - websocket: WebSocket relay (future)
+
+services:
+  synmergia:
+    build:
+      context: .
+      dockerfile: Dockerfile.synmergia-full
+    ports:
+      - "8080:8080"    # HTTP
+      - "9000:9000"    # Godot multiplayer port (ENet)
+    environment:
+      - GODOT_HEADLESS=true
+    volumes:
+      - ./synmergia:/workspace/project/synmergia:ro
+    command: ["godot", "--headless", "--path", "/workspace/project/synmergia", "--server"]
+    restart: unless-stopped
+    networks:
+      - synmergia-net
+
+  godot-gui:
+    build:
+      context: .
+      dockerfile: Dockerfile.synmergia-full
+    ports:
+      - "6080:6080"    # noVNC
+      - "5900:5900"    # VNC
+    environment:
+      - DISPLAY=:99
+    volumes:
+      - ./synmergia:/workspace/project/synmergia:ro
+    command: ["bash", "-c", "Xvfb :99 -screen 0 1920x1080x24 & x11vnc -display :99 -rfbport 5900 -forever -shared -nopw & websockify --web=/usr/share/novnc 6080 localhost:5900 & tail -f /dev/null"]
+    restart: unless-stopped
+    networks:
+      - synmergia-net
+
+networks:
+  synmergia-net:
+    driver: bridge
