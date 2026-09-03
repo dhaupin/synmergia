@@ -1118,3 +1118,46 @@ Players choose 1 of 3 signature abilities at level 10:
 - `core/schemas/character_data.gd` — CharacterData with signature fields
 - `core/services/skill_academy_service.gd` — Upgrade and signature logic
 - `ui/components/skill_academy_ui.gd` — 5-tab UI (Skills, Books, Upgrade, **Signature**, Respec)
+
+---
+
+## VPS Architecture
+
+Synmergia supports two deployment modes via Docker:
+
+### DEV Mode (default)
+```bash
+docker compose up
+```
+- Full GUI environment with VNC/noVNC
+- Xvfb for headless rendering
+- All dev tools available
+- Volume-mounted source for live editing
+
+### PROD Mode
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+- Minimal production image
+- Postgres database for player data
+- Nginx reverse proxy with SSL
+- Godot headless server
+- WebSocket for game clients
+
+### Key Files
+- `Dockerfile` — DEV image with GUI tools
+- `Dockerfile.prod` — Minimal production build
+- `docker-compose.yml` — DEV configuration
+- `docker-compose.prod.yml` — PROD configuration
+- `nginx.conf` — Reverse proxy, WebSocket forwarding
+- `.env.example` — Environment variables template
+- `docs/vps-architecture.md` — Full architecture documentation
+
+### Ports
+| Port | DEV | PROD | Service |
+|------|-----|------|---------|
+| 80 | ✅ | ✅ | HTTP |
+| 443 | ❌ | ✅ | HTTPS |
+| 6080 | ✅ | ❌ | noVNC |
+| 5900 | ✅ | ❌ | VNC |
+| 9000 | ✅ | ✅ | WebSocket |
