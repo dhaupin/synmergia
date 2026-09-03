@@ -936,6 +936,69 @@ Continuation of the UI wiring pass from 2026-09-01. Seven commits
 pushing all UI → service signal wiring to functional completeness.
 
 - **`2d2408c` HUD wiring: minimap zone name, vault withdraw, guild check**
+
+
+## Session insights (2026-09-03)
+
+Four feature deliverables in one session, plus compile fixes:
+
+**Item textures (`inventory_ui.gd`):**
+- `InventoryUI._get_item_icon(item)` loads `item.icon_path` (from `.tres`),
+  falls back to category placeholder textures.
+- Category map: `res://ui/textures/items/{weapon,armor,accessory,consumable,
+  resource,gem,event,dwelling,skill_book,misc}.png` — 10 placeholder PNGs
+  created. Real icons drop in as `.tres` `icon_path` fields are populated.
+
+**Achievement popup animation (`combat_log.gd`):**
+- Replaced `pass` stub with queued slide-in: popups translate from
+  offset_left=310 to 0 over 0.4s (QUAD/EASE_OUT), hold 3s, slide back
+  out 0.35s (QUAD/EASE_IN). Multiple popups stack in queue.
+- Gold-bordered panel with `[A]` label and achievement name.
+
+**Dialogue data loading (`dialog_service.gd`, `dialogue_data.gd`, `dialog_ui.gd`):**
+- `DialogService`: loads from `data/dialogues/*.tres`, builds in-memory dict
+  with `{id, npc_id, nodes: [{speaker, text, choices: [{text, next}]}]}`.
+  Fallback to 4-node built-in village dialogue when dir is missing.
+  API: `start_dialogue(npc_id, dialogue_id)`, `advance()`, `select_choice(idx)`,
+  `get_current_node()`, `end_dialogue()` + signals.
+- `DialogueData`: `extends Resource` schema with `@export` for id, npc_id,
+  speaker, nodes.
+- `DialogUI`: connects `DialogService.node_changed`, delegates all node
+  rendering to service. Fallback demo mode when service unavailable.
+
+**Settings panel persistence (`settings_panel.gd`, `project.godot`):**
+- Added `PlayerConfig` autoload (was referenced but not wired).
+- `SettingsPanel` now tracks each control by `PlayerConfig` key:
+  `_setting_controls[key] = {type, control, label}` + `_setting_keys`.
+- `_create_slider/toggle/dropdown_row()` take `setting_key: String`
+  and wire to `PlayerConfig.set_account_setting(key, value, false)`.
+- `_load_from_config()` populates controls on panel open.
+- Save → `save_account_settings()`, Defaults → `reset_account_settings()`.
+
+**Trade items from InventoryService (`trade_service.gd`):**
+- `add_item()` now calls `_verify_player_owns_item(player_id, item_id)`
+  which queries `InventoryService.get_inventory()` → `InventoryComponent.find_item()`.
+  Prevents clients from adding items they don't own. Falls back to `false`
+  if `InventoryService` is not available.
+
+**Compile fixes (pushed separately):**
+- `player_config.gd`: removed `class_name PlayerConfig` (conflicts with
+  the `PlayerConfig=` autoload — "Class hides an autoload singleton").
+  Added `_load_global_settings()` wrapper for `_ready()`.
+- `blacksmith_ui.gd`: removed duplicate `_player_id` (inherited from UIPanel).
+
+Tests: frame 26/26, ARS 11/11, login 21/21 green throughout.
+
+**Key files this session:**
+- `ui/components/inventory_ui.gd` — icon loading
+- `ui/components/combat_log.gd` — achievement popup
+- `core/services/dialog_service.gd` — dialogue loading (NEW)
+- `core/schemas/dialogue_data.gd` — dialogue schema (NEW)
+- `ui/components/dialog_ui.gd` — dialogue UI wiring
+- `ui/components/settings_panel.gd` — persistence wiring
+- `core/services/trade_service.gd` — ownership validation
+- `ui/textures/items/*.png` — 10 placeholder category icons
+
   `hud_services.gd`: `_minimap` cached node reference added; `_on_player_entered_zone` now calls `_minimap.set_zone_name()`. The minimap was connected but zone name was never updated. Also reorganized guards so minimap update always runs even if `NotificationService` is nil.
   `bank_ui.gd`: `_on_withdraw()` now calls `VaultService.withdraw_item()` — replaces a TODO placeholder that returned early.
 
