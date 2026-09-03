@@ -23,6 +23,7 @@ ENV GODOT_VERSION=4.7.2
 ENV JULIA_VERSION=1.11.1
 ENV JULIA_MINOR=1.11
 ENV GO_VERSION=1.23.1
+ENV NODE_VERSION=20
 
 # BASE - always needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,7 +33,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxi6 libxinerama1 libxrender1 libxkbcommon0 \
     libgl1-mesa-glx libasound2 libpulse0 \
     nginx openssl \
-    python3 python3-pip ffmpeg imagemagick x11-apps \
+    python3 python3-pip ffmpeg imagemagick x11-apps gnupg \
+    # Chromium / GTK deps for Puppeteer screenshot.js
+    libnss3 libatk-bridge2.0-0 libxcomposite1 libxdamage1 \
+    libgbm1 libpangocairo-1.0-0 libpango-1.0-0 libgtk-3-0 \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -40,7 +45,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN sed -i 's/^<policy domain="coder" rights="none" pattern="\(PS\|PDF\|EPS\|VIDEO\|HTTPD\|DOSMEXEC\)"\/>/<policy domain="coder" rights="none" pattern="PS"\/><policy domain="coder" rights="none" pattern="PDF"\/>/' \
     /etc/ImageMagick-6/policy.xml 2>/dev/null || true
 
-RUN pip3 install --no-cache-dir --break-system-packages websockify
 
 # GODOT
 RUN curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" \
@@ -75,10 +79,19 @@ RUN if [ "$INSTALL_BLENDER" = "true" ]; then \
     apt-get update && apt-get install -y --no-install-recommends blender && rm -rf /var/lib/apt/lists/*; \
     fi
 
+# NODE.JS — for Puppeteer screenshot tooling
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && 
+    apt-get install -y --no-install-recommends nodejs && 
+    rm -rf /var/lib/apt/lists/*
+
+# Puppeteer — screenshot.js browser automation
+COPY synmergia/scripts/ synmergia/scripts/
+RUN cd synmergia/scripts && npm install --no-audit --no-fund && npx puppeteer browsers install chrome
+
 # SETUP
 WORKDIR /workspace/project/synmergia
 
-RUN mkdir -p /var/www/html /etc/nginx/ssl /workspace/project/synmergia/captures
+RUN mkdir -p /var/www/html /etc/nginx/ssl /workspace/project/synmergia/captures/screenshots
 
 # Nginx config
 RUN printf '%s\n' \
@@ -121,14 +134,25 @@ x11vnc -display :99 -forever -shared -rfbport 5900 -nopw -bg 2>/dev/null || true
 websockify --web=/usr/share/novnc 6080 localhost:5900 &>/dev/null & \
 sleep 1; \
 nginx -g 'daemon off;' & \
+sleep 1; \
+mkdir -p /workspace/project/synmergia/captures/screenshots; \
 echo ''; \
 echo '================================================'; \
 echo ' Synmergia Dev Container'; \
 echo '================================================'; \
+if [ \"${START_GODOT:-normal}\" = \"0\" ]; then \
+    echo ' Godot skipped (START_GODOT=0)'; \
+elif [ \"${START_GODOT}\" = \"headless\" ]; then \
+    echo ' Starting Godot (headless)...'; \
+    DISPLAY=:99 godot --headless --path /workspace/project/synmergia & \
+else \
+    echo ' Starting Godot (normal, renders to Xvfb)...'; \
+    DISPLAY=:99 godot --path /workspace/project/synmergia & \
+fi; \
 echo ' HTTP:   http://localhost'; \
 echo ' noVNC:  http://localhost:6080/vnc.html'; \
 echo ' VNC:    localhost:5900'; \
-echo ' Godot:  DISPLAY=:99 godot --path /workspace/project/synmergia'; \
+echo ' Screenshots: node /workspace/project/synmergia/synmergia/scripts/screenshot.js'; \
 echo '================================================'; \
 tail -f /dev/null"]
 

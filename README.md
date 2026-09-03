@@ -359,7 +359,6 @@ buckets:
 **Operations** (root-level)
 - [NEXT-AGENT-PICKUP.md](./docs/architecture/NEXT-AGENT-PICKUP.md) — survival guide for the next session
 - [ROADMAP.md](./ROADMAP.md) — implementation tracker (1682 lines)
-- [`labs/AUDIT.md.legacy`](./labs/AUDIT.md.legacy) — old session log (legacy, frozen 2026-08-30)
 - [AGENTS.md](./AGENTS.md) — developer notes for AI agents (code conventions)
 
 **Start here:** the [NEXT-AGENT-PICKUP](./docs/architecture/NEXT-AGENT-PICKUP.md) doc is the
