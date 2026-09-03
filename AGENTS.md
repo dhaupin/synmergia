@@ -930,6 +930,55 @@ qos/security/firewall family:
 
 ---
 
+## Session insights (2026-09-02)
+
+Continuation of the UI wiring pass from 2026-09-01. Seven commits
+pushing all UI → service signal wiring to functional completeness.
+
+- **`2d2408c` HUD wiring: minimap zone name, vault withdraw, guild check**
+  `hud_services.gd`: `_minimap` cached node reference added; `_on_player_entered_zone` now calls `_minimap.set_zone_name()`. The minimap was connected but zone name was never updated. Also reorganized guards so minimap update always runs even if `NotificationService` is nil.
+  `bank_ui.gd`: `_on_withdraw()` now calls `VaultService.withdraw_item()` — replaces a TODO placeholder that returned early.
+
+- **`0feacf5` trade_ui: wire TradeService signals + _on_open state hydration**
+  Six new signals bound in `trade_ui._bind_service_signals()`:
+  `trade_started` (sync state), `item_added_to_trade` / `item_removed_from_trade`
+  (refresh items grid), `trade_confirmed` / `trade_unconfirmed` (status update),
+  `confirmation_countdown_tick` (countdown display).
+  Added `_on_open()` override to re-hydrate from `TradeService.get_player_trade()`
+  on panel open — fixes blank trade panel after reconnect.
+
+- **`62fb608` skill_academy_ui: wire signature_selected signal**
+  Signal existed in `SkillAcademyService` and had a handler in the UI
+  (`_on_signature_selected`) but was never connected.
+
+- **`ad205f6` social UI: expand service signal wiring**
+  `friends_list.gd`: +6 signals (friend_request_sent/expired, player_blocked/unblocked, player_ignored/unignored).
+  `guild_ui.gd`: +11 signals (rank_changed, leader_changed, guildMOTD_updated, guild_notice_updated, invite/decline/accept, alliance events).
+  `party_ui.gd`: +6 signals (invite events, leader_changed, loot_rule_changed).
+
+- **`dd9f0dc` blacksmith_ui: wire item_too_broken signal**
+  `BlacksmithService.item_too_broken` was never connected. Adds toast
+  notification when a player's item is too damaged to repair.
+
+**Remaining TODOs (Phase C / feature work, not wiring gaps):**
+- `action_bar.gd:172` — Set actual slot icon textures (needs `.tres` item data)
+- `bank_ui.gd` — Item icons from `Item` resources; deposit via inventory picker
+- `combat_log.gd:192` — Achievement popup animation (needs full achievement system)
+- `dialog_ui.gd` — Load dialogue data from `DialogueData` resources
+- `trade_ui.gd:269` — Pull items from `InventoryService` (Phase C)
+- `settings_panel.gd` — Full value tracking + `PlayerConfig` persistence
+
+**What's verified wiring-complete:**
+- All social panels (friends, guild, party, trade) now bind all their relevant service signals
+- `hud_services.gd` covers 15+ services with `has_signal()` guards
+- `hud_layer.gd` does runtime composition (no manual scene wiring needed)
+- `buff_bar`, `quick_access_bar`, `action_bar` self-contained (no external deps)
+- `lobby_menu`, `login_screen`, `character_select` wired to `LoginService`
+- `respawn_ui` → `RespawnService` via `respawn_ui_manager`
+- `voting_ui` → `CommunityGovernance`; `character_transfer_ui` → `SameAccountTransferService`
+
+---
+
 ## Skill Academy System
 
 The Skill Academy allows players to upgrade skills and select their class signature.
