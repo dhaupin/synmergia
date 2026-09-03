@@ -34,7 +34,7 @@ theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="Center/Panel/Form"]
 layout_mode = 2
-text = "WORLD SMITH"
+text = "SYNMERGIA"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 32
 

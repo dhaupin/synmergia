@@ -44,10 +44,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Core build tools
     curl wget unzip ca-certificates git build-essential gnupg \
     # X11 / VNC (dev mode)
-    xvfb x11vnc novnc \
+    xvfb x11vnc websockify novnc \
     libx11-6 libx11-xcb1 libxcb1 libxext6 libxrandr2 libxcursor1 \
     libxi6 libxinerama1 libxrender1 libxkbcommon0 \
-    libgl1-mesa-glx libasound2 libpulse0 \
+    libgl1 libasound2 libpulse0 \
     # Web server
     nginx openssl \
     # Dev tools
@@ -105,8 +105,8 @@ WORKDIR /workspace/project/game
 
 # ── Puppeteer (screenshots) ───────────────────────────────────────────────
 # Copy package files, install deps, download Chromium
-COPY game/scripts/package.json game/scripts/package-lock.json game/scripts/
-RUN cd synmergia/scripts && npm install --no-audit --no-fund \
+COPY game/scripts/ scripts/
+RUN cd /workspace/project/game/scripts && npm install --no-audit --no-fund \
     && npx puppeteer browsers install chrome
 
 # ── Nginx config ───────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     || exit 0
 
 # ── Entrypoint (handles all modes) ─────────────────────────────────────────
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY srv/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
