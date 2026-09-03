@@ -22,6 +22,12 @@ func _bind_service_signals() -> void:
 		"player_joined_party": _on_party_updated,
 		"player_left_party": _on_party_updated,
 		"party_disbanded": _on_party_disbanded,
+		"party_invite_sent": _on_party_updated,
+		"party_invite_accepted": _on_party_updated,
+		"party_invite_declined": _on_party_updated,
+		"party_invite_expired": _on_party_updated,
+		"leader_changed": _on_party_updated,
+		"loot_rule_changed": _on_party_updated,
 	}
 	for sig_name in sigs:
 		if PartyService.has_signal(sig_name):

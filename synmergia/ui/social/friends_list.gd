@@ -25,9 +25,15 @@ func _bind_service_signals() -> void:
 		"friend_added": _on_friends_changed,
 		"friend_removed": _on_friends_changed,
 		"friend_request_received": _on_friends_changed,
+		"friend_request_sent": _on_friends_changed,
 		"friend_request_accepted": _on_friends_changed,
 		"friend_request_declined": _on_friends_changed,
+		"friend_request_expired": _on_friends_changed,
 		"player_status_changed": _on_status_changed,
+		"player_blocked": _on_friends_changed,
+		"player_unblocked": _on_friends_changed,
+		"player_ignored": _on_friends_changed,
+		"player_unignored": _on_friends_changed,
 	}
 	for sig_name in sigs:
 		if FriendsService.has_signal(sig_name):

@@ -24,6 +24,17 @@ func _bind_service_signals() -> void:
 		"player_left_guild": _on_guild_updated,
 		"player_kicked": _on_player_kicked,
 		"guild_disbanded": _on_guild_disbanded,
+		"rank_changed": _on_guild_updated,
+		"leader_changed": _on_guild_updated,
+		"guildMOTD_updated": _on_guild_updated,
+		"guild_notice_updated": _on_guild_updated,
+		"guild_invite_sent": _on_guild_updated,
+		"guild_invite_accepted": _on_guild_updated,
+		"guild_invite_declined": _on_guild_updated,
+		"alliance_created": _on_guild_updated,
+		"alliance_disbanded": _on_guild_updated,
+		"alliance_guild_joined": _on_guild_updated,
+		"alliance_guild_left": _on_guild_updated,
 	}
 	for sig_name in sigs:
 		if GuildService.has_signal(sig_name):
