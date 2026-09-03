@@ -140,9 +140,7 @@ synmergia/
 │
 └── docs/
     └── screenshots/
-        ├── agent-pipeline.md   # This file
-        ├── video-capture.md    # Legacy X11 capture docs
-        └── *.png               # Screenshots
+        └── agent-pipeline.md   # This file
 ```
 
 ## Gitignore
