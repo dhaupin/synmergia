@@ -177,6 +177,11 @@ func add_item(trade_id: String, player_id: String, item_id: String, quantity: in
 	if items_key == "":
 		return false
 	
+	# Verify item is in player's inventory (prevents fake items)
+	if not _verify_player_owns_item(player_id, item_id):
+		GameLog.warn("TradeService: %s does not own %s" % [player_id, item_id])
+		return false
+	
 	# Check if item already in trade
 	var items: Array = trade[items_key]
 	for item_data in items:
@@ -714,3 +719,15 @@ func _notify_player(player_id: String, message: String, kind: int = NotifKind.SE
 			player_id
 		)
 		GameLog.debug("TradeService: Notified %s: %s" % [player_id, message])
+
+## Verify player actually owns the item before adding to trade.
+## Queries InventoryService to prevent clients from adding items they don't have.
+func _verify_player_owns_item(player_id: String, item_id: String) -> bool:
+	if not is_instance_valid(_inventory_service):
+		return false
+	if not _inventory_service.has_inventory(player_id):
+		return false
+	var inv: InventoryComponent = _inventory_service.get_inventory(player_id)
+	if not inv:
+		return false
+	return inv.find_item(item_id) >= 0
