@@ -2,6 +2,7 @@
 ## Tracks connections, blocks suspicious IPs, and manages bans
 extends Node
 
+const RecursionGuard = preload("res://core/utils/recursion_guard.gd")
 # Frame-level notification dispatch (see synmergia/core/notifications/).
 # AppFirewall surfaces ban / block / recursion-guard events to admins
 # through the typed-Kind pipeline. ADMIN_ALERT → ALERT + HIGH.

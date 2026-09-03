@@ -7,6 +7,8 @@
 ##   4. Signature — choose 1 of 3 class signatures (level 10+)
 ##   5. Respec    — reset all upgrades (books NOT returned)
 class_name SkillAcademyUI
+
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
 
 enum Tab { SKILLS, BOOKS, UPGRADE, SIGNATURE, STATS, RESPEC }

@@ -2,6 +2,7 @@
 ## Handles loot rolling, party loot sharing, auto-loot, and loot rules
 extends Node
 
+const LootTable = preload("res://core/schemas/loot_table.gd")
 # Active loot rolls (loot_id -> loot data)
 var _active_loot: Dictionary = {}
 

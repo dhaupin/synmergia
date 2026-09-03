@@ -1,6 +1,8 @@
 ## SpeciesCard - Species selection card for character select
 class_name SpeciesCard
 extends PanelContainer
+const Species = preload("res://core/schemas/species.gd")
+
 
 signal species_selected(species_id: String)
 

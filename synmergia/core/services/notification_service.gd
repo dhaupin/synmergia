@@ -2,6 +2,7 @@
 ## Handles all player notifications: zone changes, achievements, combat, events, etc.
 extends Node
 
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 # Notification types
 enum NotificationType {
 	INFO,             # Informational messages

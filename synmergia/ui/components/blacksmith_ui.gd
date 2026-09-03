@@ -2,6 +2,8 @@
 ## Opened when player interacts with a BlacksmithNPC.
 ## Shows repairable equipment, costs, and executes repairs via BlacksmithService.
 class_name BlacksmithUI
+
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
 
 var _player_id: String = ""

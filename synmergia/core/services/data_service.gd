@@ -2,6 +2,22 @@
 ## Scans data/ folder for .tres files and provides access by ID
 extends Node
 
+
+
+const SkillBook = preload("res://core/schemas/skill_book.gd")
+const Item = preload("res://core/schemas/item.gd")
+const EnemyData = preload("res://core/schemas/enemy_data.gd")
+const CharacterClass = preload("res://core/schemas/character_class.gd")
+const Species = preload("res://core/schemas/species.gd")
+const Faction = preload("res://core/schemas/faction.gd")
+const ZoneData = preload("res://core/schemas/zone_data.gd")
+const EventData = preload("res://core/schemas/event_data.gd")
+const DwellingData = preload("res://core/schemas/dwelling_data.gd")
+const NPCData = preload("res://core/schemas/npc_data.gd")
+const StatusEffectData = preload("res://core/schemas/status_effect_data.gd")
+const QuestData = preload("res://core/schemas/quest_data.gd")
+const GatewayData = preload("res://core/schemas/gateway_data.gd")
+const Skill = preload("res://core/combat/skill.gd")
 var _skills: Dictionary = {}
 var _items: Dictionary = {}
 

@@ -2,6 +2,12 @@
 ## Attached to entities that can fight
 class_name CombatComponent
 extends Node
+const Skill = preload("res://core/combat/skill.gd")
+const Item = preload("res://core/schemas/item.gd")
+const Entity = preload("res://core/entities/entity.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
+const SkillSchema = preload("res://core/schemas/skill.gd")
+
 
 const SkillSchema := preload("res://core/schemas/skill.gd")
 const CharacterData := preload("res://core/schemas/character_data.gd")

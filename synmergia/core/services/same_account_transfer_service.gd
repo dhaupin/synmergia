@@ -2,6 +2,7 @@
 ## Handles fast item/gold transfers without trade window
 extends Node
 
+const Item = preload("res://core/schemas/item.gd")
 # Singleton
 static var instance: SameAccountTransferService
 

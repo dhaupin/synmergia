@@ -2,6 +2,7 @@
 ## Handles: penalties, invincibility, griefing protection, kill streaks, stats
 extends Node
 
+const Item = preload("res://core/schemas/item.gd")
 # Frame-level notification dispatch (typed-Kind pipeline).
 # Death events route through NotifKind.* with sender "DeathFeatures".
 # Dedupe keys carry event identity so a 5-second respawn-invincibility

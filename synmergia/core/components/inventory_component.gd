@@ -2,6 +2,9 @@
 ## Attached to entities that can carry items
 class_name InventoryComponent
 extends Node
+const Entity = preload("res://core/entities/entity.gd")
+const Item = preload("res://core/schemas/item.gd")
+
 
 signal item_added(item: Item, slot: int)
 signal item_removed(item: Item, slot: int)

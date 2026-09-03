@@ -3,6 +3,7 @@
 class_name CircuitBreaker
 extends RefCounted
 
+const __CircuitBreaker__ = preload("res://core/utils/circuit_breaker.gd")
 ## Emitted whenever the breaker changes state. Listeners (admin UI,
 ## QoS dashboards) can route this into the notification pipeline.
 ## Carries the previous state for context.
@@ -266,4 +267,4 @@ static func create(
 	recovery_timeout: float = 30.0,
 	success_threshold: int = 3
 ) -> CircuitBreaker:
-	return CircuitBreaker.new(name, failure_threshold, recovery_timeout, success_threshold)
+	return __CircuitBreaker__.new(name, failure_threshold, recovery_timeout, success_threshold)

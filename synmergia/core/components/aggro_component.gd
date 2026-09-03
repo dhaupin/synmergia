@@ -2,6 +2,8 @@
 ## Attached to entities that generate threat (enemies track who attacks them)
 class_name AggroComponent
 extends Node
+const Entity = preload("res://core/entities/entity.gd")
+
 
 signal target_changed(old_target: Entity, new_target: Entity)
 signal threat_changed(target: Entity, threat_amount: int)

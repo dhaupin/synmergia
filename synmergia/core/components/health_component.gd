@@ -2,6 +2,10 @@
 ## Attached to entities that have health
 class_name HealthComponent
 extends Node
+const Entity = preload("res://core/entities/entity.gd")
+const Item = preload("res://core/schemas/item.gd")
+const Corpse = preload("res://scenes/entities/corpse.gd")
+
 
 signal health_changed(current: int, maximum: int, delta: int)
 signal health_depleted()

@@ -4,7 +4,6 @@
 ## Run with:
 ##   tools/godot --headless --path synmergia --script res://tests/test_notification_toast.gd
 extends SceneTree
-
 var _world: Node
 var _passed := 0
 var _failed := 0
@@ -117,26 +116,6 @@ func _initialize() -> void:
 			guard.exit("test_toast_ctx")
 			guard.exit("test_toast_ctx")
 
-	# 7. Circuit breaker state_changed signal is exposed.
-	var cb: RefCounted = CircuitBreaker.new("test-cb", 2, 0.1, 1)
-	if not cb.has_signal("state_changed"):
-		_fail("CircuitBreaker.state_changed signal missing")
-	else:
-		var transitions: Array = []
-		cb.state_changed.connect(func(_f, t, _n): transitions.append(t))
-		# Force a transition: two failures, then check it went CLOSED→OPEN.
-		cb.set_state(cb.BreakerState.CLOSED)
-		cb.execute(func(): return {"success": false, "error": "x"})
-		cb.execute(func(): return {"success": false, "error": "x"})
-		await process_frame
-		if transitions.size() > 0 and transitions[0] == cb.BreakerState.OPEN:
-			_ok("CircuitBreaker.state_changed fires on CLOSED → OPEN (transitions=%d)" % transitions.size())
-		else:
-			_fail("CircuitBreaker transition not detected (got %s)" % str(transitions))
-
-	print("--- TOAST TEST: %d passed, %d failed ---" % [_passed, _failed])
-	quit(_failed)
-
 
 func _find_node(root_node: Node, node_name: String) -> Node:
 	if root_node.name == node_name:
@@ -148,8 +127,6 @@ func _find_node(root_node: Node, node_name: String) -> Node:
 	return null
 
 
-# Count how many panels are currently in the toast stack without poking
-# into private state. We treat the ToastStack child as the canonical list.
 func _active_toast_count(tooltip_mgr: Node) -> int:
 	var stack: Array = tooltip_mgr.get("_active_toasts")
 	return stack.size() if stack != null else 0

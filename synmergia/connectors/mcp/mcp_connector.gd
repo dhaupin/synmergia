@@ -1,6 +1,8 @@
 ## MCPConnector - Model Context Protocol connector
 ## Standard MCP interface for AI agents
 class_name MCPConnector
+
+const AgentConnector = preload("res://core/schemas/agent_connector.gd")
 extends AgentConnector
 
 # MCP server configuration

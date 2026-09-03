@@ -2,6 +2,10 @@
 ## Attached to entities that can have effects
 class_name AuraComponent
 extends Node
+const Buff = preload("res://core/combat/buff.gd")
+const Entity = preload("res://core/entities/entity.gd")
+const StatusEffect = preload("res://core/entities/status_effect.gd")
+
 
 signal buff_added(buff: Buff)
 signal buff_removed(buff: Buff)

@@ -4,6 +4,7 @@
 class_name Projectile
 extends Node3D
 
+const __Projectile__ = preload("res://core/combat/projectile.gd")
 signal hit(target: Entity, damage: int)
 signal expired()
 signal destroyed()
@@ -353,7 +354,7 @@ func _spawn_sfx(position: Vector3) -> void:
 	pass
 
 static func create_arrow(from: Entity, to: Vector3, damage: int) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.ARROW
 	p.base_damage = damage
 	p.speed = 30.0
@@ -362,7 +363,7 @@ static func create_arrow(from: Entity, to: Vector3, damage: int) -> Projectile:
 	return p
 
 static func create_fireball(from: Entity, to: Vector3, damage: int, radius: float) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.FIREBALL
 	p.base_damage = damage
 	p.speed = 15.0
@@ -373,7 +374,7 @@ static func create_fireball(from: Entity, to: Vector3, damage: int, radius: floa
 	return p
 
 static func create_magic_bolt(from: Entity, to: Vector3, damage: int) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.MAGIC_BOLT
 	p.base_damage = damage
 	p.speed = 25.0
@@ -382,7 +383,7 @@ static func create_magic_bolt(from: Entity, to: Vector3, damage: int) -> Project
 	return p
 
 static func create_heavy_shot(from: Entity, to: Vector3, damage: int) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.HEAVY_SHOT
 	p.base_damage = damage
 	p.speed = 10.0
@@ -391,7 +392,7 @@ static func create_heavy_shot(from: Entity, to: Vector3, damage: int) -> Project
 	return p
 
 static func create_healing_orb(from: Entity, to: Vector3, heal_amount: int) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.HEALING_ORB
 	p.base_damage = -heal_amount
 	p.speed = 12.0
@@ -401,7 +402,7 @@ static func create_healing_orb(from: Entity, to: Vector3, heal_amount: int) -> P
 	return p
 
 static func create_trap(from: Entity, position: Vector3, radius: float) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.TRAP
 	p.is_trap = true
 	p.global_position = position
@@ -410,7 +411,7 @@ static func create_trap(from: Entity, position: Vector3, radius: float) -> Proje
 	return p
 
 static func create_chain_lightning(from: Entity, target: Entity, damage: int, chains: int) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.CHAIN
 	p.base_damage = damage
 	p.speed = 40.0
@@ -421,7 +422,7 @@ static func create_chain_lightning(from: Entity, target: Entity, damage: int, ch
 	return p
 
 static func create_ricochet(from: Entity, to: Vector3, damage: int, bounces: int) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.RICOCHET
 	p.base_damage = damage
 	p.speed = 25.0
@@ -432,7 +433,7 @@ static func create_ricochet(from: Entity, to: Vector3, damage: int, bounces: int
 	return p
 
 static func create_beam(from: Entity, to: Vector3, damage: int, duration: float) -> Projectile:
-	var p := Projectile.new()
+	var p := __Projectile__.new()
 	p.projectile_type = ProjectileType.BEAM
 	p.base_damage = damage
 	p.is_beam = true

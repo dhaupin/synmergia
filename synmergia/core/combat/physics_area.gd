@@ -3,6 +3,8 @@
 ## Supports line-of-sight blocking and configurable geometry collision
 class_name PhysicsArea
 extends Node3D
+const Entity = preload("res://core/entities/entity.gd")
+
 
 signal entity_entered(entity: Entity)
 signal entity_exited(entity: Entity)

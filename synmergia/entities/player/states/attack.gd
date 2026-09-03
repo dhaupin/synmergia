@@ -1,7 +1,11 @@
 ## Attack State - Free-form combat (RYL2-style)
 ## Player can move, jump, and use skills during combat
 class_name AttackState
+
+const State = preload("res://scripts/state.gd")
 extends State
+const Skill = preload("res://core/combat/skill.gd")
+
 
 const BASE_ATTACK_DURATION: float = 0.4
 

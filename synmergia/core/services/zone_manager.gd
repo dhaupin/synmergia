@@ -2,6 +2,8 @@
 ## Handles zone transitions (seamless & instanced), population, and zone boundaries
 extends Node
 
+const ZoneData = preload("res://core/schemas/zone_data.gd")
+const Entity = preload("res://core/entities/entity.gd")
 # Zone types
 enum ZoneType {
 	OPEN_WORLD,		 # Seamless, players always in same world

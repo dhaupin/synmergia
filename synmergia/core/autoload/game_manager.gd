@@ -5,6 +5,7 @@ extends Node
 
 
 
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 signal game_state_changed(state: GameState)
 signal paused
 signal resumed

@@ -3,6 +3,7 @@
 ## Wraps all domain-specific event buses under one autoload
 extends Node
 
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 ## Forwarding signals for backward compatibility (maps to entity_events)
 signal entity_spawned(entity, metadata: SpawnMetadata)
 signal entity_died(entity, killer, metadata: SpawnMetadata)

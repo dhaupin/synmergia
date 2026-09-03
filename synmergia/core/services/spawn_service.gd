@@ -2,6 +2,13 @@
 ## Handles spawn points, respawn timers, spawn caps, and dynamic spawning
 extends Node
 
+
+const BlacksmithNPC = preload("res://core/entities/blacksmith_npc.gd")
+const SkillAcademyNPC = preload("res://core/entities/skill_academy_npc.gd")
+const ZoneData = preload("res://core/schemas/zone_data.gd")
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+const NPCData = preload("res://core/schemas/npc_data.gd")
+const EnemyData = preload("res://core/schemas/enemy_data.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
 
