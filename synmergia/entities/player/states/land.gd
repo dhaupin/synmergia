@@ -1,7 +1,7 @@
 ## Land State - Brief landing recovery
 extends State
 
-const State = preload("res://scripts/state.gd")
+const State = preload("res://core/state/state.gd")
 class_name LandState
 
 const DURATION: float = 0.15

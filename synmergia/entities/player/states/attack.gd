@@ -2,7 +2,7 @@
 ## Player can move, jump, and use skills during combat
 extends State
 
-const State = preload("res://scripts/state.gd")
+const State = preload("res://core/state/state.gd")
 class_name AttackState
 const Skill = preload("res://core/combat/skill.gd")
 
