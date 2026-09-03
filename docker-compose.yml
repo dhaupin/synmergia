@@ -1,4 +1,4 @@
-# Synmergia Docker
+# Synmergia Docker - Development
 # Usage: docker compose up --build
 
 services:
@@ -6,12 +6,19 @@ services:
     build: .
     ports:
       - "80:80"       # HTTP
-      - "6080:6080"   # noVNC
+      - "6080:6080"   # noVNC (browser)
       - "5900:5900"   # VNC
       - "9000:9000"   # WebSocket
     volumes:
-      - ./synmergia:/workspace/project/synmergia
+      - ./synmergia:/workspace/project/synmergia:ro
       - ./captures:/workspace/project/synmergia/captures
     environment:
       - DISPLAY=:99
+      - GODOT_MODE=dev
+    shm_size: 256mb  # Xvfb needs shared memory
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
