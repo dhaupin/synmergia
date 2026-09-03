@@ -1,6 +1,10 @@
 ## AdminCommands - Administrative command handlers for server management
 extends Node
 
+# Defensive runtime autoload accessors
+func _nm(): return Engine.get_singleton("NetworkManager")
+func _pm(): return Engine.get_singleton("PlayerManager")
+
 const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
 
 ## ============================================================================
@@ -196,7 +200,7 @@ func execute_command(cmd_name: String, args: Array, caller_id: String) -> Dictio
 	return result
 
 func _get_caller_permission_level(caller_id: String) -> int:
-	var player_info = PlayerManager.get_player_info(caller_id)
+	var player_info = (_pm().get_player_info(caller_id) if _pm() else {})
 	if player_info.is_empty():
 		return GameConfig.Security.PLAYER_LEVEL
 	return player_info.get("permission_level", GameConfig.Security.PLAYER_LEVEL)
@@ -207,7 +211,7 @@ func _cmd_ban(args: Array) -> Dictionary:
 		return {"success": false, "message": "Usage: /ban <player_id> <reason>"}
 	var player_id = args[0]
 	var reason = " ".join(args.slice(1, args.size()))
-	NetworkManager.ban_player(player_id, reason, "admin")
+	(_nm().ban_player(player_id, reason, "admin") if _nm() else null)
 	# Admin audit toast: distinct from the player's SECURITY_BLOCKED so
 	# the audit log shows "admin X did this" not just "player got banned".
 	# Dedupe on (admin, action, target) inside a 5s window so a /ban
@@ -227,7 +231,7 @@ func _cmd_ban(args: Array) -> Dictionary:
 func _cmd_unban(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /unban <player_id>"}
-	var firewall = NetworkManager.get_firewall()
+	var firewall = (_nm().get_firewall() if _nm() else null)
 	if firewall:
 		firewall.lift_ban(args[0])
 		if is_instance_valid(NotificationService):
@@ -312,7 +316,7 @@ func _cmd_unmute(args: Array) -> Dictionary:
 func _cmd_block_ip(args: Array) -> Dictionary:
 	if args.size() < 3:
 		return {"success": false, "message": "Usage: /block_ip <ip> <duration> <reason>"}
-	var firewall = NetworkManager.get_firewall()
+	var firewall = (_nm().get_firewall() if _nm() else null)
 	if firewall:
 		firewall.block_ip(args[0], " ".join(args.slice(2, args.size())), int(args[1]))
 		# AppFirewall already fires an ADMIN_ALERT ("IP blocked...") to the
@@ -334,7 +338,7 @@ func _cmd_block_ip(args: Array) -> Dictionary:
 func _cmd_unblock_ip(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /unblock_ip <ip>"}
-	var firewall = NetworkManager.get_firewall()
+	var firewall = (_nm().get_firewall() if _nm() else null)
 	if firewall:
 		firewall.unblock_ip(args[0])
 		if is_instance_valid(NotificationService):
@@ -352,20 +356,20 @@ func _cmd_unblock_ip(args: Array) -> Dictionary:
 func _cmd_player_info(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /player_info <player_id>"}
-	var info = PlayerManager.get_player_info(args[0])
+	var info = (_pm().get_player_info(args[0]) if _pm() else {})
 	if info.is_empty():
 		return {"success": false, "message": "Player not found"}
 	return {"success": true, "message": JSON.stringify(info)}
 
 func _cmd_list_players(args: Array) -> Dictionary:
-	var players = PlayerManager.get_all_players()
+	var players = (_pm().get_all_players() if _pm() else [])
 	var msg = "Players (%d):" % players.size()
 	for p in players:
 		msg += "\n- %s" % p.get("name", "Unknown")
 	return {"success": true, "message": msg}
 
 func _cmd_firewall_status(args: Array) -> Dictionary:
-	var firewall = NetworkManager.get_firewall()
+	var firewall = (_nm().get_firewall() if _nm() else null)
 	if not firewall:
 		return {"success": false, "message": "Firewall not available"}
 	return {"success": true, "message": "Firewall active"}
@@ -680,7 +684,7 @@ func _find_entity_by_id(entity_id: String) -> Node3D:
 			return entity
 	
 	# Try to find in player manager
-	var players = PlayerManager.get_all_players()
+	var players = (_pm().get_all_players() if _pm() else [])
 	for p in players:
 		if p.get("entity_id") == entity_id or p.get("name") == entity_id:
 			return p as Node3D
