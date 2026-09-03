@@ -1,7 +1,7 @@
 ## Item - Equipment and consumable definition
 ## Base schema for all items
-class_name Item
 extends Resource
+class_name Item
 
 enum ItemCategory {
 	WEAPON,       # Swords, bows, staves, daggers

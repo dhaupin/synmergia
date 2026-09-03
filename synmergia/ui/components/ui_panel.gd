@@ -1,6 +1,6 @@
 ## UIPanel - Base class for Synmergia UI panels with common functionality
-class_name UIPanel
 extends Control
+class_name UIPanel
 
 ## Panel state
 var _is_open: bool = false

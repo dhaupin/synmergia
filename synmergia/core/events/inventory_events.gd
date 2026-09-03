@@ -1,6 +1,6 @@
 ## InventoryEvents - Domain events for inventory management
-class_name InventoryEvents
 extends Node
+class_name InventoryEvents
 
 # Item pickup/drop events
 signal item_picked_up(entity_id: String, item_id: String, slot: int)

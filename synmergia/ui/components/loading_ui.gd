@@ -1,7 +1,7 @@
 ## LoadingUI - Unified loading overlay
 ## Spinner, progress bar, and loading states
-class_name LoadingUI
 extends Control
+class_name LoadingUI
 
 ## Loading states
 enum LoadingState { IDLE, LOADING, PROGRESS, SUCCESS, ERROR }

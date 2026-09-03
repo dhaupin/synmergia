@@ -1,7 +1,7 @@
 ## BuffBar - Active effects display
 ## Shows buffs/debuffs with duration timers
-class_name BuffBar
 extends Control
+class_name BuffBar
 
 ## Buff types
 enum BuffType { BUFF, DEBUFF }

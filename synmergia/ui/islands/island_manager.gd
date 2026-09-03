@@ -14,8 +14,8 @@
 ## Used by [code]GameManager[/code] after a scene transition, or by
 ## [code]ZoneManager[/code] after a zone change. No autoload
 ## dependencies on Entity / Inventory / Party etc. -- this is leaf-level.
-class_name IslandManager
 extends Node
+class_name IslandManager
 
 const _STRATEGY_EAGER := "eager"
 const _STRATEGY_VISIBLE := "visible"

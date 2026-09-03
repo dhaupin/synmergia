@@ -1,9 +1,9 @@
 ## SkillAcademyNPC - Skill book vendor + upgrade + respec hub
 ## Interactable NPC that provides access to the Skill Academy UI.
 ## No trading or state — delegates entirely to SkillAcademyService + SkillAcademyUI.
-class_name SkillAcademyNPC
-
 extends Entity
+
+class_name SkillAcademyNPC
 
 var npc_data: NPCData = null
 var faction: int = Faction.FRIENDLY

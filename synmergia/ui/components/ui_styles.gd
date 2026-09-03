@@ -1,6 +1,6 @@
 ## UIStyles - Common styling constants and factory methods for Synmergia UI
-class_name UIStyles
 extends Node
+class_name UIStyles
 
 ## ============================================================================
 ## COLOR PALETTE

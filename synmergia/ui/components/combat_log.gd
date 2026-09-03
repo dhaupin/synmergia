@@ -1,7 +1,7 @@
 ## CombatLog - Floating combat log and notifications
 ## Shows damage, healing, events, achievements
-class_name CombatLog
 extends Control
+class_name CombatLog
 
 ## Entry types
 enum EntryType { DAMAGE, HEAL, SYSTEM, LOOT, QUEST, ACHIEVEMENT, GUILD, TRADE }

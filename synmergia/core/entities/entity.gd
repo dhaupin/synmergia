@@ -1,7 +1,7 @@
 ## Entity - Base class for all game entities
 ## Characters, NPCs, enemies all inherit from this
-class_name Entity
 extends Node3D
+class_name Entity
 
 signal health_changed(current: int, maximum: int)
 signal mana_changed(current: int, maximum: int)

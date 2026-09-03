@@ -1,7 +1,7 @@
 ## InventoryComponent - Item management
 ## Attached to entities that can carry items
-class_name InventoryComponent
 extends Node
+class_name InventoryComponent
 const Entity = preload("res://core/entities/entity.gd")
 const Item = preload("res://core/schemas/item.gd")
 

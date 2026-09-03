@@ -1,8 +1,8 @@
 ## ActionMenu - Context/right-click action menu for entities
 ## Uses UIStyles for consistent theming
 ## Supports both mouse (right-click) and touch (long-press)
-class_name ActionMenu
 extends Control
+class_name ActionMenu
 const NPCData = preload("res://core/schemas/npc_data.gd")
 
 

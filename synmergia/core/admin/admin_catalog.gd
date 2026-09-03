@@ -1,7 +1,7 @@
 ## AdminCatalog - In-game catalog for spawning/managing entities
 ## Provides UI for browsing and spawning entities by ID
-class_name AdminCatalog
 extends Control
+class_name AdminCatalog
 
 signal entity_spawned(entity_id: String, success: bool)
 signal item_spawned(item_id: String, success: bool)

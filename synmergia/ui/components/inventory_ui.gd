@@ -1,9 +1,9 @@
 ## InventoryUI - Player inventory panel
 ## Migrated onto UIPanel base class.
-class_name InventoryUI
+extends UIPanel
 
 const UIPanel = preload("res://ui/components/ui_panel.gd")
-extends UIPanel
+class_name InventoryUI
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const Item = preload("res://core/schemas/item.gd")
 

@@ -1,7 +1,7 @@
 ## DwellingData - Housing/dwelling item definition
 ## Defines placeable items for player housing
-class_name DwellingData
 extends Resource
+class_name DwellingData
 
 enum DwellingCategory {
 	FURNITURE,      # Tables, chairs, beds, benches

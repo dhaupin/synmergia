@@ -1,7 +1,7 @@
 ## DialogService - NPC dialogue loading and state management
 ## Loads dialogue trees from .tres files and drives DialogUI.
-class_name DialogService
 extends Node
+class_name DialogService
 
 ## Dialogue tree entry
 ## nodes: Array of {speaker, text, choices: [{text, next}]}

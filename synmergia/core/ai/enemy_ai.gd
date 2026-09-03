@@ -1,7 +1,7 @@
 ## EnemyAI - AI state machine for enemies
 ## Handles IDLE, PATROL, CHASE, COMBAT, FLEE, RETURN states
-class_name EnemyAI
 extends Node
+class_name EnemyAI
 const Entity = preload("res://core/entities/entity.gd")
 
 

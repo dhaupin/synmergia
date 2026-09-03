@@ -1,7 +1,7 @@
 ## BlacksmithNPC - Equipment repair vendor
 ## Interactable NPC that repairs player equipment using NPCData
-class_name BlacksmithNPC
 extends Entity
+class_name BlacksmithNPC
 const Entity = preload("res://core/entities/entity.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")

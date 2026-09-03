@@ -1,7 +1,7 @@
 ## ChatUI - In-game chat panel with channels
 ## Uses UIStyles for consistent theming
-class_name ChatUI
 extends Control
+class_name ChatUI
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:

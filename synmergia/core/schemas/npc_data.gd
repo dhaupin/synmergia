@@ -1,7 +1,7 @@
 ## NPCData - NPC template definition
 ## Base schema for NPC templates (vendors, quest givers, etc.)
-class_name NPCData
 extends Resource
+class_name NPCData
 
 ## NPC Types
 enum NPCType {

@@ -1,6 +1,6 @@
 ## EntityEvents - Domain events for entity lifecycle
-class_name EntityEvents
 extends Node
+class_name EntityEvents
 
 # Entity lifecycle events (using string IDs for decoupling)
 signal spawned(entity_id: String, zone_id: String, position: Vector3)

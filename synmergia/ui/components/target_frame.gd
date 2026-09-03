@@ -1,7 +1,7 @@
 ## TargetFrame - Target information display
 ## Shows HP, name, level, and effects for selected target
-class_name TargetFrame
 extends Control
+class_name TargetFrame
 
 ## Components
 var _name_label: Label

@@ -1,5 +1,5 @@
-class_name SynmergiaEntity
 extends Node3D
+class_name SynmergiaEntity
 
 enum EntityType {
     NONE = 0,

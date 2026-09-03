@@ -1,7 +1,7 @@
 ## StatusEffect - Unified buff/debuff/DoT/HoT/aura system
 ## Single base class for all temporary effects on entities
-class_name StatusEffect
 extends Resource
+class_name StatusEffect
 const Entity = preload("res://core/entities/entity.gd")
 
 

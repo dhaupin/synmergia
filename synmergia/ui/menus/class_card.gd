@@ -1,6 +1,6 @@
 ## ClassCard - Class selection card for character select
-class_name ClassCard
 extends PanelContainer
+class_name ClassCard
 const CharacterClass = preload("res://core/schemas/character_class.gd")
 const Species = preload("res://core/schemas/species.gd")
 

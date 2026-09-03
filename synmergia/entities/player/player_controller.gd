@@ -1,7 +1,7 @@
 ## PlayerController - Main player character controller
 ## Free-form combat system (RYL2-style)
-class_name PlayerController
 extends CharacterBody3D
+class_name PlayerController
 
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")

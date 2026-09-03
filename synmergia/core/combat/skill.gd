@@ -1,7 +1,7 @@
 ## Skill - Definition for combat skills
 ## Can be instant, channeled, or ground-targeted
-class_name Skill
 extends Resource
+class_name Skill
 const Entity = preload("res://core/entities/entity.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 

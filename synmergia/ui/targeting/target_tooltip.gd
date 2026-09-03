@@ -1,7 +1,7 @@
 ## TargetTooltip - Generic tooltip for any targeting system
 ## Wired to TargetingManager for unified targeting display
-class_name TargetTooltip
 extends Control
+class_name TargetTooltip
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 

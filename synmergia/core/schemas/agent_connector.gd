@@ -1,7 +1,7 @@
 ## AgentConnector - Base interface for AI agent connectors
 ## Allows AI agents (Vant, Claude, GPT, Gemini, etc.) to connect and play
-class_name AgentConnector
 extends Node
+class_name AgentConnector
 const AgentAction = preload("res://core/schemas/agent_action.gd")
 const Entity = preload("res://core/entities/entity.gd")
 

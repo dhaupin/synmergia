@@ -1,7 +1,7 @@
 ## CharacterClass - Player class definition
 ## Defines class-specific stats, skills, and resource types
-class_name CharacterClass
 extends Resource
+class_name CharacterClass
 
 enum ResourceType {
 	MANA,        # Standard mana pool

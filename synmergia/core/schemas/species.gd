@@ -1,7 +1,7 @@
 ## Species - Character race/species definition
 ## Defines species-specific stat modifiers and relationships
-class_name Species
 extends Resource
+class_name Species
 
 @export var id: String = ""
 @export var display_name: String = "Unknown"

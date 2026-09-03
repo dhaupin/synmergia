@@ -1,7 +1,7 @@
 ## QuickAccessBar - Consumable items hotbar
 ## 4 quick-use slots for potions, food, etc.
-class_name QuickAccessBar
 extends Control
+class_name QuickAccessBar
 
 ## Quick slots
 const SLOT_COUNT: int = 4

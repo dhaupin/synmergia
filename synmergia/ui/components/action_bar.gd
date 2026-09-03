@@ -1,7 +1,7 @@
 ## ActionBar - Skill hotbar component
 ## 8 skill slots with keyboard/controller bindings
-class_name ActionBar
 extends Control
+class_name ActionBar
 
 ## Slots
 const SLOT_COUNT: int = 8

@@ -1,7 +1,7 @@
 ## HealthComponent - HP management and death handling
 ## Attached to entities that have health
-class_name HealthComponent
 extends Node
+class_name HealthComponent
 const Entity = preload("res://core/entities/entity.gd")
 const Item = preload("res://core/schemas/item.gd")
 const Corpse = preload("res://scenes/entities/corpse.gd")

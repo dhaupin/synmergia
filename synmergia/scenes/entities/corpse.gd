@@ -1,7 +1,7 @@
 ## Corpse - Lootable corpse entity
 ## Created when an entity dies, can be looted by other players
-class_name Corpse
 extends Node3D
+class_name Corpse
 const Entity = preload("res://core/entities/entity.gd")
 
 

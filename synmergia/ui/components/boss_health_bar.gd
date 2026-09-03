@@ -1,7 +1,7 @@
 ## BossHealthBar - Raid boss health display
 ## Large HP bar with boss name, phase, enrage timer
-class_name BossHealthBar
 extends Control
+class_name BossHealthBar
 
 ## Components
 var _name_label: Label

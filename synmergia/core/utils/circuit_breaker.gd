@@ -1,7 +1,7 @@
 ## CircuitBreaker - Circuit breaker pattern implementation
 ## Protects against cascading failures by failing fast when a service is unhealthy
-class_name CircuitBreaker
 extends RefCounted
+class_name CircuitBreaker
 
 const __CircuitBreaker__ = preload("res://core/utils/circuit_breaker.gd")
 ## Emitted whenever the breaker changes state. Listeners (admin UI,

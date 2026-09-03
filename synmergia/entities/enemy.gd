@@ -1,7 +1,7 @@
 ## Enemy — basic enemy entity with health and simple AI
-class_name Enemy
-
 extends Entity
+
+class_name Enemy
 const LootTable = preload("res://core/schemas/loot_table.gd")
 const HealthComponent = preload("res://core/components/health_component.gd")
 

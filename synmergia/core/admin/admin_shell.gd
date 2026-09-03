@@ -1,8 +1,8 @@
 ## AdminShell - Internal admin command system
 ## Provides a sandboxed command interface for game administration
 ## Not connected to OS shell - game-internal commands only
-class_name AdminShell
 extends Node
+class_name AdminShell
 
 static func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')

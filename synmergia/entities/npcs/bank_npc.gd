@@ -1,6 +1,6 @@
 ## BankNPC - Bank NPC controller
-class_name BankNPC
 extends CharacterBody3D
+class_name BankNPC
 
 @export var npc_id: String = "bank_npc"
 @export var npc_name: String = "Banker"

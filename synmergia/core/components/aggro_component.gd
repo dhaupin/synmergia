@@ -1,7 +1,7 @@
 ## AggroComponent - Threat/aggro tracking
 ## Attached to entities that generate threat (enemies track who attacks them)
-class_name AggroComponent
 extends Node
+class_name AggroComponent
 const Entity = preload("res://core/entities/entity.gd")
 
 

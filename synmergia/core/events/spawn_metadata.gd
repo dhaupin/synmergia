@@ -1,6 +1,6 @@
 ## SpawnMetadata - Type definition for entity spawn events
-class_name SpawnMetadata
 extends RefCounted
+class_name SpawnMetadata
 
 const __SpawnMetadata__ = preload("res://core/events/spawn_metadata.gd")
 var spawn_type: int = 0

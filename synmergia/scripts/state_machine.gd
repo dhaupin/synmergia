@@ -1,7 +1,7 @@
 ## StateMachine - Generic state machine for game entities
 ## Handles state transitions and calls enter/exit/update
-class_name StateMachine
 extends Node
+class_name StateMachine
 
 const State = preload("res://scripts/state.gd")
 

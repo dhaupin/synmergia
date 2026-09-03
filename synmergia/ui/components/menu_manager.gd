@@ -1,6 +1,6 @@
 ## MenuManager - Central HUD manager for Synmergia
-class_name MenuManager
 extends CanvasLayer
+class_name MenuManager
 
 ## Singleton
 static var instance: MenuManager = null

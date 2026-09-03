@@ -1,7 +1,7 @@
 ## NamePlate - Floating name plate for entities
 ## Shows name, health bar, level, guild above entities
-class_name NamePlate
 extends Control
+class_name NamePlate
 
 ## Plate types
 enum PlateType { PLAYER, NPC, ENEMY, OBJECT }

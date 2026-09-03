@@ -1,7 +1,7 @@
 ## ConnectorService - Manages agent connectors
 ## Handles connecting/disconnecting AI agents to the game
-class_name ConnectorService
 extends Node
+class_name ConnectorService
 const AgentConnector = preload("res://core/schemas/agent_connector.gd")
 const Skill = preload("res://core/combat/skill.gd")
 const AgentAction = preload("res://core/schemas/agent_action.gd")

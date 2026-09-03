@@ -1,8 +1,8 @@
 ## LootTable - Drop tables for enemies and containers
 ## Defines what items/currency can drop and their probabilities
 ## entries and currency_drops are exported arrays — .tres files define them declaratively
-class_name LootTable
 extends Resource
+class_name LootTable
 
 # Loot table metadata
 @export var id: String = ""
