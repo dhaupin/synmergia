@@ -130,7 +130,8 @@ synmergia/
 ├── scripts/
 │   ├── screenshot.js       # Puppeteer capture tool
 │   ├── package.json        # Dependencies
-│   └── node_modules/       # puppeteer + minimist
+│   ├── package-lock.json   # Lockfile
+│   └── # node_modules/ built by Dockerfile (gitignored)
 │
 ├── captures/               # Gitignored — volume-mounted
 │   ├── screenshots/
