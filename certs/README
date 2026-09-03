@@ -1,0 +1,3 @@
+# Place SSL certificates here:
+# - fullchain.pem (certificate + intermediates)
+# - privkey.pem (private key)
