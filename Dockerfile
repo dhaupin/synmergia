@@ -44,7 +44,7 @@ RUN curl -fsSL https://github.com/godotengine/godot/releases/download/4.7.2-stab
 # GUI - always needed (Xvfb, VNC, noVNC for browser access)
 # ============================================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    xvfb x11vnc novnc \
+    xvfb x11vnc novnc python3 python3-pip \
     libx11-6 libx11-xcb1 libxcb1 libxext6 libxrandr2 libxcursor1 \
     libxi6 libxinerama1 libxrender1 libxkbcommon0 \
     libgl1-mesa-glx libasound2 libpulse0 \
@@ -87,7 +87,7 @@ ENV PATH="/usr/local/go/bin:${PATH}" GOPATH="/go"
 ARG INSTALL_MEDIA=true
 RUN if [ "$INSTALL_MEDIA" = "true" ]; then \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-venv ffmpeg imagemagick xwd xdotool \
+    python3 python3-pip python3-venv ffmpeg imagemagick x11-apps xdotool \
     && rm -rf /var/lib/apt/lists/*; \
     fi
 
