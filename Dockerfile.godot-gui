@@ -7,16 +7,33 @@ FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Xvfb, VNC, noVNC
+# Install Xvfb, VNC, noVNC, and X11 libraries for Godot GUI
 RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
     x11vnc \
     novnc \
+    ca-certificates \
+    curl \
+    unzip \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxext6 \
+    libxrandr2 \
+    libxcursor1 \
+    libxi6 \
+    libxinerama1 \
+    libxrender1 \
+    libgl1-mesa-glx \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pre-downloaded Godot binary from host
-COPY bin/godot /usr/local/bin/godot
-RUN chmod +x /usr/local/bin/godot
+# Download Godot 4.7.2
+RUN curl -fsSL https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o godot.zip && \
+    unzip -q godot.zip && \
+    mv Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot && \
+    chmod +x /usr/local/bin/godot && \
+    rm godot.zip
 
 # Copy game project
 WORKDIR /workspace/project/synmergia
