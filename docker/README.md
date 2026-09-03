@@ -5,30 +5,32 @@ Run the Godot smoke test suite inside a Docker container, no GPU or display requ
 ## Quick Start
 
 ```bash
-# Build the test image
-docker build -f Dockerfile.test-headless -t synmergia:test .
+# Build the unified image (includes test tooling)
+docker build -t synmergia .
 
 # Run all smoke tests
-docker run --rm synmergia:test
+docker run --rm -e START_MODE=test synmergia
 
 # Run only notification-related tests
-docker run --rm synmergia:test notification
+docker run --rm synmergia bash -c 'TEST_FILTER=notification /usr/local/bin/test-headless.sh'
 ```
 
-## Running Without Rebuilding
+## Test Modes
 
-If you just want to run tests using the Godot binary already built (e.g. in
-`tools/`), mount the project directory from the host:
+The entrypoint handles test execution:
 
 ```bash
-docker build -f Dockerfile.test-headless -t synmergia:test .
+# Via START_MODE (built into the unified image)
+docker run --rm synmergia test
 
-docker run --rm \
-  -v "$(pwd)/synmergia:/workspace/project/synmergia:ro" \
-  synmergia:test
+# Via the test-headless.sh script (run inside any container with Godot)
+docker run --rm synmergia /usr/local/bin/test-headless.sh
+
+# With TEST_FILTER
+docker run --rm synmergia bash -c 'TEST_FILTER=notification /usr/local/bin/test-headless.sh'
 ```
 
-## On the Host (No Docker)
+## Running Tests from Host (No Docker)
 
 If Godot is installed locally, run the script directly:
 

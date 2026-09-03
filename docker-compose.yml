@@ -1,20 +1,56 @@
-# Synmergia Docker - Development
-# Usage: docker compose up --build
+# ============================================================================
+# Synmergia — Docker Compose
+#
+# One file. Pick a profile. Works for dev, prod, and headless.
+#
+# Profiles:
+#   dev       — Xvfb + noVNC + nginx + Godot GUI  (default)
+#   prod      — nginx + Godot headless + postgres + redis
+#   headless  — Godot headless only (CI / bot runner)
+#
+# Usage:
+#   docker compose up               # dev (default)
+#   docker compose --profile dev up --build
+#   docker compose --profile prod up --build
+#   docker compose --profile headless up --build
+#
+# Environment (override in .env):
+#   START_MODE=dev|prod|headless
+#   GODOT_PORT=9000
+#   POSTGRES_PASSWORD=...
+#   JWT_SECRET=...
+#   DOMAIN=play.example.com
+#   CERT_EMAIL=admin@example.com
+# ============================================================================
 
 services:
+  # ── Synmergia App (all modes) ─────────────────────────────────────────────
   synmergia:
     build: .
+    profiles:
+      - dev
+      - prod
+      - headless
     ports:
-      - "80:80"       # HTTP
-      - "6080:6080"   # noVNC (browser)
-      - "5900:5900"   # VNC
-      - "9000:9000"   # WebSocket
-    volumes:
-      - ./synmergia:/workspace/project/synmergia:ro
-      - ./captures:/workspace/project/synmergia/captures
+      - "80:80"
+      - "443:443"
+      - "6080:6080"
+      - "5900:5900"
+      - "9000:9000"
     environment:
-      - DISPLAY=:99
-      - START_GODOT=normal
+      - START_MODE=${START_MODE:-dev}
+      - GODOT_PORT=${GODOT_PORT:-9000}
+      - GODOT_UPSTREAM=synmergia:${GODOT_PORT:-9000}
+      - POSTGRES_DB=synmergia
+      - POSTGRES_USER=synmergia
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synmergia_dev_pass}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - REDIS_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
+    volumes:
+      - synmergia-data:/var/lib/synmergia
+      - ./captures:/workspace/project/synmergia/captures
     shm_size: 256mb  # Xvfb needs shared memory
     restart: unless-stopped
     healthcheck:
@@ -22,3 +58,84 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - synmergia-net
+
+  # ── PostgreSQL (prod profile) ────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    profiles:
+      - prod
+    environment:
+      - POSTGRES_DB=synmergia
+      - POSTGRES_USER=synmergia
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synmergia_dev_pass}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=en_US.UTF-8
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synmergia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - synmergia-net
+
+  # ── Redis (prod profile) ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    profiles:
+      - prod
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - synmergia-net
+
+  # ── Certbot (prod, run-once to get HTTPS certs) ─────────────────────────
+  # Run once: docker compose --profile prod run --rm certbot
+  # Then uncomment HTTPS in nginx.conf and restart.
+  certbot:
+    image: certbot/certbot
+    profiles:
+      - prod
+    volumes:
+      - ./certs:/etc/letsencrypt
+      - nginx-html:/var/www/html
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h; certbot renew; done'"
+    command: >
+      certonly --webroot -w /var/www/html
+      --email ${CERT_EMAIL:-admin@localhost}
+      -d ${DOMAIN:-localhost}
+      --agree-tos --noninteractive --keep-until-expiring
+    restart: unless-stopped
+    networks:
+      - synmergia-net
+
+# ── Volumes ────────────────────────────────────────────────────────────────
+volumes:
+  synmergia-data:
+  postgres-data:
+  redis-data:
+  nginx-html:
+
+# ── Network ────────────────────────────────────────────────────────────────
+networks:
+  synmergia-net:
+    driver: bridge

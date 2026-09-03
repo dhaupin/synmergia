@@ -1,159 +1,141 @@
 # ============================================================================
-# Synmergia - Development Container
-# One image. Build what you need.
+# Synmergia - Unified Container
+# Single image for dev, production, headless, and testing.
+#
+# Modes (set START_MODE env):
+#   dev        — Xvfb + noVNC + Godot GUI (default)
+#   prod       — Godot headless + nginx (no X11/VNC)
+#   headless   — Godot headless only (no nginx/VNC)
+#   test       — run smoke tests and exit
 #
 # Usage:
 #   docker build -t synmergia .
-#   docker compose up
+#   docker compose up              # dev mode (noVNC on :6080)
+#   START_MODE=prod docker compose up
+#   START_MODE=test docker run --rm synmergia
 #
-# Optional build args (--build-arg):
-#   INSTALL_JULIA=true     # Julia (scientific computing)
-#   INSTALL_GO=true        # Go (custom tools)
-#   INSTALL_BLENDER=true   # Blender (3D assets) - large!
+# Build args (change with --build-arg):
+#   GODOT_VERSION=4.7.2
+#   JULIA_VERSION=1.11.1
+#   GO_VERSION=1.23.1
+#   NODE_VERSION=20
 # ============================================================================
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
+
+LABEL maintainer="Synmergia"
+LABEL description="Synmergia MMORPG — dev/prod/headless/test"
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Versions
-ENV GODOT_VERSION=4.7.2
-ENV JULIA_VERSION=1.11.1
-ENV JULIA_MINOR=1.11
-ENV GO_VERSION=1.23.1
-ENV NODE_VERSION=20
+# Tool versions
+ENV GODOT_VERSION=4.7.2 \
+    JULIA_VERSION=1.11.1 \
+    JULIA_MINOR=1.11 \
+    GO_VERSION=1.23.1 \
+    NODE_VERSION=20 \
+    GODOT_PORT=9000 \
+    GODOT_PATH=/workspace/project/synmergia
 
-# BASE - always needed
+# ── Base system ────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget unzip ca-certificates git build-essential \
+    # Core build tools
+    curl wget unzip ca-certificates git build-essential gnupg \
+    # X11 / VNC (dev mode)
     xvfb x11vnc novnc \
     libx11-6 libx11-xcb1 libxcb1 libxext6 libxrandr2 libxcursor1 \
     libxi6 libxinerama1 libxrender1 libxkbcommon0 \
     libgl1-mesa-glx libasound2 libpulse0 \
+    # Web server
     nginx openssl \
-    python3 python3-pip ffmpeg imagemagick x11-apps gnupg \
-    # Chromium / GTK deps for Puppeteer screenshot.js
+    # Dev tools
+    python3 python3-pip ffmpeg imagemagick x11-apps \
+    # Puppeteer / Chromium (screenshots)
     libnss3 libatk-bridge2.0-0 libxcomposite1 libxdamage1 \
     libgbm1 libpangocairo-1.0-0 libpango-1.0-0 libgtk-3-0 \
     fonts-liberation \
+    # Database clients (app connects to external containers)
+    postgresql-client redis-tools \
+    # Certbot for HTTPS (optional)
+    certbot \
+    # Misc utilities
+    sudo nano jq procps \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Secure ImageMagick
-RUN sed -i 's/^<policy domain="coder" rights="none" pattern="\(PS\|PDF\|EPS\|VIDEO\|HTTPD\|DOSMEXEC\)"\/>/<policy domain="coder" rights="none" pattern="PS"\/><policy domain="coder" rights="none" pattern="PDF"\/>/' \
+# ── ImageMagick security ────────────────────────────────────────────────────
+RUN sed -i 's/^<policy domain="coder" rights="none" pattern="\(PS\|PDF\)"\/>$/<policy domain="coder" rights="none" pattern="PS"\/><policy domain="coder" rights="none" pattern="PDF"\/>/' \
     /etc/ImageMagick-6/policy.xml 2>/dev/null || true
 
-
-# GODOT
+# ── Godot ──────────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" \
-    -o godot.zip && \
-    unzip -q godot.zip && \
-    mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot && \
-    chmod +x /usr/local/bin/godot && \
-    rm godot.zip
+    -o /tmp/godot.zip \
+    && unzip -q /tmp/godot.zip -d /usr/local/bin/ \
+    && mv "/usr/local/bin/Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot \
+    && chmod +x /usr/local/bin/godot \
+    && rm /tmp/godot.zip
 
-# OPTIONAL: Julia
-ARG INSTALL_JULIA=true
-RUN if [ "$INSTALL_JULIA" = "true" ]; then \
-    curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_MINOR}/julia-${JULIA_VERSION}-linux-x86_64.tar.gz" \
-    -o julia.tar.gz && \
-    tar -xzf julia.tar.gz -C /opt && \
-    ln -s "/opt/julia-${JULIA_VERSION}/bin/julia" /usr/local/bin/julia && \
-    rm julia.tar.gz; \
-    fi
+# ── Julia ──────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_MINOR}/julia-${JULIA_VERSION}-linux-x86_64.tar.gz" \
+    -o /tmp/julia.tar.gz \
+    && tar -xzf /tmp/julia.tar.gz -C /opt \
+    && ln -s "/opt/julia-${JULIA_VERSION}/bin/julia" /usr/local/bin/julia \
+    && rm /tmp/julia.tar.gz
 
-# OPTIONAL: Go
-ARG INSTALL_GO=true
-RUN if [ "$INSTALL_GO" = "true" ]; then \
-    curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o go.tar.gz && \
-    tar -C /usr/local -xzf go.tar.gz && \
-    rm go.tar.gz; \
-    fi
-ENV PATH="/usr/local/go/bin:${PATH}" GOPATH="/go"
+# ── Go ─────────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
+    -o /tmp/go.tar.gz \
+    && tar -C /usr/local -xzf /tmp/go.tar.gz \
+    && rm /tmp/go.tar.gz
 
-# OPTIONAL: Blender
-ARG INSTALL_BLENDER=false
-RUN if [ "$INSTALL_BLENDER" = "true" ]; then \
-    apt-get update && apt-get install -y --no-install-recommends blender && rm -rf /var/lib/apt/lists/*; \
-    fi
+ENV PATH="/usr/local/go/bin:${PATH}" \
+    GOPATH="/go" \
+    CARGO_HOME="/cargo" \
+    RUSTUP_HOME="/rustup"
 
-# NODE.JS — for Puppeteer screenshot tooling
-RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && 
-    apt-get install -y --no-install-recommends nodejs && 
-    rm -rf /var/lib/apt/lists/*
+# ── Node.js ────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
-# Puppeteer — screenshot.js browser automation
-COPY synmergia/scripts/ synmergia/scripts/
-RUN cd synmergia/scripts && npm install --no-audit --no-fund && npx puppeteer browsers install chrome
-
-# SETUP
+# ── Working dir ────────────────────────────────────────────────────────────
 WORKDIR /workspace/project/synmergia
 
-RUN mkdir -p /var/www/html /etc/nginx/ssl /workspace/project/synmergia/captures/screenshots
+# ── Puppeteer (screenshots) ───────────────────────────────────────────────
+# Copy package files, install deps, download Chromium
+COPY synmergia/scripts/package.json synmergia/scripts/package-lock.json synmergia/scripts/
+RUN cd synmergia/scripts && npm install --no-audit --no-fund \
+    && npx puppeteer browsers install chrome
 
-# Nginx config
-RUN printf '%s\n' \
-    'server {' \
-    '    listen 80 default_server;' \
-    '    root /var/www/html;' \
-    '    index index.html;' \
-    '    server_name _;' \
-    '    add_header X-Frame-Options "SAMEORIGIN" always;' \
-    '    add_header X-Content-Type-Options "nosniff" always;' \
-    '    add_header Referrer-Policy "no-referrer" always;' \
-    '    autoindex on;' \
-    '    location / { try_files $uri $uri/ =404; }' \
-    '    location /game/ { try_files $uri $uri/ /game/index.html; }' \
-    '    location /ws/ {' \
-    '        proxy_pass http://localhost:9000;' \
-    '        proxy_http_version 1.1;' \
-    '        proxy_set_header Upgrade $http_upgrade;' \
-    '        proxy_set_header Connection "upgrade";' \
-    '        proxy_read_timeout 86400;' \
-    '    }' \
-    '}' > /etc/nginx/sites-available/default
+# ── Nginx config ───────────────────────────────────────────────────────────
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Self-signed cert
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/nginx.key \
-    -out /etc/nginx/ssl/nginx.crt \
-    -subj "/C=US/ST=Dev/L=Dev/O=Synmergia/CN=localhost"
+# ── Self-signed SSL cert (fallback for dev/prod HTTPS) ────────────────────
+RUN mkdir -p /etc/nginx/ssl \
+    && openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/nginx.key \
+        -out /etc/nginx/ssl/nginx.crt \
+        -subj "/C=US/ST=Dev/L=Dev/O=Synmergia/CN=localhost" \
+    && mkdir -p /var/www/html /etc/nginx/snippets
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+# ── Capture dirs ───────────────────────────────────────────────────────────
+RUN mkdir -p /workspace/project/synmergia/captures/screenshots \
+                /workspace/project/synmergia/captures/videos \
+                /var/lib/synmergia
 
-EXPOSE 80 6080 5900 9000
+# ── Health check ───────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost/ > /dev/null 2>&1 \
+    || curl -f http://localhost:6080/ > /dev/null 2>&1 \
+    || exit 0
 
-ENTRYPOINT ["/bin/bash", "-c", "\
-echo 'Starting Synmergia...'; \
-Xvfb :99 -screen 0 1920x1080x24 & \
-sleep 1; \
-x11vnc -display :99 -forever -shared -rfbport 5900 -nopw -bg 2>/dev/null || true; \
-websockify --web=/usr/share/novnc 6080 localhost:5900 &>/dev/null & \
-sleep 1; \
-nginx -g 'daemon off;' & \
-sleep 1; \
-mkdir -p /workspace/project/synmergia/captures/screenshots; \
-echo ''; \
-echo '================================================'; \
-echo ' Synmergia Dev Container'; \
-echo '================================================'; \
-if [ \"${START_GODOT:-normal}\" = \"0\" ]; then \
-    echo ' Godot skipped (START_GODOT=0)'; \
-elif [ \"${START_GODOT}\" = \"headless\" ]; then \
-    echo ' Starting Godot (headless)...'; \
-    DISPLAY=:99 godot --headless --path /workspace/project/synmergia & \
-else \
-    echo ' Starting Godot (normal, renders to Xvfb)...'; \
-    DISPLAY=:99 godot --path /workspace/project/synmergia & \
-fi; \
-echo ' HTTP:   http://localhost'; \
-echo ' noVNC:  http://localhost:6080/vnc.html'; \
-echo ' VNC:    localhost:5900'; \
-echo ' Screenshots: node /workspace/project/synmergia/synmergia/scripts/screenshot.js'; \
-echo '================================================'; \
-tail -f /dev/null"]
+# ── Entrypoint (handles all modes) ─────────────────────────────────────────
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["tail", "-f", "/dev/null"]
+
+EXPOSE 80 443 6080 5900 9000
