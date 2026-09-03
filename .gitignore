@@ -27,3 +27,7 @@ Thumbs.db
 # Local Godot engine binary (downloaded into ./tools/ for runtime checks).
 # The repo's official build process is documented in AGENTS.md.
 tools/
+
+# Media captures
+captures/
+
