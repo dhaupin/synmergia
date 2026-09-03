@@ -1,11 +1,43 @@
 ## CharacterStatsUI - In-game character stats panel
 ## Shows all stats, allocated points, and allows allocation
+
+extends Control
 class_name CharacterStatsUI
 
-const UIPanel = preload("res://ui/components/ui_panel.gd")
-extends UIPanel
+const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 
+var _player_id: String = ""
+var _is_open: bool = false
+signal panel_opened()
+signal panel_closed()
+
+func open(player_id: String) -> void:
+	_open_impl(player_id)
+
+func close() -> void:
+	pass
+
+func is_open() -> bool:
+	return false
+
+func toggle(player_id: String) -> void:
+	pass
+
+func get_panel() -> PanelContainer:
+	return null
+
+func get_content() -> VBoxContainer:
+	return null
+
+func set_title(title: String) -> void:
+	pass
+
+func set_panel_size(size: Vector2) -> void:
+	pass
+
+func show_notification(msg: String, success: bool = true) -> void:
+	pass
 
 const HEADER_HEIGHT: int = 40
 const ROW_HEIGHT: int = 32
@@ -329,7 +361,7 @@ func _get_entity():
 		return GameManager.get_player_entity(_player_id)
 	return null
 
-func open(player_id: String) -> void:
+func _open_impl(player_id: String) -> void:
 	_player_id = player_id
 	_character_data = null
 	
@@ -338,7 +370,6 @@ func open(player_id: String) -> void:
 		_character_data = entity.character_data
 	
 	_refresh()
-	super.open(player_id)
 
 func refresh() -> void:
 	_refresh()
