@@ -24,7 +24,7 @@
 ## the context and any future kind-specific helpers.
 extends RefCounted
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 var player_id: String = ""
 var kind: int = NotifKind.CUSTOM

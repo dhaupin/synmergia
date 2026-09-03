@@ -12,7 +12,7 @@
 ##   tools/godot --headless --path synmergia --script res://tests/test_notif_migration_server_manager.gd
 extends SceneTree
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 var _passed: int = 0
 var _failed: int = 0

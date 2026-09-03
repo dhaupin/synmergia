@@ -1,17 +1,13 @@
 # Synmergia Docker - Development
 # Usage: docker compose up --build
-#
-# Screenshot/agent tooling:
-#   node synmergia/scripts/screenshot.js --output captures/screenshots/main-menu.png
-#   node synmergia/scripts/screenshot.js --video 30
 
 services:
   synmergia:
     build: .
     ports:
       - "80:80"       # HTTP
-      - "6080:6080"   # noVNC (browser) — connect here for game UI
-      - "5900:5900"   # VNC (raw)
+      - "6080:6080"   # noVNC (browser)
+      - "5900:5900"   # VNC
       - "9000:9000"   # WebSocket
     volumes:
       - ./synmergia:/workspace/project/synmergia:ro
@@ -22,7 +18,7 @@ services:
     shm_size: 256mb  # Xvfb needs shared memory
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3

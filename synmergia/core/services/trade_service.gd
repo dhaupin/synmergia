@@ -8,7 +8,7 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 # _notify_player dispatches via the typed-Kind pipeline so trade
 # messages land on the same toast feed as the rest of the security
 # surface (kick, ban, restriction).
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 # Service references
 var _account_service: AccountService

@@ -3,7 +3,7 @@
 ## All player reports flow through this central system
 extends Node
 
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 
 ## Report types

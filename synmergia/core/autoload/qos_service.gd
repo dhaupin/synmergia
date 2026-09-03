@@ -1,13 +1,14 @@
 ## QoSService - Quality of Service infrastructure
 ## Handles rate limiting, throttling, bulkhead pattern, and debouncing
 extends Node
+class_name QoSService
 
 # Frame-level notification dispatch (see synmergia/core/notifications/).
 # QoSService surfaces rate-limit and circuit-breaker events through the
 # typed-Kind pipeline. The dispatch goes through NotificationService.notify
 # (the service-level verb that wraps send_event), so call sites only need
 # the kind enum and a dedupe key.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 ## ============================================================================
 ## SIGNALS

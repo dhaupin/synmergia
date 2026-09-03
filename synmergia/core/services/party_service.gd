@@ -5,7 +5,7 @@ extends Node
 # Frame-level notification dispatch (see synmergia/core/notifications/).
 # kick_player dispatches a PARTY kind toast to the kicked member so
 # they know it was a leader action (vs. a disconnect or a disband).
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 # Party data (party_id -> party data dict)
 var _parties: Dictionary = {}

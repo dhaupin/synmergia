@@ -17,7 +17,7 @@ signal karma_lost(entity_id: String, amount: int, reason: String)
 # Frame-level notification dispatch (see synmergia/core/notifications/).
 # RespawnService surfaces respawn / revive events through the toast pipeline
 # with per-event dedupe keys so a stuck respawn loop can't toast 100 times.
-const NotifKind = preload("res://core/notifications/notification_kind.gd").Kind
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 func _emit_lifecycle(
 	player_id: String,

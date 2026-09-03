@@ -638,7 +638,6 @@ static func _esc(text: String) -> String:
 - **Test co-location:** `/labs/` primitives have tests next to them. If you write a primitive without a test, it's not done.
 - **Engine version:** Godot 4.7.2. `var_to_bytes` / `bytes_to_var` (not `VarToStr`).
 - **Project root:** `synmergia/` is the Godot project. `labs/` and `docs/` are outside.
-- **Compile errors for late-autoloaded singletons:** Godot parses ALL function bodies at compile time. If a service references `NetworkManager.X()` or `PlayerManager.X()` and NM/PM is lower in the autoload order, you get `"Identifier not declared in the current scope"`. Solution: add `_nm()/_pm()` helpers using `Engine.get_singleton()` (runtime resolution) and call those inside function bodies. Never use bare autoload identifiers in function bodies of services that load after them.
 
 ---
 
@@ -1122,88 +1121,43 @@ Players choose 1 of 3 signature abilities at level 10:
 
 ---
 
-## Docker Dev Environment
+## VPS Architecture
 
-The `labs/docker` branch has a full Docker setup for running the game with
-a visual UI accessible via browser.
+Synmergia supports two deployment modes via Docker:
 
-### Quick Start
-
+### DEV Mode (default)
 ```bash
-docker compose up --build
-# then open http://localhost:6080/vnc.html
+docker compose up
 ```
+- Full GUI environment with VNC/noVNC
+- Xvfb for headless rendering
+- All dev tools available
+- Volume-mounted source for live editing
 
-### Screenshot / Video Capture (noVNC → Puppeteer)
-
-The Xvfb/llvmpipe approach produces dark frames with `ffmpeg x11grab`. Instead,
-use the Puppeteer → noVNC bridge:
-
+### PROD Mode
 ```bash
-# Inside container or on host
-node synmergia/scripts/screenshot.js
-
-# Record 30s video
-node synmergia/scripts/screenshot.js --video 30
-
-# Custom output
-node synmergia/scripts/screenshot.js --output my-shot.png
-```
-
-The script navigates to `http://localhost:6080/vnc.html`, auto-connects via
-noVNC, and screenshots the rendered canvas. Full docs: `docs/screenshots/agent-pipeline.md`.
-
-### Docker Files
-
-| File | Purpose |
-|------|---------|
-| `Dockerfile` | Dev image — Godot + Xvfb + VNC + noVNC + Node/Puppeteer |
-| `Dockerfile.prod` | Minimal headless server image |
-| `docker-compose.yml` | Dev (GUI + noVNC) |
-| `docker-compose.prod.yml` | Prod (Godot server + Postgres + Redis + Nginx + Julia) |
-| `synmergia/scripts/screenshot.js` | Puppeteer screenshot/recording tool |
-
-### Julia Multi-iso Orchestrator
-
-The multi-iso orchestrator (spatial × faction × temporal × social axes)
-runs as a Julia HTTP service alongside the game server.
-
-**Files:**
-- `labs/multi-iso/srv/orchestrator.jl` — the orchestrator (frame primitive)
-- `labs/multi-iso/srv/server.jl` — HTTP API server
-- `synmergia/core/services/multi_iso_service.gd` — Godot HTTP bridge
-
-**API endpoints (Julia server, port 8080):**
-```
-GET  /health              — health check
-GET  /stats              — orchestrator statistics
-POST /register           — register an entity
-GET  /spatial/:v         — entities at vertex v
-GET  /faction/:f         — entities in faction f
-GET  /social/:s          — entities in social group s
-POST /intersect          — multi-axis intersection query
-```
-
-**Docker usage:**
-```bash
-# In docker-compose.prod.yml, the julia-orchestrator service is started
-# automatically. The Godot service waits for it (healthcheck).
 docker compose -f docker-compose.prod.yml up -d
-
-# Or locally for testing:
-cd labs/multi-iso/srv
-julia --project=. -e 'using Pkg; Pkg.instantiate()'  # one-time
-julia --project=. server.jl --port 8080
 ```
+- Minimal production image
+- Postgres database for player data
+- Nginx reverse proxy with SSL
+- Godot headless server
+- WebSocket for game clients
 
-**Godot usage:**
-```gdscript
-# Register a player on all axes
-MultiIsoService.register_entity(player_id, spatial_vertex, faction_id)
+### Key Files
+- `Dockerfile` — DEV image with GUI tools
+- `Dockerfile.prod` — Minimal production build
+- `docker-compose.yml` — DEV configuration
+- `docker-compose.prod.yml` — PROD configuration
+- `nginx.conf` — Reverse proxy, WebSocket forwarding
+- `.env.example` — Environment variables template
+- `docs/vps-architecture.md` — Full architecture documentation
 
-# Query: players at vertex 3 who are in faction 7
-var nearby := await MultiIsoService.query_intersect(spatial_vertex=3, faction_id=7)
-for entity_id in nearby:
-    print("Nearby: ", entity_id)
-```
-
+### Ports
+| Port | DEV | PROD | Service |
+|------|-----|------|---------|
+| 80 | ✅ | ✅ | HTTP |
+| 443 | ❌ | ✅ | HTTPS |
+| 6080 | ✅ | ❌ | noVNC |
+| 5900 | ✅ | ❌ | VNC |
+| 9000 | ✅ | ✅ | WebSocket |
