@@ -109,9 +109,10 @@ func log_heal(target: String, amount: int, source: String = "") -> void:
 	_add_entry(text, EntryType.HEAL)
 
 func log_system(message: String) -> void:
-	if not _show_system or not UIStyles:
+	if not _show_system:
 		return
-	var color: String = UIStyles.COLORS.info.to_html()
+	if not UIStyles:
+	var color: String = UIStyles.COLORS.info.to_html() if UIStyles else "#CCCCCC"
 	var text := "[color=%s]%s[/color]" % [color, _esc(message)]
 	_add_entry(text, EntryType.SYSTEM)
 
@@ -257,10 +258,8 @@ func _create_popup(name: String) -> PanelContainer:
 	hbox.add_child(label)
 
 	# Start off-screen (translated right by 310px)
-	var tw := Tween.new()
-	panel.add_child(tw as Node)
-	tw.interpolate_property(panel, "offset_left", 310, 0, 0.4, Tween.TRANS_QUAD, Tween.EASE_OUT)
-	tw.start()
+	var tw := create_tween()
+	tw.tween_property(panel, "offset_left", 0, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	return panel
 
 func _display_next_popup() -> void:
@@ -272,24 +271,17 @@ func _display_next_popup() -> void:
 	if not is_instance_valid(popup) or not is_instance_valid(_popup_container):
 		_display_next_popup()
 		return
-	var tw := popup.get_node_or_null("Tween")
-	if tw:
-		tw.stop_all()
 	# Hold then slide out
-	var hold := Tween.new()
-	popup.add_child(hold as Node)
 	var slide_out := func() -> void:
 		if not is_instance_valid(popup):
 			_display_next_popup()
 			return
-		var out := Tween.new()
-		popup.add_child(out as Node)
-		out.interpolate_property(popup, "offset_left", 0, 310, 0.35, Tween.TRANS_QUAD, Tween.EASE_IN)
-		out.start()
-		out.tween_callback(_display_next_popup)
-		out.tween_callback(popup.queue_free)
-	hold.interpolate_callback(slide_out, _POPUP_DURATION)
-	hold.start()
+		var tw := popup.create_tween()
+		tw.tween_property(popup, "offset_left", 310, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_callback(_display_next_popup)
+		tw.tween_callback(popup.queue_free)
+	var hold := popup.create_tween()
+	hold.tween_callback(slide_out).set_delay(_POPUP_DURATION)
 
 func set_show_damage(show: bool) -> void:
 	_show_damage = show
