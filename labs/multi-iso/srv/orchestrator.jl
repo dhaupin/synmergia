@@ -1,7 +1,7 @@
 """
 orchestrator.jl — Julia multi-iso orchestrator (frame primitive)
 
-Lifted from models/julia/multi_iso.jl and placed in the canonical
+Upgraded from the Python prototype and placed in the canonical
 `labs/multi-iso/srv/` slot per the /labs/ convention:
   https://github.com/dhaupin/synmergia/blob/labs/docker/docs/architecture/labs-organization.md
 
