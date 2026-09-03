@@ -45,7 +45,7 @@ See `labs/multi-iso/prototype/iso_math.py` for the prototype proof.
 
 ```bash
 # In Docker
-docker compose -f docker-compose.prod.yml run julia
+docker run --rm synmergia julia
 
 # Or locally
 julia --project=. julia/pipeline.jl

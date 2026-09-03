@@ -1123,33 +1123,19 @@ Players choose 1 of 3 signature abilities at level 10:
 
 ## VPS Architecture
 
-Synmergia supports two deployment modes via Docker:
+One Docker image, four run modes controlled by `START_MODE`:
 
-### DEV Mode (default)
 ```bash
-docker compose up
+docker compose --profile dev up --build      # dev (default) — noVNC + Xvfb
+docker compose --profile prod up --build     # prod — headless + nginx + postgres + redis
+docker compose --profile headless up --build # headless — Godot only (CI runner)
 ```
-- Full GUI environment with VNC/noVNC
-- Xvfb for headless rendering
-- All dev tools available
-- Volume-mounted source for live editing
-
-### PROD Mode
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
-- Minimal production image
-- Postgres database for player data
-- Nginx reverse proxy with SSL
-- Godot headless server
-- WebSocket for game clients
 
 ### Key Files
-- `Dockerfile` — DEV image with GUI tools
-- `Dockerfile.prod` — Minimal production build
-- `docker-compose.yml` — DEV configuration
-- `docker-compose.prod.yml` — PROD configuration
-- `nginx.conf` — Reverse proxy, WebSocket forwarding
+- `Dockerfile` — Unified image (all modes: dev/prod/headless/test)
+- `docker-compose.yml` — Dev + prod profiles (single file)
+- `docker/entrypoint.sh` — Mode dispatcher (dev/prod/headless/test)
+- `nginx.conf` — Reverse proxy, WebSocket forwarding, HTTPS
 - `.env.example` — Environment variables template
 - `docs/vps-architecture.md` — Full architecture documentation
 
@@ -1157,7 +1143,7 @@ docker compose -f docker-compose.prod.yml up -d
 | Port | DEV | PROD | Service |
 |------|-----|------|---------|
 | 80 | ✅ | ✅ | HTTP |
-| 443 | ❌ | ✅ | HTTPS |
-| 6080 | ✅ | ❌ | noVNC |
+| 443 | ✅ | ✅ | HTTPS (self-signed / Let's Encrypt) |
+| 6080 | ✅ | ❌ | noVNC (browser GUI) |
 | 5900 | ✅ | ❌ | VNC |
 | 9000 | ✅ | ✅ | WebSocket |

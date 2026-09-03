@@ -1,21 +1,16 @@
 # Ignore everything by default
 *
 
-# Include synmergia/ source (the game)
+# Include synmergia/ (the game source)
 !synmergia/
 
-# Include Docker files and scripts
+# Include Docker files
 !Dockerfile
-!Dockerfile.prod
-!Dockerfile.test-headless
-!docker/
 !docker-compose*.yml
+!docker/
 !.dockerignore
 
-# Include public docs
-!docs/docker-setup.md
-
 # Include root-level config
-!.gitignore
 !nginx.conf
+!.gitignore
 !.env.example

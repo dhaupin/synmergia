@@ -80,7 +80,7 @@ docker compose up
 
 ### PROD Mode
 ```bash
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml --profile prod up -d
 ```
 - Minimal footprint
 - No VNC/GUI
@@ -91,7 +91,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 ```bash
 # Server
-GODOT_MODE=prod              # dev | prod
+START_MODE=prod              # dev | prod
 GODOT_PORT=9000              # WebSocket port
 GODOT_MAX_PLAYERS=100        # Player limit
 
@@ -140,25 +140,24 @@ SSL_KEY=/certs/privkey.pem
 docker build -t synmergia:prod --build-arg DEV_MODE=false .
 
 # Deploy
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml --profile prod up -d
 
 # Rollback
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml --profile prod pull
+docker compose -f docker-compose.yml --profile prod up -d
 ```
 
 ## File Structure
 
 ```
 synmergia/
-├── Dockerfile              # Multi-stage build
-├── Dockerfile.prod        # Production only
-├── docker-compose.yml     # DEV (default)
-├── docker-compose.prod.yml # PROD
-├── .env.example           # Environment template
-├── certs/                 # SSL certificates (prod)
-│   ├── fullchain.pem
-│   └── privkey.pem
-└── backups/               # Database backups
+├── Dockerfile              # Unified: dev/prod/headless/test
+├── docker-compose.yml      # Profiles: dev, prod, headless
+├── docker/entrypoint.sh    # Mode dispatcher
+├── nginx.conf              # Reverse proxy + WebSocket
+├── .env.example            # Environment template
+├── certs/                 # SSL certificates (bind-mount in prod)
+│   └── ...
+└── backups/               # Database backups (prod)
     └── daily/
 ```
