@@ -122,8 +122,15 @@ func _connect_signals() -> void:
 	if bs.has_signal("repair_failed"):
 		if not bs.repair_failed.is_connected(_on_repair_failed):
 			bs.repair_failed.connect(_on_repair_failed)
+	if bs.has_signal("item_too_broken"):
+		if not bs.item_too_broken.is_connected(_on_item_too_broken):
+			bs.item_too_broken.connect(_on_item_too_broken)
 
 
+
+
+func _on_item_too_broken(player_id: String, item_id: String) -> void:
+	show_notification("Item too damaged to repair", false)
 func _on_repair_completed(_player_id: String, _items_repaired: int, _total_cost: int) -> void:
 	if is_open():
 		_refresh()
