@@ -149,9 +149,24 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 EXPOSE 80 6080 5900 9000
 
-# Entrypoint script
-COPY docker/docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Entrypoint - inline to avoid COPY path issues
+ENTRYPOINT ["/bin/bash", "-c", "\
+echo 'Starting Synmergia...'; \
+Xvfb :99 -screen 0 1920x1080x24 & \
+sleep 1; \
+x11vnc -display :99 -forever -shared -rfbport 5900 -nopw -bg 2>/dev/null || true; \
+websockify --web=/usr/share/novnc 6080 localhost:5900 &>/dev/null & \
+sleep 1; \
+nginx -g 'daemon off;' & \
+echo ''; \
+echo '═══════════════════════════════════════'; \
+echo ' Synmergia Dev Container'; \
+echo '═══════════════════════════════════════'; \
+echo ' HTTP:   http://localhost'; \
+echo ' noVNC:  http://localhost:6080/vnc.html'; \
+echo ' VNC:    localhost:5900'; \
+echo ' Godot:  DISPLAY=:99 godot --path /workspace/project/synmergia'; \
+echo '═══════════════════════════════════════'; \
+tail -f /dev/null"]
 
-ENTRYPOINT ["/entrypoint.sh"]
 CMD ["tail", "-f", "/dev/null"]
