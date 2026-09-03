@@ -116,7 +116,7 @@ services:
     profiles:
       - prod
     volumes:
-      - ./certs:/etc/letsencrypt
+      - ./srv/certs:/etc/letsencrypt
       - nginx-html:/var/www/html
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h; certbot renew; done'"
     command: >
