@@ -21,6 +21,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Versions
 ENV GODOT_VERSION=4.7.2
 ENV JULIA_VERSION=1.11.1
+ENV JULIA_MINOR=1.11
 ENV GO_VERSION=1.23.1
 
 # BASE - always needed
@@ -50,9 +51,9 @@ RUN curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_V
     rm godot.zip
 
 # OPTIONAL: Julia
-ARG INSTALL_JULIA=false
+ARG INSTALL_JULIA=true
 RUN if [ "$INSTALL_JULIA" = "true" ]; then \
-    curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_VERSION}/julia-${JULIA_VERSION}-linux-x86_64.tar.gz" \
+    curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_MINOR}/julia-${JULIA_VERSION}-linux-x86_64.tar.gz" \
     -o julia.tar.gz && \
     tar -xzf julia.tar.gz -C /opt && \
     ln -s "/opt/julia-${JULIA_VERSION}/bin/julia" /usr/local/bin/julia && \
