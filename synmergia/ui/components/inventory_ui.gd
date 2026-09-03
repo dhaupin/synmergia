@@ -12,6 +12,19 @@ const COLS: int = 5
 const ROWS: int = 6
 const SLOT_SIZE: int = 50
 
+const _category_icon_map: Dictionary = {
+	Item.ItemCategory.WEAPON:    "res://ui/textures/items/weapon.png",
+	Item.ItemCategory.ARMOR:     "res://ui/textures/items/armor.png",
+	Item.ItemCategory.ACCESSORY: "res://ui/textures/items/accessory.png",
+	Item.ItemCategory.CONSUMABLE:"res://ui/textures/items/consumable.png",
+	Item.ItemCategory.RESOURCE:  "res://ui/textures/items/resource.png",
+	Item.ItemCategory.GEM:       "res://ui/textures/items/gem.png",
+	Item.ItemCategory.EVENT:     "res://ui/textures/items/event.png",
+	Item.ItemCategory.DWELLING:  "res://ui/textures/items/dwelling.png",
+	Item.ItemCategory.SKILL_BOOK:"res://ui/textures/items/skill_book.png",
+	Item.ItemCategory.MISC:      "res://ui/textures/items/misc.png",
+}
+
 var _grid: GridContainer
 var _slots: Array = []
 var _selected_slot: int = -1
@@ -194,12 +207,9 @@ func _set_slot_item(index: int, item: Item) -> void:
 
 	var slot: PanelContainer = _slots[index]
 
-	var color := _get_rarity_color(item.rarity)
-	var tex := _create_color_texture(color, SLOT_SIZE)
-
 	var icon: TextureRect = slot.get_node_or_null("Icon")
 	if icon:
-		icon.texture = tex
+		icon.texture = _get_item_icon(item)
 
 	var stack_size: int = item.current_stack if item.current_stack > 0 else item.stack_size
 	var count: Label = slot.get_node_or_null("Count")
@@ -226,6 +236,22 @@ func _get_rarity_color(rarity: int) -> Color:
 		Item.Rarity.EPIC: return Color(0.6, 0.2, 0.9)
 		Item.Rarity.LEGENDARY: return Color(1.0, 0.6, 0.1)
 		_: return Color(0.6, 0.6, 0.6)
+
+func _get_item_icon(item: Item) -> Texture2D:
+	if item.icon_path != "":
+		var tex := load(item.icon_path)
+		if tex is Texture2D:
+			return tex
+	return _get_category_icon(item.item_category, item.weapon_type, item.armor_type)
+
+func _get_category_icon(category: int, weapon_t: int = 0, armor_t: int = 0) -> Texture2D:
+	var path := _category_icon_map.get(category, "")
+	if path == "":
+		return _create_color_texture(Color(0.4, 0.4, 0.4))
+	var tex := load(path)
+	if tex is Texture2D:
+		return tex
+	return _create_color_texture(Color(0.4, 0.4, 0.4))
 
 func _create_color_texture(color: Color, size: int = 32) -> ImageTexture:
 	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)

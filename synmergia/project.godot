@@ -20,6 +20,7 @@ RegisterTypes="*res://core/autoload/type_registry.gd"
 
 GameLog="*res://core/autoload/logger.gd"
 GameConfig="*res://core/autoload/game_config.gd"
+PlayerConfig="*res://core/services/player_config.gd"
 IDRegistry="*res://core/utils/id_registry.gd"
 EventHub="*res://core/events/event_hub.gd"
 

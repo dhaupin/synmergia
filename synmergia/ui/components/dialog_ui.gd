@@ -3,6 +3,8 @@
 class_name DialogUI
 extends Control
 
+const DialogService = preload("res://core/services/dialog_service.gd")
+
 ## Dialog state
 var _current_npc: String = ""
 var _dialogue_id: String = ""
@@ -18,6 +20,8 @@ var _portrait: TextureRect
 
 func _ready() -> void:
 	_setup_ui()
+	if DialogService:
+		DialogService.node_changed.connect(_on_node_changed)
 	hide()
 
 func _setup_ui() -> void:
@@ -96,9 +100,10 @@ func _setup_ui() -> void:
 func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	_current_npc = npc_id
 	_dialogue_id = dialogue_id
-	_current_node = 0
-
-	# TODO: Load dialogue data
+	if DialogService and DialogService.start_dialogue(npc_id, dialogue_id):
+		show()
+		return
+	# Fallback: demo mode
 	_show_node(0)
 	show()
 
@@ -129,14 +134,46 @@ func _show_node(node_index: int) -> void:
 
 		_continue_btn.visible = false
 
-func _on_choice_selected(choice: Dictionary) -> void:
-	var next: int = choice.get("next", -1)
+func _on_node_changed(node_index: int, node_data: Dictionary) -> void:
+	_show_node_data(node_data)
 
-	if next < 0:
-		hide()
+func _show_node_data(node: Dictionary) -> void:
+	_speaker_label.text = node.get("speaker", "NPC")
+	_text_rich_label.clear()
+	var text: String = node.get("text", "")
+	_text_rich_label.append_text("[color=%s]%s[/color]" % [UIStyles.COLORS.text_primary.to_html(), text])
+
+	for child in _choice_buttons.get_children():
+		child.queue_free()
+	_choices.clear()
+
+	var choices: Array = node.get("choices", [])
+	if not choices.is_empty():
+		for i in range(choices.size()):
+			var choice: Dictionary = choices[i]
+			var btn := Button.new()
+			btn.text = choice.get("text", "")
+			btn.pressed.connect(_on_choice_selected.bind(i))
+			_choice_buttons.add_child(btn)
+		_continue_btn.visible = false
+	else:
+		_continue_btn.visible = true
+
+func _on_choice_selected(choice_index: int) -> void:
+	if DialogService:
+		DialogService.select_choice(choice_index)
 		return
-
-	_show_node(next)
+	# Fallback
+	var demo_choices := [
+		{"text": "What do you have for me?", "next": 1},
+		{"text": "I need to go.", "next": -1}
+	]
+	if choice_index >= 0 and choice_index < demo_choices.size():
+		var next: int = demo_choices[choice_index].get("next", -1)
+		if next < 0:
+			hide()
+			return
+		_show_node(next)
 
 func _on_continue_pressed() -> void:
 	# Advance to next node
