@@ -258,10 +258,10 @@ async function main() {
       '--disable-gpu',
       '--window-size=1920,1080',
     ],
-    defaultViewport: { width: 1920, height: 1080 },
   });
 
   const page = await browser.newPage();
+  await page.setViewport({ width: 1920, height: 1080 });
 
   console.log(`[screenshot] Navigating to noVNC: ${VNC_URL}`);
   await page.goto(VNC_URL, { waitUntil: 'networkidle0', timeout: 30000 });
