@@ -1,7 +1,13 @@
 # Synmergia Production VPS
 # Usage: docker compose -f docker-compose.prod.yml up -d
 #
-# Note: Requires .env file with POSTGRES_PASSWORD and JWT_SECRET
+# Required env vars (in .env):
+#   POSTGRES_PASSWORD=your_secure_password
+#   JWT_SECRET=your_jwt_secret
+#
+# Optional:
+#   DOMAIN=play.synmergia.com  # For Let's Encrypt
+#   CERT_EMAIL=admin@example.com  # For Let's Encrypt
 
 services:
   synmergia:
@@ -23,8 +29,19 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - synmergia-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   postgres:
     image: postgres:16-alpine
@@ -42,6 +59,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - synmergia-net
 
@@ -52,12 +74,26 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/certs:ro  # SSL certs (optional)
+      - ./certs:/etc/nginx/certs:ro  # SSL certs (optional - see certbot below)
     depends_on:
       - synmergia
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - synmergia-net
+
+  # Let's Encrypt certificate generation (run once, then disable)
+  # certbot:
+  #   image: certbot/certbot
+  #   volumes:
+  #     - ./certs:/etc/letsencrypt
+  #     - ./nginx/html:/data/webroot
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h; certbot renew; done'"
+  #   command: certonly --webroot -w /data/webroot --email ${CERT_EMAIL:-admin@localhost} -d ${DOMAIN:-localhost} --agree-tos --noninteractive
 
 volumes:
   postgres-data:
