@@ -6,7 +6,6 @@ class_name BlacksmithUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 extends UIPanel
 
-var _player_id: String = ""
 var _inventory: InventoryComponent = null
 var _offers_discount: bool = true
 var _cost_modifier: float = 1.0

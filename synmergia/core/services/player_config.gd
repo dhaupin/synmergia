@@ -7,7 +7,6 @@
 ## - Account-wide and character-specific settings
 ##
 ## Settings are persisted to disk using ConfigFile
-class_name PlayerConfig
 extends Node
 
 ## Player setting categories
@@ -130,6 +129,9 @@ func _ready() -> void:
 	GameLog.info("PlayerConfig: Ready")
 	_init_defaults()
 	_load_global_settings()
+
+func _load_global_settings() -> void:
+	load_global_settings()
 
 ## Initialize with default values
 func _init_defaults() -> void:
