@@ -252,9 +252,9 @@ Graduated work moves into the game.
 ## How to run the tests
 
 ```bash
-cd /workspace/project/synmergia
+cd /workspace/project/game
 chmod +x tools/godot
-tools/godot --headless --path synmergia --script res://tests/test_islands.gd
+tools/godot --headless --path game --script res://tests/test_islands.gd
 ```
 
 Expected output: `=== Results: 19 passed, 0 failed ===` at the end.
@@ -395,7 +395,7 @@ User: "I want a settings panel to mount when the player opens settings."
    IslandManager.hydrate_for_input("/settings")
    ```
 
-6. Run the tests: `tools/godot --headless --path synmergia --script res://tests/test_islands.gd`.
+6. Run the tests: `tools/godot --headless --path game --script res://tests/test_islands.gd`.
    All 19 should still pass.
 
 ---

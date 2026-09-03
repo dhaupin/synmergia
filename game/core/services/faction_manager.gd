@@ -29,7 +29,7 @@ signal reputation_changed(player_id: String, faction_id: String, old_rep: int, n
 signal alliance_formed(guild_id: String, faction: Faction)
 signal alliance_broken(guild_id: String, faction: Faction)
 
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # Faction events broadcast server-wide (war/peace) or target a single
 # player (rep changes). Dedupe is keyed on (kind, target, identifier)
 # so rep ticks during a long quest don't flood the toast panel.

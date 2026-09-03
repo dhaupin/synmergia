@@ -2,7 +2,7 @@
 ## Handles input validation, permission checks, and anti-exploit measures
 extends Node
 
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # SecurityService surfaces restriction / un-restriction events through the
 # typed-Kind pipeline. The dispatch goes through NotificationService.notify
 # (the service-level verb that wraps send_event).

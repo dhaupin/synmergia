@@ -3,7 +3,7 @@
 extends Node
 class_name QoSService
 
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # QoSService surfaces rate-limit and circuit-breaker events through the
 # typed-Kind pipeline. The dispatch goes through NotificationService.notify
 # (the service-level verb that wraps send_event), so call sites only need

@@ -2,8 +2,8 @@
 
 > **Updated 2026-08-30:** Modernized for the new architecture
 > (state tree, multi-iso orchestrator) and the `/labs/`
-> convention. The game lives in `synmergia/`. The frame lives
-> in `labs/`. The Godot project root is `synmergia/`.
+> convention. The game lives in `game/`. The frame lives
+> in `labs/`. The Godot project root is `game/`.
 
 ## Project Overview
 
@@ -17,7 +17,7 @@ extract to their own project.
 - **Language:** GDScript
 - **Engine:** Godot 4.7.2
 - **Architecture:** Client + Authoritative Server + Multi-iso orchestrator + State tree
-- **Game root:** `synmergia/` (open this in the Godot editor)
+- **Game root:** `game/` (open this in the Godot editor)
 - **Frame root:** `labs/` (experimental, root-level, NOT in Godot project)
 
 ---
@@ -182,7 +182,7 @@ The kinds are coarse-grained. Pick a fine-grained one (RATE_LIMITED,
 SECURITY_BLOCKED, ITEM_FULL, RESPAWNED) over a broad one (SYSTEM) so
 the toast panel / admin dashboards can subscribe to one kind without
 parsing the message. The full enum is in
-`synmergia/core/notifications/notification_kind.gd`.
+`game/core/notifications/notification_kind.gd`.
 
 **Don't** call `NotificationService.send_to_player()` directly for
 new code — that's the legacy path. If you need a raw message that
@@ -254,13 +254,13 @@ var nearby := EntityService.get_entities_in_radius(
 
 ## File Organization
 
-The repo has two top-level areas: the game (`synmergia/`) and
+The repo has two top-level areas: the game (`game/`) and
 the frame (`labs/`). When working on the game, you're in
-`synmergia/`. When working on the frame, you're in `labs/`.
+`game/`. When working on the frame, you're in `labs/`.
 
 ```
 .                                       # repo root
-├── synmergia/                          # the Godot 4.7.2 project
+├── game/                          # the Godot 4.7.2 project
 │   ├── core/
 │   │   ├── autoload/                   # Global singletons
 │   │   ├── components/                 # Entity components
@@ -303,7 +303,7 @@ the frame (`labs/`). When working on the game, you're in
 └── README.md                           # the project overview
 ```
 
-The Godot project root is `synmergia/`. Open that folder in the
+The Godot project root is `game/`. Open that folder in the
 Godot editor. The `labs/` directory is intentionally outside
 the project so it doesn't taint the stable build with
 experimental work.
@@ -418,7 +418,7 @@ mode where `PlayerManager` has no `has_player` method.
 2. Press F5 to run
 3. Check console for signal connection errors
 4. Verify entity spawning and targeting
-5. Run smoke tests via the islands test runner (`synmergia/tests/test_islands.gd`)
+5. Run smoke tests via the islands test runner (`game/tests/test_islands.gd`)
 
 ### Headless smoke tests
 
@@ -509,7 +509,7 @@ func test_encode_decode_roundtrip() -> void:
 
 ```gdscript
 # BAD: autoload, class_name, GameManager dep
-# This belongs in synmergia/, NOT in labs/
+# This belongs in game/, NOT in labs/
 extends Node
 class_name NSC9Manager
 var _instance: NSC9
@@ -637,7 +637,7 @@ static func _esc(text: String) -> String:
 - **Frame vs game:** If you're reaching into the game's singleton graph, you're in the game, not the frame. Move the call site up.
 - **Test co-location:** `/labs/` primitives have tests next to them. If you write a primitive without a test, it's not done.
 - **Engine version:** Godot 4.7.2. `var_to_bytes` / `bytes_to_var` (not `VarToStr`).
-- **Project root:** `synmergia/` is the Godot project. `labs/` and `docs/` are outside.
+- **Project root:** `game/` is the Godot project. `labs/` and `docs/` are outside.
 
 ---
 
@@ -665,7 +665,7 @@ Six parse/compile errors resolved across HUD and UI files:
 - **Mixed indentation is fatal:** Once a file uses tabs, every subsequent line must use tabs. A single line with spaces causes a parse error on that line.
 - **Inner class methods cannot call outer class methods** without qualification. Static methods in outer class are not visible inside inner class scope.
 - **`extends Control` for scene-instantiated UIs:** Use `extends Control` + manual stubs for UIPanel methods rather than `extends UIPanel` when the class is instantiated from a .tscn scene.
-- **Test co-location:** `/labs/` primitives have tests next to them. Game files (synmergia/) have smoke tests in `tests/test_*.gd`.
+- **Test co-location:** `/labs/` primitives have tests next to them. Game files (game/) have smoke tests in `tests/test_*.gd`.
 
 ### Test status
 
@@ -725,12 +725,12 @@ agents should know about:
   frame is the substrate.
 
 - **Schemas & data are stable.** Recorded 2026-08-30:
-  `synmergia/core/schemas/` and `/data/*` are NOT to be
+  `game/core/schemas/` and `/data/*` are NOT to be
   refactored without explicit user direction. Everything
   else is fair game.
 
 - **AUDIT.md moved to `labs/AUDIT.md.legacy`** (frozen).
-  Live session log is at `synmergia/AUDIT.md.session-log`
+  Live session log is at `game/AUDIT.md.session-log`
   (still inside the project for now).
 
 ---
@@ -775,7 +775,7 @@ service-level events. Three commits on `main`:
 
 **Pending for next session** (full list in task tracker):
 - Frame: `NotificationContext` + `NotifKind` under
-  `synmergia/core/notifications/` so all game services use one
+  `game/core/notifications/` so all game services use one
   dispatch shape.
 - TTL-based dedupe layer (default 5s window) so spam-of-spam
   can't toast.
@@ -1134,7 +1134,7 @@ docker compose --profile headless up --build # headless — Godot only (CI runne
 ### Key Files
 - `Dockerfile` — Unified image (all modes: dev/prod/headless/test)
 - `docker-compose.yml` — Dev + prod profiles (single file)
-- `docker/entrypoint.sh` — Mode dispatcher (dev/prod/headless/test)
+- `srv/docker/entrypoint.sh` — Mode dispatcher (dev/prod/headless/test)
 - `nginx.conf` — Reverse proxy, WebSocket forwarding, HTTPS
 - `.env.example` — Environment variables template
 - `docs/vps-architecture.md` — Full architecture documentation

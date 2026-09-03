@@ -2,7 +2,7 @@
 ## Handles server restarts, maintenance windows, and player notifications
 extends Node
 
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # kick_player dispatches SECURITY_BLOCKED via the typed-Kind pipeline so
 # the kick lands on the player's toast feed through the same channel
 # the firewall/admin commands use. The legacy NotificationService.send

@@ -2,7 +2,7 @@
 ## Handles guild creation, roster, ranks, permissions, alliances, and guild vs guild
 extends Node
 
-# Frame-level notification dispatch (see synmergia/core/notifications/).
+# Frame-level notification dispatch (see game/core/notifications/).
 # _notify_player uses the typed-Kind pipeline; remove_member uses
 # PLAYER_WARNED to tell the kicked member that an officer acted.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
