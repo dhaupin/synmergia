@@ -27,3 +27,9 @@ Thumbs.db
 # Local Godot engine binary (downloaded into ./tools/ for runtime checks).
 # The repo's official build process is documented in AGENTS.md.
 tools/
+
+# Docker build tooling (Puppeteer/node_modules)
+synmergia/scripts/node_modules/
+
+# Screenshot and video captures
+captures/
