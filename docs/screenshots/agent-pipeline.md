@@ -31,11 +31,11 @@ actual pixel data — no X11 framebuffer grab required.
 docker compose up --build
 
 # 2. Install the screenshot tool (one-time)
-cd synmergia/scripts && npm install
+cd game/scripts && npm install
 
 # 3. Wait for noVNC to be ready, then capture
 sleep 5
-node synmergia/scripts/screenshot.js
+node game/scripts/screenshot.js
 
 # 4. Find your screenshot
 ls captures/screenshots/
@@ -56,13 +56,13 @@ Docker Container (synmergia)
 
 ## Screenshot Tool
 
-`synmergia/scripts/screenshot.js` — Puppeteer script.
+`game/scripts/screenshot.js` — Puppeteer script.
 
 ### Installation
 
 **In Docker (already installed in Dockerfile):**
 ```bash
-cd synmergia/scripts && npm install
+cd game/scripts && npm install
 ```
 
 **On host machine:**
@@ -74,28 +74,28 @@ cd tools && npm install
 
 ```bash
 # Basic screenshot (auto-saved to captures/screenshots/<ts>.png)
-node synmergia/scripts/screenshot.js
+node game/scripts/screenshot.js
 
 # Custom output path
-node synmergia/scripts/screenshot.js --output my-screenshot.png
+node game/scripts/screenshot.js --output my-screenshot.png
 
 # Different noVNC URL (e.g., connecting to a remote container)
-node synmergia/scripts/screenshot.js --url http://192.168.1.100:6080/vnc.html
+node game/scripts/screenshot.js --url http://192.168.1.100:6080/vnc.html
 
 # Video recording (30 seconds at 10fps)
-node synmergia/scripts/screenshot.js --video 30
+node game/scripts/screenshot.js --video 30
 
 # Higher quality video
-node synmergia/scripts/screenshot.js --video 30 --fps 30
+node game/scripts/screenshot.js --video 30 --fps 30
 
 # Wait longer before capturing (game needs more init time)
-node synmergia/scripts/screenshot.js --wait 8000
+node game/scripts/screenshot.js --wait 8000
 
 # Retry on dark/blank frames
-node synmergia/scripts/screenshot.js --retry 5
+node game/scripts/screenshot.js --retry 5
 
 # Verbose debug output
-node synmergia/scripts/screenshot.js --debug
+node game/scripts/screenshot.js --debug
 ```
 
 ### How It Works
@@ -126,7 +126,7 @@ When `--video N` is set, the script:
 ## File Structure
 
 ```
-synmergia/
+game/
 ├── scripts/
 │   ├── screenshot.js       # Puppeteer capture tool
 │   ├── package.json        # Dependencies
@@ -151,7 +151,7 @@ keeps screenshots and videos on the host:
 
 ```yaml
 volumes:
-  - ./captures:/workspace/project/synmergia/captures
+  - ./captures:/workspace/project/game/captures
 ```
 
 ## Troubleshooting
@@ -201,7 +201,7 @@ docker compose restart synmergia
 sleep 10
 
 # 4. Capture
-node synmergia/scripts/screenshot.js --output captures/screenshots/my-change.png
+node game/scripts/screenshot.js --output captures/screenshots/my-change.png
 
 # 5. Inspect the screenshot
 # 6. Continue development

@@ -3,7 +3,7 @@
 An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima Online depth. Experimental work (multi-iso orchestration, content-hash state tree, Julia pipelines) lives in [`labs/`](./labs/).
 
 > **Game:** A 3D open-world MMORPG with RYL2-style action combat and UO-style economy, housing, and depth.
-> **Labs:** Experimental work-in-progress (orchestrator, state tree, Julia pipelines) that may eventually graduate into `synmergia/`.
+> **Labs:** Experimental work-in-progress (orchestrator, state tree, Julia pipelines) that may eventually graduate into `game/`.
 
 [![Godot 4.7.2](https://img.shields.io/badge/Godot-4.7.2-blue)](https://godotengine.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -55,27 +55,27 @@ An open-world MMORPG built with Godot 4.7.2, inspired by RYL2 combat and Ultima 
 
 ## Architecture
 
-The game lives in `synmergia/`. Experimental work (orchestrator, state tree,
+The game lives in `game/`. Experimental work (orchestrator, state tree,
 pipelines) is in `labs/`.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              AGENT CONNECTORS (in synmergia/connectors)     │
+│              AGENT CONNECTORS (in game/connectors)     │
 │  Vant | MCP | Claude | OpenAI | Gemini | Custom            │
 ├─────────────────────────────────────────────────────────────┤
-│              UI ISLANDS (in synmergia/ui/islands)           │
+│              UI ISLANDS (in game/ui/islands)           │
 │  Each panel = PackedScene with IslandPlaceholder root      │
 │  Mounted by IslandManager from static IslandRegistry       │
 ├─────────────────────────────────────────────────────────────┤
-│              SERVICES (in synmergia/core/services)          │
+│              SERVICES (in game/core/services)          │
 │  GameManager | EntityService | EventBus | TargetingMgr    │
 │  NotificationService | ZoneManager | TradeService | etc.   │
 ├─────────────────────────────────────────────────────────────┤
-│              COMPONENTS (in synmergia/core/components)      │
+│              COMPONENTS (in game/core/components)      │
 │  HealthComponent | CombatComponent | AuraComponent          │
 │  AggroComponent | InventoryComponent                        │
 ├─────────────────────────────────────────────────────────────┤
-│              DATA (in synmergia/data, .tres files)          │
+│              DATA (in game/data, .tres files)          │
 │  skills/ | items/ | enemies/ | zones/ | targets/            │
 ├─────────────────────────────────────────────────────────────┤
 │              MULTI-ISO ORCHESTRATOR (in labs/multi-iso)    │
@@ -94,16 +94,16 @@ pipelines) is in `labs/`.
 ```
 
 The game lives in the top three layers. `labs/` contains experimental work
-that may graduate into `synmergia/` or eventually extract to its own project.
+that may graduate into `game/` or eventually extract to its own project.
 
 ## Project Structure
 
-The repo has two top-level areas: the game (`synmergia/`) and
+The repo has two top-level areas: the game (`game/`) and
 experimental work in `labs/`. The game is the Godot project.
 
 ```
 .
-├── synmergia/                  # the Godot 4.7.2 project
+├── game/                  # the Godot 4.7.2 project
 │   ├── core/
 │   │   ├── autoload/           # Global singletons (GameManager, NetworkManager)
 │   │   ├── components/         # Entity components (Health, Combat, Inventory, etc.)
@@ -162,7 +162,7 @@ experimental work in `labs/`. The game is the Godot project.
 └── README.md                   # this file
 ```
 
-The Godot project root is `synmergia/`. Open that folder in the
+The Godot project root is `game/`. Open that folder in the
 Godot editor. The `labs/` and `docs/` directories are outside
 the project so they don't taint the stable build with
 experimental work.
@@ -184,7 +184,7 @@ cd synmergia
 
 2. Open in Godot 4.7.2
 ```bash
-godot --editor synmergia/
+godot --editor game/
 ```
 
 3. Press F5 to run
@@ -204,7 +204,7 @@ godot --headless --server --path res://
 ## Adding Content
 
 ### Add a New Skill
-Create `synmergia/data/skills/skill_fireball.tres`:
+Create `game/data/skills/skill_fireball.tres`:
 
 ```gdscript
 [gd_resource type="Resource" script_class="Skill" load_steps=2 format=3]
@@ -223,7 +223,7 @@ range = 25.0
 ```
 
 ### Add a New Enemy
-Create `synmergia/data/enemies/enemy_goblin.tres`:
+Create `game/data/enemies/enemy_goblin.tres`:
 
 ```gdscript
 [gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
@@ -241,7 +241,7 @@ attack_power = 15
 ```
 
 ### Add a New Target Schema
-Create `synmergia/data/targets/target_custom.tres` for targeting behavior:
+Create `game/data/targets/target_custom.tres` for targeting behavior:
 
 ```gdscript
 [gd_resource type="Resource" script_class="TargetSchema" load_steps=2 format=3]
@@ -259,7 +259,7 @@ show_level = true
 
 ## Testing
 
-Smoke tests live next to the code in `synmergia/tests/`. Each is a
+Smoke tests live next to the code in `game/tests/`. Each is a
 `SceneTree` script that runs with `tools/godot --headless` and
 prints a per-test pass/fail line plus a final summary.
 

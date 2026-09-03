@@ -205,7 +205,7 @@ Every operation is logged. The audit log is content-hashed
 and content-addressable. The chain is the timeline.
 
 ```gdscript
-# synmergia/core/services/audit_service.gd
+# game/core/services/audit_service.gd
 func log_operation(op: String, ctx: Context, result: Variant) -> void:
     var entry := {
         "op": op,

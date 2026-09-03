@@ -127,8 +127,8 @@ it's not big enough to be a primitive.
 ### The rule: co-located tests
 
 Each `math/nsc9.gd` has its `math/test_nsc9.gd` next to it. Not in
-`synmergia/tests/`. The exception is the islands POC test which
-lives in `synmergia/tests/` because it's a cross-cutting integration
+`game/tests/`. The exception is the islands POC test which
+lives in `game/tests/` because it's a cross-cutting integration
 test, not a primitive test.
 
 ### The rule: no autoload, no GameManager dependency
@@ -198,11 +198,11 @@ Concretely:
 ```
 # Old structure (in-tree)
 labs/multi-iso/                # in-tree
-synmergia/core/services/       # in-tree
-synmergia/core/autoload/       # in-tree
+game/core/services/       # in-tree
+game/core/autoload/       # in-tree
 
 # New structure (after extraction)
-synmergia/                     # game (no labs/)
+game/                     # game (no labs/)
 multi-iso-frame/               # new repo
   ├── core/
   │   ├── math/                # was labs/multi-iso/math/
@@ -230,7 +230,7 @@ Sessions from the migration plan, mapped to their `futures/` homes:
 
 | Session | Work | Lands in |
 |---------|------|----------|
-| A-2 | UIPanel → islands | `synmergia/ui/` (existing) |
+| A-2 | UIPanel → islands | `game/ui/` (existing) |
 | A-3 | State tree | `labs/multi-iso/kv/state_tree.gd` |
 | A-4 | Save games as content-hashed trees | `labs/multi-iso/kv/save_service.gd` (or new `srv/`) |
 | A-5 | Item template content-hash | `labs/multi-iso/srv/item_template.gd` |
