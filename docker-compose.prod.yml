@@ -1,0 +1,77 @@
+# Synmergia Production VPS
+# Usage: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  synmergia:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"        # HTTP (redirects to HTTPS)
+      - "443:443"      # HTTPS
+      - "9000:9000"    # Game WebSocket
+    environment:
+      - GODOT_MODE=prod
+      - GODOT_PORT=9000
+      - POSTGRES_DB=synmergia
+      - POSTGRES_USER=synmergia
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./synmergia:/workspace/project/synmergia:ro
+      - ./certs:/certs:ro
+      - synmergia-data:/var/lib/synmergia
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - synmergia-net
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=synmergia
+      - POSTGRES_USER=synmergia
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=en_US.UTF-8
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backups:/backups
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synmergia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - synmergia-net
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./synmergia:/workspace/project/synmergia:ro
+      - ./certs:/certs:ro
+    depends_on:
+      - synmergia
+    restart: unless-stopped
+    networks:
+      - synmergia-net
+
+volumes:
+  postgres-data:
+  synmergia-data:
+
+networks:
+  synmergia-net:
+    driver: bridge
