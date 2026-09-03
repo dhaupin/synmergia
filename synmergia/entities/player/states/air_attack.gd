@@ -1,7 +1,7 @@
 ## AirAttack State - Mid-air attack with damage bonus
 extends State
 
-const State = preload("res://scripts/state.gd")
+const State = preload("res://core/state/state.gd")
 class_name AirAttackState
 
 var attack_timer: float = 0.0

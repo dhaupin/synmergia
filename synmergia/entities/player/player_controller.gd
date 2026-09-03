@@ -6,7 +6,7 @@ class_name PlayerController
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const Skill = preload("res://core/combat/skill.gd")
-const StateMachine = preload("res://scripts/state_machine.gd")
+const StateMachine = preload("res://core/state/state_machine.gd")
 const ActionMenu = preload("res://ui/components/action_menu.gd")
 const Entity = preload("res://core/entities/entity.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")

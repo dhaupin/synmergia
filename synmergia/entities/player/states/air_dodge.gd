@@ -1,7 +1,7 @@
 ## AirDodge State - Mid-air dodge with i-frames
 extends State
 
-const State = preload("res://scripts/state.gd")
+const State = preload("res://core/state/state.gd")
 class_name AirDodgeState
 
 const DURATION: float = 0.35  # Longer than ground dodge

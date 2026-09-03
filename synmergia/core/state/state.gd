@@ -2,7 +2,7 @@
 extends Node
 class_name State
 
-const StateMachine = preload("res://scripts/state_machine.gd")
+const StateMachine = preload("res://core/state/state_machine.gd")
 var state_machine: StateMachine
 
 func enter(_data: Dictionary = {}) -> void:
