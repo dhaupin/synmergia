@@ -1,7 +1,6 @@
 ## QoSService - Quality of Service infrastructure
 ## Handles rate limiting, throttling, bulkhead pattern, and debouncing
 extends Node
-class_name QoSService
 
 # Frame-level notification dispatch (see synmergia/core/notifications/).
 # QoSService surfaces rate-limit and circuit-breaker events through the

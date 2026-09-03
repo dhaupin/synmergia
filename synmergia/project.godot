@@ -16,17 +16,16 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
-RegisterTypes="*res://core/autoload/type_registry.gd"
-
 GameLog="*res://core/autoload/logger.gd"
+
+GameManager="*res://core/autoload/game_manager.gd"
+RegisterTypes="*res://core/autoload/type_registry.gd"
 GameConfig="*res://core/autoload/game_config.gd"
 PlayerConfig="*res://core/services/player_config.gd"
 IDRegistry="*res://core/utils/id_registry.gd"
 EventHub="*res://core/events/event_hub.gd"
 
 # Services
-QoSService="*res://core/autoload/qos_service.gd"
-GameManager="*res://core/autoload/game_manager.gd"
 NetworkManager="*res://core/autoload/network_manager.gd"
 PlayerManager="*res://core/autoload/player_manager.gd"
 InputManager="*res://core/autoload/input_manager.gd"
@@ -35,9 +34,10 @@ EntityService="*res://core/services/entity_service.gd"
 ZoneManager="*res://core/services/zone_manager.gd"
 FactionManager="*res://core/services/faction_manager.gd"
 SpawnService="*res://core/services/spawn_service.gd"
+NotificationService="*res://core/services/notification_service.gd"
+QoSService="*res://core/autoload/qos_service.gd"
 WorldService="*res://core/services/world_service.gd"
 ShardManager="*res://core/services/shard_manager.gd"
-NotificationService="*res://core/services/notification_service.gd"
 SecurityService="*res://core/services/security_service.gd"
 AppFirewall="*res://core/utils/app_firewall.gd"
 SecurityMonitor="*res://core/autoload/security_monitor.gd"
