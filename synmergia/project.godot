@@ -24,7 +24,6 @@ GameConfig="*res://core/autoload/game_config.gd"
 PlayerConfig="*res://core/services/player_config.gd"
 IDRegistry="*res://core/utils/id_registry.gd"
 EventHub="*res://core/events/event_hub.gd"
-
 # Services
 NetworkManager="*res://core/autoload/network_manager.gd"
 PlayerManager="*res://core/autoload/player_manager.gd"
