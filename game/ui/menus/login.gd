@@ -157,5 +157,7 @@ func _input(event: InputEvent) -> void:
 			KEY_F5:
 				print("[LOGIN] F5 pressed - guest login")
 				_on_guest_pressed()
+			KEY_TAB:
+				_trigger_tab()
 			KEY_F6:
 				_trigger_tab()
