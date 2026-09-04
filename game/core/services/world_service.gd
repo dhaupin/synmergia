@@ -75,6 +75,11 @@ func initialize_world() -> void:
 	if faction_manager:
 		faction_manager.load_factions()
 	
+	# Spawn offering NPCs (NPCEntity with includes[])
+	var spawn_service = SpawnService
+	if spawn_service:
+		spawn_service.spawn_all_offering_npcs()
+	
 	GameLog.info("WorldService: World initialized")
 
 ## Get current time of day string

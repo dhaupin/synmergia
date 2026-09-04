@@ -2,6 +2,9 @@
 ## Handles player stats, resources, and character data
 extends Node
 
+const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
+const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
+
 signal health_changed(current: int, maximum: int)
 signal mana_changed(current: int, maximum: int)
 signal stamina_changed(current: float, maximum: float)
@@ -225,3 +228,17 @@ func load_character_data(data: Dictionary) -> void:
 	_recalculate_derived_stats()
 	current_health = data.get("health", max_health)
 	current_mana = data.get("mana", max_mana)
+
+## Open the blacksmith UI for a player (called by NPCEntity dispatch).
+func open_blacksmith_ui(_player_id: String, _npc_data) -> void:
+	if local_player and local_player.has_method("_open_blacksmith_ui"):
+		local_player._open_blacksmith_ui()
+
+## Open the skill academy UI for a player (called by NPCEntity dispatch).
+func open_skill_academy_ui(_player_id: String, _npc_data) -> void:
+	if local_player and local_player.has_method("_open_skill_academy_ui"):
+		local_player._open_skill_academy_ui()
+
+## Get the local player node.
+func get_local_player() -> Node:
+	return local_player

@@ -8,6 +8,7 @@ const Entity = preload("res://core/entities/entity.gd")
 
 const BlacksmithNPC = preload("res://core/entities/blacksmith_npc.gd")
 const SkillAcademyNPC = preload("res://core/entities/skill_academy_npc.gd")
+const NPCEntity = preload("res://core/entities/npc_entity.gd")
 const ZoneData = preload("res://core/schemas/zone_data.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
@@ -606,6 +607,80 @@ func spawn_skill_academy(
 	GameLog.info("SpawnService: Spawned Skill Academy '%s' at (%s) in zone %s" % [academy.display_name, position, zone_id])
 
 	return academy
+
+## Spawn a unified NPCEntity from NPCData resource.
+## Loads the NPC's offerings via includes[] and registers with all services.
+func spawn_npc_entity(
+		zone_id: String,
+		position: Vector3,
+		npc_data: NPCData
+) -> NPCEntity:
+	if npc_data == null:
+		push_warning("SpawnService: Cannot spawn NPC — npc_data is null")
+		return null
+
+	var entity := NPCEntity.new()
+	entity.npc_data = npc_data
+	entity.entity_id = npc_data.id
+	entity.display_name = npc_data.display_name
+	entity.level = npc_data.level
+	entity.entity_type = Entity.EntityType.NPC
+	entity.relation = Entity.Relation.FRIENDLY
+	entity.global_position = position
+
+	# Register with EntityService
+	if EntityService:
+		EntityService.register_entity(entity)
+
+	# Register with TargetingManager
+	if TargetingManager:
+		TargetingManager.register_targetable(
+			entity.entity_id,
+			"npc",
+			entity,
+			entity.display_name,
+			position,
+			entity.entity_type
+		)
+
+	# Add to zone
+	if ZoneManager:
+		var zone := ZoneManager.get_zone(zone_id)
+		if zone:
+			ZoneManager.entity_enter_zone(entity, zone)
+
+	GameLog.info("SpawnService: Spawned NPCEntity '%s' in zone %s" % [entity.display_name, zone_id])
+	return entity
+
+## Spawn all offering NPCs for every zone.
+## Iterates all NPCs, finds those with includes[], and spawns NPCEntity for each.
+func spawn_all_offering_npcs() -> void:
+	if not DataService:
+		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
+		return
+
+	var all_npcs_dict := DataService.get_all_npcs()
+	for npc_data in all_npcs_dict.values():
+		if npc_data == null:
+			continue
+		if npc_data.includes.is_empty():
+			continue
+
+		# Default to zone_capital; scene placement would override via spawn_offset
+		var zone_id := "zone_capital"
+		var zone_data: ZoneData = null
+		if ZoneManager:
+			zone_data = ZoneManager.get_zone(zone_id)
+
+		var spawn_pos: Vector3
+		if zone_data != null and zone_data.bind_point != Vector3.ZERO:
+			spawn_pos = zone_data.bind_point + npc_data.spawn_offset
+		else:
+			spawn_pos = Vector3(randf_range(-10, 10), 0, randf_range(-10, 10))
+
+		spawn_npc_entity(zone_id, spawn_pos, npc_data)
+
+	GameLog.info("SpawnService: Spawned all offering NPCs")
 
 ## Spawn all blacksmiths for a zone (called during zone load)
 func spawn_zone_blacksmiths(zone_id: String, zone_data: ZoneData) -> Array[BlacksmithNPC]:
