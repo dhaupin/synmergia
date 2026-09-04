@@ -1,6 +1,8 @@
 ## CharacterSelect - Species and class selection screen
 ## Uses UIStyles for consistent theming
 extends Control
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const SpeciesCard := preload("res://ui/menus/species_card.tscn")
 const ClassCard := preload("res://ui/menus/class_card.tscn")

@@ -1,6 +1,7 @@
 ## TradeService - Player-to-player trading
 ## Handles trade requests, windows, confirmations, and completion
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const Item = preload("res://core/schemas/item.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")

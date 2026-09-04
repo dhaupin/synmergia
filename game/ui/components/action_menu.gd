@@ -3,6 +3,10 @@
 ## Supports both mouse (right-click) and touch (long-press)
 extends Control
 class_name ActionMenu
+const Entity = preload("res://core/entities/entity.gd")
+
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 const NPCData = preload("res://core/schemas/npc_data.gd")
 
 

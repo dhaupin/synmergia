@@ -2,6 +2,8 @@
 ## Interactive minimap with player position and markers
 extends Control
 class_name Minimap
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Components
 var _map_texture: TextureRect

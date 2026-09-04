@@ -1,17 +1,11 @@
 ## SkillBook - A consumable item that upgrades a skill
-## Instantiated at runtime by SkillAcademyService — not a .tres file
-extends Item
-
+extends Resource
 class_name SkillBook
 
 var book_skill_id: String = ""
-var book_upgrade_level: int = 0  # 1 = common, 2 = rare, ..., 5 = mythic
+var book_upgrade_level: int = 0
 
-## Create a runtime skill book instance.
-## skill_id: the skill it upgrades (e.g. "human_ambush")
-## upgrade_level: 1-5 (maps to tier: common/rare/epic/legendary/mythic)
-## skill_display_name: used for the item's display name
-static func create(skill_id: String, upgrade_level: int, skill_display_name: String) -> SkillBook:
+static func create(skill_id: String, upgrade_level: int, skill_display_name: String):
 	var tier_names := ["", "common", "rare", "epic", "legendary", "mythic"]
 	var tier_roman := ["", "I", "II", "III", "IV", "V"]
 	var tier: String = tier_names[upgrade_level] if upgrade_level in tier_names else "common"
@@ -22,9 +16,6 @@ static func create(skill_id: String, upgrade_level: int, skill_display_name: Str
 	book.id = "book_%s_%s" % [skill_id, tier]
 	book.display_name = "Manual of %s %s" % [skill_display_name, tier_roman[upgrade_level]]
 	book.description = "A weathered manual containing techniques to enhance %s. Consume 4 of the same tier to upgrade." % skill_display_name
-	book.item_category = ItemCategory.SKILL_BOOK
-	var rarities := [Rarity.COMMON, Rarity.COMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY, Rarity.MYTHIC]
-	book.rarity = rarities[upgrade_level] if upgrade_level < rarities.size() else Rarity.COMMON
 	book.soulbound = false
 	book.stack_size = 1
 	book.current_stack = 1

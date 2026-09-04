@@ -4,6 +4,8 @@
 ## current account (via AccountService), with Play / Create / Delete
 ## / Logout actions. Backed by disk via LoginService.
 extends Control
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 

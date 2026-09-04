@@ -1,5 +1,7 @@
 ## MainMenu - Main menu controller with UIStyles integration
 extends Control
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 @onready var play_button: Button = $MenuButtons/PlayButton
 @onready var settings_button: Button = $MenuButtons/SettingsButton

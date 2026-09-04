@@ -3,6 +3,7 @@
 ## Completely separate from admin tools - sandboxed to player actions only
 extends Node
 class_name PlayerShell
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Escape BBCode brackets in user-supplied strings.
 static func _esc(text: String) -> String:

@@ -2,6 +2,7 @@
 ## Attached to entities that can fight
 extends Node
 class_name CombatComponent
+const QoSService = preload("res://core/autoload/qos_service.gd")
 const Skill = preload("res://core/combat/skill.gd")
 const Item = preload("res://core/schemas/item.gd")
 const Entity = preload("res://core/entities/entity.gd")

@@ -3,6 +3,8 @@
 ## Provides visual interface for admin commands and player management
 extends Control
 class_name AdminDashboard
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 const AdminShell = preload("res://core/admin/admin_shell.gd")
 
 

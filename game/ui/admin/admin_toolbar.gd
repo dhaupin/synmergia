@@ -1,6 +1,8 @@
 ## AdminToolbar - Quick access admin toolbar for HUD.
 ## Migrated onto UIWidget base class. F3 toggles the dashboard.
 extends UIWidget
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const UIWidget = preload("res://ui/components/ui_widget.gd")
 class_name AdminToolbar

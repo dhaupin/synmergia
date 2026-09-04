@@ -1,6 +1,8 @@
 ## QuestUI - Quest journal panel
 ## Shows active quests, objectives, and quest log
 extends UIPanel
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name QuestUI
