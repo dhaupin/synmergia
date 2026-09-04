@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 RegisterTypes="*res://core/autoload/type_registry.gd"
+DebugOverlay="*res://ui/components/debug_overlay.gd"
 
 GameLog="*res://core/autoload/logger.gd"
 GameConfig="*res://core/autoload/game_config.gd"
@@ -70,6 +71,7 @@ SkillAcademyService="*res://core/services/skill_academy_service.gd"
 AntiCheatService="*res://core/services/anticheat_service.gd"
 QuestService="*res://core/services/quest_service.gd"
 VaultService="*res://core/services/vault_service.gd"
+ScreenshotService="*res://core/services/screenshot_service.gd"
 
 [display]
 
@@ -129,6 +131,11 @@ target_next={
 pause={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194305,"key_label":0,"unicode":0,"echo":false,"script":null)
+]
+}
+take_screenshot={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":119,"key_label":0,"unicode":0,"echo":false,"script":null)
 ]
 }
 

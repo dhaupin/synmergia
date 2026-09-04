@@ -1,5 +1,7 @@
 ## MainMenu - Main menu controller with UIStyles integration
 extends Control
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 @onready var play_button: Button = $MenuButtons/PlayButton
 @onready var settings_button: Button = $MenuButtons/SettingsButton
@@ -28,7 +30,9 @@ func _apply_styles() -> void:
 		subtitle.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 
 func _on_play_pressed() -> void:
-	print("Play button pressed")
+	print("[MENU] PlayButton pressed")
+	if DebugOverlay:
+		DebugOverlay.log_click("PlayButton", "goto_login", true)
 	# Send the player to login first; on success they land in the
 	# character lobby, which is the canonical entry point to the world.
 	if GameManager:
@@ -38,7 +42,9 @@ func _on_play_pressed() -> void:
 			GameManager.change_state(GameManager.GameState.LOGIN)
 
 func _on_settings_pressed() -> void:
-	print("Settings button pressed")
+	print("[MENU] SettingsButton pressed")
+	if DebugOverlay:
+		DebugOverlay.log_click("SettingsButton", "open_settings", true)
 	_open_settings_panel()
 
 func _open_settings_panel() -> void:

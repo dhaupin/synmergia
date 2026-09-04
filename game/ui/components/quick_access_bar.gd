@@ -2,6 +2,8 @@
 ## 4 quick-use slots for potions, food, etc.
 extends Control
 class_name QuickAccessBar
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Quick slots
 const SLOT_COUNT: int = 4

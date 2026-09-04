@@ -3,6 +3,8 @@
 ## Shows a countdown timer when an action is on cooldown
 extends Control
 class_name CooldownIndicator
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 

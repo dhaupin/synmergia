@@ -2,6 +2,7 @@
 ## All players (human/agent) are equals with same capabilities and limits
 extends Node
 class_name FairnessService
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 signal fairness_violation(player_id: String, violation_type: String, severity: int)
 signal trust_updated(player_id: String, new_trust: float)

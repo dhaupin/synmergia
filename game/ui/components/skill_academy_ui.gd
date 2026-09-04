@@ -9,7 +9,12 @@
 
 extends Control
 class_name SkillAcademyUI
+
+const CharacterData = preload("res://core/schemas/character_data.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const SkillBook = preload("res://core/schemas/skill_book.gd")
+const SkillSchema = preload("res://core/schemas/skill.gd")
+# SkillAcademyService and InventoryService are autoloads, accessed by bare identifier
 
 ## Stub methods mirroring UIPanel -- real wiring via .tscn scene setup
 var _is_open: bool = false
@@ -751,7 +756,7 @@ func _refresh_books_tab() -> void:
 		var level: int = int(parts[1])
 		var info: Dictionary = book_counts[key]
 		var count: int = info["count"]
-		var book: SkillBook = info["book"]
+		var book: Item = info["book"]
 		var tier_names := ["", "Common", "Rare", "Epic", "Legendary", "Mythic"]
 
 		var row := HBoxContainer.new()
@@ -1024,7 +1029,7 @@ func _on_buy_book_pressed() -> void:
 	var result: Dictionary = SkillAcademyService.purchase_book(_player_id, skill_id, gold)
 	if result.get("success", false):
 		inventory.remove_gold(result.get("cost", 0))
-		var book: SkillBook = result.get("book")
+		var book: Item = result.get("book")
 		if book and inventory.add_item(book):
 			_inventory_books.append(book)
 			_buy_result_label.text = "Purchased: %s" % book.display_name

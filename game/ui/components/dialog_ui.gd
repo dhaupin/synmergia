@@ -2,6 +2,8 @@
 ## Quest offers, conversation, choices
 extends Control
 class_name DialogUI
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const DialogService = preload("res://core/services/dialog_service.gd")
 

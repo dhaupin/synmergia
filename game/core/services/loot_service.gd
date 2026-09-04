@@ -1,6 +1,7 @@
 ## LootService - Loot distribution and management
 ## Handles loot rolling, party loot sharing, auto-loot, and loot rules
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const LootTable = preload("res://core/schemas/loot_table.gd")
 # Active loot rolls (loot_id -> loot data)

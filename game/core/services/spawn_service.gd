@@ -1,6 +1,9 @@
 ## SpawnService - Enemy/NPC spawn management
 ## Handles spawn points, respawn timers, spawn caps, and dynamic spawning
 extends Node
+const Faction = preload("res://core/schemas/faction.gd")
+const Entity = preload("res://core/entities/entity.gd")
+
 
 
 const BlacksmithNPC = preload("res://core/entities/blacksmith_npc.gd")

@@ -50,7 +50,10 @@ services:
       - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
     volumes:
       - synmergia-data:/var/lib/synmergia
-      - ./captures:/workspace/project/game/captures
+      # Mount the Godot project (synmergia/game/) as the container's /workspace/project/game/
+      # This makes the project read-writable so Godot can run and save state.
+      # The project path convention is /workspace/project/game per Dockerfile GODOT_PATH.
+      - ./game:/workspace/project/game
     shm_size: 256mb  # Xvfb needs shared memory
     restart: unless-stopped
     healthcheck:

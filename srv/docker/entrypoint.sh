@@ -64,9 +64,11 @@ if [[ "$START_MODE" == "dev" ]]; then
     Xvfb :99 -screen 0 1920x1080x24 &
     sleep 1
 
-    # VNC server (optional — bind to localhost to avoid exposure)
-    x11vnc -display :99 -forever -shared -rfbport 5900 \
-        -nopw -bg -localhost 2>/dev/null || true
+    # Window manager — required for X11 input focus with noVNC/x11vnc
+    xfwm4 --display :99 2>/dev/null &
+
+    # VNC server — bind to all interfaces so Docker port-forwarding works
+    x11vnc -display :99 -forever -shared -rfbport 5900 -nopw -bg
 
     # WebSocket proxy for noVNC
     websockify --web=/usr/share/novnc 6080 localhost:5900 &>/dev/null &
@@ -77,7 +79,8 @@ if [[ "$START_MODE" == "dev" ]]; then
 
     # Godot (with GUI rendering to Xvfb)
     log "Starting Godot (DISPLAY=:99)..."
-    DISPLAY=:99 godot --path /workspace/project/game &
+    sleep 2
+    nohup env DISPLAY=:99 godot --path /workspace/project/game --width 1920 --height 1080 > /tmp/godot.log 2>&1 &
 
     log ""
     log "============================================"
@@ -89,11 +92,9 @@ if [[ "$START_MODE" == "dev" ]]; then
     log " WS:     ws://localhost:9000"
     log " Mode:   GUI rendered via Xvfb"
     log "============================================"
-    log ""
     log "Screenshots:"
-    log "  node /workspace/project/game/scripts/screenshot.js \\"
-    log "    --output /workspace/project/game/captures/screenshots/<name>.png"
-    log ""
+    log "  Press F8 in-game to capture a screenshot"
+    log "  Saves to: /workspace/project/game/captures/screenshots/"
 
     tail -f /dev/null
     exit 0
@@ -108,10 +109,9 @@ if [[ "$START_MODE" == "prod" ]]; then
     _setup_nginx
     nginx -g 'daemon off;' &
 
-    # Godot headless
+    # Godot headless (server auto-starts via START_MODE env var)
     log "Starting Godot (headless)..."
-    godot --headless --path /workspace/project/game \
-        --server-port "${GODOT_PORT:-9000}" &
+    godot --headless --path /workspace/project/game &
 
     log ""
     log "============================================"
@@ -136,8 +136,7 @@ fi
 if [[ "$START_MODE" == "headless" ]]; then
     log "Mode: HEADLESS — Godot headless only"
 
-    godot --headless --path /workspace/project/game \
-        --server-port "${GODOT_PORT:-9000}" &
+    godot --headless --path /workspace/project/game &
 
     log "Godot headless running on port ${GODOT_PORT:-9000}"
     log "PID: $!"

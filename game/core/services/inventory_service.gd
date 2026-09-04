@@ -1,6 +1,7 @@
 ## InventoryService - Player inventory operations
 ## Handles inventory-related operations and cross-player inventory access
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const Item = preload("res://core/schemas/item.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")

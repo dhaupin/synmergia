@@ -2,6 +2,11 @@
 ## Wired to TargetingManager for unified targeting display
 extends Control
 class_name TargetTooltip
+const QoSService = preload("res://core/autoload/qos_service.gd")
+const Entity = preload("res://core/entities/entity.gd")
+
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 
