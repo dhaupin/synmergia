@@ -42,7 +42,7 @@ func _ready() -> void:
 
 	# Auto-play a freshly created character — the character_select scene stores
 	# the id in GameManager meta before returning here so the signal is lost.
-	var last_id := GameManager.get_meta("last_character_id", "") if GameManager else ""
+	var last_id: String = GameManager.get_meta("last_character_id", "") if GameManager else ""
 	if last_id != "":
 		GameManager.set_meta("last_character_id", "")
 		for i in range(_characters.size()):

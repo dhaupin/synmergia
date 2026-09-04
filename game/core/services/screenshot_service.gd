@@ -5,6 +5,7 @@
 extends Node
 
 const FLAG_DEV: int = 1 << 0
+
 const KEY_F8: int = 4194332
 const KEY_F8_ALT: int = 4194339  # xdotool/X11 encoding
 const USB_F8: int = 119
