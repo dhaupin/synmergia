@@ -126,7 +126,10 @@ func _handle_lobby_state() -> void:
     get_tree().change_scene_to_file("res://ui/menus/lobby.tscn")
 
 func _handle_character_select_state() -> void:
-    get_tree().change_scene_to_file("res://ui/menus/character_select.tscn")
+    GameLog.info("Loading character_select scene...")
+    var err = get_tree().change_scene_to_file("res://ui/menus/character_select.tscn")
+    if err != OK:
+        GameLog.error("Failed to load character_select: " + str(err))
 
 func _handle_playing_state() -> void:
     GameLog.info("Entering gameplay")

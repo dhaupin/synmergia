@@ -20,6 +20,7 @@ signal character_confirmed(data: CharacterData)
 
 
 func _ready() -> void:
+	print("[CHAR_SELECT] _ready called")
 	back_button.pressed.connect(_on_back_pressed)
 	play_button.pressed.connect(_on_play_pressed)
 	play_button.disabled = true
@@ -93,18 +94,51 @@ func _on_play_pressed() -> void:
 			"name": data.display_name,
 			"species_id": data.species_id,
 			"class_id": data.class_id,
-			"level": data.level,
 			"zone_id": data.zone_id,
 		})
+		GameLog.info("CharacterSelect: Linked new character %s to account %s" % [data.character_id, creating_for])
+		# Save to local characters.json
 		_lobby_save_character(data, creating_for)
+		# Go back to lobby
 		GameManager.set_meta("creating_for_account", "")
-		character_confirmed.emit(data)
-		if GameManager:
-			GameManager.change_state(GameManager.GameState.LOBBY)
+		GameManager.change_state(GameManager.GameState.LOBBY)
 		return
 
-	GameManager.selected_character_data = data
-	GameManager.change_state(GameManager.GameState.PLAYING)
+	character_confirmed.emit(data)
+
+# F5 = auto-select first species/class, F6 = play (for headless testing)
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_F5:
+			print("[CHAR_SELECT] F5 pressed")
+			_auto_select()
+		elif event.keycode == KEY_F6:
+			print("[CHAR_SELECT] F6 pressed, play_button.disabled=", play_button.disabled)
+			_auto_play()
+
+func _auto_select() -> void:
+	print("[CHAR_SELECT] _auto_select called, selected_species_id=", selected_species_id)
+	if selected_species_id == "":
+		# Select first species
+		var all_species = CharacterData.get_all_species()
+		print("[CHAR_SELECT] all_species count=", all_species.size() if all_species else 0)
+		if all_species and not all_species.is_empty():
+			var first = all_species[0]
+			print("[CHAR_SELECT] first species id=", first.id)
+			_on_species_card_selected(first.id)
+			# Select first class after species
+			await get_tree().process_frame
+			await get_tree().process_frame
+			var all_classes = CharacterData.get_available_classes_for_species(selected_species_id)
+			print("[CHAR_SELECT] all_classes count=", all_classes.size() if all_classes else 0)
+			if all_classes and not all_classes.is_empty():
+				var first_class = all_classes[0]
+				print("[CHAR_SELECT] first class id=", first_class.id)
+				_on_class_selected(first_class.id)
+
+func _auto_play() -> void:
+	if not play_button.disabled:
+		_on_play_pressed()
 
 
 func _lobby_save_character(data: CharacterData, _account_id: String) -> void:
