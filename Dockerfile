@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Core build tools
     curl wget unzip ca-certificates git build-essential gnupg \
     # X11 / VNC (dev mode)
-    xvfb x11vnc websockify novnc \
+    xvfb x11vnc websockify novnc xfwm4 xdotool \
     libx11-6 libx11-xcb1 libxcb1 libxext6 libxrandr2 libxcursor1 \
     libxi6 libxinerama1 libxrender1 libxkbcommon0 \
     libgl1 libasound2 libpulse0 \
