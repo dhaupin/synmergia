@@ -109,10 +109,9 @@ if [[ "$START_MODE" == "prod" ]]; then
     _setup_nginx
     nginx -g 'daemon off;' &
 
-    # Godot headless
+    # Godot headless (server auto-starts via START_MODE env var)
     log "Starting Godot (headless)..."
-    godot --headless --path /workspace/project/game \
-        --server-port "${GODOT_PORT:-9000}" &
+    godot --headless --path /workspace/project/game &
 
     log ""
     log "============================================"
@@ -137,8 +136,7 @@ fi
 if [[ "$START_MODE" == "headless" ]]; then
     log "Mode: HEADLESS — Godot headless only"
 
-    godot --headless --path /workspace/project/game \
-        --server-port "${GODOT_PORT:-9000}" &
+    godot --headless --path /workspace/project/game &
 
     log "Godot headless running on port ${GODOT_PORT:-9000}"
     log "PID: $!"

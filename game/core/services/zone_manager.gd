@@ -4,6 +4,7 @@ extends Node
 
 const ZoneData = preload("res://core/schemas/zone_data.gd")
 const Entity = preload("res://core/entities/entity.gd")
+const QoSService = preload("res://core/autoload/qos_service.gd")
 # Zone types
 enum ZoneType {
 	OPEN_WORLD,		 # Seamless, players always in same world
