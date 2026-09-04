@@ -187,6 +187,7 @@ Example:
 
 | Commit | Description |
 |--------|-------------|
+| `a41663e` | feat(a11y): tab navigation + screen reader labels |
 | `ca4bf72` | feat: keyboard shortcuts for headless testing + auto character creation |
 | `2cd0722` | fix: hud_integrator empty else block |
 | `78e641e` | feat: full login flow working end-to-end |
@@ -198,10 +199,8 @@ Example:
 ### ✅ Completed
 1. **Auto-select character in lobby** ✅ - Done (lobby.gd lines 45-51)
 2. **Scene structure warnings** ✅ - Done (world_playable.tscn CapsuleShape3D + CapsuleMesh sub_resources added, commit 2d932b2)
-
-### P1 - Should Have  
-3. **Tab navigation** - Add focus cycling to main menus (in progress)
-4. **Screen reader labels** - Add `accessible_description` to key UI Controls (in progress)
+3. **Tab navigation** ✅ - Done (main_menu.tscn/gd + login.tscn/gd, commit a41663e)
+4. **Screen reader labels** ✅ - Done (accessible_string/description on main_menu + login, commit a41663e)
 
 ### P2 - Nice to Have
 5. **Screenshot naming/archiving** - Proper folder structure (`labs/screenshots/`)
