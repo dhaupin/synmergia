@@ -18,3 +18,4 @@ location_type = 1
 base_repair_cost_multiplier = 1.0
 offers_bulk_discount = false
 services = ["repair"]
+includes = [{"type": "offering", "ref_id": "blacksmith_service"}]

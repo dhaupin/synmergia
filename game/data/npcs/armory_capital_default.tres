@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "armory_capital_default"
+display_name = "Royal Armorer"
+description = "The capital's premier source for weapons and armor."
+npc_type = 2
+level = 1
+faction = "friendly"
+model_path = "res://models/npcs/armorer_male_01.tscn"
+greeting = "Fine arms and armor, straight from the forge."
+farewell = "May your blade stay sharp."
+shop_title = "Royal Armory"
+location_type = 4
+buy_multiplier = 0.5
+sell_multiplier = 1.0
+buy_categories = ["WEAPON", "ARMOR"]
+sell_categories = ["WEAPON", "ARMOR"]
+includes = [{"type": "offering", "ref_id": "armory"}]
