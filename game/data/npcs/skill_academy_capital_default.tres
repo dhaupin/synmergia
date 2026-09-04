@@ -20,3 +20,4 @@ offers_bulk_discount = false
 bulk_discount_percent = 0.0
 bulk_discount_threshold = 0
 services = ["skill_books", "skill_upgrade", "respec", "signature_selection"]
+includes = [{"type": "offering", "ref_id": "skill_academy"}]
