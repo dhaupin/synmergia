@@ -48,6 +48,22 @@ func _ready() -> void:
 		)
 	_firewall = AppFirewall
 
+	# Auto-start server in headless/production mode
+	var godot_port := int(OS.get_environment("GODOT_PORT")) if OS.has_environment("GODOT_PORT") else DEFAULT_PORT
+	if OS.has_environment("START_MODE"):
+		var mode := OS.get_environment("START_MODE")
+		if mode in ["prod", "headless", "server"]:
+			_auto_start_server(godot_port)
+
+
+func _auto_start_server(port: int) -> void:
+	# Small delay to let other autoloads initialize
+	await get_tree().create_timer(0.5).timeout
+	if start_server(port):
+		GameLog.info("Auto-started server on port %d (START_MODE=%s)" % [port, OS.get_environment("START_MODE")])
+	else:
+		GameLog.error("Failed to auto-start server on port %d" % port)
+
 func _process(_delta: float) -> void:
 	match connection_state:
 		ConnectionState.CONNECTED:
@@ -81,7 +97,6 @@ func start_server(port: int = DEFAULT_PORT) -> bool:
 	
 	peer.peer_connected.connect(_on_server_peer_connected)
 	peer.peer_disconnected.connect(_on_server_peer_disconnected)
-	peer.connection_succeeded.connect(_on_server_peer_connected)
 	
 	_start_server_loop()
 	
@@ -170,7 +185,6 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 	multiplayer.multiplayer_peer = peer
 	is_client = true
 	
-	peer.connection_succeeded.connect(_on_client_connected)
 	peer.connection_failed.connect(_on_client_connection_failed)
 	peer.server_disconnected.connect(_on_server_disconnected)
 	
