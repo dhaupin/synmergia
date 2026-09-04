@@ -2,6 +2,8 @@
 ## Expanded from Minimap, supports click-to-navigate
 extends Control
 class_name WorldMap
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Singleton
 static var instance: WorldMap

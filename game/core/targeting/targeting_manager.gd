@@ -9,6 +9,8 @@
 ## - 3D highlight management
 ## - Target history (restore previous)
 extends Node
+const Entity = preload("res://core/entities/entity.gd")
+
 
 
 const PlayerController = preload("res://entities/player/player_controller.gd")

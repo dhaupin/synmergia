@@ -3,6 +3,7 @@
 ## Not connected to OS shell - game-internal commands only
 extends Node
 class_name AdminShell
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 static func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')

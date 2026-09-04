@@ -1,6 +1,7 @@
 ## FriendsService - Friends, block, and ignore list management
 # FriendsService - registered as autoload
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## ============================================================================
 ## DATA STRUCTURES

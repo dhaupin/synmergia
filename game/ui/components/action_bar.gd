@@ -2,6 +2,8 @@
 ## 8 skill slots with keyboard/controller bindings
 extends Control
 class_name ActionBar
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Slots
 const SLOT_COUNT: int = 8

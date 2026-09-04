@@ -4,6 +4,7 @@ extends Node
 
 const Skill = preload("res://core/combat/skill.gd")
 const Entity = preload("res://core/entities/entity.gd")
+const StatusEffect = preload("res://core/entities/status_effect.gd")
 signal skill_executed(caster: Entity, skill: Skill, targets: Array)
 signal skill_hit(caster: Entity, target: Entity, skill: Skill, damage: int)
 signal skill_missed(caster: Entity, skill: Skill)

@@ -2,6 +2,8 @@
 ## Shows HP, name, level, and effects for selected target
 extends Control
 class_name TargetFrame
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Components
 var _name_label: Label

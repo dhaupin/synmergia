@@ -1,6 +1,7 @@
 ## GuildService - Guild management
 ## Handles guild creation, roster, ranks, permissions, alliances, and guild vs guild
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # _notify_player uses the typed-Kind pipeline; remove_member uses

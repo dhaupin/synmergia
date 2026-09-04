@@ -29,5 +29,7 @@ Thumbs.db
 tools/
 
 # Media captures
-captures/
+# captures/          # UN-IGNORED — track screenshots/videos in version control
+# Re-ignore if you want local-only captures:
+# captures/
 

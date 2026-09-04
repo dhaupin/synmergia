@@ -2,6 +2,8 @@
 ## Large HP bar with boss name, phase, enrage timer
 extends Control
 class_name BossHealthBar
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Components
 var _name_label: Label

@@ -2,6 +2,8 @@
 ## Shows name, health bar, level, guild above entities
 extends Control
 class_name NamePlate
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Plate types
 enum PlateType { PLAYER, NPC, ENEMY, OBJECT }

@@ -1,6 +1,8 @@
 ## PartyService - Party management
 ## Handles party creation, invites, member management, loot rules, and XP sharing
 extends Node
+const CharacterData = preload("res://core/schemas/character_data.gd")
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # kick_player dispatches a PARTY kind toast to the kicked member so

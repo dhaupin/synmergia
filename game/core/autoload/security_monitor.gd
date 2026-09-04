@@ -1,6 +1,7 @@
 ## SecurityMonitor - Centralized security event monitoring
 ## Listens to security events and logs/alerts appropriately
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # SecurityMonitor surfaces anti-cheat / exploit alerts to the admin

@@ -137,6 +137,7 @@ func _load_global_settings() -> void:
 func _init_defaults() -> void:
 	_account_settings = DEFAULT_ACCOUNT_SETTINGS.duplicate(true)
 	_character_settings = DEFAULT_CHARACTER_SETTINGS.duplicate(true)
+	_global_config = ConfigFile.new()
 
 ## Load global settings (applies to all accounts on this device)
 func load_global_settings() -> bool:

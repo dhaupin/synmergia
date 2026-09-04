@@ -6,6 +6,8 @@
 ##   var color = schema.highlight_color
 extends Resource
 class_name TargetSchema
+const Entity = preload("res://core/entities/entity.gd")
+
 
 ## ============================================================================
 ## ENUMS

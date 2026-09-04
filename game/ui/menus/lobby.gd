@@ -4,6 +4,8 @@
 ## current account (via AccountService), with Play / Create / Delete
 ## / Logout actions. Backed by disk via LoginService.
 extends Control
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 
@@ -22,7 +24,6 @@ var _selected_index: int = -1
 func _ready() -> void:
 	_apply_styles()
 	if not LoginService or not LoginService.is_logged_in():
-		# Defensive: bail to login
 		if GameManager:
 			GameManager.change_state(GameManager.GameState.LOGIN)
 		return
@@ -38,6 +39,19 @@ func _ready() -> void:
 
 	_refresh_account_header()
 	_refresh_character_list()
+
+	# Auto-play a freshly created character — the character_select scene stores
+	# the id in GameManager meta before returning here so the signal is lost.
+	var last_id := GameManager.get_meta("last_character_id", "") if GameManager else ""
+	if last_id != "":
+		GameManager.set_meta("last_character_id", "")
+		for i in range(_characters.size()):
+			if _characters[i].character_id == last_id:
+				_char_list.select(i)
+				_on_item_selected(i)
+				await get_tree().process_frame
+				_on_play_pressed()
+				break
 
 func _apply_styles() -> void:
 	if not UIStyles:
@@ -134,6 +148,17 @@ func _on_delete_pressed() -> void:
 func _on_logout_pressed() -> void:
 	if LoginService:
 		LoginService.logout()
+
+# F5 = create character, F6 = play (for headless testing)
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		match event.keycode:
+			KEY_F5:
+				print("[LOBBY] F5 pressed - creating character")
+				_on_create_pressed()
+			KEY_F6:
+				print("[LOBBY] F6 pressed - playing character")
+				_on_play_pressed()
 
 func _on_logged_out() -> void:
 	if GameManager:

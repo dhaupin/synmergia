@@ -2,6 +2,8 @@
 ## Spinner, progress bar, and loading states
 extends Control
 class_name LoadingUI
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Loading states
 enum LoadingState { IDLE, LOADING, PROGRESS, SUCCESS, ERROR }
