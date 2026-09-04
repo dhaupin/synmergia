@@ -92,11 +92,9 @@ if [[ "$START_MODE" == "dev" ]]; then
     log " WS:     ws://localhost:9000"
     log " Mode:   GUI rendered via Xvfb"
     log "============================================"
-    log ""
     log "Screenshots:"
-    log "  node /workspace/project/game/scripts/screenshot.js \\"
-    log "    --output /workspace/project/game/captures/screenshots/<name>.png"
-    log ""
+    log "  Press F8 in-game to capture a screenshot"
+    log "  Saves to: /workspace/project/game/captures/screenshots/"
 
     tail -f /dev/null
     exit 0

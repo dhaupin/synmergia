@@ -11,25 +11,25 @@ open http://localhost:6080/vnc.html
 
 ## Modes
 
-The image is controlled by the `START_MODE` env var:
+The image is controlled by the START_MODE env var:
 
 | Mode | What it starts | Use case |
 |------|---------------|---------|
-| `dev` (default) | Xvfb + noVNC + nginx + Godot GUI | Local dev, screenshots |
-| `prod` | nginx + Godot headless + postgres + redis | VPS production |
-| `headless` | Godot headless only | Bot runner, CI runner |
-| `test` | Runs smoke tests, exits | CI pipeline |
+| dev (default) | Xvfb + noVNC + nginx + Godot GUI | Local dev |
+| prod | nginx + Godot headless + postgres + redis | VPS production |
+| headless | Godot headless only | Bot runner, CI runner |
+| test | Runs smoke tests, exits | CI pipeline |
 
 ## Profiles
 
 ```bash
-# Dev (default) — GUI in browser
+# Dev (default) -- GUI in browser
 docker compose --profile dev up --build
 
-# Production — headless + DBs
+# Production -- headless + DBs
 docker compose --profile prod up --build
 
-# Headless runner — Godot only
+# Headless runner -- Godot only
 docker compose --profile headless up --build
 
 # Smoke tests
@@ -45,7 +45,7 @@ docker run --rm -e START_MODE=test synmergia
 | Nginx | Web server + WebSocket proxy |
 | Julia 1.11 | Scientific computing |
 | Go 1.23 | Custom tools |
-| Chromium + Puppeteer | Screenshot automation |
+| Chromium + Puppeteer | Browser automation (optional) |
 | Certbot | HTTPS certificate management |
 | PostgreSQL + Redis | Data stores (prod only) |
 
@@ -53,23 +53,17 @@ docker run --rm -e START_MODE=test synmergia
 
 | Port | DEV | PROD | Service |
 |------|-----|------|---------|
-| 80 | ✅ | ✅ | HTTP |
-| 443 | ✅ | ✅ | HTTPS (self-signed or Let's Encrypt) |
-| 6080 | ✅ | ❌ | noVNC (browser GUI) |
-| 5900 | ✅ | ❌ | VNC |
-| 9000 | ✅ | ✅ | WebSocket |
+| 80 | yes | yes | HTTP |
+| 443 | yes | yes | HTTPS (self-signed or Let's Encrypt) |
+| 6080 | yes | no | noVNC (browser GUI) |
+| 5900 | yes | no | VNC |
+| 9000 | yes | yes | WebSocket |
 
 ## Screenshots
 
-Run inside the container:
-
-```bash
-docker exec <container> node /workspace/project/game/scripts/screenshot.js \
-  --output /workspace/project/game/captures/screenshots/<name>.png \
-  --wait 10000
-```
-
-Captures land in `./captures/` on the host (bind-mounted).
+Press F8 in the game to capture a screenshot. It saves to
+/workspace/project/game/captures/screenshots/ on the container, which is
+bind-mounted to ./game/captures/screenshots/ on the host.
 
 ## HTTPS / Let's Encrypt
 
@@ -101,8 +95,8 @@ DOMAIN=play.example.com       # For Let's Encrypt
 
 ## Files
 
-- `Dockerfile` — Unified image (all modes)
-- `docker-compose.yml` — Dev + prod profiles
-- `srv/docker/entrypoint.sh` — Mode dispatcher
-- `nginx.conf` — Reverse proxy config
-- `captures/` — Screenshots and videos (host mount)
+- Dockerfile -- Unified image (all modes)
+- docker-compose.yml -- Dev + prod profiles
+- srv/docker/entrypoint.sh -- Mode dispatcher
+- nginx.conf -- Reverse proxy config
+- game/captures/ -- Screenshots and videos (host mount)

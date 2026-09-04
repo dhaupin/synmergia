@@ -99,7 +99,8 @@ func _on_play_pressed() -> void:
 		GameLog.info("CharacterSelect: Linked new character %s to account %s" % [data.character_id, creating_for])
 		# Save to local characters.json
 		_lobby_save_character(data, creating_for)
-		# Go back to lobby
+		# Signal Lobby._ready() to auto-select and play this character
+		GameManager.set_meta("last_character_id", data.character_id)
 		GameManager.set_meta("creating_for_account", "")
 		GameManager.change_state(GameManager.GameState.LOBBY)
 		return

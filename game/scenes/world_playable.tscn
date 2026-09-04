@@ -23,6 +23,13 @@ roughness = 0.9
 [sub_resource type="BoxShape3D" id="SubResource_floor_shape"]
 size = Vector3(200, 0.5, 200)
 
+[sub_resource type="CapsuleShape3D" id="SubResource_player_hitbox"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="SubResource_player_mesh"]
+material_override = SubResource("SubResource_floor_mat")
+
 [sub_resource type="SphereShape3D" id="SubResource_slime_hitbox"]
 radius = 0.75
 
@@ -83,12 +90,12 @@ jump_force = 8.0
 gravity = 20.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-shape = SubResource("SubResource_floor_shape")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("SubResource_player_hitbox")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Player"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-material_override = SubResource("SubResource_floor_mat")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("SubResource_player_mesh")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Player"]
 

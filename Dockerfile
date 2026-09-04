@@ -103,11 +103,6 @@ RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - \
 # ── Working dir ────────────────────────────────────────────────────────────
 WORKDIR /workspace/project/game
 
-# ── Puppeteer (screenshots) ───────────────────────────────────────────────
-# Copy package files, install deps, download Chromium
-COPY game/scripts/ scripts/
-RUN cd /workspace/project/game/scripts && npm install --no-audit --no-fund \
-    && npx puppeteer browsers install chrome
 
 # ── Nginx config ───────────────────────────────────────────────────────────
 COPY nginx.conf /etc/nginx/nginx.conf

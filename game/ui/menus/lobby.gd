@@ -22,7 +22,6 @@ var _selected_index: int = -1
 func _ready() -> void:
 	_apply_styles()
 	if not LoginService or not LoginService.is_logged_in():
-		# Defensive: bail to login
 		if GameManager:
 			GameManager.change_state(GameManager.GameState.LOGIN)
 		return
@@ -36,11 +35,21 @@ func _ready() -> void:
 	if LoginService:
 		LoginService.logged_out.connect(_on_logged_out)
 
-	# Listen for character creation from CharacterSelect
-	_connect_character_select_signals()
-
 	_refresh_account_header()
 	_refresh_character_list()
+
+	# Auto-play a freshly created character — the character_select scene stores
+	# the id in GameManager meta before returning here so the signal is lost.
+	var last_id := GameManager.get_meta("last_character_id", "") if GameManager else ""
+	if last_id != "":
+		GameManager.set_meta("last_character_id", "")
+		for i in range(_characters.size()):
+			if _characters[i].character_id == last_id:
+				_char_list.select(i)
+				_on_item_selected(i)
+				await get_tree().process_frame
+				_on_play_pressed()
+				break
 
 func _apply_styles() -> void:
 	if not UIStyles:
@@ -57,35 +66,6 @@ func _refresh_account_header() -> void:
 	if LoginService.is_guest():
 		label += "  (Guest)"
 	_account_label.text = label
-
-func _connect_character_select_signals() -> void:
-	# Connect to CharacterSelect if it's in the tree
-	if not is_inside_tree():
-		return
-	var root = get_tree().root if get_tree() else null
-	if not root:
-		return
-	var char_select = root.get_node_or_null("CharacterSelect")
-	if char_select:
-		if not char_select.character_confirmed.is_connected(_on_character_confirmed):
-			char_select.character_confirmed.connect(_on_character_confirmed)
-		print("[LOBBY] Connected to CharacterSelect.character_confirmed")
-
-func _on_character_confirmed(data: CharacterData) -> void:
-	print("[LOBBY] _on_character_confirmed called: ", data.character_id if data else "null")
-	_refresh_character_list()
-	# Auto-select the newly created character
-	for i in range(_characters.size()):
-		if _characters[i].character_id == data.character_id:
-			_char_list.select(i)
-			_on_item_selected(i)
-			# Auto-play after short delay
-			await get_tree().create_timer(0.5).timeout
-			_on_play_pressed()
-			break
-
-func _process(_delta: float) -> void:
-	_connect_character_select_signals()
 
 func _refresh_character_list() -> void:
 	_characters.clear()
