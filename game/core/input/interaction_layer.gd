@@ -84,14 +84,8 @@ func _process_input(event: InputEvent) -> void:
 func _detect_platform() -> void:
 	var display_size := DisplayServer.window_get_size()
 	
-	if display_size.x < 768 or DisplayServer.is_touchscreen_available():
-		_current_platform = Platform.MOBILE
-		_is_mobile = true
-	elif Input.get_connected_joypads().has(0):
-		_current_platform = Platform.GAMEPAD
-		_has_gamepad = true
-	else:
-		_current_platform = Platform.DESKTOP
+	# Force Desktop mode (Docker/Xvfb doesn't handle touch events well)
+	_current_platform = Platform.DESKTOP
 	
 	platform_changed.emit(_current_platform)
 
