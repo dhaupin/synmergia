@@ -77,10 +77,10 @@ if [[ "$START_MODE" == "dev" ]]; then
     _setup_nginx
     nginx -g 'daemon off;' &
 
-    # Godot (with GUI rendering to Xvfb)
-    log "Starting Godot (DISPLAY=:99)..."
+    # Godot (with GUI rendering to Xvfb, software OpenGL)
+    log "Starting Godot (DISPLAY=:99, software OpenGL)..."
     sleep 2
-    nohup env DISPLAY=:99 godot --path /workspace/project/game --width 1920 --height 1080 > /tmp/godot.log 2>&1 &
+    nohup env DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 godot --path /workspace/project/game --width 1920 --height 1080 --rendering-driver opengl3 > /tmp/godot.log 2>&1 &
 
     log ""
     log "============================================"
