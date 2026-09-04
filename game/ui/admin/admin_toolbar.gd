@@ -1,5 +1,5 @@
 ## AdminToolbar - Quick access admin toolbar for HUD.
-## Migrated onto UIWidget base class. F3 toggles the dashboard.
+## Migrated onto UIWidget base class. F12 toggles the dashboard.
 class_name AdminToolbar
 extends UIWidget
 const UIStyles = preload("res://ui/components/ui_styles.gd")
@@ -10,11 +10,11 @@ var _dashboard_instance: Control
 var _toggle_btn: Button
 
 func _setup_widget() -> void:
-	# Default hidden until F3 toggles it. UIWidget defaults to
+	# Default hidden until F12 toggles it. UIWidget defaults to
 	# always_visible=true; flip it for this widget.
 	set_always_visible(false)
-	# Add a hotkey for F3.
-	set_hotkey(KEY_F3)
+	# Add a hotkey for F12.
+	set_hotkey(KEY_F12)
 	_build_toolbar()
 
 func _build_toolbar() -> void:

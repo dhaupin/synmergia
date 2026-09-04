@@ -93,7 +93,7 @@ if [[ "$START_MODE" == "dev" ]]; then
     log " Mode:   GUI rendered via Xvfb"
     log "============================================"
     log "Screenshots:"
-    log "  Press F8 in-game to capture a screenshot"
+    log "  Press PrintScreen in-game to capture a screenshot"
     log "  Saves to: /workspace/project/game/captures/screenshots/"
 
     tail -f /dev/null

@@ -102,6 +102,9 @@ var _respec_cost_label: Label
 var _skill_data: CharacterData = null
 var _inventory_books: Array = []
 
+var _npc_position: Vector3 = Vector3.ZERO
+var _proximity_enabled: bool = false
+
 var _buy_skill_picker: OptionButton
 var _buy_button: Button
 var _buy_result_label: Label
@@ -1065,8 +1068,34 @@ func _refresh_footer() -> void:
 		var available: int = _skill_data.get_available_skill_points()
 		pts_lbl.text = "Skill Points: %d earned | %d spent | %d available" % [earned, spent, available]
 
+func _process(_delta: float) -> void:
+	if not _proximity_enabled or _npc_position == Vector3.ZERO:
+		return
+	var player := _get_local_player()
+	if player == null:
+		return
+	if player.global_position.distance_to(_npc_position) > 8.0:
+		close()
+		if NotificationService:
+			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
+			NotificationService.notify(NotifKind.CUSTOM, "Moved too far from the trainer.",
+				"SkillAcademyUI", "sac_out_of_range", {}, _player_id)
+
+
+func _get_local_player() -> Node:
+	if PlayerManager and PlayerManager.has_method("get_local_player"):
+		return PlayerManager.get_local_player()
+	return null
+
+
 func _stub_on_open() -> void:
 	_refresh_all()
+
+
+func set_npc_proximity(pos: Vector3) -> void:
+	_npc_position = pos
+	_proximity_enabled = true
+
 
 func open_with_context(player_id: String, skill_data: CharacterData, inventory_books: Array) -> void:
 	_skill_data = skill_data

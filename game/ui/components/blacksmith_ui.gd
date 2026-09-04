@@ -1,68 +1,17 @@
 ## BlacksmithUI - Equipment repair interface
 ## Opened when player interacts with a BlacksmithNPC.
 ## Shows repairable equipment, costs, and executes repairs via BlacksmithService.
-extends Control
+extends UIPanel
 class_name BlacksmithUI
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
-## Stub methods mirroring UIPanel -- real wiring via .tscn scene setup
-var _is_open: bool = false
-var _player_id: String = ""
-signal panel_opened()
-signal panel_closed()
-
-func open(player_id: String) -> void:
-	_player_id = player_id
-	_is_open = true
-	panel_opened.emit()
-
-func close() -> void:
-	_is_open = false
-	panel_closed.emit()
-
-func toggle(player_id: String) -> void:
-	pass
-
-func is_open() -> bool:
-	return _is_open
-
-func get_panel() -> PanelContainer:
-	return null
-
-func get_content() -> VBoxContainer:
-	return null
-
-func set_title(title: String) -> void:
-	pass
-
-func set_panel_size(size: Vector2) -> void:
-	pass
-
-func show_notification(msg: String, success: bool = true) -> void:
-	pass
-
-func _setup_panel() -> void:
-	pass
-
-func _setup_header() -> void:
-	pass
-
-func _setup_content() -> void:
-	pass
-
-func _setup_overlay() -> void:
-	pass
-
-func _on_open() -> void:
-	pass
-
-func _on_close() -> void:
-	pass
-
 var _inventory: InventoryComponent = null
 var _offers_discount: bool = true
 var _cost_modifier: float = 1.0
+
+var _npc_position: Vector3 = Vector3.ZERO
+var _proximity_enabled: bool = false
 
 var _item_list: VBoxContainer
 var _total_label: Label
@@ -70,71 +19,142 @@ var _gold_label: Label
 var _repair_btn: Button
 var _close_btn: Button
 
-func _ready() -> void:
-	set_title("The Smithy")
-	set_panel_size(Vector2(420, 520))
-	_setup_ui()
-	_connect_signals()
+func _setup_panel() -> void:
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(420, 520)
+	panel.add_theme_stylebox_override("panel", UIStyles.create_panel_style(
+		UIStyles.COLORS.background_dark,
+		UIStyles.COLORS.border, 2, 12
+	))
+	panel.name = "Panel"
+	add_child(panel)
 
-func _setup_ui() -> void:
+	var main := VBoxContainer.new()
+	main.name = "Main"
+	panel.add_child(main)
+
+func _setup_header() -> void:
 	var panel := get_panel()
 	if not panel:
 		return
-	var main: VBoxContainer = panel.get_node_or_null("Main")
+	var main := panel.get_node_or_null("Main") as VBoxContainer
 	if not main:
 		return
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	main.add_child(header)
+	main.move_child(header, 0)
+
+	var title := Label.new()
+	title.text = "The Smithy"
+	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	header.add_child(title)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.pressed.connect(close)
+	header.add_child(close_btn)
+
+func _setup_content() -> void:
+	var panel := get_panel()
+	if not panel:
+		return
+	var main: VBoxContainer = panel.get_node_or_null("Main") as VBoxContainer
+	if not main:
+		return
+
 	var gold_row := HBoxContainer.new()
 	gold_row.custom_minimum_size.y = 32
 	main.add_child(gold_row)
+
 	var gold_title := Label.new()
 	gold_title.text = "Your Gold: "
 	gold_title.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	gold_row.add_child(gold_title)
+
 	_gold_label = Label.new()
 	_gold_label.text = "0"
 	_gold_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	gold_row.add_child(_gold_label)
+
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gold_row.add_child(spacer)
+
 	var discount_badge := Label.new()
 	discount_badge.text = "10% OFF!" if _offers_discount else ""
 	discount_badge.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	gold_row.add_child(discount_badge)
+
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 360
+	scroll.custom_minimum_size.y = 340
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	main.add_child(scroll)
+
 	_item_list = VBoxContainer.new()
 	_item_list.custom_minimum_size.y = 300
 	scroll.add_child(_item_list)
+
 	var summary_row := HBoxContainer.new()
 	summary_row.custom_minimum_size.y = 36
 	main.add_child(summary_row)
+
 	var summary_title := Label.new()
 	summary_title.text = "Total: "
 	summary_title.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	summary_row.add_child(summary_title)
+
 	_total_label = Label.new()
 	_total_label.text = "0"
 	_total_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	summary_row.add_child(_total_label)
+
 	var btn_row := HBoxContainer.new()
 	btn_row.custom_minimum_size.y = 44
 	main.add_child(btn_row)
+
 	_repair_btn = Button.new()
 	_repair_btn.text = "Repair All"
 	_repair_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_repair_btn.pressed.connect(_on_repair_all_pressed)
 	btn_row.add_child(_repair_btn)
+
 	_close_btn = Button.new()
 	_close_btn.text = "Close"
 	_close_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_close_btn.pressed.connect(_on_close_pressed)
+	_close_btn.pressed.connect(close)
 	btn_row.add_child(_close_btn)
 
-func _connect_signals() -> void:
-	var bs = BlacksmithService if BlacksmithService else null
+func _process(_delta: float) -> void:
+	if not _proximity_enabled or _npc_position == Vector3.ZERO:
+		return
+	var player := _get_local_player()
+	if player == null:
+		return
+	if player.global_position.distance_to(_npc_position) > 8.0:
+		close()
+		if NotificationService:
+			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
+			NotificationService.notify(NotifKind.CUSTOM, "Moved too far from the blacksmith.",
+				"BlacksmithUI", "bs_out_of_range", {}, _player_id)
+
+
+func _get_local_player() -> Node:
+	if PlayerManager and PlayerManager.has_method("get_local_player"):
+		return PlayerManager.get_local_player()
+	return null
+
+
+func _on_open() -> void:
+	_connect_signals()
+	_refresh_items()
+
 	if not bs:
 		return
 	if bs.has_signal("repair_completed"):
@@ -147,24 +167,18 @@ func _connect_signals() -> void:
 		if not InventoryService.inventory_updated.is_connected(_refresh_items):
 			InventoryService.inventory_updated.connect(_refresh_items)
 
+
+func set_npc_proximity(pos: Vector3) -> void:
+	_npc_position = pos
+	_proximity_enabled = true
+
+
 func open_for_player(player_id: String) -> void:
-	_player_id = player_id
-	_is_open = true
-	_show()
+	open(player_id)
 	_refresh_items()
 
-func _show() -> void:
-	visible = true
-
-func _hide_panel() -> void:
-	visible = false
-	_is_open = false
-
 func toggle_for_player(player_id: String) -> void:
-	if _is_open and _player_id == player_id:
-		_hide_panel()
-	else:
-			open_for_player(player_id)
+	toggle(player_id)
 
 func _on_repair_all_pressed() -> void:
 	if not _player_id:
@@ -190,8 +204,7 @@ func _on_repair_all_pressed() -> void:
 	BlacksmithService.repair_all(_player_id, items)
 
 func _on_close_pressed() -> void:
-	_hide_panel()
-	panel_closed.emit()
+	close()
 
 func _refresh_items() -> void:
 	if not _item_list:

@@ -110,6 +110,22 @@ func _create_tab_button(text: String, tab_id: int) -> Button:
 func _on_tab_clicked(tab_id: int) -> void:
 	_show_tab(tab_id)
 
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_TAB:
+			var tab_ids := [Tab.INVENTORY, Tab.EQUIP, Tab.STATS, Tab.SKILLS]
+			var current_idx := -1
+			for i in range(tab_ids.size()):
+				if tab_ids[i] == _current_tab:
+					current_idx = i
+					break
+			if event.shift:
+				current_idx = (current_idx - 1 + tab_ids.size()) % tab_ids.size()
+			else:
+				current_idx = (current_idx + 1) % tab_ids.size()
+			_show_tab(tab_ids[current_idx])
+
 func _show_tab(tab_id: int) -> void:
 	_current_tab = tab_id
 
