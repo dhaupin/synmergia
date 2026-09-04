@@ -401,7 +401,6 @@ func _on_debuff_removed(debuff) -> void:
 func _log(text: String, color: Color) -> void:
 	if _combat_log:
 		_combat_log.log_system(text)
-	else:
 
 
 func _color_gold() -> Color:
