@@ -1,12 +1,11 @@
 ## SkillAcademyNPC - Skill book vendor + upgrade + respec hub
 ## Interactable NPC that provides access to the Skill Academy UI
 extends Entity
+class_name SkillAcademyNPC
 
 const Entity = preload("res://core/entities/entity.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const Faction = preload("res://core/schemas/faction.gd")
-
-class_name SkillAcademyNPC
 
 var npc_data: NPCData = null
 var faction: int = Faction.FRIENDLY

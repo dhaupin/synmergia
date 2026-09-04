@@ -23,4 +23,5 @@ static func create(skill_id: String, upgrade_level: int, skill_display_name: Str
 	book.buy_price = 100 * upgrade_level
 	book.unique = false
 	book.bind_on_pickup = false
+	book.item_category = Item.ItemCategory.SKILL_BOOK
 	return book
