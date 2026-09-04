@@ -11,6 +11,10 @@ extends Control
 const CharacterData = preload("res://core/schemas/character_data.gd")
 class_name SkillAcademyUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const SkillAcademyService = preload("res://core/services/skill_academy_service.gd")
+const SkillBook = preload("res://core/schemas/skill_book.gd")
+const SkillSchema = preload("res://core/schemas/skill.gd")
+const InventoryService = preload("res://core/services/inventory_service.gd")
 
 ## Stub methods mirroring UIPanel -- real wiring via .tscn scene setup
 var _is_open: bool = false

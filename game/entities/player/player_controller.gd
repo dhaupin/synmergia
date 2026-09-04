@@ -13,6 +13,8 @@ const Entity = preload("res://core/entities/entity.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
 const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
+const GMIndicator = preload("res://entities/player/components/gm_indicator.gd")
+const ReportDialog = preload("res://ui/player/report_dialog.gd")
 const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 
 
