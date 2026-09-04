@@ -184,6 +184,8 @@ func _handle_keyboard_action(event: InputEventKey) -> void:
 			action_triggered.emit("focus")
 		KEY_T:
 			action_triggered.emit("target_self")
+		KEY_E:
+			action_triggered.emit("interact")
 
 func _emit_interaction(type: InteractionType, position: Vector2) -> void:
 	interaction.emit(type, position)

@@ -158,6 +158,8 @@ func _on_interaction_action(action_name: String) -> void:
 			_target_self()
 		"cancel":
 			clear_target()
+		"interact":
+			_do_interact()
 
 ## Target self
 func _target_self() -> void:
@@ -170,6 +172,18 @@ func _target_self() -> void:
 		Entity.EntityType.PLAYER
 	)
 	is_targeting = false  # Self-target doesn't enable targeting mode
+
+## Handle E-key interaction with targeted entity.
+func _do_interact() -> void:
+	if not TargetingManager.has_target():
+		return
+	var target_info := TargetingManager.get_current_target()
+	if target_info == null:
+		return
+	if target_info.entity_type == Entity.EntityType.NPC and target_info.node != null:
+		var target_node: Node = target_info.node
+		if target_node.has_method("on_interact"):
+			target_node.on_interact(self)
 
 ## Show target context menu
 func _show_target_context_menu(target_info: TargetingManager.TargetInfo) -> void:
