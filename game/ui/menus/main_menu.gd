@@ -72,3 +72,19 @@ func _open_settings_panel() -> void:
 func _on_quit_pressed() -> void:
 	print("Quit button pressed")
 	get_tree().quit()
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_TAB:
+			var buttons := [play_button, settings_button, quit_button]
+			var current := get_viewport().gui_get_focus_owner()
+			var idx := -1
+			for i in range(buttons.size()):
+				if buttons[i] == current:
+					idx = i
+					break
+			if event.shift:
+				idx = (idx - 1 + buttons.size()) % buttons.size()
+			else:
+				idx = (idx + 1) % buttons.size()
+			buttons[idx].grab_focus()

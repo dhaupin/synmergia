@@ -59,15 +59,24 @@ theme_override_constants/separation = 20
 
 [node name="PlayButton" type="Button" parent="MenuButtons"]
 layout_mode = 2
+focus_mode = 2
 text = "Play"
+accessible_string = "Enter the game world and play"
+accessible_description = "Press Enter or click to start playing"
 
 [node name="SettingsButton" type="Button" parent="MenuButtons"]
 layout_mode = 2
+focus_mode = 2
 text = "Settings"
+accessible_string = "Configure game settings"
+accessible_description = "Press Enter or click to open settings"
 
 [node name="QuitButton" type="Button" parent="MenuButtons"]
 layout_mode = 2
+focus_mode = 2
 text = "Quit"
+accessible_string = "Exit the game"
+accessible_description = "Press Enter or click to quit the game"
 
 [node name="Version" type="Label" parent="."]
 layout_mode = 1

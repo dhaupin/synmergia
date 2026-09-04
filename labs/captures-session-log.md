@@ -195,16 +195,16 @@ Example:
 
 ## Next Session Priorities
 
-### P0 - Must Fix
-1. **Auto-select character in lobby** - Implement Option A (proper fix)
-2. **Scene structure warnings** - Fix parent path issues in `world_playable.tscn`
+### ✅ Completed
+1. **Auto-select character in lobby** ✅ - Done (lobby.gd lines 45-51)
+2. **Scene structure warnings** ✅ - Done (world_playable.tscn CapsuleShape3D + CapsuleMesh sub_resources added, commit 2d932b2)
 
 ### P1 - Should Have  
-3. **Tab navigation** - Focus cycling for accessibility
-4. **Screen reader labels** - Add `accessible_description` to Controls
+3. **Tab navigation** - Add focus cycling to main menus (in progress)
+4. **Screen reader labels** - Add `accessible_description` to key UI Controls (in progress)
 
 ### P2 - Nice to Have
-5. **Screenshot naming/archiving** - Proper folder structure
+5. **Screenshot naming/archiving** - Proper folder structure (`labs/screenshots/`)
 6. **Input handler extraction** - Begin `InputService` architecture
 
 ### P3 - Future
