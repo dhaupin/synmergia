@@ -1,6 +1,7 @@
 ## SameAccountTransferService - Quick transfers between own characters
 ## Handles fast item/gold transfers without trade window
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const Item = preload("res://core/schemas/item.gd")
 # Singleton

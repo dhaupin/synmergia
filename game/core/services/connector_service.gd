@@ -2,6 +2,8 @@
 ## Handles connecting/disconnecting AI agents to the game
 extends Node
 class_name ConnectorService
+const Entity = preload("res://core/entities/entity.gd")
+
 const AgentConnector = preload("res://core/schemas/agent_connector.gd")
 const Skill = preload("res://core/combat/skill.gd")
 const AgentAction = preload("res://core/schemas/agent_action.gd")

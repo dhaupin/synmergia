@@ -8,6 +8,8 @@
 ##
 ## All three paths end at LOBBY. Lobby is the per-account char list.
 extends Control
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 @onready var _username: LineEdit = $Center/Panel/Form/UsernameField
 @onready var _password: LineEdit = $Center/Panel/Form/PasswordField

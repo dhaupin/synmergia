@@ -8,6 +8,7 @@
 ##   5. Respec    -- reset all upgrades (books NOT returned)
 
 extends Control
+const CharacterData = preload("res://core/schemas/character_data.gd")
 class_name SkillAcademyUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 

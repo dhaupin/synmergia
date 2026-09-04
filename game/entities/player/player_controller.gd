@@ -2,6 +2,7 @@
 ## Free-form combat system (RYL2-style)
 extends CharacterBody3D
 class_name PlayerController
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")

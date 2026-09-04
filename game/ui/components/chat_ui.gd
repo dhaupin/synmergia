@@ -2,6 +2,8 @@
 ## Uses UIStyles for consistent theming
 extends Control
 class_name ChatUI
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:

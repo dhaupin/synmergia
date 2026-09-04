@@ -1,6 +1,8 @@
 ## MenuManager - Central HUD manager for Synmergia
 extends CanvasLayer
 class_name MenuManager
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Singleton
 static var instance: MenuManager = null

@@ -3,6 +3,8 @@
 
 extends UIPanel
 class_name ReportDialog
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 enum ReportType {

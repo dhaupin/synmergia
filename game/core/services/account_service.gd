@@ -1,6 +1,7 @@
 ## AccountService - Account-level operations
 ## Manages accounts, character linking, and account-wide features
 extends Node
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Singleton instance
 static var instance: AccountService

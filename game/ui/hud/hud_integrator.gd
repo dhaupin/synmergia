@@ -11,6 +11,8 @@
 ## All connections are guarded by `has_signal`/`has_method` so a missing
 ## service or widget silently no-ops.
 extends Node
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 const HudLayer := preload("res://ui/hud/hud_layer.gd")
 

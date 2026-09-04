@@ -2,6 +2,8 @@
 ## Shows damage, healing, events, achievements
 extends Control
 class_name CombatLog
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Entry types
 enum EntryType { DAMAGE, HEAL, SYSTEM, LOOT, QUEST, ACHIEVEMENT, GUILD, TRADE }

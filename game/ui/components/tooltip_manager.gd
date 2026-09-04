@@ -2,6 +2,8 @@
 ## Item tooltips, ability tooltips, NPC info tooltips
 extends Control
 class_name TooltipManager
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 
 ## Tooltip types
 enum TooltipType { ITEM, ABILITY, NPC, QUEST, PLAYER }
