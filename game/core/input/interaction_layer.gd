@@ -182,7 +182,7 @@ func _handle_keyboard_action(event: InputEventKey) -> void:
 		KEY_ESCAPE:
 			action_triggered.emit("cancel")
 		KEY_TAB:
-			if event.shift:
+			if event.shift_pressed:
 				action_triggered.emit("target_prev")
 			else:
 				action_triggered.emit("target_next")
