@@ -110,7 +110,7 @@ func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	show()
 
 func _show_node(node_index: int) -> void:
-	# TODO: Load from dialogue data
+	# DialogService handles loading from .tres; this is the demo fallback
 	# For demo, show placeholder
 	_speaker_label.text = "NPC"
 	_text_rich_label.clear()
