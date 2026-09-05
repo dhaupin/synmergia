@@ -296,8 +296,99 @@ func _on_slot_clicked(index: int) -> void:
 	_populate_grid()
 
 func _on_deposit() -> void:
-	# TODO: Open inventory to select items
-	show_notification("Select item from inventory to deposit")
+	if not VaultService:
+		show_notification("VaultService unavailable", false)
+		return
+
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	if not InventoryService:
+		show_notification("InventoryService unavailable", false)
+		return
+
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		show_notification("Could not load inventory", false)
+		return
+
+	var items: Array = inv.get_all_items()
+	if items.is_empty():
+		show_notification("No items to deposit", false)
+		return
+
+	_show_deposit_dialog(items)
+
+func _show_deposit_dialog(items: Array) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Deposit Item"
+	dialog.dialog_text = "Select item to deposit:"
+	add_child(dialog)
+
+	# Create scrollable item list
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(300, 200)
+	dialog.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size.x = 280
+	scroll.add_child(vbox)
+
+	var selected_idx := -1
+
+	for i in range(items.size()):
+		var item: Item = items[i]
+		if item == null:
+			continue
+
+		var btn := Button.new()
+		btn.text = item.name if item.name else "Item #%d" % i
+		btn.custom_minimum_size.y = 30
+		btn.pressed.connect(func() -> void:
+			selected_idx = i
+		)
+		vbox.add_child(btn)
+
+	dialog.confirmed.connect(func() -> void:
+		if selected_idx < 0:
+			show_notification("No item selected", false)
+			return
+		_deposit_item(items[selected_idx])
+	)
+
+	dialog.canceled.connect(func() -> void:
+		dialog.queue_free()
+	)
+
+	dialog.popup_centered(Vector2(350, 300))
+
+func _deposit_item(item: Item) -> void:
+	if VaultService == null or item == null:
+		return
+
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var vault_type: int
+	match _current_tab:
+		VaultTab.PERSONAL:
+			vault_type = VaultService.VaultType.PERSONAL
+		VaultTab.GUILD:
+			vault_type = VaultService.VaultType.GUILD
+		VaultTab.ACCOUNT:
+			vault_type = VaultService.VaultType.ACCOUNT
+		_:
+			return
+
+	var result: Dictionary = VaultService.deposit_item(player_id, vault_type, item)
+	if result.is_empty():
+		show_notification("Failed to deposit item", false)
+	else:
+		var item_name: String = item.name if item.name else "item"
+		show_notification("Deposited: %s" % item_name)
+		_refresh_vault()
 
 func _on_withdraw() -> void:
 	if _selected_slot < 0:
@@ -331,11 +422,44 @@ func _on_withdraw() -> void:
 		_refresh_vault()
 
 func _on_expand() -> void:
+	if not VaultService:
+		show_notification("VaultService unavailable", false)
+		return
+
 	var cost := VaultService.get_expansion_cost(_current_tab, _vault_data.get("size", 0))
 	var gold_cost: int = cost.get("gold", 0)
 
-	# TODO: Show confirmation dialog
-	show_notification("Expand vault (+10 slots) for %d gold?" % gold_cost)
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Expand Vault"
+	dialog.dialog_text = "Expand vault by 10 slots for %d gold?" % gold_cost
+	add_child(dialog)
+
+	dialog.confirmed.connect(_on_expand_confirmed.bind(gold_cost))
+	dialog.canceled.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered()
+
+func _on_expand_confirmed(gold_cost: int) -> void:
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var vault_type: int
+	match _current_tab:
+		VaultTab.PERSONAL:
+			vault_type = VaultService.VaultType.PERSONAL
+		VaultTab.GUILD:
+			vault_type = VaultService.VaultType.GUILD
+		VaultTab.ACCOUNT:
+			vault_type = VaultService.VaultType.ACCOUNT
+		_:
+			return
+
+	var result: bool = VaultService.expand_vault(player_id, vault_type, 10)
+	if result:
+		show_notification("Vault expanded by 10 slots!")
+		_refresh_vault()
+	else:
+		show_notification("Failed to expand vault - not enough gold?", false)
 
 func _on_item_changed(player_id: String, vault_type: int, item_id: String, quantity: int) -> void:
 	_refresh_vault()
