@@ -2,7 +2,6 @@
 extends Entity
 
 class_name Enemy
-const EntityBase = preload("res://core/entities/entity.gd")
 const LootTable = preload("res://core/schemas/loot_table.gd")
 const HealthComponent = preload("res://core/components/health_component.gd")
 
