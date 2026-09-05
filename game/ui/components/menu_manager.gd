@@ -13,7 +13,7 @@ var _quick_access_bar: HBoxContainer
 var _buff_bar: HBoxContainer
 var _status_bar: HBoxContainer
 
-## Primary panel references (initialized in _initialize_panels)
+## Panel references
 var _inventory_panel: Control
 var _chat_panel: Control
 var _character_panel: Control
@@ -21,12 +21,6 @@ var _guild_panel: Control
 var _party_panel: Control
 var _friends_panel: Control
 var _quest_panel: Control
-
-## Secondary panel references (initialized in _initialize_secondary_panels)
-var _bank_panel: Control
-var _blacksmith_panel: Control
-var _skill_academy_panel: Control
-var _trade_panel: Control
 
 ## State
 var _is_hud_visible: bool = true
@@ -45,7 +39,6 @@ func _ready() -> void:
 
 	_setup_hud()
 	_initialize_panels()
-	_initialize_secondary_panels()
 	_connect_signals()
 
 func _setup_hud() -> void:
@@ -136,43 +129,6 @@ func _initialize_panels() -> void:
 	_party_panel.panel_closed.connect(_on_panel_closed.bind("party"))
 	_friends_panel.panel_closed.connect(_on_panel_closed.bind("friends"))
 	_quest_panel.panel_closed.connect(_on_panel_closed.bind("quests"))
-	if _bank_panel and _bank_panel.has_signal("panel_closed"):
-		_bank_panel.panel_closed.connect(_on_panel_closed.bind("bank"))
-	if _blacksmith_panel and _blacksmith_panel.has_signal("panel_closed"):
-		_blacksmith_panel.panel_closed.connect(_on_panel_closed.bind("blacksmith"))
-	if _skill_academy_panel and _skill_academy_panel.has_signal("panel_closed"):
-		_skill_academy_panel.panel_closed.connect(_on_panel_closed.bind("skill_academy"))
-
-
-func _initialize_secondary_panels() -> void:
-	# Bank / Vault panel
-	if ResourceLoader.exists("res://ui/components/bank_ui.gd"):
-		_bank_panel = load("res://ui/components/bank_ui.gd").new()
-		_bank_panel.name = "BankUI"
-		_bank_panel.z_index = 500
-		add_child(_bank_panel)
-
-	# Blacksmith panel
-	if ResourceLoader.exists("res://ui/components/blacksmith_ui.gd"):
-		_blacksmith_panel = load("res://ui/components/blacksmith_ui.gd").new()
-		_blacksmith_panel.name = "BlacksmithUI"
-		_blacksmith_panel.z_index = 500
-		add_child(_blacksmith_panel)
-
-	# Skill Academy panel
-	if ResourceLoader.exists("res://ui/components/skill_academy_ui.gd"):
-		_skill_academy_panel = load("res://ui/components/skill_academy_ui.gd").new()
-		_skill_academy_panel.name = "SkillAcademyUI"
-		_skill_academy_panel.z_index = 500
-		add_child(_skill_academy_panel)
-
-	# Trade panel (used during active trades)
-	if ResourceLoader.exists("res://ui/social/trade_ui.gd"):
-		_trade_panel = load("res://ui/social/trade_ui.gd").new()
-		_trade_panel.name = "TradeUI"
-		_trade_panel.z_index = 500
-		_trade_panel.visible = false
-		add_child(_trade_panel)
 
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):
@@ -335,21 +291,7 @@ static func close_all_menus() -> void:
 	if instance:
 		instance._close_all_menus_internal()
 
-	static func close_top_menu() -> void:
-		if instance:
-			instance._close_top_menu_internal()
-
-	static func get_open_panels() -> Array:
-		if instance:
-			return instance._open_panels.duplicate()
-		return []
-
-	static func get_panel_node(panel_name: String) -> Node:
-		if instance:
-			return instance._get_panel(panel_name)
-		return null
-
-	static func set_hud_visible(visible: bool) -> void:
+static func set_hud_visible(visible: bool) -> void:
 	if instance:
 		instance._set_hud_visible_internal(visible)
 
@@ -421,20 +363,6 @@ func _close_all_menus_internal() -> void:
 	_open_panels.clear()
 	_is_menu_open = false
 
-
-func _close_top_menu_internal() -> void:
-	# Close the most recently opened panel (last in the list).
-	if _open_panels.is_empty():
-		return
-	var panel_name: String = _open_panels[-1]
-	var panel: Control = _get_panel(panel_name)
-	if panel:
-		panel.visible = false
-	_open_panels.pop_back()
-	menu_toggled.emit(panel_name, false)
-	if _open_panels.is_empty():
-		_is_menu_open = false
-
 func _get_panel(menu_name: String) -> Control:
 	match menu_name:
 		"inventory": return _inventory_panel
@@ -444,10 +372,6 @@ func _get_panel(menu_name: String) -> Control:
 		"friends": return _friends_panel
 		"chat": return _chat_panel
 		"quests": return _quest_panel
-		"bank": return _bank_panel
-		"blacksmith": return _blacksmith_panel
-		"skill_academy": return _skill_academy_panel
-		"trade": return _trade_panel
 	return null
 
 func _set_hud_visible_internal(visible: bool) -> void:
@@ -489,10 +413,25 @@ func _on_chat_message_received(sender_id: String, channel: int, message: String,
 	if _chat_panel and _chat_panel.has_method("add_message"):
 		_chat_panel.add_message(sender_id, channel, message)
 
-## HUD keybinds are handled by HudHotkeys. MenuManager only handles
-## Enter to focus the chat input — that's the one key that's contextual
-## to the chat panel's internal state.
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ENTER:
-		if _chat_panel and _chat_panel.has_method("focus_input"):
-			_chat_panel.focus_input()
+	if event is InputEventKey and event.pressed:
+		match event.keycode:
+			KEY_ESCAPE:
+				if _is_menu_open:
+					_close_all_menus_internal()
+			KEY_I:
+				_toggle_menu_internal("inventory")
+			KEY_C:
+				_toggle_menu_internal("character")
+			KEY_P:
+				_toggle_menu_internal("party")
+			KEY_G:
+				_toggle_menu_internal("guild")
+			KEY_F:
+				_toggle_menu_internal("friends")
+			KEY_Q:
+				_toggle_menu_internal("quests")
+			KEY_ENTER:
+				# Focus chat input
+				if _chat_panel and _chat_panel.has_method("focus_input"):
+					_chat_panel.focus_input()

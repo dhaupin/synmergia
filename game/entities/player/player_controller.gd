@@ -158,8 +158,6 @@ func _on_interaction_action(action_name: String) -> void:
 			_target_self()
 		"cancel":
 			clear_target()
-		"interact":
-			_do_interact()
 
 ## Target self
 func _target_self() -> void:
@@ -172,18 +170,6 @@ func _target_self() -> void:
 		Entity.EntityType.PLAYER
 	)
 	is_targeting = false  # Self-target doesn't enable targeting mode
-
-## Handle E-key interaction with targeted entity.
-func _do_interact() -> void:
-	if not TargetingManager.has_target():
-		return
-	var target_info := TargetingManager.get_current_target()
-	if target_info == null:
-		return
-	if target_info.entity_type == Entity.EntityType.NPC and target_info.node != null:
-		var target_node: Node = target_info.node
-		if target_node.has_method("on_interact"):
-			target_node.on_interact(self)
 
 ## Show target context menu
 func _show_target_context_menu(target_info: TargetingManager.TargetInfo) -> void:
@@ -283,8 +269,6 @@ func _open_skill_academy_ui() -> void:
 	_skill_academy_ui.load_player_context(str(player_id))
 	_skill_academy_ui.open_with_context(str(player_id), _get_character_data(), _get_inventory_books())
 
-	if _current_target != null:
-		_skill_academy_ui.set_npc_proximity(_current_target.global_position)
 func _open_blacksmith_ui() -> void:
 	if not _blacksmith_ui:
 		_blacksmith_ui = BlacksmithUI.new()
@@ -299,8 +283,7 @@ func _open_blacksmith_ui() -> void:
 		offers_discount = _current_target_info.npc_data.offers_bulk_discount
 	_blacksmith_ui.open_with_context(str(player_id), inventory, cost_modifier, offers_discount)
 	_blacksmith_ui.open(str(player_id))
-		if _current_target != null:
-			_blacksmith_ui.set_npc_proximity(_current_target.global_position)
+
 func _open_character_stats_ui() -> void:
 	if not _character_stats_ui:
 		_character_stats_ui = CharacterStatsUI.new()
