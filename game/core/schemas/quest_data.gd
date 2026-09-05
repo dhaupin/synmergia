@@ -1,5 +1,4 @@
 ## QuestData - Quest definition
-## Defines quest requirements, objectives, and rewards
 extends Resource
 class_name QuestData
 
@@ -56,58 +55,46 @@ enum Difficulty {
 
 # Quest giver
 @export var giver_npc_id: String = ""       # NPC who gives quest
-@export var turn_in_npc_id: String = ""     # NPC to turn in (if different)
+@export var turn_in_npc_id: String = ""    # NPC to turn in (if different)
 
 # Requirements
 @export var min_level: int = 1
 @export var max_level: int = 100
-@export var required_quests: Array = []  # Quest IDs that must be complete
-@export var required_faction: String = ""         # Faction required
-@export var required_faction_rank: int = 0         # Minimum faction rank
-@export var zone_restriction: String = ""         # Must be in zone to accept
+@export var required_quests: Array = []     # Quest IDs that must be complete
+@export var required_faction: String = ""   # Faction required
+@export var required_faction_rank: int = 0  # Minimum faction rank
+@export var zone_restriction: String = ""   # Must be in zone to accept
 
-# Objectives
-class Objective extends Resource:
-	@export var type: ObjectiveType = ObjectiveType.KILL
-	@export var target_id: String = ""              # Enemy ID, item ID, NPC ID, etc.
-	@export var target_name: String = ""            # Display name of target
-	@export var count: int = 1                      # Number needed
-	@export var optional: bool = false              # Can skip this objective
-	@export var description: String = ""             # Custom description
-
+# Objectives — Array[Dictionary] (not typed inner class) so .tres serialization works
+# Each dict: {id, type, target, count, optional, description}
 @export var objectives: Array = []
 
-# Rewards
-class Reward extends Resource:
-	@export var type: String = "item"               # item, gold, xp, faction, title
-	@export var id: String = ""
-	@export var quantity: int = 1
-	@export var chance: float = 1.0                  # 0.0-1.0, for random rewards
-
+# Rewards — Array[Dictionary] so .tres serialization works
+# Each dict: {type, id, quantity, chance}
 @export var rewards: Array = []
-@export var reward_choice_count: int = 0            # Choose X from rewards
+@export var reward_choice_count: int = 0    # Choose X from rewards
 @export var gold_reward: int = 0
 @export var xp_reward: int = 0
-@export var faction_reward: String = ""              # Faction to gain rep with
-@export var faction_amount: int = 0                 # Reputation amount
-@export var title_reward: String = ""               # Title to unlock
+@export var faction_reward: String = ""      # Faction to gain rep with
+@export var faction_amount: int = 0         # Reputation amount
+@export var title_reward: String = ""       # Title to unlock
 
 # Quest flow
-@export var next_quest_id: String = ""              # Quest to unlock on complete
-@export var previous_quest_id: String = ""         # Required quest before this
+@export var next_quest_id: String = ""      # Quest to unlock on complete
+@export var previous_quest_id: String = ""   # Required quest before this
 
 # Timing
-@export var time_limit: float = 0.0                # 0 = no limit
-@export var cooldown: float = 0.0                  # Cooldown before re-accept (for dailies)
-@export var auto_complete: bool = false             # Complete without turn-in NPC
+@export var time_limit: float = 0.0        # 0 = no limit
+@export var cooldown: float = 0.0           # Cooldown before re-accept (for dailies)
+@export var auto_complete: bool = false      # Complete without turn-in NPC
 
 # Visuals
 @export var icon_path: String = ""
-@export var map_marker: String = ""                 # Waypoint marker type
+@export var map_marker: String = ""          # Waypoint marker type
 
 # Repeatability
 @export var is_repeatable: bool = false
-@export var max_completions: int = 0               # 0 = infinite
+@export var max_completions: int = 0         # 0 = infinite
 
 func _init() -> void:
 	if id == "":
@@ -119,20 +106,20 @@ func get_total_objective_count() -> int:
 
 ## Get required (non-optional) objective count
 func get_required_objective_count() -> int:
-	var count: int = 0
+	var count := 0
 	for obj in objectives:
-		if obj is Objective and not obj.optional:
+		if obj is Dictionary and not obj.get("optional", false):
 			count += 1
 	return count
 
 ## Check if all required objectives are met (given current progress)
 func check_completion(progress: Dictionary) -> bool:
 	for obj in objectives:
-		if obj is Objective:
-			if obj.optional:
+		if obj is Dictionary:
+			if obj.get("optional", false):
 				continue
-			var current: int = progress.get(obj.id, 0)
-			if current < obj.count:
+			var current: int = progress.get(obj.get("id", ""), 0)
+			if current < obj.get("count", 1):
 				return false
 	return true
 
@@ -141,42 +128,33 @@ func get_progress_percentage(progress: Dictionary) -> float:
 	var required := get_required_objective_count()
 	if required == 0:
 		return 1.0
-	
 	var completed := 0
 	for obj in objectives:
-		if obj is Objective:
-			if obj.optional:
+		if obj is Dictionary:
+			if obj.get("optional", false):
 				continue
-			var current: int = progress.get(obj.id, 0)
-			if current >= obj.count:
+			var current: int = progress.get(obj.get("id", ""), 0)
+			if current >= obj.get("count", 1):
 				completed += 1
-	
 	return float(completed) / float(required)
 
 ## Get reward summary for UI
 func get_reward_summary() -> Array[Dictionary]:
 	var summary: Array[Dictionary] = []
-	
 	if xp_reward > 0:
 		summary.append({"type": "xp", "amount": xp_reward})
-	
 	if gold_reward > 0:
 		summary.append({"type": "gold", "amount": gold_reward})
-	
 	if faction_reward != "" and faction_amount != 0:
 		summary.append({"type": "faction", "faction": faction_reward, "amount": faction_amount})
-	
 	if title_reward != "":
 		summary.append({"type": "title", "title": title_reward})
-	
 	for reward in rewards:
-		if reward is Reward:
-			var chance_pct: float = float(reward.chance) * 100.0
+		if reward is Dictionary:
 			summary.append({
-				"type": reward.type,
-				"id": reward.id,
-				"quantity": reward.quantity,
-				"chance": chance_pct
+				"type": reward.get("type", "item"),
+				"id": reward.get("id", ""),
+				"quantity": reward.get("quantity", 1),
+				"chance": float(reward.get("chance", 1.0)) * 100.0
 			})
-	
 	return summary

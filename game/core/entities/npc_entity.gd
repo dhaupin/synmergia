@@ -47,13 +47,13 @@ func _prompt_for_offering(offering: Resource) -> String:
 		return "[E] Open Shop"
 	if offering.type == "service":
 		match offering.service_id:
-			"blacksmith":   return "[E] Talk to Blacksmith"
-			"skill_academy": return "[E] Open Skill Academy"
-			"bank":          return "[E] Access Bank"
-			"tavern":        return "[E] Enter Tavern"
-			"reforge":       return "[E] Open Reforge"
-			"enchant":       return "[E] Open Enchant"
-			_:               return "[E] Use Service"
+			"BlacksmithService":    return "[E] Talk to Blacksmith"
+			"SkillAcademyService":   return "[E] Open Skill Academy"
+			"BankService":           return "[E] Access Bank"
+			"TavernService":         return "[E] Enter Tavern"
+			"ReforgeService":        return "[E] Open Reforge"
+			"EnchantService":        return "[E] Open Enchant"
+			_:                      return "[E] Use Service"
 	if offering.type == "quest":
 		return "[E] View Quests"
 	if offering.type == "dialogue":
@@ -100,13 +100,13 @@ func _dispatch_offering(offering: Resource, player: Entity) -> void:
 
 		"quest":
 			if MenuManager:
-				MenuManager.open_menu("quest")
+				MenuManager.open_menu("quests")
 
 		"dialogue":
-			if DialogService and npc_data:
-				DialogService.start_dialogue(npc_data.id, "")
-			elif MenuManager:
-				MenuManager.open_menu("dialogue")
+			if not offering.dialogue_id.is_empty() and DialogService:
+				DialogService.start_dialogue(entity_id, offering.dialogue_id)
+			else:
+				push_warning("NPCEntity: dialogue offering missing dialogue_id on NPC %s" % entity_id)
 
 		_:
 			push_warning("NPCEntity: Unknown offering type: " + str(offering.type))
@@ -117,27 +117,27 @@ func _dispatch_service(offering: Resource, player: Entity) -> void:
 	var player_id := player.entity_id if player else ""
 
 	match offering.service_id:
-		"blacksmith":
+		"BlacksmithService":
 			if PlayerManager:
 				PlayerManager.open_blacksmith_ui(player_id, npc_data)
 
-		"skill_academy":
+		"SkillAcademyService":
 			if PlayerManager:
 				PlayerManager.open_skill_academy_ui(player_id, npc_data)
 
-		"bank":
+		"BankService":
 			if MenuManager:
 				MenuManager.open_menu("bank")
 
-		"reforge":
+		"ReforgeService":
 			if MenuManager:
 				MenuManager.open_menu("reforge")
 
-		"enchant":
+		"EnchantService":
 			if MenuManager:
 				MenuManager.open_menu("enchant")
 
-		"tavern":
+		"TavernService":
 			if MenuManager:
 				MenuManager.open_menu("tavern")
 
