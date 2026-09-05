@@ -69,12 +69,9 @@ func _on_overlay_click(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		close()
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_ESCAPE and _is_open:
-			close()
-		elif event.keycode == KEY_TAB and _is_open:
-			_cycle_focus()
+## Called by HudHotkeys for TAB focus cycling when panel is open.
+func _on_tab_pressed(shift: bool) -> void:
+	_cycle_focus()
 
 ## ============================================================================
 ## OPEN/CLOSE
