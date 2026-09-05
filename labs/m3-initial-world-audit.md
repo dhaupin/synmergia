@@ -364,6 +364,8 @@ doc (`world-building.md`) needs to resolve:
 | File | Why |
 |---|---|
 | `labs/prd.md` §10 | Technical architecture commitment |
+| `labs/world-building-risks.md` | The operating companion: risks, decisions, numbers, glossary |
+| `labs/world-building-research.md` | The research companion: §21 experimental angles, deep dives |
 | `docs/architecture/multi-iso-frame.md` | Multi-iso pattern, NSC-9 |
 | `docs/architecture/multi-iso-lod-prediction.md` | LOD + materialized + prediction |
 | `docs/architecture/grail-path.md` | Pre-materialized read = lookup |
@@ -402,6 +404,8 @@ snapshot of:
 The actual design choices — coordinate systems, seed
 scopes, generation timing, sync protocols, runtime
 tier breakdown, authority boundaries, etc. — live in
-`/labs/world-building.md` (the plan) and
+`/labs/world-building.md` (the plan),
 `/labs/world-building-research.md` (research companion
-for the §21 experimental angles).
+for the §21 experimental angles), and
+`/labs/world-building-risks.md` (the operating
+companion: risks, decisions, numbers, glossary).
