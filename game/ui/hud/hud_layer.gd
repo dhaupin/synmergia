@@ -35,6 +35,7 @@ const LAYER_HUD: int = 10
 @onready var _admin_toolbar: Node = _find("AdminToolbar")
 @onready var _faction_ui: Node = _find("FactionUI")
 @onready var _achievement_ui: Node = _find("AchievementUI")
+@onready var _shop_ui: Node = _find("ShopUI")
 
 
 func _ready() -> void:
@@ -111,6 +112,10 @@ func _wire_widgets() -> void:
 		_achievement_ui.visible = false
 		if _achievement_ui.has_signal("panel_closed"):
 			_achievement_ui.panel_closed.connect(_on_panel_closed)
+	if _shop_ui:
+		_shop_ui.visible = false
+		if _shop_ui.has_signal("panel_closed"):
+			_shop_ui.panel_closed.connect(_on_panel_closed)
 	if _world_map and _minimap:
 		if _minimap.has_signal("map_button_pressed"):
 			_minimap.map_button_pressed.connect(_toggle_world_map)
@@ -189,3 +194,11 @@ func show_achievement_ui() -> void:
 			_achievement_ui.open()
 		else:
 			_achievement_ui.visible = true
+
+
+func show_shop_ui() -> void:
+	if _shop_ui:
+		if _shop_ui.has_method("open"):
+			_shop_ui.open()
+		else:
+			_shop_ui.visible = true

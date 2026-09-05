@@ -13,6 +13,41 @@ signal panel_opened()
 signal panel_closed()
 signal item_purchased(item_id: String, quantity: int)
 
+## Static entry point called by NPCEntity.on_interact()
+static func open_for_offering(player_id: String, offering: Resource, npc_data, npc_pos: Vector3) -> void:
+	# Find or create ShopUI instance
+	var shop: ShopUI = _get_shop_instance()
+	if shop == null:
+		push_warning("ShopUI: No instance found in scene")
+		return
+	
+	# Build shop data from offering
+	var shop_data := {
+		"name": npc_data.npc_name if npc_data else "Merchant",
+		"items": _build_inventory_from_offering(offering)
+	}
+	shop.open(player_id, shop_data)
+
+
+static func _get_shop_instance() -> ShopUI:
+	var tree := Engine.get_main_loop()
+	if tree == null:
+		return null
+	var root: SceneTree = tree as SceneTree
+	if root == null:
+		return null
+	return root.root.get_node_or_null("HudLayer/ShopUI") as ShopUI
+
+
+static func _build_inventory_from_offering(offering: Resource) -> Array:
+	var items: Array = []
+	if offering == null:
+		return items
+	# Items come from offering.items or default to empty
+	if offering.has("items"):
+		items = offering.get("items", [])
+	return items
+
 func _ready() -> void:
 	name = "ShopUI"
 	visible = false
