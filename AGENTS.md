@@ -638,10 +638,31 @@ static func _esc(text: String) -> String:
 - **Test co-location:** `/labs/` primitives have tests next to them. If you write a primitive without a test, it's not done.
 - **Engine version:** Godot 4.7.2. `var_to_bytes` / `bytes_to_var` (not `VarToStr`).
 - **Project root:** `game/` is the Godot project. `labs/` and `docs/` are outside.
+- **Entity autoload is REQUIRED:** Entity must be in `[autoload]` section BEFORE RegisterTypes.
+  - Godot loads autoloads in order, then TypeRegistry preloads entity scripts
+  - Without Entity autoload, `extends Entity` fails with "Could not find base class Entity"
+  - See commit `9fd97e3` for the fix
 
 ---
 
-## Session insights (2026-09-03)
+## Session insights (2026-09-05)
+
+### Entity Race Condition Fix (commit 9fd97e3)
+
+Fixed Godot 4.7.2 autoload race condition causing `extends Entity` to fail.
+
+**Root cause:** Entity was not in `[autoload]` section. When TypeRegistry preloads
+entity scripts (enemy.gd, player_controller.gd, etc.), it calls `load()` which
+triggers GDScript compilation. The compiler needs the Entity base class available,
+but since Entity wasn't an autoload, it couldn't resolve `extends Entity`.
+
+**Solution:**
+1. Add `Entity="*res://core/entities/entity.gd"` to `[autoload]` BEFORE RegisterTypes
+2. Godot loads autoloads in order, so Entity is available when TypeRegistry runs
+
+**Files changed:**
+- `project.godot`: Added Entity autoload
+- `entities/enemy.gd`: Removed redundant `EntityBase` preload
 
 ### Fixes applied
 
