@@ -9,9 +9,12 @@ const DialogService = preload("res://core/services/dialog_service.gd")
 
 ## Dialog state
 var _current_npc: String = ""
+var _current_npc_id: String = ""
 var _dialogue_id: String = ""
+var _current_dialogue_id: String = ""
 var _current_node: int = 0
 var _choices: Array = []
+var _is_open: bool = false
 
 ## Components
 var _speaker_label: Label
@@ -121,22 +124,22 @@ func _show_node(node_index: int) -> void:
 	# Clear choices
 	for child in _choice_buttons.get_children():
 		child.queue_free()
-		_choices.clear()
+	_choices.clear()
 
-		# Show demo choices
-		var demo_choices := [
+	# Show demo choices
+	var demo_choices := [
 		{"text": "What do you have for me?", "next": 1},
 		{"text": "I need to go.", "next": -1}
-		]
+	]
 
-		for choice in demo_choices:
-			var btn := Button.new()
-			btn.text = choice.text
-			btn.pressed.connect(_on_choice_selected.bind(choice))
-			_choice_buttons.add_child(btn)
-			_choices.append(choice)
+	for choice in demo_choices:
+		var btn := Button.new()
+		btn.text = choice.text
+		btn.pressed.connect(_on_choice_selected.bind(choice))
+		_choice_buttons.add_child(btn)
+		_choices.append(choice)
 
-		_continue_btn.visible = false
+	_continue_btn.visible = false
 
 func _on_dialogue_started(npc_id: String, dialogue_id: String) -> void:
 	_is_open = true
