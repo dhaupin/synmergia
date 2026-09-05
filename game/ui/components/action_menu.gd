@@ -71,6 +71,11 @@ func _setup_ui() -> void:
 func show_menu_for_npc(position: Vector2, target_id: String, npc_data: NPCData) -> void:
 	show_menu(position, target_id, Entity.EntityType.NPC, npc_data)
 
+func open_for_npc(target_id: String, npc_data: Dictionary = {}) -> void:
+	# Open menu at screen center for now
+	var screen_pos := get_viewport_rect().size / 2
+	show_menu(screen_pos, target_id, Entity.EntityType.NPC, null)
+
 func show_menu(position: Vector2, target_id: String, target_type: int, npc_data: NPCData = null) -> void:
 	_target_id = target_id
 	_target_type = target_type

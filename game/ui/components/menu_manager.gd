@@ -24,6 +24,9 @@ var _quest_panel: Control
 var _bank_panel: Control
 var _blacksmith_panel: Control
 var _skill_academy_panel: Control
+var _faction_panel: Control
+var _achievement_panel: Control
+var _shop_panel: Control
 
 ## State
 var _is_hud_visible: bool = true
@@ -154,6 +157,20 @@ func _initialize_panels() -> void:
 	_bank_panel.panel_closed.connect(_on_panel_closed.bind("bank"))
 	_blacksmith_panel.panel_closed.connect(_on_panel_closed.bind("blacksmith"))
 	_skill_academy_panel.panel_closed.connect(_on_panel_closed.bind("skill_academy"))
+
+        # Faction panel
+        _faction_panel = preload("res://ui/social/faction_ui.gd").new()
+        _faction_panel.name = "FactionUI"
+        _faction_panel.z_index = 500
+        add_child(_faction_panel)
+        _faction_panel.panel_closed.connect(_on_panel_closed.bind("faction"))
+
+        # Achievement panel
+        _achievement_panel = preload("res://ui/social/achievement_ui.gd").new()
+        _achievement_panel.name = "AchievementUI"
+        _achievement_panel.z_index = 500
+        add_child(_achievement_panel)
+        _achievement_panel.panel_closed.connect(_on_panel_closed.bind("achievement"))
 
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):

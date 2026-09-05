@@ -24,6 +24,7 @@ var _buff_bar: Node
 var _combat_log: Node
 var _target_frame: Node
 var _boss_health_bar: Node
+var _action_menu: Node
 var _minimap: Node
 var _world_map: Node
 var _chat: Node
