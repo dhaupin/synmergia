@@ -1,9 +1,11 @@
 # World-Building Plan
 
 > **Status:** Planning. Companion reference: `m3-initial-world-audit.md`
-> (the "where we are today" snapshot). This doc is the "where we're
-> going" вҖ” server, sync, net code, map, procedural generation, zone,
-> world, and the geometric-addressing layer that ties them together.
+> (the "where we are today" snapshot) and `world-building-research.md`
+> (research companion for §21's experimental angles). This doc is the
+> "where we're going" — server, sync, net code, map, procedural
+> generation, zone, world, and the geometric-addressing layer that
+> ties them together.
 >
 > **Scope:** Design the full world + network + persistence stack for
 > Synmergia such that (a) the same server and client agree on
@@ -112,13 +114,13 @@ lesson from `nsc9-honest-evaluation.md`.
 The same engine serves a planar 200 km² open world AND a
 planet. The state tree, the seeds, the address space, and
 the LOD pyramid are all shape-agnostic. Only the
-*projection function* (world coordinate вҶ’ address cell)
+*projection function* (world coordinate → address cell)
 changes between planar and spherical maps.
 
 ### 1.7 Browser-compatible transport, no exceptions
 
 The game runs in a browser (Godot HTML5/wasm). That means
-**WebSocket only** for clientвҶ”server. No raw UDP, no
+**WebSocket only** for client→server. No raw UDP, no
 peer-to-peer from the browser. ENet stays as an option for
 native clients and dedicated-server-internal traffic.
 
@@ -133,7 +135,7 @@ every shard.
 
 ### 1.9 Player-placed content is world state
 
-Ankhs, guild halls, houses, planted crops, crafted signs вҖ”
+Ankhs, guild halls, houses, planted crops, crafted signs —
 all of it goes through the state tree, gets content-hashed,
 and is syncable across shards the same way terrain is. No
 second-class "housing database" beside the world database.
@@ -141,7 +143,7 @@ second-class "housing database" beside the world database.
 ### 1.10 Test what we ship
 
 The state tree, the diff protocol, the address projection,
-the seed system, the LOD promotion logic вҖ” every layer
+the seed system, the LOD promotion logic — every layer
 gets a headless smoke test in `tests/` before the UI/UX
 work begins. A green test for "two clients see the same
 tree after 1000 ticks" is the gate, not a stretch goal.
@@ -150,45 +152,45 @@ tree after 1000 ticks" is the gate, not a stretch goal.
 
 ## 2. Top-level architecture
 
-### 2.1 The five layers (revised from PRD В§10)
+### 2.1 The five layers (revised from PRD §10)
 
 ```
-в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
-в”Ӯ  CLIENT (Godot 4.7.2 вҶ’ HTML5/wasm)                          в”Ӯ
-в”Ӯ  - Predicted view of the state tree                         в”Ӯ
-в”Ӯ  - WebSocket transport only                                 в”Ӯ
-в”Ӯ  - Local LOD cache + address-space cache                    в”Ӯ
-в”Ӯ  - Geometry-renderer for cells it has been told about       в”Ӯ
-в”ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Ө
-в”Ӯ  TRANSPORT LAYER (WebSocket relay + framing)                в”Ӯ
-в”Ӯ  - Auth handshake, tick-aligned batches, diff framing       в”Ӯ
-в”Ӯ  - One WebSocket per client; pure message-oriented          в”Ӯ
-в”Ӯ  - Optional ENet lane for native-only dedicated traffic     в”Ӯ
-в”ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Ө
-в”Ӯ  GAME SERVER (Godot 4.7.2 headless, per shard)              в”Ӯ
-в”Ӯ  - Tick loop (read state вҶ’ step world вҶ’ diff вҶ’ emit)       в”Ӯ
-в”Ӯ  - State tree: re-rooted every tick, content-hashed         в”Ӯ
-в”Ӯ  - Multi-iso orchestrator: projects state onto axes         в”Ӯ
-в”Ӯ  - Materialized intersection cache (LRU, hot combos)        в”Ӯ
-в”Ӯ  - LOD manager: promote/demote chunks/cells                 в”Ӯ
-в”Ӯ  - Predictive prefetch (Markov)                             в”Ӯ
-в”Ӯ  - Procedural generator: invoked on LOD promotion           в”Ӯ
-в”ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Ө
-в”Ӯ  STORAGE (Postgres + Redis + optional geo-cache)            в”Ӯ
-в”Ӯ  - Postgres: durable state, snapshot roots, player-placed   в”Ӯ
-в”Ӯ  - Redis: tick cache, materialized intersections, sessions в”Ӯ
-в”Ӯ  - Geo-cache (NSC-9 + icosahedral): spatial index on Redis  в”Ӯ
-в”Ӯ    or Postgres, optional layer, opt-in per shard            в”Ӯ
-в”ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Ө
-в”Ӯ  COORDINATOR (cross-shard, separate process)                в”Ӯ
-в”Ӯ  - Guilds, factions, world events, auction house            в”Ӯ
-в”Ӯ  - Player identity, character persistence (master record)   в”Ӯ
-в”Ӯ  - Cross-shard state diffs (state tree applied across)      в”Ӯ
-в”Ӯ  - Shard registry, player routing, presence                 в”Ӯ
-в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
+┌─────────────────────────────────────────────────────────────┐
+│  CLIENT (Godot 4.7.2 → HTML5/wasm)                          │
+│  - Predicted view of the state tree                         │
+│  - WebSocket transport only                                 │
+│  - Local LOD cache + address-space cache                    │
+│  - Geometry-renderer for cells it has been told about       │
+├─────────────────────────────────────────────────────────────┤
+│  TRANSPORT LAYER (WebSocket relay + framing)                │
+│  - Auth handshake, tick-aligned batches, diff framing       │
+│  - One WebSocket per client; pure message-oriented          │
+│  - Optional ENet lane for native-only dedicated traffic     │
+├─────────────────────────────────────────────────────────────┤
+│  GAME SERVER (Godot 4.7.2 headless, per shard)              │
+│  - Tick loop (read state → step world → diff → emit)       │
+│  - State tree: re-rooted every tick, content-hashed         │
+│  - Multi-iso orchestrator: projects state onto axes         │
+│  - Materialized intersection cache (LRU, hot combos)        │
+│  - LOD manager: promote/demote chunks/cells                 │
+│  - Predictive prefetch (Markov)                             │
+│  - Procedural generator: invoked on LOD promotion           │
+├─────────────────────────────────────────────────────────────┤
+│  STORAGE (Postgres + Redis + optional geo-cache)            │
+│  - Postgres: durable state, snapshot roots, player-placed   │
+│  - Redis: tick cache, materialized intersections, sessions │
+│  - Geo-cache (NSC-9 + icosahedral): spatial index on Redis  │
+│    or Postgres, optional layer, opt-in per shard            │
+├─────────────────────────────────────────────────────────────┤
+│  COORDINATOR (cross-shard, separate process)                │
+│  - Guilds, factions, world events, auction house            │
+│  - Player identity, character persistence (master record)   │
+│  - Cross-shard state diffs (state tree applied across)      │
+│  - Shard registry, player routing, presence                 │
+└─────────────────────────────────────────────────────────────┴
 ```
 
-Compared to PRD В§10.3, two notable changes:
+Compared to PRD §10.3, two notable changes:
 - The **transport layer is explicit**, because browser-only
   forces a redesign.
 - The **coordinator is split out** as its own process;
@@ -197,20 +199,20 @@ Compared to PRD В§10.3, two notable changes:
 ### 2.2 Process topology
 
 ```
-        в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
-        в”Ӯ Coordinator  в”Ӯ (1 process per cluster, HA-pair)
-        в”Ӯ (Postgres)   в”Ӯ
-        в””в”Җв”Җв”Җв”Җв”Җв”Җв”¬в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
-               в”Ӯ
-   в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”јв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
-   в”Ӯ           в”Ӯ           в”Ӯ
-в”Ңв”Җв”Җв–јв”Җв”Җв”җ    в”Ңв”Җв”Җв”Җв–јв”Җв”Җв”җ    в”Ңв”Җв”Җв”Җв–јв”Җв”Җв”җ
-в”ӮSh.1 в”Ӯ    в”ӮSh. 2 в”Ӯ    в”ӮSh. 3 в”Ӯ    (1+ per cluster, scale horizontal)
-в”Ӯ     в”Ӯ    в”Ӯ      в”Ӯ    в”Ӯ      в”Ӯ
-в”ӮStateв”Ӯ    в”ӮState в”Ӯ    в”ӮState в”Ӯ
-в”ӮTree в”Ӯ    в”ӮTree  в”Ӯ    в”ӮTree  в”Ӯ
-в”Ӯ+Geo в”Ӯ    в”Ӯ+Geo  в”Ӯ    в”Ӯ+Geo  в”Ӯ
-в””в”Җв”Җв”Җв”Җв”Җв”ҳ    в””в”Җв”Җв”Җв”Җв”Җв”Җв”ҳ    в””в”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
+        ┌──────────────┐
+        │ Coordinator  │ (1 process per cluster, HA-pair)
+        │ (Postgres)   │
+        └──────────────┴
+               │
+   ┌───────────┴───────────┐
+   │           │           │
+┌──┴──┐    ┌───┴──┐    ┌───┴──┐
+│Sh.1 │    │Sh. 2 │    │Sh. 3 │    (1+ per cluster, scale horizontal)
+│     │    │      │    │      │
+│State│    │State │    │State │
+│Tree │    │Tree  │    │Tree  │
+│+Geo │    │+Geo  │    │+Geo  │
+└─────┴    └──────┴    └──────┴
 ```
 
 - **Coordinator**: 1 process (or HA pair). Holds the master
@@ -246,7 +248,7 @@ Compared to PRD В§10.3, two notable changes:
 
 The "labs graduates into game or extracts to a new project"
 rule still holds. The coordinator is the most likely
-candidate to extract early вҖ” it has no Godot dependency.
+candidate to extract early — it has no Godot dependency.
 
 ### 2.4 Authority & data flow
 
@@ -258,7 +260,7 @@ candidate to extract early вҖ” it has no Godot dependency.
 | Player-placed content (houses, ankhs, signs) | Shard where placed (default) OR coordinator (if cross-shard-visible) | Clients | Player, via validated server command |
 | Guild state | Coordinator | All shards (subscribed) | Server (via validated player command) |
 | Faction state | Coordinator | All shards | Server |
-| World events | Coordinator (canonical) вҶ’ shard (instances) | All shards | Server (event scheduler) |
+| World events | Coordinator (canonical) → shard (instances) | All shards | Server (event scheduler) |
 | Character persistence (level, skills, inventory IDs) | Coordinator (master) + shard (live copy) | Players | Server (validated commands) |
 | Item templates | Coordinator + cached on shard | All | Designer (data files) |
 
@@ -280,14 +282,14 @@ is a **map-shape parameter** stored in the world metadata,
 not a fork in the code. Both shapes project `W` to an
 address cell differently:
 
-- **Planar**: `W = (x, y, z) вҲҲ Z^3`, with `y = up`. World
+- **Planar**: `W = (x, y, z) ∈ Z^3`, with `y = up`. World
   bounds are `(min_x, min_y, min_z)` to `(max_x, max_y,
-  max_z)`. Wraps outside bounds вҶ’ either out-of-world or
+  max_z)`. Wraps outside bounds → either out-of-world or
   wraparound (TBD; default out-of-world).
-- **Spherical**: `W = (lat, lon, alt) вҲҲ Z^3`, encoded in
+- **Spherical**: `W = (lat, lon, alt) ∈ Z^3`, encoded in
   degrees × 1e6 (micro-degrees for 1.1m at the equator; we
   may go finer). `alt` is meters above the surface radius.
-  Wraps naturally (lat вҲҲ [-90e6, 90e6], lon вҲҲ [0, 360e6)
+  Wraps naturally (lat ∈ [-90e6, 90e6], lon ∈ [0, 360e6)
   wraps mod).
 
 The **address cell** (the unit the state tree, the LOD
@@ -302,7 +304,7 @@ Where `projection_fn` is one of:
 
 | Shape | Function | Cell shape |
 |---|---|---|
-| Planar | `floor(W / chunk_size)` | Cubic chunk (e.g. 64mВі, 128mВі) |
+| Planar | `floor(W / chunk_size)` | Cubic chunk (e.g. 64m³, 128m³) |
 | Spherical | `quantize(W, chunk_size_m)` on icosahedral mesh | Triangular cell on subdivided icosahedron |
 
 ### 3.2 Chunk size
@@ -318,14 +320,14 @@ chose 64m because:
   grid): aim for <50KB on average. At 1% hot = 6,400 chunks
   × 50KB = 320MB. Fits on commodity server RAM.
 - Visibility/render budget: at 64m, a 6,400m² visible patch
-  (render distance 80m on each side, 64m chunks) вүҲ 8 chunks.
+  (render distance 80m on each side, 64m chunks) ← 8 chunks.
   Reasonable draw call count.
 
 ### 3.3 Spherical map mechanics
 
 For spherical worlds (planets), we use an **icosahedral
 mesh** for the address space, not a lat/lon grid. Reasons:
-- lat/lon has the pole singularity вҖ” cells at the pole are
+- lat/lon has the pole singularity — cells at the pole are
   degenerate.
 - Icosahedral cells are roughly equal-area, which makes
   content distribution (biomes, POI density, mob density)
@@ -333,17 +335,17 @@ mesh** for the address space, not a lat/lon grid. Reasons:
 
 The icosahedron starts at 12 vertices / 20 triangular faces
 / 30 edges. We subdivide: level 0 = 20 faces, level 1 =
-80 faces, level 2 = 320 faces, вҖҰ Each subdivision doubles
+80 faces, level 2 = 320 faces, … Each subdivision doubles
 the face count. At level 7 we have **20 × 4^7 = 327,680
 faces**, edge length ~62m on an Earth-sized planet. **One
-icosahedron subdivision level вүҲ one chunk size.**
+icosahedron subdivision level ← one chunk size.**
 
 The icosahedral mesh *is* the address space. Each face
 (further subdivided) is one chunk. Cell address = `(face_id,
 subdiv_level, sub_triangle_id)`. This is what we hand to the
 geometric addressing layer (NSC-9 axis `001-099`).
 
-### 3.4 y / alt вҖ” vertical axis
+### 3.4 y / alt — vertical axis
 
 Both shapes have a vertical axis (planar `y`, spherical
 `alt`). We treat vertical as a separate axis from the
@@ -360,10 +362,10 @@ do "all entities at this lat/lon, any altitude" cheaply.
 - **Planar:** bounds are explicit. Out-of-bounds = no chunk
   loaded = fall through to "void" / kill plane. We *can*
   add wraparound (`x % width`) but the default is hard edge.
-- **Spherical:** lat is bounded [-90В°, 90В°] in micro-degrees.
-  Lon wraps [0, 360В°). When a player crosses the antimeridian,
+- **Spherical:** lat is bounded [-90°, 90°] in micro-degrees.
+  Lon wraps [0, 360°). When a player crosses the antimeridian,
   the chunk address wraps; the state tree handles this by
-  aliasing: both `(lon = 359.9В°)` and `(lon = 0.1В°)` map to
+  aliasing: both `(lon = 359.9°)` and `(lon = 0.1°)` map to
   the same chunk (we use modular addressing on lon). The
   projection function returns the canonical address.
 
@@ -377,7 +379,7 @@ do "all entities at this lat/lon, any altitude" cheaply.
 | Huge world | 10,000 km² | 2.4M | ~24K | 80MB |
 
 (Note: `200 km²` was the original target; `200 km × 200 km
-= 40,000 km²` is the alternate interpretation. PRD В§4.5
+= 40,000 km²` is the alternate interpretation. PRD §4.5
 leaves it open. We'll set it at 200 km² in the sense of
 *playable area*, not total world disk. This becomes a
 config-time choice.)
@@ -387,7 +389,7 @@ config-time choice.)
 For an Earth-sized planet (radius 6,371 km), at icosahedral
 subdivision level 7 (edge length ~62m):
 - Faces: 327,680
-- Surface area per face: ~488,000 m² вүҲ 0.49 km²
+- Surface area per face: ~488,000 m² ← 0.49 km²
 - Total surface: 510M m² = 510M km² (Earth is 510M km²,
   math checks out).
 - Hot @ 1% = 3,277 faces in RAM.
@@ -547,7 +549,7 @@ load-bearing rule. It means:
 - Procedural functions take `(seed, address, generation_pass)`
   and return content. No random state outside of seed.
 - The generation pass is named (`terrain`, `biome`, `poi`,
-  `mob_spawn`, `loot_table`, etc.) вҖ” each pass gets a
+  `mob_spawn`, `loot_table`, etc.) — each pass gets a
   derived seed from its parent's seed + the pass name. This
   lets us add new generation passes without invalidating
   prior passes (the parent seed is unchanged).
@@ -618,7 +620,7 @@ biome / POIs / mob placements.
 
 ### 4.7 What is NOT seeded
 
-Some things are not deterministic across clients вҖ” they're
+Some things are not deterministic across clients — they're
 authoritative server state, broadcast to clients:
 - Current mob health, position, target.
 - Active projectiles, AoE effects.
@@ -672,35 +674,35 @@ Trie, but simpler). Each node has:
 - `value_hash`: SHA-256 of the value bytes.
 - `value_ref`: pointer to where the value bytes live (in
   memory for hot, on disk for warm, in Postgres for cold).
-- `children`: dict of name вҶ’ child node.
+- `children`: dict of name → child node.
 
 We do NOT use a binary trie. We use a **branching factor
 that matches the domain** (the natural branching points:
-world вҶ’ shard вҶ’ chunk вҶ’ entity). This means:
+world → shard → chunk → entity). This means:
 
 ```
 root
-в”ңв”Җв”Җ world                  (one)
-в”Ӯ   в”ңв”Җв”Җ manifest           (the WorldManifest)
-в”Ӯ   в”ңв”Җв”Җ shards
-в”Ӯ   в”Ӯ   в”ңв”Җв”Җ shard_1
-в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ manifest
-в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ chunks
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ chunk_64_128_256
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ terrain
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ biome
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ pois
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ mob_spawns
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”ңв”Җв”Җ player_placed
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в””в”Җв”Җ entities
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ       в”ңв”Җв”Җ entity_abc123
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ       в”ңв”Җв”Җ entity_def456
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ       в””в”Җв”Җ ...
-в”Ӯ   в”Ӯ   в”Ӯ   в”Ӯ   в””в”Җв”Җ ...
+├── world                  (one)
+│   ├── manifest           (the WorldManifest)
+│   ├── shards
+│   │   ├── shard_1
+│   │   │   ├── manifest
+│   │   │   ├── chunks
+│   │   │   │   ├── chunk_64_128_256
+│   │   │   │   │   ├── terrain
+│   │   │   │   │   ├── biome
+│   │   │   │   │   ├── pois
+│   │   │   │   │   ├── mob_spawns
+│   │   │   │   │   ├── player_placed
+│   │   │   │   │   └── entities
+│   │   │   │   │       ├── entity_abc123
+│   │   │   │   │       ├── entity_def456
+│   │   │   │   │       └── ...
+│   │   │   │   └── ...
 ```
 
-This branching mirrors the data model (world вҶ’ shard вҶ’
-chunk вҶ’ domain вҶ’ entity). Path traversal is O(branching
+This branching mirrors the data model (world → shard →
+chunk → domain → entity). Path traversal is O(branching
 depth), typically 4-6 levels deep.
 
 ### 5.3 The hash invariant
@@ -746,8 +748,8 @@ The state tree is held in four tiers:
 
 Tier promotion/demotion happens automatically:
 - A chunk accessed in the last 60s stays in L0.
-- A chunk not accessed in 5min goes L0 вҶ’ L1.
-- A snapshot older than 1h goes L1 вҶ’ L3.
+- A chunk not accessed in 5min goes L0 → L1.
+- A snapshot older than 1h goes L1 → L3.
 - Materialized intersections rebuild lazily on demand.
 
 ### 5.6 Diff format
@@ -764,7 +766,7 @@ the diff's own hash is `SHA-256(ordered_concat(diff_entries))`.
 This lets a client request "give me diff from H1 to H2" and
 verify the response matches H2's root.
 
-Wire format: see В§11.6 (binary framing).
+Wire format: see §11.6 (binary framing).
 
 ### 5.7 Tick = re-root
 
@@ -786,7 +788,7 @@ changes**. Between ticks, the tree is read-only.
 ### 5.8 The `apply_diff` semantics
 
 A client (or the server itself, when receiving a diff from
-another source вҖ” coordinator, peer) calls `apply_diff(local_root,
+another source — coordinator, peer) calls `apply_diff(local_root,
 diff) -> new_root`. The function:
 
 1. Walks each `path` from the local root.
@@ -799,7 +801,7 @@ diff) -> new_root`. The function:
 
 If the resulting root hash doesn't match the expected
 `new_root_hash` (the server's), the client has detected a
-divergence вҖ” typically due to missing intermediate diffs.
+divergence — typically due to missing intermediate diffs.
 The client requests a **full snapshot** from the server.
 
 ### 5.9 Garbage collection
@@ -821,7 +823,7 @@ The state tree is NOT:
   no chain. The chain analogy is just the hash linking.
 - A version control system. There's no branching/merging.
 
-It's a **monotonic, hash-chained, persistent tree** вҖ” like
+It's a **monotonic, hash-chained, persistent tree** — like
 a content-addressed FS, but in-memory hot, on-disk warm,
 Postgres cold.
 
@@ -835,15 +837,15 @@ The geometric addressing layer is an **optional index** on
 top of the state tree. It does not store data; it indexes
 data already in the tree. Three concrete uses:
 
-1. **Spatial queries** вҖ” "all entities within radius R of
+1. **Spatial queries** — "all entities within radius R of
    point P". The geometric layer answers this in O(k) where
    k is the result set, by intersecting adjacent cells. A
    brute-force scan of all entities is O(n).
-2. **AOI computation** вҖ” "which chunks touch this viewing
+2. **AOI computation** — "which chunks touch this viewing
    frustum". The geometric layer answers this in O(faces
    on frustum) by intersecting the frustum with the
    icosahedral mesh (spherical) or grid (planar).
-3. **Hierarchical aggregation** вҖ” "average mob density per
+3. **Hierarchical aggregation** — "average mob density per
    region". The geometric layer's tree structure lets us
    pre-compute aggregations at parent cells and read them
    instead of recursing.
@@ -856,15 +858,15 @@ correctness layer.
 ### 6.2 Why icosahedral for spherical, grid for planar
 
 The address space for spherical worlds is the icosahedral
-mesh (В§3.3). For planar worlds, it's a regular grid. Both
-have a natural **hierarchical structure** вҖ” coarser cells
+mesh (§3.3). For planar worlds, it's a regular grid. Both
+have a natural **hierarchical structure** — coarser cells
 contain finer cells. We exploit this for hierarchical
 queries.
 
 | Shape | Coarsest cell | Default chunk | Hierarchical range |
 |---|---|---|---|
-| Planar | World (whole) | 64m cube | World вҶ’ 8km вҶ’ 1km вҶ’ 64m вҶ’ 8m (5 levels) |
-| Spherical | Whole planet | ~62m triangle | Planet вҶ’ ~248m triangle вҶ’ 62m вҶ’ ~15m (3 levels) |
+| Planar | World (whole) | 64m cube | World → 8km → 1km → 64m → 8m (5 levels) |
+| Spherical | Whole planet | ~62m triangle | Planet → ~248m triangle → 62m → ~15m (3 levels) |
 
 ### 6.3 Why "geometric addressing helps Godot specifically"
 
@@ -873,7 +875,7 @@ Three reasons this matters for the Godot client/server:
 1. **Spatial queries are O(1) instead of O(n).** In GDScript
    (interpreted, single-threaded), an O(n) scan over 10K
    entities costs ~5ms. An O(k) intersection over the same
-   10K costs ~50Вөs (per `iso_math.py` benchmark). That's
+   10K costs ~50µs (per `iso_math.py` benchmark). That's
    100x faster.
 2. **The icosahedral mesh is GPU-friendly.** A subdivided
    icosahedron produces triangular meshes that tile
@@ -894,20 +896,20 @@ multi-iso design:
 
 ```
 NSC-9: 9-AAA-BBB-CCCCCC
-         в”Ӯ  в”Ӯ   в”Ӯ   в”Ӯ
-         в”Ӯ  в”Ӯ   в”Ӯ   в””в”Җв”Җ sequence within axis (16M)
-         в”Ӯ  в”Ӯ   в””в”Җв”Җв”Җв”Җв”Җв”Җ axis reservation (1000)
-         в”Ӯ  в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җ facility (1000)
-         в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җ NSC-9 prefix
+         │  │   │   │
+         │  │   │   └── sequence within axis (16M)
+         │  │   └────── axis reservation (1000)
+         │  └────────── facility (1000)
+         └───────────── NSC-9 prefix
 ```
 
 Axis reservations:
 
 - `001-099`: spatial (icosahedral vertex or planar grid cell)
 - `100-199`: factional (faction_id 0-99)
-- `200-299`: temporal (sub-axes: 200=year, 201=season, 202=month, вҖҰ)
+- `200-299`: temporal (sub-axes: 200=year, 201=season, 202=month, …)
 - `300-399`: social (per-player, per-guild, per-party)
-- `400-499`: game-specific (class, level, species, вҖҰ)
+- `400-499`: game-specific (class, level, species, …)
 - `500-999`: free for new axes
 
 ### 6.5 Multi-axis intersection = materialized views
@@ -955,7 +957,7 @@ For a 200km² world at 1% hot = ~6,400 chunks, each holding
 
 The geometric layer costs us:
 
-- **Projection cost** at spawn: O(axes_used). ~1Вөs per axis
+- **Projection cost** at spawn: O(axes_used). ~1µs per axis
   in pure GDScript, ~100ns in Julia. For 1000 entities
   spawning per minute, this is sub-millisecond.
 - **Cache memory**: each cached combo is ~1KB. With 10K
@@ -1059,7 +1061,7 @@ Not all passes are needed at all LOD levels:
 | LOD 2 (cold, ~2km group) | Aggregate of passes 2, 5, 6 (coarser). No POI names, no exact counts. |
 | LOD 3 (archived, ~20km group) | Just the parent biome and rough POI type (city vs. / dungeon / wilderness). |
 
-A LOD-2 chunk is a **summary** вҖ” "this is forest, has 2
+A LOD-2 chunk is a **summary** — "this is forest, has 2
 POIs, moderate mob density". A LOD-3 chunk is just "this
 is forest". Aggregation rules are deterministic.
 
@@ -1102,7 +1104,7 @@ When does a pass run?
 | Player places an ankh | New node at `chunk.path.player_placed.ankh` | Server (validated command) |
 | World reset / shard restart | Re-run 0-9 for chunks | Server |
 
-### 7.6 Determinism: same seed вҶ’ same chunk
+### 7.6 Determinism: same seed → same chunk
 
 If two servers with the same `world_seed` and
 `generation_rules_version` generate chunk `C`, the output
@@ -1165,11 +1167,11 @@ content; new regions use the new rules.
 
 Designers override procedural output by writing files:
 
-- `world/overrides/<shape>/<chunk_addr>/town.tres` вҖ” replaces
+- `world/overrides/<shape>/<chunk_addr>/town.tres` — replaces
   `chunk.path.pois.town` for that chunk.
-- `world/overrides/<shape>/<chunk_addr>/biome.tres` вҖ” replaces
+- `world/overrides/<shape>/<chunk_addr>/biome.tres` — replaces
   `chunk.path.biome`.
-- `world/overrides/spawn_points/<zone_id>.tres` вҖ” replaces
+- `world/overrides/spawn_points/<zone_id>.tres` — replaces
   SpawnService data.
 
 The override system is content-hashed and diffable. A
@@ -1180,10 +1182,10 @@ state tree, not a special path.
 
 We have two pipelines:
 
-- **Procedural pipeline**: `(seed, address, pass)` вҶ’ content.
+- **Procedural pipeline**: `(seed, address, pass)` → content.
   Runs at LOD promotion. Pure. Re-runnable.
-- **Content pipeline**: `*.tres` files вҶ’ `Resource` objects
-  вҶ’ values in the state tree. Runs at deploy + at content
+- **Content pipeline**: `*.tres` files → `Resource` objects
+  → values in the state tree. Runs at deploy + at content
   edits. Has its own hash (the file content hash).
 
 Both pipelines write into the same state tree. The
@@ -1414,7 +1416,7 @@ Three concepts, often conflated:
 | Concept | Granularity | Purpose | Lifetime |
 |---|---|---|---|
 | **Chunk** | 64m cube (planar) / ~62m triangle (spherical) | The state-tree's spatial unit. The LOD pyramid's smallest cell. | Permanent (content-hashed, immutable) |
-| **Region** | 256mвҖ“2km group of chunks | An authoring and gameplay unit. Designers place content "in region R". The procedural generator runs per region (groups of chunks share a generation context). | Permanent |
+| **Region** | 256m–2km group of chunks | An authoring and gameplay unit. Designers place content "in region R". The procedural generator runs per region (groups of chunks share a generation context). | Permanent |
 | **Zone** | Hand-authored, gameplay-rule scope (PvP mode, level range, instance flag) | Gameplay logic that operates above the spatial grid. Where PvP rules apply, where respawn behavior is configured, where NPCs "belong". | Permanent |
 
 A zone **covers** one or more regions. A region contains
@@ -1490,13 +1492,13 @@ units; zones are rules:
 
 A chunk is just spatial data. A zone attaches behavior.
 Multiple zones can cover the same chunk (overlapping rules;
-rare but legal вҖ” e.g. an event zone layered on top of an
+rare but legal — e.g. an event zone layered on top of an
 open-world zone).
 
 ### 8.4 Zone detection
 
 This is the missing piece from the current ZoneManager
-(per В§2.1 of the audit). The fix:
+(per §2.1 of the audit). The fix:
 
 **Per-tick per-player check**: For each player with a
 known chunk, check the 8 neighboring chunks (and the
@@ -1505,10 +1507,10 @@ chunk coverage changed since the last tick, fire
 `player_entered_zone` / `player_exited_zone`.
 
 This is **O(27 chunks × #1 zones covering them)** per
-player per tick = ~5Вөs in GDScript. At 1000 players,
+player per tick = ~5µs in GDScript. At 1000 players,
 that's 5ms per tick. Negligible.
 
-The check uses the **chunk вҶ’ zone index** (built at zone
+The check uses the **chunk → zone index** (built at zone
 load time, content-hashed for cacheability) for O(1)
 membership lookups.
 
@@ -1541,7 +1543,7 @@ gateway:
 The `instance_behavior` field is the key addition: a
 gateway can `create` a new instance (party dungeon),
 `join_existing` (raid finder), or `auto_assign` (free-for-all
-queue). The instance seed is derived per В§4.5.
+queue). The instance seed is derived per §4.5.
 
 ### 8.6 Seamless transitions
 
@@ -1550,7 +1552,7 @@ without a loading screen. Implementation:
 
 - The destination zone is loaded into the player's LOD
   pyramid **before** the player reaches the gateway (via
-  predictive prefetch, В§14).
+  predictive prefetch, §14).
 - When the player enters the gateway radius, both source
   and destination chunks are in memory.
 - The transition is a state-tree diff that re-parents the
@@ -1582,18 +1584,18 @@ An instance is a **scoped subtree** of the state tree:
 
 ```
 world
-в””в”Җв”Җ instances
-    в”ңв”Җв”Җ <instance_id_1>
-    в”Ӯ   в”ңв”Җв”Җ manifest
-    в”Ӯ   в”ңв”Җв”Җ seed
-    в”Ӯ   в””в”Җв”Җ chunks (live, in-memory only)
-    в”ңв”Җв”Җ <instance_id_2>
-    в””в”Җв”Җ ...
+└── instances
+    ├── <instance_id_1>
+    │   ├── manifest
+    │   ├── seed
+    │   └── chunks (live, in-memory only)
+    ├── <instance_id_2>
+    └── ...
 ```
 
 Instances have:
 
-- **`seed`**: derived per instance type (В§4.5).
+- **`seed`**: derived per instance type (§4.5).
 - **`manifest`**: which template, capacity, expiration, owner.
 - **`chunks`**: live state, only in memory while the instance
   is active.
@@ -3823,6 +3825,12 @@ following experimental angles are the "if the baseline
 isn't good enough" research directions. Each has a phase
 assignment, a cost estimate, and a measurement that would
 trigger adopting it.
+
+> **Research companion:** Each angle below is researched in
+> depth in `world-building-research.md` (10 sections, one
+> per angle, plus a cross-angle synthesis). The summaries
+> here stay tight; the deep dives live there. When research
+> concludes, the result migrates back into this section.
 
 ### 21.1 Quasicrystal address space (Penrose / Ammann-Beenker)
 

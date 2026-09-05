@@ -402,4 +402,6 @@ snapshot of:
 The actual design choices — coordinate systems, seed
 scopes, generation timing, sync protocols, runtime
 tier breakdown, authority boundaries, etc. — live in
-`/labs/world-building.md`.
+`/labs/world-building.md` (the plan) and
+`/labs/world-building-research.md` (research companion
+for the §21 experimental angles).

@@ -1542,7 +1542,7 @@ that addresses the actual bottleneck we measured."
 ## Document state
 
 - Sections: 11 (10 angles + 1 synthesis).
-- Length: ~1900 lines.
+- Length: ~1550 lines.
 - Status: research companion to `world-building.md`.
 - Next: when implementation pace allows, pick one
   angle (the user's choice) and start prototyping.
