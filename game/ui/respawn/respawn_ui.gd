@@ -25,7 +25,7 @@ func _ready() -> void:
 	_is_visible = false
 	
 	# Connect signals
-	_respawn_skipped.connect(_on_respawn_skipped)
+	respawn_skipped.connect(_on_respawn_skipped)
 
 func show_respawn_options(options: Array[Dictionary]) -> void:
 	_options = options
@@ -93,15 +93,15 @@ func _on_option_selected(index: int) -> void:
 	if index >= 0 and index < _options.size():
 		_selected_index = index
 		var option: Dictionary = _options[index]
-		_respawn_selected.emit(option.get("mode", "unknown"), option)
+		respawn_selected.emit(option.get("mode", "unknown"), option)
 		_hide()
 
 func _on_skip_pressed() -> void:
 	# Skip to default respawn (usually ankh or timed)
 	var default_option := _get_default_respawn_option()
 	if default_option.size() > 0:
-		_respawn_selected.emit(default_option.get("mode", "timed"), default_option)
-	_respawn_skipped.emit()
+		respawn_selected.emit(default_option.get("mode", "timed"), default_option)
+	respawn_skipped.emit()
 	_hide()
 
 func _on_respawn_skipped() -> void:

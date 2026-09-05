@@ -20,3 +20,4 @@ offers_bulk_discount = true
 bulk_discount_percent = 15.0
 bulk_discount_threshold = 3
 services = ["repair"]
+includes = [{"type": "offering", "ref_id": "blacksmith_service"}]

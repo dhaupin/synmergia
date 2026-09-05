@@ -100,10 +100,8 @@ func check_quest_availability(player_id: String, quest_id: String) -> Dictionary
 	return result
 
 func _load_quest_data(quest_id: String) -> QuestData:
-	# TODO: Load from resource database
-	# For now, return test quest
-	if quest_id == "quest_wolves_hunt":
-		return load("res://data/quests/quest_wolves_hunt.tres")
+	if DataService:
+		return DataService.get_quest(quest_id)
 	return null
 
 ## ============================================================================
@@ -126,11 +124,13 @@ func accept_quest(player_id: String, quest_id: String) -> bool:
 
 	var objectives := []
 	for obj in quest.objectives:
+		if not obj is Dictionary:
+			continue
 		objectives.append({
-			"id": obj.get("id", ""),
-			"type": obj.get("type", QuestData.ObjectiveType.KILL),
-			"target": obj.get("target", ""),
-			"required": obj.get("count", 1),
+			"id": obj.get("id", str(objectives.size())),
+			"type": int(obj.get("type", QuestData.ObjectiveType.KILL)),
+			"target": str(obj.get("target", obj.get("target_id", ""))),
+			"required": int(obj.get("count", 1)),
 			"current": 0,
 			"completed": false
 		})
@@ -264,7 +264,7 @@ func _apply_rewards(player_id: String, quest: QuestData) -> Dictionary:
 		"titles": []
 	}
 	for reward in quest.rewards:
-		if not (reward is Resource):
+		if not reward is Dictionary:
 			continue
 		var rtype: String = str(reward.get("type", ""))
 		match rtype:

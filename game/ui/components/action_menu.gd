@@ -96,14 +96,49 @@ func _filter_npc_actions(actions: Array, npc_data: NPCData) -> Array:
 		var id: String = action.get("id", "")
 		match id:
 			"skill_academy":
-				if npc_data.npc_type == NPCData.NPCType.SKILL_ACADEMY:
+				if _npc_has_offering_type(npc_data, "service", "skill_academy"):
+					filtered.append(action)
+			"blacksmith":
+				if _npc_has_offering_type(npc_data, "service", "blacksmith"):
 					filtered.append(action)
 			"bank":
-				# Bank is available on generic NPCs too, no filtering needed
-				filtered.append(action)
+				if _npc_has_offering_type(npc_data, "bank", "") or _npc_has_offering_type(npc_data, "service", "bank"):
+					filtered.append(action)
+			"trade":
+				if _npc_has_offering_type(npc_data, "vendor", ""):
+					filtered.append(action)
+			"quest":
+				if _npc_has_offering_type(npc_data, "quest", ""):
+					filtered.append(action)
+			"talk":
+				if _npc_has_offering_type(npc_data, "dialogue", ""):
+					filtered.append(action)
 			_:
 				filtered.append(action)
 	return filtered
+
+
+func _npc_has_offering_type(npc_data: NPCData, offering_type: String, service_id: String) -> bool:
+	if npc_data == null:
+		return false
+	if npc_data.includes.is_empty():
+		return false
+	for inc: Dictionary in npc_data.includes:
+		if inc.get("type", "") == "offering":
+			var ref_id: String = inc.get("ref_id", "")
+			if not ref_id.is_empty():
+				var offering := _load_offering(ref_id)
+				if offering and offering.type == offering_type:
+					if service_id.is_empty() or offering.service_id == service_id:
+						return true
+	return false
+
+
+func _load_offering(ref_id: String) -> Resource:
+	if ref_id.is_empty():
+		return null
+	var path := "res://data/npc_offerings/%s.tres" % ref_id
+	return load(path)
 
 func _populate_menu() -> void:
 	# Clear existing items
@@ -114,6 +149,10 @@ func _populate_menu() -> void:
 	
 	# Get actions based on target type
 	var actions := _get_actions_for_type(_target_type)
+	
+	# Filter NPC actions by offerings (or fall back to NPCType)
+	if _target_type == Entity.EntityType.NPC and _npc_data != null:
+		actions = _filter_npc_actions(actions, _npc_data)
 	
 	for action in actions:
 		var btn := _create_menu_item(action)
