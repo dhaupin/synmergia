@@ -336,7 +336,7 @@ static func get_open_panels() -> Array:
 
 static func get_panel_node(panel_name: String) -> Control:
 	if instance:
-		return instance._get_panel_by_name(panel_name)
+		return instance._get_panel(panel_name)
 	return null
 
 static func close_top_menu() -> void:
