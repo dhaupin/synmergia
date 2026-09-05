@@ -288,55 +288,81 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 ## 5. Player Systems
 
-> **In Progress:** Character creation, progression, classes, leveling.
+> **Implemented:** Character creation, species, classes, skill academy.
 
-### 5.1 Character Creation
+### 5.1 Species (Races)
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Race Selection** | Human, Elf, Orc, Dwarf, custom? | P0 |
-| **Gender** | Male/Female/Other | P0 |
-| **Appearance** | Face, hair, skin tone, features | P0 |
-| **Starting Class** | Initial class choice | P0 |
-| **Bind Point** | Choose starting town as respawn | P0 |
+Three playable species implemented:
+
+| Species | Description | Stats Focus |
+|---------|-------------|-------------|
+| **Akkan** | Ancient beings with innate magical affinity | Magic, Wisdom |
+| **Human** | Versatile survivors of the eastern plains | Balanced, Vitality |
+| **Synthetic** | Constructed beings with technological roots | Agility, Endurance |
+
+See `game/data/species/` for implemented species.
 
 ### 5.2 Class System
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Base Classes** | Warrior, Mage, Rogue, Priest, Ranger | P0 |
-| **Hybrid Classes** | Paladin (Warrior/Priest), etc | P1 |
-| **Advanced Classes** | Tier 2/3 specialization | P1 |
-| **Class Skills** | 20-30 skills per class | P0 |
-| **Skill Trees** | Point allocation for specialization | P0 |
-| **Dual Class** | Play as two classes (limited) | P2 |
+18 classes across 3 species × 6 archetypes:
 
-### 5.3 Leveling & Progression
+| Archetype | Akkan | Human | Synthetic |
+|-----------|-------|-------|-----------|
+| **Tank** | Bulwark | Guardian | Warden |
+| **DD (Damage)** | Attacker | Warrior | Exploiter |
+| **Mage** | Rune | Sorcerer | Psion |
+| **Rogue** | Stalker | Marksman | Tracker |
+| **Bender** | Seer | Temporalist | Overclocker |
+| **Healer** | Shaman | Cleric | Conduit |
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
+Plus 3 GM classes (Akkan, Human, Synthetic) with `role = 0`.
+
+See `game/data/classes/` for implemented classes.
+
+### 5.3 Skill Academy
+
+Players unlock and upgrade skills via the Skill Academy:
+
+| Feature | Description |
+|---------|-------------|
+| **Upgradable Skills** | 6 skills per class, 5 upgrade tiers (common → mythic) |
+| **Signature Skills** | 3 non-upgradable abilities; unlock 1 at level 10 |
+| **First Signature** | FREE |
+| **Subsequent Changes** | 1000 gold |
+| **Skill Points** | 30 + (level × 2) points total |
+| **Upgrade Cost** | 1 skill point + 4 books of matching tier |
+| **Respec Cost** | 500 gold base + 20 gold per point spent |
+
+See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui.gd`.
+
+### 5.4 Leveling & Progression
+
+| Feature | Description | Status |
+|---------|-------------|--------|
 | **Experience System** | XP from kills, quests, exploration | P0 |
-| **Level Cap** | Starting cap, expandable | P0 |
-| **Skill Points** | Earn per level to unlock skills | P0 |
-| **Attribute Points** | Earn per level to boost stats | P0 |
-| **Death Penalty** | XP debt, reduced XP until recovered | P0 |
+| **Skill Academy** | Upgrade skills + select signature | Implemented |
+| **Death Penalty** | XP loss, item degradation | P0 |
+| **Respawn Service** | Respawn logic with bind points | Implemented |
 
-### 5.4 Inventory & Equipment
+### 5.5 Inventory & Equipment
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Equipment Slots** | Head, Chest, Hands, Legs, Feet, Main Hand, Off Hand, Rings, Neck | P0 |
-| **Backpack** | Grid-based inventory (24-36 slots) | P0 |
-| **Bank** | Shared storage at towns | P0 |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Equipment Slots** | Head, Chest, Hands, Legs, Feet, Main Hand, Off Hand, Rings, Neck | Implemented |
+| **Inventory Service** | Grid-based inventory management | Implemented |
+| **Bank/Vault** | Shared storage at towns | Implemented |
 | **Bag System** | Expandable bags with more slots | P0 |
-| **Loot Filtering** | Auto-sort, stack similar items | P1 |
-| **Equipment Comparison** | Show stat diff when hovering new item | P0 |
+| **Item Binding** | Bind on pickup, bind on equip | Implemented |
+| **Trade Service** | Player-to-player trading | Implemented |
+| **Blacksmith Service** | Item repair/upgrading | Implemented |
 
-### 5.5 Player Open Questions
+See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`.
 
-- [ ] How many levels? (50? 100?)
-- [ ] Free respec or paid? Limited respec?
-- [ ] Bind on pickup vs bind on equip?
+### 5.6 Player Open Questions
+
+- [ ] Level cap expansion beyond initial cap?
+- [ ] Additional respec options for gold?
+- [ ] Crafted vs dropped item balance?
 
 ---
 
