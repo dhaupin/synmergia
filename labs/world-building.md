@@ -511,141 +511,447 @@ system.
 
 ---
 
-## 4. Seed model: world / shard / instance
+## 4. Seed-state model: the recursive view
 
-### 4.1 The four scopes
+The seed is the recipe; the state is what changed since
+the recipe was last applied. **Every node in the state
+tree carries both** — a *seed* (how to regenerate the
+procedural part) and a *state* (the mutable part). The
+seed and state compose recursively up and down the tree,
+from the world to a stick on the ground.
 
-A seed has a **scope**, which determines who/what sees the
-output. Four scopes:
+### 4.1 Two orthogonal axes
 
-| Scope | Source | Used by | Visible to |
-|---|---|---|---|
-| `world` | `WorldManifest.world_seed` (immutable) | Terrain, biomes, POIs, NPC vendors, dungeon templates | Everyone on every shard, forever |
-| `shard` | `derive(world_seed, shard_id)` | Mob spawns, dynamic NPC placement, world-event placement | Everyone on this shard, forever (until reset) |
-| `instance` | `derive(shard_seed, instance_id)` (or world_seed + dungeon_id for fixed dungeons) | Per-instance dungeon layout, party-instance variations | Everyone with access to this instance |
-| `player` | `derive(parent_seed, player_id)` | Drop tables (per-player RNG), personal-loot rolls, nicknames | Just this player |
+A seed has two independent attributes:
 
-### 4.2 The seed type
+| Axis | Values | Question it answers |
+|---|---|---|
+| **Seed type** | `locked` / `open` / `frame` | How is the seed generated, stored, and disposed? |
+| **Visibility scope** | `world` / `shard` / `instance` / `player` | Who can see the result? |
+
+The two axes are orthogonal. A seed can be
+`locked + world`, `open + instance`, `frame + player`,
+and so on. Some combinations are nonsensical
+(`frame + world` doesn't make sense), but most are
+valid.
+
+This is a substantial upgrade from the original
+"four scopes" model: that model conflated *who sees*
+(visibility) with *how the seed works* (type). The
+two are different concerns and benefit from being
+named separately.
+
+### 4.2 The recursive seed chain
+
+The seed chain descends from the world seed to
+every leaf. At every level, the node has both:
+
+- A **seed** — the generative rule. Derivable from
+  the parent's seed + this node's path segment.
+- A **state** — the mutable current values.
+
+```
+world_seed  →  world (procedural: shape, manifest)
+   │
+   └─ shard_seed = derive(world_seed, "shard_1")
+         │
+         └─ shard (procedural: terrain, biomes)
+            │
+            └─ chunk_seed = derive(shard_seed, "chunk:64:128:256", "terrain")
+                  │
+                  └─ chunk (procedural: terrain mesh)
+                        │
+                        └─ entity_seed = derive(chunk_seed, "entity:abc")
+                              │
+                              └─ entity (procedural: stick on ground)
+                                    │
+                                    └─ sub_state (mutable: stick broken?)
+```
+
+**The key insight:** the seed chain is *fully
+derivable* from `world_seed + path`. The state
+chain is *mutable*. The two compose. When a
+player walks into a chunk, the server:
+
+1. Computes the seed chain (cheap, deterministic).
+2. Reads the state for each node.
+3. Hands the merged result to the client.
+
+The state tree's diff (§5.6) becomes a *state-only*
+diff — the seed chain is recomputable, so diffs
+only carry state changes. This is a significant
+diff size reduction: most nodes are unchanged, so
+the diff is mostly `(path, "unchanged", new_hash)`
+entries — 32 bytes per node, no value bytes.
+
+### 4.3 Seed types: locked, open, frame
+
+**`locked`** — Persistent, regenerable. Lives in
+the manifest. Has a stable identity across boots.
+
+Examples: the world map; a shard's terrain; a
+guild hall; a player's house location.
+
+Storage: a `locked` seed is part of the
+`WorldManifest`. It's regenerated when generation
+rules change (a `generation_rules_version` bump)
+or when a season ends. A "winter world" is the
+same `world_seed` with a `season:winter`
+parameter; the rules version bumps, and the
+procedural output reflects winter.
+
+Regen trigger: `manifest_bump`, `season_change`,
+`operator_action`. The seed itself doesn't
+change; what changes is the *parameter set* that
+the procedural function reads.
+
+**`open`** — Per-instance, ephemeral. Derived on
+demand. Not persisted.
+
+Examples: a dungeon run; a PvP arena match; a
+random encounter; a one-shot quest instance.
+
+Storage: an `open` seed is *never* persisted.
+It's derived from `(parent_seed, instance_id)` on
+demand and discarded when the instance ends. The
+instance's *state* (mob health, party progress) is
+persisted; the seed is just the recipe.
+
+Regen trigger: `instance_start`. The seed is
+recomputed each time. The same `(parent_seed,
+instance_id)` always gives the same seed
+(determinism), so a dungeon for run 42 has the
+same layout for every player who enters it.
+
+**`frame`** — Bounded, per-event. A generation
+frame is a procedural experience with its own
+internal seed scope.
+
+Examples: a dream sequence; a tutorial; a jail
+cell; a vision quest; a hallucination.
+
+Storage: a `frame` seed may or may not be
+archived. A *training* frame (tutorial) is
+deterministic per player, derived from
+`(player_seed, frame_id)`, and doesn't need
+archiving. A *lore* frame (a vision quest that
+becomes part of the player's story) might be
+archived into the player's persistent state as
+a "remembered" entry.
+
+Regen trigger: `frame_start`. The seed is
+recomputed for each frame instance. The frame's
+*outcome* (the player learned skill Y) is
+persisted as state; the frame's *content* is
+procedural and doesn't need to be replayed.
+
+**The jail example (your lol):** a player's jail
+cell is a `frame + player` seed. The cell layout
+is procedural from `(player_seed, "jail", cell_id)`.
+The cell is deterministic for that player
+(reproducible for review). The cell is not
+persisted as state — what is persisted is
+"player X is in jail until T" (a state entry on
+the player node, not on the cell node).
+
+### 4.4 Visibility scopes
+
+**`world`** — visible to everyone on every
+shard, forever. Examples: the world manifest;
+the season; the rules version.
+
+**`shard`** — visible to everyone on this
+shard, forever (until reset). Examples: shard
+terrain; shard mob spawns; shard world events.
+
+**`instance`** — visible to everyone with
+access to this instance. Examples: dungeon
+layout for run 42; arena match 7; party
+instance state.
+
+**`player`** — visible to just this player.
+Examples: drop tables; personal loot rolls;
+nicknames; remembered frames; personal house
+interior.
+
+**A note on "open" and "instance":** the
+`open` seed type and the `instance` visibility
+scope are commonly paired (a dungeon run is
+`open + instance`) but not the same. A
+`locked + instance` is a public dungeon that
+exists once and never changes (e.g. a raid
+boss lair with fixed layout). A `frame +
+instance` would be unusual (a frame that's
+shared by an instance) but is theoretically
+valid.
+
+### 4.5 The cross-product (which combinations are valid)
+
+| | `world` | `shard` | `instance` | `player` |
+|---|---|---|---|---|
+| **`locked`** | World map, season | Shard terrain, POIs | Public dungeon (fixed) | Personal house (location) |
+| **`open`** | (rare; world-event per shard?) | (rare; per-shard event?) | Dungeon run, arena match | (rare; per-player random event?) |
+| **`frame`** | (unusual) | (unusual; cutscene per shard?) | (rare; per-instance vision?) | Dream, tutorial, jail cell |
+
+**Bold = common. The diagonal is the most
+common pattern; off-diagonal is rare but valid.**
+
+The off-diagonal cases are interesting:
+
+- **`locked + world`**: the world map. Stable
+  identity, everyone sees.
+- **`locked + shard`**: per-shard terrain. Stable
+  per shard, everyone on that shard sees.
+- **`open + instance`**: a dungeon run. Ephemeral,
+  only the party in that run sees.
+- **`frame + player`**: a dream or tutorial.
+  Procedural per player, only that player sees.
+- **`locked + instance`**: a public dungeon with
+  fixed layout. Stable identity, only the
+  instance's players see.
+- **`open + shard`**: a per-shard event that's
+  recomputed each time it fires (e.g. a world
+  boss spawn that rolls a different mob each
+  trigger).
+
+The matrix is the spec; we don't need to
+enumerate every cell. New region types fill in
+the cells as they're designed.
+
+### 4.6 The node schema
+
+Every node in the state tree carries its seed
+(or its derivation rule) AND its state:
 
 ```yaml
-Seed:
-  purpose: "world" | "shard" | "instance" | "player" | "gen_pass"
-  value: <int64>
-  version: int  # generation rules version this seed is for
-  derivation:
-    parent_seed: int64 | null
-    rule: "concat" | "hash" | "fold"
-    salt: string | null
-  scope:
-    visible_to: ["shard:shard_1"] | ["player:abc"] | ["instance:dungeon_xyz"]
+StateNode:
+  path: ["world", "shard_1", "chunk_64_128_256", "entity_abc"]
+  seed:
+    type: "locked" | "open" | "frame"
+    visibility: "world" | "shard" | "instance" | "player"
+    derivation:
+      parent_path: ["world", "shard_1", "chunk_64_128_256"]
+      rule: "hash" | "concat" | "fold"
+      salt: String | null
+    value: int64
+  state:
+    # mutable, freeform — schema per node type
+    position: {x: float, y: float, z: float}
+    health: int
+    ...
+  hash: <SHA-256>
 ```
 
-### 4.3 Determinism rules
+**The seed fields** are: the type (locked/open/
+frame), the visibility (world/shard/instance/
+player), the derivation rule (how the seed was
+computed from the parent's seed), and the value
+(64-bit int).
 
-Given the same `world_seed` and `generation_rules_version`,
-**everyone computes the same chunk**. This is the
-load-bearing rule. It means:
+**The state fields** are: whatever the node
+type needs. The state is freeform — there's no
+schema for it at the tree level. The node type
+defines the schema.
 
-- Procedural functions take `(seed, address, generation_pass)`
-  and return content. No random state outside of seed.
-- The generation pass is named (`terrain`, `biome`, `poi`,
-  `mob_spawn`, `loot_table`, etc.) — each pass gets a
-  derived seed from its parent's seed + the pass name. This
-  lets us add new generation passes without invalidating
-  prior passes (the parent seed is unchanged).
-- Hash function: **SHA-256 of (parent_seed || purpose ||
-  version || address)** for the address-keyed seeds, or
-  `(parent_seed || purpose || version || counter)` for the
-  enumeration seeds. SHA-256 is overkill for game RNG; we
-  may swap to xxhash or fnv-1a later if profiling shows
-  it matters, **but only after measuring**.
-- Output bit width: **64 bits per seed**. RNG sequences use
-  PCG or xoshiro (both have 64-bit state, both are
-  deterministic, both are fast in pure GDScript).
+**The hash** is `SHA-256(canonical_encoding({seed,
+state}) || parent_hash)`. Including the parent
+hash gives the Merkle property: change any leaf
+anywhere, the root hash changes.
 
-### 4.4 Why seeds are scoped, not flat
+**Hash function discipline:** SHA-256 is
+mandatory for state tree content addressing —
+collision resistance is load-bearing here
+(we use the hash as a content-addressable
+identifier). xxhash3 (or fnv-1a) is acceptable
+for *derived seeds* (the `chunk_seed` for a
+chunk's RNG), where we only need good
+distribution, not collision resistance. Don't
+swap the two.
 
-The user's instinct is correct: an instance for a party
-needs its own dungeon layout, but the same dungeon *entry*
-should be the same for everyone who walks in. Two
-requirements:
-1. Same terrain for everyone in the open world.
-2. Different dungeon layout for each party instance.
+### 4.7 Worked example: the stick on the ground
 
-The way we satisfy both: instance seeds are **derived from
-shard seeds + instance_id**, so the "shape" of the dungeon
-is stable per-instance, but two different party-instances
-get different shapes. The open-world terrain uses
-`world_seed` only, so it's the same for everyone.
+The user-suggested example that surfaced the
+recursive view. Walking through it:
 
-### 4.5 Instance types and seed derivation
+1. **`world_seed = 0xABCD1234...`** (locked,
+   world visibility). Lives in the manifest.
+2. **`shard_1_seed = derive(world_seed,
+   "shard_1") = 0x12345678...`** (locked, shard
+   visibility). Stored in the shard manifest.
+3. **`chunk_64_128_256_seed = derive(shard_seed,
+   "chunk:64:128:256", "terrain") = 0x5678...`**
+   (locked, shard visibility). Stored at the
+   chunk node.
+4. **`entity_stick_seed = derive(chunk_seed,
+   "entity:abc123") = 0x9ABC...`** (locked,
+   shard visibility). Stored at the entity node.
+5. **Procedural content from the seed chain:**
+   the stick exists at position (X, Y, Z),
+   pointing at angle θ, made of oak wood. This
+   is *derivable* from the seed chain; the
+   client can recompute it.
+6. **State at the entity node:** the stick is
+   broken (player hit it), belongs to chunk
+   64_128_256, last updated at server tick T.
+   The state is *mutable*; only changed fields
+   are persisted in the state tree.
+7. **Hash at every level:**
+   `SHA-256(canonical({seed, state}) ||
+   parent_hash)`. The stick's hash includes the
+   chunk's hash, which includes the shard's
+   hash, which includes the world's hash.
 
-| Instance type | Seed source | Lifetime |
-|---|---|---|
-| Open-world zone | `world_seed` (no instance_seed) | Forever |
-| Public dungeon (always exists) | `derive(world_seed, dungeon_id)` | Forever (immutable) |
-| Party dungeon (per-party) | `derive(world_seed, "party_dungeon", party_id, instance_run_id)` | Bound to run; archived after completion |
-| Guild hall | `derive(guild_seed, hall_id)` | Bound to guild; persists across runs |
-| Personal house | `derive(player_seed, "house", house_id)` | Bound to player |
-| Arena (PvP) | `derive(world_seed, "arena", arena_template_id, match_id)` | Match-bound; ephemeral |
-| Test/dev sandbox | `world_seed = 0` (constant) | Forever |
+**When a player walks into the chunk:** the
+server reads the chunk node from L0, walks
+down to the entity node, recomputes the seed
+chain (cheap), reads the state, and hands the
+merged result to the client. The client
+verifies by recomputing the hash and comparing
+to the server's.
 
-`instance_run_id` is a UUID generated per instance entry;
-this means the same party re-entering the same dungeon gets
-a fresh seed (= fresh layout). For replayable dungeons,
-omit `instance_run_id` from the derivation.
+**When a player breaks the stick:** the server
+updates the entity node's state (broken=true,
+last_actor=player_id, tick=T). The hash
+changes. The state tree re-roots. The diff
+emits `(path, "set", new_hash, {state
+bytes})` to subscribers. The seed chain is
+*unchanged* (the stick's procedural identity
+is the same; only its state changed).
 
-### 4.6 The address-keyed seed (every chunk has one)
+**When a player *moves* a stick:** the stick's
+position becomes state. The procedural position
+is overridden. The hash covers both the seed
+(unchanged) and the new state (changed). Two
+sticks with the same seed but different
+positions have different hashes — correctly so.
 
-For each chunk address, we compute:
+### 4.8 Shard parameters: the small, region-keyed KV layer
 
-```
-chunk_seed(chunk_addr, pass) =
-  sha256_truncated_64(
-    parent_seed
-    || "chunk:" || chunk_addr.to_canonical_string()
-    || "pass:" || pass
-  )
-```
+A shard has state that:
+- *Affects generation* (e.g. "boss X defeated"
+  changes which mobs spawn).
+- Is *small* (KB per shard, not GB).
+- *Doesn't change often* (slow-changing flags,
+  not per-tick state).
 
-Where `parent_seed` is the scope's seed (world_seed for
-open-world chunks, instance_seed for instance chunks, etc.)
-and `pass` is the generation pass name.
+This state needs to be *persisted* (it's not
+derivable from the seed alone) but shouldn't
+clutter the state tree. The solution: a
+**shard parameter layer** — region-keyed KV
+stored in the state tree under
+`/shard_<id>/parameters/<region_id>/<key>`.
 
-**Result:** given the chunk address and the generation pass,
-the seed is deterministic. The chunk content is also
-deterministic, so two clients who both have the same
-parent_seed and chunk_addr produce the same terrain /
-biome / POIs / mob placements.
+**Properties:**
+- Region-keyed (each parameter belongs to a
+  region, partition inherited from plan §8).
+- Flywheel-coalesced writes (the parameter
+  write piggybacks on the next shard snapshot,
+  unless the shard is hot — then it goes
+  through immediately, see D024).
+- 5-minute heartbeat (under entropy 0, the
+  parameter write still fires every 5 min as
+  part of the snapshot, so no staleness beyond
+  that window).
+- Cluster rollup (the coordinator asks each
+  shard for its last-seen timestamp every
+  minute; if a shard is >10 min stale, alarm).
 
-### 4.7 What is NOT seeded
+**Examples:**
+- `parameters/zones/Z7/boss_dragon_killed: true`
+- `parameters/zones/Z3/tower_destroyed: true`
+- `parameters/zones/Z7/spawn_rate_modifier: 0.5`
+- `parameters/global/siege_active: false`
 
-Some things are not deterministic across clients — they're
-authoritative server state, broadcast to clients:
+**When a parameter changes:** the server
+invalidates the affected region's content
+hash. The next chunk request in that region
+re-generates from the new parameter + the
+unchanged seed chain.
+
+**When a parameter reads:** the procedural
+pipeline reads the parameter, applies it to
+the generation function, and produces content.
+The content hash reflects both the seed and
+the parameter.
+
+**Cost:** a shard has ~50 regions, ~10
+parameters per region = 500 parameters per
+shard. At 100 shards = 50,000 parameters.
+Storing in Redis: ~5 bytes per key × 50,000
+= 250KB total. Trivial.
+
+**The line between parameters and state:**
+parameters are *generation inputs*; state is
+*gameplay outcomes*. "Boss killed" is a
+parameter (it affects what spawns next).
+"Mob health 50/100" is state (it's the current
+gameplay state). The boundary is: if the value
+would change a procedural output, it's a
+parameter; if it's the result of gameplay, it's
+state.
+
+### 4.9 What's NOT seeded (and what goes in the state tree)
+
+Some things are not deterministic across
+clients — they're authoritative server state,
+broadcast to clients:
+
 - Current mob health, position, target.
 - Active projectiles, AoE effects.
 - Player inventory contents (after binding).
 - Chat messages, party state, recent damage log.
-- Active world event status (the event *template* is seeded,
-  but its current state is authoritative).
+- Active world event status (the event
+  *template* is seeded, but its current state
+  is authoritative).
+- Player-placed content (per D009, ankhs,
+  guild halls, signs, crops — these are state,
+  not seed).
+- Shard parameters (§4.8) — they're state
+  too, just a special small-KV kind.
 
-These all go through the state tree as mutable nodes.
+These all go through the state tree as
+mutable nodes. The seed chain still applies
+(procedurally-generated nodes have a seed),
+but the state is authoritative.
 
-### 4.8 Seed versioning and migrations
+### 4.10 Seed versioning and regen
 
-When we change generation rules (e.g. add a new biome, fix a
-heightmap bug), we bump `generation_rules_version`. Chunks
-generated under old rules keep their hash (so clients can
-still prove they have the right chunk), but new regions
-use the new version. Mixed-version regions are fine as
-long as the boundary is at a chunk edge.
+When we change generation rules (e.g. add a
+new biome, fix a heightmap bug), we bump
+`generation_rules_version`. Chunks generated
+under old rules keep their hash (so clients
+can still prove they have the right chunk),
+but new regions use the new version.
+Mixed-version regions are fine as long as the
+boundary is at a chunk edge.
 
-If we need to invalidate a region (e.g. seed was leaked),
-we bump a `seed_epoch` counter on the world manifest.
-Chunks generated under the old epoch are treated as
-untrusted until the server re-emits them.
+If we need to invalidate a region (e.g. seed
+was leaked), we bump a `seed_epoch` counter on
+the world manifest. Chunks generated under the
+old epoch are treated as untrusted until the
+server re-emits them.
 
----
+**Regen per seed type:**
+
+- **`locked`**: regenerates on
+  `manifest_bump` (rules version change),
+  `season_change`, or operator action. The
+  seed itself doesn't change; the *parameters*
+  change (new season, new rules). The
+  procedural output reflects the new
+  parameters. Hashes change; old content is
+  archived as `version:N` snapshots.
+- **`open`**: regenerates on `instance_start`.
+  Each instance gets a fresh seed. No archival
+  (the seed is recomputed, never persisted).
+  The instance's *state* is archived on
+  instance end.
+- **`frame`**: regenerates on `frame_start`.
+  Each frame gets a fresh seed. Archival is
+  per-frame-type: training frames (tutorial)
+  are not archived; lore frames (vision quest)
+  may archive the outcome as state.
+
 
 ## 5. The content-hash state tree
 
@@ -653,32 +959,61 @@ untrusted until the server re-emits them.
 
 A persistent, content-addressed tree structure where:
 
-- Every node has a `hash` = SHA-256 of `(canonical_encoding(value), parent_hash)`.
+- Every node has a `hash` = SHA-256 of `(canonical_encoding({seed, state}), parent_hash)`.
 - Two trees with the same root hash have the same content (modulo encoding).
-- `diff(old_root, new_root) -> List[(path, new_hash, value)]`.
+- `diff(old_root, new_root) -> List[(path, op, new_hash, payload)]`.
 - `apply_diff(root, diff) -> new_root`.
 - Server tick = re-root the tree with new state.
 - Client sync = `apply_diff(my_root, server_diff) -> new_root`.
 
-This is the **redis-like layer** in front of Postgres. It's
-the substrate for everything else (sync, multi-iso, LOD,
-procedural generation).
+**Every node carries both a seed and a state** (§4.6).
+The seed is the recipe (derivable from the parent
+seed + path); the state is the mutable current
+values. The hash covers both, giving us the Merkle
+property: change any leaf anywhere, the root hash
+changes.
+
+**The diff is state-only** (§5.6). Because the seed
+chain is recomputable from `world_seed + path`, the
+diff doesn't need to carry seed changes — only state
+changes and the resulting hash updates. This is a
+significant diff size reduction: most nodes are
+unchanged, so the diff is mostly `(path, "unchanged",
+new_hash)` entries — 32 bytes per node, no value
+bytes.
+
+This is the **redis-like layer** in front of
+Postgres. It's the substrate for everything else
+(sync, multi-iso, LOD, procedural generation).
 
 ### 5.2 Tree shape
 
-We use a **path-keyed tree** (similar to a Merkle Patricia
-Trie, but simpler). Each node has:
+We use a **branching tree** that mirrors the data
+model (world → shard → chunk → entity). The
+*identity* of each node is its content hash (§5.3);
+the *path* is the navigation structure used to walk
+the tree. D007: state tree is content-hash, not
+path-keyed — the path is *not* the identity, the
+hash is.
+
+Each node has:
 
 - `path`: array of path segments (e.g. `["world",
   "shard_1", "chunk_64_128_256"]`).
-- `value_hash`: SHA-256 of the value bytes.
-- `value_ref`: pointer to where the value bytes live (in
-  memory for hot, on disk for warm, in Postgres for cold).
+- `seed`: the seed chain entry (§4.6) — type,
+  visibility, derivation, value.
+- `state`: the mutable state values.
+- `value_hash`: SHA-256 of the canonical
+  `{seed, state}` bytes.
+- `value_ref`: pointer to where the value bytes
+  live (in memory for hot, on disk for warm, in
+  Postgres for cold).
 - `children`: dict of name → child node.
 
-We do NOT use a binary trie. We use a **branching factor
-that matches the domain** (the natural branching points:
-world → shard → chunk → entity). This means:
+We do NOT use a binary trie. We use a **branching
+factor that matches the domain** (the natural
+branching points: world → shard → chunk → entity).
+This means:
 
 ```
 root
@@ -752,18 +1087,50 @@ Tier promotion/demotion happens automatically:
 - A snapshot older than 1h goes L1 → L3.
 - Materialized intersections rebuild lazily on demand.
 
-### 5.6 Diff format
+### 5.6 Diff format (state-only, D027)
 
-A diff is a list of `(path, op, value_hash, value_bytes)`
+With the recursive seed-state model (§4), the diff
+becomes a **state-only diff**. The seed chain is
+recomputable from `world_seed + path`, so the diff
+doesn't need to carry seed changes — only state
+changes and the resulting hash updates.
+
+A diff is a list of `(path, op, hash, payload)`
 tuples. Operations:
 
-- `set`: replace the node at `path` with `value`.
-- `delete`: remove the node at `path` (and its subtree).
-- `set_meta`: change metadata only (e.g. lod_level, last_access).
+- `set_state`: the node at `path` has new state
+  (carries `payload` = the new state bytes).
+  The seed is unchanged; the hash is recomputed
+  locally by the client.
+- `unchanged`: the node at `path` did not change
+  state, but its parent did — so its hash
+  changed. Carries `hash` only (32 bytes), no
+  payload. The client recomputes by walking the
+  unchanged state + the new parent hash.
+- `delete`: remove the node at `path` (and its
+  subtree). Used when an entity is despawned.
+- `set_meta`: change metadata only (e.g.
+  lod_level, last_access). No state change; no
+  hash recomputation.
 
-Diffs are **delta-encoded** and **content-hashed** themselves:
-the diff's own hash is `SHA-256(ordered_concat(diff_entries))`.
-This lets a client request "give me diff from H1 to H2" and
+**Diff size math:** with 5000 entities per tick
+and 50 state changes, the diff is:
+- 50 × `set_state` entries (~100 bytes each with
+  payload) = 5KB
+- ~5000 × `unchanged` entries (32 bytes each) =
+  160KB
+- Total: ~165KB per tick
+
+This is much smaller than the naive "send the
+whole tree" (~5MB at 1000 bytes per entity ×
+5000). The 99% reduction is the Merkle
+deduplication property: most nodes don't carry
+state changes, just hash updates.
+
+Diffs are **delta-encoded** and **content-hashed**
+themselves: the diff's own hash is
+`SHA-256(ordered_concat(diff_entries))`. This lets
+a client request "give me diff from H1 to H2" and
 verify the response matches H2's root.
 
 Wire format: see §11.6 (binary framing).
@@ -774,9 +1141,17 @@ Every tick (configurable, default 20Hz), the server:
 
 1. Reads the current root from L0.
 2. Applies the tick's commands (player inputs, scheduled
-   spawns, scheduled despawns).
-3. Computes the new root hash.
-4. Computes `diff(old_root, new_root)`.
+   spawns, scheduled despawns). These update *state*
+   fields, not *seed* fields. (See §4.6: seeds are
+   persistent, only state changes per tick.)
+3. For each node whose state changed, recompute
+   the node's hash. For each ancestor, recompute
+   the ancestor's hash (since the hash includes
+   parent_hash, the change propagates up).
+4. Computes `diff(old_root, new_root)`. The diff
+   is state-only (§5.6) — most entries are
+   `unchanged` hash updates, only the actual
+   changes carry state bytes.
 5. Emits the diff to subscribers.
 6. Writes the new root snapshot to L1 (debounced; not every
    tick).
@@ -818,7 +1193,12 @@ L1+L2+L3).
 The state tree is NOT:
 - A relational database. There's no SQL, no schema, no joins.
 - A CRDT. There's no merge logic; the server is the only
-  writer.
+  writer. **Single-writer is what makes the diff
+  O(changed_nodes) and the diffs state-only.** The
+  cost of multi-writer (CRDT, OT) is paid in
+  complexity — we don't need it in v1. Adding CRDT
+  later (D015 escalate trigger) is a contained
+  upgrade, not a redesign.
 - A blockchain. There's no proof-of-work, no consensus,
   no chain. The chain analogy is just the hash linking.
 - A version control system. There's no branching/merging.
@@ -2167,6 +2547,202 @@ entire game. One flywheel, many sub-meters, one
 snapshot. The "we forgot to monitor X" failure
 mode disappears — X either emits a signal (and
 feeds the flywheel) or it doesn't.
+
+### 9.18 Account-level rollups (anticheat escalation, D028)
+
+The per-player flywheel (§9.16) is **shard-local**.
+That's the right scope for the flywheel itself
+(chaos is shard-local), but cross-shard exploit
+patterns need a different scope: the *account*.
+
+A player who causes chaos on shard A, then
+quickly moves to shard B, then back to A is
+*shard-skipping* — a known exploit pattern. The
+per-player flywheel on each shard sees only that
+shard's view. The account-level rollup sees the
+pattern across all shards.
+
+#### 9.18.1 The four layers
+
+**Layer 1: Per-player flywheel (shard-local).**
+What §9.16 describes. 7 sub-meters, ~200 bytes
+per player per trigger snapshot. Lives on the
+shard. Snapshot goes to
+`suspicious:<player_id>` in Redis, TTL 1 hour.
+
+**Layer 2: Account-level rollup (account-scoped).**
+The account has its own KV in Redis:
+`account:<account_id>:flywheel`. Fields:
+- `total_chaos` (sum of shard-local moments).
+- `per_shard` (a dict of
+  `{"shard_1": 950, "shard_2": 200, ...}`).
+- `top_contributors` (which shards are hot for
+  this account).
+- `cross_shard_flags` (e.g. "frequent shard
+  hops with high chaos" — pattern matches).
+- `recent_triggers` (last 10 trigger events:
+  timestamp + shard + type + sub-meter).
+
+**Layer 3: Session metadata.** Per session, in
+Redis with TTL = session lifetime:
+- `session_id` (UUID).
+- `account_id`.
+- `player_id` (the active character; can change
+  in a session if the account has multiple).
+- `device_fingerprint_hash` (see Layer 4).
+- `connection_timestamps` (connect, disconnect,
+  last activity).
+- `shard_transitions` (which shards this session
+  touched, in what order).
+
+**Layer 4: Device fingerprint.** A long-lived
+device identifier (independent of session):
+- `device:<hash>` key in Redis.
+- Hash = `SHA-256(UA + screen + WebGL renderer
+  + first-seen-cookie + browser entropy)` —
+  computed client-side, sent on session start.
+- TTL 30 days (refreshed on activity).
+- Used to detect: same device, multiple accounts
+  (smurf detection); or different devices, same
+  account (account sharing).
+
+#### 9.18.2 Cross-shard pattern detection
+
+The detection question: is this account exhibiting
+a known exploit pattern? Three patterns the
+rollup catches:
+
+**Pattern A: shard-skipping.**
+Account has high chaos on shard A (flywheel
+moment 950), then transitions to shard B within
+60s, then back to A. Detected by:
+`account:<id>:flywheel.shard_transitions` showing
+A → B → A within 1 hour, with
+`per_shard[A] > 500` and `per_shard[B] < 100`.
+
+**Pattern B: account-cycling.**
+Same device fingerprint, multiple accounts, all
+active in the same time window. Detected by
+querying `device:<hash>` for all linked
+accounts and computing the activity-overlap.
+
+**Pattern C: account sharing.**
+Same account, multiple devices, simultaneous
+sessions. Detected by
+`account:<id>:sessions` showing
+`device_fingerprint_hash` mismatches within
+the same activity window.
+
+The rollup doesn't *act* on these — it
+*signals*. AutoResponse (next subsection)
+consumes the signals.
+
+#### 9.18.3 AutoResponse subscription model
+
+AutoResponse today reacts to per-shard trigger
+snapshots (`suspicious:<player_id>`). With the
+rollup layer, AutoResponse grows a second
+subscription:
+
+- **Fast path (shard-local):** trigger fires,
+  AutoResponse acts within seconds (existing).
+  Default for clear-cut cases (macro detection,
+  obvious speed-hacks).
+- **Slow path (account-level):** the rollup
+  flags a cross-shard pattern, AutoResponse
+  acts on the *account* within hours/days.
+  Default for ambiguous cases (shard-skipping,
+  smurf detection).
+
+**The new pipeline:** `AccountAutoResponse`
+subscribes to the account-key
+(`account:<id>:flywheel`). When the rollup's
+`cross_shard_flags` flip, it produces a
+deliberate action: warn the account, restrict
+the account, or ban the account. Banning an
+account is a heavier hammer than banning a
+character — the player's other characters and
+future accounts are also affected (Phase 3+).
+
+**Why a separate pipeline:** the fast path
+needs to be reactive (seconds). The slow path
+needs to be *forensic* (hours, sometimes days
+of accumulated evidence). Two different
+latency profiles, two different action
+policies. The rollup is the bridge.
+
+**Wiring:** AutoResponse subscribes to both
+`suspicious:<player_id>` (existing) and
+`account:<account_id>:flywheel` (new). The
+new subscription is Phase 3+; the data layer
+(§9.18.1, §9.18.2) is Phase 2+.
+
+#### 9.18.4 Cost analysis
+
+For 5000 active players on 100 shards:
+
+| Layer | Memory | Per-trigger | Per-session |
+|---|---|---|---|
+| Per-player flywheel | ~1MB | 1 snapshot | — |
+| Account rollup | ~25MB | 1 HSET (1KB) | — |
+| Session metadata | ~2MB | — | 1 HSET per transition |
+| Device fingerprint | ~700KB | — | 1 HSET per day |
+| **Total** | **~30MB** | **2 Redis ops** | **bounded by session count** |
+
+**Hot-path cost:** 2 Redis ops on trigger
+(flywheel snapshot + account rollup update).
+This is the existing snapshot cost plus one
+HSET. The account rollup is debounced (not
+per trigger; only when momentum crosses a
+threshold) to keep the cost bounded.
+
+**Storage cost:** 30MB across the rollup layer
+is rounding error against the existing
+state-tree storage.
+
+**Bandwidth cost:** the per-shard flywheel
+already includes player_id in its snapshot.
+The account_id is looked up via a single
+indexed Redis read (cached). Negligible.
+
+#### 9.18.5 What we capture vs what we don't
+
+**Capture (always):**
+- Per-shard flywheel moments and triggers.
+- Per-shard session transitions.
+- Per-account cross-shard rollup (smurf
+  detector).
+- Per-device fingerprint (100 bytes per
+  device — rounding error).
+
+**Don't capture:**
+- Per-keystroke movement samples (too
+  granular, too expensive).
+- Per-second timeline reconstruction
+  (we sample, not record all).
+- Per-other-player observation (privacy
+  + bandwidth).
+- Audio, video, screenshots (out of
+  scope; client-side only if at all).
+
+**The line:** "if it helps detect a known
+exploit pattern, capture it; if it's
+forensic-only, capture on trigger only."
+The rollup is the systematic version of
+this principle — it captures exactly the
+cross-shard fields that patterns need, no
+more.
+
+**The principle (generalizes):** any time
+you have a "per-entity X" that's also
+meaningful at a "per-account Y" scope,
+build a rollup. Same abstraction
+(per-entity + per-account + sessions +
+device), different domain. The flywheel
+is one; the rollup is the *aggregation*
+mechanism. This pattern will repeat
+(trade, social, guild — any domain where
+players have multiple shards/characters).
 
 ---
 

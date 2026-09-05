@@ -764,11 +764,11 @@ Each decision has:
 - **Committed:** D001, D002, D003, D004, D005, D006,
   D007, D008, D009, D010, D011, D012, D013, D014,
   D016, D017, D018, D019, D020, D021, D022, D023,
-  D024
+  D024, D025, D026, D027, D028
 - **Provisional:** D015 (last-write-wins — explicit
   revisit trigger)
 
-Total: 24 decisions. 23 committed, 1 provisional.
+Total: 28 decisions. 27 committed, 1 provisional.
 The provisional one (D015) is the one most likely
 to be re-litigated.
 
@@ -875,27 +875,173 @@ for the full discussion). Settled 2026-09-05.
 - **Status:** committed
 - **Superseded by:** —
 
-#### D024 — Flywheel snapshot triggers and discard rules
+#### D024 — Flywheel snapshot triggers, discard rules, and parameter coalesce
 
 - **Phase:** 1+ (shard-level), 2+ (per-player)
-- **Decided:** 2026-09-05
+- **Decided:** 2026-09-05; updated 2026-09-05 (added
+  heartbeat and parameter coalesce rules)
 - **Alternatives rejected:**
   - Always-persist (I/O cost on hot path)
   - Never-persist (loses postmortem value)
   - Persist without discard rules (stale
     snapshots are dangerous)
+  - Heartbeat-free (operators can't tell if a
+    quiet shard is alive or stuck)
+  - Parameter writes that bypass the snapshot
+    mechanism (breaks the "one Redis op on
+    trigger" budget)
 - **Reasoning:** Ephemeral by default; snapshot
-  on trigger; restore on boot if recent. Five
+  on trigger; restore on boot if recent. Six
   write triggers: high-entropy (>80% of max),
   planned event, SIGTERM, resource pressure,
-  crash recovery. Three discard rules: >1h old,
-  world seed rolled, operator flag. Hot path
-  unchanged (one Redis op on trigger, not per
-  tick). (See plan §9.14, tick-doc §5.3-5.4.)
+  crash recovery, **5-minute heartbeat (NEW)**.
+  Three discard rules: >1h old, world seed
+  rolled, operator flag. Hot path unchanged
+  (one Redis op on trigger, not per tick).
+  **(NEW) Parameter coalesce rule:** under
+  normal load, shard-parameter writes (§4.8)
+  piggyback on the next flywheel snapshot. Under
+  hot load, parameter writes go through
+  immediately so they don't bottleneck on a
+  high-entropy snapshot. (See plan §9.14, §4.8,
+  tick-doc §5.3-5.4.)
 - **Trigger to revisit:** if Redis becomes a
   bottleneck, move snapshot to Postgres or a
   per-shard mmap'd file. If discard rules
-  discard too aggressively, extend the TTL.
+  discard too aggressively, extend the TTL. If
+  5-min heartbeat fires too often (causes
+  per-shard write storms when many shards are
+  idle), increase the interval. If parameter
+  coalesce causes 5-min staleness on critical
+  parameters, split into "stale-tolerant" and
+  "live" sets (§4.8).
+- **Status:** committed
+- **Superseded by:** —
+
+### 2.8 Seed-state model decisions (D025-D028)
+
+The four new decisions in this batch are all
+related to the seed-state recursion discussed
+2026-09-05 (see plan §4 rewrite, §5.6
+state-only diffs, §9.18 account rollups). The
+recursive model — "every node has a seed and a
+state, from the world to a stick on the ground"
+— replaces the original four-scope model.
+
+#### D025 — Recursive seed-state structure
+
+- **Phase:** 1+
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Flat four-scope model (original §4.1 —
+    world/shard/instance/player)
+  - Pure procedural (no state tree, just
+    regenerate everything)
+  - Pure state (no procedural, every node is
+    mutable)
+- **Reasoning:** Every node carries both a seed
+  (derivable from parent's seed + path) and a
+  state (mutable current values). The seed chain
+  is *fully derivable* from `world_seed + path`;
+  the state is the only mutable part. This means:
+  (a) the state tree's diff is state-only (smaller
+  diffs); (b) a stick on the ground can be either
+  procedurally placed (seed) or state-moved
+  (state override); (c) the model is *fractal* —
+  the same structure at every level, recursively.
+  (See plan §4.1-4.7.)
+- **Trigger to revisit:** if the seed chain
+  derivation becomes a hot-path bottleneck
+  (unlikely — SHA-256 is fast), or if the
+  schema proves too rigid for some node type.
+- **Status:** committed
+- **Superseded by:** —
+
+#### D026 — Two-axis seed taxonomy (type × visibility)
+
+- **Phase:** 1+
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Single-axis scope (the original four
+    scopes conflated "who sees" with "how the
+    seed works")
+  - Free-form seed types (every region makes
+    up its own)
+- **Reasoning:** The seed has two orthogonal
+  attributes: *type* (locked/open/frame — how
+  the seed is generated, stored, disposed) and
+  *visibility* (world/shard/instance/player —
+  who sees the result). Most combinations are
+  valid; some are nonsensical (`frame + world`)
+  but the off-diagonal cases are useful (a
+  `locked + instance` is a public dungeon with
+  fixed layout; a `frame + player` is a dream).
+  The two-axis model gives 12 cells in the
+  cross-product, ~6 of which are commonly used.
+  (See plan §4.3-4.5.)
+- **Trigger to revisit:** if a new seed type
+  emerges that doesn't fit locked/open/frame,
+  add a fourth type. If a new visibility scope
+  emerges (e.g. "team"), add it.
+- **Status:** committed
+- **Superseded by:** —
+
+#### D027 — State-only diffs (seed chain is recomputable)
+
+- **Phase:** 1+
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Full diff (transmit seed + state for every
+    changed node)
+  - Hybrid diff (transmit seed for changed
+    seeds, state for changed states)
+- **Reasoning:** Because the seed chain is
+  *recomputable* from `world_seed + path`, the
+  diff doesn't need to carry seed changes —
+  only state changes and the resulting hash
+  updates. Most diffs are `(path, "unchanged",
+  new_hash)` entries — 32 bytes per node, no
+  value bytes. Diff size: ~165KB per tick at
+  5000 entities / 50 state changes (vs ~5MB
+  naive). The 99% reduction is the Merkle
+  deduplication property. (See plan §5.6.)
+- **Trigger to revisit:** if the recompute cost
+  on the client exceeds the bandwidth savings
+  (unlikely — SHA-256 is faster than network),
+  or if a node type emerges that needs to
+  transmit its seed (shouldn't happen, but
+  possible).
+- **Status:** committed
+- **Superseded by:** —
+
+#### D028 — Account-level rollups for anticheat escalation
+
+- **Phase:** 2+ (data layer), 3+ (AutoResponse
+  subscription)
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Per-player only (the original §9.16) — misses
+    cross-shard patterns
+  - Centralized security scan (O(N×M) per tick)
+  - Sampled anomaly detection (latency + misses)
+- **Reasoning:** The per-player flywheel is
+  shard-local, but exploit patterns are
+  cross-shard (shard-skipping, account-cycling,
+  account sharing). The rollup layer aggregates
+  per-shard data at the account scope, plus
+  session metadata and device fingerprint.
+  Four layers: per-player flywheel, account
+  rollup, session metadata, device fingerprint.
+  Cost: ~30MB for 5000 accounts across 100
+  shards. Per-trigger: 2 Redis ops. AutoResponse
+  grows a second subscription (slow path,
+  account-level). (See plan §9.18.)
+- **Trigger to revisit:** if rollup evidence is
+  insufficient for player appeals (false
+  positive rate), add additional context. If
+  cross-shard patterns are not detected in
+  production (the rollup is silent), investigate
+  why (missing data, wrong patterns).
 - **Status:** committed
 - **Superseded by:** —
 
@@ -1381,6 +1527,15 @@ Alphabetical. Each term has:
   100m (see N008). *See plan §11.2.* Synonym:
   **VOI**.
 
+- **Account rollup** — The account-scoped
+  aggregation of per-shard flywheel data. One of
+  the four layers in D028 (per-player flywheel,
+  account rollup, session metadata, device
+  fingerprint). Catches cross-shard exploit
+  patterns that the per-player flywheel (which
+  is shard-local) can't see. *See plan §9.18,
+  D028.*
+
 - **Axis** — A single dimension of the multi-iso
   orchestrator's query space (spatial, factional,
   temporal, social, game-specific). The
@@ -1423,6 +1578,15 @@ Alphabetical. Each term has:
   v2 alternative to last-write-wins. Deferred to
   Phase 4+ (D015). *See plan §12.11.*
 
+- **Cross-shard pattern** — An exploit pattern
+  that only becomes visible when data from
+  multiple shards is correlated. Examples:
+  shard-skipping (high chaos on A, low on B,
+  rapid transition), account-cycling (same
+  device, multiple accounts), account sharing
+  (same account, multiple devices). Detected by
+  the account rollup (D028). *See plan §9.18.2.*
+
 ### Terms D–L
 
 - **Diff** — The list of state-tree changes
@@ -1433,6 +1597,17 @@ Alphabetical. Each term has:
   format. The D010 commitment: every sync
   message is a state-tree diff, applied by the
   client. *See plan §11.6.*
+
+- **Device fingerprint** — A long-lived
+  identifier for the device a player is using.
+  Computed client-side as
+  `SHA-256(UA + screen + WebGL renderer +
+  first-seen-cookie + browser entropy)` and sent
+  on session start. Stored in Redis as
+  `device:<hash>` with 30-day TTL. Used to detect
+  smurf accounts (same device, multiple accounts)
+  and account sharing (same account, multiple
+  devices). *See plan §9.18, D028.*
 
 - **Edge shard** — A thin "world cache" process
   near clients, for AOI + chunk cache +
@@ -1449,6 +1624,15 @@ Alphabetical. Each term has:
   native-client P2P lane (Phase 2+, D016). v1
   clients use WebSocket only. *See plan §1.7,
   §10.10.*
+
+- **Frame seed** — A bounded, per-event seed for
+  a procedural experience with its own internal
+  seed scope. Examples: a dream sequence, a
+  tutorial, a jail cell, a vision quest. The
+  frame is recomputed for each event instance
+  (training frames are not archived; lore frames
+  may be archived as state). One of the three
+  seed types in D026. *See plan §4.3.*
 
 - **FSM** — Finite State Machine. The existing
   `game/core/state/` (state.gd + state_machine.gd)
@@ -1518,6 +1702,15 @@ Alphabetical. Each term has:
   always disambiguates with "LOD level L0" vs
   "tier L0". *See plan §14, §20.*
 
+- **Locked seed** — A persistent, regenerable
+  seed that lives in the manifest. Has a stable
+  identity across boots; regenerated on rules
+  version bumps or season changes (the seed
+  itself doesn't change, the parameters do).
+  Examples: the world map, shard terrain, public
+  dungeons. One of the three seed types in
+  D026. *See plan §4.3.*
+
 - **LOD** — Level of Detail. The pyramid of
   representations (L0 to L3) the player sees.
   Promoted/demoted based on AOI and time. *See
@@ -1568,6 +1761,14 @@ Alphabetical. Each term has:
   and sequence per entity. The geometric
   addressing layer's identifier. *See plan §6.2,
   §20.*
+
+- **Open seed** — A per-instance, ephemeral
+  seed derived on demand and not persisted.
+  Examples: a dungeon run, a PvP arena match,
+  a random encounter. The instance's *state*
+  is persisted; the seed is just the recipe and
+  is recomputed for each instance start. One of
+  the three seed types in D026. *See plan §4.3.*
 
 - **Override** — A hand-authored content layer
   placed over a procedurally-generated chunk
@@ -1627,8 +1828,31 @@ Alphabetical. Each term has:
 ### Terms S–Z
 
 - **Seed** — A 64-bit integer used as the root
-  of the procedural RNG. Scopes: world, shard,
-  instance. *See plan §4.*
+  of the procedural RNG. **Two axes:** seed
+  *type* (locked/open/frame, D026) and
+  *visibility* (world/shard/instance/player).
+  Every node in the state tree carries both a
+  seed and a state; the seed is the recipe, the
+  state is the mutable current values. *See plan
+  §4, D025, D026.*
+
+- **Seed chain** — The recursive descent from
+  `world_seed` to a leaf, where each level's
+  seed is derived from the parent's seed + this
+  level's path segment. Fully derivable from
+  `world_seed + path`; only the state is mutable
+  (D025). The state tree's diff is state-only
+  (D027) because the seed chain is recomputable.
+  *See plan §4.2, §4.7.*
+
+- **Shard parameter** — A small, region-keyed
+  KV entry under `/shard_<id>/parameters/...`
+  that affects generation but is small and
+  slow-changing. Examples: "boss X defeated",
+  "tower destroyed", "spawn rate modifier".
+  Flywheel-coalesced under normal load, hot
+  under entropy. Stale-tolerant up to 5 min via
+  the heartbeat (D024). *See plan §4.8.*
 
 - **Shard** — A horizontal scaling unit of the
   world. One process. One spatial partition.
@@ -1674,6 +1898,14 @@ Alphabetical. Each term has:
 - **Vant** — A sibling repo by the same author.
   9 vant libraries map to multi-iso frame
   primitives. *See `docs/architecture/vant-lift.md`.*
+
+- **Visibility scope** — One of the two axes
+  of a seed (the other is seed type). Answers
+  "who can see the result?" Four values:
+  `world`, `shard`, `instance`, `player`. The
+  visibility scope is orthogonal to seed type
+  (locked/open/frame), giving a 4×3 matrix of
+  valid combinations. *See plan §4.4, D026.*
 
 - **VOI** — Volume of Interest. Same as AOI; we
   use both interchangeably. *See plan §20.*
@@ -1747,20 +1979,28 @@ What lives in each doc, where to look for what:
 
 ## Document state
 
-- Sections: 5 (risks, decisions, numbers, glossary,
-  cross-doc index) + new §2.7 (tick model decisions).
-- Length: ~1,800 lines.
-- Total entries: 15 risks, 24 decisions (D020-D024
-  added for the tick model), 26 numbers (N024-N026
-  added for the flywheel), ~65 glossary terms
-  (Flywheel, Flywheel snapshot, Per-player
-  flywheel, Monitorability commitment added).
+- Sections: 6 (risks, decisions, numbers, glossary,
+  cross-doc index) + new §2.7 (tick model decisions)
+  and §2.8 (seed-state model decisions).
+- Length: ~2,000 lines.
+- Total entries: 15 risks, 28 decisions (D020-D024
+  added for the tick model; D025-D028 added for the
+  seed-state model and account rollups), 26 numbers
+  (N024-N026 added for the flywheel), ~75 glossary
+  terms (Flywheel, Flywheel snapshot, Per-player
+  flywheel, Monitorability commitment, Locked seed,
+  Open seed, Frame seed, Seed chain, Shard
+  parameter, Visibility scope, Account rollup,
+  Device fingerprint, Cross-shard pattern added).
 - Status: tracking companion to the trio.
 - Last full review: 2026-09-05.
-- Last update: 2026-09-05 (tick model spec
-  promotion — D020-D024, N024-N026, glossary
-  additions, plan §9.1/§9.2/§9.9/§9.14-§9.17
-  updated).
+- Last update: 2026-09-05 (seed-state recursion
+  promoted to spec — D025-D028, plan §4 rewritten
+  with recursive seed-state + locked/open/frame
+  taxonomy, plan §5.6 updated to state-only diffs,
+  §9.18 added for account rollups, glossary
+  expanded, D024 extended with heartbeat +
+  parameter coalesce).
 - Next review: when Phase 1 measurement list (N001,
   N022, N014, N012, N011, ...) starts producing
   numbers — then the "Current" column gets real.
