@@ -18,7 +18,7 @@
 [ext_resource type="Script" path="res://ui/components/tooltip_manager.gd" id="17_tooltip"]
 [ext_resource type="Script" path="res://ui/components/action_menu.gd" id="18_action"]
 [ext_resource type="Script" path="res://ui/social/achievement_ui.gd" id="19_achievement"]
-[ext_resource type="Script" path="res://ui/social/shop_ui.gd" id="20_shop"]
+[ext_resource type="Script" path="res://ui/components/shop_ui.gd" id="20_shop"]
 
 [node name="HudLayer" type="CanvasLayer"]
 layer = 10
