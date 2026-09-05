@@ -481,24 +481,8 @@ func _on_chat_message_received(sender_id: String, channel: int, message: String,
 		_chat_panel.add_message(sender_id, channel, message)
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_ESCAPE:
-				if _is_menu_open:
-					_close_all_menus_internal()
-			KEY_I:
-				_toggle_menu_internal("inventory")
-			KEY_C:
-				_toggle_menu_internal("character")
-			KEY_P:
-				_toggle_menu_internal("party")
-			KEY_G:
-				_toggle_menu_internal("guild")
-			KEY_F:
-				_toggle_menu_internal("friends")
-			KEY_Q:
-				_toggle_menu_internal("quests")
-			KEY_ENTER:
-				# Focus chat input
-				if _chat_panel and _chat_panel.has_method("focus_input"):
-					_chat_panel.focus_input()
+	# NOTE: Panel hotkeys (I, C, P, G, F, Q, ESC) are handled by HudHotkeys.
+	# This only handles chat-specific input.
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ENTER:
+		if _chat_panel and _chat_panel.has_method("focus_input"):
+			_chat_panel.focus_input()
