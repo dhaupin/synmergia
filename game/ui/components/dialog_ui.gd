@@ -24,6 +24,8 @@ func _ready() -> void:
 	_setup_ui()
 	if DialogService:
 		DialogService.node_changed.connect(_on_node_changed)
+		DialogService.dialogue_started.connect(_on_dialogue_started)
+		DialogService.dialogue_ended.connect(_on_dialogue_ended)
 	hide()
 
 func _setup_ui() -> void:
@@ -135,6 +137,18 @@ func _show_node(node_index: int) -> void:
 			_choices.append(choice)
 
 		_continue_btn.visible = false
+
+func _on_dialogue_started(npc_id: String, dialogue_id: String) -> void:
+	_is_open = true
+	_current_npc_id = npc_id
+	_current_dialogue_id = dialogue_id
+	show()
+
+func _on_dialogue_ended(npc_id: String, dialogue_id: String) -> void:
+	_is_open = false
+	_current_npc_id = ""
+	_current_dialogue_id = ""
+	hide()
 
 func _on_node_changed(node_index: int, node_data: Dictionary) -> void:
 	_show_node_data(node_data)
