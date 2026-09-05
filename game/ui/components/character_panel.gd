@@ -316,7 +316,97 @@ func _create_equip_slot_row(slot_data: Dictionary) -> HBoxContainer:
 
 func _on_equip_slot_clicked(slot_id: int) -> void:
 	_selected_equip_slot = slot_id
-	# TODO: Show item selection or unequip
+	
+	if not InventoryService:
+		show_notification("InventoryService unavailable", false)
+		return
+	
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+	
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		show_notification("Could not load inventory", false)
+		return
+	
+	var equipped: Item = inv.get_equipped(slot_id)
+	if equipped != null:
+		_show_equipped_item_menu(equipped, slot_id)
+	else:
+		_show_empty_slot_menu(slot_id)
+
+func _show_equipped_item_menu(item: Item, slot_id: int) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = item.name if item.name else "Equipped Item"
+	dialog.dialog_text = "What would you like to do?"
+	add_child(dialog)
+	
+	# Create action buttons in a VBox
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size = Vector2(200, 80)
+	dialog.add_child(vbox)
+	
+	var unequip_btn := Button.new()
+	unequip_btn.text = "Unequip"
+	unequip_btn.custom_minimum_size.y = 30
+	unequip_btn.pressed.connect(func() -> void:
+		_unequip_item(slot_id)
+		dialog.queue_free()
+	)
+	vbox.add_child(unequip_btn)
+	
+	var info_btn := Button.new()
+	info_btn.text = "View Details"
+	info_btn.custom_minimum_size.y = 30
+	info_btn.pressed.connect(func() -> void:
+		_show_item_details(item)
+		dialog.queue_free()
+	)
+	vbox.add_child(info_btn)
+	
+	dialog.canceled.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered(Vector2(250, 150))
+
+func _show_empty_slot_menu(slot_id: int) -> void:
+	show_notification("Empty slot - browse the auction house to equip items")
+
+func _unequip_item(slot_id: int) -> void:
+	if not InventoryService:
+		return
+	
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+	
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		return
+	
+	if inv.unequip_item(slot_id):
+		show_notification("Item unequipped and added to inventory")
+		_refresh_equipment_display()
+	else:
+		show_notification("Failed to unequip - inventory may be full", false)
+
+func _show_item_details(item: Item) -> void:
+	var stats_text := ""
+	if item.has("stats"):
+		var stats: Dictionary = item.get("stats", {})
+		for key in stats.keys():
+			stats_text += "\n%s: %s" % [key.capitalize(), stats[key]]
+	
+	var dialog := AcceptDialog.new()
+	dialog.title = item.name if item.name else "Item Details"
+	dialog.dialog_text = "Type: %s\nRarity: %s%s" % [
+		item.get("item_type", "Unknown"),
+		item.get("rarity", "Common"),
+		stats_text
+	]
+	add_child(dialog)
+	dialog.ok_button_text = "Close"
+	dialog.confirmed.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered()
 
 ## ============================================================================
 ## STATS TAB
