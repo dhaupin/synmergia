@@ -46,6 +46,7 @@
 18. [Migration path & milestones](#18-migration-path--milestones)
 19. [Risks, open questions, deferred items](#19-risks-open-questions-deferred-items)
 20. [Glossary](#20-glossary)
+21. [Experimental angles (post-Phase-1 research)](#21-experimental-angles-post-phase-1-research)
 
 ---
 
@@ -421,6 +422,90 @@ shards:
     spatial_partition: [0, 0, 7000, 0, 7000]   # planar AABB
     spatial_partition: [lat_min, lon_min, lat_max, lon_max]  # spherical
 ```
+
+### 3.9 V1 world spec (decided 2026-09-05)
+
+Decisions for the v1 dev/alpha/beta world:
+
+- **Shape**: spherical (with planar support compiled in
+  for future worlds).
+- **Planet radius**: 20 km.
+- **Surface area**: ~5,000 km².
+- **Landmass**: one continent, ~150 km², containing all
+  biome variety for testing. The rest is ocean (intentional,
+  for future boat/ship mechanics and to test spherical
+  wrap-around).
+- **Capital city**: at the geographic center of the
+  continent. New players start here.
+- **Biome layout** (within ~5 km radius of the capital):
+  - North: forest (tutorial zone, starter mobs).
+  - East: plains + farmland (starter quests, low-level).
+  - South: lake + river system (fishing, water mobs).
+  - West: mountain ridge (mining, mid-level mobs).
+  - Coastline (where the continent meets the ocean): harbor
+    district in the capital, fishing village, shipwright.
+  - One dungeon entrance ~3 km from the capital (instance
+    portal test).
+  - One PvP arena on a small island ~6 km offshore
+    (instance portal test for arena-style content).
+
+### 3.10 V1 chunk math
+
+At planet radius 20 km, surface area 5,000 km², subdivided
+to subdivision level 5:
+- Faces: 20 × 4^5 = 20,480 faces.
+- Average edge length: ~250m.
+- Total face area: ~244,000 m² ≈ 0.24 km² per face.
+- Hot @ 1% = 205 faces in RAM.
+- All-hash total: 20,480 × 32 bytes = 655KB.
+
+Smaller subdivisions (level 6, level 7) for denser areas
+like the capital. The icosahedral mesh supports mixed
+subdivision levels — the capital's neighborhood gets
+higher resolution than the empty ocean.
+
+### 3.11 Scaling path (v1 → v2+)
+
+The v1 world is configured by `WorldManifest`. Scaling up
+is a config change, not a code change:
+
+| Version | Planet radius | Landmass | Use |
+|---|---|---|---|
+| v1 (dev/alpha/beta) | 20 km | 150 km² continent | Active development |
+| v2 (soft launch) | 100 km | ~3,000 km² | More room, more variety |
+| v3 (full launch) | 1,000+ km | full planet surface | "Earth-like" planet |
+
+Each step is `WorldManifest` + new generation-rules
+version. Old players keep their old-world snapshots; new
+players get the new world. **Same code, different config.**
+
+### 3.12 Why spherical as default for v1
+
+The user chose spherical for v1 with planar support. The
+reasons we agreed:
+
+1. **Spherical exercises the harder math first.** If the
+   icosahedral projection, the antimeridian wrap, and the
+   mixed-subdivision-level logic work on a 20 km planet,
+   they work on a 1000 km planet. Starting small lets us
+   shake out the bugs cheaply.
+2. **Planar is a degenerate spherical case.** A planar
+   map is a small patch on a very large sphere. We can
+   always flatten; going the other way is harder.
+3. **The "planet that has a continent" framing is natural.**
+   Players understand "you're on a small planet with one
+   big landmass". Easier to author than "you're on a
+   square 14×14 km of land that happens to be flat".
+4. **The geometric-addressing payoff lands on day one.**
+   The icosahedral mesh is where NSC-9 + icosahedral
+   geometry pays off most. Starting spherical means we
+   test the geometric layer on day one, not as a retrofit.
+
+Planar remains fully supported (the engine compiles both
+paths; the world manifest chooses). Future "flat" worlds
+(arenas, special maps) are trivial — small AABB regions
+on an effectively-infinite plane, with the same chunk
+system.
 
 ---
 
@@ -1119,6 +1204,205 @@ either:
 These go through the content pipeline only, not the
 procedural pipeline.
 
+### 7.12 Hierarchical instancing (the single biggest win for procedural worlds)
+
+Procedural worlds have lots of **repetition with
+variation**: 1000 oak trees in a forest, 500 houses in a
+city, 200 rock formations in a mountain, 50 mob spawns of
+the same type in a region. Each one is a distinct entity,
+but they share a type.
+
+The naive state-tree representation stores every entity
+fully:
+
+```
+chunks.chunk_X.entities
+    ├── oak_1 { type, position, rotation, scale, health, ... }   ~500B
+    ├── oak_2 { type, position, rotation, scale, health, ... }   ~500B
+    ├── ... 998 more oaks
+    ├── rock_1 { ... }                                           ~500B
+    ├── ...
+```
+
+For a forest of 1000 oaks, that's ~500KB. The state tree
+hashes, diffs, and broadcasts all of this every tick the
+forest changes.
+
+**Hierarchical instancing** separates the **type** (shared,
+immutable) from the **instances** (per-entity transforms
++ dynamic state):
+
+```
+chunks.chunk_X.types
+    └── oak_common_v1          # full type definition, hashed once
+chunks.chunk_X.instances
+    ├── oak_instances
+    │   ├── type: oak_common_v1
+    │   ├── transforms: [
+    │   │   [x, y, z, rot, scale],   # 5 ints = 40 bytes
+    │   │   ...
+    │   │   # 1000 entries = 40KB
+    │   │ ]
+    │   └── dynamic_state: {
+    │       # only things that change at runtime
+    │       # (none for a tree)
+    │     }
+    └── rock_instances
+        └── ...
+```
+
+The chunk's content hash now includes both the type
+definitions AND the instance list. Two chunks with the
+same type + the same instance positions hash to the same
+value — meaning **identical forests across the world can
+dedup at the chunk level** (if you have the same forest
+in two regions, both chunks content-hash to the same
+thing if the type + transforms match; the world state tree
+keeps the pointers but the *payloads* deduplicate via
+content-hash).
+
+#### 7.12.1 What gets instanced
+
+| Category | Instanced? | Notes |
+|---|---|---|
+| Trees, rocks, plants, decorations | YES | Pure transforms; no dynamic state. |
+| Static buildings (untouched houses) | YES | Transforms + variant ID. |
+| Mob/NPC spawn points (templates) | YES | The *spawn point* is instanced; the live entity is not. |
+| Resource nodes (ore, deposits) | YES | Respawn timer per node. |
+| Player-placed decorations | NO | Each is unique (different owner, different metadata). |
+| Houses with active players inside | NO | Dynamic state (who's in it, inventory). |
+| Mobs (live) | NO | They move, fight, have health. |
+| Players | NO | Obviously. |
+| Active projectiles / AoE | NO | Short-lived, per-entity. |
+
+The split is: **anything that's purely a transform of a
+static thing** is instanced. Anything with dynamic state
+is not.
+
+#### 7.12.2 The instancing cost equation
+
+Naive: `N × full_entity_payload`. For 1000 oaks at 500B =
+500KB.
+
+Instanced: `1 × type_payload + N × (40B transform + tiny
+overhead)`. For 1000 oaks:
+- Type payload: ~2KB (one oak definition).
+- Transforms: 1000 × 40B = 40KB.
+- Total: 42KB.
+
+**12x reduction** for the same content. At higher N
+(10,000 trees in a giant forest), it's 100x.
+
+The state tree's content hash includes both, so dedup
+still works. Two forests with the same oaks + same
+positions = same chunk hash, regardless of how the
+entities are stored.
+
+#### 7.12.3 When an instance becomes dynamic
+
+If a tree gets cut down, it transitions from "instanced
+oak" to "dynamic oak-stump entity". The state tree diff:
+- Remove from `instances.oak_instances.transforms` (delete
+  the transform entry).
+- Optionally add to `entities.fallen_oak_stump` (if we
+  want the stump to persist).
+
+This is a normal state-tree diff. Clients receiving the
+diff see one fewer tree at that position. Re-render.
+
+#### 7.12.4 LOD interaction
+
+At LOD 1 (summary), we don't need per-tree transforms. We
+need "this chunk has ~1000 oak_instances". The L1 summary
+just stores `instances.oak_instances.count = 1000`. LOD 0
+unpacks to transforms.
+
+This composes with the LOD pyramid: instance count at L1,
+full transforms at L0, both derived from the same source
+data.
+
+### 7.13 Async generation + pre-generation cache
+
+Generation is CPU-bound. When a player walks into an
+unloaded chunk, the server has to run passes 0-9 (or at
+least 0-6 for "load enough to play"). At 10ms per chunk,
+that's a noticeable hitch.
+
+#### 7.13.1 Gen workers (Julia processes)
+
+Generation runs in **worker threads / processes**, not the
+main tick thread. The tick thread queues generation work
+and gets results asynchronously.
+
+```
+tick thread:
+  ...
+  for chunk in newly_promoted_set:
+    if chunk not in generation_cache:
+      gen_queue.push(chunk_address)
+  ... (tick ends)
+
+worker:
+  while not empty(gen_queue):
+    chunk_addr = gen_queue.pop()
+    result = run_passes(chunk_addr)
+    state_tree.apply_diff(result)
+```
+
+The tick never blocks on generation. A player walking into
+an unloaded chunk sees a "loading" indicator until the
+worker finishes; meanwhile the player can still move (the
+client predicts locally).
+
+#### 7.13.2 Pre-generation cache (Markov-predictive)
+
+The Markov predictor (§14.4) already predicts where the
+player will be in 5s, 30s, 5min. We **pre-generate** the
+chunks along the predicted path:
+
+- Worker queue has low priority for predicted chunks
+  (generates when idle).
+- LRU cache: keep the last N=10,000 generated chunks.
+- A chunk that's been generated but never visited can be
+  evicted from cache; it will re-generate when needed
+  (deterministic, so re-generation = same content).
+
+#### 7.13.3 Lazy mesh, eager data
+
+Generation produces **data** (heightmap, biome, POIs, mob
+spawns). The mesh is a separate concern: it's pure graphics.
+
+The flow:
+
+1. Worker generates data (cheap: ~1ms per chunk).
+2. Tick sees the data, marks it ready for rendering.
+3. **Render thread / mesh worker** generates the mesh from
+   the data (expensive: ~10-50ms per chunk).
+4. Mesh goes into the render queue.
+
+The player can see + interact with the data immediately
+(collision, mob AI, etc. work off the data); the visual
+mesh catches up a frame or two later.
+
+This decouples the tick latency from the mesh-generation
+cost. The user never sees a "hitch" from terrain mesh
+building.
+
+#### 7.13.4 Generation cost at v1 scale
+
+For the v1 20km planet with 20,480 level-5 faces:
+- Total chunks: 20,480.
+- Gen per chunk (passes 0-6, eager data): ~1ms.
+- Total cold generation: ~20s (single-threaded).
+- With 4 workers: ~5s.
+- With pre-gen cache: a player never waits >100ms (most
+  chunks are pre-generated).
+
+This is fine. Scaling up to level-7 subdivisions on a
+1000km planet (327,680 chunks × ~5ms each = ~27 minutes)
+will need more workers or smarter pre-gen. v1 doesn't hit
+that.
+
 ---
 
 ## 8. Zone model: regions, gateways, instances, transitions
@@ -1562,6 +1846,88 @@ Every 100ms:
 This is a single-threaded pass; at 1000 players and 6,400
 hot chunks, it's ~1ms.
 
+### 9.13 Simulation cost per entity (the ECS question)
+
+The current player/enemy model is Godot Node-based with
+components (HealthComponent, CombatComponent, AggroComponent,
+etc). This is fine for ~100 entities. At 1000 players +
+5000 mobs = 6000 nodes, each emitting ~10 signals per tick
+= 60K signal dispatches per tick = ~60ms in GDScript.
+
+**We will blow the tick budget.** The signal-based,
+node-graph model doesn't scale to MMO size.
+
+#### 9.13.1 The pattern that scales: ECS
+
+**Entity-Component-System** separates:
+- **Entity**: a stable ID + a list of components.
+- **Component**: a data record (no behavior). E.g.
+  `Position { x, y, z }`, `Health { current, max }`,
+  `CombatState { target, last_attack_tick }`.
+- **System**: a pure function over all entities with a
+  matching component set. E.g. `MovementSystem` reads
+  `Position + Velocity`, writes `Position`. `CombatSystem`
+  reads `Health + CombatState + IncomingDamage`, writes
+  `Health`.
+
+Systems are O(rows of matching components), not O(nodes).
+A `MovementSystem` over 6000 entities is ~6000 row ops =
+~1ms in GDScript.
+
+#### 9.13.2 The /labs/ ECS primitive
+
+`labs/multi-iso/kv/ecs.gd` (planned) provides:
+- `EntityId` (64-bit).
+- `EntityStore`: dense arrays of components per type.
+- `System`: registered function with component-set signature.
+- Tick: run all systems in dependency order.
+
+The Godot-side uses the ECS primitive for the **server's
+authoritative simulation** (tick logic). The Godot scene tree
+is still used for the **client's rendering** (Node3D,
+AnimationPlayer, etc).
+
+A player is one entity: `{ Position, Velocity, Health,
+Mana, CombatState, SkillCooldowns, Auras, ... }` in the
+ECS, but also a `Node3D` in the scene tree with a mesh +
+animation player. The two stay in sync via a thin
+`EntityBinding` adapter that listens to ECS changes and
+updates the Godot side.
+
+#### 9.13.3 What about the FSM states (idle/run/jump/fall)?
+
+The current FSM-based PlayerController (Idle/Run/Jump/Fall)
+becomes a **`MovementStateSystem`** in ECS. State transitions
+are pure functions of inputs + state. ~6 states total,
+updated as part of the ECS tick.
+
+#### 9.13.4 Tick batching + staggering
+
+Beyond ECS, two more optimizations on the hot path:
+
+- **Tick batching**: instead of per-entity `_process()`, run
+  one batched pass per system per tick. The current code's
+  per-Node signal flow is replaced by per-system loop.
+- **Tick staggering**: don't tick all 6000 entities every
+  tick. Stagger: entity A at t=0, B at t=50ms, C at t=100ms.
+  Each entity gets effective 20Hz "for itself"; the server
+  processes 1/3 of entities per real tick. ~3x cheaper.
+
+Staggering is simple and orthogonal to ECS. We do both.
+
+#### 9.13.5 Phasing
+
+| Phase | ECS scope |
+|---|---|
+| Phase 1 | None — manual Node-based is fine for first vertical slice with 100 entities |
+| Phase 2 | `ecs.gd` primitive in /labs/ with unit tests |
+| Phase 3 | Player simulation moves to ECS (Position, Velocity, Health, Mana) |
+| Phase 4 | Mob simulation moves to ECS; tick staggering enabled |
+| Phase 5 | Combat systems, aura systems, AI systems all in ECS |
+
+The first vertical slice stays Node-based for clarity. We
+introduce ECS as soon as we need it for scaling.
+
 ---
 
 ## 10. Transport: WebSocket for browser + agent compatibility
@@ -1745,12 +2111,106 @@ humans, native humans, AI agents. Same auth, same sync,
 same AOI rules. The agent's "render" is an observation
 payload; the human's "render" is pixels.
 
-### 10.10 The P2P lane (deferred)
+### 10.10 The P2P lane (PROMOTED from deferred)
 
-The PRD §10.4 mentions P2P entity sync as a future
-optimization ("the assimilation piece"). This is
-**deferred** until the central-server model is proven.
-For now, all sync is server-relayed.
+Originally deferred in the PRD §10.4. **Promoted to active
+in Phase 1** because the user explicitly flagged it as
+high-leverage for scaling on commodity VPS.
+
+The P2P lane lets nearby clients **exchange chunks
+directly**, bypassing the server. Two clients near each
+other have ~70% overlap in their AOI chunks; if both have
+the full state, they can gossip diffs in parallel.
+
+#### 10.10.1 Why this matters
+
+In a busy area (a city, a dungeon, a raid), the server's
+outbound bandwidth scales with **clients × diff-size ×
+20Hz**. For 100 clients in the same region, the server is
+broadcasting the same chunk diffs 100 times.
+
+P2P chunk sync lets clients exchange chunk hashes, and if
+one has a chunk the other needs, sync it directly. The
+server sees only **"X has hash H" and "Y has hash H"**
+metadata, not the chunks themselves. Server outbound
+bandwidth in dense areas drops ~5x.
+
+#### 10.10.2 The wire format
+
+**Reuses the state-tree diff protocol**. A P2P chunk
+exchange is just a STATE_DIFF message (from §10.3) sent
+peer-to-peer. The chunk hash is the message ID. The
+sender's chunk state is the payload. Same canonical
+encoding, same Merkle verification.
+
+This means **zero new code for the wire format** — we
+just add a transport (WebRTC or direct WebSocket-to-
+WebSocket-to-WebSocket, depending on browser support)
+that can carry the same binary frames.
+
+#### 10.10.3 Browser constraints
+
+Browsers don't allow direct socket-to-socket P2P without
+a relay. The realistic options:
+
+- **WebRTC with the game server as signaling relay.** The
+  server tells clients "X is near you, here's an ICE
+  candidate". Clients establish a WebRTC data channel.
+  Throughput: ~10-100 Mbps typical.
+- **Loopback through the server.** Clients exchange chunks
+  via the server (chunk upload from A, server forwards
+  to B). No P2P gain, but works everywhere.
+- **Native clients: direct UDP/TCP between clients.**
+  Native Godot can do real P2P. ENet or raw sockets.
+
+Default for v1: **WebRTC with the game server as signaling
+relay**. Browser clients get most of the benefit; native
+clients get full P2P later.
+
+#### 10.10.4 The gossip protocol
+
+1. Client A and Client B are nearby (server detects via
+   AOI overlap).
+2. Server sends both: "X and Y, please consider peering".
+3. A and B exchange their chunk-hash sets:
+   ```
+   A → B: [hash_1, hash_2, hash_3, ...]
+   B → A: [hash_5, hash_6, hash_7, ...]
+   ```
+4. Each computes the diff (what the other has that I
+   don't): A wants hash_5/6/7; B wants hash_1/2/3.
+5. Each requests the missing chunks from the other:
+   ```
+   A → B: "send me hash_5"
+   B → A: STATE_DIFF { path: chunk_X, value: <chunk bytes> }
+   ```
+6. Each applies the diffs locally. Both clients now have
+   the full chunk set; the server doesn't see the chunks.
+
+The server still owns *authoritative state changes* —
+P2P is just for **chunk distribution**, not for state
+mutation. A P2P-received chunk is treated as a hint; if
+the server subsequently sends a diff that contradicts, the
+server wins.
+
+#### 10.10.5 What doesn't go P2P
+
+- Authoritative state changes (player position, mob
+  health, loot drops). Always server-relayed.
+- Cross-shard state. Always server-relayed.
+- Initial snapshot (first connect). Server delivers.
+- Active effects / projectiles. Server broadcasts.
+
+P2P is for **static chunk distribution** only.
+
+#### 10.10.6 Phasing
+
+| Phase | P2P scope |
+|---|---|
+| Phase 1 | None — server-only sync, prove the basics |
+| Phase 2 | WebRTC signaling; P2P chunk exchange for chunks the server already sent |
+| Phase 3 | Optimize: predict which P2P chunks will be useful next; gossip in background |
+| Phase 4 | Native-only direct UDP/TCP for power users |
 
 ---
 
@@ -1939,10 +2399,80 @@ For 1000 clients on a shard, the server's outbound
 bandwidth is ~60-100MB/s. Fits a single 10Gbps NIC with
 plenty of headroom.
 
-### 11.11 What the sync protocol is NOT
+### 11.11 Bandwidth optimizations (browser-first)
 
-- **Not peer-to-peer.** All sync is server-relayed in
-  this phase. P2P is a future optimization.
+For browser clients on flaky networks, raw 60-100KB/s is
+too much. Four levers:
+
+#### 11.11.1 Diff coalescing across ticks
+
+Server-side, hold back up to 200ms of diffs and ship as
+one batch. Tick-rate on the wire goes from 20Hz to 5Hz;
+updates still arrive within human-perception threshold
+(~150ms latency). Halves bandwidth.
+
+Implementation: per-client send queue, flush every 200ms.
+If a tick's diff is empty for a client, skip. If a tick
+produces a non-empty diff for a client, queue it.
+
+#### 11.11.2 Longer client prediction windows
+
+Default client predicts 1 tick (50ms). Increase to 5 ticks
+(250ms). Server sends corrections less often, since the
+client's prediction matches the server for 250ms most of
+the time.
+
+Trade-off: when prediction *is* wrong, the correction is
+bigger (5 ticks of divergence vs 1 tick). For MMO with
+mostly-predictable movement, this wins.
+
+#### 11.11.3 Region-of-interest compression (lossy at edges)
+
+AOI is currently binary "in/out". Replace with a soft
+function:
+
+| Distance from player | Update rate | Content |
+|---|---|---|
+| 0-100m | 20Hz | Full position, full state |
+| 100-300m | 5Hz | Position only, no state |
+| 300-1000m | 1Hz | Type + approximate position |
+| 1000m+ | Event-driven | Spawn/despawn events |
+
+Bandwidth scales with **relevance × distance**, not with
+**entity count**. For a 1000-entity AOI, ~80% of entities
+are at >100m; the optimization cuts their update cost
+by 4-20x.
+
+#### 11.11.4 CDN for static chunks (the big win)
+
+Chunks are content-hashed. Once a chunk has been
+generated, it's immutable (same hash forever for the
+same `(seed, address)`). **A CDN can serve it**.
+
+Architecture:
+- Game server emits diffs for *dynamic* state (mobs,
+  players, effects) only.
+- *Static* state (terrain, biome, POIs, mob-spawn slots)
+  is fetched by the client from the CDN by content hash.
+- CDN cache key = chunk content hash. Two clients asking
+  for the same chunk hit the same CDN edge.
+- First client to load a chunk can fetch from CDN; CDN
+  edge pulls from origin (game server's Postgres
+  `chunks` table) once, then serves to everyone.
+
+CDN costs pennies per GB. Game server costs dollars per
+GB egress. **Putting static content on a CDN reduces
+game server bandwidth 5-10x in dense areas.**
+
+#### 11.11.5 Combined bandwidth budget
+
+With all four optimizations, the per-client bandwidth
+drops from 60-100KB/s to ~15-30KB/s. Server outbound
+drops to 15-30MB/s for 1000 clients. Same 10Gbps NIC,
+10x more headroom.
+
+### 11.12 What the sync protocol is NOT
+
 - **Not a CRDT.** Clients don't merge; they apply the
   server's diff. If two clients disagree about a value,
   the server wins.
@@ -1951,6 +2481,47 @@ plenty of headroom.
   snapshots are only requested on divergence.
 - **Not lossy.** Every diff is delivered (or the client
   reconnects / requests catch-up).
+- **Not just server-relayed.** Phase 2+ adds P2P chunk
+  exchange (§10.10); the server is still the only
+  authority, but chunk *distribution* can be P2P.
+
+### 11.13 World cache (edge shards — future)
+
+For very large shards (>5000 active players), the
+centralized shard becomes a bandwidth bottleneck even with
+the optimizations above. The next step is **edge shards**:
+
+```
+                ┌──────────────┐
+                │ Central shard │  (authoritative state)
+                └──────┬────────┘
+                       │ state-tree diffs
+        ┌──────────────┼──────────────┐
+        │              │              │
+   ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
+   │ Edge A  │    │ Edge B  │    │ Edge C  │  (filter + cache for nearby clients)
+   │ (10-100 │    │         │    │         │
+   │ clients)│    │         │    │         │
+   └─────────┘    └─────────┘    └─────────┘
+```
+
+An edge shard:
+- Subscribes to a *subset* of the central shard's state
+  tree (the chunks near its assigned players).
+- Performs AOI filter, prediction, and chunk generation
+  on behalf of its clients.
+- Forwards authoritative state changes back to the central
+  shard.
+- Doesn't hold durable state; restarts empty.
+
+This is the CDN pattern for game state, not static assets.
+Latency-sensitive clients (mobile, far-away regions) get
+an edge shard near them; the central shard sees only
+aggregated state.
+
+**Phasing**: deferred to Phase 4+ (after central-server
+scaling is proven). Phase 1-3 use the centralized model
+with the bandwidth optimizations above.
 
 ---
 
@@ -2181,6 +2752,145 @@ as numbered SQL files:
 Migrations run at coordinator startup (and shard startup,
 for shard-local schema). They are forward-only (no
 downgrade); rollbacks use Postgres backup.
+
+### 12.9 The state tree IS the Postgres layer (revisited)
+
+The schema in §12.3 has many tables (snapshots, chunks,
+characters, guilds, factions, player_placed, diffs). For
+a small deployment this is fine. For a "giant Sim on
+commodity VPS" target, we push further:
+
+**Idea**: instead of N tables, Postgres stores
+**content-hashed state-tree payloads** as rows:
+
+```sql
+CREATE TABLE shard_state (
+  shard_id           TEXT NOT NULL,
+  tick               BIGINT NOT NULL,
+  root_hash          BYTEA NOT NULL,
+  payload            BYTEA NOT NULL,        -- full chunk payloads, content-hashed
+  dirty_entity_count INT NOT NULL,
+  PRIMARY KEY (shard_id, tick)
+);
+CREATE INDEX shard_state_root ON shard_state(shard_id, root_hash);
+
+CREATE TABLE shard_chunks (
+  shard_id       TEXT NOT NULL,
+  chunk_address  TEXT NOT NULL,
+  content_hash   BYTEA NOT NULL,
+  gen_version    INT NOT NULL,
+  payload        BYTEA NOT NULL,            -- the canonical chunk bytes
+  payload_size   INT NOT NULL,
+  lod_level      INT NOT NULL DEFAULT 0,
+  last_accessed  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (shard_id, chunk_address)
+);
+CREATE UNIQUE INDEX shard_chunks_hash ON shard_chunks(content_hash);
+```
+
+Two tables, not eight. All queries are "give me the
+state at tick T" (one row) or "give me the chunk with
+hash H" (one row, dedup'd by content hash).
+
+Why this matters:
+
+- **Fewer connections.** 2 tables = 2 prepared statements.
+  Postgres is connection-heavy; this saves a lot.
+- **No schema migrations for new entity types.** Adding a
+  new entity type means a new state-tree path; no SQL
+  schema change. Schema migrations are reserved for
+  *truly* new persistence features (e.g. when we add a new
+  tier).
+- **Deduplication is free.** Two shards with the same
+  chunk-content hash share the payload via the unique
+  index on `content_hash`. The world becomes naturally
+  deduplicated at the byte level.
+- **Backups are simpler.** `pg_dump shard_state` is one
+  row per tick per shard. Diff between any two ticks is
+  reconstructable. Restoring is "load last snapshot +
+  replay diffs".
+- **CDN-friendly.** Chunks are content-hashed; a CDN can
+  serve `chunk.content_hash` directly (see §11.11.4).
+
+The trade-off: less natural SQL querying. We lose the
+ability to do "SELECT * FROM characters WHERE level > 50
+ORDER BY xp DESC". To get that back, we use **projection
+tables** maintained by background workers:
+
+```sql
+CREATE MATERIALIZED VIEW character_leaderboard AS
+SELECT id, name, level, xp FROM <projection>;
+-- refreshed every 60s from the current state tree
+```
+
+These projections are *derived data*, rebuilt on demand.
+The source of truth is always `shard_state`.
+
+This pattern (state-tree-as-storage + materialized
+projections) is what lets us scale Postgres connection
+count down and content-hash dedup up. **It's the
+Postgres-friendly version of the content-addressed
+pattern.** Recommended for v1+.
+
+### 12.10 Append-only event log (alternative to dirty-flag)
+
+The dirty-flag mechanism in §12.5 works, but for very
+high-churn state (player positions, projectiles), even
+1- per minute is overkill.
+
+**Alternative**: append-only event log. Every state
+change is an event row, never UPDATE:
+
+```sql
+CREATE TABLE events (
+  id          BIGSERIAL PRIMARY KEY,
+  shard_id    TEXT NOT NULL,
+  tick        BIGINT NOT NULL,
+  entity_id   TEXT NOT NULL,
+  path        TEXT NOT NULL,        -- state-tree path within entity
+  value_hash  BYTEA NOT NULL,
+  value_bytes BYTEA NOT NULL,
+  taken_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX events_shard_entity_tick ON events(shard_id, entity_id, tick DESC);
+```
+
+Reconstructing an entity's state at tick T = "apply all
+events for this entity where tick ≤ T". Postgres handles
+append faster than UPDATE (no MVCC churn). With
+content-hash dedup on `value_hash`, common values
+(position-update events that produce the same hash) are
+deduplicated.
+
+This is *better* than dirty-flag for high-churn data
+and *worse* for low-churn data (because you have to
+replay). We use **both**:
+- Append-only log for entities that change every tick
+  (players, mobs, projectiles).
+- Snapshot + dirty-flag for entities that change rarely
+  (chunk data, hand-authored overrides, character
+  inventory).
+
+### 12.11 CRDT for cross-shard state (future)
+
+For state that crosses shards (guild membership, faction
+relations, friend lists), the coordinator's
+last-write-wins approach (§16.5) works but can lose
+concurrent updates.
+
+**Future alternative**: use a **CRDT** (commutative
+replicated data type) for these specific data types:
+- Guild membership: 2P-Set or OR-Set (add/remove are
+  commutative).
+- Friend list: OR-Set with timestamps.
+- Faction relations: a small bounded set with commutative
+  union.
+
+CRDTs converge without coordinator bottleneck; shards
+gossip state changes; the coordinator only arbitrates
+uncommon conflicts.
+
+Deferred to Phase 4+. Phase 1-3 uses last-write-wins.
 
 ---
 
@@ -2909,8 +3619,10 @@ experimental
 
 ### 18.2 Phase 1 deliverables (the next 4-6 weeks)
 
-**Goal:** Two clients can connect to a single shard and see
-the same tree. Server ticks. Diffs apply. Browser works.
+**Goal:** Two clients can connect to a single shard on the
+v1 spherical world (20km planet, 150km² continent, capital
+city + biome variety) and see the same tree. Server ticks.
+Diffs apply. Browser works.
 
 Concrete deliverables:
 
@@ -2930,21 +3642,50 @@ Concrete deliverables:
 4. **`aoi.gd`** at `game/core/net/`. Interest management.
 5. **`snapshot.gd`** at `game/core/net/`. Initial snapshot
    + reconciliation.
-6. **Minimal godot-side world**: 4 zones from the audit,
-   100 entities, manual positions. NO procedural gen yet.
-7. **Test**: `tests/test_sync_deterministic.gd` — two
+6. **V1 world manifest**: spherical, 20km planet radius,
+   one 150km² continent with capital at center, biome
+   layout per §3.9. Loaded from `data/worlds/v1.tres` or
+   similar.
+7. **Capital city + starter zones**: at least 4 hand-
+   authored regions (capital, plains/forest, lake/river,
+   mountain ridge) with manual content placement. NO
+   procedural gen yet — the variety comes from
+   hand-authored content for Phase 1.
+8. **Test**: `tests/test_sync_deterministic.gd` — two
    clients, same seed, same input sequence, same final
    state hash.
-8. **Test**: `tests/test_browser_connect.gd` — a synthetic
+9. **Test**: `tests/test_browser_connect.gd` — a synthetic
    browser client connects via WebSocket, receives
    snapshot, plays for 1000 ticks, ends with same hash as
    server.
+10. **Test**: `tests/test_bandwidth_budget.gd` — measures
+    actual per-client bandwidth (with LZ4 + permessage-
+    deflate + binary frames). Verifies the §11.10 number
+    holds. **This is the test that gates the
+    "commodity VPS" promise.**
+11. **Test**: `tests/test_geometric_layer_roi.gd` — measures
+    orchestrator.query vs state_tree.scan at 100, 1K, 10K,
+    100K entities. **Decides whether the geometric layer
+    earns its place in Phase 2.** No committing to Phase 2
+    until we have real numbers.
+12. **Test**: `tests/test_node_based_simulation.gd` —
+    measures per-entity signal cost at 100, 1000, 5000
+    entities. **Tells us when we need to introduce ECS
+    (§9.13).** Phasing: ECS primitive in /labs/ at Phase 2;
+    player sim moves to ECS in Phase 3.
 
 **Exit criteria for Phase 1:**
 - Two browser clients (real Godot HTML5 export) can play
   together for 5 minutes without diverging.
 - 1000-tick test passes.
 - Code coverage on the core (state tree + sync) > 80%.
+- Bandwidth budget: actual measured ≤ 100KB/s/client
+  (target: 60-100KB/s, see §11.10).
+- Geometric layer ROI: data point on the break-even curve.
+- Simulation cost: data point on the per-entity curve.
+
+**If any of these fail, Phase 1 doesn't exit.** We
+iterate until the numbers support the design.
 
 ### 18.3 Phase 2 deliverables
 
@@ -3039,32 +3780,295 @@ Before/while implementing Phase 1:
 | Cross-shard conflict resolution causes lost updates | Low | Medium | Coordinator's last-write-wins is correct for our use cases; rare enough to accept |
 | 200km² target is unreachable on commodity hardware | Low | Medium | We can shrink to 50km² at any point; configuration not code change |
 
-### 19.2 Open questions
+### 19.2 Open questions (resolved 2026-09-05)
 
-| Question | Who decides | When |
+| Question | Resolution | Recorded in |
 |---|---|---|
-| Planar vs spherical as the default for v1? | User | Before Phase 1 |
-| 200 km² vs 40,000 km² vs other? | User | Before Phase 1 |
-| Open world vs instanced-first for v1? | User | Before Phase 1 |
-| Coordinator: separate process or just a flag? | Architect | Before Phase 3 |
-| Materialized intersection cache size? | Architect (measure) | Phase 2 |
-| Native client ENet fallback? | Architect | Phase 2-3 |
+| Planar vs spherical for v1? | **Spherical as default; planar supported.** | §3.12 |
+| 200 km² vs 40,000 km² vs other? | **v1: 20 km planet, 150 km² continent.** v2: 100 km, v3: 1000+ km. | §3.9, §3.11 |
+| Open world vs instanced-first for v1? | **Open world first; instances for dungeons / special islands / arenas / etc.** | §3.9, §8.5 |
+| Coordinator: separate process or just a flag? | **Separate process** (per §2.1, §16). | §2.1 |
+| Materialized intersection cache size? | **LRU 1000 entries in Redis** (per §13.4); measured and tuned in Phase 2. | §13.4 |
+| Native client ENet fallback? | **Phase 2+**; native clients can opt into direct P2P UDP/TCP. | §10.10.3 |
 
-### 19.3 Deferred items
+All Phase 1 entry decisions are now made. Phase 1 can
+begin.
 
-- **P2P entity sync** (PRD §10.4). Central-server model
-  proven first; revisit at scale.
-- **Jolt Physics** swap-in (Phase 5 in PRD; we re-prioritize
-  as needed).
-- **Quasicrystal experimental** (Phase 6 here; only if
-  seams matter).
+### 19.3 Deferred items (updated 2026-09-05)
+
+- **P2P chunk sync**: PROMOTED from deferred to **active
+  Phase 2** (see §10.10). User flagged as high-leverage.
+- **Jolt Physics** swap-in: deferred to Phase 5+ per PRD.
+- **Quasicrystal experimental**: deferred to Phase 6; only
+  pursued if icosahedral seams become user-noticeable.
+- **CDN for static chunks**: PROMOTED to **Phase 1+**
+  (see §11.11.4); cheap to ship, big bandwidth win.
+- **Edge shards** (world cache): deferred to Phase 4+;
+  only needed at >5000 active players per shard.
+- **CRDT for cross-shard state**: deferred to Phase 4+
+  (see §12.11); Phase 1-3 use last-write-wins.
 - **MCP / agent observation** beyond `client_type: agent`
-  flag in HELLO. The Phase 1 wire protocol supports it;
+  flag in HELLO: deferred. Wire protocol is Phase 1-ready;
   richer observation semantics is a later project.
-- **CDN for assets by content-hash**. Mentioned in PRD
-  §10.3; not on the critical path.
-- **Mobile native clients** (Android/iOS). Browser is the
-  first target. Native comes later.
+- **Mobile native clients** (Android/iOS): deferred.
+  Browser (HTML5/wasm) is the v1 target; native comes
+  after browser is proven.
+
+---
+
+## 21. Experimental angles (post-Phase-1 research)
+
+After the Phase 1 numbers land, we have a baseline. The
+following experimental angles are the "if the baseline
+isn't good enough" research directions. Each has a phase
+assignment, a cost estimate, and a measurement that would
+trigger adopting it.
+
+### 21.1 Quasicrystal address space (Penrose / Ammann-Beenker)
+
+**Phase**: 6 (deferred; only pursued if icosahedral seams
+are user-noticeable).
+
+**Hypothesis**: a Penrose (or Ammann-Beenker) aperiodic
+tiling as the address space gives:
+
+- No visible seams (no periodicity to wrap around).
+- Multi-scale hierarchical structure naturally.
+- Better space-filling than icosahedral (no anisotropy;
+  corner cells as "normal" as center cells).
+
+**Cost**:
+
+- Address-space operations are non-trivial (no simple
+  `(x, y)` → cell id; need matching-rule machinery).
+- Rendering is harder (non-uniform mesh sizes; need
+  tessellation library).
+- Less prior art in games.
+- Initial prototype: 2-4 weeks of pure-Python work in
+  `labs/multi-iso/math/penrose_prototype/`.
+
+**Trigger to adopt**: Phase 5 ships with user-noticeable
+seams. We have no real evidence yet that icosahedral at
+subdivision level 7 (62m chunks) will seam — that's a
+Phase 5 measurement.
+
+**Status**: research-only until Phase 5. No code in
+game/.
+
+### 21.2 Edge shards (world cache layer)
+
+**Phase**: 4+ (after central-server scaling proven).
+
+**Hypothesis**: thin "edge shard" processes near clients
+do AOI filter + chunk gen + prediction, forwarding only
+aggregate state to the central shard. Same pattern as CDN
+but for game state.
+
+**Cost**:
+
+- New process type (the edge shard).
+- Subset-of-state-tree subscription mechanism (we
+  currently assume the shard owns its full partition).
+- State consistency: edge shard sees slightly stale state
+  relative to the central shard. Acceptable for most
+  reads; not acceptable for combat.
+
+**Trigger to adopt**: >5000 active players per shard, or
+a single shard's bandwidth exceeds 100MB/s outbound.
+
+**Status**: sketched in §11.13. No code yet.
+
+### 21.3 Adaptive chunk size (LOD-by-content)
+
+**Phase**: 5+.
+
+**Hypothesis**: instead of fixed 64m chunks, use chunk
+size based on content complexity. Empty ocean = 1km
+chunks. Dense city = 16m chunks. The icosahedral mesh
+supports this naturally via mixed subdivision levels.
+
+**Cost**:
+
+- Address-space code becomes more complex (variable chunk
+  size).
+- Hierarchical instancing (§7.12) needs to handle
+  variable-size transforms.
+- LOD transitions between subdivisions need visual
+  stitching logic.
+
+**Trigger to adopt**: Phase 5 profiling shows 90% of
+chunks are mostly empty (vast ocean, flat plains) and the
+per-chunk overhead is dominant.
+
+**Status**: design-level only.
+
+### 21.4 LOD-by-type
+
+**Phase**: 5+.
+
+**Hypothesis**: distant trees are billboards; distant
+mountains are low-poly meshes; distant cities are colored
+dots on the world map. The LOD pyramid doesn't have to be
+one shape-fits-all.
+
+**Cost**:
+
+- Per-type LOD configuration (designer input).
+- Mesh-LOD libraries (LOD generator, edge-collapse).
+- Cross-LOD seam avoidance.
+
+**Trigger to adopt**: Phase 5 GPU profiling shows we're
+vertex-bound, not draw-call-bound.
+
+**Status**: design-level only.
+
+### 21.5 Merkle suffix trees (MST)
+
+**Phase**: 4+ (research; pure-Python prototype in /labs/).
+
+**Hypothesis**: replace the path-keyed state tree with a
+**suffix-tree-of-hashes** structure. Same hash invariant,
+but locality-of-reference means:
+
+- "All entities in chunk X" is one subtree with one root
+  hash.
+- A chunk diff is O(chunk_size), not O(tree_size).
+- Better cache behavior on iteration.
+
+**Cost**:
+
+- New data structure (replaces the simple path-keyed
+  tree).
+- Need to maintain the path-keyed API for compatibility
+  with everything that already uses it.
+- Diff format may change (affects the wire protocol).
+
+**Trigger to adopt**: Phase 4 profiling shows diff cost
+is dominant and we need sub-linear diffs.
+
+**Status**: research-only. No code yet.
+
+### 21.6 Algebraic effects / lenses for state diffs
+
+**Phase**: 4+ (research; pure-Python prototype in /labs/).
+
+**Hypothesis**: treat the state tree as a tree of lenses.
+The diff is just the composition of modified lenses.
+O(modified), not O(state).
+
+**Cost**:
+
+- New abstraction (lenses are not natural in GDScript).
+- Storage layer has to know which lenses depend on which.
+- Per-lens hash recomputation, which is more frequent
+  than the current per-tree hash.
+
+**Trigger to adopt**: same as 21.5 (diff cost dominant).
+
+**Status**: research-only.
+
+### 21.7 Jolt Physics swap-in
+
+**Phase**: 5+.
+
+**Hypothesis**: Jolt Physics (already in
+`labs/jolt-playground/`) is faster and more deterministic
+than Godot's default Physics3D. Replaces the physics
+backend without changing the rest of the engine.
+
+**Cost**:
+
+- Replace Godot's physics bodies with Jolt equivalents.
+- Re-test all combat, collision, and movement code.
+- Engine integration work.
+
+**Trigger to adopt**: Phase 5 profiling shows physics is
+a bottleneck, OR we need determinism that Godot's
+physics doesn't provide.
+
+**Status**: prototype exists in `labs/jolt-playground/`.
+Not integrated.
+
+### 21.8 Polyglot FFI (GDScript ↔ Julia ↔ C++ in-process)
+
+**Phase**: 4+.
+
+**Hypothesis**: replace the HTTP bridge to Julia with
+direct in-process FFI. Same for C++ GDExtensions. Single
+runtime, three languages, no marshalling.
+
+**Cost**:
+
+- New build system for mixed-language binaries.
+- Per-language lifecycle management.
+- Debugging is harder (cross-language stack traces).
+
+**Trigger to adopt**: HTTP bridge latency becomes a
+bottleneck (probably 1-2ms per call adds up at 20Hz
+tick). The state tree + Julia orchestrator will hit this
+in Phase 3.
+
+**Status**: sketch in `labs/polyglot-ffi/`. README only.
+
+### 21.9 Adaptive tick rate (per-player)
+
+**Phase**: 5+.
+
+**Hypothesis**: not all players need 20Hz. A player who's
+AFK in town for 10 minutes doesn't need 20Hz updates of
+the world; their entity state can update at 1Hz. A player
+in active combat needs 20Hz+.
+
+**Cost**:
+
+- Per-player tick-rate tracking.
+- Subscription adjustment based on tick rate.
+- Server-side scheduling (a player on 1Hz tick rate
+  doesn't get every STATE_DIFF frame).
+
+**Trigger to adopt**: Phase 5 profiling shows we're
+spending significant CPU on AFK players.
+
+**Status**: design-level only.
+
+### 21.10 Pure-function-of-state for all gameplay
+
+**Phase**: 3+ (gradual).
+
+**Hypothesis**: every gameplay mutation is a pure
+function of (current state, command, RNG seed) → (new
+state, command result, next RNG seed). No hidden state,
+no side effects. This means:
+
+- Easy to test (same input → same output).
+- Easy to rewind (for lag compensation, for debugging).
+- Trivially serializable for save/load.
+
+**Cost**:
+
+- Discipline. Every service must be refactored to be
+  pure.
+- Some "convenient" patterns become forbidden (e.g.
+  shared mutable caches).
+
+**Trigger to adopt**: as soon as we start having
+debugging pain. The current Node-based code already
+shows this (state scattered across components).
+
+**Status**: aspirational. Phase 1-2 will violate this
+frequently; Phase 3+ moves toward it.
+
+### 21.11 Why we have a §21 at all
+
+Each of these ideas is a real research direction. The
+point of §21 is **not** to commit to all of them — it's
+to **catalog them so we don't lose them**. When Phase 5
+or 6 shows that we need a particular angle, we don't
+have to re-derive the idea; we have it here with phase,
+cost, and trigger documented.
+
+If a new idea comes up during Phase 1-4 work, it goes
+here with the same treatment.
 
 ---
 
