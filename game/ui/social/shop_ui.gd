@@ -22,11 +22,17 @@ static func open_for_offering(player_id: String, offering: Resource, npc_data, n
 		return
 	
 	# Build shop data from offering
+	var shop_name := "Merchant"
+	if npc_data != null:
+		if npc_data.get("display_name"):
+			shop_name = npc_data.display_name
+		elif typeof(npc_data) == TYPE_OBJECT and "display_name" in npc_data:
+			shop_name = npc_data.display_name
 	var shop_data := {
-		"name": npc_data.npc_name if npc_data else "Merchant",
+		"name": shop_name,
 		"items": _build_inventory_from_offering(offering)
 	}
-	shop.open(player_id, shop_data)
+	shop.open("shop", shop_data)
 
 
 static func _get_shop_instance() -> ShopUI:
@@ -44,8 +50,12 @@ static func _build_inventory_from_offering(offering: Resource) -> Array:
 	if offering == null:
 		return items
 	# Items come from offering.items or default to empty
-	if offering.has("items"):
-		items = offering.get("items", [])
+	# Use get() for Dictionary-like access, fallback to property access
+	if typeof(offering) == TYPE_OBJECT:
+		if "catalog_items" in offering:
+			items = offering.catalog_items if offering.catalog_items else []
+		elif "items" in offering:
+			items = offering.items if offering.items else []
 	return items
 
 func _ready() -> void:
