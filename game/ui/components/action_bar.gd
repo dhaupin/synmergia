@@ -169,9 +169,14 @@ func update_slot(index: int, skill_data: Dictionary) -> void:
 		return
 
 	# Update icon
-	if icon and skill_data.has("icon"):
+	if icon and skill_data.has("icon_path"):
 		icon.modulate = Color(1, 1, 1, 1)
-		# TODO: Set actual texture
+		var icon_path: String = skill_data.icon_path
+		if not icon_path.is_empty():
+			var tex := load(icon_path) as Texture2D
+			icon.texture = tex
+		else:
+			icon.texture = null
 
 	# Update mana cost
 	if mana and skill_data.has("mana_cost"):

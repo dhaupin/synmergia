@@ -9,6 +9,7 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 const SLOT_COUNT: int = 4
 var _slots: Array = []
 var _keybinds: Array = []
+var _slot_items: Dictionary = {}
 
 signal item_used(index: int, item_id: String)
 signal item_changed(index: int, item_data: Dictionary)
@@ -42,8 +43,8 @@ func _create_slot(index: int) -> Control:
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
 	
-	# Item icon placeholder
-	var icon := Panel.new()
+	# Item icon
+	var icon := TextureRect.new()
 	icon.name = "Icon"
 	icon.modulate = Color(1, 1, 1, 0.3)
 	slot.add_child(icon)
@@ -93,12 +94,15 @@ func _use_slot(index: int) -> void:
 	if icon and icon.modulate.a < 0.5:
 		return
 
-		# Check if on cooldown
-		if cooldown and cooldown.visible:
-			return
+	# Check if on cooldown
+	if cooldown and cooldown.visible:
+		return
 
-			# Emit signal
-			item_used.emit(index, "potion_health")  # TODO: Get actual item ID
+	# Emit signal with actual item ID
+	if _slot_items.has(index):
+		item_used.emit(index, _slot_items[index].get("id", ""))
+	else:
+		item_used.emit(index, "")
 
 func set_slot_item(index: int, item_data: Dictionary) -> void:
 	if index < 0 or index >= _slots.size():
@@ -109,22 +113,33 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 	var stack: Label = slot.get_node_or_null("Stack")
 
 	if item_data.is_empty():
+		_slot_items.erase(index)
 		if icon:
 			icon.modulate = Color(1, 1, 1, 0.3)
-			if stack:
-				stack.visible = false
-				return
+			icon.texture = null
+		if stack:
+			stack.visible = false
+		return
 
-				if icon:
-					icon.modulate = Color(1, 1, 1, 1)
-					# TODO: Set actual icon texture
+	_slot_items[index] = item_data
+	if icon:
+		icon.modulate = Color(1, 1, 1, 1)
+		var icon_path: String = item_data.get("icon_path", "")
+		if not icon_path.is_empty():
+			var tex := load(icon_path) as Texture2D
+			icon.texture = tex
+		else:
+			icon.texture = null
 
-					if stack and item_data.has("quantity"):
-						var qty: int = item_data.quantity
-						stack.text = str(qty) if qty > 1 else ""
-						stack.visible = qty > 1
+	if stack and item_data.has("quantity"):
+		var qty: int = item_data.quantity
+		stack.text = str(qty) if qty > 1 else ""
+		stack.visible = qty > 1
 
-					item_changed.emit(index, item_data)
+	item_changed.emit(index, item_data)
+
+func get_slot_item(index: int) -> Dictionary:
+	return _slot_items.get(index, {})
 
 func set_slot_cooldown(index: int, remaining: float) -> void:
 	if index < 0 or index >= _slots.size():

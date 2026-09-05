@@ -22,6 +22,7 @@ var _withdraw_btn: Button
 ## State
 var _vault_data: Dictionary = {}
 var _selected_slot: int = -1
+var _slot_data: Dictionary = {}  # slot_index -> {id, quantity, icon_path}
 
 const GRID_COLS: int = 5
 const GRID_ROWS: int = 10
@@ -203,16 +204,30 @@ func _update_slot_display() -> void:
 
 func _populate_grid() -> void:
 	var slots: Array = _vault_data.get("slots", [])
+	_slot_data.clear()
+	
 	for i in range(_vault_grid.get_child_count()):
 		var slot: Control = _vault_grid.get_child(i)
 		if slot and slot.has_node("ItemIcon"):
 			var icon: TextureRect = slot.get_node("ItemIcon")
 			if i < slots.size() and not slots[i].is_empty():
+				var slot_info: Dictionary = slots[i]
+				_slot_data[i] = slot_info
+				
 				icon.visible = true
-				# TODO: Set actual icon texture
-				icon.modulate = UIStyles.COLORS.accent_gold
+				icon.modulate = Color(1, 1, 1, 1)
+				
+				# Load item icon
+				var item_data: Dictionary = slot_info.get("data", {})
+				var icon_path: String = item_data.get("icon_path", "")
+				if not icon_path.is_empty():
+					var tex := load(icon_path) as Texture2D
+					icon.texture = tex
+				else:
+					icon.texture = null
 			else:
 				icon.visible = false
+				icon.texture = null
 
 		# Update selection highlight
 		var style_name := "selected" if i == _selected_slot else "normal"
