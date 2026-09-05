@@ -80,8 +80,8 @@ var _profanity_filter_enabled: bool = true
 signal message_received(sender_id: String, channel: Channel, message: String, targets: Array)
 signal channel_joined(entity_id: String, channel: Channel)
 signal channel_left(entity_id: String, channel: Channel)
-signal player_ignored(ignorer_id: String, ignored_id: String)
-signal player_unignored(ignorer_id: String, ignored_id: String)
+signal player_chat_ignored(ignorer_id: String, ignored_id: String)
+signal player_chat_unignored(ignorer_id: String, ignored_id: String)
 signal channel_settings_changed(entity_id: String, channel: Channel)
 
 func _ready() -> void:
@@ -464,7 +464,7 @@ func _cmd_ignore(sender_id: String, args: Array) -> bool:
 				
 	if not _ignored_players[sender_id].has(target):
 		_ignored_players[sender_id].append(target)
-		player_ignored.emit(sender_id, target)
+		player_chat_ignored.emit(sender_id, target)
 		send_system_message(sender_id, "Ignored %s" % target)
 				
 	return true
@@ -478,7 +478,7 @@ func _cmd_unignore(sender_id: String, args: Array) -> bool:
 				
 	if _ignored_players.has(sender_id) and _ignored_players[sender_id].has(target):
 		_ignored_players[sender_id].erase(target)
-		player_unignored.emit(sender_id, target)
+		player_chat_unignored.emit(sender_id, target)
 		send_system_message(sender_id, "Stopped ignoring %s" % target)
 				
 	return true
