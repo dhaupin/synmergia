@@ -5,7 +5,7 @@
 ##  - Hovered element name + type
 ##  - Mouse position
 ##
-## Toggle: DebugOverlay.toggle() or F3 key
+## Toggle: DebugOverlay.toggle() or F11 key
 
 extends CanvasLayer
 
@@ -27,7 +27,7 @@ static func log_click(element_name: String, action: String, success: bool) -> vo
 func _ready() -> void:
 	instance = self
 	_build_panel()
-	print("DebugOverlay: ready (F3 to toggle)")
+	print("DebugOverlay: ready (F11 to toggle)")
 
 func _process(_delta: float) -> void:
 	if not _panel or not _panel.visible:
@@ -65,7 +65,7 @@ func _process(_delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_F3:
+		if event.keycode == KEY_F11:
 			toggle()
 
 func _build_panel() -> void:
@@ -108,7 +108,7 @@ func _build_panel() -> void:
 	_panel.add_child(_mouse_label)
 
 	var hint = Label.new()
-	hint.text = "F3 = toggle"
+	hint.text = "F11 = toggle"
 	hint.position = Vector2(10, 95)
 	hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	hint.add_theme_font_size_override("font_size", 10)

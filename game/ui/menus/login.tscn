@@ -56,7 +56,10 @@ text = "Username"
 [node name="UsernameField" type="LineEdit" parent="Center/Panel/Form"]
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
+focus_mode = 2
 placeholder_text = "username"
+accessible_string = "Username input field"
+accessible_description = "Enter your username or email"
 
 [node name="PasswordLabel" type="Label" parent="Center/Panel/Form"]
 layout_mode = 2
@@ -65,8 +68,11 @@ text = "Password"
 [node name="PasswordField" type="LineEdit" parent="Center/Panel/Form"]
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
+focus_mode = 2
 placeholder_text = "••••••••"
 secret = true
+accessible_string = "Password input field"
+accessible_description = "Enter your password"
 
 [node name="DisplayNameLabel" type="Label" parent="Center/Panel/Form"]
 layout_mode = 2
@@ -76,7 +82,10 @@ text = "Display Name (optional)"
 visible = false
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
+focus_mode = 2
 placeholder_text = "How others see you"
+accessible_string = "Display name input field"
+accessible_description = "Optional: how others will see you in game"
 
 [node name="ErrorLabel" type="Label" parent="Center/Panel/Form"]
 visible = false
@@ -97,17 +106,26 @@ theme_override_constants/separation = 8
 [node name="LoginButton" type="Button" parent="Center/Panel/Form/Buttons"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+focus_mode = 2
 text = "Login"
+accessible_string = "Sign in to your account"
+accessible_description = "Press Enter or click to login"
 
 [node name="RegisterButton" type="Button" parent="Center/Panel/Form/Buttons"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+focus_mode = 2
 text = "Create Account"
+accessible_string = "Create a new account"
+accessible_description = "Press Enter or click to create a new account"
 
 [node name="GuestButton" type="Button" parent="Center/Panel/Form/Buttons"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+focus_mode = 2
 text = "Play as Guest"
+accessible_string = "Play without an account"
+accessible_description = "Press Enter or click to play as a guest"
 
 [node name="Footer" type="Label" parent="Center/Panel/Form"]
 layout_mode = 2

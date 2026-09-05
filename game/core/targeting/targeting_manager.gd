@@ -604,6 +604,27 @@ func cycle_next(valid_entity_ids: Array[String]) -> void:
 			set_target(entity_id, data.schema_id, data.name, data.position, data.node, data.entity_type)
 			return
 
+## Cycle targets: forward (shift=false) or backward (shift=true).
+## Queries all registered targetables and cycles through them.
+func cycle_target(reverse: bool) -> void:
+	if _targetables.is_empty():
+		return
+	var ids: Array[String] = _targetables.keys()
+	if reverse:
+		ids.reverse()
+	var current_idx := -1
+	if _current_target:
+		current_idx = ids.find(_current_target.id)
+	var step := 1 if not reverse else -1
+	var tries := ids.size()
+	for offset in range(1, tries + 1):
+		var next_idx := posmod(current_idx + offset * step, ids.size())
+		var entity_id: String = ids[next_idx]
+		var data: Dictionary = _targetables[entity_id]
+		set_target(entity_id, data.schema_id, data.name, data.position, data.node, data.entity_type)
+		return
+
+
 ## Restore previous target
 func restore_previous() -> bool:
 	if _target_history.is_empty():

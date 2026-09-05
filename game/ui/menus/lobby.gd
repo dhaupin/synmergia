@@ -42,7 +42,7 @@ func _ready() -> void:
 
 	# Auto-play a freshly created character — the character_select scene stores
 	# the id in GameManager meta before returning here so the signal is lost.
-	var last_id := GameManager.get_meta("last_character_id", "") if GameManager else ""
+	var last_id: String = GameManager.get_meta("last_character_id", "") if GameManager else ""
 	if last_id != "":
 		GameManager.set_meta("last_character_id", "")
 		for i in range(_characters.size()):
@@ -152,13 +152,28 @@ func _on_logout_pressed() -> void:
 # F5 = create character, F6 = play (for headless testing)
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_F5:
-				print("[LOBBY] F5 pressed - creating character")
-				_on_create_pressed()
-			KEY_F6:
-				print("[LOBBY] F6 pressed - playing character")
-				_on_play_pressed()
+		if event.keycode == KEY_TAB:
+			_cycle_focus([_play_btn, _create_btn, _delete_btn, _logout_btn], event.shift)
+		elif event.keycode == KEY_F5:
+			print("[LOBBY] F5 pressed - creating character")
+			_on_create_pressed()
+		elif event.keycode == KEY_F6:
+			print("[LOBBY] F6 pressed - playing character")
+			_on_play_pressed()
+
+
+func _cycle_focus(buttons: Array, reverse: bool) -> void:
+	var current := get_viewport().gui_get_focus_owner()
+	var idx := -1
+	for i in range(buttons.size()):
+		if buttons[i] == current:
+			idx = i
+			break
+	if reverse:
+		idx = (idx - 1 + buttons.size()) % buttons.size()
+	else:
+		idx = (idx + 1) % buttons.size()
+	buttons[idx].grab_focus()
 
 func _on_logged_out() -> void:
 	if GameManager:

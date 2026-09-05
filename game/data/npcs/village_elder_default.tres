@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_village_elder"
+display_name = "Village Elder"
+description = "The elder of Haven village, keeper of ancient lore."
+level = 5
+faction = "friendly"
+greeting = "Welcome, traveler. What brings you to our village?"
+location_type = 2
+includes = [{"type": "offering", "ref_id": "village_quests"}, {"type": "offering", "ref_id": "village_elder_dialogue"}]

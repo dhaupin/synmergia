@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="NPCOffering" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_offering.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+type = "quest"
+display_name = "Village Quests"
+quest_ids = ["quest_wolves_hunt", "daily_herb_gathering"]

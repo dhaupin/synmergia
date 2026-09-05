@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "potions_village_default"
+display_name = "Herbalist"
+description = "A village herbalist specializing in potions and remedies."
+npc_type = 4
+level = 1
+faction = "friendly"
+model_path = "res://models/npcs/herbalist_female_01.tscn"
+greeting = "Welcome! I have remedies for what ails you."
+farewell = "Safe travels."
+shop_title = "Potions & Supplies"
+location_type = 2
+buy_multiplier = 0.5
+sell_multiplier = 1.0
+buy_categories = ["CONSUMABLE"]
+sell_categories = ["CONSUMABLE"]
+includes = [{"type": "offering", "ref_id": "potions"}]

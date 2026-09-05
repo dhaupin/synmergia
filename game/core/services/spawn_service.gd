@@ -6,8 +6,7 @@ const Entity = preload("res://core/entities/entity.gd")
 
 
 
-const BlacksmithNPC = preload("res://core/entities/blacksmith_npc.gd")
-const SkillAcademyNPC = preload("res://core/entities/skill_academy_npc.gd")
+const NPCEntity = preload("res://core/entities/npc_entity.gd")
 const ZoneData = preload("res://core/schemas/zone_data.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
@@ -514,130 +513,101 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 	enemy.current_health = spawn_point.enemy_data.health
 	
 	return enemy
-## Spawn a Blacksmith NPC at a position
-func spawn_blacksmith(
+
+## Spawn a unified NPCEntity from NPCData resource.
+## Loads the NPC's offerings via includes[] and registers with all services.
+func spawn_npc_entity(
 		zone_id: String,
 		position: Vector3,
-		npc_data_id: String = ""
-) -> BlacksmithNPC:
-		var blacksmith := BlacksmithNPC.new()
-		
-		# Load NPC data if provided
-		var data_service = DataService
-		if data_service and npc_data_id != "":
-			var npc_data: NPCData = data_service.get_npc(npc_data_id)
-			if npc_data:
-				blacksmith.apply_data(npc_data)
-		else:
-			# Default values if no data provided
-			blacksmith.display_name = "Blacksmith"
-		
-		blacksmith.entity_type = Entity.EntityType.NPC
-		blacksmith.faction = Entity.Relation.FRIENDLY
-		
-		# Register with EntityService
-		var entity_service = EntityService
-		if entity_service:
-			entity_service.register_entity(blacksmith)
-		
-		# Register with TargetingManager
-		var targeting_manager = TargetingManager
-		if targeting_manager:
-			targeting_manager.register_targetable(
-				blacksmith.entity_id,
-				"npc",
-				blacksmith,
-				blacksmith.display_name,
-				position,
-				blacksmith.entity_type
-			)
-		
-		# Position NPC
-		blacksmith.global_position = position
-		
-		# Add to zone
-		var zone_manager = ZoneManager
-		if zone_manager:
-			var zone = zone_manager.get_zone(zone_id)
-			if zone:
-				zone_manager.entity_enter_zone(blacksmith, zone)
-		
-		GameLog.info("SpawnService: Spawned Blacksmith '%s' at (%s) in zone %s" % [blacksmith.display_name, position, zone_id])
-		# Note: EventHub.entity_spawned is already emitted by EntityService.register_entity()
-		
-		return blacksmith
+		npc_data: NPCData
+) -> NPCEntity:
+	if npc_data == null:
+		push_warning("SpawnService: Cannot spawn NPC — npc_data is null")
+		return null
 
-## Spawn a Skill Academy NPC at a position
-func spawn_skill_academy(
-		zone_id: String,
-		position: Vector3,
-		npc_data_id: String = ""
-) -> SkillAcademyNPC:
-	var academy := SkillAcademyNPC.new()
-
-	# Load NPC data if provided
-	var data_service = DataService
-	if data_service and npc_data_id != "":
-		var npc_data: NPCData = data_service.get_npc(npc_data_id)
-		if npc_data:
-			academy.apply_data(npc_data)
-	else:
-		academy.display_name = "Master Trainer"
-
-	academy.entity_type = Entity.EntityType.NPC
-	academy.faction = Faction.FRIENDLY
+	var entity := NPCEntity.new()
+	entity.npc_data = npc_data
+	entity.entity_id = npc_data.id
+	entity.display_name = npc_data.display_name
+	entity.level = npc_data.level
+	entity.entity_type = Entity.EntityType.NPC
+	entity.relation = Entity.Relation.FRIENDLY
+	entity.global_position = position
 
 	# Register with EntityService
-	var entity_service = EntityService
-	if entity_service:
-		entity_service.register_entity(academy)
+	if EntityService:
+		EntityService.register_entity(entity)
 
 	# Register with TargetingManager
-	var targeting_manager = TargetingManager
-	if targeting_manager:
-		targeting_manager.register_targetable(
-			academy.entity_id,
+	if TargetingManager:
+		TargetingManager.register_targetable(
+			entity.entity_id,
 			"npc",
-			academy,
-			academy.display_name,
-			academy.global_position
+			entity,
+			entity.display_name,
+			position,
+			entity.entity_type
 		)
 
-	GameLog.info("SpawnService: Spawned Skill Academy '%s' at (%s) in zone %s" % [academy.display_name, position, zone_id])
+	# Add to zone
+	if ZoneManager:
+		var zone := ZoneManager.get_zone(zone_id)
+		if zone:
+			ZoneManager.entity_enter_zone(entity, zone)
 
-	return academy
+	GameLog.info("SpawnService: Spawned NPCEntity '%s' in zone %s" % [entity.display_name, zone_id])
+	return entity
 
-## Spawn all blacksmiths for a zone (called during zone load)
-func spawn_zone_blacksmiths(zone_id: String, zone_data: ZoneData) -> Array[BlacksmithNPC]:
-		var blacksmiths: Array[BlacksmithNPC] = []
-		
-		# Check zone NPCs list for blacksmith entries
-		if zone_data.npcs.size() > 0:
-			for npc_id in zone_data.npcs:
-				if npc_id.begins_with("blacksmith_"):
-					var spawn_pos := zone_data.bind_point if zone_data.bind_point != Vector3.ZERO else zone_data.zone_center
-					spawn_pos += Vector3(randf_range(-2, 2), 0, randf_range(-2, 2))	 # Random offset
-					var blacksmith := spawn_blacksmith(zone_id, spawn_pos, npc_id)
-					if blacksmith:
-						blacksmiths.append(blacksmith)
-		
-		# Auto-spawn in safe zones if no blacksmith defined
-		if blacksmiths.is_empty() and zone_data.pvp_mode == ZoneData.PvPZoneMode.SAFE:
-			var spawn_pos := zone_data.bind_point if zone_data.bind_point != Vector3.ZERO else zone_data.zone_center
-			# Determine default NPC based on zone type
-			var default_npc_id := "blacksmith_town_default"
-			if zone_id.begins_with("outpost_"):
-				default_npc_id = "blacksmith_outpost_default"
-			elif zone_id.begins_with("village_") or zone_id.begins_with("hamlet_"):
-				default_npc_id = "blacksmith_village_default"
-			elif zone_id.begins_with("capital_"):
-				default_npc_id = "blacksmith_capital_default"
-			
-			var blacksmith := spawn_blacksmith(zone_id, spawn_pos, default_npc_id)
-			if blacksmith:
-				blacksmiths.append(blacksmith)
-		
-		return blacksmiths
+## Spawn all offering NPCs for every zone.
+## Infers zone from NPC ID prefix (e.g. blacksmith_village_* → zone_village).
+func spawn_all_offering_npcs() -> void:
+	if not DataService:
+		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
+		return
+
+	var all_npcs_dict := DataService.get_all_npcs()
+	for npc_data in all_npcs_dict.values():
+		if npc_data == null:
+			continue
+		if npc_data.includes.is_empty():
+			continue
+
+		var zone_id := _zone_from_npc_id(npc_data.id)
+		var zone_data: ZoneData = null
+		if ZoneManager:
+			zone_data = ZoneManager.get_zone(zone_id)
+
+		var spawn_pos: Vector3
+		if zone_data != null and zone_data.bind_point != Vector3.ZERO:
+			spawn_pos = zone_data.bind_point + npc_data.spawn_offset
+		else:
+			spawn_pos = Vector3(randf_range(-10, 10), 0, randf_range(-10, 10))
+
+		spawn_npc_entity(zone_id, spawn_pos, npc_data)
+
+	GameLog.info("SpawnService: Spawned all offering NPCs")
+
+## Derive zone_id from NPC ID naming convention.
+## E.g. "blacksmith_village_default" → "zone_village"
+static func _zone_from_npc_id(npc_id: String) -> String:
+	var DEFAULT_ZONE := "zone_capital"
+	# Strip known prefixes to get the location tier
+	var prefixes := ["blacksmith_", "merchant_", "potions_", "armory_", "skill_academy_", "bank_"]
+	var remainder := npc_id
+	for prefix in prefixes:
+		if remainder.begins_with(prefix):
+			remainder = remainder.trim_prefix(prefix)
+			break
+	# remainder is now "village_default" or "capital_default"
+	# Take the first segment as the location tier
+	var segments := remainder.split("_")
+	if segments.size() > 0:
+		var location := segments[0]
+		var inferred := "zone_" + location
+		if ZoneManager and ZoneManager.get_zone(inferred) != null:
+			return inferred
+	return DEFAULT_ZONE
+
 
 ## Despawn an NPC
 func despawn_npc(entity) -> void:

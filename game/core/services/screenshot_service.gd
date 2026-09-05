@@ -1,13 +1,14 @@
 ## ScreenshotService — Native Godot screenshot capture
 ## Captures the viewport as a PNG and saves it to disk.
-## Used for dev automation (save_screenshot(FLAG_DEV)) and in-game player F8.
+## Used for dev automation (save_screenshot(FLAG_DEV)) and in-game player PrintScreen.
 
 extends Node
 
 const FLAG_DEV: int = 1 << 0
-const KEY_F8: int = 4194332
-const KEY_F8_ALT: int = 4194339  # xdotool/X11 encoding
-const USB_F8: int = 119
+
+const KEY_PRINT: int = 4194305  # PrintScreen / SysReq
+const KEY_PRINT_ALT: int = 4194339  # xdotool/X11 encoding (F8 legacy)
+const USB_PRINT: int = 119
 const FLAG_FORCE: int = 1 << 1
 
 enum Owner { DEV, PLAYER }
@@ -98,6 +99,6 @@ func _emit_disabled() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		var kc: int = event.get_keycode()
-		# Accept KEY_F8, KEY_F8_ALT (xdotool/X11), or USB HID code 119
-		if kc == KEY_F8 or kc == KEY_F8_ALT or event.physical_keycode == USB_F8:
+		# Accept KEY_PRINT, KEY_PRINT_ALT (xdotool/X11), or USB HID code 119
+		if kc == KEY_PRINT or kc == KEY_PRINT_ALT or event.physical_keycode == USB_PRINT:
 			save_screenshot()

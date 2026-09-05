@@ -29,7 +29,7 @@ var _admin_id: String = ""
 
 ## Escape [ and ] for BBCode safety
 static func _esc(text: String) -> String:
-return text.replace("[", "［").replace("]", "］")
+	return text.replace("[", "［").replace("]", "］")
 
 
 func _ready() -> void:
@@ -377,7 +377,7 @@ func _on_auto_response_action(player_id: String, action: int, exploit_type: Stri
 	if not _terminal_output:
 		return
 	var action_names := ["WARN", "MUTE", "RESTRICT", "KICK", "BAN"]
-	var action_name := action_names[action] if action < action_names.size() else "UNKNOWN"
+	var action_name: String = action_names[action] if action < action_names.size() else "UNKNOWN"
 	_terminal_output.append_text("[color=red]>[/color] Auto-action: %s %s (reason: %s)\n" % [action_name, _esc(player_id), _esc(exploit_type)])
 
 
