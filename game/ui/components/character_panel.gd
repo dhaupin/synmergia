@@ -2,11 +2,8 @@
 ## Tabs: Inventory | Equipment | Stats | Skills
 ## Uses UIStyles for consistent theming
 extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
-const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name CharacterPanel
+const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 
 
