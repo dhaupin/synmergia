@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scenes/world_playable.gd" id="0"]
 [ext_resource type="Script" path="res://entities/player/player_controller.gd" id="1"]
@@ -13,6 +13,8 @@
 [ext_resource type="Script" path="res://entities/player/states/fall.gd" id="10"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_wolf.tres" id="11"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_bandit.tres" id="12"]
+[ext_resource type="Script" path="res://core/entities/npc_entity.gd" id="14_npc"]
+[ext_resource type="Resource" path="res://data/npc/test_merchant.tres" id="15_npc_data"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_layer.tscn" id="13_hud"]
 
 [sub_resource type="StandardMaterial3D" id="SubResource_floor_mat"]
@@ -211,5 +213,26 @@ shape = SubResource("SubResource_bandit_hitbox")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Bandit"]
 material_override = SubResource("SubResource_bandit_mat")
 mesh = SubResource("SubResource_bandit_mesh")
+
+# ── TEST MERCHANT NPC ───────────────────────────────────────────────────
+
+[node name="MerchantNPC" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.9, -5)
+script = ExtResource("14_npc")
+npc_data = ExtResource("15_npc_data")
+display_name = "Merchant"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="MerchantNPC"]
+mesh = null
+
+# ── VILLAGE ELDER NPC ────────────────────────────────────────────────────
+
+[node name="ElderNPC" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.9, -5)
+script = ExtResource("14_npc")
+display_name = "Village Elder"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ElderNPC"]
+mesh = null
 
 [node name="HudLayer" parent="." instance=ExtResource("13_hud")]

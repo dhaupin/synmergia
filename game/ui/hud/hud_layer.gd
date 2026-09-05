@@ -33,6 +33,9 @@ const LAYER_HUD: int = 10
 @onready var _dialog_ui: Node = _find("DialogUI")
 @onready var _settings_panel: Node = _find("SettingsPanel")
 @onready var _admin_toolbar: Node = _find("AdminToolbar")
+@onready var _faction_ui: Node = _find("FactionUI")
+@onready var _achievement_ui: Node = _find("AchievementUI")
+@onready var _shop_ui: Node = _find("ShopUI")
 
 
 func _ready() -> void:
@@ -101,12 +104,25 @@ func _wire_widgets() -> void:
 		_boss_health_bar.visible = false
 	if _admin_toolbar:
 		_admin_toolbar.visible = _is_admin()
+	if _faction_ui:
+		_faction_ui.visible = false
+		if _faction_ui.has_signal("panel_closed"):
+			_faction_ui.panel_closed.connect(_on_panel_closed)
+	if _achievement_ui:
+		_achievement_ui.visible = false
+		if _achievement_ui.has_signal("panel_closed"):
+			_achievement_ui.panel_closed.connect(_on_panel_closed)
+	if _shop_ui:
+		_shop_ui.visible = false
+		if _shop_ui.has_signal("panel_closed"):
+			_shop_ui.panel_closed.connect(_on_panel_closed)
 	if _world_map and _minimap:
-		# Wire minimap click → toggle WorldMap, if the minimap exposes
-		# a `map_button_pressed` signal. Otherwise the user opens the
-		# full map via the WorldMap's own UI (M key by default).
 		if _minimap.has_signal("map_button_pressed"):
 			_minimap.map_button_pressed.connect(_toggle_world_map)
+
+func _on_panel_closed() -> void:
+	# Handle panel close - could update some state if needed
+	pass
 
 
 func _bind_to_world() -> void:
@@ -162,3 +178,27 @@ func show_dialog(dialogue_id: String, npc_id: String = "") -> void:
 		_dialog_ui.show_dialog(npc_id, dialogue_id)
 	elif _dialog_ui.has_method("start_dialogue"):
 		_dialog_ui.start_dialogue(dialogue_id, npc_id)
+
+
+func show_faction_ui() -> void:
+	if _faction_ui:
+		if _faction_ui.has_method("open"):
+			_faction_ui.open()
+		else:
+			_faction_ui.visible = true
+
+
+func show_achievement_ui() -> void:
+	if _achievement_ui:
+		if _achievement_ui.has_method("open"):
+			_achievement_ui.open()
+		else:
+			_achievement_ui.visible = true
+
+
+func show_shop_ui() -> void:
+	if _shop_ui:
+		if _shop_ui.has_method("open"):
+			_shop_ui.open()
+		else:
+			_shop_ui.visible = true

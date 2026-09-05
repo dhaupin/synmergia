@@ -16,6 +16,9 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
+# Entity base class - provides extends Entity for all entity types
+# Must be loaded BEFORE RegisterTypes so Entity is available for extends
+Entity="*res://core/entities/entity.gd"
 RegisterTypes="*res://core/autoload/type_registry.gd"
 DebugOverlay="*res://ui/components/debug_overlay.gd"
 

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="NPCOffering" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_offering.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+type = "vendor"
+display_name = "General Store"
+stock_mode = "by_category"
+sell_categories = [0, 1, 2, 3, 4, 5, 6, 7]
+buy_categories = [0, 1, 2, 3, 4, 5, 6, 7]
+price_multiplier = 1.0
+unlimited_stock = true
+stock_qty = 99

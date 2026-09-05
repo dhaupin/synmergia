@@ -2,6 +2,8 @@
 extends Resource
 class_name SkillBook
 
+const Item = preload("res://core/schemas/item.gd")
+
 var book_skill_id: String = ""
 var book_upgrade_level: int = 0
 
@@ -10,7 +12,9 @@ static func create(skill_id: String, upgrade_level: int, skill_display_name: Str
 	var tier_roman := ["", "I", "II", "III", "IV", "V"]
 	var tier: String = tier_names[upgrade_level] if upgrade_level in tier_names else "common"
 
-	var book := SkillBook.new()
+	# Load the script at runtime to avoid "Identifier not found: SkillBook" at parse time
+	var script := load("res://core/schemas/skill_book.gd")
+	var book = script.new()
 	book.book_skill_id = skill_id
 	book.book_upgrade_level = upgrade_level
 	book.id = "book_%s_%s" % [skill_id, tier]

@@ -8,6 +8,9 @@ class_name ShopUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
+const VendorService = preload("res://core/services/vendor_service.gd")
+const InventoryService = preload("res://core/services/inventory_service.gd")
 
 ## Static instance — one shop at a time
 static var _instance: ShopUI = null
@@ -74,8 +77,10 @@ static func open_for_offering(player_id: String, offering, npc_data, npc_pos: Ve
 static func close_shop() -> void:
 	if _instance != null:
 		if _instance._offering != null and _instance._offering.type == "vendor":
-			if _instance._offering.restock_trigger == "close" and VendorService != null:
-				VendorService.restock(_instance._offering)
+			if _instance._offering.restock_trigger == "close":
+				var svc = VendorService.get_instance()
+				if svc:
+					svc.restock(_instance._offering)
 		_instance._proximity_enabled = false
 		_instance.close()
 	_instance = null
@@ -244,16 +249,18 @@ func _load_catalog() -> void:
 	_catalog = []
 	if _offering == null or _offering.type != "vendor":
 		return
-	if VendorService != null:
-		_catalog = VendorService.get_catalog(_offering, _npc_data)
-		VendorService.ensure_stock(_offering, _npc_data)
+	var svc = VendorService.get_instance()
+	if svc:
+		_catalog = svc.get_catalog(_offering, _npc_data)
+		svc.ensure_stock(_offering, _npc_data)
 
 func _load_sellable() -> void:
 	_sellable = []
 	if _offering == null or _offering.type != "vendor":
 		return
-	if VendorService != null:
-		_sellable = VendorService.get_sellable_items(_player_id, _offering, _npc_data)
+	var svc = VendorService.get_instance()
+	if svc:
+		_sellable = svc.get_sellable_items(_player_id, _offering, _npc_data)
 
 
 ## ============================================================================
@@ -342,7 +349,10 @@ func _refresh_info() -> void:
 
 
 func _refresh_gold() -> void:
-	if InventoryService != null and not _player_id.is_empty():
+	if _player_id.is_empty():
+		_gold_label.text = "0"
+		return
+	if InventoryService:
 		var gold: int = InventoryService.get_gold(_player_id)
 		_gold_label.text = str(gold)
 	else:
@@ -454,7 +464,11 @@ func _on_buy_pressed() -> void:
 	if _selected_index < 0 or _selected_type != Tab.BUY:
 		show_notification("Select an item to buy", false)
 		return
-	if _offering == null or VendorService == null:
+	if _offering == null:
+		show_notification("Shop unavailable", false)
+		return
+	var svc = VendorService.get_instance()
+	if svc == null:
 		show_notification("Shop unavailable", false)
 		return
 
@@ -464,7 +478,7 @@ func _on_buy_pressed() -> void:
 		return
 
 	var qty: int = int(_qty_spin.value) if _qty_spin else 1
-	var result: Dictionary = VendorService.buy_item(_player_id, _offering, _npc_data, item.id, qty)
+	var result: Dictionary = svc.buy_item(_player_id, _offering, _npc_data, item.id, qty)
 	if result.get("success"):
 		show_notification(result.get("message", "Purchased!"))
 		_load_catalog()
@@ -478,7 +492,11 @@ func _on_sell_pressed() -> void:
 	if _selected_index < 0 or _selected_type != Tab.SELL:
 		show_notification("Select an item to sell", false)
 		return
-	if _offering == null or VendorService == null:
+	if _offering == null:
+		show_notification("Shop unavailable", false)
+		return
+	var svc = VendorService.get_instance()
+	if svc == null:
 		show_notification("Shop unavailable", false)
 		return
 
@@ -489,7 +507,7 @@ func _on_sell_pressed() -> void:
 
 	var qty: int = int(_qty_spin.value) if _qty_spin else 1
 	var slot: int = entry.get("slot", 0)
-	var result: Dictionary = VendorService.sell_item(_player_id, _offering, _npc_data, item.id, slot, qty)
+	var result: Dictionary = svc.sell_item(_player_id, _offering, _npc_data, item.id, slot, qty)
 	if result.get("success"):
 		show_notification(result.get("message", "Sold!"))
 		_load_sellable()
@@ -554,27 +572,4 @@ func _get_local_player() -> Node:
 	return null
 
 func _load_item_icon(item: Resource) -> Texture2D:
-	var icon_path: String = item.get("icon_path", "")
-	if not icon_path.is_empty():
-		var tex := load(icon_path)
-		if tex is Texture2D:
-			return tex
-	# Fallback: category placeholder
-	var cat: int = item.get("item_category", -1)
-	var cat_tex: String = "res://ui/textures/items/"
-	match cat:
-		0: cat_tex += "weapon.png"
-		1: cat_tex += "armor.png"
-		2: cat_tex += "accessory.png"
-		3: cat_tex += "consumable.png"
-		4: cat_tex += "resource.png"
-		5: cat_tex += "gem.png"
-		6: cat_tex += "event.png"
-		7: cat_tex += "misc.png"
-		8: cat_tex += "dwelling.png"
-		9: cat_tex += "skill_book.png"
-		_: cat_tex += "misc.png"
-	var tex := load(cat_tex)
-	if tex is Texture2D:
-		return tex
-	return null
+	return IconResolver.get_item_icon(item)

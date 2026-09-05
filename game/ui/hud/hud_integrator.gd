@@ -24,6 +24,7 @@ var _buff_bar: Node
 var _combat_log: Node
 var _target_frame: Node
 var _boss_health_bar: Node
+var _action_menu: Node
 var _minimap: Node
 var _world_map: Node
 var _chat: Node
@@ -110,6 +111,9 @@ func _push_initial_state() -> void:
 		_on_health_changed(PlayerManager.current_health, PlayerManager.max_health)
 		_on_mana_changed(PlayerManager.current_mana, PlayerManager.max_mana)
 		_on_xp_changed(PlayerManager.experience, PlayerManager.level)
+	# Load quick-access items from inventory
+	if _quick_access_bar and _quick_access_bar.has_method("load_from_inventory"):
+		_quick_access_bar.load_from_inventory()
 
 
 func _process(_delta: float) -> void:

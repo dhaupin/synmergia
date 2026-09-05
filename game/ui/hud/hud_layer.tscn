@@ -2,19 +2,23 @@
 
 [ext_resource type="Script" path="res://ui/hud/hud_layer.gd" id="1_hud_root"]
 [ext_resource type="Script" path="res://ui/components/menu_manager.gd" id="2_menu"]
-[ext_resource type="Script" path="res://ui/components/action_bar.gd" id="3_action"]
-[ext_resource type="Script" path="res://ui/components/quick_access_bar.gd" id="4_quick"]
-[ext_resource type="Script" path="res://ui/components/buff_bar.gd" id="5_buff"]
-[ext_resource type="Script" path="res://ui/components/combat_log.gd" id="6_log"]
-[ext_resource type="Script" path="res://ui/components/target_frame.gd" id="7_target"]
-[ext_resource type="Script" path="res://ui/components/boss_health_bar.gd" id="8_boss"]
-[ext_resource type="Script" path="res://ui/components/minimap.gd" id="9_mini"]
-[ext_resource type="Script" path="res://ui/components/world_map.gd" id="10_world"]
-[ext_resource type="Script" path="res://ui/components/dialog_ui.gd" id="11_dialog"]
-[ext_resource type="Script" path="res://ui/components/settings_panel.gd" id="12_settings"]
-[ext_resource type="Script" path="res://ui/admin/admin_toolbar.gd" id="13_admin"]
-[ext_resource type="Script" path="res://ui/components/loading_ui.gd" id="14_loading"]
-[ext_resource type="Script" path="res://ui/components/tooltip_manager.gd" id="15_tooltip"]
+[ext_resource type="Script" path="res://ui/social/faction_ui.gd" id="3_faction"]
+[ext_resource type="Script" path="res://ui/components/action_bar.gd" id="5_action"]
+[ext_resource type="Script" path="res://ui/components/quick_access_bar.gd" id="6_quick"]
+[ext_resource type="Script" path="res://ui/components/buff_bar.gd" id="7_buff"]
+[ext_resource type="Script" path="res://ui/components/combat_log.gd" id="8_log"]
+[ext_resource type="Script" path="res://ui/components/target_frame.gd" id="9_target"]
+[ext_resource type="Script" path="res://ui/components/boss_health_bar.gd" id="10_boss"]
+[ext_resource type="Script" path="res://ui/components/minimap.gd" id="11_mini"]
+[ext_resource type="Script" path="res://ui/components/world_map.gd" id="12_world"]
+[ext_resource type="Script" path="res://ui/components/dialog_ui.gd" id="13_dialog"]
+[ext_resource type="Script" path="res://ui/components/settings_panel.gd" id="14_settings"]
+[ext_resource type="Script" path="res://ui/admin/admin_toolbar.gd" id="15_admin"]
+[ext_resource type="Script" path="res://ui/components/loading_ui.gd" id="16_loading"]
+[ext_resource type="Script" path="res://ui/components/tooltip_manager.gd" id="17_tooltip"]
+[ext_resource type="Script" path="res://ui/components/action_menu.gd" id="18_action"]
+[ext_resource type="Script" path="res://ui/social/achievement_ui.gd" id="19_achievement"]
+[ext_resource type="Script" path="res://ui/components/shop_ui.gd" id="20_shop"]
 
 [node name="HudLayer" type="CanvasLayer"]
 layer = 10
@@ -37,7 +41,7 @@ offset_bottom = 340.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("3_action")
+script = ExtResource("5_action")
 
 [node name="QuickAccessBar" type="Control" parent="."]
 anchors_preset = 9
@@ -48,7 +52,7 @@ offset_top = 12.0
 offset_right = -10.0
 offset_bottom = 220.0
 grow_horizontal = 0
-script = ExtResource("4_quick")
+script = ExtResource("6_quick")
 
 [node name="BuffBar" type="Control" parent="."]
 anchors_preset = 1
@@ -59,7 +63,7 @@ offset_top = 230.0
 offset_right = -10.0
 offset_bottom = 290.0
 grow_horizontal = 0
-script = ExtResource("5_buff")
+script = ExtResource("7_buff")
 
 [node name="CombatLog" type="Control" parent="."]
 anchors_preset = 1
@@ -70,7 +74,7 @@ offset_top = 320.0
 offset_right = -10.0
 offset_bottom = 600.0
 grow_horizontal = 0
-script = ExtResource("6_log")
+script = ExtResource("8_log")
 
 [node name="TargetFrame" type="Control" parent="."]
 anchors_preset = 5
@@ -81,7 +85,7 @@ offset_top = 40.0
 offset_right = 180.0
 offset_bottom = 120.0
 grow_horizontal = 2
-script = ExtResource("7_target")
+script = ExtResource("9_target")
 
 [node name="BossHealthBar" type="Control" parent="."]
 anchors_preset = 8
@@ -95,7 +99,7 @@ offset_right = 300.0
 offset_bottom = -150.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("8_boss")
+script = ExtResource("10_boss")
 
 [node name="Minimap" type="Control" parent="."]
 anchors_preset = 1
@@ -106,7 +110,7 @@ offset_top = 12.0
 offset_right = -10.0
 offset_bottom = 182.0
 grow_horizontal = 0
-script = ExtResource("9_mini")
+script = ExtResource("11_mini")
 
 [node name="WorldMap" type="Control" parent="."]
 anchors_preset = 15
@@ -114,7 +118,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("10_world")
+script = ExtResource("12_world")
 
 [node name="DialogUI" type="Control" parent="."]
 anchors_preset = 8
@@ -128,7 +132,7 @@ offset_right = 400.0
 offset_bottom = 360.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("11_dialog")
+script = ExtResource("13_dialog")
 
 [node name="SettingsPanel" type="Control" parent="."]
 anchors_preset = 15
@@ -136,7 +140,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("12_settings")
+script = ExtResource("14_settings")
 
 [node name="AdminToolbar" type="Control" parent="."]
 anchors_preset = 1
@@ -147,7 +151,7 @@ offset_top = 12.0
 offset_right = 0.0
 offset_bottom = 52.0
 grow_horizontal = 0
-script = ExtResource("13_admin")
+script = ExtResource("15_admin")
 
 [node name="LoadingUI" type="Control" parent="."]
 anchors_preset = 15
@@ -155,7 +159,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("14_loading")
+script = ExtResource("16_loading")
 
 [node name="TooltipManager" type="Control" parent="."]
 anchors_preset = 15
@@ -164,4 +168,36 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("15_tooltip")
+script = ExtResource("17_tooltip")
+
+[node name="ActionMenu" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("18_action")
+
+[node name="FactionUI" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_faction")
+
+[node name="AchievementUI" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("19_achievement")
+
+[node name="ShopUI" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("20_shop")
