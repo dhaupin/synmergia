@@ -2,10 +2,12 @@
 
 > **Status:** Planning. Companion reference: `m3-initial-world-audit.md`
 > (the "where we are today" snapshot) and `world-building-research.md`
-> (research companion for §21's experimental angles). This doc is the
-> "where we're going" — server, sync, net code, map, procedural
-> generation, zone, world, and the geometric-addressing layer that
-> ties them together.
+> (research companion for §21's experimental angles) and
+> `world-building-arch.md` (the systems architecture — frame
+> substrate, scope engine, rules engine, world environment).
+> This doc is the "where we're going" — server, sync, net code,
+> map, procedural generation, zone, world, and the geometric-
+> addressing layer that ties them together.
 >
 > **Scope:** Design the full world + network + persistence stack for
 > Synmergia such that (a) the same server and client agree on

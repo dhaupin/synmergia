@@ -16,6 +16,9 @@
 > - `world-building.md` — the plan
 > - `world-building-research.md` — research on §21's
 >   experimental angles
+> - `world-building-arch.md` — the systems architecture
+>   (frame + game bridge; T3 substrate, scope engine,
+>   rules engine, world environment)
 > - `m3-initial-world-audit.md` — where we were at the
 >   start
 >
