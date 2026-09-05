@@ -54,6 +54,8 @@ services:
       # This makes the project read-writable so Godot can run and save state.
       # The project path convention is /workspace/project/game per Dockerfile GODOT_PATH.
       - ./game:/workspace/project/game
+      # Mount labs/ for the multi-iso frame work (experiments outside Godot project)
+      - ./labs:/workspace/project/labs
     shm_size: 256mb  # Xvfb needs shared memory
     restart: unless-stopped
     healthcheck:
