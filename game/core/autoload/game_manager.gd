@@ -6,6 +6,17 @@ extends Node
 
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+
+## Defensive logger - get GameLog at runtime to avoid compile-time circular deps
+func _log(level: int, msg: String) -> void:
+    var log_node = get_node_or_null("/root/GameLog")
+    if log_node and log_node.has_method("info"):
+        match level:
+            0: log_node.debug(msg)
+            1: log_node.info(msg)
+            2: log_node.warn(msg)
+            3: log_node.error(msg)
+
 signal game_state_changed(state: GameState)
 signal paused
 signal resumed
@@ -30,7 +41,7 @@ var selected_character_data: Resource = null
 
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
-    GameLog.info("GameManager initialized")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("GameManager initialized")
     
 func _process(delta: float) -> void:
     if current_state == GameState.LOADING:
@@ -50,7 +61,7 @@ func change_state(new_state: GameState) -> void:
     previous_state = current_state
     current_state = new_state
     
-    GameLog.info("Game state changed: %s → %s" % [GameState.keys()[previous_state], GameState.keys()[new_state]])
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Game state changed: %s -> %s" % [GameState.keys()[previous_state], GameState.keys()[new_state]])
     game_state_changed.emit(new_state)
     
     match new_state:
@@ -79,7 +90,7 @@ func pause_game() -> void:
     previous_state = current_state
     current_state = GameState.PAUSED
     
-    GameLog.info("Game paused")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Game paused")
     paused.emit()
 
 func resume_game() -> void:
@@ -91,16 +102,16 @@ func resume_game() -> void:
     
     current_state = GameState.PLAYING
     
-    GameLog.info("Game resumed")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Game resumed")
     resumed.emit()
 
 func start_game() -> void:
-    GameLog.info("Starting game...")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Starting game...")
     change_state(GameState.PLAYING)
     game_started.emit()
 
 func end_game() -> void:
-    GameLog.info("Ending game...")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Ending game...")
     change_state(GameState.MAIN_MENU)
     game_ended.emit()
 
@@ -109,7 +120,7 @@ func _check_loading_complete() -> void:
     pass
 
 func _handle_loading_state() -> void:
-    GameLog.info("Loading resources...")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Loading resources...")
 
 func _handle_login_state() -> void:
     get_tree().change_scene_to_file("res://ui/menus/login.tscn")
@@ -118,25 +129,25 @@ func _handle_main_menu_state() -> void:
     get_tree().change_scene_to_file("res://ui/menus/main_menu.tscn")
 
 func _handle_lobby_state() -> void:
-    if not LoginService or not LoginService.is_logged_in():
+    var _ls = get_node_or_null("/root/LoginService"); if not _ls or not _ls.is_logged_in():
         # Defensive: route to login if state machine was reached without auth
-        GameLog.warn("GameManager: LOBBY reached without login, redirecting")
+        if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").warn("GameManager: LOBBY reached without login, redirecting")
         change_state(GameState.LOGIN)
         return
     get_tree().change_scene_to_file("res://ui/menus/lobby.tscn")
 
 func _handle_character_select_state() -> void:
-    GameLog.info("Loading character_select scene...")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Loading character_select scene...")
     var err = get_tree().change_scene_to_file("res://ui/menus/character_select.tscn")
     if err != OK:
-        GameLog.error("Failed to load character_select: " + str(err))
+        if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Failed to load character_select: " + str(err))
 
 func _handle_playing_state() -> void:
-    GameLog.info("Entering gameplay")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Entering gameplay")
     _initialize_world_services()
     # Load the playable world scene, replacing current scene
     get_tree().change_scene_to_file("res://scenes/world_playable.tscn")
-    GameLog.info("World scene loaded")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
 
 func _initialize_world_services() -> void:
     # Only initialize once
@@ -144,11 +155,11 @@ func _initialize_world_services() -> void:
         return
     _world_initialized = true
     
-    GameLog.info("GameManager: Initializing world services...")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("GameManager: Initializing world services...")
     
     # Initialize world (loads zones, factions)
-    if WorldService:
-        WorldService.initialize_world()
+    var _ws = get_node_or_null("/root/WorldService"); if _ws:
+        _ws.initialize_world()
     
     # Initialize player tracking in ShardManager
     if ShardManager:
@@ -159,17 +170,17 @@ func _initialize_world_services() -> void:
         EntityService.player_joined.connect(_on_player_joined)
         EntityService.player_left.connect(_on_player_left)
     
-    GameLog.info("GameManager: World services initialized")
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("GameManager: World services initialized")
 
 func _on_player_joined(player, _metadata: SpawnMetadata) -> void:
     if ShardManager:
         ShardManager.player_connected()
-    GameLog.info("Player joined: %s" % player.display_name)
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Player joined: %s" % player.display_name)
 
 func _on_player_left(player, _metadata: SpawnMetadata) -> void:
     if ShardManager:
         ShardManager.player_disconnected()
-    GameLog.info("Player left: %s" % player.display_name)
+    if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Player left: %s" % player.display_name)
 
 var _world_initialized := false
 
