@@ -1,13 +1,39 @@
 # Autoload race / class_name cascade — design notes
 
-**Problem:** In Godot 4.x, autoload scripts that reference `class_name` types (or
-class_named scripts that reference autoloads) hit parse-time races. The class
-registration table is built lazily, but script parsing is synchronous. Result:
+**Problem:** In Godot 4.x, scripts that use `class_name` types as type annotations
+(without preloading them) hit parse-time races. The class registration table is
+built lazily, but script parsing is synchronous. Result:
 `Parse Error: Could not find type "X" in the current scope` cascades across
-dozens of files.
+multiple files.
 
-We have 22 such cascades in Synmergia (ActionMenu, Ankh, BlacksmithNPC, …). They
-don't break "Main menu loaded" but they pollute the log and indicate real
+**Current State (2026-09-05):** 68+ parse errors when loading the project due to
+type resolution failures. Root cause: files using type annotations like
+`var _inventory: InventoryComponent = null` without first adding
+`const InventoryComponent = preload("...")` to force the dependent script to load.
+
+**Affected types (verified):**
+- `Item` — used in 13+ files without preload
+- `InventoryComponent` — used in 13+ files without preload
+- Likely `Entity`, `NPCEntity`, and others (cascading from the above)
+
+**Affected files (verified):**
+```
+game/ui/components/blacksmith_ui.gd
+game/ui/components/bank_ui.gd
+game/ui/components/skill_academy_ui.gd
+game/ui/components/character_panel.gd
+game/ui/social/trade_ui.gd
+game/ui/social/guild_ui.gd
+game/ui/social/party_ui.gd
+game/ui/social/friends_list.gd
+game/ui/social/character_transfer_ui.gd
+game/ui/community/voting_ui.gd
+game/ui/admin/admin_dashboard.gd
+game/core/admin/admin_catalog.gd
+game/core/services/death_features.gd
+```
+
+These don't break "Main menu loaded" but pollute the log and indicate real
 fragility — if one of the cascade's missing types is in a hot path at scene
 load, the project crashes silently.
 
@@ -18,139 +44,97 @@ load, the project crashes silently.
 ### 1. Strict manifest (no autoload list)
 
 - Replace the `[autoload]` section with ONE autoload: `Bootstrap`.
-- `Bootstrap` reads a `bootstrap.tres` (or `.gd` const map) listing every
-  service in dependency order and `add_child()`s each one to itself.
+- `Bootstrap` reads a `.gd` const map listing every service in dependency order and `add_child()`s each one.
 - Each service script is a `Node` subclass; some get `class_name` for IDE.
 - Pro: deterministic, no race, no surprises.
-- Con: developers have to look at the manifest to know what exists. Loses the
-  nice "autoload dropdown" in project settings.
+- Con: developers have to look at the manifest to know what exists. Loses the nice "autoload dropdown" in project settings.
 
 ### 2. Lazy / deferred init
 
-- Keep all autoloads. Each one starts with `var ready := false` and sets it
-  true at end of `_ready()`.
-- Consumers `await Service.ready` before first use. Methods that need other
-  services `await _ensure_deps()` at the top.
-- Pro: no static parse race (script is parsed standalone, even if it
-  references an autoload that's not yet ready — only the *call* fails).
+- Keep all autoloads. Each one starts with `var ready := false` and sets it true at end of `_ready()`.
+- Consumers `await Service.ready` before first use.
+- Pro: no static parse race (script is parsed standalone — only the call fails, not the parse).
 - Con: every consumer is async; easy to forget an `await`; hides init bugs.
-- Best for: services that genuinely need cross-dependency ordering but not
-  for class types in parameter signatures (the parser doesn't care about
-  await — it cares about the type existing at parse time).
+- Best for: services that genuinely need cross-dependency ordering but not for class types in parameter signatures.
 
 ### 3. Async orchestrator (signal-based)
 
-- One `Orchestrator` autoload holds a DAG: `services := { "EntityService":
-  ["EventHub", "GameLog"], ... }`.
-- Each service has a uniform `_post_ready()` that emits `service_ready(name)`.
-- Orchestrator fires events when a service's deps are all `ready`.
-- Pro: keeps Godot's autoload pattern, adds a clear init contract.
-- Con: **doesn't actually fix the parse-time race** — the script still needs
-  the type to exist when it's parsed. Signals only help at runtime.
+- One `Orchestrator` autoload holds a DAG of dependencies.
+- Each service emits `service_ready(name)` when `_ready()` completes.
+- Pro: keeps Godot autoload pattern, adds a clear init contract.
+- Con: **does not actually fix the parse-time race** — signals only help at runtime.
 
 ### 4. Preloader frame (no class_name, all const)
 
-- Strip `class_name` from every script. Define a single `preloader.gd`:
-  ```gdscript
-  const Entity = preload("res://core/entities/entity.gd")
-  const EnemyData = preload("res://core/schemas/enemy_data.gd")
-  # …200+ lines…
-  ```
+- Strip `class_name` from every script. Define a single `preloader.gd` with all preloads.
 - Consumers use `Preloader.Entity` instead of `Entity`.
-- Pro: 100% deterministic. Parser sees the const, knows the type, done.
-- Con: ugly, no IDE autocomplete on the global name, every consumer has to
-  import the preloader.
+- Pro: 100% deterministic.
+- Con: ugly, no IDE autocomplete on the global name.
 
----
 
-## Recommended: **Hybrid (manifest + shims)**
+## Recommended: **Two-Step Preload Fix**
 
-Combines the strengths of 1 and 2 without their worst parts:
+### Step 1: Add preload declarations to affected files (QUICK FIX)
 
-```
-[autoload]
-Bootstrap="*res://core/bootstrap.gd"     # ONLY ONE autoload
+Every file that uses a `class_name` type in a type annotation must first preload that type:
 
-# All other services are NOT autoloads.
-# They are children of Bootstrap, added in dependency order.
-```
+```gdscript
+# BEFORE (broken):
+extends UIPanel
+var _inventory: InventoryComponent = null
 
-**`core/bootstrap.tres`** (Resource listing services in order):
-```tres
-[gd_resource type="Resource" format=3]
-[resource]
-script_order = Array[Resource]([
-  preload("res://core/autoload/logger.gd"),         # GameLog
-  preload("res://core/events/event_hub.gd"),        # EventHub
-  preload("res://core/services/entity_service.gd"), # EntityService
-  preload("res://core/services/zone_manager.gd"),   # ZoneManager
-  ...
-])
+# AFTER (works):
+extends UIPanel
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
+var _inventory: InventoryComponent = null
 ```
 
-**`core/bootstrap.gd`** (one autoload):
+The `preload()` forces the script to load at parse time, guaranteeing the `class_name` is registered before it is used as a type annotation.
+
+### Step 2: Bootstrap + manifest (OPTIONAL, if Step 1 insufficient)
+
+If Step 1 does not fully resolve the cascades, collapse autoloads into a single Bootstrap:
+
 ```gdscript
 extends Node
-const MANIFEST := preload("res://core/bootstrap.tres")
+const SERVICES := [
+    preload("res://core/autoload/logger.gd"),
+    preload("res://core/events/event_hub.gd"),
+    preload("res://core/services/entity_service.gd"),
+]
 
 func _ready() -> void:
-    for script in MANIFEST.script_order:
+    for script in SERVICES:
         var node := script.new()
-        node.name = script.get_global_name()  # or a friendly name
+        node.name = script.get_global_name()
         add_child(node)
-        set(script.get_global_name(), node)  # register as property for `get_node()`
+        set(script.get_global_name(), node)
 ```
 
-**Static shim layer** for class_name in the consumer scripts that need it
-(e.g., when an event signature uses `Entity.SpawnMetadata`):
-```gdscript
-# core/type_shims.gd
-const Entity = preload("res://core/entities/entity.gd")
-const EnemyData = preload("res://core/schemas/enemy_data.gd")
-const Faction = preload("res://core/schemas/faction.gd")
-const Species = preload("res://core/schemas/species.gd")
-# …etc
+**Tradeoffs:**
+- Step 1: Low risk, clear scope, preserves all existing patterns
+- Step 2: Loses IDE autoload discovery, requires manifest maintenance
+
+**Migration cost:**
+- Step 1: 1-2 hours to add preloads to 13+ files
+- Step 2: 4-6 hours to build bootstrap + refactor 30+ autoloads
+
+
+## Migration Plan (2026-09-05)
+
+### Phase 1: Step 1 — Add preloads (IN PROGRESS)
+1. Add `const Item = preload("...")` to files using `Item` type
+2. Add `const InventoryComponent = preload("...")` to files using `InventoryComponent` type
+3. Add any other missing preloads (Entity, etc.)
+4. Verify with: `godot --check-only` and test suite
+5. Expected result: 68 parse errors -> 0
+
+### Phase 2: Step 2 — Bootstrap (DEFERRED)
+Only if Phase 1 does not fully resolve cascades.
+
+### Verification
+Run after Phase 1:
+```bash
+godot --headless --path synmergia --script res://tests/test_hud_integration.gd
 ```
-Then consumers do `TypeShims.Entity` instead of `Entity`. Or — better — we
-keep the `class_name` declarations for IDE autocomplete AND add the
-preload as a const, with the convention "always reference the const, never
-the bare class_name in cross-file signatures."
-
-**Tradeoffs accepted:**
-- One autoload entry in project.godot instead of 30+. (downside: less
-  discoverable in the editor, but the manifest is one file to look at)
-- Service scripts are still `extends Node` with `class_name` for IDE.
-- Static type signatures in event signals use `TypeShims.X` not `X`.
-- Initial bootstrap is synchronous; services that genuinely need async
-  startup (e.g., Database, Network) can still defer inside their own
-  `_ready()`.
-
-**Migration cost:** ~30 autoload lines to one line + one manifest file + one
-shim file + a `preload()` sweep in 5–10 signal-bearing files. Probably 1
-session of focused work.
-
----
-
-## When to pick the others
-
-- **Option 2 (lazy/await):** Pick if you want to keep the autoload list as-is
-  AND you're willing to make every consumer async. Not great for hot-path
-  event signals.
-- **Option 3 (orchestrator):** Pick as a *supplement* to any of these. It's
-  the runtime-initialization story; it doesn't solve parse order on its own.
-- **Option 4 (preloader only):** Pick if you have < 50 types and don't mind
-  ugly imports. Not realistic for a 30-service game.
-
----
-
-## Next step for Synmergia
-
-The `pending` item "static shims for autoloads with class_name" is exactly
-the shim layer above. So:
-
-1. Build `core/type_shims.gd` with `preload()` const aliases for all
-   ~22 cascade-affected types.
-2. Sweep the event signal signatures and signal-emit sites to use
-   `TypeShims.X` (preserving the runtime type).
-3. Optional: collapse the 30+ autoloads into a Bootstrap + manifest.
-   Defer until shim step is proven to close the cascade.
+Expected: 0 parse errors, all tests pass.

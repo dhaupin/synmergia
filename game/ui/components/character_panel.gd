@@ -6,6 +6,8 @@ class_name CharacterPanel
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
+const Item = preload("res://core/schemas/item.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 
 
 ## Tab definitions
