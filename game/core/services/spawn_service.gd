@@ -559,7 +559,7 @@ func spawn_npc_entity(
 	return entity
 
 ## Spawn all offering NPCs for every zone.
-## Iterates all NPCs, finds those with includes[], and spawns NPCEntity for each.
+## Infers zone from NPC ID prefix (e.g. blacksmith_village_* → zone_village).
 func spawn_all_offering_npcs() -> void:
 	if not DataService:
 		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
@@ -572,8 +572,7 @@ func spawn_all_offering_npcs() -> void:
 		if npc_data.includes.is_empty():
 			continue
 
-		# Default to zone_capital; scene placement would override via spawn_offset
-		var zone_id := "zone_capital"
+		var zone_id := _zone_from_npc_id(npc_data.id)
 		var zone_data: ZoneData = null
 		if ZoneManager:
 			zone_data = ZoneManager.get_zone(zone_id)
@@ -587,6 +586,27 @@ func spawn_all_offering_npcs() -> void:
 		spawn_npc_entity(zone_id, spawn_pos, npc_data)
 
 	GameLog.info("SpawnService: Spawned all offering NPCs")
+
+## Derive zone_id from NPC ID naming convention.
+## E.g. "blacksmith_village_default" → "zone_village"
+static func _zone_from_npc_id(npc_id: String) -> String:
+	var DEFAULT_ZONE := "zone_capital"
+	# Strip known prefixes to get the location tier
+	var prefixes := ["blacksmith_", "merchant_", "potions_", "armory_", "skill_academy_", "bank_"]
+	var remainder := npc_id
+	for prefix in prefixes:
+		if remainder.begins_with(prefix):
+			remainder = remainder.trim_prefix(prefix)
+			break
+	# remainder is now "village_default" or "capital_default"
+	# Take the first segment as the location tier
+	var segments := remainder.split("_")
+	if segments.size() > 0:
+		var location := segments[0]
+		var inferred := "zone_" + location
+		if ZoneManager and ZoneManager.get_zone(inferred) != null:
+			return inferred
+	return DEFAULT_ZONE
 
 
 ## Despawn an NPC
