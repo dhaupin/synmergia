@@ -69,6 +69,13 @@ func _on_overlay_click(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		close()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_ESCAPE and _is_open:
+			close()
+		elif event.keycode == KEY_TAB and _is_open:
+			_cycle_focus()
+
 ## ============================================================================
 ## OPEN/CLOSE
 ## ============================================================================
@@ -156,4 +163,30 @@ func set_panel_size(size: Vector2) -> void:
 	var panel := get_panel()
 	if panel:
 		panel.custom_minimum_size = size
+
+func _cycle_focus() -> void:
+	var focusable := _get_focusable_children()
+	if focusable.is_empty():
+		return
+	var current := get_viewport().gui_get_focus_owner()
+	var idx := -1
+	for i in range(focusable.size()):
+		if focusable[i] == current:
+			idx = i
+			break
+	var next_idx := (idx + 1) % focusable.size()
+	focusable[next_idx].grab_focus()
+
+func _get_focusable_children() -> Array[Control]:
+	var result: Array[Control] = []
+	var panel := get_panel()
+	if panel:
+		_get_focusable_recursive(panel, result)
+	return result
+
+func _get_focusable_recursive(node: Node, out: Array[Control]) -> void:
+	if node is Control and node.focus_mode != FOCUS_NONE:
+		out.append(node)
+	for child in node.get_children():
+		_get_focusable_recursive(child, out)
 

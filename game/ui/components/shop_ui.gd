@@ -8,6 +8,7 @@ class_name ShopUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
 
 ## Static instance — one shop at a time
 static var _instance: ShopUI = null
@@ -554,27 +555,4 @@ func _get_local_player() -> Node:
 	return null
 
 func _load_item_icon(item: Resource) -> Texture2D:
-	var icon_path: String = item.get("icon_path", "")
-	if not icon_path.is_empty():
-		var tex := load(icon_path)
-		if tex is Texture2D:
-			return tex
-	# Fallback: category placeholder
-	var cat: int = item.get("item_category", -1)
-	var cat_tex: String = "res://ui/textures/items/"
-	match cat:
-		0: cat_tex += "weapon.png"
-		1: cat_tex += "armor.png"
-		2: cat_tex += "accessory.png"
-		3: cat_tex += "consumable.png"
-		4: cat_tex += "resource.png"
-		5: cat_tex += "gem.png"
-		6: cat_tex += "event.png"
-		7: cat_tex += "misc.png"
-		8: cat_tex += "dwelling.png"
-		9: cat_tex += "skill_book.png"
-		_: cat_tex += "misc.png"
-	var tex := load(cat_tex)
-	if tex is Texture2D:
-		return tex
-	return null
+	return IconResolver.get_item_icon(item)
