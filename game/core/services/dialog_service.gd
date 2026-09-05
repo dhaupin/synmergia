@@ -3,6 +3,17 @@
 extends Node
 class_name DialogService
 
+
+## Singleton instance
+static var _instance: DialogService = null
+static func get_instance() -> DialogService:
+        if _instance == null:
+                _instance = DialogService.new()
+                _instance._ready()
+        return _instance
+
+
+
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 
 var _dialogues: Dictionary = {}

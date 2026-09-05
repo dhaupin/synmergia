@@ -3,8 +3,6 @@
 extends Control
 class_name DialogUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
 const DialogService = preload("res://core/services/dialog_service.gd")
 
 ## Dialog state
@@ -25,10 +23,11 @@ var _portrait: TextureRect
 
 func _ready() -> void:
 	_setup_ui()
-	if DialogService:
-		DialogService.node_changed.connect(_on_node_changed)
-		DialogService.dialogue_started.connect(_on_dialogue_started)
-		DialogService.dialogue_ended.connect(_on_dialogue_ended)
+	var svc = DialogService.get_instance()
+	if svc:
+		svc.node_changed.connect(_on_node_changed)
+		svc.dialogue_started.connect(_on_dialogue_started)
+		svc.dialogue_ended.connect(_on_dialogue_ended)
 	hide()
 
 func _setup_ui() -> void:
@@ -107,7 +106,8 @@ func _setup_ui() -> void:
 func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	_current_npc = npc_id
 	_dialogue_id = dialogue_id
-	if DialogService and DialogService.start_dialogue(npc_id, dialogue_id):
+	var svc = DialogService.get_instance()
+	if svc and svc.start_dialogue(npc_id, dialogue_id):
 		show()
 		return
 	# Fallback: demo mode
@@ -179,8 +179,9 @@ func _show_node_data(node: Dictionary) -> void:
 		_continue_btn.visible = true
 
 func _on_choice_selected(choice_index: int) -> void:
-	if DialogService:
-		DialogService.select_choice(choice_index)
+	var svc = DialogService.get_instance()
+	if svc:
+		svc.select_choice(choice_index)
 		return
 	# Fallback
 	var demo_choices := [
