@@ -1147,3 +1147,51 @@ docker compose --profile headless up --build # headless — Godot only (CI runne
 | 6080 | ✅ | ❌ | noVNC (browser GUI) |
 | 5900 | ✅ | ❌ | VNC |
 | 9000 | ✅ | ✅ | WebSocket |
+
+---
+
+## Parse Error Status (2026-09-05)
+
+The project has ~41 parse errors due to Godot 4.x autoload race conditions. This
+is an improvement from 68+ errors.
+
+**Root Cause:** Scripts using `class_name` types as type annotations without
+preloading them fail at parse time because the class registration table is built
+lazily.
+
+**Current Error Categories:**
+1. **Could not find base class "Entity"** - entity.gd can't be found as base for enemy.gd, npc_entity.gd
+2. **Could not find base class "UIWidget"** - ui_widget.gd can't be found as base
+3. **Cannot infer type** - Various type inference failures in services
+4. **Identifier not declared** - Various class_name types not found (AchievementService, TargetTooltip, etc.)
+5. **Non-static function calls** - Services called statically instead of via singleton
+
+**Files with Critical Issues:**
+- `core/entities/entity.gd` - Base class for all entities
+- `core/entities/npc_entity.gd` - Extends Entity, fails to load
+- `entities/enemy.gd` - Extends Entity, fails to load  
+- `ui/components/ui_widget.gd` - Base class for widgets, loads OK but subclasses fail
+
+**Pattern for Fixing:**
+1. Add preload for the base class type at the top of files using it
+2. For files using `extends` with a class_name type, the preload must come BEFORE the `extends` statement (not valid GDScript)
+3. Use `load("path")` at runtime instead of `ClassName.new()` when ClassName is the same file
+
+**Example Fix (skill_book.gd):**
+```gdscript
+# Before (fails):
+var book := SkillBook.new()
+
+# After (works):
+var script := load("res://core/schemas/skill_book.gd")
+var book = script.new()
+```
+
+**Test Command:**
+```bash
+docker exec synmergia-synmergia-1 godot --headless --path /workspace/project/game --script res://tests/test_hud_integration.gd 2>&1 | grep "Parse Error" | wc -l
+```
+
+**Progress:**
+- 2026-09-05: 41 errors (down from 68+)
+- Target: 0 errors for clean compilation
