@@ -1,0 +1,766 @@
+# Synmergia — Systems Architecture
+
+> **The bridge.** This doc sits between the spec
+> ([`world-building.md`](./world-building.md),
+> [`world-building-tick.md`](./world-building-tick.md),
+> [`world-building-risks.md`](./world-building-risks.md)) and the
+> code in `game/`, `labs/multi-iso/`, and `srv/`. The spec says
+> *what* and *why*; this doc says *how* and *where*. Read the
+> spec first.
+
+> **Updated 2026-09-05:** Initial draft. The frame is the
+> T3 substrate + scope engine + rules engine. The game is the
+> schemas + data + services + UI. The substrate is engine-grade;
+> the schemas are game-grade.
+
+---
+
+## 1. What this doc is (and is not)
+
+**Is:**
+- The frame architecture: the substrate + engines that make
+  Synmergia reusable as an engine.
+- The game instance: how the Synmergia MMORPG uses the frame.
+- The migration: how the current code maps to the target.
+
+**Is not:**
+- A re-statement of the spec. Read `world-building.md` first.
+- A code review. Read the source.
+- A roadmap. The roadmap is `ROADMAP.md`. This doc feeds it.
+
+---
+
+## 2. The dual goal
+
+Synmergia is two things, and the architecture serves both:
+
+1. **A working MMORPG** (concrete, the poc/mvp)
+2. **A game engine** (abstract, "OSS-able", reusable frame)
+
+The frame ships in `labs/multi-iso/`. Other games can copy the
+frame and write their own schemas + data + services. The substrate
+is engine-grade; the schemas are game-grade.
+
+| Layer | Lives in | Purpose | Reusable? |
+|---|---|---|---|
+| Substrate (T3) | `labs/multi-iso/kv/t3.gd` | Generic content-hash tree | yes (engine) |
+| Scope engine | `labs/multi-iso/srv/scope.gd` | Hierarchy walker + flip | yes (engine) |
+| Rules engine | `labs/multi-iso/srv/rules_engine.gd` | Generic evaluator | yes (engine) |
+| Spatial layer | `labs/multi-iso/geometry/` | Icosahedral + Penrose (from vant) | yes (engine) |
+| Schemas | `game/data/roots/*_schema.tres` | Typed payloads per tree | game-specific |
+| Trees | `game/data/roots/<scope>/*.tres` | Tree instances | game-specific |
+| Services | `game/core/services/*.gd` | Game logic | game-specific |
+| UI / scenes | `game/ui/*`, `game/scenes/*` | User-facing | game-specific |
+| Tooling | `srv/` | Run, debug, backup | mixed |
+
+---
+
+## 3. The substrate: T3
+
+A single GDScript class that implements the content-hash tree
+primitive. T3 is the substrate every tree instance is built on.
+
+### 3.1 The shape
+
+```gdscript
+# labs/multi-iso/kv/t3.gd
+class_name T3
+extends RefCounted
+
+# A node in the tree: (path, hash, value_bytes, schema_ref)
+# - path: slash-separated, e.g. "/shard_1/zone_5/player_42/inventory/sword_7"
+# - hash: SHA-256 of (parent_hash, value_bytes, schema_id)
+# - value_bytes: canonical encoding of the value (per schema)
+# - schema_ref: pointer to the schema this node conforms to
+
+func insert(path: String, value: Variant, schema: Resource) -> PackedByteArray:
+    ...
+
+func get(path: String) -> Variant:
+    ...
+
+func delete(path: String) -> bool:
+    ...
+
+func hash_subtree(path: String) -> PackedByteArray:
+    ...
+
+func diff(old_root: PackedByteArray, new_root: PackedByteArray) -> Array:
+    # Returns: [(path, old_hash, new_hash, value_bytes_if_changed)]
+    ...
+
+func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
+    ...
+
+func walk(scope: Scope, callback: Callable) -> void:
+    ...
+```
+
+### 3.2 The contract
+
+- **Determinism:** same path + same value + same schema = same
+  hash. Always. (R004, R009 — the two-platform determinism
+  check, the "two clients see the same tree" gate.)
+- **Verifiability:** given a hash and a value, anyone can
+  verify the value hashes to the hash. No trusted third party.
+- **Diffability:** given two roots, the diff is the minimal
+  set of path changes. Same roots = empty diff. Different
+  roots = finite diff. (D027, state-only diff.)
+- **Syncability:** a diff from old to new is enough to
+  reconstruct new from old. The diff IS the sync payload.
+
+### 3.3 The schema
+
+Each node carries a `schema_ref`. The schema is a Godot
+`Resource` that describes:
+- How to canonicalize the value (per-type
+  `_to_canonical_bytes(value) -> PackedByteArray` method)
+- How to validate the value (per-type
+  `_validate(value) -> bool` method)
+- How to display the value (per-type
+  `_to_display(value) -> String` method)
+
+Schemas are the typed payload. T3 is the untyped substrate.
+The schema is what makes a tree "a seed tree" or "a state
+tree" or "a rules tree."
+
+### 3.4 Why one class, not many
+
+We could have a `SeedTree` class, a `StateTree` class, a
+`RulesTree` class. We don't. The substrate is generic; the
+schema is the difference. This matches vant's `brain.js`
+pattern: one class, mode-as-data.
+
+The complexity users add lives in the schemas and engines
+on top. T3 itself doesn't change.
+
+---
+
+## 4. The scope engine
+
+The hierarchy walker. Knows how to walk a stack of scopes,
+resolve overrides, and flip rules at scope boundaries.
+
+### 4.1 The scope concept
+
+A scope is a position in a hierarchy. For Synmergia:
+
+```
+world → shard → instance → player
+```
+
+For another game on the same frame:
+
+```
+galaxy → sector → system → planet → character
+realm → region → district → character
+```
+
+The hierarchy is a tree. Each node in the hierarchy is a
+scope. Each scope can have its own environment (§6) and its
+own rule overrides (§5).
+
+### 4.2 The scope class
+
+```gdscript
+# labs/multi-iso/srv/scope.gd
+class_name Scope
+extends RefCounted
+
+var name: String
+var parent: Scope               # null for root scope
+var children: Array[Scope]
+var rules_overrides: Dictionary # rule_id -> resolution strategy override
+var environment: Environment    # the world environment for this scope
+
+func walk(callback: Callable) -> void:
+    # Walks self + descendants
+    ...
+
+func resolve(path: String, stack: Array[Scope]) -> Variant:
+    # Walks the stack top→bottom, returns first match
+    ...
+
+func flip(rule_id: String, resolution: String) -> void:
+    # Sets a rule override at this scope
+    ...
+```
+
+### 4.3 The stack
+
+When a player is in a context, the active stack is the chain
+from the player's scope up to the world scope:
+
+```
+[PlayerScope, InstanceScope, ShardScope, WorldScope]
+```
+
+The stack is what gets content-hashed for the seed derivation
+(§7.2). The scope engine walks the stack to resolve rules,
+values, etc.
+
+### 4.4 The "flip" semantic
+
+A scope can declare an override for a rule. When the scope
+engine resolves a rule at a position in the hierarchy, it
+checks the scope for an override. If present, the override's
+resolution strategy is used. Otherwise, the default is used.
+
+Example: a "PvP zone" instance scope flips the rules-tree's
+normal top-wins to bottom-wins for the `can_pvp` rule. In
+the PvP zone, the world's `no_PvP` rule overrides the
+player's `I_want_PvP` setting. Outside the PvP zone, the
+player's setting wins.
+
+This is the "games can flip anything anywhere" machinery.
+A hardcore-mode character flips the rules for death penalty.
+A no-build zone flips the rules for placement. A VIP
+subscription flips the rules for inventory size.
+
+---
+
+## 5. The rules engine + rules tree
+
+The new piece. A generic evaluator that takes
+`(action, context, rules_tree) → decision`.
+
+### 5.1 The rules tree
+
+A rules tree is an instance of T3 with a `RulesSchema`
+payload. Each node in the rules tree is a rule. A rule has:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `rule_id` | String | unique identifier |
+| `resolution` | enum | TOP_WINS / BOTTOM_WINS / PREDICATE_GATED / ALL_WINS_WITH_EFFECT |
+| `predicate` | Callable | for PREDICATE_GATED and ALL_WINS_WITH_EFFECT |
+| `default_allow` | bool | fallback when no scope override |
+
+### 5.2 The rules engine
+
+```gdscript
+# labs/multi-iso/srv/rules_engine.gd
+class_name RulesEngine
+extends RefCounted
+
+var _rules_tree: T3
+var _scope_engine: ScopeEngine
+
+func register_rule(rule_id: String, resolution: String,
+                   predicate: Callable, default_allow: bool) -> void:
+    ...
+
+func evaluate(action: String, context: Dictionary,
+              stack: Array[Scope]) -> Dictionary:
+    # Returns: {allow, reason, modified_action, applied_rules}
+    ...
+```
+
+### 5.3 The mitigation pattern
+
+The current 5 infrastructure services (QoS, Security,
+SecurityMonitor, AppFirewall, AutoResponse) each have their
+own decision logic. With the rules engine, they become thin
+wrappers that emit rule_requests:
+
+```
+OLD:
+  QoS: "is this within rate limit?" (own logic)
+  Security: "is this an exploit?" (own logic)
+  SecurityMonitor: "is this suspicious?" (own logic)
+  AppFirewall: "is this peer/IP allowed?" (own logic)
+  AutoResponse: "what action to take?" (own logic)
+
+NEW:
+  QoS: emits rule_request("rate_limit", {player, action, count})
+  Rules engine evaluates, returns decision
+  QoS acts on decision
+```
+
+Each rule in the rules tree declares its resolution strategy
+(§5.1). The "A/B/C/D" stack-direction question is now
+per-rule, not per-system. The game developer picks the
+semantics that fit each rule.
+
+> **Phase note:** the rules engine is a **Phase 2** deliverable.
+> Phase 1 is just T3 + scope + the two canonical trees. The
+> rules engine is the second wave; it consolidates the existing
+> 5 services' decision logic.
+
+---
+
+## 6. The world environment
+
+The runtime container for a scope. Holds N trees (seed, state,
+rules, etc.) and knows which scope it belongs to.
+
+### 6.1 The environment class
+
+```gdscript
+# labs/multi-iso/srv/environment.gd
+class_name Environment
+extends RefCounted
+
+var scope: Scope
+var trees: Dictionary  # tree_name -> T3 instance
+
+func get_tree(name: String) -> T3:
+    ...
+
+func add_tree(name: String, tree: T3) -> void:
+    ...
+
+func tick(delta: float) -> void:
+    # Runs each tree's per-tick work
+    ...
+```
+
+### 6.2 The trees per environment
+
+Each environment has:
+- A seed tree (§7) — canonical, recursive, deterministic
+- A state tree (§8) — canonical, runtime
+- A rules tree (§5) — the gating rules
+- ...any other tree the game wants (§9)
+
+For Synmergia's poc/mvp:
+
+| Scope | Trees |
+|---|---|
+| `world_env` | world seed tree, world state tree, world rules tree |
+| `shard_env` (×N) | shard seed tree, shard state tree, shard rules tree |
+| `instance_env` (×N) | instance seed tree, instance state tree, instance rules tree |
+| `player_env` (×N) | player seed tree, player state tree, player rules tree |
+
+The data for each tree instance lives in `game/data/roots/`:
+
+```
+game/data/roots/
+├── world/
+│   ├── seed.tres
+│   ├── state.tres
+│   └── rules.tres
+├── shard_001/
+│   ├── seed.tres
+│   ├── state.tres
+│   └── rules.tres
+├── instance_abc/
+│   └── ...
+└── player_xyz/
+    └── ...
+```
+
+### 6.3 The TTL
+
+A scope environment can have a TTL. When the TTL expires, the
+environment is GC'd. The scope's state is finalized: locked
+seeds are committed, open seeds are released, state is
+snapshotted.
+
+For `open + instance` (dungeon run, arena match): the
+environment's TTL is **5 minutes after the last player leaves**
+(D032). Reconnect within the window restores the environment
+and its `open` seed.
+
+For `frame + X` (dream, tutorial, jail cell): the environment
+is GC'd at frame end. The seed is not preserved.
+
+For `locked + X` (world map, shard terrain, player's house):
+the environment has no TTL. It lives as long as the world lives.
+
+### 6.4 Manifest storage (D031)
+
+The `WorldManifest` is the durable storage for all `locked`
+seeds and the world-level configuration. Backup policy:
+
+- **Primary:** Postgres `world_manifest` table (1 read replica)
+- **Daily snapshot:** `s3://synmergia-backups/manifest/<date>.json.gz`
+- **Cold tier:** 30-day retention
+
+Recovery: `manifest --restore --from <date>` rebuilds state
+to that snapshot. **All player state < date is lost.** This
+is the price of the recursive model: lose the manifest, lose
+the world. (D031 — to be decided when we hit Phase 1 infra.)
+
+---
+
+## 7. The seed tree (canonical instance)
+
+The first canonical tree. Recursive, deterministic,
+content-hashed. (Spec §4, D025-D026.)
+
+### 7.1 The SeedSchema
+
+```gdscript
+# game/data/roots/seed_schema.tres (or core/schemas/seed_schema.gd)
+class_name SeedSchema
+extends Resource
+
+@export var seed_type: String         # "locked" | "open" | "frame"
+@export var visibility_scope: String  # "world" | "shard" | "instance" | "player"
+
+func _to_canonical_bytes(value: Dictionary) -> PackedByteArray:
+    # Canonical encoding: type + scope + path + parameters
+    ...
+
+func _validate(value: Dictionary) -> bool:
+    ...
+```
+
+### 7.2 The derivation
+
+```gdscript
+# labs/multi-iso/kv/seed_chain.gd
+static func derive_seed(stack: Array[PackedByteArray],
+                        path: String) -> PackedByteArray:
+    var acc := path.to_utf8_buffer()
+    for layer_seed in stack:  # player → shard → world
+        acc = HashingContext.sha256(layer_seed + acc)
+    return acc
+```
+
+The stack is `[player_seed, shard_seed, world_seed]` (top to
+bottom). The derivation is bottom-up: world_seed folds first,
+shard folds on top, player folds on top. The world rules
+overpower the player only when the player has no specific
+override (top-wins on lookup; bottom-most non-empty value).
+
+### 7.3 The roots storage
+
+The seed tree's data lives in `game/data/roots/<scope>/seed.tres`.
+Each scope's seed tree is an independent T3 instance.
+
+### 7.4 The critical parameters (D033)
+
+Shard parameters can be flagged `critical: bool`. Critical
+parameters bypass the 5-min coalesce window (D024) and go
+through immediately. Default criticality:
+
+| Parameter | Critical? |
+|---|---|
+| `boss_defeated` | yes |
+| `respawn_rate_modifier` | no |
+| `season_active` | yes |
+| `world_event_active` | no |
+
+---
+
+## 8. The state tree (canonical instance)
+
+The second canonical tree. Runtime, mutable, content-hashed.
+(Spec §5, D027.)
+
+### 8.1 The StateSchema
+
+```gdscript
+# game/data/roots/state_schema.tres
+class_name StateSchema
+extends Resource
+
+@export var type: String  # "position" | "inventory" | "health" | ...
+
+func _to_canonical_bytes(value: Dictionary) -> PackedByteArray:
+    ...
+
+func _validate(value: Dictionary) -> bool:
+    ...
+```
+
+### 8.2 The diff format (D027)
+
+State-only diff. Each diff entry is:
+
+| Field | Type | Always present? |
+|---|---|---|
+| `path` | String | yes |
+| `old_hash` | PackedByteArray | yes (null if new node) |
+| `new_hash` | PackedByteArray | yes |
+| `value_bytes` | PackedByteArray | only if `new_hash` differs from what client has |
+
+A client receiving a diff applies it to its local state tree
+root. If the new root hash matches the server's, sync is
+complete. If not, the client requests the full subtree.
+
+### 8.3 The roots storage
+
+The state tree's data lives in
+`game/data/roots/<scope>/state.tres`.
+
+---
+
+## 9. Other trees
+
+Added as needed. Each is an instance of T3 with its own
+schema.
+
+For Synmergia's poc/mvp, candidate other trees:
+- **Definition tree:** world config (zones, NPCs, loot tables,
+  quests, dialogues)
+- **Memory tree:** AI agent memory (NPC AI, player helpers)
+- **Social tree:** player relationships (friends, guild, party)
+
+For other games on the frame, any tree the game wants. The
+substrate is generic; the schemas are typed. The complexity
+lives in the schemas.
+
+---
+
+## 10. Data flow
+
+A tick, end-to-end:
+
+1. **Client → server:** `cmd` over WebSocket.
+2. **Server parse:** `network_manager.gd` parses, validates,
+   queues. (Spec §11.)
+3. **Tick loop** in `tick.gd`:
+   a. Walk the active scope stack
+      (player → instance → shard → world).
+   b. For each `cmd`:
+      - Apply to the appropriate tree (state, seed, etc.).
+      - The rules engine evaluates the `cmd` against the
+        rules tree (Phase 2+).
+      - Allowed `cmd`s mutate the trees.
+   c. Compute the diff per tree (T3::diff).
+   d. Filter the diff by visibility scope (D026).
+   e. Emit the diff to the appropriate clients.
+4. **Server → client:** diff over WebSocket. Client applies
+   the diff, verifies the root hash, requests resync if
+   mismatch.
+
+A full description of the tick model is in
+[`world-building-tick.md`](./world-building-tick.md).
+
+---
+
+## 11. Process topology
+
+### 11.1 Today (Phase 1)
+
+```
+┌──────────────────────────────────────────────┐
+│ docker-compose                               │
+│                                              │
+│  synmergia (Godot, all autoloads, no frame)  │
+│  postgres                                    │
+│  redis                                       │
+└──────────────────────────────────────────────┘
+```
+
+One Godot process. All 37 services autoloaded. The frame is
+aspirational; the game runs in the game container.
+
+### 11.2 Phase 2 (frame extract)
+
+```
+┌──────────────────────────────────────────────┐
+│  synmergia (Godot, services)                 │
+│      ↕  HTTP or FFI                          │
+│  frame (T3 + scope + rules engines)          │
+│  postgres                                    │
+│  redis                                       │
+└──────────────────────────────────────────────┘
+```
+
+The frame extracts to a separate container. The game calls
+the frame via HTTP bridge (v1) or polyglot FFI (Phase 4+).
+
+### 11.3 Phase 3 (coordinator extract)
+
+```
+┌──────────────────────────────────────────────┐
+│  synmergia (per shard)                       │
+│  coordinator (HA-pair in prod)               │
+│  postgres (HA)                               │
+│  redis                                       │
+└──────────────────────────────────────────────┘
+```
+
+Coordinator becomes its own process. Postgres HA. Cross-
+shard events go through the coordinator.
+
+### 11.4 Phase 4 (edge shards)
+
+```
+┌──────────────────────────────────────────────┐
+│  synmergia-world-shard-1..N                  │
+│  edge-shard-region-X-1..M (regional cache)   │
+│  coordinator (HA-pair)                       │
+│  postgres (HA)                               │
+│  redis (HA)                                  │
+└──────────────────────────────────────────────┘
+```
+
+Edge shards for low-latency regional cache. (Spec §11.11,
+research doc §2.)
+
+---
+
+## 12. `srv/` layout
+
+The multipurpose room. Definitions, setups, tooling.
+
+```
+srv/
+├── docker/                # mode dispatcher, certbot, healthcheck
+│   ├── entrypoint.sh
+│   ├── test-headless.sh
+│   └── README.md
+├── http/                  # route definitions, request/response schemas
+│   ├── routes/
+│   └── schemas/
+├── seed/                  # seed data, fixture players, test worlds
+│   ├── fixtures/
+│   └── generators/
+├── tools/                 # scripts, debug commands, ops utilities
+│   ├── tick/
+│   ├── diff/
+│   └── debug/
+├── backup/                # manifest backup, recovery (D031)
+│   ├── backup.sh
+│   └── restore.sh
+└── migration/             # schema migrations, godot project version migrations
+    └── *.sql
+```
+
+`labs/` routes for providers are temporary — they go away
+when the frame extracts. `game/data/roots/` is permanent —
+it holds the actual game data.
+
+---
+
+## 13. Component map (spec → code)
+
+| Spec concept | Spec ref | Current code | Target code | Status |
+|---|---|---|---|---|
+| T3 substrate | this doc §3 | none | `labs/multi-iso/kv/t3.gd` | TODO |
+| Scope engine | this doc §4 | none | `labs/multi-iso/srv/scope.gd` | TODO |
+| Rules engine | this doc §5 | none | `labs/multi-iso/srv/rules_engine.gd` | TODO (Phase 2) |
+| Seed tree (canonical) | this doc §7, spec §4 | none | `labs/multi-iso/kv/seed_chain.gd` | TODO |
+| State tree (canonical) | this doc §8, spec §5 | partial (`core/state/state.gd` is FSM, not tree) | `labs/multi-iso/kv/state_tree.gd` | TODO |
+| Recursive seed derivation | spec §4.2, D025 | none | `seed_chain.gd::derive_seed` | TODO |
+| Two-orthogonal-axes (D026) | spec §4.1 | none | `SeedSchema` payload | TODO |
+| State-only diff (D027) | spec §5.6, D027 | none | `T3::diff` | TODO |
+| Manifest SPOF (D031) | this doc §6.4 | none | `srv/backup/manifest.sh` | TODO |
+| Open seed TTL (D032) | this doc §6.3, spec §4.8 | none | `core/services/instance_service.gd` | TODO |
+| Login seed chain (D029) | validation §1 | none | `core/services/login_service.gd` | TODO |
+| Frame seed authority (D030) | validation §2 | none | `core/services/frame_service.gd` | TODO |
+| Critical params (D033) | this doc §7.4, spec §4.8 | none | `core/services/shard_parameters.gd` | TODO |
+| Account rollup (D028) | spec §9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
+| Vant multibrain stack | vant `brain.js:1510-1900` | none | `labs/multi-iso/srv/scope.gd` (port) | TODO |
+| Vant icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/geometry/` (port) | TODO (Phase 4) |
+| Vant fragmenter | vant `geometry/fragmenter.js` | none | `labs/multi-iso/geometry/fragmenter.gd` | TODO (Phase 4) |
+
+---
+
+## 14. Migration roadmap
+
+| Phase | Deliverable | Risk | Owner |
+|---|---|---|---|
+| 1 | T3 substrate (`t3.gd` + tests) | low | frame team |
+| 1 | SeedSchema + seed tree instance | low | frame team |
+| 1 | StateSchema + state tree instance | low | frame team |
+| 1 | Scope engine (basic, no flip) | low | frame team |
+| 1 | Login seed chain (D029) | med | login team |
+| 1 | Frame seed authority (D030) | med | game team |
+| 1 | Critical params (D033) | low | game team |
+| 1 | Open seed TTL (D032) | low | game team |
+| 1 | Manifest backup (D031) | low | infra team |
+| 1 | `srv/backup/`, `srv/tools/`, `srv/seed/` scaffolding | low | infra team |
+| 2 | Rules engine | med | infra team |
+| 2 | Refactor 5 services to use rules engine | med | infra team |
+| 2 | Definition tree (world config) | low | game team |
+| 2 | Frame extract to separate container | high | infra team |
+| 3 | Coordinator process | high | infra team |
+| 3 | Account rollup (D028) | med | anticheat team |
+| 3 | Memory tree + social tree | low | game team |
+| 4 | Edge shards | high | infra team |
+| 4 | Vant icosahedral + fragmenter ports | med | frame team |
+| 4 | Other trees (game-specific) as needed | low | game team |
+
+---
+
+## 15. Open questions
+
+For the user to resolve when the time comes:
+
+1. **T3 instance per scope or shared?** Each scope has its own
+   T3 instance, or one global T3 with scope-prefixed paths?
+   My read: per-scope. Easier to reason, easier to GC.
+
+2. **Schema discovery.** How does T3 know which schema applies
+   to a path? Conventions (e.g., `*/inventory/*` uses
+   `InventorySchema`)? Or explicit declaration per node? My
+   read: conventions + a `schema_registry.tres` for overrides.
+
+3. **Scope hierarchy configurability.** Is the hierarchy
+   (world → shard → instance → player) baked into the game,
+   or is it data? My read: baked for now, data in Phase 4+.
+
+4. **Rules tree mutation at runtime.** Can a player flip their
+   own rules? (E.g., "I want hardcore mode.") Or is the
+   rules tree admin-only? My read: per-player rules yes, per-
+   world rules admin-only.
+
+5. **Multi-iso FFI.** When the frame extracts to a separate
+   process (Phase 2), is the bridge HTTP or FFI? My read: HTTP
+   for v1, FFI in Phase 4+.
+
+6. **Vant sync.** As we port vant's patterns, do we push our
+   changes back to vant, or fork? My read: contribute back,
+   keep the projects in sync.
+
+7. **Manifest backup format.** Is the manifest a single .tres
+   or partitioned per scope? My read: single manifest,
+   partitioned storage. (See D031.)
+
+---
+
+## 16. Borrowed from vant
+
+This architecture borrows from
+[vant](https://github.com/dhaupin/vant/tree/axolotl) (axolotl
+branch), the user's sibling repo. Specifically:
+
+- **Multibrain stack pattern** (vant `lib/brain.js:1510-1900`)
+  → scope engine (§4). Vant's brain stack with push/pop/
+  current is the prototype for our scope stack. We extend it
+  with: typed scopes (player, shard, etc.), explicit override
+  semantics, and the "flip" mechanism (§4.4).
+
+- **Geometric addressing** (vant `lib/geometry/icosahedral.js`,
+  `tilings.js`, `quasicrystal.js`, `fragmenter.js`) → spatial
+  layer. The icosahedral projection is the candidate for world
+  chunk addressing; the Penrose P3 tiling is the candidate for
+  region distribution; the fragmenter (Knuth multiplicative
+  hash, `LATTICE_MULTIPLIER = floor(φ · 2³²)`) is the candidate
+  for shard partitioning in Phase 4+.
+
+- **Single class, schema-as-data** (vant `lib/brain.js` overall)
+  → T3 substrate (§3). Vant's brain is one class with mode-
+  as-data. T3 is the same pattern for content-hash trees.
+
+- **Content hashing** (vant `lib/quasicrystal.js` overall) →
+  SHA-256 hash chain in T3. Vant's quasicrystal uses barcode
+  projection; we use SHA-256 because we need cryptographic
+  tamper-evidence, not just deterministic projection.
+
+Each `labs/multi-iso/X/Y.gd` file has a
+`## Ported from vant axolotl lib/path/X.js` header. As we
+improve the ports, we push the changes back to vant. This is
+a sibling-repo relationship, not a fork. The stub
+`connectors/vant/vant_connector.gd` (game side) is the
+runtime bridge for agent sessions; the static port lives
+in `labs/multi-iso/`.
+
+---
+
+## 17. Versioning
+
+This doc is part of the spec. Updates to the doc require a
+spec review (per AGENTS.md). Doc-state is tracked at the
+bottom of each related doc.
+
+Last updated: 2026-09-05
+Sections: 17
+Decisions referenced: D025-D033 (D029-D033 are new in this doc)
+Open questions: 7

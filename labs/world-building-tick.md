@@ -21,6 +21,8 @@
 >   rate
 > - `world-building-risks.md` — N001 (tick rate),
 >   N022 (re-root cost), R001 (HTML5 perf)
+> - `world-building-arch.md` §10 — the tick as
+>   data flow through the substrate
 > - `m3-initial-world-audit.md` — current state
 >
 > **Date opened:** 2026-09-05
