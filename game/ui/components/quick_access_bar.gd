@@ -141,6 +141,38 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 func get_slot_item(index: int) -> Dictionary:
 	return _slot_items.get(index, {})
 
+func load_from_inventory() -> void:
+	# Load quick-access consumables from inventory
+	if not InventoryService:
+		return
+	
+	var inventory: Array = InventoryService.get_inventory("")
+	if inventory.is_empty():
+		return
+	
+	var consumables: Array = []
+	for item in inventory:
+		var item_type: String = str(item.get("item_type", "")).to_lower()
+		if item_type in ["potion", "food", "scroll", "consumable"]:
+			consumables.append(item)
+	
+	# Sort by category then stack size (prefer stacks)
+	consumables.sort_custom(func(a, b):
+		var a_type: String = str(a.get("item_type", ""))
+		var b_type: String = str(b.get("item_type", ""))
+		if a_type != b_type:
+			return a_type < b_type
+		return a.get("quantity", 1) > b.get("quantity", 1)
+	)
+	
+	# Fill slots
+	for i in range(min(SLOT_COUNT, consumables.size())):
+		set_slot_item(i, consumables[i])
+
+func clear_slots() -> void:
+	for i in range(SLOT_COUNT):
+		set_slot_item(i, {})
+
 func set_slot_cooldown(index: int, remaining: float) -> void:
 	if index < 0 or index >= _slots.size():
 		return
