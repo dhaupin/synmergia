@@ -29,15 +29,10 @@ func _bind_service_signals() -> void:
 	if _inv_bind_done or not is_instance_valid(InventoryService):
 		return
 	_inv_bind_done = true
-	# Refresh on any inventory change
 	InventoryService.item_transferred.connect(_on_inventory_changed)
 	InventoryService.gold_transferred.connect(_on_inventory_changed)
 
 func _on_inventory_changed(...) -> void:
-	_refresh_inventory()
-
-func _on_open() -> void:
-	_bind_service_signals()
 	_refresh_inventory()
 
 func _setup_panel() -> void:
@@ -128,6 +123,7 @@ func _setup_header() -> void:
 	header.add_child(close_btn)
 
 func _on_open() -> void:
+	_bind_service_signals()
 	_refresh_inventory()
 
 func _on_close() -> void:
