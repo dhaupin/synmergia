@@ -569,7 +569,7 @@ building:
 
 **Current LOD (count-only L1)**:
 - L0: 1000 oak meshes + 200 rock meshes + 50 mob meshes
-  + 1 building mesh = ~30MB.
+  - 1 building mesh = ~30MB.
 - L1: just counts: `oaks: 1000, rocks: 200, mobs: 50,
   buildings: 1` = ~50 bytes.
 

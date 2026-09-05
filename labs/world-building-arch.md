@@ -1,4 +1,4 @@
-# Synmergia вҖ” Systems Architecture
+# Synmergia —” Systems Architecture
 
 > **The bridge.** This doc sits between the spec
 > ([`world-building.md`](./world-building.md),
@@ -99,7 +99,7 @@ func walk(scope: Scope, callback: Callable) -> void:
 ### 3.2 The contract
 
 - **Determinism:** same path + same value + same schema = same
-  hash. Always. (R004, R009 вҖ” the two-platform determinism
+  hash. Always. (R004, R009 —” the two-platform determinism
   check, the "two clients see the same tree" gate.)
 - **Verifiability:** given a hash and a value, anyone can
   verify the value hashes to the hash. No trusted third party.
@@ -146,14 +146,14 @@ resolve overrides, and flip rules at scope boundaries.
 A scope is a position in a hierarchy. For Synmergia:
 
 ```
-world вҶ’ shard вҶ’ instance вҶ’ player
+world → shard → instance → player
 ```
 
 For another game on the same frame:
 
 ```
-galaxy вҶ’ sector вҶ’ system вҶ’ planet вҶ’ character
-realm вҶ’ region вҶ’ district вҶ’ character
+galaxy → sector → system → planet → character
+realm → region → district → character
 ```
 
 The hierarchy is a tree. Each node in the hierarchy is a
@@ -178,7 +178,7 @@ func walk(callback: Callable) -> void:
     ...
 
 func resolve(path: String, stack: Array[Scope]) -> Variant:
-    # Walks the stack topвҶ’bottom, returns first match
+    # Walks the stack top→bottom, returns first match
     ...
 
 func flip(rule_id: String, resolution: String) -> void:
@@ -222,7 +222,7 @@ subscription flips the rules for inventory size.
 ## 5. The rules engine + rules tree
 
 The new piece. A generic evaluator that takes
-`(action, context, rules_tree) вҶ’ decision`.
+`(action, context, rules_tree) → decision`.
 
 ### 5.1 The rules tree
 
@@ -318,9 +318,9 @@ func tick(delta: float) -> void:
 ### 6.2 The trees per environment
 
 Each environment has:
-- A seed tree (В§7) вҖ” canonical, recursive, deterministic
-- A state tree (В§8) вҖ” canonical, runtime
-- A rules tree (В§5) вҖ” the gating rules
+- A seed tree (В§7) —” canonical, recursive, deterministic
+- A state tree (В§8) —” canonical, runtime
+- A rules tree (В§5) —” the gating rules
 - ...any other tree the game wants (В§9)
 
 For Synmergia's poc/mvp:
@@ -380,7 +380,7 @@ seeds and the world-level configuration. Backup policy:
 Recovery: `manifest --restore --from <date>` rebuilds state
 to that snapshot. **All player state < date is lost.** This
 is the price of the recursive model: lose the manifest, lose
-the world. (D031 вҖ” to be decided when we hit Phase 1 infra.)
+the world. (D031 —” to be decided when we hit Phase 1 infra.)
 
 ---
 
@@ -414,7 +414,7 @@ func _validate(value: Dictionary) -> bool:
 static func derive_seed(stack: Array[PackedByteArray],
                         path: String) -> PackedByteArray:
     var acc := path.to_utf8_buffer()
-    for layer_seed in stack:  # player вҶ’ shard вҶ’ world
+    for layer_seed in stack:  # player → shard → world
         acc = HashingContext.sha256(layer_seed + acc)
     return acc
 ```
@@ -509,12 +509,12 @@ lives in the schemas.
 
 A tick, end-to-end:
 
-1. **Client вҶ’ server:** `cmd` over WebSocket.
+1. **Client → server:** `cmd` over WebSocket.
 2. **Server parse:** `network_manager.gd` parses, validates,
    queues. (Spec В§11.)
 3. **Tick loop** in `tick.gd`:
    a. Walk the active scope stack
-      (player вҶ’ instance вҶ’ shard вҶ’ world).
+      (player → instance → shard → world).
    b. For each `cmd`:
       - Apply to the appropriate tree (state, seed, etc.).
       - The rules engine evaluates the `cmd` against the
@@ -523,7 +523,7 @@ A tick, end-to-end:
    c. Compute the diff per tree (T3::diff).
    d. Filter the diff by visibility scope (D026).
    e. Emit the diff to the appropriate clients.
-4. **Server вҶ’ client:** diff over WebSocket. Client applies
+4. **Server → client:** diff over WebSocket. Client applies
    the diff, verifies the root hash, requests resync if
    mismatch.
 
@@ -622,13 +622,13 @@ srv/
     в””в”Җв”Җ *.sql
 ```
 
-`labs/` routes for providers are temporary вҖ” they go away
-when the frame extracts. `game/data/roots/` is permanent вҖ”
+`labs/` routes for providers are temporary —” they go away
+when the frame extracts. `game/data/roots/` is permanent —”
 it holds the actual game data.
 
 ---
 
-## 13. Component map (spec вҶ’ code)
+## 13. Component map (spec → code)
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
@@ -686,32 +686,86 @@ For the user to resolve when the time comes:
 1. **T3 instance per scope or shared?** Each scope has its own
    T3 instance, or one global T3 with scope-prefixed paths?
    My read: per-scope. Easier to reason, easier to GC.
+   **Status (2026-09-05):** pending. T3 PRD leaves this
+   open (one class, instances are owned by callers).
 
 2. **Schema discovery.** How does T3 know which schema applies
    to a path? Conventions (e.g., `*/inventory/*` uses
    `InventorySchema`)? Or explicit declaration per node? My
    read: conventions + a `schema_registry.tres` for overrides.
+   **Status (2026-09-05):** pending. Schemas are passed
+   explicitly to T3.insert() in v1 (no convention);
+   the registry is a v2 enhancement.
 
 3. **Scope hierarchy configurability.** Is the hierarchy
-   (world вҶ’ shard вҶ’ instance вҶ’ player) baked into the game,
+   (world → shard → instance → player) baked into the game,
    or is it data? My read: baked for now, data in Phase 4+.
+   **Status (2026-09-05):** RESOLVED. Data-driven via
+   `ScopeHierarchy.tres`. The hierarchy is a Resource,
+   not hardcoded. Other games on the frame define their
+   own. See `prd-scope-engine.md`.
 
 4. **Rules tree mutation at runtime.** Can a player flip their
    own rules? (E.g., "I want hardcore mode.") Or is the
    rules tree admin-only? My read: per-player rules yes, per-
    world rules admin-only.
+   **Status (2026-09-05):** pending. Not in the Phase 1
+   PRD queue; deferred to Phase 2 with the rules engine.
 
 5. **Multi-iso FFI.** When the frame extracts to a separate
    process (Phase 2), is the bridge HTTP or FFI? My read: HTTP
    for v1, FFI in Phase 4+.
+   **Status (2026-09-05):** RESOLVED. WebSocket v1
+   (matches the existing game server, no new
+   transport). Detailed protocol in Phase 3+. Phase 2
+   is just code structure (frame in same Godot
+   process, but packaged as if it could extract).
 
 6. **Vant sync.** As we port vant's patterns, do we push our
    changes back to vant, or fork? My read: contribute back,
    keep the projects in sync.
+   **Status (2026-09-05):** pending. Documented in section
+   16 (Borrowed from vant). Sync mechanism TBD.
 
 7. **Manifest backup format.** Is the manifest a single .tres
    or partitioned per scope? My read: single manifest,
    partitioned storage. (See D031.)
+   **Status (2026-09-05):** RESOLVED. Single manifest
+   (one Postgres table), 3-tier backup (Postgres + S3
+   - cold). See `prd-manifest-backup.md`.
+
+### Questions answered in 2026-09-05 session (not in original list)
+
+These were raised in the planning session, not in the
+original OQ list, but resolved:
+
+- **A. Existing `core/state/` (FSMs).** Should the new
+  state tree coexist with the old FSM code, or replace
+  it? RESOLVED: replace. The old `core/state/state.gd`
+  and `state_machine.gd` are deprecated. FSM migrates
+  to the new architecture as `behavior_state` nodes in
+  the state tree.
+
+- **B. Schema evolution.** When a schema gains a new
+  field, how do existing `.tres` files migrate?
+  RESOLVED: option (a), auto-upgrade on load. Godot's
+  default pattern; each schema has a `version: int`
+  field and `_upgrade_vN_to_vM()` methods.
+
+- **C. Empty world bootstrap.** How does the first
+  server run create the world env? RESOLVED:
+  fixture-driven. `game/data/roots/world/*.tres` exist
+  from day one, server loads them on startup. Server
+  fails fast if files are missing.
+
+- **D. Open seed TTL semantics.** When does the
+  5-min reconnect window start? RESOLVED: at last
+  character logout (not at instance creation). Per
+  D032.
+
+- **E. Login flow scope.** Is the login flow per-
+  account or per-character? RESOLVED: per-character.
+  Seeds are character-scoped, login is per-character.
 
 ---
 
@@ -722,13 +776,13 @@ This architecture borrows from
 branch), the user's sibling repo. Specifically:
 
 - **Multibrain stack pattern** (vant `lib/brain.js:1510-1900`)
-  вҶ’ scope engine (В§4). Vant's brain stack with push/pop/
+  → scope engine (В§4). Vant's brain stack with push/pop/
   current is the prototype for our scope stack. We extend it
   with: typed scopes (player, shard, etc.), explicit override
   semantics, and the "flip" mechanism (В§4.4).
 
 - **Geometric addressing** (vant `lib/geometry/icosahedral.js`,
-  `tilings.js`, `quasicrystal.js`, `fragmenter.js`) вҶ’ spatial
+  `tilings.js`, `quasicrystal.js`, `fragmenter.js`) → spatial
   layer. The icosahedral projection is the candidate for world
   chunk addressing; the Penrose P3 tiling is the candidate for
   region distribution; the fragmenter (Knuth multiplicative
@@ -736,10 +790,10 @@ branch), the user's sibling repo. Specifically:
   for shard partitioning in Phase 4+.
 
 - **Single class, schema-as-data** (vant `lib/brain.js` overall)
-  вҶ’ T3 substrate (В§3). Vant's brain is one class with mode-
+  → T3 substrate (В§3). Vant's brain is one class with mode-
   as-data. T3 is the same pattern for content-hash trees.
 
-- **Content hashing** (vant `lib/quasicrystal.js` overall) вҶ’
+- **Content hashing** (vant `lib/quasicrystal.js` overall) →
   SHA-256 hash chain in T3. Vant's quasicrystal uses barcode
   projection; we use SHA-256 because we need cryptographic
   tamper-evidence, not just deterministic projection.

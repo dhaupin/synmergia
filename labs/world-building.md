@@ -1622,7 +1622,7 @@ forest changes.
 
 **Hierarchical instancing** separates the **type** (shared,
 immutable) from the **instances** (per-entity transforms
-+ dynamic state):
+- dynamic state):
 
 ```
 chunks.chunk_X.types
@@ -1826,37 +1826,37 @@ zone:
   max_level: 15
   allowed_factions: []
   blocked_species: []
-  
+
   # spatial extent
   bounds: AABB                    # planar; for spherical use cell_range
   cell_range: [face_id_lo, face_id_hi]  # spherical, optional
-  
+
   # NEW: link to chunks
   region_ids: ["region_gloomwood_north", "region_gloomwood_south"]
-  
+
   # respawn
   respawn_at_bind: true
   respawn_timer: 8.0
   bind_point: [0, 0, 0]
-  
+
   # instance
   is_instanced: false
   instance_capacity: 0            # 0 = unlimited (open world)
   instance_seed_derivation: "world" | "shard" | "run"
-  
+
   # NEW: procedural generation hints
   generation_overrides:           # paths to override files
     - "world/overrides/planar/chunk_*_*/biome.tres"
-  
+
   # gameplay
   ambient_light_color: Color
   ambient_light_energy: float
   has_weather: bool
   weather_type: string
-  
+
   spawn_points: Array[Vector3]
   npcs: Array[String]             # NPC IDs
-  
+
   loot_multiplier: 1.0
   xp_multiplier: 1.2
 ```
@@ -1916,12 +1916,12 @@ gateway:
   from_zone_id: "zone_forest_meadow"
   to_zone_id: "zone_dungeon_forest_depths"
   to_position: [120, 0, 80]
-  
+
   # NEW: instance behavior
   transition_type: "seamless" | "load_screen" | "fade"
   instance_behavior: "create" | "join_existing" | "auto_assign"
   instance_capacity: 5            # 0 = open world
-  
+
   # requirements
   required_level: 10
   required_faction: ""
@@ -2122,18 +2122,18 @@ ClientSession:
   character_id: String
   connected_at: int64
   last_input_tick: int
-  
+
   # AOI subscription
   aoi_center: [x, y, z]
   aoi_radius: float        # ~100m default
   subscribed_chunks: Set[String]
   interest_set: Set[String]  # entities the client cares about
-  
+
   # prediction state (for reconciliation)
   last_acked_tick: int
   last_acked_root_hash: String
   pending_inputs: [ClientInput]
-  
+
   # transport
   ws_handle: WebSocketPeer
   send_queue: Array
@@ -2609,7 +2609,7 @@ Redis with TTL = session lifetime:
 device identifier (independent of session):
 - `device:<hash>` key in Redis.
 - Hash = `SHA-256(UA + screen + WebGL renderer
-  + first-seen-cookie + browser entropy)` —
+  - first-seen-cookie + browser entropy)` —
   computed client-side, sent on session start.
 - TTL 30 days (refreshed on activity).
 - Used to detect: same device, multiple accounts
@@ -2731,7 +2731,7 @@ indexed Redis read (cached). Negligible.
 - Per-second timeline reconstruction
   (we sample, not record all).
 - Per-other-player observation (privacy
-  + bandwidth).
+  - bandwidth).
 - Audio, video, screenshots (out of
   scope; client-side only if at all).
 
@@ -4467,7 +4467,7 @@ Concrete deliverables:
    - Sends.
 4. **`aoi.gd`** at `game/core/net/`. Interest management.
 5. **`snapshot.gd`** at `game/core/net/`. Initial snapshot
-   + reconciliation.
+   - reconciliation.
 6. **V1 world manifest**: spherical, 20km planet radius,
    one 150km² continent with capital at center, biome
    layout per §3.9. Loaded from `data/worlds/v1.tres` or
