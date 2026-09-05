@@ -1,17 +1,20 @@
 # Synmergia — Open World MMORPG
 
-> **Status (2026-08-30):** Modernized to reflect the current
-> architecture (state tree, multi-iso orchestrator, content-hash
-> layer, predictive LOD) and the Track A / Track B plan. This
-> document lives in `labs/` because the architecture is
+> **Status (2026-09-05):** This PRD is the product spec.
+> Technical architecture details are in `/labs/` (source of truth):
+> `world-building.md` (full stack design), `world-building-arch.md`
+> (systems architecture), `world-building-tick.md` (tick model),
+> `world-building-risks.md` (risks), and the PRD specs (`prd-*.md`).
+> The frame (T3 substrate + scope engine + rules engine) is
+> documented in `world-building-arch.md` and the PRD specs.
+> This document lives in `labs/` because the architecture is
 > experimental; the game itself is in `game/`.
 
 > **Vision:** A 3D open-world MMORPG inspired by Risk Your Life 2
 > (RYL2) combat/action mechanics, infused with the depth and
-> player-driven economy of Ultima Online. Mobile-first
-> (Android/iOS), with PC support. Built on a reusable **frame**
-> (multi-iso orchestrator + state tree) that can be extracted to
-> its own project — see the Frame appendix.
+> player-driven economy of Ultima Online. Built on a reusable **frame**
+> (T3 content-hash substrate + scope engine + rules engine) that
+> can be extracted to its own project — see the Frame appendix.
 
 ---
 
@@ -85,22 +88,19 @@ Craft gear → Build houses → Participate in PvP → Repeat
 **Competitive Landscape:**
 - Similar to: RYL2 (combat feel), UO (economy/housing), Black
   Desert (action combat), Albion Online (full loot PvP)
-- Differentiator: Mobile-first with full MMO depth, not a
-  stripped-down mobile port. Plus: a **reusable game frame**
-  (multi-iso orchestrator + state tree + content-hash layer) that
-  could be extracted to its own project, so other games can be
-  built on the same architecture.
+- Differentiator: Browser-ready (Godot HTML5/wasm) with full MMO
+  depth, not a stripped-down mobile port. Plus: a **reusable
+  game frame** (T3 content-hash substrate + scope engine + rules
+  engine) that could be extracted to its own project, so other
+  games can be built on the same architecture.
 
 **Development Approach:**
 - Agent-assisted development using LLMs for code generation
 - Incremental feature delivery with continuous integration
-- Godot 4.7.2 for cross-platform deployment
-- Two-track plan: **Track A** ships the game (state tree,
-  islands, save games, asset addressing, build pipeline);
-  **Track B** develops the frame (math primitives,
-  multi-iso orchestrator, materialized intersection, LOD,
-  prediction). See the [Frame appendix](#frame-appendix) and
-  [`world-building-arch.md`](./world-building-arch.md).
+- Godot 4.7.2 for cross-platform deployment (browser via HTML5/wasm)
+- See the [Frame appendix](#frame-appendix) and
+  [`world-building-arch.md`](./world-building-arch.md) for the
+  full architecture and development phases.
 
 ---
 
@@ -120,8 +120,8 @@ Player houses dot the landscape. Guilds control territories. Resources are finit
 ### 4. Risk vs Reward PvP ⚔️
 PvP zones offer better rewards but carry the risk of losing your gear. Full loot in designated zones. Guild wars shape server politics. Death has consequence.
 
-### 5. Mobile-First Quality 📱
-The same full experience on mobile as on PC. Touch controls designed for action combat, not afterthought keyboard mappings. Optimized for all device tiers.
+### 5. Browser-First Deployment 🌐
+Client runs in browser via Godot HTML5/wasm. Touch controls designed for action combat, keyboard/mouse on desktop. Optimized for all device tiers.
 
 ---
 
@@ -524,29 +524,34 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 
 | Component | Description | Priority |
 |-----------|-------------|----------|
-| **Auth Server** | Login, account creation | P0 |
+| **Auth Server** | Login, account creation with seed chain | P0 |
 | **Game Server** | Authoritative game world simulation | P0 |
-| **Multi-Iso Orchestrator** | Multi-dimensional state queries (spatial ∩ faction ∩ temporal ∩ social). The control plane for the state tree. See [`world-building-arch.md`). | P0 |
-| **State Tree (content-hash)** | Each entity is a content-hashed node. Server tick = re-rooting the tree. Client sync = diff between hashes. See section 10.7. | P0 |
+| **T3 Substrate** | Content-hash tree primitive. Each entity is a content-hashed node. Server tick = re-rooting the tree. See [`world-building-arch.md`](./world-building-arch.md). | P0 |
+| **Scope Engine** | Hierarchy walker for world→shard→instance→player scopes. Resolves rules and values at scope boundaries. | P0 |
+| **Rules Engine** | Generic evaluator for behavior rules. | P0 |
 | **Snapshot Store (Postgres)** | `state_snapshots` table persists root hashes. Lazy load on restart. | P0 |
-| **Cache Layer (in-memory)** | LRU-backed materialized intersection tables for hot queries. See [`world-building-arch.md`). | P0 |
+| **Cache Layer (in-memory)** | LRU-backed intersection cache for hot queries. See [`world-building-arch.md`](./world-building-arch.md). | P0 |
 | **Message Queue** | Handle real-time messages | P0 |
 | **Load Balancer** | Distribute players across servers | P0 |
 | **Anti-Cheat** | Server-side validation, hash-chain tick verification | P0 |
 | **CDN** | Asset distribution by content-hash | P1 |
 
+See [`world-building-arch.md`](./world-building-arch.md) for the full frame architecture (substrate, scope engine, rules engine, spatial layer) and [`world-building-tick.md`](./world-building-tick.md) for the server tick model.
+
 ### 10.4 Networking
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Protocol** | UDP for game state, TCP for reliable (auth, inventory) | P0 |
+| **Protocol** | WebSocket for browser + agent compatibility | P0 |
 | **Client Prediction** | Smooth movement despite latency | P0 |
 | **Server Reconciliation** | Rollback to known-good hash, apply patch | P0 |
 | **Lag Compensation** | Fair hit detection with latency | P0 |
 | **Interest Management** | Only sync nearby entities (use icosahedral adjacency) | P0 |
 | **Tick Rate** | Server update frequency (10-60 Hz) | P0 |
-| **State Diff (the new bit)** | Server sends root hash + diff, not full state. Bandwidth = O(diff size), not O(state size). | P0 |
+| **State Diff** | Server sends root hash + diff, not full state. Bandwidth = O(diff size), not O(state size). | P0 |
 | **P2P Entity Sync (optional)** | Nearby players gossip via hash-set reconciliation. Reduces server load. The "assimilation" piece. | P2 |
+
+See [`world-building.md`](./world-building.md) §10 for the full transport design.
 
 ### 10.5 Database Design
 
@@ -918,23 +923,20 @@ above for the full listing of world-building docs and PRDs.
 
 ### D. Frame Appendix
 
-> This is the part of the PRD that describes the **frame** —
-> what could be extracted from Synmergia and shipped as its own
-> project. The frame is the part that any future game on this
-> architecture would consume.
+> This describes the **frame** — what could be extracted from
+> Synmergia and shipped as its own project. The frame is the part
+> that any future game on this architecture would consume.
+> See [`world-building-arch.md`](./world-building-arch.md) for the
+> full architecture.
 
 **The frame is the union of:**
 
-1. **State tree** (`labs/multi-iso/kv/state_tree.gd`) — content-hash, diff, sync
-2. **Content hash** (`labs/multi-iso/kv/content_hash.gd`) — SHA-256 wrapper
-3. **LRU cache** (`labs/multi-iso/kv/lru_cache.gd`) — generic LRU
-4. **Multi-iso orchestrator** (`labs/multi-iso/srv/axis.gd` + `axis_registry.gd` + `composite_table.gd`)
-5. **Materialized intersection tables** (`labs/multi-iso/srv/composite_table.gd`)
-6. **LOD manager** (`labs/multi-iso/srv/lod_manager.gd`)
-7. **Predictor + prefetcher** (`labs/multi-iso/srv/predictor.gd` + `prefetcher.gd`)
-8. **Markov chain** (`labs/multi-iso/srv/markov.gd`)
-9. **Math primitives** (`labs/multi-iso/math/nsc9.gd` + `icosahedral.gd` + `quasicrystal.gd`)
-10. **Snapshot store** (`labs/multi-iso/db/snapshot_store.gd`)
+1. **T3 substrate** (`labs/multi-iso/kv/t3.gd`) — generic content-hash tree primitive
+2. **Scope engine** (`labs/multi-iso/srv/scope.gd`) — hierarchy walker, scope stack, rule resolution
+3. **Rules engine** (`labs/multi-iso/srv/rules_engine.gd`) — generic behavior evaluator
+4. **Spatial layer** (`labs/multi-iso/math/`) — NSC-9, icosahedral, quasicrystal math primitives
+5. **LRU cache** (`labs/multi-iso/kv/lru_cache.gd`) — generic LRU
+6. **Snapshot store** (`labs/multi-iso/db/snapshot_store.gd`) — Postgres persistence
 
 **The frame is NOT:**
 
@@ -945,34 +947,12 @@ above for the full listing of world-building docs and PRDs.
 
 **Why the frame matters:**
 
-A new game on this frame would write:
+The frame is the lever. The game is the proof. If the frame
+works for Synmergia, it works for any state-heavy multiplayer
+game. The frame extracts to its own project. Synmergia becomes
+the example game. Other games can build on the same primitives,
+getting content-hash sync, scope-based hierarchy, and behavior
+rules for free.
 
-```gdscript
-# 1. Define axes
-var spatial = SpatialAxis.new(depth=8)
-var faction = FactionAxis.new()
-var orchestrator = Orchestrator.new([spatial, faction])
-
-# 2. Insert entities
-orchestrator.insert(entity_id, axis_coords)
-
-# 3. Query
-var result = orchestrator.query({
-    "spatial": region_aabb,
-    "faction": guild_id
-})
-# result is materialized intersection — O(1) if cached, O(n) otherwise
-```
-
-That's it. No global state, no autoload, no GameManager
-dependency. The orchestrator is the entire API.
-
-**The "could pioneer" outcome:**
-
-If the frame works for Synmergia, it works for any state-heavy
-multiplayer game. The frame extracts to its own project
-(alongside vant). Synmergia becomes the example game. Other
-games can build on the same primitives, getting multi-dim
-queries, content-hash sync, and predictive LOD for free.
-
-The frame is the lever. The game is the proof.
+See [`world-building-arch.md`](./world-building-arch.md) §2 for the
+full dual-goal architecture (frame + game instance).
