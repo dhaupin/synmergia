@@ -585,7 +585,7 @@ Each decision has:
 - **Reasoning:** One protocol for all sync (gameplay,
   world, cross-shard). The content-hash diff is small.
   Client applies diffs, server emits diffs. Symmetric
-  + simple. (See plan §10.3, §11.)
+  - simple. (See plan §10.3, §11.)
 - **Trigger to revisit:** if diff size exceeds ~5KB
   on average, consider batching multiple diffs into
   a single frame (still diff, just compressed in
@@ -1681,7 +1681,7 @@ Alphabetical. Each term has:
 
 - **HLC** — Hybrid Logical Clock. Used in
   cross-shard conflict resolution. Vector clock
-  + wall-clock. *See plan §16.5.*
+  - wall-clock. *See plan §16.5.*
 
 - **Hot chunk** — A chunk at LOD L0 (full) in
   RAM. The "1% hot" rule: only 1% of the world
@@ -1694,7 +1694,7 @@ Alphabetical. Each term has:
 
 - **Julia** — A dynamic programming language used
   for the multi-iso orchestrator. Concise math
-  + good parallelism. *See plan §6, §13, D008,
+  - good parallelism. *See plan §6, §13, D008,
   R010.*
 
 - **L0 / L1 / L2 / L3** — LOD level. L0 = full

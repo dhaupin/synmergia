@@ -164,3 +164,27 @@ so I can clean up.
 - [ ] `labs/world-building-arch.md` §13 component map status updated
 - [ ] Single commit, conventional message format
 - [ ] Smoke test passes: a 3-node tree, insert, get, hash, diff, apply_diff, walk
+
+---
+
+## 11. Decisions applied (2026-09-05)
+
+Answers from the planning session that affect this PRD:
+
+- **Schema evolution (option a — auto-upgrade on load):**
+  T3 doesn't need to know about schema versions; the
+  schema's `_init()` (or a Godot lifecycle hook) handles
+  version transitions. T3 just stores and hashes. The
+  schema upgrade is the schema's concern.
+
+- **Memory model:** flat `Dictionary` keyed by path. The
+  arch doc §18.1 says "revisit if profiling shows the
+  wrong call." v1 ships flat; v2 may switch to a linked
+  tree.
+
+- **Hash function:** SHA-256 (arch doc §18.1 revisit
+  trigger = profiling). v1 is SHA-256; v2 may be Blake3.
+
+- **Vant lineage:** confirm `cache.js` is the right
+  vant analog during implementation. If not, drop the
+  credit; if yes, include it.

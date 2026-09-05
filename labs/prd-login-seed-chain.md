@@ -194,7 +194,7 @@ reconnects within 5 minutes gets the same instance state.
 - **Why signed:** prevents a MITM from injecting fake
   seeds. The client embeds the server key at build time.
 - **Why 60s replay window:** enough to cover clock skew
-  + network latency, short enough to limit replay value.
+  - network latency, short enough to limit replay value.
 - **Why 5-min open seed:** matches the open+instance TTL
   per D032. Reconnect within the window restores state.
 - **Signature algorithm:** HMAC-SHA256. Fast, standard,

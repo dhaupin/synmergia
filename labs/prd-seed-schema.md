@@ -210,3 +210,40 @@ editor flow.
 - [ ] Single commit, conventional message format
 - [ ] Smoke test: create a SeedSchema, canonicalize a
   seed value, verify same input → same bytes
+
+---
+
+## 11. Decisions applied (2026-09-05)
+
+Answers from the planning session that affect this PRD:
+
+- **Schema evolution (option a - auto-upgrade on load):**
+  Add a `version: int` field (default 1) to the
+  SeedSchema. In `_init()` (or a Godot lifecycle hook),
+  check the saved version; if older, run the appropriate
+  `_upgrade_vN_to_vM()` method. Each new schema version
+  ships with its upgrade method.
+
+- **Login flow (D029):** the 4 seeds the client receives
+  on character select (world, shard, instance, player)
+  all conform to SeedSchema - the schema defines the
+  type/scope per seed, and the seed chain derivation
+  (per arch doc section 7.2) operates on SeedSchema values.
+
+- **Per-character scoping:** seeds are character-scoped,
+  not account-scoped. The login flow is per-character.
+  This is enforced by the login service, not the schema
+  itself (the schema doesn't know about accounts vs
+  characters).
+
+- **Data dir:** `game/data/roots/<scope>/seed.tres` per
+  arch doc section 6.2. The 9 (type x scope) combos in
+  US-005 are 9 entries in a single `seed.tres`, or 9
+  separate files. Implementation choice - either is fine.
+
+- **FSM migration:** the old `core/state/state.gd` and
+  `state_machine.gd` are deprecated. FSM is moving to
+  the new architecture (placeholder in StateSchema PRD
+  for `behavior_state` type). SeedSchema is unaffected
+  by FSM migration.
+

@@ -212,3 +212,51 @@ editor flow.
   state value, verify same input → same bytes
 - [ ] Type-specific validation works: invalid `position`
   payload → `_validate` returns `false`
+
+---
+
+## 11. Decisions applied (2026-09-05)
+
+Answers from the planning session that affect this PRD:
+
+- **Schema evolution (option a - auto-upgrade on load):**
+  Add a `version: int` field (default 1) to the
+  StateSchema. In `_init()` (or a Godot lifecycle hook),
+  check the saved version; if older, run the appropriate
+  `_upgrade_vN_to_vM()` method.
+
+- **FSM migration (the big one for StateSchema):** the
+  old `core/state/state.gd` and `state_machine.gd` are
+  deprecated. FSM is moving to the new architecture.
+  Concretely:
+  - Add `behavior_state` to the `type` enum (alongside
+    position, inventory, health, faction, status, quest,
+    social, other).
+  - A behavior_state node in the state tree holds the
+    FSM state for one entity (current_animation,
+    ai_tick_state, etc.).
+  - FSM transitions are computed by reading/writing
+    behavior_state nodes; the per-entity FSM machinery
+    becomes a thin wrapper over state tree reads/writes.
+  - Old FSM code is deleted after migration (no parallel
+    systems).
+
+- **Persistent vs transient state:** the arch doc
+  clarifies that the state tree holds *persistent* state
+  (HP, position, inventory, quest progress, FSM
+  current_state). *Transient* state (current animation
+  frame, in-flight network packet) stays as Godot node
+  properties. The behavior_state type holds the *current*
+  FSM state, which is persistent (it survives across
+  server restarts via the state tree diff).
+
+- **Data dir:** `game/data/roots/<scope>/state.tres` per
+  arch doc section 6.2.
+
+- **D029, D030, D032, D033 integration:** state tree is
+  the substrate for login flow state (D029), frame
+  transient vs persistent state split (D030), instance
+  state restoration (D032), and shard parameter
+  criticality (D033, where critical params apply via
+  state_tree.insert).
+
