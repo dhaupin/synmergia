@@ -751,78 +751,58 @@ is incremental: profile, port, re-profile, ship.
 
 ## 13. Phases & Milestones
 
-> **Modernized 2026-08-30:** Phases are now aligned with the
-> **Track A** (product) and **Track B** (frame research) plan.
-> Track A ships the game. Track B develops the frame in parallel.
-> See the architecture documentation section above for details.
+> **Updated 2026-09-05:** Phases reflect the current state
+> based on source-of-truth docs in `/labs/`. The frame
+> architecture is T3 substrate + scope engine + rules engine
+> (per `world-building-arch.md`). PRD specs in `/labs/prd-*.md`
+> define the implementation details per phase.
 
 ### Phase 0: Foundation ✅ COMPLETE
-- [x] Complete PRD
+- [x] Complete PRD (`prd.md`)
 - [x] Choose engine (Godot 4.7.2)
 - [x] Set up dev environment
 - [x] Architecture decisions (services, components, .tres)
-- [x] Initial combat/skill systems implemented
-- [x] ROADMAP.md created for tracking
-- [x] AGENTS.md conventions
-
-### Phase 0.5: UI Modernization + Islands POC ✅ COMPLETE
-- [x] UIPanel migration (commit `d25ad67`)
-- [x] Islands POC shipped (commit `3e942bb`)
-- [x] 19/19 islands tests passing
-- [x] NEXT-AGENT-PICKUP doc for crash survival
-- [x] Multi-iso orchestrator design (Part 1 + Part 2)
+- [x] 38 services implemented in `game/core/services/`
+- [x] AGENTS.md conventions for AI agents
 - [x] `/labs/` directory convention (frame staging area)
-- [x] Modernized PRD (this file)
 
-### Phase 0.6: Cleanup 🔄 IN PROGRESS
-- [ ] Fix pre-existing parse errors project-wide
-- [ ] Replace `GameConfig.*` with `_get_config_*` helpers
-- [ ] Add static shims for autoloads with `class_name`
-- [ ] Clean lint warnings
-- [ ] Add `.uid` and `tools/` to `.gitignore` (mostly done)
-- [ ] Fix `inventory_component.gd` unindent
-- [ ] Create separate `UIWidget` base for HUD/widgets
+### Phase 1: Frame Foundation ✅ COMPLETE
+- [x] UI Modernization + Islands POC
+- [x] UIPanel → Islands migration
+- [x] Multi-iso orchestrator design documented
+- [x] Frame architecture designed (T3 + scope + rules)
 
-### Phase 1: State Tree + Track A Foundation (NEXT)
-- [ ] **A-2**: Migrate remaining UIPanels to islands
-- [ ] **A-3**: State tree (content-hash, diff, sync) → `labs/multi-iso/kv/state_tree.gd`
-- [ ] **A-4**: Save games as content-hashed trees
-- [ ] **A-5**: Item template content-hash (cross-shard dedup)
-- [ ] **A-6**: Asset addressing (pck + CDN by hash)
-- [ ] **A-7**: Build pipeline (`tools/build.sh`)
+### Phase 2: Frame Primitives 🔄 IN PROGRESS
+Implementation per PRD specs in `/labs/prd-*.md`:
 
-### Phase 2: Vertical Slice (MVP)
-- [ ] Single playable zone
-- [ ] Basic movement + camera
-- [ ] One class with 5-10 skills
-- [ ] 3 enemy types
-- [ ] Basic combat loop
-- [ ] Touch controls working
-- [ ] Mobile build (APK/IPA)
-- [ ] State tree driving the game state
+- [ ] **T3 Substrate** — Generic content-hash tree primitive
+  - See [`prd-t3-substrate.md`](./prd-t3-substrate.md)
+  - Location: `labs/multi-iso/kv/t3.gd`
+- [ ] **Seed Schema** — Seed type + visibility scope
+  - See [`prd-seed-schema.md`](./prd-seed-schema.md)
+- [ ] **State Schema** — State value types
+  - See [`prd-state-schema.md`](./prd-state-schema.md)
+- [ ] **Scope Engine** — Data-driven hierarchy walker
+  - See [`prd-scope-engine.md`](./prd-scope-engine.md)
+  - Location: `labs/multi-iso/srv/scope.gd`
+- [ ] **Rules Engine** — Generic behavior evaluator
 
-### Phase 3: Core Loop
-- [ ] All movement mechanics (dodge, swim, etc)
-- [ ] 3+ classes
-- [ ] 20+ skills
-- [ ] 3+ zones
-- [ ] Basic crafting
-- [ ] Basic inventory
-- [ ] Basic PvP in one zone
+### Phase 3: Seed System
+- [ ] Login + seed chain (D029)
+  - See [`prd-login-seed-chain.md`](./prd-login-seed-chain.md)
+- [ ] Open seed TTL semantics (D032)
+  - See [`prd-open-seed-ttl.md`](./prd-open-seed-ttl.md)
+- [ ] Manifest + backup (D031)
+  - See [`prd-manifest-backup.md`](./prd-manifest-backup.md)
 
-### Phase 4: Track B (parallel to Phases 2-3)
-- [ ] **B-1**: Math primitives (NSC-9, icosahedral, quasicrystal) → `labs/multi-iso/math/`
-- [ ] **B-2**: Single-axis orchestrator → `labs/multi-iso/srv/axis.gd`
-- [ ] **B-3**: Multi-axis intersection
-- [ ] **B-4**: NSC-9 axis reservation → `axis_registry.gd`
-- [ ] **B-5**: Orchestrator + frame glue
-- [ ] **B-6**: Materialized intersection tables (LRU cache)
-- [ ] **B-7**: LOD pyramid (4 levels)
-- [ ] **B-8**: Predictive prefetch (Markov)
-- [ ] **B-9**: Performance budget (GDScript vs NativeScript C++ vs server)
-- [ ] **B-10**: Frame extraction (alongside vant)
+### Phase 4: State + Sync
+- [ ] Server authority model
+  - See [`prd-frame-authority.md`](./prd-frame-authority.md)
+- [ ] State diff sync (client reconciliation)
+- [ ] Critical params system (D033)
+  - See [`prd-critical-params.md`](./prd-critical-params.md)
 
-### Phase 5: World Building
+### Phase 5: World Building 🔜 NEXT
 - [ ] 5+ zones
 - [ ] Dungeons (2-3)
 - [ ] Full crafting system
@@ -839,27 +819,28 @@ is incremental: profile, port, re-profile, ship.
 - [ ] World events
 - [ ] Anti-cheat (hash-chain tick verification)
 
-### Phase 7: Frame Extraction + Polish
-- [ ] **B-10**: Frame extracts to its own project (alongside vant)
-- [ ] Synmergia becomes an example consumer
-- [ ] Frame documentation for external users
-- [ ] Optimization pass on the frame
+### Phase 7: Browser Deployment + Polish
+- [ ] Godot HTML5/wasm browser build
+- [ ] WebSocket transport
+  - See [`world-building.md`](./world-building.md) §10
+- [ ] Frame extraction (optional, per viability)
+- [ ] Optimization pass
 - [ ] Bug fixes
 - [ ] Balance tuning
 
 ### Phase 8: Launch
-- [ ] Mobile-first launch (Android + iOS)
-- [ ] PC launch
+- [ ] Browser-first launch (web)
+- [ ] Desktop builds (Windows, macOS, Linux)
 - [ ] Launch marketing
 - [ ] Community building
-- [ ] Re-enable CI/CD pipeline
 
 ---
 
 ## 14. Open Questions
 
-> **Modernized 2026-08-30:** Many questions answered. The new
-> architecture has changed what we're asking.
+> **Updated 2026-09-05:** Architecture is now T3 substrate +
+> scope engine + rules engine (per `world-building-arch.md`).
+> Many open questions are now answered in the PRD specs.
 
 ### Resolved
 
@@ -868,21 +849,22 @@ is incremental: profile, port, re-profile, ship.
 3. ~~**PC Support:**~~ → ✅ PC support from day 1 (same Godot build)
 4. ~~**Aggro:**~~ → Proximity-based, configurable detection, level-gated XP (see section 3.8)
 5. ~~**PvP combat differences:**~~ → CC reduction, gear-differential damage modifiers (tunable)
-6. **Architecture (the big one):** → State tree + multi-iso orchestrator + content-hash layer. See section 10.
-7. **Networking serialization:** → `var_to_bytes` / `bytes_to_var` (Godot 4.x idiom)
+6. ~~**Architecture:**~~ → ✅ T3 substrate + scope engine + rules engine (per `world-building-arch.md`)
+7. ~~**Networking:**~~ → ✅ WebSocket for browser + agent compatibility
+8. ~~**Networking serialization:**~~ → ✅ `var_to_bytes` / `bytes_to_var` (Godot 4.x idiom)
 
 ### Open
 
-8. **Scale:** How many players per server?
+9. **Scale:** How many players per server?
    - LOD pyramid + intersection cache can carry a lot. 500+ is plausible. 1000+ needs the frame's perf budget answered first.
-9. **Level Cap:** 60 levels planned. Expandable.
-10. **Art Assets:** AI generation, purchase, custom? TBD.
-11. **Real Money:** Cosmetics shop planned. Subscription unlikely. RMT banned, no third-party.
-12. **Platform Priority:** Simultaneous Android + iOS via Godot exports.
-13. **Loading screens:** Zone transitions? Seamless? Open world with portal? Depends on the multi-iso orchestrator's spatial axis.
-14. **Frame extraction timeline:** When does the frame spin out to its own repo? After Phase 7? Earlier?
-15. **Performance budget:** GDScript enough? NativeScript C++? Standalone C++ server? Decided in Track B Session B-9.
-16. **Build pipeline shape:** Bash? Godot CLI? CI step? Custom tool? Session A-7.
+10. **Level Cap:** 60 levels planned. Expandable.
+11. **Art Assets:** AI generation, purchase, custom? TBD.
+12. **Real Money:** Cosmetics shop planned. Subscription unlikely. RMT banned, no third-party.
+13. **Platform Priority:** Browser-first (HTML5/wasm), then desktop builds.
+14. **Loading screens:** Zone transitions? Seamless? Open world with portal? Depends on scope engine's zone handling.
+15. **Frame extraction timeline:** When does the frame spin out to its own repo? After Phase 7? Earlier?
+16. **Performance budget:** GDScript enough? GDExtension C++? Decided in Phase 4.
+17. **Build pipeline shape:** Bash? Godot CLI? CI step? Custom tool? TBD.
 
 ---
 
