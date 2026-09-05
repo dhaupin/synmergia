@@ -1632,23 +1632,42 @@ intuitively a place. They don't write
 
 ### 9.1 Tick rate
 
-Default **20 Hz** for the game-state tick (every 50ms).
-**10 Hz** for the LOD/predictive-prefetch tick (every
-100ms). **1 Hz** for the world-event / day-night tick
-(every 1s). **1 / 60s** for the Postgres-snapshot tick.
+The game-state tick is **adaptive** (D020), driven by
+the shard-level flywheel (§9.14):
 
-These are independent. The game-state tick is the hot
-path; the others are background loops.
+- **50ms (20 Hz)** when flywheel momentum > 80% of max
+  (high load: combat, mob spawn, player surge).
+- **100ms (10 Hz)** when flywheel is at 20-80%
+  (normal traffic).
+- **200ms (5 Hz)** when flywheel is < 20% (idle shard,
+  no players in AOI).
+
+Day/night, regen, and buff timers all advance per
+tick — slower ticks mean slower day/night, but that's
+fine on an idle shard. When players arrive, the
+flywheel spins up and the rate jumps.
+
+**Other tick rates** (independent, not flywheel-driven):
+
+- **10 Hz** for the LOD/predictive-prefetch tick
+  (every 100ms, see §9.12).
+- **1 Hz** for the world-event / day-night tick
+  (every 1s, see §9.10).
+- **1 / 60s** for the Postgres-snapshot tick (see §9.11).
+
+The game-state tick is the hot path; the others are
+background loops.
 
 ### 9.2 The tick pipeline
 
 ```
-tick_n (50ms):
+tick_n (50ms, adaptive via §9.1):
   1. drain_input_queue()      # player commands from clients
   2. for each entity:
        - read state
        - apply input command if any
        - update AI / physics / auras
+       - increment per-player flywheel sub-meters (§9.16)
   3. for each chunk in hot set:
        - process mob AI, despawns, respawns
        - apply scheduled events
@@ -1657,9 +1676,33 @@ tick_n (50ms):
   6. for each subscriber:
        - filter diff to subscriber's AOI
        - queue for batch send (next 50ms boundary)
-  7. emit local signals (in-process observers)
-  8. tick ends
+  7. increment shard-level flywheel (§9.14)
+       - decay per tick (default 0.5/tick)
+       - check trigger; if hot, write snapshot
+  8. emit local signals (in-process observers)
+  9. tick ends
 ```
+
+The flywheel is updated at step 7 (after the
+emission, before tick ends) so the snapshot fires
+with the post-tick view. Per-player flywheels are
+incremented at step 2 as the player's actions are
+processed.
+
+The **six-phase view** (from the tick model
+discussion) maps onto this pipeline as:
+
+| Phase | Pipeline step | Sync/async |
+|---|---|---|
+| 1. Input collection | step 1 | sync |
+| 2. World step | steps 2-3 | sync |
+| 3. State re-root + diff | steps 4-5 | sync |
+| 4. Diff emit | step 6 | sync |
+| 5. Persistence | (async, after tick) | async |
+| 6. Predicted prefetch | (async, after tick) | async |
+
+For the full 6-phase deep-dive, see
+`labs/world-building-tick.md` §4.
 
 ### 9.3 Why batching matters for the browser
 
@@ -1784,27 +1827,52 @@ The lag estimate is per-client, EWMA-smoothed, and bounded
 The split: **anything that affects game state is server**.
 Anything that's purely visual or UI feedback is client.
 
-### 9.9 Tick pacing under load
+### 9.9 Tick pacing under load (D021)
 
-If a tick takes > 50ms (e.g. 60ms), the server:
+When a tick overruns its budget (e.g. 60ms in a
+50ms slot), the server **defers to a side queue**
+with the **flywheel as the awareness layer** (D021).
 
-- Logs the slow tick.
-- Skips the next tick's diff emission (coalesces).
-- Tries again on the following 50ms boundary.
+The side queue is the *defer* policy: phase-2 work
+that doesn't fit in the budget goes to a queue,
+processed in the next tick. The flywheel is the
+*response* policy: it tells us *why* and *who*:
 
-We never **drop** ticks. We may **coalesce** them
-(combine two ticks' diffs into one), but the player still
-sees the latest state.
+- **Who is the contributor?** Top-N chaos
+  contributors (§9.14 snapshot) identify the
+  player, mob spawn, or input type driving the
+  load.
+- **What subsystem is hot?** Sub-meters
+  (player_inputs, mob_ai, cross_shard) identify
+  the system.
+- **Where to slim?** The highest sub-meter gets
+  throttled first (reduce NPC AI rate, drop
+  cosmetic effects, lower LOD aggression).
+- **Is an exploiter involved?** Per-player
+  flywheel (§9.16) flags suspicious players;
+  their inputs get deprioritized.
+- **Races?** Sub-meter patterns
+  ("cross_shard HLC storm" or "input flood")
+  indicate contention.
+- **Health?** The flywheel momentum is a leading
+  indicator of stress; >80% is operator-visible.
 
-If load gets sustained (5+ slow ticks in a row), the
-server triggers a **load-shedding** policy:
+The side queue itself has a flywheel (queue-
+flywheel). When the queue-flywheel exceeds its
+threshold, the system knows it's overrun
+persistently and triggers the **load-shedding
+policy**:
 
 - Reduce AOI radius (less work per tick).
-- Skip non-essential systems (skip world-event ticks,
-  skip loot roll for far-away mobs).
-- Eventually, refuse new connections (full shard signal).
+- Skip non-essential systems (skip world-event
+  ticks, skip loot roll for far-away mobs).
+- Eventually, refuse new connections (full shard
+  signal).
 
 This is per-shard; other shards are unaffected.
+The shedding policy is informed by the
+flywheel — it knows *which* subsystem to shed,
+not just "shed everything."
 
 ### 9.10 The 1Hz world-event tick
 
@@ -1929,6 +1997,176 @@ Staggering is simple and orthogonal to ECS. We do both.
 
 The first vertical slice stays Node-based for clarity. We
 introduce ECS as soon as we need it for scaling.
+
+### 9.14 The shard-level flywheel (D020-D022, D024)
+
+The tick has a **flywheel** — a shard-local
+accumulator of "chaos" (work). The flywheel is the
+load profiler; it makes the work-proportionality of
+the tick explicit and observable.
+
+This is a port of the
+[`nature.js`](https://github.com/dhaupin/vant/blob/axolotl/lib/nature.js)
+hit-and-miss engine pattern from the sibling vant
+repo. See `labs/world-building-tick.md` for the
+full deep-dive.
+
+**Three states:**
+
+- **Ephemeral:** in-memory. Normal operation. No
+  I/O cost.
+- **Snapshot:** Redis key `flywheel:<shard_id>`,
+  TTL'd 1 hour. Written on trigger.
+- **Restored:** loaded on boot if a recent snapshot
+  exists.
+
+**Snapshot triggers (write):**
+
+1. Flywheel > 80% of max (high-entropy).
+2. Planned event signal (operator-initiated).
+3. SIGTERM (planned restart).
+4. Resource pressure (CPU > 80% for 30s, memory
+   > 90%, connection backlog).
+5. Crash recovery (read-side companion).
+
+**Discard rules (don't restore):**
+
+- Snapshot > 1 hour old.
+- World seed has rolled (manifest change).
+- Operator-flagged discard.
+
+**Snapshot record (the embedded data when hot):**
+
+- `momentum` (the headline number)
+- `trigger` (which trigger fired)
+- `sub_meters` (player_inputs, mob_ai,
+  cross_shard, wall_clock — the "where is the
+  chaos coming from" breakdown)
+- `top_contributors` (top-10 chaos sources —
+  only when hot, otherwise empty)
+
+When calm: ~50 bytes. When hot: ~200 bytes with
+forensic detail. Same Redis key, same TTL.
+**Low-signal-when-calm, high-signal-when-hot.**
+
+**Cost:** one Redis op on trigger, not per tick.
+Hot path unchanged.
+
+### 9.15 Postmortem: load-driven vs bug-driven
+
+The killer use case for the flywheel snapshot is
+crash forensics. The flywheel is a **leading
+indicator** of trouble; CPU and memory are
+*lagging* indicators.
+
+When a shard crashes with a recent snapshot, the
+postmortem reads the answer in 30 seconds:
+
+- **Flywheel=950, 80% mob AI, top contributor:
+  mob spawn cascade** → "tune mob AI throttling
+  / cap spawn rate."
+- **Flywheel=950, 95% player inputs, top
+  contributor: one player's combat macro** →
+  "throttle / ban that player."
+- **Flywheel=950, 70% cross-shard, top
+  contributor: HLC storm** → "fix coordinator
+  reconnection."
+- **Flywheel=150, normal load** → "find the
+  bug."
+
+Without the snapshot, all four are "shard crashed."
+With the snapshot, each gets a different postmortem.
+This is the value of persisting the flywheel.
+
+### 9.16 The per-player flywheel (D023)
+
+In addition to the shard-level flywheel, **each
+player has their own flywheel** for security and
+anticheat. Same pattern, smaller scope, different
+purpose. See `labs/world-building-tick.md` §9 for
+the full deep-dive.
+
+**The inversion:** instead of security scanning
+every player for anomalies, each player's flywheel
+*is* the anomaly detector. The player audits
+themselves. Security investigates only the hot
+players.
+
+**Sub-meters per player:**
+
+- Movement (distance, speed, teleport, fast-travel)
+- Combat — hits (timing, crit rate, hits per tick)
+- Combat — cooldowns (skill uses, gaps, downtime)
+- Chat (msg/min, channel-switches)
+- Trade (opens/min, items/trade, gold flow)
+- Loot (rolls/min, rare-drop rate)
+- Instance / fast-travel (enters/min)
+
+Each sub-meter has warn + trigger thresholds.
+When trigger fires, a snapshot of the player's
+recent activity goes to
+`suspicious:<player_id>` in Redis (TTL 1 hour).
+
+**The anticheat pipeline:**
+
+1. Per-tick: every player's flywheel updates
+   (O(1) per player).
+2. Per-trigger: snapshot fires; goes to
+   `suspicious:<player_id>`.
+3. `AutoResponseService` subscribes; decides
+   action (warn / mute / restrict / kick / ban).
+4. `SecurityService` and `AppFirewall` also
+   listen, bring their own context.
+
+**Maps to existing code:**
+
+- New: `PlayerFlywheelService` autoload.
+- Adapts: existing `SecurityService`,
+  `AutoResponseService`, `AppFirewall` become
+  data-driven (the snapshot is the trigger).
+
+**Cost:** ~1MB memory (5000 players × 200 bytes),
+O(N) per tick, one snapshot per trigger. Hot path
+unchanged.
+
+**The principle (generalizes):** any time you
+have "find the bad actors in a population," build
+them a per-entity flywheel. The same abstraction
+(flywheel + sub-meters + thresholds + snapshot)
+works for shard load, player behavior, NPC AI,
+services, etc.
+
+### 9.17 The monitorability commitment (D022)
+
+Every signal in the events system can register as
+a chaos source. The flywheel doesn't care *where*
+chaos comes from; it just accumulates. NPCs,
+entities, services, signals — any emitter can
+declare a chaos weight.
+
+**The principle:** observability becomes
+load-bearing. Without the flywheel, "make
+everything monitorable" is an observability virtue
+(a nice-to-have). With the flywheel, it's a
+load-profiling necessity (a must-have). The
+flywheel justifies the observability investment.
+
+**The implementation:** the existing `EventBus`
+autoload is the natural registration point. New
+services emit signals there; chaos observers
+attach. The pattern is additive — existing
+services don't change, they just become
+observable.
+
+**The cost:** per-event is O(1). Per-trigger is
+the existing snapshot mechanism. Memory is trivial.
+
+**The benefit:** the flywheel becomes the
+**single load-profiling abstraction** for the
+entire game. One flywheel, many sub-meters, one
+snapshot. The "we forgot to monitor X" failure
+mode disappears — X either emits a signal (and
+feeds the flywheel) or it doesn't.
 
 ---
 

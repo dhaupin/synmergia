@@ -763,13 +763,141 @@ Each decision has:
 
 - **Committed:** D001, D002, D003, D004, D005, D006,
   D007, D008, D009, D010, D011, D012, D013, D014,
-  D016, D017, D018, D019
+  D016, D017, D018, D019, D020, D021, D022, D023,
+  D024
 - **Provisional:** D015 (last-write-wins — explicit
   revisit trigger)
 
-Total: 19 decisions. 18 committed, 1 provisional.
+Total: 24 decisions. 23 committed, 1 provisional.
 The provisional one (D015) is the one most likely
 to be re-litigated.
+
+### 2.7 Tick model decisions (D020-D024)
+
+The five new decisions in this batch are all
+related to the tick model and the flywheel pattern
+(see plan §9.14-9.17, `labs/world-building-tick.md`
+for the full discussion). Settled 2026-09-05.
+
+#### D020 — Adaptive heartbeat, flywheel-driven
+
+- **Phase:** 1+
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - 50ms fixed (original plan §9.1)
+  - 100ms fixed (half the cost, slow for combat)
+  - 33ms fixed (smoother but unnecessary)
+- **Reasoning:** The vant flywheel pattern is
+  adaptive by design. A 50ms-fixed heartbeat wastes
+  ~3% of CPU on idle shards. Adaptive
+  (50/100/200ms based on flywheel momentum) keeps
+  the response time low under load and lets idle
+  shards breathe. The N001 measurement becomes
+  "p99 tick interval" instead of "tick interval."
+  (See plan §9.1.)
+- **Trigger to revisit:** if N001 measurements
+  show idle shards spending >10% CPU on tick
+  overhead, lower the floor further. If combat
+  shards show p99 > 75ms, raise the high-load
+  rate.
+- **Status:** committed
+- **Superseded by:** —
+
+#### D021 — Defer with flywheel as awareness layer
+
+- **Phase:** 1+
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Drop next tick on overrun (hides the problem)
+  - Extend the tick (bad for action combat)
+  - Defer to side queue, no awareness (can't tell
+    which subsystem to thin)
+- **Reasoning:** The side queue is the defer
+  policy; the flywheel is the response policy.
+  Together they answer: who, what subsystem,
+  where to slim, is there an exploiter, is there
+  a race, what's the health. Without the
+  flywheel, deferral is just "hide inputs." With
+  it, deferral is informed. (See plan §9.9,
+  tick-doc §8 Q1.)
+- **Trigger to revisit:** if load-shedding
+  triggers fire on >10% of ticks, redesign
+  (probably with explicit overflow policies).
+- **Status:** committed
+- **Superseded by:** —
+
+#### D022 — Monitorability commitment (everything is a chaos source)
+
+- **Phase:** 1+
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Chaos sources are the curated list (player
+    inputs, mob AI, cross-shard, time)
+  - Chaos sources are per-service opt-in
+- **Reasoning:** Without "everything is a chaos
+  source," observability is opt-in. New
+  services can be added without being observed.
+  With the commitment, every signal in the events
+  system is automatically flywheel-feedable. The
+  flywheel becomes the single load-profiling
+  abstraction for the entire game. The cost is
+  trivial (per-event O(1)); the benefit is
+  structural. (See plan §9.17, tick-doc §5.6.)
+- **Trigger to revisit:** if EventBus observers
+  themselves become a bottleneck (unlikely; O(1)
+  per event), reconsider.
+- **Status:** committed
+- **Superseded by:** —
+
+#### D023 — Per-player flywheel for security and anticheat
+
+- **Phase:** 2 (after shard-level flywheel lands)
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Centralized security scan (O(N×M) per tick)
+  - Sampled anomaly detection (latency + misses)
+  - Per-player flywheel *only* (loses shard-level
+    load profiling)
+- **Reasoning:** Inverts the security model.
+  Instead of scanning every player, each
+  player's flywheel IS the anomaly detector.
+  Cost: O(N) per tick + O(K) per trigger. The
+  per-player snapshot is the evidence for
+  AutoResponse. Maps to existing
+  SecurityService / AutoResponseService /
+  AppFirewall. (See plan §9.16, tick-doc §9.)
+- **Trigger to revisit:** if the snapshot
+  evidence is insufficient for player appeals
+  (false positive rate), add additional
+  context. If a careful cheater consistently
+  evades, supplement with other detection
+  signals.
+- **Status:** committed
+- **Superseded by:** —
+
+#### D024 — Flywheel snapshot triggers and discard rules
+
+- **Phase:** 1+ (shard-level), 2+ (per-player)
+- **Decided:** 2026-09-05
+- **Alternatives rejected:**
+  - Always-persist (I/O cost on hot path)
+  - Never-persist (loses postmortem value)
+  - Persist without discard rules (stale
+    snapshots are dangerous)
+- **Reasoning:** Ephemeral by default; snapshot
+  on trigger; restore on boot if recent. Five
+  write triggers: high-entropy (>80% of max),
+  planned event, SIGTERM, resource pressure,
+  crash recovery. Three discard rules: >1h old,
+  world seed rolled, operator flag. Hot path
+  unchanged (one Redis op on trigger, not per
+  tick). (See plan §9.14, tick-doc §5.3-5.4.)
+- **Trigger to revisit:** if Redis becomes a
+  bottleneck, move snapshot to Postgres or a
+  per-shard mmap'd file. If discard rules
+  discard too aggressively, extend the TTL.
+- **Status:** committed
+- **Superseded by:** —
 
 ---
 
@@ -790,19 +918,31 @@ Each number has:
 
 ### 3.1 Time & frequency
 
-#### N001 — Server tick rate
+#### N001 — Server tick rate (adaptive, D020)
 
-- **Claim:** tick at 50ms (20 Hz).
-- **Target:** 20 Hz.
+- **Claim:** tick at 50ms (20 Hz) under high load;
+  100ms (10 Hz) under normal load; 200ms (5 Hz) when
+  idle. Driven by shard-level flywheel momentum.
+- **Target:** p99 of *tick interval* < 75ms under
+  high load; < 125ms under normal; < 250ms idle.
 - **Phase:** 1.
-- **Source:** plan §9.1.
-- **How to measure:** time the `_process_server_ticks()`
-  body; assert p99 < 50ms across 10,000 ticks.
+- **Source:** plan §9.1, D020.
+- **How to measure:** record tick interval + the
+  flywheel bucket (high / normal / idle) for each
+  tick over 10,000 ticks. Assert:
+  - p99 high-load interval < 75ms
+  - p99 normal-load interval < 125ms
+  - p99 idle interval < 250ms
+  - Adaptive rate transitions happen within 5 ticks
+    of flywheel crossing a threshold.
 - **Current:** —.
 - **Status:** target (unmeasured).
 - **Notes:** the tick is the heartbeat. Everything
   downstream (LOD, diff, sync) is bounded by it.
-  This is the first number to be measured in Phase 1.
+  The N001 measurement is "p99 tick interval" not
+  "tick interval" — D020 changed the shape of this
+  number. This is the first number to be measured in
+  Phase 1.
 
 #### N002 — LOD tick rate
 
@@ -1134,11 +1274,74 @@ Each number has:
   blocking operations in the tick. If it
   exceeds 100ms, it has to be async or batched.
 
+#### N024 — Flywheel snapshot write cost (D024)
+
+- **Claim:** Redis snapshot write is <2ms p95.
+- **Target:** <2ms p95.
+- **Phase:** 1.
+- **Source:** plan §9.14, D024.
+- **How to measure:** time the snapshot write
+  (`flywheel:<shard_id>` SET); assert p95 < 2ms
+  over 10,000 snapshots.
+- **Current:** —.
+- **Status:** target (unmeasured).
+- **Notes:** the snapshot is fired on trigger,
+  not per tick. So this is per-trigger, not
+  per-tick. The 2ms budget is generous (Redis
+  SET is sub-millisecond); we want headroom
+  for serialization. If exceeded, switch from
+  inline JSON to MessagePack.
+
+#### N025 — Per-player flywheel update cost (D023)
+
+- **Claim:** per-player flywheel update is O(1)
+  with <1µs p99 per player per tick.
+- **Target:** <1µs p99 per player.
+- **Phase:** 2.
+- **Source:** plan §9.16, D023.
+- **How to measure:** with 5,000 connected
+  players, time the per-tick flywheel update
+  loop; assert total < 5ms (so 1µs per player
+  p99).
+- **Current:** —.
+- **Status:** target (unmeasured).
+- **Notes:** this is the *anticheat* hot path.
+  Every player, every tick. If the cost grows,
+  the design breaks. O(1) per player is the
+  budget; O(1) per *sub-meter* is the
+  sub-budget (7 sub-meters per player, each
+  incrementing one int).
+
+#### N026 — Tick-alignment jitter (D020)
+
+- **Claim:** diffs emit within ±2ms of tick
+  boundary. (Carried over from N014 — this
+  number verifies the *adaptive* tick
+  preserves alignment under variable rate.)
+- **Target:** p99 jitter < 5ms.
+- **Phase:** 1.
+- **Source:** plan §9.1, D020.
+- **How to measure:** record `time_now - tick_n*interval`
+  for each emitted diff; assert p99 absolute
+  jitter < 5ms. Run for 10,000 ticks at each
+  rate bucket (high, normal, idle).
+- **Current:** —.
+- **Status:** target (unmeasured).
+- **Notes:** the adaptive heartbeat is a
+  change from the plan's 50ms-fixed
+  commitment. The alignment guarantee must
+  hold at *all three* rates — high, normal,
+  idle. If jitter exceeds 5ms at any rate,
+  the lag-compensation math in §9.7 breaks
+  down (the 500ms rewind window was
+  calculated against 50ms tick boundaries).
+
 ### 3.6 Numbers summary
 
-- **Total:** 23 numbers.
+- **Total:** 26 numbers.
 - **Targets (unmeasured):** N001, N002, N003, N011,
-  N012, N014, N015, N020, N021, N022, N023 (11)
+  N012, N014, N015, N020, N021, N022, N023, N024,
+  N025, N026 (14)
 - **Targets (TBD):** N017 (1)
 - **Targets (config-only):** N004, N005, N006,
   N008, N009, N013, N016, N018, N019 (9)
@@ -1253,6 +1456,28 @@ Alphabetical. Each term has:
   Naming collision with the "state tree" is
   documented in the audit. *See audit §4.1.*
 
+- **Flywheel** — A shard-local accumulator of
+  "chaos" (work). A hit-and-miss engine pattern
+  ported from the sibling vant repo's
+  [`nature.js`](https://github.com/dhaupin/vant/blob/axolotl/lib/nature.js).
+  Three states: ephemeral (in-memory, normal
+  operation), snapshot (Redis, fired on trigger),
+  restored (loaded on boot if recent). The
+  flywheel is the load profiler for the tick;
+  it makes work-proportionality explicit and
+  observable. *See plan §9.14, D020-D022, D024,
+  `labs/world-building-tick.md` §5.*
+
+- **Flywheel snapshot** — The persisted record
+  of a flywheel's state, written to Redis on
+  trigger. Contains momentum, trigger enum,
+  sub-meters (where is the chaos coming from),
+  and top-N contributors (who is the actor).
+  When calm: ~50 bytes. When hot: ~200 bytes
+  with forensic detail. Low-signal-when-calm,
+  high-signal-when-hot. *See plan §9.14,
+  tick-doc §7.*
+
 - **GDScript** — Godot's native scripting
   language. The v1 game-tier runtime. *See plan
   §17, D008.*
@@ -1308,6 +1533,15 @@ Alphabetical. Each term has:
   seeds, shard partitions. Read by all shards
   on boot. *See plan §4.7, §3.11.*
 
+- **Monitorability commitment** — Every signal
+  in the events system can register as a chaos
+  source. The flywheel is the architectural
+  reason "make everything monitorable" stops
+  being a nice-to-have and starts being a
+  load-profiling necessity. Observability
+  becomes load-bearing. *See plan §9.17, D022,
+  `labs/world-building-tick.md` §5.6.*
+
 - **Markov** — A stochastic model where the next
   state depends only on the current. Used for
   player-movement prediction (N021). *See plan
@@ -1348,6 +1582,20 @@ Alphabetical. Each term has:
   peer-to-peer chunk sync. Phase 2+ (D016).
   WebSocket-only browser clients don't use it.
   *See plan §10.10.*
+
+- **Per-player flywheel** — A flywheel scoped to
+  a single player rather than a whole shard.
+  Same pattern (chaos, sub-meters, thresholds,
+  snapshot) but smaller scope: 7 sub-meters
+  (movement, combat-hits, combat-cooldowns,
+  chat, trade, loot, instance). The per-player
+  flywheel is the **anomaly detector** for
+  security and anticheat — it inverts the
+  model so each player audits themselves, and
+  security investigates only the hot players.
+  Cost: ~1MB memory, O(N) per tick, one
+  snapshot per trigger. *See plan §9.16, D023,
+  `labs/world-building-tick.md` §9.*
 
 - **Player-placed content** — Ankhs, guild halls,
   houses, signs, crops. Stored in the state
@@ -1476,6 +1724,7 @@ The two known naming collisions worth tracking:
 | LRU | Least Recently Used |
 | MST | Merkle Suffix Tree |
 | P2P | Peer-to-Peer |
+| SPOF | Single Point of Failure |
 | VOI | Volume of Interest |
 
 ---
@@ -1499,12 +1748,19 @@ What lives in each doc, where to look for what:
 ## Document state
 
 - Sections: 5 (risks, decisions, numbers, glossary,
-  cross-doc index).
-- Length: ~1,500 lines.
-- Total entries: 15 risks, 19 decisions, 23 numbers,
-  ~60 glossary terms.
+  cross-doc index) + new §2.7 (tick model decisions).
+- Length: ~1,800 lines.
+- Total entries: 15 risks, 24 decisions (D020-D024
+  added for the tick model), 26 numbers (N024-N026
+  added for the flywheel), ~65 glossary terms
+  (Flywheel, Flywheel snapshot, Per-player
+  flywheel, Monitorability commitment added).
 - Status: tracking companion to the trio.
 - Last full review: 2026-09-05.
+- Last update: 2026-09-05 (tick model spec
+  promotion — D020-D024, N024-N026, glossary
+  additions, plan §9.1/§9.2/§9.9/§9.14-§9.17
+  updated).
 - Next review: when Phase 1 measurement list (N001,
   N022, N014, N012, N011, ...) starts producing
   numbers — then the "Current" column gets real.
