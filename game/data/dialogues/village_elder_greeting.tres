@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[sub_resource type="DialogueData$DialogueChoice" id="sub_1"]
+text = "What is this place?"
+next_node = 1
+
+[sub_resource type="DialogueData$DialogueChoice" id="sub_2"]
+text = "Do you have work for me?"
+next_node = 2
+
+[sub_resource type="DialogueData$DialogueChoice" id="sub_3"]
+text = "Farewell."
+next_node = -1
+
+[sub_resource type="DialogueData$DialogueNode" id="sub_4"]
+speaker = "Village Elder"
+text = "Greetings, young one. You stand in the Village of Haven, a sanctuary at the edge of the Darkwood. Few travelers find their way here."
+choices = [SubResource("sub_1"), SubResource("sub_2"), SubResource("sub_3")]
+
+[sub_resource type="DialogueData$DialogueNode" id="sub_5"]
+speaker = "Village Elder"
+text = "We are a small community, but we have weathered many storms. The Darkwood Forest lies to the north, and the Shattered Mountains to the east. Trade caravans pass through weekly."
+choices = []
+
+[sub_resource type="DialogueData$DialogueNode" id="sub_6"]
+speaker = "Village Elder"
+text = "Indeed we do. Speak with me again and I will tell you of the wolves that plague our livestock. A capable warrior could earn good coin."
+choices = []
+
+[resource]
+script = ExtResource("1")
+id = "village_elder_greeting"
+npc_id = "npc_village_elder"
+display_name = "Village Elder Greeting"
+nodes = [SubResource("sub_4"), SubResource("sub_5"), SubResource("sub_6")]
