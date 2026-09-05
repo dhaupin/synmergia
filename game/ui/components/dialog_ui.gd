@@ -23,11 +23,14 @@ var _portrait: TextureRect
 
 func _ready() -> void:
 	_setup_ui()
-	var svc = DialogService.get_instance()
-	if svc:
-		svc.node_changed.connect(_on_node_changed)
-		svc.dialogue_started.connect(_on_dialogue_started)
-		svc.dialogue_ended.connect(_on_dialogue_ended)
+	# Use preload for class_name DialogService (not autoload-safe get_instance)
+	var DialogServiceClass = preload("res://core/services/dialog_service.gd")
+	if DialogServiceClass:
+		var svc = DialogServiceClass.get_instance()
+		if svc:
+			svc.node_changed.connect(_on_node_changed)
+			svc.dialogue_started.connect(_on_dialogue_started)
+			svc.dialogue_ended.connect(_on_dialogue_ended)
 	hide()
 
 func _setup_ui() -> void:
