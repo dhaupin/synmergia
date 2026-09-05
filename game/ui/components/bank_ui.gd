@@ -2,6 +2,7 @@
 ## Provides access to personal, guild, and account vaults
 extends UIPanel
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
 
 
 const UIPanel = preload("res://ui/components/ui_panel.gd")
@@ -194,6 +195,9 @@ func _update_gold_display() -> void:
 	var gold: int = _vault_data.get("gold", 0)
 	_gold_label.text = str(gold)
 
+func _get_slot_icon(slot_info: Dictionary) -> Texture2D:
+	return IconResolver.get_item_icon_from_dict(slot_info)
+
 func _update_slot_display() -> void:
 	var size: int = _vault_data.get("size", 0)
 	var used: int = 0
@@ -216,15 +220,7 @@ func _populate_grid() -> void:
 				
 				icon.visible = true
 				icon.modulate = Color(1, 1, 1, 1)
-				
-				# Load item icon
-				var item_data: Dictionary = slot_info.get("data", {})
-				var icon_path: String = item_data.get("icon_path", "")
-				if not icon_path.is_empty():
-					var tex := load(icon_path) as Texture2D
-					icon.texture = tex
-				else:
-					icon.texture = null
+				icon.texture = _get_slot_icon(slot_info)
 			else:
 				icon.visible = false
 				icon.texture = null

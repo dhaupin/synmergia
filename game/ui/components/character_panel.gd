@@ -5,6 +5,7 @@ extends UIPanel
 class_name CharacterPanel
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
 
 
 ## Tab definitions
@@ -423,10 +424,7 @@ func _show_equip_item_picker(slot_id: int) -> void:
 
 		var icon := TextureRect.new()
 		icon.custom_minimum_size = Vector2(32, 32)
-		if item.icon_path != "":
-			var tex := load(item.icon_path) as Texture2D
-			if tex:
-				icon.texture = tex
+		icon.texture = IconResolver.get_item_icon(item)
 		row.add_child(icon)
 
 		var name_lbl := Label.new()

@@ -3,12 +3,15 @@
 extends Control
 class_name ActionBar
 const UIStyles = preload("res://ui/components/ui_styles.gd")
-
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
+const CharacterData = preload("res://core/schemas/character_data.gd")
+const DataService = preload("res://core/services/data_service.gd")
 
 ## Slots
 const SLOT_COUNT: int = 8
 var _slots: Array = []
 var _keybinds: Array = []
+var _char_data: CharacterData
 
 ## State
 var _selected_slot: int = -1
@@ -19,6 +22,34 @@ signal slot_updated(index: int, skill_data: Dictionary)
 func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
+
+func load_from_character(char_data: CharacterData) -> void:
+	_char_data = char_data
+	for i in range(SLOT_COUNT):
+		var skill_id := char_data.get_action_slot(i)
+		if not skill_id.is_empty():
+			var skill_schema := DataService.get_skill(skill_id)
+			if skill_schema:
+				var skill_dict := _schema_to_dict(skill_schema, char_data)
+				update_slot(i, skill_dict)
+			else:
+				update_slot(i, {})
+		else:
+			update_slot(i, {})
+
+func _schema_to_dict(schema: Resource, char_data: CharacterData) -> Dictionary:
+	var dict := {
+		"skill_id": schema.get("skill_id", ""),
+		"name": schema.get("name", ""),
+		"icon_path": schema.get("icon_path", ""),
+		"mana_cost": schema.get("mana_cost", 0),
+		"cooldown": schema.get("cooldown", 0.0),
+		"skill_type": schema.get("skill_type", 0),
+	}
+	# Apply upgrade level from character data
+	var upgrade_level := char_data.get_skill_upgrade_level(dict.skill_id)
+	dict["upgrade_level"] = upgrade_level
+	return dict
 
 func _setup_ui() -> void:
 	var container := HBoxContainer.new()
@@ -168,15 +199,10 @@ func update_slot(index: int, skill_data: Dictionary) -> void:
 			mana.visible = false
 		return
 
-	# Update icon
-	if icon and skill_data.has("icon_path"):
+	# Update icon using IconResolver
+	if icon:
 		icon.modulate = Color(1, 1, 1, 1)
-		var icon_path: String = skill_data.icon_path
-		if not icon_path.is_empty():
-			var tex := load(icon_path) as Texture2D
-			icon.texture = tex
-		else:
-			icon.texture = null
+		icon.texture = IconResolver.get_skill_icon_from_dict(skill_data)
 
 	# Update mana cost
 	if mana and skill_data.has("mana_cost"):

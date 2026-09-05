@@ -3,6 +3,7 @@
 extends Control
 class_name QuickAccessBar
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
 
 
 ## Quick slots
@@ -124,12 +125,7 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 	_slot_items[index] = item_data
 	if icon:
 		icon.modulate = Color(1, 1, 1, 1)
-		var icon_path: String = item_data.get("icon_path", "")
-		if not icon_path.is_empty():
-			var tex := load(icon_path) as Texture2D
-			icon.texture = tex
-		else:
-			icon.texture = null
+		icon.texture = IconResolver.get_item_icon_from_dict(item_data)
 
 	if stack and item_data.has("quantity"):
 		var qty: int = item_data.quantity

@@ -1,24 +1,18 @@
-## Static registry mapping island names to [PackedScene] resources.
+## Static registry mapping island names to UI resources.
 ##
-## The ONLY place that holds parse-time references to UI scenes. Because
-## every entry is a [code]const X = preload(...)[/code], the GDScript
-## parser resolves the path at parse time -- no class_name lookups, no
-## autoload race, no cascade.
+## Supports both scene-based islands (PackedScene) and script-only components.
+## All entries use [code]preload[/code] for parse-time resolution.
 ##
 ## To add a new island:
-## 1. Add a [code]const X = preload("res://path/to/scene.tscn")[/code] line
-## 2. Add an entry to [code]ISLANDS[/code]
+## 1. For scenes: [code]const X = preload("res://path/to/scene.tscn")[/code]
+## 2. For scripts: [code]const X = preload("res://path/to/script.gd")[/code]
+## 3. Add entry to [code]ISLANDS[/code]
 ##
-## Consumers do [code]IslandRegistry.resolve("inventory")[/code].
-##
-## [b]Note on the existing list[/b]: only scenes that already exist in
-## the project are wired in. Other entries are pre-commented for the
-## next migration session -- they will be added when the matching
-## scenes are created or moved to the [code]res://ui/[/code] tree.
+## Consumers: [code]IslandRegistry.resolve("name")[/code]
 extends Node
 class_name IslandRegistry
 
-# --- Existing scenes (wired in) ---
+# === Scene-based islands ===
 const COOLDOWN_BAR := preload("res://ui/components/cooldown_bar.tscn")
 const REPORT_DIALOG := preload("res://ui/player/report_dialog.tscn")
 const PLAYER_TARGET_TOOLTIP := preload("res://ui/player/player_target_tooltip.tscn")
@@ -28,21 +22,23 @@ const VOTING_UI := preload("res://ui/community/voting_ui.tscn")
 const ADMIN_DASHBOARD := preload("res://ui/admin/admin_dashboard.tscn")
 const ADMIN_TOOLBAR := preload("res://ui/admin/admin_toolbar.tscn")
 
-# --- Future scenes (add when created) ---
-# const HEALTH_BAR := preload("res://ui/hud/health_bar.tscn")
-# const CHAT_BOX := preload("res://ui/hud/chat_box.tscn")
-# const INVENTORY := preload("res://ui/panels/inventory_panel.tscn")
-# const PARTY := preload("res://ui/panels/party_panel.tscn")
-# const GUILD := preload("res://ui/panels/guild_panel.tscn")
-# const TRADE := preload("res://ui/panels/trade_panel.tscn")
-# const NOTIFICATION := preload("res://ui/hud/notification.tscn")
-# const ACTION_MENU := preload("res://ui/components/action_menu.tscn")
-# const TOOLTIP := preload("res://ui/components/tooltip.tscn")
-# const BUFF_BAR := preload("res://ui/hud/buff_bar.tscn")
-# const MINIMAP := preload("res://ui/hud/minimap.tscn")
-# const TARGET_FRAME := preload("res://ui/targeting/target_frame.tscn")
+# === Script-based components ===
+const ACTION_BAR := preload("res://ui/components/action_bar.gd")
+const INVENTORY_UI := preload("res://ui/components/inventory_ui.gd")
+const BANK_UI := preload("res://ui/components/bank_ui.gd")
+const SHOP_UI := preload("res://ui/components/shop_ui.gd")
+const CHARACTER_PANEL := preload("res://ui/components/character_panel.gd")
+const BUFF_BAR := preload("res://ui/components/buff_bar.gd")
+const QUICK_ACCESS_BAR := preload("res://ui/components/quick_access_bar.gd")
+const MINIMAP := preload("res://ui/components/minimap.gd")
+const TARGET_FRAME := preload("res://ui/components/target_frame.gd")
+const ACTION_MENU := preload("res://ui/components/action_menu.gd")
+const DIALOG_UI := preload("res://ui/components/dialog_ui.gd")
+const SETTINGS_PANEL := preload("res://ui/components/settings_panel.gd")
+const COMBAT_LOG := preload("res://ui/components/combat_log.gd")
 
 const ISLANDS: Dictionary = {
+	# Scenes
 	"cooldown_bar": COOLDOWN_BAR,
 	"report_dialog": REPORT_DIALOG,
 	"player_target_tooltip": PLAYER_TARGET_TOOLTIP,
@@ -51,6 +47,20 @@ const ISLANDS: Dictionary = {
 	"voting_ui": VOTING_UI,
 	"admin_dashboard": ADMIN_DASHBOARD,
 	"admin_toolbar": ADMIN_TOOLBAR,
+	# Scripts
+	"action_bar": ACTION_BAR,
+	"inventory": INVENTORY_UI,
+	"bank": BANK_UI,
+	"shop": SHOP_UI,
+	"character_panel": CHARACTER_PANEL,
+	"buff_bar": BUFF_BAR,
+	"quick_access_bar": QUICK_ACCESS_BAR,
+	"minimap": MINIMAP,
+	"target_frame": TARGET_FRAME,
+	"action_menu": ACTION_MENU,
+	"dialog": DIALOG_UI,
+	"settings": SETTINGS_PANEL,
+	"combat_log": COMBAT_LOG,
 }
 
 const TRIGGERS: Dictionary = {

@@ -4,25 +4,14 @@ extends UIPanel
 class_name InventoryUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
+const InventoryService = preload("res://core/services/inventory_service.gd")
 const Item = preload("res://core/schemas/item.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
 
 
 const COLS: int = 5
 const ROWS: int = 6
 const SLOT_SIZE: int = 50
-
-const _category_icon_map: Dictionary = {
-	Item.ItemCategory.WEAPON:    "res://ui/textures/items/weapon.png",
-	Item.ItemCategory.ARMOR:     "res://ui/textures/items/armor.png",
-	Item.ItemCategory.ACCESSORY: "res://ui/textures/items/accessory.png",
-	Item.ItemCategory.CONSUMABLE:"res://ui/textures/items/consumable.png",
-	Item.ItemCategory.RESOURCE:  "res://ui/textures/items/resource.png",
-	Item.ItemCategory.GEM:       "res://ui/textures/items/gem.png",
-	Item.ItemCategory.EVENT:     "res://ui/textures/items/event.png",
-	Item.ItemCategory.DWELLING:  "res://ui/textures/items/dwelling.png",
-	Item.ItemCategory.SKILL_BOOK:"res://ui/textures/items/skill_book.png",
-	Item.ItemCategory.MISC:      "res://ui/textures/items/misc.png",
-}
 
 var _grid: GridContainer
 var _slots: Array = []
@@ -33,6 +22,23 @@ var _gold_label: Label
 signal item_selected(slot_index: int, item_id: String)
 signal item_used(slot_index: int, item_id: String)
 signal item_dropped(slot_index: int, item_id: String)
+
+var _inv_bind_done := false
+
+func _bind_service_signals() -> void:
+	if _inv_bind_done or not is_instance_valid(InventoryService):
+		return
+	_inv_bind_done = true
+	# Refresh on any inventory change
+	InventoryService.item_transferred.connect(_on_inventory_changed)
+	InventoryService.gold_transferred.connect(_on_inventory_changed)
+
+func _on_inventory_changed(...) -> void:
+	_refresh_inventory()
+
+func _on_open() -> void:
+	_bind_service_signals()
+	_refresh_inventory()
 
 func _setup_panel() -> void:
 	var panel := PanelContainer.new()
@@ -237,25 +243,7 @@ func _get_rarity_color(rarity: int) -> Color:
 		_: return Color(0.6, 0.6, 0.6)
 
 func _get_item_icon(item: Item) -> Texture2D:
-	if item.icon_path != "":
-		var tex := load(item.icon_path)
-		if tex is Texture2D:
-			return tex
-	return _get_category_icon(item.item_category, item.weapon_type, item.armor_type)
-
-func _get_category_icon(category: int, weapon_t: int = 0, armor_t: int = 0) -> Texture2D:
-	var path := _category_icon_map.get(category, "")
-	if path == "":
-		return _create_color_texture(Color(0.4, 0.4, 0.4))
-	var tex := load(path)
-	if tex is Texture2D:
-		return tex
-	return _create_color_texture(Color(0.4, 0.4, 0.4))
-
-func _create_color_texture(color: Color, size: int = 32) -> ImageTexture:
-	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	img.fill(color)
-	return ImageTexture.create_from_image(img)
+	return IconResolver.get_item_icon(item)
 
 func _on_slot_input(slot_index: int, event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
