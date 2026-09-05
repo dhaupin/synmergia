@@ -1,5 +1,5 @@
 ## BlacksmithUI - Equipment repair interface
-## Opened when player interacts with a BlacksmithNPC.
+## Opened when player interacts with an NPC that has a blacksmith offering.
 ## Shows repairable equipment, costs, and executes repairs via BlacksmithService.
 extends UIPanel
 class_name BlacksmithUI
