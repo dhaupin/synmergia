@@ -1,11 +1,14 @@
 ## BankUI - Vault/Bank interface panel
 ## Provides access to personal, guild, and account vaults
 extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 
+class_name BankUI
 
 const UIPanel = preload("res://ui/components/ui_panel.gd")
-class_name BankUI
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
+const Item = preload("res://core/schemas/item.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 
 ## Vault tabs
 enum VaultTab { PERSONAL, GUILD, ACCOUNT }
@@ -22,6 +25,7 @@ var _withdraw_btn: Button
 ## State
 var _vault_data: Dictionary = {}
 var _selected_slot: int = -1
+var _slot_data: Dictionary = {}  # slot_index -> {id, quantity, icon_path}
 
 const GRID_COLS: int = 5
 const GRID_ROWS: int = 10
@@ -88,7 +92,7 @@ func _setup_ui() -> void:
 	gold_row.add_child(_slot_count_label)
 
 	# Vault grid
-	_scroll := ScrollContainer.new()
+	var _scroll: ScrollContainer = ScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(_scroll)
 
@@ -193,6 +197,9 @@ func _update_gold_display() -> void:
 	var gold: int = _vault_data.get("gold", 0)
 	_gold_label.text = str(gold)
 
+func _get_slot_icon(slot_info: Dictionary) -> Texture2D:
+	return IconResolver.get_item_icon_from_dict(slot_info)
+
 func _update_slot_display() -> void:
 	var size: int = _vault_data.get("size", 0)
 	var used: int = 0
@@ -203,16 +210,22 @@ func _update_slot_display() -> void:
 
 func _populate_grid() -> void:
 	var slots: Array = _vault_data.get("slots", [])
+	_slot_data.clear()
+	
 	for i in range(_vault_grid.get_child_count()):
 		var slot: Control = _vault_grid.get_child(i)
 		if slot and slot.has_node("ItemIcon"):
 			var icon: TextureRect = slot.get_node("ItemIcon")
 			if i < slots.size() and not slots[i].is_empty():
+				var slot_info: Dictionary = slots[i]
+				_slot_data[i] = slot_info
+				
 				icon.visible = true
-				# TODO: Set actual icon texture
-				icon.modulate = UIStyles.COLORS.accent_gold
+				icon.modulate = Color(1, 1, 1, 1)
+				icon.texture = _get_slot_icon(slot_info)
 			else:
 				icon.visible = false
+				icon.texture = null
 
 		# Update selection highlight
 		var style_name := "selected" if i == _selected_slot else "normal"
@@ -281,8 +294,99 @@ func _on_slot_clicked(index: int) -> void:
 	_populate_grid()
 
 func _on_deposit() -> void:
-	# TODO: Open inventory to select items
-	show_notification("Select item from inventory to deposit")
+	if not VaultService:
+		show_notification("VaultService unavailable", false)
+		return
+
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	if not InventoryService:
+		show_notification("InventoryService unavailable", false)
+		return
+
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		show_notification("Could not load inventory", false)
+		return
+
+	var items: Array = inv.get_all_items()
+	if items.is_empty():
+		show_notification("No items to deposit", false)
+		return
+
+	_show_deposit_dialog(items)
+
+func _show_deposit_dialog(items: Array) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Deposit Item"
+	dialog.dialog_text = "Select item to deposit:"
+	add_child(dialog)
+
+	# Create scrollable item list
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(300, 200)
+	dialog.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size.x = 280
+	scroll.add_child(vbox)
+
+	var selected_idx := -1
+
+	for i in range(items.size()):
+		var item: Item = items[i]
+		if item == null:
+			continue
+
+		var btn := Button.new()
+		btn.text = item.name if item.name else "Item #%d" % i
+		btn.custom_minimum_size.y = 30
+		btn.pressed.connect(func() -> void:
+			selected_idx = i
+		)
+		vbox.add_child(btn)
+
+	dialog.confirmed.connect(func() -> void:
+		if selected_idx < 0:
+			show_notification("No item selected", false)
+			return
+		_deposit_item(items[selected_idx])
+	)
+
+	dialog.canceled.connect(func() -> void:
+		dialog.queue_free()
+	)
+
+	dialog.popup_centered(Vector2(350, 300))
+
+func _deposit_item(item: Item) -> void:
+	if VaultService == null or item == null:
+		return
+
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var vault_type: int
+	match _current_tab:
+		VaultTab.PERSONAL:
+			vault_type = VaultService.VaultType.PERSONAL
+		VaultTab.GUILD:
+			vault_type = VaultService.VaultType.GUILD
+		VaultTab.ACCOUNT:
+			vault_type = VaultService.VaultType.ACCOUNT
+		_:
+			return
+
+	var success: bool = VaultService.deposit_item(player_id, vault_type, item)
+	if not success:
+		show_notification("Failed to deposit item", false)
+	else:
+		var item_name: String = item.name if item.name else "item"
+		show_notification("Deposited: %s" % item_name)
+		_refresh_vault()
 
 func _on_withdraw() -> void:
 	if _selected_slot < 0:
@@ -316,11 +420,44 @@ func _on_withdraw() -> void:
 		_refresh_vault()
 
 func _on_expand() -> void:
+	if not VaultService:
+		show_notification("VaultService unavailable", false)
+		return
+
 	var cost := VaultService.get_expansion_cost(_current_tab, _vault_data.get("size", 0))
 	var gold_cost: int = cost.get("gold", 0)
 
-	# TODO: Show confirmation dialog
-	show_notification("Expand vault (+10 slots) for %d gold?" % gold_cost)
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Expand Vault"
+	dialog.dialog_text = "Expand vault by 10 slots for %d gold?" % gold_cost
+	add_child(dialog)
+
+	dialog.confirmed.connect(_on_expand_confirmed.bind(gold_cost))
+	dialog.canceled.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered()
+
+func _on_expand_confirmed(gold_cost: int) -> void:
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var vault_type: int
+	match _current_tab:
+		VaultTab.PERSONAL:
+			vault_type = VaultService.VaultType.PERSONAL
+		VaultTab.GUILD:
+			vault_type = VaultService.VaultType.GUILD
+		VaultTab.ACCOUNT:
+			vault_type = VaultService.VaultType.ACCOUNT
+		_:
+			return
+
+	var result: bool = VaultService.expand_vault(player_id, vault_type, 10)
+	if result:
+		show_notification("Vault expanded by 10 slots!")
+		_refresh_vault()
+	else:
+		show_notification("Failed to expand vault - not enough gold?", false)
 
 func _on_item_changed(player_id: String, vault_type: int, item_id: String, quantity: int) -> void:
 	_refresh_vault()

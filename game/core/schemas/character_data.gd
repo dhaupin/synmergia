@@ -21,6 +21,9 @@ const Species = preload("res://core/schemas/species.gd")
 @export var signature_switches: int = 0         # number of times signature has been changed
 @export var signature_change_cost: int = 1000   # gold cost to change signature (after first free switch)
 
+# Action Bar (8 slots)
+@export var action_bar_slots: Array[String] = []  # skill IDs bound to slots 0-7
+
 # Stat Allocation (player-assigned points)
 @export var allocated_stats: Dictionary = {
 	"strength": 0,
@@ -153,6 +156,29 @@ func get_available_skill_points() -> int:
 ## Get upgrade level for a skill (0 if not upgraded)
 func get_skill_upgrade_level(skill_id: String) -> int:
 	return skill_upgrades.get(skill_id, 0)
+
+## Set action bar slot to a skill ID
+func set_action_slot(slot_index: int, skill_id: String) -> void:
+	if slot_index < 0 or slot_index > 7:
+		return
+	while action_bar_slots.size() < 8:
+		action_bar_slots.append("")
+	action_bar_slots[slot_index] = skill_id
+
+## Get skill ID at action bar slot
+func get_action_slot(slot_index: int) -> String:
+	if slot_index < 0 or slot_index > 7:
+		return ""
+	if slot_index >= action_bar_slots.size():
+		return ""
+	return action_bar_slots[slot_index]
+
+## Get all action bar slots as array
+func get_action_bar() -> Array[String]:
+	var result: Array[String] = []
+	for i in range(8):
+		result.append(get_action_slot(i))
+	return result
 
 ## Total upgrade levels across all skills
 func get_total_upgrade_levels() -> int:

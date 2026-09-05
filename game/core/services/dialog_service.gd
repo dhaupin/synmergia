@@ -1,7 +1,16 @@
 ## DialogService - NPC dialogue loading and state management
 ## Loads DialogueData resources from data/dialogues/*.tres and drives DialogUI.
 extends Node
-class_name DialogService
+
+## Singleton instance (use get_instance() to access)
+static var _instance: Node = null
+static func get_instance() -> Node:
+	if _instance == null:
+		_instance = load("res://core/services/dialog_service.gd").new()
+		_instance._ready()
+	return _instance
+
+
 
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 

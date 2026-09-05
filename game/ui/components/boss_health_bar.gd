@@ -99,6 +99,30 @@ func _create_timer() -> void:
 	_enrage_timer.timeout.connect(_on_enrage_tick)
 	add_child(_enrage_timer)
 
+func set_target(target) -> void:
+	if target == null:
+		clear_boss()
+		return
+	
+	var boss_id := target.entity_id if target and "entity_id" in target else ""
+	var name := ""
+	var max_hp := 100
+	
+	if target is Dictionary:
+		name = target.get("display_name", target.get("name", "Boss"))
+		max_hp = target.get("max_health", target.get("health", 100))
+	else:
+		if "display_name" in target:
+			name = target.display_name
+		elif "name" in target:
+			name = target.name
+		if "max_health" in target:
+			max_hp = target.max_health
+		elif "health" in target:
+			max_hp = target.health
+	
+	set_boss(boss_id, name, max_hp)
+
 func _on_enrage_tick() -> void:
 	if _enrage_remaining > 0:
 		_enrage_remaining -= 1.0

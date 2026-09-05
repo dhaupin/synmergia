@@ -2,9 +2,12 @@
 ## Opened when player interacts with an NPC that has a blacksmith offering.
 ## Shows repairable equipment, costs, and executes repairs via BlacksmithService.
 extends UIPanel
+
 class_name BlacksmithUI
 
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 
 var _inventory: InventoryComponent = null
 var _offers_discount: bool = true
@@ -152,17 +155,16 @@ func _get_local_player() -> Node:
 
 
 func _on_open() -> void:
-	_connect_signals()
 	_refresh_items()
 
-	if not bs:
+	if not BlacksmithService:
 		return
-	if bs.has_signal("repair_completed"):
-		if not bs.repair_completed.is_connected(_on_repair_completed):
-			bs.repair_completed.connect(_on_repair_completed)
-	if bs.has_signal("repair_failed"):
-		if not bs.repair_failed.is_connected(_on_repair_failed):
-			bs.repair_failed.connect(_on_repair_failed)
+	if BlacksmithService.has_signal("repair_completed"):
+		if not BlacksmithService.repair_completed.is_connected(_on_repair_completed):
+			BlacksmithService.repair_completed.connect(_on_repair_completed)
+	if BlacksmithService.has_signal("repair_failed"):
+		if not BlacksmithService.repair_failed.is_connected(_on_repair_failed):
+			BlacksmithService.repair_failed.connect(_on_repair_failed)
 	if InventoryService:
 		if not InventoryService.inventory_updated.is_connected(_refresh_items):
 			InventoryService.inventory_updated.connect(_refresh_items)

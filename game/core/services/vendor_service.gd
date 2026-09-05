@@ -12,6 +12,15 @@
 extends Node
 class_name VendorService
 
+## Singleton instance
+static var _instance: VendorService = null
+static func get_instance() -> VendorService:
+	if _instance == null:
+		_instance = VendorService.new()
+		_instance._ready()
+	return _instance
+
+
 const Item = preload("res://core/schemas/item.gd")
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")

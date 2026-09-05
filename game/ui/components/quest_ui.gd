@@ -1,13 +1,15 @@
 ## QuestUI - Quest journal panel
 ## Shows active quests, objectives, and quest log
 extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
-const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name QuestUI
+
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 const QuestData = preload("res://core/schemas/quest_data.gd")
 
+## Escape BBCode brackets in user-supplied content.
+static func _esc(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］")
 
 ## Tab definitions
 enum Tab { ACTIVE, COMPLETE, AVAILABLE }
@@ -224,7 +226,7 @@ func _show_quest_detail(quest_id: String) -> void:
 	for obj_text in QuestService.get_quest_objectives_text(local_id, quest_id):
 		var obj_label := RichTextLabel.new()
 		obj_label.bbcode_enabled = true
-		obj_label.text = "[bullet] %s" % obj_text
+		obj_label.text = "[bullet] %s" % _esc(str(obj_text))
 		obj_label.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
 		obj_label.custom_minimum_size.y = 20
 		_quest_detail.add_child(obj_label)

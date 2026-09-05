@@ -5,6 +5,9 @@ extends UIPanel
 class_name CharacterPanel
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
+const Item = preload("res://core/schemas/item.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 
 
 ## Tab definitions
@@ -109,19 +112,21 @@ func _on_tab_clicked(tab_id: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_TAB:
-			var tab_ids := [Tab.INVENTORY, Tab.EQUIP, Tab.STATS, Tab.SKILLS]
-			var current_idx := -1
-			for i in range(tab_ids.size()):
-				if tab_ids[i] == _current_tab:
-					current_idx = i
-					break
-			if event.shift:
-				current_idx = (current_idx - 1 + tab_ids.size()) % tab_ids.size()
-			else:
-				current_idx = (current_idx + 1) % tab_ids.size()
-			_show_tab(tab_ids[current_idx])
+	pass  # TAB handled by HudHotkeys via _on_tab_pressed()
+
+## Override from UIPanel — called by HudHotkeys for focus cycling.
+func _on_tab_pressed(shift: bool) -> void:
+	var tab_ids := [Tab.INVENTORY, Tab.EQUIP, Tab.STATS, Tab.SKILLS]
+	var current_idx := -1
+	for i in range(tab_ids.size()):
+		if tab_ids[i] == _current_tab:
+			current_idx = i
+			break
+	if shift:
+		current_idx = (current_idx - 1 + tab_ids.size()) % tab_ids.size()
+	else:
+		current_idx = (current_idx + 1) % tab_ids.size()
+	_show_tab(tab_ids[current_idx])
 
 func _show_tab(tab_id: int) -> void:
 	_current_tab = tab_id
@@ -316,7 +321,202 @@ func _create_equip_slot_row(slot_data: Dictionary) -> HBoxContainer:
 
 func _on_equip_slot_clicked(slot_id: int) -> void:
 	_selected_equip_slot = slot_id
-	# TODO: Show item selection or unequip
+	
+	if not InventoryService:
+		show_notification("InventoryService unavailable", false)
+		return
+	
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+	
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		show_notification("Could not load inventory", false)
+		return
+	
+	var equipped: Item = inv.get_equipped(slot_id)
+	if equipped != null:
+		_show_equipped_item_menu(equipped, slot_id)
+	else:
+		_show_empty_slot_menu(slot_id)
+
+func _show_equipped_item_menu(item: Item, slot_id: int) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = item.name if item.name else "Equipped Item"
+	dialog.dialog_text = "What would you like to do?"
+	add_child(dialog)
+	
+	# Create action buttons in a VBox
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size = Vector2(200, 80)
+	dialog.add_child(vbox)
+	
+	var unequip_btn := Button.new()
+	unequip_btn.text = "Unequip"
+	unequip_btn.custom_minimum_size.y = 30
+	unequip_btn.pressed.connect(func() -> void:
+		_unequip_item(slot_id)
+		dialog.queue_free()
+	)
+	vbox.add_child(unequip_btn)
+	
+	var info_btn := Button.new()
+	info_btn.text = "View Details"
+	info_btn.custom_minimum_size.y = 30
+	info_btn.pressed.connect(func() -> void:
+		_show_item_details(item)
+		dialog.queue_free()
+	)
+	vbox.add_child(info_btn)
+	
+	dialog.canceled.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered(Vector2(250, 150))
+
+func _show_empty_slot_menu(slot_id: int) -> void:
+	_show_equip_item_picker(slot_id)
+
+func _show_equip_item_picker(slot_id: int) -> void:
+	if not InventoryService:
+		show_notification("InventoryService unavailable", false)
+		return
+
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		show_notification("Could not load inventory", false)
+		return
+
+	# Get slot name for display
+	var slot_name := _get_slot_name(slot_id)
+
+	# Find items that can be equipped in this slot
+	var equippable: Array[Item] = []
+	for slot in inv._items:
+		var item: Item = inv._items[slot]
+		if item and item.equip_slot == slot_id and item.can_equip():
+			equippable.append(item)
+
+	if equippable.is_empty():
+		show_notification("No equippable items for %s slot" % slot_name)
+		return
+
+	# Create selection dialog
+	var dialog := AcceptDialog.new()
+	dialog.title = "Equip Item - %s" % slot_name
+	dialog.ok_button_text = "Close"
+	add_child(dialog)
+
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size = Vector2(300, 250)
+	dialog.add_child(vbox)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = 200
+	vbox.add_child(scroll)
+
+	var item_list := VBoxContainer.new()
+	item_list.name = "ItemList"
+	scroll.add_child(item_list)
+
+	for item: Item in equippable:
+		var row := HBoxContainer.new()
+		row.custom_minimum_size.y = 40
+
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(32, 32)
+		icon.texture = IconResolver.get_item_icon(item)
+		row.add_child(icon)
+
+		var name_lbl := Label.new()
+		name_lbl.text = item.name if item.name else "Unknown Item"
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+
+		var equip_btn := Button.new()
+		equip_btn.text = "Equip"
+		equip_btn.pressed.connect(func() -> void:
+			_equip_item_from_picker(inv, item, slot_id)
+			dialog.queue_free()
+		)
+		row.add_child(equip_btn)
+
+		item_list.add_child(row)
+
+	dialog.popup_centered(Vector2(350, 300))
+
+func _get_slot_name(slot_id: int) -> String:
+	match slot_id:
+		0: return "Head"
+		1: return "Chest"
+		2: return "Hands"
+		3: return "Legs"
+		4: return "Feet"
+		5: return "Main Hand"
+		6: return "Off Hand"
+		7: return "Ring"
+		8: return "Amulet"
+		9: return "Cape"
+	return "Unknown"
+
+func _equip_item_from_picker(inv: InventoryComponent, item: Item, slot_id: int) -> void:
+	# Find the inventory slot containing this item
+	var inv_slot: int = -1
+	for slot in inv._items:
+		if inv._items[slot] == item:
+			inv_slot = slot
+			break
+
+	if inv_slot < 0:
+		show_notification("Could not find item in inventory", false)
+		return
+
+	# Equip the item
+	if inv.equip_item(inv_slot):
+		show_notification("Equipped %s" % item.name, false)
+		_refresh_equipment()
+	else:
+		show_notification("Failed to equip item", false)
+
+func _unequip_item(slot_id: int) -> void:
+	if not InventoryService:
+		return
+	
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+	
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		return
+	
+	if inv.unequip_item(slot_id):
+		show_notification("Item unequipped and added to inventory")
+		_refresh_equipment_display()
+	else:
+		show_notification("Failed to unequip - inventory may be full", false)
+
+func _show_item_details(item: Item) -> void:
+	var stats_text := ""
+	if item.has("stats"):
+		var stats: Dictionary = item.get("stats", {})
+		for key in stats.keys():
+			stats_text += "\n%s: %s" % [key.capitalize(), stats[key]]
+	
+	var dialog := AcceptDialog.new()
+	dialog.title = item.name if item.name else "Item Details"
+	dialog.dialog_text = "Type: %s\nRarity: %s%s" % [
+		item.get("item_type", "Unknown"),
+		item.get("rarity", "Common"),
+		stats_text
+	]
+	add_child(dialog)
+	dialog.ok_button_text = "Close"
+	dialog.confirmed.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered()
 
 ## ============================================================================
 ## STATS TAB
@@ -337,12 +537,14 @@ func _setup_stats_tab() -> void:
 	vbox.add_child(char_header)
 
 	var char_name := Label.new()
-	char_name.text = "Level 1 Character"
+	    char_name.name = "CharName"
+    char_name.text = "Level 1 Character"
 	char_name.add_theme_font_size_override("font_size", 16)
 	char_header.add_child(char_name)
 
 	# Stats grid (2 columns)
 	var stats_grid := GridContainer.new()
+		stats_grid.name = "GridContainer"
 	stats_grid.columns = 2
 	stats_grid.custom_minimum_size.y = 250
 	vbox.add_child(stats_grid)
@@ -358,6 +560,7 @@ func _setup_stats_tab() -> void:
 
 	for stat in stats:
 		var stat_card := _create_stat_card(stat)
+				stat_card.name = "Stat_" + stat.key
 		stats_grid.add_child(stat_card)
 
 	# Derived stats
@@ -367,12 +570,12 @@ func _setup_stats_tab() -> void:
 	vbox.add_child(derived_label)
 
 	var derived := [
-		{"name": "Max Health", "value": "100"},
-		{"name": "Max Mana", "value": "50"},
-		{"name": "Physical Attack", "value": "10"},
-		{"name": "Magic Attack", "value": "10"},
-		{"name": "Physical Defense", "value": "5"},
-		{"name": "Magic Defense", "value": "5"}
+		{"name": "Max Health", "key": "max_health", "value": "--"},
+		{"name": "Max Mana", "key": "max_mana", "value": "--"},
+		{"name": "Physical Attack", "key": "p_attack", "value": "--"},
+		{"name": "Magic Attack", "key": "m_attack", "value": "--"},
+		{"name": "Physical Defense", "key": "p_defense", "value": "--"},
+		{"name": "Magic Defense", "key": "m_defense", "value": "--"}
 	]
 
 	for stat in derived:
@@ -491,15 +694,132 @@ func _create_skill_slot(index: int, category: String) -> PanelContainer:
 ## ============================================================================
 
 func refresh_inventory() -> void:
-	# TODO: Fetch from InventoryService
-	pass
+	if _char_data == null:
+		return
+	# Equipment slots will be populated from InventoryService
+	# For now, just refresh the grid if it exists
+	_refresh_equipment_display()
 
 func refresh_stats() -> void:
-	# TODO: Fetch from character data
-	pass
+	if _char_data == null:
+		return
+	_refresh_stats_display()
 
 func refresh_skills() -> void:
-	# TODO: Fetch from skills system
+	if _char_data == null:
+		return
+	_refresh_skills_display()
+
+func _refresh_stats_display() -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.STATS)
+	if not container:
+		return
+	
+	# Find the main VBoxContainer
+	var vbox: VBoxContainer = null
+	for child in container.get_children():
+		if child is VBoxContainer:
+			vbox = child
+			break
+	if not vbox:
+		return
+	
+	# Update character name/level header
+	var char_header: HBoxContainer = null
+	for child in vbox.get_children():
+		if child is HBoxContainer and child.has_node("CharName"):
+			char_header = child
+			break
+	if char_header:
+		var name_lbl: Label = char_header.get_node("CharName")
+		var species_name := _char_data.species_id.capitalize()
+		var class_name := _char_data.class_id.capitalize()
+		name_lbl.text = "%s %s - Level %d" % [species_name, class_name, _char_data.level]
+	
+	# Get stats from character
+	var stats: Dictionary = _char_data.get_stats()
+	var allocated: Dictionary = _char_data.allocated_stats
+	
+	# Update stat cards (str, int, wis, agi, vit, end)
+	var stat_keys := ["strength", "intelligence", "wisdom", "agility", "vitality", "endurance"]
+	var display_keys := ["str", "int", "wis", "agi", "vit", "end"]
+	
+	for i in range(stat_keys.size()):
+		var stat_key := stat_keys[i]
+		var disp_key := display_keys[i]
+		var stat_card: PanelContainer = vbox.get_node_or_null("GridContainer/Stat_" + disp_key)
+		if stat_card:
+			var val_lbl: Label = stat_card.get_node_or_null("VBox/Value")
+			if val_lbl:
+				var base: int = stats.get(stat_key, 10)
+				var bonus: int = allocated.get(stat_key, 0)
+				var total: int = base + bonus
+				var display := str(total)
+				if bonus > 0:
+					display = "%d (+%d)" % [total, bonus]
+				elif base != total:
+					display = "%d (%d)" % [total, base]
+				val_lbl.text = display
+	
+	# Update derived stats (these would come from a combat stats calculation)
+	# For now, calculate simple estimates based on stats
+	var vit_stat := float(stats.get("vitality", 10) + allocated.get("vitality", 0))
+	var end_stat := float(stats.get("endurance", 10) + allocated.get("endurance", 0))
+	var str_stat := float(stats.get("strength", 10) + allocated.get("strength", 0))
+	var int_stat := float(stats.get("intelligence", 10) + allocated.get("intelligence", 0))
+	
+	var max_health := int(100 + vit_stat * 10)
+	var max_mana := int(50 + int_stat * 5)
+	var p_attack := int(10 + str_stat * 2)
+	var m_attack := int(10 + int_stat * 2)
+	var p_defense := int(5 + end_stat * 1.5)
+	var m_defense := int(5 + int_stat * 1.5)
+	
+	# Update derived stat rows
+	var derived_keys := {
+		"max_health": max_health,
+		"max_mana": max_mana,
+		"p_attack": p_attack,
+		"m_attack": m_attack,
+		"p_defense": p_defense,
+		"m_defense": m_defense
+	}
+	
+	for child in vbox.get_children():
+		if child is HBoxContainer and child.name.begins_with("Derived_"):
+			var key := child.name.replace("Derived_", "")
+			if derived_keys.has(key):
+				var val_lbl: Label = child.get_node_or_null("Value")
+				if val_lbl:
+					val_lbl.text = str(derived_keys[key])
+
+func _refresh_skills_display() -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.SKILLS)
+	if not container:
+		return
+	
+	var vbox: VBoxContainer = null
+	for child in container.get_children():
+		if child is VBoxContainer:
+			vbox = child
+			break
+	if not vbox:
+		return
+	
+	# Update skill points label
+	var points_lbl: Label = vbox.get_node_or_null("SkillPoints")
+	if points_lbl:
+		var available := _char_data.get_available_skill_points()
+		var spent := _char_data.get_total_upgrade_levels()
+		points_lbl.text = "Skill Points: %d / %d spent" % [available - spent, spent]
+	
+	# Update skill slots based on skill_upgrades
+	# This would require mapping skill IDs to the skill slots
+	# For now, the UI just shows the points count
+
+func _refresh_equipment_display() -> void:
+	# This would be called when inventory changes
+	# The actual implementation would query InventoryService for equipped items
 	pass
 
 func set_character_data(data: CharacterData) -> void:

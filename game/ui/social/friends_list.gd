@@ -1,13 +1,11 @@
 ## FriendsListUI - In-game friends management panel
 ## Migrated onto UIPanel base class.
 extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
-const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name FriendsListUI
 
-const CharacterData := preload("res://core/schemas/character_data.gd")
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+const UIPanel = preload("res://ui/components/ui_panel.gd")
+const CharacterData = preload("res://core/schemas/character_data.gd")
 
 var _tab_container: TabContainer
 var _friends_list: ItemList

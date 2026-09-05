@@ -10,6 +10,13 @@ class_name QoSService
 # the kind enum and a dedupe key.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
+## Defensive helper - get NotificationService safely (may not be available at compile time)
+func _get_notification_service():
+	var root = get_tree().root if has_node("/root") else null
+	if root:
+		return root.get_node_or_null("NotificationService")
+	return null
+
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
@@ -238,9 +245,6 @@ func _notify_player_rate_limit(player_id: String, action_type: String, max_rate:
 	if not GameConfig.Security.ALERT_ON_RATE_LIMIT:
 		return
 
-	if not is_instance_valid(NotificationService):
-		return
-
 	var message: String = _get_rate_limit_message(action_type, max_rate)
 	var cooldown := _get_cooldown_seconds(action_type, max_rate)
 
@@ -250,16 +254,17 @@ func _notify_player_rate_limit(player_id: String, action_type: String, max_rate:
 	# Frame-level dispatch via the service-level notify() verb. The frame
 	# handles dedupe (5s window per (player, action) so a spam loop can't
 	# toast 100x/sec) and type/priority mapping (RATE_LIMITED → WARNING+
-	# NORMAL in the kind table). NotificationService is an autoload, so
-	# the is_instance_valid guard is the only check we need.
-	NotificationService.notify(
-		NotifKind.RATE_LIMITED,
-		message,
-		"QoSService",
-		"qos_rl:%s:%s" % [player_id, action_type],
-		{"action_type": action_type, "max_rate": max_rate, "cooldown": cooldown},
-		player_id
-	)
+	# NORMAL in the kind table). Use defensive helper for NotificationService.
+	var svc = _get_notification_service()
+	if svc:
+		svc.notify(
+			NotifKind.RATE_LIMITED,
+			message,
+			"QoSService",
+			"qos_rl:%s:%s" % [player_id, action_type],
+			{"action_type": action_type, "max_rate": max_rate, "cooldown": cooldown},
+			player_id
+		)
 
 ## Get human-readable action name
 func _get_action_display_name(action_type: String) -> String:
@@ -413,9 +418,10 @@ func bulkhead_execute(service_name: String, player_id: String, callback: Callabl
 		# service-scoped, so we toast the player here directly via the
 		# frame. THROTTLED → WARNING + NORMAL. Dedupe on
 		# (player, service) so a flood of rejections in a second doesn't
-		# spam toasts.
-		if is_instance_valid(NotificationService):
-			NotificationService.notify(
+		# spam toasts. Use defensive helper for NotificationService.
+		var svc = _get_notification_service()
+		if svc:
+			svc.notify(
 				NotifKind.THROTTLED,
 				"%s is busy — please slow down." % service_name,
 				"QoSService",
@@ -588,13 +594,15 @@ func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
 ## Routes through the typed NotifKind pipeline. CLOSED-after-recovery
 ## uses QOS_RECOVERED; OPEN/HALF_OPEN use CIRCUIT_OPEN. Dedupe on
 ## (service, state) so a chatter of probe failures during a single
-## recovery cycle doesn't toast admins 20 times in a row.
+## recovery cycle doesn't toast admins 20 times in a row. Use defensive
+## helper for NotificationService.
 func _notify_circuit_change(service_name: String, new_state: String, detail: String) -> void:
-	if not is_instance_valid(NotificationService):
+	var svc = _get_notification_service()
+	if not svc:
 		return
 	var msg := "[QoS] Circuit '%s' → %s (%s)" % [service_name, new_state, detail]
 	var kind: int = NotifKind.QOS_RECOVERED if new_state == "CLOSED" else NotifKind.CIRCUIT_OPEN
-	NotificationService.notify(
+	svc.notify(
 		kind,
 		msg,
 		"QoSService",

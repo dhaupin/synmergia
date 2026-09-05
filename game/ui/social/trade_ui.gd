@@ -270,9 +270,40 @@ func _update_status(message: String) -> void:
 func _refresh_items() -> void:
 	_initiator_items.clear()
 	_target_items.clear()
-	# TODO: Get actual items from TradeService or InventoryService (Phase C).
-	_initiator_items.add_item("(No items)")
-	_target_items.add_item("(No items)")
+	
+	if not TradeService or _trade_id.is_empty():
+		_initiator_items.add_item("(No items)")
+		_target_items.add_item("(No items)")
+		return
+	
+	var trade: Dictionary = TradeService.get_player_trade(_initiator_id)
+	if trade.is_empty():
+		_initiator_items.add_item("(No items)")
+		_target_items.add_item("(No items)")
+		return
+	
+	var items_key := "player1_items"
+	var their_key := "player2_items"
+	var my_items: Array = trade.get(items_key, [])
+	var their_items: Array = trade.get(their_key, [])
+	
+	if my_items.is_empty():
+		_initiator_items.add_item("(No items)")
+	else:
+		for item: Dictionary in my_items:
+			var name := item.get("name", "Unknown Item")
+			var qty := item.get("quantity", 1)
+			var label := name if qty <= 1 else "%s x%d" % [name, qty]
+			_initiator_items.add_item(label)
+	
+	if their_items.is_empty():
+		_target_items.add_item("(No items)")
+	else:
+		for item: Dictionary in their_items:
+			var name := item.get("name", "Unknown Item")
+			var qty := item.get("quantity", 1)
+			var label := name if qty <= 1 else "%s x%d" % [name, qty]
+			_target_items.add_item(label)
 
 func _on_add_item() -> void:
 	show_notification("Select item from inventory (not implemented)")

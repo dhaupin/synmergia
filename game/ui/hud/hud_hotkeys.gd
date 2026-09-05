@@ -16,6 +16,7 @@
 ##   K    → skill academy
 ##   H    → blacksmith
 ##   M    → world map
+##   O    → settings/options
 ##   J    → jump (reserved for future)
 ##   ENTER → focus chat input (MenuManager handles this)
 extends Node
@@ -25,6 +26,8 @@ var _mm: Node
 var _admin_toolbar: Node
 var _world_map: Node
 var _chat: Node
+var _faction_ui: Node
+var _achievement_ui: Node
 
 
 func bind(hud: CanvasLayer) -> void:
@@ -33,6 +36,8 @@ func bind(hud: CanvasLayer) -> void:
 	_admin_toolbar = hud.get_node_or_null("AdminToolbar")
 	_world_map = hud.get_node_or_null("WorldMap")
 	_chat = hud.get_node_or_null("ChatUI")
+	_faction_ui = hud.get_node_or_null("FactionUI")
+	_achievement_ui = hud.get_node_or_null("AchievementUI")
 	set_process_unhandled_input(true)
 
 
@@ -79,6 +84,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		KEY_M:
 			_toggle_world_map()
+			get_viewport().set_input_as_handled()
+		KEY_O:
+			_toggle_settings()
+			get_viewport().set_input_as_handled()
+		KEY_J:
+			_toggle_panel("quests")
+			get_viewport().set_input_as_handled()
+		KEY_N:
+			_toggle_panel("faction")
+			get_viewport().set_input_as_handled()
+		KEY_Y:
+			_toggle_panel("achievement")
 			get_viewport().set_input_as_handled()
 		KEY_TAB:
 			_handle_tab_cycling(k.shift_pressed)
@@ -132,3 +149,26 @@ func _toggle_world_map() -> void:
 		_world_map.toggle()
 	elif _mm and _mm.has_method("toggle_menu"):
 		_mm.toggle_menu("world_map")
+
+
+func _toggle_settings() -> void:
+	if _hud:
+		var panel: Node = _hud.get_node_or_null("SettingsPanel")
+		if panel and panel.has_method("toggle"):
+			panel.toggle()
+		elif panel and panel.has_method("open"):
+			panel.open()
+		elif panel:
+			panel.visible = not panel.visible
+
+func _toggle_faction() -> void:
+	if _faction_ui and _faction_ui.has_method("toggle"):
+		_faction_ui.toggle()
+	elif _faction_ui:
+		_faction_ui.visible = not _faction_ui.visible
+
+func _toggle_achievement() -> void:
+	if _achievement_ui and _achievement_ui.has_method("toggle"):
+		_achievement_ui.toggle()
+	elif _achievement_ui:
+		_achievement_ui.visible = not _achievement_ui.visible

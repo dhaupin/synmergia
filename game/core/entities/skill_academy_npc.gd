@@ -14,7 +14,7 @@ func _ready() -> void:
 	npc_data = NPCData.new()
 	npc_data.npc_id = "skill_academy_default"
 	npc_data.display_name = "Skill Academy"
-	npc_data.npc_type = NPCData.NPCType.SPECIALIST
+	npc_data.location_type = NPCData.LocationType.CITY
 
 func interact(player: Entity) -> void:
 	faction = Faction.FRIENDLY

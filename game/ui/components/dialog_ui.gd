@@ -3,15 +3,16 @@
 extends Control
 class_name DialogUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
 const DialogService = preload("res://core/services/dialog_service.gd")
 
 ## Dialog state
 var _current_npc: String = ""
+var _current_npc_id: String = ""
 var _dialogue_id: String = ""
+var _current_dialogue_id: String = ""
 var _current_node: int = 0
 var _choices: Array = []
+var _is_open: bool = false
 
 ## Components
 var _speaker_label: Label
@@ -22,8 +23,14 @@ var _portrait: TextureRect
 
 func _ready() -> void:
 	_setup_ui()
-	if DialogService:
-		DialogService.node_changed.connect(_on_node_changed)
+	# Use preload for class_name DialogService (not autoload-safe get_instance)
+	var DialogServiceClass = preload("res://core/services/dialog_service.gd")
+	if DialogServiceClass:
+		var svc = DialogServiceClass.get_instance()
+		if svc:
+			svc.node_changed.connect(_on_node_changed)
+			svc.dialogue_started.connect(_on_dialogue_started)
+			svc.dialogue_ended.connect(_on_dialogue_ended)
 	hide()
 
 func _setup_ui() -> void:
@@ -102,7 +109,8 @@ func _setup_ui() -> void:
 func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	_current_npc = npc_id
 	_dialogue_id = dialogue_id
-	if DialogService and DialogService.start_dialogue(npc_id, dialogue_id):
+	var svc = DialogService.get_instance()
+	if svc and svc.start_dialogue(npc_id, dialogue_id):
 		show()
 		return
 	# Fallback: demo mode
@@ -110,7 +118,7 @@ func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	show()
 
 func _show_node(node_index: int) -> void:
-	# TODO: Load from dialogue data
+	# DialogService handles loading from .tres; this is the demo fallback
 	# For demo, show placeholder
 	_speaker_label.text = "NPC"
 	_text_rich_label.clear()
@@ -119,22 +127,34 @@ func _show_node(node_index: int) -> void:
 	# Clear choices
 	for child in _choice_buttons.get_children():
 		child.queue_free()
-		_choices.clear()
+	_choices.clear()
 
-		# Show demo choices
-		var demo_choices := [
+	# Show demo choices
+	var demo_choices := [
 		{"text": "What do you have for me?", "next": 1},
 		{"text": "I need to go.", "next": -1}
-		]
+	]
 
-		for choice in demo_choices:
-			var btn := Button.new()
-			btn.text = choice.text
-			btn.pressed.connect(_on_choice_selected.bind(choice))
-			_choice_buttons.add_child(btn)
-			_choices.append(choice)
+	for choice in demo_choices:
+		var btn := Button.new()
+		btn.text = choice.text
+		btn.pressed.connect(_on_choice_selected.bind(choice))
+		_choice_buttons.add_child(btn)
+		_choices.append(choice)
 
-		_continue_btn.visible = false
+	_continue_btn.visible = false
+
+func _on_dialogue_started(npc_id: String, dialogue_id: String) -> void:
+	_is_open = true
+	_current_npc_id = npc_id
+	_current_dialogue_id = dialogue_id
+	show()
+
+func _on_dialogue_ended(npc_id: String, dialogue_id: String) -> void:
+	_is_open = false
+	_current_npc_id = ""
+	_current_dialogue_id = ""
+	hide()
 
 func _on_node_changed(node_index: int, node_data: Dictionary) -> void:
 	_show_node_data(node_data)
@@ -162,8 +182,9 @@ func _show_node_data(node: Dictionary) -> void:
 		_continue_btn.visible = true
 
 func _on_choice_selected(choice_index: int) -> void:
-	if DialogService:
-		DialogService.select_choice(choice_index)
+	var svc = DialogService.get_instance()
+	if svc:
+		svc.select_choice(choice_index)
 		return
 	# Fallback
 	var demo_choices := [

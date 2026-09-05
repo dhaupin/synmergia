@@ -3,7 +3,7 @@
 ## Registered as the `GameLog` autoload.
 extends Node
 
-static func _esc(text: String) -> String:
+func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')
 
 enum Level {
@@ -13,12 +13,12 @@ enum Level {
 	ERROR
 }
 
-static var _log_level: Level = Level.DEBUG
-static var _log_to_file: bool = false
-static var _log_file_path: String = "user://logs/game.log"
+var _log_level: Level = Level.DEBUG
+var _log_to_file: bool = false
+var _log_file_path: String = "user://logs/game.log"
 
-static var level_names: Array[String] = ["DEBUG", "INFO", "WARN", "ERROR"]
-static var level_colors: Array[Color] = [
+var level_names: Array[String] = ["DEBUG", "INFO", "WARN", "ERROR"]
+var level_colors: Array[Color] = [
 	Color.CORNFLOWER_BLUE,
 	Color.GREEN,
 	Color.YELLOW,
@@ -29,18 +29,18 @@ func _ready() -> void:
 	if _log_to_file:
 		_init_log_file()
 
-static func _init_log_file() -> void:
+func _init_log_file() -> void:
 	var log_dir := _log_file_path.get_base_dir()
 	var dir := DirAccess.open(log_dir)
 	if dir == null:
 		DirAccess.make_dir_recursive_absolute(log_dir)
 
-static func _format_message(level: Level, message: String) -> String:
+func _format_message(level: Level, message: String) -> String:
 	var timestamp := Time.get_datetime_string_from_system()
 	var level_str: String = level_names[level]
 	return "[%s] [%s] %s" % [timestamp, level_str, message]
 
-static func log_message(level: Level, message: String) -> void:
+func log_message(level: Level, message: String) -> void:
 	if level < _log_level:
 		return
 	
@@ -57,28 +57,28 @@ static func log_message(level: Level, message: String) -> void:
 	if _log_to_file:
 		_write_to_file(formatted)
 
-static func debug(message: String) -> void:
+func debug(message: String) -> void:
 	log_message(Level.DEBUG, message)
 
-static func info(message: String) -> void:
+func info(message: String) -> void:
 	log_message(Level.INFO, message)
 
-static func warn(message: String) -> void:
+func warn(message: String) -> void:
 	log_message(Level.WARN, message)
 
-static func error(message: String) -> void:
+func error(message: String) -> void:
 	log_message(Level.ERROR, message)
 
-static func _write_to_file(message: String) -> void:
+func _write_to_file(message: String) -> void:
 	var file := FileAccess.open(_log_file_path, FileAccess.READ_WRITE)
 	if file:
 		file.store_line(message)
 		file.close()
 
-static func set_log_level(level: Level) -> void:
+func set_log_level(level: Level) -> void:
 	_log_level = level
 
-static func set_log_file(enabled: bool, path: String = "user://logs/game.log") -> void:
+func set_log_file(enabled: bool, path: String = "user://logs/game.log") -> void:
 	_log_to_file = enabled
 	_log_file_path = path
 	if enabled:

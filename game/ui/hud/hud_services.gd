@@ -25,6 +25,26 @@ var _admin_toolbar: Node
 var _character_data: Resource = null
 var _minimap: Node
 
+## Cached service references (resolved in _connect_services).
+var _party_svc: Node
+var _guild_svc: Node
+var _friends_svc: Node
+var _trade_svc: Node
+var _quest_svc: Node
+var _skill_svc: Node
+var _inv_svc: Node
+var _xfer_svc: Node
+var _qos: Node
+var _blacksmith_svc: Node
+var _loot_svc: Node
+var _faction_svc: Node
+var _chat_svc: Node
+var _respawn_svc: Node
+var _vault_svc: Node
+var _entity_svc: Node
+var _notif: Node
+var _ach: Node
+
 
 func bind(hud: CanvasLayer) -> void:
 	_hud = hud
@@ -70,24 +90,24 @@ func _find_panel(names: Array) -> Node:
 
 func _connect_services() -> void:
 	# Resolve autoload instances (script is loaded+instantiated, not autoloaded).
-	var _party_svc := get_node_or_null("/root/PartyService")
-	var _guild_svc := get_node_or_null("/root/GuildService")
-	var _friends_svc := get_node_or_null("/root/FriendsService")
-	var _trade_svc := get_node_or_null("/root/TradeService")
-	var _quest_svc := get_node_or_null("/root/QuestService")
-	var _skill_svc := get_node_or_null("/root/SkillAcademyService")
-	var _inv_svc := get_node_or_null("/root/InventoryService")
-	var _xfer_svc := get_node_or_null("/root/SameAccountTransferService")
-	var _qos := get_node_or_null("/root/QoSService")
-	var _blacksmith_svc := get_node_or_null("/root/BlacksmithService")
-	var _loot_svc := get_node_or_null("/root/LootService")
-	var _faction_svc := get_node_or_null("/root/FactionService")
-	var _chat_svc := get_node_or_null("/root/ChatService")
-	var _respawn_svc := get_node_or_null("/root/RespawnService")
-	var _vault_svc := get_node_or_null("/root/VaultService")
-	var _entity_svc := get_node_or_null("/root/EntityService")
-	var _notif := get_node_or_null("/root/NotificationService")
-	var _ach := get_node_or_null("/root/AchievementService")
+	_party_svc = get_node_or_null("/root/PartyService")
+	_guild_svc = get_node_or_null("/root/GuildService")
+	_friends_svc = get_node_or_null("/root/FriendsService")
+	_trade_svc = get_node_or_null("/root/TradeService")
+	_quest_svc = get_node_or_null("/root/QuestService")
+	_skill_svc = get_node_or_null("/root/SkillAcademyService")
+	_inv_svc = get_node_or_null("/root/InventoryService")
+	_xfer_svc = get_node_or_null("/root/SameAccountTransferService")
+	_qos = get_node_or_null("/root/QoSService")
+	_blacksmith_svc = get_node_or_null("/root/BlacksmithService")
+	_loot_svc = get_node_or_null("/root/LootService")
+	_faction_svc = get_node_or_null("/root/FactionService")
+	_chat_svc = get_node_or_null("/root/ChatService")
+	_respawn_svc = get_node_or_null("/root/RespawnService")
+	_vault_svc = get_node_or_null("/root/VaultService")
+	_entity_svc = get_node_or_null("/root/EntityService")
+	_notif = get_node_or_null("/root/NotificationService")
+	_ach = get_node_or_null("/root/AchievementService")
 
 	# Party events → PartyUI.
 	if _party and _party_svc:
@@ -565,7 +585,7 @@ func _on_loot_rolled(loot_id: String, player_id: String, roll_type, roll_value: 
 		return
 	var roll_names := ["Need", "Greed", "Pass"]
 	var roll_idx := roll_type as int  # RollType enum is backed by int
-	var roll_name := roll_names[roll_idx] if roll_idx < roll_names.size() else "Roll"
+	var roll_name: String = roll_names[roll_idx] if roll_idx < roll_names.size() else "Roll"
 	_notif.notify(
 		_notif.NotifKind.CUSTOM,
 		"You rolled %s: %d" % [roll_name, roll_value],
@@ -603,8 +623,8 @@ func _on_achievement_progressed(player_id: String, achievement_id: String, progr
 
 func _on_faction_war_declared(faction1, faction2) -> void:
 	if is_instance_valid(_notif):
-		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
-		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
+		var n1: String = faction1.get("faction_name", "?") if faction1 else "?"
+		var n2: String = faction2.get("faction_name", "?") if faction2 else "?"
 		_notif.notify(
 			_notif.NotifKind.CUSTOM,
 			"War declared: %s vs %s" % [n1, n2],
@@ -616,8 +636,8 @@ func _on_faction_war_declared(faction1, faction2) -> void:
 
 func _on_faction_war_ended(faction1, faction2) -> void:
 	if is_instance_valid(_notif):
-		var n1 := faction1.get("faction_name", "?") if faction1 else "?"
-		var n2 := faction2.get("faction_name", "?") if faction2 else "?"
+		var n1: String = faction1.get("faction_name", "?") if faction1 else "?"
+		var n2: String = faction2.get("faction_name", "?") if faction2 else "?"
 		_notif.notify(
 			_notif.NotifKind.CUSTOM,
 			"War ended between %s and %s" % [n1, n2],
@@ -651,8 +671,8 @@ func _on_player_left(player, metadata) -> void:
 	pass  # Future: update player count in minimap/HUD
 
 func _on_player_entered_zone(player, zone) -> void:
-	var pid := player.entity_id if player and "entity_id" in player else ""
-	var zone_name := zone.get("zone_name", "?") if zone else "?"
+	var pid: String = player.entity_id if player and "entity_id" in player else ""
+	var zone_name: String = zone.get("zone_name", "?") if zone else "?"
 	# Update minimap zone name
 	if is_instance_valid(_minimap) and _minimap.has_method("set_zone_name"):
 		_minimap.set_zone_name(zone_name)
@@ -680,7 +700,7 @@ func _on_level_up(player_id: String, new_level: int) -> void:
 
 func _on_vote_created(vote) -> void:
 	if is_instance_valid(_notif):
-		var title := vote.get("title", "?") if vote else "?"
+		var title: String = vote.get("title", "?") if vote else "?"
 		_notif.notify(
 			_notif.NotifKind.VOTE_CREATED,
 			"New vote: %s" % title,
@@ -692,7 +712,7 @@ func _on_vote_created(vote) -> void:
 
 func _on_vote_closed(vote) -> void:
 	if is_instance_valid(_notif):
-		var title := vote.get("title", "?") if vote else "?"
+		var title: String = vote.get("title", "?") if vote else "?"
 		_notif.notify(
 			_notif.NotifKind.VOTE_ENDED,
 			"Vote closed: %s" % title,
@@ -704,7 +724,7 @@ func _on_vote_closed(vote) -> void:
 
 func _on_vote_expired(vote) -> void:
 	if is_instance_valid(_notif):
-		var title := vote.get("title", "?") if vote else "?"
+		var title: String = vote.get("title", "?") if vote else "?"
 		_notif.notify(
 			_notif.NotifKind.VOTE_ENDED,
 			"Vote expired: %s" % title,
@@ -716,7 +736,7 @@ func _on_vote_expired(vote) -> void:
 
 func _on_alliance_formed(guild_id: String, faction) -> void:
 	if is_instance_valid(_notif):
-		var faction_name := faction.get("faction_name", "?") if faction else "?"
+		var faction_name: String = faction.get("faction_name", "?") if faction else "?"
 		_notif.notify(
 			_notif.NotifKind.CUSTOM,
 			"Alliance formed: %s" % faction_name,
@@ -745,7 +765,7 @@ func _on_connection_quality_changed(player_id: String, quality) -> void:
 	# ConnectionQuality enum: _qos.ConnectionQuality.keys()[value] -> name string.
 	var quality_str := str(quality)  # fallback to integer if not resolved
 	if _qos and typeof(quality) == 2:
-		var keys := _qos.ConnectionQuality.keys()
+		var keys: Array = _qos.ConnectionQuality.keys()
 		if quality >= 0 and quality < keys.size():
 			quality_str = keys[quality]
 	if is_instance_valid(_notif):
@@ -783,7 +803,7 @@ func _on_qos_throttled(player_id: String, reason: String) -> void:
 # --- Respawn -------------------------------------------------------
 
 func _on_respawn_completed(player, respawn_point) -> void:
-	var pid := player.entity_id if player and "entity_id" in player else ""
+	var pid: String = player.entity_id if player and "entity_id" in player else ""
 	if is_instance_valid(_notif):
 		_notif.notify(
 			_notif.NotifKind.RESPAWNED,
@@ -795,7 +815,7 @@ func _on_respawn_completed(player, respawn_point) -> void:
 		)
 
 func _on_respawn_canceled(player, reason: String) -> void:
-	var pid := player.entity_id if player and "entity_id" in player else ""
+	var pid: String = player.entity_id if player and "entity_id" in player else ""
 	if is_instance_valid(_notif):
 		_notif.notify(
 			_notif.NotifKind.CUSTOM,
