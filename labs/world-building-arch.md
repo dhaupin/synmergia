@@ -1,4 +1,4 @@
-# Synmergia — Systems Architecture
+# Synmergia вҖ” Systems Architecture
 
 > **The bridge.** This doc sits between the spec
 > ([`world-building.md`](./world-building.md),
@@ -99,7 +99,7 @@ func walk(scope: Scope, callback: Callable) -> void:
 ### 3.2 The contract
 
 - **Determinism:** same path + same value + same schema = same
-  hash. Always. (R004, R009 — the two-platform determinism
+  hash. Always. (R004, R009 вҖ” the two-platform determinism
   check, the "two clients see the same tree" gate.)
 - **Verifiability:** given a hash and a value, anyone can
   verify the value hashes to the hash. No trusted third party.
@@ -146,19 +146,19 @@ resolve overrides, and flip rules at scope boundaries.
 A scope is a position in a hierarchy. For Synmergia:
 
 ```
-world → shard → instance → player
+world вҶ’ shard вҶ’ instance вҶ’ player
 ```
 
 For another game on the same frame:
 
 ```
-galaxy → sector → system → planet → character
-realm → region → district → character
+galaxy вҶ’ sector вҶ’ system вҶ’ planet вҶ’ character
+realm вҶ’ region вҶ’ district вҶ’ character
 ```
 
 The hierarchy is a tree. Each node in the hierarchy is a
-scope. Each scope can have its own environment (§6) and its
-own rule overrides (§5).
+scope. Each scope can have its own environment (В§6) and its
+own rule overrides (В§5).
 
 ### 4.2 The scope class
 
@@ -178,7 +178,7 @@ func walk(callback: Callable) -> void:
     ...
 
 func resolve(path: String, stack: Array[Scope]) -> Variant:
-    # Walks the stack top→bottom, returns first match
+    # Walks the stack topвҶ’bottom, returns first match
     ...
 
 func flip(rule_id: String, resolution: String) -> void:
@@ -196,7 +196,7 @@ from the player's scope up to the world scope:
 ```
 
 The stack is what gets content-hashed for the seed derivation
-(§7.2). The scope engine walks the stack to resolve rules,
+(В§7.2). The scope engine walks the stack to resolve rules,
 values, etc.
 
 ### 4.4 The "flip" semantic
@@ -222,7 +222,7 @@ subscription flips the rules for inventory size.
 ## 5. The rules engine + rules tree
 
 The new piece. A generic evaluator that takes
-`(action, context, rules_tree) → decision`.
+`(action, context, rules_tree) вҶ’ decision`.
 
 ### 5.1 The rules tree
 
@@ -278,7 +278,7 @@ NEW:
 ```
 
 Each rule in the rules tree declares its resolution strategy
-(§5.1). The "A/B/C/D" stack-direction question is now
+(В§5.1). The "A/B/C/D" stack-direction question is now
 per-rule, not per-system. The game developer picks the
 semantics that fit each rule.
 
@@ -318,36 +318,36 @@ func tick(delta: float) -> void:
 ### 6.2 The trees per environment
 
 Each environment has:
-- A seed tree (§7) — canonical, recursive, deterministic
-- A state tree (§8) — canonical, runtime
-- A rules tree (§5) — the gating rules
-- ...any other tree the game wants (§9)
+- A seed tree (В§7) вҖ” canonical, recursive, deterministic
+- A state tree (В§8) вҖ” canonical, runtime
+- A rules tree (В§5) вҖ” the gating rules
+- ...any other tree the game wants (В§9)
 
 For Synmergia's poc/mvp:
 
 | Scope | Trees |
 |---|---|
 | `world_env` | world seed tree, world state tree, world rules tree |
-| `shard_env` (×N) | shard seed tree, shard state tree, shard rules tree |
-| `instance_env` (×N) | instance seed tree, instance state tree, instance rules tree |
-| `player_env` (×N) | player seed tree, player state tree, player rules tree |
+| `shard_env` (Г—N) | shard seed tree, shard state tree, shard rules tree |
+| `instance_env` (Г—N) | instance seed tree, instance state tree, instance rules tree |
+| `player_env` (Г—N) | player seed tree, player state tree, player rules tree |
 
 The data for each tree instance lives in `game/data/roots/`:
 
 ```
 game/data/roots/
-├── world/
-│   ├── seed.tres
-│   ├── state.tres
-│   └── rules.tres
-├── shard_001/
-│   ├── seed.tres
-│   ├── state.tres
-│   └── rules.tres
-├── instance_abc/
-│   └── ...
-└── player_xyz/
-    └── ...
+в”ңв”Җв”Җ world/
+в”Ӯ   в”ңв”Җв”Җ seed.tres
+в”Ӯ   в”ңв”Җв”Җ state.tres
+в”Ӯ   в””в”Җв”Җ rules.tres
+в”ңв”Җв”Җ shard_001/
+в”Ӯ   в”ңв”Җв”Җ seed.tres
+в”Ӯ   в”ңв”Җв”Җ state.tres
+в”Ӯ   в””в”Җв”Җ rules.tres
+в”ңв”Җв”Җ instance_abc/
+в”Ӯ   в””в”Җв”Җ ...
+в””в”Җв”Җ player_xyz/
+    в””в”Җв”Җ ...
 ```
 
 ### 6.3 The TTL
@@ -380,14 +380,14 @@ seeds and the world-level configuration. Backup policy:
 Recovery: `manifest --restore --from <date>` rebuilds state
 to that snapshot. **All player state < date is lost.** This
 is the price of the recursive model: lose the manifest, lose
-the world. (D031 — to be decided when we hit Phase 1 infra.)
+the world. (D031 вҖ” to be decided when we hit Phase 1 infra.)
 
 ---
 
 ## 7. The seed tree (canonical instance)
 
 The first canonical tree. Recursive, deterministic,
-content-hashed. (Spec §4, D025-D026.)
+content-hashed. (Spec В§4, D025-D026.)
 
 ### 7.1 The SeedSchema
 
@@ -414,7 +414,7 @@ func _validate(value: Dictionary) -> bool:
 static func derive_seed(stack: Array[PackedByteArray],
                         path: String) -> PackedByteArray:
     var acc := path.to_utf8_buffer()
-    for layer_seed in stack:  # player → shard → world
+    for layer_seed in stack:  # player вҶ’ shard вҶ’ world
         acc = HashingContext.sha256(layer_seed + acc)
     return acc
 ```
@@ -448,7 +448,7 @@ through immediately. Default criticality:
 ## 8. The state tree (canonical instance)
 
 The second canonical tree. Runtime, mutable, content-hashed.
-(Spec §5, D027.)
+(Spec В§5, D027.)
 
 ### 8.1 The StateSchema
 
@@ -509,12 +509,12 @@ lives in the schemas.
 
 A tick, end-to-end:
 
-1. **Client → server:** `cmd` over WebSocket.
+1. **Client вҶ’ server:** `cmd` over WebSocket.
 2. **Server parse:** `network_manager.gd` parses, validates,
-   queues. (Spec §11.)
+   queues. (Spec В§11.)
 3. **Tick loop** in `tick.gd`:
    a. Walk the active scope stack
-      (player → instance → shard → world).
+      (player вҶ’ instance вҶ’ shard вҶ’ world).
    b. For each `cmd`:
       - Apply to the appropriate tree (state, seed, etc.).
       - The rules engine evaluates the `cmd` against the
@@ -523,7 +523,7 @@ A tick, end-to-end:
    c. Compute the diff per tree (T3::diff).
    d. Filter the diff by visibility scope (D026).
    e. Emit the diff to the appropriate clients.
-4. **Server → client:** diff over WebSocket. Client applies
+4. **Server вҶ’ client:** diff over WebSocket. Client applies
    the diff, verifies the root hash, requests resync if
    mismatch.
 
@@ -537,13 +537,13 @@ A full description of the tick model is in
 ### 11.1 Today (Phase 1)
 
 ```
-┌──────────────────────────────────────────────┐
-│ docker-compose                               │
-│                                              │
-│  synmergia (Godot, all autoloads, no frame)  │
-│  postgres                                    │
-│  redis                                       │
-└──────────────────────────────────────────────┘
+в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
+в”Ӯ docker-compose                               в”Ӯ
+в”Ӯ                                              в”Ӯ
+в”Ӯ  synmergia (Godot, all autoloads, no frame)  в”Ӯ
+в”Ӯ  postgres                                    в”Ӯ
+в”Ӯ  redis                                       в”Ӯ
+в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
 ```
 
 One Godot process. All 37 services autoloaded. The frame is
@@ -552,13 +552,13 @@ aspirational; the game runs in the game container.
 ### 11.2 Phase 2 (frame extract)
 
 ```
-┌──────────────────────────────────────────────┐
-│  synmergia (Godot, services)                 │
-│      ↕  HTTP or FFI                          │
-│  frame (T3 + scope + rules engines)          │
-│  postgres                                    │
-│  redis                                       │
-└──────────────────────────────────────────────┘
+в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
+в”Ӯ  synmergia (Godot, services)                 в”Ӯ
+в”Ӯ      вҶ•  HTTP or FFI                          в”Ӯ
+в”Ӯ  frame (T3 + scope + rules engines)          в”Ӯ
+в”Ӯ  postgres                                    в”Ӯ
+в”Ӯ  redis                                       в”Ӯ
+в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
 ```
 
 The frame extracts to a separate container. The game calls
@@ -567,12 +567,12 @@ the frame via HTTP bridge (v1) or polyglot FFI (Phase 4+).
 ### 11.3 Phase 3 (coordinator extract)
 
 ```
-┌──────────────────────────────────────────────┐
-│  synmergia (per shard)                       │
-│  coordinator (HA-pair in prod)               │
-│  postgres (HA)                               │
-│  redis                                       │
-└──────────────────────────────────────────────┘
+в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
+в”Ӯ  synmergia (per shard)                       в”Ӯ
+в”Ӯ  coordinator (HA-pair in prod)               в”Ӯ
+в”Ӯ  postgres (HA)                               в”Ӯ
+в”Ӯ  redis                                       в”Ӯ
+в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
 ```
 
 Coordinator becomes its own process. Postgres HA. Cross-
@@ -581,17 +581,17 @@ shard events go through the coordinator.
 ### 11.4 Phase 4 (edge shards)
 
 ```
-┌──────────────────────────────────────────────┐
-│  synmergia-world-shard-1..N                  │
-│  edge-shard-region-X-1..M (regional cache)   │
-│  coordinator (HA-pair)                       │
-│  postgres (HA)                               │
-│  redis (HA)                                  │
-└──────────────────────────────────────────────┘
+в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
+в”Ӯ  synmergia-world-shard-1..N                  в”Ӯ
+в”Ӯ  edge-shard-region-X-1..M (regional cache)   в”Ӯ
+в”Ӯ  coordinator (HA-pair)                       в”Ӯ
+в”Ӯ  postgres (HA)                               в”Ӯ
+в”Ӯ  redis (HA)                                  в”Ӯ
+в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
 ```
 
-Edge shards for low-latency regional cache. (Spec §11.11,
-research doc §2.)
+Edge shards for low-latency regional cache. (Spec В§11.11,
+research doc В§2.)
 
 ---
 
@@ -601,51 +601,51 @@ The multipurpose room. Definitions, setups, tooling.
 
 ```
 srv/
-├── docker/                # mode dispatcher, certbot, healthcheck
-│   ├── entrypoint.sh
-│   ├── test-headless.sh
-│   └── README.md
-├── http/                  # route definitions, request/response schemas
-│   ├── routes/
-│   └── schemas/
-├── seed/                  # seed data, fixture players, test worlds
-│   ├── fixtures/
-│   └── generators/
-├── tools/                 # scripts, debug commands, ops utilities
-│   ├── tick/
-│   ├── diff/
-│   └── debug/
-├── backup/                # manifest backup, recovery (D031)
-│   ├── backup.sh
-│   └── restore.sh
-└── migration/             # schema migrations, godot project version migrations
-    └── *.sql
+в”ңв”Җв”Җ docker/                # mode dispatcher, certbot, healthcheck
+в”Ӯ   в”ңв”Җв”Җ entrypoint.sh
+в”Ӯ   в”ңв”Җв”Җ test-headless.sh
+в”Ӯ   в””в”Җв”Җ README.md
+в”ңв”Җв”Җ http/                  # route definitions, request/response schemas
+в”Ӯ   в”ңв”Җв”Җ routes/
+в”Ӯ   в””в”Җв”Җ schemas/
+в”ңв”Җв”Җ seed/                  # seed data, fixture players, test worlds
+в”Ӯ   в”ңв”Җв”Җ fixtures/
+в”Ӯ   в””в”Җв”Җ generators/
+в”ңв”Җв”Җ tools/                 # scripts, debug commands, ops utilities
+в”Ӯ   в”ңв”Җв”Җ tick/
+в”Ӯ   в”ңв”Җв”Җ diff/
+в”Ӯ   в””в”Җв”Җ debug/
+в”ңв”Җв”Җ backup/                # manifest backup, recovery (D031)
+в”Ӯ   в”ңв”Җв”Җ backup.sh
+в”Ӯ   в””в”Җв”Җ restore.sh
+в””в”Җв”Җ migration/             # schema migrations, godot project version migrations
+    в””в”Җв”Җ *.sql
 ```
 
-`labs/` routes for providers are temporary — they go away
-when the frame extracts. `game/data/roots/` is permanent —
+`labs/` routes for providers are temporary вҖ” they go away
+when the frame extracts. `game/data/roots/` is permanent вҖ”
 it holds the actual game data.
 
 ---
 
-## 13. Component map (spec → code)
+## 13. Component map (spec вҶ’ code)
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
-| T3 substrate | this doc §3 | none | `labs/multi-iso/kv/t3.gd` | TODO |
-| Scope engine | this doc §4 | none | `labs/multi-iso/srv/scope.gd` | TODO |
-| Rules engine | this doc §5 | none | `labs/multi-iso/srv/rules_engine.gd` | TODO (Phase 2) |
-| Seed tree (canonical) | this doc §7, spec §4 | none | `labs/multi-iso/kv/seed_chain.gd` | TODO |
-| State tree (canonical) | this doc §8, spec §5 | partial (`core/state/state.gd` is FSM, not tree) | `labs/multi-iso/kv/state_tree.gd` | TODO |
-| Recursive seed derivation | spec §4.2, D025 | none | `seed_chain.gd::derive_seed` | TODO |
-| Two-orthogonal-axes (D026) | spec §4.1 | none | `SeedSchema` payload | TODO |
-| State-only diff (D027) | spec §5.6, D027 | none | `T3::diff` | TODO |
-| Manifest SPOF (D031) | this doc §6.4 | none | `srv/backup/manifest.sh` | TODO |
-| Open seed TTL (D032) | this doc §6.3, spec §4.8 | none | `core/services/instance_service.gd` | TODO |
-| Login seed chain (D029) | validation §1 | none | `core/services/login_service.gd` | TODO |
-| Frame seed authority (D030) | validation §2 | none | `core/services/frame_service.gd` | TODO |
-| Critical params (D033) | this doc §7.4, spec §4.8 | none | `core/services/shard_parameters.gd` | TODO |
-| Account rollup (D028) | spec §9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
+| T3 substrate | this doc В§3 | none | `labs/multi-iso/kv/t3.gd` | TODO |
+| Scope engine | this doc В§4 | none | `labs/multi-iso/srv/scope.gd` | TODO |
+| Rules engine | this doc В§5 | none | `labs/multi-iso/srv/rules_engine.gd` | TODO (Phase 2) |
+| Seed tree (canonical) | this doc В§7, spec В§4 | none | `labs/multi-iso/kv/seed_chain.gd` | TODO |
+| State tree (canonical) | this doc В§8, spec В§5 | partial (`core/state/state.gd` is FSM, not tree) | `labs/multi-iso/kv/state_tree.gd` | TODO |
+| Recursive seed derivation | spec В§4.2, D025 | none | `seed_chain.gd::derive_seed` | TODO |
+| Two-orthogonal-axes (D026) | spec В§4.1 | none | `SeedSchema` payload | TODO |
+| State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | TODO |
+| Manifest SPOF (D031) | this doc В§6.4 | none | `srv/backup/manifest.sh` | TODO |
+| Open seed TTL (D032) | this doc В§6.3, spec В§4.8 | none | `core/services/instance_service.gd` | TODO |
+| Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` | TODO |
+| Frame seed authority (D030) | validation В§2 | none | `core/services/frame_service.gd` | TODO |
+| Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd` | TODO |
+| Account rollup (D028) | spec В§9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
 | Vant multibrain stack | vant `brain.js:1510-1900` | none | `labs/multi-iso/srv/scope.gd` (port) | TODO |
 | Vant icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/geometry/` (port) | TODO (Phase 4) |
 | Vant fragmenter | vant `geometry/fragmenter.js` | none | `labs/multi-iso/geometry/fragmenter.gd` | TODO (Phase 4) |
@@ -693,7 +693,7 @@ For the user to resolve when the time comes:
    read: conventions + a `schema_registry.tres` for overrides.
 
 3. **Scope hierarchy configurability.** Is the hierarchy
-   (world → shard → instance → player) baked into the game,
+   (world вҶ’ shard вҶ’ instance вҶ’ player) baked into the game,
    or is it data? My read: baked for now, data in Phase 4+.
 
 4. **Rules tree mutation at runtime.** Can a player flip their
@@ -722,24 +722,24 @@ This architecture borrows from
 branch), the user's sibling repo. Specifically:
 
 - **Multibrain stack pattern** (vant `lib/brain.js:1510-1900`)
-  → scope engine (§4). Vant's brain stack with push/pop/
+  вҶ’ scope engine (В§4). Vant's brain stack with push/pop/
   current is the prototype for our scope stack. We extend it
   with: typed scopes (player, shard, etc.), explicit override
-  semantics, and the "flip" mechanism (§4.4).
+  semantics, and the "flip" mechanism (В§4.4).
 
 - **Geometric addressing** (vant `lib/geometry/icosahedral.js`,
-  `tilings.js`, `quasicrystal.js`, `fragmenter.js`) → spatial
+  `tilings.js`, `quasicrystal.js`, `fragmenter.js`) вҶ’ spatial
   layer. The icosahedral projection is the candidate for world
   chunk addressing; the Penrose P3 tiling is the candidate for
   region distribution; the fragmenter (Knuth multiplicative
-  hash, `LATTICE_MULTIPLIER = floor(φ · 2³²)`) is the candidate
+  hash, `LATTICE_MULTIPLIER = floor(ПҶ В· 2ВіВІ)`) is the candidate
   for shard partitioning in Phase 4+.
 
 - **Single class, schema-as-data** (vant `lib/brain.js` overall)
-  → T3 substrate (§3). Vant's brain is one class with mode-
+  вҶ’ T3 substrate (В§3). Vant's brain is one class with mode-
   as-data. T3 is the same pattern for content-hash trees.
 
-- **Content hashing** (vant `lib/quasicrystal.js` overall) →
+- **Content hashing** (vant `lib/quasicrystal.js` overall) вҶ’
   SHA-256 hash chain in T3. Vant's quasicrystal uses barcode
   projection; we use SHA-256 because we need cryptographic
   tamper-evidence, not just deterministic projection.
@@ -764,3 +764,333 @@ Last updated: 2026-09-05
 Sections: 17
 Decisions referenced: D025-D033 (D029-D033 are new in this doc)
 Open questions: 7
+
+---
+
+## 18. Design rationale and rejected alternatives
+
+The doc above is the *what*. This section is the *why* —
+the alternatives considered, the rejected options, and the
+reasoning. Future agents reading the spec need this to
+understand which choices were deliberate and which could
+be revisited.
+
+### 18.1 Substrate: single class, schema-as-data
+
+**Considered:**
+- Single GDScript class with generic payload
+- Protocol/interface, multiple specialized classes
+- Three classes (`SeedTree`, `StateTree`, `RulesTree`)
+
+**Picked:** Single class, schema-as-data.
+
+**Why:** Matches vant's `brain.js` pattern (one class,
+mode-as-data). "We have been complex enough" — the user
+flagged this explicitly. Users add their own complexity on
+top via schemas; the substrate doesn't need to anticipate it.
+
+**Revisit if:** the substrate becomes a bottleneck (e.g.,
+schema dispatch is too slow). Then consider a JIT-style
+specialization per schema.
+
+### 18.2 Tree type count: 2 canonical + N
+
+**Considered:**
+- 4 fixed trees (seed, state, world, rules)
+- 2 canonical (seed, state) + N others (added as needed)
+- 1 generic "tree of trees" (no canonical instances)
+
+**Picked:** 2 canonical + N.
+
+**Why:** The "world tree" was a category error — world is a
+*scope*, not a *tree type*. "World environment" is the
+container; inside it are the world's seed tree, state tree,
+rules tree, etc. The 4-tree frame was wrong; the 2+N frame
+is correct.
+
+**Revisit if:** a game on the frame needs a fixed tree
+contract (e.g., a third canonical tree emerges from use).
+Until then, N is open.
+
+### 18.3 Stack direction: per-rule via the rules engine
+
+**Considered (4 options):**
+- **A. Top-wins (vant default).** Player at top, world at
+  bottom, first match wins. Player can override anything.
+- **B. World-wins-strict.** World at top, player at bottom.
+  World is the first check; player can only do what world
+  allows.
+- **C. Two-stack, two-semantics.** Settings stack
+  (player-wins) and rules stack (world-wins) per node.
+- **D. World-rules are pre-checks (predicate layer).**
+  Settings inherit normally, world is a predicate gate.
+
+**Picked:** Per-rule resolution via the rules engine. The
+A/B/C/D question dissolves when rules are data — each rule
+in the rules tree declares its resolution strategy, and the
+game developer picks the semantics that fit each rule.
+
+**Why:** "World rules overpower the player if required" is
+per-rule, not per-system. Some rules should be top-wins
+(player's house can be anywhere they want); others should be
+bottom-wins (no-PvP zones); others predicate-gated (boss
+defeat must check the world predicate). One answer for all
+rules was wrong.
+
+**Revisit if:** the rules engine becomes a bottleneck or
+the resolution-strategy API proves insufficient. Then
+consider making resolution a callable on the schema.
+
+### 18.4 World environment (not "world tree")
+
+**Considered:** "world tree," "world runtime," "world scope,"
+"context," "realm," "domain," "frame," "world environment."
+
+**Picked:** "World environment" (or just "environment,"
+"scope").
+
+**Why:** "World tree" was a misnomer — the world has trees
+inside it, the world is not itself a tree. "Runtime" is
+overloaded with the project meaning. "Frame" is the project's
+name. "Environment" is descriptive: it's the runtime
+container at a given scope, holding N trees.
+
+**Revisit if:** a clearer term emerges from use. The current
+term is functional, not beautiful.
+
+### 18.5 Data dir: `data/roots/`
+
+**Considered:** `data/trees/`, `data/sources/`, `data/stores/`,
+`data/registries/`, `data/scopes/`, `data/worlds/`,
+`data/contexts/`, `data/frames/`, `data/models/`.
+
+**Picked:** `data/roots/`.
+
+**Why:** Each tree's data file is its **root hash** — the
+top-of-tree content-hash. The data file is the canonical
+reference to the whole tree. "Trees" was the obvious name
+but it conflates the concept (a tree is a data structure)
+with the storage (a tree is a .tres file). "Roots"
+disambiguates: the data is the root, the structure is the
+tree.
+
+**Revisit if:** vant's `models/` layout proves cleaner (each
+tree is a directory, not a single file). That's a v2
+discussion.
+
+### 18.6 Vant adoption: heavy
+
+**Considered:**
+- **Light:** just chunk path encoding + AOI neighborhoods.
+- **Medium:** above + shard fragmentation + Penrose tiling.
+- **Heavy:** above + full multibrain + full quasicrystal.
+
+**Picked:** Heavy. Follow vant schemas and positions; if we
+have opinions, push them up to vant.
+
+**Why:** Vant is a sibling repo by the same author. The
+user wants full integration: "It's our project too." The
+static port lives in `labs/multi-iso/`; the runtime bridge
+is the existing `connectors/vant/vant_connector.gd` stub.
+We push our improvements back to vant; vant reciprocates.
+
+**Revisit if:** vant's API churns in a direction that
+doesn't fit. Then we can fork or abstract.
+
+### 18.7 Rules engine: Phase 2
+
+**Considered:** Phase 1 (with everything), Phase 2 (after
+the canonical trees).
+
+**Picked:** Phase 2.
+
+**Why:** Phase 1 should be minimal — T3 substrate + scope
+engine + the two canonical trees. The rules engine is a
+consolidation of the existing 5 infrastructure services'
+decision logic; it doesn't have to exist before the
+canonical trees are built. Shipping Phase 1 first gives us
+a substrate to test the rules engine against.
+
+**Revisit if:** the 5 services become a maintenance
+nightmare before Phase 2 starts. Then pull rules-engine
+work forward.
+
+### 18.8 Per-scope-type TTL
+
+**Considered:**
+- No TTL (keep everything forever)
+- Uniform 5 min on all environments
+- Per-scope-type TTL (5 min for open+instance, none for
+  locked, frame-end for frame)
+
+**Picked:** Per-scope-type.
+
+**Why:** Matches the seed-type × visibility-scope taxonomy
+from spec §4. Locked environments (world map, shard terrain,
+player's house) are durable — no TTL. Open environments
+(dungeon run, arena match) are ephemeral — 5 min after the
+last player leaves. Frame environments (dream, tutorial,
+jail cell) are one-shot — GC'd at frame end. One size
+doesn't fit.
+
+**Revisit if:** frame environments prove useful across
+sessions (e.g., persistent dreams). Then add a
+"frame_persistence" config.
+
+### 18.9 The "flip" semantic
+
+**Considered:**
+- A single global rules resolution
+- A per-rule resolution strategy
+- A per-scope override of a per-rule resolution
+
+**Picked:** Per-scope override of a per-rule resolution.
+
+**Why:** "Games can flip anything anywhere" requires
+three-level control: the rule defines its default
+resolution, the scope can flip that resolution, and the
+instance can override the scope's flip. A PvP zone is a
+scope; the no-PvP rule is a rule; the flip is the scope
+saying "in this zone, the no-PvP rule is bottom-wins
+instead of top-wins." Three levels.
+
+**Revisit if:** three levels proves too complex. Then
+collapse to two (rule-level + scope-level, no instance-
+level override).
+
+### 18.10 The 5 new decision IDs (D029-D033)
+
+**Considered:** Keep the validation gaps in the validation
+list, fold them into the spec as decisions, defer them to
+later.
+
+**Picked:** Fold into the spec as new decisions.
+
+**Why:** Each gap is a load-bearing interface contract
+(login flow, frame authority, manifest backup, open seed
+TTL, param criticality). They need decision IDs so the
+implementation phase has a target. Without IDs, they remain
+"open questions" forever.
+
+**Revisit if:** a decision turns out to be wrong in
+implementation. Then update the D### entry in
+`world-building-risks.md` §2.
+
+### 18.11 Manifest backup: multi-tier
+
+**Considered:**
+- No backup (rely on Postgres replication only)
+- Single daily snapshot
+- Multi-tier (Postgres + S3 + cold storage)
+
+**Picked:** Multi-tier.
+
+**Why:** The recursive seed-state model means *every*
+locked seed derives from `world_seed` in the manifest. Lose
+the manifest = lose the world map, every shard's terrain,
+every player's house. This is the single biggest SPOF in
+the architecture. Multi-tier is the minimum acceptable
+insurance.
+
+**Revisit if:** the S3 tier proves unreliable or too
+expensive. Then add a fourth tier (e.g., IPFS pin) or
+collapse to two tiers (Postgres + local snapshot).
+
+### 18.12 The split: frame in `labs/`, game in `game/`
+
+**Considered:**
+- All in `game/` (single Godot project)
+- All in `labs/` (frame-first)
+- Frame in `labs/`, game in `game/` (split)
+
+**Picked:** Frame in `labs/multi-iso/`, game in `game/`.
+
+**Why:** The frame can extract to its own repo (per
+AGENTS.md). The labs convention is the explicit statement
+of that. Putting T3 + scope + rules in `labs/multi-iso/`
+makes the extraction path obvious. Putting the schemas +
+data + services in `game/` keeps the game-specific code in
+the Godot project.
+
+**Revisit if:** the frame and game need to share code that
+isn't a schema. Then either (a) move the shared code to
+`labs/multi-iso/` and import it from the game, or (b)
+introduce a `shared/` directory at the repo root.
+
+---
+
+## 19. The conversation behind this doc
+
+This doc was produced in a brainstorm session on
+2026-09-05. The conversation went through several
+reframes before settling on the architecture above:
+
+1. **Started from the validation list** (5 Tier-1 issues
+   from the previous session's QC of the seed-state
+   recursion spec). The first attempt at the new doc
+   was a "bridge" between the spec and the code.
+
+2. **The 4-tree reframe.** The user proposed "seed, state,
+   world, and rules" trees as a fixed set. The doc briefly
+   had a 4-tree table. The user caught the error: "world
+   tree" was a poorly chosen word. World is a scope, not a
+   tree. "World environment" is the container; inside it
+   are the world's seed tree, state tree, rules tree, etc.
+   The 4-tree frame became 2 canonical + N.
+
+3. **The 4 stack-direction options (A/B/C/D).** A long
+   discussion about how to resolve conflicts between
+   world, shard, and player overrides. Options A through D
+   were considered. The user said: "this is a question we
+   should decide with more discussion. It flips the whole
+   realms." The reframing: the A/B/C/D question dissolves
+   when rules are data. The rules engine handles the
+   choice per rule.
+
+4. **The "rules engine mitigator."** The user identified
+   that the existing 5 infrastructure services (QoS,
+   Security, SecurityMonitor, AppFirewall, AutoResponse)
+   each have their own decision logic. The rules engine
+   consolidates them. This is the new piece.
+
+5. **The vant connection.** The user pointed to vant's
+   `lib/geometry/` and `lib/brain.js` as relevant prior
+   art. Multibrain stack → scope engine. Icosahedral /
+   Penrose / fragmenter → spatial layer + shard
+   partitioning. Single class, schema-as-data → T3
+   substrate. Heavy adoption was picked.
+
+6. **The dual goal.** The user clarified: "The goal of
+   synmergia is to a) make a poc/mvp game, but also b)
+   offer a clear abstraction between totally flexible/
+   powerful frame and totally flexible/powerful schema and
+   data potentials for others making their own games." The
+   doc is the *frame*; the game is one instance.
+
+7. **The data dir naming.** The user said "Trees might not
+   be the best name, let's call them data/{something else}
+   instead." Options considered: sources, stores,
+   registries, scopes, roots. Picked: `data/roots/` (each
+   tree's data file is its root hash).
+
+8. **The push.** Final commit: `fc9e4e7` on main, with
+   the arch doc + cross-refs in the existing trio.
+
+This is a working document, not gospel. Future sessions
+should feel free to revisit any of the 12 design decisions
+in §18 if implementation proves them wrong. The doc is the
+*current* understanding; the code is the *eventual* truth.
+
+---
+
+## 20. Versioning (updated)
+
+This doc is part of the spec. Updates to the doc require a
+spec review (per AGENTS.md). Doc-state is tracked at the
+bottom of each related doc.
+
+Last updated: 2026-09-05
+Sections: 20
+Decisions referenced: D025-D033 (D029-D033 are new in this doc)
+Open questions: 7
+Design decisions recorded: 12 (in §18)
