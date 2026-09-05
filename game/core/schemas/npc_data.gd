@@ -1,20 +1,6 @@
 ## NPCData - NPC template definition
-## Base schema for NPC templates (vendors, quest givers, etc.)
 extends Resource
 class_name NPCData
-
-## NPC Types
-enum NPCType {
-	GENERIC,       # Generic NPC, no special behavior
-	VENDOR,        # Sells items
-	BLACKSMITH,    # Repairs equipment
-	QUEST_GIVER,   # Has quests
-	GUARD,         # Protective NPC
-	INNKEEPER,     # Rest/respawn point
-	MERCHANT,      # General merchant
-	SPECIALIST,    # Skill trainer, etc.
-	SKILL_ACADEMY # Skill book vendor + upgrades + respec
-}
 
 ## Location Type (affects pricing)
 enum LocationType {
@@ -30,30 +16,27 @@ enum LocationType {
 @export var description: String = ""
 
 # NPC Classification
-@export var npc_type: NPCType = NPCType.GENERIC
 @export var level: int = 1
 @export var faction: String = "friendly"
 
 # Visual
 @export var model_path: String = ""
 @export var icon_path: String = ""
-@export var scale: float = 1.0
 
 # Dialog
 @export var greeting: String = "Hello there."
 @export var farewell: String = "Take care."
-@export var shop_title: String = ""  # For vendors
 
 # Location-based behavior
 @export var location_type: LocationType = LocationType.TOWN
 
-# Vendor settings
-@export var buy_multiplier: float = 0.5    # What % of value we buy items for
-@export var sell_multiplier: float = 1.0    # What % of value we sell items for
-@export var buy_categories: Array[String] = []  # Item categories we buy
-@export var sell_categories: Array[String] = []  # Item categories we sell
+# Vendor settings (per-NPC price overrides)
+@export var buy_multiplier: float = 0.5
+@export var sell_multiplier: float = 1.0
+@export var buy_categories: Array[String] = []
+@export var sell_categories: Array[String] = []
 
-# Blacksmith settings (used if npc_type == BLACKSMITH)
+# Blacksmith settings
 @export var base_repair_cost_multiplier: float = 1.0
 @export var offers_bulk_discount: bool = true
 @export var bulk_discount_percent: float = 10.0
@@ -69,15 +52,11 @@ enum LocationType {
 # Combat settings
 @export var attack_power: int = 10
 @export var armor: int = 5
-@export var is_aggressive: bool = false  # Only guards should be aggressive
+@export var is_aggressive: bool = false
 
-# Skills/Services offered
-@export var skills: Array[String] = []  # Skill IDs this NPC can teach
-@export var services: Array[String] = []  # Service IDs (repair, respec, etc.)
-
-# Position in world (relative to spawn point)
+# Position in world (relative to zone bind point)
 @export var spawn_offset: Vector3 = Vector3.ZERO
-@export var spawn_rotation: float = 0.0  # Y rotation in degrees
+@export var spawn_rotation: float = 0.0
 
 ## Includes — what this NPC provides when the player interacts.
 ## Each entry: {type: String, ref_id: String}
