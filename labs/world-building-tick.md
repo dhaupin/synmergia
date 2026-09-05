@@ -1,14 +1,19 @@
 # World-Building Tick: a single tick, end-to-end
 
-> **Status:** Pre-commitment design discussion. The
-> plan commits to a 50ms tick; this doc explores what
-> actually happens inside one. Not yet folded back into
-> the plan — the open questions (Q1-Q3 below) need
-> resolution first.
+> **Status:** Design intent, with Q1-Q4 settled
+> 2026-09-05. The plan commits to a 50ms tick; this
+> doc explores what actually happens inside one
+> and adds the per-player flywheel for security.
+> Not yet folded back into the plan §9 — that's
+> a separate pass when plan §9 is updated. New
+> D-numbers in `world-building-risks.md` will
+> follow.
 >
-> **Scope:** The design space for a single server tick.
-> The 6 phases. The flywheel. The postmortem use case.
-> The "embed data when hot" idea.
+> **Scope:** The design space for a single server
+> tick. The 6 phases. The flywheel (shard-level
+> + per-player). The postmortem use case. The
+> "embed data when hot" idea. The anticheat
+> pipeline. The monitorability commitment.
 >
 > **Companion docs:**
 > - `world-building.md` §9 — the plan's tick model
@@ -19,6 +24,8 @@
 > - `m3-initial-world-audit.md` — current state
 >
 > **Date opened:** 2026-09-05
+> **Last updated:** 2026-09-05 (Q1-Q4 settled,
+> per-player flywheel added)
 
 ---
 
@@ -242,12 +249,16 @@ What counts as chaos:
 | **Cross-shard HLC event** | +50 | High impact, but rare |
 | **Wall-clock pulse** | +1 per tick | The heartbeat — keeps the flywheel alive even when idle |
 | **Generation pass** | +100 | The expensive one; on trigger only |
+| **NPC event** | configurable | Per-NPC, per-event weights (see §5.6) |
+| **Entity signal** | configurable | Per-entity, per-signal weights |
+| **Anything else observable** | configurable | See §5.6 — the monitorability commitment |
 
 The flywheel decays at a configurable rate
 (default: 0.5 per tick). High-entropy ticks accumulate
 faster than they decay; idle ticks decay to zero.
 
 ### 5.2 Three states
+
 
 | State | Where | When | What it means |
 |---|---|---|---|
@@ -315,6 +326,73 @@ Restore cost:
 
 Hot path: unchanged. The flywheel is purely in-memory
 until a trigger fires.
+
+### 5.6 The monitorability commitment
+
+The user named the deeper commitment: "make
+*everything monitorable* through the events system,
+signals, NPCs, entities, all as needed." The
+flywheel is the architectural reason this stops
+being a nice-to-have and starts being necessary.
+
+**The principle:** every signal in the system can
+register as a chaos source. The flywheel doesn't
+care *where* chaos comes from; it just accumulates.
+The events system, signals, NPCs, entities all
+become flywheel-feedable. Per-source weight is
+configurable.
+
+**What it means concretely:**
+
+- `EventBus` already centralizes events. Every
+  signal that flows through `EventBus` can
+  register a chaos callback.
+- Godot signals are first-class. Any `signal foo`
+  can have a chaos observer attached.
+- NPCs and entities are themselves event sources.
+  An NPC's "decide to attack" event can feed the
+  flywheel.
+- New services / systems can register their chaos
+  contributions at boot.
+
+**The cost:**
+
+- Per-event: one increment, one compare-against-
+  threshold. O(1).
+- Per-trigger: the existing snapshot mechanism.
+- Memory: per-source weight is one int; per-event
+  observer is a small callback. Trivial.
+
+**The benefit:**
+
+- The flywheel becomes the **single load-profiling
+  abstraction** for the entire game. Not "we have
+  a flywheel for the tick and a separate profiler
+  for NPC AI and another for chat spam." One
+  flywheel, many sub-meters, one snapshot.
+- The "we forgot to monitor X" failure mode
+  disappears. X either emits a signal (and feeds
+  the flywheel) or it doesn't (and is invisible
+  to everything). The signals/events layer is
+  the contract.
+- Postmortem reads the snapshot and sees *which*
+  sub-system was hot, not just "the shard was
+  hot." This is the load-driven vs bug-driven
+  distinction from §6, generalized.
+
+**The principle restated:** observability becomes
+load-bearing. Without the flywheel, "make
+everything monitorable" is an observability virtue
+(a nice-to-have). With the flywheel, it's a
+load-profiling necessity (a must-have). The
+flywheel justifies the observability investment.
+
+**Cross-refs:** the existing `EventBus` autoload
+(see `game/core/autoload/event_bus.gd`) is the
+natural registration point. New services emit
+signals there; chaos observers attach. The pattern
+is additive — existing services don't change,
+they just become observable.
 
 ---
 
@@ -485,89 +563,371 @@ page on the signal that matters.
 
 ---
 
-## 8. The open questions
+## 8. The settled design
 
-Three design choices haven't been resolved yet. The
-plan has 50ms fixed (N001); this doc has the
-six-phase structure above; but the operational
-details of the tick are still up for grabs.
+Three design choices resolved 2026-09-05. Each
+gets the question, the answer, and the reasoning.
 
 ### Q1 — Overrun handling
 
-When a tick overruns 50ms (e.g., phase 2 needs
-60ms because of a combat spike), what do we do?
+**Question:** when a tick overruns 50ms (phase 2
+needs 60ms because of a combat spike), what do
+we do?
 
-Three options:
+**Answer:** defer to side queue **with the
+flywheel as the awareness layer**.
 
-- **(a) Drop the next tick.** Skip. The world
-  slows by 50ms. Players see a brief "lag" but no
-  desync. Simple. Hides the problem.
-- **(b) Extend the tick.** Let it run to completion.
-  The world advances correctly but the player sees
-  100ms between updates. Bad for action combat.
-- **(c) Defer to side queue.** Cap phase 2 at 25ms
-  hard; overflow inputs go to a side queue. Bounded
-  latency, but the queue grows. Eventually you
-  need to either overflow (drop inputs) or
-  load-shed (kick players).
+The side queue is itself a flywheel — overflow
+inputs feed a queue-flywheel that decays as
+work is processed. When the queue-flywheel
+exceeds its threshold, the system knows it's
+overrun, and the sub-meters + top-N contributors
+tell it *why* and *who*:
 
-My instinct is **(c) with explicit overflow
-handling**. The side queue is itself a flywheel.
-If the side queue overflows, throttle clients (R002
-trigger).
+- **Who is the contributor?** Top-N chaos
+  contributors (§7) identify the player, mob
+  spawn, or input type driving the load.
+- **What subsystem is hot?** Sub-meters (§7)
+  identify the system (movement, combat, AI,
+  cross-shard).
+- **Where to slim resources?** The system with
+  the highest sub-meter is throttled first
+  (e.g., reduce NPC AI rate, drop cosmetic
+  effects, lower LOD aggression).
+- **Is an exploiter involved?** Per-player
+  flywheel (§9) flags suspicious players;
+  inputs from flagged players get deprioritized.
+- **Race conditions?** The flywheel sub-meters
+  show "cross-shard HLC storm" or "input flood"
+  patterns that indicate contention.
+- **Health?** The flywheel momentum is a
+  leading indicator of system stress; when
+  above 80%, the operator dashboard surfaces it.
+
+The side queue is the *defer* policy. The
+flywheel is the *response* policy. The two
+together are the answer to Q1.
+
+The side queue overflows → throttle clients
+(R002 trigger). The side queue overflows
+persistently → load-shed (kick players, raise
+cooldowns, etc.).
 
 ### Q2 — Heartbeat floor
 
-The vant pattern has no floor. We need one. Three
-options:
+**Question:** what's the heartbeat floor?
 
-- **50ms fixed** (N001 as planned) — comfortable
-  for action combat. ~3% CPU for tick overhead.
-- **Adaptive: 100ms idle / 50ms under load / 33ms
-  in combat.** The flywheel drives the transition.
-- **Always 100ms** — half the cost. Slow for
-  combat, fine for everything else.
+**Answer:** adaptive. The flywheel drives the
+interval.
 
-I lean **adaptive**. The N001 measurement would
-become "p99 tick interval" instead of "tick
-interval." Worth recording as a D-number if we
-adopt this.
+- Above some threshold (e.g., 80% of max):
+  50ms heartbeat.
+- Below threshold, low traffic: 100ms heartbeat.
+- Idle (no players in AOI): 200ms heartbeat.
+
+The vant pattern is adaptive by design; we're
+keeping that and adding a floor (so day/night
+keeps ticking when nothing else is).
+
+The N001 measurement becomes "p99 tick interval"
+not "tick interval." This is a change from the
+plan's 50ms-fixed commitment; recorded as a
+D-number candidate (provisional until the
+plan §9 update).
 
 ### Q3 — Chaos sources
 
-What feeds the flywheel? My current draft (§5.1):
+**Question:** what feeds the flywheel?
 
-- Player inputs (primary)
-- Mob AI (secondary)
-- Cross-shard HLC events (rare, high-impact)
-- Wall-clock pulse (the heartbeat driver)
-- Generation passes (on trigger)
+**Answer:** everything observable.
 
-The question is whether wall-clock pulse is a
-"chaos source" or whether it's separate. My
-instinct is **separate** — the wall-clock pulse
-is what *keeps* the flywheel alive, not what
-*charges* it. The flywheel is then a measure of
-*work*, not *time passed*.
+Specifically:
 
-### What's NOT a question
+- All my originally-listed sources (player
+  inputs, mob AI, cross-shard, wall-clock,
+  generation) are valid.
+- The wall-clock pulse is *both* a chaos
+  source (consistent poke, +1 per tick) and
+  the heartbeat driver. Same mechanism serves
+  both purposes.
+- **Plus:** any signal in the events system
+  can register as a chaos source. NPCs,
+  entities, services — any emitter can
+  declare a chaos weight.
 
-- **Per-shard vs per-player vs global** — one
-  flywheel per shard. Per-player is too
-  fine-grained; global is wrong (shards have
-  independent load).
-- **What counts as "hot"** — 80% of max momentum.
-  Configurable. The right value is empirical;
-  tune in Phase 2.
-- **What gets persisted** — Redis key
-  `flywheel:<shard_id>` with TTL 1 hour. Also
-  append to flywheel history log.
+This is the **monitorability commitment**
+formalized in §5.6: every signal is a chaos
+source, every chaos source feeds the flywheel,
+the flywheel is the single load-profiling
+abstraction.
 
-These are settled.
+The wall-clock pulse is a chaos source. The
+flywheel measures *both* time passed *and*
+work done. They're the same thing, not
+different things.
+
+### Q4 — Per-shard vs per-player (now both)
+
+**Question:** one flywheel per shard, or
+per-player, or global?
+
+**Answer:** per-shard AND per-player.
+
+The original draft said "per-shard only."
+That's still right for *shard-level* load
+profiling. But the user surfaced a use case
+that per-player is needed for: security /
+anticheat.
+
+Per-player flywheel is a separate abstraction
+with its own sub-meters, thresholds, and
+snapshot triggers. It inverts the security
+model: instead of scanning every player for
+anomalies, each player's flywheel IS the
+anomaly detector. The per-player flywheel
+is its own section. See §9.
 
 ---
 
-## 9. Cross-doc index
+## 9. Per-player flywheel: security and anticheat
+
+The shard-level flywheel (§5) measures *shard*
+load. But the user surfaced a use case where
+per-player is the right scope: security.
+
+The per-player flywheel is the **anomaly
+detector**. Instead of the security team
+scanning every player for cheating signals,
+each player's flywheel is the scan. The
+player audits themselves.
+
+### 9.1 The inversion: self-auditing vs central scanning
+
+**Old model:** Security scans every player
+every tick (or samples, or batches). Either
+way, the security layer is doing O(N) work
+per tick where N is the player count, and
+it's looking for the needle (the cheater) in
+the haystack (every player).
+
+**New model:** Each player has their own
+flywheel. The flywheel is O(1) per tick to
+update. When the flywheel is hot, the player
+*is* the suspect. Security investigates
+only the hot players.
+
+This inverts the cost: instead of O(N×M)
+work per tick (scan everyone for M anomaly
+types), it's O(N) per tick (update every
+player's flywheel) plus O(K) per trigger
+where K is the small number of hot players.
+
+### 9.2 What it tracks
+
+Each player has a flywheel with sub-meters
+per system:
+
+| Sub-meter | What it counts | Threshold for "hot" |
+|---|---|---|
+| **Movement** | Distance per tick, speed, teleport count, fast-travel uses | >1.5x normal speed for >2s |
+| **Combat — hits** | Successful hits per tick, crit rate, hit timing | <100ms hit intervals sustained |
+| **Combat — cooldowns** | Skill uses per tick, gap between uses, downtime | Skill used before cooldown ends |
+| **Chat** | Messages per minute, channel-switches, social calls | >60 msg/min or rapid channel-switching |
+| **Trade** | Trade opens per minute, items per trade, gold moved | >10 trades/min or anomalous gold flow |
+| **Loot** | Loot rolls per minute, rare-drop rate, drop-distance | Drop rate >3x expected |
+| **Instance / fast-travel** | Enters per minute, fast-travel uses | >5 enters/min |
+
+Each sub-meter has its own threshold and
+decay rate. The combined momentum is the
+weighted sum.
+
+### 9.3 Thresholds
+
+Per sub-meter, two thresholds:
+
+- **Warn:** crossed → log the event, no
+  action. Lets us see what's normal before
+  we alert.
+- **Trigger:** crossed → snapshot, notify
+  AutoResponseService.
+
+Defaults (configurable, calibrated in
+Phase 2):
+
+- Movement warn: 1.2x normal, trigger: 1.5x.
+- Hit timing warn: <200ms, trigger: <100ms.
+- Cooldown warn: <cooldown × 0.9, trigger:
+  <cooldown × 0.5.
+- Chat warn: 30 msg/min, trigger: 60 msg/min.
+- Trade warn: 5 trades/min, trigger: 10 trades/min.
+
+The right values are empirical; tune in
+Phase 2 with real player data.
+
+### 9.4 What gets snapshotted
+
+When a sub-meter crosses its trigger
+threshold, a snapshot of the player's
+recent activity is taken:
+
+```json
+{
+  "player_id": "p_8821",
+  "shard_id": "shard_001",
+  "tick": 1928374,
+  "timestamp_ms": 1725532800000,
+  "trigger_submeter": "movement",
+  "trigger_value": 1.7,
+  "recent_movement": [
+    {"tick": 1928360, "x": 100.0, "y": 200.0, "speed": 0.5},
+    {"tick": 1928361, "x": 100.7, "y": 200.0, "speed": 14.0},
+    ...
+  ],
+  "recent_combat": [...],
+  "recent_trades": [...],
+  "session_minutes": 23,
+  "previous_snapshots_in_session": 2
+}
+```
+
+The snapshot goes to `suspicious:<player_id>`
+in Redis (TTL 1 hour). The snapshot IS the
+evidence — for AutoResponse, for
+postmortem, for player support, for cheat
+reports.
+
+### 9.5 The anticheat pipeline
+
+The per-player flywheel is the **input
+signal** for the existing security services.
+The pipeline:
+
+1. **Per-tick:** every player's flywheel
+   sub-meters increment based on their
+   activity. O(1) per player.
+2. **Per-trigger:** when a sub-meter
+   crosses threshold, the snapshot fires
+   (§9.4) and goes to `suspicious:<player_id>`.
+3. **AutoResponse listens:** the existing
+   `AutoResponseService` (see
+   `game/core/services/auto_response_service.gd`)
+   subscribes to the suspicious key. It
+   decides what action to take:
+   - First offense: warn
+   - Repeated: mute
+   - Severe: restrict
+   - Critical: kick or ban
+4. **AppFirewall / SecurityService** also
+   listen. They bring their own context
+   (rate limits, exploit signatures).
+5. **Evidence preserved:** the snapshot is
+   the audit trail. Players can appeal;
+   appeals review the snapshot.
+
+This is data-driven security. The
+AutoResponse service doesn't have to scan
+anyone; it reacts to flywheel triggers.
+
+### 9.6 What this maps to in existing code
+
+The codebase already has:
+
+- `SecurityService` — anti-cheat, rate
+  limiting
+- `AutoResponseService` — admin alerts,
+  moderation (with `action_taken` /
+  `player_warned` signals)
+- `AppFirewall` — request throttling,
+  ban management
+
+The per-player flywheel is the input signal
+for all three. The existing services
+already have the response side; this adds
+the trigger side.
+
+The pattern is additive:
+
+- New service: `PlayerFlywheelService`
+  (autoload) — manages per-player flywheels.
+- `PlayerFlywheelService` exposes
+  `flywheel_hot(player_id) -> bool` and
+  emits `player_suspicious(player_id, snapshot)`.
+- `AutoResponseService` connects to
+  `player_suspicious` and decides action.
+- `SecurityService` reads
+  `suspicious:<player_id>` for evidence.
+- `AppFirewall` rate-limits players whose
+  flywheel is hot.
+
+### 9.7 Cost
+
+**Memory:** 5,000 players × ~200 bytes per
+flywheel = 1MB. Trivial.
+
+**Per-tick:** 5,000 × O(1) increment =
+~50K ops/sec at 20Hz, ~100K ops/sec at 50Hz.
+Trivial.
+
+**Per-trigger:** one snapshot to Redis.
+~200 bytes. Triggered only on the small
+fraction of hot players. Trivial.
+
+**Hot path:** unchanged. The flywheel
+update is O(1) per player; the threshold
+check is O(1) per player; the snapshot is
+fired only on threshold crossing.
+
+### 9.8 Tradeoffs and limits
+
+**False positives:** the flywheel doesn't
+know what's cheating; it knows load is high.
+A genuinely fast player (high movement sub-
+meter) might trigger the threshold without
+cheating. Calibrate thresholds with real
+data. Have an appeal process.
+
+**Careful cheaters:** a cheater who is
+careful and matches expected load can evade
+the flywheel. This is true of any anomaly
+detector. The flywheel catches the *loud*
+cheaters; the *quiet* ones still need other
+detection. The flywheel is one signal among
+many, not a silver bullet.
+
+**Privacy:** the per-player flywheel is
+*behavioral* data, not content. We track
+"player moved fast" not "player said X."
+This is consistent with the existing
+moderation model. The snapshot doesn't
+include chat content.
+
+**Cost vs savings:** the cost is O(N) per
+tick, which is trivial. The savings is
+"security doesn't have to scan." For a
+5,000-player shard, that's the difference
+between O(5000×M) work and O(5000+M) work
+per tick. Real.
+
+### 9.9 The principle: detect by instrumentation
+
+This is the same pattern as shard-level
+load profiling, applied to player
+behavior. The flywheel IS the detector.
+The player IS the audit. The cost is
+O(1) per tick. The savings is "don't scan
+everyone."
+
+The pattern generalizes: any time you have
+"find the bad actors in a population,"
+build them a per-entity flywheel and let
+the flywheel do the detecting. The same
+abstraction (flywheel + sub-meters +
+thresholds + snapshot) works for shard
+load, player behavior, NPC AI, etc.
+
+---
+
+## 10. Cross-doc index
 
 | Looking for | Where |
 |---|---|
@@ -580,22 +940,33 @@ These are settled.
 | State tree | `world-building.md` §5 |
 | Cross-shard HLC | `world-building.md` §16.5 |
 | LOD prediction | `world-building.md` §14 |
+| Monitorability commitment | this doc §5.6 |
+| Per-player flywheel | this doc §9 |
+| Per-shard flywheel | this doc §5 |
 
 ---
 
 ## Document state
 
-- Sections: 9 (this is a focused discussion, not a
-  sweep).
-- Length: ~700 lines.
-- Status: pre-commitment design discussion.
-- Open: Q1, Q2, Q3.
-- Settled: flywheel three-state model, postmortem use
-  case, embedded-data design, chaos source shape,
-  per-shard scope.
-- Next: resolve Q1-Q3 in the next discussion, then
-  fold the result back into the plan as a D-number
-  and an updated §9.
+- Sections: 10 (5 new since the first version:
+  §5.6 monitorability commitment, §8 settled
+  design, §9 per-player flywheel, plus renumbering).
+- Length: ~950 lines.
+- Status: design intent (Q1-Q4 settled 2026-09-05;
+  awaiting commitment to plan §9 + risks doc
+  D-numbers).
+- Settled: Q1 (defer + flywheel awareness), Q2
+  (adaptive heartbeat), Q3 (everything monitorable),
+  Q4 (per-shard AND per-player).
+- New: per-player flywheel as anticheat / security
+  instrumentation. Maps to existing
+  SecurityService / AutoResponseService / AppFirewall.
+- Next: when plan §9 is updated, fold the
+  settled-design content into the plan; add
+  D-numbers to `world-building-risks.md` for
+  the adaptive heartbeat, the defer-with-
+  flywheel policy, and the monitorability
+  commitment.
 
 ---
 
@@ -603,14 +974,15 @@ These are settled.
 
 If you have 5 minutes: read §1, §4, §5.2, and §8.
 You know the question, the structure, the
-flywheel, and what's open.
+flywheel, and what's settled.
 
 If you have 30 minutes: add §3 (vant pattern),
-§5.3-5.4 (triggers), §6 (postmortem), §7.1 (the
-embedded-data idea).
+§5.6 (monitorability), §6 (postmortem story),
+§7.1 (embedded data), §9.1 (the inversion).
 
 If you have 2 hours: read the whole doc. The
 6-phase tick, the flywheel triggers, the
-forensic record, and the open questions. The
-postmortem story in §6 is the killer use case
-worth dwelling on.
+forensic record, the per-player inversion.
+The postmortem story in §6 and the
+self-auditing anticheat in §9 are the
+killer use cases worth dwelling on.
