@@ -21,6 +21,9 @@ var _guild_panel: Control
 var _party_panel: Control
 var _friends_panel: Control
 var _quest_panel: Control
+var _bank_panel: Control
+var _blacksmith_panel: Control
+var _skill_academy_panel: Control
 
 ## State
 var _is_hud_visible: bool = true
@@ -113,11 +116,30 @@ func _initialize_panels() -> void:
 
 	_friends_panel = preload("res://ui/social/friends_list.gd").new()
 
-	# Quest panel
+	        # Quest panel
 	_quest_panel = preload("res://ui/components/quest_ui.gd").new()
 	_quest_panel.name = "QuestUI"
 	_quest_panel.z_index = 500
 	add_child(_quest_panel)
+
+	# Bank/Vault panel
+	_bank_panel = preload("res://ui/components/bank_ui.gd").new()
+	_bank_panel.name = "BankUI"
+	_bank_panel.z_index = 500
+	add_child(_bank_panel)
+
+	# Blacksmith panel
+	_blacksmith_panel = preload("res://ui/components/blacksmith_ui.gd").new()
+	_blacksmith_panel.name = "BlacksmithUI"
+	_blacksmith_panel.z_index = 500
+	add_child(_blacksmith_panel)
+
+	# Skill Academy panel
+	_skill_academy_panel = preload("res://ui/components/skill_academy_ui.gd").new()
+	_skill_academy_panel.name = "SkillAcademyUI"
+	_skill_academy_panel.z_index = 500
+	add_child(_skill_academy_panel)
+
 	_friends_panel.name = "FriendsUI"
 	_friends_panel.z_index = 500
 	add_child(_friends_panel)
@@ -129,6 +151,9 @@ func _initialize_panels() -> void:
 	_party_panel.panel_closed.connect(_on_panel_closed.bind("party"))
 	_friends_panel.panel_closed.connect(_on_panel_closed.bind("friends"))
 	_quest_panel.panel_closed.connect(_on_panel_closed.bind("quests"))
+	_bank_panel.panel_closed.connect(_on_panel_closed.bind("bank"))
+	_blacksmith_panel.panel_closed.connect(_on_panel_closed.bind("blacksmith"))
+	_skill_academy_panel.panel_closed.connect(_on_panel_closed.bind("skill_academy"))
 
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):
@@ -287,6 +312,20 @@ static func close_menu(menu_name: String) -> void:
 	if instance:
 		instance._close_menu_internal(menu_name)
 
+static func get_open_panels() -> Array:
+	if instance:
+		return instance._open_panels.duplicate()
+	return []
+
+static func get_panel_node(panel_name: String) -> Control:
+	if instance:
+		return instance._get_panel_by_name(panel_name)
+	return null
+
+static func close_top_menu() -> void:
+	if instance:
+		instance._close_top_menu_internal()
+
 static func close_all_menus() -> void:
 	if instance:
 		instance._close_all_menus_internal()
@@ -354,6 +393,14 @@ func _open_panel(menu_name: String, panel: Control) -> void:
 	panel.visible = true
 	menu_toggled.emit(menu_name, true)
 
+func _close_top_menu_internal() -> void:
+	if _open_panels.is_empty():
+		return
+	var top: String = _open_panels[-1]
+	var panel: Control = _get_panel_by_name(top)
+	if panel:
+		_close_panel(top, panel)
+
 func _close_all_menus_internal() -> void:
 	for panel_name in _open_panels:
 		var panel := _get_panel(panel_name)
@@ -372,6 +419,9 @@ func _get_panel(menu_name: String) -> Control:
 		"friends": return _friends_panel
 		"chat": return _chat_panel
 		"quests": return _quest_panel
+		"bank": return _bank_panel
+		"blacksmith": return _blacksmith_panel
+		"skill_academy": return _skill_academy_panel
 	return null
 
 func _set_hud_visible_internal(visible: bool) -> void:
