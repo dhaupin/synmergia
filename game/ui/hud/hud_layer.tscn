@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://ui/components/tooltip_manager.gd" id="17_tooltip"]
 [ext_resource type="Script" path="res://ui/components/action_menu.gd" id="18_action"]
 [ext_resource type="Script" path="res://ui/social/achievement_ui.gd" id="19_achievement"]
+[ext_resource type="Script" path="res://ui/social/shop_ui.gd" id="20_shop"]
 
 [node name="HudLayer" type="CanvasLayer"]
 layer = 10
@@ -192,3 +193,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("19_achievement")
+
+[node name="ShopUI" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("20_shop")
