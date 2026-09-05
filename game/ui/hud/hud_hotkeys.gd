@@ -84,6 +84,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_O:
 			_toggle_settings()
 			get_viewport().set_input_as_handled()
+		KEY_J:
+			_toggle_panel("quests")
+			get_viewport().set_input_as_handled()
+		KEY_N:
+			_toggle_panel("faction")
+			get_viewport().set_input_as_handled()
+		KEY_Y:
+			_toggle_panel("achievement")
+			get_viewport().set_input_as_handled()
 		KEY_TAB:
 			_handle_tab_cycling(k.shift_pressed)
 			get_viewport().set_input_as_handled()
