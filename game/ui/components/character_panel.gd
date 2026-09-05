@@ -369,7 +369,115 @@ func _show_equipped_item_menu(item: Item, slot_id: int) -> void:
 	dialog.popup_centered(Vector2(250, 150))
 
 func _show_empty_slot_menu(slot_id: int) -> void:
-	show_notification("Empty slot - browse the auction house to equip items")
+	_show_equip_item_picker(slot_id)
+
+func _show_equip_item_picker(slot_id: int) -> void:
+	if not InventoryService:
+		show_notification("InventoryService unavailable", false)
+		return
+
+	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	if player_id.is_empty():
+		return
+
+	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	if inv == null:
+		show_notification("Could not load inventory", false)
+		return
+
+	# Get slot name for display
+	var slot_name := _get_slot_name(slot_id)
+
+	# Find items that can be equipped in this slot
+	var equippable: Array[Item] = []
+	for slot in inv._items:
+		var item: Item = inv._items[slot]
+		if item and item.equip_slot == slot_id and item.can_equip():
+			equippable.append(item)
+
+	if equippable.is_empty():
+		show_notification("No equippable items for %s slot" % slot_name)
+		return
+
+	# Create selection dialog
+	var dialog := AcceptDialog.new()
+	dialog.title = "Equip Item - %s" % slot_name
+	dialog.ok_button_text = "Close"
+	add_child(dialog)
+
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size = Vector2(300, 250)
+	dialog.add_child(vbox)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = 200
+	vbox.add_child(scroll)
+
+	var item_list := VBoxContainer.new()
+	item_list.name = "ItemList"
+	scroll.add_child(item_list)
+
+	for item: Item in equippable:
+		var row := HBoxContainer.new()
+		row.custom_minimum_size.y = 40
+
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(32, 32)
+		if item.icon_path != "":
+			var tex := load(item.icon_path) as Texture2D
+			if tex:
+				icon.texture = tex
+		row.add_child(icon)
+
+		var name_lbl := Label.new()
+		name_lbl.text = item.name if item.name else "Unknown Item"
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+
+		var equip_btn := Button.new()
+		equip_btn.text = "Equip"
+		equip_btn.pressed.connect(func() -> void:
+			_equip_item_from_picker(inv, item, slot_id)
+			dialog.queue_free()
+		)
+		row.add_child(equip_btn)
+
+		item_list.add_child(row)
+
+	dialog.popup_centered(Vector2(350, 300))
+
+func _get_slot_name(slot_id: int) -> String:
+	match slot_id:
+		0: return "Head"
+		1: return "Chest"
+		2: return "Hands"
+		3: return "Legs"
+		4: return "Feet"
+		5: return "Main Hand"
+		6: return "Off Hand"
+		7: return "Ring"
+		8: return "Amulet"
+		9: return "Cape"
+	return "Unknown"
+
+func _equip_item_from_picker(inv: InventoryComponent, item: Item, slot_id: int) -> void:
+	# Find the inventory slot containing this item
+	var inv_slot: int = -1
+	for slot in inv._items:
+		if inv._items[slot] == item:
+			inv_slot = slot
+			break
+
+	if inv_slot < 0:
+		show_notification("Could not find item in inventory", false)
+		return
+
+	# Equip the item
+	if inv.equip_item(inv_slot):
+		show_notification("Equipped %s" % item.name, false)
+		_refresh_equipment()
+	else:
+		show_notification("Failed to equip item", false)
 
 func _unequip_item(slot_id: int) -> void:
 	if not InventoryService:
