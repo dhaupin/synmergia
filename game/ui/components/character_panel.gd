@@ -337,12 +337,14 @@ func _setup_stats_tab() -> void:
 	vbox.add_child(char_header)
 
 	var char_name := Label.new()
-	char_name.text = "Level 1 Character"
+	    char_name.name = "CharName"
+    char_name.text = "Level 1 Character"
 	char_name.add_theme_font_size_override("font_size", 16)
 	char_header.add_child(char_name)
 
 	# Stats grid (2 columns)
 	var stats_grid := GridContainer.new()
+		stats_grid.name = "GridContainer"
 	stats_grid.columns = 2
 	stats_grid.custom_minimum_size.y = 250
 	vbox.add_child(stats_grid)
@@ -358,6 +360,7 @@ func _setup_stats_tab() -> void:
 
 	for stat in stats:
 		var stat_card := _create_stat_card(stat)
+				stat_card.name = "Stat_" + stat.key
 		stats_grid.add_child(stat_card)
 
 	# Derived stats
@@ -367,12 +370,12 @@ func _setup_stats_tab() -> void:
 	vbox.add_child(derived_label)
 
 	var derived := [
-		{"name": "Max Health", "value": "100"},
-		{"name": "Max Mana", "value": "50"},
-		{"name": "Physical Attack", "value": "10"},
-		{"name": "Magic Attack", "value": "10"},
-		{"name": "Physical Defense", "value": "5"},
-		{"name": "Magic Defense", "value": "5"}
+		{"name": "Max Health", "key": "max_health", "value": "--"},
+		{"name": "Max Mana", "key": "max_mana", "value": "--"},
+		{"name": "Physical Attack", "key": "p_attack", "value": "--"},
+		{"name": "Magic Attack", "key": "m_attack", "value": "--"},
+		{"name": "Physical Defense", "key": "p_defense", "value": "--"},
+		{"name": "Magic Defense", "key": "m_defense", "value": "--"}
 	]
 
 	for stat in derived:
@@ -491,15 +494,132 @@ func _create_skill_slot(index: int, category: String) -> PanelContainer:
 ## ============================================================================
 
 func refresh_inventory() -> void:
-	# TODO: Fetch from InventoryService
-	pass
+	if _char_data == null:
+		return
+	# Equipment slots will be populated from InventoryService
+	# For now, just refresh the grid if it exists
+	_refresh_equipment_display()
 
 func refresh_stats() -> void:
-	# TODO: Fetch from character data
-	pass
+	if _char_data == null:
+		return
+	_refresh_stats_display()
 
 func refresh_skills() -> void:
-	# TODO: Fetch from skills system
+	if _char_data == null:
+		return
+	_refresh_skills_display()
+
+func _refresh_stats_display() -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.STATS)
+	if not container:
+		return
+	
+	# Find the main VBoxContainer
+	var vbox: VBoxContainer = null
+	for child in container.get_children():
+		if child is VBoxContainer:
+			vbox = child
+			break
+	if not vbox:
+		return
+	
+	# Update character name/level header
+	var char_header: HBoxContainer = null
+	for child in vbox.get_children():
+		if child is HBoxContainer and child.has_node("CharName"):
+			char_header = child
+			break
+	if char_header:
+		var name_lbl: Label = char_header.get_node("CharName")
+		var species_name := _char_data.species_id.capitalize()
+		var class_name := _char_data.class_id.capitalize()
+		name_lbl.text = "%s %s - Level %d" % [species_name, class_name, _char_data.level]
+	
+	# Get stats from character
+	var stats: Dictionary = _char_data.get_stats()
+	var allocated: Dictionary = _char_data.allocated_stats
+	
+	# Update stat cards (str, int, wis, agi, vit, end)
+	var stat_keys := ["strength", "intelligence", "wisdom", "agility", "vitality", "endurance"]
+	var display_keys := ["str", "int", "wis", "agi", "vit", "end"]
+	
+	for i in range(stat_keys.size()):
+		var stat_key := stat_keys[i]
+		var disp_key := display_keys[i]
+		var stat_card: PanelContainer = vbox.get_node_or_null("GridContainer/Stat_" + disp_key)
+		if stat_card:
+			var val_lbl: Label = stat_card.get_node_or_null("VBox/Value")
+			if val_lbl:
+				var base: int = stats.get(stat_key, 10)
+				var bonus: int = allocated.get(stat_key, 0)
+				var total: int = base + bonus
+				var display := str(total)
+				if bonus > 0:
+					display = "%d (+%d)" % [total, bonus]
+				elif base != total:
+					display = "%d (%d)" % [total, base]
+				val_lbl.text = display
+	
+	# Update derived stats (these would come from a combat stats calculation)
+	# For now, calculate simple estimates based on stats
+	var vit_stat := float(stats.get("vitality", 10) + allocated.get("vitality", 0))
+	var end_stat := float(stats.get("endurance", 10) + allocated.get("endurance", 0))
+	var str_stat := float(stats.get("strength", 10) + allocated.get("strength", 0))
+	var int_stat := float(stats.get("intelligence", 10) + allocated.get("intelligence", 0))
+	
+	var max_health := int(100 + vit_stat * 10)
+	var max_mana := int(50 + int_stat * 5)
+	var p_attack := int(10 + str_stat * 2)
+	var m_attack := int(10 + int_stat * 2)
+	var p_defense := int(5 + end_stat * 1.5)
+	var m_defense := int(5 + int_stat * 1.5)
+	
+	# Update derived stat rows
+	var derived_keys := {
+		"max_health": max_health,
+		"max_mana": max_mana,
+		"p_attack": p_attack,
+		"m_attack": m_attack,
+		"p_defense": p_defense,
+		"m_defense": m_defense
+	}
+	
+	for child in vbox.get_children():
+		if child is HBoxContainer and child.name.begins_with("Derived_"):
+			var key := child.name.replace("Derived_", "")
+			if derived_keys.has(key):
+				var val_lbl: Label = child.get_node_or_null("Value")
+				if val_lbl:
+					val_lbl.text = str(derived_keys[key])
+
+func _refresh_skills_display() -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.SKILLS)
+	if not container:
+		return
+	
+	var vbox: VBoxContainer = null
+	for child in container.get_children():
+		if child is VBoxContainer:
+			vbox = child
+			break
+	if not vbox:
+		return
+	
+	# Update skill points label
+	var points_lbl: Label = vbox.get_node_or_null("SkillPoints")
+	if points_lbl:
+		var available := _char_data.get_available_skill_points()
+		var spent := _char_data.get_total_upgrade_levels()
+		points_lbl.text = "Skill Points: %d / %d spent" % [available - spent, spent]
+	
+	# Update skill slots based on skill_upgrades
+	# This would require mapping skill IDs to the skill slots
+	# For now, the UI just shows the points count
+
+func _refresh_equipment_display() -> void:
+	# This would be called when inventory changes
+	# The actual implementation would query InventoryService for equipped items
 	pass
 
 func set_character_data(data: CharacterData) -> void:
