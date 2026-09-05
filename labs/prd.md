@@ -34,17 +34,35 @@
 
 ## Architecture documentation
 
-This PRD is the product spec. The architecture is in
-[`docs/architecture/`](../docs/architecture/) (in the
-`game/` subdirectory because it ships with the game):
+This PRD is the product spec. The technical architecture is in
+`/labs/` (source of truth):
 
-- [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md) — the multi-iso orchestrator (Part 1)
-- [`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md) — LOD + materialized + prediction (Part 2)
-- [`labs-organization.md`](../docs/architecture/labs-organization.md) — the `/labs/` convention
-- [`nsc9-honest-evaluation.md`](../docs/architecture/nsc9-honest-evaluation.md) — why the geometry is a layer, not a replacement
-- [`NEXT-AGENT-PICKUP.md`](../docs/architecture/NEXT-AGENT-PICKUP.md) — survival guide
+**World-building docs** (world + network + persistence design):
+- [`world-building.md`](./world-building.md) — full stack design
+- [`world-building-arch.md`](./world-building-arch.md) — systems architecture
+- [`world-building-tick.md`](./world-building-tick.md) — server tick model
+- [`world-building-risks.md`](./world-building-risks.md) — risks and mitigations
+- [`world-building-research.md`](./world-building-research.md) — experimental angles
 
-Section 10 of this PRD links to these for the technical details.
+**PRD specs** (Phase 1 deliverables):
+- [`prd.md`](./prd.md) — this document
+- [`prd-t3-substrate.md`](./prd-t3-substrate.md) — T3 state tree spec
+- [`prd-seed-schema.md`](./prd-seed-schema.md) — seed schema
+- [`prd-state-schema.md`](./prd-state-schema.md) — state schema
+- [`prd-scope-engine.md`](./prd-scope-engine.md) — scope engine
+- [`prd-login-seed-chain.md`](./prd-login-seed-chain.md) — login + seed chain
+- [`prd-frame-authority.md`](./prd-frame-authority.md) — server authority
+- [`prd-critical-params.md`](./prd-critical-params.md) — critical params
+- [`prd-open-seed-ttl.md`](./prd-open-seed-ttl.md) — seed TTL
+- [`prd-manifest-backup.md`](./prd-manifest-backup.md) — manifest backup
+
+**Experimental** (in `/labs/`, kept for reference):
+- [`multi-iso/`](./multi-iso/) — multi-iso frame prototype
+- [`polyglot-ffi/`](./polyglot-ffi/) — FFI exploration
+- [`jolt-playground/`](./jolt-playground/) — Jolt physics experiments
+
+**Archived** (outdated, in `/labs/archive/`):
+- `/labs/archive/docs/architecture/` — previous architecture docs (may be stale)
 
 ---
 
@@ -82,7 +100,7 @@ Craft gear → Build houses → Participate in PvP → Repeat
   **Track B** develops the frame (math primitives,
   multi-iso orchestrator, materialized intersection, LOD,
   prediction). See the [Frame appendix](#frame-appendix) and
-  [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md).
+  [`world-building-arch.md`](./world-building-arch.md).
 
 ---
 
@@ -508,10 +526,10 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 |-----------|-------------|----------|
 | **Auth Server** | Login, account creation | P0 |
 | **Game Server** | Authoritative game world simulation | P0 |
-| **Multi-Iso Orchestrator** | Multi-dimensional state queries (spatial ∩ faction ∩ temporal ∩ social). The control plane for the state tree. See [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md). | P0 |
+| **Multi-Iso Orchestrator** | Multi-dimensional state queries (spatial ∩ faction ∩ temporal ∩ social). The control plane for the state tree. See [`world-building-arch.md`). | P0 |
 | **State Tree (content-hash)** | Each entity is a content-hashed node. Server tick = re-rooting the tree. Client sync = diff between hashes. See section 10.7. | P0 |
 | **Snapshot Store (Postgres)** | `state_snapshots` table persists root hashes. Lazy load on restart. | P0 |
-| **Cache Layer (in-memory)** | LRU-backed materialized intersection tables for hot queries. See [`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md). | P0 |
+| **Cache Layer (in-memory)** | LRU-backed materialized intersection tables for hot queries. See [`world-building-arch.md`). | P0 |
 | **Message Queue** | Handle real-time messages | P0 |
 | **Load Balancer** | Distribute players across servers | P0 |
 | **Anti-Cheat** | Server-side validation, hash-chain tick verification | P0 |
@@ -580,11 +598,7 @@ pre-loads regions before the player arrives.
 contains its axis coordinates. The geometry integrates with
 state, not a separate layer.
 
-Full design in
-[`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md)
-(Part 1) and
-[`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md)
-(Part 2).
+Full design in [`world-building-arch.md`](./world-building-arch.md) and [`world-building.md`](./world-building.md).
 
 ### 10.8 NSC-9 Reserved Space Identifiers
 
@@ -733,9 +747,9 @@ is incremental: profile, port, re-profile, ship.
 ## 13. Phases & Milestones
 
 > **Modernized 2026-08-30:** Phases are now aligned with the
-> **Track A** (product) and **Track B** (frame research) plan in
-> [`NEXT-AGENT-PICKUP.md`](../docs/architecture/NEXT-AGENT-PICKUP.md).
+> **Track A** (product) and **Track B** (frame research) plan.
 > Track A ships the game. Track B develops the frame in parallel.
+> See the architecture documentation section above for details.
 
 ### Phase 0: Foundation ✅ COMPLETE
 - [x] Complete PRD
@@ -873,13 +887,8 @@ is incremental: profile, port, re-profile, ship.
 progress and technical details. The ROADMAP maps PRD features to
 actual code files and tracks completion status.
 
-The architecture is in `docs/architecture/`:
-
-- [multi-iso-frame.md](../docs/architecture/multi-iso-frame.md)
-- [multi-iso-lod-prediction.md](../docs/architecture/multi-iso-lod-prediction.md)
-- [labs-organization.md](../docs/architecture/labs-organization.md)
-- [nsc9-honest-evaluation.md](../docs/architecture/nsc9-honest-evaluation.md)
-- [NEXT-AGENT-PICKUP.md](../docs/architecture/NEXT-AGENT-PICKUP.md)
+The architecture documentation is in `/labs/` — see the section
+above for the full listing of world-building docs and PRDs.
 
 ---
 
