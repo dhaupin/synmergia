@@ -110,6 +110,9 @@ func _push_initial_state() -> void:
 		_on_health_changed(PlayerManager.current_health, PlayerManager.max_health)
 		_on_mana_changed(PlayerManager.current_mana, PlayerManager.max_mana)
 		_on_xp_changed(PlayerManager.experience, PlayerManager.level)
+	# Load quick-access items from inventory
+	if _quick_access_bar and _quick_access_bar.has_method("load_from_inventory"):
+		_quick_access_bar.load_from_inventory()
 
 
 func _process(_delta: float) -> void:
