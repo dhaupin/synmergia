@@ -111,7 +111,8 @@ func _filter_npc_actions(actions: Array, npc_data: NPCData) -> Array:
 				if _npc_has_offering_type(npc_data, "quest", ""):
 					filtered.append(action)
 			"talk":
-				filtered.append(action)
+				if _npc_has_offering_type(npc_data, "dialogue", ""):
+					filtered.append(action)
 			_:
 				filtered.append(action)
 	return filtered
@@ -120,23 +121,16 @@ func _filter_npc_actions(actions: Array, npc_data: NPCData) -> Array:
 func _npc_has_offering_type(npc_data: NPCData, offering_type: String, service_id: String) -> bool:
 	if npc_data == null:
 		return false
-	if not npc_data.includes.is_empty():
-		for inc: Dictionary in npc_data.includes:
-			if inc.get("type", "") == "offering":
-				var ref_id: String = inc.get("ref_id", "")
-				if not ref_id.is_empty():
-					var offering := _load_offering(ref_id)
-					if offering and offering.type == offering_type:
-						if service_id.is_empty() or offering.service_id == service_id:
-							return true
+	if npc_data.includes.is_empty():
 		return false
-	# Fallback: use old NPCType enum for NPCs without includes[]
-	match offering_type:
-		"service":
-			if service_id == "blacksmith":
-				return npc_data.npc_type == NPCData.NPCType.BLACKSMITH
-			if service_id == "skill_academy":
-				return npc_data.npc_type == NPCData.NPCType.SKILL_ACADEMY
+	for inc: Dictionary in npc_data.includes:
+		if inc.get("type", "") == "offering":
+			var ref_id: String = inc.get("ref_id", "")
+			if not ref_id.is_empty():
+				var offering := _load_offering(ref_id)
+				if offering and offering.type == offering_type:
+					if service_id.is_empty() or offering.service_id == service_id:
+						return true
 	return false
 
 
