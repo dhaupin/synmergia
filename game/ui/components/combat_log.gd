@@ -114,6 +114,7 @@ func log_system(message: String) -> void:
 	if not _show_system:
 		return
 	if not UIStyles:
+		return
 	var color: String = UIStyles.COLORS.info.to_html() if UIStyles else "#CCCCCC"
 	var text := "[color=%s]%s[/color]" % [color, _esc(message)]
 	_add_entry(text, EntryType.SYSTEM)
