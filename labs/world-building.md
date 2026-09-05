@@ -522,7 +522,8 @@ from the world to a stick on the ground.
 
 ### 4.1 Two orthogonal axes
 
-A seed has two independent attributes:
+A seed has two independent attributes
+(D025, D026):
 
 | Axis | Values | Question it answers |
 |---|---|---|
@@ -585,6 +586,9 @@ the diff is mostly `(path, "unchanged", new_hash)`
 entries — 32 bytes per node, no value bytes.
 
 ### 4.3 Seed types: locked, open, frame
+
+Three seed types (D026), orthogonal to
+visibility scope (4.4):
 
 **`locked`** — Persistent, regenerable. Lives in
 the manifest. Has a stable identity across boots.
@@ -655,6 +659,10 @@ persisted as state — what is persisted is
 the player node, not on the cell node).
 
 ### 4.4 Visibility scopes
+
+Four visibility scopes (D026, the second of
+the two orthogonal axes), orthogonal to seed
+type (4.3):
 
 **`world`** — visible to everyone on every
 shard, forever. Examples: the world manifest;
