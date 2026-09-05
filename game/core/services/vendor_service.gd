@@ -15,10 +15,10 @@ class_name VendorService
 ## Singleton instance
 static var _instance: VendorService = null
 static func get_instance() -> VendorService:
-        if _instance == null:
-                _instance = VendorService.new()
-                _instance._ready()
-        return _instance
+	if _instance == null:
+		_instance = VendorService.new()
+		_instance._ready()
+	return _instance
 
 
 const Item = preload("res://core/schemas/item.gd")

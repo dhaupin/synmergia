@@ -14,6 +14,8 @@ const CharacterData = preload("res://core/schemas/character_data.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
+const Item = preload("res://core/schemas/item.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 # SkillAcademyService and InventoryService are autoloads, accessed by bare identifier
 
 ## Stub methods mirroring UIPanel -- real wiring via .tscn scene setup

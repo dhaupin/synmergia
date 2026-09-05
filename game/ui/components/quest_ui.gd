@@ -1,11 +1,10 @@
 ## QuestUI - Quest journal panel
 ## Shows active quests, objectives, and quest log
 extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
-const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name QuestUI
+
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+const UIPanel = preload("res://ui/components/ui_panel.gd")
 const QuestData = preload("res://core/schemas/quest_data.gd")
 
 ## Escape BBCode brackets in user-supplied content.

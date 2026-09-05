@@ -7,6 +7,8 @@ class_name BankUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
+const Item = preload("res://core/schemas/item.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 
 ## Vault tabs
 enum VaultTab { PERSONAL, GUILD, ACCOUNT }
@@ -90,7 +92,7 @@ func _setup_ui() -> void:
 	gold_row.add_child(_slot_count_label)
 
 	# Vault grid
-	_scroll := ScrollContainer.new()
+	var _scroll: ScrollContainer = ScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(_scroll)
 
@@ -378,8 +380,8 @@ func _deposit_item(item: Item) -> void:
 		_:
 			return
 
-	var result: Dictionary = VaultService.deposit_item(player_id, vault_type, item)
-	if result.is_empty():
+	var success: bool = VaultService.deposit_item(player_id, vault_type, item)
+	if not success:
 		show_notification("Failed to deposit item", false)
 	else:
 		var item_name: String = item.name if item.name else "item"
