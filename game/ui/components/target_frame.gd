@@ -140,11 +140,25 @@ func _connect_signals() -> void:
 	if TargetingManager:
 		TargetingManager.target_acquired.connect(_on_target_acquired)
 		TargetingManager.target_cleared.connect(_on_target_cleared)
+		TargetingManager.target_updated.connect(_on_target_updated)
+
+func set_target(target) -> void:
+	if target == null:
+		clear_target()
+		return
+	
+	_target_id = target.entity_id if target and "entity_id" in target else ""
+	if _target_id.is_empty():
+		hide()
+		return
+	
+	show()
 
 func _on_target_acquired(target) -> void:
-		_target_id = target.entity_id if target and "entity_id" in target else ""
-		if _target_id.is_empty():
-			hide()
+	set_target(target)
+
+func _on_target_updated(target) -> void:
+	pass
 	
 func _on_target_cleared(_previous_target) -> void:
 		_target_id = ""

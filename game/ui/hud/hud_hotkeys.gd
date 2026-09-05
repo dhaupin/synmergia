@@ -16,6 +16,7 @@
 ##   K    → skill academy
 ##   H    → blacksmith
 ##   M    → world map
+##   O    → settings/options
 ##   J    → jump (reserved for future)
 ##   ENTER → focus chat input (MenuManager handles this)
 extends Node
@@ -80,6 +81,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_M:
 			_toggle_world_map()
 			get_viewport().set_input_as_handled()
+		KEY_O:
+			_toggle_settings()
+			get_viewport().set_input_as_handled()
 		KEY_TAB:
 			_handle_tab_cycling(k.shift_pressed)
 			get_viewport().set_input_as_handled()
@@ -132,3 +136,14 @@ func _toggle_world_map() -> void:
 		_world_map.toggle()
 	elif _mm and _mm.has_method("toggle_menu"):
 		_mm.toggle_menu("world_map")
+
+
+func _toggle_settings() -> void:
+	if _hud:
+		var panel: Node = _hud.get_node_or_null("SettingsPanel")
+		if panel and panel.has_method("toggle"):
+			panel.toggle()
+		elif panel and panel.has_method("open"):
+			panel.open()
+		elif panel:
+			panel.visible = not panel.visible
