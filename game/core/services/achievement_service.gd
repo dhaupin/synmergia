@@ -4,18 +4,11 @@ class_name AchievementService
 
 const AchievementData = preload("res://core/schemas/achievement_data.gd")
 
-## Achievement types
-enum AchievementType {
-    GLOBAL,        # One-time unlock (first blood, etc.)
-    PROGRESS,      # Track progress toward a goal (defeat 100 enemies)
-    COLLECTIBLE,   # Collect X items
-}
-
-## Player achievement state
-var _player_achievements: Dictionary = {}
-
-## Achievement definitions
+## Achievement definitions loaded from data/achievements via DataService
 var _achievement_defs: Dictionary = {}
+
+## Player achievement state: player_id -> {achievement_id -> {progress, unlocked, unlocked_at}}
+var _player_achievements: Dictionary = {}
 
 signal achievement_unlocked(player_id: String, achievement_id: String)
 signal achievement_progressed(player_id: String, achievement_id: String, progress: float)
@@ -31,50 +24,44 @@ func _load_achievement_definitions() -> void:
         else:
                 GameLog.warn("AchievementService: DataService not available, achievements will not load")
 
-## Static shim so callers that reference AchievementService as a class
-## (because of class_name) can still hit an instance implementation.
+## ============================================================================
+## PUBLIC API
+## ============================================================================
+
+## Unlock a specific achievement for a player
 static func unlock(player_id: String, achievement_id: String) -> void:
-        var inst: Node = get_instance()
+        var inst := get_instance()
         if inst == null:
                 return
-        inst.call("unlock_achievement", player_id, achievement_id)
+        inst._do_unlock(player_id, achievement_id)
 
-static func unlock_achievement(player_id: String, achievement_id: String) -> void:
-        var inst: Node = get_instance()
+## Track an event (e.g., enemy killed, item collected) for a player
+## event_category: what type of event ("enemy", "item", "zone", etc.)
+## amount: how many to add (default 1)
+static func track(player_id: String, event_category: String, amount: int = 1) -> void:
+        var inst := get_instance()
         if inst == null:
                 return
-        inst.call("_do_unlock", player_id, achievement_id)
+        inst._track_event(player_id, event_category, amount)
 
-## Resolve an active AchievementService instance from the scene tree.
 static func get_instance() -> Node:
         var ml: MainLoop = Engine.get_main_loop()
-        if ml == null:
-                return null
-        if not ml is SceneTree:
+        if ml == null or not ml is SceneTree:
                 return null
         var root: Window = (ml as SceneTree).root
         if root == null:
                 return null
-        var n: Node = root.get_node_or_null("AchievementService")
-        if n != null:
-                return n
-        return root.get_node_or_null("root/AchievementService")
-
-func _do_unlock(player_id: String, achievement_id: String) -> void:
-        achievement_unlocked.emit(player_id, achievement_id)
-
-func update_progress(player_id: String, achievement_id: String, progress: float) -> void:
-        achievement_progressed.emit(player_id, achievement_id, progress)
+        return root.get_node_or_null("AchievementService")
 
 ## ============================================================================
-## ACHIEVEMENT DEFINITIONS
+## ACHIEVEMENT DATA
 ## ============================================================================
-
-func get_achievement_definitions() -> Dictionary:
-        return _achievement_defs
 
 func get_achievement(id: String) -> AchievementData:
         return DataService.get_achievement(id) if DataService else null
+
+func get_all_achievements() -> Dictionary:
+        return _achievement_defs
 
 ## ============================================================================
 ## PLAYER ACHIEVEMENT STATE
@@ -91,12 +78,12 @@ func get_player_achievements(player_id: String) -> Dictionary:
         return _player_achievements.get(player_id, {})
 
 func get_unlocked_achievements(player_id: String) -> Array:
-        var result: Array = []
+        var unlocked: Array = []
         var player_data: Dictionary = get_player_achievements(player_id)
-        for achievement_id in player_data:
-                if player_data[achievement_id].get("unlocked", false):
-                        result.append(achievement_id)
-        return result
+        for ach_id in player_data:
+                if player_data[ach_id].get("unlocked", false):
+                        unlocked.append(ach_id)
+        return unlocked
 
 func get_achievement_progress(player_id: String, achievement_id: String) -> Dictionary:
         var player_data: Dictionary = get_player_achievements(player_id)
@@ -105,53 +92,52 @@ func get_achievement_progress(player_id: String, achievement_id: String) -> Dict
         return {"progress": 0.0, "unlocked": false}
 
 ## ============================================================================
-## ACHIEVEMENT TRACKING
+## ACHIEVEMENT TRACKING (INTERNAL)
 ## ============================================================================
 
-func track_event(player_id: String, event_type: String, target: String, amount: int = 1) -> void:
+func _track_event(player_id: String, event_category: String, amount: int) -> void:
         for ach_id in _achievement_defs:
-                var def = _achievement_defs[ach_id]
-                var ach_type: int
-                var ach_target: int
-                if def is AchievementData:
-                        ach_type = def.achievement_type
-                        ach_target = def.target
-                else:
-                        ach_type = def.get("type", AchievementType.GLOBAL)
-                        ach_target = def.get("target", 1)
-                if ach_type == AchievementType.GLOBAL:
+                var ach: AchievementData = _achievement_defs[ach_id]
+                # Skip GLOBAL achievements (they're unlocked directly, not tracked)
+                if ach.achievement_type == AchievementData.AchievementType.GLOBAL:
                         continue
-                var target_str: String = str(ach_target)
-                if target_str != target:
+                # Check if this achievement tracks this event category
+                if ach.target_type != event_category:
                         continue
                 _increment_progress(player_id, ach_id, amount)
 
 func _increment_progress(player_id: String, achievement_id: String, amount: int) -> void:
         if not _achievement_defs.has(achievement_id):
                 return
-        var def = _achievement_defs[achievement_id]
-        var target: int
-        if def is AchievementData:
-                target = def.target
-        else:
-                target = def.get("target", 1)
+        var ach: AchievementData = _achievement_defs[achievement_id]
+        var target: int = ach.target
+        
         if not _player_achievements.has(player_id):
                 load_player_achievements(player_id)
+        
         var player_data: Dictionary = _player_achievements[player_id]
+        
+        # Check if already unlocked
+        if player_data.has(achievement_id) and player_data[achievement_id].get("unlocked", false):
+                return
+        
         var current: float = 0.0
         if player_data.has(achievement_id):
                 current = float(player_data[achievement_id].get("progress", 0))
-                if player_data[achievement_id].get("unlocked", false):
-                        return
+        
+        # Cap at target
         current = mini(current + amount, target)
-        var progress: float = current / float(target) if target > 0 else 1.0
+        
         player_data[achievement_id] = {
                 "progress": current,
                 "unlocked": current >= target,
                 "unlocked_at": Time.get_unix_time_from_system() if current >= target else 0
         }
-        _player_achievements[player_id] = player_data
+        
         if current >= target:
                 _do_unlock(player_id, achievement_id)
         else:
-                update_progress(player_id, achievement_id, progress)
+                achievement_progressed.emit(player_id, achievement_id, current / float(target))
+
+func _do_unlock(player_id: String, achievement_id: String) -> void:
+        achievement_unlocked.emit(player_id, achievement_id)
