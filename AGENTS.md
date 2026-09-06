@@ -470,3 +470,56 @@ if node != null:                              # ✗ (stale references)
 var msg := f"Hello {name}"       # ✓ (Godot 4+)
 var msg := "Hello %s" % name     # ✗ (outdated)
 ```
+
+---
+
+## Autoloads
+
+Autoloads are singleton services available globally. The naming convention is:
+
+| Aspect | Rule | Example |
+|--------|------|---------|
+| Filename | `snake_case.gd` | `notification_service.gd` |
+| Autoload name | `PascalCase` | `NotificationService` |
+| class_name | **Only for non-autoloads** | (none for autoloads) |
+
+### Accessing Autoloads
+
+```gdscript
+# Correct: use the autoload name directly (it's already an instance)
+NotificationService.notify(...)
+QoSService.rate_limit(player_id, "combat")
+
+# Wrong: trying to create a new instance
+var ns := NotificationService.new()  # ✗ FAILS - autoloads are not classes
+```
+
+### When to Use class_name
+
+Only add `class_name` for classes you need to instantiate or type-check:
+
+```gdscript
+# GOOD: class_name for a utility class you instantiate
+class_name CombatMath
+func calculate_damage() -> float:
+    return base_damage * multiplier
+
+# Usage:
+var math := CombatMath.new()
+var dmg := math.calculate_damage()
+
+# GOOD: class_name for type checking
+class_name AchievementService
+func process_achievement(service: AchievementService) -> void:
+    pass
+
+# WRONG: class_name on an autoload (it's already a singleton!)
+class_name NotificationService  # ✗ Confuses agents into trying .new()
+```
+
+### Key Rules
+
+1. **Autoloads are singletons** — accessed by name, never instantiated
+2. **No `class_name` on autoloads** — it causes confusion
+3. **`class_name` only for classes you `new()` or use for typing**
+4. **Filename ≠ class name** — `notification_service.gd` has autoload `NotificationService`, not `NotificationServiceService`
