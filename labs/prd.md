@@ -37,7 +37,6 @@
 15. [Platform Support & Optimization](#15-platform-support--optimization)
 16. [Phases & Milestones](#16-phases--milestones)
 17. [Open Questions](#17-open-questions)
-18. [Development Tracking](#18-development-tracking)
 
 ## Architecture documentation
 
