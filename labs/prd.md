@@ -37,6 +37,7 @@
 15. [Platform Support & Optimization](#15-platform-support--optimization)
 16. [Phases & Milestones](#16-phases--milestones)
 17. [Open Questions](#17-open-questions)
+18. [Development Tracking](#18-development-tracking)
 
 ## Architecture documentation
 
@@ -343,6 +344,39 @@ See [`world-building.md`](./world-building.md) §3.9–3.12 for full world archi
 | **Procedural Seeds** | Deterministic world generation | Implemented |
 
 See `core/services/world_service.gd`.
+
+### 4.7 Zone & Instancing Model
+
+> **Full spec:** See [`world-building.md`](./world-building.md) §8 for zone model,
+> gateway transitions, and instance lifecycle.
+
+| Concept | Description |
+|---------|-------------|
+| **Seed** | Top-level container: world, shard, or instance |
+| **Region** | Geographic zone within a seed |
+| **Gateway** | Portal between regions or into instances |
+| **Instance** | Ephemeral per-group content (dungeons, arenas) |
+| **Zone Transition** | Player movement through gateways triggers loading |
+
+**Instance types:**
+- `open + instance` — Per-group, derived from `(parent_seed, instance_id)`
+- `frame + instance` — Computed per-frame (dynamic encounters)
+- Regen triggers on `instance_start`; state persisted to seed on `instance_end`
+
+### 4.8 Respawn System
+
+| Respawn Mode | Description | Status |
+|--------------|-------------|--------|
+| **TIMED** | Standard timed respawn | Implemented |
+| **ANKH** | Respawn at bound ankh (respawn point) | Implemented |
+| **REVIVE** | Resurrected by another player | Implemented |
+| **SELF_REVIVE** | Item/spell self-resurrect | Implemented |
+| **ARENA_TEAM** | Arena team respawn | Implemented |
+| **CONTESTED** | Fight for respawn control | Implemented |
+| **GATEWAY** | Respawn at zone gateway | Implemented |
+| **SAFE_ZONE** | Safe area respawn with invincibility | Implemented |
+
+See `core/services/respawn_service.gd` and `core/schemas/ankh.gd`.
 
 ---
 
@@ -697,15 +731,13 @@ See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`.
 
 See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
-### 9.6 Social Open Questions
+### 10.4 Social Open Questions
 
 - [ ] Party finder implementation?
 - [ ] Mentoring system?
 - [ ] Guild upgrades timeline?
 
----
-
-## 9.6 Faction System
+### 10.5 Faction System
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -819,6 +851,20 @@ See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 
 ---
 
+### 11.5 Agent Connectors
+
+> **Unique:** AI agents can play as characters with the same capabilities as humans.
+
+| Connector | Description | Status |
+|-----------|-------------|--------|
+| **MCP** | Model Context Protocol — standard interface for AI agents | Implemented |
+| **Vant** | Vant framework integration | Implemented |
+| **Webhook** | Webhook-based agent communication | Implemented |
+
+See `core/services/connector_service.gd` and `game/connectors/`.
+
+---
+
 ## 12. Technical Architecture
 
 > **Updated 2026-09-05:** Godot 4.7.2 chosen for open source,
@@ -827,7 +873,7 @@ See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 > `world-building-arch.md`). The game is in `game/`, the frame
 > in `labs/multi-iso/`.
 
-### 11.1 Engine Selection
+### 12.1 Engine Selection
 
 | Option | Pros | Cons | Status |
 |--------|------|------|--------|
@@ -845,7 +891,7 @@ See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 - `@tool` scripts for editor-time content
 - HTML5/wasm export for browser deployment
 
-### 11.2 Client Architecture
+### 12.2 Client Architecture
 
 | Component | Description |
 |------------|-------------|
@@ -855,7 +901,7 @@ See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 | **Rendering** | Standard Godot 3D pipeline. LOD on graphics is independent of LOD on state. |
 | **Input** | Touch, keyboard/mouse, and controller (planned). All go through a unified action layer. |
 
-### 11.3 Server Architecture
+### 12.3 Server Architecture
 
 | Component | Description | Priority |
 |-----------|-------------|----------|
@@ -873,7 +919,7 @@ See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 
 See [`world-building-arch.md`](./world-building-arch.md) for the full frame architecture (substrate, scope engine, rules engine, spatial layer) and [`world-building-tick.md`](./world-building-tick.md) for the server tick model.
 
-### 11.4 Networking
+### 12.4 Networking
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -888,7 +934,7 @@ See [`world-building-arch.md`](./world-building-arch.md) for the full frame arch
 
 See [`world-building.md`](./world-building.md) §10 for the full transport design.
 
-### 11.5 Database Design
+### 12.5 Database Design
 
 | Concern | Storage | Notes |
 |---------|---------|-------|
@@ -900,7 +946,7 @@ See [`world-building.md`](./world-building.md) §10 for the full transport desig
 | **Assets** | Content-hashed pck + CDN | Old clients can still find old assets on update. |
 
 
-### 11.6 The T3 Substrate
+### 12.6 The T3 Substrate
 
 The frame's core primitive: a generic content-hash tree. Every
 node has a `hash` (SHA-256 of its serialized value). The frame
@@ -908,7 +954,7 @@ extracts this into `labs/multi-iso/kv/t3.gd`.
 
 See [`prd-t3-substrate.md`](./prd-t3-substrate.md) for the full spec.
 
-### 11.7 The Scope Engine
+### 12.7 The Scope Engine
 
 Data-driven hierarchy walker. Resolves rules and values at scope
 boundaries (world→shard→instance→player). The frame extracts
@@ -916,7 +962,7 @@ this into `labs/multi-iso/srv/scope.gd`.
 
 See [`prd-scope-engine.md`](./prd-scope-engine.md) for the full spec.
 
-### 11.8 The Rules Engine
+### 12.8 The Rules Engine
 
 Generic behavior evaluator. Runs rules defined in the state tree
 against entities. Composes with the scope engine for per-scope
@@ -924,7 +970,7 @@ rule overrides.
 
 See [`world-building-arch.md`](./world-building-arch.md) §5 for the rules engine design.
 
-### 11.9 DevOps
+### 12.9 DevOps
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -939,7 +985,7 @@ See [`world-building-arch.md`](./world-building-arch.md) §5 for the rules engin
 | **Analytics** | Track player behavior, economy, prediction accuracy | P1 |
 | **Auto-scaling** | Respond to player load; prefetch more on scale-up | P1 |
 
-### 11.10 Three Tiers of Computation (the frame runtime)
+### 12.10 Three Tiers of Computation (the frame runtime)
 
 The frame can ship in three runtime tiers. The rule is: write
 the algorithm in the language that's best at the problem. The
@@ -1055,7 +1101,7 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 14. Platform Support & Optimization
+## 15. Platform Support & Optimization
 
 > Browser-first deployment (HTML5/wasm), with planned mobile (Android/iOS)
 > and desktop (Windows, macOS, Linux) support. Controller support planned.
@@ -1091,7 +1137,7 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 15. Phases & Milestones
+## 16. Phases & Milestones
 
 > **Updated 2026-09-05:** Phases reflect the current state
 > based on source-of-truth docs in `/labs/`. The frame
@@ -1178,7 +1224,7 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 
 ---
 
-## 16. Open Questions
+## 17. Open Questions
 
 > **Updated 2026-09-05:** Architecture is now T3 substrate +
 > scope engine + rules engine (per `world-building-arch.md`).
