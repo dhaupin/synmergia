@@ -43,6 +43,9 @@
 This PRD is the product spec. The technical architecture is in
 `/labs/` (source of truth):
 
+**Deployment & Operations:**
+- [`DEPLOY.md`](../DEPLOY.md) — Docker deployment, production setup, and operations
+
 **World-building docs** (world + network + persistence design):
 - [`world-building.md`](./world-building.md) — full stack design
 - [`world-building-arch.md`](./world-building-arch.md) — systems architecture

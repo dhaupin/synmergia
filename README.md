@@ -194,6 +194,7 @@ See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns.
 | [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
 | [🗺️ World Design](./labs/world-building.md) | World, zones, procedural generation |
 | [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
+| [🚀 Deployment Guide](./DEPLOY.md) | Docker deployment, production setup, and operations |
 
 ---
 

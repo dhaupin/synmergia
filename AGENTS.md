@@ -379,21 +379,32 @@ func _get_peer_for_player(player_id: String) -> int:
 
 ## Testing
 
-Smoke tests live in `game/tests/`. Run with `tools/godot --headless`:
+Smoke tests live in `game/tests/`. Run with Godot headless:
 
 ```bash
-./tools/godot --headless --path synmergia --script res://tests/test_notification_toast.gd
-./tools/godot --headless --path synmergia --script res://tests/test_hud_integration.gd
-./tools/godot --headless --path synmergia --script res://tests/test_login_flow.gd
-./tools/godot --headless --path synmergia --script res://tests/test_auto_response_signals.gd
+cd game
+godot --headless --path . --script res://tests/test_notification_toast.gd
+godot --headless --path . --script res://tests/test_hud_integration.gd
+godot --headless --path . --script res://tests/test_login_flow.gd
+godot --headless --path . --script res://tests/test_auto_response_signals.gd
+```
+
+Or run all tests via Docker (see [DEPLOY.md](./DEPLOY.md)):
+
+```bash
+docker run --rm -e START_MODE=test synmergia
 ```
 
 | Test | Coverage |
 |------|----------|
+| `test_notification_frame.gd` | NotificationService frame (context, kind, dedupe) |
 | `test_notification_toast.gd` | NotificationService → TooltipManager.show_toast() end-to-end |
 | `test_hud_integration.gd` | HudIntegrator handlers, NotificationService → CombatLog |
 | `test_login_flow.gd` | Account + login + character flow |
 | `test_auto_response_signals.gd` | AutoResponseService signals and ActionType enum |
+| `test_islands.gd` | Core island logic (island_poc.gd) |
+| `test_e2e_flow.gd` | End-to-end account flow |
+| `test_notif_migration_*.gd` | Notification migration tests |
 
 > **Note:** `--script` mode does not pre-load autoloads. Resolve them via
 > `root.get_node_or_null("NotificationService")` rather than the bare identifier.
