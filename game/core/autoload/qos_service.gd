@@ -1,9 +1,11 @@
 ## QoSService - Quality of Service infrastructure
 ## Handles rate limiting, throttling, bulkhead pattern, and debouncing
 extends Node
+class_name QoSService
 
-# NOTE: No class_name here - this is an autoload singleton accessed by name.
-# Use QoSService.rate_limit(...) directly, NOT QoSService.new()
+# NOTE: This is an autoload singleton. Use QoSService.rate_limit(...) directly.
+# Do NOT use QoSService.new() - autoloads are already instantiated.
+# See AGENTS.md "Autoloads" section for details.
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # QoSService surfaces rate-limit and circuit-breaker events through the
