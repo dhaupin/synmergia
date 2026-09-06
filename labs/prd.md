@@ -231,31 +231,44 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 ## 4. World & Exploration
 
-> **Partial Implementation:** 4 zones implemented (starter plains, forest meadow,
-> village center, dungeon). PvP modes, respawn, and weather configured per zone.
+> **Spherical planet** — The world is a sphere (planet radius 20km for v1).
+> One continent (~150 km²) contains all initial content. The rest is ocean.
+> Dungeons and some islands are instances. See [`world-building.md`](./world-building.md) §3.9 for the v1 world spec.
 
 ### 4.1 World Structure
 
-Implemented zones:
+**V1 World (Dev/Alpha/Beta):**
 
-| Zone | Description | PvP |
-|------|-------------|-----|
-| **Starter Plains** | Safe starter zone, level 1-20 | None |
-| **Forest Meadow** | Mid-level zone | TBD |
-| **Village Center** | Safe hub area | None |
-| **Dungeon (Forest Depths)** | Instance dungeon | TBD |
+| Feature | Description |
+|---------|-------------|
+| **Planet** | Spherical, radius 20km, surface ~5,000 km² |
+| **Continent** | ~150 km², centered on planet |
+| **Capital City** | At geographic center of continent, new players start here |
+| **Ocean** | Covers the rest of the planet (future boat/ship mechanics) |
+| **Instances** | Dungeons, PvP arena island, capital interior areas |
 
-Planned expansion:
+**V1 Biome Layout** (within ~5km radius of capital):
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Satellite Zones** | Surrounding islands/regions | P1 |
-| **Underworld** | Underground realm with unique content | P2 |
-| **Dimension Planes** | Instance realms for high-level content | P2 |
-| **Open Ocean** | Navigable water between continents | P2 |
-| **Seasonal Zones** | Rotate available zones (events) | P3 |
+| Direction | Biome | Content |
+|-----------|-------|---------|
+| **North** | Forest | Tutorial zone, starter mobs |
+| **East** | Plains + Farmland | Starter quests, low-level mobs |
+| **South** | Lake + River | Fishing, water mobs |
+| **West** | Mountain Ridge | Mining, mid-level mobs |
+| **Coastline** | Harbor | Capital harbor district, fishing village, shipwright |
 
-See `game/data/zones/` and `core/services/zone_manager.gd`.
+**Near Capital:**
+- Dungeon entrance ~3km north (instance portal test)
+- PvP arena on small island ~6km offshore (instance portal test)
+
+**Future Scaling:**
+| Version | Planet Radius | Landmass |
+|---------|--------------|----------|
+| v1 (dev) | 20 km | 150 km² |
+| v2 (soft launch) | 100 km | ~3,000 km² |
+| v3 (full launch) | 1,000+ km | Full planet |
+
+See [`world-building.md`](./world-building.md) §3.9–3.12 for full world architecture.
 
 ### 4.2 Terrain Types
 
@@ -291,13 +304,6 @@ See `game/data/zones/` and `core/services/zone_manager.gd`.
 | **Resource Distribution** | Spawn resources in patterns | P1 |
 | **Quest Generation** | Simple procedural quests (gather X, kill Y) | P2 |
 | **World Events** | Random spawns, world events | P2 |
-
-### 4.5 World Open Questions
-
-- [ ] How large is the main continent? (RYL2 scale vs WoW scale?)
-- [ ] Instance vs open-world dungeons?
-- [ ] Server meshing for player density?
-- [ ] Loading screens between zones or seamless transitions?
 
 ---
 
@@ -942,19 +948,20 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 6. ~~**Architecture:**~~ → ✅ T3 substrate + scope engine + rules engine (per `world-building-arch.md`)
 7. ~~**Networking:**~~ → ✅ WebSocket for browser + agent compatibility
 8. ~~**Networking serialization:**~~ → ✅ `var_to_bytes` / `bytes_to_var` (Godot 4.x idiom)
+9. ~~**World Shape:**~~ → ✅ Spherical planet (radius 20km v1), icosahedral mesh (per `world-building.md` §3)
+10. ~~**World Size:**~~ → ✅ ~150 km² continent, rest ocean, capital at center
+11. ~~**Zone Transitions:**~~ → ✅ Dungeons/instances via portal, open world seamless
 
 ### Open
 
-9. **Scale:** How many players per server?
-   - LOD pyramid + intersection cache can carry a lot. 500+ is plausible. 1000+ needs the frame's perf budget answered first.
-10. **Level Cap:** 60 levels planned. Expandable.
-11. **Art Assets:** AI generation, purchase, custom? TBD.
-12. **Real Money:** Cosmetics shop planned. Subscription unlikely. RMT banned, no third-party.
-13. **Platform Priority:** Browser-first (HTML5/wasm), then desktop builds.
-14. **Loading screens:** Zone transitions? Seamless? Open world with portal? Depends on scope engine's zone handling.
-15. **Frame extraction timeline:** When does the frame spin out to its own repo? After Phase 7? Earlier?
-16. **Performance budget:** GDScript enough? GDExtension C++? Decided in Phase 4.
-17. **Build pipeline shape:** Bash? Godot CLI? CI step? Custom tool? TBD.
+12. **Scale:** How many players per server?
+    - LOD pyramid + intersection cache can carry a lot. 500+ is plausible. 1000+ needs the frame's perf budget answered first.
+13. **Level Cap:** 60 levels planned. Expandable.
+14. **Art Assets:** AI generation, purchase, custom? TBD.
+15. **Real Money:** Cosmetics shop planned. Subscription unlikely. RMT banned, no third-party.
+16. **Frame extraction timeline:** When does the frame spin out to its own repo? After Phase 7? Earlier?
+17. **Performance budget:** GDScript enough? GDExtension C++? Decided in Phase 4.
+18. **Build pipeline shape:** Bash? Godot CLI? CI step? Custom tool? TBD.
 
 ---
 
