@@ -193,7 +193,6 @@ See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns.
 | [📄 Product Spec](./labs/prd.md) | Full design document — gameplay, systems, architecture |
 | [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
 | [🗺️ World Design](./labs/world-building.md) | World, zones, procedural generation |
-| [📋 ROADMAP](./ROADMAP.md) | Implementation tracker with file-level progress |
 | [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
 
 ---
