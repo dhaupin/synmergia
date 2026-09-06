@@ -243,7 +243,7 @@ var nearby := EntityService.get_entities_in_radius(
 │       ├── srv/                   # Markov, LOD, axis
 │       └── db/                    # snapshot_store
 │
-├── tools/                         # Godot helpers
+├── srv/                           # Deployment configs (docker, certs)
 ├── ROADMAP.md                     # Implementation tracker
 └── README.md                      # Project overview
 ```
