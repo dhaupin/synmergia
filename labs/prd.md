@@ -127,7 +127,8 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 ## 3. Combat Systems
 
-> **Lead:** This section defines the RYL2-inspired action combat with tab-targeting hybrid.
+> **Implemented:** Combat math, loot distribution, enemy spawning, respawn logic, and
+> death features are implemented. Action combat with tab-targeting hybrid is planned.
 
 ### 3.1 Movement
 
@@ -229,18 +230,31 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 ## 4. World & Exploration
 
-> **In Progress:** Terrain, zones, procedural generation, dungeons.
+> **Partial Implementation:** 4 zones implemented (starter plains, forest meadow,
+> village center, dungeon). PvP modes, respawn, and weather configured per zone.
 
 ### 4.1 World Structure
 
+Implemented zones:
+
+| Zone | Description | PvP |
+|------|-------------|-----|
+| **Starter Plains** | Safe starter zone, level 1-20 | None |
+| **Forest Meadow** | Mid-level zone | TBD |
+| **Village Center** | Safe hub area | None |
+| **Dungeon (Forest Depths)** | Instance dungeon | TBD |
+
+Planned expansion:
+
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Main Continent** | Central hub zone with starter areas | P0 |
 | **Satellite Zones** | Surrounding islands/regions | P1 |
 | **Underworld** | Underground realm with unique content | P2 |
 | **Dimension Planes** | Instance realms for high-level content | P2 |
 | **Open Ocean** | Navigable water between continents | P2 |
 | **Seasonal Zones** | Rotate available zones (events) | P3 |
+
+See `game/data/zones/` and `core/services/zone_manager.gd`.
 
 ### 4.2 Terrain Types
 
@@ -368,7 +382,8 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 
 ## 6. Economy & Crafting
 
-> **In Progress:** Resource gathering, crafting professions, player-driven economy.
+> **Partial Implementation:** Trade, vendor, and item degradation implemented.
+> Gathering and full crafting professions are planned.
 
 ### 6.1 Gathering System
 
@@ -385,9 +400,9 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 
 ### 6.2 Crafting Professions
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Blacksmithing** | Weapons, armor, metal goods | P0 |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Blacksmithing** | Weapons, armor, metal goods | Implemented (repair/upgrade) |
 | **Tailoring** | Cloth/leather armor | P0 |
 | **Alchemy** | Potions, elixirs, poisons | P0 |
 | **Enchanting** | Add magical properties to gear | P1 |
@@ -396,24 +411,29 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 | **Crafting Recipes** | Discovered or purchased | P0 |
 | **Crafting Quality** | Normal, Fine, Masterwork tiers | P0 |
 
+See `core/services/blacksmith_service.gd` and `ui/components/blacksmith_ui.gd`.
+
 ### 6.3 Player Economy
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Currency** | Gold coin standard | P0 |
-| **Dropped Loot** | Items drop from mobs | P0 |
-| **Player Trading** | Direct trade between players | P0 |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Currency** | Gold coin standard | Implemented |
+| **Dropped Loot** | Items drop from mobs | Implemented |
+| **Player Trading** | Direct trade between players | Implemented |
+| **Vendor System** | NPC vendors buy/sell | Implemented |
+| **Item Degradation** | Gear loses durability, repairs needed | Implemented |
+| **Item Sinks** | Repairs, taxes, crafting costs | Implemented |
 | **Player Shops** | Rent vendor stalls in towns | P1 |
 | **Auction House** | Central marketplace (with tax) | P1 |
-| **Item Degradation** | Gear loses durability, repairs needed | P0 |
-| **Item Sinks** | Repairs, taxes, crafting costs | P0 |
-| **Player Merchants** | NPC merchants buy/sell | P0 |
+
+See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ### 6.4 Economy Open Questions
 
 - [ ] Crafted vs dropped item balance?
 - [ ] Gold cap per player?
 - [ ] Real-money trading policy?
+- [ ] Full crafting professions timeline?
 
 ---
 
@@ -478,46 +498,85 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 
 ### 9.1 Communication
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Global Chat** | Shout to zone | P0 |
-| **Whisper/PM** | Private messaging | P0 |
-| **Party Chat** | Group-only chat | P0 |
-| **Guild Chat** | Guild-only chat | P0 |
-| **Local/NPC Interaction** | Click NPCs for dialogue | P0 |
-| **Emotes** | Social emotes | P1 |
+Implemented chat channels:
+
+| Channel | Description | Status |
+|---------|-------------|--------|
+| **SAY** | Local say | Implemented |
+| **WHISPER** | Private message | Implemented |
+| **YELL** | Large radius shout | Implemented |
+| **ZONE** | Zone-wide chat | Implemented |
+| **GLOBAL** | Server-wide chat | Implemented |
+| **PARTY** | Party chat | Implemented |
+| **GUILD** | Guild chat | Implemented |
+| **ALLIANCE** | Alliance chat | Implemented |
+| **TRADE** | Trade channel | Implemented |
+| **SYSTEM** | System messages | Implemented |
+| **EMOTE** | Social emotes | Implemented |
+
+See `core/services/chat_service.gd` and `ui/components/chat_ui.gd`.
 
 ### 9.2 Grouping
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Party Formation** | Invite, join, kick | P0 |
-| **Party Size** | Standard 5, raid 20? | P0 |
-| **Loot Distribution** | Free-for-all, round-robin, loot council | P0 |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Party Formation** | Invite, join, kick | Implemented |
+| **Party Size** | Standard 5, raid 20 | Implemented |
+| **Loot Distribution** | Free-for-all, round-robin, loot council | Implemented |
 | **Party Finder** | Automated group finder | P1 |
 | **Mentoring** | Higher level helps lower | P1 |
 
-### 9.3 Guilds
+See `core/services/party_service.gd` and `ui/social/party_ui.gd`.
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Guild Creation** | Form guild with name, tag | P0 |
-| **Guild Ranks** | Customizable roles/permissions | P0 |
-| **Guild Bank** | Shared storage | P0 |
+### 9.3 Friends & Social
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Friends List** | Add/remove friends, online status | Implemented |
+| **Friend Requests** | Send/accept/expire requests | Implemented |
+| **Block/Ignore** | Block or ignore players | Implemented |
+
+See `core/services/friends_service.gd` and `ui/social/friends_list.gd`.
+
+### 9.4 Guilds
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Guild Creation** | Form guild with name, tag | Implemented |
+| **Guild Ranks** | Customizable roles/permissions | Implemented |
+| **Guild Bank** | Shared storage | Implemented |
+| **Guild Chat** | Guild-only chat | Implemented |
+| **Guild Wars** | Declare on other guilds | Implemented |
 | **Guild Upgrades** | Guild hall, buffs, perks | P1 |
-| **Guild Wars** | Declare on other guilds | P1 |
 | **Alliance** | Multiple guilds allied | P2 |
+
+See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`.
+
+### 9.5 Achievements
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Achievement Tracking** | Track player achievements | Implemented |
+| **Achievement UI** | View and display achievements | Implemented |
+| **Achievement Popup** | In-game notification | Implemented |
+
+See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
+
+### 9.6 Social Open Questions
+
+- [ ] Party finder implementation?
+- [ ] Mentoring system?
+- [ ] Guild upgrades timeline?
 
 ---
 
 ## 10. Technical Architecture
 
-> **Decided (2026-08-30):** Godot 4.7.2 chosen for open source,
-> lightweight, no royalties, and strong 3D support. The
-> architecture is now four layers: **Godot client → Multi-iso
-> orchestrator → State tree (content-hash) → Postgres + cache**.
-> The frame is the orchestrator + state tree, liftable to its own
-> project.
+> **Updated 2026-09-05:** Godot 4.7.2 chosen for open source,
+> lightweight, no royalties, and strong 3D support. The frame is
+> T3 content-hash substrate + scope engine + rules engine (per
+> `world-building-arch.md`). The game is in `game/`, the frame
+> in `labs/multi-iso/`.
 
 ### 10.1 Engine Selection
 
@@ -530,11 +589,12 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 **Key Godot Features Used:**
 - GDScript for game logic
 - Godot 4.x scene system (`.tscn`)
-- ENet for multiplayer
+- WebSocket for networking (browser + agent compatibility)
 - `var_to_bytes` / `bytes_to_var` for network serialization
 - Physics3D for collision
 - Headless server mode for dedicated servers
 - `@tool` scripts for editor-time content
+- HTML5/wasm export for browser deployment
 
 ### 10.2 Client Architecture
 
@@ -544,7 +604,7 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 | **UI (HUD / Widgets)** | Separate `UIWidget` base (sibling to UIPanel) for in-world overlays: health bar, target frame, buff bar. Not islands. |
 | **State (client side)** | The client holds a (possibly divergent) state tree, the same shape as the server's. Predicted inputs locally; reconciled by hash diff from server. |
 | **Rendering** | Standard Godot 3D pipeline. LOD on graphics is independent of LOD on state. |
-| **Input** | Touch-first (mobile), keyboard/mouse on PC. Both go through a unified action layer. |
+| **Input** | Browser-first: touch on mobile/touch devices, keyboard/mouse on desktop. Both go through a unified action layer. |
 
 ### 10.3 Server Architecture
 
