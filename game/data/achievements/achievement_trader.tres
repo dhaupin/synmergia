@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trader"
+display_name = "Trader"
+description = "Complete your first trade"
+achievement_type = 0
+category = 2
+rarity = 0
+target_type = "trade"
+icon_path = "res://icons/achievements/trader.png"
+sort_order = 30
