@@ -28,6 +28,7 @@ var _faction_panel: Control
 var _achievement_panel: Control
 var _title_panel: Control
 var _shop_panel: Control
+var _transfer_panel: Control
 
 ## State
 var _is_hud_visible: bool = true
@@ -172,6 +173,13 @@ func _initialize_panels() -> void:
 	_achievement_panel.z_index = 500
 	add_child(_achievement_panel)
 	_achievement_panel.panel_closed.connect(_on_panel_closed.bind("achievement"))
+
+	# Transfer panel (character-to-character transfers)
+	_transfer_panel = preload("res://ui/social/character_transfer_ui.gd").new()
+	_transfer_panel.name = "CharacterTransferUI"
+	_transfer_panel.z_index = 500
+	add_child(_transfer_panel)
+	_transfer_panel.panel_closed.connect(_on_panel_closed.bind("transfer"))
 
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):
@@ -440,6 +448,7 @@ func _get_panel(menu_name: String) -> Control:
 		"bank": return _bank_panel
 		"blacksmith": return _blacksmith_panel
 		"skill_academy": return _skill_academy_panel
+		"transfer": return _transfer_panel
 	return null
 
 func _set_hud_visible_internal(visible: bool) -> void:
