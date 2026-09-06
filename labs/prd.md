@@ -31,7 +31,7 @@
 9. [Social & Guild Systems](#9-social--guild-systems)
 10. [Technical Architecture](#10-technical-architecture)
 11. [Art & Audio Direction](#11-art--audio-direction)
-12. [Mobile Optimization](#12-mobile-optimization)
+12. [Platform Support & Optimization](#12-platform-support--optimization)
 13. [Phases & Milestones](#13-phases--milestones)
 14. [Open Questions](#14-open-questions)
 
@@ -71,8 +71,9 @@ This PRD is the product spec. The technical architecture is in
 
 ## 1. Executive Summary
 
-**Synmergia** is a 3D open-world MMORPG targeting mobile
-(Android/iOS) with PC support. The game combines RYL2's
+**Synmergia** is a 3D open-world MMORPG starting browser-first
+(HTML5/wasm) with planned mobile (Android/iOS) and desktop
+(Windows, macOS, Linux) support. The game combines RYL2's
 fast-paced, free-form action combat with Ultima Online's depth
 of player-driven economy, housing, and world interaction.
 
@@ -81,14 +82,14 @@ Craft gear → Build houses → Participate in PvP → Repeat
 
 **Target Audience:**
 - MMORPG players who miss the depth of UO/EVE-era games
-- Mobile gamers who want console-quality action combat on the go
+- Players who want browser-based gaming without installs
 - Players who enjoy crafting, housing, and player economies
   over theme-park content
 
 **Competitive Landscape:**
 - Similar to: RYL2 (combat feel), UO (economy/housing), Black
   Desert (action combat), Albion Online (full loot PvP)
-- Differentiator: Browser-ready (Godot HTML5/wasm) with full MMO
+- Differentiator: Browser-first (HTML5/wasm) with full MMO
   depth, not a stripped-down mobile port. Plus: a **reusable
   game frame** (T3 content-hash substrate + scope engine + rules
   engine) that could be extracted to its own project, so other
@@ -97,7 +98,7 @@ Craft gear → Build houses → Participate in PvP → Repeat
 **Development Approach:**
 - Agent-assisted development using LLMs for code generation
 - Incremental feature delivery with continuous integration
-- Godot 4.7.2 for cross-platform deployment (browser via HTML5/wasm)
+- Godot 4.7.2 for cross-platform deployment (browser-first, then mobile/desktop)
 - See the [Frame appendix](#frame-appendix) and
   [`world-building-arch.md`](./world-building-arch.md) for the
   full architecture and development phases.
@@ -604,7 +605,7 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 | **UI (HUD / Widgets)** | Separate `UIWidget` base (sibling to UIPanel) for in-world overlays: health bar, target frame, buff bar. Not islands. |
 | **State (client side)** | The client holds a (possibly divergent) state tree, the same shape as the server's. Predicted inputs locally; reconciled by hash diff from server. |
 | **Rendering** | Standard Godot 3D pipeline. LOD on graphics is independent of LOD on state. |
-| **Input** | Browser-first: touch on mobile/touch devices, keyboard/mouse on desktop. Both go through a unified action layer. |
+| **Input** | Touch, keyboard/mouse, and controller (planned). All go through a unified action layer. |
 
 ### 10.3 Server Architecture
 
@@ -802,27 +803,30 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 12. Mobile Optimization
+## 12. Platform Support & Optimization
 
-### 12.1 Touch Controls
+> Browser-first deployment (HTML5/wasm), with planned mobile (Android/iOS)
+> and desktop (Windows, macOS, Linux) support. Controller support planned.
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Virtual Joystick** | Left side, configurable opacity | P0 |
-| **Camera Control** | Right side drag to rotate | P0 |
-| **Skill Buttons** | Bottom of screen, customizable | P0 |
-| **Targeting** | Tap enemy to select | P0 |
+### 12.1 Input Methods
+
+| Input | Description | Status |
+|-------|-------------|--------|
+| **Touch** | Virtual joystick (left), camera drag (right), skill buttons | Planned |
+| **Keyboard/Mouse** | Standard WASD + mouse, hotbar | Planned |
+| **Controller** | Gamepad support (joystick, buttons, triggers) | Planned |
 | **Auto-Run** | Toggle for long travel | P1 |
-| **Gesture Support** | Double tap, long press | P1 |
+| **Gesture Support** | Double tap, long press on touch | P1 |
 
-### 12.2 UI Scaling
+### 12.2 UI Adaptation
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Screen Sizes** | Support phones and tablets | P0 |
+| **Screen Sizes** | Support phones, tablets, desktop monitors | P0 |
 | **Notch Handling** | Safe areas for modern phones | P0 |
 | **UI Scaling** | Adjustable UI element size | P1 |
 | **Colorblind Mode** | Accessibility options | P1 |
+| **Controller UI** | Controller-friendly navigation | P1 |
 
 ### 12.3 Performance Targets
 
