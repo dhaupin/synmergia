@@ -140,7 +140,7 @@ func _on_respec_completed(_player_id: String, points_refunded: int) -> void:
 	if is_open():
 		_refresh_active_tab()
 
-func _stub_setup_panel() -> void:
+func _setup_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.custom_minimum_size = Vector2(640, 580)
@@ -1090,7 +1090,7 @@ func _get_local_player() -> Node:
 	return null
 
 
-func _stub_on_open() -> void:
+func _on_open() -> void:
 	_refresh_all()
 
 
