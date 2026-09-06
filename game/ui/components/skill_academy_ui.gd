@@ -7,7 +7,7 @@
 ##   4. Signature -- choose 1 of 3 class signatures (level 10+)
 ##   5. Respec    -- reset all upgrades (books NOT returned)
 
-extends Control
+extends UIPanel
 class_name SkillAcademyUI
 
 const CharacterData = preload("res://core/schemas/character_data.gd")
@@ -19,10 +19,6 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 # SkillAcademyService and InventoryService are autoloads, accessed by bare identifier
 
 ## Stub methods mirroring UIPanel -- real wiring via .tscn scene setup
-var _is_open: bool = false
-var _player_id: String = ""
-signal panel_opened()
-signal panel_closed()
 
 func open(player_id: String) -> void:
 	_player_id = player_id
