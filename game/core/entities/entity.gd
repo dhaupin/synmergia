@@ -339,3 +339,9 @@ func load_entity_data(data: Dictionary) -> void:
 	if not pos_data.is_empty():
 		global_position = Vector3(pos_data.get("x", 0), pos_data.get("y", 0), pos_data.get("z", 0))
 	rotation.y = data.get("rotation", 0)
+
+## Get display name with titles (if player entity)
+func get_full_display_name() -> String:
+	if entity_type == EntityType.PLAYER and TitleService:
+		return TitleService.get_display_name(entity_id, display_name)
+	return display_name

@@ -1,6 +1,5 @@
 ## AchievementService - Player achievements and progression
 extends Node
-class_name AchievementService
 
 const AchievementData = preload("res://core/schemas/achievement_data.gd")
 

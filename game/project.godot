@@ -77,6 +77,8 @@ AntiCheatService="*res://core/services/anticheat_service.gd"
 QuestService="*res://core/services/quest_service.gd"
 VaultService="*res://core/services/vault_service.gd"
 ScreenshotService="*res://core/services/screenshot_service.gd"
+AchievementService="*res://core/services/achievement_service.gd"
+TitleService="*res://core/services/title_service.gd"
 
 [display]
 

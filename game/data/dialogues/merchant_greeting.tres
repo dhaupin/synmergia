@@ -1,28 +1,24 @@
-[gd_resource type="Resource" script_class="DialogueData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="DialogueData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
-
-[sub_resource type="DialogueData$DialogueChoice" id="sub_1"]
-text = "Show me your wares."
-next_node = 1
-
-[sub_resource type="DialogueData$DialogueChoice" id="sub_2"]
-text = "Just passing through. Farewell."
-next_node = -1
-
-[sub_resource type="DialogueData$DialogueNode" id="sub_3"]
-speaker = "Merchant"
-text = "Welcome to my shop! I carry only the finest goods — weapons, armor, potions. Take a look around."
-choices = [SubResource("sub_1"), SubResource("sub_2")]
-
-[sub_resource type="DialogueData$DialogueNode" id="sub_4"]
-speaker = "Merchant"
-text = "Here, browse at your leisure. I also buy unwanted items at fair prices."
-choices = []
 
 [resource]
 script = ExtResource("1")
 id = "merchant_greeting"
 npc_id = "merchant_general_default"
 display_name = "Merchant Greeting"
-nodes = [SubResource("sub_3"), SubResource("sub_4")]
+nodes = [
+	{
+		"speaker": "Merchant",
+		"text": "Welcome to my shop! I carry only the finest goods — weapons, armor, potions. Take a look around.",
+		"choices": [
+			{"text": "Show me your wares.", "next_node": 1},
+			{"text": "Just passing through. Farewell.", "next_node": -1}
+		]
+	},
+	{
+		"speaker": "Merchant",
+		"text": "Here, browse at your leisure. I also buy unwanted items at fair prices.",
+		"choices": []
+	}
+]

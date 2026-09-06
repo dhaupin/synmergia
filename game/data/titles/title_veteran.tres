@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "veteran"
+display_name = "Veteran"
+description = "Reach level 50"
+prefix_form = "Veteran"
+suffix_form = "the veteran"
+category = 0
+rarity = 2
+unlock_method = 5
+unlock_source = ""
+is_account_title = false
+sort_order = 3
