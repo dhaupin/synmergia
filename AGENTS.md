@@ -55,23 +55,24 @@ extract to their own project.
 - **Service singletons** via autoload
 - **Frame primitives** in `/labs/`: NO autoload, NO `class_name`, NO GameManager dependency
 
-### AI Agent Guidelines
+### Working with Code
 
-**Editing Files:**
-- Shell commands and heredocs are buggy to edit with — prefer direct file edits
-- Pay close attention to indentations and check for unclosed statements
+**File Editing:**
+- Shell commands and heredocs can be problematic to edit programmatically — prefer direct file edits when possible
+- Pay close attention to indentation (GDScript uses tabs, not spaces)
+- Always check for unclosed braces, parentheses, and quotes
 
-**Code Quality:**
-- Use **tabs** in GDScript files (not spaces) — enforced by `.editorconfig`
-- **No UTF-8 special characters** in codebase (causes Godot import issues)
-- Mark unfinished work with `TODO` — helps track incomplete implementations
-- No legacy code, wrappers, or aliases — use current methods when available
+**Code Standards:**
+- Use **tabs** for indentation in GDScript files — `.editorconfig` enforces this
+- **No UTF-8 special characters** in the codebase — they cause Godot import issues
+- Use `TODO` comments for incomplete work or stubs
+- Avoid legacy code, wrappers, and aliases — use current methods when available
 
-**Work Style:**
-- Wire and integrate everything as you go — look for other code that needs the same wiring
-- **Work to completion** — avoid unfinished work or half-baked solutions
-- Use existing architecture, methodology, and systems — don't invent your own or go rogue
-- The system should act like a **cohesive unit**, not a scattered mess
+**Implementation:**
+- Wire and integrate features as you go — look for other code that could benefit from the same wiring
+- **Work to completion** — avoid leaving code in a half-baked or non-functional state
+- Use existing architecture, methodology, and systems — don't reinvent patterns or go rogue
+- The system should function as a **cohesive unit**, not a scattered collection of unrelated pieces
 
 ---
 
