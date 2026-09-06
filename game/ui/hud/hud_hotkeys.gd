@@ -100,6 +100,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_X:
 			_toggle_panel("transfer")
 			get_viewport().set_input_as_handled()
+		KEY_T:
+			_toggle_panel("titles")
+			get_viewport().set_input_as_handled()
 		KEY_TAB:
 			_handle_tab_cycling(k.shift_pressed)
 			get_viewport().set_input_as_handled()

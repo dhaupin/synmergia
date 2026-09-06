@@ -183,6 +183,11 @@ func _initialize_panels() -> void:
 	_transfer_panel.panel_closed.connect(_on_panel_closed.bind("transfer"))
 
 	# Dialog panel
+	_title_panel = preload("res://ui/components/title_ui.gd").new()
+	_title_panel.name = "TitleUI"
+	_title_panel.z_index = 500
+	add_child(_title_panel)
+
 	_dialog_panel = preload("res://ui/components/dialog_ui.gd").new()
 	_dialog_panel.name = "DialogUI"
 	_dialog_panel.z_index = 500
@@ -455,6 +460,7 @@ func _get_panel(menu_name: String) -> Control:
 		"bank": return _bank_panel
 		"blacksmith": return _blacksmith_panel
 		"skill_academy": return _skill_academy_panel
+		"titles": return _title_panel
 		"transfer": return _transfer_panel
 		"dialog": return _dialog_panel
 	return null
