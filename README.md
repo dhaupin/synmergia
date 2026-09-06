@@ -27,19 +27,19 @@ This isn't a auto-attack-and-wait game. Synmergia features **free-form action co
 
 - **Dodge, parry, interrupt, and chain skills mid-combat**
 - **Positioning matters** — flanking, terrain advantage, line-of-sight
-- **Skill combos** — certain sequences trigger bonus effects
-- **No tab-target lock** — aim and strike where you choose
+- **Skill combos** planned — chain abilities for bonus effects
+- **Hybrid targeting** — aim freely or tab-target nearby enemies
 - **Meaningful death** — lose your gear in PvP zones, respawn with strategy
 
 ### 🏪 Economy That Players Own
 
 Forget auction house bots and NPC vendors setting prices. In Synmergia, **the economy is built by players, for players**:
 
-- **Resources spawn in the world** — mines, forests, fishing spots scattered across continents
-- **Craft everything** — blacksmithing, alchemy, tailoring, and more
+- **Resources spawn in the world** — mines, forests, fishing spots scattered across the land
+- **Craft your gear** — blacksmithing with profession tiers, more crafting planned
 - **Player housing** — claim land, build your home, watch it persist
-- **Guild territories** — control resource nodes and levy taxes
-- **Legendary gear comes from players and world bosses** — not loot boxes
+- **Guild territories** — control resource nodes and shape the local economy
+- **Legendary gear from players and world bosses** — not loot boxes
 
 This is the sandbox economy you remember from Ultima Online, rebuilt for a modern audience.
 
@@ -76,39 +76,39 @@ Want to play with friends but can't find enough players? **AI agents can join yo
 ## Features At A Glance
 
 ### Combat & Progression
-- ✅ 18 player classes across 6 archetypes (Tank, DPS, Mage, Rogue, Bender, Healer)
-- ✅ 3 species with unique abilities (Akkan, Human, Synthetic)
-- ✅ Skill academy with upgradeable abilities and signature skills
-- ✅ Buff/debuff system with 11 dispel categories (magic, curse, poison, etc.)
-- ✅ Level 1-60 with 3 mastery tiers
+- 🎯 **18 planned classes** across 6 archetypes (Tank, DPS, Mage, Rogue, Bender, Healer)
+- 🧬 **3 species** with unique abilities (Akkan, Human, Synthetic)
+- 📚 **Skill academy** with upgradeable abilities and signature skills
+- 🛡️ **Buff/debuff system** with 11 dispel categories (magic, curse, poison, etc.)
+- ⬆️ **Level 1-60** progression with mastery tiers
 
 ### World & Exploration
-- ✅ Spherical planet world (20km radius for v1)
-- ✅ Procedural terrain and dungeon generation
-- ✅ Day/night cycle and dynamic world events
-- ✅ Multiple biome types (forest, plains, mountains, desert, swamp)
-- ✅ Dungeons, world bosses, and dynamic encounters
+- 🌍 **Persistent world** — spherical planet architecture in design
+- 🗺️ **Procedural generation** — terrain, dungeons, and resource placement planned
+- 🌅 **Day/night cycle** with dynamic world events
+- 🌲 **Multiple biomes** — forest, plains, mountains, desert, swamp, and more
+- ⚔️ **Dungeons, world bosses, and dynamic encounters** planned
 
 ### Economy & Crafting
-- ✅ Full crafting system with profession tiers
-- ✅ Player housing with persistence
-- ✅ Guild halls and territory control
-- ✅ Resource gathering and trading
-- ✅ Player-driven market economics
+- 🔨 **Crafting system** with profession tiers (blacksmithing and more planned)
+- 🏠 **Player housing** — claim land and build your home
+- 🏰 **Guild halls** and territory control planned
+- ⛏️ **Resource gathering** and player trading
+- 💰 **Player-driven market** — no auction house bot, prices set by players
 
 ### Social & Community
-- ✅ Guilds with ranks, permissions, and alliances
-- ✅ Party and raid systems with loot rules
-- ✅ Friends, ignore lists, and block features
-- ✅ Community voting and moderator progression
-- ✅ In-game mail and chat channels
+- ⚔️ **Guilds** with ranks, permissions, and alliance support
+- 👥 **Party and raid** systems with configurable loot rules
+- 👫 **Friends list** with ignore and block features
+- 🗳️ **Community governance** — player voting and moderator progression
+- 💬 **Chat channels** with range-based delivery
 
 ### PvP Systems
-- ✅ 5 zone PvP modes (Safe, Species, Faction, Free, Warzone)
-- ✅ Full loot and partial loot options
-- ✅ Guild war declarations
-- ✅ Arena and battlegrounds
-- ✅ Faction reputation and progression
+- 🗺️ **5 zone PvP modes** (Safe, Species, Faction, Free, Warzone)
+- 💀 **Full loot** in PvP zones — drop your gear on death
+- ⚔️ **Guild wars** with war declarations
+- 🏟️ **Arena combat** with organized rulesets
+- 🎖️ **Faction reputation** and progression
 
 ---
 
@@ -168,7 +168,7 @@ See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns.
 
 **Current Phase:** Pre-vertical-slice
 
-### Implemented
+### Implemented (In Code)
 - Combat math and entity-component system
 - Buff/aura framework with 11 dispel categories
 - Notification pipeline (toast, combat log, admin alerts)
