@@ -310,27 +310,71 @@ func _can_withdraw(player_id: String, vault_type: VaultType) -> bool:
 ## VAULT EXPANSION
 ## ============================================================================
 
+const EXPANSION_SLOTS_PER_STEP: int = 10
+const GOLD_COST_PER_SLOT: int = 1000  # 10 slots = 10,000 gold base
+
+signal vault_expanded(player_id: String, vault_type: VaultType, new_size: int)
+
 func expand_vault(player_id: String, vault_type: VaultType, slots: int) -> bool:
-	# TODO: Implement vault expansion (costs gold/gemstones)
 	var vault: Dictionary = _get_vault(player_id, vault_type)
 	if vault.is_empty():
 		return false
 
+	# Calculate cost
+	var cost: Dictionary = get_expansion_cost(vault_type, vault.get("size", 0))
+	var gold_cost: int = cost.get("gold") if cost.has("gold") else 0
+
+	# Check if player can afford it
+	if gold_cost > 0:
+		var player_gold: int = InventoryService.get_gold(player_id) if InventoryService else 0
+		if player_gold < gold_cost:
+			GameLog.warn("VaultService: Player %s cannot afford expansion (%d gold needed, %d owned)" % [player_id, gold_cost, player_gold])
+			return false
+
+		# Deduct gold
+		if InventoryService and not InventoryService.modify_gold(player_id, -gold_cost):
+			GameLog.warn("VaultService: Failed to deduct gold from player %s" % player_id)
+			return false
+
 	# Maximum expansion limits
+	var base_size: int = GUILD_VAULT_SIZE if vault_type == VaultType.GUILD else PERSONAL_VAULT_SIZE
 	var max_size: int = 500 if vault_type == VaultType.GUILD else 200
-	if vault.size + slots > max_size:
+	var current_size: int = vault.get("size", base_size)
+
+	if current_size + slots > max_size:
+		# Refund if can't expand to requested amount
+		if gold_cost > 0 and InventoryService:
+			InventoryService.modify_gold(player_id, gold_cost)
 		return false
 
-	vault.size += slots
+	# Expand vault
+	vault.size = current_size + slots
 	vault.expanded = true
 	_sync_vault(player_id, vault_type, vault)
+
+	vault_expanded.emit(player_id, vault_type, vault.size)
+	GameLog.info("VaultService: Player %s expanded vault to %d slots for %d gold" % [player_id, vault.size, gold_cost])
 	return true
 
 func get_expansion_cost(vault_type: VaultType, current_size: int) -> Dictionary:
-	# TODO: Calculate actual cost
+	var base_size: int = GUILD_VAULT_SIZE if vault_type == VaultType.GUILD else PERSONAL_VAULT_SIZE
+
+	# Each expansion step adds EXPANSION_SLOTS_PER_STEP slots
+	# Cost increases exponentially: base_cost * (1.5 ^ expansion_count)
+	var expansion_count: int = maxi(0, (current_size - base_size) / EXPANSION_SLOTS_PER_STEP)
+	var base_gold_cost: int = GOLD_COST_PER_SLOT * EXPANSION_SLOTS_PER_STEP
+
+	# Exponential scaling: each expansion costs 50% more than the previous
+	var gold_cost: float = base_gold_cost * pow(1.5, expansion_count)
+
+	# Cap at a reasonable maximum (10 million gold)
+	gold_cost = mini(gold_cost, 10000000)
+
 	return {
-		"gold": 10000 * (int((current_size - (GUILD_VAULT_SIZE if vault_type == VaultType.GUILD else PERSONAL_VAULT_SIZE)) / 10)),
-		"premium": 0
+		"gold": int(gold_cost),
+		"premium": 0,
+		"slots_offered": EXPANSION_SLOTS_PER_STEP,
+		"next_size": mini(current_size + EXPANSION_SLOTS_PER_STEP, 500 if vault_type == VaultType.GUILD else 200)
 	}
 
 ## ============================================================================
@@ -381,12 +425,16 @@ func _get_player_account_id(player_id: String) -> String:
 	return ""
 
 func _deduct_player_gold(player_id: String, amount: int) -> bool:
-	# TODO: Implement gold deduction from player
-	return true
+	if not InventoryService:
+		GameLog.warn("VaultService: InventoryService not available for gold deduction")
+		return false
+	return InventoryService.modify_gold(player_id, -amount)
 
 func _add_player_gold(player_id: String, amount: int) -> bool:
-	# TODO: Implement gold addition to player
-	return true
+	if not InventoryService:
+		GameLog.warn("VaultService: InventoryService not available for gold addition")
+		return false
+	return InventoryService.modify_gold(player_id, amount)
 
 ## ============================================================================
 ## PUBLIC API
