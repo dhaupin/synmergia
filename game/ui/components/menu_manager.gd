@@ -26,6 +26,7 @@ var _blacksmith_panel: Control
 var _skill_academy_panel: Control
 var _faction_panel: Control
 var _achievement_panel: Control
+var _title_panel: Control
 var _shop_panel: Control
 
 ## State
