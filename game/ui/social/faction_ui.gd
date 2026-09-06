@@ -1,74 +1,46 @@
 ## FactionUI - Faction reputation and war status display
 ## Shows player's faction standings, reputation, and war declarations
-extends Control
+extends UIPanel
 class_name FactionUI
-
 const UIStyles = preload("res://ui/components/ui_styles.gd")
-const UIPanel = preload("res://ui/components/ui_panel.gd")
 
-var _player_id: String = ""
 var _factions: Array = []
 var _selected_faction: Dictionary = {}
 
-signal panel_opened()
-signal panel_closed()
-
 func _ready() -> void:
-	name = "FactionUI"
-	visible = false
+	super._ready()
+	set_title("Factions")
+	set_panel_size(Vector2(500, 400))
 	_setup_ui()
 
 func _setup_ui() -> void:
-	# Main container
-	var vbox := VBoxContainer.new()
-	vbox.name = "VBox"
-	add_child(vbox)
+	var panel := get_panel()
+	if not panel:
+		return
 
-	# Header
-	var header := Label.new()
-	header.text = "Factions"
-	header.add_theme_font_size_override("font_size", 18)
-	vbox.add_child(header)
+	var main: VBoxContainer = panel.get_node_or_null("Main")
+	if not main:
+		return
 
 	# Faction list (scrollable)
 	var scroll := ScrollContainer.new()
 	scroll.name = "FactionScroll"
 	scroll.custom_minimum_size.y = 300
-	vbox.add_child(scroll)
+	main.add_child(scroll)
 
 	var list := VBoxContainer.new()
 	list.name = "FactionList"
+	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list)
 
-	# Close button
-	var close_btn := Button.new()
-	close_btn.text = "Close"
-	close_btn.pressed.connect(close)
-	vbox.add_child(close_btn)
-
-func open(panel_id: String = "") -> void:
-	visible = true
-	panel_opened.emit()
+func _on_open() -> void:
 	_refresh_factions()
-
-func close() -> void:
-	visible = false
-	panel_closed.emit()
-
-func toggle(panel_id: String = "") -> void:
-	if visible:
-		close()
-	else:
-		open(panel_id)
-
-func is_open() -> bool:
-	return visible
 
 func _refresh_factions() -> void:
 	if not FactionManager:
 		return
 	
-	var list: VBoxContainer = get_node_or_null("VBox/FactionScroll/FactionList")
+	var list: VBoxContainer = get_node_or_null("Panel/Main/FactionScroll/FactionList")
 	if not list:
 		return
 	
