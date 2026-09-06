@@ -6,6 +6,8 @@
 
 See the [PRD](./prd.md) for the product spec and the world-building docs for technical architecture.
 
+> **Deployment:** For Docker deployment and operations, see [`DEPLOY.md`](../DEPLOY.md) at the project root.
+
 ## Directory Structure
 
 ```
@@ -33,6 +35,7 @@ labs/
 | [`world-building-arch.md`](./world-building-arch.md) | Systems architecture — how it fits together |
 | [`world-building-tick.md`](./world-building-tick.md) | Server tick model |
 | [`world-building-risks.md`](./world-building-risks.md) | Risks and mitigations |
+| [`DEPLOY.md`](../DEPLOY.md) | Docker deployment and operations |
 
 ## The Frame
 
