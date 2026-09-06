@@ -481,7 +481,7 @@ Autoloads are singleton services available globally. The naming convention is:
 |--------|------|---------|
 | Filename | `snake_case.gd` | `notification_service.gd` |
 | Autoload name | `PascalCase` | `NotificationService` |
-| class_name | **Only for non-autoloads** | (none for autoloads) |
+| class_name | Optional (some autoloads have it) | `QoSService` has it |
 
 ### Accessing Autoloads
 
@@ -513,13 +513,13 @@ class_name AchievementService
 func process_achievement(service: AchievementService) -> void:
     pass
 
-# WRONG: class_name on an autoload (it's already a singleton!)
-class_name NotificationService  # ✗ Confuses agents into trying .new()
+# Some autoloads DO have class_name (needed for identifier resolution)
+# Just don't try to .new() them — they're already instantiated
 ```
 
 ### Key Rules
 
 1. **Autoloads are singletons** — accessed by name, never instantiated
-2. **No `class_name` on autoloads** — it causes confusion
+2. **Autoloads may need `class_name`** — some code uses the autoload name as a type identifier (e.g., `if service is QoSService`)
 3. **`class_name` only for classes you `new()` or use for typing**
 4. **Filename ≠ class name** — `notification_service.gd` has autoload `NotificationService`, not `NotificationServiceService`
