@@ -48,11 +48,16 @@ open http://localhost                # HTTP (if nginx running)
 ### Start Production Server
 
 ```bash
-# Set production environment
-export START_MODE=prod
-export POSTGRES_PASSWORD=your_secure_password
-export JWT_SECRET=your_jwt_secret
-export DOMAIN=play.example.com
+# Clone and create .env file (see Environment Variables section for full list)
+git clone https://github.com/dhaupin/synmergia.git
+cd synmergia
+cat > .env << 'EOF'
+START_MODE=prod
+POSTGRES_PASSWORD=$(openssl rand -base64 32)
+JWT_SECRET=$(openssl rand -base64 64)
+DOMAIN=play.example.com
+CERT_EMAIL=admin@example.com
+EOF
 
 # Start with PostgreSQL and Redis
 docker compose --profile prod up --build -d
@@ -137,9 +142,10 @@ godot --editor game/
 # Or run headless server
 godot --headless --path game/
 
-# Run smoke tests
-for test in game/tests/test_*.gd; do
-    godot --headless --path game/ --script "res://$(basename $test)"
+# Run smoke tests (inside the game/ directory)
+cd game
+for test in tests/test_*.gd; do
+    godot --headless --path . --script "res://$test"
 done
 ```
 
@@ -202,9 +208,8 @@ cat > .env << 'EOF'
 START_MODE=prod
 GODOT_PORT=9000
 
-# Generate secure passwords
+# Generate secure password for PostgreSQL
 POSTGRES_PASSWORD=$(openssl rand -base64 32)
-REDIS_PASSWORD=$(openssl rand -base64 32)
 
 # JWT Secret - generate a strong random string
 JWT_SECRET=$(openssl rand -base64 64)
@@ -213,7 +218,7 @@ JWT_SECRET=$(openssl rand -base64 64)
 DOMAIN=play.example.com
 CERT_EMAIL=admin@example.com
 
-# Redis
+# Redis (no password in current setup)
 REDIS_HOST=redis
 REDIS_ENABLED=true
 EOF
@@ -329,11 +334,15 @@ docker compose logs --tail 100 synmergia
 
 ### Volumes
 
-| Volume | Host Path | Purpose |
-|--------|-----------|---------|
-| `synmergia-data` | `/var/lib/synmergia` | Game data |
-| `postgres-data` | `/var/lib/postgresql/data` | Database |
-| `redis-data` | `/data` | Cache |
+| Volume | Purpose |
+|--------|---------|
+| `synmergia_synmergia-data` | Game data (`/var/lib/synmergia`) |
+| `synmergia_postgres-data` | PostgreSQL database |
+| `synmergia_redis-data` | Redis cache |
+| `synmergia_nginx-html` | Let's Encrypt webroot |
+
+To list volumes: `docker volume ls | grep synmergia`
+To inspect a volume: `docker volume inspect synmergia_postgres-data`
 
 ### Ports
 
@@ -650,15 +659,29 @@ Current architecture is single-shard. For horizontal scaling:
 
 ### Database Optimization
 
-```sql
--- PostgreSQL tuning (postgresql.conf)
-max_connections = 100
-shared_buffers = 2GB
-effective_cache_size = 6GB
-maintenance_work_mem = 512MB
+For Docker Compose with the PostgreSQL image, create a custom configuration:
+
+```bash
+# Create postgresql.conf
+echo "max_connections = 100
+shared_buffers = 256MB
+effective_cache_size = 1GB
+maintenance_work_mem = 128MB
 wal_buffers = 16MB
-checkpoint_completion_target = 0.9
+checkpoint_completion_target = 0.9" > postgres.conf
 ```
+
+Then mount it in docker-compose.yml:
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    volumes:
+      - ./postgres.conf:/etc/postgresql/postgresql.conf:ro
+```
+
+> **Note:** Values above are conservative for a single-server setup. Adjust based on available RAM (shared_buffers = 25% of RAM is a common starting point).
 
 ---
 
@@ -706,8 +729,11 @@ docker compose exec synmergia godot --headless --path /workspace/project/game --
 # Stop all services
 docker compose stop
 
-# Verify PostgreSQL
-docker compose exec postgres pg_verify_checksums -D /var/lib/postgresql/data
+# Verify PostgreSQL data integrity
+docker compose exec postgres psql -U synmergia -d synmergia -c "SELECT 1"
+
+# Check PostgreSQL logs for corruption
+docker compose logs postgres | grep -i error
 
 # Rebuild from backup
 # See Backup & Restore section
@@ -733,7 +759,7 @@ docker compose logs --tail 100 nginx | grep -i websocket
 | `address already in use` | Stop other service on port or change `GODOT_PORT` |
 | `connection refused` | Check PostgreSQL/Redis are running: `docker compose ps` |
 | `SSL handshake failed` | Install valid SSL certificate or accept self-signed |
-| `permission denied` | Check volume permissions: `sudo chown -R 1000:1000 ./data` |
+| `permission denied` | Check volume permissions: `sudo chown -R $(id -u):$(id -g) ./game ./labs` |
 
 ---
 
