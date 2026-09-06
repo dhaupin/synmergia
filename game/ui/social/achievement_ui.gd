@@ -1,46 +1,39 @@
 ## AchievementUI - Achievement display and progress tracking
-extends Control
+extends UIPanel
 class_name AchievementUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const AchievementData = preload("res://core/schemas/achievement_data.gd")
 
-var _player_id: String = ""
 var _achievement_defs: Dictionary = {}
 var _current_category: int = -1  # -1 = all categories
 var _category_buttons: Array[Button] = []
 
-signal panel_opened()
-signal panel_closed()
-
 func _ready() -> void:
-	name = "AchievementUI"
-	visible = false
+	super._ready()
+	set_title("Achievements")
+	set_panel_size(Vector2(500, 450))
 	_setup_ui()
 	_bind_signals()
 
 func _setup_ui() -> void:
-	var vbox := VBoxContainer.new()
-	vbox.name = "VBox"
-	add_child(vbox)
+	var panel := get_panel()
+	if not panel:
+		return
 
-	# Header
-	var header := Label.new()
-	header.name = "Header"
-	header.text = "Achievements"
-	header.add_theme_font_size_override("font_size", 18)
-	header.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-	vbox.add_child(header)
+	var main: VBoxContainer = panel.get_node_or_null("Main")
+	if not main:
+		return
 
 	# Stats
 	var stats := Label.new()
 	stats.name = "Stats"
 	stats.text = "Unlocked: 0 / 0"
-	vbox.add_child(stats)
+	main.add_child(stats)
 
 	# Category filter buttons
 	var filter_hbox := HBoxContainer.new()
 	filter_hbox.name = "FilterBar"
-	vbox.add_child(filter_hbox)
+	main.add_child(filter_hbox)
 
 	var categories := [
 		{"id": -1, "name": "All"},
@@ -65,18 +58,12 @@ func _setup_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.name = "AchievementScroll"
 	scroll.custom_minimum_size.y = 350
-	vbox.add_child(scroll)
+	main.add_child(scroll)
 
 	var list := VBoxContainer.new()
 	list.name = "AchievementList"
 	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list)
-
-	# Close button
-	var close_btn := Button.new()
-	close_btn.text = "Close"
-	close_btn.pressed.connect(close)
-	vbox.add_child(close_btn)
 
 func _on_category_selected(category: int) -> void:
 	_current_category = category
@@ -102,29 +89,9 @@ func _on_achievement_progressed(player_id: String, achievement_id: String, progr
 		return
 	_refresh_achievements()
 
-func open(panel_id: String = "") -> void:
-	visible = true
-	panel_opened.emit()
+func _on_open() -> void:
 	_load_achievement_definitions()
 	_refresh_achievements()
-
-func close() -> void:
-	visible = false
-	panel_closed.emit()
-
-func toggle(panel_id: String = "") -> void:
-	if visible:
-		close()
-	else:
-		open(panel_id)
-
-func is_open() -> bool:
-	return visible
-
-func set_player_id(player_id: String) -> void:
-	_player_id = player_id
-	if visible:
-		_refresh_achievements()
 
 func _load_achievement_definitions() -> void:
 	var root := get_tree().root if get_tree() else null
@@ -149,7 +116,7 @@ func _get_player_progress(achievement_id: String) -> Dictionary:
 	return {"progress": 0.0, "unlocked": false}
 
 func _refresh_achievements() -> void:
-	var list: VBoxContainer = get_node_or_null("VBox/AchievementScroll/AchievementList")
+	var list: VBoxContainer = get_node_or_null("Panel/Main/AchievementScroll/AchievementList")
 	if not list:
 		return
 
@@ -271,6 +238,6 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 	return panel
 
 func _update_stats(unlocked: int, total: int) -> void:
-	var stats: Label = get_node_or_null("VBox/Stats")
+	var stats: Label = get_node_or_null("Panel/Main/Stats")
 	if stats:
 		stats.text = "Unlocked: %d / %d" % [unlocked, total]
