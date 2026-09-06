@@ -2,15 +2,12 @@
 ## Handles spawn points, respawn timers, spawn caps, and dynamic spawning
 extends Node
 const Faction = preload("res://core/schemas/faction.gd")
-const Entity = preload("res://core/entities/entity.gd")
-
-
-
-const NPCEntity = preload("res://core/entities/npc_entity.gd")
+const NPCData = preload("res://core/schemas/npc_data.gd")
 const ZoneData = preload("res://core/schemas/zone_data.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
-const NPCData = preload("res://core/schemas/npc_data.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
+const Entity = preload("res://core/entities/entity.gd")
+const NPCEntity = preload("res://core/entities/npc_entity.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
 

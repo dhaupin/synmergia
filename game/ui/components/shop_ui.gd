@@ -6,11 +6,11 @@ extends UIPanel
 class_name ShopUI
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
-const UIPanel = preload("res://ui/components/ui_panel.gd")
+
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const VendorService = preload("res://core/services/vendor_service.gd")
-const InventoryService = preload("res://core/services/inventory_service.gd")
+
 
 ## Static instance — one shop at a time
 static var _instance: ShopUI = null
@@ -20,7 +20,6 @@ static func get_instance() -> ShopUI:
 ## Session state
 var _offering: Resource = null
 var _npc_data: Resource = null
-var _player_id: String = ""
 var _npc_position: Vector3 = Vector3.ZERO
 var _proximity_enabled: bool = false
 
@@ -312,11 +311,12 @@ func _refresh_grid() -> void:
 			icon.texture = _load_item_icon(item)
 			icon.visible = true
 		if qty:
-			var stack: int = entry.get("quantity", entry.get("stock", 1))
+			var stack: int = entry.get("quantity") if entry.has("quantity") else (entry.get("stock") if entry.has("stock") else 1)
 			qty.text = str(stack) if stack > 1 else ""
 			qty.visible = (stack > 1)
 
-		slot.gui_input.disconnect("_on_slot_input")
+		if slot.gui_input.is_connected(_on_slot_input):
+			slot.gui_input.disconnect(_on_slot_input)
 		slot.gui_input.connect(_on_slot_input.bind(slot_idx, _current_tab))
 		slot_idx += 1
 
@@ -336,15 +336,15 @@ func _refresh_info() -> void:
 	if item == null:
 		return
 
-	var name: String = item.get("display_name", "Unknown")
-	var price: int = entry.get("price", 0)
+	var name: String = item.get("display_name") if item.has("display_name") else "Unknown"
+	var price: int = entry.get("price") if entry.has("price") else 0
 	var qty: int = _qty_spin.value if _qty_spin else 1
 	var total: int = price * qty
 
 	if _selected_type == Tab.BUY:
 		_info_label.text = "%s — %d gold each (total: %d)" % [name, price, total]
 	else:
-		var owned: int = entry.get("quantity", 1)
+		var owned: int = entry.get("quantity") if entry.has("quantity") else 1
 		_info_label.text = "%s — %d gold each (you have %d, total: %d)" % [name, price, owned, total]
 
 
@@ -353,7 +353,7 @@ func _refresh_gold() -> void:
 		_gold_label.text = "0"
 		return
 	if InventoryService:
-		var gold: int = InventoryService.get_gold(_player_id)
+		var gold: int = InventoryService.get_instance().get_gold(_player_id)
 		_gold_label.text = str(gold)
 	else:
 		_gold_label.text = "0"
@@ -448,7 +448,7 @@ func _select_slot(index: int, tab: Tab) -> void:
 
 	# Update qty spin max
 	var entry: Dictionary = items[index]
-	var max_qty: int = entry.get("quantity", entry.get("stock", 1))
+	var max_qty: int = entry.get("quantity") if entry.has("quantity") else (entry.get("stock") if entry.has("stock") else 1)
 	if _qty_spin:
 		_qty_spin.max_value = max_qty
 		_qty_spin.value = mini(_qty_spin.value, max_qty)
@@ -480,12 +480,12 @@ func _on_buy_pressed() -> void:
 	var qty: int = int(_qty_spin.value) if _qty_spin else 1
 	var result: Dictionary = svc.buy_item(_player_id, _offering, _npc_data, item.id, qty)
 	if result.get("success"):
-		show_notification(result.get("message", "Purchased!"))
+		show_notification(result.get("message") if result.has("message") else "Purchased!")
 		_load_catalog()
 		_refresh_grid()
 		_refresh_gold()
 	else:
-		show_notification(result.get("message", "Purchase failed"), false)
+		show_notification(result.get("message") if result.has("message") else "Purchase failed", false)
 
 
 func _on_sell_pressed() -> void:
@@ -506,15 +506,15 @@ func _on_sell_pressed() -> void:
 		return
 
 	var qty: int = int(_qty_spin.value) if _qty_spin else 1
-	var slot: int = entry.get("slot", 0)
+	var slot: int = entry.get("slot") if entry.has("slot") else 0
 	var result: Dictionary = svc.sell_item(_player_id, _offering, _npc_data, item.id, slot, qty)
 	if result.get("success"):
-		show_notification(result.get("message", "Sold!"))
+		show_notification(result.get("message") if result.has("message") else "Sold!")
 		_load_sellable()
 		_refresh_grid()
 		_refresh_gold()
 	else:
-		show_notification(result.get("message", "Sale failed"), false)
+		show_notification(result.get("message") if result.has("message") else "Sale failed", false)
 
 
 func _on_leave_pressed() -> void:

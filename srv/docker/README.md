@@ -51,7 +51,12 @@ TEST_FILTER=notification GODOT=godot ./docker/test-headless.sh
 | `test_hud_integration.gd` | HudIntegrator handlers, CombatLog |
 | `test_login_flow.gd` | Account + login + character flow |
 | `test_islands.gd` | Core island logic (island_poc.gd) |
+| `test_e2e_flow.gd` | End-to-end account flow |
+| `test_notif_migration_chat.gd` | Notification migration: chat |
+| `test_notif_migration_death.gd` | Notification migration: death |
+| `test_notif_migration_quest.gd` | Notification migration: quest |
+| `test_notif_migration_server_manager.gd` | Notification migration: server manager |
 
-**Total: ~47 cases across 6 test files.**
+**Total: 12 test files (~90+ cases).** Entry point runs all `test_*.gd` files.
 
 Exit codes: `0` = all pass, `1` = one or more failed, `2` = Godot not found / error.

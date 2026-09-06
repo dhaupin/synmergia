@@ -1,4 +1,4 @@
-# Synmergia —” Systems Architecture
+# Synmergia -- Systems Architecture
 
 > **The bridge.** This doc sits between the spec
 > ([`world-building.md`](./world-building.md),

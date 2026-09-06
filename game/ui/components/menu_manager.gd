@@ -95,13 +95,13 @@ func _initialize_panels() -> void:
 	add_child(_chat_panel)
 
 	# Inventory panel
-	_inventory_panel = InventoryUI.new()
+	_inventory_panel = load("res://ui/components/inventory_ui.gd").new()
 	_inventory_panel.name = "InventoryUI"
 	_inventory_panel.z_index = 500
 	add_child(_inventory_panel)
 
 	# Character stats panel
-	_character_panel = CharacterPanel.new()
+	_character_panel = load("res://ui/components/character_panel.gd").new()
 	_character_panel.name = "CharacterStatsUI"
 	_character_panel.z_index = 500
 	add_child(_character_panel)
@@ -414,7 +414,7 @@ func _close_top_menu_internal() -> void:
 	if _open_panels.is_empty():
 		return
 	var top: String = _open_panels[-1]
-	var panel: Control = _get_panel_by_name(top)
+	var panel: Control = _get_panel(top)
 	if panel:
 		_close_panel(top, panel)
 

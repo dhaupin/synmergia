@@ -4,7 +4,6 @@ extends UIPanel
 class_name InventoryUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
-const InventoryService = preload("res://core/services/inventory_service.gd")
 const Item = preload("res://core/schemas/item.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 

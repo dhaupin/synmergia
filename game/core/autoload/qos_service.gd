@@ -3,6 +3,10 @@
 extends Node
 class_name QoSService
 
+# NOTE: This is an autoload singleton. Use QoSService.rate_limit(...) directly.
+# Do NOT use QoSService.new() - autoloads are already instantiated.
+# See AGENTS.md "Autoloads" section for details.
+
 # Frame-level notification dispatch (see game/core/notifications/).
 # QoSService surfaces rate-limit and circuit-breaker events through the
 # typed-Kind pipeline. The dispatch goes through NotificationService.notify

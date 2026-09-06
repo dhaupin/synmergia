@@ -1,17 +1,20 @@
 # Synmergia — Open World MMORPG
 
-> **Status (2026-08-30):** Modernized to reflect the current
-> architecture (state tree, multi-iso orchestrator, content-hash
-> layer, predictive LOD) and the Track A / Track B plan. This
-> document lives in `labs/` because the architecture is
+> **Status (2026-09-05):** This PRD is the product spec.
+> Technical architecture details are in `/labs/` (source of truth):
+> `world-building.md` (full stack design), `world-building-arch.md`
+> (systems architecture), `world-building-tick.md` (tick model),
+> `world-building-risks.md` (risks), and the PRD specs (`prd-*.md`).
+> The frame (T3 substrate + scope engine + rules engine) is
+> documented in `world-building-arch.md` and the PRD specs.
+> This document lives in `labs/` because the architecture is
 > experimental; the game itself is in `game/`.
 
 > **Vision:** A 3D open-world MMORPG inspired by Risk Your Life 2
 > (RYL2) combat/action mechanics, infused with the depth and
-> player-driven economy of Ultima Online. Mobile-first
-> (Android/iOS), with PC support. Built on a reusable **frame**
-> (multi-iso orchestrator + state tree) that can be extracted to
-> its own project — see the Frame appendix.
+> player-driven economy of Ultima Online. Built on a reusable **frame**
+> (T3 content-hash substrate + scope engine + rules engine) that
+> can be extracted to its own project — see the Frame appendix.
 
 ---
 
@@ -21,37 +24,62 @@
 2. [Core Game Pillars](#2-core-game-pillars)
 3. [Combat Systems](#3-combat-systems)
 4. [World & Exploration](#4-world--exploration)
-5. [Player Systems](#5-player-systems)
-6. [Economy & Crafting](#6-economy--crafting)
-7. [Player Housing](#7-player-housing)
-8. [PvP Systems](#8-pvp-systems)
-9. [Social & Guild Systems](#9-social--guild-systems)
-10. [Technical Architecture](#10-technical-architecture)
-11. [Art & Audio Direction](#11-art--audio-direction)
-12. [Mobile Optimization](#12-mobile-optimization)
-13. [Phases & Milestones](#13-phases--milestones)
-14. [Open Questions](#14-open-questions)
+5. [UI Systems Overview](#5-ui-systems-overview)
+6. [Player Systems](#6-player-systems)
+7. [Economy & Crafting](#7-economy--crafting)
+8. [Player Housing](#8-player-housing)
+9. [PvP Systems](#9-pvp-systems)
+10. [Social & Guild Systems](#10-social--guild-systems)
+11. [Account & Server Systems](#11-account--server-systems)
+12. [Technical Architecture](#12-technical-architecture)
+13. [Data Schemas](#13-data-schemas)
+14. [Art & Audio Direction](#14-art--audio-direction)
+15. [Platform Support & Optimization](#15-platform-support--optimization)
+16. [Phases & Milestones](#16-phases--milestones)
+17. [Open Questions](#17-open-questions)
 
 ## Architecture documentation
 
-This PRD is the product spec. The architecture is in
-[`docs/architecture/`](../docs/architecture/) (in the
-`game/` subdirectory because it ships with the game):
+This PRD is the product spec. The technical architecture is in
+`/labs/` (source of truth):
 
-- [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md) — the multi-iso orchestrator (Part 1)
-- [`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md) — LOD + materialized + prediction (Part 2)
-- [`labs-organization.md`](../docs/architecture/labs-organization.md) — the `/labs/` convention
-- [`nsc9-honest-evaluation.md`](../docs/architecture/nsc9-honest-evaluation.md) — why the geometry is a layer, not a replacement
-- [`NEXT-AGENT-PICKUP.md`](../docs/architecture/NEXT-AGENT-PICKUP.md) — survival guide
+**Deployment & Operations:**
+- [`DEPLOY.md`](../DEPLOY.md) — Docker deployment, production setup, and operations
 
-Section 10 of this PRD links to these for the technical details.
+**World-building docs** (world + network + persistence design):
+- [`world-building.md`](./world-building.md) — full stack design
+- [`world-building-arch.md`](./world-building-arch.md) — systems architecture
+- [`world-building-tick.md`](./world-building-tick.md) — server tick model
+- [`world-building-risks.md`](./world-building-risks.md) — risks and mitigations
+- [`world-building-research.md`](./world-building-research.md) — experimental angles
+
+**PRD specs** (Phase 1 deliverables):
+- [`prd.md`](./prd.md) — this document
+- [`prd-t3-substrate.md`](./prd-t3-substrate.md) — T3 state tree spec
+- [`prd-seed-schema.md`](./prd-seed-schema.md) — seed schema
+- [`prd-state-schema.md`](./prd-state-schema.md) — state schema
+- [`prd-scope-engine.md`](./prd-scope-engine.md) — scope engine
+- [`prd-login-seed-chain.md`](./prd-login-seed-chain.md) — login + seed chain
+- [`prd-frame-authority.md`](./prd-frame-authority.md) — server authority
+- [`prd-critical-params.md`](./prd-critical-params.md) — critical params
+- [`prd-open-seed-ttl.md`](./prd-open-seed-ttl.md) — seed TTL
+- [`prd-manifest-backup.md`](./prd-manifest-backup.md) — manifest backup
+
+**Experimental** (in `/labs/`, kept for reference):
+- [`multi-iso/`](./multi-iso/) — multi-iso frame prototype
+- [`polyglot-ffi/`](./polyglot-ffi/) — FFI exploration
+- [`jolt-playground/`](./jolt-playground/) — Jolt physics experiments
+
+**Archived** (outdated, in `/labs/archive/`):
+- `/labs/archive/docs/architecture/` — previous architecture docs (may be stale)
 
 ---
 
 ## 1. Executive Summary
 
-**Synmergia** is a 3D open-world MMORPG targeting mobile
-(Android/iOS) with PC support. The game combines RYL2's
+**Synmergia** is a 3D open-world MMORPG starting browser-first
+(HTML5/wasm) with planned mobile (Android/iOS) and desktop
+(Windows, macOS, Linux) support. The game combines RYL2's
 fast-paced, free-form action combat with Ultima Online's depth
 of player-driven economy, housing, and world interaction.
 
@@ -60,29 +88,26 @@ Craft gear → Build houses → Participate in PvP → Repeat
 
 **Target Audience:**
 - MMORPG players who miss the depth of UO/EVE-era games
-- Mobile gamers who want console-quality action combat on the go
+- Players who want browser-based gaming without installs
 - Players who enjoy crafting, housing, and player economies
   over theme-park content
 
 **Competitive Landscape:**
 - Similar to: RYL2 (combat feel), UO (economy/housing), Black
   Desert (action combat), Albion Online (full loot PvP)
-- Differentiator: Mobile-first with full MMO depth, not a
-  stripped-down mobile port. Plus: a **reusable game frame**
-  (multi-iso orchestrator + state tree + content-hash layer) that
-  could be extracted to its own project, so other games can be
-  built on the same architecture.
+- Differentiator: Browser-first (HTML5/wasm) with full MMO
+  depth, not a stripped-down mobile port. Plus: a **reusable
+  game frame** (T3 content-hash substrate + scope engine + rules
+  engine) that could be extracted to its own project, so other
+  games can be built on the same architecture.
 
 **Development Approach:**
 - Agent-assisted development using LLMs for code generation
 - Incremental feature delivery with continuous integration
-- Godot 4.7.2 for cross-platform deployment
-- Two-track plan: **Track A** ships the game (state tree,
-  islands, save games, asset addressing, build pipeline);
-  **Track B** develops the frame (math primitives,
-  multi-iso orchestrator, materialized intersection, LOD,
-  prediction). See the [Frame appendix](#frame-appendix) and
-  [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md).
+- Godot 4.7.2 for cross-platform deployment (browser-first, then mobile/desktop)
+- See the [Frame appendix](#frame-appendix) and
+  [`world-building-arch.md`](./world-building-arch.md) for the
+  full architecture and development phases.
 
 ---
 
@@ -102,14 +127,15 @@ Player houses dot the landscape. Guilds control territories. Resources are finit
 ### 4. Risk vs Reward PvP ⚔️
 PvP zones offer better rewards but carry the risk of losing your gear. Full loot in designated zones. Guild wars shape server politics. Death has consequence.
 
-### 5. Mobile-First Quality 📱
-The same full experience on mobile as on PC. Touch controls designed for action combat, not afterthought keyboard mappings. Optimized for all device tiers.
+### 5. Browser-First Deployment 🌐
+Client runs in browser via Godot HTML5/wasm. Touch controls designed for action combat, keyboard/mouse on desktop. Optimized for all device tiers.
 
 ---
 
 ## 3. Combat Systems
 
-> **Lead:** This section defines the RYL2-inspired action combat with tab-targeting hybrid.
+> **Implemented:** Combat math, loot distribution, enemy spawning, respawn logic, and
+> death features are implemented. Action combat with tab-targeting hybrid is planned.
 
 ### 3.1 Movement
 
@@ -207,22 +233,72 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 
 - [ ] Level scaling within zones? → TBD (world scaling not planned for initial release)
 
+### 3.9 Buff/Aura System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Status Effects** | Unified buff/debuff/DoT/HoT system | Implemented |
+| **Effect Categories** | BUFF, DEBUFF, NEUTRAL | Implemented |
+| **Effect Types** | STAT_MODIFIER, HEALTH_MODIFIER, IMMUNITY, STEALTH, CONTROL, SPECIAL | Implemented |
+| **Control Types** | STUN, ROOT, SNARE, FEAR, SILENCE, KNOCKBACK, INCAPACITATE | Implemented |
+| **Stack Behaviors** | NONE (refresh), REFRESH, ADD, REPLACE | Implemented |
+| **Tick Behaviors** | INSTANT, DURATION, TICKED, TOGGLE | Implemented |
+| **Dispel Rules** | Magic, Curse, Poison, Physical, Holy, Shadow, Fire, Ice, Lightning, Arcane, Bleed | Implemented |
+
+See `core/entities/status_effect.gd`, `core/components/aura_component.gd`, `core/schemas/status_effect_data.gd`.
+
+### 3.10 Combat Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| **HealthComponent** | `core/components/health_component.gd` | Health, death, respawn |
+| **CombatComponent** | `core/components/combat_component.gd` | Combat state, skills, damage |
+| **AuraComponent** | `core/components/aura_component.gd` | Buff/debuff management (32 buff, 16 debuff max) |
+| **AggroComponent** | `core/components/aggro_component.gd` | Threat/aggro management |
+| **InventoryComponent** | `core/components/inventory_component.gd` | Item storage and equipment |
+
 ---
 
 ## 4. World & Exploration
 
-> **In Progress:** Terrain, zones, procedural generation, dungeons.
+> **Spherical planet** — The world is a sphere (planet radius 20km for v1).
+> One continent (~150 km²) contains all initial content. The rest is ocean.
+> Dungeons and some islands are instances. See [`world-building.md`](./world-building.md) §3.9 for the v1 world spec.
 
 ### 4.1 World Structure
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Main Continent** | Central hub zone with starter areas | P0 |
-| **Satellite Zones** | Surrounding islands/regions | P1 |
-| **Underworld** | Underground realm with unique content | P2 |
-| **Dimension Planes** | Instance realms for high-level content | P2 |
-| **Open Ocean** | Navigable water between continents | P2 |
-| **Seasonal Zones** | Rotate available zones (events) | P3 |
+**V1 World (Dev/Alpha/Beta):**
+
+| Feature | Description |
+|---------|-------------|
+| **Planet** | Spherical, radius 20km, surface ~5,000 km² |
+| **Continent** | ~150 km², centered on planet |
+| **Capital City** | At geographic center of continent, new players start here |
+| **Ocean** | Covers the rest of the planet (future boat/ship mechanics) |
+| **Instances** | Dungeons, PvP arena island, capital interior areas |
+
+**V1 Biome Layout** (within ~5km radius of capital):
+
+| Direction | Biome | Content |
+|-----------|-------|---------|
+| **North** | Forest | Tutorial zone, starter mobs |
+| **East** | Plains + Farmland | Starter quests, low-level mobs |
+| **South** | Lake + River | Fishing, water mobs |
+| **West** | Mountain Ridge | Mining, mid-level mobs |
+| **Coastline** | Harbor | Capital harbor district, fishing village, shipwright |
+
+**Near Capital:**
+- Dungeon entrance ~3km north (instance portal test)
+- PvP arena on small island ~6km offshore (instance portal test)
+
+**Future Scaling:**
+| Version | Planet Radius | Landmass |
+|---------|--------------|----------|
+| v1 (dev) | 20 km | 150 km² |
+| v2 (soft launch) | 100 km | ~3,000 km² |
+| v3 (full launch) | 1,000+ km | Full planet |
+
+See [`world-building.md`](./world-building.md) §3.9–3.12 for full world architecture.
 
 ### 4.2 Terrain Types
 
@@ -259,74 +335,228 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **Quest Generation** | Simple procedural quests (gather X, kill Y) | P2 |
 | **World Events** | Random spawns, world events | P2 |
 
-### 4.5 World Open Questions
+### 4.5 World Service
 
-- [ ] How large is the main continent? (RYL2 scale vs WoW scale?)
-- [ ] Instance vs open-world dungeons?
-- [ ] Server meshing for player density?
-- [ ] Loading screens between zones or seamless transitions?
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Day/Night Cycle** | 24-hour game time cycle | Implemented |
+| **World Time** | Configurable time multiplier for testing | Implemented |
+| **Gateways** | Portal systems for zone transitions | Implemented |
+| **World Events** | Scheduled world-wide events | Implemented |
+| **Procedural Seeds** | Deterministic world generation | Implemented |
+
+See `core/services/world_service.gd`.
+
+### 4.6 Zone & Instancing Model
+
+> **Full spec:** See [`world-building.md`](./world-building.md) §8 for zone model,
+> gateway transitions, and instance lifecycle.
+
+| Concept | Description |
+|---------|-------------|
+| **Seed** | Top-level container: world, shard, or instance |
+| **Region** | Geographic zone within a seed |
+| **Gateway** | Portal between regions or into instances |
+| **Instance** | Ephemeral per-group content (dungeons, arenas) |
+| **Zone Transition** | Player movement through gateways triggers loading |
+
+**Instance types:**
+- `open + instance` — Per-group, derived from `(parent_seed, instance_id)`
+- `frame + instance` — Computed per-frame (dynamic encounters)
+- Regen triggers on `instance_start`; state persisted to seed on `instance_end`
+
+### 4.7 Respawn System
+
+| Respawn Mode | Description | Status |
+|--------------|-------------|--------|
+| **TIMED** | Standard timed respawn | Implemented |
+| **ANKH** | Respawn at bound ankh (respawn point) | Implemented |
+| **REVIVE** | Resurrected by another player | Implemented |
+| **SELF_REVIVE** | Item/spell self-resurrect | Implemented |
+| **ARENA_TEAM** | Arena team respawn | Implemented |
+| **CONTESTED** | Fight for respawn control | Implemented |
+| **GATEWAY** | Respawn at zone gateway | Implemented |
+| **SAFE_ZONE** | Safe area respawn with invincibility | Implemented |
+
+See `core/services/respawn_service.gd` and `core/schemas/ankh.gd`.
 
 ---
 
-## 5. Player Systems
+## 5. UI Systems Overview
 
-> **In Progress:** Character creation, progression, classes, leveling.
+> **Pattern:** UI uses an Islands architecture where each panel is a `PackedScene`
+> with an `IslandPlaceholder` root, mounted by `IslandManager`. HUD widgets are
+> separate `UIWidget` instances for in-world overlays.
 
-### 5.1 Character Creation
+### 5.1 Authentication Flow
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Race Selection** | Human, Elf, Orc, Dwarf, custom? | P0 |
-| **Gender** | Male/Female/Other | P0 |
-| **Appearance** | Face, hair, skin tone, features | P0 |
-| **Starting Class** | Initial class choice | P0 |
-| **Bind Point** | Choose starting town as respawn | P0 |
+| Screen | File | Description |
+|--------|------|-------------|
+| **Login** | `ui/menus/login.gd` | Login/Register/Guest modes. PBKDF2 password hashing, rate limiting. |
+| **Lobby** | `ui/menus/lobby.gd` | Per-account character list. Play/Create/Delete/Logout actions. |
+| **Character Select** | `ui/menus/character_select.gd` | Species selection → Class selection → Name entry. |
 
-### 5.2 Class System
+See `core/services/login_service.gd` for auth logic.
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Base Classes** | Warrior, Mage, Rogue, Priest, Ranger | P0 |
-| **Hybrid Classes** | Paladin (Warrior/Priest), etc | P1 |
-| **Advanced Classes** | Tier 2/3 specialization | P1 |
-| **Class Skills** | 20-30 skills per class | P0 |
-| **Skill Trees** | Point allocation for specialization | P0 |
-| **Dual Class** | Play as two classes (limited) | P2 |
+### 5.2 Game Menus
 
-### 5.3 Leveling & Progression
+| Menu | File | Description |
+|------|------|-------------|
+| **Main Menu** | `ui/menus/main_menu.gd` | Entry point with Play/Settings/Quit |
+| **Character Stats** | `ui/components/character_stats_ui.gd` | Character sheet with stats display |
+| **Settings** | `ui/components/settings_panel.gd` | Audio, video, keybinds, accessibility |
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Experience System** | XP from kills, quests, exploration | P0 |
-| **Level Cap** | Starting cap, expandable | P0 |
-| **Skill Points** | Earn per level to unlock skills | P0 |
-| **Attribute Points** | Earn per level to boost stats | P0 |
-| **Death Penalty** | XP debt, reduced XP until recovered | P0 |
+### 5.3 HUD Elements
+
+| Element | File | Description |
+|---------|------|-------------|
+| **Action Bar** | `ui/components/action_bar.gd` | Skill hotbar with cooldowns |
+| **Buff Bar** | `ui/components/buff_bar.gd` | Active effects display (8 buff, 8 debuff slots) |
+| **Minimap** | `ui/components/minimap.gd` | Zone map with player position |
+| **World Map** | `ui/components/world_map.gd` | Full map view |
+| **Target Frame** | `ui/components/target_frame.gd` | Selected target display |
+| **Boss Health Bar** | `ui/components/boss_health_bar.gd` | Boss encounter UI |
+| **Cooldown Indicator** | `ui/components/cooldown_indicator.gd` | Skill cooldown display |
+| **Loading UI** | `ui/components/loading_ui.gd` | Loading screens |
+| **Combat Log** | `ui/components/combat_log.gd` | Scrolling combat/event feed |
+| **Action Menu** | `ui/components/action_menu.gd` | Right-click context menus |
+| **Tooltip Manager** | `ui/components/tooltip_manager.gd` | Unified tooltip system |
 
 ### 5.4 Inventory & Equipment
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Equipment Slots** | Head, Chest, Hands, Legs, Feet, Main Hand, Off Hand, Rings, Neck | P0 |
-| **Backpack** | Grid-based inventory (24-36 slots) | P0 |
-| **Bank** | Shared storage at towns | P0 |
-| **Bag System** | Expandable bags with more slots | P0 |
-| **Loot Filtering** | Auto-sort, stack similar items | P1 |
-| **Equipment Comparison** | Show stat diff when hovering new item | P0 |
+| Panel | File | Description |
+|-------|------|-------------|
+| **Inventory** | `ui/components/inventory_ui.gd` | Grid-based inventory with item icons |
+| **Bank/Vault** | `ui/components/bank_ui.gd` | Shared storage with withdraw/deposit |
+| **Trade** | `ui/social/trade_ui.gd` | Player-to-player trading |
+| **Shop** | `ui/components/shop_ui.gd` | Vendor buying/selling interface |
+| **Blacksmith** | `ui/components/blacksmith_ui.gd` | Item repair and upgrading |
 
-### 5.5 Player Open Questions
+### 5.5 Social Panels
 
-- [ ] How many levels? (50? 100?)
-- [ ] Free respec or paid? Limited respec?
-- [ ] Bind on pickup vs bind on equip?
+| Panel | File | Description |
+|-------|------|-------------|
+| **Friends List** | `ui/social/friends_list.gd` | Friends, requests, block/ignore |
+| **Guild UI** | `ui/social/guild_ui.gd` | Guild management, ranks, MOTD |
+| **Party UI** | `ui/social/party_ui.gd` | Party formation and management |
+| **Faction UI** | `ui/social/faction_ui.gd` | Faction reputation display |
+| **Achievement UI** | `ui/social/achievement_ui.gd` | Achievement tracking and display |
+| **Quest UI** | `ui/components/quest_ui.gd` | Quest tracking and objectives |
+| **Dialog UI** | `ui/components/dialog_ui.gd` | NPC conversation rendering |
+
+### 5.6 Admin Tools
+
+| Tool | File | Description |
+|------|------|-------------|
+| **Admin Dashboard** | `ui/admin/admin_dashboard.gd` | GM panel with commands, player list, terminal |
+| **Admin Toolbar** | `ui/admin/admin_toolbar.gd` | Quick admin actions toolbar |
+| **Admin Shell** | `core/admin/admin_shell.gd` | Command execution engine |
+
+### 5.7 Debug & Accessibility
+
+| Feature | File | Description |
+|---------|------|-------------|
+| **Debug Overlay** | `ui/components/debug_overlay.gd` | UI inspection (F11 toggle). Shows game state, hovered elements. |
+| **Colorblind Mode** | `settings_panel.gd` | Deuteranopia, Protanopia, Tritanopia support |
+| **UI Scaling** | `settings_panel.gd` | Adjustable UI element size |
+| **UIStyles** | `ui/components/ui_styles.gd` | Centralized theming (colors, fonts, styles) |
+
+### 5.8 Islands Architecture
+
+| Component | File | Description |
+|-----------|------|-------------|
+| **Island Manager** | `ui/islands/island_manager.gd` | Mounts/unmounts UI panels dynamically |
+| **Island Registry** | `ui/islands/island_registry.gd` | Static registry of available panels |
+| **Island Placeholder** | `ui/islands/island_placeholder.gd` | Root node for island scenes |
 
 ---
 
-## 6. Economy & Crafting
+## 6. Player Systems
 
-> **In Progress:** Resource gathering, crafting professions, player-driven economy.
+> **Implemented:** Character creation, species, classes, skill academy.
 
-### 6.1 Gathering System
+### 6.1 Species (Races)
+
+Three playable species implemented:
+
+| Species | Description | Stats Focus |
+|---------|-------------|-------------|
+| **Akkan** | Ancient beings with innate magical affinity | Magic, Wisdom |
+| **Human** | Versatile survivors of the eastern plains | Balanced, Vitality |
+| **Synthetic** | Constructed beings with technological roots | Agility, Endurance |
+
+See `game/data/species/` for implemented species.
+
+### 6.2 Class System
+
+18 classes across 3 species × 6 archetypes:
+
+| Archetype | Akkan | Human | Synthetic |
+|-----------|-------|-------|-----------|
+| **Tank** | Bulwark | Guardian | Warden |
+| **DD (Damage)** | Attacker | Warrior | Exploiter |
+| **Mage** | Rune | Sorcerer | Psion |
+| **Rogue** | Stalker | Marksman | Tracker |
+| **Bender** | Seer | Temporalist | Overclocker |
+| **Healer** | Shaman | Cleric | Conduit |
+
+Plus 3 GM classes (Akkan, Human, Synthetic) with `role = 0`.
+
+See `game/data/classes/` for implemented classes.
+
+### 6.3 Skill Academy
+
+Players unlock and upgrade skills via the Skill Academy:
+
+| Feature | Description |
+|---------|-------------|
+| **Upgradable Skills** | 6 skills per class, 5 upgrade tiers (common → mythic) |
+| **Signature Skills** | 3 non-upgradable abilities; unlock 1 at level 10 |
+| **First Signature** | FREE |
+| **Subsequent Changes** | 1000 gold |
+| **Skill Points** | 30 + (level × 2) points total |
+| **Upgrade Cost** | 1 skill point + 4 books of matching tier |
+| **Respec Cost** | 500 gold base + 20 gold per point spent |
+
+See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui.gd`.
+
+### 6.4 Leveling & Progression
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Experience System** | XP from kills, quests, exploration | P0 |
+| **Skill Academy** | Upgrade skills + select signature | Implemented |
+| **Death Penalty** | XP loss, item degradation | P0 |
+| **Respawn Service** | Respawn logic with bind points | Implemented |
+
+### 6.5 Inventory & Equipment
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Equipment Slots** | Head, Chest, Hands, Legs, Feet, Main Hand, Off Hand, Rings, Neck | Implemented |
+| **Inventory Service** | Grid-based inventory management | Implemented |
+| **Bank/Vault** | Shared storage at towns | Implemented |
+| **Bag System** | Expandable bags with more slots | P0 |
+| **Item Binding** | Bind on pickup, bind on equip | Implemented |
+| **Trade Service** | Player-to-player trading | Implemented |
+| **Blacksmith Service** | Item repair/upgrading | Implemented |
+
+See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`.
+
+### 6.6 Player Open Questions
+
+- [ ] Level cap expansion beyond initial cap?
+- [ ] Additional respec options for gold?
+- [ ] Crafted vs dropped item balance?
+
+---
+
+## 7. Economy & Crafting
+
+> **Partial Implementation:** Trade, vendor, and item degradation implemented.
+> Gathering and full crafting professions are planned.
+
+### 7.1 Gathering System
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -339,11 +569,11 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **Node Respawn** | Resources respawn after time | P0 |
 | **Rich Nodes** | Bonus loot chance from rare nodes | P1 |
 
-### 6.2 Crafting Professions
+### 7.2 Crafting Professions
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Blacksmithing** | Weapons, armor, metal goods | P0 |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Blacksmithing** | Weapons, armor, metal goods | Implemented (repair/upgrade) |
 | **Tailoring** | Cloth/leather armor | P0 |
 | **Alchemy** | Potions, elixirs, poisons | P0 |
 | **Enchanting** | Add magical properties to gear | P1 |
@@ -352,32 +582,37 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **Crafting Recipes** | Discovered or purchased | P0 |
 | **Crafting Quality** | Normal, Fine, Masterwork tiers | P0 |
 
-### 6.3 Player Economy
+See `core/services/blacksmith_service.gd` and `ui/components/blacksmith_ui.gd`.
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Currency** | Gold coin standard | P0 |
-| **Dropped Loot** | Items drop from mobs | P0 |
-| **Player Trading** | Direct trade between players | P0 |
+### 7.3 Player Economy
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Currency** | Gold coin standard | Implemented |
+| **Dropped Loot** | Items drop from mobs | Implemented |
+| **Player Trading** | Direct trade between players | Implemented |
+| **Vendor System** | NPC vendors buy/sell | Implemented |
+| **Item Degradation** | Gear loses durability, repairs needed | Implemented |
+| **Item Sinks** | Repairs, taxes, crafting costs | Implemented |
 | **Player Shops** | Rent vendor stalls in towns | P1 |
 | **Auction House** | Central marketplace (with tax) | P1 |
-| **Item Degradation** | Gear loses durability, repairs needed | P0 |
-| **Item Sinks** | Repairs, taxes, crafting costs | P0 |
-| **Player Merchants** | NPC merchants buy/sell | P0 |
 
-### 6.4 Economy Open Questions
+See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
+
+### 7.4 Economy Open Questions
 
 - [ ] Crafted vs dropped item balance?
 - [ ] Gold cap per player?
 - [ ] Real-money trading policy?
+- [ ] Full crafting professions timeline?
 
 ---
 
-## 7. Player Housing
+## 8. Player Housing
 
 > **In Progress:** Placement, customization, functionality.
 
-### 7.1 Housing Features
+### 8.1 Housing Features
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -390,7 +625,7 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **Teleport Home** | Easy recall to house | P1 |
 | **Guild Houses** | Shared guild housing | P2 |
 
-### 7.2 Housing Open Questions
+### 8.2 Housing Open Questions
 
 - [ ] Instanced vs shared world housing?
 - [ ] Housing demolition/relocation?
@@ -398,11 +633,11 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 
 ---
 
-## 8. PvP Systems
+## 9. PvP Systems
 
 > **In Progress:** Zone types, full loot, guild wars.
 
-### 8.1 Zone Types
+### 9.1 Zone Types
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -412,7 +647,7 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **Arena/PvP Battlegrounds** | Structured PvP content | P1 |
 | **Guild War System** | Declare war, territory control | P1 |
 
-### 8.2 Full Loot Mechanics
+### 9.2 Full Loot Mechanics
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -422,7 +657,7 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **PvP Kills Credit** | Last hit gets loot rights | P0 |
 | **Revenge System** | Kill a ganker for bonus loot | P1 |
 
-### 8.3 PvP Open Questions
+### 9.3 PvP Open Questions
 
 - [ ] Level bracket restrictions for PvP?
 - [ ] Karma/reputation system for PKers?
@@ -430,52 +665,217 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 
 ---
 
-## 9. Social & Guild Systems
+## 10. Social & Guild Systems
 
-### 9.1 Communication
+### 10.1 Communication
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Global Chat** | Shout to zone | P0 |
-| **Whisper/PM** | Private messaging | P0 |
-| **Party Chat** | Group-only chat | P0 |
-| **Guild Chat** | Guild-only chat | P0 |
-| **Local/NPC Interaction** | Click NPCs for dialogue | P0 |
-| **Emotes** | Social emotes | P1 |
+Implemented chat channels:
 
-### 9.2 Grouping
+| Channel | Description | Status |
+|---------|-------------|--------|
+| **SAY** | Local say | Implemented |
+| **WHISPER** | Private message | Implemented |
+| **YELL** | Large radius shout | Implemented |
+| **ZONE** | Zone-wide chat | Implemented |
+| **GLOBAL** | Server-wide chat | Implemented |
+| **PARTY** | Party chat | Implemented |
+| **GUILD** | Guild chat | Implemented |
+| **ALLIANCE** | Alliance chat | Implemented |
+| **TRADE** | Trade channel | Implemented |
+| **SYSTEM** | System messages | Implemented |
+| **EMOTE** | Social emotes | Implemented |
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Party Formation** | Invite, join, kick | P0 |
-| **Party Size** | Standard 5, raid 20? | P0 |
-| **Loot Distribution** | Free-for-all, round-robin, loot council | P0 |
+See `core/services/chat_service.gd` and `ui/components/chat_ui.gd`.
+
+### 10.2 Grouping
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Party Formation** | Invite, join, kick | Implemented |
+| **Party Size** | Standard 5, raid 20 | Implemented |
+| **Loot Distribution** | Free-for-all, round-robin, loot council | Implemented |
 | **Party Finder** | Automated group finder | P1 |
 | **Mentoring** | Higher level helps lower | P1 |
 
-### 9.3 Guilds
+See `core/services/party_service.gd` and `ui/social/party_ui.gd`.
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Guild Creation** | Form guild with name, tag | P0 |
-| **Guild Ranks** | Customizable roles/permissions | P0 |
-| **Guild Bank** | Shared storage | P0 |
+### 10.3 Friends & Social
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Friends List** | Add/remove friends, online status | Implemented |
+| **Friend Requests** | Send/accept/expire requests | Implemented |
+| **Block/Ignore** | Block or ignore players | Implemented |
+
+See `core/services/friends_service.gd` and `ui/social/friends_list.gd`.
+
+### 10.4 Guilds
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Guild Creation** | Form guild with name, tag | Implemented |
+| **Guild Ranks** | Customizable roles/permissions | Implemented |
+| **Guild Bank** | Shared storage | Implemented |
+| **Guild Chat** | Guild-only chat | Implemented |
+| **Guild Wars** | Declare on other guilds | Implemented |
 | **Guild Upgrades** | Guild hall, buffs, perks | P1 |
-| **Guild Wars** | Declare on other guilds | P1 |
 | **Alliance** | Multiple guilds allied | P2 |
+
+See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`.
+
+### 10.5 Achievements
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Achievement Tracking** | Track player achievements | Implemented |
+| **Achievement UI** | View and display achievements | Implemented |
+| **Achievement Popup** | In-game notification | Implemented |
+
+See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
+
+### 10.6 Social Open Questions
+
+- [ ] Party finder implementation?
+- [ ] Mentoring system?
+- [ ] Guild upgrades timeline?
+
+### 10.7 Faction System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Faction Reputation** | Player standing with each faction | Implemented |
+| **War Declarations** | Declare war on enemy factions | Implemented |
+| **Guild Alliances** | Guilds can ally with factions | Implemented |
+| **War Cooldowns** | 24-hour cooldown between war declarations | Implemented |
+| **War Costs** | 10,000 gold to declare war | Implemented |
+
+See `core/services/faction_manager.gd`.
+
+### 10.8 Death System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Death Penalties** | XP loss, item degradation | Implemented |
+| **Invincibility Frames** | Brief immunity after respawn | Implemented |
+| **Griefing Protection** | Protection from repeated kills | Implemented |
+| **Kill Streaks** | Track consecutive kills | Implemented |
+| **Death Statistics** | Track deaths by type (PvP/PvE) | Implemented |
+| **Revive System** | Player-to-player revival | Implemented |
+
+See `core/services/death_features.gd`.
+
+### 10.9 Fairness System
+
+> **Unique:** Synmergia treats AI agents and humans as equals with identical
+> capabilities and limits. No special privileges for either.
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Trust System** | 0.0-1.0 trust score per player | Implemented |
+| **Anti-Marathon** | Debuffs after 8+ hour sessions | Implemented |
+| **Anti-Bot Detection** | Behavioral analysis for automation | Implemented |
+| **Rate Limiting** | Per-action rate limits | Implemented |
+| **Consensus Voting** | Player-driven governance decisions | Planned |
+
+See `core/services/fairness_service.gd`.
+
+### 10.10 Quest System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Quest Tracking** | Track active quests and objectives | Implemented |
+| **Quest Acceptance** | Accept from NPCs | Implemented |
+| **Objective Types** | Kill, collect, interact, explore | Implemented |
+| **Quest Rewards** | Gold, XP, items | Implemented |
+| **Quest UI** | Display active/available quests | Implemented |
+
+See `core/services/quest_service.gd` and `ui/components/quest_ui.gd`.
+
+### 10.11 Dialogue System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **NPC Dialogue** | Branching conversation trees | Implemented |
+| **Dialogue Choices** | Player-selectable options | Implemented |
+| **Dialogue Data** | Load from `.tres` resources | Implemented |
+| **Dialogue UI** | Render conversations in-game | Implemented |
+
+See `core/services/dialog_service.gd`, `core/schemas/dialogue_data.gd`, and `ui/components/dialog_ui.gd`.
 
 ---
 
-## 10. Technical Architecture
+## 11. Account & Server Systems
 
-> **Decided (2026-08-30):** Godot 4.7.2 chosen for open source,
-> lightweight, no royalties, and strong 3D support. The
-> architecture is now four layers: **Godot client → Multi-iso
-> orchestrator → State tree (content-hash) → Postgres + cache**.
-> The frame is the orchestrator + state tree, liftable to its own
-> project.
+### 11.1 Account Management
 
-### 10.1 Engine Selection
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Account Creation** | Email/password registration | Implemented |
+| **Character Slots** | Up to 5 characters per account | Implemented |
+| **Character Transfer** | Same-account character transfers | Implemented |
+| **Account Settings** | Per-account configuration | Implemented |
+
+See `core/services/account_service.gd` and `core/services/same_account_transfer_service.gd`.
+
+### 11.2 Server Infrastructure
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Shard Management** | Multiple game shards/instances | Implemented |
+| **Server Manager** | Orchestrates game servers | Implemented |
+| **Login Service** | Authentication and session management | Implemented |
+| **Data Service** | Centralized data loading | Implemented |
+| **Connector Service** | Client connection handling | Implemented |
+
+See `core/services/shard_manager.gd`, `core/services/server_manager.gd`, `core/services/login_service.gd`.
+
+### 11.3 Anti-Cheat & Security
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Bot Detection** | Behavioral analysis for automation | Implemented |
+| **Macro Detection** | Pattern recognition for repeated actions | Implemented |
+| **Speed Hack Detection** | Movement velocity validation | Implemented |
+| **Anomaly Detection** | Statistical analysis of player behavior | Implemented |
+| **Player Banning** | Permanent and temporary bans | Implemented |
+
+See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
+
+### 11.4 Infrastructure Services
+
+| Service | Description | File |
+|---------|-------------|------|
+| **QoS Service** | Latency monitoring, rate limiting | `qos_service.gd` |
+| **Notification Service** | Toast notifications, alerts | `notification_service.gd` |
+| **Security Monitor** | Security event tracking | `security_service.gd` |
+| **Auto Response** | Automated moderation responses | `auto_response_service.gd` |
+| **Logger** | Centralized logging | `logger.gd` |
+
+---
+
+### 11.5 Agent Connectors
+
+> **Unique:** AI agents can play as characters with the same capabilities as humans.
+
+| Connector | Description | Status |
+|-----------|-------------|--------|
+| **MCP** | Model Context Protocol — standard interface for AI agents | Implemented |
+| **Vant** | Vant framework integration | Implemented |
+| **Webhook** | Webhook-based agent communication | Implemented |
+
+See `core/services/connector_service.gd` and `game/connectors/`.
+
+---
+
+## 12. Technical Architecture
+
+> **Updated 2026-09-05:** Godot 4.7.2 chosen for open source,
+> lightweight, no royalties, and strong 3D support. The frame is
+> T3 content-hash substrate + scope engine + rules engine (per
+> `world-building-arch.md`). The game is in `game/`, the frame
+> in `labs/multi-iso/`.
+
+### 12.1 Engine Selection
 
 | Option | Pros | Cons | Status |
 |--------|------|------|--------|
@@ -486,13 +886,14 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 **Key Godot Features Used:**
 - GDScript for game logic
 - Godot 4.x scene system (`.tscn`)
-- ENet for multiplayer
+- WebSocket for networking (browser + agent compatibility)
 - `var_to_bytes` / `bytes_to_var` for network serialization
 - Physics3D for collision
 - Headless server mode for dedicated servers
 - `@tool` scripts for editor-time content
+- HTML5/wasm export for browser deployment
 
-### 10.2 Client Architecture
+### 12.2 Client Architecture
 
 | Component | Description |
 |------------|-------------|
@@ -500,37 +901,42 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **UI (HUD / Widgets)** | Separate `UIWidget` base (sibling to UIPanel) for in-world overlays: health bar, target frame, buff bar. Not islands. |
 | **State (client side)** | The client holds a (possibly divergent) state tree, the same shape as the server's. Predicted inputs locally; reconciled by hash diff from server. |
 | **Rendering** | Standard Godot 3D pipeline. LOD on graphics is independent of LOD on state. |
-| **Input** | Touch-first (mobile), keyboard/mouse on PC. Both go through a unified action layer. |
+| **Input** | Touch, keyboard/mouse, and controller (planned). All go through a unified action layer. |
 
-### 10.3 Server Architecture
+### 12.3 Server Architecture
 
 | Component | Description | Priority |
 |-----------|-------------|----------|
-| **Auth Server** | Login, account creation | P0 |
+| **Auth Server** | Login, account creation with seed chain | P0 |
 | **Game Server** | Authoritative game world simulation | P0 |
-| **Multi-Iso Orchestrator** | Multi-dimensional state queries (spatial ∩ faction ∩ temporal ∩ social). The control plane for the state tree. See [`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md). | P0 |
-| **State Tree (content-hash)** | Each entity is a content-hashed node. Server tick = re-rooting the tree. Client sync = diff between hashes. See section 10.7. | P0 |
+| **T3 Substrate** | Content-hash tree primitive. Each entity is a content-hashed node. Server tick = re-rooting the tree. See [`world-building-arch.md`](./world-building-arch.md). | P0 |
+| **Scope Engine** | Hierarchy walker for world→shard→instance→player scopes. Resolves rules and values at scope boundaries. | P0 |
+| **Rules Engine** | Generic evaluator for behavior rules. | P0 |
 | **Snapshot Store (Postgres)** | `state_snapshots` table persists root hashes. Lazy load on restart. | P0 |
-| **Cache Layer (in-memory)** | LRU-backed materialized intersection tables for hot queries. See [`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md). | P0 |
+| **Cache Layer (in-memory)** | LRU-backed intersection cache for hot queries. See [`world-building-arch.md`](./world-building-arch.md). | P0 |
 | **Message Queue** | Handle real-time messages | P0 |
 | **Load Balancer** | Distribute players across servers | P0 |
 | **Anti-Cheat** | Server-side validation, hash-chain tick verification | P0 |
 | **CDN** | Asset distribution by content-hash | P1 |
 
-### 10.4 Networking
+See [`world-building-arch.md`](./world-building-arch.md) for the full frame architecture (substrate, scope engine, rules engine, spatial layer) and [`world-building-tick.md`](./world-building-tick.md) for the server tick model.
+
+### 12.4 Networking
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Protocol** | UDP for game state, TCP for reliable (auth, inventory) | P0 |
+| **Protocol** | WebSocket for browser + agent compatibility | P0 |
 | **Client Prediction** | Smooth movement despite latency | P0 |
 | **Server Reconciliation** | Rollback to known-good hash, apply patch | P0 |
 | **Lag Compensation** | Fair hit detection with latency | P0 |
 | **Interest Management** | Only sync nearby entities (use icosahedral adjacency) | P0 |
 | **Tick Rate** | Server update frequency (10-60 Hz) | P0 |
-| **State Diff (the new bit)** | Server sends root hash + diff, not full state. Bandwidth = O(diff size), not O(state size). | P0 |
+| **State Diff** | Server sends root hash + diff, not full state. Bandwidth = O(diff size), not O(state size). | P0 |
 | **P2P Entity Sync (optional)** | Nearby players gossip via hash-set reconciliation. Reduces server load. The "assimilation" piece. | P2 |
 
-### 10.5 Database Design
+See [`world-building.md`](./world-building.md) §10 for the full transport design.
+
+### 12.5 Database Design
 
 | Concern | Storage | Notes |
 |---------|---------|-------|
@@ -541,91 +947,42 @@ The same full experience on mobile as on PC. Touch controls designed for action 
 | **Item templates** | Content-hashed | Cross-shard dedup via hash equality. |
 | **Assets** | Content-hashed pck + CDN | Old clients can still find old assets on update. |
 
-### 10.6 The State Tree (the redis-like layer)
 
-This is the foundation of Track A Session A-3. The state tree is a
-content-addressed tree where:
+### 12.6 The T3 Substrate
 
-- Every node has a `hash` (SHA-256 of its serialized value)
-- Two systems with the same hash have the same subtree
-- `diff(old_root, new_root)` returns a list of `(path, new_hash, value)` entries
-- `apply_diff(root, diff)` returns the new root
-- Server tick = re-rooting the tree with new state
-- Client sync = `apply_diff(my_root, server_diff)` → new_root
+The frame's core primitive: a generic content-hash tree. Every
+node has a `hash` (SHA-256 of its serialized value). The frame
+extracts this into `labs/multi-iso/kv/t3.gd`.
 
-**Why this matters for the PRD**: every "interesting" state
-question ("is the player still alive?", "do we have this item
-template?", "is this region the same as yesterday?") becomes a
-hash equality check. The frame extracts this into
-`labs/multi-iso/kv/state_tree.gd`.
+See [`prd-t3-substrate.md`](./prd-t3-substrate.md) for the full spec.
 
-### 10.7 The Multi-Iso Orchestrator (the frame core)
+### 12.7 The Scope Engine
 
-A controller layer above the state tree. Multiple icosahedral
-"isos" (one per axis: spatial, factional, temporal, social) are
-projections of the same world. Multi-dimensional queries become
-intersections: `query(region, faction, time) =
-iso_spatial[region] ∩ iso_faction[faction] ∩ iso_temporal[time]`.
+Data-driven hierarchy walker. Resolves rules and values at scope
+boundaries (world→shard→instance→player). The frame extracts
+this into `labs/multi-iso/srv/scope.gd`.
 
-**Materialized intersection tables** (LRU cache) make the
-intersection O(1) for hot queries.
+See [`prd-scope-engine.md`](./prd-scope-engine.md) for the full spec.
 
-**LOD pyramid** (full / summary / cold / archived) lets inactive
-regions serialize and unload.
+### 12.8 The Rules Engine
 
-**Predictive prefetch** (Markov over temporal patterns)
-pre-loads regions before the player arrives.
+Generic behavior evaluator. Runs rules defined in the state tree
+against entities. Composes with the scope engine for per-scope
+rule overrides.
 
-**Fused mode** is the default: each entity's state record
-contains its axis coordinates. The geometry integrates with
-state, not a separate layer.
+See [`world-building-arch.md`](./world-building-arch.md) §5 for the rules engine design.
 
-Full design in
-[`multi-iso-frame.md`](../docs/architecture/multi-iso-frame.md)
-(Part 1) and
-[`multi-iso-lod-prediction.md`](../docs/architecture/multi-iso-lod-prediction.md)
-(Part 2).
-
-### 10.8 NSC-9 Reserved Space Identifiers
-
-Every entity has a 12-digit NSC-9 code that encodes its axis
-membership:
-
-```
-9-AAA-BBB-CCCCCC
-  │   │    └──── sequence within axis (16M)
-  │   └───────── axis reservation (1000 axes)
-  └───────────── facility
-```
-
-Axis ranges are administratively reserved:
-
-- `001-099` spatial
-- `100-199` factional
-- `200-299` temporal
-- `300-399` social
-- `400-499` game-specific
-- `500-999` free for new axes
-
-The barcode IS the multi-dimensional index. Two entities with the
-same NSC-9 code (within their axis) are the same entity.
-
-### 10.9 DevOps
+### 12.9 DevOps
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
 | **CI/CD Pipeline** | Automated builds, testing | P0 |
-
-> ⚠️ **Note:** CI is currently disabled
-> (`.github/workflows/godot-ci.yml.disabled`). Re-enable when a
-> playable slice exists. See `ROADMAP.md` → Phase 8: Launch
-> Readiness → "Enable CI/CD Pipeline".
 | **Server Hosting** | Cloud provider (AWS/GCP/Azure) | P0 |
 | **Monitoring** | Player counts, server health, intersection cache hit rate | P0 |
 | **Analytics** | Track player behavior, economy, prediction accuracy | P1 |
 | **Auto-scaling** | Respond to player load; prefetch more on scale-up | P1 |
 
-### 10.10 Three Tiers of Computation (the frame runtime)
+### 12.10 Three Tiers of Computation (the frame runtime)
 
 The frame can ship in three runtime tiers. The rule is: write
 the algorithm in the language that's best at the problem. The
@@ -664,9 +1021,53 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 11. Art & Audio Direction
+## 13. Data Schemas
 
-### 11.1 Visual Style
+> **Pattern:** Game data is defined in `.tres` Resource files loaded at runtime.
+> Schemas define the structure; data files provide the values.
+
+### 13.1 Core Schemas
+
+| Schema | File | Description |
+|--------|------|-------------|
+| **CharacterData** | `core/schemas/character_data.gd` | Player character state, stats, skills |
+| **CharacterClass** | `core/schemas/character_class.gd` | Class definitions with skill trees |
+| **Species** | `core/schemas/species.gd` | Species/race definitions with base stats |
+| **Item** | `core/schemas/item.gd` | Item templates with rarity, soulbound, stack |
+| **EnemyData** | `core/schemas/enemy_data.gd` | Enemy templates with stats, loot tables |
+| **NpcData** | `core/schemas/npc_data.gd` | NPC definitions for vendors, quest givers |
+| **QuestData** | `core/schemas/quest_data.gd` | Quest definitions with objectives, rewards |
+| **DialogueData** | `core/schemas/dialogue_data.gd` | NPC dialogue trees with choices |
+| **Faction** | `core/schemas/faction.gd` | Faction definitions with relationships |
+| **Skill** | `core/schemas/skill.gd` | Skill definitions with effects, costs |
+| **SkillBook** | `core/schemas/skill_book.gd` | Skill upgrade book definitions |
+| **StatusEffectData** | `core/schemas/status_effect_data.gd` | Buff/debuff templates |
+| **LootTable** | `core/schemas/loot_table.gd` | Loot drop probability tables |
+| **GatewayData** | `core/schemas/gateway_data.gd` | Portal/dungeon entrance definitions |
+| **DwellingData** | `core/schemas/dwelling_data.gd` | Player housing definitions |
+| **EventData** | `core/schemas/event_data.gd` | World event definitions |
+| **NpcOffering** | `core/schemas/npc_offering.gd` | Vendor inventory definitions |
+| **Ankh** | `core/schemas/ankh.gd` | Respawn point definitions |
+
+### 13.2 Agent Schemas
+
+| Schema | File | Description |
+|--------|------|-------------|
+| **AgentConnector** | `core/schemas/agent_connector.gd` | AI agent connection configuration |
+| **AgentAction** | `core/schemas/agent_action.gd` | Agent action definitions |
+
+### 13.3 Data Loading
+
+| Service | File | Description |
+|---------|------|-------------|
+| **DataService** | `core/services/data_service.gd` | Centralized resource loading |
+| **CharacterData** | `core/schemas/character_data.gd` | Provides `get_all_species()`, `load_species()`, `get_all_classes()` |
+
+---
+
+## 14. Art & Audio Direction
+
+### 14.1 Visual Style
 
 | Aspect | Description | Priority |
 |--------|-------------|----------|
@@ -677,7 +1078,7 @@ is incremental: profile, port, re-profile, ship.
 | **Environment Art** | Modular tilesets for buildings, terrain | P0 |
 | **VFX** | Spell effects, hit impacts | P0 |
 
-### 11.2 Quality Tiers
+### 14.2 Quality Tiers
 
 | Tier | Target Devices | Settings | Priority |
 |------|---------------|----------|----------|
@@ -686,7 +1087,7 @@ is incremental: profile, port, re-profile, ship.
 | **High** | Flagship phones, PC | Max quality | P0 |
 | **Ultra** | PC only | Maximum effects | P1 |
 
-### 11.3 Audio
+### 14.3 Audio
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -697,29 +1098,32 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 12. Mobile Optimization
+## 15. Platform Support & Optimization
 
-### 12.1 Touch Controls
+> Browser-first deployment (HTML5/wasm), with planned mobile (Android/iOS)
+> and desktop (Windows, macOS, Linux) support. Controller support planned.
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Virtual Joystick** | Left side, configurable opacity | P0 |
-| **Camera Control** | Right side drag to rotate | P0 |
-| **Skill Buttons** | Bottom of screen, customizable | P0 |
-| **Targeting** | Tap enemy to select | P0 |
+### 15.1 Input Methods
+
+| Input | Description | Status |
+|-------|-------------|--------|
+| **Touch** | Virtual joystick (left), camera drag (right), skill buttons | Planned |
+| **Keyboard/Mouse** | Standard WASD + mouse, hotbar | Planned |
+| **Controller** | Gamepad support (joystick, buttons, triggers) | Planned |
 | **Auto-Run** | Toggle for long travel | P1 |
-| **Gesture Support** | Double tap, long press | P1 |
+| **Gesture Support** | Double tap, long press on touch | P1 |
 
-### 12.2 UI Scaling
+### 15.2 UI Adaptation
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Screen Sizes** | Support phones and tablets | P0 |
+| **Screen Sizes** | Support phones, tablets, desktop monitors | P0 |
 | **Notch Handling** | Safe areas for modern phones | P0 |
 | **UI Scaling** | Adjustable UI element size | P1 |
 | **Colorblind Mode** | Accessibility options | P1 |
+| **Controller UI** | Controller-friendly navigation | P1 |
 
-### 12.3 Performance Targets
+### 15.3 Performance Targets
 
 | Metric | Target | Priority |
 |--------|--------|----------|
@@ -730,80 +1134,60 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 13. Phases & Milestones
+## 16. Phases & Milestones
 
-> **Modernized 2026-08-30:** Phases are now aligned with the
-> **Track A** (product) and **Track B** (frame research) plan in
-> [`NEXT-AGENT-PICKUP.md`](../docs/architecture/NEXT-AGENT-PICKUP.md).
-> Track A ships the game. Track B develops the frame in parallel.
+> **Updated 2026-09-05:** Phases reflect the current state
+> based on source-of-truth docs in `/labs/`. The frame
+> architecture is T3 substrate + scope engine + rules engine
+> (per `world-building-arch.md`). PRD specs in `/labs/prd-*.md`
+> define the implementation details per phase.
 
 ### Phase 0: Foundation ✅ COMPLETE
-- [x] Complete PRD
+- [x] Complete PRD (`prd.md`)
 - [x] Choose engine (Godot 4.7.2)
 - [x] Set up dev environment
 - [x] Architecture decisions (services, components, .tres)
-- [x] Initial combat/skill systems implemented
-- [x] ROADMAP.md created for tracking
-- [x] AGENTS.md conventions
-
-### Phase 0.5: UI Modernization + Islands POC ✅ COMPLETE
-- [x] UIPanel migration (commit `d25ad67`)
-- [x] Islands POC shipped (commit `3e942bb`)
-- [x] 19/19 islands tests passing
-- [x] NEXT-AGENT-PICKUP doc for crash survival
-- [x] Multi-iso orchestrator design (Part 1 + Part 2)
+- [x] 38 services implemented in `game/core/services/`
+- [x] AGENTS.md conventions for AI agents
 - [x] `/labs/` directory convention (frame staging area)
-- [x] Modernized PRD (this file)
 
-### Phase 0.6: Cleanup 🔄 IN PROGRESS
-- [ ] Fix pre-existing parse errors project-wide
-- [ ] Replace `GameConfig.*` with `_get_config_*` helpers
-- [ ] Add static shims for autoloads with `class_name`
-- [ ] Clean lint warnings
-- [ ] Add `.uid` and `tools/` to `.gitignore` (mostly done)
-- [ ] Fix `inventory_component.gd` unindent
-- [ ] Create separate `UIWidget` base for HUD/widgets
+### Phase 1: Frame Foundation ✅ COMPLETE
+- [x] UI Modernization + Islands POC
+- [x] UIPanel → Islands migration
+- [x] Multi-iso orchestrator design documented
+- [x] Frame architecture designed (T3 + scope + rules)
 
-### Phase 1: State Tree + Track A Foundation (NEXT)
-- [ ] **A-2**: Migrate remaining UIPanels to islands
-- [ ] **A-3**: State tree (content-hash, diff, sync) → `labs/multi-iso/kv/state_tree.gd`
-- [ ] **A-4**: Save games as content-hashed trees
-- [ ] **A-5**: Item template content-hash (cross-shard dedup)
-- [ ] **A-6**: Asset addressing (pck + CDN by hash)
-- [ ] **A-7**: Build pipeline (`tools/build.sh`)
+### Phase 2: Frame Primitives 🔄 IN PROGRESS
+Implementation per PRD specs in `/labs/prd-*.md`:
 
-### Phase 2: Vertical Slice (MVP)
-- [ ] Single playable zone
-- [ ] Basic movement + camera
-- [ ] One class with 5-10 skills
-- [ ] 3 enemy types
-- [ ] Basic combat loop
-- [ ] Touch controls working
-- [ ] Mobile build (APK/IPA)
-- [ ] State tree driving the game state
+- [ ] **T3 Substrate** — Generic content-hash tree primitive
+  - See [`prd-t3-substrate.md`](./prd-t3-substrate.md)
+  - Location: `labs/multi-iso/kv/t3.gd`
+- [ ] **Seed Schema** — Seed type + visibility scope
+  - See [`prd-seed-schema.md`](./prd-seed-schema.md)
+- [ ] **State Schema** — State value types
+  - See [`prd-state-schema.md`](./prd-state-schema.md)
+- [ ] **Scope Engine** — Data-driven hierarchy walker
+  - See [`prd-scope-engine.md`](./prd-scope-engine.md)
+  - Location: `labs/multi-iso/srv/scope.gd`
+- [ ] **Rules Engine** — Generic behavior evaluator
 
-### Phase 3: Core Loop
-- [ ] All movement mechanics (dodge, swim, etc)
-- [ ] 3+ classes
-- [ ] 20+ skills
-- [ ] 3+ zones
-- [ ] Basic crafting
-- [ ] Basic inventory
-- [ ] Basic PvP in one zone
+### Phase 3: Seed System
+- [ ] Login + seed chain (D029)
+  - See [`prd-login-seed-chain.md`](./prd-login-seed-chain.md)
+- [ ] Open seed TTL semantics (D032)
+  - See [`prd-open-seed-ttl.md`](./prd-open-seed-ttl.md)
+- [ ] Manifest + backup (D031)
+  - See [`prd-manifest-backup.md`](./prd-manifest-backup.md)
 
-### Phase 4: Track B (parallel to Phases 2-3)
-- [ ] **B-1**: Math primitives (NSC-9, icosahedral, quasicrystal) → `labs/multi-iso/math/`
-- [ ] **B-2**: Single-axis orchestrator → `labs/multi-iso/srv/axis.gd`
-- [ ] **B-3**: Multi-axis intersection
-- [ ] **B-4**: NSC-9 axis reservation → `axis_registry.gd`
-- [ ] **B-5**: Orchestrator + frame glue
-- [ ] **B-6**: Materialized intersection tables (LRU cache)
-- [ ] **B-7**: LOD pyramid (4 levels)
-- [ ] **B-8**: Predictive prefetch (Markov)
-- [ ] **B-9**: Performance budget (GDScript vs NativeScript C++ vs server)
-- [ ] **B-10**: Frame extraction (alongside vant)
+### Phase 4: State + Sync
+- [ ] Server authority model
+  - See [`prd-frame-authority.md`](./prd-frame-authority.md)
+- [ ] State diff sync (client reconciliation)
+- [ ] Critical params system (D033)
+  - See [`prd-critical-params.md`](./prd-critical-params.md)
 
-### Phase 5: World Building
+### Phase 5: World Building 🔜 NEXT
 - [ ] 5+ zones
 - [ ] Dungeons (2-3)
 - [ ] Full crafting system
@@ -820,27 +1204,28 @@ is incremental: profile, port, re-profile, ship.
 - [ ] World events
 - [ ] Anti-cheat (hash-chain tick verification)
 
-### Phase 7: Frame Extraction + Polish
-- [ ] **B-10**: Frame extracts to its own project (alongside vant)
-- [ ] Synmergia becomes an example consumer
-- [ ] Frame documentation for external users
-- [ ] Optimization pass on the frame
+### Phase 7: Browser Deployment + Polish
+- [ ] Godot HTML5/wasm browser build
+- [ ] WebSocket transport
+  - See [`world-building.md`](./world-building.md) §10
+- [ ] Frame extraction (optional, per viability)
+- [ ] Optimization pass
 - [ ] Bug fixes
 - [ ] Balance tuning
 
 ### Phase 8: Launch
-- [ ] Mobile-first launch (Android + iOS)
-- [ ] PC launch
+- [ ] Browser-first launch (web)
+- [ ] Desktop builds (Windows, macOS, Linux)
 - [ ] Launch marketing
 - [ ] Community building
-- [ ] Re-enable CI/CD pipeline
 
 ---
 
-## 14. Open Questions
+## 17. Open Questions
 
-> **Modernized 2026-08-30:** Many questions answered. The new
-> architecture has changed what we're asking.
+> **Updated 2026-09-05:** Architecture is now T3 substrate +
+> scope engine + rules engine (per `world-building-arch.md`).
+> Many open questions are now answered in the PRD specs.
 
 ### Resolved
 
@@ -849,37 +1234,33 @@ is incremental: profile, port, re-profile, ship.
 3. ~~**PC Support:**~~ → ✅ PC support from day 1 (same Godot build)
 4. ~~**Aggro:**~~ → Proximity-based, configurable detection, level-gated XP (see section 3.8)
 5. ~~**PvP combat differences:**~~ → CC reduction, gear-differential damage modifiers (tunable)
-6. **Architecture (the big one):** → State tree + multi-iso orchestrator + content-hash layer. See section 10.
-7. **Networking serialization:** → `var_to_bytes` / `bytes_to_var` (Godot 4.x idiom)
+6. ~~**Architecture:**~~ → ✅ T3 substrate + scope engine + rules engine (per `world-building-arch.md`)
+7. ~~**Networking:**~~ → ✅ WebSocket for browser + agent compatibility
+8. ~~**Networking serialization:**~~ → ✅ `var_to_bytes` / `bytes_to_var` (Godot 4.x idiom)
+9. ~~**World Shape:**~~ → ✅ Spherical planet (radius 20km v1), icosahedral mesh (per `world-building.md` §3)
+10. ~~**World Size:**~~ → ✅ ~150 km² continent, rest ocean, capital at center
+11. ~~**Zone Transitions:**~~ → ✅ Dungeons/instances via portal, open world seamless
 
 ### Open
 
-8. **Scale:** How many players per server?
-   - LOD pyramid + intersection cache can carry a lot. 500+ is plausible. 1000+ needs the frame's perf budget answered first.
-9. **Level Cap:** 60 levels planned. Expandable.
-10. **Art Assets:** AI generation, purchase, custom? TBD.
-11. **Real Money:** Cosmetics shop planned. Subscription unlikely. RMT banned, no third-party.
-12. **Platform Priority:** Simultaneous Android + iOS via Godot exports.
-13. **Loading screens:** Zone transitions? Seamless? Open world with portal? Depends on the multi-iso orchestrator's spatial axis.
-14. **Frame extraction timeline:** When does the frame spin out to its own repo? After Phase 7? Earlier?
-15. **Performance budget:** GDScript enough? NativeScript C++? Standalone C++ server? Decided in Track B Session B-9.
-16. **Build pipeline shape:** Bash? Godot CLI? CI step? Custom tool? Session A-7.
+12. **Scale:** How many players per server?
+    - LOD pyramid + intersection cache can carry a lot. 500+ is plausible. 1000+ needs the frame's perf budget answered first.
+13. **Level Cap:** 60 levels planned. Expandable.
+14. **Art Assets:** AI generation, purchase, custom? TBD.
+15. **Real Money:** Cosmetics shop planned. Subscription unlikely. RMT banned, no third-party.
+16. **Frame extraction timeline:** When does the frame spin out to its own repo? After Phase 7? Earlier?
+17. **Performance budget:** GDScript enough? GDExtension C++? Decided in Phase 4.
+18. **Build pipeline shape:** Bash? Godot CLI? CI step? Custom tool? TBD.
 
 ---
 
 ## Development Tracking
 
-📋 **See [ROADMAP.md](../ROADMAP.md)** for implementation
-progress and technical details. The ROADMAP maps PRD features to
-actual code files and tracks completion status.
+Implementation progress and technical details are tracked in the
+codebase. See [`AGENTS.md`](../AGENTS.md) for developer notes.
 
-The architecture is in `docs/architecture/`:
-
-- [multi-iso-frame.md](../docs/architecture/multi-iso-frame.md)
-- [multi-iso-lod-prediction.md](../docs/architecture/multi-iso-lod-prediction.md)
-- [labs-organization.md](../docs/architecture/labs-organization.md)
-- [nsc9-honest-evaluation.md](../docs/architecture/nsc9-honest-evaluation.md)
-- [NEXT-AGENT-PICKUP.md](../docs/architecture/NEXT-AGENT-PICKUP.md)
+The architecture documentation is in `/labs/` — see the section
+above for the full listing of world-building docs and PRDs.
 
 ---
 
@@ -898,34 +1279,31 @@ The architecture is in `docs/architecture/`:
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| **Scope creep** (frame research distracts from product) | High | Track A is non-negotiable; Track B is research that may not pan out. |
-| **Performance** (state tree + orchestrator too slow at 10K entities) | Medium | B-9 budget. Fall back to NativeScript C++ for the hot path. |
+| **Scope creep** (frame research distracts from product) | High | Phase 2 is non-negotiable; frame primitives are research that may not pan out. |
+| **Performance** (T3 substrate + scope engine too slow at 10K entities) | Medium | Phase 4 perf budget. Fall back to GDExtension C++ for the hot path. |
 | **Godot 4.7 stability** (4.7 is recent; bugs in the engine) | Medium | Pin version. Test against the headless server mode. |
-| **Mobile build size** (Godot exports bloat with all features) | Medium | Asset content-hash → only what the player needs. A-6. |
+| **Build size** (Godot exports bloat with all features) | Medium | Asset content-hash → only what the player needs. |
 | **Anti-cheat** (state tree hashes are forgeable) | High | Server-side hash chain. Each tick is signed by previous. |
 | **Frame over-engineering** (build abstractions no game uses) | Medium | Frame is a byproduct of game work, not a goal. If no game needs it, it doesn't extract. |
-| **Jolt integration cost** (swap-in breaks physics assumptions) | Low | Game is `PhysicsServer3D`-agnostic. Jolt drop-in via project setting. Phase 5 benchmark first. |
+| **Jolt integration cost** (swap-in breaks physics assumptions) | Low | Game is `PhysicsServer3D`-agnostic. Jolt drop-in via project setting. Benchmark first. |
 | **Polyglot FFI boundary cost** (Julia subprocess round-trips add latency) | Low | Tier 1 (GDScript) for anything latency-sensitive. Tier 2 only for batch ops. Migration to GDExtension C++ if needed. |
 
 ### D. Frame Appendix
 
-> This is the part of the PRD that describes the **frame** —
-> what could be extracted from Synmergia and shipped as its own
-> project. The frame is the part that any future game on this
-> architecture would consume.
+> This describes the **frame** — what could be extracted from
+> Synmergia and shipped as its own project. The frame is the part
+> that any future game on this architecture would consume.
+> See [`world-building-arch.md`](./world-building-arch.md) for the
+> full architecture.
 
 **The frame is the union of:**
 
-1. **State tree** (`labs/multi-iso/kv/state_tree.gd`) — content-hash, diff, sync
-2. **Content hash** (`labs/multi-iso/kv/content_hash.gd`) — SHA-256 wrapper
-3. **LRU cache** (`labs/multi-iso/kv/lru_cache.gd`) — generic LRU
-4. **Multi-iso orchestrator** (`labs/multi-iso/srv/axis.gd` + `axis_registry.gd` + `composite_table.gd`)
-5. **Materialized intersection tables** (`labs/multi-iso/srv/composite_table.gd`)
-6. **LOD manager** (`labs/multi-iso/srv/lod_manager.gd`)
-7. **Predictor + prefetcher** (`labs/multi-iso/srv/predictor.gd` + `prefetcher.gd`)
-8. **Markov chain** (`labs/multi-iso/srv/markov.gd`)
-9. **Math primitives** (`labs/multi-iso/math/nsc9.gd` + `icosahedral.gd` + `quasicrystal.gd`)
-10. **Snapshot store** (`labs/multi-iso/db/snapshot_store.gd`)
+1. **T3 substrate** (`labs/multi-iso/kv/t3.gd`) — generic content-hash tree primitive
+2. **Scope engine** (`labs/multi-iso/srv/scope.gd`) — hierarchy walker, scope stack, rule resolution
+3. **Rules engine** (`labs/multi-iso/srv/rules_engine.gd`) — generic behavior evaluator
+4. **Spatial layer** (`labs/multi-iso/math/`) — NSC-9, icosahedral, quasicrystal math primitives
+5. **LRU cache** (`labs/multi-iso/kv/lru_cache.gd`) — generic LRU
+6. **Snapshot store** (`labs/multi-iso/db/snapshot_store.gd`) — Postgres persistence
 
 **The frame is NOT:**
 
@@ -936,34 +1314,12 @@ The architecture is in `docs/architecture/`:
 
 **Why the frame matters:**
 
-A new game on this frame would write:
+The frame is the lever. The game is the proof. If the frame
+works for Synmergia, it works for any state-heavy multiplayer
+game. The frame extracts to its own project. Synmergia becomes
+the example game. Other games can build on the same primitives,
+getting content-hash sync, scope-based hierarchy, and behavior
+rules for free.
 
-```gdscript
-# 1. Define axes
-var spatial = SpatialAxis.new(depth=8)
-var faction = FactionAxis.new()
-var orchestrator = Orchestrator.new([spatial, faction])
-
-# 2. Insert entities
-orchestrator.insert(entity_id, axis_coords)
-
-# 3. Query
-var result = orchestrator.query({
-    "spatial": region_aabb,
-    "faction": guild_id
-})
-# result is materialized intersection — O(1) if cached, O(n) otherwise
-```
-
-That's it. No global state, no autoload, no GameManager
-dependency. The orchestrator is the entire API.
-
-**The "could pioneer" outcome:**
-
-If the frame works for Synmergia, it works for any state-heavy
-multiplayer game. The frame extracts to its own project
-(alongside vant). Synmergia becomes the example game. Other
-games can build on the same primitives, getting multi-dim
-queries, content-hash sync, and predictive LOD for free.
-
-The frame is the lever. The game is the proof.
+See [`world-building-arch.md`](./world-building-arch.md) §2 for the
+full dual-goal architecture (frame + game instance).
