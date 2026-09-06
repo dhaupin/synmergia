@@ -365,12 +365,14 @@ func set_config(admin_id: String, key: String, value) -> Dictionary:
 		_audit(admin_id, "CONFIG_CHANGE_DENIED", "", {"key": key}, false)
 		return {"success": false, "message": "Cannot modify security-sensitive key", "code": "FORBIDDEN"}
 	
-	# Apply change
-	# GameConfig.Security.set(key, value)  # TODO: Fix inner class access
+	# Apply change using GameConfig.set_security_value()
+	if GameConfig and GameConfig.set_security_value(key, value):
+		_audit(admin_id, "CONFIG_CHANGE", "", {"key": key, "value": value}, true)
+		return {"success": true, "message": "Config updated"}
+	else:
+		_audit(admin_id, "CONFIG_CHANGE_DENIED", "", {"key": key}, false)
+		return {"success": false, "message": "Invalid config key", "code": "INVALID_KEY"}
 	
-	_audit(admin_id, "CONFIG_CHANGE", "", {"key": key, "value": value}, true)
-	
-	return {"success": true, "message": "Config updated"}
 
 ## ============================================================================
 ## AUDIT LOGGING

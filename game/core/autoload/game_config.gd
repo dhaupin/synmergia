@@ -1680,6 +1680,37 @@ func _ready() -> void:
 
 	_log_summary()
 
+## Runtime-overridable security settings (for admin panel)
+static var _security_overrides: Dictionary = {}
+
+## Set a security config value at runtime
+static func set_security_value(key: String, value) -> bool:
+	if not _is_valid_security_key(key):
+		return false
+	_security_overrides[key] = value
+	return true
+
+## Get a security config value (override or default)
+static func get_security_value(key: String, default = null):
+	if _security_overrides.has(key):
+		return _security_overrides[key]
+	return default
+
+## Check if a key is valid for security overrides
+static func _is_valid_security_key(key: String) -> bool:
+	var valid_keys := [
+		"MIN_NAME_LENGTH", "MAX_NAME_LENGTH", "MAX_MESSAGE_LENGTH",
+		"PLAYER_LEVEL", "VIP_LEVEL", "MOD_LEVEL", "ADMIN_LEVEL",
+		"ENABLE_SECURITY_ALERTS", "ALERT_ON_RATE_LIMIT", "ALERT_ON_RESTRICTION",
+		"ALERT_ON_EXPLOIT_DETECTED", "ALERT_ON_UNRESTRICTION",
+		"MAX_SPEED_HACK_MULTIPLIER", "MAX_ITEMS_PER_MINUTE", "MAX_INPUT_VALUE",
+		"MAX_TELEPORT_DISTANCE", "RAPID_ACTION_THRESHOLD",
+		"SPAM_REPEATED_CHARS", "SPAM_UNIQUE_RATIO", "NAME_ALLOWED_CHARS",
+		"FIREWALL_BLOCK_DURATION", "FIREWALL_MAX_ATTEMPTS",
+		"FIREWALL_MAX_CONNECTIONS_PER_IP", "FIREWALL_CLEANUP_INTERVAL"
+	]
+	return key in valid_keys
+
 ## Log configuration summary on startup
 
 func _log_summary() -> void:

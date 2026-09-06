@@ -3,6 +3,7 @@
 extends Node
 
 const QuestData = preload("res://core/schemas/quest_data.gd")
+
 static func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')
 
@@ -22,7 +23,7 @@ signal quest_completed(player_id: String, quest_id: String)
 signal quest_rewarded(player_id: String, quest_id: String, rewards: Dictionary)
 signal quest_failed(player_id: String, quest_id: String, reason: String)
 
-# Frame-level notification dispatch (typed-Kind pipeline).
+## Frame-level notification dispatch (typed-Kind pipeline).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 func _ready() -> void:
@@ -30,16 +31,57 @@ func _ready() -> void:
 	GameLog.info("QuestService: Ready")
 
 ## ============================================================================
-## QUEST LOADING
+## QUEST LOADING / PERSISTENCE
 ## ============================================================================
 
 func load_player_quests(player_id: String) -> void:
-	# TODO: Load from database
-	if not _player_quests.has(player_id):
+	# Try to load from database, fall back to empty state
+	var saved: Dictionary = _load_quests_from_db(player_id)
+	if saved.is_empty():
 		_player_quests[player_id] = {}
-	if not _available_quests.has(player_id):
 		_available_quests[player_id] = []
+	else:
+		_player_quests[player_id] = saved
+		_available_quests[player_id] = _get_available_quest_ids(player_id)
 	GameLog.debug("QuestService: Loaded quests for %s" % player_id)
+
+func _load_quests_from_db(player_id: String) -> Dictionary:
+	# TODO: Replace with actual database query
+	# Expected: SELECT quest_id, state, objectives, accepted_at, rewarded_at FROM player_quests WHERE player_id = ?
+	# For now, return empty to use in-memory storage
+	return {}
+
+func save_player_quests(player_id: String) -> void:
+	# TODO: Persist to database
+	# Expected: INSERT INTO player_quests (player_id, quest_id, state, objectives, accepted_at, rewarded_at)
+	#          ON CONFLICT (player_id, quest_id) DO UPDATE SET ...
+	_sync_quests_to_db(player_id, _player_quests.get(player_id, {}))
+
+func _sync_quests_to_db(player_id: String, quests: Dictionary) -> void:
+	# Stub for database persistence
+	pass
+
+func _get_available_quest_ids(player_id: String) -> Array:
+	# Return quest IDs that the player can accept
+	var available: Array = []
+	var player_data: Dictionary = _player_quests.get(player_id, {})
+	var player_level: int = _get_player_level(player_id)
+
+	if DataService:
+		var all_quests: Dictionary = DataService.get_all_quests()
+		for quest_id in all_quests:
+			var quest = all_quests[quest_id]
+			if not quest is QuestData:
+				continue
+			# Skip already accepted/completed quests
+			if player_data.has(quest_id):
+				continue
+			# Check level requirement
+			var min_level: int = quest.get("min_level", 1)
+			if player_level < min_level:
+				continue
+			available.append(quest_id)
+	return available
 
 func get_player_quests(player_id: String) -> Dictionary:
 	return _player_quests.get(player_id, {})
@@ -59,11 +101,29 @@ func get_active_quests(player_id: String) -> Array:
 
 func get_available_quests(player_id: String) -> Array:
 	# Return quests that can be accepted
-	var available := []
+	var available: Array = []
 	var player_data: Dictionary = _player_quests.get(player_id, {})
+	var player_level: int = _get_player_level(player_id)
 
-	# TODO: Load from quest database and check prerequisites
-	# For now, return empty or test quests
+	if DataService:
+		var all_quests: Dictionary = DataService.get_all_quests()
+		for quest_id in all_quests:
+			var quest = all_quests[quest_id]
+			if not quest is QuestData:
+				continue
+			# Skip already accepted quests
+			if player_data.has(quest_id):
+				continue
+			# Check level requirement
+			var min_level: int = quest.get("min_level", 1)
+			if player_level < min_level:
+				continue
+			available.append({
+				"id": quest_id,
+				"name": quest.get("display_name", quest_id),
+				"description": quest.get("description", ""),
+				"min_level": min_level
+			})
 	return available
 
 func check_quest_availability(player_id: String, quest_id: String) -> Dictionary:
@@ -335,3 +395,21 @@ func get_quest_objectives_text(player_id: String, quest_id: String) -> Array:
 		result.append(text)
 
 	return result
+
+## ============================================================================
+## HELPERS
+## ============================================================================
+
+func _get_player_level(player_id: String) -> int:
+	# Try to get player level from available services
+	if InventoryService and InventoryService.has_method("get_player_level"):
+		var level: int = InventoryService.get_player_level(player_id)
+		if level > 0:
+			return level
+	# Fallback: check player stats via PlayerManager
+	if PlayerManager and PlayerManager.has_method("get_player_info"):
+		var info: Dictionary = PlayerManager.get_player_info(player_id)
+		if info is Dictionary and info.has("level"):
+			return int(info.get("level", 1))
+	# Default to level 1
+	return 1
