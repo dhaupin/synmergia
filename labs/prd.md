@@ -29,11 +29,12 @@
 7. [Player Housing](#7-player-housing)
 8. [PvP Systems](#8-pvp-systems)
 9. [Social & Guild Systems](#9-social--guild-systems)
-10. [Technical Architecture](#10-technical-architecture)
-11. [Art & Audio Direction](#11-art--audio-direction)
-12. [Platform Support & Optimization](#12-platform-support--optimization)
-13. [Phases & Milestones](#13-phases--milestones)
-14. [Open Questions](#14-open-questions)
+10. [Account & Server Systems](#10-account--server-systems)
+11. [Technical Architecture](#11-technical-architecture)
+12. [Art & Audio Direction](#12-art--audio-direction)
+13. [Platform Support & Optimization](#13-platform-support--optimization)
+14. [Phases & Milestones](#14-phases--milestones)
+15. [Open Questions](#15-open-questions)
 
 ## Architecture documentation
 
@@ -304,6 +305,18 @@ See [`world-building.md`](./world-building.md) §3.9–3.12 for full world archi
 | **Resource Distribution** | Spawn resources in patterns | P1 |
 | **Quest Generation** | Simple procedural quests (gather X, kill Y) | P2 |
 | **World Events** | Random spawns, world events | P2 |
+
+### 4.6 World Service
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Day/Night Cycle** | 24-hour game time cycle | Implemented |
+| **World Time** | Configurable time multiplier for testing | Implemented |
+| **Gateways** | Portal systems for zone transitions | Implemented |
+| **World Events** | Scheduled world-wide events | Implemented |
+| **Procedural Seeds** | Deterministic world generation | Implemented |
+
+See `core/services/world_service.gd`.
 
 ---
 
@@ -577,7 +590,121 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
 ---
 
-## 10. Technical Architecture
+## 9.6 Faction System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Faction Reputation** | Player standing with each faction | Implemented |
+| **War Declarations** | Declare war on enemy factions | Implemented |
+| **Guild Alliances** | Guilds can ally with factions | Implemented |
+| **War Cooldowns** | 24-hour cooldown between war declarations | Implemented |
+| **War Costs** | 10,000 gold to declare war | Implemented |
+
+See `core/services/faction_manager.gd`.
+
+### 9.7 Death System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Death Penalties** | XP loss, item degradation | Implemented |
+| **Invincibility Frames** | Brief immunity after respawn | Implemented |
+| **Griefing Protection** | Protection from repeated kills | Implemented |
+| **Kill Streaks** | Track consecutive kills | Implemented |
+| **Death Statistics** | Track deaths by type (PvP/PvE) | Implemented |
+| **Revive System** | Player-to-player revival | Implemented |
+
+See `core/services/death_features.gd`.
+
+### 9.8 Fairness System
+
+> **Unique:** Synmergia treats AI agents and humans as equals with identical
+> capabilities and limits. No special privileges for either.
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Trust System** | 0.0-1.0 trust score per player | Implemented |
+| **Anti-Marathon** | Debuffs after 8+ hour sessions | Implemented |
+| **Anti-Bot Detection** | Behavioral analysis for automation | Implemented |
+| **Rate Limiting** | Per-action rate limits | Implemented |
+| **Consensus Voting** | Player-driven governance decisions | Planned |
+
+See `core/services/fairness_service.gd`.
+
+### 9.9 Quest System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Quest Tracking** | Track active quests and objectives | Implemented |
+| **Quest Acceptance** | Accept from NPCs | Implemented |
+| **Objective Types** | Kill, collect, interact, explore | Implemented |
+| **Quest Rewards** | Gold, XP, items | Implemented |
+| **Quest UI** | Display active/available quests | Implemented |
+
+See `core/services/quest_service.gd` and `ui/components/quest_ui.gd`.
+
+### 9.10 Dialogue System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **NPC Dialogue** | Branching conversation trees | Implemented |
+| **Dialogue Choices** | Player-selectable options | Implemented |
+| **Dialogue Data** | Load from `.tres` resources | Implemented |
+| **Dialogue UI** | Render conversations in-game | Implemented |
+
+See `core/services/dialog_service.gd`, `core/schemas/dialogue_data.gd`, and `ui/components/dialog_ui.gd`.
+
+---
+
+## 10. Account & Server Systems
+
+### 10.1 Account Management
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Account Creation** | Email/password registration | Implemented |
+| **Character Slots** | Up to 5 characters per account | Implemented |
+| **Character Transfer** | Same-account character transfers | Implemented |
+| **Account Settings** | Per-account configuration | Implemented |
+
+See `core/services/account_service.gd` and `core/services/same_account_transfer_service.gd`.
+
+### 10.2 Server Infrastructure
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Shard Management** | Multiple game shards/instances | Implemented |
+| **Server Manager** | Orchestrates game servers | Implemented |
+| **Login Service** | Authentication and session management | Implemented |
+| **Data Service** | Centralized data loading | Implemented |
+| **Connector Service** | Client connection handling | Implemented |
+
+See `core/services/shard_manager.gd`, `core/services/server_manager.gd`, `core/services/login_service.gd`.
+
+### 10.3 Anti-Cheat & Security
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Bot Detection** | Behavioral analysis for automation | Implemented |
+| **Macro Detection** | Pattern recognition for repeated actions | Implemented |
+| **Speed Hack Detection** | Movement velocity validation | Implemented |
+| **Anomaly Detection** | Statistical analysis of player behavior | Implemented |
+| **Player Banning** | Permanent and temporary bans | Implemented |
+
+See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
+
+### 10.4 Infrastructure Services
+
+| Service | Description | File |
+|---------|-------------|------|
+| **QoS Service** | Latency monitoring, rate limiting | `qos_service.gd` |
+| **Notification Service** | Toast notifications, alerts | `notification_service.gd` |
+| **Security Monitor** | Security event tracking | `security_service.gd` |
+| **Auto Response** | Automated moderation responses | `auto_response_service.gd` |
+| **Logger** | Centralized logging | `logger.gd` |
+
+---
+
+## 11. Technical Architecture
 
 > **Updated 2026-09-05:** Godot 4.7.2 chosen for open source,
 > lightweight, no royalties, and strong 3D support. The frame is
@@ -585,7 +712,7 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 > `world-building-arch.md`). The game is in `game/`, the frame
 > in `labs/multi-iso/`.
 
-### 10.1 Engine Selection
+### 11.1 Engine Selection
 
 | Option | Pros | Cons | Status |
 |--------|------|------|--------|
@@ -603,7 +730,7 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 - `@tool` scripts for editor-time content
 - HTML5/wasm export for browser deployment
 
-### 10.2 Client Architecture
+### 11.2 Client Architecture
 
 | Component | Description |
 |------------|-------------|
@@ -613,7 +740,7 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 | **Rendering** | Standard Godot 3D pipeline. LOD on graphics is independent of LOD on state. |
 | **Input** | Touch, keyboard/mouse, and controller (planned). All go through a unified action layer. |
 
-### 10.3 Server Architecture
+### 11.3 Server Architecture
 
 | Component | Description | Priority |
 |-----------|-------------|----------|
@@ -631,7 +758,7 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
 See [`world-building-arch.md`](./world-building-arch.md) for the full frame architecture (substrate, scope engine, rules engine, spatial layer) and [`world-building-tick.md`](./world-building-tick.md) for the server tick model.
 
-### 10.4 Networking
+### 11.4 Networking
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -646,7 +773,7 @@ See [`world-building-arch.md`](./world-building-arch.md) for the full frame arch
 
 See [`world-building.md`](./world-building.md) §10 for the full transport design.
 
-### 10.5 Database Design
+### 11.5 Database Design
 
 | Concern | Storage | Notes |
 |---------|---------|-------|
@@ -658,7 +785,7 @@ See [`world-building.md`](./world-building.md) §10 for the full transport desig
 | **Assets** | Content-hashed pck + CDN | Old clients can still find old assets on update. |
 
 
-### 10.6 The T3 Substrate
+### 11.6 The T3 Substrate
 
 The frame's core primitive: a generic content-hash tree. Every
 node has a `hash` (SHA-256 of its serialized value). The frame
@@ -666,7 +793,7 @@ extracts this into `labs/multi-iso/kv/t3.gd`.
 
 See [`prd-t3-substrate.md`](./prd-t3-substrate.md) for the full spec.
 
-### 10.7 The Scope Engine
+### 11.7 The Scope Engine
 
 Data-driven hierarchy walker. Resolves rules and values at scope
 boundaries (world→shard→instance→player). The frame extracts
@@ -674,7 +801,7 @@ this into `labs/multi-iso/srv/scope.gd`.
 
 See [`prd-scope-engine.md`](./prd-scope-engine.md) for the full spec.
 
-### 10.8 The Rules Engine
+### 11.8 The Rules Engine
 
 Generic behavior evaluator. Runs rules defined in the state tree
 against entities. Composes with the scope engine for per-scope
@@ -682,7 +809,7 @@ rule overrides.
 
 See [`world-building-arch.md`](./world-building-arch.md) §5 for the rules engine design.
 
-### 10.9 DevOps
+### 11.9 DevOps
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -697,7 +824,7 @@ See [`world-building-arch.md`](./world-building-arch.md) §5 for the rules engin
 | **Analytics** | Track player behavior, economy, prediction accuracy | P1 |
 | **Auto-scaling** | Respond to player load; prefetch more on scale-up | P1 |
 
-### 10.10 Three Tiers of Computation (the frame runtime)
+### 11.10 Three Tiers of Computation (the frame runtime)
 
 The frame can ship in three runtime tiers. The rule is: write
 the algorithm in the language that's best at the problem. The
@@ -736,9 +863,9 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 11. Art & Audio Direction
+## 12. Art & Audio Direction
 
-### 11.1 Visual Style
+### 12.1 Visual Style
 
 | Aspect | Description | Priority |
 |--------|-------------|----------|
@@ -749,7 +876,7 @@ is incremental: profile, port, re-profile, ship.
 | **Environment Art** | Modular tilesets for buildings, terrain | P0 |
 | **VFX** | Spell effects, hit impacts | P0 |
 
-### 11.2 Quality Tiers
+### 12.2 Quality Tiers
 
 | Tier | Target Devices | Settings | Priority |
 |------|---------------|----------|----------|
@@ -758,7 +885,7 @@ is incremental: profile, port, re-profile, ship.
 | **High** | Flagship phones, PC | Max quality | P0 |
 | **Ultra** | PC only | Maximum effects | P1 |
 
-### 11.3 Audio
+### 12.3 Audio
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -769,12 +896,12 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 12. Platform Support & Optimization
+## 13. Platform Support & Optimization
 
 > Browser-first deployment (HTML5/wasm), with planned mobile (Android/iOS)
 > and desktop (Windows, macOS, Linux) support. Controller support planned.
 
-### 12.1 Input Methods
+### 13.1 Input Methods
 
 | Input | Description | Status |
 |-------|-------------|--------|
@@ -784,7 +911,7 @@ is incremental: profile, port, re-profile, ship.
 | **Auto-Run** | Toggle for long travel | P1 |
 | **Gesture Support** | Double tap, long press on touch | P1 |
 
-### 12.2 UI Adaptation
+### 13.2 UI Adaptation
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -794,7 +921,7 @@ is incremental: profile, port, re-profile, ship.
 | **Colorblind Mode** | Accessibility options | P1 |
 | **Controller UI** | Controller-friendly navigation | P1 |
 
-### 12.3 Performance Targets
+### 13.3 Performance Targets
 
 | Metric | Target | Priority |
 |--------|--------|----------|
@@ -805,7 +932,7 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 13. Phases & Milestones
+## 14. Phases & Milestones
 
 > **Updated 2026-09-05:** Phases reflect the current state
 > based on source-of-truth docs in `/labs/`. The frame
@@ -892,7 +1019,7 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 
 ---
 
-## 14. Open Questions
+## 15. Open Questions
 
 > **Updated 2026-09-05:** Architecture is now T3 substrate +
 > scope engine + rules engine (per `world-building-arch.md`).
