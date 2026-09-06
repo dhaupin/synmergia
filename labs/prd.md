@@ -218,7 +218,7 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 | **Weapon Trails** | Visible trails for sword swings | P1 |
 | **Animation Canceling** | (Specific rules TBD - RYL2 had strict cancels) | P1 |
 
-### 3.9 Combat Open Questions
+### 3.8 Combat Open Questions
 
 > **DECIDED:** These questions have been answered in development.
 
@@ -230,7 +230,7 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 - [ ] Level scaling within zones? → TBD (world scaling not planned for initial release)
 
-### 3.10 Buff/Aura System
+### 3.9 Buff/Aura System
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -244,7 +244,7 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 See `core/entities/status_effect.gd`, `core/components/aura_component.gd`, `core/schemas/status_effect_data.gd`.
 
-### 3.11 Combat Components
+### 3.10 Combat Components
 
 | Component | File | Description |
 |-----------|------|-------------|
