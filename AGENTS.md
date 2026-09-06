@@ -442,3 +442,92 @@ docker run --rm -e START_MODE=test synmergia
    var script := load("res://core/schemas/skill_book.gd")
    var book = script.new()
    ```
+
+---
+
+## GDScript 4 Patterns
+
+### Class Instantiation
+```gdscript
+# For scenes (.tscn) — use instantiate()
+var scene := preload("res://path/to/Scene.tscn")
+var instance := scene.instantiate()
+
+# For scripts (.gd) — use load() then .new()
+var script := load("res://core/schemas/SkillBook.gd")
+var book := script.new()
+```
+
+### Scene Cleanup
+```gdscript
+# Always use queue_free() in _exit_tree() or for removing nodes
+instance.queue_free()  # Safe — queues for next frame
+# NOT instance.free()   # Dangerous — can cause issues with children
+```
+
+### Type Hints
+Always use type hints for better IDE support and catching errors early:
+```gdscript
+# Variables
+var player: Player
+var health: int = 100
+var position: Vector3 = Vector3.ZERO
+
+# Function parameters and returns
+func take_damage(amount: int) -> void:
+    pass
+
+func get_health() -> int:
+    return _health
+```
+
+### Null Handling
+```gdscript
+# Check before use
+if target != null and is_instance_valid(target):
+    target.take_damage(10)
+
+# Null coalescing pattern
+var value := optional_node if optional_node != null else default_value
+```
+
+### Signals
+```gdscript
+# Define signals with type hints (Godot 4+)
+signal damage_dealt(amount: int, target: Node)
+signal player_died(player: Player)
+
+# Connect with callable
+node.some_signal.connect(_on_some_signal)
+
+# Emit with typed arguments
+damage_dealt.emit(50, enemy)
+```
+
+### Enums and Constants
+```gdscript
+# Define enums in classes
+enum State { IDLE, RUNNING, JUMPING }
+
+# Use const for truly immutable values
+const MAX_HEALTH := 100
+const DAMAGE_MULTIPLIER: float = 1.5
+```
+
+### Array and Dictionary Operations
+```gdscript
+# Typed arrays (Godot 4)
+var players: Array[Player] = []
+var scores: Dictionary[String, int] = {}
+
+# Safe access with get_or_default
+var score: int = scores.get_or_default(player_name, 0)
+```
+
+### String Formatting
+```gdscript
+# Use f-strings (Godot 4+)
+var greeting := "Hello, %s!" % player_name          # Old style
+var greeting := f"Hello, {player_name}!"             # Preferred
+var message := f"Damage: {damage} to {target.name}"
+```
