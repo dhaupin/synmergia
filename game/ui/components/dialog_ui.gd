@@ -1,6 +1,7 @@
 ## DialogUI - NPC dialog system
 ## Quest offers, conversation, choices
-extends Control
+## Extends UIPanel with bottom-anchored positioning
+extends UIPanel
 class_name DialogUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const DialogService = preload("res://core/services/dialog_service.gd")
@@ -12,7 +13,6 @@ var _dialogue_id: String = ""
 var _current_dialogue_id: String = ""
 var _current_node: int = 0
 var _choices: Array = []
-var _is_open: bool = false
 
 ## Components
 var _speaker_label: Label
@@ -22,8 +22,11 @@ var _continue_btn: Button
 var _portrait: TextureRect
 
 func _ready() -> void:
-	_setup_ui()
-	# Use preload for class_name DialogService (not autoload-safe get_instance)
+	super._ready()
+	_bind_signals()
+	panel_closed.connect(_on_panel_closed)
+
+func _bind_signals() -> void:
 	var DialogServiceClass = preload("res://core/services/dialog_service.gd")
 	if DialogServiceClass:
 		var svc = DialogServiceClass.get_instance()
@@ -31,10 +34,13 @@ func _ready() -> void:
 			svc.node_changed.connect(_on_node_changed)
 			svc.dialogue_started.connect(_on_dialogue_started)
 			svc.dialogue_ended.connect(_on_dialogue_ended)
-	hide()
 
-func _setup_ui() -> void:
-	name = "DialogUI"
+func _on_panel_closed() -> void:
+	_current_npc = ""
+	_dialogue_id = ""
+
+func _setup_panel() -> void:
+	# Bottom-anchored positioning (unlike center UIPanel default)
 	set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	offset_left = 50
 	offset_top = -200
@@ -44,6 +50,7 @@ func _setup_ui() -> void:
 	# Background panel
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.name = "Panel"
 	add_child(panel)
 
 	var style := StyleBoxFlat.new()
@@ -111,11 +118,11 @@ func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	_dialogue_id = dialogue_id
 	var svc = DialogService.get_instance()
 	if svc and svc.start_dialogue(npc_id, dialogue_id):
-		show()
+		open("")
 		return
 	# Fallback: demo mode
 	_show_node(0)
-	show()
+	open("")
 
 func _show_node(node_index: int) -> void:
 	# DialogService handles loading from .tres; this is the demo fallback
@@ -145,16 +152,14 @@ func _show_node(node_index: int) -> void:
 	_continue_btn.visible = false
 
 func _on_dialogue_started(npc_id: String, dialogue_id: String) -> void:
-	_is_open = true
 	_current_npc_id = npc_id
 	_current_dialogue_id = dialogue_id
-	show()
+	open("")
 
 func _on_dialogue_ended(npc_id: String, dialogue_id: String) -> void:
-	_is_open = false
 	_current_npc_id = ""
 	_current_dialogue_id = ""
-	hide()
+	close()
 
 func _on_node_changed(node_index: int, node_data: Dictionary) -> void:
 	_show_node_data(node_data)
@@ -194,16 +199,10 @@ func _on_choice_selected(choice_index: int) -> void:
 	if choice_index >= 0 and choice_index < demo_choices.size():
 		var next: int = demo_choices[choice_index].get("next", -1)
 		if next < 0:
-			hide()
+			close()
 			return
 		_show_node(next)
 
 func _on_continue_pressed() -> void:
-	# Advance to next node
 	_current_node += 1
 	_show_node(_current_node)
-
-func close() -> void:
-	hide()
-	_current_npc = ""
-	_dialogue_id = ""

@@ -27,6 +27,7 @@ var _skill_academy_panel: Control
 var _faction_panel: Control
 var _achievement_panel: Control
 var _title_panel: Control
+var _dialog_panel: Control
 var _shop_panel: Control
 var _transfer_panel: Control
 
@@ -180,6 +181,12 @@ func _initialize_panels() -> void:
 	_transfer_panel.z_index = 500
 	add_child(_transfer_panel)
 	_transfer_panel.panel_closed.connect(_on_panel_closed.bind("transfer"))
+
+	# Dialog panel
+	_dialog_panel = preload("res://ui/components/dialog_ui.gd").new()
+	_dialog_panel.name = "DialogUI"
+	_dialog_panel.z_index = 500
+	add_child(_dialog_panel)
 
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):
@@ -449,6 +456,7 @@ func _get_panel(menu_name: String) -> Control:
 		"blacksmith": return _blacksmith_panel
 		"skill_academy": return _skill_academy_panel
 		"transfer": return _transfer_panel
+		"dialog": return _dialog_panel
 	return null
 
 func _set_hud_visible_internal(visible: bool) -> void:
