@@ -55,6 +55,24 @@ extract to their own project.
 - **Service singletons** via autoload
 - **Frame primitives** in `/labs/`: NO autoload, NO `class_name`, NO GameManager dependency
 
+### AI Agent Guidelines
+
+**Editing Files:**
+- Shell commands and heredocs are buggy to edit with — prefer direct file edits
+- Pay close attention to indentations and check for unclosed statements
+
+**Code Quality:**
+- Use **tabs** in GDScript files (not spaces) — enforced by `.editorconfig`
+- **No UTF-8 special characters** in codebase (causes Godot import issues)
+- Mark unfinished work with `TODO` — helps track incomplete implementations
+- No legacy code, wrappers, or aliases — use current methods when available
+
+**Work Style:**
+- Wire and integrate everything as you go — look for other code that needs the same wiring
+- **Work to completion** — avoid unfinished work or half-baked solutions
+- Use existing architecture, methodology, and systems — don't invent your own or go rogue
+- The system should act like a **cohesive unit**, not a scattered mess
+
 ---
 
 ## Architecture
