@@ -64,6 +64,7 @@ func load_all_data() -> void:
 	load_zones()
 	load_events()
 	load_dwellings()
+	load_quests()
 	load_titles()
 	load_achievements()
 	
@@ -158,6 +159,7 @@ func load_events() -> void:
 
 ## Load dwellings from data/dwellings/
 func load_dwellings() -> void:
+	load_quests()
 	load_titles()
 	load_achievements()
 	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
