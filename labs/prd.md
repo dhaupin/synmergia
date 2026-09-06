@@ -219,7 +219,7 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 | **Weapon Trails** | Visible trails for sword swings | P1 |
 | **Animation Canceling** | (Specific rules TBD - RYL2 had strict cancels) | P1 |
 
-### 3.8 Combat Open Questions
+### 3.9 Combat Open Questions
 
 > **DECIDED:** These questions have been answered in development.
 
@@ -231,7 +231,7 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 - [ ] Level scaling within zones? → TBD (world scaling not planned for initial release)
 
-### 3.5 Buff/Aura System
+### 3.10 Buff/Aura System
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -245,7 +245,7 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 See `core/entities/status_effect.gd`, `core/components/aura_component.gd`, `core/schemas/status_effect_data.gd`.
 
-### 3.6 Combat Components
+### 3.11 Combat Components
 
 | Component | File | Description |
 |-----------|------|-------------|
@@ -333,7 +333,7 @@ See [`world-building.md`](./world-building.md) §3.9–3.12 for full world archi
 | **Quest Generation** | Simple procedural quests (gather X, kill Y) | P2 |
 | **World Events** | Random spawns, world events | P2 |
 
-### 4.6 World Service
+### 4.5 World Service
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -345,7 +345,7 @@ See [`world-building.md`](./world-building.md) §3.9–3.12 for full world archi
 
 See `core/services/world_service.gd`.
 
-### 4.7 Zone & Instancing Model
+### 4.6 Zone & Instancing Model
 
 > **Full spec:** See [`world-building.md`](./world-building.md) §8 for zone model,
 > gateway transitions, and instance lifecycle.
@@ -363,7 +363,7 @@ See `core/services/world_service.gd`.
 - `frame + instance` — Computed per-frame (dynamic encounters)
 - Regen triggers on `instance_start`; state persisted to seed on `instance_end`
 
-### 4.8 Respawn System
+### 4.7 Respawn System
 
 | Respawn Mode | Description | Status |
 |--------------|-------------|--------|
@@ -554,7 +554,7 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 > **Partial Implementation:** Trade, vendor, and item degradation implemented.
 > Gathering and full crafting professions are planned.
 
-### 6.1 Gathering System
+### 7.1 Gathering System
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -567,7 +567,7 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 | **Node Respawn** | Resources respawn after time | P0 |
 | **Rich Nodes** | Bonus loot chance from rare nodes | P1 |
 
-### 6.2 Crafting Professions
+### 7.2 Crafting Professions
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -582,7 +582,7 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 
 See `core/services/blacksmith_service.gd` and `ui/components/blacksmith_ui.gd`.
 
-### 6.3 Player Economy
+### 7.3 Player Economy
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -597,7 +597,7 @@ See `core/services/blacksmith_service.gd` and `ui/components/blacksmith_ui.gd`.
 
 See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
-### 6.4 Economy Open Questions
+### 7.4 Economy Open Questions
 
 - [ ] Crafted vs dropped item balance?
 - [ ] Gold cap per player?
@@ -610,7 +610,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 > **In Progress:** Placement, customization, functionality.
 
-### 7.1 Housing Features
+### 8.1 Housing Features
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -623,7 +623,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 | **Teleport Home** | Easy recall to house | P1 |
 | **Guild Houses** | Shared guild housing | P2 |
 
-### 7.2 Housing Open Questions
+### 8.2 Housing Open Questions
 
 - [ ] Instanced vs shared world housing?
 - [ ] Housing demolition/relocation?
@@ -635,7 +635,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 > **In Progress:** Zone types, full loot, guild wars.
 
-### 8.1 Zone Types
+### 9.1 Zone Types
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -645,7 +645,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 | **Arena/PvP Battlegrounds** | Structured PvP content | P1 |
 | **Guild War System** | Declare war, territory control | P1 |
 
-### 8.2 Full Loot Mechanics
+### 9.2 Full Loot Mechanics
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -655,7 +655,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 | **PvP Kills Credit** | Last hit gets loot rights | P0 |
 | **Revenge System** | Kill a ganker for bonus loot | P1 |
 
-### 8.3 PvP Open Questions
+### 9.3 PvP Open Questions
 
 - [ ] Level bracket restrictions for PvP?
 - [ ] Karma/reputation system for PKers?
@@ -665,7 +665,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ## 10. Social & Guild Systems
 
-### 9.1 Communication
+### 10.1 Communication
 
 Implemented chat channels:
 
@@ -685,7 +685,7 @@ Implemented chat channels:
 
 See `core/services/chat_service.gd` and `ui/components/chat_ui.gd`.
 
-### 9.2 Grouping
+### 10.2 Grouping
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -697,7 +697,7 @@ See `core/services/chat_service.gd` and `ui/components/chat_ui.gd`.
 
 See `core/services/party_service.gd` and `ui/social/party_ui.gd`.
 
-### 9.3 Friends & Social
+### 10.3 Friends & Social
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -707,7 +707,7 @@ See `core/services/party_service.gd` and `ui/social/party_ui.gd`.
 
 See `core/services/friends_service.gd` and `ui/social/friends_list.gd`.
 
-### 9.4 Guilds
+### 10.4 Guilds
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -721,7 +721,7 @@ See `core/services/friends_service.gd` and `ui/social/friends_list.gd`.
 
 See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`.
 
-### 9.5 Achievements
+### 10.5 Achievements
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -731,13 +731,13 @@ See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`.
 
 See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
-### 10.4 Social Open Questions
+### 10.6 Social Open Questions
 
 - [ ] Party finder implementation?
 - [ ] Mentoring system?
 - [ ] Guild upgrades timeline?
 
-### 10.5 Faction System
+### 10.7 Faction System
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -749,7 +749,7 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
 See `core/services/faction_manager.gd`.
 
-### 9.7 Death System
+### 10.8 Death System
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -762,7 +762,7 @@ See `core/services/faction_manager.gd`.
 
 See `core/services/death_features.gd`.
 
-### 9.8 Fairness System
+### 10.9 Fairness System
 
 > **Unique:** Synmergia treats AI agents and humans as equals with identical
 > capabilities and limits. No special privileges for either.
@@ -777,7 +777,7 @@ See `core/services/death_features.gd`.
 
 See `core/services/fairness_service.gd`.
 
-### 9.9 Quest System
+### 10.10 Quest System
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -789,7 +789,7 @@ See `core/services/fairness_service.gd`.
 
 See `core/services/quest_service.gd` and `ui/components/quest_ui.gd`.
 
-### 9.10 Dialogue System
+### 10.11 Dialogue System
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -804,7 +804,7 @@ See `core/services/dialog_service.gd`, `core/schemas/dialogue_data.gd`, and `ui/
 
 ## 11. Account & Server Systems
 
-### 10.1 Account Management
+### 11.1 Account Management
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -815,7 +815,7 @@ See `core/services/dialog_service.gd`, `core/schemas/dialogue_data.gd`, and `ui/
 
 See `core/services/account_service.gd` and `core/services/same_account_transfer_service.gd`.
 
-### 10.2 Server Infrastructure
+### 11.2 Server Infrastructure
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -827,7 +827,7 @@ See `core/services/account_service.gd` and `core/services/same_account_transfer_
 
 See `core/services/shard_manager.gd`, `core/services/server_manager.gd`, `core/services/login_service.gd`.
 
-### 10.3 Anti-Cheat & Security
+### 11.3 Anti-Cheat & Security
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -839,7 +839,7 @@ See `core/services/shard_manager.gd`, `core/services/server_manager.gd`, `core/s
 
 See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 
-### 10.4 Infrastructure Services
+### 11.4 Infrastructure Services
 
 | Service | Description | File |
 |---------|-------------|------|
@@ -1081,7 +1081,7 @@ is incremental: profile, port, re-profile, ship.
 | **Environment Art** | Modular tilesets for buildings, terrain | P0 |
 | **VFX** | Spell effects, hit impacts | P0 |
 
-### 12.2 Quality Tiers
+### 14.2 Quality Tiers
 
 | Tier | Target Devices | Settings | Priority |
 |------|---------------|----------|----------|
@@ -1090,7 +1090,7 @@ is incremental: profile, port, re-profile, ship.
 | **High** | Flagship phones, PC | Max quality | P0 |
 | **Ultra** | PC only | Maximum effects | P1 |
 
-### 12.3 Audio
+### 14.3 Audio
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -1106,7 +1106,7 @@ is incremental: profile, port, re-profile, ship.
 > Browser-first deployment (HTML5/wasm), with planned mobile (Android/iOS)
 > and desktop (Windows, macOS, Linux) support. Controller support planned.
 
-### 13.1 Input Methods
+### 15.1 Input Methods
 
 | Input | Description | Status |
 |-------|-------------|--------|
@@ -1116,7 +1116,7 @@ is incremental: profile, port, re-profile, ship.
 | **Auto-Run** | Toggle for long travel | P1 |
 | **Gesture Support** | Double tap, long press on touch | P1 |
 
-### 13.2 UI Adaptation
+### 15.2 UI Adaptation
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
@@ -1126,7 +1126,7 @@ is incremental: profile, port, re-profile, ship.
 | **Colorblind Mode** | Accessibility options | P1 |
 | **Controller UI** | Controller-friendly navigation | P1 |
 
-### 13.3 Performance Targets
+### 15.3 Performance Targets
 
 | Metric | Target | Priority |
 |--------|--------|----------|
