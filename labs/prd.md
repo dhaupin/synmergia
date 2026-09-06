@@ -974,11 +974,6 @@ See [`world-building-arch.md`](./world-building-arch.md) §5 for the rules engin
 | Feature | Description | Priority |
 |---------|-------------|----------|
 | **CI/CD Pipeline** | Automated builds, testing | P0 |
-
-> ⚠️ **Note:** CI is currently disabled
-> (`.github/workflows/godot-ci.yml.disabled`). Re-enable when a
-> playable slice exists. See `ROADMAP.md` → Phase 8: Launch
-> Readiness → "Enable CI/CD Pipeline".
 | **Server Hosting** | Cloud provider (AWS/GCP/Azure) | P0 |
 | **Monitoring** | Player counts, server health, intersection cache hit rate | P0 |
 | **Analytics** | Track player behavior, economy, prediction accuracy | P1 |
@@ -1258,9 +1253,8 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 
 ## Development Tracking
 
-📋 **See [ROADMAP.md](../ROADMAP.md)** for implementation
-progress and technical details. The ROADMAP maps PRD features to
-actual code files and tracks completion status.
+Implementation progress and technical details are tracked in the
+codebase. See [`AGENTS.md`](../AGENTS.md) for developer notes.
 
 The architecture documentation is in `/labs/` — see the section
 above for the full listing of world-building docs and PRDs.
