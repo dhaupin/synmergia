@@ -11,7 +11,7 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 
 
 ## Tab definitions
-enum Tab { INVENTORY, EQUIP, STATS, SKILLS }
+enum Tab { INVENTORY, EQUIP, STATS, SKILLS, TITLES }
 var _current_tab: Tab = Tab.INVENTORY
 
 ## Equipment slots
@@ -68,7 +68,8 @@ func _setup_tabs() -> void:
 		{"id": Tab.INVENTORY, "name": "Inventory", "key": KEY_I},
 		{"id": Tab.EQUIP, "name": "Equipment", "key": KEY_E},
 		{"id": Tab.STATS, "name": "Stats", "key": KEY_S},
-		{"id": Tab.SKILLS, "name": "Skills", "key": KEY_K}
+		{"id": Tab.SKILLS, "name": "Skills", "key": KEY_K},
+			{"id": Tab.TITLES, "name": "Titles", "key": KEY_T}
 	]
 
 	for tab_data in tabs:
@@ -95,6 +96,7 @@ func _setup_tabs() -> void:
 	_setup_equip_tab()
 	_setup_stats_tab()
 	_setup_skills_tab()
+	_setup_titles_tab()
 
 func _create_tab_button(text: String, tab_id: int) -> Button:
 	var btn := Button.new()
@@ -116,7 +118,7 @@ func _input(event: InputEvent) -> void:
 
 ## Override from UIPanel — called by HudHotkeys for focus cycling.
 func _on_tab_pressed(shift: bool) -> void:
-	var tab_ids := [Tab.INVENTORY, Tab.EQUIP, Tab.STATS, Tab.SKILLS]
+	var tab_ids := [Tab.INVENTORY, Tab.EQUIP, Tab.STATS, Tab.SKILLS, Tab.TITLES]
 	var current_idx := -1
 	for i in range(tab_ids.size()):
 		if tab_ids[i] == _current_tab:
@@ -827,3 +829,248 @@ func set_character_data(data: CharacterData) -> void:
 	refresh_inventory()
 	refresh_stats()
 	refresh_skills()
+
+## ============================================================================
+## TITLES TAB
+## ============================================================================
+
+func _setup_titles_tab() -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.TITLES)
+	if not container:
+		return
+
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.add_child(vbox)
+
+	# Preview section
+	var preview_box := VBoxContainer.new()
+	preview_box.name = "TitlePreview"
+	vbox.add_child(preview_box)
+
+	var preview_title := Label.new()
+	preview_title.text = "Name Preview"
+	preview_title.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	preview_box.add_child(preview_title)
+
+	var preview_label := Label.new()
+	preview_label.name = "PreviewLabel"
+	preview_label.text = "YourName"
+	preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	preview_label.add_theme_font_size_override("font_size", 14)
+	preview_box.add_child(preview_label)
+
+	# Equipped section
+	var equipped_box := HBoxContainer.new()
+	equipped_box.name = "EquippedSection"
+	vbox.add_child(equipped_box)
+
+	# Prefix slot
+	var prefix_box := VBoxContainer.new()
+	prefix_box.name = "PrefixBox"
+	var prefix_lbl := Label.new()
+	prefix_lbl.text = "Prefix:"
+	prefix_lbl.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	prefix_box.add_child(prefix_lbl)
+	var prefix_val := Label.new()
+	prefix_val.name = "PrefixValue"
+	prefix_val.text = "[None]"
+	prefix_box.add_child(prefix_val)
+	var prefix_btn := Button.new()
+	prefix_btn.text = "Change"
+	prefix_btn.pressed.connect(_on_change_prefix_title)
+	prefix_box.add_child(prefix_btn)
+	equipped_box.add_child(prefix_box)
+
+	# Spacer
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	equipped_box.add_child(spacer)
+
+	# Suffix slot
+	var suffix_box := VBoxContainer.new()
+	suffix_box.name = "SuffixBox"
+	var suffix_lbl := Label.new()
+	suffix_lbl.text = "Suffix:"
+	suffix_lbl.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	suffix_box.add_child(suffix_lbl)
+	var suffix_val := Label.new()
+	suffix_val.name = "SuffixValue"
+	suffix_val.text = "[None]"
+	suffix_box.add_child(suffix_val)
+	var suffix_btn := Button.new()
+	suffix_btn.text = "Change"
+	suffix_btn.pressed.connect(_on_change_suffix_title)
+	suffix_box.add_child(suffix_btn)
+	equipped_box.add_child(suffix_box)
+
+	# Color section
+	var color_box := HBoxContainer.new()
+	color_box.name = "ColorSection"
+	vbox.add_child(color_box)
+
+	var color_lbl := Label.new()
+	color_lbl.text = "Title Color:"
+	color_box.add_child(color_lbl)
+
+	var color_picker := ColorPickerButton.new()
+	color_picker.name = "ColorPicker"
+	color_picker.color = Color(0.65, 0.65, 0.65)
+	color_picker.color_changed.connect(_on_title_color_changed)
+	color_box.add_child(color_picker)
+
+	# Unlock titles section
+	var unlocked_lbl := Label.new()
+	unlocked_lbl.text = "Unlocked Titles"
+	unlocked_lbl.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	vbox.add_child(unlocked_lbl)
+
+	var titles_scroll := ScrollContainer.new()
+	titles_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(titles_scroll)
+
+	var titles_list := ItemList.new()
+	titles_list.name = "TitlesList"
+	titles_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	titles_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	titles_list.item_selected.connect(_on_title_item_selected)
+	titles_scroll.add_child(titles_list)
+
+func _on_change_prefix_title() -> void:
+	_show_title_selection_popup("prefix")
+
+func _on_change_suffix_title() -> void:
+	_show_title_selection_popup("suffix")
+
+func _on_title_color_changed(color: Color) -> void:
+	_update_title_preview_color(color)
+
+func _show_title_selection_popup(slot: String) -> void:
+	var player_id := TitleService.get_local_player_id()
+	var titles: Array = TitleService.get_unlocked_titles(player_id)
+
+	if titles.is_empty():
+		show_notification("No titles unlocked yet")
+		return
+
+	var dialog := AcceptDialog.new()
+	dialog.title = "Select %s Title" % slot.capitalize()
+	dialog.ok_button_text = "Close"
+	add_child(dialog)
+
+	var vbox := VBoxContainer.new()
+	dialog.add_child(vbox)
+
+	var list := ItemList.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var valid_titles := []
+	for title in titles:
+		if slot == "prefix" and title.has_prefix():
+			list.add_item("[%s] %s" % [title.prefix_form, title.display_name])
+			valid_titles.append(title)
+		elif slot == "suffix" and title.has_suffix():
+			list.add_item("%s [%s]" % [title.display_name, title.suffix_form])
+			valid_titles.append(title)
+
+	if valid_titles.is_empty():
+		var no_title_lbl := Label.new()
+		no_title_lbl.text = "No titles available for %s slot" % slot
+		vbox.add_child(no_title_lbl)
+	else:
+		vbox.add_child(list)
+
+		var btn_hbox := HBoxContainer.new()
+		vbox.add_child(btn_hbox)
+
+		var equip_btn := Button.new()
+		equip_btn.text = "Equip"
+		equip_btn.pressed.connect(func() -> void:
+			var idx := list.get_selected_items()
+			if not idx.is_empty() and idx[0] < valid_titles.size():
+				var title = valid_titles[idx[0]]
+				TitleService.equip(player_id, title.id, slot)
+				refresh_titles()
+				show_notification("Title equipped!")
+			dialog.queue_free()
+		)
+		btn_hbox.add_child(equip_btn)
+
+		var unequip_btn := Button.new()
+		unequip_btn.text = "Unequip"
+		unequip_btn.pressed.connect(func() -> void:
+			TitleService.unequip(player_id, slot)
+			refresh_titles()
+			show_notification("Title unequipped")
+			dialog.queue_free()
+		)
+		btn_hbox.add_child(unequip_btn)
+
+	dialog.confirmed.connect(func() -> void: dialog.queue_free())
+	dialog.canceled.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered(Vector2(350, 300))
+
+func _on_title_item_selected(index: int) -> void:
+	_show_title_selection_popup("prefix")
+
+func _update_title_preview_color(color: Color) -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.TITLES)
+	if not container:
+		return
+
+	var preview_box: VBoxContainer = container.get_node_or_null("TitlePreview")
+	if not preview_box:
+		return
+
+	var preview_lbl: Label = preview_box.get_node_or_null("PreviewLabel")
+	if preview_lbl:
+		preview_lbl.add_theme_color_override("font_color", color)
+
+func refresh_titles() -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.TITLES)
+	if not container:
+		return
+
+	var player_id := TitleService.get_local_player_id()
+	if player_id.is_empty():
+		return
+
+	# Update preview
+	var preview_box: VBoxContainer = container.get_node_or_null("TitlePreview")
+	if preview_box:
+		var preview_lbl: Label = preview_box.get_node_or_null("PreviewLabel")
+		if preview_lbl:
+			var base_name := "PlayerName"
+			var full_name := TitleService.get_display_name(player_id, base_name)
+			preview_lbl.text = full_name
+
+	# Update equipped labels
+	var equipped_box: HBoxContainer = container.get_node_or_null("EquippedSection")
+	if equipped_box:
+		var prefix_box: VBoxContainer = equipped_box.get_node_or_null("PrefixBox")
+		if prefix_box:
+			var prefix_val: Label = prefix_box.get_node_or_null("PrefixValue")
+			if prefix_val:
+				var prefix: TitleData = TitleService.get_equipped_prefix(player_id)
+				prefix_val.text = "[%s]" % prefix.prefix_form if prefix else "[None]"
+
+		var suffix_box: VBoxContainer = equipped_box.get_node_or_null("SuffixBox")
+		if suffix_box:
+			var suffix_val: Label = suffix_box.get_node_or_null("SuffixValue")
+			if suffix_val:
+				var suffix: TitleData = TitleService.get_equipped_suffix(player_id)
+				suffix_val.text = suffix.suffix_form if suffix else "[None]"
+
+	# Update titles list
+	var titles_list: ItemList = container.get_node_or_null("TitlesList")
+	if titles_list:
+		titles_list.clear()
+		var titles: Array = TitleService.get_unlocked_titles(player_id)
+		for title in titles:
+			var display := title.display_name
+			if title.has_prefix():
+				display += " (Prefix)"
+			if title.has_suffix():
+				display += " (Suffix)"
+			titles_list.add_item(display)

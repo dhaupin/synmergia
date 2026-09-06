@@ -10,8 +10,6 @@ static func get_instance() -> Node:
 		_instance._ready()
 	return _instance
 
-
-
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 
 var _dialogues: Dictionary = {}
@@ -54,29 +52,30 @@ func start_dialogue(npc_id: String, dialogue_id: String) -> bool:
 	_current_dialogue = dialogue
 	_current_node = 0
 	dialogue_started.emit(npc_id, dialogue_id)
-	node_changed.emit(_current_node, _node_to_dict(_current_dialogue.nodes[_current_node]))
+	node_changed.emit(_current_node, _node_to_dict(dialogue.get_node(_current_node)))
 	return true
 
 func advance() -> Dictionary:
 	if _current_dialogue == null or _current_dialogue.nodes.is_empty():
 		end_dialogue()
 		return {}
-	if _current_dialogue.nodes[_current_node].choices.is_empty():
+	var node := _current_dialogue.get_node(_current_node)
+	if not _has_choices(node):
 		_current_node += 1
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		end_dialogue()
 		return {}
-	var node_dict := _node_to_dict(_current_dialogue.nodes[_current_node])
+	var node_dict := _node_to_dict(_current_dialogue.get_node(_current_node))
 	node_changed.emit(_current_node, node_dict)
 	return node_dict
 
 func select_choice(choice_index: int) -> Dictionary:
 	if _current_dialogue == null:
 		return {}
-	var node: DialogueData.DialogueNode = _current_dialogue.nodes[_current_node]
-	if choice_index < 0 or choice_index >= node.choices.size():
+	var choices: Array[Dictionary] = _current_dialogue.get_choices(_current_node)
+	if choice_index < 0 or choice_index >= choices.size():
 		return {}
-	var next: int = node.choices[choice_index].next_node
+	var next: int = choices[choice_index].get("next_node", -1)
 	if next < 0:
 		end_dialogue()
 		return {}
@@ -84,7 +83,7 @@ func select_choice(choice_index: int) -> Dictionary:
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		end_dialogue()
 		return {}
-	var node_dict := _node_to_dict(_current_dialogue.nodes[_current_node])
+	var node_dict := _node_to_dict(_current_dialogue.get_node(_current_node))
 	node_changed.emit(_current_node, node_dict)
 	return node_dict
 
@@ -93,15 +92,25 @@ func get_current_node() -> Dictionary:
 		return {}
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		return {}
-	return _node_to_dict(_current_dialogue.nodes[_current_node])
+	return _node_to_dict(_current_dialogue.get_node(_current_node))
 
-func _node_to_dict(node: DialogueData.DialogueNode) -> Dictionary:
+func _has_choices(node: Dictionary) -> bool:
+	if not node.has("choices"):
+		return false
+	var choices: Array = node["choices"]
+	return not choices.is_empty()
+
+func _node_to_dict(node: Dictionary) -> Dictionary:
 	var choices: Array[Dictionary] = []
-	for choice: DialogueData.DialogueChoice in node.choices:
-		choices.append({"text": choice.text, "next": choice.next_node})
+	if node.has("choices"):
+		for choice: Dictionary in node["choices"]:
+			choices.append({
+				"text": choice.get("text", ""),
+				"next": choice.get("next_node", -1)
+			})
 	return {
-		"speaker": node.speaker,
-		"text": node.text,
+		"speaker": node.get("speaker", ""),
+		"text": node.get("text", ""),
 		"choices": choices
 	}
 

@@ -42,6 +42,7 @@ var _status_effects: Dictionary = {}
 var _quests: Dictionary = {}
 var _achievements: Dictionary = {}
 var _gateways: Dictionary = {}
+var _titles: Dictionary = {}
 
 var _data_path: String = "res://data/"
 var _loaded: bool = false
@@ -63,6 +64,8 @@ func load_all_data() -> void:
 	load_zones()
 	load_events()
 	load_dwellings()
+	load_titles()
+	load_achievements()
 	
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -155,6 +158,8 @@ func load_events() -> void:
 
 ## Load dwellings from data/dwellings/
 func load_dwellings() -> void:
+	load_titles()
+	load_achievements()
 	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
 	GameLog.info("DataService: Loaded %d dwellings" % _dwellings.size())
 
@@ -174,6 +179,10 @@ func load_quests() -> void:
 	GameLog.info("DataService: Loaded %d quests" % _quests.size())
 
 ## Load achievements from data/achievements/
+func load_titles() -> void:
+	_titles = _scan_directory(_data_path + "titles", "title")
+	GameLog.info("DataService: Loaded %d titles" % _titles.size())
+
 func load_achievements() -> void:
 	_achievements = _scan_directory(_data_path + "achievements", "achievement")
 	GameLog.info("DataService: Loaded %d achievements" % _achievements.size())
@@ -267,6 +276,10 @@ func get_all_quests() -> Dictionary:
 
 func get_achievement(id: String) -> AchievementData:
 	return _achievements.get(id)
+
+func get_all_titles() -> Dictionary:
+	return _titles
+
 
 func get_all_achievements() -> Dictionary:
 	return _achievements
