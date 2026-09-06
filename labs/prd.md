@@ -657,70 +657,30 @@ See [`world-building.md`](./world-building.md) §10 for the full transport desig
 | **Item templates** | Content-hashed | Cross-shard dedup via hash equality. |
 | **Assets** | Content-hashed pck + CDN | Old clients can still find old assets on update. |
 
-### 10.6 The State Tree (the redis-like layer)
 
-This is the foundation of Track A Session A-3. The state tree is a
-content-addressed tree where:
+### 10.6 The T3 Substrate
 
-- Every node has a `hash` (SHA-256 of its serialized value)
-- Two systems with the same hash have the same subtree
-- `diff(old_root, new_root)` returns a list of `(path, new_hash, value)` entries
-- `apply_diff(root, diff)` returns the new root
-- Server tick = re-rooting the tree with new state
-- Client sync = `apply_diff(my_root, server_diff)` → new_root
+The frame's core primitive: a generic content-hash tree. Every
+node has a `hash` (SHA-256 of its serialized value). The frame
+extracts this into `labs/multi-iso/kv/t3.gd`.
 
-**Why this matters for the PRD**: every "interesting" state
-question ("is the player still alive?", "do we have this item
-template?", "is this region the same as yesterday?") becomes a
-hash equality check. The frame extracts this into
-`labs/multi-iso/kv/state_tree.gd`.
+See [`prd-t3-substrate.md`](./prd-t3-substrate.md) for the full spec.
 
-### 10.7 The Multi-Iso Orchestrator (the frame core)
+### 10.7 The Scope Engine
 
-A controller layer above the state tree. Multiple icosahedral
-"isos" (one per axis: spatial, factional, temporal, social) are
-projections of the same world. Multi-dimensional queries become
-intersections: `query(region, faction, time) =
-iso_spatial[region] ∩ iso_faction[faction] ∩ iso_temporal[time]`.
+Data-driven hierarchy walker. Resolves rules and values at scope
+boundaries (world→shard→instance→player). The frame extracts
+this into `labs/multi-iso/srv/scope.gd`.
 
-**Materialized intersection tables** (LRU cache) make the
-intersection O(1) for hot queries.
+See [`prd-scope-engine.md`](./prd-scope-engine.md) for the full spec.
 
-**LOD pyramid** (full / summary / cold / archived) lets inactive
-regions serialize and unload.
+### 10.8 The Rules Engine
 
-**Predictive prefetch** (Markov over temporal patterns)
-pre-loads regions before the player arrives.
+Generic behavior evaluator. Runs rules defined in the state tree
+against entities. Composes with the scope engine for per-scope
+rule overrides.
 
-**Fused mode** is the default: each entity's state record
-contains its axis coordinates. The geometry integrates with
-state, not a separate layer.
-
-Full design in [`world-building-arch.md`](./world-building-arch.md) and [`world-building.md`](./world-building.md).
-
-### 10.8 NSC-9 Reserved Space Identifiers
-
-Every entity has a 12-digit NSC-9 code that encodes its axis
-membership:
-
-```
-9-AAA-BBB-CCCCCC
-  │   │    └──── sequence within axis (16M)
-  │   └───────── axis reservation (1000 axes)
-  └───────────── facility
-```
-
-Axis ranges are administratively reserved:
-
-- `001-099` spatial
-- `100-199` factional
-- `200-299` temporal
-- `300-399` social
-- `400-499` game-specific
-- `500-999` free for new axes
-
-The barcode IS the multi-dimensional index. Two entities with the
-same NSC-9 code (within their axis) are the same entity.
+See [`world-building-arch.md`](./world-building-arch.md) §5 for the rules engine design.
 
 ### 10.9 DevOps
 
@@ -991,13 +951,13 @@ above for the full listing of world-building docs and PRDs.
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| **Scope creep** (frame research distracts from product) | High | Track A is non-negotiable; Track B is research that may not pan out. |
-| **Performance** (state tree + orchestrator too slow at 10K entities) | Medium | B-9 budget. Fall back to NativeScript C++ for the hot path. |
+| **Scope creep** (frame research distracts from product) | High | Phase 2 is non-negotiable; frame primitives are research that may not pan out. |
+| **Performance** (T3 substrate + scope engine too slow at 10K entities) | Medium | Phase 4 perf budget. Fall back to GDExtension C++ for the hot path. |
 | **Godot 4.7 stability** (4.7 is recent; bugs in the engine) | Medium | Pin version. Test against the headless server mode. |
-| **Mobile build size** (Godot exports bloat with all features) | Medium | Asset content-hash → only what the player needs. A-6. |
+| **Build size** (Godot exports bloat with all features) | Medium | Asset content-hash → only what the player needs. |
 | **Anti-cheat** (state tree hashes are forgeable) | High | Server-side hash chain. Each tick is signed by previous. |
 | **Frame over-engineering** (build abstractions no game uses) | Medium | Frame is a byproduct of game work, not a goal. If no game needs it, it doesn't extract. |
-| **Jolt integration cost** (swap-in breaks physics assumptions) | Low | Game is `PhysicsServer3D`-agnostic. Jolt drop-in via project setting. Phase 5 benchmark first. |
+| **Jolt integration cost** (swap-in breaks physics assumptions) | Low | Game is `PhysicsServer3D`-agnostic. Jolt drop-in via project setting. Benchmark first. |
 | **Polyglot FFI boundary cost** (Julia subprocess round-trips add latency) | Low | Tier 1 (GDScript) for anything latency-sensitive. Tier 2 only for batch ops. Migration to GDExtension C++ if needed. |
 
 ### D. Frame Appendix
