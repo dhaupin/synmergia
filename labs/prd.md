@@ -24,17 +24,19 @@
 2. [Core Game Pillars](#2-core-game-pillars)
 3. [Combat Systems](#3-combat-systems)
 4. [World & Exploration](#4-world--exploration)
-5. [Player Systems](#5-player-systems)
-6. [Economy & Crafting](#6-economy--crafting)
-7. [Player Housing](#7-player-housing)
-8. [PvP Systems](#8-pvp-systems)
-9. [Social & Guild Systems](#9-social--guild-systems)
-10. [Account & Server Systems](#10-account--server-systems)
-11. [Technical Architecture](#11-technical-architecture)
-12. [Art & Audio Direction](#12-art--audio-direction)
-13. [Platform Support & Optimization](#13-platform-support--optimization)
-14. [Phases & Milestones](#14-phases--milestones)
-15. [Open Questions](#15-open-questions)
+5. [UI Systems Overview](#5-ui-systems-overview)
+6. [Player Systems](#6-player-systems)
+7. [Economy & Crafting](#7-economy--crafting)
+8. [Player Housing](#8-player-housing)
+9. [PvP Systems](#9-pvp-systems)
+10. [Social & Guild Systems](#10-social--guild-systems)
+11. [Account & Server Systems](#11-account--server-systems)
+12. [Technical Architecture](#12-technical-architecture)
+13. [Data Schemas](#13-data-schemas)
+14. [Art & Audio Direction](#14-art--audio-direction)
+15. [Platform Support & Optimization](#15-platform-support--optimization)
+16. [Phases & Milestones](#16-phases--milestones)
+17. [Open Questions](#17-open-questions)
 
 ## Architecture documentation
 
@@ -228,6 +230,30 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 - [ ] Level scaling within zones? → TBD (world scaling not planned for initial release)
 
+### 3.5 Buff/Aura System
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Status Effects** | Unified buff/debuff/DoT/HoT system | Implemented |
+| **Effect Categories** | BUFF, DEBUFF, NEUTRAL | Implemented |
+| **Effect Types** | STAT_MODIFIER, HEALTH_MODIFIER, IMMUNITY, STEALTH, CONTROL, SPECIAL | Implemented |
+| **Control Types** | STUN, ROOT, SNARE, FEAR, SILENCE, KNOCKBACK, INCAPACITATE | Implemented |
+| **Stack Behaviors** | NONE (refresh), REFRESH, ADD, REPLACE | Implemented |
+| **Tick Behaviors** | INSTANT, DURATION, TICKED, TOGGLE | Implemented |
+| **Dispel Rules** | Magic, Curse, Poison, Physical, Holy, Shadow, Fire, Ice, Lightning, Arcane, Bleed | Implemented |
+
+See `core/entities/status_effect.gd`, `core/components/aura_component.gd`, `core/schemas/status_effect_data.gd`.
+
+### 3.6 Combat Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| **HealthComponent** | `core/components/health_component.gd` | Health, death, respawn |
+| **CombatComponent** | `core/components/combat_component.gd` | Combat state, skills, damage |
+| **AuraComponent** | `core/components/aura_component.gd` | Buff/debuff management (32 buff, 16 debuff max) |
+| **AggroComponent** | `core/components/aggro_component.gd` | Threat/aggro management |
+| **InventoryComponent** | `core/components/inventory_component.gd` | Item storage and equipment |
+
 ---
 
 ## 4. World & Exploration
@@ -320,11 +346,100 @@ See `core/services/world_service.gd`.
 
 ---
 
-## 5. Player Systems
+## 5. UI Systems Overview
+
+> **Pattern:** UI uses an Islands architecture where each panel is a `PackedScene`
+> with an `IslandPlaceholder` root, mounted by `IslandManager`. HUD widgets are
+> separate `UIWidget` instances for in-world overlays.
+
+### 5.1 Authentication Flow
+
+| Screen | File | Description |
+|--------|------|-------------|
+| **Login** | `ui/menus/login.gd` | Login/Register/Guest modes. PBKDF2 password hashing, rate limiting. |
+| **Lobby** | `ui/menus/lobby.gd` | Per-account character list. Play/Create/Delete/Logout actions. |
+| **Character Select** | `ui/menus/character_select.gd` | Species selection → Class selection → Name entry. |
+
+See `core/services/login_service.gd` for auth logic.
+
+### 5.2 Game Menus
+
+| Menu | File | Description |
+|------|------|-------------|
+| **Main Menu** | `ui/menus/main_menu.gd` | Entry point with Play/Settings/Quit |
+| **Character Stats** | `ui/components/character_stats_ui.gd` | Character sheet with stats display |
+| **Settings** | `ui/components/settings_panel.gd` | Audio, video, keybinds, accessibility |
+
+### 5.3 HUD Elements
+
+| Element | File | Description |
+|---------|------|-------------|
+| **Action Bar** | `ui/components/action_bar.gd` | Skill hotbar with cooldowns |
+| **Buff Bar** | `ui/components/buff_bar.gd` | Active effects display (8 buff, 8 debuff slots) |
+| **Minimap** | `ui/components/minimap.gd` | Zone map with player position |
+| **World Map** | `ui/components/world_map.gd` | Full map view |
+| **Target Frame** | `ui/components/target_frame.gd` | Selected target display |
+| **Boss Health Bar** | `ui/components/boss_health_bar.gd` | Boss encounter UI |
+| **Cooldown Indicator** | `ui/components/cooldown_indicator.gd` | Skill cooldown display |
+| **Loading UI** | `ui/components/loading_ui.gd` | Loading screens |
+| **Combat Log** | `ui/components/combat_log.gd` | Scrolling combat/event feed |
+| **Action Menu** | `ui/components/action_menu.gd` | Right-click context menus |
+| **Tooltip Manager** | `ui/components/tooltip_manager.gd` | Unified tooltip system |
+
+### 5.4 Inventory & Equipment
+
+| Panel | File | Description |
+|-------|------|-------------|
+| **Inventory** | `ui/components/inventory_ui.gd` | Grid-based inventory with item icons |
+| **Bank/Vault** | `ui/components/bank_ui.gd` | Shared storage with withdraw/deposit |
+| **Trade** | `ui/social/trade_ui.gd` | Player-to-player trading |
+| **Shop** | `ui/components/shop_ui.gd` | Vendor buying/selling interface |
+| **Blacksmith** | `ui/components/blacksmith_ui.gd` | Item repair and upgrading |
+
+### 5.5 Social Panels
+
+| Panel | File | Description |
+|-------|------|-------------|
+| **Friends List** | `ui/social/friends_list.gd` | Friends, requests, block/ignore |
+| **Guild UI** | `ui/social/guild_ui.gd` | Guild management, ranks, MOTD |
+| **Party UI** | `ui/social/party_ui.gd` | Party formation and management |
+| **Faction UI** | `ui/social/faction_ui.gd` | Faction reputation display |
+| **Achievement UI** | `ui/social/achievement_ui.gd` | Achievement tracking and display |
+| **Quest UI** | `ui/components/quest_ui.gd` | Quest tracking and objectives |
+| **Dialog UI** | `ui/components/dialog_ui.gd` | NPC conversation rendering |
+
+### 5.6 Admin Tools
+
+| Tool | File | Description |
+|------|------|-------------|
+| **Admin Dashboard** | `ui/admin/admin_dashboard.gd` | GM panel with commands, player list, terminal |
+| **Admin Toolbar** | `ui/admin/admin_toolbar.gd` | Quick admin actions toolbar |
+| **Admin Shell** | `core/admin/admin_shell.gd` | Command execution engine |
+
+### 5.7 Debug & Accessibility
+
+| Feature | File | Description |
+|---------|------|-------------|
+| **Debug Overlay** | `ui/components/debug_overlay.gd` | UI inspection (F11 toggle). Shows game state, hovered elements. |
+| **Colorblind Mode** | `settings_panel.gd` | Deuteranopia, Protanopia, Tritanopia support |
+| **UI Scaling** | `settings_panel.gd` | Adjustable UI element size |
+| **UIStyles** | `ui/components/ui_styles.gd` | Centralized theming (colors, fonts, styles) |
+
+### 5.8 Islands Architecture
+
+| Component | File | Description |
+|-----------|------|-------------|
+| **Island Manager** | `ui/islands/island_manager.gd` | Mounts/unmounts UI panels dynamically |
+| **Island Registry** | `ui/islands/island_registry.gd` | Static registry of available panels |
+| **Island Placeholder** | `ui/islands/island_placeholder.gd` | Root node for island scenes |
+
+---
+
+## 6. Player Systems
 
 > **Implemented:** Character creation, species, classes, skill academy.
 
-### 5.1 Species (Races)
+### 6.1 Species (Races)
 
 Three playable species implemented:
 
@@ -336,7 +451,7 @@ Three playable species implemented:
 
 See `game/data/species/` for implemented species.
 
-### 5.2 Class System
+### 6.2 Class System
 
 18 classes across 3 species × 6 archetypes:
 
@@ -353,7 +468,7 @@ Plus 3 GM classes (Akkan, Human, Synthetic) with `role = 0`.
 
 See `game/data/classes/` for implemented classes.
 
-### 5.3 Skill Academy
+### 6.3 Skill Academy
 
 Players unlock and upgrade skills via the Skill Academy:
 
@@ -369,7 +484,7 @@ Players unlock and upgrade skills via the Skill Academy:
 
 See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui.gd`.
 
-### 5.4 Leveling & Progression
+### 6.4 Leveling & Progression
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -378,7 +493,7 @@ See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui
 | **Death Penalty** | XP loss, item degradation | P0 |
 | **Respawn Service** | Respawn logic with bind points | Implemented |
 
-### 5.5 Inventory & Equipment
+### 6.5 Inventory & Equipment
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -392,7 +507,7 @@ See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui
 
 See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`.
 
-### 5.6 Player Open Questions
+### 6.6 Player Open Questions
 
 - [ ] Level cap expansion beyond initial cap?
 - [ ] Additional respec options for gold?
@@ -400,7 +515,7 @@ See `core/services/inventory_service.gd`, `vault_service.gd`, `trade_service.gd`
 
 ---
 
-## 6. Economy & Crafting
+## 7. Economy & Crafting
 
 > **Partial Implementation:** Trade, vendor, and item degradation implemented.
 > Gathering and full crafting professions are planned.
@@ -457,7 +572,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ---
 
-## 7. Player Housing
+## 8. Player Housing
 
 > **In Progress:** Placement, customization, functionality.
 
@@ -482,7 +597,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ---
 
-## 8. PvP Systems
+## 9. PvP Systems
 
 > **In Progress:** Zone types, full loot, guild wars.
 
@@ -514,7 +629,7 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ---
 
-## 9. Social & Guild Systems
+## 10. Social & Guild Systems
 
 ### 9.1 Communication
 
@@ -655,7 +770,7 @@ See `core/services/dialog_service.gd`, `core/schemas/dialogue_data.gd`, and `ui/
 
 ---
 
-## 10. Account & Server Systems
+## 11. Account & Server Systems
 
 ### 10.1 Account Management
 
@@ -704,7 +819,7 @@ See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 
 ---
 
-## 11. Technical Architecture
+## 12. Technical Architecture
 
 > **Updated 2026-09-05:** Godot 4.7.2 chosen for open source,
 > lightweight, no royalties, and strong 3D support. The frame is
@@ -863,9 +978,53 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 12. Art & Audio Direction
+## 13. Data Schemas
 
-### 12.1 Visual Style
+> **Pattern:** Game data is defined in `.tres` Resource files loaded at runtime.
+> Schemas define the structure; data files provide the values.
+
+### 13.1 Core Schemas
+
+| Schema | File | Description |
+|--------|------|-------------|
+| **CharacterData** | `core/schemas/character_data.gd` | Player character state, stats, skills |
+| **CharacterClass** | `core/schemas/character_class.gd` | Class definitions with skill trees |
+| **Species** | `core/schemas/species.gd` | Species/race definitions with base stats |
+| **Item** | `core/schemas/item.gd` | Item templates with rarity, soulbound, stack |
+| **EnemyData** | `core/schemas/enemy_data.gd` | Enemy templates with stats, loot tables |
+| **NpcData** | `core/schemas/npc_data.gd` | NPC definitions for vendors, quest givers |
+| **QuestData** | `core/schemas/quest_data.gd` | Quest definitions with objectives, rewards |
+| **DialogueData** | `core/schemas/dialogue_data.gd` | NPC dialogue trees with choices |
+| **Faction** | `core/schemas/faction.gd` | Faction definitions with relationships |
+| **Skill** | `core/schemas/skill.gd` | Skill definitions with effects, costs |
+| **SkillBook** | `core/schemas/skill_book.gd` | Skill upgrade book definitions |
+| **StatusEffectData** | `core/schemas/status_effect_data.gd` | Buff/debuff templates |
+| **LootTable** | `core/schemas/loot_table.gd` | Loot drop probability tables |
+| **GatewayData** | `core/schemas/gateway_data.gd` | Portal/dungeon entrance definitions |
+| **DwellingData** | `core/schemas/dwelling_data.gd` | Player housing definitions |
+| **EventData** | `core/schemas/event_data.gd` | World event definitions |
+| **NpcOffering** | `core/schemas/npc_offering.gd` | Vendor inventory definitions |
+| **Ankh** | `core/schemas/ankh.gd` | Respawn point definitions |
+
+### 13.2 Agent Schemas
+
+| Schema | File | Description |
+|--------|------|-------------|
+| **AgentConnector** | `core/schemas/agent_connector.gd` | AI agent connection configuration |
+| **AgentAction** | `core/schemas/agent_action.gd` | Agent action definitions |
+
+### 13.3 Data Loading
+
+| Service | File | Description |
+|---------|------|-------------|
+| **DataService** | `core/services/data_service.gd` | Centralized resource loading |
+| **CharacterData** | `core/schemas/character_data.gd` | Provides `get_all_species()`, `load_species()`, `get_all_classes()` |
+
+---
+
+## 14. Art & Audio Direction
+
+### 14.1 Visual Style
 
 | Aspect | Description | Priority |
 |--------|-------------|----------|
@@ -896,7 +1055,7 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 13. Platform Support & Optimization
+## 14. Platform Support & Optimization
 
 > Browser-first deployment (HTML5/wasm), with planned mobile (Android/iOS)
 > and desktop (Windows, macOS, Linux) support. Controller support planned.
@@ -932,7 +1091,7 @@ is incremental: profile, port, re-profile, ship.
 
 ---
 
-## 14. Phases & Milestones
+## 15. Phases & Milestones
 
 > **Updated 2026-09-05:** Phases reflect the current state
 > based on source-of-truth docs in `/labs/`. The frame
@@ -1019,7 +1178,7 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 
 ---
 
-## 15. Open Questions
+## 16. Open Questions
 
 > **Updated 2026-09-05:** Architecture is now T3 substrate +
 > scope engine + rules engine (per `world-building-arch.md`).
