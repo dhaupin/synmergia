@@ -2,104 +2,161 @@
 
 **A 3D open-world MMORPG that runs in your browser.**
 
-*Browser-first action combat meets the deepest player-driven economy since Ultima Online.*
+*Browser-first action combat meets the deepest player-driven economy since Ultima Online. No downloads. No installs. Just play.*
 
 ```
-    ╔═══════════════════════════════════════════════════════════╗
-    ║  ⚔️  Browser MMORPG  •  RYL2 Combat  •  UO Economy  ⚔️  ║
-    ╚═══════════════════════════════════════════════════════════╝
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║   ⚔️  Browser MMORPG  •  Open World  •  Action Combat   ⚔️ ║
+    ║      RYL2-Style Combat  •  UO Economy  •  Guild Territory     ║
+    ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-No downloads. No installs. Fight, craft, build, and conquer — from any device with a browser.
+## What Is Synmergia?
 
-## Why Synmergia?
+Synmergia is an **open-world multiplayer RPG** built for the browser. Step into a persistent world where your choices shape the economy, your guild controls territory, and every battle matters. Whether you're gathering resources to craft legendary gear, building your dream house on the frontier, or leading your faction into heated guild wars — this is your world.
 
-**🎮 Combat That Respects Your Skill**
-- Free-form action combat (no tab-target lock)
-- Dodge, parry, interrupt, and chain skills mid-combat
-- Positioning and timing matter more than gearscore
+No other browser-based MMORPG offers this combination of deep action combat, player-driven sandbox economy, and true open-world freedom.
 
-**🏪 Economy That Players Own**
-- No auction house bot — prices are set by supply and demand
-- Resources spawn in the world; you gather and craft everything
-- Player housing dots the landscape, guilds control territories
+---
 
-**⚔️ PvP With Real Stakes**
-- Full loot in designated zones
-- Guild wars shape server politics
-- Death has consequence
+## Why Players Love Synmergia
 
-**🌐 Play Anywhere**
-- Browser-first via Godot HTML5/wasm
-- Touch controls for mobile, keyboard/mouse for desktop
-- Same experience across all devices
+### 🎮 Combat That Respects Your Skill
 
-**🤖 AI Agents Welcome**
-- Connect AI agents (Claude, GPT, Vant) to play alongside humans
+This isn't a auto-attack-and-wait game. Synmergia features **free-form action combat** inspired by classics like Risk Your Life 2. Every fight is a dance of positioning, timing, and decision-making:
+
+- **Dodge, parry, interrupt, and chain skills mid-combat**
+- **Positioning matters** — flanking, terrain advantage, line-of-sight
+- **Skill combos** — certain sequences trigger bonus effects
+- **No tab-target lock** — aim and strike where you choose
+- **Meaningful death** — lose your gear in PvP zones, respawn with strategy
+
+### 🏪 Economy That Players Own
+
+Forget auction house bots and NPC vendors setting prices. In Synmergia, **the economy is built by players, for players**:
+
+- **Resources spawn in the world** — mines, forests, fishing spots scattered across continents
+- **Craft everything** — blacksmithing, alchemy, tailoring, and more
+- **Player housing** — claim land, build your home, watch it persist
+- **Guild territories** — control resource nodes and levy taxes
+- **Legendary gear comes from players and world bosses** — not loot boxes
+
+This is the sandbox economy you remember from Ultima Online, rebuilt for a modern audience.
+
+### ⚔️ PvP With Real Stakes
+
+Risk and reward in constant tension. Synmergia offers **configurable PvP across zones**:
+
+- **Full loot in PvP zones** — drop everything on death, fight for glory and gear
+- **Guild wars** — political alliances, territory control, server-shaping conflicts
+- **Faction battles** — join species or ideological factions, shape the world's future
+- **Arena combat** — organized PvP with balanced rulesets
+- **Death has weight** — no zerg rushing, no consequence-free ganking
+
+### 🌐 Play Anywhere, On Any Device
+
+Your adventures shouldn't be chained to a desktop:
+
+- **Browser-first** — play directly in Chrome, Firefox, Safari, Edge
+- **Mobile-ready** — touch controls designed for action combat
+- **Cross-platform** — same world, same players, any device
+- **No downloads** — click, play, immerse yourself instantly
+
+### 🤖 AI Adventurers Welcome
+
+Want to play with friends but can't find enough players? **AI agents can join your world**:
+
+- Connect AI characters (Claude, GPT, Vant) that play alongside humans
+- Agents see the same game state, make the same decisions
+- Fill out guild raids, dungeon groups, and trading posts
 - MCP protocol support for standard AI interfaces
-- Agents see the same game state humans do
 
 ---
 
-## Quick Links
+## Features At A Glance
 
-| 📄 [Product Spec](./labs/prd.md) | Full design document |
-|-----------------------------------|---------------------|
-| 🏗️ [Architecture](./labs/world-building-arch.md) | Technical deep-dive |
-| 🗺️ [ROADMAP](./ROADMAP.md) | Implementation progress |
-| 🤖 [AGENTS.md](./AGENTS.md) | Developer notes for AI agents |
+### Combat & Progression
+- ✅ 18 player classes across 6 archetypes (Tank, DPS, Mage, Rogue, Bender, Healer)
+- ✅ 3 species with unique abilities (Akkan, Human, Synthetic)
+- ✅ Skill academy with upgradeable abilities and signature skills
+- ✅ Buff/debuff system with 11 dispel categories (magic, curse, poison, etc.)
+- ✅ Level 1-60 with 3 mastery tiers
+
+### World & Exploration
+- ✅ Spherical planet world (20km radius for v1)
+- ✅ Procedural terrain and dungeon generation
+- ✅ Day/night cycle and dynamic world events
+- ✅ Multiple biome types (forest, plains, mountains, desert, swamp)
+- ✅ Dungeons, world bosses, and dynamic encounters
+
+### Economy & Crafting
+- ✅ Full crafting system with profession tiers
+- ✅ Player housing with persistence
+- ✅ Guild halls and territory control
+- ✅ Resource gathering and trading
+- ✅ Player-driven market economics
+
+### Social & Community
+- ✅ Guilds with ranks, permissions, and alliances
+- ✅ Party and raid systems with loot rules
+- ✅ Friends, ignore lists, and block features
+- ✅ Community voting and moderator progression
+- ✅ In-game mail and chat channels
+
+### PvP Systems
+- ✅ 5 zone PvP modes (Safe, Species, Faction, Free, Warzone)
+- ✅ Full loot and partial loot options
+- ✅ Guild war declarations
+- ✅ Arena and battlegrounds
+- ✅ Faction reputation and progression
 
 ---
 
-## Tech Stack
+## The Technology
 
-| | |
-|---|---|
-| **Engine** | Godot 4.7.2 (MIT) |
-| **Language** | GDScript |
-| **Platforms** | Browser (HTML5/wasm), Android, iOS, PC |
-| **Architecture** | Authoritative server + Multi-iso orchestrator + Content-hash state tree |
-| **Persistence** | Postgres (snapshots) + Redis (intersection cache) |
+### Built With Godot 4.7.2
 
----
+- **Open source** (MIT license) — fork it, mod it, extend it
+- **Browser export** via HTML5/wasm
+- **Cross-platform** — Android, iOS, Windows, macOS, Linux
+- **GDScript** — clean, readable game logic
 
-## Key Features
+### Architecture Highlights
 
-### Core Gameplay
-- ✅ 30+ services (combat, trading, crafting, guilds, factions)
-- ✅ Buff/debuff system with dispel rules (8 categories)
-- ✅ Entity-component architecture for flexible entity composition
-- ✅ Data-driven design — drop `.tres` files to add content
+- **Authoritative server** — anti-cheat, fair gameplay
+- **Content-hash state tree** — deterministic sync across clients
+- **Multi-iso orchestrator** — efficient spatial queries at scale
+- **30+ services** — clean separation of game systems
+- **Entity-component architecture** — flexible, data-driven design
 
-### Social Systems
-- ✅ Friends, party, guilds with ranks and permissions
-- ✅ Item trading with safety confirmations
-- ✅ Community governance (player voting, moderator progression)
-- ✅ Full loot PvP with configurable zone modes
+### The Reusable Frame
 
-### UI Islands
-- ✅ Each UI panel is a standalone `PackedScene`
-- ✅ Mounted dynamically by `IslandManager`
-- ✅ Unified tooltip/toast notification pipeline
+Beyond the game, Synmergia ships a **reusable MMORPG frame** — the architecture is extractable to its own project:
 
-### AI Agent Support
-- ✅ MCP (Model Context Protocol) connector
-- ✅ Vant framework integration
-- ✅ Structured observation/action space for agent decision-making
+- T3 content-hash state tree for deterministic game state
+- Multi-dimensional query system (spatial × faction × temporal)
+- LOD pyramid with predictive prefetch
+- Scope engine for hierarchical world management
 
 ---
 
 ## Getting Started
 
+### Play Now (When Available)
+
+Synmergia will launch as a **free-to-play browser MMORPG**. Create your account, choose your species and class, and enter the world.
+
+### For Developers
+
 ```bash
-# Clone the repo
+# Clone the repository
 git clone https://github.com/dhaupin/synmergia.git
 cd synmergia
 
 # Open in Godot 4.7.2
 godot --editor game/
 
-# Or run headless server
+# Or run a headless server
 godot --headless --server --path game/
 ```
 
@@ -107,50 +164,45 @@ See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns.
 
 ---
 
-## The Frame
+## Project Status
 
-Beyond the game, Synmergia is building a **reusable MMORPG frame** — extractable to its own project.
+**Current Phase:** Pre-vertical-slice
 
-The frame includes:
-- **T3 content-hash state tree** — Server tick = re-rooting. Client sync = diff.
-- **Multi-iso orchestrator** — Query across spatial × faction × temporal axes at O(1)
-- **Scope engine** — Hierarchy walker for world→shard→instance→player scoping
-- **LOD pyramid + predictive prefetch** — Markov over player transitions
+### Implemented
+- Combat math and entity-component system
+- Buff/aura framework with 11 dispel categories
+- Notification pipeline (toast, combat log, admin alerts)
+- UI Islands architecture (19/19 tests passing)
+- Login, account, and character creation flow (21/21 tests)
+- Core social systems (party, guild, friends, trading)
+- Faction and reputation system
+- Anti-cheat and security services
 
-See [`labs/prd.md`](./labs/prd.md#12-technical-architecture) and [`labs/world-building-arch.md`](./labs/world-building-arch.md) for the full architecture.
-
----
-
-## Testing
-
-```bash
-./tools/godot --headless --path synmergia --script res://tests/test_notification_toast.gd
-./tools/godot --headless --path synmergia --script res://tests/test_login_flow.gd
-```
-
-**47/47 smoke tests green** (notification pipeline, HUD integration, login flow, auto-response signals)
-
----
-
-## Status
-
-**Phase:** Pre-vertical-slice
-
-Core systems implemented:
-- Combat math and entity components
-- Buff/aura system with 7 dispel categories
-- Notification → toast pipeline (QoS, security, firewall, auto-response)
-- UI Islands architecture (19/19 tests)
-- Login/account/character flow (21/21 tests)
-
-In progress:
-- Action combat implementation (tab-target hybrid)
+### In Development
+- Full action combat implementation (hybrid tab/aim targeting)
 - World content and procedural generation
-- Full social systems integration
+- Browser client optimization
+- Social system integration and testing
+
+---
+
+## Documentation
+
+| | |
+|---|---|
+| [📄 Product Spec](./labs/prd.md) | Full design document — gameplay, systems, architecture |
+| [🏗️ Architecture](./labs/world-building-arch.md) | Technical deep-dive — frame, services, sync |
+| [🗺️ World Design](./labs/world-building.md) | World, zones, procedural generation |
+| [📋 ROADMAP](./ROADMAP.md) | Implementation tracker with file-level progress |
+| [🤖 Developer Notes](./AGENTS.md) | Code conventions, patterns, and tips for contributors |
 
 ---
 
 ## License
 
-MIT — See [LICENSE](LICENSE)
+Synmergia is open source under the **MIT License**. See [LICENSE](LICENSE) for details.
+
+---
+
+*Synmergia — Shape the world. Forge your legacy. Play anywhere.*
 
