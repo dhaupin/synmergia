@@ -369,7 +369,7 @@ func _deposit_item(item: Item) -> void:
 	if player_id.is_empty():
 		return
 
-	var vault_type: int
+	var vault_type: VaultService.VaultType
 	match _current_tab:
 		VaultTab.PERSONAL:
 			vault_type = VaultService.VaultType.PERSONAL
@@ -380,7 +380,14 @@ func _deposit_item(item: Item) -> void:
 		_:
 			return
 
-	var success: bool = VaultService.deposit_item(player_id, vault_type, item)
+	var item_dict: Dictionary = {
+		"id": str(item.get("id") if item.has("id") else ""),
+		"name": str(item.get("display_name") if item.has("display_name") else (item.name if item.has("name") else "")),
+		"icon_path": str(item.get("icon_path") if item.has("icon_path") else ""),
+		"rarity": int(item.get("rarity") if item.has("rarity") else 0),
+		"stack_size": int(item.get("stack_size") if item.has("stack_size") else 1),
+	}
+	var success: bool = VaultService.deposit_item(player_id, vault_type, item_dict)
 	if not success:
 		show_notification("Failed to deposit item", false)
 	else:
@@ -415,7 +422,7 @@ func _on_withdraw() -> void:
 	if result.is_empty():
 		show_notification("Failed to withdraw item", false)
 	else:
-		var item_name: String = result.get("item_name", "item")
+		var item_name: String = result.get("item_name") if "item_name" in result else "item"
 		show_notification("Withdrew: %s" % item_name)
 		_refresh_vault()
 
@@ -424,8 +431,19 @@ func _on_expand() -> void:
 		show_notification("VaultService unavailable", false)
 		return
 
-	var cost := VaultService.get_expansion_cost(_current_tab, _vault_data.get("size", 0))
-	var gold_cost: int = cost.get("gold", 0)
+	var size: int = _vault_data.get("size") if "size" in _vault_data else 0
+	var vt: VaultService.VaultType
+	match _current_tab:
+		VaultTab.PERSONAL:
+			vt = VaultService.VaultType.PERSONAL
+		VaultTab.GUILD:
+			vt = VaultService.VaultType.GUILD
+		VaultTab.ACCOUNT:
+			vt = VaultService.VaultType.ACCOUNT
+		_:
+			vt = VaultService.VaultType.PERSONAL
+	var cost := VaultService.get_expansion_cost(vt, size)
+	var gold_cost: int = cost.get("gold") if "gold" in cost else 0
 
 	var dialog := ConfirmationDialog.new()
 	dialog.title = "Expand Vault"

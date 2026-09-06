@@ -7,6 +7,7 @@ class_name NPCEntity
 
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
+## DISABLED: const ShopUI = preload("res://ui/components/shop_ui.gd")
 
 ## Set by SpawnService when the entity is placed
 var npc_data: NPCData = null

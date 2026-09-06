@@ -55,9 +55,12 @@ func _setup_ui() -> void:
 	vbox.add_child(close_btn)
 
 func _bind_signals() -> void:
-	if AchievementService:
-		AchievementService.achievement_unlocked.connect(_on_achievement_unlocked)
-		AchievementService.achievement_progressed.connect(_on_achievement_progressed)
+	var ach_inst: Node = get_node_or_null("/root/AchievementService")
+	if ach_inst:
+		if ach_inst.has_signal("achievement_unlocked"):
+			ach_inst.achievement_unlocked.connect(_on_achievement_unlocked)
+		if ach_inst.has_signal("achievement_progressed"):
+			ach_inst.achievement_progressed.connect(_on_achievement_progressed)
 
 func _on_achievement_unlocked(player_id: String, achievement_id: String) -> void:
 	if player_id != _player_id:
