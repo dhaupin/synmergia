@@ -1,15 +1,12 @@
 ## AdminDashboard - In-game admin UI panel
 ## Uses UIStyles for consistent theming
 ## Provides visual interface for admin commands and player management
-extends Control
+extends UIPanel
 class_name AdminDashboard
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 const AdminShell = preload("res://core/admin/admin_shell.gd")
 
-
-## Signal when dashboard is closed
-signal closed()
 
 ## Main container
 var _main_vbox: VBoxContainer
@@ -38,8 +35,7 @@ func _ready() -> void:
 	add_child(_shell)
 	_shell.command_executed.connect(_on_command_executed)
 	
-	_setup_ui()
-	_refresh_player_list()
+_refresh_player_list()
 	_bind_admin_signals()
 	
 	# Auto-refresh player list
@@ -49,7 +45,7 @@ func _ready() -> void:
 	add_child(timer)
 	timer.start()
 
-func _setup_ui() -> void:
+func _setup_panel() -> void:
 	
 	# Create main container
 	_main_vbox = VBoxContainer.new()
@@ -69,7 +65,7 @@ func _setup_ui() -> void:
 	
 	var close_btn := Button.new()
 	close_btn.text = "✕"
-	close_btn.pressed.connect(func(): closed.emit())
+	close_btn.pressed.connect(close)
 	title_bar.add_child(close_btn)
 	_main_vbox.add_child(title_bar)
 	
