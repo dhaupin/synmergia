@@ -337,4 +337,114 @@ by node path at runtime.
 - `tests/test_autoload_audit.gd`: 3/3 PASS, 1 allowlisted entry
   (QoSService), 0 unexpected collisions.
 
+---
+
+## Session 3 — Static linter suite for Godot 4.7.x gotchas
+
+Started: 2026-09-07
+Branch: `adapter-layer`, pushed to remote `labs/db`
+HEAD: `de12266 test(lint): add static linter suite for Godot 4.7.x gotchas`
+
+### Goal
+
+Catch Godot 4.7.x-specific parse / charset / class-shadowing
+problems at lint time, before the editor's compile pass.
+
+### Files added (game/tests/lint/)
+
+- `lint_helpers.gd` — shared scanner (autoloads, class_names,
+  preloads, .gd/.tscn listing, text/bytes reading). Two new
+  helpers: `report_issue(file, line, severity, msg)` for
+  consistent output and `first_declaration_kind(text)` to
+  determine which of `extends` / `class_name` comes first.
+- `test_lint_autoload.gd` — 8 checks:
+  - autoload parsing
+  - class_name scanning
+  - duplicate class_name detection
+  - const-preload shadow detection
+  - autoload script existence check
+  - 2-cycle preload detection (WARN)
+  - 3+ cycle preload detection (FAIL)
+  - missing preload target detection
+  - self-scan exclude (does not flag files in tests/lint/)
+- `test_lint_indentation.gd` — 3 checks:
+  - leading-spaces files
+  - tab-indented files (most of the project)
+  - mixed-indent files (REAL BUGS found)
+  - trailing whitespace
+- `test_lint_syntax.gd` — 5 checks:
+  - CRLF line endings
+  - UTF-8 BOM
+  - unbalanced parens/brackets/braces (stack-based)
+  - `class_name` before `extends` (REAL BUGS found)
+  - 3+ consecutive blank lines
+- `test_lint_charset.gd` — 3 checks:
+  - non-ASCII bytes (REAL BUGS found: 56 files)
+  - named offenders (em-dash, smart quotes, NBSP, etc.) with
+    replacement suggestions
+  - tabs inside string literals
+- `test_lint_general.gd` — 8 checks:
+  - orphan .uid files
+  - missing .tscn resource references
+  - hardcoded absolute paths (Windows-style, /tmp, /home, %TEMP%)
+  - `print()` in non-test code
+  - mixed tabs/spaces on a single line (REAL BUGS found)
+  - 200+ col lines
+  - @tool scripts
+  - connect() call site count
+- `run_all.sh` — bash runner that invokes each linter and
+  aggregates PASS/FAIL counts.
+- `README.md` — usage, allowlists, smoke-fixture recipe.
+
+### Real bugs found by the suite
+
+- 1 file with mixed tab+space indent (parse error):
+  - `ui/components/character_panel.gd:543`
+- 4 files with `class_name` before `extends`:
+  - `core/schemas/container_schema.gd`
+  - `core/schemas/container_config_data.gd`
+  - `data/quests/quest_guide_npc.gd`
+  - `ui/community/voting_ui.gd`
+- 56 files with non-ASCII bytes (mostly em-dashes in comments
+  written from a word-processor). All confined to comments;
+  no string literals or identifiers.
+- 9 files with mixed leading tabs AND spaces on a single line:
+  - `core/community/community_governance.gd:267`
+  - `core/combat/projectile.gd:135`
+  - `core/services/guild_service.gd:54`
+  - `core/services/matchmaking_qos.gd:209`
+  - `core/services/anticheat_service.gd:56`
+  - `core/services/loot_service.gd:69`
+  - `core/services/inventory_service.gd:247`
+  - `ui/components/menu_manager.gd:125`
+  - `ui/components/character_panel.gd:542` (same file as above)
+
+### Verification
+
+- `tests/lint/run_all.sh`: 22 PASS, 5 FAIL across 4 of 5 files
+  (the 5th is the autoload test which is clean).
+- Smoke fixture created at `_smoke_fixture.gd` (since deleted)
+  to verify each linter's logic. All 4 of 5 linters correctly
+  caught the planted bugs. Autoload linter cannot scan its
+  own directory, so that one was verified by inspection of
+  the existing project collision case.
+
+### Open follow-ups
+
+- Fix the 1 mixed-indent parse-error file.
+- Fix the 4 class_name-before-extends files.
+- Fix the 9 files with mixed tabs/spaces on a single line.
+- The 56 non-ASCII files are mostly harmless (em-dashes in
+  comments) but AGENTS.md says "no UTF-8 in the codebase."
+  This is a bulk fix rather than one-by-one.
+
+### Why pushed to labs/db (not main)
+
+A parallel agent is working on `main`. The user's instruction
+was to keep the linter work on a separate branch (`labs/db`)
+so it can be reviewed and merged separately. Branch was
+created by pushing `adapter-layer` to `labs/db`. Rebasing
+onto main at this time was not attempted because main is
+being rewritten (510-commit rebase in progress when we tried).
+
 
