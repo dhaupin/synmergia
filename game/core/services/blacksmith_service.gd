@@ -24,7 +24,7 @@ func _ready() -> void:
 	GameLog.info("BlacksmithService: Ready")
 
 ## Get singleton instance
-static func get_instance() -> BlacksmithService:
+static func singleton() -> BlacksmithService:
 	return instance
 
 ## Calculate repair cost for a single item

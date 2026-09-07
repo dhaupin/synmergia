@@ -29,7 +29,7 @@ func _load_achievement_definitions() -> void:
 
 ## Unlock a specific achievement for a player
 static func unlock(player_id: String, achievement_id: String) -> void:
-        var inst := get_instance()
+        var inst := singleton()
         if inst == null:
                 return
         inst._do_unlock(player_id, achievement_id)
@@ -38,7 +38,7 @@ static func unlock(player_id: String, achievement_id: String) -> void:
 ## event_category: what type of event ("enemy", "item", "zone", etc.)
 ## amount: how many to add (default 1)
 static func track(player_id: String, event_category: String, amount: int = 1) -> void:
-        var inst := get_instance()
+        var inst := singleton()
         if inst == null:
                 return
         inst._track_event(player_id, event_category, amount)
@@ -62,7 +62,7 @@ static func on_waypoint_created(player_id: String) -> void:
 static func on_enemy_killed(player_id: String, enemy_type: String = "") -> void:
         track(player_id, "enemy_killed", 1)
 
-static func get_instance() -> Node:
+static func singleton() -> Node:
         var ml: MainLoop = Engine.get_main_loop()
         if ml == null or not ml is SceneTree:
                 return null

@@ -341,7 +341,7 @@ func _connect_signals() -> void:
 ## PUBLIC API
 ## ============================================================================
 
-static func get_instance() -> MenuManager:
+static func singleton() -> MenuManager:
 	return instance
 
 static func toggle_menu(menu_name: String) -> void:

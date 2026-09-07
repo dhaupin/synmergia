@@ -440,7 +440,7 @@ func _add_player_gold(player_id: String, amount: int) -> bool:
 ## PUBLIC API
 ## ============================================================================
 
-static func get_instance() -> VaultService:
+static func singleton() -> VaultService:
 	return instance
 
 func get_vault_info(player_id: String, vault_type: VaultType) -> Dictionary:

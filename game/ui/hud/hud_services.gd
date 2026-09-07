@@ -224,7 +224,7 @@ func _connect_services() -> void:
 			_loot_svc.loot_rolled.connect(_on_loot_rolled)
 
 	# Achievement events → toast player (AchievementService is not autoloaded).
-	for method_name in ["get_instance"]:
+	for method_name in ["singleton", "get_instance"]:  # singleton preferred, get_instance fallback
 		if _ach.has_method(method_name):
 			var ach_inst = _ach.call(method_name)
 			if ach_inst and ach_inst.has_signal("achievement_unlocked"):
