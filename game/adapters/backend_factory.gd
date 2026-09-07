@@ -25,6 +25,7 @@ extends Node
 # (registered by their `class_name X` line in each file).
 # The base interfaces (PersistenceStore / CacheStore / MemoryStore)
 # are also global class_names, so we don't need to preload them.
+const MigrationRunner = preload("res://adapters/migrations/migration_runner.gd")
 
 # Store name -> which service consumes it. Just a comment map for now;
 # the real wiring happens when each service calls AdapterRegistry at runtime.
@@ -159,6 +160,15 @@ func boot_defaults() -> void:
 		if _is_cache_only(store_name) or _is_memory_only(store_name):
 			continue
 		reg.register_persistence(store_name, persistence_store)
+
+	# Run schema migrations against the persistence backend (blocking
+	# at boot per prd-db.md sec.9.2). Memory backend: migrations are
+	# applied in-memory (harmless, and lets dev boot exercise the runner).
+	# Postgres backend: creates tables in the real DB.
+	var runner := MigrationRunner.new()
+	var mig_rc := runner.run(persistence_store, null)
+	if mig_rc != 0:
+		push_error("BackendFactory: migration runner failed (rc=%d)" % mig_rc)
 
 	# Cache stores
 	var cache_store = _make_cache(cache_backend)

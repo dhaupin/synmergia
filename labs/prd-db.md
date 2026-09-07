@@ -76,6 +76,14 @@ and implementation tracking.
 
 ## 3. Schema Requirements
 
+> **LOCKED 2026-09-07.** Sections 3.1–3.2 (`accounts`, `sessions`,
+> `characters`) are frozen for the first migration
+> `V20260907_001__init_accounts.sql`. The SQL mirrors these tables
+> exactly (columns, types, indexes, CHECK constraints). No further
+> edits to 3.1–3.2 without a NEW migration + this lock note being
+> updated. §3.3 (`inventories`/`equipment`) stays open for migration
+> 002 (InventoryService vertical slice).
+
 ### 3.1 Accounts & Authentication
 
 ```

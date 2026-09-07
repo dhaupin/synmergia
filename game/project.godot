@@ -48,7 +48,7 @@ InputManager="*res://core/autoload/input_manager.gd"
 # fails. Registered before ZoneManager/InventoryService (their first
 # consumers) so _ready ordering is correct.
 CooldownService="*res://core/services/cooldown_service.gd"
- PlayerLockService="*res://core/services/player_lock_service.gd"
+PlayerLockService="*res://core/services/player_lock_service.gd"
 DataService="*res://core/services/data_service.gd"
 EntityService="*res://core/services/entity_service.gd"
 ZoneManager="*res://core/services/zone_manager.gd"
