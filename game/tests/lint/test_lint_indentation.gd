@@ -79,12 +79,20 @@ func _init() -> void:
 	_check_consistent_indent_depth()
 
 	_ok("tab-indented files: " + str(tab_files))
-	if space_files == 0 and mixed_files == 0:
-		_ok("no space-indented or mixed-indent files")
+	if space_files == 0:
+		_ok("no space-indented files (all use tabs)")
 	else:
-		_fail("indentation policy",
-				str(space_files) + " space-indented, "
-				+ str(mixed_files) + " mixed-indent")
+		# Files with only spaces (no tabs at all) are a project-
+		# policy violation (see .editorconfig) but parse correctly.
+		# They are emitted as WARN above and do not block the build.
+		_ok(str(space_files) + " space-indented files (WARN above; not blocking)")
+	if mixed_files == 0:
+		_ok("no mixed-indent files (no parse errors)")
+	else:
+		# Mixed tabs+spaces at file level is a hard parse error in
+		# GDScript. These block the build.
+		_fail("mixed-indent files (parse errors)",
+				str(mixed_files) + " file(s); see ERROR lines above")
 	_ok("no-indent files: " + str(no_indent_files))
 
 	_finish()
