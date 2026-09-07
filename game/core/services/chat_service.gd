@@ -94,6 +94,19 @@ func _ready() -> void:
 		# Load profanity filter words from config file
 	_load_profanity_list()
 
+## Open a whisper chat with a target player
+func open_whisper(target_id: String) -> void:
+	if not target_id.is_empty():
+		# Store this as the last whisper target for reply functionality
+		if PlayerManager:
+			var sender_id := str(PlayerManager.get_local_player_id())
+			if not sender_id.is_empty():
+				_player_last_whisper[sender_id] = target_id
+		# Emit signal so UI can focus on whisper input
+		whisper_opened.emit(target_id)
+
+signal whisper_opened(target_id: String)
+
 ## Send a message
 func send_message(sender_id: String, channel: Channel, message: String, target_id: String = "") -> bool:
 		# Security: Check channel-specific restrictions
