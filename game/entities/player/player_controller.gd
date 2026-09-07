@@ -311,6 +311,10 @@ func _physics_process(delta: float) -> void:
 	if not is_local_player:
 		return
 	
+	# SECURITY: Block movement while in trade
+	if TradeService and entity_id and TradeService.is_player_locked(entity_id):
+		return
+	
 	# QoS: Rate limit movement
 	if QoSService.rate_limit(entity_id, "movement"):
 		move_and_slide()
