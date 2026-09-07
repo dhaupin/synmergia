@@ -269,6 +269,10 @@ func _can_execute_skill(skill: Skill) -> bool:
 	if entity.health_component and entity.health_component.is_dead():
 		return false
 	
+	# SECURITY: Cannot cast skills while in trade
+	if TradeService and entity.entity_id and TradeService.is_player_locked(entity.entity_id):
+		return false
+	
 	# Check can_cast on skill
 	return skill.can_cast(entity)
 
