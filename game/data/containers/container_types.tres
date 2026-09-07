@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ContainerTypes" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/container_schema.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+# Container Types Registry
+# Add new container types here - no code changes needed!
+
+container_type = 0
+expansion_tier = 0
+instance_id = ""
+
+# NOTE: This file defines the ContainerType enum values
+# Actual configurations are in individual .tres files per container type
+# Use ContainerSchema.get_base_config(ContainerType) to access config
