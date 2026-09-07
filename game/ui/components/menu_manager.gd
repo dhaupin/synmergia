@@ -193,6 +193,12 @@ func _initialize_panels() -> void:
 	_dialog_panel.z_index = 500
 	add_child(_dialog_panel)
 
+	# Shop panel
+	_shop_panel = preload("res://ui/components/shop_ui.gd").new()
+	_shop_panel.name = "ShopUI"
+	_shop_panel.z_index = 500
+	add_child(_shop_panel)
+
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):
 		_open_panels.erase(panel_name)
@@ -460,9 +466,12 @@ func _get_panel(menu_name: String) -> Control:
 		"bank": return _bank_panel
 		"blacksmith": return _blacksmith_panel
 		"skill_academy": return _skill_academy_panel
+		"faction": return _faction_panel
+		"achievement": return _achievement_panel
 		"titles": return _title_panel
 		"transfer": return _transfer_panel
 		"dialog": return _dialog_panel
+		"shop": return _shop_panel
 	return null
 
 func _set_hud_visible_internal(visible: bool) -> void:

@@ -306,7 +306,58 @@ func _refresh_items() -> void:
 			_target_items.add_item(label)
 
 func _on_add_item() -> void:
-	show_notification("Select item from inventory (not implemented)")
+	# Open inventory panel in trade mode
+	if InventoryService and _trade_id:
+		var inv := InventoryService.get_inventory(_initiator_id)
+		if inv:
+			# Get available items from inventory
+			var available := _get_available_items(inv)
+			if available.is_empty():
+				show_notification("No items to trade")
+				return
+			# Show selection dialog
+			_show_item_selection_dialog(available)
+	else:
+		show_notification("Cannot add items right now")
+
+func _get_available_items(inv) -> Array:
+	# Get non-equipped, tradeable items from inventory
+	var available: Array = []
+	if "_inventory" in inv:
+		var slots: Array = inv._inventory
+		for i in range(slots.size()):
+			var item = slots[i]
+			if item != null and "id" in item:
+				available.append({"slot": i, "item": item})
+	return available
+
+func _show_item_selection_dialog(items: Array) -> void:
+	var dialog := ItemSelectDialog.new()
+	dialog.title = "Select Item to Trade"
+	add_child(dialog)
+	dialog.popup_centered(Vector2(400, 300))
+
+	# Populate item list
+	for idx in range(items.size()):
+		var entry: Dictionary = items[idx]
+		var item = entry.get("item")
+		if item and "display_name" in item:
+			dialog.add_item(item.display_name, idx)
+
+	var selected_idx: int = await dialog.item_selected
+	if selected_idx >= 0 and selected_idx < items.size():
+		var entry: Dictionary = items[selected_idx]
+		var slot_idx: int = entry.get("slot", -1)
+		var item = entry.get("item")
+		if slot_idx >= 0 and item and TradeService:
+			var success := TradeService.add_item(_trade_id, _initiator_id, item.id, 1)
+			if success:
+				show_notification("Added %s to trade" % item.display_name)
+				_refresh_items()
+			else:
+				show_notification("Failed to add item")
+
+	dialog.queue_free()
 
 func _on_add_gold() -> void:
 	var dialog := AcceptDialog.new()
