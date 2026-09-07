@@ -5,10 +5,31 @@
 > and patterns that don't change frequently.
 >
 > **What this file is NOT:** An operational log, debugging status,
-> or session history.
+> or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Updated 2026-09-05:** Restructured to be a stable reference.
-> Removed session logs, parse error status, and other rotting content.
+> **Last updated 2026-09-07:** Autoload/class_name rules expanded
+> with full gotcha + cycle + recovery sections. Service and
+> notification docs corrected. See `labs/TASKS.md` for the
+> change log.
+
+## READ FIRST
+
+Three things that have caused repeated agent damage in this
+repo. If you only read one section of this file, read these:
+
+1. **[Autoloads and class_name](#autoloads-and-class_name)** —
+   the autoload identifier and `class_name` register different
+   things. Putting them on the same script with the same name
+   silently breaks code. Read this BEFORE adding any new
+   autoload or class.
+2. **[Tabs, not spaces](#indentation)** — once a `.gd` file uses
+   tabs, every subsequent line must use tabs. Mixed indentation
+   is a parse error in 4.7.2.
+3. **[No UTF-8 in source](#code-standards)** — emoji, smart
+   quotes, and non-ASCII characters cause Godot import failures.
+   The existing codebase has 142 lines with emoji (mostly in
+   `discord_webhook.gd` and `waypoint_service.gd`); don't
+   add more.
 
 ---
 
@@ -26,6 +47,9 @@ extract to their own project.
 - **Architecture:** Client + Authoritative Server + Multi-iso orchestrator + State tree
 - **Game root:** `game/` (open this in the Godot editor)
 - **Frame root:** `labs/` (experimental, root-level, NOT in Godot project)
+- **Persistence layer:** `game/adapters/` (Postgres, Redis, memory)
+  — defined in `labs/prd-db.md`. Adapter layer is the official
+  interface for all service-level storage.
 
 ---
 
@@ -45,9 +69,9 @@ extract to their own project.
 
 ### Code Patterns
 - **Inner classes** for related utilities:
-  - `EventBus.SpawnMetadata`
+  - `SpawnMetadata`
   - `NotificationService.AlertScope`
-  - `NotificationService.NotificationType`
+  - `NotifKind`
   - `CommunityGovernance.Vote`
   - `CommunityGovernance.ModeratorProgression`
 - **Signal naming:** verb past tense (`entity_spawned`, `player_left`)
@@ -75,426 +99,6 @@ extract to their own project.
 - The system should function as a **cohesive unit**, not a scattered collection of unrelated pieces
 
 ---
-
-## Architecture
-
-### Core Services (Autoloaded)
-
-| Service | Purpose |
-|---------|---------|
-| `GameManager` | Overall game state, player management |
-| `EntityService` | Track all entities (players, enemies, NPCs) |
-| `SpawnService` | Enemy/NPC spawning with metadata |
-| `EventBus` | Central event hub with unified entity signals |
-| `NotificationService` | Player notifications and alerts |
-| `TargetingManager` | Unified targeting system |
-| `ZoneManager` | Zone transitions and state |
-| `CombatMath` | Damage/effect calculations |
-| `TradeService` | Item trading |
-| `PartyService` | Party/raid management |
-| `GuildService` | Guild management |
-| `LootService` | Loot distribution |
-| `ChatService` | Chat channels with range-based delivery |
-| `InventoryService` | Player inventory management |
-| `RespawnService` | Player respawn logic |
-| `FactionManager` | Faction relationships and PvP modes |
-| `AutoResponseService` | Admin alerts and moderation |
-| `SecurityService` | Anti-cheat and rate limiting |
-| `FriendsService` | Friends list, requests, block/ignore |
-| `QoSService` | Latency and rate limiting |
-| `CommunityGovernance` | Voting, moderator progression |
-| `BlacksmithService` | Item crafting/upgrading |
-| `StarterKitService` | New character starting equipment |
-
-### Components (Attached to Entities)
-
-| Component | Purpose |
-|-----------|---------|
-| `HealthComponent` | Health, death, respawn |
-| `CombatComponent` | Combat state, skills, damage |
-| `AuraComponent` | Buffs/debuffs |
-| `AggroComponent` | Threat/aggro management |
-| `InventoryComponent` | Item storage and equipment |
-
-### UI Components
-
-| Component | Purpose |
-|-----------|---------|
-| `UIStyles` | Common styling, colors, fonts |
-| `UIPanel` | Base panel class with overlay |
-| `ActionMenu` | Context menus (mouse/touch) |
-| `TooltipManager` | Unified tooltip system |
-| `MenuManager` | HUD management |
-| `InventoryUI` | Player inventory grid |
-| `BuffBar` | Buff/debuff display |
-| `GuildUI` | Guild management |
-| `PartyUI` | Party management |
-| `TradeUI` | Item trading interface |
-
----
-
-## Event Patterns
-
-**Unified entity events carry `EventBus.SpawnMetadata`:**
-```gdscript
-# Signal signature:
-entity_spawned.emit(entity: Entity, metadata: EventBus.SpawnMetadata)
-
-# Handler must match:
-func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> void:
-    pass
-```
-
-> **WARNING:** Mismatched signal handlers cause runtime errors. Always verify signatures.
-
----
-
-## Common Operations
-
-### Creating Spawn Metadata
-```gdscript
-var metadata := EventBus.SpawnMetadata.world_boss("Dragon", "zone_1", position, 50)
-```
-
-### Accessing Enums
-```gdscript
-# SpawnMetadata types
-var type := EventBus.SpawnMetadata.SpawnType.BOSS
-var priority := EventBus.SpawnMetadata.NotificationPriority.CRITICAL
-
-# Entity types
-if target.entity_type == Entity.EntityType.PLAYER:
-    pass
-
-# Notification types
-NotificationService.NotificationType.WARNING
-NotificationService.NotificationType.ALERT
-```
-
-### Sending Notifications
-
-Use the **typed-Kind pipeline** (`NotificationService.notify()`) for
-all service-level toasts. The frame handles dedupe, type-mapping, and
-priority automatically based on the kind.
-
-```gdscript
-const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
-
-# To a specific player
-NotificationService.notify(
-    NotifKind.ITEM_ADDED,
-    "Picked up Sword of Truth",
-    "InventoryService",                       # source_service label
-    "inv_add:%s:%s" % [player_id, item_id], # dedupe key (5s window)
-    {"item_id": item_id, "rarity": "epic"},
-    player_id                                 # recipient
-)
-
-# Server-wide / admin scope (recipient = "")
-NotificationService.notify(
-    NotifKind.ADMIN_ALERT,
-    "RecursionGuard exceeded depth 16",
-    "AppFirewall",
-    "fw:%s" % message.hash(),
-    {"context": "agent_tool_call", "depth": 16}
-)
-```
-
-> **Don't** call `NotificationService.send_to_player()` directly for
-> new code — that's the legacy path. Use `notify()` instead.
-
-### Notification → Toast Pipeline
-Every service-level event ends up in a toast panel in `HudLayer`:
-
-```
-Service → NotificationService.notify() → NotificationDispatcher → TooltipManager.show_toast()
-```
-
-When adding a new service:
-- For **in-game state changes** (death, level-up, item equipped): emit a typed signal
-- For **infrastructure events** (throttled, restricted, banned): call `notify()` so the player sees a toast
-
-```gdscript
-# GOOD (infrastructure): player must see the toast
-NotificationService.notify(NotifKind.RATE_LIMITED, "You're casting too fast", "QoSService", ...)
-
-# GOOD (in-game state): emit a signal
-signal item_equipped(player_id: String, item_id: String)
-item_equipped.emit(player_id, item_id)
-```
-
-### Range-Based Entity Queries
-```gdscript
-var nearby := EntityService.get_entities_in_radius(
-    player.global_position,
-    20.0,  # range
-    Entity.EntityType.PLAYER
-)
-```
-
----
-
-## File Organization
-
-```
-.
-├── game/                          # the Godot 4.7.2 project
-│   ├── core/
-│   │   ├── autoload/              # Global singletons
-│   │   ├── components/            # Entity components
-│   │   ├── community/             # Community governance
-│   │   ├── entities/              # Base entity classes
-│   │   ├── schemas/               # Data schemas
-│   │   ├── services/              # Game services (30+)
-│   │   ├── targeting/             # Targeting system
-│   │   └── ui/                   # Core UI
-│   ├── entities/                  # Entity types
-│   ├── scenes/                    # .tscn scenes (world, NPCs)
-│   ├── connectors/                # AI agent connectors
-│   ├── data/                      # .tres resources
-│   ├── ui/                        # User interface
-│   └── tests/                     # Smoke tests
-│
-├── labs/                          # Frame + design docs
-│   ├── prd.md                     # Product requirements
-│   ├── world-building*.md         # World/architecture docs
-│   └── multi-iso/                 # Frame primitives
-│       ├── math/                  # NSC-9, icosahedral
-│       ├── kv/                    # LRU, state_tree
-│       ├── srv/                   # Markov, LOD, axis
-│       └── db/                    # snapshot_store
-│
-├── srv/                           # Deployment configs (docker, certs)
-├── ROADMAP.md                     # Implementation tracker
-└── README.md                      # Project overview
-```
-
-The Godot project root is `game/`. The `labs/` directory is outside
-the project so it doesn't taint the stable build with experimental work.
-
----
-
-## Data Schemas
-
-### TargetSchema (`data/targets/`)
-- `target_player.tres`, `target_enemy.tres`, `target_npc.tres`
-- `target_loot.tres`, `target_dwelling.tres`, `target_gateway.tres`
-
-### EnemyData
-- `enemy_type`: NORMAL, ELITE, BOSS, WORLD_BOSS
-- `level`, `health`, `attack_power`, `defense`
-
-### Item
-- `soulbound`, `bind_on_pickup`, `bind_on_equip`
-- `unique`, `stack_size`, `rarity`
-
-### GM Classes
-Three admin-only classes hidden from normal character selection:
-- `gm_akkan`, `gm_human`, `gm_synthetic`
-- All have `role = 0` (Role.GM)
-
-GM visibility: `[GM]` prefix in chat, gold name color, `⭐ GAME MASTER` badge in tooltip.
-
----
-
-## Labs Conventions
-
-The `/labs/` directory is for experimental primitives that could
-extract to the multi-iso frame. Different rules apply:
-
-| Rule | Game (`game/`) | Frame (`labs/`) |
-|------|-----------------|-----------------|
-| Autoload | ✅ Yes | ❌ No |
-| `class_name` | ✅ Yes | ❌ No |
-| GameManager dep | ✅ Yes | ❌ No |
-| Tests | Smoke tests | Co-located |
-
-### Frame Primitive Rules
-1. Each primitive is its own `.gd` file
-2. Tests are co-located: `nsc9.gd` + `test_nsc9.gd`
-3. No autoload, no `class_name`, no GameManager dependency
-4. New code goes here first. The game consumes from here.
-
-### Frame Contents
-| Subdirectory | Contains | Examples |
-|--------------|----------|----------|
-| `labs/multi-iso/math/` | Pure functions. No state. | NSC-9 encoding, icosahedral projection |
-| `labs/multi-iso/kv/` | In-memory data structures | LRU cache, content-hash, state tree |
-| `labs/multi-iso/srv/` | Service logic | Markov chain, predictor, LOD manager |
-| `labs/multi-iso/db/` | Database integration | snapshot_store, migrations |
-
-See [`labs/README.md`](./labs/README.md) for the full conventions.
-
----
-
-## Security: BBCode XSS
-
-All `RichTextLabel` nodes have `bbcode_enabled = true`. User-supplied
-strings embedded in BBCode format strings are a potential injection vector.
-
-**Pattern to avoid:**
-```gdscript
-"[color=%s]%s[/color]" % [color, user_string]   # DANGEROUS
-```
-
-**The fix:** Replace `[` and `]` with full-width equivalents:
-```gdscript
-static func _esc(text: String) -> String:
-    return text.replace("[", "［").replace("]", "］")
-```
-
-**Files with this pattern:**
-- `core/services/chat_service.gd`
-- `ui/components/combat_log.gd`
-- `ui/components/chat_ui.gd`
-- `ui/components/dialog_ui.gd`
-- `ui/admin/admin_dashboard.gd`
-- `core/admin/player_shell.gd`
-- `core/autoload/logger.gd`
-- `core/services/qos_service.gd`
-- `core/services/security_service.gd`
-
-When adding new `RichTextLabel` BBCode with user input, always pass it through `_esc()` first.
-
----
-
-## Important Patterns
-
-### Null Checks for Services
-Always check if a service exists before using:
-```gdscript
-if NotificationService:
-    NotificationService.send_to_player(player_id, message)
-```
-
-### Instance Validation
-Always validate entities before use:
-```gdscript
-if is_instance_valid(entity) and entity.entity_id != sender_id:
-    # safe to use
-```
-
-### Defensive Helper Pattern
-When a helper bridges two services, prefer try-known-methods fallback:
-```gdscript
-func _get_peer_for_player(player_id: String) -> int:
-    if PlayerManager == null:
-        return -1
-    for method_name in ["get_player_info", "get_player", "find_player"]:
-        if PlayerManager.has_method(method_name):
-            var result = PlayerManager.call(method_name, player_id)
-            if result is Dictionary:
-                var info: Dictionary = result
-                var peer_id = info.get("peer_id", -1)
-                if peer_id is int and peer_id > 0:
-                    return peer_id
-    return -1
-```
-
-### Godot GDScript Rules
-- **`extends` must precede `class_name`** when both are present
-- **Mixed indentation is fatal:** Once a file uses tabs, every subsequent line must use tabs
-- **Inner class methods cannot call outer class methods** without qualification
-- **`extends Control` for scene-instantiated UIs:** Use `extends Control` + manual stubs for UIPanel methods
-
-### NPC Scene Pattern
-NPC entities use `scene_path` in NPCData to specify their `.tscn`:
-```gdscript
-# NPCData schema
-@export var scene_path: String = ""  # Path to NPC .tscn scene
-
-# SpawnService loads the scene and configures it:
-if npc_data.scene_path:
-    var packed := load(npc_data.scene_path) as PackedScene
-    var entity := packed.instantiate() as NPCEntity
-```
-
-### Player Spawn Signal
-Use `GameManager.player_entered_world` to trigger services when a player enters:
-```gdscript
-# Connect in your service:
-GameManager.player_entered_world.connect(_on_player_entered)
-
-func _on_player_entered(player_id: String, character_data) -> void:
-    # Give starter items, initialize player state, etc.
-```
-
----
-
-## Testing
-
-Smoke tests live in `game/tests/`. Run with Godot headless:
-
-```bash
-cd game
-godot --headless --path . --script res://tests/test_notification_toast.gd
-godot --headless --path . --script res://tests/test_hud_integration.gd
-godot --headless --path . --script res://tests/test_login_flow.gd
-godot --headless --path . --script res://tests/test_auto_response_signals.gd
-```
-
-Or run all tests via Docker (see [DEPLOY.md](./DEPLOY.md)):
-
-```bash
-docker run --rm -e START_MODE=test synmergia
-```
-
-| Test | Coverage |
-|------|----------|
-| `test_notification_frame.gd` | NotificationService frame (context, kind, dedupe) |
-| `test_notification_toast.gd` | NotificationService → TooltipManager.show_toast() end-to-end |
-| `test_hud_integration.gd` | HudIntegrator handlers, NotificationService → CombatLog |
-| `test_login_flow.gd` | Account + login + character flow |
-| `test_auto_response_signals.gd` | AutoResponseService signals and ActionType enum |
-| `test_islands.gd` | Core island logic (island_poc.gd) |
-| `test_e2e_flow.gd` | End-to-end account flow |
-| `test_notif_migration_*.gd` | Notification migration tests |
-
-> **Note:** `--script` mode does not pre-load autoloads. Resolve them via
-> `root.get_node_or_null("NotificationService")` rather than the bare identifier.
-
----
-
-## Key Godot Rules
-
-1. **Entity autoload is REQUIRED:** Entity must be in `[autoload]` section BEFORE RegisterTypes
-2. **Use `load()` for runtime class instantiation** when ClassName is the same file:
-   ```gdscript
-   # Instead of:
-   var book := SkillBook.new()
-   
-   # Use:
-   var script := load("res://core/schemas/skill_book.gd")
-   var book = script.new()
-   ```
-
----
-
-## GDScript 4 Gotchas
-
-Common mistakes agents make with GDScript:
-
-```gdscript
-# Scene instantiation — use instantiate(), NOT .instance()
-var instance := preload("res://scene.tscn").instantiate()  # ✓
-var instance := preload("res://scene.tscn").instance()     # ✗ (Godot 3)
-
-# Script instantiation — use load(), NOT preload() with class_name
-var book := load("res://schemas/SkillBook.gd").new()  # ✓
-var book := preload("res://schemas/SkillBook.gd").new()  # ✗ (loads at parse time)
-
-# Node removal — use queue_free(), NOT free()
-instance.queue_free()  # ✓ (safe, deferred)
-instance.free()        # ✗ (can break children cleanup)
-
-# Null checks — always validate with is_instance_valid()
-if node != null and is_instance_valid(node):  # ✓
-if node != null:                              # ✗ (stale references)
-
-# String formatting — use f-strings
-var msg := f"Hello {name}"       # ✓ (Godot 4+)
-var msg := "Hello %s" % name     # ✗ (outdated)
-```
 
 ---
 
@@ -730,3 +334,640 @@ grep -rEn "\b[A-Z]\w+\.new\(\)" game/ --include="*.gd"
 # Find tabs vs spaces in a file
 cat -A game/path/to/file.gd | head -5  # ^I = tab, $ = end of line
 ```
+
+## Architecture
+
+### Core Services (Autoloaded)
+
+A curated subset. For the full autoload list (50+ entries), see
+`game/project.godot` `[autoload]` section. This table groups by
+purpose; if a service is missing here, it doesn't mean it doesn't
+exist.
+
+| Service | Purpose |
+|---------|---------|
+| **Core (autoload) base class** | |
+| `Entity` | Base class for all entities. Autoload + `class_name` (see Autoloads section). Used in `extends Entity`; do not call `Entity.new()`. |
+| **Storage / persistence** | |
+| `AdapterRegistry` | Pluggable storage adapter registry. See `labs/prd-db.md` for the spec. |
+| `BackendFactory` | Builds persistence + cache adapters from config. Used during boot. |
+| **Event & notification** | |
+| `EventHub` | Central event hub with unified entity signals (was named `EventBus` historically). |
+| `NotificationService` | Player notifications and alerts. Use `notify()` not `send_to_player()`. |
+| **Game state** | |
+| `GameManager` | Overall game state, player management |
+| `GameLog` | Centralized logger. Use `GameLog.info()` / `GameLog.warn()` / `GameLog.error()`. |
+| `GameConfig` | Game-wide configuration access |
+| `PlayerConfig` | Per-player config (loaded from disk) |
+| **Entities & spawning** | |
+| `EntityService` | Track all entities (players, enemies, NPCs) |
+| `SpawnService` | Enemy/NPC spawning with metadata |
+| `ZoneManager` | Zone transitions and state |
+| **Networking** | |
+| `NetworkManager` | Authoritative server transport, peer management |
+| `PlayerManager` | Connected player state, peer ↔ player_id mapping |
+| `InputManager` | Client-side input handling |
+| `InteractionLayer` | Range-based interaction resolver |
+| **Combat & targeting** | |
+| `TargetingManager` | Unified targeting system |
+| `CombatSystem` | Combat loop, ability resolution |
+| `CombatMath` | Damage/effect calculations (NOT an autoload; a static utility class) |
+| `AuraComponent` | (component) Buffs/debuffs |
+| `AggroComponent` | (component) Threat/aggro management |
+| **Player systems** | |
+| `InventoryService` | Player inventory management |
+| `TradeService` | Item trading |
+| `PartyService` | Party/raid management |
+| `GuildService` | Guild management |
+| `LootService` | Loot distribution |
+| `RespawnService` | Player respawn logic |
+| `DeathFeatures` | Death screen, corpse, recovery options |
+| `FactionManager` | Faction relationships and PvP modes |
+| **Account & login** | |
+| `AccountService` | Account creation, password reset |
+| `LoginService` | Login + character selection |
+| `FriendsService` | Friends list, requests, block/ignore |
+| `SameAccountTransferService` | Cross-character transfer within one account |
+| **World content** | |
+| `DataService` | Static data loader (`.tres` files) |
+| `WorldService` | World state, instances, save/load |
+| `ShardManager` | Multi-shard routing |
+| `ServerManager` | Per-server lifecycle |
+| `DialogService` | NPC dialog trees |
+| `QuestService` | Quest state and progress |
+| `AchievementService` | Achievement tracking and unlocks |
+| `TitleService` | Player titles, prefix/suffix display |
+| `WaypointService` | Waypoint discovery, fast travel |
+| `FollowService` | Player /party follow mode |
+| `BlacksmithService` | Item crafting/upgrading |
+| `SkillAcademyService` | Skill learning, training |
+| `StarterKitService` | New character starting equipment |
+| `VaultService` | Account-wide shared storage |
+| `RespawnUIManager` | UI for respawn flow |
+| **Moderation & safety** | |
+| `AutoResponseService` | Admin alerts and moderation |
+| `SecurityService` | Anti-cheat and rate limiting |
+| `AppFirewall` | Tool-call firewall, depth limits, recursion guards |
+| `SecurityMonitor` | Security event aggregation |
+| `CommunityGovernance` | Voting, moderator progression |
+| `PermissionManager` | RBAC for admin commands |
+| `PlayerReporter` | Player report handling |
+| `AdminCommands` | Admin command dispatcher |
+| **Infrastructure** | |
+| `QoSService` | Latency and rate limiting (also has `class_name`; no `.new()`) |
+| `IDRegistry` | Stable ID generation for content |
+| `PlayerLockService` | Per-player mutex to prevent race conditions |
+| `CooldownService` | Cooldown tracking |
+| `SlotService` | Data-driven item slots, no legacy fallbacks |
+| **System** | |
+| `RegisterTypes` | Type registry initialization (autoload before all services) |
+| `DebugOverlay` | Debug HUD (autoload; F-key toggled) |
+| `ScreenshotService` | Screenshot capture and storage |
+| `WebhookManager` | Outbound webhook dispatch |
+| `AntiCheatService` | Server-side anti-cheat detection |
+
+> **Naming caveat:** `EventBus` may appear in comments or older
+> code, but the autoload is `EventHub`. If you see `EventBus.X`,
+> check whether it's a pre-rename reference (replace with
+> `EventHub.X`) or the `class_name SpawnMetadata` (which is a
+> bare global defined in `game/core/events/spawn_metadata.gd`).
+
+### Components (Attached to Entities)
+
+| Component | Purpose |
+|-----------|---------|
+| `HealthComponent` | Health, death, respawn |
+| `CombatComponent` | Combat state, skills, damage |
+| `AuraComponent` | Buffs/debuffs |
+| `AggroComponent` | Threat/aggro management |
+| `InventoryComponent` | Item storage and equipment |
+
+### UI Components
+
+| Component | Purpose |
+|-----------|---------|
+| `UIStyles` | Common styling, colors, fonts |
+| `UIPanel` | Base panel class with overlay |
+| `ActionMenu` | Context menus (mouse/touch) |
+| `TooltipManager` | Unified tooltip system |
+| `MenuManager` | HUD management |
+| `InventoryUI` | Player inventory grid |
+| `BuffBar` | Buff/debuff display |
+| `GuildUI` | Guild management |
+| `PartyUI` | Party management |
+| `TradeUI` | Item trading interface |
+
+---
+
+## Event Patterns
+
+**Unified entity events carry `SpawnMetadata`:**
+```gdscript
+# Signal signature:
+entity_spawned.emit(entity: Entity, metadata: SpawnMetadata)
+
+# Handler must match:
+func _on_entity_spawned(entity: Entity, metadata: SpawnMetadata) -> void:
+    pass
+```
+
+> **WARNING:** Mismatched signal handlers cause runtime errors. Always verify signatures.
+
+---
+
+## Common Operations
+
+### Creating Spawn Metadata
+```gdscript
+var metadata := SpawnMetadata.world_boss("Dragon", "zone_1", position, 50)
+```
+
+### Accessing Enums
+```gdscript
+# SpawnMetadata types
+var type := SpawnMetadata.SpawnType.BOSS
+var priority := SpawnMetadata.NotificationPriority.CRITICAL
+
+# Entity types
+if target.entity_type == Entity.EntityType.PLAYER:
+    pass
+
+# Notification types
+NotifKind.WARNING
+NotifKind.ALERT
+```
+
+### Sending Notifications
+
+Use the **typed-Kind pipeline** (`NotificationService.notify()`) for
+all service-level toasts. The frame handles dedupe, type-mapping, and
+priority automatically based on the kind.
+
+```gdscript
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+# To a specific player
+NotificationService.notify(
+    NotifKind.ITEM_ADDED,
+    "Picked up Sword of Truth",
+    "InventoryService",                       # source_service label
+    "inv_add:%s:%s" % [player_id, item_id], # dedupe key (5s window)
+    {"item_id": item_id, "rarity": "epic"},
+    player_id                                 # recipient
+)
+
+# Server-wide / admin scope (recipient = "")
+NotificationService.notify(
+    NotifKind.ADMIN_ALERT,
+    "RecursionGuard exceeded depth 16",
+    "AppFirewall",
+    "fw:%s" % message.hash(),
+    {"context": "agent_tool_call", "depth": 16}
+)
+```
+
+> **Don't** call `NotificationService.send_to_player()` directly for
+> new code — that's the legacy path. Use `notify()` instead.
+
+### Notification → Toast Pipeline
+Every service-level event ends up in a toast panel in `HudLayer`:
+
+```
+Service → NotificationService.notify() → NotificationDispatcher → TooltipManager.show_toast()
+```
+
+When adding a new service:
+- For **in-game state changes** (death, level-up, item equipped): emit a typed signal
+- For **infrastructure events** (throttled, restricted, banned): call `notify()` so the player sees a toast
+
+```gdscript
+# GOOD (infrastructure): player must see the toast
+NotificationService.notify(NotifKind.RATE_LIMITED, "You're casting too fast", "QoSService", ...)
+
+# GOOD (in-game state): emit a signal
+signal item_equipped(player_id: String, item_id: String)
+item_equipped.emit(player_id, item_id)
+```
+
+### Range-Based Entity Queries
+```gdscript
+var nearby := EntityService.get_entities_in_radius(
+    player.global_position,
+    20.0,  # range
+    Entity.EntityType.PLAYER
+)
+```
+
+---
+
+## File Organization
+
+```
+.
+├── game/                          # the Godot 4.7.2 project
+│   ├── adapters/                  # Storage adapter layer (Postgres, Redis, memory)
+│   │   ├── persistence/           # PersistenceStore interface + impls
+│   │   ├── cache/                 # CacheStore interface + impls
+│   │   ├── memory_layer/          # In-memory state store
+│   │   ├── registry.gd            # AdapterRegistry autoload
+│   │   ├── backend_factory.gd     # BackendFactory autoload
+│   │   └── README.md              # Adapter layer spec summary
+│   ├── core/
+│   │   ├── admin/                 # Admin shell, permission, reports
+│   │   ├── ai/                    # NPC AI (decision trees, behaviors)
+│   │   ├── autoload/              # Global singletons (~20)
+│   │   ├── combat/                # Combat system, ability resolution
+│   │   ├── community/             # Voting, moderator progression
+│   │   ├── components/            # Entity components (health, combat, etc.)
+│   │   ├── entities/              # Base entity classes (Entity, NPCEntity, ...)
+│   │   ├── events/                # Event hubs + metadata types
+│   │   ├── input/                 # Interaction layer, input maps
+│   │   ├── notifications/         # NotificationService + NotifKind enum
+│   │   ├── schemas/               # Data schemas (Resource subclasses)
+│   │   ├── services/              # Game services (30+)
+│   │   ├── targeting/             # Targeting system
+│   │   ├── ui/                    # Core UI base classes
+│   │   └── utils/                 # Generic utilities (id_registry, app_firewall, ...)
+│   ├── entities/                  # Concrete entity types (enemy, character, ...)
+│   ├── scenes/                    # .tscn scenes (world, NPCs)
+│   ├── connectors/                # AI agent connectors (discord, webhook, ...)
+│   ├── data/                      # .tres resources (static data)
+│   ├── ui/                        # User interface (panels, dialogs, HUD)
+│   └── tests/
+│       ├── adapters/              # Adapter layer tests (unit + integration)
+│       └── *.gd                   # Smoke tests (one per major system)
+│
+├── labs/                          # Frame + design docs
+│   ├── prd.md                     # Product requirements
+│   ├── prd-db.md                  # Storage adapter spec (authoritative)
+│   ├── TASKS.md                   # Session log + open tasks
+│   ├── world-building*.md         # World/architecture docs
+│   └── multi-iso/                 # Frame primitives
+│       ├── math/                  # NSC-9, icosahedral
+│       ├── kv/                    # LRU, state_tree
+│       ├── srv/                   # Markov, LOD, axis
+│       └── db/                    # snapshot_store
+│
+├── srv/                           # Deployment configs (docker, certs)
+├── ROADMAP.md                     # Implementation tracker
+├── AGENTS.md                      # This file
+└── README.md                      # Project overview
+```
+
+The Godot project root is `game/`. The `labs/` directory is outside
+the project so it doesn't taint the stable build with experimental work.
+
+`game/adapters/` is the **only** directory that services should use
+for persistence. See `labs/prd-db.md` for the full spec.
+
+---
+
+## Data Schemas
+
+### TargetSchema (`data/targets/`)
+- `target_player.tres`, `target_enemy.tres`, `target_npc.tres`
+- `target_loot.tres`, `target_dwelling.tres`, `target_gateway.tres`
+
+### EnemyData
+- `enemy_type`: NORMAL, ELITE, BOSS, WORLD_BOSS
+- `level`, `health`, `attack_power`, `defense`
+
+### Item
+- `soulbound`, `bind_on_pickup`, `bind_on_equip`
+- `unique`, `stack_size`, `rarity`
+
+### GM Classes
+Three admin-only classes hidden from normal character selection:
+- `gm_akkan`, `gm_human`, `gm_synthetic`
+- All have `role = 0` (Role.GM)
+
+GM visibility: `[GM]` prefix in chat, gold name color, "GAME MASTER" badge in tooltip (no emoji; see the no-UTF-8 rule).
+
+---
+
+## Labs Conventions
+
+The `/labs/` directory is for experimental primitives that could
+extract to the multi-iso frame. Different rules apply:
+
+| Rule | Game (`game/`) | Frame (`labs/`) |
+|------|-----------------|-----------------|
+| Autoload | Yes (mind the rules) | No |
+| `class_name` | Only when needed (see below) | No |
+| GameManager dep | Allowed (singleton access) | No |
+| Adapter layer | Yes (Postgres, Redis, memory) | No (pure functions) |
+| Tests | Co-located in `game/tests/adapters/`, smoke tests in `game/tests/` | Co-located (`foo.gd` + `test_foo.gd`) |
+
+> **`class_name` in `game/`:** add it ONLY when you need
+> `X.new()`, type-annotation, or `is X` checks. Do not add it
+> to autoloads (the autoload name is already a global
+> identifier). Do not add it to scripts that are only ever
+> used by `preload`. See [Autoloads and class_name](#autoloads-and-class_name)
+> for the full rules.
+
+### Frame Primitive Rules
+1. Each primitive is its own `.gd` file
+2. Tests are co-located: `nsc9.gd` + `test_nsc9.gd`
+3. No autoload, no `class_name`, no GameManager dependency
+4. New code goes here first. The game consumes from here.
+
+### Frame Contents
+| Subdirectory | Contains | Examples |
+|--------------|----------|----------|
+| `labs/multi-iso/math/` | Pure functions. No state. | NSC-9 encoding, icosahedral projection |
+| `labs/multi-iso/kv/` | In-memory data structures | LRU cache, content-hash, state tree |
+| `labs/multi-iso/srv/` | Service logic | Markov chain, predictor, LOD manager |
+| `labs/multi-iso/db/` | Database integration | snapshot_store, migrations |
+
+See [`labs/README.md`](./labs/README.md) for the full conventions.
+
+---
+
+## Security: BBCode XSS
+
+All `RichTextLabel` nodes have `bbcode_enabled = true`. User-supplied
+strings embedded in BBCode format strings are a potential injection vector.
+
+**Pattern to avoid:**
+```gdscript
+"[color=%s]%s[/color]" % [color, user_string]   # DANGEROUS
+```
+
+**The fix:** Replace `[` and `]` with full-width equivalents:
+```gdscript
+static func _esc(text: String) -> String:
+    return text.replace("[", "［").replace("]", "］")
+```
+
+**Files with this pattern:**
+- `core/services/chat_service.gd`
+- `ui/components/combat_log.gd`
+- `ui/components/chat_ui.gd`
+- `ui/components/dialog_ui.gd`
+- `ui/admin/admin_dashboard.gd`
+- `core/admin/player_shell.gd`
+- `core/autoload/logger.gd`
+- `core/services/qos_service.gd`
+- `core/services/security_service.gd`
+
+When adding new `RichTextLabel` BBCode with user input, always pass it through `_esc()` first.
+
+---
+
+## Important Patterns
+
+### Null Checks for Services
+Always check if a service exists before using:
+```gdscript
+if NotificationService:
+    NotificationService.send_to_player(player_id, message)
+```
+
+### Instance Validation
+Always validate entities before use:
+```gdscript
+if is_instance_valid(entity) and entity.entity_id != sender_id:
+    # safe to use
+```
+
+### Defensive Helper Pattern
+When a helper bridges two services, prefer try-known-methods fallback:
+```gdscript
+func _get_peer_for_player(player_id: String) -> int:
+    if PlayerManager == null:
+        return -1
+    for method_name in ["get_player_info", "get_player", "find_player"]:
+        if PlayerManager.has_method(method_name):
+            var result = PlayerManager.call(method_name, player_id)
+            if result is Dictionary:
+                var info: Dictionary = result
+                var peer_id = info.get("peer_id", -1)
+                if peer_id is int and peer_id > 0:
+                    return peer_id
+    return -1
+```
+
+### Godot GDScript Rules
+- **`extends` must precede `class_name`** when both are present
+- **Mixed indentation is fatal:** Once a file uses tabs, every subsequent line must use tabs
+- **Inner class methods cannot call outer class methods** without qualification
+- **`extends Control` for scene-instantiated UIs:** Use `extends Control` + manual stubs for UIPanel methods
+
+### NPC Scene Pattern
+NPC entities use `scene_path` in NPCData to specify their `.tscn`:
+```gdscript
+# NPCData schema
+@export var scene_path: String = ""  # Path to NPC .tscn scene
+
+# SpawnService loads the scene and configures it:
+if npc_data.scene_path:
+    var packed := load(npc_data.scene_path) as PackedScene
+    var entity := packed.instantiate() as NPCEntity
+```
+
+### Player Spawn Signal
+Use `GameManager.player_entered_world` to trigger services when a player enters:
+```gdscript
+# Connect in your service:
+GameManager.player_entered_world.connect(_on_player_entered)
+
+func _on_player_entered(player_id: String, character_data) -> void:
+    # Give starter items, initialize player state, etc.
+```
+
+---
+
+## Testing
+
+Smoke tests live in `game/tests/`. Run with Godot headless:
+
+```bash
+cd game
+godot --headless --path . --script res://tests/test_notification_toast.gd
+godot --headless --path . --script res://tests/test_hud_integration.gd
+godot --headless --path . --script res://tests/test_login_flow.gd
+godot --headless --path . --script res://tests/test_auto_response_signals.gd
+```
+
+Or run all tests via Docker (see [DEPLOY.md](./DEPLOY.md)):
+
+```bash
+docker run --rm -e START_MODE=test synmergia
+```
+
+| Test | Coverage |
+|------|----------|
+| `test_notification_frame.gd` | NotificationService frame (context, kind, dedupe) |
+| `test_notification_toast.gd` | NotificationService → TooltipManager.show_toast() end-to-end |
+| `test_hud_integration.gd` | HudIntegrator handlers, NotificationService → CombatLog |
+| `test_login_flow.gd` | Account + login + character flow |
+| `test_auto_response_signals.gd` | AutoResponseService signals and ActionType enum |
+| `test_islands.gd` | Core island logic (island_poc.gd) |
+| `test_e2e_flow.gd` | End-to-end account flow |
+| `test_notif_migration_*.gd` | Notification migration tests |
+
+> **Note:** `--script` mode does not pre-load autoloads. Resolve them via
+> `root.get_node_or_null("NotificationService")` rather than the bare identifier.
+
+### Test structure
+
+Tests live in two places:
+
+- **`game/tests/`** — smoke tests for one system each
+  (login flow, notification dispatch, etc.). These run the full
+  game boot and exercise real autoloads.
+- **`game/tests/adapters/`** — unit and integration tests for
+  the storage adapter layer. Do not require the full game boot;
+  instantiate `AdapterRegistry` and backends directly.
+
+A typical test file uses the `SceneTree` pattern:
+
+```gdscript
+extends SceneTree
+
+func _init() -> void:
+    var ok := true
+    if not _test_basic_crud():
+        push_error("FAIL: basic_crud")
+        ok = false
+    quit(0 if ok else 1)
+
+func _test_basic_crud() -> bool:
+    var store := MemoryPersistenceStore.new()
+    # ... actual test ...
+    return true
+```
+
+Run with `godot --headless --path . --script res://tests/test_foo.gd`.
+Exit code 0 = pass, 1 = fail.
+
+For adapter tests, use the same pattern but reference backends
+through the registry:
+
+```gdscript
+extends SceneTree
+
+func _init() -> void:
+    AdapterRegistry.register("default", MemoryPersistenceStore.new())
+    var store: PersistenceStore = AdapterRegistry.get("default")
+    # ... exercise store ...
+    quit(0)
+```
+
+When adding a new adapter backend (e.g., a new database), add a
+test in `game/tests/adapters/` that:
+1. Constructs the backend
+2. Runs CRUD against `MemoryPersistenceStore` (the reference)
+3. Verifies the new backend returns the same results
+
+Do not test against the live database in unit tests; spin up a
+test container or use the memory backend as the oracle.
+
+### Adapter layer overview
+
+Services should NEVER touch Postgres, Redis, or any storage
+backend directly. They go through `AdapterRegistry`:
+
+```gdscript
+# In a service:
+var store: PersistenceStore = AdapterRegistry.get("accounts")
+await store.put(player_id, account_data)
+var data = await store.get(player_id)
+```
+
+The registry returns a `PersistenceStore` (memory, Postgres, or
+any other impl) based on boot configuration. See
+`labs/prd-db.md` §3-5 for the full spec.
+
+---
+
+## Key Godot Rules
+
+1. **Entity autoload is REQUIRED:** `Entity` must be in the
+   `[autoload]` section BEFORE `RegisterTypes`. The parser needs
+   `Entity` to be a known type when RegisterTypes walks the type
+   tree. (Same logic for `AdapterRegistry` and `BackendFactory`:
+   they must come before any service that uses them in `_ready`.)
+
+2. **`load()` vs `preload()` vs `class_name.new()`:** pick by use
+   case, not by habit.
+
+   ```gdscript
+   # Use class_name + .new() when the class is registered globally
+   # (preferred for non-autoload, frequently-instantiated types):
+   class_name SkillBook          # in res://core/schemas/skill_book.gd
+   var book := SkillBook.new()   # works at parse time
+
+   # Use load() + .new() when you do NOT want class_name globally
+   # registered (e.g., to avoid an autoload/class_name collision,
+   # or to load lazily at runtime):
+   var script := load("res://core/schemas/skill_book.gd")
+   var book = script.new()
+
+   # Use preload() + .new() only when the file is constant
+   # (resource path hard-coded) AND has class_name. Otherwise
+   # use load(). Mixing these causes "Identifier X not declared"
+   # parse errors.
+   ```
+
+3. **`extends` must precede `class_name`** in any file that has
+   both. The parser reads them in order; if `class_name` comes
+   first, the parse fails.
+
+4. **Tabs only, in GDScript files.** Once a line uses a tab, every
+   line in that scope must use a tab. `.editorconfig` is supposed
+   to enforce this, but copy-paste from the web and shell heredocs
+   frequently introduce spaces. When in doubt, run
+   `cat -A file.gd | head -20` — tabs render as `^I`, spaces as ` `.
+
+---
+
+## GDScript 4 Gotchas
+
+Common mistakes agents make with GDScript 4.7.2:
+
+```gdscript
+# Scene instantiation — use instantiate(), NOT .instance()
+var instance := preload("res://scene.tscn").instantiate()  # Godot 4
+var instance := preload("res://scene.tscn").instance()     # Godot 3, breaks in 4
+
+# Script instantiation — load() vs preload() vs class_name
+# See "Key Godot Rules" #2 above for the full decision tree.
+var book := SkillBook.new()                              # class_name registered
+var book := load("res://schemas/SkillBook.gd").new()     # runtime, no class_name
+
+# Node removal — use queue_free(), NOT free()
+instance.queue_free()  # safe, deferred
+instance.free()        # can break children cleanup
+
+# Null checks — always validate with is_instance_valid()
+if node != null and is_instance_valid(node):  # safe
+if node != null:                              # can hold stale references
+
+# String formatting — both work in 4.7.2; pick one and be consistent
+var msg := f"Hello {name}"   # f-string (Godot 4+, recommended for new code)
+var msg := "Hello %s" % name # old style, still works
+var msg := "Hello {0}".format([name])  # also works, rarely used
+
+# Reserved keywords — `class_name`, `signal`, `func`, etc. cannot
+# be variable names. Use `char_class_name`, `signal_name`, etc.
+var class_name := "warrior"   # PARSE ERROR
+var char_class_name := "warrior"  # OK
+```
+
+### New 4.7.2 strictness (the things that broke during the parse-error cascade)
+
+- `Resource.get(key, default)` default arg was removed. Use
+  `if resource.has(key): resource.get(key)` or
+  `resource.get(key, null)` then null-check.
+- Type inference on ternary requires explicit type. Use
+  `var x: T = a if cond else b` not `var x := a if cond else b`.
+- `class_name`, `signal`, `func`, `var`, `const` are reserved
+  variable names. Rename to `char_class_name` etc.
+- `assert(cond, "msg")` in release builds compiles to no-op; use
+  for invariants only. For runtime checks that must run in
+  release, use explicit `if not cond: return` or push to a logger.
+- `await get_tree().process_frame` in `_ready()` is a valid
+  way to defer past the autoload order; cheaper than
+  `call_deferred` for one-shot deferred work.
+
