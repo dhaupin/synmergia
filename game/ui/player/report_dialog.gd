@@ -6,6 +6,7 @@ class_name ReportDialog
 
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const SecurityService = preload("res://core/services/security_service.gd")
 enum ReportType {
 	PLAYER_ABUSE = 0,
 	BUG = 1,
@@ -13,6 +14,9 @@ enum ReportType {
 	SUGGESTION = 3,
 	EXPLOIT = 4,
 }
+
+const MAX_TARGET_LENGTH: int = 32
+const MAX_DESCRIPTION_LENGTH: int = 2000
 
 var _reporter_id: String = ""
 var _target_player: String = ""
@@ -204,12 +208,36 @@ func _on_submit() -> void:
 		_show_error("Description too short. Please provide more detail.")
 		return
 
+	# Security: Validate description length
+	if description.length() > MAX_DESCRIPTION_LENGTH:
+		_show_error("Description too long (max %d characters)" % MAX_DESCRIPTION_LENGTH)
+		return
+	
+	# Security: Validate via SecurityService if available
+	if SecurityService:
+		var validation := SecurityService.validate_message(description, _reporter_id)
+		if not validation.valid:
+			_show_error("Invalid input: " + validation.reason)
+			return
+
 	var target: String = _target_field.text.strip_edges()
 
 	if _report_type == ReportType.PLAYER_ABUSE or _report_type == ReportType.EXPLOIT:
 		if target == "":
 			_show_error("Please enter a player name")
 			return
+		
+		# Security: Validate target name length
+		if target.length() > MAX_TARGET_LENGTH:
+			_show_error("Player name too long")
+			return
+		
+		# Security: Validate target name via SecurityService
+		if SecurityService:
+			var target_validation := SecurityService.validate_player_name(target)
+			if not target_validation.valid:
+				_show_error("Invalid player name: " + target_validation.reason)
+				return
 
 	var data: Dictionary = {
 		"description": description,

@@ -3,6 +3,7 @@
 extends Node
 
 const QuestData = preload("res://core/schemas/quest_data.gd")
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 static func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')
@@ -25,6 +26,10 @@ signal quest_failed(player_id: String, quest_id: String, reason: String)
 
 ## Frame-level notification dispatch (typed-Kind pipeline).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+# Limits
+const MAX_ACTIVE_QUESTS: int = 20
+const MAX_QUEST_NAME_LENGTH: int = 64
 
 func _ready() -> void:
 	instance = self
@@ -169,6 +174,14 @@ func _load_quest_data(quest_id: String) -> QuestData:
 ## ============================================================================
 
 func accept_quest(player_id: String, quest_id: String) -> bool:
+	# QoS: Rate limit quest accepts
+	if QoSService and not QoSService.rate_limit(player_id, "quest_accept"):
+		return false
+	
+	# Security: Validate quest_id format
+	if not _is_valid_quest_id(quest_id):
+		return false
+	
 	var availability := check_quest_availability(player_id, quest_id)
 	if not availability.available:
 		GameLog.warn("QuestService: Cannot accept quest - %s" % availability.reason)
@@ -413,3 +426,12 @@ func _get_player_level(player_id: String) -> int:
 			return int(info.get("level", 1))
 	# Default to level 1
 	return 1
+
+func _is_valid_quest_id(quest_id: String) -> bool:
+	# Security: Validate quest_id format to prevent injection
+	if quest_id.is_empty() or quest_id.length() > 64:
+		return false
+	# Only alphanumeric, underscores, hyphens allowed
+	var regex := RegEx.new()
+	regex.compile("^[a-zA-Z0-9_-]+$")
+	return regex.search(quest_id) != null

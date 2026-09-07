@@ -5,6 +5,7 @@ extends Node
 
 const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 const CooldownService = preload("res://core/services/cooldown_service.gd")
+const QoSService = preload("res://core/autoload/qos_service.gd")
 const EventHub = preload("res://core/events/event_hub.gd")
 
 # Follow configurations
@@ -56,6 +57,10 @@ func _process(delta: float) -> void:
 
 ## Request to follow a player (uses CooldownService for throttling)
 func request_follow(follower_id: String, target_id: String) -> bool:
+	# QoS: Rate limit follow requests
+	if QoSService and not QoSService.rate_limit(follower_id, "follow_request"):
+		return false
+	
 	# Cooldown check
 	if CooldownService and not CooldownService.try_start(follower_id, "follow_request"):
 		return false

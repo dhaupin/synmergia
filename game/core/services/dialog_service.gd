@@ -10,6 +10,7 @@ static func get_instance() -> Node:
 		_instance._ready()
 	return _instance
 
+const QoSService = preload("res://core/autoload/qos_service.gd")
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 
 var _dialogues: Dictionary = {}
@@ -46,13 +47,18 @@ func get_dialogue(dialogue_id: String) -> DialogueData:
 	return _dialogues.get(dialogue_id)
 
 func start_dialogue(npc_id: String, dialogue_id: String) -> bool:
+	# QoS: Rate limit dialogue starts
+	var player_id := get_local_player_id()
+	if QoSService and player_id and not QoSService.rate_limit(player_id, "dialogue"):
+		return false
+	
 	var dialogue: DialogueData = get_dialogue(dialogue_id)
 	if dialogue == null:
-		GameLog.warn("DialogService: Dialogue not found: %s" % dialogue_id)
+		GameLog.warn("DialogService: Dialogue not found: %s" % _esc(dialogue_id))
 		return false
 	_current_dialogue = dialogue
 	_current_node = 0
-	dialogue_started.emit(npc_id, dialogue_id)
+	dialogue_started.emit(_esc(npc_id), _esc(dialogue_id))
 	node_changed.emit(_current_node, _node_to_dict(dialogue.get_node(_current_node)))
 	return true
 
