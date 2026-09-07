@@ -276,4 +276,65 @@ Recommended order:
 3. Test the wired services in headless
 4. Then continue with the rest of the services
 
+## 2026-09-07 Session 3 — Entity autoload fix landed
+
+### What happened
+
+Implemented the "Next session" item #1 from Session 2: removed
+the `Entity` autoload entry from `game/project.godot`. The
+`class_name Entity` in `game/core/entities/entity.gd` now resolves
+cleanly, so `Entity.new()` works everywhere `extends Entity` and
+`var e = Entity.new()` are written.
+
+Also fixed a related parse-time reference in entity.gd:345 where
+the bare name `TitleService` was used as a truthy check, which is
+a parse error in --script mode (autoloads are not pre-loaded).
+Replaced with a SceneTree-root lookup that resolves the autoload
+by node path at runtime.
+
+### Changes
+
+- `game/project.godot`: removed Entity autoload entry (lines 19-21),
+  added explanatory comment about class_name resolution.
+- 27 callers in `game/`: removed redundant
+  `const Entity = preload("res://core/entities/entity.gd")` line.
+  Type-hint and as-cast uses work via `class_name Entity`.
+- `game/core/entities/entity.gd`: refactored `get_full_display_name()`
+  to look up TitleService via SceneTree root, not bare identifier.
+- `game/tests/test_entity_autoload.gd`: NEW. 8-check regression test
+  that runs in --script mode (no autoloads). Covers load(), .new(),
+  default values, property assignment, enum access, spawn_service
+  pattern, global class registration, and autoload absence.
+- `game/tests/test_autoload_audit.gd`: NEW. Scans project.godot +
+  every .gd under res:// for autoload/class_name collisions.
+  Allowlists QoSService (intentional exception). Wire this into
+  CI later.
+- `AGENTS.md`: updated "Entity" section from "latent bug" to
+  "fixed, use Option A", added allowlist section, updated "Last
+  updated" header.
+
+### Not fixed (out of scope for this session)
+
+- `CooldownService` and `PlayerLockService` are NOT autoloads, but
+  call sites do `CooldownService.try_start(...)` (a non-static
+  method on the preloaded script). 12+ parse errors at:
+    core/services/{party,guild,trade,follow,friends}_service.gd
+    core/services/zone_manager.gd
+    entities/player/player_controller.gd
+    core/components/health_component.gd
+  Fix: make them autoloads (single project.godot edit + drop the
+  5 const-preloads) OR refactor call sites to use an instance.
+  Tracked for next session.
+- Adapter layer still has its own pre-existing parse errors
+  (PersistenceStore / CacheStore base class not loadable in
+  --script mode, signature mismatches with Object reserved
+  methods connect/get/set). These are not autoload-related and
+  need a separate session.
+
+### Verification
+
+- `tests/test_entity_autoload.gd`: 8/8 PASS, clean exit.
+- `tests/test_autoload_audit.gd`: 3/3 PASS, 1 allowlisted entry
+  (QoSService), 0 unexpected collisions.
+
 

@@ -3,7 +3,6 @@
 extends Node
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const Entity = preload("res://core/entities/entity.gd")
 
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")

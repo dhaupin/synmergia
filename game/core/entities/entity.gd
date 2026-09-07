@@ -342,6 +342,15 @@ func load_entity_data(data: Dictionary) -> void:
 
 ## Get display name with titles (if player entity)
 func get_full_display_name() -> String:
-	if entity_type == EntityType.PLAYER and TitleService:
-		return TitleService.get_display_name(entity_id, display_name)
+	if entity_type != EntityType.PLAYER:
+		return display_name
+	# Resolve autoload via SceneTree root to avoid parse-time dependency.
+	# The bare name `TitleService` would be a parse error in --script mode
+	# where autoloads are not pre-loaded.
+	var root := get_tree().root if is_inside_tree() else null
+	if root == null:
+		return display_name
+	var title_service := root.get_node_or_null("TitleService")
+	if title_service and title_service.has_method("get_display_name"):
+		return title_service.get_display_name(entity_id, display_name)
 	return display_name

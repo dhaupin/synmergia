@@ -3,7 +3,6 @@
 extends Resource
 class_name Skill
 const StatusEffect = preload("res://core/entities/status_effect.gd")
-const Entity = preload("res://core/entities/entity.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 
 

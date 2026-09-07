@@ -16,9 +16,15 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
-# Entity base class - provides extends Entity for all entity types
-# Must be loaded BEFORE RegisterTypes so Entity is available for extends
-Entity="*res://core/entities/entity.gd"
+# NOTE: Entity is NOT an autoload. It has class_name Entity in
+# game/core/entities/entity.gd. Removing it from the autoload list
+# means:
+#   - Entity.new() works (creates a new instance)
+#   - Entity.EntityType.ENEMY works (enum on the class)
+#   - extends Entity works (resolved via class_name at parse time)
+# Previously Entity was both an autoload and a class_name, which
+# shadowed each other and broke Entity.new() in spawn_service.gd.
+# See AGENTS.md "Autoloads and class_name" for the full rules.
 AdapterRegistry="*res://adapters/registry.gd"
 BackendFactory="*res://adapters/backend_factory.gd"
 RegisterTypes="*res://core/autoload/type_registry.gd"

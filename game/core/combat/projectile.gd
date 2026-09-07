@@ -3,7 +3,6 @@
 ## Works for PLAYERS, ENEMIES, NPCs - any Entity can fire projectiles
 extends Node3D
 class_name Projectile
-const Entity = preload("res://core/entities/entity.gd")
 
 
 const __Projectile__ = preload("res://core/combat/projectile.gd")

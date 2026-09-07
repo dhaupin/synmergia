@@ -2,7 +2,6 @@
 ## Handles IDLE, PATROL, CHASE, COMBAT, FLEE, RETURN states
 extends Node
 class_name EnemyAI
-const Entity = preload("res://core/entities/entity.gd")
 
 
 enum AIState {

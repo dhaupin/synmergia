@@ -4,7 +4,6 @@ extends StatusEffect
 
 class_name Buff
 const PhysicsArea = preload("res://core/combat/physics_area.gd")
-const Entity = preload("res://core/entities/entity.gd")
 
 
 enum BuffType {

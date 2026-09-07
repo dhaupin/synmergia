@@ -9,7 +9,6 @@
 ## - 3D highlight management
 ## - Target history (restore previous)
 extends Node
-const Entity = preload("res://core/entities/entity.gd")
 
 
 

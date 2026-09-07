@@ -3,7 +3,6 @@
 extends Node
 
 const ZoneData = preload("res://core/schemas/zone_data.gd")
-const Entity = preload("res://core/entities/entity.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 # Zone types

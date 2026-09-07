@@ -7,7 +7,7 @@
 > **What this file is NOT:** An operational log, debugging status,
 > or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Last updated 2026-09-07:** Autoload/class_name rules expanded
+> **Last updated 2026-09-07:** Entity autoload removed; collision rules refined; allowlist introduced
 > with full gotcha + cycle + recovery sections. Service and
 > notification docs corrected. See `labs/TASKS.md` for the
 > change log.
@@ -161,12 +161,31 @@ consider:
   (`class_name EnemyEntity extends Entity` in a separate file) or
   `load("res://core/entities/entity.gd").new()`.
 
-The current code uses **Option B** for `Entity`: `class_name Entity`
-in the autoload file, and `Entity.new()` is called from `spawn_service.gd`.
-**This is a latent bug.** It works only by accident in current Godot
-4.7.2 because `class_name` resolution beats the autoload identifier in
-some code paths but not others. Do not add new code that relies on
-`Entity.new()`. Use a subclass or `load(...).new()`.
+The current code uses **Option A** for `Entity`: the base class
+`res://core/entities/entity.gd` is **not** an autoload. The autoload
+was removed from `project.godot` and the script now exposes only
+`class_name Entity`. Spawning is done via `Entity.new()` (or
+`load("res://core/entities/entity.gd").new()` from contexts that
+should not depend on the global class registry). Subclasses
+(`extends Entity`) live in `entities/enemy.gd`,
+`core/entities/npc_entity.gd`, and `core/entities/skill_academy_npc.gd`.
+
+The old `const Entity = preload("res://core/entities/entity.gd")`
+workarounds in 27 callers were removed: they are no longer needed
+since `class_name Entity` resolves cleanly without an autoload shadow.
+The regression test `tests/test_entity_autoload.gd` covers the fix.
+
+**Allowlist of intentional `class_name` + autoload collisions.** A
+small number of autoloads keep both, and they are tracked in
+`tests/test_autoload_audit.gd`:
+
+- `QoSService` -- the script exposes static shim methods (e.g.
+  `QoSService.rate_limit(...)`) that internally resolve the autoload
+  at runtime. The static methods are convenience wrappers; the
+  actual state lives in the autoload. The class_name also lets
+  callers type-annotate `func (svc: QoSService)`. Do not add more
+  entries to this allowlist without updating the audit test and
+  this section.
 
 ### Accessing autoloads
 
