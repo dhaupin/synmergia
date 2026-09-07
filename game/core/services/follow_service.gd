@@ -273,9 +273,12 @@ func _is_in_range(entity1_id: String, entity2_id: String) -> bool:
 ## Helper: Get entity position
 func _get_entity_position(entity_id: String) -> Vector3:
 	if EntityService:
-		var entity = EntityService.get_entity_by_id(entity_id)
+		var entity = EntityService.get_entity(entity_id)
 		if entity and is_instance_valid(entity) and entity.has("global_position"):
-			return entity.global_position
+			var pos = entity.global_position
+			# Validate position (prevent NaN/Inf exploits)
+			if is_finite(pos):
+				return pos
 	return Vector3.INF
 
 ## Helper: Notify player
