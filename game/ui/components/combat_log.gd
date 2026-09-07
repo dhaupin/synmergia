@@ -78,7 +78,7 @@ static func _esc(text: String) -> String:
 ## PUBLIC API
 ## ============================================================================
 
-static func get_instance() -> CombatLog:
+static func singleton() -> CombatLog:
 	return instance
 
 func log_damage(target: String, amount: int, damage_type: String = "Physical") -> void:

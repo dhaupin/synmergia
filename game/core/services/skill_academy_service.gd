@@ -44,7 +44,7 @@ func _ready() -> void:
 	_generate_catalog()
 	GameLog.info("SkillAcademyService: Catalog generated with %d skills" % _catalog.size())
 
-static func get_instance() -> SkillAcademyService:
+static func singleton() -> SkillAcademyService:
 	return instance
 
 ## Build the skill book catalog from all loaded skills in DataService.

@@ -137,7 +137,7 @@ func _update_display() -> void:
 		_sub_label.text = _sub_text
 
 
-static func get_instance() -> LoadingUI:
+static func singleton() -> LoadingUI:
 	return instance
 
 

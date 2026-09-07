@@ -220,5 +220,5 @@ func should_show_tooltips() -> bool:
 func get_button_size() -> Vector2:
 	return Vector2(90, 50) if _is_mobile else Vector2(80, 35)
 
-static func get_instance() -> InteractionLayer:
+static func singleton() -> InteractionLayer:
 	return instance

@@ -23,7 +23,7 @@ const TargetSchema = preload("res://core/schemas/target_schema.gd")
 
 static var instance: TargetingManager
 
-static func get_instance() -> TargetingManager:
+static func singleton() -> TargetingManager:
 	return instance
 
 ## ============================================================================

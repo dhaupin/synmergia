@@ -14,7 +14,7 @@ class_name VendorService
 
 ## Singleton instance
 static var _instance: VendorService = null
-static func get_instance() -> VendorService:
+static func singleton() -> VendorService:
 	if _instance == null:
 		_instance = VendorService.new()
 		_instance._ready()

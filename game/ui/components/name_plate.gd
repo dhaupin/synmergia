@@ -109,7 +109,7 @@ func _setup_ui() -> void:
 ## PUBLIC API
 ## ============================================================================
 
-static func get_instance() -> NamePlate:
+static func singleton() -> NamePlate:
 	return instance
 
 func show_for(entity: Node, plate_type: int, name: String, level: int = 0, guild: String = "",

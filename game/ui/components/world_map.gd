@@ -218,7 +218,7 @@ func _set_fullmap_mode() -> void:
 		## PUBLIC API
 		## ============================================================================
 
-static func get_instance() -> WorldMap:
+static func singleton() -> WorldMap:
 	return instance
 
 func toggle() -> void:

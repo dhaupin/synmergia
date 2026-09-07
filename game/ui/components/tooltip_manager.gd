@@ -85,7 +85,7 @@ func _update_position() -> void:
 ## PUBLIC API
 ## ============================================================================
 
-static func get_instance() -> TooltipManager:
+static func singleton() -> TooltipManager:
 	return instance
 
 

@@ -141,8 +141,8 @@ func _toggle_panel(panel_id: String) -> void:
 		_mm.toggle_menu(panel_id)
 	elif _mm.has_method("open_menu") and _mm.has_method("close_menu"):
 		# Manual toggle if toggle_menu not available
-		if _mm.has_method("get_instance"):
-			var inst = _mm.get_instance()
+		if _mm.has_method("singleton"):
+			var inst = _mm.singleton()
 			if inst and inst.has_method("is_panel_open"):
 				if inst.is_panel_open(panel_id):
 					_mm.close_menu(panel_id)

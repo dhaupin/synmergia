@@ -2,9 +2,9 @@
 ## Loads DialogueData resources from data/dialogues/*.tres and drives DialogUI.
 extends Node
 
-## Singleton instance (use get_instance() to access)
+## Singleton instance (use singleton() to access)
 static var _instance: Node = null
-static func get_instance() -> Node:
+static func singleton() -> Node:
 	if _instance == null:
 		_instance = load("res://core/services/dialog_service.gd").new()
 		_instance._ready()

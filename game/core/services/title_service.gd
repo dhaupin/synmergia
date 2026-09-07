@@ -37,49 +37,49 @@ func _load_title_definitions() -> void:
 
 ## Unlock a title for a player
 static func unlock(player_id: String, title_id: String) -> bool:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return false
 	return inst._do_unlock(player_id, title_id)
 
 ## Equip a title (prefix or suffix slot)
 static func equip(player_id: String, title_id: String, slot: String) -> bool:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return false
 	return inst._do_equip(player_id, title_id, slot)
 
 ## Unequip a title from the specified slot
 static func unequip(player_id: String, slot: String) -> void:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return
 	inst._do_unequip(player_id, slot)
 
 ## Check if player has title unlocked
 static func is_unlocked(player_id: String, title_id: String) -> bool:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return false
 	return inst._has_title(player_id, title_id)
 
 ## Get all unlocked titles for player
 static func get_unlocked_titles(player_id: String) -> Array[TitleData]:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return []
 	return inst._do_get_unlocked_titles(player_id)
 
 ## Get equipped prefix title
 static func get_equipped_prefix(player_id: String) -> TitleData:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return null
 	return inst._do_get_equipped_prefix(player_id)
 
 ## Get equipped suffix title
 static func get_equipped_suffix(player_id: String) -> TitleData:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return null
 	return inst._do_get_equipped_suffix(player_id)
@@ -87,7 +87,7 @@ static func get_equipped_suffix(player_id: String) -> TitleData:
 ## Get full display name with titles
 ## Example: "[The Slayer] dhaupin, the guildmaster"
 static func get_display_name(player_id: String, base_name: String) -> String:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return base_name
 
@@ -104,7 +104,7 @@ static func get_display_name(player_id: String, base_name: String) -> String:
 
 ## Get the player's custom title color (Color(0,0,0) if default)
 static func get_title_color(player_id: String) -> Color:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return Color(0, 0, 0)
 	var state: Dictionary = inst._ensure_player_state(player_id)
@@ -112,13 +112,13 @@ static func get_title_color(player_id: String) -> Color:
 
 ## Set the player's custom title color
 static func set_title_color(player_id: String, color: Color) -> void:
-	var inst := get_instance()
+	var inst := singleton()
 	if inst == null:
 		return
 	var state: Dictionary = inst._ensure_player_state(player_id)
 	state["title_color"] = color
 
-static func get_instance() -> Node:
+static func singleton() -> Node:
 	var ml: MainLoop = Engine.get_main_loop()
 	if ml == null or not ml is SceneTree:
 		return null
