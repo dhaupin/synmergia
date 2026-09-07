@@ -22,6 +22,7 @@ signal paused
 signal resumed
 signal game_started
 signal game_ended
+signal player_entered_world(player_id: String, character_data: Resource)
 
 enum GameState {
     LOADING,
@@ -148,6 +149,14 @@ func _handle_playing_state() -> void:
     # Load the playable world scene, replacing current scene
     get_tree().change_scene_to_file("res://scenes/world_playable.tscn")
     if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
+
+    # Emit player_entered_world for services like StarterKitService
+    if selected_character_data and "character_id" in selected_character_data:
+        var player_id := selected_character_data.get("character_id", "") as String
+        if not player_id.is_empty():
+            player_entered_world.emit(player_id, selected_character_data)
+            if get_node_or_null("/root/GameLog"):
+                get_node_or_null("/root/GameLog").info("Emitted player_entered_world for: %s" % player_id)
 
 func _initialize_world_services() -> void:
     # Only initialize once
