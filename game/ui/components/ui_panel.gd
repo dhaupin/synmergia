@@ -112,6 +112,17 @@ func check_interact_distance(player_pos: Vector3, target_pos: Vector3) -> bool:
 ## For planar (2D) checks, use position.project(Vector3.UP).distance_to()
 
 ## ============================================================================
+## PLAYER HELPERS
+## ============================================================================
+
+## Canonical way to get the local player node
+## Used for distance checks, position lookups, etc.
+func _get_local_player() -> Node:
+	if PlayerManager and PlayerManager.has_method("get_local_player"):
+		return PlayerManager.get_local_player()
+	return null
+
+## ============================================================================
 ## PROGRESS / LOADING HELPERS
 ## ============================================================================
 

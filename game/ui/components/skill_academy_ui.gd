@@ -81,15 +81,6 @@ var _stat_points_label: Label
 var _stat_respec_button: Button
 var _stat_warnings_label: Label
 
-# Stat tier colors
-const _TIER_COLORS := {
-	"common": Color(0.6, 0.6, 0.6),
-	"rare": Color(0.3, 0.7, 1.0),
-	"epic": Color(0.8, 0.3, 1.0),
-	"legendary": Color(1.0, 0.6, 0.1),
-	"mythic": Color(1.0, 0.2, 0.2)
-}
-
 const _TIER_THRESHOLDS := {"rare": 30, "epic": 60, "legendary": 90, "mythic": 120}
 
 # Respec tab
@@ -382,14 +373,14 @@ func _build_stats_tab() -> Control:
 	var pts_lbl := Label.new()
 	pts_lbl.name = "PointsLabel"
 	pts_lbl.text = "Available Points: --"
-	pts_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
+	pts_lbl.add_theme_color_override("font_color", UIStyles.SKILL_COLORS.available_points)
 	header.add_child(pts_lbl)
 	_stat_points_label = pts_lbl
 	
 	var focal_lbl := Label.new()
 	focal_lbl.name = "FocalLabel"
 	focal_lbl.text = ""
-	focal_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 1.0))
+	focal_lbl.add_theme_color_override("font_color", UIStyles.SKILL_COLORS.focal)
 	header.add_child(focal_lbl)
 	
 	root.add_child(header)
@@ -475,7 +466,7 @@ func _build_stat_row(stat_name: String) -> HBoxContainer:
 	var tier_lbl := Label.new()
 	tier_lbl.name = "TierIndicator"
 	tier_lbl.text = "[C]"
-	tier_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	tier_lbl.add_theme_color_override("font_color", UIStyles.SKILL_COLORS.tier_label)
 	tier_lbl.custom_minimum_size.x = 35
 	row.add_child(tier_lbl)
 
@@ -528,19 +519,19 @@ func _refresh_stats_tab() -> void:
 		var tier_color: Color
 		var tier_text: String
 		if total >= _TIER_THRESHOLDS.get("mythic", 120):
-			tier_color = _TIER_COLORS["mythic"]
+			tier_color = UIStyles.SKILL_COLORS.tier_mythic
 			tier_text = "[M]"
 		elif total >= _TIER_THRESHOLDS.get("legendary", 90):
-			tier_color = _TIER_COLORS["legendary"]
+			tier_color = UIStyles.SKILL_COLORS.tier_legendary
 			tier_text = "[L]"
 		elif total >= _TIER_THRESHOLDS.get("epic", 60):
-			tier_color = _TIER_COLORS["epic"]
+			tier_color = UIStyles.SKILL_COLORS.tier_epic
 			tier_text = "[E]"
 		elif total >= _TIER_THRESHOLDS.get("rare", 30):
-			tier_color = _TIER_COLORS["rare"]
+			tier_color = UIStyles.SKILL_COLORS.tier_rare
 			tier_text = "[R]"
 		else:
-			tier_color = _TIER_COLORS["common"]
+			tier_color = UIStyles.SKILL_COLORS.tier_common
 			tier_text = "[C]"
 		row_data["tier_lbl"].text = tier_text
 		row_data["tier_lbl"].add_theme_color_override("font_color", tier_color)

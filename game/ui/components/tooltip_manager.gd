@@ -43,9 +43,8 @@ func _setup_ui() -> void:
 	add_child(_panel)
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.15, 0.2, 0.95)
-	if UIStyles:
-		style.border_color = UIStyles.COLORS.accent_gold
+	style.bg_color = UIStyles.TOOLTIP_COLORS.background
+	style.border_color = UIStyles.COLORS.accent_gold
 	style.border_width_left = 2
 	style.border_width_right = 2
 	style.border_width_top = 2
@@ -180,7 +179,7 @@ func _ensure_toast_root() -> void:
 	_toast_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_toast_root)
 
-func show_toast(text: String, color: Color = Color(0.9, 0.9, 1.0), duration: float = 3.0) -> void:
+func show_toast(text: String, color: Color = UIStyles.TEXT_COLORS.default_bright, duration: float = 3.0) -> void:
 	if text == "":
 		return
 	_ensure_toast_root()
@@ -193,7 +192,7 @@ func show_toast(text: String, color: Color = Color(0.9, 0.9, 1.0), duration: flo
 	var panel := PanelContainer.new()
 	panel.modulate = Color(1, 1, 1, 0)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.12, 0.92)
+	style.bg_color = UIStyles.TEXT_COLORS.toast_bg
 	style.border_color = color
 	style.border_width_left = 2
 	style.border_width_right = 2
@@ -253,7 +252,7 @@ func _add_title(text: String, color: Color = Color(1, 1, 1)) -> void:
 		_content.add_child(label)
 
 
-func _add_line(text: String, color: Color = Color(0.7, 0.7, 0.7)) -> void:
+func _add_line(text: String, color: Color = UIStyles.TEXT_COLORS.default) -> void:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_color_override("font_color", color)
@@ -292,7 +291,7 @@ func _populate_item_tooltip() -> void:
 	_add_title(item_name, rarity_color)
 
 	var item_type: String = _data.get("type", "Item")
-	_add_line(item_type, Color(0.7, 0.7, 0.7))
+	_add_line(item_type, UIStyles.TEXT_COLORS.default)
 
 	_add_spacer()
 
@@ -300,14 +299,14 @@ func _populate_item_tooltip() -> void:
 	var stats: Array = _data.get("stats", [])
 	for stat in stats:
 		var stat_text := "  %s: +%d" % [stat.get("name", ""), stat.get("value", 0)]
-		_add_line(stat_text, Color(0.4, 0.9, 0.4))
+		_add_line(stat_text, UIStyles.TEXT_COLORS.success)
 
 	_add_spacer()
 
 	# Description
 	var desc: String = _data.get("description", "")
 	if not desc.is_empty():
-		_add_line(desc, Color(0.7, 0.7, 0.7))
+		_add_line(desc, UIStyles.TEXT_COLORS.default)
 
 	_add_spacer()
 
@@ -319,7 +318,7 @@ func _populate_item_tooltip() -> void:
 
 	# Stack info
 	if _data.get("stack_size", 1) > 1:
-		_add_line("Stack: %d" % _data.get("stack_size", 1), Color(0.7, 0.7, 0.7))
+		_add_line("Stack: %d" % _data.get("stack_size", 1), UIStyles.TEXT_COLORS.default)
 
 
 func _populate_ability_tooltip() -> void:
@@ -330,14 +329,14 @@ func _populate_ability_tooltip() -> void:
 	_add_title(ability_name, gold)
 
 	var ability_type: String = _data.get("type", "Ability")
-	_add_line(ability_type, Color(0.7, 0.7, 0.7))
+	_add_line(ability_type, UIStyles.TEXT_COLORS.default)
 
 	_add_spacer()
 
 	# Cost
 	var mana_cost: int = _data.get("mana_cost", 0)
 	if mana_cost > 0:
-		_add_line("Mana Cost: %d" % mana_cost, Color(0.4, 0.7, 1))
+		_add_line("Mana Cost: %d" % mana_cost, UIStyles.TEXT_COLORS.info)
 
 	# Cooldown
 	var cooldown: float = _data.get("cooldown", 0.0)
@@ -349,19 +348,19 @@ func _populate_ability_tooltip() -> void:
 	# Range
 	var range_val: float = _data.get("range", 0.0)
 	if range_val > 0:
-		_add_line("Range: %.1fm" % range_val, Color(0.7, 0.7, 0.7))
+		_add_line("Range: %.1fm" % range_val, UIStyles.TEXT_COLORS.default)
 
 	# Cast time
 	var cast_time: float = _data.get("cast_time", 0.0)
 	if cast_time > 0:
-		_add_line("Cast Time: %.1fs" % cast_time, Color(0.7, 0.7, 0.7))
+		_add_line("Cast Time: %.1fs" % cast_time, UIStyles.TEXT_COLORS.default)
 
 	_add_spacer()
 
 	# Description
 	var desc: String = _data.get("description", "")
 	if not desc.is_empty():
-		_add_line(desc, Color(0.7, 0.7, 0.7))
+		_add_line(desc, UIStyles.TEXT_COLORS.default)
 
 
 func _populate_npc_tooltip() -> void:
@@ -372,7 +371,7 @@ func _populate_npc_tooltip() -> void:
 	_add_title(npc_name, gold)
 
 	var npc_type: String = _data.get("type", "NPC")
-	_add_line(npc_type, Color(0.7, 0.7, 0.7))
+	_add_line(npc_type, UIStyles.TEXT_COLORS.default)
 
 	_add_spacer()
 
@@ -384,7 +383,7 @@ func _populate_npc_tooltip() -> void:
 	# Services
 	var services: Array = _data.get("services", [])
 	for service in services:
-		_add_line("[%s]" % service, Color(0.4, 0.7, 1))
+		_add_line("[%s]" % service, UIStyles.TEXT_COLORS.info)
 
 
 func _populate_player_tooltip() -> void:
@@ -397,13 +396,13 @@ func _populate_player_tooltip() -> void:
 	_add_title(player_name, gold)
 
 	if not guild_name.is_empty():
-		_add_line("[%s]" % guild_name, Color(0.4, 0.7, 1))
+		_add_line("[%s]" % guild_name, UIStyles.TEXT_COLORS.info)
 
 	_add_spacer()
 
 	var level: int = _data.get("level", 1)
 	var class_label: String = _data.get("class", "Adventurer")
-	_add_line("Level %d %s" % [level, class_label], Color(0.7, 0.7, 0.7))
+	_add_line("Level %d %s" % [level, class_label], UIStyles.TEXT_COLORS.default)
 
 	# PvP status
 	if _data.get("pvp_enabled", false):
@@ -416,11 +415,11 @@ func _populate_quest_tooltip() -> void:
 	var quest_name: String = _data.get("name", "Unknown Quest")
 	var quest_type: String = _data.get("type", "Side")
 
-	var type_color: Color = Color(0.7, 0.7, 0.7)
+	var type_color: Color = UIStyles.TEXT_COLORS.default
 	match quest_type.to_lower():
 		"main": type_color = Color(1, 0.85, 0.4)
-		"side": type_color = Color(0.4, 0.7, 1)
-		"daily": type_color = Color(0.4, 0.9, 0.4)
+		"side": type_color = UIStyles.TEXT_COLORS.info
+		"daily": type_color = UIStyles.TEXT_COLORS.success
 
 	_add_title(quest_name, type_color)
 	_add_line("[%s Quest]" % quest_type, type_color)
@@ -429,7 +428,7 @@ func _populate_quest_tooltip() -> void:
 
 	var desc: String = _data.get("description", "")
 	if not desc.is_empty():
-		_add_line(desc, Color(0.7, 0.7, 0.7))
+		_add_line(desc, UIStyles.TEXT_COLORS.default)
 
 
 func _update_size() -> void:
