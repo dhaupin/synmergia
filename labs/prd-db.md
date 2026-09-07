@@ -29,6 +29,8 @@ and implementation tracking.
 | `LootService` | ⚠️ TODO | `loot_history` | P2 |
 | `ChatService` | ⚠️ TODO | `chat_log` (optional, for moderation) | P3 |
 | `CommunityGovernance` | ⚠️ TODO | `votes`, `proposals` | P2 |
+| `FollowService` | ⚠️ TODO | `player_follows` (runtime only, no persistence needed) | P3 |
+| `WaypointService` | ⚠️ TODO | `player_waypoints` | P2 |
 
 ---
 
@@ -191,6 +193,36 @@ Table: blocks
 - created_at: TIMESTAMP
 ```
 
+### 3.8 Waypoints
+
+```
+Table: player_waypoints
+- id: VARCHAR(64) (PK, format: wp_<timestamp>_<random>)
+- character_id: UUID (FK → characters)
+- name: VARCHAR(32)
+- position_x: FLOAT
+- position_y: FLOAT
+- position_z: FLOAT
+- zone_id: VARCHAR(64)
+- color: INT (0-7: red, orange, yellow, green, blue, purple, pink, white)
+- icon: INT (0-9: flag, star, chest, skull, house, cave, quest, player, compass, custom)
+- is_visible: BOOLEAN DEFAULT TRUE
+- is_locked: BOOLEAN DEFAULT FALSE
+- show_beacon: BOOLEAN DEFAULT TRUE
+- is_quest_waypoint: BOOLEAN DEFAULT FALSE
+- quest_id: VARCHAR(64) (nullable, FK → quests)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+
+Indexes:
+- UNIQUE (character_id, id)
+- INDEX (character_id) — for loading player waypoints
+- INDEX (quest_id) WHERE quest_id IS NOT NULL — for cleanup
+```
+
+Note: Quest waypoints are created/deleted dynamically and don't need persistence.
+Player-created waypoints persist and are loaded on character login.
+
 ---
 
 ## 4. TODO Items (by service)
@@ -225,6 +257,14 @@ Table: blocks
 - [ ] Save character stats on level up
 - [ ] Character deletion (soft delete)
 
+### WaypointService
+- [ ] `save_waypoints()` — Persist player waypoints to DB
+- [ ] `load_waypoints()` — Load on character login
+- [ ] `delete_waypoint()` — Remove from DB
+- [ ] `update_waypoint()` — Update in DB
+- [ ] Quest cleanup: Remove waypoints when quest is abandoned
+- [ ] Sync on character logout/disconnect
+
 ---
 
 ## 5. Future Considerations
@@ -251,3 +291,5 @@ Table: blocks
 - [ ] Player housing data (furniture, placement)?
 - [ ] Achievement progress persistence?
 - [ ] Cross-server character transfer support?
+- [ ] Position storage format: Vector3 or lat/lon?
+- [ ] Spherical world: Coordinate conversion implementation
