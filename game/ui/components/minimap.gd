@@ -21,6 +21,8 @@ var _minimap_size: Vector2 = Vector2(150, 150)
 var _show_players: bool = true
 var _show_npcs: bool = true
 var _show_quests: bool = true
+var _show_enemies: bool = true
+var _show_waypoints: bool = true
 
 ## Markers
 var _entity_markers: Dictionary = {}  # entity_id -> marker_control
@@ -244,13 +246,47 @@ func toggle_quests() -> void:
 	_show_quests = not _show_quests
 	_update_visible_markers()
 
+func toggle_enemies() -> void:
+	_show_enemies = not _show_enemies
+	_update_visible_markers()
+	GameLog.debug("Minimap: Enemies visibility = %s" % _show_enemies)
+
+func toggle_waypoints() -> void:
+	_show_waypoints = not _show_waypoints
+	_update_visible_markers()
+	GameLog.debug("Minimap: Waypoints visibility = %s" % _show_waypoints)
+
+func set_markers_visible(players: bool, npcs: bool, quests: bool, enemies: bool = true, waypoints: bool = true) -> void:
+	_show_players = players
+	_show_npcs = npcs
+	_show_quests = quests
+	_show_enemies = enemies
+	_show_waypoints = waypoints
+	_update_visible_markers()
+
+func get_visible_markers() -> Dictionary:
+	return {
+		"players": _show_players,
+		"npcs": _show_npcs,
+		"quests": _show_quests,
+		"enemies": _show_enemies,
+		"waypoints": _show_waypoints
+	}
+
 func _update_visible_markers() -> void:
 	for entity_id in _entity_markers:
 		var data: Dictionary = _entity_markers[entity_id]
 		var marker_type: int = data.get("type", 0)
 		var marker: Control = data.get("marker")
-
+		
+		# Default to visible, then check toggles
+		marker.visible = true
+		
 		match marker_type:
-			1: marker.visible = _show_players
-			2: marker.visible = _show_npcs
-			3: marker.visible = _show_quests
+			1: marker.visible = _show_players     # Players
+			2: marker.visible = _show_npcs       # NPCs
+			3: marker.visible = _show_quests    # Quests
+			4: marker.visible = _show_enemies   # Enemies
+			# Waypoint colors (10-17)
+			10, 11, 12, 13, 14, 15, 16, 17:
+				marker.visible = _show_waypoints

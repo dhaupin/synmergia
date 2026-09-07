@@ -44,6 +44,8 @@ var _vault_svc: Node
 var _entity_svc: Node
 var _notif: Node
 var _ach: Node
+var _follow_svc: Node
+var _waypoint_svc: Node
 
 
 func bind(hud: CanvasLayer) -> void:
@@ -108,6 +110,8 @@ func _connect_services() -> void:
 	_entity_svc = get_node_or_null("/root/EntityService")
 	_notif = get_node_or_null("/root/NotificationService")
 	_ach = get_node_or_null("/root/AchievementService")
+	_follow_svc = get_node_or_null("/root/FollowService")
+	_waypoint_svc = get_node_or_null("/root/WaypointService")
 
 	# Party events → PartyUI.
 	if _party and _party_svc:
