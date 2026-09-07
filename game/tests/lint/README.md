@@ -30,7 +30,7 @@ godot --headless --path . --script res://tests/lint/test_lint_autoload.gd
 | `test_lint_indentation.gd` | files using leading spaces (project policy is tabs), mixed tab/space files, trailing whitespace, suspicious indent jumps |
 | `test_lint_syntax.gd` | CRLF line endings, UTF-8 BOM, unbalanced brackets/parens, `class_name` before `extends`, 3+ consecutive blank lines |
 | `test_lint_charset.gd` | non-ASCII bytes (em-dash, smart quotes, NBSP, etc.); specific named offenders get a replacement suggestion |
-| `test_lint_general.gd` | orphan .uid files, missing .tscn resources, hardcoded absolute paths, `print()` in non-test code, mixed tabs/spaces on a line, 200+ col lines, `@tool` scripts |
+| `test_lint_general.gd` | orphan .uid files, missing .tscn resources, hardcoded absolute paths, `print()` in non-test code, mixed tabs/spaces on a line, 200+ col lines, `@tool` scripts, `TODO`/`FIXME`/`XXX`/`HACK`/`BUG` markers in comments, empty function bodies (stubs), 500+ line files, `assert()` in non-test code |
 
 Each test exits 0 on success and 1 on failure. Errors and warnings
 are printed to stdout in a uniform `<file>:<line>: <severity>: <message>`

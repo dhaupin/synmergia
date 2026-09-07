@@ -53,6 +53,10 @@ func _init() -> void:
 	_check_long_lines()
 	_check_tool_scripts()
 	_check_signal_handler_params()
+	_check_marker_comments()
+	_check_empty_function_bodies()
+	_check_long_files()
+	_check_assert_in_production()
 
 	_finish()
 
@@ -295,6 +299,236 @@ func _check_signal_handler_params() -> void:
 		_ok("no connect() call sites found")
 	else:
 		_ok(str(connection_sites) + " connect() call sites (info, no full signature check)")
+
+
+# Inventory of "incomplete work" markers in comments: TODO, FIXME,
+# XXX, HACK, BUG. These are not failures (intentional debt is OK)
+# but we want a baseline count and per-file breakdown so authors
+# can see where the unfinished work lives. A future session might
+# promote the count to a target (e.g. "no TODO in non-test code
+# ships in production").
+func _check_marker_comments() -> void:
+	var total := 0
+	var file_count := 0
+	# Map: marker keyword -> count
+	var by_kind := {
+		"TODO": 0,
+		"FIXME": 0,
+		"XXX": 0,
+		"HACK": 0,
+		"BUG": 0,
+	}
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		var text := Helpers.read_text(path)
+		var line_num := 0
+		var file_hits := 0
+		for raw in text.split("\n"):
+			line_num += 1
+			# Strip leading whitespace; keep the rest for marker
+			# detection. We require a word boundary so identifiers
+			# like MAX_SPEED_HACK_MULTIPLIER do not count.
+			var stripped := raw.strip_edges()
+			if stripped.is_empty() or not stripped.begins_with("#"):
+				continue
+			# Walk each marker. Each is at least 3 chars; HACK
+			# collides with HACK_MULTIPLIER etc. so use a word
+			# boundary check.
+			for kind in by_kind:
+				# Look for the marker as a whole word, possibly
+				# followed by ":", "(", ")", or end of comment.
+				# Avoid matching TODO inside a TODO list inside
+				# another TODO by capping at 1 per line per kind.
+				var idx := 0
+				while true:
+					var found := stripped.find(kind, idx)
+					if found < 0:
+						break
+					# Word boundary: char before must be non-alnum
+					# (or start of string), char after must be non-alnum
+					# or end-of-string. This stops HACK matching
+					# SPEEDHACK or HACK_MULTIPLIER.
+					var before := " "
+					if found > 0:
+						before = stripped[found - 1]
+					var after := ""
+					if found + kind.length() < stripped.length():
+						after = stripped[found + kind.length()]
+					var before_ok := not (before >= "a" and before <= "z") \
+									and not (before >= "A" and before <= "Z") \
+									and not (before >= "0" and before <= "9") \
+									and before != "_"
+					var after_ok := not (after >= "a" and after <= "z") \
+									and not (after >= "A" and after <= "Z") \
+									and not (after >= "0" and after <= "9") \
+									and after != "_"
+					if before_ok and after_ok:
+						by_kind[kind] = by_kind[kind] + 1
+						total += 1
+						file_hits += 1
+						Helpers.report_issue(path, line_num, "info",
+								kind + " marker in comment")
+						break
+					idx = found + kind.length()
+		if file_hits > 0:
+			file_count += 1
+	if total == 0:
+		_ok("no TODO/FIXME/XXX/HACK/BUG markers in .gd files")
+	else:
+		var breakdown := "TODO=" + str(by_kind["TODO"]) \
+				+ " FIXME=" + str(by_kind["FIXME"]) \
+				+ " XXX=" + str(by_kind["XXX"]) \
+				+ " HACK=" + str(by_kind["HACK"]) \
+				+ " BUG=" + str(by_kind["BUG"])
+		_ok(str(total) + " marker comments across " + str(file_count)
+				+ " files (" + breakdown + ")")
+
+
+# Detect empty function bodies: `func foo(): pass` on a single
+# line, or `func foo():\n    pass` (and `...` which is the
+# multi-line docstring-equivalent). These are usually stub
+# functions left in place to satisfy an interface or to silence
+# a linter before the real body is written. We report each
+# offender so the reviewer can confirm intent.
+func _check_empty_function_bodies() -> void:
+	var stubs: Array = []
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		var text := Helpers.read_text(path)
+		if text.is_empty():
+			continue
+		var lines := text.split("\n")
+		var line_num := 0
+		for idx in lines.size():
+			line_num = idx + 1
+			var raw: String = lines[idx]
+			var stripped := raw.strip_edges()
+			# Inline: `func foo(...): pass` or `func foo(...): ...`
+			if stripped.begins_with("func ") and stripped.find(":") > 0:
+				# Only flag if the function body is on the same
+				# line and consists of `pass` or `...` or
+				# another trivial placeholder.
+				var colon := stripped.rfind(":")
+				if colon < 0 or colon + 1 >= stripped.length():
+					continue
+				var tail := stripped.substr(colon + 1).strip_edges()
+				if tail == "pass" or tail == "..." or tail.is_empty():
+					# Empty body AFTER the colon, all on one line.
+					# Empty tail is the `def foo():` line followed
+					# by something else; we skip those because
+					# the body lives on the next line.
+					if not tail.is_empty():
+						stubs.append(path)
+						Helpers.report_issue(path, line_num, "info",
+								"empty function body (stub): " + stripped.substr(0, colon))
+						break  # one per file
+				continue
+			# Multi-line: `func foo(...):` followed by a single
+			# `pass` or `...` line. Track indent so we only
+			# flag the directly-nested body, not a function
+			# inside a function.
+			if stripped.begins_with("func ") and stripped.ends_with(":"):
+				# Find the function's indent (number of leading tabs).
+				var func_indent := 0
+				for c in raw:
+					if c == "\t":
+						func_indent += 1
+					else:
+						break
+				# Look at the next non-blank, non-comment line.
+				var j := idx + 1
+				while j < lines.size():
+					var next_raw: String = lines[j]
+					var next_stripped := next_raw.strip_edges()
+					if next_stripped.is_empty() or next_stripped.begins_with("#"):
+						j += 1
+						continue
+					# Compute its indent.
+					var next_indent := 0
+					for c in next_raw:
+						if c == "\t":
+							next_indent += 1
+						else:
+							break
+					if next_indent <= func_indent:
+						# Body has ended (we hit a sibling or
+						# dedent). Not a stub.
+						break
+					# The line is the body. Flag if it's pass or ...
+					if next_stripped == "pass" or next_stripped == "...":
+						stubs.append(path)
+						Helpers.report_issue(path, idx + 1, "info",
+								"empty function body (stub): " + stripped)
+						break
+					break
+	if stubs.is_empty():
+		_ok("no stub function bodies in .gd files")
+	else:
+		_ok(str(stubs.size()) + " .gd files have stub function bodies (info)")
+
+
+# Files longer than 500 lines are a smell. They are not blocked
+# (sometimes a long file is the right call) but we list them so
+# reviewers can decide whether to split.
+func _check_long_files() -> void:
+	var long_files: Array = []
+	var max_seen := 0
+	var max_path := ""
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		var text := Helpers.read_text(path)
+		var n := text.split("\n").size()
+		if n > max_seen:
+			max_seen = n
+			max_path = path
+		if n > 500:
+			long_files.append({"path": path, "lines": n})
+	if long_files.is_empty():
+		_ok("no .gd files exceed 500 lines (max: " + str(max_seen)
+				+ " in " + max_path + ")")
+	else:
+		long_files.sort_custom(func(a, b): return a["lines"] > b["lines"])
+		var summary := []
+		for entry in long_files.slice(0, 5):
+			summary.append(str(entry["lines"]) + " in " + entry["path"])
+		_ok(str(long_files.size()) + " .gd files exceed 500 lines (info; top: "
+				+ ", ".join(summary) + ")")
+
+
+# `assert(...)` in production code is a smell. In Godot 4, assert
+# is stripped in release builds (it becomes a no-op), so it should
+# only be used in tests and during development. A `push_error` or
+# explicit `if ... return` is the production-safe equivalent.
+# We skip tests/ and linters/ for the same reason as the print
+# check.
+func _check_assert_in_production() -> void:
+	var hits := 0
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		if path.begins_with("res://tests/"):
+			continue
+		var text := Helpers.read_text(path)
+		var line_num := 0
+		for raw in text.split("\n"):
+			line_num += 1
+			var stripped := raw.strip_edges()
+			if stripped.begins_with("#"):
+				continue
+			# Match `assert(` but not `asserts(` (rare).
+			if stripped.find("assert(") >= 0 \
+					and stripped.find("asserts(") < 0:
+				hits += 1
+				Helpers.report_issue(path, line_num, "info",
+						"assert() in non-test code (stripped in release builds)")
+				break  # one per file
+	if hits == 0:
+		_ok("no assert() in non-test .gd files")
+	else:
+		_ok(str(hits) + " .gd files use assert() in non-test code (info)")
 
 
 func _finish() -> void:
