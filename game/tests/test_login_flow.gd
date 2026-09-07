@@ -93,4 +93,3 @@ func _assert(name: String, cond: bool) -> void:
 	else:
 		print("  [FAIL] %s" % name)
 		_fail += 1
-

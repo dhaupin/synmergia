@@ -2,7 +2,6 @@
 # FriendsService - registered as autoload
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const CooldownService = preload("res://core/services/cooldown_service.gd")
 
 ## ============================================================================
 ## DATA STRUCTURES

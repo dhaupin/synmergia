@@ -2,10 +2,8 @@
 ## Attached to entities that have health
 extends Node
 class_name HealthComponent
-const Entity = preload("res://core/entities/entity.gd")
 const Item = preload("res://core/schemas/item.gd")
 const Corpse = preload("res://scenes/entities/corpse.gd")
-const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 
 signal health_changed(current: int, maximum: int, delta: int)

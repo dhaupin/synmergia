@@ -2,7 +2,6 @@
 ## Created when an entity dies, can be looted by other players
 extends Node3D
 class_name Corpse
-const Entity = preload("res://core/entities/entity.gd")
 
 
 signal corpse_looted(corpse: Corpse, looter: Entity)

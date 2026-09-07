@@ -3,7 +3,6 @@
 extends Node
 class_name AgentConnector
 const AgentAction = preload("res://core/schemas/agent_action.gd")
-const Entity = preload("res://core/entities/entity.gd")
 
 
 enum ConnectorStatus {

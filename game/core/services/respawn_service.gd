@@ -4,7 +4,6 @@ extends Node
 
 
 const Ankh = preload("res://core/schemas/ankh.gd")
-const Entity = preload("res://core/entities/entity.gd")
 signal respawn_initiated(player, mode: RespawnMode, data: Dictionary)
 signal respawn_completed(player, respawn_point: Vector3)
 signal respawn_canceled(player, reason: String)

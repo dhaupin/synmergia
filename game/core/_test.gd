@@ -1,4 +1,4 @@
 extends Node
 class_name TestClass
 func test():
-    print("Test")
+	print("Test")

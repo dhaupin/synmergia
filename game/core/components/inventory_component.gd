@@ -2,7 +2,6 @@
 ## Attached to entities that can carry items
 extends Node
 class_name InventoryComponent
-const Entity = preload("res://core/entities/entity.gd")
 const Item = preload("res://core/schemas/item.gd")
 
 

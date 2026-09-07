@@ -6,14 +6,12 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 const AntiCheatService = preload("res://core/services/anticheat_service.gd")
 const Skill = preload("res://core/combat/skill.gd")
 const Item = preload("res://core/schemas/item.gd")
-const Entity = preload("res://core/entities/entity.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 
 
 const SkillSchema := preload("res://core/schemas/skill.gd")
 const CharacterData := preload("res://core/schemas/character_data.gd")
-const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 signal attack_started()
 signal attack_finished()

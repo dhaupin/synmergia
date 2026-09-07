@@ -2,7 +2,6 @@
 ## Handles guild creation, roster, ranks, permissions, alliances, and guild vs guild
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const CooldownService = preload("res://core/services/cooldown_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # _notify_player uses the typed-Kind pipeline; remove_member uses
@@ -51,7 +50,7 @@ var _rank_permissions: Dictionary = {
 																Permission.CREATE_ALLIANCE | Permission.DISBAND_ALLIANCE |
 																Permission.MANAGE_GVG | Permission.WITHDRAW_GOLD | Permission.MANAGE_NOTICES,
 				GuildRank.OFFICER: Permission.INVITE | Permission.KICK | Permission.PROMOTE | 
-													 Permission.DEMOTE | Permission.MANAGE_NOTICES,
+														Permission.DEMOTE | Permission.MANAGE_NOTICES,
 				GuildRank.MEMBER: Permission.INVITE,
 				GuildRank.RECRUIT: 0
 }

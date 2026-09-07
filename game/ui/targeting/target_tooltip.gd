@@ -3,7 +3,6 @@
 extends Control
 class_name TargetTooltip
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const Entity = preload("res://core/entities/entity.gd")
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
@@ -552,4 +551,3 @@ func open_sticky() -> void:
 	_actions_container = HBoxContainer.new()
 	_actions_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vbox.add_child(_actions_container)
-

@@ -3,7 +3,6 @@
 extends Entity
 class_name SkillAcademyNPC
 
-const Entity = preload("res://core/entities/entity.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const Faction = preload("res://core/schemas/faction.gd")
 

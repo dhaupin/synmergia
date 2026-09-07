@@ -6,8 +6,8 @@
 ##   schema.init_inventory(player_data)
 ##   var slots = schema.get_total_slots()
 
-class_name ContainerSchema
 extends Resource
+class_name ContainerSchema
 
 ## Container types
 enum ContainerType {

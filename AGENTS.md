@@ -5,10 +5,31 @@
 > and patterns that don't change frequently.
 >
 > **What this file is NOT:** An operational log, debugging status,
-> or session history.
+> or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Updated 2026-09-05:** Restructured to be a stable reference.
-> Removed session logs, parse error status, and other rotting content.
+> **Last updated 2026-09-07:** Entity autoload removed; collision rules refined; allowlist introduced
+> with full gotcha + cycle + recovery sections. Service and
+> notification docs corrected. See `labs/TASKS.md` for the
+> change log.
+
+## READ FIRST
+
+Three things that have caused repeated agent damage in this
+repo. If you only read one section of this file, read these:
+
+1. **[Autoloads and class_name](#autoloads-and-class_name)** —
+   the autoload identifier and `class_name` register different
+   things. Putting them on the same script with the same name
+   silently breaks code. Read this BEFORE adding any new
+   autoload or class.
+2. **[Tabs, not spaces](#indentation)** — once a `.gd` file uses
+   tabs, every subsequent line must use tabs. Mixed indentation
+   is a parse error in 4.7.2.
+3. **[No UTF-8 in source](#code-standards)** — emoji, smart
+   quotes, and non-ASCII characters cause Godot import failures.
+   The existing codebase has 142 lines with emoji (mostly in
+   `discord_webhook.gd` and `waypoint_service.gd`); don't
+   add more.
 
 ---
 
@@ -26,6 +47,9 @@ extract to their own project.
 - **Architecture:** Client + Authoritative Server + Multi-iso orchestrator + State tree
 - **Game root:** `game/` (open this in the Godot editor)
 - **Frame root:** `labs/` (experimental, root-level, NOT in Godot project)
+- **Persistence layer:** `game/adapters/` (Postgres, Redis, memory)
+  — defined in `labs/prd-db.md`. Adapter layer is the official
+  interface for all service-level storage.
 
 ---
 
@@ -45,9 +69,9 @@ extract to their own project.
 
 ### Code Patterns
 - **Inner classes** for related utilities:
-  - `EventBus.SpawnMetadata`
+  - `SpawnMetadata`
   - `NotificationService.AlertScope`
-  - `NotificationService.NotificationType`
+  - `NotifKind`
   - `CommunityGovernance.Vote`
   - `CommunityGovernance.ModeratorProgression`
 - **Signal naming:** verb past tense (`entity_spawned`, `player_left`)
@@ -76,35 +100,356 @@ extract to their own project.
 
 ---
 
+---
+
+## Autoloads and class_name
+
+Autoloads are singleton services available globally. `class_name` registers a
+script's type as a global identifier. **They look identical when you write
+code but behave very differently.** Misuse causes silent runtime errors
+(null instance, wrong method dispatch) that cascade through `_ready` and
+look like parse errors elsewhere.
+
+**The two rules:**
+
+1. **Autoload name and `class_name` MUST NOT be the same string.** The
+   autoload identifier shadows the class_name; you lose the ability to
+   call `X.new()` or `extends X` reliably. One of them wins, the parser
+   does not warn, and the loser silently does the wrong thing.
+
+2. **Autoloads cannot be instantiated.** `X.new()` on an autoload
+   identifier fails at runtime (autoloads are Nodes, not Scripts).
+   To make a fresh instance, `load("res://path.gd").new()`.
+
+### Naming
+
+| Aspect | Rule | Example |
+|--------|------|---------|
+| Filename | `snake_case.gd` | `notification_service.gd` |
+| Autoload name | `PascalCase` | `NotificationService` |
+| `class_name` | Pick one of: omit it OR rename it differently from the autoload | `class_name NotifDispatcher` is OK; `class_name NotificationService` is NOT if `NotificationService` is also an autoload |
+
+### When to add `class_name`
+
+Add `class_name` when you need to:
+
+- **Instantiate**: `var x := MyClass.new()` (the class is not an autoload)
+- **Type-annotate a parameter or variable**: `func process(e: MyClass)`
+- **Type-check at runtime**: `if node is MyClass`
+
+Do **not** add `class_name` when the script is an autoload, unless you have
+a concrete reason (see below). Autoloads are already globally accessible by
+their autoload name; adding `class_name X` where X is also the autoload name
+creates a shadow.
+
+### The one case where `class_name` on an autoload is legitimate
+
+If a file is an autoload AND is also extended by other classes (e.g.
+`extends Entity` where `Entity` is an autoload), then `class_name Entity`
+on the base script is needed so the parser can resolve the parent type
+in the `extends` statement. But this is a **smell**: the script is doing
+two things (base class + autoload singleton). If you find yourself here,
+consider:
+
+- **Option A**: Split. Make the base class its own file (no autoload),
+  have the autoload be a small wrapper that `extends BaseClass` and adds
+  the singleton state. Other code does `extends BaseClass` and
+  `BaseClass.new()`. No shadow.
+- **Option B**: Keep `class_name`, but use the autoload ONLY for the
+  singleton globals (logger, registry, dispatcher) and never call
+  `Entity.new()`. To spawn new entities, use a dedicated subclass
+  (`class_name EnemyEntity extends Entity` in a separate file) or
+  `load("res://core/entities/entity.gd").new()`.
+
+The current code uses **Option A** for `Entity`: the base class
+`res://core/entities/entity.gd` is **not** an autoload. The autoload
+was removed from `project.godot` and the script now exposes only
+`class_name Entity`. Spawning is done via `Entity.new()` (or
+`load("res://core/entities/entity.gd").new()` from contexts that
+should not depend on the global class registry). Subclasses
+(`extends Entity`) live in `entities/enemy.gd`,
+`core/entities/npc_entity.gd`, and `core/entities/skill_academy_npc.gd`.
+
+The old `const Entity = preload("res://core/entities/entity.gd")`
+workarounds in 27 callers were removed: they are no longer needed
+since `class_name Entity` resolves cleanly without an autoload shadow.
+The regression test `tests/test_entity_autoload.gd` covers the fix.
+
+**Allowlist of intentional `class_name` + autoload collisions.** A
+small number of autoloads keep both, and they are tracked in
+`tests/test_autoload_audit.gd`:
+
+- `QoSService` -- the script exposes static shim methods (e.g.
+  `QoSService.rate_limit(...)`) that internally resolve the autoload
+  at runtime. The static methods are convenience wrappers; the
+  actual state lives in the autoload. The class_name also lets
+  callers type-annotate `func (svc: QoSService)`. Do not add more
+  entries to this allowlist without updating the audit test and
+  this section.
+
+### Accessing autoloads
+
+```gdscript
+# Correct: use the autoload name directly (it's already an instance)
+NotificationService.notify(...)
+QoSService.rate_limit(player_id, "combat")
+
+# Correct: type-check via the autoload name (no class_name needed)
+if node.get_parent() == GameManager:
+    pass
+
+# Correct: type-annotate a parameter using the autoload name
+func process(svc: NotificationService) -> void:
+    pass
+
+# Wrong: trying to create a new instance of an autoload
+var ns := NotificationService.new()  # FAILS at runtime
+
+# Correct: instantiate a non-autoload class
+var math := CombatMath.new()         # class_name CombatMath, no autoload
+```
+
+### Extending an autoload's script
+
+```gdscript
+# If the autoload file has class_name, this works:
+extends Entity  # requires class_name Entity in entity.gd
+class_name EnemyEntity
+
+# If the autoload file does NOT have class_name, you must preload:
+const EntityScript = preload("res://core/entities/entity.gd")
+extends EntityScript
+class_name EnemyEntity
+```
+
+Preload is more verbose but removes the shadowing risk. Prefer it when
+the base script is an autoload.
+
+### Autoload order
+
+The autoload list in `project.godot` is the load and `_ready` order. Top
+to bottom. If autoload A's `_ready` calls a method on autoload B, then
+A must be listed **after** B. Get this wrong and you get:
+
+```
+Attempt to call function 'X' on a null instance
+```
+
+This error is misleading. It points to the *caller* (A) but the *cause*
+is the *callee* (B) not being ready. Walking the call stack backward
+often reveals the real problem.
+
+To check autoload order:
+
+```bash
+awk '/^\[autoload\]/{flag=1; next} /^\[/{flag=0} flag' game/project.godot \
+  | grep -oP '^\w+(?==)'
+```
+
+To detect forward references (autoload using another that comes later
+in the list), scan each autoload's source for bare references to other
+autoload names. A reference like `GameManager.foo` in `QoSService.gd`
+is a forward reference if `GameManager` is listed after `QoSService`
+in the autoload list.
+
+### Cycles
+
+Three flavors of cycle, all silent:
+
+1. **`_ready` cycle**: A._ready() calls B.method(), B._ready() calls
+   A.method(). Both fail with null instance. No "circular dependency"
+   diagnostic. Fix: defer the cross-service calls with
+   `call_deferred()` or `await get_tree().process_frame`.
+
+2. **Preload cycle**: A preloads B, B preloads A. Parse error in both
+   files. The error message names both, but the root cause is the
+   cycle, not the parse error. Fix: extract a third file C that both A
+   and B depend on, or use `load()` (runtime) instead of `preload()`
+   (parse-time) for one of the references.
+
+3. **Autoload name cycle**: A's autoload entry references B (via direct
+   call in `_ready`), B's references A. Same null instance error as
+   case 1. Fix: same as case 1.
+
+### When you cannot `extends` an autoload
+
+You cannot use an autoload as the parent class in `extends`. The autoload
+is a singleton instance, not a script type. If you need to extend the
+script that backs an autoload, you must give that script a `class_name`
+(no name collision with the autoload) or preload it.
+
+### Self-recovery playbook (when in a loop)
+
+If the project won't load and you're seeing a cascade of errors:
+
+1. **Stop and identify the FIRST parse error.** Godot reports many
+   files failed; usually one is the root cause and the rest are
+   downstream. Read the error list top to bottom.
+
+2. **For each candidate root file, check**:
+   - Does the file have `class_name X` where X is also an autoload?
+     Remove the `class_name` or rename the autoload.
+   - Is the file trying `X.new()` where X is an autoload? Use
+     `load("res://path.gd").new()` or refactor to a subclass.
+   - Does the file extend an autoload's script? Add `class_name` to
+     the parent (no collision) or use `preload(...).new()`.
+   - Does the file reference an autoload that comes LATER in
+     `project.godot`? Move the reference to `call_deferred` or move
+     the autoload up in the list.
+   - Is the file using a reserved keyword as a variable name
+     (`class_name`, `signal`, `func`)? Rename it.
+   - Mixed indentation (tabs vs spaces)? Run `cat -A file.gd` to see
+     the actual whitespace; pick one and stick to it.
+   - `Resource.get("key", default)` parse error? In 4.7.2, default
+     args to `Resource.get` were removed. Use `if resource.has(key)`
+     guard or `resource.get(key, null)`.
+   - Type inference on ternary (`var x := a if cond else b`)? Add
+     explicit type: `var x: T = a if cond else b`.
+
+3. **If the file itself is unrecoverable**, do NOT delete the
+   business logic as a first resort. Instead:
+   - `git stash` to save the working file
+   - Reduce the file to: `## Header\nextends Node\nconst Deps = preload(...)`
+   - Verify the rest of the project loads
+   - Restore the file piece by piece (or use `git checkout HEAD~1 -- file`)
+     to find which lines reintroduce the error
+
+4. **Last resort: gut the file.** Only acceptable if (a) the file is
+   not on the critical path for the boot sequence, (b) you've checked
+   that no other file preloads it, and (c) you record the deletion
+   in the commit message with `BREAKING:` so a future agent can
+   restore it from history. The pattern:
+   ```
+   ## OldName - what it did
+   ## One-line summary of what was lost
+   extends Node
+   const Dep = preload("res://path.gd")
+   ```
+   This is a 3-line stub that does not cascade.
+
+5. **If a stub was created, file a follow-up** to restore the
+   implementation. The git history (`git log --all -- path/to/file.gd`)
+   has every prior version.
+
+### Diagnostic commands
+
+```bash
+# List autoloads in order
+awk '/^\[autoload\]/{flag=1; next} /^\[/{flag=0} flag' game/project.godot \
+  | grep -oP '^\w+(?==)'
+
+# Find class_name collisions with autoloads
+awk '/^\[autoload\]/{flag=1; next} /^\[/{flag=0} flag' game/project.godot \
+  | grep -oP '^\w+(?==)' | sort -u \
+  | while read a; do
+      grep -lP "^\s*class_name\s+${a}\s*$" game/ -r --include="*.gd"
+    done
+
+# Find .new() calls on autoload names
+# (autoloads are PascalCase; bare class_names are also PascalCase; this
+#  returns all .new() calls; manually filter for autoloads)
+grep -rEn "\b[A-Z]\w+\.new\(\)" game/ --include="*.gd"
+
+# Find tabs vs spaces in a file
+cat -A game/path/to/file.gd | head -5  # ^I = tab, $ = end of line
+```
+
 ## Architecture
 
 ### Core Services (Autoloaded)
 
+A curated subset. For the full autoload list (50+ entries), see
+`game/project.godot` `[autoload]` section. This table groups by
+purpose; if a service is missing here, it doesn't mean it doesn't
+exist.
+
 | Service | Purpose |
 |---------|---------|
+| **Core (autoload) base class** | |
+| `Entity` | Base class for all entities. Autoload + `class_name` (see Autoloads section). Used in `extends Entity`; do not call `Entity.new()`. |
+| **Storage / persistence** | |
+| `AdapterRegistry` | Pluggable storage adapter registry. See `labs/prd-db.md` for the spec. |
+| `BackendFactory` | Builds persistence + cache adapters from config. Used during boot. |
+| **Event & notification** | |
+| `EventHub` | Central event hub with unified entity signals (was named `EventBus` historically). |
+| `NotificationService` | Player notifications and alerts. Use `notify()` not `send_to_player()`. |
+| **Game state** | |
 | `GameManager` | Overall game state, player management |
+| `GameLog` | Centralized logger. Use `GameLog.info()` / `GameLog.warn()` / `GameLog.error()`. |
+| `GameConfig` | Game-wide configuration access |
+| `PlayerConfig` | Per-player config (loaded from disk) |
+| **Entities & spawning** | |
 | `EntityService` | Track all entities (players, enemies, NPCs) |
 | `SpawnService` | Enemy/NPC spawning with metadata |
-| `EventBus` | Central event hub with unified entity signals |
-| `NotificationService` | Player notifications and alerts |
-| `TargetingManager` | Unified targeting system |
 | `ZoneManager` | Zone transitions and state |
-| `CombatMath` | Damage/effect calculations |
+| **Networking** | |
+| `NetworkManager` | Authoritative server transport, peer management |
+| `PlayerManager` | Connected player state, peer ↔ player_id mapping |
+| `InputManager` | Client-side input handling |
+| `InteractionLayer` | Range-based interaction resolver |
+| **Combat & targeting** | |
+| `TargetingManager` | Unified targeting system |
+| `CombatSystem` | Combat loop, ability resolution |
+| `CombatMath` | Damage/effect calculations (NOT an autoload; a static utility class) |
+| `AuraComponent` | (component) Buffs/debuffs |
+| `AggroComponent` | (component) Threat/aggro management |
+| **Player systems** | |
+| `InventoryService` | Player inventory management |
 | `TradeService` | Item trading |
 | `PartyService` | Party/raid management |
 | `GuildService` | Guild management |
 | `LootService` | Loot distribution |
-| `ChatService` | Chat channels with range-based delivery |
-| `InventoryService` | Player inventory management |
 | `RespawnService` | Player respawn logic |
+| `DeathFeatures` | Death screen, corpse, recovery options |
 | `FactionManager` | Faction relationships and PvP modes |
+| **Account & login** | |
+| `AccountService` | Account creation, password reset |
+| `LoginService` | Login + character selection |
+| `FriendsService` | Friends list, requests, block/ignore |
+| `SameAccountTransferService` | Cross-character transfer within one account |
+| **World content** | |
+| `DataService` | Static data loader (`.tres` files) |
+| `WorldService` | World state, instances, save/load |
+| `ShardManager` | Multi-shard routing |
+| `ServerManager` | Per-server lifecycle |
+| `DialogService` | NPC dialog trees |
+| `QuestService` | Quest state and progress |
+| `AchievementService` | Achievement tracking and unlocks |
+| `TitleService` | Player titles, prefix/suffix display |
+| `WaypointService` | Waypoint discovery, fast travel |
+| `FollowService` | Player /party follow mode |
+| `BlacksmithService` | Item crafting/upgrading |
+| `SkillAcademyService` | Skill learning, training |
+| `StarterKitService` | New character starting equipment |
+| `VaultService` | Account-wide shared storage |
+| `RespawnUIManager` | UI for respawn flow |
+| **Moderation & safety** | |
 | `AutoResponseService` | Admin alerts and moderation |
 | `SecurityService` | Anti-cheat and rate limiting |
-| `FriendsService` | Friends list, requests, block/ignore |
-| `QoSService` | Latency and rate limiting |
+| `AppFirewall` | Tool-call firewall, depth limits, recursion guards |
+| `SecurityMonitor` | Security event aggregation |
 | `CommunityGovernance` | Voting, moderator progression |
-| `BlacksmithService` | Item crafting/upgrading |
-| `StarterKitService` | New character starting equipment |
+| `PermissionManager` | RBAC for admin commands |
+| `PlayerReporter` | Player report handling |
+| `AdminCommands` | Admin command dispatcher |
+| **Infrastructure** | |
+| `QoSService` | Latency and rate limiting (also has `class_name`; no `.new()`) |
+| `IDRegistry` | Stable ID generation for content |
+| `PlayerLockService` | Per-player mutex to prevent race conditions |
+| `CooldownService` | Cooldown tracking |
+| `SlotService` | Data-driven item slots, no legacy fallbacks |
+| **System** | |
+| `RegisterTypes` | Type registry initialization (autoload before all services) |
+| `DebugOverlay` | Debug HUD (autoload; F-key toggled) |
+| `ScreenshotService` | Screenshot capture and storage |
+| `WebhookManager` | Outbound webhook dispatch |
+| `AntiCheatService` | Server-side anti-cheat detection |
+
+> **Naming caveat:** `EventBus` may appear in comments or older
+> code, but the autoload is `EventHub`. If you see `EventBus.X`,
+> check whether it's a pre-rename reference (replace with
+> `EventHub.X`) or the `class_name SpawnMetadata` (which is a
+> bare global defined in `game/core/events/spawn_metadata.gd`).
 
 ### Components (Attached to Entities)
 
@@ -135,13 +480,13 @@ extract to their own project.
 
 ## Event Patterns
 
-**Unified entity events carry `EventBus.SpawnMetadata`:**
+**Unified entity events carry `SpawnMetadata`:**
 ```gdscript
 # Signal signature:
-entity_spawned.emit(entity: Entity, metadata: EventBus.SpawnMetadata)
+entity_spawned.emit(entity: Entity, metadata: SpawnMetadata)
 
 # Handler must match:
-func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> void:
+func _on_entity_spawned(entity: Entity, metadata: SpawnMetadata) -> void:
     pass
 ```
 
@@ -153,22 +498,22 @@ func _on_entity_spawned(entity: Entity, metadata: EventBus.SpawnMetadata) -> voi
 
 ### Creating Spawn Metadata
 ```gdscript
-var metadata := EventBus.SpawnMetadata.world_boss("Dragon", "zone_1", position, 50)
+var metadata := SpawnMetadata.world_boss("Dragon", "zone_1", position, 50)
 ```
 
 ### Accessing Enums
 ```gdscript
 # SpawnMetadata types
-var type := EventBus.SpawnMetadata.SpawnType.BOSS
-var priority := EventBus.SpawnMetadata.NotificationPriority.CRITICAL
+var type := SpawnMetadata.SpawnType.BOSS
+var priority := SpawnMetadata.NotificationPriority.CRITICAL
 
 # Entity types
 if target.entity_type == Entity.EntityType.PLAYER:
     pass
 
 # Notification types
-NotificationService.NotificationType.WARNING
-NotificationService.NotificationType.ALERT
+NotifKind.WARNING
+NotifKind.ALERT
 ```
 
 ### Sending Notifications
@@ -239,24 +584,42 @@ var nearby := EntityService.get_entities_in_radius(
 ```
 .
 ├── game/                          # the Godot 4.7.2 project
+│   ├── adapters/                  # Storage adapter layer (Postgres, Redis, memory)
+│   │   ├── persistence/           # PersistenceStore interface + impls
+│   │   ├── cache/                 # CacheStore interface + impls
+│   │   ├── memory_layer/          # In-memory state store
+│   │   ├── registry.gd            # AdapterRegistry autoload
+│   │   ├── backend_factory.gd     # BackendFactory autoload
+│   │   └── README.md              # Adapter layer spec summary
 │   ├── core/
-│   │   ├── autoload/              # Global singletons
-│   │   ├── components/            # Entity components
-│   │   ├── community/             # Community governance
-│   │   ├── entities/              # Base entity classes
-│   │   ├── schemas/               # Data schemas
+│   │   ├── admin/                 # Admin shell, permission, reports
+│   │   ├── ai/                    # NPC AI (decision trees, behaviors)
+│   │   ├── autoload/              # Global singletons (~20)
+│   │   ├── combat/                # Combat system, ability resolution
+│   │   ├── community/             # Voting, moderator progression
+│   │   ├── components/            # Entity components (health, combat, etc.)
+│   │   ├── entities/              # Base entity classes (Entity, NPCEntity, ...)
+│   │   ├── events/                # Event hubs + metadata types
+│   │   ├── input/                 # Interaction layer, input maps
+│   │   ├── notifications/         # NotificationService + NotifKind enum
+│   │   ├── schemas/               # Data schemas (Resource subclasses)
 │   │   ├── services/              # Game services (30+)
 │   │   ├── targeting/             # Targeting system
-│   │   └── ui/                   # Core UI
-│   ├── entities/                  # Entity types
+│   │   ├── ui/                    # Core UI base classes
+│   │   └── utils/                 # Generic utilities (id_registry, app_firewall, ...)
+│   ├── entities/                  # Concrete entity types (enemy, character, ...)
 │   ├── scenes/                    # .tscn scenes (world, NPCs)
-│   ├── connectors/                # AI agent connectors
-│   ├── data/                      # .tres resources
-│   ├── ui/                        # User interface
-│   └── tests/                     # Smoke tests
+│   ├── connectors/                # AI agent connectors (discord, webhook, ...)
+│   ├── data/                      # .tres resources (static data)
+│   ├── ui/                        # User interface (panels, dialogs, HUD)
+│   └── tests/
+│       ├── adapters/              # Adapter layer tests (unit + integration)
+│       └── *.gd                   # Smoke tests (one per major system)
 │
 ├── labs/                          # Frame + design docs
 │   ├── prd.md                     # Product requirements
+│   ├── prd-db.md                  # Storage adapter spec (authoritative)
+│   ├── TASKS.md                   # Session log + open tasks
 │   ├── world-building*.md         # World/architecture docs
 │   └── multi-iso/                 # Frame primitives
 │       ├── math/                  # NSC-9, icosahedral
@@ -266,11 +629,15 @@ var nearby := EntityService.get_entities_in_radius(
 │
 ├── srv/                           # Deployment configs (docker, certs)
 ├── ROADMAP.md                     # Implementation tracker
+├── AGENTS.md                      # This file
 └── README.md                      # Project overview
 ```
 
 The Godot project root is `game/`. The `labs/` directory is outside
 the project so it doesn't taint the stable build with experimental work.
+
+`game/adapters/` is the **only** directory that services should use
+for persistence. See `labs/prd-db.md` for the full spec.
 
 ---
 
@@ -293,7 +660,7 @@ Three admin-only classes hidden from normal character selection:
 - `gm_akkan`, `gm_human`, `gm_synthetic`
 - All have `role = 0` (Role.GM)
 
-GM visibility: `[GM]` prefix in chat, gold name color, `⭐ GAME MASTER` badge in tooltip.
+GM visibility: `[GM]` prefix in chat, gold name color, "GAME MASTER" badge in tooltip (no emoji; see the no-UTF-8 rule).
 
 ---
 
@@ -304,10 +671,18 @@ extract to the multi-iso frame. Different rules apply:
 
 | Rule | Game (`game/`) | Frame (`labs/`) |
 |------|-----------------|-----------------|
-| Autoload | ✅ Yes | ❌ No |
-| `class_name` | ✅ Yes | ❌ No |
-| GameManager dep | ✅ Yes | ❌ No |
-| Tests | Smoke tests | Co-located |
+| Autoload | Yes (mind the rules) | No |
+| `class_name` | Only when needed (see below) | No |
+| GameManager dep | Allowed (singleton access) | No |
+| Adapter layer | Yes (Postgres, Redis, memory) | No (pure functions) |
+| Tests | Co-located in `game/tests/adapters/`, smoke tests in `game/tests/` | Co-located (`foo.gd` + `test_foo.gd`) |
+
+> **`class_name` in `game/`:** add it ONLY when you need
+> `X.new()`, type-annotation, or `is X` checks. Do not add it
+> to autoloads (the autoload name is already a global
+> identifier). Do not add it to scripts that are only ever
+> used by `preload`. See [Autoloads and class_name](#autoloads-and-class_name)
+> for the full rules.
 
 ### Frame Primitive Rules
 1. Each primitive is its own `.gd` file
@@ -453,98 +828,165 @@ docker run --rm -e START_MODE=test synmergia
 > **Note:** `--script` mode does not pre-load autoloads. Resolve them via
 > `root.get_node_or_null("NotificationService")` rather than the bare identifier.
 
+### Test structure
+
+Tests live in two places:
+
+- **`game/tests/`** — smoke tests for one system each
+  (login flow, notification dispatch, etc.). These run the full
+  game boot and exercise real autoloads.
+- **`game/tests/adapters/`** — unit and integration tests for
+  the storage adapter layer. Do not require the full game boot;
+  instantiate `AdapterRegistry` and backends directly.
+
+A typical test file uses the `SceneTree` pattern:
+
+```gdscript
+extends SceneTree
+
+func _init() -> void:
+    var ok := true
+    if not _test_basic_crud():
+        push_error("FAIL: basic_crud")
+        ok = false
+    quit(0 if ok else 1)
+
+func _test_basic_crud() -> bool:
+    var store := MemoryPersistenceStore.new()
+    # ... actual test ...
+    return true
+```
+
+Run with `godot --headless --path . --script res://tests/test_foo.gd`.
+Exit code 0 = pass, 1 = fail.
+
+For adapter tests, use the same pattern but reference backends
+through the registry:
+
+```gdscript
+extends SceneTree
+
+func _init() -> void:
+    AdapterRegistry.register("default", MemoryPersistenceStore.new())
+    var store: PersistenceStore = AdapterRegistry.get("default")
+    # ... exercise store ...
+    quit(0)
+```
+
+When adding a new adapter backend (e.g., a new database), add a
+test in `game/tests/adapters/` that:
+1. Constructs the backend
+2. Runs CRUD against `MemoryPersistenceStore` (the reference)
+3. Verifies the new backend returns the same results
+
+Do not test against the live database in unit tests; spin up a
+test container or use the memory backend as the oracle.
+
+### Adapter layer overview
+
+Services should NEVER touch Postgres, Redis, or any storage
+backend directly. They go through `AdapterRegistry`:
+
+```gdscript
+# In a service:
+var store: PersistenceStore = AdapterRegistry.get("accounts")
+await store.put(player_id, account_data)
+var data = await store.get(player_id)
+```
+
+The registry returns a `PersistenceStore` (memory, Postgres, or
+any other impl) based on boot configuration. See
+`labs/prd-db.md` §3-5 for the full spec.
+
 ---
 
 ## Key Godot Rules
 
-1. **Entity autoload is REQUIRED:** Entity must be in `[autoload]` section BEFORE RegisterTypes
-2. **Use `load()` for runtime class instantiation** when ClassName is the same file:
+1. **Entity autoload is REQUIRED:** `Entity` must be in the
+   `[autoload]` section BEFORE `RegisterTypes`. The parser needs
+   `Entity` to be a known type when RegisterTypes walks the type
+   tree. (Same logic for `AdapterRegistry` and `BackendFactory`:
+   they must come before any service that uses them in `_ready`.)
+
+2. **`load()` vs `preload()` vs `class_name.new()`:** pick by use
+   case, not by habit.
+
    ```gdscript
-   # Instead of:
-   var book := SkillBook.new()
-   
-   # Use:
+   # Use class_name + .new() when the class is registered globally
+   # (preferred for non-autoload, frequently-instantiated types):
+   class_name SkillBook          # in res://core/schemas/skill_book.gd
+   var book := SkillBook.new()   # works at parse time
+
+   # Use load() + .new() when you do NOT want class_name globally
+   # registered (e.g., to avoid an autoload/class_name collision,
+   # or to load lazily at runtime):
    var script := load("res://core/schemas/skill_book.gd")
    var book = script.new()
+
+   # Use preload() + .new() only when the file is constant
+   # (resource path hard-coded) AND has class_name. Otherwise
+   # use load(). Mixing these causes "Identifier X not declared"
+   # parse errors.
    ```
+
+3. **`extends` must precede `class_name`** in any file that has
+   both. The parser reads them in order; if `class_name` comes
+   first, the parse fails.
+
+4. **Tabs only, in GDScript files.** Once a line uses a tab, every
+   line in that scope must use a tab. `.editorconfig` is supposed
+   to enforce this, but copy-paste from the web and shell heredocs
+   frequently introduce spaces. When in doubt, run
+   `cat -A file.gd | head -20` — tabs render as `^I`, spaces as ` `.
 
 ---
 
 ## GDScript 4 Gotchas
 
-Common mistakes agents make with GDScript:
+Common mistakes agents make with GDScript 4.7.2:
 
 ```gdscript
 # Scene instantiation — use instantiate(), NOT .instance()
-var instance := preload("res://scene.tscn").instantiate()  # ✓
-var instance := preload("res://scene.tscn").instance()     # ✗ (Godot 3)
+var instance := preload("res://scene.tscn").instantiate()  # Godot 4
+var instance := preload("res://scene.tscn").instance()     # Godot 3, breaks in 4
 
-# Script instantiation — use load(), NOT preload() with class_name
-var book := load("res://schemas/SkillBook.gd").new()  # ✓
-var book := preload("res://schemas/SkillBook.gd").new()  # ✗ (loads at parse time)
+# Script instantiation — load() vs preload() vs class_name
+# See "Key Godot Rules" #2 above for the full decision tree.
+var book := SkillBook.new()                              # class_name registered
+var book := load("res://schemas/SkillBook.gd").new()     # runtime, no class_name
 
 # Node removal — use queue_free(), NOT free()
-instance.queue_free()  # ✓ (safe, deferred)
-instance.free()        # ✗ (can break children cleanup)
+instance.queue_free()  # safe, deferred
+instance.free()        # can break children cleanup
 
 # Null checks — always validate with is_instance_valid()
-if node != null and is_instance_valid(node):  # ✓
-if node != null:                              # ✗ (stale references)
+if node != null and is_instance_valid(node):  # safe
+if node != null:                              # can hold stale references
 
-# String formatting — use f-strings
-var msg := f"Hello {name}"       # ✓ (Godot 4+)
-var msg := "Hello %s" % name     # ✗ (outdated)
+# String formatting — both work in 4.7.2; pick one and be consistent
+var msg := f"Hello {name}"   # f-string (Godot 4+, recommended for new code)
+var msg := "Hello %s" % name # old style, still works
+var msg := "Hello {0}".format([name])  # also works, rarely used
+
+# Reserved keywords — `class_name`, `signal`, `func`, etc. cannot
+# be variable names. Use `char_class_name`, `signal_name`, etc.
+var class_name := "warrior"   # PARSE ERROR
+var char_class_name := "warrior"  # OK
 ```
 
----
+### New 4.7.2 strictness (the things that broke during the parse-error cascade)
 
-## Autoloads
+- `Resource.get(key, default)` default arg was removed. Use
+  `if resource.has(key): resource.get(key)` or
+  `resource.get(key, null)` then null-check.
+- Type inference on ternary requires explicit type. Use
+  `var x: T = a if cond else b` not `var x := a if cond else b`.
+- `class_name`, `signal`, `func`, `var`, `const` are reserved
+  variable names. Rename to `char_class_name` etc.
+- `assert(cond, "msg")` in release builds compiles to no-op; use
+  for invariants only. For runtime checks that must run in
+  release, use explicit `if not cond: return` or push to a logger.
+- `await get_tree().process_frame` in `_ready()` is a valid
+  way to defer past the autoload order; cheaper than
+  `call_deferred` for one-shot deferred work.
 
-Autoloads are singleton services available globally. The naming convention is:
-
-| Aspect | Rule | Example |
-|--------|------|---------|
-| Filename | `snake_case.gd` | `notification_service.gd` |
-| Autoload name | `PascalCase` | `NotificationService` |
-| class_name | Optional (some autoloads have it) | `QoSService` has it |
-
-### Accessing Autoloads
-
-```gdscript
-# Correct: use the autoload name directly (it's already an instance)
-NotificationService.notify(...)
-QoSService.rate_limit(player_id, "combat")
-
-# Wrong: trying to create a new instance
-var ns := NotificationService.new()  # ✗ FAILS - autoloads are not classes
-```
-
-### When to Use class_name
-
-Only add `class_name` for classes you need to instantiate or type-check:
-
-```gdscript
-# GOOD: class_name for a utility class you instantiate
-class_name CombatMath
-func calculate_damage() -> float:
-    return base_damage * multiplier
-
-# Usage:
-var math := CombatMath.new()
-var dmg := math.calculate_damage()
-
-# GOOD: class_name for type checking
-class_name AchievementService
-func process_achievement(service: AchievementService) -> void:
-    pass
-
-# Some autoloads DO have class_name (needed for identifier resolution)
-# Just don't try to .new() them — they're already instantiated
-```
-
-### Key Rules
-
-1. **Autoloads are singletons** — accessed by name, never instantiated
-2. **Autoloads may need `class_name`** — some code uses the autoload name as a type identifier (e.g., `if service is QoSService`)
-3. **`class_name` only for classes you `new()` or use for typing**
-4. **Filename ≠ class name** — `notification_service.gd` has autoload `NotificationService`, not `NotificationServiceService`

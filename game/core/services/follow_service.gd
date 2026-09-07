@@ -3,8 +3,6 @@
 ## Used for: Group play assistance, NPC quest followers, Mounts, etc.
 extends Node
 
-const PlayerLockService = preload("res://core/services/player_lock_service.gd")
-const CooldownService = preload("res://core/services/cooldown_service.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const EventHub = preload("res://core/events/event_hub.gd")
 

@@ -264,8 +264,8 @@ func get_votes_by_type(type: VoteType, status_filter: VoteStatus = VoteStatus.OP
 
 func get_open_votes() -> Array:
 	return get_votes_by_type(VoteType.REPORT_VALIDATION, VoteStatus.OPEN) + \
-	       get_votes_by_type(VoteType.FEATURE_VOTE, VoteStatus.OPEN) + \
-	       get_votes_by_type(VoteType.COMMUNITY_POLL, VoteStatus.OPEN)
+		get_votes_by_type(VoteType.FEATURE_VOTE, VoteStatus.OPEN) + \
+		get_votes_by_type(VoteType.COMMUNITY_POLL, VoteStatus.OPEN)
 
 func close_vote(admin_id: String, vote_id: String) -> Dictionary:
 	if PermissionManager:

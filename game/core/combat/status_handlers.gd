@@ -1,7 +1,6 @@
 ## StatusHandlers - Various status effect handlers
 ## Speed, stealth, immunity, damage over time
 extends Node
-const Entity = preload("res://core/entities/entity.gd")
 
 
 ## SpeedModifier - Adjusts movement speed

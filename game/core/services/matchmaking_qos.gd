@@ -206,7 +206,7 @@ func get_poor_quality_players() -> Array:
 	var poor: Array = []
 	for player_id in _player_quality:
 		if _player_quality[player_id] == ConnectionQuality.POOR or \
-		   _player_quality[player_id] == ConnectionQuality.BAD:
+			_player_quality[player_id] == ConnectionQuality.BAD:
 			poor.append(player_id)
 	return poor
 
