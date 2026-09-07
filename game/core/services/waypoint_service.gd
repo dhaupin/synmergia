@@ -3,6 +3,9 @@
 ## Supports: Custom waypoints, Quest waypoints, Map integration, Minimap, Compass
 extends Node
 
+const QoSService = preload("res://core/autoload/qos_service.gd")
+const NotificationService = preload("res://core/autoload/notification_service.gd")
+
 # Waypoint colors (preset options)
 enum WaypointColor {
 	RED,
@@ -28,6 +31,11 @@ enum WaypointIcon {
 	COMPASS,    # Direction
 	CUSTOM      # User defined
 }
+
+# Limits
+const MAX_WAYPOINTS_PER_PLAYER: int = 50
+const MIN_WAYPOINT_NAME_LENGTH: int = 1
+const MAX_WAYPOINT_NAME_LENGTH: int = 32
 
 # Waypoint data structure
 class Waypoint:
@@ -121,6 +129,10 @@ func _ready() -> void:
 func create_waypoint(player_id: String, name: String, position: Vector3, zone_id: String, 
 		color: int = WaypointColor.BLUE, icon: int = WaypointIcon.FLAG, 
 		is_quest: bool = false, quest_id: String = "") -> Dictionary:
+	
+	# QoS: Rate limit waypoint creation (prevent spam)
+	if QoSService and not QoSService.rate_limit(player_id, "waypoint_create"):
+		return {"success": false, "message": "Creating waypoints too fast"}
 	
 	# Sanitize and validate input
 	name = _sanitize_name(name)
