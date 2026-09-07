@@ -2,6 +2,7 @@
 # FriendsService - registered as autoload
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const CooldownService = preload("res://core/services/cooldown_service.gd")
 
 ## ============================================================================
 ## DATA STRUCTURES
@@ -86,6 +87,10 @@ func _ready() -> void:
 	set_process(true)
 
 func _check_rate_limit(player_id: String, action_type: String) -> Dictionary:
+	# Use CooldownService for unified cooldown management
+	if CooldownService and not CooldownService.try_start(player_id, action_type):
+		return {"success": false, "message": "Action on cooldown. Please slow down."}
+	
 	# Check via QoSService if available
 	if QoSService:
 		if not QoSService.rate_limit(player_id, action_type):

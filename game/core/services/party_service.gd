@@ -3,6 +3,7 @@
 extends Node
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const CooldownService = preload("res://core/services/cooldown_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # kick_player dispatches a PARTY kind toast to the kicked member so
@@ -110,8 +111,8 @@ func disband_party(party_id: String) -> bool:
 
 ## Invite a player to party
 func invite_player(from_id: String, to_id: String) -> bool:
-		# QoS: Rate limit party invites (player notified by QoSService)
-	if not QoSService.rate_limit(from_id, "party"):
+		# Use CooldownService for unified cooldown management
+	if CooldownService and not CooldownService.try_start(from_id, "party_invite"):
 		return false
 				
 		# Security: Check if player is party restricted
