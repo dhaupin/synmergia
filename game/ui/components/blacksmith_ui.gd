@@ -148,11 +148,6 @@ func _process(_delta: float) -> void:
 				"BlacksmithUI", "bs_out_of_range", {}, _player_id)
 
 
-func _get_local_player() -> Node:
-	if PlayerManager and PlayerManager.has_method("get_local_player"):
-		return PlayerManager.get_local_player()
-	return null
-
 
 func _on_open() -> void:
 	_refresh_items()

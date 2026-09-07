@@ -545,7 +545,7 @@ func _on_close() -> void:
 
 
 ## ============================================================================
-## PROXIMITY
+## PROXIMITY (uses canonical check_interact_distance)
 ## ============================================================================
 
 func _process(_delta: float) -> void:
@@ -554,7 +554,8 @@ func _process(_delta: float) -> void:
 	var player := _get_local_player()
 	if player == null:
 		return
-	if player.global_position.distance_to(_npc_position) > 8.0:
+	# Use canonical distance check with configurable threshold
+	if not check_interact_distance(player.global_position, _npc_position):
 		close_shop()
 		if NotificationService:
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
@@ -565,11 +566,6 @@ func _process(_delta: float) -> void:
 ## ============================================================================
 ## HELPERS
 ## ============================================================================
-
-func _get_local_player() -> Node:
-	if PlayerManager and PlayerManager.has_method("get_local_player"):
-		return PlayerManager.get_local_player()
-	return null
 
 func _load_item_icon(item: Resource) -> Texture2D:
 	return IconResolver.get_item_icon(item)
