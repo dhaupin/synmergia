@@ -122,7 +122,7 @@ func _initialize_panels() -> void:
 
 	_friends_panel = preload("res://ui/social/friends_list.gd").new()
 
-	        # Quest panel
+		# Quest panel
 	_quest_panel = preload("res://ui/components/quest_ui.gd").new()
 	_quest_panel.name = "QuestUI"
 	_quest_panel.z_index = 500

@@ -244,8 +244,8 @@ func transfer_items(from_id: String, to_id: String, items: Array) -> Dictionary:
 
 ## Execute a full trade (used by TradeService)
 func execute_trade(trade_id: String, player1: String, player2: String, 
-				   player1_items: Array, player2_items: Array,
-				   player1_gold: int, player2_gold: int) -> Dictionary:
+					player1_items: Array, player2_items: Array,
+					player1_gold: int, player2_gold: int) -> Dictionary:
 	# QoS: Rate limit trades for both players
 	if not QoSService.rate_limit(player1, "inventory_trade"):
 		GameLog.debug("InventoryService: Rate limited trade for %s" % player1)

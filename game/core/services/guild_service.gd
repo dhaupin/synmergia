@@ -51,7 +51,7 @@ var _rank_permissions: Dictionary = {
 																Permission.CREATE_ALLIANCE | Permission.DISBAND_ALLIANCE |
 																Permission.MANAGE_GVG | Permission.WITHDRAW_GOLD | Permission.MANAGE_NOTICES,
 				GuildRank.OFFICER: Permission.INVITE | Permission.KICK | Permission.PROMOTE | 
-													 Permission.DEMOTE | Permission.MANAGE_NOTICES,
+														Permission.DEMOTE | Permission.MANAGE_NOTICES,
 				GuildRank.MEMBER: Permission.INVITE,
 				GuildRank.RECRUIT: 0
 }

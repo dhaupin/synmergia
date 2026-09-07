@@ -15,7 +15,7 @@ class_name PersistenceStore
 
 # --- Connection lifecycle ---
 
-func connect(config: Dictionary) -> int:
+func open(config: Dictionary) -> int:
 	push_error("PersistenceStore.connect: not implemented")
 	return -1
 

@@ -15,7 +15,7 @@ func _initialize() -> void:
 	print("--- CACHE STORE TEST ---")
 
 	var cache = MemoryCacheStore.new()
-	var rc := cache.connect({})
+	var rc := cache.open({})
 	if rc != 0:
 		_fail("connect returned %d" % rc)
 		_finish()
@@ -36,13 +36,13 @@ func _initialize() -> void:
 
 func _test_basic_kv(cache: MemoryCacheStore) -> void:
 	cache.reset()
-	if cache.set("k1", "v1") != 1:
+	if cache.store("k1", "v1") != 1:
 		_fail("set returned non-1")
 		return
-	if cache.get("k1") != "v1":
+	if cache.fetch("k1") != "v1":
 		_fail("get returned wrong value")
 		return
-	if cache.get("missing") != null:
+	if cache.fetch("missing") != null:
 		_fail("get on missing key should return null")
 		return
 	_ok("basic KV set/get")
@@ -57,15 +57,15 @@ func _test_basic_kv(cache: MemoryCacheStore) -> void:
 
 func _test_ttl(cache: MemoryCacheStore) -> void:
 	cache.reset()
-	cache.set("temp", "value", 1)  # 1 second TTL
-	if cache.get("temp") != "value":
+	cache.store("temp", "value", 1)  # 1 second TTL
+	if cache.fetch("temp") != "value":
 		_fail("immediate read should return value")
 		return
 	_ok("set with TTL preserves value")
 	# Force expiry: set TTL to 0 (no expiry), then set with past TTL.
 	# Easier: just test that sweep_expired works after we manually expire.
 	cache._expires["temp"] = Time.get_unix_time_from_system() - 1.0
-	if cache.get("temp") != null:
+	if cache.fetch("temp") != null:
 		_fail("expired key should return null on get")
 		return
 	_ok("expired key returns null on get")
@@ -87,7 +87,7 @@ func _test_counters(cache: MemoryCacheStore) -> void:
 	if cache.incr_with_ttl("rate_limit", 60) != 1:
 		_fail("incr_with_ttl should return 1")
 		return
-	if cache.get("rate_limit") != 1:
+	if cache.fetch("rate_limit") != 1:
 		_fail("rate_limit should be 1 after incr_with_ttl")
 		return
 	_ok("incr_with_ttl creates counter with TTL")
@@ -178,7 +178,7 @@ func _test_set_nx(cache: MemoryCacheStore) -> void:
 	if cache.set_nx("lock", "owner2", 30):
 		_fail("second set_nx should fail (key exists)")
 		return
-	if cache.get("lock") != "owner1":
+	if cache.fetch("lock") != "owner1":
 		_fail("set_nx should not overwrite")
 		return
 	_ok("set_nx only sets when key absent")
@@ -186,7 +186,7 @@ func _test_set_nx(cache: MemoryCacheStore) -> void:
 
 func _test_expire(cache: MemoryCacheStore) -> void:
 	cache.reset()
-	cache.set("k", "v")
+	cache.store("k", "v")
 	if cache.expire("k", 60) != 1:
 		_fail("expire on existing key should return 1")
 		return

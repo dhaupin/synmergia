@@ -53,7 +53,7 @@ func unregister_player(player_id: String) -> void:
 
 ## Record an action with timing
 func record_action(player_id: String, action_type: String, position: Vector3 = Vector3.ZERO, 
-				   response_time_ms: int = -1) -> void:
+					response_time_ms: int = -1) -> void:
 	if not _player_profiles.has(player_id):
 		register_player(player_id)
 	

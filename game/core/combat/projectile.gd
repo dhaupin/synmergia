@@ -132,7 +132,7 @@ func initialize(from: Entity, to: Vector3, skill: Skill = null) -> void:
 	target_position = to
 	
 	_source_is_player = (from.controller_type == Entity.ControllerType.HUMAN or 
-						 from.controller_type == Entity.ControllerType.AGENT)
+							from.controller_type == Entity.ControllerType.AGENT)
 	
 	var direction := (to - global_position).normalized()
 	_velocity = direction * speed

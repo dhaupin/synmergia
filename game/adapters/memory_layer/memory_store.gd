@@ -13,11 +13,11 @@ class_name MemoryStore
 var _data: Dictionary = {}
 
 
-func get(key: String) -> Variant:
+func fetch(key: String) -> Variant:
 	return _data.get(key, null)
 
 
-func set(key: String, value: Variant) -> void:
+func store(key: String, value: Variant) -> void:
 	_data[key] = value
 
 

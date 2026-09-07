@@ -44,7 +44,7 @@ func _init(parent: Node = null) -> void:
 	_parent = parent
 
 
-func connect(config: Dictionary) -> int:
+func open(config: Dictionary) -> int:
 	_bridge_url = config.get("bridge_url", "")
 	if _bridge_url == "":
 		push_error(NotImplemented)

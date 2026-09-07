@@ -16,7 +16,7 @@ func _initialize() -> void:
 	print("--- PERSISTENCE STORE TEST ---")
 
 	var store = MemoryPersistenceStore.new()
-	var rc := store.connect({})
+	var rc := store.open({})
 	if rc != 0:
 		_fail("connect returned %d" % rc)
 		_finish()

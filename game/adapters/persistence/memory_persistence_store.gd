@@ -26,7 +26,7 @@ var _tx_counter: int = 0
 var _active_tx: Dictionary = {}  # tx_id -> { snapshot: Dictionary, undo_log: Array }
 
 
-func connect(config: Dictionary) -> int:
+func open(config: Dictionary) -> int:
 	_tables = {}
 	_tx_counter = 0
 	_active_tx = {}
@@ -44,7 +44,7 @@ func healthy() -> bool:
 
 # Reset state between tests. Not part of the interface.
 func reset() -> void:
-	connect({})
+	open({})
 
 
 # --- Query API ---

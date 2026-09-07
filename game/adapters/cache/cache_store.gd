@@ -10,7 +10,7 @@ class_name CacheStore
 #   - Variant for reads (null = missing key)
 
 
-func connect(config: Dictionary) -> int:
+func open(config: Dictionary) -> int:
 	push_error("CacheStore.connect: not implemented")
 	return -1
 
@@ -26,13 +26,13 @@ func healthy() -> bool:
 # --- Basic KV ---
 
 # Returns the value or null if missing.
-func get(key: String) -> Variant:
+func fetch(key: String) -> Variant:
 	push_error("CacheStore.get: not implemented")
 	return null
 
 
 # ttl_sec = 0 means no expiry. Returns 1 if set, 0 on error.
-func set(key: String, value: Variant, ttl_sec: int = 0) -> int:
+func store(key: String, value: Variant, ttl_sec: int = 0) -> int:
 	push_error("CacheStore.set: not implemented")
 	return 0
 

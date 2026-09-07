@@ -110,6 +110,26 @@ func _ready() -> void:
 	boot_defaults()
 
 
+# Look up the AdapterRegistry autoload by path. We don't use the bare
+# `AdapterRegistry` identifier so the file parses cleanly in --script
+# mode (where autoloads are not pre-loaded). At runtime the autoload
+# is mounted at /root/AdapterRegistry by project.godot.
+func _registry() -> Node:
+	if get_tree() == null:
+		return null
+	return get_tree().root.get_node_or_null("AdapterRegistry")
+
+
+# Same indirection pattern for GameLog. Bare-identifier autoload
+# references fail to parse in --script mode.
+func _log_info(msg: String) -> void:
+	var gl = get_tree().root.get_node_or_null("GameLog") if get_tree() else null
+	if gl and gl.has_method("info"):
+		gl.info(msg)
+	else:
+		print(msg)
+
+
 # Wire up the default set of stores. Services that need their
 # own store (e.g. login_rate_limit) can call register_cache()
 # directly with a MemoryCacheStore.
@@ -128,12 +148,17 @@ func boot_defaults() -> void:
 		push_error("BackendFactory: STORAGE_BACKEND=%s not supported, falling back to memory" % storage_backend)
 		persistence_store = _make_persistence("memory")
 
+	var reg := _registry()
+	if reg == null:
+		push_error("BackendFactory: AdapterRegistry autoload not found")
+		return
+
 	# Register all persistence store names with the same backing.
 	for store_name in STORE_MANIFEST:
 		# Skip cache-only and memory-only entries.
 		if _is_cache_only(store_name) or _is_memory_only(store_name):
 			continue
-		AdapterRegistry.register_persistence(store_name, persistence_store)
+		reg.register_persistence(store_name, persistence_store)
 
 	# Cache stores
 	var cache_store = _make_cache(cache_backend)
@@ -144,30 +169,30 @@ func boot_defaults() -> void:
 	for store_name in STORE_MANIFEST:
 		if not _is_cache_only(store_name):
 			continue
-		AdapterRegistry.register_cache(store_name, cache_store)
+		reg.register_cache(store_name, cache_store)
 
 	# Memory stores -- always in-memory, no backend choice.
 	for store_name in STORE_MANIFEST:
 		if not _is_memory_only(store_name):
 			continue
 		var mem := MemoryStore.new()
-		AdapterRegistry.register_memory(store_name, mem)
+		reg.register_memory(store_name, mem)
 
-	GameLog.info("BackendFactory: persistence=%s cache=%s" % [storage_backend, cache_backend])
+	_log_info("BackendFactory: persistence=%s cache=%s" % [storage_backend, cache_backend])
 
 
 func _make_persistence(backend: String) -> PersistenceStore:
 	match backend:
 		"memory":
 			var s := MemoryPersistenceStore.new()
-			s.connect({})
+			s.open({})
 			return s
 		"postgres":
 			var s := PostgresStore.new()
 			var url := OS.get_environment("PG_BRIDGE_URL")
 			if url == "":
 				url = "http://localhost:8080"
-			var rc := s.connect({"bridge_url": url})
+			var rc := s.open({"bridge_url": url})
 			if rc != 0:
 				return null
 			return s
@@ -178,14 +203,14 @@ func _make_cache(backend: String) -> CacheStore:
 	match backend:
 		"memory":
 			var s := MemoryCacheStore.new()
-			s.connect({})
+			s.open({})
 			return s
 		"redis":
 			var s := RedisStore.new()
 			var url := OS.get_environment("REDIS_BRIDGE_URL")
 			if url == "":
 				url = "http://localhost:8081"
-			var rc := s.connect({"bridge_url": url})
+			var rc := s.open({"bridge_url": url})
 			if rc != 0:
 				return null
 			return s

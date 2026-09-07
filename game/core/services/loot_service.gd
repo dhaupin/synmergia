@@ -66,7 +66,7 @@ func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1
 
 ## Create loot from container (chest, crate, etc.)
 func create_container_loot(container_id: String, items: Array, currency: Dictionary = {}, 
-	 auto_loot: bool = false) -> String:
+		auto_loot: bool = false) -> String:
 	var loot_id := "loot_%s_%d" % [container_id, Time.get_ticks_msec()]
 				
 	var loot_data := {

@@ -22,8 +22,8 @@ func _initialize() -> void:
 
 
 func _test_basic_kv(mem: MemoryStore) -> void:
-	mem.set("k1", "v1")
-	if mem.get("k1") != "v1":
+	mem.store("k1", "v1")
+	if mem.fetch("k1") != "v1":
 		_fail("get returned wrong value")
 		return
 	if mem.exists("k1") != true:

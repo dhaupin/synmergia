@@ -22,11 +22,11 @@ func _initialize() -> void:
 	# Set up the in-memory stores (simulating what BackendFactory
 	# would do with STORAGE_BACKEND=memory CACHE_BACKEND=memory).
 	var accounts = MemoryPersistenceStore.new()
-	accounts.connect({})
+	accounts.open({})
 	accounts.seed("accounts", [])
 
 	var sessions = MemoryCacheStore.new()
-	sessions.connect({})
+	sessions.open({})
 
 	# A "service" is just a closure over the stores.
 	var service := _FakeLoginService.new(accounts, sessions)
@@ -63,7 +63,7 @@ func _test_login_existing_account(service) -> void:
 	_ok("login: returns session token")
 
 	# The token should resolve via the cache
-	var account_id = service.sessions.get("session:%s" % token)
+	var account_id = service.sessions.fetch("session:%s" % token)
 	if account_id == null:
 		_fail("session token not in cache")
 		return
@@ -163,7 +163,7 @@ class _FakeLoginService:
 		if row.get("password_hash") != _hash(password):
 			return ""  # bad password
 		var token := "tok_%d_%s" % [Time.get_ticks_msec(), username]
-		sessions.set("session:%s" % token, row.get("id"), SESSION_TTL_SEC)
+		sessions.store("session:%s" % token, row.get("id"), SESSION_TTL_SEC)
 		return token
 
 	func logout(token: String) -> void:

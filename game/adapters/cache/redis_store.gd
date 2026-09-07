@@ -59,7 +59,7 @@ func _init(parent: Node = null) -> void:
 	_parent = parent
 
 
-func connect(config: Dictionary) -> int:
+func open(config: Dictionary) -> int:
 	_bridge_url = config.get("bridge_url", "")
 	if _bridge_url == "":
 		push_error(NotImplemented)
@@ -92,14 +92,14 @@ func healthy() -> bool:
 
 # --- Basic KV ---
 
-func get(key: String) -> Variant:
+func fetch(key: String) -> Variant:
 	var resp := _blocking_get_with_body("/get?key=" + _url_escape(key))
 	if not resp.get("ok", false):
 		return null
 	return resp.get("value", null)
 
 
-func set(key: String, value: Variant, ttl_sec: int = 0) -> int:
+func store(key: String, value: Variant, ttl_sec: int = 0) -> int:
 	return _ok_or_err(_blocking_post("/set", {
 		"key": key, "value": value, "ttl_sec": ttl_sec,
 	}))

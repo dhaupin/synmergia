@@ -30,15 +30,15 @@ func _reg(name: String, store) -> void:
 	_registry[name] = store
 
 
-func _get(name: String):
+func _lookup(name: String):
 	return _registry.get(name, null)
 
 
 func _test_registration_and_lookup() -> void:
 	var ps = MemoryPersistenceStore.new()
-	ps.connect({})
+	ps.open({})
 	_reg("accounts", ps)
-	if _get("accounts") != ps:
+	if _lookup("accounts") != ps:
 		_fail("registered store not retrievable")
 		return
 	# Use it
@@ -49,25 +49,25 @@ func _test_registration_and_lookup() -> void:
 	_ok("register + retrieve + use persistence store")
 
 	var cache = MemoryCacheStore.new()
-	cache.connect({})
+	cache.open({})
 	_reg("sessions", cache)
-	cache.set("session:abc", "user_1", 60)
-	if _get("sessions").get("session:abc") != "user_1":
+	cache.store("session:abc", "user_1", 60)
+	if _lookup("sessions").get("session:abc") != "user_1":
 		_fail("cache store via registry failed")
 		return
 	_ok("register + retrieve + use cache store")
 
 	var mem = MemoryStore.new()
 	_reg("cooldowns", mem)
-	mem.set("plr_1:fireball", 1234567890.0)
-	if _get("cooldowns").get("plr_1:fireball") != 1234567890.0:
+	mem.store("plr_1:fireball", 1234567890.0)
+	if _lookup("cooldowns").get("plr_1:fireball") != 1234567890.0:
 		_fail("memory store via registry failed")
 		return
 	_ok("register + retrieve + use memory store")
 
 
 func _test_unregistered_returns_null() -> void:
-	if _get("does_not_exist") != null:
+	if _lookup("does_not_exist") != null:
 		_fail("unregistered name should return null")
 		return
 	_ok("unregistered name returns null")
@@ -75,16 +75,16 @@ func _test_unregistered_returns_null() -> void:
 
 func _test_overwrite_replaces() -> void:
 	var a = MemoryPersistenceStore.new()
-	a.connect({})
+	a.open({})
 	a.seed("t1", [{"x": 1}])
 	_reg("t1", a)
 
 	var b = MemoryPersistenceStore.new()
-	b.connect({})
+	b.open({})
 	b.seed("t1", [{"x": 2}])
 	_reg("t1", b)
 
-	if _get("t1") != b:
+	if _lookup("t1") != b:
 		_fail("overwrite did not replace")
 		return
 	var rows := b.query("SELECT * FROM t1")

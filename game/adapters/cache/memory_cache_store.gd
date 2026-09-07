@@ -14,7 +14,7 @@ var _sets: Dictionary = {}      # key -> Array[String]
 var _lists: Dictionary = {}     # key -> Array
 
 
-func connect(config: Dictionary) -> int:
+func open(config: Dictionary) -> int:
 	_kv.clear()
 	_expires.clear()
 	_hashes.clear()
@@ -36,7 +36,7 @@ func healthy() -> bool:
 
 
 func reset() -> void:
-	connect({})
+	open({})
 
 
 # Sweep all expired keys. Call from a periodic timer in services
@@ -55,7 +55,7 @@ func sweep_expired() -> int:
 
 # --- Basic KV ---
 
-func get(key: String) -> Variant:
+func fetch(key: String) -> Variant:
 	if _is_expired(key):
 		_kv.erase(key)
 		_expires.erase(key)
@@ -63,7 +63,7 @@ func get(key: String) -> Variant:
 	return _kv.get(key, null)
 
 
-func set(key: String, value: Variant, ttl_sec: int = 0) -> int:
+func store(key: String, value: Variant, ttl_sec: int = 0) -> int:
 	_kv[key] = value
 	if ttl_sec > 0:
 		_expires[key] = Time.get_unix_time_from_system() + ttl_sec
@@ -75,7 +75,7 @@ func set(key: String, value: Variant, ttl_sec: int = 0) -> int:
 func set_nx(key: String, value: Variant, ttl_sec: int = 0) -> bool:
 	if _kv.has(key) and not _is_expired(key):
 		return false
-	set(key, value, ttl_sec)
+	store(key, value, ttl_sec)
 	return true
 
 

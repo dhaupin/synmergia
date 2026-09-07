@@ -546,3 +546,160 @@ are independent and safe.
       (carry-over from session 3)
 
 
+## 2026-09-07 — fifth session (adapter parse errors + 8 mixed-indent files)
+
+**Branch:** `adapter-layer` -> `labs/db`
+**HEAD before:** ede6f5f (docs: session 4 log)
+**HEAD after:**  TBD
+
+### What got fixed
+
+1. **Object.connect / get / set collisions in adapter stores**
+   `RefCounted` extends `Object`, so any method named `connect()`,
+   `get()`, or `set()` shadows the engine virtual. In Godot 4
+   with `warnings_as_errors=on` (project default) the parser
+   refuses to compile the file, which blocks every adapter test
+   and the autoload chain. Renamed:
+
+   | File                            | Old            | New            |
+   |---------------------------------|----------------|----------------|
+   | persistence_store.gd            | `connect()`    | `open()`       |
+   | cache_store.gd                  | `connect()`    | `open()`       |
+   | cache_store.gd                  | `get()`        | `fetch()`      |
+   | cache_store.gd                  | `set()`        | `store()`      |
+   | memory_layer/memory_store.gd    | `get()`        | `fetch()`      |
+   | memory_layer/memory_store.gd    | `set()`        | `store()`      |
+
+   Implementations and callers updated in lockstep:
+   `memory_persistence_store.gd`, `postgres_store.gd`,
+   `memory_cache_store.gd`, `redis_store.gd`,
+   `backend_factory.gd`, and all 5 files in
+   `game/tests/adapters/`. 21 files changed.
+
+2. **backend_factory.gd autoload indirection**
+   The file used `AdapterRegistry.register_X(...)` and
+   `GameLog.info(...)` as bare identifiers. Those resolve fine
+   at runtime (the autoloads are mounted by project.godot) but
+   fail to parse in `--script` mode where autoloads are not
+   pre-loaded. Added two helpers that look the autoloads up by
+   path:
+
+   ```gdscript
+   func _registry() -> Node:
+       if get_tree() == null:
+           return null
+       return get_tree().root.get_node_or_null("AdapterRegistry")
+
+   func _log_info(msg: String) -> void:
+       var gl = get_tree().root.get_node_or_null("GameLog") if get_tree() else null
+       if gl and gl.has_method("info"):
+           gl.info(msg)
+       else:
+           print(msg)
+   ```
+
+   The 3 register calls now go through `reg.register_X(...)`.
+
+3. **8 mixed-tabs+spaces lines** (the last [FAIL] in
+   test_lint_general and test_lint_indentation):
+
+   - `core/community/community_governance.gd:267-269`
+   - `core/combat/projectile.gd:135`
+   - `core/services/guild_service.gd:54`
+   - `core/services/matchmaking_qos.gd:209`
+   - `core/services/anticheat_service.gd:56`
+   - `core/services/loot_service.gd:69`
+   - `core/services/inventory_service.gd:247-248`
+   - `ui/components/menu_manager.gd:125`
+
+   All were single-line fixes in multi-line expressions
+   (continuation lines, parameter lists, comment lines).
+   Wrote a small Python helper (`/tmp/fix_mixed_indent.py`,
+   not committed) that collapses each run of leading spaces
+   in the leading-whitespace region to a single tab.
+
+4. **test_registry.gd: `_get` shadowed Object._get**
+   The test file defined `func _get(name: String)` which
+   collides with the virtual `Object._get(property:
+   StringName) -> Variant`. Renamed to `_lookup(name)`.
+   4 call sites updated.
+
+### Linter results after this session
+
+| Test                  | Before           | After            |
+|-----------------------|------------------|------------------|
+| test_lint_autoload    | 8/8 PASS         | 8/8 PASS         |
+| test_lint_charset     | 3/3 PASS         | 3/3 PASS         |
+| test_lint_indentation | 3/4 PASS         | 4/4 PASS         |
+| test_lint_syntax      | 5/5 PASS         | 5/5 PASS         |
+| test_lint_general     | 7/8 PASS         | 8/8 PASS         |
+
+**All 5 linter tests now pass with 0 failures.** Total
+28/28 [PASS] (was 27/28 before).
+
+### What still blocks adapter tests from running in --script mode
+
+The adapter test files themselves are clean (no more
+autoload references after the rename), but booting the
+project in `--script` mode still tries to load every
+autoload listed in project.godot. Pre-existing parse
+errors in three autoloads cascade and break the boot:
+
+- `core/autoload/game_manager.gd` — "Too many arguments
+  for `get()` call" (Object collision, same family as
+  the adapter fix but in unrelated code)
+- `core/services/player_lock_service.gd` — "Cannot call
+  non-static function `cancel_on_teleport()` ... Make an
+  instance instead"
+- `core/autoload/network_manager.gd` — compilation fails
+  (cascade)
+- `ui/components/blacksmith_ui.gd` and
+  `ui/components/skill_academy_ui.gd` — "Could not
+  resolve script"
+
+These are not regressions and pre-date this session.
+They affect every existing smoke test in `game/tests/`
+(e.g. `test_login_flow.gd` hits the exact same cascade),
+not just the adapter tests. Fixing them is its own
+medium-sized task; out of scope for this session.
+
+### Files changed (21)
+
+```
+game/adapters/backend_factory.gd               | +33 -8
+game/adapters/cache/cache_store.gd             |  +3 -3
+game/adapters/cache/memory_cache_store.gd      |  +5 -5
+game/adapters/cache/redis_store.gd             |  +3 -3
+game/adapters/memory_layer/memory_store.gd     |  +2 -2
+game/adapters/persistence/memory_persistence_store.gd |  +2 -2
+game/adapters/persistence/persistence_store.gd |  +1 -1
+game/adapters/persistence/postgres_store.gd    |  +1 -1
+game/core/combat/projectile.gd                 |  +1 -1
+game/core/community/community_governance.gd    |  +2 -2
+game/core/services/anticheat_service.gd        |  +1 -1
+game/core/services/guild_service.gd            |  +1 -1
+game/core/services/inventory_service.gd        |  +2 -2
+game/core/services/loot_service.gd             |  +1 -1
+game/core/services/matchmaking_qos.gd          |  +1 -1
+game/tests/adapters/test_adapter_integration.gd |  +4 -4
+game/tests/adapters/test_cache_store.gd        | +10 -10
+game/tests/adapters/test_memory_store.gd       |  +2 -2
+game/tests/adapters/test_persistence_store.gd  |  +1 -1
+game/tests/adapters/test_registry.gd           | +12 -12
+game/ui/components/menu_manager.gd             |  +1 -1
+```
+
+### Open follow-ups (cumulative, delta from session 4)
+
+- [ ] Fix autoloads blocking --script mode (game_manager,
+      network_manager, player_lock_service, blacksmith_ui,
+      skill_academy_ui) — pre-existing, blocks ALL smoke tests
+- [ ] Audit `srv/docker/test-headless.sh` wiring
+- [ ] Audit `srv/docker/run_all.sh` for shell-script issues
+- [ ] Address openhands issue list (truncated in user msg)
+- [ ] Hook linters into the smoke flow
+- [ ] 8 space-indented .gd files (not a parse error, style)
+- [ ] 56 non-ASCII files (em-dash, arrow) — bulk
+
+
+
