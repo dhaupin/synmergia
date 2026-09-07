@@ -1,57 +1,92 @@
 # Synmergia — Spherical World & Navigation PRD
 
 > **Status:** Draft — 2026-09-06
+> **Updated:** 2026-09-07 to align with world-building.md
+> **Sources:** [`world-building.md`](../world-building.md), [`world-building-arch.md`](./world-building-arch.md)
 > **Purpose:** Design for spherical planet map and navigation systems
 
 ---
 
 ## 1. Overview
 
-Synmergia is planned as a spherical world (planet) with a starting continent.
-This document outlines:
+Synmergia uses an **icosahedral** geometric addressing layer on top of a
+spherical planet. This document outlines:
 
 1. **Spherical Coordinates** — How position is stored and calculated on a sphere
-2. **Navigation Systems** — How map/minimap/compass work on a sphere
-3. **Zone System** — How zones map to spherical regions
-4. **Implementation Gaps** — What needs to be built
+2. **Icosahedral Mesh** — The address space for spherical worlds
+3. **Navigation Systems** — How map/minimap/compass work on a sphere
+4. **Zone System** — How zones map to spherical regions
+5. **Implementation Gaps** — What needs to be built
+
+**Key reference from world-building.md:**
+- World coordinates are integer meters in a fixed unit
+- Shape: "planar" | "spherical" in world config
+- Chunk size: ~64m edge length for spherical
 
 ---
 
-## 2. Spherical World Design
+## 2. Spherical World Design (per world-building.md)
 
 ### 2.1 Coordinate System
 
-**Current (Flat):**
+**World Coordinate (W):**
 ```
-Position: Vector3(x, y, z)
-- X: East-West
-- Y: Height
-- Z: North-South
-```
-
-**Proposed (Spherical):**
-```
-Position: Vector3 (on sphere surface)
-- Magnitude = planet radius + altitude
-- Direction = lat/lon encoded as unit vector
-
-Or: SphericalCoord(lat, lon, altitude)
-- lat: -90° (south pole) to +90° (north pole)
-- lon: -180° to +180° (0° = prime meridian)
-- altitude: meters above/below sea level
+Position: Vector3(x, y, z) in integer meters
+- Shape-agnostic, fixed unit system
+- Internal representation doesn't change between planar/spherical
 ```
 
-### 2.2 Planet Parameters
+**Spherical projection:**
+```
+Quantize(W, chunk_size_m) on icosahedral mesh
+→ Triangular cell on subdivided icosahedron
+```
+
+### 2.2 Icosahedral Mesh (per world-building.md §3.5)
+
+The icosahedron IS the address space:
+- **20 triangular faces** base
+- **Subdivision level** = chunk size (~64m edge for Earth-sized planet)
+- Each face subdivided into triangular cells
+- Vertex = address `(face_id, u, v)` or `(x_cell, y_cell, z_cell)`
+
+```
+Earth-sized planet (radius 6,371 km):
+- Edge length: ~62m per subdivision level
+- One icosahedron subdivision = one chunk
+
+Game-scale planet (radius 100 km, surface area 125,663 km²):
+- ~500,000 chunks at 1-subdivision level
+- ~125,000 chunks at 2-subdivision level
+```
+
+### 2.3 Planet Parameters (from world-building.md)
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| Planet Radius | 6,371 km (Earth-like) | Adjustable for gameplay |
-| Sea Level | 0m | Reference point |
-| Max Altitude | 10km | Mountains |
-| Min Depth | 1km | Ocean trenches |
-| Starting Continent | 0°-60° lat, -30°-60° lon | Northern hemisphere |
+| Planet Radius | 6,371 km (Earth) or 100 km (game-scale) | Configurable |
+| Chunk Size | ~64m edge length | Tunable per world |
+| Starting Continent | Northern hemisphere | Future expansion |
+| Vertical Axis | `y` (planar) or `z_cell` (spherical with face_id) | See §3.7 |
 
-### 2.3 Coordinate Conversion
+### 2.4 NSC-9 + Icosahedral (from world-building.md §6)
+
+The geometric addressing layer combines:
+- **NSC-9:** Integer lattice system for addressing
+- **Icosahedral:** Triangular mesh for spherical projection
+- **Quasicrystal:** Future Penrose tiling support
+
+```
+World → (face_id, u, v) → NSC-9 cell
+                         ↓
+                   Spherical projection
+```
+
+**Geo-cache:** Spatial index on Redis using NSC-9 + icosahedral cells
+- ~5 bytes per key × 50,000 cached regions
+- Fast spatial queries for nearby entities
+
+### 2.5 Coordinate Conversion
 
 ```gdscript
 # Spherical to Cartesian
@@ -85,8 +120,9 @@ func cartesian_to_spherical(pos: Vector3) -> Dictionary:
 
 **Spherical:**
 - **True North** always points to geographic north pole
-- Compass needle always points north (not affected by local magnetic fields in base game)
+- Compass needle always points north
 - Distance calculated as great-circle distance
+- Bearing calculated as geodesic (great-circle) bearing
 
 ```gdscript
 # Great-circle distance
@@ -95,7 +131,7 @@ func haversine_distance(pos1: Vector3, pos2: Vector3) -> float:
     var d := pos1.normalized().dot(pos2.normalized())
     return r * acos(clamp(d, -1.0, 1.0))
 
-# Bearing calculation
+# Geodesic bearing
 func geodesic_bearing(from: Vector3, to: Vector3) -> float:
     var n_from := from.normalized()
     var n_to := to.normalized()
@@ -124,6 +160,11 @@ func geodesic_bearing(from: Vector3, to: Vector3) -> float:
 | Regional | 5km | Equirectangular |
 | Continental | 50km+ | Globe or Mercator |
 
+**Integration with NSC-9:**
+- Use NSC-9 cells for spatial queries
+- Redis geo-cache for nearby entity lookups
+- LOD-aware marker culling
+
 ### 3.3 World Map
 
 **Current:** Pan/zoom on flat image
@@ -132,6 +173,11 @@ func geodesic_bearing(from: Vector3, to: Vector3) -> float:
 - Option A: 2D equirectangular projection (like real world maps)
 - Option B: 3D globe that player can rotate
 - Option C: Hybrid (2D with "globe" button)
+
+**Per world-building.md:**
+- World config: `shape: "planar" | "spherical"`
+- Spherical: `spatial_partition: [lat_min, lon_min, lat_max, lon_max]`
+- T3 state tree stores zone boundaries
 
 ---
 
@@ -206,23 +252,25 @@ func get_compass_direction_at_pole(player_pos: Vector3, waypoint: Vector3) -> St
 
 ### 6.1 Immediate (Phase 1)
 
-- [ ] Migrate position storage to lat/lon for DB
-- [ ] Add `get_zone_at_position(lat, lon, alt)` function
 - [ ] Implement haversine distance function
 - [ ] Compass: Add true-north bearing calculation
 - [ ] Waypoint: Update distance calc to haversine
+- [ ] NSC-9 cell calculation for position→cell mapping
 
 ### 6.2 Medium Term (Phase 2)
 
+- [ ] Icosahedral mesh implementation (see `labs/multi-iso/`)
+- [ ] NSC-9 integration with position system
 - [ ] Regional map zoom with projection correction
 - [ ] Globe view for world map
-- [ ] Zone boundary transition handling
-- [ ] Ocean/continent zone types
+- [ ] Zone boundary transition handling (per world config)
+- [ ] Redis geo-cache for spatial queries
 
 ### 6.3 Future (Phase 3)
 
 - [ ] Full spherical collision/physics
 - [ ] Atmosphere/fog at horizon
+- [ ] Multi-icosahedron worlds (multiple planets)
 - [ ] Orbital mechanics for moons (if any)
 
 ---

@@ -1,6 +1,7 @@
 # Synmergia — Database & Persistence PRD
 
 > **Status:** Draft — 2026-09-06
+> **Updated:** 2026-09-07 - Full inventory
 > **Purpose:** Master list of all database persistence requirements
 
 ---
@@ -11,26 +12,57 @@ This document tracks all data that requires database persistence.
 It serves as the source of truth for DB schema design, migration planning,
 and implementation tracking.
 
+**Storage Layers:**
+- **Postgres:** Primary persistence (accounts, characters, inventory, quests, guilds, etc.)
+- **Redis:** Cache layer (sessions, tick cache, materialized intersections, spatial index)
+- **In-Memory:** Runtime-only data (follow state, active cooldowns)
+
 ---
 
 ## 2. Services Requiring Persistence
 
-| Service | Status | Tables/Collections | Priority |
-|---------|--------|-------------------|----------|
-| `AccountService` | ⚠️ TODO | `accounts` | P0 |
-| `LoginService` | ⚠️ TODO | `accounts`, `sessions` | P0 |
-| `PlayerManager` | ⚠️ TODO | `characters` | P0 |
-| `InventoryService` | ⚠️ TODO | `inventories`, `equipment` | P0 |
-| `QuestService` | ⚠️ TODO | `quests`, `quest_progress` | P1 |
-| `VaultService` | ⚠️ TODO | `vaults`, `guild_vaults`, `account_vaults` | P1 |
-| `GuildService` | ⚠️ TODO | `guilds`, `guild_members`, `guild_ranks` | P1 |
-| `FriendsService` | ⚠️ TODO | `friends`, `blocks` | P2 |
-| `PartyService` | ⚠️ TODO | `parties` | P2 |
-| `LootService` | ⚠️ TODO | `loot_history` | P2 |
-| `ChatService` | ⚠️ TODO | `chat_log` (optional, for moderation) | P3 |
-| `CommunityGovernance` | ⚠️ TODO | `votes`, `proposals` | P2 |
-| `FollowService` | ⚠️ TODO | `player_follows` (runtime only, no persistence needed) | P3 |
-| `WaypointService` | ⚠️ TODO | `player_waypoints` | P2 |
+| Service | Status | Postgres | Redis | In-Memory | Priority |
+|---------|--------|---------|-------|-----------|----------|
+| `AccountService` | ⚠️ TODO | `accounts`, `sessions` | Session tokens | - | P0 |
+| `LoginService` | ⚠️ TODO | `accounts`, `sessions` | Session cache | - | P0 |
+| `PlayerManager` | ⚠️ TODO | `characters` | Online status | - | P0 |
+| `InventoryService` | ⚠️ TODO | `inventories`, `equipment` | Item cache | - | P0 |
+| `QuestService` | ⚠️ TODO | `quests`, `quest_progress` | Quest cache | Active quests | P1 |
+| `VaultService` | ⚠️ TODO | `vaults`, `guild_vaults`, `account_vaults` | Vault cache | - | P1 |
+| `GuildService` | ⚠️ TODO | `guilds`, `guild_members`, `guild_ranks` | Guild roster | - | P1 |
+| `FriendsService` | ⚠️ TODO | `friends`, `blocks` | Online status | - | P2 |
+| `PartyService` | ⚠️ TODO | `parties` | Party state | Active parties | P2 |
+| `LootService` | ⚠️ TODO | `loot_history` | Loot table cache | Active loot | P2 |
+| `ChatService` | ⚠️ TODO | `chat_log` (optional) | - | - | P3 |
+| `CommunityGovernance` | ⚠️ TODO | `votes`, `proposals` | Active votes | - | P2 |
+| `FactionManager` | ⚠️ TODO | `factions`, `faction_relations` | Relations cache | Active wars | P2 |
+| `FollowService` | ✅ Done | - | - | Runtime only | P3 |
+| `WaypointService` | ⚠️ TODO | `player_waypoints` | - | Active waypoints | P2 |
+| `ZoneManager` | ⚠️ TODO | `zones` | Zone cache | Active zone | P1 |
+| `SpawnService` | ⚠️ TODO | `spawn_definitions` | Spawn timers | - | P2 |
+| `CooldownService` | ✅ Runtime | - | Cooldown cache | Active cooldowns | P3 |
+| `NotificationService` | ✅ Runtime | - | - | Notifications | P3 |
+| `TradeService` | ⚠️ TODO | `trade_history` | Active trades | - | P2 |
+| `BlacksmithService` | ⚠️ TODO | `crafting_recipes`, `crafting_history` | Recipe cache | - | P2 |
+| `SkillAcademyService` | ⚠️ TODO | `skills`, `player_skills` | Skill tree cache | - | P1 |
+| `AchievementService` | ⚠️ TODO | `achievements`, `player_achievements` | Achievement cache | - | P2 |
+| `TitleService` | ⚠️ TODO | `titles`, `player_titles` | Title cache | - | P3 |
+| `SecurityService` | ⚠️ TODO | `bans`, `mutes`, `security_log` | - | - | P1 |
+| `AntiCheatService` | ⚠️ TODO | `anticheat_events` | - | Active flags | P2 |
+| `AutoResponseService` | ⚠️ TODO | `auto_responses` | Response cache | - | P3 |
+| `SameAccountTransferService` | ⚠️ TODO | `transfers`, `transfer_history` | Transfer cooldowns | - | P2 |
+| `EventHub` | ⚠️ TODO | - | Event subscriptions | - | P3 |
+| `RespawnService` | ✅ Runtime | Respawn points | - | - | P2 |
+| `DeathFeatures` | ⚠️ TODO | `death_log` | - | - | P3 |
+| `LootService` | ⚠️ TODO | `loot_tables`, `drop_rules` | Loot cache | - | P2 |
+| `CombatMath` | ✅ Runtime | - | Combat formulas | - | P3 |
+| `FairnessService` | ⚠️ TODO | `fairness_metrics` | - | - | P3 |
+| `EntityService` | ⚠️ TODO | `entities` (persist NPC/objects) | Entity cache | Active entities | P1 |
+| `WorldService` | ⚠️ TODO | `world_state` | Tick cache | - | P1 |
+| `ShardManager` | ⚠️ TODO | `shards` | Shard status | Active shards | P1 |
+| `ServerManager` | ⚠️ TODO | `servers` | Server status | - | P1 |
+| `DataService` | ⚠️ TODO | `game_data` (templates) | Data cache | - | P1 |
+| `MatchmakingQoS` | ⚠️ TODO | `matchmaking_queue` | Queue state | Active queue | P2 |
 
 ---
 
@@ -267,7 +299,44 @@ Player-created waypoints persist and are loaded on character login.
 
 ---
 
-## 5. Future Considerations
+## 4b. Redis Cache Schema
+
+Per world-building.md �12:
+- **Tick cache:** Current game state for fast reads
+- **Materialized intersections:** `(vertex, faction, time_bucket)` entries
+- **Session state:** Online players, active connections
+- **Spatial index:** NSC-9 + icosahedral geo-cache
+
+```
+# Redis Key Patterns
+
+# Session & Auth
+session:{account_id} → {token, expires_at, server_id}
+online_player:{character_id} → {server_id, shard_id, zone_id}
+
+# Spatial (Geo-cache per world-building.md)
+geo:nsc9:{cell_x}:{cell_y}:{cell_z} → [entity_ids]
+geo:zone:{zone_id} → {lat_min, lon_min, lat_max, lon_max}
+
+# Tick cache
+tick:{shard_id}:{tick_num} → {state_hash, timestamp}
+
+# Materialized intersections (faction conflicts)
+intersection:{vertex_id}:{faction_a}:{faction_b} → {time_bucket, intensity}
+
+# Rate limiting
+ratelimit:{player_id}:{action} → {count, window_start}
+
+# Cooldown cache
+cooldown:{player_id}:{action} → {expires_at}
+```
+
+### Redis TTL Strategy
+- Session tokens: 24h (with refresh)
+- Online status: Immediate expiry on disconnect
+- Tick cache: 1-5 min (circular buffer)
+- Rate limits: Action-specific window
+- Geo-cache: 10 min with background refresh
 
 ### Caching Layer
 - Redis for session data, online status, cooldowns
