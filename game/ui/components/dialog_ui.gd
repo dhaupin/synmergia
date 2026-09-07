@@ -14,6 +14,10 @@ var _current_dialogue_id: String = ""
 var _current_node: int = 0
 var _choices: Array = []
 
+## Escape BBCode brackets in user-supplied content.
+static func _esc(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］")
+
 ## Components
 var _speaker_label: Label
 var _text_rich_label: RichTextLabel
@@ -168,7 +172,7 @@ func _show_node_data(node: Dictionary) -> void:
 	_speaker_label.text = node.get("speaker", "NPC")
 	_text_rich_label.clear()
 	var text: String = node.get("text", "")
-	_text_rich_label.append_text("[color=%s]%s[/color]" % [UIStyles.COLORS.text_primary.to_html(), text])
+	_text_rich_label.append_text("[color=%s]%s[/color]" % [UIStyles.COLORS.text_primary.to_html(), _esc(text)])
 
 	for child in _choice_buttons.get_children():
 		child.queue_free()

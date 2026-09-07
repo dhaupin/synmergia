@@ -17,8 +17,7 @@ const TITLE_COLORS: Array[Color] = [
 	Color(0.8, 0.8, 1.0),      # light blue
 ]
 
-## State
-var _player_id: String = ""
+## State (inherits _player_id from UIPanel)
 var _unlocked_titles: Array[TitleData] = []
 var _selected_color: Color = TITLE_COLORS[0]
 

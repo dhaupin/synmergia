@@ -301,13 +301,13 @@ func _on_command_submitted(text: String) -> void:
 	if text.strip_edges() == "":
 		return
 	
-	_terminal_output.append_text("[color=green]>[/color] %s\n" % text)
+	_terminal_output.append_text("[color=green]>[/color] %s\n" % _esc(text))
 	_command_input.clear()
 	
 	var result := _shell.execute(text, _admin_id)
 	
 	if result.output != "":
-		_terminal_output.append_text(result.output + "\n")
+		_terminal_output.append_text(_esc(result.output) + "\n")
 	if result.error != "":
 		_terminal_output.append_text("[color=red]Error:[/color] %s\n" % _esc(result.error))
 	if result.success:
