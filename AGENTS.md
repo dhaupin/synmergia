@@ -345,6 +345,7 @@ static func _esc(text: String) -> String:
 - `core/services/chat_service.gd`
 - `ui/components/combat_log.gd`
 - `ui/components/chat_ui.gd`
+- `ui/components/dialog_ui.gd`
 - `ui/admin/admin_dashboard.gd`
 - `core/admin/player_shell.gd`
 - `core/autoload/logger.gd`
