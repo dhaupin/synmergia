@@ -154,6 +154,11 @@ func _check_trailing_whitespace() -> void:
 				break  # one per file is enough
 	if files_with_trailing == 0:
 		_ok("no trailing whitespace in .gd files")
+	else:
+		# Trailing whitespace is a .editorconfig violation
+		# (`trim_trailing_whitespace = true`) but does not
+		# block the build. Emitted as WARN above.
+		_ok(str(files_with_trailing) + " .gd files have trailing whitespace (warning, not fatal)")
 
 
 func _check_consistent_indent_depth() -> void:

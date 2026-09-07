@@ -551,4 +551,3 @@ func open_sticky() -> void:
 	_actions_container = HBoxContainer.new()
 	_actions_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vbox.add_child(_actions_container)
-

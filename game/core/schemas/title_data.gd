@@ -5,35 +5,35 @@ class_name TitleData
 
 ## Title categories
 enum Category {
-    COMBAT,       # Combat-related titles
-    SOCIAL,       # Party, guild, friends
-    ECONOMY,      # Trading, crafting, collecting
-    EXPLORATION,  # Discovering zones, locations
-    ACHIEVEMENT,  # Achievement-unlocked titles
-    QUEST,        # Quest-unlocked titles
-    ACCOUNT,      # Account-wide titles (across all characters)
-    SPECIAL,      # GM, events, special occasions
+	COMBAT,       # Combat-related titles
+	SOCIAL,       # Party, guild, friends
+	ECONOMY,      # Trading, crafting, collecting
+	EXPLORATION,  # Discovering zones, locations
+	ACHIEVEMENT,  # Achievement-unlocked titles
+	QUEST,        # Quest-unlocked titles
+	ACCOUNT,      # Account-wide titles (across all characters)
+	SPECIAL,      # GM, events, special occasions
 }
 
 ## Title rarity (affects display color intensity)
 enum Rarity {
-    COMMON,
-    UNCOMMON,
-    RARE,
-    EPIC,
-    LEGENDARY,
+	COMMON,
+	UNCOMMON,
+	RARE,
+	EPIC,
+	LEGENDARY,
 }
 
 ## How the title is unlocked
 enum UnlockMethod {
-    ACHIEVEMENT,  # Unlocked via achievement completion
-    QUEST,        # Unlocked via quest completion
-    PVP,          # Unlocked via PvP ranking
-    CRAFTING,     # Unlocked via crafting milestones
-    EVENT,        # Unlocked via time-limited event
-    GM_GRANT,     # Manually granted by GM
-    PURCHASE,     # Purchased from a shop
-    ACCOUNT,      # Account-level achievement
+	ACHIEVEMENT,  # Unlocked via achievement completion
+	QUEST,        # Unlocked via quest completion
+	PVP,          # Unlocked via PvP ranking
+	CRAFTING,     # Unlocked via crafting milestones
+	EVENT,        # Unlocked via time-limited event
+	GM_GRANT,     # Manually granted by GM
+	PURCHASE,     # Purchased from a shop
+	ACCOUNT,      # Account-level achievement
 }
 
 ## Core identification
@@ -63,27 +63,27 @@ enum UnlockMethod {
 @export var sort_order: int = 0
 
 func _init() -> void:
-    if id == "":
-        id = display_name.to_lower().replace(" ", "_")
+	if id == "":
+		id = display_name.to_lower().replace(" ", "_")
 
 ## Check if title has a usable prefix form
 func has_prefix() -> bool:
-    return prefix_form != ""
+	return prefix_form != ""
 
 ## Check if title has a usable suffix form
 func has_suffix() -> bool:
-    return suffix_form != ""
+	return suffix_form != ""
 
 ## Check if title has at least one usable form
 func is_usable() -> bool:
-    return has_prefix() or has_suffix()
+	return has_prefix() or has_suffix()
 
 ## Get rarity color (muted palette, no gold - gold reserved for GM)
 func get_rarity_color() -> Color:
-    match rarity:
-        Rarity.COMMON:    return Color(0.65, 0.65, 0.65)    # gray
-        Rarity.UNCOMMON:  return Color(0.75, 0.60, 0.40)    # bronze
-        Rarity.RARE:      return Color(0.65, 0.70, 0.80)      # silver
-        Rarity.EPIC:      return Color(0.60, 0.50, 0.75)      # purple
-        Rarity.LEGENDARY: return Color(0.45, 0.65, 0.70)      # teal
-        _:                return Color(0.65, 0.65, 0.65)
+	match rarity:
+		Rarity.COMMON:    return Color(0.65, 0.65, 0.65)    # gray
+		Rarity.UNCOMMON:  return Color(0.75, 0.60, 0.40)    # bronze
+		Rarity.RARE:      return Color(0.65, 0.70, 0.80)      # silver
+		Rarity.EPIC:      return Color(0.60, 0.50, 0.75)      # purple
+		Rarity.LEGENDARY: return Color(0.45, 0.65, 0.70)      # teal
+		_:                return Color(0.65, 0.65, 0.65)

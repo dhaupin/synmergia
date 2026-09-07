@@ -52,6 +52,8 @@ func _init() -> void:
 
 	_check_crlf()
 	_check_bom()
+	_check_orphan_cr()
+	_check_final_newline()
 	_check_unbalanced_brackets()
 	_check_extends_after_class_name()
 	_check_triple_blank_lines()
@@ -290,6 +292,90 @@ func _check_triple_blank_lines() -> void:
 		_ok("no 3+ consecutive blank lines")
 	else:
 		_ok(str(bad_files.size()) + " files with 3+ blank lines (info)")
+
+
+# "Orphan" CR: a carriage return (0x0D) that is NOT followed by a
+# linefeed (0x0A). This is the "old Mac" line ending and is universally
+# considered a smell. The CRLF check above catches the more common
+# Windows pattern (CRLF), but a stray CR (e.g., the result of a botched
+# search-and-replace from CRLF -> LF that missed one byte) is its own
+# category. We treat this as ERROR (blocker) because Godot's parser
+# is sensitive to stray CR and the fix is unambiguous.
+func _check_orphan_cr() -> void:
+	var bad_files: Array = []
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		var bytes := Helpers.read_bytes(path)
+		if bytes.size() == 0:
+			continue
+		# Look for 0x0D that is NOT followed by 0x0A. We allow the
+		# CRLF pair (covered by _check_crlf) so we only flag the
+		# CR-without-LF case.
+		var bad := false
+		for i in bytes.size():
+			if bytes[i] == 0x0D:
+				if i + 1 >= bytes.size() or bytes[i + 1] != 0x0A:
+					bad = true
+					break
+		if bad:
+			bad_files.append(path)
+			Helpers.report_issue(path, 0, "error",
+					"orphan CR (\\r without \\n); use LF only")
+	if bad_files.is_empty():
+		_ok("no orphan CR in .gd files")
+	else:
+		_fail("orphan CR in files",
+				str(bad_files.size()) + " files; see ERROR lines above")
+
+
+# Per .editorconfig, every .gd file should end with exactly one
+# newline (`insert_final_newline = true`). Files committed without
+# a final newline or with multiple trailing newlines are both
+# flagged. This is a soft check (WARN, not fatal) so the build
+# doesn't break while we have ~17 such files in the tree. The
+# report tells authors which files to fix.
+func _check_final_newline() -> void:
+	var missing_files: Array = []
+	var extra_files: Array = []
+	for path in Helpers.list_gd_files():
+		if path.begins_with("res://addons/"):
+			continue
+		var bytes := Helpers.read_bytes(path)
+		if bytes.size() == 0:
+			missing_files.append(path)
+			Helpers.report_issue(path, 0, "warning",
+					"empty .gd file (no bytes)")
+			continue
+		# Last byte must be 0x0A (LF), not 0x0D (CR).
+		if bytes[bytes.size() - 1] == 0x0D:
+			extra_files.append(path)
+			Helpers.report_issue(path, 0, "warning",
+					"file ends with \\r (no trailing \\n); use LF only")
+			continue
+		if bytes[bytes.size() - 1] != 0x0A:
+			missing_files.append(path)
+			Helpers.report_issue(path, 0, "warning",
+					"file does not end with a newline")
+			continue
+		# Count consecutive trailing 0x0A bytes. > 1 means extra
+		# trailing newlines.
+		var n := 0
+		var i := bytes.size() - 1
+		while i >= 0 and bytes[i] == 0x0A:
+			n += 1
+			i -= 1
+		if n > 1:
+			extra_files.append(path)
+			Helpers.report_issue(path, 0, "warning",
+					"file has " + str(n) + " trailing newlines (should be exactly 1)")
+	if missing_files.is_empty() and extra_files.is_empty():
+		_ok("every .gd file ends with exactly one newline")
+	else:
+		# Soft check: do not block the build, but list the offenders
+		# so they can be cleaned up.
+		_ok(str(missing_files.size() + extra_files.size())
+				+ " .gd files have final-newline issues (warning, not fatal)")
 
 
 func _finish() -> void:

@@ -698,8 +698,270 @@ game/ui/components/menu_manager.gd             |  +1 -1
 - [ ] Audit `srv/docker/run_all.sh` for shell-script issues
 - [ ] Address openhands issue list (truncated in user msg)
 - [ ] Hook linters into the smoke flow
-- [ ] 8 space-indented .gd files (not a parse error, style)
+- [x] 8 space-indented .gd files (not a parse error, style)  -- DONE session 6
 - [ ] 56 non-ASCII files (em-dash, arrow) — bulk
+
+---
+
+## Session 6 (2026-09-07, Mon) — space-indent sweep
+
+### Goal
+Convert the 8 space-indented files in `game/core/` to tabs per
+`.editorconfig`. These are style violations only, not parse
+errors, but the linter reports them as `WARN` (was a separate
+counter before the conversion).
+
+### Files converted (8)
+| File | Lines |
+|------|-------|
+| `core/entities/entity_test.gd` | 16 |
+| `core/autoload/game_manager.gd` | 200 |
+| `core/schemas/loot_table.gd` | 126 |
+| `core/schemas/title_data.gd` | 89 |
+| `core/schemas/achievement_data.gd` | 91 |
+| `core/_test.gd` | 4 |
+| `core/services/achievement_service.gd` | 161 |
+| `core/_user.gd` | 6 |
+
+### Tool
+Wrote `/tmp/space_to_tab2.py`:
+- 4 leading spaces -> 1 tab, 8 -> 2 tabs, etc.
+- Interior column-alignment spaces preserved (e.g. the
+  `GLOBAL,        # One-time unlock` lines in enums).
+- Lines that are pure whitespace collapse to truly empty
+  lines (removes trailing whitespace on blank lines).
+- Non-multiple-of-4 leading space counts left untouched
+  with a WARN; in this batch all counts were multiples of 4
+  so no warnings.
+
+### Linter state
+Before: 28/28 PASS, but `[PASS] 8 space-indented files (WARN above; not blocking)`.
+After:  28/28 PASS, `[PASS] no space-indented files (all use tabs)`.
+
+`test_lint_indentation` summary:
+- tab-indented files: 234 -> 242 (+8 converts)
+- space-indented files: 8 -> 0
+- mixed-indent files: 0 -> 0
+- 0 parse errors introduced
+
+### QC: parse check
+6 of 8 files parse clean with `godot --headless --check-only --script`.
+
+Two retain pre-existing errors (NOT introduced by this session):
+- `core/autoload/game_manager.gd`: `Too many arguments for "get()" call.
+  Expected at most 1 but received 2.` (the `PlayerManager.get(id, default)`
+  Object.get() collision family; same pattern I fixed in adapter stores
+  in session 5 but bigger blast radius since this is an autoload).
+- `core/services/achievement_service.gd`: `Identifier not found: GameLog`
+  (same family as the `backend_factory.gd` autoload-indirection issue I
+  fixed in session 5; needs the `_log_info()` helper here too).
+
+Both are queued under the "Fix autoloads blocking --script mode"
+follow-up. They predate this session and don't block the lint suite.
+
+### Diff
+8 files, 372 insertions / 372 deletions (no lines added or
+removed, just whitespace conversion).
+
+### Files changed (8)
+
+```
+game/core/_test.gd                        |   2 +-
+game/core/_user.gd                        |   4 ++--
+game/core/autoload/game_manager.gd        | 264 +++++++++++++++++++--------
+game/core/entities/entity_test.gd         |  10 ++++----
+game/core/schemas/achievement_data.gd     |  78 +++++++++++---------
+game/core/schemas/loot_table.gd           | 146 ++++++++++++++++-------------
+game/core/schemas/title_data.gd           |  66 +++++++++--------
+game/core/services/achievement_service.gd | 174 ++++++++++++++++-----------
+```
+
+### Pivoting to DB buildins
+
+Per the 2026-09-07 user note, after this session we pivot to
+"DB buildins" — the work tracked in `labs/prd-db.md` §3-§9
+(schema, contracts, Postgres + Redis adapters, migration
+runner). The lint work continues to clear style issues (the
+56 non-ASCII files are next) but the **primary** track shifts
+to plumbing the adapter layer end-to-end against real
+backends.
+
+Key DB buildin work items, in priority order:
+1. Lock the schemas in `prd-db.md` §3 (P0/P1 services only)
+2. Pick a transport: HTTP sidecar vs GDExtension (§10).
+   PRD recommends HTTP sidecar for v1.
+3. Stand up `srv/pg-bridge/` and `srv/redis-bridge/` shells
+   so adapter implementations have something to call.
+4. Write `postgres_store.gd` and `redis_store.gd` real
+   implementations (currently stubs).
+5. Wire one full vertical slice end-to-end:
+   `AccountService -> AccountStore -> Postgres` and
+   `LoginService -> SessionStore -> Redis`. Verify with
+   `test_login_flow.gd`.
+6. First migration (`V<date>_001__init.sql`) is held until
+   schemas are locked (per `prd-db.md` §9.2).
+
+The 8 space-indented files are no longer a style liability,
+so the only remaining pre-implementation cleanup before DB
+buildins is:
+- 56 non-ASCII files (em-dash, arrow, leq) — bulk
+- Fix the 2 pre-existing autoload parse errors (game_manager,
+  achievement_service) so `--script` mode works and we can
+  actually run the integration tests against real backends.
+
+### Open follow-ups (cumulative, delta from session 5)
+
+- [ ] Fix autoloads blocking --script mode (game_manager,
+      network_manager, player_lock_service, blacksmith_ui,
+      skill_academy_ui, achievement_service) — pre-existing,
+      blocks ALL smoke tests. **Now the gating issue for DB
+      buildins: can't test adapters end-to-end without this.**
+- [ ] Audit `srv/docker/test-headless.sh` wiring
+- [ ] Audit `srv/docker/run_all.sh` for shell-script issues
+- [ ] Address openhands issue list (truncated in user msg)
+- [ ] Hook linters into the smoke flow
+- [ ] 56 non-ASCII files (em-dash, arrow) — bulk
+- [ ] Lock DB schemas (prd-db.md §3) before writing
+      `V<date>_001__init.sql`
+- [ ] Pick transport: HTTP sidecar vs GDExtension (prd-db.md §10)
+- [ ] Stand up `srv/pg-bridge/` and `srv/redis-bridge/` shells
+- [ ] Wire AccountService + LoginService vertical slice
+
+---
+
+## Session 6b (2026-09-07, Mon) � linter additions
+
+User asked: "add trailing white space, line endings, etc to the linter".
+
+### What I added
+
+**Bug fix in `test_lint_indentation.gd`:**
+`_check_trailing_whitespace` previously only emitted a PASS line
+when there were 0 offenders; if any file had trailing ws, the
+test silently produced no line for that check, so the
+indentation linter reported 4/5 instead of 5/5. Fixed to match
+the pattern used by `_check_long_lines` (always emit a line,
+treat offenders as INFO/WARN, not fatal).
+
+**Two new checks in `test_lint_syntax.gd`:**
+
+1. `_check_orphan_cr` (ERROR severity) - any 0x0D byte in a
+   .gd file that is NOT followed by 0x0A. This is the "old
+   Mac" line ending pattern (and any botched search/replace
+   that dropped an LF). Distinct from `_check_crlf` (which
+   flags 0x0D 0x0A pairs) because an orphan CR has its own
+   failure mode in Godot's parser. Currently 0 offenders in
+   the tree, so the check is green.
+
+2. `_check_final_newline` (WARNING severity, not fatal) - per
+   `.editorconfig` `insert_final_newline = true`, every .gd
+   file should end with exactly one `\n`. Three failure
+   modes reported separately:
+     - file does not end with a newline (12 files)
+     - file ends with `\r` (no trailing `\n`) (0 files)
+     - file has > 1 trailing newlines (5 files)
+   Soft severity so the build doesn't break while we have
+   offenders; promote to ERROR once the tree is clean.
+
+### What I fixed
+
+The 17 real final-newline offenders (12 missing + 5 extra)
+across:
+  - `entities/player/player_controller.gd`
+  - `core/autoload/game_config.gd`
+  - `core/services/notification_service.gd`
+  - `ui/community/voting_ui.gd`
+  - `ui/social/{character_transfer_ui,friends_list,party_ui,
+     trade_ui,guild_ui}.gd`
+  - `ui/components/{inventory_ui,ui_panel,ui_widget}.gd`
+  - `ui/hud/hud_services.gd`
+  - `ui/player/report_dialog.gd`
+  - `ui/admin/admin_toolbar.gd`
+  - `ui/targeting/target_tooltip.gd`
+  - `tests/test_login_flow.gd`
+
+Wrote `/tmp/fix_final_newline.py` to do this. The script
+strips any trailing `\n` and re-appends exactly one. The
+hud_services.gd file had 3 trailing newlines (one of which
+made it count for the `_check_triple_blank_lines` info row);
+that count is now 8 instead of 9.
+
+### What I did NOT fix (out of scope)
+
+130 .gd files have trailing whitespace on at least one line
+(reported by the now-functional `_check_trailing_whitespace`).
+The check is soft (WARN) and that's a separate sweep. The
+8 files I converted to tabs in the previous sub-session are
+already clean.
+
+### Parse-check on the 17 fixed files
+
+13 of the 17 had pre-existing parse errors before my work
+(UIPanel inheritance, GameLog/PlayerManager/TargetingManager
+identifier, _cycle_focus duplicate, blacksmith_ui script
+not found, etc.) - all in the same autoload/dependency
+cascade family I documented in session 5. Verified via
+`git stash` that the same errors fire on the unmodified
+files. My newline-only diff cannot cause them.
+
+### Linter state
+Before: 28/28 PASS
+After:  31/31 PASS
+
+| Test | Before | After |
+|------|--------|-------|
+| `test_lint_autoload` | 8/8 | 8/8 |
+| `test_lint_charset` | 3/3 | 3/3 |
+| `test_lint_general` | 8/8 | 8/8 |
+| `test_lint_indentation` | 4/4 | **5/5** |
+| `test_lint_syntax` | 5/5 | **7/7** |
+| **Total** | **28/28** | **31/31** |
+
+`test_lint_indentation` goes 4 -> 5 because the
+trailing-whitespace check now properly emits a line.
+`test_lint_syntax` goes 5 -> 7 because of the two new
+checks (orphan CR + final newline).
+
+### Files changed (19)
+
+```
+game/core/autoload/game_config.gd              |   2 +-
+game/core/services/notification_service.gd     |   1 -
+game/entities/player/player_controller.gd      |   2 +-
+game/tests/lint/test_lint_indentation.gd       |   5 +
+game/tests/lint/test_lint_syntax.gd            |  86 +++++++++++++
+game/tests/test_login_flow.gd                  |   1 -
+game/ui/admin/admin_toolbar.gd                 |   2 +-
+game/ui/community/voting_ui.gd                 |   2 +-
+game/ui/components/inventory_ui.gd             |   2 +-
+game/ui/components/ui_panel.gd                 |   1 -
+game/ui/components/ui_widget.gd                |   2 +-
+game/ui/hud/hud_services.gd                    |   2 -
+game/ui/player/report_dialog.gd                |   2 +-
+game/ui/social/character_transfer_ui.gd        |   2 +-
+game/ui/social/friends_list.gd                 |   2 +-
+game/ui/social/guild_ui.gd                     |   2 +-
+game/ui/social/party_ui.gd                     |   2 +-
+game/ui/social/trade_ui.gd                     |   2 +-
+game/ui/targeting/target_tooltip.gd            |   2 +-
+```
+
+19 files changed, 19 +/- 19 lines (whitespace-only on
+the 17 source files; 5 + 86 added in the 2 linter files).
+The 5 in `test_lint_indentation.gd` is the bug fix; the
+86 in `test_lint_syntax.gd` is the two new check
+functions plus their registration in `_init`.
+
+### Open follow-ups (cumulative, delta from session 6a)
+
+- [ ] 130 .gd files with trailing whitespace - bulk sweep
+- [ ] Promote `_check_final_newline` to ERROR severity
+      once tree is clean (currently WARN, 0 offenders)
+- [ ] Promote `_check_trailing_whitespace` to ERROR severity
+      once tree is clean (currently WARN, 130 offenders)
+- [ ] Fix autoloads blocking --script mode (game_manager,
+      network_manager, player_lock_service, blacksmith_ui,
+      skill_academy_ui, achievement_service) - pre-existing
 
 
 

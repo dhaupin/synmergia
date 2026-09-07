@@ -893,5 +893,3 @@ func _on_vault_gold_changed(player_id: String, vault_type, amount: int) -> void:
 	var bank_panel: Node = _find_panel(["BankUI", "VaultUI"])
 	if bank_panel and bank_panel.has_method("_refresh_vault"):
 		bank_panel._refresh_vault()
-
-

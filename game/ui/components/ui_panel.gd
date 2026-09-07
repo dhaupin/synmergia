@@ -346,4 +346,3 @@ func _get_focusable_recursive(node: Node, out: Array[Control]) -> void:
 		out.append(node)
 	for child in node.get_children():
 		_get_focusable_recursive(child, out)
-
