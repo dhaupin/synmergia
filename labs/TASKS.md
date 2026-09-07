@@ -963,5 +963,35 @@ functions plus their registration in `_init`.
       network_manager, player_lock_service, blacksmith_ui,
       skill_academy_ui, achievement_service) - pre-existing
 
+---
+
+## Session 6c (2026-09-07, Mon) - 4 more linter checks
+
+User asked: "If you see anything else there you can add it."
+
+Added 4 awareness-level checks to `test_lint_general.gd`:
+- `_check_marker_comments`: TODO/FIXME/XXX/HACK/BUG
+  inventory with word-boundary awareness. Found 24 markers
+  across 9 files (18 TODO, 1 FIXME, 1 XXX, 3 HACK, 1 BUG).
+- `_check_empty_function_bodies`: stub detector
+  (`func foo(): pass` or multi-line pass/...). 0 stubs in
+  current tree.
+- `_check_long_files`: flags files > 500 lines. 35 such files
+  in current tree; biggest is game_config.gd at 1719 lines.
+- `_check_assert_in_production`: assert() in non-test code
+  is stripped in release builds. 0 in current tree, useful
+  regression check.
+
+Updated `tests/lint/README.md` to document the new checks.
+
+Linter suite: 31/31 -> 35/35 PASS. The linter even caught
+its own FIXME/XXX/HACK markers in the new code (self-bootstrap
+working).
+
+Pushed as commit `d9354fe` on top of `f903d9b`.
+
+Linter additions (combined sessions 6b + 6c) are now
+considered DONE. Returning to DB buildins in session 7.
+
 
 
