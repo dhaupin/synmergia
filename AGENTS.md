@@ -498,53 +498,235 @@ var msg := "Hello %s" % name     # ✗ (outdated)
 
 ---
 
-## Autoloads
+## Autoloads and class_name
 
-Autoloads are singleton services available globally. The naming convention is:
+Autoloads are singleton services available globally. `class_name` registers a
+script's type as a global identifier. **They look identical when you write
+code but behave very differently.** Misuse causes silent runtime errors
+(null instance, wrong method dispatch) that cascade through `_ready` and
+look like parse errors elsewhere.
+
+**The two rules:**
+
+1. **Autoload name and `class_name` MUST NOT be the same string.** The
+   autoload identifier shadows the class_name; you lose the ability to
+   call `X.new()` or `extends X` reliably. One of them wins, the parser
+   does not warn, and the loser silently does the wrong thing.
+
+2. **Autoloads cannot be instantiated.** `X.new()` on an autoload
+   identifier fails at runtime (autoloads are Nodes, not Scripts).
+   To make a fresh instance, `load("res://path.gd").new()`.
+
+### Naming
 
 | Aspect | Rule | Example |
 |--------|------|---------|
 | Filename | `snake_case.gd` | `notification_service.gd` |
 | Autoload name | `PascalCase` | `NotificationService` |
-| class_name | Optional (some autoloads have it) | `QoSService` has it |
+| `class_name` | Pick one of: omit it OR rename it differently from the autoload | `class_name NotifDispatcher` is OK; `class_name NotificationService` is NOT if `NotificationService` is also an autoload |
 
-### Accessing Autoloads
+### When to add `class_name`
+
+Add `class_name` when you need to:
+
+- **Instantiate**: `var x := MyClass.new()` (the class is not an autoload)
+- **Type-annotate a parameter or variable**: `func process(e: MyClass)`
+- **Type-check at runtime**: `if node is MyClass`
+
+Do **not** add `class_name` when the script is an autoload, unless you have
+a concrete reason (see below). Autoloads are already globally accessible by
+their autoload name; adding `class_name X` where X is also the autoload name
+creates a shadow.
+
+### The one case where `class_name` on an autoload is legitimate
+
+If a file is an autoload AND is also extended by other classes (e.g.
+`extends Entity` where `Entity` is an autoload), then `class_name Entity`
+on the base script is needed so the parser can resolve the parent type
+in the `extends` statement. But this is a **smell**: the script is doing
+two things (base class + autoload singleton). If you find yourself here,
+consider:
+
+- **Option A**: Split. Make the base class its own file (no autoload),
+  have the autoload be a small wrapper that `extends BaseClass` and adds
+  the singleton state. Other code does `extends BaseClass` and
+  `BaseClass.new()`. No shadow.
+- **Option B**: Keep `class_name`, but use the autoload ONLY for the
+  singleton globals (logger, registry, dispatcher) and never call
+  `Entity.new()`. To spawn new entities, use a dedicated subclass
+  (`class_name EnemyEntity extends Entity` in a separate file) or
+  `load("res://core/entities/entity.gd").new()`.
+
+The current code uses **Option B** for `Entity`: `class_name Entity`
+in the autoload file, and `Entity.new()` is called from `spawn_service.gd`.
+**This is a latent bug.** It works only by accident in current Godot
+4.7.2 because `class_name` resolution beats the autoload identifier in
+some code paths but not others. Do not add new code that relies on
+`Entity.new()`. Use a subclass or `load(...).new()`.
+
+### Accessing autoloads
 
 ```gdscript
 # Correct: use the autoload name directly (it's already an instance)
 NotificationService.notify(...)
 QoSService.rate_limit(player_id, "combat")
 
-# Wrong: trying to create a new instance
-var ns := NotificationService.new()  # ✗ FAILS - autoloads are not classes
-```
-
-### When to Use class_name
-
-Only add `class_name` for classes you need to instantiate or type-check:
-
-```gdscript
-# GOOD: class_name for a utility class you instantiate
-class_name CombatMath
-func calculate_damage() -> float:
-    return base_damage * multiplier
-
-# Usage:
-var math := CombatMath.new()
-var dmg := math.calculate_damage()
-
-# GOOD: class_name for type checking
-class_name AchievementService
-func process_achievement(service: AchievementService) -> void:
+# Correct: type-check via the autoload name (no class_name needed)
+if node.get_parent() == GameManager:
     pass
 
-# Some autoloads DO have class_name (needed for identifier resolution)
-# Just don't try to .new() them — they're already instantiated
+# Correct: type-annotate a parameter using the autoload name
+func process(svc: NotificationService) -> void:
+    pass
+
+# Wrong: trying to create a new instance of an autoload
+var ns := NotificationService.new()  # FAILS at runtime
+
+# Correct: instantiate a non-autoload class
+var math := CombatMath.new()         # class_name CombatMath, no autoload
 ```
 
-### Key Rules
+### Extending an autoload's script
 
-1. **Autoloads are singletons** — accessed by name, never instantiated
-2. **Autoloads may need `class_name`** — some code uses the autoload name as a type identifier (e.g., `if service is QoSService`)
-3. **`class_name` only for classes you `new()` or use for typing**
-4. **Filename ≠ class name** — `notification_service.gd` has autoload `NotificationService`, not `NotificationServiceService`
+```gdscript
+# If the autoload file has class_name, this works:
+extends Entity  # requires class_name Entity in entity.gd
+class_name EnemyEntity
+
+# If the autoload file does NOT have class_name, you must preload:
+const EntityScript = preload("res://core/entities/entity.gd")
+extends EntityScript
+class_name EnemyEntity
+```
+
+Preload is more verbose but removes the shadowing risk. Prefer it when
+the base script is an autoload.
+
+### Autoload order
+
+The autoload list in `project.godot` is the load and `_ready` order. Top
+to bottom. If autoload A's `_ready` calls a method on autoload B, then
+A must be listed **after** B. Get this wrong and you get:
+
+```
+Attempt to call function 'X' on a null instance
+```
+
+This error is misleading. It points to the *caller* (A) but the *cause*
+is the *callee* (B) not being ready. Walking the call stack backward
+often reveals the real problem.
+
+To check autoload order:
+
+```bash
+awk '/^\[autoload\]/{flag=1; next} /^\[/{flag=0} flag' game/project.godot \
+  | grep -oP '^\w+(?==)'
+```
+
+To detect forward references (autoload using another that comes later
+in the list), scan each autoload's source for bare references to other
+autoload names. A reference like `GameManager.foo` in `QoSService.gd`
+is a forward reference if `GameManager` is listed after `QoSService`
+in the autoload list.
+
+### Cycles
+
+Three flavors of cycle, all silent:
+
+1. **`_ready` cycle**: A._ready() calls B.method(), B._ready() calls
+   A.method(). Both fail with null instance. No "circular dependency"
+   diagnostic. Fix: defer the cross-service calls with
+   `call_deferred()` or `await get_tree().process_frame`.
+
+2. **Preload cycle**: A preloads B, B preloads A. Parse error in both
+   files. The error message names both, but the root cause is the
+   cycle, not the parse error. Fix: extract a third file C that both A
+   and B depend on, or use `load()` (runtime) instead of `preload()`
+   (parse-time) for one of the references.
+
+3. **Autoload name cycle**: A's autoload entry references B (via direct
+   call in `_ready`), B's references A. Same null instance error as
+   case 1. Fix: same as case 1.
+
+### When you cannot `extends` an autoload
+
+You cannot use an autoload as the parent class in `extends`. The autoload
+is a singleton instance, not a script type. If you need to extend the
+script that backs an autoload, you must give that script a `class_name`
+(no name collision with the autoload) or preload it.
+
+### Self-recovery playbook (when in a loop)
+
+If the project won't load and you're seeing a cascade of errors:
+
+1. **Stop and identify the FIRST parse error.** Godot reports many
+   files failed; usually one is the root cause and the rest are
+   downstream. Read the error list top to bottom.
+
+2. **For each candidate root file, check**:
+   - Does the file have `class_name X` where X is also an autoload?
+     Remove the `class_name` or rename the autoload.
+   - Is the file trying `X.new()` where X is an autoload? Use
+     `load("res://path.gd").new()` or refactor to a subclass.
+   - Does the file extend an autoload's script? Add `class_name` to
+     the parent (no collision) or use `preload(...).new()`.
+   - Does the file reference an autoload that comes LATER in
+     `project.godot`? Move the reference to `call_deferred` or move
+     the autoload up in the list.
+   - Is the file using a reserved keyword as a variable name
+     (`class_name`, `signal`, `func`)? Rename it.
+   - Mixed indentation (tabs vs spaces)? Run `cat -A file.gd` to see
+     the actual whitespace; pick one and stick to it.
+   - `Resource.get("key", default)` parse error? In 4.7.2, default
+     args to `Resource.get` were removed. Use `if resource.has(key)`
+     guard or `resource.get(key, null)`.
+   - Type inference on ternary (`var x := a if cond else b`)? Add
+     explicit type: `var x: T = a if cond else b`.
+
+3. **If the file itself is unrecoverable**, do NOT delete the
+   business logic as a first resort. Instead:
+   - `git stash` to save the working file
+   - Reduce the file to: `## Header\nextends Node\nconst Deps = preload(...)`
+   - Verify the rest of the project loads
+   - Restore the file piece by piece (or use `git checkout HEAD~1 -- file`)
+     to find which lines reintroduce the error
+
+4. **Last resort: gut the file.** Only acceptable if (a) the file is
+   not on the critical path for the boot sequence, (b) you've checked
+   that no other file preloads it, and (c) you record the deletion
+   in the commit message with `BREAKING:` so a future agent can
+   restore it from history. The pattern:
+   ```
+   ## OldName - what it did
+   ## One-line summary of what was lost
+   extends Node
+   const Dep = preload("res://path.gd")
+   ```
+   This is a 3-line stub that does not cascade.
+
+5. **If a stub was created, file a follow-up** to restore the
+   implementation. The git history (`git log --all -- path/to/file.gd`)
+   has every prior version.
+
+### Diagnostic commands
+
+```bash
+# List autoloads in order
+awk '/^\[autoload\]/{flag=1; next} /^\[/{flag=0} flag' game/project.godot \
+  | grep -oP '^\w+(?==)'
+
+# Find class_name collisions with autoloads
+awk '/^\[autoload\]/{flag=1; next} /^\[/{flag=0} flag' game/project.godot \
+  | grep -oP '^\w+(?==)' | sort -u \
+  | while read a; do
+      grep -lP "^\s*class_name\s+${a}\s*$" game/ -r --include="*.gd"
+    done
+
+# Find .new() calls on autoload names
+# (autoloads are PascalCase; bare class_names are also PascalCase; this
+#  returns all .new() calls; manually filter for autoloads)
+grep -rEn "\b[A-Z]\w+\.new\(\)" game/ --include="*.gd"
+
+# Find tabs vs spaces in a file
+cat -A game/path/to/file.gd | head -5  # ^I = tab, $ = end of line
+```
