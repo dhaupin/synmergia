@@ -16,9 +16,13 @@
 ##   K    → skill academy
 ##   H    → blacksmith
 ##   M    → world map
+##   N    → notifications
 ##   O    → settings/options
-##   J    → jump (reserved for future)
-##   ENTER → focus chat input (MenuManager handles this)
+##   Y    → achievements
+##   X    → character transfer
+##   R    → trade
+##   T    → titles
+##   TAB  → cycle targets (or focus within panel)
 extends Node
 
 var _hud: CanvasLayer
@@ -87,9 +91,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_O:
 				_toggle_settings()
-				get_viewport().set_input_as_handled()
-			KEY_J:
-				_toggle_panel("quests")
 				get_viewport().set_input_as_handled()
 			KEY_N:
 				_toggle_panel("faction")
