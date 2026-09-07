@@ -12,6 +12,7 @@ const SkillSchema = preload("res://core/schemas/skill.gd")
 
 const SkillSchema := preload("res://core/schemas/skill.gd")
 const CharacterData := preload("res://core/schemas/character_data.gd")
+const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 signal attack_started()
 signal attack_finished()
@@ -269,8 +270,8 @@ func _can_execute_skill(skill: Skill) -> bool:
 	if entity.health_component and entity.health_component.is_dead():
 		return false
 	
-	# SECURITY: Cannot cast skills while in trade
-	if TradeService and entity.entity_id and TradeService.is_player_locked(entity.entity_id):
+	# SECURITY: Cannot cast skills if locked (trade, follow, etc)
+	if PlayerLockService and entity.entity_id and PlayerLockService.are_skills_blocked(entity.entity_id):
 		return false
 	
 	# Check can_cast on skill

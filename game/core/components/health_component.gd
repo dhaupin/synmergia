@@ -5,7 +5,7 @@ class_name HealthComponent
 const Entity = preload("res://core/entities/entity.gd")
 const Item = preload("res://core/schemas/item.gd")
 const Corpse = preload("res://scenes/entities/corpse.gd")
-const TradeService = preload("res://core/services/trade_service.gd")
+const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 
 signal health_changed(current: int, maximum: int, delta: int)
@@ -118,9 +118,12 @@ func die(killer: Node3D = null) -> void:
 	if entity.combat_component:
 		entity.combat_component.interrupt()
 	
-	# SECURITY: Cancel any active trade
-	if entity.entity_id and TradeService and TradeService.is_player_locked(entity.entity_id):
-		TradeService.force_cancel_trade(entity.entity_id, "You died")
+	# SECURITY: Cancel any active locks on death
+	if entity.entity_id and PlayerLockService:
+		PlayerLockService.cancel_on_death(entity.entity_id)
+		# Also cancel follow
+		if FollowService:
+			FollowService.cancel_all_for_player(entity.entity_id)
 	
 	# Create corpse
 	_create_corpse(killer)
