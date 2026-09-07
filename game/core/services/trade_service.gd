@@ -310,6 +310,26 @@ func _unconfirm(trade: Dictionary, player_id: String) -> void:
 	
 	trade_unconfirmed.emit(trade["id"], player_id)
 
+## Public unconfirm trade
+func unconfirm_trade(trade_id: String, player_id: String) -> bool:
+	var trade: Dictionary = _active_trades.get(trade_id)
+	if not trade:
+		return false
+	
+	if trade["state"] != TradeState.CONFIRMING:
+		return false
+	
+	if trade["player1"] == player_id:
+		trade["player1_confirmed"] = false
+	elif trade["player2"] == player_id:
+		trade["player2_confirmed"] = false
+	else:
+		return false
+	
+	trade_unconfirmed.emit(trade_id, player_id)
+	GameLog.info("TradeService: Player %s unconfirmed trade %s" % [player_id, trade_id])
+	return true
+
 ## Complete the trade
 func _complete_trade(trade_id: String) -> bool:
 	var trade: Dictionary = _active_trades.get(trade_id)

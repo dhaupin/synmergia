@@ -7,7 +7,7 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name TradeUI
 
-enum TradeState { IDLE, PROPOSING, COUNTER_OFFER, ACCEPTED, COMPLETED, CANCELED }
+enum TradeState { IDLE, PROPOSING, COUNTER_OFFER, ACCEPTED, CONFIRMING, COMPLETED, CANCELED }
 
 var _initiator_id: String = ""
 var _target_id: String = ""
@@ -20,6 +20,11 @@ var _trade_state: int = TradeState.IDLE
 var _status_value: Label
 var _gold_label: Label
 var _their_gold_label: Label
+var _confirm_btn: Button
+var _cancel_btn: Button
+var _lock_btn: Button
+var _my_confirmed: bool = false
+var _their_confirmed: bool = false
 
 signal trade_completed(initiator_id: String, target_id: String)
 signal trade_canceled()
@@ -41,6 +46,8 @@ func _bind_service_signals() -> void:
 		"trade_expired": _on_trade_expired,
 		"item_added_to_trade": _on_item_added_to_trade,
 		"item_removed_from_trade": _on_item_removed_from_trade,
+		"gold_added_to_trade": _on_gold_added_to_trade,
+		"gold_removed_from_trade": _on_gold_removed_from_trade,
 		"trade_confirmed": _on_trade_confirmed,
 		"trade_unconfirmed": _on_trade_unconfirmed,
 		"confirmation_countdown_tick": _on_countdown_tick,
@@ -57,6 +64,9 @@ func _on_trade_started(trade_id: String, player1: String, player2: String) -> vo
 	# Sync trade state when trade actually begins (both players accepted).
 	_trade_id = trade_id
 	_trade_state = TradeState.ACCEPTED
+	_my_confirmed = false
+	_their_confirmed = false
+	_update_confirm_button()
 	_update_status("Trade started with %s" % _target_id)
 
 func _on_item_added_to_trade(trade_id: String, player_id: String, item_id: String, quantity: int) -> void:
@@ -67,17 +77,102 @@ func _on_item_removed_from_trade(trade_id: String, player_id: String, item_id: S
 	if _trade_id == trade_id and is_open():
 		_refresh_items()
 
+func _on_gold_added_to_trade(trade_id: String, player_id: String, amount: int) -> void:
+	if _trade_id == trade_id and is_open():
+		_refresh_gold()
+		_unconfirm_if_needed(player_id)
+
+func _on_gold_removed_from_trade(trade_id: String, player_id: String, amount: int) -> void:
+	if _trade_id == trade_id and is_open():
+		_refresh_gold()
+		_unconfirm_if_needed(player_id)
+
+func _refresh_gold() -> void:
+	if not TradeService or _trade_id.is_empty():
+		return
+	var trade: Dictionary = TradeService.get_trade(_trade_id)
+	if trade.is_empty():
+		return
+	var my_id := _initiator_id
+	var is_p1 := trade.get("player1") == my_id
+	var my_gold := trade.get("player1_gold", 0) if is_p1 else trade.get("player2_gold", 0)
+	var their_gold := trade.get("player2_gold", 0) if is_p1 else trade.get("player1_gold", 0)
+	_initiator_gold = my_gold
+	_target_gold = their_gold
+	_update_gold_labels()
+
 func _on_trade_confirmed(trade_id: String, player_id: String) -> void:
 	if _trade_id == trade_id and is_open():
-		_update_status("Trade confirmed by %s" % player_id)
+		var my_id := _initiator_id
+		if player_id == my_id:
+			_my_confirmed = true
+			_update_confirm_button()
+		else:
+			_their_confirmed = true
+		_update_status("Trade confirmed by %s" % player_id if player_id != my_id else "You confirmed. Waiting...")
+		_update_confirm_visual()
 
 func _on_trade_unconfirmed(trade_id: String, player_id: String) -> void:
 	if _trade_id == trade_id and is_open():
-		_update_status("Trade unconfirmed by %s" % player_id)
+		var my_id := _initiator_id
+		if player_id == my_id:
+			_my_confirmed = false
+			_update_confirm_button()
+		else:
+			_their_confirmed = false
+		_update_status("Trade unconfirmed by %s" % player_id if player_id != my_id else "Waiting for both to confirm...")
+		_update_confirm_visual()
 
 func _on_countdown_tick(trade_id: String, seconds_remaining: float) -> void:
 	if _trade_id == trade_id and is_open():
 		_update_status("Confirm in %.0fs..." % seconds_remaining)
+
+func _update_confirm_button() -> void:
+	if not _confirm_btn:
+		return
+	var state := _my_confirmed
+	_confirm_btn.text = "✓ Confirmed" if state else "Confirm Trade"
+	_confirm_btn.disabled = state
+	
+	# Visual feedback for my confirmation
+	if _confirm_btn.has_theme_stylebox_override("normal"):
+		var style = _confirm_btn.get_theme_stylebox("normal") as StyleBoxFlat
+		if style:
+			if state:
+				style.bg_color = UIStyles.COLORS.success * 0.5
+			else:
+				style.bg_color = UIStyles.COLORS.background_dark
+
+func _unconfirm_if_needed(player_id: String) -> void:
+	# If the OTHER party changes their offer, unconfirm them
+	var trade: Dictionary = TradeService.get_trade(_trade_id) if TradeService else {}
+	if trade.is_empty():
+		return
+	var my_id := _initiator_id
+	var is_p1 := trade.get("player1") == my_id
+	if player_id != my_id:
+		if is_p1:
+			trade["player2_confirmed"] = false
+		else:
+			trade["player1_confirmed"] = false
+		_their_confirmed = false
+	_update_confirm_visual()
+
+func _update_confirm_visual() -> void:
+	# Update UI to show confirm status
+	var trade: Dictionary = TradeService.get_trade(_trade_id) if TradeService else {}
+	if trade.is_empty():
+		return
+	var my_id := _initiator_id
+	var is_p1 := trade.get("player1") == my_id
+	var p1_conf := trade.get("player1_confirmed", false)
+	var p2_conf := trade.get("player2_confirmed", false)
+	var my_conf := p1_conf if is_p1 else p2_conf
+	var their_conf := p2_conf if is_p1 else p1_conf
+	
+	if my_conf and their_conf:
+		_update_status("Both confirmed! Executing trade...")
+		_complete_trade()
 
 func _on_trade_completed(_trade_id: String, _trades: Dictionary) -> void:
 	trade_completed.emit(_initiator_id, _target_id)
@@ -167,11 +262,13 @@ func _setup_panel() -> void:
 	accept_btn.custom_minimum_size.y = 40
 	accept_btn.pressed.connect(_on_accept)
 	center.add_child(accept_btn)
+	_confirm_btn = accept_btn
 
 	var cancel_btn := Button.new()
 	cancel_btn.text = "Cancel"
 	cancel_btn.pressed.connect(_on_cancel)
 	center.add_child(cancel_btn)
+	_cancel_btn = cancel_btn
 
 	var right_vbox := VBoxContainer.new()
 	right_vbox.custom_minimum_size.x = 250
@@ -306,16 +403,18 @@ func _refresh_items() -> void:
 			_target_items.add_item(label)
 
 func _on_add_item() -> void:
-	# Open inventory panel in trade mode
+	# Check if locked (confirmed)
+	if _my_confirmed:
+		show_notification("Trade is locked. Unconfirm first.")
+		return
+	
 	if InventoryService and _trade_id:
 		var inv := InventoryService.get_inventory(_initiator_id)
 		if inv:
-			# Get available items from inventory
 			var available := _get_available_items(inv)
 			if available.is_empty():
 				show_notification("No items to trade")
 				return
-			# Show selection dialog
 			_show_item_selection_dialog(available)
 	else:
 		show_notification("Cannot add items right now")
@@ -360,6 +459,11 @@ func _show_item_selection_dialog(items: Array) -> void:
 	dialog.queue_free()
 
 func _on_add_gold() -> void:
+	# Check if locked (confirmed)
+	if _my_confirmed:
+		show_notification("Trade is locked. Unconfirm first.")
+		return
+	
 	var dialog := AcceptDialog.new()
 	dialog.dialog_text = "Enter gold amount:"
 	dialog.title = "Add Gold"
@@ -373,6 +477,9 @@ func _on_add_gold() -> void:
 	if gold_text.is_valid_int():
 		_initiator_gold = gold_text.to_int()
 		_update_gold_labels()
+		# Also update TradeService
+		if TradeService and _trade_id:
+			TradeService.add_gold(_trade_id, _initiator_id, _initiator_gold)
 	else:
 		show_notification("Invalid gold amount")
 
@@ -384,11 +491,46 @@ func _update_gold_labels() -> void:
 
 func _on_accept() -> void:
 	if _trade_state == TradeState.PROPOSING:
+		# Send the trade request
+		if TradeService:
+			var ok := TradeService.request_trade(_initiator_id, _target_id)
+			if not ok:
+				show_notification("Failed to send trade request")
+				return
 		_trade_state = TradeState.COUNTER_OFFER
 		_update_status("Waiting for %s to accept..." % _target_id)
 		show_notification("Trade offer sent!")
-	elif _trade_state == TradeState.COUNTER_OFFER:
-		_complete_trade()
+	elif _trade_state == TradeState.ACCEPTED:
+		# Confirm/lock the trade
+		if TradeService and _trade_id:
+			var ok := TradeService.confirm_trade(_trade_id, _initiator_id)
+			if ok:
+				_my_confirmed = true
+				_update_confirm_button()
+				_update_status("Trade confirmed! Waiting for %s..." % _target_id)
+			else:
+				show_notification("Failed to confirm trade")
+	elif _trade_state == TradeState.CONFIRMING:
+		# Already confirming, just toggle
+		_on_toggle_confirm()
+
+func _on_toggle_confirm() -> void:
+	# Toggle confirmation state
+	if _my_confirmed:
+		# Unconfirm
+		_my_confirmed = false
+		if TradeService and _trade_id:
+			TradeService.unconfirm_trade(_trade_id, _initiator_id)
+		_update_confirm_button()
+		_update_status("Select items and confirm when ready")
+	else:
+		# Confirm
+		if TradeService and _trade_id:
+			var ok := TradeService.confirm_trade(_trade_id, _initiator_id)
+			if ok:
+				_my_confirmed = true
+				_update_confirm_button()
+				_update_status("Trade confirmed! Waiting for %s..." % _target_id)
 
 func _on_cancel() -> void:
 	_trade_state = TradeState.CANCELED
