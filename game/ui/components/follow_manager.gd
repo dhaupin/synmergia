@@ -11,6 +11,7 @@ const FollowService = preload("res://core/services/follow_service.gd")
 @onready var cancel_btn: Button = $Panel/VBox/CancelButton
 
 var _is_visible: bool = false
+var _is_following: bool = false
 
 func _ready() -> void:
 	visible = false
@@ -22,6 +23,18 @@ func _ready() -> void:
 		FollowService.follow_cancelled.connect(_on_follow_cancelled)
 		FollowService.follow_state_changed.connect(_on_follow_state_changed)
 		FollowService.follow_target_moved.connect(_on_target_moved)
+
+func _input(event: InputEvent) -> void:
+	# Handle keyboard shortcut for stopping follow
+	if _is_following and event is InputEventKey and event.pressed:
+		# Escape key cancels follow
+		if event.keycode == KEY_ESCAPE:
+			_stop_follow()
+			get_viewport().set_input_as_handled()
+		# Or 'F' key toggles follow
+		elif event.keycode == KEY_F:
+			_stop_follow()
+			get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
 	if not _is_visible:
@@ -57,6 +70,7 @@ func _on_follow_started(follower_id: String, target_id: String) -> void:
 	_update_state_label(FollowService.FollowState.IDLE)
 	visible = true
 	_is_visible = true
+	_is_following = true
 
 func _on_follow_cancelled(follower_id: String, target_id: String, reason: String) -> void:
 	if not PlayerManager:
@@ -69,6 +83,7 @@ func _on_follow_cancelled(follower_id: String, target_id: String, reason: String
 	# Hide UI
 	visible = false
 	_is_visible = false
+	_is_following = false
 	
 	# Show notification
 	if NotificationService:
@@ -107,6 +122,13 @@ func _update_state_label(state: int) -> void:
 			state_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))  # Gray
 
 func _on_cancel_pressed() -> void:
+	_stop_follow()
+
+func _stop_follow() -> void:
 	if FollowService and PlayerManager:
 		var my_id := str(PlayerManager.get_local_player_id())
 		FollowService.stop_follow(my_id, "cancelled_by_player")
+
+## Check if player is currently following someone
+func is_following() -> bool:
+	return _is_following
