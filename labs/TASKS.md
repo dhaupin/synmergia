@@ -231,3 +231,49 @@ user://config/profanity_words.txt, user://logs/game.log.
 26 subdirs of data/*.tres = ~200 reference data files, all
 headed for GameDataStore via a one-shot loader.
 
+## 2026-09-07 Session 2 — Autoload/class_name audit + AGENTS.md rules
+
+### What happened
+
+Other agent on main mass-deleted 20k lines of business logic in 43
+service/component/UI files (a9ede10) to "fix Godot 4.7.2 parse errors"
+by reducing them to 3-line stubs. They re-implemented 6 critical
+files (b2fc65e) but left 42 others gutted.
+
+Recovery:
+- Discovered the `/backup/2026-09-07-0320est` branch had clean
+  pre-damage code + 30+ legitimate feature commits
+- Reset adapter-layer to 8dbd2a1, then `git rebase --onto backup 2af7c05`
+  replayed my 2 adapter commits onto backup with zero conflicts
+- Final state: backup base + my adapter layer, 0 gutted files
+
+### AGENTS.md update
+
+Replaced the misleading "Autoloads" section with "Autoloads and
+class_name" covering:
+- The two rules (no name collisions, no .new() on autoloads)
+- When to add class_name (and when not to)
+- The Entity latent-bug case (active in spawn_service.gd)
+- Autoload order + forward reference detection
+- Three flavors of cycle (_ready, preload, autoload name)
+- Self-recovery playbook (5 steps)
+- Diagnostic commands (awk + grep one-liners)
+
+### Found latent bug (NOT YET FIXED)
+
+`class_name Entity` in `game/core/entities/entity.gd` is also
+listed as `Entity` autoload in `project.godot`. Code at
+`game/core/services/spawn_service.gd:246, 487` calls `Entity.new()`.
+This will fail at runtime. Workaround: use a subclass
+(`EnemyEntity`, `NPCEntity`) or `load(...).new()`. Documented in
+AGENTS.md but the bug itself remains.
+
+### Next session
+
+Recommended order:
+1. Fix the Entity collision (Option A: split base + singleton)
+2. Wire first 3 services to AdapterRegistry (per prd-db.md §10)
+3. Test the wired services in headless
+4. Then continue with the rest of the services
+
+
