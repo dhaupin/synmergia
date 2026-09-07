@@ -5,6 +5,7 @@ extends Node
 const ZoneData = preload("res://core/schemas/zone_data.gd")
 const Entity = preload("res://core/entities/entity.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const TradeService = preload("res://core/services/trade_service.gd")
 # Zone types
 enum ZoneType {
 	OPEN_WORLD,		 # Seamless, players always in same world
@@ -424,6 +425,10 @@ func perform_seamless_transition(entity, to_zone) -> bool:
 	var from_zone = _zones.get(_entity_zones.get(entity.entity_id, ""))
 	if from_zone == null:
 		return false
+	
+	# SECURITY: Cancel any active trade (zone change breaks trade)
+	if entity.entity_id and TradeService and TradeService.is_player_locked(entity.entity_id):
+		TradeService.force_cancel_trade(entity.entity_id, "You teleported")
 	
 	# Emit start signal
 	seamless_transition_started.emit(entity, from_zone, to_zone)

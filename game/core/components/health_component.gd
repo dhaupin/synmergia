@@ -5,6 +5,7 @@ class_name HealthComponent
 const Entity = preload("res://core/entities/entity.gd")
 const Item = preload("res://core/schemas/item.gd")
 const Corpse = preload("res://scenes/entities/corpse.gd")
+const TradeService = preload("res://core/services/trade_service.gd")
 
 
 signal health_changed(current: int, maximum: int, delta: int)
@@ -116,6 +117,10 @@ func die(killer: Node3D = null) -> void:
 	var entity: Node3D = get_parent()
 	if entity.combat_component:
 		entity.combat_component.interrupt()
+	
+	# SECURITY: Cancel any active trade
+	if entity.entity_id and TradeService and TradeService.is_player_locked(entity.entity_id):
+		TradeService.force_cancel_trade(entity.entity_id, "You died")
 	
 	# Create corpse
 	_create_corpse(killer)

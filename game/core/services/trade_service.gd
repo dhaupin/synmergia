@@ -78,6 +78,35 @@ func _ready() -> void:
 	_account_service = AccountService if AccountService else null
 	_inventory_service = InventoryService if InventoryService else null
 	_same_account_transfer = SameAccountTransferService if SameAccountTransferService else null
+	
+	# Start range check timer
+	var timer := Timer.new()
+	timer.wait_time = 0.5  # Check range every 0.5 seconds
+	timer.timeout.connect(_check_trade_ranges)
+	add_child(timer)
+	timer.start()
+
+## Process: Check trade ranges continuously
+func _process(delta: float) -> void:
+	_check_trade_ranges()
+
+## Check all active trades for range violations
+func _check_trade_ranges() -> void:
+	for trade_id in _active_trades.keys():
+		var trade: Dictionary = _active_trades[trade_id]
+		if trade.is_empty() or trade["state"] > TradeState.CONFIRMING:
+			continue
+		
+		var player1: String = trade["player1"]
+		var player2: String = trade["player2"]
+		
+		# Check if either player went out of range
+		if not _are_players_in_range(player1, player2):
+			_notify_player(player1, "You are too far from your trading partner.")
+			_notify_player(player2, "You are too far from your trading partner.")
+			trade_out_of_range.emit(trade_id, player1)
+			force_cancel_trade(player1, "Out of range")
+			# Note: force_cancel_trade cleans up, so we can continue
 
 ## Request a trade
 func request_trade(from_id: String, to_id: String) -> bool:
