@@ -43,6 +43,25 @@ static func track(player_id: String, event_category: String, amount: int = 1) ->
                 return
         inst._track_event(player_id, event_category, amount)
 
+## Convenience methods for quest/follow/waypoint integration
+static func on_quest_completed(player_id: String, quest_id: String) -> void:
+        track(player_id, "quest_completed", 1)
+
+static func on_quest_started(player_id: String, quest_id: String) -> void:
+        track(player_id, "quest_started", 1)
+
+static func on_follow_started(player_id: String, target_id: String) -> void:
+        track(player_id, "follow_started", 1)
+
+static func on_follow_ended(player_id: String, reason: String = "manual") -> void:
+        track(player_id, "follow_ended", 1)
+
+static func on_waypoint_created(player_id: String) -> void:
+        track(player_id, "waypoint_created", 1)
+
+static func on_enemy_killed(player_id: String, enemy_type: String = "") -> void:
+        track(player_id, "enemy_killed", 1)
+
 static func get_instance() -> Node:
         var ml: MainLoop = Engine.get_main_loop()
         if ml == null or not ml is SceneTree:

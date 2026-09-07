@@ -19,6 +19,7 @@ var _current_node: int = 0
 signal dialogue_started(npc_id: String, dialogue_id: String)
 signal dialogue_ended(npc_id: String, dialogue_id: String)
 signal node_changed(node_index: int, node_data: Dictionary)
+signal action_executed(action_type: int, action_data: Dictionary)
 
 func _ready() -> void:
 	_load_dialogues()
@@ -123,3 +124,76 @@ func end_dialogue() -> void:
 
 func has_dialogue(dialogue_id: String) -> bool:
 	return _dialogues.has(dialogue_id)
+
+func execute_action(action_type: int, action_data: Dictionary, player_id: String = "") -> bool:
+	var DialogActionType = DialogueData.DialogActionType
+	match action_type:
+		DialogActionType.NONE:
+			return true
+		DialogActionType.GIVE_QUEST:
+			var quest_id := action_data.get("quest_id", "")
+			if QuestService and quest_id:
+				return QuestService.accept_quest(player_id, quest_id)
+		DialogActionType.COMPLETE_QUEST:
+			var quest_id := action_data.get("quest_id", "")
+			if QuestService and quest_id:
+				return QuestService.turn_in_quest(player_id, quest_id)
+		DialogActionType.ABANDON_QUEST:
+			var quest_id := action_data.get("quest_id", "")
+			if QuestService and quest_id:
+				QuestService.abandon_quest(player_id, quest_id)
+				return true
+		DialogActionType.START_FOLLOW:
+			var target_id := action_data.get("target_id", "")
+			if FollowService and target_id:
+				return FollowService.request_follow(player_id, target_id)
+		DialogActionType.STOP_FOLLOW:
+			if FollowService:
+				FollowService.cancel_follow(player_id)
+				return true
+		DialogActionType.OPEN_SHOP:
+			var shop_id := action_data.get("shop_id", "")
+			if ShopUI:
+				ShopUI.open_shop(shop_id)
+				return true
+		DialogActionType.OPEN_VAULT:
+			if VaultUI:
+				VaultUI.open_vault(action_data.get("vault_type", "personal"))
+				return true
+		DialogActionType.SET_WAYPOINT:
+			var wp_name := action_data.get("name", "Marker")
+			var color := action_data.get("color", 0)
+			if WaypointService:
+				# WaypointService.create_waypoint would be called with player pos
+				GameLog.debug("DialogAction: SET_WAYPOINT '%s'" % wp_name)
+				return true
+		DialogActionType.GIVE_ITEM:
+			var item_id := action_data.get("item_id", "")
+			var quantity := action_data.get("quantity", 1)
+			if InventoryService and item_id:
+				InventoryService.add_item(player_id, item_id, quantity)
+				return true
+		DialogActionType.GIVE_CURRENCY:
+			var amount := action_data.get("amount", 0)
+			var currency := action_data.get("currency", "gold")
+			GameLog.debug("DialogAction: GIVE_CURRENCY %d %s" % [amount, currency])
+			return true
+		DialogActionType.UNLOCK_TITLE:
+			var title_id := action_data.get("title_id", "")
+			if TitleService and title_id:
+				TitleService.unlock_title(player_id, title_id)
+				return true
+		DialogActionType.TEACH_SKILL:
+			var skill_id := action_data.get("skill_id", "")
+			if SkillAcademyService and skill_id:
+				SkillAcademyService.unlock_skill(player_id, skill_id)
+				return true
+		_:
+			GameLog.warn("DialogAction: Unknown action type %d" % action_type)
+			return false
+	return false
+
+func get_local_player_id() -> String:
+	if PlayerManager:
+		return PlayerManager.local_player
+	return ""
