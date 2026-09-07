@@ -59,45 +59,52 @@ var _failed: int = 0
 
 func _ok(label: String) -> void:
 	_passed += 1
-	print("  PASS: ", label)
+	print("  [PASS] ", label)
 
 
 func _fail(label: String, detail: String = "") -> void:
 	_failed += 1
-	printerr("  FAIL: ", label, " ", detail)
+	printerr("  [FAIL] ", label, " ", detail)
 
 
 func _init() -> void:
 	print("--- LINT: charset (non-ASCII / UTF-8) ---")
 
-	_check_nonascii_bytes()
+	_check_nonascii_outside_strings()
 	_check_named_offenders()
 	_check_tab_in_string()
 
 	_finish()
 
 
-func _check_nonascii_bytes() -> void:
+func _check_nonascii_outside_strings() -> void:
+	# Em-dashes (U+2014) and friends are FINE in string literals and
+	# comments. They are NOT fine in identifiers, code tokens, or
+	# unquoted text (which Godot would treat as parse errors or
+	# weird identifiers). We strip strings and comments first.
 	var dirty_files: Array = []
 	for path in Helpers.list_gd_files():
 		if path.begins_with("res://addons/"):
 			continue
-		var bytes := Helpers.read_bytes(path)
-		if bytes.size() == 0:
+		var text := Helpers.read_text(path)
+		if text.is_empty():
 			continue
+		var code := _strip_strings_and_comments(text)
 		var dirty := PackedInt32Array()
-		for i in bytes.size():
-			if bytes[i] > 0x7F:
+		for i in code.length():
+			var c := code.unicode_at(i)
+			if c > 0x7F:
 				dirty.append(i)
 		if dirty.size() > 0:
 			dirty_files.append(path)
 			Helpers.report_issue(path, 0, "error",
-					str(dirty.size()) + " non-ASCII byte(s); "
-					+ "first 5 offsets: " + str(dirty.slice(0, min(5, dirty.size()))))
+					str(dirty.size()) + " non-ASCII byte(s) outside string/comment; "
+					+ "first 5 offsets: " + str(dirty.slice(0, min(5, dirty.size())))
+					+ "; chars: " + _chars_at(code, dirty))
 	if dirty_files.is_empty():
-		_ok("no non-ASCII bytes in .gd files")
+		_ok("no non-ASCII bytes outside string/comment in .gd files")
 	else:
-		_fail("non-ASCII bytes in .gd files",
+		_fail("non-ASCII bytes outside string/comment in .gd files",
 				str(dirty_files.size()) + " files; see ERROR lines above")
 
 
@@ -182,6 +189,83 @@ func _check_tab_in_string() -> void:
 		_ok("no tab characters inside string literals")
 	else:
 		_ok(str(warned_files.size()) + " files have tabs in strings (info)")
+
+
+# Returns a copy of `text` with all string literals and comments
+# replaced by spaces. Used so the non-ASCII check only flags
+# characters that would actually reach the parser (identifiers,
+# operators, keywords, plain text outside any quote/hash).
+#
+# Limitations: this is a regex-level stripper, not a GDScript
+# parser. Triple-quoted strings (""") and nested constructs
+# (like a # inside a string) are best-effort. False negatives
+# (a # inside a string, e.g. an HTTP URL with a fragment) will
+# cause us to MISS a non-ASCII character, not falsely flag one,
+# which is the safer failure mode.
+func _strip_strings_and_comments(text: String) -> String:
+	var out := ""
+	var i := 0
+	var n := text.length()
+	while i < n:
+		var c := text.substr(i, 1)
+		var n2 := ""
+		if i + 1 < n:
+			n2 = text.substr(i + 1, 1)
+		# Triple-quoted string.
+		if c == "\"" and n2 == "\"":
+			var tq := text.substr(i, 3)
+			if tq == "\"\"\"":
+				# Skip until closing triple-quote.
+				out += "   "
+				i += 3
+				var j := text.find("\"\"\"", i)
+				if j < 0:
+					return out
+				# Preserve newlines so line numbers stay correct.
+				while i < j:
+					var ch := text.substr(i, 1)
+					out += " " if ch != "\n" else "\n"
+					i += 1
+				i = j + 3
+				continue
+		# Single-quoted (double-quoted) string.
+		if c == "\"":
+			out += " "
+			i += 1
+			while i < n:
+				var ch := text.substr(i, 1)
+				if ch == "\\" and i + 1 < n:
+					out += "  "
+					i += 2
+					continue
+				if ch == "\"":
+					out += " "
+					i += 1
+					break
+				out += "\n" if ch == "\n" else " "
+				i += 1
+			continue
+		# Line comment.
+		if c == "#":
+			while i < n:
+				var ch := text.substr(i, 1)
+				if ch == "\n":
+					out += "\n"
+					i += 1
+					break
+				out += " "
+				i += 1
+			continue
+		out += c
+		i += 1
+	return out
+
+
+func _chars_at(text: String, offsets: PackedInt32Array) -> String:
+	var parts: Array = []
+	for o in offsets.slice(0, min(5, offsets.size())):
+		parts.append(String.chr(text.unicode_at(o)))
+	return "[" + ", ".join(parts) + "]"
 
 
 func _finish() -> void:

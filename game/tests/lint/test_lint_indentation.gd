@@ -36,12 +36,12 @@ var _failed: int = 0
 
 func _ok(label: String) -> void:
 	_passed += 1
-	print("  PASS: ", label)
+	print("  [PASS] ", label)
 
 
 func _fail(label: String, detail: String = "") -> void:
 	_failed += 1
-	printerr("  FAIL: ", label, " ", detail)
+	printerr("  [FAIL] ", label, " ", detail)
 
 
 func _init() -> void:
