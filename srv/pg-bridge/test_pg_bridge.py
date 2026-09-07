@@ -155,8 +155,8 @@ class TestPgBridge(unittest.TestCase):
         _, body = self.h.post("/batch", {
             "statements": [
                 "CREATE TABLE b (id TEXT)",
-                "INSERT INTO b (id) VALUES ($1)",
-                "INSERT INTO b (id) VALUES ($1)",
+                "INSERT INTO b (id) VALUES ('x')",
+                "INSERT INTO b (id) VALUES ('y')",
             ]
         })
         self.assertTrue(body["ok"])
@@ -207,15 +207,34 @@ class TestMigrationAgainstBridge(unittest.TestCase):
                 files.append(os.path.join(MIGRATIONS_DIR, name))
         return files
 
+    @staticmethod
+    def _strip_comments(sql: str) -> str:
+        """Remove SQL line comments (-- ...) before splitting on ';'.
+
+        Naive split(';') + replace('\\n',' ') turns a comment line that
+        happens to contain ';' into two non-comment fragments, one of
+        which the parser then tries to execute as SQL. This mirrors the
+        statement splitter in game/adapters/migrations/migration_runner.gd.
+        """
+        out = []
+        for line in sql.split("\n"):
+            in_str = False
+            for i, ch in enumerate(line):
+                if ch == "'":
+                    in_str = not in_str
+                elif ch == "-" and not in_str and i + 1 < len(line) and line[i + 1] == "-":
+                    line = line[:i]
+                    break
+            out.append(line)
+        return "\n".join(out)
+
     def test_migration_creates_tables(self):
         for path in self._read_migrations():
             with open(path) as f:
-                sql = f.read()
-            # Split on statement boundaries (simple: ; at end of line).
+                sql = self._strip_comments(f.read())
             for stmt in sql.split(";"):
                 stmt = stmt.strip()
                 if stmt:
-                    stmt = stmt.replace("\n", " ")
                     self.h.post("/execute", {"sql": stmt})
 
         # accounts table should exist now.
