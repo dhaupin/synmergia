@@ -6,6 +6,7 @@
 ##  - Mouse position
 ##
 ## Toggle: DebugOverlay.toggle() or F11 key
+## Accessibility: Announces state changes for screen readers
 
 extends CanvasLayer
 
@@ -15,6 +16,10 @@ var _panel: Panel
 var _state_label: Label
 var _hover_label: Label
 var _mouse_label: Label
+
+## Accessibility: Description for screen readers
+func _get_accessibility_properties() -> Dictionary:
+	return {"role": "log", "label": "Debug overlay - Game state inspector"}
 
 static func toggle() -> void:
 	if instance:
