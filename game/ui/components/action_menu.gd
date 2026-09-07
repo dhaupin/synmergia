@@ -171,10 +171,12 @@ func _get_actions_for_type(target_type: int) -> Array:
 		Entity.EntityType.PLAYER:
 			actions = [
 				{"id": "whisper", "text": "Whisper", "icon": "💬"},
+					{"id": "follow", "text": "Follow", "icon": "👣"},
 				{"id": "invite_party", "text": "Invite to Party", "icon": "⚔️"},
 				{"id": "invite_guild", "text": "Invite to Guild", "icon": "🏰"},
 				{"id": "trade", "text": "Trade", "icon": "💱"},
 				{"id": "add_friend", "text": "Add Friend", "icon": "👤"},
+					{"id": "view_character", "text": "View Character", "icon": "📋"},
 				{"id": "report", "text": "Report Player", "icon": "⚠️", "danger": true}
 			]
 		Entity.EntityType.NPC:
