@@ -438,11 +438,19 @@ func _on_action_selected(action_id: String, target_id: String) -> void:
 				var ok := TradeService.request_trade(my_id, target_id)
 				if not ok:
 					GameLog.info("Trade request failed")
+		"add_friend":
+			if FriendsService and PlayerManager:
+				var my_id := str(PlayerManager.get_local_player_id())
+				var my_name := PlayerManager.get_local_player_name() if PlayerManager.has_method("get_local_player_name") else ""
+				FriendsService.send_friend_request(my_id, my_name, target_id)
+		"view_character":
+			_open_character_inspect(target_id)
+		"view_guild":
+			_open_guild_info(target_id)
 		"follow":
 			GameLog.info("Follow action: %s" % target_id)
 		"inspect":
-			if _mm and _mm.has_method("open_menu"):
-				_mm.open_menu("character")
+			_open_character_inspect(target_id)
 		"whisper":
 			if ChatService:
 				ChatService.open_whisper(target_id)
@@ -452,3 +460,30 @@ func _on_action_selected(action_id: String, target_id: String) -> void:
 		"invite_guild":
 			if GuildService:
 				GuildService.invite_player(target_id)
+		"report":
+			# TODO: Open report dialog
+			GameLog.info("Report action: %s" % target_id)
+
+
+func _open_character_inspect(target_id: String) -> void:
+	if not _mm:
+		return
+	# Open character panel in inspect mode with target player
+	if _mm.has_method("open_character_inspect"):
+		_mm.open_character_inspect(target_id)
+	elif _mm.has_method("open_menu"):
+		_mm.open_menu("character")
+
+
+func _open_guild_info(target_id: String) -> void:
+	# Get the player's guild and open guild info panel
+	if GuildService and GuildService.has_method("get_player_guild"):
+		var guild_id := GuildService.get_player_guild(target_id)
+		if not guild_id.is_empty():
+			# Open guild panel showing this guild
+			if _mm and _mm.has_method("open_guild_info"):
+				_mm.open_guild_info(guild_id)
+			elif _mm and _mm.has_method("open_menu"):
+				_mm.open_menu("guild")
+		else:
+			GameLog.info("Player %s is not in a guild" % target_id)
