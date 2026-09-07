@@ -10,6 +10,8 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 # messages land on the same toast feed as the rest of the security
 # surface (kick, ban, restriction).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const CooldownService = preload("res://core/services/cooldown_service.gd")
+const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 # Service references
 var _account_service: AccountService
@@ -24,11 +26,6 @@ var _pending_requests: Dictionary = {}
 
 # Player state tracking for security
 var _players_in_trade: Dictionary = {}  # player_id -> trade_id
-var _players_locked: Dictionary = {}     # player_id -> true (locked from actions)
-
-# Cooldown tracking (separate from QoS rate limit)
-var _last_trade_request: Dictionary = {}  # player_id -> timestamp
-var _trade_request_cooldown: float = 30.0  # 30 seconds between requests
 
 # Trade request timeout
 const REQUEST_TIMEOUT_SECONDS: float = 60.0
@@ -110,14 +107,8 @@ func _check_trade_ranges() -> void:
 
 ## Request a trade
 func request_trade(from_id: String, to_id: String) -> bool:
-	# QoS: Rate limit trade requests (player notified by QoSService)
-	if not QoSService.rate_limit(from_id, "trade"):
-		return false
-	
-	# 30-second cooldown between requests (prevents spam)
-	if _is_on_cooldown(from_id):
-		var remaining := get_cooldown_remaining(from_id)
-		_notify_player(from_id, "Wait %.0f seconds before sending another trade request." % remaining, NotifKind.TRADE_COOLDOWN)
+	# Use CooldownService for unified cooldown management
+	if CooldownService and not CooldownService.try_start(from_id, "trade"):
 		return false
 	
 	# Security: Check if player is trade restricted
@@ -154,7 +145,6 @@ func request_trade(from_id: String, to_id: String) -> bool:
 	}
 
 	_pending_requests[to_id] = request
-	_set_request_cooldown(from_id)
 	trade_requested.emit(from_id, to_id)
 	GameLog.info("TradeService: Trade request from %s to %s" % [from_id, to_id])
 
@@ -203,8 +193,8 @@ func accept_trade(to_id: String) -> String:
 	# SECURITY: Lock both players - prevents movement, skills, combat during trade
 	_players_in_trade[from_id] = trade_id
 	_players_in_trade[to_id] = trade_id
-	lock_player_for_trade(from_id, trade_id)
-	lock_player_for_trade(to_id, trade_id)
+	PlayerLockService.lock_player(from_id, PlayerLockService.LockReason.TRADE, {"trade_id": trade_id})
+	PlayerLockService.lock_player(to_id, PlayerLockService.LockReason.TRADE, {"trade_id": trade_id})
 	
 	trade_accepted.emit(trade_id, from_id, to_id)
 	trade_started.emit(trade_id, from_id, to_id)
@@ -241,8 +231,10 @@ func cancel_trade(trade_id: String, player_id: String) -> bool:
 	# Unlock both players
 	var player1: String = trade["player1"]
 	var player2: String = trade["player2"]
-	unlock_player_from_trade(player1)
-	unlock_player_from_trade(player2)
+	PlayerLockService.unlock_player(player1, PlayerLockService.LockReason.TRADE)
+	PlayerLockService.unlock_player(player2, PlayerLockService.LockReason.TRADE)
+	_players_in_trade.erase(player1)
+	_players_in_trade.erase(player2)
 	
 	_active_trades.erase(trade_id)
 	trade_cancelled.emit(trade_id, player_id)
@@ -457,8 +449,10 @@ func _complete_trade(trade_id: String) -> bool:
 		_log_trade(player1, player2, player1_items, player2_items, player1_gold, player2_gold)
 
 		# Set cooldowns
-		_set_cooldown(player1)
-		_set_cooldown(player2)
+		if CooldownService:
+				CooldownService.start_cooldown(player1, "trade")
+		if CooldownService:
+				CooldownService.start_cooldown(player2, "trade")
 
 		trade_completed.emit(trade_id, trades)
 		GameLog.info("TradeService: Trade %s completed" % trade_id)
@@ -470,8 +464,10 @@ func _complete_trade(trade_id: String) -> bool:
 		_refund_trade_items(trade)
 
 	# Clean up: unlock players and close trade
-	unlock_player_from_trade(player1)
-	unlock_player_from_trade(player2)
+	PlayerLockService.unlock_player(player1, PlayerLockService.LockReason.TRADE)
+	PlayerLockService.unlock_player(player2, PlayerLockService.LockReason.TRADE)
+	_players_in_trade.erase(player1)
+	_players_in_trade.erase(player2)
 	trade_closed.emit(trade_id, "completed" if transfer_success else "failed")
 	_active_trades.erase(trade_id)
 
@@ -543,51 +539,17 @@ func is_in_trade_range(player_id: String) -> bool:
 	var other_id := trade["player1"] if trade["player2"] == player_id else trade["player2"]
 	return _are_players_in_range(player_id, other_id)
 
-## Check if player is on request cooldown
-func _is_on_cooldown(player_id: String) -> bool:
-	if not _last_trade_request.has(player_id):
-		return false
-	var elapsed := Time.get_unix_time_from_system() - _last_trade_request[player_id]
-	return elapsed < _trade_request_cooldown
+# ============ PLAYER LOCKING (delegated to PlayerLockService) ============
 
-## Set request cooldown
-func _set_request_cooldown(player_id: String) -> void:
-	_last_trade_request[player_id] = Time.get_unix_time_from_system()
-
-## Get cooldown remaining
-func get_cooldown_remaining(player_id: String) -> float:
-	if not _last_trade_request.has(player_id):
-		return 0.0
-	var elapsed := Time.get_unix_time_from_system() - _last_trade_request[player_id]
-	return max(0.0, _trade_request_cooldown - elapsed)
-
-# ============ PLAYER LOCKING ============
-
-## Lock player during trade (prevents movement, skills, combat)
-func lock_player_for_trade(player_id: String, trade_id: String) -> void:
-	if _players_locked.get(player_id, "").is_empty():
-		_players_locked[player_id] = trade_id
-		player_locked_for_trade.emit(player_id, trade_id)
-		GameLog.debug("TradeService: Player %s locked for trade %s" % [player_id, trade_id])
-
-## Unlock player after trade
-func unlock_player_from_trade(player_id: String) -> void:
-	if _players_locked.has(player_id):
-		var trade_id := _players_locked[player_id]
-		_players_locked.erase(player_id)
-		_players_in_trade.erase(player_id)
-		player_unlocked_from_trade.emit(player_id, trade_id)
-		GameLog.debug("TradeService: Player %s unlocked from trade" % player_id)
-
-## Check if player is locked (cannot move/use skills)
+## Check if player is locked for trade (delegates to PlayerLockService)
 func is_player_locked(player_id: String) -> bool:
-	return _players_locked.has(player_id)
+	return PlayerLockService.has_lock_reason(player_id, PlayerLockService.LockReason.TRADE)
 
 ## Get lock reason for player
 func get_lock_reason(player_id: String) -> String:
-	if not is_player_locked(player_id):
-		return ""
-	return "in_trade"
+	if is_player_locked(player_id):
+		return "in_trade"
+	return ""
 
 ## Force cancel trade and unlock players (for death, teleport, out-of-range)
 func force_cancel_trade(player_id: String, reason: String) -> void:
@@ -597,7 +559,8 @@ func force_cancel_trade(player_id: String, reason: String) -> void:
 	
 	var trade: Dictionary = _active_trades.get(trade_id, {})
 	if trade.is_empty():
-		unlock_player_from_trade(player_id)
+		PlayerLockService.unlock_player(player_id, PlayerLockService.LockReason.TRADE)
+		_players_in_trade.erase(player_id)
 		return
 	
 	# Notify both players
@@ -610,8 +573,10 @@ func force_cancel_trade(player_id: String, reason: String) -> void:
 	
 	# Clean up
 	_active_trades.erase(trade_id)
-	unlock_player_from_trade(player_id)
-	unlock_player_from_trade(other_id)
+	PlayerLockService.unlock_player(player_id, PlayerLockService.LockReason.TRADE)
+	PlayerLockService.unlock_player(other_id, PlayerLockService.LockReason.TRADE)
+	_players_in_trade.erase(player_id)
+	_players_in_trade.erase(other_id)
 	trade_closed.emit(trade_id, reason)
 	GameLog.info("TradeService: Trade %s force-cancelled: %s" % [trade_id, reason])
 
@@ -767,8 +732,6 @@ func _log_trade(player1: String, player2: String, player1_items: Array, player2_
 
 # Anti-scam settings
 var _confirmation_countdown_seconds: float = 3.0
-var _trade_cooldown_seconds: float = 10.0
-var _player_last_trade: Dictionary = {}
 
 signal confirmation_countdown_started(trade_id: String, seconds: float)
 signal confirmation_countdown_cancelled(trade_id: String, cancelled_by: String)
@@ -802,24 +765,17 @@ func cancel_confirmation_countdown(trade_id: String, player_id: String) -> bool:
 	confirmation_countdown_cancelled.emit(trade_id, player_id)
 	return true
 
-## Check trade cooldown
+## Check if player can trade (delegates to CooldownService)
 func can_trade(player_id: String) -> bool:
-	if _player_last_trade.has(player_id):
-		var elapsed: float = Time.get_unix_time_from_system() - _player_last_trade[player_id]
-		if elapsed < _trade_cooldown_seconds:
-			return false
+	if CooldownService:
+		return not CooldownService.is_on_cooldown(player_id, "trade")
 	return true
 
-## Get cooldown remaining
+## Get cooldown remaining (delegates to CooldownService)
 func get_cooldown_remaining(player_id: String) -> float:
-	if not _player_last_trade.has(player_id):
-		return 0.0
-	var elapsed: float = Time.get_unix_time_from_system() - _player_last_trade[player_id]
-	return max(0.0, _trade_cooldown_seconds - elapsed)
-
-## Set cooldown (called after trade completes)
-func _set_cooldown(player_id: String) -> void:
-	_player_last_trade[player_id] = Time.get_unix_time_from_system()
+	if CooldownService:
+		return CooldownService.get_remaining(player_id, "trade")
+	return 0.0
 
 # ============ TRADE WINDOW UI HELPERS ============
 

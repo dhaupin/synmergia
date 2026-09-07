@@ -448,7 +448,9 @@ func _on_action_selected(action_id: String, target_id: String) -> void:
 		"view_guild":
 			_open_guild_info(target_id)
 		"follow":
-			GameLog.info("Follow action: %s" % target_id)
+			_start_follow(target_id)
+		"stop_follow":
+			_stop_follow()
 		"inspect":
 			_open_character_inspect(target_id)
 		"whisper":
@@ -487,3 +489,17 @@ func _open_guild_info(target_id: String) -> void:
 				_mm.open_menu("guild")
 		else:
 			GameLog.info("Player %s is not in a guild" % target_id)
+
+
+func _start_follow(target_id: String) -> void:
+	if FollowService and PlayerManager:
+		var my_id := str(PlayerManager.get_local_player_id())
+		var ok := FollowService.request_follow(my_id, target_id)
+		if not ok:
+			GameLog.info("Follow request failed")
+
+
+func _stop_follow() -> void:
+	if FollowService and PlayerManager:
+		var my_id := str(PlayerManager.get_local_player_id())
+		FollowService.stop_follow(my_id, "cancelled")
