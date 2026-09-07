@@ -73,11 +73,72 @@ func create_accessible_button(text: String, tooltip: String = "") -> Button:
 		btn.tooltip_text = text
 	return btn
 
+## Create a canonical close button (X) for panel headers
+func create_close_button() -> Button:
+	var btn := Button.new()
+	btn.text = "X"
+	btn.custom_minimum_size = Vector2(36, 36)
+	btn.focus_mode = Control.FOCUS_ALL
+	btn.tooltip_text = "Close (ESC)"
+	btn.pressed.connect(close)
+	return btn
+
 ## Announce a change for screen readers (logs for now, extensible)
 func announce_for_screen_reader(message: String) -> void:
 	# Emit signal that can be connected to a screen reader service
 	# For now, log to console for debug
 	print("[A11Y] " + message)
+
+## ============================================================================
+## DISTANCE-BASED CLOSE (for interactable panels like dialogs, shops)
+## ============================================================================
+
+var _max_interact_distance: float = 5.0  # Configurable per panel
+
+## Set max distance for auto-close when player moves away
+func set_max_interact_distance(distance: float) -> void:
+	_max_interact_distance = distance
+
+## Check if player is within interact distance - call in _process()
+## Override in subclasses that need distance-based auto-close
+func check_interact_distance(player_pos: Vector3, target_pos: Vector3) -> bool:
+	var dist: float = player_pos.distance_to(target_pos)
+	if dist > _max_interact_distance:
+		close()
+		return false
+	return true
+
+## Canonical distance calculation - use Vector3.distance_to() for 3D
+## For planar (2D) checks, use position.project(Vector3.UP).distance_to()
+
+## ============================================================================
+## PROGRESS / LOADING HELPERS
+## ============================================================================
+
+## Create a canonical progress bar with UIStyles colors
+func create_progress_bar(width: float = 200, height: float = 8, show_percentage: bool = false) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(width, height)
+	bar.show_percentage = show_percentage
+	bar.max_value = 100
+	bar.value = 0
+	# Style the bar using UIStyles
+	var style := StyleBoxFlat.new()
+	style.bg_color = UIStyles.COLORS.background_dark
+	style.border_color = UIStyles.COLORS.border
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	bar.add_theme_stylebox_override("background", style)
+	return bar
+
+## Create a loading spinner (rotating texture simulation via animated label)
+func create_loading_indicator() -> Label:
+	var indicator := Label.new()
+	indicator.text = "..."
+	indicator.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	return indicator
 
 ## ============================================================================
 ## BASE SETUP
@@ -116,6 +177,15 @@ func _setup_base_panel() -> PanelContainer:
 func _on_overlay_click(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		close()
+
+## Canonical close() - override in subclasses for custom cleanup
+## Close mechanisms:
+##   1. ESC key → HudHotkeys → _handle_escape() → MenuManager → close()
+##   2. X button → pressed.connect(close)
+##   3. Click overlay → _on_overlay_click()
+##   4. Panel title close button (X) → close()
+##   5. Distance check → close() (for interactable panels)
+##   6. Timed auto-close → close() (for notifications/toasts)
 
 ## Called by HudHotkeys for TAB focus cycling when panel is open.
 func _on_tab_pressed(shift: bool) -> void:
