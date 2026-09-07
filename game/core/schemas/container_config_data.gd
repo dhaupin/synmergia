@@ -5,8 +5,8 @@
 ##   var data := ContainerConfigData.load()
 ##   var config = data.get_container(ContainerType.INVENTORY)
 
-class_name ContainerConfigData
 extends Resource
+class_name ContainerConfigData
 
 ## Container types (matches ContainerSchema.ContainerType)
 enum ContainerType {

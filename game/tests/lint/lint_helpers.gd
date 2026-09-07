@@ -153,18 +153,42 @@ static func parse_autoloads(project_path: String = "res://project.godot") -> Arr
 # Extract class_name declarations from a script's first 40 lines.
 # Returns the class_name (String) or "" if none.
 static func extract_class_name(text: String) -> String:
-	for raw in text.split("\n"):
+	# Find the first class_name declaration in the file.
+	# Godot 4 allows it anywhere, but the project style (per
+	# AGENTS.md) is: `extends X` then `class_name Y` (or just
+	# `class_name Y` first if no parent). We scan up to the first
+	# non-comment executable block (skipping a leading docstring
+	# block of `## ...` lines) to keep the search bounded.
+	#
+	# Note: order is checked separately by
+	# first_declaration_kind() and the syntax linter. This helper
+	# just needs to return whatever class_name is declared.
+	var lines := text.split("\n")
+	var saw_executable := false
+	for raw in lines:
 		var line := raw.strip_edges()
+		if line.is_empty() or line.begins_with("#") or line.begins_with("##"):
+			continue
 		if line.begins_with("class_name "):
 			var parts := line.split(" ", false)
 			if parts.size() >= 2:
 				return parts[1]
 			return ""
-		# Stop at first executable line; class_name must come first.
-		if not line.is_empty() \
-				and not line.begins_with("#") \
-				and not line.begins_with("##"):
-			return ""
+		# If we see a `const`/`var`/`func`/`enum` between extends and
+		# class_name, keep looking — those are not "real" code, they
+		# are just data declarations.
+		if line.begins_with("extends ") or line.begins_with("const ") \
+				or line.begins_with("var ") or line.begins_with("enum "):
+			saw_executable = true
+			continue
+		if line.begins_with("func ") or line.begins_with("signal ") \
+				or line.begins_with("static "):
+			# Real code; class_name would have had to be above.
+			if saw_executable:
+				return ""
+			continue
+		# Anything else (decorator, @onready, etc.) — keep scanning.
+		continue
 	return ""
 
 

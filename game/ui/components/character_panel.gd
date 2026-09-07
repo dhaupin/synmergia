@@ -539,14 +539,14 @@ func _setup_stats_tab() -> void:
 	vbox.add_child(char_header)
 
 	var char_name := Label.new()
-	    char_name.name = "CharName"
-    char_name.text = "Level 1 Character"
+	char_name.name = "CharName"
+	char_name.text = "Level 1 Character"
 	char_name.add_theme_font_size_override("font_size", 16)
 	char_header.add_child(char_name)
 
 	# Stats grid (2 columns)
 	var stats_grid := GridContainer.new()
-		stats_grid.name = "GridContainer"
+	stats_grid.name = "GridContainer"
 	stats_grid.columns = 2
 	stats_grid.custom_minimum_size.y = 250
 	vbox.add_child(stats_grid)
