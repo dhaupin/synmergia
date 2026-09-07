@@ -447,4 +447,102 @@ created by pushing `adapter-layer` to `labs/db`. Rebasing
 onto main at this time was not attempted because main is
 being rewritten (510-commit rebase in progress when we tried).
 
+## 2026-09-07 — fourth session (lint + linter-bug chipping)
+
+**Branch:** `adapter-layer` -> `labs/db`
+**HEAD before:** 257d0fe (test(lint): downgrade false-positive charset/indentation to info)
+**HEAD after:**  5211b08 (fix(lint): resolve class_name collisions, stub broken quest, fix char_panel indent)
+**Pushed:** yes, to labs/db
+
+### What got fixed
+
+1. **`extract_class_name()` regression** (lint_helpers.gd)
+   The helper had Godot-3-style "stop at first executable line"
+   logic. In Godot 4 the project style is `extends X` followed
+   by `class_name Y`, so the helper returned "" for nearly
+   every file and the autoload linter reported 4 class names
+   instead of the real 138. Rewrote it to skip past `extends`,
+   `const`, `var`, `enum` and keep looking for `class_name`.
+   *Side effect:* the autoload linter's [FAIL] "scan_class_names
+   got 0 entries" branch is now retired — the assertion was a
+   test for a bug we no longer have.
+
+2. **4 class_name-before-extends** (real GDScript parse errors):
+   - `core/schemas/container_schema.gd` — swapped
+   - `core/schemas/container_config_data.gd` — swapped
+   - `ui/community/voting_ui.gd` — swapped
+   - `data/quests/quest_guide_npc.gd` — DEAD CODE, stubbed
+     out. The file referenced schemas that never existed
+     (`quest_objective.gd`, `quest.gd`), shadowed the real
+     `QuestData` via duplicate class_name, and called
+     `update_objective()` and `complete_quest()` that were
+     never defined. Nothing else in the project loads it
+     (no .tres, no preload). Replaced 199 lines with a thin
+     Resource stub that preserves the metadata constants
+     and exposes a `get_merchant_entity_template()` hook
+     for when someone wants to revive the quest.
+
+3. **`character_panel.gd` mixed-indent** (partial)
+   The `_build_ui` function used 4-space indent while the
+   rest of the file used tabs. Fixed lines 542, 543, 549, 565
+   (the lines the linter flagged). The file still does not
+   fully parse — there are deeper indent issues in the same
+   function (more lines with leading spaces instead of tabs).
+   Not yet a [PASS] for test_lint_indentation.
+
+### Linter results after this session
+
+| Test                  | Before           | After            |
+|-----------------------|------------------|------------------|
+| test_lint_autoload    | 7/8 PASS         | 8/8 PASS         |
+| test_lint_charset     | 3/3 PASS         | 3/3 PASS         |
+| test_lint_indentation | 3/4 PASS         | 3/4 PASS         |
+| test_lint_syntax      | 5/5 PASS         | 5/5 PASS         |
+| test_lint_general     | 6/8 PASS         | 7/8 PASS         |
+
+The 1 remaining [FAIL] in both indentation and general is
+the same `character_panel.gd` — same root cause (the
+_space-indented function body_), not a new bug. Fixing it
+fully needs a tool like `unexpand -t 4` over the whole
+function or a careful manual pass over lines 530-720.
+
+### Real project parse errors still open (pre-existing)
+
+- `adapters/registry.gd` — "Could not resolve class
+  `PersistenceStore` and `CacheStore`". These classes live
+  in `labs/multi-iso/db/` and have not yet been pulled into
+  the game/ tree.
+- `adapters/registry.gd` — `connect()` signature mismatch
+  with Object native (`StringName, Callable, int`).
+- `adapters/registry.gd` and `adapters/backend_factory.gd`
+  — `connect()` shadows Object.connect. The Godot-idiomatic
+  fix is to rename (e.g. `_connect`) or to not define a
+  `connect()` method at all (use the built-in).
+
+### Why this commit was pushed early
+
+User asked to push mid-session to avoid losing progress to
+a 429 / context reset. The character_panel.gd work is
+incomplete but the helper fix and the 4 class_name swaps
+are independent and safe.
+
+### Open follow-ups (cumulative)
+
+- [ ] Finish `character_panel.gd` mixed-indent (deeper than
+      4 lines — whole `_build_ui` function is space-indented)
+- [ ] adapters/registry.gd: PersistenceStore / CacheStore refs
+- [ ] adapters/registry.gd: connect() signature conflict
+- [ ] adapters/backend_factory.gd: connect() shadow on Object
+- [ ] Audit `srv/docker/test-headless.sh` wiring — linters
+      need to be invoked from the smoke runner
+- [ ] Audit `srv/docker/run_all.sh` for shell-script issues
+- [ ] Address openhands issue list (truncated in user msg;
+      re-ask for the full list next session)
+- [ ] Hook linters into the smoke flow so a single
+      `tests/lint/run_all.sh` runs as part of CI
+- [ ] 8 space-indented .gd files (not a parse error, just
+      style) — bulk conversion
+- [ ] 9 files with mixed tabs+spaces on a single line
+      (carry-over from session 3)
+
 
