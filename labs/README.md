@@ -1,51 +1,61 @@
-# labs/ — Frame & Design Documentation
+# `labs/`
 
-**The labs directory contains:**
-1. **Frame primitives** — the multi-iso frame work (extractable to its own project)
-2. **Design documentation** — PRD and world-building specs
+Working directory for design, frame staging, and experimental
+code. Shipped game lives in `game/`.
 
-See the [PRD](./prd.md) for the product spec and the world-building docs for technical architecture.
+Not a source of truth. For product spec read `prd.md`; for
+systems architecture read `world-building-arch.md`; for
+current code state read `m3-initial-world-audit.md`.
 
-> **Deployment:** For Docker deployment and operations, see [`DEPLOY.md`](../DEPLOY.md) at the project root.
+## What's recorded here
 
-## Directory Structure
+| What | Where | Status |
+|------|-------|--------|
+| Product spec | `prd.md` | Living |
+| Database + persistence PRD | `prd-db.md` | Authoritative for adapter layer |
+| Per-component specs | `prd-*.md` (Phase 2 deliverables) | Living, churn-y. List in `prd.md` sec. 16 Phase 2. |
+| Systems architecture | `world-building-arch.md` | Authoritative for frame design |
+| World / netcode / persistence | `world-building.md` | Living |
+| Tick model | `world-building-tick.md` | Living |
+| Risk register, decisions, numbers | `world-building-risks.md` | Living |
+| Experimental angles | `world-building-research.md` | Research notes |
+| Spherical-planet specifics | `world-building-spherical.md` | Living |
+| Code state snapshot | `m3-initial-world-audit.md` | Reference |
+| Session continuity | `TASKS.md` | Living; for cross-session handoff |
+| Multi-iso prototypes | `multi-iso/` | Python + Julia real. Frame primitives planned, not built -- see PRDs. |
+| Physics swap-in | `jolt-playground/` | Design only |
+| Polyglot FFI | `polyglot-ffi/` | Design only |
+| Archive | `archive/` | Old, do not trust without checking |
 
-```
-labs/
-├── README.md                    # this file
-├── multi-iso/                   # the frame primitives
-│   ├── math/                   # NSC-9, icosahedral, quasicrystal
-│   ├── kv/                     # LRU, content_hash, state_tree
-│   ├── srv/                    # markov, predictor, composite_table, lod_manager, axis
-│   ├── db/                     # snapshot_store, migrations
-│   └── tests/                  # cross-cutting tests
-├── prd.md                      # product requirements document
-├── prd-*.md                    # PRD specs (T3 substrate, scope engine, etc)
-├── world-building*.md           # world + architecture documentation
-├── jolt-playground/            # Jolt Physics benchmark
-└── polyglot-ffi/               # Polyglot FFI exploration
-```
+## Adapter layer status
 
-## Key Documents
+The adapter layer is the typed contract between game services
+and storage backends (Postgres / Redis / in-memory). Spec is
+in `prd-db.md` sec. 5-10; code lives at `game/adapters/`.
+As of 2026-09-07:
 
-| Document | Purpose |
-|----------|---------|
-| [`prd.md`](./prd.md) | Product requirements — what we're building |
-| [`world-building.md`](./world-building.md) | World + network + persistence design |
-| [`world-building-arch.md`](./world-building-arch.md) | Systems architecture — how it fits together |
-| [`world-building-tick.md`](./world-building-tick.md) | Server tick model |
-| [`world-building-risks.md`](./world-building-risks.md) | Risks and mitigations |
-| [`DEPLOY.md`](../DEPLOY.md) | Docker deployment and operations |
+- Three base interfaces (`PersistenceStore`, `CacheStore`,
+  `MemoryStore`) with global `class_name`
+- In-memory impls complete (`MemoryPersistenceStore`,
+  `MemoryCacheStore`, `MemoryStore`); the persistence one
+  supports a useful SQL subset for tests + dev
+- HTTP-backed `PostgresStore` and `RedisStore` are complete
+  against their wire protocols, awaiting `pg-bridge` and
+  `redis-bridge` sidecars to exist
+- `AdapterRegistry` (autoload) maps store names to instances
+- `BackendFactory` (autoload) reads env, walks the manifest
+  of 60+ named stores, registers each with the right backend
+- 5 test files at `game/tests/adapters/`
+- No first migration SQL yet (schemas in `prd-db.md` sec. 3
+  are not locked per user 2026-09-07)
 
-## The Frame
+See `game/adapters/README.md` for the developer guide.
 
-The **frame** is what can be extracted to its own project:
+## Conventions
 
-1. **T3 substrate** (`multi-iso/kv/t3.gd`) — content-hash tree primitive
-2. **Scope engine** (`multi-iso/srv/scope.gd`) — hierarchy walker, scope stack
-3. **Rules engine** (`multi-iso/srv/rules_engine.gd`) — behavior evaluator
-4. **Spatial layer** (`multi-iso/math/`) — NSC-9, icosahedral, quasicrystal math
-5. **LRU cache** (`multi-iso/kv/lru_cache.gd`) — generic LRU
-6. **Snapshot store** (`multi-iso/db/snapshot_store.gd`) — Postgres persistence
+Match `AGENTS.md`: tabs for GDScript, no autoload /
+`class_name` / `GameManager` dependency on frame primitives,
+standard Godot autoloads in `game/`, `prd-*.md` format is User
+Stories / FR / Non-Goals / DoD.
 
-See [PRD §12](./prd.md#12-technical-architecture) for full frame architecture.
+Deployment: see `../DEPLOY.md`.
