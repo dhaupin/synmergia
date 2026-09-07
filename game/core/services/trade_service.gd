@@ -22,8 +22,19 @@ var _active_trades: Dictionary = {}
 # Pending trade requests (player_id -> trade_request)
 var _pending_requests: Dictionary = {}
 
+# Player state tracking for security
+var _players_in_trade: Dictionary = {}  # player_id -> trade_id
+var _players_locked: Dictionary = {}     # player_id -> true (locked from actions)
+
+# Cooldown tracking (separate from QoS rate limit)
+var _last_trade_request: Dictionary = {}  # player_id -> timestamp
+var _trade_request_cooldown: float = 30.0  # 30 seconds between requests
+
 # Trade request timeout
 const REQUEST_TIMEOUT_SECONDS: float = 60.0
+
+# Trading range (must be in range to initiate)
+const TRADE_RANGE: float = 15.0  # Units
 
 # Trade states
 enum TradeState {
@@ -54,6 +65,12 @@ signal item_removed_from_trade(trade_id: String, player_id: String, item_id: Str
 signal gold_added_to_trade(trade_id: String, player_id: String, amount: int)
 signal gold_removed_from_trade(trade_id: String, player_id: String, amount: int)
 
+# Security signals
+signal player_locked_for_trade(player_id: String, trade_id: String)      # Player locked (cannot move/use skills)
+signal player_unlocked_from_trade(player_id: String, trade_id: String)    # Player unlocked
+signal trade_out_of_range(trade_id: String, player_id: String)             # Player went out of range
+signal trade_closed(trade_id: String, reason: String)                      # Trade window closed for any reason
+
 func _ready() -> void:
 	GameLog.info("TradeService: Ready")
 	
@@ -66,6 +83,12 @@ func _ready() -> void:
 func request_trade(from_id: String, to_id: String) -> bool:
 	# QoS: Rate limit trade requests (player notified by QoSService)
 	if not QoSService.rate_limit(from_id, "trade"):
+		return false
+	
+	# 30-second cooldown between requests (prevents spam)
+	if _is_on_cooldown(from_id):
+		var remaining := get_cooldown_remaining(from_id)
+		_notify_player(from_id, "Wait %.0f seconds before sending another trade request." % remaining, NotifKind.TRADE_COOLDOWN)
 		return false
 	
 	# Security: Check if player is trade restricted
@@ -88,6 +111,11 @@ func request_trade(from_id: String, to_id: String) -> bool:
 	# Check for duplicate requests
 	if _pending_requests.has(to_id):
 		return false
+	
+	# SECURITY: Range check - must be in range to request trade
+	if not _are_players_in_range(from_id, to_id):
+		_notify_player(from_id, "You must be closer to the player to trade.")
+		return false
 
 	var request := {
 		"from_id": from_id,
@@ -97,6 +125,7 @@ func request_trade(from_id: String, to_id: String) -> bool:
 	}
 
 	_pending_requests[to_id] = request
+	_set_request_cooldown(from_id)
 	trade_requested.emit(from_id, to_id)
 	GameLog.info("TradeService: Trade request from %s to %s" % [from_id, to_id])
 
@@ -115,6 +144,14 @@ func accept_trade(to_id: String) -> String:
 		return ""
 	
 	var from_id: String = request["from_id"]
+	
+	# SECURITY: Range check on accept (could have moved away while request was pending)
+	if not _are_players_in_range(from_id, to_id):
+		_pending_requests.erase(to_id)
+		_notify_player(to_id, "Player is too far away to trade.")
+		_notify_player(from_id, "Trade request expired: target too far away.")
+		return ""
+	
 	var trade_id := "trade_%s_%s_%d" % [from_id, to_id, Time.get_ticks_msec()]
 	
 	var trade := {
@@ -134,8 +171,15 @@ func accept_trade(to_id: String) -> String:
 	_active_trades[trade_id] = trade
 	_pending_requests.erase(to_id)
 	
+	# SECURITY: Lock both players - prevents movement, skills, combat during trade
+	_players_in_trade[from_id] = trade_id
+	_players_in_trade[to_id] = trade_id
+	lock_player_for_trade(from_id, trade_id)
+	lock_player_for_trade(to_id, trade_id)
+	
 	trade_accepted.emit(trade_id, from_id, to_id)
-	GameLog.info("TradeService: Trade %s accepted" % trade_id)
+	trade_started.emit(trade_id, from_id, to_id)
+	GameLog.info("TradeService: Trade %s accepted and started" % trade_id)
 	
 	return trade_id
 
@@ -162,8 +206,19 @@ func cancel_trade(trade_id: String, player_id: String) -> bool:
 	if trade["player1"] != player_id and trade["player2"] != player_id:
 		return false
 	
+	# Refund items and gold to both players
+	_refund_trade_items(trade)
+	
+	# Unlock both players
+	var player1: String = trade["player1"]
+	var player2: String = trade["player2"]
+	unlock_player_from_trade(player1)
+	unlock_player_from_trade(player2)
+	
 	_active_trades.erase(trade_id)
 	trade_cancelled.emit(trade_id, player_id)
+	_notify_player(player1, "Trade cancelled by %s" % player_id)
+	_notify_player(player2, "Trade cancelled by %s" % player_id)
 	GameLog.info("TradeService: Trade %s cancelled by %s" % [trade_id, player_id])
 	
 	return true
@@ -382,9 +437,13 @@ func _complete_trade(trade_id: String) -> bool:
 		trade["state"] = TradeState.FAILED
 		GameLog.error("TradeService: Trade %s failed during item/gold transfer" % trade_id)
 		trade_failed.emit(trade_id)
+		# Refund items on failure
+		_refund_trade_items(trade)
 
-	# Clean up after a delay
-	await get_tree().create_timer(5.0).timeout
+	# Clean up: unlock players and close trade
+	unlock_player_from_trade(player1)
+	unlock_player_from_trade(player2)
+	trade_closed.emit(trade_id, "completed" if transfer_success else "failed")
 	_active_trades.erase(trade_id)
 
 	return true
@@ -422,6 +481,110 @@ func _get_gold_key(trade: Dictionary, player_id: String) -> String:
 	elif trade["player2"] == player_id:
 		return "player2_gold"
 	return ""
+
+# ============ RANGE & COOLDOWN HELPERS ============
+
+## Check if two players are within trade range
+func _are_players_in_range(player1_id: String, player2_id: String) -> bool:
+	if not EntityService:
+		return false  # Cannot verify range without EntityService
+	var player1_pos := _get_entity_position(player1_id)
+	var player2_pos := _get_entity_position(player2_id)
+	if player1_pos == Vector3.INF or player2_pos == Vector3.INF:
+		return false
+	return player1_pos.distance_to(player2_pos) <= TRADE_RANGE
+
+## Get entity position by ID
+func _get_entity_position(entity_id: String) -> Vector3:
+	if not EntityService:
+		return Vector3.INF
+	var entity = EntityService.get_entity_by_id(entity_id)
+	if entity and is_instance_valid(entity) and entity.has("global_position"):
+		return entity.global_position
+	return Vector3.INF
+
+## Check if player is in range of their trade partner
+func is_in_trade_range(player_id: String) -> bool:
+	var trade_id := _players_in_trade.get(player_id, "")
+	if trade_id.is_empty():
+		return false
+	var trade: Dictionary = _active_trades.get(trade_id, {})
+	if trade.is_empty():
+		return false
+	var other_id := trade["player1"] if trade["player2"] == player_id else trade["player2"]
+	return _are_players_in_range(player_id, other_id)
+
+## Check if player is on request cooldown
+func _is_on_cooldown(player_id: String) -> bool:
+	if not _last_trade_request.has(player_id):
+		return false
+	var elapsed := Time.get_unix_time_from_system() - _last_trade_request[player_id]
+	return elapsed < _trade_request_cooldown
+
+## Set request cooldown
+func _set_request_cooldown(player_id: String) -> void:
+	_last_trade_request[player_id] = Time.get_unix_time_from_system()
+
+## Get cooldown remaining
+func get_cooldown_remaining(player_id: String) -> float:
+	if not _last_trade_request.has(player_id):
+		return 0.0
+	var elapsed := Time.get_unix_time_from_system() - _last_trade_request[player_id]
+	return max(0.0, _trade_request_cooldown - elapsed)
+
+# ============ PLAYER LOCKING ============
+
+## Lock player during trade (prevents movement, skills, combat)
+func lock_player_for_trade(player_id: String, trade_id: String) -> void:
+	if _players_locked.get(player_id, "").is_empty():
+		_players_locked[player_id] = trade_id
+		player_locked_for_trade.emit(player_id, trade_id)
+		GameLog.debug("TradeService: Player %s locked for trade %s" % [player_id, trade_id])
+
+## Unlock player after trade
+func unlock_player_from_trade(player_id: String) -> void:
+	if _players_locked.has(player_id):
+		var trade_id := _players_locked[player_id]
+		_players_locked.erase(player_id)
+		_players_in_trade.erase(player_id)
+		player_unlocked_from_trade.emit(player_id, trade_id)
+		GameLog.debug("TradeService: Player %s unlocked from trade" % player_id)
+
+## Check if player is locked (cannot move/use skills)
+func is_player_locked(player_id: String) -> bool:
+	return _players_locked.has(player_id)
+
+## Get lock reason for player
+func get_lock_reason(player_id: String) -> String:
+	if not is_player_locked(player_id):
+		return ""
+	return "in_trade"
+
+## Force cancel trade and unlock players (for death, teleport, out-of-range)
+func force_cancel_trade(player_id: String, reason: String) -> void:
+	var trade_id := _players_in_trade.get(player_id, "")
+	if trade_id.is_empty():
+		return
+	
+	var trade: Dictionary = _active_trades.get(trade_id, {})
+	if trade.is_empty():
+		unlock_player_from_trade(player_id)
+		return
+	
+	# Notify both players
+	var other_id := trade["player1"] if trade["player2"] == player_id else trade["player2"]
+	_notify_player(player_id, "Trade cancelled: %s" % reason)
+	_notify_player(other_id, "Trade cancelled: %s" % reason)
+	
+	# Refund items
+	_refund_trade_items(trade)
+	
+	# Clean up
+	_active_trades.erase(trade_id)
+	unlock_player_from_trade(player_id)
+	unlock_player_from_trade(other_id)
+	trade_closed.emit(trade_id, reason)
+	GameLog.info("TradeService: Trade %s force-cancelled: %s" % [trade_id, reason])
 
 ## Check if item can be traded (not soulbound, etc.)
 func can_trade_item(item: Item) -> bool:
