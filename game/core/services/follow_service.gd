@@ -4,6 +4,8 @@
 extends Node
 
 const PlayerLockService = preload("res://core/services/player_lock_service.gd")
+const CooldownService = preload("res://core/services/cooldown_service.gd")
+const EventHub = preload("res://core/events/event_hub.gd")
 
 # Follow configurations
 const DEFAULT_FOLLOW_RANGE: float = 10.0  # Units - max distance before follow breaks
@@ -21,6 +23,9 @@ enum FollowState {
 # Active follows (follower_id -> follow_data)
 var _active_follows: Dictionary = {}
 
+# Process toggle
+var _is_processing: bool = false
+
 # Signals
 signal follow_started(follower_id: String, target_id: String)
 signal follow_cancelled(follower_id: String, target_id: String, reason: String)
@@ -29,9 +34,32 @@ signal follow_target_moved(follower_id: String, target_position: Vector3)
 
 func _ready() -> void:
 	GameLog.info("FollowService: Ready")
+	set_process(false)
+	
+	# Connect to EventHub for automatic follow cancellation
+	if EventHub:
+		EventHub.player_died.connect(_on_player_died)
+		# Zone transitions - connect via entity_teleported if it exists
+		# We'll check for zone_changed signal
+
+func _on_player_died(entity, killer) -> void:
+	if entity and entity.has("entity_id"):
+		cancel_all_for_player(str(entity.entity_id))
+
+## Called when a player teleports/zones - cancels follow
+func _on_zone_changed(player_id: String, old_zone: String, new_zone: String) -> void:
+	# Cancel follow when zoning - distance will be huge
+	cancel_all_for_player(player_id)
+
+func _process(delta: float) -> void:
+	_update_all_follows()
 
 ## Request to follow a player (uses CooldownService for throttling)
 func request_follow(follower_id: String, target_id: String) -> bool:
+	# Cooldown check
+	if CooldownService and not CooldownService.try_start(follower_id, "follow_request"):
+		return false
+	
 	# Security: Cannot follow self
 	if follower_id == target_id:
 		return false
@@ -75,6 +103,10 @@ func _start_follow(follower_id: String, target_id: String) -> bool:
 			"target_id": target_id
 		})
 	
+	# Start processing
+	_is_processing = true
+	set_process(true)
+	
 	follow_started.emit(follower_id, target_id)
 	GameLog.info("FollowService: %s started following %s" % [follower_id, target_id])
 	return true
@@ -92,6 +124,12 @@ func stop_follow(follower_id: String, reason: String = "cancelled") -> bool:
 		PlayerLockService.unlock_player(follower_id, PlayerLockService.LockReason.FOLLOW)
 	
 	_active_follows.erase(follower_id)
+	
+	# Stop processing if no more follows
+	if _active_follows.is_empty():
+		_is_processing = false
+		set_process(false)
+	
 	follow_cancelled.emit(follower_id, target_id, reason)
 	_notify_player(follower_id, "Stopped following %s" % target_id)
 	GameLog.info("FollowService: %s stopped following %s (%s)" % [follower_id, target_id, reason])
@@ -147,7 +185,7 @@ func get_follow_state(follower_id: String) -> int:
 	return _active_follows[follower_id]["state"]
 
 ## Process: Update all active follows
-func _process(delta: float) -> void:
+func _update_all_follows() -> void:
 	var to_remove := []
 	
 	for follower_id in _active_follows.keys():

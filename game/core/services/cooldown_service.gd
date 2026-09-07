@@ -10,13 +10,13 @@ var _cooldowns: Dictionary = {}  # player_id -> {action_type -> timestamp}
 
 # Default cooldowns for common actions
 const COOLDOWNS: Dictionary = {
-	"trade": 30.0,
 	"party_invite": 30.0,
 	"guild_invite": 30.0,
 	"friend_request": 30.0,
+	"follow_request": 10.0,
+	"trade": 30.0,
 	"whisper": 5.0,           # Faster for whispers
 	"duel": 60.0,             # Longer for duels
-	"follow_request": 10.0,   # Quick for follow
 	"trade_request": 30.0,    # Alias for trade
 	"party_join_request": 30.0,
 }
