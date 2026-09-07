@@ -25,16 +25,32 @@ func _ready() -> void:
 		FollowService.follow_target_moved.connect(_on_target_moved)
 
 func _input(event: InputEvent) -> void:
-	# Handle keyboard shortcut for stopping follow
-	if _is_following and event is InputEventKey and event.pressed:
-		# Escape key cancels follow
-		if event.keycode == KEY_ESCAPE:
+	# Handle keyboard shortcuts for following/stopping
+	if not _is_following:
+		return
+	
+	# Only handle if visible and no modal dialogs are open
+	if not visible:
+		return
+	
+	if event is InputEventKey and event.pressed:
+		# 'F' key toggles/stops follow
+		if event.keycode == KEY_F:
 			_stop_follow()
 			get_viewport().set_input_as_handled()
-		# Or 'F' key toggles follow
-		elif event.keycode == KEY_F:
-			_stop_follow()
-			get_viewport().set_input_as_handled()
+
+func _notification(what: int) -> void:
+	# Clean up signals when removed from tree
+	if what == NOTIFICATION_PREDELETE:
+		if FollowService:
+			if FollowService.follow_started.is_connected(_on_follow_started):
+				FollowService.follow_started.disconnect(_on_follow_started)
+			if FollowService.follow_cancelled.is_connected(_on_follow_cancelled):
+				FollowService.follow_cancelled.disconnect(_on_follow_cancelled)
+			if FollowService.follow_state_changed.is_connected(_on_follow_state_changed):
+				FollowService.follow_state_changed.disconnect(_on_follow_state_changed)
+			if FollowService.follow_target_moved.is_connected(_on_target_moved):
+				FollowService.follow_target_moved.disconnect(_on_target_moved)
 
 func _process(delta: float) -> void:
 	if not _is_visible:
