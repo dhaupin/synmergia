@@ -10,8 +10,6 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 # messages land on the same toast feed as the rest of the security
 # surface (kick, ban, restriction).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
-const CooldownService = preload("res://core/services/cooldown_service.gd")
-const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 # Service references
 var _account_service: AccountService

@@ -6,6 +6,7 @@ extends Node
 
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+const CharacterData = preload("res://core/schemas/character_data.gd")
 
 ## Defensive logger - get GameLog at runtime to avoid compile-time circular deps
 func _log(level: int, msg: String) -> void:
@@ -151,8 +152,9 @@ func _handle_playing_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
 
 	# Emit player_entered_world for services like StarterKitService
-	if selected_character_data and "character_id" in selected_character_data:
-		var player_id := selected_character_data.get("character_id", "") as String
+	if selected_character_data:
+		var cd := selected_character_data as CharacterData
+		var player_id := cd.character_id if cd else ""
 		if not player_id.is_empty():
 			player_entered_world.emit(player_id, selected_character_data)
 			if get_node_or_null("/root/GameLog"):

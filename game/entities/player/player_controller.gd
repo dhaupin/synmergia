@@ -15,7 +15,6 @@ const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
 const GMIndicator = preload("res://entities/player/components/gm_indicator.gd")
 const ReportDialog = preload("res://ui/player/report_dialog.gd")
 const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
-const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 
 # Movement
