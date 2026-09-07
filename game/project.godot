@@ -19,6 +19,8 @@ config/icon="res://icon.svg"
 # Entity base class - provides extends Entity for all entity types
 # Must be loaded BEFORE RegisterTypes so Entity is available for extends
 Entity="*res://core/entities/entity.gd"
+AdapterRegistry="*res://adapters/registry.gd"
+BackendFactory="*res://adapters/backend_factory.gd"
 RegisterTypes="*res://core/autoload/type_registry.gd"
 DebugOverlay="*res://ui/components/debug_overlay.gd"
 
