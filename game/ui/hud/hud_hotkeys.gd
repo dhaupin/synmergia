@@ -16,9 +16,13 @@
 ##   K    → skill academy
 ##   H    → blacksmith
 ##   M    → world map
+##   N    → notifications
 ##   O    → settings/options
-##   J    → jump (reserved for future)
-##   ENTER → focus chat input (MenuManager handles this)
+##   Y    → achievements
+##   X    → character transfer
+##   R    → trade
+##   T    → titles
+##   TAB  → cycle targets (or focus within panel)
 extends Node
 
 var _hud: CanvasLayer
@@ -52,56 +56,60 @@ func _unhandled_input(event: InputEvent) -> void:
 		keycode = k.keycode
 
 	match keycode:
-		KEY_ESCAPE:
-			_handle_escape()
-			get_viewport().set_input_as_handled()
-		KEY_I:
-			_toggle_panel("inventory")
-			get_viewport().set_input_as_handled()
-		KEY_C:
-			_toggle_panel("character")
-			get_viewport().set_input_as_handled()
-		KEY_P:
-			_toggle_panel("party")
-			get_viewport().set_input_as_handled()
-		KEY_G:
-			_toggle_panel("guild")
-			get_viewport().set_input_as_handled()
-		KEY_F:
-			_toggle_panel("friends")
-			get_viewport().set_input_as_handled()
-		KEY_Q:
-			_toggle_panel("quests")
-			get_viewport().set_input_as_handled()
-		KEY_B:
-			_toggle_panel("bank")
-			get_viewport().set_input_as_handled()
-		KEY_K:
-			_toggle_panel("skill_academy")
-			get_viewport().set_input_as_handled()
-		KEY_H:
-			_toggle_panel("blacksmith")
-			get_viewport().set_input_as_handled()
-		KEY_M:
-			_toggle_world_map()
-			get_viewport().set_input_as_handled()
-		KEY_O:
-			_toggle_settings()
-			get_viewport().set_input_as_handled()
-		KEY_J:
-			_toggle_panel("quests")
-			get_viewport().set_input_as_handled()
-		KEY_N:
-			_toggle_panel("faction")
-			get_viewport().set_input_as_handled()
-		KEY_Y:
-			_toggle_panel("achievement")
-			get_viewport().set_input_as_handled()
-		KEY_TAB:
-			_handle_tab_cycling(k.shift_pressed)
-			get_viewport().set_input_as_handled()
-
-
+			KEY_ESCAPE:
+				_handle_escape()
+				get_viewport().set_input_as_handled()
+			KEY_I:
+				_toggle_panel("inventory")
+				get_viewport().set_input_as_handled()
+			KEY_C:
+				_toggle_panel("character")
+				get_viewport().set_input_as_handled()
+			KEY_P:
+				_toggle_panel("party")
+				get_viewport().set_input_as_handled()
+			KEY_G:
+				_toggle_panel("guild")
+				get_viewport().set_input_as_handled()
+			KEY_F:
+				_toggle_panel("friends")
+				get_viewport().set_input_as_handled()
+			KEY_Q:
+				_toggle_panel("quests")
+				get_viewport().set_input_as_handled()
+			KEY_B:
+				_toggle_panel("bank")
+				get_viewport().set_input_as_handled()
+			KEY_K:
+				_toggle_panel("skill_academy")
+				get_viewport().set_input_as_handled()
+			KEY_H:
+				_toggle_panel("blacksmith")
+				get_viewport().set_input_as_handled()
+			KEY_M:
+				_toggle_world_map()
+				get_viewport().set_input_as_handled()
+			KEY_O:
+				_toggle_settings()
+				get_viewport().set_input_as_handled()
+			KEY_N:
+				_toggle_panel("faction")
+				get_viewport().set_input_as_handled()
+			KEY_Y:
+				_toggle_panel("achievement")
+				get_viewport().set_input_as_handled()
+			KEY_X:
+				_toggle_panel("transfer")
+				get_viewport().set_input_as_handled()
+			KEY_R:
+				_toggle_panel("trade")
+				get_viewport().set_input_as_handled()
+			KEY_T:
+				_toggle_panel("titles")
+				get_viewport().set_input_as_handled()
+			KEY_TAB:
+				_handle_tab_cycling(k.shift_pressed)
+				get_viewport().set_input_as_handled()
 func _handle_tab_cycling(shift: bool) -> void:
 	# If any panel is open, delegate Tab to the panel for focus cycling
 	if _mm and _mm.has_method("get_open_panels"):
@@ -133,8 +141,8 @@ func _toggle_panel(panel_id: String) -> void:
 		_mm.toggle_menu(panel_id)
 	elif _mm.has_method("open_menu") and _mm.has_method("close_menu"):
 		# Manual toggle if toggle_menu not available
-		if _mm.has_method("get_instance"):
-			var inst = _mm.get_instance()
+		if _mm.has_method("singleton"):
+			var inst = _mm.singleton()
 			if inst and inst.has_method("is_panel_open"):
 				if inst.is_panel_open(panel_id):
 					_mm.close_menu(panel_id)

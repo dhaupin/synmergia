@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "slayer_10"
+display_name = "Slayer"
+description = "Defeat 10 enemies"
+achievement_type = 1
+category = 0
+rarity = 0
+target = 10
+target_type = "enemy"
+gold_reward = 200
+xp_reward = 100
+title_reward = "slayer"
+icon_path = "res://icons/achievements/slayer.png"
+sort_order = 10

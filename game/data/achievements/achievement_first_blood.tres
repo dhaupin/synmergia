@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "first_blood"
+display_name = "First Blood"
+description = "Defeat your first enemy"
+achievement_type = 0
+category = 0
+rarity = 0
+target = 1
+target_type = "enemy"
+gold_reward = 100
+xp_reward = 50
+title_reward = "first_blood"
+icon_path = "res://icons/achievements/first_blood.png"
+sort_order = 1

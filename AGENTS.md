@@ -104,6 +104,7 @@ extract to their own project.
 | `QoSService` | Latency and rate limiting |
 | `CommunityGovernance` | Voting, moderator progression |
 | `BlacksmithService` | Item crafting/upgrading |
+| `StarterKitService` | New character starting equipment |
 
 ### Components (Attached to Entities)
 
@@ -248,6 +249,7 @@ var nearby := EntityService.get_entities_in_radius(
 │   │   ├── targeting/             # Targeting system
 │   │   └── ui/                   # Core UI
 │   ├── entities/                  # Entity types
+│   ├── scenes/                    # .tscn scenes (world, NPCs)
 │   ├── connectors/                # AI agent connectors
 │   ├── data/                      # .tres resources
 │   ├── ui/                        # User interface
@@ -345,6 +347,7 @@ static func _esc(text: String) -> String:
 - `core/services/chat_service.gd`
 - `ui/components/combat_log.gd`
 - `ui/components/chat_ui.gd`
+- `ui/components/dialog_ui.gd`
 - `ui/admin/admin_dashboard.gd`
 - `core/admin/player_shell.gd`
 - `core/autoload/logger.gd`
@@ -393,6 +396,28 @@ func _get_peer_for_player(player_id: String) -> int:
 - **Mixed indentation is fatal:** Once a file uses tabs, every subsequent line must use tabs
 - **Inner class methods cannot call outer class methods** without qualification
 - **`extends Control` for scene-instantiated UIs:** Use `extends Control` + manual stubs for UIPanel methods
+
+### NPC Scene Pattern
+NPC entities use `scene_path` in NPCData to specify their `.tscn`:
+```gdscript
+# NPCData schema
+@export var scene_path: String = ""  # Path to NPC .tscn scene
+
+# SpawnService loads the scene and configures it:
+if npc_data.scene_path:
+    var packed := load(npc_data.scene_path) as PackedScene
+    var entity := packed.instantiate() as NPCEntity
+```
+
+### Player Spawn Signal
+Use `GameManager.player_entered_world` to trigger services when a player enters:
+```gdscript
+# Connect in your service:
+GameManager.player_entered_world.connect(_on_player_entered)
+
+func _on_player_entered(player_id: String, character_data) -> void:
+    # Give starter items, initialize player state, etc.
+```
 
 ---
 

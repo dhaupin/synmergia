@@ -14,7 +14,7 @@ const VendorService = preload("res://core/services/vendor_service.gd")
 
 ## Static instance — one shop at a time
 static var _instance: ShopUI = null
-static func get_instance() -> ShopUI:
+static func singleton() -> ShopUI:
 	return _instance
 
 ## Session state
@@ -77,7 +77,7 @@ static func close_shop() -> void:
 	if _instance != null:
 		if _instance._offering != null and _instance._offering.type == "vendor":
 			if _instance._offering.restock_trigger == "close":
-				var svc = VendorService.get_instance()
+				var svc = VendorService.singleton()
 				if svc:
 					svc.restock(_instance._offering)
 		_instance._proximity_enabled = false
@@ -248,7 +248,7 @@ func _load_catalog() -> void:
 	_catalog = []
 	if _offering == null or _offering.type != "vendor":
 		return
-	var svc = VendorService.get_instance()
+	var svc = VendorService.singleton()
 	if svc:
 		_catalog = svc.get_catalog(_offering, _npc_data)
 		svc.ensure_stock(_offering, _npc_data)
@@ -257,7 +257,7 @@ func _load_sellable() -> void:
 	_sellable = []
 	if _offering == null or _offering.type != "vendor":
 		return
-	var svc = VendorService.get_instance()
+	var svc = VendorService.singleton()
 	if svc:
 		_sellable = svc.get_sellable_items(_player_id, _offering, _npc_data)
 
@@ -353,7 +353,7 @@ func _refresh_gold() -> void:
 		_gold_label.text = "0"
 		return
 	if InventoryService:
-		var gold: int = InventoryService.get_instance().get_gold(_player_id)
+		var gold: int = InventoryService.singleton().get_gold(_player_id)
 		_gold_label.text = str(gold)
 	else:
 		_gold_label.text = "0"
@@ -467,7 +467,7 @@ func _on_buy_pressed() -> void:
 	if _offering == null:
 		show_notification("Shop unavailable", false)
 		return
-	var svc = VendorService.get_instance()
+	var svc = VendorService.singleton()
 	if svc == null:
 		show_notification("Shop unavailable", false)
 		return
@@ -495,7 +495,7 @@ func _on_sell_pressed() -> void:
 	if _offering == null:
 		show_notification("Shop unavailable", false)
 		return
-	var svc = VendorService.get_instance()
+	var svc = VendorService.singleton()
 	if svc == null:
 		show_notification("Shop unavailable", false)
 		return
@@ -545,7 +545,7 @@ func _on_close() -> void:
 
 
 ## ============================================================================
-## PROXIMITY
+## PROXIMITY (uses canonical check_interact_distance)
 ## ============================================================================
 
 func _process(_delta: float) -> void:
@@ -554,7 +554,8 @@ func _process(_delta: float) -> void:
 	var player := _get_local_player()
 	if player == null:
 		return
-	if player.global_position.distance_to(_npc_position) > 8.0:
+	# Use canonical distance check with configurable threshold
+	if not check_interact_distance(player.global_position, _npc_position):
 		close_shop()
 		if NotificationService:
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
@@ -565,11 +566,6 @@ func _process(_delta: float) -> void:
 ## ============================================================================
 ## HELPERS
 ## ============================================================================
-
-func _get_local_player() -> Node:
-	if PlayerManager and PlayerManager.has_method("get_local_player"):
-		return PlayerManager.get_local_player()
-	return null
 
 func _load_item_icon(item: Resource) -> Texture2D:
 	return IconResolver.get_item_icon(item)

@@ -44,6 +44,8 @@ var _vault_svc: Node
 var _entity_svc: Node
 var _notif: Node
 var _ach: Node
+var _follow_svc: Node
+var _waypoint_svc: Node
 
 
 func bind(hud: CanvasLayer) -> void:
@@ -108,6 +110,8 @@ func _connect_services() -> void:
 	_entity_svc = get_node_or_null("/root/EntityService")
 	_notif = get_node_or_null("/root/NotificationService")
 	_ach = get_node_or_null("/root/AchievementService")
+	_follow_svc = get_node_or_null("/root/FollowService")
+	_waypoint_svc = get_node_or_null("/root/WaypointService")
 
 	# Party events → PartyUI.
 	if _party and _party_svc:
@@ -220,14 +224,12 @@ func _connect_services() -> void:
 			_loot_svc.loot_rolled.connect(_on_loot_rolled)
 
 	# Achievement events → toast player (AchievementService is not autoloaded).
-	for method_name in ["get_instance"]:
-		if _ach.has_method(method_name):
-			var ach_inst = _ach.call(method_name)
-			if ach_inst and ach_inst.has_signal("achievement_unlocked"):
-				ach_inst.achievement_unlocked.connect(_on_achievement_unlocked)
-				if ach_inst and ach_inst.has_signal("achievement_progressed"):
-					ach_inst.achievement_progressed.connect(_on_achievement_progressed)
-			break
+	if _ach.has_method("singleton"):
+		var ach_inst = _ach.singleton()
+		if ach_inst and ach_inst.has_signal("achievement_unlocked"):
+			ach_inst.achievement_unlocked.connect(_on_achievement_unlocked)
+		if ach_inst and ach_inst.has_signal("achievement_progressed"):
+			ach_inst.achievement_progressed.connect(_on_achievement_progressed)
 
 	# Faction events → toast player.
 	if FactionManager:

@@ -47,6 +47,7 @@ func bind(hud: CanvasLayer) -> void:
 	_world_map = _find("WorldMap")
 	_chat = _find("ChatUI")
 	_tooltip = _find("TooltipManager")
+	_action_menu = _find("ActionMenu")
 	_connect_all()
 	_push_initial_state()
 
@@ -101,6 +102,10 @@ func _connect_all() -> void:
 	# Buff/Debuff signals from the local player's AuraComponent.
 	# Use a call_deferred so PlayerManager.local_player is settled.
 	_bind_aura_signals()
+
+	# ActionMenu → handle trade, follow, inspect, etc.
+	if _action_menu and _action_menu.has_signal("action_selected"):
+		_action_menu.action_selected.connect(_on_action_selected)
 
 	# Player position → Minimap (poll via process loop).
 	set_process(true)
@@ -423,3 +428,78 @@ func _color_error() -> Color:
 
 func _color_kill() -> Color:
 	return Color(0.9, 0.4, 0.9)
+
+
+func _on_action_selected(action_id: String, target_id: String) -> void:
+	match action_id:
+		"trade":
+			if TradeService and PlayerManager:
+				var my_id := str(PlayerManager.get_local_player_id())
+				var ok := TradeService.request_trade(my_id, target_id)
+				if not ok:
+					GameLog.info("Trade request failed")
+		"add_friend":
+			if FriendsService and PlayerManager:
+				var my_id := str(PlayerManager.get_local_player_id())
+				var my_name := PlayerManager.get_local_player_name() if PlayerManager.has_method("get_local_player_name") else ""
+				FriendsService.send_friend_request(my_id, my_name, target_id)
+		"view_character":
+			_open_character_inspect(target_id)
+		"view_guild":
+			_open_guild_info(target_id)
+		"follow":
+			_start_follow(target_id)
+		"stop_follow":
+			_stop_follow()
+		"inspect":
+			_open_character_inspect(target_id)
+		"whisper":
+			if ChatService:
+				ChatService.open_whisper(target_id)
+		"invite_party":
+			if PartyService:
+				PartyService.invite_player(target_id)
+		"invite_guild":
+			if GuildService:
+				GuildService.invite_player(target_id)
+		"report":
+			# TODO: Open report dialog
+			GameLog.info("Report action: %s" % target_id)
+
+
+func _open_character_inspect(target_id: String) -> void:
+	if not _mm:
+		return
+	# Open character panel in inspect mode with target player
+	if _mm.has_method("open_character_inspect"):
+		_mm.open_character_inspect(target_id)
+	elif _mm.has_method("open_menu"):
+		_mm.open_menu("character")
+
+
+func _open_guild_info(target_id: String) -> void:
+	# Get the player's guild and open guild info panel
+	if GuildService and GuildService.has_method("get_player_guild"):
+		var guild_id := GuildService.get_player_guild(target_id)
+		if not guild_id.is_empty():
+			# Open guild panel showing this guild
+			if _mm and _mm.has_method("open_guild_info"):
+				_mm.open_guild_info(guild_id)
+			elif _mm and _mm.has_method("open_menu"):
+				_mm.open_menu("guild")
+		else:
+			GameLog.info("Player %s is not in a guild" % target_id)
+
+
+func _start_follow(target_id: String) -> void:
+	if FollowService and PlayerManager:
+		var my_id := str(PlayerManager.get_local_player_id())
+		var ok := FollowService.request_follow(my_id, target_id)
+		if not ok:
+			GameLog.info("Follow request failed")
+
+
+func _stop_follow() -> void:
+	if FollowService and PlayerManager:
+		var my_id := str(PlayerManager.get_local_player_id())
+		FollowService.stop_follow(my_id, "cancelled")

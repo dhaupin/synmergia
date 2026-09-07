@@ -2,16 +2,15 @@
 ## Loads DialogueData resources from data/dialogues/*.tres and drives DialogUI.
 extends Node
 
-## Singleton instance (use get_instance() to access)
+## Singleton instance (use singleton() to access)
 static var _instance: Node = null
-static func get_instance() -> Node:
+static func singleton() -> Node:
 	if _instance == null:
 		_instance = load("res://core/services/dialog_service.gd").new()
 		_instance._ready()
 	return _instance
 
-
-
+const QoSService = preload("res://core/autoload/qos_service.gd")
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 
 var _dialogues: Dictionary = {}
@@ -21,6 +20,7 @@ var _current_node: int = 0
 signal dialogue_started(npc_id: String, dialogue_id: String)
 signal dialogue_ended(npc_id: String, dialogue_id: String)
 signal node_changed(node_index: int, node_data: Dictionary)
+signal action_executed(action_type: int, action_data: Dictionary)
 
 func _ready() -> void:
 	_load_dialogues()
@@ -47,36 +47,42 @@ func get_dialogue(dialogue_id: String) -> DialogueData:
 	return _dialogues.get(dialogue_id)
 
 func start_dialogue(npc_id: String, dialogue_id: String) -> bool:
+	# QoS: Rate limit dialogue starts
+	var player_id := get_local_player_id()
+	if QoSService and player_id and not QoSService.rate_limit(player_id, "dialogue"):
+		return false
+	
 	var dialogue: DialogueData = get_dialogue(dialogue_id)
 	if dialogue == null:
-		GameLog.warn("DialogService: Dialogue not found: %s" % dialogue_id)
+		GameLog.warn("DialogService: Dialogue not found: %s" % _esc(dialogue_id))
 		return false
 	_current_dialogue = dialogue
 	_current_node = 0
-	dialogue_started.emit(npc_id, dialogue_id)
-	node_changed.emit(_current_node, _node_to_dict(_current_dialogue.nodes[_current_node]))
+	dialogue_started.emit(_esc(npc_id), _esc(dialogue_id))
+	node_changed.emit(_current_node, _node_to_dict(dialogue.get_node(_current_node)))
 	return true
 
 func advance() -> Dictionary:
 	if _current_dialogue == null or _current_dialogue.nodes.is_empty():
 		end_dialogue()
 		return {}
-	if _current_dialogue.nodes[_current_node].choices.is_empty():
+	var node := _current_dialogue.get_node(_current_node)
+	if not _has_choices(node):
 		_current_node += 1
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		end_dialogue()
 		return {}
-	var node_dict := _node_to_dict(_current_dialogue.nodes[_current_node])
+	var node_dict := _node_to_dict(_current_dialogue.get_node(_current_node))
 	node_changed.emit(_current_node, node_dict)
 	return node_dict
 
 func select_choice(choice_index: int) -> Dictionary:
 	if _current_dialogue == null:
 		return {}
-	var node: DialogueData.DialogueNode = _current_dialogue.nodes[_current_node]
-	if choice_index < 0 or choice_index >= node.choices.size():
+	var choices: Array[Dictionary] = _current_dialogue.get_choices(_current_node)
+	if choice_index < 0 or choice_index >= choices.size():
 		return {}
-	var next: int = node.choices[choice_index].next_node
+	var next: int = choices[choice_index].get("next_node", -1)
 	if next < 0:
 		end_dialogue()
 		return {}
@@ -84,7 +90,7 @@ func select_choice(choice_index: int) -> Dictionary:
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		end_dialogue()
 		return {}
-	var node_dict := _node_to_dict(_current_dialogue.nodes[_current_node])
+	var node_dict := _node_to_dict(_current_dialogue.get_node(_current_node))
 	node_changed.emit(_current_node, node_dict)
 	return node_dict
 
@@ -93,15 +99,25 @@ func get_current_node() -> Dictionary:
 		return {}
 	if _current_node < 0 or _current_node >= _current_dialogue.nodes.size():
 		return {}
-	return _node_to_dict(_current_dialogue.nodes[_current_node])
+	return _node_to_dict(_current_dialogue.get_node(_current_node))
 
-func _node_to_dict(node: DialogueData.DialogueNode) -> Dictionary:
+func _has_choices(node: Dictionary) -> bool:
+	if not node.has("choices"):
+		return false
+	var choices: Array = node["choices"]
+	return not choices.is_empty()
+
+func _node_to_dict(node: Dictionary) -> Dictionary:
 	var choices: Array[Dictionary] = []
-	for choice: DialogueData.DialogueChoice in node.choices:
-		choices.append({"text": choice.text, "next": choice.next_node})
+	if node.has("choices"):
+		for choice: Dictionary in node["choices"]:
+			choices.append({
+				"text": choice.get("text", ""),
+				"next": choice.get("next_node", -1)
+			})
 	return {
-		"speaker": node.speaker,
-		"text": node.text,
+		"speaker": node.get("speaker", ""),
+		"text": node.get("text", ""),
 		"choices": choices
 	}
 
@@ -114,3 +130,76 @@ func end_dialogue() -> void:
 
 func has_dialogue(dialogue_id: String) -> bool:
 	return _dialogues.has(dialogue_id)
+
+func execute_action(action_type: int, action_data: Dictionary, player_id: String = "") -> bool:
+	var DialogActionType = DialogueData.DialogActionType
+	match action_type:
+		DialogActionType.NONE:
+			return true
+		DialogActionType.GIVE_QUEST:
+			var quest_id := action_data.get("quest_id", "")
+			if QuestService and quest_id:
+				return QuestService.accept_quest(player_id, quest_id)
+		DialogActionType.COMPLETE_QUEST:
+			var quest_id := action_data.get("quest_id", "")
+			if QuestService and quest_id:
+				return QuestService.turn_in_quest(player_id, quest_id)
+		DialogActionType.ABANDON_QUEST:
+			var quest_id := action_data.get("quest_id", "")
+			if QuestService and quest_id:
+				QuestService.abandon_quest(player_id, quest_id)
+				return true
+		DialogActionType.START_FOLLOW:
+			var target_id := action_data.get("target_id", "")
+			if FollowService and target_id:
+				return FollowService.request_follow(player_id, target_id)
+		DialogActionType.STOP_FOLLOW:
+			if FollowService:
+				FollowService.cancel_follow(player_id)
+				return true
+		DialogActionType.OPEN_SHOP:
+			var shop_id := action_data.get("shop_id", "")
+			if ShopUI:
+				ShopUI.open_shop(shop_id)
+				return true
+		DialogActionType.OPEN_VAULT:
+			if VaultUI:
+				VaultUI.open_vault(action_data.get("vault_type", "personal"))
+				return true
+		DialogActionType.SET_WAYPOINT:
+			var wp_name := action_data.get("name", "Marker")
+			var color := action_data.get("color", 0)
+			if WaypointService:
+				# WaypointService.create_waypoint would be called with player pos
+				GameLog.debug("DialogAction: SET_WAYPOINT '%s'" % wp_name)
+				return true
+		DialogActionType.GIVE_ITEM:
+			var item_id := action_data.get("item_id", "")
+			var quantity := action_data.get("quantity", 1)
+			if InventoryService and item_id:
+				InventoryService.add_item(player_id, item_id, quantity)
+				return true
+		DialogActionType.GIVE_CURRENCY:
+			var amount := action_data.get("amount", 0)
+			var currency := action_data.get("currency", "gold")
+			GameLog.debug("DialogAction: GIVE_CURRENCY %d %s" % [amount, currency])
+			return true
+		DialogActionType.UNLOCK_TITLE:
+			var title_id := action_data.get("title_id", "")
+			if TitleService and title_id:
+				TitleService.unlock_title(player_id, title_id)
+				return true
+		DialogActionType.TEACH_SKILL:
+			var skill_id := action_data.get("skill_id", "")
+			if SkillAcademyService and skill_id:
+				SkillAcademyService.unlock_skill(player_id, skill_id)
+				return true
+		_:
+			GameLog.warn("DialogAction: Unknown action type %d" % action_type)
+			return false
+	return false
+
+func get_local_player_id() -> String:
+	if PlayerManager:
+		return PlayerManager.local_player
+	return ""

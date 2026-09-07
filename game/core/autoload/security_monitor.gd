@@ -39,7 +39,7 @@ func _connect_signals() -> void:
 		SecurityService.permission_denied.connect(_on_permission_denied)
 		SecurityService.invalid_input.connect(_on_invalid_input)
 	
-	var qos: Node = QoSService.get_instance()
+	var qos: Node = QoSService.singleton()
 	if qos != null:
 		qos.rate_limited.connect(_on_rate_limited)
 

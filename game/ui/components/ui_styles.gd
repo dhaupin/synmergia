@@ -33,6 +33,33 @@ const RARITY_COLORS := {
 	"rarity_mythic": Color(1.0, 0.4, 0.1),
 }
 
+## Skill Academy specific
+const SKILL_COLORS := {
+	"available_points": Color(0.3, 1.0, 0.5),  # Bright green for available
+	"focal": Color(0.8, 0.8, 1.0),              # Light blue for focal indicator
+	"tier_label": Color(0.6, 0.6, 0.6),          # Gray for tier labels
+	# Stat tier colors (for skill academy stat bars)
+	"tier_common": Color(0.6, 0.6, 0.6),
+	"tier_rare": Color(0.3, 0.7, 1.0),
+	"tier_epic": Color(0.8, 0.3, 1.0),
+	"tier_legendary": Color(1.0, 0.6, 0.1),
+	"tier_mythic": Color(1.0, 0.2, 0.2),
+}
+
+## Tooltip specific
+const TOOLTIP_COLORS := {
+	"background": Color(0.15, 0.15, 0.2, 0.95),
+}
+
+## Text/label colors (reusable across UI)
+const TEXT_COLORS := {
+	"default": Color(0.7, 0.7, 0.7),      # Standard secondary text
+	"info": Color(0.4, 0.7, 1.0),          # Info/links/stat values
+	"success": Color(0.4, 0.9, 0.4),       # Positive values
+	"default_bright": Color(0.9, 0.9, 1.0), # Toast background tint
+	"toast_bg": Color(0.08, 0.08, 0.12, 0.92),
+}
+
 ## ============================================================================
 ## STYLE FACTORIES
 ## ============================================================================

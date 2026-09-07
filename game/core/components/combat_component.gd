@@ -3,6 +3,7 @@
 extends Node
 class_name CombatComponent
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const AntiCheatService = preload("res://core/services/anticheat_service.gd")
 const Skill = preload("res://core/combat/skill.gd")
 const Item = preload("res://core/schemas/item.gd")
 const Entity = preload("res://core/entities/entity.gd")
@@ -12,6 +13,7 @@ const SkillSchema = preload("res://core/schemas/skill.gd")
 
 const SkillSchema := preload("res://core/schemas/skill.gd")
 const CharacterData := preload("res://core/schemas/character_data.gd")
+const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 signal attack_started()
 signal attack_finished()
@@ -120,6 +122,10 @@ func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Ve
 		if not QoSService.rate_limit(entity.entity_id, "combat"):
 			GameLog.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
 			return false
+		
+		# AntiCheat: Record combat action for analysis
+		if AntiCheatService:
+			AntiCheatService.record_action(entity.entity_id, "combat_skill", entity.global_position if entity.has("global_position") else Vector3.ZERO)
 	
 	# Apply Skill Academy upgrade deltas (returns duplicated schema with bonuses applied)
 	var upgraded_skill: Skill = _apply_skill_upgrade_deltas(skill, entity)
@@ -267,6 +273,10 @@ func _can_execute_skill(skill: Skill) -> bool:
 	
 	# Check dead
 	if entity.health_component and entity.health_component.is_dead():
+		return false
+	
+	# SECURITY: Cannot cast skills if locked (trade, follow, etc)
+	if PlayerLockService and entity.entity_id and PlayerLockService.are_skills_blocked(entity.entity_id):
 		return false
 	
 	# Check can_cast on skill

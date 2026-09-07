@@ -388,7 +388,7 @@ func record_kill_for_streak(killer_id: String, victim_id: String) -> void:
 	if streak_data["streak"] > streak_data["best_streak"]:
 		streak_data["best_streak"] = streak_data["streak"]
 		if AchievementService:
-			AchievementService.unlock_achievement(killer_id, "kill_streak_%d" % streak_data["streak"])
+			AchievementService.unlock(killer_id, "kill_streak_%d" % streak_data["streak"])
 	
 	# Check for threshold
 	var thresholds: Array = Config.KILL_STREAK_THRESHOLDS
@@ -530,7 +530,7 @@ func record_death(entity, killer = null, zone_id: String = "", cause: String = "
 	
 	# Check for death streak achievement
 	if stats.total_deaths >= 100 and AchievementService:
-		AchievementService.unlock_achievement(entity.entity_id, "died_100_times")
+			AchievementService.unlock(entity.entity_id, "died_100_times")
 
 ## Record a revive received
 func record_revive_received(entity_id: String) -> void:

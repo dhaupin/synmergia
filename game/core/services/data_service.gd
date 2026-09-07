@@ -16,6 +16,7 @@ const DwellingData = preload("res://core/schemas/dwelling_data.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const StatusEffectData = preload("res://core/schemas/status_effect_data.gd")
 const QuestData = preload("res://core/schemas/quest_data.gd")
+const AchievementData = preload("res://core/schemas/achievement_data.gd")
 const GatewayData = preload("res://core/schemas/gateway_data.gd")
 const Skill = preload("res://core/combat/skill.gd")
 var _skills: Dictionary = {}
@@ -39,7 +40,9 @@ var _dwellings: Dictionary = {}
 var _npcs: Dictionary = {}
 var _status_effects: Dictionary = {}
 var _quests: Dictionary = {}
+var _achievements: Dictionary = {}
 var _gateways: Dictionary = {}
+var _titles: Dictionary = {}
 
 var _data_path: String = "res://data/"
 var _loaded: bool = false
@@ -61,6 +64,9 @@ func load_all_data() -> void:
 	load_zones()
 	load_events()
 	load_dwellings()
+	load_quests()
+	load_titles()
+	load_achievements()
 	
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -153,6 +159,9 @@ func load_events() -> void:
 
 ## Load dwellings from data/dwellings/
 func load_dwellings() -> void:
+	load_quests()
+	load_titles()
+	load_achievements()
 	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
 	GameLog.info("DataService: Loaded %d dwellings" % _dwellings.size())
 
@@ -170,6 +179,15 @@ func load_status_effects() -> void:
 func load_quests() -> void:
 	_quests = _scan_directory(_data_path + "quests", "quest")
 	GameLog.info("DataService: Loaded %d quests" % _quests.size())
+
+## Load achievements from data/achievements/
+func load_titles() -> void:
+	_titles = _scan_directory(_data_path + "titles", "title")
+	GameLog.info("DataService: Loaded %d titles" % _titles.size())
+
+func load_achievements() -> void:
+	_achievements = _scan_directory(_data_path + "achievements", "achievement")
+	GameLog.info("DataService: Loaded %d achievements" % _achievements.size())
 
 ## Load gateways from data/gateways/
 func load_gateways() -> void:
@@ -258,6 +276,16 @@ func get_all_status_effects() -> Dictionary:
 func get_all_quests() -> Dictionary:
 	return _quests
 
+func get_achievement(id: String) -> AchievementData:
+	return _achievements.get(id)
+
+func get_all_titles() -> Dictionary:
+	return _titles
+
+
+func get_all_achievements() -> Dictionary:
+	return _achievements
+
 func get_all_gateways() -> Dictionary:
 	return _gateways
 
@@ -306,6 +334,9 @@ func reload_category(category: String) -> void:
 		"quests":
 			_quests.clear()
 			load_quests()
+		"achievements":
+			_achievements.clear()
+			load_achievements()
 		"gateways":
 			_gateways.clear()
 			load_gateways()
@@ -325,6 +356,7 @@ func get_counts() -> Dictionary:
 		"npcs": _npcs.size(),
 		"status_effects": _status_effects.size(),
 		"quests": _quests.size(),
+		"achievements": _achievements.size(),
 		"gateways": _gateways.size()
 	}
 

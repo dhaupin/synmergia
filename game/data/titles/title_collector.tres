@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "collector"
+display_name = "Collector"
+description = "Collect 50 items"
+prefix_form = "The Collector"
+suffix_form = "the collector"
+category = 2
+rarity = 1
+unlock_method = 0
+unlock_source = "collector_50"
+is_account_title = false
+sort_order = 21

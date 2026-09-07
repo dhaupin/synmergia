@@ -1,16 +1,12 @@
 ## CharacterStatsUI - In-game character stats panel
 ## Shows all stats, allocated points, and allows allocation
 
-extends Control
+extends UIPanel
 class_name CharacterStatsUI
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 
-var _player_id: String = ""
-var _is_open: bool = false
-signal panel_opened()
-signal panel_closed()
 
 func open(player_id: String) -> void:
 	_open_impl(player_id)

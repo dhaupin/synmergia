@@ -318,7 +318,7 @@ func _get_controller_action(button: int) -> String:
 ## PUBLIC API
 ## ============================================================================
 
-static func get_instance() -> InputManager:
+static func singleton() -> InputManager:
 	return Engine.get_main_loop().root.find_child("InputManager", true, false)
 
 func get_input_mode() -> InputMode:

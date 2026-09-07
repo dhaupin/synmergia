@@ -26,7 +26,10 @@ var _blacksmith_panel: Control
 var _skill_academy_panel: Control
 var _faction_panel: Control
 var _achievement_panel: Control
+var _title_panel: Control
+var _dialog_panel: Control
 var _shop_panel: Control
+var _transfer_panel: Control
 
 ## State
 var _is_hud_visible: bool = true
@@ -172,6 +175,30 @@ func _initialize_panels() -> void:
 	add_child(_achievement_panel)
 	_achievement_panel.panel_closed.connect(_on_panel_closed.bind("achievement"))
 
+	# Transfer panel (character-to-character transfers)
+	_transfer_panel = preload("res://ui/social/character_transfer_ui.gd").new()
+	_transfer_panel.name = "CharacterTransferUI"
+	_transfer_panel.z_index = 500
+	add_child(_transfer_panel)
+	_transfer_panel.panel_closed.connect(_on_panel_closed.bind("transfer"))
+
+	# Dialog panel
+	_title_panel = preload("res://ui/components/title_ui.gd").new()
+	_title_panel.name = "TitleUI"
+	_title_panel.z_index = 500
+	add_child(_title_panel)
+
+	_dialog_panel = preload("res://ui/components/dialog_ui.gd").new()
+	_dialog_panel.name = "DialogUI"
+	_dialog_panel.z_index = 500
+	add_child(_dialog_panel)
+
+	# Shop panel
+	_shop_panel = preload("res://ui/components/shop_ui.gd").new()
+	_shop_panel.name = "ShopUI"
+	_shop_panel.z_index = 500
+	add_child(_shop_panel)
+
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):
 		_open_panels.erase(panel_name)
@@ -314,7 +341,7 @@ func _connect_signals() -> void:
 ## PUBLIC API
 ## ============================================================================
 
-static func get_instance() -> MenuManager:
+static func singleton() -> MenuManager:
 	return instance
 
 static func toggle_menu(menu_name: String) -> void:
@@ -439,6 +466,12 @@ func _get_panel(menu_name: String) -> Control:
 		"bank": return _bank_panel
 		"blacksmith": return _blacksmith_panel
 		"skill_academy": return _skill_academy_panel
+		"faction": return _faction_panel
+		"achievement": return _achievement_panel
+		"titles": return _title_panel
+		"transfer": return _transfer_panel
+		"dialog": return _dialog_panel
+		"shop": return _shop_panel
 	return null
 
 func _set_hud_visible_internal(visible: bool) -> void:

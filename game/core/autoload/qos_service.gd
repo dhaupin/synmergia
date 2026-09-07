@@ -176,15 +176,15 @@ func _ready() -> void:
 static func rate_limit(player_id: String, action_type: String) -> bool:
 	if player_id == "":
 		return false
-	var inst: Node = get_instance()
+	var inst: Node = singleton()
 	if inst == null:
 		return true
 	return inst.call("_rate_limit_impl", player_id, action_type)
 
 ## Public accessor for the autoload instance. Useful when callers need to
-## connect to instance signals (e.g. `QoSService.get_instance().rate_limited.connect(...)`),
+## connect to instance signals (e.g. `QoSService.singleton().rate_limited.connect(...)`),
 ## which the parser cannot expose via the class_name alone.
-static func get_instance() -> Node:
+static func singleton() -> Node:
 	var ml: MainLoop = Engine.get_main_loop()
 	if ml == null:
 		return null

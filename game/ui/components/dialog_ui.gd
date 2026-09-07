@@ -1,9 +1,11 @@
 ## DialogUI - NPC dialog system
 ## Quest offers, conversation, choices
-extends Control
+## Extends UIPanel with bottom-anchored positioning
+extends UIPanel
 class_name DialogUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const DialogService = preload("res://core/services/dialog_service.gd")
+const EntityService = preload("res://core/services/entity_service.gd")
 
 ## Dialog state
 var _current_npc: String = ""
@@ -12,7 +14,11 @@ var _dialogue_id: String = ""
 var _current_dialogue_id: String = ""
 var _current_node: int = 0
 var _choices: Array = []
-var _is_open: bool = false
+var _npc_position: Vector3 = Vector3.ZERO  # For distance-based close
+
+## Escape BBCode brackets in user-supplied content.
+static func _esc(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］")
 
 ## Components
 var _speaker_label: Label
@@ -22,19 +28,41 @@ var _continue_btn: Button
 var _portrait: TextureRect
 
 func _ready() -> void:
-	_setup_ui()
-	# Use preload for class_name DialogService (not autoload-safe get_instance)
+	super._ready()
+	_bind_signals()
+	panel_closed.connect(_on_panel_closed)
+
+func _bind_signals() -> void:
 	var DialogServiceClass = preload("res://core/services/dialog_service.gd")
 	if DialogServiceClass:
-		var svc = DialogServiceClass.get_instance()
+		var svc = DialogServiceClass.singleton()
 		if svc:
 			svc.node_changed.connect(_on_node_changed)
 			svc.dialogue_started.connect(_on_dialogue_started)
 			svc.dialogue_ended.connect(_on_dialogue_ended)
-	hide()
 
-func _setup_ui() -> void:
-	name = "DialogUI"
+func _on_panel_closed() -> void:
+	_current_npc = ""
+	_dialogue_id = ""
+	_npc_position = Vector3.ZERO
+
+func _process(_delta: float) -> void:
+	# Canonical distance check for dialog auto-close
+	if _is_open and _npc_position != Vector3.ZERO:
+		var player := _get_local_player()
+		if player != null:
+			check_interact_distance(player.global_position, _npc_position)
+
+func _get_npc_position(npc_id: String) -> Vector3:
+	# Look up NPC position via EntityService
+	if EntityService:
+		var npc = EntityService.get_entity(npc_id)
+		if npc and is_instance_valid(npc):
+			return npc.global_position
+	return Vector3.ZERO
+
+func _setup_panel() -> void:
+	# Bottom-anchored positioning (unlike center UIPanel default)
 	set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	offset_left = 50
 	offset_top = -200
@@ -44,10 +72,11 @@ func _setup_ui() -> void:
 	# Background panel
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.name = "Panel"
 	add_child(panel)
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
+	style.bg_color = UIStyles.COLORS.background
 	style.border_color = UIStyles.COLORS.accent_gold
 	style.border_width_left = 2
 	style.border_width_right = 2
@@ -109,13 +138,16 @@ func _setup_ui() -> void:
 func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	_current_npc = npc_id
 	_dialogue_id = dialogue_id
-	var svc = DialogService.get_instance()
+	# Store NPC position for distance check
+	_npc_position = _get_npc_position(npc_id)
+	set_max_interact_distance(5.0)  # Default dialog range
+	var svc = DialogService.singleton()
 	if svc and svc.start_dialogue(npc_id, dialogue_id):
-		show()
+		open("")
 		return
 	# Fallback: demo mode
 	_show_node(0)
-	show()
+	open("")
 
 func _show_node(node_index: int) -> void:
 	# DialogService handles loading from .tres; this is the demo fallback
@@ -145,16 +177,14 @@ func _show_node(node_index: int) -> void:
 	_continue_btn.visible = false
 
 func _on_dialogue_started(npc_id: String, dialogue_id: String) -> void:
-	_is_open = true
 	_current_npc_id = npc_id
 	_current_dialogue_id = dialogue_id
-	show()
+	open("")
 
 func _on_dialogue_ended(npc_id: String, dialogue_id: String) -> void:
-	_is_open = false
 	_current_npc_id = ""
 	_current_dialogue_id = ""
-	hide()
+	close()
 
 func _on_node_changed(node_index: int, node_data: Dictionary) -> void:
 	_show_node_data(node_data)
@@ -163,7 +193,7 @@ func _show_node_data(node: Dictionary) -> void:
 	_speaker_label.text = node.get("speaker", "NPC")
 	_text_rich_label.clear()
 	var text: String = node.get("text", "")
-	_text_rich_label.append_text("[color=%s]%s[/color]" % [UIStyles.COLORS.text_primary.to_html(), text])
+	_text_rich_label.append_text("[color=%s]%s[/color]" % [UIStyles.COLORS.text_primary.to_html(), _esc(text)])
 
 	for child in _choice_buttons.get_children():
 		child.queue_free()
@@ -182,7 +212,7 @@ func _show_node_data(node: Dictionary) -> void:
 		_continue_btn.visible = true
 
 func _on_choice_selected(choice_index: int) -> void:
-	var svc = DialogService.get_instance()
+	var svc = DialogService.singleton()
 	if svc:
 		svc.select_choice(choice_index)
 		return
@@ -194,16 +224,10 @@ func _on_choice_selected(choice_index: int) -> void:
 	if choice_index >= 0 and choice_index < demo_choices.size():
 		var next: int = demo_choices[choice_index].get("next", -1)
 		if next < 0:
-			hide()
+			close()
 			return
 		_show_node(next)
 
 func _on_continue_pressed() -> void:
-	# Advance to next node
 	_current_node += 1
 	_show_node(_current_node)
-
-func close() -> void:
-	hide()
-	_current_npc = ""
-	_dialogue_id = ""

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "village_elder"
+display_name = "Village Elder"
+greeting = "Welcome, traveler. The village has been troubled by wolves..."
+location_type = 0
+buy_multiplier = 0.5
+sell_multiplier = 1.0
+includes = [
+  {"type": "dialogue", "dialogue_id": "village_elder_greeting"}
+]

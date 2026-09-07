@@ -513,6 +513,7 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 
 ## Spawn a unified NPCEntity from NPCData resource.
 ## Loads the NPC's offerings via includes[] and registers with all services.
+## If scene_path exists in npc_data, instances the scene; otherwise creates NPCEntity.new().
 func spawn_npc_entity(
 		zone_id: String,
 		position: Vector3,
@@ -522,7 +523,28 @@ func spawn_npc_entity(
 		push_warning("SpawnService: Cannot spawn NPC — npc_data is null")
 		return null
 
-	var entity := NPCEntity.new()
+	var entity: NPCEntity
+
+	# Instance the scene if scene_path is set
+	if npc_data.get("scene_path") and not npc_data.scene_path.is_empty():
+		var scene_path := npc_data.scene_path as String
+		var scene_res := load(scene_path)
+		if scene_res and scene_res can PackedScene:
+			var packed: PackedScene = scene_res as PackedScene
+			var instance := packed.instantiate()
+			if instance is NPCEntity:
+				entity = instance as NPCEntity
+				GameLog.info("SpawnService: Loaded scene '%s' for NPC '%s'" % [scene_path, npc_data.id])
+			else:
+				push_warning("SpawnService: Scene '%s' does not extend NPCEntity" % scene_path)
+				entity = NPCEntity.new()
+		else:
+			push_warning("SpawnService: Failed to load scene: %s" % scene_path)
+			entity = NPCEntity.new()
+	else:
+		entity = NPCEntity.new()
+
+	# Configure entity
 	entity.npc_data = npc_data
 	entity.entity_id = npc_data.id
 	entity.display_name = npc_data.display_name
@@ -530,6 +552,11 @@ func spawn_npc_entity(
 	entity.entity_type = Entity.EntityType.NPC
 	entity.relation = Entity.Relation.FRIENDLY
 	entity.global_position = position
+
+	# Update NameLabel if present (for non-scene NPCs)
+	var name_label := entity.get_node_or_null("NameLabel") as Label3D
+	if name_label:
+		name_label.text = npc_data.display_name
 
 	# Register with EntityService
 	if EntityService:

@@ -1,6 +1,9 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://ui/hud/hud_layer.gd" id="1_hud_root"]
+[ext_resource type="Script" path="res://ui/components/follow_manager.gd" id="23_follow"]
+[ext_resource type="Script" path="res://ui/components/waypoint_ui.gd" id="24_waypoint"]
+[ext_resource type="Script" path="res://ui/components/compass.gd" id="25_compass"]
 [ext_resource type="Script" path="res://ui/components/menu_manager.gd" id="2_menu"]
 [ext_resource type="Script" path="res://ui/social/faction_ui.gd" id="3_faction"]
 [ext_resource type="Script" path="res://ui/components/action_bar.gd" id="5_action"]
@@ -19,6 +22,8 @@
 [ext_resource type="Script" path="res://ui/components/action_menu.gd" id="18_action"]
 [ext_resource type="Script" path="res://ui/social/achievement_ui.gd" id="19_achievement"]
 [ext_resource type="Script" path="res://ui/components/shop_ui.gd" id="20_shop"]
+[ext_resource type="Script" path="res://ui/components/quest_ui.gd" id="21_quest"]
+[ext_resource type="Script" path="res://ui/components/title_ui.gd" id="22_title"]
 
 [node name="HudLayer" type="CanvasLayer"]
 layer = 10
@@ -201,3 +206,48 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("20_shop")
+
+[node name="QuestUI" type="Control" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 12.0
+offset_right = -10.0
+offset_bottom = 310.0
+grow_horizontal = 0
+script = ExtResource("21_quest")
+
+[node name="TitleUI" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("22_title")
+
+[node name="FollowManager" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("23_follow")
+
+[node name="WaypointUI" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("24_waypoint")
+
+[node name="Compass" type="Control" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 60.0
+offset_bottom = 100.0
+grow_horizontal = 2
+script = ExtResource("25_compass")

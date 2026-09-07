@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContainerConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/container_schema.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+# Inventory Container Configuration
+# Player personal inventory - 24 base slots, expandable to 120
+
+container_type = 0  # INVENTORY
+expansion_tier = 0
+instance_id = ""

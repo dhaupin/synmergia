@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "guild_member"
+display_name = "Guild Member"
+description = "Join a guild"
+achievement_type = 0
+category = 1
+rarity = 0
+target_type = "guild"
+icon_path = "res://icons/achievements/guild.png"
+sort_order = 21

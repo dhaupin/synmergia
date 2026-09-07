@@ -16,6 +16,7 @@ const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
 const GMIndicator = preload("res://entities/player/components/gm_indicator.gd")
 const ReportDialog = preload("res://ui/player/report_dialog.gd")
 const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
+const PlayerLockService = preload("res://core/services/player_lock_service.gd")
 
 
 # Movement
@@ -311,11 +312,46 @@ func _physics_process(delta: float) -> void:
 	if not is_local_player:
 		return
 	
+	# SECURITY: Block movement if player is locked
+	if PlayerLockService and entity_id and PlayerLockService.is_movement_blocked(entity_id):
+		return
+	
+	# Handle follow mode - if following, auto-move to target
+	if FollowService and entity_id and FollowService.is_following(entity_id):
+		_handle_follow_movement()
+		return
+	
 	# QoS: Rate limit movement
 	if QoSService.rate_limit(entity_id, "movement"):
 		move_and_slide()
 	else:
 		GameLog.debug("PlayerController: Rate limited movement for %s" % entity_id)
+
+## Handle automatic follow movement
+func _handle_follow_movement() -> void:
+	if not FollowService or not entity_id:
+		return
+	
+	var target_pos: Vector3 = FollowService.get_target_position(entity_id)
+	var distance: float = FollowService.get_distance_to_target(entity_id)
+	var state: int = FollowService.get_follow_state(entity_id)
+	
+	if target_pos == Vector3.INF or distance < 0:
+		return
+	
+	# Only actively move if catching up
+	if state == FollowService.FollowState.CATCHING_UP:
+		var direction: Vector3 = (target_pos - global_position).normalized()
+		direction.y = 0  # Keep on ground
+		
+		# Apply speed boost for catching up
+		var speed: float = move_speed * FollowService.DEFAULT_FOLLOW_SPEED_BUFF
+		
+		velocity = direction * speed
+		move_and_slide()
+	else:
+		# Within threshold - just stand still
+		velocity = Vector3.ZERO
 
 func is_moving() -> bool:
 	var input := InputManager.get_movement_input()

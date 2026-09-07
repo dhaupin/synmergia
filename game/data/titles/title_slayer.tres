@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "slayer"
+display_name = "Slayer"
+description = "Defeat 100 enemies"
+prefix_form = "The Slayer"
+suffix_form = "the slayer"
+category = 0
+rarity = 1
+unlock_method = 0
+unlock_source = "slayer_100"
+is_account_title = false
+sort_order = 2

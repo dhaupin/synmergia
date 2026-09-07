@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "collector_50"
+display_name = "Collector"
+description = "Collect 50 items"
+achievement_type = 1
+category = 2
+rarity = 0
+target = 50
+target_type = "item"
+icon_path = "res://icons/achievements/collector.png"
+sort_order = 31

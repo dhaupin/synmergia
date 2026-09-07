@@ -24,6 +24,11 @@ const Species = preload("res://core/schemas/species.gd")
 # Action Bar (8 slots)
 @export var action_bar_slots: Array[String] = []  # skill IDs bound to slots 0-7
 
+# Player Titles
+@export var unlocked_titles: Array[String] = []  # unlocked title IDs
+@export var equipped_prefix: String = ""         # currently equipped prefix title ID
+@export var equipped_suffix: String = ""         # currently equipped suffix title ID
+
 # Stat Allocation (player-assigned points)
 @export var allocated_stats: Dictionary = {
 	"strength": 0,

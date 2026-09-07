@@ -20,7 +20,8 @@ enum LocationType {
 @export var faction: String = "friendly"
 
 # Visual
-@export var model_path: String = ""
+@export var scene_path: String = ""  # Path to NPC .tscn scene
+@export var model_path: String = ""   # Legacy alias
 @export var icon_path: String = ""
 
 # Dialog
