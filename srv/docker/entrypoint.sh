@@ -58,6 +58,8 @@ fi
 # ── DEV MODE ───────────────────────────────────────────────────────────────
 # Start Xvfb, x11vnc, websockify, nginx, then Godot GUI.
 if [[ "$START_MODE" == "dev" ]]; then
+    # Clean up stale lock files from previous runs
+    rm -f /tmp/.X99-lock /tmp/.X0-lock
     log "Mode: DEV — starting Xvfb + noVNC + nginx + Godot GUI"
 
     # Xvfb virtual display
