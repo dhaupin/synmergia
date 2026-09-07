@@ -122,12 +122,18 @@ func create_waypoint(player_id: String, name: String, position: Vector3, zone_id
 		color: int = WaypointColor.BLUE, icon: int = WaypointIcon.FLAG, 
 		is_quest: bool = false, quest_id: String = "") -> Dictionary:
 	
-	# Validate input
-	if name.length() > MAX_WAYPOINT_NAME_LENGTH:
-		name = name.substr(0, MAX_WAYPOINT_NAME_LENGTH)
+	# Sanitize and validate input
+	name = _sanitize_name(name)
 	
-	if name.is_empty():
-		name = "Waypoint %d" % Time.get_unix_time_from_system()
+	# Validate position bounds (prevent far-teleport exploits)
+	if not _is_valid_position(position):
+		return {"success": false, "message": "Invalid position"}
+	
+	# Validate color/icon enums
+	if not _is_valid_color(color):
+		color = WaypointColor.BLUE
+	if not _is_valid_icon(icon):
+		icon = WaypointIcon.FLAG
 	
 	# Check limit
 	var waypoints := get_waypoints(player_id)
@@ -208,29 +214,30 @@ func update_waypoint(player_id: String, waypoint_id: String, updates: Dictionary
 	if wp.is_quest_waypoint and not updates.has("is_visible"):
 		return {"success": false, "message": "Cannot modify quest waypoint"}
 	
-	# Apply updates
+	# Apply updates with validation
 	if updates.has("name"):
-		var new_name: String = updates.name
-		if new_name.length() > MAX_WAYPOINT_NAME_LENGTH:
-			new_name = new_name.substr(0, MAX_WAYPOINT_NAME_LENGTH)
-		wp.name = new_name
+		wp.name = _sanitize_name(str(updates.name))
 	
 	if updates.has("color"):
-		wp.color = updates.color
+		var color_val: int = int(updates.color) if updates.color is int or updates.color is String else -1
+		if _is_valid_color(color_val):
+			wp.color = color_val
 	
 	if updates.has("icon"):
-		wp.icon = updates.icon
+		var icon_val: int = int(updates.icon) if updates.icon is int or updates.icon is String else -1
+		if _is_valid_icon(icon_val):
+			wp.icon = icon_val
 	
 	if updates.has("is_visible"):
-		wp.is_visible = updates.is_visible
+		wp.is_visible = bool(updates.is_visible)
 	
 	if updates.has("is_locked"):
 		# Cannot lock/unlock quest waypoints
 		if not wp.is_quest_waypoint:
-			wp.is_locked = updates.is_locked
+			wp.is_locked = bool(updates.is_locked)
 	
 	if updates.has("show_beacon"):
-		wp.show_beacon = updates.show_beacon
+		wp.show_beacon = bool(updates.show_beacon)
 	
 	wp.updated_at = Time.get_unix_time_from_system()
 	
@@ -241,8 +248,14 @@ func update_waypoint(player_id: String, waypoint_id: String, updates: Dictionary
 
 ## Delete a waypoint
 func delete_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
+	# Sanitize inputs
+	waypoint_id = str(waypoint_id)
+	
 	if not _player_waypoints.has(player_id):
 		return {"success": false, "message": "No waypoints found"}
+	
+	if waypoint_id.is_empty():
+		return {"success": false, "message": "Invalid waypoint ID"}
 	
 	var wp: Waypoint = null
 	var index := -1
@@ -467,3 +480,46 @@ func _notify_player(player_id: String, message: String) -> void:
 			{},
 			player_id
 		)
+
+## Security: Sanitize waypoint name (prevent XSS, injection)
+func _sanitize_name(name: String) -> String:
+	# Truncate to max length
+	if name.length() > MAX_WAYPOINT_NAME_LENGTH:
+		name = name.substr(0, MAX_WAYPOINT_NAME_LENGTH)
+	
+	if name.is_empty():
+		name = "Waypoint %d" % int(Time.get_unix_time_from_system())
+	
+	# Remove dangerous characters (BBCode injection prevention)
+	name = name.replace("[", "［").replace("]", "］")
+	name = name.replace("<", "＜").replace(">", "＞")
+	
+	# Strip control characters
+	name = name.strip_edges(true, true)
+	
+	# Prevent empty or whitespace-only names
+	if name.is_empty() or name.strip_edges().is_empty():
+		name = "Waypoint %d" % int(Time.get_unix_time_from_system())
+	
+	return name
+
+## Security: Validate position bounds
+func _is_valid_position(position: Vector3) -> bool:
+	# Check for NaN or infinity
+	if not is_finite(position):
+		return false
+	
+	# Check world bounds (prevent teleport exploits)
+	const MAX_COORD: float = 100000.0
+	if abs(position.x) > MAX_COORD or abs(position.y) > MAX_COORD or abs(position.z) > MAX_COORD:
+		return false
+	
+	return true
+
+## Security: Validate color enum
+func _is_valid_color(color: int) -> bool:
+	return color >= 0 and color < WaypointColor.size()
+
+## Security: Validate icon enum
+func _is_valid_icon(icon: int) -> bool:
+	return icon >= 0 and icon < WaypointIcon.size()

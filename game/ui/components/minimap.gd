@@ -178,18 +178,21 @@ func add_marker(entity_id: String, position: Vector3, marker_type: int, label: S
 
 	# Color based on type
 	var color: Color
-	if marker_type == 1:
-		color = UIStyles.COLORS.success
-	elif marker_type == 2:
-		color = UIStyles.COLORS.accent_gold
-	elif marker_type == 3:
-		color = UIStyles.COLORS.warning
-	elif marker_type == 4:
-		color = UIStyles.COLORS.error
-	elif marker_type == 5:
-		color = UIStyles.COLORS.info
-	else:
-		color = UIStyles.COLORS.info
+	match marker_type:
+		1: color = UIStyles.COLORS.success       # NPC
+		2: color = UIStyles.COLORS.accent_gold  # Quest
+		3: color = UIStyles.COLORS.warning       # Enemy
+		4: color = UIStyles.COLORS.error         # Danger
+		5: color = UIStyles.COLORS.info          # Info
+		10: color = Color(1.0, 0.3, 0.3)        # Waypoint Red
+		11: color = Color(1.0, 0.6, 0.2)         # Waypoint Orange
+		12: color = Color(1.0, 0.9, 0.3)         # Waypoint Yellow
+		13: color = Color(0.3, 1.0, 0.3)         # Waypoint Green
+		14: color = Color(0.3, 0.6, 1.0)         # Waypoint Blue
+		15: color = Color(0.8, 0.3, 1.0)         # Waypoint Purple
+		16: color = Color(1.0, 0.4, 0.7)         # Waypoint Pink
+		17: color = Color(1.0, 1.0, 1.0)         # Waypoint White
+		_: color = UIStyles.COLORS.info
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = color

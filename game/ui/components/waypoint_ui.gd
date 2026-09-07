@@ -5,6 +5,10 @@ extends Control
 const WaypointService = preload("res://core/services/waypoint_service.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
+## Security: Escape text to prevent BBCode injection
+static func _esc(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］")
+
 # UI Elements
 @onready var panel: PanelContainer
 @onready var waypoint_list: VBoxContainer
@@ -276,8 +280,8 @@ func _create_waypoint_row(wp_data: Dictionary) -> Control:
 	icon_label.text = icon
 	hbox.add_child(icon_label)
 	
-	var name_label := Label.new()
-	name_label.text = wp_data.get("name", "Waypoint")
+	var 	name_label := Label.new()
+	name_label.text = _esc(str(wp_data.get("name", "Waypoint")))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_label)
 	

@@ -1,8 +1,9 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://ui/hud/hud_layer.gd" id="1_hud_root"]
 [ext_resource type="Script" path="res://ui/components/follow_manager.gd" id="23_follow"]
 [ext_resource type="Script" path="res://ui/components/waypoint_ui.gd" id="24_waypoint"]
+[ext_resource type="Script" path="res://ui/components/compass.gd" id="25_compass"]
 [ext_resource type="Script" path="res://ui/components/menu_manager.gd" id="2_menu"]
 [ext_resource type="Script" path="res://ui/social/faction_ui.gd" id="3_faction"]
 [ext_resource type="Script" path="res://ui/components/action_bar.gd" id="5_action"]
@@ -242,3 +243,11 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("24_waypoint")
+
+[node name="Compass" type="Control" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 60.0
+offset_bottom = 100.0
+grow_horizontal = 2
+script = ExtResource("25_compass")
