@@ -109,7 +109,7 @@ func _alert_admin(severity: String, player_id: String, exploit_type: String, det
 	var alert_msg := "SECURITY ALERT [%s] Player: %s | Type: %s | Details: %s" % [
 		severity, player_id, exploit_type, JSON.stringify(details)
 	]
-	print(alert_msg)
+	GameLog.info(alert_msg)
 
 	# Route to the in-game toast/notification pipeline so admins watching
 	# the HUD see critical exploits in real time. The frame dispatch fires

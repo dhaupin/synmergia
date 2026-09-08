@@ -106,7 +106,7 @@ func _ready() -> void:
 	_detect_platform()
 	_check_controller()
 	_setup_input_actions()
-	print("InputManager: Mode=", _input_mode, " Mobile=", _is_mobile, " Desktop=", _is_desktop)
+	GameLog.info("InputManager: Mode=", _input_mode, " Mobile=", _is_mobile, " Desktop=", _is_desktop)
 
 func _detect_platform() -> void:
 	_is_web = OS.has_feature("web")

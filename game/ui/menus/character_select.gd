@@ -22,7 +22,7 @@ signal character_confirmed(data: CharacterData)
 
 
 func _ready() -> void:
-	print("[CHAR_SELECT] _ready called")
+	# print removed: print("[CHAR_SELECT] _ready called")
 	back_button.pressed.connect(_on_back_pressed)
 	play_button.pressed.connect(_on_play_pressed)
 	play_button.disabled = true
@@ -115,10 +115,10 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_TAB:
 			_cycle_focus([back_button, play_button], event.shift)
 		elif event.keycode == KEY_F5:
-			print("[CHAR_SELECT] F5 pressed")
+	# print removed: print("[CHAR_SELECT] F5 pressed")
 			_auto_select()
 		elif event.keycode == KEY_F6:
-			print("[CHAR_SELECT] F6 pressed, play_button.disabled=", play_button.disabled)
+	# print removed: print("[CHAR_SELECT] F6 pressed, play_button.disabled=", play_button.disabled)
 			_auto_play()
 
 
@@ -136,23 +136,23 @@ func _cycle_focus(buttons: Array, reverse: bool) -> void:
 	buttons[idx].grab_focus()
 
 func _auto_select() -> void:
-	print("[CHAR_SELECT] _auto_select called, selected_species_id=", selected_species_id)
+	# print removed: print("[CHAR_SELECT] _auto_select called, selected_species_id=", selected_species_id)
 	if selected_species_id == "":
 		# Select first species
 		var all_species = CharacterData.get_all_species()
-		print("[CHAR_SELECT] all_species count=", all_species.size() if all_species else 0)
+	# print removed: print("[CHAR_SELECT] all_species count=", all_species.size() if all_species else 0)
 		if all_species and not all_species.is_empty():
 			var first = all_species[0]
-			print("[CHAR_SELECT] first species id=", first.id)
+	# print removed: print("[CHAR_SELECT] first species id=", first.id)
 			_on_species_card_selected(first.id)
 			# Select first class after species
 			await get_tree().process_frame
 			await get_tree().process_frame
 			var all_classes = CharacterData.get_available_classes_for_species(selected_species_id)
-			print("[CHAR_SELECT] all_classes count=", all_classes.size() if all_classes else 0)
+	# print removed: print("[CHAR_SELECT] all_classes count=", all_classes.size() if all_classes else 0)
 			if all_classes and not all_classes.is_empty():
 				var first_class = all_classes[0]
-				print("[CHAR_SELECT] first class id=", first_class.id)
+	# print removed: print("[CHAR_SELECT] first class id=", first_class.id)
 				_on_class_selected(first_class.id)
 
 func _auto_play() -> void:

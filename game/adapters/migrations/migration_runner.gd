@@ -167,4 +167,4 @@ func _log(log: Object, msg: String) -> void:
 	if log != null and log.has_method("info"):
 		log.info(msg)
 	else:
-		print(msg)
+		GameLog.info(msg)

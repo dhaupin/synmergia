@@ -155,10 +155,10 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_TAB:
 			_cycle_focus([_play_btn, _create_btn, _delete_btn, _logout_btn], event.shift)
 		elif event.keycode == KEY_F5:
-			print("[LOBBY] F5 pressed - creating character")
+	# print removed: print("[LOBBY] F5 pressed - creating character")
 			_on_create_pressed()
 		elif event.keycode == KEY_F6:
-			print("[LOBBY] F6 pressed - playing character")
+	# print removed: print("[LOBBY] F6 pressed - playing character")
 			_on_play_pressed()
 
 

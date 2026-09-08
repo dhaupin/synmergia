@@ -89,7 +89,7 @@ func create_close_button() -> Button:
 func announce_for_screen_reader(message: String) -> void:
 	# Emit signal that can be connected to a screen reader service
 	# For now, log to console for debug
-	print("[A11Y] " + message)
+	# print removed: print("[A11Y] " + message)
 
 ## ============================================================================
 ## DISTANCE-BASED CLOSE (for interactable panels like dialogs, shops)
@@ -245,14 +245,14 @@ func open(player_id: String) -> void:
 	visible = true
 	_on_open()
 	panel_opened.emit()
-	print("UIPanel: Opened %s" % name)
+	# print removed: print("UIPanel: Opened %s" % name)
 
 func close() -> void:
 	_is_open = false
 	visible = false
 	_on_close()
 	panel_closed.emit()
-	print("UIPanel: Closed %s" % name)
+	# print removed: print("UIPanel: Closed %s" % name)
 
 func toggle(player_id: String) -> void:
 	if _is_open:

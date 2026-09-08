@@ -8,7 +8,7 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 @onready var quit_button: Button = $MenuButtons/QuitButton
 
 func _ready() -> void:
-	print("Main menu loaded")
+	# print removed: print("Main menu loaded")
 	_apply_styles()
 
 	# Hide quit button on mobile/web
@@ -30,7 +30,7 @@ func _apply_styles() -> void:
 		subtitle.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 
 func _on_play_pressed() -> void:
-	print("[MENU] PlayButton pressed")
+	# print removed: print("[MENU] PlayButton pressed")
 	if DebugOverlay:
 		DebugOverlay.log_click("PlayButton", "goto_login", true)
 	# Send the player to login first; on success they land in the
@@ -42,7 +42,7 @@ func _on_play_pressed() -> void:
 			GameManager.change_state(GameManager.GameState.LOGIN)
 
 func _on_settings_pressed() -> void:
-	print("[MENU] SettingsButton pressed")
+	# print removed: print("[MENU] SettingsButton pressed")
 	if DebugOverlay:
 		DebugOverlay.log_click("SettingsButton", "open_settings", true)
 	_open_settings_panel()
@@ -70,7 +70,7 @@ func _open_settings_panel() -> void:
 		panel2.call_deferred("open", player_id)
 
 func _on_quit_pressed() -> void:
-	print("Quit button pressed")
+	# print removed: print("Quit button pressed")
 	get_tree().quit()
 
 func _input(event: InputEvent) -> void:

@@ -61,7 +61,7 @@ func _set_mode(mode: int) -> void:
 	_clear_error()
 
 func _on_login_pressed() -> void:
-	print("[LOGIN] LoginButton pressed, mode=%d user='%s'" % [_mode, _username.text])
+	# print removed: print("[LOGIN] LoginButton pressed, mode=%d user='%s'" % [_mode, _username.text])
 	if DebugOverlay:
 		DebugOverlay.log_click("LoginButton", "login", false)
 	if _mode == Mode.REGISTER:
@@ -70,19 +70,19 @@ func _on_login_pressed() -> void:
 	var u := _username.text
 	var p := _password.text
 	if u.strip_edges() == "":
-		print("[LOGIN] LoginButton -> no username, error shown")
+	# print removed: print("[LOGIN] LoginButton -> no username, error shown")
 		_show_error("Enter a username")
 		return
 	if not LoginService:
 		_show_error("LoginService unavailable")
 		return
-	print("[LOGIN] LoginButton -> calling LoginService.login('%s', ***)" % u)
+	# print removed: print("[LOGIN] LoginButton -> calling LoginService.login('%s', ***)" % u)
 	LoginService.login(u, p)
 	if DebugOverlay:
 		DebugOverlay.log_click("LoginButton", "login", true)
 
 func _on_register_pressed() -> void:
-	print("[LOGIN] RegisterButton pressed, mode=%d" % _mode)
+	# print removed: print("[LOGIN] RegisterButton pressed, mode=%d" % _mode)
 	if DebugOverlay:
 		DebugOverlay.log_click("RegisterButton", "toggle_mode", false)
 	if _mode == Mode.LOGIN:
@@ -105,7 +105,7 @@ func _on_register_pressed() -> void:
 		DebugOverlay.log_click("RegisterButton", "register", true)
 
 func _on_guest_pressed() -> void:
-	print("[LOGIN] GuestButton pressed")
+	# print removed: print("[LOGIN] GuestButton pressed")
 	if DebugOverlay:
 		DebugOverlay.log_click("GuestButton", "guest_login", false)
 	if not LoginService:
@@ -148,14 +148,14 @@ func _trigger_tab() -> void:
 	var next = focus_owner.find_next_valid_focus()
 	if next:
 		next.grab_focus()
-		print("[LOGIN] Tabbed to: ", next.name if next else "none")
+	# print removed: print("[LOGIN] Tabbed to: ", next.name if next else "none")
 
 # F5 = instant guest login (for headless/Docker testing)
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
 			KEY_F5:
-				print("[LOGIN] F5 pressed - guest login")
+	# print removed: print("[LOGIN] F5 pressed - guest login")
 				_on_guest_pressed()
 			KEY_TAB:
 				_trigger_tab()

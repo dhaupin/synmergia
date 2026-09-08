@@ -136,7 +136,7 @@ func _log_info(msg: String) -> void:
 	if gl and gl.has_method("info"):
 		gl.info(msg)
 	else:
-		print(msg)
+		GameLog.info(msg)
 
 
 # Wire up the default set of stores. Services that need their
