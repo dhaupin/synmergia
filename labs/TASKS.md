@@ -252,6 +252,11 @@ Need to add to the Â§2 table + Â§8 wiring:
 
 ## Recently Completed (2026-09-08)
 
+- [x] Bulk trailing whitespace sweep: 129 .gd files fixed across 4 batches
+- [x] Non-ASCII cleanup: 70 replacements across 20 files (em-dash, arrows, bullets, CJK, superscript)
+- [x] Remaining non-ASCII: 165 occurrences (188 ALLOWLISTED emoji in strings + 34 INTENTIONAL fullwidth brackets + section symbols)
+
+
 - [x] Merge kilo/festive-ribbon-wave into main (569 ahead / 535 behind)
 - [x] Godot 4.7.2 parse/runtime fixes (CooldownService, dialog_service,
       vendor_service, qos_service, npc_entity, dialog_ui)
