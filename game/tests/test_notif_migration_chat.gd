@@ -62,7 +62,7 @@ func _test_notify_player_routes_to_kind() -> void:
 	# SECURITY_BLOCKED is intentionally NOT deduped (see KIND_WINDOW_OVERRIDES
 	# in notification_dispatcher.gd: ban/unban/rate-limit messages must always
 	# surface). The migration's per-call dedupe key is therefore advisory for
-	# this kind — the kind-level policy wins. Assert the call does NOT collapse
+	# this kind -- the kind-level policy wins. Assert the call does NOT collapse
 	# so a future refactor doesn't accidentally re-enable dedupe here and
 	# silence rate-limit feedback.
 	_notif.reset_dedupe()

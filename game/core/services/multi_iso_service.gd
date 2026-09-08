@@ -4,7 +4,7 @@
 ## run multi-axis intersection queries. The Julia orchestrator lives
 ## in labs/multi-iso/srv/ and runs as a sidecar container (Docker).
 ##
-## The HTTP bridge is the simplest way to cross the Godot ↔ Julia
+## The HTTP bridge is the simplest way to cross the Godot <-> Julia
 ## boundary without a full polyglot FFI setup. When polyglot-ffi
 ## is mature, this service can be replaced with direct FFI calls.
 ##

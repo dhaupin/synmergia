@@ -50,11 +50,11 @@ func _initialize() -> void:
 func _test_respawn_invincibility_kind() -> void:
 	# Build a stub entity with the fields the helper reads (entity_id
 	# and display_name). The helper is apply_respawn_invincibility(entity)
-	# — it does not need a real Entity subclass, just duck-typed fields.
+	# -- it does not need a real Entity subclass, just duck-typed fields.
 	# Respawn invincibility requires Config.RESPAWN_INVINCIBILITY_DURATION > 0
 	# and Config.SHOW_INVINCIBILITY_UI. We attempt the call anyway; if
 	# the gates are off the helper no-ops silently and we fall back
-	# to asserting the kind→type map.
+	# to asserting the kind->type map.
 	_notif.reset_dedupe()
 	var stub_entity := {
 		"entity_id": "test_death_respawn",
@@ -95,7 +95,7 @@ func _test_griefing_protection_kind() -> void:
 		_ok("DeathFeatures._activate_griefing_protection dispatches NotifKind.SECURITY_WARNING")
 	else:
 		# The helper requires Config.GRIEFING_PROTECTION_DURATION > 0;
-		# if gated off, fall back to the kind→type map.
+		# if gated off, fall back to the kind->type map.
 		if _notif._notif_type_for_kind(NotifKind.SECURITY_WARNING) > 0:
 			_ok("DeathFeatures._activate_griefing_protection: SECURITY_WARNING kind maps to a renderable type (helper no-op'd on config gate)")
 		else:

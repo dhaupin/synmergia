@@ -261,8 +261,8 @@ func _get_status_text(target: TargetingManager.TargetInfo, is_gm: bool = false) 
 		Entity.EntityType.PLAYER:
 			var online_val = target.node.get("is_online") if target.node else null
 			if is_gm:
-				return "● Online ⭐"
-			return "● Online" if online_val else "○ Offline"
+				return "* Online ⭐"
+			return "* Online" if online_val else "o Offline"
 		Entity.EntityType.ENEMY:
 			if target.node and target.node.has("health"):
 				var hp_val = target.node.get("health")
@@ -364,7 +364,7 @@ func _get_action_icon(action_id: String) -> String:
 		"use": return "🔧"
 		"resurrect": return "✨"
 		"revive": return "💚"
-		_: return "•"
+		_: return "*"
 
 func _get_action_name(action_id: String) -> String:
 	match action_id:

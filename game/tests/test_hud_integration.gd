@@ -87,7 +87,7 @@ func _initialize() -> void:
 			if combat_log.has_method("get_message_count"):
 				after = combat_log.get_message_count()
 			if after > before:
-				_ok("NotificationService → CombatLog round-trip works")
+				_ok("NotificationService -> CombatLog round-trip works")
 			else:
 				_fail("Notification never reached CombatLog (before=%d after=%d)" % [before, after])
 		else:

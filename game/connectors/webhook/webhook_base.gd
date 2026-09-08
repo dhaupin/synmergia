@@ -4,9 +4,9 @@
 ## Keeps webhook logic DRY in one place.
 ##
 ## Architecture:
-##   webhook_base.gd (generic handler) ← discord_webhook.gd (Discord-specific)
-##                          ← slack_webhook.gd (future)
-##                          ← generic_http_webhook.gd (future)
+##   webhook_base.gd (generic handler) <- discord_webhook.gd (Discord-specific)
+##                          <- slack_webhook.gd (future)
+##                          <- generic_http_webhook.gd (future)
 ##
 ## Usage:
 ##   1. Set webhook_url from GameConfig

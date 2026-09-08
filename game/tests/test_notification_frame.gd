@@ -1,7 +1,7 @@
 ## test_notification_frame.gd
 ## End-to-end test for the notification frame:
-##   NotificationContext → NotificationService.notify()
-##     → dedupe (NotificationDispatcher) → send() / broadcast_alert()
+##   NotificationContext -> NotificationService.notify()
+##     -> dedupe (NotificationDispatcher) -> send() / broadcast_alert()
 ##
 ## Run with:
 ##   tools/godot --headless --path synmergia --script res://tests/test_notification_frame.gd
@@ -48,7 +48,7 @@ func _initialize() -> void:
 	_notif.reset_dedupe()
 	var firewall: Node = root.get_node_or_null("AppFirewall")
 	if firewall == null:
-		_fail("AppFirewall autoload missing — cannot exercise recursion dispatch")
+		_fail("AppFirewall autoload missing -- cannot exercise recursion dispatch")
 	else:
 		var guard: RefCounted = firewall.get_recursion_guard()
 		if guard == null:
@@ -87,7 +87,7 @@ func _initialize() -> void:
 			else:
 				_ok("AppFirewall recursion block dispatches SECURITY_BLOCKED per-context (saw %d events)" % captured.size())
 
-		# QoS autoload rate-limit → RATE_LIMITED notification. The
+		# QoS autoload rate-limit -> RATE_LIMITED notification. The
 		# autoload's script has class_name QoSService, which collides
 		# with the autoload's registered name. Godot renames the
 		# autoload node to "#ServicesQoSService" to disambiguate;
@@ -131,9 +131,9 @@ func _initialize() -> void:
 	# canonical firewall.
 	var fw: Node = root.get_node_or_null("AppFirewall")
 	if fw == null:
-		_fail("AppFirewall autoload missing — cannot exercise firewall dispatch")
+		_fail("AppFirewall autoload missing -- cannot exercise firewall dispatch")
 	else:
-		# Permanent ban → SECURITY_BLOCKED, key `ban_perm:<player>`
+		# Permanent ban -> SECURITY_BLOCKED, key `ban_perm:<player>`
 		_notif.reset_dedupe()
 		fw.call("ban_player", "frame_fw_perm", "spam", "admin")
 		await process_frame
@@ -148,7 +148,7 @@ func _initialize() -> void:
 		else:
 			_fail("Firewall permanent ban did not produce SECURITY_BLOCKED")
 
-		# Temporary ban → SECURITY_BLOCKED, key `ban_temp:<player>`. Reset
+		# Temporary ban -> SECURITY_BLOCKED, key `ban_temp:<player>`. Reset
 		# the dedupe table between the two so the perm key from above
 		# doesn't poison the temp lookup.
 		_notif.reset_dedupe()
@@ -165,7 +165,7 @@ func _initialize() -> void:
 		else:
 			_fail("Firewall temporary ban did not produce SECURITY_BLOCKED")
 
-		# Lift ban → SECURITY_WARNING
+		# Lift ban -> SECURITY_WARNING
 		_notif.reset_dedupe()
 		fw.call("lift_ban", "frame_fw_perm")
 		await process_frame
@@ -180,7 +180,7 @@ func _initialize() -> void:
 		else:
 			_fail("Firewall lift_ban did not produce SECURITY_WARNING")
 
-		# block_ip → ADMIN_ALERT (admins only; the IP owner may not even
+		# block_ip -> ADMIN_ALERT (admins only; the IP owner may not even
 		# be in the system, so this is the right audience).
 		_notif.reset_dedupe()
 		fw.call("block_ip", "10.0.0.99", "spam-source", 120)
@@ -203,7 +203,7 @@ func _initialize() -> void:
 	# way to know another admin is acting in the world.
 	var ac: Node = root.get_node_or_null("AdminCommands")
 	if ac == null:
-		_fail("AdminCommands autoload missing — cannot exercise admin dispatch")
+		_fail("AdminCommands autoload missing -- cannot exercise admin dispatch")
 	else:
 		# /ban
 		_notif.reset_dedupe()
@@ -222,7 +222,7 @@ func _initialize() -> void:
 		else:
 			_fail("AdminCommands /ban did not produce ADMIN_ALERT")
 
-		# /kick — both player-facing SECURITY_BLOCKED and admin
+		# /kick -- both player-facing SECURITY_BLOCKED and admin
 		# ADMIN_ALERT must fire (player wants to know they were
 		# kicked; admins want to know who issued the kick).
 		_notif.reset_dedupe()
@@ -289,7 +289,7 @@ func _initialize() -> void:
 	# is correct regardless.
 	var sm: Node = root.get_node_or_null("ServerManager")
 	if sm == null:
-		_fail("ServerManager autoload missing — cannot exercise kick dispatch")
+		_fail("ServerManager autoload missing -- cannot exercise kick dispatch")
 	else:
 		_notif.reset_dedupe()
 		sm.call("kick_player", "frame_sm_kick", "maintenance")
@@ -311,7 +311,7 @@ func _initialize() -> void:
 	# invite_player + accept_invite, not a direct join.
 	var ps: Node = root.get_node_or_null("PartyService")
 	if ps == null:
-		_fail("PartyService autoload missing — cannot exercise kick dispatch")
+		_fail("PartyService autoload missing -- cannot exercise kick dispatch")
 	else:
 		var ps_party_id: String = ps.call("create_party", "frame_ps_leader")
 		var ps_invite: bool = ps.call("invite_player", "frame_ps_leader", "frame_ps_target")
@@ -342,7 +342,7 @@ func _initialize() -> void:
 	# sites use.
 	var ts: Node = root.get_node_or_null("TradeService")
 	if ts == null:
-		_fail("TradeService autoload missing — cannot exercise trade notif")
+		_fail("TradeService autoload missing -- cannot exercise trade notif")
 	else:
 		_notif.reset_dedupe()
 		ts.call("_notify_player", "frame_ts_blocked", "test trade block")
@@ -364,7 +364,7 @@ func _initialize() -> void:
 	# don't need a separate promote step.
 	var gs: Node = root.get_node_or_null("GuildService")
 	if gs == null:
-		_fail("GuildService autoload missing — cannot exercise guild kick")
+		_fail("GuildService autoload missing -- cannot exercise guild kick")
 	else:
 		# create_guild(name, tag, leader_id) -> guild_id
 		var gs_guild_id: String = gs.call("create_guild", "TestGuild", "TG", "frame_gs_leader")
@@ -587,7 +587,7 @@ func _test_notify_delivers_to_player() -> void:
 
 func _test_notify_delivers_broadcast() -> void:
 	_notif.reset_dedupe()
-	# Empty recipient → broadcast (server-wide). Same call shape that
+	# Empty recipient -> broadcast (server-wide). Same call shape that
 	# AppFirewall / SecurityMonitor use for admin scope.
 	var delivered: bool = _notif.notify(
 		NotifKind.ADMIN_ALERT,

@@ -1,5 +1,5 @@
 ## test_notification_toast - end-to-end smoke test for the
-## NotificationService → TooltipManager.show_toast() pipeline.
+## NotificationService -> TooltipManager.show_toast() pipeline.
 ##
 ## Run with:
 ##   tools/godot --headless --path synmergia --script res://tests/test_notification_toast.gd
@@ -10,7 +10,7 @@ var _failed := 0
 
 
 func _initialize() -> void:
-	print("--- NOTIFICATION → TOAST INTEGRATION TEST ---")
+	print("--- NOTIFICATION -> TOAST INTEGRATION TEST ---")
 	await process_frame
 	# Drop into PLAYING so the HUD (with the TooltipManager) is live.
 	var gm: Node = root.get_node_or_null("GameManager")
@@ -29,7 +29,7 @@ func _initialize() -> void:
 
 	var tooltip_mgr: Node = _world.get_node_or_null("HudLayer/TooltipManager")
 	if not tooltip_mgr:
-		# TooltipManager is sometimes parented elsewhere — walk the tree.
+		# TooltipManager is sometimes parented elsewhere -- walk the tree.
 		tooltip_mgr = _find_node(_world, "TooltipManager")
 	if not tooltip_mgr:
 		_fail("TooltipManager not found in world tree")
@@ -37,11 +37,11 @@ func _initialize() -> void:
 	_ok("TooltipManager present: %s" % tooltip_mgr.get_path())
 
 	if not tooltip_mgr.has_method("show_toast"):
-		_fail("TooltipManager.show_toast() missing — add it to tooltip_manager.gd")
+		_fail("TooltipManager.show_toast() missing -- add it to tooltip_manager.gd")
 		return
 	_ok("TooltipManager has show_toast()")
 
-	# 1. Direct call to show_toast — verify the panel actually appears.
+	# 1. Direct call to show_toast -- verify the panel actually appears.
 	_clear_toasts(tooltip_mgr)
 	tooltip_mgr.show_toast("Direct toast call", Color.YELLOW, 0.5)
 	await process_frame
@@ -50,7 +50,7 @@ func _initialize() -> void:
 	else:
 		_fail("show_toast() did not create a panel")
 
-	# 2. NotificationService round-trip — verify notification_sent signal
+	# 2. NotificationService round-trip -- verify notification_sent signal
 	#    flows through the HUD and triggers show_toast.
 	var notif: Node = root.get_node_or_null("NotificationService")
 	if not notif:
@@ -61,9 +61,9 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 	if _active_toast_count(tooltip_mgr) > 0:
-		_ok("NotificationService.send_to_player() → show_toast() (%d panels)" % _active_toast_count(tooltip_mgr))
+		_ok("NotificationService.send_to_player() -> show_toast() (%d panels)" % _active_toast_count(tooltip_mgr))
 	else:
-		_fail("Notification never reached show_toast — HudIntegrator not wired?")
+		_fail("Notification never reached show_toast -- HudIntegrator not wired?")
 
 	# 3. Flood a handful of toasts to make sure the stack limit kicks in.
 	for i in range(8):
@@ -75,7 +75,7 @@ func _initialize() -> void:
 	else:
 		_fail("Stack overflow: active=%d" % stack.size())
 
-	# 4. broadcast_alert — same pipeline, admin scope.
+	# 4. broadcast_alert -- same pipeline, admin scope.
 	notif.broadcast_alert(
 		"[TEST] Server-wide alert",
 		[notif.AlertScope.server_wide()],
@@ -85,13 +85,13 @@ func _initialize() -> void:
 	await process_frame
 	_ok("broadcast_alert() did not crash with single-scope array")
 
-	# 6. AppFirewall → RecursionGuard → NotificationService pipeline.
+	# 6. AppFirewall -> RecursionGuard -> NotificationService pipeline.
 	#    When a recursive call exceeds the configured depth, the guard
 	#    emits block_triggered, AppFirewall listens, and routes the
 	#    event to NotificationService.broadcast_server (admin scope).
 	var firewall: Node = root.get_node_or_null("AppFirewall")
 	if not firewall:
-		_fail("AppFirewall autoload missing — cannot test recursion guard")
+		_fail("AppFirewall autoload missing -- cannot test recursion guard")
 	else:
 		_clear_toasts(tooltip_mgr)
 		var guard: RefCounted = firewall.get_recursion_guard()
@@ -110,7 +110,7 @@ func _initialize() -> void:
 			else:
 				_fail("RecursionGuard semantics wrong: a1=%s a2=%s a3=%s" % [allowed_1, allowed_2, allowed_3])
 			if _active_toast_count(tooltip_mgr) > 0:
-				_ok("RecursionGuard block → AppFirewall → NotificationService → toast (%d)" % _active_toast_count(tooltip_mgr))
+				_ok("RecursionGuard block -> AppFirewall -> NotificationService -> toast (%d)" % _active_toast_count(tooltip_mgr))
 			else:
 				_fail("Recursion block didn't reach the toast pipeline")
 			guard.exit("test_toast_ctx")

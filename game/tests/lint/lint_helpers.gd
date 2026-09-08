@@ -175,7 +175,7 @@ static func extract_class_name(text: String) -> String:
 				return parts[1]
 			return ""
 		# If we see a `const`/`var`/`func`/`enum` between extends and
-		# class_name, keep looking — those are not "real" code, they
+		# class_name, keep looking -- those are not "real" code, they
 		# are just data declarations.
 		if line.begins_with("extends ") or line.begins_with("const ") \
 				or line.begins_with("var ") or line.begins_with("enum "):
@@ -187,7 +187,7 @@ static func extract_class_name(text: String) -> String:
 			if saw_executable:
 				return ""
 			continue
-		# Anything else (decorator, @onready, etc.) — keep scanning.
+		# Anything else (decorator, @onready, etc.) -- keep scanning.
 		continue
 	return ""
 

@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Smoke test for the new login → lobby → char-select flow.
+# Smoke test for the new login -> lobby -> char-select flow.
 # Run: ./tools/godot --headless --path . --script res://tests/test_login_flow.gd
 
 var _pass := 0

@@ -35,7 +35,7 @@ func configure(config: Dictionary) -> void:
 	world_size_km2 = config.get("world_size_km2", 200.0)
 	max_players_per_shard = config.get("max_players_per_shard", 5000)
 
-	GameLog.info("ShardManager: Configured as %s (%s), world size: %.0f km²" % [shard_id, shard_name, world_size_km2])
+	GameLog.info("ShardManager: Configured as %s (%s), world size: %.0f km2" % [shard_id, shard_name, world_size_km2])
 
 ## Start the shard server (initialize state, accept players)
 func start_server() -> void:

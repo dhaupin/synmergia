@@ -53,7 +53,7 @@ func _init() -> void:
 	var no_indent_files := 0
 
 	for path in Helpers.list_gd_files():
-		# Skip addons/ — third-party code we don't own.
+		# Skip addons/ -- third-party code we don't own.
 		if path.begins_with("res://addons/"):
 			continue
 
@@ -112,7 +112,7 @@ func _classify_file(path: String, text: String) -> String:
 			# Comment-only lines don't count.
 			continue
 		if raw[0] != TAB and raw[0] != " ":
-			# No leading whitespace. Skip — does not classify the file.
+			# No leading whitespace. Skip -- does not classify the file.
 			continue
 		if first_indented_line < 0:
 			first_indented_line = line_num

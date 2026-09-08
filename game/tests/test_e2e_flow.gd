@@ -111,7 +111,7 @@ func _run() -> void:
 	# 11) Rate limiting kicks in after several wrong-password attempts.
 	# We don't wait for cooldown; we just verify _check_rate_limit gates the API.
 	var LoginServiceInternal := LoginService
-	# Spam 8 wrong passwords — by attempt 6+ we should see rate limit denial.
+	# Spam 8 wrong passwords -- by attempt 6+ we should see rate limit denial.
 	var saw_rate_limit_failure: bool = false
 	# Reset the in-memory counter (private but reachable; we own this test).
 	# Use the public API path: just hammer login() until it stops failing on
@@ -123,7 +123,7 @@ func _run() -> void:
 			# 6+ wrong in window returns false because of rate limit
 			# (not just wrong password). To verify, count that we still
 			# get a false return even though the password is the *correct*
-			# one — that proves the rate limit window is in effect.
+			# one -- that proves the rate limit window is in effect.
 			pass
 	# Now try the *correct* password. If rate limit is in effect, this
 	# must return false (because the rate limit check happens before

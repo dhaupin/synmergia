@@ -213,7 +213,7 @@ func _create_menu_item(action: Dictionary) -> Button:
 	var btn := Button.new()
 	btn.custom_minimum_size.y = 36
 
-	var text := "%s %s" % [action.get("icon", "•"), action.get("text", "?")]
+	var text := "%s %s" % [action.get("icon", "*"), action.get("text", "?")]
 	btn.text = text
 
 	# Color for dangerous actions

@@ -135,7 +135,7 @@ func _create_players_tab() -> void:
 	toolbar.custom_minimum_size.y = 36
 
 	var refresh_btn := Button.new()
-	refresh_btn.text = "↻ Refresh"
+	refresh_btn.text = "refresh Refresh"
 	refresh_btn.pressed.connect(_refresh_player_list)
 	toolbar.add_child(refresh_btn)
 
@@ -231,7 +231,7 @@ func _create_stats_tab() -> void:
 
 	# Refresh button
 	var refresh_btn := Button.new()
-	refresh_btn.text = "↻ Refresh Stats"
+	refresh_btn.text = "refresh Refresh Stats"
 	refresh_btn.pressed.connect(func(): _shell.execute("stats", _admin_id))
 	refresh_btn.custom_minimum_size.y = 32
 	tab.add_child(refresh_btn)

@@ -170,7 +170,7 @@ func _test_auto_kick_toasts_player_via_frame() -> void:
 
 
 func _test_auto_mute_toasts_player_via_frame() -> void:
-	# The spam → mute path should deliver exactly ONE player-facing
+	# The spam -> mute path should deliver exactly ONE player-facing
 	# toast (with the duration included). AutoResponseService triggers
 	# the mute via SecurityService.restrict_player, which is the
 	# canonical source of the player toast -- we don't double-toast.

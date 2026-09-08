@@ -1,11 +1,11 @@
 ## test_notif_migration_quest.gd
-## Verifies the QUEST_* NotifKinds are wired into the kind→type map
+## Verifies the QUEST_* NotifKinds are wired into the kind->type map
 ## after the typed-Kind migration. Also exercises QuestService's
 ## quest-complete dispatch site.
 ##
 ## QuestService loads its quest data from .tres files; in a test
 ## environment those may not be present. We therefore assert on the
-## kind→type map as the migration's contract: every added NotifKind
+## kind->type map as the migration's contract: every added NotifKind
 ## must map to a renderable NotificationType, and QuestService must
 ## route through the typed pipeline.
 ##
@@ -67,7 +67,7 @@ func _test_quest_service_uses_typed_pipeline() -> void:
 	# send_to_player call sites from QuestService. Grep is the
 	# cheapest contract check; we also do a happy-path notify() call
 	# to confirm the autoload accepts a quest kind end-to-end.
-	# (We can't drive the full accept→objective→complete flow without
+	# (We can't drive the full accept->objective->complete flow without
 	# quest data files, but the migration's surface IS the dispatch
 	# call shape.)
 	#

@@ -12,7 +12,7 @@ extends SceneTree
 #      (orphan UIDs, a common cause of "Could not load" errors)
 #   2. .gd files referenced in a .tscn that no longer exist
 #   3. Hardcoded absolute paths in scripts (C:\, /tmp/, /home/...)
-#   4. print() calls in non-test code (info — easy to leave in
+#   4. print() calls in non-test code (info -- easy to leave in
 #      during debugging and they show up in production logs)
 #   5. Tabs/spaces on a single line mixed
 #   6. Lines exceeding 200 columns (heuristic; Godot has no
