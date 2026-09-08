@@ -1,8 +1,0 @@
-[application]
-config/name="RT3"
-config/features=PackedStringArray("4.7","Forward Plus")
-
-[autoload]
-First="*res://autoloads/a.gd"
-Second="*res://autoloads/b.gd"
-Third="*res://autoloads/c.gd"
