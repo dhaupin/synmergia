@@ -39,6 +39,12 @@ const Ankh = preload("res://core/schemas/ankh.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 
 func _ready() -> void:
-	# Kept for the debug log; the actual registration happens via the
-	# module-level preloads above (parse-time, not runtime).
- GameLog.debug("TypeRegistry: All base types registered")
+	# No-op at runtime. The actual registration is the module-level
+	# preloads above, which run at parse time. The old body called
+	# GameLog.debug(...) bare, which is a forward reference under
+	# --script mode (GameLog is autoload #15, this is #12, and
+	# autoloads are not bare globals there). GDScript resolves
+	# identifiers in function bodies at compile time, so that bare
+	# reference cascaded into "Identifier not found" for every file
+	# depending on this autoload. The call was cosmetic; removed.
+	pass

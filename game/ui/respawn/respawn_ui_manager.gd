@@ -17,7 +17,7 @@ func _ready() -> void:
 		RespawnService.respawn_completed.connect(_on_respawn_completed)
 		RespawnService.respawn_canceled.connect(_on_respawn_canceled)
 		RespawnService.revive_completed.connect(_on_respawn_completed)
- GameLog.info("RespawnUIManager: Initialized")
+	GameLog.info("RespawnUIManager: Initialized")
 
 func _on_player_died(entity, killer) -> void:
 	_show_respawn_ui(entity)
