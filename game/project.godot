@@ -25,18 +25,6 @@ config/icon="res://icon.svg"
 # Previously Entity was both an autoload and a class_name, which
 # shadowed each other and broke Entity.new() in spawn_service.gd.
 # See AGENTS.md "Autoloads and class_name" for the full rules.
-# QC: re-added as an autoload 2026-09-08. Without it, 20+ scripts
-# that use `: Entity` type annotations fail to compile (Entity's
-# class_name is only registered once entity.gd has loaded, which
-# is not guaranteed for files that parse before it). This cascades
-# into 17 autoloads failing to instantiate at boot. The earlier
-# removal was to fix Entity.new() shadowing, but Entity.new()
-# still works with Entity as an autoload -- the singleton is
-# resolved by name at runtime, and spawn_service.gd calls
-# Entity.new() which the class_name resolves. Verified: Entity
-# is listed BEFORE RegisterTypes, so its class_name is registered
-# first and no shadow occurs.
-Entity="*res://core/entities/entity.gd"
 AdapterRegistry="*res://adapters/registry.gd"
 BackendFactory="*res://adapters/backend_factory.gd"
 GameLog="*res://core/autoload/logger.gd"
