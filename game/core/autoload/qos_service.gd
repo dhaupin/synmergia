@@ -14,8 +14,13 @@ class_name QoSService
 # the kind enum and a dedupe key.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
-## ============================================================================
-## SIGNALS
+## Defensive helper - get NotificationService safely (may not be available at compile time)
+func _get_notification_service():
+	var root = get_tree().root if has_node("/root") else null
+	if root:
+		return root.get_node_or_null("NotificationService")
+	return null
+
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
@@ -252,7 +257,7 @@ func _notify_player_rate_limit(player_id: String, action_type: String, max_rate:
 
 	# Frame-level dispatch via the service-level notify() verb. The frame
 	# handles dedupe (5s window per (player, action) so a spam loop can't
-	# toast 100x/sec) and type/priority mapping (RATE_LIMITED -> WARNING+
+	# toast 100x/sec) and type/priority mapping (RATE_LIMITED → WARNING+
 	# NORMAL in the kind table). Use defensive helper for NotificationService.
 	var svc = _get_notification_service()
 	if svc:
@@ -415,14 +420,14 @@ func bulkhead_execute(service_name: String, player_id: String, callback: Callabl
 	if player_active >= _get_config_int("QoS", "MAX_CONCURRENT_PER_PLAYER", 3):
 		# Per-player saturation. The bulkhead_rejected signal (above) is
 		# service-scoped, so we toast the player here directly via the
-		# frame. THROTTLED -> WARNING + NORMAL. Dedupe on
+		# frame. THROTTLED → WARNING + NORMAL. Dedupe on
 		# (player, service) so a flood of rejections in a second doesn't
 		# spam toasts. Use defensive helper for NotificationService.
 		var svc = _get_notification_service()
 		if svc:
 			svc.notify(
 				NotifKind.THROTTLED,
-				"%s is busy -- please slow down." % service_name,
+				"%s is busy — please slow down." % service_name,
 				"QoSService",
 				"bulkhead_player:%s:%s" % [player_id, service_name],
 				{"service": service_name, "active": player_active, "max": _get_config_int("QoS", "MAX_CONCURRENT_PER_PLAYER", 3)},
@@ -574,7 +579,7 @@ func _on_circuit_success(breaker: Dictionary, service_name: String) -> void:
 			breaker["state"] = CircuitState.CLOSED
 			breaker["failures"] = 0
 			breaker["successes"] = 0
-			# Recovery complete -- let admins know service is healthy again.
+			# Recovery complete — let admins know service is healthy again.
 			_notify_circuit_change(service_name, "CLOSED", "recovered after probes")
 
 func _on_circuit_failure(breaker: Dictionary, service_name: String) -> void:
@@ -599,7 +604,7 @@ func _notify_circuit_change(service_name: String, new_state: String, detail: Str
 	var svc = _get_notification_service()
 	if not svc:
 		return
-	var msg := "[QoS] Circuit '%s' -> %s (%s)" % [service_name, new_state, detail]
+	var msg := "[QoS] Circuit '%s' → %s (%s)" % [service_name, new_state, detail]
 	var kind: int = NotifKind.QOS_RECOVERED if new_state == "CLOSED" else NotifKind.CIRCUIT_OPEN
 	svc.notify(
 		kind,

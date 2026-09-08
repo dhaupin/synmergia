@@ -18,9 +18,8 @@ extends Node
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-##
+
 ## This is the client-side gate. Server should always re-validate.
-extends Node
 
 signal login_succeeded(account_id: String, is_guest: bool)
 signal login_failed(reason: String)
