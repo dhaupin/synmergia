@@ -256,6 +256,14 @@ Need to add to the Â§2 table + Â§8 wiring:
 - [x] Non-ASCII cleanup: 194 emoji/unicode chars removed from 21 files
 - [x] Chat system emojis preserved (chat_service.gd, chat_ui.gd)
 - [x] Intentional BBCode brackets (［］) preserved per AGENTS.md
+- [x] pg-bridge tests: 12/12 PASS (SQLite backend, migration runner)
+- [x] redis-bridge tests: 20/20 PASS (in-memory backend, wire protocol, e2e)
+
+
+- [x] Bulk trailing whitespace sweep: 129 .gd files fixed across 4 batches
+- [x] Non-ASCII cleanup: 194 emoji/unicode chars removed from 21 files
+- [x] Chat system emojis preserved (chat_service.gd, chat_ui.gd)
+- [x] Intentional BBCode brackets (［］) preserved per AGENTS.md
 - [x] Remaining non-ASCII: 0 occurrences outside intentional exceptions
 
 
