@@ -1,6 +1,6 @@
 ## ContainerSchema - Slot container configuration
 ## Defines base slots, expansion tiers, and constraints for all container types
-## 
+##
 ## Usage:
 ##   var schema := ContainerSchema.new()
 ##   schema.init_inventory(player_data)

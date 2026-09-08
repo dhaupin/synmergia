@@ -70,7 +70,7 @@ func get_action_space() -> Dictionary:
 			"range": [-180, 180]  # Camera rotation in degrees
 		},
 		"target_selection": {
-			"type": "discrete", 
+			"type": "discrete",
 			"actions": ["target_nearest_enemy", "target_next_enemy", "target_previous_enemy", "clear_target"]
 		}
 	}
@@ -119,18 +119,18 @@ func build_observation(entity: Entity) -> Dictionary:
 			"z": entity.global_position.z
 		}
 	}
-	
+
 	# Health/Mana/Stamina
 	if entity.health_component:
 		obs["health_percent"] = entity.health_component.get_health_percent()
-	
+
 	obs["mana_percent"] = float(entity.current_mana) / float(entity.max_mana) if entity.max_mana > 0 else 1.0
 	obs["stamina_percent"] = float(entity.current_stamina) / float(entity.max_stamina) if entity.max_stamina > 0 else 1.0
-	
+
 	# Level info
 	obs["level"] = entity.level
 	obs["xp_percent"] = entity.xp / entity.xp_to_next_level if entity.xp_to_next_level > 0 else 1.0
-	
+
 	# Nearby entities (simplified)
 	var nearby: Array = []
 	var nearby_entities = EntityService.get_entities_in_radius(entity.global_position, 30.0)
@@ -145,7 +145,7 @@ func build_observation(entity: Entity) -> Dictionary:
 			"is_enemy": EntityService.is_enemy(entity, e)
 		})
 	obs["nearby_entities"] = nearby
-	
+
 	# Target info
 	if entity.target:
 		var t = entity.target
@@ -156,7 +156,7 @@ func build_observation(entity: Entity) -> Dictionary:
 		}
 		if t.health_component:
 			obs["target"]["health_percent"] = t.health_component.get_health_percent()
-	
+
 	# Active buffs/debuffs
 	if entity.aura_component:
 		obs["active_buffs"] = []
@@ -165,10 +165,10 @@ func build_observation(entity: Entity) -> Dictionary:
 		obs["active_debuffs"] = []
 		for debuff in entity.aura_component.get_all_debuffs():
 			obs["active_debuffs"].append(debuff.status_type)
-	
+
 	# Combat state
 	if entity.combat_component:
 		obs["is_casting"] = entity.combat_component.is_casting
 		obs["gcd_remaining"] = entity.combat_component.get_gcd_remaining()
-	
+
 	return obs

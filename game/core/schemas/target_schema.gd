@@ -1,6 +1,6 @@
 ## TargetSchema - Targeting configuration for entities
 ## Data-driven targeting settings via .tres files
-## 
+##
 ## Usage:
 ##   var schema = TargetingManager.get_schema("player")
 ##   var color = schema.highlight_color
@@ -164,16 +164,16 @@ func can_be_targeted_by(targeter_level: int, targeter_faction: String = "") -> b
 	# Level check
 	if targeter_level < min_targeter_level:
 		return false
-	
+
 	# Level difference check
 	if max_level_difference > 0:
 		# This would need the target's level - handled in TargetingManager
 		pass
-	
+
 	# Faction check
 	if required_faction != "" and targeter_faction != required_faction:
 		return false
-	
+
 	return true
 
 ## Get highlight color as hex string (for UI)

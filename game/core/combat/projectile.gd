@@ -94,19 +94,19 @@ func _physics_process(delta: float) -> void:
 		if _trap_timer >= trap_duration:
 			_expire()
 		return
-	
+
 	if _has_hit:
 		return
-	
+
 	_time_alive += delta
-	
+
 	if _time_alive >= lifetime:
 		_expire()
 		return
-	
+
 	var movement := _velocity * delta
 	var movement_distance := movement.length()
-	
+
 	if is_homing and target and is_instance_valid(target):
 		var to_target := target.global_position - global_position
 		to_target.y = 0
@@ -116,27 +116,27 @@ func _physics_process(delta: float) -> void:
 			_velocity = _velocity.lerp(target_dir * speed, 0.1).normalized() * speed
 			if old_dir.dot(_velocity.normalized()) < 0.99:
 				trajectory_changed.emit(old_dir, _velocity.normalized())
-	
+
 	var old_pos := global_position
 	global_position += movement
 	_distance_traveled += movement_distance
-	
+
 	if _distance_traveled >= max_range:
 		_expire()
 		return
-	
+
 	_check_collision(old_pos, global_position)
 
 func initialize(from: Entity, to: Vector3, skill: Skill = null) -> void:
 	source = from
 	target_position = to
-	
-	_source_is_player = (from.controller_type == Entity.ControllerType.HUMAN or 
+
+	_source_is_player = (from.controller_type == Entity.ControllerType.HUMAN or
 							from.controller_type == Entity.ControllerType.AGENT)
-	
+
 	var direction := (to - global_position).normalized()
 	_velocity = direction * speed
-	
+
 	if skill:
 		base_damage = skill.damage
 		damage_type = skill.damage_type
@@ -156,17 +156,17 @@ func _check_collision(from: Vector3, to: Vector3) -> void:
 	if is_trap and not _trap_triggered:
 		_check_trap_activation()
 		return
-	
+
 	if is_beam:
 		return
-	
+
 	var space_state := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to, 0x00000001 | 0x00000002)
 	var result := space_state.intersect_ray(query)
-	
+
 	if result:
 		var collider := result["collider"]
-		
+
 		if collider is Entity:
 			if collider != source and not _hit_entities.has(collider):
 				_on_hit(collider)
@@ -180,29 +180,29 @@ func _check_collision(from: Vector3, to: Vector3) -> void:
 
 func _check_trap_activation() -> void:
 	var nearby := EntityService.get_entities_in_radius(global_position, trap_trigger_radius)
-	
+
 	for entity in nearby:
 		if entity == source:
 			continue
-		
+
 		if _is_hostile(entity):
 			_trigger_trap(entity)
 			return
 
 func _trigger_trap(trigger_entity: Entity) -> void:
 	_trap_triggered = true
-	
+
 	if explosion_radius > 0:
 		_explode(global_position)
 	else:
 		_on_hit(trigger_entity)
-	
+
 	_expire()
 
 func _is_hostile(target: Entity) -> bool:
 	if source == null:
 		return true
-	
+
 	if _source_is_player:
 		return target.entity_type == Entity.EntityType.ENEMY
 	else:
@@ -211,44 +211,44 @@ func _is_hostile(target: Entity) -> bool:
 func _on_hit(target: Entity) -> void:
 	if _has_hit and _pierce_remaining <= 0:
 		return
-	
+
 	_hit_entities.append(target)
 	var damage := _calculate_damage(target)
-	
+
 	if target.health_component:
 		target.health_component.take_damage(damage, source, damage_type)
-	
+
 	hit.emit(target, damage)
 	EventHub.projectile_hit.emit(self, target, damage)
-	
+
 	if _ricochet_remaining > 0 and ricochet_count > 0:
 		_ricochet(target)
 		return
-	
+
 	if _chain_targets.size() < chain_count:
 		_chain_to_next(target)
 		return
-	
+
 	if explosion_radius > 0:
 		_explode(global_position)
 	elif _pierce_remaining > 0:
 		_pierce_remaining -= 1
 		return
-	
+
 	_destroy()
 
 func _ricochet(from_target: Entity) -> void:
 	var nearby := EntityService.get_entities_in_radius(from_target.global_position, chain_range)
 	var next_target: Entity = null
 	var min_dist := INF
-	
+
 	for entity in nearby:
 		if entity != source and not _hit_entities.has(entity) and _is_hostile(entity):
 			var dist: float = entity.global_position.distance_to(from_target.global_position)
 			if dist < min_dist:
 				min_dist = dist
 				next_target = entity
-	
+
 	if next_target:
 		_ricochet_remaining -= 1
 		var old_dir := _velocity.normalized()
@@ -262,75 +262,75 @@ func _chain_to_next(from_target: Entity) -> void:
 	var nearby := EntityService.get_entities_in_radius(from_target.global_position, chain_range)
 	var next_target: Entity = null
 	var min_dist := INF
-	
+
 	for entity in nearby:
 		if entity != source and not _hit_entities.has(entity) and _is_hostile(entity):
 			var dist: float = entity.global_position.distance_to(from_target.global_position)
 			if dist < min_dist:
 				min_dist = dist
 				next_target = entity
-	
+
 	if next_target:
 		_chain_targets.append(next_target)
 		var chain_damage := int(base_damage * 0.5)
 		if next_target.health_component:
 			next_target.health_component.take_damage(chain_damage, source, damage_type)
 		EventHub.projectile_hit.emit(self, next_target, chain_damage)
-		
+
 		if _chain_targets.size() < chain_count:
 			_chain_to_next(next_target)
 
 func _calculate_damage(target: Entity) -> int:
 	var damage := base_damage
-	
+
 	if _source_is_player:
 		damage = int(damage * (1.0 + bonus_damage_vs_enemies))
 	else:
 		damage = int(damage * (1.0 + bonus_damage_vs_players))
-	
+
 	if penetration > 0 and target.stats.has("armor"):
 		var reduction: float = target.stats["armor"] * penetration
 		damage = int(damage * (1.0 - reduction))
-	
+
 	return max(1, damage)
 
 func _explode(position: Vector3) -> void:
 	if explosion_radius <= 0:
 		return
-	
+
 	if vfx_scene != "":
 		_spawn_vfx(position)
-	
+
 	if sfx_hit != "":
 		_spawn_sfx(position)
-	
+
 	var nearby := EntityService.get_entities_in_radius(position, explosion_radius)
-	
+
 	for entity in nearby:
 		if entity == source:
 			continue
-		
+
 		var distance: float = position.distance_to(entity.global_position)
 		var falloff := 1.0
 		if explosion_damage_falloff:
 			falloff = 1.0 - (distance / explosion_radius) * 0.5
-		
+
 		var damage := int(base_damage * falloff)
-		
+
 		if entity.health_component:
 			entity.health_component.take_damage(damage, source, damage_type)
-		
+
 		EventHub.area_damage.emit(source, entity, damage, damage_type)
-	
+
 	EventHub.explosion_occurred.emit(position, explosion_radius, source)
 
 func _expire() -> void:
 	if _has_hit:
 		return
-	
+
 	if sfx_miss != "":
 		_spawn_sfx(global_position)
-	
+
 	expired.emit()
 	EventHub.projectile_expired.emit(self)
 	_destroy()
@@ -344,7 +344,7 @@ func _destroy() -> void:
 func _spawn_vfx(position: Vector3) -> void:
 	if vfx_scene == "":
 		return
-	
+
 	var scene := load(vfx_scene)
 	if scene:
 		_vfx_instance = scene.instantiate()

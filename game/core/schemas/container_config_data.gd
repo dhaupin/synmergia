@@ -1,6 +1,6 @@
 ## ContainerConfigData - Data-driven container configuration
 ## All container types and expansion tiers defined here
-## 
+##
 ## Usage:
 ##   var data := ContainerConfigData.load()
 ##   var config = data.get_container(ContainerType.INVENTORY)
@@ -249,7 +249,7 @@ func get_sorted_containers() -> Array:
 	var sorted: Array = []
 	for ct in containers:
 		sorted.append({"type": ct, "config": containers[ct]})
-	sorted.sort_custom(func(a, b): 
+	sorted.sort_custom(func(a, b):
 		return a["config"].get("sort_order", 99) < b["config"].get("sort_order", 99)
 	)
 	return sorted

@@ -1,6 +1,6 @@
 ## TargetingManager - Unified targeting system
 ## Single source of truth for all targeting operations
-## 
+##
 ## Features:
 ## - Data-driven via TargetSchema (.tres files)
 ## - Schema caching with memoization
@@ -56,12 +56,12 @@ class TargetInfo:
 	var node: Node = null
 	var metadata: Dictionary = {}
 	var npc_data: NPCData = null  # Populated if entity_type == NPC
-	
+
 	# Computed from schema
 	var actions: Array[String] = []
 	var highlight_color: Color = Color(1.0, 0.8, 0.0)
 	var highlight_size: float = 1.0
-	
+
 	func to_dict() -> Dictionary:
 		return {
 			"id": id,
@@ -86,7 +86,7 @@ class ActionDef:
 	var requires_target_online: bool
 	var requires_target_alive: bool
 	var callback: Callable
-	
+
 	enum ActionCategory {
 		SOCIAL,        # Available to all
 		VIP_SOCIAL,    # Requires VIP
@@ -94,9 +94,9 @@ class ActionDef:
 		ADMIN,         # Requires ADMIN
 		INTERACTION,   # General interactions
 	}
-	
+
 	func _init(p_id: String, p_name: String, p_icon: String, p_category: ActionCategory,
-			p_callback: Callable, p_requires_online: bool = true, 
+			p_callback: Callable, p_requires_online: bool = true,
 			p_requires_alive: bool = true, p_min_level: int = 0):
 		id = p_id
 		name = p_name
@@ -174,16 +174,16 @@ var _highlight_layer: int = 0xFFFFFFFF  # Layer for highlights
 
 func _ready() -> void:
 	instance = self
-	
+
 	# Load schemas
 	_load_schemas()
-	
+
 	# Register default actions
 	_register_default_actions()
-	
+
 	# Connect to EventBus for entity registration
 	_connect_eventbus()
-	
+
 	GameLog.info("TargetingManager: Initialized with %d schemas, %d actions" % [
 		_schema_cache.size(), _actions.size()
 	])
@@ -194,7 +194,7 @@ func _connect_eventbus() -> void:
 		EventHub.entity_spawned.connect(_on_entity_spawned)
 		EventHub.entity_despawned.connect(_on_entity_despawned)
 		EventHub.entity_died.connect(_on_entity_died)
-		
+
 		# Combat events
 		EventHub.skill_executed.connect(_on_skill_executed)
 
@@ -204,15 +204,15 @@ func _connect_eventbus() -> void:
 
 func _load_schemas() -> void:
 	var schema_dir := "res://data/targets/"
-	
+
 	var dir := DirAccess.open(schema_dir)
 	if dir == null:
 		GameLog.warn("TargetingManager: Cannot open schema directory: " + schema_dir)
 		return
-	
+
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
-	
+
 	while file_name != "":
 		if file_name.ends_with(".tres"):
 			var schema_path := schema_dir + file_name
@@ -221,23 +221,23 @@ func _load_schemas() -> void:
 				_schema_cache[schema.id] = schema
 				_entity_type_to_schema[schema.entity_type] = schema.id
 				GameLog.debug("TargetingManager: Loaded schema: " + schema.id)
-		
+
 		file_name = dir.get_next()
-	
+
 	dir.list_dir_end()
 
 ## Get schema by ID (with caching)
 func get_schema(schema_id: String) -> TargetSchema:
 	if schema_id == "":
 		return null
-	
+
 	if not _schema_cache.has(schema_id):
 		# Lazy load
 		var schema_path := "res://data/targets/target_%s.tres" % schema_id
 		var schema: TargetSchema = load(schema_path)
 		if schema:
 			_schema_cache[schema_id] = schema
-	
+
 	return _schema_cache.get(schema_id)
 
 ## Get schema for entity type
@@ -251,7 +251,7 @@ func get_schema_for_entity_type(entity_type: int) -> TargetSchema:
 
 func register_action(action: ActionDef) -> void:
 	_actions[action.id] = action
-	
+
 	if not _actions_by_category.has(action.category):
 		_actions_by_category[action.category] = []
 	_actions_by_category[action.category].append(action.id)
@@ -263,31 +263,31 @@ func _register_default_actions() -> void:
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_whisper(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"invite_party", "Invite to Party", "🎮",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_invite_party(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"invite_guild", "Invite to Guild", "🏰",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_invite_guild(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"add_friend", "Add Friend", "❤️",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_add_friend(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"ignore", "Ignore Player", "🚫",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_ignore(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"report", "Report Player", "🚩",
 		ActionDef.ActionCategory.SOCIAL,
@@ -295,7 +295,7 @@ func _register_default_actions() -> void:
 		false,  # doesn't require target online
 		true     # target can be offline
 	))
-	
+
 	# === VIP SOCIAL ===
 	register_action(ActionDef.new(
 		"trade", "Trade", "💰",
@@ -304,7 +304,7 @@ func _register_default_actions() -> void:
 		true, true,
 		GameConfig.Security.VIP_LEVEL
 	))
-	
+
 	# === MODERATION ===
 	register_action(ActionDef.new(
 		"mod_mute", "Mute Player", "🔇",
@@ -313,7 +313,7 @@ func _register_default_actions() -> void:
 		true, true,
 		GameConfig.Security.MOD_LEVEL
 	))
-	
+
 	register_action(ActionDef.new(
 		"mod_kick", "Kick Player", "👢",
 		ActionDef.ActionCategory.MODERATION,
@@ -321,7 +321,7 @@ func _register_default_actions() -> void:
 		true, true,
 		GameConfig.Security.MOD_LEVEL
 	))
-	
+
 	register_action(ActionDef.new(
 		"mod_lookup", "View Player Info", "🔍",
 		ActionDef.ActionCategory.MODERATION,
@@ -329,7 +329,7 @@ func _register_default_actions() -> void:
 		true, false,  # can lookup offline players
 		GameConfig.Security.MOD_LEVEL
 	))
-	
+
 	# === ADMIN ===
 	register_action(ActionDef.new(
 		"admin_ban", "Ban Player", "⛔",
@@ -338,7 +338,7 @@ func _register_default_actions() -> void:
 		true, true,
 		GameConfig.Security.ADMIN_LEVEL
 	))
-	
+
 	register_action(ActionDef.new(
 		"admin_restrict", "Restrict Player", "🔒",
 		ActionDef.ActionCategory.ADMIN,
@@ -346,7 +346,7 @@ func _register_default_actions() -> void:
 		true, true,
 		GameConfig.Security.ADMIN_LEVEL
 	))
-	
+
 	register_action(ActionDef.new(
 		"resurrect", "Resurrect", "✨",
 		ActionDef.ActionCategory.ADMIN,
@@ -354,26 +354,26 @@ func _register_default_actions() -> void:
 		true, false,  # requires_target=true, requires_line_of_sight=false
 		GameConfig.Security.MOD_LEVEL
 	))
-	
+
 	# === INTERACTION ===
 	register_action(ActionDef.new(
 		"talk", "Talk", "💬",
 		ActionDef.ActionCategory.INTERACTION,
 		func(src, tgt): return _action_talk(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"loot", "Loot", "📦",
 		ActionDef.ActionCategory.INTERACTION,
 		func(src, tgt): return _action_loot(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"use", "Use", "🔧",
 		ActionDef.ActionCategory.INTERACTION,
 		func(src, tgt): return _action_use(src, tgt)
 	))
-	
+
 	register_action(ActionDef.new(
 		"enter", "Enter", "🚪",
 		ActionDef.ActionCategory.INTERACTION,
@@ -454,25 +454,25 @@ func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
 	var target_entity = get_entity_by_id(target_id)
 	if not target_entity:
 		return {"success": false, "message": "Target not found"}
-	
+
 	# Check if target is a player
 	if not target_entity is PlayerController:
 		return {"success": false, "message": "Can only resurrect players"}
-	
+
 	# Check if target is dead
 	var health_comp = target_entity.health_component
 	if not health_comp:
 		return {"success": false, "message": "Target has no health component"}
-	
+
 	if not health_comp.is_dead():
 		return {"success": false, "message": "Target is not dead"}
-	
+
 	# Check permission (already done by action system, but double-check)
 	var player_level = _get_player_permission_level()
 	var mod_level = GameConfig.Security.MOD_LEVEL if GameConfig.Security else 1
 	if player_level < mod_level:
 		return {"success": false, "message": "Permission denied"}
-	
+
 	# Perform resurrection via AdminCommands
 	if AdminCommands:
 		var result = AdminCommands._do_resurrect(target_entity, 1.0, 1.0)
@@ -480,24 +480,24 @@ func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
 			return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
 		else:
 			return {"success": false, "message": result.get("reason", "Failed to resurrect")}
-	
+
 	# Fallback if AdminCommands not available
 	_do_resurrect_fallback(target_entity)
 	return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
 
 func _do_resurrect_fallback(entity) -> void:
 	var health_comp = entity.health_component
-	
+
 	# Remove corpse if exists
 	if health_comp._corpse:
 		health_comp._corpse.queue_free()
 		health_comp._corpse = null
-	
+
 	# Restore health
 	health_comp.current_health = health_comp.max_health
 	health_comp._is_dead = false
 	health_comp._respawn_timer = 0.0
-	
+
 	# Clear death state
 	entity.health_component.respawned.emit()
 	EventHub.entity_spawned.emit(entity)
@@ -537,11 +537,11 @@ func set_target(entity_id: String, schema_id: String, display_name: String = "",
 		position: Vector3 = Vector3.ZERO, node: Node = null,
 		entity_type: int = Entity.EntityType.NONE,
 		metadata: Dictionary = {}) -> void:
-	
+
 	# Check if type is allowed
 	if not _is_type_allowed(entity_type):
 		return
-	
+
 	# Create target info
 	var new_target := TargetInfo.new()
 	new_target.id = entity_id
@@ -552,27 +552,27 @@ func set_target(entity_id: String, schema_id: String, display_name: String = "",
 	new_target.world_position = position
 	new_target.node = node
 	new_target.metadata = metadata
-	
+
 	# Get schema for computed properties
 	var schema: Variant = get_schema(schema_id)
 	if schema:
 		new_target.actions = schema.available_actions
 		new_target.highlight_color = schema.highlight_color
 		new_target.highlight_size = schema.highlight_size
-	
+
 	# Save previous target to history
 	if _current_target and _current_target.id != "":
 		_add_to_history(_current_target)
-	
+
 	# Emit signals
 	var previous := _current_target
 	_current_target = new_target
-	
+
 	if previous:
 		target_cleared.emit(previous)
-	
+
 	target_acquired.emit(new_target)
-	
+
 	# Update 3D highlight
 	_update_3d_highlight(new_target)
 
@@ -588,11 +588,11 @@ func clear_target() -> void:
 func cycle_next(valid_entity_ids: Array[String]) -> void:
 	if valid_entity_ids.is_empty():
 		return
-	
+
 	var current_idx := -1
 	if _current_target:
 		current_idx = valid_entity_ids.find(_current_target.id)
-	
+
 	# Find next valid
 	for i in range(current_idx + 1, valid_entity_ids.size()):
 		var entity_id = valid_entity_ids[i]
@@ -600,7 +600,7 @@ func cycle_next(valid_entity_ids: Array[String]) -> void:
 			var data = _targetables[entity_id]
 			set_target(entity_id, data.schema_id, data.name, data.position, data.node, data.entity_type)
 			return
-	
+
 	# Wrap around
 	for i in range(0, current_idx + 1):
 		var entity_id = valid_entity_ids[i]
@@ -634,13 +634,13 @@ func cycle_target(reverse: bool) -> void:
 func restore_previous() -> bool:
 	if _target_history.is_empty():
 		return false
-	
+
 	var previous: TargetInfo = _target_history.pop_back()
 	if previous and previous.id != "":
 		set_target(previous.id, previous.schema_id, previous.display_name,
 			previous.position, previous.node, previous.entity_type, previous.metadata)
 		return true
-	
+
 	return false
 
 ## ============================================================================
@@ -651,7 +651,7 @@ func restore_previous() -> bool:
 func register_targetable(entity_id: String, schema_id: String, node: Node = null,
 		display_name: String = "", position: Vector3 = Vector3.ZERO,
 		entity_type: int = 0) -> void:
-	
+
 	_targetables[entity_id] = {
 		"schema_id": schema_id,
 		"node": node,
@@ -663,7 +663,7 @@ func register_targetable(entity_id: String, schema_id: String, node: Node = null
 ## Unregister a targetable
 func unregister_targetable(entity_id: String) -> void:
 	_targetables.erase(entity_id)
-	
+
 	# Clear if this was our target
 	if _current_target and _current_target.id == entity_id:
 		clear_target()
@@ -672,9 +672,9 @@ func unregister_targetable(entity_id: String) -> void:
 func update_targetable_position(entity_id: String, new_position: Vector3) -> void:
 	if not _targetables.has(entity_id):
 		return
-	
+
 	_targetables[entity_id]["position"] = new_position
-	
+
 	# Update current target position if this is the active target
 	if _current_target and _current_target.id == entity_id:
 		_current_target.position = new_position
@@ -685,7 +685,7 @@ func update_targetable_position(entity_id: String, new_position: Vector3) -> voi
 func update_targetable_node(entity_id: String, new_node: Node) -> void:
 	if not _targetables.has(entity_id):
 		return
-	
+
 	_targetables[entity_id]["node"] = new_node
 
 ## Get targetable data
@@ -709,7 +709,7 @@ func get_targetables_by_type(entity_type: int) -> Array:
 func execute_action(action_id: String) -> Dictionary:
 	if not has_target():
 		return {"success": false, "message": "No target selected"}
-	
+
 	return execute_action_on(action_id, _current_target.id)
 
 ## Execute action on specific target
@@ -717,27 +717,27 @@ func execute_action_on(action_id: String, target_id: String) -> Dictionary:
 	# Get action definition
 	if not _actions.has(action_id):
 		return {"success": false, "message": "Unknown action: " + action_id}
-	
+
 	var action: ActionDef = _actions[action_id]
-	
+
 	# Permission check
 	var player_level := _get_player_permission_level()
 	if player_level < action.min_permission_level:
 		action_blocked.emit(action_id, target_id, "Insufficient permissions")
 		return {"success": false, "message": "Insufficient permissions"}
-	
+
 	# Target online check
 	if action.requires_target_online:
 		if not _is_target_online(target_id):
 			action_blocked.emit(action_id, target_id, "Target is offline")
 			return {"success": false, "message": "Target is offline"}
-	
+
 	# Execute callback
 	if action.callback.is_valid():
 		var result: Dictionary = action.callback.call(_local_player_id, target_id)
 		action_executed.emit(action_id, target_id, result)
 		return result
-	
+
 	return {"success": false, "message": "Action not available"}
 
 ## Get available actions for current target
@@ -749,12 +749,12 @@ func get_available_actions() -> Array[String]:
 ## Get available actions for a specific target
 func get_available_actions_for(target_id: String) -> Array[String]:
 	var available = []
-	
+
 	# Check against schema
 	var target_data = _targetables.get(target_id, {})
 	var schema_id = target_data.get("schema_id", "")
 	var schema = get_schema(schema_id)
-	
+
 	if schema:
 		# Filter by permission
 		var player_level = _get_player_permission_level()
@@ -771,10 +771,10 @@ func get_available_actions_for(target_id: String) -> Array[String]:
 			var player_level = _get_player_permission_level()
 			if player_level >= action.min_permission_level:
 				available.append(action_id)
-	
+
 	# Check for resurrect action if target is dead player
 	available = _add_resurrect_action_if_applicable(target_id, available)
-	
+
 	return available
 
 ## Add resurrect action if target is a dead player and caster has permission
@@ -782,7 +782,7 @@ func _add_resurrect_action_if_applicable(target_id: String, available: Array[Str
 	var target_entity = get_entity_by_id(target_id)
 	if not target_entity:
 		return available
-	
+
 	# Check if target is a dead player
 	if target_entity is PlayerController:
 		var health_comp = target_entity.health_component
@@ -790,12 +790,12 @@ func _add_resurrect_action_if_applicable(target_id: String, available: Array[Str
 			# Check if caster (local player) has permission
 			var player_level = _get_player_permission_level()
 			var mod_level = GameConfig.Security.MOD_LEVEL if GameConfig.Security else 1
-			
+
 			if player_level >= mod_level:
 				# Add resurrect action if not already present
 				if not "resurrect" in available:
 					available.append("resurrect")
-	
+
 	return available
 
 ## ============================================================================
@@ -827,11 +827,11 @@ func set_highlight_node(node: Node3D) -> void:
 func update_highlight() -> void:
 	if not _highlight_node:
 		return
-	
+
 	if has_target():
 		_highlight_node.show()
 		_highlight_node.global_position = _current_target.world_position
-		
+
 		# Update color if highlight supports it
 		if _highlight_node.has_method("set_color"):
 			_highlight_node.set_color(_current_target.highlight_color)
@@ -848,21 +848,21 @@ func raycast_from_camera(screen_pos: Vector2, camera: Camera3D) -> TargetInfo:
 		camera = _get_active_camera()
 	if not camera:
 		return null
-	
+
 	var from := camera.global_position
 	var direction := camera.project_ray_normal(screen_pos)
 	var to := from + direction * 100.0
-	
+
 	var space_state := camera.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 0b0000001  # Entity layer
-	
+
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:
 		var collider: Node = result["collider"]
 		if collider and collider.has("entity_id"):
 			return _create_target_info_from_node(collider, result.get("position", Vector3.ZERO))
-	
+
 	return null
 
 ## Raycast from mouse position (desktop)
@@ -871,7 +871,7 @@ func raycast_from_mouse(camera: Camera3D = null) -> TargetInfo:
 		camera = _get_active_camera()
 	if not camera:
 		return null
-	
+
 	var mouse_pos := camera.get_viewport().get_mouse_position()
 	return raycast_from_camera(mouse_pos, camera)
 
@@ -885,7 +885,7 @@ func raycast_from_center(camera: Camera3D = null) -> TargetInfo:
 		camera = _get_active_camera()
 	if not camera:
 		return null
-	
+
 	var viewport_size: Vector2 = camera.get_viewport().get_visible_rect().size
 	var center_pos := viewport_size / 2.0
 	return raycast_from_camera(center_pos, camera)
@@ -896,19 +896,19 @@ func get_entity_at_screen_position(screen_pos: Vector2, camera: Camera3D = null)
 		camera = _get_active_camera()
 	if not camera:
 		return null
-	
+
 	var from := camera.global_position
 	var direction := camera.project_ray_normal(screen_pos)
 	var to := from + direction * 100.0
-	
+
 	var space_state := camera.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 0b0000001  # Entity layer
-	
+
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:
 		return result["collider"]
-	
+
 	return null
 
 ## Get first targetable entity in direction from origin
@@ -934,7 +934,7 @@ func get_target_in_direction(origin: Vector3, direction: Vector3, max_distance: 
 func cycle_to_index(index: int, entity_ids: Array) -> void:
 	if index < 0 or index >= entity_ids.size():
 		return
-	
+
 	var entity_id = entity_ids[index]
 	if _targetables.has(entity_id):
 		var data = _targetables[entity_id]
@@ -948,12 +948,12 @@ func _get_active_camera() -> Camera3D:
 		var camera := viewport.get_camera_3d()
 		if camera:
 			return camera
-	
+
 	# Fallback: find any camera in scene
 	var cameras = get_tree().get_nodes_in_group("cameras")
 	if not cameras.is_empty():
 		return cameras[0] as Camera3D
-	
+
 	return null
 
 ## ============================================================================
@@ -963,7 +963,7 @@ func _get_active_camera() -> Camera3D:
 func _create_target_info_from_node(node: Node, hit_position: Vector3 = Vector3.ZERO) -> TargetInfo:
 	if not node.has("entity_id"):
 		return null
-	
+
 	var entity_id = node.entity_id
 	var entity_type: int = node.entity_type if node.has("entity_type") else 0
 
@@ -983,14 +983,14 @@ func _create_target_info_from_node(node: Node, hit_position: Vector3 = Vector3.Z
 	# Extract npc_data if this is an NPC
 	if entity_type == Entity.EntityType.NPC and node.has("npc_data"):
 		info.npc_data = node.npc_data
-	
+
 	# Get schema for computed properties
 	var schema: Variant = get_schema(schema_id)
 	if schema:
 		info.actions = schema.available_actions
 		info.highlight_color = schema.highlight_color
 		info.highlight_size = schema.highlight_size
-	
+
 	return info
 
 ## ============================================================================
@@ -1001,17 +1001,17 @@ func _create_target_info_from_node(node: Node, hit_position: Vector3 = Vector3.Z
 func get_tooltip_data() -> Dictionary:
 	if not has_target():
 		return {}
-	
+
 	var data: Dictionary = {
 		"target": _current_target.to_dict(),
 		"actions": get_available_actions(),
 		"schema": null
 	}
-	
+
 	var schema = get_schema(_current_target.schema_id)
 	if schema:
 		data.schema = schema.get_info()
-	
+
 	return data
 
 ## Get targets near position
@@ -1035,7 +1035,7 @@ func _on_entity_spawned(entity, _metadata: SpawnMetadata) -> void:
 		var schema_id = _entity_type_to_schema.get(entity_type, "")
 		if schema_id == "":
 			schema_id = _infer_schema_id(entity)
-		
+
 		register_targetable(
 			entity.entity_id,
 			schema_id,
@@ -1099,14 +1099,14 @@ func _update_3d_highlight(target: TargetInfo) -> void:
 	if not target:
 		_hide_3d_highlight()
 		return
-	
+
 	var highlight_color := target.highlight_color
 	var highlight_size := target.highlight_size
 	var target_pos := target.world_position
-	
+
 	if target.node is Node3D:
 		target_pos = target.node.global_position
-	
+
 	_create_or_update_highlight_mesh(target_pos, highlight_color, highlight_size, target.entity_type)
 
 ## Create or update highlight mesh
@@ -1114,16 +1114,16 @@ func _create_or_update_highlight_mesh(position: Vector3, color: Color, size: flo
 	var world_root := _get_world_root()
 	if not world_root:
 		return
-	
+
 	if not _highlight_node or not is_instance_valid(_highlight_node):
 		_highlight_node = Node3D.new()
 		_highlight_node.name = "TargetingHighlight"
 		world_root.add_child(_highlight_node)
-	
+
 	if not _highlight_mesh or not is_instance_valid(_highlight_mesh):
 		_highlight_mesh = MeshInstance3D.new()
 		_highlight_node.add_child(_highlight_mesh)
-	
+
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.albedo_color = color
@@ -1132,7 +1132,7 @@ func _create_or_update_highlight_mesh(position: Vector3, color: Color, size: flo
 	material.emission_energy_multiplier = 2.0
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.albedo_color.a = 0.3
-	
+
 	var mesh := _create_ring_mesh(size)
 	_highlight_mesh.mesh = mesh
 	_highlight_mesh.material_override = material
@@ -1146,13 +1146,13 @@ func _create_ring_mesh(radius: float) -> ArrayMesh:
 	var verts := PackedVector3Array()
 	var indices := PackedInt32Array()
 	var colors := PackedColorArray()
-	
+
 	var segments := 32
 	for i in range(segments + 1):
 		var angle := TAU * i / segments
 		verts.append(Vector3(cos(angle) * radius, 0, sin(angle) * radius))
 		colors.append(Color(1, 1, 1, 1))
-	
+
 	for i in range(segments):
 		indices.append(i)
 		indices.append(i + 1)
@@ -1160,7 +1160,7 @@ func _create_ring_mesh(radius: float) -> ArrayMesh:
 		indices.append(i + 1)
 		indices.append(segments + 2 + i)
 		indices.append(segments + 1 + i)
-	
+
 	var arrays := []
 	arrays.append(verts)
 	arrays.append(indices)
@@ -1172,13 +1172,13 @@ func _create_ring_mesh(radius: float) -> ArrayMesh:
 func _start_highlight_pulse() -> void:
 	if not _highlight_pulse_enabled or not _highlight_mesh:
 		return
-	
+
 	if _highlight_tween:
 		_highlight_tween.kill()
-	
+
 	_highlight_tween = create_tween()
 	_highlight_tween.set_loops()
-	
+
 	var mat := _highlight_mesh.material_override as StandardMaterial3D
 	if mat:
 		_highlight_tween.tween_property(mat, "emission_energy_multiplier", 3.0, 0.5)
