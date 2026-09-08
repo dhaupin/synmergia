@@ -253,6 +253,13 @@ Need to add to the Â§2 table + Â§8 wiring:
 ## Recently Completed (2026-09-08)
 
 - [x] Bulk trailing whitespace sweep: 129 .gd files fixed across 4 batches
+- [x] Non-ASCII cleanup: 194 emoji/unicode chars removed from 21 files
+- [x] Chat system emojis preserved (chat_service.gd, chat_ui.gd)
+- [x] Intentional BBCode brackets (［］) preserved per AGENTS.md
+- [x] Remaining non-ASCII: 0 occurrences outside intentional exceptions
+
+
+- [x] Bulk trailing whitespace sweep: 129 .gd files fixed across 4 batches
 - [x] Non-ASCII cleanup: 70 replacements across 20 files (em-dash, arrows, bullets, CJK, superscript)
 - [x] Remaining non-ASCII: 165 occurrences (188 ALLOWLISTED emoji in strings + 34 INTENTIONAL fullwidth brackets + section symbols)
 
