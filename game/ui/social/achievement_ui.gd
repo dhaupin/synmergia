@@ -164,7 +164,7 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 
 	# Icon
 	var icon := Label.new()
-	icon.text = "★" if is_unlocked else "☆"
+	icon.text = "" if is_unlocked else ""
 	icon.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold if is_unlocked else UIStyles.COLORS.text_disabled)
 	icon.custom_minimum_size.x = 30
 	hbox.add_child(icon)
@@ -217,19 +217,19 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 
 	if ach.gold_reward > 0:
 		var gold_lbl := Label.new()
-		gold_lbl.text = "💰 %d" % ach.gold_reward
+		gold_lbl.text = " %d" % ach.gold_reward
 		gold_lbl.add_theme_font_size_override("font_size", 10)
 		rewards_vbox.add_child(gold_lbl)
 
 	if ach.xp_reward > 0:
 		var xp_lbl := Label.new()
-		xp_lbl.text = "⭐ %d XP" % ach.xp_reward
+		xp_lbl.text = " %d XP" % ach.xp_reward
 		xp_lbl.add_theme_font_size_override("font_size", 10)
 		rewards_vbox.add_child(xp_lbl)
 
 	if ach.title_reward != "":
 		var title_lbl := Label.new()
-		title_lbl.text = "🏆 Title"
+		title_lbl.text = " Title"
 		title_lbl.add_theme_font_size_override("font_size", 10)
 		title_lbl.add_theme_color_override("font_color", UIStyles.COLORS.warning)
 		rewards_vbox.add_child(title_lbl)

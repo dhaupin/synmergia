@@ -181,7 +181,7 @@ func apply_respawn_invincibility(entity) -> void:
 		# so re-application in the same frame is one toast.
 		NotificationService.notify(
 			NotifKind.RESPAWNED,
-			"🛡️ Invincible for %.0f seconds" % remaining,
+			" Invincible for %.0f seconds" % remaining,
 			"DeathFeatures",
 			"respawn_inv:%s" % entity.entity_id,
 			{"type": "respawn_invincibility", "duration": remaining},
@@ -323,7 +323,7 @@ func _activate_griefing_protection(entity_id: String) -> void:
 		# expires surfaces.
 		NotificationService.notify(
 			NotifKind.SECURITY_WARNING,
-			"🛡️ Griefing protection activated! You are now in a safe zone.",
+			" Griefing protection activated! You are now in a safe zone.",
 			"DeathFeatures",
 			"griefing:%s" % entity_id,
 			{"type": "griefing_protection", "duration": Config.GRIEFING_PROTECTION_DURATION},
@@ -428,7 +428,7 @@ func _apply_kill_streak_reward(killer_id: String, streak: int) -> void:
 
 	# Notify
 	if is_instance_valid(NotificationService):
-		var msg := "🔥 Kill streak %d! +%d XP, +%d gold" % [streak, xp_bonus, gold_bonus]
+		var msg := " Kill streak %d! +%d XP, +%d gold" % [streak, xp_bonus, gold_bonus]
 		# Frame-level dispatch. CUSTOM (no dedicated kill_streak kind).
 		# Dedupe on (killer, streak) so re-entering the same streak tier
 		# within the window collapses, but stepping up (5->10) is a new

@@ -56,13 +56,13 @@ func _setup_panel() -> void:
 	var title_bar := HBoxContainer.new()
 	title_bar.custom_minimum_size.y = 40
 	var title := Label.new()
-	title.text = "⚙ Admin Dashboard"
+	title.text = " Admin Dashboard"
 	title.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_bar.add_child(title)
 
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = ""
 	close_btn.pressed.connect(close)
 	title_bar.add_child(close_btn)
 	_main_vbox.add_child(title_bar)
@@ -92,7 +92,7 @@ func _setup_panel() -> void:
 func _create_shell_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
-	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "🖥 Shell")
+	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, " Shell")
 
 	# Terminal output
 	_terminal_output = RichTextLabel.new()
@@ -128,7 +128,7 @@ func _create_shell_tab() -> void:
 func _create_players_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
-	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "👥 Players")
+	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, " Players")
 
 	# Toolbar
 	var toolbar := HBoxContainer.new()
@@ -158,22 +158,22 @@ func _create_players_tab() -> void:
 	actions.custom_minimum_size.y = 40
 
 	var lookup_btn := Button.new()
-	lookup_btn.text = "👁 Lookup"
+	lookup_btn.text = " Lookup"
 	lookup_btn.pressed.connect(_lookup_selected_player)
 	actions.add_child(lookup_btn)
 
 	var mute_btn := Button.new()
-	mute_btn.text = "🔇 Mute"
+	mute_btn.text = " Mute"
 	mute_btn.pressed.connect(_mute_selected_player)
 	actions.add_child(mute_btn)
 
 	var kick_btn := Button.new()
-	kick_btn.text = "👢 Kick"
+	kick_btn.text = " Kick"
 	kick_btn.pressed.connect(_kick_selected_player)
 	actions.add_child(kick_btn)
 
 	var restrict_btn := Button.new()
-	restrict_btn.text = "⛔ Restrict"
+	restrict_btn.text = " Restrict"
 	restrict_btn.pressed.connect(_restrict_selected_player)
 	actions.add_child(restrict_btn)
 
@@ -182,7 +182,7 @@ func _create_players_tab() -> void:
 func _create_restrictions_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
-	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "🚫 Restrictions")
+	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, " Restrictions")
 
 	# Toolbar
 	var toolbar := HBoxContainer.new()
@@ -210,7 +210,7 @@ func _create_restrictions_tab() -> void:
 	quick_actions.custom_minimum_size.y = 40
 
 	var unmute_all_btn := Button.new()
-	unmute_all_btn.text = "🔊 Unmute All"
+	unmute_all_btn.text = " Unmute All"
 	unmute_all_btn.pressed.connect(_unmute_all_players)
 	quick_actions.add_child(unmute_all_btn)
 
@@ -219,7 +219,7 @@ func _create_restrictions_tab() -> void:
 func _create_stats_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
-	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "📊 Stats")
+	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, " Stats")
 
 	# Stats output
 	var stats_output := RichTextLabel.new()
@@ -239,7 +239,7 @@ func _create_stats_tab() -> void:
 func _create_settings_tab() -> void:
 	var tab := ScrollContainer.new()
 	_tab_container.add_child(tab)
-	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "⚙ Settings")
+	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, " Settings")
 
 	var content := VBoxContainer.new()
 	content.custom_minimum_size.x = 400
@@ -485,7 +485,7 @@ func execute_command(cmd: String) -> void:
 
 func _show_permission_warning() -> void:
 	if _terminal_output:
-		_terminal_output.append_text("\n[color=yellow]⚠ WARNING: MOD-LEVEL ACCESS[/color]\n")
+		_terminal_output.append_text("\n[color=yellow] WARNING: MOD-LEVEL ACCESS[/color]\n")
 		_terminal_output.append_text("Some features are restricted. ADMIN level required for:\n")
 		_terminal_output.append_text("  - ban, restrict (non-chat), config changes\n")
 		_terminal_output.append_text("  - View audit log\n\n")

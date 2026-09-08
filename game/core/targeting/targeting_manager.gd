@@ -259,37 +259,37 @@ func register_action(action: ActionDef) -> void:
 func _register_default_actions() -> void:
 	# === SOCIAL ACTIONS ===
 	register_action(ActionDef.new(
-		"whisper", "Whisper", "💭",
+		"whisper", "Whisper", "",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_whisper(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"invite_party", "Invite to Party", "🎮",
+		"invite_party", "Invite to Party", "",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_invite_party(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"invite_guild", "Invite to Guild", "🏰",
+		"invite_guild", "Invite to Guild", "",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_invite_guild(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"add_friend", "Add Friend", "❤️",
+		"add_friend", "Add Friend", "",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_add_friend(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"ignore", "Ignore Player", "🚫",
+		"ignore", "Ignore Player", "",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_ignore(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"report", "Report Player", "🚩",
+		"report", "Report Player", "",
 		ActionDef.ActionCategory.SOCIAL,
 		func(src, tgt): return _action_report(src, tgt),
 		false,  # doesn't require target online
@@ -298,7 +298,7 @@ func _register_default_actions() -> void:
 
 	# === VIP SOCIAL ===
 	register_action(ActionDef.new(
-		"trade", "Trade", "💰",
+		"trade", "Trade", "",
 		ActionDef.ActionCategory.VIP_SOCIAL,
 		func(src, tgt): return _action_trade(src, tgt),
 		true, true,
@@ -307,7 +307,7 @@ func _register_default_actions() -> void:
 
 	# === MODERATION ===
 	register_action(ActionDef.new(
-		"mod_mute", "Mute Player", "🔇",
+		"mod_mute", "Mute Player", "",
 		ActionDef.ActionCategory.MODERATION,
 		func(src, tgt): return _action_mute(src, tgt),
 		true, true,
@@ -315,7 +315,7 @@ func _register_default_actions() -> void:
 	))
 
 	register_action(ActionDef.new(
-		"mod_kick", "Kick Player", "👢",
+		"mod_kick", "Kick Player", "",
 		ActionDef.ActionCategory.MODERATION,
 		func(src, tgt): return _action_kick(src, tgt),
 		true, true,
@@ -323,7 +323,7 @@ func _register_default_actions() -> void:
 	))
 
 	register_action(ActionDef.new(
-		"mod_lookup", "View Player Info", "🔍",
+		"mod_lookup", "View Player Info", "",
 		ActionDef.ActionCategory.MODERATION,
 		func(src, tgt): return _action_lookup(src, tgt),
 		true, false,  # can lookup offline players
@@ -332,7 +332,7 @@ func _register_default_actions() -> void:
 
 	# === ADMIN ===
 	register_action(ActionDef.new(
-		"admin_ban", "Ban Player", "⛔",
+		"admin_ban", "Ban Player", "",
 		ActionDef.ActionCategory.ADMIN,
 		func(src, tgt): return _action_ban(src, tgt),
 		true, true,
@@ -340,7 +340,7 @@ func _register_default_actions() -> void:
 	))
 
 	register_action(ActionDef.new(
-		"admin_restrict", "Restrict Player", "🔒",
+		"admin_restrict", "Restrict Player", "",
 		ActionDef.ActionCategory.ADMIN,
 		func(src, tgt): return _action_restrict(src, tgt),
 		true, true,
@@ -348,7 +348,7 @@ func _register_default_actions() -> void:
 	))
 
 	register_action(ActionDef.new(
-		"resurrect", "Resurrect", "✨",
+		"resurrect", "Resurrect", "",
 		ActionDef.ActionCategory.ADMIN,
 		func(src, tgt): return _action_resurrect(src, tgt),
 		true, false,  # requires_target=true, requires_line_of_sight=false
@@ -357,25 +357,25 @@ func _register_default_actions() -> void:
 
 	# === INTERACTION ===
 	register_action(ActionDef.new(
-		"talk", "Talk", "💬",
+		"talk", "Talk", "",
 		ActionDef.ActionCategory.INTERACTION,
 		func(src, tgt): return _action_talk(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"loot", "Loot", "📦",
+		"loot", "Loot", "",
 		ActionDef.ActionCategory.INTERACTION,
 		func(src, tgt): return _action_loot(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"use", "Use", "🔧",
+		"use", "Use", "",
 		ActionDef.ActionCategory.INTERACTION,
 		func(src, tgt): return _action_use(src, tgt)
 	))
 
 	register_action(ActionDef.new(
-		"enter", "Enter", "🚪",
+		"enter", "Enter", "",
 		ActionDef.ActionCategory.INTERACTION,
 		func(src, tgt): return _action_enter(src, tgt)
 	))

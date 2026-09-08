@@ -169,13 +169,13 @@ func _setup_ui() -> void:
 	header.add_child(_level_label)
 
 	_close_btn = Button.new()
-	_close_btn.text = "✕"
+	_close_btn.text = ""
 	_close_btn.custom_minimum_size = Vector2(32, 32)
 	_close_btn.pressed.connect(close_tooltip)
 	header.add_child(_close_btn)
 
 	_pin_btn = Button.new()
-	_pin_btn.text = "📍"
+	_pin_btn.text = ""
 	_pin_btn.custom_minimum_size = Vector2(32, 32)
 	_pin_btn.pressed.connect(_toggle_sticky)
 	header.add_child(_pin_btn)
@@ -230,7 +230,7 @@ func _refresh_tooltip() -> void:
 	# Entity type info
 	var type_str: String = TargetingManager.entity_type_to_string(target.entity_type)
 	if is_gm_player:
-		type_str = "⭐ GAME MASTER"
+		type_str = " GAME MASTER"
 	_info_label.text = type_str
 
 	# Status
@@ -261,7 +261,7 @@ func _get_status_text(target: TargetingManager.TargetInfo, is_gm: bool = false) 
 		Entity.EntityType.PLAYER:
 			var online_val = target.node.get("is_online") if target.node else null
 			if is_gm:
-				return "* Online ⭐"
+				return "* Online "
 			return "* Online" if online_val else "o Offline"
 		Entity.EntityType.ENEMY:
 			if target.node and target.node.has("health"):
@@ -269,16 +269,16 @@ func _get_status_text(target: TargetingManager.TargetInfo, is_gm: bool = false) 
 				var hp: int = hp_val if hp_val != null else 0
 				var max_hp_val = target.node.get("max_health")
 				var max_hp: int = max_hp_val if max_hp_val != null else 1
-				return "⚔️ %d/%d HP" % [hp, max_hp]
-			return "⚔️ Hostile"
+				return " %d/%d HP" % [hp, max_hp]
+			return " Hostile"
 		Entity.EntityType.NPC:
-			return "💬 Click to interact"
+			return " Click to interact"
 		Entity.EntityType.LOOT:
-			return "📦 Press to loot"
+			return " Press to loot"
 		Entity.EntityType.TELEPORT:
-			return "🌀 Enter to teleport"
+			return " Enter to teleport"
 		Entity.EntityType.OBJECT:
-			return "🔧 Interact"
+			return " Interact"
 		_:
 			return ""
 
@@ -351,19 +351,19 @@ func _create_action_button(action_id: String, size: Vector2) -> Button:
 
 func _get_action_icon(action_id: String) -> String:
 	match action_id:
-		"whisper": return "💬"
-		"party": return "👥"
-		"guild": return "🏰"
-		"trade": return "🤝"
-		"report": return "⚠️"
-		"kick": return "👢"
-		"ban": return "🚫"
-		"teleport": return "🌀"
-		"loot": return "📦"
-		"talk": return "💬"
-		"use": return "🔧"
-		"resurrect": return "✨"
-		"revive": return "💚"
+		"whisper": return ""
+		"party": return ""
+		"guild": return ""
+		"trade": return ""
+		"report": return ""
+		"kick": return ""
+		"ban": return ""
+		"teleport": return ""
+		"loot": return ""
+		"talk": return ""
+		"use": return ""
+		"resurrect": return ""
+		"revive": return ""
 		_: return "*"
 
 func _get_action_name(action_id: String) -> String:
@@ -446,11 +446,11 @@ func _flash_rate_limit_warning() -> void:
 		style.bg_color = original_color
 
 func _show_permission_denied(action_id: String) -> void:
-	_status_label.text = "❌ Permission denied"
+	_status_label.text = " Permission denied"
 	_status_label.add_theme_color_override("font_color", UIStyles.COLORS.error)
 
 func _show_action_failed(action_id: String) -> void:
-	_status_label.text = "❌ Action failed"
+	_status_label.text = " Action failed"
 	_status_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.3))
 
 ## ============================================================================
@@ -459,7 +459,7 @@ func _show_action_failed(action_id: String) -> void:
 
 func _toggle_sticky() -> void:
 	_is_sticky = not _is_sticky
-	_pin_btn.text = "📌" if _is_sticky else "📍"
+	_pin_btn.text = "" if _is_sticky else ""
 
 	var tween := create_tween()
 	if _is_sticky:
@@ -503,14 +503,14 @@ func _fade_out() -> void:
 
 func close_tooltip() -> void:
 	_is_sticky = false
-	_pin_btn.text = "📍"
+	_pin_btn.text = ""
 	TargetingManager.clear_target()
 	hide()
 	tooltip_closed.emit()
 
 func open_sticky() -> void:
 	_is_sticky = true
-	_pin_btn.text = "📌"
+	_pin_btn.text = ""
 	show()
 
 	var header := HBoxContainer.new()
@@ -527,13 +527,13 @@ func open_sticky() -> void:
 	header.add_child(spacer)
 
 	_close_btn = Button.new()
-	_close_btn.text = "✕"
+	_close_btn.text = ""
 	_close_btn.custom_minimum_size = Vector2(40, 40)
 	_close_btn.pressed.connect(close_tooltip)
 	header.add_child(_close_btn)
 
 	_pin_btn = Button.new()
-	_pin_btn.text = "📍"
+	_pin_btn.text = ""
 	_pin_btn.custom_minimum_size = Vector2(40, 40)
 	_pin_btn.pressed.connect(_toggle_sticky)
 	header.add_child(_pin_btn)

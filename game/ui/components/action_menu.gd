@@ -173,38 +173,38 @@ func _get_actions_for_type(target_type: int) -> Array:
 	match target_type:
 		Entity.EntityType.PLAYER:
 			actions = [
-				{"id": "whisper", "text": "Whisper", "icon": "💬"},
-					{"id": "follow", "text": "Follow", "icon": "👣"},
-				{"id": "invite_party", "text": "Invite to Party", "icon": "⚔️"},
-				{"id": "invite_guild", "text": "Invite to Guild", "icon": "🏰"},
-				{"id": "trade", "text": "Trade", "icon": "💱"},
-				{"id": "add_friend", "text": "Add Friend", "icon": "👤"},
-					{"id": "view_character", "text": "View Character", "icon": "📋"},
-				{"id": "report", "text": "Report Player", "icon": "⚠️", "danger": true}
+				{"id": "whisper", "text": "Whisper", "icon": ""},
+					{"id": "follow", "text": "Follow", "icon": ""},
+				{"id": "invite_party", "text": "Invite to Party", "icon": ""},
+				{"id": "invite_guild", "text": "Invite to Guild", "icon": ""},
+				{"id": "trade", "text": "Trade", "icon": ""},
+				{"id": "add_friend", "text": "Add Friend", "icon": ""},
+					{"id": "view_character", "text": "View Character", "icon": ""},
+				{"id": "report", "text": "Report Player", "icon": "", "danger": true}
 			]
 		Entity.EntityType.NPC:
 			actions = [
-				{"id": "talk", "text": "Talk", "icon": "💬"},
-				{"id": "trade", "text": "Trade", "icon": "💱"},
-				{"id": "quest", "text": "Quests", "icon": "📜"},
-				{"id": "bank", "text": "Bank", "icon": "🏦"},
-				{"id": "skill_academy", "text": "Skill Academy", "icon": "📖"},
-				{"id": "blacksmith", "text": "Blacksmith", "icon": "⚒️"},
+				{"id": "talk", "text": "Talk", "icon": ""},
+				{"id": "trade", "text": "Trade", "icon": ""},
+				{"id": "quest", "text": "Quests", "icon": ""},
+				{"id": "bank", "text": "Bank", "icon": ""},
+				{"id": "skill_academy", "text": "Skill Academy", "icon": ""},
+				{"id": "blacksmith", "text": "Blacksmith", "icon": ""},
 			]
 		Entity.EntityType.LOOT:
 			actions = [
-				{"id": "loot", "text": "Loot", "icon": "📦"},
-				{"id": "pass", "text": "Pass", "icon": "➡️"}
+				{"id": "loot", "text": "Loot", "icon": ""},
+				{"id": "pass", "text": "Pass", "icon": "->"}
 			]
 		Entity.EntityType.TELEPORT:
 			actions = [
-				{"id": "enter", "text": "Enter", "icon": "🚪"},
-				{"id": "cancel", "text": "Cancel", "icon": "✕"}
+				{"id": "enter", "text": "Enter", "icon": ""},
+				{"id": "cancel", "text": "Cancel", "icon": ""}
 			]
 		Entity.EntityType.ENEMY:
 			actions = [
-				{"id": "attack", "text": "Attack", "icon": "⚔️"},
-				{"id": "spell", "text": "Cast Spell", "icon": "✨"}
+				{"id": "attack", "text": "Attack", "icon": ""},
+				{"id": "spell", "text": "Cast Spell", "icon": ""}
 			]
 
 	return actions

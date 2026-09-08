@@ -96,7 +96,7 @@ func _setup_header() -> void:
 	main.move_child(header, 0)
 
 	var title := Label.new()
-	title.text = "🗳️ Community Voting"
+	title.text = " Community Voting"
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	header.add_child(title)
@@ -106,7 +106,7 @@ func _setup_header() -> void:
 	header.add_child(spacer)
 
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = ""
 	close_btn.pressed.connect(close)
 	header.add_child(close_btn)
 
@@ -216,7 +216,7 @@ func _show_vote_detail(vote_id: String) -> void:
 
 	if has_voted:
 		var voted_label := Label.new()
-		voted_label.text = "✓ You have already voted"
+		voted_label.text = " You have already voted"
 		voted_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
 		_vote_detail.add_child(voted_label)
 	else:

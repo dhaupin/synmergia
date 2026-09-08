@@ -316,7 +316,7 @@ func _refresh() -> void:
 
 		# Focal indicator
 		var is_focal: bool = stat_name == focal1 or stat_name == focal2
-		row_data["focal_lbl"].text = "★" if is_focal else ""
+		row_data["focal_lbl"].text = "" if is_focal else ""
 
 		# Button states
 		row_data["plus_btn"].disabled = available <= 0

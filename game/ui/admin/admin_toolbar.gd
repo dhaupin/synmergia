@@ -31,7 +31,7 @@ func _build_toolbar() -> void:
 	add_child(hbox)
 
 	_toggle_btn = Button.new()
-	_toggle_btn.text = "⚙ Admin"
+	_toggle_btn.text = " Admin"
 	_toggle_btn.custom_minimum_size.x = 100
 	_toggle_btn.pressed.connect(_toggle_dashboard)
 	hbox.add_child(_toggle_btn)
@@ -57,13 +57,13 @@ func _open_dashboard() -> void:
 		_dashboard_instance.closed.connect(_on_dashboard_closed)
 		_dashboard_instance.set_admin_id(_get_admin_id())
 		get_tree().root.add_child(_dashboard_instance)
-		_toggle_btn.text = "✕ Admin"
+		_toggle_btn.text = " Admin"
 
 func _close_dashboard() -> void:
 	if _dashboard_instance and is_instance_valid(_dashboard_instance):
 		_dashboard_instance.queue_free()
 		_dashboard_instance = null
-	_toggle_btn.text = "⚙ Admin"
+	_toggle_btn.text = " Admin"
 
 func _on_dashboard_closed() -> void:
 	_close_dashboard()

@@ -169,7 +169,7 @@ func _show_waypoint_indicator(angle: float, distance: float, wp_data: Dictionary
 
 	# Add icon
 	var icon := Label.new()
-	var icon_str := WaypointService.get_icon_string(wp_data.get("icon", 0)) if WaypointService else "📍"
+	var icon_str := WaypointService.get_icon_string(wp_data.get("icon", 0)) if WaypointService else ""
 	icon.text = icon_str
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon.position = Vector2(-2, 18)

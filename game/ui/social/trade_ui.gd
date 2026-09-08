@@ -128,7 +128,7 @@ func _update_confirm_button() -> void:
 	if not _confirm_btn:
 		return
 	var state := _my_confirmed
-	_confirm_btn.text = "✓ Confirmed" if state else "Confirm Trade"
+	_confirm_btn.text = " Confirmed" if state else "Confirm Trade"
 	_confirm_btn.disabled = state
 
 	# Visual feedback for my confirmation

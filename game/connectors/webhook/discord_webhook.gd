@@ -59,7 +59,7 @@ func send_security_alert(title: String, description: String, details: Dictionary
 func send_urgent_report(report_id: String, reporter: String, target: String,
 		subject: String, description: String) -> void:
 	var embed := create_embed(
-		"🚨 URGENT REPORT: %s" % report_id,
+		" URGENT REPORT: %s" % report_id,
 		"**Reporter:** %s\n**Target:** %s\n\n**Subject:** %s\n\n**Description:**\n%s" % [
 			reporter, target, subject, description
 		],
@@ -73,7 +73,7 @@ func send_urgent_report(report_id: String, reporter: String, target: String,
 ## Send admin action notification
 func send_admin_action(admin_id: String, action: String, target: String, success: bool) -> void:
 	var color := COLOR_GREEN if success else COLOR_RED
-	var status := "✅" if success else "❌"
+	var status := "" if success else ""
 
 	var embed := create_embed(
 		"%s Admin Action: %s" % [status, action],
@@ -89,23 +89,23 @@ func send_admin_action(admin_id: String, action: String, target: String, success
 func send_player_report(report_id: String, type: String, reporter: String,
 		target: String, subject: String) -> void:
 	var color := COLOR_YELLOW
-	var type_emoji := "📢"
+	var type_emoji := ""
 
 	match type.to_upper():
 		"ABUSE":
-			type_emoji = "⚠️"
+			type_emoji = ""
 			color = COLOR_ORANGE
 		"BUG":
-			type_emoji = "🐛"
+			type_emoji = ""
 			color = COLOR_BLUE
 		"FEEDBACK":
-			type_emoji = "💬"
+			type_emoji = ""
 			color = COLOR_GREEN
 		"SUGGESTION":
-			type_emoji = "💡"
+			type_emoji = ""
 			color = COLOR_PURPLE
 		"EXPLOIT":
-			type_emoji = "🚨"
+			type_emoji = ""
 			color = COLOR_RED
 
 	var embed := create_embed(
@@ -143,7 +143,7 @@ func send_server_status(status: String, player_count: int, details: Dictionary =
 ## Send exploit detection alert
 func send_exploit_alert(player_id: String, exploit_type: String, details: String) -> void:
 	var embed := create_embed(
-		"🚨 Exploit Detected",
+		" Exploit Detected",
 		"**Player:** %s\n**Type:** %s\n\n**Details:**\n%s" % [
 			player_id, exploit_type, details
 		],

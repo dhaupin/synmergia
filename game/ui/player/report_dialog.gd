@@ -68,7 +68,7 @@ func _setup_panel() -> void:
 	panel.add_child(main)
 
 	_title_label = Label.new()
-	_title_label.text = "🚩 Submit Report"
+	_title_label.text = " Submit Report"
 	_title_label.add_theme_font_size_override("font_size", 18)
 	_title_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	_title_label.name = "Title"
@@ -161,7 +161,7 @@ func _setup_header() -> void:
 	header.add_child(spacer)
 
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = ""
 	close_btn.pressed.connect(close)
 	header.add_child(close_btn)
 
@@ -170,31 +170,31 @@ func _on_type_changed(index: int) -> void:
 
 	match _report_type:
 		ReportType.PLAYER_ABUSE:
-			_title_label.text = "🚩 Report Player"
+			_title_label.text = " Report Player"
 			_target_field.show()
 			_target_label.show()
 			_description_field.placeholder_text = "Describe the abuse, include chat logs or evidence if possible..."
 			if _help_label: _help_label.hide()
 		ReportType.BUG:
-			_title_label.text = "🐛 Report Bug"
+			_title_label.text = " Report Bug"
 			_target_field.hide()
 			_target_label.hide()
 			_description_field.placeholder_text = "Describe what happened, what you expected, and steps to reproduce..."
 			if _help_label: _help_label.show()
 		ReportType.FEEDBACK:
-			_title_label.text = "💬 Send Feedback"
+			_title_label.text = " Send Feedback"
 			_target_field.hide()
 			_target_label.hide()
 			_description_field.placeholder_text = "Share your thoughts, ideas, or suggestions..."
 			if _help_label: _help_label.hide()
 		ReportType.SUGGESTION:
-			_title_label.text = "💡 Make Suggestion"
+			_title_label.text = " Make Suggestion"
 			_target_field.hide()
 			_target_label.hide()
 			_description_field.placeholder_text = "Describe your feature idea..."
 			if _help_label: _help_label.hide()
 		ReportType.EXPLOIT:
-			_title_label.text = "⚠️ Report Exploit"
+			_title_label.text = " Report Exploit"
 			_target_field.show()
 			_target_label.show()
 			_description_field.placeholder_text = "Describe the exploit in detail. Include any player names involved..."

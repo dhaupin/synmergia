@@ -47,7 +47,7 @@ func _setup_beacon() -> void:
 	# 3D Label
 	_icon_label = Label3D.new()
 	_icon_label.name = "IconLabel"
-	_icon_label.text = "📍"
+	_icon_label.text = ""
 	_icon_label.font_size = 48
 	_icon_label.pixel_size = 0.01
 	_icon_label.modulate = Color(1, 1, 0.8)
@@ -82,7 +82,7 @@ func setup(waypoint_id: String, position: Vector3, color: Color, icon: int) -> v
 	_waypoint_id = waypoint_id
 	global_position = position
 	_color = color
-	_icon_label.text = WaypointService.get_icon_string(icon) if WaypointService else "📍"
+	_icon_label.text = WaypointService.get_icon_string(icon) if WaypointService else ""
 
 	# Update colors
 	if _base and _base.material_override:

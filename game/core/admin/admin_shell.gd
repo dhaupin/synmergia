@@ -646,7 +646,7 @@ func _cmd_audit(args: String, executor_id: String) -> CommandResult:
 		else:
 			for entry in log:
 				var time_str := Time.get_datetime_string_from_unix_time(entry.timestamp)
-				var status := "[color=green]✓[/color]" if entry.success else "[color=red]✗[/color]"
+				var status := "[color=green][/color]" if entry.success else "[color=red][/color]"
 				output += "[%s] %s %s: %s -> %s\n" % [
 					time_str,
 					status,

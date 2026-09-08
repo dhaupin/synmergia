@@ -29,7 +29,7 @@ const GLOBAL_SETTINGS_FILE = "user://global_settings.cfg"
 const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	# General
 	"show_tutorial_tooltips": true,
-	"showtutorial引导": true,
+	"showtutorial": true,
 	"auto_accept_party_invites": false,
 	"auto_accept_guild_invites": false,
 	"friend_on_whisper": false,
@@ -344,7 +344,7 @@ func get_setting_metadata(key: String) -> Dictionary:
 	return metadata
 
 func _get_setting_category(key: String) -> SettingCategory:
-	if key in ["show_tutorial_tooltips", "showtutorial引导", "auto_accept_party_invites",
+	if key in ["show_tutorial_tooltips", "showtutorial", "auto_accept_party_invites",
 			"auto_accept_guild_invites", "friend_on_whisper"]:
 		return SettingCategory.GENERAL
 	elif key in ["graphics_quality", "vsync_enabled", "max_fps", "show_fps_counter",

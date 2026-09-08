@@ -161,7 +161,7 @@ func _refresh_members() -> void:
 		var is_gm: bool = member_data.get("is_gm", false)
 		var is_leader: bool = member_data.get("is_leader", false)
 		var leader_icon: String = "*" if is_leader else ""
-		var gm_icon: String = "⭐" if is_gm else ""
+		var gm_icon: String = "" if is_gm else ""
 		_members_list.add_item("%s %s%s [%s]" % [leader_icon, gm_icon, member_name, member_class])
 
 func _refresh_pending() -> void:

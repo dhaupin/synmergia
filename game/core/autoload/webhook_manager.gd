@@ -154,7 +154,7 @@ func _on_vote_created(vote) -> void:
 	# Only notify on important votes
 	if vote.type == CommunityGovernance.VoteType.REPORT_VALIDATION:
 		var embed = _get_discord().create_embed(
-			"🗳️ New Community Vote",
+			" New Community Vote",
 			"A new vote has been created for report validation.",
 			3447003
 		)
@@ -182,7 +182,7 @@ func _on_vote_closed(vote) -> void:
 	var color := 3066993 if passed else 15158332
 
 	var embed = _get_discord().create_embed(
-		"🗳️ Vote Closed: %s" % ("PASSED" if passed else "FAILED"),
+		" Vote Closed: %s" % ("PASSED" if passed else "FAILED"),
 		vote.question,
 		color
 	)

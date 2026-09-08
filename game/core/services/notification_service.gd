@@ -537,9 +537,9 @@ func notify_death(entity_id: String, killer_name: String = "", killer_type: Stri
 func notify_party_member_died(entity_id: String, dead_player_name: String, killer_name: String = "") -> void:
 	var message: String
 	if killer_name != "":
-		message = "⚔️ %s has been slain by %s" % [dead_player_name, killer_name]
+		message = " %s has been slain by %s" % [dead_player_name, killer_name]
 	else:
-		message = "⚔️ %s has died" % dead_player_name
+		message = " %s has died" % dead_player_name
 
 	send(entity_id, message, NotificationType.COMBAT, Priority.NORMAL, DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"player_name": dead_player_name,
@@ -601,7 +601,7 @@ func notify_respawn_timer(entity_id: String, seconds_remaining: int) -> void:
 
 ## Corpse expiring soon warning
 func notify_corpse_expiring(entity_id: String, seconds_remaining: int) -> void:
-	send(entity_id, "⚠️ Your corpse will disappear in %d seconds!" % seconds_remaining, NotificationType.WARNING, Priority.NORMAL,
+	send(entity_id, " Your corpse will disappear in %d seconds!" % seconds_remaining, NotificationType.WARNING, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"seconds": seconds_remaining
 	})
@@ -625,7 +625,7 @@ func notify_cannot_loot(entity_id: String, reason: String) -> void:
 
 ## Ankh bound notification
 func notify_ankh_bound(entity_id: String, ankh_name: String) -> void:
-	send(entity_id, "✝️ Bound to %s" % ankh_name, NotificationType.SYSTEM, Priority.NORMAL,
+	send(entity_id, " Bound to %s" % ankh_name, NotificationType.SYSTEM, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.NOTIFICATION, {
 		"ankh_name": ankh_name
 	})
@@ -655,7 +655,7 @@ func notify_pvp_kill(killer_name: String, victim_name: String, zone_name: String
 
 ## Revive abuse detected warning
 func notify_revive_abuse_warning(entity_id: String, context: String) -> void:
-	send(entity_id, "⚠️ Revive abuse detected in %s. Further abuse will result in karma loss." % context,
+	send(entity_id, " Revive abuse detected in %s. Further abuse will result in karma loss." % context,
 		NotificationType.WARNING, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.WARNING, {
 		"context": context,
 		"type": "abuse_warning"
@@ -663,11 +663,11 @@ func notify_revive_abuse_warning(entity_id: String, context: String) -> void:
 
 ## Invincibility gained notification
 func notify_invincibility_gained(entity_id: String, duration: float, reason: String = "") -> void:
-	var message: String = "🛡️ Invincible for %.0f seconds" % duration
+	var message: String = " Invincible for %.0f seconds" % duration
 	if reason == "respawn":
-		message = "🛡️ Respawn protection: %s" % message
+		message = " Respawn protection: %s" % message
 	elif reason == "griefing_protection":
-		message = "🛡️ Griefing protection active"
+		message = " Griefing protection active"
 	send(entity_id, message, NotificationType.SYSTEM, Priority.NORMAL,
 		DisplayLocation.CENTER_SCREEN, SoundType.INVINCIBILITY, {
 		"duration": duration,
@@ -676,9 +676,9 @@ func notify_invincibility_gained(entity_id: String, duration: float, reason: Str
 
 ## Invincibility lost notification
 func notify_invincibility_lost(entity_id: String, reason: String = "") -> void:
-	var message: String = "⚠️ Invincibility ended"
+	var message: String = " Invincibility ended"
 	if reason == "expired":
-		message = "🛡️ Respawn protection has worn off"
+		message = " Respawn protection has worn off"
 	send(entity_id, message, NotificationType.WARNING, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"reason": reason
@@ -686,7 +686,7 @@ func notify_invincibility_lost(entity_id: String, reason: String = "") -> void:
 
 ## Kill streak notification
 func notify_kill_streak(entity_id: String, streak: int, xp_bonus: int, gold_bonus: int) -> void:
-	var emojis: Array[String] = ["🔥", "🔥🔥", "🔥🔥🔥", "⚡", "💀"]
+	var emojis: Array[String] = ["", "", "", "", ""]
 	var idx := mini(streak / 5, emojis.size() - 1)
 	var emoji: String = emojis[idx]
 	var message: String = "%s Kill streak %d! +%d XP, +%d gold" % [emoji, streak, xp_bonus, gold_bonus]
@@ -699,7 +699,7 @@ func notify_kill_streak(entity_id: String, streak: int, xp_bonus: int, gold_bonu
 
 ## Griefing protection notification
 func notify_griefing_protection(entity_id: String, duration: float) -> void:
-	send(entity_id, "🛡️ Griefing protection activated for %.0f seconds!" % duration,
+	send(entity_id, " Griefing protection activated for %.0f seconds!" % duration,
 		NotificationType.WARNING, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.INVINCIBILITY, {
 		"duration": duration,
 		"type": "griefing_protection"

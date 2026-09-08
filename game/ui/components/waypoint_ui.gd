@@ -288,13 +288,13 @@ func _create_waypoint_row(wp_data: Dictionary) -> Control:
 	# Lock indicator
 	if wp_data.get("is_locked", false):
 		var lock := Label.new()
-		lock.text = "🔒"
+		lock.text = ""
 		hbox.add_child(lock)
 
 	# Quest indicator
 	if wp_data.get("is_quest_waypoint", false):
 		var quest := Label.new()
-		quest.text = "❗"
+		quest.text = ""
 		hbox.add_child(quest)
 
 	# Set row background color
@@ -306,20 +306,20 @@ func _create_waypoint_row(wp_data: Dictionary) -> Control:
 	var active_btn := Button.new()
 	var wp_id: String = wp_data.get("id", "")
 	var is_active := WaypointService.get_active_waypoint(str(PlayerManager.get_local_player_id())).get("id", "") == wp_id
-	active_btn.text = "📍" if is_active else "⬜"
+	active_btn.text = "" if is_active else ""
 	active_btn.pressed.connect(func(): _on_activate_pressed(wp_id))
 	hbox.add_child(active_btn)
 
 	# Edit button
 	var edit_btn := Button.new()
-	edit_btn.text = "✏️"
+	edit_btn.text = ""
 	edit_btn.pressed.connect(func(): _on_edit_pressed(wp_data))
 	hbox.add_child(edit_btn)
 
 	# Delete button
 	if not wp_data.get("is_locked", false) and not wp_data.get("is_quest_waypoint", false):
 		var del_btn := Button.new()
-		del_btn.text = "🗑️"
+		del_btn.text = ""
 		del_btn.pressed.connect(func(): _on_delete_pressed(wp_id))
 		hbox.add_child(del_btn)
 

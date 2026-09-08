@@ -450,17 +450,17 @@ static func get_color_value(color: int) -> Color:
 ## Get icon string for UI
 static func get_icon_string(icon: int) -> String:
 	match icon:
-		WaypointIcon.FLAG:   return "🚩"
-		WaypointIcon.STAR:   return "⭐"
-		WaypointIcon.CHEST:  return "📦"
-		WaypointIcon.SKULL:  return "💀"
-		WaypointIcon.HOUSE:  return "🏠"
-		WaypointIcon.CAVE:   return "🕳️"
-		WaypointIcon.QUEST:  return "❗"
-		WaypointIcon.PLAYER: return "📍"
-		WaypointIcon.COMPASS: return "🧭"
-		WaypointIcon.CUSTOM: return "📌"
-		_: return "📍"
+		WaypointIcon.FLAG:   return ""
+		WaypointIcon.STAR:   return ""
+		WaypointIcon.CHEST:  return ""
+		WaypointIcon.SKULL:  return ""
+		WaypointIcon.HOUSE:  return ""
+		WaypointIcon.CAVE:   return ""
+		WaypointIcon.QUEST:  return ""
+		WaypointIcon.PLAYER: return ""
+		WaypointIcon.COMPASS: return ""
+		WaypointIcon.CUSTOM: return ""
+		_: return ""
 
 ## Generate unique ID
 func generate_id() -> String:
