@@ -1,4 +1,4 @@
-extends PersistenceStore
+extends "res://adapters/persistence/persistence_store.gd"
 class_name MemoryPersistenceStore
 
 # In-memory implementation of PersistenceStore.
