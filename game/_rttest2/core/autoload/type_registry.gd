@@ -1,0 +1,50 @@
+## TypeRegistry - Registers all custom types for cross-reference resolution
+extends Node
+
+# Module-level preloads. These run when this script's MODULE loads,
+# which is BEFORE _ready() on any autoload -- and because RegisterTypes
+# is autoload #3 (after AdapterRegistry and BackendFactory), its module
+# loads before every other autoload's module too. That is what makes
+# bare `Entity`, `PersistenceStore`, `CacheStore`, `MemoryStore`
+# resolvable as type annotations in scripts that load later.
+#
+# Without these, the class_name only registers when the script is
+# actually instantiated, which is too late for `var x: Entity` /
+# `extends Entity` in files that parse before this autoload _ready().
+#
+# Scope: base classes and Entity only. Concrete services/UI are NOT
+# preloaded here -- they have their own dependency chains and pulling
+# them in at module-load time created circular preload failures. They
+# are loaded lazily by the code that needs them.
+const Entity = preload("res://core/entities/entity.gd")
+const StatusEffect = preload("res://core/entities/status_effect.gd")
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
+const CacheStore = preload("res://adapters/cache/cache_store.gd")
+const MemoryStore = preload("res://adapters/memory_layer/memory_store.gd")
+const Item = preload("res://core/schemas/item.gd")
+const SkillSchema = preload("res://core/schemas/skill.gd")
+const Species = preload("res://core/schemas/species.gd")
+const CharacterClass = preload("res://core/schemas/character_class.gd")
+const Faction = preload("res://core/schemas/faction.gd")
+const ZoneData = preload("res://core/schemas/zone_data.gd")
+const EnemyData = preload("res://core/schemas/enemy_data.gd")
+const NPCData = preload("res://core/schemas/npc_data.gd")
+const GatewayData = preload("res://core/schemas/gateway_data.gd")
+const DwellingData = preload("res://core/schemas/dwelling_data.gd")
+const EventData = preload("res://core/schemas/event_data.gd")
+const QuestData = preload("res://core/schemas/quest_data.gd")
+const TargetSchema = preload("res://core/schemas/target_schema.gd")
+const LootTable = preload("res://core/schemas/loot_table.gd")
+const Ankh = preload("res://core/schemas/ankh.gd")
+const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+
+func _ready() -> void:
+	# No-op at runtime. The actual registration is the module-level
+	# preloads above, which run at parse time. The old body called
+	# GameLog.debug(...) bare, which is a forward reference under
+	# --script mode (GameLog is autoload #15, this is #12, and
+	# autoloads are not bare globals there). GDScript resolves
+	# identifiers in function bodies at compile time, so that bare
+	# reference cascaded into "Identifier not found" for every file
+	# depending on this autoload. The call was cosmetic; removed.
+	pass
