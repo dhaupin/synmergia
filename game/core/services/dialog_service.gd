@@ -19,12 +19,13 @@ static func _esc(text: String) -> String:
 
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
-# ShopUI, MenuManager and UIStyles are not autoloads (they are
-# class_names registered when their .gd files load). DialogService
-# references them bare inside switch arms, which requires their
-# class_names to be registered at parse time. Preload them here.
+# ShopUI and UIStyles are not autoloads (class_name only).
+# MenuManager is NOT preloaded here: it pulls in dialog_ui.gd at
+# parse time, which preloads dialog_service.gd (this file), forming
+# a 3-node cyclic preload that 4.7.2 rejects. MenuManager exposes a
+# static open_menu() facade, so the call site below resolves it
+# lazily via the class_name registered when menu_manager.gd loads.
 const ShopUI = preload("res://ui/components/shop_ui.gd")
-const MenuManager = preload("res://ui/components/menu_manager.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 var _dialogues: Dictionary = {}
@@ -181,6 +182,11 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 			# (BankUI). There is no VaultUI class -- the old reference
 			# was a dangling identifier that also made this branch
 			# return a Node from a String-returning function.
+			# MenuManager is NOT preloaded here (it would form a
+			# cyclic preload: dialog_service -> menu_manager ->
+			# dialog_ui -> dialog_service). Load it lazily at the
+			# call site instead.
+			var MenuManager = load("res://ui/components/menu_manager.gd")
 			if MenuManager:
 				MenuManager.open_menu("bank")
 				return true
@@ -203,12 +209,14 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 			GameLog.debug("DialogAction: GIVE_CURRENCY %d %s" % [amount, currency])
 			return true
 		DialogActionType.UNLOCK_TITLE:
-			var title_id := action_data.get("title_id", "")
+			# Resource.get(key, default) was removed in 4.7.2; the
+			# guard already exists, so drop the default arg.
+			var title_id := action_data.get("title_id")
 			if TitleService and title_id:
 				TitleService.unlock_title(player_id, title_id)
 				return true
 		DialogActionType.TEACH_SKILL:
-			var skill_id := action_data.get("skill_id", "")
+			var skill_id := action_data.get("skill_id")
 			if SkillAcademyService and skill_id:
 				SkillAcademyService.unlock_skill(player_id, skill_id)
 				return true
