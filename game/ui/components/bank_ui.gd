@@ -210,7 +210,7 @@ func _update_slot_display() -> void:
 func _populate_grid() -> void:
 	var slots: Array = _vault_data.get("slots", [])
 	_slot_data.clear()
-	
+
 	for i in range(_vault_grid.get_child_count()):
 		var slot: Control = _vault_grid.get_child(i)
 		if slot and slot.has_node("ItemIcon"):
@@ -218,7 +218,7 @@ func _populate_grid() -> void:
 			if i < slots.size() and not slots[i].is_empty():
 				var slot_info: Dictionary = slots[i]
 				_slot_data[i] = slot_info
-				
+
 				icon.visible = true
 				icon.modulate = Color(1, 1, 1, 1)
 				icon.texture = _get_slot_icon(slot_info)

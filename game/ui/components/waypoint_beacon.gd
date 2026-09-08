@@ -29,7 +29,7 @@ func _setup_beacon() -> void:
 	cylinder.bottom_radius = 2.0
 	cylinder.height = 0.5
 	_base.mesh = cylinder
-	
+
 	var mat := StandardMaterial3D.new()
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.albedo_color = _color
@@ -38,12 +38,12 @@ func _setup_beacon() -> void:
 	mat.emission_energy_multiplier = 2.0
 	_base.material_override = mat
 	add_child(_base)
-	
+
 	# Pillar (cone)
 	_pillar = ImmediateMeshInstance3D.new()
 	_pillar.name = "Pillar"
 	add_child(_pillar)
-	
+
 	# 3D Label
 	_icon_label = Label3D.new()
 	_icon_label.name = "IconLabel"
@@ -54,7 +54,7 @@ func _setup_beacon() -> void:
 	_icon_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_icon_label.position = Vector3(0, 5, 0)
 	add_child(_icon_label)
-	
+
 	# Particles (floating light)
 	_particles = GPUParticles3D.new()
 	_particles.name = "Particles"
@@ -66,7 +66,7 @@ func _setup_beacon() -> void:
 	_particles.lifetime = 3.0
 	_particles.explosiveness = 0.8
 	_particles.randomness = 0.5
-	
+
 	var particle_mat := ParticleProcessMaterial.new()
 	particle_mat.direction = Vector3(0, 1, 0)
 	particle_mat.spread = 30.0
@@ -83,13 +83,13 @@ func setup(waypoint_id: String, position: Vector3, color: Color, icon: int) -> v
 	global_position = position
 	_color = color
 	_icon_label.text = WaypointService.get_icon_string(icon) if WaypointService else "📍"
-	
+
 	# Update colors
 	if _base and _base.material_override:
 		var mat := _base.material_override as StandardMaterial3D
 		mat.albedo_color = _color
 		mat.emission = _color
-	
+
 	if _particles and _particles.process_material:
 		var p_mat := _particles.process_material as ParticleProcessMaterial
 		p_mat.color = _color
@@ -97,36 +97,36 @@ func setup(waypoint_id: String, position: Vector3, color: Color, icon: int) -> v
 func _process(delta: float) -> void:
 	if not visible:
 		return
-	
+
 	# Animate pillar
 	_pillar.clear()
 	_pillar.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
-	
+
 	# Pulsing effect
 	var pulse := 0.8 + 0.2 * sin(Time.get_ticks_msec() / 500.0)
 	var alpha := 0.3 * pulse
-	
+
 	# Draw cone shape
 	var segments := 16
 	var height := _height_offset
 	var base_radius := 3.0
-	
+
 	for i in range(segments + 1):
 		var t := float(i) / float(segments)
 		var angle := t * TAU
 		var x := cos(angle) * base_radius * (1.0 - t * 0.3)
 		var z := sin(angle) * base_radius * (1.0 - t * 0.3)
-		
+
 		# Bottom vertex
 		_pillar.set_color(Color(_color.r, _color.g, _color.b, alpha * 0.5))
 		_pillar.add_vertex(Vector3(x, 0.5, z))
-		
+
 		# Top vertex
 		_pillar.set_color(Color(_color.r, _color.g, _color.b, alpha * 0.2))
 		_pillar.add_vertex(Vector3(x * 0.3, height, z * 0.3))
-	
+
 	_pillar.end()
-	
+
 	# Rotate label to face camera
 	_icon_label.rotate_y(delta * 0.5)
 

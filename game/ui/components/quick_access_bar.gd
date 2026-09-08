@@ -34,7 +34,7 @@ func _create_slot(index: int) -> Control:
 	var slot := PanelContainer.new()
 	slot.name = "QuickSlot_%d" % index
 	slot.custom_minimum_size = Vector2(45, 45)
-	
+
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
 	style.border_color = UIStyles.COLORS.border
@@ -43,13 +43,13 @@ func _create_slot(index: int) -> Control:
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
-	
+
 	# Item icon
 	var icon := TextureRect.new()
 	icon.name = "Icon"
 	icon.modulate = Color(1, 1, 1, 0.3)
 	slot.add_child(icon)
-	
+
 	# Keybind label
 	var keybind := Label.new()
 	keybind.name = "Keybind"
@@ -58,7 +58,7 @@ func _create_slot(index: int) -> Control:
 	keybind.add_theme_font_size_override("font_size", 9)
 	keybind.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	slot.add_child(keybind)
-	
+
 	# Stack count
 	var stack := Label.new()
 	stack.name = "Stack"
@@ -67,13 +67,13 @@ func _create_slot(index: int) -> Control:
 	stack.add_theme_font_size_override("font_size", 10)
 	stack.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	slot.add_child(stack)
-	
+
 	# Cooldown sweep
 	var cooldown := Panel.new()
 	cooldown.name = "Cooldown"
 	cooldown.visible = false
 	slot.add_child(cooldown)
-	
+
 	return slot
 
 func _input(event: InputEvent) -> void:
@@ -141,17 +141,17 @@ func load_from_inventory() -> void:
 	# Load quick-access consumables from inventory
 	if not InventoryService:
 		return
-	
+
 	var inventory: Array = InventoryService.get_inventory("")
 	if inventory.is_empty():
 		return
-	
+
 	var consumables: Array = []
 	for item in inventory:
 		var item_type: String = str(item.get("item_type", "")).to_lower()
 		if item_type in ["potion", "food", "scroll", "consumable"]:
 			consumables.append(item)
-	
+
 	# Sort by category then stack size (prefer stacks)
 	consumables.sort_custom(func(a, b):
 		var a_type: String = str(a.get("item_type", ""))
@@ -160,7 +160,7 @@ func load_from_inventory() -> void:
 			return a_type < b_type
 		return a.get("quantity", 1) > b.get("quantity", 1)
 	)
-	
+
 	# Fill slots
 	for i in range(min(SLOT_COUNT, consumables.size())):
 		set_slot_item(i, consumables[i])

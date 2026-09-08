@@ -169,7 +169,7 @@ func _setup_base_panel() -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.custom_minimum_size = Vector2(400, 500)
-	
+
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.15, 0.98)
 	style.border_color = Color(0.3, 0.3, 0.4)
@@ -184,7 +184,7 @@ func _setup_base_panel() -> PanelContainer:
 	panel.add_theme_stylebox_override("panel", style)
 	panel.name = "Panel"
 	add_child(panel)
-	
+
 	return panel
 
 func _on_overlay_click(event: InputEvent) -> void:
@@ -208,12 +208,12 @@ func _on_tab_pressed(shift: bool) -> void:
 func _cycle_focus() -> void:
 	if not has_node("Panel"):
 		return
-	
+
 	var panel := get_node("Panel")
 	var focusable := _get_focusable_children(panel)
 	if focusable.is_empty():
 		return
-	
+
 	var current := panel.get_node_or_null(".")
 	var idx := 0
 	if current != null:
@@ -222,7 +222,7 @@ func _cycle_focus() -> void:
 				idx = i + (1 if not Input.is_key_pressed(KEY_SHIFT) else -1)
 				idx = posmod(idx, focusable.size())
 				break
-	
+
 	focusable[idx].grab_focus()
 
 ## Collect all focusable children recursively

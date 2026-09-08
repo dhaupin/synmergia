@@ -16,7 +16,7 @@ var _is_following: bool = false
 func _ready() -> void:
 	visible = false
 	cancel_btn.pressed.connect(_on_cancel_pressed)
-	
+
 	# Connect to FollowService signals
 	if FollowService:
 		FollowService.follow_started.connect(_on_follow_started)
@@ -28,11 +28,11 @@ func _input(event: InputEvent) -> void:
 	# Handle keyboard shortcuts for following/stopping
 	if not _is_following:
 		return
-	
+
 	# Only handle if visible and no modal dialogs are open
 	if not visible:
 		return
-	
+
 	if event is InputEventKey and event.pressed:
 		# 'F' key toggles/stops follow
 		if event.keycode == KEY_F:
@@ -55,16 +55,16 @@ func _notification(what: int) -> void:
 func _process(delta: float) -> void:
 	if not _is_visible:
 		return
-	
+
 	# Update distance display
 	if FollowService and PlayerManager:
 		var my_id := str(PlayerManager.get_local_player_id())
 		var distance := FollowService.get_distance_to_target(my_id)
 		var range_limit := FollowService.DEFAULT_FOLLOW_RANGE
-		
+
 		if distance >= 0:
 			distance_label.text = "Distance: %.1f / %.1f" % [distance, range_limit]
-			
+
 			# Warning color if getting close to limit
 			if distance > range_limit * 0.8:
 				distance_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.0))  # Orange
@@ -76,11 +76,11 @@ func _process(delta: float) -> void:
 func _on_follow_started(follower_id: String, target_id: String) -> void:
 	if not PlayerManager:
 		return
-	
+
 	var my_id := str(PlayerManager.get_local_player_id())
 	if follower_id != my_id:
 		return
-	
+
 	# Show UI
 	target_label.text = "Following: %s" % target_id
 	_update_state_label(FollowService.FollowState.IDLE)
@@ -91,16 +91,16 @@ func _on_follow_started(follower_id: String, target_id: String) -> void:
 func _on_follow_cancelled(follower_id: String, target_id: String, reason: String) -> void:
 	if not PlayerManager:
 		return
-	
+
 	var my_id := str(PlayerManager.get_local_player_id())
 	if follower_id != my_id:
 		return
-	
+
 	# Hide UI
 	visible = false
 	_is_visible = false
 	_is_following = false
-	
+
 	# Show notification
 	if NotificationService:
 		NotificationService.notify(
@@ -114,11 +114,11 @@ func _on_follow_cancelled(follower_id: String, target_id: String, reason: String
 func _on_follow_state_changed(follower_id: String, old_state: int, new_state: int) -> void:
 	if not PlayerManager:
 		return
-	
+
 	var my_id := str(PlayerManager.get_local_player_id())
 	if follower_id != my_id:
 		return
-	
+
 	_update_state_label(new_state)
 
 func _on_target_moved(follower_id: String, target_position: Vector3) -> void:

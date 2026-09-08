@@ -56,12 +56,12 @@ func _setup_ui() -> void:
 	phase_icon.text = "[Boss]"
 	phase_icon.add_theme_color_override("font_color", UIStyles.COLORS.warning)
 	phase_row.add_child(phase_icon)
-	
+
 	_phase_label = Label.new()
 	_phase_label.text = " Phase 1"
 	_phase_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	phase_row.add_child(_phase_label)
-	
+
 	# Health bar
 	_hp_bar = ProgressBar.new()
 	_hp_bar.name = "HPBar"
@@ -71,22 +71,22 @@ func _setup_ui() -> void:
 	_hp_bar.custom_minimum_size.y = 30
 	_hp_bar.show_percentage = false
 	vbox.add_child(_hp_bar)
-	
+
 	# HP text
 	var hp_row := HBoxContainer.new()
 	hp_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(hp_row)
-	
+
 	_hp_label = Label.new()
 	_hp_label.text = "100%"
 	_hp_label.add_theme_font_size_override("font_size", 14)
 	hp_row.add_child(_hp_label)
-	
+
 	# Enrage timer
 	var spacer := Control.new()
 	spacer.custom_minimum_size.x = 50
 	hp_row.add_child(spacer)
-	
+
 	_timer_label = Label.new()
 	_timer_label.text = ""
 	_timer_label.add_theme_font_size_override("font_size", 14)
@@ -103,11 +103,11 @@ func set_target(target) -> void:
 	if target == null:
 		clear_boss()
 		return
-	
+
 	var boss_id := target.entity_id if target and "entity_id" in target else ""
 	var name := ""
 	var max_hp := 100
-	
+
 	if target is Dictionary:
 		name = target.get("display_name", target.get("name", "Boss"))
 		max_hp = target.get("max_health", target.get("health", 100))
@@ -120,7 +120,7 @@ func set_target(target) -> void:
 			max_hp = target.max_health
 		elif "health" in target:
 			max_hp = target.health
-	
+
 	set_boss(boss_id, name, max_hp)
 
 func _on_enrage_tick() -> void:
@@ -156,10 +156,10 @@ func set_boss(boss_id: String, name: String, max_hp: int, enrage_time: float = 0
 	_hp_bar.max_value = _max_hp
 	_hp_bar.value = _current_hp
 	_hp_label.text = "100%"
-	
+
 	_phase_label.text = " Phase %d" % _phase
 	_update_timer_display()
-	
+
 	if enrage_time > 0:
 		_enrage_timer.start()
 
@@ -171,7 +171,7 @@ func update_health(current: int, maximum: int) -> void:
 
 	_hp_bar.max_value = _max_hp
 	_hp_bar.value = _current_hp
-	
+
 	var percent := int((float(_current_hp) / float(_max_hp)) * 100)
 	_hp_label.text = "%d%%" % percent
 

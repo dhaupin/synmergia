@@ -368,20 +368,20 @@ func _build_stats_tab() -> Control:
 	# Points available header
 	var header := HBoxContainer.new()
 	header.name = "Header"
-	
+
 	var pts_lbl := Label.new()
 	pts_lbl.name = "PointsLabel"
 	pts_lbl.text = "Available Points: --"
 	pts_lbl.add_theme_color_override("font_color", UIStyles.SKILL_COLORS.available_points)
 	header.add_child(pts_lbl)
 	_stat_points_label = pts_lbl
-	
+
 	var focal_lbl := Label.new()
 	focal_lbl.name = "FocalLabel"
 	focal_lbl.text = ""
 	focal_lbl.add_theme_color_override("font_color", UIStyles.SKILL_COLORS.focal)
 	header.add_child(focal_lbl)
-	
+
 	root.add_child(header)
 
 	# Stats list
@@ -410,17 +410,17 @@ func _build_stats_tab() -> Control:
 	var respec_box := HBoxContainer.new()
 	respec_box.name = "RespecBox"
 	respec_box.alignment = BoxContainer.ALIGNMENT_END
-	
+
 	var respec_lbl := Label.new()
 	respec_lbl.text = "Reset all points: "
 	respec_box.add_child(respec_lbl)
-	
+
 	_stat_respec_button = Button.new()
 	_stat_respec_button.name = "StatRespecButton"
 	_stat_respec_button.text = "Respec Stats (-- gold)"
 	_stat_respec_button.pressed.connect(_on_stat_respec_pressed)
 	respec_box.add_child(_stat_respec_button)
-	
+
 	root.add_child(respec_box)
 
 	return root
@@ -490,20 +490,20 @@ func _build_stat_row(stat_name: String) -> HBoxContainer:
 func _refresh_stats_tab() -> void:
 	if _skill_data == null:
 		return
-	
+
 	var cls := _skill_data.class_data
 	var focal1 := cls.focal_stat_1 if cls else ""
 	var focal2 := cls.focal_stat_2 if cls else ""
-	
+
 	# Update focal indicator label
 	var focal_lbl := self.get_node_or_null("Header/FocalLabel") as Label
 	if focal_lbl:
 		focal_lbl.text = "Focal: %s + %s" % [focal1.capitalize(), focal2.capitalize()]
-	
+
 	# Update available points
 	var available := _skill_data.get_available_stat_points()
 	_stat_points_label.text = "Available Points: %d" % available
-	
+
 	# Update each stat row
 	var all_stats := _skill_data.get_all_stats_with_allocated()
 	for stat_name in _stat_rows.keys():
@@ -511,9 +511,9 @@ func _refresh_stats_tab() -> void:
 		var total: int = all_stats.get(stat_name, 0)
 		var allocated: int = _skill_data.get_allocated_points(stat_name)
 		var base: int = total - allocated
-		
+
 		row_data["value_label"].text = "%d (+%d)" % [total, allocated]
-		
+
 		# Update tier indicator
 		var tier_color: Color
 		var tier_text: String
@@ -534,15 +534,15 @@ func _refresh_stats_tab() -> void:
 			tier_text = "[C]"
 		row_data["tier_lbl"].text = tier_text
 		row_data["tier_lbl"].add_theme_color_override("font_color", tier_color)
-		
+
 		# Highlight focal stats
 		var is_focal: bool = stat_name == focal1 or stat_name == focal2
 		row_data["focal_lbl"].text = "*" if is_focal else ""
-		
+
 		# Enable/disable buttons
 		row_data["plus_btn"].disabled = available <= 0
 		row_data["minus_btn"].disabled = allocated <= 0
-	
+
 	# Update respec cost
 	var total_allocated := _skill_data.get_total_allocated_points()
 	var respec_cost := SkillAcademyService.get_stat_respec_cost(total_allocated)
@@ -552,7 +552,7 @@ func _refresh_stats_tab() -> void:
 func _on_stat_plus(stat_name: String) -> void:
 	if _skill_data == null:
 		return
-	
+
 	if _skill_data.allocate_stat_point(stat_name):
 		_refresh_stats_tab()
 		_notify_stat_changed()
@@ -560,7 +560,7 @@ func _on_stat_plus(stat_name: String) -> void:
 func _on_stat_minus(stat_name: String) -> void:
 	if _skill_data == null:
 		return
-	
+
 	if _skill_data.deallocate_stat_point(stat_name):
 		_refresh_stats_tab()
 		_notify_stat_changed()
@@ -568,10 +568,10 @@ func _on_stat_minus(stat_name: String) -> void:
 func _on_stat_respec_pressed() -> void:
 	if _skill_data == null:
 		return
-	
+
 	var preview: Dictionary = SkillAcademyService.preview_stat_respec(_skill_data)
 	var downgrades: Array = preview.get("affected_skills", [])
-	
+
 	if not downgrades.is_empty():
 		var msg := "WARNING: The following skills will be DOWNGRADED:\n"
 		for d in downgrades:
@@ -845,27 +845,27 @@ func _on_upgrade_pressed() -> void:
 func _refresh_signature_tab() -> void:
 	if not is_instance_valid(_skill_data):
 		return
-	
+
 	var panel: PanelContainer = get_panel()
 	if not panel:
 		return
 	var sig_list: VBoxContainer = panel.get_node_or_null("Main/ContentStack/SignatureTab/SignatureList")
 	if not sig_list:
 		return
-	
+
 	# Clear existing
 	for child in sig_list.get_children():
 		sig_list.remove_child(child)
 		child.queue_free()
-	
+
 	# Get player level from entity
 	var player_level: int = 1
 	var player: Node = EntityService.get_entity(_player_id) if EntityService else null
 	if player and "level" in player:
 		player_level = player.level
-	
+
 	var info: Dictionary = SkillAcademyService.get_signature_info(_skill_data, player_level)
-	
+
 	# Update info text based on state
 	var info_lbl: Label = panel.get_node_or_null("Main/ContentStack/SignatureTab/Info")
 	if info_lbl:
@@ -881,7 +881,7 @@ func _refresh_signature_tab() -> void:
 			]
 		else:
 			info_lbl.text = "Reach level 10 to unlock signature selection."
-	
+
 	# Populate signature list
 	var available_sigs: Array = info.get("available_signatures", [])
 	for sig_info in available_sigs:
@@ -890,38 +890,38 @@ func _refresh_signature_tab() -> void:
 		var desc: String = sig_info.get("description", "")
 		var is_active: bool = sig_info.get("is_active", false)
 		var is_locked: bool = sig_info.get("is_locked", true)
-		
+
 		var card := PanelContainer.new()
 		card.custom_minimum_size.y = 80
 		card.add_theme_stylebox_override("panel", UIStyles.create_panel_style())
 		if is_active:
 			card.add_theme_color_override("border_color", UIStyles.COLORS.success)
-		
+
 		var card_inner := VBoxContainer.new()
 		card.add_child(card_inner)
-		
+
 		var name_row := HBoxContainer.new()
 		card_inner.add_child(name_row)
-		
+
 		var name_lbl := Label.new()
 		name_lbl.text = display_name
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if is_active:
 			name_lbl.add_theme_color_override("font_color", UIStyles.COLORS.success)
 		name_row.add_child(name_lbl)
-		
+
 		if is_active:
 			var active_lbl := Label.new()
 			active_lbl.text = " [ACTIVE]"
 			active_lbl.add_theme_color_override("font_color", UIStyles.COLORS.success)
 			name_row.add_child(active_lbl)
-		
+
 		var desc_lbl := Label.new()
 		desc_lbl.text = desc
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 		desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card_inner.add_child(desc_lbl)
-		
+
 		if is_locked:
 			var locked_lbl := Label.new()
 			locked_lbl.text = "Unlock at level 10"
@@ -936,7 +936,7 @@ func _refresh_signature_tab() -> void:
 				select_btn.text = "Select" if info.get("is_free", false) else "Select (1000g)"
 			select_btn.pressed.connect(func(): _on_signature_selected(sig_id))
 			card_inner.add_child(select_btn)
-		
+
 		sig_list.add_child(card)
 
 func _refresh_respec_tab() -> void:
@@ -958,22 +958,22 @@ func _refresh_respec_tab() -> void:
 func _on_signature_selected(sig_id: String) -> void:
 	if sig_id == "" or not is_instance_valid(_skill_data):
 		return
-	
+
 	var player_level: int = 1
 	var player: Node = EntityService.get_entity(_player_id) if EntityService else null
 	if player and "level" in player:
 		player_level = player.level
-	
+
 	var gold: int = 0
 	var inventory: Node = null
 	if player and player.inventory_component:
 		inventory = player.inventory_component
 		gold = inventory.get_gold()
-	
+
 	var result: Dictionary = SkillAcademyService.change_signature(
 		_player_id, _skill_data, sig_id, player_level, gold, inventory
 	)
-	
+
 	if result.get("success", false):
 		var msg: String = "Signature set to %s!" % sig_id
 		if result.get("cost", 0) > 0:

@@ -218,7 +218,7 @@ func _on_submit() -> void:
 	if description.length() > MAX_DESCRIPTION_LENGTH:
 		_show_error("Description too long (max %d characters)" % MAX_DESCRIPTION_LENGTH)
 		return
-	
+
 	# Security: Validate via SecurityService if available
 	if SecurityService:
 		var validation := SecurityService.validate_message(description, _reporter_id)
@@ -232,12 +232,12 @@ func _on_submit() -> void:
 		if target == "":
 			_show_error("Please enter a player name")
 			return
-		
+
 		# Security: Validate target name length
 		if target.length() > MAX_TARGET_LENGTH:
 			_show_error("Player name too long")
 			return
-		
+
 		# Security: Validate target name via SecurityService
 		if SecurityService:
 			var target_validation := SecurityService.validate_player_name(target)

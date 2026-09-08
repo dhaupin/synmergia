@@ -54,32 +54,32 @@ func _setup_ui() -> void:
 	style.corner_radius_bottom_left = 8
 	style.corner_radius_bottom_right = 8
 	panel.add_theme_stylebox_override("panel", style)
-	
+
 	# Map texture area
 	var map_container := Control.new()
 	map_container.name = "MapContainer"
 	map_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.add_child(map_container)
-	
+
 	_map_texture = TextureRect.new()
 	_map_texture.name = "MapTexture"
 	_map_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_map_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_map_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	map_container.add_child(_map_texture)
-	
+
 	# Marker container (on top of map)
 	_marker_container = Control.new()
 	_marker_container.name = "MarkerContainer"
 	_marker_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	map_container.add_child(_marker_container)
-	
+
 	# Player marker
 	_player_marker = Control.new()
 	_player_marker.name = "PlayerMarker"
 	_player_marker.custom_minimum_size = Vector2(10, 10)
 	_marker_container.add_child(_player_marker)
-	
+
 	var player_style := StyleBoxFlat.new()
 	player_style.bg_color = UIStyles.COLORS.accent_gold
 	player_style.corner_radius_top_left = 5
@@ -87,7 +87,7 @@ func _setup_ui() -> void:
 	player_style.corner_radius_bottom_left = 5
 	player_style.corner_radius_bottom_right = 5
 	_player_marker.add_theme_stylebox_override("panel", player_style)
-	
+
 	# Compass label (N indicator)
 	_compass_label = Label.new()
 	_compass_label.name = "Compass"
@@ -97,7 +97,7 @@ func _setup_ui() -> void:
 	_compass_label.add_theme_font_size_override("font_size", 10)
 	_compass_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	panel.add_child(_compass_label)
-	
+
 	# Zone name
 	var zone_label := Label.new()
 	zone_label.name = "ZoneName"
@@ -278,10 +278,10 @@ func _update_visible_markers() -> void:
 		var data: Dictionary = _entity_markers[entity_id]
 		var marker_type: int = data.get("type", 0)
 		var marker: Control = data.get("marker")
-		
+
 		# Default to visible, then check toggles
 		marker.visible = true
-		
+
 		match marker_type:
 			1: marker.visible = _show_players     # Players
 			2: marker.visible = _show_npcs       # NPCs

@@ -147,7 +147,7 @@ func _set_active_channel(channel: int) -> void:
 	# Update player info channel label
 	if _player_info_label:
 		_player_info_label.text = ChatService.get_channel_name(channel)
-	
+
 	# Update input placeholder
 	var channel_name := ChatService.get_channel_name(channel)
 	_chat_input.placeholder_text = "Chat in %s..." % channel_name

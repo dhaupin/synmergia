@@ -36,7 +36,7 @@ var _is_visible: bool = false
 func _ready() -> void:
 	_setup_ui()
 	visible = false
-	
+
 	# Connect to WaypointService
 	if WaypointService:
 		WaypointService.waypoint_activated.connect(_on_waypoint_activated)
@@ -56,14 +56,14 @@ func _setup_ui() -> void:
 	center_marker.custom_minimum_size = Vector2(4, 20)
 	center_marker.set_anchors_preset(Control.PRESET_CENTER)
 	add_child(center_marker)
-	
+
 	# Create direction labels (N, NE, E, SE, S, SW, W, NW)
 	direction_labels = HBoxContainer.new()
 	direction_labels.name = "DirectionLabels"
 	direction_labels.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	direction_labels.offset_bottom = 20
 	direction_labels.alignment = BoxContainer.ALIGNMENT_CENTER
-	
+
 	var directions := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 	for i in range(8):
 		var label := Label.new()
@@ -71,9 +71,9 @@ func _setup_ui() -> void:
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.custom_minimum_size.x = 60
 		direction_labels.add_child(label)
-	
+
 	add_child(direction_labels)
-	
+
 	# Create waypoint indicator container
 	waypoint_container = Control.new()
 	waypoint_container.name = "WaypointContainer"
@@ -83,73 +83,73 @@ func _setup_ui() -> void:
 func _process(delta: float) -> void:
 	if not visible or not _is_visible:
 		return
-	
+
 	_update_compass()
 
 func _update_compass() -> void:
 	if not WaypointService or not PlayerManager:
 		return
-	
+
 	var player_id := str(PlayerManager.get_local_player_id())
 	var active_wp := WaypointService.get_active_waypoint(player_id)
-	
+
 	if active_wp.is_empty():
 		_clear_waypoint_indicators()
 		return
-	
+
 	# Get waypoint position
 	var wp_pos := Vector3(
 		active_wp.get("position_x", 0.0),
 		active_wp.get("position_y", 0.0),
 		active_wp.get("position_z", 0.0)
 	)
-	
+
 	# Calculate direction to waypoint
 	var to_waypoint: Vector3 = wp_pos - _player_position
 	var distance: float = to_waypoint.length()
-	
+
 	# Don't show if too close or too far
 	if distance < WAYPOINT_MIN_DISTANCE or distance > MAX_WAYPOINT_DISTANCE:
 		_clear_waypoint_indicators()
 		return
-	
+
 	# Get horizontal direction
 	to_waypoint.y = 0
 	to_waypoint = to_waypoint.normalized()
-	
+
 	# Get player's forward direction
 	var player_forward := Vector3(0, 0, -1).rotated(Vector3.UP, _player_rotation)
-	
+
 	# Calculate angle between player forward and waypoint direction
 	var angle := rad_to_deg(player_forward.signed_angle_to(to_waypoint, Vector3.UP))
-	
+
 	# Show indicator at angle position
 	_show_waypoint_indicator(angle, distance, active_wp)
 
 func _show_waypoint_indicator(angle: float, distance: float, wp_data: Dictionary) -> void:
 	# Remove old indicators
 	_clear_waypoint_indicators()
-	
+
 	# Calculate X position based on angle
 	# Map angle from -180..180 to 0..size.x
 	var screen_width := size.x
 	var normalized_x: float = (angle + 180) / 360.0
 	var x_pos: float = normalized_x * screen_width
-	
+
 	# Clamp to visible area
 	x_pos = clamp(x_pos, 20, screen_width - 20)
-	
+
 	# Get color
 	var color_idx: int = wp_data.get("color", 4)
 	if color_idx < 0 or color_idx >= WAYPOINT_COLORS.size():
 		color_idx = 4
 	var color := WAYPOINT_COLORS[color_idx]
-	
+
 	# Create indicator
 	var indicator := Control.new()
 	indicator.name = "WaypointIndicator"
 	indicator.position = Vector2(x_pos, size.y / 2 - 30)
-	
+
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
 	style.corner_radius_top_left = 8
@@ -158,7 +158,7 @@ func _show_waypoint_indicator(angle: float, distance: float, wp_data: Dictionary
 	style.corner_radius_bottom_right = 0
 	indicator.add_theme_stylebox_override("panel", style)
 	indicator.custom_minimum_size = Vector2(16, 16)
-	
+
 	# Add distance label
 	var dist_label := Label.new()
 	dist_label.text = _format_distance(distance)
@@ -166,7 +166,7 @@ func _show_waypoint_indicator(angle: float, distance: float, wp_data: Dictionary
 	dist_label.add_theme_font_size_override("font_size", 10)
 	dist_label.position = Vector2(-10, -20)
 	indicator.add_child(dist_label)
-	
+
 	# Add icon
 	var icon := Label.new()
 	var icon_str := WaypointService.get_icon_string(wp_data.get("icon", 0)) if WaypointService else "📍"
@@ -174,7 +174,7 @@ func _show_waypoint_indicator(angle: float, distance: float, wp_data: Dictionary
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon.position = Vector2(-2, 18)
 	indicator.add_child(icon)
-	
+
 	waypoint_container.add_child(indicator)
 
 func _clear_waypoint_indicators() -> void:

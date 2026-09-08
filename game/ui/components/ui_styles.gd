@@ -64,7 +64,7 @@ const TEXT_COLORS := {
 ## STYLE FACTORIES
 ## ============================================================================
 
-static func create_panel_style(bg_color: Color = COLORS.background, border_color: Color = COLORS.border, 
+static func create_panel_style(bg_color: Color = COLORS.background, border_color: Color = COLORS.border,
 		border_width: int = 2, corner_radius: int = 8) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg_color
@@ -139,17 +139,17 @@ static func apply_button_styles(btn: Button, styles: Dictionary) -> void:
 
 static func create_header(title: String, show_close: bool = true, close_callback: Callable = Callable()) -> HBoxContainer:
 	var header := HBoxContainer.new()
-	
+
 	var label := Label.new()
 	label.text = title
 	label.add_theme_font_size_override("font_size", 18)
 	label.add_theme_color_override("font_color", COLORS.text_primary)
 	header.add_child(label)
-	
+
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
-	
+
 	if show_close:
 		var close_btn := Button.new()
 		close_btn.text = "X"
@@ -159,7 +159,7 @@ static func create_header(title: String, show_close: bool = true, close_callback
 		else:
 			close_btn.pressed.connect(func(): pass)  # Placeholder
 		header.add_child(close_btn)
-	
+
 	return header
 
 static func create_tab_button(text: String, icon: String = "") -> Button:
@@ -190,10 +190,10 @@ static func show_notification(message: String, success: bool = true, duration: f
 	notif.add_theme_color_override("font_color", COLORS.success if success else COLORS.error)
 	notif.z_index = 1000
 	notif.global_position = Vector2(100, 100)
-	
+
 	var root: Window = Engine.get_main_loop().root
 	root.add_child(notif)
-	
+
 	var tween := notif.create_tween()
 	tween.tween_interval(duration)
 	tween.tween_callback(notif.queue_free)
@@ -204,7 +204,7 @@ static func show_notification(message: String, success: bool = true, duration: f
 
 static func format_time_ago(unix_time: float) -> String:
 	var elapsed := Time.get_unix_time_from_system() - unix_time
-	
+
 	if elapsed < 60:
 		return "just now"
 	elif elapsed < 3600:
@@ -220,11 +220,11 @@ static func format_time_ago(unix_time: float) -> String:
 static func format_time_remaining(seconds: float) -> String:
 	if seconds <= 0:
 		return "expired"
-	
+
 	var hours := int(seconds / 3600)
 	var mins := int(int(seconds) % 3600 / 60)
 	var secs := int(seconds) % 60
-	
+
 	if hours > 0:
 		return "%dh %dm" % [hours, mins]
 	elif mins > 0:

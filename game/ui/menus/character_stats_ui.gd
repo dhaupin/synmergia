@@ -95,17 +95,17 @@ func _setup_panel() -> void:
 	var header := HBoxContainer.new()
 	header.name = "Header"
 	header.custom_minimum_size.y = HEADER_HEIGHT
-	
+
 	var title := Label.new()
 	title.text = "Character Stats"
 	title.add_theme_font_size_override("font_size", 18)
 	header.add_child(title)
-	
+
 	var close_btn := Button.new()
 	close_btn.text = "X"
 	close_btn.pressed.connect(close)
 	header.add_child(close_btn)
-	
+
 	main.add_child(header)
 
 	# Stats scroll area
@@ -123,13 +123,13 @@ func _setup_panel() -> void:
 	var points_box := HBoxContainer.new()
 	points_box.name = "PointsBox"
 	points_box.custom_minimum_size.y = 40
-	
+
 	_stat_points_label = Label.new()
 	_stat_points_label.name = "StatPointsLabel"
 	_stat_points_label.text = "Available Points: --"
 	_stat_points_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
 	points_box.add_child(_stat_points_label)
-	
+
 	content.add_child(points_box)
 
 	# Focal stats info
@@ -160,11 +160,11 @@ func _setup_panel() -> void:
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
 	content.add_child(spacer)
-	
+
 	var academy_box := HBoxContainer.new()
 	academy_box.name = "AcademyBox"
 	academy_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	
+
 	var hint_lbl := Label.new()
 	hint_lbl.name = "AcademyHint"
 	hint_lbl.text = "Visit the Skill Academy to respec stats"
@@ -173,12 +173,12 @@ func _setup_panel() -> void:
 	academy_box.add_child(hint_lbl)
 	content.add_child(academy_box)
 	_academy_hint_label = hint_lbl
-	
+
 	# Tier legend
 	var legend_box := HBoxContainer.new()
 	legend_box.name = "LegendBox"
 	legend_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	
+
 	var legend_lbl := Label.new()
 	legend_lbl.name = "Legend"
 	legend_lbl.text = "[C]Common  [R]Rare  [E]Epic  [L]Legendary  [M]Mythic"
@@ -284,44 +284,44 @@ func _build_derived_row(stat_name: String) -> HBoxContainer:
 func _refresh() -> void:
 	if _character_data == null:
 		return
-	
+
 	var cls := _character_data.class_data
 	var focal1 := cls.focal_stat_1 if cls else ""
 	var focal2 := cls.focal_stat_2 if cls else ""
-	
+
 	# Update focal label
 	_focal_label.text = "Focal Stats: %s + %s" % [focal1.capitalize(), focal2.capitalize()]
-	
+
 	# Update available points
 	var available := _character_data.get_available_stat_points()
 	_stat_points_label.text = "Available Points: %d" % available
-	
+
 	# Update stats
 	var all_stats: Dictionary = _character_data.get_all_stats_with_allocated()
 	for stat_name in ["strength", "agility", "intelligence", "vitality", "endurance", "wisdom"]:
 		var row_data: Dictionary = _stat_rows.get(stat_name)
 		if not row_data:
 			continue
-		
+
 		var total: int = all_stats.get(stat_name, 0)
 		var allocated: int = _character_data.get_allocated_points(stat_name)
-		
+
 		row_data["value_lbl"].text = str(total)
 		row_data["alloc_lbl"].text = "+%d" % allocated if allocated > 0 else ""
-		
+
 		# Update tier indicator
 		var tier: Dictionary = get_stat_tier(total)
 		row_data["tier_lbl"].text = tier["label"]
 		row_data["tier_lbl"].add_theme_color_override("font_color", tier["color"])
-		
+
 		# Focal indicator
 		var is_focal: bool = stat_name == focal1 or stat_name == focal2
 		row_data["focal_lbl"].text = "★" if is_focal else ""
-		
+
 		# Button states
 		row_data["plus_btn"].disabled = available <= 0
 		row_data["minus_btn"].disabled = allocated <= 0
-	
+
 	# Update derived stats
 	var entity: Node3D = _get_entity()
 	if entity:
@@ -332,7 +332,7 @@ func _refresh() -> void:
 func _on_stat_plus(stat_name: String) -> void:
 	if _character_data == null:
 		return
-	
+
 	if _character_data.allocate_stat_point(stat_name):
 		_refresh()
 		_notify_change()
@@ -340,7 +340,7 @@ func _on_stat_plus(stat_name: String) -> void:
 func _on_stat_minus(stat_name: String) -> void:
 	if _character_data == null:
 		return
-	
+
 	if _character_data.deallocate_stat_point(stat_name):
 		_refresh()
 		_notify_change()
@@ -358,11 +358,11 @@ func _get_entity():
 func _open_impl(player_id: String) -> void:
 	_player_id = player_id
 	_character_data = null
-	
+
 	var entity: Node3D = _get_entity()
 	if entity and entity.character_data:
 		_character_data = entity.character_data
-	
+
 	_refresh()
 
 func refresh() -> void:

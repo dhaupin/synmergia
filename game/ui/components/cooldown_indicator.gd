@@ -33,10 +33,10 @@ func _ready() -> void:
 		_container = HBoxContainer.new()
 		add_child(_container)
 		_container.alignment = BoxContainer.ALIGNMENT_END
-	
+
 	# Load bar scene
 	_bar_scene = preload("res://ui/components/cooldown_bar.tscn")
-	
+
 	# Wire via NotificationService to catch RATE_LIMITED toasts
 	if NotificationService:
 		if NotificationService.has_signal("notification_sent"):
@@ -59,7 +59,7 @@ func _on_notification_sent(entity_id: String, notification: Dictionary) -> void:
 ## Show cooldown bar for an action
 func _show_cooldown(action_type: String, duration: float) -> void:
 	var end_time := Time.get_ticks_msec() + (duration * 1000)
-	
+
 	if not _active_cooldowns.has(action_type):
 		# Create new cooldown bar
 		var bar := _create_cooldown_bar(action_type)
@@ -74,11 +74,11 @@ func _show_cooldown(action_type: String, duration: float) -> void:
 		# Update existing cooldown
 		_active_cooldowns[action_type]["end_time"] = end_time
 		_active_cooldowns[action_type]["duration"] = duration
-	
+
 	# Start/update animation
 	if not is_inside_tree():
 		return
-	
+
 	var tween := create_tween()
 	tween.tween_callback(func(): _update_cooldown_bar(action_type)).set_delay(0.05)
 
@@ -86,7 +86,7 @@ func _show_cooldown(action_type: String, duration: float) -> void:
 func _create_cooldown_bar(action_type: String) -> Control:
 	var container := VBoxContainer.new()
 	container.custom_minimum_size.y = 30
-	
+
 	# Action name label (optional)
 	if show_action_name:
 		var label := Label.new()
@@ -95,18 +95,18 @@ func _create_cooldown_bar(action_type: String) -> Control:
 		label.add_theme_color_override("font_color", text_color)
 		label.custom_minimum_size.y = 16
 		container.add_child(label)
-	
+
 	# Progress bar container
 	var bar_container := HBoxContainer.new()
 	bar_container.custom_minimum_size.y = bar_height
-	
+
 	# Background
 	var bg := ColorRect.new()
 	bg.color = bar_background
 	bg.custom_minimum_size.y = bar_height
 	bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar_container.add_child(bg)
-	
+
 	# Progress fill
 	var fill := ColorRect.new()
 	fill.color = bar_color
@@ -115,33 +115,33 @@ func _create_cooldown_bar(action_type: String) -> Control:
 	fill.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fill.position = Vector2.ZERO
 	bar_container.add_child(fill)
-	
+
 	# Store reference to fill for updates
 	bar_container.set_meta("fill", fill)
 	bar_container.set_meta("bg", bg)
-	
+
 	container.add_child(bar_container)
-	
+
 	return container
 
 ## Update cooldown bar progress
 func _update_cooldown_bar(action_type: String) -> void:
 	if not _active_cooldowns.has(action_type):
 		return
-	
+
 	var data: Dictionary = _active_cooldowns[action_type]
 	var bar: Control = data["bar"]
 	var end_time: int = data["end_time"]
 	var duration: float = data["duration"]
-	
+
 	var now := Time.get_ticks_msec()
 	var remaining := (end_time - now) / 1000.0
-	
+
 	if remaining <= 0:
 		# Cooldown complete
 		_finish_cooldown(action_type)
 		return
-	
+
 	# Update progress bar fill width
 	var bar_container: HBoxContainer = bar.get_node_or_null("VBoxContainer/HSBoxContainer")
 	if bar_container:
@@ -150,7 +150,7 @@ func _update_cooldown_bar(action_type: String) -> void:
 		if fill and bg:
 			var progress: float = remaining / duration
 			fill.size.x = bg.size.x * progress
-	
+
 	# Schedule next update
 	if is_inside_tree():
 		var tween := create_tween()
@@ -160,19 +160,19 @@ func _update_cooldown_bar(action_type: String) -> void:
 func _finish_cooldown(action_type: String) -> void:
 	if not _active_cooldowns.has(action_type):
 		return
-	
+
 	var data: Dictionary = _active_cooldowns[action_type]
 	var bar: Control = data["bar"]
-	
+
 	# Animate out
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(bar, "modulate:a", 0.0, auto_hide_delay)
 	tween.tween_callback(bar.queue_free).set_delay(auto_hide_delay)
-	
+
 	_active_cooldowns.erase(action_type)
 	cooldown_complete.emit(action_type)
-	
+
 	# Hide container if no more cooldowns
 	if _active_cooldowns.is_empty():
 		var hide_tween := create_tween()

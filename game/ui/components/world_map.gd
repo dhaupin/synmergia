@@ -135,9 +135,9 @@ func _create_marker(name: String, color: Color) -> Control:
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	marker.add_theme_stylebox_override("panel", style)
-	
+
 	return marker
-	
+
 func _create_compass() -> Control:
 	var compass := Control.new()
 	compass.name = "Compass"
@@ -398,7 +398,7 @@ func _update_markers_visibility() -> void:
 		var data: Dictionary = _entity_markers[entity_id]
 		var marker_type: int = data.get("type", 0)
 		var marker: Control = data.get("marker")
-		
+
 		marker.visible = true
 		match marker_type:
 			1: marker.visible = _show_players

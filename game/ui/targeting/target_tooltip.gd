@@ -46,7 +46,7 @@ func _connect_signals() -> void:
 		TargetingManager.target_cleared.connect(_on_target_cleared)
 		TargetingManager.target_updated.connect(_on_target_updated)
 		TargetingManager.target_type_changed.connect(_on_target_type_changed)
-	
+
 	if InteractionLayer:
 		_interaction_layer = InteractionLayer
 		InteractionLayer.tap.connect(_on_interaction_tap)
@@ -61,25 +61,25 @@ func set_interaction_layer(layer: InteractionLayer) -> void:
 func _on_target_acquired(target: TargetingManager.TargetInfo) -> void:
 	if not TargetingManager:
 		return
-	
+
 	# Only show tooltip for local player targeting
 	var local_id: int = TargetingManager.get_local_player_id()
 	if target.id == "" or not target.node:
 		return
-	
+
 	_current_target_id = target.id
 	_current_entity_type = target.entity_type
-	
+
 	show()
 	tooltip_opened.emit()
-	
+
 	# Animate in
 	_fade_in()
 
 func _on_target_cleared(previous_target: TargetingManager.TargetInfo) -> void:
 	if _is_sticky:
 		return
-	
+
 	_fade_out()
 	await get_tree().create_timer(0.2).timeout
 	hide()
@@ -98,11 +98,11 @@ func _on_target_type_changed(target_id: String, old_type: int, new_type: int) ->
 func _on_interaction_tap(position: Vector2) -> void:
 	if not is_visible():
 		return
-	
+
 	# Check if tap is on tooltip - if not, maybe close
 	if not _panel:
 		return
-	
+
 	var tooltip_rect := Rect2(_panel.global_position, _panel.size)
 	if not tooltip_rect.has_point(position):
 		# Tapped outside tooltip - close unless sticky
@@ -125,7 +125,7 @@ func _setup_ui() -> void:
 	_panel.offset_bottom = 500
 	_panel.z_index = 1000
 	_panel.modulate = Color.WHITE
-	
+
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
 	style.border_color = UIStyles.COLORS.border
@@ -142,59 +142,59 @@ func _setup_ui() -> void:
 	style.content_margin_right = 12
 	style.content_margin_bottom = 12
 	_panel.add_theme_stylebox_override("panel", style)
-	
+
 	_panel.gui_input.connect(_on_panel_input)
 	add_child(_panel)
-	
+
 	var vbox := VBoxContainer.new()
 	_vbox = vbox
 	_panel.add_child(vbox)
 	_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	
+
 	# Header with name and type
 	var header := HBoxContainer.new()
 	_vbox.add_child(header)
-	
+
 	_header_label = Label.new()
 	_header_label.text = "Target"
 	_header_label.add_theme_font_size_override("font_size", 20)
 	_header_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	_header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_header_label)
-	
+
 	_level_label = Label.new()
 	_level_label.text = "Lv.1"
 	_level_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(_level_label)
-	
+
 	_close_btn = Button.new()
 	_close_btn.text = "✕"
 	_close_btn.custom_minimum_size = Vector2(32, 32)
 	_close_btn.pressed.connect(close_tooltip)
 	header.add_child(_close_btn)
-	
+
 	_pin_btn = Button.new()
 	_pin_btn.text = "📍"
 	_pin_btn.custom_minimum_size = Vector2(32, 32)
 	_pin_btn.pressed.connect(_toggle_sticky)
 	header.add_child(_pin_btn)
-	
+
 	# Entity type/status
 	_info_label = Label.new()
 	_info_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
 	_info_label.add_theme_font_size_override("font_size", 14)
 	_vbox.add_child(_info_label)
-	
+
 	_status_label = Label.new()
 	_status_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	_status_label.add_theme_font_size_override("font_size", 12)
 	_vbox.add_child(_status_label)
-	
+
 	var sep := Label.new()
 	sep.custom_minimum_size.y = 8
 	_vbox.add_child(sep)
-	
+
 	# Actions container
 	_actions_container = HBoxContainer.new()
 	_actions_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -208,7 +208,7 @@ func _refresh_tooltip() -> void:
 	var target: Variant = TargetingManager.get_current_target()
 	if not target:
 		return
-	
+
 	# Check if this is a GM player
 	var is_gm_player: bool = false
 	var char_data = target.node.get("character_data") if target.node else null
@@ -216,29 +216,29 @@ func _refresh_tooltip() -> void:
 		is_gm_player = char_data.is_gm()
 	elif target.node and target.node.has("class_id"):
 		is_gm_player = CharacterData.is_gm_class(target.node.get("class_id"))
-	
+
 	# Build display name with GM prefix
 	var display_name: String = target.display_name
 	if is_gm_player:
 		display_name = "[GM] " + display_name
-	
+
 	_header_label.text = display_name
-	
+
 	# Set color based on entity type (gold for GM players)
 	_header_label.add_theme_color_override("font_color", _get_name_color(target.entity_type, is_gm_player))
-	
+
 	# Entity type info
 	var type_str: String = TargetingManager.entity_type_to_string(target.entity_type)
 	if is_gm_player:
 		type_str = "⭐ GAME MASTER"
 	_info_label.text = type_str
-	
+
 	# Status
 	_status_label.text = _get_status_text(target, is_gm_player)
-	
+
 	# Update action buttons
 	_update_action_buttons_from_schema(target.schema_id)
-	
+
 	# Update level if available
 	if target.node and target.node.has("level"):
 		_level_label.text = "Lv.%d" % target.node.level
@@ -287,18 +287,18 @@ func _update_action_buttons_from_schema(schema_id: String) -> void:
 	for btn in _action_buttons:
 		btn.queue_free()
 	_action_buttons.clear()
-	
+
 	if not TargetingManager:
 		return
-	
+
 	var schema: Variant = TargetingManager.get_schema(schema_id)
 	if not schema:
 		return
-	
+
 	var button_size := Vector2(90, 40)
 	if _interaction_layer:
 		button_size = _interaction_layer.get_button_size()
-	
+
 	for action_id in schema.available_actions:
 		var btn := _create_action_button(action_id, button_size)
 		_actions_container.add_child(btn)
@@ -306,12 +306,12 @@ func _update_action_buttons_from_schema(schema_id: String) -> void:
 
 func _create_action_button(action_id: String, size: Vector2) -> Button:
 	var action_def: Variant = TargetingManager.get_action_definition(action_id)
-	
+
 	var btn := Button.new()
 	btn.text = _get_action_icon(action_id) + " " + _get_action_name(action_id)
 	btn.custom_minimum_size = size
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	
+
 	# Style based on action type
 	var style := StyleBoxFlat.new()
 	match _get_action_category(action_id):
@@ -325,7 +325,7 @@ func _create_action_button(action_id: String, size: Vector2) -> Button:
 			style.bg_color = Color(0.2, 0.5, 0.3)  # Green
 		_:
 			style.bg_color = Color(0.2, 0.3, 0.4)  # Default
-	
+
 	style.corner_radius_top_left = 6
 	style.corner_radius_top_right = 6
 	style.corner_radius_bottom_left = 6
@@ -335,7 +335,7 @@ func _create_action_button(action_id: String, size: Vector2) -> Button:
 	style.content_margin_top = 6
 	style.content_margin_bottom = 6
 	btn.add_theme_stylebox_override("normal", style)
-	
+
 	var pressed_style := StyleBoxFlat.new()
 	pressed_style.bg_color = style.bg_color.lightened(0.2)
 	pressed_style.corner_radius_top_left = 6
@@ -343,10 +343,10 @@ func _create_action_button(action_id: String, size: Vector2) -> Button:
 	pressed_style.corner_radius_bottom_left = 6
 	pressed_style.corner_radius_bottom_right = 6
 	btn.add_theme_stylebox_override("pressed", pressed_style)
-	
+
 	# Connect action with QoS check
 	btn.pressed.connect(_on_action_button_pressed.bind(action_id, _current_target_id))
-	
+
 	return btn
 
 func _get_action_icon(action_id: String) -> String:
@@ -404,24 +404,24 @@ func _on_action_button_pressed(action_id: String, target_id: String) -> void:
 	if not TargetingManager or not QoSService:
 		action_clicked.emit(action_id, target_id)
 		return
-	
+
 	# Rate limit check
 	if QoSService.rate_limit(_current_target_id, "tooltip_action"):
 		GameLog.debug("TargetTooltip: Rate limited action %s" % action_id)
 		_flash_rate_limit_warning()
 		return
-	
+
 	# Permission check for sensitive actions (scaffold: wire to PermissionManager
 	# once player-id propagation is in place). For now, let all actions through.
 	if _requires_permission(action_id) and false:
 		if not PermissionManager or not PermissionManager.has_permission(action_id, PermissionManager.Level.PLAYER):
 			_show_permission_denied(action_id)
 			return
-	
+
 	# Execute action through TargetingManager
 	var result: Dictionary = TargetingManager.execute_action_on(action_id, target_id)
 	var success: bool = result.get("success") if result.get("success") != null else false
-	
+
 	if success:
 		action_clicked.emit(action_id, target_id)
 		# Emit to EventBus for other systems
@@ -460,7 +460,7 @@ func _show_action_failed(action_id: String) -> void:
 func _toggle_sticky() -> void:
 	_is_sticky = not _is_sticky
 	_pin_btn.text = "📌" if _is_sticky else "📍"
-	
+
 	var tween := create_tween()
 	if _is_sticky:
 		tween.tween_property(_panel, "modulate", Color(1, 1, 0.8, 1), 0.2)
@@ -473,10 +473,10 @@ func _on_panel_input(event: InputEvent) -> void:
 			_is_dragging = true
 			_drag_offset = event.position - _panel.global_position
 		_panel.global_position = event.position - _drag_offset
-	
+
 	if event is InputEventScreenTouch and not event.pressed:
 		_is_dragging = false
-	
+
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_bring_to_front()
@@ -512,45 +512,45 @@ func open_sticky() -> void:
 	_is_sticky = true
 	_pin_btn.text = "📌"
 	show()
-	
+
 	var header := HBoxContainer.new()
 	_vbox.add_child(header)
-	
+
 	_header_label = Label.new()
 	_header_label.text = "Target"
 	_header_label.add_theme_font_size_override("font_size", 18)
 	_header_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	header.add_child(_header_label)
-	
+
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
-	
+
 	_close_btn = Button.new()
 	_close_btn.text = "✕"
 	_close_btn.custom_minimum_size = Vector2(40, 40)
 	_close_btn.pressed.connect(close_tooltip)
 	header.add_child(_close_btn)
-	
+
 	_pin_btn = Button.new()
 	_pin_btn.text = "📍"
 	_pin_btn.custom_minimum_size = Vector2(40, 40)
 	_pin_btn.pressed.connect(_toggle_sticky)
 	header.add_child(_pin_btn)
-	
+
 	_info_label = Label.new()
 	_info_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 	_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_vbox.add_child(_info_label)
-	
+
 	_status_label = Label.new()
 	_status_label.add_theme_color_override("font_color", UIStyles.COLORS.success)
 	_vbox.add_child(_status_label)
-	
+
 	var sep := Label.new()
 	sep.custom_minimum_size.y = 8
 	_vbox.add_child(sep)
-	
+
 	_actions_container = HBoxContainer.new()
 	_actions_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vbox.add_child(_actions_container)
