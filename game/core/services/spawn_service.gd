@@ -528,7 +528,7 @@ func spawn_npc_entity(
 	if npc_data.get("scene_path") and not npc_data.scene_path.is_empty():
 		var scene_path := npc_data.scene_path as String
 		var scene_res := load(scene_path)
-		if scene_res and scene_res can PackedScene:
+		if scene_res and scene_res is PackedScene:
 			var packed: PackedScene = scene_res as PackedScene
 			var instance := packed.instantiate()
 			if instance is NPCEntity:
