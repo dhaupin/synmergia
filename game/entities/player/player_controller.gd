@@ -359,7 +359,7 @@ func get_movement_direction() -> Vector3:
 	var input := InputManager.get_movement_input()
 	var cam_basis := get_camera_basis()
 	
-	var forward := -cam_basis.z
+	var forward: Vector3 = -cam_basis.z
 	var right := cam_basis.x
 	forward.y = 0
 	right.y = 0

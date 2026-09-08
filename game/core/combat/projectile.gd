@@ -289,7 +289,7 @@ func _calculate_damage(target: Entity) -> int:
 		damage = int(damage * (1.0 + bonus_damage_vs_players))
 	
 	if penetration > 0 and target.stats.has("armor"):
-		var reduction := target.stats["armor"] * penetration
+		var reduction: float = target.stats["armor"] * penetration
 		damage = int(damage * (1.0 - reduction))
 	
 	return max(1, damage)

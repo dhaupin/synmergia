@@ -534,7 +534,7 @@ func is_in_trade_range(player_id: String) -> bool:
 	var trade: Dictionary = _active_trades.get(trade_id, {})
 	if trade.is_empty():
 		return false
-	var other_id := trade["player1"] if trade["player2"] == player_id else trade["player2"]
+	var other_id: String = trade["player1"] if trade["player2"] == player_id else trade["player2"]
 	return _are_players_in_range(player_id, other_id)
 
 # ============ PLAYER LOCKING (delegated to PlayerLockService) ============

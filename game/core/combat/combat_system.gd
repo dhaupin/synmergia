@@ -135,7 +135,7 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 	return entities_in_range
 
 func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
-	var caster := get_entity(str(hitbox.owner_id)) if hitbox.owner_id != -1 else null
+	var caster = get_entity(str(hitbox.owner_id)) if hitbox.owner_id != -1 else null
 	
 	# Calculate and apply damage
 	var damage: int = 0

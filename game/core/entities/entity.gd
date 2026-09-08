@@ -183,8 +183,8 @@ func is_alive() -> bool:
 	return not is_dead and current_health > 0
 
 func _calculate_damage_received(amount: int) -> int:
-	var defense := get_defense()
-	var reduction := float(defense) / (defense + 100.0)
+	var defense: float = get_defense()
+	var reduction: float = float(defense) / (defense + 100.0)
 	return int(amount * (1.0 - reduction))
 
 ## MANA

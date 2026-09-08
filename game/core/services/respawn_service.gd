@@ -697,7 +697,7 @@ func _get_nearest_gateway(player: Entity, gateway_ids: Array[String]) -> String:
 		return ""
 	var nearest_id: String = gateway_ids[0]
 	var nearest_dist: float = INF
-	var player_pos := player.global_position
+	var player_pos: Vector3 = player.global_position
 	for gateway_id in gateway_ids:
 		if _gateway_positions.has(gateway_id):
 			var gateway_pos: Vector3 = _gateway_positions[gateway_id]

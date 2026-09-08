@@ -437,7 +437,7 @@ func _perform_attack(skill: Skill, target: Entity) -> void:
 	
 	# Calculate damage
 	var base_damage := attack_power
-	var is_crit := randf() < crit_chance
+	var is_crit: bool = randf() < crit_chance
 	var damage := base_damage
 	
 	if is_crit:
