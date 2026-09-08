@@ -26,7 +26,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _is_in_combat:
 		return
-	
+
 	# Check for out of combat
 	_out_of_combat_timer += delta
 	if _out_of_combat_timer >= out_of_combat_delay:
@@ -38,20 +38,20 @@ func _process(delta: float) -> void:
 func add_threat(target: Entity, amount: int) -> void:
 	if not is_instance_valid(target):
 		return
-	
+
 	# Initialize threat entry if needed
 	if not _threat_table.has(target):
 		_threat_table[target] = 0
-	
+
 	# Add threat
 	_threat_table[target] = min(_threat_table[target] + amount, max_threat_per_target)
-	
+
 	# Enter combat if this is the first significant threat
 	if not _is_in_combat and amount > 0:
 		_enter_combat(target)
-	
+
 	threat_changed.emit(target, _threat_table[target])
-	
+
 	# Update target if needed
 	_update_target()
 
@@ -76,13 +76,13 @@ func clear_all_threat() -> void:
 func get_highest_threat_target() -> Entity:
 	var highest_threat := 0
 	var highest_target: Entity = null
-	
+
 	for target in _threat_table:
 		if is_instance_valid(target):
 			if _threat_table[target] > highest_threat:
 				highest_threat = _threat_table[target]
 				highest_target = target
-	
+
 	return highest_target
 
 ## Get threat amount for target
@@ -114,7 +114,7 @@ func _update_target() -> void:
 func _enter_combat(first_target: Entity) -> void:
 	_is_in_combat = true
 	_out_of_combat_timer = 0.0
-	
+
 	# Set initial target
 	if not _current_target:
 		_set_target(first_target)
@@ -130,15 +130,15 @@ func _end_combat() -> void:
 ## Decay threat over time (when out of combat)
 func _decay_threat(delta: float) -> void:
 	var decay_amount := int(threat_decay_rate * delta)
-	
+
 	for target in _threat_table:
 		if is_instance_valid(target):
 			_threat_table[target] = max(0, _threat_table[target] - decay_amount)
-			
+
 			# Remove targets with 0 threat
 			if _threat_table[target] <= 0:
 				_threat_table.erase(target)
-	
+
 	# Update target if current has 0 threat
 	if _current_target and _threat_table.get(_current_target, 0) <= 0:
 		_update_target()
@@ -147,7 +147,7 @@ func _decay_threat(delta: float) -> void:
 func transfer_threat_to(source: Entity) -> void:
 	if not threat_transfer_on_death:
 		return
-	
+
 	# Give all current threat to the new source
 	for target in _threat_table:
 		if is_instance_valid(target) and target.has_method("aggro_component"):
@@ -161,7 +161,7 @@ func is_in_aggro_range(position: Vector3, target_position: Vector3) -> bool:
 ## Handle target death
 func on_target_death(target: Entity) -> void:
 	_threat_table.erase(target)
-	
+
 	if _current_target == target:
 		_update_target()
 
@@ -172,12 +172,12 @@ func get_threat_info() -> Dictionary:
 		"current_target": _current_target.name if _current_target else null,
 		"threats": []
 	}
-	
+
 	for target in _threat_table:
 		if is_instance_valid(target):
 			info["threats"].append({
 				"target": target.name,
 				"threat": _threat_table[target]
 			})
-	
+
 	return info

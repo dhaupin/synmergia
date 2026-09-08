@@ -20,7 +20,7 @@ func _ready() -> void:
 		if child is State:
 			states[child.name] = child
 			child.state_machine = self
-	
+
 	if initial_state:
 		current_state = initial_state
 		current_state.enter()
@@ -37,19 +37,19 @@ func transition_to(state_name: String, data: Dictionary = {}) -> void:
 	if not states.has(state_name):
 		GameLog.warn("State '%s' not found in StateMachine" % state_name)
 		return
-	
+
 	var new_state: State = states[state_name]
-	
+
 	if new_state == current_state:
 		return
-	
+
 	var old_name: String = current_state.name if current_state else "None"
 	var new_name: String = new_state.name
-	
+
 	current_state.exit()
 	current_state = new_state
 	current_state.enter(data)
-	
+
 	state_changed.emit(old_name, new_name)
 	state_entered.emit(new_name)
 

@@ -1,5 +1,5 @@
 ## WebhookBase - Generic webhook connector (abstract base)
-## 
+##
 ## This is the base handler that all webhook connectors inherit from.
 ## Keeps webhook logic DRY in one place.
 ##
@@ -23,14 +23,14 @@ class WebhookMessage:
 	var username: String
 	var avatar_url: String
 	var tts: bool
-	
+
 	func _init(p_content: String = ""):
 		content = p_content
 		embeds = []
 		username = ""
 		avatar_url = ""
 		tts = false
-	
+
 	func to_dict() -> Dictionary:
 		var data: Dictionary = {"content": content}
 		if not embeds.is_empty():
@@ -55,7 +55,7 @@ class Embed:
 	var thumbnail: Dictionary
 	var author: Dictionary
 	var fields: Array
-	
+
 	func _init():
 		title = ""
 		description = ""
@@ -67,11 +67,11 @@ class Embed:
 		thumbnail = {}
 		author = {}
 		fields = []
-	
+
 	func set_color_hex(hex: String) -> void:
 		hex = hex.lstrip("#")
 		color = int("0x" + hex)
-	
+
 	func to_dict() -> Dictionary:
 		var data: Dictionary = {}
 		if title != "": data["title"] = title
@@ -110,7 +110,7 @@ func _ready() -> void:
 	_http_request = HTTPRequest.new()
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_request_completed)
-	
+
 	# Load config from GameConfig
 	_load_config()
 
@@ -130,33 +130,33 @@ func send_immediate(message: WebhookMessage) -> bool:
 	if webhook_url == "":
 		GameLog.warn("WebhookBase: No webhook URL configured")
 		return false
-	
+
 	if _rate_limit_remaining == 0:
 		if Time.get_unix_time_from_system() < _rate_limit_reset:
 			return false
 		else:
 			_rate_limit_remaining = -1
-	
+
 	var payload := JSON.stringify(message.to_dict())
 	var headers := ["Content-Type: application/json"]
-	
+
 	var result := _http_request.request(webhook_url, headers, HTTPClient.METHOD_POST, payload)
 	return result == OK
 
 func _process_queue() -> void:
 	if _is_sending or _message_queue.is_empty():
 		return
-	
+
 	_is_sending = true
 	var message: WebhookMessage = _message_queue.pop_front() as WebhookMessage
 	var success: bool = send_immediate(message)
-	
+
 	if not success and _rate_limit_remaining == 0:
 		var delay := max(0.1, _rate_limit_reset - Time.get_unix_time_from_system())
 		await get_tree().create_timer(delay).timeout
-	
+
 	_is_sending = false
-	
+
 	if not _message_queue.is_empty():
 		_process_queue()
 
@@ -169,9 +169,9 @@ func _on_request_completed(result: int, response_code: int, headers: Array, body
 					_rate_limit_remaining = int(parts[1])
 				"x-ratelimit-reset":
 					_rate_limit_reset = float(parts[1])
-	
+
 	message_sent.emit(response_code == 200 or response_code == 204, response_code)
-	
+
 	if response_code != 200 and response_code != 204:
 		GameLog.warn("WebhookBase: Request failed with code %d" % response_code)
 

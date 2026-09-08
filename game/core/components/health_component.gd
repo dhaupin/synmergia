@@ -26,7 +26,7 @@ var _killer: Node3D = null
 
 func _ready() -> void:
 	current_health = max_health
-	
+
 	# Connect death notification to EventBus
 	health_depleted.connect(_on_health_depleted)
 
@@ -34,17 +34,17 @@ func _on_health_depleted() -> void:
 	var entity: Node3D = get_parent()
 	var killer_name := ""
 	var killer_type := "monster"
-	
+
 	if _killer:
 		killer_name = _killer.display_name
 		if _killer is PlayerController:
 			killer_type = "player"
 		elif _killer.faction_id != entity.faction_id:
 			killer_type = "pvp"
-	
+
 	if NotificationService:
 		NotificationService.notify_death(entity.entity_id, killer_name, killer_type)
-		
+
 		# Notify party members
 		if entity.has_method("get_party_id"):
 			var party_id = entity.get_party_id()
@@ -58,38 +58,38 @@ func _on_health_depleted() -> void:
 func take_damage(amount: int, source: Entity = null, damage_type: String = "physical") -> int:
 	if _is_dead:
 		return 0
-	
+
 	# Check for interrupt (before applying damage)
 	var entity: Node3D = get_parent()
 	if entity.combat_component:
 		entity.combat_component.on_damage_taken(amount, source, damage_type)
-	
+
 	# Apply armor/mitigation
 	var mitigated: int = 0
 	if entity.inventory_component:
 		mitigated = entity.inventory_component.get_equipment_armor()
 	var actual_damage: int = max(1, amount - mitigated)
-	
+
 	current_health = max(0, current_health - actual_damage)
 	health_changed.emit(current_health, max_health, -actual_damage)
-	
+
 	# Emit combat events
 	EventHub.damage_dealt.emit(source, get_parent(), actual_damage, damage_type)
-	
+
 	if current_health <= 0:
 		die(source)
-	
+
 	return actual_damage
 
 ## Heal
 func heal(amount: int, source: Entity = null) -> int:
 	if _is_dead:
 		return 0
-	
+
 	var actual_heal: int = min(amount, max_health - current_health)
 	current_health += actual_heal
 	health_changed.emit(current_health, max_health, actual_heal)
-	
+
 	return actual_heal
 
 ## Get percentage health
@@ -106,41 +106,41 @@ func is_dead() -> bool:
 func die(killer: Node3D = null) -> void:
 	if _is_dead:
 		return
-	
+
 	_is_dead = true
 	_killer = killer
 	current_health = 0
-	
+
 	# Stop all combat state
 	var entity: Node3D = get_parent()
 	if entity.combat_component:
 		entity.combat_component.interrupt()
-	
+
 	# SECURITY: Cancel any active locks on death
 	if entity.entity_id and PlayerLockService:
 		PlayerLockService.cancel_on_death(entity.entity_id)
 		# Also cancel follow
 		if FollowService:
 			FollowService.cancel_all_for_player(entity.entity_id)
-	
+
 	# Create corpse
 	_create_corpse(killer)
-	
+
 	health_depleted.emit()
 	EventHub.entity_died.emit(entity, killer, null)
-	
+
 	# Emit player-specific signals
 	if entity is PlayerController:
 		EventHub.player_died.emit(entity, killer)
-	
+
 	# Emit entity killed (for kill streak tracking)
 	if killer:
 		EventHub.entity_killed.emit(killer, entity, "physical")
-		
+
 		# Emit player_killed_player for PvP tracking
 		if killer is PlayerController and entity is PlayerController:
 			EventHub.player_killed_player.emit(killer, entity)
-	
+
 	# Start respawn timer
 	_start_respawn()
 
@@ -149,11 +149,11 @@ var _corpse: Corpse = null
 
 func _create_corpse(killer: Node3D) -> void:
 	var entity: Node3D = get_parent()
-	
+
 	# Try to load corpse scene if it exists
 	var corpse_scene_path := "res://scenes/entities/corpse.tscn"
 	var corpse_scene := load(corpse_scene_path)
-	
+
 	if corpse_scene:
 		_corpse = corpse_scene.instantiate()
 		_corpse.global_position = entity.global_position
@@ -186,7 +186,7 @@ enum RespawnLocation {
 func get_respawn_options() -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var entity: Node3D = get_parent()
-	
+
 	# Always available: Bind point
 	options.append({
 		"location": RespawnLocation.BIND_POINT,
@@ -194,7 +194,7 @@ func get_respawn_options() -> Array[Dictionary]:
 		"position": _bind_position,
 		"delay": 0
 	})
-	
+
 	# Always available: Near corpse (if corpse exists)
 	if _corpse:
 		options.append({
@@ -203,7 +203,7 @@ func get_respawn_options() -> Array[Dictionary]:
 			"position": entity.global_position,
 			"delay": _respawn_time * 0.5  # Faster respawn
 		})
-	
+
 	return options
 
 ## Respawn at specific location
@@ -223,10 +223,10 @@ func _do_respawn_at(position: Vector3) -> void:
 	_remove_corpse()
 	_is_dead = false
 	current_health = max_health
-	
+
 	var entity: Node3D = get_parent()
 	entity.global_position = position
-	
+
 	respawned.emit()
 	EventHub.entity_spawned.emit(entity)
 
@@ -258,13 +258,13 @@ func _process(delta: float) -> void:
 		var entity: Node = get_parent()
 		if entity and "combat_component" in entity and entity.combat_component and "in_combat" in entity.combat_component and entity.combat_component.in_combat:
 			regen = health_regen_combat
-		
+
 		if regen > 0 and current_health < max_health:
 			var heal_amount := int(regen * delta)
 			if heal_amount > 0:
 				current_health = mini(current_health + heal_amount, max_health)
 				health_changed.emit(current_health, max_health, heal_amount)
-	
+
 	# Self-rez cooldown
 	if _self_rez_cooldown > 0:
 		_self_rez_cooldown -= delta
@@ -273,11 +273,11 @@ func _do_respawn() -> void:
 	_is_dead = false
 	current_health = max_health
 	_respawn_timer = 0.0
-	
+
 	# Move to respawn position
 	var entity: Node3D = get_parent()
 	entity.global_position = _bind_position
-	
+
 	respawned.emit()
 	EventHub.entity_spawned.emit(entity)
 
@@ -285,11 +285,11 @@ func _do_respawn() -> void:
 func set_max_health(new_max: int) -> void:
 	var old_max := max_health
 	max_health = new_max
-	
+
 	# Scale current health proportionally
 	if old_max > 0:
 		current_health = int(float(current_health) / old_max * max_health)
-	
+
 	health_changed.emit(current_health, max_health, 0)
 
 ## Get corpse reference (if exists)
@@ -315,10 +315,10 @@ func get_corpse_loot_info() -> Dictionary:
 func loot_from_corpse(looter: Entity, item_index: int = -1) -> Dictionary:
 	if not _corpse:
 		return {"success": false, "reason": "No corpse"}
-	
+
 	if not _corpse.can_loot(looter):
 		return {"success": false, "reason": "Too far from corpse"}
-	
+
 	if item_index >= 0:
 		return _corpse.loot_item(looter, item_index)
 	else:
@@ -331,61 +331,61 @@ var _self_rez_cooldown: float = 0.0
 func use_self_rez_item(item: Item) -> Dictionary:
 	if not _is_dead:
 		return {"success": false, "reason": "Not dead"}
-	
+
 	if not item.is_self_rez_item:
 		return {"success": false, "reason": "Item cannot self-resurrect"}
-	
+
 	# Check if being revived (prevent self-rez while healer is casting)
 	if RespawnService and RespawnService.is_being_revived(get_parent().entity_id):
 		return {"success": false, "reason": "Cannot self-rez while being revived"}
-	
+
 	# Check cooldown
 	if _self_rez_cooldown > 0:
 		return {"success": false, "reason": "Self-rez on cooldown (%.0fs remaining)" % _self_rez_cooldown}
-	
+
 	# Check config
 	if not GameConfig.Respawn.ENABLE_SELF_REZ:
 		return {"success": false, "reason": "Self-rez disabled"}
-	
+
 	var entity: Node3D = get_parent()
-	
+
 	# Remove the item from inventory
 	if entity.inventory_component:
 		var removed: bool = entity.inventory_component.remove_item_by_id(item.id, 1)
 		if not removed:
 			return {"success": false, "reason": "No self-rez item in inventory"}
-	
+
 	# Perform the res
 	var health_percent := item.self_rez_health_percent if item.self_rez_health_percent > 0 else GameConfig.Respawn.SELF_REZ_HEALTH_PERCENT
 	var mana_percent := item.self_rez_mana_percent if item.self_rez_mana_percent > 0 else GameConfig.Respawn.SELF_REZ_MANA_PERCENT
-	
+
 	current_health = int(max_health * health_percent)
 	current_health = maxi(1, current_health)  # At least 1 HP
 	_is_dead = false
 	_respawn_timer = 0.0
-	
+
 	# Restore mana if entity has mana
 	if entity.has_method("restore_mana"):
 		var mana_to_restore := int(entity.max_mana * mana_percent)
 		entity.restore_mana(mana_to_restore)
-	
+
 	# Remove corpse
 	_remove_corpse()
-	
+
 	# Cancel any active revive on this player
 	if RespawnService:
 		RespawnService.interrupt_revival(entity.entity_id, "Self-rez used")
-	
+
 	# Set cooldown
 	_self_rez_cooldown = item.self_rez_cooldown if item.self_rez_cooldown > 0 else GameConfig.Respawn.SELF_REZ_COOLDOWN
-	
+
 	# Emit signals
 	respawned.emit()
 	EventHub.entity_spawned.emit(entity)
 	EventHub.self_resurrected.emit(entity, item)
-	
+
 	GameLog.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])
-	
+
 	return {
 		"success": true,
 		"health_restored": current_health,

@@ -23,7 +23,7 @@ var _is_visible: bool = false
 func _ready() -> void:
 	visible = false
 	_is_visible = false
-	
+
 	# Connect signals
 	respawn_skipped.connect(_on_respawn_skipped)
 
@@ -31,10 +31,10 @@ func show_respawn_options(options: Array[Dictionary]) -> void:
 	_options = options
 	_selected_index = 0
 	_timer = auto_respawn_timeout
-	
+
 	# Populate options UI
 	_populate_options()
-	
+
 	# Show/hide based on config
 	if GameConfig.Respawn.ALLOW_SKIP_RESPAWN_UI:
 		_skip_button.visible = true
@@ -46,11 +46,11 @@ func show_respawn_options(options: Array[Dictionary]) -> void:
 	else:
 		_skip_button.visible = false
 		_timer_label.visible = false
-	
+
 	# Delay show if configured
 	if auto_show_delay > 0:
 		await get_tree().create_timer(auto_show_delay).timeout
-	
+
 	visible = true
 	_is_visible = true
 	_update_selection()
@@ -59,7 +59,7 @@ func _populate_options() -> void:
 	# Clear existing options
 	for child in _options_container.get_children():
 		child.queue_free()
-	
+
 	# Add option buttons
 	for i in range(_options.size()):
 		var option: Dictionary = _options[i]
@@ -72,7 +72,7 @@ func _get_option_display(option: Dictionary) -> String:
 	var mode: String = option.get("mode", "unknown")
 	var name: String = option.get("name", "Unknown")
 	var details: String = option.get("details", "")
-	
+
 	match mode:
 		"ankh":
 			return "[ANKH] %s" % name
@@ -120,7 +120,7 @@ func _get_default_respawn_option() -> Dictionary:
 func _process(delta: float) -> void:
 	if not _is_visible:
 		return
-	
+
 	# Handle keyboard navigation
 	if Input.is_action_just_pressed("ui_up"):
 		_selected_index = wrapi(_selected_index - 1, 0, _options.size())
@@ -133,7 +133,7 @@ func _process(delta: float) -> void:
 	elif Input.is_action_just_pressed("ui_cancel"):
 		if GameConfig.Respawn.ALLOW_SKIP_RESPAWN_UI:
 			_on_skip_pressed()
-	
+
 	# Auto-respawn countdown
 	if auto_respawn_timeout > 0 and _timer > 0:
 		_timer -= delta

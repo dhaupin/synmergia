@@ -32,10 +32,10 @@ func _ready() -> void:
 	_shell = AdminShell.new()
 	add_child(_shell)
 	_shell.command_executed.connect(_on_command_executed)
-	
+
 _refresh_player_list()
 	_bind_admin_signals()
-	
+
 	# Auto-refresh player list
 	var timer := Timer.new()
 	timer.wait_time = 5.0
@@ -44,14 +44,14 @@ _refresh_player_list()
 	timer.start()
 
 func _setup_panel() -> void:
-	
+
 	# Create main container
 	_main_vbox = VBoxContainer.new()
 	_main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(_main_vbox)
-	
+
 	# Title bar
 	var title_bar := HBoxContainer.new()
 	title_bar.custom_minimum_size.y = 40
@@ -60,26 +60,26 @@ func _setup_panel() -> void:
 	title.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_bar.add_child(title)
-	
+
 	var close_btn := Button.new()
 	close_btn.text = "✕"
 	close_btn.pressed.connect(close)
 	title_bar.add_child(close_btn)
 	_main_vbox.add_child(title_bar)
-	
+
 	# Tab container
 	_tab_container = TabContainer.new()
 	_tab_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tab_container.tab_changed.connect(_on_tab_changed)
 	_main_vbox.add_child(_tab_container)
-	
+
 	# Create tabs
 	_create_shell_tab()
 	_create_players_tab()
 	_create_restrictions_tab()
 	_create_stats_tab()
 	_create_settings_tab()
-	
+
 	# Status bar
 	var status_bar := HBoxContainer.new()
 	status_bar.custom_minimum_size.y = 24
@@ -93,7 +93,7 @@ func _create_shell_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
 	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "🖥 Shell")
-	
+
 	# Terminal output
 	_terminal_output = RichTextLabel.new()
 	_terminal_output.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -103,100 +103,100 @@ func _create_shell_tab() -> void:
 	_terminal_output.add_theme_color_override("selection_color", Color(0.3, 0.5, 0.7))
 	_terminal_output.add_theme_constant_override("line_separation", 2)
 	tab.add_child(_terminal_output)
-	
+
 	# Initial message
 	_terminal_output.append_text("[color=cyan]Welcome to Admin Shell[/color]\n")
 	_terminal_output.append_text("[color=gray]Type 'help' for commands, 'toggles' for settings[/color]\n\n")
-	
+
 	# Command input
 	var input_container := HBoxContainer.new()
 	input_container.custom_minimum_size.y = 32
-	
+
 	var prompt := Label.new()
 	prompt.text = "> "
 	prompt.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 	input_container.add_child(prompt)
-	
+
 	_command_input = LineEdit.new()
 	_command_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_command_input.text_submitted.connect(_on_command_submitted)
 	_command_input.gui_input.connect(_on_input_gui_input)
 	input_container.add_child(_command_input)
-	
+
 	tab.add_child(input_container)
 
 func _create_players_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
 	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "👥 Players")
-	
+
 	# Toolbar
 	var toolbar := HBoxContainer.new()
 	toolbar.custom_minimum_size.y = 36
-	
+
 	var refresh_btn := Button.new()
 	refresh_btn.text = "↻ Refresh"
 	refresh_btn.pressed.connect(_refresh_player_list)
 	toolbar.add_child(refresh_btn)
-	
+
 	var search_input := LineEdit.new()
 	search_input.placeholder_text = "Search players..."
 	search_input.text_changed.connect(_on_player_search)
 	toolbar.add_child(search_input)
 	search_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
+
 	tab.add_child(toolbar)
-	
+
 	# Player list
 	_player_list = ItemList.new()
 	_player_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_player_list.item_selected.connect(_on_player_selected)
 	tab.add_child(_player_list)
-	
+
 	# Actions for selected player
 	var actions := HBoxContainer.new()
 	actions.custom_minimum_size.y = 40
-	
+
 	var lookup_btn := Button.new()
 	lookup_btn.text = "👁 Lookup"
 	lookup_btn.pressed.connect(_lookup_selected_player)
 	actions.add_child(lookup_btn)
-	
+
 	var mute_btn := Button.new()
 	mute_btn.text = "🔇 Mute"
 	mute_btn.pressed.connect(_mute_selected_player)
 	actions.add_child(mute_btn)
-	
+
 	var kick_btn := Button.new()
 	kick_btn.text = "👢 Kick"
 	kick_btn.pressed.connect(_kick_selected_player)
 	actions.add_child(kick_btn)
-	
+
 	var restrict_btn := Button.new()
 	restrict_btn.text = "⛔ Restrict"
 	restrict_btn.pressed.connect(_restrict_selected_player)
 	actions.add_child(restrict_btn)
-	
+
 	tab.add_child(actions)
 
 func _create_restrictions_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
 	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "🚫 Restrictions")
-	
+
 	# Toolbar
 	var toolbar := HBoxContainer.new()
 	toolbar.custom_minimum_size.y = 36
-	
+
 	var view_all_btn := Button.new()
 	view_all_btn.text = "View All Restrictions"
 	view_all_btn.pressed.connect(func(): _shell.execute("restrictions", _admin_id))
 	toolbar.add_child(view_all_btn)
-	
+
 	toolbar.add_child(Control.new())  # Spacer
-	
+
 	tab.add_child(toolbar)
-	
+
 	# Restrictions display (rich text)
 	var restrictions_output := RichTextLabel.new()
 	restrictions_output.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -204,23 +204,23 @@ func _create_restrictions_tab() -> void:
 	restrictions_output.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
 	restrictions_output.name = "RestrictionsOutput"
 	tab.add_child(restrictions_output)
-	
+
 	# Quick actions
 	var quick_actions := HBoxContainer.new()
 	quick_actions.custom_minimum_size.y = 40
-	
+
 	var unmute_all_btn := Button.new()
 	unmute_all_btn.text = "🔊 Unmute All"
 	unmute_all_btn.pressed.connect(_unmute_all_players)
 	quick_actions.add_child(unmute_all_btn)
-	
+
 	tab.add_child(quick_actions)
 
 func _create_stats_tab() -> void:
 	var tab := VBoxContainer.new()
 	_tab_container.add_child(tab)
 	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "📊 Stats")
-	
+
 	# Stats output
 	var stats_output := RichTextLabel.new()
 	stats_output.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -228,7 +228,7 @@ func _create_stats_tab() -> void:
 	stats_output.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
 	stats_output.name = "StatsOutput"
 	tab.add_child(stats_output)
-	
+
 	# Refresh button
 	var refresh_btn := Button.new()
 	refresh_btn.text = "↻ Refresh Stats"
@@ -240,39 +240,39 @@ func _create_settings_tab() -> void:
 	var tab := ScrollContainer.new()
 	_tab_container.add_child(tab)
 	_tab_container.set_tab_title(_tab_container.get_child_count() - 1, "⚙ Settings")
-	
+
 	var content := VBoxContainer.new()
 	content.custom_minimum_size.x = 400
 	tab.add_child(content)
-	
+
 	# Section: Security Alerts
 	var section1 := _create_settings_section("Security/QoS Alerts")
 	content.add_child(section1)
-	
+
 	var alerts_on := CheckBox.new()
 	alerts_on.button_pressed = GameConfig.Security.ENABLE_SECURITY_ALERTS
 	alerts_on.text = "Enable Security Alerts to Players"
 	section1.add_child(alerts_on)
-	
+
 	var rate_alerts := CheckBox.new()
 	rate_alerts.button_pressed = GameConfig.Security.ALERT_ON_RATE_LIMIT
 	rate_alerts.text = "Alert on Rate Limit"
 	section1.add_child(rate_alerts)
-	
+
 	var restrict_alerts := CheckBox.new()
 	restrict_alerts.button_pressed = GameConfig.Security.ALERT_ON_RESTRICTION
 	restrict_alerts.text = "Alert on Restriction"
 	section1.add_child(restrict_alerts)
-	
+
 	var exploit_alerts := CheckBox.new()
 	exploit_alerts.button_pressed = GameConfig.Security.ALERT_ON_EXPLOIT_DETECTED
 	exploit_alerts.text = "Alert on Exploit Detected (NOT RECOMMENDED)"
 	section1.add_child(exploit_alerts)
-	
+
 	# Section: Debug
 	var section2 := _create_settings_section("Debug")
 	content.add_child(section2)
-	
+
 	var debug_logging := CheckBox.new()
 	debug_logging.button_pressed = GameConfig.Debug.ENABLE_DEBUG_LOGGING
 	debug_logging.text = "Enable Debug Logging"
@@ -280,15 +280,15 @@ func _create_settings_tab() -> void:
 
 func _create_settings_section(title: String) -> VBoxContainer:
 	var section := VBoxContainer.new()
-	
+
 	var label := Label.new()
 	label.text = title
 	label.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
 	section.add_child(label)
-	
+
 	var separator := HSeparator.new()
 	section.add_child(separator)
-	
+
 	return section
 
 ## ============================================================================
@@ -298,12 +298,12 @@ func _create_settings_section(title: String) -> VBoxContainer:
 func _on_command_submitted(text: String) -> void:
 	if text.strip_edges() == "":
 		return
-	
+
 	_terminal_output.append_text("[color=green]>[/color] %s\n" % _esc(text))
 	_command_input.clear()
-	
+
 	var result := _shell.execute(text, _admin_id)
-	
+
 	if result.output != "":
 		_terminal_output.append_text(_esc(result.output) + "\n")
 	if result.error != "":
@@ -324,7 +324,7 @@ func _on_input_gui_input(event: InputEvent) -> void:
 
 func _on_tab_changed(tab_index: int) -> void:
 	var tab_name := _tab_container.get_child(tab_index).name
-	
+
 	match tab_name:
 		"Restrictions":
 			_shell.execute("restrictions", _admin_id)
@@ -334,13 +334,13 @@ func _on_tab_changed(tab_index: int) -> void:
 func _on_command_executed(cmd: String, result, executor_id: String) -> void:
 	# Update relevant tabs based on command output
 	var current_tab := _tab_container.get_child(_tab_container.current_tab)
-	
+
 	if current_tab.has_node("RestrictionsOutput"):
 		var output: RichTextLabel = current_tab.get_node("RestrictionsOutput")
 		if result.output != "":
 			output.clear()
 			output.append_text(result.output)
-	
+
 	if current_tab.has_node("StatsOutput"):
 		var output: RichTextLabel = current_tab.get_node("StatsOutput")
 		if result.output != "":
@@ -383,10 +383,10 @@ func _on_auto_response_warn(player_id: String, exploit_type: String, message: St
 
 func _refresh_player_list(filter: String = "") -> void:
 	_player_list.clear()
-	
+
 	var players := _shell.execute("players " + filter, _admin_id)
 	var lines := players.output.split("\n")
-	
+
 	for line in lines:
 		if line.begins_with("  ") and not line.contains("Total:"):
 			# Extract player ID
@@ -438,10 +438,10 @@ func _unmute_all_players() -> void:
 func _navigate_history(direction: int) -> void:
 	if _shell.history.is_empty():
 		return
-	
+
 	_history_index += direction
 	_history_index = clampi(_history_index, -1, _shell.history.size() - 1)
-	
+
 	if _history_index == -1:
 		_command_input.clear()
 	else:
@@ -451,7 +451,7 @@ func _navigate_history(direction: int) -> void:
 func _autocomplete() -> void:
 	var partial := _command_input.text
 	var suggestions := _shell.get_suggestions(partial, _admin_id)
-	
+
 	if suggestions.size() == 1:
 		_command_input.text = suggestions[0] + " "
 		_command_input.caret_position = _command_input.text.length()
@@ -472,10 +472,10 @@ func set_admin_id(admin_id: String) -> void:
 		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.ADMIN):
 			# Show MOD-level warning in UI
 			_show_permission_warning()
-	
+
 	_admin_id = admin_id
 	GameLog.info("AdminDashboard: Admin %s connected" % admin_id)
-	
+
 	# Connect to PermissionManager signals for real-time updates
 	if PermissionManager:
 		PermissionManager.admin_action.connect(_on_admin_action)

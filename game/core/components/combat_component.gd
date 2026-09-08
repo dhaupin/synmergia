@@ -91,13 +91,13 @@ func _physics_process(delta: float) -> void:
 	# Update cooldowns
 	if gcd_remaining > 0:
 		gcd_remaining = max(0, gcd_remaining - delta)
-	
+
 	if attack_cooldown > 0:
 		attack_cooldown = max(0, attack_cooldown - delta)
-	
+
 	# Update combat state
 	_update_combat_state(delta)
-	
+
 	# Update casting
 	if is_casting:
 		cast_time_remaining -= delta
@@ -107,7 +107,7 @@ func _physics_process(delta: float) -> void:
 			charge_progress = min(elapsed / cast_skill.charge_time_max, 1.0)
 		if cast_time_remaining <= 0:
 			_finish_cast()
-	
+
 	# Update channeling
 	if is_channeling:
 		_update_channeling(delta)
@@ -120,47 +120,47 @@ func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Ve
 		if not QoSService.rate_limit(entity.entity_id, "combat"):
 			GameLog.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
 			return false
-		
+
 		# AntiCheat: Record combat action for analysis
 		if AntiCheatService:
 			AntiCheatService.record_action(entity.entity_id, "combat_skill", entity.global_position if entity.has("global_position") else Vector3.ZERO)
-	
+
 	# Apply Skill Academy upgrade deltas (returns duplicated schema with bonuses applied)
 	var upgraded_skill: Skill = _apply_skill_upgrade_deltas(skill, entity)
 
 	if not _can_execute_skill(upgraded_skill):
 		return false
-	
+
 	# Check GCD
 	if gcd_remaining > 0:
 		return false
-	
+
 	# Consume resources
 	if not _consume_skill_costs(upgraded_skill):
 		return false
-	
+
 	# Start cooldown
 	upgraded_skill.remaining_cooldown = upgraded_skill.cooldown
-	
+
 	# Start GCD
 	gcd_remaining = gcd_duration
-	
+
 	# Execute based on skill type
 	match upgraded_skill.skill_type:
 		Skill.SkillType.INSTANT, Skill.SkillType.SELF:
 			upgraded_skill.execute(get_parent(), target, ground_pos)
 			skill_finished.emit(upgraded_skill)
-		
+
 		Skill.SkillType.MELEE, Skill.SkillType.RANGED:
 			_perform_attack(upgraded_skill, target)
-		
+
 		Skill.SkillType.CHANNEL:
 			_start_cast(upgraded_skill, target)
-		
+
 		Skill.SkillType.GROUND_TARGETED, Skill.SkillType.TARGETED_AOE:
 			upgraded_skill.execute(get_parent(), target, ground_pos)
 			skill_finished.emit(upgraded_skill)
-	
+
 			EventHub.emit_skill_used(get_parent(), upgraded_skill, target)
 
 	# Record action for durability tracking
@@ -264,33 +264,33 @@ func _apply_charge_scaling(skill: Skill, charge_level: float) -> Skill:
 
 func _can_execute_skill(skill: Skill) -> bool:
 	var entity: Entity = get_parent()
-	
+
 	# Check if casting
 	if is_casting:
 		return false
-	
+
 	# Check dead
 	if entity.health_component and entity.health_component.is_dead():
 		return false
-	
+
 	# SECURITY: Cannot cast skills if locked (trade, follow, etc)
 	if PlayerLockService and entity.entity_id and PlayerLockService.are_skills_blocked(entity.entity_id):
 		return false
-	
+
 	# Check can_cast on skill
 	return skill.can_cast(entity)
 
 func _consume_skill_costs(skill: Skill) -> bool:
 	var entity: Entity = get_parent()
-	
+
 	if entity.current_mana < skill.mana_cost:
 		return false
 	if entity.current_stamina < skill.stamina_cost:
 		return false
-	
+
 	entity.current_mana -= skill.mana_cost
 	entity.current_stamina -= skill.stamina_cost
-	
+
 	return true
 
 func _start_cast(skill: Skill, target: Entity) -> void:
@@ -311,7 +311,7 @@ func _finish_cast() -> void:
 		cast_finished.emit(executed_skill)
 		skill_finished.emit(executed_skill)
 		EventHub.emit_skill_used(get_parent(), executed_skill, null)
-	
+
 	is_casting = false
 	cast_skill = null
 	cast_time_remaining = 0.0
@@ -327,15 +327,15 @@ func on_damage_taken(damage: int, source: Entity, damage_type: String) -> bool:
 	# Can only interrupt if casting or channeling
 	if not is_casting and not is_channeling:
 		return false
-	
+
 	# Check if skill is interruptible
 	var skill: Skill = cast_skill if is_casting else channel_skill
 	if skill == null:
 		return false
-	
+
 	if not skill.can_interrupt:
 		return false
-	
+
 	# Check interrupt resistance (base + buffs)
 	var resistance := _interrupt_resistance
 	var entity: Entity = get_parent()
@@ -345,20 +345,20 @@ func on_damage_taken(damage: int, source: Entity, damage_type: String) -> bool:
 			if buff.status_data and buff.status_data.immune_interrupt:
 				resistance = 1.0  # Full immunity
 				break
-	
+
 	# Roll for resistance
 	if randf() < resistance:
 		# Resisted!
 		EventHub.interrupt_resisted.emit(entity, skill)
 		return false
-	
+
 	# Interrupted!
 	_interrupt_cast("damage")
 	return true
 
 func _interrupt_cast(reason: String) -> void:
 	var skill: Skill = null
-	
+
 	if is_casting:
 		skill = cast_skill
 		# Partial resource cost (50%)
@@ -372,7 +372,7 @@ func _interrupt_cast(reason: String) -> void:
 		is_channeling = false
 		channel_skill = null
 		channel_time_remaining = 0.0
-	
+
 	if skill:
 		interrupted.emit(skill, reason)
 		EventHub.entity_interrupted.emit(get_parent(), skill, reason)
@@ -384,10 +384,10 @@ func can_be_interrupted() -> bool:
 ## Update channeling
 func _update_channeling(delta: float) -> void:
 	channel_time_remaining -= delta
-	
+
 	var progress: float = 1.0 - (channel_time_remaining / channel_time_total)
 	channel_updated.emit(progress)
-	
+
 	# Channel ticks
 	if channel_tick_interval > 0:
 		var ticks_elapsed := int((channel_time_total - channel_time_remaining) / channel_tick_interval)
@@ -395,7 +395,7 @@ func _update_channeling(delta: float) -> void:
 			for i in range(_channel_ticks, ticks_elapsed):
 				_execute_channel_tick()
 			_channel_ticks = ticks_elapsed
-	
+
 	# Channel complete?
 	if channel_time_remaining <= 0:
 		_finish_channel(true)
@@ -403,50 +403,50 @@ func _update_channeling(delta: float) -> void:
 func _execute_channel_tick() -> void:
 	if channel_skill == null:
 		return
-	
+
 	var entity: Entity = get_parent()
 	var target: Entity = null
-	
+
 	# Get target from skill
 	if channel_skill.target_type == Skill.TargetType.SELF:
 		target = entity
 	else:
 		target = entity.target
-	
+
 	if target and is_instance_valid(target):
 		channel_skill.execute(entity, target)
 		EventHub.channel_tick.emit(entity, channel_skill)
 
 func _finish_channel(completed: bool) -> void:
 	var skill: Skill = channel_skill
-	
+
 	is_channeling = false
 	channel_skill = null
 	channel_time_remaining = 0.0
 	_channel_ticks = 0
-	
+
 	if completed and skill:
 		# Execute final effect
 		skill.execute(get_parent(), get_parent().target)
-	
+
 	channel_ended.emit(skill, completed)
 	skill_finished.emit(upgraded_skill)
 
 func _perform_attack(skill: Skill, target: Entity) -> void:
 	attack_started.emit()
-	
+
 	# Calculate damage
 	var base_damage := attack_power
 	var is_crit: bool = randf() < crit_chance
 	var damage := base_damage
-	
+
 	if is_crit:
 		damage = int(damage * crit_multiplier)
-	
+
 	# Apply damage
 	if target and is_instance_valid(target):
 		target.health_component.take_damage(damage, get_parent())
-	
+
 	attack_cooldown = 1.0 / skill.cast_time if skill.cast_time > 0 else 1.0
 	skill_finished.emit(upgraded_skill)
 	record_action()
@@ -455,13 +455,13 @@ func _perform_attack(skill: Skill, target: Entity) -> void:
 func auto_attack(target: Entity, damage: int) -> void:
 	if attack_cooldown > 0:
 		return
-	
+
 	var is_crit := randf() < crit_chance
 	var final_damage := damage
-	
+
 	if is_crit:
 		final_damage = int(damage * crit_multiplier)
-	
+
 	if target and is_instance_valid(target):
 		target.health_component.take_damage(final_damage, get_parent())
 
@@ -477,7 +477,7 @@ func get_gcd_remaining() -> float:
 func trigger_gcd(skill: Skill = null) -> void:
 	if skill and not skill.uses_gcd:
 		return
-	
+
 	gcd_remaining = gcd_duration
 	gcd_triggered.emit(gcd_duration)
 
@@ -486,14 +486,14 @@ var _last_damage_time: int = 0
 
 func _update_combat_state(delta: float) -> void:
 	var entity: Entity = get_parent()
-	
+
 	# Check if should enter combat (took/Dealt damage recently)
 	var now := Time.get_ticks_msec()
-	
+
 	# Enter combat
 	if not in_combat and (now - _last_damage_time < 1000):  # Damage in last second
 		_enter_combat()
-	
+
 	# Exit combat (OOC timer)
 	if in_combat:
 		var time_since_damage := (now - _last_damage_time) / 1000.0
@@ -503,22 +503,22 @@ func _update_combat_state(delta: float) -> void:
 func _enter_combat() -> void:
 	if in_combat:
 		return
-	
+
 	in_combat = true
 	combat_start_time = Time.get_ticks_msec()
 	_current_mana_regen_multiplier = mana_regen_combat
-	
+
 	combat_entered.emit()
 	EventHub.entity_entered_combat.emit(get_parent())
 
 func _exit_combat() -> void:
 	if not in_combat:
 		return
-	
+
 	in_combat = false
 	combat_start_time = 0
 	_current_mana_regen_multiplier = mana_regen_rest
-	
+
 	combat_exited.emit()
 	EventHub.entity_exited_combat.emit(get_parent())
 
@@ -558,20 +558,20 @@ func force_exit_combat() -> void:
 func can_use_skill(skill: Skill) -> bool:
 	if is_gcd_active():
 		return false
-	
+
 	if skill.cooldown > 0 and skill.get_cooldown_remaining() > 0:
 		return false
-	
+
 	return true
 
 ## Queue a skill for when GCD expires
 func queue_skill(skill: Skill) -> bool:
 	if not _skill_queue_enabled:
 		return false
-	
+
 	if not can_use_skill(skill):
 		return false
-	
+
 	queued_skill = skill
 	return true
 
@@ -595,15 +595,15 @@ func process_queued_skill() -> void:
 func _process(delta: float) -> void:
 	if not in_combat:
 		return
-	
+
 	# Accumulate combat time
 	_combat_time_accumulator += delta
-	
+
 	# Track active combat time (only when using items)
 	var time_since_action := _combat_time_accumulator - _last_action_time
 	if time_since_action < action_timeout:
 		_active_combat_time_accumulator += delta
-	
+
 	# Apply durability loss every tick interval using ACTIVE combat time
 	if _active_combat_time_accumulator >= durability_tick_interval:
 		var active_minutes := _active_combat_time_accumulator / 60.0
@@ -619,24 +619,24 @@ func _apply_durability_loss(combat_minutes: float) -> void:
 	var entity: Entity = get_parent()
 	if not entity or not entity.inventory_component:
 		return
-	
+
 	var total_loss := 0
 	var inventory: InventoryComponent = entity.inventory_component
-	
+
 	# Apply to each equipped item
 	for slot in InventoryComponent.EquipSlot.values():
 		var item: Item = inventory.get_equipped_item(slot)
 		if item and item.max_durability > 0:
 			var loss := item.apply_combat_durability_loss(combat_minutes)
 			total_loss += loss
-			
+
 			if loss > 0:
 				GameLog.debug("CombatComponent: %s lost %d durability on %s" % [entity.name, loss, item.display_name])
-			
+
 			# Check if item broke
 			if item.is_broken():
 				item_broken.emit(item.id)
 				GameLog.warn("CombatComponent: %s's %s broke!" % [entity.name, item.display_name])
-	
+
 	if total_loss > 0:
 		durability_tick.emit(total_loss)

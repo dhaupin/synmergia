@@ -146,7 +146,7 @@ func can_cast(caster: Node) -> bool:
 	# Check cooldown
 	if remaining_cooldown > 0:
 		return false
-	
+
 	# Check resources
 	if "current_mana" in caster and caster.current_mana < mana_cost:
 		return false
@@ -154,15 +154,15 @@ func can_cast(caster: Node) -> bool:
 		return false
 	if "current_health" in caster and caster.current_health < health_cost:
 		return false
-	
+
 	# Check level
 	if "level" in caster and caster.level < required_level:
 		return false
-	
+
 	# Check class
 	if required_class != "" and caster.get("character_class") != required_class:
 		return false
-	
+
 	return true
 
 func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
@@ -172,33 +172,33 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 		"effects_applied": [],
 		"targets_hit": []
 	}
-	
+
 	# Consume resources
 	if not consume_resources(caster):
 		return result
-	
+
 	# Start cooldown
 	remaining_cooldown = cooldown
-	
+
 	# Calculate damage
 	if damage > 0:
 		var actual_damage := calculate_damage(caster, target)
 		result.damage_dealt = actual_damage
-		
+
 		if target:
 			target.take_damage(actual_damage, caster)
 			result.targets_hit.append(target)
-	
+
 	# Apply healing
 	if heal_amount > 0:
 		var actual_heal := calculate_healing(caster)
 		result.heal_amount = actual_heal
-		
+
 		if target:
 			target.heal(actual_heal)
 		else:
 			caster.heal(actual_heal)
-	
+
 	# Apply heal-over-time (HoT)
 	if hot_heal > 0 and hot_duration > 0:
 		var hot := StatusEffect.new()
@@ -209,29 +209,29 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 		hot.tick_interval = hot_tick_rate if hot_tick_rate > 0 else 1.0
 		hot.duration = hot_duration
 		hot.tick_heal = hot_heal
-		
+
 		if target:
 			target.apply_status_effect(hot)
 		else:
 			caster.apply_status_effect(hot)
-	
+
 	# Apply crowd control
 	if crowd_control_type != "":
 		applyCrowdControl(caster, target, ground_position)
-	
+
 	# Apply other effects
 	if grants_shield > 0:
 		applyShield(caster)
-	
+
 	if grants_invincibility:
 		applyInvincibility(caster)
-	
+
 	if is_dot:
 		applyDoT(caster, target)
-	
+
 	if teleport_distance > 0:
 		applyTeleport(caster, ground_position)
-	
+
 	result.success = true
 	return result
 
@@ -242,41 +242,41 @@ func consume_resources(caster: Entity) -> bool:
 		return false
 	if "current_health" in caster and caster.current_health < health_cost:
 		return false
-	
+
 	caster.current_mana -= mana_cost
 	caster.current_stamina -= stamina_cost
 	caster.current_health -= health_cost
-	
+
 	return true
 
 func calculate_damage(caster: Entity, target: Entity) -> int:
 	var base_damage := damage
-	
+
 	# Apply caster's attack power based on damage type
 	if damage_type == "physical":
 		base_damage += caster.get_attack_power()
 	elif damage_type == "magical":
 		base_damage += caster.get_spell_power()
-	
+
 	# Apply crit chance
 	var crit_chance: float = caster.get_crit_chance()
 	var is_crit: bool = randf() < crit_chance
 	if is_crit:
 		base_damage = int(base_damage * caster.get_crit_multiplier())
-	
+
 	# Apply target's defense
 	var defense: float = target.get_defense() if target else 0
 	var reduction: float = float(defense) / (defense + 100.0)
 	base_damage = int(base_damage * (1.0 - reduction))
-	
+
 	return max(1, base_damage)
 
 func calculate_healing(caster: Entity) -> int:
 	var base_heal := heal_amount
-	
+
 	# Apply caster's healing power (WIS-based)
 	base_heal += caster.get_healing_power()
-	
+
 	return base_heal
 
 func applyCrowdControl(caster: Entity, target: Entity, _ground_position: Vector3) -> void:
@@ -300,7 +300,7 @@ func applyInvincibility(caster: Entity) -> void:
 func applyDoT(caster: Entity, target: Entity) -> void:
 	if target == null:
 		return
-	
+
 	var dot := StatusEffect.new()
 	dot.effect_id = skill_id + "_dot"
 	dot.effect_name = skill_name + " DoT"
@@ -310,7 +310,7 @@ func applyDoT(caster: Entity, target: Entity) -> void:
 	dot.tick_interval = dot_tick_rate if dot_tick_rate > 0 else 1.0
 	dot.duration = dot_duration
 	dot.tick_damage = dot_damage
-	
+
 	target.apply_status_effect(dot)
 
 func applyTeleport(caster: Entity, ground_position: Vector3) -> void:

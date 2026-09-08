@@ -24,7 +24,7 @@ func _on_player_died(entity, killer) -> void:
 
 func _show_respawn_ui(player) -> void:
 	_current_player = player
-	
+
 	# Create/instantiate UI if needed
 	if not _ui:
 		var scene = load("res://ui/respawn/respawn_ui.tscn")
@@ -32,18 +32,18 @@ func _show_respawn_ui(player) -> void:
 			_ui = scene.instantiate()
 			get_tree().root.add_child(_ui)
 			_ui.respawn_selected.connect(_on_respawn_selected)
-	
+
 	if not _ui:
 		# UI not available, fall back to immediate respawn
 		RespawnService.initiate_respawn(player)
 		return
-	
+
 	# Get available respawn options from RespawnService
 	var options = _get_respawn_options(player)
-	
+
 	# Store pending respawn for later
 	_pending_respawn = {"player": player, "options": options}
-	
+
 	# Show the UI with config-based settings
 	_ui.auto_show_delay = GameConfig.Respawn.RESPAWN_UI_DELAY
 	_ui.auto_respawn_timeout = GameConfig.Respawn.AUTO_RESPAWN_TIMEOUT
@@ -52,11 +52,11 @@ func _show_respawn_ui(player) -> void:
 func _get_respawn_options(player) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
 	var zone_id: String = player.current_zone if player.has("current_zone") else ""
-	
+
 	# Check what respawn modes are available
 	var available_modes = RespawnService.get_available_respawn_modes(player, zone_id)
 	var zone_config = RespawnService.get_zone_config(zone_id)
-	
+
 	for mode in available_modes:
 		match mode:
 			RespawnService.RespawnMode.ANKH:
@@ -93,7 +93,7 @@ func _get_respawn_options(player) -> Array[Dictionary]:
 					"name": "Team Respawn",
 					"max_respawns": zone_config.get("max_arena_respawns_per_team", 5)
 				})
-	
+
 	# Add corpse option if corpse exists
 	if player.health_component and player.health_component._corpse:
 		options.append({
@@ -101,20 +101,20 @@ func _get_respawn_options(player) -> Array[Dictionary]:
 			"name": "Near Corpse (Faster)",
 			"position": player.global_position
 		})
-	
+
 	return options
 
 func _on_respawn_selected(mode: String, location_data: Dictionary) -> void:
 	if not _pending_respawn.has("player"):
 		return
-	
+
 	var player = _pending_respawn["player"]
 	_pending_respawn = {}
-	
+
 	# Store selected respawn info
 	player._pending_respawn_mode = mode
 	player._pending_respawn_data = location_data
-	
+
 	# Trigger respawn via RespawnService
 	RespawnService.initiate_respawn(player)
 

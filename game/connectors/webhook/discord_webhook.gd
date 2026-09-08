@@ -19,11 +19,11 @@ const COLOR_GRAY: int = 9807270
 
 func _ready() -> void:
 	super._ready()
-	
+
 	# Load Discord-specific config from GameConfig
 	if GameConfig:
 		webhook_url = GameConfig.Webhooks.DISCORD_WEBHOOK_URL
-	
+
 	GameLog.info("DiscordWebhook: Initialized with URL: %s" % ["set" if webhook_url != "" else "not configured"])
 
 ## Send simple text message
@@ -44,7 +44,7 @@ func send_security_alert(title: String, description: String, details: Dictionary
 	var embed := create_embed(title, description, COLOR_RED)
 	embed.timestamp = Time.get_datetime_string_from_unix_time(Time.get_unix_time_from_system())
 	embed.footer = {"text": "Synmergia Security Alert"}
-	
+
 	# Add fields for details
 	for key in details.keys():
 		embed.fields.append({
@@ -52,11 +52,11 @@ func send_security_alert(title: String, description: String, details: Dictionary
 			"value": str(details[key]),
 			"inline": true
 		})
-	
+
 	send_embed(embed, "Synmergia Security")
 
 ## Send urgent report alert
-func send_urgent_report(report_id: String, reporter: String, target: String, 
+func send_urgent_report(report_id: String, reporter: String, target: String,
 		subject: String, description: String) -> void:
 	var embed := create_embed(
 		"🚨 URGENT REPORT: %s" % report_id,
@@ -67,14 +67,14 @@ func send_urgent_report(report_id: String, reporter: String, target: String,
 	)
 	embed.timestamp = Time.get_datetime_string_from_unix_time(Time.get_unix_time_from_system())
 	embed.footer = {"text": "Synmergia - Report System"}
-	
+
 	send_embed(embed, "Synmergia Reports")
 
 ## Send admin action notification
 func send_admin_action(admin_id: String, action: String, target: String, success: bool) -> void:
 	var color := COLOR_GREEN if success else COLOR_RED
 	var status := "✅" if success else "❌"
-	
+
 	var embed := create_embed(
 		"%s Admin Action: %s" % [status, action],
 		"**Admin:** %s\n**Target:** %s" % [admin_id, target],
@@ -82,15 +82,15 @@ func send_admin_action(admin_id: String, action: String, target: String, success
 	)
 	embed.timestamp = Time.get_datetime_string_from_unix_time(Time.get_unix_time_from_system())
 	embed.footer = {"text": "Synmergia Admin Audit"}
-	
+
 	send_embed(embed, "Synmergia Admin")
 
 ## Send player report notification
-func send_player_report(report_id: String, type: String, reporter: String, 
+func send_player_report(report_id: String, type: String, reporter: String,
 		target: String, subject: String) -> void:
 	var color := COLOR_YELLOW
 	var type_emoji := "📢"
-	
+
 	match type.to_upper():
 		"ABUSE":
 			type_emoji = "⚠️"
@@ -107,7 +107,7 @@ func send_player_report(report_id: String, type: String, reporter: String,
 		"EXPLOIT":
 			type_emoji = "🚨"
 			color = COLOR_RED
-	
+
 	var embed := create_embed(
 		"%s %s Report" % [type_emoji, type],
 		"**ID:** %s\n**Reporter:** %s\n**Target:** %s\n**Subject:** %s" % [
@@ -117,7 +117,7 @@ func send_player_report(report_id: String, type: String, reporter: String,
 	)
 	embed.timestamp = Time.get_datetime_string_from_unix_time(Time.get_unix_time_from_system())
 	embed.footer = {"text": "Synmergia Player Reports"}
-	
+
 	send_embed(embed, "Synmergia Reports")
 
 ## Send server status update
@@ -130,14 +130,14 @@ func send_server_status(status: String, player_count: int, details: Dictionary =
 	)
 	embed.timestamp = Time.get_datetime_string_from_unix_time(Time.get_unix_time_from_system())
 	embed.footer = {"text": "Synmergia Status"}
-	
+
 	for key in details.keys():
 		embed.fields.append({
 			"name": key,
 			"value": str(details[key]),
 			"inline": true
 		})
-	
+
 	send_embed(embed, "Synmergia Status")
 
 ## Send exploit detection alert
@@ -151,5 +151,5 @@ func send_exploit_alert(player_id: String, exploit_type: String, details: String
 	)
 	embed.timestamp = Time.get_datetime_string_from_unix_time(Time.get_unix_time_from_system())
 	embed.footer = {"text": "Synmergia Anti-Cheat"}
-	
+
 	send_embed(embed, "Synmergia Anti-Cheat")

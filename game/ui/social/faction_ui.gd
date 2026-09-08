@@ -37,18 +37,18 @@ func _on_open() -> void:
 func _refresh_factions() -> void:
 	if not FactionManager:
 		return
-	
+
 	var list: VBoxContainer = get_node_or_null("Panel/Main/FactionScroll/FactionList")
 	if not list:
 		return
-	
+
 	# Clear existing
 	for child in list.get_children():
 		child.queue_free()
-	
+
 	# Load all factions
 	_factions = FactionManager.get_all_factions()
-	
+
 	for faction in _factions:
 		var row := _create_faction_row(faction)
 		list.add_child(row)
@@ -56,16 +56,16 @@ func _refresh_factions() -> void:
 func _create_faction_row(faction) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 50
-	
+
 	var hbox := HBoxContainer.new()
 	panel.add_child(hbox)
-	
+
 	# Faction name
 	var name_lbl := Label.new()
 	name_lbl.text = faction.get("name", "?")
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_lbl)
-	
+
 	# Reputation badge
 	var rep_lbl := Label.new()
 	var player_rep: int = 0
@@ -74,14 +74,14 @@ func _create_faction_row(faction) -> Control:
 	rep_lbl.text = "Rep: %d" % player_rep
 	rep_lbl.add_theme_color_override("font_color", _get_rep_color(player_rep))
 	hbox.add_child(rep_lbl)
-	
+
 	# War indicator
 	if FactionManager and FactionManager.get_faction_wars(faction.get("id", "")).size() > 0:
 		var war_lbl := Label.new()
 		war_lbl.text = " [AT WAR]"
 		war_lbl.add_theme_color_override("font_color", Color.RED)
 		hbox.add_child(war_lbl)
-	
+
 	return panel
 
 func _get_rep_color(rep: int) -> Color:

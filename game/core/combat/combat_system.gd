@@ -57,21 +57,21 @@ func _on_entity_died(entity: Entity, killer: Entity) -> void:
 func execute_skill(caster: Node, skill: Skill, target: Node = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
 	if not skill.can_cast(caster):
 		return {"success": false, "reason": "cannot_cast"}
-	
+
 	# Execute skill
 	var result := skill.execute(caster, target, ground_position)
-	
+
 	if result.success:
 		skill_executed.emit(caster, skill, result.targets_hit)
-		
+
 		# Track combo
 		if "entity_id" in caster and caster.entity_id in combo_trackers:
 			combo_trackers[caster.entity_id].record_skill(skill)
-		
+
 		# Create hitbox if applicable
 		if skill.hitbox_size > 0:
 			create_hitbox(caster, skill, target, ground_position)
-	
+
 	return result
 
 func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Vector3) -> void:
@@ -82,7 +82,7 @@ func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Ve
 	hitbox.hit_entities = []
 	hitbox.start_time = Time.get_ticks_msec() / 1000.0
 	hitbox.duration = skill.animation_duration * 0.5  # Hitbox active for half animation
-	
+
 	# Calculate hitbox position
 	if skill.is_ground_targeted and ground_position != Vector3.ZERO:
 		hitbox.position = ground_position
@@ -92,69 +92,69 @@ func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Ve
 		# Position in front of caster
 		var forward: Vector3 = -caster.global_transform.basis.z
 		hitbox.position = caster.global_position + forward * skill.hitbox_offset.z + Vector3(0, skill.hitbox_offset.y, 0)
-	
+
 	hitbox.size = skill.aoe_radius if skill.aoe_radius > 0 else skill.hitbox_size
-	
+
 	active_hitboxes.append(hitbox)
 
 func _process_hitboxes(_delta: float) -> void:
 	var current_time := Time.get_ticks_msec() / 1000.0
-	
+
 	for hitbox in active_hitboxes:
 		# Check if hitbox expired
 		if current_time - hitbox.start_time > hitbox.duration:
 			active_hitboxes.erase(hitbox)
 			continue
-		
+
 		# Find entities in hitbox
 		var hit_entities := get_entities_in_hitbox(hitbox)
-		
+
 		for entity in hit_entities:
 			# Check if already hit
 			if entity.entity_id in hitbox.hit_entities:
 				continue
-			
+
 			# Check team (no friendly fire)
 			if entity.team_id == hitbox.team_id and hitbox.team_id != 0:
 				continue
-			
+
 			# Check if already dead
 			if not entity.is_alive():
 				continue
-			
+
 			# Apply hit
 			hitbox.hit_entities.append(entity.entity_id)
 			_apply_hit(hitbox, entity)
 
 func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 	var entities_in_range: Array = []
-	
+
 	for entity_id in registered_entities:
 		var entity: Entity = registered_entities[entity_id]
-		
+
 		if not is_instance_valid(entity):
 			continue
-		
+
 		if entity.global_position.distance_to(hitbox.position) <= hitbox.size:
 			entities_in_range.append(entity)
-	
+
 	return entities_in_range
 
 func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
 	var caster = get_entity(str(hitbox.owner_id)) if hitbox.owner_id != -1 else null
-	
+
 	# Calculate and apply damage
 	var damage: int = 0
 	if caster:
 		damage = hitbox.skill.calculate_damage(caster, target)
-	
+
 	target.take_damage(damage, caster)
-	
+
 	# Emit signals
 	if caster:
 		skill_hit.emit(caster, target, hitbox.skill, damage)
 		damage_dealt.emit(caster, target, damage, hitbox.skill)
-	
+
 	# Apply additional effects from skill
 	_apply_skill_effects(hitbox.skill, caster, target)
 
@@ -162,11 +162,11 @@ func _apply_skill_effects(skill: Skill, caster: Entity, target: Entity) -> void:
 	# Apply DoT if skill has duration
 	if skill.is_dot:
 		_apply_dot(caster, target, skill)
-	
+
 	# Apply CC effects
 	if skill.crowd_control_type != "":
 		_apply_cc(skill, caster, target)
-	
+
 	# Apply movement effects
 	if skill.teleport_distance > 0:
 		_apply_teleport(caster, target, skill)
@@ -178,7 +178,7 @@ func _apply_dot(caster: Entity, target: Entity, skill: Skill) -> void:
 	effect.tick_rate = skill.dot_tick_rate
 	effect.total_duration = skill.dot_duration
 	effect.source = caster
-	
+
 	target.apply_status_effect(effect)
 
 func _apply_cc(skill: Skill, caster: Entity, target: Entity) -> void:
@@ -225,17 +225,17 @@ func get_ground_target_position(caster: Node, direction: Vector2, max_range: flo
 	# Raycast to ground
 	var from: Vector3 = caster.global_position + Vector3.UP * 2
 	var to: Vector3 = caster.global_position + Vector3(direction.x, 0, direction.y) * max_range
-	
+
 	var space_state: PhysicsDirectSpaceState3D = caster.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collide_with_bodies = true
 	query.collision_mask = 0b0000111  # World layers
-	
+
 	var result: Dictionary = space_state.intersect_ray(query)
-	
+
 	if result:
 		return result.position
-	
+
 	# Fallback if no ground hit
 	return caster.global_position + Vector3(direction.x, 0, direction.y) * max_range
 
@@ -252,12 +252,12 @@ class ComboTracker:
 	var last_skill_time: float = 0.0
 	var last_skill: Skill = null
 	var combo_history: Array[String] = []
-	
+
 	const COMBO_WINDOW: float = 2.0  # Seconds to chain combo
-	
+
 	func record_skill(skill: Skill) -> void:
 		var current_time := Time.get_ticks_msec() / 1000.0
-		
+
 		# Check if within combo window
 		if current_time - last_skill_time < COMBO_WINDOW and last_skill != null:
 			# Check if skill can chain
@@ -267,20 +267,20 @@ class ComboTracker:
 				combo_count = 1  # Reset combo
 		else:
 			combo_count = 1
-		
+
 		last_skill = skill
 		last_skill_time = current_time
-		
+
 		# Track history (keep last 5)
 		combo_history.append(skill.skill_id)
 		if combo_history.size() > 5:
 			combo_history.pop_at(0)
-	
+
 	func can_combo(skill: Skill) -> bool:
 		if last_skill == null:
 			return true
 		return skill.skill_id in last_skill.combo_chain
-	
+
 	func _physics_process(_delta: float) -> void:
 		var current_time := Time.get_ticks_msec() / 1000.0
 		if current_time - last_skill_time > COMBO_WINDOW:
@@ -289,31 +289,31 @@ class ComboTracker:
 ## DoTEffect - Damage over time effect
 class DoTEffect:
 	extends StatusEffect
-	
+
 	var damage_per_tick: int = 0
 	var tick_rate: float = 1.0
 	var total_duration: float = 0.0
 	var ticks_remaining: int = 0
 	var tick_timer: float = 0.0
-	
+
 	func _init() -> void:
 		effect_type = EffectType.DEBUFF
-	
+
 	func apply(target_entity: Node) -> bool:
 		ticks_remaining = int(total_duration / tick_rate)
 		if target_entity.damage_dealt.connect(_on_target_take_damage) == OK:
 			pass
 		return true
-	
+
 	func remove(target_entity: Node) -> void:
 		target_entity.damage_dealt.disconnect(_on_target_take_damage)
-	
+
 	func _physics_process(delta: float) -> void:
 		tick_timer += delta
 		if tick_timer >= tick_rate and ticks_remaining > 0:
 			tick_timer = 0.0
 			# Damage applied via signal
 			ticks_remaining -= 1
-	
+
 	func _on_target_take_damage(_damager: Entity, _target: Entity, _amount: int) -> void:
 		pass  # Could modify damage or apply effects

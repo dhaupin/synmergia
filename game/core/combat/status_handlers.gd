@@ -26,7 +26,7 @@ func _init() -> void:
 
 func apply(target: Entity) -> void:
 	super.apply(target)
-	
+
 	# Store original speeds
 	if target is PlayerController:
 		_original_move_speed = target.move_speed
@@ -46,17 +46,17 @@ func _apply_speed_change(target: Entity) -> void:
 				target.move_speed = 0.0
 				target.sprint_speed = 0.0
 			target.stats.movement_speed_multiplier = 0.0
-		
+
 		SpeedType.SNARE:
 			# Snare is a specific slow that should cancel other snares
 			target.stats.movement_speed_multiplier = clamp(1.0 + speed_percent / 100.0, 0.0, 1.0)
-		
+
 		SpeedType.SLOW:
 			target.stats.movement_speed_multiplier = clamp(1.0 + speed_percent / 100.0, 0.1, 2.0)
-		
+
 		SpeedType.HASTE:
 			target.stats.movement_speed_multiplier = clamp(1.0 + speed_percent / 100.0, 0.1, 3.0)
-	
+
 	if flat_speed_change != 0.0 and target is PlayerController:
 		target.move_speed = max(0.5, _original_move_speed + flat_speed_change)
 
@@ -89,7 +89,7 @@ func _init() -> void:
 
 func apply(target: Entity) -> void:
 	super.apply(target)
-	
+
 	if target is PlayerController:
 		_was_visible = target.visible
 		_apply_stealth(target)
@@ -105,12 +105,12 @@ func _apply_stealth(target: Entity) -> void:
 			target.visible = false
 			target.collision_layer = 0  # Can't be hit
 			target.collision_mask = 0b0000100  # Only collides with world (not entities)
-		
+
 		StealthType.STEALTH:
 			target.visible = true  # Still visible but
 			target.collision_layer = 0b0000001  # Can be hit but not targeted
 			# Targeting logic would be handled by the enemy AI
-		
+
 		StealthType.VANISH:
 			target.visible = false
 			target.collision_layer = 0
@@ -254,15 +254,15 @@ func _on_tick() -> void:
 	if not is_active or not target or not is_instance_valid(target):
 		_stop_dot()
 		return
-	
+
 	_current_ticks += 1
-	
+
 	var actual_damage := _calculate_damage()
 	_apply_damage(target, actual_damage)
-	
+
 	if dot_type == DotType.MARK:
 		_mark_ready_to_detonate = true
-	
+
 	if _current_ticks >= total_ticks:
 		if detonate_damage > 0 and dot_type != DotType.MARK:
 			_apply_damage(target, detonate_damage)
@@ -273,7 +273,7 @@ func _calculate_damage() -> int:
 	var dmg := damage_per_tick
 	if stacks:
 		dmg *= _current_stacks
-	
+
 	match damage_type.to_lower():
 		"physical":
 			return target.take_damage(dmg)

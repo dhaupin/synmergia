@@ -117,7 +117,7 @@ func remove_item(slot: int, quantity: int = -1) -> Item:
 		if item.current_stack <= 0:
 			_inventory[slot] = null
 			item_removed.emit(item, slot)
-				
+
 	_update_weight(item, -1)
 	return item
 
@@ -194,7 +194,7 @@ func get_low_durability_items(threshold: float = 0.2) -> Array:
 ## Repair all equipped items (costs gold)
 func repair_all_equipped(gold_per_durability: float = 1.0) -> int:
 	var total_cost: int = 0
-	
+
 	for item in _equipment.values():
 		if item and item.max_durability > 0 and item.can_repair:
 			var missing: int = item.max_durability - item.current_durability
@@ -202,7 +202,7 @@ func repair_all_equipped(gold_per_durability: float = 1.0) -> int:
 				var cost: int = int(missing * gold_per_durability)
 				total_cost += cost
 				item.repair()
-	
+
 	return total_cost
 
 ## Repair specific equipped item
@@ -210,11 +210,11 @@ func repair_equipped_item(equip_slot: int, gold_per_durability: float = 1.0) -> 
 	var item: Item = _equipment.get(equip_slot)
 	if not item or item.max_durability <= 0 or not item.can_repair:
 		return 0
-	
+
 	var missing: int = item.max_durability - item.current_durability
 	if missing <= 0:
 		return 0
-	
+
 	var cost: int = int(missing * gold_per_durability)
 	item.repair()
 	return cost
@@ -251,10 +251,10 @@ func get_equipment_stats() -> Dictionary:
 	for item in _equipment.values():
 		if item == null:
 			continue
-								
+
 		# Use effective stats (0 if broken)
 		var effective_stats: Dictionary = item.get_effective_stats()
-								
+
 		for stat in effective_stats:
 			if not stats.has(stat):
 				stats[stat] = 0
@@ -387,15 +387,15 @@ func _update_weight(item: Item, direction: int = 1) -> void:
 ## Recalculate total weight from all items
 func recalculate_weight() -> void:
 	_current_weight = 0.0
-				
+
 	for item in _inventory:
 		if item:
 			_current_weight += item.weight * item.current_stack
-				
+
 	for item in _equipment.values():
 		if item:
 			_current_weight += item.weight * item.current_stack
-				
+
 	weight_changed.emit(_current_weight, _max_weight, is_encumbered())
 
 # ============ BAG EXPANSION ============

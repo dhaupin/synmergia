@@ -30,19 +30,19 @@ func connect(config: Dictionary) -> bool:
 	mcp_server_url = config.get("server_url", mcp_server_url)
 	access_token = config.get("access_token", access_token)
 	model = config.get("model", model)
-	
+
 	# Connect WebSocket
 	var url := "ws://%s/mcp" % mcp_server_url.replace("http://", "").replace("https://", "")
 	var result := await _ws_client.connect_to_url(url)
-	
+
 	if result != OK:
 		_set_status(ConnectorStatus.ERROR)
 		error_occurred.emit("Failed to connect to MCP server")
 		return false
-	
+
 	# Initialize MCP session
 	await _send_initialize()
-	
+
 	_set_status(ConnectorStatus.CONNECTED)
 	GameLog.info("MCPConnector: Connected to %s" % mcp_server_url)
 	return true
@@ -57,7 +57,7 @@ func disconnect() -> void:
 func send_observation(observation: Dictionary) -> void:
 	if not is_connected():
 		return
-	
+
 	var message: Dictionary = {
 		"jsonrpc": "2.0",
 		"method": "observation",
@@ -67,16 +67,16 @@ func send_observation(observation: Dictionary) -> void:
 			"observation_space": get_observation_space()
 		}
 	}
-	
+
 	_ws_client.send_text(JSON.stringify(message))
 
 ## Request action from MCP agent
 func request_action(prompt: String = "") -> void:
 	if not is_connected():
 		return
-	
+
 	var request_id := "req_%d" % Time.get_ticks_msec()
-	
+
 	var message: Dictionary = {
 		"jsonrpc": "2.0",
 		"id": request_id,
@@ -87,7 +87,7 @@ func request_action(prompt: String = "") -> void:
 			"action_space": get_action_space()
 		}
 	}
-	
+
 	_pending_requests[request_id] = Time.get_ticks_msec()
 	_ws_client.send_text(JSON.stringify(message))
 
@@ -108,7 +108,7 @@ func _send_initialize() -> void:
 			}
 		}
 	}
-	
+
 	_ws_client.send_text(JSON.stringify(message))
 
 func _on_ws_message(message: String) -> void:
@@ -116,15 +116,15 @@ func _on_ws_message(message: String) -> void:
 	var parse_result := json.parse(message)
 	if parse_result != OK:
 		return
-	
+
 	var data: Dictionary = json.get_data()
-	
+
 	# Handle response
 	if data.has("id"):
 		var req_id := str(data["id"])
 		if _pending_requests.has(req_id):
 			_pending_requests.erase(req_id)
-			
+
 			if data.has("result"):
 				var result: Dictionary = data["result"]
 				if result.has("action"):

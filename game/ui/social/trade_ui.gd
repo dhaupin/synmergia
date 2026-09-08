@@ -130,7 +130,7 @@ func _update_confirm_button() -> void:
 	var state := _my_confirmed
 	_confirm_btn.text = "✓ Confirmed" if state else "Confirm Trade"
 	_confirm_btn.disabled = state
-	
+
 	# Visual feedback for my confirmation
 	if _confirm_btn.has_theme_stylebox_override("normal"):
 		var style = _confirm_btn.get_theme_stylebox("normal") as StyleBoxFlat
@@ -166,7 +166,7 @@ func _update_confirm_visual() -> void:
 	var p2_conf := trade.get("player2_confirmed", false)
 	var my_conf := p1_conf if is_p1 else p2_conf
 	var their_conf := p2_conf if is_p1 else p1_conf
-	
+
 	if my_conf and their_conf:
 		_update_status("Both confirmed! Executing trade...")
 		_complete_trade()
@@ -364,23 +364,23 @@ func _update_status(message: String) -> void:
 func _refresh_items() -> void:
 	_initiator_items.clear()
 	_target_items.clear()
-	
+
 	if not TradeService or _trade_id.is_empty():
 		_initiator_items.add_item("(No items)")
 		_target_items.add_item("(No items)")
 		return
-	
+
 	var trade: Dictionary = TradeService.get_player_trade(_initiator_id)
 	if trade.is_empty():
 		_initiator_items.add_item("(No items)")
 		_target_items.add_item("(No items)")
 		return
-	
+
 	var items_key := "player1_items"
 	var their_key := "player2_items"
 	var my_items: Array = trade.get(items_key, [])
 	var their_items: Array = trade.get(their_key, [])
-	
+
 	if my_items.is_empty():
 		_initiator_items.add_item("(No items)")
 	else:
@@ -389,7 +389,7 @@ func _refresh_items() -> void:
 			var qty := item.get("quantity", 1)
 			var label := name if qty <= 1 else "%s x%d" % [name, qty]
 			_initiator_items.add_item(label)
-	
+
 	if their_items.is_empty():
 		_target_items.add_item("(No items)")
 	else:
@@ -404,7 +404,7 @@ func _on_add_item() -> void:
 	if _my_confirmed:
 		show_notification("Trade is locked. Unconfirm first.")
 		return
-	
+
 	if InventoryService and _trade_id:
 		var inv := InventoryService.get_inventory(_initiator_id)
 		if inv:
@@ -460,7 +460,7 @@ func _on_add_gold() -> void:
 	if _my_confirmed:
 		show_notification("Trade is locked. Unconfirm first.")
 		return
-	
+
 	var dialog := AcceptDialog.new()
 	dialog.dialog_text = "Enter gold amount:"
 	dialog.title = "Add Gold"

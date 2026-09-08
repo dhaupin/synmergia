@@ -27,32 +27,32 @@ func _ready() -> void:
 func add_buff(buff: Buff, source: Entity = null) -> bool:
 	if buff == null:
 		return false
-	
+
 	# Check max buffs
 	if _active_buffs.size() >= max_buffs:
 		# Remove oldest buff
 		remove_buff(_active_buffs[0])
-	
+
 	# Set source if not set
 	if buff.source == null and source != null:
 		buff.source = source
-	
+
 	_active_buffs.append(buff)
-	
+
 	buff.apply(get_parent())
 	buff_added.emit(buff)
 	EventHub.buff_applied.emit(get_parent(), buff, source)
-	
+
 	return true
 
 ## Remove a buff
 func remove_buff(buff: Buff) -> void:
 	if not _active_buffs.has(buff):
 		return
-	
+
 	buff.remove()
 	_active_buffs.erase(buff)
-	
+
 	buff_removed.emit(buff)
 	EventHub.buff_removed.emit(get_parent(), buff)
 
@@ -60,32 +60,32 @@ func remove_buff(buff: Buff) -> void:
 func add_debuff(debuff: StatusEffect, source: Entity = null) -> bool:
 	if debuff == null:
 		return false
-	
+
 	# Check max debuffs
 	if _active_debuffs.size() >= max_debuffs:
 		# Remove oldest debuff
 		remove_debuff(_active_debuffs[0])
-	
+
 	# Set source if not set
 	if debuff.source == null and source != null:
 		debuff.source = source
-	
+
 	_active_debuffs.append(debuff)
-	
+
 	debuff.apply(get_parent())
 	debuff_added.emit(debuff)
 	EventHub.debuff_applied.emit(get_parent(), debuff, source)
-	
+
 	return true
 
 ## Remove a debuff
 func remove_debuff(debuff: StatusEffect) -> void:
 	if not _active_debuffs.has(debuff):
 		return
-	
+
 	debuff.remove()
 	_active_debuffs.erase(debuff)
-	
+
 	debuff_removed.emit(debuff)
 	EventHub.buff_removed.emit(get_parent(), debuff)
 
@@ -93,26 +93,26 @@ func remove_debuff(debuff: StatusEffect) -> void:
 func add_aura(aura: AuraBuff, source: Entity = null) -> bool:
 	if not aura:
 		return false
-	
+
 	if aura.source == null and source != null:
 		aura.source = source
-	
+
 	_active_auras.append(aura)
-	
+
 	aura.apply(get_parent())
 	aura_activated.emit(aura)
 	EventHub.aura_activated.emit(get_parent(), aura)
-	
+
 	return true
 
 ## Remove an aura
 func remove_aura(aura: AuraBuff) -> void:
 	if not _active_auras.has(aura):
 		return
-	
+
 	aura.remove()
 	_active_auras.erase(aura)
-	
+
 	aura_deactivated.emit(aura)
 	EventHub.aura_deactivated.emit(get_parent(), aura)
 
@@ -162,31 +162,31 @@ func get_all_auras() -> Array[AuraBuff]:
 func dispel_buffs(category: String) -> int:
 	var removed := 0
 	var buffs_to_remove := []
-	
+
 	for buff in _active_buffs:
 		var cat_enum := _get_category_enum(category)
 		if cat_enum >= 0 and buff.effect_category == cat_enum:
 			buffs_to_remove.append(buff)
-	
+
 	for buff in buffs_to_remove:
 		remove_buff(buff)
 		removed += 1
-	
+
 	return removed
 
 ## Dispel debuffs by category
 func dispel_debuffs(category: String) -> int:
 	var removed := 0
 	var debuffs_to_remove := []
-	
+
 	for debuff in _active_debuffs:
 		if debuff.effect_category == category:
 			debuffs_to_remove.append(debuff)
-	
+
 	for debuff in debuffs_to_remove:
 		remove_debuff(debuff)
 		removed += 1
-	
+
 	return removed
 
 ## Clear all buffs
@@ -205,7 +205,7 @@ func clear_debuffs() -> void:
 func clear_all() -> void:
 	clear_buffs()
 	clear_debuffs()
-	
+
 	var auras := _active_auras.duplicate()
 	for aura in auras:
 		remove_aura(aura)
@@ -213,13 +213,13 @@ func clear_all() -> void:
 ## Get stat modifiers from all active buffs
 func get_stat_modifiers() -> Dictionary:
 	var modifiers: Dictionary = {}
-	
+
 	for buff in _active_buffs:
 		for stat in buff.stat_modifiers:
 			if not modifiers.has(stat):
 				modifiers[stat] = 0
 			modifiers[stat] += buff.stat_modifiers[stat]
-	
+
 	return modifiers
 
 ## Process physics (for DOTs, etc.)
@@ -273,7 +273,7 @@ func cleanse(caster: Entity = null) -> int:
 ## Internal dispel by categories
 func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
 	var dispelled := 0
-	
+
 	# Check debuffs
 	for debuff in _active_debuffs:
 		if _can_dispel_effect(debuff, categories):
@@ -281,21 +281,21 @@ func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
 				remove_debuff(debuff)
 				dispelled += 1
 				EventHub.effect_dispelled.emit(get_parent(), debuff, caster)
-	
+
 	# Check auras (some auras are dispellable)
 	for aura in _active_auras:
 		if aura.is_dispellable and _matches_category(aura.effect_category, categories):
 			remove_aura(aura)
 			dispelled += 1
 			EventHub.aura_dispelled.emit(get_parent(), aura, caster)
-	
+
 	return dispelled
 
 ## Check if effect can be dispelled by categories
 func _can_dispel_effect(effect: StatusEffect, categories: Array[int]) -> bool:
 	if not effect.is_dispellable:
 		return false
-	
+
 	return _matches_category(effect.category, categories)
 
 ## Check if effect category matches
@@ -304,7 +304,7 @@ func _matches_category(effect_category: int, dispel_categories: Array[int]) -> b
 	var special_categories := [StatusEffect.EffectCategory.BLEED, StatusEffect.EffectCategory.STUN, StatusEffect.EffectCategory.FEAR, StatusEffect.EffectCategory.CHARM]
 	if special_categories.has(effect_category):
 		return dispel_categories.has(effect_category)
-	
+
 	# Magic, curse, poison are general dispel targets
 	return dispel_categories.has(StatusEffect.EffectCategory.MAGIC) or dispel_categories.has(effect_category)
 
@@ -312,11 +312,11 @@ func _matches_category(effect_category: int, dispel_categories: Array[int]) -> b
 func _check_dispel_resist(effect: StatusEffect, caster: Entity) -> bool:
 	if caster == null:
 		return true  # No resist if no caster
-	
+
 	# Boss effects might resist
 	if effect. dispel_resist_chance > 0:
 		return randf() > effect.dispel_resist_chance
-	
+
 	return true
 
 ## Check if entity has specific category of effects
@@ -337,7 +337,7 @@ func get_effects_by_category(category: int) -> Array[StatusEffect]:
 ## Get dispel info for UI
 func get_dispel_info() -> Dictionary:
 	var categories: Dictionary = {}
-	
+
 	for debuff in _active_debuffs:
 		var cat_name := StatusEffect.EffectCategory.keys()[debuff.effect_category]
 		if not categories.has(cat_name):
@@ -347,7 +347,7 @@ func get_dispel_info() -> Dictionary:
 			"dispellable": debuff.is_dispellable,
 			"duration": debuff.get_remaining_duration() if "duration_remaining" in debuff else -1
 		})
-	
+
 	return {
 		"debuff_count": _active_debuffs.size(),
 		"categories": categories
