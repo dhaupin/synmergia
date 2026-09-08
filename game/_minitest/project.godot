@@ -1,7 +1,0 @@
-[application]
-config/name="Min"
-config/features=PackedStringArray("4.7","Forward Plus")
-
-[autoload]
-First="*res://autoloads/a.gd"
-Second="*res://autoloads/b.gd"

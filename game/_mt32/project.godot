@@ -1,5 +1,5 @@
 [application]
-config/name="Min3"
+config/name="Min32"
 config/features=PackedStringArray("4.7","Forward Plus")
 
 [autoload]
