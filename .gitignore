@@ -34,3 +34,8 @@ tools/
 # captures/
 
 .kilo-godot/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
