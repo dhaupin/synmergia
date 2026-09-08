@@ -11,10 +11,14 @@ var _tooltip = null
 var _initialized: bool = false
 
 func _ready() -> void:
-	# Connect to game state changes
-	if GameManager:
+	# Connect to game state changes. GameManager may not be ready yet
+	# (autoload ordering); guard each access so a missing singleton
+	# does not abort _ready.
+	if GameManager and GameManager.has_method("game_started"):
 		GameManager.game_started.connect(_on_game_started)
+	if GameManager and GameManager.has_method("game_ended"):
 		GameManager.game_ended.connect(_on_game_ended)
+	if GameManager and GameManager.has_method("game_state_changed"):
 		GameManager.game_state_changed.connect(_on_game_state_changed)
 
 func _on_game_state_changed(state: GameManager.GameState) -> void:
