@@ -12,6 +12,12 @@
 ##  - Login attempts are rate-limited through QoSService to mitigate
 ##    brute force (5 attempts / 10s / account).
 ##  - Display names flow through SecurityService.validate_player_name.
+extends Node
+
+# QoSService exposes a static facade (QoSService.rate_limit(...)), so a
+# const preload here resolves to the class and the static methods still
+# dispatch to the singleton at runtime -- no shadow.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 ##
 ## This is the client-side gate. Server should always re-validate.
 extends Node

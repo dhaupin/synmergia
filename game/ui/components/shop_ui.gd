@@ -14,6 +14,16 @@ static var _instance: ShopUI = null
 static func singleton() -> ShopUI:
 	return _instance
 
+## Open the shop by offering ref_id (e.g. "vendor_general").
+## DialogService calls ShopUI.open_shop(shop_id); this facade loads
+## the offering resource and forwards to open_for_offering().
+static func open_shop(shop_id: String, player_id: String = "") -> void:
+	var offering := load("res://data/npc_offerings/%s.tres" % shop_id) as NPCOffering
+	if offering == null:
+		push_warning("ShopUI.open_shop: no offering at res://data/npc_offerings/%s.tres" % shop_id)
+		return
+	open_for_offering(player_id, offering, null, Vector3.ZERO)
+
 ## Session state
 var _offering: Resource = null
 var _npc_data: Resource = null

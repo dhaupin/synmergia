@@ -14,13 +14,8 @@ class_name QoSService
 # the kind enum and a dedupe key.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
-## Defensive helper - get NotificationService safely (may not be available at compile time)
-func _get_notification_service():
-	var root = get_tree().root if has_node("/root") else null
-	if root:
-		return root.get_node_or_null("NotificationService")
-	return null
-
+## ============================================================================
+## SIGNALS
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================

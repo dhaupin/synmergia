@@ -4,8 +4,15 @@
 extends "res://ui/components/ui_panel.gd"
 class_name ReportDialog
 
+# SecurityService is an autoload singleton. It is accessed bare so
+# the singleton instance is used -- preloading it here would shadow
+# the singleton and make SecurityService.validate_message(...) resolve
+# to the class (non-static method), which the parser rejects.
+#
+# UIPanel is also preloaded here because the base class is referenced
+# by name in this file's body; the string-path extends above already
+# loads it at parse time, so this const is redundant but harmless.
 const UIPanel = preload("res://ui/components/ui_panel.gd")
-const SecurityService = preload("res://core/services/security_service.gd")
 enum ReportType {
 	PLAYER_ABUSE = 0,
 	BUG = 1,
