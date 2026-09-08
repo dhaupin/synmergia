@@ -447,6 +447,108 @@ created by pushing `adapter-layer` to `labs/db`. Rebasing
 onto main at this time was not attempted because main is
 being rewritten (510-commit rebase in progress when we tried).
 
+## 2026-09-08 — seventh session (redis-bridge + test wiring)
+
+**Branch:** `kilo/festive-ribbon-wav`
+**Pushed:** no (local-only; waiting on parallel agent per prior note)
+
+### Goal
+The previous session left `srv/redis-bridge/` as a README-only
+shell. `RedisStore` (game/adapters/cache/redis_store.gd) is a
+complete HTTP client but had nothing to talk to. Build the
+sidecar, pin the wire protocol, and wire the test flow so the
+adapter contract is verifiable end-to-end.
+
+### What got built
+
+1. **`srv/redis-bridge/` sidecar** (mirrors `srv/pg-bridge/` shape):
+   - `backends.py` -- `CacheBackend` ABC + `InMemoryBackend` (stdlib,
+     thread-locked, real TTL via `time.time()`) + `RedisBackend`
+     (redis-py, lazy-imported) + `build_backend()` factory.
+   - `server.py` -- `ThreadingHTTPServer` handler exposing every route
+     `RedisStore` calls: `/health /get /set /set_nx /del /exists
+     /expire /incr /incr_with_ttl /hset /hget /hget_all /hdel /sadd
+     /srem /smembers /sismember /lpush /rpush /lpop /lrange /llen
+     /publish`.
+   - `main.py` -- entry point, env-driven (`REDIS_BACKEND`,
+     `REDIS_BRIDGE_HOST/PORT`).
+
+2. **Contract fix.** `RedisStore` reads `resp.get("ok")` for
+   `sadd`/`srem`/`lpop`/`publish` (via `_ok_or_err`), but the first
+   cut of the bridge returned only the specific key. Added `"ok":
+   True` to those four responses. Verified against `redis_store.gd`
+   line-by-line.
+
+3. **`srv/redis-bridge/test_redis_bridge.py`** -- 20 checks:
+   - 14 wire-protocol checks (`TestRedisBridge`)
+   - 4 `TestRedisStoreContract` mirroring the exact HTTP sequence
+     `RedisStore.gd` uses (session token lifecycle, rate-limit counter
+     pipeline, online-status hash)
+   - 2 `TestPgRedisEndToEnd` booting BOTH bridges on ephemeral ports
+     and proving the AccountService -> Postgres + LoginService ->
+     Redis vertical slice from prd-db.md sec.10 step 5.
+
+   The e2e test loads `test_pg_bridge` by file path with module-name
+   caching cleared, because both sidecars define `server`/`backends`
+   and a bare import silently bound the pg harness to redis-bridge's
+   modules (404s on /execute and /query). That bug cost a couple of
+   debugging rounds -- worth remembering for the next sidecar.
+
+4. **`srv/docker/test-headless.sh`** -- runs both bridge suites before
+   the Godot smoke tests and gates the whole exit code on them.
+   Path math fixed: `SCRIPT_DIR` is `srv/docker`, so repo root is
+   two levels up, and `TESTS` entries are `res://` paths relative to
+   `game/`.
+
+5. **`srv/docker/entrypoint.sh`** -- `START_MODE=test` now starts both
+   bridges (in-memory backends) with a cleanup trap, runs the bridge
+   unit tests, then runs the Godot smoke tests.
+
+6. **`labs/prd-db.md`** -- sec.7.2 rewritten to reflect the real wire
+   protocol + backend table + test file; sec.10.1 marked IMPLEMENTED;
+   sec.9.2 migration-hold note updated (V20260907_001 is written and
+   tested, not deferred).
+
+### Verification
+
+| Suite | Result |
+|-------|--------|
+| `srv/pg-bridge/test_pg_bridge.py` | 12/12 PASS |
+| `srv/redis-bridge/test_redis_bridge.py` | 20/20 PASS |
+| `srv/docker/test-headless.sh` (fake godot) | bridge suites PASS, 6/6 smoke PASS, exit 0 |
+| `bash -n` on both docker scripts | clean |
+
+### Files changed (10)
+
+```
+srv/redis-bridge/backends.py             | new, ~280 lines
+srv/redis-bridge/server.py               | new, ~180 lines
+srv/redis-bridge/main.py                 | new, ~55 lines
+srv/redis-bridge/test_redis_bridge.py    | new, ~340 lines
+srv/docker/entrypoint.sh                 | +bridge startup/cleanup/test
+srv/docker/test-headless.sh              | +bridge suite runner, path fixes
+labs/prd-db.md                           | sec.7.2, sec.9.2, sec.10.1 updates
+labs/TASKS.md                            | this log
+```
+
+### Open follow-ups (cumulative)
+
+- [ ] Godot not installed in this sandbox -- `test-headless.sh`
+      bridge portion is verified, the Godot smoke portion is not.
+      Needs a Godot binary or the Docker image.
+- [ ] Fix autoloads blocking --script mode (game_manager,
+      network_manager, player_lock_service, blacksmith_ui,
+      skill_academy_ui, achievement_service) -- pre-existing, blocks
+      ALL smoke tests including the adapter integration test.
+- [ ] Wire the real `RedisStore` against a live redis-bridge
+      (currently a skeleton that pushes errors). Same for
+      `PostgresStore` + pg-bridge.
+- [ ] 130 .gd files with trailing whitespace -- bulk sweep
+- [ ] 56 non-ASCII files (em-dash, arrow) -- bulk
+- [ ] Hook linters into the smoke flow (`tests/lint/run_all.sh`)
+- [ ] Lock DB schemas (prd-db.md sec.3) before writing
+      `V20260907_002__init_inventory.sql`
+
 ## 2026-09-07 — fourth session (lint + linter-bug chipping)
 
 **Branch:** `adapter-layer` -> `labs/db`

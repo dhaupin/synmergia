@@ -23,8 +23,33 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# SCRIPT_DIR is srv/docker; the repo root is two levels up.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The Godot project lives in game/; smoke tests are res://tests/*.gd
+# relative to that directory.
+GAME_ROOT="$PROJECT_ROOT/game"
 GODOT="${GODOT:-godot}"
+
+# ---------------------------------------------------------------------------
+# Sidecar unit tests (stdlib-only; no Godot needed). These exercise the
+# HTTP bridge contract that Godot's adapter layer speaks.
+# ---------------------------------------------------------------------------
+run_bridge_tests() {
+    local name="$1"
+    local test_file="$2"
+    echo -e "\n${YELLOW}Running bridge tests: $name${NC}"
+    local output
+    output="$(python3 "$PROJECT_ROOT/$test_file" 2>&1)" || {
+        echo "$output" | sed 's/^/  /'
+        echo -e "  ${RED}✗ FAILED: $name${NC}"
+        return 1
+    }
+    local passed
+    passed=$(echo "$output" | grep -cE '^Ran [0-9]+ tests' || true)
+    echo "$output" | grep -E '^(OK|FAIL)' | sed 's/^/  /'
+    echo -e "  ${GREEN}✓ PASSED: $name${NC}"
+    return 0
+}
 
 # Colour codes
 RED='\033[0;31m'
@@ -89,7 +114,7 @@ run_test() {
 
     # Capture both stdout and stderr; Godot --script prints to stderr sometimes
     output=$(
-        "$GODOT" --headless --path "$PROJECT_ROOT/game" \
+        "$GODOT" --headless --path "$GAME_ROOT" \
             --script "$test_path" 2>&1
     ) || exit_code=$?
 
@@ -132,10 +157,25 @@ echo " Filter:   ${TEST_FILTER:-none}"
 echo "=============================================="
 echo ""
 
-# Check test files exist
+# ---------------------------------------------------------------------------
+# Bridge sidecar tests (stdlib-only; no Godot needed). These exercise the
+# HTTP contract that Godot's adapter layer speaks, so they run first and
+# gate the whole suite.
+# ---------------------------------------------------------------------------
+BRIDGE_FAIL=0
+if ! run_bridge_tests "pg-bridge" "srv/pg-bridge/test_pg_bridge.py"; then
+    BRIDGE_FAIL=1
+fi
+if ! run_bridge_tests "redis-bridge" "srv/redis-bridge/test_redis_bridge.py"; then
+    BRIDGE_FAIL=1
+fi
+
+# Check test files exist. TESTS entries are res:// paths relative to the
+# Godot project; strip the res:// prefix for the filesystem check.
 for test_path in "${TESTS[@]}"; do
-    if [[ ! -f "$PROJECT_ROOT/$test_path" ]]; then
-        echo -e "${RED}Error: test file not found: $test_path${NC}"
+    local_path="${test_path#res://}"
+    if [[ ! -f "$GAME_ROOT/$local_path" ]]; then
+        echo -e "${RED}Error: test file not found: $GAME_ROOT/$local_path${NC}"
         exit 2
     fi
 done
@@ -150,9 +190,10 @@ echo " Results"
 echo "=============================================="
 echo -e "  Passed: ${GREEN}$TOTAL_PASS${NC}"
 echo -e "  Failed: ${RED}$TOTAL_FAIL${NC}"
+echo -e "  Bridge failures: ${RED}$BRIDGE_FAIL${NC}"
 echo ""
 
-if [[ $TOTAL_FAIL -gt 0 ]]; then
+if [[ $TOTAL_FAIL -gt 0 ]] || [[ $BRIDGE_FAIL -gt 0 ]]; then
     echo -e "${RED}Failed tests:${NC}"
     for t in "${FAILED_TESTS[@]}"; do
         echo -e "  ${RED}✗ $t${NC}"
