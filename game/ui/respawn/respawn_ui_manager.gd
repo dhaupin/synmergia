@@ -8,13 +8,16 @@ var _pending_respawn: Dictionary = {}
 
 func _ready() -> void:
 	# Listen for player death events specifically
-	EventHub.player_died.connect(_on_player_died)
+	if EventHub:
+		EventHub.player_died.connect(_on_player_died)
 	# Close the respawn UI when respawn actually completes.
-	RespawnService.respawn_completed.connect(_on_respawn_completed)
-	# Also close on cancellation or revive completion.
-	RespawnService.respawn_canceled.connect(_on_respawn_canceled)
-	RespawnService.revive_completed.connect(_on_respawn_completed)
-	GameLog.info("RespawnUIManager: Initialized")
+	# RespawnService may not be ready yet (autoload ordering), so guard
+	# it -- accessing .respawn_completed on a null instance crashes.
+	if RespawnService:
+		RespawnService.respawn_completed.connect(_on_respawn_completed)
+		RespawnService.respawn_canceled.connect(_on_respawn_canceled)
+		RespawnService.revive_completed.connect(_on_respawn_completed)
+ GameLog.info("RespawnUIManager: Initialized")
 
 func _on_player_died(entity, killer) -> void:
 	_show_respawn_ui(entity)

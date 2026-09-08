@@ -107,9 +107,9 @@ var _player_waypoints: Dictionary = {}
 # Active/target waypoint per player
 var _active_waypoint: Dictionary = {}
 
-# Config
-const MAX_WAYPOINTS_PER_PLAYER: int = 50
-const MAX_WAYPOINT_NAME_LENGTH: int = 32
+# Config (BEACON_HEIGHT_OFFSET and WAYPOINT_RANGE_COMPLETE are
+# defined here, not in the block above, because that block is the
+# "public" constants and these are internal tuning values.)
 const BEACON_HEIGHT_OFFSET: float = 50.0  # Height above waypoint for beacon
 const WAYPOINT_RANGE_COMPLETE: float = 5.0  # Distance to complete waypoint
 
