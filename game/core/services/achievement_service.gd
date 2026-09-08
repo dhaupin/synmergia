@@ -18,10 +18,10 @@ func _ready() -> void:
 
 func _load_achievement_definitions() -> void:
 	if DataService and DataService.has_method("get_all_achievements"):
-			_achievement_defs = DataService.get_all_achievements()
-			GameLog.info("AchievementService: Loaded %d achievements from DataService" % _achievement_defs.size())
+		_achievement_defs = DataService.get_all_achievements()
+		GameLog.info("AchievementService: Loaded %d achievements from DataService" % _achievement_defs.size())
 	else:
-			GameLog.warn("AchievementService: DataService not available, achievements will not load")
+		GameLog.warn("AchievementService: DataService not available, achievements will not load")
 
 ## ============================================================================
 ## PUBLIC API

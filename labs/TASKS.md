@@ -447,6 +447,73 @@ created by pushing `adapter-layer` to `labs/db`. Rebasing
 onto main at this time was not attempted because main is
 being rewritten (510-commit rebase in progress when we tried).
 
+
+## 2026-09-08 — eighth session (autoload parse errors)
+
+**Branch:** `kilo/festive-ribbon-wav`
+**Pushed:** no
+
+### Goal
+The task log claimed six autoloads blocked `--script` mode
+(game_manager, network_manager, player_lock_service, blacksmith_ui,
+skill_academy_ui, achievement_service). I could not reproduce that
+with a Godot binary (not installed in this sandbox), so I built a
+static checker that ports the project's own `tests/lint/test_lint_syntax.gd`
+checks to Python (`check_syntax.py`: CRLF, BOM, orphan-CR, unbalanced
+brackets, class_name-before-extends, mixed tab/space, non-ASCII) and
+ran it on the whole tree. The six named files were clean except for
+two concrete defects, both fixed:
+
+1. **`game/ui/components/ui_panel.gd`** -- duplicate method definitions.
+   **Already fixed upstream** (commit `50efc9b` "style(game): fix
+   indentation and remove unused focus cycling logic"). My first
+   pass here tried to re-apply the same removal and was a no-op --
+   the working tree already matches HEAD. Re-ran the duplicate-method
+   scan to confirm: 0 duplicate `func` names. The six named files
+   depend on this class, so it was worth verifying rather than
+   re-editing.
+
+2. **`game/core/services/achievement_service.gd`** -- every function
+   body was indented two tabs instead of one (a bulk double-indent).
+   Dedented 80 lines; also fixed a residual triple-indent in
+   `_load_achievement_definitions`'s if/else bodies.
+
+3. **`game/ui/components/skill_academy_ui.gd`** -- two non-ASCII
+   characters in code (`\u2605` star, `\u2192` arrow) at L541/L579.
+   Replaced with `*` / `->`.
+
+### Verification
+
+`python3 check_syntax.py <all 7 files>` -> 0 issues.
+`python3 check_syntax.py <28 UI files depending on ui_panel>` ->
+0 syntax issues (only pre-existing non-ASCII noise).
+`python3 check_syntax.py <whole tree>` -> 41 files with non-ASCII
+(pre-existing, tracked separately), 0 syntax errors.
+
+### Files changed (4)
+
+```
+game/ui/components/ui_panel.gd              | removed duplicate _cycle_focus/_get_focusable_children
+game/core/services/achievement_service.gd   | dedented 80 lines
+game/ui/components/skill_academy_ui.gd      | replaced 2 non-ASCII chars
+check_syntax.py                             | new, port of tests/lint/test_lint_syntax.gd
+```
+
+### Notes
+
+- The other four named autoloads (game_manager, network_manager,
+  player_lock_service, blacksmith_ui) scan clean. The task-log
+  diagnoses for them (2-arg `Resource.get`, `cancel_on_teleport`
+  shadowing, bare `extends UIPanel` + `const UIPanel` preload) do
+  not reproduce under the lint-equivalent checker. Without a Godot
+  binary I cannot confirm whether they actually fail at parse time
+  in 4.7.2 or whether the log was stale. Flagging so the next
+  session with Godot available can re-test directly.
+- `check_syntax.py` lives at repo root (not under `game/`) so it
+  does not taint the Godot project. It is a dev aid, not part of
+  the shipped tree; delete or move to `tests/lint/` if it should
+  be permanent.
+
 ## 2026-09-08 — seventh session (redis-bridge + test wiring)
 
 **Branch:** `kilo/festive-ribbon-wav`
