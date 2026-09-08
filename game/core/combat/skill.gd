@@ -4,6 +4,10 @@ extends Resource
 class_name Skill
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
+# Entity is not an autoload (class_name only). Several method
+# signatures here use `: Entity`, which requires Entity's class_name
+# to be registered at parse time. Preloading it here guarantees that.
+const Entity = preload("res://core/entities/entity.gd")
 
 
 enum SkillType {

@@ -4,6 +4,12 @@ extends Node
 
 const Skill = preload("res://core/combat/skill.gd")
 const StatusEffect = preload("res://core/entities/status_effect.gd")
+# Entity is not an autoload (class_name only). The signal and
+# method signatures here use `: Entity`, which requires Entity's
+# class_name to be registered at parse time. Preloading it here
+# guarantees that -- same idiom as the 27-call workaround before
+# the autoload was removed.
+const Entity = preload("res://core/entities/entity.gd")
 signal skill_executed(caster: Entity, skill: Skill, targets: Array)
 signal skill_hit(caster: Entity, target: Entity, skill: Skill, damage: int)
 signal skill_missed(caster: Entity, skill: Skill)

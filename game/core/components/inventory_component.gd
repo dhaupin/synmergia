@@ -3,6 +3,10 @@
 extends Node
 class_name InventoryComponent
 const Item = preload("res://core/schemas/item.gd")
+# Entity is not an autoload (class_name only). `var entity: Entity`
+# in _get_item_owner() needs Entity's class_name registered at parse
+# time, so preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 
 
 signal item_added(item: Item, slot: int)

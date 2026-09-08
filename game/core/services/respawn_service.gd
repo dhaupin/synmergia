@@ -4,6 +4,14 @@ extends Node
 
 
 const Ankh = preload("res://core/schemas/ankh.gd")
+# Entity is not an autoload (it has class_name Entity, see
+# project.godot). RespawnService uses `: Entity` type annotations in
+# several method signatures, which require Entity's class_name to be
+# registered at parse time. Preloading it here guarantees that --
+# the same idiom the 27-call workaround used before the autoload
+# was removed. No shadow: Entity is a class_name, not an autoload
+# identifier, so the const and the class_name are the same script.
+const Entity = preload("res://core/entities/entity.gd")
 signal respawn_initiated(player, mode: RespawnMode, data: Dictionary)
 signal respawn_completed(player, respawn_point: Vector3)
 signal respawn_canceled(player, reason: String)
