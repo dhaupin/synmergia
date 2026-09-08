@@ -3,6 +3,15 @@
 ## Used for: Group play assistance, NPC quest followers, Mounts, etc.
 extends Node
 
+## Resolve CooldownService autoload safely.
+func _cooldown():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("CooldownService")
+
 # QoSService exposes a static facade (QoSService.rate_limit(...)), so a
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
@@ -69,7 +78,7 @@ func request_follow(follower_id: String, target_id: String) -> bool:
 		return false
 	
 	# Cooldown check
-	if CooldownService and not CooldownService.try_start(follower_id, "follow_request"):
+	if _cooldown() and not _cooldown().try_start(follower_id, "follow_request"):
 		return false
 	
 	# Security: Cannot follow self

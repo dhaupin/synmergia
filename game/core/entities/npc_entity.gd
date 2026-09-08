@@ -14,6 +14,7 @@ const NPCOffering = preload("res://core/schemas/npc_offering.gd")
 # dialog_service, and dialog_service no longer preloads
 # menu_manager (it loads it lazily at the call site).
 const MenuManager = preload("res://ui/components/menu_manager.gd")
+const ShopUI = preload("res://ui/components/shop_ui.gd")
 
 ## Set by SpawnService when the entity is placed
 var npc_data: NPCData = null

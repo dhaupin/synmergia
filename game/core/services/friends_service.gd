@@ -1,6 +1,15 @@
 ## FriendsService - Friends, block, and ignore list management
 # FriendsService - registered as autoload
 extends Node
+
+## Resolve CooldownService autoload safely.
+func _cooldown():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## ============================================================================
@@ -87,7 +96,7 @@ func _ready() -> void:
 
 func _check_rate_limit(player_id: String, action_type: String) -> Dictionary:
 	# Use CooldownService for unified cooldown management
-	if CooldownService and not CooldownService.try_start(player_id, action_type):
+	if _cooldown() and not _cooldown().try_start(player_id, action_type):
 		return {"success": false, "message": "Action on cooldown. Please slow down."}
 	
 	# Check via QoSService if available

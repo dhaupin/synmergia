@@ -10,13 +10,12 @@
 ## Restock: triggered when player closes shop (restock_trigger == "close").
 ## Location modifiers come from NPCData.location_type.
 extends Node
-class_name VendorService
 
 ## Singleton instance
-static var _instance: VendorService = null
-static func singleton() -> VendorService:
+static var _instance = null
+static func singleton():
 	if _instance == null:
-		_instance = VendorService.new()
+		_instance = load("res://core/services/vendor_service.gd").new()
 		_instance._ready()
 	return _instance
 

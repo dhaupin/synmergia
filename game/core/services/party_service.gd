@@ -1,6 +1,15 @@
 ## PartyService - Party management
 ## Handles party creation, invites, member management, loot rules, and XP sharing
 extends Node
+
+## Resolve CooldownService autoload safely.
+func _cooldown():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
@@ -111,7 +120,7 @@ func disband_party(party_id: String) -> bool:
 ## Invite a player to party
 func invite_player(from_id: String, to_id: String) -> bool:
 		# Use CooldownService for unified cooldown management
-	if CooldownService and not CooldownService.try_start(from_id, "party_invite"):
+	if _cooldown() and not _cooldown().try_start(from_id, "party_invite"):
 		return false
 				
 		# Security: Check if player is party restricted

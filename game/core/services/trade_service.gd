@@ -1,6 +1,15 @@
 ## TradeService - Player-to-player trading
 ## Handles trade requests, windows, confirmations, and completion
 extends Node
+
+## Resolve CooldownService autoload safely.
+func _cooldown():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const Item = preload("res://core/schemas/item.gd")
@@ -106,7 +115,7 @@ func _check_trade_ranges() -> void:
 ## Request a trade
 func request_trade(from_id: String, to_id: String) -> bool:
 	# Use CooldownService for unified cooldown management
-	if CooldownService and not CooldownService.try_start(from_id, "trade"):
+	if _cooldown() and not _cooldown().try_start(from_id, "trade"):
 		return false
 	
 	# Security: Check if player is trade restricted
@@ -447,10 +456,10 @@ func _complete_trade(trade_id: String) -> bool:
 		_log_trade(player1, player2, player1_items, player2_items, player1_gold, player2_gold)
 
 		# Set cooldowns
-		if CooldownService:
-				CooldownService.start_cooldown(player1, "trade")
-		if CooldownService:
-				CooldownService.start_cooldown(player2, "trade")
+		if _cooldown():
+				_cooldown().start_cooldown(player1, "trade")
+		if _cooldown():
+				_cooldown().start_cooldown(player2, "trade")
 
 		trade_completed.emit(trade_id, trades)
 		GameLog.info("TradeService: Trade %s completed" % trade_id)
@@ -528,7 +537,7 @@ func _get_entity_position(entity_id: String) -> Vector3:
 
 ## Check if player is in range of their trade partner
 func is_in_trade_range(player_id: String) -> bool:
-	var trade_id := _players_in_trade.get(player_id, "")
+	var trade_id: String = _players_in_trade.get(player_id, "")
 	if trade_id.is_empty():
 		return false
 	var trade: Dictionary = _active_trades.get(trade_id, {})
@@ -551,7 +560,7 @@ func get_lock_reason(player_id: String) -> String:
 
 ## Force cancel trade and unlock players (for death, teleport, out-of-range)
 func force_cancel_trade(player_id: String, reason: String) -> void:
-	var trade_id := _players_in_trade.get(player_id, "")
+	var trade_id: String = _players_in_trade.get(player_id, "")
 	if trade_id.is_empty():
 		return
 	
@@ -765,14 +774,14 @@ func cancel_confirmation_countdown(trade_id: String, player_id: String) -> bool:
 
 ## Check if player can trade (delegates to CooldownService)
 func can_trade(player_id: String) -> bool:
-	if CooldownService:
-		return not CooldownService.is_on_cooldown(player_id, "trade")
+	if _cooldown():
+		return not _cooldown().is_on_cooldown(player_id, "trade")
 	return true
 
 ## Get cooldown remaining (delegates to CooldownService)
 func get_cooldown_remaining(player_id: String) -> float:
-	if CooldownService:
-		return CooldownService.get_remaining(player_id, "trade")
+	if _cooldown():
+		return _cooldown().get_remaining(player_id, "trade")
 	return 0.0
 
 # ============ TRADE WINDOW UI HELPERS ============

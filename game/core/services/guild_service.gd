@@ -1,6 +1,15 @@
 ## GuildService - Guild management
 ## Handles guild creation, roster, ranks, permissions, alliances, and guild vs guild
 extends Node
+
+## Resolve CooldownService autoload safely.
+func _cooldown():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
@@ -199,7 +208,7 @@ func disband_guild(leader_id: String) -> bool:
 ## Invite player to guild
 func invite_player(inviter_id: String, target_id: String) -> bool:
 		# Use CooldownService for unified cooldown management
-	if CooldownService and not CooldownService.try_start(inviter_id, "guild_invite"):
+	if _cooldown() and not _cooldown().try_start(inviter_id, "guild_invite"):
 		return false
 				
 		# Security: Check if player is guild restricted
