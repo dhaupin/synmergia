@@ -112,6 +112,32 @@ docker compose --profile prod run --rm certbot
 
 ---
 
+## 2a. Bridge Sidecars
+
+The Godot client never talks to PostgreSQL or Redis directly. Instead it
+hits two local HTTP sidecars that live inside the main container:
+
+| Sidecar | Port | Backends | Purpose |
+|---------|------|----------|---------|
+| `pg-bridge` | 8080 | sqlite, postgres | Persistence (accounts, inventory, etc.) |
+| `redis-bridge` | 8081 | inmemory, redis | Cache / sessions / rate-limit state |
+
+Both sidecars are stdlib-only by default (sqlite + inmemory). They lazily
+import `psycopg2-binary` or `redis-py` only when the matching backend is
+selected via env. This keeps the base image small and the sidecars usable
+for local dev without external services.
+
+### Wire Protocol
+
+The Godot adapters (`game/adapters/persistence/`, `game/adapters/cache/`)
+implement the HTTP contract these sidecars expose. The full protocol spec
+lives in `labs/prd-db.md` sec.3-5 (persistence) and sec.7.2 (cache).
+
+### Health
+
+    curl -f http://localhost:8080/health   # pg-bridge
+    curl -f http://localhost:8081/health   # redis-bridge
+
 ## 3. Development Setup
 
 ### Local Development with Docker
@@ -388,6 +414,10 @@ START_MODE=test   # Run tests and exit
 
 ## 7. Database Setup
 
+The app never connects to Postgres directly. All persistence goes through
+`pg-bridge` (port 8080), which exposes a thin HTTP API over SQLite
+(default) or Postgres. See section 2a for the full bridge overview.
+
 ### PostgreSQL
 
 **Version:** 16-alpine
@@ -414,6 +444,11 @@ docker compose exec postgres psql -U synmergia synmergia
 ```
 
 ### Redis
+
+The app never connects to Redis directly. All cache operations go through
+`redis-bridge` (port 8081), which exposes a thin HTTP API over an
+in-memory backend (default) or Redis. See section 2a for the full bridge
+overview.
 
 **Version:** 7-alpine
 

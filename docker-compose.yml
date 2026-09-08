@@ -82,6 +82,22 @@ services:
       - POSTGRES_USER=synmergia
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synmergia_dev_pass}
       - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=en_US.UTF-8
+      - TZ=UTC
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c work_mem=16MB
+      -c max_connections=100
+      -c tcp_keepalives_idle=60
+      -c tcp_keepalives_interval=10
+      -c tcp_keepalives_count=6
+      -c log_statement=all
+      -c log_min_duration_statement=1000
+      -c idle_in_transaction_session_timeout=60000
+      -c statement_timeout=30000
+      -c timezone=UTC
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -102,8 +118,12 @@ services:
     command: >
       redis-server
       --appendonly yes
+      --save 60 1
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
+      --tcp-backlog 511
+      --rdbcompression yes
+      --maxmemory-samples 5
     volumes:
       - redis-data:/data
     restart: unless-stopped

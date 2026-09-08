@@ -4,7 +4,7 @@ HTTP-to-Redis sidecar. Mirrors `srv/pg-bridge/` — same shape, same
 stdlib-only default backend, lazy redis import for prod.
 
 Godot's `RedisStore` (game/adapters/cache/redis_store.gd) speaks this
-HTTP API. Wire protocol is defined there and in labs/prd-db.md sec.7.2.
+HTTP API. Wire protocol is defined there and in `labs/prd-db.md` sec.7.2.
 
 ## Backends
 
@@ -30,3 +30,17 @@ REDIS_BRIDGE_PORT=8081
 ```bash
 python3 main.py
 ```
+
+## Docker
+
+The redis-bridge runs as part of the main Synmergia container. Redis
+itself is a separate service in `docker-compose.yml` (profile `dev` and
+`prod`). The bridge detects `REDIS_BACKEND=redis` and connects to it.
+
+## Health
+
+```
+GET /health
+```
+
+Returns `{"status":"ok"}` when the backend is reachable.
