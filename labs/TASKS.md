@@ -15,18 +15,18 @@ finishes. This session is docs only.
 **On user's safety note:** another agent is working under us.
 Pull main before push. Push to `labs/db` branch when ready.
 
-## Active
+## Current Active
 
-- [x] Pull main (clean — no parallel commits)
-- [x] Move `game/adapters/tests/` → `game/tests/adapters/`
-- [x] Update `game/adapters/README.md` to reflect move
-- [ ] Sweep `game/core/services/` for persistence touchpoints
-- [ ] Sweep `game/core/autoload/` for persistence touchpoints
-- [ ] Sweep `game/core/admin/`, `community/`, `connectors/`
-- [ ] Sweep `game/data/` for reference-data shapes
-- [ ] Update prd-db.md §2 (Adapter column) and §3 (schemas)
-      with anything found
-- [ ] Re-clarify prd-db.md §10 transport language
+- [ ] Fix remaining --script mode parse errors (CooldownService,
+      TradeService, FollowService, etc. in core/services/*.gd)
+- [ ] Wire first 3 services to AdapterRegistry (per prd-db.md �8):
+      AccountService, LoginService, PlayerManager
+- [ ] Verify adapter integration tests pass against real pg-bridge
+      + redis-bridge (not just in-memory backends)
+- [ ] Lock remaining schemas in prd-db.md �3 (�3.4+)
+- [ ] Write migration 002 (inventory/equipment) per prd-db.md �9.2
+- [ ] Bulk sweep: 130 .gd files with trailing whitespace
+- [ ] Bulk sweep: 56 non-ASCII files (em-dash, arrow) in comments
 
 ## Notes for myself
 
@@ -206,12 +206,20 @@ Need to add to the §2 table + §8 wiring:
         vs. doesn't (connectors, MultiIsoService)
 - [x] All encoding fixed: 0 mojibake chars, file is clean UTF-8
 
-## On hold (per user)
+## Recently Completed (2026-09-08)
 
-- [ ] First migration SQL — schemas in §3 not yet locked
-- [ ] Building .gd files (interfaces, memory stubs, registry)
-- [ ] pg-bridge / redis-bridge sidecar scaffolding
-- [ ] Pushing to labs/db branch (waiting for the parallel agent)
+- [x] Merge kilo/festive-ribbon-wave into main (569 ahead / 535 behind)
+- [x] Godot 4.7.2 parse/runtime fixes (CooldownService, dialog_service,
+      vendor_service, qos_service, npc_entity, dialog_ui)
+- [x] Bridge READMEs: srv/pg-bridge/README.md (new), srv/redis-bridge/README.md (updated)
+- [x] DEPLOY.md updated with bridge sidecar section (2a) + Database/Redis references
+- [x] .env.example updated with PG_BRIDGE_* and REDIS_BRIDGE_* vars
+- [x] docker-compose.yml tuned: Postgres shared_buffers/work_mem/connections,
+      Redis RDB snapshots/tcp-backlog/rdbcompression
+- [x] .gitignore: added __pycache__/, *.pyc, *.pyo
+- [x] Lint suite green (35/35 PASS across 5 tests)
+- [x] Cleaned up leftover test directories (_rt, _rttest, _rttest2, _rttest3)
+- [x] Removed __pycache__ binary files from git
 
 ## Found (already in TASKS.md above)
 
