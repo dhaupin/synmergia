@@ -4,6 +4,10 @@ extends Node
 
 const ZoneData = preload("res://core/schemas/zone_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+# Entity is not an autoload (class_name only). ZoneManager uses
+# Entity.EntityType.X in entity classification, which requires
+# Entity's class_name registered at parse time. Preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 # Zone types
 enum ZoneType {
 	OPEN_WORLD,		 # Seamless, players always in same world

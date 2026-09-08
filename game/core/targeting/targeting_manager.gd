@@ -10,6 +10,12 @@
 ## - Target history (restore previous)
 extends Node
 
+# Entity is not an autoload (class_name only). TargetingManager
+# references Entity.EntityType.X in several places, which requires
+# Entity's class_name to be registered at parse time. Preload it
+# here -- no shadow: Entity is a class_name, not an autoload.
+const Entity = preload("res://core/entities/entity.gd")
+
 
 
 const PlayerController = preload("res://entities/player/player_controller.gd")

@@ -7,6 +7,10 @@ const ZoneData = preload("res://core/schemas/zone_data.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
 const NPCEntity = preload("res://core/entities/npc_entity.gd")
+# Entity is not an autoload (class_name only). SpawnService calls
+# Entity.new() and Entity.EntityType.X, which requires Entity's
+# class_name registered at parse time. Preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
 

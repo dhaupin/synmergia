@@ -10,6 +10,11 @@ const Skill = preload("res://core/combat/skill.gd")
 const StateMachine = preload("res://core/state/state_machine.gd")
 const ActionMenu = preload("res://ui/components/action_menu.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
+# Entity is not an autoload (class_name only). PlayerController
+# uses Entity.EntityType.X and `: Entity` type annotations, which
+# require Entity's class_name registered at parse time. Preload it
+# here -- no shadow: Entity is a class_name, not an autoload.
+const Entity = preload("res://core/entities/entity.gd")
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
 const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
 const GMIndicator = preload("res://entities/player/components/gm_indicator.gd")

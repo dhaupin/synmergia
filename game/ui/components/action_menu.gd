@@ -7,6 +7,10 @@ class_name ActionMenu
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 const NPCData = preload("res://core/schemas/npc_data.gd")
+# Entity is not an autoload (class_name only). ActionMenu uses
+# Entity.EntityType.X for menu item classification, which requires
+# Entity's class_name registered at parse time. Preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 
 
 ## Menu items

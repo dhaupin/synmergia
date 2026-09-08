@@ -4,8 +4,11 @@ extends Node
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
-
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+# Entity is not an autoload (class_name only). ChatService uses
+# Entity.EntityType.X in range checks, which requires Entity's
+# class_name registered at parse time. Preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 # Frame-level notification dispatch (typed-Kind pipeline).
 # All chat-service-toasts are feedback to the sender about their own
 # blocked/limited message (rate-limit, validation, restriction), so
