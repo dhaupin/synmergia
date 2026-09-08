@@ -448,6 +448,59 @@ onto main at this time was not attempted because main is
 being rewritten (510-commit rebase in progress when we tried).
 
 
+
+## 2026-09-08 — ninth session (non-ASCII bulk sweep)
+
+**Branch:** `kilo/festive-ribbon-wav`
+**Pushed:** yes (`e0d1b1f`)
+
+### Goal
+Close the "56 non-ASCII files" open follow-up. AGENTS.md says no
+UTF-8 in source; the charset linter (`tests/lint/test_lint_charset.gd`)
+distinguishes blocking (code) from info-level (strings/comments).
+
+### What I found
+The linter strips strings + comments first, then flags non-ASCII
+*outside* that. Running the same logic in Python:
+
+- **Blocking (code): 0 files.** Every non-ASCII char in the tree
+  lives inside a string literal or a comment. Nothing reaches the
+  parser.
+- **Named offenders (info-level): 45 files, 185 chars** -- em-dash
+  U+2014, rightwards arrow U+2192, middle dot U+00B7, <=/>=/!= etc.
+- **Box-drawing U+2500: 6 files, 1506 occurrences** -- used as
+  comment section separators (`# \u2500\u2500...`).
+
+### What got fixed (51 files, 48 changed after dedup)
+
+1. Named offenders replaced with the linter's own suggestions
+   (`\u2014`->`--`, `\u2192`->`->`, `\u00b7`->`*`, `\u2264`->`<=`,
+   `\u2265`->`>=`, `\u2260`->`!=`, `\u21d2`->`=>`, `\u00a9`->`[c]`,
+   `\u00ae`->`[r]`, `\u2122`->`[tm]`, `\u00b0`->`deg`, `\u00b1`->`+/-`,
+   `\u00f7`->`/`, `\u00d7`->`x`, `\u00a0`->` `, zero-widths->``).
+2. Box-drawing `\u2500` normalized to `=` so comment separators read
+   `# ===...` like the rest of the codebase.
+
+Left untouched: emoji/icons inside string literals (location pins,
+buff icons, admin-dashboard glyphs). The linter explicitly
+allowlists those (info-level, not blocking) and they are cosmetic.
+
+### Verification
+
+`python3 check_syntax.py <all changed files>` -> 0 syntax issues.
+Whole-tree scan -> 0 blocking non-ASCII; 32 files still carry
+emoji in string literals (allowlisted).
+
+### Files changed (48)
+
+All under `game/` -- `game/core/services/*.gd` (21),
+`game/core/schemas/*.gd` (5), `game/core/notifications/*.gd` (3),
+`game/core/utils/*.gd` (4), `game/core/autoload/*.gd` (2),
+`game/core/components/*.gd` (1), `game/core/entities/*.gd` (1),
+`game/ui/hud/*.gd` (3), `game/ui/components/*.gd` (4),
+`game/ui/menus/*.gd` (2), `game/ui/admin/*.gd` (1),
+`game/ui/social/*.gd` (1), `game/adapters/migrations/*.gd` (1).
+
 ## 2026-09-08 — eighth session (autoload parse errors)
 
 **Branch:** `kilo/festive-ribbon-wav`
