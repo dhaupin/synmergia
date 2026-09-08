@@ -747,7 +747,7 @@ func _notify_player(player_id: String, message: String) -> void:
 	# block, rate-limit) are all chat-send feedback, so the kind is
 	# SECURITY_BLOCKED. The dispatcher's KIND_WINDOW_OVERRIDES table
 	# disables dedupe for SECURITY_BLOCKED (rate-limit feedback must
-	# always show), so we don't pass a per-call dedupe_key — the
+	# always show), so we don't pass a per-call dedupe_key -- the
 	# kind-level policy wins regardless.
 	if is_instance_valid(NotificationService):
 		NotificationService.notify(

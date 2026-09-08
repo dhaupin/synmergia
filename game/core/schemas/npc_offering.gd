@@ -1,6 +1,6 @@
 ## NPCOffering - What an NPC provides when the player interacts with them.
 ##
-## This is NOT limited to stores — blacksmith repair, bank vault access, quest lines,
+## This is NOT limited to stores -- blacksmith repair, bank vault access, quest lines,
 ## and dialogue trees are all offerings. The type string is the discriminator;
 ## each .tres file declares its own type.
 ##
@@ -8,11 +8,11 @@
 ## NPCData.includes[] references them by {type: "offering", ref_id: "<id>"}.
 ##
 ## Offering types:
-##   "vendor"   — buy/sell items for gold
-##   "service"  — one-shot service (repair, respec, etc.)
-##   "quest"    — quest list (available, turn-in)
-##   "dialogue" — conversation tree
-##   "bank"     — vault access
+##   "vendor"   -- buy/sell items for gold
+##   "service"  -- one-shot service (repair, respec, etc.)
+##   "quest"    -- quest list (available, turn-in)
+##   "dialogue" -- conversation tree
+##   "bank"     -- vault access
 extends Resource
 class_name NPCOffering
 
@@ -27,9 +27,9 @@ class_name NPCOffering
 ## ============================================================================
 
 ## How the vendor stocks items.
-## "by_category"  — filter DataService item DB by sell_categories
-## "by_item_id"   — use only catalog_items list
-## "mixed"        — union of both
+## "by_category"  -- filter DataService item DB by sell_categories
+## "by_item_id"   -- use only catalog_items list
+## "mixed"        -- union of both
 @export var stock_mode: String = "by_category"
 
 ## Item categories this vendor sells (player buys from vendor).
@@ -55,9 +55,9 @@ class_name NPCOffering
 @export var stock_qty: int = 99
 
 ## When to restock limited-stock vendors.
-## "close"   — full restock when player closes shop
-## "daily"   — restock once per day
-## "never"   — no automatic restock
+## "close"   -- full restock when player closes shop
+## "daily"   -- restock once per day
+## "never"   -- no automatic restock
 @export var restock_trigger: String = "close"
 
 ## How much to restock. -1 = full restock to stock_qty.
@@ -88,7 +88,7 @@ class_name NPCOffering
 ## DIALOGUE TYPE
 ## ============================================================================
 
-## Dialogue resource ID — maps to data/dialogues/<dialogue_id>.tres
+## Dialogue resource ID -- maps to data/dialogues/<dialogue_id>.tres
 @export var dialogue_id: String = ""
 
 ## Whether this dialogue can only be triggered once.

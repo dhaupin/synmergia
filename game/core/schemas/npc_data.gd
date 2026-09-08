@@ -59,9 +59,9 @@ enum LocationType {
 @export var spawn_offset: Vector3 = Vector3.ZERO
 @export var spawn_rotation: float = 0.0
 
-## Includes — what this NPC provides when the player interacts.
+## Includes -- what this NPC provides when the player interacts.
 ## Each entry: {type: String, ref_id: String}
-## type "offering" → data/npc_offerings/<ref_id>.tres
+## type "offering" -> data/npc_offerings/<ref_id>.tres
 ## Future types: "dialogue", "quest", etc.
 @export var includes: Array[Dictionary] = []
 

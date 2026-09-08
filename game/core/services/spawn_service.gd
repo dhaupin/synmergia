@@ -519,7 +519,7 @@ func spawn_npc_entity(
 		npc_data: NPCData
 ) -> NPCEntity:
 	if npc_data == null:
-		push_warning("SpawnService: Cannot spawn NPC — npc_data is null")
+		push_warning("SpawnService: Cannot spawn NPC -- npc_data is null")
 		return null
 
 	var entity: NPCEntity
@@ -582,7 +582,7 @@ func spawn_npc_entity(
 	return entity
 
 ## Spawn all offering NPCs for every zone.
-## Infers zone from NPC ID prefix (e.g. blacksmith_village_* → zone_village).
+## Infers zone from NPC ID prefix (e.g. blacksmith_village_* -> zone_village).
 func spawn_all_offering_npcs() -> void:
 	if not DataService:
 		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
@@ -611,7 +611,7 @@ func spawn_all_offering_npcs() -> void:
 	GameLog.info("SpawnService: Spawned all offering NPCs")
 
 ## Derive zone_id from NPC ID naming convention.
-## E.g. "blacksmith_village_default" → "zone_village"
+## E.g. "blacksmith_village_default" -> "zone_village"
 static func _zone_from_npc_id(npc_id: String) -> String:
 	var DEFAULT_ZONE := "zone_capital"
 	# Strip known prefixes to get the location tier

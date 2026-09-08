@@ -1,28 +1,28 @@
 ## HudHotkeys - Single authority for all HUD panel keybinds.
 ##
 ## All HUD keypresses are handled here and routed to MenuManager.
-## No InputManager dependency — listens to raw key events directly.
+## No InputManager dependency -- listens to raw key events directly.
 ## Esc closes the topmost panel. Other keys toggle specific panels.
 ##
 ## Keymap:
-##   ESC  → close topmost panel
-##   I    → inventory
-##   C    → character panel
-##   P    → party
-##   G    → guild
-##   F    → friends
-##   Q    → quests
-##   B    → bank/vault
-##   K    → skill academy
-##   H    → blacksmith
-##   M    → world map
-##   N    → notifications
-##   O    → settings/options
-##   Y    → achievements
-##   X    → character transfer
-##   R    → trade
-##   T    → titles
-##   TAB  → cycle targets (or focus within panel)
+##   ESC  -> close topmost panel
+##   I    -> inventory
+##   C    -> character panel
+##   P    -> party
+##   G    -> guild
+##   F    -> friends
+##   Q    -> quests
+##   B    -> bank/vault
+##   K    -> skill academy
+##   H    -> blacksmith
+##   M    -> world map
+##   N    -> notifications
+##   O    -> settings/options
+##   Y    -> achievements
+##   X    -> character transfer
+##   R    -> trade
+##   T    -> titles
+##   TAB  -> cycle targets (or focus within panel)
 extends Node
 
 var _hud: CanvasLayer
@@ -120,7 +120,7 @@ func _handle_tab_cycling(shift: bool) -> void:
 			if panel_node and panel_node.has_method("_on_tab_pressed"):
 				panel_node._on_tab_pressed(shift)
 			return
-	# No panel open → cycle targets
+	# No panel open -> cycle targets
 	if TargetingManager and TargetingManager.has_method("cycle_target"):
 		TargetingManager.cycle_target(shift)
 

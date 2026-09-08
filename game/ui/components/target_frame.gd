@@ -239,7 +239,7 @@ func get_target_id() -> String:
 	return _target_id
 
 
-# ── Faction coloring ─────────────────────────────────────────────────────
+# == Faction coloring =====================================================
 
 # Tint the name label based on the target's relation to the local player.
 # hostile = red (player can attack), friendly = green, neutral = white.

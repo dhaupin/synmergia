@@ -1,4 +1,4 @@
-## Enemy — basic enemy entity with health and simple AI
+## Enemy -- basic enemy entity with health and simple AI
 extends Entity
 
 class_name Enemy

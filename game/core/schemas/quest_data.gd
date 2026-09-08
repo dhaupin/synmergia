@@ -65,11 +65,11 @@ enum Difficulty {
 @export var required_faction_rank: int = 0  # Minimum faction rank
 @export var zone_restriction: String = ""   # Must be in zone to accept
 
-# Objectives — Array[Dictionary] (not typed inner class) so .tres serialization works
+# Objectives -- Array[Dictionary] (not typed inner class) so .tres serialization works
 # Each dict: {id, type, target, count, optional, description}
 @export var objectives: Array = []
 
-# Rewards — Array[Dictionary] so .tres serialization works
+# Rewards -- Array[Dictionary] so .tres serialization works
 # Each dict: {type, id, quantity, chance}
 @export var rewards: Array = []
 @export var reward_choice_count: int = 0    # Choose X from rewards

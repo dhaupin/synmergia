@@ -12,7 +12,7 @@ const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const VendorService = preload("res://core/services/vendor_service.gd")
 
 
-## Static instance — one shop at a time
+## Static instance -- one shop at a time
 static var _instance: ShopUI = null
 static func singleton() -> ShopUI:
 	return _instance
@@ -342,10 +342,10 @@ func _refresh_info() -> void:
 	var total: int = price * qty
 
 	if _selected_type == Tab.BUY:
-		_info_label.text = "%s — %d gold each (total: %d)" % [name, price, total]
+		_info_label.text = "%s -- %d gold each (total: %d)" % [name, price, total]
 	else:
 		var owned: int = entry.get("quantity") if entry.has("quantity") else 1
-		_info_label.text = "%s — %d gold each (you have %d, total: %d)" % [name, price, owned, total]
+		_info_label.text = "%s -- %d gold each (you have %d, total: %d)" % [name, price, owned, total]
 
 
 func _refresh_gold() -> void:

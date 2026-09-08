@@ -193,7 +193,7 @@ func send(
 	notification_sent.emit(entity_id, notification)
 	GameLog.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
 
-## Convenience alias for send() — used by HUD/services that route a
+## Convenience alias for send() -- used by HUD/services that route a
 ## notification to a specific player by id. Accepts both enum values
 ## and raw ints (legacy callers pass ints from older enums).
 func send_to_player(
@@ -231,8 +231,8 @@ static func _coerce_int(value, fallback: int) -> int:
 ## Can combine multiple scopes - e.g., server + zone, or zone + neighbors
 ##
 ## `scopes` is intentionally untyped (was `Array[AlertScope]`) so dynamic
-## callers — `notifier.call("broadcast_alert", ...)` from AppFirewall and
-## tests — can pass an array literal without tripping Godot 4.7.2's
+## callers -- `notifier.call("broadcast_alert", ...)` from AppFirewall and
+## tests -- can pass an array literal without tripping Godot 4.7.2's
 ## strict typed-array check. Each element is dispatched via
 ## `_get_players_for_scope(scope: AlertScope)`, which still validates at
 ## runtime via duck typing on `is_server_wide` / `zone_id` / etc.
@@ -844,12 +844,12 @@ func send_event(ctx) -> bool:
 # Service-level convenience: notify(...)
 #
 # Most call sites (QoS, Security, Faction, Inventory, ...) don't care about
-# the NotificationContext shape — they just want to fire a typed notification
+# the NotificationContext shape -- they just want to fire a typed notification
 # and let the frame dedupe, type-map, and route. notify() builds the context
 # for them and forwards to send_event().
 #
 # This is the "verb" of the notification pipeline. send_event() is the
-# "shape" — kept as the frame entry point for tests and for callers that
+# "shape" -- kept as the frame entry point for tests and for callers that
 # already have a context. New code should prefer notify().
 # ---------------------------------------------------------------------------
 

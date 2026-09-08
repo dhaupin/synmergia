@@ -126,7 +126,7 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 		_emit_inventory(
 			to_id,
 			NotifKind.ITEM_FULL,
-			"Inventory full — couldn't receive %s" % item.display_name,
+			"Inventory full -- couldn't receive %s" % item.display_name,
 			"inv_full:%s:%s" % [to_id, item.id],
 			{"item_id": item.id, "from_id": from_id, "qty": removed.current_stack}
 		)
@@ -134,7 +134,7 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 
 	item_transferred.emit(from_id, to_id, removed, removed.current_stack)
 	# Frame-level toasts: recipient sees "received", sender sees "sent".
-	# Two distinct players → two distinct dedupe keys, both fire normally.
+	# Two distinct players -> two distinct dedupe keys, both fire normally.
 	_emit_inventory(
 		to_id,
 		NotifKind.ITEM_ADDED,

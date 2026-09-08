@@ -68,32 +68,32 @@ enum TargetType {
 @export var sfx_cast: String = ""
 @export var sfx_impact: String = ""
 
-# Skill Academy — skill book upgrades
+# Skill Academy -- skill book upgrades
 # Signature/ultimate skills should set upgradable = false in their .tres.
-# Skill Academy — skill book upgrades
+# Skill Academy -- skill book upgrades
 # Signature/ultimate skills should set upgradable = false in their .tres.
 @export var upgradable: bool = true
 
-## Charge system — set charge_time_max > 0 to enable charging.
+## Charge system -- set charge_time_max > 0 to enable charging.
 ## charge_damage_curve: "linear" | "stepped" | "exponential"
 ## Skills without charge_time_max are instant or have fixed cast_time.
 @export var charge_time_max: float = 0.0
 @export var charge_damage_curve: String = "linear"
 
 ## Delta fields per upgrade tier (cumulative):
-##   damage_mult      — direct damage multiplier
-##   heal_mult        — heal amount multiplier
-##   range_mult       — targeting/cast range
-##   radius_mult      — AOE radius
-##   cooldown_mult    — lower = faster (multiplicative with gear CDR)
-##   cast_time_mult   — longer cast at higher tiers (higher = slower)
-##   duration_mult    — buff/DoT/HoT duration
-##   dot_mult         — damage-over-time tick multiplier
-##   hot_mult         — heal-over-time tick multiplier
-##   cost_mult        — mana/stamina cost multiplier (lower = cheaper)
-##   charge_mult      — max charge time multiplier (higher = longer charge window)
-##   max_targets_mult — additional targets at higher tiers
-##   unlocks[]        — mechanics unlocked at this tier
+##   damage_mult      -- direct damage multiplier
+##   heal_mult        -- heal amount multiplier
+##   range_mult       -- targeting/cast range
+##   radius_mult      -- AOE radius
+##   cooldown_mult    -- lower = faster (multiplicative with gear CDR)
+##   cast_time_mult   -- longer cast at higher tiers (higher = slower)
+##   duration_mult    -- buff/DoT/HoT duration
+##   dot_mult         -- damage-over-time tick multiplier
+##   hot_mult         -- heal-over-time tick multiplier
+##   cost_mult        -- mana/stamina cost multiplier (lower = cheaper)
+##   charge_mult      -- max charge time multiplier (higher = longer charge window)
+##   max_targets_mult -- additional targets at higher tiers
+##   unlocks[]        -- mechanics unlocked at this tier
 ##     { "type": "aoe", "radius": float }
 ##     { "type": "knockback", "force": float }
 ##     { "type": "shield", "amount_mult": float }

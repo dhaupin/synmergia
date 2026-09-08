@@ -1,12 +1,12 @@
 ## HudIntegrator - Wires the HUD widgets to live game data.
 ##
 ## Sits alongside HudLayer. Connects:
-##   - PlayerManager health/mana/exp → MenuManager status bars
-##   - TargetingManager target_* → TargetFrame + BossHealthBar
-##   - EntityService entity_spawned/died → CombatLog + NamePlate spawn pool
-##   - EventHub entity_died, player_died → CombatLog kill messages
-##   - ChatService message_received → ChatUI
-##   - NotificationService notifications → SystemCombatLog entries
+##   - PlayerManager health/mana/exp -> MenuManager status bars
+##   - TargetingManager target_* -> TargetFrame + BossHealthBar
+##   - EntityService entity_spawned/died -> CombatLog + NamePlate spawn pool
+##   - EventHub entity_died, player_died -> CombatLog kill messages
+##   - ChatService message_received -> ChatUI
+##   - NotificationService notifications -> SystemCombatLog entries
 ##
 ## All connections are guarded by `has_signal`/`has_method` so a missing
 ## service or widget silently no-ops.
@@ -57,7 +57,7 @@ func _find(node_name: String) -> Node:
 
 
 func _connect_all() -> void:
-	# Player resources → MenuManager status bars (HP/MP/XP).
+	# Player resources -> MenuManager status bars (HP/MP/XP).
 	if PlayerManager:
 		PlayerManager.health_changed.connect(_on_health_changed)
 		PlayerManager.mana_changed.connect(_on_mana_changed)
@@ -65,14 +65,14 @@ func _connect_all() -> void:
 		PlayerManager.level_up.connect(_on_level_up)
 		PlayerManager.died.connect(_on_player_died)
 
-	# Targeting → TargetFrame + BossHealthBar.
+	# Targeting -> TargetFrame + BossHealthBar.
 	if TargetingManager:
 		TargetingManager.target_acquired.connect(_on_target_acquired)
 		TargetingManager.target_cleared.connect(_on_target_cleared)
 		TargetingManager.target_updated.connect(_on_target_updated)
 		TargetingManager.action_executed.connect(_on_action_executed)
 
-	# Entity lifecycle → CombatLog + NamePlate.
+	# Entity lifecycle -> CombatLog + NamePlate.
 	if EntityService:
 		if EntityService.has_signal("entity_registered"):
 			EntityService.entity_registered.connect(_on_entity_spawned)
@@ -83,16 +83,16 @@ func _connect_all() -> void:
 		if EntityService.has_signal("player_left"):
 			EntityService.player_left.connect(_on_entity_unregistered)
 
-	# Death events → kill messages in the combat log.
+	# Death events -> kill messages in the combat log.
 	if EventHub:
 		if EventHub.has_signal("entity_died"):
 			EventHub.entity_died.connect(_on_entity_died)
 
-	# Chat messages → ChatUI.
+	# Chat messages -> ChatUI.
 	if ChatService:
 		ChatService.message_received.connect(_on_chat_received)
 
-	# Notifications → CombatLog system messages.
+	# Notifications -> CombatLog system messages.
 	if NotificationService:
 		if NotificationService.has_signal("notification_received"):
 			NotificationService.notification_received.connect(_on_notification)
@@ -103,11 +103,11 @@ func _connect_all() -> void:
 	# Use a call_deferred so PlayerManager.local_player is settled.
 	_bind_aura_signals()
 
-	# ActionMenu → handle trade, follow, inspect, etc.
+	# ActionMenu -> handle trade, follow, inspect, etc.
 	if _action_menu and _action_menu.has_signal("action_selected"):
 		_action_menu.action_selected.connect(_on_action_selected)
 
-	# Player position → Minimap (poll via process loop).
+	# Player position -> Minimap (poll via process loop).
 	set_process(true)
 
 
@@ -141,7 +141,7 @@ func _get_current_zone(_player: Node) -> String:
 	return "Starter Plains"
 
 
-# ── Player resource handlers ─────────────────────────────────────────────
+# == Player resource handlers =============================================
 
 func _on_health_changed(current: int, maximum: int) -> void:
 	if _mm and _mm.has_method("update_hp"):
@@ -169,7 +169,7 @@ func _on_player_died() -> void:
 	_log("You have died.", _color_error())
 
 
-# ── Targeting handlers ───────────────────────────────────────────────────
+# == Targeting handlers ===================================================
 
 func _on_target_acquired(target) -> void:
 	_current_target = _target_to_dict(target)
@@ -264,7 +264,7 @@ func _target_to_dict(target) -> Dictionary:
 	return d
 
 
-# ── Entity lifecycle ─────────────────────────────────────────────────────
+# == Entity lifecycle =====================================================
 
 func _on_entity_spawned(entity, _metadata) -> void:
 	# Push markers to the minimap.
@@ -303,14 +303,14 @@ func _on_entity_died(entity, _killer, _metadata) -> void:
 	_log("%s has been slain." % name_str, _color_kill())
 
 
-# ── Chat ─────────────────────────────────────────────────────────────────
+# == Chat =================================================================
 
 func _on_chat_received(sender_id: String, channel: int, message: String, _targets: Array) -> void:
 	if _chat and _chat.has_method("add_message"):
 		_chat.add_message(sender_id, channel, message)
 
 
-# ── Notifications ────────────────────────────────────────────────────────
+# == Notifications ========================================================
 
 func _on_notification(_entity_id: String, notification: Dictionary) -> void:
 	# NotificationService passes a Dictionary; render the text into the
@@ -341,7 +341,7 @@ func _notification_color(notification: Dictionary) -> Color:
 	return Color(0.85, 0.85, 0.9)
 
 
-# ── Buffs / Debuffs ──────────────────────────────────────────────────────
+# == Buffs / Debuffs ======================================================
 
 # Find the local player's AuraComponent and subscribe to its buff/debuff
 # signals. Buffs go to the BuffBar; status effects as debuffs to the
@@ -407,7 +407,7 @@ func _on_debuff_removed(debuff) -> void:
 		_buff_bar.remove_buff(id)
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────
+# == Helpers ==============================================================
 
 func _log(text: String, color: Color) -> void:
 	if _combat_log:

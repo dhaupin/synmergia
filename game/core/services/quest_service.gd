@@ -270,7 +270,7 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 			quest_state["state"] = QuestData.QuestState.COMPLETE
 			quest_completed.emit(player_id, quest_id)
 
-			# Frame-level dispatch. QUEST_COMPLETED → NotifKind.QUEST
+			# Frame-level dispatch. QUEST_COMPLETED -> NotifKind.QUEST
 			# (autoload maps the kind to NotificationType.QUEST for the
 			# legacy render path). Dedupe on (player, quest_id) so a
 			# follow-up objective tick that re-evaluates to complete

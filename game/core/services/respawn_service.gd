@@ -458,7 +458,7 @@ func _do_respawn_at(player, position: Vector3, mode: RespawnMode) -> void:
 
 	respawn_completed.emit(player, position)
 	# Frame-level toast. Dedupe key includes the mode so a player who cycles
-	# modes (timed → ankh) gets one toast per event, not one per spam.
+	# modes (timed -> ankh) gets one toast per event, not one per spam.
 	var mode_name: String = RespawnMode.keys()[mode] if mode >= 0 and mode < RespawnMode.size() else "unknown"
 	_emit_lifecycle(
 		player.entity_id,

@@ -94,7 +94,7 @@ func cancel_restart() -> void:
 	restart_cancelled.emit()
 	
 	# Notify players restart was cancelled
-	# Frame-level broadcast. ADMIN_ALERT → ALERT/HIGH via the kind map.
+	# Frame-level broadcast. ADMIN_ALERT -> ALERT/HIGH via the kind map.
 	# Empty recipient + ADMIN_ALERT routes to every player.
 	NotificationService.notify(
 		NotifKind.ADMIN_ALERT,
@@ -111,7 +111,7 @@ func execute_restart() -> void:
 	restart_executed.emit()
 	
 	# Final warning
-	# Frame-level broadcast. ADMIN_ALERT, the kind→priority map returns
+	# Frame-level broadcast. ADMIN_ALERT, the kind->priority map returns
 	# HIGH (the highest tier the map has), which matches the CRITICAL
 	# urgency the legacy call had.
 	NotificationService.notify(
@@ -185,9 +185,9 @@ func _broadcast_restart_warning(seconds_remaining: int, custom_message: String =
 	else:
 		message = "%s in %d second%s" % [message, seconds_remaining, "s" if seconds_remaining > 1 else ""]
 	
-	# Frame-level broadcast. ADMIN_ALERT routes through kind→priority
-	# HIGH. The legacy CRITICAL-for-≤10s tier can't be reproduced via
-	# the kind→priority map (HIGH is the cap), so we drop the
+	# Frame-level broadcast. ADMIN_ALERT routes through kind->priority
+	# HIGH. The legacy CRITICAL-for-<=10s tier can't be reproduced via
+	# the kind->priority map (HIGH is the cap), so we drop the
 	# escalation since the restart_executed broadcast at 0s already
 	# fires on the way out.
 	NotificationService.notify(
@@ -257,7 +257,7 @@ func kick_player(entity_id: String, reason: String = "You have been disconnected
 	GameLog.info("ServerManager: Kicking player %s: %s" % [entity_id, reason])
 	player_kicked.emit(entity_id, reason)
 
-	# Frame-level dispatch. SECURITY_BLOCKED → ALERT + HIGH. The player
+	# Frame-level dispatch. SECURITY_BLOCKED -> ALERT + HIGH. The player
 	# must know the disconnect was deliberate (so they don't blame their
 	# own connection). Dedupe on (player, reason) so a kick then a
 	# re-kick for the same reason collapses, but a different reason (e.g.

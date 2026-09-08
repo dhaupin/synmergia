@@ -380,7 +380,7 @@ func _on_auto_response_action(player_id: String, action: int, exploit_type: Stri
 func _on_auto_response_warn(player_id: String, exploit_type: String, message: String) -> void:
 	if not _terminal_output:
 		return
-	_terminal_output.append_text("[color=yellow]>[/color] Auto-warn: %s — %s\n" % [_esc(player_id), _esc(exploit_type)])
+	_terminal_output.append_text("[color=yellow]>[/color] Auto-warn: %s -- %s\n" % [_esc(player_id), _esc(exploit_type)])
 
 
 func _refresh_player_list(filter: String = "") -> void:

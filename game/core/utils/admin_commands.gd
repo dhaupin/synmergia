@@ -251,7 +251,7 @@ func _cmd_kick(args: Array) -> Dictionary:
 	# underlying disconnect path lives there. We dispatch the audit/player
 	# toasts here so /kick is observably correct at the notification layer
 	# even if the peer disconnect is a no-op.
-	# Player-facing: SECURITY_BLOCKED → ALERT + HIGH. Dedupe on
+	# Player-facing: SECURITY_BLOCKED -> ALERT + HIGH. Dedupe on
 	# (target, reason) so a "kicked for spam" /kick and a quick re-/kick
 	# for the same reason collapse.
 	if is_instance_valid(NotificationService):

@@ -32,7 +32,7 @@ func _ready() -> void:
 	_http_request = HTTPRequest.new()
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_request_completed)
-	GameLog.info("MultiIsoService: Ready — Julia server: %s" % _get_server_url())
+	GameLog.info("MultiIsoService: Ready -- Julia server: %s" % _get_server_url())
 	_check_health()
 
 ## -------------------------------------------------------------------------
@@ -122,7 +122,7 @@ func _get(endpoint: String) -> Dictionary:
 	var headers := PackedStringArray(["Accept: application/json"])
 	var err := _http_request.request(url, headers, HTTPClient.METHOD_GET)
 	if err != OK:
-		GameLog.error("MultiIsoService: GET %s failed — %d" % [url, err])
+		GameLog.error("MultiIsoService: GET %s failed -- %d" % [url, err])
 		return {}
 	return await _wait_for_response()
 
@@ -136,7 +136,7 @@ func _post(endpoint: String, body: Dictionary) -> Dictionary:
 	])
 	var err := _http_request.request(url, headers, HTTPClient.METHOD_POST, json)
 	if err != OK:
-		GameLog.error("MultiIsoService: POST %s failed — %d" % [url, err])
+		GameLog.error("MultiIsoService: POST %s failed -- %d" % [url, err])
 		return {}
 	return await _wait_for_response()
 
@@ -148,7 +148,7 @@ func _wait_for_response() -> Dictionary:
 	var req = _pending_requests.values()[0]
 	_pending_requests.clear()
 	if req.get("error"):
-		GameLog.error("MultiIsoService: request error — %s" % str(req.get("error")))
+		GameLog.error("MultiIsoService: request error -- %s" % str(req.get("error")))
 		return {}
 	return req.get("result", {})
 
@@ -166,7 +166,7 @@ func _on_request_completed(
 	body: PackedByteArray
 ) -> void:
 	if response_code == 0:
-		# Connection failed — still wake the waiter with an error
+		# Connection failed -- still wake the waiter with an error
 		_pending_requests[0] = {"error": "connection_failed"}
 		_semaphore = true
 		return

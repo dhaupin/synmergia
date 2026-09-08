@@ -191,12 +191,12 @@ func _on_overlay_click(event: InputEvent) -> void:
 
 ## Canonical close() - override in subclasses for custom cleanup
 ## Close mechanisms:
-##   1. ESC key → HudHotkeys → _handle_escape() → MenuManager → close()
-##   2. X button → pressed.connect(close)
-##   3. Click overlay → _on_overlay_click()
-##   4. Panel title close button (X) → close()
-##   5. Distance check → close() (for interactable panels)
-##   6. Timed auto-close → close() (for notifications/toasts)
+##   1. ESC key -> HudHotkeys -> _handle_escape() -> MenuManager -> close()
+##   2. X button -> pressed.connect(close)
+##   3. Click overlay -> _on_overlay_click()
+##   4. Panel title close button (X) -> close()
+##   5. Distance check -> close() (for interactable panels)
+##   6. Timed auto-close -> close() (for notifications/toasts)
 
 ## Called by HudHotkeys for TAB focus cycling when panel is open.
 func _on_tab_pressed(shift: bool) -> void:

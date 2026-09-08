@@ -1,4 +1,4 @@
-## ScreenshotService — Native Godot screenshot capture
+## ScreenshotService -- Native Godot screenshot capture
 ## Captures the viewport as a PNG and saves it to disk.
 ## Used for dev automation (save_screenshot(FLAG_DEV)) and in-game player PrintScreen.
 

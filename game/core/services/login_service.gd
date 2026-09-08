@@ -47,7 +47,7 @@ func _ready() -> void:
 	GameLog.info("LoginService: Ready (%d stored accounts)" % _store.size())
 
 
-# ── Public API ─────────────────────────────────────────────────────────
+# == Public API =========================================================
 
 func login(account_id: String, password: String) -> bool:
 	account_id = _sanitize_id(account_id)
@@ -149,7 +149,7 @@ func has_account(account_id: String) -> bool:
 	return _store.has(_sanitize_id(account_id))
 
 
-# ── Internals ──────────────────────────────────────────────────────────
+# == Internals ==========================================================
 
 func _sanitize_id(raw: String) -> String:
 	return raw.strip_edges().to_lower()

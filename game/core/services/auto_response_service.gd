@@ -31,7 +31,7 @@ enum ActionType {
 ## ============================================================================
 
 ## Track exploit confirmations per player
-var _player_exploit_counts: Dictionary = {}  # player_id → {exploit_type: count}
+var _player_exploit_counts: Dictionary = {}  # player_id -> {exploit_type: count}
 
 ## Track if auto-response is enabled
 var _enabled: bool = false

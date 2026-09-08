@@ -10,7 +10,7 @@
 ##     `set_hotkey(keycode)`.
 ##
 ## Subclasses override `_setup_widget()` to build their content. The base
-## does no anchor/margin work of its own — subclasses set their own
+## does no anchor/margin work of its own -- subclasses set their own
 ## position via anchor presets in `_setup_widget()`.
 extends Control
 class_name UIWidget

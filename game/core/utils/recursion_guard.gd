@@ -7,7 +7,7 @@ const __RecursionGuard__ = preload("res://core/utils/recursion_guard.gd")
 ## Emitted when enter() rejects a call because max depth was exceeded.
 ## Listeners (AppFirewall, admin UI) can route this into the notification
 ## pipeline. Per docs/architecture/security.md, this guard is the agent
-## framework's seatbelt — blocking a recursive call is a security event.
+## framework's seatbelt -- blocking a recursive call is a security event.
 signal block_triggered(context: String, current_depth: int, max_depth: int)
 
 ## Call stack tracking: context -> depth

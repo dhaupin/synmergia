@@ -3,7 +3,7 @@
 ## panels) with PartyService, GuildService, FriendsService, etc.
 ##
 ## The MenuManager creates panels but doesn't bind them to data. This
-## node is the place where every "open X panel → load from Y service"
+## node is the place where every "open X panel -> load from Y service"
 ## translation happens.
 extends Node
 
@@ -113,7 +113,7 @@ func _connect_services() -> void:
 	_follow_svc = get_node_or_null("/root/FollowService")
 	_waypoint_svc = get_node_or_null("/root/WaypointService")
 
-	# Party events → PartyUI.
+	# Party events -> PartyUI.
 	if _party and _party_svc:
 		if _party_svc.has_signal("player_joined_party"):
 			_party_svc.player_joined_party.connect(_on_party_member_changed)
@@ -124,7 +124,7 @@ func _connect_services() -> void:
 		if _party_svc.has_signal("party_disbanded"):
 			_party_svc.party_disbanded.connect(_on_party_disbanded)
 
-	# Guild events → GuildUI.
+	# Guild events -> GuildUI.
 	if _guild and _guild_svc:
 		if _guild_svc.has_signal("player_joined_guild"):
 			_guild_svc.player_joined_guild.connect(_on_guild_changed)
@@ -133,14 +133,14 @@ func _connect_services() -> void:
 		if _guild_svc.has_signal("guild_info_updated"):
 			_guild_svc.guild_info_updated.connect(_on_guild_changed)
 
-	# Friends events → FriendsListUI.
+	# Friends events -> FriendsListUI.
 	if _friends and _friends_svc:
 		if _friends_svc.has_signal("friend_added"):
 			_friends_svc.friend_added.connect(_on_friends_changed)
 		if _friends_svc.has_signal("friend_removed"):
 			_friends_svc.friend_removed.connect(_on_friends_changed)
 
-	# Trade events → TradeUI.
+	# Trade events -> TradeUI.
 	if _trade and _trade_svc:
 		if _trade_svc.has_signal("trade_started"):
 			_trade_svc.trade_started.connect(_on_trade_started)
@@ -153,7 +153,7 @@ func _connect_services() -> void:
 		if _trade_svc.has_signal("trade_failed"):
 			_trade_svc.trade_failed.connect(_on_trade_failed)
 
-	# Quest events → QuestUI.
+	# Quest events -> QuestUI.
 	if _quest and _quest_svc:
 		if _quest_svc.has_signal("quest_accepted"):
 			_quest_svc.quest_accepted.connect(_on_quest_changed)
@@ -164,7 +164,7 @@ func _connect_services() -> void:
 		if _quest_svc.has_signal("quest_failed"):
 			_quest_svc.quest_failed.connect(_on_quest_changed)
 
-	# SkillAcademy events → CharacterPanel.
+	# SkillAcademy events -> CharacterPanel.
 	if _character and _skill_svc:
 		if _skill_svc.has_signal("upgrade_applied"):
 			_skill_svc.upgrade_applied.connect(_on_skill_upgrade_applied)
@@ -173,14 +173,14 @@ func _connect_services() -> void:
 		if _skill_svc.has_signal("signature_selected"):
 			_skill_svc.signature_selected.connect(_on_signature_selected)
 
-	# Inventory events → InventoryUI + notifications.
+	# Inventory events -> InventoryUI + notifications.
 	if _inv_svc:
 		if _inv_svc.has_signal("item_transferred"):
 			_inv_svc.item_transferred.connect(_on_item_transferred)
 		if _inv_svc.has_signal("gold_transferred"):
 			_inv_svc.gold_transferred.connect(_on_gold_transferred)
 
-	# SameAccountTransfer events → CharacterTransferUI.
+	# SameAccountTransfer events -> CharacterTransferUI.
 	var char_transfer: Node = _find_panel(["CharacterTransferUI"])
 	if char_transfer and SameAccountTransferService:
 		if _xfer_svc.has_signal("transfer_completed"):
@@ -192,7 +192,7 @@ func _connect_services() -> void:
 		if _xfer_svc.has_signal("cooldown_active"):
 			_xfer_svc.cooldown_active.connect(_on_transfer_cooldown_active)
 
-	# QoS events → toast + status bar.
+	# QoS events -> toast + status bar.
 	if _qos:
 		if _qos.has_signal("connection_quality_changed"):
 			_qos.connection_quality_changed.connect(_on_connection_quality_changed)
@@ -201,7 +201,7 @@ func _connect_services() -> void:
 		if _qos.has_signal("throttled"):
 			_qos.throttled.connect(_on_qos_throttled)
 
-	# Blacksmith events → BlacksmithUI.
+	# Blacksmith events -> BlacksmithUI.
 	if _blacksmith_svc:
 		if _blacksmith_svc.has_signal("repair_completed"):
 			_blacksmith_svc.repair_completed.connect(_on_repair_completed)
@@ -210,7 +210,7 @@ func _connect_services() -> void:
 		if _blacksmith_svc.has_signal("item_too_broken"):
 			_blacksmith_svc.item_too_broken.connect(_on_item_too_broken)
 
-	# Loot events → toast player.
+	# Loot events -> toast player.
 	if _loot_svc:
 		if _loot_svc.has_signal("loot_picked_up"):
 			_loot_svc.loot_picked_up.connect(_on_loot_picked_up)
@@ -223,7 +223,7 @@ func _connect_services() -> void:
 		if _loot_svc.has_signal("loot_rolled"):
 			_loot_svc.loot_rolled.connect(_on_loot_rolled)
 
-	# Achievement events → toast player (AchievementService is not autoloaded).
+	# Achievement events -> toast player (AchievementService is not autoloaded).
 	if _ach.has_method("singleton"):
 		var ach_inst = _ach.singleton()
 		if ach_inst and ach_inst.has_signal("achievement_unlocked"):
@@ -231,7 +231,7 @@ func _connect_services() -> void:
 		if ach_inst and ach_inst.has_signal("achievement_progressed"):
 			ach_inst.achievement_progressed.connect(_on_achievement_progressed)
 
-	# Faction events → toast player.
+	# Faction events -> toast player.
 	if FactionManager:
 		if FactionManager.has_signal("war_declared"):
 			FactionManager.war_declared.connect(_on_faction_war_declared)
@@ -301,7 +301,7 @@ func _connect_services() -> void:
 		if _respawn_svc.has_signal("respawn_canceled"):
 			_respawn_svc.respawn_canceled.connect(_on_respawn_canceled)
 
-	# Character creation events → CharacterPanel refresh.
+	# Character creation events -> CharacterPanel refresh.
 	if GameManager:
 		GameManager.game_state_changed.connect(_on_game_state_changed)
 
@@ -330,7 +330,7 @@ func _apply_character_data(data: Resource) -> void:
 		_inventory.refresh_inventory()
 
 
-# ── Party ────────────────────────────────────────────────────────────────
+# == Party ================================================================
 
 func _on_party_member_changed(_a = null, _b = null, _c = null) -> void:
 	if _party and _party.has_method("refresh"):
@@ -344,21 +344,21 @@ func _on_party_disbanded(_party_id: String) -> void:
 		_mm.close_menu("party")
 
 
-# ── Guild ────────────────────────────────────────────────────────────────
+# == Guild ================================================================
 
 func _on_guild_changed(_a = null, _b = null, _c = null) -> void:
 	if _guild and _guild.has_method("refresh_all"):
 		_guild.refresh_all()
 
 
-# ── Friends ──────────────────────────────────────────────────────────────
+# == Friends ==============================================================
 
 func _on_friends_changed(_a = null, _b = null) -> void:
 	if _friends and _friends.has_method("refresh_all"):
 		_friends.refresh_all()
 
 
-# ── Trade ───────────────────────────────────────────────────────────────
+# == Trade ===============================================================
 
 func _on_trade_started(trade_id: String, player1: String, player2: String) -> void:
 	if _trade and _trade.has_method("open_trade"):
@@ -387,14 +387,14 @@ func _on_trade_failed(_trade_id: String) -> void:
 		_mm.close_menu("trade")
 
 
-# ── Quest ────────────────────────────────────────────────────────────────
+# == Quest ================================================================
 
 func _on_quest_changed(_a = null, _b = null, _c = null, _d = null) -> void:
 	if _quest and _quest.has_method("refresh_quest_list"):
 		_quest.refresh_quest_list()
 
 
-# ── SkillAcademy ─────────────────────────────────────────────────────────
+# == SkillAcademy =========================================================
 
 func _on_skill_upgrade_applied(_player_id: String, skill_id: String, new_level: int) -> void:
 	if _character and _character.has_method("refresh_skills"):
@@ -427,7 +427,7 @@ func _on_signature_selected(_player_id: String, signature_id: String, _is_free: 
 		_character.refresh_skills()
 
 
-# ── Inventory ────────────────────────────────────────────────────────────
+# == Inventory ============================================================
 
 func _on_item_transferred(from_id: String, to_id: String, _item, quantity: int) -> void:
 	if _inventory and _inventory.has_method("refresh_inventory"):
@@ -457,7 +457,7 @@ func _on_gold_transferred(from_id: String, to_id: String, amount: int) -> void:
 		)
 
 
-# ── SameAccountTransfer ────────────────────────────────────────
+# == SameAccountTransfer ========================================
 
 func _on_transfer_completed(from_char: String, to_char: String, gold: int, items: Array) -> void:
 	var char_transfer: Node = _find_panel(["CharacterTransferUI"])
@@ -491,7 +491,7 @@ func _on_transfer_limit_reached(account_id: String, limit_type: String) -> void:
 			{"limit_type": limit_type},
 			""
 		)
-# ── Blacksmith ─────────────────────────────────────────────────────────
+# == Blacksmith =========================================================
 
 func _on_repair_completed(player_id: String, items_repaired: int, total_cost: int) -> void:
 	var bs_panel: Node = _find_panel(["BlacksmithUI"])
@@ -529,7 +529,7 @@ func _on_item_too_broken(player_id: String, item_id: String) -> void:
 			player_id
 		)
 
-# ── Loot ────────────────────────────────────────────────────────────────
+# == Loot ================================================================
 
 func _on_loot_picked_up(player_id: String, items: Array) -> void:
 	if is_instance_valid(_notif):
@@ -597,7 +597,7 @@ func _on_loot_rolled(loot_id: String, player_id: String, roll_type, roll_value: 
 		player_id
 	)
 
-# ── Achievement ────────────────────────────────────────────────────────
+# == Achievement ========================================================
 
 func _on_achievement_unlocked(player_id: String, achievement_id: String) -> void:
 	if is_instance_valid(_notif):
@@ -621,7 +621,7 @@ func _on_achievement_progressed(player_id: String, achievement_id: String, progr
 			player_id
 		)
 
-# ── Faction ────────────────────────────────────────────────────────────
+# == Faction ============================================================
 
 func _on_faction_war_declared(faction1, faction2) -> void:
 	if is_instance_valid(_notif):
@@ -664,7 +664,7 @@ func _on_reputation_changed(player_id: String, faction_id: String, old_rep: int,
 		player_id
 	)
 
-# ── Entity ─────────────────────────────────────────────────────────────
+# == Entity =============================================================
 
 func _on_player_joined(player, metadata) -> void:
 	pass  # Future: update player count in minimap/HUD

@@ -258,7 +258,7 @@ func modify_reputation(player_id: String, faction_id: String, delta: int) -> voi
 
 	# Frame-level toast on rank transitions only. A quest chain can tick
 	# +5 rep a hundred times; only the moments where the player crosses
-	# into a new rank (Neutral → Friendly, Friendly → Honored, etc.) are
+	# into a new rank (Neutral -> Friendly, Friendly -> Honored, etc.) are
 	# interesting. Dedupe on the rank so a quick double-cross doesn't
 	# double-toast.
 	var old_rank: String = get_reputation_rank(old_rep)
@@ -266,7 +266,7 @@ func modify_reputation(player_id: String, faction_id: String, delta: int) -> voi
 	if old_rank != new_rank:
 		_emit_faction(
 			NotifKind.FACTION_REP_CHANGED,
-			"Reputation with %s: %s → %s" % [faction_id, old_rank, new_rank],
+			"Reputation with %s: %s -> %s" % [faction_id, old_rank, new_rank],
 			"rep_rank:%s:%s" % [player_id, new_rank],
 			{"faction_id": faction_id, "old_rank": old_rank, "new_rank": new_rank, "old_rep": old_rep, "new_rep": new_rep, "delta": delta},
 			player_id

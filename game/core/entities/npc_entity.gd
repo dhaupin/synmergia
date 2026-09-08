@@ -1,5 +1,5 @@
-## NPCEntity — unified NPC entity that reads offerings from NPCData.
-## Unified NPC entity — reads includes[] from NPCData and dispatches to the correct panel/service on interact.
+## NPCEntity -- unified NPC entity that reads offerings from NPCData.
+## Unified NPC entity -- reads includes[] from NPCData and dispatches to the correct panel/service on interact.
 ## Each NPC has one or more offerings in npc_data.includes[].
 ## on_interact() reads the offering and routes to the appropriate panel.
 extends Entity

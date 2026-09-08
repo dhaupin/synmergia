@@ -5,7 +5,7 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # SecurityMonitor surfaces anti-cheat / exploit alerts to the admin
-# scope through the typed-Kind pipeline. ADMIN_ALERT → ALERT + HIGH.
+# scope through the typed-Kind pipeline. ADMIN_ALERT -> ALERT + HIGH.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 ## ============================================================================
@@ -119,7 +119,7 @@ func _alert_admin(severity: String, player_id: String, exploit_type: String, det
 	if not is_instance_valid(NotificationService):
 		return
 
-	# Frame-level dispatch. ADMIN_ALERT → ALERT + HIGH in the kind table.
+	# Frame-level dispatch. ADMIN_ALERT -> ALERT + HIGH in the kind table.
 	# Dedupe on (player, exploit_type) so a single attack that fires 20
 	# signals in 200ms collapses to one admin toast.
 	NotificationService.notify(

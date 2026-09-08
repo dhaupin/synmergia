@@ -1,6 +1,6 @@
 ## LootTable - Drop tables for enemies and containers
 ## Defines what items/currency can drop and their probabilities
-## entries and currency_drops are exported arrays — .tres files define them declaratively
+## entries and currency_drops are exported arrays -- .tres files define them declaratively
 extends Resource
 class_name LootTable
 
@@ -9,7 +9,7 @@ class_name LootTable
 @export var name: String = ""
 @export var description: String = ""
 
-# Drop configuration — serializable arrays for .tres files
+# Drop configuration -- serializable arrays for .tres files
 @export var entries: Array[Dictionary] = []
 @export var currency_drops: Array[Dictionary] = []
 
