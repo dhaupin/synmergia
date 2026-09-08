@@ -4,6 +4,10 @@ extends Node
 
 const QuestData = preload("res://core/schemas/quest_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+# UIStyles is not an autoload (class_name only). QuestService
+# references UIStyles.COLORS.X in BBColor formatting, which requires
+# the class_name registered at parse time. Preload it here.
+const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 static func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')

@@ -3,8 +3,17 @@
 ## Used for: Group play assistance, NPC quest followers, Mounts, etc.
 extends Node
 
+# QoSService exposes a static facade (QoSService.rate_limit(...)), so a
+# const preload here resolves to the class and the static methods still
+# dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const EventHub = preload("res://core/events/event_hub.gd")
+# EventHub is an autoload singleton (autoload #19, before this
+# service at #77). It is accessed bare so the singleton instance is
+# used, not the class -- preloading it here would shadow the
+# singleton and break EventHub.player_died.connect(...).
+#
+# CooldownService is also an autoload singleton (autoload #32, before
+# this service). Same rule: accessed bare, no preload.
 
 # Follow configurations
 const DEFAULT_FOLLOW_RANGE: float = 10.0  # Units - max distance before follow breaks

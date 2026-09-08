@@ -2,6 +2,11 @@
 ## Handles instantiation and lifecycle of UI components
 extends Node
 
+# TargetTooltip is not an autoload (class_name only). UIManager
+# calls TargetTooltip.new() in _ready(), which requires the
+# class_name registered at parse time. Preload it here.
+const TargetTooltip = preload("res://ui/targeting/target_tooltip.gd")
+
 var _tooltip = null
 var _initialized: bool = false
 

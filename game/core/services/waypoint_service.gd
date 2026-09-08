@@ -3,11 +3,14 @@
 ## Supports: Custom waypoints, Quest waypoints, Map integration, Minimap, Compass
 extends Node
 
-# QoSService and NotificationService are autoloads. They are accessed
-# bare (not preloaded) so the singleton instance is used, not the class.
-# Preloading them here would shadow the singleton and break method
-# dispatch (e.g. NotificationService.notify() would resolve to the
-# class, not the instance).
+# QoSService and NotificationService are autoloads. QoSService
+# exposes a static facade (QoSService.rate_limit(...)), so a const
+# preload here resolves to the class and the static methods still
+# dispatch to the singleton at runtime -- no shadow. NotificationService
+# is NOT preloaded: it is accessed bare as the singleton instance
+# (NotificationService.notify(...)), which requires the autoload
+# to be registered before this file compiles.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 #
 # Waypoint colors (preset options)
 enum WaypointColor {

@@ -19,6 +19,13 @@ static func _esc(text: String) -> String:
 
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
+# ShopUI, MenuManager and UIStyles are not autoloads (they are
+# class_names registered when their .gd files load). DialogService
+# references them bare inside switch arms, which requires their
+# class_names to be registered at parse time. Preload them here.
+const ShopUI = preload("res://ui/components/shop_ui.gd")
+const MenuManager = preload("res://ui/components/menu_manager.gd")
+const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 var _dialogues: Dictionary = {}
 var _current_dialogue: DialogueData = null
