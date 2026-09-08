@@ -561,7 +561,7 @@ func _setup_stats_tab() -> void:
 
 	for stat in stats:
 		var stat_card := _create_stat_card(stat)
-				stat_card.name = "Stat_" + stat.key
+		stat_card.name = "Stat_" + stat.key
 		stats_grid.add_child(stat_card)
 
 	# Derived stats
