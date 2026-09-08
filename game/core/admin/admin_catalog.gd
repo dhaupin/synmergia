@@ -47,7 +47,7 @@ func _initialize_catalog() -> void:
 		{"id": "eny_dragon_whelp", "name": "Dragon Whelp", "type": "ENEMY", "level": 20},
 		{"id": "eny_dragon", "name": "Dragon", "type": "ENEMY", "level": 30},
 		{"id": "eny_dragon_lord", "name": "Dragon Lord", "type": "ENEMY", "level": 50},
-		
+
 		# NPCs (npc_*)
 		{"id": "npc_merchant_generic", "name": "Merchant", "type": "NPC", "level": 1},
 		{"id": "npc_guardsman", "name": "Guard", "type": "NPC", "level": 5},
@@ -57,7 +57,7 @@ func _initialize_catalog() -> void:
 		{"id": "npc_armorsmith", "name": "Armorsmith", "type": "NPC", "level": 1},
 		{"id": "npc_trainer_combat", "name": "Combat Trainer", "type": "NPC", "level": 10},
 		{"id": "npc_bank_guard", "name": "Bank Guard", "type": "NPC", "level": 15},
-		
+
 		# Items (itm_*)
 		{"id": "itm_gold_100", "name": "100 Gold", "type": "ITEM", "level": 1},
 		{"id": "itm_gold_1000", "name": "1000 Gold", "type": "ITEM", "level": 1},
@@ -71,7 +71,7 @@ func _initialize_catalog() -> void:
 		{"id": "itm_armor_leather", "name": "Leather Armor", "type": "ITEM", "level": 3},
 		{"id": "itm_armor_chain", "name": "Chainmail", "type": "ITEM", "level": 10},
 		{"id": "itm_armor_plate", "name": "Plate Armor", "type": "ITEM", "level": 20},
-		
+
 		# Zones (zn_*)
 		{"id": "zn_tutorial", "name": "Tutorial Zone", "type": "ZONE", "level": 1},
 		{"id": "zn_forest_start", "name": "Starting Forest", "type": "ZONE", "level": 1},
@@ -79,14 +79,14 @@ func _initialize_catalog() -> void:
 		{"id": "zn_dungeon_easy", "name": "Easy Dungeon", "type": "ZONE", "level": 15},
 		{"id": "zn_dungeon_hard", "name": "Hard Dungeon", "type": "ZONE", "level": 25},
 		{"id": "zn_arena", "name": "Arena", "type": "ZONE", "level": 20},
-		
+
 		# Quests (qst_*)
 		{"id": "qst_tutorial_01", "name": "Tutorial: First Steps", "type": "QUEST", "level": 1},
 		{"id": "qst_goblin_slayer", "name": "Goblin Slayer", "type": "QUEST", "level": 3},
 		{"id": "qst_delivery_01", "name": "Simple Delivery", "type": "QUEST", "level": 2},
 		{"id": "qst_escort_01", "name": "Escort Mission", "type": "QUEST", "level": 5},
 		{"id": "qst_dungeon_clear", "name": "Clear the Dungeon", "type": "QUEST", "level": 15},
-		
+
 		# Skills (skl_*)
 		{"id": "skl_fireball", "name": "Fireball", "type": "SKILL", "level": 5},
 		{"id": "skl_heal", "name": "Heal", "type": "SKILL", "level": 3},
@@ -99,19 +99,19 @@ func _setup_ui() -> void:
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(vbox)
-	
+
 	# Title
 	var title := Label.new()
 	title.text = "Admin Catalog"
 	title.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(title)
-	
+
 	# Search bar
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search by ID or name..."
 	_search_input.text_submitted.connect(_on_search_changed)
 	vbox.add_child(_search_input)
-	
+
 	# Category tabs
 	_category_tabs = HBoxContainer.new()
 	var categories := ["All", "Enemies", "NPCs", "Items", "Zones", "Quests", "Skills"]
@@ -121,49 +121,49 @@ func _setup_ui() -> void:
 		btn.pressed.connect(_on_category_selected.bind(i))
 		_category_tabs.add_child(btn)
 	vbox.add_child(_category_tabs)
-	
+
 	# Item list (left panel)
 	_item_list = ItemList.new()
 	_item_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_item_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_item_list.item_selected.connect(_on_item_selected)
 	vbox.add_child(_item_list)
-	
+
 	# Bottom panel with spawn controls
 	var bottom_hbox := HBoxContainer.new()
-	
+
 	_quantity_spin = SpinBox.new()
 	_quantity_spin.min_value = 1
 	_quantity_spin.max_value = 100
 	_quantity_spin.value = 1
 	_quantity_spin.prefix = "Qty: "
 	bottom_hbox.add_child(_quantity_spin)
-	
+
 	_spawn_button = Button.new()
 	_spawn_button.text = "Spawn"
 	_spawn_button.pressed.connect(_on_spawn_pressed)
 	bottom_hbox.add_child(_spawn_button)
-	
+
 	var refresh_btn := Button.new()
 	refresh_btn.text = "Refresh"
 	refresh_btn.pressed.connect(_refresh_list)
 	bottom_hbox.add_child(refresh_btn)
-	
+
 	vbox.add_child(bottom_hbox)
-	
+
 	# Initial population
 	_refresh_list()
 
 func _refresh_list() -> void:
 	_item_list.clear()
-	
+
 	for entry in _catalog_entries:
 		# Apply category filter
 		if _current_category != Category.ALL:
 			var type_filter := _get_category_type(_current_category)
 			if entry.type != type_filter:
 				continue
-		
+
 		# Apply search filter
 		if _search_filter != "":
 			var search := _search_filter.to_lower()
@@ -171,7 +171,7 @@ func _refresh_list() -> void:
 			var matches_id := entry.id.to_lower().contains(search)
 			if not matches_name and not matches_id:
 				continue
-		
+
 		var display := "%s [%s]" % [entry.name, entry.id]
 		_item_list.add_item(display)
 
@@ -202,7 +202,7 @@ func _on_spawn_pressed() -> void:
 	if selected.is_empty():
 		GameLog.warn("AdminCatalog: No item selected")
 		return
-	
+
 	var item_text := _item_list.get_item_text(selected[0])
 	# Extract ID from "[name] [id]"
 	var id_match := RegEx.new()
@@ -211,10 +211,10 @@ func _on_spawn_pressed() -> void:
 	if result:
 		var template_id: String = result.get_string(1)
 		var quantity: int = int(_quantity_spin.value)
-		
+
 		# Determine spawn type and call appropriate service
 		var success: bool = _spawn_by_id(template_id, quantity)
-		
+
 		if success:
 			GameLog.info("AdminCatalog: Spawned %d x %s" % [quantity, template_id])
 		else:
@@ -225,9 +225,9 @@ func _spawn_by_id(template_id: String, quantity: int = 1) -> bool:
 	if not IDRegistry.is_valid_id(template_id):
 		GameLog.error("AdminCatalog: Invalid ID format: %s" % template_id)
 		return false
-	
+
 	var id_type := IDRegistry.get_type(template_id)
-	
+
 	match id_type:
 		"ENEMY", "ENTITY":
 			return _spawn_enemy(template_id, quantity)
@@ -244,7 +244,7 @@ func _spawn_by_id(template_id: String, quantity: int = 1) -> bool:
 		_:
 			GameLog.error("AdminCatalog: Unknown type '%s' for ID %s" % [id_type, template_id])
 			return false
-	
+
 	return true
 
 func _spawn_enemy(template_id: String, quantity: int) -> bool:

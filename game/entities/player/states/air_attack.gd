@@ -11,7 +11,7 @@ var is_ground_target: bool = false
 func enter(_data: Dictionary = {}) -> void:
 	attack_timer = 0.35
 	has_hit = false
-	
+
 	animation_play("air_attack")
 
 func exit() -> void:
@@ -19,24 +19,24 @@ func exit() -> void:
 
 func update(delta: float) -> void:
 	attack_timer -= delta
-	
+
 	var parent := state_machine.get_parent()
-	
+
 	# Allow air dodge during attack
 	if Input.is_action_just_pressed("dodge"):
 		transition_to("AirDodge")
 
 func physics_process(delta: float) -> void:
 	var parent := state_machine.get_parent()
-	
+
 	# Continue falling during attack
 	if parent.velocity.y > -5:
 		parent.velocity.y = lerp(parent.velocity.y, -10.0, delta * 5)
-	
+
 	# Check for landing
 	if parent.is_on_floor() and attack_timer <= 0:
 		transition_to("Land")
-	
+
 	# Hit detection at peak of attack
 	if not has_hit and attack_timer <= 0.2:
 		has_hit = true
@@ -44,11 +44,11 @@ func physics_process(delta: float) -> void:
 
 func execute_air_attack() -> void:
 	var parent := state_machine.get_parent()
-	
+
 	# Create hitbox in front of player
 	var forward: Vector3 = -parent.global_transform.basis.z
 	var hit_position := parent.global_position + forward * 1.5
-	
+
 	# Find enemies in range
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	for enemy in enemies:

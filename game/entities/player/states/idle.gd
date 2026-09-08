@@ -15,11 +15,11 @@ func exit() -> void:
 
 func update(delta: float) -> void:
 	idle_timer += delta
-	
+
 	# Check for movement
 	if state_machine.get_parent().is_moving():
 		transition_to("Run")
-	
+
 	# Check for jump
 	if Input.is_action_just_pressed("jump") and state_machine.get_parent().is_on_floor():
 		transition_to("Jump")

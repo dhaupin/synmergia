@@ -92,7 +92,7 @@ func can_pvp_with(other_faction_id: String, player_level: int = 1) -> bool:
 				return false
 		PvPRule.HUNTED:
 			return true
-	
+
 	# Default: check relation
 	return is_at_war_with(other_faction_id)
 
@@ -103,7 +103,7 @@ func can_attack_target(target_faction, attacker_level: int = 1, target_level: in
 		return false
 	if not target_faction.can_pvp_with(id, target_level):
 		return false
-	
+
 	return true
 
 ## Get display info for UI

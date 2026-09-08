@@ -83,53 +83,53 @@ func can_bind(player) -> bool:
 	# Level check
 	if player.level < min_level or player.level > max_level:
 		return false
-	
+
 	# Faction check
 	if required_faction != "" and player.faction_id != required_faction:
 		return false
-	
+
 	# Quest check
 	for quest_id in required_quest_ids:
 		if not player.has_completed_quest(quest_id):
 			return false
-	
+
 	# Guild check for guild ankhs
 	if ankh_type == AnkhType.GUILD:
 		if player.guild_rank < required_guild_rank:
 			return false
-	
+
 	# Cooldown check (anti-exploit)
 	if _player_bind_times.has(player.entity_id):
 		var last_bind: float = _player_bind_times[player.entity_id]
 		var elapsed: float = Time.get_unix_time_from_system() - last_bind
 		if elapsed < bind_cooldown_seconds:
 			return false
-	
+
 	return true
 
 ## Bind player to this ankh
 func bind_player(player) -> bool:
 	if not can_bind(player):
 		return false
-	
+
 	# Prevent binding while dead (exploit prevention)
 	if player.health_component and player.health_component.is_dead():
 		GameLog.warn("Ankh '%s': Player '%s' tried to bind while dead" % [ankh_id, player.display_name])
 		return false
-	
+
 	if not _bound_players.has(player.entity_id):
 		_bound_players.append(player.entity_id)
-	
+
 	# Record binding time for cooldown
 	_player_bind_times[player.entity_id] = Time.get_unix_time_from_system()
-	
+
 	# Set as player's respawn point
 	player.respawn_point = global_position
 	player.respawn_ankh_id = ankh_id
-	
+
 	bound_to.emit(player, self)
 	activated.emit(player, self)
-	
+
 	GameLog.info("Ankh '%s': Player '%s' bound" % [ankh_id, player.display_name])
 	return true
 
@@ -173,7 +173,7 @@ func is_within_activation_range(position: Vector3) -> bool:
 func get_team_respawns(team_id: int) -> int:
 	if respawn_count_limit <= 0:
 		return -1  # Unlimited
-	
+
 	# Track respawns per team (simplified)
 	# Initialize team respawn count if not set
 	if not _team_respawn_counts.has(team_id):
@@ -184,7 +184,7 @@ func get_team_respawns(team_id: int) -> int:
 func use_team_respawn(team_id: int) -> bool:
 	if respawn_count_limit <= 0:
 		return true  # Unlimited
-	
+
 	# Decrement team-specific counter
 	if not _team_respawn_counts.has(team_id):
 		_team_respawn_counts[team_id] = respawn_count_limit

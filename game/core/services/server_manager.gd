@@ -72,12 +72,12 @@ func schedule_restart(seconds_from_now: int, message: String = "Server restart s
 	_restart_time = Time.get_unix_time_from_system() + seconds_from_now
 	_restart_countdown_seconds = seconds_from_now
 	_restart_warned_players = false
-	
+
 	GameLog.info("ServerManager: Restart scheduled in %d seconds" % seconds_from_now)
 	GameLog.info("ServerManager: Message: %s" % message)
-	
+
 	restart_scheduled.emit(_restart_time, seconds_from_now)
-	
+
 	# Immediate notification
 	_broadcast_restart_warning(seconds_from_now, message)
 
@@ -85,14 +85,14 @@ func schedule_restart(seconds_from_now: int, message: String = "Server restart s
 func cancel_restart() -> void:
 	if not _restart_scheduled:
 		return
-	
+
 	_restart_scheduled = false
 	var seconds_remaining = _restart_countdown_seconds
 	_restart_countdown_seconds = 0
-	
+
 	GameLog.info("ServerManager: Restart cancelled")
 	restart_cancelled.emit()
-	
+
 	# Notify players restart was cancelled
 	# Frame-level broadcast. ADMIN_ALERT -> ALERT/HIGH via the kind map.
 	# Empty recipient + ADMIN_ALERT routes to every player.
@@ -109,7 +109,7 @@ func cancel_restart() -> void:
 func execute_restart() -> void:
 	GameLog.info("ServerManager: Executing restart")
 	restart_executed.emit()
-	
+
 	# Final warning
 	# Frame-level broadcast. ADMIN_ALERT, the kind->priority map returns
 	# HIGH (the highest tier the map has), which matches the CRITICAL
@@ -122,10 +122,10 @@ func execute_restart() -> void:
 		{},
 		""
 	)
-	
+
 	# Trigger actual server shutdown via event bus
 	EventHub.server_shutdown.emit()
-	
+
 	# Schedule actual process quit after a brief delay
 	var t = Timer.new()
 	t.timeout.connect(_do_actual_shutdown)
@@ -151,31 +151,31 @@ func is_restart_scheduled() -> bool:
 func _process_restart_countdown(delta: float) -> void:
 	var remaining = get_restart_seconds_remaining()
 	_restart_countdown_seconds = remaining
-	
+
 	if remaining <= 0:
 		# Time's up, execute restart
 		_restart_scheduled = false
 		_restart_countdown_seconds = 0
 		execute_restart()
 		return
-	
+
 	# Check if we need to send a warning
 	_restart_countdown_seconds = remaining
 	restart_countdown.emit(remaining)
-	
+
 	# Check warning intervals
 	for warning_seconds in WARNING_INTERVALS:
 		if remaining == warning_seconds:
 			_broadcast_restart_warning(warning_seconds)
 			break
-	
+
 	# Send countdown every minute in final 5 minutes
 	if remaining <= 300 and remaining % 60 == 0:
 		_broadcast_restart_warning(remaining)
 
 func _broadcast_restart_warning(seconds_remaining: int, custom_message: String = "") -> void:
 	var message: String = custom_message if custom_message != "" else "Server restart"
-	
+
 	if seconds_remaining >= 3600:
 		var minutes = seconds_remaining / 60
 		message = "%s in %d hour%s" % [message, minutes, "s" if minutes > 1 else ""]
@@ -184,7 +184,7 @@ func _broadcast_restart_warning(seconds_remaining: int, custom_message: String =
 		message = "%s in %d minute%s" % [message, minutes, "s" if minutes > 1 else ""]
 	else:
 		message = "%s in %d second%s" % [message, seconds_remaining, "s" if seconds_remaining > 1 else ""]
-	
+
 	# Frame-level broadcast. ADMIN_ALERT routes through kind->priority
 	# HIGH. The legacy CRITICAL-for-<=10s tier can't be reproduced via
 	# the kind->priority map (HIGH is the cap), so we drop the
@@ -207,12 +207,12 @@ func start_maintenance(message: String = "Server under maintenance", duration_se
 	_state = ServerState.MAINTENANCE
 	_maintenance_message = message
 	_maintenance_start_time = Time.get_unix_time_from_system()
-	
+
 	GameLog.info("ServerManager: Entering maintenance mode")
 	GameLog.info("ServerManager: Message: %s" % message)
-	
+
 	maintenance_started.emit(message)
-	
+
 	NotificationService.notify(
 		NotifKind.ADMIN_ALERT,
 		message,
@@ -226,13 +226,13 @@ func start_maintenance(message: String = "Server under maintenance", duration_se
 func end_maintenance() -> void:
 	if _state != ServerState.MAINTENANCE:
 		return
-	
+
 	_state = _was_online if _was_online != ServerState.MAINTENANCE else ServerState.ONLINE
 	var duration = Time.get_unix_time_from_system() - _maintenance_start_time
-	
+
 	GameLog.info("ServerManager: Ending maintenance mode (duration: %d seconds)" % duration)
 	maintenance_ended.emit()
-	
+
 	NotificationService.notify(
 		NotifKind.ADMIN_ALERT,
 		"Server maintenance complete! You may resume playing.",
@@ -246,7 +246,7 @@ func end_maintenance() -> void:
 func set_state(new_state: ServerState) -> void:
 	var old_state = _state
 	_state = new_state
-	
+
 	GameLog.info("ServerManager: State changed from %s to %s" % [ServerState.keys()[old_state], ServerState.keys()[new_state]])
 	server_state_changed.emit(new_state, old_state)
 
@@ -313,7 +313,7 @@ func get_uptime_string() -> String:
 	var hours = seconds / 3600
 	var minutes = (seconds % 3600) / 60
 	var secs = seconds % 60
-	
+
 	if hours > 0:
 		return "%d:%02d:%02d" % [hours, minutes, secs]
 	return "%02d:%02d" % [minutes, secs]

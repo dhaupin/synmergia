@@ -1,5 +1,5 @@
 ## PlayerConfig - Per-account and per-character settings management
-## 
+##
 ## Manages player-specific settings including:
 ## - UI preferences (keybinds, graphics, audio)
 ## - Privacy settings
@@ -33,7 +33,7 @@ const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	"auto_accept_party_invites": false,
 	"auto_accept_guild_invites": false,
 	"friend_on_whisper": false,
-	
+
 	# Graphics
 	"graphics_quality": 2,  # 0=Low, 1=Medium, 2=High, 3=Ultra
 	"vsync_enabled": true,
@@ -47,7 +47,7 @@ const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	"ui_scale": 1.0,
 	"ambient_occlusion": true,
 	"shadow_quality": 2,
-	
+
 	# Audio
 	"master_volume": 1.0,
 	"music_volume": 0.8,
@@ -57,7 +57,7 @@ const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	"ui_sounds": true,
 	"enable_music": true,
 	"enable_voice_chat": false,
-	
+
 	# Gameplay
 	"auto_loot": false,
 	"auto_attack": false,
@@ -69,7 +69,7 @@ const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	"invert_x_axis": false,
 	"enable_subtitles": true,
 	"language": "en",
-	
+
 	# Privacy
 	"show_online_status": true,
 	"allow_friend_requests": true,
@@ -79,7 +79,7 @@ const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	"show_location_to_friends": true,
 	"block_trade_requests": false,
 	"profile_visibility": 0,  # 0=Public, 1=Friends Only, 2=Hidden
-	
+
 	# Chat
 	"chat_font_size": 14,
 	"chat_opacity": 0.9,
@@ -151,7 +151,7 @@ func save_global_settings() -> bool:
 func load_account_settings(account_id: String) -> bool:
 	if not _account_config:
 		_account_config = ConfigFile.new()
-	
+
 	var err = _account_config.load(ACCOUNT_SETTINGS_FILE)
 	if err == OK:
 		_account_settings = {}
@@ -160,7 +160,7 @@ func load_account_settings(account_id: String) -> bool:
 		settings_loaded.emit()
 		GameLog.info("PlayerConfig: Account settings loaded")
 		return true
-	
+
 	# Use defaults if file doesn't exist
 	_account_settings = DEFAULT_ACCOUNT_SETTINGS.duplicate(true)
 	return false
@@ -169,29 +169,29 @@ func load_account_settings(account_id: String) -> bool:
 func save_account_settings() -> bool:
 	if not _account_config:
 		_account_config = ConfigFile.new()
-	
+
 	for key in _account_settings.keys():
 		_account_config.set_value("account", key, _account_settings[key])
-	
+
 	var err = _account_config.save(ACCOUNT_SETTINGS_FILE)
 	if err == OK:
 		settings_saved.emit()
 		GameLog.info("PlayerConfig: Account settings saved")
 		return true
-	
+
 	GameLog.error("PlayerConfig: Failed to save account settings")
 	return false
 
 ## Load character-specific settings
 func load_character_settings(character_id: String) -> bool:
 	_current_character_id = character_id
-	
+
 	if not _character_config:
 		_character_config = ConfigFile.new()
-	
+
 	var char_file = CHARACTER_SETTINGS_FILE % character_id
 	var err = _character_config.load(char_file)
-	
+
 	if err == OK:
 		_character_settings = {}
 		for key in DEFAULT_CHARACTER_SETTINGS.keys():
@@ -199,7 +199,7 @@ func load_character_settings(character_id: String) -> bool:
 		settings_loaded.emit()
 		GameLog.info("PlayerConfig: Character settings loaded for %s" % character_id)
 		return true
-	
+
 	_character_settings = DEFAULT_CHARACTER_SETTINGS.duplicate(true)
 	return false
 
@@ -208,21 +208,21 @@ func save_character_settings() -> bool:
 	if _current_character_id.is_empty():
 		GameLog.warn("PlayerConfig: No character ID set, cannot save")
 		return false
-	
+
 	if not _character_config:
 		_character_config = ConfigFile.new()
-	
+
 	for key in _character_settings.keys():
 		_character_config.set_value("character", key, _character_settings[key])
-	
+
 	var char_file = CHARACTER_SETTINGS_FILE % _current_character_id
 	var err = _character_config.save(char_file)
-	
+
 	if err == OK:
 		settings_saved.emit()
 		GameLog.info("PlayerConfig: Character settings saved")
 		return true
-	
+
 	GameLog.error("PlayerConfig: Failed to save character settings")
 	return false
 
@@ -236,10 +236,10 @@ func get_account_setting(key: String, default: Variant = null) -> Variant:
 func set_account_setting(key: String, value: Variant, save: bool = true) -> void:
 	var old_value = _account_settings.get(key)
 	_account_settings[key] = value
-	
+
 	if old_value != value:
 		setting_changed.emit(SettingCategory.GENERAL, key, value)
-	
+
 	if save:
 		save_account_settings()
 
@@ -253,10 +253,10 @@ func get_character_setting(key: String, default: Variant = null) -> Variant:
 func set_character_setting(key: String, value: Variant, save: bool = true) -> void:
 	var old_value = _character_settings.get(key)
 	_character_settings[key] = value
-	
+
 	if old_value != value:
 		setting_changed.emit(SettingCategory.GENERAL, key, value)
-	
+
 	if save:
 		save_character_settings()
 
@@ -296,12 +296,12 @@ func import_settings(data: Dictionary) -> void:
 		for key in data["account"]:
 			set_account_setting(key, data["account"][key], false)
 		save_account_settings()
-	
+
 	if data.has("character"):
 		for key in data["character"]:
 			set_character_setting(key, data["character"][key], false)
 		save_character_settings()
-	
+
 	settings_loaded.emit()
 
 ## Get setting metadata (for UI generation)
@@ -310,7 +310,7 @@ func get_setting_metadata(key: String) -> Dictionary:
 		"type": typeof(_account_settings.get(key, null)),
 		"category": _get_setting_category(key)
 	}
-	
+
 	# Add type-specific metadata
 	match key:
 		"graphics_quality":
@@ -340,11 +340,11 @@ func get_setting_metadata(key: String) -> Dictionary:
 			metadata["min"] = 0.3
 			metadata["max"] = 1.0
 			metadata["step"] = 0.1
-	
+
 	return metadata
 
 func _get_setting_category(key: String) -> SettingCategory:
-	if key in ["show_tutorial_tooltips", "show新手引导", "auto_accept_party_invites", 
+	if key in ["show_tutorial_tooltips", "show新手引导", "auto_accept_party_invites",
 			"auto_accept_guild_invites", "friend_on_whisper"]:
 		return SettingCategory.GENERAL
 	elif key in ["graphics_quality", "vsync_enabled", "max_fps", "show_fps_counter",

@@ -66,7 +66,7 @@ func start_dialogue(npc_id: String, dialogue_id: String) -> bool:
 	var player_id := get_local_player_id()
 	if QoSService and player_id and not QoSService.rate_limit(player_id, "dialogue"):
 		return false
-	
+
 	var dialogue: DialogueData = get_dialogue(dialogue_id)
 	if dialogue == null:
 		GameLog.warn("DialogService: Dialogue not found: %s" % _esc(dialogue_id))

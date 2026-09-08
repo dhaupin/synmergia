@@ -54,7 +54,7 @@ func _ready() -> void:
 func load_all_data() -> void:
 	if _loaded:
 		return
-	
+
 	load_skills()
 	load_items()
 	load_enemies()
@@ -67,22 +67,22 @@ func load_all_data() -> void:
 	load_quests()
 	load_titles()
 	load_achievements()
-	
+
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
 
 ## Scan directory for .tres files
 func _scan_directory(path: String, resource_type: String) -> Dictionary:
 	var results: Dictionary = {}
-	
+
 	var dir := DirAccess.open(path)
 	if dir == null:
 		GameLog.warn("DataService: Cannot open directory: " + path)
 		return results
-	
+
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
-	
+
 	while file_name != "":
 		if dir.current_is_dir():
 			if file_name != "." and file_name != "..":
@@ -97,9 +97,9 @@ func _scan_directory(path: String, resource_type: String) -> Dictionary:
 					var id := _get_resource_id(resource, file_name)
 					results[id] = resource
 					GameLog.debug("DataService: Loaded " + resource_type + ": " + id)
-		
+
 		file_name = dir.get_next()
-	
+
 	dir.list_dir_end()
 	return results
 

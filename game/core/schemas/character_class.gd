@@ -105,11 +105,11 @@ func _init() -> void:
 func calculate_stat(stat: String, level: int) -> int:
 	var base: int = int(base_stats.get(stat, 10))
 	var growth: float = float(stat_growth.get(stat, 1))
-	
+
 	# Focal stats get +1 bonus per level (total +2 instead of +1)
 	if stat == focal_stat_1 or stat == focal_stat_2:
 		growth += 1.0
-	
+
 	return base + int(growth * (level - 1))
 
 ## Get total stat points available for allocation up to this level
@@ -129,25 +129,25 @@ func get_resource_regen(in_combat: bool) -> float:
 ## Get skills unlocked at level
 func get_skills_for_level(level: int) -> Array[String]:
 	var skills: Array[String] = []
-	
+
 	# Add starting skills
 	for skill_id in starting_skills:
 		skills.append(skill_id)
-	
+
 	# Add skills from skill tree
 	for unlock_level in skill_tree_unlocks.keys():
 		if level >= unlock_level as int:
 			for skill_id in skill_tree_unlocks[unlock_level]:
 				if not skills.has(skill_id):
 					skills.append(skill_id)
-	
+
 	return skills
 
 ## Check if class can equip item
 func can_equip_item(item) -> bool:
 	if not item.can_equip():
 		return true  # Non-equippable items are fine
-	
+
 	# Weapon check
 	if item.equip_slot == "main_hand" or item.equip_slot == "off_hand":
 		if item.item_category == "weapon":
@@ -160,13 +160,13 @@ func can_equip_item(item) -> bool:
 						return false
 					if not can_use_ranged_weapons and weapon_type in ["bow", "crossbow", "gun"]:
 						return false
-	
+
 	# Armor check
 	if item.equip_slot in ["head", "chest", "legs", "feet", "gloves", "shoulders"]:
 		var armor_type = item.get("armor_type", "leather")
 		if not can_use_armor.get(armor_type, false):
 			return false
-	
+
 	return true
 
 ## Get display info for UI

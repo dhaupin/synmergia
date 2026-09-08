@@ -54,11 +54,11 @@ enum Permission {
 
 # Rank permissions (defaults)
 var _rank_permissions: Dictionary = {
-				GuildRank.GUILDMASTER: Permission.INVITE | Permission.KICK | Permission.PROMOTE | 
+				GuildRank.GUILDMASTER: Permission.INVITE | Permission.KICK | Permission.PROMOTE |
 																Permission.DEMOTE | Permission.EDIT_INFO | Permission.SET_RANK_PERMISSIONS |
 																Permission.CREATE_ALLIANCE | Permission.DISBAND_ALLIANCE |
 																Permission.MANAGE_GVG | Permission.WITHDRAW_GOLD | Permission.MANAGE_NOTICES,
-				GuildRank.OFFICER: Permission.INVITE | Permission.KICK | Permission.PROMOTE | 
+				GuildRank.OFFICER: Permission.INVITE | Permission.KICK | Permission.PROMOTE |
 														Permission.DEMOTE | Permission.MANAGE_NOTICES,
 				GuildRank.MEMBER: Permission.INVITE,
 				GuildRank.RECRUIT: 0
@@ -109,11 +109,11 @@ func create_guild(name: String, tag: String, leader_id: String) -> String:
 	if not QoSService.rate_limit(leader_id, "guild"):
 		GameLog.debug("GuildService: Rate limited guild creation for %s" % leader_id)
 		return ""
-				
+
 	if _player_guilds.has(leader_id):
 		GameLog.warn("GuildService: Player %s already in a guild" % leader_id)
 		return ""
-				
+
 		# Security: Validate guild name
 	var name_validation := SecurityService.validate_channel_name(name)
 	if not name_validation.valid:
@@ -124,13 +124,13 @@ func create_guild(name: String, tag: String, leader_id: String) -> String:
 	if name.length() > MAX_GUILD_NAME_LENGTH or name.length() < 3:
 		GameLog.warn("GuildService: Invalid guild name length")
 		return ""
-				
+
 	if tag.length() > GUILD_TAG_LENGTH or tag.length() < 2:
 		GameLog.warn("GuildService: Invalid guild tag length")
 		return ""
-				
+
 	var guild_id := "guild_%s_%d" % [tag.to_lower(), Time.get_ticks_msec()]
-				
+
 	var guild := {
 	"id": guild_id,
 	"name": name,
@@ -159,13 +159,13 @@ func create_guild(name: String, tag: String, leader_id: String) -> String:
 	"notice": "",
 	"motd": "Welcome to the guild!"
 	}
-				
+
 	_guilds[guild_id] = guild
 	_player_guilds[leader_id] = guild_id
-				
+
 	guild_created.emit(guild_id, name, leader_id)
 	GameLog.info("GuildService: Created guild %s (%s)" % [name, guild_id])
-				
+
 	return guild_id
 
 ## Get default ranks
@@ -182,27 +182,27 @@ func disband_guild(leader_id: String) -> bool:
 	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		GameLog.warn("GuildService: Only guildmaster can disband")
 		return false
-				
+
 		# Leave alliance first
 	if guild["alliance_id"] != "":
 		leave_alliance(leader_id)
-				
+
 		# Remove all members
 	for member in guild["members"]:
 		_player_guilds.erase(member["id"])
-				
+
 		# Clean up applications
 	_pending_applications.erase(guild_id)
-				
+
 	_guilds.erase(guild_id)
 	guild_disbanded.emit(guild_id)
 	GameLog.info("GuildService: Disbanded guild %s" % guild_id)
-				
+
 	return true
 
 ## Invite player to guild
@@ -210,36 +210,36 @@ func invite_player(inviter_id: String, target_id: String) -> bool:
 		# Use CooldownService for unified cooldown management
 	if _cooldown() and not _cooldown().try_start(inviter_id, "guild_invite"):
 		return false
-				
+
 		# Security: Check if player is guild restricted
 	if SecurityService.is_restricted(inviter_id, "guild"):
 		_notify_player(inviter_id, "You are temporarily restricted from guild invites.")
 		return false
-				
+
 	if inviter_id == target_id:
 		return false
-				
+
 	var guild_id : String = _player_guilds.get(inviter_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
-				
+
 		# Check if inviter has permission
 	var inviter_rank := _get_member_rank(guild, inviter_id)
 	if not _has_permission(inviter_rank, Permission.INVITE):
 		return false
-				
+
 		# Check guild size
 	if guild["members"].size() >= MAX_GUILD_SIZE:
 		return false
-				
+
 		# Check if target is already in a guild
 	if _player_guilds.has(target_id):
 		return false
-				
+
 		# Create guild invite
 	var invite_id := str(_next_invite_id)
 	_next_invite_id += 1
@@ -252,32 +252,32 @@ func invite_player(inviter_id: String, target_id: String) -> bool:
 	}
 	guild_invite_sent.emit(guild_id, inviter_id, target_id)
 	GameLog.info("GuildService: %s invited %s to guild %s (invite_id: %s)" % [inviter_id, target_id, guild_id, invite_id])
-				
+
 	return true
 
 ## Apply to join guild
 func apply_to_guild(player_id: String, guild_id: String) -> bool:
 	if _player_guilds.has(player_id):
 		return false
-				
+
 	if not _guilds.has(guild_id):
 		return false
-				
+
 	if not _pending_applications.has(guild_id):
 		_pending_applications[guild_id] = []
-				
+
 		# Check if already applied
 	var applications: Array = _pending_applications[guild_id]
 	for app in applications:
 		if app["id"] == player_id:
 			return false
-				
+
 	applications.append({
 	"id": player_id,
 	"applied_at": Time.get_unix_time_from_system(),
 	"message": ""
 	})
-				
+
 	GameLog.info("GuildService: %s applied to guild %s" % [player_id, guild_id])
 	return true
 
@@ -286,16 +286,16 @@ func accept_application(approver_id: String, applicant_id: String) -> bool:
 	var guild_id : String = _player_guilds.get(approver_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
-				
+
 		# Check permission
 	var approver_rank := _get_member_rank(guild, approver_id)
 	if not _has_permission(approver_rank, Permission.INVITE):
 		return false
-				
+
 		# Remove from applications
 	var applications: Array = _pending_applications.get(guild_id, [])
 	var removed := false
@@ -304,10 +304,10 @@ func accept_application(approver_id: String, applicant_id: String) -> bool:
 			applications.remove_at(i)
 			removed = true
 			break
-				
+
 	if not removed:
 		return false
-				
+
 		# Add to guild
 	return _add_member(guild_id, applicant_id, GuildRank.RECRUIT)
 
@@ -316,22 +316,22 @@ func _add_member(guild_id: String, player_id: String, rank: GuildRank) -> bool:
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
-				
+
 	if guild["members"].size() >= MAX_GUILD_SIZE:
 		return false
-				
+
 	if _player_guilds.has(player_id):
 		return false
-				
+
 	guild["members"].append({
 	"id": player_id,
 	"rank": rank,
 	"joined_at": Time.get_unix_time_from_system()
 	})
-				
+
 	_player_guilds[player_id] = guild_id
 	player_joined_guild.emit(guild_id, player_id, rank)
-				
+
 	return true
 
 ## Remove member from guild
@@ -339,24 +339,24 @@ func remove_member(remover_id: String, target_id: String) -> bool:
 	var guild_id : String = _player_guilds.get(remover_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
-				
+
 		# Check if remover has kick permission or is removing self
 	var remover_rank := _get_member_rank(guild, remover_id)
 	if remover_id != target_id and not _has_permission(remover_rank, Permission.KICK):
 		return false
-				
+
 		# Can't kick the guildmaster
 	var target_rank := _get_member_rank(guild, target_id)
 	if target_rank == GuildRank.GUILDMASTER:
 		return false
-				
+
 	guild["members"].erase({"id": target_id})
 	_player_guilds.erase(target_id)
-				
+
 	if remover_id != target_id:
 		player_kicked.emit(guild_id, target_id, remover_id)
 		# Frame-level dispatch to the kicked member. PLAYER_WARNED is
@@ -384,30 +384,30 @@ func change_rank(changer_id: String, target_id: String, new_rank: GuildRank) -> 
 	var guild_id : String = _player_guilds.get(changer_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
-				
+
 	var changer_rank := _get_member_rank(guild, changer_id)
-				
+
 		# Can only promote/demote to ranks at or below your own rank
 	if not _has_permission(changer_rank, Permission.PROMOTE if new_rank < changer_rank else Permission.DEMOTE):
 		return false
-				
+
 	var old_rank := _get_member_rank(guild, target_id)
-				
+
 		# Can't change guildmaster rank
 	if old_rank == GuildRank.GUILDMASTER:
 		return false
-				
+
 		# Update member
 	for member in guild["members"]:
 		if member["id"] == target_id:
 			member["rank"] = new_rank
 			rank_changed.emit(guild_id, target_id, old_rank, new_rank)
 			return true
-				
+
 	return false
 
 ## Transfer guild leadership
@@ -415,29 +415,29 @@ func transfer_leadership(current_leader_id: String, new_leader_id: String) -> bo
 	var guild_id : String = _player_guilds.get(current_leader_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != current_leader_id:
 		return false
-				
+
 		# Verify new leader is a member
 	var new_rank := _get_member_rank(guild, new_leader_id)
 	if new_rank == -1:
 		return false
-				
+
 		# Update leader
 	guild["leader_id"] = new_leader_id
-				
+
 		# Update ranks
 	for member in guild["members"]:
 		if member["id"] == current_leader_id:
 			member["rank"] = GuildRank.OFFICER
 		elif member["id"] == new_leader_id:
 			member["rank"] = GuildRank.GUILDMASTER
-				
+
 	leader_changed.emit(guild_id, current_leader_id, new_leader_id)
 	GameLog.info("GuildService: Leadership transferred from %s to %s" % [current_leader_id, new_leader_id])
-				
+
 	return true
 
 ## Get member rank
@@ -457,27 +457,27 @@ func create_alliance(leader_id: String, name: String) -> String:
 	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return ""
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return ""
-				
+
 		# Check if already in alliance
 	if guild["alliance_id"] != "":
 		return ""
-				
+
 	var alliance_id := "alliance_%d" % Time.get_ticks_msec()
-				
+
 	_alliances[alliance_id] = {
 	"id": alliance_id,
 	"name": name,
 	"guild_ids": [guild_id]
 	}
-				
+
 	guild["alliance_id"] = alliance_id
 	alliance_created.emit(alliance_id, name, [guild_id])
 	GameLog.info("GuildService: Created alliance %s" % alliance_id)
-				
+
 	return alliance_id
 
 ## Invite guild to alliance
@@ -485,21 +485,21 @@ func invite_to_alliance(inviter_id: String, target_guild_id: String) -> bool:
 	var guild_id : String = _player_guilds.get(inviter_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != inviter_id:
 		return false
-				
+
 	if guild["alliance_id"] == "":
 		return false
-				
+
 	var alliance: Dictionary = _alliances.get(guild["alliance_id"], {})
 	if alliance.is_empty():
 		return false
-				
+
 	if alliance["guild_ids"].size() >= MAX_ALLIANCE_SIZE:
 		return false
-				
+
 		# Create alliance invite
 	var invite_id := str(_next_alliance_invite_id)
 	_next_alliance_invite_id += 1
@@ -512,7 +512,7 @@ func invite_to_alliance(inviter_id: String, target_guild_id: String) -> bool:
 	}
 	alliance_invite_sent.emit(alliance["id"], guild_id, target_guild_id)
 	GameLog.info("GuildService: Guild %s invited to alliance %s (invite_id: %s)" % [target_guild_id, alliance["id"], invite_id])
-				
+
 	return true
 
 ## Join alliance
@@ -520,25 +520,25 @@ func join_alliance(leader_id: String, alliance_id: String) -> bool:
 	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return false
-				
+
 	if guild["alliance_id"] != "":
 		return false
-				
+
 	var alliance: Dictionary = _alliances.get(alliance_id, {})
 	if alliance.is_empty():
 		return false
-				
+
 	if alliance["guild_ids"].size() >= MAX_ALLIANCE_SIZE:
 		return false
-				
+
 	alliance["guild_ids"].append(guild_id)
 	guild["alliance_id"] = alliance_id
 	alliance_guild_joined.emit(alliance_id, guild_id)
-				
+
 	return true
 
 ## Leave alliance
@@ -546,19 +546,19 @@ func leave_alliance(leader_id: String) -> bool:
 	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return false
-				
+
 	var alliance_id: String = guild["alliance_id"]
 	if alliance_id == "":
 		return false
-				
+
 	var alliance: Dictionary = _alliances.get(alliance_id, {})
 	if not alliance.is_empty():
 		alliance["guild_ids"].erase(guild_id)
-								
+
 		# Disband if only one guild left
 		if alliance["guild_ids"].size() <= 1:
 			_alliances.erase(alliance_id)
@@ -568,9 +568,9 @@ func leave_alliance(leader_id: String) -> bool:
 				var remaining_guild: Dictionary = _guilds.get(remaining_id, {})
 				if not remaining_guild.is_empty():
 					remaining_guild["alliance_id"] = ""
-								
+
 		alliance_guild_left.emit(alliance_id, guild_id)
-				
+
 	guild["alliance_id"] = ""
 	return true
 
@@ -597,14 +597,14 @@ func set_guild_info(leader_id: String, description: String) -> bool:
 	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild or guild["leader_id"] != leader_id:
 		return false
-				
+
 	guild["info"]["description"] = description
 	guild_info_updated.emit(guild_id)
-				
+
 	return true
 
 ## Set guild notice
@@ -612,18 +612,18 @@ func set_guild_notice(leader_id: String, notice: String) -> bool:
 	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
-				
+
 	var rank := _get_member_rank(guild, leader_id)
 	if not _has_permission(rank, Permission.MANAGE_NOTICES):
 		return false
-				
+
 	guild["notice"] = notice
 	guild_notice_updated.emit(guild_id, notice)
-				
+
 	return true
 
 ## Set MOTD
@@ -631,18 +631,18 @@ func set_guild_motd(leader_id: String, motd: String) -> bool:
 	var guild_id : String = _player_guilds.get(leader_id, "")
 	if guild_id == "":
 		return false
-				
+
 	var guild : Dictionary = _guilds.get(guild_id)
 	if not guild:
 		return false
-				
+
 	var rank := _get_member_rank(guild, leader_id)
 	if not _has_permission(rank, Permission.MANAGE_NOTICES):
 		return false
-				
+
 	guild["motd"] = motd
 	guildMOTD_updated.emit(guild_id, motd)
-				
+
 	return true
 
 ## Get alliance info

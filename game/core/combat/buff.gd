@@ -89,16 +89,16 @@ func apply(target_entity: Entity) -> bool:
 		return false
 	if target_entity.current_stamina < stamina_cost:
 		return false
-	
+
 	target_entity.current_mana -= mana_cost
 	target_entity.current_stamina -= stamina_cost
-	
+
 	# Set shield if applicable
 	_shield_remaining = shield_amount * stack_count
-	
+
 	# Apply stat bonuses
 	_apply_stat_bonuses(target_entity, true)
-	
+
 	# Start duration timer
 	if duration > 0:
 		_timer = Timer.new()
@@ -106,11 +106,11 @@ func apply(target_entity: Entity) -> bool:
 		_timer.timeout.connect(_on_duration_expired)
 		target_entity.add_child(_timer)
 		_timer.start(duration)
-	
+
 	# Start regen ticks
 	if health_regen_bonus > 0 or mana_regen_bonus > 0:
 		_start_regen_tick(target_entity)
-	
+
 	return true
 
 func remove(target_entity: Entity) -> void:
@@ -118,7 +118,7 @@ func remove(target_entity: Entity) -> void:
 		_timer.stop()
 		_timer.queue_free()
 		_timer = null
-	
+
 	_apply_stat_bonuses(target_entity, false)
 	target_entity.status_effects.erase(self)
 
@@ -132,7 +132,7 @@ func _on_duration_expired() -> void:
 func _apply_stat_bonuses(entity: Entity, applying: bool) -> void:
 	var multiplier := stack_count if applying else 1
 	var sign := 1 if applying else -1
-	
+
 	if strength_bonus != 0:
 		entity.stats.strength += sign * strength_bonus * multiplier
 	if agility_bonus != 0:
@@ -151,7 +151,7 @@ func _apply_stat_bonuses(entity: Entity, applying: bool) -> void:
 func absorb_damage(amount: int) -> int:
 	if _shield_remaining <= 0:
 		return amount
-	
+
 	var absorbed := min(_shield_remaining, amount)
 	_shield_remaining -= absorbed
 	return amount - absorbed
@@ -253,22 +253,22 @@ func toggle(target_entity: Entity) -> bool:
 func activate(target_entity: Entity) -> bool:
 	if _is_toggled_on:
 		return true
-	
+
 	# Check initial resource
 	if target_entity.current_mana < mana_cost:
 		return false
 	if target_entity.current_stamina < stamina_cost:
 		return false
-	
+
 	# Pay activation cost
 	target_entity.current_mana -= mana_cost
 	target_entity.current_stamina -= stamina_cost
-	
+
 	_is_toggled_on = true
-	
+
 	# Apply self effects
 	_apply_self_effects(target_entity, true)
-	
+
 	# Start continuous drain timer
 	_drain_timer = Timer.new()
 	_drain_timer.one_shot = false
@@ -276,7 +276,7 @@ func activate(target_entity: Entity) -> bool:
 	_drain_timer.timeout.connect(_on_drain_tick)
 	target_entity.add_child(_drain_timer)
 	_drain_timer.start()
-	
+
 	# Start effect application timer
 	_effect_timer = Timer.new()
 	_effect_timer.one_shot = false
@@ -284,32 +284,32 @@ func activate(target_entity: Entity) -> bool:
 	_effect_timer.timeout.connect(_on_effect_tick)
 	target_entity.add_child(_effect_timer)
 	_effect_timer.start()
-	
+
 	# Apply initial effects
 	_update_aura_effects()
-	
+
 	return true
 
 func deactivate(target_entity: Entity) -> void:
 	if not _is_toggled_on:
 		return
-	
+
 	_is_toggled_on = false
-	
+
 	# Stop timers
 	if _drain_timer:
 		_drain_timer.stop()
 		_drain_timer.queue_free()
 		_drain_timer = null
-	
+
 	if _effect_timer:
 		_effect_timer.stop()
 		_effect_timer.queue_free()
 		_effect_timer = null
-	
+
 	# Remove self effects
 	_apply_self_effects(target_entity, false)
-	
+
 	# Remove effects from affected entities
 	_remove_effects_from_allies()
 	_remove_effects_from_enemies()
@@ -322,22 +322,22 @@ func _on_drain_tick() -> void:
 	if not _is_toggled_on or not target_entity or not is_instance_valid(target_entity):
 		deactivate(target_entity)
 		return
-	
+
 	# Check if entity has enough resources
 	var can_continue := true
-	
+
 	if mana_drain_per_second > 0:
 		target_entity.current_mana -= mana_drain_per_second
 		if target_entity.current_mana < 0:
 			target_entity.current_mana = 0
 			can_continue = false
-	
+
 	if stamina_drain_per_second > 0:
 		target_entity.current_stamina -= stamina_drain_per_second
 		if target_entity.current_stamina < 0:
 			target_entity.current_stamina = 0
 			can_continue = false
-	
+
 	if not can_continue:
 		deactivate(target_entity)
 
@@ -351,13 +351,13 @@ func _on_effect_tick() -> void:
 func _update_aura_effects() -> void:
 	if not target_entity or not is_instance_valid(target_entity):
 		return
-	
+
 	# Find entities in range
 	var entities_in_range := _get_entities_in_aura_range()
-	
+
 	var new_allies: Array = []
 	var new_enemies: Array = []
-	
+
 	for entity in entities_in_range:
 		if _is_ally(target_entity, entity):
 			if not _affected_allies.has(entity):
@@ -367,34 +367,34 @@ func _update_aura_effects() -> void:
 			if not _affected_enemies.has(entity):
 				_apply_effects_to_enemy(entity)
 			new_enemies.append(entity)
-	
+
 	# Remove effects from entities that left range
 	var left_allies = _affected_allies.duplicate()
 	for ally in left_allies:
 		if not new_allies.has(ally):
 			_remove_effects_from_ally(ally)
-	
+
 	var left_enemies = _affected_enemies.duplicate()
 	for enemy in left_enemies:
 		if not new_enemies.has(enemy):
 			_remove_effects_from_enemy(enemy)
-	
+
 	_affected_allies = new_allies
 	_affected_enemies = new_enemies
 
 func _get_entities_in_aura_range() -> Array:
 	var entities: Array = []
-	
+
 	if not target_entity or not is_instance_valid(target_entity):
 		return entities
-	
+
 	# Use 3D sphere detection with optional LOS blocking
 	var blocking_mode := PhysicsArea.BlockingMode.NONE
 	if aura_respects_geometry:
 		blocking_mode = PhysicsArea.BlockingMode.WALLS_ONLY
-	
+
 	var target_pos := target_entity.global_position
-	
+
 	# Direct sphere query for entities in range
 	var space_state := target_entity.get_world_3d().direct_space_state
 	var query := PhysicsShapeQueryParameters3D.new()
@@ -403,9 +403,9 @@ func _get_entities_in_aura_range() -> Array:
 	query.shape = shape
 	query.transform = Transform3D(Basis.IDENTITY, target_pos)
 	query.collision_mask = 0b0000001  # Entities layer
-	
+
 	var results := space_state.intersect_shape(query, 100)
-	
+
 	for result in results:
 		var entity = result["collider"]
 		if entity is Entity and entity != target_entity:
@@ -419,7 +419,7 @@ func _get_entities_in_aura_range() -> Array:
 				if not los_result.is_empty():
 					continue  # Blocked by wall
 			entities.append(entity)
-	
+
 	return entities
 
 func _is_ally(source: Entity, target: Entity) -> bool:
@@ -446,10 +446,10 @@ func _is_enemy(source: Entity, target: Entity) -> bool:
 
 func _apply_self_effects(entity: Entity, applying: bool) -> void:
 	var sign := 1 if applying else -1
-	
+
 	if self_damage_boost != 0:
 		entity.stats.damage_multiplier += sign * self_damage_boost
-	
+
 	if self_defense_boost != 0:
 		entity.stats.defense_multiplier += sign * self_defense_boost
 

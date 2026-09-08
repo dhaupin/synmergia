@@ -123,7 +123,7 @@ func roll_loot() -> Dictionary:
 		"xp": xp_reward,
 		"items": []
 	}
-	
+
 	# Roll against loot table if configured
 	if not loot_table_id.is_empty():
 		var table = null

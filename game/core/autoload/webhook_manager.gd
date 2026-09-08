@@ -27,13 +27,13 @@ func _get_discord() -> Node:
 
 func _ready() -> void:
 	instance = self
-	
+
 	# Load config
 	_load_config()
-	
+
 	# Connect to signals
 	_connect_signals()
-	
+
 	GameLog.info("WebhookManager: Initialized")
 
 func _load_config() -> void:
@@ -44,7 +44,7 @@ func _load_config() -> void:
 	notify_on_report = GameConfig.Webhooks.NOTIFY_REPORTS
 	notify_on_urgent = GameConfig.Webhooks.NOTIFY_URGENT
 	notify_on_exploit = GameConfig.Webhooks.NOTIFY_EXPLOITS
-	
+
 	# Apply to connector
 	if _discord_initialized:
 		_get_discord().webhook_url = discord_webhook_url
@@ -56,16 +56,16 @@ func _connect_signals() -> void:
 		PermissionManager.admin_action.connect(_on_admin_action)
 		PermissionManager.player_kicked.connect(_on_player_kicked)
 		PermissionManager.player_banned.connect(_on_player_banned)
-	
+
 	# PlayerReporter signals
 	if PlayerReporter:
 		PlayerReporter.report_submitted.connect(_on_report_submitted)
 		PlayerReporter.urgent_report.connect(_on_urgent_report)
-	
+
 	# SecurityService signals (exploit detection)
 	if SecurityService:
 		SecurityService.exploit_detected.connect(_on_exploit_detected)
-	
+
 	# CommunityGovernance signals
 	if CommunityGovernance:
 		CommunityGovernance.vote_created.connect(_on_vote_created)
@@ -80,7 +80,7 @@ func _on_admin_action(entry) -> void:
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	_get_discord().send_admin_action(
 		entry.admin_id,
 		entry.action,
@@ -93,12 +93,12 @@ func _on_player_kicked(player_id: String, reason: String, admin_id: String) -> v
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	var details := {
 		"reason": reason,
 		"admin": admin_id
 	}
-	
+
 	_get_discord().send_admin_action(admin_id, "KICK", player_id, true)
 
 func _on_player_banned(player_id: String, duration: int, reason: String, admin_id: String) -> void:
@@ -106,7 +106,7 @@ func _on_player_banned(player_id: String, duration: int, reason: String, admin_i
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	_get_discord().send_admin_action(admin_id, "BAN", player_id, true)
 
 func _on_report_submitted(report) -> void:
@@ -114,7 +114,7 @@ func _on_report_submitted(report) -> void:
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	_get_discord().send_player_report(
 		report.id,
 		report._type_to_string(),
@@ -128,7 +128,7 @@ func _on_urgent_report(report) -> void:
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	_get_discord().send_urgent_report(
 		report.id,
 		report.reporter_id,
@@ -142,7 +142,7 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Stri
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	_get_discord().send_exploit_alert(player_id, exploit_type, details)
 
 func _on_vote_created(vote) -> void:
@@ -150,7 +150,7 @@ func _on_vote_created(vote) -> void:
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	# Only notify on important votes
 	if vote.type == CommunityGovernance.VoteType.REPORT_VALIDATION:
 		var embed = _get_discord().create_embed(
@@ -168,7 +168,7 @@ func _on_vote_created(vote) -> void:
 			"value": "12 hours",
 			"inline": true
 		})
-		
+
 		_get_discord().send_embed(embed, "Synmergia Governance")
 
 func _on_vote_closed(vote) -> void:
@@ -176,23 +176,23 @@ func _on_vote_closed(vote) -> void:
 		return
 	if not _discord or discord_webhook_url == "":
 		return
-	
+
 	var results = vote.get_results()
 	var passed = vote.is_passed()
 	var color := 3066993 if passed else 15158332
-	
+
 	var embed = _get_discord().create_embed(
 		"🗳️ Vote Closed: %s" % ("PASSED" if passed else "FAILED"),
 		vote.question,
 		color
 	)
-	
+
 	embed.fields.append({
 		"name": "Total Votes",
 		"value": str(vote.get_total_votes()),
 		"inline": true
 	})
-	
+
 	if not results.is_empty():
 		var top_result = results[0]
 		embed.fields.append({
@@ -200,7 +200,7 @@ func _on_vote_closed(vote) -> void:
 			"value": "%s (%d votes)" % [top_result.text, top_result.votes],
 			"inline": true
 		})
-	
+
 	_get_discord().send_embed(embed, "Synmergia Governance")
 
 ## ============================================================================
@@ -211,7 +211,7 @@ func _on_vote_closed(vote) -> void:
 func send_alert(title: String, description: String, color: int = 15158332) -> void:
 	if not enabled or discord_webhook_url == "":
 		return
-	
+
 	var embed = _get_discord().create_embed(title, description, color)
 	_get_discord().send_embed(embed, "Synmergia Alert")
 
@@ -219,7 +219,7 @@ func send_alert(title: String, description: String, color: int = 15158332) -> vo
 func send_server_status(status: String, player_count: int, details: Dictionary = {}) -> void:
 	if not enabled or not notify_on_server_status or discord_webhook_url == "":
 		return
-	
+
 	_get_discord().send_server_status(status, player_count, details)
 
 ## Update webhook URL

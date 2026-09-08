@@ -37,11 +37,11 @@ func create_account(account_id: String, email: String = "") -> Dictionary:
 	if not QoSService.rate_limit(account_id, "account_create"):
 		GameLog.debug("AccountService: Rate limited account creation for %s" % account_id)
 		return {}
-	
+
 	if _accounts.has(account_id):
 		GameLog.warn("AccountService: Account %s already exists" % account_id)
 		return {}
-	
+
 	var account := {
 		"id": account_id,
 		"email": email,
@@ -54,13 +54,13 @@ func create_account(account_id: String, email: String = "") -> Dictionary:
 			},
 			"premium": false
 	}
-	
+
 	_accounts[account_id] = account
 	_account_characters[account_id] = []
-	
+
 	account_created.emit(account_id)
 	GameLog.info("AccountService: Created account %s" % account_id)
-	
+
 	return account
 
 ## Get account by ID
@@ -96,45 +96,45 @@ func link_character(character_id: String, account_id: String, character_data: Di
 	if _character_to_account.has(character_id):
 		GameLog.warn("AccountService: Character %s already linked" % character_id)
 		return false
-	
+
 	var chars: Array = _account_characters[account_id]
 	if chars.size() >= _max_characters_per_account:
 		GameLog.warn("AccountService: Max characters reached for account %s" % account_id)
 		return false
-	
+
 	# Store character data
 	character_data["id"] = character_id
 	character_data["account_id"] = account_id
 	character_data["linked_at"] = Time.get_unix_time_from_system()
 	_characters[character_id] = character_data
-	
+
 	# Create mappings
 	_character_to_account[character_id] = account_id
 	_account_characters[account_id].append(character_id)
 	_accounts[account_id]["characters"] = _account_characters[account_id]
-	
+
 	character_linked.emit(character_id, account_id)
 	GameLog.info("AccountService: Linked character %s to account %s" % [character_id, account_id])
-	
+
 	return true
 
 ## Unlink a character from account
 func unlink_character(character_id: String) -> bool:
 	if not _character_to_account.has(character_id):
 		return false
-	
+
 	var account_id: String = _character_to_account[character_id]
 	_character_to_account.erase(character_id)
-	
+
 	if _account_characters.has(account_id):
 		var chars: Array = _account_characters[account_id]
 		chars.erase(character_id)
-	
+
 	_characters.erase(character_id)
-	
+
 	character_unlinked.emit(character_id)
 	GameLog.info("AccountService: Unlinked character %s from account %s" % [character_id, account_id])
-	
+
 	return true
 
 ## Get characters for account
@@ -153,34 +153,34 @@ func get_character(character_id: String) -> Dictionary:
 func is_same_account(character1_id: String, character2_id: String) -> bool:
 	var account1: String = _character_to_account.get(character1_id, "")
 	var account2: String = _character_to_account.get(character2_id, "")
-	
+
 	if account1 == "" or account2 == "":
 		return false
-	
+
 	return account1 == account2
 
 ## Check if same-account trade is allowed
 func can_same_account_trade(character1_id: String, character2_id: String) -> Dictionary:
 	var result := {"allowed": false, "reason": ""}
-	
+
 	# Check if same account
 	if not is_same_account(character1_id, character2_id):
 		result["allowed"] = true
 		return result
-	
+
 	# Same account - check settings
 	var account_id: String = _character_to_account.get(character1_id, "")
 	var account: Dictionary = _accounts.get(account_id, {})
-	
+
 	if account.is_empty():
 		result["reason"] = "Account not found"
 		return result
-	
+
 	if not account.get("settings", {}).get("allow_same_account_trade", false):
 		result["reason"] = "Same-account trade disabled"
 		same_account_trade_attempted.emit(character1_id, character2_id, false)
 		return result
-	
+
 	result["allowed"] = true
 	same_account_trade_attempted.emit(character1_id, character2_id, true)
 	return result
@@ -189,7 +189,7 @@ func can_same_account_trade(character1_id: String, character2_id: String) -> Dic
 func set_same_account_trade(account_id: String, enabled: bool) -> bool:
 	if not _accounts.has(account_id):
 		return false
-	
+
 	_accounts[account_id]["settings"]["allow_same_account_trade"] = enabled
 	GameLog.info("AccountService: Same-account trade %s for %s" % ["enabled" if enabled else "disabled", account_id])
 	return true
@@ -203,21 +203,21 @@ func update_last_login(account_id: String) -> void:
 func get_online_account_characters(account_id: String) -> Array:
 	var char_ids: Array = _account_characters.get(account_id, [])
 	var online: Array = []
-	
+
 	for char_id in char_ids:
 		# PlayerService may not be registered; guard the lookup
 		if Engine.has_singleton("PlayerService"):
 			var player_svc: Object = Engine.get_singleton("PlayerService")
 			if player_svc and player_svc.has_method("is_online") and player_svc.call("is_online", char_id):
 				online.append(char_id)
-	
+
 	return online
 
 ## Set account premium status
 func set_premium(account_id: String, premium: bool) -> bool:
 	if not _accounts.has(account_id):
 		return false
-	
+
 	_accounts[account_id]["premium"] = premium
 	return true
 
@@ -230,7 +230,7 @@ func is_premium(account_id: String) -> bool:
 func set_account_setting(account_id: String, key: String, value: Variant) -> bool:
 	if not _accounts.has(account_id):
 		return false
-	
+
 	_accounts[account_id]["settings"][key] = value
 	return true
 
@@ -243,14 +243,14 @@ func get_account_setting(account_id: String, key: String, default: Variant = nul
 func delete_account(account_id: String) -> bool:
 	if not _accounts.has(account_id):
 		return false
-	
+
 	# Unlink all characters
 	var char_ids: Array = _account_characters.get(account_id, []).duplicate()
 	for char_id in char_ids:
 		unlink_character(char_id)
-	
+
 	_accounts.erase(account_id)
 	_account_characters.erase(account_id)
-	
+
 	GameLog.info("AccountService: Deleted account %s" % account_id)
 	return true

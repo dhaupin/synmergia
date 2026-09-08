@@ -81,7 +81,7 @@ func _recalculate_derived_stats() -> void:
 		max_health = new_max_health
 		current_health = int(health_ratio * max_health)
 		health_changed.emit(current_health, max_health)
-	
+
 	# Recalculate max mana based on intelligence
 	var intelligence_stat := get_stat("intelligence")
 	var new_max_mana := 100 + (intelligence_stat * 8)
@@ -97,7 +97,7 @@ func take_damage(amount: int) -> void:
 	var final_damage: int = max(1, amount - get_defense())
 	current_health = max(0, current_health - final_damage)
 	health_changed.emit(current_health, max_health)
-	
+
 	if current_health <= 0:
 		die()
 
@@ -146,17 +146,17 @@ func _process(_delta: float) -> void:
 func add_experience(amount: int) -> void:
 	experience += amount
 	experience_changed.emit(experience, level)
-	
+
 	while experience >= experience_to_next_level:
 		level_up_function()
 
 func level_up_function() -> void:
 	experience -= experience_to_next_level
 	level += 1
-	
+
 	# Increase XP requirement
 	experience_to_next_level = int(experience_to_next_level * 1.5)
-	
+
 	# Stat increases
 	add_stat("strength", 1)
 	add_stat("agility", 1)
@@ -164,13 +164,13 @@ func level_up_function() -> void:
 	add_stat("vitality", 1)
 	add_stat("endurance", 1)
 	add_stat("wisdom", 1)
-	
+
 	# Full restore on level up
 	current_health = max_health
 	current_mana = max_mana
 	health_changed.emit(current_health, max_health)
 	mana_changed.emit(current_mana, max_mana)
-	
+
 	level_up.emit(level)
 	GameLog.info("Level up! Now level %d" % level)
 
@@ -223,7 +223,7 @@ func load_character_data(data: Dictionary) -> void:
 	experience = data.get("experience", 0)
 	gold = data.get("gold", 0)
 	base_stats = data.get("stats", base_stats)
-	
+
 	# Set resources after stats are loaded
 	_recalculate_derived_stats()
 	current_health = data.get("health", max_health)

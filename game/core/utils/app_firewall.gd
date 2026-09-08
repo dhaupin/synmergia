@@ -100,7 +100,7 @@ func _ready() -> void:
 ## Check if an IP is allowed to connect
 func can_connect(ip: String) -> Dictionary:
 	var now := Time.get_unix_time_from_system()
-	
+
 	# Check if permanently banned
 	for player_id in _permanent_bans.keys():
 		if _player_ips.get(player_id) == ip:
@@ -109,7 +109,7 @@ func can_connect(ip: String) -> Dictionary:
 				"reason": "Permanently banned",
 				"duration": -1
 			}
-	
+
 	# Check temporary bans
 	for player_id in _temporary_bans.keys():
 		var ban: Dictionary = _temporary_bans[player_id]
@@ -119,7 +119,7 @@ func can_connect(ip: String) -> Dictionary:
 				"reason": ban["reason"],
 				"duration": int(ban["expires"] - now)
 			}
-	
+
 	# Check if IP is blocked
 	if _blocked_ips.has(ip):
 		var block: Dictionary = _blocked_ips[ip]
@@ -132,7 +132,7 @@ func can_connect(ip: String) -> Dictionary:
 		else:
 			# Block expired, clean up
 			_blocked_ips.erase(ip)
-	
+
 	# Check connection limit
 	var conn_count: int = _connection_counts.get(ip, 0)
 	if conn_count >= _max_connections_per_ip:
@@ -142,7 +142,7 @@ func can_connect(ip: String) -> Dictionary:
 			"reason": "Too many connections from this IP",
 			"duration": _block_duration
 		}
-	
+
 	return {"allowed": true}
 
 ## Register a new connection
@@ -171,22 +171,22 @@ func unregister_connection(player_id: String) -> void:
 func record_failed_attempt(ip: String, attempt_type: String = "login") -> bool:
 	var now := Time.get_unix_time_from_system()
 	var window := 300.0  # 5 minute window
-	
+
 	if not _failed_attempts.has(ip):
 		_failed_attempts[ip] = []
-	
+
 	# Clean old attempts
 	var recent: Array = _failed_attempts[ip].filter(func(t): return now - t < window)
 	recent.append(now)
 	_failed_attempts[ip] = recent
-	
+
 	var count: int = recent.size()
-	
+
 	if count >= _max_failed_attempts:
 		block_ip(ip, "Too many failed %s attempts" % attempt_type, _block_duration)
 		_flag_ip(ip, "failed_attempts", count)
 		return true
-	
+
 	_flag_ip(ip, "failed_attempts", count)
 	return false
 
@@ -409,33 +409,33 @@ func get_ip_players(ip: String) -> Array:
 func cleanup() -> int:
 	var now := Time.get_unix_time_from_system()
 	var cleaned := 0
-	
+
 	# Clean expired blocks
 	for ip in _blocked_ips.keys():
 		if _blocked_ips[ip]["blocked_until"] <= now:
 			_blocked_ips.erase(ip)
 			cleaned += 1
-	
+
 	# Clean expired temporary bans
 	for player_id in _temporary_bans.keys():
 		if _temporary_bans[player_id]["expires"] <= now:
 			_temporary_bans.erase(player_id)
 			cleaned += 1
-	
+
 	# Clean old flagged IPs (no activity for 1 hour)
 	for ip in _flagged_ips.keys():
 		if now - _flagged_ips[ip]["last_activity"] > 3600:
 			_flagged_ips.erase(ip)
 			cleaned += 1
-	
+
 	# Clean empty connection counts
 	for ip in _connection_counts.keys():
 		if _connection_counts[ip] <= 0:
 			_connection_counts.erase(ip)
-	
+
 	if cleaned > 0:
 		GameLog.debug("AppFirewall: Cleaned %d expired entries" % cleaned)
-	
+
 	return cleaned
 
 ## Get firewall statistics

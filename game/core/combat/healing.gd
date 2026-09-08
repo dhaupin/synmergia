@@ -7,14 +7,14 @@ const __RegenerationOverTime__ = preload("res://core/combat/healing.gd")
 static func heal_instant(target: Entity, amount: int) -> int:
 	if target.is_dead:
 		return 0
-	
+
 	var overheal := 0
 	target.current_health += amount
-	
+
 	if target.current_health > target.max_health:
 		overheal = target.current_health - target.max_health
 		target.current_health = target.max_health
-	
+
 	target.health_changed.emit(target.current_health, target.max_health)
 	return amount - overheal  # Return actual healed amount
 
@@ -22,14 +22,14 @@ static func heal_instant(target: Entity, amount: int) -> int:
 static func restore_mana_instant(target: Entity, amount: int) -> int:
 	if target.is_dead:
 		return 0
-	
+
 	var overrestore := 0
 	target.current_mana += amount
-	
+
 	if target.current_mana > target.max_mana:
 		overrestore = target.current_mana - target.max_mana
 		target.current_mana = target.max_mana
-	
+
 	target.health_changed.emit(target.current_health, target.max_health)  # Reuse signal or add mana_changed
 	return amount - overrestore
 
@@ -37,14 +37,14 @@ static func restore_mana_instant(target: Entity, amount: int) -> int:
 static func restore_stamina_instant(target: Entity, amount: float) -> float:
 	if target.is_dead:
 		return 0.0
-	
+
 	var overrestore := 0.0
 	target.current_stamina += amount
-	
+
 	if target.current_stamina > target.max_stamina:
 		overrestore = target.current_stamina - target.max_stamina
 		target.current_stamina = target.max_stamina
-	
+
 	return amount - overrestore
 
 ## RegenerationOverTime - Tick-based resource regen
@@ -77,22 +77,22 @@ func _init() -> void:
 func start(target: Entity) -> void:
 	if _is_active:
 		return
-	
+
 	_target = target
 	_current_ticks = 0
 	_is_active = true
-	
+
 	_timer = Timer.new()
 	_timer.one_shot = false
 	_timer.wait_time = tick_interval
-	
+
 	if delay_first_tick:
 		_timer.timeout.connect(_on_delayed_tick)
 	else:
 		_timer.timeout.connect(_on_tick)
-	
+
 	_target.add_child(_timer)
-	
+
 	var initial_wait := 0.0 if not delay_first_tick else tick_interval
 	_timer.start(initial_wait if initial_wait > 0 else tick_interval)
 
@@ -113,9 +113,9 @@ func _on_tick() -> void:
 	if not _is_active or not _target or not is_instance_valid(_target):
 		stop()
 		return
-	
+
 	_current_ticks += 1
-	
+
 	match resource_type:
 		Resource.HEALTH:
 			if _target.is_dead:
@@ -123,15 +123,15 @@ func _on_tick() -> void:
 				return
 			var healed := _apply_healing(_target, tick_amount)
 			regen_tick.emit(_target, healed, "health")
-		
+
 		Resource.MANA:
 			var restored := _apply_mana_restore(_target, tick_amount)
 			regen_tick.emit(_target, restored, "mana")
-		
+
 		Resource.STAMINA:
 			var restored := _apply_stamina_restore(_target, float(tick_amount))
 			regen_tick.emit(_target, restored, "stamina")
-	
+
 	# Check if regen is complete
 	if total_ticks > 0 and _current_ticks >= total_ticks:
 		regen_complete.emit(_target)
@@ -167,7 +167,7 @@ func _init() -> void:
 
 func apply(target: Entity) -> void:
 	super.apply(target)
-	
+
 	_regen = __RegenerationOverTime__.new()
 	_regen.resource_type = RegenerationOverTime.Resource.HEALTH
 	_regen.tick_amount = tick_amount
@@ -204,7 +204,7 @@ func _init() -> void:
 
 func apply(target: Entity) -> void:
 	super.apply(target)
-	
+
 	_regen = __RegenerationOverTime__.new()
 	_regen.resource_type = RegenerationOverTime.Resource.MANA
 	_regen.tick_amount = tick_amount
@@ -241,7 +241,7 @@ func _init() -> void:
 
 func apply(target: Entity) -> void:
 	super.apply(target)
-	
+
 	_regen = __RegenerationOverTime__.new()
 	_regen.resource_type = RegenerationOverTime.Resource.STAMINA
 	_regen.tick_amount = tick_amount

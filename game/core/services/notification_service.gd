@@ -52,24 +52,24 @@ class AlertScope:
 	var include_neighbors: bool = false   # For ZONE scope (include neighboring zones)
 	var player_ids: Array[String] = []  # For CUSTOM scope
 	var is_server_wide: bool = false     # For SERVER scope
-	
+
 	static func server_wide() -> AlertScope:
 		var scope := AlertScope.new()
 		scope.is_server_wide = true
 		return scope
-	
+
 	static func zone(zone: String, neighbors: bool = false) -> AlertScope:
 		var scope := AlertScope.new()
 		scope.zone_id = zone
 		scope.include_neighbors = neighbors
 		return scope
-	
+
 	static func nearby(pos: Vector3, rad: float = 50.0) -> AlertScope:
 		var scope := AlertScope.new()
 		scope.position = pos
 		scope.radius = rad
 		return scope
-	
+
 	static func players(ids: Array[String]) -> AlertScope:
 		var scope := AlertScope.new()
 		scope.player_ids = ids
@@ -110,7 +110,7 @@ func _ready() -> void:
 func _on_entity_spawned(entity_or_id, metadata: SpawnMetadata) -> void:
 	if metadata == null or not metadata.notification_enabled:
 		return
-	
+
 	# Build notification message
 	var message: String
 	match metadata.spawn_type:
@@ -122,7 +122,7 @@ func _on_entity_spawned(entity_or_id, metadata: SpawnMetadata) -> void:
 			message = "Elite enemy %s has appeared!" % metadata.display_name
 		_:
 			message = metadata.notification_message % [metadata.display_name, metadata.zone_id]
-	
+
 	# Determine notification settings from metadata
 	var notif_type := NotificationType.WORLD_EVENT
 	var priority := Priority.NORMAL
@@ -135,14 +135,14 @@ func _on_entity_spawned(entity_or_id, metadata: SpawnMetadata) -> void:
 			priority = Priority.HIGH
 		SpawnMetadata.NotificationPriority.CRITICAL:
 			priority = Priority.CRITICAL
-	
+
 	# Build extra data
 	var data := {
 		"spawn_type": metadata.get_spawn_type_string(),
 		"zone_id": metadata.zone_id,
 		"level": metadata.level
 	}
-	
+
 	# Broadcast to configured scopes
 	broadcast_alert(
 		message,
@@ -153,7 +153,7 @@ func _on_entity_spawned(entity_or_id, metadata: SpawnMetadata) -> void:
 		SoundType.NOTIFICATION,
 		data
 	)
-	
+
 	GameLog.info("NotificationService: Auto-broadcast spawn notification for %s" % metadata.display_name)
 
 ## Send a notification to a player
@@ -260,26 +260,26 @@ func _get_players_for_scope(scope: AlertScope) -> Array:
 	var entity_service = EntityService
 	if entity_service == null:
 		return results
-	
+
 	var all_players = entity_service.get_all_players()
-	
+
 	if scope.is_server_wide:
 		return all_players
-	
+
 	for player in all_players:
 		var should_notify := false
-		
+
 		if scope.player_ids.size() > 0:
 			# Custom player list
 			should_notify = scope.player_ids.has(player.entity_id)
-		
+
 		elif scope.zone_id != "":
 			# Zone-based
 			var zone_manager = ZoneManager
 			if zone_manager:
 				var player_zone = zone_manager.get_entity_zone_id(player)
 				should_notify = player_zone == scope.zone_id
-				
+
 				# Include neighbors if requested
 				if should_notify == false and scope.include_neighbors:
 					var neighbors = zone_manager.get_neighboring_zones(scope.zone_id)
@@ -287,15 +287,15 @@ func _get_players_for_scope(scope: AlertScope) -> Array:
 						if neighbor.id == player_zone:
 							should_notify = true
 							break
-		
+
 		elif scope.position != Vector3.ZERO:
 			# Position-based (nearby)
 			if is_instance_valid(player):
 				should_notify = player.global_position.distance_to(scope.position) <= scope.radius
-		
+
 		if should_notify:
 			results.append(player)
-	
+
 	return results
 
 ## Convenience: Server-wide alert
@@ -398,7 +398,7 @@ func notify_level_up(entity_id: String, new_level: int) -> void:
 	send(entity_id, message, NotificationType.LEVEL_UP, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.LEVEL_UP, {
 		"new_level": new_level
 	})
-	
+
 	# Special message at level 10: signature unlock
 	if new_level == 10:
 		send(entity_id, "Level 10! Visit the Skill Academy to choose your Signature ability. First selection is FREE!", NotificationType.ACHIEVEMENT, Priority.HIGH, DisplayLocation.CENTER_SCREEN, SoundType.ACHIEVEMENT, {
@@ -433,7 +433,7 @@ func notify_combat(entity_id: String, combat_type: String, message: String, is_p
 	var priority := Priority.LOW
 	var location := DisplayLocation.FLOATING
 	var sound := SoundType.COMBAT
-	
+
 	match combat_type:
 		"CRITICAL_HIT":
 			message = "CRITICAL! " + message
@@ -453,7 +453,7 @@ func notify_combat(entity_id: String, combat_type: String, message: String, is_p
 		"DEATH":
 			message = "You have been defeated..."
 			priority = Priority.HIGH
-	
+
 	send(entity_id, message, NotificationType.COMBAT, priority, location, sound, {
 		"combat_type": combat_type,
 		"is_positive": is_positive
@@ -464,7 +464,7 @@ func notify_item_loot(entity_id: String, item_name: String, rarity: String = "co
 	var message: String = "Looted: %s" % item_name
 	var priority := Priority.NORMAL
 	var sound := SoundType.NOTIFICATION
-	
+
 	match rarity.to_lower():
 		"rare":
 			message = "[Rare] " + message
@@ -475,7 +475,7 @@ func notify_item_loot(entity_id: String, item_name: String, rarity: String = "co
 		"legendary":
 			message = "[LEGENDARY] " + message
 			priority = Priority.CRITICAL
-	
+
 	send(entity_id, message, NotificationType.ITEM, priority, DisplayLocation.CHAT_LOG, sound, {
 		"item_name": item_name,
 		"rarity": rarity
@@ -516,7 +516,7 @@ func notify_death(entity_id: String, killer_name: String = "", killer_type: Stri
 	var message: String
 	var priority: Priority = Priority.HIGH
 	var sound: SoundType = SoundType.DEATH
-	
+
 	if killer_name != "":
 		match killer_type:
 			"player", "pvp":
@@ -527,7 +527,7 @@ func notify_death(entity_id: String, killer_name: String = "", killer_type: Stri
 				message = "You have been defeated by %s" % killer_name
 	else:
 		message = "You have died"
-	
+
 	send(entity_id, message, NotificationType.SYSTEM, priority, DisplayLocation.CENTER_SCREEN, sound, {
 		"killer_name": killer_name,
 		"killer_type": killer_type
@@ -540,7 +540,7 @@ func notify_party_member_died(entity_id: String, dead_player_name: String, kille
 		message = "⚔️ %s has been slain by %s" % [dead_player_name, killer_name]
 	else:
 		message = "⚔️ %s has died" % dead_player_name
-	
+
 	send(entity_id, message, NotificationType.COMBAT, Priority.NORMAL, DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"player_name": dead_player_name,
 		"killer_name": killer_name
@@ -548,7 +548,7 @@ func notify_party_member_died(entity_id: String, dead_player_name: String, kille
 
 ## Revive started notification - to the target being revived
 func notify_revive_started(target_id: String, healer_name: String) -> void:
-	send(target_id, "%s is reviving you... Stay still!" % healer_name, NotificationType.SYSTEM, Priority.NORMAL, 
+	send(target_id, "%s is reviving you... Stay still!" % healer_name, NotificationType.SYSTEM, Priority.NORMAL,
 		DisplayLocation.BOTH, SoundType.NOTIFICATION, {
 		"healer_name": healer_name,
 		"action": "revive_started"
@@ -556,7 +556,7 @@ func notify_revive_started(target_id: String, healer_name: String) -> void:
 
 ## Revive completed notification
 func notify_revive_completed(target_id: String, healer_name: String) -> void:
-	send(target_id, "You have been resurrected by %s!" % healer_name, NotificationType.SYSTEM, Priority.HIGH, 
+	send(target_id, "You have been resurrected by %s!" % healer_name, NotificationType.SYSTEM, Priority.HIGH,
 		DisplayLocation.BOTH, SoundType.ACHIEVEMENT, {
 		"healer_name": healer_name,
 		"action": "revive_completed"
@@ -570,14 +570,14 @@ func notify_revive_completed(target_id: String, healer_name: String) -> void:
 
 ## Revive failed/interrupted notification
 func notify_revive_failed(target_id: String, reason: String = "The revival was interrupted") -> void:
-	send(target_id, "Revival failed: %s" % reason, NotificationType.WARNING, Priority.NORMAL, 
+	send(target_id, "Revival failed: %s" % reason, NotificationType.WARNING, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"reason": reason
 	})
 
 ## Self-resurrection notification
 func notify_self_resurrect(entity_id: String, item_name: String = "Soul Gem") -> void:
-	send(entity_id, "You have self-resurrected using %s!" % item_name, NotificationType.SYSTEM, Priority.HIGH, 
+	send(entity_id, "You have self-resurrected using %s!" % item_name, NotificationType.SYSTEM, Priority.HIGH,
 		DisplayLocation.BOTH, SoundType.SELF_REZ, {
 		"item_name": item_name,
 		"action": "self_resurrect"
@@ -585,7 +585,7 @@ func notify_self_resurrect(entity_id: String, item_name: String = "Soul Gem") ->
 
 ## Respawn at ankh notification
 func notify_respawn_ankh(entity_id: String, ankh_name: String) -> void:
-	send(entity_id, "Respawning at %s..." % ankh_name, NotificationType.SYSTEM, Priority.NORMAL, 
+	send(entity_id, "Respawning at %s..." % ankh_name, NotificationType.SYSTEM, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.NONE, {
 		"ankh_name": ankh_name,
 		"method": "ankh"
@@ -594,7 +594,7 @@ func notify_respawn_ankh(entity_id: String, ankh_name: String) -> void:
 ## Respawn timer notification
 func notify_respawn_timer(entity_id: String, seconds_remaining: int) -> void:
 	if seconds_remaining <= 5:
-		send(entity_id, "Respawning in %d..." % seconds_remaining, NotificationType.SYSTEM, Priority.LOW, 
+		send(entity_id, "Respawning in %d..." % seconds_remaining, NotificationType.SYSTEM, Priority.LOW,
 			DisplayLocation.CENTER_SCREEN, SoundType.NOTIFICATION, {
 			"seconds": seconds_remaining
 		})
@@ -618,21 +618,21 @@ func notify_corpse_looted_victim(entity_id: String, looter_name: String, item_na
 
 ## Cannot loot notification
 func notify_cannot_loot(entity_id: String, reason: String) -> void:
-	send(entity_id, "Cannot loot: %s" % reason, NotificationType.WARNING, Priority.LOW, 
+	send(entity_id, "Cannot loot: %s" % reason, NotificationType.WARNING, Priority.LOW,
 		DisplayLocation.CHAT_LOG, SoundType.NONE, {
 		"reason": reason
 	})
 
 ## Ankh bound notification
 func notify_ankh_bound(entity_id: String, ankh_name: String) -> void:
-	send(entity_id, "✝️ Bound to %s" % ankh_name, NotificationType.SYSTEM, Priority.NORMAL, 
+	send(entity_id, "✝️ Bound to %s" % ankh_name, NotificationType.SYSTEM, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.NOTIFICATION, {
 		"ankh_name": ankh_name
 	})
 
 ## Cannot bind to ankh notification
 func notify_cannot_bind_ankh(entity_id: String, reason: String) -> void:
-	send(entity_id, "Cannot bind to ankh: %s" % reason, NotificationType.WARNING, Priority.NORMAL, 
+	send(entity_id, "Cannot bind to ankh: %s" % reason, NotificationType.WARNING, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"reason": reason
 	})
@@ -642,7 +642,7 @@ func notify_pvp_kill(killer_name: String, victim_name: String, zone_name: String
 	var message: String = "%s defeated %s" % [killer_name, victim_name]
 	if zone_name != "":
 		message += " in %s" % zone_name
-	
+
 	# Broadcast to nearby players
 	var scope := AlertScope.new()
 	scope.is_server_wide = GameConfig.Social.BROADCAST_PVP_KILLS if GameConfig and GameConfig.Social else false
@@ -668,7 +668,7 @@ func notify_invincibility_gained(entity_id: String, duration: float, reason: Str
 		message = "🛡️ Respawn protection: %s" % message
 	elif reason == "griefing_protection":
 		message = "🛡️ Griefing protection active"
-	send(entity_id, message, NotificationType.SYSTEM, Priority.NORMAL, 
+	send(entity_id, message, NotificationType.SYSTEM, Priority.NORMAL,
 		DisplayLocation.CENTER_SCREEN, SoundType.INVINCIBILITY, {
 		"duration": duration,
 		"reason": reason
@@ -679,7 +679,7 @@ func notify_invincibility_lost(entity_id: String, reason: String = "") -> void:
 	var message: String = "⚠️ Invincibility ended"
 	if reason == "expired":
 		message = "🛡️ Respawn protection has worn off"
-	send(entity_id, message, NotificationType.WARNING, Priority.NORMAL, 
+	send(entity_id, message, NotificationType.WARNING, Priority.NORMAL,
 		DisplayLocation.CHAT_LOG, SoundType.WARNING, {
 		"reason": reason
 	})
@@ -690,7 +690,7 @@ func notify_kill_streak(entity_id: String, streak: int, xp_bonus: int, gold_bonu
 	var idx := mini(streak / 5, emojis.size() - 1)
 	var emoji: String = emojis[idx]
 	var message: String = "%s Kill streak %d! +%d XP, +%d gold" % [emoji, streak, xp_bonus, gold_bonus]
-	send(entity_id, message, NotificationType.COMBAT, Priority.HIGH, 
+	send(entity_id, message, NotificationType.COMBAT, Priority.HIGH,
 		DisplayLocation.BOTH, SoundType.KILL_STREAK, {
 		"streak": streak,
 		"xp_bonus": xp_bonus,
@@ -717,13 +717,13 @@ func send_to_player_name(player_name: String, message: String, notif_type: Notif
 	if entity_service == null:
 		GameLog.warn("NotificationService: Cannot find player by name - EntityService not available")
 		return false
-	
+
 	var players = entity_service.get_all_players()
 	for player in players:
 		if player.has("display_name") and player.display_name == player_name:
 			send(player.entity_id, message, notif_type, priority, location, sound, data)
 			return true
-	
+
 	GameLog.debug("NotificationService: Player not found: %s" % player_name)
 	return false
 
@@ -765,7 +765,7 @@ func _add_to_history(entity_id: String, notification: Dictionary) -> void:
 	if not _notification_history.has(entity_id):
 		_notification_history[entity_id] = []
 	_notification_history[entity_id].append(notification)
-	
+
 	# Trim history
 	while _notification_history[entity_id].size() > _max_history:
 		_notification_history[entity_id].pop_at(0)

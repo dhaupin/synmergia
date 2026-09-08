@@ -56,21 +56,21 @@ func _connect_signals() -> void:
 func _on_exploit_detected(player_id: String, exploit_type: String, details: Dictionary) -> void:
 	if not _enabled:
 		return
-	
+
 	# Track exploit count
 	if not _player_exploit_counts.has(player_id):
 		_player_exploit_counts[player_id] = {}
-	
+
 	var counts = _player_exploit_counts[player_id]
 	if not counts.has(exploit_type):
 		counts[exploit_type] = 0
 	counts[exploit_type] += 1
-	
+
 	var count = counts[exploit_type]
-	
+
 	# Log the detection
 	GameLog.info("AutoResponse: %s detected %s (count: %d)" % [player_id, exploit_type, count])
-	
+
 	# Check thresholds and take action
 	match exploit_type:
 		"spam":
@@ -81,7 +81,7 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 			_handle_teleport_hack(player_id, count)
 		"item_duplication":
 			_handle_item_duplication(player_id, count)
-	
+
 	# Check total exploit count for auto-kick
 	var total = counts.values().reduce(func(a, b): return a + b, 0)
 	if total >= GameConfig.AutoResponse.AUTO_KICK_THRESHOLD:

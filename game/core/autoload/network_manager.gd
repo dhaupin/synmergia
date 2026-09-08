@@ -83,23 +83,23 @@ func start_server(port: int = DEFAULT_PORT) -> bool:
 	if connection_state != ConnectionState.DISCONNECTED:
 		GameLog.warn("Cannot start server: already connected")
 		return false
-	
+
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, MAX_PLAYERS)
-	
+
 	if error != OK:
 		GameLog.error("Failed to start server on port %d: %s" % [port, error])
 		return false
-	
+
 	multiplayer.multiplayer_peer = peer
 	connection_state = ConnectionState.SERVER
 	is_server = true
-	
+
 	peer.peer_connected.connect(_on_server_peer_connected)
 	peer.peer_disconnected.connect(_on_server_peer_disconnected)
-	
+
 	_start_server_loop()
-	
+
 	GameLog.info("Server started on port %d" % port)
 	server_started.emit()
 	return true
@@ -171,23 +171,23 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 	if connection_state != ConnectionState.DISCONNECTED:
 		GameLog.warn("Cannot connect: already connected")
 		return false
-	
+
 	connection_state = ConnectionState.CONNECTING
-	
+
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_client(ip, port)
-	
+
 	if error != OK:
 		GameLog.error("Failed to create client: %s" % error)
 		connection_state = ConnectionState.DISCONNECTED
 		return false
-	
+
 	multiplayer.multiplayer_peer = peer
 	is_client = true
-	
+
 	peer.connection_failed.connect(_on_client_connection_failed)
 	peer.server_disconnected.connect(_on_server_disconnected)
-	
+
 	GameLog.info("Connecting to server at %s:%d..." % [ip, port])
 	return true
 
@@ -212,7 +212,7 @@ func disconnect_from_server() -> void:
 	if is_client and multiplayer.multiplayer_peer:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
-	
+
 	connection_state = ConnectionState.DISCONNECTED
 	is_client = false
 	peer_id = 0
@@ -223,7 +223,7 @@ func disconnect_from_server() -> void:
 func _check_connection_health() -> void:
 	if not multiplayer.is_network_server():
 		return
-	
+
 	# Check for timed out peers
 	for peer_id in connected_peers:
 		var peer_data = connected_peers[peer_id]
@@ -235,19 +235,19 @@ func _check_connection_health() -> void:
 func stop_server() -> void:
 	if not is_server:
 		return
-	
+
 	if tick_timer:
 		tick_timer.stop()
 		tick_timer.queue_free()
-	
+
 	multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = null
-	
+
 	connection_state = ConnectionState.DISCONNECTED
 	is_server = false
 	server_ticks = 0
 	connected_peers.clear()
-	
+
 	GameLog.info("Server stopped")
 	server_stopped.emit()
 

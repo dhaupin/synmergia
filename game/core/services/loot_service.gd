@@ -38,9 +38,9 @@ func _ready() -> void:
 ## Create loot from enemy death
 func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1, context: Dictionary = {}) -> String:
 	var loot_id := "loot_%s_%d" % [source_id, Time.get_ticks_msec()]
-				
+
 	var result := loot_table.roll_drop()
-				
+
 	var loot_data := {
 	"id": loot_id,
 	"source_id": source_id,
@@ -55,20 +55,20 @@ func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1
 	"eligible_players": [],
 	"assigned_to": ""
 	}
-				
+
 	_active_loot[loot_id] = loot_data
-				
+
 	if result["got_any"]:
 		loot_dropped.emit(source_id, loot_id, result["items"], result["currency"])
 		GameLog.info("LootService: Created loot %s with %d items" % [loot_id, result["items"].size()])
-				
+
 	return loot_id
 
 ## Create loot from container (chest, crate, etc.)
-func create_container_loot(container_id: String, items: Array, currency: Dictionary = {}, 
+func create_container_loot(container_id: String, items: Array, currency: Dictionary = {},
 		auto_loot: bool = false) -> String:
 	var loot_id := "loot_%s_%d" % [container_id, Time.get_ticks_msec()]
-				
+
 	var loot_data := {
 	"id": loot_id,
 	"source_id": container_id,
@@ -83,12 +83,12 @@ func create_container_loot(container_id: String, items: Array, currency: Diction
 	"eligible_players": [],
 	"assigned_to": ""
 	}
-				
+
 	_active_loot[loot_id] = loot_data
-				
+
 	if loot_data["has_loot"]:
 		loot_dropped.emit(container_id, loot_id, items, currency)
-				
+
 	return loot_id
 
 ## Set eligible players for loot (for parties)
@@ -103,11 +103,11 @@ func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
 	var loot: Dictionary = _active_loot.get(loot_id)
 	if not loot or loot["assigned_to"] != "":
 		return false
-				
+
 	if not loot["need_before_greed"]:
 								# Auto-assign to initiator
 		return assign_loot(loot_id, initiator_id)
-				
+
 					# Get party members if initiator is in a party
 	var party := PartyService.get_player_party(initiator_id)
 	if party.is_empty() or not party.has("id"):
@@ -117,10 +117,10 @@ func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
 		loot["eligible_players"] = PartyService.get_party_members(party["id"])
 		GameLog.debug("LootService: Party found, loot %s eligible for %d members" % [loot_id, loot["eligible_players"].size()])
 	_need_greed_rolls[loot_id] = {}
-				
+
 	loot_need_before_greed_started.emit(loot_id, loot["eligible_players"])
 	GameLog.info("LootService: Started NBG for loot %s" % loot_id)
-				
+
 	return true
 
 ## Roll for loot (Need/Greed)
@@ -132,25 +132,25 @@ func roll_for_loot(loot_id: String, player_id: String, roll_type: RollType, roll
 
 	if not _active_loot.has(loot_id):
 		return false
-			
+
 	if not _need_greed_rolls.has(loot_id):
 		return false
-			
+
 	var rolls: Dictionary = _need_greed_rolls[loot_id]
 	if rolls.has(player_id):
 		return false	# Already rolled
-			
+
 	rolls[player_id] = {"type": roll_type, "value": roll_value, "timestamp": Time.get_unix_time_from_system()}
 	_need_greed_rolls[loot_id] = rolls
-			
+
 	loot_rolled.emit(loot_id, player_id, roll_type, roll_value)
 	GameLog.debug("LootService: Player %s rolled %s: %d" % [player_id, RollType.keys()[roll_type], roll_value])
-			
+
 			# Check if all eligible have rolled
 	var loot: Dictionary = _active_loot[loot_id]
 	if rolls.size() >= loot["eligible_players"].size():
 		_resolve_need_greed(loot_id)
-			
+
 	return true
 
 ## Resolve Need/Greed
@@ -158,13 +158,13 @@ func _resolve_need_greed(loot_id: String) -> void:
 	var loot: Dictionary = _active_loot.get(loot_id)
 	if not loot:
 		return
-				
+
 	var rolls: Dictionary = _need_greed_rolls[loot_id]
-				
+
 	var best_roller := ""
 	var best_type := RollType.PASS
 	var best_value := 0
-				
+
 	for player_id in rolls:
 		var roll: Dictionary = rolls[player_id]
 		if roll["type"] == RollType.NEED:
@@ -177,7 +177,7 @@ func _resolve_need_greed(loot_id: String) -> void:
 				best_roller = player_id
 				best_type = RollType.GREED
 				best_value = roll["value"]
-				
+
 	if best_roller != "":
 		assign_loot(loot_id, best_roller)
 
@@ -186,26 +186,26 @@ func assign_loot(loot_id: String, player_id: String) -> bool:
 	var loot: Dictionary = _active_loot.get(loot_id)
 	if not loot or loot["assigned_to"] != "":
 		return false
-				
+
 	loot["assigned_to"] = player_id
-				
+
 	var items: Dictionary = loot["items"]
 	var currency: int = loot["currency"]
-				
+
 				# Store for player pickup
 	if not _player_loot.has(player_id):
 		_player_loot[player_id] = []
-				
+
 	_player_loot[player_id].append({
 	"loot_id": loot_id,
 	"items": items,
 	"currency": currency,
 	"auto_loot": loot["auto_loot"]
 	})
-				
+
 	loot_assigned.emit(loot_id, player_id, items)
 	GameLog.info("LootService: Assigned loot %s to %s" % [loot_id, player_id])
-				
+
 	return true
 
 ## Pick up loot for a player
@@ -244,14 +244,14 @@ func pickup_loot(player_id: String, loot_id: String = "") -> Array:
 func pass_loot(loot_id: String, player_id: String) -> bool:
 	if not _active_loot.has(loot_id):
 		return false
-				
+
 	if _need_greed_rolls.has(loot_id):
 		var rolls: Dictionary = _need_greed_rolls[loot_id]
 		if not rolls.has(player_id):
 			rolls[player_id] = {"type": RollType.PASS, "value": 0, "timestamp": Time.get_unix_time_from_system()}
 			loot_passed.emit(loot_id, player_id)
 			return true
-				
+
 	return false
 
 ## Get player's pending loot
@@ -268,17 +268,17 @@ func get_loot_at_position(position: Vector3, radius: float = 5.0) -> Array:
 func expire_loot(loot_id: String) -> void:
 	if _active_loot.has(loot_id):
 		var loot: Dictionary = _active_loot[loot_id]
-								
+
 								# Clean up assignments
 		for player_id in _player_loot:
 			var loot_list: Array = _player_loot[player_id]
 			for i in range(loot_list.size()):
 				if loot_list[i]["loot_id"] == loot_id:
 					loot_list.remove_at(i)
-				
+
 		_active_loot.erase(loot_id)
 		_need_greed_rolls.erase(loot_id)
-								
+
 		loot_expired.emit(loot_id)
 		GameLog.info("LootService: Loot %s expired" % loot_id)
 
@@ -286,27 +286,27 @@ func expire_loot(loot_id: String) -> void:
 func _process(delta: float) -> void:
 	var now := Time.get_unix_time_from_system()
 	var expired: Array = []
-				
+
 	for loot_id in _active_loot:
 		var loot: Dictionary = _active_loot[loot_id]
 		if now > loot["expires_at"]:
 			expired.append(loot_id)
-				
+
 	for loot_id in expired:
 		expire_loot(loot_id)
 
 ## Distribute loot to party (share_loot)
 func distribute_party_loot(party_id: String, loot_id: String, items: Array) -> Dictionary:
 	var distributions: Dictionary = {}
-				
+
 					# Get party members from PartyService
 	var party_members := PartyService.get_party_members(party_id)
 	if party_members.is_empty():
 		GameLog.warn("LootService: No party members found for party %s" % party_id)
 		return distributions
-					
+
 	GameLog.debug("LootService: Distributing loot to %d party members" % party_members.size())
-				
+
 	loot_distributed.emit(loot_id, distributions)
 	return distributions
 

@@ -32,21 +32,21 @@ func _ready() -> void:
 	var combat_class = load("res://core/events/combat_events.gd")
 	var inventory_class = load("res://core/events/inventory_events.gd")
 	var system_class = load("res://core/events/system_events.gd")
-	
+
 	entity = entity_class.new()
 	combat = combat_class.new()
 	inventory = inventory_class.new()
 	system = system_class.new()
-	
+
 	add_child(entity)
 	add_child(combat)
 	add_child(inventory)
 	add_child(system)
-	
+
 	# Forward entity_events to direct signals for backward compatibility
 	entity.spawned.connect(_on_entity_spawned)
 	entity.died.connect(_on_entity_died)
-	
+
 	GameLog.info("EventHub: Initialized")
 
 func _on_entity_spawned(entity_id: String, zone_id: String, position: Vector3) -> void:

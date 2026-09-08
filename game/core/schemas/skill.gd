@@ -183,19 +183,19 @@ func execute(caster, target= null, ground_pos: Vector3 = Vector3.ZERO) -> Dictio
 		"effects_applied": [],
 		"targets_hit": []
 	}
-	
+
 	if not can_cast(caster):
 		return result
-	
+
 	# Consume resources
 	_consume_resources(caster)
-	
+
 	# Start cooldown
 	remaining_cooldown = cooldown
-	
+
 	# Apply effects
 	_apply_effects(caster, target, ground_pos, result)
-	
+
 	result["success"] = true
 	return result
 
@@ -233,19 +233,19 @@ func _apply_effects(caster, target, ground_pos: Vector3, result: Dictionary) -> 
 func _apply_revive(caster, target, effect: Dictionary, result: Dictionary) -> bool:
 	if not target or not caster:
 		return false
-	
+
 	# Check if target is actually dead
 	if not target.health_component or not target.health_component.is_dead():
 		result["failure_reason"] = "Target is not dead"
 		return false
-	
+
 	# Check range if specified
 	if range > 0:
 		var distance: float = caster.global_position.distance_to(target.global_position)
 		if distance > range:
 			result["failure_reason"] = "Target out of range"
 			return false
-	
+
 	# Use RespawnService to perform the revive
 	var context: String = effect.get("context", "open_world")
 	if RespawnService:
@@ -257,7 +257,7 @@ func _apply_revive(caster, target, effect: Dictionary, result: Dictionary) -> bo
 		else:
 			result["failure_reason"] = "Revive failed (abuse detection or restrictions)"
 			return false
-	
+
 	# Fallback if no RespawnService
 	result["failure_reason"] = "Revive system not available"
 	return false
@@ -272,26 +272,26 @@ func get_cooldown_remaining() -> float:
 ## Find dead allies within range (for revive skills)
 static func find_dead_allies(caster, max_range: float) -> Array:
 	var dead_allies: Array = []
-	
+
 	if not caster or not caster.health_component:
 		return dead_allies
-	
+
 	var caster_pos: Vector3 = caster.global_position
-	
+
 	# Get all entities in range from EntityService
 	var nearby_entities := []
-	
+
 	for entity in nearby_entities:
 		# Skip self
 		if entity == caster:
 			continue
-		
+
 		# Check if it's a dead ally (same team/faction, dead)
 		if entity.health_component and entity.health_component.is_dead():
 			# Check if ally (same team or friendly)
 			if _is_ally(caster, entity):
 				dead_allies.append(entity)
-	
+
 	return dead_allies
 
 ## Check if two entities are allies
@@ -299,27 +299,27 @@ static func _is_ally(entity_a, entity_b) -> bool:
 	# Same entity
 	if entity_a == entity_b:
 		return true
-	
+
 	# Check party
 	if entity_a.has("party_id") and entity_b.has("party_id"):
 		if entity_a.party_id != "" and entity_a.party_id == entity_b.party_id:
 			return true
-	
+
 	# Check guild
 	if entity_a.has("guild_id") and entity_b.has("guild_id"):
 		if entity_a.guild_id != "" and entity_a.guild_id == entity_b.guild_id:
 			return true
-	
+
 	# Check faction (friendly)
 	if entity_a.has("faction_id") and entity_b.has("faction_id"):
 		if entity_a.faction_id == entity_b.faction_id:
 			return true
-	
+
 	# Check team (for PvP)
 	if entity_a.has("team_id") and entity_b.has("team_id"):
 		if entity_a.team_id == entity_b.team_id:
 			return true
-	
+
 	return false
 
 func get_info() -> Dictionary:
@@ -396,11 +396,11 @@ func check_stat_requirement(player_stat_value: int, upgrade_level: int) -> Dicti
 	var required: Dictionary = get_required_stat_for_tier(upgrade_level)
 	var stat_name: String = required.get("stat", "")
 	var required_value: int = required.get("value", 0)
-	
+
 	# No stat required for this tier
 	if stat_name == "" or required_value == 0:
 		return {"meets_requirement": true, "stat": "", "required": 0, "current": player_stat_value}
-	
+
 	var meets: bool = player_stat_value >= required_value
 	return {
 		"meets_requirement": meets,

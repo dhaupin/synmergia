@@ -61,32 +61,32 @@ func _process_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		_handle_screen_touch(event)
 		return
-	
+
 	if event is InputEventMouseButton:
 		_handle_mouse_button(event)
 		return
-	
+
 	if event is InputEventMouseMotion:
 		_handle_mouse_motion(event)
 		return
-	
+
 	if event is InputEventScreenDrag:
 		_handle_screen_drag(event)
 		return
-	
+
 	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
 		_handle_gamepad(event)
 		return
-	
+
 	if event is InputEventKey and event.pressed:
 		_handle_keyboard_action(event)
 
 func _detect_platform() -> void:
 	var display_size := DisplayServer.window_get_size()
-	
+
 	# Force Desktop mode (Docker/Xvfb doesn't handle touch events well)
 	_current_platform = Platform.DESKTOP
-	
+
 	platform_changed.emit(_current_platform)
 
 func _get_platform_name() -> String:
@@ -102,7 +102,7 @@ func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 		_touch_start_pos = event.position
 		_touch_current_pos = event.position
 		_touch_start_time = Time.get_ticks_msec() / 1000.0
-		
+
 		var time_since_last := Time.get_ticks_msec() / 1000.0 - _last_tap_time
 		if time_since_last < _double_tap_time:
 			_emit_interaction(InteractionType.DOUBLE_TAP, event.position)
@@ -110,7 +110,7 @@ func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 			_last_tap_time = 0
 		else:
 			_last_tap_time = Time.get_ticks_msec() / 1000.0
-		
+
 		_start_long_press_check()
 	else:
 		_handle_touch_end(event.position)
@@ -118,10 +118,10 @@ func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 func _handle_touch_end(position: Vector2) -> void:
 	if not _is_touching:
 		return
-	
+
 	var duration := Time.get_ticks_msec() / 1000.0 - _touch_start_time
 	var distance: float = _touch_start_pos.distance_to(position)
-	
+
 	if distance < _tap_max_distance and duration < _tap_max_time:
 		_emit_interaction(InteractionType.TAP, position)
 		tap.emit(position)
@@ -129,7 +129,7 @@ func _handle_touch_end(position: Vector2) -> void:
 		var direction := (position - _touch_start_pos).normalized()
 		_emit_interaction(InteractionType.SWIPE, position)
 		swipe.emit(direction)
-	
+
 	_is_touching = false
 
 func _handle_screen_drag(event: InputEventScreenDrag) -> void:

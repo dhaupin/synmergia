@@ -347,21 +347,21 @@ func throttle(scope: String, action_type: String) -> bool:
 
 	if not _throttle_counters.has(action_type):
 		_throttle_counters[action_type] = {"count": 0, "window_start": Time.get_ticks_msec()}
-	
+
 	var counter = _throttle_counters[action_type]
 	var now = Time.get_ticks_msec()
 	var elapsed = (now - counter["window_start"]) / 1000.0
-	
+
 	# Reset window if elapsed time exceeds 1 second
 	if elapsed >= 1.0:
 		counter["count"] = 0
 		counter["window_start"] = now
-	
+
 	# Check against limit
 	if counter["count"] < max_rate:
 		counter["count"] += 1
 		return true
-	
+
 	# Throttled
 	throttle_triggered.emit(scope, action_type, counter["count"], max_rate)
 	return false
@@ -370,12 +370,12 @@ func throttle(scope: String, action_type: String) -> bool:
 func queue_action(player_id: String, action_type: String, action_data: Dictionary) -> bool:
 	if not _action_queues.has(player_id):
 		_action_queues[player_id] = {}
-	
+
 	var queue = _action_queues[player_id].get(action_type, [])
-	
+
 	if queue.size() >= _get_config_int("Throttle", "MAX_QUEUED_ACTIONS", 50):
 		return false
-	
+
 	queue.append({"data": action_data, "timestamp": Time.get_ticks_msec()})
 	_action_queues[player_id][action_type] = queue
 	action_queued.emit(player_id, action_type, queue.size())
@@ -385,11 +385,11 @@ func queue_action(player_id: String, action_type: String, action_data: Dictionar
 func get_next_queued(player_id: String, action_type: String) -> Dictionary:
 	if not _action_queues.has(player_id):
 		return {}
-	
+
 	var queue = _action_queues[player_id].get(action_type, [])
 	if queue.is_empty():
 		return {}
-	
+
 	var action = queue.pop_at(0)
 	_action_queues[player_id][action_type] = queue
 	return action.get("data", {})
@@ -402,7 +402,7 @@ func get_next_queued(player_id: String, action_type: String) -> Dictionary:
 ## Returns the result or null if rejected
 func bulkhead_execute(service_name: String, player_id: String, callback: Callable) -> Variant:
 	var global_active = _bulkhead_active.get("__global__", 0)
-	
+
 	# Check global limit
 	if global_active >= _get_config_int("QoS", "MAX_CONCURRENT_GLOBAL", 100):
 		bulkhead_rejected.emit(service_name)
@@ -433,20 +433,20 @@ func bulkhead_execute(service_name: String, player_id: String, callback: Callabl
 				player_id
 			)
 		return null
-	
+
 	# Increment counters
 	_bulkhead_active["__global__"] = global_active + 1
 	_bulkhead_active[service_name] = service_active + 1
 	_bulkhead_active[player_id] = player_active + 1
-	
+
 	# Execute the callback
 	var result = callback.call()
-	
+
 	# Decrement counters
 	_bulkhead_active["__global__"] = _bulkhead_active.get("__global__", 1) - 1
 	_bulkhead_active[service_name] = _bulkhead_active.get(service_name, 1) - 1
 	_bulkhead_active[player_id] = _bulkhead_active.get(player_id, 1) - 1
-	
+
 	return result
 
 ## Get current bulkhead stats
@@ -484,25 +484,25 @@ func debounce(key: String, callback: Callable, delay_ms: int = -1, data: Variant
 	if delay_ms < 0:
 		delay_ms = bounds["default"]
 	delay_ms = mini(delay_ms, bounds["max"])
-	
+
 	# Cancel existing timer if any
 	if _debounce_timers.has(key):
 		var existing = _debounce_timers[key]
 		if existing.has("timer") and is_instance_valid(existing["timer"]):
 			existing["timer"].stop()
 			existing["timer"].queue_free()
-	
+
 	# Create new timer
 	var timer := Timer.new()
 	timer.wait_time = delay_ms / 1000.0
 	timer.one_shot = true
-	
+
 	var debounce_data = {"callback": callback, "data": data, "key": key}
 	timer.timeout.connect(_debounce_callback.bind(debounce_data))
-	
+
 	add_child(timer)
 	timer.start()
-	
+
 	_debounce_timers[key] = {"timer": timer, "callback": callback, "data": data}
 
 ## Internal debounce callback
@@ -510,13 +510,13 @@ func _debounce_callback(data: Dictionary) -> void:
 	var key = data.get("key", "")
 	var callback: Callable = data.get("callback")
 	var callback_data = data.get("data")
-	
+
 	if callback.is_valid():
 		if callback_data != null:
 			callback.call(callback_data)
 		else:
 			callback.call()
-	
+
 	# Cleanup
 	_debounce_timers.erase(key)
 
@@ -537,7 +537,7 @@ func cancel_debounce(key: String) -> void:
 func circuit_execute(service_name: String, operation: Callable) -> Dictionary:
 	var breaker = _get_or_create_breaker(service_name)
 	var now = Time.get_ticks_msec() / 1000.0
-	
+
 	match breaker["state"]:
 		CircuitState.OPEN:
 			# Check if recovery timeout has passed
@@ -546,14 +546,14 @@ func circuit_execute(service_name: String, operation: Callable) -> Dictionary:
 				pass  # GameLog.debug removed
 			else:
 				return {"success": false, "error": "Circuit OPEN", "rejected": true}
-		
+
 		CircuitState.HALF_OPEN:
 			# Allow limited calls in half-open state
 			pass
-	
+
 	# Execute the operation
 	var result = operation.call()
-	
+
 	if result is Dictionary and result.get("success", false):
 		_on_circuit_success(breaker, service_name)
 		return {"success": true, "data": result.get("data"), "rejected": false}
@@ -618,7 +618,7 @@ func _notify_circuit_change(service_name: String, new_state: String, detail: Str
 func get_circuit_state(service_name: String) -> String:
 	if not _circuit_breakers.has(service_name):
 		return "UNKNOWN"
-	
+
 	match _circuit_breakers[service_name]["state"]:
 		CircuitState.CLOSED:
 			return "CLOSED"
@@ -640,17 +640,17 @@ func record_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 			"packet_loss": 0.0,
 			"jitter_history": []
 		}
-	
+
 	var data = _connection_quality[player_id]
-	
+
 	# Add to history (keep last 20 samples)
 	data["latency_history"].append(latency_ms)
 	if data["latency_history"].size() > 20:
 		data["latency_history"].pop_at(0)
-	
+
 	# Update packet loss (exponential moving average)
 	data["packet_loss"] = data["packet_loss"] * 0.9 + packet_loss * 0.1
-	
+
 	# Calculate jitter
 	if data["latency_history"].size() >= 2:
 		var jitter = absi(data["latency_history"][-1] - data["latency_history"][-2])
@@ -662,17 +662,17 @@ func record_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 func get_connection_quality(player_id: String) -> ConnectionQuality:
 	if not _connection_quality.has(player_id):
 		return ConnectionQuality.UNKNOWN
-	
+
 	var data = _connection_quality[player_id]
 	if data["latency_history"].is_empty():
 		return ConnectionQuality.UNKNOWN
-	
+
 	# Use average latency
 	var avg_latency = 0
 	for latency in data["latency_history"]:
 		avg_latency += latency
 	avg_latency /= data["latency_history"].size()
-	
+
 	# Check latency thresholds
 	if avg_latency <= _get_config_int("QoS", "EXCELLENT_LATENCY_MS", 50):
 		return ConnectionQuality.EXCELLENT
@@ -689,26 +689,26 @@ func get_connection_quality(player_id: String) -> ConnectionQuality:
 func get_latency_stats(player_id: String) -> Dictionary:
 	if not _connection_quality.has(player_id):
 		return {}
-	
+
 	var data = _connection_quality[player_id]
 	var avg_latency = 0
 	var min_latency = 999999
 	var max_latency = 0
-	
+
 	for latency in data["latency_history"]:
 		avg_latency += latency
 		min_latency = mini(min_latency, latency)
 		max_latency = maxi(max_latency, latency)
-	
+
 	if not data["latency_history"].is_empty():
 		avg_latency /= data["latency_history"].size()
-	
+
 	var avg_jitter = 0
 	if not data["jitter_history"].is_empty():
 		for j in data["jitter_history"]:
 			avg_jitter += j
 		avg_jitter /= data["jitter_history"].size()
-	
+
 	return {
 		"avg_latency": avg_latency,
 		"min_latency": min_latency,
@@ -724,7 +724,7 @@ func get_latency_stats(player_id: String) -> Dictionary:
 
 func _cleanup_stale_data() -> void:
 	var now = Time.get_ticks_msec()
-	
+
 	# Cleanup stale rate limit buckets (no activity for 5 minutes)
 	for player_id in _rate_limit_buckets.keys():
 		var buckets = _rate_limit_buckets[player_id]
@@ -736,7 +736,7 @@ func _cleanup_stale_data() -> void:
 				break
 		if not has_activity:
 			_rate_limit_buckets.erase(player_id)
-	
+
 	# Cleanup stale queues
 	for player_id in _action_queues.keys():
 		var queues = _action_queues[player_id]
@@ -756,7 +756,7 @@ func _cleanup_stale_data() -> void:
 				queues[action_type] = valid_items
 		if not has_valid:
 			_action_queues.erase(player_id)
-	
+
 	# Cleanup dead circuit breakers (been closed for 10 minutes)
 	for service_name in _circuit_breakers.keys():
 		var breaker = _circuit_breakers[service_name]
@@ -788,7 +788,7 @@ func get_rate_limit_info() -> Dictionary:
 func get_player_rates(player_id: String) -> Dictionary:
 	var rates: Dictionary = {}
 	var now := Time.get_ticks_msec()
-	
+
 	if _rate_limit_buckets.has(player_id):
 		var buckets: Dictionary = _rate_limit_buckets[player_id]
 		for action_type in buckets.keys():
@@ -797,7 +797,7 @@ func get_player_rates(player_id: String) -> Dictionary:
 			var recent: Array = bucket.filter(func(t): return now - t < 1000)
 			if not recent.is_empty():
 				rates[action_type] = float(recent.size())
-	
+
 	return rates
 
 ## Get QoS statistics
@@ -808,11 +808,11 @@ func get_statistics() -> Dictionary:
 		"circuit_open_count": 0,
 		"active_players": _rate_limit_buckets.keys().size()
 	}
-	
+
 	# Count open circuits
 	for service_name in _circuit_breakers.keys():
 		var breaker = _circuit_breakers[service_name]
 		if breaker["state"] == CircuitState.OPEN:
 			stats["circuit_open_count"] += 1
-	
+
 	return stats

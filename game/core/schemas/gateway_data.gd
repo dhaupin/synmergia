@@ -97,20 +97,20 @@ func check_requirements(player) -> Dictionary:
 			"can_use": false,
 			"reason": "Level %d required" % min_level
 		}
-	
+
 	if player.level > max_level:
 		return {
 			"can_use": false,
 			"reason": "Level %d or below only" % max_level
 		}
-	
+
 	# Combat check
 	if combat_lockout and player.is_in_combat:
 		return {
 			"can_use": false,
 			"reason": "Cannot use while in combat"
 		}
-	
+
 	# Party check
 	if party_required:
 		if not player.party_id or player.party_id == "":
@@ -123,7 +123,7 @@ func check_requirements(player) -> Dictionary:
 				"can_use": false,
 				"reason": "Only party leader can use"
 			}
-	
+
 	# Gold check
 	if gold_cost > 0:
 		var inventory = player.inventory_component
@@ -132,7 +132,7 @@ func check_requirements(player) -> Dictionary:
 				"can_use": false,
 				"reason": "Need %d gold" % gold_cost
 			}
-	
+
 	# Key item check
 	if requires_key and key_item_id != "":
 		var inventory = player.inventory_component
@@ -141,7 +141,7 @@ func check_requirements(player) -> Dictionary:
 				"can_use": false,
 				"reason": "Requires key item"
 			}
-	
+
 	return {"can_use": true}
 
 ## Get activation summary for UI
@@ -152,7 +152,7 @@ func get_activation_summary() -> Dictionary:
 		"gold_cost": gold_cost,
 		"has_key": requires_key
 	}
-	
+
 	match activation_requirement:
 		ActivationRequirement.LEVEL_REACH:
 			summary["requirement"] = "Reach level %d" % requirement_value_int
@@ -160,5 +160,5 @@ func get_activation_summary() -> Dictionary:
 			summary["requirement"] = "Complete quest: %s" % requirement_value
 		ActivationRequirement.FACTION_RANK:
 			summary["requirement"] = "%s rank %d" % [requirement_value, requirement_value_int]
-	
+
 	return summary

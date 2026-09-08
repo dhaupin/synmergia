@@ -68,15 +68,15 @@ func _ready() -> void:
 	# Connect to input
 	InputManager.player_input.connect(_on_player_input)
 	PlayerManager.set_local_player(self)
-	
+
 	# Set collision
 	collision_mask = 0b0000111
 	collision_layer = 0b0000001
-	
+
 	# Initialize basic attack if null
 	if basic_attack == null:
 		basic_attack = _create_basic_attack()
-	
+
 	# Register with TargetingManager
 	TargetingManager.register_targetable(
 		entity_id,
@@ -86,16 +86,16 @@ func _ready() -> void:
 		global_position,
 		Entity.EntityType.PLAYER
 	)
-	
+
 	# Set local player for TargetingManager
 	TargetingManager.set_local_player(entity_id)
-	
+
 	# Connect to InteractionLayer for touch targeting
 	_connect_interaction_layer()
-	
+
 	# Add GM indicator if this is a GM character
 	_add_gm_indicator()
-	
+
 	GameLog.info("PlayerController ready")
 
 func _add_gm_indicator() -> void:
@@ -117,19 +117,19 @@ func _connect_interaction_layer() -> void:
 func _on_interaction_tap(position: Vector2) -> void:
 	if not is_local_player:
 		return
-	
+
 	# Only handle taps on right side of screen (for movement)
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	if position.x < viewport_size.x * 0.3:
 		return  # Left side is movement joystick
-	
+
 	_handle_left_click(position)
 
 ## Handle double tap - quick target
 func _on_interaction_double_tap(position: Vector2) -> void:
 	if not is_local_player:
 		return
-	
+
 	# Quick target nearest enemy
 	_find_and_set_nearest_target()
 
@@ -137,7 +137,7 @@ func _on_interaction_double_tap(position: Vector2) -> void:
 func _on_interaction_long_press(position: Vector2) -> void:
 	if not is_local_player:
 		return
-	
+
 	# Raycast to find target
 	var camera := _get_camera()
 	if camera:
@@ -149,7 +149,7 @@ func _on_interaction_long_press(position: Vector2) -> void:
 func _on_interaction_action(action_name: String) -> void:
 	if not is_local_player:
 		return
-	
+
 	match action_name:
 		"target_next":
 			cycle_target()
@@ -314,16 +314,16 @@ func _create_basic_attack() -> Skill:
 func _physics_process(delta: float) -> void:
 	if not is_local_player:
 		return
-	
+
 	# SECURITY: Block movement if player is locked
 	if PlayerLockService and entity_id and PlayerLockService.is_movement_blocked(entity_id):
 		return
-	
+
 	# Handle follow mode - if following, auto-move to target
 	if FollowService and entity_id and FollowService.is_following(entity_id):
 		_handle_follow_movement()
 		return
-	
+
 	# QoS: Rate limit movement
 	if QoSService.rate_limit(entity_id, "movement"):
 		move_and_slide()
@@ -334,22 +334,22 @@ func _physics_process(delta: float) -> void:
 func _handle_follow_movement() -> void:
 	if not FollowService or not entity_id:
 		return
-	
+
 	var target_pos: Vector3 = FollowService.get_target_position(entity_id)
 	var distance: float = FollowService.get_distance_to_target(entity_id)
 	var state: int = FollowService.get_follow_state(entity_id)
-	
+
 	if target_pos == Vector3.INF or distance < 0:
 		return
-	
+
 	# Only actively move if catching up
 	if state == FollowService.FollowState.CATCHING_UP:
 		var direction: Vector3 = (target_pos - global_position).normalized()
 		direction.y = 0  # Keep on ground
-		
+
 		# Apply speed boost for catching up
 		var speed: float = move_speed * FollowService.DEFAULT_FOLLOW_SPEED_BUFF
-		
+
 		velocity = direction * speed
 		move_and_slide()
 	else:
@@ -363,14 +363,14 @@ func is_moving() -> bool:
 func get_movement_direction() -> Vector3:
 	var input := InputManager.get_movement_input()
 	var cam_basis := get_camera_basis()
-	
+
 	var forward: Vector3 = -cam_basis.z
 	var right := cam_basis.x
 	forward.y = 0
 	right.y = 0
 	forward = forward.normalized()
 	right = right.normalized()
-	
+
 	var direction := (forward * input.y + right * input.x)
 	return direction.normalized() if direction.length() > 0 else Vector3.ZERO
 
@@ -384,7 +384,7 @@ func get_camera_basis() -> Basis:
 func _on_player_input(action: String, pressed: bool) -> void:
 	if not is_local_player:
 		return
-	
+
 	match action:
 		"sprint":
 			is_sprinting = pressed
@@ -400,11 +400,11 @@ func cycle_target() -> void:
 	var camera := _get_camera()
 	if not camera:
 		return
-	
+
 	# Raycast in look direction to find targetable
 	var look_dir := -camera.global_transform.basis.z
 	var target_info: Variant = TargetingManager.get_target_in_direction(global_position, look_dir, 50.0)
-	
+
 	if target_info:
 		TargetingManager.set_target(
 			target_info.id,
@@ -428,12 +428,12 @@ func _find_and_set_nearest_target() -> void:
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	if enemies.is_empty():
 		return
-	
+
 	# Sort by distance
-	enemies.sort_custom(func(a, b): 
+	enemies.sort_custom(func(a, b):
 		return global_position.distance_to(a.global_position) < global_position.distance_to(b.global_position)
 	)
-	
+
 	# Target nearest
 	var nearest = enemies[0]
 	if nearest.has("entity_id"):
@@ -452,7 +452,7 @@ func _find_and_set_nearest_target() -> void:
 func use_skill(slot: int) -> void:
 	if slot < 0 or slot >= skillbar.size():
 		return
-	
+
 	var skill: Skill = skillbar[slot]
 	if skill and skill.can_cast(self):
 		# Get target from TargetingManager
@@ -460,7 +460,7 @@ func use_skill(slot: int) -> void:
 		var target_info: Variant = TargetingManager.get_current_target()
 		if target_info:
 			target = target_info.node
-		
+
 		# Check if ground targeted
 		if skill.is_ground_targeted:
 			var ground_pos := _get_ground_target_position(skill.ground_target_range)
@@ -472,7 +472,7 @@ func _get_ground_target_position(max_range: float) -> Vector3:
 	var direction: Vector2 = InputManager.last_direction
 	if direction == Vector2.ZERO:
 		direction = Vector2(0, -1)  # Default forward
-	
+
 	return CombatSystem.get_ground_target_position(self, direction, max_range)
 
 ## TARGETING
@@ -480,7 +480,7 @@ func _get_ground_target_position(max_range: float) -> Vector3:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_local_player:
 		return
-	
+
 	# Left click - target entity
 	if event is InputEventMouseButton:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -488,7 +488,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Right click - clear target or context menu
 		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			_handle_right_click()
-	
+
 	# Escape - clear target
 	if event is InputEventKey:
 		if event.pressed and event.keycode == KEY_ESCAPE:
@@ -498,10 +498,10 @@ func _handle_left_click(screen_pos: Vector2) -> void:
 	var camera := _get_camera()
 	if not camera:
 		return
-	
+
 	# Raycast from camera
 	var target_info: Variant = TargetingManager.raycast_from_camera(screen_pos, camera)
-	
+
 	if target_info:
 		# Target the entity
 		TargetingManager.set_target(
@@ -513,7 +513,7 @@ func _handle_left_click(screen_pos: Vector2) -> void:
 			target_info.entity_type
 		)
 		is_targeting = true
-		
+
 		# Show tooltip if applicable
 		_show_target_tooltip(target_info)
 	else:
@@ -545,7 +545,7 @@ func _is_click_on_ui(screen_pos: Vector2) -> bool:
 	var root := tree.root
 	if not root:
 		return false
-	
+
 	# Check for UI elements at position
 	var controls: Array = root.get_nodes_in_group("clickable")
 	for control in controls:

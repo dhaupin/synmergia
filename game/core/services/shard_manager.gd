@@ -34,7 +34,7 @@ func configure(config: Dictionary) -> void:
 	world_name = config.get("world_name", "Synmergia")
 	world_size_km2 = config.get("world_size_km2", 200.0)
 	max_players_per_shard = config.get("max_players_per_shard", 5000)
-	
+
 	GameLog.info("ShardManager: Configured as %s (%s), world size: %.0f km²" % [shard_id, shard_name, world_size_km2])
 
 ## Start the shard server (initialize state, accept players)
@@ -90,10 +90,10 @@ func get_shard_info(shard_id: String) -> Dictionary:
 func can_transfer_to(target_shard_id: String) -> bool:
 	if target_shard_id == shard_id:
 		return true  # Local transfer
-	
+
 	if not _connected_shards.has(target_shard_id):
 		return false
-	
+
 	var info = _shard_info.get(target_shard_id, {})
 	return info.get("status", "") == "online" and info.get("players", 0) < info.get("max_players", 5000)
 
@@ -119,12 +119,12 @@ func world_to_local(world_pos: Vector3) -> Vector3:
 static func generate_shard_config(shard_number: int, total_shards: int, world_size: float) -> Dictionary:
 	var row = (shard_number - 1) / 4
 	var col = (shard_number - 1) % 4
-	
+
 	# Divide world into grid for sharding
 	var world_per_shard = world_size / sqrt(total_shards)
 	var offset_x = col * world_per_shard * 1000  # Convert km to units (assuming 1 unit = 1m)
 	var offset_z = row * world_per_shard * 1000
-	
+
 	return {
 		"shard_id": "shard_%d" % shard_number,
 		"shard_name": "Shard %d" % shard_number,

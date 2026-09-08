@@ -44,10 +44,10 @@ func _init() -> void:
 ## Parse from dictionary
 static func from_dict(data: Dictionary) -> AgentAction:
 	var action := __AgentAction__.new()
-	
+
 	action.action_name = data.get("action", "unknown")
 	action.parameters = data.get("parameters", {})
-	
+
 	match action.action_name:
 		"move_forward":
 			action.action_type = ActionType.MOVEMENT
@@ -96,7 +96,7 @@ static func from_dict(data: Dictionary) -> AgentAction:
 			action.action_type = ActionType.CHAT
 			action.chat_message = data.get("message", "")
 			action.chat_channel = action.action_name
-	
+
 	return action
 
 ## Validate action
@@ -110,7 +110,7 @@ func is_valid() -> bool:
 			return true
 		ActionType.CHAT:
 			return chat_message.length() <= 200  # Max message length
-	
+
 	return action_type != ActionType.UNKNOWN
 
 ## Get debug string

@@ -109,11 +109,11 @@ static func play_accepted(class_id: String, account_level: int) -> Dictionary:
 	var cls := load_class(class_id)
 	if cls == null:
 		return {"allowed": false, "reason": "Class not found"}
-	
+
 	# GM classes require admin level
 	if is_gm_class(cls) and account_level < GameConfig.Security.ADMIN_LEVEL:
 		return {"allowed": false, "reason": "GM class requires admin privileges"}
-	
+
 	return {"allowed": true, "reason": ""}
 
 static func get_all_species() -> Array[Species]:
@@ -235,13 +235,13 @@ func allocate_stat_point(stat_name: String) -> bool:
 		return false
 	if get_available_stat_points() <= 0:
 		return false
-	
+
 	var cls := load_class(class_id)
 	if cls:
 		var current_total := get_stat_total(stat_name)
 		if current_total >= cls.MAX_STAT_VALUE:
 			return false  # Max stat cap reached
-	
+
 	allocated_stats[stat_name] += 1
 	return true
 
@@ -264,7 +264,7 @@ func get_stat_total(stat_name: String) -> int:
 		class_data = load_class(class_id)
 	if not class_data:
 		return 0
-	
+
 	var base := class_data.calculate_stat(stat_name, level)
 	var allocated := get_allocated_points(stat_name)
 	return base + allocated

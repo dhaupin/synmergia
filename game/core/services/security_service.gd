@@ -26,18 +26,18 @@ func validate_player_name(name: String) -> Dictionary:
 		"valid": true,
 		"reason": ""
 	}
-	
+
 	# Check length
 	if name.length() < GameConfig.Security.MIN_NAME_LENGTH:
 		result.valid = false
 		result.reason = "Name too short"
 		return result
-	
+
 	if name.length() > GameConfig.Security.MAX_NAME_LENGTH:
 		result.valid = false
 		result.reason = "Name too long"
 		return result
-	
+
 	# Check allowed characters (alphanumeric, spaces, some punctuation)
 	var allowed := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.'"
 	for ch in name:
@@ -45,14 +45,14 @@ func validate_player_name(name: String) -> Dictionary:
 			result.valid = false
 			result.reason = "Invalid character: '%s'" % ch
 			return result
-	
+
 	# Check for reserved words
 	for reserved in GameConfig.Security.RESERVED_NAMES:
 		if name.to_lower().contains(reserved.to_lower()):
 			result.valid = false
 			result.reason = "Name contains reserved word"
 			return result
-	
+
 	return result
 
 ## Validate a chat message
@@ -62,33 +62,33 @@ func validate_message(message: String, sender_id: String = "") -> Dictionary:
 		"reason": "",
 		"sanitized": message
 	}
-	
+
 	if message.length() > GameConfig.Security.MAX_MESSAGE_LENGTH:
 		result.valid = false
 		result.reason = "Message too long"
 		return result
-	
+
 	# Check for empty message
 	if message.strip_edges().is_empty():
 		result.valid = false
 		result.reason = "Empty message"
 		return result
-	
+
 	# Sanitize: remove control characters
 	var sanitized := ""
 	for ch in message:
 		if ch >= ' ' or ch == '\n' or ch == '\t':  # Allow printable + newlines/tabs
 			sanitized += ch
-	
+
 	result.sanitized = sanitized
-	
+
 	# Check for spam patterns (repeated characters)
 	if _detect_spam_pattern(sanitized):
 		result.valid = false
 		result.reason = "Spam pattern detected"
 		if sender_id != "":
 			invalid_input.emit(sender_id, "message", "Spam pattern detected")
-	
+
 	return result
 
 ## Validate guild/channel name
@@ -97,18 +97,18 @@ func validate_channel_name(name: String) -> Dictionary:
 		"valid": true,
 		"reason": ""
 	}
-	
+
 	# Check length
 	if name.length() < 2:
 		result.valid = false
 		result.reason = "Name too short"
 		return result
-	
+
 	if name.length() > 30:
 		result.valid = false
 		result.reason = "Name too long"
 		return result
-	
+
 	# Check allowed characters
 	var allowed := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
 	for ch in name:
@@ -116,7 +116,7 @@ func validate_channel_name(name: String) -> Dictionary:
 			result.valid = false
 			result.reason = "Invalid character"
 			return result
-	
+
 	return result
 
 ## Sanitize a string for safe storage/display
@@ -215,10 +215,10 @@ func check_teleport(player_id: String, from_pos: Vector3, to_pos: Vector3, time_
 func check_movement_speed(player_id: String, reported_distance: float, time_delta: float, max_speed: float) -> bool:
 	if time_delta <= 0:
 		return false
-	
+
 	var actual_speed := reported_distance / time_delta
 	var max_allowed := max_speed * GameConfig.Security.MAX_SPEED_HACK_MULTIPLIER
-	
+
 	if actual_speed > max_allowed:
 		_report_exploit(player_id, "speed_hack", {
 			"reported_speed": actual_speed,
@@ -227,27 +227,27 @@ func check_movement_speed(player_id: String, reported_distance: float, time_delt
 			"time": time_delta
 		})
 		return true
-	
+
 	return false
 
 ## Detect potential item duplication
 func check_item_duplication(player_id: String, item_id: String, quantity_change: int) -> bool:
 	if quantity_change <= 0:
 		return false
-	
+
 	# Track item creation rate
 	if not _suspicious_activity.has(player_id):
 		_suspicious_activity[player_id] = {"item_creations": {}}
-	
+
 	var player_data: Dictionary = _suspicious_activity[player_id]
 	if not player_data["item_creations"].has(item_id):
 		player_data["item_creations"][item_id] = []
-	
+
 	var now := Time.get_ticks_msec()
 	var recent: Array = player_data["item_creations"][item_id].filter(func(t): return now - t < 60000)
 	recent.append(now)
 	player_data["item_creations"][item_id] = recent
-	
+
 	if recent.size() > GameConfig.Security.MAX_ITEMS_PER_MINUTE:
 		_report_exploit(player_id, "item_duplication", {
 			"item_id": item_id,
@@ -255,13 +255,13 @@ func check_item_duplication(player_id: String, item_id: String, quantity_change:
 			"quantity": quantity_change
 		})
 		return true
-	
+
 	return false
 
 ## Detect potential packet manipulation (unusual input patterns)
 func check_input_anomaly(player_id: String, input_type: String, value: float) -> bool:
 	var threshold := GameConfig.Security.MAX_INPUT_VALUE
-	
+
 	# Check for impossible values
 	if absf(value) > threshold:
 		_report_exploit(player_id, "input_anomaly", {
@@ -270,7 +270,7 @@ func check_input_anomaly(player_id: String, input_type: String, value: float) ->
 			"threshold": threshold
 		})
 		return true
-	
+
 	return false
 
 ## Internal: Report exploit
@@ -321,26 +321,26 @@ var _action_tracker: Dictionary = {}
 func track_action(player_id: String, action_type: String) -> int:
 	if not _action_tracker.has(player_id):
 		_action_tracker[player_id] = {}
-	
+
 	var now := Time.get_ticks_msec()
 	var window := 10000  # 10 second window
-	
+
 	if not _action_tracker[player_id].has(action_type):
 		_action_tracker[player_id][action_type] = []
-	
+
 	var actions: Array = _action_tracker[player_id][action_type]
 	# Filter to recent
 	var recent: Array = actions.filter(func(t): return now - t < window)
 	recent.append(now)
 	_action_tracker[player_id][action_type] = recent
-	
+
 	return recent.size()
 
 ## Get action count in recent window
 func get_action_count(player_id: String, action_type: String, window_ms: int = 10000) -> int:
 	if not _action_tracker.has(player_id) or not _action_tracker[player_id].has(action_type):
 		return 0
-	
+
 	var now := Time.get_ticks_msec()
 	var actions: Array = _action_tracker[player_id][action_type]
 	return actions.filter(func(t): return now - t < window_ms).size()
@@ -353,34 +353,34 @@ func get_action_count(player_id: String, action_type: String, window_ms: int = 1
 func restrict_player(player_id: String, restriction_type: String, duration_seconds: int) -> void:
 	if not _player_restrictions.has(player_id):
 		_player_restrictions[player_id] = {}
-	
+
 	var expires_at := Time.get_ticks_msec() + (duration_seconds * 1000)
 	_player_restrictions[player_id][restriction_type] = {
 		"expires_at": expires_at,
 		"duration": duration_seconds
 	}
-	
+
 	# Notify player
 	_notify_player_restricted(player_id, restriction_type, duration_seconds)
-	
+
 	GameLog.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
 
 ## Remove restriction from player
 func unrestrict_player(player_id: String, restriction_type: String) -> bool:
 	if not _player_restrictions.has(player_id):
 		return false
-	
+
 	if not _player_restrictions[player_id].has(restriction_type):
 		return false
-	
+
 	_player_restrictions[player_id].erase(restriction_type)
-	
+
 	if _player_restrictions[player_id].is_empty():
 		_player_restrictions.erase(player_id)
-	
+
 	# Notify player
 	_notify_player_unrestricted(player_id, restriction_type)
-	
+
 	GameLog.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
 	return true
 
@@ -388,21 +388,21 @@ func unrestrict_player(player_id: String, restriction_type: String) -> bool:
 func is_restricted(player_id: String, restriction_type: String) -> bool:
 	if not _player_restrictions.has(player_id):
 		return false
-	
+
 	if not _player_restrictions[player_id].has(restriction_type):
 		return false
-	
+
 	var restriction: Dictionary = _player_restrictions[player_id][restriction_type]
 	var expires_at: int = restriction["expires_at"]
 	var now := Time.get_ticks_msec()
-	
+
 	# Check if expired
 	if now > expires_at:
 		_player_restrictions[player_id].erase(restriction_type)
 		if _player_restrictions[player_id].is_empty():
 			_player_restrictions.erase(player_id)
 		return false
-	
+
 	return true
 
 ## Notify player they've been restricted
@@ -485,7 +485,7 @@ func _notify_player_unrestricted(player_id: String, restriction_type: String) ->
 func _process(delta: float) -> void:
 	# Periodic cleanup of old tracking data
 	var now := Time.get_ticks_msec()
-	
+
 	# Cleanup suspicious activity (older than 5 minutes)
 	for player_id in _suspicious_activity.keys():
 		var data: Dictionary = _suspicious_activity[player_id]
@@ -497,7 +497,7 @@ func _process(delta: float) -> void:
 				data["item_creations"][item_id] = recent
 		if not has_recent:
 			_suspicious_activity.erase(player_id)
-	
+
 	# Cleanup action tracker (older than 1 minute)
 	for player_id in _action_tracker.keys():
 		var actions: Dictionary = _action_tracker[player_id]
@@ -524,7 +524,7 @@ func get_player_permission_level(player_id: String) -> int:
 func get_active_restrictions(player_id: String) -> Array:
 	var restrictions: Array = []
 	var now := Time.get_unix_time_from_system()
-	
+
 	if _player_restrictions.has(player_id):
 		var player_res: Dictionary = _player_restrictions[player_id]
 		for restriction_type in player_res.keys():
@@ -536,27 +536,27 @@ func get_active_restrictions(player_id: String) -> Array:
 					"expires_at": expires_at,
 					"reason": data.get("reason", "")
 				})
-	
+
 	return restrictions
 
 ## Get all active restrictions across all players
 func get_all_restrictions() -> Dictionary:
 	var all_restrictions: Dictionary = {}
 	var now := Time.get_unix_time_from_system()
-	
+
 	for player_id in _player_restrictions.keys():
 		var player_res: Dictionary = _player_restrictions[player_id]
 		var active_types: Array = []
-		
+
 		for restriction_type in player_res.keys():
 			var data: Dictionary = player_res[restriction_type]
 			var expires_at: float = data.get("expires_at", 0)
 			if expires_at > now:
 				active_types.append(restriction_type)
-		
+
 		if not active_types.is_empty():
 			all_restrictions[player_id] = active_types
-	
+
 	return all_restrictions
 
 ## Get service statistics for admin dashboard

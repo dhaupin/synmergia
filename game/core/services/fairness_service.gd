@@ -53,7 +53,7 @@ func check_action_rate(player_id: String, action_type: String) -> bool:
 	# Delegate to QoSService for rate limiting (consolidation)
 	if not _player_actions.has(player_id):
 		register_player(player_id)
-	
+
 	var result = QoSService.rate_limit(player_id, action_type)
 	if not result:
 		rate_limit_exceeded.emit(player_id, action_type)
@@ -63,13 +63,13 @@ func check_action_rate(player_id: String, action_type: String) -> bool:
 func record_action(player_id: String, action_type: String) -> void:
 	if not _player_actions.has(player_id):
 		return
-	
+
 	var actions: Dictionary = _player_actions[player_id]
 	var now := Time.get_ticks_msec()
-	
+
 	actions["total"] += 1
 	actions["last_action"] = now
-	
+
 	match action_type:
 		"movement":
 			actions["movement"].append(now)
@@ -77,7 +77,7 @@ func record_action(player_id: String, action_type: String) -> void:
 			actions["combat"].append(now)
 		"chat":
 			actions["chat"].append(now)
-	
+
 	# Slight trust gain for normal activity
 	_adjust_trust(player_id, TRUST_GAIN_RATE * 0.1)
 
@@ -98,7 +98,7 @@ func get_marathon_debuff(player_id: String) -> float:
 	var hours := get_session_hours(player_id)
 	if hours < MARATHON_THRESHOLD_HOURS:
 		return 0.0
-	
+
 	var extra_hours := hours - MARATHON_THRESHOLD_HOURS
 	return min(extra_hours * MARATHON_DEBUFF_START, 0.5)  # Max 50% debuff
 
@@ -118,29 +118,29 @@ func request_consensus(action_id: String, involved_players: Array, threshold: fl
 func cast_vote(action_id: String, player_id: String, vote: bool) -> bool:
 	if not _consensus_quests.has(action_id):
 		return false
-	
+
 	var quest: Dictionary = _consensus_quests[action_id]
 	if not quest["players"].has(player_id):
 		return false
-	
+
 	quest["votes"][player_id] = vote
-	
+
 	# Check if consensus reached
 	var yes_votes := quest["votes"].values().count(true)
 	if yes_votes >= quest["required"]:
 		quest["result"] = true
 		consensus_reached.emit(action_id, true)
 		return true
-	
+
 	var total_voted := quest["votes"].size()
 	var remaining := quest["players"].size() - total_voted
 	var max_yes := yes_votes + remaining
-	
+
 	if max_yes < quest["required"]:
 		quest["result"] = false
 		consensus_reached.emit(action_id, false)
 		return true
-	
+
 	return true
 
 ## Get vote status
@@ -153,7 +153,7 @@ func get_vote_status(action_id: String) -> Dictionary:
 func report_violation(player_id: String, violation_type: String, severity: int = 1) -> void:
 	fairness_violation.emit(player_id, violation_type, severity)
 	_adjust_trust(player_id, -TRUST_LOSS_SEVERITY * severity)
-	
+
 	match severity:
 		1:  # Minor
 			GameLog.warn("FairnessService: Minor violation by %s: %s" % [player_id, violation_type])
@@ -165,7 +165,7 @@ func report_violation(player_id: String, violation_type: String, severity: int =
 func _adjust_trust(player_id: String, delta: float) -> void:
 	if not _player_trust.has(player_id):
 		_player_trust[player_id] = INITIAL_TRUST
-	
+
 	_player_trust[player_id] = clamp(_player_trust[player_id] + delta, 0.0, 1.0)
 	trust_updated.emit(player_id, _player_trust[player_id])
 
@@ -194,7 +194,7 @@ func _get_action_rate(player_id: String) -> float:
 		if actions.has(key) and typeof(actions[key]) == TYPE_ARRAY:
 			recent_total += actions[key].filter(func(t): return t > cutoff).size()
 	return float(recent_total)
-	
+
 	var recent: Array = actions["total"].filter(func(t): return t > cutoff) if typeof(actions["total"]) == TYPE_ARRAY else 0
 	return float(recent.size()) if typeof(recent) == TYPE_ARRAY else 0.0
 
@@ -205,7 +205,7 @@ func _process(delta: float) -> void:
 		var actions: Dictionary = _player_actions.get(player_id, {})
 		if actions.get("last_action", 0) < Time.get_ticks_msec() - 300000:  # 5 min inactive
 			_adjust_trust(player_id, -TRUST_DECAY_RATE * delta * 60)
-	
+
 	# Check consensus deadlines
 	for action_id in _consensus_quests.keys():
 		var quest: Dictionary = _consensus_quests[action_id]

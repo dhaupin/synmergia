@@ -26,16 +26,16 @@ class ModeratorProgression:
 	var badges: Array = []
 	var privileges: Array = []
 	var last_activity: float = 0
-	
+
 	const MAX_LEVEL: int = 10
 	const XP_PER_VOTE: int = 10
 	const XP_PER_CORRECT: int = 25
 	const XP_PER_LEVEL: int = 100
-	
+
 	func _init(p_player_id: String):
 		player_id = p_player_id
 		last_activity = Time.get_unix_time_from_system()
-	
+
 	func record_vote(correct: bool) -> void:
 		votes_participated += 1
 		last_activity = Time.get_unix_time_from_system()
@@ -43,7 +43,7 @@ class ModeratorProgression:
 		if correct:
 			votes_correct += 1
 			add_xp(XP_PER_CORRECT)
-	
+
 	func add_xp(amount: int) -> void:
 		experience += amount
 		while experience >= XP_PER_LEVEL and level < MAX_LEVEL:
@@ -51,7 +51,7 @@ class ModeratorProgression:
 			level += 1
 			_update_privileges()
 			_update_badges()
-	
+
 	func _update_privileges() -> void:
 		privileges.clear()
 		if level >= 1: privileges.append("vote_basic")
@@ -59,13 +59,13 @@ class ModeratorProgression:
 		if level >= 5: privileges.append("create_poll")
 		if level >= 7: privileges.append("moderate_votes")
 		if level >= 9: privileges.append("trusted_jury")
-	
+
 	func _update_badges() -> void:
 		if level >= 2 and not badges.has("voting_initiate"): badges.append("voting_initiate")
 		if level >= 5 and not badges.has("community_pillar"): badges.append("community_pillar")
 		if level >= 8 and not badges.has("justice_keeper"): badges.append("justice_keeper")
 		if level == 10 and not badges.has("elder_council"): badges.append("elder_council")
-	
+
 	func to_dict() -> Dictionary:
 		return {
 			"player_id": player_id,
@@ -92,8 +92,8 @@ class Vote:
 	var expires_at: float
 	var min_participation: int
 	var vote_counts: Dictionary
-	
-	func _init(p_id: String, p_type: VoteType, p_subject: String, p_question: String, 
+
+	func _init(p_id: String, p_type: VoteType, p_subject: String, p_question: String,
 			p_description: String, p_options: Array, p_creator: String, p_duration_hours: int = 24):
 		id = p_id
 		type = p_type
@@ -107,30 +107,30 @@ class Vote:
 		expires_at = created_at + (p_duration_hours * 3600)
 		min_participation = 5
 		vote_counts = {}
-	
+
 	func has_voted(voter_id: String) -> bool:
 		return vote_counts.has(voter_id)
-	
+
 	func cast_vote(voter_id: String, option_id) -> bool:
 		if status != VoteStatus.OPEN:
 			return false
 		if Time.get_unix_time_from_system() > expires_at:
 			status = VoteStatus.EXPIRED
 			return false
-		
+
 		vote_counts[voter_id] = option_id
 		return true
-	
+
 	func get_vote_count(option_id) -> int:
 		var count: int = 0
 		for voter_id in vote_counts.keys():
 			if vote_counts[voter_id] == option_id:
 				count += 1
 		return count
-	
+
 	func get_total_votes() -> int:
 		return vote_counts.size()
-	
+
 	func get_results() -> Array:
 		var results: Array = []
 		for option in options:
@@ -140,15 +140,15 @@ class Vote:
 				"votes": get_vote_count(option.id),
 				"percentage": 0.0
 			})
-		
+
 		var total := get_total_votes()
 		if total > 0:
 			for result in results:
 				result.percentage = (float(result.votes) / float(total)) * 100.0
-		
+
 		results.sort_custom(func(a, b): return a.votes > b.votes)
 		return results
-	
+
 	func is_passed() -> bool:
 		if get_total_votes() < min_participation:
 			return false
@@ -173,63 +173,63 @@ const LEADERBOARD_CACHE_DURATION: float = 30.0
 func _ready() -> void:
 	GameLog.info("CommunityGovernance: Initialized")
 
-func create_vote(type: VoteType, subject_id: String, question: String, 
+func create_vote(type: VoteType, subject_id: String, question: String,
 		description: String, options: Array, creator: String, duration_hours: int = 24) -> Dictionary:
-	
+
 	if creator.strip_edges() == "":
 		return {"success": false, "message": "Invalid creator"}
-	
+
 	for vote_id in _votes.keys():
 		var existing: Vote = _votes[vote_id]
 		if existing.subject_id == subject_id and existing.status == VoteStatus.OPEN:
 			return {"success": false, "message": "Vote already exists for this subject"}
-	
+
 	var vote_id := "vote_%s_%d" % [creator, Time.get_ticks_msec()]
 	var vote := Vote.new(vote_id, type, subject_id, question, description, options, creator, duration_hours)
-	
+
 	_votes[vote_id] = vote
-	
+
 	if not _player_vote_history.has(creator):
 		_player_vote_history[creator] = []
 	_player_vote_history[creator].append(vote_id)
-	
+
 	GameLog.info("CommunityGovernance: Created vote %s" % vote_id)
 	vote_created.emit(vote)
-	
+
 	return {"success": true, "vote_id": vote_id, "vote": vote}
 
 func cast_vote(vote_id: String, voter_id: String, option_id) -> Dictionary:
 	if voter_id.strip_edges() == "":
 		return {"success": false, "message": "Invalid voter"}
-	
+
 	if not _check_vote_cooldown(voter_id):
 		return {"success": false, "message": "Please wait before voting again"}
-	
+
 	if not _votes.has(vote_id):
 		return {"success": false, "message": "Vote not found"}
-	
+
 	var vote: Vote = _votes[vote_id]
-	
+
 	if vote.has_voted(voter_id):
 		return {"success": false, "message": "You have already voted"}
-	
+
 	if vote.status != VoteStatus.OPEN:
 		return {"success": false, "message": "Voting is closed"}
-	
+
 	if not vote.cast_vote(voter_id, option_id):
 		return {"success": false, "message": "Failed to cast vote"}
-	
+
 	_report_vote_cooldowns[voter_id] = Time.get_unix_time_from_system()
 	vote_cast.emit(vote_id, voter_id, option_id)
-	
+
 	return {"success": true, "message": "Vote cast"}
 
 func get_vote(vote_id: String) -> Dictionary:
 	if not _votes.has(vote_id):
 		return {}
-	
+
 	var vote: Vote = _votes[vote_id]
-	
+
 	return {
 		"id": vote.id,
 		"type": vote.type,
@@ -248,7 +248,7 @@ func get_vote(vote_id: String) -> Dictionary:
 
 func get_votes_by_type(type: VoteType, status_filter: VoteStatus = VoteStatus.OPEN) -> Array:
 	var results: Array = []
-	
+
 	for vote_id in _votes.keys():
 		var vote: Vote = _votes[vote_id]
 		if vote.type == type and (status_filter < 0 or vote.status == status_filter):
@@ -259,7 +259,7 @@ func get_votes_by_type(type: VoteType, status_filter: VoteStatus = VoteStatus.OP
 				"expires_at": vote.expires_at,
 				"status": vote.status
 			})
-	
+
 	return results
 
 func get_open_votes() -> Array:
@@ -271,16 +271,16 @@ func close_vote(admin_id: String, vote_id: String) -> Dictionary:
 	if PermissionManager:
 		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.MOD):
 			return {"success": false, "message": "MOD level required"}
-	
+
 	if not _votes.has(vote_id):
 		return {"success": false, "message": "Vote not found"}
-	
+
 	var vote: Vote = _votes[vote_id]
 	vote.status = VoteStatus.CLOSED
-	
+
 	GameLog.info("CommunityGovernance: Vote %s closed" % vote_id)
 	vote_closed.emit(vote)
-	
+
 	return {"success": true, "results": vote.get_results(), "passed": vote.is_passed()}
 
 func create_report_validation_vote(reporter_id: String, report_id: String) -> Dictionary:
@@ -289,7 +289,7 @@ func create_report_validation_vote(reporter_id: String, report_id: String) -> Di
 		{"id": 2, "text": "Invalid - dismiss"},
 		{"id": 3, "text": "Insufficient info"}
 	]
-	
+
 	return create_vote(
 		VoteType.REPORT_VALIDATION,
 		report_id,
@@ -300,9 +300,9 @@ func create_report_validation_vote(reporter_id: String, report_id: String) -> Di
 		12
 	)
 
-func create_feature_vote(creator_id: String, feature_id: String, 
+func create_feature_vote(creator_id: String, feature_id: String,
 		feature_name: String, description: String) -> Dictionary:
-	
+
 	var options: Array = [
 		{"id": 1, "text": "Strong Yes"},
 		{"id": 2, "text": "Yes"},
@@ -310,7 +310,7 @@ func create_feature_vote(creator_id: String, feature_id: String,
 		{"id": 4, "text": "No"},
 		{"id": 5, "text": "Strong No"}
 	]
-	
+
 	return create_vote(
 		VoteType.FEATURE_VOTE,
 		feature_id,
@@ -324,7 +324,7 @@ func create_feature_vote(creator_id: String, feature_id: String,
 func get_moderation_queue() -> Array:
 	var queue: Array = []
 	var report_votes := get_votes_by_type(VoteType.REPORT_VALIDATION, VoteStatus.OPEN)
-	
+
 	for vote_data in report_votes:
 		var vote: Vote = _votes[vote_data.id]
 		queue.append({
@@ -335,17 +335,17 @@ func get_moderation_queue() -> Array:
 			"min_participation": vote.min_participation,
 			"time_remaining": max(0, int(vote.expires_at - Time.get_unix_time_from_system()))
 		})
-	
+
 	return queue
 
 func get_player_mod_stats(player_id: String) -> Dictionary:
 	var total_votes_cast := 0
-	
+
 	for vote_id in _votes.keys():
 		var vote: Vote = _votes[vote_id]
 		if vote.vote_counts.has(player_id):
 			total_votes_cast += 1
-	
+
 	return {
 		"total_votes_cast": total_votes_cast,
 		"reputation_score": _calculate_reputation_score(player_id)
@@ -360,23 +360,23 @@ func _check_vote_cooldown(player_id: String) -> bool:
 
 func _calculate_reputation_score(player_id: String) -> int:
 	var score := 0
-	
+
 	if _player_vote_history.has(player_id):
 		score += _player_vote_history[player_id].size() * 2
-	
+
 	for vote_id in _votes.keys():
 		var vote: Vote = _votes[vote_id]
 		if vote.vote_counts.has(player_id):
 			score += 1
-	
+
 	return score
 
 func _process(delta: float) -> void:
 	var now := Time.get_unix_time_from_system()
-	
+
 	for vote_id in _votes.keys():
 		var vote: Vote = _votes[vote_id]
-		
+
 		if vote.status == VoteStatus.OPEN and now > vote.expires_at:
 			vote.status = VoteStatus.EXPIRED
 			vote_expired.emit(vote)
@@ -424,7 +424,7 @@ func get_leaderboard(limit: int = 10) -> Array:
 			"accuracy": float(prog.votes_correct) / float(prog.votes_participated) if prog.votes_participated > 0 else 0.0,
 			"badges": prog.badges
 		})
-	entries.sort_custom(func(a, b): 
+	entries.sort_custom(func(a, b):
 		if a.level != b.level: return a.level > b.level
 		return a.experience > b.experience
 	)

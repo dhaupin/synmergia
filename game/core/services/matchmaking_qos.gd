@@ -61,15 +61,15 @@ func unregister_connection(player_id: String) -> void:
 func update_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0) -> void:
 	if not _player_latency.has(player_id):
 		register_connection(player_id, latency_ms)
-	
+
 	# Update history
 	if not _latency_history.has(player_id):
 		_latency_history[player_id] = []
-	
+
 	_latency_history[player_id].append(latency_ms)
 	if _latency_history[player_id].size() > 20:  # Keep last 20 samples
 		_latency_history[player_id].pop_at(0)
-	
+
 	# Calculate jitter (variance)
 	var history: Array = _latency_history[player_id]
 	if history.size() >= 2:
@@ -78,15 +78,15 @@ func update_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 			jitter += abs(history[i] - history[i-1])
 		jitter /= history.size() - 1
 		_player_jitter[player_id] = jitter
-	
+
 	# Update values
 	_player_latency[player_id] = latency_ms
 	_player_packet_loss[player_id] = packet_loss
-	
+
 	var old_quality: ConnectionQuality = _player_quality.get(player_id, ConnectionQuality.GOOD)
 	var new_quality := _calculate_quality(latency_ms, packet_loss)
 	_player_quality[player_id] = new_quality
-	
+
 	if old_quality != new_quality:
 		connection_quality_changed.emit(player_id, new_quality)
 		# Frame notification: surface the transition to the toast
@@ -140,7 +140,7 @@ func get_prediction_salt(player_id: String) -> int:
 ## Check if player should be throttled
 func should_throttle(player_id: String, action_rate: float) -> bool:
 	var quality: ConnectionQuality = get_quality(player_id)
-	
+
 	match quality:
 		ConnectionQuality.EXCELLENT:
 			return action_rate > 20.0  # 20 actions/sec
@@ -152,7 +152,7 @@ func should_throttle(player_id: String, action_rate: float) -> bool:
 			return action_rate > 5.0  # Very limited
 		ConnectionQuality.BAD:
 			return true  # Throttle everything
-	
+
 	return false
 
 ## Calculate quality from latency and packet loss
@@ -173,20 +173,20 @@ func _calculate_quality(latency_ms: int, packet_loss: float = 0.0) -> Connection
 ## Players with similar latency are matched together
 func get_matchmaking_group(player_ids: Array, max_latency_spread: int = 100) -> Array:
 	var sorted := player_ids.filter(func(p): return _player_latency.has(p))
-	sorted.sort_custom(func(a, b): 
+	sorted.sort_custom(func(a, b):
 		return _player_latency[a] < _player_latency[b]
 	)
-	
+
 	if sorted.size() <= 1:
 		return sorted
-	
+
 	var result: Array = [sorted[0]]
 	var base_latency: int = _player_latency[sorted[0]]
-	
+
 	for i in range(1, sorted.size()):
 		if _player_latency[sorted[i]] - base_latency <= max_latency_spread:
 			result.append(sorted[i])
-	
+
 	return result
 
 ## Get QoS report for player

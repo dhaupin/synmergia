@@ -50,16 +50,16 @@ func get_remaining(player_id: String, action_type: String) -> float:
 func start_cooldown(player_id: String, action_type: String, duration: float = -1.0) -> void:
 	if duration < 0:
 		duration = get_cooldown_duration(action_type)
-	
+
 	if not _cooldowns.has(player_id):
 		_cooldowns[player_id] = {}
-	
+
 	_cooldowns[player_id][action_type] = Time.get_unix_time_from_system()
 	cooldown_started.emit(player_id, action_type, duration)
-	
+
 	# Clean up old cooldowns for this player
 	_cleanup_player_cooldowns(player_id)
-	
+
 	GameLog.debug("CooldownService: %s started cooldown for %s (%.1fs)" % [player_id, action_type, duration])
 
 ## Check and start cooldown (returns true if started, false if on cooldown)
@@ -69,7 +69,7 @@ func try_start(player_id: String, action_type: String, show_notification: bool =
 			var remaining := get_remaining(player_id, action_type)
 			_show_cooldown_notification(player_id, action_type, remaining)
 		return false
-	
+
 	start_cooldown(player_id, action_type)
 	return true
 
@@ -97,7 +97,7 @@ func cancel_all(player_id: String) -> void:
 func get_active_cooldowns(player_id: String) -> Dictionary:
 	if not _cooldowns.has(player_id):
 		return {}
-	
+
 	var active := {}
 	for action_type in _cooldowns[player_id].keys():
 		var remaining := get_remaining(player_id, action_type)
@@ -113,23 +113,23 @@ func _process(delta: float) -> void:
 func _cleanup_player_cooldowns(player_id: String) -> void:
 	if not _cooldowns.has(player_id):
 		return
-	
+
 	var to_remove := []
 	for action_type in _cooldowns[player_id].keys():
 		if not is_on_cooldown(player_id, action_type):
 			to_remove.append(action_type)
 			cooldown_ended.emit(player_id, action_type)
-	
+
 	for action_type in to_remove:
 		_cooldowns[player_id].erase(action_type)
-	
+
 	if _cooldowns[player_id].is_empty():
 		_cooldowns.erase(player_id)
 
 func _show_cooldown_notification(player_id: String, action_type: String, remaining: float) -> void:
 	var action_name := _get_action_name(action_type)
 	var message := "Wait %.0f seconds before %s again." % [remaining, action_name]
-	
+
 	if NotificationService:
 		NotificationService.notify(
 			NotifKind.TRADE_COOLDOWN,

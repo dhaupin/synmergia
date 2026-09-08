@@ -38,7 +38,7 @@ func _connect_signals() -> void:
 		SecurityService.exploit_detected.connect(_on_exploit_detected)
 		SecurityService.permission_denied.connect(_on_permission_denied)
 		SecurityService.invalid_input.connect(_on_invalid_input)
-	
+
 	var qos: Node = QoSService.singleton()
 	if qos != null:
 		qos.rate_limited.connect(_on_rate_limited)
@@ -52,7 +52,7 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 		return
 
 	var severity := _get_exploit_severity(exploit_type)
-	
+
 	match severity:
 		SecurityLevel.CRITICAL:
 			GameLog.error("SECURITY CRITICAL: Player %s detected %s exploit! Details: %s" % [

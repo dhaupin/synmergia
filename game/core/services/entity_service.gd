@@ -10,7 +10,7 @@ const Faction = preload("res://core/schemas/faction.gd")
 # `Entity.EntityType.X` in dispatch logic, which needs Entity's
 # class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
-var _entities: Dictionary = {}       # entity_id -> 
+var _entities: Dictionary = {}       # entity_id ->
 var _players: Dictionary = {}        # player_id ->  (subset)
 var _enemies: Dictionary = {}       # entity_id ->  (subset)
 var _npcs: Dictionary = {}           # entity_id ->  (subset)
@@ -40,21 +40,21 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 		metadata = _create_default_metadata(entity)
 
 	var entity_id: String
-	
+
 	if id_override != "":
 		entity_id = id_override
 	else:
 		entity_id = "entity_%d" % _next_entity_id
 		_next_entity_id += 1
-	
+
 	entity.entity_id = entity_id
 	_entities[entity_id] = entity
-	
+
 	# Store metadata for despawn
 	metadata.entity_id = entity_id
 	metadata.display_name = entity.display_name
 	_entity_metadata[entity_id] = metadata
-	
+
 	# Track by type
 	if entity.entity_type == Entity.EntityType.PLAYER:
 		_players[entity_id] = entity
@@ -63,10 +63,10 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 		_enemies[entity_id] = entity
 	elif entity.entity_type == Entity.EntityType.NPC:
 		_npcs[entity_id] = entity
-	
+
 	entity_registered.emit(entity, metadata)
 	EventHub.entity_spawned.emit(entity, metadata)
-	
+
 	GameLog.debug("EntityService: Registered %s as %s (type: %s)" % [
 		entity.display_name, entity_id, metadata.get_spawn_type_string()])
 	return entity_id
@@ -74,7 +74,7 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 ## Create default metadata based on entity type
 func _create_default_metadata(entity) -> SpawnMetadata:
 	var spawn_type := SpawnMetadata.SpawnType.NORMAL
-	
+
 	match entity.entity_type:
 		Entity.EntityType.PLAYER:
 			spawn_type = SpawnMetadata.SpawnType.NORMAL
@@ -84,7 +84,7 @@ func _create_default_metadata(entity) -> SpawnMetadata:
 			spawn_type = SpawnMetadata.SpawnType.NPC
 		_:
 			spawn_type = SpawnMetadata.SpawnType.NORMAL
-	
+
 	var metadata := SpawnMetadata.new(spawn_type, entity.display_name, "", entity.global_position)
 	metadata.level = entity.level
 	metadata.faction = entity.faction
@@ -98,28 +98,28 @@ func get_entity_metadata(entity_id: String) -> SpawnMetadata:
 func unregister_entity(entity, reason: String = "despawn") -> void:
 	if not entity.entity_id:
 		return
-	
+
 	var entity_id: String = entity.entity_id
 	var was_player := _players.has(entity_id)
-	
+
 	# Get stored metadata for despawn event
 	var metadata: SpawnMetadata = _entity_metadata.get(entity_id)
 	if metadata == null:
 		metadata = _create_default_metadata(entity)
 	metadata.notification_message = reason  # Reuse for despawn reason
-	
+
 	_entities.erase(entity_id)
 	_players.erase(entity_id)
 	_enemies.erase(entity_id)
 	_npcs.erase(entity_id)
 	_entity_metadata.erase(entity_id)
-	
+
 	entity_unregistered.emit(entity, metadata)
 	EventHub.entity_despawned.emit(entity, metadata)
 
 	if was_player:
 		player_left.emit(entity, metadata)
-	
+
 	GameLog.debug("EntityService: Unregistered %s (reason: %s)" % [entity_id, reason])
 
 ## Unregister by entity ID
@@ -152,7 +152,7 @@ func get_all_npcs() -> Array:
 func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Entity.EntityType = Entity.EntityType.NPC) -> Array:
 	var results: Array = []
 	var target_dict: Dictionary
-	
+
 	match entity_type:
 		Entity.EntityType.PLAYER:
 			target_dict = _players
@@ -162,19 +162,19 @@ func get_entities_in_radius(origin: Vector3, radius: float, entity_type: Entity.
 			target_dict = _npcs
 		_:
 			target_dict = _entities
-	
+
 	for entity in target_dict.values():
 		if not is_instance_valid(entity):
 			continue
 		if entity.global_position.distance_to(origin) <= radius:
 			results.append(entity)
-	
+
 	return results
 
 ## Get closest entity to position
 func get_closest_entity(origin: Vector3, entity_type: Entity.EntityType = Entity.EntityType.NPC, max_distance: float = -1.0) -> Variant:
 	var target_dict: Dictionary
-	
+
 	match entity_type:
 		Entity.EntityType.PLAYER:
 			target_dict = _players
@@ -184,10 +184,10 @@ func get_closest_entity(origin: Vector3, entity_type: Entity.EntityType = Entity
 			target_dict = _npcs
 		_:
 			target_dict = _entities
-	
+
 	var closest = null
 	var closest_dist: float = -1.0
-	
+
 	for entity in target_dict.values():
 		if not is_instance_valid(entity):
 			continue
@@ -196,7 +196,7 @@ func get_closest_entity(origin: Vector3, entity_type: Entity.EntityType = Entity
 			if max_distance < 0 or dist <= max_distance:
 				closest = entity
 				closest_dist = dist
-	
+
 	return closest
 
 ## Get entities by faction
@@ -224,11 +224,11 @@ func is_ally(entity1, entity2) -> bool:
 	# Same team
 	if entity1.team_id != 0 and entity1.team_id == entity2.team_id:
 		return true
-	
+
 	# Same faction
 	if entity1.faction == entity2.faction:
 		return true
-	
+
 	# Check species alliance
 	if "species" in entity1 and "species" in entity2:
 		var species1: Species = entity1.species
@@ -236,7 +236,7 @@ func is_ally(entity1, entity2) -> bool:
 		if species1 and species2:
 			if species1.allied_species.has(species2.id):
 				return true
-	
+
 	return false
 
 ## Check if entity is enemy of another
@@ -245,11 +245,11 @@ func is_enemy(entity1, entity2) -> bool:
 	if entity1.team_id != 0 and entity2.team_id != 0:
 		if entity1.team_id != entity2.team_id:
 			return true
-	
+
 	# Hostile factions
 	if entity1.faction == Faction.HOSTILE or entity2.faction == Faction.HOSTILE:
 		return true
-	
+
 	# Check species hostility
 	if "species" in entity1 and "species" in entity2:
 		var species1: Species = entity1.species
@@ -257,7 +257,7 @@ func is_enemy(entity1, entity2) -> bool:
 		if species1 and species2:
 			if species1.hostile_species.has(species2.id):
 				return true
-	
+
 	return false
 
 ## Get entity count
@@ -280,10 +280,10 @@ func clear_all() -> void:
 	_players.clear()
 	_enemies.clear()
 	_npcs.clear()
-	
+
 	for entity in entities_to_remove:
 		if is_instance_valid(entity):
 			entity.queue_free()
-	
+
 	_next_entity_id = 1
 	GameLog.info("EntityService: Cleared all entities")

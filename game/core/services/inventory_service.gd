@@ -69,16 +69,16 @@ func transfer_item(from_id: String, to_id: String, item: Item, quantity: int = -
 	if not QoSService.rate_limit(from_id, "inventory_transfer"):
 		GameLog.debug("InventoryService: Rate limited transfer for %s" % from_id)
 		return false
-	
+
 	# SECURITY: Validate inputs
 	if from_id == "" or to_id == "" or item == null:
 		GameLog.error("InventoryService: Invalid transfer parameters")
 		return false
-	
+
 	if from_id == to_id:
 		GameLog.warn("InventoryService: Cannot transfer to self")
 		return false
-	
+
 	# SECURITY: Check both players are registered
 	var from_inv: InventoryComponent = get_inventory(from_id)
 	var to_inv: InventoryComponent = get_inventory(to_id)
@@ -159,20 +159,20 @@ func transfer_gold(from_id: String, to_id: String, amount: int) -> bool:
 	if not QoSService.rate_limit(from_id, "gold_transfer"):
 		GameLog.debug("InventoryService: Rate limited gold transfer for %s" % from_id)
 		return false
-	
+
 	# SECURITY: Validate inputs
 	if from_id == "" or to_id == "":
 		GameLog.error("InventoryService: Invalid gold transfer parameters")
 		return false
-	
+
 	if from_id == to_id:
 		GameLog.warn("InventoryService: Cannot transfer gold to self")
 		return false
-	
+
 	if amount <= 0:
 		GameLog.warn("InventoryService: Cannot transfer negative or zero gold")
 		return false
-	
+
 	# Check both players are registered
 	var from_inv: InventoryComponent = get_inventory(from_id)
 	var to_inv: InventoryComponent = get_inventory(to_id)
@@ -243,7 +243,7 @@ func transfer_items(from_id: String, to_id: String, items: Array) -> Dictionary:
 	return results
 
 ## Execute a full trade (used by TradeService)
-func execute_trade(trade_id: String, player1: String, player2: String, 
+func execute_trade(trade_id: String, player1: String, player2: String,
 					player1_items: Array, player2_items: Array,
 					player1_gold: int, player2_gold: int) -> Dictionary:
 	# QoS: Rate limit trades for both players
@@ -333,7 +333,7 @@ func can_receive_item(player_id: String, item: Item) -> bool:
 	# Check weight
 	if not inv.can_carry(item):
 		return false
-	
+
 	# Check slot (will return false if no space)
 	return true
 

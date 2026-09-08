@@ -71,21 +71,21 @@ func can_enter(entity) -> bool:
 		return false
 	if entity.level > max_level and max_level > 0:
 		return false
-	
+
 	# Faction check
 	if not allowed_factions.is_empty():
 		if "faction_id" in entity:
 			if not allowed_factions.has(entity.faction_id):
 				return false
-	
+
 	if blocked_sactions.has(entity.faction_id):
 		return false
-	
+
 	# Species check
 	if "species_id" in entity:
 		if blocked_species.has(entity.species_id):
 			return false
-	
+
 	return true
 
 ## Can entity1 attack entity2 in this zone?
@@ -93,25 +93,25 @@ func can_pvp(entity1, entity2) -> bool:
 	match pvp_mode:
 		PvPZoneMode.SAFE:
 			return false
-		
+
 		PvPZoneMode.SPECIES_PVP:
 			# Different species can fight
 			if "species_id" in entity1 and "species_id" in entity2:
 				return entity1.species_id != entity2.species_id
 			return entity1.faction != entity2.faction
-		
+
 		PvPZoneMode.FACTION_PVP:
 			# Different factions can fight
 			return entity1.faction != entity2.faction
-		
+
 		PvPZoneMode.FREE_PVP:
 			# Everyone can fight
 			return true
-		
+
 		PvPZoneMode.WARZONE:
 			# Everyone can fight, full loot
 			return true
-	
+
 	return false
 
 ## Is this a full-loot zone?

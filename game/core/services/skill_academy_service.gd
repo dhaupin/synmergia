@@ -127,14 +127,14 @@ func purchase_book(player_id: String, skill_id: String, gold: int) -> Dictionary
 func _check_stat_requirement(schema: SkillSchema, tier: Dictionary, skill_data: CharacterData) -> Dictionary:
 	var required_stat: String = tier.get("min_stat", "")
 	var required_value: int = tier.get("min_stat_value", 0)
-	
+
 	# No stat required
 	if required_stat == "" or required_value == 0:
 		return {"meets_requirement": true}
-	
+
 	# Get player's stat value (base + allocated)
 	var player_stat_value: int = skill_data.get_stat_total(required_stat)
-	
+
 	return {
 		"meets_requirement": player_stat_value >= required_value,
 		"stat": required_stat,
@@ -147,16 +147,16 @@ func check_available_upgrades(skill_id: String, skill_data: CharacterData) -> Di
 	var schema: SkillSchema = get_skill_schema(skill_id)
 	if schema == null:
 		return {}
-	
+
 	var result := {
 		"skill_id": skill_id,
 		"current_level": skill_data.get_skill_upgrade_level(skill_id),
 		"available_tiers": []
 	}
-	
+
 	var current := skill_data.get_stat_total("strength")  # placeholder - get all stats
 	var all_stats := skill_data.get_all_stats_with_allocated()
-	
+
 	# Check each tier
 	for tier in schema.upgrade_tiers:
 		var stat_check := _check_stat_requirement(schema, tier, skill_data)
@@ -168,7 +168,7 @@ func check_available_upgrades(skill_id: String, skill_data: CharacterData) -> Di
 			"required_value": stat_check.get("required", 0),
 			"current_value": stat_check.get("current", 0)
 		})
-	
+
 	return result
 
 ## Apply an upgrade to a skill for a player.
@@ -337,29 +337,29 @@ func preview_stat_respec(skill_data: CharacterData) -> Dictionary:
 	var current_stats := skill_data.get_all_stats_with_allocated()
 	var affected_skills := []
 	var total_points := skill_data.get_total_allocated_points()
-	
+
 	# Check all upgradable skills
 	for skill_id in _catalog.keys():
 		var schema: SkillSchema = get_skill_schema(skill_id)
 		if schema == null:
 			continue
-		
+
 		var current_level: int = skill_data.get_skill_upgrade_level(skill_id)
 		if current_level <= 0:
 			continue
-		
+
 		# Check if reducing stats would downgrade this skill
 		for tier in schema.upgrade_tiers:
 			var tier_level: int = tier.get("level", 0)
 			if tier_level > current_level:
 				continue  # Not currently at this tier
-			
+
 			var required_stat: String = tier.get("min_stat", "")
 			var required_value: int = tier.get("min_stat_value", 0)
-			
+
 			if required_stat == "" or required_value == 0:
 				continue
-			
+
 			# If we reset all allocated points, what's the base stat?
 			var base_stat := skill_data.get_stat_total(required_stat) - skill_data.get_allocated_points(required_stat)
 			if base_stat < required_value:
@@ -373,7 +373,7 @@ func preview_stat_respec(skill_data: CharacterData) -> Dictionary:
 					"new_value_after_respec": base_stat
 				})
 				break  # Only report highest affected tier
-	
+
 	return {
 		"total_allocated_points": total_points,
 		"estimated_cost": get_stat_respec_cost(total_points),
@@ -391,25 +391,25 @@ func execute_stat_respec(
 	var total_points := skill_data.get_total_allocated_points()
 	if total_points <= 0:
 		return {"success": false, "reason": "No stat points to reset"}
-	
+
 	var cost := get_stat_respec_cost(total_points)
 	if gold < cost:
 		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
-	
+
 	# Check for skill downgrade warnings
 	var preview: Dictionary = preview_stat_respec(skill_data)
 	var downgrades: Array = preview.get("affected_skills", [])
-	
+
 	# Apply gold cost
 	if inventory and "remove_gold" in inventory:
 		inventory.remove_gold(cost)
 	elif inventory and inventory.inventory_component and "remove_gold" in inventory.inventory_component:
 		inventory.inventory_component.remove_gold(cost)
-	
+
 	# Reset allocated stats
 	for stat in skill_data.allocated_stats.keys():
 		skill_data.allocated_stats[stat] = 0
-	
+
 	# Apply skill downgrades
 	var downgraded_skills := []
 	for downgrade in downgrades:
@@ -422,9 +422,9 @@ func execute_stat_respec(
 			"skill_id": skill_id,
 			"new_level": new_level
 		})
-	
+
 	skill_data.total_stat_respecs += 1
-	
+
 	return {
 		"success": true,
 		"points_reset": total_points,
@@ -494,34 +494,34 @@ func change_signature(
 	# Validate level requirement
 	if player_level < 10:
 		return {"success": false, "reason": "Must be level 10+ to select a signature"}
-	
+
 	# Validate the signature belongs to the player's class
 	var class_signatures: Array[String] = get_class_signatures(skill_data.class_id)
 	if not class_signatures.has(new_signature_id):
 		return {"success": false, "reason": "Invalid signature for your class"}
-	
+
 	# Check if already selected
 	if skill_data.active_signature == new_signature_id:
 		return {"success": false, "reason": "Signature already active"}
-	
+
 	# Check gold cost
 	var cost: int = skill_data.get_signature_change_cost()
 	if gold < cost:
 		return {"success": false, "reason": "Not enough gold (need %d)" % cost}
-	
+
 	# Deduct gold
 	if inventory and "remove_gold" in inventory:
 		inventory.remove_gold(cost)
 	elif inventory and inventory.inventory_component and "remove_gold" in inventory.inventory_component:
 		inventory.inventory_component.remove_gold(cost)
-	
+
 	# Update character data
 	var old_signature: String = skill_data.active_signature
 	skill_data.active_signature = new_signature_id
 	skill_data.signature_switches += 1
-	
+
 	signature_selected.emit(player_id, new_signature_id, skill_data.signature_switches == 1)
-	
+
 	return {
 		"success": true,
 		"old_signature": old_signature,
@@ -535,7 +535,7 @@ func change_signature(
 func get_signature_info(skill_data: CharacterData, player_level: int) -> Dictionary:
 	var class_sigs: Array[String] = get_class_signatures(skill_data.class_id)
 	var available_sigs: Array[Dictionary] = []
-	
+
 	for sig_id in class_sigs:
 		var schema: SkillSchema = get_signature_schema(sig_id)
 		if schema:
@@ -546,7 +546,7 @@ func get_signature_info(skill_data: CharacterData, player_level: int) -> Diction
 				"is_active": skill_data.active_signature == sig_id,
 				"is_locked": player_level < 10
 			})
-	
+
 	return {
 		"class_id": skill_data.class_id,
 		"active_signature": skill_data.active_signature,

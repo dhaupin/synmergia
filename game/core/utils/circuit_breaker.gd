@@ -43,7 +43,7 @@ func _init(
 	success_threshold: int = -1
 ) -> void:
 	_name = name
-	
+
 	# Use GameConfig defaults if not specified
 	if failure_threshold < 0:
 		_failure_threshold = GameConfig.QoS.CircuitBreakerCfg.FAILURE_THRESHOLD
@@ -70,7 +70,7 @@ func _init(
 ## Returns a Dictionary with 'success', 'data', and 'error' keys
 func execute(operation: Callable) -> Dictionary:
 	var now = Time.get_ticks_msec() / 1000.0
-	
+
 	# Check state transition
 	match _state:
 		BreakerState.OPEN:
@@ -83,29 +83,29 @@ func execute(operation: Callable) -> Dictionary:
 					"error": "Circuit is OPEN",
 					"rejected": true
 				}
-		
+
 		BreakerState.HALF_OPEN:
 			# Allow limited calls in half-open state
 			pass
-		
+
 		BreakerState.CLOSED:
 			# Normal operation
 			pass
-	
+
 	# Execute the operation
 	var result = _do_execute(operation)
-	
+
 	if result.get("success", false):
 		_on_success()
 	else:
 		_on_failure()
-	
+
 	return result
 
 ## Execute with async/await support
 func execute_async(operation: Callable) -> Dictionary:
 	var now = Time.get_ticks_msec() / 1000.0
-	
+
 	# Check state transition
 	match _state:
 		BreakerState.OPEN:
@@ -118,10 +118,10 @@ func execute_async(operation: Callable) -> Dictionary:
 					"error": "Circuit is OPEN",
 					"rejected": true
 				}
-	
+
 	# Execute and await
 	var result = await operation.call()
-	
+
 	if result is Dictionary:
 		if result.get("success", false):
 			_on_success()
@@ -139,12 +139,12 @@ func _do_execute(operation: Callable) -> Dictionary:
 			"data": null,
 			"error": "Invalid callable"
 		}
-	
+
 	var result = operation.call()
-	
+
 	if result is Dictionary:
 		return result
-	
+
 	return {
 		"success": true,
 		"data": result,
@@ -168,7 +168,7 @@ func _on_success() -> void:
 func _on_failure() -> void:
 	_failure_count += 1
 	_last_failure_time = Time.get_ticks_msec() / 1000.0
-	
+
 	match _state:
 		BreakerState.HALF_OPEN:
 			# Any failure in half-open goes back to open

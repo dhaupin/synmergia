@@ -298,11 +298,11 @@ func can_equip() -> bool:
 func apply_combat_durability_loss(delta_minutes: float) -> int:
 	if max_durability <= 0 or current_durability <= 0:
 		return 0  # Indestructible or already broken
-	
+
 	var loss := int(delta_minutes * durability_loss_rate)
 	if loss <= 0:
 		return 0
-	
+
 	var old_durability := current_durability
 	current_durability = maxi(0, current_durability - loss)
 	return old_durability - current_durability

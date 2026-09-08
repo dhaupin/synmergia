@@ -44,13 +44,13 @@ func _init(default_max_depth: int = -1) -> void:
 func enter(context: String) -> bool:
 	var max_depth = _max_depth_config.get(context, _default_max_depth)
 	var current_depth = _depth_tracker.get(context, 0)
-	
+
 	if current_depth >= max_depth:
 		_total_guards_triggered += 1
 		_guard_trigger_counts[context] = _guard_trigger_counts.get(context, 0) + 1
 		block_triggered.emit(context, current_depth, max_depth)
 		return false
-	
+
 	_depth_tracker[context] = current_depth + 1
 	return true
 
@@ -67,7 +67,7 @@ func exit(context: String) -> void:
 func execute(context: String, callable: Callable, default_result: Variant = null) -> Variant:
 	if not enter(context):
 		return default_result
-	
+
 	var result = callable.call()
 	exit(context)
 	return result

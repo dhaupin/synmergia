@@ -48,8 +48,8 @@ class Report:
 	var assigned_to: String  # Admin handling the report
 	var resolution_notes: String
 	var metadata: Dictionary  # Additional context
-	
-	func _init(p_reporter: String, p_type: ReportType, p_subject: String, p_desc: String, 
+
+	func _init(p_reporter: String, p_type: ReportType, p_subject: String, p_desc: String,
 			p_target: String = "", p_meta: Dictionary = {}):
 		id = "report_%s_%d" % [p_reporter, Time.get_ticks_msec()]
 		type = p_type
@@ -62,7 +62,7 @@ class Report:
 		created_at = Time.get_unix_time_from_system()
 		updated_at = created_at
 		metadata = p_meta
-	
+
 	func _calculate_priority() -> Priority:
 		match type:
 			ReportType.ABUSE:
@@ -73,7 +73,7 @@ class Report:
 				return Priority.NORMAL
 			_:
 				return Priority.LOW
-	
+
 	func to_dict() -> Dictionary:
 		return {
 			"id": id,
@@ -90,7 +90,7 @@ class Report:
 			"resolution_notes": resolution_notes,
 			"metadata": metadata
 		}
-	
+
 	static func esc(text: String) -> String:
 		return text.replace('[', '［').replace(']', '］')
 
@@ -99,7 +99,7 @@ class Report:
 		var status_str := _status_to_string()
 		var priority_str := _priority_to_string()
 		var time_str := Time.get_datetime_string_from_unix_time(created_at)
-		
+
 		var output := "[color=yellow]=== %s ===[/color]\n" % esc(id)
 		output += "[color=cyan]Type:[/color] %s | [color=cyan]Priority:[/color] %s | [color=cyan]Status:[/color] %s\n" % [esc(type_str), esc(priority_str), esc(status_str)]
 		output += "[color=cyan]Reporter:[/color] %s\n" % esc(reporter_id)
@@ -108,14 +108,14 @@ class Report:
 		output += "[color=cyan]Subject:[/color] %s\n" % esc(subject)
 		output += "[color=cyan]Description:[/color] %s\n" % esc(description)
 		output += "[color=gray]Submitted:[/color] %s\n" % time_str
-		
+
 		if assigned_to != "":
 			output += "[color=cyan]Assigned to:[/color] %s\n" % esc(assigned_to)
 		if resolution_notes != "":
 			output += "[color=cyan]Resolution:[/color] %s\n" % esc(resolution_notes)
-		
+
 		return output
-	
+
 	func _type_to_string() -> String:
 		match type:
 			ReportType.ABUSE: return "ABUSE"
@@ -124,7 +124,7 @@ class Report:
 			ReportType.SUGGESTION: return "SUGGESTION"
 			ReportType.EXPLOIT: return "EXPLOIT"
 			_: return "OTHER"
-	
+
 	func _status_to_string() -> String:
 		match status:
 			Status.PENDING: return "Pending"
@@ -133,7 +133,7 @@ class Report:
 			Status.DISMISSED: return "Dismissed"
 			Status.ESCALATED: return "Escalated"
 			_: return "Unknown"
-	
+
 	func _priority_to_string() -> String:
 		match priority:
 			Priority.LOW: return "[color=gray]Low[/color]"
@@ -171,23 +171,23 @@ func submit_report(reporter_id: String, report_type: ReportType, data: Dictionar
 	# Validate reporter
 	if reporter_id.strip_edges() == "":
 		return {"success": false, "message": "Invalid reporter ID"}
-	
+
 	# Check cooldown
 	var cooldown_check := _check_cooldown(reporter_id)
 	if not cooldown_check.success:
 		return cooldown_check
-	
+
 	# Check rate limit
 	var rate_check := _check_rate_limit(reporter_id)
 	if not rate_check.success:
 		return rate_check
-	
+
 	# Parse data based on type
 	var subject := ""
 	var description := ""
 	var target_id := ""
 	var metadata := {}
-	
+
 	match report_type:
 		ReportType.ABUSE:
 			target_id = data.get("target", "")
@@ -199,7 +199,7 @@ func submit_report(reporter_id: String, report_type: ReportType, data: Dictionar
 				"witnesses": data.get("witnesses", []),
 				"chat_logs": data.get("chat_logs", "")
 			}
-		
+
 		ReportType.BUG:
 			subject = "Bug Report"
 			description = data.get("description", "")
@@ -210,18 +210,18 @@ func submit_report(reporter_id: String, report_type: ReportType, data: Dictionar
 				"game_version": data.get("version", ""),
 				"os": data.get("os", "")
 			}
-		
+
 		ReportType.FEEDBACK:
 			subject = "Feedback"
 			description = data.get("message", "")
-		
+
 		ReportType.SUGGESTION:
 			subject = "Suggestion"
 			description = data.get("suggestion", "")
 			metadata = {
 				"category": data.get("category", "general")
 			}
-		
+
 		ReportType.EXPLOIT:
 			subject = "Exploit Report"
 			description = data.get("description", "")
@@ -230,48 +230,48 @@ func submit_report(reporter_id: String, report_type: ReportType, data: Dictionar
 				"exploit_type": data.get("exploit_type", ""),
 				"severity": data.get("severity", "unknown")
 			}
-		
+
 		ReportType.OTHER:
 			subject = data.get("subject", "Other Report")
 			description = data.get("description", "")
-	
+
 	# Validate required fields
 	if description == "":
 		return {"success": false, "message": "Description is required"}
-	
+
 	# Create report
 	var report := Report.new(reporter_id, report_type, subject, description, target_id, metadata)
 	_reports[report.id] = report
-	
+
 	# Index by reporter
 	if not _reporter_reports.has(reporter_id):
 		_reporter_reports[reporter_id] = []
 	_reporter_reports[reporter_id].append(report.id)
-	
+
 	# Index by target
 	if target_id != "":
 		if not _target_reports.has(target_id):
 			_target_reports[target_id] = []
 		_target_reports[target_id].append(report.id)
-	
+
 	# Update cooldown
 	_report_cooldowns[reporter_id] = Time.get_unix_time_from_system()
-	
+
 	# Update rate limit
 	_update_rate_limit(reporter_id)
-	
+
 	# Log the report
 	_log_report(report)
-	
+
 	# Emit signal
 	report_submitted.emit(report)
-	
+
 	# Auto-escalate urgent reports
 	if report.priority == Priority.URGENT:
 		report.status = Status.ESCALATED
 		report.assigned_to = "SYSTEM"
 		_emit_urgent_alert(report)
-	
+
 	return {"success": true, "report_id": report.id, "message": "Report submitted successfully"}
 
 ## Get reports for a reporter
@@ -295,19 +295,19 @@ func get_target_reports(target_id: String) -> Array:
 ## Get all pending reports (for admins)
 func get_pending_reports(limit: int = 50) -> Array:
 	var pending: Array = []
-	
+
 	for report_id in _reports.keys():
 		var report: Report = _reports[report_id]
 		if report.status == Status.PENDING or report.status == Status.ESCALATED:
 			pending.append(report)
-	
+
 	# Sort by priority (urgent first), then by time
-	pending.sort_custom(func(a, b): 
+	pending.sort_custom(func(a, b):
 		if a.priority != b.priority:
 			return a.priority > b.priority
 		return a.created_at < b.created_at
 	)
-	
+
 	return pending.slice(0, limit)
 
 ## Get report by ID
@@ -315,33 +315,33 @@ func get_report(report_id: String) -> Report:
 	return _reports.get(report_id)
 
 ## Update report status (admin only)
-func update_report_status(admin_id: String, report_id: String, new_status: Status, 
+func update_report_status(admin_id: String, report_id: String, new_status: Status,
 		notes: String = "") -> Dictionary:
-	
+
 	# Verify admin permission
 	if PermissionManager:
 		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.MOD):
 			return {"success": false, "message": "MOD level required"}
-	
+
 	if not _reports.has(report_id):
 		return {"success": false, "message": "Report not found"}
-	
+
 	var report: Report = _reports[report_id]
 	report.status = new_status
 	report.updated_at = Time.get_unix_time_from_system()
 	report.resolution_notes = notes
-	
+
 	if new_status == Status.REVIEWING:
 		report.assigned_to = admin_id
-	
+
 	# Log status change
 	GameLog.info("PlayerReporter: Report %s status changed to %s by %s" % [report_id, new_status, admin_id])
-	
+
 	# Notify reporter
 	_notify_reporter(report)
-	
+
 	report_updated.emit(report)
-	
+
 	return {"success": true, "message": "Report updated"}
 
 ## Assign report to admin
@@ -359,7 +359,7 @@ func _check_cooldown(reporter_id: String) -> Dictionary:
 		if elapsed < REPORT_COOLDOWN_SECONDS:
 			var remaining := REPORT_COOLDOWN_SECONDS - int(elapsed)
 			return {
-				"success": false, 
+				"success": false,
 				"message": "Please wait %d seconds before submitting another report" % remaining
 			}
 	return {"success": true}
@@ -367,7 +367,7 @@ func _check_cooldown(reporter_id: String) -> Dictionary:
 func _check_rate_limit(reporter_id: String) -> Dictionary:
 	var now := Time.get_ticks_msec()
 	var hour_ms := 3600000  # 1 hour in ms
-	
+
 	if _hourly_reports.has(reporter_id):
 		var data: Dictionary = _hourly_reports[reporter_id]
 		# Reset if window expired
@@ -378,15 +378,15 @@ func _check_rate_limit(reporter_id: String) -> Dictionary:
 				"success": false,
 				"message": "You have reached the maximum of %d reports per hour" % MAX_REPORTS_PER_HOUR
 			}
-	
+
 	return {"success": true}
 
 func _update_rate_limit(reporter_id: String) -> void:
 	var now := Time.get_ticks_msec()
-	
+
 	if not _hourly_reports.has(reporter_id):
 		_hourly_reports[reporter_id] = {"count": 0, "window_start": now}
-	
+
 	_hourly_reports[reporter_id]["count"] += 1
 
 func _log_report(report: Report) -> void:
@@ -395,10 +395,10 @@ func _log_report(report: Report) -> void:
 		report.reporter_id,
 		report._type_to_string()
 	]
-	
+
 	if report.target_id != "":
 		log_msg += " against %s" % report.target_id
-	
+
 	if report.priority == Priority.URGENT:
 		GameLog.warn(log_msg)
 	elif report.priority == Priority.HIGH:
@@ -416,7 +416,7 @@ func _notify_reporter(report: Report) -> void:
 				status_msg = "Your report was reviewed and dismissed: %s" % report.resolution_notes
 			Status.ESCALATED:
 				status_msg = "Your report has been escalated for urgent review."
-		
+
 		if status_msg != "":
 			# Frame-level notify. The reporter's status is admin-mediated
 			# free-form feedback; CUSTOM is the right kind (no dedicated
@@ -437,7 +437,7 @@ func _notify_reporter(report: Report) -> void:
 func _emit_urgent_alert(report: Report) -> void:
 	# Emit signal for Discord webhook, email, etc.
 	urgent_report.emit(report)
-	
+
 	# Log prominently
 	GameLog.warn("URGENT REPORT: %s - %s" % [report.id, report.subject])
 
@@ -449,7 +449,7 @@ func _process(delta: float) -> void:
 	# Cleanup old cooldown entries
 	var now := Time.get_unix_time_from_system()
 	var cooldown_cutoff := now - (REPORT_COOLDOWN_SECONDS * 2)
-	
+
 	for reporter_id in _report_cooldowns.keys():
 		if _report_cooldowns[reporter_id] < cooldown_cutoff:
 			_report_cooldowns.erase(reporter_id)

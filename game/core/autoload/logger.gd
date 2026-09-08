@@ -43,16 +43,16 @@ func _format_message(level: Level, message: String) -> String:
 func log_message(level: Level, message: String) -> void:
 	if level < _log_level:
 		return
-	
+
 	var formatted := _format_message(level, message)
 	var color: Color = level_colors[level]
-	
+
 	# Print to console with color
 	if OS.is_debug_build():
 		print_rich("[color=#%s]%s[/color]" % [color.to_html(), _esc(formatted)])
 	else:
 		print(formatted)
-	
+
 	# Write to file if enabled
 	if _log_to_file:
 		_write_to_file(formatted)

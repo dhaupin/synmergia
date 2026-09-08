@@ -64,18 +64,18 @@ func load_factions() -> void:
 	if not data_service:
 		GameLog.warn("FactionManager: DataService not available")
 		return
-	
+
 	var faction_data_dict = data_service.get_all_factions()
 	for faction_id in faction_data_dict:
 		register_faction(faction_data_dict[faction_id])
-	
+
 	GameLog.info("FactionManager: Loaded %d factions" % _factions.size())
 
 ## Register a faction
 func register_faction(faction: Faction) -> void:
 	if faction == null:
 		return
-	
+
 	_factions[faction.id] = faction
 	faction_loaded.emit(faction)
 	GameLog.debug("FactionManager: Registered faction %s" % faction.id)
@@ -92,18 +92,18 @@ func get_all_factions() -> Array:
 func get_relation(faction1_id: String, faction2_id: String) -> Faction.Relation:
 	var faction1 = _factions.get(faction1_id)
 	var faction2 = _factions.get(faction2_id)
-	
+
 	if faction1 == null or faction2 == null:
 		return Faction.Relation.NEUTRAL
-	
+
 	# Check if at war
 	if is_at_war(faction1_id, faction2_id):
 		return Faction.Relation.HOSTILE
-	
+
 	# Check explicit relations
 	if faction1.relations.has(faction2_id):
 		return faction1.relations[faction2_id]
-	
+
 	# Check species-based auto-alliance
 	return faction1.get_relation(faction2_id)
 
@@ -117,31 +117,31 @@ func is_at_war(faction1_id: String, faction2_id: String) -> bool:
 func declare_war(faction1_id: String, faction2_id: String, attacker_id: String = "") -> bool:
 	var faction1 = _factions.get(faction1_id)
 	var faction2 = _factions.get(faction2_id)
-	
+
 	if faction1 == null or faction2 == null:
 		GameLog.warn("FactionManager: Cannot declare war, faction not found")
 		return false
-	
+
 	# Check cooldowns
 	if is_on_cooldown(faction1_id) or is_on_cooldown(faction2_id):
 		GameLog.info("FactionManager: War declaration on cooldown for %s or %s" % [faction1_id, faction2_id])
 		return false
-	
+
 	# Already at war
 	if is_at_war(faction1_id, faction2_id):
 		GameLog.info("FactionManager: %s and %s are already at war" % [faction1_id, faction2_id])
 		return false
-	
+
 	# Set war data
 	if not _active_wars.has(faction1_id):
 		_active_wars[faction1_id] = {}
-	
+
 	_active_wars[faction1_id][faction2_id] = {
 		"started_at": Time.get_ticks_msec(),
 		"started_by": attacker_id,
 		"declarations": 1
 	}
-	
+
 	# Bidirectional (for easier lookup)
 	if not _active_wars.has(faction2_id):
 		_active_wars[faction2_id] = {}
@@ -150,14 +150,14 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 		"started_by": attacker_id,
 		"declarations": 1
 	}
-	
+
 	# Set cooldown
 	_war_cooldowns[faction1_id] = Time.get_ticks_msec() + (WAR_COOLDOWN_HOURS * 60 * 60 * 1000)
-	
+
 	# Update faction relations
 	faction1.set_relation(faction2_id, Faction.Relation.HOSTILE)
 	faction2.set_relation(faction1_id, Faction.Relation.HOSTILE)
-	
+
 	war_declared.emit(faction1, faction2)
 	GameLog.info("FactionManager: WAR declared between %s and %s" % [faction1_id, faction2_id])
 
@@ -177,21 +177,21 @@ func declare_war(faction1_id: String, faction2_id: String, attacker_id: String =
 func end_war(faction1_id: String, faction2_id: String) -> bool:
 	if not is_at_war(faction1_id, faction2_id):
 		return false
-	
+
 	var faction1 = _factions.get(faction1_id)
 	var faction2 = _factions.get(faction2_id)
-	
+
 	if _active_wars.has(faction1_id):
 		_active_wars[faction1_id].erase(faction2_id)
 	if _active_wars.has(faction2_id):
 		_active_wars[faction2_id].erase(faction1_id)
-	
+
 	# Reset to neutral
 	if faction1:
 		faction1.set_relation(faction2_id, Faction.Relation.NEUTRAL)
 	if faction2:
 		faction2.set_relation(faction1_id, Faction.Relation.NEUTRAL)
-	
+
 	war_ended.emit(faction1, faction2)
 	GameLog.info("FactionManager: War ended between %s and %s" % [faction1_id, faction2_id])
 
@@ -229,7 +229,7 @@ func get_faction_wars(faction_id: String) -> Array:
 	var wars: Array = []
 	if not _active_wars.has(faction_id):
 		return wars
-	
+
 	for enemy_id in _active_wars[faction_id]:
 		var enemy = _factions.get(enemy_id)
 		if enemy:
@@ -276,10 +276,10 @@ func modify_reputation(player_id: String, faction_id: String, delta: int) -> voi
 func set_reputation(player_id: String, faction_id: String, value: int) -> void:
 	if not _player_reputations.has(player_id):
 		_player_reputations[player_id] = {}
-	
+
 	var old_rep = _player_reputations[player_id].get(faction_id, 0)
 	_player_reputations[player_id][faction_id] = clampi(value, -10000, 10000)
-	
+
 	reputation_changed.emit(player_id, faction_id, old_rep, value)
 
 ## Get reputation rank name
@@ -353,7 +353,7 @@ func get_guild_alliances(guild_id: String) -> Array:
 	var results: Array = []
 	if not _guild_alliances.has(guild_id):
 		return results
-	
+
 	for faction_id in _guild_alliances[guild_id]:
 		var faction = _factions.get(faction_id)
 		if faction:
@@ -371,19 +371,19 @@ func can_attack(attacker, target) -> bool:
 	# Same entity
 	if attacker == target:
 		return false
-	
+
 	# Same faction
 	if attacker.faction_id != "" and attacker.faction_id == target.faction_id:
 		return false
-	
+
 	# Check if at war
 	if attacker.faction_id != "" and target.faction_id != "":
 		if is_at_war(attacker.faction_id, target.faction_id):
 			return true
-	
+
 	# Check zone-based PvP
 	var zone_manager = ZoneManager
 	if zone_manager:
 		return zone_manager.can_pvp(attacker, target)
-	
+
 	return false

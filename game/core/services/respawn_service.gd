@@ -70,7 +70,7 @@ class ReviveAbuseConfig:
 	var window_hours: float = 1.0       # Time window
 	var penalty: int = 5                 # Karma penalty on flag
 	var cooldown_minutes: float = 5.0    # Healer cooldown when flagged
-	
+
 	func _init(rph: int = 20, wh: float = 1.0, pen: int = 5, cm: float = 5.0):
 		revives_per_hour = rph
 		window_hours = wh
@@ -94,7 +94,7 @@ class ReviveAbilityConfig:
 	var revive_limit_per_hour: int = 0   # 0 = unlimited
 	var self_revive_available: bool = true
 	var self_revive_cooldown_hours: float = 2.0  # Hours between self-revives
-	
+
 	func _init(cro: bool = true, cbr: bool = true, rlh: int = 0, sra: bool = true, srch: float = 2.0):
 		can_revive_others = cro
 		can_be_revived = cbr
@@ -166,18 +166,18 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 	if _active_revives.has(player.entity_id):
 		GameLog.info("RespawnService: Respawn blocked for %s - revive in progress" % player.display_name)
 		return false
-	
+
 	var config := _get_zone_config(zone_id)
 	var mode: RespawnMode = config.default_mode
 	var respawn_data := {}
-	
+
 	# Check what modes are available
 	var available_modes := get_available_respawn_modes(player, zone_id)
-	
+
 	if available_modes.is_empty():
 		GameLog.warn("RespawnService: No respawn modes available for %s" % player.display_name)
 		return false
-	
+
 	# Priority: Revive > Ankh > Timed
 	if available_modes.has(RespawnMode.REVIVE):
 		mode = RespawnMode.REVIVE
@@ -187,7 +187,7 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 		mode = RespawnMode.TIMED
 	else:
 		mode = available_modes[0]
-	
+
 	# Build respawn data
 	match mode:
 		RespawnMode.ANKH:
@@ -221,10 +221,10 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 				"remaining_respawns": _get_team_respawns(player, config),
 				"safe_zone_position": true
 			}
-	
+
 	respawn_initiated.emit(player, mode, respawn_data)
 	GameLog.info("RespawnService: %s initiating respawn in mode %s" % [player.display_name, RespawnMode.keys()[mode]])
-	
+
 	# Start the respawn
 	_start_respawn(player, mode, respawn_data)
 	return true
@@ -233,63 +233,63 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 func get_available_respawn_modes(player, zone_id: String = "") -> Array[RespawnMode]:
 	var available: Array[RespawnMode] = []
 	var config := _get_zone_config(zone_id)
-	
+
 	# Timed - always available
 	available.append(RespawnMode.TIMED)
-	
+
 	# Ankh - if player has bound one and zone allows
 	if player.respawn_ankh_id != "" and not config.ankh_required:
 		var ankh := _get_ankh_by_id(player.respawn_ankh_id)
 		if ankh and ankh.can_bind(player):
 			available.append(RespawnMode.ANKH)
-	
+
 	# Gateway - if in zone with gateways
 	if not config.gateway_ids.is_empty():
 		available.append(RespawnMode.GATEWAY)
-	
+
 	# Safe zone - always for arena/pvp
 	if config.safe_zone_ankh_id != "":
 		available.append(RespawnMode.SAFE_ZONE)
-	
+
 	# Arena team respawn
 	if config.arena_mode:
 		available.append(RespawnMode.ARENA_TEAM)
-	
+
 	# Revive - check for nearby healers
 	var healers := _get_nearby_potential_healers(player)
 	if not healers.is_empty():
 		available.append(RespawnMode.REVIVE)
-	
+
 	return available
 
 ## Start a revival attempt (healer initiates)
 func start_revival(healer, target, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
-	
+
 	# Check if healer can revive others in this context
 	if not can_revive_others(healer, context):
 		GameLog.warn("RespawnService: %s cannot revive others in %s context" % [healer.display_name, context])
 		return false
-	
+
 	# Check if target can be revived in this context
 	if not can_be_revived(target, context):
 		GameLog.warn("RespawnService: %s cannot be revived in %s context" % [target.display_name, context])
 		return false
-	
+
 	# Check cooldown
 	if _is_on_revival_cooldown(healer):
 		return false
-	
+
 	# Check range
 	var distance: float = healer.global_position.distance_to(target.global_position)
 	if distance > REVIVE_RANGE:
 		return false
-	
+
 	# Check target state
 	if not target.health_component or not target.health_component.is_dead():
 		return false
-	
+
 	# Check context-aware abuse detection
 	if _check_revoke_abuse(healer, context):
 		var config: ReviveAbuseConfig = _abuse_configs.get(context, ReviveAbuseConfig.new())
@@ -297,7 +297,7 @@ func start_revival(healer, target, context: String = "") -> bool:
 		remove_karma(healer.entity_id, config.penalty, "Revive abuse in %s" % context)
 		# Apply temporary cooldown
 		_revive_cooldowns[healer.entity_id] = Time.get_ticks_msec() + (config.cooldown_minutes * 60000)
-		
+
 		# Send abuse warning notification
 		if NotificationService:
 			NotificationService.notify_revive_abuse_warning(healer.entity_id, context)
@@ -314,7 +314,7 @@ func start_revival(healer, target, context: String = "") -> bool:
 
 		GameLog.warn("RespawnService: Revive abuse detected for %s in %s context" % [healer.display_name, context])
 		return false
-	
+
 	# Start revive
 	_active_revives[target.entity_id] = {
 		"healer": healer,
@@ -325,13 +325,13 @@ func start_revival(healer, target, context: String = "") -> bool:
 	}
 
 	revive_started.emit(target, healer)
-	
+
 	# Send notification to target
 	if NotificationService:
 		NotificationService.notify_revive_started(target.entity_id, healer.display_name)
-	
+
 	GameLog.info("RespawnService: %s starting revival on %s in %s" % [healer.display_name, target.display_name, context])
-	
+
 	return true
 
 ## Check if a player is currently being revived
@@ -342,45 +342,45 @@ func is_being_revived(entity_id: String) -> bool:
 func get_revival_progress(entity_id: String) -> float:
 	if not _active_revives.has(entity_id):
 		return 0.0
-	
+
 	var revive_data: Dictionary = _active_revives[entity_id]
 	var elapsed: float = (Time.get_ticks_msec() - revive_data["start_time"]) / 1000.0
 	var cast_time: float = revive_data["cast_time"]
-	
+
 	return clamp(elapsed / cast_time, 0.0, 1.0)
 
 ## Complete a revival
 func complete_revival(target_id: String) -> bool:
 	if not _active_revives.has(target_id):
 		return false
-	
+
 	var revive_data: Dictionary = _active_revives[target_id]
 	var healer = revive_data["healer"]
 	var target = revive_data["target"]
 	var context: String = revive_data.get("context", _current_context)
-	
+
 	# Remove from active
 	_active_revives.erase(target_id)
-	
+
 	# Set cooldown for healer
 	_revive_cooldowns[healer.entity_id] = Time.get_ticks_msec()
-	
+
 	# Track revive count (context-aware)
 	_increment_revoke_count(healer.entity_id, context)
-	
+
 	# Karma reward
 	var karma_amount := REVIVE_KARMA_REWARD
-	
+
 	# Cross-faction bonus
 	if healer.faction_id != target.faction_id:
 		karma_amount += REVIVE_KARMA_PENALTY_CROSS_FACTION
 		add_karma(healer.entity_id, karma_amount, "Cross-faction revival in %s" % context)
 	else:
 		add_karma(healer.entity_id, karma_amount, "Friendly revival in %s" % context)
-	
+
 	# Respawn target
 	_do_respawn_at(target, healer.global_position, RespawnMode.REVIVE)
-	
+
 	revive_completed.emit(target, healer)
 
 	# Send notifications
@@ -396,20 +396,20 @@ func complete_revival(target_id: String) -> bool:
 		"revive:%s:%s" % [target.entity_id, healer.entity_id],
 		{"healer_id": healer.entity_id, "context": context}
 	)
-	
+
 	GameLog.info("RespawnService: %s revived %s in %s" % [healer.display_name, target.display_name, context])
-	
+
 	return true
 
 ## Interrupt a revival
 func interrupt_revival(target_id: String, reason: String) -> void:
 	if not _active_revives.has(target_id):
 		return
-	
+
 	var revive_data: Dictionary = _active_revives[target_id]
 	var healer = revive_data["healer"]
 	var target = revive_data["target"]
-	
+
 	_active_revives.erase(target_id)
 
 	# Send notification
@@ -559,30 +559,30 @@ func _is_on_revival_cooldown(healer) -> bool:
 func _check_revoke_abuse(healer, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
-	
+
 	var config: ReviveAbuseConfig = _abuse_configs.get(context)
 	if config == null:
 		config = ReviveAbuseConfig.new()
-	
+
 	_cleanup_old_revoke_counts(context)
-	
+
 	var counts: Dictionary = _revive_counts.get(healer.entity_id, {})
 	var context_count: int = counts.get(context, 0)
-	
+
 	return context_count >= config.revives_per_hour
 
 ## Increment revive count for context
 func _increment_revoke_count(entity_id: String, context: String = "") -> void:
 	if context == "":
 		context = _current_context
-	
+
 	if not _revive_counts.has(entity_id):
 		_revive_counts[entity_id] = {}
-	
+
 	var counts: Dictionary = _revive_counts[entity_id]
 	if not counts.has(context):
 		counts[context] = []
-	
+
 	var context_times: Array = counts[context]
 	context_times.append(Time.get_unix_time_from_system())
 	counts[context] = context_times
@@ -593,7 +593,7 @@ func _cleanup_old_revoke_counts(context: String) -> void:
 	var config: ReviveAbuseConfig = _abuse_configs.get(context, ReviveAbuseConfig.new())
 	var window_seconds := config.window_hours * 3600
 	var cutoff := now - window_seconds
-	
+
 	for entity_id in _revive_counts:
 		var counts: Dictionary = _revive_counts[entity_id]
 		if counts.has(context):
@@ -614,45 +614,45 @@ func get_context() -> String:
 func can_revive_others(entity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
-	
+
 	var config: ReviveAbilityConfig = _ability_configs.get(context)
 	if config == null:
 		return true  # Default allow
-	
+
 	return config.can_revive_others
 
 ## Check if entity can be revived in current context
 func can_be_revived(entity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
-	
+
 	var config: ReviveAbilityConfig = _ability_configs.get(context)
 	if config == null:
 		return true  # Default allow
-	
+
 	return config.can_be_revived
 
 ## Check if entity can self-revive in current context
 func can_self_revive(entity, context: String = "") -> bool:
 	if context == "":
 		context = _current_context
-	
+
 	var config: ReviveAbilityConfig = _ability_configs.get(context)
 	if config == null or not config.self_revive_available:
 		return false
-	
+
 	# Check cooldown
 	var last_time: float = _self_revive_timestamps.get(entity.entity_id, 0)
 	var cooldown_seconds := config.self_revive_cooldown_hours * 3600
 	var now := Time.get_unix_time_from_system()
-	
+
 	return (now - last_time) >= cooldown_seconds
 
 ## Use self-revive
 func use_self_revive(entity) -> bool:
 	if not can_self_revive(entity):
 		return false
-	
+
 	_self_revive_timestamps[entity.entity_id] = Time.get_unix_time_from_system()
 	return true
 
@@ -660,10 +660,10 @@ func use_self_revive(entity) -> bool:
 func get_revive_ability_info(context: String = "") -> Dictionary:
 	if context == "":
 		context = _current_context
-	
+
 	var ability: ReviveAbilityConfig = _ability_configs.get(context, ReviveAbilityConfig.new())
 	var abuse: ReviveAbuseConfig = _abuse_configs.get(context, ReviveAbuseConfig.new())
-	
+
 	return {
 		"context": context,
 		"can_revive_others": ability.can_revive_others,
@@ -725,33 +725,33 @@ func _get_safe_zone_position(player, safe_zone_ankh_id: String) -> Vector3:
 func _process(delta: float) -> void:
 	var now := Time.get_ticks_msec()
 	var to_remove: Array[String] = []
-	
+
 	for target_id in _active_revives.keys():
 		var data: Dictionary = _active_revives[target_id]
 		var elapsed: float = now - data["start_time"]
-		
+
 		# Check if healer moved too far
 		var healer = data["healer"]
 		var target = data["target"]
 		var distance: float = healer.global_position.distance_to(target.global_position)
-		
+
 		if distance > REVIVE_RANGE:
 			interrupt_revival(target_id, "Healer moved out of range")
 			to_remove.append(target_id)
 			continue
-		
+
 		# Check if complete
 		if elapsed >= data["cast_time"] * 1000:
 			complete_revival(target_id)
 			to_remove.append(target_id)
-	
+
 	for target_id in to_remove:
 		_active_revives.erase(target_id)
 
 ## Configure a zone's respawn settings
 func configure_zone(zone_id: String, config: Dictionary) -> void:
 	var zone_config := _get_zone_config(zone_id)
-	
+
 	if config.has("default_mode"):
 		zone_config.default_mode = config["default_mode"]
 	if config.has("timed_respawn_seconds"):

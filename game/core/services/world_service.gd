@@ -53,7 +53,7 @@ class GatewayRecord:
 		if required_faction != "" and entity.faction_id != required_faction:
 			return false
 		return true
-	
+
 	func get_destination() -> Dictionary:
 		return {
 			"zone_id": to_zone_id,
@@ -69,17 +69,17 @@ func initialize_world() -> void:
 	var zone_manager = ZoneManager
 	if zone_manager:
 		zone_manager.load_zones()
-	
+
 	# Load all factions
 	var faction_manager = FactionManager
 	if faction_manager:
 		faction_manager.load_factions()
-	
+
 	# Spawn offering NPCs (NPCEntity with includes[])
 	var spawn_service = SpawnService
 	if spawn_service:
 		spawn_service.spawn_all_offering_npcs()
-	
+
 	GameLog.info("WorldService: World initialized")
 
 ## Get current time of day string
@@ -103,13 +103,13 @@ func set_world_time(minutes: int) -> void:
 func advance_time(delta: float) -> void:
 	var old_day = get_current_day()
 	world_time_minutes += int(delta * time_multiplier * 60.0 / 60.0)  # Convert to minutes
-	
+
 	# Cap at 1 year
 	if world_time_minutes > day_duration_minutes * 365:
 		world_time_minutes = day_duration_minutes * 365
-	
+
 	_update_time_of_day()
-	
+
 	var new_day = get_current_day()
 	if new_day > old_day:
 		day_changed.emit(new_day)
@@ -117,7 +117,7 @@ func advance_time(delta: float) -> void:
 func _update_time_of_day() -> void:
 	var hour = get_current_hour()
 	var old_time = _current_time_of_day
-	
+
 	if hour >= 6 and hour < 8:
 		_current_time_of_day = "dawn"
 	elif hour >= 8 and hour < 18:
@@ -126,7 +126,7 @@ func _update_time_of_day() -> void:
 		_current_time_of_day = "dusk"
 	else:
 		_current_time_of_day = "night"
-	
+
 	if old_time != _current_time_of_day:
 		time_changed.emit(_current_time_of_day, hour)
 
@@ -134,14 +134,14 @@ func _update_time_of_day() -> void:
 func get_daylight_percentage() -> float:
 	var hour = get_current_hour()
 	var minute_in_hour = world_time_minutes % 60
-	
+
 	# Simple sine wave for daylight
 	var day_minutes = hour * 60 + minute_in_hour
 	var midday = 12 * 60  # 720 minutes
-	
+
 	var distance = abs(day_minutes - midday)
 	var max_distance = 12 * 60  # 720 minutes
-	
+
 	return maxf(0.0, 1.0 - (float(distance) / float(max_distance)))
 
 ## Gateway management
@@ -149,7 +149,7 @@ func get_daylight_percentage() -> float:
 ## Register a gateway
 func register_gateway(config: Dictionary) -> String:
 	var gateway_id = "gateway_%s_to_%s" % [config.get("from_zone", ""), config.get("to_zone", "")]
-	
+
 	var gateway := GatewayRecord.new()
 	gateway.id = gateway_id
 	gateway.display_name = config.get("display_name", "Gateway")
@@ -164,7 +164,7 @@ func register_gateway(config: Dictionary) -> String:
 	gateway.unlock_requirement = config.get("unlock_requirement", "")
 	gateway.radius = config.get("radius", 5.0)
 	gateway.activation_radius = config.get("activation_radius", 3.0)
-	
+
 	_gateways[gateway_id] = gateway
 	GameLog.debug("WorldService: Registered gateway %s" % gateway_id)
 	return gateway_id
@@ -194,28 +194,28 @@ func use_gateway(gateway_id: String, entity) -> Dictionary:
 	var gateway = _gateways.get(gateway_id)
 	if gateway == null:
 		return {}
-	
+
 	if not gateway.can_use(entity):
 		GameLog.debug("WorldService: %s cannot use gateway %s" % [entity.display_name, gateway_id])
 		return {}
-	
+
 	# Exit current zone
 	var zone_manager = ZoneManager
 	if zone_manager:
 		zone_manager.entity_exit_zone(entity)
-	
+
 	# Move to destination
 	var destination = gateway.get_destination()
 	entity.global_position = destination.position
-	
+
 	# Enter destination zone
 	var dest_zone = zone_manager.get_zone(destination.zone_id)
 	if dest_zone:
 		zone_manager.entity_enter_zone(entity, dest_zone)
-	
+
 	gateway_activated.emit(gateway_id, entity)
 	EventHub.entity_teleported.emit(entity, gateway.position, destination.position)
-	
+
 	GameLog.debug("WorldService: %s used gateway %s to %s" % [entity.display_name, gateway_id, destination.zone_id])
 	return destination
 
@@ -231,15 +231,15 @@ func get_nearby_gateway(entity) -> GatewayRecord:
 	var zone_manager = ZoneManager
 	if zone_manager == null:
 		return null
-	
+
 	var zone_id = zone_manager.get_entity_zone_id(entity)
 	var gateways = get_zone_gateways(zone_id)
-	
+
 	for gateway in gateways:
 		if gateway.position.distance_to(entity.global_position) <= gateway.activation_radius:
 			if gateway.can_use(entity):
 				return gateway
-	
+
 	return null
 
 ## World events
@@ -248,7 +248,7 @@ func get_nearby_gateway(entity) -> GatewayRecord:
 func start_event(event_id: String, duration_seconds: float, message: String = "") -> void:
 	if _active_events.any(func(e): return e.get("id") == event_id):
 		return  # Already active
-	
+
 	var event := {
 		"id": event_id,
 		"name": event_id,
@@ -256,15 +256,15 @@ func start_event(event_id: String, duration_seconds: float, message: String = ""
 		"remaining": duration_seconds,
 		"started_at": Time.get_ticks_msec()
 	}
-	
+
 	_active_events.append(event)
-	
+
 	# Apply event effects
 	_apply_event_effects(event_id, true)
-	
+
 	event_started.emit(event_id, event_id)
 	GameLog.info("WorldService: Event started: %s" % event_id)
-	
+
 	# Notify players
 	var notification_service = NotificationService
 	if notification_service:
@@ -285,13 +285,13 @@ func end_event(event_id: String, message: String = "") -> void:
 	if event_index >= 0:
 		var event = _active_events[event_index]
 		_active_events.remove_at(event_index)
-		
+
 		# Remove event effects
 		_apply_event_effects(event_id, false)
-		
+
 		event_ended.emit(event_id, event.get("name", event_id))
 		GameLog.info("WorldService: Event ended: %s" % event_id)
-		
+
 		# Notify players
 		var notification_service = NotificationService
 		if notification_service:
@@ -313,12 +313,12 @@ func is_event_active(event_id: String) -> bool:
 ## Process events (call from _process)
 func process_events(delta: float) -> void:
 	var events_to_end: Array[String] = []
-	
+
 	for event in _active_events:
 		event["remaining"] -= delta
 		if event["remaining"] <= 0:
 			events_to_end.append(event["id"])
-	
+
 	for event_id in events_to_end:
 		end_event(event_id)
 
@@ -362,12 +362,12 @@ func find_zone_path(from_zone_id: String, to_zone_id: String) -> Array[String]:
 	# Could implement A* or similar for complex routing
 	if from_zone_id == to_zone_id:
 		return [from_zone_id]
-	
+
 	# Check for direct gateway connection
 	var gateways = get_zone_gateways(from_zone_id)
 	for gateway in gateways:
 		if gateway.to_zone_id == to_zone_id:
 			return [from_zone_id, to_zone_id]
-	
+
 	# Return direct path (would need pathfinding for complex world)
 	return [from_zone_id, to_zone_id]

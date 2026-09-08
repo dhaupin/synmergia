@@ -181,11 +181,11 @@ func accept_quest(player_id: String, quest_id: String) -> bool:
 	# QoS: Rate limit quest accepts
 	if QoSService and not QoSService.rate_limit(player_id, "quest_accept"):
 		return false
-	
+
 	# Security: Validate quest_id format
 	if not _is_valid_quest_id(quest_id):
 		return false
-	
+
 	var availability := check_quest_availability(player_id, quest_id)
 	if not availability.available:
 		GameLog.warn("QuestService: Cannot accept quest - %s" % availability.reason)

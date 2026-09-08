@@ -98,27 +98,27 @@ func _ready() -> void:
 func lock_player(player_id: String, reason: int, context: Dictionary = {}) -> bool:
 	if reason == LockReason.NONE:
 		return false
-	
+
 	var lock_data := _get_or_create_lock(player_id)
-	
+
 	# Check if already locked with this reason
 	if lock_data["reasons"].has(reason):
 		GameLog.debug("PlayerLockService: %s already locked with reason %d" % [player_id, reason])
 		return false
-	
+
 	# Add lock reason
 	lock_data["reasons"][reason] = {
 		"context": context,
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	
+
 	# Update active flags
 	_update_lock_flags(lock_data)
-	
+
 	# Emit signals
 	player_locked.emit(player_id, reason, context)
 	lock_updated.emit(player_id, _get_highest_priority_reason(lock_data), context)
-	
+
 	GameLog.info("PlayerLockService: %s locked for reason %d" % [player_id, reason])
 	return true
 
@@ -126,26 +126,26 @@ func lock_player(player_id: String, reason: int, context: Dictionary = {}) -> bo
 func unlock_player(player_id: String, reason: int) -> bool:
 	if not _player_locks.has(player_id):
 		return false
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	if not lock_data["reasons"].has(reason):
 		return false
-	
+
 	var context: Dictionary = lock_data["reasons"][reason].get("context", {})
 	lock_data["reasons"].erase(reason)
-	
+
 	# Update flags
 	_update_lock_flags(lock_data)
-	
+
 	# Clean up if no more locks
 	if lock_data["reasons"].is_empty():
 		_player_locks.erase(player_id)
-	
+
 	# Emit signals
 	player_unlocked.emit(player_id, reason, context)
 	if _player_locks.has(player_id):
 		lock_updated.emit(player_id, _get_highest_priority_reason(_player_locks[player_id]), {})
-	
+
 	GameLog.info("PlayerLockService: %s unlocked from reason %d" % [player_id, reason])
 	return true
 
@@ -163,7 +163,7 @@ func has_lock_reason(player_id: String, reason: int) -> bool:
 func is_movement_blocked(player_id: String) -> bool:
 	if not is_locked(player_id):
 		return false
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	return lock_data["blocks_movement"]
 
@@ -171,7 +171,7 @@ func is_movement_blocked(player_id: String) -> bool:
 func are_skills_blocked(player_id: String) -> bool:
 	if not is_locked(player_id):
 		return false
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	return lock_data["blocks_skills"]
 
@@ -179,7 +179,7 @@ func are_skills_blocked(player_id: String) -> bool:
 func is_combat_blocked(player_id: String) -> bool:
 	if not is_locked(player_id):
 		return false
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	return lock_data["blocks_combat"]
 
@@ -187,7 +187,7 @@ func is_combat_blocked(player_id: String) -> bool:
 func are_items_blocked(player_id: String) -> bool:
 	if not is_locked(player_id):
 		return false
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	return lock_data["blocks_items"]
 
@@ -212,11 +212,11 @@ func get_lock_context(player_id: String, reason: int) -> Dictionary:
 func force_unlock_all(player_id: String) -> void:
 	if not _player_locks.has(player_id):
 		return
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	for reason in lock_data["reasons"].keys():
 		player_unlocked.emit(player_id, reason, {})
-	
+
 	_player_locks.erase(player_id)
 	GameLog.info("PlayerLockService: %s force unlocked all reasons" % player_id)
 
@@ -224,30 +224,30 @@ func force_unlock_all(player_id: String) -> void:
 func cancel_on_death(player_id: String) -> void:
 	if not _player_locks.has(player_id):
 		return
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	var to_remove := []
-	
+
 	for reason in lock_data["reasons"].keys():
 		var config: Dictionary = LOCK_CONFIG.get(reason, {})
 		if config.get("cancel_on_death", true):
 			to_remove.append(reason)
-	
+
 	for reason in to_remove:
 		unlock_player(player_id, reason)
 
 func cancel_on_teleport(player_id: String) -> void:
 	if not _player_locks.has(player_id):
 		return
-	
+
 	var lock_data: Dictionary = _player_locks[player_id]
 	var to_remove := []
-	
+
 	for reason in lock_data["reasons"].keys():
 		var config: Dictionary = LOCK_CONFIG.get(reason, {})
 		if config.get("cancel_on_teleport", true):
 			to_remove.append(reason)
-	
+
 	for reason in to_remove:
 		unlock_player(player_id, reason)
 
@@ -271,7 +271,7 @@ func _update_lock_flags(lock_data: Dictionary) -> void:
 	lock_data["blocks_combat"] = false
 	lock_data["blocks_items"] = false
 	lock_data["highest_priority"] = 0
-	
+
 	for reason in lock_data["reasons"].keys():
 		var config: Dictionary = LOCK_CONFIG.get(reason, {})
 		if config.get("blocks_movement", false):
@@ -282,7 +282,7 @@ func _update_lock_flags(lock_data: Dictionary) -> void:
 			lock_data["blocks_combat"] = true
 		if config.get("blocks_items", false):
 			lock_data["blocks_items"] = true
-		
+
 		var priority: int = config.get("priority", 0)
 		if priority > lock_data["highest_priority"]:
 			lock_data["highest_priority"] = priority
@@ -291,12 +291,12 @@ func _update_lock_flags(lock_data: Dictionary) -> void:
 func _get_highest_priority_reason(lock_data: Dictionary) -> int:
 	var highest: int = LockReason.NONE
 	var highest_priority: int = 0
-	
+
 	for reason in lock_data["reasons"].keys():
 		var config: Dictionary = LOCK_CONFIG.get(reason, {})
 		var priority: int = config.get("priority", 0)
 		if priority > highest_priority:
 			highest_priority = priority
 			highest = reason
-	
+
 	return highest

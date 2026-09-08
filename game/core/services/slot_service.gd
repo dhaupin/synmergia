@@ -1,6 +1,6 @@
 ## SlotService - Unified slot container management
 ## Handles all slot-based storage: inventory, bank, guild vault, house storage, mounts, loot, trade
-## 
+##
 ## Container Types (from ContainerConfigData):
 ##   - INVENTORY (0): Player personal inventory (24 base, expandable to 120)
 ##   - BANK (1): Personal bank storage (100 base, expandable to 400)

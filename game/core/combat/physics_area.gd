@@ -44,14 +44,14 @@ func _setup_area() -> void:
 	_area = Area3D.new()
 	_area.name = "PhysicsAreaDetection"
 	add_child(_area)
-	
+
 	# Set collision layers/masks based on blocking mode
 	_configure_collision()
-	
+
 	# Create shape
 	_collision_shape = CollisionShape3D.new()
 	var shape_instance: Shape3D
-	
+
 	if shape == Shape.SPHERE_LAYERED:
 		# Use hollow sphere (not natively supported, so use shape layer trick)
 		var sphere := SphereShape3D.new()
@@ -61,10 +61,10 @@ func _setup_area() -> void:
 		var sphere := SphereShape3D.new()
 		sphere.radius = radius
 		shape_instance = sphere
-	
+
 	_collision_shape.shape = shape_instance
 	_area.add_child(_collision_shape)
-	
+
 	# Connect signals
 	_area.body_shape_entered.connect(_on_body_shape_entered)
 	_area.body_shape_exited.connect(_on_body_shape_exited)
@@ -94,7 +94,7 @@ func stop_monitoring() -> void:
 func _process(delta: float) -> void:
 	if not _monitoring:
 		return
-	
+
 	if update_interval > 0:
 		_last_update_time += delta
 		if _last_update_time >= update_interval:
@@ -115,7 +115,7 @@ func _refresh_area() -> void:
 
 func get_entities_in_sphere(origin: Vector3, sphere_radius: float, ignore_source: bool = true) -> Array:
 	var entities: Array = []
-	
+
 	# Use physics sphere query
 	var space_state := get_world_3d().direct_space_state
 	var query := PhysicsShapeQueryParameters3D.new()
@@ -124,16 +124,16 @@ func get_entities_in_sphere(origin: Vector3, sphere_radius: float, ignore_source
 	query.shape = shape
 	query.transform = Transform3D(Basis.IDENTITY, origin)
 	query.collision_mask = 0b0000001  # Only entities layer
-	
+
 	var results := space_state.intersect_shape(query, 50)
-	
+
 	for result in results:
 		var collider := result["collider"]
 		if collider is Entity:
 			if ignore_source and collider == source_entity:
 				continue
 			entities.append(collider)
-	
+
 	return entities
 
 ## LINE OF SIGHT
@@ -143,11 +143,11 @@ func get_entities_in_sphere(origin: Vector3, sphere_radius: float, ignore_source
 func has_line_of_sight(from: Vector3, to: Vector3) -> bool:
 	if blocking_mode == BlockingMode.NONE:
 		return true
-	
+
 	var space_state := get_world_3d().direct_space_state
-	
+
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	
+
 	match blocking_mode:
 		BlockingMode.WALLS_ONLY:
 			query.collision_mask = 0b0000010  # Just walls
@@ -155,9 +155,9 @@ func has_line_of_sight(from: Vector3, to: Vector3) -> bool:
 			query.collision_mask = 0b0000110  # Walls + floors
 		BlockingMode.ALL_GEOMETRY:
 			query.collision_mask = 0b0111111  # All solid
-	
+
 	var result := space_state.intersect_ray(query)
-	
+
 	# If no hit, line of sight is clear
 	return result.is_empty()
 
@@ -165,16 +165,16 @@ func has_line_of_sight(from: Vector3, to: Vector3) -> bool:
 func get_entities_with_los(origin: Vector3, sphere_radius: float) -> Array:
 	var all_entities := get_entities_in_sphere(origin, sphere_radius)
 	var los_entities: Array = []
-	
+
 	for entity in all_entities:
 		# Check LOS to entity's center
 		var target_pos := entity.global_position
 		# Offset slightly above ground for better LOS
 		target_pos.y += 1.0
-		
+
 		if has_line_of_sight(origin, target_pos):
 			los_entities.append(entity)
-	
+
 	return los_entities
 
 ## Check if a specific point is visible from origin (within radius)
@@ -187,28 +187,28 @@ func is_point_visible(origin: Vector3, point: Vector3, max_distance: float = -1.
 func get_blocking_objects(from: Vector3, to: Vector3) -> Array[Dictionary]:
 	var space_state := get_world_3d().direct_space_state
 	var blockers: Array[Dictionary] = []
-	
+
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 0b1111110  # All geometry except entities
-	
+
 	var result := space_state.intersect_ray(query)
-	
+
 	# This only returns one hit, need to iterate for multiple blockers
 	# For now, simplified single-hit version
 	if not result.is_empty():
 		blockers.append(result)
-	
+
 	return blockers
 
 ## Check if entity is within effective range considering geometry
 func is_in_range_and_visible(origin: Vector3, target: Entity, max_range: float) -> bool:
 	if not is_instance_valid(target):
 		return false
-	
+
 	var distance: float = origin.distance_to(target.global_position)
 	if distance > max_range:
 		return false
-	
+
 	# Check line of sight
 	return has_line_of_sight(origin + Vector3(0, 1.5, 0), target.global_position + Vector3(0, 1.0, 0))
 

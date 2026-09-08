@@ -77,12 +77,12 @@ signal trade_closed(trade_id: String, reason: String)                      # Tra
 
 func _ready() -> void:
 	GameLog.info("TradeService: Ready")
-	
+
 	# Initialize service references from autoloads
 	_account_service = AccountService if AccountService else null
 	_inventory_service = InventoryService if InventoryService else null
 	_same_account_transfer = SameAccountTransferService if SameAccountTransferService else null
-	
+
 	# Start range check timer
 	var timer := Timer.new()
 	timer.wait_time = 0.5  # Check range every 0.5 seconds
@@ -100,10 +100,10 @@ func _check_trade_ranges() -> void:
 		var trade: Dictionary = _active_trades[trade_id]
 		if trade.is_empty() or trade["state"] > TradeState.CONFIRMING:
 			continue
-		
+
 		var player1: String = trade["player1"]
 		var player2: String = trade["player2"]
-		
+
 		# Check if either player went out of range
 		if not _are_players_in_range(player1, player2):
 			_notify_player(player1, "You are too far from your trading partner.")
@@ -117,12 +117,12 @@ func request_trade(from_id: String, to_id: String) -> bool:
 	# Use CooldownService for unified cooldown management
 	if _cooldown() and not _cooldown().try_start(from_id, "trade"):
 		return false
-	
+
 	# Security: Check if player is trade restricted
 	if SecurityService.is_restricted(from_id, "trade"):
 		_notify_player(from_id, "You are temporarily restricted from trading.")
 		return false
-	
+
 	# Check same-account trade
 	if _account_service and not _account_service.can_same_account_trade(from_id, to_id)["allowed"]:
 		GameLog.info("TradeService: Same-account trade not allowed between %s and %s" % [from_id, to_id])
@@ -138,7 +138,7 @@ func request_trade(from_id: String, to_id: String) -> bool:
 	# Check for duplicate requests
 	if _pending_requests.has(to_id):
 		return false
-	
+
 	# SECURITY: Range check - must be in range to request trade
 	if not _are_players_in_range(from_id, to_id):
 		_notify_player(from_id, "You must be closer to the player to trade.")
@@ -162,24 +162,24 @@ func accept_trade(to_id: String) -> String:
 	var request: Dictionary = _pending_requests.get(to_id)
 	if not request:
 		return ""
-	
+
 	# Check if expired
 	if Time.get_unix_time_from_system() > request["expires_at"]:
 		_pending_requests.erase(to_id)
 		trade_expired.emit("")
 		return ""
-	
+
 	var from_id: String = request["from_id"]
-	
+
 	# SECURITY: Range check on accept (could have moved away while request was pending)
 	if not _are_players_in_range(from_id, to_id):
 		_pending_requests.erase(to_id)
 		_notify_player(to_id, "Player is too far away to trade.")
 		_notify_player(from_id, "Trade request expired: target too far away.")
 		return ""
-	
+
 	var trade_id := "trade_%s_%s_%d" % [from_id, to_id, Time.get_ticks_msec()]
-	
+
 	var trade := {
 		"id": trade_id,
 		"player1": from_id,
@@ -193,20 +193,20 @@ func accept_trade(to_id: String) -> String:
 		"player2_confirmed": false,
 		"created_at": Time.get_unix_time_from_system()
 	}
-	
+
 	_active_trades[trade_id] = trade
 	_pending_requests.erase(to_id)
-	
+
 	# SECURITY: Lock both players - prevents movement, skills, combat during trade
 	_players_in_trade[from_id] = trade_id
 	_players_in_trade[to_id] = trade_id
 	PlayerLockService.lock_player(from_id, PlayerLockService.LockReason.TRADE, {"trade_id": trade_id})
 	PlayerLockService.lock_player(to_id, PlayerLockService.LockReason.TRADE, {"trade_id": trade_id})
-	
+
 	trade_accepted.emit(trade_id, from_id, to_id)
 	trade_started.emit(trade_id, from_id, to_id)
 	GameLog.info("TradeService: Trade %s accepted and started" % trade_id)
-	
+
 	return trade_id
 
 ## Decline a trade request
@@ -214,13 +214,13 @@ func decline_trade(to_id: String) -> bool:
 	var request: Dictionary = _pending_requests.get(to_id)
 	if not request:
 		return false
-	
+
 	var from_id: String = request["from_id"]
 	_pending_requests.erase(to_id)
-	
+
 	trade_declined.emit(from_id, to_id)
 	GameLog.info("TradeService: Trade declined by %s" % to_id)
-	
+
 	return true
 
 ## Cancel a trade
@@ -228,13 +228,13 @@ func cancel_trade(trade_id: String, player_id: String) -> bool:
 	var trade: Dictionary = _active_trades.get(trade_id)
 	if not trade:
 		return false
-	
+
 	if trade["player1"] != player_id and trade["player2"] != player_id:
 		return false
-	
+
 	# Refund items and gold to both players
 	_refund_trade_items(trade)
-	
+
 	# Unlock both players
 	var player1: String = trade["player1"]
 	var player2: String = trade["player2"]
@@ -242,13 +242,13 @@ func cancel_trade(trade_id: String, player_id: String) -> bool:
 	PlayerLockService.unlock_player(player2, PlayerLockService.LockReason.TRADE)
 	_players_in_trade.erase(player1)
 	_players_in_trade.erase(player2)
-	
+
 	_active_trades.erase(trade_id)
 	trade_cancelled.emit(trade_id, player_id)
 	_notify_player(player1, "Trade cancelled by %s" % player_id)
 	_notify_player(player2, "Trade cancelled by %s" % player_id)
 	GameLog.info("TradeService: Trade %s cancelled by %s" % [trade_id, player_id])
-	
+
 	return true
 
 ## Add item to trade
@@ -256,34 +256,34 @@ func add_item(trade_id: String, player_id: String, item_id: String, quantity: in
 	var trade: Dictionary = _active_trades.get(trade_id)
 	if not trade or trade["state"] > TradeState.CONFIRMING:
 		return false
-	
+
 	var items_key := _get_items_key(trade, player_id)
 	if items_key == "":
 		return false
-	
+
 	# Verify item is in player's inventory (prevents fake items)
 	if not _verify_player_owns_item(player_id, item_id):
 		GameLog.warn("TradeService: %s does not own %s" % [player_id, item_id])
 		return false
-	
+
 	# Check if item already in trade
 	var items: Array = trade[items_key]
 	for item_data in items:
 		if item_data["item_id"] == item_id:
 			return false	# Already added
-	
+
 	if items.size() >= MAX_TRADE_SLOTS:
 		return false
-	
+
 	items.append({"item_id": item_id, "quantity": quantity})
 	trade[items_key] = items
-	
+
 	# Unconfirm if was confirmed
 	_unconfirm(trade, player_id)
-	
+
 	item_added_to_trade.emit(trade_id, player_id, item_id, quantity)
 	GameLog.debug("TradeService: %s added %s x%d to trade %s" % [player_id, item_id, quantity, trade_id])
-	
+
 	return true
 
 ## Remove item from trade
@@ -291,23 +291,23 @@ func remove_item(trade_id: String, player_id: String, item_id: String) -> bool:
 	var trade: Dictionary = _active_trades.get(trade_id)
 	if not trade or trade["state"] > TradeState.CONFIRMING:
 		return false
-	
+
 	var items_key := _get_items_key(trade, player_id)
 	if items_key == "":
 		return false
-	
+
 	var items: Array = trade[items_key]
 	for i in range(items.size()):
 		if items[i]["item_id"] == item_id:
 			items.remove_at(i)
 			trade[items_key] = items
-									
+
 									# Unconfirm if was confirmed
 			_unconfirm(trade, player_id)
-									
+
 			item_removed_from_trade.emit(trade_id, player_id, item_id, 1)
 			return true
-	
+
 	return false
 
 ## Add gold to trade
@@ -315,22 +315,22 @@ func add_gold(trade_id: String, player_id: String, amount: int) -> bool:
 	var trade: Dictionary = _active_trades.get(trade_id)
 	if not trade or trade["state"] > TradeState.CONFIRMING:
 		return false
-	
+
 	if amount <= 0:
 		return false
-	
+
 	var gold_key := _get_gold_key(trade, player_id)
 	if gold_key == "":
 		return false
-	
+
 	trade[gold_key] += amount
-	
+
 	# Unconfirm if was confirmed
 	_unconfirm(trade, player_id)
-	
+
 	gold_added_to_trade.emit(trade_id, player_id, amount)
 	GameLog.debug("TradeService: %s added %d gold to trade %s" % [player_id, amount, trade_id])
-	
+
 	return true
 
 ## Remove gold from trade
@@ -338,19 +338,19 @@ func remove_gold(trade_id: String, player_id: String, amount: int) -> bool:
 	var trade: Dictionary = _active_trades.get(trade_id)
 	if not trade or trade["state"] > TradeState.CONFIRMING:
 		return false
-	
+
 	var gold_key := _get_gold_key(trade, player_id)
 	if gold_key == "":
 		return false
-	
+
 	if trade[gold_key] < amount:
 		return false
-	
+
 	trade[gold_key] -= amount
-	
+
 	# Unconfirm if was confirmed
 	_unconfirm(trade, player_id)
-	
+
 	gold_removed_from_trade.emit(trade_id, player_id, amount)
 	return true
 
@@ -385,12 +385,12 @@ func confirm_trade(trade_id: String, player_id: String) -> bool:
 func _unconfirm(trade: Dictionary, player_id: String) -> void:
 	if trade["state"] != TradeState.CONFIRMING:
 		return
-	
+
 	if trade["player1"] == player_id:
 		trade["player1_confirmed"] = false
 	elif trade["player2"] == player_id:
 		trade["player2_confirmed"] = false
-	
+
 	trade_unconfirmed.emit(trade["id"], player_id)
 
 ## Public unconfirm trade
@@ -398,17 +398,17 @@ func unconfirm_trade(trade_id: String, player_id: String) -> bool:
 	var trade: Dictionary = _active_trades.get(trade_id)
 	if not trade:
 		return false
-	
+
 	if trade["state"] != TradeState.CONFIRMING:
 		return false
-	
+
 	if trade["player1"] == player_id:
 		trade["player1_confirmed"] = false
 	elif trade["player2"] == player_id:
 		trade["player2_confirmed"] = false
 	else:
 		return false
-	
+
 	trade_unconfirmed.emit(trade_id, player_id)
 	GameLog.info("TradeService: Player %s unconfirmed trade %s" % [player_id, trade_id])
 	return true
@@ -563,21 +563,21 @@ func force_cancel_trade(player_id: String, reason: String) -> void:
 	var trade_id: String = _players_in_trade.get(player_id, "")
 	if trade_id.is_empty():
 		return
-	
+
 	var trade: Dictionary = _active_trades.get(trade_id, {})
 	if trade.is_empty():
 		PlayerLockService.unlock_player(player_id, PlayerLockService.LockReason.TRADE)
 		_players_in_trade.erase(player_id)
 		return
-	
+
 	# Notify both players
 	var other_id: String = trade["player1"] if trade["player2"] == player_id else trade["player2"]
 	_notify_player(player_id, "Trade cancelled: %s" % reason)
 	_notify_player(other_id, "Trade cancelled: %s" % reason)
-	
+
 	# Refund items
 	_refund_trade_items(trade)
-	
+
 	# Clean up
 	_active_trades.erase(trade_id)
 	PlayerLockService.unlock_player(player_id, PlayerLockService.LockReason.TRADE)
@@ -591,39 +591,39 @@ func force_cancel_trade(player_id: String, reason: String) -> void:
 func can_trade_item(item: Item) -> bool:
 	if item == null:
 		return false
-	
+
 	# Soulbound items cannot be traded
 	if item.soulbound:
 		GameLog.debug("TradeService: Item %s cannot be traded (soulbound)" % item.display_name)
 		return false
-	
+
 	# Items bound on pickup cannot be traded
 	if item.bind_on_pickup or item.is_bound:
 		GameLog.debug("TradeService: Item %s cannot be traded (bound)" % item.display_name)
 		return false
-	
+
 	# Items bound on equip cannot be traded (only after equip - handled separately)
 	# Note: bind_on_equip items can be traded BEFORE being equipped
 	# This is checked separately when equipping
-	
+
 	# Check for quest items (would need quest system integration)
 	# For now, items with required_class are assumed to be quest/achievement items
 	if item.required_class == "QUEST_ONLY":
 		GameLog.debug("TradeService: Item %s cannot be traded (quest item)" % item.display_name)
 		return false
-	
+
 	# Check if item is unique and already owned
 	if item.unique and _is_item_owned_by_anyone(item.id):
 		GameLog.debug("TradeService: Item %s cannot be traded (unique, already owned)" % item.display_name)
 		return false
-	
+
 	return true
 
 ## Check if an item with this base ID is owned by anyone
 func _is_item_owned_by_anyone(item_id: String) -> bool:
 	if not InventoryService:
 		return false
-	
+
 	var all_players := EntityService.get_all_players() if EntityService else []
 	for player in all_players:
 		if not is_instance_valid(player):

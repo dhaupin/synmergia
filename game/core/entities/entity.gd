@@ -105,11 +105,11 @@ func _calculate_max_resources() -> void:
 ## Get stat value including allocated stats from CharacterData
 func get_stat(stat_name: String) -> int:
 	var base: int = stats.get(stat_name, 0)
-	
+
 	# Add allocated stats from CharacterData if available
 	if character_data != null:
 		base += character_data.get_allocated_points(stat_name)
-	
+
 	return base
 
 ## Called when allocated stats change (e.g., from UI)
@@ -134,25 +134,25 @@ func add_stat(stat_name: String, amount: int) -> void:
 func apply_species(new_species) -> void:
 	if new_species == null:
 		return
-	
+
 	species = new_species
 	species_id = new_species.id
-	
+
 	# Apply stat modifiers
 	for stat in new_species.stat_modifiers:
 		var modifier := new_species.stat_modifiers[stat] as int
 		stats[stat] = stats.get(stat, 10) + modifier
-	
+
 	# Apply resource modifiers
 	max_health = int(max_health * new_species.health_modifier)
 	max_mana = int(max_mana * new_species.mana_modifier)
 	max_stamina = max_stamina * new_species.stamina_modifier
-	
+
 	# Apply movement speed modifier
 	stats["movement_speed_multiplier"] = new_species.speed_modifier
-	
+
 	_calculate_max_resources()
-	
+
 	# GameLog.debug("Entity: Applied species %s to %s" % [species_id, display_name])
 
 ## HEALTH
@@ -160,14 +160,14 @@ func apply_species(new_species) -> void:
 func take_damage(amount: int, source = null) -> int:
 	if is_dead:
 		return 0
-	
+
 	var damage := _calculate_damage_received(amount)
 	current_health = max(0, current_health - damage)
 	health_changed.emit(current_health, max_health)
-	
+
 	if current_health <= 0:
 		die(source)
-	
+
 	return damage
 
 func heal(amount: int) -> void:

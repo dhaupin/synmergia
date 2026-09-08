@@ -118,7 +118,7 @@ func _register_commands() -> void:
 			"usage": "/summon <player_id>",
 			"handler": _cmd_summon_player
 		},
-		
+
 		# GM Movement Commands (ADMIN level)
 		"invisible": {
 			"permission": GameConfig.Security.ADMIN_LEVEL,
@@ -408,31 +408,31 @@ func _cmd_broadcast(args: Array) -> Dictionary:
 func _cmd_resurrect(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /resurrect <player_id> [health_percent] [mana_percent]"}
-	
+
 	var player_id: String = args[0]
 	var health_percent: float = 1.0
 	var mana_percent: float = 1.0
-	
+
 	if args.size() >= 2:
 		health_percent = float(args[1]) / 100.0
 	if args.size() >= 3:
 		mana_percent = float(args[2]) / 100.0
-	
+
 	# Find the player entity
 	var entity: Node3D = _find_entity_by_id(player_id)
 	if not entity:
 		return {"success": false, "message": "Player not found: " + player_id}
-	
+
 	# Check if they're actually dead
 	if not entity.health_component:
 		return {"success": false, "message": "Player has no health component"}
-	
+
 	if not entity.health_component.is_dead():
 		return {"success": false, "message": "Player is not dead"}
-	
+
 	# Perform the resurrection
 	var result := _do_resurrect(entity, health_percent, mana_percent)
-	
+
 	if result["success"]:
 		var msg := "Resurrected %s (HP: %d%%, MP: %d%%)" % [
 			entity.display_name,
@@ -447,21 +447,21 @@ func _cmd_resurrect(args: Array) -> Dictionary:
 func _cmd_kill_player(args: Array) -> Dictionary:
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /kill <player_id> [reason]"}
-	
+
 	var player_id: String = args[0]
 	var reason: String = "Killed by admin"
 	if args.size() >= 2:
 		reason = " ".join(args.slice(1, args.size()))
-	
+
 	var entity: Node3D = _find_entity_by_id(player_id)
 	if not entity:
 		return {"success": false, "message": "Player not found: " + player_id}
-	
+
 	if not entity.health_component:
 		return {"success": false, "message": "Player has no health component"}
-	
+
 	entity.health_component.take_damage(entity.health_component.current_health + 100, null, "admin_kill")
-	
+
 	return {"success": true, "message": "Killed: %s (%s)" % [entity.display_name, reason]}
 
 func _cmd_goto_player(args: Array) -> Dictionary:
@@ -509,12 +509,12 @@ func _cmd_invisible(args: Array) -> Dictionary:
 	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	# Determine toggle state
 	var enable := true
 	if args.size() >= 1:
 		enable = args[0] != "0"
-	
+
 	# Toggle collision layer (bit 0 = player)
 	if enable:
 		admin.collision_layer = 0b0000000  # No collision
@@ -522,11 +522,11 @@ func _cmd_invisible(args: Array) -> Dictionary:
 	else:
 		admin.collision_layer = 0b0000001  # Restore
 		admin.collision_mask = 0b0000111
-	
+
 	# Also hide the visual
 	if admin.has_method("set_visible"):
 		admin.set_visible(not enable)
-	
+
 	var status := "invisible" if enable else "visible"
 	return {"success": true, "message": "You are now %s" % status}
 
@@ -534,12 +534,12 @@ func _cmd_fly(args: Array) -> Dictionary:
 	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	# Determine toggle state
 	var enable := true
 	if args.size() >= 1:
 		enable = args[0] != "0"
-	
+
 	# Use CharacterBody3D mode
 	if admin is CharacterBody3D:
 		if enable:
@@ -548,7 +548,7 @@ func _cmd_fly(args: Array) -> Dictionary:
 			# The player controller handles vertical movement when gravity is 0
 		else:
 			admin.set("gravity_scale", 1.0)
-	
+
 	var status := "fly mode enabled" if enable else "fly mode disabled"
 	return {"success": true, "message": status}
 
@@ -556,12 +556,12 @@ func _cmd_noclip(args: Array) -> Dictionary:
 	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	# Determine toggle state
 	var enable := true
 	if args.size() >= 1:
 		enable = args[0] != "0"
-	
+
 	# Disable collision completely
 	if enable:
 		admin.collision_layer = 0b0000000
@@ -571,7 +571,7 @@ func _cmd_noclip(args: Array) -> Dictionary:
 		admin.collision_layer = 0b0000001
 		admin.collision_mask = 0b0000111
 		admin.set("gravity_scale", 1.0)
-	
+
 	var status := "noclip enabled" if enable else "noclip disabled"
 	return {"success": true, "message": status}
 
@@ -579,33 +579,33 @@ func _cmd_speed(args: Array) -> Dictionary:
 	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	if args.size() < 1:
 		# Report current speed
 		var current_speed: String = str(admin.get("move_speed") if admin.has("move_speed") else "unknown")
 		return {"success": true, "message": "Current speed: %s" % str(current_speed)}
-	
+
 	var multiplier: float = float(args[0])
 	if multiplier <= 0:
 		return {"success": false, "message": "Speed must be > 0"}
-	
+
 	# Store original speed if not already stored
 	if not admin.has("_original_move_speed"):
 		admin.set("_original_move_speed", admin.get("move_speed") if admin.has("move_speed") else 5.0)
-	
+
 	var original: float = admin.get("_original_move_speed")
 	admin.set("move_speed", original * multiplier)
-	
+
 	return {"success": true, "message": "Speed set to %.1fx (%.1f)" % [multiplier, original * multiplier]}
 
 func _cmd_teleport(args: Array) -> Dictionary:
 	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	if args.size() < 1:
 		return {"success": false, "message": "Usage: /teleport <x> <y> <z> OR /teleport <player_id>"}
-	
+
 	# Check if teleporting to coordinates or player
 	if args.size() >= 3:
 		# Teleport to coordinates
@@ -627,47 +627,47 @@ func _cmd_heal(args: Array) -> Dictionary:
 	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	var target: Node3D = admin
 	var target_name := "yourself"
-	
+
 	if args.size() >= 1:
 		target = _find_entity_by_id(args[0])
 		if not target:
 			return {"success": false, "message": "Player not found: " + args[0]}
 		target_name = target.display_name
-	
+
 	if not target.health_component:
 		return {"success": false, "message": "Target has no health component"}
-	
+
 	var max_health: int = target.health_component.max_health
 	target.health_component.current_health = max_health
-	
+
 	# Also heal mana if available
 	if target.has_method("restore_mana"):
 		target.restore_mana(target.max_mana if target.has("max_mana") else 1000)
-	
+
 	return {"success": true, "message": "Healed %s to full HP" % target_name}
 
 func _cmd_godmode(args: Array) -> Dictionary:
 	var admin: Node3D = _get_caller_entity(_caller)
 	if not admin:
 		return {"success": false, "message": "Could not find your entity"}
-	
+
 	# Determine toggle state
 	var enable := true
 	if args.size() >= 1:
 		enable = args[0] != "0"
-	
+
 	if not admin.has("is_invincible"):
 		admin.set("is_invincible", false)
-	
+
 	admin.set("is_invincible", enable)
-	
+
 	# Also make collision ignore damage
 	if enable:
 		admin.set("collision_layer", 0b0000001)  # Keep visible but invincible layer
-	
+
 	var status := "enabled" if enable else "disabled"
 	return {"success": true, "message": "Godmode %s" % status}
 
@@ -678,13 +678,13 @@ func _find_entity_by_id(entity_id: String) -> Node3D:
 		var entity = EntityService.get_entity_by_id(entity_id)
 		if entity:
 			return entity
-	
+
 	# Try to find in player manager
 	var players = PlayerManager.get_all_players()
 	for p in players:
 		if p.get("entity_id") == entity_id or p.get("name") == entity_id:
 			return p as Node3D
-	
+
 	return null
 
 ## Helper: Get caller entity
@@ -694,29 +694,29 @@ func _get_caller_entity(caller_id: String) -> Node3D:
 ## Helper: Perform resurrection
 func _do_resurrect(entity: Node3D, health_percent: float, mana_percent: float) -> Dictionary:
 	var health_comp = entity.health_component
-	
+
 	# Remove corpse if exists
 	if health_comp._corpse:
 		health_comp._corpse.queue_free()
 		health_comp._corpse = null
-	
+
 	# Restore health
 	health_comp.current_health = int(health_comp.max_health * health_percent)
 	health_comp.current_health = maxi(1, health_comp.current_health)
 	health_comp._is_dead = false
 	health_comp._respawn_timer = 0.0
-	
+
 	# Restore mana if applicable
 	if entity.has_method("restore_mana"):
 		var mana_to_restore := int(entity.max_mana * mana_percent)
 		entity.restore_mana(mana_to_restore)
-	
+
 	# Clear death state
 	entity.health_component.respawned.emit()
 	EventHub.entity_spawned.emit(entity)
 	EventHub.player_resurrected.emit(entity, "admin")
 	EventHub.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE if RespawnService else 0)
-	
+
 	GameLog.info("Respawn: %s resurrected by admin" % entity.display_name)
-	
+
 	return {"success": true}

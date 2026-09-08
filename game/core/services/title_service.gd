@@ -171,7 +171,7 @@ func _do_unlock(player_id: String, title_id: String) -> bool:
 	# QoS: Rate limit title unlocks (prevent exploit)
 	if QoSService and not QoSService.rate_limit(player_id, "title_unlock"):
 		return false
-	
+
 	if not _title_defs.has(title_id):
 		GameLog.warn("TitleService: Unknown title %s" % title_id)
 		return false
@@ -190,7 +190,7 @@ func _do_equip(player_id: String, title_id: String, slot: String) -> bool:
 	# QoS: Rate limit title equips
 	if QoSService and not QoSService.rate_limit(player_id, "title_equip"):
 		return false
-	
+
 	if not _has_title(player_id, title_id):
 		GameLog.warn("TitleService: Cannot equip locked title %s" % title_id)
 		return false

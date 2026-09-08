@@ -58,7 +58,7 @@ class Waypoint:
 	var quest_id: String = ""
 	var created_at: float
 	var updated_at: float
-	
+
 	func _init(p_id: String = "", p_name: String = "", p_pos: Vector3 = Vector3.ZERO, p_zone: String = ""):
 		id = p_id
 		name = p_name
@@ -66,7 +66,7 @@ class Waypoint:
 		zone_id = p_zone
 		created_at = Time.get_unix_time_from_system()
 		updated_at = created_at
-	
+
 	func to_dict() -> Dictionary:
 		return {
 			"id": id,
@@ -85,7 +85,7 @@ class Waypoint:
 			"created_at": created_at,
 			"updated_at": updated_at
 		}
-	
+
 	static func from_dict(data: Dictionary) -> Waypoint:
 		var wp := Waypoint.new()
 		wp.id = data.get("id", "")
@@ -132,73 +132,73 @@ func _ready() -> void:
 	GameLog.info("WaypointService: Ready")
 
 ## Create a new waypoint
-func create_waypoint(player_id: String, name: String, position: Vector3, zone_id: String, 
-		color: int = WaypointColor.BLUE, icon: int = WaypointIcon.FLAG, 
+func create_waypoint(player_id: String, name: String, position: Vector3, zone_id: String,
+		color: int = WaypointColor.BLUE, icon: int = WaypointIcon.FLAG,
 		is_quest: bool = false, quest_id: String = "") -> Dictionary:
-	
+
 	# QoS: Rate limit waypoint creation (prevent spam)
 	if QoSService and not QoSService.rate_limit(player_id, "waypoint_create"):
 		return {"success": false, "message": "Creating waypoints too fast"}
-	
+
 	# Sanitize and validate input
 	name = _sanitize_name(name)
-	
+
 	# Validate position bounds (prevent far-teleport exploits)
 	if not _is_valid_position(position):
 		return {"success": false, "message": "Invalid position"}
-	
+
 	# Validate color/icon enums
 	if not _is_valid_color(color):
 		color = WaypointColor.BLUE
 	if not _is_valid_icon(icon):
 		icon = WaypointIcon.FLAG
-	
+
 	# Check limit
 	var waypoints := get_waypoints(player_id)
 	if waypoints.size() >= MAX_WAYPOINTS_PER_PLAYER:
 		return {"success": false, "message": "Maximum waypoints reached (%d)" % MAX_WAYPOINTS_PER_PLAYER}
-	
+
 	# Create waypoint
 	var wp := Waypoint.new(generate_id(), name, position, zone_id)
 	wp.color = color
 	wp.icon = icon
 	wp.is_quest_waypoint = is_quest
 	wp.quest_id = quest_id
-	
+
 	# Add to storage
 	if not _player_waypoints.has(player_id):
 		_player_waypoints[player_id] = []
 	_player_waypoints[player_id].append(wp)
-	
+
 	var wp_dict := wp.to_dict()
 	waypoint_created.emit(player_id, wp_dict)
 	_notify_player(player_id, "Waypoint '%s' created" % name)
-	
+
 	# Auto-activate if it's a quest waypoint
 	if is_quest:
 		activate_waypoint(player_id, wp.id)
-	
+
 	return {"success": true, "waypoint": wp_dict}
 
 ## Create waypoint at current player position
 func create_waypoint_here(player_id: String, name: String) -> Dictionary:
 	if not EntityService:
 		return {"success": false, "message": "Cannot get player position"}
-	
+
 	var entity = EntityService.get_entity_by_id(player_id)
 	if not entity or not is_instance_valid(entity):
 		return {"success": false, "message": "Player not found"}
-	
+
 	var position: Vector3 = entity.global_position if entity.has("global_position") else Vector3.ZERO
 	var zone_id: String = ZoneManager.get_current_zone_id() if ZoneManager else ""
-	
+
 	return create_waypoint(player_id, name, position, zone_id)
 
 ## Get all waypoints for a player
 func get_waypoints(player_id: String) -> Array[Dictionary]:
 	if not _player_waypoints.has(player_id):
 		return []
-	
+
 	var result: Array[Dictionary] = []
 	for wp in _player_waypoints[player_id]:
 		result.append(wp.to_dict())
@@ -208,7 +208,7 @@ func get_waypoints(player_id: String) -> Array[Dictionary]:
 func get_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 	if not _player_waypoints.has(player_id):
 		return {}
-	
+
 	for wp in _player_waypoints[player_id]:
 		if wp.id == waypoint_id:
 			return wp.to_dict()
@@ -218,63 +218,63 @@ func get_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 func update_waypoint(player_id: String, waypoint_id: String, updates: Dictionary) -> Dictionary:
 	if not _player_waypoints.has(player_id):
 		return {"success": false, "message": "No waypoints found"}
-	
+
 	var wp: Waypoint = null
 	for w in _player_waypoints[player_id]:
 		if w.id == waypoint_id:
 			wp = w
 			break
-	
+
 	if not wp:
 		return {"success": false, "message": "Waypoint not found"}
-	
+
 	# Cannot modify quest waypoints (except visibility)
 	if wp.is_quest_waypoint and not updates.has("is_visible"):
 		return {"success": false, "message": "Cannot modify quest waypoint"}
-	
+
 	# Apply updates with validation
 	if updates.has("name"):
 		wp.name = _sanitize_name(str(updates.name))
-	
+
 	if updates.has("color"):
 		var color_val: int = int(updates.color) if updates.color is int or updates.color is String else -1
 		if _is_valid_color(color_val):
 			wp.color = color_val
-	
+
 	if updates.has("icon"):
 		var icon_val: int = int(updates.icon) if updates.icon is int or updates.icon is String else -1
 		if _is_valid_icon(icon_val):
 			wp.icon = icon_val
-	
+
 	if updates.has("is_visible"):
 		wp.is_visible = bool(updates.is_visible)
-	
+
 	if updates.has("is_locked"):
 		# Cannot lock/unlock quest waypoints
 		if not wp.is_quest_waypoint:
 			wp.is_locked = bool(updates.is_locked)
-	
+
 	if updates.has("show_beacon"):
 		wp.show_beacon = bool(updates.show_beacon)
-	
+
 	wp.updated_at = Time.get_unix_time_from_system()
-	
+
 	var wp_dict := wp.to_dict()
 	waypoint_updated.emit(player_id, wp_dict)
-	
+
 	return {"success": true, "waypoint": wp_dict}
 
 ## Delete a waypoint
 func delete_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 	# Sanitize inputs
 	waypoint_id = str(waypoint_id)
-	
+
 	if not _player_waypoints.has(player_id):
 		return {"success": false, "message": "No waypoints found"}
-	
+
 	if waypoint_id.is_empty():
 		return {"success": false, "message": "Invalid waypoint ID"}
-	
+
 	var wp: Waypoint = null
 	var index: int = -1
 	for i in range(_player_waypoints[player_id].size()):
@@ -282,44 +282,44 @@ func delete_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 			wp = _player_waypoints[player_id][i]
 			index = i
 			break
-	
+
 	if not wp:
 		return {"success": false, "message": "Waypoint not found"}
-	
+
 	# Cannot delete locked or quest waypoints
 	if wp.is_locked:
 		return {"success": false, "message": "Cannot delete locked waypoint"}
-	
+
 	if wp.is_quest_waypoint:
 		return {"success": false, "message": "Cannot delete quest waypoint"}
-	
+
 	# Deactivate if active
 	if _active_waypoint.get(player_id, "") == waypoint_id:
 		deactivate_waypoint(player_id)
-	
+
 	_player_waypoints[player_id].remove_at(index)
 	waypoint_deleted.emit(player_id, waypoint_id)
 	_notify_player(player_id, "Waypoint deleted")
-	
+
 	return {"success": true}
 
 ## Delete all non-locked waypoints
 func clear_waypoints(player_id: String, include_quest: bool = false) -> int:
 	if not _player_waypoints.has(player_id):
 		return 0
-	
+
 	var to_remove: Array = []
 	for wp in _player_waypoints[player_id]:
 		if not wp.is_locked:
 			if include_quest or not wp.is_quest_waypoint:
 				to_remove.append(wp.id)
-	
+
 	var count := 0
 	for wp_id in to_remove:
 		# Deactivate if active
 		if _active_waypoint.get(player_id, "") == wp_id:
 			deactivate_waypoint(player_id)
-		
+
 		# Find and remove
 		for i in range(_player_waypoints[player_id].size()):
 			if _player_waypoints[player_id][i].id == wp_id:
@@ -327,35 +327,35 @@ func clear_waypoints(player_id: String, include_quest: bool = false) -> int:
 				waypoint_deleted.emit(player_id, wp_id)
 				count += 1
 				break
-	
+
 	if count > 0:
 		waypoints_cleared.emit(player_id, count)
 		_notify_player(player_id, "Deleted %d waypoints" % count)
-	
+
 	return count
 
 ## Activate a waypoint (sets as target)
 func activate_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 	if not _player_waypoints.has(player_id):
 		return {"success": false, "message": "No waypoints found"}
-	
+
 	var wp: Waypoint = null
 	for w in _player_waypoints[player_id]:
 		if w.id == waypoint_id:
 			wp = w
 			break
-	
+
 	if not wp:
 		return {"success": false, "message": "Waypoint not found"}
-	
+
 	# Deactivate previous
 	var old_id: String = _active_waypoint.get(player_id, "")
 	if old_id != "" and old_id != waypoint_id:
 		waypoint_deactivated.emit(player_id, old_id)
-	
+
 	_active_waypoint[player_id] = waypoint_id
 	waypoint_activated.emit(player_id, waypoint_id)
-	
+
 	return {"success": true, "waypoint": wp.to_dict()}
 
 ## Deactivate current waypoint
@@ -377,17 +377,17 @@ func get_distance_to_active(player_id: String) -> float:
 	var wp_dict := get_active_waypoint(player_id)
 	if wp_dict.is_empty():
 		return -1.0
-	
+
 	if not EntityService:
 		return -1.0
-	
+
 	var entity = EntityService.get_entity_by_id(player_id)
 	if not entity or not is_instance_valid(entity):
 		return -1.0
-	
+
 	var player_pos: Vector3 = entity.global_position if entity.has("global_position") else Vector3.ZERO
 	var wp_pos: Vector3 = Vector3(wp_dict.get("position_x", 0.0), wp_dict.get("position_y", 0.0), wp_dict.get("position_z", 0.0))
-	
+
 	return player_pos.distance_to(wp_pos)
 
 ## Check if player reached active waypoint
@@ -395,12 +395,12 @@ func check_waypoint_reached(player_id: String) -> bool:
 	var wp_dict := get_active_waypoint(player_id)
 	if wp_dict.is_empty():
 		return false
-	
+
 	var distance := get_distance_to_active(player_id)
 	if distance >= 0 and distance <= WAYPOINT_RANGE_COMPLETE:
 		waypoint_reached.emit(player_id, wp_dict.id)
 		return true
-	
+
 	return false
 
 ## Process: Check for waypoint proximity
@@ -410,21 +410,21 @@ func _process(delta: float) -> void:
 		check_waypoint_reached(player_id)
 
 ## Quest integration: Create waypoint for quest
-func create_quest_waypoint(player_id: String, quest_id: String, name: String, 
+func create_quest_waypoint(player_id: String, quest_id: String, name: String,
 		position: Vector3, zone_id: String, icon: int = WaypointIcon.QUEST) -> Dictionary:
-	return create_waypoint(player_id, name, position, zone_id, 
+	return create_waypoint(player_id, name, position, zone_id,
 		WaypointColor.ORANGE, icon, true, quest_id)
 
 ## Quest integration: Remove quest waypoints
 func remove_quest_waypoints(player_id: String, quest_id: String) -> void:
 	if not _player_waypoints.has(player_id):
 		return
-	
+
 	var to_remove: Array = []
 	for wp in _player_waypoints[player_id]:
 		if wp.is_quest_waypoint and wp.quest_id == quest_id:
 			to_remove.append(wp)
-	
+
 	for wp in to_remove:
 		var index: int = _player_waypoints[player_id].find(wp)
 		if index >= 0:
@@ -470,18 +470,18 @@ func generate_id() -> String:
 func save_waypoints(player_id: String) -> Dictionary:
 	if not _player_waypoints.has(player_id):
 		return {"waypoints": []}
-	
+
 	var data: Array = []
 	for wp in _player_waypoints[player_id]:
 		if not wp.is_quest_waypoint:  # Don't save quest waypoints
 			data.append(wp.to_dict())
-	
+
 	return {"waypoints": data}
 
 ## Load waypoints (from persistence)
 func load_waypoints(player_id: String, data: Dictionary) -> void:
 	_player_waypoints[player_id] = []
-	
+
 	var waypoints: Array = data.get("waypoints", [])
 	for wp_data in waypoints:
 		var wp := Waypoint.from_dict(wp_data)
@@ -504,21 +504,21 @@ func _sanitize_name(name: String) -> String:
 	# Truncate to max length
 	if name.length() > MAX_WAYPOINT_NAME_LENGTH:
 		name = name.substr(0, MAX_WAYPOINT_NAME_LENGTH)
-	
+
 	if name.is_empty():
 		name = "Waypoint %d" % int(Time.get_unix_time_from_system())
-	
+
 	# Remove dangerous characters (BBCode injection prevention)
 	name = name.replace("[", "［").replace("]", "］")
 	name = name.replace("<", "＜").replace(">", "＞")
-	
+
 	# Strip control characters
 	name = name.strip_edges(true, true)
-	
+
 	# Prevent empty or whitespace-only names
 	if name.is_empty() or name.strip_edges().is_empty():
 		name = "Waypoint %d" % int(Time.get_unix_time_from_system())
-	
+
 	return name
 
 ## Security: Validate position bounds
@@ -526,12 +526,12 @@ func _is_valid_position(position: Vector3) -> bool:
 	# Check for NaN or infinity
 	if not position.is_finite():
 		return false
-	
+
 	# Check world bounds (prevent teleport exploits)
 	const MAX_COORD: float = 100000.0
 	if abs(position.x) > MAX_COORD or abs(position.y) > MAX_COORD or abs(position.z) > MAX_COORD:
 		return false
-	
+
 	return true
 
 ## Security: Validate color enum

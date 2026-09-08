@@ -22,19 +22,19 @@ signal attack_finished()
 
 func enter(_data: Dictionary = {}) -> void:
 	var parent := state_machine.get_parent()
-	
+
 	# Check if a skill was passed
 	if _data.has("skill"):
 		current_skill = _data["skill"]
 	else:
 		# Use basic attack
 		current_skill = parent.basic_attack
-	
+
 	if current_skill:
 		_setup_skill(current_skill)
 	else:
 		_setup_basic_attack()
-	
+
 	has_initiated = false
 	is_attacking = false
 
@@ -59,28 +59,28 @@ func exit() -> void:
 
 func update(delta: float) -> void:
 	attack_timer -= delta
-	
+
 	var parent := state_machine.get_parent()
-	
+
 	# Handle attack initiation
 	if not has_initiated and attack_timer <= get_attack_start_time():
 		_initiate_attack()
-	
+
 	# Check for cancel window (movement can interrupt in cancel window)
 	if attack_timer <= 0:
 		_finish_attack()
 
 func _physics_process(delta: float) -> void:
 	var parent := state_machine.get_parent()
-	
+
 	# Allow movement during attack if permitted
 	if can_move_during_attack:
 		_handle_movement_during_attack(delta)
-	
+
 	# Allow jumping during attack if permitted
 	if can_jump_during_attack and Input.is_action_just_pressed("jump"):
 		transition_to("Jump")
-	
+
 	# Allow dodging during attack
 	if Input.is_action_just_pressed("dodge"):
 		transition_to("Dodge")
@@ -88,7 +88,7 @@ func _physics_process(delta: float) -> void:
 func _handle_movement_during_attack(_delta: float) -> void:
 	var parent := state_machine.get_parent()
 	var move_dir := parent.get_movement_direction()
-	
+
 	if move_dir.length() > 0.1:
 		# Slow movement during attack (70% speed)
 		var speed := parent.move_speed * 0.7
@@ -100,16 +100,16 @@ func _initiate_attack() -> void:
 		return
 	has_initiated = true
 	is_attacking = true
-	
+
 	var parent := state_machine.get_parent()
 	parent.is_attacking = true
-	
+
 	# Play attack animation
 	animation_play(get_attack_animation_name())
-	
+
 	# Emit signal
 	attack_initiated.emit(current_skill)
-	
+
 	# If ground-targeted skill, handle targeting
 	if current_skill and current_skill.is_ground_targeted:
 		_execute_ground_targeted_skill()
@@ -119,7 +119,7 @@ func _initiate_attack() -> void:
 
 func _execute_immediate_attack() -> void:
 	var parent := state_machine.get_parent()
-	
+
 	# Create hitbox
 	if current_skill and current_skill.hitbox_size > 0:
 		parent.create_hitbox(current_skill)
@@ -127,11 +127,11 @@ func _execute_immediate_attack() -> void:
 func _execute_ground_targeted_skill() -> void:
 	# Ground-targeted AoE skill - player chooses location
 	var parent := state_machine.get_parent()
-	
+
 	# Lock movement during cast (but can still rotate)
 	can_move_during_attack = false
 	can_jump_during_attack = false
-	
+
 	# Show AoE indicator
 	parent.show_aoe_indicator(current_skill)
 
@@ -147,13 +147,13 @@ func get_attack_animation_name() -> String:
 
 func _finish_attack() -> void:
 	var parent := state_machine.get_parent()
-	
+
 	# Clean up
 	if current_skill and current_skill.is_ground_targeted:
 		parent.hide_aoe_indicator()
-	
+
 	attack_finished.emit()
-	
+
 	# Return to movement state
 	if parent.is_on_floor():
 		if parent.is_moving():

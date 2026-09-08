@@ -43,17 +43,17 @@ func connect_agent(agent_id: String, connector_name: String, config: Dictionary,
 	if not _connectors.has(connector_name):
 		GameLog.error("ConnectorService: Unknown connector '%s'" % connector_name)
 		return false
-	
+
 	var connector: AgentConnector = _connectors[connector_name]
-	
+
 	if not connector.connect(config):
 		return false
-	
+
 	_connected_agents[agent_id] = {
 		"connector": connector,
 		"entity": entity
 	}
-	
+
 	agent_connected.emit(agent_id, connector.agent_type)
 	GameLog.info("ConnectorService: Agent '%s' connected via '%s'" % [agent_id, connector_name])
 	return true
@@ -78,7 +78,7 @@ func send_observation(agent_id: String, observation: Dictionary) -> void:
 func _register_default_connectors() -> void:
 	# These would be autoloaded or added via plugin system
 	# For now, we'll scan the connectors/ directory
-	
+
 	var connector_paths := [
 		"res://connectors/vant/vant_connector.gd",
 		"res://connectors/mcp/mcp_connector.gd",
@@ -86,7 +86,7 @@ func _register_default_connectors() -> void:
 		"res://connectors/openai/openai_connector.gd",
 		"res://connectors/gemini/gemini_connector.gd"
 	]
-	
+
 	for path in connector_paths:
 		var script: GDScript = load(path)
 		if script:
@@ -109,29 +109,29 @@ func _on_connector_action_received(action: AgentAction) -> void:
 func _execute_action(agent_id: String, action: AgentAction) -> void:
 	if not _connected_agents.has(agent_id):
 		return
-	
+
 	var entity = _connected_agents[agent_id]["entity"]
 	if not is_instance_valid(entity):
 		return
-	
+
 	match action.action_type:
 		AgentAction.ActionType.MOVEMENT:
 			entity.move_direction = action.movement_direction
 			entity.is_sprinting = action.is_sprinting
 			if action.is_jumping:
 				entity.jump()
-		
+
 		AgentAction.ActionType.COMBAT:
 			if action.action_name == "attack":
 				entity.combat_component.auto_attack(entity.target, entity.attack_power)
 			elif action.action_name == "dodge":
 				entity.dodge()
-		
+
 		AgentAction.ActionType.SKILL:
 			var skill: Skill = DataService.get_skill(action.skill_id)
 			if skill:
 				entity.combat_component.execute_skill(skill, entity.target)
-		
+
 		AgentAction.ActionType.TARGETING:
 			match action.parameters.get("mode", ""):
 				"nearest_enemy":
@@ -143,13 +143,13 @@ func _execute_action(agent_id: String, action: AgentAction) -> void:
 					entity.target = nearest
 				"clear":
 					entity.target = null
-		
+
 		AgentAction.ActionType.INTERACTION:
 			if action.action_name == "interact":
 				_interact_with_target(entity, action.interact_target_id)
 			elif action.action_name == "pickup":
 				_pickup_nearby(entity)
-		
+
 		AgentAction.ActionType.CHAT:
 			ChatService.send_message(entity, action.chat_message, action.chat_channel)
 

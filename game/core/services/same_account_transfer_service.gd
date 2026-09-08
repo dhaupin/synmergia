@@ -25,7 +25,7 @@ func _ready() -> void:
 	instance = self
 	_account_service = AccountService.instance
 	_inventory_service = InventoryService.instance
-	
+
 	# Reset stats periodically (once per day check)
 	_check_daily_reset()
 	GameLog.info("SameAccountTransferService: Ready")
@@ -56,12 +56,12 @@ func _get_stats(account_id: String) -> Dictionary:
 ## Check if same-account transfer is allowed
 func can_transfer(from_char_id: String, to_char_id: String) -> Dictionary:
 	var result := {"allowed": true, "reason": ""}
-	
+
 	if not _account_service:
 		result["allowed"] = false
 		result["reason"] = "Account service not available"
 		return result
-	
+
 	if not _inventory_service:
 		result["allowed"] = false
 		result["reason"] = "Inventory service not available"
@@ -78,58 +78,58 @@ func can_transfer(from_char_id: String, to_char_id: String) -> Dictionary:
 		result["allowed"] = false
 		result["reason"] = "Characters not on same account"
 		return result
-	
+
 	# Get account
 	var account_id: String = _account_service._character_to_account.get(from_char_id, "")
 	if account_id == "":
 		result["allowed"] = false
 		result["reason"] = "Account not found"
 		return result
-	
+
 	# Check if same-account transfer is enabled
 	if not _account_service.get_account_setting(account_id, "same_account_transfer_enabled", true):
 		result["allowed"] = false
 		result["reason"] = "Same-account transfer disabled in settings"
 		return result
-	
+
 	# Check cooldown
 	var stats: Dictionary = _get_stats(account_id)
 	var cooldown: int = _account_service.get_account_setting(account_id, "same_account_transfer_cooldown", 60)
 	var now := Time.get_unix_time_from_system()
 	var time_since: float = now - stats.get("last_transfer_time", 0.0)
-	
+
 	if time_since < cooldown:
 		var remaining := int(cooldown - time_since)
 		result["allowed"] = false
 		result["reason"] = "Cooldown active: %d seconds remaining" % remaining
 		cooldown_active.emit(account_id, remaining)
 		return result
-	
+
 	return result
 
 ## Check limits before transfer
 func check_limits(account_id: String, gold_amount: int, item_count: int) -> Dictionary:
 	var result := {"allowed": true, "reason": ""}
-	
+
 	var stats: Dictionary = _get_stats(account_id)
 	var max_gold: int = _account_service.get_account_setting(account_id, "same_account_max_gold_daily", 100000)
 	var max_items: int = _account_service.get_account_setting(account_id, "same_account_max_items_daily", 50)
-	
+
 	var current_gold: int = stats.get("gold_today", 0)
 	var current_items: int = stats.get("items_today", 0)
-	
+
 	if current_gold + gold_amount > max_gold:
 		result["allowed"] = false
 		result["reason"] = "Daily gold limit reached (%d / %d)" % [current_gold, max_gold]
 		transfer_limit_reached.emit(account_id, "gold_daily")
 		return result
-	
+
 	if current_items + item_count > max_items:
 		result["allowed"] = false
 		result["reason"] = "Daily item limit reached (%d / %d)" % [current_items, max_items]
 		transfer_limit_reached.emit(account_id, "items_daily")
 		return result
-	
+
 	return result
 
 ## Get remaining limits
@@ -137,7 +137,7 @@ func get_remaining_limits(account_id: String) -> Dictionary:
 	var stats: Dictionary = _get_stats(account_id)
 	var max_gold: int = _account_service.get_account_setting(account_id, "same_account_max_gold_daily", 100000)
 	var max_items: int = _account_service.get_account_setting(account_id, "same_account_max_items_daily", 50)
-	
+
 	return {
 		"gold_remaining": max(0, max_gold - stats.get("gold_today", 0)),
 		"gold_max": max_gold,
@@ -152,7 +152,7 @@ func get_cooldown_remaining(account_id: String) -> int:
 	var cooldown: int = _account_service.get_account_setting(account_id, "same_account_transfer_cooldown", 60)
 	var now := Time.get_unix_time_from_system()
 	var time_since: float = now - stats.get("last_transfer_time", 0.0)
-	
+
 	return max(0, int(cooldown - time_since))
 
 ## Execute same-account transfer
@@ -161,7 +161,7 @@ func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids:
 	if not QoSService.rate_limit(from_char_id, "transfer"):
 		GameLog.debug("SameAccountTransferService: Rate limited transfer for %s" % from_char_id)
 		return {"success": false, "reason": "Rate limited"}
-	
+
 	# Prevent self-transfer
 	if from_char_id == to_char_id:
 		return {"success": false, "reason": "Cannot transfer to the same character"}
@@ -179,7 +179,7 @@ func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids:
 		"items_transferred": [],
 		"items_failed": []
 		}
-				
+
 	# Check basic transfer permission
 	var can_result := can_transfer(from_char_id, to_char_id)
 	if not can_result["allowed"]:
@@ -262,17 +262,17 @@ func transfer(from_char_id: String, to_char_id: String, gold: int = 0, item_ids:
 func quick_transfer_to_alt(from_char_id: String, gold: int = 0, item_ids: Array = []) -> Dictionary:
 	if not _account_service:
 		return {"success": false, "reason": "Account service not available"}
-	
+
 	var account_id: String = _account_service._character_to_account.get(from_char_id, "")
 	if account_id == "":
 		return {"success": false, "reason": "Account not found"}
-	
+
 	var chars: Array = _account_service.get_online_account_characters(account_id)
 	chars.erase(from_char_id)	 # Remove self
-	
+
 	if chars.is_empty():
 		return {"success": false, "reason": "No other online characters on this account"}
-	
+
 	# Transfer to first available alt
 	return transfer(from_char_id, chars[0], gold, item_ids)
 
@@ -280,14 +280,14 @@ func quick_transfer_to_alt(from_char_id: String, gold: int = 0, item_ids: Array 
 func get_transfer_targets(from_char_id: String) -> Array:
 	if not _account_service:
 		return []
-	
+
 	var account_id: String = _account_service._character_to_account.get(from_char_id, "")
 	if account_id == "":
 		return []
-	
+
 	var chars: Array = _account_service.get_online_account_characters(account_id)
 	chars.erase(from_char_id)
-	
+
 	return chars
 
 ## Reset daily limits (admin function)

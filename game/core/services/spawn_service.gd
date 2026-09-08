@@ -38,10 +38,10 @@ class SpawnPoint:
 	var current_count: int	 # Currently spawned
 	var spawn_type: EnemyData.EnemyType
 	var is_active: bool = true
-	
+
 	# Dynamic scaling
 	var spawn_multiplier: float = 1.0	 # 1.0 = normal, 2.0 = double during events
-	
+
 	func _init(
 		p_id: String,
 		p_zone_id: String,
@@ -64,7 +64,7 @@ class SpawnPoint:
 		max_enemies = p_max
 		current_count = 0
 		spawn_type = p_type
-	
+
 	func get_spawn_position() -> Vector3:
 		var offset := Vector3(
 			randf_range(-spawn_radius, spawn_radius),
@@ -72,7 +72,7 @@ class SpawnPoint:
 			randf_range(-spawn_radius, spawn_radius)
 		)
 		return position + offset
-	
+
 	func should_spawn() -> bool:
 		if not is_active:
 			return false
@@ -103,7 +103,7 @@ func register_spawn_point(
 	enemy_type: EnemyData.EnemyType = EnemyData.EnemyType.NORMAL
 ) -> String:
 	var spawn_point_id = "spawn_%s_%d" % [zone_id, _spawn_timers.size()]
-	
+
 	var spawn_point := SpawnPoint.new(
 		spawn_point_id,
 		zone_id,
@@ -115,24 +115,24 @@ func register_spawn_point(
 		max_enemies,
 		enemy_type
 	)
-	
+
 	# Load enemy data
 	var data_service = DataService
 	if data_service:
 		spawn_point.enemy_data = data_service.get_enemy(enemy_template_id)
-	
+
 	if not _spawn_points.has(zone_id):
 		_spawn_points[zone_id] = []
 	_spawn_points[zone_id].append(spawn_point)
 	_spawned_entities[spawn_point_id] = []
-	
+
 	spawn_point_registered.emit({
 		"id": spawn_point_id,
 		"zone_id": zone_id,
 		"position": position,
 		"enemy_template": enemy_template_id
 	})
-	
+
 	GameLog.debug("SpawnService: Registered spawn point %s in zone %s" % [spawn_point_id, zone_id])
 	return spawn_point_id
 
@@ -157,20 +157,20 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 	var spawn_point = _get_spawn_point(spawn_point_id)
 	if spawn_point == null or not spawn_point.should_spawn():
 		return null
-	
+
 	# Check proximity to players
 	if _is_spawn_point_safe(spawn_point) == false:
 		return null	 # Players too close, delay spawn
-	
+
 	# Create enemy entity
 	var enemy = _create_enemy(spawn_point)
 	if enemy == null:
 		return null
-	
+
 	# Track spawned entity
 	spawn_point.current_count += 1
 	_spawned_entities[spawn_point_id].append(enemy.entity_id)
-	
+
 	# Create spawn metadata with position for zone notifications
 	var metadata := SpawnMetadata.enemy(
 		enemy.display_name,
@@ -179,7 +179,7 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 		enemy.level
 	)
 	metadata.faction = enemy.faction
-	
+
 	# Apply elite/boss notification settings based on enemy type
 	if spawn_point.spawn_type == EnemyData.EnemyType.ELITE:
 		metadata = SpawnMetadata.elite(
@@ -195,12 +195,12 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 			spawn_point.position,
 			enemy.level
 		)
-	
+
 	# Register with EntityService (emits EventHub.entity_spawned with metadata)
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.register_entity(enemy, metadata)
-	
+
 	# Register with TargetingManager
 	var targeting_manager = TargetingManager
 	if targeting_manager:
@@ -212,21 +212,21 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 			spawn_point.get_spawn_position(),
 			enemy.entity_type
 		)
-	
+
 	# Position enemy
 	enemy.global_position = spawn_point.get_spawn_position()
-	
+
 	# Add to zone
 	var zone_manager = ZoneManager
 	if zone_manager:
 		var zone = zone_manager.get_zone(spawn_point.zone_id)
 		if zone:
 			zone_manager.entity_enter_zone(enemy, zone)
-	
+
 	# Emit service-specific signal with spawn point context
 	enemy_spawned.emit(enemy, spawn_point_id, metadata)
 	GameLog.debug("SpawnService: Spawned %s at %s" % [enemy.display_name, spawn_point_id])
-	
+
 	return enemy
 
 ## Spawn boss
@@ -240,40 +240,40 @@ func spawn_boss(
 	var data_service = DataService
 	if data_service == null:
 		return null
-	
+
 	var boss_data = data_service.get_enemy(boss_template_id)
 	if boss_data == null:
 		GameLog.warn("SpawnService: Boss template %s not found" % boss_template_id)
 		return null
-	
+
 	var boss = Entity.new()
 	boss.display_name = boss_name if boss_name != "" else boss_data.display_name
 	boss.entity_type = Entity.EntityType.ENEMY
 	boss.level = boss_data.level
 	boss.faction = Entity.Relation.HOSTILE
 	boss.faction_id = boss_data.faction
-	
+
 	# Apply stats from template
 	boss.stats["strength"] = boss_data.strength
 	boss.stats["agility"] = boss_data.agility
 	boss.stats["intelligence"] = boss_data.intelligence
 	boss.stats["vitality"] = boss_data.vitality
-	
+
 	boss.max_health = boss_data.health
 	boss.current_health = boss_data.health
-	
+
 	# Create spawn metadata with notification settings
 	var metadata := SpawnMetadata.world_boss(boss.display_name, zone_id, position, boss.level)
 	metadata.faction = boss.faction
 	if alert_scopes.size() > 0:
 		metadata.notification_enabled = true
 		metadata.notification_scopes = alert_scopes
-	
+
 	# Register with EntityService (emits EventHub.entity_spawned with metadata)
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.register_entity(boss, metadata)
-	
+
 	# Register with TargetingManager
 	var targeting_manager = TargetingManager
 	if targeting_manager:
@@ -285,47 +285,47 @@ func spawn_boss(
 			position,
 			boss.entity_type
 		)
-	
+
 	boss.global_position = position
 	_world_bosses[boss.entity_id] = boss
-	
+
 	# Add to zone
 	var zone_manager = ZoneManager
 	if zone_manager:
 		var zone = zone_manager.get_zone(zone_id)
 		if zone:
 			zone_manager.entity_enter_zone(boss, zone)
-	
+
 	# Emit service-specific signal with spawn context
 	boss_spawned.emit(boss, boss.display_name, metadata)
 	GameLog.info("SpawnService: Spawned BOSS %s at %s" % [boss.display_name, str(position)])
-	
+
 	# Notification is now handled by NotificationService listening to EventHub.entity_spawned
-	
+
 	return boss
 
 ## Despawn a world boss
 func despawn_boss(entity) -> void:
 	if entity == null:
 		return
-	
+
 	# Remove from world bosses
 	_world_bosses.erase(entity.entity_id)
-	
+
 	# Remove from TargetingManager
 	var targeting_manager = TargetingManager
 	if targeting_manager:
 		targeting_manager.unregister_targetable(entity.entity_id)
-	
+
 	# Remove from services
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.unregister_entity(entity)
-	
+
 	# Remove from world
 	if is_instance_valid(entity):
 		entity.queue_free()
-	
+
 	GameLog.info("SpawnService: Despawned boss %s" % entity.display_name)
 
 ## Spawn boss with server-wide alert (convenience method)
@@ -344,33 +344,33 @@ func spawn_mini_boss(boss_template_id: String, position: Vector3, zone_id: Strin
 func despawn_enemy(entity) -> void:
 	if entity == null:
 		return
-	
+
 	# Find spawn point
 	var spawn_point_id = _find_entity_spawn_point(entity.entity_id)
 	var metadata: SpawnMetadata = EntityService.get_entity_metadata(entity.entity_id) if EntityService else null
-	
+
 	if spawn_point_id != "":
 		var spawn_point = _get_spawn_point(spawn_point_id)
 		if spawn_point:
 			spawn_point.current_count -= 1
 			_spawned_entities[spawn_point_id].erase(entity.entity_id)
-			
+
 			# Start respawn timer
 			_start_respawn_timer(spawn_point_id, spawn_point.respawn_time)
-	
+
 	# Emit service-specific despawn signal with metadata
 	enemy_despawned.emit(entity, spawn_point_id, metadata)
-	
+
 	# Remove from TargetingManager
 	var targeting_manager = TargetingManager
 	if targeting_manager:
 		targeting_manager.unregister_targetable(entity.entity_id)
-	
+
 	# Remove from services (emits EventHub.entity_despawned with metadata)
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.unregister_entity(entity, "spawn_despawn")
-	
+
 	# Remove from world
 	if is_instance_valid(entity):
 		entity.queue_free()
@@ -427,13 +427,13 @@ func force_spawn_zone(zone_id: String) -> int:
 ## Process spawn timers (call from _process)
 func process_spawns(delta: float) -> void:
 	var timers_to_remove: Array[String] = []
-	
+
 	for spawn_point_id in _spawn_timers:
 		_spawn_timers[spawn_point_id] -= delta
 		if _spawn_timers[spawn_point_id] <= 0:
 			spawn_enemy(spawn_point_id)
 			timers_to_remove.append(spawn_point_id)
-	
+
 	for spawn_point_id in timers_to_remove:
 		_spawn_timers.erase(spawn_point_id)
 
@@ -456,10 +456,10 @@ func _is_spawn_point_safe(spawn_point: SpawnPoint) -> bool:
 	var zone_manager = ZoneManager
 	if zone_manager == null:
 		return true	 # No zone manager, assume safe
-	
+
 	var players = zone_manager.get_players_in_zone(spawn_point.zone_id)
 	var safe_distance := spawn_point.spawn_radius + 30.0	# 30 units buffer
-	
+
 	for player in players:
 		if spawn_point.position.distance_to(player.global_position) < safe_distance:
 			return false
@@ -476,7 +476,7 @@ func _clear_spawn_point(spawn_point: SpawnPoint) -> void:
 			var entity = entity_service.get_entity(entity_id)
 			if entity and is_instance_valid(entity):
 				entity.queue_free()
-	
+
 	_spawned_entities[spawn_point.id].clear()
 	spawn_point.current_count = 0
 	_spawn_timers.erase(spawn_point.id)
@@ -486,14 +486,14 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 	if spawn_point.enemy_data == null:
 		GameLog.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
 		return null
-	
+
 	var enemy = Entity.new()
 	enemy.display_name = spawn_point.enemy_data.display_name
 	enemy.entity_type = Entity.EntityType.ENEMY
 	enemy.level = spawn_point.enemy_data.level
 	enemy.faction = Entity.Relation.HOSTILE
 	enemy.faction_id = spawn_point.enemy_data.faction
-	
+
 	# Apply species if set
 	var effective_species_id := spawn_point.species_id if spawn_point.species_id != "" else spawn_point.enemy_data.species_id
 	if effective_species_id != "":
@@ -502,16 +502,16 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 			var species = data_service.get_species(effective_species_id)
 			if species:
 				enemy.apply_species(species)
-	
+
 	# Apply stats from template
 	enemy.stats["strength"] = spawn_point.enemy_data.strength
 	enemy.stats["agility"] = spawn_point.enemy_data.agility
 	enemy.stats["intelligence"] = spawn_point.enemy_data.intelligence
 	enemy.stats["vitality"] = spawn_point.enemy_data.vitality
-	
+
 	enemy.max_health = spawn_point.enemy_data.health
 	enemy.current_health = spawn_point.enemy_data.health
-	
+
 	return enemy
 
 ## Spawn a unified NPCEntity from NPCData resource.
@@ -640,19 +640,19 @@ static func _zone_from_npc_id(npc_id: String) -> String:
 func despawn_npc(entity) -> void:
 	if entity == null:
 		return
-	
+
 	# Remove from TargetingManager
 	var targeting_manager = TargetingManager
 	if targeting_manager:
 		targeting_manager.unregister_targetable(entity.entity_id)
-	
+
 	# Remove from services
 	var entity_service = EntityService
 	if entity_service:
 		entity_service.unregister_entity(entity)
-	
+
 	# Remove from world
 	if is_instance_valid(entity):
 		entity.queue_free()
-	
+
 	GameLog.info("SpawnService: Despawned NPC %s" % entity.display_name)

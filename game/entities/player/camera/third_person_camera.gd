@@ -29,21 +29,21 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(target):
 		return
-	
+
 	# Mouse rotation
 	if event is InputEventMouseMotion:
 		if event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
 			yaw -= event.relative.x * rotation_speed
 			pitch -= event.relative.y * rotation_speed
 			pitch = clamp(pitch, min_pitch, max_pitch)
-	
+
 	# Mouse zoom
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			current_distance = max(min_distance, current_distance - 0.5)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			current_distance = min(max_distance, current_distance + 0.5)
-	
+
 	# Touch rotation
 	if event is InputEventScreenDrag:
 		if event.position.x > get_viewport().get_visible_rect().size.x * 0.5:
@@ -58,7 +58,7 @@ func _input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(target):
 		return
-	
+
 	_update_camera(delta)
 
 func _update_camera(delta: float) -> void:
@@ -67,14 +67,14 @@ func _update_camera(delta: float) -> void:
 	offset.x = sin(deg_to_rad(yaw)) * cos(deg_to_rad(pitch)) * current_distance
 	offset.y = sin(deg_to_rad(pitch)) * current_distance
 	offset.z = -cos(deg_to_rad(yaw)) * cos(deg_to_rad(pitch)) * current_distance
-	
+
 	# Target position + offset
 	var desired_position := target.global_position + offset
 	desired_position.y += height
-	
+
 	# Smooth follow
 	global_position = global_position.lerp(desired_position, follow_smoothness * delta)
-	
+
 	# Look at target
 	var look_target := target.global_position + Vector3(0, height * 0.7, 0)
 	look_at(look_target)
