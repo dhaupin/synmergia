@@ -361,7 +361,7 @@ func get_counts() -> Dictionary:
 	}
 
 ## Construct a SkillBook from a loot-table item_id string (book_<skill_id>_<tier>).
-## tier names: common/rare/epic/legendary/mythic → upgrade_level 1..5.
+## tier names: common/rare/epic/legendary/mythic -> upgrade_level 1..5.
 func _create_skill_book_from_id(item_id: String) -> Item:
 	# Format: book_<skill_id>_<tier>
 	var parts := item_id.split("_")

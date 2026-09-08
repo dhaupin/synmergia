@@ -21,10 +21,18 @@ extends Node
 # See prd-db.md sec.5, sec.8.
 
 
-# Concrete adapter impls are referenced via global class_name
-# (registered by their `class_name X` line in each file).
-# The base interfaces (PersistenceStore / CacheStore / MemoryStore)
-# are also global class_names, so we don't need to preload them.
+# Concrete adapter impls. Each subclass uses
+# `extends "res://adapters/.../base.gd"` (string-path extends), which
+# loads the base at parse time and registers its class_name globally.
+# The bare PersistenceStore.new() / CacheStore.new() / MemoryStore.new()
+# calls and type annotations below resolve against those globals.
+const MemoryStore = preload("res://adapters/memory_layer/memory_store.gd")
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
+const CacheStore = preload("res://adapters/cache/cache_store.gd")
+const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
+const PostgresStore = preload("res://adapters/persistence/postgres_store.gd")
+const MemoryCacheStore = preload("res://adapters/cache/memory_cache_store.gd")
+const RedisStore = preload("res://adapters/cache/redis_store.gd")
 const MigrationRunner = preload("res://adapters/migrations/migration_runner.gd")
 
 # Store name -> which service consumes it. Just a comment map for now;

@@ -14,8 +14,10 @@
 ##   MIGRATIONS_SKIP=1   skip migrations entirely (dev override)
 ##
 ## See: labs/prd-db.md sec.9
-## ────────────────────────────────────────────────────────────────────────────
+## ============================================================================
 extends RefCounted
+
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 
 
 const MIGRATIONS_DIR := "res://adapters/migrations"
@@ -68,7 +70,7 @@ func run(store: PersistenceStore, log: Object = null) -> int:
 
 		var ok := true
 		for stmt in _split_statements(sql):
-			var s := stmt.strip_edges()
+			var s: String = stmt.strip_edges()
 			if s == "":
 				continue
 			if store.execute(s, []) < 0:

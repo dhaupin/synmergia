@@ -1,5 +1,5 @@
-## Enemy — basic enemy entity with health and simple AI
-extends Entity
+## Enemy -- basic enemy entity with health and simple AI
+extends "res://core/entities/entity.gd"
 
 class_name Enemy
 const LootTable = preload("res://core/schemas/loot_table.gd")

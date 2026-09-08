@@ -4,6 +4,10 @@ extends Resource
 class_name Skill
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
+# Entity is not an autoload (class_name only). Several method
+# signatures here use `: Entity`, which requires Entity's class_name
+# to be registered at parse time. Preloading it here guarantees that.
+const Entity = preload("res://core/entities/entity.gd")
 
 
 enum SkillType {
@@ -255,14 +259,14 @@ func calculate_damage(caster: Entity, target: Entity) -> int:
 		base_damage += caster.get_spell_power()
 	
 	# Apply crit chance
-	var crit_chance := caster.get_crit_chance()
-	var is_crit := randf() < crit_chance
+	var crit_chance: float = caster.get_crit_chance()
+	var is_crit: bool = randf() < crit_chance
 	if is_crit:
 		base_damage = int(base_damage * caster.get_crit_multiplier())
 	
 	# Apply target's defense
-	var defense := target.get_defense() if target else 0
-	var reduction := float(defense) / (defense + 100.0)
+	var defense: float = target.get_defense() if target else 0
+	var reduction: float = float(defense) / (defense + 100.0)
 	base_damage = int(base_damage * (1.0 - reduction))
 	
 	return max(1, base_damage)
@@ -314,7 +318,7 @@ func applyTeleport(caster: Entity, ground_position: Vector3) -> void:
 		caster.global_position = ground_position
 	else:
 		# Teleport forward
-		var forward := -caster.global_transform.basis.z
+		var forward: Vector3 = -caster.global_transform.basis.z
 		forward.y = 0
 		caster.global_position += forward * teleport_distance
 

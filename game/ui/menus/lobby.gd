@@ -40,7 +40,7 @@ func _ready() -> void:
 	_refresh_account_header()
 	_refresh_character_list()
 
-	# Auto-play a freshly created character — the character_select scene stores
+	# Auto-play a freshly created character -- the character_select scene stores
 	# the id in GameManager meta before returning here so the signal is lost.
 	var last_id: String = GameManager.get_meta("last_character_id", "") if GameManager else ""
 	if last_id != "":
@@ -88,7 +88,7 @@ func _refresh_character_list() -> void:
 		var cd := _blob_to_character_data(blob)
 		if cd:
 			_characters.append(cd)
-			var label := "%s  ·  Lv %d  %s  %s" % [
+			var label := "%s  *  Lv %d  %s  %s" % [
 				cd.display_name, cd.level, cd.species_id, cd.class_id
 			]
 			_char_list.add_item(label)
@@ -111,7 +111,7 @@ func _on_item_selected(idx: int) -> void:
 	_update_button_states()
 	if idx >= 0 and idx < _characters.size():
 		var cd: CharacterData = _characters[idx]
-		_info_label.text = "%s · %s %s · Zone: %s" % [
+		_info_label.text = "%s * %s %s * Zone: %s" % [
 			cd.display_name, cd.species_id, cd.class_id, cd.zone_id
 		]
 
@@ -180,7 +180,7 @@ func _on_logged_out() -> void:
 		GameManager.change_state(GameManager.GameState.LOGIN)
 
 
-# ── Persistence ────────────────────────────────────────────────────────
+# == Persistence ========================================================
 
 const CHARS_SAVE_PATH := "user://characters.json"
 

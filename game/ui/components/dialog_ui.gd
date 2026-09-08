@@ -1,11 +1,9 @@
 ## DialogUI - NPC dialog system
 ## Quest offers, conversation, choices
 ## Extends UIPanel with bottom-anchored positioning
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name DialogUI
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const DialogService = preload("res://core/services/dialog_service.gd")
-const EntityService = preload("res://core/services/entity_service.gd")
 
 ## Dialog state
 var _current_npc: String = ""
@@ -54,9 +52,10 @@ func _process(_delta: float) -> void:
 			check_interact_distance(player.global_position, _npc_position)
 
 func _get_npc_position(npc_id: String) -> Vector3:
-	# Look up NPC position via EntityService
-	if EntityService:
-		var npc = EntityService.get_entity(npc_id)
+	# Look up NPC position via EntityService at runtime.
+	var entity_svc = get_node_or_null("/root/EntityService")
+	if entity_svc:
+		var npc = entity_svc.get_entity(npc_id)
 		if npc and is_instance_valid(npc):
 			return npc.global_position
 	return Vector3.ZERO

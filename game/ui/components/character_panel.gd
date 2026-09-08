@@ -1,9 +1,8 @@
 ## CharacterPanel - Unified in-game character management
 ## Tabs: Inventory | Equipment | Stats | Skills
 ## Uses UIStyles for consistent theming
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name CharacterPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const Item = preload("res://core/schemas/item.gd")
@@ -116,7 +115,7 @@ func _on_tab_clicked(tab_id: int) -> void:
 func _input(event: InputEvent) -> void:
 	pass  # TAB handled by HudHotkeys via _on_tab_pressed()
 
-## Override from UIPanel — called by HudHotkeys for focus cycling.
+## Override from UIPanel -- called by HudHotkeys for focus cycling.
 func _on_tab_pressed(shift: bool) -> void:
 	var tab_ids := [Tab.INVENTORY, Tab.EQUIP, Tab.STATS, Tab.SKILLS, Tab.TITLES]
 	var current_idx := -1

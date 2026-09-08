@@ -49,7 +49,7 @@ func _ready() -> void:
 
 func set_local_player(player: Node) -> void:
 	local_player = player
-	character_name = player.display_name if "display_name" in player else "Player"
+	character_name = player.display_name if player.has("display_name") else "Player"
 	_update_resource_signals()
 
 func _update_resource_signals() -> void:

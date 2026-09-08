@@ -1,9 +1,7 @@
 ## PartyUI - Party management panel
 ## Migrated onto UIPanel base class.
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name PartyUI
-
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 
 var _members_list: ItemList

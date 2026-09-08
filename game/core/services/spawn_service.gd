@@ -7,6 +7,10 @@ const ZoneData = preload("res://core/schemas/zone_data.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
 const NPCEntity = preload("res://core/entities/npc_entity.gd")
+# Entity is not an autoload (class_name only). SpawnService calls
+# Entity.new() and Entity.EntityType.X, which requires Entity's
+# class_name registered at parse time. Preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
 
@@ -519,7 +523,7 @@ func spawn_npc_entity(
 		npc_data: NPCData
 ) -> NPCEntity:
 	if npc_data == null:
-		push_warning("SpawnService: Cannot spawn NPC — npc_data is null")
+		push_warning("SpawnService: Cannot spawn NPC -- npc_data is null")
 		return null
 
 	var entity: NPCEntity
@@ -528,7 +532,7 @@ func spawn_npc_entity(
 	if npc_data.get("scene_path") and not npc_data.scene_path.is_empty():
 		var scene_path := npc_data.scene_path as String
 		var scene_res := load(scene_path)
-		if scene_res and scene_res can PackedScene:
+		if scene_res and scene_res is PackedScene:
 			var packed: PackedScene = scene_res as PackedScene
 			var instance := packed.instantiate()
 			if instance is NPCEntity:
@@ -582,7 +586,7 @@ func spawn_npc_entity(
 	return entity
 
 ## Spawn all offering NPCs for every zone.
-## Infers zone from NPC ID prefix (e.g. blacksmith_village_* → zone_village).
+## Infers zone from NPC ID prefix (e.g. blacksmith_village_* -> zone_village).
 func spawn_all_offering_npcs() -> void:
 	if not DataService:
 		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
@@ -611,7 +615,7 @@ func spawn_all_offering_npcs() -> void:
 	GameLog.info("SpawnService: Spawned all offering NPCs")
 
 ## Derive zone_id from NPC ID naming convention.
-## E.g. "blacksmith_village_default" → "zone_village"
+## E.g. "blacksmith_village_default" -> "zone_village"
 static func _zone_from_npc_id(npc_id: String) -> String:
 	var DEFAULT_ZONE := "zone_capital"
 	# Strip known prefixes to get the location tier

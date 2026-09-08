@@ -1,13 +1,20 @@
-## NPCEntity — unified NPC entity that reads offerings from NPCData.
-## Unified NPC entity — reads includes[] from NPCData and dispatches to the correct panel/service on interact.
+## NPCEntity -- unified NPC entity that reads offerings from NPCData.
+## Unified NPC entity -- reads includes[] from NPCData and dispatches to the correct panel/service on interact.
 ## Each NPC has one or more offerings in npc_data.includes[].
 ## on_interact() reads the offering and routes to the appropriate panel.
-extends Entity
+extends "res://core/entities/entity.gd"
 class_name NPCEntity
 
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
-## DISABLED: const ShopUI = preload("res://ui/components/shop_ui.gd")
+# MenuManager is not an autoload (class_name only). on_interact()
+# calls MenuManager.open_menu(...) bare, which requires the
+# class_name registered at parse time. Preload it here. This does
+# NOT form a cycle: npc_entity -> menu_manager -> dialog_ui ->
+# dialog_service, and dialog_service no longer preloads
+# menu_manager (it loads it lazily at the call site).
+const MenuManager = preload("res://ui/components/menu_manager.gd")
+const ShopUI = preload("res://ui/components/shop_ui.gd")
 
 ## Set by SpawnService when the entity is placed
 var npc_data: NPCData = null

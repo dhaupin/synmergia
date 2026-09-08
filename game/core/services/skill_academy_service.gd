@@ -1,7 +1,7 @@
 ## SkillAcademyService - Skill book upgrades and Skill Academy NPC hub
 ##
 ## Procedurally generates skill book items at startup from loaded skills.
-## No .tres files needed for skill books — they are runtime items.
+## No .tres files needed for skill books -- they are runtime items.
 ## Players spend skill points + consume 4 matching-tier books to upgrade skills.
 extends Node
 
@@ -14,7 +14,7 @@ static var instance: SkillAcademyService
 ## Tier names in display order
 const TIER_NAMES: Array = ["common", "rare", "epic", "legendary", "mythic"]
 
-## Tier → upgrade level mapping
+## Tier -> upgrade level mapping
 const TIER_TO_LEVEL: Dictionary = {
 	"common": 1, "rare": 2, "epic": 3, "legendary": 4, "mythic": 5
 }
@@ -29,10 +29,10 @@ const COMMON_BOOK_PRICE: int = 100
 const RESPEC_BASE_COST: int = 500
 const RESPEC_GOLD_PER_POINT: int = 20
 
-## In-memory catalog: skill_id → catalog entry
+## In-memory catalog: skill_id -> catalog entry
 var _catalog: Dictionary = {}
 
-## Runtime player data: player_id → { spent_pts, upgrades }
+## Runtime player data: player_id -> { spent_pts, upgrades }
 var _player_data: Dictionary = {}
 
 signal upgrade_applied(player_id: String, skill_id: String, new_level: int)

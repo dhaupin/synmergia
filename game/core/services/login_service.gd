@@ -12,9 +12,14 @@
 ##  - Login attempts are rate-limited through QoSService to mitigate
 ##    brute force (5 attempts / 10s / account).
 ##  - Display names flow through SecurityService.validate_player_name.
-##
-## This is the client-side gate. Server should always re-validate.
 extends Node
+
+# QoSService exposes a static facade (QoSService.rate_limit(...)), so a
+# const preload here resolves to the class and the static methods still
+# dispatch to the singleton at runtime -- no shadow.
+const QoSService = preload("res://core/autoload/qos_service.gd")
+
+## This is the client-side gate. Server should always re-validate.
 
 signal login_succeeded(account_id: String, is_guest: bool)
 signal login_failed(reason: String)
@@ -47,7 +52,7 @@ func _ready() -> void:
 	GameLog.info("LoginService: Ready (%d stored accounts)" % _store.size())
 
 
-# ── Public API ─────────────────────────────────────────────────────────
+# == Public API =========================================================
 
 func login(account_id: String, password: String) -> bool:
 	account_id = _sanitize_id(account_id)
@@ -149,7 +154,7 @@ func has_account(account_id: String) -> bool:
 	return _store.has(_sanitize_id(account_id))
 
 
-# ── Internals ──────────────────────────────────────────────────────────
+# == Internals ==========================================================
 
 func _sanitize_id(raw: String) -> String:
 	return raw.strip_edges().to_lower()

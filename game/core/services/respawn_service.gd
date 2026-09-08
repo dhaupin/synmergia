@@ -4,6 +4,14 @@ extends Node
 
 
 const Ankh = preload("res://core/schemas/ankh.gd")
+# Entity is not an autoload (it has class_name Entity, see
+# project.godot). RespawnService uses `: Entity` type annotations in
+# several method signatures, which require Entity's class_name to be
+# registered at parse time. Preloading it here guarantees that --
+# the same idiom the 27-call workaround used before the autoload
+# was removed. No shadow: Entity is a class_name, not an autoload
+# identifier, so the const and the class_name are the same script.
+const Entity = preload("res://core/entities/entity.gd")
 signal respawn_initiated(player, mode: RespawnMode, data: Dictionary)
 signal respawn_completed(player, respawn_point: Vector3)
 signal respawn_canceled(player, reason: String)
@@ -458,7 +466,7 @@ func _do_respawn_at(player, position: Vector3, mode: RespawnMode) -> void:
 
 	respawn_completed.emit(player, position)
 	# Frame-level toast. Dedupe key includes the mode so a player who cycles
-	# modes (timed → ankh) gets one toast per event, not one per spam.
+	# modes (timed -> ankh) gets one toast per event, not one per spam.
 	var mode_name: String = RespawnMode.keys()[mode] if mode >= 0 and mode < RespawnMode.size() else "unknown"
 	_emit_lifecycle(
 		player.entity_id,
@@ -697,7 +705,7 @@ func _get_nearest_gateway(player: Entity, gateway_ids: Array[String]) -> String:
 		return ""
 	var nearest_id: String = gateway_ids[0]
 	var nearest_dist: float = INF
-	var player_pos := player.global_position
+	var player_pos: Vector3 = player.global_position
 	for gateway_id in gateway_ids:
 		if _gateway_positions.has(gateway_id):
 			var gateway_pos: Vector3 = _gateway_positions[gateway_id]

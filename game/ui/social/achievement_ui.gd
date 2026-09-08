@@ -1,7 +1,6 @@
 ## AchievementUI - Achievement display and progress tracking
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name AchievementUI
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const AchievementData = preload("res://core/schemas/achievement_data.gd")
 
 var _achievement_defs: Dictionary = {}

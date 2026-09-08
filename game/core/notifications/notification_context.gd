@@ -1,4 +1,4 @@
-## notification_context.gd — single dispatch payload for the toast pipeline.
+## notification_context.gd -- single dispatch payload for the toast pipeline.
 ##
 ## Every game service that wants to surface something to the player (or to
 ## admins) constructs a NotificationContext and hands it to

@@ -4,6 +4,12 @@ extends Node
 
 const Skill = preload("res://core/combat/skill.gd")
 const StatusEffect = preload("res://core/entities/status_effect.gd")
+# Entity is not an autoload (class_name only). The signal and
+# method signatures here use `: Entity`, which requires Entity's
+# class_name to be registered at parse time. Preloading it here
+# guarantees that -- same idiom as the 27-call workaround before
+# the autoload was removed.
+const Entity = preload("res://core/entities/entity.gd")
 signal skill_executed(caster: Entity, skill: Skill, targets: Array)
 signal skill_hit(caster: Entity, target: Entity, skill: Skill, damage: int)
 signal skill_missed(caster: Entity, skill: Skill)
@@ -135,7 +141,7 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 	return entities_in_range
 
 func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
-	var caster := get_entity(str(hitbox.owner_id)) if hitbox.owner_id != -1 else null
+	var caster = get_entity(str(hitbox.owner_id)) if hitbox.owner_id != -1 else null
 	
 	# Calculate and apply damage
 	var damage: int = 0
@@ -176,10 +182,19 @@ func _apply_dot(caster: Entity, target: Entity, skill: Skill) -> void:
 	target.apply_status_effect(effect)
 
 func _apply_cc(skill: Skill, caster: Entity, target: Entity) -> void:
-	var effect := skill.create_slow_effect(caster) if skill.crowd_control_type == "slow" else \
-		skill.create_stun_effect(caster) if skill.crowd_control_type == "stun" else \
-		skill.create_root_effect(caster)
-	
+	# Nested ternary (a if c1 else b if c2 else d) is rejected by the
+	# 4.7.2 parser -- it mis-parses the second `if` as a statement
+	# terminator. Use an explicit match instead.
+	var effect: StatusEffect = null
+	match skill.crowd_control_type:
+		"slow":
+			effect = skill.create_slow_effect(caster)
+		"stun":
+			effect = skill.create_stun_effect(caster)
+		_:
+			effect = skill.create_root_effect(caster)
+	if effect == null:
+		return
 	target.apply_status_effect(effect)
 
 func _apply_teleport(caster: Entity, _target: Entity, skill: Skill) -> void:

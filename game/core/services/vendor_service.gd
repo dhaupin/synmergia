@@ -10,13 +10,12 @@
 ## Restock: triggered when player closes shop (restock_trigger == "close").
 ## Location modifiers come from NPCData.location_type.
 extends Node
-class_name VendorService
 
 ## Singleton instance
-static var _instance: VendorService = null
-static func singleton() -> VendorService:
+static var _instance = null
+static func singleton():
 	if _instance == null:
-		_instance = VendorService.new()
+		_instance = load("res://core/services/vendor_service.gd").new()
 		_instance._ready()
 	return _instance
 
@@ -59,7 +58,7 @@ func get_catalog(offering, npc_data) -> Array[Dictionary]:
 	return result
 
 
-## Get the player's sellable items — inventory filtered by what vendor buys.
+## Get the player's sellable items -- inventory filtered by what vendor buys.
 func get_sellable_items(player_id: String, offering, npc_data) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	if offering.type != "vendor":
@@ -199,7 +198,7 @@ func ensure_stock(offering, npc_data) -> void:
 
 
 ## ============================================================================
-## INTERNAL — CATALOG RESOLUTION
+## INTERNAL -- CATALOG RESOLUTION
 ## ============================================================================
 
 func _resolve_catalog_items(offering, npc_data) -> Array:
@@ -244,7 +243,7 @@ func _get_items_by_id_list(catalog_items: Array[Dictionary]) -> Array:
 
 
 ## ============================================================================
-## INTERNAL — PRICING
+## INTERNAL -- PRICING
 ## ============================================================================
 
 func _calculate_buy_price(item: Item, offering, npc_data) -> int:
@@ -295,7 +294,7 @@ func _get_location_multiplier(npc_data) -> float:
 
 
 ## ============================================================================
-## INTERNAL — STOCK
+## INTERNAL -- STOCK
 ## ============================================================================
 
 func _initialize_stock(offering, npc_data) -> void:
@@ -347,7 +346,7 @@ func _full_restock(offering) -> void:
 
 
 ## ============================================================================
-## INTERNAL — INVENTORY BRIDGE
+## INTERNAL -- INVENTORY BRIDGE
 ## ============================================================================
 
 func _get_player_inventory(player_id: String) -> InventoryComponent:
@@ -409,7 +408,7 @@ func _find_item(item_id: String) -> Item:
 
 
 ## ============================================================================
-## INTERNAL — BUYBACK
+## INTERNAL -- BUYBACK
 ## ============================================================================
 
 func _add_buyback(player_id: String, item: Item, qty: int, price: int) -> void:
@@ -426,7 +425,7 @@ func _add_buyback(player_id: String, item: Item, qty: int, price: int) -> void:
 
 
 ## ============================================================================
-## INTERNAL — RESULT HELPERS
+## INTERNAL -- RESULT HELPERS
 ## ============================================================================
 
 func _ok(msg: String, item: Item = null) -> Dictionary:

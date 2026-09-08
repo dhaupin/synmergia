@@ -176,8 +176,8 @@ func apply_respawn_invincibility(entity) -> void:
 	
 	if Config.SHOW_INVINCIBILITY_UI and is_instance_valid(NotificationService):
 		var remaining := Config.RESPAWN_INVINCIBILITY_DURATION
-		# Frame-level dispatch. RESPAWNED → SYSTEM/HIGH via the
-		# kind→type+priority map. Dedupe on (entity, "respawn_inv")
+		# Frame-level dispatch. RESPAWNED -> SYSTEM/HIGH via the
+		# kind->type+priority map. Dedupe on (entity, "respawn_inv")
 		# so re-application in the same frame is one toast.
 		NotificationService.notify(
 			NotifKind.RESPAWNED,
@@ -245,7 +245,7 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 			msg_parts.append("%.0f%% durability" % penalties.durability_loss)
 
 		var penalty_msg: String = "Death penalty: " + ", ".join(msg_parts)
-		# Frame-level dispatch. RESPAWN_PENALTY_APPLIED → WARNING/NORMAL.
+		# Frame-level dispatch. RESPAWN_PENALTY_APPLIED -> WARNING/NORMAL.
 		# Dedupe on (entity, "penalty") so a same-frame double-apply is
 		# one toast. Different magnitudes (re-dying with a different
 		# penalty) still surface because the dedupe window is short and
@@ -317,7 +317,7 @@ func _activate_griefing_protection(entity_id: String) -> void:
 	
 	# Notify player
 	if is_instance_valid(NotificationService):
-		# Frame-level dispatch. SECURITY_WARNING → WARNING/HIGH.
+		# Frame-level dispatch. SECURITY_WARNING -> WARNING/HIGH.
 		# Dedupe on (entity, "griefing") so a re-activation within the
 		# window collapses; a fresh griefing event after the window
 		# expires surfaces.
@@ -431,7 +431,7 @@ func _apply_kill_streak_reward(killer_id: String, streak: int) -> void:
 		var msg := "🔥 Kill streak %d! +%d XP, +%d gold" % [streak, xp_bonus, gold_bonus]
 		# Frame-level dispatch. CUSTOM (no dedicated kill_streak kind).
 		# Dedupe on (killer, streak) so re-entering the same streak tier
-		# within the window collapses, but stepping up (5→10) is a new
+		# within the window collapses, but stepping up (5->10) is a new
 		# key and surfaces.
 		NotificationService.notify(
 			NotifKind.CUSTOM,

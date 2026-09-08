@@ -1,9 +1,7 @@
 ## GuildUI - Guild management panel
 ## Migrated onto UIPanel base class.
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name GuildUI
-
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 
 var _tab_container: TabContainer

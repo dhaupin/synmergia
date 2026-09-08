@@ -55,7 +55,7 @@ func grant_starter_kit(player_id: String, character_data) -> void:
 
 	var role: int = 0
 	if "class_data" in character_data and character_data.class_data:
-		role = character_data.class_data.get("role", 0)
+		role = character_data.class_data.get("role")
 
 	var item_ids: Array = STARTER_KITS.get(role, STARTER_KITS.get(0, []))
 	var gold: int = STARTING_GOLD.get(role, STARTING_GOLD.get(0, 100))
@@ -107,37 +107,37 @@ func _give_starter_item(player_id: String, item_id: String) -> bool:
 	var ItemClass: Script = load("res://core/schemas/item.gd")
 	var new_item: Resource = ItemClass.new()
 	if "id" in item_res:
-		new_item.id = item_res.get("id", item_id)
+		new_item.id = item_res.get("id")
 	if "display_name" in item_res:
-		new_item.display_name = item_res.get("display_name", item_id)
+		new_item.display_name = item_res.get("display_name")
 	if "description" in item_res:
-		new_item.description = item_res.get("description", "")
+		new_item.description = item_res.get("description")
 	if "icon_path" in item_res:
-		new_item.icon_path = item_res.get("icon_path", "")
+		new_item.icon_path = item_res.get("icon_path")
 	if "item_category" in item_res:
-		new_item.item_category = item_res.get("item_category", 0)
+		new_item.item_category = item_res.get("item_category")
 	if "rarity" in item_res:
-		new_item.rarity = item_res.get("rarity", 0)
+		new_item.rarity = item_res.get("rarity")
 	if "equip_slot" in item_res:
-		new_item.equip_slot = item_res.get("equip_slot", -1)
+		new_item.equip_slot = item_res.get("equip_slot")
 	if "weapon_type" in item_res:
-		new_item.weapon_type = item_res.get("weapon_type", 0)
+		new_item.weapon_type = item_res.get("weapon_type")
 	if "stack_size" in item_res:
-		new_item.stack_size = item_res.get("stack_size", 1)
+		new_item.stack_size = item_res.get("stack_size")
 	if "sell_price" in item_res:
-		new_item.sell_price = item_res.get("sell_price", 0)
+		new_item.sell_price = item_res.get("sell_price")
 	if "buy_price" in item_res:
-		new_item.buy_price = item_res.get("buy_price", 0)
+		new_item.buy_price = item_res.get("buy_price")
 	if "required_level" in item_res:
-		new_item.required_level = item_res.get("required_level", 1)
+		new_item.required_level = item_res.get("required_level")
 	if "stats" in item_res:
-		new_item.stats = item_res.get("stats", {})
+		new_item.stats = item_res.get("stats")
 	if "weapon_damage_min" in item_res:
-		new_item.weapon_damage_min = item_res.get("weapon_damage_min", 0)
+		new_item.weapon_damage_min = item_res.get("weapon_damage_min")
 	if "weapon_damage_max" in item_res:
-		new_item.weapon_damage_max = item_res.get("weapon_damage_max", 0)
+		new_item.weapon_damage_max = item_res.get("weapon_damage_max")
 	if "attack_speed" in item_res:
-		new_item.attack_speed = item_res.get("attack_speed", 1.0)
+		new_item.attack_speed = item_res.get("attack_speed")
 
 	# Add to inventory
 	if InventoryService:

@@ -431,7 +431,7 @@ func _notify_player_restricted(player_id: String, restriction_type: String, dura
 		_:
 			message = "You have been restricted from %s for %d seconds." % [restriction_type, duration_seconds]
 
-	# Frame-level dispatch. SECURITY_BLOCKED → ALERT + HIGH (slightly louder
+	# Frame-level dispatch. SECURITY_BLOCKED -> ALERT + HIGH (slightly louder
 	# than the legacy WARNING + HIGH, but a block IS an alert-worthy event).
 	# Dedupe on (player, type) so a quick double-click on the admin button
 	# doesn't toast twice; the 5s window is far shorter than any real
@@ -466,7 +466,7 @@ func _notify_player_unrestricted(player_id: String, restriction_type: String) ->
 		_:
 			message = "Your restriction on %s has been lifted." % restriction_type
 
-	# Frame-level dispatch. SECURITY_WARNING → WARNING + LOW (the lift is
+	# Frame-level dispatch. SECURITY_WARNING -> WARNING + LOW (the lift is
 	# informational, not an alert). Dedupe on (player, type) so a tickle
 	# of the unrestrict API doesn't spam the player with "lifted!" toasts.
 	NotificationService.notify(

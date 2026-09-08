@@ -1,9 +1,6 @@
 ## TradeUI - Item trading panel
 ## Migrated onto UIPanel base class.
-extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
+extends "res://ui/components/ui_panel.gd"
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name TradeUI
 
@@ -549,7 +546,7 @@ func _complete_trade() -> void:
 		else:
 			show_notification("Trade confirmation failed.", false)
 	elif not TradeService or _trade_id == "":
-		# No live trade registered yet — surface a clear status to the player.
+		# No live trade registered yet -- surface a clear status to the player.
 		show_notification("Trade completed (offline).", false)
 		trade_completed.emit(_initiator_id, _target_id)
 

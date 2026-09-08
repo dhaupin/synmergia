@@ -3,9 +3,15 @@
 ## Supports: Custom waypoints, Quest waypoints, Map integration, Minimap, Compass
 extends Node
 
+# QoSService and NotificationService are autoloads. QoSService
+# exposes a static facade (QoSService.rate_limit(...)), so a const
+# preload here resolves to the class and the static methods still
+# dispatch to the singleton at runtime -- no shadow. NotificationService
+# is NOT preloaded: it is accessed bare as the singleton instance
+# (NotificationService.notify(...)), which requires the autoload
+# to be registered before this file compiles.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const NotificationService = preload("res://core/autoload/notification_service.gd")
-
+#
 # Waypoint colors (preset options)
 enum WaypointColor {
 	RED,
@@ -107,9 +113,9 @@ var _player_waypoints: Dictionary = {}
 # Active/target waypoint per player
 var _active_waypoint: Dictionary = {}
 
-# Config
-const MAX_WAYPOINTS_PER_PLAYER: int = 50
-const MAX_WAYPOINT_NAME_LENGTH: int = 32
+# Config (BEACON_HEIGHT_OFFSET and WAYPOINT_RANGE_COMPLETE are
+# defined here, not in the block above, because that block is the
+# "public" constants and these are internal tuning values.)
 const BEACON_HEIGHT_OFFSET: float = 50.0  # Height above waypoint for beacon
 const WAYPOINT_RANGE_COMPLETE: float = 5.0  # Distance to complete waypoint
 
@@ -184,7 +190,7 @@ func create_waypoint_here(player_id: String, name: String) -> Dictionary:
 		return {"success": false, "message": "Player not found"}
 	
 	var position: Vector3 = entity.global_position if entity.has("global_position") else Vector3.ZERO
-	var zone_id := ZoneManager.get_current_zone_id() if ZoneManager else ""
+	var zone_id: String = ZoneManager.get_current_zone_id() if ZoneManager else ""
 	
 	return create_waypoint(player_id, name, position, zone_id)
 
@@ -270,7 +276,7 @@ func delete_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 		return {"success": false, "message": "Invalid waypoint ID"}
 	
 	var wp: Waypoint = null
-	var index := -1
+	var index: int = -1
 	for i in range(_player_waypoints[player_id].size()):
 		if _player_waypoints[player_id][i].id == waypoint_id:
 			wp = _player_waypoints[player_id][i]
@@ -343,7 +349,7 @@ func activate_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 		return {"success": false, "message": "Waypoint not found"}
 	
 	# Deactivate previous
-	var old_id := _active_waypoint.get(player_id, "")
+	var old_id: String = _active_waypoint.get(player_id, "")
 	if old_id != "" and old_id != waypoint_id:
 		waypoint_deactivated.emit(player_id, old_id)
 	
@@ -354,14 +360,14 @@ func activate_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 
 ## Deactivate current waypoint
 func deactivate_waypoint(player_id: String) -> void:
-	var old_id := _active_waypoint.get(player_id, "")
+	var old_id: String = _active_waypoint.get(player_id, "")
 	if old_id != "":
 		_active_waypoint.erase(player_id)
 		waypoint_deactivated.emit(player_id, old_id)
 
 ## Get active waypoint for player
 func get_active_waypoint(player_id: String) -> Dictionary:
-	var waypoint_id := _active_waypoint.get(player_id, "")
+	var waypoint_id: String = _active_waypoint.get(player_id, "")
 	if waypoint_id == "":
 		return {}
 	return get_waypoint(player_id, waypoint_id)
@@ -380,7 +386,7 @@ func get_distance_to_active(player_id: String) -> float:
 		return -1.0
 	
 	var player_pos: Vector3 = entity.global_position if entity.has("global_position") else Vector3.ZERO
-	var wp_pos := Vector3(wp_dict.get("position_x", 0.0), wp_dict.get("position_y", 0.0), wp_dict.get("position_z", 0.0))
+	var wp_pos: Vector3 = Vector3(wp_dict.get("position_x", 0.0), wp_dict.get("position_y", 0.0), wp_dict.get("position_z", 0.0))
 	
 	return player_pos.distance_to(wp_pos)
 
@@ -420,7 +426,7 @@ func remove_quest_waypoints(player_id: String, quest_id: String) -> void:
 			to_remove.append(wp)
 	
 	for wp in to_remove:
-		var index := _player_waypoints[player_id].find(wp)
+		var index: int = _player_waypoints[player_id].find(wp)
 		if index >= 0:
 			# Deactivate if active
 			if _active_waypoint.get(player_id, "") == wp.id:
@@ -518,7 +524,7 @@ func _sanitize_name(name: String) -> String:
 ## Security: Validate position bounds
 func _is_valid_position(position: Vector3) -> bool:
 	# Check for NaN or infinity
-	if not is_finite(position):
+	if not position.is_finite():
 		return false
 	
 	# Check world bounds (prevent teleport exploits)

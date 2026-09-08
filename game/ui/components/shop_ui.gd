@@ -2,20 +2,27 @@
 ## Opened when player interacts with a "vendor" NPC.
 ## Two tabs: Buy (catalog) and Sell (player inventory).
 ## Proximity auto-closes at 8m.
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name ShopUI
-
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const VendorService = preload("res://core/services/vendor_service.gd")
 
 
-## Static instance — one shop at a time
+## Static instance -- one shop at a time
 static var _instance: ShopUI = null
 static func singleton() -> ShopUI:
 	return _instance
+
+## Open the shop by offering ref_id (e.g. "vendor_general").
+## DialogService calls ShopUI.open_shop(shop_id); this facade loads
+## the offering resource and forwards to open_for_offering().
+static func open_shop(shop_id: String, player_id: String = "") -> void:
+	var offering := load("res://data/npc_offerings/%s.tres" % shop_id) as NPCOffering
+	if offering == null:
+		push_warning("ShopUI.open_shop: no offering at res://data/npc_offerings/%s.tres" % shop_id)
+		return
+	open_for_offering(player_id, offering, null, Vector3.ZERO)
 
 ## Session state
 var _offering: Resource = null
@@ -342,10 +349,10 @@ func _refresh_info() -> void:
 	var total: int = price * qty
 
 	if _selected_type == Tab.BUY:
-		_info_label.text = "%s — %d gold each (total: %d)" % [name, price, total]
+		_info_label.text = "%s -- %d gold each (total: %d)" % [name, price, total]
 	else:
 		var owned: int = entry.get("quantity") if entry.has("quantity") else 1
-		_info_label.text = "%s — %d gold each (you have %d, total: %d)" % [name, price, owned, total]
+		_info_label.text = "%s -- %d gold each (you have %d, total: %d)" % [name, price, owned, total]
 
 
 func _refresh_gold() -> void:

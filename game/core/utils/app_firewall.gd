@@ -5,7 +5,7 @@ extends Node
 const RecursionGuard = preload("res://core/utils/recursion_guard.gd")
 # Frame-level notification dispatch (see game/core/notifications/).
 # AppFirewall surfaces ban / block / recursion-guard events to admins
-# through the typed-Kind pipeline. ADMIN_ALERT → ALERT + HIGH.
+# through the typed-Kind pipeline. ADMIN_ALERT -> ALERT + HIGH.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 ## ============================================================================
@@ -194,7 +194,7 @@ func record_failed_attempt(ip: String, attempt_type: String = "login") -> bool:
 func _clear_failed_attempts(ip: String) -> void:
 	_failed_attempts.erase(ip)
 
-## Public alias for NetworkManager.track_failed_attempt — preferred
+## Public alias for NetworkManager.track_failed_attempt -- preferred
 ## caller-facing name. Keeps the legacy record_failed_attempt working.
 func track_failed_attempt(ip: String, attempt_type: String = "login") -> bool:
 	return record_failed_attempt(ip, attempt_type)
@@ -250,7 +250,7 @@ func ban_player(player_id: String, reason: String, banned_by: String = "system")
 	# Player-facing toast: the banned player must know. We don't know
 	# whether they're still connected (they're about to be disconnected)
 	# but the toast lands on their last-known client if any, and in the
-	# reconnect attempt on a future login. SECURITY_BLOCKED → ALERT + HIGH.
+	# reconnect attempt on a future login. SECURITY_BLOCKED -> ALERT + HIGH.
 	# Dedupe key disambiguates permanent from temporary: an admin perm-banning
 	# then temp-banning the same player (rare but valid) surfaces as two
 	# distinct toasts in the audit log instead of collapsing to one.
@@ -307,7 +307,7 @@ func lift_ban(player_id: String) -> void:
 		ban_lifted.emit(player_id)
 		GameLog.info("AppFirewall: Ban lifted for %s" % player_id)
 		_broadcast_admin_alert("Ban lifted for %s" % player_id)
-		# SECURITY_WARNING → WARNING + LOW. Informational, not alert.
+		# SECURITY_WARNING -> WARNING + LOW. Informational, not alert.
 		if is_instance_valid(NotificationService):
 			NotificationService.notify(
 				NotifKind.SECURITY_WARNING,
@@ -458,7 +458,7 @@ func get_stats() -> Dictionary:
 ## NotificationService so the in-game toast/chat pipeline that
 ## HudIntegrator already consumes shows admin alerts without each call
 ## site having to know about UI plumbing. Safe to call before
-## NotificationService is autoloaded — it just no-ops.
+## NotificationService is autoloaded -- it just no-ops.
 
 func _broadcast_admin_alert(message: String) -> void:
 	# Fast path: frame-level dispatch through the typed-Kind pipeline.
@@ -486,8 +486,8 @@ func _broadcast_admin_alert(message: String) -> void:
 
 	# Fallback: pre-autoload or stripped-down boot (e.g. test mode without
 	# the autoload tree). Just log it. The previous code tried a long chain
-	# of dynamic fallbacks (Engine.has_singleton → get_node_or_null →
-	# get_script().get("AlertScope") → .call("server_wide") → ...), all of
+	# of dynamic fallbacks (Engine.has_singleton -> get_node_or_null ->
+	# get_script().get("AlertScope") -> .call("server_wide") -> ...), all of
 	# which were workarounds for the missing class_name on
 	# NotificationService. With the frame's notify() verb, the typed entry
 	# point is reachable in one call.
@@ -499,7 +499,7 @@ func _broadcast_admin_alert(message: String) -> void:
 ##
 ## Per docs/architecture/security.md, the recursion guard is the
 ## agent-framework seatbelt. A block means an agent (or a runaway game
-## loop) hit a depth limit — that's a security event admins need to see.
+## loop) hit a depth limit -- that's a security event admins need to see.
 
 func _on_recursion_block(context: String, current_depth: int, max_depth: int) -> void:
 	# The recursion alert is a high-signal security event; we dispatch
@@ -515,7 +515,7 @@ func _on_recursion_block(context: String, current_depth: int, max_depth: int) ->
 		return
 	NotificationService.notify(
 		NotifKind.SECURITY_BLOCKED,
-		"RecursionGuard: '%s' exceeded max depth %d (current=%d) — possible DoS" % [
+		"RecursionGuard: '%s' exceeded max depth %d (current=%d) -- possible DoS" % [
 			context, max_depth, current_depth
 		],
 		"AppFirewall.RecursionGuard",

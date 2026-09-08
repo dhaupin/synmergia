@@ -10,6 +10,11 @@ const Skill = preload("res://core/combat/skill.gd")
 const StateMachine = preload("res://core/state/state_machine.gd")
 const ActionMenu = preload("res://ui/components/action_menu.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
+# Entity is not an autoload (class_name only). PlayerController
+# uses Entity.EntityType.X and `: Entity` type annotations, which
+# require Entity's class_name registered at parse time. Preload it
+# here -- no shadow: Entity is a class_name, not an autoload.
+const Entity = preload("res://core/entities/entity.gd")
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
 const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
 const GMIndicator = preload("res://entities/player/components/gm_indicator.gd")
@@ -359,7 +364,7 @@ func get_movement_direction() -> Vector3:
 	var input := InputManager.get_movement_input()
 	var cam_basis := get_camera_basis()
 	
-	var forward := -cam_basis.z
+	var forward: Vector3 = -cam_basis.z
 	var right := cam_basis.x
 	forward.y = 0
 	right.y = 0

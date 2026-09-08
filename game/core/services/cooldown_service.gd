@@ -34,7 +34,7 @@ func is_on_cooldown(player_id: String, action_type: String) -> bool:
 		return false
 	if not _cooldowns[player_id].has(action_type):
 		return false
-	var elapsed := Time.get_unix_time_from_system() - _cooldowns[player_id][action_type]
+	var elapsed: float = Time.get_unix_time_from_system() - _cooldowns[player_id][action_type]
 	var duration := get_cooldown_duration(action_type)
 	return elapsed < duration
 
@@ -42,7 +42,7 @@ func is_on_cooldown(player_id: String, action_type: String) -> bool:
 func get_remaining(player_id: String, action_type: String) -> float:
 	if not is_on_cooldown(player_id, action_type):
 		return 0.0
-	var elapsed := Time.get_unix_time_from_system() - _cooldowns[player_id][action_type]
+	var elapsed: float = Time.get_unix_time_from_system() - _cooldowns[player_id][action_type]
 	var duration := get_cooldown_duration(action_type)
 	return max(0.0, duration - elapsed)
 

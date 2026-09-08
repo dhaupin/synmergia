@@ -7,11 +7,10 @@
 ##   4. Signature -- choose 1 of 3 class signatures (level 10+)
 ##   5. Respec    -- reset all upgrades (books NOT returned)
 
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name SkillAcademyUI
 
 const CharacterData = preload("res://core/schemas/character_data.gd")
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 const Item = preload("res://core/schemas/item.gd")
@@ -538,7 +537,7 @@ func _refresh_stats_tab() -> void:
 		
 		# Highlight focal stats
 		var is_focal: bool = stat_name == focal1 or stat_name == focal2
-		row_data["focal_lbl"].text = "★" if is_focal else ""
+		row_data["focal_lbl"].text = "*" if is_focal else ""
 		
 		# Enable/disable buttons
 		row_data["plus_btn"].disabled = available <= 0
@@ -576,7 +575,7 @@ func _on_stat_respec_pressed() -> void:
 	if not downgrades.is_empty():
 		var msg := "WARNING: The following skills will be DOWNGRADED:\n"
 		for d in downgrades:
-			msg += "- %s (Lvl %d → Lvl %d)\n" % [d.get("display_name", ""), d.get("current_level", 0), d.get("downgrade_to", 0)]
+			msg += "- %s (Lvl %d -> Lvl %d)\n" % [d.get("display_name", ""), d.get("current_level", 0), d.get("downgrade_to", 0)]
 		msg += "\nContinue?"
 		_stat_warnings_label.text = msg
 	else:

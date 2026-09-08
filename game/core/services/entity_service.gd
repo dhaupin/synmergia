@@ -3,12 +3,13 @@
 ## Tracks all active entities in the world with unified spawn/despawn via EventBus
 extends Node
 
-
-
-
 const Species = preload("res://core/schemas/species.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const Faction = preload("res://core/schemas/faction.gd")
+# Entity is not an autoload (class_name only). EntityService uses
+# `Entity.EntityType.X` in dispatch logic, which needs Entity's
+# class_name registered at parse time. Preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 var _entities: Dictionary = {}       # entity_id -> 
 var _players: Dictionary = {}        # player_id ->  (subset)
 var _enemies: Dictionary = {}       # entity_id ->  (subset)

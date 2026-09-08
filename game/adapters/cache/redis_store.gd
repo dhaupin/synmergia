@@ -1,4 +1,4 @@
-extends CacheStore
+extends "res://adapters/cache/cache_store.gd"
 class_name RedisStore
 
 # HTTP-backed Redis implementation.

@@ -1,4 +1,4 @@
-## notification_kind.gd — coarse-grained "why" for a notification.
+## notification_kind.gd -- coarse-grained "why" for a notification.
 ##
 ## Lives next to the rest of the typed-event primitives under
 ## core/notifications/. Pairs with notification_context.gd.

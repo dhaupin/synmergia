@@ -101,16 +101,30 @@ func _test_logout_clears_session(service) -> void:
 
 
 func _test_rate_limiting_via_counter(service) -> void:
+	# Use a fresh username so the counter starts at 0. The earlier
+	# _test_login_existing_account already logged in "alice" once,
+	# which would otherwise push the 5th attempt past the limit.
+	const user := "bob"
+	var registered: bool = service.register_account(user, "correct")
+	if not registered:
+		# Could already exist from a prior run in the same process;
+		# that is fine, the rate-limit counter is per-username and
+		# fresh, so the assertions below still hold.
+		print("NOTE: register_account(%s) returned false (may already exist)" % user)
 	# Five login attempts; the 5th should be rate-limited.
+	# login() returns a token (String) on success, false (bool) when
+	# blocked, and "" for unknown/bad-password. Compare against
+	# false explicitly -- a non-empty token is truthy but is not a
+	# bool, so `var allowed: bool = ...` would mis-coerce it.
 	for i in range(4):
-		service.login("alice", "wrong")
-	var allowed: bool = service.login("alice", "hunter2")
-	if not allowed:
+		service.login(user, "wrong")
+	var fifth = service.login(user, "correct")
+	if fifth == false or fifth == "":
 		_fail("5th attempt should still be allowed (limit=5)")
 		return
 	# 6th attempt should be blocked
-	var blocked: bool = service.login("alice", "hunter2")
-	if blocked:
+	var sixth = service.login(user, "correct")
+	if sixth != false:
 		_fail("6th attempt should be blocked by rate limiter")
 		return
 	_ok("rate limit: 5 allowed, 6th blocked")

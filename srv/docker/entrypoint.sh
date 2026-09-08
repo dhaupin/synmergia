@@ -41,6 +41,39 @@ _setup_nginx() {
 # Run smoke tests then exit. Used by CI.
 if [[ "$START_MODE" == "test" ]]; then
     log "Mode: TEST — running smoke tests"
+
+    # Start the adapter sidecars in-memory so the adapter tests + any
+    # Godot smoke test that touches the registry can talk to a real
+    # bridge. InMemory backends are stdlib-only and exit 0 on shutdown.
+    PG_BACKEND="${PG_BACKEND:-sqlite}" \
+    REDIS_BACKEND="${REDIS_BACKEND:-inmemory}" \
+    python3 /workspace/project/srv/pg-bridge/main.py &
+    PG_BRIDGE_PID=$!
+    python3 /workspace/project/srv/redis-bridge/main.py &
+    REDIS_BRIDGE_PID=$!
+    # Give the sidecars a moment to bind their ports.
+    sleep 1
+    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID"
+
+    cleanup_bridges() {
+        kill "$PG_BRIDGE_PID" 2>/dev/null || true
+        kill "$REDIS_BRIDGE_PID" 2>/dev/null || true
+        wait "$PG_BRIDGE_PID" 2>/dev/null || true
+        wait "$REDIS_BRIDGE_PID" 2>/dev/null || true
+    }
+    trap cleanup_bridges EXIT
+
+    # Sidecar unit tests (stdlib-only; no Godot needed).
+    log "Running pg-bridge tests..."
+    python3 /workspace/project/srv/pg-bridge/test_pg_bridge.py >/tmp/pg-bridge-test.log 2>&1 || {
+        log "FAIL: pg-bridge tests"; tail -n 30 /tmp/pg-bridge-test.log; exit 1
+    }
+    log "Running redis-bridge tests..."
+    python3 /workspace/project/srv/redis-bridge/test_redis_bridge.py >/tmp/redis-bridge-test.log 2>&1 || {
+        log "FAIL: redis-bridge tests"; tail -n 30 /tmp/redis-bridge-test.log; exit 1
+    }
+
+    # Godot smoke tests.
     cd /workspace/project/game
     for test_file in game/tests/test_*.gd; do
         [[ -f "$test_file" ]] || continue

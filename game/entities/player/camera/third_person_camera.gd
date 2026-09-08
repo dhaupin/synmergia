@@ -98,7 +98,7 @@ func get_look_direction() -> Vector3:
 	return -global_transform.basis.z
 
 func get_forward_direction() -> Vector3:
-	var forward := -global_transform.basis.z
+	var forward: Vector3 = -global_transform.basis.z
 	forward.y = 0
 	return forward.normalized()
 

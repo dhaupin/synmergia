@@ -5,7 +5,10 @@ class_name TargetTooltip
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
-
+# Entity is not an autoload (class_name only). This component uses
+# Entity.EntityType.X for color mapping, which requires Entity's
+# class_name registered at parse time. Preload it here.
+const Entity = preload("res://core/entities/entity.gd")
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 

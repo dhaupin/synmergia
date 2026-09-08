@@ -3,6 +3,7 @@
 extends Node
 class_name CombatMath
 const Skill = preload("res://core/combat/skill.gd")
+const Item = preload("res://core/schemas/item.gd")
 
 
 ## Hit results
@@ -61,7 +62,7 @@ static func calculate_hit_chance(attacker_level: int, defender_level: int, hit_r
 	# At level 60, ~40 rating = 1% hit
 	var rating_contribution := hit_rating / (attacker_level * 10.0)
 	
-	var final_hit := base_hit + level_penalty + rating_contribution
+	var final_hit: float = base_hit + level_penalty + rating_contribution
 	return clamp(final_hit, 0.0, 1.0)
 
 ## Calculate crit chance
@@ -121,7 +122,7 @@ static func calculate_hit(attacker, defender, skill: Skill = null) -> Dictionary
 	var defender_level: int = defender.level
 	
 	# Calculate hit chance
-	var hit_chance := calculate_hit_chance(attacker_level, defender_level)
+	var hit_chance: float = calculate_hit_chance(attacker_level, defender_level)
 	result["hit_chance"] = hit_chance
 	
 	# Roll for hit
@@ -191,7 +192,7 @@ static func calculate_magic_hit(attacker, defender, spell_school: String = "arca
 	var defender_level: int = defender.level
 	
 	# Spell hit chance (higher than melee)
-	var hit_chance := 0.96 + (attacker.stats.get("intelligence", 10) / 1000.0)
+	var hit_chance: float = 0.96 + (attacker.stats.get("intelligence", 10) / 1000.0)
 	result["hit_chance"] = clamp(hit_chance, 0.0, 1.0)
 	
 	# Check hit
@@ -206,7 +207,7 @@ static func calculate_magic_hit(attacker, defender, spell_school: String = "arca
 		result["damage_multiplier"] = 1.5
 	
 	# Resistance
-	var resistance := defender.stats.get("%s_resistance" % spell_school, 0.0)
+	var resistance: float = defender.stats.get("%s_resistance" % spell_school, 0.0)
 	resistance = clamp(resistance, 0.0, 0.75)  # Cap at 75% resist
 	
 	if randf() < resistance:
@@ -243,7 +244,7 @@ static func calculate_damage(base_damage: int, hit_result: Dictionary) -> int:
 ## Helper to check if defender has shield equipped
 static func _has_shield(entity) -> bool:
 	if entity.inventory_component:
-		var offhand := entity.inventory_component.get_equipped(Item.EquipSlot.OFF_HAND)
+		var offhand = entity.inventory_component.get_equipped(Item.EquipSlot.OFF_HAND)
 		if offhand and offhand.equip_slot == Item.EquipSlot.OFF_HAND:
 			return true
 	return false

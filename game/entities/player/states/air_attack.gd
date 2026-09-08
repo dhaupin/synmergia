@@ -46,7 +46,7 @@ func execute_air_attack() -> void:
 	var parent := state_machine.get_parent()
 	
 	# Create hitbox in front of player
-	var forward := -parent.global_transform.basis.z
+	var forward: Vector3 = -parent.global_transform.basis.z
 	var hit_position := parent.global_position + forward * 1.5
 	
 	# Find enemies in range

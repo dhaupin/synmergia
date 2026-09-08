@@ -173,7 +173,7 @@ func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Ve
 ## Returns a copy of the skill with upgrade bonuses applied.
 ## The original schema (from .tres / DataService) is never mutated.
 func _apply_skill_upgrade_deltas(schema: SkillSchema, entity: Entity) -> Skill:
-	# schema is the SkillSchema resource (loaded from .tres, shared — must duplicate)
+	# schema is the SkillSchema resource (loaded from .tres, shared -- must duplicate)
 	if not schema.upgradable:
 		return schema
 
@@ -437,7 +437,7 @@ func _perform_attack(skill: Skill, target: Entity) -> void:
 	
 	# Calculate damage
 	var base_damage := attack_power
-	var is_crit := randf() < crit_chance
+	var is_crit: bool = randf() < crit_chance
 	var damage := base_damage
 	
 	if is_crit:

@@ -4,7 +4,7 @@ extends RefCounted
 ## Category placeholder base path
 const BASE := "res://ui/textures"
 
-## Item category → placeholder path
+## Item category -> placeholder path
 const ITEM_ICONS: Dictionary = {
 	0: "%s/items/weapon.png" % BASE,      # WEAPON
 	1: "%s/items/armor.png" % BASE,       # ARMOR
@@ -18,7 +18,7 @@ const ITEM_ICONS: Dictionary = {
 	9: "%s/items/misc.png" % BASE,        # MISC
 }
 
-## Skill type → placeholder path
+## Skill type -> placeholder path
 const SKILL_ICONS: Dictionary = {
 	0: "%s/items/weapon.png" % BASE,   # MELEE
 	1: "%s/items/weapon.png" % BASE,   # RANGED

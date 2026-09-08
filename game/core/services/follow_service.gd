@@ -3,8 +3,26 @@
 ## Used for: Group play assistance, NPC quest followers, Mounts, etc.
 extends Node
 
+## Resolve CooldownService autoload safely.
+func _cooldown():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("CooldownService")
+
+# QoSService exposes a static facade (QoSService.rate_limit(...)), so a
+# const preload here resolves to the class and the static methods still
+# dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const EventHub = preload("res://core/events/event_hub.gd")
+# EventHub is an autoload singleton (autoload #19, before this
+# service at #77). It is accessed bare so the singleton instance is
+# used, not the class -- preloading it here would shadow the
+# singleton and break EventHub.player_died.connect(...).
+#
+# CooldownService is also an autoload singleton (autoload #32, before
+# this service). Same rule: accessed bare, no preload.
 
 # Follow configurations
 const DEFAULT_FOLLOW_RANGE: float = 10.0  # Units - max distance before follow breaks
@@ -60,7 +78,7 @@ func request_follow(follower_id: String, target_id: String) -> bool:
 		return false
 	
 	# Cooldown check
-	if CooldownService and not CooldownService.try_start(follower_id, "follow_request"):
+	if _cooldown() and not _cooldown().try_start(follower_id, "follow_request"):
 		return false
 	
 	# Security: Cannot follow self

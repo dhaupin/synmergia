@@ -33,3 +33,4 @@ tools/
 # Re-ignore if you want local-only captures:
 # captures/
 
+.kilo-godot/

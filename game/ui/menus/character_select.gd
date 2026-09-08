@@ -53,7 +53,7 @@ func _show_class_selection() -> void:
 		child.queue_free()
 
 	var label := Label.new()
-	label.text = "CLASSES — " + selected_species.display_name.to_upper()
+	label.text = "CLASSES -- " + selected_species.display_name.to_upper()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 18)
 	label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)

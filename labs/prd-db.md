@@ -883,23 +883,54 @@ Pool sizing is per-process.
 
 ### 7.2 Redis (`redis_store.gd`)
 
-Same shape: talk to a sidecar that exposes Redis
-operations. `redis_store.gd` mirrors `cache_store.gd`
-1-to-1.
+Same shape as 7.1: talk to a sidecar (`srv/redis-bridge/`) that
+exposes Redis operations over HTTP. `redis_store.gd` mirrors
+`cache_store.gd` 1-to-1.
+
+The sidecar is **implemented** (not just spec'd). Two backends,
+selected by `REDIS_BACKEND`:
+
+| Backend | Deps | Use |
+|---------|------|-----|
+| `InMemoryBackend` | stdlib only | local dev + unit tests |
+| `RedisBackend` | redis-py | prod (Docker image) |
+
+Wire protocol (implemented in `srv/redis-bridge/server.py`,
+mirrored 1-to-1 by `game/adapters/cache/redis_store.gd`):
 
 ```
-GET  /get?key=...            -> value
-POST /set                    { key, value, ttl }
-POST /incr                   { key, by }
-POST /hset                   { key, field, value }
-POST /publish                { channel, message }
-POST /eval                   { script, keys, args }
-GET  /health                 -> { ok, version }
+GET  /health              -> { ok, version, backend }
+GET  /get?key=...         -> { value } | { value: null }
+POST /set                 { key, value, ttl_sec } -> { ok }
+POST /set_nx              { key, value, ttl_sec } -> { ok: true|false }
+POST /del                 { key } -> { deleted: 0|1 }
+GET  /exists?key=...      -> { exists: true|false }
+POST /expire              { key, ttl_sec } -> { changed: -1|0|1 }
+POST /incr                { key, by } -> { value: N }
+POST /incr_with_ttl       { key, ttl_sec } -> { value: N }
+POST /hset                { key, field, value } -> { ok }
+GET  /hget?key=&field=    -> { value }
+GET  /hget_all?key=       -> { fields: {f: v} }
+POST /hdel                { key, field } -> { deleted: 0|1 }
+POST /sadd                { key, member } -> { added: 0|1 }
+POST /srem                { key, member } -> { removed: 0|1 }
+GET  /smembers?key=       -> { members: [...] }
+GET  /sismember?key=&member= -> { is_member: bool }
+POST /lpush               { key, value } -> { length: N }
+POST /rpush               { key, value } -> { length: N }
+POST /lpop                { key } -> { value }
+GET  /lrange?key=&start=&stop= -> { values: [...] }
+GET  /llen?key=           -> { length: N }
+POST /publish             { channel, message } -> { delivered: N }
 ```
 
-Pub/sub: subscribe path is a long-lived WebSocket / SSE
-connection. The adapter spawns one subscriber goroutine
-per channel group (max N concurrent groups).
+Pub/sub: subscribe path is a long-lived connection handled by
+the sidecar; the adapter only publishes. `InMemoryBackend`
+captures published messages in per-channel queues so the
+contract is testable without a Redis container.
+
+Tests: `srv/redis-bridge/test_redis_bridge.py` (18 checks,
+stdlib-only, runs with `python3 test_redis_bridge.py`).
 
 Config (from `.env`):
 
@@ -908,7 +939,10 @@ REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_PASSWORD=${REDIS_PASSWORD}
 REDIS_DB=0
-REDIS_BRIDGE_URL=http://redis-bridge:8080
+REDIS_BACKEND=inmemory|redis      (default: inmemory)
+REDIS_BRIDGE_HOST=0.0.0.0
+REDIS_BRIDGE_PORT=8081
+REDIS_BRIDGE_URL=http://redis-bridge:8081
 ```
 
 ### 7.3 In-memory (`memory_persistence_store.gd`, `memory_cache_store.gd`)
@@ -1044,9 +1078,16 @@ the server doesn't start. This is intentional, running on
 a stale schema is worse than refusing to boot. (Override
 flag `MIGRATIONS_SKIP=1` exists for dev.)
 
-**Hold per user note 2026-09-07:** first migration is
-deferred until the schemas in §3 are locked. We're not
-writing `V20260907_001__init.sql` yet.
+**Status 2026-09-08:** first migration is **written and tested**
+(`game/adapters/migrations/V20260907_001__init_accounts.sql`,
+98 lines, idempotent `CREATE IF NOT EXISTS`). It covers the P0
+account/auth/character surface (§3.1-3.3). The migration runner
+(`game/adapters/migrations/migration_runner.gd`) applies it
+against the persistence store at boot, and `srv/pg-bridge/test_pg_bridge.py`
+verifies the runner+bridge contract end-to-end. The prior hold
+("deferred until schemas are locked") is satisfied: §3.1-3.2
+carry the LOCKED 2026-09-07 tag and the SQL mirrors them exactly.
+§3.3 (`inventories`/`equipment`) stays open for migration 002.
 
 ### 9.3 Versioning rules
 
@@ -1096,16 +1137,32 @@ Three options:
 | **GDExtension (C++)** | Zero hop latency; in-process. | Heavy build pipeline; pinned to one Godot version; C++ maintenance cost. | Phase 4+ if perf demands. |
 | **`OS.execute` shell out** | Zero code. | Terrible latency; subprocess overhead; unmanageable under load. | Rejected. |
 
-### 10.1 Default: HTTP sidecars
+### 10.1 Default: HTTP sidecars -- IMPLEMENTED
 
-- `pg-bridge`: ~200-line Go or Rust service. Exposes the
-  endpoints in §7.1. Lives in `srv/pg-bridge/`.
-- `redis-bridge`: similar. Lives in `srv/redis-bridge/`.
-  Pub/sub via SSE / WebSocket.
+Both sidecars are **built and tested** (not just spec'd):
+
+- `pg-bridge`: `srv/pg-bridge/{main.py,server.py,backends.py}`.
+  SQLite backend (stdlib, in-memory) for dev/test, Postgres backend
+  (psycopg3, lazy-imported) for prod. 12 unit tests in
+  `srv/pg-bridge/test_pg_bridge.py`, including a migration-runner
+  contract test against the real `V20260907_001__init_accounts.sql`.
+- `redis-bridge`: `srv/redis-bridge/{main.py,server.py,backends.py}`.
+  InMemory backend (stdlib) for dev/test, Redis backend (redis-py,
+  lazy-imported) for prod. 20 unit tests in
+  `srv/redis-bridge/test_redis_bridge.py`, including a pg+redis
+  end-to-end test that boots both bridges and proves the
+  AccountService -> AccountStore -> Postgres and
+  LoginService -> SessionStore -> Redis vertical slice.
 
 Both run in the docker-compose alongside Postgres / Redis.
-Both have health endpoints, Prometheus metrics, and graceful
-shutdown.
+Both have health endpoints and graceful shutdown.
+Wire protocols are pinned in §7.1 (pg) and §7.2 (redis) and
+mirrored 1-to-1 by `game/adapters/persistence/postgres_store.gd`
+and `game/adapters/cache/redis_store.gd`.
+
+Test wiring: `srv/docker/test-headless.sh` runs both bridge test
+suites before the Godot smoke tests; `srv/docker/entrypoint.sh`
+starts both bridges (in-memory backends) in `START_MODE=test`.
 
 ### 10.2 Migration path
 

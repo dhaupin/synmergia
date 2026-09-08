@@ -24,6 +24,16 @@ extends Node
 #   - prd-db.md sec.8 (service-to-store wiring)
 
 
+# Base classes MUST be preloaded before their subclasses. The subclass
+# scripts do `extends PersistenceStore` / `extends CacheStore`, and a
+# base class that hasn't been loaded yet produces
+#   "Could not find base class 'PersistenceStore'".
+# Loading the bases first (before MemoryPersistenceStore etc.) makes the
+# class registry resolve in dependency order.
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
+const CacheStore = preload("res://adapters/cache/cache_store.gd")
+const MemoryStore = preload("res://adapters/memory_layer/memory_store.gd")
+
 const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
 const MemoryCacheStore = preload("res://adapters/cache/memory_cache_store.gd")
 const PostgresStore = preload("res://adapters/persistence/postgres_store.gd")

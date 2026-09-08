@@ -90,7 +90,7 @@ func update_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0
 	if old_quality != new_quality:
 		connection_quality_changed.emit(player_id, new_quality)
 		# Frame notification: surface the transition to the toast
-		# pipeline. Worse than before → QOS_DEGRADED; better →
+		# pipeline. Worse than before -> QOS_DEGRADED; better ->
 		# QOS_RECOVERED. The dedupe key includes the player and the
 		# second-resolution bucket so a flapping connection doesn't
 		# spam the toasts but a real recovery does surface.

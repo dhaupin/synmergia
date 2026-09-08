@@ -1,4 +1,4 @@
-## notification_dispatcher.gd — TTL-based dedupe + routing for contexts.
+## notification_dispatcher.gd -- TTL-based dedupe + routing for contexts.
 ##
 ## Sits between the game services and NotificationService. Receives a
 ## NotificationContext, decides whether to drop it (dedupe) or forward
@@ -43,7 +43,7 @@ const KIND_WINDOW_OVERRIDES: Dictionary = {
 }
 
 var _window_ms: int = DEFAULT_WINDOW_MS
-# key: "%d:%s:%s" % [kind, player_id, dedupe_key]  →  last-seen tick (ms)
+# key: "%d:%s:%s" % [kind, player_id, dedupe_key]  ->  last-seen tick (ms)
 var _seen: Dictionary = {}
 
 

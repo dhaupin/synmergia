@@ -27,10 +27,10 @@ config/icon="res://icon.svg"
 # See AGENTS.md "Autoloads and class_name" for the full rules.
 AdapterRegistry="*res://adapters/registry.gd"
 BackendFactory="*res://adapters/backend_factory.gd"
+GameLog="*res://core/autoload/logger.gd"
 RegisterTypes="*res://core/autoload/type_registry.gd"
 DebugOverlay="*res://ui/components/debug_overlay.gd"
 
-GameLog="*res://core/autoload/logger.gd"
 GameConfig="*res://core/autoload/game_config.gd"
 PlayerConfig="*res://core/services/player_config.gd"
 IDRegistry="*res://core/utils/id_registry.gd"
@@ -43,8 +43,8 @@ NetworkManager="*res://core/autoload/network_manager.gd"
 PlayerManager="*res://core/autoload/player_manager.gd"
 InputManager="*res://core/autoload/input_manager.gd"
 # CooldownService and PlayerLockService are autoloads (singleton access).
-# They were previously called via `const X = preload(...)` which yields a
-# script reference, not an instance — calling non-static methods on them
+# They were previously called via a const preload script reference which
+# yields a script, not an instance -- calling non-static methods on them
 # fails. Registered before ZoneManager/InventoryService (their first
 # consumers) so _ready ordering is correct.
 CooldownService="*res://core/services/cooldown_service.gd"
