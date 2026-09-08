@@ -3,7 +3,51 @@
 Wipe and reuse each session. This file is mine to use as
 persistent memory across resets.
 
-## 2026-09-07 — second session
+## Orchestration (Kilo Code Towns)
+
+### Branching model
+- `main` — shared integration branch. Always pull before starting.
+- `labs/*` — experimental / docs work. Push here first.
+- Feature branches: `kilo/<topic>` or `town/<topic>`. One branch per town.
+- Never rebase `main` while another town is working. Use merge commits.
+
+### Before you start a task
+1. `git pull origin main` — check for parallel work.
+2. Read the bottom of this file for recent completions.
+3. Check `prd-db.md` section 2 + section 8 for service ownership.
+4. Mark your task `in_progress` with your town name + timestamp.
+5. If the task touches `game/` AND `labs/`, coordinate with both towns.
+
+### Task ownership tags
+Use these in the task list:
+- `[town:core]` — core services, autoloads, entities
+- `[town:adapter]` — persistence/cache/memory adapters
+- `[town:bridge]` — pg-bridge, redis-bridge, docker
+- `[town:ui]` — HUD, panels, targeting, social
+- `[town:docs]` — TASKS.md, prd-db.md, DEPLOY.md
+- `[town:test]` — lint, smoke, adapter tests
+
+### Merge rules
+- Push to your branch, open PR, wait for CI (lint + parse check).
+- Do not force-push to `main`.
+- If merge conflicts: ask in town channel, do not resolve silently.
+- After merge: update `## Recently Completed` with branch name.
+
+### Parallel-safe work
+These can run in parallel across towns:
+- Docs updates (TASKS.md, prd-db.md, DEPLOY.md)
+- Linter additions (tests/lint/)
+- Bridge unit tests (srv/pg-bridge/, srv/redis-bridge/)
+- Read-only sweeps (non-ASCII, trailing whitespace)
+
+These need serialization:
+- `game/project.godot` autoload order changes
+- `game/adapters/` interface changes (breaks all service code)
+- `labs/prd-db.md` section 3 schema locks
+
+---
+
+## 2026-09-07 â second session
 
 **Goal:** Extend prd-db.md with adapter layer + scope the full
 DB / cache / Redis surface across the codebase before writing
@@ -19,12 +63,12 @@ Pull main before push. Push to `labs/db` branch when ready.
 
 - [ ] Fix remaining --script mode parse errors (CooldownService,
       TradeService, FollowService, etc. in core/services/*.gd)
-- [ ] Wire first 3 services to AdapterRegistry (per prd-db.md �8):
+- [ ] Wire first 3 services to AdapterRegistry (per prd-db.md §8):
       AccountService, LoginService, PlayerManager
 - [ ] Verify adapter integration tests pass against real pg-bridge
       + redis-bridge (not just in-memory backends)
-- [ ] Lock remaining schemas in prd-db.md �3 (�3.4+)
-- [ ] Write migration 002 (inventory/equipment) per prd-db.md �9.2
+- [ ] Lock remaining schemas in prd-db.md §3 (§3.4+)
+- [ ] Write migration 002 (inventory/equipment) per prd-db.md §9.2
 - [ ] Bulk sweep: 130 .gd files with trailing whitespace
 - [ ] Bulk sweep: 56 non-ASCII files (em-dash, arrow) in comments
 
@@ -38,75 +82,75 @@ Pull main before push. Push to `labs/db` branch when ready.
   - JSON serialization (`JSON.stringify` / `JSON.parse_string`)
   - Timer + Dict combos (cache pattern)
   - Existing sql/db files
-- The `MultiIsoService` is already a working HTTP bridge —
+- The `MultiIsoService` is already a working HTTP bridge â
   the pg-bridge / redis-bridge should follow the same shape
 
 ## Found
 
 ### Persistence touchpoints already in code
 
-- **`login_service.gd:24`** — `const SAVE_PATH := "user://accounts.json"`
+- **`login_service.gd:24`** â `const SAVE_PATH := "user://accounts.json"`
   Hand-rolled JSON persistence of `accounts` + `sessions` Dict.
   Calls `FileAccess.WRITE` and `JSON.stringify(_store)`.
   This is the de-facto `AccountStore` / `SessionStore` impl,
   just on local file instead of Postgres+Redis.
 
-- **`player_config.gd:24-26`** — three ConfigFile paths:
+- **`player_config.gd:24-26`** â three ConfigFile paths:
   - `user://account_settings.cfg`
   - `user://settings/char_%s.cfg`
   - `user://global_settings.cfg`
   Per-account + per-character settings. Needs `PlayerConfigStore`
   (or a sub-store inside the existing `AccountStore`).
 
-- **`character_select.gd:167`** + **`lobby.gd:185`** — both write
+- **`character_select.gd:167`** + **`lobby.gd:185`** â both write
   `user://characters.json`. Duplicated persistence logic. Needs
   to go through the registry.
 
-- **`logger.gd:18`** — `user://logs/game.log` for game-side logs.
+- **`logger.gd:18`** â `user://logs/game.log` for game-side logs.
   Already fine (separate concern, not adapter-layer).
 
-- **`chat_service.gd:194-213`** — profanity words file
+- **`chat_service.gd:194-213`** â profanity words file
   (`user://config/profanity_words.txt`). Already a runtime
   config file load. Could stay on disk, but probably belongs
   in the `GameDataStore` (it's reference data, not user data).
 
-- **`security_monitor.gd:59-110`** — `JSON.stringify(details)`
+- **`security_monitor.gd:59-110`** â `JSON.stringify(details)`
   used to format exploit evidence for logging. The store-side
-  anti-cheat is the `AntiCheatStore` (in §2); logging is fine
+  anti-cheat is the `AntiCheatStore` (in Â§2); logging is fine
   on its own.
 
-- **`game_config.gd:221`** — `PROFANITY_WORDS_FILE` constant.
+- **`game_config.gd:221`** â `PROFANITY_WORDS_FILE` constant.
   Same file as chat_service. Same conclusion.
 
-### In-memory state that maps to a store (already in §2)
+### In-memory state that maps to a store (already in Â§2)
 
-- `cooldown_service.gd:9` — `_cooldowns: Dictionary`
-- `login_service.gd:36` — `_current_session_token`
-- `login_service.gd:41` — `_store: Dictionary` (the accounts)
-- `login_service.gd:54, 157` — `_check_rate_limit` (in-memory
+- `cooldown_service.gd:9` â `_cooldowns: Dictionary`
+- `login_service.gd:36` â `_current_session_token`
+- `login_service.gd:41` â `_store: Dictionary` (the accounts)
+- `login_service.gd:54, 157` â `_check_rate_limit` (in-memory
   rate limiting; should move to Redis once the bridge lands)
-- `entity_service.gd:14-19` — `_entities`, `_players`, `_enemies`,
+- `entity_service.gd:14-19` â `_entities`, `_players`, `_enemies`,
   `_npcs`, `_entity_metadata`
-- `trade_service.gd:19, 25` — `_active_trades`, `_players_in_trade`
-- `shard_manager.gd:16, 20` — `_online_players`, `_connected_shards`
-- `waypoint_service.gd:106, 108` — `_player_waypoints`, `_active_waypoint`
-- `world_service.gd:19` — `_active_events`
-- `loot_service.gd:7, 12, 16` — `_active_loot`, `_player_loot`,
+- `trade_service.gd:19, 25` â `_active_trades`, `_players_in_trade`
+- `shard_manager.gd:16, 20` â `_online_players`, `_connected_shards`
+- `waypoint_service.gd:106, 108` â `_player_waypoints`, `_active_waypoint`
+- `world_service.gd:19` â `_active_events`
+- `loot_service.gd:7, 12, 16` â `_active_loot`, `_player_loot`,
   `_need_greed_rolls`
-- `zone_manager.gd:18` — `_players_in_zone`
-- `follow_service.gd:21` — `_active_follows`
-- `friends_service.gd:67` — `_online_players`
-- `faction_manager.gd:14` — `_active_wars`
-- `respawn_service.gd:109` — `_active_revives`
-- `anticheat_service.gd:21` — `_player_profiles`
-- `connector_service.gd:18` — `_connected_agents`
-- `dialog_service.gd:21, 22` — `_dialogues`, `_current_dialogue`
-- `player_lock_service.gd:16` — `_player_locks`
-- `matchmaking_qos.gd:43-47` — `_player_latency`, `_player_quality`,
+- `zone_manager.gd:18` â `_players_in_zone`
+- `follow_service.gd:21` â `_active_follows`
+- `friends_service.gd:67` â `_online_players`
+- `faction_manager.gd:14` â `_active_wars`
+- `respawn_service.gd:109` â `_active_revives`
+- `anticheat_service.gd:21` â `_player_profiles`
+- `connector_service.gd:18` â `_connected_agents`
+- `dialog_service.gd:21, 22` â `_dialogues`, `_current_dialogue`
+- `player_lock_service.gd:16` â `_player_locks`
+- `matchmaking_qos.gd:43-47` â `_player_latency`, `_player_quality`,
   `_player_packet_loss`, `_player_jitter`, `_latency_history`
-- `data_service.gd:25-34` — `_skills`, `_items`, `_weapons`,
+- `data_service.gd:25-34` â `_skills`, `_items`, `_weapons`,
   `_armors`, `_accessories`, `_consumables`, `_resources`
-  (template loaders — would be replaced by Postgres-backed
+  (template loaders â would be replaced by Postgres-backed
   `GameDataStore` with Redis cache)
 
 ### Reference data on disk that should be in `GameDataStore`
@@ -123,7 +167,7 @@ files across 18 schemas:
 
 These are loaded at runtime via `data_service.gd` (file scan)
 or directly via `preload("res://data/.../foo.tres")`. The
-schemas average 20-50 `@export` fields each — these all become
+schemas average 20-50 `@export` fields each â these all become
 columns in `GameDataStore` tables.
 
 ### Connectors (HTTP, not adapter-layer)
@@ -131,57 +175,57 @@ columns in `GameDataStore` tables.
 These are NOT adapter-layer concerns (they're outbound
 service calls to third-party APIs, not DB/cache backends):
 
-- `connectors/mcp/mcp_connector.gd:115-120` — JSON-RPC over
+- `connectors/mcp/mcp_connector.gd:115-120` â JSON-RPC over
   WebSocket
-- `connectors/vant/vant_connector.gd:18-85` — REST + Bearer auth
-- `connectors/webhook/webhook_base.gd:93-110` — outbound HTTP
-- `core/services/multi_iso_service.gd:25-137` — HTTP to
+- `connectors/vant/vant_connector.gd:18-85` â REST + Bearer auth
+- `connectors/webhook/webhook_base.gd:93-110` â outbound HTTP
+- `core/services/multi_iso_service.gd:25-137` â HTTP to
   Julia orchestrator
 
 These go in their own `connectors/` adapter pattern, not
-under `game/adapters/`. (Future expansion — flag for §7.4.)
+under `game/adapters/`. (Future expansion â flag for Â§7.4.)
 
-### Services missing from §2 (10 found)
+### Services missing from Â§2 (10 found)
 
-Need to add to the §2 table + §8 wiring:
+Need to add to the Â§2 table + Â§8 wiring:
 
-- `DialogService` — dialogue state. Runtime only (in-memory);
+- `DialogService` â dialogue state. Runtime only (in-memory);
   templates come from `data/dialogues/*.tres` via `GameDataStore`.
-- `ConnectorService` — agent connector registry. Runtime only
+- `ConnectorService` â agent connector registry. Runtime only
   (in-memory); agent metadata probably needs Postgres though.
-- `PlayerConfig` — per-player settings. **Persists to disk
+- `PlayerConfig` â per-player settings. **Persists to disk
   today** (`user://...cfg`); needs a real `PlayerConfigStore`.
-- `PlayerLockService` — pure in-memory lock state.
-- `ScreenshotService` — saves PNG to disk; not adapter-layer.
-- `SlotService` — the unified slot container manager
+- `PlayerLockService` â pure in-memory lock state.
+- `ScreenshotService` â saves PNG to disk; not adapter-layer.
+- `SlotService` â the unified slot container manager
   (inventory, bank, vault, house, mount, equipment, loot,
   shop, trade). Its backing data is `InventoryStore` +
   `VaultStore` + `TradeStore`. Worth a top-level row to make
   the service discoverable.
-- `StarterKitService` — static consts; `InventoryStore` for
+- `StarterKitService` â static consts; `InventoryStore` for
   what gets granted.
-- `VendorService` — buy/sell transactions; `TradeStore` for
+- `VendorService` â buy/sell transactions; `TradeStore` for
   history, `InventoryStore` for stock changes.
-- `MatchmakingQoS` — already in PRD as `MatchmakingQoS`
+- `MatchmakingQoS` â already in PRD as `MatchmakingQoS`
   (camelCase). I had it as `MatchmakingStore`. Align.
-- `NotificationService` — in PRD; already in §2. No change.
+- `NotificationService` â in PRD; already in Â§2. No change.
 
-### Schemas not yet covered by §3
+### Schemas not yet covered by Â§3
 
-- `ankh.gd` (27 exports) — respawn / save point. Tied to
+- `ankh.gd` (27 exports) â respawn / save point. Tied to
   `RespawnStore`. Add a `respawn_points` table.
-- `dialogue_data.gd` (4 exports) — narrative trees. Loaded
+- `dialogue_data.gd` (4 exports) â narrative trees. Loaded
   from `data/dialogues/`. Belongs in `GameDataStore`.
-- `npc_offering.gd` — shop inventory. Vendor-side, belongs
+- `npc_offering.gd` â shop inventory. Vendor-side, belongs
   in `GameDataStore` (templates) + `InventoryStore` (instances).
-- `container_config_data.gd` — slot configs. `GameDataStore`.
-- `target_schema.gd` — targeting metadata. `GameDataStore`
+- `container_config_data.gd` â slot configs. `GameDataStore`.
+- `target_schema.gd` â targeting metadata. `GameDataStore`
   (per `data/targets/*.tres`).
-- `species.gd` — race definitions. `GameDataStore`.
-- `event_data.gd` — world events. `GameDataStore` (templates)
+- `species.gd` â race definitions. `GameDataStore`.
+- `event_data.gd` â world events. `GameDataStore` (templates)
   + `WorldStateStore` (instances).
-- `agent_connector.gd` + `agent_action.gd` — agent integration
-  shapes. Probably goes in `ConnectorStore` (new — agents need
+- `agent_connector.gd` + `agent_action.gd` â agent integration
+  shapes. Probably goes in `ConnectorStore` (new â agents need
   their own auth/permissions/audit trail).
 
 ## Done this session
@@ -190,19 +234,19 @@ Need to add to the §2 table + §8 wiring:
 - [x] Pulled main (no parallel commits)
 - [x] Full sweep of services, autoloads, admin, community, data, connectors
 - [x] prd-db.md extended to 1150 lines:
-      - §2 added Adapter column + 8 missing services
-      - §3 added §3.10-§3.20 (respawn_points, dialogues,
+      - Â§2 added Adapter column + 8 missing services
+      - Â§3 added Â§3.10-Â§3.20 (respawn_points, dialogues,
         npc_offerings, container_configs, target_schemas,
         species, world_events, agent_connectors,
         player_settings, existing-to-migrate list,
         data/*.tres inventory)
-      - §5-§10: adapter architecture, contracts, backends,
+      - Â§5-Â§10: adapter architecture, contracts, backends,
         wiring, migrations, transport
-      - §11: open questions including the transport
+      - Â§11: open questions including the transport
         mechanism decision and the connectors question
-      - §5: clarified the five terms (Layer / Store /
+      - Â§5: clarified the five terms (Layer / Store /
         Adapter / Registry / Transport)
-      - §10: explicitly scoped what "transport" means
+      - Â§10: explicitly scoped what "transport" means
         vs. doesn't (connectors, MultiIsoService)
 - [x] All encoding fixed: 0 mojibake chars, file is clean UTF-8
 
@@ -223,11 +267,11 @@ Need to add to the §2 table + §8 wiring:
 
 ## Found (already in TASKS.md above)
 
-8 new services added to §2: DialogService, ConnectorService,
+8 new services added to Â§2: DialogService, ConnectorService,
 PlayerConfig, PlayerLockService, SlotService, StarterKitService,
 VendorService, ScreenshotService.
 
-10 new tables in §3: respawn_points, dialogues, npc_offerings,
+10 new tables in Â§3: respawn_points, dialogues, npc_offerings,
 container_configs, target_schemas, species, world_events,
 world_event_instances, agent_connectors, agent_actions,
 player_settings.
@@ -239,7 +283,7 @@ user://config/profanity_words.txt, user://logs/game.log.
 26 subdirs of data/*.tres = ~200 reference data files, all
 headed for GameDataStore via a one-shot loader.
 
-## 2026-09-07 Session 2 — Autoload/class_name audit + AGENTS.md rules
+## 2026-09-07 Session 2 â Autoload/class_name audit + AGENTS.md rules
 
 ### What happened
 
@@ -280,11 +324,11 @@ AGENTS.md but the bug itself remains.
 
 Recommended order:
 1. Fix the Entity collision (Option A: split base + singleton)
-2. Wire first 3 services to AdapterRegistry (per prd-db.md §10)
+2. Wire first 3 services to AdapterRegistry (per prd-db.md Â§10)
 3. Test the wired services in headless
 4. Then continue with the rest of the services
 
-## 2026-09-07 Session 3 — Entity autoload fix landed
+## 2026-09-07 Session 3 â Entity autoload fix landed
 
 ### What happened
 
@@ -347,7 +391,7 @@ by node path at runtime.
 
 ---
 
-## Session 3 — Static linter suite for Godot 4.7.x gotchas
+## Session 3 â Static linter suite for Godot 4.7.x gotchas
 
 Started: 2026-09-07
 Branch: `adapter-layer`, pushed to remote `labs/db`
@@ -360,12 +404,12 @@ problems at lint time, before the editor's compile pass.
 
 ### Files added (game/tests/lint/)
 
-- `lint_helpers.gd` — shared scanner (autoloads, class_names,
+- `lint_helpers.gd` â shared scanner (autoloads, class_names,
   preloads, .gd/.tscn listing, text/bytes reading). Two new
   helpers: `report_issue(file, line, severity, msg)` for
   consistent output and `first_declaration_kind(text)` to
   determine which of `extends` / `class_name` comes first.
-- `test_lint_autoload.gd` — 8 checks:
+- `test_lint_autoload.gd` â 8 checks:
   - autoload parsing
   - class_name scanning
   - duplicate class_name detection
@@ -375,23 +419,23 @@ problems at lint time, before the editor's compile pass.
   - 3+ cycle preload detection (FAIL)
   - missing preload target detection
   - self-scan exclude (does not flag files in tests/lint/)
-- `test_lint_indentation.gd` — 3 checks:
+- `test_lint_indentation.gd` â 3 checks:
   - leading-spaces files
   - tab-indented files (most of the project)
   - mixed-indent files (REAL BUGS found)
   - trailing whitespace
-- `test_lint_syntax.gd` — 5 checks:
+- `test_lint_syntax.gd` â 5 checks:
   - CRLF line endings
   - UTF-8 BOM
   - unbalanced parens/brackets/braces (stack-based)
   - `class_name` before `extends` (REAL BUGS found)
   - 3+ consecutive blank lines
-- `test_lint_charset.gd` — 3 checks:
+- `test_lint_charset.gd` â 3 checks:
   - non-ASCII bytes (REAL BUGS found: 56 files)
   - named offenders (em-dash, smart quotes, NBSP, etc.) with
     replacement suggestions
   - tabs inside string literals
-- `test_lint_general.gd` — 8 checks:
+- `test_lint_general.gd` â 8 checks:
   - orphan .uid files
   - missing .tscn resource references
   - hardcoded absolute paths (Windows-style, /tmp, /home, %TEMP%)
@@ -400,9 +444,9 @@ problems at lint time, before the editor's compile pass.
   - 200+ col lines
   - @tool scripts
   - connect() call site count
-- `run_all.sh` — bash runner that invokes each linter and
+- `run_all.sh` â bash runner that invokes each linter and
   aggregates PASS/FAIL counts.
-- `README.md` — usage, allowlists, smoke-fixture recipe.
+- `README.md` â usage, allowlists, smoke-fixture recipe.
 
 ### Real bugs found by the suite
 
@@ -458,7 +502,7 @@ being rewritten (510-commit rebase in progress when we tried).
 
 
 
-## 2026-09-08 — tenth session (real Godot 4.7.2 verification)
+## 2026-09-08 â tenth session (real Godot 4.7.2 verification)
 
 **Branch:** `kilo/festive-ribbon-wav`
 **Pushed:** yes (`964d607` adapter fix, `e3a28f5` binary untrack)
@@ -532,7 +576,7 @@ to use `get_node_or_null`. Out of scope for this task.
 `godot --headless --path . --script res://tests/test_parse_check.gd`
 -> 11/11 files load() successfully under real 4.7.2.
 
-## 2026-09-08 — ninth session (non-ASCII bulk sweep)
+## 2026-09-08 â ninth session (non-ASCII bulk sweep)
 
 **Branch:** `kilo/festive-ribbon-wav`
 **Pushed:** yes (`e0d1b1f`)
@@ -584,7 +628,7 @@ All under `game/` -- `game/core/services/*.gd` (21),
 `game/ui/menus/*.gd` (2), `game/ui/admin/*.gd` (1),
 `game/ui/social/*.gd` (1), `game/adapters/migrations/*.gd` (1).
 
-## 2026-09-08 — eighth session (autoload parse errors)
+## 2026-09-08 â eighth session (autoload parse errors)
 
 **Branch:** `kilo/festive-ribbon-wav`
 **Pushed:** no
@@ -650,7 +694,7 @@ check_syntax.py                             | new, port of tests/lint/test_lint_
   the shipped tree; delete or move to `tests/lint/` if it should
   be permanent.
 
-## 2026-09-08 — seventh session (redis-bridge + test wiring)
+## 2026-09-08 â seventh session (redis-bridge + test wiring)
 
 **Branch:** `kilo/festive-ribbon-wav`
 **Pushed:** no (local-only; waiting on parallel agent per prior note)
@@ -752,7 +796,7 @@ labs/TASKS.md                            | this log
 - [ ] Lock DB schemas (prd-db.md sec.3) before writing
       `V20260907_002__init_inventory.sql`
 
-## 2026-09-07 — fourth session (lint + linter-bug chipping)
+## 2026-09-07 â fourth session (lint + linter-bug chipping)
 
 **Branch:** `adapter-layer` -> `labs/db`
 **HEAD before:** 257d0fe (test(lint): downgrade false-positive charset/indentation to info)
@@ -769,14 +813,14 @@ labs/TASKS.md                            | this log
    instead of the real 138. Rewrote it to skip past `extends`,
    `const`, `var`, `enum` and keep looking for `class_name`.
    *Side effect:* the autoload linter's [FAIL] "scan_class_names
-   got 0 entries" branch is now retired — the assertion was a
+   got 0 entries" branch is now retired â the assertion was a
    test for a bug we no longer have.
 
 2. **4 class_name-before-extends** (real GDScript parse errors):
-   - `core/schemas/container_schema.gd` — swapped
-   - `core/schemas/container_config_data.gd` — swapped
-   - `ui/community/voting_ui.gd` — swapped
-   - `data/quests/quest_guide_npc.gd` — DEAD CODE, stubbed
+   - `core/schemas/container_schema.gd` â swapped
+   - `core/schemas/container_config_data.gd` â swapped
+   - `ui/community/voting_ui.gd` â swapped
+   - `data/quests/quest_guide_npc.gd` â DEAD CODE, stubbed
      out. The file referenced schemas that never existed
      (`quest_objective.gd`, `quest.gd`), shadowed the real
      `QuestData` via duplicate class_name, and called
@@ -791,7 +835,7 @@ labs/TASKS.md                            | this log
    The `_build_ui` function used 4-space indent while the
    rest of the file used tabs. Fixed lines 542, 543, 549, 565
    (the lines the linter flagged). The file still does not
-   fully parse — there are deeper indent issues in the same
+   fully parse â there are deeper indent issues in the same
    function (more lines with leading spaces instead of tabs).
    Not yet a [PASS] for test_lint_indentation.
 
@@ -806,21 +850,21 @@ labs/TASKS.md                            | this log
 | test_lint_general     | 6/8 PASS         | 7/8 PASS         |
 
 The 1 remaining [FAIL] in both indentation and general is
-the same `character_panel.gd` — same root cause (the
+the same `character_panel.gd` â same root cause (the
 _space-indented function body_), not a new bug. Fixing it
 fully needs a tool like `unexpand -t 4` over the whole
 function or a careful manual pass over lines 530-720.
 
 ### Real project parse errors still open (pre-existing)
 
-- `adapters/registry.gd` — "Could not resolve class
+- `adapters/registry.gd` â "Could not resolve class
   `PersistenceStore` and `CacheStore`". These classes live
   in `labs/multi-iso/db/` and have not yet been pulled into
   the game/ tree.
-- `adapters/registry.gd` — `connect()` signature mismatch
+- `adapters/registry.gd` â `connect()` signature mismatch
   with Object native (`StringName, Callable, int`).
 - `adapters/registry.gd` and `adapters/backend_factory.gd`
-  — `connect()` shadows Object.connect. The Godot-idiomatic
+  â `connect()` shadows Object.connect. The Godot-idiomatic
   fix is to rename (e.g. `_connect`) or to not define a
   `connect()` method at all (use the built-in).
 
@@ -834,11 +878,11 @@ are independent and safe.
 ### Open follow-ups (cumulative)
 
 - [ ] Finish `character_panel.gd` mixed-indent (deeper than
-      4 lines — whole `_build_ui` function is space-indented)
+      4 lines â whole `_build_ui` function is space-indented)
 - [ ] adapters/registry.gd: PersistenceStore / CacheStore refs
 - [ ] adapters/registry.gd: connect() signature conflict
 - [ ] adapters/backend_factory.gd: connect() shadow on Object
-- [ ] Audit `srv/docker/test-headless.sh` wiring — linters
+- [ ] Audit `srv/docker/test-headless.sh` wiring â linters
       need to be invoked from the smoke runner
 - [ ] Audit `srv/docker/run_all.sh` for shell-script issues
 - [ ] Address openhands issue list (truncated in user msg;
@@ -846,12 +890,12 @@ are independent and safe.
 - [ ] Hook linters into the smoke flow so a single
       `tests/lint/run_all.sh` runs as part of CI
 - [ ] 8 space-indented .gd files (not a parse error, just
-      style) — bulk conversion
+      style) â bulk conversion
 - [ ] 9 files with mixed tabs+spaces on a single line
       (carry-over from session 3)
 
 
-## 2026-09-07 — fifth session (adapter parse errors + 8 mixed-indent files)
+## 2026-09-07 â fifth session (adapter parse errors + 8 mixed-indent files)
 
 **Branch:** `adapter-layer` -> `labs/db`
 **HEAD before:** ede6f5f (docs: session 4 log)
@@ -950,16 +994,16 @@ project in `--script` mode still tries to load every
 autoload listed in project.godot. Pre-existing parse
 errors in three autoloads cascade and break the boot:
 
-- `core/autoload/game_manager.gd` — "Too many arguments
+- `core/autoload/game_manager.gd` â "Too many arguments
   for `get()` call" (Object collision, same family as
   the adapter fix but in unrelated code)
-- `core/services/player_lock_service.gd` — "Cannot call
+- `core/services/player_lock_service.gd` â "Cannot call
   non-static function `cancel_on_teleport()` ... Make an
   instance instead"
-- `core/autoload/network_manager.gd` — compilation fails
+- `core/autoload/network_manager.gd` â compilation fails
   (cascade)
 - `ui/components/blacksmith_ui.gd` and
-  `ui/components/skill_academy_ui.gd` — "Could not
+  `ui/components/skill_academy_ui.gd` â "Could not
   resolve script"
 
 These are not regressions and pre-date this session.
@@ -998,17 +1042,17 @@ game/ui/components/menu_manager.gd             |  +1 -1
 
 - [ ] Fix autoloads blocking --script mode (game_manager,
       network_manager, player_lock_service, blacksmith_ui,
-      skill_academy_ui) — pre-existing, blocks ALL smoke tests
+      skill_academy_ui) â pre-existing, blocks ALL smoke tests
 - [ ] Audit `srv/docker/test-headless.sh` wiring
 - [ ] Audit `srv/docker/run_all.sh` for shell-script issues
 - [ ] Address openhands issue list (truncated in user msg)
 - [ ] Hook linters into the smoke flow
 - [x] 8 space-indented .gd files (not a parse error, style)  -- DONE session 6
-- [ ] 56 non-ASCII files (em-dash, arrow) — bulk
+- [ ] 56 non-ASCII files (em-dash, arrow) â bulk
 
 ---
 
-## Session 6 (2026-09-07, Mon) — space-indent sweep
+## Session 6 (2026-09-07, Mon) â space-indent sweep
 
 ### Goal
 Convert the 8 space-indented files in `game/core/` to tabs per
@@ -1084,7 +1128,7 @@ game/core/services/achievement_service.gd | 174 ++++++++++++++++-----------
 ### Pivoting to DB buildins
 
 Per the 2026-09-07 user note, after this session we pivot to
-"DB buildins" — the work tracked in `labs/prd-db.md` §3-§9
+"DB buildins" â the work tracked in `labs/prd-db.md` Â§3-Â§9
 (schema, contracts, Postgres + Redis adapters, migration
 runner). The lint work continues to clear style issues (the
 56 non-ASCII files are next) but the **primary** track shifts
@@ -1092,8 +1136,8 @@ to plumbing the adapter layer end-to-end against real
 backends.
 
 Key DB buildin work items, in priority order:
-1. Lock the schemas in `prd-db.md` §3 (P0/P1 services only)
-2. Pick a transport: HTTP sidecar vs GDExtension (§10).
+1. Lock the schemas in `prd-db.md` Â§3 (P0/P1 services only)
+2. Pick a transport: HTTP sidecar vs GDExtension (Â§10).
    PRD recommends HTTP sidecar for v1.
 3. Stand up `srv/pg-bridge/` and `srv/redis-bridge/` shells
    so adapter implementations have something to call.
@@ -1104,12 +1148,12 @@ Key DB buildin work items, in priority order:
    `LoginService -> SessionStore -> Redis`. Verify with
    `test_login_flow.gd`.
 6. First migration (`V<date>_001__init.sql`) is held until
-   schemas are locked (per `prd-db.md` §9.2).
+   schemas are locked (per `prd-db.md` Â§9.2).
 
 The 8 space-indented files are no longer a style liability,
 so the only remaining pre-implementation cleanup before DB
 buildins is:
-- 56 non-ASCII files (em-dash, arrow, leq) — bulk
+- 56 non-ASCII files (em-dash, arrow, leq) â bulk
 - Fix the 2 pre-existing autoload parse errors (game_manager,
   achievement_service) so `--script` mode works and we can
   actually run the integration tests against real backends.
@@ -1118,23 +1162,23 @@ buildins is:
 
 - [ ] Fix autoloads blocking --script mode (game_manager,
       network_manager, player_lock_service, blacksmith_ui,
-      skill_academy_ui, achievement_service) — pre-existing,
+      skill_academy_ui, achievement_service) â pre-existing,
       blocks ALL smoke tests. **Now the gating issue for DB
       buildins: can't test adapters end-to-end without this.**
 - [ ] Audit `srv/docker/test-headless.sh` wiring
 - [ ] Audit `srv/docker/run_all.sh` for shell-script issues
 - [ ] Address openhands issue list (truncated in user msg)
 - [ ] Hook linters into the smoke flow
-- [ ] 56 non-ASCII files (em-dash, arrow) — bulk
-- [ ] Lock DB schemas (prd-db.md §3) before writing
+- [ ] 56 non-ASCII files (em-dash, arrow) â bulk
+- [ ] Lock DB schemas (prd-db.md Â§3) before writing
       `V<date>_001__init.sql`
-- [ ] Pick transport: HTTP sidecar vs GDExtension (prd-db.md §10)
+- [ ] Pick transport: HTTP sidecar vs GDExtension (prd-db.md Â§10)
 - [ ] Stand up `srv/pg-bridge/` and `srv/redis-bridge/` shells
 - [ ] Wire AccountService + LoginService vertical slice
 
 ---
 
-## Session 6b (2026-09-07, Mon) � linter additions
+## Session 6b (2026-09-07, Mon) ö linter additions
 
 User asked: "add trailing white space, line endings, etc to the linter".
 
