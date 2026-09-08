@@ -449,6 +449,81 @@ being rewritten (510-commit rebase in progress when we tried).
 
 
 
+
+## 2026-09-08 — tenth session (real Godot 4.7.2 verification)
+
+**Branch:** `kilo/festive-ribbon-wav`
+**Pushed:** yes (`964d607` adapter fix, `e3a28f5` binary untrack)
+
+### Goal
+The task log claimed six autoloads blocked `--script` mode. I could
+not verify that without a real Godot binary, so I downloaded the
+official 4.7.2 linux_x86_64 build (75MB zip from
+godotengine/godot-builds 4.7.2-stable) into `.kilo-godot/` and ran
+the flagged files under a real parser.
+
+### Finding: the task-log diagnoses were stale
+`game/tests/test_parse_check.gd` loads each named file with the real
+4.7.2 `load()`. Result: **11/11 PASS** -- game_manager, network_manager,
+player_lock_service, achievement_service, blacksmith_ui,
+skill_academy_ui, ui_panel, player_manager, app_firewall, logger,
+game_config all parse cleanly.
+
+The concrete defects I fixed earlier this session (achievement_service
+double-indent, skill_academy_ui non-ASCII) were real; the other four
+diagnoses (2-arg `Resource.get`, `cancel_on_teleport` shadowing, bare
+`extends UIPanel` + `const UIPanel` preload) do not reproduce. They
+were probably stale notes from a prior session.
+
+### Real blocker found: project.godot had an em-dash in a comment
+`game/project.godot:47` had `-- calling non-static methods on them`
+where the `--` was actually U+2014 (em-dash). Godot's INI parser
+treated it as an unexpected identifier and refused to load the
+project at all, which cascaded into "Identifier not declared" errors
+everywhere. My non-ASCII sweep only covered `.gd` files. Fixed.
+
+### Adapter layer was genuinely broken
+With the project loading, the real errors surfaced: the four subclass
+adapters (`memory_persistence_store`, `postgres_store`,
+`memory_cache_store`, `redis_store`) all failed with
+"Could not find base class 'PersistenceStore'" / "Could not resolve
+script". The base classes define `class_name` but the subclasses
+`extends` them by bare name, which only resolves if the base has been
+loaded first -- and nothing guaranteed that order.
+
+Two attempted fixes both failed under 4.7.2:
+- `const X = preload(...)` then `extends X` -- GDScript requires
+  `extends` to be the first declaration.
+- `extends (preload(...))` / `extends preload(...)` -- 4.7.2 rejects
+  both with "Expected superclass name after extends".
+
+The working fix: `extends "res://adapters/.../base.gd"` (string-path
+extends). This loads the base at parse time and registers its
+class_name globally, so each subclass resolves independently of
+load order. Also preloaded the base interfaces explicitly in
+backend_factory.gd and converted type_registry.gd's `_ready()`-phase
+preload loop to module-level const preloads (parse-time, not runtime).
+
+### Binary hygiene
+The 146MB Godot binary + 75MB zip got staged by an earlier
+`git add -A` and broke pushes with HTTP 413. Untracked them, added
+`.kilo-godot/` to `.gitignore`, and ran `git filter-branch` to purge
+them from history. Force-pushed.
+
+### Remaining smoke-test failures are a pre-existing limitation
+The existing `test_login_flow.gd` still fails in `--script` mode
+because autoload singletons are NOT bare globals there -- they are
+Node instances under `/root`. Game code (e.g. `lobby.gd`) uses bare
+`LoginService.register(...)`, which only compiles in a normal boot.
+This is documented in the project's own testing notes and is not
+something I introduced or can fix without rewriting every game file
+to use `get_node_or_null`. Out of scope for this task.
+
+### Verification
+
+`godot --headless --path . --script res://tests/test_parse_check.gd`
+-> 11/11 files load() successfully under real 4.7.2.
+
 ## 2026-09-08 — ninth session (non-ASCII bulk sweep)
 
 **Branch:** `kilo/festive-ribbon-wav`
