@@ -10,6 +10,13 @@ static func singleton() -> Node:
 		_instance._ready()
 	return _instance
 
+## BBCode XSS escape (AGENTS.md "Security: BBCode XSS").
+## DialogUI renders user-supplied text in RichLabels; unescaped [ and ]
+## let a player inject formatting/color/URL tags. Full-width brackets
+## are not recognized as BBCode and pass through as literal text.
+static func _esc(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］")
+
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 
@@ -163,8 +170,12 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 				ShopUI.open_shop(shop_id)
 				return true
 		DialogActionType.OPEN_VAULT:
-			if VaultUI:
-				VaultUI.open_vault(action_data.get("vault_type", "personal"))
+			# The vault panel is registered as "bank" in MenuManager
+			# (BankUI). There is no VaultUI class -- the old reference
+			# was a dangling identifier that also made this branch
+			# return a Node from a String-returning function.
+			if MenuManager:
+				MenuManager.open_menu("bank")
 				return true
 		DialogActionType.SET_WAYPOINT:
 			var wp_name := action_data.get("name", "Marker")
@@ -201,5 +212,7 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 
 func get_local_player_id() -> String:
 	if PlayerManager:
-		return PlayerManager.local_player
+		var player = PlayerManager.get_local_player()
+		if player and "entity_id" in player:
+			return player.entity_id
 	return ""

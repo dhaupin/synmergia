@@ -1,9 +1,8 @@
 ## DialogUI - NPC dialog system
 ## Quest offers, conversation, choices
 ## Extends UIPanel with bottom-anchored positioning
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name DialogUI
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const DialogService = preload("res://core/services/dialog_service.gd")
 const EntityService = preload("res://core/services/entity_service.gd")
 

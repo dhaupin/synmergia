@@ -1,9 +1,7 @@
 ## FactionUI - Faction reputation and war status display
 ## Shows player's faction standings, reputation, and war declarations
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name FactionUI
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
 var _factions: Array = []
 var _selected_faction: Dictionary = {}
 

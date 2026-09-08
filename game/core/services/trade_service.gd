@@ -562,7 +562,7 @@ func force_cancel_trade(player_id: String, reason: String) -> void:
 		return
 	
 	# Notify both players
-	var other_id := trade["player1"] if trade["player2"] == player_id else trade["player2"]
+	var other_id: String = trade["player1"] if trade["player2"] == player_id else trade["player2"]
 	_notify_player(player_id, "Trade cancelled: %s" % reason)
 	_notify_player(other_id, "Trade cancelled: %s" % reason)
 	

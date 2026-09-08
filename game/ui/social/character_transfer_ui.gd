@@ -1,10 +1,7 @@
 ## CharacterTransferUI - Quick transfer between own characters
 ## Migrated onto UIPanel base class.
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name CharacterTransferUI
-
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
 var _targets_list: ItemList
 var _gold_input: SpinBox
 var _transfer_btn: Button

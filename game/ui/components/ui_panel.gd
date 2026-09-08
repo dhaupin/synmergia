@@ -2,6 +2,8 @@
 extends Control
 class_name UIPanel
 
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+
 ## Panel state
 var _is_open: bool = false
 var _player_id: String = ""

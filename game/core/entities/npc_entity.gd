@@ -2,7 +2,7 @@
 ## Unified NPC entity -- reads includes[] from NPCData and dispatches to the correct panel/service on interact.
 ## Each NPC has one or more offerings in npc_data.includes[].
 ## on_interact() reads the offering and routes to the appropriate panel.
-extends Entity
+extends "res://core/entities/entity.gd"
 class_name NPCEntity
 
 const NPCData = preload("res://core/schemas/npc_data.gd")

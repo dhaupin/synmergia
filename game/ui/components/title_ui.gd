@@ -1,8 +1,7 @@
 ## TitleUI - Title management panel
 ## Allows players to view unlocked titles and equip/unequip prefix/suffix titles
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name TitleUI
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const TitleData = preload("res://core/schemas/title_data.gd")
 
 ## Title color options (excluding gold - reserved for GM)

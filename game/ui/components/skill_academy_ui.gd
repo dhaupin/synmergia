@@ -7,11 +7,10 @@
 ##   4. Signature -- choose 1 of 3 class signatures (level 10+)
 ##   5. Respec    -- reset all upgrades (books NOT returned)
 
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name SkillAcademyUI
 
 const CharacterData = preload("res://core/schemas/character_data.gd")
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 const Item = preload("res://core/schemas/item.gd")

@@ -2,11 +2,8 @@
 ## Opened when player interacts with a "vendor" NPC.
 ## Two tabs: Buy (catalog) and Sell (player inventory).
 ## Proximity auto-closes at 8m.
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name ShopUI
-
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const VendorService = preload("res://core/services/vendor_service.gd")

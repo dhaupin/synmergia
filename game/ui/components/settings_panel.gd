@@ -1,10 +1,7 @@
 ## SettingsPanel - Game settings UI
 ## Audio, video, keybinds, accessibility options
 ## Wired to PlayerConfig for persistent settings.
-extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
+extends "res://ui/components/ui_panel.gd"
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name SettingsPanel
 

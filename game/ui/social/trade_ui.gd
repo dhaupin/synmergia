@@ -1,9 +1,6 @@
 ## TradeUI - Item trading panel
 ## Migrated onto UIPanel base class.
-extends UIPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
-
+extends "res://ui/components/ui_panel.gd"
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name TradeUI
 

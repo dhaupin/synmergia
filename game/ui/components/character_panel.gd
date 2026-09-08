@@ -1,9 +1,8 @@
 ## CharacterPanel - Unified in-game character management
 ## Tabs: Inventory | Equipment | Stats | Skills
 ## Uses UIStyles for consistent theming
-extends UIPanel
+extends "res://ui/components/ui_panel.gd"
 class_name CharacterPanel
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const Item = preload("res://core/schemas/item.gd")

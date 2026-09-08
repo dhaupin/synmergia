@@ -176,10 +176,19 @@ func _apply_dot(caster: Entity, target: Entity, skill: Skill) -> void:
 	target.apply_status_effect(effect)
 
 func _apply_cc(skill: Skill, caster: Entity, target: Entity) -> void:
-	var effect := skill.create_slow_effect(caster) if skill.crowd_control_type == "slow" else \
-		skill.create_stun_effect(caster) if skill.crowd_control_type == "stun" else \
-		skill.create_root_effect(caster)
-	
+	# Nested ternary (a if c1 else b if c2 else d) is rejected by the
+	# 4.7.2 parser -- it mis-parses the second `if` as a statement
+	# terminator. Use an explicit match instead.
+	var effect: StatusEffect = null
+	match skill.crowd_control_type:
+		"slow":
+			effect = skill.create_slow_effect(caster)
+		"stun":
+			effect = skill.create_stun_effect(caster)
+		_:
+			effect = skill.create_root_effect(caster)
+	if effect == null:
+		return
 	target.apply_status_effect(effect)
 
 func _apply_teleport(caster: Entity, _target: Entity, skill: Skill) -> void:
