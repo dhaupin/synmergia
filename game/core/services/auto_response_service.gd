@@ -33,6 +33,9 @@ enum ActionType {
 ## Track exploit confirmations per player
 var _player_exploit_counts: Dictionary = {}  # player_id -> {exploit_type: count}
 
+## DictStore key prefix
+const _kv_prefix := "auto_response:"
+
 ## Track if auto-response is enabled
 var _enabled: bool = false
 
@@ -275,3 +278,20 @@ func reset_player_count(player_id: String) -> void:
 
 func get_player_counts(player_id: String) -> Dictionary:
 	return _player_exploit_counts.get(player_id, {})
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_player_exploit_counts = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var player_id = key.substr(_kv_prefix.length())
+			_player_exploit_counts[player_id] = store.get(key)
+
+func _persist_exploit_counts(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_exploit_counts.has(player_id):
+		store.set(_kv_prefix + player_id, _player_exploit_counts[player_id])
+	else:
+		store.erase(_kv_prefix + player_id)
