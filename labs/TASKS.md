@@ -221,25 +221,41 @@ Use these in the task list:
 
 ### 7. DataService [town:core] [town:adapter]
 
-**Current state:** Loads static .tres files (items, enemies, skills, etc.) into memory
+**Current state:** Scans data/ folder for .tres files, provides access by ID
+- 381 lines, loads skills/items/enemies/zones/NPCs/etc into memory
+- **Bug**: scans `data/items/` but actual folders are `weapons/`, `armors/`, `consumables/`, `resources/`, `misc/`
+- **Bug**: scans `data/npcs/` but actual folder is `data/npc/` (singular)
+- Result: 0 items and 0 NPCs loaded currently
+- 9 callers use typed API (`get_item`, `get_skill`, `get_all_*`)
 
 **Challenges:**
-- .tres files are already cached by Godot's resource system
-- 200+ .tres files across 18 schemas
-- Content updates require server restart (or live reload)
+- Directory mismatch breaks item/NPC loading
+- No canonical access layer — callers reach into internal dicts
+- No error handling for missing data (silent nulls)
+- No content versioning or cache invalidation
+- .tres loading is fast but repeated parsing across shards
 
 **Recommended architecture:**
-- **Primary**: keep .tres loading as-is (fast, Godot-native)
-- **Cache layer**: build Redis cache for hot lookups (item_id -> Item data)
-  - Populate on first access, TTL = very long (content rarely changes)
-  - Reduces repeated .tres parsing across shards
-- **Content versioning**: add schema version to cache keys, invalidate on update
-- If moving to Postgres: create `game_data` table with JSONB columns per schema
-  - But this is a large migration — defer to later phase
+- **Phase 1**: Fix directory mapping + add canonical API
+  - Fix `_load_items()` to scan correct subdirectories
+  - Fix `_load_npcs()` to use `data/npc/` path
+  - Add typed getters: `get_item(id)`, `get_enemy(id)`, `get_zone(id)`, etc.
+  - Add `get_all_items()`, `get_all_enemies()` for batch access
+  - Return `Result<T>` or null with error logging for missing data
+- **Phase 2**: Add DataSource abstraction
+  - `DataSource` interface: `load_schema(name)`, `get_by_id(id)`, `get_all()`
+  - `FilesystemDataSource` — current .tres scanning
+  - Future: `RedisDataSource` for cross-shard caching
+  - Future: `PostgresDataSource` for live content updates
+- **Phase 3**: Content versioning
+  - Compute content-hash on boot
+  - Cache keys include version: `item:<version>:<id>`
+  - Invalidate on content update
 
 **Key decisions needed:**
-- Redis cache worth it? → Profile first; .tres loading is already fast
-- Live content updates? → Not needed for initial wiring
+- Fix directory paths first? → Yes, this is a P0 bug
+- Add Result<T> or keep null returns? → Keep null for now, add GameLog.warn for missing
+- Redis cache needed? → Defer; .tres loading is already cached by Godot
 
 ---
 
@@ -247,22 +263,41 @@ Use these in the task list:
 
 ### Phase 1: Medium-complexity services (sub-agent friendly)
 1. `NotificationService` — persist notification history
+   - Wire: entity notifications + history to DictStore
+   - Ephemeral queue stays in-memory
+   - Dedupe cache via CacheWrapper with TTL
 2. `WorldService` — already done (gateways), add active events
+   - Active events to DictStore
 3. `MatchmakingQoS` — already done
 4. `SameAccountTransferService` — already done
 
 ### Phase 2: Complex services (need manual review)
 5. `InventoryService` — item serialization + snapshot
+   - Add to_dict()/from_dict() to Item class
+   - Snapshot full inventory per player to DictStore
+   - Include equipment in snapshot for atomicity
 6. `ZoneManager` — zone definitions + instance state
+   - Zone definitions to DictStore (like WorldService)
+   - Runtime tracking stays in-memory
+   - Active instances to DictStore
 7. `EntityService` — metadata + spawn registry
+   - Entity metadata on spawn/despawn to DictStore
+   - Live state (position/HP) in-memory only
+   - Spawn definitions already in SpawnService
 
 ### Phase 3: Session/ephemeral services (minimal wiring)
 8. `PlayerManager` — no persistence needed
+   - Pure session state, re-registers on login
 9. `GameManager` — minimal settings only
-10. `DataService` — .tres cache optional
+   - Delegate state to individual services
+   - Persist only high-level game phase if needed
+10. `DataService` — fix bugs + canonical API
+    - Fix directory mismatch (items/, npcs/)
+    - Add typed getters: get_item(), get_enemy(), get_zone()
+    - Add DataSource abstraction for future Redis/Postgres
 
 ### Next sub-agent targets
-- InventoryService (after Item serialization confirmed)
-- ZoneManager (zone definitions)
-- EntityService (spawn metadata persistence)
+- `NotificationService` — persist notification history
+- `DataService` — fix directory bugs + add canonical API
+- `WorldService` — add active events persistence
 
