@@ -22,6 +22,9 @@ var _event_templates: Dictionary = {}
 # World seed for procedural generation
 var world_seed: int = 0
 
+const _kv_prefix := "world:"
+const _kv_events := "world:event:"
+
 signal time_changed(time_of_day: String, hour: int)
 signal day_changed(day_number: int)
 signal gateway_activated(gateway_id: String, entity)
@@ -63,6 +66,7 @@ class GatewayRecord:
 func _ready() -> void:
 	GameLog.info("WorldService: Ready")
 	_load_gateways()
+	_load_events()
 
 ## Initialize the world
 func initialize_world() -> void:
@@ -259,6 +263,7 @@ func start_event(event_id: String, duration_seconds: float, message: String = ""
 	}
 
 	_active_events.append(event)
+	_persist_events()
 
 	# Apply event effects
 	_apply_event_effects(event_id, true)
@@ -286,6 +291,7 @@ func end_event(event_id: String, message: String = "") -> void:
 	if event_index >= 0:
 		var event = _active_events[event_index]
 		_active_events.remove_at(event_index)
+		_persist_events()
 
 		# Remove event effects
 		_apply_event_effects(event_id, false)
@@ -389,3 +395,20 @@ func _persist_gateway(gateway_id: String) -> void:
 		store.set(_kv_prefix + "gateway:" + gateway_id, _gateways[gateway_id])
 	else:
 		store.erase(_kv_prefix + "gateway:" + gateway_id)
+
+func _load_events() -> void:
+	var store := DictStore.new()
+	_active_events = []
+	for key in store.all_keys():
+		if key.begins_with(_kv_events):
+			var loaded = store.get(key)
+			if loaded is Array:
+				for ev in loaded:
+					_active_events.append(ev)
+
+func _persist_events() -> void:
+	var store := DictStore.new()
+	if _active_events.is_empty():
+		store.erase(_kv_events + "active")
+	else:
+		store.set(_kv_events + "active", _active_events)
