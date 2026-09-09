@@ -2,6 +2,8 @@
 extends Node
 
 const AchievementData = preload("res://core/schemas/achievement_data.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const _kv_prefix := "achievement:player:"
 
 ## Achievement definitions loaded from data/achievements via DataService
 var _achievement_defs: Dictionary = {}
@@ -15,6 +17,7 @@ signal achievement_progressed(player_id: String, achievement_id: String, progres
 func _ready() -> void:
 	GameLog.info("AchievementService: Initialized")
 	_load_achievement_definitions()
+	_load_player_achievements()
 
 func _load_achievement_definitions() -> void:
 	if DataService and DataService.has_method("get_all_achievements"):
@@ -152,6 +155,8 @@ func _increment_progress(player_id: String, achievement_id: String, amount: int)
 			"unlocked_at": Time.get_unix_time_from_system() if current >= target else 0
 	}
 
+	_persist_player_achievements(player_id)
+
 	if current >= target:
 			_do_unlock(player_id, achievement_id)
 	else:
@@ -159,3 +164,22 @@ func _increment_progress(player_id: String, achievement_id: String, amount: int)
 
 func _do_unlock(player_id: String, achievement_id: String) -> void:
 	achievement_unlocked.emit(player_id, achievement_id)
+	_persist_player_achievements(player_id)
+
+func _load_player_achievements() -> void:
+	var store := DictStore.new()
+	_player_achievements.clear()
+	for key in store.all_keys(_kv_prefix):
+		var player_id := key.replace(_kv_prefix, "")
+		var data: Dictionary = store.get(key, {})
+		if not data.is_empty():
+			_player_achievements[player_id] = data
+
+func _persist_player_achievements(player_id: String) -> void:
+	var store := DictStore.new()
+	var achievements: Dictionary = _player_achievements.get(player_id, {})
+	if achievements.is_empty():
+		store.erase(_kv_prefix + player_id)
+	else:
+		store.set(_kv_prefix + player_id, achievements)
+	_persist_player_achievements(player_id)
