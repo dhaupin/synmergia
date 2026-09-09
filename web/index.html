@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=coverage">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<meta name="description" content="Synmergia - A free and open source MMORPG">
 	<meta name="theme-color" content="#1a1a2e">
 	<title>Synmergia</title>
@@ -24,6 +26,7 @@
 	</div>
 	<script src="/config.js"></script>
 	<script src="/shared/input.js"></script>
+	<script src="/shared/touch_ui.js"></script>
 	<script src="/shared/network.js"></script>
 	<script src="/game.js"></script>
 	<script>
@@ -33,23 +36,15 @@
 		var errorScreen = document.getElementById('error-screen');
 		var errorText = document.getElementById('error-text');
 
-		// Initialize input handler
 		SynmergiaInput.init(canvas);
-
-		// Initialize network with config
+		SynmergiaTouchUI.init(canvas);
 		SynmergiaNetwork.init(window.SynmergiaConfig.serverUrl);
 
-		// Godot engine entry point
 		function onGodotReady(engine) {
-			// The Godot JS glue code calls this when the engine is loaded
-			// It creates the engine instance and starts the game
 			var config = window.SynmergiaConfig.engineOptions;
 			var args = config.args || [];
-
-			// Add canvas as argument
 			args.push('--canvas-id', 'game-canvas');
 
-			// Create engine
 			var engine = new Engine({
 				module: config.module || 'game.wasm',
 				wasm: config.wasm !== false,
@@ -58,7 +53,6 @@
 				debug: config.debug || false,
 			});
 
-			// Start the engine
 			engine.start().then(function() {
 				loading.classList.add('hidden');
 			}).catch(function(err) {
@@ -68,10 +62,8 @@
 			});
 		}
 
-		// Expose for Godot glue code
 		window.onGodotReady = onGodotReady;
 
-		// Fallback: if engine doesn't signal readiness, show error after timeout
 		setTimeout(function() {
 			if (!loading.classList.contains('hidden')) {
 				errorText.textContent = 'Engine did not load in time. Check console for errors.';
