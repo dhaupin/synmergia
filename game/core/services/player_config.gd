@@ -9,6 +9,8 @@
 ## Settings are persisted to disk using ConfigFile
 extends Node
 
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+
 ## Player setting categories
 enum SettingCategory {
 	GENERAL,
@@ -141,66 +143,38 @@ func _init_defaults() -> void:
 
 ## Load global settings (applies to all accounts on this device)
 func load_global_settings() -> bool:
-	return _load_config_file(GLOBAL_SETTINGS_FILE, _global_config, _global_settings)
+	_global_settings = _load_settings("global", _global_settings)
+	return not _global_settings.is_empty()
 
 ## Save global settings
 func save_global_settings() -> bool:
-	return _save_config_file(GLOBAL_SETTINGS_FILE, _global_config, _global_settings)
+	return _save_settings("global", _global_settings)
 
 ## Load account settings
 func load_account_settings(account_id: String) -> bool:
-	if not _account_config:
-		_account_config = ConfigFile.new()
-
-	var err = _account_config.load(ACCOUNT_SETTINGS_FILE)
-	if err == OK:
-		_account_settings = {}
-		for key in DEFAULT_ACCOUNT_SETTINGS.keys():
-			_account_settings[key] = _account_config.get_value("account", key, DEFAULT_ACCOUNT_SETTINGS[key])
+	_account_settings = _load_settings("account", DEFAULT_ACCOUNT_SETTINGS)
+	if not _account_settings.is_empty():
 		settings_loaded.emit()
 		GameLog.info("PlayerConfig: Account settings loaded")
 		return true
-
-	# Use defaults if file doesn't exist
-	_account_settings = DEFAULT_ACCOUNT_SETTINGS.duplicate(true)
 	return false
 
 ## Save account settings
 func save_account_settings() -> bool:
-	if not _account_config:
-		_account_config = ConfigFile.new()
-
-	for key in _account_settings.keys():
-		_account_config.set_value("account", key, _account_settings[key])
-
-	var err = _account_config.save(ACCOUNT_SETTINGS_FILE)
-	if err == OK:
+	var ok := _save_settings("account", _account_settings)
+	if ok:
 		settings_saved.emit()
 		GameLog.info("PlayerConfig: Account settings saved")
-		return true
-
-	GameLog.error("PlayerConfig: Failed to save account settings")
-	return false
+	return ok
 
 ## Load character-specific settings
 func load_character_settings(character_id: String) -> bool:
 	_current_character_id = character_id
-
-	if not _character_config:
-		_character_config = ConfigFile.new()
-
-	var char_file = CHARACTER_SETTINGS_FILE % character_id
-	var err = _character_config.load(char_file)
-
-	if err == OK:
-		_character_settings = {}
-		for key in DEFAULT_CHARACTER_SETTINGS.keys():
-			_character_settings[key] = _character_config.get_value("character", key, DEFAULT_CHARACTER_SETTINGS[key])
+	_character_settings = _load_settings("char:%s" % character_id, DEFAULT_CHARACTER_SETTINGS)
+	if not _character_settings.is_empty():
 		settings_loaded.emit()
 		GameLog.info("PlayerConfig: Character settings loaded for %s" % character_id)
 		return true
-
-	_character_settings = DEFAULT_CHARACTER_SETTINGS.duplicate(true)
 	return false
 
 ## Save character settings
@@ -208,23 +182,11 @@ func save_character_settings() -> bool:
 	if _current_character_id.is_empty():
 		GameLog.warn("PlayerConfig: No character ID set, cannot save")
 		return false
-
-	if not _character_config:
-		_character_config = ConfigFile.new()
-
-	for key in _character_settings.keys():
-		_character_config.set_value("character", key, _character_settings[key])
-
-	var char_file = CHARACTER_SETTINGS_FILE % _current_character_id
-	var err = _character_config.save(char_file)
-
-	if err == OK:
+	var ok := _save_settings("char:%s" % _current_character_id, _character_settings)
+	if ok:
 		settings_saved.emit()
 		GameLog.info("PlayerConfig: Character settings saved")
-		return true
-
-	GameLog.error("PlayerConfig: Failed to save character settings")
-	return false
+	return ok
 
 ## Get account setting
 func get_account_setting(key: String, default: Variant = null) -> Variant:
@@ -364,16 +326,19 @@ func _get_setting_category(key: String) -> SettingCategory:
 		return SettingCategory.PRIVACY
 	return SettingCategory.GENERAL
 
-func _load_config_file(path: String, config: ConfigFile, target: Dictionary) -> bool:
-	var err = config.load(path)
-	if err == OK:
-		for key in config.get_section_keys(""):
-			target[key] = config.get_value("", key)
-		return true
-	return false
+func _load_settings(scope: String, defaults: Dictionary) -> Dictionary:
+	var store := DictStore.new()
+	if not store.has("player:" + scope):
+		return defaults.duplicate(true)
+	var data: Dictionary = store.get("player:" + scope)
+	if data.is_empty():
+		return defaults.duplicate(true)
+	var merged: Dictionary = defaults.duplicate(true)
+	for key in data.keys():
+		merged[key] = data[key]
+	return merged
 
-func _save_config_file(path: String, config: ConfigFile, source: Dictionary) -> bool:
-	for key in source.keys():
-		config.set_value("", key, source[key])
-	var err = config.save(path)
-	return err == OK
+func _save_settings(scope: String, source: Dictionary) -> bool:
+	var store := DictStore.new()
+	store.set("player:" + scope, source)
+	return true

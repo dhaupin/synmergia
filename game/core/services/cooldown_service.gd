@@ -3,10 +3,11 @@
 extends Node
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
 
 # Cooldown definitions (action_type -> cooldown_seconds)
 const DEFAULT_COOLDOWN: float = 30.0
-var _cooldowns: Dictionary = {}  # player_id -> {action_type -> timestamp}
+var _cache: CacheWrapper = CacheWrapper.new()  # key: "cooldown:<player_id>:<action_type>" -> timestamp
 
 # Default cooldowns for common actions
 const COOLDOWNS: Dictionary = {
@@ -30,11 +31,11 @@ func _ready() -> void:
 
 ## Check if action is on cooldown
 func is_on_cooldown(player_id: String, action_type: String) -> bool:
-	if not _cooldowns.has(player_id):
+	var key := "cooldown:%s:%s" % [player_id, action_type]
+	var ts: float = _cache.get(key)
+	if ts == null or ts == 0:
 		return false
-	if not _cooldowns[player_id].has(action_type):
-		return false
-	var elapsed: float = Time.get_unix_time_from_system() - _cooldowns[player_id][action_type]
+	var elapsed: float = Time.get_unix_time_from_system() - ts
 	var duration := get_cooldown_duration(action_type)
 	return elapsed < duration
 
@@ -42,7 +43,9 @@ func is_on_cooldown(player_id: String, action_type: String) -> bool:
 func get_remaining(player_id: String, action_type: String) -> float:
 	if not is_on_cooldown(player_id, action_type):
 		return 0.0
-	var elapsed: float = Time.get_unix_time_from_system() - _cooldowns[player_id][action_type]
+	var key := "cooldown:%s:%s" % [player_id, action_type]
+	var ts: float = _cache.get(key)
+	var elapsed: float = Time.get_unix_time_from_system() - ts
 	var duration := get_cooldown_duration(action_type)
 	return max(0.0, duration - elapsed)
 
@@ -51,14 +54,9 @@ func start_cooldown(player_id: String, action_type: String, duration: float = -1
 	if duration < 0:
 		duration = get_cooldown_duration(action_type)
 
-	if not _cooldowns.has(player_id):
-		_cooldowns[player_id] = {}
-
-	_cooldowns[player_id][action_type] = Time.get_unix_time_from_system()
+	var key := "cooldown:%s:%s" % [player_id, action_type]
+	_cache.set(key, Time.get_unix_time_from_system(), int(duration) + 1)
 	cooldown_started.emit(player_id, action_type, duration)
-
-	# Clean up old cooldowns for this player
-	_cleanup_player_cooldowns(player_id)
 
 	GameLog.debug("CooldownService: %s started cooldown for %s (%.1fs)" % [player_id, action_type, duration])
 

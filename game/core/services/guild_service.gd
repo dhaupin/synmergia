@@ -11,6 +11,7 @@ func _cooldown():
 		return null
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # _notify_player uses the typed-Kind pipeline; remove_member uses
@@ -22,6 +23,9 @@ var _guilds: Dictionary = {}
 
 # Player to guild mapping (entity_id -> guild_id)
 var _player_guilds: Dictionary = {}
+
+## DictStore key prefix
+const _kv_prefix := "guild:"
 
 # Guild limits (using GameConfig for centralized configuration)
 const MAX_GUILD_NAME_LENGTH: int = GameConfig.Guild.MAX_NAME_LENGTH
@@ -102,6 +106,7 @@ signal alliance_invite_expired(alliance_id: String, to_guild_id: String)
 
 func _ready() -> void:
 	GameLog.info("GuildService: Ready")
+	_load_guilds()
 
 ## Create a new guild
 func create_guild(name: String, tag: String, leader_id: String) -> String:
@@ -162,6 +167,7 @@ func create_guild(name: String, tag: String, leader_id: String) -> String:
 
 	_guilds[guild_id] = guild
 	_player_guilds[leader_id] = guild_id
+	_persist_guild(guild_id)
 
 	guild_created.emit(guild_id, name, leader_id)
 	GameLog.info("GuildService: Created guild %s (%s)" % [name, guild_id])
@@ -797,3 +803,35 @@ func _notify_player(player_id: String, message: String, kind: int = NotifKind.SE
 			player_id
 		)
 		GameLog.debug("GuildService: Notified %s: %s" % [player_id, message])
+
+## == Persistence ============================================================
+
+func _load_guilds() -> void:
+	var store := DictStore.new()
+	_guilds = {}
+	_player_guilds = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix) and ":" in key:
+			var parts = key.split(":")
+			if parts.size() >= 3:
+				var guild_id = parts[1] + ":" + parts[2]
+				_guilds[guild_id] = store.get(key)
+				# Rebuild player->guild mapping
+				var members = _guilds[guild_id].get("members", [])
+				for member in members:
+					if member is Dictionary and member.has("id"):
+						_player_guilds[member["id"]] = guild_id
+
+func _persist_guild(guild_id: String) -> void:
+	var store := DictStore.new()
+	if _guilds.has(guild_id):
+		store.set(_kv_prefix + guild_id, _guilds[guild_id])
+	else:
+		store.erase(_kv_prefix + guild_id)
+
+func _persist_invite(player_id: String) -> void:
+	var store := DictStore.new()
+	if _pending_guild_invites.has(player_id):
+		store.set("guild:invite:" + player_id, _pending_guild_invites[player_id])
+	else:
+		store.erase("guild:invite:" + player_id)

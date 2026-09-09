@@ -11,6 +11,7 @@ func _cooldown():
 		return null
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const Item = preload("res://core/schemas/item.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
@@ -77,6 +78,7 @@ signal trade_closed(trade_id: String, reason: String)                      # Tra
 
 func _ready() -> void:
 	GameLog.info("TradeService: Ready")
+	_load_trade_history()
 
 	# Initialize service references from autoloads
 	_account_service = AccountService if AccountService else null
@@ -644,6 +646,9 @@ func get_pending_request(player_id: String) -> Dictionary:
 # Trade history (player_id -> [completed trades])
 var _trade_history: Dictionary = {}
 
+## DictStore key prefix for trade history
+const _kv_prefix := "trade:history:"
+
 # Max history per player
 const MAX_HISTORY: int = GameConfig.Trade.MAX_HISTORY
 
@@ -734,6 +739,8 @@ func _log_trade(player1: String, player2: String, player1_items: Array, player2_
 		_trade_history[player1].pop_at(0)
 	while _trade_history[player2].size() > MAX_HISTORY:
 		_trade_history[player2].pop_at(0)
+	_persist_trade_history(player1)
+	_persist_trade_history(player2)
 
 # ============ ANTI-SCAM MEASURES ============
 
@@ -907,3 +914,20 @@ func _verify_player_owns_item(player_id: String, item_id: String) -> bool:
 	if not inv:
 		return false
 	return inv.find_item(item_id) >= 0
+
+## == Persistence ============================================================
+
+func _load_trade_history() -> void:
+	var store := DictStore.new()
+	_trade_history = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var player_id = key.substr(_kv_prefix.length())
+			_trade_history[player_id] = store.get(key)
+
+func _persist_trade_history(player_id: String) -> void:
+	var store := DictStore.new()
+	if _trade_history.has(player_id):
+		store.set(_kv_prefix + player_id, _trade_history[player_id])
+	else:
+		store.erase(_kv_prefix + player_id)

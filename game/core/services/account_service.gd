@@ -2,6 +2,7 @@
 ## Manages accounts, character linking, and account-wide features
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Singleton instance
 static var instance: AccountService
@@ -18,6 +19,9 @@ var _character_to_account: Dictionary = {}
 # Account to characters mapping (account_id -> [character_ids])
 var _account_characters: Dictionary = {}
 
+## DictStore key prefix
+const _kv_prefix := "account_service:"
+
 # Settings
 var _allow_same_account_trade: bool = false	 # Can trade between own characters
 var _max_characters_per_account: int = 5
@@ -29,6 +33,7 @@ signal same_account_trade_attempted(character1: String, character2: String, allo
 
 func _ready() -> void:
 	instance = self
+	_load_state()
 	GameLog.info("AccountService: Ready")
 
 ## Create a new account
@@ -57,6 +62,7 @@ func create_account(account_id: String, email: String = "") -> Dictionary:
 
 	_accounts[account_id] = account
 	_account_characters[account_id] = []
+	_persist_account(account_id)
 
 	account_created.emit(account_id)
 	GameLog.info("AccountService: Created account %s" % account_id)
@@ -107,11 +113,13 @@ func link_character(character_id: String, account_id: String, character_data: Di
 	character_data["account_id"] = account_id
 	character_data["linked_at"] = Time.get_unix_time_from_system()
 	_characters[character_id] = character_data
+	_persist_character(character_id)
 
 	# Create mappings
 	_character_to_account[character_id] = account_id
 	_account_characters[account_id].append(character_id)
 	_accounts[account_id]["characters"] = _account_characters[account_id]
+	_persist_account(account_id)
 
 	character_linked.emit(character_id, account_id)
 	GameLog.info("AccountService: Linked character %s to account %s" % [character_id, account_id])
@@ -191,6 +199,7 @@ func set_same_account_trade(account_id: String, enabled: bool) -> bool:
 		return false
 
 	_accounts[account_id]["settings"]["allow_same_account_trade"] = enabled
+	_persist_account(account_id)
 	GameLog.info("AccountService: Same-account trade %s for %s" % ["enabled" if enabled else "disabled", account_id])
 	return true
 
@@ -198,6 +207,7 @@ func set_same_account_trade(account_id: String, enabled: bool) -> bool:
 func update_last_login(account_id: String) -> void:
 	if _accounts.has(account_id):
 		_accounts[account_id]["last_login"] = Time.get_unix_time_from_system()
+	_persist_account(account_id)
 
 ## Get online characters on account
 func get_online_account_characters(account_id: String) -> Array:
@@ -219,6 +229,7 @@ func set_premium(account_id: String, premium: bool) -> bool:
 		return false
 
 	_accounts[account_id]["premium"] = premium
+	_persist_account(account_id)
 	return true
 
 ## Is account premium?
@@ -232,6 +243,7 @@ func set_account_setting(account_id: String, key: String, value: Variant) -> boo
 		return false
 
 	_accounts[account_id]["settings"][key] = value
+	_persist_account(account_id)
 	return true
 
 ## Get account setting
@@ -254,3 +266,44 @@ func delete_account(account_id: String) -> bool:
 
 	GameLog.info("AccountService: Deleted account %s" % account_id)
 	return true
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_accounts = {}
+	_characters = {}
+	_character_to_account = {}
+	_account_characters = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix + "account:"):
+			var account_id = key.substr(_kv_prefix.length() + 8)
+			_accounts[account_id] = store.get(key)
+		elif key.begins_with(_kv_prefix + "char:"):
+			var char_id = key.substr(_kv_prefix.length() + 5)
+			_characters[char_id] = store.get(key)
+	# Rebuild mappings from loaded data
+	for char_id in _characters:
+		var char_data = _characters[char_id]
+		var account_id = char_data.get("account_id", "")
+		if account_id != "":
+			_character_to_account[char_id] = account_id
+			if not _account_characters.has(account_id):
+				_account_characters[account_id] = []
+			_account_characters[account_id].append(char_id)
+			if _accounts.has(account_id):
+				_accounts[account_id]["characters"] = _account_characters[account_id]
+
+func _persist_account(account_id: String) -> void:
+	var store := DictStore.new()
+	if _accounts.has(account_id):
+		store.set(_kv_prefix + "account:" + account_id, _accounts[account_id])
+	else:
+		store.erase(_kv_prefix + "account:" + account_id)
+
+func _persist_character(character_id: String) -> void:
+	var store := DictStore.new()
+	if _characters.has(character_id):
+		store.set(_kv_prefix + "char:" + character_id, _characters[character_id])
+	else:
+		store.erase(_kv_prefix + "char:" + character_id)

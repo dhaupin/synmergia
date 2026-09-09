@@ -19,6 +19,9 @@ var _guild_alliances: Dictionary = {}
 # War declaration cooldowns (faction_id -> timestamp)
 var _war_cooldowns: Dictionary = {}
 
+## DictStore key prefix
+const _kv_prefix := "faction:"
+
 const WAR_COOLDOWN_HOURS: int = 24
 const WAR_DECLARATION_COST: int = 10000  # Gold cost to declare war
 
@@ -57,6 +60,7 @@ func _emit_faction(
 
 func _ready() -> void:
 	GameLog.info("FactionManager: Ready")
+	_load_factions()
 
 ## Load all factions from data
 func load_factions() -> void:
@@ -316,6 +320,7 @@ func form_alliance(guild_id: String, faction_id: String) -> bool:
 		return false  # Already allied
 
 	_guild_alliances[guild_id].append(faction_id)
+	_persist_alliances(guild_id)
 	alliance_formed.emit(guild_id, faction)
 	# Frame-level broadcast: alliances affect the whole guild, so the
 	# toast is server-wide. Dedupe on the alliance pair.
@@ -387,3 +392,42 @@ func can_attack(attacker, target) -> bool:
 		return zone_manager.can_pvp(attacker, target)
 
 	return false
+
+## == Persistence ============================================================
+
+func _load_factions() -> void:
+	var store := DictStore.new()
+	_factions = {}
+	_player_reputations = {}
+	_guild_alliances = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix + "faction:"):
+			var faction_id = key.substr(_kv_prefix.length() + 8)
+			_factions[faction_id] = store.get(key)
+		elif key.begins_with(_kv_prefix + "rep:"):
+			var player_id = key.substr(_kv_prefix.length() + 4)
+			_player_reputations[player_id] = store.get(key)
+		elif key.begins_with(_kv_prefix + "alliance:"):
+			var guild_id = key.substr(_kv_prefix.length() + 8)
+			_guild_alliances[guild_id] = store.get(key)
+
+func _persist_faction(faction_id: String) -> void:
+	var store := DictStore.new()
+	if _factions.has(faction_id):
+		store.set(_kv_prefix + "faction:" + faction_id, _factions[faction_id])
+	else:
+		store.erase(_kv_prefix + "faction:" + faction_id)
+
+func _persist_reputation(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_reputations.has(player_id):
+		store.set(_kv_prefix + "rep:" + player_id, _player_reputations[player_id])
+	else:
+		store.erase(_kv_prefix + "rep:" + player_id)
+
+func _persist_alliances(guild_id: String) -> void:
+	var store := DictStore.new()
+	if _guild_alliances.has(guild_id):
+		store.set(_kv_prefix + "alliance:" + guild_id, _guild_alliances[guild_id])
+	else:
+		store.erase(_kv_prefix + "alliance:" + guild_id)

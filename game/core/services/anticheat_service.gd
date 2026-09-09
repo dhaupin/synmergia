@@ -1,6 +1,7 @@
 ## AntiCheatService - Detects and prevents cheating for humans AND agents
 ## Includes bot detection, macro detection, speed hacks, and anomaly detection
 extends Node
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 signal cheat_detected(player_id: String, cheat_type: String, confidence: float, evidence: Dictionary)
 signal player_flagged(player_id: String, flag_type: String)
@@ -21,6 +22,9 @@ const BREAK_FREQUENCY_HUMAN: float = 0.1  # Expected breaks per hour
 var _player_profiles: Dictionary = {}  # player_id -> Profile data
 var _suspicion_scores: Dictionary = {}  # player_id -> suspicion (0.0 to 1.0)
 var _banned_players: Dictionary = {}  # player_id -> ban info
+
+## DictStore key prefix
+const _kv_prefix := "anticheat:"
 
 class PlayerProfile:
 	var player_id: String
@@ -44,6 +48,7 @@ func register_player(player_id: String, is_agent: bool = false) -> void:
 	if not _player_profiles.has(player_id):
 		_player_profiles[player_id] = PlayerProfile.new(player_id, is_agent)
 		_suspicion_scores[player_id] = 0.0
+		_persist_suspicion(player_id)
 		GameLog.info("AntiCheatService: Monitoring %s (%s)" % [player_id, "Agent" if is_agent else "Human"])
 
 ## Unregister player
@@ -129,6 +134,7 @@ func _analyze_player(player_id: String) -> void:
 
 	# Update suspicion score
 	_suspicion_scores[player_id] = clamp(_suspicion_scores[player_id] + suspicion * 0.1, 0.0, 1.0)
+	_persist_suspicion(player_id)
 
 	if suspicion > 0.3:
 		cheat_detected.emit(player_id, "pattern_anomaly", suspicion, evidence)
@@ -311,3 +317,31 @@ func _process(delta: float) -> void:
 	for player_id in _player_profiles:
 		var profile: PlayerProfile = _player_profiles[player_id]
 		profile.movement_paths = profile.movement_paths.filter(func(p): return p["time"] > cutoff)
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_suspicion_scores = {}
+	_banned_players = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix + "suspicion:"):
+			var player_id = key.substr(_kv_prefix.length() + 10)
+			_suspicion_scores[player_id] = store.get(key)
+		elif key.begins_with(_kv_prefix + "ban:"):
+			var player_id = key.substr(_kv_prefix.length() + 4)
+			_banned_players[player_id] = store.get(key)
+
+func _persist_suspicion(player_id: String) -> void:
+	var store := DictStore.new()
+	if _suspicion_scores.has(player_id):
+		store.set(_kv_prefix + "suspicion:" + player_id, {"score": _suspicion_scores[player_id]})
+	else:
+		store.erase(_kv_prefix + "suspicion:" + player_id)
+
+func _persist_ban(player_id: String) -> void:
+	var store := DictStore.new()
+	if _banned_players.has(player_id):
+		store.set(_kv_prefix + "ban:" + player_id, _banned_players[player_id])
+	else:
+		store.erase(_kv_prefix + "ban:" + player_id)

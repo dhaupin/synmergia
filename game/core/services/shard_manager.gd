@@ -1,6 +1,7 @@
 ## ShardManager - Multi-shard/multi-server support
 ## Manages shard ID, player routing, and cross-shard awareness
 extends Node
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Shard identification
 var shard_id: String = "shard_1"
@@ -19,11 +20,13 @@ var _server_status: String = "online"  # online, maintenance, full
 # Cross-shard awareness (for future meshing)
 var _connected_shards: Array[String] = []
 var _shard_info: Dictionary = {}  # shard_id -> {name, players, status}
+const _kv_prefix := "shard:"
 
 signal shard_status_changed(shard_id: String, status: String)
 signal player_count_changed(count: int)
 
 func _ready() -> void:
+	_load_shards()
 	GameLog.info("ShardManager: Ready as %s (%s)" % [shard_id, shard_name])
 
 ## Configure this shard
@@ -73,11 +76,13 @@ func register_connected_shard(other_shard_id: String, info: Dictionary = {}) -> 
 	if not _connected_shards.has(other_shard_id):
 		_connected_shards.append(other_shard_id)
 	_shard_info[other_shard_id] = info
+	_persist_shard(other_shard_id)
 	GameLog.debug("ShardManager: Connected to shard %s" % other_shard_id)
 
 func unregister_shard(other_shard_id: String) -> void:
 	_connected_shards.erase(other_shard_id)
 	_shard_info.erase(other_shard_id)
+	_persist_shard(other_shard_id)
 	GameLog.debug("ShardManager: Disconnected from shard %s" % other_shard_id)
 
 func get_connected_shards() -> Array[String]:
@@ -133,3 +138,24 @@ static func generate_shard_config(shard_number: int, total_shards: int, world_si
 		"world_offset_z": offset_z,
 		"world_size_km2": world_per_shard * world_per_shard
 	}
+
+func _load_shards() -> void:
+	var ds := DictStore.new()
+	var keys: Array = ds.all_keys()
+	for key in keys:
+		if key.begins_with(_kv_prefix):
+			var shard_id := key.substr(_kv_prefix.length())
+			var data: Dictionary = ds.get(key)
+			if not data.is_empty():
+				_shard_info[shard_id] = data
+				if not _connected_shards.has(shard_id):
+					_connected_shards.append(shard_id)
+	GameLog.info("ShardManager: Loaded %d shards from persistence" % _shard_info.size())
+
+func _persist_shard(shard_id: String) -> void:
+	var ds := DictStore.new()
+	var key := _kv_prefix + shard_id
+	if _shard_info.has(shard_id) and not _shard_info[shard_id].is_empty():
+		ds.set(key, _shard_info[shard_id])
+	else:
+		ds.erase(key)

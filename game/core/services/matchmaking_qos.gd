@@ -1,4 +1,5 @@
 ## QoSService - Quality of Service for fair matchmaking
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 ## Handles latency compensation, throttling, and connection quality
 extends Node
 class_name MatchmakingQoS
@@ -37,8 +38,12 @@ var _player_jitter: Dictionary = {}  # player_id -> jitter in ms
 
 var _latency_history: Dictionary = {}  # player_id -> Array of recent latencies
 
+## DictStore key prefix
+const _kv_prefix := "qos:"
+
 func _ready() -> void:
 	GameLog.info("QoSService: Quality of Service initialized")
+	_load_state()
 
 ## Register a player connection
 func register_connection(player_id: String, estimated_latency: int = 100) -> void:
@@ -47,6 +52,7 @@ func register_connection(player_id: String, estimated_latency: int = 100) -> voi
 	_player_packet_loss[player_id] = 0.0
 	_player_jitter[player_id] = 0
 	_latency_history[player_id] = []
+	_persist_player_qos(player_id)
 	GameLog.info("QoSService: Registered %s (latency: %dms)" % [player_id, estimated_latency])
 
 ## Unregister player
@@ -235,3 +241,37 @@ func throttle_player(player_id: String, reason: String, duration_ms: int = 5000)
 	# Auto-unthrottle after duration
 	await get_tree().create_timer(duration_ms / 1000.0).timeout
 	# Notify unthrottled (would need more complex state management for this)
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_player_latency = {}
+	_player_quality = {}
+	_player_packet_loss = {}
+	_player_jitter = {}
+	_latency_history = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var player_id = key.substr(_kv_prefix.length())
+			var data: Dictionary = store.get(key)
+			if not data.is_empty():
+				_player_latency[player_id] = int(data.get("latency", 0))
+				_player_quality[player_id] = data.get("quality", 0)
+				_player_packet_loss[player_id] = float(data.get("packet_loss", 0.0))
+				_player_jitter[player_id] = int(data.get("jitter", 0))
+				_latency_history[player_id] = data.get("history", [])
+
+func _persist_player_qos(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_latency.has(player_id):
+		var data := {
+			"latency": _player_latency[player_id],
+			"quality": _player_quality.get(player_id, 0),
+			"packet_loss": _player_packet_loss.get(player_id, 0.0),
+			"jitter": _player_jitter.get(player_id, 0),
+			"history": _latency_history.get(player_id, [])
+		}
+		store.set(_kv_prefix + player_id, data)
+	else:
+		store.erase(_kv_prefix + player_id)

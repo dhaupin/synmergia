@@ -16,6 +16,7 @@ func _cooldown():
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # EventHub is an autoload singleton (autoload #19, before this
 # service at #77). It is accessed bare so the singleton instance is
 # used, not the class -- preloading it here would shadow the
@@ -23,6 +24,8 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 #
 # CooldownService is also an autoload singleton (autoload #32, before
 # this service). Same rule: accessed bare, no preload.
+
+const _kv_prefix := "follow:player:"
 
 # Follow configurations
 const DEFAULT_FOLLOW_RANGE: float = 10.0  # Units - max distance before follow breaks
@@ -52,6 +55,8 @@ signal follow_target_moved(follower_id: String, target_position: Vector3)
 func _ready() -> void:
 	GameLog.info("FollowService: Ready")
 	set_process(false)
+
+	_load_follows()
 
 	# Connect to EventHub for automatic follow cancellation
 	if EventHub:
@@ -118,6 +123,8 @@ func _start_follow(follower_id: String, target_id: String) -> bool:
 
 	_active_follows[follower_id] = follow_data
 
+	_persist_follows(follower_id)
+
 	# Lock the follower (blocks movement, combat) but allows skills
 	if PlayerLockService:
 		PlayerLockService.lock_player(follower_id, PlayerLockService.LockReason.FOLLOW, {
@@ -145,6 +152,8 @@ func stop_follow(follower_id: String, reason: String = "cancelled") -> bool:
 		PlayerLockService.unlock_player(follower_id, PlayerLockService.LockReason.FOLLOW)
 
 	_active_follows.erase(follower_id)
+
+	_persist_follows(follower_id)
 
 	# Stop processing if no more follows
 	if _active_follows.is_empty():
@@ -313,3 +322,21 @@ func _notify_player(player_id: String, message: String) -> void:
 			{},
 			player_id
 		)
+
+func _load_follows() -> void:
+	var store := DictStore.new()
+	var keys := store.all_keys()
+	for key in keys:
+		if key.begins_with(_kv_prefix):
+			var player_id := key.substr(_kv_prefix.length())
+			var data := store.get(key)
+			if data:
+				_active_follows[player_id] = data
+
+func _persist_follows(player_id: String) -> void:
+	var store := DictStore.new()
+	var key := _kv_prefix + player_id
+	if _active_follows.has(player_id) and not _active_follows[player_id].is_empty():
+		store.set(key, _active_follows[player_id])
+	else:
+		store.erase(key)

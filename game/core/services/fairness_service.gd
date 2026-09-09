@@ -25,6 +25,9 @@ var _player_actions: Dictionary = {}  # player_id -> action timestamps
 var _player_session_start: Dictionary = {}  # player_id -> session start time
 var _consensus_quests: Dictionary = {}  # action_id -> {votes, required, deadline}
 
+## DictStore key prefix
+const _kv_prefix := "fairness:"
+
 func _ready() -> void:
 	GameLog.info("FairnessService: Initialized - Humans and Agents are equals")
 
@@ -213,3 +216,42 @@ func _process(delta: float) -> void:
 			var yes_votes := quest["votes"].values().count(true)
 			quest["result"] = false
 			consensus_reached.emit(action_id, false)
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_player_trust = {}
+	_player_actions = {}
+	_player_session_start = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix + "trust:"):
+			var player_id = key.substr(_kv_prefix.length() + 6)
+			_player_trust[player_id] = float(store.get(key).get("trust", 0.0))
+		elif key.begins_with(_kv_prefix + "actions:"):
+			var player_id = key.substr(_kv_prefix.length() + 8)
+			_player_actions[player_id] = store.get(key)
+		elif key.begins_with(_kv_prefix + "session:"):
+			var player_id = key.substr(_kv_prefix.length() + 8)
+			_player_session_start[player_id] = int(store.get(key).get("start", 0))
+
+func _persist_trust(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_trust.has(player_id):
+		store.set(_kv_prefix + "trust:" + player_id, {"trust": _player_trust[player_id]})
+	else:
+		store.erase(_kv_prefix + "trust:" + player_id)
+
+func _persist_actions(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_actions.has(player_id):
+		store.set(_kv_prefix + "actions:" + player_id, _player_actions[player_id])
+	else:
+		store.erase(_kv_prefix + "actions:" + player_id)
+
+func _persist_session(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_session_start.has(player_id):
+		store.set(_kv_prefix + "session:" + player_id, {"start": _player_session_start[player_id]})
+	else:
+		store.erase(_kv_prefix + "session:" + player_id)

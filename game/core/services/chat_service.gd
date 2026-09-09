@@ -762,3 +762,31 @@ func _notify_player(player_id: String, message: String) -> void:
 			player_id
 		)
 	GameLog.debug("ChatService: Notified %s: %s" % [player_id, message])
+
+## == Persistence ============================================================
+
+func _load_chat_state() -> void:
+	var store := DictStore.new()
+	_ignored_players = {}
+	_player_settings = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_ignored):
+			var ignorer_id = key.substr(_kv_ignored.length())
+			_ignored_players[ignorer_id] = store.get(key)
+		elif key.begins_with(_kv_player_settings):
+			var player_id = key.substr(_kv_player_settings.length())
+			_player_settings[player_id] = store.get(key)
+
+func _persist_ignored(ignorer_id: String) -> void:
+	var store := DictStore.new()
+	if _ignored_players.has(ignorer_id):
+		store.set(_kv_ignored + ignorer_id, _ignored_players[ignorer_id])
+	else:
+		store.erase(_kv_ignored + ignorer_id)
+
+func _persist_player_settings(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_settings.has(player_id):
+		store.set(_kv_player_settings + player_id, _player_settings[player_id])
+	else:
+		store.erase(_kv_player_settings + player_id)

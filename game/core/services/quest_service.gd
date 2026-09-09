@@ -8,6 +8,8 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 # references UIStyles.COLORS.X in BBColor formatting, which requires
 # the class_name registered at parse time. Preload it here.
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const _kv_prefix := "quest:player:"
 
 static func _esc(text: String) -> String:
 	return text.replace('[', '［').replace(']', '］')
@@ -38,6 +40,7 @@ const MAX_QUEST_NAME_LENGTH: int = 64
 func _ready() -> void:
 	instance = self
 	GameLog.info("QuestService: Ready")
+	_load_player_quests()
 
 ## ============================================================================
 ## QUEST LOADING / PERSISTENCE
@@ -219,6 +222,7 @@ func accept_quest(player_id: String, quest_id: String) -> bool:
 		"data": quest
 	}
 
+	_persist_player_quests(player_id)
 	quest_accepted.emit(player_id, quest_id)
 	GameLog.info("QuestService: %s accepted quest %s" % [player_id, quest_id])
 	return true
@@ -234,6 +238,7 @@ func abandon_quest(player_id: String, quest_id: String) -> bool:
 
 	# Remove quest
 	player_data.erase(quest_id)
+	_persist_player_quests(player_id)
 	GameLog.info("QuestService: %s abandoned quest %s" % [player_id, quest_id])
 	return true
 
@@ -272,6 +277,7 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 		# Check if all objectives complete
 		if changed and _are_all_objectives_complete(objectives):
 			quest_state["state"] = QuestData.QuestState.COMPLETE
+			_persist_player_quests(player_id)
 			quest_completed.emit(player_id, quest_id)
 
 			# Frame-level dispatch. QUEST_COMPLETED -> NotifKind.QUEST
@@ -324,6 +330,7 @@ func turn_in_quest(player_id: String, quest_id: String) -> bool:
 	quest_state["state"] = QuestData.QuestState.REWARDED
 	quest_state["rewarded_at"] = Time.get_unix_time_from_system()
 
+	_persist_player_quests(player_id)
 	quest_rewarded.emit(player_id, quest_id, rewards)
 	GameLog.info("QuestService: %s turned in quest %s" % [player_id, quest_id])
 	return true
@@ -439,3 +446,20 @@ func _is_valid_quest_id(quest_id: String) -> bool:
 	var regex := RegEx.new()
 	regex.compile("^[a-zA-Z0-9_-]+$")
 	return regex.search(quest_id) != null
+
+func _load_player_quests() -> void:
+	var store := DictStore.new()
+	_player_quests.clear()
+	for key in store.all_keys(_kv_prefix):
+		var player_id := key.replace(_kv_prefix, "")
+		var data: Dictionary = store.get(key, {})
+		if not data.is_empty():
+			_player_quests[player_id] = data
+
+func _persist_player_quests(player_id: String) -> void:
+	var store := DictStore.new()
+	var quests: Dictionary = _player_quests.get(player_id, {})
+	if quests.is_empty():
+		store.erase(_kv_prefix + player_id)
+	else:
+		store.set(_kv_prefix + player_id, quests)

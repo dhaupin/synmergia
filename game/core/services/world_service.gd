@@ -62,6 +62,7 @@ class GatewayRecord:
 
 func _ready() -> void:
 	GameLog.info("WorldService: Ready")
+	_load_gateways()
 
 ## Initialize the world
 func initialize_world() -> void:
@@ -371,3 +372,20 @@ func find_zone_path(from_zone_id: String, to_zone_id: String) -> Array[String]:
 
 	# Return direct path (would need pathfinding for complex world)
 	return [from_zone_id, to_zone_id]
+
+## == Persistence ============================================================
+
+func _load_gateways() -> void:
+	var store := DictStore.new()
+	_gateways = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix + "gateway:"):
+			var gateway_id = key.substr(_kv_prefix.length() + 8)
+			_gateways[gateway_id] = store.get(key)
+
+func _persist_gateway(gateway_id: String) -> void:
+	var store := DictStore.new()
+	if _gateways.has(gateway_id):
+		store.set(_kv_prefix + "gateway:" + gateway_id, _gateways[gateway_id])
+	else:
+		store.erase(_kv_prefix + "gateway:" + gateway_id)

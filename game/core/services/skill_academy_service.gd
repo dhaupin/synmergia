@@ -557,3 +557,20 @@ func get_signature_info(skill_data: CharacterData, player_level: int) -> Diction
 		"can_change": player_level >= 10 and skill_data.active_signature != "",
 		"must_select": player_level >= 10 and skill_data.active_signature == ""
 	}
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_player_data = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var player_id = key.substr(_kv_prefix.length())
+			_player_data[player_id] = store.get(key)
+
+func _persist_player_data(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_data.has(player_id):
+		store.set(_kv_prefix + player_id, _player_data[player_id])
+	else:
+		store.erase(_kv_prefix + player_id)

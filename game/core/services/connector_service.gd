@@ -18,6 +18,7 @@ var _connected_agents: Dictionary = {}  # agent_id -> {connector, entity}
 
 func _ready() -> void:
 	GameLog.info("ConnectorService: Ready")
+	_load_state()
 	_register_default_connectors()
 
 ## Register a connector
@@ -187,3 +188,20 @@ func get_connected_agents() -> Dictionary:
 ## Get connector by name
 func get_connector(name: String) -> AgentConnector:
 	return _connectors.get(name)
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_connected_agents = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var agent_id = key.substr(_kv_prefix.length())
+			_connected_agents[agent_id] = store.get(key)
+
+func _persist_agent(agent_id: String) -> void:
+	var store := DictStore.new()
+	if _connected_agents.has(agent_id):
+		store.set(_kv_prefix + agent_id, _connected_agents[agent_id])
+	else:
+		store.erase(_kv_prefix + agent_id)

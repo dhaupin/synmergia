@@ -4,6 +4,8 @@ extends Node
 
 const TitleData = preload("res://core/schemas/title_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const _kv_prefix := "title:player:"
 
 ## Title definitions loaded from data/titles via DataService
 var _title_defs: Dictionary = {}
@@ -18,6 +20,7 @@ signal title_unequipped(player_id: String, title_id: String)
 func _ready() -> void:
 	GameLog.info("TitleService: Initialized")
 	_load_title_definitions()
+	_load_player_titles()
 
 func _load_title_definitions() -> void:
 	if DataService:
@@ -182,6 +185,7 @@ func _do_unlock(player_id: String, title_id: String) -> bool:
 
 	state["unlocked_titles"].append(title_id)
 	_player_titles[player_id] = state
+	_persist_player_titles(player_id)
 	title_unlocked.emit(player_id, title_id)
 	GameLog.info("TitleService: Player %s unlocked title %s" % [player_id, title_id])
 	return true
@@ -210,6 +214,7 @@ func _do_equip(player_id: String, title_id: String, slot: String) -> bool:
 	var state: Dictionary = _ensure_player_state(player_id)
 	state["equipped_" + slot] = title_id
 	_player_titles[player_id] = state
+	_persist_player_titles(player_id)
 	title_equipped.emit(player_id, title_id, slot)
 	GameLog.info("TitleService: Player %s equipped %s to %s slot" % [player_id, title_id, slot])
 	return true
@@ -222,6 +227,7 @@ func _do_unequip(player_id: String, slot: String) -> void:
 
 	state["equipped_" + slot] = ""
 	_player_titles[player_id] = state
+	_persist_player_titles(player_id)
 	title_unequipped.emit(player_id, current)
 	GameLog.info("TitleService: Player %s unequipped from %s slot" % [player_id, slot])
 
@@ -246,3 +252,19 @@ func _do_get_equipped_suffix(player_id: String) -> TitleData:
 	if title_id == "" or not _title_defs.has(title_id):
 		return null
 	return _title_defs[title_id]
+
+func _load_player_titles() -> void:
+	var store := DictStore.new()
+	for key in store.all_keys(_kv_prefix):
+		var player_id := key.replace(_kv_prefix, "")
+		var data: Dictionary = store.get(key, {})
+		if not data.is_empty():
+			_player_titles[player_id] = data
+
+func _persist_player_titles(player_id: String) -> void:
+	var store := DictStore.new()
+	var state: Dictionary = _player_titles.get(player_id, {})
+	if state.is_empty():
+		store.erase(_kv_prefix + player_id)
+	else:
+		store.set(_kv_prefix + player_id, state)
