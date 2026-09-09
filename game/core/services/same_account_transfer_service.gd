@@ -2,6 +2,7 @@
 ## Handles fast item/gold transfers without trade window
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const Item = preload("res://core/schemas/item.gd")
 # Singleton
@@ -15,6 +16,9 @@ var _inventory_service: InventoryService
 # account_id -> { last_transfer_time, gold_today, items_today, last_reset }
 var _transfer_stats: Dictionary = {}
 
+## DictStore key prefix
+const _kv_prefix := "transfer:"
+
 signal transfer_requested(from_char: String, to_char: String)
 signal transfer_completed(from_char: String, to_char: String, gold: int, items: Array)
 signal transfer_cancelled(from_char: String, to_char: String, reason: String)
@@ -25,6 +29,7 @@ func _ready() -> void:
 	instance = self
 	_account_service = AccountService.instance
 	_inventory_service = InventoryService.instance
+	_load_state()
 
 	# Reset stats periodically (once per day check)
 	_check_daily_reset()
@@ -297,3 +302,20 @@ func reset_daily_limits(account_id: String) -> void:
 		_transfer_stats[account_id]["items_today"] = 0
 		_transfer_stats[account_id]["last_reset"] = Time.get_unix_time_from_system()
 		GameLog.info("SameAccountTransferService: Reset limits for %s" % account_id)
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_transfer_stats = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var account_id = key.substr(_kv_prefix.length())
+			_transfer_stats[account_id] = store.get(key)
+
+func _persist_transfer_stats(account_id: String) -> void:
+	var store := DictStore.new()
+	if _transfer_stats.has(account_id):
+		store.set(_kv_prefix + account_id, _transfer_stats[account_id])
+	else:
+		store.erase(_kv_prefix + account_id)
