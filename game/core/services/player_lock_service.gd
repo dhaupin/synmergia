@@ -1,4 +1,5 @@
 ## PlayerLockService - Reusable player locking system
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 ## Prevents player movement, skills, and other actions during locked states
 ## Used by: Trade, Mounts, Follow, Cinematics, Cutscenes, Dialogues, etc.
 extends Node
@@ -18,6 +19,9 @@ enum LockReason {
 
 # Player locks (player_id -> lock_data)
 var _player_locks: Dictionary = {}
+
+## DictStore key prefix
+const _kv_prefix := "player_lock:"
 
 # Lock configurations
 const LOCK_CONFIG: Dictionary = {
@@ -93,6 +97,7 @@ signal lock_updated(player_id: String, reason: int, context: Dictionary)
 
 func _ready() -> void:
 	GameLog.info("PlayerLockService: Ready")
+	_load_state()
 
 ## Lock a player
 func lock_player(player_id: String, reason: int, context: Dictionary = {}) -> bool:
@@ -300,3 +305,20 @@ func _get_highest_priority_reason(lock_data: Dictionary) -> int:
 			highest = reason
 
 	return highest
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_player_locks = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var player_id = key.substr(_kv_prefix.length())
+			_player_locks[player_id] = store.get(key)
+
+func _persist_lock(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_locks.has(player_id):
+		store.set(_kv_prefix + player_id, _player_locks[player_id])
+	else:
+		store.erase(_kv_prefix + player_id)
