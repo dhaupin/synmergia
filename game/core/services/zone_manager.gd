@@ -8,12 +8,15 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 # Entity.EntityType.X in entity classification, which requires
 # Entity's class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # Zone types
 enum ZoneType {
 	OPEN_WORLD,		 # Seamless, players always in same world
 	INSTANCED,		 # Separate instance (dungeon, raid)
 	SEAMLESS_INST # Instance but seamless (no loading screen)
 }
+
+const _kv_prefix := "zone:"
 
 # All loaded zones (zone_id -> zone_data)
 var _zones: Dictionary = {}
@@ -57,6 +60,7 @@ signal instance_left(player, instance_id)
 
 func _ready() -> void:
 	GameLog.info("ZoneManager: Ready")
+	_load_zone_state()
 
 ## Load all zones from data
 func load_zones() -> void:
@@ -87,6 +91,7 @@ func register_zone(zone_data) -> bool:
 	_zones[zone_data.id] = zone_data
 	_players_in_zone[zone_data.id] = []
 	_enemies_in_zone[zone_data.id] = []
+	_persist_zone(zone_data.id)
 
 	zone_loaded.emit(zone_data)
 	GameLog.debug("ZoneManager: Registered zone %s" % zone_data.id)
@@ -246,6 +251,7 @@ func create_instance(base_zone_id: String, owner_id: String = "") -> String:
 
 	_instances[instance_id] = instance_data
 	register_zone(instance_data.zone_data)
+	_persist_instances()
 
 	instance_created.emit(instance_id, instance_data.zone_data)
 	GameLog.info("ZoneManager: Created instance %s from %s" % [instance_id, base_zone_id])
@@ -269,6 +275,7 @@ func destroy_instance(instance_id: String) -> bool:
 	_zones.erase(instance_id)
 	_players_in_zone.erase(instance_id)
 	_enemies_in_zone.erase(instance_id)
+	_persist_instances()
 
 	instance_destroyed.emit(instance_id)
 	GameLog.info("ZoneManager: Destroyed instance %s" % instance_id)
@@ -556,3 +563,143 @@ func _find_party_instance(base_zone_id: String, party_ids: Array[String]) -> Str
 			if members.has(party_id):
 				return instance_id
 	return ""
+
+func _load_zone_state() -> void:
+	_load_zones()
+	_load_instances()
+
+func _load_zones() -> void:
+	var store = DictStore.new()
+	var keys = store.all_keys()
+	for key in keys:
+		if key.begins_with(_kv_prefix + "def:"):
+			var zone_id = key.substr(_kv_prefix.length() + 4)
+			var data = store.get(key)
+			if not data.is_empty():
+				var zone_data := ZoneData.new()
+				zone_data.id = data.get("id", "")
+				zone_data.display_name = data.get("display_name", "Unknown Zone")
+				zone_data.description = data.get("description", "")
+				var pvp_key = data.get("pvp_mode", "SAFE")
+				for pvp_name in ZoneData.PvPZoneMode.keys():
+					if pvp_name == pvp_key:
+						zone_data.pvp_mode = ZoneData.PvPZoneMode[pvp_name]
+						break
+				zone_data.level_requirement = data.get("level_requirement", 1)
+				zone_data.max_level = data.get("max_level", 999)
+				zone_data.allowed_factions = data.get("allowed_factions", [])
+				zone_data.blocked_sactions = data.get("blocked_sactions", [])
+				zone_data.blocked_species = data.get("blocked_species", [])
+				zone_data.respawn_at_bind = data.get("respawn_at_bind", true)
+				zone_data.respawn_timer = data.get("respawn_timer", 10.0)
+				zone_data.zone_radius = data.get("zone_radius", 500.0)
+				zone_data.is_instanced = data.get("is_instanced", false)
+				zone_data.instance_capacity = data.get("instance_capacity", 0)
+				var center_data = data.get("zone_center", {"x": 0, "y": 0, "z": 0})
+				zone_data.zone_center = Vector3(center_data.get("x", 0), center_data.get("y", 0), center_data.get("z", 0))
+				_zones[zone_id] = zone_data
+				_players_in_zone[zone_id] = []
+				_enemies_in_zone[zone_id] = []
+
+func _persist_zone(zone_id: String) -> void:
+	if not _zones.has(zone_id):
+		return
+	var zone_data = _zones[zone_id]
+	var center = zone_data.zone_center
+	var data := {
+		"id": zone_data.id,
+		"display_name": zone_data.display_name,
+		"description": zone_data.description,
+		"pvp_mode": ZoneData.PvPZoneMode.keys()[zone_data.pvp_mode],
+		"level_requirement": zone_data.level_requirement,
+		"max_level": zone_data.max_level,
+		"allowed_factions": zone_data.allowed_factions,
+		"blocked_sactions": zone_data.blocked_sactions,
+		"blocked_species": zone_data.blocked_species,
+		"respawn_at_bind": zone_data.respawn_at_bind,
+		"respawn_timer": zone_data.respawn_timer,
+		"zone_center": {"x": center.x, "y": center.y, "z": center.z},
+		"zone_radius": zone_data.zone_radius,
+		"is_instanced": zone_data.is_instanced,
+		"instance_capacity": zone_data.instance_capacity
+	}
+	var store = DictStore.new()
+	store.set(_kv_prefix + "def:" + zone_id, data)
+
+func _load_instances() -> void:
+	var store = DictStore.new()
+	var keys = store.all_keys()
+	_instances.clear()
+	for key in keys:
+		if key.begins_with(_kv_prefix + "instance:"):
+			var instance_id = key.substr(_kv_prefix.length() + 9)
+			var data = store.get(key)
+			if not data.is_empty():
+				_instances[instance_id] = data
+	var max_id := 0
+	for instance_id in _instances:
+		var suffix = instance_id.substr(9)
+		if suffix.is_valid_int():
+			var num = suffix.to_int()
+			if num >= max_id:
+				max_id = num + 1
+	_next_instance_id = max_id
+
+func _persist_instances() -> void:
+	var store = DictStore.new()
+	if _instances.is_empty():
+		store.erase(_kv_prefix + "instances")
+	else:
+		var serializable := {}
+		for instance_id in _instances:
+			var instance_data = _instances[instance_id]
+			var result := instance_data.duplicate(true)
+			var zone_data = result.get("zone_data")
+			if zone_data is ZoneData:
+				result["zone_data"] = _serialize_zone_data(zone_data)
+			serializable[instance_id] = result
+		store.set(_kv_prefix + "instances", serializable)
+
+func _serialize_zone_data(zone_data: ZoneData) -> Dictionary:
+	var center = zone_data.zone_center
+	return {
+		"id": zone_data.id,
+		"display_name": zone_data.display_name,
+		"description": zone_data.description,
+		"pvp_mode": ZoneData.PvPZoneMode.keys()[zone_data.pvp_mode],
+		"level_requirement": zone_data.level_requirement,
+		"max_level": zone_data.max_level,
+		"allowed_factions": zone_data.allowed_factions,
+		"blocked_sactions": zone_data.blocked_sactions,
+		"blocked_species": zone_data.blocked_species,
+		"respawn_at_bind": zone_data.respawn_at_bind,
+		"respawn_timer": zone_data.respawn_timer,
+		"zone_center": {"x": center.x, "y": center.y, "z": center.z},
+		"zone_radius": zone_data.zone_radius,
+		"is_instanced": zone_data.is_instanced,
+		"instance_capacity": zone_data.instance_capacity
+	}
+
+func _deserialize_zone_data(data: Dictionary) -> ZoneData:
+	var zone_data := ZoneData.new()
+	zone_data.id = data.get("id", "")
+	zone_data.display_name = data.get("display_name", "Unknown Zone")
+	zone_data.description = data.get("description", "")
+	var pvp_key = data.get("pvp_mode", "SAFE")
+	for pvp_name in ZoneData.PvPZoneMode.keys():
+		if pvp_name == pvp_key:
+			zone_data.pvp_mode = ZoneData.PvPZoneMode[pvp_name]
+			break
+	zone_data.level_requirement = data.get("level_requirement", 1)
+	zone_data.max_level = data.get("max_level", 999)
+	zone_data.allowed_factions = data.get("allowed_factions", [])
+	zone_data.blocked_sactions = data.get("blocked_sactions", [])
+	zone_data.blocked_species = data.get("blocked_species", [])
+	zone_data.respawn_at_bind = data.get("respawn_at_bind", true)
+	zone_data.respawn_timer = data.get("respawn_timer", 10.0)
+	zone_data.zone_radius = data.get("zone_radius", 500.0)
+	zone_data.is_instanced = data.get("is_instanced", false)
+	zone_data.instance_capacity = data.get("instance_capacity", 0)
+	var center_data = data.get("zone_center", {"x": 0, "y": 0, "z": 0})
+	zone_data.zone_center = Vector3(center_data.get("x", 0), center_data.get("y", 0), center_data.get("z", 0))
+	return zone_data

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<meta name="description" content="Synmergia - A free and open source MMORPG">
+	<meta name="theme-color" content="#1a1a2e">
+	<title>Synmergia</title>
+	<link rel="icon" type="image/svg+xml" href="/icon.svg">
+	<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+	<div id="game-container">
+		<canvas id="game-canvas"></canvas>
+		<div id="loading-screen">
+			<div class="spinner"></div>
+			<p id="loading-text">Loading Synmergia...</p>
+		</div>
+		<div id="error-screen" class="hidden">
+			<h2>Failed to load</h2>
+			<p id="error-text">Please try again or contact support.</p>
+			<button onclick="location.reload()">Retry</button>
+		</div>
+	</div>
+	<script src="/config.js"></script>
+	<script src="/shared/input.js"></script>
+	<script src="/shared/network.js"></script>
+	<script src="/game.js"></script>
+</body>
+</html>
