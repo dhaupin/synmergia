@@ -9,6 +9,7 @@ const AchievementService = preload("res://core/services/achievement_service.gd")
 # Dedupe keys carry event identity so a 5-second respawn-invincibility
 # countdown doesn't re-toast every frame.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Singleton reference
 static var instance: DeathFeatures
@@ -78,6 +79,7 @@ signal zone_transfer_blocked_due_to_death(entity_id: String, reason: String)
 func _ready() -> void:
 	instance = self
 	GameLog.info("DeathFeatures: Ready")
+	_load_state()
 
 	# Connect to relevant events
 	if EventHub:
@@ -387,6 +389,7 @@ func record_kill_for_streak(killer_id: String, victim_id: String) -> void:
 	# Track best streak
 	if streak_data["streak"] > streak_data["best_streak"]:
 		streak_data["best_streak"] = streak_data["streak"]
+	_persist_kill_streak(killer_id)
 		if AchievementService:
 			AchievementService.unlock(killer_id, "kill_streak_%d" % streak_data["streak"])
 
@@ -527,6 +530,7 @@ func record_death(entity, killer = null, zone_id: String = "", cause: String = "
 	# Break kill streak of killer
 	if killer:
 		break_kill_streak(killer.entity_id)
+	_persist_death_stats(entity.entity_id)
 
 	# Check for death streak achievement
 	if stats.total_deaths >= 100 and AchievementService:
@@ -537,6 +541,7 @@ func record_revive_received(entity_id: String) -> void:
 	if not Config.TRACK_DEATH_STATS:
 		return
 	get_death_stats(entity_id).total_revives_received += 1
+	_persist_death_stats(entity_id)
 
 ## Record a self-rez
 func record_self_rez(entity_id: String) -> void:
@@ -671,3 +676,43 @@ func _cleanup_old_tracking() -> void:
 			if streak_data["streak"] > 0:
 				kill_streak_broken.emit(killer_id, streak_data["streak"])
 			_kill_streaks.erase(killer_id)
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_death_stats = {}
+	_kill_streaks = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_death_stats):
+			var entity_id = key.substr(_kv_death_stats.length())
+			var data: Dictionary = store.get(key)
+			if not data.is_empty():
+				var stats := DeathStats.new()
+				stats.total_deaths = data.get("total_deaths", 0)
+				stats.pvp_deaths = data.get("pvp_deaths", 0)
+				stats.pve_deaths = data.get("pve_deaths", 0)
+				stats.total_revives_received = data.get("total_revives_received", 0)
+				stats.total_self_rezzes = data.get("total_self_rezzes", 0)
+				stats.total_revives_given = data.get("total_revives_given", 0)
+				stats.longest_kill_streak = data.get("longest_kill_streak", 0)
+				stats.longest_death_streak = data.get("longest_death_streak", 0)
+				stats.death_history = data.get("death_history", [])
+				_death_stats[entity_id] = stats
+		elif key.begins_with(_kv_kill_streaks):
+			var killer_id = key.substr(_kv_kill_streaks.length())
+			_kill_streaks[killer_id] = store.get(key)
+
+func _persist_death_stats(entity_id: String) -> void:
+	var store := DictStore.new()
+	if _death_stats.has(entity_id):
+		store.set(_kv_death_stats + entity_id, _death_stats[entity_id].to_dict())
+	else:
+		store.erase(_kv_death_stats + entity_id)
+
+func _persist_kill_streak(killer_id: String) -> void:
+	var store := DictStore.new()
+	if _kill_streaks.has(killer_id):
+		store.set(_kv_kill_streaks + killer_id, _kill_streaks[killer_id])
+	else:
+		store.erase(_kv_kill_streaks + killer_id)
