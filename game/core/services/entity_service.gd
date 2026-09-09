@@ -10,6 +10,8 @@ const Faction = preload("res://core/schemas/faction.gd")
 # `Entity.EntityType.X` in dispatch logic, which needs Entity's
 # class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const _kv_prefix := "entity:"
 var _entities: Dictionary = {}       # entity_id ->
 var _players: Dictionary = {}        # player_id ->  (subset)
 var _enemies: Dictionary = {}       # entity_id ->  (subset)
@@ -25,6 +27,7 @@ signal player_left(player, metadata: SpawnMetadata)
 
 func _ready() -> void:
 	GameLog.info("EntityService: Ready")
+	_load_entity_metadata()
 
 ## Register a new entity with spawn metadata
 ## Returns assigned entity_id
@@ -64,6 +67,7 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 	elif entity.entity_type == Entity.EntityType.NPC:
 		_npcs[entity_id] = entity
 
+	_persist_entity_metadata(entity_id)
 	entity_registered.emit(entity, metadata)
 	EventHub.entity_spawned.emit(entity, metadata)
 
@@ -108,6 +112,7 @@ func unregister_entity(entity, reason: String = "despawn") -> void:
 		metadata = _create_default_metadata(entity)
 	metadata.notification_message = reason  # Reuse for despawn reason
 
+	_persist_entity_metadata(entity_id)
 	_entities.erase(entity_id)
 	_players.erase(entity_id)
 	_enemies.erase(entity_id)
@@ -287,3 +292,71 @@ func clear_all() -> void:
 
 	_next_entity_id = 1
 	GameLog.info("EntityService: Cleared all entities")
+
+func _metadata_to_dict(metadata: SpawnMetadata) -> Dictionary:
+	return {
+		"spawn_type": metadata.spawn_type,
+		"entity_id": metadata.entity_id,
+		"display_name": metadata.display_name,
+		"zone_id": metadata.zone_id,
+		"position_x": metadata.position.x,
+		"position_y": metadata.position.y,
+		"position_z": metadata.position.z,
+		"spawner_entity_id": metadata.spawner_entity_id,
+		"spawn_point_id": metadata.spawn_point_id,
+		"level": metadata.level,
+		"tags": metadata.tags,
+		"quest_id": metadata.quest_id,
+		"notification_enabled": metadata.notification_enabled,
+		"notification_scopes": metadata.notification_scopes,
+		"notification_message": metadata.notification_message,
+		"notification_priority": metadata.notification_priority,
+	}
+
+func _metadata_from_dict(data: Dictionary) -> SpawnMetadata:
+	var metadata := SpawnMetadata.new()
+	metadata.spawn_type = data.get("spawn_type", 0)
+	metadata.entity_id = data.get("entity_id", "")
+	metadata.display_name = data.get("display_name", "")
+	metadata.zone_id = data.get("zone_id", "")
+	metadata.position = Vector3(
+		data.get("position_x", 0.0),
+		data.get("position_y", 0.0),
+		data.get("position_z", 0.0)
+	)
+	metadata.spawner_entity_id = data.get("spawner_entity_id", "")
+	metadata.spawn_point_id = data.get("spawn_point_id", "")
+	metadata.level = data.get("level", 1)
+	metadata.tags = data.get("tags", [])
+	metadata.quest_id = data.get("quest_id", "")
+	metadata.notification_enabled = data.get("notification_enabled", false)
+	metadata.notification_scopes = data.get("notification_scopes", [])
+	metadata.notification_message = data.get("notification_message", "")
+	metadata.notification_priority = data.get("notification_priority", 0)
+	return metadata
+
+func _load_entity_metadata() -> void:
+	var store := DictStore.new()
+	for key in store.all_keys():
+		if not key.begins_with(_kv_prefix):
+			continue
+		var entity_id := key.substr(_kv_prefix.length())
+		var data := store.get(key)
+		if data.is_empty():
+			continue
+		var metadata := _metadata_from_dict(data)
+		metadata.entity_id = entity_id
+		_entity_metadata[entity_id] = metadata
+
+func _persist_entity_metadata(entity_id: String) -> void:
+	var store := DictStore.new()
+	var key := _kv_prefix + entity_id
+	if not _entity_metadata.has(entity_id):
+		store.erase(key)
+		return
+	var metadata: SpawnMetadata = _entity_metadata[entity_id]
+	var data := _metadata_to_dict(metadata)
+	if data.is_empty():
+		store.erase(key)
+	else:
+		store.set(key, data)
