@@ -61,13 +61,16 @@ Use these in the task list:
 - [x] PlayerLockService: persist lock state
 - [x] VendorService: persist buyback items
 - [x] SkillAcademyService: persist skill progression
-- [x] WorldService: persist gateway definitions
+- [x] WorldService: persist gateway definitions + active events
 - [x] FairnessService: persist trust scores and session data
 - [x] ConnectorService: persist connected agent registrations
 - [x] SameAccountTransferService: persist transfer stats
 - [x] MatchmakingQoS: persist latency/quality/packet loss data
 - [x] NotificationService: persist notification history per entity
 - [x] DataService: fixed directory bugs, added canonical getters
+- [x] ZoneManager: persist zone definitions and active instances
+- [x] EntityService: persist entity metadata on spawn/despawn
+- [x] InventoryService: persist player inventories with Item serialization
 - [x] DictStore enhanced with TTL, batch ops, sweep_expired
 - [x] CacheWrapper created for CacheStore with TTL support
 - [x] MemoryWrapper created for MemoryStore access
@@ -75,8 +78,4 @@ Use these in the task list:
 - [x] Adapter tests: test_dict_store, test_dict_store_ttl, test_service_integration, test_adapter_e2e
 - [x] Bridge tests pass: pg-bridge 12/12, redis-bridge 20/20
 - [x] Branch kilo/festive-ribbon-wav pushed to origin
-- [x] Branch kilo/heavy-services-arch created for Phase 2/3 services- [x] WorldService: persist gateway definitions + active events
-- [x] ZoneManager: persist zone definitions and active instances
-- [x] EntityService: persist entity metadata on spawn/despawn
-- [x] InventoryService: persist player inventories with Item serialization
 - [x] Branch kilo/heavy-services-arch pushed to origin
