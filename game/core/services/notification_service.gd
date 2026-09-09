@@ -3,6 +3,7 @@
 extends Node
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # Notification types
 enum NotificationType {
 	INFO,             # Informational messages
@@ -85,6 +86,8 @@ var _entity_notifications: Dictionary = {}  # entity_id -> [notifications]
 # Notification history per entity
 var _notification_history: Dictionary = {}  # entity_id -> [notification dicts]
 var _max_history: int = 100
+
+const _kv_prefix := "notification:"
 
 # Frame-level dispatcher: handles TTL dedupe of NotificationContext events
 # before they hit the per-player queue. Owned here so it shares the autoload
@@ -189,6 +192,7 @@ func send(
 
 	# Add to history
 	_add_to_history(entity_id, notification)
+	_persist_notification_history(entity_id)
 
 	notification_sent.emit(entity_id, notification)
 	GameLog.debug("NotificationService: Sent to %s: %s" % [entity_id, message])
@@ -761,6 +765,23 @@ func remove_entity(entity_id: String) -> void:
 	_entity_notifications.erase(entity_id)
 	_notification_history.erase(entity_id)
 
+func _load_notification_history() -> void:
+	var store := DictStore.new()
+	var keys := store.all_keys()
+	for key in keys:
+		if key.begins_with(_kv_prefix):
+			var entity_id := key.substr(_kv_prefix.length())
+			var data := store.get(key)
+			if data is Array and not data.is_empty():
+				_notification_history[entity_id] = data
+
+func _persist_notification_history(entity_id: String) -> void:
+	var store := DictStore.new()
+	if _notification_history.has(entity_id) and not _notification_history[entity_id].is_empty():
+		store.set(_kv_prefix + entity_id, _notification_history[entity_id])
+	else:
+		store.erase(_kv_prefix + entity_id)
+
 func _add_to_history(entity_id: String, notification: Dictionary) -> void:
 	if not _notification_history.has(entity_id):
 		_notification_history[entity_id] = []
@@ -793,7 +814,9 @@ func send_event(ctx) -> bool:
 		# Defensive: autoload may be in a partial state during early init
 		# or in --script test mode. Defer to a fresh dispatcher so callers
 		# never get a Null call.
-		_dispatcher = NotificationDispatcher.new()
+	_dispatcher = NotificationDispatcher.new()
+
+	_load_notification_history()
 	if not _dispatcher.should_deliver(ctx):
 		return false
 
