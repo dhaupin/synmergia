@@ -8,6 +8,7 @@ extends Node
 # the firewall/admin commands use. The legacy NotificationService.send
 # call is kept for clients that haven't migrated to the new pipeline.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Server state
 enum ServerState {
@@ -33,6 +34,9 @@ var _maintenance_start_time: int = 0
 # Restart warning intervals (seconds before restart)
 const WARNING_INTERVALS: Array[int] = [3600, 1800, 900, 600, 300, 60, 30, 10, 5, 4, 3, 2, 1]
 
+## DictStore key prefix
+const _kv_prefix := "server:"
+
 signal server_state_changed(new_state: ServerState, old_state: ServerState)
 signal restart_scheduled(restart_time: int, seconds_remaining: int)
 signal restart_cancelled()
@@ -44,6 +48,7 @@ signal player_kicked(entity_id: String, reason: String)
 
 func _ready() -> void:
 	GameLog.info("ServerManager: Ready")
+	_load_state()
 
 func _process(delta: float) -> void:
 	if _restart_scheduled:
@@ -72,6 +77,7 @@ func schedule_restart(seconds_from_now: int, message: String = "Server restart s
 	_restart_time = Time.get_unix_time_from_system() + seconds_from_now
 	_restart_countdown_seconds = seconds_from_now
 	_restart_warned_players = false
+	_persist_state()
 
 	GameLog.info("ServerManager: Restart scheduled in %d seconds" % seconds_from_now)
 	GameLog.info("ServerManager: Message: %s" % message)
@@ -89,6 +95,7 @@ func cancel_restart() -> void:
 	_restart_scheduled = false
 	var seconds_remaining = _restart_countdown_seconds
 	_restart_countdown_seconds = 0
+	_persist_state()
 
 	GameLog.info("ServerManager: Restart cancelled")
 	restart_cancelled.emit()
@@ -207,6 +214,7 @@ func start_maintenance(message: String = "Server under maintenance", duration_se
 	_state = ServerState.MAINTENANCE
 	_maintenance_message = message
 	_maintenance_start_time = Time.get_unix_time_from_system()
+	_persist_state()
 
 	GameLog.info("ServerManager: Entering maintenance mode")
 	GameLog.info("ServerManager: Message: %s" % message)
@@ -229,6 +237,7 @@ func end_maintenance() -> void:
 
 	_state = _was_online if _was_online != ServerState.MAINTENANCE else ServerState.ONLINE
 	var duration = Time.get_unix_time_from_system() - _maintenance_start_time
+	_persist_state()
 
 	GameLog.info("ServerManager: Ending maintenance mode (duration: %d seconds)" % duration)
 	maintenance_ended.emit()
@@ -246,6 +255,7 @@ func end_maintenance() -> void:
 func set_state(new_state: ServerState) -> void:
 	var old_state = _state
 	_state = new_state
+	_persist_state()
 
 	GameLog.info("ServerManager: State changed from %s to %s" % [ServerState.keys()[old_state], ServerState.keys()[new_state]])
 	server_state_changed.emit(new_state, old_state)
@@ -330,3 +340,28 @@ func get_server_info() -> Dictionary:
 		"shard_id": ShardManager.shard_id if ShardManager else "unknown",
 		"world_name": ShardManager.world_name if ShardManager else "unknown"
 	}
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	var data: Dictionary = store.get(_kv_prefix + "state")
+	if not data.is_empty():
+		_state = data.get("state", ServerState.ONLINE)
+		_restart_scheduled = data.get("restart_scheduled", false)
+		_restart_time = int(data.get("restart_time", 0))
+		_restart_countdown_seconds = int(data.get("restart_countdown", 0))
+		_maintenance_message = data.get("maintenance_message", "Server under maintenance")
+		_maintenance_start_time = int(data.get("maintenance_start_time", 0))
+
+func _persist_state() -> void:
+	var store := DictStore.new()
+	var data := {
+		"state": _state,
+		"restart_scheduled": _restart_scheduled,
+		"restart_time": _restart_time,
+		"restart_countdown": _restart_countdown_seconds,
+		"maintenance_message": _maintenance_message,
+		"maintenance_start_time": _maintenance_start_time
+	}
+	store.set(_kv_prefix + "state", data)
