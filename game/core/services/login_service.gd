@@ -18,6 +18,7 @@ extends Node
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 ## This is the client-side gate. Server should always re-validate.
 
@@ -26,13 +27,15 @@ signal login_failed(reason: String)
 signal logged_out
 signal account_registered(account_id: String)
 
-const SAVE_PATH := "user://accounts.json"
 const PBKDF2_ITERATIONS := 4096
 const HASH_BYTES := 32                # SHA-256 output
 const SALT_BYTES := 16
 const MAX_LOGIN_ATTEMPTS := 5
 const LOGIN_COOLDOWN_SEC := 10.0
 const SESSION_TOKEN_BYTES := 24
+
+## DictStore key prefix for accounts
+const _kv_prefix := "login:account:"
 
 static var instance: LoginService
 
@@ -48,7 +51,7 @@ var _store: Dictionary = {}
 func _ready() -> void:
 	instance = self
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_load_store()
+	_load_accounts()
 	GameLog.info("LoginService: Ready (%d stored accounts)" % _store.size())
 
 
@@ -105,7 +108,7 @@ func register(account_id: String, password: String, display_name: String = "") -
 		"created_at": Time.get_unix_time_from_system(),
 		"is_guest": false,
 	}
-	_save_store()
+	_persist_account(account_id)
 
 	# Mirror to AccountService so the rest of the game sees a real account
 	if AccountService:
@@ -222,27 +225,25 @@ func _fail(reason: String) -> void:
 	GameLog.warn("LoginService: %s" % reason)
 	login_failed.emit(reason)
 
-func _load_store() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+func _load_accounts() -> void:
+	var store := DictStore.new()
+	if not store.has(_kv_prefix + "_init"):
 		_store = {}
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if not f:
-		_store = {}
-		return
-	var text := f.get_as_text()
-	f.close()
-	var parsed = JSON.parse_string(text)
-	if parsed is Dictionary:
-		_store = parsed
-	else:
-		GameLog.warn("LoginService: accounts.json corrupt, starting fresh")
-		_store = {}
+	var keys := store.all_keys()
+	for key in keys:
+		if key.begins_with(_kv_prefix) and key != _kv_prefix + "_init":
+			var account_id = key.substr(_kv_prefix.length())
+			var entry: Dictionary = store.get(key)
+			if not entry.is_empty():
+				_store[account_id] = entry
 
-func _save_store() -> void:
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if not f:
-		GameLog.error("LoginService: failed to open accounts.json for write")
-		return
-	f.store_string(JSON.stringify(_store))
-	f.close()
+func _persist_account(account_id: String) -> void:
+	var store := DictStore.new()
+	var entry: Dictionary = _store.get(account_id, {})
+	if entry.is_empty():
+		store.erase(_kv_prefix + account_id)
+	else:
+		store.set(_kv_prefix + account_id, entry)
+	if not store.has(_kv_prefix + "_init"):
+		store.set(_kv_prefix + "_init", {"ts": Time.get_unix_time_from_system()})
