@@ -34,6 +34,8 @@ Use these in the task list:
 - After merge: update `## Recently Completed (2026-09-09)
 
 - [x] Created game/adapters/persistence/dict_store.gd (RefCounted KV wrapper)
+- [x] Created game/adapters/cache/cache_wrapper.gd (CacheStore wrapper)
+- [x] Created game/adapters/memory_layer/memory_wrapper.gd (MemoryStore wrapper)
 - [x] LoginService: replaced user://accounts.json with DictStore
 - [x] PlayerConfig: replaced ConfigFile with DictStore  
 - [x] AccountService: added DictStore persistence for accounts/characters
@@ -50,6 +52,24 @@ Use these in the task list:
 - [x] ShardManager: persist shard info
 - [x] LootService: persist player loot history
 - [x] CooldownService: migrated to CacheWrapper with TTL expiration
-- [x] DictStore enhanced with batch ops (set_batch, get_many, erase_batch)
+- [x] FactionManager: persist factions, reputations, alliances
+- [x] AntiCheatService: persist suspicion scores and bans
+- [x] DeathFeatures: persist death stats and kill streaks
+- [x] RespawnService: persist karma per entity
+- [x] ChatService: persist ignored lists and player settings
+- [x] AutoResponseService: persist exploit counts
+- [x] PlayerLockService: persist lock state
+- [x] VendorService: persist buyback items
+- [x] SkillAcademyService: persist skill progression
+- [x] WorldService: persist gateway definitions
+- [x] FairnessService: persist trust scores and session data
+- [x] ConnectorService: persist connected agent registrations
+- [x] SameAccountTransferService: persist transfer stats
+- [x] MatchmakingQoS: persist latency/quality/packet loss data
+- [x] DictStore enhanced with TTL, batch ops, sweep_expired
 - [x] CacheWrapper created for CacheStore with TTL support
+- [x] MemoryWrapper created for MemoryStore access
+- [x] Migration V20260909_001__init_kv.sql created
+- [x] Adapter tests: test_dict_store, test_dict_store_ttl, test_service_integration, test_adapter_e2e
+- [x] Bridge tests pass: pg-bridge 12/12, redis-bridge 20/20
 - [x] Branch kilo/festive-ribbon-wav pushed to origin
