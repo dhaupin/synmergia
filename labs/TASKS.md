@@ -61,10 +61,16 @@ Pull main before push. Push to `labs/db` branch when ready.
 
 ## Current Active
 
-- [ ] Fix remaining --script mode parse errors (CooldownService,
-      TradeService, FollowService, etc. in core/services/*.gd)
-- [ ] Wire first 3 services to AdapterRegistry (per prd-db.md §8):
-      AccountService, LoginService, PlayerManager
+- [x] Wire first 3 services to AdapterRegistry (per prd-db.md §8):
+      LoginService, PlayerConfig, AccountService
+- [ ] Wire next batch: SecurityService, ChatService, ScreenshotService
+- [ ] Wire runtime state services: TradeService, PartyService, GuildService
+- [ ] Enhance DictStore with TTL + batch operations
+- [ ] Add CacheStore wiring for rate-limited data (QoSService, CooldownService)
+- [ ] Write migration 002 (inventory/equipment) per prd-db.md §9.2
+- [ ] Lock remaining schemas in prd-db.md §3 (§3.4+)
+- [ ] Verify adapter integration tests pass against real pg-bridge
+      + redis-bridge
 - [ ] Verify adapter integration tests pass against real pg-bridge
       + redis-bridge (not just in-memory backends)
 - [ ] Lock remaining schemas in prd-db.md §3 (§3.4+)
@@ -1374,5 +1380,13 @@ Pushed as commit `d9354fe` on top of `f903d9b`.
 Linter additions (combined sessions 6b + 6c) are now
 considered DONE. Returning to DB buildins in session 7.
 
+## Recently Completed (2026-09-09)
 
-
+- [x] Created game/adapters/persistence/dict_store.gd (RefCounted KV wrapper)
+- [x] LoginService: replaced user://accounts.json with DictStore
+- [x] PlayerConfig: replaced ConfigFile with DictStore  
+- [x] AccountService: added DictStore persistence for accounts/characters
+- [x] Emoji audit: 194 chars removed from 21 files, 0 remain in .gd
+- [x] Print() sweep: 28/33 fixed, 3 intentional remain (debug_overlay, logger)
+- [x] Persistence audit: 10 user:// paths, 27 JSON usages, 116 adapter touchpoints
+- [x] Branch kilo/festive-ribbon-wav pushed to origin

@@ -7,6 +7,7 @@ extends Node
 # typed-Kind pipeline. The dispatch goes through NotificationService.notify
 # (the service-level verb that wraps send_event).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 ## ============================================================================
 ## SIGNALS
@@ -15,6 +16,9 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 signal exploit_detected(player_id: String, exploit_type: String, details: Dictionary)
 signal permission_denied(player_id: String, action: String, required_level: int)
 signal invalid_input(player_id: String, input_type: String, reason: String)
+
+func _ready() -> void:
+    _load_restrictions()
 
 ## ============================================================================
 ## INPUT VALIDATION
@@ -187,6 +191,7 @@ var _suspicious_activity: Dictionary = {}
 
 ## Track player restrictions (muted, trade-banned, etc.)
 var _player_restrictions: Dictionary = {}
+const _kv_prefix := "security:restriction:"
 
 ## Track blocked actions count (for statistics)
 var _blocks: Dictionary = {}
@@ -361,9 +366,10 @@ func restrict_player(player_id: String, restriction_type: String, duration_secon
 	}
 
 	# Notify player
-	_notify_player_restricted(player_id, restriction_type, duration_seconds)
+    _notify_player_restricted(player_id, restriction_type, duration_seconds)
+    _persist_restriction(player_id)
 
-	GameLog.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
+    GameLog.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
 
 ## Remove restriction from player
 func unrestrict_player(player_id: String, restriction_type: String) -> bool:
@@ -379,10 +385,11 @@ func unrestrict_player(player_id: String, restriction_type: String) -> bool:
 		_player_restrictions.erase(player_id)
 
 	# Notify player
-	_notify_player_unrestricted(player_id, restriction_type)
+    _notify_player_unrestricted(player_id, restriction_type)
+    _persist_restriction(player_id)
 
-	GameLog.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
-	return true
+    GameLog.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
+    return true
 
 ## Check if player is restricted from an action
 func is_restricted(player_id: String, restriction_type: String) -> bool:
@@ -509,6 +516,27 @@ func _process(delta: float) -> void:
 				actions[action_type] = recent
 		if not has_recent:
 			_action_tracker.erase(player_id)
+
+## ============================================================================
+## PERSISTENCE
+## ============================================================================
+
+func _load_restrictions() -> void:
+    var store := DictStore.new()
+    for key in store.all_keys():
+        if not key.begins_with(_kv_prefix):
+            continue
+        var player_id: String = key.substr(_kv_prefix.length())
+        var data: Dictionary = store.get(key)
+        if data is Dictionary and not data.is_empty():
+            _player_restrictions[player_id] = data
+
+func _persist_restriction(player_id: String) -> void:
+    var store := DictStore.new()
+    if _player_restrictions.has(player_id):
+        store.set(_kv_prefix + player_id, _player_restrictions[player_id])
+    else:
+        store.erase(_kv_prefix + player_id)
 
 ## ============================================================================
 ## ADMIN HELPERS (for AdminShell)
