@@ -2,6 +2,7 @@
 ## Handles loot rolling, party loot sharing, auto-loot, and loot rules
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const LootTable = preload("res://core/schemas/loot_table.gd")
 # Active loot rolls (loot_id -> loot data)
@@ -15,6 +16,7 @@ var _loot_timeout_seconds: float = 300.0	# 5 minutes to loot
 
 # Need/Greed rolls (loot_id -> {player_id -> roll})
 var _need_greed_rolls: Dictionary = {}
+const _kv_prefix := "loot:player:"
 
 # Loot roll types
 enum RollType {
@@ -33,6 +35,7 @@ signal loot_need_before_greed_started(loot_id: String, eligible_players: Array)
 signal loot_distributed(loot_id: String, distributions: Dictionary)
 
 func _ready() -> void:
+	_load_player_loot()
 	GameLog.info("LootService: Ready")
 
 ## Create loot from enemy death
@@ -192,7 +195,7 @@ func assign_loot(loot_id: String, player_id: String) -> bool:
 	var items: Dictionary = loot["items"]
 	var currency: int = loot["currency"]
 
-				# Store for player pickup
+			# Store for player pickup
 	if not _player_loot.has(player_id):
 		_player_loot[player_id] = []
 
@@ -202,6 +205,8 @@ func assign_loot(loot_id: String, player_id: String) -> bool:
 	"currency": currency,
 	"auto_loot": loot["auto_loot"]
 	})
+
+	_persist_player_loot(player_id)
 
 	loot_assigned.emit(loot_id, player_id, items)
 	GameLog.info("LootService: Assigned loot %s to %s" % [loot_id, player_id])
