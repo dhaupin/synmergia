@@ -117,6 +117,9 @@ var _active_revives: Dictionary = {}  # target_id -> {healer, start_time, cast_t
 var _revive_cooldowns: Dictionary = {}  # healer_id -> last_revoke_time
 var _karma: Dictionary = {}  # entity_id -> karma amount
 var _revive_counts: Dictionary = {}  # entity_id -> {context: count}
+
+## DictStore key prefix
+const _kv_prefix := "respawn:"
 var _abuse_flags: Dictionary = {}  # entity_id -> abuse_count
 var _current_context: String = "open_world"  # Current zone/mode context
 var _self_revive_timestamps: Dictionary = {}  # entity_id -> last_self_revive_time
@@ -139,6 +142,7 @@ class ZoneRespawnConfig:
 
 func _ready() -> void:
 	GameLog.info("RespawnService: Flexible respawn system initialized")
+	_load_state()
 
 ## Register a player
 func register_player(player) -> void:
@@ -153,11 +157,13 @@ func get_karma(entity_id: String) -> int:
 ## Add karma
 func add_karma(entity_id: String, amount: int, reason: String) -> void:
 	_karma[entity_id] = _karma.get(entity_id, 0) + amount
+	_persist_karma(entity_id)
 	karma_gained.emit(entity_id, amount, reason)
 
 ## Remove karma
 func remove_karma(entity_id: String, amount: int, reason: String) -> void:
 	_karma[entity_id] = max(0, _karma.get(entity_id, 0) - amount)
+	_persist_karma(entity_id)
 	karma_lost.emit(entity_id, amount, reason)
 
 ## Initiate respawn for a player
@@ -770,3 +776,24 @@ func configure_zone(zone_id: String, config: Dictionary) -> void:
 		zone_config.invincibility_duration = config["invincibility_duration"]
 	if config.has("gateway_ids"):
 		zone_config.gateway_ids = config["gateway_ids"]
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_karma = {}
+	_revive_counts = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix + "karma:"):
+			var entity_id = key.substr(_kv_prefix.length() + 6)
+			_karma[entity_id] = int(store.get(key).get("karma", 0))
+		elif key.begins_with(_kv_prefix + "revives:"):
+			var entity_id = key.substr(_kv_prefix.length() + 8)
+			_revive_counts[entity_id] = store.get(key)
+
+func _persist_karma(entity_id: String) -> void:
+	var store := DictStore.new()
+	if _karma.has(entity_id):
+		store.set(_kv_prefix + "karma:" + entity_id, {"karma": _karma[entity_id]})
+	else:
+		store.erase(_kv_prefix + "karma:" + entity_id)
