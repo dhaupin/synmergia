@@ -436,3 +436,20 @@ func _ok_sell(msg: String, gold: int) -> Dictionary:
 
 func _fail(msg: String) -> Dictionary:
 	return {"success": false, "message": msg, "item": null}
+
+## == Persistence ============================================================
+
+func _load_state() -> void:
+	var store := DictStore.new()
+	_buyback = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix + "buyback:"):
+			var player_id = key.substr(_kv_prefix.length() + 8)
+			_buyback[player_id] = store.get(key)
+
+func _persist_buyback(player_id: String) -> void:
+	var store := DictStore.new()
+	if _buyback.has(player_id):
+		store.set(_kv_prefix + "buyback:" + player_id, _buyback[player_id])
+	else:
+		store.erase(_kv_prefix + "buyback:" + player_id)
