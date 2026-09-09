@@ -12,6 +12,7 @@ func _cooldown():
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).
 # kick_player dispatches a PARTY kind toast to the kicked member so
@@ -32,6 +33,9 @@ const INVITE_TIMEOUT_SECONDS: float = GameConfig.Party.INVITE_TIMEOUT_SECONDS
 # Pending invites (invite_id -> {from, to, timestamp})
 var _pending_invites: Dictionary = {}
 var _next_invite_id: int = 1
+
+const _kv_party := "party:"
+const _kv_invite := "party:invite:"
 
 # Loot rules
 enum LootRule {
@@ -56,6 +60,8 @@ signal xp_shared(party_id: String, base_xp: int, xp_distribution: Dictionary, ki
 
 func _ready() -> void:
 	GameLog.info("PartyService: Ready")
+
+	_load_parties()
 
 ## Create a new party
 func create_party(leader_id: String, is_raid: bool = false) -> String:
@@ -87,6 +93,8 @@ func create_party(leader_id: String, is_raid: bool = false) -> String:
 	_parties[party_id] = party
 	_player_parties[leader_id] = party_id
 
+	_persist_party(party_id)
+
 	party_created.emit(party_id, leader_id)
 	GameLog.info("PartyService: Created party %s with leader %s" % [party_id, leader_id])
 
@@ -112,6 +120,7 @@ func disband_party(party_id: String) -> bool:
 		player_left_party.emit(party_id, member_id, "Party disbanded")
 
 	_parties.erase(party_id)
+	_persist_party(party_id)
 	party_disbanded.emit(party_id)
 	GameLog.info("PartyService: Disbanded party %s" % party_id)
 
@@ -162,6 +171,8 @@ func invite_player(from_id: String, to_id: String) -> bool:
 	"timestamp": Time.get_unix_time_from_system()
 	}
 
+	_persist_invite(invite_id)
+
 	party_invite_sent.emit(from_id, to_id)
 	GameLog.info("PartyService: Invite %s from %s to %s" % [invite_id, from_id, to_id])
 
@@ -190,6 +201,8 @@ func accept_invite(to_id: String) -> bool:
 				party["members"].append(to_id)
 				_player_parties[to_id] = party_id
 				_pending_invites.erase(invite_id)
+				_persist_invite(invite_id)
+				_persist_party(party_id)
 
 				player_joined_party.emit(party_id, to_id)
 				party_invite_accepted.emit(from_id, to_id)
@@ -205,6 +218,7 @@ func decline_invite(to_id: String) -> bool:
 		if invite["to"] == to_id:
 			var from_id: String = invite["from"]
 			_pending_invites.erase(invite_id)
+			_persist_invite(invite_id)
 			party_invite_declined.emit(from_id, to_id)
 			GameLog.info("PartyService: %s declined invite from %s" % [to_id, from_id])
 			return true
@@ -454,3 +468,36 @@ func _notify_player(player_id: String, message: String, kind: int = NotifKind.SE
 		{"player_id": player_id},
 		player_id
 	)
+
+func _load_parties() -> void:
+	var store := DictStore.new()
+	var keys := store.all_keys()
+	for key in keys:
+		if key.begins_with(_kv_party):
+			var data := store.get(key)
+			if data:
+				var party_id := key.substr(_kv_party.length())
+				_parties[party_id] = data
+				for member_id in data.get("members", []):
+					_player_parties[member_id] = party_id
+		elif key.begins_with(_kv_invite):
+			var data := store.get(key)
+			if data:
+				var invite_id := key.substr(_kv_invite.length())
+				_pending_invites[invite_id] = data
+
+func _persist_party(party_id: String) -> void:
+	var store := DictStore.new()
+	var key := _kv_party + party_id
+	if _parties.has(party_id) and not _parties[party_id].is_empty():
+		store.set(key, _parties[party_id])
+	else:
+		store.erase(key)
+
+func _persist_invite(invite_id: String) -> void:
+	var store := DictStore.new()
+	var key := _kv_invite + invite_id
+	if _pending_invites.has(invite_id) and not _pending_invites[invite_id].is_empty():
+		store.set(key, _pending_invites[invite_id])
+	else:
+		store.erase(key)

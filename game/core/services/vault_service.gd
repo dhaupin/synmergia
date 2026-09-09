@@ -5,6 +5,12 @@ extends Node
 ## Singleton
 static var instance: VaultService
 
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+
+const _kv_personal := "vault:personal:"
+const _kv_guild := "vault:guild:"
+const _kv_account := "vault:account:"
+
 ## Vault types
 enum VaultType {
 	PERSONAL,     # Individual player vault
@@ -48,6 +54,8 @@ func _ready() -> void:
 	instance = self
 	GameLog.info("VaultService: Ready")
 
+	_load_vaults()
+
 ## ============================================================================
 ## VAULT INITIALIZATION
 ## ============================================================================
@@ -61,6 +69,7 @@ func init_personal_vault(player_id: String) -> void:
 			"size": PERSONAL_VAULT_SIZE,
 			"expanded": false
 		}
+		_persist_personal(player_id)
 	GameLog.debug("VaultService: Initialized personal vault for %s" % player_id)
 
 func init_guild_vault(guild_id: String, founder_id: String) -> void:
@@ -75,6 +84,7 @@ func init_guild_vault(guild_id: String, founder_id: String) -> void:
 		}
 		# Founder gets all permissions
 		_grant_guild_permissions(guild_id, founder_id, Permission.VIEW | Permission.DEPOSIT | Permission.WITHDRAW | Permission.MANAGE)
+		_persist_guild(guild_id)
 	GameLog.debug("VaultService: Initialized guild vault for %s" % guild_id)
 
 func init_account_vault(account_id: String) -> void:
@@ -85,6 +95,7 @@ func init_account_vault(account_id: String) -> void:
 			"gold": 0,
 			"size": ACCOUNT_VAULT_SIZE
 		}
+		_persist_account(account_id)
 	GameLog.debug("VaultService: Initialized account vault for %s" % account_id)
 
 ## ============================================================================
@@ -156,7 +167,7 @@ func deposit_item(player_id: String, vault_type: VaultType, item_data: Dictionar
 		}
 
 	# Sync back to storage
-	_sync_vault(player_id, vault_type, vault)
+	_persist_vault(player_id, vault_type)
 
 	item_deposited.emit(player_id, vault_type, item_id, quantity)
 	GameLog.debug("VaultService: %s deposited %d x %s" % [player_id, quantity, item_id])
@@ -187,7 +198,7 @@ func withdraw_item(player_id: String, vault_type: VaultType, slot_index: int, qu
 		slot.quantity -= to_withdraw
 
 	# Sync back
-	_sync_vault(player_id, vault_type, vault)
+	_persist_vault(player_id, vault_type)
 
 	item_withdrawn.emit(player_id, vault_type, item_id, to_withdraw)
 	GameLog.debug("VaultService: %s withdrew %d x %s" % [player_id, to_withdraw, item_id])
@@ -236,7 +247,7 @@ func deposit_gold(player_id: String, vault_type: VaultType, amount: int) -> bool
 		return false
 
 	vault.gold += amount
-	_sync_vault(player_id, vault_type, vault)
+	_persist_vault(player_id, vault_type)
 
 	gold_deposited.emit(player_id, vault_type, amount)
 	GameLog.debug("VaultService: %s deposited %d gold" % [player_id, amount])
@@ -255,7 +266,7 @@ func withdraw_gold(player_id: String, vault_type: VaultType, amount: int) -> boo
 		return false
 
 	vault.gold -= amount
-	_sync_vault(player_id, vault_type, vault)
+	_persist_vault(player_id, vault_type)
 
 	gold_withdrawn.emit(player_id, vault_type, amount)
 	GameLog.debug("VaultService: %s withdrew %d gold" % [player_id, amount])
@@ -269,6 +280,7 @@ func _grant_guild_permissions(guild_id: String, member_id: String, permissions: 
 	if not _guild_vaults.has(guild_id):
 		return
 	_guild_vaults[guild_id].permissions[member_id] = permissions
+	_persist_guild(guild_id)
 
 func set_member_permission(guild_id: String, manager_id: String, member_id: String, permissions: int) -> bool:
 	# Check if manager has MANAGE permission
@@ -350,7 +362,7 @@ func expand_vault(player_id: String, vault_type: VaultType, slots: int) -> bool:
 	# Expand vault
 	vault.size = current_size + slots
 	vault.expanded = true
-	_sync_vault(player_id, vault_type, vault)
+	_persist_vault(player_id, vault_type)
 
 	vault_expanded.emit(player_id, vault_type, vault.size)
 	GameLog.info("VaultService: Player %s expanded vault to %d slots for %d gold" % [player_id, vault.size, gold_cost])
@@ -394,8 +406,64 @@ func _get_vault(player_id: String, vault_type: VaultType) -> Dictionary:
 	return {}
 
 func _sync_vault(player_id: String, vault_type: VaultType, vault: Dictionary) -> void:
-	# TODO: Save to database
-	pass
+	_persist_vault(player_id, vault_type)
+
+func _persist_vault(player_id: String, vault_type: VaultType) -> void:
+	match vault_type:
+		VaultType.PERSONAL:
+			_persist_personal(player_id)
+		VaultType.GUILD:
+			var guild_id := _get_player_guild_id(player_id)
+			if not guild_id.is_empty():
+				_persist_guild(guild_id)
+		VaultType.ACCOUNT:
+			var account_id := _get_player_account_id(player_id)
+			if not account_id.is_empty():
+				_persist_account(account_id)
+
+func _persist_personal(player_id: String) -> void:
+	var store := DictStore.new()
+	var key := _kv_personal + player_id
+	if _personal_vaults.has(player_id) and not _personal_vaults[player_id].is_empty():
+		store.set(key, _personal_vaults[player_id])
+	else:
+		store.erase(key)
+
+func _persist_guild(guild_id: String) -> void:
+	var store := DictStore.new()
+	var key := _kv_guild + guild_id
+	if _guild_vaults.has(guild_id) and not _guild_vaults[guild_id].is_empty():
+		store.set(key, _guild_vaults[guild_id])
+	else:
+		store.erase(key)
+
+func _persist_account(account_id: String) -> void:
+	var store := DictStore.new()
+	var key := _kv_account + account_id
+	if _account_vaults.has(account_id) and not _account_vaults[account_id].is_empty():
+		store.set(key, _account_vaults[account_id])
+	else:
+		store.erase(key)
+
+func _load_vaults() -> void:
+	var store := DictStore.new()
+	var keys := store.all_keys()
+	for key in keys:
+		if key.begins_with(_kv_personal):
+			var player_id := key.substr(_kv_personal.length())
+			var data := store.get(key)
+			if data:
+				_personal_vaults[player_id] = data
+		elif key.begins_with(_kv_guild):
+			var guild_id := key.substr(_kv_guild.length())
+			var data := store.get(key)
+			if data:
+				_guild_vaults[guild_id] = data
+		elif key.begins_with(_kv_account):
+			var account_id := key.substr(_kv_account.length())
+			var data := store.get(key)
+			if data:
+				_account_vaults[account_id] = data
 
 func _find_empty_slot(vault: Dictionary) -> int:
 	var slots: Array = vault.get("slots", [])
