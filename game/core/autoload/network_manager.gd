@@ -1,6 +1,7 @@
 ## NetworkManager - Handles multiplayer networking
 ## Manages client/server connections using ENet
 extends Node
+const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
 
 signal connected_to_server
 signal connection_failed
@@ -29,6 +30,10 @@ var is_client: bool = false
 var peer_id: int = 0
 var connected_peers: Dictionary = {}
 
+var _cache: CacheWrapper = CacheWrapper.new()
+const _kv_prefix := "peer:"
+const _kv_index := "peer:index"
+
 # Server data
 var server_ticks: int = 0
 var tick_rate: int = 20  # 20 Hz
@@ -47,6 +52,8 @@ func _ready() -> void:
 			GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
 		)
 	_firewall = AppFirewall
+
+	_load_peer_mappings()
 
 	# Auto-start server in headless/production mode
 	var godot_port := int(OS.get_environment("GODOT_PORT")) if OS.has_environment("GODOT_PORT") else DEFAULT_PORT
@@ -155,6 +162,7 @@ func _on_server_peer_connected(id: int) -> void:
 	GameLog.info("Client connected: %d" % id)
 	connected_peers[id] = {"joined": Time.get_ticks_msec(), "ip": ip}
 	_firewall.register_connection("peer_%d" % id, ip)
+	_persist_peer_mapping(id, "")
 	peer_connected.emit(id)
 
 func _on_server_peer_disconnected(id: int) -> void:
@@ -162,6 +170,7 @@ func _on_server_peer_disconnected(id: int) -> void:
 	# Cleanup firewall tracking
 	var ip = connected_peers.get(id, {}).get("ip", "unknown")
 	_firewall.unregister_connection("peer_%d" % id)
+	_persist_peer_mapping(id, "")
 	connected_peers.erase(id)
 	peer_disconnected.emit(id)
 
@@ -301,3 +310,20 @@ func _player_ip_from_id(player_id: String) -> String:
 		if "peer_%d" % peer_id == player_id:
 			return connected_peers[peer_id].get("ip", "unknown")
 	return "unknown"
+
+func _load_peer_mappings() -> void:
+	var peer_ids: Array = _cache.smembers(_kv_index)
+	for pid in peer_ids:
+		var key := _kv_prefix + str(pid)
+		var player_id: String = _cache.get(key)
+		if player_id != null and player_id != "":
+			connected_peers[pid] = {"player_id": player_id}
+
+func _persist_peer_mapping(peer_id: int, player_id: String) -> void:
+	var key := _kv_prefix + str(peer_id)
+	if player_id == null or player_id == "":
+		_cache.delete(key)
+		_cache.srem(_kv_index, str(peer_id))
+	else:
+		_cache.set(key, player_id)
+		_cache.sadd(_kv_index, str(peer_id))

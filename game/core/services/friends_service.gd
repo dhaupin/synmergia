@@ -11,6 +11,7 @@ func _cooldown():
 		return null
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
 
 ## ============================================================================
 ## DATA STRUCTURES
@@ -75,6 +76,9 @@ var _player_requests_received: Dictionary = {}  # player_id -> Array[FriendReque
 var _blocked: Dictionary = {}  # blocker_id -> Array[blocked_id]
 var _ignored: Dictionary = {}  # ignorer_id -> Array[ignored_id]
 var _online_players: Dictionary = {}  # player_id -> {name, last_seen, zone}
+
+## CacheWrapper key prefix for online status
+const _kv_online_prefix := "online_player:"
 var _friend_recommendations: Dictionary = {}  # player_id -> Array[recommended_id]
 
 const MAX_FRIENDS: int = 100
@@ -92,6 +96,7 @@ const MAX_BLOCKS_PER_DAY: int = 10
 
 func _ready() -> void:
 	GameLog.info("FriendsService: Initialized")
+	_load_online_status()
 	set_process(true)
 
 func _check_rate_limit(player_id: String, action_type: String) -> Dictionary:
@@ -490,6 +495,7 @@ func set_player_online(player_id: String, player_name: String, zone_id: String =
 		"zone": zone_id,
 		"last_update": Time.get_unix_time_from_system()
 	}
+	_persist_online_status(player_id)
 
 	player_status_changed.emit(player_id, true)
 	GameLog.debug("FriendsService: Player %s online in zone %s" % [player_name, zone_id])
@@ -498,6 +504,7 @@ func set_player_offline(player_id: String) -> void:
 	if _online_players.has(player_id):
 		_online_players[player_id].online = false
 		_online_players[player_id].last_seen = Time.get_unix_time_from_system()
+		_persist_online_status(player_id)
 		player_status_changed.emit(player_id, false)
 		GameLog.debug("FriendsService: Player %s offline" % _online_players[player_id].name)
 
@@ -619,3 +626,26 @@ func get_social_summary(player_id: String) -> Dictionary:
 		"pending_sent": get_pending_requests_sent(player_id).size(),
 		"pending_received": get_pending_requests_received(player_id).size()
 	}
+
+## == Persistence ============================================================
+
+func _load_online_status() -> void:
+	var cache := CacheWrapper.new()
+	_online_players = {}
+	for key in cache._store.keys():
+		if key.begins_with(_kv_online_prefix):
+			var player_id = key.substr(_kv_online_prefix.length())
+			var data: Dictionary = cache.get(key)
+			if not data.is_empty():
+				_online_players[player_id] = data
+
+func _persist_online_status(player_id: String) -> void:
+	var cache := CacheWrapper.new()
+	if _online_players.has(player_id):
+		var data: Dictionary = _online_players[player_id]
+		if data.get("online", false):
+			cache.set(_kv_online_prefix + player_id, data, 300)  # 5 min TTL
+		else:
+			cache.set(_kv_online_prefix + player_id, data, 60)  # 1 min TTL for offline
+	else:
+		cache.delete(_kv_online_prefix + player_id)
