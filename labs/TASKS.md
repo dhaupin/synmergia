@@ -71,6 +71,9 @@ Use these in the task list:
 - [x] ZoneManager: persist zone definitions and active instances
 - [x] EntityService: persist entity metadata on spawn/despawn
 - [x] InventoryService: persist player inventories with Item serialization
+- [x] NetworkManager: persist peer mappings via CacheWrapper
+- [x] FriendsService: persist online status via CacheWrapper with TTL
+- [x] ServerManager: persist server lifecycle state via DictStore
 - [x] DictStore enhanced with TTL, batch ops, sweep_expired
 - [x] CacheWrapper created for CacheStore with TTL support
 - [x] MemoryWrapper created for MemoryStore access
