@@ -324,3 +324,119 @@ func repair_to(amount: int) -> bool:
 		return false
 	current_durability = clampi(amount, 0, max_durability)
 	return true
+
+func to_dict() -> Dictionary:
+	return {
+		"id": id,
+		"display_name": display_name,
+		"description": description,
+		"icon_path": icon_path,
+		"item_category": item_category,
+		"rarity": rarity,
+		"equip_slot": equip_slot,
+		"weapon_type": weapon_type,
+		"armor_type": armor_type,
+		"accessory_type": accessory_type,
+		"stack_size": stack_size,
+		"current_stack": current_stack,
+		"is_bound": is_bound,
+		"bind_on_equip": bind_on_equip,
+		"bind_on_pickup": bind_on_pickup,
+		"soulbound": soulbound,
+		"unique": unique,
+		"weight": weight,
+		"sell_price": sell_price,
+		"buy_price": buy_price,
+		"item_level": item_level,
+		"required_level": required_level,
+		"required_class": required_class,
+		"required_strength": required_strength,
+		"required_agility": required_agility,
+		"required_intelligence": required_intelligence,
+		"stats": stats,
+		"primary_stats": primary_stats,
+		"secondary_stats": secondary_stats,
+		"weapon_damage_min": weapon_damage_min,
+		"weapon_damage_max": weapon_damage_max,
+		"attack_speed": attack_speed,
+		"armor_value": armor_value,
+		"max_durability": max_durability,
+		"current_durability": current_durability,
+		"durability_loss_rate": durability_loss_rate,
+		"can_repair": can_repair,
+		"use_skill_id": use_skill_id,
+		"cooldown": cooldown,
+		"duration": duration,
+		"model_path": model_path,
+		"color": color,
+		"dwelling_category": dwelling_category,
+		"dwelling_size": dwelling_size,
+		"is_placeable": is_placeable,
+		"placement_zones": placement_zones,
+		"event_id": event_id,
+		"event_expires": event_expires,
+		"event_end_date": event_end_date,
+		"buff_effects": buff_effects,
+		"is_self_rez_item": is_self_rez_item,
+		"self_rez_health_percent": self_rez_health_percent,
+		"self_rez_mana_percent": self_rez_mana_percent,
+		"self_rez_cooldown": self_rez_cooldown
+	}
+
+static func from_dict(data: Dictionary) -> Item:
+	var item := Item.new()
+	item.id = data.get("id", "")
+	item.display_name = data.get("display_name", "Item")
+	item.description = data.get("description", "")
+	item.icon_path = data.get("icon_path", "")
+	item.item_category = data.get("item_category", ItemCategory.MISC)
+	item.rarity = data.get("rarity", Rarity.COMMON)
+	item.equip_slot = data.get("equip_slot", EquipSlot.NONE)
+	item.weapon_type = data.get("weapon_type", WeaponType.NONE)
+	item.armor_type = data.get("armor_type", ArmorType.NONE)
+	item.accessory_type = data.get("accessory_type", AccessoryType.NONE)
+	item.stack_size = int(data.get("stack_size", 1))
+	item.current_stack = int(data.get("current_stack", 1))
+	item.is_bound = data.get("is_bound", false)
+	item.bind_on_equip = data.get("bind_on_equip", false)
+	item.bind_on_pickup = data.get("bind_on_pickup", false)
+	item.soulbound = data.get("soulbound", false)
+	item.unique = data.get("unique", false)
+	item.weight = float(data.get("weight", 0.0))
+	item.sell_price = int(data.get("sell_price", 0))
+	item.buy_price = int(data.get("buy_price", 0))
+	item.item_level = int(data.get("item_level", 1))
+	item.required_level = int(data.get("required_level", 1))
+	item.required_class = data.get("required_class", "")
+	item.required_strength = int(data.get("required_strength", 0))
+	item.required_agility = int(data.get("required_agility", 0))
+	item.required_intelligence = int(data.get("required_intelligence", 0))
+	item.stats = data.get("stats", {})
+	item.primary_stats = data.get("primary_stats", {})
+	item.secondary_stats = data.get("secondary_stats", {})
+	item.weapon_damage_min = int(data.get("weapon_damage_min", 0))
+	item.weapon_damage_max = int(data.get("weapon_damage_max", 0))
+	item.attack_speed = float(data.get("attack_speed", 1.0))
+	item.armor_value = int(data.get("armor_value", 0))
+	item.max_durability = int(data.get("max_durability", 100))
+	item.current_durability = int(data.get("current_durability", 100))
+	item.durability_loss_rate = float(data.get("durability_loss_rate", 1.0))
+	item.can_repair = data.get("can_repair", true)
+	item.use_skill_id = data.get("use_skill_id", "")
+	item.cooldown = float(data.get("cooldown", 0.0))
+	item.duration = float(data.get("duration", 0.0))
+	item.model_path = data.get("model_path", "")
+	item.color = data.get("color", Color.WHITE)
+	item.dwelling_category = data.get("dwelling_category", "")
+	item.dwelling_size = data.get("dwelling_size", Vector3.ONE)
+	item.is_placeable = data.get("is_placeable", false)
+	item.placement_zones = data.get("placement_zones", [])
+	item.event_id = data.get("event_id", "")
+	item.event_expires = data.get("event_expires", false)
+	item.event_end_date = data.get("event_end_date", "")
+	item.buff_effects = data.get("buff_effects", [])
+	item.is_self_rez_item = data.get("is_self_rez_item", false)
+	item.self_rez_health_percent = float(data.get("self_rez_health_percent", 0.5))
+	item.self_rez_mana_percent = float(data.get("self_rez_mana_percent", 0.5))
+	item.self_rez_cooldown = float(data.get("self_rez_cooldown", 300.0))
+	return item

@@ -43,6 +43,45 @@ func _ready() -> void:
 func _init() -> void:
 	pass
 
+func to_dict() -> Dictionary:
+	var inv_array: Array = []
+	for item in _inventory:
+		if item is Item:
+			inv_array.append(item.to_dict())
+		else:
+			inv_array.append(null)
+	var equip_dict: Dictionary = {}
+	for slot in _equipment.keys():
+		var item: Item = _equipment[slot]
+		if item is Item:
+			equip_dict[str(slot)] = item.to_dict()
+	return {
+		"inventory": inv_array,
+		"equipment": equip_dict,
+		"gold": _gold,
+		"owner_id": _owner_id
+	}
+
+static func from_dict(data: Dictionary) -> InventoryComponent:
+	var comp := InventoryComponent.new()
+	comp._owner_id = data.get("owner_id", "")
+	comp._gold = int(data.get("gold", 0))
+	var inv_array: Array = data.get("inventory", [])
+	comp._inventory = []
+	for item_data in inv_array:
+		if item_data is Dictionary and not item_data.is_empty():
+			comp._inventory.append(Item.from_dict(item_data))
+		else:
+			comp._inventory.append(null)
+	var equip_dict: Dictionary = data.get("equipment", {})
+	comp._equipment = {}
+	for slot_str in equip_dict.keys():
+		var slot = int(slot_str)
+		var item_data: Dictionary = equip_dict[slot_str]
+		if item_data is Dictionary and not item_data.is_empty():
+			comp._equipment[slot] = Item.from_dict(item_data)
+	return comp
+
 ## Add item to inventory
 func add_item(item: Item, quantity: int = 1) -> bool:
 	# Security: Check for item duplication exploit

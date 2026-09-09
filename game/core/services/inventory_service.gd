@@ -2,6 +2,7 @@
 ## Handles inventory-related operations and cross-player inventory access
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const Item = preload("res://core/schemas/item.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
@@ -10,6 +11,9 @@ static var instance: InventoryService
 
 # Player inventories (player_id -> InventoryComponent)
 var _player_inventories: Dictionary = {}
+
+## DictStore key prefix
+const _kv_prefix := "inventory:player:"
 
 signal item_transferred(from_id: String, to_id: String, item: Item, quantity: int)
 signal gold_transferred(from_id: String, to_id: String, amount: int)
@@ -44,11 +48,13 @@ func _emit_inventory(
 
 func _ready() -> void:
 	instance = self
+	_load_inventories()
 	GameLog.info("InventoryService: Ready")
 
 ## Register a player's inventory
 func register_inventory(player_id: String, inventory: InventoryComponent) -> void:
 	_player_inventories[player_id] = inventory
+	_persist_inventory(player_id)
 	GameLog.debug("InventoryService: Registered inventory for %s" % player_id)
 
 ## Unregister a player's inventory
@@ -353,3 +359,23 @@ func get_inventory_summary(player_id: String) -> Dictionary:
 		"slots_total": inv.get_total_slots(),
 		"free_slots": inv.get_free_slot_count()
 	}
+
+## == Persistence ============================================================
+
+func _load_inventories() -> void:
+	var store := DictStore.new()
+	_player_inventories = {}
+	for key in store.all_keys():
+		if key.begins_with(_kv_prefix):
+			var player_id = key.substr(_kv_prefix.length())
+			var data: Dictionary = store.get(key)
+			if not data.is_empty():
+				_player_inventories[player_id] = InventoryComponent.from_dict(data)
+
+func _persist_inventory(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_inventories.has(player_id):
+		var inv: InventoryComponent = _player_inventories[player_id]
+		store.set(_kv_prefix + player_id, inv.to_dict())
+	else:
+		store.erase(_kv_prefix + player_id)
