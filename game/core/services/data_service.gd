@@ -64,9 +64,12 @@ func load_all_data() -> void:
 	load_zones()
 	load_events()
 	load_dwellings()
+	load_npcs()
+	load_status_effects()
 	load_quests()
 	load_titles()
 	load_achievements()
+	load_gateways()
 
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -86,7 +89,6 @@ func _scan_directory(path: String, resource_type: String) -> Dictionary:
 	while file_name != "":
 		if dir.current_is_dir():
 			if file_name != "." and file_name != "..":
-				# Recurse into subdirectory
 				var sub_results := _scan_directory(path + "/" + file_name, resource_type)
 				results.merge(sub_results)
 		else:
@@ -112,9 +114,8 @@ func load_resource(path: String) -> Resource:
 
 ## Extract ID from resource or filename
 func _get_resource_id(resource: Resource, filename: String) -> String:
-	if resource and "id" in resource:
+	if resource and resource.has("id"):
 		return resource.get("id")
-	# Fallback: strip extension and path
 	return filename.replace(".tres", "").to_lower()
 
 ## Load skills from data/skills/
@@ -122,9 +123,35 @@ func load_skills() -> void:
 	_skills = _scan_directory(_data_path + "skills", "skill")
 	GameLog.info("DataService: Loaded %d skills" % _skills.size())
 
-## Load items from data/items/
+## Load items from categorized subdirectories
 func load_items() -> void:
-	_items = _scan_directory(_data_path + "items", "item")
+	_items.clear()
+	_weapons.clear()
+	_armors.clear()
+	_consumables.clear()
+	_resources.clear()
+	_misc.clear()
+
+	var weapon_paths := _scan_directory(_data_path + "weapons", "item")
+	_items.merge(weapon_paths)
+	_weapons = weapon_paths
+
+	var armor_paths := _scan_directory(_data_path + "armors", "item")
+	_items.merge(armor_paths)
+	_armors = armor_paths
+
+	var consumable_paths := _scan_directory(_data_path + "consumables", "item")
+	_items.merge(consumable_paths)
+	_consumables = consumable_paths
+
+	var resource_paths := _scan_directory(_data_path + "resources", "item")
+	_items.merge(resource_paths)
+	_resources = resource_paths
+
+	var misc_paths := _scan_directory(_data_path + "misc", "item")
+	_items.merge(misc_paths)
+	_misc = misc_paths
+
 	GameLog.info("DataService: Loaded %d items" % _items.size())
 
 ## Load enemies from data/enemies/
@@ -159,15 +186,12 @@ func load_events() -> void:
 
 ## Load dwellings from data/dwellings/
 func load_dwellings() -> void:
-	load_quests()
-	load_titles()
-	load_achievements()
 	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
 	GameLog.info("DataService: Loaded %d dwellings" % _dwellings.size())
 
-## Load NPCs from data/npcs/
+## Load NPCs from data/npc/
 func load_npcs() -> void:
-	_npcs = _scan_directory(_data_path + "npcs", "npc")
+	_npcs = _scan_directory(_data_path + "npc", "npc")
 	GameLog.info("DataService: Loaded %d NPCs" % _npcs.size())
 
 ## Load status effects from data/status_effects/
@@ -180,11 +204,12 @@ func load_quests() -> void:
 	_quests = _scan_directory(_data_path + "quests", "quest")
 	GameLog.info("DataService: Loaded %d quests" % _quests.size())
 
-## Load achievements from data/achievements/
+## Load titles from data/titles/
 func load_titles() -> void:
 	_titles = _scan_directory(_data_path + "titles", "title")
 	GameLog.info("DataService: Loaded %d titles" % _titles.size())
 
+## Load achievements from data/achievements/
 func load_achievements() -> void:
 	_achievements = _scan_directory(_data_path + "achievements", "achievement")
 	GameLog.info("DataService: Loaded %d achievements" % _achievements.size())
@@ -196,7 +221,10 @@ func load_gateways() -> void:
 
 ## Get methods
 func get_skill(id: String) -> Skill:
-	return _skills.get(id)
+	if _skills.has(id):
+		return _skills.get(id)
+	GameLog.warn("DataService: Skill not found: " + id)
+	return null
 
 func get_item(id: String) -> Item:
 	if _items.has(id):
@@ -204,101 +232,151 @@ func get_item(id: String) -> Item:
 	# Handle dynamically-generated SkillBook IDs (book_<skill_id>_<tier>)
 	if id.begins_with("book_"):
 		return _create_skill_book_from_id(id)
+	GameLog.warn("DataService: Item not found: " + id)
 	return null
 
 func get_enemy(id: String) -> EnemyData:
-	return _enemies.get(id)
+	if _enemies.has(id):
+		return _enemies.get(id)
+	GameLog.warn("DataService: Enemy not found: " + id)
+	return null
 
 func get_character_class(id: String) -> CharacterClass:
-	return _classes.get(id)
+	if _classes.has(id):
+		return _classes.get(id)
+	GameLog.warn("DataService: CharacterClass not found: " + id)
+	return null
 
 func get_species(id: String) -> Species:
-	return _species.get(id)
+	if _species.has(id):
+		return _species.get(id)
+	GameLog.warn("DataService: Species not found: " + id)
+	return null
 
 func get_faction(id: String) -> Faction:
-	return _factions.get(id)
+	if _factions.has(id):
+		return _factions.get(id)
+	GameLog.warn("DataService: Faction not found: " + id)
+	return null
 
 func get_zone(id: String) -> ZoneData:
-	return _zones.get(id)
+	if _zones.has(id):
+		return _zones.get(id)
+	GameLog.warn("DataService: Zone not found: " + id)
+	return null
 
 func get_event(id: String) -> EventData:
-	return _events.get(id)
+	if _events.has(id):
+		return _events.get(id)
+	GameLog.warn("DataService: Event not found: " + id)
+	return null
 
 func get_dwelling(id: String) -> DwellingData:
-	return _dwellings.get(id)
+	if _dwellings.has(id):
+		return _dwellings.get(id)
+	GameLog.warn("DataService: Dwelling not found: " + id)
+	return null
 
 func get_npc(id: String) -> NPCData:
-	return _npcs.get(id)
+	if _npcs.has(id):
+		return _npcs.get(id)
+	GameLog.warn("DataService: NPC not found: " + id)
+	return null
 
 func get_status_effect(id: String) -> StatusEffectData:
-	return _status_effects.get(id)
+	if _status_effects.has(id):
+		return _status_effects.get(id)
+	GameLog.warn("DataService: StatusEffect not found: " + id)
+	return null
 
 func get_quest(id: String) -> QuestData:
-	return _quests.get(id)
+	if _quests.has(id):
+		return _quests.get(id)
+	GameLog.warn("DataService: Quest not found: " + id)
+	return null
 
 func get_gateway(id: String) -> GatewayData:
-	return _gateways.get(id)
+	if _gateways.has(id):
+		return _gateways.get(id)
+	GameLog.warn("DataService: Gateway not found: " + id)
+	return null
 
 ## Get all of a type
-func get_all_skills() -> Dictionary:
-	return _skills
+func get_all_skills() -> Array:
+	return _skills.values()
 
-func get_all_items() -> Dictionary:
-	return _items
+func get_all_items() -> Array:
+	return _items.values()
 
-func get_all_enemies() -> Dictionary:
-	return _enemies
+func get_all_enemies() -> Array:
+	return _enemies.values()
 
-func get_all_classes() -> Dictionary:
-	return _classes
+func get_all_classes() -> Array:
+	return _classes.values()
 
-func get_all_species() -> Dictionary:
-	return _species
+func get_all_species() -> Array:
+	return _species.values()
 
-func get_all_factions() -> Dictionary:
-	return _factions
+func get_all_factions() -> Array:
+	return _factions.values()
 
-func get_all_zones() -> Dictionary:
-	return _zones
+func get_all_zones() -> Array:
+	return _zones.values()
 
-func get_all_events() -> Dictionary:
-	return _events
+func get_all_events() -> Array:
+	return _events.values()
 
-func get_all_dwellings() -> Dictionary:
-	return _dwellings
+func get_all_dwellings() -> Array:
+	return _dwellings.values()
 
-func get_all_npcs() -> Dictionary:
-	return _npcs
+func get_all_npcs() -> Array:
+	return _npcs.values()
 
-func get_all_status_effects() -> Dictionary:
-	return _status_effects
+func get_all_status_effects() -> Array:
+	return _status_effects.values()
 
-func get_all_quests() -> Dictionary:
-	return _quests
+func get_all_quests() -> Array:
+	return _quests.values()
 
 func get_achievement(id: String) -> AchievementData:
-	return _achievements.get(id)
+	if _achievements.has(id):
+		return _achievements.get(id)
+	GameLog.warn("DataService: Achievement not found: " + id)
+	return null
 
-func get_all_titles() -> Dictionary:
-	return _titles
+func get_all_titles() -> Array:
+	return _titles.values()
 
 
-func get_all_achievements() -> Dictionary:
-	return _achievements
+func get_all_achievements() -> Array:
+	return _achievements.values()
 
-func get_all_gateways() -> Dictionary:
-	return _gateways
+func get_all_gateways() -> Array:
+	return _gateways.values()
 
 ## Reload data (for development)
 func reload_all() -> void:
 	_loaded = false
 	_skills.clear()
 	_items.clear()
+	_weapons.clear()
+	_armors.clear()
+	_consumables.clear()
+	_resources.clear()
+	_misc.clear()
 	_enemies.clear()
 	_classes.clear()
 	_species.clear()
 	_factions.clear()
 	_zones.clear()
+	_events.clear()
+	_dwellings.clear()
+	_npcs.clear()
+	_status_effects.clear()
+	_quests.clear()
+	_achievements.clear()
+	_gateways.clear()
+	_titles.clear()
 	load_all_data()
 
 ## Reload specific category
@@ -309,6 +387,11 @@ func reload_category(category: String) -> void:
 			load_skills()
 		"items":
 			_items.clear()
+			_weapons.clear()
+			_armors.clear()
+			_consumables.clear()
+			_resources.clear()
+			_misc.clear()
 			load_items()
 		"enemies":
 			_enemies.clear()
@@ -363,7 +446,6 @@ func get_counts() -> Dictionary:
 ## Construct a SkillBook from a loot-table item_id string (book_<skill_id>_<tier>).
 ## tier names: common/rare/epic/legendary/mythic -> upgrade_level 1..5.
 func _create_skill_book_from_id(item_id: String) -> Item:
-	# Format: book_<skill_id>_<tier>
 	var parts := item_id.split("_")
 	if parts.size() < 3:
 		return null
