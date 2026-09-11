@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=coverage">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="description" content="Synmergia - A free and open source MMORPG">
+	<meta name="theme-color" content="#1a1a2e">
+	<title>Synmergia</title>
+	<link rel="icon" type="image/svg+xml" href="/icon.svg">
+	<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+	<div id="game-container">
+		<canvas id="game-canvas"></canvas>
+		<div id="loading-screen">
+			<div class="spinner"></div>
+			<p id="loading-text">Loading Synmergia...</p>
+		</div>
+		<div id="error-screen" class="hidden">
+			<h2>Failed to load</h2>
+			<p id="error-text">Please try again or contact support.</p>
+			<button onclick="location.reload()">Retry</button>
+		</div>
+	</div>
+	<script src="/config.js"></script>
+	<script src="/shared/input.js"></script>
+	<script src="/shared/touch_ui.js"></script>
+	<script src="/shared/network.js"></script>
+	<script src="/game.js"></script>
+	<script>
+	(function() {
+		var canvas = document.getElementById('game-canvas');
+		var loading = document.getElementById('loading-screen');
+		var errorScreen = document.getElementById('error-screen');
+		var errorText = document.getElementById('error-text');
+
+		SynmergiaInput.init(canvas);
+		SynmergiaTouchUI.init(canvas);
+		SynmergiaNetwork.init(window.SynmergiaConfig.serverUrl);
+
+		function onGodotReady(engine) {
+			var config = window.SynmergiaConfig.engineOptions;
+			var args = config.args || [];
+			args.push('--canvas-id', 'game-canvas');
+
+			var engine = new Engine({
+				module: config.module || 'game.wasm',
+				wasm: config.wasm !== false,
+				args: args,
+				memory: config.memory || 256,
+				debug: config.debug || false,
+			});
+
+			engine.start().then(function() {
+				loading.classList.add('hidden');
+			}).catch(function(err) {
+				errorText.textContent = 'Engine failed to start: ' + err.message;
+				errorScreen.classList.remove('hidden');
+				loading.classList.add('hidden');
+			});
+		}
+
+		window.onGodotReady = onGodotReady;
+
+		setTimeout(function() {
+			if (!loading.classList.contains('hidden')) {
+				errorText.textContent = 'Engine did not load in time. Check console for errors.';
+				errorScreen.classList.remove('hidden');
+				loading.classList.add('hidden');
+			}
+		}, 15000);
+	})();
+	</script>
+</body>
+</html>

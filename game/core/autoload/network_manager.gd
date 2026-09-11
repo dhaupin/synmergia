@@ -87,15 +87,18 @@ func _process_server_ticks() -> void:
 ## SERVER FUNCTIONS
 
 func start_server(port: int = DEFAULT_PORT) -> bool:
+	if OS.has_feature("web"):
+	 GameLog.warn("Cannot start server in web browser")
+		return false
 	if connection_state != ConnectionState.DISCONNECTED:
-		GameLog.warn("Cannot start server: already connected")
+	 GameLog.warn("Cannot start server: already connected")
 		return false
 
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, MAX_PLAYERS)
 
 	if error != OK:
-		GameLog.error("Failed to start server on port %d: %s" % [port, error])
+	 GameLog.error("Failed to start server on port %d: %s" % [port, error])
 		return false
 
 	multiplayer.multiplayer_peer = peer
@@ -107,7 +110,7 @@ func start_server(port: int = DEFAULT_PORT) -> bool:
 
 	_start_server_loop()
 
-	GameLog.info("Server started on port %d" % port)
+ GameLog.info("Server started on port %d" % port)
 	server_started.emit()
 	return true
 
@@ -183,6 +186,9 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 
 	connection_state = ConnectionState.CONNECTING
 
+	if OS.has_feature("web"):
+		return _connect_websocket(ip, port)
+
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_client(ip, port)
 
@@ -226,6 +232,32 @@ func disconnect_from_server() -> void:
 	is_client = false
 	peer_id = 0
 	GameLog.info("Disconnected from server")
+
+## WEBSOCKET CLIENT (browser only)
+
+func _connect_websocket(ip: String, port: int) -> bool:
+	var ws_url := "ws://%s:%d" % [ip, port]
+	if OS.has_feature("web"):
+		ws_url = JavaScriptBridge.eval("window.SynmergiaConfig.serverUrl", true) or ws_url
+
+	var peer := WebSocketMultiplayerPeer.new()
+	var error := peer.create_client(ws_url)
+	if error != OK:
+	GameLog.error("Failed to create WebSocket client: %s" % error)
+		connection_state = ConnectionState.DISCONNECTED
+		return false
+
+	multiplayer.multiplayer_peer = peer
+	is_client = true
+
+	# WebSocketMultiplayerPeer uses Godot's high-level multiplayer API
+	# Signals are handled by the multiplayer node itself
+	multiplayer.connected_to_server.connect(_on_client_connected)
+	multiplayer.connection_failed.connect(_on_client_connection_failed)
+	multiplayer.server_disconnected.connect(_on_server_disconnected)
+
+	GameLog.info("Connecting via WebSocket to %s..." % ws_url)
+	return true
 
 ## COMMON FUNCTIONS
 

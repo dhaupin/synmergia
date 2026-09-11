@@ -19,6 +19,7 @@ signal input_mode_changed(mode: InputMode)
 signal player_input(action: String, pressed: bool)
 signal controller_connected()
 signal controller_disconnected()
+signal camera_move(relative: Vector2)
 
 ## Platform detection
 var _is_mobile: bool = false
@@ -39,6 +40,12 @@ var _joystick_center: Vector2 = Vector2.ZERO
 var _joystick_offset: Vector2 = Vector2.ZERO
 var _joystick_max_radius: float = 60.0
 var _joystick_touch_id: int = -1
+
+## Camera touch state
+var _camera_touch_id: int = -1
+var _camera_last_pos: Vector2 = Vector2.ZERO
+var _camera_sensitivity: float = 0.5
+var _camera_move: Vector2 = Vector2.ZERO
 
 ## Touch zones (normalized 0-1)
 const LEFT_ZONE := Rect2(0.0, 0.3, 0.35, 0.7)
@@ -106,6 +113,7 @@ func _ready() -> void:
 	_detect_platform()
 	_check_controller()
 	_setup_input_actions()
+	camera_move.connect(_on_camera_move)
 	GameLog.info("InputManager: Mode=", _input_mode, " Mobile=", _is_mobile, " Desktop=", _is_desktop)
 
 func _detect_platform() -> void:
@@ -239,8 +247,8 @@ func _process_touch_start(event: InputEventScreenTouch) -> void:
 		_joystick_center = pos
 		_joystick_touch_id = event.index
 	elif RIGHT_ZONE.has_point(normalized):
-		# Camera control handled elsewhere
-		pass
+		_camera_touch_id = event.index
+		_camera_last_pos = pos
 	else:
 		# UI tap - let UI handle it
 		pass
@@ -252,6 +260,9 @@ func _process_touch_end(event: InputEventScreenTouch) -> void:
 		_joystick_active = false
 		_joystick_offset = Vector2.ZERO
 		_joystick_touch_id = -1
+	if event.index == _camera_touch_id:
+		_camera_touch_id = -1
+		_camera_last_pos = Vector2.ZERO
 	_touch_active = false
 
 func _process_touch_drag(event: InputEventScreenDrag) -> void:
@@ -261,6 +272,10 @@ func _process_touch_drag(event: InputEventScreenDrag) -> void:
 		var dist := _joystick_offset.length()
 		if dist > _joystick_max_radius:
 			_joystick_offset = _joystick_offset.normalized() * _joystick_max_radius
+	if event.index == _camera_touch_id:
+		var relative := (event.position - _camera_last_pos) * _camera_sensitivity
+		_camera_last_pos = event.position
+		camera_move.emit(relative)
 
 func _handle_controller(event: InputEvent) -> void:
 	if event is InputEventJoypadButton and event.pressed:
@@ -358,9 +373,17 @@ func get_movement_input() -> Vector2:
 
 	return input.normalized()
 
+func _on_camera_move(relative: Vector2) -> void:
+	_camera_move = relative
+
 func get_camera_input() -> Vector2:
 	if _input_mode == InputMode.CONTROLLER:
 		return _controller_right_stick
+
+	if _input_mode == InputMode.TOUCH and _camera_touch_id >= 0:
+		var move := _camera_move
+		_camera_move = Vector2.ZERO
+		return move
 
 	# Mouse drag or touch right zone
 	return Vector2.ZERO
