@@ -2,6 +2,7 @@
 extends CanvasLayer
 class_name MenuManager
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
 
 ## Singleton
@@ -30,6 +31,8 @@ var _title_panel: Control
 var _dialog_panel: Control
 var _shop_panel: Control
 var _transfer_panel: Control
+var _admin_panel: Control
+var _debug_panel: Control
 
 ## State
 var _is_hud_visible: bool = true
@@ -181,6 +184,22 @@ func _initialize_panels() -> void:
 	_transfer_panel.z_index = 500
 	add_child(_transfer_panel)
 	_transfer_panel.panel_closed.connect(_on_panel_closed.bind("transfer"))
+
+	# Admin panel (requires MOD+)
+	_admin_panel = preload("res://ui/admin/admin_dashboard.gd").new()
+	_admin_panel.name = "AdminDashboard"
+	_admin_panel.z_index = 600
+	_admin_panel.visible = false
+	add_child(_admin_panel)
+	_admin_panel.panel_closed.connect(_on_panel_closed.bind("admin"))
+
+	# Debug panel (requires ADMIN+ or dev mode)
+	_debug_panel = _create_debug_panel()
+	_debug_panel.name = "DebugPanel"
+	_debug_panel.z_index = 600
+	_debug_panel.visible = false
+	add_child(_debug_panel)
+	_debug_panel.panel_closed.connect(_on_panel_closed.bind("debug"))
 
 	# Dialog panel
 	_title_panel = preload("res://ui/components/title_ui.gd").new()
@@ -472,6 +491,8 @@ func _get_panel(menu_name: String) -> Control:
 		"transfer": return _transfer_panel
 		"dialog": return _dialog_panel
 		"shop": return _shop_panel
+		"admin": return _admin_panel
+		"debug": return _debug_panel
 	return null
 
 func _set_hud_visible_internal(visible: bool) -> void:
@@ -532,6 +553,8 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		"trade": "trade",
 		"transfer": "transfer",
 		"settings": "settings",
+		"admin": "admin",
+		"debug": "debug",
 	}
 	
 	var internal_name := panel_map.get(panel_id, panel_id)
@@ -553,6 +576,32 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		# Trade panel would need to be added
 		return
 	
+	# Permission check for admin panel
+	if internal_name == "admin":
+		if not PermissionManager:
+			NotificationService.notify(NotifKind.WARNING, "Admin panel unavailable", "MenuManager", "admin_unavail", {})
+			return
+		var player_id := ""
+		if GameManager and GameManager.selected_character_data:
+			player_id = GameManager.selected_character_data.id
+		if not PermissionManager.has_permission(player_id, PermissionManager.Level.MOD):
+			NotificationService.notify(NotifKind.WARNING, "Insufficient permissions for Admin Panel", "MenuManager", "admin_perm", {}, player_id)
+			return
+	
+	# Permission check for debug panel
+	if internal_name == "debug":
+		if not PermissionManager:
+			NotificationService.notify(NotifKind.WARNING, "Debug panel unavailable", "MenuManager", "debug_unavail", {})
+			return
+		var player_id := ""
+		if GameManager and GameManager.selected_character_data:
+			player_id = GameManager.selected_character_data.id
+		var is_admin := PermissionManager.has_permission(player_id, PermissionManager.Level.ADMIN)
+		var is_dev := GameConfig and GameConfig.Debug.ALLOW_CHEATS
+		if not is_admin and not is_dev:
+			NotificationService.notify(NotifKind.WARNING, "Insufficient permissions for Debug Panel", "MenuManager", "debug_perm", {}, player_id)
+			return
+	
 	_toggle_menu_internal(internal_name)
 
 func _input(event: InputEvent) -> void:
@@ -561,3 +610,154 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ENTER:
 		if _chat_panel and _chat_panel.has_method("focus_input"):
 			_chat_panel.focus_input()
+
+func _create_debug_panel() -> Control:
+	"""Create a debug panel with developer tools."""
+	var DebugPanelScript := preload("res://ui/components/ui_panel.gd")
+	var panel: UIPanel = DebugPanelScript.new()
+	panel.set_panel_title("Debug Panel")
+	panel.custom_minimum_size = Vector2(600, 400)
+	
+	# Build the debug UI after the panel is in the scene tree
+	panel.call_deferred("_debug_build_panel_ui", self)
+	
+	return panel
+
+func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
+	# The UIPanel creates a "Panel" child in _setup_overlay()
+	# We need to add our content to that Panel container
+	var panel_container: PanelContainer = get_node_or_null("Panel")
+	if not panel_container:
+		return
+	
+	var vbox := VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 8)
+	panel_container.add_child(vbox)
+	
+	# Tab container for different debug sections
+	var tabs := TabContainer.new()
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(tabs)
+	
+	# System Info tab
+	var sys_tab := VBoxContainer.new()
+	sys_tab.add_theme_constant_override("separation", 8)
+	tabs.add_child(sys_tab)
+	tabs.set_tab_title(tabs.get_child_count() - 1, " System")
+	
+	var sys_info := Label.new()
+	sys_info.name = "sys_info_label"
+	menu_manager._update_debug_sys_info(sys_info)
+	sys_info.add_theme_font_size_override("font_size", 12)
+	sys_info.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	sys_info.autowrap_mode = TextServer.AUTOWRAP_WORD
+	sys_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sys_tab.add_child(sys_info)
+	
+	# Add refresh button for system info
+	var refresh_btn := Button.new()
+	refresh_btn.text = "Refresh System Info"
+	refresh_btn.custom_minimum_size.y = 36
+	refresh_btn.pressed.connect(func(): menu_manager._update_debug_sys_info(sys_info))
+	refresh_btn.focus_mode = Control.FOCUS_ALL
+	refresh_btn.accessible_name = "Refresh System Info"
+	sys_tab.add_child(refresh_btn)
+	
+	# Network tab
+	var net_tab := VBoxContainer.new()
+	net_tab.add_theme_constant_override("separation", 8)
+	tabs.add_child(net_tab)
+	tabs.set_tab_title(tabs.get_child_count() - 1, " Network")
+	
+	var net_info := Label.new()
+	net_info.name = "net_info_label"
+	menu_manager._update_debug_net_info(net_info)
+	net_info.add_theme_font_size_override("font_size", 12)
+	net_info.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	net_info.autowrap_mode = TextServer.AUTOWRAP_WORD
+	net_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	net_tab.add_child(net_info)
+	
+	var net_refresh_btn := Button.new()
+	net_refresh_btn.text = "Refresh Network Info"
+	net_refresh_btn.custom_minimum_size.y = 36
+	net_refresh_btn.pressed.connect(func(): menu_manager._update_debug_net_info(net_info))
+	net_refresh_btn.focus_mode = Control.FOCUS_ALL
+	net_refresh_btn.accessible_name = "Refresh Network Info"
+	net_tab.add_child(net_refresh_btn)
+	
+	# Performance tab
+	var perf_tab := VBoxContainer.new()
+	perf_tab.add_theme_constant_override("separation", 8)
+	tabs.add_child(perf_tab)
+	tabs.set_tab_title(tabs.get_child_count() - 1, " Performance")
+	
+	var perf_info := Label.new()
+	perf_info.name = "perf_info_label"
+	menu_manager._update_debug_perf_info(perf_info)
+	perf_info.add_theme_font_size_override("font_size", 12)
+	perf_info.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	perf_info.autowrap_mode = TextServer.AUTOWRAP_WORD
+	perf_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	perf_tab.add_child(perf_info)
+	
+	var perf_refresh_btn := Button.new()
+	perf_refresh_btn.text = "Refresh Performance"
+	perf_refresh_btn.custom_minimum_size.y = 36
+	perf_refresh_btn.pressed.connect(func(): menu_manager._update_debug_perf_info(perf_info))
+	perf_refresh_btn.focus_mode = Control.FOCUS_ALL
+	perf_refresh_btn.accessible_name = "Refresh Performance"
+	perf_tab.add_child(perf_refresh_btn)
+	
+	# Entity Debug tab
+	var entity_tab := VBoxContainer.new()
+	entity_tab.add_theme_constant_override("separation", 8)
+	tabs.add_child(entity_tab)
+	tabs.set_tab_title(tabs.get_child_count() - 1, " Entities")
+	
+	var entity_info := Label.new()
+	entity_info.name = "entity_info_label"
+	menu_manager._update_debug_entity_info(entity_info)
+	entity_info.add_theme_font_size_override("font_size", 12)
+	entity_info.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	entity_info.autowrap_mode = TextServer.AUTOWRAP_WORD
+	entity_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	entity_tab.add_child(entity_info)
+	
+	var entity_refresh_btn := Button.new()
+	entity_refresh_btn.text = "Refresh Entity Info"
+	entity_refresh_btn.custom_minimum_size.y = 36
+	entity_refresh_btn.pressed.connect(func(): menu_manager._update_debug_entity_info(entity_info))
+	entity_refresh_btn.focus_mode = Control.FOCUS_ALL
+	entity_refresh_btn.accessible_name = "Refresh Entity Info"
+	entity_tab.add_child(entity_refresh_btn)
+
+func _update_debug_sys_info(label: Label) -> void:
+	label.text = "Godot Version: %s\nFPS: %d\nFrame Time: %.2f ms\nObjects: %d" % [
+		Engine.get_version_info()["string"],
+		Engine.get_frames_per_second(),
+		Performance.get_monitor(Performance.TIME_FPS) if Performance.has_monitor(Performance.TIME_FPS) else 0.0,
+		Engine.get_physics_frames() + Engine.get_idle_frames()
+	]
+
+func _update_debug_net_info(label: Label) -> void:
+	label.text = "NetworkManager: %s\nQoSService: %s\nPeers: %d" % [
+		"Loaded" if NetworkManager else "Not Loaded",
+		"Loaded" if QoSService else "Not Loaded",
+		NetworkManager.get_peer_count() if NetworkManager and NetworkManager.has_method("get_peer_count") else 0
+	]
+
+func _update_debug_perf_info(label: Label) -> void:
+	label.text = "Use Profiler for detailed metrics\n\nFrame Time: %.2f ms\nPhysics Time: %.2f ms\nScript Time: %.2f ms" % [
+		Performance.get_monitor(Performance.TIME_PROCESS) if Performance.has_monitor(Performance.TIME_PROCESS) else 0.0,
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) if Performance.has_monitor(Performance.TIME_PHYSICS_PROCESS) else 0.0,
+		Performance.get_monitor(Performance.TIME_SCRIPT) if Performance.has_monitor(Performance.TIME_SCRIPT) else 0.0
+	]
+
+func _update_debug_entity_info(label: Label) -> void:
+	label.text = "EntityService: %s\nEntities: %d" % [
+		"Loaded" if EntityService else "Not Loaded",
+		EntityService.get_entity_count() if EntityService and EntityService.has_method("get_entity_count") else 0
+	]

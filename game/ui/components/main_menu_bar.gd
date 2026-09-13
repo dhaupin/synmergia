@@ -14,20 +14,46 @@ var _menu_items: VBoxContainer
 var _is_expanded: bool = false
 var _mm: Node
 var _hud: Node
+var _player_id: String = ""
+var _is_admin_or_mod: bool = false
+var _is_dev_mode: bool = false
+var _last_focused_item: Control = null
 
 signal panel_requested(panel_id: String)
 
 func _ready() -> void:
 	_setup_ui()
 	_setup_touch()
+	_setup_accessibility()
+	_check_permissions()
+	_refresh_admin_debug_visibility()
 	hide_expanded()
 
 func _setup_touch() -> void:
-	# Ensure we process touch/mouse events
 	mouse_filter = Control.MOUSE_FILTER_PASS
 
+func _setup_accessibility() -> void:
+	# Enable focus for keyboard navigation
+	focus_mode = Control.FOCUS_ALL
+	# High contrast mode will be applied in _apply_high_contrast()
+
+func _check_permissions() -> void:
+	if GameManager and GameManager.selected_character_data:
+		_player_id = GameManager.selected_character_data.id
+		if PermissionManager:
+			_is_admin_or_mod = PermissionManager.has_permission(_player_id, PermissionManager.Level.MOD)
+			_is_dev_mode = PermissionManager.has_permission(_player_id, PermissionManager.Level.ADMIN) \
+				or (GameConfig and GameConfig.Debug.ALLOW_CHEATS)
+
+func _refresh_admin_debug_visibility() -> void:
+	if not _menu_items:
+		return
+	
+	for child in _menu_items.get_children():
+		if child.name.begins_with("menu_item_admin") or child.name.begins_with("menu_item_debug"):
+			child.visible = _is_admin_or_mod if child.name.begins_with("menu_item_admin") else _is_dev_mode
+
 func _setup_ui() -> void:
-	# Main horizontal bar at top of screen
 	var bar := HBoxContainer.new()
 	bar.name = "MainMenuBar"
 	bar.anchors_preset = Control.PRESET_TOP_WIDE
@@ -37,8 +63,10 @@ func _setup_ui() -> void:
 	bar.add_theme_constant_override("separation", 8)
 	
 	# Left: Hamburger menu button
-	_menu_button = _create_icon_button("≡", "menu_button", "Open Menu")
+	_menu_button = _create_icon_button("≡", "menu_button", "Open Main Menu (M)")
 	_menu_button.pressed.connect(_on_menu_button_pressed)
+	_menu_button.focus_mode = Control.FOCUS_ALL
+	_menu_button.accessible_name = "Main Menu"
 	bar.add_child(_menu_button)
 	
 	# Center spacer (pushes avatar to center-ish, settings to right)
@@ -49,6 +77,8 @@ func _setup_ui() -> void:
 	# Center: User avatar button (shows character name/level)
 	_avatar_button = _create_avatar_button()
 	_avatar_button.pressed.connect(_on_avatar_pressed)
+	_avatar_button.focus_mode = Control.FOCUS_ALL
+	_avatar_button.accessible_name = "Character Profile"
 	bar.add_child(_avatar_button)
 	
 	# Right spacer
@@ -57,8 +87,10 @@ func _setup_ui() -> void:
 	bar.add_child(right_spacer)
 	
 	# Right: Settings button
-	_settings_button = _create_icon_button("⚙", "settings_button", "Settings")
+	_settings_button = _create_icon_button("⚙", "settings_button", "Settings (O)")
 	_settings_button.pressed.connect(_on_settings_pressed)
+	_settings_button.focus_mode = Control.FOCUS_ALL
+	_settings_button.accessible_name = "Settings"
 	bar.add_child(_settings_button)
 	
 	add_child(bar)
@@ -66,7 +98,6 @@ func _setup_ui() -> void:
 	# Expanded menu panel (initially hidden)
 	_create_expanded_panel()
 	
-	# Position at top-left initially, will be repositioned on expand
 	_anchors_preset = Control.PRESET_TOP_WIDE
 	_offset_top = 8
 	_offset_bottom = 68
@@ -75,13 +106,14 @@ func _create_icon_button(text: String, name: String, tooltip: String) -> Button:
 	var btn := Button.new()
 	btn.name = name
 	btn.text = text
-	btn.custom_minimum_size = Vector2(48, 48)
+	btn.custom_minimum_size = Vector2(48, 48)  # 48dp minimum touch target
 	btn.toggle_mode = false
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL
+	btn.accessible_name = tooltip.split(" (")[0] if " (" in tooltip else tooltip
 	
 	var style_normal := StyleBoxFlat.new()
-	style_normal.bg_color = Color(0.12, 0.12, 0.18, 0.9)
-	style_normal.border_color = Color(0.4, 0.35, 0.3)
+	style_normal.bg_color = _get_color("background_dark", Color(0.12, 0.12, 0.18, 0.9))
+	style_normal.border_color = _get_color("border_highlight", Color(0.4, 0.35, 0.3))
 	style_normal.border_width_left = 2
 	style_normal.border_width_right = 2
 	style_normal.border_width_top = 2
@@ -93,15 +125,25 @@ func _create_icon_button(text: String, name: String, tooltip: String) -> Button:
 	btn.add_theme_stylebox_override("normal", style_normal)
 	
 	var style_hover := style_normal.duplicate() as StyleBoxFlat
-	style_hover.bg_color = Color(0.2, 0.18, 0.25, 0.95)
+	style_hover.bg_color = _get_color("background", Color(0.2, 0.18, 0.25, 0.95))
 	btn.add_theme_stylebox_override("hover", style_hover)
 	
 	var style_pressed := style_normal.duplicate() as StyleBoxFlat
-	style_pressed.bg_color = Color(0.15, 0.15, 0.22, 1.0)
+	style_pressed.bg_color = _get_color("background_dark", Color(0.15, 0.15, 0.22, 1.0))
 	btn.add_theme_stylebox_override("pressed", style_pressed)
 	
+	var style_focus := style_normal.duplicate() as StyleBoxFlat
+	style_focus.bg_color = _get_color("background", Color(0.2, 0.18, 0.25, 0.95))
+	style_focus.border_color = _get_color("accent_gold", Color(1, 0.8, 0.2))
+	style_focus.border_width_left = 3
+	style_focus.border_width_right = 3
+	style_focus.border_width_top = 3
+	style_focus.border_width_bottom = 3
+	btn.add_theme_stylebox_override("focus", style_focus)
+	
 	btn.add_theme_font_size_override("font_size", 24)
-	btn.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	btn.add_theme_color_override("font_color", _get_color("text_primary", UIStyles.COLORS.text_primary))
+	btn.add_theme_color_override("font_focus_color", _get_color("accent_gold", UIStyles.COLORS.accent_gold))
 	btn.tooltip_text = tooltip
 	
 	return btn
@@ -111,12 +153,13 @@ func _create_avatar_button() -> Button:
 	btn.name = "avatar_button"
 	btn.custom_minimum_size = Vector2(160, 48)
 	btn.toggle_mode = false
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL
 	btn.clip_contents = true
+	btn.accessible_name = "Character Profile"
 	
 	var style_normal := StyleBoxFlat.new()
-	style_normal.bg_color = Color(0.12, 0.12, 0.18, 0.9)
-	style_normal.border_color = UIStyles.COLORS.accent_gold
+	style_normal.bg_color = _get_color("background_dark", Color(0.12, 0.12, 0.18, 0.9))
+	style_normal.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
 	style_normal.border_width_left = 2
 	style_normal.border_width_right = 2
 	style_normal.border_width_top = 2
@@ -128,12 +171,21 @@ func _create_avatar_button() -> Button:
 	btn.add_theme_stylebox_override("normal", style_normal)
 	
 	var style_hover := style_normal.duplicate() as StyleBoxFlat
-	style_hover.bg_color = Color(0.18, 0.15, 0.1, 0.95)
+	style_hover.bg_color = _get_color("background", Color(0.18, 0.15, 0.1, 0.95))
 	btn.add_theme_stylebox_override("hover", style_hover)
 	
 	var style_pressed := style_normal.duplicate() as StyleBoxFlat
-	style_pressed.bg_color = Color(0.2, 0.15, 0.1, 1.0)
+	style_pressed.bg_color = _get_color("background_dark", Color(0.2, 0.15, 0.1, 1.0))
 	btn.add_theme_stylebox_override("pressed", style_pressed)
+	
+	var style_focus := style_normal.duplicate() as StyleBoxFlat
+	style_focus.bg_color = _get_color("background", Color(0.18, 0.15, 0.1, 0.95))
+	style_focus.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
+	style_focus.border_width_left = 3
+	style_focus.border_width_right = 3
+	style_focus.border_width_top = 3
+	style_focus.border_width_bottom = 3
+	btn.add_theme_stylebox_override("focus", style_focus)
 	
 	# Avatar content: icon + name + level
 	var hbox := HBoxContainer.new()
@@ -141,11 +193,12 @@ func _create_avatar_button() -> Button:
 	
 	# Character class icon placeholder
 	var icon_label := Label.new()
-	icon_label.text = "⚔"  # Default warrior icon
+	icon_label.text = "⚔"
 	icon_label.custom_minimum_size = Vector2(32, 32)
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	icon_label.add_theme_font_size_override("font_size", 24)
+	icon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(icon_label)
 	
 	# Name and level
@@ -155,7 +208,8 @@ func _create_avatar_button() -> Button:
 	name_label.text = "Player"
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name_label.add_theme_font_size_override("font_size", 14)
-	name_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	name_label.add_theme_color_override("font_color", _get_color("text_primary", UIStyles.COLORS.text_primary))
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(name_label)
 	
 	var level_label := Label.new()
@@ -163,7 +217,8 @@ func _create_avatar_button() -> Button:
 	level_label.text = "Level 1"
 	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	level_label.add_theme_font_size_override("font_size", 11)
-	level_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	level_label.add_theme_color_override("font_color", _get_color("accent_gold", UIStyles.COLORS.accent_gold))
+	level_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(level_label)
 	
 	hbox.add_child(vbox)
@@ -176,12 +231,12 @@ func _create_expanded_panel() -> void:
 	_expanded_panel.name = "ExpandedMenu"
 	_expanded_panel.anchors_preset = Control.PRESET_TOP_LEFT
 	_expanded_panel.offset_left = 8
-	_expanded_panel.offset_top = 76  # Below the main bar
+	_expanded_panel.offset_top = 76
 	_expanded_panel.custom_minimum_size = Vector2(220, 0)
 	
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.12, 0.98)
-	style.border_color = UIStyles.COLORS.border_highlight
+	style.bg_color = _get_color("background_dark", Color(0.08, 0.08, 0.12, 0.98))
+	style.border_color = _get_color("border_highlight", UIStyles.COLORS.border_highlight)
 	style.border_width_left = 2
 	style.border_width_right = 2
 	style.border_width_top = 2
@@ -200,68 +255,88 @@ func _create_expanded_panel() -> void:
 	
 	# Add all panel shortcuts
 	var panels := [
-		{"id": "inventory", "text": "🎒 Inventory", "hotkey": "I"},
-		{"id": "character", "text": "👤 Character", "hotkey": "C"},
-		{"id": "skills", "text": "✨ Skills", "hotkey": "K"},
-		{"id": "guild", "text": "🏰 Guild", "hotkey": "G"},
-		{"id": "party", "text": "⚔ Party", "hotkey": "P"},
-		{"id": "friends", "text": "👥 Friends", "hotkey": "F"},
-		{"id": "quests", "text": "📜 Quests", "hotkey": "Q"},
-		{"id": "bank", "text": "🏦 Bank/Vault", "hotkey": "B"},
-		{"id": "blacksmith", "text": "🔨 Blacksmith", "hotkey": "H"},
-		{"id": "world_map", "text": "🗺 World Map", "hotkey": "M"},
-		{"id": "faction", "text": "⚖ Faction", "hotkey": "N"},
-		{"id": "achievements", "text": "🏆 Achievements", "hotkey": "Y"},
-		{"id": "titles", "text": "🎖 Titles", "hotkey": "T"},
-		{"id": "trade", "text": "🤝 Trade", "hotkey": "R"},
-		{"id": "transfer", "text": "🔄 Transfer", "hotkey": "X"},
+		{"id": "inventory", "text": "Inventory", "hotkey": "I", "icon": "🎒"},
+		{"id": "character", "text": "Character", "hotkey": "C", "icon": "👤"},
+		{"id": "skills", "text": "Skills", "hotkey": "K", "icon": "✨"},
+		{"id": "guild", "text": "Guild", "hotkey": "G", "icon": "🏰"},
+		{"id": "party", "text": "Party", "hotkey": "P", "icon": "⚔"},
+		{"id": "friends", "text": "Friends", "hotkey": "F", "icon": "👥"},
+		{"id": "quests", "text": "Quests", "hotkey": "Q", "icon": "📜"},
+		{"id": "bank", "text": "Bank/Vault", "hotkey": "B", "icon": "🏦"},
+		{"id": "blacksmith", "text": "Blacksmith", "hotkey": "H", "icon": "🔨"},
+		{"id": "world_map", "text": "World Map", "hotkey": "M", "icon": "🗺"},
+		{"id": "faction", "text": "Faction", "hotkey": "N", "icon": "⚖"},
+		{"id": "achievements", "text": "Achievements", "hotkey": "Y", "icon": "🏆"},
+		{"id": "titles", "text": "Titles", "hotkey": "T", "icon": "🎖"},
+		{"id": "trade", "text": "Trade", "hotkey": "R", "icon": "🤝"},
+		{"id": "transfer", "text": "Transfer", "hotkey": "X", "icon": "🔄"},
 	]
 	
 	for panel in panels:
-		var btn := _create_menu_item(panel["id"], panel["text"], panel["hotkey"])
+		var btn := _create_menu_item(panel["id"], panel["text"], panel["hotkey"], panel["icon"])
 		_menu_items.add_child(btn)
 	
 	# Separator
 	var sep := HSeparator.new()
-	sep.add_theme_color_override("color", UIStyles.COLORS.border)
+	sep.add_theme_color_override("color", _get_color("border", UIStyles.COLORS.border))
 	_menu_items.add_child(sep)
 	
+	# Admin panel (only visible to MOD+)
+	var admin_btn := _create_menu_item("admin", "Admin Panel", "", "🛡", true)
+	admin_btn.name = "menu_item_admin_panel"
+	admin_btn.visible = _is_admin_or_mod
+	admin_btn.tooltip_text = "Admin Panel (requires Moderator+)"
+	admin_btn.accessible_name = "Admin Panel"
+	_menu_items.add_child(admin_btn)
+	
+	# Debug panel (only visible to ADMIN+ or dev mode)
+	var debug_btn := _create_menu_item("debug", "Debug Panel", "", "🐛", true)
+	debug_btn.name = "menu_item_debug_panel"
+	debug_btn.visible = _is_dev_mode
+	debug_btn.tooltip_text = "Debug Panel (requires Admin/Dev Mode)"
+	debug_btn.accessible_name = "Debug Panel"
+	_menu_items.add_child(debug_btn)
+	
 	# Settings item
-	var settings_btn := _create_menu_item("settings", "⚙ Settings", "O")
+	var settings_btn := _create_menu_item("settings", "Settings", "O", "⚙")
+	settings_btn.accessible_name = "Settings"
 	_menu_items.add_child(settings_btn)
 	
 	# Separator
 	var sep2 := HSeparator.new()
-	sep2.add_theme_color_override("color", UIStyles.COLORS.border)
+	sep2.add_theme_color_override("color", _get_color("border", UIStyles.COLORS.border))
 	_menu_items.add_child(sep2)
 	
 	# Close menu item
-	var close_btn := _create_menu_item("close", "✕ Close Menu", "")
+	var close_btn := _create_menu_item("close", "Close Menu", "", "✕")
+	close_btn.accessible_name = "Close Menu"
 	_menu_items.add_child(close_btn)
 	
 	add_child(_expanded_panel)
 
-func _create_menu_item(panel_id: String, text: String, hotkey: String) -> Button:
+func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: String = "", is_special: bool = false) -> Button:
 	var btn := Button.new()
 	btn.name = "menu_item_%s" % panel_id
-	btn.custom_minimum_size = Vector2(200, 40)
+	btn.custom_minimum_size = Vector2(200, 48)  # 48dp minimum height for touch
 	btn.toggle_mode = false
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL
 	btn.flat = false
+	btn.accessible_name = text
 	
-	var display_text := text
+	var display_text := "%s %s" % [icon, text] if icon != "" else text
 	if hotkey != "":
-		display_text = "%s  [%s]" % [text, hotkey]
+		display_text = "%s  [%s]" % [display_text, hotkey]
 	btn.text = display_text
 	btn.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.tooltip_text = "%s (Hotkey: %s)" % [text, hotkey] if hotkey != "" else text
 	
 	var style_normal := StyleBoxFlat.new()
-	style_normal.bg_color = Color(0.1, 0.1, 0.15, 0)
+	style_normal.bg_color = Color(0, 0, 0, 0)
 	style_normal.border_color = Color(0, 0, 0, 0)
 	btn.add_theme_stylebox_override("normal", style_normal)
 	
 	var style_hover := StyleBoxFlat.new()
-	style_hover.bg_color = Color(0.2, 0.18, 0.25, 0.8)
+	style_hover.bg_color = _get_color("background", Color(0.2, 0.18, 0.25, 0.8))
 	style_hover.border_color = Color(0, 0, 0, 0)
 	style_hover.corner_radius_top_left = 4
 	style_hover.corner_radius_top_right = 4
@@ -270,7 +345,7 @@ func _create_menu_item(panel_id: String, text: String, hotkey: String) -> Button
 	btn.add_theme_stylebox_override("hover", style_hover)
 	
 	var style_pressed := StyleBoxFlat.new()
-	style_pressed.bg_color = Color(0.15, 0.15, 0.22, 1.0)
+	style_pressed.bg_color = _get_color("background_dark", Color(0.15, 0.15, 0.22, 1.0))
 	style_pressed.border_color = Color(0, 0, 0, 0)
 	style_pressed.corner_radius_top_left = 4
 	style_pressed.corner_radius_top_right = 4
@@ -278,12 +353,32 @@ func _create_menu_item(panel_id: String, text: String, hotkey: String) -> Button
 	style_pressed.corner_radius_bottom_right = 4
 	btn.add_theme_stylebox_override("pressed", style_pressed)
 	
+	var style_focus := StyleBoxFlat.new()
+	style_focus.bg_color = _get_color("background", Color(0.25, 0.22, 0.3, 0.9))
+	style_focus.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
+	style_focus.border_width_left = 2
+	style_focus.border_width_right = 2
+	style_focus.border_width_top = 2
+	style_focus.border_width_bottom = 2
+	style_focus.corner_radius_top_left = 4
+	style_focus.corner_radius_top_right = 4
+	style_focus.corner_radius_bottom_left = 4
+	style_focus.corner_radius_bottom_right = 4
+	btn.add_theme_stylebox_override("focus", style_focus)
+	
 	btn.add_theme_font_size_override("font_size", 14)
-	btn.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	btn.add_theme_color_override("font_color", _get_color("text_primary", UIStyles.COLORS.text_primary))
+	btn.add_theme_color_override("font_focus_color", _get_color("accent_gold", UIStyles.COLORS.accent_gold))
 	
 	btn.pressed.connect(func(): _on_menu_item_pressed(panel_id))
+	btn.focus_entered.connect(func(): _on_menu_item_focused(btn))
 	
 	return btn
+
+func _get_color(key: String, fallback: Color) -> Color:
+	if UIStyles and UIStyles.COLORS.has(key):
+		return UIStyles.COLORS[key]
+	return fallback
 
 func _on_menu_button_pressed() -> void:
 	if _is_expanded:
@@ -292,7 +387,6 @@ func _on_menu_button_pressed() -> void:
 		show_expanded()
 
 func _on_avatar_pressed() -> void:
-	# Open character panel
 	panel_requested.emit("character")
 	hide_expanded()
 
@@ -306,26 +400,59 @@ func _on_menu_item_pressed(panel_id: String) -> void:
 	elif panel_id == "settings":
 		panel_requested.emit("settings")
 		hide_expanded()
+	elif panel_id == "admin":
+		panel_requested.emit("admin")
+		hide_expanded()
+	elif panel_id == "debug":
+		panel_requested.emit("debug")
+		hide_expanded()
 	else:
 		panel_requested.emit(panel_id)
 		hide_expanded()
+
+func _on_menu_item_focused(item: Control) -> void:
+	_last_focused_item = item
 
 func show_expanded() -> void:
 	_is_expanded = true
 	_expanded_panel.visible = true
 	_menu_button.text = "✕"
+	_menu_button.tooltip_text = "Close Main Menu (M)"
+	_menu_button.accessible_name = "Close Menu"
+	
+	# Focus first visible menu item for keyboard navigation
+	call_deferred("_focus_first_menu_item")
+	
 	# Animate in
 	var tween := create_tween()
 	tween.tween_property(_expanded_panel, "modulate:a", 1.0, 0.15)
 	tween.tween_property(_expanded_panel, "offset_top", 76, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
+func _focus_first_menu_item() -> void:
+	if not _menu_items:
+		return
+	for child in _menu_items.get_children():
+		if child.visible and child is Button and child.focus_mode != Control.FOCUS_NONE:
+			child.grab_focus()
+			_last_focused_item = child
+			break
+
 func hide_expanded() -> void:
 	_is_expanded = false
 	_menu_button.text = "≡"
+	_menu_button.tooltip_text = "Open Main Menu (M)"
+	_menu_button.accessible_name = "Main Menu"
+	
+	# Return focus to menu button
+	call_deferred("_return_focus_to_menu_button")
+	
 	var tween := create_tween()
 	tween.tween_property(_expanded_panel, "modulate:a", 0.0, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_callback(func(): _expanded_panel.visible = false)
 	tween.tween_property(_expanded_panel, "offset_top", 68, 0.1)
+
+func _return_focus_to_menu_button() -> void:
+	_menu_button.grab_focus()
 
 func update_character_info(name: String, level: int, class_icon: String = "⚔") -> void:
 	if _avatar_button:
@@ -342,14 +469,21 @@ func update_character_info(name: String, level: int, class_icon: String = "⚔")
 					name_label.text = name
 				if level_label:
 					level_label.text = "Level %d" % level
+		
+		# Update accessibility info
+		_avatar_button.accessible_name = "%s, Level %d" % [name, level]
+		_avatar_button.tooltip_text = "Character: %s (Level %d)" % [name, level]
 
 func bind(hud: Node, menu_manager: Node) -> void:
 	_hud = hud
 	_mm = menu_manager
 	
-	# Connect panel_requested to MenuManager
 	if _mm:
 		panel_requested.connect(_mm.callable("_on_main_menu_panel_requested"))
+	
+	# Re-check permissions after bind (in case GameManager wasn't ready)
+	call_deferred("_check_permissions")
+	call_deferred("_refresh_admin_debug_visibility")
 
 func _input(event: InputEvent) -> void:
 	# Close expanded menu on click outside
@@ -363,3 +497,62 @@ func _input(event: InputEvent) -> void:
 		var touch_pos := event.position
 		if not _expanded_panel.get_global_rect().has_point(touch_pos) and not _menu_button.get_global_rect().has_point(touch_pos):
 			hide_expanded()
+	
+	# Keyboard navigation: Escape to close
+	if _is_expanded and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		hide_expanded()
+		accept_event()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED:
+		_apply_high_contrast()
+
+func _apply_high_contrast() -> void:
+	# Check if high contrast mode is enabled via UIStyles or OS
+	var high_contrast := OS.has_feature("high_contrast") or (UIStyles and UIStyles.COLORS.has("high_contrast") and UIStyles.COLORS.high_contrast)
+	
+	if high_contrast:
+		# Apply high contrast colors to all buttons
+		var buttons := [_menu_button, _avatar_button, _settings_button]
+		for btn in buttons:
+			if btn:
+				var style_focus := StyleBoxFlat.new()
+				style_focus.bg_color = Color(0, 0, 0, 1)
+				style_focus.border_color = Color(1, 1, 1, 1)
+				style_focus.border_width_left = 3
+				style_focus.border_width_right = 3
+				style_focus.border_width_top = 3
+				style_focus.border_width_bottom = 3
+				style_focus.corner_radius_top_left = 8
+				style_focus.corner_radius_top_right = 8
+				style_focus.corner_radius_bottom_left = 8
+				style_focus.corner_radius_bottom_right = 8
+				btn.add_theme_stylebox_override("focus", style_focus)
+				
+				btn.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+				btn.add_theme_color_override("font_focus_color", Color(1, 1, 0, 1))
+		
+		# Update expanded panel items
+		if _menu_items:
+			for child in _menu_items.get_children():
+				if child is Button:
+					var style_focus := StyleBoxFlat.new()
+					style_focus.bg_color = Color(0, 0, 0, 1)
+					style_focus.border_color = Color(1, 1, 1, 1)
+					style_focus.border_width_left = 2
+					style_focus.border_width_right = 2
+					style_focus.border_width_top = 2
+					style_focus.border_width_bottom = 2
+					style_focus.corner_radius_top_left = 4
+					style_focus.corner_radius_top_right = 4
+					style_focus.corner_radius_bottom_left = 4
+					style_focus.corner_radius_bottom_right = 4
+					child.add_theme_stylebox_override("focus", style_focus)
+					
+					child.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+					child.add_theme_color_override("font_focus_color", Color(1, 1, 0, 1))
+
+func update_admin_debug_visibility(is_admin_or_mod: bool, is_dev_mode: bool) -> void:
+	_is_admin_or_mod = is_admin_or_mod
+	_is_dev_mode = is_dev_mode
+	_refresh_admin_debug_visibility()

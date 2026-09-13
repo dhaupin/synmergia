@@ -131,6 +131,27 @@ func _wire_widgets() -> void:
 		if _minimap.has_signal("map_button_pressed"):
 			_minimap.map_button_pressed.connect(_toggle_world_map)
 
+	# Connect to PermissionManager for admin/debug visibility updates
+	if PermissionManager:
+		PermissionManager.admin_action.connect(_on_admin_action)
+
+func _on_admin_action(entry) -> void:
+	# Update admin/debug visibility in main menu bar when permissions change
+	if _main_menu_bar and _main_menu_bar.has_method("update_admin_debug_visibility"):
+		var is_admin_or_mod := _is_moderator_or_admin()
+		var is_dev_mode := _is_admin() or (GameConfig and GameConfig.Debug.ALLOW_CHEATS)
+		_main_menu_bar.update_admin_debug_visibility(is_admin_or_mod, is_dev_mode)
+
+func _is_moderator_or_admin() -> bool:
+	if not PermissionManager:
+		return false
+	var player_id: String = "local"
+	if PlayerManager and "character_name" in PlayerManager:
+		player_id = PlayerManager.character_name
+	if GameManager and GameManager.selected_character_data:
+		player_id = GameManager.selected_character_data.id
+	return PermissionManager.has_permission(player_id, PermissionManager.Level.MOD)
+
 func _on_panel_closed() -> void:
 	# Handle panel close - could update some state if needed
 	pass
