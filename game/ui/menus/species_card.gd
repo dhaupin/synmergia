@@ -45,13 +45,11 @@ func _mod(label: String, val: int) -> String:
 
 
 func _get_faction_name(faction_id: String) -> String:
-	var names := {
-		"human_faction": "Human Alliance",
-		"akkan_faction": "Akkan Horde",
-		"agent_collective": "Synthetic Collective",
-		"neutral_faction": "Neutral",
-	}
-	return names.get(faction_id, faction_id)
+	if DataService:
+		var faction := DataService.get_faction(faction_id)
+		if faction:
+			return faction.display_name
+	return faction_id
 
 
 func _on_select() -> void:

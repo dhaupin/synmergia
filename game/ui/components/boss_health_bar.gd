@@ -41,6 +41,34 @@ func _setup_accessibility() -> void:
 	accessible_name = "Boss Health Bar"
 	accessible_description = "Displays the current raid boss health, phase, enrage timer, and mechanics warnings."
 
+func update_accessibility_settings() -> void:
+	# Update HP bar
+	if _hp_bar and is_instance_valid(_hp_bar):
+		_hp_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+	
+	# Update labels
+	for label in [_name_label, _hp_label, _phase_label, _timer_label, _mechanics_warning]:
+		if label and is_instance_valid(label):
+			var scale = UIStyles.get_text_scale()
+			var current_size := label.get_theme_font_size("font_size")
+			if current_size > 0:
+				label.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update mechanics container children
+	if _mechanics_container:
+		for child in _mechanics_container.get_children():
+			if child is Label:
+				var scale = UIStyles.get_text_scale()
+				var current_size := child.get_theme_font_size("font_size")
+				if current_size > 0:
+					child.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update phase indicators
+	if _phase_indicators:
+		for child in _phase_indicators.get_children():
+			if child is PanelContainer:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+
 func _setup_ui() -> void:
 	name = "BossHealthBar"
 	set_anchors_preset(Control.PRESET_CENTER_TOP)

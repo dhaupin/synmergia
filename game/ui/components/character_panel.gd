@@ -42,9 +42,55 @@ func _ready() -> void:
 	super._ready()
 	set_title("Character")
 	set_panel_size(Vector2(600, 550))
+	_setup_accessibility()
 
 	_setup_tabs()
 	_show_tab(Tab.INVENTORY)
+
+
+func _setup_accessibility() -> void:
+	accessible_name = "Character Panel"
+	accessible_description = "Character management panel with tabs for Inventory, Equipment, Stats, Skills, and Titles. Use tab buttons or number keys to switch tabs. Press Escape to close."
+
+func update_accessibility_settings() -> void:
+	# Update tab buttons
+	if _tab_buttons:
+		for btn in _tab_buttons:
+			if btn and is_instance_valid(btn):
+				btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var scale = UIStyles.get_text_scale()
+				var current_size := btn.get_theme_font_size("font_size")
+				if current_size > 0:
+					btn.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update equipment slots
+	for slot_id in _equipped_items:
+		var slot := get_node("Panel/Main/Content/EquipSlots/SlotContainer/Slot_%d" % slot_id)
+		if slot and is_instance_valid(slot):
+			slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+	
+	# Update content panels
+	if _tab_contents:
+		for content in _tab_contents.values():
+			if content and is_instance_valid(content):
+				for child in content.get_children():
+					if child is Button:
+						child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+						var scale = UIStyles.get_text_scale()
+						var current_size := child.get_theme_font_size("font_size")
+						if current_size > 0:
+							child.add_theme_font_size_override("font_size", int(current_size * scale))
+					elif child is PanelContainer:
+						child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+						var style: StyleBoxFlat = child.get_theme_stylebox("panel")
+						if style:
+							if UIStyles.is_high_contrast_enabled():
+								style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+								style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+							else:
+								style.bg_color = UIStyles.COLORS.background_dark
+								style.border_color = UIStyles.COLORS.border
+
 
 func _setup_tabs() -> void:
 	var panel := get_panel()
@@ -762,29 +808,8 @@ func _refresh_stats_display() -> void:
 					display = "%d (%d)" % [total, base]
 				val_lbl.text = display
 
-	# Update derived stats (these would come from a combat stats calculation)
-	# For now, calculate simple estimates based on stats
-	var vit_stat := float(stats.get("vitality", 10) + allocated.get("vitality", 0))
-	var end_stat := float(stats.get("endurance", 10) + allocated.get("endurance", 0))
-	var str_stat := float(stats.get("strength", 10) + allocated.get("strength", 0))
-	var int_stat := float(stats.get("intelligence", 10) + allocated.get("intelligence", 0))
-
-	var max_health := int(100 + vit_stat * 10)
-	var max_mana := int(50 + int_stat * 5)
-	var p_attack := int(10 + str_stat * 2)
-	var m_attack := int(10 + int_stat * 2)
-	var p_defense := int(5 + end_stat * 1.5)
-	var m_defense := int(5 + int_stat * 1.5)
-
-	# Update derived stat rows
-	var derived_keys := {
-		"max_health": max_health,
-		"max_mana": max_mana,
-		"p_attack": p_attack,
-		"m_attack": m_attack,
-		"p_defense": p_defense,
-		"m_defense": m_defense
-	}
+	# Update derived stats using CharacterData's centralized calculation
+	var derived_keys := _char_data.get_derived_stats()
 
 	for child in vbox.get_children():
 		if child is HBoxContainer and child.name.begins_with("Derived_"):

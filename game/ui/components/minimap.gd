@@ -66,6 +66,37 @@ func _setup_accessibility() -> void:
 	accessible_name = "Minimap"
 	accessible_description = "Interactive minimap showing your position, nearby entities, and map markers. Use mouse wheel to zoom, right-click for context menu. Layer toggles at bottom."
 
+func update_accessibility_settings() -> void:
+	# Update zoom slider
+	if _zoom_slider and is_instance_valid(_zoom_slider):
+		_zoom_slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+	
+	# Update layer toggle buttons
+	if _layer_toggle_container:
+		for child in _layer_toggle_container.get_children():
+			if child is Button:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var scale = UIStyles.get_text_scale()
+				var current_size := child.get_theme_font_size("font_size")
+				if current_size > 0:
+					child.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update labels
+	for label in [_compass_label, _zone_label, _coords_label, _time_label]:
+		if label and is_instance_valid(label):
+			var scale = UIStyles.get_text_scale()
+			var current_size := label.get_theme_font_size("font_size")
+			if current_size > 0:
+				label.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update context menu
+	if _context_menu and is_instance_valid(_context_menu):
+		_context_menu.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+		var scale = UIStyles.get_text_scale()
+		var current_size := _context_menu.get_theme_font_size("font_size")
+		if current_size > 0:
+			_context_menu.add_theme_font_size_override("font_size", int(current_size * scale))
+
 func _setup_ui() -> void:
 	name = "Minimap"
 	set_anchors_preset(Control.PRESET_TOP_RIGHT)

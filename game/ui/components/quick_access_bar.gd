@@ -1,6 +1,6 @@
 ## QuickAccessBar - Enhanced consumable items hotbar
 ## 6 slots for consumables with cooldown spiral, stack counts, drag-drop, auto-fill
-extends Control
+extends "res://ui/components/ui_panel.gd"
 class_name QuickAccessBar
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
@@ -25,14 +25,22 @@ signal item_changed(index: int, item_data: Dictionary)
 signal slot_cleared(index: int)
 
 func _ready() -> void:
+	super._ready()
+	set_title("Quick Access")
+	set_panel_size(Vector2(360, 80))
 	_setup_ui()
 	_build_keybinds()
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
-	focus_mode = Control.FOCUS_ALL
 	accessible_name = "Quick Access Bar"
 	accessible_description = "Consumable items hotbar with 6 slots. Press F1-F6 to use items. Right-click to clear slot."
+
+func _on_open() -> void:
+	pass
+
+func _on_close() -> void:
+	pass
 
 func update_accessibility_settings() -> void:
 	# Update focus styles for all slots
@@ -64,18 +72,16 @@ func _build_keybinds() -> void:
 	_keybinds = [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6]
 
 func _setup_ui() -> void:
-	name = "QuickAccessBar"
-	set_anchors_preset(Control.PRESET_BOTTOM_CENTER)
-	offset_bottom = -30
-	offset_top = -80
-	custom_minimum_size = Vector2(360, 50)
+	var panel := get_panel()
+	if not panel:
+		return
+	var main: VBoxContainer = add_content_to_panel(panel)
 
 	var container := HBoxContainer.new()
 	container.name = "Container"
 	container.alignment = BoxContainer.ALIGNMENT_CENTER
 	container.add_theme_constant_override("separation", 4)
-	container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(container)
+	main.add_child(container)
 
 	for i in range(SLOT_COUNT):
 		var slot := _create_slot(i)

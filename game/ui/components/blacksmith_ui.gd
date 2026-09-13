@@ -36,6 +36,50 @@ func _setup_panel() -> void:
 	main.name = "Main"
 	panel.add_child(main)
 
+
+func _ready() -> void:
+	super._ready()
+	_setup_accessibility()
+
+
+## ============================================================================
+## ACCESSIBILITY
+## ============================================================================
+
+func _setup_accessibility() -> void:
+	accessible_name = "Blacksmith"
+	accessible_description = "Blacksmith repair panel. Use Tab to navigate between item list and buttons. Press Enter to repair items, ESC to close."
+
+func update_accessibility_settings() -> void:
+	# Update focus styles for buttons and item list
+	for btn in [_repair_btn, _close_btn]:
+		if btn and is_instance_valid(btn):
+			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+	
+	# Update item list focus styles
+	if _item_list:
+		for child in _item_list.get_children():
+			if child is PanelContainer:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
+				if style:
+					if UIStyles.is_high_contrast_enabled():
+						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+					else:
+						style.bg_color = UIStyles.COLORS.background_dark
+						style.border_color = UIStyles.COLORS.border
+			
+			# Update text sizes
+			var scale = UIStyles.get_text_scale()
+			for label_name in ["ItemName", "Durability", "Cost"]:
+				var label: Label = child.get_node_or_null(label_name)
+				if label:
+					var current_size := label.get_theme_font_size("font_size")
+					if current_size > 0:
+						label.add_theme_font_size_override("font_size", int(current_size * scale))
+
+
 func _setup_header() -> void:
 	var panel := get_panel()
 	if not panel:
@@ -139,7 +183,8 @@ func _process(_delta: float) -> void:
 	var player := _get_local_player()
 	if player == null:
 		return
-	if player.global_position.distance_to(_npc_position) > 8.0:
+	# Use canonical distance check with configurable threshold
+	if not check_interact_distance(player.global_position, _npc_position):
 		close()
 		if NotificationService:
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
@@ -199,8 +244,6 @@ func _on_repair_all_pressed() -> void:
 		return
 	BlacksmithService.repair_all(_player_id, items)
 
-func _on_close_pressed() -> void:
-	close()
 
 func _refresh_items() -> void:
 	if not _item_list:

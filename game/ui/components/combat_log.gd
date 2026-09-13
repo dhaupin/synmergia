@@ -41,7 +41,39 @@ const _POPUP_OFFSET_Y: float = 80.0
 func _ready() -> void:
 	instance = self
 	_setup_ui()
+	_setup_accessibility()
 	hide()
+
+
+func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
+	accessible_name = "Combat Log"
+	accessible_description = "Displays combat events, damage, healing, and system messages. Use Tab to navigate filters and scroll through history."
+
+func update_accessibility_settings() -> void:
+	# Update search box
+	if _search_box:
+		_search_box.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+		var scale = UIStyles.get_text_scale()
+		var current_size := _search_box.get_theme_font_size("font_size")
+		if current_size > 0:
+			_search_box.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update filter buttons
+	for btn in _filter_buttons.values():
+		if btn and is_instance_valid(btn):
+			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+			var scale = UIStyles.get_text_scale()
+			var current_size := btn.get_theme_font_size("font_size")
+			if current_size > 0:
+				btn.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update rich text label
+	if _rich_label:
+		var scale = UIStyles.get_text_scale()
+		var current_size := _rich_label.get_theme_font_size("default_font_size")
+		if current_size > 0:
+			_rich_label.add_theme_font_size_override("default_font_size", int(current_size * scale))
 
 func _setup_ui() -> void:
 	name = "CombatLog"

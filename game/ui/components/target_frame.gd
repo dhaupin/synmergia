@@ -47,6 +47,35 @@ func _setup_accessibility() -> void:
 	accessible_name = "Target Frame"
 	accessible_description = "Displays information about your current target including health, mana, buffs, and debuffs. Left-click to target, right-click for action menu."
 
+func update_accessibility_settings() -> void:
+	# Update focus styles for progress bars
+	for bar in [_hp_bar, _mp_bar, _cast_bar]:
+		if bar and is_instance_valid(bar):
+			bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+	
+	# Update buff/debuff containers
+	for container in [_buff_container, _debuff_container]:
+		if container:
+			for child in container.get_children():
+				if child is PanelContainer:
+					child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+					var style: StyleBoxFlat = child.get_theme_stylebox("panel")
+					if style:
+						if UIStyles.is_high_contrast_enabled():
+							style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+							style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+						else:
+							style.bg_color = UIStyles.COLORS.background_dark
+							style.border_color = UIStyles.COLORS.border
+	
+	# Update text sizes
+	var scale = UIStyles.get_text_scale()
+	for label in [_name_label, _level_label, _class_label, _guild_label, _cast_label]:
+		if label and is_instance_valid(label):
+			var current_size := label.get_theme_font_size("font_size")
+			if current_size > 0:
+				label.add_theme_font_size_override("font_size", int(current_size * scale))
+
 func _setup_ui() -> void:
 	name = "TargetFrame"
 	set_anchors_preset(Control.PRESET_CENTER_TOP)

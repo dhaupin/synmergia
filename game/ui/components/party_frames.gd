@@ -46,6 +46,37 @@ func _setup_accessibility() -> void:
 	accessible_name = "Party Frames"
 	accessible_description = "Displays party members with health, mana, and role. Use Tab to navigate between members."
 
+func update_accessibility_settings() -> void:
+	# Update member containers
+	for container in _member_containers:
+		if container and is_instance_valid(container):
+			container.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+			
+			# Update health/mana bars
+			for bar_name in ["HealthBar", "ManaBar"]:
+				var bar: ProgressBar = container.get_node_or_null(bar_name)
+				if bar and is_instance_valid(bar):
+					bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+			
+			# Update labels
+			for label_name in ["NameLabel", "LevelLabel", "RoleLabel", "DistanceLabel"]:
+				var label: Label = container.get_node_or_null(label_name)
+				if label and is_instance_valid(label):
+					var scale = UIStyles.get_text_scale()
+					var current_size := label.get_theme_font_size("font_size")
+					if current_size > 0:
+						label.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update ready check button
+	if has_node("PartyContainer/TitleRow/ReadyCheckBtn"):
+		var ready_check_btn: Button = get_node("PartyContainer/TitleRow/ReadyCheckBtn")
+		if ready_check_btn and is_instance_valid(ready_check_btn):
+			ready_check_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+			var scale = UIStyles.get_text_scale()
+			var current_size := ready_check_btn.get_theme_font_size("font_size")
+			if current_size > 0:
+				ready_check_btn.add_theme_font_size_override("font_size", int(current_size * scale))
+
 func _setup_ui() -> void:
 	name = "PartyFrames"
 	set_anchors_preset(Control.PRESET_TOP_LEFT)

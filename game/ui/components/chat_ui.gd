@@ -41,6 +41,33 @@ func _setup_accessibility() -> void:
 	accessible_name = "Chat"
 	accessible_description = "In-game chat panel. Press Enter to open chat input. Use channel tabs or dropdown to switch channels."
 
+func update_accessibility_settings() -> void:
+	# Update channel tabs
+	if _tabs:
+		for child in _tabs.get_children():
+			if child is Button:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var scale = UIStyles.get_text_scale()
+				var current_size := child.get_theme_font_size("font_size")
+				if current_size > 0:
+					child.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update chat history
+	if _chat_history:
+		_chat_history.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+		var scale = UIStyles.get_text_scale()
+		var current_size := _chat_history.get_theme_font_size("default_font_size")
+		if current_size > 0:
+			_chat_history.add_theme_font_size_override("default_font_size", int(current_size * scale))
+	
+	# Update chat input
+	if _chat_input:
+		_chat_input.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+		var scale = UIStyles.get_text_scale()
+		var current_size := _chat_input.get_theme_font_size("font_size")
+		if current_size > 0:
+			_chat_input.add_theme_font_size_override("font_size", int(current_size * scale))
+
 func _setup_ui() -> void:
 	# Main container
 	var vbox := VBoxContainer.new()

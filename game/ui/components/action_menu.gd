@@ -1,7 +1,7 @@
 ## ActionMenu - Context/right-click action menu for entities
 ## Uses UIStyles for consistent theming
 ## Supports both mouse (right-click) and touch (long-press)
-extends Control
+extends "res://ui/components/ui_panel.gd"
 class_name ActionMenu
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
@@ -31,9 +31,11 @@ signal action_selected(action_id: String, target_id: String)
 signal menu_closed()
 
 func _ready() -> void:
-	_setup_ui()
+	super._ready()
 	_setup_touch()
-	hide_menu()
+	_setup_ui()
+	hide()
+	visible = false
 
 func _setup_touch() -> void:
 	_long_press_timer = Timer.new()
@@ -43,6 +45,11 @@ func _setup_touch() -> void:
 	add_child(_long_press_timer)
 
 func _setup_ui() -> void:
+	var panel := get_panel()
+	if not panel:
+		return
+	var main: VBoxContainer = add_content_to_panel(panel)
+
 	_menu_panel = PanelContainer.new()
 	_menu_panel.custom_minimum_size = Vector2(180, 0)
 
@@ -64,7 +71,7 @@ func _setup_ui() -> void:
 	style.corner_radius_bottom_right = 6
 	_menu_panel.add_theme_stylebox_override("panel", style)
 	_menu_panel.z_index = 2000
-	add_child(_menu_panel)
+	main.add_child(_menu_panel)
 
 	_menu_items = VBoxContainer.new()
 	_menu_items.name = "MenuItems"
@@ -96,9 +103,15 @@ func show_menu(position: Vector2, target_id: String, target_type: int, npc_data:
 	if _menu_panel.global_position.y + menu_size.y > viewport_size.y:
 		_menu_panel.global_position.y = viewport_size.y - menu_size.y - 10
 
-	show()
+	open("")
 
-func _filter_npc_actions(actions: Array, npc_data: NPCData) -> Array:
+func _on_open() -> void:
+	pass
+
+func _on_close() -> void:
+	_target_id = ""
+	_target_type = 0
+	_is_touch_opened = false
 	var filtered := []
 	for action in actions:
 		var id: String = action.get("id", "")
@@ -241,20 +254,14 @@ func _create_menu_item(action: Dictionary) -> Button:
 
 func _on_action_selected(action_id: String) -> void:
 	action_selected.emit(action_id, _target_id)
-	hide_menu()
+	close()
 	menu_closed.emit()
-
-func hide_menu() -> void:
-	visible = false
-	_target_id = ""
-	_target_type = 0
-	_is_touch_opened = false
 
 func _input(event: InputEvent) -> void:
 	# Mouse click to close
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if is_visible() and not _menu_panel.get_global_rect().has_point(event.position):
-			hide_menu()
+			close()
 			menu_closed.emit()
 
 	# Touch handling for long-press

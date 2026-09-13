@@ -1,7 +1,7 @@
 ## ActionBar - Enhanced skill hotbar component
 ## 12 skill slots per bar, 3 bars (main, bar2, bar3) with page buttons
 ## Cooldown spiral animation + text, keybind display, drag-drop, right-click clear, stack counts, glow on proc, range indicator
-extends Control
+extends "res://ui/components/ui_panel.gd"
 class_name ActionBar
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
@@ -37,15 +37,47 @@ signal bar_changed(bar_index: int)
 signal slot_cleared(index: int)
 
 func _ready() -> void:
+	super._ready()
+	set_title("Action Bar")
+	set_panel_size(Vector2(720, 100))
 	_setup_ui()
 	_connect_signals()
 	_build_keybinds()
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
-	focus_mode = Control.FOCUS_ALL
 	accessible_name = "Action Bar"
 	accessible_description = "Skill hotbar with 12 slots per bar, 3 bars total. Use number keys 1-0, -, = to activate skills. Use Tab to navigate between slots."
+
+func update_accessibility_settings() -> void:
+	# Update focus styles for all slots
+	for bar_slots in _slots:
+		for slot in bar_slots:
+			if slot and is_instance_valid(slot):
+				slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var style: StyleBoxFlat = slot.get_theme_stylebox("panel")
+				if style:
+					if UIStyles.is_high_contrast_enabled():
+						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+					else:
+						style.bg_color = UIStyles.COLORS.background_dark
+						style.border_color = UIStyles.COLORS.border
+				
+				# Update text sizes
+				var scale = UIStyles.get_text_scale()
+				for label_name in ["Keybind", "StackCount", "CooldownText"]:
+					var label: Label = slot.get_node_or_null(label_name)
+					if label:
+						var current_size := label.get_theme_font_size("font_size")
+						if current_size > 0:
+							label.add_theme_font_size_override("font_size", int(current_size * scale))
+
+func _on_open() -> void:
+	pass
+
+func _on_close() -> void:
+	pass
 
 func _build_keybinds() -> void:
 	_keybinds = []
@@ -97,22 +129,16 @@ func _schema_to_dict(schema: Resource, char_data: CharacterData) -> Dictionary:
 	return dict
 
 func _setup_ui() -> void:
-	name = "ActionBar"
-	set_anchors_preset(Control.PRESET_BOTTOM_CENTER)
-	offset_bottom = -100
-	offset_top = -160
-	custom_minimum_size = Vector2(720, 60)
-
-	var main_vbox := VBoxContainer.new()
-	main_vbox.name = "MainVBox"
-	main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(main_vbox)
-
+	var panel := get_panel()
+	if not panel:
+		return
+	var main: VBoxContainer = add_content_to_panel(panel)
+	
 	_page_container = HBoxContainer.new()
 	_page_container.name = "PageContainer"
 	_page_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	_page_container.custom_minimum_size.y = 24
-	main_vbox.add_child(_page_container)
+	main.add_child(_page_container)
 
 	for bar_idx in range(BAR_COUNT):
 		var btn := Button.new()
@@ -132,7 +158,7 @@ func _setup_ui() -> void:
 	var bar_container := HBoxContainer.new()
 	bar_container.name = "BarContainer"
 	bar_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	main_vbox.add_child(bar_container)
+	main.add_child(bar_container)
 
 	for i in range(SLOTS_PER_BAR):
 		var slot := _create_slot(i)

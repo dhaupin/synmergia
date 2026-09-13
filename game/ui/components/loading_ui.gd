@@ -1,6 +1,6 @@
 ## LoadingUI - Unified loading overlay
 ## Spinner, progress bar, and loading states
-extends Control
+extends "res://ui/components/ui_panel.gd"
 class_name LoadingUI
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
@@ -31,25 +31,23 @@ var _pulse_time: float = 0.0
 
 
 func _ready() -> void:
+	super._ready()
 	instance = self
 	_setup_ui()
 	hide()
+	visible = false
 
 
 func _setup_ui() -> void:
-	name = "LoadingUI"
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	var bg := ColorRect.new()
-	bg.name = "Background"
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0, 0, 0, 0.7)
-	add_child(bg)
-
+	var panel := get_panel()
+	if not panel:
+		return
+	var main: VBoxContainer = add_content_to_panel(panel)
+	
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_CENTER)
 	center.custom_minimum_size = Vector2(300, 150)
-	add_child(center)
+	main.add_child(center)
 
 	_panel = PanelContainer.new()
 	_panel.name = "Panel"
@@ -93,6 +91,12 @@ func _setup_ui() -> void:
 		_sub_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	vbox.add_child(_sub_label)
 
+
+func _on_open() -> void:
+	pass
+
+func _on_close() -> void:
+	pass
 
 func _create_spinner() -> void:
 	_spinner = Control.new()

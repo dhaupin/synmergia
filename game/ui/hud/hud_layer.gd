@@ -222,20 +222,12 @@ func _push_character_to_main_menu() -> void:
 	if not (data is CharacterData):
 		return
 	
-	# Get class icon based on class
-	var class_icon := "⚔"  # Default warrior
-	match data.class_id:
-		"warrior": class_icon = "⚔"
-		"mage": class_icon = "🔮"
-		"rogue": class_icon = "🗡"
-		"cleric": class_icon = "✝"
-		"ranger": class_icon = "🏹"
-		"paladin": class_icon = "🛡"
-		"necromancer": class_icon = "💀"
-		"druid": class_icon = "🌿"
-		"bard": class_icon = "🎵"
-		"monk": class_icon = "👊"
-		_: class_icon = "⚔"
+	# Get class icon from CharacterClass data
+	var class_icon := "Sword"  # Default fallback
+	if DataService:
+		var class_data := DataService.get_character_class(data.class_id)
+		if class_data and class_data.icon_path and not class_data.icon_path.is_empty():
+			class_icon = class_data.icon_path
 	
 	_main_menu_bar.update_character_info(data.display_name, data.level, class_icon)
 

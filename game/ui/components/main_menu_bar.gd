@@ -39,6 +39,26 @@ func _setup_accessibility() -> void:
 	accessible_description = "Game menu bar with hamburger menu, character profile, and settings. Use Tab to navigate, Enter to activate, Escape to close."
 	# High contrast mode will be applied in _apply_high_contrast()
 
+func update_accessibility_settings() -> void:
+	# Update main buttons
+	for btn in [_menu_button, _avatar_button, _settings_button]:
+		if btn and is_instance_valid(btn):
+			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+			var scale = UIStyles.get_text_scale()
+			var current_size := btn.get_theme_font_size("font_size")
+			if current_size > 0:
+				btn.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update expanded panel menu items
+	if _menu_items:
+		for child in _menu_items.get_children():
+			if child is Button:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var scale = UIStyles.get_text_scale()
+				var current_size := child.get_theme_font_size("font_size")
+				if current_size > 0:
+					child.add_theme_font_size_override("font_size", int(current_size * scale))
+
 func _check_permissions() -> void:
 	if GameManager and GameManager.selected_character_data:
 		_player_id = GameManager.selected_character_data.id

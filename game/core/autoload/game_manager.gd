@@ -7,6 +7,7 @@ extends Node
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
+const LoadingUI = preload("res://ui/components/loading_ui.gd")
 
 ## Defensive logger - get GameLog at runtime to avoid compile-time circular deps
 func _log(level: int, msg: String) -> void:
@@ -123,12 +124,16 @@ func _check_loading_complete() -> void:
 
 func _handle_loading_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Loading resources...")
+	if LoadingUI.instance:
+		LoadingUI.instance.show_loading("Loading resources...")
+		await get_tree().process_frame
+		LoadingUI.instance.hide_loading()
 
 func _handle_login_state() -> void:
-	get_tree().change_scene_to_file("res://ui/menus/login.tscn")
+	_show_loading_and_change_scene("res://ui/menus/login.tscn", "Loading login screen...")
 
 func _handle_main_menu_state() -> void:
-	get_tree().change_scene_to_file("res://ui/menus/main_menu.tscn")
+	_show_loading_and_change_scene("res://ui/menus/main_menu.tscn", "Loading main menu...")
 
 func _handle_lobby_state() -> void:
 	var _ls = get_node_or_null("/root/LoginService"); if not _ls or not _ls.is_logged_in():
@@ -136,19 +141,17 @@ func _handle_lobby_state() -> void:
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").warn("GameManager: LOBBY reached without login, redirecting")
 		change_state(GameState.LOGIN)
 		return
-	get_tree().change_scene_to_file("res://ui/menus/lobby.tscn")
+	_show_loading_and_change_scene("res://ui/menus/lobby.tscn", "Loading lobby...")
 
 func _handle_character_select_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Loading character_select scene...")
-	var err = get_tree().change_scene_to_file("res://ui/menus/character_select.tscn")
-	if err != OK:
-		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Failed to load character_select: " + str(err))
+	_show_loading_and_change_scene("res://ui/menus/character_select.tscn", "Loading character select...")
 
 func _handle_playing_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Entering gameplay")
 	_initialize_world_services()
 	# Load the playable world scene, replacing current scene
-	get_tree().change_scene_to_file("res://scenes/world_playable.tscn")
+	_show_loading_and_change_scene("res://scenes/world_playable.tscn", "Loading world...")
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
 
 	# Emit player_entered_world for services like StarterKitService
@@ -159,6 +162,17 @@ func _handle_playing_state() -> void:
 			player_entered_world.emit(player_id, selected_character_data)
 			if get_node_or_null("/root/GameLog"):
 				get_node_or_null("/root/GameLog").info("Emitted player_entered_world for: %s" % player_id)
+
+func _show_loading_and_change_scene(scene_path: String, status_text: String) -> void:
+	if LoadingUI.instance:
+		LoadingUI.instance.show_loading(status_text)
+		await get_tree().process_frame
+	var err = get_tree().change_scene_to_file(scene_path)
+	if err != OK:
+		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Failed to load %s: %s" % [scene_path, err])
+	if LoadingUI.instance:
+		await get_tree().process_frame
+		LoadingUI.instance.hide_loading()
 
 func _initialize_world_services() -> void:
 	# Only initialize once

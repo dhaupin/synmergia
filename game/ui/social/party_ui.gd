@@ -11,9 +11,35 @@ signal closed()  # Alias of panel_closed for back-compat.
 
 func _ready() -> void:
 	super._ready()
+	_setup_accessibility()
 	panel_closed.connect(func() -> void: closed.emit())
 	_bind_service_signals()
 
+
+func _setup_accessibility() -> void:
+	accessible_name = "Party Management"
+	accessible_description = "Party management panel showing members and pending invites. Press Escape to close."
+
+func update_accessibility_settings() -> void:
+	# Update member lists
+	for list_node in [_members_list, _pending_list]:
+		if list_node and is_instance_valid(list_node):
+			list_node.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+			var scale = UIStyles.get_text_scale()
+			var current_size := list_node.get_theme_font_size("font_size")
+			if current_size > 0:
+				list_node.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update buttons
+	if has_node("Panel/Main/Buttons"):
+		var buttons_container = get_node("Panel/Main/Buttons")
+		for child in buttons_container.get_children():
+			if child is Button:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var scale = UIStyles.get_text_scale()
+				var current_size := child.get_theme_font_size("font_size")
+				if current_size > 0:
+					child.add_theme_font_size_override("font_size", int(current_size * scale))
 
 func _bind_service_signals() -> void:
 	if not PartyService:

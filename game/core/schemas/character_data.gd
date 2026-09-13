@@ -50,11 +50,15 @@ func _init(p_species: String = "human", p_class: String = "warrior", p_name: Str
 	character_id = str(Time.get_unix_time_from_system()) + "_" + species_id
 
 static func load_species(species_id: String) -> Species:
+	if DataService:
+		return DataService.get_species(species_id)
 	var path := "res://data/species/species_%s.tres" % species_id
 	var res := load(path)
 	return res if res is Species else null
 
 static func load_class(class_id: String) -> CharacterClass:
+	if DataService:
+		return DataService.get_character_class(class_id)
 	var path := "res://data/classes/class_%s.tres" % class_id
 	var res := load(path)
 	return res if res is CharacterClass else null
@@ -74,6 +78,17 @@ func is_gm() -> bool:
 ## For admin use, get_all_classes_for_species() includes GM classes.
 static func get_available_classes_for_species(species_id: String) -> Array[CharacterClass]:
 	var result: Array[CharacterClass] = []
+	if DataService:
+		var all_classes := DataService.get_all_classes()
+		for cls in all_classes:
+			if cls is CharacterClass and not is_gm_class(cls):
+				# Filter by species prefix: classes follow pattern {species}_{class}
+				# e.g., human_warrior, akkan_bulwark, synthetic_warden
+				if cls.id.begins_with(species_id + "_"):
+					result.append(cls)
+		return result
+	
+	# Fallback to filesystem if DataService not available
 	var dir := DirAccess.open("res://data/classes/")
 	if dir:
 		dir.list_dir_begin()
@@ -82,7 +97,8 @@ static func get_available_classes_for_species(species_id: String) -> Array[Chara
 			if file.ends_with(".tres"):
 				var res := load("res://data/classes/" + file)
 				if res is CharacterClass and not is_gm_class(res):
-					result.append(res)
+					if res.id.begins_with(species_id + "_"):
+						result.append(res)
 			file = dir.get_next()
 	return result
 
@@ -90,6 +106,16 @@ static func get_available_classes_for_species(species_id: String) -> Array[Chara
 ## ONLY for server-side use when sending class list to admin clients.
 static func get_all_classes_for_species(species_id: String) -> Array[CharacterClass]:
 	var result: Array[CharacterClass] = []
+	if DataService:
+		var all_classes := DataService.get_all_classes()
+		for cls in all_classes:
+			if cls is CharacterClass:
+				# Filter by species prefix
+				if cls.id.begins_with(species_id + "_"):
+					result.append(cls)
+		return result
+	
+	# Fallback to filesystem if DataService not available
 	var dir := DirAccess.open("res://data/classes/")
 	if dir:
 		dir.list_dir_begin()
@@ -98,7 +124,8 @@ static func get_all_classes_for_species(species_id: String) -> Array[CharacterCl
 			if file.ends_with(".tres"):
 				var res := load("res://data/classes/" + file)
 				if res is CharacterClass:
-					result.append(res)
+					if res.id.begins_with(species_id + "_"):
+						result.append(res)
 			file = dir.get_next()
 	return result
 
@@ -118,6 +145,14 @@ static func play_accepted(class_id: String, account_level: int) -> Dictionary:
 
 static func get_all_species() -> Array[Species]:
 	var result: Array[Species] = []
+	if DataService:
+		var all_species := DataService.get_all_species()
+		for sp in all_species:
+			if sp is Species:
+				result.append(sp)
+		return result
+	
+	# Fallback to filesystem if DataService not available
 	var dir := DirAccess.open("res://data/species/")
 	if dir:
 		dir.list_dir_begin()
@@ -275,6 +310,58 @@ func get_all_stats_with_allocated() -> Dictionary:
 	for stat in allocated_stats.keys():
 		result[stat] = get_stat_total(stat)
 	return result
+
+## Calculate derived stats (max health, mana, attack, defense)
+## These are estimates based on class/species/level/allocated stats
+func get_derived_stats() -> Dictionary:
+	if not class_data:
+		class_data = load_class(class_id)
+	if not class_data:
+		return {}
+	
+	var stats := get_all_stats_with_allocated()
+	if stats.is_empty():
+		return {}
+	
+	var vit := stats.get("vitality", 10)
+	var end := stats.get("endurance", 10)
+	var str := stats.get("strength", 10)
+	var int := stats.get("intelligence", 10)
+	
+	# Base formulas - can be overridden by class/species
+	var max_health := int(100 + vit * 10)
+	var max_mana := int(50 + int * 5)
+	var p_attack := int(10 + str * 2)
+	var m_attack := int(10 + int * 2)
+	var p_defense := int(5 + end * 1.5)
+	var m_defense := int(5 + int * 1.5)
+	
+	# Apply class-specific modifiers if available
+	if class_data.has_method("modify_derived_stats"):
+		var modified := class_data.modify_derived_stats({
+			"max_health": max_health,
+			"max_mana": max_mana,
+			"p_attack": p_attack,
+			"m_attack": m_attack,
+			"p_defense": p_defense,
+			"m_defense": m_defense
+		}, stats)
+		if modified:
+			max_health = modified.get("max_health", max_health)
+			max_mana = modified.get("max_mana", max_mana)
+			p_attack = modified.get("p_attack", p_attack)
+			m_attack = modified.get("m_attack", m_attack)
+			p_defense = modified.get("p_defense", p_defense)
+			m_defense = modified.get("m_defense", m_defense)
+	
+	return {
+		"max_health": max_health,
+		"max_mana": max_mana,
+		"p_attack": p_attack,
+		"m_attack": m_attack,
+		"p_defense": p_defense,
+		"m_defense": m_defense
+	}
 
 ## Serialize to a plain Dictionary for disk persistence.
 ## Server-authoritative fields (level, zone, etc.) are stored client-side

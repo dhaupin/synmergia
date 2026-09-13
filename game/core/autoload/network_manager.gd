@@ -87,18 +87,18 @@ func _process_server_ticks() -> void:
 ## SERVER FUNCTIONS
 
 func start_server(port: int = DEFAULT_PORT) -> bool:
-	if OS.has_feature("web"):
-	 GameLog.warn("Cannot start server in web browser")
+if OS.has_feature("web"):
+		GameLog.warn("Cannot start server in web browser")
 		return false
 	if connection_state != ConnectionState.DISCONNECTED:
-	 GameLog.warn("Cannot start server: already connected")
+		GameLog.warn("Cannot start server: already connected")
 		return false
 
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, MAX_PLAYERS)
 
 	if error != OK:
-	 GameLog.error("Failed to start server on port %d: %s" % [port, error])
+		GameLog.error("Failed to start server on port %d: %s" % [port, error])
 		return false
 
 	multiplayer.multiplayer_peer = peer

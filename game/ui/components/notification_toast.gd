@@ -63,6 +63,53 @@ func _setup_accessibility() -> void:
 	accessible_name = "Notification Toast System"
 	accessible_description = "Displays game notifications. Press N to open Notification Center."
 
+func update_accessibility_settings() -> void:
+	# Update toast stack children
+	if _toast_stack:
+		for child in _toast_stack.get_children():
+			if child is PanelContainer:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
+				if style:
+					if UIStyles.is_high_contrast_enabled():
+						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+					else:
+						style.bg_color = UIStyles.TEXT_COLORS.toast_bg
+						style.border_color = UIStyles.COLORS.border
+			
+			# Update text sizes
+			var scale = UIStyles.get_text_scale()
+			for label_name in ["Message", "ProgressBar"]:
+				var label: Label = child.get_node_or_null(label_name)
+				if label:
+					var current_size := label.get_theme_font_size("font_size")
+					if current_size > 0:
+						label.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Update notification center
+	if _notification_center and is_instance_valid(_notification_center):
+		_notification_center.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+		for child in _notification_center.get_children():
+			if child is PanelContainer:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
+				if style:
+					if UIStyles.is_high_contrast_enabled():
+						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+			elif child is Button:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var scale = UIStyles.get_text_scale()
+				var current_size := child.get_theme_font_size("font_size")
+				if current_size > 0:
+					child.add_theme_font_size_override("font_size", int(current_size * scale))
+			elif child is Label:
+				var scale = UIStyles.get_text_scale()
+				var current_size := child.get_theme_font_size("font_size")
+				if current_size > 0:
+					child.add_theme_font_size_override("font_size", int(current_size * scale))
+
 func _setup_ui() -> void:
 	name = "NotificationToast"
 	set_anchors_preset(Control.PRESET_FULL_RECT)

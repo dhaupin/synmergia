@@ -27,23 +27,9 @@ func setup(c: CharacterClass, _sp: Species) -> void:
 	name_label.text = c.display_name
 	desc_label.text = c.description if c.description else ""
 
-	var role_names := {
-		0: "Tank",
-		1: "Healer",
-		2: "Melee DPS",
-		3: "Ranged DPS",
-		4: "Support"
-	}
-	role_label.text = role_names.get(c.role, "Unknown")
+	role_label.text = CharacterClass.Role.keys()[c.role]
 
-	var resource_names := {
-		0: "STAMINA",
-		1: "ENERGY",
-		2: "RAGE",
-		3: "RUNIC",
-		4: "CHI"
-	}
-	resource_label.text = "Resource: " + resource_names.get(c.resource_type, "MANA")
+	resource_label.text = "Resource: " + CharacterClass.ResourceType.keys()[c.resource_type]
 
 	var armor_pieces := []
 	var armor := c.can_use_armor

@@ -64,13 +64,6 @@ text = "Play"
 accessible_string = "Enter the game world and play"
 accessible_description = "Press Enter or click to start playing"
 
-[node name="SettingsButton" type="Button" parent="MenuButtons"]
-layout_mode = 2
-focus_mode = 2
-text = "Settings"
-accessible_string = "Configure game settings"
-accessible_description = "Press Enter or click to open settings"
-
 [node name="QuitButton" type="Button" parent="MenuButtons"]
 layout_mode = 2
 focus_mode = 2
@@ -94,5 +87,4 @@ horizontal_alignment = 2
 vertical_alignment = 1
 
 [connection signal="pressed" from="MenuButtons/PlayButton" to="." method="_on_play_pressed"]
-[connection signal="pressed" from="MenuButtons/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="MenuButtons/QuitButton" to="." method="_on_quit_pressed"]

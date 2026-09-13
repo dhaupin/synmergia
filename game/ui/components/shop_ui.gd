@@ -82,12 +82,6 @@ static func open_for_offering(player_id: String, offering, npc_data, npc_pos: Ve
 
 static func close_shop() -> void:
 	if _instance != null:
-		if _instance._offering != null and _instance._offering.type == "vendor":
-			if _instance._offering.restock_trigger == "close":
-				var svc = VendorService.singleton()
-				if svc:
-					svc.restock(_instance._offering)
-		_instance._proximity_enabled = false
 		_instance.close()
 	_instance = null
 
@@ -100,9 +94,48 @@ func _ready() -> void:
 	super._ready()
 	set_panel_size(Vector2(480, 580))
 	set_title("Shop")
+	_setup_accessibility()
 	_setup_tabs()
 	_setup_grid()
 	_setup_footer()
+
+
+## ============================================================================
+## ACCESSIBILITY
+## ============================================================================
+
+func _setup_accessibility() -> void:
+	accessible_name = "Shop"
+	accessible_description = "NPC vendor shop panel. Use Tab to navigate between Buy/Sell tabs and item grid. Press Enter to select items, ESC to close."
+
+func update_accessibility_settings() -> void:
+	# Update focus styles for tab buttons and grid slots
+	for btn in [_tab_buy, _tab_sell, _buy_btn, _sell_btn]:
+		if btn and is_instance_valid(btn):
+			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+	
+	# Update grid slot styles
+	if _item_grid:
+		for child in _item_grid.get_children():
+			if child is PanelContainer:
+				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
+				if style:
+					if UIStyles.is_high_contrast_enabled():
+						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+					else:
+						style.bg_color = UIStyles.COLORS.background_dark
+						style.border_color = UIStyles.COLORS.border
+			
+			# Update text sizes
+			var scale = UIStyles.get_text_scale()
+			for label_name in ["Name", "Price", "StackCount"]:
+				var label: Label = child.get_node_or_null(label_name)
+				if label:
+					var current_size := label.get_theme_font_size("font_size")
+					if current_size > 0:
+						label.add_theme_font_size_override("font_size", int(current_size * scale))
 
 
 ## ============================================================================
@@ -525,7 +558,7 @@ func _on_sell_pressed() -> void:
 
 
 func _on_leave_pressed() -> void:
-	close_shop()
+	close()
 
 
 func _on_qty_changed(value: float) -> void:
@@ -545,10 +578,17 @@ func _on_open() -> void:
 
 
 func _on_close() -> void:
+	# Handle restock on close
+	if _offering != null and _offering.type == "vendor":
+		if _offering.restock_trigger == "close":
+			var svc = VendorService.singleton()
+			if svc:
+				svc.restock(_offering)
 	_proximity_enabled = false
 	_offering = null
 	_npc_data = null
 	_player_id = ""
+	_instance = null
 
 
 ## ============================================================================
@@ -563,7 +603,7 @@ func _process(_delta: float) -> void:
 		return
 	# Use canonical distance check with configurable threshold
 	if not check_interact_distance(player.global_position, _npc_position):
-		close_shop()
+		close()
 		if NotificationService:
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
 			NotificationService.notify(NotifKind.CUSTOM, "Moved too far from the shop.",
