@@ -24,6 +24,7 @@
 [ext_resource type="Script" path="res://ui/components/shop_ui.gd" id="20_shop"]
 [ext_resource type="Script" path="res://ui/components/quest_ui.gd" id="21_quest"]
 [ext_resource type="Script" path="res://ui/components/title_ui.gd" id="22_title"]
+[ext_resource type="Script" path="res://ui/components/main_menu_bar.gd" id="26_main_menu"]
 
 [node name="HudLayer" type="CanvasLayer"]
 layer = 10
@@ -251,3 +252,11 @@ offset_top = 60.0
 offset_bottom = 100.0
 grow_horizontal = 2
 script = ExtResource("25_compass")
+
+[node name="MainMenuBar" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("26_main_menu")

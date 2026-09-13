@@ -14,10 +14,13 @@
 ## All children are added under a single CanvasLayer so they render above
 ## the 3D world and below any full-screen menu.
 extends CanvasLayer
+class_name HudLayer
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 
 const LAYER_HUD: int = 10
+
+static var instance: CanvasLayer = null
 
 ## All widget children are optional; missing widgets just disable their
 ## own panel. We look them up by name and skip wiring if absent.
@@ -36,13 +39,21 @@ const LAYER_HUD: int = 10
 @onready var _faction_ui: Node = _find("FactionUI")
 @onready var _achievement_ui: Node = _find("AchievementUI")
 @onready var _shop_ui: Node = _find("ShopUI")
+@onready var _main_menu_bar: Node = _find("MainMenuBar")
 
 
 func _ready() -> void:
+	if instance == null:
+		instance = self
+	else:
+		queue_free()
+		return
+	
 	layer = LAYER_HUD
 	_wire_widgets()
 	_bind_to_world()
 	_install_integrator()
+	_setup_main_menu_bar()
 
 
 func _install_integrator() -> void:
@@ -145,9 +156,45 @@ func _on_state_changed(_state: int) -> void:
 	visible = st == GameManager.GameState.PLAYING or st == GameManager.GameState.PAUSED
 
 
+func _setup_main_menu_bar() -> void:
+	if _main_menu_bar and _main_menu_bar.has_method("bind"):
+		_main_menu_bar.bind(self, _menu_manager)
+	
+	# Update character info when available
+	if GameManager and GameManager.selected_character_data:
+		_push_character_to_main_menu()
+
+
+func _push_character_to_main_menu() -> void:
+	if not _main_menu_bar or not _main_menu_bar.has_method("update_character_info"):
+		return
+	var data: Resource = GameManager.selected_character_data
+	if not (data is CharacterData):
+		return
+	
+	# Get class icon based on class
+	var class_icon := "⚔"  # Default warrior
+	match data.class_id:
+		"warrior": class_icon = "⚔"
+		"mage": class_icon = "🔮"
+		"rogue": class_icon = "🗡"
+		"cleric": class_icon = "✝"
+		"ranger": class_icon = "🏹"
+		"paladin": class_icon = "🛡"
+		"necromancer": class_icon = "💀"
+		"druid": class_icon = "🌿"
+		"bard": class_icon = "🎵"
+		"monk": class_icon = "👊"
+		_: class_icon = "⚔"
+	
+	_main_menu_bar.update_character_info(data.display_name, data.level, class_icon)
+
+
 func _toggle_world_map() -> void:
-	if _world_map and _world_map.has_method("toggle"):
-		_world_map.toggle()
+	if instance and instance.has_node("WorldMap"):
+		var world_map: Node = instance.get_node("WorldMap")
+		if world_map and world_map.has_method("toggle"):
+			world_map.toggle()
 
 
 func _is_admin() -> bool:
@@ -161,44 +208,55 @@ func _is_admin() -> bool:
 
 
 func open_settings() -> void:
-	if _settings_panel:
-		_settings_panel.visible = true
+	if instance and instance.has_node("SettingsPanel"):
+		var panel: Node = instance.get_node("SettingsPanel")
+		if panel:
+			panel.visible = true
 
 
 func close_settings() -> void:
-	if _settings_panel:
-		_settings_panel.visible = false
+	if instance and instance.has_node("SettingsPanel"):
+		var panel: Node = instance.get_node("SettingsPanel")
+		if panel:
+			panel.visible = false
 
 
 func show_dialog(dialogue_id: String, npc_id: String = "") -> void:
-	if not _dialog_ui:
-		return
-	_dialog_ui.visible = true
-	if _dialog_ui.has_method("show_dialog"):
-		_dialog_ui.show_dialog(npc_id, dialogue_id)
-	elif _dialog_ui.has_method("start_dialogue"):
-		_dialog_ui.start_dialogue(dialogue_id, npc_id)
+	if instance and instance.has_node("DialogUI"):
+		var dialog_ui: Node = instance.get_node("DialogUI")
+		if dialog_ui:
+			dialog_ui.visible = true
+			if dialog_ui.has_method("show_dialog"):
+				dialog_ui.show_dialog(npc_id, dialogue_id)
+			elif dialog_ui.has_method("start_dialogue"):
+				dialog_ui.start_dialogue(dialogue_id, npc_id)
 
 
 func show_faction_ui() -> void:
-	if _faction_ui:
-		if _faction_ui.has_method("open"):
-			_faction_ui.open()
-		else:
-			_faction_ui.visible = true
+	if instance and instance.has_node("FactionUI"):
+		var ui: Node = instance.get_node("FactionUI")
+		if ui:
+			if ui.has_method("open"):
+				ui.open()
+			else:
+				ui.visible = true
 
 
 func show_achievement_ui() -> void:
-	if _achievement_ui:
-		if _achievement_ui.has_method("open"):
-			_achievement_ui.open()
-		else:
-			_achievement_ui.visible = true
+	if instance and instance.has_node("AchievementUI"):
+		var ui: Node = instance.get_node("AchievementUI")
+		if ui:
+			if ui.has_method("open"):
+				ui.open()
+			else:
+				ui.visible = true
 
 
 func show_shop_ui() -> void:
-	if _shop_ui:
-		if _shop_ui.has_method("open"):
-			_shop_ui.open()
-		else:
-			_shop_ui.visible = true
+	if instance and instance.has_node("ShopUI"):
+		var ui: Node = instance.get_node("ShopUI")
+		if ui:
+			if ui.has_method("open"):
+				ui.open()
+			else:
+				ui.visible = true

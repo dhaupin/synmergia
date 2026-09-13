@@ -513,6 +513,48 @@ func _on_chat_message_received(sender_id: String, channel: int, message: String,
 	if _chat_panel and _chat_panel.has_method("add_message"):
 		_chat_panel.add_message(sender_id, channel, message)
 
+func _on_main_menu_panel_requested(panel_id: String) -> void:
+	# Map main menu panel IDs to internal panel names
+	var panel_map := {
+		"inventory": "inventory",
+		"character": "character",
+		"skills": "skill_academy",
+		"guild": "guild",
+		"party": "party",
+		"friends": "friends",
+		"quests": "quests",
+		"bank": "bank",
+		"blacksmith": "blacksmith",
+		"world_map": "world_map",
+		"faction": "faction",
+		"achievements": "achievement",
+		"titles": "titles",
+		"trade": "trade",
+		"transfer": "transfer",
+		"settings": "settings",
+	}
+	
+	var internal_name := panel_map.get(panel_id, panel_id)
+	
+	# Special handling for settings (handled by HudLayer)
+	if internal_name == "settings":
+		if HudLayer and HudLayer.has_method("open_settings"):
+			HudLayer.open_settings()
+		return
+	
+	# Special handling for world_map (handled by HudLayer)
+	if internal_name == "world_map":
+		if HudLayer and HudLayer.has_method("_toggle_world_map"):
+			HudLayer._toggle_world_map()
+		return
+	
+	# Special handling for trade (not in MenuManager yet)
+	if internal_name == "trade":
+		# Trade panel would need to be added
+		return
+	
+	_toggle_menu_internal(internal_name)
+
 func _input(event: InputEvent) -> void:
 	# NOTE: Panel hotkeys (I, C, P, G, F, Q, ESC) are handled by HudHotkeys.
 	# This only handles chat-specific input.
