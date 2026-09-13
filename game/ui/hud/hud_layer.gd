@@ -50,10 +50,39 @@ func _ready() -> void:
 		return
 	
 	layer = LAYER_HUD
+	_setup_accessibility()
 	_wire_widgets()
 	_bind_to_world()
 	_install_integrator()
 	_setup_main_menu_bar()
+
+func _setup_accessibility() -> void:
+	accessible_name = "HUD Layer"
+	accessible_description = "Main game heads-up display containing action bars, health bars, minimap, combat log, and menus."
+	
+	# Connect to accessibility setting changes from SettingsPanel
+	if EventHub:
+		EventHub.connect("accessibility_text_scale_changed", _on_text_scale_changed)
+		EventHub.connect("accessibility_reduce_motion_changed", _on_reduce_motion_changed)
+		EventHub.connect("accessibility_high_contrast_changed", _on_high_contrast_changed)
+
+func _on_text_scale_changed(scale: float) -> void:
+	# Propagate text scale changes to all child widgets
+	for child in get_children():
+		if child.has_method("update_accessibility_settings"):
+			child.update_accessibility_settings()
+
+func _on_reduce_motion_changed(enabled: bool) -> void:
+	# Propagate reduce motion changes to all child widgets
+	for child in get_children():
+		if child.has_method("update_accessibility_settings"):
+			child.update_accessibility_settings()
+
+func _on_high_contrast_changed(enabled: bool) -> void:
+	# Propagate high contrast changes to all child widgets
+	for child in get_children():
+		if child.has_method("update_accessibility_settings"):
+			child.update_accessibility_settings()
 
 
 func _install_integrator() -> void:

@@ -14,14 +14,22 @@ static var instance: CombatLog
 ## Components
 var _rich_label: RichTextLabel
 var _scroll: ScrollContainer
-var _max_entries: int = 50
+var _filter_bar: HBoxContainer
+var _search_box: LineEdit
+var _filter_buttons: Dictionary = {}
+var _max_entries: int = 200
 var _entries: Array = []
 
-## Settings
+## Filter state
 var _show_damage: bool = true
 var _show_healing: bool = true
 var _show_system: bool = true
 var _show_loot: bool = true
+var _show_quest: bool = true
+var _show_achievement: bool = true
+var _show_guild: bool = true
+var _show_trade: bool = true
+var _search_filter: String = ""
 
 ## Achievement popup
 var _popup_queue: Array = []
@@ -40,9 +48,9 @@ func _setup_ui() -> void:
 	set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	offset_left = 10
 	offset_top = 10
-	offset_right = 350
-	offset_bottom = 300
-	custom_minimum_size = Vector2(340, 290)
+	offset_right = 450
+	offset_bottom = 350
+	custom_minimum_size = Vector2(440, 340)
 
 	# Container
 	var vbox := VBoxContainer.new()
@@ -50,11 +58,53 @@ func _setup_ui() -> void:
 	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(vbox)
 
-	# Title
+	# Header with title and controls
+	var header := HBoxContainer.new()
+	header.custom_minimum_size.y = 30
+	vbox.add_child(header)
+
 	var title := Label.new()
 	title.text = "Combat Log"
 	title.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-	vbox.add_child(title)
+	header.add_child(title)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+
+	# Search box
+	_search_box = LineEdit.new()
+	_search_box.placeholder_text = "Search..."
+	_search_box.custom_minimum_size = Vector2(150, 24)
+	_search_box.text_changed.connect(_on_search_changed)
+	header.add_child(_search_box)
+
+	# Clear button
+	var clear_btn := Button.new()
+	clear_btn.text = "Clear"
+	clear_btn.custom_minimum_size = Vector2(60, 24)
+	clear_btn.pressed.connect(clear)
+	header.add_child(clear_btn)
+
+	# Filter bar
+	_filter_bar = HBoxContainer.new()
+	_filter_bar.custom_minimum_size.y = 28
+	vbox.add_child(_filter_bar)
+
+	var filter_label := Label.new()
+	filter_label.text = "Filters:"
+	filter_label.add_theme_font_size_override("font_size", 10)
+	filter_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	_filter_bar.add_child(filter_label)
+
+	_create_filter_button("Damage", EntryType.DAMAGE, UIStyles.COLORS.error)
+	_create_filter_button("Healing", EntryType.HEAL, UIStyles.COLORS.success)
+	_create_filter_button("System", EntryType.SYSTEM, UIStyles.COLORS.info)
+	_create_filter_button("Loot", EntryType.LOOT, UIStyles.COLORS.accent_gold)
+	_create_filter_button("Quest", EntryType.QUEST, UIStyles.COLORS.warning)
+	_create_filter_button("Achievement", EntryType.ACHIEVEMENT, UIStyles.COLORS.rarity_legendary)
+	_create_filter_button("Guild", EntryType.GUILD, UIStyles.COLORS.info)
+	_create_filter_button("Trade", EntryType.TRADE, UIStyles.COLORS.success)
 
 	# Scroll + RichTextLabel
 	_scroll = ScrollContainer.new()
@@ -73,6 +123,33 @@ func _setup_ui() -> void:
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
 	return text.replace("[", "［").replace("]", "］")
+
+func _create_filter_button(name: String, entry_type: int, color: Color) -> void:
+	var btn := Button.new()
+	btn.text = name
+	btn.toggle_mode = true
+	btn.button_pressed = true
+	btn.custom_minimum_size = Vector2(80, 24)
+	btn.add_theme_color_override("font_color", color)
+	btn.toggled.connect(_on_filter_toggled.bind(entry_type))
+	_filter_bar.add_child(btn)
+	_filter_buttons[entry_type] = btn
+
+func _on_filter_toggled(pressed: bool, entry_type: int) -> void:
+	match entry_type:
+		EntryType.DAMAGE: _show_damage = pressed
+		EntryType.HEAL: _show_healing = pressed
+		EntryType.SYSTEM: _show_system = pressed
+		EntryType.LOOT: _show_loot = pressed
+		EntryType.QUEST: _show_quest = pressed
+		EntryType.ACHIEVEMENT: _show_achievement = pressed
+		EntryType.GUILD: _show_guild = pressed
+		EntryType.TRADE: _show_trade = pressed
+	_refresh_display()
+
+func _on_search_changed(text: String) -> void:
+	_search_filter = text.to_lower()
+	_refresh_display()
 
 ## ============================================================================
 ## PUBLIC API
@@ -185,13 +262,32 @@ func _add_entry(text: String, entry_type: int) -> void:
 	while _entries.size() > _max_entries:
 		_entries.pop_front()
 
-		# Update display
-		_refresh_display()
+	# Update display
+	_refresh_display()
 
 func _refresh_display() -> void:
 	_rich_label.clear()
 
 	for entry in _entries:
+		# Filter by type
+		var show := true
+		match entry.type:
+			EntryType.DAMAGE: show = _show_damage
+			EntryType.HEAL: show = _show_healing
+			EntryType.SYSTEM: show = _show_system
+			EntryType.LOOT: show = _show_loot
+			EntryType.QUEST: show = _show_quest
+			EntryType.ACHIEVEMENT: show = _show_achievement
+			EntryType.GUILD: show = _show_guild
+			EntryType.TRADE: show = _show_trade
+		
+		if not show:
+			continue
+		
+		# Filter by search text
+		if _search_filter != "" and _search_filter not in entry.text.to_lower():
+			continue
+		
 		var timestamp := _get_timestamp_for(entry.time)
 		var text := "[%s] %s" % [timestamp, entry.text]
 		_rich_label.append_text(text + "\n")
@@ -288,12 +384,40 @@ func _display_next_popup() -> void:
 
 func set_show_damage(show: bool) -> void:
 	_show_damage = show
+	if _filter_buttons.has(EntryType.DAMAGE):
+		_filter_buttons[EntryType.DAMAGE].button_pressed = show
 
 func set_show_healing(show: bool) -> void:
 	_show_healing = show
+	if _filter_buttons.has(EntryType.HEAL):
+		_filter_buttons[EntryType.HEAL].button_pressed = show
 
 func set_show_system(show: bool) -> void:
 	_show_system = show
+	if _filter_buttons.has(EntryType.SYSTEM):
+		_filter_buttons[EntryType.SYSTEM].button_pressed = show
 
 func set_show_loot(show: bool) -> void:
 	_show_loot = show
+	if _filter_buttons.has(EntryType.LOOT):
+		_filter_buttons[EntryType.LOOT].button_pressed = show
+
+func set_show_quest(show: bool) -> void:
+	_show_quest = show
+	if _filter_buttons.has(EntryType.QUEST):
+		_filter_buttons[EntryType.QUEST].button_pressed = show
+
+func set_show_achievement(show: bool) -> void:
+	_show_achievement = show
+	if _filter_buttons.has(EntryType.ACHIEVEMENT):
+		_filter_buttons[EntryType.ACHIEVEMENT].button_pressed = show
+
+func set_show_guild(show: bool) -> void:
+	_show_guild = show
+	if _filter_buttons.has(EntryType.GUILD):
+		_filter_buttons[EntryType.GUILD].button_pressed = show
+
+func set_show_trade(show: bool) -> void:
+	_show_trade = show
+	if _filter_buttons.has(EntryType.TRADE):
+		_filter_buttons[EntryType.TRADE].button_pressed = show

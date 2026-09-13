@@ -9,6 +9,11 @@ var _is_open: bool = false
 var _player_id: String = ""
 var _panel_title: String = ""
 
+## Accessibility state
+var _high_contrast: bool = false
+var _text_scale: float = 1.0
+var _reduce_motion: bool = false
+
 ## Signals
 signal panel_opened()
 signal panel_closed()
@@ -19,11 +24,20 @@ signal panel_closed()
 
 func _ready() -> void:
 	visible = false
+	_load_accessibility_settings()
 	_setup_overlay()
 	_setup_panel()
 	_setup_header()
 	_setup_content()
 	_apply_accessibility()
+	_apply_visual_settings()
+
+## Load accessibility settings from PlayerConfig
+func _load_accessibility_settings() -> void:
+	if PlayerConfig:
+		_high_contrast = PlayerConfig.get_account_setting("high_contrast", false)
+		_text_scale = PlayerConfig.get_account_setting("ui_scale", 1.0)
+		_reduce_motion = PlayerConfig.get_account_setting("reduce_motion", false)
 
 ## Override these in subclasses
 func _setup_panel() -> void:
@@ -54,11 +68,88 @@ func get_accessibility_info() -> Dictionary:
 
 ## Apply accessibility properties to the panel
 func _apply_accessibility() -> void:
+	# Set accessible name and description for screen readers
+	if _panel_title != "":
+		accessible_name = _panel_title
+		accessible_description = "Dialog panel. Use Tab to navigate, Enter to activate, Escape to close"
+	else:
+		accessible_name = name
+		accessible_description = "Panel. Use Tab to navigate, Enter to activate, Escape to close"
+	
+	# Enable focus for keyboard navigation
+	focus_mode = Control.FOCUS_ALL
+	
 	# Set tooltip for mouse hover accessibility
 	if has_node("Panel"):
 		var panel := get_node("Panel")
 		if panel is PanelContainer:
 			panel.tooltip_text = _panel_title if not _panel_title.is_empty() else name
+			panel.focus_mode = Control.FOCUS_ALL
+			panel.accessible_name = _panel_title if not _panel_title.is_empty() else name
+
+## Apply visual settings (high contrast, text scale)
+func _apply_visual_settings() -> void:
+	if not has_node("Panel"):
+		return
+	var panel := get_node("Panel")
+	if panel is PanelContainer:
+		_apply_high_contrast_to_panel(panel)
+		_apply_text_scaling_to_panel(panel)
+
+## Apply high contrast theme to panel
+func _apply_high_contrast_to_panel(panel: PanelContainer) -> void:
+	if _high_contrast:
+		var style := UIStyles.create_high_contrast_panel_style()
+		panel.add_theme_stylebox_override("panel", style)
+		
+		# Apply to all child buttons and interactive elements
+		_apply_high_contrast_recursive(panel)
+	else:
+		# Reset to default style
+		var style := UIStyles.create_panel_style()
+		panel.add_theme_stylebox_override("panel", style)
+
+## Recursively apply high contrast to interactive children
+func _apply_high_contrast_recursive(node: Node) -> void:
+	for child in node.get_children():
+		if child is Button:
+			var focus_style := UIStyles.create_focus_style(8, true)
+			child.add_theme_stylebox_override("focus", focus_style)
+			child.add_theme_color_override("font_color", UIStyles.HIGH_CONTRAST_COLORS.text_primary)
+			child.add_theme_color_override("font_focus_color", UIStyles.HIGH_CONTRAST_COLORS.accent_gold)
+		elif child is HSlider or child is VSlider:
+			var focus_style := UIStyles.create_focus_style(4, true)
+			child.add_theme_stylebox_override("focus", focus_style)
+		elif child is OptionButton:
+			var focus_style := UIStyles.create_focus_style(4, true)
+			child.add_theme_stylebox_override("focus", focus_style)
+			child.add_theme_color_override("font_color", UIStyles.HIGH_CONTRAST_COLORS.text_primary)
+		elif child is CheckButton:
+			var focus_style := UIStyles.create_focus_style(4, true)
+			child.add_theme_stylebox_override("focus", focus_style)
+		elif child is LineEdit:
+			var focus_style := UIStyles.create_focus_style(4, true)
+			child.add_theme_stylebox_override("focus", focus_style)
+			child.add_theme_color_override("font_color", UIStyles.HIGH_CONTRAST_COLORS.text_primary)
+		elif child is ProgressBar:
+			child.add_theme_color_override("fill", UIStyles.HIGH_CONTRAST_COLORS.success)
+			child.add_theme_color_override("background", UIStyles.HIGH_CONTRAST_COLORS.background_dark)
+		elif child is PanelContainer:
+			_apply_high_contrast_recursive(child)
+		elif child is Container:
+			_apply_high_contrast_recursive(child)
+
+## Apply text scaling to panel and children
+func _apply_text_scaling_to_panel(panel: PanelContainer) -> void:
+	if _text_scale != 1.0:
+		UIStyles.apply_text_scaling(panel, _text_scale)
+
+## Update accessibility settings from external source (e.g., SettingsPanel)
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
+	_high_contrast = high_contrast
+	_text_scale = text_scale
+	_reduce_motion = reduce_motion
+	_apply_visual_settings()
 
 ## ============================================================================
 ## ACCESSIBILITY HELPERS
@@ -66,13 +157,7 @@ func _apply_accessibility() -> void:
 
 ## Create an accessible button with proper focus and tooltips
 func create_accessible_button(text: String, tooltip: String = "") -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.focus_mode = Control.FOCUS_ALL  # Enable keyboard navigation
-	if not tooltip.is_empty():
-		btn.tooltip_text = tooltip
-	else:
-		btn.tooltip_text = text
+	var btn := UIStyles.create_accessible_button(text, text, tooltip, _high_contrast)
 	return btn
 
 ## Create a canonical close button (X) for panel headers
@@ -82,14 +167,81 @@ func create_close_button() -> Button:
 	btn.custom_minimum_size = Vector2(36, 36)
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.tooltip_text = "Close (ESC)"
+	btn.accessible_name = "Close"
+	btn.accessible_description = "Close this panel"
+	
+	# Apply focus style
+	btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(8, _high_contrast))
+	
 	btn.pressed.connect(close)
 	return btn
+
+## Create accessible slider
+func create_accessible_slider(min_val: float, max_val: float, default_val: float, step: float = 0.01, accessible_name: String = "", accessible_description: String = "") -> HSlider:
+	var slider := HSlider.new()
+	slider.min_value = min_val
+	slider.max_value = max_val
+	slider.value = default_val
+	slider.step = step
+	slider.focus_mode = Control.FOCUS_ALL
+	if accessible_name != "":
+		slider.accessible_name = accessible_name
+	if accessible_description != "":
+		slider.accessible_description = accessible_description
+	slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
+	return slider
+
+## Create accessible dropdown (OptionButton)
+func create_accessible_dropdown(options: Array, default_idx: int, accessible_name: String = "", accessible_description: String = "") -> OptionButton:
+	var dropdown := OptionButton.new()
+	for opt in options:
+		dropdown.add_item(opt)
+	dropdown.selected = default_idx
+	dropdown.focus_mode = Control.FOCUS_ALL
+	if accessible_name != "":
+		dropdown.accessible_name = accessible_name
+	if accessible_description != "":
+		dropdown.accessible_description = accessible_description
+	dropdown.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
+	return dropdown
+
+## Create accessible checkbox (CheckButton)
+func create_accessible_checkbox(default_val: bool, accessible_name: String = "", accessible_description: String = "") -> CheckButton:
+	var checkbox := CheckButton.new()
+	checkbox.button_pressed = default_val
+	checkbox.focus_mode = Control.FOCUS_ALL
+	if accessible_name != "":
+		checkbox.accessible_name = accessible_name
+	if accessible_description != "":
+		checkbox.accessible_description = accessible_description
+	checkbox.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
+	return checkbox
+
+## Create accessible text input (LineEdit)
+func create_accessible_line_edit(placeholder: String = "", accessible_name: String = "", accessible_description: String = "") -> LineEdit:
+	var line_edit := LineEdit.new()
+	line_edit.placeholder_text = placeholder
+	line_edit.focus_mode = Control.FOCUS_ALL
+	if accessible_name != "":
+		line_edit.accessible_name = accessible_name
+	if accessible_description != "":
+		line_edit.accessible_description = accessible_description
+	line_edit.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
+	return line_edit
 
 ## Announce a change for screen readers (logs for now, extensible)
 func announce_for_screen_reader(message: String) -> void:
 	# Emit signal that can be connected to a screen reader service
 	# For now, log to console for debug
 	# print removed: print("[A11Y] " + message)
+
+## Get animation duration respecting reduce motion
+func get_animation_duration(default_duration: float) -> float:
+	return UIStyles.get_animation_duration(default_duration)
+
+## Create tween with reduce motion support
+func create_accessible_tween(duration: float = 0.3) -> Tween:
+	return UIStyles.create_accessible_tween(self, duration)
 
 ## ============================================================================
 ## DISTANCE-BASED CLOSE (for interactable panels like dialogs, shops)
@@ -144,6 +296,8 @@ func create_progress_bar(width: float = 200, height: float = 8, show_percentage:
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	bar.add_theme_stylebox_override("background", style)
+	bar.focus_mode = Control.FOCUS_ALL
+	bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return bar
 
 ## Create a loading spinner (rotating texture simulation via animated label)
@@ -170,19 +324,10 @@ func _setup_base_panel() -> PanelContainer:
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.custom_minimum_size = Vector2(400, 500)
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.98)
-	style.border_color = Color(0.3, 0.3, 0.4)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.corner_radius_bottom_left = 12
-	style.corner_radius_bottom_right = 12
+	var style := UIStyles.create_panel_style()
 	panel.add_theme_stylebox_override("panel", style)
 	panel.name = "Panel"
+	panel.focus_mode = Control.FOCUS_ALL
 	add_child(panel)
 
 	return panel
@@ -245,7 +390,17 @@ func open(player_id: String) -> void:
 	visible = true
 	_on_open()
 	panel_opened.emit()
+	# Focus first focusable element
+	call_deferred("_focus_first_element")
 	# print removed: print("UIPanel: Opened %s" % name)
+
+func _focus_first_element() -> void:
+	if not has_node("Panel"):
+		return
+	var panel := get_node("Panel")
+	var focusable := _get_focusable_children(panel)
+	if not focusable.is_empty():
+		focusable[0].grab_focus()
 
 func close() -> void:
 	_is_open = false

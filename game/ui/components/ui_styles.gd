@@ -23,6 +23,30 @@ const COLORS := {
 	"info": Color(0.3, 0.6, 1),
 	"online": Color(0.3, 0.9, 0.3),
 	"offline": Color(0.4, 0.4, 0.4),
+	"focus_border": Color(1, 0.84, 0, 1),  # #FFD700 gold for focus
+	"focus_bg": Color(0.2, 0.18, 0.25, 0.95),
+}
+
+## High Contrast Mode colors (WCAG 4.5:1 compliant)
+const HIGH_CONTRAST_COLORS := {
+	"background": Color(0.1, 0.1, 0.1, 1),        # #1A1A1A
+	"background_dark": Color(0.05, 0.05, 0.05, 1),
+	"background_overlay": Color(0, 0, 0, 0.9),
+	"border": Color(1, 1, 1, 1),                   # Pure white borders
+	"border_highlight": Color(1, 1, 0, 1),         # Yellow highlight
+	"text_primary": Color(1, 1, 1, 1),             # Pure white text
+	"text_secondary": Color(1, 1, 0.8, 1),         # Bright yellow-white
+	"text_disabled": Color(0.7, 0.7, 0.7, 1),
+	"accent": Color(1, 1, 0, 1),                   # Yellow accent
+	"accent_gold": Color(1, 1, 0, 1),              # Yellow gold
+	"success": Color(0, 1, 0, 1),                  # Bright green
+	"error": Color(1, 0.3, 0.3, 1),
+	"warning": Color(1, 1, 0, 1),                  # Yellow warning
+	"info": Color(0, 0.8, 1, 1),                   # Bright cyan
+	"online": Color(0, 1, 0, 1),
+	"offline": Color(0.7, 0.7, 0.7, 1),
+	"focus_border": Color(1, 1, 0, 1),             # Yellow focus
+	"focus_bg": Color(0, 0, 0, 1),
 }
 
 const RARITY_COLORS := {
@@ -239,3 +263,119 @@ static func format_online_status(online: bool, zone: String = "") -> String:
 		return "[color=#3ce54a]Online[/color]"
 	else:
 		return "[color=#666666]Offline[/color]"
+
+static func get_damage_font() -> Font:
+	# Returns null to use default theme font
+	# Can be overridden to return a custom damage number font
+	return null
+
+
+## ============================================================================
+## ACCESSIBILITY HELPERS
+## ============================================================================
+
+## Get effective colors based on high contrast mode
+static func get_effective_colors(high_contrast: bool = false) -> Dictionary:
+	if high_contrast:
+		return HIGH_CONTRAST_COLORS
+	return COLORS
+
+## Create focus stylebox with 3px gold border
+static func create_focus_style(corner_radius: int = 6, high_contrast: bool = false) -> StyleBoxFlat:
+	var colors := get_effective_colors(high_contrast)
+	var style := StyleBoxFlat.new()
+	style.bg_color = colors.focus_bg
+	style.border_color = colors.focus_border
+	style.border_width_left = 3
+	style.border_width_right = 3
+	style.border_width_top = 3
+	style.border_width_bottom = 3
+	style.corner_radius_top_left = corner_radius
+	style.corner_radius_top_right = corner_radius
+	style.corner_radius_bottom_left = corner_radius
+	style.corner_radius_bottom_right = corner_radius
+	return style
+
+## Create high contrast panel style
+static func create_high_contrast_panel_style(border_width: int = 3, corner_radius: int = 8) -> StyleBoxFlat:
+	var colors := HIGH_CONTRAST_COLORS
+	var style := StyleBoxFlat.new()
+	style.bg_color = colors.background
+	style.border_color = colors.border
+	style.border_width_left = border_width
+	style.border_width_right = border_width
+	style.border_width_top = border_width
+	style.border_width_bottom = border_width
+	style.corner_radius_top_left = corner_radius
+	style.corner_radius_top_right = corner_radius
+	style.corner_radius_bottom_left = corner_radius
+	style.corner_radius_bottom_right = corner_radius
+	return style
+
+## Apply accessibility properties to a control
+static func apply_accessibility(control: Control, accessible_name: String = "", accessible_description: String = "", focus_mode: int = Control.FOCUS_ALL) -> void:
+	if accessible_name != "":
+		control.accessible_name = accessible_name
+	if accessible_description != "":
+		control.accessible_description = accessible_description
+	control.focus_mode = focus_mode
+
+## Create accessible button with standard focus and tooltip
+static func create_accessible_button(text: String, accessible_name: String = "", tooltip: String = "", high_contrast: bool = false) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.focus_mode = Control.FOCUS_ALL
+	btn.accessible_name = accessible_name if accessible_name != "" else text
+	if tooltip != "":
+		btn.tooltip_text = tooltip
+	else:
+		btn.tooltip_text = text
+	
+	# Apply focus style
+	btn.add_theme_stylebox_override("focus", create_focus_style(8, high_contrast))
+	
+	return btn
+
+## Apply high contrast theme to a panel container
+static func apply_high_contrast_to_panel(panel: PanelContainer) -> void:
+	var style := create_high_contrast_panel_style()
+	panel.add_theme_stylebox_override("panel", style)
+
+## Apply text scaling to a control and its children
+static func apply_text_scaling(control: Control, scale: float) -> void:
+	if control is Label:
+		var current_size := control.get_theme_font_size("font_size")
+		if current_size > 0:
+			control.add_theme_font_size_override("font_size", int(current_size * scale))
+	elif control is RichTextLabel:
+		var current_size := control.get_theme_font_size("default_font_size")
+		if current_size > 0:
+			control.add_theme_font_size_override("default_font_size", int(current_size * scale))
+	elif control is Button:
+		var current_size := control.get_theme_font_size("font_size")
+		if current_size > 0:
+			control.add_theme_font_size_override("font_size", int(current_size * scale))
+	
+	# Recursively apply to children
+	for child in control.get_children():
+		if child is Control:
+			apply_text_scaling(child, scale)
+
+## Check if reduce motion is enabled (reads from PlayerConfig or OS)
+static func is_reduce_motion_enabled() -> bool:
+	if PlayerConfig:
+		return PlayerConfig.get_account_setting("reduce_motion", false)
+	return OS.has_feature("reduce_motion")
+
+## Get animation duration (0 if reduce motion enabled)
+static func get_animation_duration(default_duration: float) -> float:
+	return 0.0 if is_reduce_motion_enabled() else default_duration
+
+## Create tween with reduce motion support
+static func create_accessible_tween(node: Node, duration: float = 0.3) -> Tween:
+	var tween := node.create_tween()
+	var actual_duration := get_animation_duration(duration)
+	if actual_duration <= 0:
+		# Skip animation, use instant
+		tween.set_parallel(true)
+	return tween

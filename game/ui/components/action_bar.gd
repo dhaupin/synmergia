@@ -1,5 +1,6 @@
-## ActionBar - Skill hotbar component
-## 8 skill slots with keyboard/controller bindings
+## ActionBar - Enhanced skill hotbar component
+## 12 skill slots per bar, 3 bars (main, bar2, bar3) with page buttons
+## Cooldown spiral animation + text, keybind display, drag-drop, right-click clear, stack counts, glow on proc, range indicator
 extends Control
 class_name ActionBar
 const UIStyles = preload("res://ui/components/ui_styles.gd")
@@ -7,35 +8,79 @@ const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const DataService = preload("res://core/services/data_service.gd")
 
-## Slots
-const SLOT_COUNT: int = 8
+## Configuration
+const SLOTS_PER_BAR: int = 12
+const BAR_COUNT: int = 3
+const TOTAL_SLOTS: int = SLOTS_PER_BAR * BAR_COUNT
+
+## Slots data
 var _slots: Array = []
+var _slot_data: Dictionary = {}
 var _keybinds: Array = []
 var _char_data: CharacterData
 
 ## State
+var _current_bar: int = 0
 var _selected_slot: int = -1
+var _dragging: bool = false
+var _drag_source_index: int = -1
+var _drag_preview: Control = null
 
+## Page buttons
+var _page_buttons: Array = []
+var _page_container: HBoxContainer = null
+
+## Signals
 signal slot_used(index: int)
 signal slot_updated(index: int, skill_data: Dictionary)
+signal bar_changed(bar_index: int)
+signal slot_cleared(index: int)
 
 func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
+	_build_keybinds()
+	_setup_accessibility()
+
+func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
+	accessible_name = "Action Bar"
+	accessible_description = "Skill hotbar with 12 slots per bar, 3 bars total. Use number keys 1-0, -, = to activate skills. Use Tab to navigate between slots."
+
+func _build_keybinds() -> void:
+	_keybinds = []
+	for i in range(SLOTS_PER_BAR):
+		var key: int = 0
+		match i:
+			0: key = KEY_1
+			1: key = KEY_2
+			2: key = KEY_3
+			3: key = KEY_4
+			4: key = KEY_5
+			5: key = KEY_6
+			6: key = KEY_7
+			7: key = KEY_8
+			8: key = KEY_9
+			9: key = KEY_0
+			10: key = KEY_MINUS
+			11: key = KEY_EQUALS
+		_keybinds.append(key)
 
 func load_from_character(char_data: CharacterData) -> void:
 	_char_data = char_data
-	for i in range(SLOT_COUNT):
-		var skill_id := char_data.get_action_slot(i)
-		if not skill_id.is_empty():
-			var skill_schema := DataService.get_skill(skill_id)
-			if skill_schema:
-				var skill_dict := _schema_to_dict(skill_schema, char_data)
-				update_slot(i, skill_dict)
+	for bar in range(BAR_COUNT):
+		for i in range(SLOTS_PER_BAR):
+			var global_index = bar * SLOTS_PER_BAR + i
+			var skill_id := char_data.get_action_slot(global_index)
+			if not skill_id.is_empty():
+				var skill_schema := DataService.get_skill(skill_id)
+				if skill_schema:
+					var skill_dict := _schema_to_dict(skill_schema, char_data)
+					update_slot(global_index, skill_dict)
+				else:
+					update_slot(global_index, {})
 			else:
-				update_slot(i, {})
-		else:
-			update_slot(i, {})
+				update_slot(global_index, {})
 
 func _schema_to_dict(schema: Resource, char_data: CharacterData) -> Dictionary:
 	var dict := {
@@ -45,98 +90,284 @@ func _schema_to_dict(schema: Resource, char_data: CharacterData) -> Dictionary:
 		"mana_cost": schema.get("mana_cost", 0),
 		"cooldown": schema.get("cooldown", 0.0),
 		"skill_type": schema.get("skill_type", 0),
+		"range": schema.get("range", 0.0),
 	}
-	# Apply upgrade level from character data
 	var upgrade_level := char_data.get_skill_upgrade_level(dict.skill_id)
 	dict["upgrade_level"] = upgrade_level
 	return dict
 
 func _setup_ui() -> void:
-	var container := HBoxContainer.new()
-	container.name = "Container"
-	add_child(container)
+	name = "ActionBar"
+	set_anchors_preset(Control.PRESET_BOTTOM_CENTER)
+	offset_bottom = -100
+	offset_top = -160
+	custom_minimum_size = Vector2(720, 60)
 
-	# Create 8 slots
-	for i in range(SLOT_COUNT):
+	var main_vbox := VBoxContainer.new()
+	main_vbox.name = "MainVBox"
+	main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(main_vbox)
+
+	_page_container = HBoxContainer.new()
+	_page_container.name = "PageContainer"
+	_page_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_page_container.custom_minimum_size.y = 24
+	main_vbox.add_child(_page_container)
+
+	for bar_idx in range(BAR_COUNT):
+		var btn := Button.new()
+		btn.name = "PageBtn_%d" % bar_idx
+		btn.text = "Bar %d" % (bar_idx + 1)
+		btn.toggle_mode = true
+		btn.button_pressed = (bar_idx == 0)
+		btn.custom_minimum_size = Vector2(80, 20)
+		btn.focus_mode = Control.FOCUS_ALL
+		btn.accessible_name = "Action Bar %d" % (bar_idx + 1)
+		btn.accessible_description = "Switch to action bar %d" % (bar_idx + 1)
+		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
+		btn.pressed.connect(_on_page_button_pressed.bind(bar_idx))
+		_page_buttons.append(btn)
+		_page_container.add_child(btn)
+
+	var bar_container := HBoxContainer.new()
+	bar_container.name = "BarContainer"
+	bar_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	main_vbox.add_child(bar_container)
+
+	for i in range(SLOTS_PER_BAR):
 		var slot := _create_slot(i)
-		container.add_child(slot)
+		bar_container.add_child(slot)
 		_slots.append(slot)
 
-	# Keybinds
-	_keybinds = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8]
+	_update_visible_bar()
 
 func _create_slot(index: int) -> Control:
 	var slot := PanelContainer.new()
 	slot.name = "Slot_%d" % index
-	slot.custom_minimum_size = Vector2(50, 50)
-	slot.set_anchors_preset(Control.PRESET_CENTER)
+	slot.custom_minimum_size = Vector2(52, 52)
+	slot.mouse_filter = Control.MOUSE_FILTER_PASS
+	slot.focus_mode = Control.FOCUS_ALL
+	slot.accessible_name = "Skill Slot %d" % (index + 1)
+	slot.accessible_description = "Skill slot. Press %s to activate. Right-click to clear." % _get_keybind_text(index, 0)
 
-	# Background style
 	var bg_style := StyleBoxFlat.new()
 	bg_style.bg_color = UIStyles.COLORS.background_dark
 	bg_style.border_color = UIStyles.COLORS.border
+	bg_style.border_width_left = 2
+	bg_style.border_width_right = 2
+	bg_style.border_width_top = 2
+	bg_style.border_width_bottom = 2
 	bg_style.corner_radius_top_left = 6
 	bg_style.corner_radius_top_right = 6
 	bg_style.corner_radius_bottom_left = 6
 	bg_style.corner_radius_bottom_right = 6
 	slot.add_theme_stylebox_override("panel", bg_style)
+	
+	# Add focus style
+	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style(6, false))
 
 	var vbox := VBoxContainer.new()
+	vbox.name = "VBox"
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	slot.add_child(vbox)
 
-	# Skill icon placeholder
-	var icon := Panel.new()
+	var icon := TextureRect.new()
 	icon.name = "Icon"
 	icon.custom_minimum_size = Vector2(40, 40)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.modulate = Color(1, 1, 1, 0.3)
 	vbox.add_child(icon)
 
-	# Cooldown overlay
-	var cooldown := Label.new()
-	cooldown.name = "Cooldown"
-	cooldown.visible = false
-	cooldown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cooldown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	cooldown.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
-	cooldown.add_theme_font_size_override("font_size", 16)
-	slot.add_child(cooldown)
+	var cooldown_spiral := TextureProgressBar.new()
+	cooldown_spiral.name = "CooldownSpiral"
+	cooldown_spiral.visible = false
+	cooldown_spiral.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cooldown_spiral.min_value = 0
+	cooldown_spiral.max_value = 100
+	cooldown_spiral.value = 100
+	cooldown_spiral.under_texture = _create_spiral_under()
+	cooldown_spiral.progress_texture = _create_spiral_progress()
+	cooldown_spiral.radial_mode = TextureProgressBar.RADIAL_CLOCKWISE
+	cooldown_spiral.initial_angle = -90
+	cooldown_spiral.radial_fill = 1.0
+	cooldown_spiral.clip_contents = true
+	slot.add_child(cooldown_spiral)
 
-	# Keybind indicator
+	var cooldown_text := Label.new()
+	cooldown_text.name = "CooldownText"
+	cooldown_text.visible = false
+	cooldown_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cooldown_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cooldown_text.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cooldown_text.add_theme_font_size_override("font_size", 14)
+	cooldown_text.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	cooldown_text.add_theme_constant_override("outline_size", 2)
+	cooldown_text.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+	slot.add_child(cooldown_text)
+
 	var keybind := Label.new()
 	keybind.name = "Keybind"
-	keybind.text = str(index + 1)
-	keybind.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	keybind.offset_left = -20
-	keybind.offset_right = -4
-	keybind.offset_top = -16
-	keybind.offset_bottom = -4
-	keybind.add_theme_font_size_override("font_size", 10)
+	keybind.text = _get_keybind_text(index, 0)
+	keybind.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	keybind.offset_left = -35
+	keybind.offset_right = -2
+	keybind.offset_top = 2
+	keybind.offset_bottom = 14
+	keybind.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	keybind.add_theme_font_size_override("font_size", 9)
 	keybind.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	keybind.add_theme_constant_override("outline_size", 1)
+	keybind.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
 	slot.add_child(keybind)
 
-	# Mana cost
+	var stack_label := Label.new()
+	stack_label.name = "StackCount"
+	stack_label.visible = false
+	stack_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	stack_label.offset_left = -35
+	stack_label.offset_right = -2
+	stack_label.offset_top = -14
+	stack_label.offset_bottom = -2
+	stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	stack_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	stack_label.add_theme_font_size_override("font_size", 11)
+	stack_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	stack_label.add_theme_constant_override("outline_size", 2)
+	stack_label.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+	slot.add_child(stack_label)
+
 	var mana := Label.new()
 	mana.name = "ManaCost"
 	mana.visible = false
 	mana.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	mana.offset_left = 4
-	mana.offset_right = 20
-	mana.offset_top = -16
-	mana.offset_bottom = -4
-	mana.add_theme_font_size_override("font_size", 9)
+	mana.offset_left = 2
+	mana.offset_right = 25
+	mana.offset_top = -14
+	mana.offset_bottom = -2
+	mana.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mana.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	mana.add_theme_font_size_override("font_size", 8)
 	mana.add_theme_color_override("font_color", UIStyles.COLORS.info)
+	mana.add_theme_constant_override("outline_size", 1)
+	mana.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
 	slot.add_child(mana)
 
+	var range_overlay := ColorRect.new()
+	range_overlay.name = "RangeOverlay"
+	range_overlay.visible = false
+	range_overlay.color = Color(1, 0.2, 0.2, 0.4)
+	range_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	slot.add_child(range_overlay)
+
+	var glow_overlay := ColorRect.new()
+	glow_overlay.name = "GlowOverlay"
+	glow_overlay.visible = false
+	glow_overlay.color = Color(1, 0.8, 0.2, 0)
+	glow_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	slot.add_child(glow_overlay)
+
+	slot.gui_input.connect(_on_slot_gui_input.bind(index))
 	return slot
+
+func _create_spiral_under() -> Texture2D:
+	var img := Image.create(48, 48, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.1, 0.1, 0.15, 0.8))
+	return ImageTexture.create_from_image(img)
+
+func _create_spiral_progress() -> Texture2D:
+	var img := Image.create(48, 48, false, Image.FORMAT_RGBA8)
+	var center := Vector2(24, 24)
+	var radius: float = 22.0
+	for x in range(48):
+		for y in range(48):
+			var pos := Vector2(x, y)
+			var dist := pos.distance_to(center)
+			if dist <= radius and dist >= radius - 3:
+				var angle := atan2(pos.y - center.y, pos.x - center.x)
+				var deg := rad_to_deg(angle) + 90
+				if deg < 0:
+					deg += 360
+				var alpha: float = 0.6 * (1.0 - (dist - (radius - 3)) / 3.0)
+				img.set_pixel(x, y, Color(1, 0.8, 0.2, alpha))
+			else:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+	return ImageTexture.create_from_image(img)
+
+func _get_keybind_text(index: int, bar_index: int = 0) -> String:
+	match index:
+		0: return "1" if bar_index == 0 else "Shift+1"
+		1: return "2" if bar_index == 0 else "Shift+2"
+		2: return "3" if bar_index == 0 else "Shift+3"
+		3: return "4" if bar_index == 0 else "Shift+4"
+		4: return "5" if bar_index == 0 else "Shift+5"
+		5: return "6" if bar_index == 0 else "Shift+6"
+		6: return "7" if bar_index == 0 else "Shift+7"
+		7: return "8" if bar_index == 0 else "Shift+8"
+		8: return "9" if bar_index == 0 else "Shift+9"
+		9: return "0"
+		10: return "-"
+		11: return "="
+	return str(index + 1)
 
 func _connect_signals() -> void:
 	if InputManager:
 		InputManager.player_input.connect(_on_player_input)
 
+func _on_page_button_pressed(bar_index: int) -> void:
+	if bar_index == _current_bar:
+		return
+	_current_bar = bar_index
+	_update_visible_bar()
+	bar_changed.emit(bar_index)
+
+func _update_visible_bar() -> void:
+	for i in range(SLOTS_PER_BAR):
+		var slot: Control = _slots[i]
+		var global_index = _current_bar * SLOTS_PER_BAR + i
+		var data: Dictionary = _slot_data.get(global_index, {})
+		
+		var keybind: Label = slot.get_node_or_null("Keybind")
+		if keybind:
+			keybind.text = _get_keybind_text(i, _current_bar)
+		
+		if slot and not data.is_empty():
+			var icon: TextureRect = slot.get_node_or_null("VBox/Icon")
+			if icon:
+				icon.texture = IconResolver.get_skill_icon_from_dict(data)
+				icon.modulate = Color(1, 1, 1, 1)
+			var cooldown_spiral: TextureProgressBar = slot.get_node_or_null("CooldownSpiral")
+			var cooldown_text: Label = slot.get_node_or_null("CooldownText")
+			if cooldown_spiral:
+				cooldown_spiral.visible = false
+			if cooldown_text:
+				cooldown_text.visible = false
+			var range_overlay: ColorRect = slot.get_node_or_null("RangeOverlay")
+			if range_overlay:
+				range_overlay.visible = false
+		elif slot:
+			var icon: TextureRect = slot.get_node_or_null("VBox/Icon")
+			if icon:
+				icon.modulate = Color(1, 1, 1, 0.3)
+				icon.texture = null
+			var cooldown_spiral: TextureProgressBar = slot.get_node_or_null("CooldownSpiral")
+			var cooldown_text: Label = slot.get_node_or_null("CooldownText")
+			if cooldown_spiral:
+				cooldown_spiral.visible = false
+			if cooldown_text:
+				cooldown_text.visible = false
+			var range_overlay: ColorRect = slot.get_node_or_null("RangeOverlay")
+			if range_overlay:
+				range_overlay.visible = false
+
+	for bar_idx in range(BAR_COUNT):
+		if _page_buttons[bar_idx]:
+			_page_buttons[bar_idx].button_pressed = (bar_idx == _current_bar)
+
 func _on_player_input(action: String, pressed: bool) -> void:
 	if not pressed:
 		return
 
-	# Map action to slot
 	var slot_index := -1
 	match action:
 		"ability_1": slot_index = 0
@@ -147,6 +378,10 @@ func _on_player_input(action: String, pressed: bool) -> void:
 		"ability_6": slot_index = 5
 		"ability_7": slot_index = 6
 		"ability_8": slot_index = 7
+		"ability_9": slot_index = 8
+		"ability_10": slot_index = 9
+		"ability_11": slot_index = 10
+		"ability_12": slot_index = 11
 
 	if slot_index >= 0:
 		_use_slot(slot_index)
@@ -155,114 +390,350 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		for i in range(_keybinds.size()):
 			if event.keycode == _keybinds[i]:
-				_use_slot(i)
+				if event.shift_pressed and i < 9:
+					var shift_index = i + SLOTS_PER_BAR
+					if shift_index < TOTAL_SLOTS:
+						_use_slot(shift_index)
+				else:
+					var global_index = _current_bar * SLOTS_PER_BAR + i
+					_use_slot(global_index)
 				break
 
-func _use_slot(index: int) -> void:
-	if index < 0 or index >= _slots.size():
+func _use_slot(global_index: int) -> void:
+	var local_index = global_index % SLOTS_PER_BAR
+	if local_index < 0 or local_index >= _slots.size():
 		return
 
-	var slot: Control = _slots[index]
-	var cooldown: Label = slot.get_node_or_null("Cooldown")
+	var slot: Control = _slots[local_index]
+	var cooldown_spiral: TextureProgressBar = slot.get_node_or_null("CooldownSpiral")
+	var cooldown_text: Label = slot.get_node_or_null("CooldownText")
 
-	# Check if on cooldown
-	if cooldown and cooldown.visible:
+	if cooldown_spiral and cooldown_spiral.visible:
 		return
 
-	# Emit signal
-	slot_used.emit(index)
-
-	# Visual feedback
+	slot_used.emit(global_index)
 	_flash_slot(slot)
+	_play_glow_animation(slot)
 
 func _flash_slot(slot: Control) -> void:
+	# Respect reduce motion setting
+	if UIStyles.is_reduce_motion_enabled():
+		return
 	var style := slot.get_theme_stylebox("panel")
 	if style:
-		style.bg_color = UIStyles.COLORS.accent_gold
+		style.border_color = UIStyles.COLORS.accent_gold
 		await get_tree().create_timer(0.1).timeout
-		style.bg_color = UIStyles.COLORS.background_dark
+		if is_instance_valid(slot):
+			style.border_color = UIStyles.COLORS.border
 
-func update_slot(index: int, skill_data: Dictionary) -> void:
-	if index < 0 or index >= _slots.size():
+func _play_glow_animation(slot: Control) -> void:
+	var glow: ColorRect = slot.get_node_or_null("GlowOverlay")
+	if not glow:
+		return
+	
+	# Respect reduce motion setting
+	if UIStyles.is_reduce_motion_enabled():
+		glow.visible = false
 		return
 
-	var slot: Control = _slots[index]
-	var icon: Panel = slot.get_node_or_null("Icon")
+	glow.visible = true
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(glow, "color:a", 0.6, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(glow, "color:a", 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_callback(func(): glow.visible = false)
+
+func _on_slot_gui_input(index: int, event: InputEvent) -> void:
+	var global_index = _current_bar * SLOTS_PER_BAR + index
+
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_start_drag(global_index, event.position)
+			else:
+				_end_drag(global_index, event.position)
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_clear_slot(global_index)
+
+	if event is InputEventMouseMotion and _dragging:
+		_update_drag_preview(event.position)
+
+func _start_drag(global_index: int, position: Vector2) -> void:
+	if _slot_data.get(global_index, {}).is_empty():
+		return
+
+	_dragging = true
+	_drag_source_index = global_index
+
+	_drag_preview = PanelContainer.new()
+	_drag_preview.name = "DragPreview"
+	_drag_preview.custom_minimum_size = Vector2(48, 48)
+	var style := StyleBoxFlat.new()
+	style.bg_color = UIStyles.COLORS.background_dark
+	style.border_color = UIStyles.COLORS.accent_gold
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	_drag_preview.add_theme_stylebox_override("panel", style)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(36, 36)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var source_slot: Control = _get_slot_control(global_index)
+	if source_slot:
+		var src_icon: TextureRect = source_slot.get_node_or_null("VBox/Icon")
+		if src_icon:
+			icon.texture = src_icon.texture
+	_drag_preview.add_child(icon)
+
+	get_viewport().gui_add_child(_drag_preview)
+	_drag_preview.global_position = position - Vector2(24, 24)
+	_drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_drag_preview.z_index = 1000
+
+	var source_slot_ctrl: Control = _get_slot_control(global_index)
+	if source_slot_ctrl:
+		source_slot_ctrl.modulate = Color(1, 1, 1, 0.5)
+
+func _update_drag_preview(position: Vector2) -> void:
+	if _drag_preview and is_instance_valid(_drag_preview):
+		_drag_preview.global_position = position - Vector2(24, 24)
+
+func _end_drag(source_global_index: int, position: Vector2) -> void:
+	if not _dragging:
+		return
+
+	_dragging = false
+
+	if _drag_preview and is_instance_valid(_drag_preview):
+		_drag_preview.queue_free()
+		_drag_preview = null
+
+	var source_slot_ctrl: Control = _get_slot_control(source_global_index)
+	if source_slot_ctrl:
+		source_slot_ctrl.modulate = Color(1, 1, 1, 1)
+
+	var target_global_index: int = -1
+	for i in range(SLOTS_PER_BAR):
+		var slot: Control = _slots[i]
+		if slot and slot.has_point(slot.get_local_mouse_position()):
+			target_global_index = _current_bar * SLOTS_PER_BAR + i
+			break
+
+	if target_global_index >= 0 and target_global_index != source_global_index:
+		_swap_slots(source_global_index, target_global_index)
+
+	_drag_source_index = -1
+
+func _get_slot_control(global_index: int) -> Control:
+	var local_index = global_index % SLOTS_PER_BAR
+	if local_index >= 0 and local_index < _slots.size():
+		return _slots[local_index]
+	return null
+
+func _swap_slots(index_a: int, index_b: int) -> void:
+	var data_a: Dictionary = _slot_data.get(index_a, {})
+	var data_b: Dictionary = _slot_data.get(index_b, {})
+
+	_slot_data[index_a] = data_b
+	_slot_data[index_b] = data_a
+
+	if _char_data:
+		_char_data.set_action_slot(index_a, data_b.get("skill_id", ""))
+		_char_data.set_action_slot(index_b, data_a.get("skill_id", ""))
+
+	var local_a = index_a % SLOTS_PER_BAR
+	var local_b = index_b % SLOTS_PER_BAR
+
+	if index_a >= _current_bar * SLOTS_PER_BAR and index_a < (_current_bar + 1) * SLOTS_PER_BAR:
+		update_slot(local_a, data_b)
+	if index_b >= _current_bar * SLOTS_PER_BAR and index_b < (_current_bar + 1) * SLOTS_PER_BAR:
+		update_slot(local_b, data_a)
+
+	slot_updated.emit(index_a, data_b)
+	slot_updated.emit(index_b, data_a)
+
+func _clear_slot(global_index: int) -> void:
+	if _slot_data.get(global_index, {}).is_empty():
+		return
+
+	_slot_data.erase(global_index)
+
+	if _char_data:
+		_char_data.set_action_slot(global_index, "")
+
+	var local_index = global_index % SLOTS_PER_BAR
+	if global_index >= _current_bar * SLOTS_PER_BAR and global_index < (_current_bar + 1) * SLOTS_PER_BAR:
+		update_slot(local_index, {})
+
+	slot_cleared.emit(global_index)
+
+func update_slot(local_index: int, skill_data: Dictionary) -> void:
+	if local_index < 0 or local_index >= _slots.size():
+		return
+
+	var global_index = _current_bar * SLOTS_PER_BAR + local_index
+	_slot_data[global_index] = skill_data
+
+	var slot: Control = _slots[local_index]
+	var icon: TextureRect = slot.get_node_or_null("VBox/Icon")
 	var mana: Label = slot.get_node_or_null("ManaCost")
 	var keybind: Label = slot.get_node_or_null("Keybind")
+	var stack: Label = slot.get_node_or_null("StackCount")
+	var cooldown_spiral: TextureProgressBar = slot.get_node_or_null("CooldownSpiral")
+	var cooldown_text: Label = slot.get_node_or_null("CooldownText")
+	var range_overlay: ColorRect = slot.get_node_or_null("RangeOverlay")
 
 	if skill_data.is_empty():
-		# Clear slot
 		if icon:
 			icon.modulate = Color(1, 1, 1, 0.3)
+			icon.texture = null
 		if mana:
 			mana.visible = false
+		if stack:
+			stack.visible = false
+		if cooldown_spiral:
+			cooldown_spiral.visible = false
+		if cooldown_text:
+			cooldown_text.visible = false
+		if range_overlay:
+			range_overlay.visible = false
 		return
 
-	# Update icon using IconResolver
 	if icon:
 		icon.modulate = Color(1, 1, 1, 1)
 		icon.texture = IconResolver.get_skill_icon_from_dict(skill_data)
 
-	# Update mana cost
 	if mana and skill_data.has("mana_cost"):
 		mana.text = str(skill_data.mana_cost)
 		mana.visible = skill_data.mana_cost > 0
 
-	# Update keybind display
 	if keybind and skill_data.has("keybind"):
 		keybind.text = skill_data.keybind
+	else:
+		keybind.text = _get_keybind_text(local_index)
 
-	slot_updated.emit(index, skill_data)
+	if stack and skill_data.has("charges"):
+		var charges: int = skill_data.charges
+		stack.text = str(charges)
+		stack.visible = charges > 1
 
-func set_slot_cooldown(index: int, remaining: float, total: float) -> void:
-	if index < 0 or index >= _slots.size():
+	if cooldown_spiral:
+		cooldown_spiral.visible = false
+	if cooldown_text:
+		cooldown_text.visible = false
+	if range_overlay:
+		range_overlay.visible = false
+
+	slot_updated.emit(global_index, skill_data)
+
+func set_slot_cooldown(global_index: int, remaining: float, total: float) -> void:
+	var local_index = global_index % SLOTS_PER_BAR
+	if local_index < 0 or local_index >= _slots.size():
 		return
 
-	var slot: Control = _slots[index]
-	var cooldown: Label = slot.get_node_or_null("Cooldown")
+	if global_index < _current_bar * SLOTS_PER_BAR or global_index >= (_current_bar + 1) * SLOTS_PER_BAR:
+		return
 
-	if not cooldown:
+	var slot: Control = _slots[local_index]
+	var cooldown_spiral: TextureProgressBar = slot.get_node_or_null("CooldownSpiral")
+	var cooldown_text: Label = slot.get_node_or_null("CooldownText")
+
+	if not cooldown_spiral or not cooldown_text:
 		return
 
 	if remaining > 0:
-		cooldown.visible = true
-		cooldown.text = str(int(remaining))
+		cooldown_spiral.visible = true
+		cooldown_text.visible = true
+		cooldown_spiral.max_value = total
+		cooldown_spiral.value = remaining
+		cooldown_text.text = str(int(ceil(remaining)))
 	else:
-		cooldown.visible = false
+		cooldown_spiral.visible = false
+		cooldown_text.visible = false
+		_play_glow_animation(slot)
 
-func select_slot(index: int) -> void:
-	# Deselect previous
-	if _selected_slot >= 0 and _selected_slot < _slots.size():
-		var prev: Control = _slots[_selected_slot]
-		prev.set_slot_border(UIStyles.COLORS.border)
+func set_slot_range_indicator(global_index: int, in_range: bool) -> void:
+	var local_index = global_index % SLOTS_PER_BAR
+	if local_index < 0 or local_index >= _slots.size():
+		return
 
-	# Select new
-	_selected_slot = index
-	if index >= 0 and index < _slots.size():
-		var slot: Control = _slots[index]
-		slot.set_slot_border(UIStyles.COLORS.accent_gold)
+	if global_index < _current_bar * SLOTS_PER_BAR or global_index >= (_current_bar + 1) * SLOTS_PER_BAR:
+		return
+
+	var slot: Control = _slots[local_index]
+	var range_overlay: ColorRect = slot.get_node_or_null("RangeOverlay")
+	if range_overlay:
+		range_overlay.visible = not in_range
+
+func set_slot_stack_count(global_index: int, count: int) -> void:
+	var local_index = global_index % SLOTS_PER_BAR
+	if local_index < 0 or local_index >= _slots.size():
+		return
+
+	if global_index < _current_bar * SLOTS_PER_BAR or global_index >= (_current_bar + 1) * SLOTS_PER_BAR:
+		return
+
+	var slot: Control = _slots[local_index]
+	var stack: Label = slot.get_node_or_null("StackCount")
+	if stack:
+		if count > 1:
+			stack.text = str(count)
+			stack.visible = true
+		else:
+			stack.visible = false
+
+func select_slot(global_index: int) -> void:
+	if _selected_slot >= 0:
+		var prev_local = _selected_slot % SLOTS_PER_BAR
+		if _selected_slot >= _current_bar * SLOTS_PER_BAR and _selected_slot < (_current_bar + 1) * SLOTS_PER_BAR:
+			var prev_slot: Control = _slots[prev_local]
+			if prev_slot:
+				var style := prev_slot.get_theme_stylebox("panel")
+				if style:
+					style.border_color = UIStyles.COLORS.border
+
+	_selected_slot = global_index
+
+	if global_index >= _current_bar * SLOTS_PER_BAR and global_index < (_current_bar + 1) * SLOTS_PER_BAR:
+		var local_index = global_index % SLOTS_PER_BAR
+		var slot: Control = _slots[local_index]
+		if slot:
+			var style := slot.get_theme_stylebox("panel")
+			if style:
+				style.border_color = UIStyles.COLORS.accent_gold
 
 func get_selected_slot() -> int:
 	return _selected_slot
 
-# Controller navigation
-func get_adjacent_slot(from: int, direction: Vector2) -> int:
-	if direction == Vector2.ZERO:
-		return from
+func get_current_bar() -> int:
+	return _current_bar
 
-	var cols: int = 4  # 2 rows of 4
-	var row: int = from / cols
-	var col: int = from % cols
+func get_bar_count() -> int:
+	return BAR_COUNT
 
-	if direction.x < 0:
-		col = maxi(0, col - 1)
-	elif direction.x > 0:
-		col = mini(cols - 1, col + 1)
+func get_slots_per_bar() -> int:
+	return SLOTS_PER_BAR
 
-	if direction.y < 0:
-		row = maxi(0, row - 1)
-	elif direction.y > 0:
-		row = mini(1, row + 1)
+func get_slot_data(global_index: int) -> Dictionary:
+	return _slot_data.get(global_index, {})
 
-	return row * cols + col
+func clear_all_slots() -> void:
+	for i in range(TOTAL_SLOTS):
+		_slot_data.erase(i)
+		if _char_data:
+			_char_data.set_action_slot(i, "")
+
+	for i in range(SLOTS_PER_BAR):
+		update_slot(i, {})
+
+func get_page_button(bar_index: int) -> Button:
+	if bar_index >= 0 and bar_index < _page_buttons.size():
+		return _page_buttons[bar_index]
+	return null

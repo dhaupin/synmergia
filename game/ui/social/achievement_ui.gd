@@ -11,8 +11,13 @@ func _ready() -> void:
 	super._ready()
 	set_title("Achievements")
 	set_panel_size(Vector2(500, 450))
+	_setup_accessibility()
 	_setup_ui()
 	_bind_signals()
+
+func _setup_accessibility() -> void:
+	accessible_name = "Achievements"
+	accessible_description = "Achievement panel showing progress and rewards. Use category filter buttons to filter by type."
 
 func _setup_ui() -> void:
 	var panel := get_panel()
@@ -27,11 +32,17 @@ func _setup_ui() -> void:
 	var stats := Label.new()
 	stats.name = "Stats"
 	stats.text = "Unlocked: 0 / 0"
+	stats.accessible_name = "Achievement Stats"
+	stats.accessible_description = "Shows the number of unlocked achievements out of total visible."
 	main.add_child(stats)
 
 	# Category filter buttons
 	var filter_hbox := HBoxContainer.new()
 	filter_hbox.name = "FilterBar"
+	filter_hbox.focus_mode = Control.FOCUS_ALL
+	filter_hbox.accessible_name = "Achievement Category Filters"
+	filter_hbox.accessible_description = "Filter achievements by category: All, Combat, Social, Economy, Exploration, Meta."
+	filter_hbox.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	main.add_child(filter_hbox)
 
 	var categories := [
@@ -49,6 +60,10 @@ func _setup_ui() -> void:
 		btn.custom_minimum_size.x = 70
 		btn.toggle_mode = true
 		btn.button_pressed = (cat.id == -1)
+		btn.focus_mode = Control.FOCUS_ALL
+		btn.accessible_name = "Category Filter: %s" % cat.name
+		btn.accessible_description = "Show %s achievements only." % cat.name
+		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		btn.pressed.connect(_on_category_selected.bind(cat.id))
 		_category_buttons.append(btn)
 		filter_hbox.add_child(btn)
@@ -57,6 +72,10 @@ func _setup_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.name = "AchievementScroll"
 	scroll.custom_minimum_size.y = 350
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.accessible_name = "Achievement List"
+	scroll.accessible_description = "List of achievements. Use arrow keys to scroll through."
+	scroll.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	main.add_child(scroll)
 
 	var list := VBoxContainer.new()
@@ -143,6 +162,10 @@ func _refresh_achievements() -> void:
 func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 80
+	panel.focus_mode = Control.FOCUS_ALL
+	panel.accessible_name = "Achievement: %s" % ach.display_name
+	panel.accessible_description = "%s. %s" % [ach.display_name, ach.description]
+	panel.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
@@ -167,6 +190,8 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 	icon.text = "" if is_unlocked else ""
 	icon.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold if is_unlocked else UIStyles.COLORS.text_disabled)
 	icon.custom_minimum_size.x = 30
+	icon.accessible_name = "Achievement Status"
+	icon.accessible_description = "Achievement is %s." % ("unlocked" if is_unlocked else "locked")
 	hbox.add_child(icon)
 
 	# Info section
@@ -207,6 +232,8 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 			progress_bar.add_theme_color_override("fill", UIStyles.COLORS.info)
 
 		progress_bar.custom_minimum_size.y = 8
+		progress_bar.accessible_name = "Achievement Progress"
+		progress_bar.accessible_description = "Progress: %d percent complete." % int(percentage * 100)
 		info_vbox.add_child(progress_bar)
 
 	# Rewards section (right side)

@@ -24,8 +24,13 @@ func _ready() -> void:
 	super._ready()
 	set_title("Quest Journal")
 	set_panel_size(Vector2(500, 450))
+	_setup_accessibility()
 	_setup_ui()
 	_connect_signals()
+
+func _setup_accessibility() -> void:
+	accessible_name = "Quest Journal"
+	accessible_description = "Quest journal panel. Use tabs to switch between Active, Complete, and Available quests. Select a quest to view details."
 
 func _setup_ui() -> void:
 	var panel := get_panel()
@@ -39,6 +44,10 @@ func _setup_ui() -> void:
 	# Tab bar
 	_tab_bar = HBoxContainer.new()
 	_tab_bar.custom_minimum_size.y = 36
+	_tab_bar.focus_mode = Control.FOCUS_ALL
+	_tab_bar.accessible_name = "Quest Journal Tabs"
+	_tab_bar.accessible_description = "Switch between Active, Complete, and Available quest tabs."
+	_tab_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	main.add_child(_tab_bar)
 
 	var tabs := [
@@ -52,6 +61,10 @@ func _setup_ui() -> void:
 		btn.text = tab_data.name
 		btn.toggle_mode = true
 		btn.button_pressed = false
+		btn.focus_mode = Control.FOCUS_ALL
+		btn.accessible_name = "Quest Tab: %s" % tab_data.name
+		btn.accessible_description = "Show %s quests." % tab_data.name
+		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		btn.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 		btn.pressed.connect(_on_tab_clicked.bind(tab_data.id))
 		_tab_buttons.append(btn)
@@ -65,6 +78,10 @@ func _setup_ui() -> void:
 	# Quest list (left)
 	var list_scroll := ScrollContainer.new()
 	list_scroll.custom_minimum_size.x = 180
+	list_scroll.focus_mode = Control.FOCUS_ALL
+	list_scroll.accessible_name = "Quest List"
+	list_scroll.accessible_description = "List of quests. Use arrow keys to navigate, Enter to select."
+	list_scroll.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	content.add_child(list_scroll)
 
 	_quest_list = VBoxContainer.new()
@@ -73,6 +90,10 @@ func _setup_ui() -> void:
 
 	# Quest detail (right)
 	var detail_scroll := ScrollContainer.new()
+	detail_scroll.focus_mode = Control.FOCUS_ALL
+	detail_scroll.accessible_name = "Quest Details"
+	detail_scroll.accessible_description = "Detailed view of the selected quest including description, objectives, and actions."
+	detail_scroll.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	content.add_child(detail_scroll)
 
 	_quest_detail = VBoxContainer.new()
@@ -151,6 +172,10 @@ func _create_quest_button(quest_id: String) -> Button:
 	btn.custom_minimum_size.y = 40
 	btn.text_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	btn.focus_mode = Control.FOCUS_ALL
+	btn.accessible_name = "Quest: %s" % _get_quest_name(quest_id)
+	btn.accessible_description = "Press Enter to view quest details."
+	btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	# Get quest name
 	var quest_name := _get_quest_name(quest_id)
@@ -238,6 +263,10 @@ func _show_quest_detail(quest_id: String) -> void:
 		QuestData.QuestState.AVAILABLE:
 			var accept_btn := Button.new()
 			accept_btn.text = "Accept Quest"
+			accept_btn.focus_mode = Control.FOCUS_ALL
+			accept_btn.accessible_name = "Accept Quest"
+			accept_btn.accessible_description = "Accept this quest and add it to your active quests."
+			accept_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			accept_btn.pressed.connect(_on_accept_quest.bind(quest_id))
 			action_container.add_child(accept_btn)
 
@@ -245,6 +274,10 @@ func _show_quest_detail(quest_id: String) -> void:
 			var turn_in_btn := Button.new()
 			turn_in_btn.text = "Turn In"
 			turn_in_btn.add_theme_color_override("font_color", UIStyles.COLORS.success)
+			turn_in_btn.focus_mode = Control.FOCUS_ALL
+			turn_in_btn.accessible_name = "Turn In Quest"
+			turn_in_btn.accessible_description = "Complete this quest and receive rewards."
+			turn_in_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			turn_in_btn.pressed.connect(_on_turn_in_quest.bind(quest_id))
 			action_container.add_child(turn_in_btn)
 
@@ -252,6 +285,10 @@ func _show_quest_detail(quest_id: String) -> void:
 			var abandon_btn := Button.new()
 			abandon_btn.text = "Abandon"
 			abandon_btn.add_theme_color_override("font_color", UIStyles.COLORS.error)
+			abandon_btn.focus_mode = Control.FOCUS_ALL
+			abandon_btn.accessible_name = "Abandon Quest"
+			abandon_btn.accessible_description = "Abandon this quest and lose all progress."
+			abandon_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			abandon_btn.pressed.connect(_on_abandon_quest.bind(quest_id))
 			action_container.add_child(abandon_btn)
 

@@ -49,9 +49,38 @@ func _ready() -> void:
 		queue_free()
 		return
 
+	_setup_accessibility()
 	_setup_hud()
 	_initialize_panels()
 	_connect_signals()
+
+func _setup_accessibility() -> void:
+	accessible_name = "Menu Manager"
+	accessible_description = "Central HUD manager for the game. Handles action bars, status bars, and all game menus."
+	
+	# Connect to accessibility setting changes from SettingsPanel
+	if EventHub:
+		EventHub.connect("accessibility_text_scale_changed", _on_text_scale_changed)
+		EventHub.connect("accessibility_reduce_motion_changed", _on_reduce_motion_changed)
+		EventHub.connect("accessibility_high_contrast_changed", _on_high_contrast_changed)
+
+func _on_text_scale_changed(scale: float) -> void:
+	# Propagate text scale changes to all child widgets
+	for child in get_children():
+		if child.has_method("update_accessibility_settings"):
+			child.update_accessibility_settings()
+
+func _on_reduce_motion_changed(enabled: bool) -> void:
+	# Propagate reduce motion changes to all child widgets
+	for child in get_children():
+		if child.has_method("update_accessibility_settings"):
+			child.update_accessibility_settings()
+
+func _on_high_contrast_changed(enabled: bool) -> void:
+	# Propagate high contrast changes to all child widgets
+	for child in get_children():
+		if child.has_method("update_accessibility_settings"):
+			child.update_accessibility_settings()
 
 func _setup_hud() -> void:
 	# Action bar (bottom center) - skills/actions
@@ -61,6 +90,10 @@ func _setup_hud() -> void:
 	_action_bar.offset_bottom = -10
 	_action_bar.custom_minimum_size.y = 60
 	_action_bar.z_index = 100
+	_action_bar.focus_mode = Control.FOCUS_ALL
+	_action_bar.accessible_name = "Action Bar"
+	_action_bar.accessible_description = "Main skill and action bar. Use number keys 1-8 to activate skills."
+	_action_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_action_bar)
 
 	# Quick access bar (bottom left) - consumables
@@ -70,6 +103,10 @@ func _setup_hud() -> void:
 	_quick_access_bar.offset_bottom = 60
 	_quick_access_bar.custom_minimum_size.y = 50
 	_quick_access_bar.z_index = 100
+	_quick_access_bar.focus_mode = Control.FOCUS_ALL
+	_quick_access_bar.accessible_name = "Quick Access Bar"
+	_quick_access_bar.accessible_description = "Consumable items hotbar. Use F1-F4 to use items."
+	_quick_access_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_quick_access_bar)
 
 	# Buff bar (top right)
@@ -79,6 +116,10 @@ func _setup_hud() -> void:
 	_buff_bar.offset_top = 50
 	_buff_bar.custom_minimum_size.y = 40
 	_buff_bar.z_index = 100
+	_buff_bar.focus_mode = Control.FOCUS_ALL
+	_buff_bar.accessible_name = "Buff Bar"
+	_buff_bar.accessible_description = "Active buffs and debuffs on your character."
+	_buff_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_buff_bar)
 
 	# Status bar (top center) - HP, MP, XP
@@ -86,6 +127,10 @@ func _setup_hud() -> void:
 	_status_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_status_bar.offset_top = 10
 	_status_bar.z_index = 100
+	_status_bar.focus_mode = Control.FOCUS_ALL
+	_status_bar.accessible_name = "Status Bar"
+	_status_bar.accessible_description = "Health, mana, and experience bars."
+	_status_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_status_bar)
 
 	# Add placeholder slots
@@ -286,6 +331,10 @@ func _create_action_slot(index: int) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.custom_minimum_size = Vector2(50, 50)
 	slot.name = "ActionSlot%d" % index
+	slot.focus_mode = Control.FOCUS_ALL
+	slot.accessible_name = "Action Slot %d" % (index + 1)
+	slot.accessible_description = "Press %d to use this skill." % (index + 1)
+	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
@@ -314,6 +363,10 @@ func _create_quick_slot(index: int) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.custom_minimum_size = Vector2(40, 40)
 	slot.name = "QuickSlot%d" % index
+	slot.focus_mode = Control.FOCUS_ALL
+	slot.accessible_name = "Quick Slot %d" % (index + 1)
+	slot.accessible_description = "Press F%d to use this consumable." % (index + 1)
+	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark

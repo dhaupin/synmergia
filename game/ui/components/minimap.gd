@@ -1,9 +1,12 @@
-## Minimap - World map component
-## Interactive minimap with player position and markers
+## Minimap - Enhanced world map component
+## Interactive minimap with zoom, waypoints, markers, layer toggles, circular mask
 extends Control
 class_name Minimap
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const IconResolver = preload("res://core/utils/icon_resolver.gd")
 
+## Discrete zoom levels
+const ZOOM_LEVELS: Array[float] = [0.5, 1.0, 2.0, 4.0]
 
 ## Components
 var _map_texture: TextureRect
@@ -11,55 +14,99 @@ var _player_marker: Control
 var _compass_label: Label
 var _zoom_slider: HSlider
 var _marker_container: Control
+var _mask_texture: TextureRect
+var _zone_label: Label
+var _coords_label: Label
+var _time_label: Label
+var _layer_toggle_container: HBoxContainer
+var _context_menu: PopupMenu
+var _zoom_index: int = 1  # Index into ZOOM_LEVELS (1.0 = index 1)
 
 ## State
 var _player_position: Vector3 = Vector3.ZERO
 var _player_rotation: float = 0.0
 var _zoom_level: float = 1.0
-var _map_size: Vector2 = Vector2(2048, 2048)  # World size
-var _minimap_size: Vector2 = Vector2(150, 150)
-var _show_players: bool = true
+var _map_size: Vector2 = Vector2(2048, 2048)
+var _minimap_size: Vector2 = Vector2(180, 180)
+
+## Layer visibility toggles
+var _show_party: bool = true
 var _show_npcs: bool = true
-var _show_quests: bool = true
 var _show_enemies: bool = true
+var _show_quests: bool = true
+var _show_pois: bool = true
+var _show_vendors: bool = true
 var _show_waypoints: bool = true
 
 ## Markers
-var _entity_markers: Dictionary = {}  # entity_id -> marker_control
+var _entity_markers: Dictionary = {}  # entity_id -> marker_data
+
+## Marker type constants
+const MARKER_PARTY: int = 1
+const MARKER_NPC: int = 2
+const MARKER_ENEMY: int = 3
+const MARKER_QUEST: int = 4
+const MARKER_POI: int = 5
+const MARKER_VENDOR: int = 6
+const MARKER_WAYPOINT: int = 7
+const MARKER_PING: int = 8
+
+signal waypoint_set(position: Vector3)
+signal ping_sent(position: Vector3)
+signal quest_track_requested(quest_id: String)
+signal map_clicked(world_position: Vector3)
 
 func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
+	_setup_accessibility()
+
+func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
+	accessible_name = "Minimap"
+	accessible_description = "Interactive minimap showing your position, nearby entities, and map markers. Use mouse wheel to zoom, right-click for context menu. Layer toggles at bottom."
 
 func _setup_ui() -> void:
 	name = "Minimap"
 	set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	offset_left = -160
+	offset_left = -190
 	offset_top = 60
 	offset_right = -10
-	offset_bottom = 210
-	custom_minimum_size = Vector2(150, 150)
+	offset_bottom = 240
+	custom_minimum_size = Vector2(180, 180)
 
-	# Main panel
+	# Main panel with circular mask
 	var panel := PanelContainer.new()
 	panel.name = "Panel"
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.9)
+	style.bg_color = Color(0.05, 0.05, 0.08, 0.95)
 	style.border_color = UIStyles.COLORS.border
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 90
+	style.corner_radius_top_right = 90
+	style.corner_radius_bottom_left = 90
+	style.corner_radius_bottom_right = 90
 	panel.add_theme_stylebox_override("panel", style)
 
-	# Map texture area
+	# Map container with clipping
 	var map_container := Control.new()
 	map_container.name = "MapContainer"
 	map_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	map_container.clip_contents = true
 	panel.add_child(map_container)
+
+	# Circular mask for the map
+	_mask_texture = TextureRect.new()
+	_mask_texture.name = "MaskTexture"
+	_mask_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_mask_texture.texture = _create_circular_mask()
+	map_container.add_child(_mask_texture)
 
 	_map_texture = TextureRect.new()
 	_map_texture.name = "MapTexture"
@@ -68,45 +115,270 @@ func _setup_ui() -> void:
 	_map_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	map_container.add_child(_map_texture)
 
-	# Marker container (on top of map)
 	_marker_container = Control.new()
 	_marker_container.name = "MarkerContainer"
 	_marker_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	map_container.add_child(_marker_container)
 
-	# Player marker
-	_player_marker = Control.new()
+	# Player marker (arrow with heading)
+	_player_marker = _create_player_arrow()
 	_player_marker.name = "PlayerMarker"
-	_player_marker.custom_minimum_size = Vector2(10, 10)
 	_marker_container.add_child(_player_marker)
-
-	var player_style := StyleBoxFlat.new()
-	player_style.bg_color = UIStyles.COLORS.accent_gold
-	player_style.corner_radius_top_left = 5
-	player_style.corner_radius_top_right = 5
-	player_style.corner_radius_bottom_left = 5
-	player_style.corner_radius_bottom_right = 5
-	_player_marker.add_theme_stylebox_override("panel", player_style)
 
 	# Compass label (N indicator)
 	_compass_label = Label.new()
 	_compass_label.name = "Compass"
 	_compass_label.text = "N"
 	_compass_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_compass_label.offset_top = -2
-	_compass_label.add_theme_font_size_override("font_size", 10)
+	_compass_label.offset_top = 8
+	_compass_label.add_theme_font_size_override("font_size", 11)
 	_compass_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	_compass_label.add_theme_constant_override("outline_size", 2)
+	_compass_label.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
 	panel.add_child(_compass_label)
 
 	# Zone name
-	var zone_label := Label.new()
-	zone_label.name = "ZoneName"
-	zone_label.text = "Zone"
-	zone_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	zone_label.offset_bottom = -4
-	zone_label.add_theme_font_size_override("font_size", 9)
-	zone_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-	panel.add_child(zone_label)
+	_zone_label = Label.new()
+	_zone_label.name = "ZoneName"
+	_zone_label.text = "Zone"
+	_zone_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_zone_label.offset_bottom = -30
+	_zone_label.add_theme_font_size_override("font_size", 10)
+	_zone_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	_zone_label.add_theme_constant_override("outline_size", 1)
+	_zone_label.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+	panel.add_child(_zone_label)
+
+	# Coordinates display
+	_coords_label = Label.new()
+	_coords_label.name = "CoordsLabel"
+	_coords_label.text = "X: 0, Y: 0"
+	_coords_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_coords_label.offset_bottom = -16
+	_coords_label.add_theme_font_size_override("font_size", 8)
+	_coords_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	_coords_label.add_theme_constant_override("outline_size", 1)
+	_coords_label.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+	panel.add_child(_coords_label)
+
+	# Time of day indicator
+	_time_label = Label.new()
+	_time_label.name = "TimeLabel"
+	_time_label.text = "12:00"
+	_time_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_time_label.offset_left = 8
+	_time_label.offset_top = 8
+	_time_label.add_theme_font_size_override("font_size", 8)
+	_time_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	_time_label.add_theme_constant_override("outline_size", 1)
+	_time_label.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+	panel.add_child(_time_label)
+
+	# Layer toggle buttons row
+	_layer_toggle_container = HBoxContainer.new()
+	_layer_toggle_container.name = "LayerToggles"
+	_layer_toggle_container.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_layer_toggle_container.offset_bottom = -2
+	_layer_toggle_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_layer_toggle_container.add_theme_constant_override("separation", 2)
+	panel.add_child(_layer_toggle_container)
+
+	_build_layer_toggles()
+
+	# Zoom slider
+	_zoom_slider = HSlider.new()
+	_zoom_slider.name = "ZoomSlider"
+	_zoom_slider.min_value = 0
+	_zoom_slider.max_value = ZOOM_LEVELS.size() - 1
+	_zoom_slider.value = _zoom_index
+	_zoom_slider.step = 1
+	_zoom_slider.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_zoom_slider.offset_top = 2
+	_zoom_slider.offset_left = 20
+	_zoom_slider.offset_right = -20
+	_zoom_slider.focus_mode = Control.FOCUS_ALL
+	_zoom_slider.accessible_name = "Map Zoom"
+	_zoom_slider.accessible_description = "Adjust minimap zoom level. Values: 0.5x, 1x, 2x, 4x."
+	_zoom_slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
+	_zoom_slider.value_changed.connect(_on_zoom_changed)
+	panel.add_child(_zoom_slider)
+
+	# Context menu for right-click
+	_context_menu = PopupMenu.new()
+	_context_menu.name = "MapContextMenu"
+	_context_menu.add_item("Set Waypoint", 1)
+	_context_menu.add_item("Ping Location", 2)
+	_context_menu.add_separator()
+	_context_menu.add_item("Track Quest", 3)
+	_context_menu.add_item("Show on World Map", 4)
+	_context_menu.id_pressed.connect(_on_context_menu_action)
+	add_child(_context_menu)
+
+	# Handle mouse input for zoom and right-click
+	map_container.gui_input.connect(_on_map_gui_input)
+
+func _create_circular_mask() -> Texture2D:
+	var size = int(_minimap_size.x)
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center = Vector2(size / 2.0, size / 2.0)
+	var radius = size / 2.0 - 2
+	for x in range(size):
+		for y in range(size):
+			var dist = Vector2(x, y).distance_to(center)
+			if dist <= radius:
+				img.set_pixel(x, y, Color(1, 1, 1, 1))
+			else:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+	return ImageTexture.create_from_image(img)
+
+func _create_player_arrow() -> Control:
+	var container = Control.new()
+	container.custom_minimum_size = Vector2(16, 16)
+	container.set_pivot_offset(Vector2(8, 8))
+
+	var arrow := Polygon2D.new()
+	arrow.name = "Arrow"
+	var points = PackedVector2Array([Vector2(0, -8), Vector2(5, 4), Vector2(0, 2), Vector2(-5, 4)])
+	arrow.polygon = points
+	var arrow_color = UIStyles.COLORS.accent_gold
+	arrow.color = arrow_color
+	container.add_child(arrow)
+
+	# Outline
+	var outline := Polygon2D.new()
+	outline.name = "Outline"
+	var outline_points = PackedVector2Array([Vector2(0, -9), Vector2(6, 5), Vector2(0, 3), Vector2(-6, 5)])
+	outline.polygon = outline_points
+	outline.color = Color(0, 0, 0, 1)
+	container.add_child(outline)
+	outline.z_index = -1
+
+	return container
+
+func _build_layer_toggles() -> void:
+	var layers = [
+		{"key": "party", "label": "P", "tooltip": "Party Members", "color": UIStyles.COLORS.info, "default": true},
+		{"key": "npcs", "label": "N", "tooltip": "NPCs", "color": UIStyles.COLORS.success, "default": true},
+		{"key": "enemies", "label": "E", "tooltip": "Enemies", "color": UIStyles.COLORS.error, "default": true},
+		{"key": "quests", "label": "Q", "tooltip": "Quest Objectives", "color": UIStyles.COLORS.warning, "default": true},
+		{"key": "pois", "label": "*", "tooltip": "Points of Interest", "color": UIStyles.COLORS.accent_gold, "default": true},
+		{"key": "vendors", "label": "$", "tooltip": "Vendors", "color": Color(0.8, 1.0, 0.4), "default": true},
+		{"key": "waypoints", "label": "W", "tooltip": "Waypoints", "color": UIStyles.COLORS.accent_gold, "default": true},
+	]
+
+	for layer in layers:
+		var btn := Button.new()
+		btn.name = "Toggle_%s" % layer.key
+		btn.text = layer.label
+		btn.toggle_mode = true
+		btn.button_pressed = layer.default
+		btn.custom_minimum_size = Vector2(22, 22)
+		btn.tooltip_text = layer.tooltip
+		btn.focus_mode = Control.FOCUS_ALL
+		btn.accessible_name = layer.tooltip
+		btn.accessible_description = "Toggle %s layer visibility" % layer.tooltip
+		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(3, false))
+
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color(0.1, 0.1, 0.15, 0.9)
+		style.border_color = layer.color
+		style.border_width_left = 1
+		style.border_width_right = 1
+		style.border_width_top = 1
+		style.border_width_bottom = 1
+		style.corner_radius_top_left = 3
+		style.corner_radius_top_right = 3
+		style.corner_radius_bottom_left = 3
+		style.corner_radius_bottom_right = 3
+		btn.add_theme_stylebox_override("normal", style)
+
+		var pressed_style = style.duplicate()
+		pressed_style.bg_color = layer.color
+		btn.add_theme_stylebox_override("pressed", pressed_style)
+
+		btn.toggled.connect(_on_layer_toggled.bind(layer.key))
+		_layer_toggle_container.add_child(btn)
+
+func _on_layer_toggled(key: String, pressed: bool) -> void:
+	match key:
+		"party": _show_party = pressed
+		"npcs": _show_npcs = pressed
+		"enemies": _show_enemies = pressed
+		"quests": _show_quests = pressed
+		"pois": _show_pois = pressed
+		"vendors": _show_vendors = pressed
+		"waypoints": _show_waypoints = pressed
+	_update_visible_markers()
+
+func _on_zoom_changed(value: float) -> void:
+	_zoom_index = int(value)
+	_zoom_index = clampi(_zoom_index, 0, ZOOM_LEVELS.size() - 1)
+	_zoom_level = ZOOM_LEVELS[_zoom_index]
+	_zoom_slider.value = _zoom_index
+	_update_marker_positions()
+
+func _on_map_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_index = clampi(_zoom_index + 1, 0, ZOOM_LEVELS.size() - 1)
+			_zoom_level = ZOOM_LEVELS[_zoom_index]
+			_zoom_slider.value = _zoom_index
+			_update_marker_positions()
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_index = clampi(_zoom_index - 1, 0, ZOOM_LEVELS.size() - 1)
+			_zoom_level = ZOOM_LEVELS[_zoom_index]
+			_zoom_slider.value = _zoom_index
+			_update_marker_positions()
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_show_context_menu(event.position)
+		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_handle_left_click(event.position)
+
+func _handle_left_click(local_pos: Vector2) -> void:
+	var map_container: Control = get_node("Panel/MapContainer")
+	if not map_container:
+		return
+
+	var center = _minimap_size / 2.0
+	var map_scale = (_minimap_size.x / _map_size.x) * _zoom_level
+
+	var rel_pos = local_pos - center
+	var world_pos = Vector3(rel_pos.x / map_scale, 0, rel_pos.y / map_scale)
+
+	map_clicked.emit(world_pos)
+
+func _show_context_menu(local_pos: Vector2) -> void:
+	var map_container: Control = get_node("Panel/MapContainer")
+	if not map_container:
+		return
+
+	var center = _minimap_size / 2.0
+	var map_scale = (_minimap_size.x / _map_size.x) * _zoom_level
+
+	var rel_pos = local_pos - center
+	var world_pos = Vector3(rel_pos.x / map_scale, 0, rel_pos.y / map_scale)
+
+	_context_menu.global_position = get_viewport().get_mouse_position()
+	_context_menu.popup()
+	_context_menu.set_meta("world_pos", world_pos)
+
+func _on_context_menu_action(item_id: int) -> void:
+	var world_pos: Vector3 = _context_menu.get_meta("world_pos", Vector3.ZERO)
+	match item_id:
+		1: waypoint_set.emit(world_pos)
+		2: ping_sent.emit(world_pos)
+		3: _open_quest_tracker(world_pos)
+		4: _open_world_map(world_pos)
+
+func _open_quest_tracker(position: Vector3) -> void:
+	if QuestService and QuestService.has_method("get_quests_near_position"):
+		var quests = QuestService.get_quests_near_position(position, 50.0)
+		if quests.size() > 0:
+			quest_track_requested.emit(quests[0].get("id", ""))
+
+func _open_world_map(position: Vector3) -> void:
+	if WorldMap and WorldMap.has_method("show_position"):
+		WorldMap.show_position(position)
 
 func _connect_signals() -> void:
 	if not ZoneManager:
@@ -118,43 +390,124 @@ func _connect_signals() -> void:
 		if not ZoneManager.player_entered_zone.is_connected(_on_player_entered_zone):
 			ZoneManager.player_entered_zone.connect(_on_player_entered_zone)
 
+	if TimeOfDay and TimeOfDay.has_signal("time_changed"):
+		TimeOfDay.time_changed.connect(_on_time_changed)
+
+	if EntityService and EntityService.has_signal("entity_spawned"):
+		EntityService.entity_spawned.connect(_on_entity_spawned)
+	if EntityService and EntityService.has_signal("entity_despawned"):
+		EntityService.entity_despawned.connect(_on_entity_despawned)
 
 func _on_zone_loaded(zone_data) -> void:
 	if zone_data and zone_data.has("bounds"):
 		_map_size = zone_data.bounds.size
-
+	if zone_data and zone_data.has("minimap_texture"):
+		_map_texture.texture = zone_data.minimap_texture
 
 func _on_player_entered_zone(_player, zone) -> void:
 	if zone and zone.has("bounds"):
 		_map_size = zone.bounds.size
+	if zone and zone.has("minimap_texture"):
+		_map_texture.texture = zone.minimap_texture
+
+func _on_time_changed(hour: int, minute: int) -> void:
+	if _time_label:
+		var am_pm = "AM" if hour < 12 else "PM"
+		var display_hour = hour % 12
+		if display_hour == 0:
+			display_hour = 12
+		_time_label.text = "%02d:%02d %s" % [display_hour, minute, am_pm]
+
+func _on_entity_spawned(entity, metadata) -> void:
+	if not is_instance_valid(entity):
+		return
+
+	var entity_type = entity.get("entity_type", 0)
+	var marker_type = 0
+
+	match entity_type:
+		Entity.EntityType.PLAYER:
+			if PartyService and PartyService.is_in_same_party(entity.entity_id):
+				marker_type = MARKER_PARTY
+			else:
+				return
+		Entity.EntityType.NPC:
+			var npc_data = entity.get("npc_data")
+			if npc_data:
+				var services = npc_data.get("services", [])
+				if "vendor" in services or "merchant" in services:
+					marker_type = MARKER_VENDOR
+				else:
+					marker_type = MARKER_NPC
+			else:
+				marker_type = MARKER_NPC
+		Entity.EntityType.ENEMY:
+			marker_type = MARKER_ENEMY
+		_: return
+
+	add_marker(entity.entity_id, entity.global_position, marker_type, entity.get("display_name", ""))
+
+func _on_entity_despawned(entity_id: String) -> void:
+	remove_marker(entity_id)
 
 func _process(_delta: float) -> void:
 	_update_player_marker()
+	_update_marker_positions()
 
 func _update_player_marker() -> void:
 	if not _player_marker:
 		return
 
-	# Calculate marker position relative to minimap center
 	var minimap_center := _minimap_size / 2.0
 	var map_scale := (_minimap_size.x / _map_size.x) * _zoom_level
 
-	# Convert world position to minimap position
 	var map_pos := Vector2(
-	_player_position.x * map_scale,
-	_player_position.z * map_scale
+		_player_position.x * map_scale,
+		_player_position.z * map_scale
 	)
 
 	var marker_pos := minimap_center + map_pos
 
-	# Clamp to minimap bounds
-	marker_pos.x = clampf(marker_pos.x, 5, _minimap_size.x - 5)
-	marker_pos.y = clampf(marker_pos.y, 5, _minimap_size.y - 5)
+	var radius = _minimap_size.x / 2.0 - 10
+	var dist = marker_pos.distance_to(minimap_center)
+	if dist > radius:
+		marker_pos = minimap_center + (marker_pos - minimap_center).normalized() * radius
 
-	_player_marker.position = marker_pos - Vector2(5, 5)
-
-	# Rotate marker based on player rotation
+	_player_marker.position = marker_pos - Vector2(8, 8)
 	_player_marker.rotation = -_player_rotation
+
+	# Update coordinates
+	if _coords_label:
+		_coords_label.text = "X: %d, Y: %d" % [_player_position.x, _player_position.z]
+
+func _update_marker_positions() -> void:
+	if not _marker_container:
+		return
+
+	var minimap_center := _minimap_size / 2.0
+	var map_scale := (_minimap_size.x / _map_size.x) * _zoom_level
+
+	for entity_id in _entity_markers:
+		var data: Dictionary = _entity_markers[entity_id]
+		var marker: Control = data.get("marker")
+		var position: Vector3 = data.get("position", Vector3.ZERO)
+
+		if not marker or not is_instance_valid(marker):
+			continue
+
+		var map_pos := Vector2(
+			position.x * map_scale,
+			position.z * map_scale
+		)
+
+		var marker_pos := minimap_center + map_pos
+
+		var radius = _minimap_size.x / 2.0 - 6
+		var dist = marker_pos.distance_to(minimap_center)
+		if dist > radius:
+			marker_pos = minimap_center + (marker_pos - minimap_center).normalized() * radius
+
+		marker.position = marker_pos - marker.custom_minimum_size / 2.0
 
 func set_player_position(position: Vector3) -> void:
 	_player_position = position
@@ -163,53 +516,229 @@ func set_player_rotation(rotation: float) -> void:
 	_player_rotation = rotation
 
 func set_zone_name(name: String) -> void:
-	var panel: PanelContainer = get_node_or_null("Panel")
-	if panel:
-		var zone_label: Label = panel.get_node_or_null("ZoneName")
-		if zone_label:
-			zone_label.text = name
+	if _zone_label:
+		_zone_label.text = name
 
 func add_marker(entity_id: String, position: Vector3, marker_type: int, label: String = "") -> void:
 	if _entity_markers.has(entity_id):
+		_entity_markers[entity_id].position = position
+		_entity_markers[entity_id].type = marker_type
+		_entity_markers[entity_id].label = label
 		return
 
-	var marker := Control.new()
+	var marker = _create_marker(marker_type, label)
 	marker.name = "Marker_%s" % entity_id
-	marker.custom_minimum_size = Vector2(8, 8)
 	_marker_container.add_child(marker)
 
-	# Color based on type
-	var color: Color
-	match marker_type:
-		1: color = UIStyles.COLORS.success       # NPC
-		2: color = UIStyles.COLORS.accent_gold  # Quest
-		3: color = UIStyles.COLORS.warning       # Enemy
-		4: color = UIStyles.COLORS.error         # Danger
-		5: color = UIStyles.COLORS.info          # Info
-		10: color = Color(1.0, 0.3, 0.3)        # Waypoint Red
-		11: color = Color(1.0, 0.6, 0.2)         # Waypoint Orange
-		12: color = Color(1.0, 0.9, 0.3)         # Waypoint Yellow
-		13: color = Color(0.3, 1.0, 0.3)         # Waypoint Green
-		14: color = Color(0.3, 0.6, 1.0)         # Waypoint Blue
-		15: color = Color(0.8, 0.3, 1.0)         # Waypoint Purple
-		16: color = Color(1.0, 0.4, 0.7)         # Waypoint Pink
-		17: color = Color(1.0, 1.0, 1.0)         # Waypoint White
-		_: color = UIStyles.COLORS.info
-
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
-	marker.add_theme_stylebox_override("panel", style)
-
 	_entity_markers[entity_id] = {
-	"marker": marker,
-	"position": position,
-	"type": marker_type,
-	"label": label
+		"marker": marker,
+		"position": position,
+		"type": marker_type,
+		"label": label
 	}
+
+	_update_visible_markers()
+
+func _create_marker(marker_type: int, label: String) -> Control:
+	var marker = Control.new()
+	var size: Vector2
+	var color: Color
+	var shape: String = "circle"
+
+	match marker_type:
+		MARKER_PARTY:
+			size = Vector2(10, 10)
+			color = UIStyles.COLORS.info
+		MARKER_NPC:
+			size = Vector2(8, 8)
+			color = UIStyles.COLORS.success
+		MARKER_ENEMY:
+			size = Vector2(8, 8)
+			color = UIStyles.COLORS.error
+			shape = "diamond"
+		MARKER_QUEST:
+			size = Vector2(12, 12)
+			color = UIStyles.COLORS.warning
+			shape = "exclamation"
+		MARKER_POI:
+			size = Vector2(10, 10)
+			color = UIStyles.COLORS.accent_gold
+			shape = "star"
+		MARKER_VENDOR:
+			size = Vector2(10, 10)
+			color = Color(0.8, 1.0, 0.4)
+			shape = "coin"
+		MARKER_WAYPOINT:
+			size = Vector2(12, 12)
+			color = UIStyles.COLORS.accent_gold
+			shape = "flag"
+		MARKER_PING:
+			size = Vector2(16, 16)
+			color = Color(0.3, 1.0, 0.5)
+			shape = "pulse"
+		_:
+			size = Vector2(8, 8)
+			color = UIStyles.COLORS.info
+
+	marker.custom_minimum_size = size
+
+	var visual = _create_marker_visual(shape, size, color, label)
+	marker.add_child(visual)
+
+	return marker
+
+func _create_marker_visual(shape: String, size: Vector2, color: Color, label: String) -> Control:
+	var container = Control.new()
+	container.custom_minimum_size = size
+	container.set_pivot_offset(size / 2.0)
+
+	match shape:
+		"circle":
+			var circle := TextureRect.new()
+			circle.custom_minimum_size = size
+			circle.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			circle.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var img := Image.create(int(size.x), int(size.y), false, Image.FORMAT_RGBA8)
+			var center = Vector2(size.x / 2.0, size.y / 2.0)
+			var radius = min(size.x, size.y) / 2.0
+			for x in range(int(size.x)):
+				for y in range(int(size.y)):
+					if Vector2(x, y).distance_to(center) <= radius:
+						img.set_pixel(x, y, color)
+					else:
+						img.set_pixel(x, y, Color(0, 0, 0, 0))
+			circle.texture = ImageTexture.create_from_image(img)
+			container.add_child(circle)
+
+		"diamond":
+			var diamond := Polygon2D.new()
+			var s = min(size.x, size.y) / 2.0
+			diamond.polygon = PackedVector2Array([Vector2(0, -s), Vector2(s, 0), Vector2(0, s), Vector2(-s, 0)])
+			diamond.color = color
+			container.add_child(diamond)
+
+		"exclamation":
+			var vbox := VBoxContainer.new()
+			vbox.custom_minimum_size = size
+			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+			var exclaim := Label.new()
+			exclaim.text = "!"
+			exclaim.add_theme_font_size_override("font_size", int(size.y * 0.8))
+			exclaim.add_theme_color_override("font_color", color)
+			exclaim.add_theme_constant_override("outline_size", 2)
+			exclaim.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+			exclaim.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			vbox.add_child(exclaim)
+			container.add_child(vbox)
+
+		"star":
+			var star := Polygon2D.new()
+			var s = min(size.x, size.y) / 2.0
+			var points = PackedVector2Array()
+			for i in range(10):
+				var angle = deg_to_rad(i * 36 - 90)
+				var r = s if i % 2 == 0 else s * 0.4
+				points.append(Vector2(cos(angle) * r, sin(angle) * r))
+			star.polygon = points
+			star.color = color
+			container.add_child(star)
+
+		"coin":
+			var circle := TextureRect.new()
+			circle.custom_minimum_size = size
+			circle.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			circle.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var img := Image.create(int(size.x), int(size.y), false, Image.FORMAT_RGBA8)
+			var center = Vector2(size.x / 2.0, size.y / 2.0)
+			var radius = min(size.x, size.y) / 2.0
+			for x in range(int(size.x)):
+				for y in range(int(size.y)):
+					if Vector2(x, y).distance_to(center) <= radius:
+						img.set_pixel(x, y, color)
+					else:
+						img.set_pixel(x, y, Color(0, 0, 0, 0))
+			circle.texture = ImageTexture.create_from_image(img)
+			container.add_child(circle)
+
+			var dollar := Label.new()
+			dollar.text = "$"
+			dollar.custom_minimum_size = size
+			dollar.add_theme_font_size_override("font_size", int(size.y * 0.7))
+			dollar.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
+			dollar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			dollar.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			container.add_child(dollar)
+
+"flag":
+ 			var vbox := VBoxContainer.new()
+ 			vbox.custom_minimum_size = size
+ 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+ 			var flag := Label.new()
+ 			flag.text = "W"
+ 			flag.add_theme_font_size_override("font_size", int(size.y * 0.9))
+ 			flag.add_theme_color_override("font_color", color)
+ 			flag.add_theme_constant_override("outline_size", 2)
+ 			flag.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+ 			flag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+ 			vbox.add_child(flag)
+ 			container.add_child(vbox)
+
+		"pulse":
+			var pulse := TextureRect.new()
+			pulse.custom_minimum_size = size
+			pulse.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pulse.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var img := Image.create(int(size.x), int(size.y), false, Image.FORMAT_RGBA8)
+			var center = Vector2(size.x / 2.0, size.y / 2.0)
+			var radius = min(size.x, size.y) / 2.0
+			for x in range(int(size.x)):
+				for y in range(int(size.y)):
+					var d = Vector2(x, y).distance_to(center)
+					if d <= radius:
+						var alpha = 1.0 - (d / radius)
+						img.set_pixel(x, y, Color(color.r, color.g, color.b, alpha))
+					else:
+						img.set_pixel(x, y, Color(0, 0, 0, 0))
+			pulse.texture = ImageTexture.create_from_image(img)
+			container.add_child(pulse)
+
+			# Respect reduce motion setting
+			if not UIStyles.is_reduce_motion_enabled():
+				var tween = container.create_tween()
+				tween.set_loops()
+				tween.tween_property(pulse, "modulate:a", 0.3, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+				tween.tween_property(pulse, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+		_:
+			var circle := TextureRect.new()
+			circle.custom_minimum_size = size
+			circle.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			circle.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var img := Image.create(int(size.x), int(size.y), false, Image.FORMAT_RGBA8)
+			var center = Vector2(size.x / 2.0, size.y / 2.0)
+			var radius = min(size.x, size.y) / 2.0
+			for x in range(int(size.x)):
+				for y in range(int(size.y)):
+					if Vector2(x, y).distance_to(center) <= radius:
+						img.set_pixel(x, y, color)
+					else:
+						img.set_pixel(x, y, Color(0, 0, 0, 0))
+			circle.texture = ImageTexture.create_from_image(img)
+			container.add_child(circle)
+
+	if label != "":
+		var lbl := Label.new()
+		lbl.text = label
+		lbl.custom_minimum_size = Vector2(100, 16)
+		lbl.offset_top = size.y + 2
+		lbl.add_theme_font_size_override("font_size", 8)
+		lbl.add_theme_color_override("font_color", color)
+		lbl.add_theme_constant_override("outline_size", 1)
+		lbl.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		container.add_child(lbl)
+
+	return container
 
 func remove_marker(entity_id: String) -> void:
 	if not _entity_markers.has(entity_id):
@@ -229,47 +758,90 @@ func update_marker_position(entity_id: String, position: Vector3) -> void:
 	_entity_markers[entity_id].position = position
 
 func set_zoom(level: float) -> void:
-	_zoom_level = clampf(level, 0.5, 4.0)
+	# Snap to nearest discrete zoom level
+	var closest_index := 0
+	var closest_diff := abs(ZOOM_LEVELS[0] - level)
+	for i in range(1, ZOOM_LEVELS.size()):
+		var diff := abs(ZOOM_LEVELS[i] - level)
+		if diff < closest_diff:
+			closest_diff = diff
+			closest_index = i
+	_zoom_index = closest_index
+	_zoom_level = ZOOM_LEVELS[_zoom_index]
+	if _zoom_slider:
+		_zoom_slider.value = _zoom_index
+	_update_marker_positions()
 
 func get_zoom() -> float:
 	return _zoom_level
 
-func toggle_players() -> void:
-	_show_players = not _show_players
+func toggle_party() -> void:
+	_show_party = not _show_party
+	_update_layer_button("party", _show_party)
 	_update_visible_markers()
 
 func toggle_npcs() -> void:
 	_show_npcs = not _show_npcs
-	_update_visible_markers()
-
-func toggle_quests() -> void:
-	_show_quests = not _show_quests
+	_update_layer_button("npcs", _show_npcs)
 	_update_visible_markers()
 
 func toggle_enemies() -> void:
 	_show_enemies = not _show_enemies
+	_update_layer_button("enemies", _show_enemies)
 	_update_visible_markers()
-	GameLog.debug("Minimap: Enemies visibility = %s" % _show_enemies)
+
+func toggle_quests() -> void:
+	_show_quests = not _show_quests
+	_update_layer_button("quests", _show_quests)
+	_update_visible_markers()
+
+func toggle_pois() -> void:
+	_show_pois = not _show_pois
+	_update_layer_button("pois", _show_pois)
+	_update_visible_markers()
+
+func toggle_vendors() -> void:
+	_show_vendors = not _show_vendors
+	_update_layer_button("vendors", _show_vendors)
+	_update_visible_markers()
 
 func toggle_waypoints() -> void:
 	_show_waypoints = not _show_waypoints
+	_update_layer_button("waypoints", _show_waypoints)
 	_update_visible_markers()
-	GameLog.debug("Minimap: Waypoints visibility = %s" % _show_waypoints)
 
-func set_markers_visible(players: bool, npcs: bool, quests: bool, enemies: bool = true, waypoints: bool = true) -> void:
-	_show_players = players
+func _update_layer_button(key: String, pressed: bool) -> void:
+	var btn: Button = _layer_toggle_container.get_node_or_null("Toggle_%s" % key)
+	if btn:
+		btn.button_pressed = pressed
+
+func set_markers_visible(party: bool, npcs: bool, enemies: bool, quests: bool, pois: bool, vendors: bool, waypoints: bool) -> void:
+	_show_party = party
 	_show_npcs = npcs
-	_show_quests = quests
 	_show_enemies = enemies
+	_show_quests = quests
+	_show_pois = pois
+	_show_vendors = vendors
 	_show_waypoints = waypoints
+
+	_update_layer_button("party", party)
+	_update_layer_button("npcs", npcs)
+	_update_layer_button("enemies", enemies)
+	_update_layer_button("quests", quests)
+	_update_layer_button("pois", pois)
+	_update_layer_button("vendors", vendors)
+	_update_layer_button("waypoints", waypoints)
+
 	_update_visible_markers()
 
 func get_visible_markers() -> Dictionary:
 	return {
-		"players": _show_players,
+		"party": _show_party,
 		"npcs": _show_npcs,
-		"quests": _show_quests,
 		"enemies": _show_enemies,
+		"quests": _show_quests,
+		"pois": _show_pois,
+		"vendors": _show_vendors,
 		"waypoints": _show_waypoints
 	}
 
@@ -279,14 +851,37 @@ func _update_visible_markers() -> void:
 		var marker_type: int = data.get("type", 0)
 		var marker: Control = data.get("marker")
 
-		# Default to visible, then check toggles
+		if not marker or not is_instance_valid(marker):
+			continue
+
 		marker.visible = true
 
 		match marker_type:
-			1: marker.visible = _show_players     # Players
-			2: marker.visible = _show_npcs       # NPCs
-			3: marker.visible = _show_quests    # Quests
-			4: marker.visible = _show_enemies   # Enemies
-			# Waypoint colors (10-17)
-			10, 11, 12, 13, 14, 15, 16, 17:
-				marker.visible = _show_waypoints
+			MARKER_PARTY: marker.visible = _show_party
+			MARKER_NPC: marker.visible = _show_npcs
+			MARKER_ENEMY: marker.visible = _show_enemies
+			MARKER_QUEST: marker.visible = _show_quests
+			MARKER_POI: marker.visible = _show_pois
+			MARKER_VENDOR: marker.visible = _show_vendors
+			MARKER_WAYPOINT: marker.visible = _show_waypoints
+			MARKER_PING: marker.visible = true
+
+func add_ping(position: Vector3, duration: float = 5.0) -> void:
+	var ping_id = "ping_%d" % Time.get_ticks_msec()
+	add_marker(ping_id, position, MARKER_PING, "")
+
+	var ping_marker = _entity_markers[ping_id].marker
+	if ping_marker:
+		var tween = ping_marker.create_tween()
+		tween.tween_interval(duration)
+		tween.tween_callback(func(): remove_marker(ping_id))
+		
+		# Pulse animation for ping (respect reduce motion)
+		if not UIStyles.is_reduce_motion_enabled():
+			var pulse_tween = ping_marker.create_tween()
+			pulse_tween.set_loops()
+			pulse_tween.tween_property(ping_marker, "modulate:a", 0.3, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			pulse_tween.tween_property(ping_marker, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func set_time_of_day(hour: int, minute: int) -> void:
+	_on_time_changed(hour, minute)
