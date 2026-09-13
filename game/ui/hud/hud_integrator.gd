@@ -53,7 +53,14 @@ func bind(hud: CanvasLayer) -> void:
 
 
 func _find(node_name: String) -> Node:
-	return _hud.get_node_or_null(node_name) if _hud else null
+	if not _hud:
+		return null
+	var node: Node = _hud.get_node_or_null(node_name)
+	if node:
+		return node
+	if _mm:
+		return _mm.get_node_or_null(node_name)
+	return null
 
 
 func _connect_all() -> void:
