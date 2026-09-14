@@ -10,7 +10,8 @@ enum Platform {
 	AUTO = 0,
 	DESKTOP = 1,
 	MOBILE = 2,
-	GAMEPAD = 3
+	WEB = 3,
+	GAMEPAD = 4
 }
 
 enum InteractionType {
@@ -82,10 +83,15 @@ func _process_input(event: InputEvent) -> void:
 		_handle_keyboard_action(event)
 
 func _detect_platform() -> void:
-	var display_size := DisplayServer.window_get_size()
-
-	# Force Desktop mode (Docker/Xvfb doesn't handle touch events well)
-	_current_platform = Platform.DESKTOP
+	if OS.has_feature("web"):
+		_current_platform = Platform.WEB
+		_is_mobile = true
+	elif OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"]:
+		_current_platform = Platform.MOBILE
+		_is_mobile = true
+	else:
+		_current_platform = Platform.DESKTOP
+		_is_mobile = false
 
 	platform_changed.emit(_current_platform)
 
@@ -93,6 +99,7 @@ func _get_platform_name() -> String:
 	match _current_platform:
 		Platform.DESKTOP: return "Desktop"
 		Platform.MOBILE: return "Mobile"
+		Platform.WEB: return "Web"
 		Platform.GAMEPAD: return "Gamepad"
 		_: return "Auto"
 
@@ -210,7 +217,7 @@ func is_touching() -> bool:
 
 func get_interaction_mode() -> String:
 	match _current_platform:
-		Platform.MOBILE: return "touch"
+		Platform.MOBILE, Platform.WEB: return "touch"
 		Platform.GAMEPAD: return "gamepad"
 		_: return "mouse"
 

@@ -9,11 +9,15 @@ class SynmergiaInput {
 		this.readPos = 0;
 		this.canvas = null;
 		this._boundHandlers = {};
+		this._gamepads = new Map(); // index -> gamepad
+		this._gamepadPollId = null;
+		this._lastGamepadState = new Map(); // index -> {buttons: [], axes: []}
 	}
 
 	init(canvas) {
 		this.canvas = canvas;
 		this._bindEvents();
+		this._startGamepadPolling();
 	}
 
 	_bindEvents() {
@@ -36,6 +40,66 @@ class SynmergiaInput {
 
 		// Resize
 		window.addEventListener('resize', () => this._handleResize());
+
+		// Gamepad events
+		window.addEventListener('gamepadconnected', (e) => this._handleGamepadConnected(e));
+		window.addEventListener('gamepaddisconnected', (e) => this._handleGamepadDisconnected(e));
+	}
+
+	_startGamepadPolling() {
+		const poll = () => {
+			this._pollGamepads();
+			this._gamepadPollId = requestAnimationFrame(poll);
+		};
+		this._gamepadPollId = requestAnimationFrame(poll);
+	}
+
+	_pollGamepads() {
+		const gamepads = navigator.getGamepads();
+		for (let i = 0; i < gamepads.length; i++) {
+			const gp = gamepads[i];
+			if (!gp) continue;
+
+			const lastState = this._lastGamepadState.get(i) || { buttons: [], axes: [] };
+			const currentButtons = gp.buttons.map(b => b.pressed ? 1 : 0);
+			const currentAxes = Array.from(gp.axes);
+
+			// Check button changes
+			for (let btn = 0; btn < currentButtons.length; btn++) {
+				const lastPressed = lastState.buttons[btn] || 0;
+				const currentPressed = currentButtons[btn];
+				if (lastPressed !== currentPressed) {
+					this._enqueue(11, i, btn, currentPressed); // 11 = gamepad_button
+				}
+			}
+
+			// Check axis changes (with deadzone)
+			const deadzone = 0.1;
+			for (let axis = 0; axis < currentAxes.length; axis++) {
+				const lastVal = lastState.axes[axis] || 0;
+				const currentVal = currentAxes[axis];
+				if (Math.abs(currentVal - lastVal) > deadzone) {
+					// Scale to int16 range for precision
+					this._enqueue(12, i, axis, Math.round(currentVal * 32767)); // 12 = gamepad_axis
+				}
+			}
+
+			this._lastGamepadState.set(i, { buttons: currentButtons, axes: currentAxes });
+		}
+	}
+
+	_handleGamepadConnected(e) {
+		const gp = e.gamepad;
+		this._gamepads.set(gp.index, gp);
+		this._lastGamepadState.set(gp.index, { buttons: [], axes: [] });
+		console.log(`Gamepad connected: ${gp.id} (index ${gp.index})`);
+	}
+
+	_handleGamepadDisconnected(e) {
+		const gp = e.gamepad;
+		this._gamepads.delete(gp.index);
+		this._lastGamepadState.delete(gp.index);
+		console.log(`Gamepad disconnected: ${gp.id} (index ${gp.index})`);
 	}
 
 	_handleMouseDown(e) {

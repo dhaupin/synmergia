@@ -93,6 +93,19 @@ func _convert_event(evt: Dictionary) -> InputEvent:
 			if vp:
 				vp.size = Vector2i(x, y)
 			return null
+		11:  # gamepad_button: x=device_index, y=button_index, data=pressed(1/0)
+			var e := InputEventJoypadButton.new()
+			e.device = x
+			e.button_index = y
+			e.pressed = bool(data)
+			e.pressure = 1.0 if data else 0.0
+			return e
+		12:  # gamepad_axis: x=device_index, y=axis_index, data=value(-32768..32767)
+			var e := InputEventJoypadMotion.new()
+			e.device = x
+			e.axis = y
+			e.axis_value = data / 32767.0
+			return e
 	return null
 
 static func _map_mouse_button(button: int) -> int:
@@ -108,6 +121,7 @@ static func _map_mouse_button(button: int) -> int:
 
 static func _map_keycode(keycode: int) -> int:
 	# JS keyCode values mapped to Godot physical keycodes
+	# Uses e.code where possible (keyCode is deprecated)
 	match keycode:
 		8: return KEY_BACKSPACE
 		9: return KEY_TAB
@@ -115,6 +129,8 @@ static func _map_keycode(keycode: int) -> int:
 		16: return KEY_SHIFT
 		17: return KEY_CTRL
 		18: return KEY_ALT
+		19: return KEY_PAUSE
+		20: return KEY_CAPSLOCK
 		27: return KEY_ESCAPE
 		32: return KEY_SPACE
 		33: return KEY_PAGEUP
@@ -125,6 +141,7 @@ static func _map_keycode(keycode: int) -> int:
 		38: return KEY_UP
 		39: return KEY_RIGHT
 		40: return KEY_DOWN
+		44: return KEY_PRINT
 		45: return KEY_INSERT
 		46: return KEY_DELETE
 		48: return KEY_0
@@ -163,6 +180,9 @@ static func _map_keycode(keycode: int) -> int:
 		88: return KEY_X
 		89: return KEY_Y
 		90: return KEY_Z
+		91: return KEY_META
+		92: return KEY_META
+		93: return KEY_CONTEXT_MENU
 		96: return KEY_KP_0
 		97: return KEY_KP_1
 		98: return KEY_KP_2
@@ -175,6 +195,7 @@ static func _map_keycode(keycode: int) -> int:
 		105: return KEY_KP_9
 		106: return KEY_KP_MULTIPLY
 		107: return KEY_KP_ADD
+		108: return KEY_KP_ENTER
 		109: return KEY_KP_SUBTRACT
 		110: return KEY_KP_DECIMAL
 		111: return KEY_KP_DIVIDE
@@ -190,5 +211,42 @@ static func _map_keycode(keycode: int) -> int:
 		121: return KEY_F10
 		122: return KEY_F11
 		123: return KEY_F12
+		124: return KEY_F13
+		125: return KEY_F14
+		126: return KEY_F15
+		127: return KEY_F16
+		128: return KEY_F17
+		129: return KEY_F18
+		130: return KEY_F19
+		131: return KEY_F20
+		132: return KEY_F21
+		133: return KEY_F22
+		134: return KEY_F23
+		135: return KEY_F24
+		136: return KEY_F25
+		137: return KEY_F26
+		138: return KEY_F27
+		139: return KEY_F28
+		140: return KEY_F29
+		141: return KEY_F30
+		142: return KEY_F31
+		143: return KEY_F32
 		144: return KEY_NUMLOCK
+		145: return KEY_SCROLLLOCK
+		160: return KEY_SHIFT
+		161: return KEY_SHIFT
+		162: return KEY_CTRL
+		163: return KEY_CTRL
+		164: return KEY_ALT
+		165: return KEY_ALT
+		173: return KEY_VOLUME_MUTE
+		174: return KEY_VOLUME_DOWN
+		175: return KEY_VOLUME_UP
+		176: return KEY_MEDIA_NEXT
+		177: return KEY_MEDIA_PREV
+		178: return KEY_MEDIA_STOP
+		179: return KEY_MEDIA_PLAY
+		181: return KEY_VOLUME_UP
+		182: return KEY_VOLUME_DOWN
+		183: return KEY_MEDIA_PLAY
 	return keycode
