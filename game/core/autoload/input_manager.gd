@@ -33,19 +33,17 @@ var _controller_last_used: float = 0.0
 var _controller_left_stick: Vector2 = Vector2.ZERO
 var _controller_right_stick: Vector2 = Vector2.ZERO
 
-## Touch state
-var _touch_active: bool = false
-var _touch_positions: Dictionary = {}
-var _joystick_center: Vector2 = Vector2.ZERO
+## Touch state (legacy - now handled by VirtualJoystick)
+var _joystick_active: bool = false
 var _joystick_offset: Vector2 = Vector2.ZERO
 var _joystick_max_radius: float = 60.0
-var _joystick_touch_id: int = -1
-
-## Camera touch state
 var _camera_touch_id: int = -1
 var _camera_last_pos: Vector2 = Vector2.ZERO
 var _camera_sensitivity: float = 0.5
 var _camera_move: Vector2 = Vector2.ZERO
+
+## VirtualJoystick component
+var _virtual_joystick: VirtualJoystick = null
 
 ## Touch zones (normalized 0-1)
 const LEFT_ZONE := Rect2(0.0, 0.3, 0.35, 0.7)
@@ -114,6 +112,10 @@ func _ready() -> void:
 	_check_controller()
 	_setup_input_actions()
 	camera_move.connect(_on_camera_move)
+	
+	if _is_mobile or _input_mode == InputMode.TOUCH:
+		_create_virtual_joystick()
+	
 	GameLog.info("InputManager: Mode=", _input_mode, " Mobile=", _is_mobile, " Desktop=", _is_desktop)
 
 func _detect_platform() -> void:
@@ -154,6 +156,32 @@ func _check_controller() -> void:
 		_controller_id = i
 		controller_connected.emit()
 		break
+
+func _create_virtual_joystick() -> void:
+	if _virtual_joystick:
+		return
+	
+	_virtual_joystick = VirtualJoystick.new()
+	add_child(_virtual_joystick)
+	_virtual_joystick.joystick_moved.connect(_on_virtual_joystick_moved)
+	_virtual_joystick.joystick_released.connect(_on_virtual_joystick_released)
+	_virtual_joystick.button_pressed.connect(_on_virtual_button_pressed)
+	_virtual_joystick.button_released.connect(_on_virtual_button_released)
+	_virtual_joystick.show_joystick()
+
+func _on_virtual_joystick_moved(offset: Vector2, normalized: Vector2) -> void:
+	_joystick_active = true
+	_joystick_offset = offset
+
+func _on_virtual_joystick_released() -> void:
+	_joystick_active = false
+	_joystick_offset = Vector2.ZERO
+
+func _on_virtual_button_pressed(action: String) -> void:
+	player_input.emit(action, true)
+
+func _on_virtual_button_released(action: String) -> void:
+	player_input.emit(action, false)
 
 func _input(event: InputEvent) -> void:
 	_detect_input_type(event)
@@ -204,7 +232,9 @@ func _handle_event(event: InputEvent) -> void:
 		InputMode.KEYBOARD_MOUSE:
 			_handle_keyboard_mouse(event)
 		InputMode.TOUCH:
-			_handle_touch(event)
+			# Touch events are now handled by VirtualJoystick component
+			# We still need to handle camera touch on right zone
+			_handle_touch_camera(event)
 		InputMode.CONTROLLER:
 			_handle_controller(event)
 
@@ -227,55 +257,25 @@ func _handle_keyboard_mouse(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			player_input.emit("target_next", true)
 
-func _handle_touch(event: InputEvent) -> void:
+func _handle_touch_camera(event: InputEvent) -> void:
+	# Handle camera touch on right zone only
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			_process_touch_start(event)
+			var pos = event.position
+			var screen_size = get_viewport().get_visible_rect().size
+			var normalized = pos / screen_size
+			if RIGHT_ZONE.has_point(normalized):
+				_camera_touch_id = event.index
+				_camera_last_pos = pos
 		else:
-			_process_touch_end(event)
+			if event.index == _camera_touch_id:
+				_camera_touch_id = -1
+				_camera_last_pos = Vector2.ZERO
 	elif event is InputEventScreenDrag:
-		_process_touch_drag(event)
-
-func _process_touch_start(event: InputEventScreenTouch) -> void:
-	_touch_active = true
-	var pos := event.position
-	var screen_size := get_viewport().get_visible_rect().size
-	var normalized := pos / screen_size
-
-	if LEFT_ZONE.has_point(normalized):
-		_joystick_active = true
-		_joystick_center = pos
-		_joystick_touch_id = event.index
-	elif RIGHT_ZONE.has_point(normalized):
-		_camera_touch_id = event.index
-		_camera_last_pos = pos
-	else:
-		# UI tap - let UI handle it
-		pass
-
-var _joystick_active: bool = false
-
-func _process_touch_end(event: InputEventScreenTouch) -> void:
-	if event.index == _joystick_touch_id:
-		_joystick_active = false
-		_joystick_offset = Vector2.ZERO
-		_joystick_touch_id = -1
-	if event.index == _camera_touch_id:
-		_camera_touch_id = -1
-		_camera_last_pos = Vector2.ZERO
-	_touch_active = false
-
-func _process_touch_drag(event: InputEventScreenDrag) -> void:
-	if event.index == _joystick_touch_id and _joystick_active:
-		_joystick_offset = event.position - _joystick_center
-		# Clamp to max radius
-		var dist := _joystick_offset.length()
-		if dist > _joystick_max_radius:
-			_joystick_offset = _joystick_offset.normalized() * _joystick_max_radius
-	if event.index == _camera_touch_id:
-		var relative := (event.position - _camera_last_pos) * _camera_sensitivity
-		_camera_last_pos = event.position
-		camera_move.emit(relative)
+		if event.index == _camera_touch_id:
+			var relative = (event.position - _camera_last_pos) * _camera_sensitivity
+			_camera_last_pos = event.position
+			camera_move.emit(relative)
 
 func _handle_controller(event: InputEvent) -> void:
 	if event is InputEventJoypadButton and event.pressed:
@@ -329,6 +329,9 @@ func _get_controller_action(button: int) -> String:
 			return action
 	return ""
 
+func _on_camera_move(relative: Vector2) -> void:
+	_camera_move = relative
+
 ## ============================================================================
 ## PUBLIC API
 ## ============================================================================
@@ -373,9 +376,6 @@ func get_movement_input() -> Vector2:
 
 	return input.normalized()
 
-func _on_camera_move(relative: Vector2) -> void:
-	_camera_move = relative
-
 func get_camera_input() -> Vector2:
 	if _input_mode == InputMode.CONTROLLER:
 		return _controller_right_stick
@@ -393,6 +393,13 @@ func get_joystick_position() -> Vector2:
 
 func is_joystick_active() -> bool:
 	return _joystick_active
+
+func set_touch_ui_visible(visible: bool) -> void:
+	if _virtual_joystick:
+		if visible:
+			_virtual_joystick.show_joystick()
+		else:
+			_virtual_joystick.hide_joystick()
 
 func rebind_key(action: String, key_code: int) -> bool:
 	if not _keybindings.has(action):

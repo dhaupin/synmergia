@@ -26,7 +26,6 @@
 	</div>
 	<script src="/config.js"></script>
 	<script src="/shared/input.js"></script>
-	<script src="/shared/touch_ui.js"></script>
 	<script src="/shared/network.js"></script>
 	<script src="/game.js"></script>
 	<script>
@@ -37,7 +36,6 @@
 		var errorText = document.getElementById('error-text');
 
 		SynmergiaInput.init(canvas);
-		SynmergiaTouchUI.init(canvas);
 		SynmergiaNetwork.init(window.SynmergiaConfig.serverUrl);
 
 		function onGodotReady(engine) {
