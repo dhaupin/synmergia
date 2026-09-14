@@ -36,6 +36,9 @@ import { WorldMapModal } from './components/WorldMapModal';
 import { ChatBox } from './components/ChatBox';
 import { AchievementsModal } from './components/AchievementsModal';
 import { VirtualJoystick } from './components/VirtualJoystick';
+import { PortalHeader, PortalMode } from './components/PortalHeader';
+import { GodotClientView } from './components/wasm/GodotClientView';
+import { AdminDashboardView } from './components/admin/AdminDashboardView';
 
 const SAVE_KEY = 'synmergia_save_v1';
 
@@ -136,6 +139,13 @@ const createDefaultCharacter = (): PlayerCharacter => ({
 });
 
 export default function App() {
+  const [portalMode, setPortalMode] = useState<PortalMode>('companion');
+  const [crossOriginIsolated, setCrossOriginIsolated] = useState<boolean>(false);
+
+  useEffect(() => {
+    setCrossOriginIsolated(typeof window !== 'undefined' && Boolean(window.crossOriginIsolated));
+  }, []);
+
   // --- Persistent State Initialization ---
   const [player, setPlayer] = useState<PlayerCharacter>(() => {
     try {
@@ -1154,9 +1164,29 @@ export default function App() {
   return (
     <div
       id="synmergia-root"
-      className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none"
+      className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none flex flex-col"
     >
-      {/* 1. Main Interactive 2D World Canvas */}
+      {/* Top Multi-Mode Portal Header */}
+      <PortalHeader
+        currentMode={portalMode}
+        onSelectMode={setPortalMode}
+        crossOriginIsolated={crossOriginIsolated}
+        activePlayerCount={42}
+        serverTickRate={20}
+      />
+
+      {/* Mode 1: Godot WASM Web Client */}
+      {portalMode === 'wasm' && (
+        <GodotClientView onSwitchToCompanion={() => setPortalMode('companion')} />
+      )}
+
+      {/* Mode 2: Admin & Ops Dashboard */}
+      {portalMode === 'admin' && <AdminDashboardView />}
+
+      {/* Mode 3: 2D Companion RPG Client */}
+      {portalMode === 'companion' && (
+        <div className="relative flex-1 w-full h-full overflow-hidden">
+          {/* 1. Main Interactive 2D World Canvas */}
       <GameCanvas
         player={player}
         enemies={enemies}
@@ -1270,6 +1300,8 @@ export default function App() {
         unlockedIds={player.unlockedAchievements}
         onClose={() => setIsAchievementsOpen(false)}
       />
+        </div>
+      )}
     </div>
   );
 }

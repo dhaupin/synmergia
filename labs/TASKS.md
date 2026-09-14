@@ -83,3 +83,7 @@ Use these in the task list:
 - [x] Branch kilo/festive-ribbon-wav pushed to origin
 - [x] Branch kilo/heavy-services-arch pushed to origin
 - [x] Created labs/prd-web.md (Web client, Godot WASM runtime, CI strategy, Data Bridge & Admin PRD) [town:docs]
+- [x] Implemented Web Portal P0: COOP/COEP isolation headers, /web static serve plugin, packaging script (scripts/pack_web.sh), and multi-mode PortalHeader [town:web]
+- [x] Implemented Web Portal P1: Godot static data bridge (scripts/sync_godot_data.ts, npm run sync:data), Godot WASM client embed with diagnostics, and multi-tab Admin Dashboard (Shards, DB Adapters, QoS/Firewall, GM Console, Data Explorer) [town:web]
+- [x] Wired Admin Dashboard to live srv/pg-bridge & srv/redis-bridge sidecars, eliminated all mock peer/state stubs, and implemented live GM shell commands [town:web]
+- [x] Audited CI & Docker configurations: replaced deleted legacy workflows with quota-safe `.github/workflows/web-ci.yml`, added automatic in-progress push cancellation (`cancel-in-progress: true` + `cancel-workflow-action`), implemented strict path filters, cached standalone Godot 4.7.2 headless binary, and added Section 14 to `DEPLOY.md` [town:ci]

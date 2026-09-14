@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
-    "build": "tsc && vite build",
+    "sync:data": "tsx scripts/sync_godot_data.ts",
+    "build": "npm run sync:data && tsc && vite build",
+    "build:web": "npm run sync:data && tsc && vite build",
     "lint": "tsc --noEmit",
     "preview": "vite preview --port 3000"
   },
@@ -23,6 +25,7 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.9",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.3",
     "vite": "^6.2.0"
   }

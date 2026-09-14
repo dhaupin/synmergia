@@ -180,6 +180,15 @@ if [[ "$START_MODE" == "headless" ]]; then
     exit 0
 fi
 
+# ── TEST MODE ──────────────────────────────────────────────────────────────
+# Headless syntax validation and unit check for local docker testing
+if [[ "$START_MODE" == "test" ]]; then
+    log "Mode: TEST — running Godot headless check"
+    godot --headless --path /workspace/project/game --check-only
+    log "Validation complete."
+    exit 0
+fi
+
 # ── Unknown mode ────────────────────────────────────────────────────────────
 log "Unknown START_MODE='$START_MODE'"
 log "Valid modes: dev, prod, headless, test"

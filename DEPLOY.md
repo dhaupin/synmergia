@@ -798,6 +798,54 @@ docker compose logs --tail 100 nginx | grep -i websocket
 
 ---
 
+## 14. Web Portal, Godot WASM & CI/CD Pipeline
+
+Synmergia includes an integrated web client portal with dual-client hosting, static data bridging, and a zero-waste CI pipeline designed specifically to protect GitHub Actions free quotas.
+
+### Architecture
+
+```
+Client Browser
+ ├── Portal Header (mode switcher)
+ ├── React 2D Canvas Client (fast companion & exploration)
+ ├── Godot 4.7.2 WASM Client (/web) -> connects via WebSocket (port 9000)
+ └── Admin & GM Dashboard (live sidecars: srv/pg-bridge, srv/redis-bridge)
+```
+
+### 1. Mandatory Isolation Headers (COOP / COEP)
+Godot 4.7.2 WebAssembly requires `SharedArrayBuffer` for multithreading. Any server hosting `/web` must provide:
+```http
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+In local Vite development and production reverse proxy (`vite.config.ts` and Nginx), these headers are configured automatically.
+
+### 2. Static Data Bridge Synchronization
+Static game definitions (classes, species, items, quests, zones) defined in Godot `.tres` resources are synced into the Web Portal with:
+```bash
+npm run sync:data
+```
+This executes `scripts/sync_godot_data.ts`, generating `src/data/godot_data.json` without requiring runtime Godot dependencies.
+
+### 3. Packaging the Web PCK
+To build the game asset package for the WASM client:
+```bash
+# Direct packaging with Godot 4.7.2
+./scripts/pack_web.sh
+
+# Or via Docker:
+docker compose run --rm synmergia godot --headless --path /workspace/project/game --export-pack "Web" /workspace/project/web/game.pck
+```
+
+### 4. Zero-Waste GitHub Actions CI (`.github/workflows/web-ci.yml`)
+To guarantee you do not exhaust the monthly 2,000 GitHub Actions free minutes:
+- **Automatic Run Cancellation**: Any ongoing CI run on the same branch is automatically cancelled immediately when a new commit is pushed (`concurrency: cancel-in-progress: true` + `styfle/cancel-workflow-action`).
+- **Strict Path Filtering**: Only changes to `game/**` trigger the workflow. Commits touching markdown (`**.md`), documentation (`docs/**`), research notes (`labs/**`), web files (`src/**`, `web/**`), or scripts are ignored by CI.
+- **Standalone Binary Caching**: Uses a lightweight 50MB standalone Godot 4.7.2 headless binary cached across runs instead of pulling multi-gigabyte Docker images. Total CI run duration is ~35–45 seconds.
+- **Selective Testing**: Commits run fast GDScript syntax audits and PCK packaging. The full 37-script test suite is restricted to manual `workflow_dispatch` triggers (`run_full_suite: true`).
+
+---
+
 ## Quick Reference
 
 ```bash

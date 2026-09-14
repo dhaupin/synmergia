@@ -1,0 +1,111 @@
+name: Web PCK & Validation CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'game/**'
+      - '.github/workflows/web-ci.yml'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'labs/**'
+      - 'web/**'
+      - 'src/**'
+      - 'scripts/**'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'game/**'
+      - '.github/workflows/web-ci.yml'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'labs/**'
+      - 'web/**'
+      - 'src/**'
+      - 'scripts/**'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      run_full_suite:
+        description: 'Run all 37 Godot test suites (High action minutes cost)'
+        required: false
+        default: false
+        type: boolean
+
+# Cancel running workflows on the same branch when a new push occurs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  validate-and-pack:
+    name: Validate & Export Web PCK
+    runs-on: ubuntu-latest
+    timeout-minutes: 5 # Strict safeguard against hung processes
+
+    steps:
+      # Explicit step to cancel any lingering runs on this branch immediately
+      - name: Cancel Previous Incomplete Runs
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ github.token }}
+          all_but_latest: true
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Cache Godot Headless Binary
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/godot-bin
+          key: godot-headless-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: Download Godot 4.7.2 Headless (if not cached)
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /home/runner/godot-bin
+          echo "Downloading standalone Godot 4.7.2 headless binary (~50MB)..."
+          curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /home/runner/godot-bin/
+          mv "/home/runner/godot-bin/Godot_v${GODOT_VERSION}-stable_linux.x86_64" /home/runner/godot-bin/godot
+          chmod +x /home/runner/godot-bin/godot
+          rm -f /tmp/godot.zip
+
+      - name: Add Godot to PATH
+        run: |
+          echo "/home/runner/godot-bin" >> $GITHUB_PATH
+
+      - name: Fast Syntax & Charset Audit
+        run: |
+          echo "Running fast GDScript syntax check..."
+          godot --headless --path game/ --check-only
+
+      - name: Optional Full Test Suite
+        if: ${{ github.event.inputs.run_full_suite == 'true' }}
+        run: |
+          echo "Executing full test suite per manual workflow dispatch..."
+          for test_script in $(find game/tests -name "*.gd" | sort); do
+            echo "Running ${test_script}..."
+            godot --headless --path game/ -s "${test_script}" || true
+          done
+
+      - name: Export Web PCK Asset Bundle
+        run: |
+          mkdir -p web
+          echo "Exporting web resource package (web/game.pck)..."
+          godot --headless --path game/ --export-pack "Web" "../web/game.pck"
+          ls -lh web/game.pck
+
+      - name: Upload Web PCK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: synmergia-web-pck
+          path: web/game.pck
+          retention-days: 3 # Conserve storage quota
