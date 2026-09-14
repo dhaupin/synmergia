@@ -82,3 +82,4 @@ Use these in the task list:
 - [x] Bridge tests pass: pg-bridge 12/12, redis-bridge 20/20
 - [x] Branch kilo/festive-ribbon-wav pushed to origin
 - [x] Branch kilo/heavy-services-arch pushed to origin
+- [x] Created labs/prd-web.md (Web client, Godot WASM runtime, CI strategy, Data Bridge & Admin PRD) [town:docs]

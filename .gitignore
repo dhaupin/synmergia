@@ -10,6 +10,17 @@
 *.pck
 *.exe
 *.dll
+*.wasm
+
+# Whitelist web deployment exports
+!web/*.pck
+!web/*.wasm
+!web/*.js
+
+# Web frontend artifacts
+node_modules/
+dist/
+.vite/
 
 # OS
 .DS_Store

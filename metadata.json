@@ -1,0 +1,6 @@
+{
+  "name": "Synmergia",
+  "description": "Open-world browser MMORPG featuring real-time action combat, species & class progression, questing, and an interactive world.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
