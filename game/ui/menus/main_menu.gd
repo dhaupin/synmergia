@@ -30,14 +30,12 @@ func _apply_styles() -> void:
 func _on_play_pressed() -> void:
 	# print removed: print("[MENU] PlayButton pressed")
 	if DebugOverlay:
-		DebugOverlay.log_click("PlayButton", "goto_login", true)
-	# Send the player to login first; on success they land in the
-	# character lobby, which is the canonical entry point to the world.
+		DebugOverlay.log_click("PlayButton", "goto_character_select", true)
+	# Go directly to character select for both offline and online flow.
+	# CharacterSelect will handle account linking if coming from lobby,
+	# or create a new character for direct play.
 	if GameManager:
-		if LoginService and LoginService.is_logged_in():
-			GameManager.change_state(GameManager.GameState.LOBBY)
-		else:
-			GameManager.change_state(GameManager.GameState.LOGIN)
+		GameManager.change_state(GameManager.GameState.CHARACTER_SELECT)
 
 func _on_quit_pressed() -> void:
 	# print removed: print("Quit button pressed")

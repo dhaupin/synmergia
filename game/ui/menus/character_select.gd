@@ -87,8 +87,8 @@ func _on_play_pressed() -> void:
 
 	# If we got here from the lobby "Create New" button, link the new
 	# character to the current account and persist it; then go back to
-	# the lobby. If we got here from the legacy main-menu path, just
-	# jump straight into the world.
+	# the lobby. If we got here from the main menu path, go directly
+	# to playing.
 	var creating_for: String = GameManager.get_meta("creating_for_account", "") if GameManager else ""
 	if creating_for != "" and AccountService:
 		data.character_id = "%s_%d" % [creating_for, Time.get_ticks_msec()]
@@ -107,7 +107,9 @@ func _on_play_pressed() -> void:
 		GameManager.change_state(GameManager.GameState.LOBBY)
 		return
 
-	character_confirmed.emit(data)
+	# Direct play from main menu (offline/single-player flow)
+	GameManager.selected_character_data = data
+	GameManager.change_state(GameManager.GameState.PLAYING)
 
 # F5 = auto-select first species/class, F6 = play (for headless testing)
 func _input(event: InputEvent) -> void:
