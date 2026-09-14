@@ -1,8 +1,9 @@
 ## PlayerLockService - Reusable player locking system
-const DictStore = preload("res://adapters/persistence/dict_store.gd")
 ## Prevents player movement, skills, and other actions during locked states
 ## Used by: Trade, Mounts, Follow, Cinematics, Cutscenes, Dialogues, etc.
 extends Node
+
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Lock reasons enum
 enum LockReason {

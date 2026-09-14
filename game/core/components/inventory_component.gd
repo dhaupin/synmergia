@@ -63,7 +63,8 @@ func to_dict() -> Dictionary:
 	}
 
 static func from_dict(data: Dictionary) -> InventoryComponent:
-	var comp := InventoryComponent.new()
+	var InventoryComponentScript = preload("res://core/components/inventory_component.gd")
+	var comp: InventoryComponent = InventoryComponentScript.new()
 	comp._owner_id = data.get("owner_id", "")
 	comp._gold = int(data.get("gold", 0))
 	var inv_array: Array = data.get("inventory", [])
@@ -82,14 +83,17 @@ static func from_dict(data: Dictionary) -> InventoryComponent:
 			comp._equipment[slot] = Item.from_dict(item_data)
 	return comp
 
-## Add item to inventory
 func add_item(item: Item, quantity: int = 1) -> bool:
 	# Security: Check for item duplication exploit
 	if item and item.id != "":
-		var exploit_detected: bool = SecurityService.check_item_duplication(_owner_id, item.id, quantity)
-		if exploit_detected:
-			GameLog.warn("InventoryComponent: Item duplication detected for player %s" % _owner_id)
-			return false
+		var ss = get_node_or_null("/root/SecurityService")
+		if ss:
+			var exploit_detected: bool = ss.check_item_duplication(_owner_id, item.id, quantity)
+			if exploit_detected:
+				var gl = get_node_or_null("/root/GameLog")
+				if gl:
+					gl.warn("InventoryComponent: Item duplication detected for player %s" % _owner_id)
+				return false
 
 	# Try to stack first
 	if item.stack_size > 1:

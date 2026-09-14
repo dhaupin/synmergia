@@ -182,7 +182,7 @@ static func _map_keycode(keycode: int) -> int:
 		90: return KEY_Z
 		91: return KEY_META
 		92: return KEY_META
-		93: return KEY_CONTEXT_MENU
+		93: return KEY_MENU
 		96: return KEY_KP_0
 		97: return KEY_KP_1
 		98: return KEY_KP_2
@@ -197,7 +197,7 @@ static func _map_keycode(keycode: int) -> int:
 		107: return KEY_KP_ADD
 		108: return KEY_KP_ENTER
 		109: return KEY_KP_SUBTRACT
-		110: return KEY_KP_DECIMAL
+		110: return KEY_KP_PERIOD
 		111: return KEY_KP_DIVIDE
 		112: return KEY_F1
 		113: return KEY_F2
@@ -239,14 +239,14 @@ static func _map_keycode(keycode: int) -> int:
 		163: return KEY_CTRL
 		164: return KEY_ALT
 		165: return KEY_ALT
-		173: return KEY_VOLUME_MUTE
-		174: return KEY_VOLUME_DOWN
-		175: return KEY_VOLUME_UP
-		176: return KEY_MEDIA_NEXT
-		177: return KEY_MEDIA_PREV
-		178: return KEY_MEDIA_STOP
-		179: return KEY_MEDIA_PLAY
-		181: return KEY_VOLUME_UP
-		182: return KEY_VOLUME_DOWN
-		183: return KEY_MEDIA_PLAY
+		173: return keycode  # KEY_AUDIO_MUTE (not in Godot 4)
+		174: return keycode  # KEY_AUDIO_VOLUME_DOWN (not in Godot 4)
+		175: return keycode  # KEY_AUDIO_VOLUME_UP (not in Godot 4)
+		176: return keycode  # KEY_MEDIA_NEXT_TRACK (not in Godot 4)
+		177: return keycode  # KEY_MEDIA_PREV_TRACK (not in Godot 4)
+		178: return keycode  # KEY_MEDIA_STOP (not in Godot 4)
+		179: return keycode  # KEY_MEDIA_PLAY_PAUSE (not in Godot 4)
+		181: return keycode  # KEY_AUDIO_VOLUME_UP (not in Godot 4)
+		182: return keycode  # KEY_AUDIO_VOLUME_DOWN (not in Godot 4)
+		183: return keycode  # KEY_MEDIA_PLAY_PAUSE (not in Godot 4)
 	return keycode

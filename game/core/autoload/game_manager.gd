@@ -4,10 +4,9 @@
 extends Node
 
 
-
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
-const LoadingUI = preload("res://ui/components/loading_ui.gd")
+# LoadingUI loaded at runtime to avoid preload issues
 
 ## Defensive logger - get GameLog at runtime to avoid compile-time circular deps
 func _log(level: int, msg: String) -> void:
@@ -124,6 +123,7 @@ func _check_loading_complete() -> void:
 
 func _handle_loading_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Loading resources...")
+	var LoadingUI = load("res://ui/components/loading_ui.gd")
 	if LoadingUI.instance:
 		LoadingUI.instance.show_loading("Loading resources...")
 		await get_tree().process_frame
@@ -164,6 +164,7 @@ func _handle_playing_state() -> void:
 				get_node_or_null("/root/GameLog").info("Emitted player_entered_world for: %s" % player_id)
 
 func _show_loading_and_change_scene(scene_path: String, status_text: String) -> void:
+	var LoadingUI = load("res://ui/components/loading_ui.gd")
 	if LoadingUI.instance:
 		LoadingUI.instance.show_loading(status_text)
 		await get_tree().process_frame

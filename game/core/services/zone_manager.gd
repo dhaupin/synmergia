@@ -653,7 +653,7 @@ func _persist_instances() -> void:
 		var serializable := {}
 		for instance_id in _instances:
 			var instance_data = _instances[instance_id]
-			var result := instance_data.duplicate(true)
+			var result: Dictionary = instance_data.duplicate(true)
 			var zone_data = result.get("zone_data")
 			if zone_data is ZoneData:
 				result["zone_data"] = _serialize_zone_data(zone_data)

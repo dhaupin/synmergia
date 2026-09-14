@@ -6,12 +6,20 @@ const MemoryCacheStore = preload("res://adapters/cache/memory_cache_store.gd")
 
 var _store: CacheStore = null
 
+static var _adapter_registry = null
+
+static func set_adapter_registry(reg) -> void:
+	_adapter_registry = reg
+
 func _ensure_store() -> void:
 	if _store != null:
 		return
-	var reg = null
-	if get_tree():
-		reg = get_tree().root.get_node_or_null("AdapterRegistry")
+	var reg = _adapter_registry
+	if reg == null:
+		# Fallback to memory store if registry not available yet
+		_store = MemoryCacheStore.new()
+		_store.open({})
+		return
 	if reg and reg.has_method("get_cache"):
 		_store = reg.get_cache("default")
 	if _store == null:
@@ -20,13 +28,13 @@ func _ensure_store() -> void:
 		if reg and reg.has_method("register_cache"):
 			reg.register_cache("default", _store)
 
-func get(key: String) -> Variant:
+func get_value(key: String) -> Variant:
 	_ensure_store()
 	if _store == null:
 		return null
 	return _store.fetch(key)
 
-func set(key: String, value: Variant, ttl_sec: int = 0) -> void:
+func set_value(key: String, value: Variant, ttl_sec: int = 0) -> void:
 	_ensure_store()
 	if _store == null:
 		return
@@ -38,7 +46,7 @@ func set_nx(key: String, value: Variant, ttl_sec: int = 0) -> bool:
 		return false
 	return _store.set_nx(key, value, ttl_sec)
 
-func delete(key: String) -> void:
+func remove(key: String) -> void:
 	_ensure_store()
 	if _store == null:
 		return

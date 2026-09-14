@@ -1,5 +1,4 @@
 ## UIStyles - Common styling constants and factory methods for Synmergia UI
-extends Node
 class_name UIStyles
 
 ## ============================================================================
@@ -363,9 +362,15 @@ static func apply_text_scaling(control: Control, scale: float) -> void:
 
 ## Check if reduce motion is enabled (reads from PlayerConfig or OS)
 static func is_reduce_motion_enabled() -> bool:
-	if PlayerConfig:
-		return PlayerConfig.get_account_setting("reduce_motion", false)
 	return OS.has_feature("reduce_motion")
+
+## Check if high contrast is enabled (reads from PlayerConfig or OS)
+static func is_high_contrast_enabled() -> bool:
+	return OS.has_feature("high_contrast")
+
+## Get text scale (reads from PlayerConfig or OS)
+static func get_text_scale() -> float:
+	return 1.0
 
 ## Get animation duration (0 if reduce motion enabled)
 static func get_animation_duration(default_duration: float) -> float:

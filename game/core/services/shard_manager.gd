@@ -144,7 +144,7 @@ func _load_shards() -> void:
 	var keys: Array = ds.all_keys()
 	for key in keys:
 		if key.begins_with(_kv_prefix):
-			var shard_id := key.substr(_kv_prefix.length())
+			var shard_id: String = key.substr(_kv_prefix.length())
 			var data: Dictionary = ds.get(key)
 			if not data.is_empty():
 				_shard_info[shard_id] = data

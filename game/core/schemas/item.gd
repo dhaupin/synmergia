@@ -384,7 +384,8 @@ func to_dict() -> Dictionary:
 	}
 
 static func from_dict(data: Dictionary) -> Item:
-	var item := Item.new()
+	var ItemScript = preload("res://core/schemas/item.gd")
+	var item: Item = ItemScript.new()
 	item.id = data.get("id", "")
 	item.display_name = data.get("display_name", "Item")
 	item.description = data.get("description", "")

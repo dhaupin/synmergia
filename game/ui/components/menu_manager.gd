@@ -55,14 +55,11 @@ func _ready() -> void:
 	_connect_signals()
 
 func _setup_accessibility() -> void:
-	accessible_name = "Menu Manager"
-	accessible_description = "Central HUD manager for the game. Handles action bars, status bars, and all game menus."
-	
-	# Connect to accessibility setting changes from SettingsPanel
-	if EventHub:
-		EventHub.connect("accessibility_text_scale_changed", _on_text_scale_changed)
-		EventHub.connect("accessibility_reduce_motion_changed", _on_reduce_motion_changed)
-		EventHub.connect("accessibility_high_contrast_changed", _on_high_contrast_changed)
+	# MenuManager is CanvasLayer, apply accessibility to child containers
+	for child in get_children():
+		if child is Control:
+			child.accessible_name = "Menu Manager"
+			child.accessible_description = "Central HUD manager for the game. Handles action bars, status bars, and all game menus."
 
 func _on_text_scale_changed(scale: float) -> void:
 	# Propagate text scale changes to all child widgets
@@ -614,14 +611,14 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 	
 	# Special handling for settings (handled by HudLayer)
 	if internal_name == "settings":
-		if HudLayer and HudLayer.has_method("open_settings"):
-			HudLayer.open_settings()
+		if HudLayer.instance and HudLayer.instance.has_method("open_settings"):
+			HudLayer.instance.open_settings()
 		return
 	
 	# Special handling for world_map (handled by HudLayer)
 	if internal_name == "world_map":
-		if HudLayer and HudLayer.has_method("_toggle_world_map"):
-			HudLayer._toggle_world_map()
+		if HudLayer.instance and HudLayer.instance.has_method("_toggle_world_map"):
+			HudLayer.instance._toggle_world_map()
 		return
 	
 	# Special handling for trade (not in MenuManager yet)
@@ -632,7 +629,7 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 	# Permission check for admin panel
 	if internal_name == "admin":
 		if not PermissionManager:
-			NotificationService.notify(NotifKind.WARNING, "Admin panel unavailable", "MenuManager", "admin_unavail", {})
+			NotificationService.notify(NotifKind.SECURITY_WARNING, "Admin panel unavailable", "MenuManager", "admin_unavail", {})
 			return
 		var player_id := ""
 		if GameManager and GameManager.selected_character_data:
@@ -644,7 +641,7 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 	# Permission check for debug panel
 	if internal_name == "debug":
 		if not PermissionManager:
-			NotificationService.notify(NotifKind.WARNING, "Debug panel unavailable", "MenuManager", "debug_unavail", {})
+			NotificationService.notify(NotifKind.SECURITY_WARNING, "Debug panel unavailable", "MenuManager", "debug_unavail", {})
 			return
 		var player_id := ""
 		if GameManager and GameManager.selected_character_data:
@@ -652,7 +649,7 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		var is_admin := PermissionManager.has_permission(player_id, PermissionManager.Level.ADMIN)
 		var is_dev := GameConfig and GameConfig.Debug.ALLOW_CHEATS
 		if not is_admin and not is_dev:
-			NotificationService.notify(NotifKind.WARNING, "Insufficient permissions for Debug Panel", "MenuManager", "debug_perm", {}, player_id)
+			NotificationService.notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Debug Panel", "MenuManager", "debug_perm", {}, player_id)
 			return
 	
 	_toggle_menu_internal(internal_name)
@@ -667,7 +664,7 @@ func _input(event: InputEvent) -> void:
 func _create_debug_panel() -> Control:
 	"""Create a debug panel with developer tools."""
 	var DebugPanelScript := preload("res://ui/components/ui_panel.gd")
-	var panel: UIPanel = DebugPanelScript.new()
+	var panel: Control = DebugPanelScript.new()
 	panel.set_panel_title("Debug Panel")
 	panel.custom_minimum_size = Vector2(600, 400)
 	
@@ -788,10 +785,13 @@ func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
 	entity_tab.add_child(entity_refresh_btn)
 
 func _update_debug_sys_info(label: Label) -> void:
+	var fps: float = 0.0
+	if Performance.has_monitor(Performance.TIME_FPS):
+		fps = Performance.get_monitor(Performance.TIME_FPS)
 	label.text = "Godot Version: %s\nFPS: %d\nFrame Time: %.2f ms\nObjects: %d" % [
 		Engine.get_version_info()["string"],
 		Engine.get_frames_per_second(),
-		Performance.get_monitor(Performance.TIME_FPS) if Performance.has_monitor(Performance.TIME_FPS) else 0.0,
+		fps,
 		Engine.get_physics_frames() + Engine.get_idle_frames()
 	]
 

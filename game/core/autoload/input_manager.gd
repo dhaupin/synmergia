@@ -116,7 +116,7 @@ func _ready() -> void:
 	if _is_mobile or _input_mode == InputMode.TOUCH:
 		_create_virtual_joystick()
 	
-	GameLog.info("InputManager: Mode=", _input_mode, " Mobile=", _is_mobile, " Desktop=", _is_desktop)
+	GameLog.info("InputManager: Mode=%s Mobile=%s Desktop=%s" % [_input_mode, _is_mobile, _is_desktop])
 
 func _detect_platform() -> void:
 	_is_web = OS.has_feature("web")

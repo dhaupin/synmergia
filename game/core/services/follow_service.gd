@@ -328,8 +328,8 @@ func _load_follows() -> void:
 	var keys := store.all_keys()
 	for key in keys:
 		if key.begins_with(_kv_prefix):
-			var player_id := key.substr(_kv_prefix.length())
-			var data := store.get(key)
+			var player_id: String = key.substr(_kv_prefix.length())
+			var data: Dictionary = store.get(key)
 			if data:
 				_active_follows[player_id] = data
 

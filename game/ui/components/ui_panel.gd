@@ -34,10 +34,11 @@ func _ready() -> void:
 
 ## Load accessibility settings from PlayerConfig
 func _load_accessibility_settings() -> void:
-	if PlayerConfig:
-		_high_contrast = PlayerConfig.get_account_setting("high_contrast", false)
-		_text_scale = PlayerConfig.get_account_setting("ui_scale", 1.0)
-		_reduce_motion = PlayerConfig.get_account_setting("reduce_motion", false)
+	var pc = get_node_or_null("/root/PlayerConfig")
+	if pc:
+		_high_contrast = pc.get_account_setting("high_contrast", false)
+		_text_scale = pc.get_account_setting("ui_scale", 1.0)
+		_reduce_motion = pc.get_account_setting("reduce_motion", false)
 
 ## Override these in subclasses
 func _setup_panel() -> void:
@@ -70,11 +71,11 @@ func get_accessibility_info() -> Dictionary:
 func _apply_accessibility() -> void:
 	# Set accessible name and description for screen readers
 	if _panel_title != "":
-		accessible_name = _panel_title
-		accessible_description = "Dialog panel. Use Tab to navigate, Enter to activate, Escape to close"
+		self.accessible_name = _panel_title
+		self.accessible_description = "Dialog panel. Use Tab to navigate, Enter to activate, Escape to close"
 	else:
-		accessible_name = name
-		accessible_description = "Panel. Use Tab to navigate, Enter to activate, Escape to close"
+		self.accessible_name = name
+		self.accessible_description = "Panel. Use Tab to navigate, Enter to activate, Escape to close"
 	
 	# Enable focus for keyboard navigation
 	focus_mode = Control.FOCUS_ALL
@@ -234,6 +235,7 @@ func announce_for_screen_reader(message: String) -> void:
 	# Emit signal that can be connected to a screen reader service
 	# For now, log to console for debug
 	# print removed: print("[A11Y] " + message)
+	pass
 
 ## Get animation duration respecting reduce motion
 func get_animation_duration(default_duration: float) -> float:
@@ -272,8 +274,9 @@ func check_interact_distance(player_pos: Vector3, target_pos: Vector3) -> bool:
 ## Canonical way to get the local player node
 ## Used for distance checks, position lookups, etc.
 func _get_local_player() -> Node:
-	if PlayerManager and PlayerManager.has_method("get_local_player"):
-		return PlayerManager.get_local_player()
+	var pm = get_node_or_null("/root/PlayerManager")
+	if pm and pm.has_method("get_local_player"):
+		return pm.get_local_player()
 	return null
 
 ## ============================================================================

@@ -2,7 +2,7 @@
 ## Handles faction reputation, war declarations, and guild alliances
 extends Node
 
-
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const Faction = preload("res://core/schemas/faction.gd")
 # All factions (faction_id -> Faction)
 var _factions: Dictionary = {}

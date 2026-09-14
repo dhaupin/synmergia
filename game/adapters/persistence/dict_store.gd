@@ -5,14 +5,22 @@ const PersistenceStore = preload("res://adapters/persistence/persistence_store.g
 const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
 
 var _store: PersistenceStore = null
-var _expires: Dictionary = {}  # key -> unix timestamp (0 = no expiry)
+var _expires: Dictionary = {}
+
+static var _adapter_registry = null
+
+static func set_adapter_registry(reg) -> void:
+	_adapter_registry = reg
 
 func _ensure_store() -> void:
 	if _store != null:
 		return
-	var reg = null
-	if get_tree():
-		reg = get_tree().root.get_node_or_null("AdapterRegistry")
+	var reg = _adapter_registry
+	if reg == null:
+		# Fallback to memory store if registry not available yet
+		_store = MemoryPersistenceStore.new()
+		_store.open({})
+		return
 	if reg and reg.has_method("get_persistence"):
 		_store = reg.get_persistence("default")
 	if _store == null:
@@ -29,23 +37,23 @@ func _is_expired(key: String) -> bool:
 		return false
 	return Time.get_unix_time_from_system() >= exp
 
-func get(key: String) -> Dictionary:
+func get_value(key: String) -> Variant:
 	_ensure_store()
 	if _store == null:
-		return {}
+		return null
 	if _is_expired(key):
 		erase(key)
-		return {}
+		return null
 	var rows = _store.query("SELECT value FROM kv WHERE key = $1", [key])
 	if rows.is_empty():
-		return {}
+		return null
 	var raw = rows[0].get("value", "")
 	if raw == "":
-		return {}
+		return null
 	var parsed = JSON.parse_string(raw)
-	return parsed if parsed is Dictionary else {}
+	return parsed
 
-func set(key: String, value: Dictionary, ttl_sec: int = 0) -> void:
+func set_value(key: String, value: Dictionary, ttl_sec: int = 0) -> void:
 	_ensure_store()
 	if _store == null:
 		return
@@ -57,7 +65,7 @@ func set(key: String, value: Dictionary, ttl_sec: int = 0) -> void:
 	else:
 		_expires[key] = 0
 
-func has(key: String) -> bool:
+func has_key(key: String) -> bool:
 	_ensure_store()
 	if _store == null:
 		return false
@@ -93,7 +101,7 @@ func set_batch(entries: Dictionary) -> void:
 	for key in entries.keys():
 		var value = entries[key]
 		if value is Dictionary and not value.is_empty():
-			set(key, value)
+			set_value(key, value)
 		else:
 			erase(key)
 
@@ -103,7 +111,7 @@ func get_many(keys: Array) -> Dictionary:
 		return {}
 	var result: Dictionary = {}
 	for key in keys:
-		result[key] = get(key)
+		result[key] = get_value(key)
 	return result
 
 func erase_batch(keys: Array) -> void:

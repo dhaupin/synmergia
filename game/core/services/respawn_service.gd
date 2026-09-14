@@ -2,7 +2,7 @@
 ## Flexible respawn system supporting timed, ankh, revive, and PVP modes
 extends Node
 
-
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const Ankh = preload("res://core/schemas/ankh.gd")
 # Entity is not an autoload (it has class_name Entity, see
 # project.godot). RespawnService uses `: Entity` type annotations in

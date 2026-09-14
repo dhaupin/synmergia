@@ -323,22 +323,22 @@ func get_derived_stats() -> Dictionary:
 	if stats.is_empty():
 		return {}
 	
-	var vit := stats.get("vitality", 10)
-	var end := stats.get("endurance", 10)
-	var str := stats.get("strength", 10)
-	var int := stats.get("intelligence", 10)
+	var vit: int = stats.get("vitality", 10)
+	var end: int = stats.get("endurance", 10)
+	var str: int = stats.get("strength", 10)
+	var intel: int = stats.get("intelligence", 10)
 	
 	# Base formulas - can be overridden by class/species
-	var max_health := int(100 + vit * 10)
-	var max_mana := int(50 + int * 5)
-	var p_attack := int(10 + str * 2)
-	var m_attack := int(10 + int * 2)
-	var p_defense := int(5 + end * 1.5)
-	var m_defense := int(5 + int * 1.5)
+	var max_health: int = int(100 + vit * 10)
+	var max_mana: int = int(50 + intel * 5)
+	var p_attack: int = int(10 + str * 2)
+	var m_attack: int = int(10 + intel * 2)
+	var p_defense: int = int(5 + end * 1.5)
+	var m_defense: int = int(5 + intel * 1.5)
 	
 	# Apply class-specific modifiers if available
 	if class_data.has_method("modify_derived_stats"):
-		var modified := class_data.modify_derived_stats({
+		var modified: Dictionary = class_data.modify_derived_stats({
 			"max_health": max_health,
 			"max_mana": max_mana,
 			"p_attack": p_attack,

@@ -47,10 +47,10 @@ func _ready() -> void:
 ## ============================================================================
 
 func _setup_accessibility() -> void:
-	accessible_name = "Blacksmith"
-	accessible_description = "Blacksmith repair panel. Use Tab to navigate between item list and buttons. Press Enter to repair items, ESC to close."
+	self.accessible_name = "Blacksmith"
+	self.accessible_description = "Blacksmith repair panel. Use Tab to navigate between item list and buttons. Press Enter to repair items, ESC to close."
 
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for buttons and item list
 	for btn in [_repair_btn, _close_btn]:
 		if btn and is_instance_valid(btn):
@@ -186,9 +186,10 @@ func _process(_delta: float) -> void:
 	# Use canonical distance check with configurable threshold
 	if not check_interact_distance(player.global_position, _npc_position):
 		close()
-		if NotificationService:
+		var ns = get_node_or_null("/root/NotificationService")
+		if ns:
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
-			NotificationService.notify(NotifKind.CUSTOM, "Moved too far from the blacksmith.",
+			ns.notify(NotifKind.CUSTOM, "Moved too far from the blacksmith.",
 				"BlacksmithUI", "bs_out_of_range", {}, _player_id)
 
 
@@ -196,17 +197,19 @@ func _process(_delta: float) -> void:
 func _on_open() -> void:
 	_refresh_items()
 
-	if not BlacksmithService:
+	var bs = get_node_or_null("/root/BlacksmithService")
+	if not bs:
 		return
-	if BlacksmithService.has_signal("repair_completed"):
-		if not BlacksmithService.repair_completed.is_connected(_on_repair_completed):
-			BlacksmithService.repair_completed.connect(_on_repair_completed)
-	if BlacksmithService.has_signal("repair_failed"):
-		if not BlacksmithService.repair_failed.is_connected(_on_repair_failed):
-			BlacksmithService.repair_failed.connect(_on_repair_failed)
-	if InventoryService:
-		if not InventoryService.inventory_updated.is_connected(_refresh_items):
-			InventoryService.inventory_updated.connect(_refresh_items)
+	if bs.has_signal("repair_completed"):
+		if not bs.repair_completed.is_connected(_on_repair_completed):
+			bs.repair_completed.connect(_on_repair_completed)
+	if bs.has_signal("repair_failed"):
+		if not bs.repair_failed.is_connected(_on_repair_failed):
+			bs.repair_failed.connect(_on_repair_failed)
+	var inv = get_node_or_null("/root/InventoryService")
+	if inv:
+		if not inv.inventory_updated.is_connected(_refresh_items):
+			inv.inventory_updated.connect(_refresh_items)
 
 
 func set_npc_proximity(pos: Vector3) -> void:
@@ -224,7 +227,8 @@ func toggle_for_player(player_id: String) -> void:
 func _on_repair_all_pressed() -> void:
 	if not _player_id:
 		return
-	if not BlacksmithService:
+	var bs = get_node_or_null("/root/BlacksmithService")
+	if not bs:
 		return
 	var items := _get_repairable_items()
 	if items.is_empty():
@@ -235,14 +239,15 @@ func _on_repair_all_pressed() -> void:
 		show_notification("No items need repair", false)
 		return
 	var gold := 0
-	if PlayerManager and PlayerManager.has_player(_player_id):
-		var player = PlayerManager.get_player(_player_id)
+	var pm = get_node_or_null("/root/PlayerManager")
+	if pm and pm.has_player(_player_id):
+		var player = pm.get_player(_player_id)
 		if player and player.has("gold"):
 			gold = int(player.get("gold", 0))
 	if gold < cost:
 		show_notification("Not enough gold", false)
 		return
-	BlacksmithService.repair_all(_player_id, items)
+	bs.repair_all(_player_id, items)
 
 
 func _refresh_items() -> void:

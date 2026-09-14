@@ -8,6 +8,7 @@ extends Node
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # Singleton
 static var instance: SkillAcademyService
 
@@ -55,14 +56,13 @@ func _generate_catalog() -> void:
 		GameLog.warn("SkillAcademyService: DataService not available at startup")
 		return
 
-	var all_skills: Dictionary = DataService.get_all_skills()
-	for skill_id in all_skills:
-		var skill_schema: SkillSchema = all_skills[skill_id]
+	var all_skills: Array = DataService.get_all_skills()
+	for skill_schema in all_skills:
 		if not skill_schema is SkillSchema:
 			continue
 		if not skill_schema.upgradable:
 			continue
-		_catalog[skill_id] = {
+		_catalog[skill_schema.id] = {
 			"schema": skill_schema,
 			"display_name": skill_schema.display_name,
 			"tiers": TIER_NAMES.duplicate()
@@ -468,13 +468,12 @@ func get_next_tier_name(skill_id: String, current_level: int) -> String:
 ## Get all 3 signature skill IDs for a class
 func get_class_signatures(class_id: String) -> Array[String]:
 	var signatures: Array[String] = []
-	var all_skills: Dictionary = DataService.get_all_skills()
-	for skill_id in all_skills:
-		var schema: SkillSchema = all_skills[skill_id]
-		if not schema is SkillSchema:
+	var all_skills: Array = DataService.get_all_skills()
+	for skill_schema in all_skills:
+		if not skill_schema is SkillSchema:
 			continue
-		if schema.required_class == class_id and not schema.upgradable:
-			signatures.append(skill_id)
+		if skill_schema.required_class == class_id and not skill_schema.upgradable:
+			signatures.append(skill_schema.id)
 	return signatures
 
 ## Get signature schema by ID
@@ -560,17 +559,19 @@ func get_signature_info(skill_data: CharacterData, player_level: int) -> Diction
 
 ## == Persistence ============================================================
 
+const _KV_PREFIX: String = "skill_academy:"
+
 func _load_state() -> void:
 	var store := DictStore.new()
 	_player_data = {}
 	for key in store.all_keys():
-		if key.begins_with(_kv_prefix):
-			var player_id = key.substr(_kv_prefix.length())
-			_player_data[player_id] = store.get(key)
+		if key.begins_with(_KV_PREFIX):
+			var player_id = key.substr(_KV_PREFIX.length())
+			_player_data[player_id] = store.get_value(key)
 
 func _persist_player_data(player_id: String) -> void:
 	var store := DictStore.new()
 	if _player_data.has(player_id):
-		store.set(_kv_prefix + player_id, _player_data[player_id])
+		store.set_value(_KV_PREFIX + player_id, _player_data[player_id])
 	else:
-		store.erase(_kv_prefix + player_id)
+		store.erase(_KV_PREFIX + player_id)

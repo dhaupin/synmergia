@@ -592,8 +592,8 @@ func spawn_all_offering_npcs() -> void:
 		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
 		return
 
-	var all_npcs_dict := DataService.get_all_npcs()
-	for npc_data in all_npcs_dict.values():
+	var all_npcs: Array = DataService.get_all_npcs()
+	for npc_data in all_npcs:
 		if npc_data == null:
 			continue
 		if npc_data.includes.is_empty():

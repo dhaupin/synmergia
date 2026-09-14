@@ -474,16 +474,16 @@ func _load_parties() -> void:
 	var keys := store.all_keys()
 	for key in keys:
 		if key.begins_with(_kv_party):
-			var data := store.get(key)
+			var data: Dictionary = store.get(key)
 			if data:
-				var party_id := key.substr(_kv_party.length())
+				var party_id: String = key.substr(_kv_party.length())
 				_parties[party_id] = data
 				for member_id in data.get("members", []):
 					_player_parties[member_id] = party_id
 		elif key.begins_with(_kv_invite):
-			var data := store.get(key)
+			var data: Dictionary = store.get(key)
 			if data:
-				var invite_id := key.substr(_kv_invite.length())
+				var invite_id: String = key.substr(_kv_invite.length())
 				_pending_invites[invite_id] = data
 
 func _persist_party(party_id: String) -> void:

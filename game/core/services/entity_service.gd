@@ -340,8 +340,8 @@ func _load_entity_metadata() -> void:
 	for key in store.all_keys():
 		if not key.begins_with(_kv_prefix):
 			continue
-		var entity_id := key.substr(_kv_prefix.length())
-		var data := store.get(key)
+		var entity_id: String = key.substr(_kv_prefix.length())
+		var data: Dictionary = store.get(key)
 		if data.is_empty():
 			continue
 		var metadata := _metadata_from_dict(data)

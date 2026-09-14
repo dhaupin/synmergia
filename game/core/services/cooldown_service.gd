@@ -8,6 +8,7 @@ const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
 # Cooldown definitions (action_type -> cooldown_seconds)
 const DEFAULT_COOLDOWN: float = 30.0
 var _cache: CacheWrapper = CacheWrapper.new()  # key: "cooldown:<player_id>:<action_type>" -> timestamp
+var _cooldowns: Dictionary = {}  # In-memory tracking for iteration
 
 # Default cooldowns for common actions
 const COOLDOWNS: Dictionary = {
@@ -32,7 +33,7 @@ func _ready() -> void:
 ## Check if action is on cooldown
 func is_on_cooldown(player_id: String, action_type: String) -> bool:
 	var key := "cooldown:%s:%s" % [player_id, action_type]
-	var ts: float = _cache.get(key)
+	var ts: float = _cache.get_value(key)
 	if ts == null or ts == 0:
 		return false
 	var elapsed: float = Time.get_unix_time_from_system() - ts
@@ -44,7 +45,7 @@ func get_remaining(player_id: String, action_type: String) -> float:
 	if not is_on_cooldown(player_id, action_type):
 		return 0.0
 	var key := "cooldown:%s:%s" % [player_id, action_type]
-	var ts: float = _cache.get(key)
+	var ts: float = _cache.get_value(key)
 	var elapsed: float = Time.get_unix_time_from_system() - ts
 	var duration := get_cooldown_duration(action_type)
 	return max(0.0, duration - elapsed)
@@ -55,7 +56,13 @@ func start_cooldown(player_id: String, action_type: String, duration: float = -1
 		duration = get_cooldown_duration(action_type)
 
 	var key := "cooldown:%s:%s" % [player_id, action_type]
-	_cache.set(key, Time.get_unix_time_from_system(), int(duration) + 1)
+	_cache.set_value(key, Time.get_unix_time_from_system(), int(duration) + 1)
+	
+	# Track in memory for iteration
+	if not _cooldowns.has(player_id):
+		_cooldowns[player_id] = {}
+	_cooldowns[player_id][action_type] = true
+	
 	cooldown_started.emit(player_id, action_type, duration)
 
 	GameLog.debug("CooldownService: %s started cooldown for %s (%.1fs)" % [player_id, action_type, duration])
@@ -79,8 +86,12 @@ func get_cooldown_duration(action_type: String) -> float:
 
 ## Cancel a cooldown early
 func cancel_cooldown(player_id: String, action_type: String) -> void:
+	var key := "cooldown:%s:%s" % [player_id, action_type]
+	_cache.remove(key)
 	if _cooldowns.has(player_id) and _cooldowns[player_id].has(action_type):
 		_cooldowns[player_id].erase(action_type)
+		if _cooldowns[player_id].is_empty():
+			_cooldowns.erase(player_id)
 		cooldown_ended.emit(player_id, action_type)
 		GameLog.debug("CooldownService: %s cancelled cooldown for %s" % [player_id, action_type])
 
@@ -88,6 +99,8 @@ func cancel_cooldown(player_id: String, action_type: String) -> void:
 func cancel_all(player_id: String) -> void:
 	if _cooldowns.has(player_id):
 		for action_type in _cooldowns[player_id].keys():
+			var key := "cooldown:%s:%s" % [player_id, action_type]
+			_cache.remove(key)
 			cooldown_ended.emit(player_id, action_type)
 		_cooldowns.erase(player_id)
 

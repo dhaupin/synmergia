@@ -2,6 +2,8 @@
 ## Coordinates zones, gateways, day/night cycle, and world events
 extends Node
 
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+
 # World time (in minutes, 0 = midnight)
 var world_time_minutes: int = 0
 var day_duration_minutes: int = 1440  # 24 hours real-time = 24 hours game-time

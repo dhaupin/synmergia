@@ -770,8 +770,8 @@ func _load_notification_history() -> void:
 	var keys := store.all_keys()
 	for key in keys:
 		if key.begins_with(_kv_prefix):
-			var entity_id := key.substr(_kv_prefix.length())
-			var data := store.get(key)
+			var entity_id: String = key.substr(_kv_prefix.length())
+			var data: Array = store.get(key)
 			if data is Array and not data.is_empty():
 				_notification_history[entity_id] = data
 
@@ -814,7 +814,7 @@ func send_event(ctx) -> bool:
 		# Defensive: autoload may be in a partial state during early init
 		# or in --script test mode. Defer to a fresh dispatcher so callers
 		# never get a Null call.
-	_dispatcher = NotificationDispatcher.new()
+		_dispatcher = NotificationDispatcher.new()
 
 	_load_notification_history()
 	if not _dispatcher.should_deliver(ctx):
