@@ -13,7 +13,7 @@ func _init() -> void:
 func _test_ttl_expiration() -> bool:
 	var store := DictStore.new()
 	store.set("ttl:test", {"val": 42}, 2)
-	if not store.has("ttl:test"):
+	if not store.has_key("ttl:test"):
 		push_error("DictStore key missing immediately after set")
 		return false
 	var data = store.get("ttl:test")
@@ -24,7 +24,7 @@ func _test_ttl_expiration() -> bool:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if store.has("ttl:test"):
+	if store.has_key("ttl:test"):
 		push_error("DictStore key still present after TTL expiry")
 		return false
 	return true
@@ -38,10 +38,10 @@ func _test_sweep_expired() -> bool:
 	if removed < 2:
 		push_error("DictStore sweep_expired removed %d, expected >= 2" % removed)
 		return false
-	if store.has("sweep:a") or store.has("sweep:b"):
+	if store.has_key("sweep:a") or store.has_key("sweep:b"):
 		push_error("DictStore sweep did not remove expired keys")
 		return false
-	if not store.has("sweep:c"):
+	if not store.has_key("sweep:c"):
 		push_error("DictStore sweep removed non-expired key")
 		return false
 	return true

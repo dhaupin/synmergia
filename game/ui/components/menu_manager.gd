@@ -635,7 +635,7 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		if GameManager and GameManager.selected_character_data:
 			player_id = GameManager.selected_character_data.id
 		if not PermissionManager.has_permission(player_id, PermissionManager.Level.MOD):
-			NotificationService.notify(NotifKind.WARNING, "Insufficient permissions for Admin Panel", "MenuManager", "admin_perm", {}, player_id)
+			NotificationService.notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Admin Panel", "MenuManager", "admin_perm", {}, player_id)
 			return
 	
 	# Permission check for debug panel
@@ -798,7 +798,7 @@ func _update_debug_sys_info(label: Label) -> void:
 func _update_debug_net_info(label: Label) -> void:
 	label.text = "NetworkManager: %s\nQoSService: %s\nPeers: %d" % [
 		"Loaded" if NetworkManager else "Not Loaded",
-		"Loaded" if QoSService else "Not Loaded",
+		"Loaded" if get_tree().root.get_node_or_null("QoSService") else "Not Loaded",
 		NetworkManager.get_peer_count() if NetworkManager and NetworkManager.has_method("get_peer_count") else 0
 	]
 
@@ -806,7 +806,7 @@ func _update_debug_perf_info(label: Label) -> void:
 	label.text = "Use Profiler for detailed metrics\n\nFrame Time: %.2f ms\nPhysics Time: %.2f ms\nScript Time: %.2f ms" % [
 		Performance.get_monitor(Performance.TIME_PROCESS) if Performance.has_monitor(Performance.TIME_PROCESS) else 0.0,
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) if Performance.has_monitor(Performance.TIME_PHYSICS_PROCESS) else 0.0,
-		Performance.get_monitor(Performance.TIME_SCRIPT) if Performance.has_monitor(Performance.TIME_SCRIPT) else 0.0
+		Performance.get_monitor(Performance.TIME_PROCESS) if Performance.has_monitor(Performance.TIME_PROCESS) else 0.0
 	]
 
 func _update_debug_entity_info(label: Label) -> void:

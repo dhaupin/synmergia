@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://state_schema_sample"]
+
+[ext_resource path="res://data/roots/state_schema.gd" type="Script" id=1]
+
+[resource]
+script = ExtResource("1")
+type = "position"
+version = 1

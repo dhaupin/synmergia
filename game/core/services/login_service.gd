@@ -227,7 +227,7 @@ func _fail(reason: String) -> void:
 
 func _load_accounts() -> void:
 	var store := DictStore.new()
-	if not store.has(_kv_prefix + "_init"):
+	if not store.has_key(_kv_prefix + "_init"):
 		_store = {}
 		return
 	var keys := store.all_keys()
@@ -245,5 +245,5 @@ func _persist_account(account_id: String) -> void:
 		store.erase(_kv_prefix + account_id)
 	else:
 		store.set(_kv_prefix + account_id, entry)
-	if not store.has(_kv_prefix + "_init"):
+	if not store.has_key(_kv_prefix + "_init"):
 		store.set(_kv_prefix + "_init", {"ts": Time.get_unix_time_from_system()})

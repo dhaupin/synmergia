@@ -632,8 +632,8 @@ it holds the actual game data.
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
-| T3 substrate | this doc В§3 | none | `labs/multi-iso/kv/t3.gd` | TODO |
-| Scope engine | this doc В§4 | none | `labs/multi-iso/srv/scope.gd` | TODO |
+| T3 substrate | this doc В§3 | none | `labs/multi-iso/kv/t3.gd` | DONE |
+| Scope engine | this doc В§4 | `labs/multi-iso/srv/scope_hierarchy.gd`, `labs/multi-iso/srv/scope.gd`, `labs/multi-iso/srv/scope_engine.gd` | `labs/multi-iso/srv/scope.gd` | DONE |
 | Rules engine | this doc В§5 | none | `labs/multi-iso/srv/rules_engine.gd` | TODO (Phase 2) |
 | Seed tree (canonical) | this doc В§7, spec В§4 | none | `labs/multi-iso/kv/seed_chain.gd` | TODO |
 | State tree (canonical) | this doc В§8, spec В§5 | partial (`core/state/state.gd` is FSM, not tree) | `labs/multi-iso/kv/state_tree.gd` | TODO |
@@ -646,7 +646,7 @@ it holds the actual game data.
 | Frame seed authority (D030) | validation В§2 | none | `core/services/frame_service.gd` | TODO |
 | Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd` | TODO |
 | Account rollup (D028) | spec В§9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
-| Vant multibrain stack | vant `brain.js:1510-1900` | none | `labs/multi-iso/srv/scope.gd` (port) | TODO |
+| Vant multibrain stack | vant `brain.js:1510-1900` | `labs/multi-iso/srv/scope.gd`, `labs/multi-iso/srv/scope_engine.gd` | `labs/multi-iso/srv/scope.gd` (port) | DONE |
 | Vant icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/geometry/` (port) | TODO (Phase 4) |
 | Vant fragmenter | vant `geometry/fragmenter.js` | none | `labs/multi-iso/geometry/fragmenter.gd` | TODO (Phase 4) |
 

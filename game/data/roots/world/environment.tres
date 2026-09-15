@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnvironmentData" load_steps=2 format=3 uid://uid1]
+
+[sub_resource type="Resource" id="EnvironmentData_1"]
+name = "world_environment"
+description = "World-level environment configuration"
+gravity = 9.8
+ambient_light = 0.5
+fog_enabled = false
+fog_density = 0.01
+fog_color = Color(0.5, 0.5, 0.5, 1.0)
+weather_type = "clear"
+time_scale = 1.0
+custom_data = {}

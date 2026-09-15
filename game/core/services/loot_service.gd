@@ -113,7 +113,7 @@ func start_need_greed_roll(loot_id: String, initiator_id: String) -> bool:
 
 					# Get party members if initiator is in a party
 	var party := PartyService.get_player_party(initiator_id)
-	if party.is_empty() or not party.has_key("id"):
+	if party.is_empty() or not party		.has("id"):
 		loot["eligible_players"] = [initiator_id]
 		GameLog.debug("LootService: No party found, loot %s eligible for %s only" % [loot_id, initiator_id])
 	else:
@@ -133,14 +133,14 @@ func roll_for_loot(loot_id: String, player_id: String, roll_type: RollType, roll
 		GameLog.debug("LootService: Rate limited roll for %s" % player_id)
 		return false
 
-	if not _active_loot.has_key(loot_id):
+	if not _active_loot		.has(loot_id):
 		return false
 
-	if not _need_greed_rolls.has_key(loot_id):
+	if not _need_greed_rolls		.has(loot_id):
 		return false
 
 	var rolls: Dictionary = _need_greed_rolls[loot_id]
-	if rolls.has_key(player_id):
+	if rolls		.has(player_id):
 		return false	# Already rolled
 
 	rolls[player_id] = {"type": roll_type, "value": roll_value, "timestamp": Time.get_unix_time_from_system()}
@@ -196,7 +196,7 @@ func assign_loot(loot_id: String, player_id: String) -> bool:
 	var currency: int = loot["currency"]
 
 			# Store for player pickup
-	if not _player_loot.has_key(player_id):
+	if not _player_loot		.has(player_id):
 		_player_loot[player_id] = []
 
 	_player_loot[player_id].append({
@@ -247,12 +247,12 @@ func pickup_loot(player_id: String, loot_id: String = "") -> Array:
 	return items_received
 
 func pass_loot(loot_id: String, player_id: String) -> bool:
-	if not _active_loot.has_key(loot_id):
+	if not _active_loot		.has(loot_id):
 		return false
 
-	if _need_greed_rolls.has_key(loot_id):
+	if _need_greed_rolls		.has(loot_id):
 		var rolls: Dictionary = _need_greed_rolls[loot_id]
-		if not rolls.has_key(player_id):
+		if not rolls		.has(player_id):
 			rolls[player_id] = {"type": RollType.PASS, "value": 0, "timestamp": Time.get_unix_time_from_system()}
 			loot_passed.emit(loot_id, player_id)
 			return true
@@ -271,7 +271,7 @@ func get_loot_at_position(position: Vector3, radius: float = 5.0) -> Array:
 
 ## Expire old loot
 func expire_loot(loot_id: String) -> void:
-	if _active_loot.has_key(loot_id):
+	if _active_loot		.has(loot_id):
 		var loot: Dictionary = _active_loot[loot_id]
 
 								# Clean up assignments
@@ -330,7 +330,7 @@ func abandon_loot(player_id: String, loot_id: String) -> bool:
 		GameLog.debug("LootService: Rate limited abandon for %s" % player_id)
 		return false
 
-	if _player_loot.has_key(player_id):
+	if _player_loot		.has(player_id):
 		var loot_list: Array = _player_loot[player_id]
 		for i in range(loot_list.size()):
 			if loot_list[i]["loot_id"] == loot_id:

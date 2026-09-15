@@ -114,7 +114,7 @@ func load_resource(path: String) -> Resource:
 
 ## Extract ID from resource or filename
 func _get_resource_id(resource: Resource, filename: String) -> String:
-	if resource and resource.has("id"):
+	if resource and resource.get("id", null) != null:
 		return resource.get("id")
 	return filename.replace(".tres", "").to_lower()
 
