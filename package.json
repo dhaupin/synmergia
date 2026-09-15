@@ -9,7 +9,8 @@
     "build": "npm run sync:data && tsc && vite build",
     "build:web": "npm run sync:data && tsc && vite build",
     "lint": "tsc --noEmit",
-    "preview": "vite preview --port 3000"
+    "preview": "vite preview --port 3000",
+    "preview:with-bridges": "node scripts/start-bridges.js && vite preview --port 3000"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

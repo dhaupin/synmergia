@@ -140,6 +140,24 @@ fi
 if [[ "$START_MODE" == "prod" ]]; then
     log "Mode: PROD — starting nginx + Godot headless"
 
+    # Start pg-bridge and redis-bridge sidecars as background processes.
+    # These are Python services already installed in the Docker image.
+    log "Starting pg-bridge..."
+    PG_BACKEND="${PG_BACKEND:-sqlite}" \
+    PG_BRIDGE_HOST="127.0.0.1" PG_BRIDGE_PORT="8080" \
+    python3 /workspace/project/srv/pg-bridge/main.py &
+    PG_BRIDGE_PID=$!
+
+    log "Starting redis-bridge..."
+    REDIS_BACKEND="${REDIS_BACKEND:-inmemory}" \
+    REDIS_BRIDGE_HOST="127.0.0.1" REDIS_BRIDGE_PORT="8081" \
+    python3 /workspace/project/srv/redis-bridge/main.py &
+    REDIS_BRIDGE_PID=$!
+
+    # Give the sidecars a moment to bind their ports.
+    sleep 1
+    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID"
+
     # nginx (HTTP + HTTPS if certs exist)
     _setup_nginx
     nginx -g 'daemon off;' &

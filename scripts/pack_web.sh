@@ -28,7 +28,7 @@ fi
 if [ -z "${GODOT_BIN}" ]; then
     echo "Warning: Godot 4.7.2 binary not found in PATH or tools/godot."
     echo "To package game.pck locally, ensure Godot 4.7.2 is installed or run with Docker:"
-    echo "  docker compose run --rm synmergia godot --headless --path /workspace/project/game --export-pack 'Web' /workspace/project/web/game.pck"
+    echo "  docker compose run --rm synmergia godot --headless --path ${GAME_DIR} --export-pack 'Web' ${WEB_DIR}/game.pck"
     exit 1
 fi
 
