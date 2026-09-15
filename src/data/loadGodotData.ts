@@ -34,7 +34,9 @@ function vec2(v: { v3: number[] } | { x: number; y: number }): { x: number; y: n
 
 function parseUpgradeTiers(s: string): any[] {
   try {
-    return JSON.parse(s);
+    // Fix malformed JSON: trailing commas in objects/arrays
+    const fixed = s.replace(/,(\s*[}\]])/g, '$1');
+    return JSON.parse(fixed);
   } catch {
     return [];
   }
@@ -61,7 +63,7 @@ function mapRole(n: number): ClassId {
 }
 
 function mapRarity(n: number): ItemRarity {
-  const map: ItemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+  const map: ItemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
   return map[n] || 'common';
 }
 
@@ -201,6 +203,7 @@ export function transformSkills(): Record<ClassId, Skill[]> {
       buffEffect: sk.effects?.[0]?.type === 'buff' ? { stat: 'armor', value: 10, duration: sk.effects[0].duration || 10 } : undefined,
       requiredLevel: sk.required_level,
       classId,
+      upgradeTiers: sk.upgrade_tiers ? parseUpgradeTiers(sk.upgrade_tiers) : [],
     });
   }
   return out as Record<ClassId, Skill[]>;
@@ -208,58 +211,52 @@ export function transformSkills(): Record<ClassId, Skill[]> {
 
 export function transformItems(): Item[] {
   const out: Item[] = [];
-  for (const [cat, items] of Object.entries(RAW.weapons || {})) {
-    for (const [id, it] of Object.entries(items as any)) {
-      const i = it as any;
-      out.push({
-        id: i.id,
-        name: i.display_name || id,
-        type: mapItemType(i.item_category),
-        rarity: mapRarity(i.rarity),
-        slot: mapEquipSlot(i.equip_slot),
-        description: i.description || '',
-        stats: {
-          attackPower: i.weapon_damage_min ? (i.weapon_damage_min + i.weapon_damage_max) / 2 : undefined,
-          armor: i.armor_value,
-          ...i.stats,
-        },
-        value: i.sell_price || i.buy_price || 0,
-        icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Sword',
-      });
-    }
+  for (const [id, it] of Object.entries(RAW.weapons || {})) {
+    const i = it as any;
+    out.push({
+      id: i.id,
+      name: i.display_name || id,
+      type: mapItemType(i.item_category),
+      rarity: mapRarity(i.rarity),
+      slot: mapEquipSlot(i.equip_slot),
+      description: i.description || '',
+      stats: {
+        attackPower: i.weapon_damage_min ? (i.weapon_damage_min + i.weapon_damage_max) / 2 : undefined,
+        armor: i.armor_value,
+        ...i.stats,
+      },
+      value: i.sell_price || i.buy_price || 0,
+      icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Sword',
+    });
   }
-  for (const [cat, items] of Object.entries(RAW.armors || {})) {
-    for (const [id, it] of Object.entries(items as any)) {
-      const i = it as any;
-      out.push({
-        id: i.id,
-        name: i.display_name || id,
-        type: 'armor',
-        rarity: mapRarity(i.rarity),
-        slot: mapEquipSlot(i.equip_slot),
-        description: i.description || '',
-        stats: { armor: i.armor_value },
-        value: i.sell_price || i.buy_price || 0,
-        icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Shield',
-      });
-    }
+  for (const [id, it] of Object.entries(RAW.armors || {})) {
+    const i = it as any;
+    out.push({
+      id: i.id,
+      name: i.display_name || id,
+      type: 'armor',
+      rarity: mapRarity(i.rarity),
+      slot: mapEquipSlot(i.equip_slot),
+      description: i.description || '',
+      stats: { armor: i.armor_value },
+      value: i.sell_price || i.buy_price || 0,
+      icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Shield',
+    });
   }
-  for (const [cat, items] of Object.entries(RAW.consumables || {})) {
-    for (const [id, it] of Object.entries(items as any)) {
-      const i = it as any;
-      out.push({
-        id: i.id,
-        name: i.display_name || id,
-        type: 'consumable',
-        rarity: mapRarity(i.rarity),
-        slot: 'accessory',
-        description: i.description || '',
-        healAmount: i.stats?.heal || i.effects?.[0]?.value,
-        manaAmount: i.stats?.mana || 0,
-        value: i.sell_price || i.buy_price || 0,
-        icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Heart',
-      });
-    }
+  for (const [id, it] of Object.entries(RAW.consumables || {})) {
+    const i = it as any;
+    out.push({
+      id: i.id,
+      name: i.display_name || id,
+      type: 'consumable',
+      rarity: mapRarity(i.rarity),
+      slot: 'accessory',
+      description: i.description || '',
+      healAmount: i.stats?.heal || i.effects?.[0]?.value,
+      manaAmount: i.stats?.mana || 0,
+      value: i.sell_price || i.buy_price || 0,
+      icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Heart',
+    });
   }
   return out;
 }

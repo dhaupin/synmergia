@@ -14,11 +14,14 @@ class SynmergiaInput {
 		this._lastGamepadState = new Map(); // index -> {buttons: [], axes: []}
 	}
 
-	init(canvas) {
-		this.canvas = canvas;
-		this._bindEvents();
-		this._startGamepadPolling();
-	}
+init(canvas) {
+    if (!canvas) {
+      throw new Error('SynmergiaInput.init(): canvas is required');
+    }
+    this.canvas = canvas;
+    this._bindEvents();
+    this._startGamepadPolling();
+  }
 
 	_bindEvents() {
 		const c = this.canvas;

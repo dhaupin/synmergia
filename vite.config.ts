@@ -85,6 +85,34 @@ function serveGodotWeb(): Plugin {
         next();
       });
     },
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ? req.url.split('?')[0] : '';
+        if (url === '/web' || url.startsWith('/web/')) {
+          const subPath = url.replace(/^\/web\/?/, '') || 'index.html';
+          const filePath = path.resolve(process.cwd(), 'web', subPath);
+          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+            const ext = path.extname(filePath);
+            const mimeTypes: Record<string, string> = {
+              '.html': 'text/html',
+              '.js': 'application/javascript',
+              '.wasm': 'application/wasm',
+              '.pck': 'application/octet-stream',
+              '.css': 'text/css',
+              '.svg': 'image/svg+xml',
+              '.png': 'image/png',
+              '.json': 'application/json',
+              '.toml': 'text/plain',
+            };
+            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+            res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+            res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+            return fs.createReadStream(filePath).pipe(res);
+          }
+        }
+        next();
+      });
+    },
   };
 }
 

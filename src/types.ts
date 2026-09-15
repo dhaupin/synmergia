@@ -9,7 +9,7 @@ export type ZoneId =
   | 'zone_dungeon_forest_depths'
   | 'zone_dark_highlands';
 
-export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 export type ItemType = 'weapon' | 'armor' | 'accessory' | 'consumable' | 'material' | 'misc';
 
@@ -68,6 +68,7 @@ export interface Skill {
   };
   requiredLevel?: number;
   classId?: ClassId;
+  upgradeTiers?: any[];
 }
 
 export interface StatusEffect {

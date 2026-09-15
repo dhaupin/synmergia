@@ -70,6 +70,7 @@ export interface ZoneChangePayload {
 type Handler<T> = (msg: WSMessage<T>) => void;
 
 const PING_INTERVAL_MS = 30_000;
+const PONG_TIMEOUT_MS = 10_000;
 const BASE_RECONNECT_MS = 1000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
@@ -85,6 +86,7 @@ export class GameWebSocket {
   private onErrorCb?: (err: Event) => void;
   private seq = 0;
   private pingInterval?: number;
+  private pongTimeout?: number;
   private closedByUser = false;
 
   constructor(url?: string) {
@@ -225,6 +227,13 @@ export class GameWebSocket {
     }
     if (!msg || typeof msg.type !== 'string') return;
 
+    if (msg.type === 'pong') {
+      if (this.pongTimeout !== undefined) {
+        window.clearTimeout(this.pongTimeout);
+        this.pongTimeout = undefined;
+      }
+    }
+
     const set = this.handlers.get(msg.type as WSMessageType);
     if (set) {
       for (const handler of set) {
@@ -241,13 +250,29 @@ export class GameWebSocket {
     this.stopPing();
     this.pingInterval = window.setInterval(() => {
       this.send('ping', {});
+      this.startPongTimeout();
     }, PING_INTERVAL_MS);
+  }
+
+  private startPongTimeout(): void {
+    if (this.pongTimeout !== undefined) {
+      window.clearTimeout(this.pongTimeout);
+    }
+    this.pongTimeout = window.setTimeout(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.close(4000, 'Pong timeout');
+      }
+    }, PONG_TIMEOUT_MS);
   }
 
   private stopPing(): void {
     if (this.pingInterval !== undefined) {
       window.clearInterval(this.pingInterval);
       this.pingInterval = undefined;
+    }
+    if (this.pongTimeout !== undefined) {
+      window.clearTimeout(this.pongTimeout);
+      this.pongTimeout = undefined;
     }
   }
 

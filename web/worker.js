@@ -44,34 +44,5 @@ function proxyToApi(request, env) {
 }
 
 function serveStatic(request, env) {
-	const url = new URL(request.url);
-	const pathname = url.pathname;
-
-	// Map paths to file extensions
-	const pathMap = {
-		'/': '/index.html',
-		'/game.js': '/game.js',
-		'/game.wasm': '/game.wasm',
-		'/game.pck': '/game.pck',
-		'/config.js': '/config.js',
-		'/style.css': '/style.css',
-		'/icon.svg': '/icon.svg',
-	};
-
-	const filePath = pathMap[pathname] || pathname;
-	const cacheTTL = getCacheTTL(filePath);
-
-	const response = new Response(
-		`File not found: ${filePath}`,
-		{ status: 404, headers: { 'Content-Type': 'text/plain' } }
-	);
-
-	return response;
-}
-
-function getCacheTTL(path) {
-	if (path.endsWith('.wasm') || path.endsWith('.pck')) return 31536000;
-	if (path.endsWith('.js')) return 86400;
-	if (path.endsWith('.html') || path.endsWith('.css')) return 0;
-	return 3600;
+  return env.ASSETS.fetch(request);
 }
