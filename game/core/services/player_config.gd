@@ -328,9 +328,9 @@ func _get_setting_category(key: String) -> SettingCategory:
 
 func _load_settings(scope: String, defaults: Dictionary) -> Dictionary:
 	var store := DictStore.new()
-	if not store.has("player:" + scope):
+	if not store.has_key("player:" + scope):
 		return defaults.duplicate(true)
-	var data: Dictionary = store.get("player:" + scope)
+	var data: Dictionary = store.get_value("player:" + scope)
 	if data.is_empty():
 		return defaults.duplicate(true)
 	var merged: Dictionary = defaults.duplicate(true)

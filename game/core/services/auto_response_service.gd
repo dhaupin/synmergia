@@ -61,11 +61,11 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 		return
 
 	# Track exploit count
-	if not _player_exploit_counts.has(player_id):
+	if not _player_exploit_counts.has_key(player_id):
 		_player_exploit_counts[player_id] = {}
 
 	var counts = _player_exploit_counts[player_id]
-	if not counts.has(exploit_type):
+	if not counts.has_key(exploit_type):
 		counts[exploit_type] = 0
 	counts[exploit_type] += 1
 
@@ -287,11 +287,11 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix):
 			var player_id = key.substr(_kv_prefix.length())
-			_player_exploit_counts[player_id] = store.get(key)
+			_player_exploit_counts[player_id] = store.get_value(key)
 
 func _persist_exploit_counts(player_id: String) -> void:
 	var store := DictStore.new()
-	if _player_exploit_counts.has(player_id):
-		store.set(_kv_prefix + player_id, _player_exploit_counts[player_id])
+	if _player_exploit_counts.has_key(player_id):
+		store.set_value(_kv_prefix + player_id, _player_exploit_counts[player_id])
 	else:
 		store.erase(_kv_prefix + player_id)

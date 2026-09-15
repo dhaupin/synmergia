@@ -113,8 +113,7 @@ func update_accessibility_settings() -> void:
 	for btn in [_tab_buy, _tab_sell, _buy_btn, _sell_btn]:
 		if btn and is_instance_valid(btn):
 			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	
-	# Update grid slot styles
+		# Update grid slot styles
 	if _item_grid:
 		for child in _item_grid.get_children():
 			if child is PanelContainer:

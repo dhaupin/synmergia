@@ -425,7 +425,7 @@ func _persist_personal(player_id: String) -> void:
 	var store := DictStore.new()
 	var key := _kv_personal + player_id
 	if _personal_vaults.has(player_id) and not _personal_vaults[player_id].is_empty():
-		store.set(key, _personal_vaults[player_id])
+		store.set_value(key, _personal_vaults[player_id])
 	else:
 		store.erase(key)
 
@@ -433,7 +433,7 @@ func _persist_guild(guild_id: String) -> void:
 	var store := DictStore.new()
 	var key := _kv_guild + guild_id
 	if _guild_vaults.has(guild_id) and not _guild_vaults[guild_id].is_empty():
-		store.set(key, _guild_vaults[guild_id])
+		store.set_value(key, _guild_vaults[guild_id])
 	else:
 		store.erase(key)
 
@@ -441,7 +441,7 @@ func _persist_account(account_id: String) -> void:
 	var store := DictStore.new()
 	var key := _kv_account + account_id
 	if _account_vaults.has(account_id) and not _account_vaults[account_id].is_empty():
-		store.set(key, _account_vaults[account_id])
+		store.set_value(key, _account_vaults[account_id])
 	else:
 		store.erase(key)
 
@@ -451,22 +451,41 @@ func _load_vaults() -> void:
 	for key in keys:
 		if key.begins_with(_kv_personal):
 			var player_id := key.substr(_kv_personal.length())
-			var data := store.get(key)
+			var data = store.get_value(key)
 			if data:
 				_personal_vaults[player_id] = data
-		elif key.begins_with(_kv_guild):
+		if key.begins_with(_kv_guild):
 			var guild_id := key.substr(_kv_guild.length())
-			var data := store.get(key)
+			var data := store.get_value(key)
 			if data:
 				_guild_vaults[guild_id] = data
-		elif key.begins_with(_kv_account):
+		if key.begins_with(_kv_account):
 			var account_id := key.substr(_kv_account.length())
-			var data := store.get(key)
+			var data := store.get_value(key)
 			if data:
 				_account_vaults[account_id] = data
 
 func _find_empty_slot(vault: Dictionary) -> int:
-	var slots: Array = vault.get("slots", [])
+	var slots: Array = vault.get("slots") as Dictionary)
+
+			if var data :=  == null:
+
+				var data :=  = key)
+			if data:
+				_personal_vaults[player_id] = data
+		elif key.begins_with(_kv_guild):
+			var guild_id := key.substr(_kv_guild.length())
+			var data := store.get_value(key)
+			if data:
+				_guild_vaults[guild_id] = data
+		elif key.begins_with(_kv_account):
+			var account_id := key.substr(_kv_account.length())
+			var data := store.get_value(key)
+			if data:
+				_account_vaults[account_id] = data
+
+func _find_empty_slot(vault: Dictionary) -> int:
+	var slots: Array = vault.get("slots"
 	for i in range(slots.size()):
 		if slots[i].is_empty():
 			return i

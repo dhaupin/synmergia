@@ -131,8 +131,8 @@ signal waypoint_reached(player_id: String, waypoint_id: String)
 signal waypoints_cleared(player_id: String, count: int)
 
 func _ready() -> void:
-    GameLog.info("WaypointService: Ready")
-    _load_waypoints()
+	GameLog.info("WaypointService: Ready")
+	_load_waypoints()
 
 ## Create a new waypoint
 func create_waypoint(player_id: String, name: String, position: Vector3, zone_id: String,

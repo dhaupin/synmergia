@@ -26,9 +26,12 @@ func _load_title_definitions() -> void:
 	if DataService:
 		if DataService.has_method("load_all_data") and DataService.get_all_titles().is_empty():
 			DataService.load_all_data()
-		if DataService.has_method("get_all_titles"):
-			_title_defs = DataService.get_all_titles()
-			GameLog.info("TitleService: Loaded %d titles from DataService" % _title_defs.size())
+if DataService.has_method("get_all_titles"):
+			var titles: Array = DataService.get_all_titles()
+			for t in titles:
+				var title: TitleData = t
+				_title_defs[title.id] = title
+		 GameLog.info("TitleService: Loaded %d titles from DataService" % _title_defs.size())
 		else:
 			GameLog.warn("TitleService: DataService missing get_all_titles")
 	else:
@@ -149,7 +152,7 @@ static func get_local_display_name(base_name: String) -> String:
 func get_title(id: String) -> TitleData:
 	return _title_defs.get(id)
 
-func get_all_titles() -> Dictionary:
+func get_all_titles() -> Array:
 	return _title_defs
 
 ## ============================================================================
@@ -255,9 +258,11 @@ func _do_get_equipped_suffix(player_id: String) -> TitleData:
 
 func _load_player_titles() -> void:
 	var store := DictStore.new()
-	for key in store.all_keys(_kv_prefix):
+	for key in store.all_keys():
 		var player_id := key.replace(_kv_prefix, "")
-		var data: Dictionary = store.get(key, {})
+		var data: Dictionary = store.get_value(key) as Dictionary
+		if data == null:
+			data = {}
 		if not data.is_empty():
 			_player_titles[player_id] = data
 
@@ -267,4 +272,4 @@ func _persist_player_titles(player_id: String) -> void:
 	if state.is_empty():
 		store.erase(_kv_prefix + player_id)
 	else:
-		store.set(_kv_prefix + player_id, state)
+		store.set_value(_kv_prefix + player_id, state)

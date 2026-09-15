@@ -15,7 +15,7 @@ function bridgeApiPlugin(): Plugin {
         const url = req.url || '';
         if (url.startsWith('/api/pg/') || url.startsWith('/api/redis/')) {
           const isPg = url.startsWith('/api/pg/');
-          const targetPort = isPg ? 8082 : 8081;
+          const targetPort = isPg ? 8080 : 8081;
           const targetPath = url.replace(isPg ? /^\/api\/pg/ : /^\/api\/redis/, '');
 
           const chunks: Buffer[] = [];

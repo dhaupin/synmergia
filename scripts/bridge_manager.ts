@@ -5,7 +5,7 @@ import http from 'http';
 let pgProcess: ChildProcess | null = null;
 let redisProcess: ChildProcess | null = null;
 
-const PG_PORT = 8082;
+const PG_PORT = 8080;
 const REDIS_PORT = 8081;
 
 export function ensureBridgesRunning(): Promise<{ pgPort: number; redisPort: number }> {

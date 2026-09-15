@@ -10,6 +10,8 @@ const AchievementService = preload("res://core/services/achievement_service.gd")
 # countdown doesn't re-toast every frame.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const _kv_death_stats := "death:stats:"
+const _kv_kill_streaks := "kill_streak:"
 
 # Singleton reference
 static var instance: DeathFeatures
@@ -389,7 +391,7 @@ func record_kill_for_streak(killer_id: String, victim_id: String) -> void:
 	# Track best streak
 	if streak_data["streak"] > streak_data["best_streak"]:
 		streak_data["best_streak"] = streak_data["streak"]
-	_persist_kill_streak(killer_id)
+		_persist_kill_streak(killer_id)
 		if AchievementService:
 			AchievementService.unlock(killer_id, "kill_streak_%d" % streak_data["streak"])
 
@@ -686,7 +688,9 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_death_stats):
 			var entity_id = key.substr(_kv_death_stats.length())
-			var data: Dictionary = store.get(key)
+			var data: Dictionary = store.get_value(key) as Dictionary
+			if data == null:
+				data = {}
 			if not data.is_empty():
 				var stats := DeathStats.new()
 				stats.total_deaths = data.get("total_deaths", 0)
@@ -701,18 +705,18 @@ func _load_state() -> void:
 				_death_stats[entity_id] = stats
 		elif key.begins_with(_kv_kill_streaks):
 			var killer_id = key.substr(_kv_kill_streaks.length())
-			_kill_streaks[killer_id] = store.get(key)
+			_kill_streaks[killer_id] = store.get_value(key)
 
 func _persist_death_stats(entity_id: String) -> void:
 	var store := DictStore.new()
 	if _death_stats.has(entity_id):
-		store.set(_kv_death_stats + entity_id, _death_stats[entity_id].to_dict())
+		store.set_value(_kv_death_stats + entity_id, _death_stats[entity_id].to_dict())
 	else:
 		store.erase(_kv_death_stats + entity_id)
 
 func _persist_kill_streak(killer_id: String) -> void:
 	var store := DictStore.new()
 	if _kill_streaks.has(killer_id):
-		store.set(_kv_kill_streaks + killer_id, _kill_streaks[killer_id])
+		store.set_value(_kv_kill_streaks + killer_id, _kill_streaks[killer_id])
 	else:
 		store.erase(_kv_kill_streaks + killer_id)
