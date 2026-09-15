@@ -46,7 +46,7 @@ is engine-grade; the schemas are game-grade.
 | Substrate (T3) | `labs/multi-iso/kv/t3.gd` | Generic content-hash tree | yes (engine) |
 | Scope engine | `labs/multi-iso/srv/scope.gd` | Hierarchy walker + flip | yes (engine) |
 | Rules engine | `labs/multi-iso/srv/rules_engine.gd` | Generic evaluator | yes (engine) |
-| Spatial layer | `labs/multi-iso/geometry/` | Icosahedral + Penrose (from vant) | yes (engine) |
+| | Spatial layer | `labs/multi-iso/math/` | Icosahedral + NSC-9 (ported from vant axolotl) | DONE |
 | Schemas | `game/data/roots/*_schema.tres` | Typed payloads per tree | game-specific |
 | Trees | `game/data/roots/<scope>/*.tres` | Tree instances | game-specific |
 | Services | `game/core/services/*.gd` | Game logic | game-specific |
@@ -647,7 +647,8 @@ it holds the actual game data.
 | Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd` | TODO |
 | Account rollup (D028) | spec В§9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
 | Vant multibrain stack | vant `brain.js:1510-1900` | `labs/multi-iso/srv/scope.gd`, `labs/multi-iso/srv/scope_engine.gd` | `labs/multi-iso/srv/scope.gd` (port) | DONE |
-| Vant icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/geometry/` (port) | TODO (Phase 4) |
+| NSC-9 barcode format | vant `geometry/nsc9.js` | none | `labs/multi-iso/math/nsc9.gd` + `test_nsc9.gd` | DONE |
+| Icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
 | Vant fragmenter | vant `geometry/fragmenter.js` | none | `labs/multi-iso/geometry/fragmenter.gd` | TODO (Phase 4) |
 
 ---

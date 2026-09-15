@@ -1,7 +1,7 @@
-## Ported from vant axolotl lib/cache.js
-## NSC-9 encoding: reserved UPC/GTIN-14 space for multi-iso axis codes.
+## Ported from dhaupin/vant axolotl geometry/nsc9.js
+## NSC-9 encoding: reserved GS1/GTIN-14 space for multi-iso axis codes.
 ## 9-AAA-BBB-CCCCCC: prefix=9 (GS1 non-product), facility=AAA (000-999),
-## axis=BBB (000-999), sequence=CCCCCC (0-16M hex).
+## axis=BBB (000-999), sequence=CCCCCC (0-16M).
 ##
 ## Axis reservation (see labs/multi-iso/prototype/iso_math.py):
 ##   001-099: spatial axis (icosahedral vertices 1-12)
