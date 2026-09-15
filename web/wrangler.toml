@@ -6,69 +6,50 @@
 name = "synmergia-web"
 main = "worker.js"
 compatibility_date = "2024-09-23"
+workers_dev = false
 
-# ── Environment variables ─────────────────────────────────────────────
+# Environment variables
 [vars]
+# Production endpoints use the documented play.synmergia.com host.
 # Server WebSocket URL (wss://)
-SERVER_URL = "wss://synmergia.example.com/ws"
+SERVER_URL = "wss://play.synmergia.com/ws"
 # REST API URL
-API_URL = "https://api.synmergia.example.com"
+API_URL = "https://play.synmergia.com"
 # Godot engine debug mode
 DEBUG = false
 
-# ── Routes ────────────────────────────────────────────────────────────
+# The worker is stateless, so KV and Durable Object bindings are not required.
+# Routes
 # Serve static files from /web/ directory
 # Proxy WebSocket connections to the server
-# Cache static assets with long TTL
 
+# Production custom domain.
 [env.production]
 name = "synmergia-web-prod"
-routes = { pattern = "synmergia.example.com/*", custom_domain = true }
+workers_dev = false
+routes = [
+	{ pattern = "play.synmergia.com", custom_domain = true },
+]
 
 [env.production.vars]
-SERVER_URL = "wss://synmergia.example.com/ws"
-API_URL = "https://api.synmergia.example.com"
+SERVER_URL = "wss://play.synmergia.com/ws"
+API_URL = "https://play.synmergia.com"
+DEBUG = false
 
+# Staging domain is a placeholder until a Cloudflare zone is provisioned.
 [env.staging]
 name = "synmergia-web-staging"
-routes = { pattern = "staging.synmergia.example.com/*", custom_domain = true }
+workers_dev = false
+routes = [
+	{ pattern = "staging.synmergia.example.com", custom_domain = true },
+]
 
 [env.staging.vars]
 SERVER_URL = "wss://staging.synmergia.example.com/ws"
 API_URL = "https://staging.synmergia.example.com"
 DEBUG = true
 
-# ── Static asset caching ─────────────────────────────────────────────
-# WASM files: immutable, cache forever
-[[routes]]
-pattern = "/*.wasm"
-cache_ttl = 31536000
-cache_level = "cache"
-
-# PCK files: immutable, cache forever
-[[routes]]
-pattern = "/*.pck"
-cache_ttl = 31536000
-cache_level = "cache"
-
-# JS files: cache for 1 day (allow updates)
-[[routes]]
-pattern = "/*.js"
-cache_ttl = 86400
-cache_level = "cache"
-
-# HTML/CSS: no cache (always fresh)
-[[routes]]
-pattern = "/*.html"
-cache_ttl = 0
-cache_level = "bypass"
-
-[[routes]]
-pattern = "/*.css"
-cache_ttl = 0
-cache_level = "bypass"
-
-# ── Development ───────────────────────────────────────────────────────
+# Development
 [dev]
 ip = "0.0.0.0"
 port = 8788

@@ -450,9 +450,11 @@ func _is_valid_quest_id(quest_id: String) -> bool:
 func _load_player_quests() -> void:
 	var store := DictStore.new()
 	_player_quests.clear()
-	for key in store.all_keys(_kv_prefix):
+	for key in store.all_keys():
 		var player_id := key.replace(_kv_prefix, "")
-		var data: Dictionary = store.get(key, {})
+		var data: Dictionary = store.get_value(key) as Dictionary
+		if data == null:
+			data = {}
 		if not data.is_empty():
 			_player_quests[player_id] = data
 
@@ -462,4 +464,4 @@ func _persist_player_quests(player_id: String) -> void:
 	if quests.is_empty():
 		store.erase(_kv_prefix + player_id)
 	else:
-		store.set(_kv_prefix + player_id, quests)
+		store.set_value(_kv_prefix + player_id, quests)

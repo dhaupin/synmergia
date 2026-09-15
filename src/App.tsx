@@ -22,6 +22,8 @@ import {
   INITIAL_SKILLS,
 } from './gameData';
 import { soundEngine } from './soundEngine';
+import { synmergiaBridge } from './services/bridgeClient';
+import { gameWebSocket, type WSMessage } from './services/gameWebSocket';
 
 // Components
 import { GameCanvas } from './components/GameCanvas';
@@ -41,6 +43,145 @@ import { GodotClientView } from './components/wasm/GodotClientView';
 import { AdminDashboardView } from './components/admin/AdminDashboardView';
 
 const SAVE_KEY = 'synmergia_save_v1';
+const TELEMETRY_POLL_INTERVAL_MS = 5_000;
+const TELEMETRY_FALLBACK_STALE_MS = 15_000;
+const MAX_TICK_RATE_SAMPLES = 20;
+const ONLINE_PLAYER_COUNT_KEYS = [
+  'activePlayerCount',
+  'active_player_count',
+  'onlinePlayerCount',
+  'online_player_count',
+  'playerCount',
+  'player_count',
+  'connectedPlayerCount',
+  'connected_player_count',
+] as const;
+const SERVER_TICK_RATE_KEYS = [
+  'serverTickRate',
+  'server_tick_rate',
+  'tickRate',
+  'tick_rate',
+  'serverTickRateHz',
+  'server_tick_rate_hz',
+] as const;
+const ONLINE_PLAYER_COUNT_QUERY =
+  "SELECT COUNT(*) FROM characters WHERE last_online > NOW() - INTERVAL '5 minutes'";
+
+type TelemetryRecord = Record<string, unknown>;
+type TelemetryRow = {
+  active_player_count?: unknown;
+  online_player_count?: unknown;
+  count?: unknown;
+};
+
+const readNumeric = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+    try {
+      return readNumeric(JSON.parse(trimmed));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const readCountValue = (value: unknown): number | null => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed !== trimmed) {
+          const parsedCount = readCountValue(parsed);
+          if (parsedCount !== null) return parsedCount;
+        }
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  const numeric = readNumeric(value);
+  if (numeric !== null) return Math.floor(numeric);
+  if (Array.isArray(value)) return value.length;
+  if (value && typeof value === 'object') {
+    const record = value as TelemetryRecord;
+    const nested =
+      readNumeric(record.activePlayerCount) ??
+      readNumeric(record.active_player_count) ??
+      readNumeric(record.onlinePlayerCount) ??
+      readNumeric(record.online_player_count) ??
+      readNumeric(record.playerCount) ??
+      readNumeric(record.player_count) ??
+      readNumeric(record.count) ??
+      readNumeric(record.total) ??
+      readNumeric(record.size) ??
+      readNumeric(record.value);
+    return nested === null ? Object.keys(record).length : Math.floor(nested);
+  }
+  return null;
+};
+
+const readNumericField = (payload: unknown, keys: readonly string[]): number | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as TelemetryRecord;
+  for (const key of keys) {
+    const value = readNumeric(record[key]);
+    if (value !== null) return value;
+  }
+  return null;
+};
+
+const readPlayerCount = (payload: unknown): number | null => {
+  const explicit = readNumericField(payload, ONLINE_PLAYER_COUNT_KEYS);
+  if (explicit !== null) return Math.floor(explicit);
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as TelemetryRecord;
+  const onlinePlayers = record.online_players ?? record.onlinePlayers;
+  const count = readCountValue(onlinePlayers);
+  return count === null ? null : Math.floor(count);
+};
+
+const readTickRate = (payload: unknown): number | null => {
+  const value = readNumericField(payload, SERVER_TICK_RATE_KEYS);
+  return value !== null && value > 0 ? value : null;
+};
+
+const readEntityPlayerCount = (payload: unknown): number | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const entities = (payload as TelemetryRecord).entities;
+  if (!Array.isArray(entities)) return null;
+
+  const playerIds = new Set<string>();
+  let foundPlayer = false;
+  for (const entity of entities) {
+    if (!entity || typeof entity !== 'object') continue;
+    const record = entity as TelemetryRecord;
+    const entityType =
+      typeof record.entityType === 'string'
+        ? record.entityType
+        : typeof record.type === 'string'
+          ? record.type
+          : '';
+    const hasPlayerMarker =
+      entityType.toLowerCase() === 'player' ||
+      'playerId' in record ||
+      'player_id' in record;
+    if (!hasPlayerMarker) continue;
+
+    foundPlayer = true;
+    const playerId = record.playerId ?? record.player_id ?? record.id;
+    playerIds.add(typeof playerId === 'string' && playerId ? playerId : String(playerIds.size));
+  }
+  return foundPlayer ? playerIds.size : null;
+};
 
 const createDefaultCharacter = (): PlayerCharacter => ({
   id: 'player_1',
@@ -141,6 +282,16 @@ const createDefaultCharacter = (): PlayerCharacter => ({
 export default function App() {
   const [portalMode, setPortalMode] = useState<PortalMode>('companion');
   const [crossOriginIsolated, setCrossOriginIsolated] = useState<boolean>(false);
+  const [activePlayerCount, setActivePlayerCount] = useState<number>(0);
+  const [serverTickRate, setServerTickRate] = useState<number>(0);
+
+  const telemetryActiveRef = useRef<boolean>(false);
+  const telemetryRequestInFlightRef = useRef<boolean>(false);
+  const lastWebSocketCountAtRef = useRef<number>(0);
+  const lastWebSocketTickAtRef = useRef<number>(0);
+  const lastTickSampleRef = useRef<{ tick: number; timestamp: number } | null>(null);
+  const lastEntityUpdateAtRef = useRef<number>(0);
+  const tickRateSamplesRef = useRef<number[]>([]);
 
   useEffect(() => {
     setCrossOriginIsolated(typeof window !== 'undefined' && Boolean(window.crossOriginIsolated));
@@ -300,6 +451,246 @@ export default function App() {
     },
     []
   );
+
+  const applyTelemetryFromMessage = useCallback(
+    (payload: unknown, timestamp?: number, estimateInterval = false) => {
+      const now = Date.now();
+      const playerCount = readPlayerCount(payload) ?? readEntityPlayerCount(payload);
+      if (playerCount !== null) {
+        setActivePlayerCount(playerCount);
+        lastWebSocketCountAtRef.current = now;
+      }
+
+      const tickRate = readTickRate(payload);
+      if (tickRate !== null) {
+        setServerTickRate(Math.round(tickRate));
+        lastWebSocketTickAtRef.current = now;
+      }
+
+      const tick = readNumericField(payload, ['tick', 'serverTick', 'server_tick']);
+      const sampleTimestamp =
+        typeof timestamp === 'number' && timestamp > 0 ? timestamp : now;
+      if (tick !== null) {
+        const previous = lastTickSampleRef.current;
+        if (
+          previous &&
+          sampleTimestamp > previous.timestamp &&
+          tick > previous.tick
+        ) {
+          const elapsedMs = sampleTimestamp - previous.timestamp;
+          const observedTickRate = ((tick - previous.tick) * 1000) / elapsedMs;
+          if (observedTickRate >= 1 && observedTickRate <= 240) {
+            tickRateSamplesRef.current.push(observedTickRate);
+            if (tickRateSamplesRef.current.length > MAX_TICK_RATE_SAMPLES) {
+              tickRateSamplesRef.current.shift();
+            }
+            const averageTickRate =
+              tickRateSamplesRef.current.reduce((sum, sample) => sum + sample, 0) /
+              tickRateSamplesRef.current.length;
+            setServerTickRate(Math.max(1, Math.round(averageTickRate)));
+          }
+        }
+        lastTickSampleRef.current = { tick, timestamp: sampleTimestamp };
+      } else if (estimateInterval) {
+        const previous = lastEntityUpdateAtRef.current;
+        if (previous && sampleTimestamp > previous) {
+          const elapsedMs = sampleTimestamp - previous;
+          const observedTickRate = 1000 / elapsedMs;
+          if (observedTickRate >= 1 && observedTickRate <= 240) {
+            tickRateSamplesRef.current.push(observedTickRate);
+            if (tickRateSamplesRef.current.length > MAX_TICK_RATE_SAMPLES) {
+              tickRateSamplesRef.current.shift();
+            }
+            const averageTickRate =
+              tickRateSamplesRef.current.reduce((sum, sample) => sum + sample, 0) /
+              tickRateSamplesRef.current.length;
+            setServerTickRate(Math.max(1, Math.round(averageTickRate)));
+          }
+        }
+        lastEntityUpdateAtRef.current = sampleTimestamp;
+      }
+    },
+    []
+  );
+
+  const refreshTelemetry = useCallback(async () => {
+    if (!telemetryActiveRef.current || telemetryRequestInFlightRef.current) return;
+    telemetryRequestInFlightRef.current = true;
+
+    try {
+      const [cachedCount, cachedPlayers, cachedTickRate, cachedTick, onlinePeers] =
+        await Promise.all([
+          synmergiaBridge.getCache('online_player_count'),
+          synmergiaBridge.getCache('online_players'),
+          synmergiaBridge.getCache('server_tick_rate'),
+          synmergiaBridge.getCache('tick_rate'),
+          synmergiaBridge.getHashAll('online:peers'),
+        ]);
+      const now = Date.now();
+      const hasRedisCount =
+        cachedCount != null ||
+        cachedPlayers != null ||
+        Object.keys(onlinePeers ?? {}).length > 0;
+      const bridgePlayerCount =
+        readCountValue(cachedCount) ??
+        readCountValue(cachedPlayers) ??
+        readCountValue(onlinePeers);
+      const shouldRefreshCount =
+        lastWebSocketCountAtRef.current === 0 ||
+        now - lastWebSocketCountAtRef.current > TELEMETRY_FALLBACK_STALE_MS;
+      if (
+        telemetryActiveRef.current &&
+        shouldRefreshCount &&
+        bridgePlayerCount !== null
+      ) {
+        setActivePlayerCount(bridgePlayerCount);
+      }
+
+      const bridgeTickRate =
+        readTickRate(cachedTickRate) ?? readTickRate(cachedTick);
+      const shouldRefreshTickRate =
+        lastWebSocketTickAtRef.current === 0 ||
+        now - lastWebSocketTickAtRef.current > TELEMETRY_FALLBACK_STALE_MS;
+      if (
+        telemetryActiveRef.current &&
+        shouldRefreshTickRate &&
+        bridgeTickRate !== null
+      ) {
+        setServerTickRate(Math.round(bridgeTickRate));
+      }
+
+      if (!hasRedisCount) {
+        const result = await synmergiaBridge.query<TelemetryRow>(
+          ONLINE_PLAYER_COUNT_QUERY
+        );
+        const row = result.ok ? result.rows?.[0] : undefined;
+        const playerCount = row ? readCountValue(row) : null;
+        const isCountStillStale =
+          lastWebSocketCountAtRef.current === 0 ||
+          Date.now() - lastWebSocketCountAtRef.current > TELEMETRY_FALLBACK_STALE_MS;
+        if (
+          telemetryActiveRef.current &&
+          isCountStillStale &&
+          playerCount !== null
+        ) {
+          setActivePlayerCount(playerCount);
+        }
+      }
+    } finally {
+      telemetryRequestInFlightRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    telemetryActiveRef.current = true;
+    void refreshTelemetry();
+    const interval = window.setInterval(() => {
+      void refreshTelemetry();
+    }, TELEMETRY_POLL_INTERVAL_MS);
+
+    return () => {
+      telemetryActiveRef.current = false;
+      window.clearInterval(interval);
+    };
+  }, [refreshTelemetry]);
+
+  // --- Real-time WebSocket sync (companion mode) ---
+  useEffect(() => {
+    if (portalMode !== 'companion') return;
+
+    let cancelled = false;
+
+    gameWebSocket.onOpen(() => {
+      gameWebSocket.send('auth', { token: 'dev', playerId: player.id });
+      void refreshTelemetry();
+    });
+
+    const unsubscribePlayerState = gameWebSocket.on('player_state', (msg: WSMessage) => {
+      if (cancelled) return;
+      applyTelemetryFromMessage(msg.payload, msg.timestamp);
+      const p = msg.payload as {
+        x: number;
+        y: number;
+        hp: number;
+        mp: number;
+        stamina: number;
+        zone: string;
+      };
+      if (!p) return;
+      setPlayer((prev) => ({
+        ...prev,
+        x: p.x ?? prev.x,
+        y: p.y ?? prev.y,
+        hp: p.hp ?? prev.hp,
+        mp: p.mp ?? prev.mp,
+        stamina: p.stamina ?? prev.stamina,
+      }));
+      if (p.zone && p.zone !== currentZoneId) {
+        setCurrentZoneId(p.zone as ZoneId);
+      }
+    });
+
+    const unsubscribeEntityUpdate = gameWebSocket.on('entity_update', (msg: WSMessage) => {
+      if (cancelled) return;
+      const payload = msg.payload as { entities?: unknown[] };
+      applyTelemetryFromMessage(msg.payload, msg.timestamp, true);
+      if (!payload?.entities) return;
+    });
+
+    const unsubscribeCombatEvent = gameWebSocket.on('combat_event', (msg: WSMessage) => {
+      const ev = msg.payload as { type: string; amount?: number; targetId?: string };
+      if (cancelled || !ev) return;
+      if (ev.type === 'damage' && typeof ev.amount === 'number') {
+        addCombatText(String(ev.amount), player.x, player.y, '#ef4444', 'damage');
+      } else if (ev.type === 'heal' && typeof ev.amount === 'number') {
+        addCombatText(`+${ev.amount}`, player.x, player.y, '#22c55e', 'heal');
+      }
+    });
+
+    const unsubscribeChat = gameWebSocket.on('chat', (msg: WSMessage) => {
+      const c = msg.payload as { channel?: string; sender?: string; text?: string };
+      if (cancelled || !c?.text) return;
+      addChatMessage(c.text, (c.channel as any) || 'global', c.sender || 'Server');
+    });
+
+    const unsubscribeZoneChange = gameWebSocket.on('zone_change', (msg: WSMessage) => {
+      const z = msg.payload as { zoneId?: string; x?: number; y?: number };
+      if (cancelled || !z?.zoneId) return;
+      setCurrentZoneId(z.zoneId as ZoneId);
+      setPlayer((prev) => ({
+        ...prev,
+        x: z.x ?? prev.x,
+        y: z.y ?? prev.y,
+      }));
+    });
+
+    const unsubscribePong = gameWebSocket.on('pong', (msg: WSMessage) => {
+      if (!cancelled) applyTelemetryFromMessage(msg.payload, msg.timestamp);
+    });
+
+    gameWebSocket.connect().catch(() => {
+      // Offline fallback: local-only play continues.
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribePlayerState();
+      unsubscribeEntityUpdate();
+      unsubscribeCombatEvent();
+      unsubscribeChat();
+      unsubscribeZoneChange();
+      unsubscribePong();
+      gameWebSocket.disconnect();
+    };
+  }, [
+    portalMode,
+    player.id,
+    currentZoneId,
+    addChatMessage,
+    addCombatText,
+    applyTelemetryFromMessage,
+    refreshTelemetry,
+  ]);
 
   // --- Award Quest Progress ---
   const trackQuestKill = useCallback(
@@ -1171,8 +1562,8 @@ export default function App() {
         currentMode={portalMode}
         onSelectMode={setPortalMode}
         crossOriginIsolated={crossOriginIsolated}
-        activePlayerCount={42}
-        serverTickRate={20}
+        activePlayerCount={activePlayerCount}
+        serverTickRate={serverTickRate}
       />
 
       {/* Mode 1: Godot WASM Web Client */}

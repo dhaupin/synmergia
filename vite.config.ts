@@ -15,7 +15,29 @@ function bridgeApiPlugin(): Plugin {
         const url = req.url || '';
         if (url.startsWith('/api/pg/') || url.startsWith('/api/redis/')) {
           const isPg = url.startsWith('/api/pg/');
-          const targetPort = isPg ? 8082 : 8081;
+          const targetPort = isPg ? 8080 : 8081;
+          const targetPath = url.replace(isPg ? /^\/api\/pg/ : /^\/api\/redis/, '');
+
+          const chunks: Buffer[] = [];
+          req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+          req.on('end', () => {
+            const bodyBuffer = chunks.length > 0 ? Buffer.concat(chunks) : null;
+            proxyHttp(targetPort, targetPath, req.method || 'GET', req.headers, bodyBuffer, res);
+          });
+          return;
+        }
+        next();
+      });
+    },
+    async configurePreviewServer(server) {
+      // In preview mode, bridges must already be running (started by
+      // `npm run preview:with-bridges` or the Docker entrypoint).
+      // We just wire up the proxy middleware here.
+      server.middlewares.use((req, res, next) => {
+        const url = req.url || '';
+        if (url.startsWith('/api/pg/') || url.startsWith('/api/redis/')) {
+          const isPg = url.startsWith('/api/pg/');
+          const targetPort = isPg ? 8080 : 8081;
           const targetPath = url.replace(isPg ? /^\/api\/pg/ : /^\/api\/redis/, '');
 
           const chunks: Buffer[] = [];

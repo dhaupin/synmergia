@@ -6,7 +6,7 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const _kv_prefix := "achievement:player:"
 
 ## Achievement definitions loaded from data/achievements via DataService
-var _achievement_defs: Dictionary = {}
+var _achievement_defs: Array = []
 
 ## Player achievement state: player_id -> {achievement_id -> {progress, unlocked, unlocked_at}}
 var _player_achievements: Dictionary = {}
@@ -81,7 +81,7 @@ static func singleton() -> Node:
 func get_achievement(id: String) -> AchievementData:
 	return DataService.get_achievement(id) if DataService else null
 
-func get_all_achievements() -> Dictionary:
+func get_all_achievements() -> Array:
 	return _achievement_defs
 
 ## ============================================================================
@@ -117,21 +117,31 @@ func get_achievement_progress(player_id: String, achievement_id: String) -> Dict
 ## ============================================================================
 
 func _track_event(player_id: String, event_category: String, amount: int) -> void:
-	for ach_id in _achievement_defs:
-			var ach: AchievementData = _achievement_defs[ach_id]
-			# Skip GLOBAL achievements (they're unlocked directly, not tracked)
-			if ach.achievement_type == AchievementData.AchievementType.GLOBAL:
-					continue
-			# Check if this achievement tracks this event category
-			if ach.target_type != event_category:
-					continue
-			_increment_progress(player_id, ach_id, amount)
+	for ach in _achievement_defs:
+		var achievement: AchievementData = ach
+		# Skip GLOBAL achievements (they're unlocked directly, not tracked)
+		if achievement.achievement_type == AchievementData.AchievementType.GLOBAL:
+			continue
+		# Check if this achievement tracks this event category
+		if achievement.target_type != event_category:
+			continue
+		_increment_progress(player_id, achievement.id, amount)
 
 func _increment_progress(player_id: String, achievement_id: String, amount: int) -> void:
-	if not _achievement_defs.has(achievement_id):
-			return
-	var ach: AchievementData = _achievement_defs[achievement_id]
-	var target: int = ach.target
+	var found := false
+	for ach in _achievement_defs:
+		var achievement: AchievementData = ach
+		if achievement.id == achievement_id:
+			found = true
+			break
+	if not found:
+		return
+	var target: int = 0
+	for ach in _achievement_defs:
+		var achievement: AchievementData = ach
+		if achievement.id == achievement_id:
+			target = achievement.target
+			break
 
 	if not _player_achievements.has(player_id):
 			load_player_achievements(player_id)
@@ -169,9 +179,11 @@ func _do_unlock(player_id: String, achievement_id: String) -> void:
 func _load_player_achievements() -> void:
 	var store := DictStore.new()
 	_player_achievements.clear()
-	for key in store.all_keys(_kv_prefix):
+	for key in store.all_keys():
 		var player_id := key.replace(_kv_prefix, "")
-		var data: Dictionary = store.get(key, {})
+		var data: Dictionary = store.get_value(key) as Dictionary
+		if data == null:
+			data = {}
 		if not data.is_empty():
 			_player_achievements[player_id] = data
 
@@ -181,5 +193,4 @@ func _persist_player_achievements(player_id: String) -> void:
 	if achievements.is_empty():
 		store.erase(_kv_prefix + player_id)
 	else:
-		store.set(_kv_prefix + player_id, achievements)
-	_persist_player_achievements(player_id)
+		store.set_value(_kv_prefix + player_id, achievements)

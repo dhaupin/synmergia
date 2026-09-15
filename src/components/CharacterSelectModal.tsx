@@ -108,7 +108,7 @@ export const CharacterSelectModal: React.FC<CharacterSelectModalProps> = ({
                       {spec.description}
                     </p>
                     <div className="space-y-0.5">
-                      {spec.bonuses.map((bonus, i) => (
+                      {spec.bonuses.map((bonus: string, i: number) => (
                         <span
                           key={i}
                           className="block text-[10px] text-amber-300 font-medium"
