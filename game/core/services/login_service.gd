@@ -19,6 +19,8 @@ extends Node
 # dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
+const SeedChainScript = preload("res://labs/multi-iso/kv/seed_chain.gd")
 
 ## This is the client-side gate. Server should always re-validate.
 
@@ -26,6 +28,7 @@ signal login_succeeded(account_id: String, is_guest: bool)
 signal login_failed(reason: String)
 signal logged_out
 signal account_registered(account_id: String)
+signal seed_receipt_ready(character_id: String, receipt: Resource)
 
 const PBKDF2_ITERATIONS := 4096
 const HASH_BYTES := 32                # SHA-256 output
@@ -155,6 +158,152 @@ func is_guest() -> bool:
 
 func has_account(account_id: String) -> bool:
 	return _store.has(_sanitize_id(account_id))
+
+## Builds a SeedReceipt for the given character.
+## Derives the 4 seeds (world, shard, instance, player) from the
+## character's scope stack, computes the manifest hash, signs with
+## the server key, and emits seed_receipt_ready.
+## Returns the SeedReceipt resource, or null if character not found.
+func build_seed_receipt(character_id: String) -> Resource:
+	if not AccountService:
+		GameLog.warn("LoginService: AccountService not available")
+		return null
+	
+	var character_data: Dictionary = AccountService.get_character(character_id)
+	if character_data.is_empty():
+		GameLog.warn("LoginService: Character %s not found" % character_id)
+		return null
+	
+	var account_id: String = character_data.get("account_id", "")
+	if account_id == "":
+		GameLog.warn("LoginService: Character %s has no account" % character_id)
+		return null
+	
+	# Get server HMAC key from config
+	var server_key := _get_server_hmac_key()
+	if server_key.is_empty():
+		GameLog.warn("LoginService: Server HMAC key not configured")
+		return null
+	
+	# Build scope stack for this character: [player_seed, shard_seed, world_seed]
+	# The seeds are derived from the character's persistent scope tree
+	var scope_stack := _build_scope_stack(account_id, character_id)
+	if scope_stack.size() < 3:
+		GameLog.warn("LoginService: Incomplete scope stack for %s" % character_id)
+		return null
+	
+	# Derive the 4 seeds using SeedChain
+	var world_seed := SeedChainScript.derive_seed(scope_stack, "/world")
+	var shard_seed := SeedChainScript.derive_seed(scope_stack, "/shard")
+	var instance_seed := SeedChainScript.derive_seed(scope_stack, "/instance")
+	var player_seed := SeedChainScript.derive_seed(scope_stack, "/player/%s" % character_id)
+	
+	# Compute manifest hash from world state
+	var manifest_hash := _compute_manifest_hash()
+	
+	# Create and sign receipt
+	var receipt = SeedReceiptScript.new()
+	receipt.world_seed = world_seed
+	receipt.shard_seed = shard_seed
+	receipt.instance_seed = instance_seed
+	receipt.player_seed = player_seed
+	receipt.manifest_hash = manifest_hash
+	receipt.issued_at = Time.get_unix_time_from_system()
+	receipt.sign(server_key)
+	
+	GameLog.info("LoginService: Built seed receipt for %s" % character_id)
+	seed_receipt_ready.emit(character_id, receipt)
+	return receipt
+
+func _get_server_hmac_key() -> PackedByteArray:
+	# In production, load from secure config file (srv/config/server.key)
+	# For dev, use a deterministic key based on game config
+	if GameConfig and GameConfig.has_method("get_server_hmac_key"):
+		var key_str: String = GameConfig.get_server_hmac_key()
+		if key_str != "":
+			return key_str.hex_decode()
+	
+	# Fallback: derive from a known constant (dev only)
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update("synmergia_dev_hmac_key".to_utf8_buffer())
+	return ctx.finish()
+
+func _build_scope_stack(account_id: String, character_id: String) -> Array[PackedByteArray]:
+	# Stack order: [player_seed, shard_seed, world_seed] (top to bottom)
+	# Bottom-up derivation: world folds first, then shard, then player
+	var stack: Array[PackedByteArray] = []
+	
+	# Try to get seeds from character's persistent state
+	if AccountService and AccountService.has_method("get_character_scope_seeds"):
+		var seeds: Dictionary = AccountService.get_character_scope_seeds(character_id)
+		if not seeds.is_empty():
+			var player_seed := (seeds.get("player_seed", "") as String).hex_decode()
+			var shard_seed := (seeds.get("shard_seed", "") as String).hex_decode()
+			var world_seed := (seeds.get("world_seed", "") as String).hex_decode()
+			if player_seed.size() == 32:
+				stack.append(player_seed)
+			if shard_seed.size() == 32:
+				stack.append(shard_seed)
+			if world_seed.size() == 32:
+				stack.append(world_seed)
+	
+	# If missing, generate deterministic seeds from character_id + account_id
+	if stack.size() < 3:
+		var base := (account_id + ":" + character_id).to_utf8_buffer()
+		var ctx := HashingContext.new()
+		ctx.start(HashingContext.HASH_SHA256)
+		ctx.update(base)
+		ctx.update("world".to_utf8_buffer())
+		var ws := ctx.finish()
+		
+		ctx = HashingContext.new()
+		ctx.start(HashingContext.HASH_SHA256)
+		ctx.update(base)
+		ctx.update("shard".to_utf8_buffer())
+		var ss := ctx.finish()
+		
+		ctx = HashingContext.new()
+		ctx.start(HashingContext.HASH_SHA256)
+		ctx.update(base)
+		ctx.update("player".to_utf8_buffer())
+		var ps := ctx.finish()
+		
+		stack = [ps, ss, ws]
+	
+	return stack
+
+func _compute_manifest_hash() -> PackedByteArray:
+	# Hash of the current world manifest (zones, gateways, static data)
+	var parts: Array[PackedByteArray] = []
+	
+	if WorldService:
+		var ws = WorldService
+		if ws.has_method("get_world_seed"):
+			var seed_val: int = ws.get_world_seed()
+			var b := PackedByteArray()
+			b.resize(8)
+			for i in range(8):
+				b[i] = (seed_val >> (i * 8)) & 0xFF
+			parts.append(b)
+	
+	# Add zone data hashes
+	if ZoneManager:
+		var zones = ZoneManager.get_loaded_zones() if ZoneManager.has_method("get_loaded_zones") else []
+		for zone_id in zones:
+			var b := zone_id.to_utf8_buffer()
+			parts.append(b)
+	
+	# Combine all parts
+	var combined := PackedByteArray()
+	for p in parts:
+		combined.append_array(p)
+	
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	if not combined.is_empty():
+		ctx.update(combined)
+	return ctx.finish()
 
 
 # == Internals ==========================================================
