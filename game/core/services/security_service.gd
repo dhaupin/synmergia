@@ -8,6 +8,8 @@ extends Node
 # (the service-level verb that wraps send_event).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
+const RulesEngine = preload("res://labs/multi-iso/srv/rules_engine.gd")
 
 ## ============================================================================
 ## SIGNALS
@@ -17,174 +19,18 @@ signal exploit_detected(player_id: String, exploit_type: String, details: Dictio
 signal permission_denied(player_id: String, action: String, required_level: int)
 signal invalid_input(player_id: String, input_type: String, reason: String)
 
-func _ready() -> void:
-    _load_restrictions()
-
 ## ============================================================================
-## INPUT VALIDATION
+## STATE
 ## ============================================================================
 
-## Validate a player name
-func validate_player_name(name: String) -> Dictionary:
-    var result := {
-        "valid": true,
-        "reason": ""
-    }
+## RulesEngine instance for exploit detection and permission checks
+var _rules_engine: RulesEngine
 
-    # Check length
-    if name.length() < GameConfig.Security.MIN_NAME_LENGTH:
-        result.valid = false
-        result.reason = "Name too short"
-        return result
-
-    if name.length() > GameConfig.Security.MAX_NAME_LENGTH:
-        result.valid = false
-        result.reason = "Name too long"
-        return result
-
-    # Check allowed characters (alphanumeric, spaces, some punctuation)
-    var allowed := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.'"
-    for ch in name:
-        if ch not in allowed:
-            result.valid = false
-            result.reason = "Invalid character: '%s'" % ch
-            return result
-
-    # Check for reserved words
-    for reserved in GameConfig.Security.RESERVED_NAMES:
-        if name.to_lower().contains(reserved.to_lower()):
-            result.valid = false
-            result.reason = "Name contains reserved word"
-            return result
-
-    return result
-
-## Validate a chat message
-func validate_message(message: String, sender_id: String = "") -> Dictionary:
-    var result := {
-        "valid": true,
-        "reason": "",
-        "sanitized": message
-    }
-
-    if message.length() > GameConfig.Security.MAX_MESSAGE_LENGTH:
-        result.valid = false
-        result.reason = "Message too long"
-        return result
-
-    # Check for empty message
-    if message.strip_edges().is_empty():
-        result.valid = false
-        result.reason = "Empty message"
-        return result
-
-    # Sanitize: remove control characters
-    var sanitized := ""
-    for ch in message:
-        if ch >= ' ' or ch == '\n' or ch == '\t':  # Allow printable + newlines/tabs
-            sanitized += ch
-
-    result.sanitized = sanitized
-
-    # Check for spam patterns (repeated characters)
-    if _detect_spam_pattern(sanitized):
-        result.valid = false
-        result.reason = "Spam pattern detected"
-        if sender_id != "":
-            invalid_input.emit(sender_id, "message", "Spam pattern detected")
-
-    return result
-
-## Validate guild/channel name
-func validate_channel_name(name: String) -> Dictionary:
-    var result := {
-        "valid": true,
-        "reason": ""
-    }
-
-    # Check length
-    if name.length() < 2:
-        result.valid = false
-        result.reason = "Name too short"
-        return result
-
-    if name.length() > 30:
-        result.valid = false
-        result.reason = "Name too long"
-        return result
-
-    # Check allowed characters
-    var allowed := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
-    for ch in name:
-        if ch not in allowed:
-            result.valid = false
-            result.reason = "Invalid character"
-            return result
-
-    return result
-
-## Sanitize a string for safe storage/display
-func sanitize_for_display(input: String) -> String:
-    var output := ""
-    for ch in input:
-        # Only allow printable ASCII
-        if ch >= ' ' and ch <= '~':
-            output += ch
-    return output
-
-## Sanitize a string for log output (extra safe)
-func sanitize_for_log(input: String) -> String:
-    var output := ""
-    for ch in input:
-        # Only allow alphanumeric and basic punctuation
-        if ch.is_valid_identifier() or ch in " .,-_":
-            output += ch
-        else:
-            output += "?"
-    return output
-
-## ============================================================================
-## PERMISSION CHECKS
-## ============================================================================
-
-## Check if player has required permission level
-func check_permission(player_level: int, required_level: int) -> bool:
-    return player_level >= required_level
-
-## Check if player can perform admin action
-func can_admin(player_level: int) -> bool:
-    return check_permission(player_level, GameConfig.Security.ADMIN_LEVEL)
-
-## Check if player can moderate
-func can_moderate(player_level: int) -> bool:
-    return check_permission(player_level, GameConfig.Security.MOD_LEVEL)
-
-## Log permission denial
-func log_permission_denied(player_id: String, action: String, required_level: int) -> void:
-    permission_denied.emit(player_id, action, required_level)
-    GameLog.warn("SecurityService: Permission denied for %s on action '%s' (required: %d)" % [
-        player_id, action, required_level
-    ])
-    # Player-facing notice: the player should know the action was refused.
-    # Currently the only caller is admin_commands, so this is "you don't have
-    # permission to run that command". Generic message -- no internal
-    # action/required_level leaked. SECURITY_WARNING (not BLOCKED -- the
-    # action was refused, not the player). Dedupe on (player, action) so
-    # the player doesn't get a fresh toast for every failed attempt at
-    # the same command in a 5s window.
-    if is_instance_valid(NotificationService):
-        NotificationService.notify(
-            NotifKind.SECURITY_WARNING,
-            "You don't have permission to do that.",
-            "SecurityService",
-            "perm_denied:%s:%s" % [player_id, action],
-            {"action": action, "required_level": required_level},
-            player_id
-        )
-
-## ============================================================================
-## EXPLOIT DETECTION
-## ============================================================================
+## Scope objects for hierarchical rule resolution
+var _world_scope: Object
+var _shard_scope: Object
+var _instance_scope: Object
+var _player_scopes: Dictionary = {}  # player_id -> Scope
 
 ## Track suspicious activity patterns
 var _suspicious_activity: Dictionary = {}
@@ -196,159 +42,412 @@ const _kv_prefix := "security:restriction:"
 ## Track blocked actions count (for statistics)
 var _blocks: Dictionary = {}
 
+## Track actions per player for anomaly detection
+var _action_tracker: Dictionary = {}
+
+func _ready() -> void:
+	_rules_engine = RulesEngine.new()
+	_create_scopes()
+	_register_rules()
+	_load_restrictions()
+
+func _create_scopes() -> void:
+	# World scope (global defaults) - outermost
+	_world_scope = ScopeScript.new("world", null, "", {})
+	# Shard scope - middle layer
+	_shard_scope = ScopeScript.new("shard", _world_scope, "", {})
+	# Instance scope - inner layer
+	_instance_scope = ScopeScript.new("instance", _shard_scope, "", {})
+
+func _register_rules() -> void:
+	# Exploit detection rules: TOP_WINS (innermost scope wins), default deny
+	_rules_engine.register_rule("teleport_check", RulesEngine.TOP_WINS, false)
+	_rules_engine.register_rule("speed_hack_check", RulesEngine.TOP_WINS, false)
+	_rules_engine.register_rule("item_duplication_check", RulesEngine.TOP_WINS, false)
+	_rules_engine.register_rule("input_anomaly_check", RulesEngine.TOP_WINS, false)
+	# Permission check: BOTTOM_WINS (world default wins)
+	_rules_engine.register_rule("permission_check", RulesEngine.BOTTOM_WINS, true)
+	# Restriction management: TOP_WINS
+	_rules_engine.register_rule("restrict_player", RulesEngine.TOP_WINS, true)
+
+func _build_scope_stack(player_id: String) -> Array:
+	var stack: Array = []
+	# Player scope (per-player overrides) - innermost for TOP_WINS
+	if _player_scopes.has(player_id):
+		stack.append(_player_scopes[player_id])
+	# Instance scope
+	if _instance_scope:
+		stack.append(_instance_scope)
+	# Shard scope
+	if _shard_scope:
+		stack.append(_shard_scope)
+	# World scope (global defaults) - outermost
+	if _world_scope:
+		stack.append(_world_scope)
+	return stack
+
+## ============================================================================
+## INPUT VALIDATION
+## ============================================================================
+
+## Validate a player name
+func validate_player_name(name: String) -> Dictionary:
+	var result := {
+		"valid": true,
+		"reason": ""
+	}
+
+	# Check length
+	if name.length() < GameConfig.Security.MIN_NAME_LENGTH:
+		result.valid = false
+		result.reason = "Name too short"
+		return result
+
+	if name.length() > GameConfig.Security.MAX_NAME_LENGTH:
+		result.valid = false
+		result.reason = "Name too long"
+		return result
+
+	# Check allowed characters (alphanumeric, spaces, some punctuation)
+	var allowed := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.'"
+	for ch in name:
+		if ch not in allowed:
+			result.valid = false
+			result.reason = "Invalid character: '%s'" % ch
+			return result
+
+	# Check for reserved words
+	for reserved in GameConfig.Security.RESERVED_NAMES:
+		if name.to_lower().contains(reserved.to_lower()):
+			result.valid = false
+			result.reason = "Name contains reserved word"
+			return result
+
+	return result
+
+## Validate a chat message
+func validate_message(message: String, sender_id: String = "") -> Dictionary:
+	var result := {
+		"valid": true,
+		"reason": "",
+		"sanitized": message
+	}
+
+	if message.length() > GameConfig.Security.MAX_MESSAGE_LENGTH:
+		result.valid = false
+		result.reason = "Message too long"
+		return result
+
+	# Check for empty message
+	if message.strip_edges().is_empty():
+		result.valid = false
+		result.reason = "Empty message"
+		return result
+
+	# Sanitize: remove control characters
+	var sanitized := ""
+	for ch in message:
+		if ch >= ' ' or ch == '\n' or ch == '\t':  # Allow printable + newlines/tabs
+			sanitized += ch
+
+	result.sanitized = sanitized
+
+	# Check for spam patterns (repeated characters)
+	if _detect_spam_pattern(sanitized):
+		result.valid = false
+		result.reason = "Spam pattern detected"
+		if sender_id != "":
+			invalid_input.emit(sender_id, "message", "Spam pattern detected")
+
+	return result
+
+## Validate guild/channel name
+func validate_channel_name(name: String) -> Dictionary:
+	var result := {
+		"valid": true,
+		"reason": ""
+	}
+
+	# Check length
+	if name.length() < 2:
+		result.valid = false
+		result.reason = "Name too short"
+		return result
+
+	if name.length() > 30:
+		result.valid = false
+		result.reason = "Name too long"
+		return result
+
+	# Check allowed characters
+	var allowed := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+	for ch in name:
+		if ch not in allowed:
+			result.valid = false
+			result.reason = "Invalid character"
+			return result
+
+	return result
+
+## Sanitize a string for safe storage/display
+func sanitize_for_display(input: String) -> String:
+	var output := ""
+	for ch in input:
+		# Only allow printable ASCII
+		if ch >= ' ' and ch <= '~':
+			output += ch
+	return output
+
+## Sanitize a string for log output (extra safe)
+func sanitize_for_log(input: String) -> String:
+	var output := ""
+	for ch in input:
+		# Only allow alphanumeric and basic punctuation
+		if ch.is_valid_identifier() or ch in " .,-_":
+			output += ch
+		else:
+			output += "?"
+	return output
+
+## ============================================================================
+## PERMISSION CHECKS
+## ============================================================================
+
+## Check if player has required permission level (uses RulesEngine)
+func check_permission(player_level: int, required_level: int) -> bool:
+	var context := {
+		"player_level": player_level,
+		"required_level": required_level
+	}
+	var stack := _build_scope_stack("")
+	var result := _rules_engine.evaluate("permission_check", context, stack)
+	return result.get("allow", false)
+
+## Check if player can perform admin action
+func can_admin(player_level: int) -> bool:
+	return check_permission(player_level, GameConfig.Security.ADMIN_LEVEL)
+
+## Check if player can moderate
+func can_moderate(player_level: int) -> bool:
+	return check_permission(player_level, GameConfig.Security.MOD_LEVEL)
+
+## Log permission denial
+func log_permission_denied(player_id: String, action: String, required_level: int) -> void:
+	permission_denied.emit(player_id, action, required_level)
+	GameLog.warn("SecurityService: Permission denied for %s on action '%s' (required: %d)" % [
+		player_id, action, required_level
+	])
+	# Player-facing notice: the player should know the action was refused.
+	# Currently the only caller is admin_commands, so this is "you don't have
+	# permission to run that command". Generic message -- no internal
+	# action/required_level leaked. SECURITY_WARNING (not BLOCKED -- the
+	# action was refused, not the player). Dedupe on (player, action) so
+	# the player doesn't get a fresh toast for every failed attempt at
+	# the same command in a 5s window.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_WARNING,
+			"You don't have permission to do that.",
+			"SecurityService",
+			"perm_denied:%s:%s" % [player_id, action],
+			{"action": action, "required_level": required_level},
+			player_id
+		)
+
+## ============================================================================
+## EXPLOIT DETECTION
+## ============================================================================
+
 ## Detect potential teleport hack (instant movement across large distance)
 func check_teleport(player_id: String, from_pos: Vector3, to_pos: Vector3, time_delta: float) -> bool:
-    if time_delta <= 0:
-        return false
+	if time_delta <= 0:
+		return false
 
-    var distance: float = from_pos.distance_to(to_pos)
-    var speed: float = distance / time_delta
+	var distance: float = from_pos.distance_to(to_pos)
+	var speed: float = distance / time_delta
 
-    if speed > GameConfig.Security.MAX_TELEPORT_DISTANCE:
-        _report_exploit(player_id, "teleport_hack", {
-            "from": {"x": from_pos.x, "y": from_pos.y, "z": from_pos.z},
-            "to": {"x": to_pos.x, "y": to_pos.y, "z": to_pos.z},
-            "distance": distance,
-            "speed": speed,
-            "max_allowed": GameConfig.Security.MAX_TELEPORT_DISTANCE
-        })
-        return true
+	var context := {
+		"player_id": player_id,
+		"from_pos": {"x": from_pos.x, "y": from_pos.y, "z": from_pos.z},
+		"to_pos": {"x": to_pos.x, "y": to_pos.y, "z": to_pos.z},
+		"distance": distance,
+		"speed": speed,
+		"max_allowed": GameConfig.Security.MAX_TELEPORT_DISTANCE
+	}
+	var stack := _build_scope_stack(player_id)
+	var result := _rules_engine.evaluate("teleport_check", context, stack)
 
-    return false
+	if result.get("allow", false):
+		_report_exploit(player_id, "teleport_hack", {
+			"from": {"x": from_pos.x, "y": from_pos.y, "z": from_pos.z},
+			"to": {"x": to_pos.x, "y": to_pos.y, "z": to_pos.z},
+			"distance": distance,
+			"speed": speed,
+			"max_allowed": GameConfig.Security.MAX_TELEPORT_DISTANCE
+		})
+		return true
+
+	return false
 
 ## Detect potential speed hack (movement too fast)
 func check_movement_speed(player_id: String, reported_distance: float, time_delta: float, max_speed: float) -> bool:
-    if time_delta <= 0:
-        return false
+	if time_delta <= 0:
+		return false
 
-    var actual_speed := reported_distance / time_delta
-    var max_allowed := max_speed * GameConfig.Security.MAX_SPEED_HACK_MULTIPLIER
+	var actual_speed := reported_distance / time_delta
+	var max_allowed := max_speed * GameConfig.Security.MAX_SPEED_HACK_MULTIPLIER
 
-    if actual_speed > max_allowed:
-        _report_exploit(player_id, "speed_hack", {
-            "reported_speed": actual_speed,
-            "max_allowed": max_allowed,
-            "distance": reported_distance,
-            "time": time_delta
-        })
-        return true
+	var context := {
+		"player_id": player_id,
+		"reported_distance": reported_distance,
+		"time_delta": time_delta,
+		"max_speed": max_speed,
+		"actual_speed": actual_speed,
+		"max_allowed": max_allowed
+	}
+	var stack := _build_scope_stack(player_id)
+	var result := _rules_engine.evaluate("speed_hack_check", context, stack)
 
-    return false
+	if result.get("allow", false):
+		_report_exploit(player_id, "speed_hack", {
+			"reported_speed": actual_speed,
+			"max_allowed": max_allowed,
+			"distance": reported_distance,
+			"time": time_delta
+		})
+		return true
+
+	return false
 
 ## Detect potential item duplication
 func check_item_duplication(player_id: String, item_id: String, quantity_change: int) -> bool:
-    if quantity_change <= 0:
-        return false
+	if quantity_change <= 0:
+		return false
 
-    # Track item creation rate
-    if not _suspicious_activity.has(player_id):
-        _suspicious_activity[player_id] = {"item_creations": {}}
+	# Track item creation rate
+	if not _suspicious_activity.has(player_id):
+		_suspicious_activity[player_id] = {"item_creations": {}}
 
-    var player_data: Dictionary = _suspicious_activity[player_id]
-    if not player_data["item_creations"].has(item_id):
-        player_data["item_creations"][item_id] = []
+	var player_data: Dictionary = _suspicious_activity[player_id]
+	if not player_data["item_creations"].has(item_id):
+		player_data["item_creations"][item_id] = []
 
-    var now := Time.get_ticks_msec()
-    var recent: Array = player_data["item_creations"][item_id].filter(func(t): return now - t < 60000)
-    recent.append(now)
-    player_data["item_creations"][item_id] = recent
+	var now := Time.get_ticks_msec()
+	var recent: Array = player_data["item_creations"][item_id].filter(func(t): return now - t < 60000)
+	recent.append(now)
+	player_data["item_creations"][item_id] = recent
 
-    if recent.size() > GameConfig.Security.MAX_ITEMS_PER_MINUTE:
-        _report_exploit(player_id, "item_duplication", {
-            "item_id": item_id,
-            "count": recent.size(),
-            "quantity": quantity_change
-        })
-        return true
+	var context := {
+		"player_id": player_id,
+		"item_id": item_id,
+		"quantity_change": quantity_change,
+		"recent_count": recent.size(),
+		"max_allowed": GameConfig.Security.MAX_ITEMS_PER_MINUTE
+	}
+	var stack := _build_scope_stack(player_id)
+	var result := _rules_engine.evaluate("item_duplication_check", context, stack)
 
-    return false
+	if result.get("allow", false):
+		_report_exploit(player_id, "item_duplication", {
+			"item_id": item_id,
+			"count": recent.size(),
+			"quantity": quantity_change
+		})
+		return true
+
+	return false
 
 ## Detect potential packet manipulation (unusual input patterns)
 func check_input_anomaly(player_id: String, input_type: String, value: float) -> bool:
-    var threshold := GameConfig.Security.MAX_INPUT_VALUE
+	var threshold := GameConfig.Security.MAX_INPUT_VALUE
 
-    # Check for impossible values
-    if absf(value) > threshold:
-        _report_exploit(player_id, "input_anomaly", {
-            "type": input_type,
-            "value": value,
-            "threshold": threshold
-        })
-        return true
+	var context := {
+		"player_id": player_id,
+		"input_type": input_type,
+		"value": value,
+		"threshold": threshold
+	}
+	var stack := _build_scope_stack(player_id)
+	var result := _rules_engine.evaluate("input_anomaly_check", context, stack)
 
-    return false
+	if result.get("allow", false):
+		_report_exploit(player_id, "input_anomaly", {
+			"type": input_type,
+			"value": value,
+			"threshold": threshold
+		})
+		return true
+
+	return false
 
 ## Internal: Report exploit
 func _report_exploit(player_id: String, exploit_type: String, details: Dictionary) -> void:
-    exploit_detected.emit(player_id, exploit_type, details)
-    GameLog.warn("SecurityService: Exploit detected - %s for player %s: %s" % [
-        exploit_type, player_id, JSON.stringify(details)
-    ])
-    # Player-facing notice: the player should know their action was
-    # flagged. We don't block (the *check_X functions returned false
-    # before calling _report_exploit), so SECURITY_WARNING, not
-    # SECURITY_BLOCKED. The message is intentionally generic -- no
-    # internal exploit_type leaked. Dedupe on (player, exploit_type)
-    # so an attacker hammering the same vector collapses to one toast.
-    if is_instance_valid(NotificationService):
-        NotificationService.notify(
-            NotifKind.SECURITY_WARNING,
-            "Your recent action has been flagged for review.",
-            "SecurityService",
-            "exploit:%s:%s" % [player_id, exploit_type],
-            {"exploit_type": exploit_type, "details": details},
-            player_id
-        )
+	exploit_detected.emit(player_id, exploit_type, details)
+	GameLog.warn("SecurityService: Exploit detected - %s for player %s: %s" % [
+		exploit_type, player_id, JSON.stringify(details)
+	])
+	# Player-facing notice: the player should know their action was
+	# flagged. We don't block (the *check_X functions returned false
+	# before calling _report_exploit), so SECURITY_WARNING, not
+	# SECURITY_BLOCKED. The message is intentionally generic -- no
+	# internal exploit_type leaked. Dedupe on (player, exploit_type)
+	# so an attacker hammering the same vector collapses to one toast.
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.SECURITY_WARNING,
+			"Your recent action has been flagged for review.",
+			"SecurityService",
+			"exploit:%s:%s" % [player_id, exploit_type],
+			{"exploit_type": exploit_type, "details": details},
+			player_id
+		)
 
 ## Internal: Detect spam patterns
 func _detect_spam_pattern(message: String) -> bool:
-    # Check for repeated characters (> 5 same char in a row)
-    var last_char := ""
-    var count: int = 0
-    for ch in message:
-        if ch == last_char:
-            count += 1
-            if count > 5:
-                return true
-        else:
-            count = 1
-            last_char = ch
-    return false
+	# Check for repeated characters (> 5 same char in a row)
+	var last_char := ""
+	var count: int = 0
+	for ch in message:
+		if ch == last_char:
+			count += 1
+			if count > 5:
+				return true
+		else:
+			count = 1
+			last_char = ch
+	return false
 
 ## ============================================================================
 ## RATE TRACKING (for manual security checks)
 ## ============================================================================
 
-## Track actions per player for anomaly detection
-var _action_tracker: Dictionary = {}
-
 ## Record an action for tracking
 func track_action(player_id: String, action_type: String) -> int:
-    if not _action_tracker.has(player_id):
-        _action_tracker[player_id] = {}
+	if not _action_tracker.has(player_id):
+		_action_tracker[player_id] = {}
 
-    var now := Time.get_ticks_msec()
-    var window := 10000  # 10 second window
+	var now := Time.get_ticks_msec()
+	var window := 10000  # 10 second window
 
-    if not _action_tracker[player_id].has(action_type):
-        _action_tracker[player_id][action_type] = []
+	if not _action_tracker[player_id].has(action_type):
+		_action_tracker[player_id][action_type] = []
 
-    var actions: Array = _action_tracker[player_id][action_type]
-    # Filter to recent
-    var recent: Array = actions.filter(func(t): return now - t < window)
-    recent.append(now)
-    _action_tracker[player_id][action_type] = recent
+	var actions: Array = _action_tracker[player_id][action_type]
+	# Filter to recent
+	var recent: Array = actions.filter(func(t): return now - t < window)
+	recent.append(now)
+	_action_tracker[player_id][action_type] = recent
 
-    return recent.size()
+	return recent.size()
 
 ## Get action count in recent window
 func get_action_count(player_id: String, action_type: String, window_ms: int = 10000) -> int:
-    if not _action_tracker.has(player_id) or not _action_tracker[player_id].has(action_type):
-        return 0
+	if not _action_tracker.has(player_id) or not _action_tracker[player_id].has(action_type):
+		return 0
 
-    var now := Time.get_ticks_msec()
-    var actions: Array = _action_tracker[player_id][action_type]
-    return actions.filter(func(t): return now - t < window_ms).size()
+	var now := Time.get_ticks_msec()
+	var actions: Array = _action_tracker[player_id][action_type]
+	return actions.filter(func(t): return now - t < window_ms).size()
 
 ## ============================================================================
 ## PLAYER RESTRICTIONS
@@ -356,187 +455,191 @@ func get_action_count(player_id: String, action_type: String, window_ms: int = 1
 
 ## Restrict a player's action (e.g., mute)
 func restrict_player(player_id: String, restriction_type: String, duration_seconds: int) -> void:
-    if not _player_restrictions.has(player_id):
-        _player_restrictions[player_id] = {}
+	if not _player_restrictions.has(player_id):
+		_player_restrictions[player_id] = {}
 
-    var expires_at := Time.get_ticks_msec() + (duration_seconds * 1000)
-    _player_restrictions[player_id][restriction_type] = {
-        "expires_at": expires_at,
-        "duration": duration_seconds
-    }
+	var expires_at := Time.get_ticks_msec() + (duration_seconds * 1000)
+	_player_restrictions[player_id][restriction_type] = {
+		"expires_at": expires_at,
+		"duration": duration_seconds
+	}
 
-    # Notify player
-    _notify_player_restricted(player_id, restriction_type, duration_seconds)
-    _persist_restriction(player_id)
+	# Create player scope if not exists
+	if not _player_scopes.has(player_id):
+		_player_scopes[player_id] = ScopeScript.new("player_" + player_id, _instance_scope, "", {})
 
-    GameLog.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
+	# Notify player
+	_notify_player_restricted(player_id, restriction_type, duration_seconds)
+	_persist_restriction(player_id)
+
+	GameLog.info("SecurityService: Restricted %s from %s for %ds" % [player_id, restriction_type, duration_seconds])
 
 ## Remove restriction from player
 func unrestrict_player(player_id: String, restriction_type: String) -> bool:
-    if not _player_restrictions.has(player_id):
-        return false
+	if not _player_restrictions.has(player_id):
+		return false
 
-    if not _player_restrictions[player_id].has(restriction_type):
-        return false
+	if not _player_restrictions[player_id].has(restriction_type):
+		return false
 
-    _player_restrictions[player_id].erase(restriction_type)
+	_player_restrictions[player_id].erase(restriction_type)
 
-    if _player_restrictions[player_id].is_empty():
-        _player_restrictions.erase(player_id)
+	if _player_restrictions[player_id].is_empty():
+		_player_restrictions.erase(player_id)
 
-    # Notify player
-    _notify_player_unrestricted(player_id, restriction_type)
-    _persist_restriction(player_id)
+	# Notify player
+	_notify_player_unrestricted(player_id, restriction_type)
+	_persist_restriction(player_id)
 
-    GameLog.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
-    return true
+	GameLog.info("SecurityService: Unrestricted %s from %s" % [player_id, restriction_type])
+	return true
 
 ## Check if player is restricted from an action
 func is_restricted(player_id: String, restriction_type: String) -> bool:
-    if not _player_restrictions.has(player_id):
-        return false
+	if not _player_restrictions.has(player_id):
+		return false
 
-    if not _player_restrictions[player_id].has(restriction_type):
-        return false
+	if not _player_restrictions[player_id].has(restriction_type):
+		return false
 
-    var restriction: Dictionary = _player_restrictions[player_id][restriction_type]
-    var expires_at: int = restriction["expires_at"]
-    var now := Time.get_ticks_msec()
+	var restriction: Dictionary = _player_restrictions[player_id][restriction_type]
+	var expires_at: int = restriction["expires_at"]
+	var now := Time.get_ticks_msec()
 
-    # Check if expired
-    if now > expires_at:
-        _player_restrictions[player_id].erase(restriction_type)
-        if _player_restrictions[player_id].is_empty():
-            _player_restrictions.erase(player_id)
-        return false
+	# Check if expired
+	if now > expires_at:
+		_player_restrictions[player_id].erase(restriction_type)
+		if _player_restrictions[player_id].is_empty():
+			_player_restrictions.erase(player_id)
+		return false
 
-    return true
+	return true
 
 ## Notify player they've been restricted
 func _notify_player_restricted(player_id: String, restriction_type: String, duration_seconds: int) -> void:
-    # Respect config toggle
-    if not GameConfig.Security.ENABLE_SECURITY_ALERTS:
-        return
-    if not GameConfig.Security.ALERT_ON_RESTRICTION:
-        return
-    if not is_instance_valid(NotificationService):
-        return
+	# Respect config toggle
+	if not GameConfig.Security.ENABLE_SECURITY_ALERTS:
+		return
+	if not GameConfig.Security.ALERT_ON_RESTRICTION:
+		return
+	if not is_instance_valid(NotificationService):
+		return
 
-    var message: String = ""
-    match restriction_type:
-        "chat":
-            if duration_seconds >= 3600:
-                message = "You have been muted for %.1f hours for spam." % (duration_seconds / 3600.0)
-            elif duration_seconds >= 60:
-                message = "You have been muted for %d minutes for spam." % (duration_seconds / 60)
-            else:
-                message = "You have been muted for %d seconds for spam." % duration_seconds
-        "trade":
-            message = "You have been temporarily restricted from trading for %d seconds." % duration_seconds
-        "party":
-            message = "You have been temporarily restricted from creating parties for %d seconds." % duration_seconds
-        _:
-            message = "You have been restricted from %s for %d seconds." % [restriction_type, duration_seconds]
+	var message: String = ""
+	match restriction_type:
+		"chat":
+			if duration_seconds >= 3600:
+				message = "You have been muted for %.1f hours for spam." % (duration_seconds / 3600.0)
+			elif duration_seconds >= 60:
+				message = "You have been muted for %d minutes for spam." % (duration_seconds / 60)
+			else:
+				message = "You have been muted for %d seconds for spam." % duration_seconds
+		"trade":
+			message = "You have been temporarily restricted from trading for %d seconds." % duration_seconds
+		"party":
+			message = "You have been temporarily restricted from creating parties for %d seconds." % duration_seconds
+		_:
+			message = "You have been restricted from %s for %d seconds." % [restriction_type, duration_seconds]
 
-    # Frame-level dispatch. SECURITY_BLOCKED -> ALERT + HIGH (slightly louder
-    # than the legacy WARNING + HIGH, but a block IS an alert-worthy event).
-    # Dedupe on (player, type) so a quick double-click on the admin button
-    # doesn't toast twice; the 5s window is far shorter than any real
-    # restriction, so a lifted-then-reapplied restriction still toasts.
-    NotificationService.notify(
-        NotifKind.SECURITY_BLOCKED,
-        message,
-        "SecurityService",
-        "sec_blocked:%s:%s" % [player_id, restriction_type],
-        {"restriction_type": restriction_type, "duration_seconds": duration_seconds},
-        player_id
-    )
+	# Frame-level dispatch. SECURITY_BLOCKED -> ALERT + HIGH (slightly louder
+	# than the legacy WARNING + HIGH, but a block IS an alert-worthy event).
+	# Dedupe on (player, type) so a quick double-click on the admin button
+	# doesn't toast twice; the 5s window is far shorter than any real
+	# restriction, so a lifted-then-reapplied restriction still toasts.
+	NotificationService.notify(
+		NotifKind.SECURITY_BLOCKED,
+		message,
+		"SecurityService",
+		"sec_blocked:%s:%s" % [player_id, restriction_type],
+		{"restriction_type": restriction_type, "duration_seconds": duration_seconds},
+		player_id
+	)
 
 ## Notify player their restriction has been lifted
 func _notify_player_unrestricted(player_id: String, restriction_type: String) -> void:
-    # Respect config toggle
-    if not GameConfig.Security.ENABLE_SECURITY_ALERTS:
-        return
-    if not GameConfig.Security.ALERT_ON_UNRESTRICTION:
-        return
-    if not is_instance_valid(NotificationService):
-        return
+	# Respect config toggle
+	if not GameConfig.Security.ENABLE_SECURITY_ALERTS:
+		return
+	if not GameConfig.Security.ALERT_ON_UNRESTRICTION:
+		return
+	if not is_instance_valid(NotificationService):
+		return
 
-    var message: String = ""
-    match restriction_type:
-        "chat":
-            message = "Your mute has been lifted. Please follow chat guidelines."
-        "trade":
-            message = "Trading restriction lifted. You can trade again."
-        "party":
-            message = "Party creation restriction lifted. You can create parties again."
-        _:
-            message = "Your restriction on %s has been lifted." % restriction_type
+	var message: String = ""
+	match restriction_type:
+		"chat":
+			message = "Your mute has been lifted. Please follow chat guidelines."
+		"trade":
+			message = "Trading restriction lifted. You can trade again."
+		"party":
+			message = "Party creation restriction lifted. You can create parties again."
+		_:
+			message = "Your restriction on %s has been lifted." % restriction_type
 
-    # Frame-level dispatch. SECURITY_WARNING -> WARNING + LOW (the lift is
-    # informational, not an alert). Dedupe on (player, type) so a tickle
-    # of the unrestrict API doesn't spam the player with "lifted!" toasts.
-    NotificationService.notify(
-        NotifKind.SECURITY_WARNING,
-        message,
-        "SecurityService",
-        "sec_unblocked:%s:%s" % [player_id, restriction_type],
-        {"restriction_type": restriction_type, "event": "unrestricted"},
-        player_id
-    )
+	# Frame-level dispatch. SECURITY_WARNING -> WARNING + LOW (the lift is
+	# informational, not an alert). Dedupe on (player, type) so a tickle
+	# of the unrestrict API doesn't spam the player with "lifted!" toasts.
+	NotificationService.notify(
+		NotifKind.SECURITY_WARNING,
+		message,
+		"SecurityService",
+		"sec_unblocked:%s:%s" % [player_id, restriction_type],
+		{"restriction_type": restriction_type, "event": "unrestricted"},
+		player_id
+	)
 
 ## ============================================================================
 ## CLEANUP
 ## ============================================================================
 
 func _process(delta: float) -> void:
-    # Periodic cleanup of old tracking data
-    var now := Time.get_ticks_msec()
+	# Periodic cleanup of old tracking data
+	var now := Time.get_ticks_msec()
 
-    # Cleanup suspicious activity (older than 5 minutes)
-    for player_id in _suspicious_activity.keys():
-        var data: Dictionary = _suspicious_activity[player_id]
-        var has_recent := false
-        for item_id in data["item_creations"].keys():
-            var recent: Array = data["item_creations"][item_id].filter(func(t): return now - t < 300000)
-            if not recent.is_empty():
-                has_recent = true
-                data["item_creations"][item_id] = recent
-        if not has_recent:
-            _suspicious_activity.erase(player_id)
+	# Cleanup suspicious activity (older than 5 minutes)
+	for player_id in _suspicious_activity.keys():
+		var data: Dictionary = _suspicious_activity[player_id]
+		var has_recent := false
+		for item_id in data["item_creations"].keys():
+			var recent: Array = data["item_creations"][item_id].filter(func(t): return now - t < 300000)
+			if not recent.is_empty():
+				has_recent = true
+				data["item_creations"][item_id] = recent
+		if not has_recent:
+			_suspicious_activity.erase(player_id)
 
-    # Cleanup action tracker (older than 1 minute)
-    for player_id in _action_tracker.keys():
-        var actions: Dictionary = _action_tracker[player_id]
-        var has_recent := false
-        for action_type in actions.keys():
-            var recent: Array = actions[action_type].filter(func(t): return now - t < 60000)
-            if not recent.is_empty():
-                has_recent = true
-                actions[action_type] = recent
-        if not has_recent:
-            _action_tracker.erase(player_id)
+	# Cleanup action tracker (older than 1 minute)
+	for player_id in _action_tracker.keys():
+		var actions: Dictionary = _action_tracker[player_id]
+		var has_recent := false
+		for action_type in actions.keys():
+			var recent: Array = actions[action_type].filter(func(t): return now - t < 60000)
+			if not recent.is_empty():
+				has_recent = true
+				actions[action_type] = recent
+		if not has_recent:
+			_action_tracker.erase(player_id)
 
 ## ============================================================================
 ## PERSISTENCE
 ## ============================================================================
 
 func _load_restrictions() -> void:
-    var store := DictStore.new()
-    for key in store.all_keys():
-        if not key.begins_with(_kv_prefix):
-            continue
-        var player_id: String = key.substr(_kv_prefix.length())
-        var data: Variant = store.get_value(key)
-        if data is Dictionary and not data.is_empty():
-            _player_restrictions[player_id] = data
+	var store := DictStore.new()
+	for key in store.all_keys():
+		if not key.begins_with(_kv_prefix):
+			continue
+		var player_id: String = key.substr(_kv_prefix.length())
+		var data: Variant = store.get_value(key)
+		if data is Dictionary and not data.is_empty():
+			_player_restrictions[player_id] = data
 
 func _persist_restriction(player_id: String) -> void:
-    var store := DictStore.new()
-    if _player_restrictions.has(player_id):
-        store.set_value(_kv_prefix + player_id, _player_restrictions[player_id])
-    else:
-        store.erase(_kv_prefix + player_id)
+	var store := DictStore.new()
+	if _player_restrictions.has(player_id):
+		store.set_value(_kv_prefix + player_id, _player_restrictions[player_id])
+	else:
+		store.erase(_kv_prefix + player_id)
 
 ## ============================================================================
 ## ADMIN HELPERS (for AdminShell)
@@ -544,55 +647,55 @@ func _persist_restriction(player_id: String) -> void:
 
 ## Get player permission level
 func get_player_permission_level(player_id: String) -> int:
-    # In a real implementation, this would check a player database or session
-    # For now, return default player level
-    return GameConfig.Security.PLAYER_LEVEL
+	# In a real implementation, this would check a player database or session
+	# For now, return default player level
+	return GameConfig.Security.PLAYER_LEVEL
 
 ## Get active restrictions for a player
 func get_active_restrictions(player_id: String) -> Array:
-    var restrictions: Array = []
-    var now := Time.get_unix_time_from_system()
+	var restrictions: Array = []
+	var now := Time.get_unix_time_from_system()
 
-    if _player_restrictions.has(player_id):
-        var player_res: Dictionary = _player_restrictions[player_id]
-        for restriction_type in player_res.keys():
-            var data: Dictionary = player_res[restriction_type]
-            var expires_at: float = data.get("expires_at", 0)
-            if expires_at > now:
-                restrictions.append({
-                    "type": restriction_type,
-                    "expires_at": expires_at,
-                    "reason": data.get("reason", "")
-                })
+	if _player_restrictions.has(player_id):
+		var player_res: Dictionary = _player_restrictions[player_id]
+		for restriction_type in player_res.keys():
+			var data: Dictionary = player_res[restriction_type]
+			var expires_at: float = data.get("expires_at", 0)
+			if expires_at > now:
+				restrictions.append({
+					"type": restriction_type,
+					"expires_at": expires_at,
+					"reason": data.get("reason", "")
+				})
 
-    return restrictions
+	return restrictions
 
 ## Get all active restrictions across all players
 func get_all_restrictions() -> Dictionary:
-    var all_restrictions: Dictionary = {}
-    var now := Time.get_unix_time_from_system()
+	var all_restrictions: Dictionary = {}
+	var now := Time.get_unix_time_from_system()
 
-    for player_id in _player_restrictions.keys():
-        var player_res: Dictionary = _player_restrictions[player_id]
-        var active_types: Array = []
+	for player_id in _player_restrictions.keys():
+		var player_res: Dictionary = _player_restrictions[player_id]
+		var active_types: Array = []
 
-        for restriction_type in player_res.keys():
-            var data: Dictionary = player_res[restriction_type]
-            var expires_at: float = data.get("expires_at", 0)
-            if expires_at > now:
-                active_types.append(restriction_type)
+		for restriction_type in player_res.keys():
+			var data: Dictionary = player_res[restriction_type]
+			var expires_at: float = data.get("expires_at", 0)
+			if expires_at > now:
+				active_types.append(restriction_type)
 
-        if not active_types.is_empty():
-            all_restrictions[player_id] = active_types
+		if not active_types.is_empty():
+			all_restrictions[player_id] = active_types
 
-    return all_restrictions
+	return all_restrictions
 
 ## Get service statistics for admin dashboard
 func get_statistics() -> Dictionary:
-    var stats: Dictionary = {
-        "blocks": _blocks,
-        "restrictions": _player_restrictions.keys().size(),
-        "suspicious_players": _suspicious_activity.keys().size(),
-        "recent_actions": _action_tracker.keys().size()
-    }
-    return stats
+	var stats: Dictionary = {
+		"blocks": _blocks,
+		"restrictions": _player_restrictions.keys().size(),
+		"suspicious_players": _suspicious_activity.keys().size(),
+		"recent_actions": _action_tracker.keys().size()
+	}
+	return stats

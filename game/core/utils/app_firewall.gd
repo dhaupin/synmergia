@@ -3,6 +3,8 @@
 extends Node
 
 const RecursionGuard = preload("res://core/utils/recursion_guard.gd")
+const RulesEngineScript = preload("res://labs/multi-iso/srv/rules_engine.gd")
+const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
 # Frame-level notification dispatch (see game/core/notifications/).
 # AppFirewall surfaces ban / block / recursion-guard events to admins
 # through the typed-Kind pipeline. ADMIN_ALERT -> ALERT + HIGH.
@@ -37,6 +39,19 @@ var _cleanup_interval: int = 300
 ## Recursion guard for security-sensitive recursive calls.
 ## Owned by AppFirewall so block events route to admin alerts.
 var _recursion_guard: RecursionGuard
+
+## RulesEngine instance for rule evaluation
+var _rules_engine: RulesEngineScript
+
+## Scopes for the rules engine stack
+var _ip_scope: ScopeScript
+var _player_scope: ScopeScript
+var _instance_scope: ScopeScript
+var _shard_scope: ScopeScript
+var _world_scope: ScopeScript
+
+## Current scope stack for evaluation (innermost to outermost)
+var _scope_stack: Array[ScopeScript] = []
 
 ## ============================================================================
 ## TRACKING DATA
@@ -84,6 +99,26 @@ func _init(
 	])
 
 func _ready() -> void:
+	# Initialize RulesEngine
+	_rules_engine = RulesEngineScript.new()
+
+	# Create scopes (innermost to outermost)
+	_ip_scope = ScopeScript.new("IP_Scope", null, "", {})
+	_player_scope = ScopeScript.new("Player_Scope", _ip_scope, "", {})
+	_instance_scope = ScopeScript.new("InstanceScope", _player_scope, "", {})
+	_shard_scope = ScopeScript.new("ShardScope", _instance_scope, "", {})
+	_world_scope = ScopeScript.new("WorldScope", _shard_scope, "", {})
+
+	# Build scope stack for evaluation (innermost first)
+	_scope_stack = [_ip_scope, _player_scope, _instance_scope, _shard_scope, _world_scope]
+
+	# Register rules
+	_rules_engine.register_rule("ip_can_connect", RulesEngineScript.BOTTOM_WINS, true)
+	_rules_engine.register_rule("failed_attempt_check", RulesEngineScript.TOP_WINS, false)
+	_rules_engine.register_rule("block_ip", RulesEngineScript.TOP_WINS, true)
+	_rules_engine.register_rule("ban_player", RulesEngineScript.BOTTOM_WINS, false)
+	_rules_engine.register_rule("connection_limit_check", RulesEngineScript.TOP_WINS, false)
+
 	# RecursionGuard is the security layer 0 (per docs/architecture/security.md).
 	# AppFirewall owns the canonical instance and routes block events to
 	# admin notifications. Using a low default depth so suspicious recursive
@@ -101,41 +136,81 @@ func _ready() -> void:
 func can_connect(ip: String) -> Dictionary:
 	var now := Time.get_unix_time_from_system()
 
-	# Check if permanently banned
+	# Check permanent bans via player mapping
+	var is_permanently_banned := false
 	for player_id in _permanent_bans.keys():
 		if _player_ips.get(player_id) == ip:
-			return {
-				"allowed": false,
-				"reason": "Permanently banned",
-				"duration": -1
-			}
+			is_permanently_banned = true
+			break
 
 	# Check temporary bans
+	var is_temporarily_banned := false
 	for player_id in _temporary_bans.keys():
 		var ban: Dictionary = _temporary_bans[player_id]
 		if _player_ips.get(player_id) == ip and ban["expires"] > now:
-			return {
-				"allowed": false,
-				"reason": ban["reason"],
-				"duration": int(ban["expires"] - now)
-			}
+			is_temporarily_banned = true
+			break
 
 	# Check if IP is blocked
+	var is_blocked := false
+	var block_reason := ""
+	var block_duration := 0
 	if _blocked_ips.has(ip):
 		var block: Dictionary = _blocked_ips[ip]
 		if block["blocked_until"] > now:
-			return {
-				"allowed": false,
-				"reason": block["reason"],
-				"duration": int(block["blocked_until"] - now)
-			}
+			is_blocked = true
+			block_reason = block["reason"]
+			block_duration = int(block["blocked_until"] - now)
 		else:
 			# Block expired, clean up
 			_blocked_ips.erase(ip)
 
-	# Check connection limit
+	# Connection count
 	var conn_count: int = _connection_counts.get(ip, 0)
-	if conn_count >= _max_connections_per_ip:
+	var failed_attempts: int = _get_recent_failed_attempts(ip).size()
+
+	var context := {
+		"ip": ip,
+		"is_permanently_banned": is_permanently_banned,
+		"is_temporarily_banned": is_temporarily_banned,
+		"is_blocked": is_blocked,
+		"connection_count": conn_count,
+		"max_connections": _max_connections_per_ip,
+		"failed_attempts": failed_attempts,
+		"max_failed_attempts": _max_failed_attempts,
+		"block_reason": block_reason,
+		"block_duration": block_duration
+	}
+
+	var result := _rules_engine.evaluate("ip_can_connect", context, _scope_stack)
+
+	if not result["allow"]:
+		var reason := result["reason"]
+		var duration := 0
+		if is_permanently_banned:
+			reason = "Permanently banned"
+			duration = -1
+		elif is_temporarily_banned:
+			for player_id in _temporary_bans.keys():
+				if _player_ips.get(player_id) == ip:
+					duration = int(_temporary_bans[player_id]["expires"] - now)
+					break
+		elif is_blocked:
+			duration = block_duration
+		return {
+			"allowed": false,
+			"reason": reason,
+			"duration": duration
+		}
+
+	# Check connection limit via RulesEngine
+	var limit_context := {
+		"ip": ip,
+		"connection_count": conn_count,
+		"max_connections": _max_connections_per_ip
+	}
+	var limit_result := _rules_engine.evaluate("connection_limit_check", limit_context, _scope_stack)
+	if not limit_result["allow"] or conn_count >= _max_connections_per_ip:
 		_flag_ip(ip, "connection_limit", 1)
 		return {
 			"allowed": false,
@@ -144,6 +219,15 @@ func can_connect(ip: String) -> Dictionary:
 		}
 
 	return {"allowed": true}
+
+## Helper to get recent failed attempts
+func _get_recent_failed_attempts(ip: String) -> Array:
+	var now := Time.get_unix_time_from_system()
+	var window := 300.0
+	if not _failed_attempts.has(ip):
+		return []
+	var recent: Array = _failed_attempts[ip].filter(func(t): return now - t < window)
+	return recent
 
 ## Register a new connection
 func register_connection(player_id: String, ip: String) -> void:
@@ -182,7 +266,17 @@ func record_failed_attempt(ip: String, attempt_type: String = "login") -> bool:
 
 	var count: int = recent.size()
 
-	if count >= _max_failed_attempts:
+	var context := {
+		"ip": ip,
+		"attempt_type": attempt_type,
+		"recent_count": count,
+		"max_allowed": _max_failed_attempts
+	}
+
+	var result := _rules_engine.evaluate("failed_attempt_check", context, _scope_stack)
+
+	# Rule allows blocking (scope override) OR threshold exceeded
+	if result["allow"] or count >= _max_failed_attempts:
 		block_ip(ip, "Too many failed %s attempts" % attempt_type, _block_duration)
 		_flag_ip(ip, "failed_attempts", count)
 		return true
@@ -204,17 +298,26 @@ func block_ip(ip: String, reason: String, duration: int = -1) -> void:
 	if duration < 0:
 		duration = _block_duration
 
-	var blocked_until := Time.get_unix_time_from_system() + duration
-	_blocked_ips[ip] = {
-		"blocked_until": blocked_until,
-		"reason": reason
+	var context := {
+		"ip": ip,
+		"reason": reason,
+		"duration": duration
 	}
 
-	ip_blocked.emit(ip, reason, duration)
-	GameLog.warn("AppFirewall: Blocked IP %s for %ds: %s" % [ip, duration, reason])
-	_broadcast_admin_alert(
-		"IP blocked %ds: %s (reason: %s)" % [duration, ip, reason]
-	)
+	var result := _rules_engine.evaluate("block_ip", context, _scope_stack)
+
+	if result["allow"]:
+		var blocked_until := Time.get_unix_time_from_system() + duration
+		_blocked_ips[ip] = {
+			"blocked_until": blocked_until,
+			"reason": reason
+		}
+
+		ip_blocked.emit(ip, reason, duration)
+		GameLog.warn("AppFirewall: Blocked IP %s for %ds: %s" % [ip, duration, reason])
+		_broadcast_admin_alert(
+			"IP blocked %ds: %s (reason: %s)" % [duration, ip, reason]
+		)
 
 ## Unblock an IP
 func unblock_ip(ip: String) -> void:
@@ -235,6 +338,21 @@ func is_blocked(ip: String) -> bool:
 
 ## Issue a permanent ban
 func ban_player(player_id: String, reason: String, banned_by: String = "system") -> void:
+	var context := {
+		"player_id": player_id,
+		"reason": reason,
+		"banned_by": banned_by,
+		"duration": -1,
+		"kind": "permanent"
+	}
+
+	var result := _rules_engine.evaluate("ban_player", context, _scope_stack)
+
+	# Policy check: if rule denies, don't ban
+	if not result["allow"]:
+		GameLog.warn("AppFirewall: Ban denied by policy for %s: %s" % [player_id, result["reason"]])
+		return
+
 	_permanent_bans[player_id] = {
 		"reason": reason,
 		"banned_by": banned_by,
@@ -279,6 +397,21 @@ func temp_ban_player(player_id: String, duration_seconds: int, reason: String) -
 		"expires": expires,
 		"reason": reason
 	}
+
+	var context := {
+		"player_id": player_id,
+		"reason": reason,
+		"duration": duration_seconds,
+		"kind": "temporary"
+	}
+
+	var result := _rules_engine.evaluate("ban_player", context, _scope_stack)
+
+	# Policy check: if rule denies, revert and don't ban
+	if not result["allow"]:
+		_temporary_bans.erase(player_id)
+		GameLog.warn("AppFirewall: Temp ban denied by policy for %s: %s" % [player_id, result["reason"]])
+		return
 
 	var ip = _player_ips.get(player_id, "unknown")
 	ban_issued.emit(player_id, ip, reason, duration_seconds)

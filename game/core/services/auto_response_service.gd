@@ -1,8 +1,10 @@
 ## AutoResponseService - Automated responses to exploit detection
-## Takes actions based on configured thresholds
+## Takes actions based on configured thresholds using RulesEngine for policy evaluation
 extends Node
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const RulesEngineScript = preload("res://labs/multi-iso/srv/rules_engine.gd")
+const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
 
 ## ============================================================================
 ## SIGNALS
@@ -39,14 +41,41 @@ const _kv_prefix := "auto_response:"
 ## Track if auto-response is enabled
 var _enabled: bool = false
 
+## RulesEngine instance for policy evaluation
+var _rules_engine: Object = null
+
+## Scope stack for RulesEngine evaluation (innermost to outermost)
+var _scope_stack: Array = []
+
 ## ============================================================================
 ## LIFECYCLE
 ## ============================================================================
 
 func _ready() -> void:
 	_enabled = GameConfig.AutoResponse.ENABLED
+	_init_rules_engine()
 	_connect_signals()
+	_load_state()
 	GameLog.info("AutoResponseService: %s" % ("Enabled" if _enabled else "Disabled"))
+
+func _init_rules_engine() -> void:
+	_rules_engine = RulesEngineScript.new()
+
+	# Create scope hierarchy: PlayerScope (innermost) -> InstanceScope -> ShardScope -> WorldScope (outermost)
+	var world_scope = ScopeScript.new("WorldScope", null, "", {})
+	var shard_scope = ScopeScript.new("ShardScope", world_scope, "", {})
+	var instance_scope = ScopeScript.new("InstanceScope", shard_scope, "", {})
+	var player_scope = ScopeScript.new("PlayerScope", instance_scope, "", {})
+
+	# Stack order: innermost first (PlayerScope) to outermost last (WorldScope)
+	_scope_stack = [player_scope, instance_scope, shard_scope, world_scope]
+
+	# Register rules with their resolution strategies
+	_rules_engine.register_rule("spam_response", RulesEngineScript.ALL_WINS_WITH_EFFECT, true)
+	_rules_engine.register_rule("speedhack_response", RulesEngineScript.TOP_WINS, false)
+	_rules_engine.register_rule("teleport_hack_response", RulesEngineScript.TOP_WINS, false)
+	_rules_engine.register_rule("item_duplication_response", RulesEngineScript.TOP_WINS, false)
+	_rules_engine.register_rule("auto_kick_threshold", RulesEngineScript.TOP_WINS, false)
 
 func _connect_signals() -> void:
 	if SecurityService:
@@ -61,11 +90,11 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 		return
 
 	# Track exploit count
-	if not _player_exploit_counts		.has(player_id):
+	if not _player_exploit_counts.has(player_id):
 		_player_exploit_counts[player_id] = {}
 
 	var counts = _player_exploit_counts[player_id]
-	if not counts		.has(exploit_type):
+	if not counts.has(exploit_type):
 		counts[exploit_type] = 0
 	counts[exploit_type] += 1
 
@@ -74,27 +103,61 @@ func _on_exploit_detected(player_id: String, exploit_type: String, details: Dict
 	# Log the detection
 	GameLog.info("AutoResponse: %s detected %s (count: %d)" % [player_id, exploit_type, count])
 
-	# Check thresholds and take action
+	# Build base context
+	var base_context = {
+		"player_id": player_id,
+		"exploit_type": exploit_type,
+		"count": count
+	}
+
+	# Evaluate appropriate rule based on exploit type
 	match exploit_type:
 		"spam":
-			_handle_spam(player_id, count)
+			var context = base_context.duplicate(true)
+			context.warn_threshold = 1
+			context.mute_threshold = 2
+			context.mute_duration = GameConfig.AutoResponse.SPAM_MUTE_DURATION
+			var result = _rules_engine.evaluate("spam_response", context, _scope_stack)
+			if result.allow:
+				_handle_spam(player_id, count, context)
 		"speed_hack":
-			_handle_speed_hack(player_id, count)
+			var context = base_context.duplicate(true)
+			context.required_confirmations = GameConfig.AutoResponse.SPEEDHACK_CONFIRMATIONS_REQUIRED
+			context.auto_ban = GameConfig.AutoResponse.AUTO_BAN_SPEEDHACK
+			var result = _rules_engine.evaluate("speedhack_response", context, _scope_stack)
+			if result.allow:
+				_handle_speed_hack(player_id, count, context)
 		"teleport_hack":
-			_handle_teleport_hack(player_id, count)
+			var context = base_context.duplicate(true)
+			context.required_confirmations = GameConfig.AutoResponse.TELEPORTHACK_CONFIRMATIONS_REQUIRED
+			context.auto_ban = GameConfig.AutoResponse.AUTO_BAN_TELEPORTHACK
+			var result = _rules_engine.evaluate("teleport_hack_response", context, _scope_stack)
+			if result.allow:
+				_handle_teleport_hack(player_id, count, context)
 		"item_duplication":
-			_handle_item_duplication(player_id, count)
+			var context = base_context.duplicate(true)
+			context.required_confirmations = GameConfig.AutoResponse.ITEM_DUP_CONFIRMATIONS_REQUIRED
+			context.auto_ban = GameConfig.AutoResponse.AUTO_BAN_ITEM_DUPLICATION
+			var result = _rules_engine.evaluate("item_duplication_response", context, _scope_stack)
+			if result.allow:
+				_handle_item_duplication(player_id, count, context)
 
 	# Check total exploit count for auto-kick
 	var total = counts.values().reduce(func(a, b): return a + b, 0)
-	if total >= GameConfig.AutoResponse.AUTO_KICK_THRESHOLD:
+	var kick_context = {
+		"player_id": player_id,
+		"total_exploits": total,
+		"threshold": GameConfig.AutoResponse.AUTO_KICK_THRESHOLD
+	}
+	var kick_result = _rules_engine.evaluate("auto_kick_threshold", kick_context, _scope_stack)
+	if kick_result.allow and total >= GameConfig.AutoResponse.AUTO_KICK_THRESHOLD:
 		_auto_kick(player_id, "Too many exploit detections", exploit_type)
 
 ## ============================================================================
 ## HANDLER FUNCTIONS
 ## ============================================================================
 
-func _handle_spam(player_id: String, count: int) -> void:
+func _handle_spam(player_id: String, count: int, context: Dictionary = {}) -> void:
 	# First offense: just warn
 	if count == 1:
 		var msg := "Warning: Spam detected. Continued spam will result in mute."
@@ -104,7 +167,7 @@ func _handle_spam(player_id: String, count: int) -> void:
 
 	# Subsequent: mute
 	if count >= 2:
-		var duration = GameConfig.AutoResponse.SPAM_MUTE_DURATION
+		var duration = context.get("mute_duration", GameConfig.AutoResponse.SPAM_MUTE_DURATION)
 		# SecurityService.restrict_player emits the player-facing mute
 		# toast (with the right units: "5 minutes" instead of "300
 		# seconds"). Don't add a second one here -- clarity means one
@@ -114,11 +177,12 @@ func _handle_spam(player_id: String, count: int) -> void:
 		action_taken.emit(player_id, ActionType.MUTE, "spam",
 			"Auto-muted for %d seconds (count: %d)" % [duration, count])
 
-func _handle_speed_hack(player_id: String, count: int) -> void:
-	var required = GameConfig.AutoResponse.SPEEDHACK_CONFIRMATIONS_REQUIRED
+func _handle_speed_hack(player_id: String, count: int, context: Dictionary = {}) -> void:
+	var required = context.get("required_confirmations", GameConfig.AutoResponse.SPEEDHACK_CONFIRMATIONS_REQUIRED)
+	var auto_ban = context.get("auto_ban", GameConfig.AutoResponse.AUTO_BAN_SPEEDHACK)
 
 	# Notify but don't auto-act unless configured
-	if not GameConfig.AutoResponse.AUTO_BAN_SPEEDHACK:
+	if not auto_ban:
 		if count >= required:
 			_notify_admins("Speed hack confirmed for %s (count: %d). Manual review needed." % [player_id, count])
 			action_taken.emit(player_id, ActionType.WARN, "speed_hack",
@@ -129,10 +193,11 @@ func _handle_speed_hack(player_id: String, count: int) -> void:
 	if count >= required:
 		_auto_ban(player_id, "Speed hack (auto-banned after %d confirmations)" % required, "speed_hack")
 
-func _handle_teleport_hack(player_id: String, count: int) -> void:
-	var required = GameConfig.AutoResponse.TELEPORTHACK_CONFIRMATIONS_REQUIRED
+func _handle_teleport_hack(player_id: String, count: int, context: Dictionary = {}) -> void:
+	var required = context.get("required_confirmations", GameConfig.AutoResponse.TELEPORTHACK_CONFIRMATIONS_REQUIRED)
+	var auto_ban = context.get("auto_ban", GameConfig.AutoResponse.AUTO_BAN_TELEPORTHACK)
 
-	if not GameConfig.AutoResponse.AUTO_BAN_TELEPORTHACK:
+	if not auto_ban:
 		if count >= required:
 			_notify_admins("Teleport hack confirmed for %s (count: %d). Manual review needed." % [player_id, count])
 			action_taken.emit(player_id, ActionType.WARN, "teleport_hack",
@@ -142,10 +207,11 @@ func _handle_teleport_hack(player_id: String, count: int) -> void:
 	if count >= required:
 		_auto_ban(player_id, "Teleport hack (auto-banned after %d confirmations)" % required, "teleport_hack")
 
-func _handle_item_duplication(player_id: String, count: int) -> void:
-	var required = GameConfig.AutoResponse.ITEM_DUP_CONFIRMATIONS_REQUIRED
+func _handle_item_duplication(player_id: String, count: int, context: Dictionary = {}) -> void:
+	var required = context.get("required_confirmations", GameConfig.AutoResponse.ITEM_DUP_CONFIRMATIONS_REQUIRED)
+	var auto_ban = context.get("auto_ban", GameConfig.AutoResponse.AUTO_BAN_ITEM_DUPLICATION)
 
-	if not GameConfig.AutoResponse.AUTO_BAN_ITEM_DUPLICATION:
+	if not auto_ban:
 		if count >= required:
 			_notify_admins("Item duplication confirmed for %s (count: %d). Manual review needed." % [player_id, count])
 			action_taken.emit(player_id, ActionType.WARN, "item_duplication",
@@ -291,7 +357,7 @@ func _load_state() -> void:
 
 func _persist_exploit_counts(player_id: String) -> void:
 	var store := DictStore.new()
-	if _player_exploit_counts		.has(player_id):
+	if _player_exploit_counts.has(player_id):
 		store.set_value(_kv_prefix + player_id, _player_exploit_counts[player_id])
 	else:
 		store.erase(_kv_prefix + player_id)

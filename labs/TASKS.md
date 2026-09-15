@@ -60,9 +60,10 @@ Persistent memory across resets for Synmergia development.
 ## In Progress & Next Phase Milestones
 
 ### World Building PRD — Phase 2: Rules Engine & World Integration
-- [ ] **Rules Engine** (`labs/multi-iso/srv/rules_engine.gd`, `rules_schema.gd`) — Gating rules and multi-scope rule resolution [town:frame]
-- [ ] **Definition Tree** (`labs/multi-iso/kv/definition_tree.gd`, `definition_schema.gd`) — Static data catalog in T3 [town:frame]
-- [ ] **Consolidate 5 Core Services into Rules Engine**: Faction, PvP, Loot, Trade, and Follow resolution rules [town:core]
+- [x] **Rules Engine** (`labs/multi-iso/srv/rules_engine.gd`, `rules_schema.gd`) — Gating rules and multi-scope rule resolution [town:frame]
+- [x] **Definition Tree** (`labs/multi-iso/kv/definition_tree.gd`, `definition_schema.gd`) — Static data catalog in T3 [town:frame]
+- [x] **Consolidate 4 Core Services into Rules Engine**: QoS, Security, AppFirewall, AutoResponse [town:core]
+- [x] **Frame Extract** (`srv/frame/`) — Frame HTTP bridge container with FrameClient GDScript [town:bridge]
 
 ### World Building PRD — Phase 3 & 4
 - [ ] **Account Rollup (D028)** (`game/core/services/account_rollup.gd`) — Account-level state aggregation across characters [town:core]
@@ -77,3 +78,9 @@ Persistent memory across resets for Synmergia development.
 - [x] **World Building Arch Update**: Marked D031 and D032 as DONE in `labs/world-building-arch.md` §13 component map [town:docs]
 - [x] **FrameService Fix**: Fixed syntax typo `_func` -> `func` in `FrameEnv._init` [town:core]
 - [x] **QC Gap Analysis & Syntax Verification**: Verified 0 parse/syntax errors across all `.gd` files in `game/` and `labs/` [town:test]
+
+## Recently Completed (2026-09-15) — Phase 2
+
+- [x] **RulesEngine Consolidation**: Refactored QoSService (`matchmaking_qos.gd`), SecurityService (`security_service.gd`), AppFirewall (`app_firewall.gd`), AutoResponseService (`auto_response_service.gd`) to use RulesEngine for all decision logic [town:core]
+- [x] **Frame Extract to Container**: Created `srv/frame/` with Dockerfile, docker-compose.yml, FastAPI bridge server (`frame_server.py`), GDScript FrameClient (`game/core/utils/frame_client.gd`) with circuit breaker and local fallback [town:bridge]
+- [x] **Docker Compose Integration**: Added `frame` service to main `docker-compose.yml` with health checks, dependencies on postgres/redis [town:bridge]

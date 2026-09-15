@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  frame:
+    build:
+      context: ..
+      dockerfile: srv/frame/Dockerfile
+    container_name: synmergia-frame
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - synmergia-network
+    # For development, mount frame source for hot reload
+    # volumes:
+    #   - ../../labs/multi-iso:/frame/frame:ro
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: synmergia-postgres
+    environment:
+      POSTGRES_DB: synmergia
+      POSTGRES_USER: synmergia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synmergia}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synmergia -d synmergia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - synmergia-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: synmergia-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - synmergia-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  synmergia-network:
+    driver: bridge

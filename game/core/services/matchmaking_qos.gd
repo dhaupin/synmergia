@@ -1,10 +1,12 @@
 ## QoSService - Quality of Service for fair matchmaking
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
 ## Handles latency compensation, throttling, and connection quality
 extends Node
 class_name MatchmakingQoS
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const RulesEngine = preload("res://labs/multi-iso/srv/rules_engine.gd")
 
 signal connection_quality_changed(player_id: String, quality: ConnectionQuality)
 signal latency_warning(player_id: String, latency_ms: int)
@@ -41,9 +43,53 @@ var _latency_history: Dictionary = {}  # player_id -> Array of recent latencies
 ## DictStore key prefix
 const _kv_prefix := "qos:"
 
+## RulesEngine instance
+var _rules_engine: RulesEngine
+
+## Scope objects for hierarchical rule resolution
+var _world_scope: Object
+var _shard_scope: Object
+var _instance_scope: Object
+var _player_scopes: Dictionary = {}  # player_id -> Scope
+
 func _ready() -> void:
+	_rules_engine = RulesEngine.new()
+	_create_scopes()
+	_register_rules()
 	GameLog.info("QoSService: Quality of Service initialized")
 	_load_state()
+
+func _create_scopes() -> void:
+	# World scope (global defaults) - outermost
+	_world_scope = ScopeScript.new("world", null, "", {})
+	# Shard scope - middle layer
+	_shard_scope = ScopeScript.new("shard", _world_scope, "", {})
+	# Instance scope - inner layer
+	_instance_scope = ScopeScript.new("instance", _shard_scope, "", {})
+
+func _register_rules() -> void:
+	# Rate limit rule: TOP_WINS (innermost scope wins), default allow
+	_rules_engine.register_rule("rate_limit", RulesEngine.TOP_WINS, true)
+	# Connection quality classification: TOP_WINS
+	_rules_engine.register_rule("connection_quality", RulesEngine.TOP_WINS, true)
+	# Throttle action decision: TOP_WINS
+	_rules_engine.register_rule("throttle_action", RulesEngine.TOP_WINS, true)
+
+func _build_scope_stack(player_id: String) -> Array:
+	var stack: Array = []
+	# Player scope (per-player overrides) - innermost for TOP_WINS
+	if _player_scopes.has(player_id):
+		stack.append(_player_scopes[player_id])
+	# Instance scope
+	if _instance_scope:
+		stack.append(_instance_scope)
+	# Shard scope
+	if _shard_scope:
+		stack.append(_shard_scope)
+	# World scope (global defaults) - outermost
+	if _world_scope:
+		stack.append(_world_scope)
+	return stack
 
 ## Register a player connection
 func register_connection(player_id: String, estimated_latency: int = 100) -> void:
@@ -52,6 +98,8 @@ func register_connection(player_id: String, estimated_latency: int = 100) -> voi
 	_player_packet_loss[player_id] = 0.0
 	_player_jitter[player_id] = 0
 	_latency_history[player_id] = []
+	# Create player scope (child of instance scope)
+	_player_scopes[player_id] = ScopeScript.new("player_" + player_id, _instance_scope, "", {})
 	_persist_player_qos(player_id)
 	GameLog.info("QoSService: Registered %s (latency: %dms)" % [player_id, estimated_latency])
 
@@ -62,6 +110,21 @@ func unregister_connection(player_id: String) -> void:
 	_player_packet_loss.erase(player_id)
 	_player_jitter.erase(player_id)
 	_latency_history.erase(player_id)
+	_player_scopes.erase(player_id)
+
+## Set player-specific rule override (for admin/special cases)
+func set_player_override(player_id: String, rule_id: String, resolution: String) -> bool:
+	if not _player_scopes.has(player_id):
+		return false
+	_player_scopes[player_id].flip(rule_id, resolution)
+	return true
+
+## Clear player-specific rule override
+func clear_player_override(player_id: String, rule_id: String) -> bool:
+	if not _player_scopes.has(player_id):
+		return false
+	_player_scopes[player_id].flip(rule_id, "")
+	return true
 
 ## Update latency measurement
 func update_latency(player_id: String, latency_ms: int, packet_loss: float = 0.0) -> void:
@@ -143,23 +206,19 @@ func get_interpolation_delay(player_id: String) -> int:
 func get_prediction_salt(player_id: String) -> int:
 	return PREDICTION_SALT_MS + get_jitter(player_id) / 2
 
-## Check if player should be throttled
+## Check if player should be throttled (uses RulesEngine)
 func should_throttle(player_id: String, action_rate: float) -> bool:
-	var quality: ConnectionQuality = get_quality(player_id)
-
-	match quality:
-		ConnectionQuality.EXCELLENT:
-			return action_rate > 20.0  # 20 actions/sec
-		ConnectionQuality.GOOD:
-			return action_rate > 15.0
-		ConnectionQuality.FAIR:
-			return action_rate > 10.0
-		ConnectionQuality.POOR:
-			return action_rate > 5.0  # Very limited
-		ConnectionQuality.BAD:
-			return true  # Throttle everything
-
-	return false
+	var context := {
+		"player_id": player_id,
+		"action_rate": action_rate,
+		"quality": get_quality(player_id),
+		"latency_ms": get_latency(player_id),
+		"packet_loss": _player_packet_loss.get(player_id, 0.0),
+		"jitter_ms": get_jitter(player_id)
+	}
+	var stack := _build_scope_stack(player_id)
+	var result := _rules_engine.evaluate("throttle_action", context, stack)
+	return result.get("allow", false)
 
 ## Calculate quality from latency and packet loss
 func _calculate_quality(latency_ms: int, packet_loss: float = 0.0) -> ConnectionQuality:
