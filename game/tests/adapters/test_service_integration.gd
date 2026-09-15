@@ -54,7 +54,7 @@ func _test_service_persistence_flow() -> bool:
 
 	# 5. Service deletes player data
 	store.erase(prefix + player_id)
-	if store.has(prefix + player_id):
+	if store.has_key(prefix + player_id):
 		push_error("Service integration: erase failed")
 		return false
 

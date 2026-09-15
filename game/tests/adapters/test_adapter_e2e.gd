@@ -87,13 +87,13 @@ func _test_batch_operations() -> bool:
 		return false
 
 	# Verify empty was erased
-	if store.has("batch:empty"):
+	if store.has_key("batch:empty"):
 		push_error("E2E: batch set did not erase empty")
 		return false
 
 	# Batch delete
 	store.erase_batch(["batch:1", "batch:2"])
-	if store.has("batch:1") or store.has("batch:2"):
+	if store.has_key("batch:1") or store.has_key("batch:2"):
 		push_error("E2E: batch erase failed")
 		return false
 

@@ -80,7 +80,7 @@ func _get_available_quest_ids(player_id: String) -> Array:
 	var player_level: int = _get_player_level(player_id)
 
 	if DataService:
-		var all_quests: Dictionary = DataService.get_all_quests()
+		var all_quests: Array = DataService.get_all_quests()
 		for quest_id in all_quests:
 			var quest = all_quests[quest_id]
 			if not quest is QuestData:
@@ -118,7 +118,7 @@ func get_available_quests(player_id: String) -> Array:
 	var player_level: int = _get_player_level(player_id)
 
 	if DataService:
-		var all_quests: Dictionary = DataService.get_all_quests()
+		var all_quests: Array = DataService.get_all_quests()
 		for quest_id in all_quests:
 			var quest = all_quests[quest_id]
 			if not quest is QuestData:

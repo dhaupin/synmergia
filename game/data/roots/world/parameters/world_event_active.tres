@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ShardParameterDefinition" load_steps=2 format=3 uid://uid://world_event_active]
+
+[sub_resource type="Resource" id="ShardParameterDefinition_world_event_active"]
+name = "world_event_active"
+type = "bool"
+default_value = false
+critical = false
+description = "Whether a world event is currently active on this shard. Non-critical: coalesced for 5 minutes so repeated event-toggle writes batch into one state-tree update."
+version = 1

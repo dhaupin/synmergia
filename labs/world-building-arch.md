@@ -46,7 +46,7 @@ is engine-grade; the schemas are game-grade.
 | Substrate (T3) | `labs/multi-iso/kv/t3.gd` | Generic content-hash tree | yes (engine) |
 | Scope engine | `labs/multi-iso/srv/scope.gd` | Hierarchy walker + flip | yes (engine) |
 | Rules engine | `labs/multi-iso/srv/rules_engine.gd` | Generic evaluator | yes (engine) |
-| Spatial layer | `labs/multi-iso/geometry/` | Icosahedral + Penrose (from vant) | yes (engine) |
+| | Spatial layer | `labs/multi-iso/math/` | Icosahedral + NSC-9 (ported from vant axolotl) | DONE |
 | Schemas | `game/data/roots/*_schema.tres` | Typed payloads per tree | game-specific |
 | Trees | `game/data/roots/<scope>/*.tres` | Tree instances | game-specific |
 | Services | `game/core/services/*.gd` | Game logic | game-specific |
@@ -632,22 +632,40 @@ it holds the actual game data.
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
-| T3 substrate | this doc В§3 | none | `labs/multi-iso/kv/t3.gd` | TODO |
-| Scope engine | this doc В§4 | none | `labs/multi-iso/srv/scope.gd` | TODO |
-| Rules engine | this doc В§5 | none | `labs/multi-iso/srv/rules_engine.gd` | TODO (Phase 2) |
-| Seed tree (canonical) | this doc В§7, spec В§4 | none | `labs/multi-iso/kv/seed_chain.gd` | TODO |
-| State tree (canonical) | this doc В§8, spec В§5 | partial (`core/state/state.gd` is FSM, not tree) | `labs/multi-iso/kv/state_tree.gd` | TODO |
-| Recursive seed derivation | spec В§4.2, D025 | none | `seed_chain.gd::derive_seed` | TODO |
-| Two-orthogonal-axes (D026) | spec В§4.1 | none | `SeedSchema` payload | TODO |
-| State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | TODO |
+| T3 substrate | this doc В§3 | none | `labs/multi-iso/kv/t3.gd` | DONE |
+| Scope engine | this doc В§4 | `labs/multi-iso/srv/scope_hierarchy.gd`, `labs/multi-iso/srv/scope.gd`, `labs/multi-iso/srv/scope_engine.gd` | `labs/multi-iso/srv/scope.gd` | DONE |
+| Rules engine | this doc В§5 | none | `labs/multi-iso/srv/rules_engine.gd`, `labs/multi-iso/srv/rules_schema.gd` | DONE |
+| Definition tree | this doc В§9 | none | `labs/multi-iso/kv/definition_tree.gd`, `labs/multi-iso/kv/definition_schema.gd` | DONE |
+| SeedSchema Resource | this doc В§7, spec В§4 | none | `game/data/roots/seed_schema.gd` | DONE |
+| StateSchema Resource | this doc В§8, spec В§5 | none | `game/data/roots/state_schema.gd` | DONE |
+| Seed tree (canonical) | this doc В§7, spec В§4 | none | `labs/multi-iso/kv/seed_chain.gd` | DONE |
+| State tree (canonical) | this doc В§8, spec В§5 | none | `labs/multi-iso/kv/state_tree.gd` | DONE |
+| Recursive seed derivation | spec В§4.2, D025 | none | `seed_chain.gd::derive_seed` | DONE |
+| Seed tree test | prd-seed-schema В§US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
+| State tree test | prd-state-schema В§US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
+| Seed tree (tests) | prd-seed-schema В§US-005 | none | `labs/multi-iso/kv/test_seed_chain.gd` | DONE |
+| State tree (tests) | prd-state-schema В§US-005 | none | `labs/multi-iso/kv/test_state_tree.gd` | DONE |
+| SeedReceipt Resource | prd-login-seed-chain В§US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
+| SeedReceipt test | prd-login-seed-chain В§US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
+| FrameService | prd-frame-authority В§US-001 | none | `game/core/services/frame_service.gd` | DONE |
+| Frame authority test | prd-frame-authority В§US-005 | none | `game/tests/test_frame_authority.gd` | DONE |
+| ShardParameterDefinition | prd-critical-params В§US-001 | none | `game/core/schemas/shard_parameter_definition.gd` | DONE |
+| ShardParameters autoload | prd-critical-params В§US-002 | none | `game/core/services/shard_parameters.gd` | DONE |
+| Critical params test | prd-critical-params В§US-006 | none | `game/tests/test_critical_params.gd` | DONE |
+| Param .tres samples (4) | prd-critical-params В§US-006 | none | `game/data/roots/world/parameters/` | DONE |
+| Two-orthogonal-axes (D026) | spec В§4.1 | none | `SeedSchema` payload | DONE |
+| State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | DONE |
+| LRU cache | vant `lib/cache.js` | none | `labs/multi-iso/kv/lru_cache.gd` | DONE |
+| Snapshot store | content-hash state tree | none | `labs/multi-iso/db/snapshot_store.gd` | DONE |
 | Manifest SPOF (D031) | this doc В§6.4 | none | `srv/backup/manifest.sh` | TODO |
 | Open seed TTL (D032) | this doc В§6.3, spec В§4.8 | none | `core/services/instance_service.gd` | TODO |
-| Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` | TODO |
-| Frame seed authority (D030) | validation В§2 | none | `core/services/frame_service.gd` | TODO |
-| Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd` | TODO |
+| Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
+| Frame seed authority (D030) | validation В§2 | none | `core/services/frame_service.gd` | DONE |
+| Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
 | Account rollup (D028) | spec В§9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
-| Vant multibrain stack | vant `brain.js:1510-1900` | none | `labs/multi-iso/srv/scope.gd` (port) | TODO |
-| Vant icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/geometry/` (port) | TODO (Phase 4) |
+| Vant multibrain stack | vant `brain.js:1510-1900` | `labs/multi-iso/srv/scope.gd`, `labs/multi-iso/srv/scope_engine.gd` | `labs/multi-iso/srv/scope.gd` (port) | DONE |
+| NSC-9 barcode format | vant `geometry/nsc9.js` | none | `labs/multi-iso/math/nsc9.gd` + `test_nsc9.gd` | DONE |
+| Icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
 | Vant fragmenter | vant `geometry/fragmenter.js` | none | `labs/multi-iso/geometry/fragmenter.gd` | TODO (Phase 4) |
 
 ---

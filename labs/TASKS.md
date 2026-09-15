@@ -31,7 +31,23 @@ Use these in the task list:
 - Push to your branch, open PR, wait for CI (lint + parse check).
 - Do not force-push to `main`.
 - If merge conflicts: ask in town channel, do not resolve silently.
-- After merge: update `## Recently Completed (2026-09-09)
+- After merge: update `## Recently Completed (2026-09-15)
+
+- [x] QC Gap Analysis fixes: `.has_key()` → `.has()` on Dictionaries across 5 service files (62 occurrences); `DictStore.has()` → `has_key()` in login_service + test files; `resource.has()` → `resource.get()` in data_service; CacheWrapper added 13 missing methods (hash/set/list ops); `NotifKind.WARNING` → `SECURITY_WARNING`; `Performance.TIME_SCRIPT` → `TIME_PROCESS`; added missing `_kv_ignored` const in chat_service; quest_service Array/Dictionary type fixes [town:test]
+
+### In Progress (2026-09-15)
+
+- [~] **Phase 2 Frame Primitives** — Subagents implementing per PRDs:
+  - [~] T3 Substrate (`labs/multi-iso/kv/t3.gd`) — relaunching
+  - [ ] SeedSchema Resource (`game/data/roots/seed_schema.gd`)
+  - [ ] StateSchema Resource (`game/data/roots/state_schema.gd`)
+  - [ ] Scope Engine (`labs/multi-iso/srv/scope.gd`, `scope_hierarchy.gd`, `scope_engine.gd`)
+  - [ ] Spatial layer: NSC-9, icosahedral + LRU cache + snapshot store
+  - [ ] Update `labs/world-building-arch.md` §13 component map: TODO → DONE
+
+### Branch
+
+`kilo/graceful-arrow-gv9` (tracking main/origin). QC fixes committed to local branch.
 
 - [x] Created game/adapters/persistence/dict_store.gd (RefCounted KV wrapper)
 - [x] Created game/adapters/cache/cache_wrapper.gd (CacheStore wrapper)

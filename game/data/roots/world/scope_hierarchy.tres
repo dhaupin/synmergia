@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ScopeHierarchy" load_steps=5 format=3 uid://uid5]
+
+[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_1"]
+name = "world"
+parent_name = ""
+environment_path = "world/environment.tres"
+rules_overrides = {}
+
+[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_2"]
+name = "shard"
+parent_name = "world"
+environment_path = "../shard/environment.tres"
+rules_overrides = {}
+
+[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_3"]
+name = "instance"
+parent_name = "shard"
+environment_path = "../instance/environment.tres"
+rules_overrides = {}
+
+[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_4"]
+name = "player"
+parent_name = "instance"
+environment_path = "../player/environment.tres"
+rules_overrides = {}
+
+[resource]
+nodes = [SubResource("ScopeNode_1"), SubResource("ScopeNode_2"), SubResource("ScopeNode_3"), SubResource("ScopeNode_4")]

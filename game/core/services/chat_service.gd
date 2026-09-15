@@ -86,6 +86,9 @@ signal player_chat_ignored(ignorer_id: String, ignored_id: String)
 signal player_chat_unignored(ignorer_id: String, ignored_id: String)
 signal channel_settings_changed(entity_id: String, channel: Channel)
 
+const _kv_ignored := "chat:ignored:"
+const _kv_player_settings := "chat:settings:"
+
 func _ready() -> void:
 	GameLog.info("ChatService: Ready")
 
@@ -474,10 +477,10 @@ func _cmd_ignore(sender_id: String, args: Array) -> bool:
 
 	var target: String = args[0]
 
-	if not _ignored_players.has_key(sender_id):
+	if not _ignored_players		.has(sender_id):
 		_ignored_players[sender_id] = []
 
-	if not _ignored_players[sender_id].has_key(target):
+	if not _ignored_players[sender_id]		.has(target):
 		_ignored_players[sender_id].append(target)
 		player_chat_ignored.emit(sender_id, target)
 		send_system_message(sender_id, "Ignored %s" % target)
@@ -491,7 +494,7 @@ func _cmd_unignore(sender_id: String, args: Array) -> bool:
 
 	var target: String = args[0]
 
-	if _ignored_players.has_key(sender_id) and _ignored_players[sender_id].has_key(target):
+	if _ignored_players		.has(sender_id) and _ignored_players[sender_id]		.has(target):
 		_ignored_players[sender_id].erase(target)
 		player_chat_unignored.emit(sender_id, target)
 		send_system_message(sender_id, "Stopped ignoring %s" % target)
@@ -600,7 +603,7 @@ func _cmd_suggest(sender_id: String, args: Array) -> bool:
 ## Check if player is ignored
 func _is_ignored(ignorer_id: String, ignored_id: String) -> bool:
 	var ignored: Array = _ignored_players.get(ignorer_id, [])
-	return ignored.has_key(ignored_id)
+	return ignored		.has(ignored_id)
 
 ## Send system message
 func send_system_message(target_id: String, message: String) -> void:
@@ -617,7 +620,7 @@ func send_system_message(target_id: String, message: String) -> void:
 
 ## Add to chat history
 func _add_to_history(channel: Channel, message: Dictionary) -> void:
-	if not _chat_history.has_key(channel):
+	if not _chat_history		.has(channel):
 		_chat_history[channel] = []
 
 	_chat_history[channel].append(message)
@@ -633,22 +636,22 @@ func get_channel_history(channel: Channel, limit: int = 20) -> Array:
 
 ## Subscribe to channel
 func subscribe_to_channel(entity_id: String, channel: Channel) -> void:
-	if not _subscriptions.has_key(entity_id):
+	if not _subscriptions		.has(entity_id):
 		_subscriptions[entity_id] = []
 
-	if not _subscriptions[entity_id].has_key(channel):
+	if not _subscriptions[entity_id]		.has(channel):
 		_subscriptions[entity_id].append(channel)
 		channel_joined.emit(entity_id, channel)
 
 ## Unsubscribe from channel
 func unsubscribe_from_channel(entity_id: String, channel: Channel) -> void:
-	if _subscriptions.has_key(entity_id):
+	if _subscriptions		.has(entity_id):
 		_subscriptions[entity_id].erase(channel)
 		channel_left.emit(entity_id, channel)
 
 ## Check if subscribed
 func is_subscribed(entity_id: String, channel: Channel) -> bool:
-	return _subscriptions.get(entity_id, []).has_key(channel)
+	return _subscriptions.get(entity_id, [])		.has(channel)
 
 ## Get channel info
 func get_channel_info(channel: Channel) -> Dictionary:
@@ -675,9 +678,9 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 		if entity:
 			var char_data = entity.get("character_data") if entity else null
 			if char_data:
-				if char_data.has_key("is_gm"):
+				if char_data		.has("is_gm"):
 					is_gm = char_data.is_gm()
-				elif char_data.has_key("class_id"):
+				elif char_data		.has("class_id"):
 					is_gm = CharacterData.is_gm_class(char_data.get("class_id"))
 
 	# Add GM indicator to name
@@ -779,14 +782,14 @@ func _load_chat_state() -> void:
 
 func _persist_ignored(ignorer_id: String) -> void:
 	var store := DictStore.new()
-	if _ignored_players.has_key(ignorer_id):
+	if _ignored_players		.has(ignorer_id):
 		store.set_value(_kv_ignored + ignorer_id, _ignored_players[ignorer_id])
 	else:
 		store.erase(_kv_ignored + ignorer_id)
 
 func _persist_player_settings(player_id: String) -> void:
 	var store := DictStore.new()
-	if _player_settings.has_key(player_id):
+	if _player_settings		.has(player_id):
 		store.set_value(_kv_player_settings + player_id, _player_settings[player_id])
 	else:
 		store.erase(_kv_player_settings + player_id)

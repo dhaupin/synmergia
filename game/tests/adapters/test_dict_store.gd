@@ -20,11 +20,11 @@ func _test_dict_store_crud() -> bool:
 	if data.get("foo") != "bar" or data.get("num") != 42:
 		push_error("DictStore.get returned wrong data: %s" % data)
 		return false
-	if not store.has("test:key"):
+	if not store.has_key("test:key"):
 		push_error("DictStore.has returned false for existing key")
 		return false
 	store.erase("test:key")
-	if store.has("test:key"):
+	if store.has_key("test:key"):
 		push_error("DictStore.has returned true after erase")
 		return false
 	return true
@@ -48,7 +48,7 @@ func _test_dict_store_batch() -> bool:
 		push_error("DictStore.get_many returned wrong size: %d" % many.size())
 		return false
 	store.erase_batch(["batch:a", "batch:b"])
-	if store.has("batch:a") or store.has("batch:b"):
+	if store.has_key("batch:a") or store.has_key("batch:b"):
 		push_error("DictStore.erase_batch failed")
 		return false
 	return true

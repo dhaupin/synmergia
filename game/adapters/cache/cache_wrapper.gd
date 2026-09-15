@@ -81,3 +81,81 @@ func incr_with_ttl(key: String, ttl_sec: int) -> int:
 	if _store == null:
 		return 0
 	return _store.incr_with_ttl(key, ttl_sec)
+
+func hset(key: String, field: String, value: Variant) -> int:
+	_ensure_store()
+	if _store == null:
+		return 0
+	return _store.hset(key, field, value)
+
+func hget(key: String, field: String) -> Variant:
+	_ensure_store()
+	if _store == null:
+		return null
+	return _store.hget(key, field)
+
+func hget_all(key: String) -> Dictionary:
+	_ensure_store()
+	if _store == null:
+		return {}
+	return _store.hget_all(key)
+
+func hdel(key: String, field: String) -> int:
+	_ensure_store()
+	if _store == null:
+		return 0
+	return _store.hdel(key, field)
+
+func sadd(key: String, member: String) -> int:
+	_ensure_store()
+	if _store == null:
+		return 0
+	return _store.sadd(key, member)
+
+func srem(key: String, member: String) -> int:
+	_ensure_store()
+	if _store == null:
+		return 0
+	return _store.srem(key, member)
+
+func smembers(key: String) -> Array:
+	_ensure_store()
+	if _store == null:
+		return []
+	return _store.smembers(key)
+
+func sismember(key: String, member: String) -> bool:
+	_ensure_store()
+	if _store == null:
+		return false
+	return _store.sismember(key, member)
+
+func lpush(key: String, value: Variant) -> int:
+	_ensure_store()
+	if _store == null:
+		return 0
+	return _store.lpush(key, value)
+
+func rpush(key: String, value: Variant) -> int:
+	_ensure_store()
+	if _store == null:
+		return 0
+	return _store.rpush(key, value)
+
+func lpop(key: String) -> Variant:
+	_ensure_store()
+	if _store == null:
+		return null
+	return _store.lpop(key)
+
+func lrange(key: String, start: int, stop: int) -> Array:
+	_ensure_store()
+	if _store == null:
+		return []
+	return _store.lrange(key, start, stop)
+
+func llen(key: String) -> int:
+	_ensure_store()
+	if _store == null:
+		return 0
+	return _store.llen(key)

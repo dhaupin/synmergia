@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ShardParameterDefinition" load_steps=2 format=3 uid://uid://boss_defeated]
+
+[sub_resource type="Resource" id="ShardParameterDefinition_boss_defeated"]
+name = "boss_defeated"
+type = "bool"
+default_value = false
+critical = true
+description = "Tracks whether the world boss has been defeated on this shard. Critical: boss-defeat events must apply immediately so encounters and rewards unlock without a 5-minute delay."
+version = 1

@@ -163,11 +163,11 @@ func send_friend_request(from_id: String, from_name: String, to_id: String) -> D
 	var request := FriendRequest.new(from_id, from_name, to_id)
 	_pending_requests[request.id] = request
 
-	if not _player_requests.has_key(from_id):
+	if not _player_requests		.has(from_id):
 		_player_requests[from_id] = []
 	_player_requests[from_id].append(request)
 
-	if not _player_requests_received.has_key(to_id):
+	if not _player_requests_received		.has(to_id):
 		_player_requests_received[to_id] = []
 	_player_requests_received[to_id].append(request)
 
@@ -179,7 +179,7 @@ func send_friend_request(from_id: String, from_name: String, to_id: String) -> D
 	return {"success": true, "request_id": request.id}
 
 func accept_friend_request(to_id: String, request_id: String) -> Dictionary:
-	if not _pending_requests.has_key(request_id):
+	if not _pending_requests		.has(request_id):
 		return {"success": false, "message": "Request not found"}
 
 	var request: FriendRequest = _pending_requests[request_id]
@@ -202,7 +202,7 @@ func accept_friend_request(to_id: String, request_id: String) -> Dictionary:
 	return {"success": true, "friend_id": request.from_player_id, "friend_name": request.from_player_name}
 
 func decline_friend_request(to_id: String, request_id: String) -> Dictionary:
-	if not _pending_requests.has_key(request_id):
+	if not _pending_requests		.has(request_id):
 		return {"success": false, "message": "Request not found"}
 
 	var request: FriendRequest = _pending_requests[request_id]
@@ -217,7 +217,7 @@ func decline_friend_request(to_id: String, request_id: String) -> Dictionary:
 	return {"success": true}
 
 func cancel_friend_request(from_id: String, request_id: String) -> Dictionary:
-	if not _pending_requests.has_key(request_id):
+	if not _pending_requests		.has(request_id):
 		return {"success": false, "message": "Request not found"}
 
 	var request: FriendRequest = _pending_requests[request_id]
@@ -232,11 +232,11 @@ func cancel_friend_request(from_id: String, request_id: String) -> Dictionary:
 func _cancel_request(request: FriendRequest) -> void:
 	_pending_requests.erase(request.id)
 
-	if _player_requests.has_key(request.from_player_id):
+	if _player_requests		.has(request.from_player_id):
 		var arr: Array = _player_requests[request.from_player_id]
 		arr.erase(request)
 
-	if _player_requests_received.has_key(request.to_player_id):
+	if _player_requests_received		.has(request.to_player_id):
 		var arr: Array = _player_requests_received[request.to_player_id]
 		arr.erase(request)
 
@@ -271,7 +271,7 @@ func add_friend(player_id: String, friend_id: String, friend_name: String = "") 
 	if player_id == friend_id:
 		return {"success": false, "message": "Cannot add yourself as friend"}
 
-	if not _friends.has_key(player_id):
+	if not _friends		.has(player_id):
 		_friends[player_id] = []
 
 	var friends: Array = _friends[player_id]
@@ -295,7 +295,7 @@ func _add_friend(player_id: String, player_name: String, friend_id: String) -> v
 	add_friend(player_id, friend_id, player_name)
 
 func remove_friend(player_id: String, friend_id: String) -> Dictionary:
-	if not _friends.has_key(player_id):
+	if not _friends		.has(player_id):
 		return {"success": false, "message": "No friends list found"}
 
 	var friends: Array = _friends[player_id]
@@ -306,7 +306,7 @@ func remove_friend(player_id: String, friend_id: String) -> Dictionary:
 			friend_removed.emit(player_id, friend_id)
 
 			# Remove reciprocal friendship
-			if _friends.has_key(friend_id):
+			if _friends		.has(friend_id):
 				var reciprocal: Array = _friends[friend_id]
 				for j in range(reciprocal.size()):
 					if reciprocal[j].player_id == player_id:
@@ -318,7 +318,7 @@ func remove_friend(player_id: String, friend_id: String) -> Dictionary:
 	return {"success": false, "message": "Friend not found"}
 
 func is_friend(player_id: String, other_id: String) -> bool:
-	if not _friends.has_key(player_id):
+	if not _friends		.has(player_id):
 		return false
 
 	for friend_data in _friends[player_id]:
@@ -328,7 +328,7 @@ func is_friend(player_id: String, other_id: String) -> bool:
 	return false
 
 func get_friends(player_id: String) -> Array:
-	if not _friends.has_key(player_id):
+	if not _friends		.has(player_id):
 		return []
 
 	var result: Array = []
@@ -349,7 +349,7 @@ func get_friends(player_id: String) -> Array:
 	return result
 
 func set_friend_note(player_id: String, friend_id: String, note: String) -> Dictionary:
-	if not _friends.has_key(player_id):
+	if not _friends		.has(player_id):
 		return {"success": false, "message": "No friends list found"}
 
 	var friends: Array = _friends[player_id]
@@ -381,7 +381,7 @@ func block_player(blocker_id: String, blocked_id: String, reason: String = "") -
 	if is_blocked(blocker_id, blocked_id):
 		return {"success": false, "message": "Already blocked"}
 
-	if not _blocked.has_key(blocker_id):
+	if not _blocked		.has(blocker_id):
 		_blocked[blocker_id] = []
 
 	var blocked: Array = _blocked[blocker_id]
@@ -409,7 +409,7 @@ func block_player(blocker_id: String, blocked_id: String, reason: String = "") -
 	return {"success": true}
 
 func unblock_player(blocker_id: String, blocked_id: String) -> Dictionary:
-	if not _blocked.has_key(blocker_id):
+	if not _blocked		.has(blocker_id):
 		return {"success": false, "message": "No block list found"}
 
 	var blocked: Array = _blocked[blocker_id]
@@ -421,12 +421,12 @@ func unblock_player(blocker_id: String, blocked_id: String) -> Dictionary:
 	return {"success": true}
 
 func is_blocked(blocker_id: String, blocked_id: String) -> bool:
-	if not _blocked.has_key(blocker_id):
+	if not _blocked		.has(blocker_id):
 		return false
-	return _blocked[blocker_id].has_key(blocked_id)
+	return _blocked[blocker_id]		.has(blocked_id)
 
 func get_blocked_players(blocker_id: String) -> Array:
-	if not _blocked.has_key(blocker_id):
+	if not _blocked		.has(blocker_id):
 		return []
 	return _blocked[blocker_id]
 
@@ -446,7 +446,7 @@ func ignore_player(ignorer_id: String, ignored_id: String, reason: String = "") 
 	if is_ignored(ignorer_id, ignored_id):
 		return {"success": false, "message": "Already ignored"}
 
-	if not _ignored.has_key(ignorer_id):
+	if not _ignored		.has(ignorer_id):
 		_ignored[ignorer_id] = []
 
 	var ignored: Array = _ignored[ignorer_id]
@@ -462,7 +462,7 @@ func ignore_player(ignorer_id: String, ignored_id: String, reason: String = "") 
 	return {"success": true}
 
 func unignore_player(ignorer_id: String, ignored_id: String) -> Dictionary:
-	if not _ignored.has_key(ignorer_id):
+	if not _ignored		.has(ignorer_id):
 		return {"success": false, "message": "No ignore list found"}
 
 	var ignored: Array = _ignored[ignorer_id]
@@ -474,12 +474,12 @@ func unignore_player(ignorer_id: String, ignored_id: String) -> Dictionary:
 	return {"success": true}
 
 func is_ignored(ignorer_id: String, ignored_id: String) -> bool:
-	if not _ignored.has_key(ignorer_id):
+	if not _ignored		.has(ignorer_id):
 		return false
-	return _ignored[ignorer_id].has_key(ignored_id)
+	return _ignored[ignorer_id]		.has(ignored_id)
 
 func get_ignored_players(ignorer_id: String) -> Array:
-	if not _ignored.has_key(ignorer_id):
+	if not _ignored		.has(ignorer_id):
 		return []
 	return _ignored[ignorer_id]
 
@@ -501,7 +501,7 @@ func set_player_online(player_id: String, player_name: String, zone_id: String =
 	GameLog.debug("FriendsService: Player %s online in zone %s" % [player_name, zone_id])
 
 func set_player_offline(player_id: String) -> void:
-	if _online_players.has_key(player_id):
+	if _online_players		.has(player_id):
 		_online_players[player_id].online = false
 		_online_players[player_id].last_seen = Time.get_unix_time_from_system()
 		_persist_online_status(player_id)
@@ -509,12 +509,12 @@ func set_player_offline(player_id: String) -> void:
 		GameLog.debug("FriendsService: Player %s offline" % _online_players[player_id].name)
 
 func update_player_zone(player_id: String, zone_id: String) -> void:
-	if _online_players.has_key(player_id):
+	if _online_players		.has(player_id):
 		_online_players[player_id].zone = zone_id
 		_online_players[player_id].last_update = Time.get_unix_time_from_system()
 
 func _get_player_status(player_id: String) -> Dictionary:
-	if _online_players.has_key(player_id):
+	if _online_players		.has(player_id):
 		var status: Dictionary = _online_players[player_id]
 		return {
 			"online": status.online,
@@ -524,7 +524,7 @@ func _get_player_status(player_id: String) -> Dictionary:
 	return {"online": false, "last_seen": 0, "zone": ""}
 
 func is_online(player_id: String) -> bool:
-	if _online_players.has_key(player_id):
+	if _online_players		.has(player_id):
 		return _online_players[player_id].online
 	return false
 
@@ -546,7 +546,7 @@ func get_online_count(player_id: String) -> int:
 ## ============================================================================
 
 func get_pending_requests_sent(player_id: String) -> Array:
-	if not _player_requests.has_key(player_id):
+	if not _player_requests		.has(player_id):
 		return []
 
 	var result: Array = []
@@ -563,7 +563,7 @@ func get_pending_requests_sent(player_id: String) -> Array:
 	return result
 
 func get_pending_requests_received(player_id: String) -> Array:
-	if not _player_requests_received.has_key(player_id):
+	if not _player_requests_received		.has(player_id):
 		return []
 
 	var result: Array = []
@@ -587,12 +587,12 @@ func get_pending_requests_received(player_id: String) -> Array:
 func get_friend_recommendations(player_id: String) -> Array:
 	# Placeholder for social graph analysis
 	# Could be based on: mutual friends, same guild, same zone, etc.
-	if _friend_recommendations.has_key(player_id):
+	if _friend_recommendations		.has(player_id):
 		return _friend_recommendations[player_id]
 	return []
 
 func add_recommendation(player_id: String, recommended_id: String, score: float) -> void:
-	if not _friend_recommendations.has_key(player_id):
+	if not _friend_recommendations		.has(player_id):
 		_friend_recommendations[player_id] = []
 
 	var recs: Array = _friend_recommendations[player_id]
@@ -619,10 +619,10 @@ func can_interact_with(player_id: String, other_id: String) -> bool:
 
 func get_social_summary(player_id: String) -> Dictionary:
 	return {
-		"friends_count": _friends.get(player_id, []).size() if _friends.has_key(player_id) else 0,
+		"friends_count": _friends.get(player_id, []).size() if _friends		.has(player_id) else 0,
 		"online_friends": get_online_count(player_id),
-		"blocked_count": _blocked.get(player_id, []).size() if _blocked.has_key(player_id) else 0,
-		"ignored_count": _ignored.get(player_id, []).size() if _ignored.has_key(player_id) else 0,
+		"blocked_count": _blocked.get(player_id, []).size() if _blocked		.has(player_id) else 0,
+		"ignored_count": _ignored.get(player_id, []).size() if _ignored		.has(player_id) else 0,
 		"pending_sent": get_pending_requests_sent(player_id).size(),
 		"pending_received": get_pending_requests_received(player_id).size()
 	}
@@ -641,7 +641,7 @@ func _load_online_status() -> void:
 
 func _persist_online_status(player_id: String) -> void:
 	var cache := CacheWrapper.new()
-	if _online_players.has_key(player_id):
+	if _online_players		.has(player_id):
 		var data: Dictionary = _online_players[player_id]
 		if data.get("online", false):
 			cache.set(_kv_online_prefix + player_id, data, 300)  # 5 min TTL
