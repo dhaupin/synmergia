@@ -29,6 +29,7 @@ AdapterRegistry="*res://adapters/registry.gd"
 BackendFactory="*res://adapters/backend_factory.gd"
 GameLog="*res://core/autoload/logger.gd"
 ShardParameters="*res://core/services/shard_parameters.gd"
+FrameService="*res://core/services/frame_service.gd"
 RegisterTypes="*res://core/autoload/type_registry.gd"
 DebugOverlay="*res://ui/components/debug_overlay.gd"
 

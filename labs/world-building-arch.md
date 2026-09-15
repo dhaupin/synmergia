@@ -643,6 +643,20 @@ it holds the actual game data.
 | Recursive seed derivation | spec В§4.2, D025 | none | `seed_chain.gd::derive_seed` | DONE |
 | Seed tree test | prd-seed-schema В§US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
 | State tree test | prd-state-schema В§US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
+| Seed tree (tests) | prd-seed-schema В§US-005 | none | `labs/multi-iso/kv/test_seed_chain.gd` | DONE |
+| State tree (tests) | prd-state-schema В§US-005 | none | `labs/multi-iso/kv/test_state_tree.gd` | DONE |
+| SeedReceipt Resource | prd-login-seed-chain В§US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
+| SeedReceipt test | prd-login-seed-chain В§US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
+| FrameService | prd-frame-authority В§US-001 | none | `game/core/services/frame_service.gd` | DONE |
+| Frame authority test | prd-frame-authority В§US-005 | none | `game/tests/test_frame_authority.gd` | DONE |
+| ShardParameterDefinition | prd-critical-params В§US-001 | none | `game/core/schemas/shard_parameter_definition.gd` | DONE |
+| ShardParameters autoload | prd-critical-params В§US-002 | none | `game/core/services/shard_parameters.gd` | DONE |
+| Critical params test | prd-critical-params В§US-006 | none | `game/tests/test_critical_params.gd` | DONE |
+| Param .tres samples (4) | prd-critical-params В§US-006 | none | `game/data/roots/world/parameters/` | DONE |
+| Two-orthogonal-axes (D026) | spec В§4.1 | none | `SeedSchema` payload | DONE |
+| State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | DONE |
+| LRU cache | vant `lib/cache.js` | none | `labs/multi-iso/kv/lru_cache.gd` | DONE |
+| Snapshot store | content-hash state tree | none | `labs/multi-iso/db/snapshot_store.gd` | DONE |
 | Manifest SPOF (D031) | this doc В§6.4 | none | `srv/backup/manifest.sh` | TODO |
 | Open seed TTL (D032) | this doc В§6.3, spec В§4.8 | none | `core/services/instance_service.gd` | TODO |
 | Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
