@@ -515,8 +515,8 @@ func _sanitize_name(name: String) -> String:
 		name = "Waypoint %d" % int(Time.get_unix_time_from_system())
 
 	# Remove dangerous characters (BBCode injection prevention)
-	name = name.replace("[", "［").replace("]", "］")
-	name = name.replace("<", "＜").replace(">", "＞")
+	name = name.replace("[", "(").replace("]", ")")
+	name = name.replace("<", "(").replace(">", ")")
 
 	# Strip control characters
 	name = name.strip_edges(true, true)

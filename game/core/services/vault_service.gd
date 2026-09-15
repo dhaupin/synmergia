@@ -466,31 +466,12 @@ func _load_vaults() -> void:
 				_account_vaults[account_id] = data
 
 func _find_empty_slot(vault: Dictionary) -> int:
-	var slots: Array = vault.get("slots") as Dictionary)
-
-			if var data :=  == null:
-
-				var data :=  = key)
-			if data:
-				_personal_vaults[player_id] = data
-		elif key.begins_with(_kv_guild):
-			var guild_id := key.substr(_kv_guild.length())
-			var data := store.get_value(key)
-			if data:
-				_guild_vaults[guild_id] = data
-		elif key.begins_with(_kv_account):
-			var account_id := key.substr(_kv_account.length())
-			var data := store.get_value(key)
-			if data:
-				_account_vaults[account_id] = data
-
-func _find_empty_slot(vault: Dictionary) -> int:
-	var slots: Array = vault.get("slots"
+	var slots: Array = vault.get("slots", [])
 	for i in range(slots.size()):
 		if slots[i].is_empty():
 			return i
 	if slots.size() < vault.get("size", 100):
-		vault.slots.append({})
+		slots.append({})
 		return slots.size() - 1
 	return -1
 

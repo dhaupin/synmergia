@@ -7,7 +7,7 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 ## Security: Escape text to prevent BBCode injection
 static func _esc(text: String) -> String:
-	return text.replace("[", "［").replace("]", "］")
+	return text.replace("[", "[lb]").replace("]", "[rb]")
 
 # UI Elements
 @onready var panel: PanelContainer

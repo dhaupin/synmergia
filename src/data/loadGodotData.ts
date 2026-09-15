@@ -62,6 +62,16 @@ function mapRole(n: number): ClassId {
   return map[n] || 'warrior';
 }
 
+export function normalizeClassId(id: string): ClassId {
+  const k = (id || '').toLowerCase();
+  if (k.includes('guardian') || k.includes('bulwark') || k.includes('warden')) return 'guardian';
+  if (k.includes('sorcerer') || k.includes('rune') || k.includes('psion') || k.includes('mage')) return 'sorcerer';
+  if (k.includes('cleric') || k.includes('shaman') || k.includes('conduit') || k.includes('healer')) return 'cleric';
+  if (k.includes('stalker') || k.includes('marksman') || k.includes('tracker') || k.includes('rogue')) return 'stalker';
+  if (k.includes('overclocker') || k.includes('temporalist') || k.includes('seer') || k.includes('bender')) return 'overclocker';
+  return 'warrior';
+}
+
 function mapRarity(n: number): ItemRarity {
   const map: ItemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
   return map[n] || 'common';
@@ -114,27 +124,50 @@ export function transformSpecies(): Record<SpeciesId, any> {
 
 export function transformClasses(): Record<ClassId, any> {
   const out: Record<string, any> = {};
+  const archetypeNames: Record<ClassId, string> = {
+    warrior: 'DPS / Melee',
+    guardian: 'Tank / Melee',
+    sorcerer: 'Mage / Ranged',
+    cleric: 'Healer / Support',
+    stalker: 'Rogue / Melee',
+    overclocker: 'Bender / Hybrid',
+  };
+
   for (const [id, c] of Object.entries(RAW.classes || {})) {
     const cl = c as any;
     const archetype = mapRole(cl.role);
-    const archetypeNames: Record<ClassId, string> = {
-      warrior: 'DPS / Melee',
-      guardian: 'Tank / Melee',
-      sorcerer: 'Mage / Ranged',
-      cleric: 'Healer / Support',
-      stalker: 'Rogue / Melee',
-      overclocker: 'Bender / Hybrid',
-    };
-    out[id] = {
+    const classObj = {
       name: cl.display_name || id,
       archetype: archetypeNames[archetype] || 'DPS',
       description: cl.description || '',
-      icon: 'Sword',
-      color: archetype === 'guardian' ? '#3b82f6' : archetype === 'cleric' ? '#22c55e' : archetype === 'sorcerer' ? '#a855f7' : '#ef4444',
+      icon: archetype === 'guardian' ? 'Shield' : archetype === 'sorcerer' ? 'Sparkles' : archetype === 'cleric' ? 'Heart' : archetype === 'stalker' ? 'Crosshair' : archetype === 'overclocker' ? 'Cpu' : 'Sword',
+      color: archetype === 'guardian' ? '#3b82f6' : archetype === 'cleric' ? '#22c55e' : archetype === 'sorcerer' ? '#a855f7' : archetype === 'stalker' ? '#f97316' : archetype === 'overclocker' ? '#06b6d4' : '#ef4444',
       resourceType: mapResourceType(cl.resource_type),
       recommendedWeapon: cl.default_weapon_path || 'Sword',
     };
+    out[id] = classObj;
+    const normId = normalizeClassId(id);
+    if (!out[normId] || id === normId || id.startsWith('human_')) {
+      out[normId] = classObj;
+    }
   }
+
+  // Ensure all 6 base archetypes are guaranteed to exist
+  const baseClasses: ClassId[] = ['warrior', 'guardian', 'sorcerer', 'cleric', 'stalker', 'overclocker'];
+  for (const b of baseClasses) {
+    if (!out[b]) {
+      out[b] = {
+        name: b.charAt(0).toUpperCase() + b.slice(1),
+        archetype: archetypeNames[b],
+        description: `Master of the ${b} discipline.`,
+        icon: b === 'guardian' ? 'Shield' : b === 'sorcerer' ? 'Sparkles' : b === 'cleric' ? 'Heart' : b === 'stalker' ? 'Crosshair' : b === 'overclocker' ? 'Cpu' : 'Sword',
+        color: b === 'guardian' ? '#3b82f6' : b === 'cleric' ? '#22c55e' : b === 'sorcerer' ? '#a855f7' : b === 'stalker' ? '#f97316' : b === 'overclocker' ? '#06b6d4' : '#ef4444',
+        resourceType: (b === 'sorcerer' || b === 'cleric') ? 'mana' : b === 'overclocker' ? 'energy' : 'stamina',
+        recommendedWeapon: 'Sword',
+      };
+    }
+  }
+
   return out as Record<ClassId, any>;
 }
 
@@ -180,13 +213,22 @@ export function transformZones(): Record<ZoneId, Zone> {
   return out as Record<ZoneId, Zone>;
 }
 
-export function transformSkills(): Record<ClassId, Skill[]> {
-  const out: Record<string, Skill[]> = {};
+export function transformSkills(): Record<string, Skill[]> {
+  const out: Record<string, Skill[]> = {
+    warrior: [],
+    guardian: [],
+    sorcerer: [],
+    cleric: [],
+    stalker: [],
+    overclocker: [],
+  };
+
   for (const [id, s] of Object.entries(RAW.skills || {})) {
     const sk = s as any;
-    const classId = (sk.required_class || 'warrior') as ClassId;
-    if (!out[classId]) out[classId] = [];
-    out[classId].push({
+    const rawClass = sk.required_class || 'warrior';
+    const normClass = normalizeClassId(rawClass);
+
+    const skill: Skill = {
       id: sk.id,
       name: sk.display_name || id,
       description: sk.description || '',
@@ -202,11 +244,18 @@ export function transformSkills(): Record<ClassId, Skill[]> {
       targetType: sk.target_type === 3 ? 'ally' : sk.target_type === 2 ? 'area' : 'enemy',
       buffEffect: sk.effects?.[0]?.type === 'buff' ? { stat: 'armor', value: 10, duration: sk.effects[0].duration || 10 } : undefined,
       requiredLevel: sk.required_level,
-      classId,
+      classId: normClass,
       upgradeTiers: sk.upgrade_tiers ? parseUpgradeTiers(sk.upgrade_tiers) : [],
-    });
+    };
+
+    if (!out[rawClass]) out[rawClass] = [];
+    out[rawClass].push(skill);
+
+    if (!out[normClass]) out[normClass] = [];
+    out[normClass].push(skill);
   }
-  return out as Record<ClassId, Skill[]>;
+
+  return out;
 }
 
 export function transformItems(): Item[] {

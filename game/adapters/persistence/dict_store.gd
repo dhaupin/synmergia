@@ -53,7 +53,11 @@ func get_value(key: String) -> Variant:
 	var parsed = JSON.parse_string(raw)
 	return parsed
 
-func set_value(key: String, value: Dictionary, ttl_sec: int = 0) -> void:
+func get(key: String, default: Variant = null) -> Variant:
+	var val = get_value(key)
+	return val if val != null else default
+
+func set_value(key: String, value: Variant, ttl_sec: int = 0) -> void:
 	_ensure_store()
 	if _store == null:
 		return
@@ -65,6 +69,16 @@ func set_value(key: String, value: Dictionary, ttl_sec: int = 0) -> void:
 	else:
 		_expires[key] = 0
 
+func set(key: String, value: Variant, ttl_sec: int = 0) -> void:
+	set_value(key, value, ttl_sec)
+
+func _set(property: StringName, value: Variant) -> bool:
+	set_value(String(property), value)
+	return true
+
+func _get(property: StringName) -> Variant:
+	return get_value(String(property))
+
 func has_key(key: String) -> bool:
 	_ensure_store()
 	if _store == null:
@@ -75,12 +89,21 @@ func has_key(key: String) -> bool:
 	var rows = _store.query("SELECT 1 FROM kv WHERE key = $1", [key])
 	return not rows.is_empty()
 
+func has(key: String) -> bool:
+	return has_key(key)
+
 func erase(key: String) -> void:
 	_ensure_store()
 	if _store == null:
 		return
 	_store.execute("DELETE FROM kv WHERE key = $1", [key])
 	_expires.erase(key)
+
+func delete(key: String) -> void:
+	erase(key)
+
+func size() -> int:
+	return all_keys().size()
 
 func all_keys() -> Array:
 	_ensure_store()

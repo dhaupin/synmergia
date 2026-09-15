@@ -15,7 +15,7 @@ static func singleton() -> Node:
 ## let a player inject formatting/color/URL tags. Full-width brackets
 ## are not recognized as BBCode and pass through as literal text.
 static func _esc(text: String) -> String:
-	return text.replace("[", "［").replace("]", "］")
+	return text.replace("[", "[lb]").replace("]", "[rb]")
 
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")

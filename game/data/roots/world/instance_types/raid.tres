@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="InstanceTypeDefinition" load_steps=2 format=3 uid://uid://inst_type_raid]
+
+[sub_resource type="Resource" id="InstanceTypeDefinition_raid"]
+name = "raid"
+default_ttl_ms = 900000
+category = "raid"
+description = "Large-scale raid instance with a 15-minute reconnect window after logout."

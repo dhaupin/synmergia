@@ -229,6 +229,19 @@ export function syncGodotData(): GodotDataPayload {
         console.warn(`[sync:data] Failed to parse ${file}:`, err);
       }
     }
+    if (cat === 'classes') {
+      // Map base archetypes (e.g. human_warrior -> warrior) for UI compatibility
+      for (const [classId, classData] of Object.entries(payload.classes)) {
+        const baseArchetype = classId.replace(/^(human|synthetic|akkan)_/, '');
+        if (baseArchetype && !payload.classes[baseArchetype]) {
+          payload.classes[baseArchetype] = {
+            ...classData,
+            id: baseArchetype,
+            name: baseArchetype.charAt(0).toUpperCase() + baseArchetype.slice(1),
+          };
+        }
+      }
+    }
     payload.counts[cat] = Object.keys(payload[cat]).length;
   }
 

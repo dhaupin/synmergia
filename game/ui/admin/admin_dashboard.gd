@@ -24,7 +24,7 @@ var _admin_id: String = ""
 
 ## Escape [ and ] for BBCode safety
 static func _esc(text: String) -> String:
-	return text.replace("[", "［").replace("]", "］")
+	return text.replace("[", "[lb]").replace("]", "[rb]")
 
 
 func _ready() -> void:

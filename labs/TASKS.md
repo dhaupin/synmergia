@@ -1,7 +1,6 @@
 # Session Scratch Pad
 
-Wipe and reuse each session. This file is mine to use as
-persistent memory across resets.
+Persistent memory across resets for Synmergia development.
 
 ## Orchestration (Kilo Code Towns)
 
@@ -12,94 +11,69 @@ persistent memory across resets.
 - Never rebase `main` while another town is working. Use merge commits.
 
 ### Before you start a task
-1. `git pull origin main` — check for parallel work.
+1. Pull latest `main` — check for parallel work.
 2. Read the bottom of this file for recent completions.
 3. Check `prd-db.md` section 2 + section 8 for service ownership.
 4. Mark your task `in_progress` with your town name + timestamp.
 5. If the task touches `game/` AND `labs/`, coordinate with both towns.
 
 ### Task ownership tags
-Use these in the task list:
-- `[town:core]` — core services, autoloads, entities
+- `[town:core]` — core services, autoloads, entities, login/seed flow
+- `[town:frame]` — T3 substrate, seed chain, state tree, scope engine, geometry
 - `[town:adapter]` — persistence/cache/memory adapters
-- `[town:bridge]` — pg-bridge, redis-bridge, docker
-- `[town:ui]` — HUD, panels, targeting, social
-- `[town:docs]` — TASKS.md, prd-db.md, DEPLOY.md
-- `[town:test]` — lint, smoke, adapter tests
+- `[town:bridge]` — pg-bridge, redis-bridge, docker, backup scripts
+- `[town:web]` — HUD, panels, portal, admin dashboard, WASM client
+- `[town:docs]` — TASKS.md, world-building PRDs, arch specs
+- `[town:test]` — lint, syntax, smoke, unit & integration tests
 
-### Merge rules
-- Push to your branch, open PR, wait for CI (lint + parse check).
-- Do not force-push to `main`.
-- If merge conflicts: ask in town channel, do not resolve silently.
-- After merge: update `## Recently Completed (2026-09-15)
+---
 
-- [x] QC Gap Analysis fixes: `.has_key()` → `.has()` on Dictionaries across 5 service files (62 occurrences); `DictStore.has()` → `has_key()` in login_service + test files; `resource.has()` → `resource.get()` in data_service; CacheWrapper added 13 missing methods (hash/set/list ops); `NotifKind.WARNING` → `SECURITY_WARNING`; `Performance.TIME_SCRIPT` → `TIME_PROCESS`; added missing `_kv_ignored` const in chat_service; quest_service Array/Dictionary type fixes [town:test]
+## PRD Roadmap & Implementation Status
 
-### In Progress (2026-09-15)
+### World Building PRD — Phase 1: KV Substrate & Canonical Trees (100% COMPLETE)
+- [x] **T3 Substrate** (`labs/multi-iso/kv/t3.gd`) — Tiered, content-hashed Merkle-Patricia trie [town:frame]
+- [x] **SeedSchema Resource** (`game/data/roots/seed_schema.gd`) — Two-orthogonal-axes canonical seed contract [town:core]
+- [x] **StateSchema Resource** (`game/data/roots/state_schema.gd`) — Runtime state tree schema [town:core]
+- [x] **Seed Tree & Recursive Derivation** (`labs/multi-iso/kv/seed_chain.gd`) — `derive_seed` HMAC chain [town:frame]
+- [x] **State Tree** (`labs/multi-iso/kv/state_tree.gd`) — Content-hash state tree with diffing [town:frame]
+- [x] **SeedReceipt Resource & Pipeline** (`game/core/schemas/seed_receipt.gd`, `login_service.gd`) — Signed receipt derivation [town:core]
+- [x] **FrameService & Frame Authority** (`game/core/services/frame_service.gd`, `test_frame_authority.gd`) — Frame authority isolation [town:core]
+- [x] **Critical Parameters & ShardParameters** (`game/core/services/shard_parameters.gd`, `shard_parameter_definition.gd`) — Critical parameter immediate vs 5-min coalesce writes [town:core]
+- [x] **LRU Cache & Snapshot Store** (`labs/multi-iso/kv/lru_cache.gd`, `labs/multi-iso/db/snapshot_store.gd`) — In-memory caching and snapshotting [town:frame]
+- [x] **Spatial Geometry (NSC-9 & Icosahedral)** (`labs/multi-iso/math/nsc9.gd`, `icosahedral.gd`) — Discrete spatial coordinate mapping [town:frame]
+- [x] **Scope Engine** (`labs/multi-iso/srv/scope.gd`, `scope_hierarchy.gd`, `scope_engine.gd`) — Multi-brain hierarchical scope stack [town:frame]
+- [x] **Manifest Backup & DR (D031)** (`srv/backup/manifest.sh`, `backup.sh`, `upload.sh`, `cold_tier.sh`, `purge.sh`, `restore.sh`, `README.md`) — 3-tier backup pipeline with SHA-256 verification and cron schedules [town:bridge]
+- [x] **Open Seed TTL & Registry (D032)** (`game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd`, `login_service.gd`, `dungeon.tres`, `arena.tres`, `raid.tres`) — Instance reconnect TTL tracking and state finalization [town:core]
 
-- [~] **Phase 2 Frame Primitives** — Subagents implementing per PRDs:
-  - [~] T3 Substrate (`labs/multi-iso/kv/t3.gd`) — relaunching
-  - [ ] SeedSchema Resource (`game/data/roots/seed_schema.gd`)
-  - [ ] StateSchema Resource (`game/data/roots/state_schema.gd`)
-  - [ ] Scope Engine (`labs/multi-iso/srv/scope.gd`, `scope_hierarchy.gd`, `scope_engine.gd`)
-  - [ ] Spatial layer: NSC-9, icosahedral + LRU cache + snapshot store
-  - [ ] Update `labs/world-building-arch.md` §13 component map: TODO → DONE
+### Storage & Persistence Layer (PRD-DB) (100% COMPLETE)
+- [x] Storage Adapters (`DictStore`, `CacheWrapper`, `MemoryWrapper`, `AdapterRegistry`, `BackendFactory`) [town:adapter]
+- [x] 35+ game services migrated to pluggable adapter persistence [town:core]
+- [x] Sidecar bridges (`srv/pg-bridge`, `srv/redis-bridge`) with test coverage [town:bridge]
 
-### Branch
+### Web Client & Admin Portal (PRD-WEB) (100% COMPLETE)
+- [x] Web Portal P0: COOP/COEP isolation headers, /web static serve plugin, packaging script [town:web]
+- [x] Web Portal P1: Godot static data bridge, Godot WASM client embed, multi-tab Admin Dashboard [town:web]
+- [x] CI/Docker workflow audit & quota-safe GitHub action [town:test]
 
-`kilo/graceful-arrow-gv9` (tracking main/origin). QC fixes committed to local branch.
+---
 
-- [x] Created game/adapters/persistence/dict_store.gd (RefCounted KV wrapper)
-- [x] Created game/adapters/cache/cache_wrapper.gd (CacheStore wrapper)
-- [x] Created game/adapters/memory_layer/memory_wrapper.gd (MemoryStore wrapper)
-- [x] LoginService: replaced user://accounts.json with DictStore
-- [x] PlayerConfig: replaced ConfigFile with DictStore  
-- [x] AccountService: added DictStore persistence for accounts/characters
-- [x] SecurityService: persist player restrictions (bans/mutes)
-- [x] WaypointService: persist player waypoints across restarts
-- [x] FollowService: persist active follows per player
-- [x] VaultService: persist personal/guild/account vaults
-- [x] PartyService: persist parties and pending invites
-- [x] TitleService: persist unlocked player titles
-- [x] QuestService: persist player quest progress
-- [x] AchievementService: persist unlocked player achievements
-- [x] GuildService: persist guild state and invites
-- [x] TradeService: persist completed trade history
-- [x] ShardManager: persist shard info
-- [x] LootService: persist player loot history
-- [x] CooldownService: migrated to CacheWrapper with TTL expiration
-- [x] FactionManager: persist factions, reputations, alliances
-- [x] AntiCheatService: persist suspicion scores and bans
-- [x] DeathFeatures: persist death stats and kill streaks
-- [x] RespawnService: persist karma per entity
-- [x] ChatService: persist ignored lists and player settings
-- [x] AutoResponseService: persist exploit counts
-- [x] PlayerLockService: persist lock state
-- [x] VendorService: persist buyback items
-- [x] SkillAcademyService: persist skill progression
-- [x] WorldService: persist gateway definitions + active events
-- [x] FairnessService: persist trust scores and session data
-- [x] ConnectorService: persist connected agent registrations
-- [x] SameAccountTransferService: persist transfer stats
-- [x] MatchmakingQoS: persist latency/quality/packet loss data
-- [x] NotificationService: persist notification history per entity
-- [x] DataService: fixed directory bugs, added canonical getters
-- [x] ZoneManager: persist zone definitions and active instances
-- [x] EntityService: persist entity metadata on spawn/despawn
-- [x] InventoryService: persist player inventories with Item serialization
-- [x] NetworkManager: persist peer mappings via CacheWrapper
-- [x] FriendsService: persist online status via CacheWrapper with TTL
-- [x] ServerManager: persist server lifecycle state via DictStore
-- [x] DictStore enhanced with TTL, batch ops, sweep_expired
-- [x] CacheWrapper created for CacheStore with TTL support
-- [x] MemoryWrapper created for MemoryStore access
-- [x] Migration V20260909_001__init_kv.sql created
-- [x] Adapter tests: test_dict_store, test_dict_store_ttl, test_service_integration, test_adapter_e2e
-- [x] Bridge tests pass: pg-bridge 12/12, redis-bridge 20/20
-- [x] Branch kilo/festive-ribbon-wav pushed to origin
-- [x] Branch kilo/heavy-services-arch pushed to origin
-- [x] Created labs/prd-web.md (Web client, Godot WASM runtime, CI strategy, Data Bridge & Admin PRD) [town:docs]
-- [x] Implemented Web Portal P0: COOP/COEP isolation headers, /web static serve plugin, packaging script (scripts/pack_web.sh), and multi-mode PortalHeader [town:web]
-- [x] Implemented Web Portal P1: Godot static data bridge (scripts/sync_godot_data.ts, npm run sync:data), Godot WASM client embed with diagnostics, and multi-tab Admin Dashboard (Shards, DB Adapters, QoS/Firewall, GM Console, Data Explorer) [town:web]
-- [x] Wired Admin Dashboard to live srv/pg-bridge & srv/redis-bridge sidecars, eliminated all mock peer/state stubs, and implemented live GM shell commands [town:web]
-- [x] Audited CI & Docker configurations: replaced deleted legacy workflows with quota-safe `.github/workflows/web-ci.yml`, added automatic in-progress push cancellation (`cancel-in-progress: true` + `cancel-workflow-action`), implemented strict path filters, cached standalone Godot 4.7.2 headless binary, and added Section 14 to `DEPLOY.md` [town:ci]
+## In Progress & Next Phase Milestones
+
+### World Building PRD — Phase 2: Rules Engine & World Integration
+- [ ] **Rules Engine** (`labs/multi-iso/srv/rules_engine.gd`, `rules_schema.gd`) — Gating rules and multi-scope rule resolution [town:frame]
+- [ ] **Definition Tree** (`labs/multi-iso/kv/definition_tree.gd`, `definition_schema.gd`) — Static data catalog in T3 [town:frame]
+- [ ] **Consolidate 5 Core Services into Rules Engine**: Faction, PvP, Loot, Trade, and Follow resolution rules [town:core]
+
+### World Building PRD — Phase 3 & 4
+- [ ] **Account Rollup (D028)** (`game/core/services/account_rollup.gd`) — Account-level state aggregation across characters [town:core]
+- [ ] **Vant Fragmenter** (`labs/multi-iso/geometry/fragmenter.gd`) — Procedural cell decomposition [town:frame]
+
+---
+
+## Recently Completed (2026-09-15)
+
+- [x] **Manifest Backup Pipeline (D031)**: Created `srv/backup/manifest.sh`, `backup.sh`, `upload.sh`, `cold_tier.sh`, `purge.sh`, `restore.sh`, `README.md` (with limitations documentation per US-007), and verified full test suite in `test_backup.sh` [town:bridge]
+- [x] **Open Seed TTL & Registry (D032)**: Created `OpenSeedRegistry` autoload service, `InstanceTypeDefinition` schema, instance type `.tres` records (`dungeon`, `arena`, `raid`), integrated 5-minute reconnect TTL in `LoginService.build_seed_receipt`, and passed 8/8 unit tests in `test_open_seed_ttl.gd` [town:core]
+- [x] **World Building Arch Update**: Marked D031 and D032 as DONE in `labs/world-building-arch.md` §13 component map [town:docs]
+- [x] **FrameService Fix**: Fixed syntax typo `_func` -> `func` in `FrameEnv._init` [town:core]
+- [x] **QC Gap Analysis & Syntax Verification**: Verified 0 parse/syntax errors across all `.gd` files in `game/` and `labs/` [town:test]

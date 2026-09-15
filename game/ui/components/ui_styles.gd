@@ -1,4 +1,5 @@
 ## UIStyles - Common styling constants and factory methods for Synmergia UI
+extends RefCounted
 class_name UIStyles
 
 ## ============================================================================

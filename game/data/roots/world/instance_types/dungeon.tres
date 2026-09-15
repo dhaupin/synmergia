@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="InstanceTypeDefinition" load_steps=2 format=3 uid://uid://inst_type_dungeon]
+
+[sub_resource type="Resource" id="InstanceTypeDefinition_dungeon"]
+name = "dungeon"
+default_ttl_ms = 300000
+category = "dungeon"
+description = "Standard dungeon instance with a 5-minute reconnect window after logout."

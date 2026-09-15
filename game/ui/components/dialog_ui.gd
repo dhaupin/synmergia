@@ -16,7 +16,7 @@ var _npc_position: Vector3 = Vector3.ZERO  # For distance-based close
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
-	return text.replace("[", "［").replace("]", "］")
+	return text.replace("[", "[lb]").replace("]", "[rb]")
 
 ## Components
 var _speaker_label: Label

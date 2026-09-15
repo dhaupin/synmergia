@@ -1,7 +1,7 @@
 {
-  "lastSyncedAt": "2026-09-15T03:38:54.796Z",
+  "lastSyncedAt": "2026-09-15T17:58:09.440Z",
   "counts": {
-    "classes": 22,
+    "classes": 39,
     "weapons": 2,
     "armors": 1,
     "consumables": 2,
@@ -1115,6 +1115,874 @@
       "class_specific_animation_set": "warrior",
       "_sourceFile": "game/data/classes/class_warrior.tres",
       "_scriptClass": "CharacterClass"
+    },
+    "attacker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "attacker",
+      "display_name": "Attacker",
+      "description": "Akkan melee damage dealer. Void-enhanced combat.",
+      "icon_path": "res://ui/icons/classes/akkan_attacker.png",
+      "role": 2,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 14,
+        "agility": 10,
+        "intelligence": 8,
+        "vitality": 10,
+        "endurance": 10,
+        "wisdom": 6
+      },
+      "stat_growth": {
+        "focal_stat_1": "strength",
+        "focal_stat_2": "agility",
+        "strength": 2,
+        "agility": 1,
+        "intelligence": 1,
+        "vitality": 2,
+        "endurance": 1,
+        "wisdom": 1
+      },
+      "base_resource": 100,
+      "resource_per_level": 10,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 1,
+      "base_attack_power": 12,
+      "attack_power_per_level": 2,
+      "base_spell_power": 5,
+      "spell_power_per_level": 1,
+      "starting_skills": [],
+      "skill_tree_unlocks": {},
+      "respec_cost_gold": 500,
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_akkan_attacker.tres",
+      "_scriptClass": "CharacterClass",
+      "name": "Attacker"
+    },
+    "bulwark": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "bulwark",
+      "display_name": "Bulwark",
+      "description": "Akkan fortress. Unmovable anchor in combat. Taunts, area denial, and damage reflection keep enemies locked on. Aggro control and AoE disruption.",
+      "role": 1,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 12,
+        "agility": 5,
+        "vitality": 14,
+        "intelligence": 5,
+        "wisdom": 6,
+        "endurance": 14
+      },
+      "stat_growth": {
+        "strength": 2,
+        "agility": 1,
+        "vitality": 3,
+        "intelligence": 1,
+        "wisdom": 1,
+        "endurance": 2
+      },
+      "base_resource": 55,
+      "resource_per_level": 7,
+      "resource_regen_per_second": 1.8,
+      "resource_regen_combat": 0.9,
+      "base_attack_power": 14,
+      "attack_power_per_level": 4,
+      "base_spell_power": 3,
+      "spell_power_per_level": 1,
+      "starting_skills": [
+        "akkan_battle_cry"
+      ],
+      "skill_tree_unlocks": "{5: [\"akkan_pummel\", \"akkan_taunt\"], 10: [\"akkan_reflect\"], 15: [\"akkan_bulwark_strike\"], 20: [\"akkan_earthwall\"], 25: [\"akkan_immortal_form\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": false,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": false,
+        "leather": true,
+        "mail": true,
+        "plate": true
+      },
+      "_sourceFile": "game/data/classes/class_akkan_bulwark.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Bulwark"
+    },
+    "rune": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "rune",
+      "display_name": "Runesmith",
+      "description": "Akkan rune specialist. Inscribes explosive sigils that detonate on command. Ground-targeted area damage and protective wards for allies.",
+      "role": 3,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 8,
+        "agility": 5,
+        "vitality": 8,
+        "intelligence": 12,
+        "wisdom": 10,
+        "endurance": 8
+      },
+      "stat_growth": {
+        "strength": 2,
+        "agility": 1,
+        "vitality": 2,
+        "intelligence": 2,
+        "wisdom": 1,
+        "endurance": 1
+      },
+      "base_resource": 110,
+      "resource_per_level": 13,
+      "resource_regen_per_second": 4.5,
+      "resource_regen_combat": 2,
+      "base_attack_power": 6,
+      "attack_power_per_level": 2,
+      "base_spell_power": 12,
+      "spell_power_per_level": 3,
+      "starting_skills": [
+        "akkan_rune_strike"
+      ],
+      "skill_tree_unlocks": "{5: [\"akkan_rune_ward\"], 10: [\"akkan_rune_chain\"], 15: [\"akkan_exploding_rune\"], 20: [\"akkan_rune_transfer\"], 25: [\"akkan_rune_tremor\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": false,
+      "can_use_staves": true,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_akkan_rune.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Rune"
+    },
+    "seer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "seer",
+      "display_name": "Seer",
+      "description": "Akkan void bender. Warps space and drains energy from reality itself. Mitigates enemy resistances, slows regeneration, and commands the battlefield through spatial manipulation.",
+      "role": 5,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 8,
+        "agility": 6,
+        "vitality": 10,
+        "intelligence": 12,
+        "wisdom": 10,
+        "endurance": 10
+      },
+      "stat_growth": {
+        "strength": 2,
+        "agility": 1,
+        "vitality": 2,
+        "intelligence": 2,
+        "wisdom": 1,
+        "endurance": 2
+      },
+      "base_resource": 125,
+      "resource_per_level": 14,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 2.2,
+      "base_attack_power": 8,
+      "attack_power_per_level": 2,
+      "base_spell_power": 12,
+      "spell_power_per_level": 3,
+      "starting_skills": [
+        "akkan_void_bolt"
+      ],
+      "skill_tree_unlocks": "{5: [\"akkan_resistance_drain\", \"akkan_regen_mitigate\"], 10: [\"akkan_spatial_push\"], 15: [\"akkan_revive_ally\"], 20: [\"akkan_void_aura\"], 25: [\"akkan_gravity_well\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_akkan_seer.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Seer"
+    },
+    "shaman": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "shaman",
+      "display_name": "Shaman",
+      "description": "Akkan spirit healer. Calls upon ancestral spirits to restore and protect. Totemic auras, hex stuns, and sustained damage for solo play. All classes have long and short range.",
+      "role": 6,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 10,
+        "agility": 6,
+        "vitality": 12,
+        "intelligence": 8,
+        "wisdom": 12,
+        "endurance": 12
+      },
+      "stat_growth": {
+        "strength": 2,
+        "agility": 1,
+        "vitality": 2,
+        "intelligence": 1,
+        "wisdom": 2,
+        "endurance": 2
+      },
+      "base_resource": 130,
+      "resource_per_level": 15,
+      "resource_regen_per_second": 5.5,
+      "resource_regen_combat": 2.8,
+      "base_attack_power": 8,
+      "attack_power_per_level": 2,
+      "base_spell_power": 9,
+      "spell_power_per_level": 3,
+      "starting_skills": [
+        "akkan_spirit_bolt"
+      ],
+      "skill_tree_unlocks": "{5: [\"akkan_earthshield_totem\"], 10: [\"akkan_hex\"], 15: [\"akkan_chain_heal\"], 20: [\"akkan_storm_aura\"], 25: [\"akkan_ancestral_guardian\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_akkan_shaman.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Shaman"
+    },
+    "stalker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "stalker",
+      "display_name": "Stalker",
+      "description": "Akkan stealth damage dealer. Ambush tactics.",
+      "icon_path": "res://ui/icons/classes/akkan_stalker.png",
+      "role": 2,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 14,
+        "agility": 10,
+        "intelligence": 8,
+        "vitality": 10,
+        "endurance": 10,
+        "wisdom": 6
+      },
+      "stat_growth": {
+        "focal_stat_1": "strength",
+        "focal_stat_2": "agility",
+        "strength": 2,
+        "agility": 1,
+        "intelligence": 1,
+        "vitality": 2,
+        "endurance": 1,
+        "wisdom": 1
+      },
+      "base_resource": 100,
+      "resource_per_level": 10,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 1,
+      "base_attack_power": 12,
+      "attack_power_per_level": 2,
+      "base_spell_power": 5,
+      "spell_power_per_level": 1,
+      "starting_skills": [],
+      "skill_tree_unlocks": {},
+      "respec_cost_gold": 500,
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_akkan_stalker.tres",
+      "_scriptClass": "CharacterClass",
+      "name": "Stalker"
+    },
+    "cleric": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "cleric",
+      "display_name": "Cleric",
+      "description": "Human divine healer. Channels sacred light to mend wounds and protect the party. Auras, stuns, and enough damage to clear solo. All classes have long and short range.",
+      "role": 6,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 6,
+        "agility": 5,
+        "vitality": 10,
+        "intelligence": 10,
+        "wisdom": 14,
+        "endurance": 10
+      },
+      "stat_growth": {
+        "strength": 1,
+        "agility": 1,
+        "vitality": 2,
+        "intelligence": 2,
+        "wisdom": 3,
+        "endurance": 2
+      },
+      "base_resource": 140,
+      "resource_per_level": 16,
+      "resource_regen_per_second": 6,
+      "resource_regen_combat": 3,
+      "base_attack_power": 5,
+      "attack_power_per_level": 1,
+      "base_spell_power": 10,
+      "spell_power_per_level": 3,
+      "starting_skills": [
+        "human_holy_light"
+      ],
+      "skill_tree_unlocks": "{5: [\"human_sanctuary_aura\"], 10: [\"human_smite\"], 15: [\"human_blinding_light\"], 20: [\"human_divine_shield\"], 25: [\"human_resurrection\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": false,
+      "can_use_staves": true,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_human_cleric.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Cleric"
+    },
+    "guardian": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "guardian",
+      "display_name": "Guardian",
+      "description": "Human bulwark. Intercepts danger and holds the line. Taunt, shield walls, and counter-attacks protect the party. Aggro management and AoE damage.",
+      "role": 1,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 10,
+        "agility": 5,
+        "vitality": 14,
+        "intelligence": 6,
+        "wisdom": 8,
+        "endurance": 14
+      },
+      "stat_growth": {
+        "strength": 2,
+        "agility": 1,
+        "vitality": 3,
+        "intelligence": 1,
+        "wisdom": 1,
+        "endurance": 3
+      },
+      "base_resource": 60,
+      "resource_per_level": 8,
+      "resource_regen_per_second": 2,
+      "resource_regen_combat": 1,
+      "base_attack_power": 12,
+      "attack_power_per_level": 3,
+      "base_spell_power": 4,
+      "spell_power_per_level": 1,
+      "starting_skills": [
+        "human_shield_toss"
+      ],
+      "skill_tree_unlocks": "{5: [\"human_shield_bash\", \"human_taunt\"], 10: [\"human_shield_wall\"], 15: [\"human_charge\"], 20: [\"human_intervene\"], 25: [\"human_last_stand\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": false,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": false,
+        "leather": true,
+        "mail": true,
+        "plate": true
+      },
+      "_sourceFile": "game/data/classes/class_human_guardian.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Guardian"
+    },
+    "marksman": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "marksman",
+      "display_name": "Marksman",
+      "description": "Human ranged damage dealer. Precise shots from afar.",
+      "icon_path": "res://ui/icons/classes/human_marksman.png",
+      "role": 2,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 14,
+        "agility": 10,
+        "intelligence": 8,
+        "vitality": 10,
+        "endurance": 10,
+        "wisdom": 6
+      },
+      "stat_growth": {
+        "focal_stat_1": "strength",
+        "focal_stat_2": "agility",
+        "strength": 2,
+        "agility": 1,
+        "intelligence": 1,
+        "vitality": 2,
+        "endurance": 1,
+        "wisdom": 1
+      },
+      "base_resource": 100,
+      "resource_per_level": 10,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 1,
+      "base_attack_power": 12,
+      "attack_power_per_level": 2,
+      "base_spell_power": 5,
+      "spell_power_per_level": 1,
+      "starting_skills": [],
+      "skill_tree_unlocks": {},
+      "respec_cost_gold": 500,
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_human_marksman.tres",
+      "_scriptClass": "CharacterClass",
+      "name": "Marksman"
+    },
+    "sorcerer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sorcerer",
+      "display_name": "Sorcerer",
+      "description": "Human magical damage dealer. Arcane devastation.",
+      "icon_path": "res://ui/icons/classes/human_sorcerer.png",
+      "role": 3,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 14,
+        "agility": 10,
+        "intelligence": 8,
+        "vitality": 10,
+        "endurance": 10,
+        "wisdom": 6
+      },
+      "stat_growth": {
+        "focal_stat_1": "intelligence",
+        "focal_stat_2": "wisdom",
+        "strength": 2,
+        "agility": 1,
+        "intelligence": 1,
+        "vitality": 2,
+        "endurance": 1,
+        "wisdom": 1
+      },
+      "base_resource": 100,
+      "resource_per_level": 10,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 1,
+      "base_attack_power": 12,
+      "attack_power_per_level": 2,
+      "base_spell_power": 5,
+      "spell_power_per_level": 1,
+      "starting_skills": [],
+      "skill_tree_unlocks": {},
+      "respec_cost_gold": 500,
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_human_sorcerer.tres",
+      "_scriptClass": "CharacterClass",
+      "name": "Sorcerer"
+    },
+    "temporalist": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "temporalist",
+      "display_name": "Temporalist",
+      "description": "Human time weaver. Manipulates the flow of time itself — slowing enemies, hastening allies, and warping space. Revives, teleports, and controls the pace of battle.",
+      "role": 5,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 5,
+        "agility": 8,
+        "vitality": 8,
+        "intelligence": 14,
+        "wisdom": 12,
+        "endurance": 7
+      },
+      "stat_growth": {
+        "strength": 1,
+        "agility": 1,
+        "vitality": 1,
+        "intelligence": 3,
+        "wisdom": 2,
+        "endurance": 1
+      },
+      "base_resource": 130,
+      "resource_per_level": 15,
+      "resource_regen_per_second": 5.5,
+      "resource_regen_combat": 2.5,
+      "base_attack_power": 5,
+      "attack_power_per_level": 1,
+      "base_spell_power": 14,
+      "spell_power_per_level": 4,
+      "starting_skills": [
+        "human_time_warp"
+      ],
+      "skill_tree_unlocks": "{5: [\"human_slow_field\", \"human_haste_ally\"], 10: [\"human_time_anchor\"], 15: [\"human_revive_ally\"], 20: [\"human_temporal_aura\"], 25: [\"human_time_stop\"]}",
+      "can_use_melee_weapons": false,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": true,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": false,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_human_temporalist.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Temporalist"
+    },
+    "conduit": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "conduit",
+      "display_name": "Conduit",
+      "description": "Synthetic energy conduit. Redistributes power throughout the party. Shields, energy transfer, AoE healing bursts, and enough damage to self-level. All classes have long and short range.",
+      "role": 6,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 5,
+        "agility": 8,
+        "vitality": 10,
+        "intelligence": 14,
+        "wisdom": 10,
+        "endurance": 7
+      },
+      "stat_growth": {
+        "strength": 1,
+        "agility": 2,
+        "vitality": 2,
+        "intelligence": 3,
+        "wisdom": 1,
+        "endurance": 1
+      },
+      "base_resource": 120,
+      "resource_per_level": 14,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 2.5,
+      "base_attack_power": 4,
+      "attack_power_per_level": 1,
+      "base_spell_power": 13,
+      "spell_power_per_level": 4,
+      "starting_skills": [
+        "synthetic_energy_transfer"
+      ],
+      "skill_tree_unlocks": "{5: [\"synthetic_shield_all\"], 10: [\"synthetic_drain_pulse\"], 15: [\"synthetic_overcharge_ally\"], 20: [\"synthetic_barrier_field\"], 25: [\"synthetic_redistribute\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": false,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_synthetic_conduit.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Conduit"
+    },
+    "exploiter": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "exploiter",
+      "display_name": "Exploiter",
+      "description": "Synthetic combat unit. Exploits system vulnerabilities and weaponizes network latency. Surgically efficient — every strike calculated, every movement optimized. Energy-powered exploit techniques.",
+      "role": 2,
+      "resource_type": 1,
+      "base_stats": {
+        "agility": 12,
+        "endurance": 8,
+        "intelligence": 10,
+        "strength": 10,
+        "vitality": 8,
+        "wisdom": 8
+      },
+      "stat_growth": {
+        "focal_stat_1": "strength",
+        "focal_stat_2": "agility",
+        "agility": 2,
+        "endurance": 1,
+        "intelligence": 2,
+        "strength": 2,
+        "vitality": 1,
+        "wisdom": 1
+      },
+      "base_resource": 100,
+      "resource_per_level": 12,
+      "resource_regen_per_second": 6,
+      "resource_regen_combat": 3,
+      "base_attack_power": 10,
+      "attack_power_per_level": 3,
+      "base_spell_power": 5,
+      "spell_power_per_level": 2,
+      "starting_skills": [
+        "synthetic_energy_strike_exploiter",
+        "synthetic_overclock_exploiter"
+      ],
+      "skill_tree_unlocks": "{\n5: [\"synthetic_hack_pulse_exploiter\"],\n10: [\"synthetic_plasma_cutter_exploiter\"],\n15: [\"synthetic_nanite_swarm_exploiter\"],\n20: [\"synthetic_system_crash_exploiter\"]\n}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "model_override": "",
+      "default_weapon_path": "",
+      "class_specific_animation_set": "synthetic_exploiter",
+      "_sourceFile": "game/data/classes/class_synthetic_exploiter.tres",
+      "_scriptClass": "CharacterClass",
+      "name": "Exploiter"
+    },
+    "overclocker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "overclocker",
+      "display_name": "Overclocker",
+      "description": "Synthetic chronomancy unit. Manipulates system clocks and processing cycles. Slows enemy operations, accelerates ally throughput, and teleports team members through network space.",
+      "role": 5,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 6,
+        "agility": 10,
+        "vitality": 8,
+        "intelligence": 14,
+        "wisdom": 6,
+        "endurance": 6
+      },
+      "stat_growth": {
+        "strength": 1,
+        "agility": 2,
+        "vitality": 1,
+        "intelligence": 3,
+        "wisdom": 1,
+        "endurance": 1
+      },
+      "base_resource": 120,
+      "resource_per_level": 14,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 2.5,
+      "base_attack_power": 4,
+      "attack_power_per_level": 1,
+      "base_spell_power": 14,
+      "spell_power_per_level": 4,
+      "starting_skills": [
+        "synthetic_clock_surge"
+      ],
+      "skill_tree_unlocks": "{5: [\"synthetic_tick_slow\", \"synthetic_overclock_ally\"], 10: [\"synthetic_warp_point\"], 15: [\"synthetic_revive_ally\"], 20: [\"synthetic_sync_aura\"], 25: [\"synthetic_full_stall\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": false,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_synthetic_overclocker.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Overclocker"
+    },
+    "psion": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "psion",
+      "display_name": "Psion",
+      "description": "Synthetic magical damage dealer. System-mage hybrid.",
+      "icon_path": "res://ui/icons/classes/synthetic_psion.png",
+      "role": 3,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 14,
+        "agility": 10,
+        "intelligence": 8,
+        "vitality": 10,
+        "endurance": 10,
+        "wisdom": 6
+      },
+      "stat_growth": {
+        "focal_stat_1": "intelligence",
+        "focal_stat_2": "wisdom",
+        "strength": 2,
+        "agility": 1,
+        "intelligence": 1,
+        "vitality": 2,
+        "endurance": 1,
+        "wisdom": 1
+      },
+      "base_resource": 100,
+      "resource_per_level": 10,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 1,
+      "base_attack_power": 12,
+      "attack_power_per_level": 2,
+      "base_spell_power": 5,
+      "spell_power_per_level": 1,
+      "starting_skills": [],
+      "skill_tree_unlocks": {},
+      "respec_cost_gold": 500,
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_synthetic_psion.tres",
+      "_scriptClass": "CharacterClass",
+      "name": "Psion"
+    },
+    "tracker": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "tracker",
+      "display_name": "Tracker",
+      "description": "Synthetic ranged damage dealer. Fires from the shadows.",
+      "icon_path": "res://ui/icons/classes/synthetic_tracker.png",
+      "role": 2,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 14,
+        "agility": 10,
+        "intelligence": 8,
+        "vitality": 10,
+        "endurance": 10,
+        "wisdom": 6
+      },
+      "stat_growth": {
+        "focal_stat_1": "strength",
+        "focal_stat_2": "agility",
+        "strength": 2,
+        "agility": 1,
+        "intelligence": 1,
+        "vitality": 2,
+        "endurance": 1,
+        "wisdom": 1
+      },
+      "base_resource": 100,
+      "resource_per_level": 10,
+      "resource_regen_per_second": 5,
+      "resource_regen_combat": 1,
+      "base_attack_power": 12,
+      "attack_power_per_level": 2,
+      "base_spell_power": 5,
+      "spell_power_per_level": 1,
+      "starting_skills": [],
+      "skill_tree_unlocks": {},
+      "respec_cost_gold": 500,
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": true,
+        "leather": true,
+        "mail": true,
+        "plate": false
+      },
+      "_sourceFile": "game/data/classes/class_synthetic_tracker.tres",
+      "_scriptClass": "CharacterClass",
+      "name": "Tracker"
+    },
+    "warden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "warden",
+      "display_name": "Warden",
+      "description": "Synthetic defensive matrix. Locks down threat vectors and redistributes incoming damage. Agile positioning, deaggro, and counter-exploits. Aggro and protection.",
+      "role": 1,
+      "resource_type": 1,
+      "base_stats": {
+        "strength": 8,
+        "agility": 10,
+        "vitality": 12,
+        "intelligence": 8,
+        "wisdom": 6,
+        "endurance": 10
+      },
+      "stat_growth": {
+        "strength": 2,
+        "agility": 2,
+        "vitality": 2,
+        "intelligence": 2,
+        "wisdom": 1,
+        "endurance": 2
+      },
+      "base_resource": 70,
+      "resource_per_level": 9,
+      "resource_regen_per_second": 2.5,
+      "resource_regen_combat": 1.2,
+      "base_attack_power": 10,
+      "attack_power_per_level": 3,
+      "base_spell_power": 6,
+      "spell_power_per_level": 2,
+      "starting_skills": [
+        "synthetic_threat_matrix"
+      ],
+      "skill_tree_unlocks": "{5: [\"synthetic_system_lockdown\", \"synthetic_warden_taunt\"], 10: [\"synthetic_damage_shunt\"], 15: [\"synthetic_fortify\"], 20: [\"synthetic_deaggro_pulse\"], 25: [\"synthetic_emergency_override\"]}",
+      "can_use_melee_weapons": true,
+      "can_use_ranged_weapons": true,
+      "can_use_staves": false,
+      "can_use_armor": {
+        "cloth": false,
+        "leather": true,
+        "mail": true,
+        "plate": true
+      },
+      "_sourceFile": "game/data/classes/class_synthetic_warden.tres",
+      "_scriptClass": "CharacterClassSchema",
+      "name": "Warden"
     }
   },
   "weapons": {

@@ -657,8 +657,8 @@ it holds the actual game data.
 | State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | DONE |
 | LRU cache | vant `lib/cache.js` | none | `labs/multi-iso/kv/lru_cache.gd` | DONE |
 | Snapshot store | content-hash state tree | none | `labs/multi-iso/db/snapshot_store.gd` | DONE |
-| Manifest SPOF (D031) | this doc В§6.4 | none | `srv/backup/manifest.sh` | TODO |
-| Open seed TTL (D032) | this doc В§6.3, spec В§4.8 | none | `core/services/instance_service.gd` | TODO |
+| Manifest SPOF (D031) | this doc §6.4 | none | `srv/backup/manifest.sh`, `backup.sh`, `restore.sh` | DONE |
+| Open seed TTL (D032) | this doc §6.3, spec §4.8 | none | `game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd` | DONE |
 | Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
 | Frame seed authority (D030) | validation В§2 | none | `core/services/frame_service.gd` | DONE |
 | Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |

@@ -85,7 +85,7 @@ func _setup_ui() -> void:
 	bar.add_theme_constant_override("separation", 8)
 	
 	# Left: Hamburger menu button
-	_menu_button = _create_icon_button("≡", "menu_button", "Open Main Menu (M)")
+	_menu_button = _create_icon_button("=", "menu_button", "Open Main Menu (M)")
 	_menu_button.pressed.connect(_on_menu_button_pressed)
 	_menu_button.focus_mode = Control.FOCUS_ALL
 	_menu_button.accessible_name = "Main Menu"
@@ -109,7 +109,7 @@ func _setup_ui() -> void:
 	bar.add_child(right_spacer)
 	
 	# Right: Settings button
-	_settings_button = _create_icon_button("⚙", "settings_button", "Settings (O)")
+	_settings_button = _create_icon_button("*", "settings_button", "Settings (O)")
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_settings_button.focus_mode = Control.FOCUS_ALL
 	_settings_button.accessible_name = "Settings"
@@ -219,7 +219,7 @@ func _create_avatar_button() -> Button:
 	
 	# Character class icon placeholder
 	var icon_label := Label.new()
-	icon_label.text = "⚔"
+	icon_label.text = "[C]"
 	icon_label.custom_minimum_size = Vector2(32, 32)
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -290,21 +290,21 @@ func _create_expanded_panel() -> void:
 	
 	# Add all panel shortcuts
 	var panels := [
-		{"id": "inventory", "text": "Inventory", "hotkey": "I", "icon": "🎒"},
-		{"id": "character", "text": "Character", "hotkey": "C", "icon": "👤"},
-		{"id": "skills", "text": "Skills", "hotkey": "K", "icon": "✨"},
-		{"id": "guild", "text": "Guild", "hotkey": "G", "icon": "🏰"},
-		{"id": "party", "text": "Party", "hotkey": "P", "icon": "⚔"},
-		{"id": "friends", "text": "Friends", "hotkey": "F", "icon": "👥"},
-		{"id": "quests", "text": "Quests", "hotkey": "Q", "icon": "📜"},
-		{"id": "bank", "text": "Bank/Vault", "hotkey": "B", "icon": "🏦"},
-		{"id": "blacksmith", "text": "Blacksmith", "hotkey": "H", "icon": "🔨"},
-		{"id": "world_map", "text": "World Map", "hotkey": "M", "icon": "🗺"},
-		{"id": "faction", "text": "Faction", "hotkey": "N", "icon": "⚖"},
-		{"id": "achievements", "text": "Achievements", "hotkey": "Y", "icon": "🏆"},
-		{"id": "titles", "text": "Titles", "hotkey": "T", "icon": "🎖"},
-		{"id": "trade", "text": "Trade", "hotkey": "R", "icon": "🤝"},
-		{"id": "transfer", "text": "Transfer", "hotkey": "X", "icon": "🔄"},
+		{"id": "inventory", "text": "Inventory", "hotkey": "I", "icon": "[I]"},
+		{"id": "character", "text": "Character", "hotkey": "C", "icon": "[C]"},
+		{"id": "skills", "text": "Skills", "hotkey": "K", "icon": "[K]"},
+		{"id": "guild", "text": "Guild", "hotkey": "G", "icon": "[G]"},
+		{"id": "party", "text": "Party", "hotkey": "P", "icon": "[P]"},
+		{"id": "friends", "text": "Friends", "hotkey": "F", "icon": "[F]"},
+		{"id": "quests", "text": "Quests", "hotkey": "Q", "icon": "[Q]"},
+		{"id": "bank", "text": "Bank/Vault", "hotkey": "B", "icon": "[B]"},
+		{"id": "blacksmith", "text": "Blacksmith", "hotkey": "H", "icon": "[H]"},
+		{"id": "world_map", "text": "World Map", "hotkey": "M", "icon": "[M]"},
+		{"id": "faction", "text": "Faction", "hotkey": "N", "icon": "[N]"},
+		{"id": "achievements", "text": "Achievements", "hotkey": "Y", "icon": "[Y]"},
+		{"id": "titles", "text": "Titles", "hotkey": "T", "icon": "[T]"},
+		{"id": "trade", "text": "Trade", "hotkey": "R", "icon": "[R]"},
+		{"id": "transfer", "text": "Transfer", "hotkey": "X", "icon": "[X]"},
 	]
 	
 	for panel in panels:
@@ -318,7 +318,7 @@ func _create_expanded_panel() -> void:
 	_menu_items.add_child(sep)
 	
 	# Admin panel (only visible to MOD+)
-	var admin_btn := _create_menu_item("admin", "Admin Panel", "", "🛡", true)
+	var admin_btn := _create_menu_item("admin", "Admin Panel", "", "[A]", true)
 	admin_btn.name = "menu_item_admin_panel"
 	admin_btn.visible = _is_admin_or_mod
 	admin_btn.tooltip_text = "Admin Panel (requires Moderator+)"
@@ -327,7 +327,7 @@ func _create_expanded_panel() -> void:
 	_menu_items.add_child(admin_btn)
 	
 	# Debug panel (only visible to ADMIN+ or dev mode)
-	var debug_btn := _create_menu_item("debug", "Debug Panel", "", "🐛", true)
+	var debug_btn := _create_menu_item("debug", "Debug Panel", "", "[D]", true)
 	debug_btn.name = "menu_item_debug_panel"
 	debug_btn.visible = _is_dev_mode
 	debug_btn.tooltip_text = "Debug Panel (requires Admin/Dev Mode)"
@@ -336,7 +336,7 @@ func _create_expanded_panel() -> void:
 	_menu_items.add_child(debug_btn)
 	
 	# Settings item
-	var settings_btn := _create_menu_item("settings", "Settings", "O", "⚙")
+	var settings_btn := _create_menu_item("settings", "Settings", "O", "[*]")
 	settings_btn.accessible_name = "Settings"
 	settings_btn.accessible_description = "Open settings panel."
 	_menu_items.add_child(settings_btn)
@@ -348,7 +348,7 @@ func _create_expanded_panel() -> void:
 	_menu_items.add_child(sep2)
 	
 	# Close menu item
-	var close_btn := _create_menu_item("close", "Close Menu", "", "✕")
+	var close_btn := _create_menu_item("close", "Close Menu", "", "X")
 	close_btn.accessible_name = "Close Menu"
 	close_btn.accessible_description = "Close the main menu."
 	_menu_items.add_child(close_btn)
@@ -458,7 +458,7 @@ func _on_menu_item_focused(item: Control) -> void:
 func show_expanded() -> void:
 	_is_expanded = true
 	_expanded_panel.visible = true
-	_menu_button.text = "✕"
+	_menu_button.text = "X"
 	_menu_button.tooltip_text = "Close Main Menu (M)"
 	_menu_button.accessible_name = "Close Menu"
 	
@@ -481,7 +481,7 @@ func _focus_first_menu_item() -> void:
 
 func hide_expanded() -> void:
 	_is_expanded = false
-	_menu_button.text = "≡"
+	_menu_button.text = "="
 	_menu_button.tooltip_text = "Open Main Menu (M)"
 	_menu_button.accessible_name = "Main Menu"
 	
@@ -496,7 +496,7 @@ func hide_expanded() -> void:
 func _return_focus_to_menu_button() -> void:
 	_menu_button.grab_focus()
 
-func update_character_info(name: String, level: int, class_icon: String = "⚔") -> void:
+func update_character_info(name: String, level: int, class_icon: String = "[C]") -> void:
 	if _avatar_button:
 		var hbox = _avatar_button.get_child(0)
 		if hbox and hbox.get_child_count() >= 2:

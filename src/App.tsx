@@ -302,7 +302,17 @@ export default function App() {
     try {
       const saved = localStorage.getItem(SAVE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const defaults = createDefaultCharacter();
+        return {
+          ...defaults,
+          ...parsed,
+          activeBuffs: Array.isArray(parsed.activeBuffs) ? parsed.activeBuffs : [],
+          inventory: Array.isArray(parsed.inventory) ? parsed.inventory : defaults.inventory,
+          activeQuests: Array.isArray(parsed.activeQuests) ? parsed.activeQuests : defaults.activeQuests,
+          completedQuests: Array.isArray(parsed.completedQuests) ? parsed.completedQuests : defaults.completedQuests,
+          unlockedAchievements: Array.isArray(parsed.unlockedAchievements) ? parsed.unlockedAchievements : defaults.unlockedAchievements,
+        };
       }
     } catch {
       // Fallback
@@ -363,11 +373,11 @@ export default function App() {
   ]);
 
   // Available Skills based on Class
-  const classSkills = INITIAL_SKILLS[player.classId] || INITIAL_SKILLS['warrior'];
+  const classSkills = (INITIAL_SKILLS && (INITIAL_SKILLS[player.classId] || INITIAL_SKILLS['warrior'])) || [];
 
   // Count Quick Potions
-  const quickPotion = player.inventory.find(
-    (item) => item?.type === 'consumable' && item.healAmount
+  const quickPotion = (player.inventory || []).find(
+    (item) => item?.type === 'consumable' && item?.healAmount
   );
   const potionCount = quickPotion?.quantity || (quickPotion ? 1 : 0);
 

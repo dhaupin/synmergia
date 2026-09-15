@@ -30,6 +30,7 @@ BackendFactory="*res://adapters/backend_factory.gd"
 GameLog="*res://core/autoload/logger.gd"
 ShardParameters="*res://core/services/shard_parameters.gd"
 FrameService="*res://core/services/frame_service.gd"
+OpenSeedRegistry="*res://core/services/open_seed_registry.gd"
 RegisterTypes="*res://core/autoload/type_registry.gd"
 DebugOverlay="*res://ui/components/debug_overlay.gd"
 

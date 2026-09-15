@@ -166,23 +166,24 @@ See [AGENTS.md](./AGENTS.md) for developer conventions and code patterns.
 
 ## Project Status
 
-**Current Phase:** Pre-vertical-slice
+**Current Phase:** Pre-vertical-slice (World Building Phase 1 Complete)
 
 ### Implemented (In Code)
-- Combat math and entity-component system
-- Buff/aura framework with 11 dispel categories
-- Notification pipeline (toast, combat log, admin alerts)
-- UI Islands architecture (19/19 tests passing)
-- Login, account, and character creation flow (21/21 tests)
-- Core social systems (party, guild, friends, trading)
-- Faction and reputation system
-- Anti-cheat and security services
+- **World Building Substrate & Canonical Trees (Phase 1)**: T3 Merkle-Patricia trie, HMAC recursive seed derivation (`SeedChain`), discrete spatial geometry (NSC-9 & icosahedral), and deterministic state trees
+- **Frame Authority & Seed Services**: `FrameService` execution isolation (D030), `ShardParameters` immediate/coalesced storage (D033), and `OpenSeedRegistry` 5-minute reconnect TTL (D032)
+- **Disaster Recovery**: 3-tier `WorldManifest` backup pipeline with SHA-256 integrity verification (D031)
+- **Pluggable Storage Adapters**: Multi-backend persistence layer (`DictStore`, `CacheWrapper`, `MemoryWrapper`, `AdapterRegistry`) across 35+ services
+- **Combat & Entity Systems**: Combat math, entity-component system, buff/aura framework with 11 dispel categories
+- **Notification Pipeline**: Typed `NotifKind` pipeline (toast, combat log, admin alerts)
+- **UI Islands & Web Portal**: 19/19 UI tests passing; COOP/COEP web client packaging and administrative portal
+- **Core Social & Account Systems**: Login, account, and character creation flow (21/21 tests); party, guild, friends, trading, factions
+- **Security**: Anti-cheat, rate limiting, and application firewall
 
-### In Development
-- Full action combat implementation (hybrid tab/aim targeting)
-- World content and procedural generation
-- Browser client optimization
-- Social system integration and testing
+### In Development (Phase 2)
+- Multi-scope Rules Engine (`rules_engine.gd`, `rules_schema.gd`)
+- Canonical Definition Tree (`definition_tree.gd`)
+- Full action combat integration (hybrid tab/aim targeting)
+- World content, procedural cells, and client optimization
 
 ---
 

@@ -7,7 +7,7 @@ const QuestData = preload("res://core/schemas/quest_data.gd")
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
-	return text.replace("[", "［").replace("]", "］")
+	return text.replace("[", "[lb]").replace("]", "[rb]")
 
 ## Tab definitions
 enum Tab { ACTIVE, COMPLETE, AVAILABLE }

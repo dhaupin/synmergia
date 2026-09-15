@@ -34,11 +34,25 @@ func get_value(key: String) -> Variant:
 		return null
 	return _store.fetch(key)
 
+func get(key: String, default: Variant = null) -> Variant:
+	var val = get_value(key)
+	return val if val != null else default
+
 func set_value(key: String, value: Variant, ttl_sec: int = 0) -> void:
 	_ensure_store()
 	if _store == null:
 		return
 	_store.store(key, value, ttl_sec)
+
+func set(key: String, value: Variant, ttl_sec: int = 0) -> void:
+	set_value(key, value, ttl_sec)
+
+func _set(property: StringName, value: Variant) -> bool:
+	set_value(String(property), value)
+	return true
+
+func _get(property: StringName) -> Variant:
+	return get_value(String(property))
 
 func set_nx(key: String, value: Variant, ttl_sec: int = 0) -> bool:
 	_ensure_store()
@@ -52,11 +66,31 @@ func remove(key: String) -> void:
 		return
 	_store.delete(key)
 
+func delete(key: String) -> void:
+	remove(key)
+
+func erase(key: String) -> void:
+	remove(key)
+
 func exists(key: String) -> bool:
 	_ensure_store()
 	if _store == null:
 		return false
 	return _store.exists(key)
+
+func has(key: String) -> bool:
+	return exists(key)
+
+func has_key(key: String) -> bool:
+	return exists(key)
+
+func all_keys() -> Array:
+	_ensure_store()
+	if _store == null:
+		return []
+	if _store.has_method("keys"):
+		return _store.keys()
+	return []
 
 func expire(key: String, ttl_sec: int) -> void:
 	_ensure_store()

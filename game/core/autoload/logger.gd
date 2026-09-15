@@ -4,7 +4,7 @@
 extends Node
 
 func _esc(text: String) -> String:
-	return text.replace('[', '［').replace(']', '］')
+	return text.replace('[', '[lb]').replace(']', '[rb]')
 
 enum Level {
 	DEBUG,

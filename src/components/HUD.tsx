@@ -305,7 +305,7 @@ export const HUD: React.FC<HUDProps> = ({
 
       {/* ================= ACTIVE BUFFS ================= */}
       <div className="flex flex-wrap gap-1.5 max-w-md my-auto">
-        {player.activeBuffs.map((buff) => (
+        {(player.activeBuffs || []).map((buff) => (
           <div
             key={buff.id}
             className="pointer-events-auto bg-slate-900/90 border border-sky-400/60 rounded px-2 py-0.5 flex items-center gap-1.5 text-xs text-sky-200 shadow"
@@ -339,8 +339,8 @@ export const HUD: React.FC<HUDProps> = ({
             id="action-bar"
             className="pointer-events-auto bg-slate-900/95 border border-amber-600/40 rounded-2xl p-2 shadow-2xl backdrop-blur-md flex items-center gap-1.5 sm:gap-2"
           >
-            {skills.map((skill, index) => {
-              const cd = cooldowns[skill.id] || 0;
+            {(skills || []).map((skill, index) => {
+              const cd = (cooldowns && cooldowns[skill.id]) || 0;
               const hasCd = cd > 0;
               const hasResource =
                 player.mp >= skill.manaCost && player.stamina >= skill.staminaCost;
@@ -425,7 +425,7 @@ export const HUD: React.FC<HUDProps> = ({
             >
               <Backpack className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 text-[9px] font-bold px-1 rounded-full">
-                {player.inventory.filter(Boolean).length}
+                {(player.inventory || []).filter(Boolean).length}
               </span>
             </button>
             <button
@@ -435,9 +435,9 @@ export const HUD: React.FC<HUDProps> = ({
               title="Quest Log [L]"
             >
               <ScrollText className="w-5 h-5" />
-              {player.activeQuests.length > 0 && (
+              {(player.activeQuests || []).length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-sky-500 text-white text-[9px] font-bold px-1 rounded-full">
-                  {player.activeQuests.length}
+                  {(player.activeQuests || []).length}
                 </span>
               )}
             </button>

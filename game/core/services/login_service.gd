@@ -195,8 +195,16 @@ func build_seed_receipt(character_id: String) -> Resource:
 	# Derive the 4 seeds using SeedChain
 	var world_seed := SeedChainScript.derive_seed(scope_stack, "/world")
 	var shard_seed := SeedChainScript.derive_seed(scope_stack, "/shard")
-	var instance_seed := SeedChainScript.derive_seed(scope_stack, "/instance")
 	var player_seed := SeedChainScript.derive_seed(scope_stack, "/player/%s" % character_id)
+
+	# Check OpenSeedRegistry for active instance seed within TTL (D032 reconnect window)
+	var instance_seed: PackedByteArray
+	if OpenSeedRegistry:
+		instance_seed = OpenSeedRegistry.lookup(character_id)
+	if instance_seed.is_empty():
+		instance_seed = SeedChainScript.derive_seed(scope_stack, "/instance")
+		if OpenSeedRegistry:
+			OpenSeedRegistry.register(character_id, instance_seed)
 	
 	# Compute manifest hash from world state
 	var manifest_hash := _compute_manifest_hash()

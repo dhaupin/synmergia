@@ -12,7 +12,7 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const _kv_prefix := "quest:player:"
 
 static func _esc(text: String) -> String:
-	return text.replace('[', '［').replace(']', '］')
+	return text.replace('[', '[lb]').replace(']', '[rb]')
 
 ## Singleton
 static var instance: QuestService

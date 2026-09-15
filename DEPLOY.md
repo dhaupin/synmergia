@@ -1,7 +1,7 @@
 # Synmergia — Deployment Guide
 
 > **Status:** v1 — Development/Staging ready. Production guidance marked where applicable.
-> **Last updated:** 2026-09-06
+> **Last updated:** 2026-09-15
 
 ---
 
@@ -656,6 +656,29 @@ Add to crontab:
 # Keep last 7 days
 0 4 * * * find /backups -name "synmergia_*.sql.gz" -mtime +7 -delete
 ```
+
+### WorldManifest Disaster Recovery (3-Tier Seed Storage)
+
+The Synmergia `WorldManifest` contains the authoritative root seeds and world-level configuration. It uses a dedicated 3-tier disaster recovery architecture managed by scripts in `srv/backup/`:
+
+1. **Tier 1 (Operational)**: PostgreSQL `world_manifest` table with read replica.
+2. **Tier 2 (Hot Tier)**: Daily `.json.gz` snapshots with SHA-256 checksums uploaded to S3 at `03:00 UTC`.
+3. **Tier 3 (Cold Tier)**: Snapshots older than 7 days migrated to cold storage / Glacier; 30-day retention purge.
+
+#### Commands
+
+```bash
+# Run manual backup and upload
+./srv/backup/manifest.sh --backup
+
+# Check backup status and audit log
+./srv/backup/manifest.sh --status
+
+# Restore WorldManifest from snapshot (verifies SHA-256 before restoration)
+./srv/backup/manifest.sh --restore --from 2026-09-15
+```
+
+> **Disaster Recovery Note:** Restoring WorldManifest from a snapshot rewinds the world seed-state tree to that date. All player state created prior to that date will be restored to that snapshot's state. See `srv/backup/README.md` for full details.
 
 ---
 

@@ -7,10 +7,9 @@
 > **What this file is NOT:** An operational log, debugging status,
 > or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Last updated 2026-09-07:** Entity autoload removed; collision rules refined; allowlist introduced
-> with full gotcha + cycle + recovery sections. Service and
-> notification docs corrected. See `labs/TASKS.md` for the
-> change log.
+> **Last updated 2026-09-15:** Entity autoload removed; collision rules refined; allowlist introduced
+> with full gotcha + cycle + recovery sections. World Building Phase 1 services added
+> (`FrameService`, `ShardParameters`, `OpenSeedRegistry`). See `labs/TASKS.md` for change logs.
 
 ## READ FIRST
 
@@ -365,8 +364,12 @@ exist.
 
 | Service | Purpose |
 |---------|---------|
-| **Core (autoload) base class** | |
-| `Entity` | Base class for all entities. Autoload + `class_name` (see Autoloads section). Used in `extends Entity`; do not call `Entity.new()`. |
+| **Core base class** | |
+| `Entity` | Base class for all entities (`class_name Entity`, NOT an autoload). Use `extends Entity` and `Entity.new()`. |
+| **World building & frame** | |
+| `FrameService` | Frame execution isolation, seed authority, and T3 state tree management (D030). |
+| `ShardParameters` | Dynamic world/shard parameters with immediate or 5-min coalesced persistence (D033). |
+| `OpenSeedRegistry` | Reconnect window TTL tracking (5-min default) and instance state finalization (D032). |
 | **Storage / persistence** | |
 | `AdapterRegistry` | Pluggable storage adapter registry. See `labs/prd-db.md` for the spec. |
 | `BackendFactory` | Builds persistence + cache adapters from config. Used during boot. |

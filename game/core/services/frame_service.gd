@@ -23,7 +23,7 @@ class FrameEnv:
 	var state_tree: StateTreeScript
 	var entered_at: int
 
-	_func _init(fid: String, fseed: PackedByteArray) -> void:
+	func _init(fid: String, fseed: PackedByteArray) -> void:
 		frame_id = fid
 		frame_seed = fseed
 		seed_tree = T3Script.new()

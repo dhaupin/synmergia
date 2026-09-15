@@ -154,7 +154,7 @@ func _setup_ui() -> void:
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
-	return text.replace("[", "［").replace("]", "］")
+	return text.replace("[", "[lb]").replace("]", "[rb]")
 
 func _create_filter_button(name: String, entry_type: int, color: Color) -> void:
 	var btn := Button.new()

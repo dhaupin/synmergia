@@ -22,6 +22,9 @@ export function ensureBridgesRunning(): Promise<{ pgPort: number; redisPort: num
           },
           stdio: 'inherit',
         });
+        pgProcess.on('error', (err) => {
+          console.warn('[bridge_manager] pgProcess error:', err.message);
+        });
       }
 
       checkHealth(REDIS_PORT, (redisAlive) => {
@@ -34,6 +37,9 @@ export function ensureBridgesRunning(): Promise<{ pgPort: number; redisPort: num
               REDIS_BACKEND: process.env.REDIS_BACKEND || 'inmemory',
             },
             stdio: 'inherit',
+          });
+          redisProcess.on('error', (err) => {
+            console.warn('[bridge_manager] redisProcess error:', err.message);
           });
         }
 
@@ -65,6 +71,9 @@ export async function startBridges(): Promise<void> {
       },
       stdio: 'inherit',
     });
+    pgProcess.on('error', (err) => {
+      console.warn('[bridge_manager] pgProcess error:', err.message);
+    });
   }
 
   // Start redis-bridge if not already running
@@ -78,6 +87,9 @@ export async function startBridges(): Promise<void> {
         REDIS_BACKEND: process.env.REDIS_BACKEND || 'inmemory',
       },
       stdio: 'inherit',
+    });
+    redisProcess.on('error', (err) => {
+      console.warn('[bridge_manager] redisProcess error:', err.message);
     });
   }
 

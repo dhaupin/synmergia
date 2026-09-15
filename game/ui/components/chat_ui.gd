@@ -7,7 +7,7 @@ const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
-	return text.replace('[', '［').replace(']', '］')
+	return text.replace('[', '[lb]').replace(']', '[rb]')
 
 ## Chat history display
 var _chat_history: RichTextLabel

@@ -53,6 +53,11 @@ func sweep_expired() -> int:
 	return removed
 
 
+func keys() -> Array:
+	sweep_expired()
+	return _kv.keys()
+
+
 # --- Basic KV ---
 
 func fetch(key: String) -> Variant:

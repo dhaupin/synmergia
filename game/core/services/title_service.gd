@@ -26,12 +26,12 @@ func _load_title_definitions() -> void:
 	if DataService:
 		if DataService.has_method("load_all_data") and DataService.get_all_titles().is_empty():
 			DataService.load_all_data()
-if DataService.has_method("get_all_titles"):
+		if DataService.has_method("get_all_titles"):
 			var titles: Array = DataService.get_all_titles()
 			for t in titles:
 				var title: TitleData = t
 				_title_defs[title.id] = title
-		 GameLog.info("TitleService: Loaded %d titles from DataService" % _title_defs.size())
+			GameLog.info("TitleService: Loaded %d titles from DataService" % _title_defs.size())
 		else:
 			GameLog.warn("TitleService: DataService missing get_all_titles")
 	else:
