@@ -22,6 +22,7 @@ import {
   INITIAL_SKILLS,
 } from './gameData';
 import { soundEngine } from './soundEngine';
+import { gameWebSocket, type WSMessage } from './services/gameWebSocket';
 
 // Components
 import { GameCanvas } from './components/GameCanvas';
@@ -300,6 +301,84 @@ export default function App() {
     },
     []
   );
+
+  // --- Real-time WebSocket sync (companion mode) ---
+  useEffect(() => {
+    if (portalMode !== 'companion') return;
+
+    let cancelled = false;
+
+    gameWebSocket.onOpen(() => {
+      // Send a placeholder auth frame; real credentials arrive post-login.
+      gameWebSocket.send('auth', { token: 'dev', playerId: player.id });
+    });
+
+    gameWebSocket.on('player_state', (msg: WSMessage) => {
+      const p = msg.payload as {
+        x: number;
+        y: number;
+        hp: number;
+        mp: number;
+        stamina: number;
+        zone: string;
+      };
+      if (cancelled || !p) return;
+      setPlayer((prev) => ({
+        ...prev,
+        x: p.x ?? prev.x,
+        y: p.y ?? prev.y,
+        hp: p.hp ?? prev.hp,
+        mp: p.mp ?? prev.mp,
+        stamina: p.stamina ?? prev.stamina,
+      }));
+      if (p.zone && p.zone !== currentZoneId) {
+        setCurrentZoneId(p.zone as ZoneId);
+      }
+    });
+
+    gameWebSocket.on('entity_update', (msg: WSMessage) => {
+      const payload = msg.payload as { entities?: unknown[] };
+      if (cancelled || !payload?.entities) return;
+      // Server-driven entity sync is not yet wired to the local renderer;
+      // reserved for future authoritative-state bridging.
+    });
+
+    gameWebSocket.on('combat_event', (msg: WSMessage) => {
+      const ev = msg.payload as { type: string; amount?: number; targetId?: string };
+      if (cancelled || !ev) return;
+      if (ev.type === 'damage' && typeof ev.amount === 'number') {
+        addCombatText(String(ev.amount), player.x, player.y, '#ef4444', 'damage');
+      } else if (ev.type === 'heal' && typeof ev.amount === 'number') {
+        addCombatText(`+${ev.amount}`, player.x, player.y, '#22c55e', 'heal');
+      }
+    });
+
+    gameWebSocket.on('chat', (msg: WSMessage) => {
+      const c = msg.payload as { channel?: string; sender?: string; text?: string };
+      if (cancelled || !c?.text) return;
+      addChatMessage(c.text, (c.channel as any) || 'global', c.sender || 'Server');
+    });
+
+    gameWebSocket.on('zone_change', (msg: WSMessage) => {
+      const z = msg.payload as { zoneId?: string; x?: number; y?: number };
+      if (cancelled || !z?.zoneId) return;
+      setCurrentZoneId(z.zoneId as ZoneId);
+      setPlayer((prev) => ({
+        ...prev,
+        x: z.x ?? prev.x,
+        y: z.y ?? prev.y,
+      }));
+    });
+
+    gameWebSocket.connect().catch(() => {
+      // Offline fallback: local-only play continues.
+    });
+
+    return () => {
+      cancelled = true;
+      gameWebSocket.disconnect();
+    };
+  }, [portalMode, player.id, currentZoneId, addChatMessage, addCombatText]);
 
   // --- Award Quest Progress ---
   const trackQuestKill = useCallback(

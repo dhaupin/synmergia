@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Item, PlayerCharacter } from '../types';
-import { SHOP_ITEMS } from '../gameData';
+import { ITEMS_DATA as SHOP_ITEMS } from '../gameData';
 import { Coins, ShoppingCart, DollarSign, Package } from 'lucide-react';
 import { soundEngine } from '../soundEngine';
 
