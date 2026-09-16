@@ -79,7 +79,10 @@ Persistent memory across resets for Synmergia development.
 - [x] **FrameService Fix**: Fixed syntax typo `_func` -> `func` in `FrameEnv._init` [town:core]
 - [x] **QC Gap Analysis & Syntax Verification**: Verified 0 parse/syntax errors across all `.gd` files in `game/` and `labs/` [town:test]
 
-## Recently Completed (2026-09-15) — Phase 2
+## Recently Completed (2026-09-16) — Docs Refresh
+
+- [x] **m3-initial-world-audit.md accuracy fix**: Updated stale `docs/architecture/` references to `labs/archive/docs/architecture/`, fixed `EventBus` → `EventHub`, removed nonexistent `multi_iso_service.gd` reference (consolidated into `frame/` layer), marked state tree/T3 as implemented, updated 7.x status table (✅/⚠️/❌) [town:docs]
+
 
 - [x] **RulesEngine Consolidation**: Refactored QoSService (`matchmaking_qos.gd`), SecurityService (`security_service.gd`), AppFirewall (`app_firewall.gd`), AutoResponseService (`auto_response_service.gd`) to use RulesEngine for all decision logic [town:core]
 - [x] **Frame Extract to Container**: Created `srv/frame/` with Dockerfile, docker-compose.yml, FastAPI bridge server (`frame_server.py`), GDScript FrameClient (`game/core/utils/frame_client.gd`) with circuit breaker and local fallback [town:bridge]
