@@ -1,13 +1,6 @@
 # World-Building Tick: a single tick, end-to-end
 
-> **Status:** Design intent, with Q1-Q4 settled
-> 2026-09-05. The plan commits to a 50ms tick; this
-> doc explores what actually happens inside one
-> and adds the per-player flywheel for security.
-> Not yet folded back into the plan §9 — that's
-> a separate pass when plan §9 is updated. New
-> D-numbers in `world-building-risks.md` will
-> follow.
+> **Status:** DESIGN ONLY — Not implemented. This document describes the settled tick model design (Q1-Q4) for future implementation. Current codebase has NO tick loop, NO flywheel service, NO coordinator integration.
 >
 > **Scope:** The design space for a single server
 > tick. The 6 phases. The flywheel (shard-level
@@ -26,8 +19,19 @@
 > - `m3-initial-world-audit.md` — current state
 >
 > **Date opened:** 2026-09-05
-> **Last updated:** 2026-09-05 (Q1-Q4 settled,
-> per-player flywheel added)
+> **Last updated:** 2026-09-16 (design settled, implementation deferred)
+>
+> **⚠️ IMPLEMENTATION STATUS DISCLAIMER**
+>
+> This document describes the **authoritative design** for the server tick model (Q1-Q4 decisions settled). However, **none of this is implemented** in the current codebase:
+> - No tick loop service exists
+> - No FlywheelService exists (shard-level or per-player)
+> - No coordinator HLC events
+> - No T3.diff() integration into tick
+> - No async persistence from tick
+> - No Markov predictor
+>
+> Current architecture: Single Godot process with all autoloads running frame-by-frame. Tick-aligned batching, state re-rooting, and diff emission are Phase 5+ work.
 
 ---
 
@@ -141,6 +145,8 @@ you can see, tune, and alert on.
 ---
 
 ## 4. The 6-phase tick structure
+
+## Phase 1-6: DESIGN ONLY - Not implemented
 
 | # | Phase | Budget | What it does | Sync/async |
 |---|---|---|---|---|

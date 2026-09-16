@@ -533,35 +533,25 @@ A full description of the tick model is in
 
 ## 11. Process topology
 
-### 11.1 Today (Phase 1)
+### 11.1 Today (Phase 2+)
 
 ```
-в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
+в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
 в”Ӯ docker-compose                               в”Ӯ
 в”Ӯ                                              в”Ӯ
-в”Ӯ  synmergia (Godot, all autoloads, no frame)  в”Ӯ
+в”Ӯ  synmergia (Godot, all autoloads, frame      в”Ӯ
+в”Ӯ  primitives at game/core/frame/)            в”Ӯ
 в”Ӯ  postgres                                    в”Ӯ
 в”Ӯ  redis                                       в”Ӯ
-в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
+в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
 ```
 
-One Godot process. All 37 services autoloaded. The frame is
-aspirational; the game runs in the game container.
+One Godot process. All services autoloaded. Frame primitives
+are consolidated at `game/core/frame/` (math, kv, srv, db).
 
-### 11.2 Phase 2 (frame extract)
+### 11.2 Phase 2: Frame Primitives Consolidation ✅ COMPLETE
 
-```
-в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
-в”Ӯ  synmergia (Godot, services)                 в”Ӯ
-в”Ӯ      вҶ•  HTTP or FFI                          в”Ӯ
-в”Ӯ  frame (T3 + scope + rules engines)          в”Ӯ
-в”Ӯ  postgres                                    в”Ӯ
-в”Ӯ  redis                                       в”Ӯ
-в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
-```
-
-The frame extracts to a separate container. The game calls
-the frame via HTTP bridge (v1) or polyglot FFI (Phase 4+).
+Frame primitives were consolidated directly into `game/core/frame/` (math, kv, srv, db) instead of extracting to a separate `srv/frame/` container. The `FrameClient` in `game/core/utils/frame_client.gd` provides a local fallback RulesEngine/Scope/T3 when the frame HTTP bridge is unavailable. Full HTTP bridge extraction to `srv/frame/` is deferred (see Open Questions).
 
 ### 11.3 Phase 3 (coordinator extract)
 
@@ -621,9 +611,7 @@ srv/
     в””в”Җв”Җ *.sql
 ```
 
-`labs/` routes for providers are temporary —” they go away
-when the frame extracts. `game/data/roots/` is permanent —”
-it holds the actual game data.
+`labs/` routes for providers reference the consolidated frame at `game/core/frame/`. The frame was not extracted to a separate project; it remains embedded in the Godot project. `game/data/roots/` is permanent — it holds the actual game data.
 
 ---
 
@@ -631,22 +619,22 @@ it holds the actual game data.
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
-| T3 substrate | this doc В§3 | none | `game/core/frame/kv/t3.gd` | DONE |
+| T3 substrate | this doc В§3 | `game/core/frame/kv/t3.gd` | `game/core/frame/kv/t3.gd` | DONE |
 | Scope engine | this doc В§4 | `game/core/frame/srv/scope_hierarchy.gd`, `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` | DONE |
-| Rules engine | this doc В§5 | none | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | DONE |
-| Definition tree | this doc В§9 | none | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | DONE |
+| Rules engine | this doc В§5 | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | DONE |
+| Definition tree | this doc В§9 | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | DONE |
 | SeedSchema Resource | this doc В§7, spec В§4 | none | `game/data/roots/seed_schema.gd` | DONE |
 | StateSchema Resource | this doc В§8, spec В§5 | none | `game/data/roots/state_schema.gd` | DONE |
-| Seed tree (canonical) | this doc В§7, spec В§4 | none | `game/core/frame/kv/seed_chain.gd` | DONE |
-| State tree (canonical) | this doc В§8, spec В§5 | none | `game/core/frame/kv/state_tree.gd` | DONE |
-| Recursive seed derivation | spec В§4.2, D025 | none | `seed_chain.gd::derive_seed` | DONE |
+| Seed tree (canonical) | this doc В§7, spec В§4 | `game/core/frame/kv/seed_chain.gd` | `game/core/frame/kv/seed_chain.gd` | DONE |
+| State tree (canonical) | this doc В§8, spec В§5 | `game/core/frame/kv/state_tree.gd` | `game/core/frame/kv/state_tree.gd` | DONE |
+| Recursive seed derivation | spec В§4.2, D025 | `game/core/frame/kv/seed_chain.gd::derive_seed` | `seed_chain.gd::derive_seed` | DONE |
 | Seed tree test | prd-seed-schema В§US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
 | State tree test | prd-state-schema В§US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
-| Seed tree (tests) | prd-seed-schema В§US-005 | none | `game/core/frame/kv/test_seed_chain.gd` | DONE |
-| State tree (tests) | prd-state-schema В§US-005 | none | `game/core/frame/kv/test_state_tree.gd` | DONE |
+| Seed tree (tests) | prd-seed-schema В§US-005 | `game/core/frame/kv/test_seed_chain.gd` | `game/core/frame/kv/test_seed_chain.gd` | DONE |
+| State tree (tests) | prd-state-schema В§US-005 | `game/core/frame/kv/test_state_tree.gd` | `game/core/frame/kv/test_state_tree.gd` | DONE |
 | SeedReceipt Resource | prd-login-seed-chain В§US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
 | SeedReceipt test | prd-login-seed-chain В§US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
-| FrameService | prd-frame-authority В§US-001 | none | `game/core/services/frame_service.gd` | DONE |
+| FrameService | prd-frame-authority В§US-001 | `game/core/services/frame_service.gd` | `game/core/services/frame_service.gd` | DONE |
 | Frame authority test | prd-frame-authority В§US-005 | none | `game/tests/test_frame_authority.gd` | DONE |
 | ShardParameterDefinition | prd-critical-params В§US-001 | none | `game/core/schemas/shard_parameter_definition.gd` | DONE |
 | ShardParameters autoload | prd-critical-params В§US-002 | none | `game/core/services/shard_parameters.gd` | DONE |
@@ -654,8 +642,8 @@ it holds the actual game data.
 | Param .tres samples (4) | prd-critical-params В§US-006 | none | `game/data/roots/world/parameters/` | DONE |
 | Two-orthogonal-axes (D026) | spec В§4.1 | none | `SeedSchema` payload | DONE |
 | State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | DONE |
-| LRU cache | vant `lib/cache.js` | none | `game/core/frame/kv/lru_cache.gd` | DONE |
-| Snapshot store | content-hash state tree | none | `game/core/frame/db/snapshot_store.gd` | DONE |
+| LRU cache | vant `lib/cache.js` | `game/core/frame/kv/lru_cache.gd` | `game/core/frame/kv/lru_cache.gd` | DONE |
+| Snapshot store | content-hash state tree | `game/core/frame/db/snapshot_store.gd` | `game/core/frame/db/snapshot_store.gd` | DONE |
 | Manifest SPOF (D031) | this doc §6.4 | none | `srv/backup/manifest.sh`, `backup.sh`, `restore.sh` | DONE |
 | Open seed TTL (D032) | this doc §6.3, spec §4.8 | none | `game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd` | DONE |
 | Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
@@ -663,9 +651,9 @@ it holds the actual game data.
 | Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
 | Account rollup (D028) | spec В§9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
 | Vant multibrain stack | vant `brain.js:1510-1900` | `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` (port) | DONE |
-| NSC-9 barcode format | vant `geometry/nsc9.js` | none | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
-| Icosahedral projection | vant `geometry/icosahedral.js` | none | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
-| Vant fragmenter | vant `geometry/fragmenter.js` | none | `game/core/frame/geometry/fragmenter.gd` | TODO (Phase 4) |
+| NSC-9 barcode format | vant `geometry/nsc9.js` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
+| Icosahedral projection | vant `geometry/icosahedral.js` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
+| Vant fragmenter | vant `geometry/fragmenter.js` | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | TODO (Phase 4) |
 
 ---
 
@@ -729,14 +717,7 @@ For the user to resolve when the time comes:
    **Status (2026-09-05):** pending. Not in the Phase 1
    PRD queue; deferred to Phase 2 with the rules engine.
 
-5. **Multi-iso FFI.** When the frame extracts to a separate
-   process (Phase 2), is the bridge HTTP or FFI? My read: HTTP
-   for v1, FFI in Phase 4+.
-   **Status (2026-09-05):** RESOLVED. WebSocket v1
-   (matches the existing game server, no new
-   transport). Detailed protocol in Phase 3+. Phase 2
-   is just code structure (frame in same Godot
-   process, but packaged as if it could extract).
+5. **Multi-iso FFI (deferred).** The frame was consolidated to `game/core/frame/` within the Godot project rather than extracted to a separate service. Cross-language FFI (Julia/C++) for hot paths remains a Phase 4+ exploration (see `labs/polyglot-ffi/`).
 
 6. **Vant sync.** As we port vant's patterns, do we push our
    changes back to vant, or fork? My read: contribute back,
@@ -831,7 +812,7 @@ This doc is part of the spec. Updates to the doc require a
 spec review (per AGENTS.md). Doc-state is tracked at the
 bottom of each related doc.
 
-Last updated: 2026-09-05
+Last updated: 2026-09-16
 Sections: 17
 Decisions referenced: D025-D033 (D029-D033 are new in this doc)
 Open questions: 7
@@ -1160,7 +1141,7 @@ This doc is part of the spec. Updates to the doc require a
 spec review (per AGENTS.md). Doc-state is tracked at the
 bottom of each related doc.
 
-Last updated: 2026-09-05
+Last updated: 2026-09-16
 Sections: 20
 Decisions referenced: D025-D033 (D029-D033 are new in this doc)
 Open questions: 7

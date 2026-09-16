@@ -1,6 +1,6 @@
 # World-Building Plan
 
-> **Status:** Planning. Companion reference: `m3-initial-world-audit.md`
+> **Status:** Phase 2 - Frame primitives consolidated, single-process architecture. Companion reference: `m3-initial-world-audit.md`
 > (the "where we are today" snapshot) and `world-building-research.md`
 > (research companion for §21's experimental angles) and
 > `world-building-arch.md` (the systems architecture — frame
@@ -8,6 +8,8 @@
 > This doc is the "where we're going" — server, sync, net code,
 > map, procedural generation, zone, world, and the geometric-
 > addressing layer that ties them together.
+>
+> **Last updated:** 2026-09-16
 >
 > **Scope:** Design the full world + network + persistence stack for
 > Synmergia such that (a) the same server and client agree on
@@ -42,7 +44,7 @@
 10. [Transport: WebSocket for browser + agent compatibility](#10-transport-websocket-for-browser--agent-compatibility)
 11. [Sync protocol: diffs, prediction, AOI, lag compensation](#11-sync-protocol-diffs-prediction-aoi-lag-compensation)
 12. [Persistence: Postgres + Redis + optional geo-cache](#12-persistence-postgres--redis--optional-geo-cache)
-13. [Multi-iso orchestrator: which axes, when, how](#13-multi-iso-orchestrator-which-axes-when-how)
+13. [Frame services: axes, projection, when & how](#13-frame-services-axes-projection-when--how)
 14. [LOD pyramid & predictive prefetch](#14-lod-pyramid--predictive-prefetch)
 15. [Player-placed content (ankhs, halls, houses)](#15-player-placed-content-ankhs-halls-houses)
 16. [Cross-shard sync](#16-cross-shard-sync)
@@ -200,41 +202,21 @@ Compared to PRD §10.3, two notable changes:
 
 ### 2.2 Process topology
 
+**Current (Phase 2): Single Godot process**
 ```
-        ┌──────────────┐
-        │ Coordinator  │ (1 process per cluster, HA-pair)
-        │ (Postgres)   │
-        └──────────────┴
-               │
-   ┌───────────┴───────────┐
-   │           │           │
-┌──┴──┐    ┌───┴──┐    ┌───┴──┐
-│Sh.1 │    │Sh. 2 │    │Sh. 3 │    (1+ per cluster, scale horizontal)
-│     │    │      │    │      │
-│State│    │State │    │State │
-│Tree │    │Tree  │    │Tree  │
-│+Geo │    │+Geo  │    │+Geo  │
-└─────┴    └──────┴    └──────┴
+┌─────────────────────────────────────────────────────────────┐
+│ synmergia (Godot 4.7.2)                                     │
+│  ├── All 50+ autoloads (GameManager, NetworkManager,       │
+│  │    EntityService, FrameService, ShardParameters,         │
+│  │    OpenSeedRegistry, RulesEngine, etc.)                 │
+│  ├── Frame primitives (game/core/frame/math, kv, srv, db)  │
+│  └── Adapter layer (game/adapters/)                        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-- **Coordinator**: 1 process (or HA pair). Holds the master
-  record for every character, guild, faction, world event.
-  Single source of truth for cross-shard entities. Replicates
-  its own snapshot to a small Postgres. Players log in here
-  first; coordinator assigns them to a shard (least-loaded
-  matching their region preference) and hands them a session
-  token + WebSocket endpoint.
-- **Shard servers**: N processes, one per world shard.
-  Each holds a partition of the spatial state tree
-  (player entities, mob entities, dynamic content in the
-  shard's spatial region). Each runs its own tick loop,
-  its own LOD pyramid, its own Redis cache. Talks to
-  coordinator for cross-shard lookups.
-- **Browser clients** connect directly to a shard's
-  WebSocket endpoint after coordinator-mediated login.
-- **Native clients** (desktop, dedicated tooling) can use
-  the same WebSocket endpoint, plus optionally a low-latency
-  ENet lane for dedicated-server admin tooling.
+> **Note:** Multi-process architecture (Coordinator + Shard servers) is a future Phase 5+ goal. See `world-building-arch.md` §11 for deferred extraction.
+
+### 2.2.1 Future topology (Phase 5+)
 
 ### 2.3 What lives where
 
@@ -242,11 +224,11 @@ Compared to PRD §10.3, two notable changes:
 |---|---|
 | Godot client (game UI, prediction, address-space render) | `game/` |
 | Godot server (tick loop, state tree, LOD) | `game/` (server mode), separate executable target |
-| Julia orchestrator (multi-axis intersection math) | `game/core/frame/srv/` (existing) |
-| State tree primitives | `game/core/frame/kv/` (new file slot: `state_tree.gd`) |
+| Frame services (FrameService, ShardParameters, OpenSeedRegistry, RulesEngine) | `game/core/frame/srv/` |
+| State tree primitives | `game/core/frame/kv/` |
 | Geometric addressing | `game/core/frame/math/` + thin Godot wrapper |
 | Postgres schema + migrations | `game/core/frame/db/` |
-| Coordinator service | New project (`srv/coordinator/`), or part of `srv/docker/` |
+| Coordinator service | NOT IMPLEMENTED (deferred to Phase 5+) |
 
 The "labs graduates into game or extracts to a new project"
 rule still holds. The coordinator is the most likely
@@ -994,7 +976,7 @@ bytes.
 
 This is the **redis-like layer** in front of
 Postgres. It's the substrate for everything else
-(sync, multi-iso, LOD, procedural generation).
+(sync, frame services, LOD, procedural generation).
 
 ### 5.2 Tree shape
 
@@ -1282,7 +1264,7 @@ Three reasons this matters for the Godot client/server:
 Every entity in the state tree can have an NSC-9 code that
 encodes its position across multiple "axes". Each axis is
 a reservation of digit space. From the existing
-multi-iso design:
+frame primitives design:
 
 ```
 NSC-9: 9-AAA-BBB-CCCCCC
@@ -3720,11 +3702,11 @@ Deferred to Phase 4+. Phase 1-3 uses last-write-wins.
 
 ---
 
-## 13. Multi-iso orchestrator: which axes, when, how
+## 13. Frame services: axes, projection, when & how
 
 ### 13.1 The axes we project for Synmergia
 
-From the existing multi-iso design (axis reservations
+From the existing frame primitives design (axis reservations
 001-099 spatial, 100-199 factional, etc), we pick the
 following axes for this game:
 
@@ -3781,7 +3763,7 @@ updated atomically at the end.
 
 ### 13.4 Materialized intersection strategy
 
-Following `grail-path.md` and `multi-iso-lod-prediction.md`:
+Following `grail-path.md` and `frame-lod-prediction.md`:
 
 - **Hot combos**: LRU cache (1000 entries) in Redis.
   Updated eagerly on projection changes.
@@ -4346,7 +4328,7 @@ and costs a lot.
 
 ### 17.3 Tier 2 (Julia) — what goes here
 
-- The multi-iso orchestrator (already Julia; existing).
+- Frame services (RulesEngine, ScopeEngine, Markov, LOD, Axis) - already in `game/core/frame/srv/`
 - Materialized intersection cache management.
 - Spatial queries on the geometric layer.
 - Procedural noise functions (heightmap, biome).
@@ -4944,7 +4926,7 @@ here with the same treatment.
 - **Shard** — A horizontal scaling unit of the world. One
   process. One spatial partition.
 - **State tree** — The content-hash persistent tree that
-  holds all game state. The substrate for sync, multi-iso,
+  holds all game state. The substrate for sync, frame services,
   LOD, generation.
 - **Tick** — One 50ms cycle of the server. The only place
   where authoritative state changes.

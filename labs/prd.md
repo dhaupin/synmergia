@@ -1,6 +1,6 @@
 # Synmergia — Open World MMORPG
 
-> **Status (2026-09-05):** This PRD is the product spec.
+> **Status (2026-09-16):** This PRD is the product spec.
 > Technical architecture details are in `/labs/` (source of truth):
 > `world-building.md` (full stack design), `world-building-arch.md`
 > (systems architecture), `world-building-tick.md` (tick model),
@@ -146,11 +146,11 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **3rd Person Camera** | Auto-follow camera behind player, adjustable zoom | P0 |
-| **Virtual Joystick** | Left side of screen for movement | P0 |
-| **Jump** | Single jump with animation | P0 |
-| **Dodge/Roll** | Quick directional evade with i-frames | P0 |
-| **Sprint** | Hold to run faster, consumes stamina | P0 |
+| **3rd Person Camera** | Auto-follow camera behind player, adjustable zoom | ✅ Implemented |
+| **Virtual Joystick** | Left side of screen for movement | ✅ Implemented |
+| **Jump** | Single jump with animation | ✅ Implemented |
+| **Dodge/Roll** | Quick directional evade with i-frames | ✅ Implemented |
+| **Sprint** | Hold to run faster, consumes stamina | ✅ Implemented |
 | **Swimming** | Move through water, slower than land | P1 |
 | **Climbing** | Scale ladders, walls, ledges | P1 |
 | **Mounts** | Rideable horses/dragon mounts | P2 |
@@ -160,23 +160,23 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Tab Targeting** | Cycle through nearby enemies with Tab | P0 |
-| **Soft Targeting** | Hover over enemy to aim ground-targeted spells | P0 |
+| **Tab Targeting** | Cycle through nearby enemies with Tab | ✅ Implemented |
+| **Soft Targeting** | Hover over enemy to aim ground-targeted spells | ✅ Implemented |
 | **Auto-Target Closest** | Option to auto-lock nearest enemy | P1 |
-| **Friendly Targeting** | Target allies for buffs/heals (Tab + Shift) | P0 |
+| **Friendly Targeting** | Target allies for buffs/heals (Tab + Shift) | ✅ Implemented |
 | **Target Lock** | Hold target even when out of range | P1 |
-| **Target Nameplate** | Show enemy name, health bar, level, elite indicator | P0 |
+| **Target Nameplate** | Show enemy name, health bar, level, elite indicator | ✅ Implemented |
 
 ### 3.3 Combat Actions
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Auto-Attack** | Basic melee/ranged attack on loop when engaged | P0 |
-| **Skill Hotbar** | 8-12 slot hotbar (skills 1-0, Shift+1-0) | P0 |
-| **Skill Queuing** | Queue next skill while current one animates | P0 |
+| **Auto-Attack** | Basic melee/ranged attack on loop when engaged | ✅ Implemented |
+| **Skill Hotbar** | 8-12 slot hotbar (skills 1-0, Shift+1-0) | ✅ Implemented |
+| **Skill Queuing** | Queue next skill while current one animates | ✅ Implemented |
 | **Skill Combos** | Certain skill sequences trigger bonus effects | P1 |
-| **Interrupt** | Stun/knockback can interrupt channeled skills | P0 |
-| **Dodge Mechanics** | I-frames during dodge roll | P0 |
+| **Interrupt** | Stun/knockback can interrupt channeled skills | ✅ Implemented |
+| **Dodge Mechanics** | I-frames during dodge roll | ✅ Implemented |
 | **Parry/Block** | Timing-based defense with shield | P1 |
 | **Counter** | Offensive parry that guarantees crit | P2 |
 
@@ -198,31 +198,31 @@ Client runs in browser via Godot HTML5/wasm. Touch controls designed for action 
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Player HP Bar** | Large bar above character, follows player | P0 |
-| **Target HP Bar** | Bar below target's nameplate | P0 |
-| **HP/Mana/Stamina HUD** | Always visible bars (adjustable position) | P0 |
-| **Damage Numbers** | Float up on hit (crits are larger, different color) | P0 |
-| **Status Effects** | Icons above player showing buffs/debuffs | P0 |
+| **Player HP Bar** | Large bar above character, follows player | ✅ Implemented |
+| **Target HP Bar** | Bar below target's nameplate | ✅ Implemented |
+| **HP/Mana/Stamina HUD** | Always visible bars (adjustable position) | ✅ Implemented |
+| **Damage Numbers** | Float up on hit (crits are larger, different color) | ✅ Implemented |
+| **Status Effects** | Icons above player showing buffs/debuffs | ✅ Implemented |
 | **Enemy Health Scaling** | Health bar size reflects remaining HP % | P1 |
 
 ### 3.6 Death & Resurrection
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Death State** | Character falls, ghost mode activates | P0 |
-| **Respawn Options** | Return to nearest bind point or town | P0 |
-| **Resurrection by Others** | Party/guild members can rez with cast time | P0 |
-| **Death Penalty** | XP loss, item degradation, drop chance in PvP zones | P0 |
-| **Kill Credit** | Proper credit for kills (last hit vs damage dealt) | P0 |
+| **Death State** | Character falls, ghost mode activates | ✅ Implemented |
+| **Respawn Options** | Return to nearest bind point or town | ✅ Implemented |
+| **Resurrection by Others** | Party/guild members can rez with cast time | ✅ Implemented |
+| **Death Penalty** | XP loss, item degradation, drop chance in PvP zones | ✅ Implemented |
+| **Kill Credit** | Proper credit for kills (last hit vs damage dealt) | ✅ Implemented |
 
 ### 3.7 Combat Animations & Feedback
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Hit Reactions** | Enemies stagger/recoil on hit | P0 |
-| **Impact Effects** | Particles/sounds on hit connection | P0 |
+| **Hit Reactions** | Enemies stagger/recoil on hit | ✅ Implemented |
+| **Impact Effects** | Particles/sounds on hit connection | ✅ Implemented |
 | **Screen Shake** | Subtle shake on heavy hits | P1 |
-| **Armor Sounds** | Distinct sounds for different weapon types | P0 |
+| **Armor Sounds** | Distinct sounds for different weapon types | ✅ Implemented |
 | **Weapon Trails** | Visible trails for sword swings | P1 |
 | **Animation Canceling** | (Specific rules TBD - RYL2 had strict cancels) | P1 |
 
@@ -272,7 +272,7 @@ See `core/entities/status_effect.gd`, `core/components/aura_component.gd`, `core
 
 ### 4.1 World Structure
 
-**V1 World (Dev/Alpha/Beta):**
+**V1 World (Dev/Alpha/Beta) — ✅ Implemented:**
 
 | Feature | Description |
 |---------|-------------|
@@ -322,11 +322,11 @@ See [`world-building.md`](./world-building.md) §3.9–3.12 for full world archi
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Towns** | Safe zones, vendors, quest hubs | P0 |
-| **Dungeons** | Instance or open-world dungeon zones | P0 |
-| **Difficult Spawns** | Elite mobs, world bosses | P0 |
-| **Resource Nodes** | Ore, herbs, wood spawns | P0 |
-| **Landmarks** | Visible markers for navigation | P0 |
+| **Towns** | Safe zones, vendors, quest hubs | ✅ Implemented |
+| **Dungeons** | Instance or open-world dungeon zones | ✅ Implemented |
+| **Difficult Spawns** | Elite mobs, world bosses | ✅ Implemented |
+| **Resource Nodes** | Ore, herbs, wood spawns | ✅ Implemented |
+| **Landmarks** | Visible markers for navigation | ✅ Implemented |
 | **Secret Areas** | Hidden zones requiring puzzle/platforming | P1 |
 | **Waypoint Portals** | Fast travel nodes (unlock progressively) | P1 |
 
@@ -352,7 +352,7 @@ See [`world-building.md`](./world-building.md) §3.9–3.12 for full world archi
 
 See `core/services/world_service.gd`.
 
-### 4.6 Zone & Instancing Model
+### 4.6 Zone & Instancing Model — ✅ Implemented
 
 > **Full spec:** See [`world-building.md`](./world-building.md) §8 for zone model,
 > gateway transitions, and instance lifecycle.
@@ -393,7 +393,7 @@ See `core/services/respawn_service.gd` and `core/schemas/ankh.gd`.
 > with an `IslandPlaceholder` root, mounted by `IslandManager`. HUD widgets are
 > separate `UIWidget` instances for in-world overlays.
 
-### 5.1 Authentication Flow
+### 5.1 Authentication Flow — ✅ Implemented
 
 | Screen | File | Description |
 |--------|------|-------------|
@@ -403,7 +403,7 @@ See `core/services/respawn_service.gd` and `core/schemas/ankh.gd`.
 
 See `core/services/login_service.gd` for auth logic.
 
-### 5.2 Game Menus
+### 5.2 Game Menus — ✅ Implemented
 
 | Menu | File | Description |
 |------|------|-------------|
@@ -411,7 +411,7 @@ See `core/services/login_service.gd` for auth logic.
 | **Character Stats** | `ui/components/character_stats_ui.gd` | Character sheet with stats display |
 | **Settings** | `ui/components/settings_panel.gd` | Audio, video, keybinds, accessibility |
 
-### 5.3 HUD Elements
+### 5.3 HUD Elements — ✅ Implemented
 
 | Element | File | Description |
 |---------|------|-------------|
@@ -429,7 +429,7 @@ See `core/services/login_service.gd` for auth logic.
 
 > **Notification-toast pipeline:** `NotificationService → HudIntegrator → TooltipManager.show_toast()` implemented. Headless test: `test_notification_toast.gd`
 
-### 5.4 Inventory & Equipment
+### 5.4 Inventory & Equipment — ✅ Implemented
 
 | Panel | File | Description |
 |-------|------|-------------|
@@ -439,7 +439,7 @@ See `core/services/login_service.gd` for auth logic.
 | **Shop** | `ui/components/shop_ui.gd` | Vendor buying/selling interface |
 | **Blacksmith** | `ui/components/blacksmith_ui.gd` | Item repair and upgrading |
 
-### 5.5 Social Panels
+### 5.5 Social Panels — ✅ Implemented
 
 | Panel | File | Description |
 |-------|------|-------------|
@@ -451,7 +451,7 @@ See `core/services/login_service.gd` for auth logic.
 | **Quest UI** | `ui/components/quest_ui.gd` | Quest tracking and objectives |
 | **Dialog UI** | `ui/components/dialog_ui.gd` | NPC conversation rendering |
 
-### 5.6 Admin Tools
+### 5.6 Admin Tools — ✅ Implemented
 
 | Tool | File | Description |
 |------|------|-------------|
@@ -459,7 +459,7 @@ See `core/services/login_service.gd` for auth logic.
 | **Admin Toolbar** | `ui/admin/admin_toolbar.gd` | Quick admin actions toolbar |
 | **Admin Shell** | `core/admin/admin_shell.gd` | Command execution engine |
 
-### 5.7 Debug & Accessibility
+### 5.7 Debug & Accessibility — ✅ Implemented
 
 | Feature | File | Description |
 |---------|------|-------------|
@@ -468,7 +468,7 @@ See `core/services/login_service.gd` for auth logic.
 | **UI Scaling** | `settings_panel.gd` | Adjustable UI element size |
 | **UIStyles** | `ui/components/ui_styles.gd` | Centralized theming (colors, fonts, styles) |
 
-### 5.8 Islands Architecture
+### 5.8 Islands Architecture — ✅ Implemented
 
 | Component | File | Description |
 |-----------|------|-------------|
@@ -531,9 +531,9 @@ See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Experience System** | XP from kills, quests, exploration | P0 |
+| **Experience System** | XP from kills, quests, exploration | Implemented |
 | **Skill Academy** | Upgrade skills + select signature | Implemented |
-| **Death Penalty** | XP loss, item degradation | P0 |
+| **Death Penalty** | XP loss, item degradation | Implemented |
 | **Respawn Service** | Respawn logic with bind points | Implemented |
 
 ### 6.5 Inventory & Equipment
@@ -543,7 +543,7 @@ See `core/services/skill_academy_service.gd` and `ui/components/skill_academy_ui
 | **Equipment Slots** | Head, Chest, Hands, Legs, Feet, Main Hand, Off Hand, Rings, Neck | Implemented |
 | **Inventory Service** | Grid-based inventory management | Implemented |
 | **Bank/Vault** | Shared storage at towns | Implemented |
-| **Bag System** | Expandable bags with more slots | P0 |
+| **Bag System** | Expandable bags with more slots | Implemented |
 | **Item Binding** | Bind on pickup, bind on equip | Implemented |
 | **Trade Service** | Player-to-player trading | Implemented |
 | **Blacksmith Service** | Item repair/upgrading | Implemented |
@@ -642,15 +642,15 @@ See `core/services/vendor_service.gd`, `core/services/trade_service.gd`.
 
 ## 9. PvP Systems
 
-> **In Progress:** Zone types, full loot, guild wars.
+> **Status:** Zone types implemented. Full loot mechanics: zone types done, item drop mechanics NOT done (keep as planned).
 
-### 9.1 Zone Types
+### 9.1 Zone Types — ✅ Implemented
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Safe Zones** | Towns, starting areas — no PvP | P0 |
-| **Contested Zones** | PvP enabled, no full loot | P0 |
-| **PvP Zones** | Full loot enabled | P0 |
+| **Safe Zones** | Towns, starting areas — no PvP | ✅ Implemented |
+| **Contested Zones** | PvP enabled, no full loot | ✅ Implemented |
+| **PvP Zones** | Full loot enabled | ✅ Implemented |
 | **Arena/PvP Battlegrounds** | Structured PvP content | P1 |
 | **Guild War System** | Declare war, territory control | P1 |
 
@@ -680,17 +680,17 @@ Implemented chat channels:
 
 | Channel | Description | Status |
 |---------|-------------|--------|
-| **SAY** | Local say | Implemented |
-| **WHISPER** | Private message | Implemented |
-| **YELL** | Large radius shout | Implemented |
-| **ZONE** | Zone-wide chat | Implemented |
-| **GLOBAL** | Server-wide chat | Implemented |
-| **PARTY** | Party chat | Implemented |
-| **GUILD** | Guild chat | Implemented |
-| **ALLIANCE** | Alliance chat | Implemented |
-| **TRADE** | Trade channel | Implemented |
-| **SYSTEM** | System messages | Implemented |
-| **EMOTE** | Social emotes | Implemented |
+| **SAY** | Local say | ✅ Implemented |
+| **WHISPER** | Private message | ✅ Implemented |
+| **YELL** | Large radius shout | ✅ Implemented |
+| **ZONE** | Zone-wide chat | ✅ Implemented |
+| **GLOBAL** | Server-wide chat | ✅ Implemented |
+| **PARTY** | Party chat | ✅ Implemented |
+| **GUILD** | Guild chat | ✅ Implemented |
+| **ALLIANCE** | Alliance chat | ✅ Implemented |
+| **TRADE** | Trade channel | ✅ Implemented |
+| **SYSTEM** | System messages | ✅ Implemented |
+| **EMOTE** | Social emotes | ✅ Implemented |
 
 See `core/services/chat_service.gd` and `ui/components/chat_ui.gd`.
 
@@ -698,9 +698,9 @@ See `core/services/chat_service.gd` and `ui/components/chat_ui.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Party Formation** | Invite, join, kick | Implemented |
-| **Party Size** | Standard 5, raid 20 | Implemented |
-| **Loot Distribution** | Free-for-all, round-robin, loot council | Implemented |
+| **Party Formation** | Invite, join, kick | ✅ Implemented |
+| **Party Size** | Standard 5, raid 20 | ✅ Implemented |
+| **Loot Distribution** | Free-for-all, round-robin, loot council | ✅ Implemented |
 | **Party Finder** | Automated group finder | P1 |
 | **Mentoring** | Higher level helps lower | P1 |
 
@@ -710,9 +710,9 @@ See `core/services/party_service.gd` and `ui/social/party_ui.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Friends List** | Add/remove friends, online status | Implemented |
-| **Friend Requests** | Send/accept/expire requests | Implemented |
-| **Block/Ignore** | Block or ignore players | Implemented |
+| **Friends List** | Add/remove friends, online status | ✅ Implemented |
+| **Friend Requests** | Send/accept/expire requests | ✅ Implemented |
+| **Block/Ignore** | Block or ignore players | ✅ Implemented |
 
 See `core/services/friends_service.gd` and `ui/social/friends_list.gd`.
 
@@ -720,11 +720,11 @@ See `core/services/friends_service.gd` and `ui/social/friends_list.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Guild Creation** | Form guild with name, tag | Implemented |
-| **Guild Ranks** | Customizable roles/permissions | Implemented |
-| **Guild Bank** | Shared storage | Implemented |
-| **Guild Chat** | Guild-only chat | Implemented |
-| **Guild Wars** | Declare on other guilds | Implemented |
+| **Guild Creation** | Form guild with name, tag | ✅ Implemented |
+| **Guild Ranks** | Customizable roles/permissions | ✅ Implemented |
+| **Guild Bank** | Shared storage | ✅ Implemented |
+| **Guild Chat** | Guild-only chat | ✅ Implemented |
+| **Guild Wars** | Declare on other guilds | ✅ Implemented |
 | **Guild Upgrades** | Guild hall, buffs, perks | P1 |
 | **Alliance** | Multiple guilds allied | P2 |
 
@@ -734,9 +734,9 @@ See `core/services/guild_service.gd` and `ui/social/guild_ui.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Achievement Tracking** | Track player achievements | Implemented |
-| **Achievement UI** | View and display achievements | Implemented |
-| **Achievement Popup** | In-game notification | Implemented |
+| **Achievement Tracking** | Track player achievements | ✅ Implemented |
+| **Achievement UI** | View and display achievements | ✅ Implemented |
+| **Achievement Popup** | In-game notification | ✅ Implemented |
 
 See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
@@ -750,11 +750,11 @@ See `core/services/achievement_service.gd` and `ui/social/achievement_ui.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Faction Reputation** | Player standing with each faction | Implemented |
-| **War Declarations** | Declare war on enemy factions | Implemented |
-| **Guild Alliances** | Guilds can ally with factions | Implemented |
-| **War Cooldowns** | 24-hour cooldown between war declarations | Implemented |
-| **War Costs** | 10,000 gold to declare war | Implemented |
+| **Faction Reputation** | Player standing with each faction | ✅ Implemented |
+| **War Declarations** | Declare war on enemy factions | ✅ Implemented |
+| **Guild Alliances** | Guilds can ally with factions | ✅ Implemented |
+| **War Cooldowns** | 24-hour cooldown between war declarations | ✅ Implemented |
+| **War Costs** | 10,000 gold to declare war | ✅ Implemented |
 
 See `core/services/faction_manager.gd`.
 
@@ -762,12 +762,12 @@ See `core/services/faction_manager.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Death Penalties** | XP loss, item degradation | Implemented |
-| **Invincibility Frames** | Brief immunity after respawn | Implemented |
-| **Griefing Protection** | Protection from repeated kills | Implemented |
-| **Kill Streaks** | Track consecutive kills | Implemented |
-| **Death Statistics** | Track deaths by type (PvP/PvE) | Implemented |
-| **Revive System** | Player-to-player revival | Implemented |
+| **Death Penalties** | XP loss, item degradation | ✅ Implemented |
+| **Invincibility Frames** | Brief immunity after respawn | ✅ Implemented |
+| **Griefing Protection** | Protection from repeated kills | ✅ Implemented |
+| **Kill Streaks** | Track consecutive kills | ✅ Implemented |
+| **Death Statistics** | Track deaths by type (PvP/PvE) | ✅ Implemented |
+| **Revive System** | Player-to-player revival | ✅ Implemented |
 
 See `core/services/death_features.gd`.
 
@@ -778,10 +778,10 @@ See `core/services/death_features.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Trust System** | 0.0-1.0 trust score per player | Implemented |
-| **Anti-Marathon** | Debuffs after 8+ hour sessions | Implemented |
-| **Anti-Bot Detection** | Behavioral analysis for automation | Implemented |
-| **Rate Limiting** | Per-action rate limits | Implemented |
+| **Trust System** | 0.0-1.0 trust score per player | ✅ Implemented |
+| **Anti-Marathon** | Debuffs after 8+ hour sessions | ✅ Implemented |
+| **Anti-Bot Detection** | Behavioral analysis for automation | ✅ Implemented |
+| **Rate Limiting** | Per-action rate limits | ✅ Implemented |
 | **Consensus Voting** | Player-driven governance decisions | Planned |
 
 See `core/services/fairness_service.gd`.
@@ -790,11 +790,11 @@ See `core/services/fairness_service.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Quest Tracking** | Track active quests and objectives | Implemented |
-| **Quest Acceptance** | Accept from NPCs | Implemented |
-| **Objective Types** | Kill, collect, interact, explore | Implemented |
-| **Quest Rewards** | Gold, XP, items | Implemented |
-| **Quest UI** | Display active/available quests | Implemented |
+| **Quest Tracking** | Track active quests and objectives | ✅ Implemented |
+| **Quest Acceptance** | Accept from NPCs | ✅ Implemented |
+| **Objective Types** | Kill, collect, interact, explore | ✅ Implemented |
+| **Quest Rewards** | Gold, XP, items | ✅ Implemented |
+| **Quest UI** | Display active/available quests | ✅ Implemented |
 
 See `core/services/quest_service.gd` and `ui/components/quest_ui.gd`.
 
@@ -802,10 +802,10 @@ See `core/services/quest_service.gd` and `ui/components/quest_ui.gd`.
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **NPC Dialogue** | Branching conversation trees | Implemented |
-| **Dialogue Choices** | Player-selectable options | Implemented |
-| **Dialogue Data** | Load from `.tres` resources | Implemented |
-| **Dialogue UI** | Render conversations in-game | Implemented |
+| **NPC Dialogue** | Branching conversation trees | ✅ Implemented |
+| **Dialogue Choices** | Player-selectable options | ✅ Implemented |
+| **Dialogue Data** | Load from `.tres` resources | ✅ Implemented |
+| **Dialogue UI** | Render conversations in-game | ✅ Implemented |
 
 See `core/services/dialog_service.gd`, `core/schemas/dialogue_data.gd`, and `ui/components/dialog_ui.gd`.
 
@@ -817,10 +817,10 @@ See `core/services/dialog_service.gd`, `core/schemas/dialogue_data.gd`, and `ui/
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Account Creation** | Email/password registration | Implemented |
-| **Character Slots** | Up to 5 characters per account | Implemented |
-| **Character Transfer** | Same-account character transfers | Implemented |
-| **Account Settings** | Per-account configuration | Implemented |
+| **Account Creation** | Email/password registration | ✅ Implemented |
+| **Character Slots** | Up to 5 characters per account | ✅ Implemented |
+| **Character Transfer** | Same-account character transfers | ✅ Implemented |
+| **Account Settings** | Per-account configuration | ✅ Implemented |
 
 See `core/services/account_service.gd` and `core/services/same_account_transfer_service.gd`.
 
@@ -828,11 +828,11 @@ See `core/services/account_service.gd` and `core/services/same_account_transfer_
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Shard Management** | Multiple game shards/instances | Implemented |
-| **Server Manager** | Orchestrates game servers | Implemented |
-| **Login Service** | Authentication and session management | Implemented |
-| **Data Service** | Centralized data loading | Implemented |
-| **Connector Service** | Client connection handling | Implemented |
+| **Shard Management** | Multiple game shards/instances | ✅ Implemented |
+| **Server Manager** | Orchestrates game servers | ✅ Implemented |
+| **Login Service** | Authentication and session management | ✅ Implemented |
+| **Data Service** | Centralized data loading | ✅ Implemented |
+| **Connector Service** | Client connection handling | ✅ Implemented |
 
 See `core/services/shard_manager.gd`, `core/services/server_manager.gd`, `core/services/login_service.gd`.
 
@@ -840,11 +840,11 @@ See `core/services/shard_manager.gd`, `core/services/server_manager.gd`, `core/s
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Bot Detection** | Behavioral analysis for automation | Implemented |
-| **Macro Detection** | Pattern recognition for repeated actions | Implemented |
-| **Speed Hack Detection** | Movement velocity validation | Implemented |
-| **Anomaly Detection** | Statistical analysis of player behavior | Implemented |
-| **Player Banning** | Permanent and temporary bans | Implemented |
+| **Bot Detection** | Behavioral analysis for automation | ✅ Implemented |
+| **Macro Detection** | Pattern recognition for repeated actions | ✅ Implemented |
+| **Speed Hack Detection** | Movement velocity validation | ✅ Implemented |
+| **Anomaly Detection** | Statistical analysis of player behavior | ✅ Implemented |
+| **Player Banning** | Permanent and temporary bans | ✅ Implemented |
 
 See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 
@@ -866,9 +866,9 @@ See `core/services/anticheat_service.gd`, `core/services/security_service.gd`.
 
 | Connector | Description | Status |
 |-----------|-------------|--------|
-| **MCP** | Model Context Protocol — standard interface for AI agents | Implemented |
-| **Vant** | Vant framework integration | Implemented |
-| **Webhook** | Webhook-based agent communication | Implemented |
+| **MCP** | Model Context Protocol — standard interface for AI agents | ✅ Implemented |
+| **Vant** | Vant framework integration | ✅ Implemented |
+| **Webhook** | Webhook-based agent communication | ✅ Implemented |
 
 See `core/services/connector_service.gd` and `game/connectors/`.
 
@@ -876,7 +876,7 @@ See `core/services/connector_service.gd` and `game/connectors/`.
 
 ## 12. Technical Architecture
 
-> **Updated 2026-09-05:** Godot 4.7.2 chosen for open source,
+> **Updated 2026-09-16:** Godot 4.7.2 chosen for open source,
 > lightweight, no royalties, and strong 3D support. The frame is
 > T3 content-hash substrate + scope engine + rules engine (per
 > `world-building-arch.md`). The game is in `game/`, the frame
@@ -915,16 +915,16 @@ See `core/services/connector_service.gd` and `game/connectors/`.
 
 | Component | Description | Priority |
 |-----------|-------------|----------|
-| **Auth Server** | Login, account creation with seed chain | P0 |
-| **Game Server** | Authoritative game world simulation | P0 |
-| **T3 Substrate** | Content-hash tree primitive. Each entity is a content-hashed node. Server tick = re-rooting the tree. See [`world-building-arch.md`](./world-building-arch.md). | P0 |
-| **Scope Engine** | Hierarchy walker for world→shard→instance→player scopes. Resolves rules and values at scope boundaries. | P0 |
-| **Rules Engine** | Generic evaluator for behavior rules. | P0 |
-| **Snapshot Store (Postgres)** | `state_snapshots` table persists root hashes. Lazy load on restart. | P0 |
-| **Cache Layer (in-memory)** | LRU-backed intersection cache for hot queries. See [`world-building-arch.md`](./world-building-arch.md). | P0 |
-| **Message Queue** | Handle real-time messages | P0 |
-| **Load Balancer** | Distribute players across servers | P0 |
-| **Anti-Cheat** | Server-side validation, hash-chain tick verification | P0 |
+| **Auth Server** | Login, account creation with seed chain | ✅ Implemented |
+| **Game Server** | Authoritative game world simulation | ✅ Implemented |
+| **T3 Substrate** | Content-hash tree primitive. Each entity is a content-hashed node. Server tick = re-rooting the tree. See [`world-building-arch.md`](./world-building-arch.md). | ✅ Implemented |
+| **Scope Engine** | Hierarchy walker for world→shard→instance→player scopes. Resolves rules and values at scope boundaries. | ✅ Implemented |
+| **Rules Engine** | Generic evaluator for behavior rules. | ✅ Implemented |
+| **Snapshot Store (Postgres)** | `state_snapshots` table persists root hashes. Lazy load on restart. | Partial |
+| **Cache Layer (in-memory)** | LRU-backed intersection cache for hot queries. See [`world-building-arch.md`](./world-building-arch.md). | Partial |
+| **Message Queue** | Handle real-time messages | Partial |
+| **Load Balancer** | Distribute players across servers | Partial |
+| **Anti-Cheat** | Server-side validation, hash-chain tick verification | Partial |
 | **CDN** | Asset distribution by content-hash | P1 |
 
 See [`world-building-arch.md`](./world-building-arch.md) for the full frame architecture (substrate, scope engine, rules engine, spatial layer) and [`world-building-tick.md`](./world-building-tick.md) for the server tick model.
@@ -944,7 +944,7 @@ See [`world-building-arch.md`](./world-building-arch.md) for the full frame arch
 
 See [`world-building.md`](./world-building.md) §10 for the full transport design.
 
-### 12.5 Database Design
+### 12.5 Database Design — ✅ Implemented via Adapter Layer
 
 | Concern | Storage | Notes |
 |---------|---------|-------|
@@ -1144,7 +1144,7 @@ is incremental: profile, port, re-profile, ship.
 
 ## 16. Phases & Milestones
 
-> **Updated 2026-09-05:** Phases reflect the current state
+> **Updated 2026-09-16:** Phases reflect the current state
 > based on source-of-truth docs in `/labs/`. The frame
 > architecture is T3 substrate + scope engine + rules engine
 > (per `world-building-arch.md`). PRD specs in `/labs/prd-*.md`
@@ -1229,7 +1229,7 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 
 ## 17. Open Questions
 
-> **Updated 2026-09-05:** Architecture is now T3 substrate +
+> **Updated 2026-09-16:** Architecture is now T3 substrate +
 > scope engine + rules engine (per `world-building-arch.md`).
 > Many open questions are now answered in the PRD specs.
 
