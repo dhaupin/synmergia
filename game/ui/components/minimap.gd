@@ -697,7 +697,7 @@ func _create_marker_visual(shape: String, size: Vector2, color: Color, label: St
 			dollar.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			container.add_child(dollar)
 
-"flag":
+		"flag":
 			var vbox := VBoxContainer.new()
 			vbox.custom_minimum_size = size
 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
