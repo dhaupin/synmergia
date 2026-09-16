@@ -83,7 +83,12 @@ class _CanonicalWriter:
 		buffer.append_array(bytes)
 	
 	func write_dict(d: Dictionary) -> void:
-		var json_str: String = JSON.stringify(d)
+		var sorted_dict: Dictionary = {}
+		var keys: Array = d.keys()
+		keys.sort()
+		for key in keys:
+			sorted_dict[key] = d[key]
+		var json_str: String = JSON.stringify(sorted_dict)
 		write_string(json_str)
 	
 	func to_bytes() -> PackedByteArray:

@@ -25,9 +25,18 @@ func sign(server_key: PackedByteArray) -> void:
 	signature = hmac.finish()
 
 ## Verifies the receipt signature against the server key.
+## Includes 60-second replay protection based on issued_at timestamp.
 func verify(server_key: PackedByteArray) -> bool:
 	if signature.is_empty():
 		return false
+	
+	# Check replay protection: receipt must be within 60 seconds of issued_at
+	var now := Time.get_unix_time_from_system()
+	if now < issued_at:
+		return false  # issued_at in the future
+	if now - issued_at > 60:
+		return false  # expired (more than 60 seconds old)
+	
 	var payload := to_bytes()
 	var hmac := HMACContext.new()
 	if hmac.start(HashingContext.HASH_SHA256, server_key) != OK:
