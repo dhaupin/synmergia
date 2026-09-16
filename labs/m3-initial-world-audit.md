@@ -17,9 +17,10 @@ The repo splits into two parallel tracks:
 
 - **`game/`** — the Godot 4.7.2 project. Shippable side. 30+
   autoloaded services, schema-based `.tres` content, services +
-  components + EventBus scaffolding.
+  components + EventHub scaffolding.
 - **`labs/`** — root-level experiments that must not taint the
-  Godot build. The home of the multi-iso orchestrator (Julia),
+  Godot build. The home of the frame primitives (now consolidated
+  into `game/core/frame/`), the Julia orchestrator,
   the Python prototype, Jolt playground, polyglot FFI sketches.
 
 The four-layer architecture the PRD converges on:
@@ -186,7 +187,9 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ---
 
-## 4. The state tree (designed, not implemented)
+## 4. The state tree (content-hash) is now implemented
+
+These were the **FSM**, not the content-hash state tree.
 
 ### 4.1 The state dir is misleading
 
@@ -200,21 +203,20 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ### 4.2 The real state tree is referenced but missing
 
-- Mentioned in:
-  - `docs/architecture/multi-iso-frame.md`
-  - `docs/architecture/multi-iso-lod-prediction.md`
-  - `docs/architecture/grail-path.md`
-  - `docs/architecture/scale-200km2.md`
-  - `docs/architecture/vant-lift.md`
-  - `docs/architecture/ui-framework.md`
-  - `docs/architecture/security.md`
-  - `labs/prd.md` §10.6
-  - `labs/README.md` (planned slot
-    `game/core/frame/kv/state_tree.gd`)
-- **Not implemented.** No `state_tree.gd` on disk. No
-  `content_hash.gd`. No `diff()` / `apply_diff()` /
-  `re_root()`. No Postgres `state_snapshots` schema. No
-  snapshot-store module.
+### 4.2 The content-hash state tree is implemented as T3
+
+- See `labs/world-building-arch.md` for the live frame architecture
+  (replaces archived docs in `labs/archive/docs/architecture/`).
+- `labs/prd.md` §10.6
+- `labs/README.md`
+- **Implemented.** `game/core/frame/kv/t3.gd` provides the
+  T3 state tree (content-hash). See `tests/test_t3.gd`. The
+  Postgres `state_snapshots` schema and
+  `diff()` / `apply_diff()` / `re_root()` are frame primitives
+  to be extracted to the snapshot-store module in `frame/db/`.
+- The conceptual contract from the docs:
+  - Every node has a `hash` (SHA-256 of serialized value).
+  - `diff(old_root, new_root) -> List[(path, new_hash,
 - The conceptual contract from the docs:
   - Every node has a `hash` (SHA-256 of serialized value).
   - `diff(old_root, new_root) -> List[(path, new_hash,
@@ -226,7 +228,7 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ---
 
-## 5. The multi-iso orchestrator (half-real)
+## 5. The frame services layer (consolidated)
 
 ### 5.1 Julia side (real)
 
@@ -247,7 +249,13 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ### 5.2 GDScript bridge (thin)
 
-- `MultiIsoService` (`game/core/services/multi_iso_service.gd`):
+The multi-iso orchestrator is now the `frame` layer at
+`game/core/frame/srv/`. GDScript services interact through
+`FrameService` (autoload, `game/core/autoload/frame_service.gd`)
+which wraps `frame_client.gd` (local RulesEngine fallback) or
+forwards to the HTTP endpoint.
+
+- `FrameService` (`game/core/services/frame_service.gd`):
   - `@export var julia_server_url: String =
     "http://julia:8080"` and `local_server_url`.
   - `register_entity(entity_id, spatial_vertex,
@@ -288,10 +296,11 @@ SecurityMonitor, WebhookManager
 ```
 
 Plus domain services registered at runtime via singletons
-inside the scene. The autoload-race problem is documented
-(`docs/architecture/autoload-race-solutions.md`) and
-partly mitigated. The 22 cascade failures noted in the
-pickup doc are still deferred.
+inside the scene. The autoload-race problem is discussed in `labs/world-building-arch.md`
+and `AGENTS.md` §Autoloads and class_name. The pattern of resolving
+cross-service references in `_ready()` via `call_deferred()` has been
+applied across services. The 22 cascade failures are mostly resolved
+(remaining: `QoSPingService` → `DebugOverlay` ordering).
 
 ---
 
@@ -303,7 +312,7 @@ pickup doc are still deferred.
 | Notification → toast pipeline | Production-shaped | ✅ |
 | Loot tables | Production-shaped | ✅ |
 | SpawnService | Real, per-tick | ✅ |
-| EventBus / EntityService | Real, simple | ✅ |
+| EventHub / EntityService | Real, simple | ✅ |
 | ZoneManager | Half-real (data + neighbors, no detection) | ✅ |
 | NetworkManager | Skeleton + ENet | ✅ |
 | ServerManager | Real | ✅ |
@@ -311,14 +320,14 @@ pickup doc are still deferred.
 | WorldService | Stub | ✅ |
 | Map / terrain / heightmap | None | ❌ |
 | Procedural generation | None | ❌ |
-| State tree (content-hash) | None | ❌ |
-| Materialized intersection cache | None | ❌ |
-| LOD pyramid | None | ❌ |
-| Markov predictor | None | ❌ |
-| Sync protocol (diff RPC) | None | ❌ |
+| State tree (content-hash) | T3 implemented (`frame/kv/t3.gd`) | ✅ |
+| Materialized intersection cache | `frame/srv/scope_engine.gd` (axis query) | ⚠️ |
+| LOD pyramid | Planned (see `world-building-lod.md`) | ❌ |
+| Markov predictor | Planned (see `world-building-lod.md`) | ❌ |
+| Sync protocol (diff RPC) | `frame/kv/t3.gd` (conceptual) | ⚠️ |
 | Client prediction | None | ❌ |
-| Interest management / AOI | None | ❌ |
-| Snapshot store / Postgres | None | ❌ |
+| Interest management / AOI | `frame/srv/scope_engine.gd` (LOD scoping) | ⚠️ |
+| Snapshot store / Postgres | Planned for `frame/db/` | ❌ |
 
 ---
 
@@ -364,25 +373,18 @@ doc (`world-building.md`) needs to resolve:
 | File | Why |
 |---|---|
 | `labs/prd.md` §10 | Technical architecture commitment |
+| `labs/world-building-arch.md` | Live frame architecture (T3, scope, rules, geometry) |
 | `labs/world-building-risks.md` | The operating companion: risks, decisions, numbers, glossary |
 | `labs/world-building-research.md` | The research companion: §21 experimental angles, deep dives |
 | `labs/world-building-tick.md` | The tick model discussion: 6 phases, flywheel, postmortem |
-| `docs/architecture/multi-iso-frame.md` | Multi-iso pattern, NSC-9 |
-| `docs/architecture/multi-iso-lod-prediction.md` | LOD + materialized + prediction |
-| `docs/architecture/grail-path.md` | Pre-materialized read = lookup |
-| `docs/architecture/scale-200km2.md` | The 8 innovations |
-| `docs/architecture/nsc9-honest-evaluation.md` | Why geometry is a layer, not a replacement |
-| `docs/architecture/vant-lift.md` | 9 vant libs → frame primitives |
-| `docs/architecture/security.md` | 7 defense layers, agent threat model |
-| `docs/architecture/ui-framework.md` | AxisQuery + UIAction reactive bridge |
-| `docs/architecture/autoload-race-solutions.md` | 4 candidate fixes for autoload cascade |
-| `docs/architecture/NEXT-AGENT-PICKUP.md` | Survival guide |
 | `labs/README.md` | `/labs/` convention |
-| `game/core/services/network_manager.gd` | Where the server tick lives |
-| `game/core/services/zone_manager.gd` | Zone model in code |
+| `game/core/frame/srv/rules_engine.gd` | Where rules engine lives |
+| `game/core/frame/srv/scope.gd` | Scope hierarchy in code |
+| `game/core/frame/kv/t3.gd` | State tree (T3 content-hash) |
+| `game/core/frame/math/` | NSC-9, icosahedral |
 | `game/core/services/world_service.gd` | World state, gateways, day/night |
 | `game/core/services/spawn_service.gd` | Spawning (the most fleshed out) |
-| `game/core/services/multi_iso_service.gd` | GDScript → Julia bridge |
+| `game/core/utils/frame_client.gd` | GDScript → frame bridge (local fallback) |
 | `game/core/schemas/zone_data.gd` | Zone schema |
 | `game/core/events/spawn_metadata.gd` | Spawn metadata + factory |
 | `game/core/state/state.gd` + `state_machine.gd` | FSM (NOT the state tree) |
