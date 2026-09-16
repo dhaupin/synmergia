@@ -3,7 +3,12 @@
 ## Not connected to OS shell - game-internal commands only
 extends Node
 class_name AdminShell
-const QoSService = preload("res://core/autoload/qos_service.gd")
+
+static func _get_qos_service():
+	var root = get_tree().root if has_node("/root") else null
+	if root:
+		return root.get_node_or_null("QoSService")
+	return null
 
 static func _esc(text: String) -> String:
 	return text.replace('[', '[lb]').replace(']', '[rb]')
@@ -451,8 +456,9 @@ func _cmd_qos(args: String, executor_id: String) -> CommandResult:
 	var player_id := args.strip_edges()
 	var output := "[color=yellow]=== QoS Status for %s ===[/color]\n" % _esc(player_id)
 
-	if QoSService:
-		var rates := QoSService.get_player_rates(player_id)
+	var qos := _get_qos_service()
+	if qos:
+		var rates := qos.get_player_rates(player_id)
 		if rates.is_empty():
 			output += "  No recent activity"
 		else:
@@ -467,8 +473,9 @@ func _cmd_qos(args: String, executor_id: String) -> CommandResult:
 func _cmd_rateinfo(args: String, executor_id: String) -> CommandResult:
 	var output := "[color=yellow]=== Rate Limit Configuration ===[/color]\n"
 
-	if QoSService:
-		var info := QoSService.get_rate_limit_info()
+	var qos := _get_qos_service()
+	if qos:
+		var info := qos.get_rate_limit_info()
 		for action in info.keys():
 			var limit: Dictionary = info[action]
 			output += "  [color=cyan]%s:[/color] max %.2f/sec\n" % [action, limit.get("max_rate", 0)]
@@ -519,7 +526,8 @@ func _cmd_status(args: String, executor_id: String) -> CommandResult:
 	# Services
 	output += "\n[color=cyan]Services:[/color]\n"
 	output += "  SecurityService: %s\n" % ("[color=green]OK[/color]" if SecurityService else "[color=red]OFFLINE[/color]")
-	output += "  QoSService: %s\n" % ("[color=green]OK[/color]" if QoSService else "[color=red]OFFLINE[/color]")
+	var qos := _get_qos_service()
+	output += "  QoSService: %s\n" % ("[color=green]OK[/color]" if qos else "[color=red]OFFLINE[/color]")
 	output += "  NotificationService: %s\n" % ("[color=green]OK[/color]" if NotificationService else "[color=red]OFFLINE[/color]")
 
 	return CommandResult.new(true, output, "")
@@ -534,8 +542,9 @@ func _cmd_uptime(args: String, executor_id: String) -> CommandResult:
 func _cmd_stats(args: String, executor_id: String) -> CommandResult:
 	var output := "[color=yellow]=== Service Statistics ===[/color]\n"
 
-	if QoSService:
-		var stats := QoSService.get_statistics()
+	var qos := _get_qos_service()
+	if qos:
+		var stats := qos.get_statistics()
 		output += "[color=cyan]QoS:[/color]\n"
 		output += "  Total checks: %d\n" % stats.get("total_checks", 0)
 		output += "  Rate limited: %d\n" % stats.get("rate_limited_count", 0)
