@@ -1,5 +1,7 @@
 extends SceneTree
 
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+
 func _init() -> void:
 	var ok := true
 	if not _test_dict_store_crud():

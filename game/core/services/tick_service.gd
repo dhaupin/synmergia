@@ -719,8 +719,8 @@ class _Task:
 	var _task_func: Callable = Callable()
 	var _is_running: bool = false
 
-	func _setup(func: Callable) -> void:
-		_task_func = func
+	func _setup(callback: Callable) -> void:
+		_task_func = callback
 
 	func start() -> void:
 		_is_running = true

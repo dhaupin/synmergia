@@ -417,7 +417,6 @@ func _check_and_trigger_player_snapshot(player_id: String, sub_meter: String, va
 	# Build snapshot record
 	var snapshot: Dictionary = {
 		"player_id": player_id,
-		"shard_id": GameManager != null ? GameManager.get_current_shard_id() : "shard_unknown",
 		"tick": _get_current_tick(),
 		"timestamp_ms": now,
 		"trigger_submeter": sub_meter,
@@ -427,6 +426,10 @@ func _check_and_trigger_player_snapshot(player_id: String, sub_meter: String, va
 		"session_minutes": _get_session_minutes(player_id),
 		"previous_snapshots_in_session": _get_player_snapshot_count(player_id)
 	}
+	if GameManager != null:
+		snapshot["shard_id"] = GameManager.get_current_shard_id()
+	else:
+		snapshot["shard_id"] = "shard_unknown"
 
 	# Persist snapshot to Redis (suspicious player key)
 	_persist_player_snapshot(player_id, snapshot)

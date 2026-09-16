@@ -189,7 +189,7 @@ func assign_player_to_shard(player_id: String, shard_id: String) -> void:
 		_shards[shard_id].player_count += 1
 		update_shard_info(shard_id, _shards[shard_id].player_count)
 	if old_shard != "" and old_shard != shard_id and _shards.has(old_shard):
-		var old_count := _shards[old_shard].player_count
+		var old_count: int = _shards[old_shard].player_count
 		_shards[old_shard].player_count = max(0, old_count - 1)
 		update_shard_info(old_shard, _shards[old_shard].player_count)
 	_persist_state()
@@ -203,7 +203,7 @@ func remove_player_from_shard(player_id: String) -> void:
 	_player_shard_map.erase(player_id)
 	_player_presence.erase(player_id)
 	if _shards.has(shard_id):
-		var count := _shards[shard_id].player_count
+		var count: int = _shards[shard_id].player_count
 		_shards[shard_id].player_count = max(0, count - 1)
 		update_shard_info(shard_id, _shards[shard_id].player_count)
 	_persist_state()
@@ -252,7 +252,7 @@ func clear_processed_events() -> void:
 
 ## Route a cross-shard event to target shards
 func route_event(event: Dictionary) -> void:
-	var event_type := event.get("event_type", "")
+	var event_type: String = event.get("event_type", "")
 	match event_type:
 		"heartbeat":
 			_pass_heartbeat(event)
@@ -272,7 +272,7 @@ func route_event(event: Dictionary) -> void:
 			GameLog.warning("CoordinatorService: Unknown event type %s" % event_type)
 
 func _pass_heartbeat(event: Dictionary) -> void:
-	var source_shard := event.get("source_shard", "")
+	var source_shard: String = event.get("source_shard", "")
 	for shard_id in _shards.keys():
 		if shard_id != source_shard:
 			emit_cross_shard_event("heartbeat_ack", source_shard, {"target_shard": shard_id, "source": source_shard}, _get_hlc_timestamp())
@@ -288,8 +288,8 @@ func _pass_season_change(event: Dictionary) -> void:
 	emit_cross_shard_event("season_update", event.get("source_shard", ""), event.get("payload", {}), _get_hlc_timestamp())
 
 func _pass_player_migration(event: Dictionary) -> void:
-	var player_id := event.get("payload", {}).get("player_id", "")
-	var target_shard := event.get("payload", {}).get("target_shard", "")
+	var player_id: String = event.get("payload", {}).get("player_id", "")
+	var target_shard: String = event.get("payload", {}).get("target_shard", "")
 	if target_shard != "" and target_shard in _shards:
 		assign_player_to_shard(player_id, target_shard)
 
@@ -352,14 +352,14 @@ func update_pointer_state_hash(pointer_type: String, id: String, new_hash: Strin
 
 ## Get online players for a shard. Returns {player_id: true, ...}
 ## Rate-limited to _RATE_LIMIT_MAX_QUERIES per _RATE_LIMIT_WINDOW_SEC per query_key
-func get_online_players(shard_id: String = null) -> Dictionary:
+func get_online_players(shard_id: String = "") -> Dictionary:
 	var now := Time.get_unix_time_from_system()
 	var result: Dictionary = {}
 
-	if shard_id == null or shard_id == "":
+	if shard_id == "":
 		# Return all online players
 		for player_id in _player_presence.keys():
-			var presence := _player_presence[player_id]
+			var presence: Dictionary = _player_presence[player_id]
 			if presence is Dictionary and presence.has("shard_id"):
 				result[player_id] = true
 		return result
@@ -368,7 +368,7 @@ func get_online_players(shard_id: String = null) -> Dictionary:
 	var query_key := "players:%s" % shard_id
 	if not _rate_limit_tracker.has(query_key):
 		_rate_limit_tracker[query_key] = []
-	var timestamps := _rate_limit_tracker[query_key]
+	var timestamps: Array = _rate_limit_tracker[query_key]
 	# Remove old timestamps
 	var filtered := []
 	for ts in timestamps:
@@ -385,7 +385,7 @@ func get_online_players(shard_id: String = null) -> Dictionary:
 
 	# Build result
 	for player_id in _player_presence.keys():
-		var presence := _player_presence[player_id]
+		var presence: Dictionary = _player_presence[player_id]
 		if presence is Dictionary and presence.get("shard_id") == shard_id:
 			result[player_id] = true
 
@@ -401,7 +401,7 @@ func get_player_presence(player_id: String) -> Dictionary:
 
 ## Get last-seen timestamp for a player
 func get_player_last_seen(player_id: String) -> int:
-	var presence := _player_presence.get(player_id, {})
+	var presence: Dictionary = _player_presence.get(player_id, {})
 	if presence is Dictionary and presence.has("last_seen"):
 		return presence["last_seen"]
 	return 0
