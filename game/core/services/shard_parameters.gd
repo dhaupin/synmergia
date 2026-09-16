@@ -27,8 +27,8 @@ const ShardParameterDefinitionScript = preload("res://core/schemas/shard_paramet
 
 ## State tree wrapper (game/core/frame/kv/state_tree.gd). Loaded at runtime
 ## to avoid a parse-time dependency on the frame primitive.
-const T3Script = preload("res://labs/kv/t3.gd")
-const StateTreeScript = preload("res://labs/kv/state_tree.gd")
+const T3Script = preload("res://core/frame/kv/t3.gd")
+const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 
 ## Per-shard state trees: shard_id -> StateTree wrapper
 var _state_trees: Dictionary = {}

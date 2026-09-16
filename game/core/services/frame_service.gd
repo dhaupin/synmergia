@@ -9,9 +9,9 @@
 ## Spec: labs/prd-frame-authority.md
 extends Node
 
-const T3Script = preload("res://labs/kv/t3.gd")
-const StateTreeScript = preload("res://labs/kv/state_tree.gd")
-const SeedChainScript = preload("res://labs/kv/seed_chain.gd")
+const T3Script = preload("res://core/frame/kv/t3.gd")
+const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
+const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 
 signal frame_entered(player_id: String, frame_id: String, frame_seed: PackedByteArray)
 signal frame_exited(player_id: String, frame_id: String)
