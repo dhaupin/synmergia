@@ -38,10 +38,7 @@ func _ready() -> void:
 
 func _setup_accessibility() -> void:
 	focus_mode = Control.FOCUS_ALL
-	accessible_name = "Boss Health Bar"
-	accessible_description = "Displays the current raid boss health, phase, enrage timer, and mechanics warnings."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update HP bar
 	if _hp_bar and is_instance_valid(_hp_bar):
 		_hp_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())

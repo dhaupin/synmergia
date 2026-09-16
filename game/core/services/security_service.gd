@@ -8,8 +8,8 @@ extends Node
 # (the service-level verb that wraps send_event).
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
-const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
-const RulesEngine = preload("res://labs/multi-iso/srv/rules_engine.gd")
+const ScopeScript = preload("res://labs/srv/scope.gd")
+const RulesEngineScript = preload("res://labs/srv/rules_engine.gd")
 
 ## ============================================================================
 ## SIGNALS
@@ -24,7 +24,7 @@ signal invalid_input(player_id: String, input_type: String, reason: String)
 ## ============================================================================
 
 ## RulesEngine instance for exploit detection and permission checks
-var _rules_engine: RulesEngine
+var _rules_engine: Variant
 
 ## Scope objects for hierarchical rule resolution
 var _world_scope: Object
@@ -46,7 +46,7 @@ var _blocks: Dictionary = {}
 var _action_tracker: Dictionary = {}
 
 func _ready() -> void:
-	_rules_engine = RulesEngine.new()
+	_rules_engine = RulesEngineScript.new()
 	_create_scopes()
 	_register_rules()
 	_load_restrictions()
@@ -61,14 +61,14 @@ func _create_scopes() -> void:
 
 func _register_rules() -> void:
 	# Exploit detection rules: TOP_WINS (innermost scope wins), default deny
-	_rules_engine.register_rule("teleport_check", RulesEngine.TOP_WINS, false)
-	_rules_engine.register_rule("speed_hack_check", RulesEngine.TOP_WINS, false)
-	_rules_engine.register_rule("item_duplication_check", RulesEngine.TOP_WINS, false)
-	_rules_engine.register_rule("input_anomaly_check", RulesEngine.TOP_WINS, false)
+	_rules_engine.register_rule("teleport_check", RulesEngineScript.TOP_WINS, false)
+	_rules_engine.register_rule("speed_hack_check", RulesEngineScript.TOP_WINS, false)
+	_rules_engine.register_rule("item_duplication_check", RulesEngineScript.TOP_WINS, false)
+	_rules_engine.register_rule("input_anomaly_check", RulesEngineScript.TOP_WINS, false)
 	# Permission check: BOTTOM_WINS (world default wins)
-	_rules_engine.register_rule("permission_check", RulesEngine.BOTTOM_WINS, true)
+	_rules_engine.register_rule("permission_check", RulesEngineScript.BOTTOM_WINS, true)
 	# Restriction management: TOP_WINS
-	_rules_engine.register_rule("restrict_player", RulesEngine.TOP_WINS, true)
+	_rules_engine.register_rule("restrict_player", RulesEngineScript.TOP_WINS, true)
 
 func _build_scope_stack(player_id: String) -> Array:
 	var stack: Array = []
@@ -220,7 +220,7 @@ func check_permission(player_level: int, required_level: int) -> bool:
 		"required_level": required_level
 	}
 	var stack := _build_scope_stack("")
-	var result := _rules_engine.evaluate("permission_check", context, stack)
+	var result: Dictionary = _rules_engine.evaluate("permission_check", context, stack)
 	return result.get("allow", false)
 
 ## Check if player can perform admin action
@@ -275,7 +275,7 @@ func check_teleport(player_id: String, from_pos: Vector3, to_pos: Vector3, time_
 		"max_allowed": GameConfig.Security.MAX_TELEPORT_DISTANCE
 	}
 	var stack := _build_scope_stack(player_id)
-	var result := _rules_engine.evaluate("teleport_check", context, stack)
+	var result: Dictionary = _rules_engine.evaluate("teleport_check", context, stack)
 
 	if result.get("allow", false):
 		_report_exploit(player_id, "teleport_hack", {
@@ -306,7 +306,7 @@ func check_movement_speed(player_id: String, reported_distance: float, time_delt
 		"max_allowed": max_allowed
 	}
 	var stack := _build_scope_stack(player_id)
-	var result := _rules_engine.evaluate("speed_hack_check", context, stack)
+	var result: Dictionary = _rules_engine.evaluate("speed_hack_check", context, stack)
 
 	if result.get("allow", false):
 		_report_exploit(player_id, "speed_hack", {
@@ -345,7 +345,7 @@ func check_item_duplication(player_id: String, item_id: String, quantity_change:
 		"max_allowed": GameConfig.Security.MAX_ITEMS_PER_MINUTE
 	}
 	var stack := _build_scope_stack(player_id)
-	var result := _rules_engine.evaluate("item_duplication_check", context, stack)
+	var result: Dictionary = _rules_engine.evaluate("item_duplication_check", context, stack)
 
 	if result.get("allow", false):
 		_report_exploit(player_id, "item_duplication", {
@@ -368,7 +368,7 @@ func check_input_anomaly(player_id: String, input_type: String, value: float) ->
 		"threshold": threshold
 	}
 	var stack := _build_scope_stack(player_id)
-	var result := _rules_engine.evaluate("input_anomaly_check", context, stack)
+	var result: Dictionary = _rules_engine.evaluate("input_anomaly_check", context, stack)
 
 	if result.get("allow", false):
 		_report_exploit(player_id, "input_anomaly", {

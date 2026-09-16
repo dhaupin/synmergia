@@ -338,3 +338,21 @@ func abandon_loot(player_id: String, loot_id: String) -> bool:
 				GameLog.info("LootService: %s abandoned loot %s" % [player_id, loot_id])
 				return true
 	return false
+
+## Persistence
+func _load_player_loot() -> void:
+	var store := DictStore.new()
+	_player_loot.clear()
+	for key in store.all_keys():
+		if key.begins_with("loot:player:"):
+			var player_id: String = key.substr(12)
+			var data = store.get_value(key)
+			if data:
+				_player_loot[player_id] = data
+
+func _persist_player_loot(player_id: String) -> void:
+	var store := DictStore.new()
+	if _player_loot.has(player_id):
+		store.set_value("loot:player:" + player_id, _player_loot[player_id])
+	else:
+		store.erase("loot:player:" + player_id)

@@ -99,7 +99,6 @@ func _test_hierarchy_loading() -> void:
 	_assert_eq(player.parent.name, "instance", "player parent is instance")
 
 	_assert(engine.get_scope("nonexistent") == null, "get_scope returns null for unknown")
-end
 
 func _test_walk_and_find() -> void:
 	print("\n=== test_walk_and_find ===")
@@ -122,10 +121,10 @@ func _test_walk_and_find() -> void:
 	_assert_eq(found.name, "instance", "found name is 'instance'")
 
 	_assert(engine.get_root().find("nonexistent") == null, "find returns null for unknown")
-end
+
 
 func _walk_collector(visited: Array, scope: Scope) -> void:
-	visited.append(scope.name)
+	visited.app(scope.name)
 
 func _test_flip_and_resolve() -> void:
 	print("\n=== test_flip_and_resolve ===")
@@ -159,7 +158,7 @@ func _test_flip_and_resolve() -> void:
 	engine.pop("player1")
 	resolved = engine.resolve_rule("player1", "can_pvp", ScopeEngine.TOP_WINS)
 	_assert_eq(resolved, ScopeEngine.TOP_WINS, "after pop to world level, default returns")
-end
+
 
 func _test_push_pop_stack() -> void:
 	print("\n=== test_push_pop_stack ===")
@@ -197,9 +196,9 @@ func _test_push_pop_stack() -> void:
 
 	engine.push("p2", "world")
 	engine.push("p2", "shard")
-	_assert_eq(engine.get_stack("p2").size(), 2, "p2 has independent stack")
+	_assert_eq(engine.get_stack("p2").size(), 2, "p2 has indepent stack")
 	_assert_eq(engine.get_stack("p1").size(), 0, "p1 stack unchanged")
-end
+
 
 func _test_pvp_zone_flip() -> void:
 	print("\n=== test_pvp_zone_flip ===")
@@ -224,7 +223,7 @@ func _test_pvp_zone_flip() -> void:
 
 	resolved = engine.resolve_rule("player_out_zone", "can_pvp", ScopeEngine.TOP_WINS)
 	_assert_eq(resolved, ScopeEngine.TOP_WINS, "player outside PvP zone: TOP_WINS default wins")
-end
+
 
 func _test_invalid_hierarchy_rejection() -> void:
 	print("\n=== test_invalid_hierarchy_rejection ===")
@@ -289,7 +288,7 @@ func _test_invalid_hierarchy_rejection() -> void:
 	engine = ScopeEngine.new()
 	ok = engine.load_hierarchy(temp_path)
 	_assert(not ok, "missing environment file rejected")
-end
+
 
 func _test_custom_hierarchy() -> void:
 	print("\n=== test_custom_hierarchy ===")
@@ -344,7 +343,7 @@ func _test_custom_hierarchy() -> void:
 	_assert_eq(char.parent.parent.name, "system", "grandparent is system")
 	_assert_eq(char.parent.parent.parent.name, "sector", "great-grandparent is sector")
 	_assert_eq(char.parent.parent.parent.parent.name, "galaxy", "great-great-grandparent is galaxy")
-end
+
 
 func _test_deep_hierarchy() -> void:
 	print("\n=== test_deep_hierarchy ===")
@@ -357,7 +356,7 @@ func _test_deep_hierarchy() -> void:
 	root_node.parent_name = ""
 	root_node.environment_path = "root.tres"
 	root_node.rules_overrides = {}
-	hierarchy.nodes.append(root_node)
+	hierarchy.nodes.app(root_node)
 
 	for i in range(20):
 		var node = ScopeHierarchy.ScopeNode.new()
@@ -365,7 +364,7 @@ func _test_deep_hierarchy() -> void:
 		node.parent_name = prev
 		node.environment_path = "level_%d.tres" % i
 		node.rules_overrides = {}
-		hierarchy.nodes.append(node)
+		hierarchy.nodes.app(node)
 		prev = node.name
 
 	var temp_path = "user://deep_hierarchy.tres"
@@ -383,7 +382,7 @@ func _test_deep_hierarchy() -> void:
 
 	var resolved = engine.resolve_rule("p1", "test_rule", ScopeEngine.TOP_WINS)
 	_assert_eq(resolved, ScopeEngine.TOP_WINS, "default resolution at deep level")
-end
+
 
 func _test_resolution_constants() -> void:
 	print("\n=== test_resolution_constants ===")
@@ -391,7 +390,7 @@ func _test_resolution_constants() -> void:
 	_assert_eq(ScopeEngine.BOTTOM_WINS, "BOTTOM_WINS", "BOTTOM_WINS constant")
 	_assert_eq(ScopeEngine.PREDICATE_GATED, "PREDICATE_GATED", "PREDICATE_GATED constant")
 	_assert_eq(ScopeEngine.ALL_WINS_WITH_EFFECT, "ALL_WINS_WITH_EFFECT", "ALL_WINS_WITH_EFFECT constant")
-end
+
 
 func _test_stack_isolation() -> void:
 	print("\n=== test_stack_isolation ===")
@@ -414,4 +413,3 @@ func _test_stack_isolation() -> void:
 	engine.clear_player_stack("alice")
 	_assert(engine.get_stack("alice").is_empty(), "clear_player_stack empties alice")
 	_assert_eq(engine.get_stack("bob").size(), 2, "bob unaffected")
-end

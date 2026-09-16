@@ -1,8 +1,6 @@
 ## Ported from vant axolotl lib/brain.js
 extends Resource
 
-class_name ScopeHierarchy
-
 class ScopeNode:
 	var name: String = ""
 	var parent_name: String = ""

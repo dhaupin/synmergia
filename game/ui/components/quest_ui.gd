@@ -29,17 +29,16 @@ func _ready() -> void:
 	_connect_signals()
 
 func _setup_accessibility() -> void:
-	accessible_name = "Quest Journal"
-	accessible_description = "Quest journal panel. Use tabs to switch between Active, Complete, and Available quests. Select a quest to view details."
+	pass
 
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update tab buttons
 	if _tab_buttons:
 		for btn in _tab_buttons:
 			if btn and is_instance_valid(btn):
 				btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := btn.get_theme_font_size("font_size")
+				var current_size: int = btn.get_theme_font_size("font_size")
 				if current_size > 0:
 					btn.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -49,14 +48,14 @@ func update_accessibility_settings() -> void:
 			if child is Button:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 			elif child is PanelContainer:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
 				if style:
-					if UIStyles.is_high_contrast_enabled():
+					if high_contrast:
 						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 					else:
@@ -76,8 +75,6 @@ func _setup_ui() -> void:
 	_tab_bar = HBoxContainer.new()
 	_tab_bar.custom_minimum_size.y = 36
 	_tab_bar.focus_mode = Control.FOCUS_ALL
-	_tab_bar.accessible_name = "Quest Journal Tabs"
-	_tab_bar.accessible_description = "Switch between Active, Complete, and Available quest tabs."
 	_tab_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	main.add_child(_tab_bar)
 
@@ -110,8 +107,6 @@ func _setup_ui() -> void:
 	var list_scroll := ScrollContainer.new()
 	list_scroll.custom_minimum_size.x = 180
 	list_scroll.focus_mode = Control.FOCUS_ALL
-	list_scroll.accessible_name = "Quest List"
-	list_scroll.accessible_description = "List of quests. Use arrow keys to navigate, Enter to select."
 	list_scroll.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	content.add_child(list_scroll)
 
@@ -122,8 +117,6 @@ func _setup_ui() -> void:
 	# Quest detail (right)
 	var detail_scroll := ScrollContainer.new()
 	detail_scroll.focus_mode = Control.FOCUS_ALL
-	detail_scroll.accessible_name = "Quest Details"
-	detail_scroll.accessible_description = "Detailed view of the selected quest including description, objectives, and actions."
 	detail_scroll.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	content.add_child(detail_scroll)
 
@@ -205,7 +198,6 @@ func _create_quest_button(quest_id: String) -> Button:
 	btn.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.accessible_name = "Quest: %s" % _get_quest_name(quest_id)
-	btn.accessible_description = "Press Enter to view quest details."
 	btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	# Get quest name
@@ -295,8 +287,6 @@ func _show_quest_detail(quest_id: String) -> void:
 			var accept_btn := Button.new()
 			accept_btn.text = "Accept Quest"
 			accept_btn.focus_mode = Control.FOCUS_ALL
-			accept_btn.accessible_name = "Accept Quest"
-			accept_btn.accessible_description = "Accept this quest and add it to your active quests."
 			accept_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			accept_btn.pressed.connect(_on_accept_quest.bind(quest_id))
 			action_container.add_child(accept_btn)
@@ -306,8 +296,6 @@ func _show_quest_detail(quest_id: String) -> void:
 			turn_in_btn.text = "Turn In"
 			turn_in_btn.add_theme_color_override("font_color", UIStyles.COLORS.success)
 			turn_in_btn.focus_mode = Control.FOCUS_ALL
-			turn_in_btn.accessible_name = "Turn In Quest"
-			turn_in_btn.accessible_description = "Complete this quest and receive rewards."
 			turn_in_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			turn_in_btn.pressed.connect(_on_turn_in_quest.bind(quest_id))
 			action_container.add_child(turn_in_btn)
@@ -317,8 +305,6 @@ func _show_quest_detail(quest_id: String) -> void:
 			abandon_btn.text = "Abandon"
 			abandon_btn.add_theme_color_override("font_color", UIStyles.COLORS.error)
 			abandon_btn.focus_mode = Control.FOCUS_ALL
-			abandon_btn.accessible_name = "Abandon Quest"
-			abandon_btn.accessible_description = "Abandon this quest and lose all progress."
 			abandon_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			abandon_btn.pressed.connect(_on_abandon_quest.bind(quest_id))
 			action_container.add_child(abandon_btn)

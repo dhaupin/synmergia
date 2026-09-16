@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ShardParameterDefinition" load_steps=2 format=3 uid://uid://respawn_rate_modifier]
+[gd_resource type="Resource" script_class="ShardParameterDefinition" load_steps=2 format=3]
 
 [sub_resource type="Resource" id="ShardParameterDefinition_respawn_rate_modifier"]
 name = "respawn_rate_modifier"

@@ -47,8 +47,7 @@ func _ready() -> void:
 ## ============================================================================
 
 func _setup_accessibility() -> void:
-	self.accessible_name = "Blacksmith"
-	self.accessible_description = "Blacksmith repair panel. Use Tab to navigate between item list and buttons. Press Enter to repair items, ESC to close."
+	pass
 
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for buttons and item list
@@ -63,7 +62,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
 				if style:
-					if UIStyles.is_high_contrast_enabled():
+					if high_contrast:
 						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 					else:

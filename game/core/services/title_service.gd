@@ -153,7 +153,10 @@ func get_title(id: String) -> TitleData:
 	return _title_defs.get(id)
 
 func get_all_titles() -> Array:
-	return _title_defs
+	var result: Array = []
+	for title in _title_defs.values():
+		result.append(title)
+	return result
 
 ## ============================================================================
 ## PLAYER TITLE STATE
@@ -259,7 +262,7 @@ func _do_get_equipped_suffix(player_id: String) -> TitleData:
 func _load_player_titles() -> void:
 	var store := DictStore.new()
 	for key in store.all_keys():
-		var player_id := key.replace(_kv_prefix, "")
+		var player_id: String = key.replace(_kv_prefix, "")
 		var data: Dictionary = store.get_value(key) as Dictionary
 		if data == null:
 			data = {}

@@ -19,6 +19,8 @@ static func singleton():
 		_instance._ready()
 	return _instance
 
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const _kv_prefix := "vendor:"
 
 const Item = preload("res://core/schemas/item.gd")
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
@@ -445,11 +447,11 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix + "buyback:"):
 			var player_id = key.substr(_kv_prefix.length() + 8)
-			_buyback[player_id] = store.get(key)
+			_buyback[player_id] = store.get_kv(key)
 
 func _persist_buyback(player_id: String) -> void:
 	var store := DictStore.new()
 	if _buyback.has(player_id):
-		store.set(_kv_prefix + "buyback:" + player_id, _buyback[player_id])
+		store.set_kv(_kv_prefix + "buyback:" + player_id, _buyback[player_id])
 	else:
 		store.erase(_kv_prefix + "buyback:" + player_id)

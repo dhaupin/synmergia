@@ -19,7 +19,7 @@ var issued_at: int = 0
 func sign(server_key: PackedByteArray) -> void:
 	var payload := to_bytes()
 	var hmac := HMACContext.new()
-	if hmac.start(HMACContext.HASH_SHA256, server_key) != OK:
+	if hmac.start(HashingContext.HASH_SHA256, server_key) != OK:
 		return
 	hmac.update(payload)
 	signature = hmac.finish()
@@ -30,7 +30,7 @@ func verify(server_key: PackedByteArray) -> bool:
 		return false
 	var payload := to_bytes()
 	var hmac := HMACContext.new()
-	if hmac.start(HMACContext.HASH_SHA256, server_key) != OK:
+	if hmac.start(HashingContext.HASH_SHA256, server_key) != OK:
 		return false
 	hmac.update(payload)
 	var expected := hmac.finish()
@@ -56,7 +56,7 @@ func to_bytes() -> PackedByteArray:
 ## Deserializes from 200 bytes.
 static func from_bytes(b: PackedByteArray) -> SeedReceipt:
 	var script = load("res://core/schemas/seed_receipt.gd")
-	var receipt := script.new()
+	var receipt: SeedReceipt = script.new()
 	var pos := 0
 	receipt.world_seed = _read_32(b, pos); pos += 32
 	receipt.shard_seed = _read_32(b, pos); pos += 32

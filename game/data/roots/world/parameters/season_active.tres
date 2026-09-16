@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ShardParameterDefinition" load_steps=2 format=3 uid://uid://season_active]
+[gd_resource type="Resource" script_class="ShardParameterDefinition" load_steps=2 format=3]
 
 [sub_resource type="Resource" id="ShardParameterDefinition_season_active"]
 name = "season_active"

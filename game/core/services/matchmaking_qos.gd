@@ -313,7 +313,7 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix):
 			var player_id = key.substr(_kv_prefix.length())
-			var data: Dictionary = store.get(key)
+			var data: Dictionary = store.get_kv(key)
 			if not data.is_empty():
 				_player_latency[player_id] = int(data.get("latency", 0))
 				_player_quality[player_id] = data.get("quality", 0)
@@ -331,6 +331,6 @@ func _persist_player_qos(player_id: String) -> void:
 			"jitter": _player_jitter.get(player_id, 0),
 			"history": _latency_history.get(player_id, [])
 		}
-		store.set(_kv_prefix + player_id, data)
+		store.set_kv(_kv_prefix + player_id, data)
 	else:
 		store.erase(_kv_prefix + player_id)

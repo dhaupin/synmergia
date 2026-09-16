@@ -18,7 +18,7 @@ const PREDICATE_GATED := "PREDICATE_GATED"
 const ALL_WINS_WITH_EFFECT := "ALL_WINS_WITH_EFFECT"
 
 var _rules_tree: Object = null
-var _scope_engine: Object = null
+var _scope_engine: ScopeEngineScript = null
 var _schema: Object = null
 
 func _init(scope_engine: Object = null) -> void:
@@ -54,7 +54,7 @@ func evaluate(action: String, context: Dictionary, stack: Array) -> Dictionary:
 	var predicate_str: String = rule_value.get("predicate", "")
 
 	if _scope_engine != null and _scope_engine.has_method("resolve_rule"):
-		var resolved := _scope_engine.resolve_rule("", action, resolution)
+		var resolved: String = _scope_engine.resolve_rule("", action, resolution)
 		if resolved != "":
 			resolution = resolved
 

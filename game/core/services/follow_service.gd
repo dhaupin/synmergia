@@ -329,7 +329,7 @@ func _load_follows() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix):
 			var player_id: String = key.substr(_kv_prefix.length())
-			var data: Dictionary = store.get(key)
+			var data: Dictionary = store.get_kv(key)
 			if data:
 				_active_follows[player_id] = data
 
@@ -337,6 +337,6 @@ func _persist_follows(player_id: String) -> void:
 	var store := DictStore.new()
 	var key := _kv_prefix + player_id
 	if _active_follows.has(player_id) and not _active_follows[player_id].is_empty():
-		store.set(key, _active_follows[player_id])
+		store.set_kv(key, _active_follows[player_id])
 	else:
 		store.erase(key)

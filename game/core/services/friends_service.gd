@@ -635,7 +635,7 @@ func _load_online_status() -> void:
 	for key in cache._store.keys():
 		if key.begins_with(_kv_online_prefix):
 			var player_id = key.substr(_kv_online_prefix.length())
-			var data: Dictionary = cache.get(key)
+			var data: Dictionary = cache.get_kv(key)
 			if not data.is_empty():
 				_online_players[player_id] = data
 
@@ -644,8 +644,8 @@ func _persist_online_status(player_id: String) -> void:
 	if _online_players		.has(player_id):
 		var data: Dictionary = _online_players[player_id]
 		if data.get("online", false):
-			cache.set(_kv_online_prefix + player_id, data, 300)  # 5 min TTL
+			cache.set_kv(_kv_online_prefix + player_id, data, 300)  # 5 min TTL
 		else:
-			cache.set(_kv_online_prefix + player_id, data, 60)  # 1 min TTL for offline
+			cache.set_kv(_kv_online_prefix + player_id, data, 60)  # 1 min TTL for offline
 	else:
 		cache.delete(_kv_online_prefix + player_id)

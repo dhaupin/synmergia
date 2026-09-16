@@ -474,14 +474,14 @@ func _load_parties() -> void:
 	var keys := store.all_keys()
 	for key in keys:
 		if key.begins_with(_kv_party):
-			var data: Dictionary = store.get(key)
+			var data: Dictionary = store.get_kv(key)
 			if data:
 				var party_id: String = key.substr(_kv_party.length())
 				_parties[party_id] = data
 				for member_id in data.get("members", []):
 					_player_parties[member_id] = party_id
 		elif key.begins_with(_kv_invite):
-			var data: Dictionary = store.get(key)
+			var data: Dictionary = store.get_kv(key)
 			if data:
 				var invite_id: String = key.substr(_kv_invite.length())
 				_pending_invites[invite_id] = data
@@ -490,7 +490,7 @@ func _persist_party(party_id: String) -> void:
 	var store := DictStore.new()
 	var key := _kv_party + party_id
 	if _parties.has(party_id) and not _parties[party_id].is_empty():
-		store.set(key, _parties[party_id])
+		store.set_kv(key, _parties[party_id])
 	else:
 		store.erase(key)
 
@@ -498,6 +498,6 @@ func _persist_invite(invite_id: String) -> void:
 	var store := DictStore.new()
 	var key := _kv_invite + invite_id
 	if _pending_invites.has(invite_id) and not _pending_invites[invite_id].is_empty():
-		store.set(key, _pending_invites[invite_id])
+		store.set_kv(key, _pending_invites[invite_id])
 	else:
 		store.erase(key)

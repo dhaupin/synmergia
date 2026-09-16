@@ -34,7 +34,7 @@ func get_value(key: String) -> Variant:
 		return null
 	return _store.fetch(key)
 
-func get(key: String, default: Variant = null) -> Variant:
+func get_kv(key: String, default: Variant = null) -> Variant:
 	var val = get_value(key)
 	return val if val != null else default
 
@@ -44,7 +44,7 @@ func set_value(key: String, value: Variant, ttl_sec: int = 0) -> void:
 		return
 	_store.store(key, value, ttl_sec)
 
-func set(key: String, value: Variant, ttl_sec: int = 0) -> void:
+func set_kv(key: String, value: Variant, ttl_sec: int = 0) -> void:
 	set_value(key, value, ttl_sec)
 
 func _set(property: StringName, value: Variant) -> bool:

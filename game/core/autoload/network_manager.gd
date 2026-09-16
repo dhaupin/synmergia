@@ -352,7 +352,7 @@ func _load_peer_mappings() -> void:
 	var peer_ids: Array = _cache.smembers(_kv_index)
 	for pid in peer_ids:
 		var key := _kv_prefix + str(pid)
-		var player_id: String = _cache.get(key)
+		var player_id: String = _cache.get_kv(key)
 		if player_id != null and player_id != "":
 			connected_peers[pid] = {"player_id": player_id}
 
@@ -362,5 +362,5 @@ func _persist_peer_mapping(peer_id: int, player_id: String) -> void:
 		_cache.delete(key)
 		_cache.srem(_kv_index, str(peer_id))
 	else:
-		_cache.set(key, player_id)
+		_cache.set_kv(key, player_id)
 		_cache.sadd(_kv_index, str(peer_id))

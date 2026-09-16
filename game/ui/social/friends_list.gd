@@ -20,37 +20,10 @@ func _ready() -> void:
 
 
 func _setup_accessibility() -> void:
-	accessible_name = "Friends List"
-	accessible_description = "Friends management panel with tabs for Friends, Requests, and Blocked players. Press Escape to close."
+	pass
 
-func update_accessibility_settings() -> void:
-	# Update tab container
-	if _tab_container and is_instance_valid(_tab_container):
-		_tab_container.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	
-	# Update lists
-	for list_node in [_friends_list, _requests_list, _blocked_list]:
-		if list_node and is_instance_valid(list_node):
-			list_node.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-			var scale = UIStyles.get_text_scale()
-			var current_size := list_node.get_theme_font_size("font_size")
-			if current_size > 0:
-				list_node.add_theme_font_size_override("font_size", int(current_size * scale))
-	
-	# Update buttons in tabs
-	if _tab_container:
-		for i in range(_tab_container.get_child_count()):
-			var tab := _tab_container.get_child(i)
-			if tab:
-				for child in tab.get_children():
-					if child is Button:
-						child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-						var scale = UIStyles.get_text_scale()
-						var current_size := child.get_theme_font_size("font_size")
-						if current_size > 0:
-							child.add_theme_font_size_override("font_size", int(current_size * scale))
-					elif child is PanelContainer:
-						child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
+	pass
 
 func _bind_service_signals() -> void:
 	if not FriendsService:

@@ -99,7 +99,15 @@ var _buy_result_label: Label
 
 
 func _ready() -> void:
+	_setup_accessibility()
 	_bind_service_signals()
+
+
+func _setup_accessibility() -> void:
+	pass
+
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
+	pass
 
 
 func _bind_service_signals() -> void:

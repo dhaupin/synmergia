@@ -44,10 +44,7 @@ func _ready() -> void:
 
 func _setup_accessibility() -> void:
 	focus_mode = Control.FOCUS_ALL
-	accessible_name = "Target Frame"
-	accessible_description = "Displays information about your current target including health, mana, buffs, and debuffs. Left-click to target, right-click for action menu."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for progress bars
 	for bar in [_hp_bar, _mp_bar, _cast_bar]:
 		if bar and is_instance_valid(bar):
@@ -61,7 +58,7 @@ func update_accessibility_settings() -> void:
 					child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 					var style: StyleBoxFlat = child.get_theme_stylebox("panel")
 					if style:
-						if UIStyles.is_high_contrast_enabled():
+						if high_contrast:
 							style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 							style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 						else:

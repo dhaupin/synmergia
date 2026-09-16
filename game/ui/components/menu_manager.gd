@@ -3,6 +3,7 @@ extends CanvasLayer
 class_name MenuManager
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const HudLayerScript = preload("res://ui/hud/hud_layer.gd")
 
 
 ## Singleton
@@ -58,9 +59,7 @@ func _setup_accessibility() -> void:
 	# MenuManager is CanvasLayer, apply accessibility to child containers
 	for child in get_children():
 		if child is Control:
-			child.accessible_name = "Menu Manager"
-			child.accessible_description = "Central HUD manager for the game. Handles action bars, status bars, and all game menus."
-
+			pass
 func _on_text_scale_changed(scale: float) -> void:
 	# Propagate text scale changes to all child widgets
 	for child in get_children():
@@ -88,8 +87,6 @@ func _setup_hud() -> void:
 	_action_bar.custom_minimum_size.y = 60
 	_action_bar.z_index = 100
 	_action_bar.focus_mode = Control.FOCUS_ALL
-	_action_bar.accessible_name = "Action Bar"
-	_action_bar.accessible_description = "Main skill and action bar. Use number keys 1-8 to activate skills."
 	_action_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_action_bar)
 
@@ -101,8 +98,6 @@ func _setup_hud() -> void:
 	_quick_access_bar.custom_minimum_size.y = 50
 	_quick_access_bar.z_index = 100
 	_quick_access_bar.focus_mode = Control.FOCUS_ALL
-	_quick_access_bar.accessible_name = "Quick Access Bar"
-	_quick_access_bar.accessible_description = "Consumable items hotbar. Use F1-F4 to use items."
 	_quick_access_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_quick_access_bar)
 
@@ -114,8 +109,6 @@ func _setup_hud() -> void:
 	_buff_bar.custom_minimum_size.y = 40
 	_buff_bar.z_index = 100
 	_buff_bar.focus_mode = Control.FOCUS_ALL
-	_buff_bar.accessible_name = "Buff Bar"
-	_buff_bar.accessible_description = "Active buffs and debuffs on your character."
 	_buff_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_buff_bar)
 
@@ -125,8 +118,6 @@ func _setup_hud() -> void:
 	_status_bar.offset_top = 10
 	_status_bar.z_index = 100
 	_status_bar.focus_mode = Control.FOCUS_ALL
-	_status_bar.accessible_name = "Status Bar"
-	_status_bar.accessible_description = "Health, mana, and experience bars."
 	_status_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_status_bar)
 
@@ -607,18 +598,18 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 		"debug": "debug",
 	}
 	
-	var internal_name := panel_map.get(panel_id, panel_id)
+	var internal_name: String = panel_map.get(panel_id, panel_id)
 	
 	# Special handling for settings (handled by HudLayer)
 	if internal_name == "settings":
-		if HudLayer.instance and HudLayer.instance.has_method("open_settings"):
-			HudLayer.instance.open_settings()
+		if HudLayerScript.instance and HudLayerScript.instance.has_method("open_settings"):
+			HudLayerScript.instance.open_settings()
 		return
 	
 	# Special handling for world_map (handled by HudLayer)
 	if internal_name == "world_map":
-		if HudLayer.instance and HudLayer.instance.has_method("_toggle_world_map"):
-			HudLayer.instance._toggle_world_map()
+		if HudLayerScript.instance and HudLayerScript.instance.has_method("_toggle_world_map"):
+			HudLayerScript.instance._toggle_world_map()
 		return
 	
 	# Special handling for trade (not in MenuManager yet)
@@ -712,7 +703,7 @@ func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
 	refresh_btn.custom_minimum_size.y = 36
 	refresh_btn.pressed.connect(func(): menu_manager._update_debug_sys_info(sys_info))
 	refresh_btn.focus_mode = Control.FOCUS_ALL
-	refresh_btn.accessible_name = "Refresh System Info"
+	refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	sys_tab.add_child(refresh_btn)
 	
 	# Network tab
@@ -735,7 +726,8 @@ func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
 	net_refresh_btn.custom_minimum_size.y = 36
 	net_refresh_btn.pressed.connect(func(): menu_manager._update_debug_net_info(net_info))
 	net_refresh_btn.focus_mode = Control.FOCUS_ALL
-	net_refresh_btn.accessible_name = "Refresh Network Info"
+	net_refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+	net_tab.add_child(net_refresh_btn)
 	net_tab.add_child(net_refresh_btn)
 	
 	# Performance tab
@@ -758,7 +750,7 @@ func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
 	perf_refresh_btn.custom_minimum_size.y = 36
 	perf_refresh_btn.pressed.connect(func(): menu_manager._update_debug_perf_info(perf_info))
 	perf_refresh_btn.focus_mode = Control.FOCUS_ALL
-	perf_refresh_btn.accessible_name = "Refresh Performance"
+	perf_refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	perf_tab.add_child(perf_refresh_btn)
 	
 	# Entity Debug tab
@@ -781,18 +773,16 @@ func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
 	entity_refresh_btn.custom_minimum_size.y = 36
 	entity_refresh_btn.pressed.connect(func(): menu_manager._update_debug_entity_info(entity_info))
 	entity_refresh_btn.focus_mode = Control.FOCUS_ALL
-	entity_refresh_btn.accessible_name = "Refresh Entity Info"
+	entity_refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	entity_tab.add_child(entity_refresh_btn)
 
 func _update_debug_sys_info(label: Label) -> void:
-	var fps: float = 0.0
-	if Performance.has_monitor(Performance.TIME_FPS):
-		fps = Performance.get_monitor(Performance.TIME_FPS)
+	var fps: float = Performance.get_monitor(Performance.TIME_FPS)
 	label.text = "Godot Version: %s\nFPS: %d\nFrame Time: %.2f ms\nObjects: %d" % [
 		Engine.get_version_info()["string"],
-		Engine.get_frames_per_second(),
 		fps,
-		Engine.get_physics_frames() + Engine.get_idle_frames()
+		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		Engine.get_physics_frames()
 	]
 
 func _update_debug_net_info(label: Label) -> void:
@@ -804,9 +794,9 @@ func _update_debug_net_info(label: Label) -> void:
 
 func _update_debug_perf_info(label: Label) -> void:
 	label.text = "Use Profiler for detailed metrics\n\nFrame Time: %.2f ms\nPhysics Time: %.2f ms\nScript Time: %.2f ms" % [
-		Performance.get_monitor(Performance.TIME_PROCESS) if Performance.has_monitor(Performance.TIME_PROCESS) else 0.0,
-		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) if Performance.has_monitor(Performance.TIME_PHYSICS_PROCESS) else 0.0,
-		Performance.get_monitor(Performance.TIME_PROCESS) if Performance.has_monitor(Performance.TIME_PROCESS) else 0.0
+		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
 	]
 
 func _update_debug_entity_info(label: Label) -> void:

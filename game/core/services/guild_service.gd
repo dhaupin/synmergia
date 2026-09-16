@@ -815,7 +815,7 @@ func _load_guilds() -> void:
 			var parts = key.split(":")
 			if parts.size() >= 3:
 				var guild_id = parts[1] + ":" + parts[2]
-				_guilds[guild_id] = store.get(key)
+				_guilds[guild_id] = store.get_kv(key)
 				# Rebuild player->guild mapping
 				var members = _guilds[guild_id].get("members", [])
 				for member in members:
@@ -825,13 +825,13 @@ func _load_guilds() -> void:
 func _persist_guild(guild_id: String) -> void:
 	var store := DictStore.new()
 	if _guilds.has(guild_id):
-		store.set(_kv_prefix + guild_id, _guilds[guild_id])
+		store.set_kv(_kv_prefix + guild_id, _guilds[guild_id])
 	else:
 		store.erase(_kv_prefix + guild_id)
 
 func _persist_invite(player_id: String) -> void:
 	var store := DictStore.new()
 	if _pending_guild_invites.has(player_id):
-		store.set("guild:invite:" + player_id, _pending_guild_invites[player_id])
+		store.set_kv("guild:invite:" + player_id, _pending_guild_invites[player_id])
 	else:
 		store.erase("guild:invite:" + player_id)

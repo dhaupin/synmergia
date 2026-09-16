@@ -43,10 +43,7 @@ func _ready() -> void:
 
 func _setup_accessibility() -> void:
 	focus_mode = Control.FOCUS_ALL
-	accessible_name = "Party Frames"
-	accessible_description = "Displays party members with health, mana, and role. Use Tab to navigate between members."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update member containers
 	for container in _member_containers:
 		if container and is_instance_valid(container):
@@ -111,8 +108,6 @@ func _setup_ui() -> void:
 	ready_check_btn.custom_minimum_size = Vector2(100, 24)
 	ready_check_btn.add_theme_font_size_override("font_size", 10)
 	ready_check_btn.focus_mode = Control.FOCUS_ALL
-	ready_check_btn.accessible_name = "Ready Check"
-	ready_check_btn.accessible_description = "Initiate a ready check for the party."
 	ready_check_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	ready_check_btn.pressed.connect(_on_ready_check_pressed)
 	title_row.add_child(ready_check_btn)
@@ -130,8 +125,6 @@ func _create_member_frame(index: int) -> Control:
 	frame.custom_minimum_size = Vector2(240, 52)
 	frame.focus_mode = Control.FOCUS_ALL
 	frame.accessible_name = "Party Member %d" % (index + 1)
-	frame.accessible_description = "Party member frame showing health, mana, role, and distance. Press Enter to target, right-click for actions."
-
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
 	style.border_color = UIStyles.COLORS.border
@@ -221,8 +214,6 @@ func _create_member_frame(index: int) -> Control:
 	hp_bar.custom_minimum_size = Vector2(150, 10)
 	hp_bar.show_percentage = false
 	hp_bar.focus_mode = Control.FOCUS_ALL
-	hp_bar.accessible_name = "Health"
-	hp_bar.accessible_description = "Party member health bar."
 	hp_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style(2, false))
 	info_vbox.add_child(hp_bar)
 
@@ -252,8 +243,6 @@ func _create_member_frame(index: int) -> Control:
 	mp_bar.custom_minimum_size = Vector2(150, 6)
 	mp_bar.show_percentage = false
 	mp_bar.focus_mode = Control.FOCUS_ALL
-	mp_bar.accessible_name = "Mana"
-	mp_bar.accessible_description = "Party member mana bar."
 	mp_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style(2, false))
 	info_vbox.add_child(mp_bar)
 
@@ -303,7 +292,7 @@ func _update_member_frame(index: int, data: Dictionary) -> void:
 	level_label.text = "Lv.%d" % data.get("level", 1)
 
 	# Distance
-	var distance := data.get("distance", 0.0)
+	var distance: float = data.get("distance", 0.0)
 	if distance > 0:
 		distance_label.text = "%.1fm" % distance
 		# Dim if out of range (>40m)
@@ -317,9 +306,9 @@ func _update_member_frame(index: int, data: Dictionary) -> void:
 		distance_label.text = ""
 
 	# Class icon
-	var class_name := data.get("class", "").to_lower()
-	if class_name != "":
-		var icon_path := "res://ui/textures/classes/%s.png" % class_name
+	var class_name_str: String = data.get("class", "").to_lower()
+	if class_name_str != "":
+		var icon_path := "res://ui/textures/classes/%s.png" % class_name_str
 		var texture := IconResolver.get_icon_for_path(icon_path)
 		if texture:
 			class_icon.texture = texture
@@ -329,7 +318,7 @@ func _update_member_frame(index: int, data: Dictionary) -> void:
 		class_icon.texture = null
 
 	# Role icon
-	var role := data.get("role", Role.DPS)
+	var role: int = data.get("role", Role.DPS)
 	role_icon.texture = _get_role_icon(role)
 
 	# Leader crown
@@ -345,12 +334,12 @@ func _update_member_frame(index: int, data: Dictionary) -> void:
 		ready_icon.text = ""
 
 	# Health bar
-	var current_hp := data.get("health", 100)
-	var max_hp := data.get("max_health", 100)
+	var current_hp: int = data.get("health", 100)
+	var max_hp: int = data.get("max_health", 100)
 	hp_bar.max_value = max_hp if max_hp > 0 else 1
 	hp_bar.value = current_hp
 
-	var hp_percent := 0.0
+	var hp_percent: float = 0.0
 	if max_hp > 0:
 		hp_percent = float(current_hp) / float(max_hp)
 
@@ -368,16 +357,18 @@ func _update_member_frame(index: int, data: Dictionary) -> void:
 		hp_bar.remove_meta("pulsing")
 
 	# HP bar color based on percentage
-	if hp_percent > 0.5:
-		hp_fill.bg_color = UIStyles.COLORS.success
-	elif hp_percent > 0.25:
-		hp_fill.bg_color = UIStyles.COLORS.warning
-	else:
-		hp_fill.bg_color = UIStyles.COLORS.error
+	var hp_fill_style: StyleBoxFlat = hp_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if hp_fill_style:
+		if hp_percent > 0.5:
+			hp_fill_style.bg_color = UIStyles.COLORS.success
+		elif hp_percent > 0.25:
+			hp_fill_style.bg_color = UIStyles.COLORS.warning
+		else:
+			hp_fill_style.bg_color = UIStyles.COLORS.error
 
 	# Mana bar
-	var current_mp := data.get("mana", 100)
-	var max_mp := data.get("max_mana", 100)
+	var current_mp: int = data.get("mana", 100)
+	var max_mp: int = data.get("max_mana", 100)
 	mp_bar.max_value = max_mp if max_mp > 0 else 1
 	mp_bar.value = current_mp
 
@@ -415,12 +406,12 @@ func _on_member_gui_input(frame: Control, event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			# Left click - target the party member
-			var player_id := frame.get_meta("player_id", "")
+			var player_id: String = frame.get_meta("player_id", "")
 			if player_id != "" and TargetingManager:
-				TargetingManager.set_target(player_id)
+				TargetingManager.set_target(player_id, "player")
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			# Right click - show action menu
-			var player_id := frame.get_meta("player_id", "")
+			var player_id: String = frame.get_meta("player_id", "")
 			if player_id != "" and ActionMenu:
 				var action_menu: ActionMenu = ActionMenu.new()
 				add_child(action_menu)

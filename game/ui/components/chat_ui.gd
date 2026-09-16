@@ -38,17 +38,16 @@ func _ready() -> void:
 	_connect_signals()
 
 func _setup_accessibility() -> void:
-	accessible_name = "Chat"
-	accessible_description = "In-game chat panel. Press Enter to open chat input. Use channel tabs or dropdown to switch channels."
+	pass
 
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update channel tabs
 	if _tabs:
 		for child in _tabs.get_children():
 			if child is Button:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -56,7 +55,7 @@ func update_accessibility_settings() -> void:
 	if _chat_history:
 		_chat_history.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		var scale = UIStyles.get_text_scale()
-		var current_size := _chat_history.get_theme_font_size("default_font_size")
+		var current_size: int = _chat_history.get_theme_font_size("default_font_size")
 		if current_size > 0:
 			_chat_history.add_theme_font_size_override("default_font_size", int(current_size * scale))
 	
@@ -64,7 +63,7 @@ func update_accessibility_settings() -> void:
 	if _chat_input:
 		_chat_input.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		var scale = UIStyles.get_text_scale()
-		var current_size := _chat_input.get_theme_font_size("font_size")
+		var current_size: int = _chat_input.get_theme_font_size("font_size")
 		if current_size > 0:
 			_chat_input.add_theme_font_size_override("font_size", int(current_size * scale))
 
@@ -80,8 +79,6 @@ func _setup_ui() -> void:
 	_tabs = HBoxContainer.new()
 	_tabs.custom_minimum_size.y = 28
 	_tabs.focus_mode = Control.FOCUS_ALL
-	_tabs.accessible_name = "Chat Channel Tabs"
-	_tabs.accessible_description = "Click to switch between chat channels: Say, Zone, Party, Guild, Whisper."
 	_tabs.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	vbox.add_child(_tabs)
 	_create_channel_tabs()
@@ -96,8 +93,6 @@ func _setup_ui() -> void:
 	_chat_history.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
 	_chat_history.meta_underlined = false
 	_chat_history.focus_mode = Control.FOCUS_ALL
-	_chat_history.accessible_name = "Chat History"
-	_chat_history.accessible_description = "Displays chat messages. Use arrow keys to scroll through history."
 	_chat_history.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	vbox.add_child(_chat_history)
 
@@ -110,8 +105,6 @@ func _setup_ui() -> void:
 	_channel_selector = OptionButton.new()
 	_channel_selector.custom_minimum_size.x = 70
 	_channel_selector.focus_mode = Control.FOCUS_ALL
-	_channel_selector.accessible_name = "Channel Selector"
-	_channel_selector.accessible_description = "Select the chat channel to send messages to."
 	_channel_selector.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	_populate_channel_dropdown()
 	_channel_selector.item_selected.connect(_on_channel_selected)
@@ -123,8 +116,6 @@ func _setup_ui() -> void:
 	_chat_input.placeholder_text = "Press Enter to chat..."
 	_chat_input.max_length = ChatService.MAX_MESSAGE_LENGTH
 	_chat_input.focus_mode = Control.FOCUS_ALL
-	_chat_input.accessible_name = "Chat Input"
-	_chat_input.accessible_description = "Type your message and press Enter to send. Press Escape to cancel."
 	_chat_input.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	_chat_input.text_submitted.connect(_on_message_submitted)
 	input_container.add_child(_chat_input)
@@ -339,8 +330,6 @@ func _add_player_info_header(header: HBoxContainer) -> void:
 		admin_btn.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 		admin_btn.add_theme_font_size_override("font_size", 10)
 		admin_btn.focus_mode = Control.FOCUS_ALL
-		admin_btn.accessible_name = "Admin Shell"
-		admin_btn.accessible_description = "Open the admin command shell."
 		admin_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		admin_btn.pressed.connect(_toggle_admin_shell)
 		header.add_child(admin_btn)
@@ -369,7 +358,6 @@ func _create_admin_shell() -> void:
 	panel.offset_right = -10
 	panel.offset_bottom = 200
 	panel.focus_mode = Control.FOCUS_ALL
-	panel.accessible_name = "Admin Shell"
 	panel.accessible_description = "Administrative command shell. Type 'help' for available commands."
 
 	var style := UIStyles.create_panel_style(
@@ -397,8 +385,6 @@ func _create_admin_shell() -> void:
 	admin_input.name = "AdminInput"
 	admin_input.placeholder_text = "> admin command..."
 	admin_input.focus_mode = Control.FOCUS_ALL
-	admin_input.accessible_name = "Admin Command Input"
-	admin_input.accessible_description = "Type admin commands here. Press Enter to execute."
 	admin_input.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	admin_input.text_submitted.connect(_on_admin_command)
 	vbox.add_child(admin_input)
@@ -410,8 +396,6 @@ func _create_admin_shell() -> void:
 	admin_output.bbcode_enabled = true
 	admin_output.add_theme_color_override("default_color", UIStyles.COLORS.text_primary)
 	admin_output.focus_mode = Control.FOCUS_ALL
-	admin_output.accessible_name = "Admin Command Output"
-	admin_output.accessible_description = "Displays the results of admin commands."
 	admin_output.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	vbox.add_child(admin_output)
 

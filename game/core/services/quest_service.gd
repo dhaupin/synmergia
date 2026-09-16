@@ -451,7 +451,7 @@ func _load_player_quests() -> void:
 	var store := DictStore.new()
 	_player_quests.clear()
 	for key in store.all_keys():
-		var player_id := key.replace(_kv_prefix, "")
+		var player_id: String = key.replace(_kv_prefix, "")
 		var data: Dictionary = store.get_value(key) as Dictionary
 		if data == null:
 			data = {}

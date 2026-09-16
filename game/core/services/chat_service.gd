@@ -3,6 +3,7 @@
 extends Node
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 # Entity is not an autoload (class_name only). ChatService uses

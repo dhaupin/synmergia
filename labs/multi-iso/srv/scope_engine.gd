@@ -3,17 +3,19 @@ extends RefCounted
 
 class_name ScopeEngine
 
+const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
+
 const TOP_WINS = "TOP_WINS"
 const BOTTOM_WINS = "BOTTOM_WINS"
 const PREDICATE_GATED = "PREDICATE_GATED"
 const ALL_WINS_WITH_EFFECT = "ALL_WINS_WITH_EFFECT"
 
-var _root: Scope = null
+var _root: Object = null
 var _scopes: Dictionary = {}
 var _stacks: Dictionary = {}
 
 func load_hierarchy(path: String) -> bool:
-	var hierarchy: ScopeHierarchy = ResourceLoader.load(path)
+	var hierarchy: Object = ResourceLoader.load(path)
 	if not hierarchy:
 		push_error("ScopeEngine: Failed to load hierarchy from '%s'" % path)
 		return false
@@ -44,10 +46,10 @@ func load_hierarchy(path: String) -> bool:
 		push_error("ScopeEngine: No root node found in hierarchy")
 		return false
 
-	_root = Scope.new(root_node.name, null, root_node.environment_path, root_node.rules_overrides)
+	_root = ScopeScript.new(root_node.name, null, root_node.environment_path, root_node.rules_overrides)
 	_scopes[root_node.name] = _root
 
-	var built = {root_node.name}
+	var built = {root_node.name: true}
 	var changed = true
 	while changed:
 		changed = false
@@ -56,7 +58,7 @@ func load_hierarchy(path: String) -> bool:
 				continue
 			if node.parent_name in built:
 				var parent_scope = _scopes[node.parent_name]
-				var scope = Scope.new(node.name, parent_scope, node.environment_path, node.rules_overrides)
+				var scope = ScopeScript.new(node.name, parent_scope, node.environment_path, node.rules_overrides)
 				_scopes[node.name] = scope
 				built[node.name] = true
 				changed = true
@@ -99,7 +101,7 @@ func pop(player_id: String) -> bool:
 		_stacks.erase(player_id)
 	return true
 
-func get_stack(player_id: String) -> Array[Scope]:
+func get_stack(player_id: String) -> Array[ScopeScript]:
 	if not _stacks.has(player_id):
 		return []
 	return _stacks[player_id].duplicate()

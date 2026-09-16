@@ -341,7 +341,7 @@ func _load_entity_metadata() -> void:
 		if not key.begins_with(_kv_prefix):
 			continue
 		var entity_id: String = key.substr(_kv_prefix.length())
-		var data: Dictionary = store.get(key)
+		var data: Dictionary = store.get_kv(key)
 		if data.is_empty():
 			continue
 		var metadata := _metadata_from_dict(data)
@@ -359,4 +359,4 @@ func _persist_entity_metadata(entity_id: String) -> void:
 	if data.is_empty():
 		store.erase(key)
 	else:
-		store.set(key, data)
+		store.set_kv(key, data)

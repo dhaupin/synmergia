@@ -60,10 +60,7 @@ func _ready() -> void:
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
-	accessible_name = "Notification Toast System"
-	accessible_description = "Displays game notifications. Press N to open Notification Center."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update toast stack children
 	if _toast_stack:
 		for child in _toast_stack.get_children():
@@ -71,7 +68,7 @@ func update_accessibility_settings() -> void:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
 				if style:
-					if UIStyles.is_high_contrast_enabled():
+					if high_contrast:
 						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 					else:
@@ -95,7 +92,7 @@ func update_accessibility_settings() -> void:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var style: StyleBoxFlat = child.get_theme_stylebox("panel")
 				if style:
-					if UIStyles.is_high_contrast_enabled():
+					if high_contrast:
 						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 			elif child is Button:
@@ -142,9 +139,8 @@ func _create_notification_center() -> Control:
 	panel.offset_right = 250
 	panel.offset_bottom = 200
 	panel.focus_mode = Control.FOCUS_ALL
-	panel.accessible_name = "Notification Center"
-	panel.accessible_description = "History of all notifications. Use arrow keys to navigate, Enter to activate, Escape to close."
-
+	panel.
+	panel.
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
 	style.border_color = UIStyles.COLORS.accent_gold
@@ -180,8 +176,8 @@ func _create_notification_center() -> Control:
 	close_btn.text = "[X]"
 	close_btn.custom_minimum_size = Vector2(30, 30)
 	close_btn.focus_mode = Control.FOCUS_ALL
-	close_btn.accessible_name = "Close Notification Center"
-	close_btn.accessible_description = "Press to close the notification center"
+	close_btn.
+	close_btn.
 	close_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	close_btn.pressed.connect(_close_notification_center)
 	header.add_child(close_btn)
@@ -190,8 +186,8 @@ func _create_notification_center() -> Control:
 	clear_all_btn.text = "Clear All"
 	clear_all_btn.custom_minimum_size = Vector2(80, 30)
 	clear_all_btn.focus_mode = Control.FOCUS_ALL
-	clear_all_btn.accessible_name = "Clear All Notifications"
-	clear_all_btn.accessible_description = "Remove all notifications from history"
+	clear_all_btn.
+	clear_all_btn.
 	clear_all_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	close_btn.pressed.connect(_clear_all_notifications)
 	header.add_child(clear_all_btn)
@@ -338,7 +334,7 @@ func _create_history_item(entry: Dictionary, index: int) -> Control:
 	delete_btn.custom_minimum_size = Vector2(24, 24)
 	delete_btn.add_theme_color_override("font_color", UIStyles.COLORS.error)
 	delete_btn.focus_mode = Control.FOCUS_ALL
-	delete_btn.accessible_name = "Delete Notification"
+	delete_btn.
 	delete_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	delete_btn.pressed.connect(func(): _remove_history_item(index))
 	hbox.add_child(delete_btn)

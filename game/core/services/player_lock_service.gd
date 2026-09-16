@@ -315,11 +315,11 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix):
 			var player_id = key.substr(_kv_prefix.length())
-			_player_locks[player_id] = store.get(key)
+			_player_locks[player_id] = store.get_kv(key)
 
 func _persist_lock(player_id: String) -> void:
 	var store := DictStore.new()
 	if _player_locks.has(player_id):
-		store.set(_kv_prefix + player_id, _player_locks[player_id])
+		store.set_kv(_kv_prefix + player_id, _player_locks[player_id])
 	else:
 		store.erase(_kv_prefix + player_id)

@@ -46,7 +46,7 @@ func _init(base_url: String = "http://localhost:8080", use_local_fallback: bool 
 	
 	# Initialize local fallback
 	if _use_local_fallback:
-		var RulesEngineScript = preload("res://labs/multi-iso/srv/rules_engine.gd")
+		var RulesEngineScript = preload("res://labs/srv/rules_engine.gd")
 		_local_rules_engine = RulesEngineScript.new()
 		_init_local_rules()
 	
@@ -240,7 +240,7 @@ func create_scope(name: String, parent_id: String = "", environment: String = ""
 	return _create_scope_local(name, parent_id, environment, overrides)
 
 func _create_scope_local(name: String, parent_id: String, environment: String, overrides: Dictionary) -> Dictionary:
-	var ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
+	var ScopeScript = preload("res://labs/srv/scope.gd")
 	var parent = null
 	# In local mode, we'd need a scope registry - simplified for now
 	var scope = ScopeScript.new(name, parent, environment, overrides)
@@ -299,7 +299,7 @@ func tree_insert(tree_name: String, path: String, value: Dictionary, schema: Str
 	return _tree_insert_local(tree_name, path, value, schema)
 
 func _tree_insert_local(tree_name: String, path: String, value: Dictionary, schema: String) -> Dictionary:
-	var T3Script = preload("res://labs/multi-iso/kv/t3.gd")
+	var T3Script = preload("res://labs/kv/t3.gd")
 	var t3 = T3Script.new()
 	
 	# Get schema
@@ -381,11 +381,11 @@ func _post(endpoint: String, data: Dictionary) -> Dictionary:
 
 func _get_local_schema(name: String) -> Object:
 	match name:
-		"rules": return preload("res://labs/multi-iso/srv/rules_schema.gd").new()
+		"rules": return preload("res://labs/srv/rules_schema.gd").new()
 		"seed": return preload("res://game/data/roots/seed_schema.gd").new()
 		"state": return preload("res://game/data/roots/state_schema.gd").new()
-		"definition": return preload("res://labs/multi-iso/kv/definition_schema.gd").new()
-		_: return preload("res://labs/multi-iso/srv/rules_schema.gd").new()
+		"definition": return preload("res://labs/kv/definition_schema.gd").new()
+		_: return preload("res://labs/srv/rules_schema.gd").new()
 
 ## Status and configuration
 func get_circuit_state() -> String:
@@ -406,7 +406,7 @@ func set_max_retries(retries: int) -> void:
 func enable_local_fallback(enabled: bool) -> void:
 	_use_local_fallback = enabled
 	if enabled and not _local_rules_engine:
-		var RulesEngineScript = preload("res://labs/multi-iso/srv/rules_engine.gd")
+		var RulesEngineScript = preload("res://labs/srv/rules_engine.gd")
 		_local_rules_engine = RulesEngineScript.new()
 		_init_local_rules()
 

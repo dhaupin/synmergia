@@ -403,31 +403,31 @@ func _load_factions() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix + "faction:"):
 			var faction_id = key.substr(_kv_prefix.length() + 8)
-			_factions[faction_id] = store.get(key)
+			_factions[faction_id] = store.get_kv(key)
 		elif key.begins_with(_kv_prefix + "rep:"):
 			var player_id = key.substr(_kv_prefix.length() + 4)
-			_player_reputations[player_id] = store.get(key)
+			_player_reputations[player_id] = store.get_kv(key)
 		elif key.begins_with(_kv_prefix + "alliance:"):
 			var guild_id = key.substr(_kv_prefix.length() + 8)
-			_guild_alliances[guild_id] = store.get(key)
+			_guild_alliances[guild_id] = store.get_kv(key)
 
 func _persist_faction(faction_id: String) -> void:
 	var store := DictStore.new()
 	if _factions.has(faction_id):
-		store.set(_kv_prefix + "faction:" + faction_id, _factions[faction_id])
+		store.set_kv(_kv_prefix + "faction:" + faction_id, _factions[faction_id])
 	else:
 		store.erase(_kv_prefix + "faction:" + faction_id)
 
 func _persist_reputation(player_id: String) -> void:
 	var store := DictStore.new()
 	if _player_reputations.has(player_id):
-		store.set(_kv_prefix + "rep:" + player_id, _player_reputations[player_id])
+		store.set_kv(_kv_prefix + "rep:" + player_id, _player_reputations[player_id])
 	else:
 		store.erase(_kv_prefix + "rep:" + player_id)
 
 func _persist_alliances(guild_id: String) -> void:
 	var store := DictStore.new()
 	if _guild_alliances.has(guild_id):
-		store.set(_kv_prefix + "alliance:" + guild_id, _guild_alliances[guild_id])
+		store.set_kv(_kv_prefix + "alliance:" + guild_id, _guild_alliances[guild_id])
 	else:
 		store.erase(_kv_prefix + "alliance:" + guild_id)

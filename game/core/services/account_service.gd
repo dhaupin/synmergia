@@ -278,10 +278,10 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix + "account:"):
 			var account_id = key.substr(_kv_prefix.length() + 8)
-			_accounts[account_id] = store.get(key)
+			_accounts[account_id] = store.get_kv(key)
 		elif key.begins_with(_kv_prefix + "char:"):
 			var char_id = key.substr(_kv_prefix.length() + 5)
-			_characters[char_id] = store.get(key)
+			_characters[char_id] = store.get_kv(key)
 	# Rebuild mappings from loaded data
 	for char_id in _characters:
 		var char_data = _characters[char_id]
@@ -297,13 +297,13 @@ func _load_state() -> void:
 func _persist_account(account_id: String) -> void:
 	var store := DictStore.new()
 	if _accounts.has(account_id):
-		store.set(_kv_prefix + "account:" + account_id, _accounts[account_id])
+		store.set_kv(_kv_prefix + "account:" + account_id, _accounts[account_id])
 	else:
 		store.erase(_kv_prefix + "account:" + account_id)
 
 func _persist_character(character_id: String) -> void:
 	var store := DictStore.new()
 	if _characters.has(character_id):
-		store.set(_kv_prefix + "char:" + character_id, _characters[character_id])
+		store.set_kv(_kv_prefix + "char:" + character_id, _characters[character_id])
 	else:
 		store.erase(_kv_prefix + "char:" + character_id)

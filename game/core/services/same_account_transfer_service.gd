@@ -311,11 +311,11 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix):
 			var account_id = key.substr(_kv_prefix.length())
-			_transfer_stats[account_id] = store.get(key)
+			_transfer_stats[account_id] = store.get_kv(key)
 
 func _persist_transfer_stats(account_id: String) -> void:
 	var store := DictStore.new()
 	if _transfer_stats.has(account_id):
-		store.set(_kv_prefix + account_id, _transfer_stats[account_id])
+		store.set_kv(_kv_prefix + account_id, _transfer_stats[account_id])
 	else:
 		store.erase(_kv_prefix + account_id)

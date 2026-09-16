@@ -63,10 +63,7 @@ func _ready() -> void:
 
 func _setup_accessibility() -> void:
 	focus_mode = Control.FOCUS_ALL
-	accessible_name = "Minimap"
-	accessible_description = "Interactive minimap showing your position, nearby entities, and map markers. Use mouse wheel to zoom, right-click for context menu. Layer toggles at bottom."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update zoom slider
 	if _zoom_slider and is_instance_valid(_zoom_slider):
 		_zoom_slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
@@ -228,8 +225,8 @@ func _setup_ui() -> void:
 	_zoom_slider.offset_left = 20
 	_zoom_slider.offset_right = -20
 	_zoom_slider.focus_mode = Control.FOCUS_ALL
-	_zoom_slider.accessible_name = "Map Zoom"
-	_zoom_slider.accessible_description = "Adjust minimap zoom level. Values: 0.5x, 1x, 2x, 4x."
+	_zoom_slider.
+	_zoom_slider.
 	_zoom_slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	_zoom_slider.value_changed.connect(_on_zoom_changed)
 	panel.add_child(_zoom_slider)

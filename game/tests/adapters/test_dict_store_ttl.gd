@@ -12,11 +12,11 @@ func _init() -> void:
 
 func _test_ttl_expiration() -> bool:
 	var store := DictStore.new()
-	store.set("ttl:test", {"val": 42}, 2)
+	store.set_kv("ttl:test", {"val": 42}, 2)
 	if not store.has_key("ttl:test"):
 		push_error("DictStore key missing immediately after set")
 		return false
-	var data = store.get("ttl:test")
+	var data = store.get_kv("ttl:test")
 	if data.get("val") != 42:
 		push_error("DictStore TTL get returned wrong data")
 		return false
@@ -31,9 +31,9 @@ func _test_ttl_expiration() -> bool:
 
 func _test_sweep_expired() -> bool:
 	var store := DictStore.new()
-	store.set("sweep:a", {"v": 1}, 1)
-	store.set("sweep:b", {"v": 2}, 1)
-	store.set("sweep:c", {"v": 3}, 0)  # no expiry
+	store.set_kv("sweep:a", {"v": 1}, 1)
+	store.set_kv("sweep:b", {"v": 2}, 1)
+	store.set_kv("sweep:c", {"v": 3}, 0)  # no expiry
 	var removed = store.sweep_expired()
 	if removed < 2:
 		push_error("DictStore sweep_expired removed %d, expected >= 2" % removed)

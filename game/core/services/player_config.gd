@@ -340,5 +340,5 @@ func _load_settings(scope: String, defaults: Dictionary) -> Dictionary:
 
 func _save_settings(scope: String, source: Dictionary) -> bool:
 	var store := DictStore.new()
-	store.set("player:" + scope, source)
+	store.set_kv("player:" + scope, source)
 	return true

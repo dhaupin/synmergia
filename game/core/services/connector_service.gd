@@ -197,11 +197,11 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix):
 			var agent_id = key.substr(_kv_prefix.length())
-			_connected_agents[agent_id] = store.get(key)
+			_connected_agents[agent_id] = store.get_kv(key)
 
 func _persist_agent(agent_id: String) -> void:
 	var store := DictStore.new()
 	if _connected_agents.has(agent_id):
-		store.set(_kv_prefix + agent_id, _connected_agents[agent_id])
+		store.set_kv(_kv_prefix + agent_id, _connected_agents[agent_id])
 	else:
 		store.erase(_kv_prefix + agent_id)

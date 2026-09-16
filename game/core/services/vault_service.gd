@@ -450,18 +450,18 @@ func _load_vaults() -> void:
 	var keys := store.all_keys()
 	for key in keys:
 		if key.begins_with(_kv_personal):
-			var player_id := key.substr(_kv_personal.length())
+			var player_id: String = key.substr(_kv_personal.length())
 			var data = store.get_value(key)
 			if data:
 				_personal_vaults[player_id] = data
 		if key.begins_with(_kv_guild):
-			var guild_id := key.substr(_kv_guild.length())
-			var data := store.get_value(key)
+			var guild_id: String = key.substr(_kv_guild.length())
+			var data: Dictionary = store.get_value(key)
 			if data:
 				_guild_vaults[guild_id] = data
 		if key.begins_with(_kv_account):
-			var account_id := key.substr(_kv_account.length())
-			var data := store.get_value(key)
+			var account_id: String = key.substr(_kv_account.length())
+			var data: Dictionary = store.get_value(key)
 			if data:
 				_account_vaults[account_id] = data
 

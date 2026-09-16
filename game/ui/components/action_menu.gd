@@ -4,8 +4,6 @@
 extends "res://ui/components/ui_panel.gd"
 class_name ActionMenu
 
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-
 const NPCData = preload("res://core/schemas/npc_data.gd")
 # Entity is not an autoload (class_name only). ActionMenu uses
 # Entity.EntityType.X for menu item classification, which requires
@@ -112,6 +110,8 @@ func _on_close() -> void:
 	_target_id = ""
 	_target_type = 0
 	_is_touch_opened = false
+
+func _filter_npc_actions(actions: Array, npc_data: NPCData) -> Array:
 	var filtered := []
 	for action in actions:
 		var id: String = action.get("id", "")

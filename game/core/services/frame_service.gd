@@ -9,9 +9,9 @@
 ## Spec: labs/prd-frame-authority.md
 extends Node
 
-const T3Script = preload("res://labs/multi-iso/kv/t3.gd")
-const StateTreeScript = preload("res://labs/multi-iso/kv/state_tree.gd")
-const SeedChainScript = preload("res://labs/multi-iso/kv/seed_chain.gd")
+const T3Script = preload("res://labs/kv/t3.gd")
+const StateTreeScript = preload("res://labs/kv/state_tree.gd")
+const SeedChainScript = preload("res://labs/kv/seed_chain.gd")
 
 signal frame_entered(player_id: String, frame_id: String, frame_seed: PackedByteArray)
 signal frame_exited(player_id: String, frame_id: String)
@@ -31,6 +31,7 @@ class FrameEnv:
 		entered_at = Time.get_unix_time_from_system()
 
 var _player_frames: Dictionary = {}   # player_id -> Array[FrameEnv]
+var _player_state_trees: Dictionary = {}  # player_id -> StateTreeScript
 
 func _ready() -> void:
 	GameLog.info("FrameService: Ready")
@@ -45,7 +46,8 @@ func enter_frame(player_id: String, frame_id: String) -> bool:
 			GameLog.warn("FrameService: %s already in frame %s" % [player_id, stack[-1].frame_id])
 			return false
 	
-	var frame_seed = Crypto.random_bytes(32)
+	var crypto := Crypto.new()
+	var frame_seed = crypto.generate_random_bytes(32)
 	var env = FrameEnv.new(frame_id, frame_seed)
 	
 	if not _player_frames.has(player_id):
@@ -113,16 +115,14 @@ func get_player_state_tree(player_id: String) -> StateTreeScript:
 		_player_frames[player_id] = []
 	var stack: Array = _player_frames[player_id]
 	
-	if not hasattr(self, "_player_state_trees"):
-		_player_state_trees = {}
 	if not _player_state_trees.has(player_id):
 		_player_state_trees[player_id] = StateTreeScript.new()
 	return _player_state_trees[player_id]
 
 ## Sets a custom state tree for the player (for testing/restore).
 func set_state_tree(player_id: String, tree: StateTreeScript) -> void:
-	if not hasattr(self, "_player_state_trees"):
-		_player_state_trees = {}
+	if not _player_state_trees.has(player_id):
+		_player_state_trees[player_id] = StateTreeScript.new()
 	_player_state_trees[player_id] = tree
 
 ## Returns true if the player is currently in a frame.

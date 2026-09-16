@@ -145,7 +145,7 @@ func _load_shards() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix):
 			var shard_id: String = key.substr(_kv_prefix.length())
-			var data: Dictionary = ds.get(key)
+			var data: Dictionary = ds.get_kv(key)
 			if not data.is_empty():
 				_shard_info[shard_id] = data
 				if not _connected_shards.has(shard_id):
@@ -156,6 +156,6 @@ func _persist_shard(shard_id: String) -> void:
 	var ds := DictStore.new()
 	var key := _kv_prefix + shard_id
 	if _shard_info.has(shard_id) and not _shard_info[shard_id].is_empty():
-		ds.set(key, _shard_info[shard_id])
+		ds.set_kv(key, _shard_info[shard_id])
 	else:
 		ds.erase(key)

@@ -20,7 +20,7 @@ func _test_full_persistence_cycle() -> bool:
 		"vsync_enabled": true,
 		"music_volume": 0.8
 	}
-	store.set("player:global", player_settings)
+	store.set_kv("player:global", player_settings)
 
 	# Service B: LoginService saves account
 	var account := {
@@ -28,7 +28,7 @@ func _test_full_persistence_cycle() -> bool:
 		"display_name": "Test User",
 		"created_at": Time.get_unix_time_from_system()
 	}
-	store.set("login:account:testuser", account)
+	store.set_kv("login:account:testuser", account)
 
 	# Service C: GuildService saves guild
 	var guild := {
@@ -37,20 +37,20 @@ func _test_full_persistence_cycle() -> bool:
 		"leader_id": "player_1",
 		"members": [{"id": "player_1", "rank": 0}]
 	}
-	store.set("guild:guild_1", guild)
+	store.set_kv("guild:guild_1", guild)
 
 	# Verify all data is readable
-	var loaded_settings = store.get("player:global")
+	var loaded_settings = store.get_kv("player:global")
 	if loaded_settings.get("graphics_quality") != 2:
 		push_error("E2E: settings not persisted")
 		return false
 
-	var loaded_account = store.get("login:account:testuser")
+	var loaded_account = store.get_kv("login:account:testuser")
 	if loaded_account.get("username") != "testuser":
 		push_error("E2E: account not persisted")
 		return false
 
-	var loaded_guild = store.get("guild:guild_1")
+	var loaded_guild = store.get_kv("guild:guild_1")
 	if loaded_guild.get("name") != "Test Guild":
 		push_error("E2E: guild not persisted")
 		return false
@@ -82,7 +82,7 @@ func _test_batch_operations() -> bool:
 	store.set_batch(batch_data)
 
 	# Verify non-empty persisted
-	if store.get("batch:1").get("val") != 1:
+	if store.get_kv("batch:1").get("val") != 1:
 		push_error("E2E: batch set failed")
 		return false
 

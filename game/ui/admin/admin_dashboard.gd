@@ -33,7 +33,7 @@ func _ready() -> void:
 	add_child(_shell)
 	_shell.command_executed.connect(_on_command_executed)
 
-_refresh_player_list()
+	_refresh_player_list()
 	_bind_admin_signals()
 
 	# Auto-refresh player list

@@ -27,8 +27,8 @@ const ShardParameterDefinitionScript = preload("res://core/schemas/shard_paramet
 
 ## State tree wrapper (labs/multi-iso/kv/state_tree.gd). Loaded at runtime
 ## to avoid a parse-time dependency on the frame primitive.
-const T3Script = preload("res://labs/multi-iso/kv/t3.gd")
-const StateTreeScript = preload("res://labs/multi-iso/kv/state_tree.gd")
+const T3Script = preload("res://labs/kv/t3.gd")
+const StateTreeScript = preload("res://labs/kv/state_tree.gd")
 
 ## Per-shard state trees: shard_id -> StateTree wrapper
 var _state_trees: Dictionary = {}
@@ -88,7 +88,7 @@ func get_definition(param_name: String) -> ShardParameterDefinitionScript:
 ##
 ## There is no public way to change criticality at runtime (config-time
 ## only, see labs/prd-critical-params.md US-005).
-func set(shard_id: String, param_name: String, value: Variant, actor_id: String = "") -> void:
+func set_param(shard_id: String, param_name: String, value: Variant, actor_id: String = "") -> void:
 	var def := get_definition(param_name)
 	if def == null:
 		return
@@ -100,7 +100,7 @@ func set(shard_id: String, param_name: String, value: Variant, actor_id: String 
 
 ## Apply a critical parameter immediately to the shard's state tree.
 func _apply_critical(shard_id: String, param_name: String, value: Variant, actor_id: String) -> void:
-	var tree := _get_state_tree(shard_id)
+	var tree: Variant = _get_state_tree(shard_id)
 	if tree == null:
 		return
 	var path := "%s/%s/parameters/%s" % [_PARAM_PATH_PREFIX, shard_id, param_name]
@@ -143,7 +143,7 @@ func _apply_queue(shard_id: String) -> void:
 	if not _queues.has(shard_id):
 		return
 	var queue: Dictionary = _queues[shard_id]
-	var tree := _get_state_tree(shard_id)
+	var tree: Variant = _get_state_tree(shard_id)
 	if tree == null:
 		_queues.erase(shard_id)
 		return
@@ -164,10 +164,10 @@ func _on_coalesce_timeout(shard_id: String) -> void:
 
 
 ## Lazily build (or return) the StateTree wrapper for a shard.
-func _get_state_tree(shard_id: String):
+func _get_state_tree(shard_id: String) -> Variant:
 	if _state_trees.has(shard_id):
 		return _state_trees[shard_id]
-	var t3 := T3Script.new()
+	var t3: Variant = T3Script.new()
 	var wrapper = StateTreeScript.new(t3)
 	_state_trees[shard_id] = wrapper
 	return wrapper

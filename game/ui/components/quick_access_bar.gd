@@ -33,23 +33,20 @@ func _ready() -> void:
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
-	accessible_name = "Quick Access Bar"
-	accessible_description = "Consumable items hotbar with 6 slots. Press F1-F6 to use items. Right-click to clear slot."
-
 func _on_open() -> void:
 	pass
 
 func _on_close() -> void:
 	pass
 
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for all slots
 	for slot in _slots:
 		if slot and is_instance_valid(slot):
 			slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			var style: StyleBoxFlat = slot.get_theme_stylebox("panel")
 			if style:
-				if UIStyles.is_high_contrast_enabled():
+				if high_contrast:
 					style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 					style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 				else:
@@ -369,7 +366,7 @@ func _clear_slot(index: int) -> void:
 	if cooldown_text:
 		cooldown_text.visible = false
 	if style:
-		style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if UIStyles.is_high_contrast_enabled() else UIStyles.COLORS.border
+		style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if high_contrast else UIStyles.COLORS.border
 
 	slot_cleared.emit(index)
 
@@ -394,7 +391,7 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 		if low_warning:
 			low_warning.visible = false
 		if style:
-			style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if UIStyles.is_high_contrast_enabled() else UIStyles.COLORS.border
+			style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if high_contrast else UIStyles.COLORS.border
 		return
 
 	_slot_items[index] = item_data
@@ -411,10 +408,10 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 		if low_warning and style:
 			if qty > 0 and qty < 3:
 				low_warning.visible = true
-				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.warning if UIStyles.is_high_contrast_enabled() else UIStyles.COLORS.warning
+				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.warning if high_contrast else UIStyles.COLORS.warning
 			else:
 				low_warning.visible = false
-				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if UIStyles.is_high_contrast_enabled() else UIStyles.COLORS.border
+				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if high_contrast else UIStyles.COLORS.border
 
 	item_changed.emit(index, item_data)
 

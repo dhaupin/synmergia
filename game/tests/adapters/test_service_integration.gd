@@ -20,10 +20,10 @@ func _test_service_persistence_flow() -> bool:
 		"inventory": ["sword", "shield"],
 		"settings": {"music_volume": 0.8}
 	}
-	store.set(prefix + player_id, initial_data)
+	store.set_kv(prefix + player_id, initial_data)
 
 	# 2. Service reads back the data
-	var loaded = store.get(prefix + player_id)
+	var loaded = store.get_kv(prefix + player_id)
 	if loaded.get("gold") != 1000:
 		push_error("Service integration: gold mismatch")
 		return false
@@ -38,10 +38,10 @@ func _test_service_persistence_flow() -> bool:
 	loaded["gold"] = 1500
 	loaded["level"] = 6
 	loaded["inventory"].append("potion")
-	store.set(prefix + player_id, loaded)
+	store.set_kv(prefix + player_id, loaded)
 
 	# 4. Service reads updated data
-	var updated = store.get(prefix + player_id)
+	var updated = store.get_kv(prefix + player_id)
 	if updated.get("gold") != 1500:
 		push_error("Service integration: updated gold mismatch")
 		return false

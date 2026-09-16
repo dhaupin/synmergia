@@ -47,10 +47,7 @@ func _ready() -> void:
 
 func _setup_accessibility() -> void:
 	focus_mode = Control.FOCUS_ALL
-	accessible_name = "Buff Bar"
-	accessible_description = "Displays active buffs and debuffs with timers. Use Tab to navigate filters and effects."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for filter buttons
 	if _filter_bar:
 		for child in _filter_bar.get_children():
@@ -69,7 +66,7 @@ func update_accessibility_settings() -> void:
 					child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 					var style: StyleBoxFlat = child.get_theme_stylebox("panel")
 					if style:
-						if UIStyles.is_high_contrast_enabled():
+						if high_contrast:
 							style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 							style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 						else:
@@ -113,8 +110,8 @@ func _setup_ui() -> void:
 	player_only_btn.add_theme_font_size_override("font_size", 9)
 	player_only_btn.tooltip_text = "Show only player-cast effects"
 	player_only_btn.focus_mode = Control.FOCUS_ALL
-	player_only_btn.accessible_name = "Player Only Filter"
-	player_only_btn.accessible_description = "Toggle to show only effects cast by you."
+	player_only_btn.
+	player_only_btn.
 	player_only_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	player_only_btn.toggled.connect(_on_player_only_toggled)
 	_filter_bar.add_child(player_only_btn)
@@ -127,8 +124,8 @@ func _setup_ui() -> void:
 	category_btn.add_theme_font_size_override("font_size", 9)
 	category_btn.tooltip_text = "Filter by effect type"
 	category_btn.focus_mode = Control.FOCUS_ALL
-	category_btn.accessible_name = "Effect Category Filter"
-	category_btn.accessible_description = "Select effect category to filter by."
+	category_btn.
+	category_btn.
 	category_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	_filter_bar.add_child(category_btn)
 

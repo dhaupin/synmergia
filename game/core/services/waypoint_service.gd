@@ -171,11 +171,11 @@ func create_waypoint(player_id: String, name: String, position: Vector3, zone_id
 	# Add to storage
 	if not _player_waypoints.has(player_id):
 		_player_waypoints[player_id] = []
-    _player_waypoints[player_id].append(wp)
-    _persist_waypoints(player_id)
+	_player_waypoints[player_id].append(wp)
+	_persist_waypoints(player_id)
 
-    var wp_dict := wp.to_dict()
-    waypoint_created.emit(player_id, wp_dict)
+	var wp_dict := wp.to_dict()
+	waypoint_created.emit(player_id, wp_dict)
 	_notify_player(player_id, "Waypoint '%s' created" % name)
 
 	# Auto-activate if it's a quest waypoint
@@ -263,11 +263,11 @@ func update_waypoint(player_id: String, waypoint_id: String, updates: Dictionary
 
 	wp.updated_at = Time.get_unix_time_from_system()
 
-    var wp_dict := wp.to_dict()
-    waypoint_updated.emit(player_id, wp_dict)
-    _persist_waypoints(player_id)
+	var wp_dict := wp.to_dict()
+	waypoint_updated.emit(player_id, wp_dict)
+	_persist_waypoints(player_id)
 
-    return {"success": true, "waypoint": wp_dict}
+	return {"success": true, "waypoint": wp_dict}
 
 ## Delete a waypoint
 func delete_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
@@ -302,12 +302,12 @@ func delete_waypoint(player_id: String, waypoint_id: String) -> Dictionary:
 	if _active_waypoint.get(player_id, "") == waypoint_id:
 		deactivate_waypoint(player_id)
 
-    _player_waypoints[player_id].remove_at(index)
-    waypoint_deleted.emit(player_id, waypoint_id)
-    _notify_player(player_id, "Waypoint deleted")
-    _persist_waypoints(player_id)
+	_player_waypoints[player_id].remove_at(index)
+	waypoint_deleted.emit(player_id, waypoint_id)
+	_notify_player(player_id, "Waypoint deleted")
+	_persist_waypoints(player_id)
 
-    return {"success": true}
+	return {"success": true}
 
 ## Delete all non-locked waypoints
 func clear_waypoints(player_id: String, include_quest: bool = false) -> int:
@@ -546,29 +546,29 @@ func _is_valid_color(color: int) -> bool:
 
 ## Security: Validate icon enum
 func _is_valid_icon(icon: int) -> bool:
-    return icon >= 0 and icon < WaypointIcon.size()
+	return icon >= 0 and icon < WaypointIcon.size()
 
 func _load_waypoints() -> void:
-    var store := DictStore.new()
-    for key in store.all_keys():
-        if not key.begins_with(_kv_prefix):
-            continue
-        var player_id: String = key.substr(_kv_prefix.length())
-        var data: Array = store.get(key)
-        if data is Array:
-            var waypoints: Array = []
-            for wp_data in data:
-                if wp_data is Dictionary:
-                    waypoints.append(Waypoint.from_dict(wp_data))
-            if not waypoints.is_empty():
-                _player_waypoints[player_id] = waypoints
+	var store := DictStore.new()
+	for key in store.all_keys():
+		if not key.begins_with(_kv_prefix):
+			continue
+		var player_id: String = key.substr(_kv_prefix.length())
+		var data: Array = store.get_kv(key)
+		if data is Array:
+			var waypoints: Array = []
+			for wp_data in data:
+				if wp_data is Dictionary:
+					waypoints.append(Waypoint.from_dict(wp_data))
+			if not waypoints.is_empty():
+				_player_waypoints[player_id] = waypoints
 
 func _persist_waypoints(player_id: String) -> void:
-    var store := DictStore.new()
-    if _player_waypoints.has(player_id):
-        var data: Array = []
-        for wp in _player_waypoints[player_id]:
-            data.append(wp.to_dict())
-        store.set(_kv_prefix + player_id, data)
-    else:
-        store.erase(_kv_prefix + player_id)
+	var store := DictStore.new()
+	if _player_waypoints.has(player_id):
+		var data: Array = []
+		for wp in _player_waypoints[player_id]:
+			data.append(wp.to_dict())
+		store.set_kv(_kv_prefix + player_id, data)
+	else:
+		store.erase(_kv_prefix + player_id)

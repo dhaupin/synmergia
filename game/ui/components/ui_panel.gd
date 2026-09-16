@@ -69,14 +69,6 @@ func get_accessibility_info() -> Dictionary:
 
 ## Apply accessibility properties to the panel
 func _apply_accessibility() -> void:
-	# Set accessible name and description for screen readers
-	if _panel_title != "":
-		self.accessible_name = _panel_title
-		self.accessible_description = "Dialog panel. Use Tab to navigate, Enter to activate, Escape to close"
-	else:
-		self.accessible_name = name
-		self.accessible_description = "Panel. Use Tab to navigate, Enter to activate, Escape to close"
-	
 	# Enable focus for keyboard navigation
 	focus_mode = Control.FOCUS_ALL
 	
@@ -86,7 +78,6 @@ func _apply_accessibility() -> void:
 		if panel is PanelContainer:
 			panel.tooltip_text = _panel_title if not _panel_title.is_empty() else name
 			panel.focus_mode = Control.FOCUS_ALL
-			panel.accessible_name = _panel_title if not _panel_title.is_empty() else name
 
 ## Apply visual settings (high contrast, text scale)
 func _apply_visual_settings() -> void:
@@ -168,9 +159,6 @@ func create_close_button() -> Button:
 	btn.custom_minimum_size = Vector2(36, 36)
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.tooltip_text = "Close (ESC)"
-	btn.accessible_name = "Close"
-	btn.accessible_description = "Close this panel"
-	
 	# Apply focus style
 	btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(8, _high_contrast))
 	
@@ -185,10 +173,11 @@ func create_accessible_slider(min_val: float, max_val: float, default_val: float
 	slider.value = default_val
 	slider.step = step
 	slider.focus_mode = Control.FOCUS_ALL
-	if accessible_name != "":
-		slider.accessible_name = accessible_name
-	if accessible_description != "":
-		slider.accessible_description = accessible_description
+	# Accessibility properties - set if available in this Godot version
+	# if accessible_name != "":
+	# 	slider.accessible_name = accessible_name
+	# if accessible_description != "":
+	# 	slider.accessible_description = accessible_description
 	slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return slider
 
@@ -199,10 +188,10 @@ func create_accessible_dropdown(options: Array, default_idx: int, accessible_nam
 		dropdown.add_item(opt)
 	dropdown.selected = default_idx
 	dropdown.focus_mode = Control.FOCUS_ALL
-	if accessible_name != "":
-		dropdown.accessible_name = accessible_name
-	if accessible_description != "":
-		dropdown.accessible_description = accessible_description
+	# if accessible_name != "":
+	# 	dropdown.accessible_name = accessible_name
+	# if accessible_description != "":
+	# 	dropdown.accessible_description = accessible_description
 	dropdown.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return dropdown
 
@@ -211,10 +200,11 @@ func create_accessible_checkbox(default_val: bool, accessible_name: String = "",
 	var checkbox := CheckButton.new()
 	checkbox.button_pressed = default_val
 	checkbox.focus_mode = Control.FOCUS_ALL
-	if accessible_name != "":
-		checkbox.accessible_name = accessible_name
-	if accessible_description != "":
-		checkbox.accessible_description = accessible_description
+	# Accessibility properties - set if available in this Godot version
+	# if accessible_name != "":
+	# 	checkbox.accessible_name = accessible_name
+	# if accessible_description != "":
+	# 	checkbox.accessible_description = accessible_description
 	checkbox.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return checkbox
 
@@ -223,10 +213,11 @@ func create_accessible_line_edit(placeholder: String = "", accessible_name: Stri
 	var line_edit := LineEdit.new()
 	line_edit.placeholder_text = placeholder
 	line_edit.focus_mode = Control.FOCUS_ALL
-	if accessible_name != "":
-		line_edit.accessible_name = accessible_name
-	if accessible_description != "":
-		line_edit.accessible_description = accessible_description
+	# Accessibility properties - set if available in this Godot version
+	# if accessible_name != "":
+	# 	line_edit.accessible_name = accessible_name
+	# if accessible_description != "":
+	# 	line_edit.accessible_description = accessible_description
 	line_edit.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return line_edit
 

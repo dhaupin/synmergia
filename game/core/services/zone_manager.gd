@@ -574,7 +574,7 @@ func _load_zones() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix + "def:"):
 			var zone_id = key.substr(_kv_prefix.length() + 4)
-			var data = store.get(key)
+			var data = store.get_kv(key)
 			if not data.is_empty():
 				var zone_data := ZoneData.new()
 				zone_data.id = data.get("id", "")
@@ -624,7 +624,7 @@ func _persist_zone(zone_id: String) -> void:
 		"instance_capacity": zone_data.instance_capacity
 	}
 	var store = DictStore.new()
-	store.set(_kv_prefix + "def:" + zone_id, data)
+	store.set_kv(_kv_prefix + "def:" + zone_id, data)
 
 func _load_instances() -> void:
 	var store = DictStore.new()
@@ -633,7 +633,7 @@ func _load_instances() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix + "instance:"):
 			var instance_id = key.substr(_kv_prefix.length() + 9)
-			var data = store.get(key)
+			var data = store.get_kv(key)
 			if not data.is_empty():
 				_instances[instance_id] = data
 	var max_id := 0
@@ -658,7 +658,7 @@ func _persist_instances() -> void:
 			if zone_data is ZoneData:
 				result["zone_data"] = _serialize_zone_data(zone_data)
 			serializable[instance_id] = result
-		store.set(_kv_prefix + "instances", serializable)
+		store.set_kv(_kv_prefix + "instances", serializable)
 
 func _serialize_zone_data(zone_data: ZoneData) -> Dictionary:
 	var center = zone_data.zone_center

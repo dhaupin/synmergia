@@ -345,7 +345,7 @@ func get_server_info() -> Dictionary:
 
 func _load_state() -> void:
 	var store := DictStore.new()
-	var data: Dictionary = store.get(_kv_prefix + "state")
+	var data: Dictionary = store.get_kv(_kv_prefix + "state")
 	if not data.is_empty():
 		_state = data.get("state", ServerState.ONLINE)
 		_restart_scheduled = data.get("restart_scheduled", false)
@@ -364,4 +364,4 @@ func _persist_state() -> void:
 		"maintenance_message": _maintenance_message,
 		"maintenance_start_time": _maintenance_start_time
 	}
-	store.set(_kv_prefix + "state", data)
+	store.set_kv(_kv_prefix + "state", data)

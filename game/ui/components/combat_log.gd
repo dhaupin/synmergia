@@ -47,10 +47,7 @@ func _ready() -> void:
 
 func _setup_accessibility() -> void:
 	focus_mode = Control.FOCUS_ALL
-	accessible_name = "Combat Log"
-	accessible_description = "Displays combat events, damage, healing, and system messages. Use Tab to navigate filters and scroll through history."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update search box
 	if _search_box:
 		_search_box.add_theme_stylebox_override("focus", UIStyles.create_focus_style())

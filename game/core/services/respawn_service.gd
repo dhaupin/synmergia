@@ -786,14 +786,14 @@ func _load_state() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix + "karma:"):
 			var entity_id = key.substr(_kv_prefix.length() + 6)
-			_karma[entity_id] = int(store.get(key).get("karma", 0))
+			_karma[entity_id] = int(store.get_kv(key).get("karma", 0))
 		elif key.begins_with(_kv_prefix + "revives:"):
 			var entity_id = key.substr(_kv_prefix.length() + 8)
-			_revive_counts[entity_id] = store.get(key)
+			_revive_counts[entity_id] = store.get_kv(key)
 
 func _persist_karma(entity_id: String) -> void:
 	var store := DictStore.new()
 	if _karma.has(entity_id):
-		store.set(_kv_prefix + "karma:" + entity_id, {"karma": _karma[entity_id]})
+		store.set_kv(_kv_prefix + "karma:" + entity_id, {"karma": _karma[entity_id]})
 	else:
 		store.erase(_kv_prefix + "karma:" + entity_id)

@@ -20,7 +20,7 @@ extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
-const SeedChainScript = preload("res://labs/multi-iso/kv/seed_chain.gd")
+const SeedChainScript = preload("res://labs/kv/seed_chain.gd")
 
 ## This is the client-side gate. Server should always re-validate.
 
@@ -193,9 +193,9 @@ func build_seed_receipt(character_id: String) -> Resource:
 		return null
 	
 	# Derive the 4 seeds using SeedChain
-	var world_seed := SeedChainScript.derive_seed(scope_stack, "/world")
-	var shard_seed := SeedChainScript.derive_seed(scope_stack, "/shard")
-	var player_seed := SeedChainScript.derive_seed(scope_stack, "/player/%s" % character_id)
+	var world_seed: PackedByteArray = SeedChainScript.derive_seed(scope_stack, "/world")
+	var shard_seed: PackedByteArray = SeedChainScript.derive_seed(scope_stack, "/shard")
+	var player_seed: PackedByteArray = SeedChainScript.derive_seed(scope_stack, "/player/%s" % character_id)
 
 	# Check OpenSeedRegistry for active instance seed within TTL (D032 reconnect window)
 	var instance_seed: PackedByteArray
@@ -299,7 +299,7 @@ func _compute_manifest_hash() -> PackedByteArray:
 	if ZoneManager:
 		var zones = ZoneManager.get_loaded_zones() if ZoneManager.has_method("get_loaded_zones") else []
 		for zone_id in zones:
-			var b := zone_id.to_utf8_buffer()
+			var b: PackedByteArray = zone_id.to_utf8_buffer()
 			parts.append(b)
 	
 	# Combine all parts
@@ -391,7 +391,7 @@ func _load_accounts() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix) and key != _kv_prefix + "_init":
 			var account_id = key.substr(_kv_prefix.length())
-			var entry: Dictionary = store.get(key)
+			var entry: Dictionary = store.get_kv(key)
 			if not entry.is_empty():
 				_store[account_id] = entry
 
@@ -401,6 +401,6 @@ func _persist_account(account_id: String) -> void:
 	if entry.is_empty():
 		store.erase(_kv_prefix + account_id)
 	else:
-		store.set(_kv_prefix + account_id, entry)
+		store.set_kv(_kv_prefix + account_id, entry)
 	if not store.has_key(_kv_prefix + "_init"):
-		store.set(_kv_prefix + "_init", {"ts": Time.get_unix_time_from_system()})
+		store.set_kv(_kv_prefix + "_init", {"ts": Time.get_unix_time_from_system()})

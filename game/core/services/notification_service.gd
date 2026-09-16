@@ -771,14 +771,14 @@ func _load_notification_history() -> void:
 	for key in keys:
 		if key.begins_with(_kv_prefix):
 			var entity_id: String = key.substr(_kv_prefix.length())
-			var data: Array = store.get(key)
+			var data: Array = store.get_kv(key)
 			if data is Array and not data.is_empty():
 				_notification_history[entity_id] = data
 
 func _persist_notification_history(entity_id: String) -> void:
 	var store := DictStore.new()
 	if _notification_history.has(entity_id) and not _notification_history[entity_id].is_empty():
-		store.set(_kv_prefix + entity_id, _notification_history[entity_id])
+		store.set_kv(_kv_prefix + entity_id, _notification_history[entity_id])
 	else:
 		store.erase(_kv_prefix + entity_id)
 

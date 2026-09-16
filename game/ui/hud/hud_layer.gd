@@ -57,9 +57,7 @@ func _ready() -> void:
 	_setup_main_menu_bar()
 
 func _setup_accessibility() -> void:
-	accessible_name = "HUD Layer"
-	accessible_description = "Main game heads-up display containing action bars, health bars, minimap, combat log, and menus."
-	
+	# CanvasLayer doesn't have accessibility properties; skip
 	# Connect to accessibility setting changes from SettingsPanel
 	if EventHub:
 		EventHub.connect("accessibility_text_scale_changed", _on_text_scale_changed)

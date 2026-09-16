@@ -368,7 +368,7 @@ func _load_inventories() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix):
 			var player_id = key.substr(_kv_prefix.length())
-			var data: Dictionary = store.get(key)
+			var data: Dictionary = store.get_kv(key)
 			if not data.is_empty():
 				_player_inventories[player_id] = InventoryComponent.from_dict(data)
 
@@ -376,6 +376,6 @@ func _persist_inventory(player_id: String) -> void:
 	var store := DictStore.new()
 	if _player_inventories.has(player_id):
 		var inv: InventoryComponent = _player_inventories[player_id]
-		store.set(_kv_prefix + player_id, inv.to_dict())
+		store.set_kv(_kv_prefix + player_id, inv.to_dict())
 	else:
 		store.erase(_kv_prefix + player_id)

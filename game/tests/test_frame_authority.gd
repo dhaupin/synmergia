@@ -6,8 +6,8 @@
 extends SceneTree
 
 const FrameServiceScript = preload("res://core/services/frame_service.gd")
-const T3Script = preload("res://labs/multi-iso/kv/t3.gd")
-const StateTreeScript = preload("res://labs/multi-iso/kv/state_tree.gd")
+const T3Script = preload("res://labs/kv/t3.gd")
+const StateTreeScript = preload("res://labs/kv/state_tree.gd")
 
 var FrameService
 var ok: bool = true

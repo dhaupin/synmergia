@@ -7,7 +7,7 @@ const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
 
 # Cooldown definitions (action_type -> cooldown_seconds)
 const DEFAULT_COOLDOWN: float = 30.0
-var _cache: CacheWrapper = CacheWrapper.new()  # key: "cooldown:<player_id>:<action_type>" -> timestamp
+var _cache: CacheWrapper
 var _cooldowns: Dictionary = {}  # In-memory tracking for iteration
 
 # Default cooldowns for common actions
@@ -28,6 +28,7 @@ signal cooldown_ended(player_id: String, action_type: String)
 signal cooldown_tick(player_id: String, action_type: String, remaining: float)
 
 func _ready() -> void:
+	_cache = CacheWrapper.new()
 	GameLog.info("CooldownService: Ready")
 
 ## Check if action is on cooldown

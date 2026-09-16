@@ -46,10 +46,7 @@ func _ready() -> void:
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
-	accessible_name = "Action Bar"
-	accessible_description = "Skill hotbar with 12 slots per bar, 3 bars total. Use number keys 1-0, -, = to activate skills. Use Tab to navigate between slots."
-
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for all slots
 	for bar_slots in _slots:
 		for slot in bar_slots:
@@ -57,7 +54,7 @@ func update_accessibility_settings() -> void:
 				slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var style: StyleBoxFlat = slot.get_theme_stylebox("panel")
 				if style:
-					if UIStyles.is_high_contrast_enabled():
+					if high_contrast:
 						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
 						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
 					else:

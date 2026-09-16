@@ -3,8 +3,8 @@
 extends Node
 
 const RecursionGuard = preload("res://core/utils/recursion_guard.gd")
-const RulesEngineScript = preload("res://labs/multi-iso/srv/rules_engine.gd")
-const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
+const RulesEngineScript = preload("res://labs/srv/rules_engine.gd")
+const ScopeScript = preload("res://labs/srv/scope.gd")
 # Frame-level notification dispatch (see game/core/notifications/).
 # AppFirewall surfaces ban / block / recursion-guard events to admins
 # through the typed-Kind pipeline. ADMIN_ALERT -> ALERT + HIGH.
@@ -185,7 +185,7 @@ func can_connect(ip: String) -> Dictionary:
 	var result := _rules_engine.evaluate("ip_can_connect", context, _scope_stack)
 
 	if not result["allow"]:
-		var reason := result["reason"]
+		var reason: String = result["reason"]
 		var duration := 0
 		if is_permanently_banned:
 			reason = "Permanently banned"

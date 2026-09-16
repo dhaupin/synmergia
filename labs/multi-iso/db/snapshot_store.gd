@@ -21,7 +21,7 @@ func store_snapshot(root_hash: PackedByteArray, tree_state: Dictionary) -> bool:
 		"stored_at" = Time.get_unix_time_from_system(),
 	}
 	if not _ordered_keys.has(hash_str):
-		_order_keys()
+		_rebuild_ordered_keys()
 	return true
 
 func load_snapshot(root_hash: PackedByteArray) -> Dictionary:
@@ -53,7 +53,7 @@ func delete_snapshot(root_hash: PackedByteArray) -> bool:
 	if not _snapshots.has(hash_str):
 		return false
 	_snapshots.erase(hash_str)
-	_order_keys()
+	_rebuild_ordered_keys()
 	return true
 
 func has_snapshot(root_hash: PackedByteArray) -> bool:
@@ -67,10 +67,10 @@ func has_snapshot(root_hash: PackedByteArray) -> bool:
 func snapshot_count() -> int:
 	return _snapshots.size()
 
-func _order_keys() -> void:
-	_order_keys.clear()
-	_order_keys.assign(_snapshots.keys())
-	_order_keys.sort_custom(func(a: String, b: String) -> bool:
+func _rebuild_ordered_keys() -> void:
+	_ordered_keys.clear()
+	_ordered_keys.assign(_snapshots.keys())
+	_ordered_keys.sort_custom(func(a: String, b: String) -> bool:
 		var ta = _snapshots[a].get("stored_at", 0) as int
 		var tb = _snapshots[b].get("stored_at", 0) as int
 		return ta < tb

@@ -35,11 +35,9 @@ func _setup_touch() -> void:
 func _setup_accessibility() -> void:
 	# Enable focus for keyboard navigation
 	focus_mode = Control.FOCUS_ALL
-	accessible_name = "Main Menu Bar"
-	accessible_description = "Game menu bar with hamburger menu, character profile, and settings. Use Tab to navigate, Enter to activate, Escape to close."
 	# High contrast mode will be applied in _apply_high_contrast()
 
-func update_accessibility_settings() -> void:
+func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update main buttons
 	for btn in [_menu_button, _avatar_button, _settings_button]:
 		if btn and is_instance_valid(btn):
@@ -88,7 +86,7 @@ func _setup_ui() -> void:
 	_menu_button = _create_icon_button("=", "menu_button", "Open Main Menu (M)")
 	_menu_button.pressed.connect(_on_menu_button_pressed)
 	_menu_button.focus_mode = Control.FOCUS_ALL
-	_menu_button.accessible_name = "Main Menu"
+	_menu_button.
 	bar.add_child(_menu_button)
 	
 	# Center spacer (pushes avatar to center-ish, settings to right)
@@ -100,7 +98,7 @@ func _setup_ui() -> void:
 	_avatar_button = _create_avatar_button()
 	_avatar_button.pressed.connect(_on_avatar_pressed)
 	_avatar_button.focus_mode = Control.FOCUS_ALL
-	_avatar_button.accessible_name = "Character Profile"
+	_avatar_button.
 	bar.add_child(_avatar_button)
 	
 	# Right spacer
@@ -112,7 +110,7 @@ func _setup_ui() -> void:
 	_settings_button = _create_icon_button("*", "settings_button", "Settings (O)")
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_settings_button.focus_mode = Control.FOCUS_ALL
-	_settings_button.accessible_name = "Settings"
+	_settings_button.
 	bar.add_child(_settings_button)
 	
 	add_child(bar)
@@ -178,9 +176,8 @@ func _create_avatar_button() -> Button:
 	btn.toggle_mode = false
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.clip_contents = true
-	btn.accessible_name = "Character Profile"
-	btn.accessible_description = "Shows your character name and level. Press to open character panel."
-	
+	btn.
+	btn.
 	var style_normal := StyleBoxFlat.new()
 	style_normal.bg_color = _get_color("background_dark", Color(0.12, 0.12, 0.18, 0.9))
 	style_normal.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
@@ -265,9 +262,8 @@ func _create_expanded_panel() -> void:
 	_expanded_panel.offset_top = 76
 	_expanded_panel.custom_minimum_size = Vector2(220, 0)
 	_expanded_panel.focus_mode = Control.FOCUS_ALL
-	_expanded_panel.accessible_name = "Main Menu"
-	_expanded_panel.accessible_description = "Expanded menu with all panel shortcuts. Use arrow keys to navigate, Enter to select, Escape to close."
-	
+	_expanded_panel.
+	_expanded_panel.
 	var style := StyleBoxFlat.new()
 	style.bg_color = _get_color("background_dark", Color(0.08, 0.08, 0.12, 0.98))
 	style.border_color = _get_color("border_highlight", UIStyles.COLORS.border_highlight)
@@ -322,8 +318,8 @@ func _create_expanded_panel() -> void:
 	admin_btn.name = "menu_item_admin_panel"
 	admin_btn.visible = _is_admin_or_mod
 	admin_btn.tooltip_text = "Admin Panel (requires Moderator+)"
-	admin_btn.accessible_name = "Admin Panel"
-	admin_btn.accessible_description = "Open admin panel. Requires moderator permissions."
+	admin_btn.
+	admin_btn.
 	_menu_items.add_child(admin_btn)
 	
 	# Debug panel (only visible to ADMIN+ or dev mode)
@@ -331,14 +327,14 @@ func _create_expanded_panel() -> void:
 	debug_btn.name = "menu_item_debug_panel"
 	debug_btn.visible = _is_dev_mode
 	debug_btn.tooltip_text = "Debug Panel (requires Admin/Dev Mode)"
-	debug_btn.accessible_name = "Debug Panel"
-	debug_btn.accessible_description = "Open debug panel. Requires admin permissions or dev mode."
+	debug_btn.
+	debug_btn.
 	_menu_items.add_child(debug_btn)
 	
 	# Settings item
 	var settings_btn := _create_menu_item("settings", "Settings", "O", "[*]")
-	settings_btn.accessible_name = "Settings"
-	settings_btn.accessible_description = "Open settings panel."
+	settings_btn.
+	settings_btn.
 	_menu_items.add_child(settings_btn)
 	
 	# Separator
@@ -349,8 +345,8 @@ func _create_expanded_panel() -> void:
 	
 	# Close menu item
 	var close_btn := _create_menu_item("close", "Close Menu", "", "X")
-	close_btn.accessible_name = "Close Menu"
-	close_btn.accessible_description = "Close the main menu."
+	close_btn.
+	close_btn.
 	_menu_items.add_child(close_btn)
 	
 	add_child(_expanded_panel)
@@ -460,8 +456,7 @@ func show_expanded() -> void:
 	_expanded_panel.visible = true
 	_menu_button.text = "X"
 	_menu_button.tooltip_text = "Close Main Menu (M)"
-	_menu_button.accessible_name = "Close Menu"
-	
+	_menu_button.
 	# Focus first visible menu item for keyboard navigation
 	call_deferred("_focus_first_menu_item")
 	
@@ -483,8 +478,7 @@ func hide_expanded() -> void:
 	_is_expanded = false
 	_menu_button.text = "="
 	_menu_button.tooltip_text = "Open Main Menu (M)"
-	_menu_button.accessible_name = "Main Menu"
-	
+	_menu_button.
 	# Return focus to menu button
 	call_deferred("_return_focus_to_menu_button")
 	

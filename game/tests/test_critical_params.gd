@@ -156,6 +156,6 @@ func _on_param_applied(shard_id: String, param_name: String, value: Variant, act
 
 ## Build a fresh, empty state tree for a test shard.
 func _new_tree():
-	var T3Script = load("res://labs/multi-iso/kv/t3.gd")
-	var StateTreeScript = load("res://labs/multi-iso/kv/state_tree.gd")
+	var T3Script = load("res://labs/kv/t3.gd")
+	var StateTreeScript = load("res://labs/kv/state_tree.gd")
 	return StateTreeScript.new(T3Script.new())

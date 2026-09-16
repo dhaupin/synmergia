@@ -12,8 +12,8 @@ func _init() -> void:
 
 func _test_dict_store_crud() -> bool:
 	var store := DictStore.new()
-	store.set("test:key", {"foo": "bar", "num": 42})
-	var data = store.get("test:key")
+	store.set_kv("test:key", {"foo": "bar", "num": 42})
+	var data = store.get_kv("test:key")
 	if data.is_empty():
 		push_error("DictStore.get returned empty")
 		return false
@@ -37,9 +37,9 @@ func _test_dict_store_batch() -> bool:
 		"batch:c": {"val": 3}
 	}
 	store.set_batch(batch)
-	var a = store.get("batch:a")
-	var b = store.get("batch:b")
-	var c = store.get("batch:c")
+	var a = store.get_kv("batch:a")
+	var b = store.get_kv("batch:b")
+	var c = store.get_kv("batch:c")
 	if a.get("val") != 1 or b.get("val") != 2 or c.get("val") != 3:
 		push_error("DictStore.set_batch failed: %s, %s, %s" % [a, b, c])
 		return false

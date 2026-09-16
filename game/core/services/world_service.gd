@@ -389,12 +389,12 @@ func _load_gateways() -> void:
 	for key in store.all_keys():
 		if key.begins_with(_kv_prefix + "gateway:"):
 			var gateway_id = key.substr(_kv_prefix.length() + 8)
-			_gateways[gateway_id] = store.get(key)
+			_gateways[gateway_id] = store.get_kv(key)
 
 func _persist_gateway(gateway_id: String) -> void:
 	var store := DictStore.new()
 	if _gateways.has(gateway_id):
-		store.set(_kv_prefix + "gateway:" + gateway_id, _gateways[gateway_id])
+		store.set_kv(_kv_prefix + "gateway:" + gateway_id, _gateways[gateway_id])
 	else:
 		store.erase(_kv_prefix + "gateway:" + gateway_id)
 
@@ -403,7 +403,7 @@ func _load_events() -> void:
 	_active_events = []
 	for key in store.all_keys():
 		if key.begins_with(_kv_events):
-			var loaded = store.get(key)
+			var loaded = store.get_kv(key)
 			if loaded is Array:
 				for ev in loaded:
 					_active_events.append(ev)
@@ -413,4 +413,4 @@ func _persist_events() -> void:
 	if _active_events.is_empty():
 		store.erase(_kv_events + "active")
 	else:
-		store.set(_kv_events + "active", _active_events)
+		store.set_kv(_kv_events + "active", _active_events)
