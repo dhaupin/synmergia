@@ -40,14 +40,14 @@ As of 2026-09-07:
   `MemoryCacheStore`, `MemoryStore`); the persistence one
   supports a useful SQL subset for tests + dev
 - HTTP-backed `PostgresStore` and `RedisStore` are complete
-  against their wire protocols, awaiting `pg-bridge` and
-  `redis-bridge` sidecars to exist
+  against their wire protocols; both `pg-bridge` and
+  `redis-bridge` sidecars are built and tested
 - `AdapterRegistry` (autoload) maps store names to instances
 - `BackendFactory` (autoload) reads env, walks the manifest
   of 60+ named stores, registers each with the right backend
 - 5 test files at `game/tests/adapters/`
-- No first migration SQL yet (schemas in `prd-db.md` sec. 3
-  are not locked per user 2026-09-07)
+- First migration `V20260907_001__init_accounts.sql` exists and
+  is tested; schemas 3.1–3.2 LOCKED 2026-09-07
 
 See `game/adapters/README.md` for the developer guide.
 

@@ -427,6 +427,8 @@ See `core/services/login_service.gd` for auth logic.
 | **Action Menu** | `ui/components/action_menu.gd` | Right-click context menus |
 | **Tooltip Manager** | `ui/components/tooltip_manager.gd` | Unified tooltip system |
 
+> **Notification-toast pipeline:** `NotificationService → HudIntegrator → TooltipManager.show_toast()` implemented. Headless test: `test_notification_toast.gd`
+
 ### 5.4 Inventory & Equipment
 
 | Panel | File | Description |
@@ -895,6 +897,7 @@ See `core/services/connector_service.gd` and `game/connectors/`.
 - `var_to_bytes` / `bytes_to_var` for network serialization
 - Physics3D for collision
 - Headless server mode for dedicated servers
+- `GameManager` detects headless mode (`OS.has_feature('headless')` / `DisplayServer.get_name() == 'headless'`), skips 3D WorldPlayable scene load, still emits `player_entered_world` signal for tests
 - `@tool` scripts for editor-time content
 - HTML5/wasm export for browser deployment
 
@@ -1162,20 +1165,18 @@ is incremental: profile, port, re-profile, ship.
 - [x] Multi-iso orchestrator design documented
 - [x] Frame architecture designed (T3 + scope + rules)
 
-### Phase 2: Frame Primitives 🔄 IN PROGRESS
+### Phase 2: Frame Primitives ✅ COMPLETE
 Implementation per PRD specs in `/labs/prd-*.md`:
 
-- [ ] **T3 Substrate** — Generic content-hash tree primitive
-  - See [`prd-t3-substrate.md`](./prd-t3-substrate.md)
-  - Location: `game/core/frame/kv/t3.gd`
-- [ ] **Seed Schema** — Seed type + visibility scope
+- [x] **T3 Substrate** — `game/core/frame/kv/t3.gd` (DONE)
+- [x] **Seed Schema** — Seed type + visibility scope
   - See [`prd-seed-schema.md`](./prd-seed-schema.md)
-- [ ] **State Schema** — State value types
+- [x] **State Schema** — State value types
   - See [`prd-state-schema.md`](./prd-state-schema.md)
-- [ ] **Scope Engine** — Data-driven hierarchy walker
-  - See [`prd-scope-engine.md`](./prd-scope-engine.md)
-  - Location: `game/core/frame/srv/scope.gd`
-- [ ] **Rules Engine** — Generic behavior evaluator
+- [x] **Scope Engine** — `game/core/frame/srv/scope.gd` (DONE)
+- [x] **Rules Engine** — `game/core/frame/srv/rules_engine.gd` (DONE)
+
+> All frame primitives consolidated at `game/core/frame/` (math, kv, srv, db). Legacy `labs/multi-iso/` removed.
 
 ### Phase 3: Seed System
 - [ ] Login + seed chain (D029)

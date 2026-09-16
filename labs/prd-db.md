@@ -1078,7 +1078,7 @@ the server doesn't start. This is intentional, running on
 a stale schema is worse than refusing to boot. (Override
 flag `MIGRATIONS_SKIP=1` exists for dev.)
 
-**Status 2026-09-08:** first migration is **written and tested**
+**Status 2026-09-16:** first migration is **written and tested**
 (`game/adapters/migrations/V20260907_001__init_accounts.sql`,
 98 lines, idempotent `CREATE IF NOT EXISTS`). It covers the P0
 account/auth/character surface (§3.1-3.3). The migration runner
@@ -1204,12 +1204,5 @@ different concern:
 - [ ] Connectors (MCP / Vant / Webhook) — own adapter family or part of `game/adapters/`?
       Current: live in `game/connectors/`, no DB/cache needs but a lot of config + audit. See §7.4.
 - [ ] Adapter registration timing (eager at boot vs lazy on first use)
-- [ ] First migration is held until schemas in §3 are locked (per user 2026-09-07)
+- [ ] First migration V20260907_001__init_accounts.sql applied; schemas 3.1-3.2 LOCKED 2026-09-07
 
-- [ ] Do we need full chat log persistence for moderation?
-- [ ] Should we store loot history for RNG verification?
-- [ ] Player housing data (furniture, placement)?
-- [ ] Achievement progress persistence?
-- [ ] Cross-server character transfer support?
-- [ ] Position storage format: Vector3 or lat/lon?
-- [ ] Spherical world: Coordinate conversion implementation

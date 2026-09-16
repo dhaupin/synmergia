@@ -630,7 +630,6 @@ var nearby := EntityService.get_entities_in_radius(
 │   ├── world-building*.md         # World/architecture docs
 │
 ├── srv/                           # Deployment configs (docker, certs)
-├── ROADMAP.md                     # Implementation tracker
 ├── AGENTS.md                      # This file
 └── README.md                      # Project overview
 ```

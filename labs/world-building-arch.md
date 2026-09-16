@@ -26,7 +26,6 @@
 **Is not:**
 - A re-statement of the spec. Read `world-building.md` first.
 - A code review. Read the source.
-- A roadmap. The roadmap is `ROADMAP.md`. This doc feeds it.
 
 ---
 
