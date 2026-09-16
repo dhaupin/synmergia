@@ -187,7 +187,9 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ---
 
-## 4. The state tree (designed, not implemented)
+## 4. The state tree (content-hash) is now implemented
+
+These were the **FSM**, not the content-hash state tree.
 
 ### 4.1 The state dir is misleading
 
@@ -201,22 +203,20 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ### 4.2 The real state tree is referenced but missing
 
-- Mentioned in:
-  - `labs/archive/docs/architecture/multi-iso-frame.md`
-  - `labs/archive/docs/architecture/multi-iso-lod-prediction.md`
-  - `labs/archive/docs/architecture/grail-path.md`
-  - `labs/archive/docs/architecture/scale-200km2.md`
-  - `labs/archive/docs/architecture/vant-lift.md`
-  - `labs/archive/docs/architecture/ui-framework.md`
-  - `labs/archive/docs/architecture/security.md`
-  - `labs/prd.md` §10.6
-  - `labs/README.md` (planned slot
-    `game/core/frame/kv/state_tree.gd`)
+### 4.2 The content-hash state tree is implemented as T3
+
+- See `labs/world-building-arch.md` for the live frame architecture
+  (replaces archived docs in `labs/archive/docs/architecture/`).
+- `labs/prd.md` §10.6
+- `labs/README.md`
 - **Implemented.** `game/core/frame/kv/t3.gd` provides the
   T3 state tree (content-hash). See `tests/test_t3.gd`. The
   Postgres `state_snapshots` schema and
   `diff()` / `apply_diff()` / `re_root()` are frame primitives
   to be extracted to the snapshot-store module in `frame/db/`.
+- The conceptual contract from the docs:
+  - Every node has a `hash` (SHA-256 of serialized value).
+  - `diff(old_root, new_root) -> List[(path, new_hash,
 - The conceptual contract from the docs:
   - Every node has a `hash` (SHA-256 of serialized value).
   - `diff(old_root, new_root) -> List[(path, new_hash,
@@ -228,7 +228,7 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ---
 
-## 5. The multi-iso orchestrator (half-real)
+## 5. The frame services layer (consolidated)
 
 ### 5.1 Julia side (real)
 
@@ -296,10 +296,10 @@ SecurityMonitor, WebhookManager
 ```
 
 Plus domain services registered at runtime via singletons
-inside the scene. The autoload-race problem is documented
-(`labs/archive/docs/architecture/autoload-race-solutions.md`) and
-partly mitigated via `call_deferred()` in service `_ready()` methods.
-The 22 cascade failures noted in the pickup doc are mostly resolved
+inside the scene. The autoload-race problem is discussed in `labs/world-building-arch.md`
+and `AGENTS.md` §Autoloads and class_name. The pattern of resolving
+cross-service references in `_ready()` via `call_deferred()` has been
+applied across services. The 22 cascade failures are mostly resolved
 (remaining: `QoSPingService` → `DebugOverlay` ordering).
 
 ---
@@ -373,19 +373,10 @@ doc (`world-building.md`) needs to resolve:
 | File | Why |
 |---|---|
 | `labs/prd.md` §10 | Technical architecture commitment |
+| `labs/world-building-arch.md` | Live frame architecture (T3, scope, rules, geometry) |
 | `labs/world-building-risks.md` | The operating companion: risks, decisions, numbers, glossary |
 | `labs/world-building-research.md` | The research companion: §21 experimental angles, deep dives |
 | `labs/world-building-tick.md` | The tick model discussion: 6 phases, flywheel, postmortem |
-| `labs/archive/docs/architecture/multi-iso-frame.md` | Multi-iso pattern, NSC-9 |
-| `labs/archive/docs/architecture/multi-iso-lod-prediction.md` | LOD + materialized + prediction |
-| `labs/archive/docs/architecture/grail-path.md` | Pre-materialized read = lookup |
-| `labs/archive/docs/architecture/scale-200km2.md` | The 8 innovations |
-| `labs/archive/docs/architecture/nsc9-honest-evaluation.md` | Why geometry is a layer, not a replacement |
-| `labs/archive/docs/architecture/vant-lift.md` | 9 vant libs → frame primitives |
-| `labs/archive/docs/architecture/security.md` | 7 defense layers, agent threat model |
-| `labs/archive/docs/architecture/ui-framework.md` | AxisQuery + UIAction reactive bridge |
-| `labs/archive/docs/architecture/autoload-race-solutions.md` | 4 candidate fixes for autoload cascade |
-| `labs/archive/docs/architecture/NEXT-AGENT-PICKUP.md` | Survival guide |
 | `labs/README.md` | `/labs/` convention |
 | `game/core/frame/srv/rules_engine.gd` | Where rules engine lives |
 | `game/core/frame/srv/scope.gd` | Scope hierarchy in code |
