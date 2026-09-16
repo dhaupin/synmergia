@@ -22,7 +22,7 @@ current code state read `m3-initial-world-audit.md`.
 | Spherical-planet specifics | `world-building-spherical.md` | Living |
 | Code state snapshot | `m3-initial-world-audit.md` | Reference |
 | Session continuity | `TASKS.md` | Living; for cross-session handoff |
-| Multi-iso prototypes | `multi-iso/` | Python + Julia real. Frame primitives planned, not built -- see PRDs. |
+| Frame primitives | `../game/core/frame/` | Consolidated from legacy multi-iso; NSC-9, T3, Scope, Rules, etc. |
 | Physics swap-in | `jolt-playground/` | Design only |
 | Polyglot FFI | `polyglot-ffi/` | Design only |
 | Archive | `archive/` | Old, do not trust without checking |

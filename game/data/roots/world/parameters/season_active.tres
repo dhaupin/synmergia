@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="ShardParameterDefinition" load_steps=2 format=3]
-
-[sub_resource type="Resource" id="ShardParameterDefinition_season_active"]
-name = "season_active"
-type = "bool"
-default_value = false
-critical = true
-description = "Whether a seasonal event is active on this shard. Critical: season transitions must apply immediately so content, quests, and loot tables switch without a 5-minute delay."
-version = 1

@@ -55,7 +55,7 @@ different hierarchies.
 
 **Acceptance Criteria:**
 - [ ] `ScopeHierarchy` class exists in
-  `labs/multi-iso/srv/scope_hierarchy.gd`, extends `Resource`
+  `game/core/frame/srv/scope_hierarchy.gd`, extends `Resource`
 - [ ] `@export var nodes: Array[ScopeNode]` where each
   `ScopeNode` has: `name: String`, `parent_name: String`
   (empty for root), `environment_path: String` (path to
@@ -95,7 +95,7 @@ the engine can walk and manipulate the scope tree.
 
 **Acceptance Criteria:**
 - [ ] `Scope` class exists in
-  `labs/multi-iso/srv/scope.gd`, extends `RefCounted`
+  `game/core/frame/srv/scope.gd`, extends `RefCounted`
 - [ ] Fields: `name: String`, `parent: Scope` (null for
   root), `children: Array[Scope]`,
   `rules_overrides: Dictionary`, `environment_path: String`
@@ -117,7 +117,7 @@ scope tree, and manages per-connection stacks.
 
 **Acceptance Criteria:**
 - [ ] `ScopeEngine` class exists in
-  `labs/multi-iso/srv/scope_engine.gd`, extends `RefCounted`
+  `game/core/frame/srv/scope_engine.gd`, extends `RefCounted`
 - [ ] `func load_hierarchy(path: String) -> bool` loads
   and validates a `.tres`, returns false on invalid
 - [ ] `func get_root() -> Scope` returns the root scope
@@ -200,7 +200,7 @@ discover the bug at runtime.
 - **FR-1:** Three GDScript classes: `ScopeHierarchy`
   (Resource), `Scope` (RefCounted), `ScopeEngine`
   (RefCounted)
-- **FR-2:** Files: `labs/multi-iso/srv/scope_hierarchy.gd`,
+- **FR-2:** Files: `game/core/frame/srv/scope_hierarchy.gd`,
   `scope.gd`, `scope_engine.gd`
 - **FR-3:** One default `.tres` at
   `game/data/roots/world/scope_hierarchy.tres`
@@ -258,7 +258,7 @@ discover the bug at runtime.
 - **Godot 4.7.2** required (uses `Array[Resource]`,
   `Dictionary`, `Resource`, `RefCounted`).
 - **Tests:** co-located in
-  `labs/multi-iso/srv/test_scope_engine.gd`.
+  `game/core/frame/srv/test_scope_engine.gd`.
 - **No external dependencies** beyond Godot stdlib.
 - **Performance budget:** `resolve_rule` should complete
   in < 1µs (stack walk of 4 scopes). `load_hierarchy`

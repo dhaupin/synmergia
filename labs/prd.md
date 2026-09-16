@@ -65,8 +65,13 @@ This PRD is the product spec. The technical architecture is in
 - [`prd-open-seed-ttl.md`](./prd-open-seed-ttl.md) — seed TTL
 - [`prd-manifest-backup.md`](./prd-manifest-backup.md) — manifest backup
 
+**Frame primitives** (in `../game/core/frame/`, consolidated from legacy multi-iso):
+- [`math/`](../game/core/frame/math/) — NSC-9, icosahedral
+- [`kv/`](../game/core/frame/kv/) — T3, LRU, state tree, seed chain, definition tree
+- [`srv/`](../game/core/frame/srv/) — RulesEngine, ScopeEngine, Markov, LOD, Axis
+- [`db/`](../game/core/frame/db/) — snapshot_store
+
 **Experimental** (in `/labs/`, kept for reference):
-- [`multi-iso/`](./multi-iso/) — multi-iso frame prototype
 - [`polyglot-ffi/`](./polyglot-ffi/) — FFI exploration
 - [`jolt-playground/`](./jolt-playground/) — Jolt physics experiments
 
@@ -873,7 +878,7 @@ See `core/services/connector_service.gd` and `game/connectors/`.
 > lightweight, no royalties, and strong 3D support. The frame is
 > T3 content-hash substrate + scope engine + rules engine (per
 > `world-building-arch.md`). The game is in `game/`, the frame
-> in `labs/multi-iso/`.
+> in `game/core/frame/`.
 
 ### 12.1 Engine Selection
 
@@ -952,7 +957,7 @@ See [`world-building.md`](./world-building.md) §10 for the full transport desig
 
 The frame's core primitive: a generic content-hash tree. Every
 node has a `hash` (SHA-256 of its serialized value). The frame
-extracts this into `labs/multi-iso/kv/t3.gd`.
+extracts this into `game/core/frame/kv/t3.gd`.
 
 See [`prd-t3-substrate.md`](./prd-t3-substrate.md) for the full spec.
 
@@ -960,7 +965,7 @@ See [`prd-t3-substrate.md`](./prd-t3-substrate.md) for the full spec.
 
 Data-driven hierarchy walker. Resolves rules and values at scope
 boundaries (world→shard→instance→player). The frame extracts
-this into `labs/multi-iso/srv/scope.gd`.
+this into `game/core/frame/srv/scope.gd`.
 
 See [`prd-scope-engine.md`](./prd-scope-engine.md) for the full spec.
 
@@ -1162,14 +1167,14 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 
 - [ ] **T3 Substrate** — Generic content-hash tree primitive
   - See [`prd-t3-substrate.md`](./prd-t3-substrate.md)
-  - Location: `labs/multi-iso/kv/t3.gd`
+  - Location: `game/core/frame/kv/t3.gd`
 - [ ] **Seed Schema** — Seed type + visibility scope
   - See [`prd-seed-schema.md`](./prd-seed-schema.md)
 - [ ] **State Schema** — State value types
   - See [`prd-state-schema.md`](./prd-state-schema.md)
 - [ ] **Scope Engine** — Data-driven hierarchy walker
   - See [`prd-scope-engine.md`](./prd-scope-engine.md)
-  - Location: `labs/multi-iso/srv/scope.gd`
+  - Location: `game/core/frame/srv/scope.gd`
 - [ ] **Rules Engine** — Generic behavior evaluator
 
 ### Phase 3: Seed System
@@ -1298,12 +1303,12 @@ above for the full listing of world-building docs and PRDs.
 
 **The frame is the union of:**
 
-1. **T3 substrate** (`labs/multi-iso/kv/t3.gd`) — generic content-hash tree primitive
-2. **Scope engine** (`labs/multi-iso/srv/scope.gd`) — hierarchy walker, scope stack, rule resolution
-3. **Rules engine** (`labs/multi-iso/srv/rules_engine.gd`) — generic behavior evaluator
-4. **Spatial layer** (`labs/multi-iso/math/`) — NSC-9, icosahedral, quasicrystal math primitives
-5. **LRU cache** (`labs/multi-iso/kv/lru_cache.gd`) — generic LRU
-6. **Snapshot store** (`labs/multi-iso/db/snapshot_store.gd`) — Postgres persistence
+1. **T3 substrate** (`game/core/frame/kv/t3.gd`) — generic content-hash tree primitive
+2. **Scope engine** (`game/core/frame/srv/scope.gd`) — hierarchy walker, scope stack, rule resolution
+3. **Rules engine** (`game/core/frame/srv/rules_engine.gd`) — generic behavior evaluator
+4. **Spatial layer** (`game/core/frame/math/`) — NSC-9, icosahedral, quasicrystal math primitives
+5. **LRU cache** (`game/core/frame/kv/lru_cache.gd`) — generic LRU
+6. **Snapshot store** (`game/core/frame/db/snapshot_store.gd`) — Postgres persistence
 
 **The frame is NOT:**
 

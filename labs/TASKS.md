@@ -31,17 +31,17 @@ Persistent memory across resets for Synmergia development.
 ## PRD Roadmap & Implementation Status
 
 ### World Building PRD — Phase 1: KV Substrate & Canonical Trees (100% COMPLETE)
-- [x] **T3 Substrate** (`labs/multi-iso/kv/t3.gd`) — Tiered, content-hashed Merkle-Patricia trie [town:frame]
+- [x] **T3 Substrate** (`game/core/frame/kv/t3.gd`) — Tiered, content-hashed Merkle-Patricia trie [town:frame]
 - [x] **SeedSchema Resource** (`game/data/roots/seed_schema.gd`) — Two-orthogonal-axes canonical seed contract [town:core]
 - [x] **StateSchema Resource** (`game/data/roots/state_schema.gd`) — Runtime state tree schema [town:core]
-- [x] **Seed Tree & Recursive Derivation** (`labs/multi-iso/kv/seed_chain.gd`) — `derive_seed` HMAC chain [town:frame]
-- [x] **State Tree** (`labs/multi-iso/kv/state_tree.gd`) — Content-hash state tree with diffing [town:frame]
+- [x] **Seed Tree & Recursive Derivation** (`game/core/frame/kv/seed_chain.gd`) — `derive_seed` HMAC chain [town:frame]
+- [x] **State Tree** (`game/core/frame/kv/state_tree.gd`) — Content-hash state tree with diffing [town:frame]
 - [x] **SeedReceipt Resource & Pipeline** (`game/core/schemas/seed_receipt.gd`, `login_service.gd`) — Signed receipt derivation [town:core]
 - [x] **FrameService & Frame Authority** (`game/core/services/frame_service.gd`, `test_frame_authority.gd`) — Frame authority isolation [town:core]
 - [x] **Critical Parameters & ShardParameters** (`game/core/services/shard_parameters.gd`, `shard_parameter_definition.gd`) — Critical parameter immediate vs 5-min coalesce writes [town:core]
-- [x] **LRU Cache & Snapshot Store** (`labs/multi-iso/kv/lru_cache.gd`, `labs/multi-iso/db/snapshot_store.gd`) — In-memory caching and snapshotting [town:frame]
-- [x] **Spatial Geometry (NSC-9 & Icosahedral)** (`labs/multi-iso/math/nsc9.gd`, `icosahedral.gd`) — Discrete spatial coordinate mapping [town:frame]
-- [x] **Scope Engine** (`labs/multi-iso/srv/scope.gd`, `scope_hierarchy.gd`, `scope_engine.gd`) — Multi-brain hierarchical scope stack [town:frame]
+- [x] **LRU Cache & Snapshot Store** (`game/core/frame/kv/lru_cache.gd`, `game/core/frame/db/snapshot_store.gd`) — In-memory caching and snapshotting [town:frame]
+- [x] **Spatial Geometry (NSC-9 & Icosahedral)** (`game/core/frame/math/nsc9.gd`, `icosahedral.gd`) — Discrete spatial coordinate mapping [town:frame]
+- [x] **Scope Engine** (`game/core/frame/srv/scope.gd`, `scope_hierarchy.gd`, `scope_engine.gd`) — Multi-brain hierarchical scope stack [town:frame]
 - [x] **Manifest Backup & DR (D031)** (`srv/backup/manifest.sh`, `backup.sh`, `upload.sh`, `cold_tier.sh`, `purge.sh`, `restore.sh`, `README.md`) — 3-tier backup pipeline with SHA-256 verification and cron schedules [town:bridge]
 - [x] **Open Seed TTL & Registry (D032)** (`game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd`, `login_service.gd`, `dungeon.tres`, `arena.tres`, `raid.tres`) — Instance reconnect TTL tracking and state finalization [town:core]
 
@@ -60,14 +60,14 @@ Persistent memory across resets for Synmergia development.
 ## In Progress & Next Phase Milestones
 
 ### World Building PRD — Phase 2: Rules Engine & World Integration
-- [x] **Rules Engine** (`labs/multi-iso/srv/rules_engine.gd`, `rules_schema.gd`) — Gating rules and multi-scope rule resolution [town:frame]
-- [x] **Definition Tree** (`labs/multi-iso/kv/definition_tree.gd`, `definition_schema.gd`) — Static data catalog in T3 [town:frame]
+- [x] **Rules Engine** (`game/core/frame/srv/rules_engine.gd`, `rules_schema.gd`) — Gating rules and multi-scope rule resolution [town:frame]
+- [x] **Definition Tree** (`game/core/frame/kv/definition_tree.gd`, `definition_schema.gd`) — Static data catalog in T3 [town:frame]
 - [x] **Consolidate 4 Core Services into Rules Engine**: QoS, Security, AppFirewall, AutoResponse [town:core]
 - [x] **Frame Extract** (`srv/frame/`) — Frame HTTP bridge container with FrameClient GDScript [town:bridge]
 
 ### World Building PRD — Phase 3 & 4
 - [ ] **Account Rollup (D028)** (`game/core/services/account_rollup.gd`) — Account-level state aggregation across characters [town:core]
-- [ ] **Vant Fragmenter** (`labs/multi-iso/geometry/fragmenter.gd`) — Procedural cell decomposition [town:frame]
+- [ ] **Vant Fragmenter** (`game/core/frame/geometry/fragmenter.gd`) — Procedural cell decomposition [town:frame]
 
 ---
 

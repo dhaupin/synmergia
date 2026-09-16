@@ -42,7 +42,7 @@ retrieve nodes from a T3 tree so I can build higher-level
 trees on top.
 
 **Acceptance Criteria:**
-- [ ] `T3` class exists in `labs/multi-iso/kv/t3.gd`
+- [ ] `T3` class exists in `game/core/frame/kv/t3.gd`
 - [ ] `insert(path: String, value: Variant, schema: Resource) -> PackedByteArray` returns the new node's hash (32 bytes)
 - [ ] `get(path: String) -> Variant` returns the value, or `null`
 - [ ] Same path + value + schema inserted twice → same hash
@@ -106,7 +106,7 @@ so I can clean up.
 
 ## 4. Functional Requirements
 
-- **FR-1:** One GDScript class `T3` in `labs/multi-iso/kv/t3.gd`, extends `RefCounted`
+- **FR-1:** One GDScript class `T3` in `game/core/frame/kv/t3.gd`, extends `RefCounted`
 - **FR-2:** Uses `HashingContext.sha256()` for content hashing
 - **FR-3:** Node structure: `(path, hash, value_bytes, schema_ref)`
 - **FR-4:** Path addressing is slash-separated; normalize on insert (strip leading/trailing slashes, collapse `//` to `/`)
@@ -137,7 +137,7 @@ so I can clean up.
 ## 7. Technical Considerations
 
 - **Godot 4.7.2** required (uses `HashingContext.sha256()`, `PackedByteArray`, `RefCounted`).
-- **Tests:** co-located in `labs/multi-iso/kv/test_t3.gd`. Run with `./tools/godot --headless --script res://test_t3.gd` after the project root is configured for `/labs/` (per `docs/architecture/labs-organization.md`).
+- **Tests:** co-located in `game/core/frame/kv/test_t3.gd`. Run with `./tools/godot --headless --script res://test_t3.gd` after the project root is configured for `/labs/` (per `docs/architecture/labs-organization.md`).
 - **No external dependencies** beyond Godot stdlib.
 - **Performance budget:** `insert` / `get` / `hash_subtree` should complete in < 1ms for trees up to 1K nodes on a typical dev machine. Diff for 1K-node tree with 10 changes should complete in < 10ms.
 

@@ -242,10 +242,10 @@ Compared to PRD §10.3, two notable changes:
 |---|---|
 | Godot client (game UI, prediction, address-space render) | `game/` |
 | Godot server (tick loop, state tree, LOD) | `game/` (server mode), separate executable target |
-| Julia orchestrator (multi-axis intersection math) | `labs/multi-iso/srv/` (existing) |
-| State tree primitives | `labs/multi-iso/kv/` (new file slot: `state_tree.gd`) |
-| Geometric addressing | `labs/multi-iso/math/` + thin Godot wrapper |
-| Postgres schema + migrations | `labs/multi-iso/db/` |
+| Julia orchestrator (multi-axis intersection math) | `game/core/frame/srv/` (existing) |
+| State tree primitives | `game/core/frame/kv/` (new file slot: `state_tree.gd`) |
+| Geometric addressing | `game/core/frame/math/` + thin Godot wrapper |
+| Postgres schema + migrations | `game/core/frame/db/` |
 | Coordinator service | New project (`srv/coordinator/`), or part of `srv/docker/` |
 
 The "labs graduates into game or extracts to a new project"
@@ -2336,7 +2336,7 @@ A `MovementSystem` over 6000 entities is ~6000 row ops =
 
 #### 9.13.2 The /labs/ ECS primitive
 
-`labs/multi-iso/kv/ecs.gd` (planned) provides:
+`game/core/frame/kv/ecs.gd` (planned) provides:
 - `EntityId` (64-bit).
 - `EntityStore`: dense arrays of components per type.
 - `System`: registered function with component-set signature.
@@ -3565,7 +3565,7 @@ Redis stores:
 
 ### 12.8 Migrations
 
-Schema migrations live in `labs/multi-iso/db/migrations/`
+Schema migrations live in `game/core/frame/db/migrations/`
 as numbered SQL files:
 
 ```
@@ -3920,7 +3920,7 @@ thresholds, return the desired LOD.
 
 ### 14.4 Predictive prefetch (Markov)
 
-The Markov predictor (`labs/multi-iso/srv/predictor.gd` —
+The Markov predictor (`game/core/frame/srv/predictor.gd` —
 not yet implemented) watches player movement and predicts
 where they'll be in 5s, 30s, 5min.
 
@@ -4452,7 +4452,7 @@ Diffs apply. Browser works.
 
 Concrete deliverables:
 
-1. **`state_tree.gd`** at `labs/multi-iso/kv/`. The
+1. **`state_tree.gd`** at `game/core/frame/kv/`. The
    content-hash tree primitive: `insert`, `delete`,
    `diff`, `apply_diff`, `hash`. With tests.
 2. **`transport.gd`** at `game/core/net/`. WebSocket
@@ -4677,7 +4677,7 @@ tiling as the address space gives:
   tessellation library).
 - Less prior art in games.
 - Initial prototype: 2-4 weeks of pure-Python work in
-  `labs/multi-iso/math/penrose_prototype/`.
+  `game/core/frame/math/penrose_prototype/`.
 
 **Trigger to adopt**: Phase 5 ships with user-noticeable
 seams. We have no real evidence yet that icosahedral at

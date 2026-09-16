@@ -4,7 +4,7 @@
 > ([`world-building.md`](./world-building.md),
 > [`world-building-tick.md`](./world-building-tick.md),
 > [`world-building-risks.md`](./world-building-risks.md)) and the
-> code in `game/`, `labs/multi-iso/`, and `srv/`. The spec says
+> code in `game/`, `game/core/frame/`, and `srv/`. The spec says
 > *what* and *why*; this doc says *how* and *where*. Read the
 > spec first.
 
@@ -37,16 +37,16 @@ Synmergia is two things, and the architecture serves both:
 1. **A working MMORPG** (concrete, the poc/mvp)
 2. **A game engine** (abstract, "OSS-able", reusable frame)
 
-The frame ships in `labs/multi-iso/`. Other games can copy the
+The frame ships in `game/core/frame/`. Other games can copy the
 frame and write their own schemas + data + services. The substrate
 is engine-grade; the schemas are game-grade.
 
 | Layer | Lives in | Purpose | Reusable? |
 |---|---|---|---|
-| Substrate (T3) | `labs/multi-iso/kv/t3.gd` | Generic content-hash tree | yes (engine) |
-| Scope engine | `labs/multi-iso/srv/scope.gd` | Hierarchy walker + flip | yes (engine) |
-| Rules engine | `labs/multi-iso/srv/rules_engine.gd` | Generic evaluator | yes (engine) |
-| | Spatial layer | `labs/multi-iso/math/` | Icosahedral + NSC-9 (ported from vant axolotl) | DONE |
+| Substrate (T3) | `game/core/frame/kv/t3.gd` | Generic content-hash tree | yes (engine) |
+| Scope engine | `game/core/frame/srv/scope.gd` | Hierarchy walker + flip | yes (engine) |
+| Rules engine | `game/core/frame/srv/rules_engine.gd` | Generic evaluator | yes (engine) |
+| | Spatial layer | `game/core/frame/math/` | Icosahedral + NSC-9 (ported from vant axolotl) | DONE |
 | Schemas | `game/data/roots/*_schema.tres` | Typed payloads per tree | game-specific |
 | Trees | `game/data/roots/<scope>/*.tres` | Tree instances | game-specific |
 | Services | `game/core/services/*.gd` | Game logic | game-specific |
@@ -63,7 +63,7 @@ primitive. T3 is the substrate every tree instance is built on.
 ### 3.1 The shape
 
 ```gdscript
-# labs/multi-iso/kv/t3.gd
+# game/core/frame/kv/t3.gd
 class_name T3
 extends RefCounted
 
@@ -163,7 +163,7 @@ own rule overrides (В§5).
 ### 4.2 The scope class
 
 ```gdscript
-# labs/multi-iso/srv/scope.gd
+# game/core/frame/srv/scope.gd
 class_name Scope
 extends RefCounted
 
@@ -239,7 +239,7 @@ payload. Each node in the rules tree is a rule. A rule has:
 ### 5.2 The rules engine
 
 ```gdscript
-# labs/multi-iso/srv/rules_engine.gd
+# game/core/frame/srv/rules_engine.gd
 class_name RulesEngine
 extends RefCounted
 
@@ -297,7 +297,7 @@ rules, etc.) and knows which scope it belongs to.
 ### 6.1 The environment class
 
 ```gdscript
-# labs/multi-iso/srv/environment.gd
+# game/core/frame/srv/environment.gd
 class_name Environment
 extends RefCounted
 
@@ -410,7 +410,7 @@ func _validate(value: Dictionary) -> bool:
 ### 7.2 The derivation
 
 ```gdscript
-# labs/multi-iso/kv/seed_chain.gd
+# game/core/frame/kv/seed_chain.gd
 static func derive_seed(stack: Array[PackedByteArray],
                         path: String) -> PackedByteArray:
     var acc := path.to_utf8_buffer()
@@ -632,19 +632,19 @@ it holds the actual game data.
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
-| T3 substrate | this doc В§3 | none | `labs/multi-iso/kv/t3.gd` | DONE |
-| Scope engine | this doc В§4 | `labs/multi-iso/srv/scope_hierarchy.gd`, `labs/multi-iso/srv/scope.gd`, `labs/multi-iso/srv/scope_engine.gd` | `labs/multi-iso/srv/scope.gd` | DONE |
-| Rules engine | this doc В§5 | none | `labs/multi-iso/srv/rules_engine.gd`, `labs/multi-iso/srv/rules_schema.gd` | DONE |
-| Definition tree | this doc В§9 | none | `labs/multi-iso/kv/definition_tree.gd`, `labs/multi-iso/kv/definition_schema.gd` | DONE |
+| T3 substrate | this doc В§3 | none | `game/core/frame/kv/t3.gd` | DONE |
+| Scope engine | this doc В§4 | `game/core/frame/srv/scope_hierarchy.gd`, `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` | DONE |
+| Rules engine | this doc В§5 | none | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | DONE |
+| Definition tree | this doc В§9 | none | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | DONE |
 | SeedSchema Resource | this doc В§7, spec В§4 | none | `game/data/roots/seed_schema.gd` | DONE |
 | StateSchema Resource | this doc В§8, spec В§5 | none | `game/data/roots/state_schema.gd` | DONE |
-| Seed tree (canonical) | this doc В§7, spec В§4 | none | `labs/multi-iso/kv/seed_chain.gd` | DONE |
-| State tree (canonical) | this doc В§8, spec В§5 | none | `labs/multi-iso/kv/state_tree.gd` | DONE |
+| Seed tree (canonical) | this doc В§7, spec В§4 | none | `game/core/frame/kv/seed_chain.gd` | DONE |
+| State tree (canonical) | this doc В§8, spec В§5 | none | `game/core/frame/kv/state_tree.gd` | DONE |
 | Recursive seed derivation | spec В§4.2, D025 | none | `seed_chain.gd::derive_seed` | DONE |
 | Seed tree test | prd-seed-schema В§US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
 | State tree test | prd-state-schema В§US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
-| Seed tree (tests) | prd-seed-schema В§US-005 | none | `labs/multi-iso/kv/test_seed_chain.gd` | DONE |
-| State tree (tests) | prd-state-schema В§US-005 | none | `labs/multi-iso/kv/test_state_tree.gd` | DONE |
+| Seed tree (tests) | prd-seed-schema В§US-005 | none | `game/core/frame/kv/test_seed_chain.gd` | DONE |
+| State tree (tests) | prd-state-schema В§US-005 | none | `game/core/frame/kv/test_state_tree.gd` | DONE |
 | SeedReceipt Resource | prd-login-seed-chain В§US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
 | SeedReceipt test | prd-login-seed-chain В§US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
 | FrameService | prd-frame-authority В§US-001 | none | `game/core/services/frame_service.gd` | DONE |
@@ -655,18 +655,18 @@ it holds the actual game data.
 | Param .tres samples (4) | prd-critical-params В§US-006 | none | `game/data/roots/world/parameters/` | DONE |
 | Two-orthogonal-axes (D026) | spec В§4.1 | none | `SeedSchema` payload | DONE |
 | State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | DONE |
-| LRU cache | vant `lib/cache.js` | none | `labs/multi-iso/kv/lru_cache.gd` | DONE |
-| Snapshot store | content-hash state tree | none | `labs/multi-iso/db/snapshot_store.gd` | DONE |
+| LRU cache | vant `lib/cache.js` | none | `game/core/frame/kv/lru_cache.gd` | DONE |
+| Snapshot store | content-hash state tree | none | `game/core/frame/db/snapshot_store.gd` | DONE |
 | Manifest SPOF (D031) | this doc §6.4 | none | `srv/backup/manifest.sh`, `backup.sh`, `restore.sh` | DONE |
 | Open seed TTL (D032) | this doc §6.3, spec §4.8 | none | `game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd` | DONE |
 | Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
 | Frame seed authority (D030) | validation В§2 | none | `core/services/frame_service.gd` | DONE |
 | Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
 | Account rollup (D028) | spec В§9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
-| Vant multibrain stack | vant `brain.js:1510-1900` | `labs/multi-iso/srv/scope.gd`, `labs/multi-iso/srv/scope_engine.gd` | `labs/multi-iso/srv/scope.gd` (port) | DONE |
-| NSC-9 barcode format | vant `geometry/nsc9.js` | none | `labs/multi-iso/math/nsc9.gd` + `test_nsc9.gd` | DONE |
-| Icosahedral projection | vant `geometry/icosahedral.js` | none | `labs/multi-iso/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
-| Vant fragmenter | vant `geometry/fragmenter.js` | none | `labs/multi-iso/geometry/fragmenter.gd` | TODO (Phase 4) |
+| Vant multibrain stack | vant `brain.js:1510-1900` | `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` (port) | DONE |
+| NSC-9 barcode format | vant `geometry/nsc9.js` | none | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
+| Icosahedral projection | vant `geometry/icosahedral.js` | none | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
+| Vant fragmenter | vant `geometry/fragmenter.js` | none | `game/core/frame/geometry/fragmenter.gd` | TODO (Phase 4) |
 
 ---
 
@@ -816,13 +816,13 @@ branch), the user's sibling repo. Specifically:
   projection; we use SHA-256 because we need cryptographic
   tamper-evidence, not just deterministic projection.
 
-Each `labs/multi-iso/X/Y.gd` file has a
+Each `game/core/frame/X/Y.gd` file has a
 `## Ported from vant axolotl lib/path/X.js` header. As we
 improve the ports, we push the changes back to vant. This is
 a sibling-repo relationship, not a fork. The stub
 `connectors/vant/vant_connector.gd` (game side) is the
 runtime bridge for agent sessions; the static port lives
-in `labs/multi-iso/`.
+in `game/core/frame/`.
 
 ---
 
@@ -962,7 +962,7 @@ have opinions, push them up to vant.
 
 **Why:** Vant is a sibling repo by the same author. The
 user wants full integration: "It's our project too." The
-static port lives in `labs/multi-iso/`; the runtime bridge
+static port lives in `game/core/frame/`; the runtime bridge
 is the existing `connectors/vant/vant_connector.gd` stub.
 We push our improvements back to vant; vant reciprocates.
 
@@ -1075,18 +1075,18 @@ collapse to two tiers (Postgres + local snapshot).
 - All in `labs/` (frame-first)
 - Frame in `labs/`, game in `game/` (split)
 
-**Picked:** Frame in `labs/multi-iso/`, game in `game/`.
+**Picked:** Frame in `game/core/frame/`, game in `game/`.
 
 **Why:** The frame can extract to its own repo (per
 AGENTS.md). The labs convention is the explicit statement
-of that. Putting T3 + scope + rules in `labs/multi-iso/`
+of that. Putting T3 + scope + rules in `game/core/frame/`
 makes the extraction path obvious. Putting the schemas +
 data + services in `game/` keeps the game-specific code in
 the Godot project.
 
 **Revisit if:** the frame and game need to share code that
 isn't a schema. Then either (a) move the shared code to
-`labs/multi-iso/` and import it from the game, or (b)
+`game/core/frame/` and import it from the game, or (b)
 introduce a `shared/` directory at the repo root.
 
 ---

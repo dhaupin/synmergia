@@ -11,7 +11,7 @@
 ##
 ## State tree integration: writes apply by calling
 ##   state_tree.insert("/shards/<shard_id>/parameters/<param_name>", value, schema)
-## on the shard's state tree (labs/multi-iso/kv/state_tree.gd).
+## on the shard's state tree (game/core/frame/kv/state_tree.gd).
 
 extends Node
 
@@ -25,7 +25,7 @@ const COALESCE_WINDOW_MS: int = 300000
 ## Parameter definitions (.tres files under game/data/roots/world/parameters/).
 const ShardParameterDefinitionScript = preload("res://core/schemas/shard_parameter_definition.gd")
 
-## State tree wrapper (labs/multi-iso/kv/state_tree.gd). Loaded at runtime
+## State tree wrapper (game/core/frame/kv/state_tree.gd). Loaded at runtime
 ## to avoid a parse-time dependency on the frame primitive.
 const T3Script = preload("res://labs/kv/t3.gd")
 const StateTreeScript = preload("res://labs/kv/state_tree.gd")

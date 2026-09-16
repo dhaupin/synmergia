@@ -150,7 +150,7 @@ This is genuinely hard:
 
 ### 1.5 Prototype sketch
 
-Pure-Python prototype in `labs/multi-iso/math/penrose/`
+Pure-Python prototype in `game/core/frame/math/penrose/`
 (planned):
 
 ```
@@ -343,7 +343,7 @@ to the central's state tree, which means central has
 
 ### 2.5 Prototype sketch
 
-`labs/multi-iso/srv/edge_shard.gd` (planned). A
+`game/core/frame/srv/edge_shard.gd` (planned). A
 simplified version:
 
 ```
@@ -486,7 +486,7 @@ subdivisions need visual stitching.
 
 ### 3.4 Prototype sketch
 
-`labs/multi-iso/math/adaptive_chunks.gd` (planned).
+`game/core/frame/math/adaptive_chunks.gd` (planned).
 Likely a sparse octree (planar) or sparse subdivision
 tree (spherical). Test cases:
 - `test_octree_subdivides_only_dense_regions`: an octree
@@ -608,7 +608,7 @@ are designed to look like the L0 from a distance.
 
 ### 4.4 Prototype sketch
 
-Likely in `labs/multi-iso/kv/lod_by_type.gd`. Test:
+Likely in `game/core/frame/kv/lod_by_type.gd`. Test:
 - `test_l1_oak_count_matches_l0`: the L1 oak count
   matches the L0 oak count after promoting/demoting.
 - `test_l1_mountain_low_poly_smaller`: the L1
@@ -702,7 +702,7 @@ Two big wins:
 
 ### 5.5 Prototype sketch
 
-`labs/multi-iso/kv/merkle_suffix_tree.gd` (planned). A clean re-implementation:
+`game/core/frame/kv/merkle_suffix_tree.gd` (planned). A clean re-implementation:
 - `MerkleSuffixTree` with `insert`, `delete`, `get`, `diff`, `apply_diff`, `hash`.
 - Trie-based internal storage.
 - Hash interning for dedup.
@@ -1143,7 +1143,7 @@ beefy server and a small cluster.
 
 ### 9.5 Prototype sketch
 
-`labs/multi-iso/srv/adaptive_tick.gd` (planned). Test:
+`game/core/frame/srv/adaptive_tick.gd` (planned). Test:
 - `test_classification_idle_to_combat`: a player with
   no input for 30s is "idle"; receiving a combat
   trigger reclassifies to "combat" within 1s.

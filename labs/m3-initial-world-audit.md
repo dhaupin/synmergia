@@ -210,7 +210,7 @@ Each layer has stubs or partial impls. None is fully wired.
   - `docs/architecture/security.md`
   - `labs/prd.md` §10.6
   - `labs/README.md` (planned slot
-    `labs/multi-iso/kv/state_tree.gd`)
+    `game/core/frame/kv/state_tree.gd`)
 - **Not implemented.** No `state_tree.gd` on disk. No
   `content_hash.gd`. No `diff()` / `apply_diff()` /
   `re_root()`. No Postgres `state_snapshots` schema. No
@@ -230,7 +230,7 @@ Each layer has stubs or partial impls. None is fully wired.
 
 ### 5.1 Julia side (real)
 
-- `labs/multi-iso/srv/orchestrator.jl`:
+- `game/core/frame/srv/orchestrator.jl`:
   - NSC-9 encoding/decoding (`9-AAA-BBB-CCCCCC`).
   - Axis constants: `spatial_axis(v)`, `faction_axis(f)`,
     `social_axis(s)`, `game_axis(g)` plus temporal
@@ -238,7 +238,7 @@ Each layer has stubs or partial impls. None is fully wired.
     202/203).
   - Set-intersection per query. `register!`, `unregister!`,
     `intersect`, etc.
-- `labs/multi-iso/srv/server.jl`:
+- `game/core/frame/srv/server.jl`:
   - HTTP API: `/register` (POST), `/spatial/:v`,
     `/faction/:f`, `/social/:s`, `/intersect` (POST),
     `/stats`, `/health`.
@@ -386,9 +386,9 @@ doc (`world-building.md`) needs to resolve:
 | `game/core/schemas/zone_data.gd` | Zone schema |
 | `game/core/events/spawn_metadata.gd` | Spawn metadata + factory |
 | `game/core/state/state.gd` + `state_machine.gd` | FSM (NOT the state tree) |
-| `labs/multi-iso/srv/orchestrator.jl` | The Julia orchestrator |
-| `labs/multi-iso/srv/server.jl` | The Julia HTTP API |
-| `labs/multi-iso/prototype/FINDINGS.md` | Performance numbers |
+| `game/core/frame/srv/orchestrator.jl` | The Julia orchestrator |
+| `game/core/frame/srv/server.jl` | The Julia HTTP API |
+| `game/core/frame/prototype/FINDINGS.md` | Performance numbers |
 
 ---
 

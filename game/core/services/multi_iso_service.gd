@@ -2,7 +2,7 @@
 ##
 ## Calls the Julia HTTP API (server.jl) to register entities and
 ## run multi-axis intersection queries. The Julia orchestrator lives
-## in labs/multi-iso/srv/ and runs as a sidecar container (Docker).
+## in game/core/frame/srv/ and runs as a sidecar container (Docker).
 ##
 ## The HTTP bridge is the simplest way to cross the Godot <-> Julia
 ## boundary without a full polyglot FFI setup. When polyglot-ffi

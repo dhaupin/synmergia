@@ -3,7 +3,7 @@
 ## 9-AAA-BBB-CCCCCC: prefix=9 (GS1 non-product), facility=AAA (000-999),
 ## axis=BBB (000-999), sequence=CCCCCC (0-16M).
 ##
-## Axis reservation (see labs/multi-iso/prototype/iso_math.py):
+## Axis reservation (see game/core/frame/prototype/iso_math.py):
 ##   001-099: spatial axis (icosahedral vertices 1-12)
 ##   100-199: factional axes (100 factions)
 ##   200-299: temporal sub-axes (year, season, month, hour...)

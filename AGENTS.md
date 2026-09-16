@@ -7,9 +7,8 @@
 > **What this file is NOT:** An operational log, debugging status,
 > or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Last updated 2026-09-15:** Entity autoload removed; collision rules refined; allowlist introduced
-> with full gotcha + cycle + recovery sections. World Building Phase 1 services added
-> (`FrameService`, `ShardParameters`, `OpenSeedRegistry`). See `labs/TASKS.md` for change logs.
+> **Last updated 2026-09-16:** Legacy `labs/multi-iso` removed; frame primitives consolidated to
+> `/game/core/frame/` (math, kv, srv, db). All docs updated.
 
 ## READ FIRST
 
@@ -38,14 +37,14 @@ Synmergia is a Godot 4.7.2 based MMORPG with an authoritative
 server architecture. The architecture has four layers:
 **Godot client → Multi-iso orchestrator → State tree
 (content-hash) → Postgres + cache**. The orchestrator and
-state tree are the **frame**; they live in `/labs/` and can
+state tree are the **frame**; they live in `/game/core/frame/` and can
 extract to their own project.
 
 - **Language:** GDScript
 - **Engine:** Godot 4.7.2
 - **Architecture:** Client + Authoritative Server + Multi-iso orchestrator + State tree
 - **Game root:** `game/` (open this in the Godot editor)
-- **Frame root:** `labs/` (experimental, root-level, NOT in Godot project)
+- **Frame root:** `/game/core/frame/` (in Godot project)
 - **Persistence layer:** `game/adapters/` (Postgres, Redis, memory)
   — defined in `labs/prd-db.md`. Adapter layer is the official
   interface for all service-level storage.
@@ -76,7 +75,7 @@ extract to their own project.
 - **Signal naming:** verb past tense (`entity_spawned`, `player_left`)
 - **Factory methods** for complex object creation
 - **Service singletons** via autoload
-- **Frame primitives** in `/labs/`: NO autoload, NO `class_name`, NO GameManager dependency
+- **Frame primitives** in `/game/core/frame/`: NO autoload, NO `class_name`, NO GameManager dependency
 
 ### Working with Code
 
@@ -603,6 +602,11 @@ var nearby := EntityService.get_entities_in_radius(
 │   │   ├── components/            # Entity components (health, combat, etc.)
 │   │   ├── entities/              # Base entity classes (Entity, NPCEntity, ...)
 │   │   ├── events/                # Event hubs + metadata types
+│   │   ├── frame/                 # Frame primitives (moved from labs/)
+│   │   │   ├── math/              # NSC-9, icosahedral
+│   │   │   ├── kv/                # LRU, state_tree, T3
+│   │   │   ├── srv/               # RulesEngine, ScopeEngine, Markov, LOD, Axis
+│   │   │   └── db/                # snapshot_store
 │   │   ├── input/                 # Interaction layer, input maps
 │   │   ├── notifications/         # NotificationService + NotifKind enum
 │   │   ├── schemas/               # Data schemas (Resource subclasses)
@@ -624,11 +628,6 @@ var nearby := EntityService.get_entities_in_radius(
 │   ├── prd-db.md                  # Storage adapter spec (authoritative)
 │   ├── TASKS.md                   # Session log + open tasks
 │   ├── world-building*.md         # World/architecture docs
-│   └── multi-iso/                 # Frame primitives
-│       ├── math/                  # NSC-9, icosahedral
-│       ├── kv/                    # LRU, state_tree
-│       ├── srv/                   # Markov, LOD, axis
-│       └── db/                    # snapshot_store
 │
 ├── srv/                           # Deployment configs (docker, certs)
 ├── ROADMAP.md                     # Implementation tracker
@@ -696,10 +695,10 @@ extract to the multi-iso frame. Different rules apply:
 ### Frame Contents
 | Subdirectory | Contains | Examples |
 |--------------|----------|----------|
-| `labs/multi-iso/math/` | Pure functions. No state. | NSC-9 encoding, icosahedral projection |
-| `labs/multi-iso/kv/` | In-memory data structures | LRU cache, content-hash, state tree |
-| `labs/multi-iso/srv/` | Service logic | Markov chain, predictor, LOD manager |
-| `labs/multi-iso/db/` | Database integration | snapshot_store, migrations |
+| `game/core/frame/math/` | Pure functions. No state. | NSC-9 encoding, icosahedral projection |
+| `game/core/frame/kv/` | In-memory data structures | LRU cache, content-hash, state tree |
+| `game/core/frame/srv/` | Service logic | RulesEngine, ScopeEngine, Markov, LOD, Axis |
+| `game/core/frame/db/` | Database integration | snapshot_store, migrations |
 
 See [`labs/README.md`](./labs/README.md) for the full conventions.
 

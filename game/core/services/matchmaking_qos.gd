@@ -1,12 +1,12 @@
 ## QoSService - Quality of Service for fair matchmaking
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
-const ScopeScript = preload("res://labs/multi-iso/srv/scope.gd")
+const ScopeScript = preload("res://core/frame/srv/scope.gd")
 ## Handles latency compensation, throttling, and connection quality
 extends Node
 class_name MatchmakingQoS
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
-const RulesEngine = preload("res://labs/multi-iso/srv/rules_engine.gd")
+const RulesEngine = preload("res://core/frame/srv/rules_engine.gd")
 
 signal connection_quality_changed(player_id: String, quality: ConnectionQuality)
 signal latency_warning(player_id: String, latency_ms: int)

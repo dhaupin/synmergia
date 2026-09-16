@@ -1,9 +1,0 @@
-[deps]
-HTTP = "a4a69c2f-37ea-43b3-a5be-1bc1ba044a0e"
-JSON = "682c06a0-de6a-54fd-a101-0806b45a98e8"
-UUIDs = "cf711312-7c0a-468a-a6eb-70a8e2ea7388"
-
-[compat]
-HTTP = "0.9"
-JSON = "0.21"
-UUIDs = "1.1"

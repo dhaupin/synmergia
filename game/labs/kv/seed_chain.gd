@@ -1,5 +1,5 @@
 ## Seed chain derivation for recursive seed trees.
-## Ported from labs/multi-iso/prototype/iso_math.py (section 7.2)
+## Ported from game/core/frame/prototype/iso_math.py (section 7.2)
 ## Spec: labs/world-building-arch.md В§7.2
 extends RefCounted
 

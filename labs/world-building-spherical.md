@@ -259,7 +259,7 @@ func get_compass_direction_at_pole(player_pos: Vector3, waypoint: Vector3) -> St
 
 ### 6.2 Medium Term (Phase 2)
 
-- [ ] Icosahedral mesh implementation (see `labs/multi-iso/`)
+- [ ] Icosahedral mesh implementation (see `game/core/frame/`)
 - [ ] NSC-9 integration with position system
 - [ ] Regional map zoom with projection correction
 - [ ] Globe view for world map

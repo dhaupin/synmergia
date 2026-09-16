@@ -345,8 +345,8 @@ func get_server_info() -> Dictionary:
 
 func _load_state() -> void:
 	var store := DictStore.new()
-	var data: Dictionary = store.get_kv(_kv_prefix + "state")
-	if not data.is_empty():
+	var data: Variant = store.get_kv(_kv_prefix + "state")
+	if data and data is Dictionary and not data.is_empty():
 		_state = data.get("state", ServerState.ONLINE)
 		_restart_scheduled = data.get("restart_scheduled", false)
 		_restart_time = int(data.get("restart_time", 0))
