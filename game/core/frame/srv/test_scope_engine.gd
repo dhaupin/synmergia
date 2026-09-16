@@ -1,10 +1,10 @@
 ## Ported from vant axolotl lib/brain.js
 extends SceneTree
 
-const ScopeHierarchy = preload("res://multi-iso/srv/scope_hierarchy.gd")
-const ScopeEngine = preload("res://multi-iso/srv/scope_engine.gd")
-const Scope = preload("res://multi-iso/srv/scope.gd")
-const ScopeNode = preload("res://multi-iso/srv/scope_node.gd")
+const ScopeHierarchy = preload("res://core/frame/srv/scope_hierarchy.gd")
+const ScopeEngine = preload("res://core/frame/srv/scope_engine.gd")
+const Scope = preload("res://core/frame/srv/scope.gd")
+const ScopeNode = preload("res://core/frame/srv/scope_node.gd")
 
 var _all_passed = true
 

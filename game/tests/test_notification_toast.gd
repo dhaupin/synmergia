@@ -21,11 +21,15 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 
+	# In headless mode, WorldPlayable scene is not loaded (no 3D rendering context).
+	# Manually instantiate the HudLayer with TooltipManager for testing.
 	_world = root.get_node_or_null("WorldPlayable")
 	if not _world:
-		_fail("WorldPlayable scene not loaded")
-		return
-	_ok("WorldPlayable loaded")
+		_world = _setup_headless_hud()
+		if not _world:
+			_fail("Failed to set up headless HUD for testing")
+			return
+	_ok("Headless HUD set up (TooltipManager available)")
 
 	var tooltip_mgr: Node = _world.get_node_or_null("HudLayer/TooltipManager")
 	if not tooltip_mgr:
@@ -125,6 +129,46 @@ func _find_node(root_node: Node, node_name: String) -> Node:
 		if found:
 			return found
 	return null
+
+
+func _setup_headless_hud() -> Node:
+	# Create a minimal test world node with HudLayer and TooltipManager
+	var test_world := Node.new()
+	test_world.name = "WorldPlayable"
+	root.add_child(test_world)
+
+	# Load and instantiate HudLayer scene (which includes TooltipManager)
+	var HudLayerScript := load("res://ui/hud/hud_layer.gd")
+	if not HudLayerScript:
+		_fail("Failed to load HudLayer script")
+		return null
+
+	var hud: Node = HudLayerScript.new()
+	hud.name = "HudLayer"
+	test_world.add_child(hud)
+
+	# Call _ready to initialize the HUD (installs HudIntegrator, etc.)
+	hud.call("_ready")
+	await process_frame
+	await process_frame
+
+	# Verify HudIntegrator was installed
+	var integrator: Node = hud.get_node_or_null("HudIntegrator")
+	if not integrator:
+		_fail("HudIntegrator not installed in headless HUD")
+		return null
+
+	# Bind the integrator to the HUD (normally done by _install_integrator)
+	if integrator.has_method("bind"):
+		integrator.call("bind", hud)
+
+	# Verify TooltipManager exists
+	var tooltip: Node = hud.get_node_or_null("TooltipManager")
+	if not tooltip:
+		_fail("TooltipManager not found in headless HudLayer")
+		return null
+
+	return test_world
 
 
 func _active_toast_count(tooltip_mgr: Node) -> int:

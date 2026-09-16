@@ -67,7 +67,7 @@ func _init_local_rules() -> void:
 		_local_rules_engine.register_rule("ip_can_connect", "BOTTOM_WINS", true)
 		_local_rules_engine.register_rule("failed_attempt_check", "TOP_WINS", false)
 		_local_rules_engine.register_rule("block_ip", "TOP_WINS", true)
-		_local_rules_engine.register_rule("ban_player", "BOTTOM_WINS", false)
+		_local_rules_engine.register_rule("ban_player", "BOTTOM_WINS", true)
 		_local_rules_engine.register_rule("connection_limit_check", "TOP_WINS", false)
 		_local_rules_engine.register_rule("spam_response", "ALL_WINS_WITH_EFFECT", true)
 		_local_rules_engine.register_rule("speedhack_response", "TOP_WINS", false)

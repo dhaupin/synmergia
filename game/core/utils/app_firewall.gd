@@ -116,7 +116,7 @@ func _ready() -> void:
 	_rules_engine.register_rule("ip_can_connect", RulesEngineScript.BOTTOM_WINS, true)
 	_rules_engine.register_rule("failed_attempt_check", RulesEngineScript.TOP_WINS, false)
 	_rules_engine.register_rule("block_ip", RulesEngineScript.TOP_WINS, true)
-	_rules_engine.register_rule("ban_player", RulesEngineScript.BOTTOM_WINS, false)
+	_rules_engine.register_rule("ban_player", RulesEngineScript.BOTTOM_WINS, true)
 	_rules_engine.register_rule("connection_limit_check", RulesEngineScript.TOP_WINS, false)
 
 	# RecursionGuard is the security layer 0 (per docs/architecture/security.md).

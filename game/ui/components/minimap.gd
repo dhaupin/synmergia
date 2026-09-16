@@ -698,18 +698,18 @@ func _create_marker_visual(shape: String, size: Vector2, color: Color, label: St
 			container.add_child(dollar)
 
 "flag":
- 			var vbox := VBoxContainer.new()
- 			vbox.custom_minimum_size = size
- 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
- 			var flag := Label.new()
- 			flag.text = "W"
- 			flag.add_theme_font_size_override("font_size", int(size.y * 0.9))
- 			flag.add_theme_color_override("font_color", color)
- 			flag.add_theme_constant_override("outline_size", 2)
- 			flag.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
- 			flag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
- 			vbox.add_child(flag)
- 			container.add_child(vbox)
+			var vbox := VBoxContainer.new()
+			vbox.custom_minimum_size = size
+			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+			var flag := Label.new()
+			flag.text = "W"
+			flag.add_theme_font_size_override("font_size", int(size.y * 0.9))
+			flag.add_theme_color_override("font_color", color)
+			flag.add_theme_constant_override("outline_size", 2)
+			flag.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
+			flag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			vbox.add_child(flag)
+			container.add_child(vbox)
 
 		"pulse":
 			var pulse := TextureRect.new()

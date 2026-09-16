@@ -151,8 +151,13 @@ func _handle_playing_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Entering gameplay")
 	_initialize_world_services()
 	# Load the playable world scene, replacing current scene
-	_show_loading_and_change_scene("res://scenes/world_playable.tscn", "Loading world...")
-	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
+	# Skip 3D scene change in headless mode (no rendering context available)
+	var is_headless := OS.has_feature("headless") or DisplayServer.get_name() == "headless"
+	if is_headless:
+		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Headless mode: skipping WorldPlayable scene load")
+	else:
+		_show_loading_and_change_scene("res://scenes/world_playable.tscn", "Loading world...")
+		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
 
 	# Emit player_entered_world for services like StarterKitService
 	if selected_character_data:

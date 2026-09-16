@@ -22,13 +22,15 @@ func _initialize() -> void:
 	# so wait two frames to let the world scene actually attach.
 	await process_frame
 	await process_frame
-	var world: Node = root.get_node_or_null("WorldPlayable")
-	if not world:
-		_fail("WorldPlayable scene not loaded")
-		return
-	_world = world
-	_ok("WorldPlayable scene loaded")
-	var hud: Node = world.get_node_or_null("HudLayer")
+	_world = root.get_node_or_null("WorldPlayable")
+	if not _world:
+		# Headless mode: manually set up HUD
+		_world = _setup_headless_hud()
+		if not _world:
+			_fail("Failed to set up headless HUD for testing")
+			return
+	_ok("Headless HUD set up")
+	var hud: Node = _world.get_node_or_null("HudLayer")
 	if not hud:
 		_fail("HudLayer missing under WorldPlayable")
 		return
@@ -102,3 +104,37 @@ func _ok(msg: String) -> void:
 func _fail(msg: String) -> void:
 	printerr("  [FAIL] %s" % msg)
 	quit(1)
+
+
+func _setup_headless_hud() -> Node:
+	# Create a minimal test world node with HudLayer and TooltipManager
+	var test_world := Node.new()
+	test_world.name = "WorldPlayable"
+	root.add_child(test_world)
+
+	# Load and instantiate HudLayer scene (which includes TooltipManager)
+	var HudLayerScript := load("res://ui/hud/hud_layer.gd")
+	if not HudLayerScript:
+		_fail("Failed to load HudLayer script")
+		return null
+
+	var hud: Node = HudLayerScript.new()
+	hud.name = "HudLayer"
+	test_world.add_child(hud)
+
+	# Call _ready to initialize the HUD (installs HudIntegrator, etc.)
+	hud.call("_ready")
+	await process_frame
+	await process_frame
+
+	# Verify HudIntegrator was installed
+	var integrator: Node = hud.get_node_or_null("HudIntegrator")
+	if not integrator:
+		_fail("HudIntegrator not installed in headless HUD")
+		return null
+
+	# Bind the integrator to the HUD (normally done by _install_integrator)
+	if integrator.has_method("bind"):
+		integrator.call("bind", hud)
+
+	return test_world
