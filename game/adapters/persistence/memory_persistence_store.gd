@@ -266,7 +266,7 @@ func _query_select(sql: String, params: Array) -> Array:
 		var limit_part := rest.substr(where_idx + 7 + limit_idx + 7).strip_edges()
 		var num_str := ""
 		for c in limit_part:
-			if c.isdigit():
+			if c.is_decimal():
 				num_str += c
 			else:
 				break
@@ -706,7 +706,8 @@ func _match_like(text: String, pattern: String) -> bool:
 
 	if regex_str == "":
 		regex_str = ".*"
-	return text.to_lower().find_regexp(regex_str) >= 0func _parse_order_by(sql: String, params: Array) -> Array:
+	return text.to_lower().find_regexp(regex_str) >= 0
+func _parse_order_by(sql: String, params: Array) -> Array:
 	var result: Array = []
 	
 	sql = sql.strip_edges()
