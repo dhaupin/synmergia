@@ -653,7 +653,7 @@ srv/
 | Vant multibrain stack | vant `brain.js:1510-1900` | `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` (port) | DONE |
 | NSC-9 barcode format | vant `geometry/nsc9.js` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
 | Icosahedral projection | vant `geometry/icosahedral.js` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
-| Vant fragmenter | vant `geometry/fragmenter.js` | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | TODO (Phase 4) |
+| Vant fragmenter | [prd-geometry.md](./prd-geometry.md) В§US-001 | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | IN PROGRESS |
 
 ---
 
@@ -679,7 +679,7 @@ srv/
 | 3 | Account rollup (D028) | med | anticheat team |
 | 3 | Memory tree + social tree | low | game team |
 | 4 | Edge shards | high | infra team |
-| 4 | Vant icosahedral + fragmenter ports | med | frame team |
+| 4 | Vant icosahedral + fragmenter ports | med | frame team | See `labs/prd-geometry.md` |
 | 4 | Other trees (game-specific) as needed | low | game team |
 
 ---

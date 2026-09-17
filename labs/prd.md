@@ -64,6 +64,7 @@ This PRD is the product spec. The technical architecture is in
 - [`prd-critical-params.md`](./prd-critical-params.md) — critical params
 - [`prd-open-seed-ttl.md`](./prd-open-seed-ttl.md) — seed TTL
 - [`prd-manifest-backup.md`](./prd-manifest-backup.md) — manifest backup
+- [`prd-geometry.md`](./prd-geometry.md) — Vant fragmenter / geometric addressing
 
 **Frame primitives** (in `../game/core/frame/`, consolidated from legacy multi-iso):
 - [`math/`](../game/core/frame/math/) — NSC-9, icosahedral

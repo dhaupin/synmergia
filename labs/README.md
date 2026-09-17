@@ -14,6 +14,7 @@ current code state read `m3-initial-world-audit.md`.
 | Product spec | `prd.md` | Living |
 | Database + persistence PRD | `prd-db.md` | Authoritative for adapter layer |
 | Per-component specs | `prd-*.md` (Phase 2 deliverables) | Living, churn-y. List in `prd.md` sec. 16 Phase 2. |
+- [`prd-geometry.md`](./prd-geometry.md) — Vant fragmenter / geometric addressing
 | Systems architecture | `world-building-arch.md` | Authoritative for frame design |
 | World / netcode / persistence | `world-building.md` | Living |
 | Tick model | `world-building-tick.md` | Living |

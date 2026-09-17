@@ -67,7 +67,7 @@ Persistent memory across resets for Synmergia development.
 
 ### World Building PRD — Phase 3 & 4
 - [ ] **Account Rollup (D028)** (`game/core/services/account_rollup.gd`) — Account-level state aggregation across characters [town:core]
-- [ ] **Vant Fragmenter** (`game/core/frame/geometry/fragmenter.gd`) — Procedural cell decomposition [town:frame]
+- [~] **Vant Fragmenter** (`game/core/frame/geometry/fragmenter.gd`) — Procedural cell decomposition [town:frame] — spec: `labs/prd-geometry.md` (created 2026-09-17)
 
 ---
 
