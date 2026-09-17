@@ -214,14 +214,12 @@ func _update_predictions() -> void:
 	if _markov == null:
 		return
 
+	_markov.tick()
+
 	for player_id in _player_data.keys():
 		var player_data := _player_data[player_id]
 		if player_data.current_chunk_key == "":
 			continue
-
-		# Record movement if chunk changed
-		if _markov and player_data.current_chunk_key != "":
-			var prev_chunk := player_data.current_chunk_key
 
 		# Get predictions
 		var predictions := _markov.predict_next(player_id)
@@ -424,6 +422,8 @@ func _get_or_create_chunk_state(chunk_key: String) -> ChunkLODState:
 
 ## Convert world position to chunk key (x,z)
 func _position_to_chunk_key(pos: Vector3) -> String:
+	if _spatial_fragmenter == null:
+		return "0000-0000-0000-d0-f0"
 	var x := int(floor(pos.x / CHUNK_SIZE))
 	var y := int(floor(pos.y / CHUNK_SIZE))
 	var z := int(floor(pos.z / CHUNK_SIZE))
@@ -438,7 +438,7 @@ func get_chunk_key_from_position(pos: Vector3) -> String:
 ## Convert chunk key to world position (center of chunk)
 func _chunk_key_to_position(chunk_key: String) -> Vector3:
 	var parts := chunk_key.split("-")
-	if parts.size() < 5:
+	if parts.size() < 3:
 		return Vector3.ZERO
 	var x := int(parts[0], 16)
 	var z := int(parts[2], 16)

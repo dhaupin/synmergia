@@ -65,6 +65,9 @@ var _states: Dictionary = {}  # player_id -> PlayerMarkovState
 var _spatial_fragmenter = null
 var _tick_number: int = 0
 
+func tick() -> void:
+	_tick_number += 1
+
 
 func _init() -> void:
 	_spatial_fragmenter = SpatialFragmenterScript.new()
