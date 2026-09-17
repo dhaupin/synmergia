@@ -692,20 +692,19 @@ func _match_like(text: String, pattern: String) -> bool:
 		elif c == "\\" and i + 1 < pattern.length():
 			var next := pattern[i + 1]
 			if next == "%" or next == "_" or next == "\\":
-				regex_str += "\\" + next
+				regex_str += "\\\\" + next
 				i += 1
 			else:
-				regex_str += "\\" + next
+				regex_str += "\\\\\\\" + next
 				i += 1
 		elif c >= "A" and c <= "Z":
 			regex_str += "[" + c.to_lower() + c.to_upper() + "]"
 		elif c >= "a" and c <= "z":
 			regex_str += "[" + c.to_upper() + c.to_lower() + "]"
-		else:
-		regex_str += c
+else:
+			regex_str += c
 		if regex_str == "":
-		regex_str = ".*"
-		regex_str = ".*"
+			regex_str = ".*"
 	return text.to_lower().find_regexp(regex_str) >= 0
 
 func _parse_order_by(sql: String, params: Array) -> Array:
@@ -722,7 +721,7 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 		if space_idx >= 0:
 			col = sql.substr(0, space_idx).strip_edges()
 			var after_col := sql.substr(space_idx + 1).strip_edges()
-				
+			
 			# Check for ASC/DESC
 			if after_col.to_upper().begins_with("ASC"):
 				dir = "ASC"
@@ -733,6 +732,8 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 				elif after_asc.begins_with(" "):
 					after_asc = after_asc.substr(1).strip_edges()
 					sql = after_asc
+				elif after_asc.length() == 0:
+					sql = ""
 			elif after_col.to_upper().begins_with("DESC"):
 				dir = "DESC"
 				var after_desc := after_col.substr(5).strip_edges()
@@ -741,16 +742,18 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 				elif after_desc.begins_with(" "):
 					after_desc = after_desc.substr(1).strip_edges()
 					sql = after_desc
+				elif after_desc.length() == 0:
+					sql = ""
 			else:
 				sql = after_col
-			
+		
 		else:
 			col = sql.strip_edges()
 			var after_col := ""
-				
+			
 			if sql.begins_with(","):
 				sql = sql.substr(1).strip_edges()
-				
+			
 			if sql.to_upper().begins_with("ASC"):
 				dir = "ASC"
 				var after_asc := sql.substr(3).strip_edges()
@@ -764,37 +767,32 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 					sql = ""
 					
 			elif sql.to_upper().begins_with("DESC"):
-					dir = "DESC"
-					var after_desc := sql.substr(5).strip_edges()
-					if after_desc.begins_with(","):
-						after_desc = after_desc.substr(1).strip_edges()
-						sql = after_desc
-					elif after_desc.begins_with(" "):
-						after_desc = after_desc.substr(1).strip_edges()
-						sql = after_desc
-					elif after_desc.length() == 0:
-						sql = ""
+				dir = "DESC"
+				var after_desc := sql.substr(5).strip_edges()
+				if after_desc.begins_with(","):
+					after_desc = after_desc.substr(1).strip_edges()
+				elif after_desc.begins_with(" "):
+					after_desc = after_desc.substr(1).strip_edges()
+					sql = after_desc
+				elif after_desc.length() == 0:
+					sql = ""
 					
 			else:
-					sql = sql
-				
-				
+				sql = sql
+			
 		if col.length() > 0:
-				result.append({"col": col, "dir": dir})
-				
-				if sql.begins_with(","):
-					sql = sql.substr(1).strip_edges()
-					
-			elif sql.length() == 0:
-					break
-					
-				
-				
-			else:
-				break
+			result.append({"col": col, "dir": dir})
+			
+			if sql.begins_with(","):
+				sql = sql.substr(1).strip_edges()
 		
+		elif sql.length() == 0:
+			break
+			
+		else:
+			break
+	
 	return result
-
 
 func _apply_order_by(rows: Array, order_info: Array) -> Array:
 	if order_info.is_empty():
@@ -809,42 +807,41 @@ func _apply_order_by(rows: Array, order_info: Array) -> Array:
 			
 			if av == bv:
 				continue
-				
+			
 			if dir == "ASC":
 				if av == null:
 					return true
 				if bv == null:
 					return false
-					
-if av is Variant and bv is Variant:
+				
+				if av is Variant and bv is Variant:
+					if av < bv:
+						return true
+					return false
+				else:
+					# String comparison
 					if av < bv:
 						return true
 					return false
 			else:
-				# String comparison
-				if av < bv:
+				if bv == null:
 					return true
-				return false
-		else:
-			if bv == null:
-				return true
-			if av == null:
-				return false
-			
-			if av is Variant and bv is Variant:
-				if av > bv:
-					return true
-				return false
-			else:
-				# String comparison
-				if av > bv:
-					return true
-				return false
+				if av == null:
+					return false
+				
+				if av is Variant and bv is Variant:
+					if av > bv:
+						return true
+					return false
+				else:
+					# String comparison
+					if av > bv:
+						return true
+					return false
 					
 		return false
 	)
 	return rows
-
 
 func _apply_group_by(rows: Array, group_cols: Array, params: Array) -> Array:
 	if group_cols.is_empty():
