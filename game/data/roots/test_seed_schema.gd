@@ -1,4 +1,7 @@
 ## SeedSchema test suite. Spec: labs/prd-seed-schema.md
+## Canonical format: per-value length-prefixed encoding
+## (string keys + numeric scalars encoded as length-prefixed values,
+## replacing the previous single-JSON-blob approach).
 extends SceneTree
 
 const SeedSchemaScript = preload("res://data/roots/seed_schema.gd")
@@ -137,8 +140,16 @@ func _test_canonical_length_prefix_format() -> void:
 	offset += 4 + 8
 	_assert_eq(_read_u32_le(bytes, offset), 5, "path length prefix is 5 (/a/b/c)")
 	offset += 4 + 5
-	_assert_eq(_read_u32_le(bytes, offset), JSON.stringify({"d": 2}).length(), "parameters JSON length prefix matches")
-	offset += 4 + JSON.stringify({"d": 2}).length()
+	# Parameters are now per-value encoded:
+	# [len:key]["d"][len:int_value][8 bytes of int 2]
+	var key_len := _read_u32_le(bytes, offset)
+	_assert_eq(key_len, 1, "parameter key length is 1 (d)")
+	offset += 4 + key_len
+	_assert_eq(bytes[offset - 1], ord("d"), "parameter key byte is 'd'")
+	var val_len := _read_u32_le(bytes, offset)
+	_assert_eq(val_len, 1, "parameter int value length prefix is 1")
+	offset += 4 + val_len
+	_assert_eq(bytes[offset - 1], 2, "parameter int value byte is 2")
 	_assert_eq(offset, bytes.size(), "canonical encoding has no trailing bytes")
 
 

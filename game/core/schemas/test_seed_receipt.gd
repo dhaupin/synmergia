@@ -2,6 +2,7 @@
 ##
 ## Tests for SeedReceipt Resource (labs/prd-login-seed-chain.md)
 ## Covers US-001 through US-004 + edge cases
+## issued_at is in Unix milliseconds; replay window is 60,000 ms.
 
 extends SceneTree
 
@@ -74,7 +75,7 @@ func _test_verify_correct_key() -> void:
 	receipt.instance_seed = _rand32()
 	receipt.player_seed = _rand32()
 	receipt.manifest_hash = _rand32()
-	receipt.issued_at = Time.get_unix_time_from_system()
+	receipt.issued_at = Time.get_unix_time_from_system() * 1000
 	var key = _rand32()
 	receipt.sign(key)
 	_assert(receipt.verify(key), "verify with correct key succeeds")
@@ -86,7 +87,7 @@ func _test_verify_wrong_key() -> void:
 	receipt.instance_seed = _rand32()
 	receipt.player_seed = _rand32()
 	receipt.manifest_hash = _rand32()
-	receipt.issued_at = Time.get_unix_time_from_system()
+	receipt.issued_at = Time.get_unix_time_from_system() * 1000
 	var key1 = _rand32()
 	var key2 = _rand32()
 	receipt.sign(key1)
@@ -99,7 +100,7 @@ func _test_corrupted() -> void:
 	receipt.instance_seed = _rand32()
 	receipt.player_seed = _rand32()
 	receipt.manifest_hash = _rand32()
-	receipt.issued_at = Time.get_unix_time_from_system()
+	receipt.issued_at = Time.get_unix_time_from_system() * 1000
 	var key = _rand32()
 	receipt.sign(key)
 	var bytes = receipt.to_bytes()
@@ -109,7 +110,7 @@ func _test_corrupted() -> void:
 
 func _test_issued_at() -> void:
 	var receipt = SeedReceiptScript.new()
-	var now = Time.get_unix_time_from_system()
+	var now = Time.get_unix_time_from_system() * 1000
 	receipt.issued_at = now
 	var bytes = receipt.to_bytes()
 	var receipt2 = SeedReceiptScript.from_bytes(bytes)
@@ -133,7 +134,7 @@ func _test_sign_verify() -> void:
 	receipt.instance_seed = _rand32()
 	receipt.player_seed = _rand32()
 	receipt.manifest_hash = _rand32()
-	receipt.issued_at = Time.get_unix_time_from_system()
+	receipt.issued_at = Time.get_unix_time_from_system() * 1000
 	var key = _rand32()
 	receipt.sign(key)
 	_assert(receipt.signature.size() == 32, "signature 32 bytes")
@@ -148,7 +149,7 @@ func _test_replay_window() -> void:
 	receipt.manifest_hash = _rand32()
 	var key = _rand32()
 	
-	var now = Time.get_unix_time_from_system()
+	var now = Time.get_unix_time_from_system() * 1000
 	receipt.issued_at = now
 	receipt.sign(key)
 	_assert(receipt.verify(key), "fresh receipt verifies")

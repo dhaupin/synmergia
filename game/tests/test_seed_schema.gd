@@ -5,7 +5,7 @@
 
 extends SceneTree
 
-var schema: Resource
+var schema: SeedSchema
 var ok: bool = true
 
 func _init() -> void:

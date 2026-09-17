@@ -85,9 +85,9 @@ func get_definition(param_name: String) -> ShardParameterDefinitionScript:
 ## the caller. Critical parameters apply immediately to the shard's state
 ## tree, log to GameLog at INFO, and emit param_applied. Non-critical
 ## parameters are queued and applied after the coalesce window.
-##
-## There is no public way to change criticality at runtime (config-time
-## only, see labs/prd-critical-params.md US-005).
+## The public API is set_param(). It reads criticality from .tres definitions
+## and routes to the appropriate apply path. There is no runtime criticality
+## setter -- a player cannot escalate a non-critical parameter to critical.
 func set_param(shard_id: String, param_name: String, value: Variant, actor_id: String = "") -> void:
 	var def := get_definition(param_name)
 	if def == null:

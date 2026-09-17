@@ -2,6 +2,7 @@
 ##
 ## Specification: labs/prd-state-schema.md
 ## Architecture: labs/world-building-arch.md §8.1
+## Sample: game/data/roots/world/state.tres (covers 4-5 state types)
 ##
 ## State tree payload schema. Defines type (position/inventory/health/
 ## faction/status/quest/social/behavior_state/other) and canonical
@@ -15,16 +16,16 @@ class_name StateSchema
 
 func _to_canonical_bytes(value: Dictionary) -> PackedByteArray:
 	var writer := _CanonicalWriter.new()
-	
+
 	var type_str: String = value.get("type", type)
 	var entity_id: String = value.get("entity_id", "")
 	var payload: Dictionary = value.get("payload", {})
-	
+
 	var type_enum: int = _type_to_enum(type_str)
 	writer.write_u8(type_enum)
 	writer.write_string(entity_id)
 	writer.write_dict(payload)
-	
+
 	return writer.to_bytes()
 
 func _validate(value: Dictionary) -> bool:
@@ -34,11 +35,11 @@ func _validate(value: Dictionary) -> bool:
 		return false
 	if not value.has("payload"):
 		return false
-	
+
 	var type_val: String = value["type"]
 	var entity_id_val = value["entity_id"]
 	var payload_val = value["payload"]
-	
+
 	var valid_types := ["position", "inventory", "health", "faction", "status", "quest", "social", "behavior_state", "other"]
 	if type_val not in valid_types:
 		return false
@@ -46,16 +47,17 @@ func _validate(value: Dictionary) -> bool:
 		return false
 	if payload_val.get_type() != TYPE_DICTIONARY:
 		return false
-	
+
 	match type_val:
 		"position":
 			if not payload_val.has("x") or not payload_val.has("y") or not payload_val.has("z"):
 				return false
-			if payload_val["x"].get_type() not in [TYPE_FLOAT, TYPE_INT]:
-				return false
-			if payload_val["y"].get_type() not in [TYPE_FLOAT, TYPE_INT]:
-				return false
-			if payload_val["z"].get_type() not in [TYPE_FLOAT, TYPE_INT]:
+			# Normalize and validate each coordinate:
+			# ints are converted to floats; floats are quantized to 0.01m.
+			payload_val["x"] = _quantize_position(payload_val["x"])
+			payload_val["y"] = _quantize_position(payload_val["y"])
+			payload_val["z"] = _quantize_position(payload_val["z"])
+			if payload_val["x"] == null or payload_val["y"] == null or payload_val["z"] == null:
 				return false
 		"health":
 			if not payload_val.has("current") or not payload_val.has("max"):
@@ -102,18 +104,24 @@ func _validate(value: Dictionary) -> bool:
 				return false
 			if payload_val["current_state"].get_type() != TYPE_STRING:
 				return false
+			# Valid FSM states: idle, move, attack, interact.
+			if payload_val["current_state"] not in ["idle", "move", "attack", "interact"]:
+				return false
 			if not payload_val.has("ai_tick_state"):
+				return false
+			# ai_tick_state is an integer.
+			if payload_val["ai_tick_state"].get_type() != TYPE_INT:
 				return false
 		"other":
 			pass
-	
+
 	return true
 
 func _to_display(value: Dictionary) -> String:
 	var type_str: String = value.get("type", type)
 	var entity_id: String = value.get("entity_id", "")
 	var payload: Dictionary = value.get("payload", {})
-	
+
 	match type_str:
 		"position":
 			var x = payload.get("x", 0)
@@ -146,7 +154,7 @@ func _to_display(value: Dictionary) -> String:
 			return "[behavior_state] %s: %s" % [entity_id, current_state]
 		"other":
 			return "[other] %s" % entity_id
-	
+
 	return "[%s] %s" % [type_str, entity_id]
 
 func _type_to_enum(type_str: String) -> int:
@@ -162,23 +170,34 @@ func _type_to_enum(type_str: String) -> int:
 		"other": return 8
 	return 8
 
+# Quantize a position coordinate to 0.01m precision.
+# Returns null for non-numeric inputs (caller must reject).
+# Integers are converted to floats; floats are rounded to 2 decimal places.
+func _quantize_position(v) -> Variant:
+	var t: int = v.get_type()
+	if t == TYPE_INT:
+		return float(v)
+	if t == TYPE_FLOAT:
+		return roundf(v * 100.0) / 100.0
+	return null
+
 class _CanonicalWriter:
 	var buffer: PackedByteArray = PackedByteArray()
-	
+
 	func write_u8(val: int) -> void:
 		buffer.append(val & 0xFF)
-	
+
 	func write_u32(val: int) -> void:
 		buffer.append(val & 0xFF)
 		buffer.append((val >> 8) & 0xFF)
 		buffer.append((val >> 16) & 0xFF)
 		buffer.append((val >> 24) & 0xFF)
-	
+
 	func write_string(s: String) -> void:
 		var bytes: PackedByteArray = s.to_utf8_buffer()
 		write_u32(bytes.size())
 		buffer.append_array(bytes)
-	
+
 	func write_dict(d: Dictionary) -> void:
 		var sorted_dict: Dictionary = {}
 		var keys: Array = d.keys()
@@ -187,6 +206,6 @@ class _CanonicalWriter:
 			sorted_dict[key] = d[key]
 		var json_str: String = JSON.stringify(sorted_dict)
 		write_string(json_str)
-	
+
 	func to_bytes() -> PackedByteArray:
 		return buffer

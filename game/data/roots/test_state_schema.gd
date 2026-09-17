@@ -1,4 +1,7 @@
 ## StateSchema test suite. Spec: labs/prd-state-schema.md
+## Position values are quantized to 0.01m; behavior_state
+## validates FSM enum (idle/move/attack/interact) and
+## ai_tick_state must be int.
 extends SceneTree
 
 const StateSchemaScript = preload("res://data/roots/state_schema.gd")
@@ -93,9 +96,14 @@ func _test_validate_payload_not_dict() -> void:
 
 func _test_validate_position() -> void:
 	var s := StateSchemaScript.new()
-	_assert(s._validate({"type": "position", "entity_id": "e", "payload": {"x": 1.0, "y": 0.0, "z": -5.0}}) == true, "valid position accepted")
+	# Int coordinates are accepted (converted to float 0.01m quantized).
+	_assert(s._validate({"type": "position", "entity_id": "e", "payload": {"x": 1, "y": 0, "z": -5}}) == true, "valid int position accepted")
+	# Float coordinates quantized to 0.01m are accepted.
+	_assert(s._validate({"type": "position", "entity_id": "e", "payload": {"x": 1.0, "y": 0.0, "z": -5.0}}) == true, "valid quantized float position accepted")
 	_assert(s._validate({"type": "position", "entity_id": "e", "payload": {"x": 1.0, "y": 0.0}}) == false, "position missing z rejected")
 	_assert(s._validate({"type": "position", "entity_id": "e", "payload": {"x": "bad", "y": 0.0, "z": 1.0}}) == false, "position with string x rejected")
+	# Non-quantized float should be rejected.
+	_assert(s._validate({"type": "position", "entity_id": "e", "payload": {"x": 1.005, "y": 0.0, "z": 1.0}}) == false, "non-quantized float x rejected")
 
 
 func _test_validate_health() -> void:
@@ -135,9 +143,14 @@ func _test_validate_social() -> void:
 
 
 func _test_validate_behavior_state() -> void:
+	# Valid FSM states are now enforced: idle, move, attack, interact.
 	var s := StateSchemaScript.new()
-	_assert(s._validate({"type": "behavior_state", "entity_id": "e", "payload": {"current_state": "patrol", "ai_tick_state": 3}}) == true, "valid behavior_state accepted")
-	_assert(s._validate({"type": "behavior_state", "entity_id": "e", "payload": {"current_state": "patrol"}}) == false, "behavior_state missing ai_tick_state rejected")
+	_assert(s._validate({"type": "behavior_state", "entity_id": "e", "payload": {"current_state": "idle", "ai_tick_state": 3}}) == true, "valid behavior_state accepted")
+	_assert(s._validate({"type": "behavior_state", "entity_id": "e", "payload": {"current_state": "idle"}}) == false, "behavior_state missing ai_tick_state rejected")
+	# Invalid FSM state should be rejected.
+	_assert(s._validate({"type": "behavior_state", "entity_id": "e", "payload": {"current_state": "patrol", "ai_tick_state": 3}}) == false, "invalid FSM state 'patrol' rejected")
+	# ai_tick_state must be int.
+	_assert(s._validate({"type": "behavior_state", "entity_id": "e", "payload": {"current_state": "move", "ai_tick_state": "3"}}) == false, "string ai_tick_state rejected")
 
 
 func _test_validate_other() -> void:
@@ -246,7 +259,7 @@ func _payload(t: String) -> Dictionary:
 		"status": return {"type": "status", "entity_id": "e1", "payload": {"effects": ["buff"]}}
 		"quest": return {"type": "quest", "entity_id": "e1", "payload": {"quest_id": "q1", "progress": 50}}
 		"social": return {"type": "social", "entity_id": "e1", "payload": {"relations": {"a": "f"}}}
-		"behavior_state": return {"type": "behavior_state", "entity_id": "e1", "payload": {"current_state": "patrol", "ai_tick_state": 0}}
+		"behavior_state": return {"type": "behavior_state", "entity_id": "e1", "payload": {"current_state": "idle", "ai_tick_state": 0}}
 		"other": return {"type": "other", "entity_id": "e1", "payload": {"x": 1}}
 	return {"type": "other", "entity_id": "e1", "payload": {}}
 

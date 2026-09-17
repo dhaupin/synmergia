@@ -3,6 +3,10 @@
 ## Contains 4 character-scoped seeds (world, shard, instance, player),
 ## the world manifest hash, a timestamp, and an HMAC-SHA256 signature.
 ## Serialized as 200 bytes: 4*32 + 32 + 32 + 8 = 200
+##
+## PRD: labs/prd-login-seed-chain.md US-004
+## Timestamp: issued_at is in Unix milliseconds (64-bit integer).
+## Replay protection window: 60,000 ms (60 seconds).
 extends Resource
 class_name SeedReceipt
 
@@ -26,17 +30,18 @@ func sign(server_key: PackedByteArray) -> void:
 
 ## Verifies the receipt signature against the server key.
 ## Includes 60-second replay protection based on issued_at timestamp.
+## issued_at is in Unix milliseconds; tolerance is 60,000 ms.
 func verify(server_key: PackedByteArray) -> bool:
 	if signature.is_empty():
 		return false
-	
-	# Check replay protection: receipt must be within 60 seconds of issued_at
-	var now := Time.get_unix_time_from_system()
+
+	# Check replay protection: receipt must be within 60,000 ms of issued_at.
+	var now := Time.get_unix_time_from_system() * 1000  # Convert to milliseconds
 	if now < issued_at:
 		return false  # issued_at in the future
-	if now - issued_at > 60:
+	if now - issued_at > 60000:
 		return false  # expired (more than 60 seconds old)
-	
+
 	var payload := to_bytes()
 	var hmac := HMACContext.new()
 	if hmac.start(HashingContext.HASH_SHA256, server_key) != OK:

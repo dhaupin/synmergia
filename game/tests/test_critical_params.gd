@@ -111,11 +111,11 @@ func _test_coalesce_same_param() -> void:
 	_assert(_current_applied.size() == 1, "coalesced writes apply once")
 	_assert(_current_applied[0]["value"] == 3.0, "latest write wins the coalesce")
 
-## US-005: criticality is config-time. set_param() always reads the .tres; there
+## US-005: criticality is config-time. set() always reads the .tres; there
 ## is no public way to flip criticality at runtime.
 func _test_config_time_criticality() -> void:
 	# respawn_rate_modifier is non-critical in its .tres. Even if we
-	# call set_param() repeatedly, it should never apply immediately.
+	# call set() repeatedly, it should never apply immediately.
 	_sp.set_state_tree("shard_d", _new_tree())
 	_current_applied = []
 	_sp.set_param("shard_d", "respawn_rate_modifier", 5.0, "player")

@@ -1,8 +1,6 @@
 ## Ported from vant axolotl lib/brain.js
 extends RefCounted
 
-class_name ScopeEngine
-
 const ScopeScript = preload("res://core/frame/srv/scope.gd")
 
 const TOP_WINS = "TOP_WINS"
