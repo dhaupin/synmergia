@@ -19,6 +19,11 @@
 ##      SpatialFragmenter.get_parent(child_addr) -> parent_addr
 ##      SpatialFragmenter.find_common_ancestor(Array[addr]) -> ancestor_addr
 ##
+## T3 integration bridge (pure function bridge):
+## - No persistence, no autoload, no GameManager dependency.
+## - These methods simply bridge SpatialFragmenter addresses into the T3
+##   content-hash tree substrate.
+##
 ## See labs/prd-spatial-geometry.md for the full spec.
 extends RefCounted
 
@@ -160,3 +165,141 @@ func generate_key(address: int) -> String:
 	var depth: int = get_depth(address)
 	var face: int = get_face(address)
 	return "%04x-%04x-%04x-d%d-f%d" % [x, y, z, depth, face]
+
+
+## T3 integration bridge (pure function bridge):
+## - No persistence, no autoload, no GameManager dependency.
+## - These methods simply bridge SpatialFragmenter addresses into the T3
+##   content-hash tree substrate.
+
+
+## Stores a spatial fragment in the T3 substrate.
+## Returns the T3 node hash, or an empty PackedByteArray if t3 is null.
+func store_fragment_in_t3(t3: Variant, path: String, address: int, metadata: Dictionary = {}) -> PackedByteArray:
+	if t3 == null:
+		return PackedByteArray()
+
+	var x: int = get_x(address)
+	var y: int = get_y(address)
+	var z: int = get_z(address)
+	var depth: int = get_depth(address)
+	var face: int = get_face(address)
+	var key: String = generate_key(address)
+	var bbox: Dictionary = get_bounding_box(address)
+
+	var value := {
+		"address": address,
+		"x": x,
+		"y": y,
+		"z": z,
+		"depth": depth,
+		"face": face,
+		"key": key,
+		"bbox": bbox,
+		"metadata": metadata
+	}
+
+	return t3.insert(path, value, Resource.new())
+
+
+## Queries the T3 substrate for spatial fragment nodes under scope_path.
+## Returns an Array[Dictionary] with path, hash, address, x, y, z, depth,
+## face, key, bbox, and metadata for each node.
+func query_spatial_tree(t3: Variant, scope_path: String = "/") -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	if t3 == null:
+		return results
+
+	t3.walk(scope_path, func(node_path: String, node_hash: PackedByteArray, value: Variant) -> void:
+		if value is Dictionary:
+			results.append({
+				"path": node_path,
+				"hash": node_hash,
+				"address": value.get("address"),
+				"x": value.get("x"),
+				"y": value.get("y"),
+				"z": value.get("z"),
+				"depth": value.get("depth"),
+				"face": value.get("face"),
+				"key": value.get("key"),
+				"bbox": value.get("bbox"),
+				"metadata": value.get("metadata")
+			})
+	)
+	return results
+
+
+## Generates a deterministic T3 path for a spatial fragment address.
+## Example: "spatial/0001-0002-0003-d0-f4"
+func path_for_address(address: int) -> String:
+	var x: int = get_x(address)
+	var y: int = get_y(address)
+	var z: int = get_z(address)
+	var depth: int = get_depth(address)
+	var face: int = get_face(address)
+	return "spatial/%04x-%04x-%04x-d%d-f%d" % [x, y, z, depth, face]
+
+
+func nsc9_axis_to_face(axis: int) -> int:
+	"""
+	Map NSC-9 spatial axis to SpatialFragmenter face code.
+
+	NSC-9 spatial axis range: 1-12 (from nsc9.gd AXIS_SPATIAL_BASE = 1).
+	SpatialFragmenter face range: 0-11 (icosahedral vertices).
+
+	:arg axis: NSC-9 spatial axis code (1-12)
+	:return: SpatialFragmenter face code (0-11), or -1 if out of range
+	"""
+	if axis < 1 or axis > 12:
+		return -1
+	return axis - 1
+
+
+func nsc9_code_to_face(code: int) -> int:
+	"""
+	Map a full NSC-9 code to a SpatialFragmenter face code.
+
+	NSC-9 format: 9-AAA-BBB-CCCCC
+	- prefix = 9 (GS1 non-product)
+	- facility = AAA (000-999)
+	- axis = BBB (000-999)
+	- sequence = CCCCCC (0-16M)
+
+	The spatial axis is the BBB component (third component).
+	Only spatial axes 1-12 map to icosahedral faces 0-11.
+
+	:arg code: Full NSC-9 code integer
+	:return: SpatialFragmenter face code (0-11), or -1 if invalid
+	"""
+	if code < 0:
+		return -1
+
+	# Extract NSC-9 components
+	# 9-AAA-BBB-CCCCC where AAA is facility, BBB is axis, CCCCCC is sequence
+	# The axis is in the hundreds-thousands place
+	axis = code // 1_000_000
+	axis = axis % 1_000
+
+	return nsc9_axis_to_face(axis)
+
+
+func to_spatial_address(nsc9_code: int, track: int, date: int, race_number: int, face: int = -1) -> int:
+	"""
+	Build a SpatialFragmenter address from an NSC-9 code and track context.
+
+	NSC-9 code provides the face (via axis mapping).
+	track/date/race_number provide the x/y/z coordinate context.
+
+	:arg nsc9_code: Full NSC-9 code
+	:arg track: Track coordinate (x)
+	:arg date: Date coordinate (y)
+	:arg race_number: Race number coordinate (z)
+	:arg face: Override face code (default -1 to derive from NSC-9)
+	:return: SpatialFragmenter address
+	"""
+	if face < 0:
+		face = nsc9_code_to_face(nsc9_code)
+	if face < 0:
+		return -1
+
+	return make_address(track, date, race_number, 0, face)

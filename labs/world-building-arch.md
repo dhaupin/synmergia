@@ -156,8 +156,8 @@ realm  ->  region  ->  district  ->  character
 ```
 
 The hierarchy is a tree. Each node in the hierarchy is a
-scope. Each scope can have its own environment (sec. sec. 6) and its
-own rule overrides (sec. sec. 5).
+scope. Each scope can have its own environment (sec. 6) and its
+own rule overrides (sec. 5).
 
 ### 4.2 The scope class
 
@@ -195,7 +195,7 @@ from the player's scope up to the world scope:
 ```
 
 The stack is what gets content-hashed for the seed derivation
-(sec. sec. 7.2). The scope engine walks the stack to resolve rules,
+(sec. 7.2). The scope engine walks the stack to resolve rules,
 values, etc.
 
 ### 4.4 The "flip" semantic
@@ -277,7 +277,7 @@ NEW:
 ```
 
 Each rule in the rules tree declares its resolution strategy
-(sec. sec. 5.1). The "A/B/C/D" stack-direction question is now
+(sec. 5.1). The "A/B/C/D" stack-direction question is now
 per-rule, not per-system. The game developer picks the
 semantics that fit each rule.
 
@@ -317,10 +317,10 @@ func tick(delta: float) -> void:
 ### 6.2 The trees per environment
 
 Each environment has:
-- A seed tree (sec. sec. 7)  - " canonical, recursive, deterministic
-- A state tree (sec. sec. 8)  - " canonical, runtime
-- A rules tree (sec. sec. 5)  - " the gating rules
-- ...any other tree the game wants (sec. sec. 9)
+- A seed tree (sec. 7)  - " canonical, recursive, deterministic
+- A state tree (sec. 8)  - " canonical, runtime
+- A rules tree (sec. 5)  - " the gating rules
+- ...any other tree the game wants (sec. 9)
 
 For Synmergia's poc/mvp:
 
@@ -386,7 +386,7 @@ the world. (D031  - " to be decided when we hit Phase 1 infra.)
 ## 7. The seed tree (canonical instance)
 
 The first canonical tree. Recursive, deterministic,
-content-hashed. (Spec sec. sec. 4, D025-D026.)
+content-hashed. (Spec sec. 4, D025-D026.)
 
 ### 7.1 The SeedSchema
 
@@ -447,7 +447,7 @@ through immediately. Default criticality:
 ## 8. The state tree (canonical instance)
 
 The second canonical tree. Runtime, mutable, content-hashed.
-(Spec sec. sec. 5, D027.)
+(Spec sec. 5, D027.)
 
 ### 8.1 The StateSchema
 
@@ -510,7 +510,7 @@ A tick, end-to-end:
 
 1. **Client  ->  server:** `cmd` over WebSocket.
 2. **Server parse:** `network_manager.gd` parses, validates,
-   queues. (Spec sec. sec. 11.)
+   queues. (Spec sec. 11.)
 3. **Tick loop** in `tick.gd`:
    a. Walk the active scope stack
       (player  ->  instance  ->  shard  ->  world).
@@ -579,8 +579,8 @@ shard events go through the coordinator.
 [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+04B3]
 ```
 
-Edge shards for low-latency regional cache. (Spec sec. sec. 11.11,
-research doc sec. sec. 2.)
+Edge shards for low-latency regional cache. (Spec sec. 11.11,
+research doc sec. 2.)
 
 ---
 
@@ -619,43 +619,43 @@ srv/
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
-| T3 substrate | this doc sec. sec. 3 | `game/core/frame/kv/t3.gd` | `game/core/frame/kv/t3.gd` | DONE |
-| Scope engine | this doc sec. sec. 4 | `game/core/frame/srv/scope_hierarchy.gd`, `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` | DONE |
-| Rules engine | this doc sec. sec. 5 | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | DONE |
-| Definition tree | this doc sec. sec. 9 | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | DONE |
-| SeedSchema Resource | this doc sec. sec. 7, spec sec. sec. 4 | none | `game/data/roots/seed_schema.gd` | DONE |
-| StateSchema Resource | this doc sec. sec. 8, spec sec. sec. 5 | none | `game/data/roots/state_schema.gd` | DONE |
-| Seed tree (canonical) | this doc sec. sec. 7, spec sec. sec. 4 | `game/core/frame/kv/seed_chain.gd` | `game/core/frame/kv/seed_chain.gd` | DONE |
-| State tree (canonical) | this doc sec. sec. 8, spec sec. sec. 5 | `game/core/frame/kv/state_tree.gd` | `game/core/frame/kv/state_tree.gd` | DONE |
-| Recursive seed derivation | spec sec. sec. 4.2, D025 | `game/core/frame/kv/seed_chain.gd::derive_seed` | `seed_chain.gd::derive_seed` | DONE |
-| Seed tree test | prd-seed-schema sec. sec. US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
-| State tree test | prd-state-schema sec. sec. US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
-| Seed tree (tests) | prd-seed-schema sec. sec. US-005 | `game/core/frame/kv/test_seed_chain.gd` | `game/core/frame/kv/test_seed_chain.gd` | DONE |
-| State tree (tests) | prd-state-schema sec. sec. US-005 | `game/core/frame/kv/test_state_tree.gd` | `game/core/frame/kv/test_state_tree.gd` | DONE |
-| SeedReceipt Resource | prd-login-seed-chain sec. sec. US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
-| SeedReceipt test | prd-login-seed-chain sec. sec. US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
-| FrameService | prd-frame-authority sec. sec. US-001 | `game/core/services/frame_service.gd` | `game/core/services/frame_service.gd` | DONE |
-| Frame authority test | prd-frame-authority sec. sec. US-005 | none | `game/tests/test_frame_authority.gd` | DONE |
-| ShardParameterDefinition | prd-critical-params sec. sec. US-001 | none | `game/core/schemas/shard_parameter_definition.gd` | DONE |
-| ShardParameters autoload | prd-critical-params sec. sec. US-002 | none | `game/core/services/shard_parameters.gd` | DONE |
-| Critical params test | prd-critical-params sec. sec. US-006 | none | `game/tests/test_critical_params.gd` | DONE |
-| Param .tres samples (4) | prd-critical-params sec. sec. US-006 | none | `game/data/roots/world/parameters/` | DONE |
-| Two-orthogonal-axes (D026) | spec sec. sec. 4.1 | none | `SeedSchema` payload | DONE |
-| State-only diff (D027) | spec sec. sec. 5.6, D027 | none | `T3::diff` | DONE |
+| T3 substrate | this doc sec. 3 | `game/core/frame/kv/t3.gd` | `game/core/frame/kv/t3.gd` | DONE |
+| Scope engine | this doc sec. 4 | `game/core/frame/srv/scope_hierarchy.gd`, `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` | DONE |
+| Rules engine | this doc sec. 5 | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | DONE |
+| Definition tree | this doc sec. 9 | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | DONE |
+| SeedSchema Resource | this doc sec. 7, spec sec. 4 | none | `game/data/roots/seed_schema.gd` | DONE |
+| StateSchema Resource | this doc sec. 8, spec sec. 5 | none | `game/data/roots/state_schema.gd` | DONE |
+| Seed tree (canonical) | this doc sec. 7, spec sec. 4 | `game/core/frame/kv/seed_chain.gd` | `game/core/frame/kv/seed_chain.gd` | DONE |
+| State tree (canonical) | this doc sec. 8, spec sec. 5 | `game/core/frame/kv/state_tree.gd` | `game/core/frame/kv/state_tree.gd` | DONE |
+| Recursive seed derivation | spec sec. 4.2, D025 | `game/core/frame/kv/seed_chain.gd::derive_seed` | `seed_chain.gd::derive_seed` | DONE |
+| Seed tree test | prd-seed-schema sec. US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
+| State tree test | prd-state-schema sec. US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
+| Seed tree (tests) | prd-seed-schema sec. US-005 | `game/core/frame/kv/test_seed_chain.gd` | `game/core/frame/kv/test_seed_chain.gd` | DONE |
+| State tree (tests) | prd-state-schema sec. US-005 | `game/core/frame/kv/test_state_tree.gd` | `game/core/frame/kv/test_state_tree.gd` | DONE |
+| SeedReceipt Resource | prd-login-seed-chain sec. US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
+| SeedReceipt test | prd-login-seed-chain sec. US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
+| FrameService | prd-frame-authority sec. US-001 | `game/core/services/frame_service.gd` | `game/core/services/frame_service.gd` | DONE |
+| Frame authority test | prd-frame-authority sec. US-005 | none | `game/tests/test_frame_authority.gd` | DONE |
+| ShardParameterDefinition | prd-critical-params sec. US-001 | none | `game/core/schemas/shard_parameter_definition.gd` | DONE |
+| ShardParameters autoload | prd-critical-params sec. US-002 | none | `game/core/services/shard_parameters.gd` | DONE |
+| Critical params test | prd-critical-params sec. US-006 | none | `game/tests/test_critical_params.gd` | DONE |
+| Param .tres samples (4) | prd-critical-params sec. US-006 | none | `game/data/roots/world/parameters/` | DONE |
+| Two-orthogonal-axes (D026) | spec sec. 4.1 | none | `SeedSchema` payload | DONE |
+| State-only diff (D027) | spec sec. 5.6, D027 | none | `T3::diff` | DONE |
 | LRU cache | vant `lib/cache.js` | `game/core/frame/kv/lru_cache.gd` | `game/core/frame/kv/lru_cache.gd` | DONE |
 | Snapshot store | content-hash state tree | `game/core/frame/db/snapshot_store.gd` | `game/core/frame/db/snapshot_store.gd` | DONE |
 | Manifest SPOF (D031) | this doc sec. 6.4 | none | `srv/backup/manifest.sh`, `backup.sh`, `restore.sh` | DONE |
 | Open seed TTL (D032) | this doc sec. 6.3, spec sec. 4.8 | none | `game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd` | DONE |
-| Login seed chain (D029) | validation sec. sec. 1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
-| Frame seed authority (D030) | validation sec. sec. 2 | none | `core/services/frame_service.gd` | DONE |
-| Critical params (D033) | this doc sec. sec. 7.4, spec sec. sec. 4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
-| Account rollup (D028) | spec sec. sec. 9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
+| Login seed chain (D029) | validation sec. 1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
+| Frame seed authority (D030) | validation sec. 2 | none | `core/services/frame_service.gd` | DONE |
+| Critical params (D033) | this doc sec. 7.4, spec sec. 4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
+| Account rollup (D028) | spec sec. 9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
 | Vant multibrain stack | vant `brain.js:1510-1900` | `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` (port) | DONE |
 | NSC-9 barcode format | vant `geometry/nsc9.js` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
 | Icosahedral projection | vant `geometry/icosahedral.js` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
-| Vant fragmenter | [prd-geometry.md](./prd-geometry.md) sec. sec. US-001 | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | DONE |
-| Spatial geometry fragmenter | `prd-spatial-geometry.md` sec. sec. US-001 | `game/core/frame/geometry/spatial_fragmenter.gd` | `game/core/frame/geometry/spatial_fragmenter.gd` | DONE |
-| Geometry integration bridge | `prd-geometry.md` sec. sec. 6K | NSC-9  ->  SpatialFragmenter  ->  T3 wiring | Service-level integration pattern | IN PROGRESS |
+| Vant fragmenter | [prd-geometry.md](./prd-geometry.md) sec. US-001 | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | DONE |
+| Spatial geometry fragmenter | `prd-spatial-geometry.md` sec. US-001 | `game/core/frame/geometry/spatial_fragmenter.gd` | `game/core/frame/geometry/spatial_fragmenter.gd` | DONE |
+| Geometry integration bridge | `prd-geometry.md` sec. 6K | NSC-9  ->  SpatialFragmenter  ->  T3 wiring | Service-level integration pattern | IN PROGRESS |
 
 ---
 
@@ -806,10 +806,10 @@ This architecture borrows from
 branch), the user's sibling repo. Specifically:
 
 - **Multibrain stack pattern** (vant `lib/brain.js:1510-1900`)
-   ->  scope engine (sec. sec. 4). Vant's brain stack with push/pop/
+   ->  scope engine (sec. 4). Vant's brain stack with push/pop/
   current is the prototype for our scope stack. We extend it
   with: typed scopes (player, shard, etc.), explicit override
-  semantics, and the "flip" mechanism (sec. sec. 4.4).
+  semantics, and the "flip" mechanism (sec. 4.4).
 
 - **Geometric addressing** (vant `lib/geometry/icosahedral.js`,
   `tilings.js`, `quasicrystal.js`, `fragmenter.js`)  ->  spatial
@@ -820,7 +820,7 @@ branch), the user's sibling repo. Specifically:
   for shard partitioning in Phase 4+.
 
 - **Single class, schema-as-data** (vant `lib/brain.js` overall)
-   ->  T3 substrate (sec. sec. 3). Vant's brain is one class with mode-
+   ->  T3 substrate (sec. 3). Vant's brain is one class with mode-
   as-data. T3 is the same pattern for content-hash trees.
 
 - **Content hashing** (vant `lib/quasicrystal.js` overall)  -> 
