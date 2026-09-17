@@ -2,8 +2,8 @@
 ## Frame primitive -- NOT an autoload, NO class_name.
 extends RefCounted
 
-const T3Script = preload("res://labs/kv/t3.gd")
-const DefinitionSchemaScript = preload("res://labs/kv/definition_schema.gd")
+const T3Script = preload("res://core/frame/kv/t3.gd")
+const DefinitionSchemaScript = preload("res://core/frame/kv/definition_schema.gd")
 
 var _t3: T3Script
 var _schema: DefinitionSchemaScript
@@ -27,7 +27,7 @@ func insert_def(path: String, def_type: String, key: String, data: Dictionary) -
 
 
 func get_def(path: String) -> Dictionary:
-	var result: Variant = _t3.get(path)
+	var result: Variant = _t3.get_at(path)
 	if result == null:
 		return {}
 	return result

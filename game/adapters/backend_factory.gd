@@ -29,8 +29,7 @@ extends Node
 const MemoryStore = preload("res://adapters/memory_layer/memory_store.gd")
 const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 const CacheStore = preload("res://adapters/cache/cache_store.gd")
-const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
-const PostgresStore = preload("res://adapters/persistence/postgres_store.gd")
+
 const MemoryCacheStore = preload("res://adapters/cache/memory_cache_store.gd")
 const RedisStore = preload("res://adapters/cache/redis_store.gd")
 const MigrationRunner = preload("res://adapters/migrations/migration_runner.gd")

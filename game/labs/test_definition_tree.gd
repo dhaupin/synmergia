@@ -1,9 +1,9 @@
 ## DefinitionTree tests. Spec: labs/world-building-arch.md §9
 extends SceneTree
 
-const T3Script = preload("res://labs/kv/t3.gd")
-const DefinitionTreeScript = preload("res://labs/kv/definition_tree.gd")
-const DefinitionSchemaScript = preload("res://labs/kv/definition_schema.gd")
+const T3Script = preload("res://core/frame/kv/t3.gd")
+const DefinitionTreeScript = preload("res://core/frame/kv/definition_tree.gd")
+const DefinitionSchemaScript = preload("res://core/frame/kv/definition_schema.gd")
 
 var _passed := 0
 var _failed := 0

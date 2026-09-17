@@ -1,7 +1,7 @@
 ## T3 substrate smoke tests.
 extends SceneTree
 
-const T3_SCRIPT = preload("res://multi-iso/kv/t3.gd")
+const T3_SCRIPT = preload("res://core/frame/kv/t3.gd")
 
 var _passed := 0
 var _failed := 0

@@ -39,7 +39,7 @@ func register_rule(rule_id: String, resolution: String = TOP_WINS, default_allow
 	return _rules_tree.insert(rule_id, value, _schema)
 
 
-func evaluate(action: String, context: Dictionary, stack: Array) -> Dictionary:
+func evaluate(action: String, context: Dictionary, stack: Array, player_id: String = "") -> Dictionary:
 	var rule_value = get_rule(action)
 	if rule_value == null:
 		return {
@@ -54,7 +54,7 @@ func evaluate(action: String, context: Dictionary, stack: Array) -> Dictionary:
 	var predicate_str: String = rule_value.get("predicate", "")
 
 	if _scope_engine != null and _scope_engine.has_method("resolve_rule"):
-		var resolved: String = _scope_engine.resolve_rule("", action, resolution)
+		var resolved: String = _scope_engine.resolve_rule(player_id, action, resolution)
 		if resolved != "":
 			resolution = resolved
 

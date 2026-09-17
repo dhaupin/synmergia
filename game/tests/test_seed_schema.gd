@@ -71,7 +71,7 @@ func _test_canonical_bytes_basic() -> void:
 		"path": "/shard_1/zone_5",
 		"parameters": {"depth": 3, "biome": "forest"}
 	}
-	var bytes := schema._to_canonical_bytes(value)
+	var bytes = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(bytes.size() > 0, "canonical_bytes non-empty")
 
 func _test_canonical_bytes_deterministic() -> void:
@@ -81,15 +81,15 @@ func _test_canonical_bytes_deterministic() -> void:
 		"path": "/zone_1",
 		"parameters": {"a": 1}
 	}
-	var b1 := schema._to_canonical_bytes(value)
-	var b2 := schema._to_canonical_bytes(value)
+	var b1 = schema._to_canonical_bytes(value) as PackedByteArray
+	var b2 = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(b1 == b2, "canonical_bytes deterministic")
 
 func _test_canonical_bytes_different_inputs() -> void:
 	var v1 := {"seed_type": "locked", "visibility_scope": "world", "path": "/a", "parameters": {}}
 	var v2 := {"seed_type": "open", "visibility_scope": "world", "path": "/a", "parameters": {}}
-	var b1 := schema._to_canonical_bytes(v1)
-	var b2 := schema._to_canonical_bytes(v2)
+	var b1 = schema._to_canonical_bytes(v1) as PackedByteArray
+	var b2 = schema._to_canonical_bytes(v2) as PackedByteArray
 	_assert(b1 != b2, "different seed_type -> different bytes")
 	
 	v2 = {"seed_type": "locked", "visibility_scope": "shard", "path": "/a", "parameters": {}}
@@ -106,14 +106,14 @@ func _test_canonical_bytes_different_inputs() -> void:
 
 func _test_canonical_bytes_empty_path() -> void:
 	var value := {"seed_type": "frame", "visibility_scope": "player", "path": "", "parameters": {}}
-	var bytes := schema._to_canonical_bytes(value)
+	var bytes = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(bytes.size() > 0, "empty path encodes")
 
 func _test_canonical_bytes_special_chars() -> void:
 	var value := {"seed_type": "locked", "visibility_scope": "world", "path": "/zone/\u7279\u6B8A\u5B57/\U0001F332", "parameters": {"key": "value/with/slashes"}}
-	var bytes := schema._to_canonical_bytes(value)
+	var bytes = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(bytes.size() > 0, "special chars encode")
-	var bytes2 := schema._to_canonical_bytes(value)
+	var bytes2 = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(bytes == bytes2, "special chars deterministic")
 
 func _test_validate_valid() -> void:
@@ -175,17 +175,17 @@ func _test_validate_invalid_params_type() -> void:
 
 func _test_display_basic() -> void:
 	var value := {"seed_type": "locked", "visibility_scope": "world", "path": "/shard_1/zone_5", "parameters": {"a": 1, "b": 2, "c": 3}}
-	var display := schema._to_display(value)
+	var display = schema._to_display(value) as String
 	_assert(display == "[locked+world] /shard_1/zone_5 (3 params)", "basic display: %s" % display)
 
 func _test_display_empty_path() -> void:
 	var value := {"seed_type": "open", "visibility_scope": "shard", "path": "", "parameters": {}}
-	var display := schema._to_display(value)
+	var display = schema._to_display(value) as String
 	_assert(display == "[open+shard] (root) (0 params)", "empty path display: %s" % display)
 
 func _test_display_zero_params() -> void:
 	var value := {"seed_type": "frame", "visibility_scope": "player", "path": "/zone", "parameters": {}}
-	var display := schema._to_display(value)
+	var display = schema._to_display(value) as String
 	_assert(display == "[frame+player] /zone (0 params)", "zero params display: %s" % display)
 
 func _test_sample_tres_loads() -> void:

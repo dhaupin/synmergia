@@ -89,7 +89,7 @@ func _test_build_seed_tree_basic() -> void:
 	}
 	var root_hash := chain.build_seed_tree(t3, stack, world_root)
 	_assert(root_hash.size() == 32, "build_seed_tree returns 32-byte root hash")
-	var value := t3.get("root_node")
+	var value := t3.get_at("root_node")
 	_assert(value != null, "root_node was inserted into T3")
 	if value:
 		_assert_eq(value["seed_type"], "locked", "seed_type is preserved")
@@ -126,9 +126,9 @@ func _test_build_seed_tree_nested() -> void:
 	}
 	var root_hash := chain.build_seed_tree(t3, stack, world_root)
 	_assert(root_hash.size() == 32, "nested tree root hash is 32 bytes")
-	_assert(t3.get("world") != null, "world node inserted")
-	_assert(t3.get("world/shard_1") != null, "shard child inserted")
-	_assert(t3.get("world/shard_1/inst_a") != null, "instance grandchild inserted")
+	_assert(t3.get_at("world") != null, "world node inserted")
+	_assert(t3.get_at("world/shard_1") != null, "shard child inserted")
+	_assert(t3.get_at("world/shard_1/inst_a") != null, "instance grandchild inserted")
 
 
 func _test_build_seed_tree_seed_types() -> void:
@@ -141,9 +141,9 @@ func _test_build_seed_tree_seed_types() -> void:
 		"frame_node": {"seed_type": "frame", "visibility_scope": "player", "path": "/frame", "parameters": {}, "children": {}}
 	}
 	chain.build_seed_tree(t3, stack, world_root)
-	var locked_val = t3.get("locked_node")
-	var open_val = t3.get("open_node")
-	var frame_val = t3.get("frame_node")
+	var locked_val = t3.get_at("locked_node")
+	var open_val = t3.get_at("open_node")
+	var frame_val = t3.get_at("frame_node")
 	_assert_eq(locked_val["seed_type"], "locked", "locked seed type preserved")
 	_assert_eq(open_val["seed_type"], "open", "open seed type preserved")
 	_assert_eq(frame_val["seed_type"], "frame", "frame seed type preserved")

@@ -299,7 +299,7 @@ func tree_insert(tree_name: String, path: String, value: Dictionary, schema: Str
 	return _tree_insert_local(tree_name, path, value, schema)
 
 func _tree_insert_local(tree_name: String, path: String, value: Dictionary, schema: String) -> Dictionary:
-	var T3Script = preload("res://labs/kv/t3.gd")
+	var T3Script = preload("res://core/frame/kv/t3.gd")
 	var t3 = T3Script.new()
 	
 	# Get schema
@@ -384,7 +384,7 @@ func _get_local_schema(name: String) -> Object:
 		"rules": return preload("res://labs/srv/rules_schema.gd").new()
 		"seed": return preload("res://game/data/roots/seed_schema.gd").new()
 		"state": return preload("res://game/data/roots/state_schema.gd").new()
-		"definition": return preload("res://labs/kv/definition_schema.gd").new()
+		"definition": return preload("res://core/frame/kv/definition_schema.gd").new()
 		_: return preload("res://labs/srv/rules_schema.gd").new()
 
 ## Status and configuration

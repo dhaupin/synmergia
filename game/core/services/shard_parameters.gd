@@ -27,8 +27,8 @@ const ShardParameterDefinitionScript = preload("res://core/schemas/shard_paramet
 
 ## State tree wrapper (game/core/frame/kv/state_tree.gd). Loaded at runtime
 ## to avoid a parse-time dependency on the frame primitive.
-const T3Script = preload("res://labs/kv/t3.gd")
-const StateTreeScript = preload("res://labs/kv/state_tree.gd")
+const T3Script = preload("res://core/frame/kv/t3.gd")
+const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 
 ## Per-shard state trees: shard_id -> StateTree wrapper
 var _state_trees: Dictionary = {}
@@ -85,9 +85,9 @@ func get_definition(param_name: String) -> ShardParameterDefinitionScript:
 ## the caller. Critical parameters apply immediately to the shard's state
 ## tree, log to GameLog at INFO, and emit param_applied. Non-critical
 ## parameters are queued and applied after the coalesce window.
-##
-## There is no public way to change criticality at runtime (config-time
-## only, see labs/prd-critical-params.md US-005).
+## The public API is set_param(). It reads criticality from .tres definitions
+## and routes to the appropriate apply path. There is no runtime criticality
+## setter -- a player cannot escalate a non-critical parameter to critical.
 func set_param(shard_id: String, param_name: String, value: Variant, actor_id: String = "") -> void:
 	var def := get_definition(param_name)
 	if def == null:
@@ -105,7 +105,10 @@ func _apply_critical(shard_id: String, param_name: String, value: Variant, actor
 		return
 	var path := "%s/%s/parameters/%s" % [_PARAM_PATH_PREFIX, shard_id, param_name]
 	tree.insert_state(path, shard_id, "other", {"param_name": param_name, "value": value})
-	GameLog.info("ShardParameters: critical param applied shard=%s param=%s value=%s actor=%s" % [shard_id, param_name, str(value), actor_id])
+	var ts := Time.get_unix_time_from_system()
+	var tree_check: Variant = _get_state_tree(shard_id)
+	print("APPLY_CRITICAL: tree=", tree_check != null, " path=", path)
+	GameLog.info("ShardParameters: critical param applied timestamp=%s shard=%s param=%s value=%s actor=%s" % [ts, shard_id, param_name, str(value), actor_id])
 	param_applied.emit(shard_id, param_name, value, actor_id)
 
 

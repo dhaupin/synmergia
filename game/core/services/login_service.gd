@@ -20,7 +20,7 @@ extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
-const SeedChainScript = preload("res://labs/kv/seed_chain.gd")
+const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 
 ## This is the client-side gate. Server should always re-validate.
 

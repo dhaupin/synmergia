@@ -4,7 +4,7 @@
 extends Node
 class_name AdminShell
 
-static func _get_qos_service():
+func _get_qos_service() -> Object:
 	var root = get_tree().root if has_node("/root") else null
 	if root:
 		return root.get_node_or_null("QoSService")

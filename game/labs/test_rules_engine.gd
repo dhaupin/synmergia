@@ -1,7 +1,7 @@
 ## RulesEngine test suite. Spec: labs/world-building-arch.md В§5
 extends SceneTree
 
-const T3Script = preload("res://labs/kv/t3.gd")
+const T3Script = preload("res://core/frame/kv/t3.gd")
 const RulesEngineScript = preload("res://labs/srv/rules_engine.gd")
 const RulesSchemaScript = preload("res://labs/srv/rules_schema.gd")
 const ScopeScript = preload("res://labs/srv/scope.gd")

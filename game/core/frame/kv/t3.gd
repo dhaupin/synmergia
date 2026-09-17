@@ -42,7 +42,7 @@ func insert(path: String, value: Variant, schema: Resource) -> PackedByteArray:
 
 ## Returns the stored value at path, or null when the node does not exist.
 @warning_ignore("native_method_override")
-func get(path: StringName) -> Variant:
+func get_at(path: StringName) -> Variant:
 	var normalized_path := _normalize_path(str(path))
 	var node = _nodes.get(normalized_path)
 	if node == null:
