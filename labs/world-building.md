@@ -1451,6 +1451,7 @@ the visible-seam problem becomes user-noticeable.
 | Phase 1 (now) | Grid (planar) only. No icosahedral. No Julia. State tree + Redis + Postgres. |
 | Phase 2 | Icosahedral for spherical worlds. Julia sidecar for multi-axis. NSC-9 codes per entity. |
 | Phase 3 | Materialized intersection cache. Predictive prefetch via Markov. |
+| Phase 3.x | Vant fragmenter implementation (`fragmenter.gd`), SpatialFragmenter, and NSC-9 bridge wired into EntityService + ZoneManager. **Status: DONE** |
 | Phase 4 | Quasicrystal experimental layer (if seams matter). |
 
 **Phase 3.x (completed):** Fragmenter, SpatialFragmenter, and NSC-9 bridge are implemented and wired into EntityService + ZoneManager. The bridge provides the unified NSC-9 -> SpatialFragmenter -> T3 path. See `labs/prd-geometry.md`.

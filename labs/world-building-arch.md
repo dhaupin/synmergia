@@ -794,6 +794,83 @@ For the user to resolve when the time comes:
    (one Postgres table), 3-tier backup (Postgres + S3
    - cold). See `prd-manifest-backup.md`.
 
+### Fragmenter wiring patterns (Vant fragmenter integration)
+
+The Vant fragmenter is wired into game services as a pure,
+stateless primitive. Each service owns its own `Fragmenter`
+instance (never an autoload) and uses lattice keys derived from
+a sequence integer to shard data deterministically.
+
+**EntityService - inventory shard (per-entity data):**
+
+```gdscript
+# EntityService.gd - inventory shard pattern
+func _init_fragmenter() -> void:
+    # Per-service instance, NOT an autoload
+    _fragmenter := Fragmenter.new()
+
+func _shard_inventory(entity_id: String, inventory: Dictionary) -> Array[Dictionary]:
+    # Derive lattice keys from a stable entity sequence
+    var sequence: int = entity_id.hash()
+    var keys: Array[String] = _fragmenter.derive_lattice_keys(sequence, 5)
+
+    # Split inventory data into 5 XOR-spread fragments
+    var fragments: Array[Dictionary] = _fragmenter.fragment(inventory, 5)
+
+    # Attach lattice key to each fragment for deterministic retrieval
+    for i in range(fragments.size()):
+        fragments[i]["lattice_key"] = keys[i] if i < keys.size() else ""
+
+    return fragments
+
+func _restore_inventory(entity_id: String, fragments: Array[Dictionary]) -> Dictionary:
+    # Weld fragments back in shard order
+    var welded: String = _fragmenter.weld(fragments)
+    var inventory: Variant = JSON.parse_string(welded)
+    return inventory
+```
+
+**ZoneManager - world shard (per-zone data):**
+
+```gdscript
+# ZoneManager.gd - world shard pattern
+func _init_fragmenter() -> void:
+    # Per-service instance, NOT an autoload
+    _fragmenter := Fragmenter.new()
+
+func _shard_zone_world(zone_id: String, world_state: Dictionary) -> Array[Dictionary]:
+    # Derive lattice keys from zone sequence
+    var sequence: int = zone_id.hash()
+    var keys: Array[String] = _fragmenter.derive_lattice_keys(sequence, 5)
+
+    # Split world state into 5 XOR-spread fragments
+    var fragments: Array[Dictionary] = _fragmenter.fragment(world_state, 5)
+
+    # Attach lattice key to each fragment for deterministic retrieval
+    for i in range(fragments.size()):
+        fragments[i]["lattice_key"] = keys[i] if i < keys.size() else ""
+
+    return fragments
+
+func _restore_zone_world(zone_id: String, fragments: Array[Dictionary]) -> Dictionary:
+    # Weld fragments back in shard order
+    var welded: String = _fragmenter.weld(fragments)
+    var world_state: Variant = JSON.parse_string(welded)
+    return world_state
+```
+
+**Fragment contract:**
+- `fragment(data, num_fragments)` returns `Array[Dictionary]` with
+  `shard` (int), `data` (base64 String), `size` (int), `checksum`
+  (int) - each fragment is XOR-spread with its shard key
+- `weld(fragments)` sorts by shard, verifies checksum, reverses XOR
+  spreading, concatenates and returns the UTF-8 string
+- Lattice keys from `derive_lattice_keys` are used as storage
+  addresses (`vfragment-{key}-{shard}.json` naming)
+
+**Status (2026-09-17):** DONE - both EntityService and ZoneManager
+use this pattern. See `labs/prd-geometry.md` sec. US-001 to US-003.
+
 ### Questions answered in 2026-09-05 session (not in original list)
 
 These were raised in the planning session, not in the
