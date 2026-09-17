@@ -695,7 +695,7 @@ func _match_like(text: String, pattern: String) -> bool:
 				regex_str += "\\\\" + next
 				i += 1
 			else:
-				regex_str += "\\\\\\\" + next
+				regex_str += "\\" + next
 				i += 1
 		elif c >= "A" and c <= "Z":
 			regex_str += "[" + c.to_lower() + c.to_upper() + "]"
