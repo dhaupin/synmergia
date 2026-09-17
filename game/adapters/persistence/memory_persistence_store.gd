@@ -701,12 +701,12 @@ func _match_like(text: String, pattern: String) -> bool:
 			regex_str += "[" + c.to_lower() + c.to_upper() + "]"
 		elif c >= "a" and c <= "z":
 			regex_str += "[" + c.to_upper() + c.to_lower() + "]"
-else:
+		else:
 		regex_str += c
-	if regex_str == "":
+		if regex_str == "":
+		regex_str = ".*"
 		regex_str = ".*"
 	return text.to_lower().find_regexp(regex_str) >= 0
-
 
 func _parse_order_by(sql: String, params: Array) -> Array:
 	var result: Array = []
@@ -816,30 +816,30 @@ func _apply_order_by(rows: Array, order_info: Array) -> Array:
 				if bv == null:
 					return false
 					
-				if av is Comparable and bv is Comparable:
+if av is Variant and bv is Variant:
 					if av < bv:
 						return true
 					return false
 			else:
-					# String comparison
-					if av < bv:
-						return true
-					return false
-			else:
-				if bv == null:
+				# String comparison
+				if av < bv:
 					return true
-				if av == null:
-					return false
-					
-				if av is Comparable and bv is Comparable:
-					if av > bv:
-						return true
-					return false
-				else:
-					# String comparison
-					if av > bv:
-						return true
-					return false
+				return false
+		else:
+			if bv == null:
+				return true
+			if av == null:
+				return false
+			
+			if av is Variant and bv is Variant:
+				if av > bv:
+					return true
+				return false
+			else:
+				# String comparison
+				if av > bv:
+					return true
+				return false
 					
 		return false
 	)
