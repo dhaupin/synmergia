@@ -95,7 +95,7 @@ func _test_flush_applies_queued() -> void:
 	_sp.set_state_tree("shard_f", _new_tree())
 	_current_applied = []
 	_sp.set_param("shard_f", "respawn_rate_modifier", 0.5, "admin")
-	_sp.set_param("shard_f", "season_active", true, "admin")
+	_sp.set_param("shard_f", "world_event_active", true, "admin")
 	_assert(_current_applied.size() == 0, "both non-critical writes are queued")
 	_sp.flush("shard_f")
 	_assert(_current_applied.size() == 2, "flush applies both queued params")
