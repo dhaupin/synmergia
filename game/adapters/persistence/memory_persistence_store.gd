@@ -699,7 +699,7 @@ func _match_like(text: String, pattern: String) -> bool:
 				i += 1
 		elif c >= "A" and c <= "Z":
 			regex_str += "[" + c.to_lower() + c.to_upper() + "]"
-			elif c >= "a" and c <= "z":
+		elif c >= "a" and c <= "z":
 				regex_str += "[" + c.to_upper() + c.to_lower() + "]"
 			else:
 				regex_str += c

@@ -27,7 +27,7 @@ func insert_def(path: String, def_type: String, key: String, data: Dictionary) -
 
 
 func get_def(path: String) -> Dictionary:
-	var result: Variant = _t3.get(path)
+	var result: Variant = _t3.get_at(path)
 	if result == null:
 		return {}
 	return result

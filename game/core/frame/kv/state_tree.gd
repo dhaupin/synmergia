@@ -27,7 +27,7 @@ func insert_state(path: String, entity_id: String, state_type: String, payload: 
 
 
 func get_state(path: String) -> Dictionary:
-	var result: Variant = _t3.get(path)
+	var result: Variant = _t3.get_at(path)
 	if result == null:
 		return {}
 	return result

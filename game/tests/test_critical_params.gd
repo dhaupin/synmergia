@@ -73,7 +73,9 @@ func _test_critical_applies_immediately() -> void:
 	var tree: Variant = _sp._get_state_tree("shard_a")
 	_assert(tree != null, "critical param created a state tree")
 	if tree != null:
-		var got: Dictionary = tree.get_state("shards/shard_a/parameters/boss_defeated")
+		var path := "shards/shard_a/parameters/boss_defeated"
+		var got: Dictionary = tree.get_state(path)
+		print("PATH: ", path)
 		print("GOT: ", got, " size: ", got.size())
 		_assert(got != null and got.size() > 0, "critical param wrote to the state tree")
 	# Non-critical must NOT apply immediately.
@@ -163,6 +165,6 @@ func _on_param_applied(shard_id: String, param_name: String, value: Variant, act
 
 ## Build a fresh, empty state tree for a test shard.
 func _new_tree():
-	var T3Script = load("res://labs/kv/t3.gd")
-	var StateTreeScript = load("res://labs/kv/state_tree.gd")
+	var T3Script = load("res://core/frame/kv/t3.gd")
+	var StateTreeScript = load("res://core/frame/kv/state_tree.gd")
 	return StateTreeScript.new(T3Script.new())

@@ -8,7 +8,7 @@
 ## Ported from vant axolotl lib/brain.js (rules portion)
 extends RefCounted
 
-const T3Script = preload("res://labs/kv/t3.gd")
+const T3Script = preload("res://core/frame/kv/t3.gd")
 const RulesSchemaScript = preload("res://labs/srv/rules_schema.gd")
 const ScopeEngineScript = preload("res://labs/srv/scope_engine.gd")
 
