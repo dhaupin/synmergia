@@ -87,13 +87,19 @@ func _ready() -> void:
 	_init_spatial_fragmenter()
 	_load_zone_state()
 
-## Initialize SpatialFragmenter instance
+## Initialize SpatialFragmenter and NSC-9 bridge instances.
 func _init_spatial_fragmenter() -> void:
 	if SpatialFragmenterScript:
 		_spatial_fragmenter = SpatialFragmenterScript.new()
 		GameLog.debug("ZoneManager: SpatialFragmenter initialized")
 	else:
 		GameLog.warn("ZoneManager: SpatialFragmenterScript not available; spatial features disabled")
+
+	if Nsc9BridgeScript:
+		_nsc9_bridge = Nsc9BridgeScript.new()
+		GameLog.debug("ZoneManager: NSC-9 bridge initialized")
+	else:
+		GameLog.warn("ZoneManager: Nsc9BridgeScript not available; NSC-9 pipeline disabled")
 
 ## Compute spatial depth based on zone radius
 ## Larger zones get lower depth (coarser granularity), smaller zones get higher depth
@@ -110,6 +116,27 @@ func _compute_zone_face(zone_id: String) -> int:
 	for i in range(zone_id.length()):
 		hash = (hash * 31) + zone_id.unicode_at(i)
 	return abs(hash) % 12
+
+## Compute a deterministic NSC-9 code for a zone.
+func _compute_nsc9_code(zone_id: String, zone_center: Vector3) -> int:
+	if _nsc9_bridge == null:
+		return -1
+	if zone_center == Vector3.ZERO:
+		return -1
+
+	# Facility: deterministic from zone_id hash (0-999)
+	var facility: int = abs(hash(zone_id)) % 1000
+
+	# Axis: nearest icosahedral vertex from zone center
+	var lat: float = rad2deg(asin(clampf(zone_center.normalized().y, -1.0, 1.0)))
+	var lon: float = rad2deg(atan2(zone_center.normalized().z, zone_center.normalized().x))
+	var vertex: int = Nsc9.nearest_vertex(lat, lon)
+	var axis: int = Nsc9.spatial_axis(vertex)
+
+	# Sequence: deterministic from zone_id hash (0-16M)
+	var sequence: int = abs(hash(zone_id + ":nsc9")) % 1_000_000
+
+	return Nsc9.encode_int(facility, axis, sequence)
 
 ## Generate spatial address for a zone based on its center and radius
 func _compute_spatial_address(zone) -> int:
@@ -174,6 +201,11 @@ func register_zone(zone_data) -> bool:
 	_zones[zone_data.id] = zone_data
 	_players_in_zone[zone_data.id] = []
 	_enemies_in_zone[zone_data.id] = []
+
+	# Generate NSC-9 code for the zone (for T3 pipeline)
+	var nsc9_code: int = _compute_nsc9_code(zone_data.id, zone_data.zone_center)
+	if nsc9_code != -1:
+		GameLog.debug("ZoneManager: Generated NSC-9 code for zone %s (0x%08x)" % [zone_data.id, nsc9_code])
 
 	# Generate spatial address for the zone (graceful degradation if SpatialFragmenter unavailable)
 	var spatial_addr: int = _compute_spatial_address(zone_data)
@@ -272,6 +304,26 @@ func get_zone_spatial_fragment(zone_id: String) -> Dictionary:
 		"depth": _spatial_fragmenter.get_depth(address),
 		"face": _spatial_fragmenter.get_face(address)
 	}
+
+## Get the NSC-9 code for a zone by ID.
+## Returns -1 if the NSC-9 bridge is unavailable or the zone does not exist.
+func get_zone_nsc9_code(zone_id: String) -> int:
+	if _nsc9_bridge == null:
+		return -1
+	var zone = _zones.get(zone_id)
+	if zone == null:
+		return -1
+	return _compute_nsc9_code(zone_id, zone.zone_center)
+
+## Get the T3 path for a zone's NSC-9 spatial fragment.
+## Returns "" if the NSC-9 bridge is unavailable or the code is non-spatial.
+func get_zone_nsc9_t3_path(zone_id: String) -> String:
+	if _nsc9_bridge == null:
+		return ""
+	var code: int = get_zone_nsc9_code(zone_id)
+	if code == -1:
+		return ""
+	return _nsc9_bridge.nsc9_to_t3_path(code)
 
 ## Handle entity entering a zone
 func entity_enter_zone(entity, zone) -> bool:

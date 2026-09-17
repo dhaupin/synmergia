@@ -21,8 +21,6 @@ const T3Script = preload("res://core/frame/kv/t3.gd")
 const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
 # NSC-9 math utilities (pure function for axis/encoding).
 const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
-# NSC-9 bridge: connects NSC-9 spatial codes -> SpatialFragmenter -> T3 pipeline.
-const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
 const _kv_prefix := "entity:"
 var _entities: Dictionary = {}       # entity_id ->
 var _players: Dictionary = {}        # player_id ->  (subset)
@@ -41,6 +39,8 @@ var _fragmenter: FragmenterScript = null
 var _t3: Variant = null
 # entity_id -> int spatial address
 var _entity_spatial_addresses: Dictionary = {}
+# entity_id -> int NSC-9 spatial code
+var _entity_nsc9_codes: Dictionary = {}
 # NSC-9 bridge instance (pure utility, stateless)
 var _nsc9_bridge: Nsc9BridgeScript = null
 
@@ -208,6 +208,7 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 	# Generate NSC-9 code for the entity (if NSC-9 bridge available)
 	var nsc9_code: int = _compute_nsc9_code(entity)
 	if nsc9_code != -1:
+		_entity_nsc9_codes[entity_id] = nsc9_code
 		GameLog.debug("EntityService: Generated NSC-9 code for entity %s (0x%08x)" % [entity_id, nsc9_code])
 		# Note: NSC-9 code can be stored in metadata for later retrieval
 		metadata.nsc9_code = nsc9_code
