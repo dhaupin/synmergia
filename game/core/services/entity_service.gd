@@ -689,3 +689,15 @@ func _clean_up_entity_t3_state(entity_id: String) -> void:
 			_t3.delete(node_path)
 
 	GameLog.debug("EntityService: Cleaned up T3 state for entity %s at %s" % [entity_id, path])
+
+/// Public API: Restores entity state from T3 and emits signal.
+func restore_entity_state(entity_id: String) -> Dictionary:
+	var parsed: Dictionary = restore_entity_state_from_t3(entity_id)
+	entity_spatial_state_restored.emit(entity_id, parsed)
+	return parsed
+
+/// Public API: Gets the NSC-9 spatial code for an entity from the cache.
+func get_entity_nsc9_code(entity_id: String) -> int:
+	if _nsc9_bridge == null:
+		return -1
+	return _entity_nsc9_codes.get(entity_id, -1)

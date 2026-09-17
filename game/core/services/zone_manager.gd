@@ -19,6 +19,8 @@ const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
 const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
 # Fragmenter (data sharding via Knuth multiplicative hash).
 const FragmenterScript = preload("res://core/frame/geometry/fragmenter.gd")
+# T3 state tree for persistence.
+const T3Script = preload("res://core/frame/kv/t3.gd")
 
 # Spatial quantization: world units collapsed into a single address cell.
 # A quantum of 500 means coordinates within the same 500-unit cube share
@@ -70,6 +72,10 @@ var _fragmenter: FragmenterScript = null
 # NSC-9 bridge instance (pure utility, stateless)
 var _nsc9_bridge: Nsc9BridgeScript = null
 
+var _zone_nsc9_codes: Dictionary = {}
+var _zone_shards: Dictionary = {}
+var _t3: Variant = null
+
 signal zone_loaded(zone_data)
 signal zone_unloaded(zone_id: String)
 signal player_entered_zone(player, zone)
@@ -111,6 +117,11 @@ func _init_spatial_fragmenter() -> void:
 		GameLog.debug("ZoneManager: NSC-9 bridge initialized")
 	else:
 		GameLog.warn("ZoneManager: Nsc9BridgeScript not available; NSC-9 pipeline disabled")
+
+func _get_t3() -> Variant:
+	if _t3 != null: return _t3
+	if T3Script: _t3 = T3Script.new()
+	return _t3
 
 ## Shard zone world state using lattice keys for distributed storage.
 ## Returns Array[Dictionary] with shard, data, size, checksum, and lattice_key.
@@ -240,8 +251,13 @@ func register_zone(zone_data) -> bool:
 
 	# Generate NSC-9 code for the zone (for T3 pipeline)
 	var nsc9_code: int = _compute_nsc9_code(zone_data.id, zone_data.zone_center)
+	_zone_nsc9_codes[zone_data.id] = nsc9_code
 	if nsc9_code != -1:
 		GameLog.debug("ZoneManager: Generated NSC-9 code for zone %s (0x%08x)" % [zone_data.id, nsc9_code])
+
+	# Shard zone world for distributed storage
+	var world_state := {"id": zone_data.id, "display_name": zone_data.display_name, "zone_center": zone_data.zone_center, "zone_radius": zone_data.zone_radius, "is_instanced": zone_data.is_instanced, "level_requirement": zone_data.level_requirement}
+	_zone_shards[zone_data.id] = _shard_zone_world(zone_data.id, world_state)
 
 	# Generate spatial address for the zone (graceful degradation if SpatialFragmenter unavailable)
 	var spatial_addr: int = _compute_spatial_address(zone_data)
@@ -349,6 +365,10 @@ func get_zone_nsc9_code(zone_id: String) -> int:
 	var zone = _zones.get(zone_id)
 	if zone == null:
 		return -1
+	# Check cache first
+	var cached_code: int = _zone_nsc9_codes.get(zone_id)
+	if cached_code != -1:
+		return cached_code
 	return _compute_nsc9_code(zone_id, zone.zone_center)
 
 ## Get the T3 path for a zone's NSC-9 spatial fragment.
@@ -360,6 +380,11 @@ func get_zone_nsc9_t3_path(zone_id: String) -> String:
 	if code == -1:
 		return ""
 	return _nsc9_bridge.nsc9_to_t3_path(code)
+
+## Get the cached shard fragments for a zone.
+## Returns empty array if not sharded or zone does not exist.
+func get_zone_shards(zone_id: String) -> Array[Dictionary]:
+	return _zone_shards.get(zone_id, [])
 
 ## Handle entity entering a zone
 func entity_enter_zone(entity, zone) -> bool:
