@@ -105,7 +105,8 @@ func _apply_critical(shard_id: String, param_name: String, value: Variant, actor
 		return
 	var path := "%s/%s/parameters/%s" % [_PARAM_PATH_PREFIX, shard_id, param_name]
 	tree.insert_state(path, shard_id, "other", {"param_name": param_name, "value": value})
-	GameLog.info("ShardParameters: critical param applied shard=%s param=%s value=%s actor=%s" % [shard_id, param_name, str(value), actor_id])
+	var ts := Time.get_unix_time_from_system()
+	GameLog.info("ShardParameters: critical param applied timestamp=%s shard=%s param=%s value=%s actor=%s" % [ts, shard_id, param_name, str(value), actor_id])
 	param_applied.emit(shard_id, param_name, value, actor_id)
 
 
