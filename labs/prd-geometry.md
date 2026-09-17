@@ -316,12 +316,12 @@ Two services wire the bridge into the game layer:
 ## 8. Success Metrics
 
 ### Fragmenter
-- [ ] All 3 functions implemented (`derive_lattice_keys`, `fragment`, `weld`)
-- [ ] Test file passes ( >=  20 assertions covering all user stories + edge cases)
-- [ ] Round-trip fragment + weld recovers exact original for: empty string, "hello", JSON object, 100KB binary, non-ASCII UTF-8 ("[U+4F60][U+597D][U+4E16][U+754C] [U+1F30D]"), variable num_fragments (2, 5, 10)
-- [ ] `derive_lattice_keys(12345, 5)` produces stable, distinct keys across runs
-- [ ] `derive_lattice_keys(-1, 3)` produces deterministic keys (negative sequence handling)
-- [ ] Checksum verification in `weld()` works: corrupting fragment data  ->  checksum mismatch detected, fragment skipped
+- [x] All 3 functions implemented (`derive_lattice_keys`, `fragment`, `weld`)
+- [x] Test file passes ( >=  20 assertions covering all user stories + edge cases)
+- [x] Round-trip fragment + weld recovers exact original for: empty string, "hello", JSON object, 100KB binary, non-ASCII UTF-8 ("[U+4F60][U+597D][U+4E16][U+754C] [U+1F30D]"), variable num_fragments (2, 5, 10)
+- [x] `derive_lattice_keys(12345, 5)` produces stable, distinct keys across runs
+- [x] `derive_lattice_keys(-1, 3)` produces deterministic keys (negative sequence handling)
+- [x] Checksum verification in `weld()` works: corrupting fragment data  ->  checksum mismatch detected, fragment skipped
 
 ### Spatial Fragmenter
 - [ ] All 11 functions implemented (make_address through generate_key)
@@ -358,8 +358,8 @@ Two services wire the bridge into the game layer:
 - [x] `game/core/frame/geometry/test_fragmenter.gd` created and passing
 - [x] `labs/world-building-arch.md` sec. 13 component map: "Vant fragmenter" row status  ->  DONE
 - [x] `labs/world-building-arch.md` sec. 14 migration roadmap: "Vant icosahedral + fragmenter ports"  ->  DONE
-- [ ] File headers include Vant lineage credit
-- [ ] Smoke test: derive keys  ->  fragment "test"  ->  weld  ->  equals "test"
+- [x] File headers include Vant lineage credit
+- [x] Smoke test: derive keys  ->  fragment "test"  ->  weld  ->  equals "test"
 - [ ] One commit to main
 
 ### Spatial Fragmenter
