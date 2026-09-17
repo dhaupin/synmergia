@@ -85,7 +85,7 @@ jobs:
       - name: Fast Syntax & Charset Audit
         run: |
           echo "Running fast GDScript syntax check..."
-          godot --headless --path game/ --check-only
+          godot --headless --path game/ --import
 
       - name: Optional Full Test Suite
         if: ${{ github.event.inputs.run_full_suite == 'true' }}
