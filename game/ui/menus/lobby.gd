@@ -6,8 +6,6 @@
 extends Control
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
-const NetworkManager = preload("res://core/autoload/network_manager.gd")
-const NotificationService = preload("res://core/autoload/notification_service.gd")
 
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
@@ -127,45 +125,7 @@ func _on_play_pressed() -> void:
 		return
 	var cd: CharacterData = _characters[_selected_index]
 	GameManager.selected_character_data = cd
-	
-	# If connected to a server, send character select RPC
-	if NetworkManager and NetworkManager.is_client and NetworkManager.is_multiplayer_active():
-		NetworkManager.send_to_server({
-			"type": "character_select",
-			"data": {"character_id": cd.character_id}
-		})
-		# Wait for seed receipt before changing state
-		# The seed_receipt_received signal will handle state transition
-		NetworkManager.seed_receipt_received.connect(_on_seed_receipt_received)
-		NetworkManager.seed_receipt_failed.connect(_on_seed_receipt_failed)
-		return
-	
-	# Offline/single-player flow
 	GameManager.change_state(GameManager.GameState.PLAYING)
-
-func _on_seed_receipt_received(character_id: String, receipt: Resource) -> void:
-	if NetworkManager:
-		NetworkManager.seed_receipt_received.disconnect(_on_seed_receipt_received)
-		NetworkManager.seed_receipt_failed.disconnect(_on_seed_receipt_failed)
-	if character_id == _characters[_selected_index].character_id:
-		GameManager.change_state(GameManager.GameState.PLAYING)
-
-func _on_seed_receipt_failed(reason: String) -> void:
-	if NetworkManager:
-		NetworkManager.seed_receipt_received.disconnect(_on_seed_receipt_received)
-		NetworkManager.seed_receipt_failed.disconnect(_on_seed_receipt_failed)
-	GameLog.error("Character select failed: %s" % reason)
-	# Re-enable play button
-	_play_btn.disabled = false
-	# Show error to user
-	NotificationService.notify(
-		preload("res://core/notifications/notification_kind.gd").NotifKind.SECURITY_WARNING,
-		"Failed to enter world: %s" % reason,
-		"Lobby",
-		"char_select_fail:%s" % reason.hash(),
-		{},
-		LoginService.get_current_account_id()
-	) if NotificationService else null
 
 func _on_create_pressed() -> void:
 	# Mark that we're coming from lobby so CharacterSelect links the
@@ -278,9 +238,8 @@ func _save_all_characters() -> void:
 	by_account[acc_id] = serialized
 	
 	var json = JSON.stringify(by_account)
-	# Use set_many for bulk KV upsert (single HTTP call via /batch)
-	var entries: Dictionary = {key: json}
-	store.set_many(entries)
+	store.execute("DELETE FROM kv WHERE key = $1", [key])
+	store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])
 
 func _remove_character_blob(account_id: String, character_id: String) -> void:
 	var store := _get_store()
@@ -301,9 +260,8 @@ func _remove_character_blob(account_id: String, character_id: String) -> void:
 	by_account[account_id] = list
 	
 	var json = JSON.stringify(by_account)
-	# Use set_many for bulk KV upsert (single HTTP call via /batch)
-	var entries: Dictionary = {key: json}
-	store.set_many(entries)
+	store.execute("DELETE FROM kv WHERE key = $1", [key])
+	store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])
 
 func _blob_to_character_data(blob: Dictionary) -> CharacterData:
 	var cd := CharacterData.new(

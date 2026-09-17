@@ -200,9 +200,8 @@ func _lobby_save_character(data: CharacterData, _account_id: String) -> void:
 	by_account[_account_id] = list
 	
 	var json = JSON.stringify(by_account)
-	# Use set_many for bulk KV upsert (single HTTP call via /batch)
-	var entries: Dictionary = {key: json}
-	store.set_many(entries)
+	store.execute("DELETE FROM kv WHERE key = $1", [key])
+	store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])
 
 
 func _apply_button_styles() -> void:

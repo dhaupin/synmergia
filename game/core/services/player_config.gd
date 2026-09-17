@@ -359,10 +359,9 @@ func _save_settings(scope: String, source: Dictionary) -> bool:
 		return false
 	var key := _kv_prefix + scope
 	var json = JSON.stringify(source)
-	# Use set_many for bulk KV upsert (single HTTP call via /batch)
-	var entries: Dictionary = {key: json}
-	var rc := _store.set_many(entries)
-	return rc >= 0
+	_store.execute("DELETE FROM kv WHERE key = $1", [key])
+	_store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])
+	return true
 
 func _get_memory_fallback() -> PersistenceStore:
 	const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")

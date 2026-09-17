@@ -1,5 +1,11 @@
 ## StateMachine - Generic state machine for game entities
 ## Handles state transitions and calls enter/exit/update
+##
+## DEPRECATED: Use StateSchema with type "behavior_state" in T3 state tree instead.
+## See game/data/roots/state_schema.gd for the canonical behavior state schema.
+## Valid states: "idle", "move", "attack", "interact" with payload {current_state: String, ai_tick_state: int}
+## Migration: Replace node-based FSM with StateSchema entries in the content-hash state tree.
+## The T3 state tree provides persistence, replication, and content-addressable history.
 extends Node
 class_name StateMachine
 
@@ -67,3 +73,43 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if not get_parent() is StateMachine:
 		warnings.append("State should be child of StateMachine")
 	return warnings
+
+## MIGRATION GUIDE: Legacy FSM -> StateSchema (behavior_state)
+##
+## OLD (node-based FSM):
+##   - StateMachine node with child State nodes (idle, move, attack, etc.)
+##   - _ready() discovers child states via get_children()
+##   - transition_to(state_name, data) for state changes
+##   - Signals: state_changed, state_entered, state_exited
+##   - State stored in scene tree, not persisted across sessions
+##   - PlayerController uses $StateMachine node reference
+##
+## NEW (StateSchema in T3 state tree):
+##   - Use StateSchema resource with type = "behavior_state"
+##   - Payload: {"current_state": "idle"|"move"|"attack"|"interact", "ai_tick_state": int}
+##   - Entity behavior state stored in FrameService state tree (T3 content-hash tree)
+##   - Access via FrameService.get_state(entity_id, "behavior_state")
+##   - Update via FrameService.set_state(entity_id, StateSchema, payload)
+##   - Persists across sessions, replicates to clients, content-hash history
+##   - Frame primitives in game/core/frame/ (no autoload, no GameManager dep)
+##
+## Example payload:
+##   {
+##     "type": "behavior_state",
+##     "entity_id": "player_123",
+##     "payload": {
+##       "current_state": "move",
+##       "ai_tick_state": 42
+##     }
+##   }
+##
+## Integration with FrameService:
+##   var frame_svc := FrameService
+##   var state_schema := preload("res://data/roots/state_schema.gd").new()
+##   state_schema.type = "behavior_state"
+##   var payload = {"current_state": "idle", "ai_tick_state": 0}
+##   frame_svc.set_state(entity_id, state_schema, payload)
+##
+## Do NOT write new code using StateMachine or extends State.
+## This file is kept for existing player controller only (game/entities/player/player_controller.gd).
+## New entity behavior should use StateSchema.behavior_state in the T3 state tree.

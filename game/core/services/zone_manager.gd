@@ -134,6 +134,14 @@ func _get_t3() -> Variant:
 	if T3Script: _t3 = T3Script.new()
 	return _t3
 
+## Public accessor for SpatialFragmenter (for cross-service spatial queries)
+func get_spatial_fragmenter():
+	return _spatial_fragmenter
+
+## Public accessor for NSC-9 bridge
+func get_nsc9_bridge():
+	return _nsc9_bridge
+
 ## Shard zone world state using lattice keys for distributed storage.
 ## Returns Array[Dictionary] with shard, data, size, checksum, and lattice_key.
 func _shard_zone_world(zone_id: String, world_state: Dictionary) -> Array[Dictionary]:
@@ -283,8 +291,9 @@ func register_zone(zone_data) -> bool:
 	GameLog.debug("ZoneManager: Registered zone %s" % zone_data.id)
 	return true
 
-## Auto-register zone neighbors based on proximity
-func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
+## Auto-register zone neighbors based on spatial proximity
+## Uses SpatialFragmenter as primary mechanism; falls back to Euclidean distance if unavailable.
+func auto_register_zone_neighbors(max_distance: float = -1.0) -> void:
 	var zones_array: Array = _zones.values()
 	var registered_count: int = 0
 
@@ -293,25 +302,36 @@ func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
 		for j in range(i + 1, zones_array.size()):
 			var zone2 = zones_array[j]
 
-			# Calculate distance between zone centers
-			var distance: float = zone1.zone_center.distance_to(zone2.zone_center)
-			var combined_radius: float = zone1.zone_radius + zone2.zone_radius
+			var should_register: bool = false
 
-			# Spatial proximity check using SpatialFragmenter if available
-			var is_spatial_neighbor = false
+			# Primary: SpatialFragmenter proximity check
 			if _spatial_fragmenter != null:
 				var addr1: int = get_zone_spatial_address(zone1.id)
 				var addr2: int = get_zone_spatial_address(zone2.id)
 				if addr1 != 0 and addr2 != 0:
-					# Zones are spatially adjacent if they share a common ancestor
-					# at a depth that indicates proximity (lower depth = larger region)
+					# Zones are neighbors if they share a common ancestor at a depth
+					# indicating proximity. Lower depth = larger region = more distant.
+					# We use ancestor depth threshold derived from zone radii.
 					var ancestor: int = _spatial_fragmenter.find_common_ancestor([addr1, addr2])
 					if ancestor != 0:
 						var ancestor_depth: int = _spatial_fragmenter.get_depth(ancestor)
-						is_spatial_neighbor = ancestor_depth <= 16
+						# Threshold: zones with larger radii get lower depth (coarser).
+						# Combine both zones' computed depths for a fair threshold.
+						var depth1: int = _compute_zone_depth(zone1.zone_radius)
+						var depth2: int = _compute_zone_depth(zone2.zone_radius)
+						var threshold_depth: int = maxi(depth1, depth2)
+						should_register = ancestor_depth <= threshold_depth
 
-			# If zones overlap or are close enough, register as neighbors
-			if distance <= max_distance or is_spatial_neighbor:
+			# Fallback: Euclidean distance (only if SpatialFragmenter unavailable or inconclusive)
+			if not should_register:
+				var fallback_distance: float = max_distance
+				if fallback_distance < 0.0:
+					# Derive from zone radii: combined radius + buffer
+					fallback_distance = zone1.zone_radius + zone2.zone_radius + 200.0
+				var distance: float = zone1.zone_center.distance_to(zone2.zone_center)
+				should_register = distance <= fallback_distance
+
+			if should_register:
 				register_zone_neighbors(zone1.id, zone2.id)
 				registered_count += 1
 
@@ -546,23 +566,77 @@ func add_to_instance(entity, instance_id: String) -> bool:
 	# Switch entity to instance zone
 	return entity_enter_zone(entity, instance_data.zone_data)
 
-## Get nearby zones (for gateway system)
-func get_nearby_zones(from_zone_id: String, max_distance: float = 1000.0) -> Array:
+## Get nearby zones using spatial proximity (SpatialFragmenter primary, Euclidean fallback)
+func get_nearby_zones(from_zone_id: String, max_distance: float = -1.0) -> Array:
 	var results: Array = []
 	var from_zone = _zones.get(from_zone_id)
 	if from_zone == null:
 		return results
 
-	for zone_id in _zones:
-		var zone = _zones[zone_id]
-		if zone_id == from_zone_id or zone.is_instanced:
-			continue
+	# Primary: Use SpatialFragmenter to find spatially adjacent zones
+	if _spatial_fragmenter != null:
+		var from_addr: int = get_zone_spatial_address(from_zone_id)
+		if from_addr != 0:
+			var from_depth: int = _spatial_fragmenter.get_depth(from_addr)
+			# Use the zone's computed depth as the search threshold
+			# Subdivide one level deeper to find immediate neighbors
+			var search_depth: int = mini(from_depth + 2, _spatial_fragmenter.MAX_DEPTH)
+			
+			# Get bounding box of the from_zone's spatial address
+			var from_bbox: Dictionary = _spatial_fragmenter.get_bounding_box(from_addr)
+			
+			for zone_id in _zones:
+				var zone = _zones[zone_id]
+				if zone_id == from_zone_id or zone.is_instanced:
+					continue
+				
+				var zone_addr: int = get_zone_spatial_address(zone_id)
+				if zone_addr == 0:
+					continue
+				
+				# Check if zones share a common ancestor at search_depth or lower
+				var ancestor: int = _spatial_fragmenter.find_common_ancestor([from_addr, zone_addr])
+				if ancestor != 0:
+					var ancestor_depth: int = _spatial_fragmenter.get_depth(ancestor)
+					if ancestor_depth <= search_depth:
+						results.append(zone)
+						continue
+				
+				# Also check bounding box overlap for zones at similar depth
+				var zone_bbox: Dictionary = _spatial_fragmenter.get_bounding_box(zone_addr)
+				if _bboxes_overlap(from_bbox, zone_bbox):
+					results.append(zone)
+					continue
 
-		var distance: float = from_zone.zone_center.distance_to(zone.zone_center)
-		if distance <= max_distance:
-			results.append(zone)
+	# Fallback: Euclidean distance (only if SpatialFragmenter unavailable or no results)
+	if results.is_empty() or _spatial_fragmenter == null:
+		var fallback_distance: float = max_distance
+		if fallback_distance < 0.0:
+			fallback_distance = from_zone.zone_radius + 500.0  # Derived default
+		
+		for zone_id in _zones:
+			var zone = _zones[zone_id]
+			if zone_id == from_zone_id or zone.is_instanced:
+				continue
+			
+			# Avoid duplicates from spatial search
+			if results.has(zone):
+				continue
+				
+			var distance: float = from_zone.zone_center.distance_to(zone.zone_center)
+			if distance <= fallback_distance:
+				results.append(zone)
 
 	return results
+
+
+## Helper: Check if two bounding boxes overlap
+func _bboxes_overlap(bbox1: Dictionary, bbox2: Dictionary) -> bool:
+	if bbox1.is_empty() or bbox2.is_empty():
+		return false
+	return (bbox1.min_x <= bbox2.max_x and bbox1.max_x >= bbox2.min_x and
+	        bbox1.min_y <= bbox2.max_y and bbox1.max_y >= bbox2.min_y and
+	        bbox1.min_z <= bbox2.max_z and bbox1.max_z >= bbox2.min_z)
 
 ## Get zones by PvP mode
 func get_zones_by_pvp_mode(pvp_mode) -> Array:
