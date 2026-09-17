@@ -74,6 +74,7 @@ func _test_critical_applies_immediately() -> void:
 	_assert(tree != null, "critical param created a state tree")
 	if tree != null:
 		var got: Dictionary = tree.get_state("shards/shard_a/parameters/boss_defeated")
+		print("GOT: ", got, " size: ", got.size())
 		_assert(got != null and got.size() > 0, "critical param wrote to the state tree")
 	# Non-critical must NOT apply immediately.
 	_current_applied = []
