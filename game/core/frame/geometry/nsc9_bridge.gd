@@ -147,24 +147,12 @@ func restore_nsc9_fragmented(t3: Variant, nsc9_code: int, fragmenter: Variant, d
 	if results.is_empty():
 		return {}
 
-	var fragments: Array[Dictionary] = []
-	for result in results:
-		var value: Variant = result.get("value")
-		if value is Dictionary:
-			fragments.append(value)
-	fragments.sort_custom(func(a: Dictionary, b: Dictionary) -> int:
-		var ai: int = a.get("fragment_index", 0)
-		var bi: int = b.get("fragment_index", 0)
-		if ai < bi:
-			return -1
-		elif ai > bi:
-			return 1
-		return 0
-	)
-
 	var fragment_data: Array = []
-	for frag in fragments:
-		fragment_data.append(frag.get("data", ""))
+	for result in results:
+		var metadata: Dictionary = result.get("metadata", {})
+		if metadata.is_empty():
+			continue
+		fragment_data.append(metadata.get("data", ""))
 	var welded: String = fragmenter.weld(fragment_data)
 	if welded == "":
 		return {}

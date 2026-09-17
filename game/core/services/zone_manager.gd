@@ -17,6 +17,8 @@ const SpatialFragmenterScript = preload("res://core/frame/geometry/spatial_fragm
 const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
 # NSC-9 math utilities (pure function for axis/encoding).
 const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
+# Fragmenter (data sharding via Knuth multiplicative hash).
+const FragmenterScript = preload("res://core/frame/geometry/fragmenter.gd")
 
 # Spatial quantization: world units collapsed into a single address cell.
 # A quantum of 500 means coordinates within the same 500-unit cube share
@@ -62,6 +64,9 @@ var _spatial_fragmenter: SpatialFragmenterScript = null
 # Zone spatial addresses (zone_id -> int spatial address)
 var _zone_spatial_addresses: Dictionary = {}
 
+# Fragmenter (data sharding via Knuth multiplicative hash)
+var _fragmenter: FragmenterScript = null
+
 # NSC-9 bridge instance (pure utility, stateless)
 var _nsc9_bridge: Nsc9BridgeScript = null
 
@@ -87,7 +92,7 @@ func _ready() -> void:
 	_init_spatial_fragmenter()
 	_load_zone_state()
 
-## Initialize SpatialFragmenter and NSC-9 bridge instances.
+## Initialize SpatialFragmenter, Fragmenter, and NSC-9 bridge instances.
 func _init_spatial_fragmenter() -> void:
 	if SpatialFragmenterScript:
 		_spatial_fragmenter = SpatialFragmenterScript.new()
@@ -95,11 +100,42 @@ func _init_spatial_fragmenter() -> void:
 	else:
 		GameLog.warn("ZoneManager: SpatialFragmenterScript not available; spatial features disabled")
 
+	if FragmenterScript:
+		_fragmenter = FragmenterScript.new()
+		GameLog.debug("ZoneManager: Fragmenter initialized")
+	else:
+		GameLog.warn("ZoneManager: FragmenterScript not available; state fragmenting disabled")
+
 	if Nsc9BridgeScript:
 		_nsc9_bridge = Nsc9BridgeScript.new()
 		GameLog.debug("ZoneManager: NSC-9 bridge initialized")
 	else:
 		GameLog.warn("ZoneManager: Nsc9BridgeScript not available; NSC-9 pipeline disabled")
+
+## Shard zone world state using lattice keys for distributed storage.
+## Returns Array[Dictionary] with shard, data, size, checksum, and lattice_key.
+func _shard_zone_world(zone_id: String, world_state: Dictionary) -> Array[Dictionary]:
+	if _fragmenter == null:
+		return []
+	var sequence: int = zone_id.hash()
+	var keys: Array[String] = _fragmenter.derive_lattice_keys(sequence, 5)
+	var fragments: Array[Dictionary] = _fragmenter.fragment(world_state, 5)
+	for i in range(fragments.size()):
+		fragments[i]["lattice_key"] = keys[i] if i < keys.size() else ""
+	return fragments
+
+## Restore zone world state from fragments.
+## Returns the reconstructed world state dictionary.
+func _restore_zone_world(zone_id: String, fragments: Array[Dictionary]) -> Dictionary:
+	if _fragmenter == null:
+		return {}
+	var welded: String = _fragmenter.weld(fragments)
+	if welded == "":
+		return {}
+	var parsed: Variant = JSON.parse_string(welded)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+	return parsed
 
 ## Compute spatial depth based on zone radius
 ## Larger zones get lower depth (coarser granularity), smaller zones get higher depth

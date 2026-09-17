@@ -578,7 +578,8 @@ func store_entity_state_in_t3(entity_id: String) -> PackedByteArray:
 			"fragment_index": i,
 			"total_fragments": fragments.size(),
 			"checksum": frag.get("checksum", 0),
-			"size": frag.get("size", 0)
+			"size": frag.get("size", 0),
+			"data": frag.get("data", "")
 		}
 		var frag_hash: PackedByteArray = _spatial_fragmenter.store_fragment_in_t3(_t3, frag_path, address, metadata)
 		if frag_hash.size() > 0:
@@ -618,31 +619,17 @@ func restore_entity_state_from_t3(entity_id: String) -> Dictionary:
 		GameLog.debug("EntityService: No spatial fragments found for entity %s at %s" % [entity_id, path])
 		return {}
 
-	# Collect fragment data
-	var fragments: Array[Dictionary] = []
-	for result in results:
-		var value: Variant = result.get("value")
-		if value is Dictionary:
-			fragments.append(value)
-
-	if fragments.is_empty():
-		return {}
-
-	# Sort fragments by fragment_index
-	fragments.sort_custom(func(a: Dictionary, b: Dictionary) -> int:
-		var ai: int = a.get("fragment_index", 0)
-		var bi: int = b.get("fragment_index", 0)
-		if ai < bi:
-			return -1
-		elif ai > bi:
-			return 1
-		return 0
-	)
-
-	# Extract base64 data and reconstruct using Fragmenter.weld
+	# Collect fragment data from T3 metadata
 	var fragment_data: Array = []
-	for frag in fragments:
-		fragment_data.append(frag.get("data", ""))
+	for result in results:
+		var metadata: Dictionary = result.get("metadata", {})
+		if metadata.is_empty():
+			continue
+		var frag_idx: int = metadata.get("fragment_index", 0)
+		fragment_data.append({
+			"shard": frag_idx,
+			"data": metadata.get("data", "")
+		})
 
 	var welded: String = _fragmenter.weld(fragment_data)
 	if welded == "":
@@ -654,6 +641,32 @@ func restore_entity_state_from_t3(entity_id: String) -> Dictionary:
 
 	GameLog.debug("EntityService: Restored spatial state for entity %s from %s" % [entity_id, path])
 	entity_spatial_state_restored.emit(entity_id, parsed)
+	return parsed
+
+
+## Shard entity state using lattice keys for distributed storage.
+## Returns Array[Dictionary] with shard, data, size, checksum, and lattice_key.
+func _shard_entity_state(entity_id: String, state: Dictionary) -> Array[Dictionary]:
+	if _fragmenter == null:
+		return []
+	var sequence: int = entity_id.hash()
+	var keys: Array[String] = _fragmenter.derive_lattice_keys(sequence, 5)
+	var fragments: Array[Dictionary] = _fragmenter.fragment(state, 5)
+	for i in range(fragments.size()):
+		fragments[i]["lattice_key"] = keys[i] if i < keys.size() else ""
+	return fragments
+
+## Restore entity state from fragments.
+## Returns the reconstructed state dictionary.
+func _restore_entity_state(entity_id: String, fragments: Array[Dictionary]) -> Dictionary:
+	if _fragmenter == null:
+		return {}
+	var welded: String = _fragmenter.weld(fragments)
+	if welded == "":
+		return {}
+	var parsed: Variant = JSON.parse_string(welded)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
 	return parsed
 
 
