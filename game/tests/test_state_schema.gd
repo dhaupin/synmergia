@@ -71,7 +71,7 @@ func _test_canonical_bytes_basic() -> void:
 		"entity_id": "player_42",
 		"payload": {"x": 10.0, "y": 0.0, "z": -5.0}
 	}
-	var bytes := schema._to_canonical_bytes(value)
+	var bytes = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(bytes.size() > 0, "canonical_bytes non-empty")
 
 func _test_canonical_bytes_deterministic() -> void:
@@ -80,15 +80,15 @@ func _test_canonical_bytes_deterministic() -> void:
 		"entity_id": "mob_99",
 		"payload": {"current": 50, "max": 100}
 	}
-	var b1 := schema._to_canonical_bytes(value)
-	var b2 := schema._to_canonical_bytes(value)
+	var b1 = schema._to_canonical_bytes(value) as PackedByteArray
+	var b2 = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(b1 == b2, "canonical_bytes deterministic")
 
 func _test_canonical_bytes_different_inputs() -> void:
 	var v1 := {"type": "position", "entity_id": "p1", "payload": {"x": 1.0, "y": 2.0, "z": 3.0}}
 	var v2 := {"type": "inventory", "entity_id": "p1", "payload": {"x": 1.0, "y": 2.0, "z": 3.0}}
-	var b1 := schema._to_canonical_bytes(v1)
-	var b2 := schema._to_canonical_bytes(v2)
+	var b1 = schema._to_canonical_bytes(v1) as PackedByteArray
+	var b2 = schema._to_canonical_bytes(v2) as PackedByteArray
 	_assert(b1 != b2, "different type -> different bytes")
 
 	v2 = {"type": "position", "entity_id": "p2", "payload": {"x": 1.0, "y": 2.0, "z": 3.0}}
@@ -101,7 +101,7 @@ func _test_canonical_bytes_different_inputs() -> void:
 
 func _test_canonical_bytes_empty_payload() -> void:
 	var value := {"type": "other", "entity_id": "e1", "payload": {}}
-	var bytes := schema._to_canonical_bytes(value)
+	var bytes = schema._to_canonical_bytes(value) as PackedByteArray
 	_assert(bytes.size() > 0, "empty payload encodes")
 
 func _test_validate_valid() -> void:
@@ -183,22 +183,22 @@ func _test_validate_inventory_payload() -> void:
 
 func _test_display_position() -> void:
 	var value := {"type": "position", "entity_id": "player_42", "payload": {"x": 10.0, "y": 0.0, "z": -5.0}}
-	var display := schema._to_display(value)
+	var display = schema._to_display(value) as String
 	_assert(display == "[position] player_42 @ (10.00, 0.00, -5.00)", "position display: %s" % display)
 
 func _test_display_health() -> void:
 	var value := {"type": "health", "entity_id": "mob_99", "payload": {"current": 50, "max": 100}}
-	var display := schema._to_display(value)
+	var display = schema._to_display(value) as String
 	_assert(display == "[health] mob_99 (50/100)", "health display: %s" % display)
 
 func _test_display_inventory() -> void:
 	var value := {"type": "inventory", "entity_id": "p1", "payload": {"items": ["sword", "shield", "potion"]}}
-	var display := schema._to_display(value)
+	var display = schema._to_display(value) as String
 	_assert(display == "[inventory] p1 (3 items)", "inventory display: %s" % display)
 
 func _test_display_other_types() -> void:
 	var value := {"type": "faction", "entity_id": "p1", "payload": {"faction_id": "guardians", "standing": 75.5}}
-	var display := schema._to_display(value)
+	var display = schema._to_display(value) as String
 	_assert(display == "[faction] p1 -> guardians (75.50)", "faction display: %s" % display)
 
 	value = {"type": "status", "entity_id": "p1", "payload": {"effects": ["poison", "stun"]}}
