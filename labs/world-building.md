@@ -9,7 +9,7 @@
 > map, procedural generation, zone, world, and the geometric-
 > addressing layer that ties them together.
 >
-> **Last updated:** 2026-09-16
+> **Last updated:** 2026-09-17
 >
 > **Scope:** Design the full world + network + persistence stack for
 > Synmergia such that (a) the same server and client agree on
@@ -1284,7 +1284,79 @@ Axis reservations:
 - `400-499`: game-specific (class, level, species, …)
 - `500-999`: free for new axes
 
-### 6.5 Multi-axis intersection = materialized views
+### 6.5 Frame primitives: Fragmenter + SpatialFragmenter + NSC-9 Bridge
+
+The geometric addressing layer is implemented as **frame primitives**
+in `game/core/frame/geometry/` (pure functions, no state, no
+autoloads, no GameManager dependency). Three modules:
+
+#### 6.5.1 Fragmenter (`fragmenter.gd`)
+Stateless data sharding via Knuth multiplicative hash
+(`LATTICE_MULTIPLIER = floor(phi * 2^32) = 2654435769`).
+
+**Core API:**
+- `derive_lattice_keys(sequence: int, num_fragments: int = 5) -> Array[String]` — Derive N aperiodic lattice keys from a single sequence integer. Deterministic, base-36 encoded.
+- `fragment(data: Variant, num_fragments: int = 5) -> Array[Dictionary]` — Split arbitrary data into N fragments with XOR spreading. Returns `Array` of dicts with `shard`, `data` (base64), `size`, `checksum`.
+- `weld(fragments: Array) -> String` — Reconstruct original data from fragments. Reverses XOR spreading, sorts by shard, concatenates.
+
+**Use case:** Distributed storage of large entity state across shards without a central manifest.
+
+#### 6.5.2 SpatialFragmenter (`spatial_fragmenter.gd`)
+Deterministic sub-cell addressing for icosahedral/NSC-9 spatial state.
+
+**Address encoding (64-bit):**
+- Bits 0-15:   X offset (16-bit quantized coordinate)
+- Bits 16-31:  Y offset (16-bit quantized coordinate)
+- Bits 32-47:  Z offset (16-bit quantized coordinate)
+- Bits 48-55:  Depth (8-bit subdivision level, 0-24)
+- Bits 56-63:  Face/region type (8-bit, e.g., NSC-9 spatial axis or icosahedron face)
+
+**Core API:**
+- `make_address(x, y, z, depth, face=0) -> int` — Build address
+- `get_x/y/z/depth/face(address)` — Accessors
+- `subdivide(address, depth=1) -> Array[int]` — Split cell into 8 children (octree)
+- `get_parent(address) -> int` — Immediate coarser cell
+- `is_ancestor(ancestor, descendant) -> bool` — Lineage check (cross-face returns false)
+- `get_bounding_box(address) -> Dictionary` — Integer min/max bounds (`min_x`, `max_x`, etc.)
+- `find_common_ancestor(addresses) -> int` — Spatial compression (cross-face = 0)
+- `generate_key(address) -> String` — Fixed-width key: `%04x-%04x-%04x-d%d-f%d`
+- `nsc9_code_to_face(code) -> int` — NSC-9 axis 1-12 -> face 0-11 (non-spatial = -1)
+- `path_for_address(address) -> String` — T3 path: `spatial/%04x-%04x-%04x-d%d-f%d`
+- `store_fragment_in_t3(t3, path, address, metadata) -> PackedByteArray` — T3 bridge
+- `query_spatial_tree(t3, scope_path="/") -> Array[Dictionary]` — T3 query
+
+**MAX_DEPTH = 24** prevents fragment explosion.
+
+#### 6.5.3 NSC-9 Bridge (`nsc9_bridge.gd`)
+Unified pipeline: NSC-9 spatial code -> SpatialFragmenter address -> T3 content-hash tree.
+
+**API (10 methods):**
+| Method | Purpose |
+|---|---|
+| `nsc9_to_address(code, depth=0)` | NSC-9 -> SpatialFragmenter address |
+| `address_to_t3_path(address)` | Address -> T3 path string |
+| `nsc9_to_t3_path(code, depth=0)` | NSC-9 code -> T3 path (convenience) |
+| `store_nsc9_state(t3, nsc9_code, state, depth, metadata)` | Store entity state in T3 |
+| `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth)` | Fragment + store in T3 |
+| `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth)` | Restore fragmented state |
+| `query_nsc9_region(t3, nsc9_code, depth)` | Query fragments in region |
+| `query_nsc9_face(t3, nsc9_code)` | Query all fragments on face |
+| `is_spatial_nsc9(code)` | Check if code has spatial axis |
+| `entity_spatial_to_face(facility, vertex)` | Entity spatial -> face |
+
+**NSC-9 -> Spatial mapping:**
+- `facility` -> x coordinate (0-999, fits in 16 bits)
+- `axis` -> face via `SpatialFragmenter.nsc9_code_to_face` (1-12 -> 0-11)
+- `sequence` -> split into y (bits 10-19) and z (bits 0-9)
+- `depth` -> subdivision depth (caller-specified)
+
+**Service integration:**
+- **EntityService**: `_nsc9_bridge` initialized, caches NSC-9 codes in `_entity_nsc9_codes`, sets `metadata.nsc9_code`
+- **ZoneManager**: `_nsc9_bridge` initialized, derives zone NSC-9 codes, exposes `get_zone_nsc9_code()` and `get_zone_nsc9_t3_path()`
+
+**Tests:** `test_nsc9_bridge.gd` (9 integration tests), `test_spatial_fragmenter.gd` (11 tests), `test_fragmenter.gd` (fragmenter tests). Run with `godot --headless --path . --script res://core/frame/geometry/test_nsc9_bridge.gd`.
+
+### 6.6 Multi-axis intersection = materialized views
 
 The Julia orchestrator already implements set-intersection
 across axes. The plan is:
@@ -1372,7 +1444,7 @@ than grid addressing.
 Start with icosahedral + grid. Add quasicrystal only if
 the visible-seam problem becomes user-noticeable.
 
-### 6.9 Phasing
+### 6.10 Phasing
 
 | Phase | Geometric layer scope |
 |---|---|
@@ -1380,6 +1452,8 @@ the visible-seam problem becomes user-noticeable.
 | Phase 2 | Icosahedral for spherical worlds. Julia sidecar for multi-axis. NSC-9 codes per entity. |
 | Phase 3 | Materialized intersection cache. Predictive prefetch via Markov. |
 | Phase 4 | Quasicrystal experimental layer (if seams matter). |
+
+**Phase 3.x (completed):** Fragmenter, SpatialFragmenter, and NSC-9 bridge are implemented and wired into EntityService + ZoneManager. The bridge provides the unified NSC-9 -> SpatialFragmenter -> T3 path. See `labs/prd-geometry.md`.
 
 ---
 

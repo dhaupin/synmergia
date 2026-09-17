@@ -46,6 +46,7 @@ is engine-grade; the schemas are game-grade.
 | Scope engine | `game/core/frame/srv/scope.gd` | Hierarchy walker + flip | yes (engine) |
 | Rules engine | `game/core/frame/srv/rules_engine.gd` | Generic evaluator | yes (engine) |
 | | Spatial layer | `game/core/frame/math/` | Icosahedral + NSC-9 (ported from vant axolotl) | DONE |
+| | Geometry layer | `game/core/frame/geometry/` | Fragmenter, SpatialFragmenter, Nsc9Bridge (DONE) | DONE |
 | Schemas | `game/data/roots/*_schema.tres` | Typed payloads per tree | game-specific |
 | Trees | `game/data/roots/<scope>/*.tres` | Tree instances | game-specific |
 | Services | `game/core/services/*.gd` | Game logic | game-specific |
@@ -655,7 +656,7 @@ srv/
 | Icosahedral projection | vant `geometry/icosahedral.js` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
 | Vant fragmenter | [prd-geometry.md](./prd-geometry.md) sec. US-001 | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | DONE |
 | Spatial geometry fragmenter | `prd-spatial-geometry.md` sec. US-001 | `game/core/frame/geometry/spatial_fragmenter.gd` | `game/core/frame/geometry/spatial_fragmenter.gd` | DONE |
-| Geometry integration bridge | `prd-geometry.md` sec. 6K | NSC-9  ->  SpatialFragmenter  ->  T3 wiring | Service-level integration pattern | IN PROGRESS |
+| Geometry integration bridge | `prd-geometry.md` sec. 6K | NSC-9  ->  SpatialFragmenter  ->  T3 wiring | `Nsc9Bridge` in `game/core/frame/geometry/nsc9_bridge.gd`, wired into EntityService + ZoneManager | DONE |
 
 ---
 
@@ -665,26 +666,52 @@ The geometry layer connects via pure function calls from services. No autoloads,
 
 **Integration chain:**
 ```
-NSC-9 code (nsc9.gd)  ->  face code  ->  SpatialFragmenter address  ->  [T3 state tree]
-                                             v 
-                                    Fragmenter.data fragment  ->  [Storage adapter]
+NSC-9 code (nsc9.gd)  ->  Nsc9Bridge  ->  SpatialFragmenter address  ->  [T3 state tree]
+                                              v 
+                                     Fragmenter.data fragment  ->  [Storage adapter]
 ```
 
+**Nsc9Bridge** (`game/core/frame/geometry/nsc9_bridge.gd`) is the unified integration point. 10 methods:
+- `nsc9_to_address(code, depth)` — NSC-9 -> SpatialFragmenter address (facility->x, axis->face, sequence->y/z)
+- `address_to_t3_path(address)` — Address -> T3 path string
+- `nsc9_to_t3_path(code, depth)` — NSC-9 code -> T3 path (convenience)
+- `store_nsc9_state(t3, nsc9_code, state, depth, metadata)` — Store entity state in T3
+- `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth)` — Fragment + store in T3
+- `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth)` — Restore fragmented state from T3
+- `query_nsc9_region(t3, nsc9_code, depth)` — Query fragments in region
+- `query_nsc9_face(t3, nsc9_code)` — Query all fragments on a face
+- `is_spatial_nsc9(code)` — Check if code has spatial axis (1-12)
+- `entity_spatial_to_face(facility, vertex)` — Entity spatial -> face code
+
 **Recommended wiring:**
-1. Services needing spatial addresses call `SpatialFragmenter.make_address()` directly
-2. Services needing spatial state in T3 use `StateTree.insert_state()` with spatial metadata
+1. Services needing spatial addresses call `Nsc9Bridge.nsc9_to_address()` directly
+2. Services needing spatial state in T3 call `Nsc9Bridge.store_nsc9_state()` or `store_nsc9_fragmented()`
 3. Services needing data shards call `Fragmenter.fragment()` directly
-4. NSC-9  ->  face conversion is caller-defined (see Open Question NQ-6 in prd-geometry.md)
+4. NSC-9 -> face conversion is handled by `SpatialFragmenter.nsc9_code_to_face()` (1-12 -> 0-11)
+
+**Service-level integration:**
+- **EntityService**: `_nsc9_bridge` initialized in `_init_spatial_and_t3()`, caches NSC-9 codes per entity in `_entity_nsc9_codes`, sets `metadata.nsc9_code` on registration
+- **ZoneManager**: `_nsc9_bridge` initialized in `_init_spatial_fragmenter()`, derives NSC-9 codes per zone via `_compute_nsc9_code()`, exposes `get_zone_nsc9_code(zone_id)` and `get_zone_nsc9_t3_path(zone_id)`
 
 **File locations:**
 - `game/core/frame/geometry/fragmenter.gd`  -  Aperiodic data fragmenter (Vant port)
 - `game/core/frame/geometry/spatial_fragmenter.gd`  -  Spatial geometry fragmenter
+- `game/core/frame/geometry/nsc9_bridge.gd`  -  NSC-9 -> SpatialFragmenter -> T3 bridge
+- `game/core/frame/geometry/test_nsc9_bridge.gd`  -  Bridge integration tests (9 test cases)
 - `game/core/frame/geometry/test_fragmenter.gd`  -  Fragmenter tests
 - `game/core/frame/geometry/test_spatial_fragmenter.gd`  -  Spatial fragmenter tests
 - `game/core/frame/math/nsc9.gd`  -  NSC-9 barcode encoding (spatial axis source)
 - `game/core/frame/math/icosahedral.gd`  -  Icosahedral projection (face source)
 - `game/core/frame/kv/t3.gd`  -  Content-hash tree substrate (spatial state storage)
 - `game/core/frame/kv/state_tree.gd`  -  State tree wrapper (spatial state persistence)
+
+**Axis reservation:**
+- 001-099: spatial axis (icosahedral vertices 1-12)
+- 100-199: factional axes
+- 200-299: temporal sub-axes
+- 300-399: social axes
+- 400-499: game-specific axes
+- 500-999: free
 
 ---
 
@@ -709,9 +736,11 @@ NSC-9 code (nsc9.gd)  ->  face code  ->  SpatialFragmenter address  ->  [T3 stat
 | 3 | Coordinator process | high | infra team |
 | 3 | Account rollup (D028) | med | anticheat team |
 | 3 | Memory tree + social tree | low | game team |
+| 3 | Geometry layer: fragmenter, spatial fragmenter, NSC-9 bridge | med | frame team | See `labs/prd-geometry.md` |
+| 3.x | Geometry integration: EntityService + ZoneManager wired to Nsc9Bridge | med | frame team | See `labs/prd-geometry.md` sec. 6K |
 | 4 | Edge shards | high | infra team |
-| 4 | Vant icosahedral + fragmenter ports | med | frame team | See `labs/prd-geometry.md` |
-| 4 | Geometry integration bridge (NSC-9  ->  SpatialFragmenter  ->  T3) | med | frame team | See `labs/prd-geometry.md` sec. 6K |
+| 4 | Vant icosahedral + fragmenter ports (if not already in 3.x) | med | frame team | See `labs/prd-geometry.md` |
+| 4 | Quasicrystal extension (optional) | med | frame team | See `world-building.md` sec. 6.8 |
 | 4 | Other trees (game-specific) as needed | low | game team |
 
 ---
@@ -811,22 +840,28 @@ branch), the user's sibling repo. Specifically:
   with: typed scopes (player, shard, etc.), explicit override
   semantics, and the "flip" mechanism (sec. 4.4).
 
-- **Geometric addressing** (vant `lib/geometry/icosahedral.js`,
-  `tilings.js`, `quasicrystal.js`, `fragmenter.js`)  ->  spatial
-  layer. The icosahedral projection is the candidate for world
-  chunk addressing; the Penrose P3 tiling is the candidate for
-  region distribution; the fragmenter (Knuth multiplicative
-  hash, `LATTICE_MULTIPLIER = floor([U+041F][U+04B6] sec. * 2sec. [U+0456]sec. [U+0406])`) is the candidate
-  for shard partitioning in Phase 4+.
+- **Geometric addressing** (vant `lib/geometry/icosahedral.js`, `tilings.js`, `quasicrystal.js`, `fragmenter.js`)  ->  spatial
+   layer. The icosahedral projection is the candidate for world
+   chunk addressing; the Penrose P3 tiling is the candidate for
+   region distribution; the fragmenter (Knuth multiplicative hash,
+   `LATTICE_MULTIPLIER = floor(phi * 2^32) = 2654435769`) is the
+   candidate for shard partitioning. The NSC-9  ->  SpatialFragmenter
+   ->  T3 bridge (`Nsc9Bridge` in `game/core/frame/geometry/nsc9_bridge.gd`)
+   completes the integration; NSC-9 axes 1-12 map to faces 0-11
+   via `SpatialFragmenter.nsc9_code_to_face()`.
+
+   In Phase 3.x the fragmenter, spatial fragmenter, and NSC-9 bridge
+   are implemented and wired into EntityService + ZoneManager.
+   See `labs/prd-geometry.md`.
 
 - **Single class, schema-as-data** (vant `lib/brain.js` overall)
    ->  T3 substrate (sec. 3). Vant's brain is one class with mode-
-  as-data. T3 is the same pattern for content-hash trees.
+   as-data. T3 is the same pattern for content-hash trees.
 
-- **Content hashing** (vant `lib/quasicrystal.js` overall)  -> 
-  SHA-256 hash chain in T3. Vant's quasicrystal uses barcode
-  projection; we use SHA-256 because we need cryptographic
-  tamper-evidence, not just deterministic projection.
+- **Content hashing** (vant `lib/quasicrystal.js` overall)  ->  SHA-256
+   hash chain in T3. Vant's quasicrystal uses barcode projection;
+   we use SHA-256 because we need cryptographic tamper-evidence,
+   not just deterministic projection.
 
 Each `game/core/frame/X/Y.gd` file has a
 `## Ported from vant axolotl lib/path/X.js` header. As we
