@@ -717,31 +717,32 @@ NSC-9 code (nsc9.gd)  ->  Nsc9Bridge  ->  SpatialFragmenter address  ->  [T3 sta
 
 ## 14. Migration roadmap
 
-| Phase | Deliverable | Risk | Owner |
-|---|---|---|---|
-| 1 | T3 substrate (`t3.gd` + tests) | low | frame team |
-| 1 | SeedSchema + seed tree instance | low | frame team |
-| 1 | StateSchema + state tree instance | low | frame team |
-| 1 | Scope engine (basic, no flip) | low | frame team |
-| 1 | Login seed chain (D029) | med | login team |
-| 1 | Frame seed authority (D030) | med | game team |
-| 1 | Critical params (D033) | low | game team |
-| 1 | Open seed TTL (D032) | low | game team |
-| 1 | Manifest backup (D031) | low | infra team |
-| 1 | `srv/backup/`, `srv/tools/`, `srv/seed/` scaffolding | low | infra team |
-| 2 | Rules engine | med | infra team |
-| 2 | Refactor 5 services to use rules engine | med | infra team |
-| 2 | Definition tree (world config) | low | game team |
-| 2 | Frame extract to separate container | high | infra team |
-| 3 | Coordinator process | high | infra team |
-| 3 | Account rollup (D028) | med | anticheat team |
-| 3 | Memory tree + social tree | low | game team |
-| 3 | Geometry layer: fragmenter, spatial fragmenter, NSC-9 bridge | med | frame team | See `labs/prd-geometry.md` |
-| 3.x | Geometry integration: EntityService + ZoneManager wired to Nsc9Bridge | med | frame team | See `labs/prd-geometry.md` sec. 6K |
-| 4 | Edge shards | high | infra team |
-| 4 | Vant icosahedral + fragmenter ports (if not already in 3.x) | med | frame team | See `labs/prd-geometry.md` |
-| 4 | Quasicrystal extension (optional) | med | frame team | See `world-building.md` sec. 6.8 |
-| 4 | Other trees (game-specific) as needed | low | game team |
+| Phase | Deliverable | Risk | Owner | Status |
+|---|---|---|---|---|
+| 1 | T3 substrate (`t3.gd` + tests) | low | frame team | DONE |
+| 1 | SeedSchema + seed tree instance | low | frame team | DONE |
+| 1 | StateSchema + state tree instance | low | frame team | DONE |
+| 1 | Scope engine (basic, no flip) | low | frame team | DONE |
+| 1 | Login seed chain (D029) | med | login team | DONE |
+| 1 | Frame seed authority (D030) | med | game team | DONE |
+| 1 | Critical params (D033) | low | game team | DONE |
+| 1 | Open seed TTL (D032) | low | game team | DONE |
+| 1 | Manifest backup (D031) | low | infra team | DONE |
+| 1 | `srv/backup/`, `srv/tools/`, `srv/seed/` scaffolding | low | infra team | DONE |
+| 2 | Rules engine | med | infra team | DONE |
+| 2 | Refactor 5 services to use rules engine | med | infra team | DONE |
+| 2 | Definition tree (world config) | low | game team | DONE |
+| 2 | Frame extract to separate container | high | infra team | DONE |
+| 3 | Coordinator process | high | infra team | PENDING |
+| 3 | Account rollup (D028) | med | anticheat team | PENDING |
+| 3 | Memory tree + social tree | low | game team | PENDING |
+| 3 | Geometry layer: fragmenter, spatial fragmenter, NSC-9 bridge | med | frame team | DONE |
+| 3.x | Geometry integration: EntityService + ZoneManager wired to Nsc9Bridge | med | frame team | DONE |
+| 4 | Edge shards | high | infra team | PENDING |
+| 4 | Vant fragmenter implementation | med | frame team | DONE |
+| 4 | Vant icosahedral ports | med | frame team | PENDING |
+| 4 | Quasicrystal extension (optional) | med | frame team | PENDING |
+| 4 | Other trees (game-specific) as needed | low | game team | PENDING |
 
 ---
 

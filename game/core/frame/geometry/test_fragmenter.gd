@@ -1,4 +1,6 @@
 ## Tests for Vant Fragmenter
+## Ported from vant axolotl lib/geometry/fragmenter.js test suite
+## Vant lineage: lib/geometry/fragmenter.test.js (axolotl branch, v0.8.6)
 extends SceneTree
 
 func _init() -> void:
@@ -12,6 +14,18 @@ func _init() -> void:
 	if not _test_lattice_keys_various_counts():
 		push_error("FAIL: lattice_keys_various_counts")
 		ok = false
+	if not _test_lattice_keys_negative_sequence():
+		push_error("FAIL: lattice_keys_negative_sequence")
+		ok = false
+	if not _test_lattice_keys_uniqueness():
+		push_error("FAIL: lattice_keys_uniqueness")
+		ok = false
+	if not _test_lattice_keys_zero_fragments():
+		push_error("FAIL: lattice_keys_zero_fragments")
+		ok = false
+	if not _test_lattice_keys_large_sequence():
+		push_error("FAIL: lattice_keys_large_sequence")
+		ok = false
 	if not _test_fragment_weld_roundtrip_empty():
 		push_error("FAIL: fragment_weld_roundtrip_empty")
 		ok = false
@@ -21,14 +35,20 @@ func _init() -> void:
 	if not _test_fragment_weld_roundtrip_json():
 		push_error("FAIL: fragment_weld_roundtrip_json")
 		ok = false
-	if not _test_fragment_weld_roundtrip_large():
-		push_error("FAIL: fragment_weld_roundtrip_large")
+	if not _test_fragment_weld_roundtrip_large_100kb():
+		push_error("FAIL: fragment_weld_roundtrip_large_100kb")
+		ok = false
+	if not _test_fragment_weld_roundtrip_utf8():
+		push_error("FAIL: fragment_weld_roundtrip_utf8")
 		ok = false
 	if not _test_fragment_equal_distribution():
 		push_error("FAIL: fragment_equal_distribution")
 		ok = false
 	if not _test_fragment_xor_spreading():
 		push_error("FAIL: fragment_xor_spreading")
+		ok = false
+	if not _test_fragment_variable_num_fragments():
+		push_error("FAIL: fragment_variable_num_fragments")
 		ok = false
 	if not _test_weld_handles_string_fragments():
 		push_error("FAIL: weld_handles_string_fragments")
@@ -39,29 +59,17 @@ func _init() -> void:
 	if not _test_empty_weld():
 		push_error("FAIL: empty_weld")
 		ok = false
-	if not _test_non_ascii_utf8():
-		push_error("FAIL: non_ascii_utf8")
-		ok = false
 	if not _test_num_fragments_exceeds_data():
 		push_error("FAIL: num_fragments_exceeds_data")
 		ok = false
-	if not _test_negative_sequence():
-		push_error("FAIL: negative_sequence")
+	if not _test_fragment_weld_checksum_detection():
+		push_error("FAIL: fragment_weld_checksum_detection")
 		ok = false
-	if not _test_fragment_weld_checksum():
-		push_error("FAIL: fragment_weld_checksum")
+	if not _test_fragment_weld_checksum_corrupted_data():
+		push_error("FAIL: fragment_weld_checksum_corrupted_data")
 		ok = false
-	if not _test_non_ascii_utf8():
-		push_error("FAIL: non_ascii_utf8")
-		ok = false
-	if not _test_num_fragments_exceeds_data():
-		push_error("FAIL: num_fragments_exceeds_data")
-		ok = false
-	if not _test_negative_sequence():
-		push_error("FAIL: negative_sequence")
-		ok = false
-	if not _test_fragment_weld_checksum():
-		push_error("FAIL: fragment_weld_checksum")
+	if not _test_fragment_deterministic_output():
+		push_error("FAIL: fragment_deterministic_output")
 		ok = false
 	quit(0 if ok else 1)
 
@@ -101,6 +109,52 @@ func _test_lattice_keys_various_counts() -> bool:
 	return true
 
 
+func _test_lattice_keys_negative_sequence() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var keys1: Array[String] = frag.derive_lattice_keys(-1, 3)
+	var keys2: Array[String] = frag.derive_lattice_keys(-1, 3)
+	if keys1.size() != 3:
+		return false
+	for i in range(3):
+		if keys1[i] != keys2[i]:
+			return false
+	return true
+
+
+func _test_lattice_keys_uniqueness() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var keys: Array[String] = frag.derive_lattice_keys(42, 10)
+	var seen: Dictionary = {}
+	for k in keys:
+		if seen.has(k):
+			return false
+		seen[k] = true
+	return true
+
+
+func _test_lattice_keys_zero_fragments() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var keys: Array[String] = frag.derive_lattice_keys(12345, 0)
+	if keys.size() != 0:
+		return false
+	var keys_neg: Array[String] = frag.derive_lattice_keys(12345, -1)
+	if keys_neg.size() != 0:
+		return false
+	return true
+
+
+func _test_lattice_keys_large_sequence() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var keys1: Array[String] = frag.derive_lattice_keys(0xFFFFFFFF, 5)
+	var keys2: Array[String] = frag.derive_lattice_keys(0xFFFFFFFF, 5)
+	if keys1.size() != 5:
+		return false
+	for i in range(5):
+		if keys1[i] != keys2[i]:
+			return false
+	return true
+
+
 func _test_fragment_weld_roundtrip_empty() -> bool:
 	var frag: Fragmenter = Fragmenter.new()
 	var data: String = ""
@@ -126,10 +180,22 @@ func _test_fragment_weld_roundtrip_json() -> bool:
 	return typeof(parsed) == TYPE_DICTIONARY && parsed == data
 
 
-func _test_fragment_weld_roundtrip_large() -> bool:
+func _test_fragment_weld_roundtrip_large_100kb() -> bool:
 	var frag: Fragmenter = Fragmenter.new()
-	var data: String = "A" * 10000  # 10KB string
+	var data: String = "A" * 102400  # 100KB string
 	var fragments: Array[Dictionary] = frag.fragment(data, 7)
+	var welded: String = frag.weld(fragments)
+	return welded == data
+
+
+func _test_fragment_weld_roundtrip_utf8() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	# Build a multi-byte UTF-8 string programmatically so the source
+	# file stays ASCII-only (Godot import requirement).
+	var data: String = ""
+	for code in [0x4F60, 0x597D, 0x4E16, 0x754C, 0x1F30E]:
+		data += chr(code)
+	var fragments: Array[Dictionary] = frag.fragment(data, 4)
 	var welded: String = frag.weld(fragments)
 	return welded == data
 
@@ -157,6 +223,37 @@ func _test_fragment_xor_spreading() -> bool:
 		var decoded: int = fragments[i].data.base64_decode()[0] ^ ((i+1)*137>>5)
 		if decoded != bytes[i]:
 			return false
+	return true
+
+
+func _test_fragment_variable_num_fragments() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var data: String = "test data for variable fragments"
+
+	# Test num_fragments = 2
+	var f2: Array[Dictionary] = frag.fragment(data, 2)
+	if f2.size() != 2:
+		return false
+	var w2: String = frag.weld(f2)
+	if w2 != data:
+		return false
+
+	# Test num_fragments = 5
+	var f5: Array[Dictionary] = frag.fragment(data, 5)
+	if f5.size() != 5:
+		return false
+	var w5: String = frag.weld(f5)
+	if w5 != data:
+		return false
+
+	# Test num_fragments = 10
+	var f10: Array[Dictionary] = frag.fragment(data, 10)
+	if f10.size() != 10:
+		return false
+	var w10: String = frag.weld(f10)
+	if w10 != data:
+		return false
+
 	return true
 
 
@@ -189,18 +286,6 @@ func _test_empty_weld() -> bool:
 	return result == ""
 
 
-func _test_non_ascii_utf8() -> bool:
-	var frag: Fragmenter = Fragmenter.new()
-	# Build a multi-byte UTF-8 string programmatically so the source
-	# file stays ASCII-only (Godot import requirement).
-	var data: String = ""
-	for code in [0x4F60, 0x597D, 0x4E16, 0x754C, 0x1F30E]:
-		data += chr(code)
-	var fragments: Array[Dictionary] = frag.fragment(data, 4)
-	var welded: String = frag.weld(fragments)
-	return welded == data
-
-
 func _test_num_fragments_exceeds_data() -> bool:
 	var frag: Fragmenter = Fragmenter.new()
 	var data: String = "hi"
@@ -211,24 +296,53 @@ func _test_num_fragments_exceeds_data() -> bool:
 	return welded == data
 
 
-func _test_negative_sequence() -> bool:
-	var frag: Fragmenter = Fragmenter.new()
-	var keys1: Array[String] = frag.derive_lattice_keys(-1, 3)
-	var keys2: Array[String] = frag.derive_lattice_keys(-1, 3)
-	if keys1.size() != 3:
-		return false
-	for i in range(3):
-		if keys1[i] != keys2[i]:
-			return false
-	return true
-
-
-func _test_fragment_weld_checksum() -> bool:
+func _test_fragment_weld_checksum_detection() -> bool:
 	var frag: Fragmenter = Fragmenter.new()
 	var data: String = "checksum_test"
 	var fragments: Array[Dictionary] = frag.fragment(data, 3)
+
+	# Corrupt fragment 0 data
 	var decoded: PackedByteArray = fragments[0].data.base64_decode()
 	decoded[0] = (decoded[0] + 1) % 256
 	fragments[0].data = decoded.to_base64()
+
+	# Weld should skip corrupted fragment and not return original data
 	var welded: String = frag.weld(fragments)
 	return welded != data
+
+
+func _test_fragment_weld_checksum_corrupted_data() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var data: String = "corrupt_me"
+	var fragments: Array[Dictionary] = frag.fragment(data, 4)
+
+	# Corrupt fragment 2 data
+	var decoded: PackedByteArray = fragments[2].data.base64_decode()
+	if decoded.size() > 1:
+		decoded[1] = (decoded[1] + 5) % 256
+	fragments[2].data = decoded.to_base64()
+
+	# Weld should detect checksum mismatch and skip fragment
+	var welded: String = frag.weld(fragments)
+	return welded != data
+
+
+func _test_fragment_deterministic_output() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var data: String = "deterministic test"
+	var fragments1: Array[Dictionary] = frag.fragment(data, 5)
+	var fragments2: Array[Dictionary] = frag.fragment(data, 5)
+
+	if fragments1.size() != fragments2.size():
+		return false
+
+	for i in range(fragments1.size()):
+		if fragments1[i].shard != fragments2[i].shard:
+			return false
+		if fragments1[i].data != fragments2[i].data:
+			return false
+		if fragments1[i].size != fragments2[i].size:
+			return false
+		if fragments1[i].checksum != fragments2[i].checksum:
+			return false
+	return true
