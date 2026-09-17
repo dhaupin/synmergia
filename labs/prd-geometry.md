@@ -255,7 +255,54 @@ The bridge connects three frame primitives into a unified pipeline:
     -> T3 content-hash tree (deterministic state storage)
 
 Pure functions: no state, no autoload, no GameManager dependency.
-See `labs/prd-geometry.md` sec. 6K for the original wiring pattern spec.
+
+### 6K.1 Complete Bridge API (10 methods)
+
+| Method | Purpose | Signature |
+|--------|---------|-----------|
+| `nsc9_to_address` | NSC-9 code -> SpatialFragmenter address | `nsc9_to_address(code: int, depth: int = 0, sf: Variant = null) -> int` |
+| `address_to_t3_path` | Address -> T3 path string | `address_to_t3_path(address: int, sf: Variant = null) -> String` |
+| `nsc9_to_t3_path` | NSC-9 code -> T3 path (convenience) | `nsc9_to_t3_path(code: int, depth: int = 0) -> String` |
+| `store_nsc9_state` | Store entity state in T3 | `store_nsc9_state(t3, nsc9_code, state, depth=0, metadata={}) -> PackedByteArray` |
+| `store_nsc9_fragmented` | Fragment + store in T3 | `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth=0) -> PackedByteArray` |
+| `restore_nsc9_fragmented` | Restore fragmented state from T3 | `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth=0) -> Dictionary` |
+| `query_nsc9_region` | Query fragments in region | `query_nsc9_region(t3, nsc9_code, depth=0) -> Array[Dictionary]` |
+| `query_nsc9_face` | Query all fragments on a face | `query_nsc9_face(t3, nsc9_code) -> Array[Dictionary]` |
+| `is_spatial_nsc9` | Check if code has spatial axis | `is_spatial_nsc9(code: int) -> bool` |
+| `entity_spatial_to_face` | Entity spatial -> face | `entity_spatial_to_face(facility: int, vertex: int) -> int` |
+
+### 6K.2 NSC-9 -> Spatial Mapping
+
+NSC-9 components map to SpatialFragmenter address as:
+- `facility` -> x coordinate (0-999, fits in 16 bits)
+- `axis` -> face via `SpatialFragmenter.nsc9_code_to_face` (1-12 -> 0-11)
+- `sequence` -> split into y (bits 10-19, 0-1023) and z (bits 0-9, 0-1023)
+- `depth` -> subdivision depth (caller-specified, default 0)
+
+Non-spatial axes (100+) return 0 (invalid address). Axis reservation:
+- 001-099: spatial axis (icosahedral vertices 1-12)
+- 100-199: factional axes
+- 200-299: temporal sub-axes
+- 300-399: social axes
+- 400-499: game-specific axes
+
+### 6K.3 Service-Level Integration
+
+Two services wire the bridge into the game layer:
+
+**EntityService** (`game/core/services/entity_service.gd`):
+- `_nsc9_bridge` initialized in `_init_spatial_and_t3()`
+- `_compute_nsc9_code(entity)` derives codes from position + entity_id
+  - Facility: `abs(hash(entity_id)) % 1000`
+  - Axis: `Nsc9.nearest_vertex(lat, lon)` -> `Nsc9.spatial_axis(vertex)`
+  - Sequence: `Nsc9.deterministic_seq(entity_id, "nsc9")`
+- `_entity_nsc9_codes` dict caches codes per entity_id
+- `metadata.nsc9_code` set on registration
+
+**ZoneManager** (`game/core/services/zone_manager.gd`):
+- `_nsc9_bridge` initialized in `_init_spatial_fragmenter()`
+- `_compute_nsc9_code(zone_id, zone_center)` derives codes for zones
+- Public helpers: `get_zone_nsc9_code(zone_id)`, `get_zone_nsc9_t3_path(zone_id)`
 
 ## 7. Technical Considerations
 
@@ -307,23 +354,23 @@ See `labs/prd-geometry.md` sec. 6K for the original wiring pattern spec.
 ## 10. Definition of Done
 
 ### Fragmenter
-- [ ] `game/core/frame/geometry/fragmenter.gd` created with 3 functions + constant
-- [ ] `game/core/frame/geometry/test_fragmenter.gd` created and passing
-- [ ] `labs/world-building-arch.md` sec. 13 component map: "Vant fragmenter" row status  ->  DONE
-- [ ] `labs/world-building-arch.md` sec. 14 migration roadmap: "Vant icosahedral + fragmenter ports"  ->  DONE
+- [x] `game/core/frame/geometry/fragmenter.gd` created with 3 functions + constant
+- [x] `game/core/frame/geometry/test_fragmenter.gd` created and passing
+- [x] `labs/world-building-arch.md` sec. 13 component map: "Vant fragmenter" row status  ->  DONE
+- [x] `labs/world-building-arch.md` sec. 14 migration roadmap: "Vant icosahedral + fragmenter ports"  ->  DONE
 - [ ] File headers include Vant lineage credit
 - [ ] Smoke test: derive keys  ->  fragment "test"  ->  weld  ->  equals "test"
 - [ ] One commit to main
 
 ### Spatial Fragmenter
-- [ ] `game/core/frame/geometry/spatial_fragmenter.gd` created with all functions
-- [ ] `game/core/frame/geometry/test_spatial_fragmenter.gd` created and passing
-- [ ] `labs/world-building-arch.md` sec. 13 component map: "Spatial geometry fragmenter"  ->  DONE
-- [ ] File headers include Vant/vant lineage credit where applicable
-- [ ] Smoke test: subdivide  ->  parent  ->  ancestor  ->  bounding box  ->  key
-- [ ] One commit to main
+- [x] `game/core/frame/geometry/spatial_fragmenter.gd` created with all functions
+- [x] `game/core/frame/geometry/test_spatial_fragmenter.gd` created and passing
+- [x] `labs/world-building-arch.md` sec. 13 component map: "Spatial geometry fragmenter"  ->  DONE
+- [x] File headers include Vant/vant lineage credit where applicable
+- [x] Smoke test: subdivide  ->  parent  ->  ancestor  ->  bounding box  ->  key
+- [x] One commit to main
 
 ### Cross-Layer
-- [ ] Integration bridge documented in PRD
-- [ ] No ASCII/UTF-8 violations in any new file
-- [ ] Both test suites run with `godot --headless --path . --script ...`
+- [x] Integration bridge documented in PRD
+- [x] No ASCII/UTF-8 violations in any new file
+- [x] Both test suites run with `godot --headless --path . --script ...` (fragmenter, spatial_fragmenter, nsc9_bridge)

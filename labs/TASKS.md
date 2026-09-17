@@ -87,6 +87,14 @@ Persistent memory across resets for Synmergia development.
 - [x] **World-building architecture update**: Added geometry integration bridge section (sec. 13.1), updated component map and migration roadmap [town:docs]
 - [x] **TASKS.md update**: Added geometry integration bridge milestone [town:docs]
 
+### World Building PRD - Phase 5 (2026-09-17): NSC-9 Integration Bridge
+- [x] **NSC-9 Bridge Module** (`game/core/frame/geometry/nsc9_bridge.gd`)  -  `Nsc9Bridge` class (RefCounted, NOT autoload): `nsc9_to_address()`, `address_to_t3_path()`, `nsc9_to_t3_path()`, `store_nsc9_state()`, `store_nsc9_fragmented()`, `restore_nsc9_fragmented()`, `query_nsc9_face()`, `query_nsc9_region()`, `is_spatial_nsc9()`, `entity_spatial_to_face()` [town:frame]
+- [x] **Bridge integration tests** (`game/core/frame/geometry/test_nsc9_bridge.gd`)  -  9 test cases covering full pipeline (NSC-9 -> address -> T3 path, store/query, deterministic hash, fragmented store/restore, face query, non-spatial rejection, is_spatial, entity_spatial_to_face) [town:test]
+- [x] **EntityService NSC-9 wiring** (`game/core/services/entity_service.gd`)  -  `_nsc9_bridge` initialized in `_init_spatial_and_t3()`, `_compute_nsc9_code()` derives codes from position + entity_id via `Nsc9.nearest_vertex()`/`Nsc9.spatial_axis()`, `_entity_nsc9_codes` dict caches codes, `metadata.nsc9_code` set on registration [town:core]
+- [x] **ZoneManager NSC-9 wiring** (`game/core/services/zone_manager.gd`)  -  `_nsc9_bridge` initialized in `_init_spatial_fragmenter()`, `_compute_nsc9_code()` for zones, `get_zone_nsc9_code()` and `get_zone_nsc9_t3_path()` public helpers [town:core]
+- [x] **Bridge code review + fixes** (2 commits): fixed duplicate `decode_int(code: int)` syntax, removed bloat (duplicate `_axis_to_face`, `_nsc9_code_to_face`, 1-liner wrappers), re-added `address_to_t3_path`/`nsc9_to_t3_path`/`query_nsc9_region` for test coverage, fixed duplicate `Nsc9BridgeScript` preload in entity_service.gd [town:frame]
+- [x] **Docs refresh**: `labs/prd-geometry.md` sec. 6K + sec. 9 updated, `labs/prd-spatial-geometry.md` open questions 1-3 marked RESOLVED, `labs/TASKS.md` bridge milestone detailed [town:docs]
+
 - [x] **RulesEngine Consolidation**: Refactored QoSService (`matchmaking_qos.gd`), SecurityService (`security_service.gd`), AppFirewall (`app_firewall.gd`), AutoResponseService (`auto_response_service.gd`) to use RulesEngine for all decision logic [town:core]
 - [x] **Frame Extract to Container**: Created `srv/frame/` with Dockerfile, docker-compose.yml, FastAPI bridge server (`frame_server.py`), GDScript FrameClient (`game/core/utils/frame_client.gd`) with circuit breaker and local fallback [town:bridge]
 - [x] **Docker Compose Integration**: Added `frame` service to main `docker-compose.yml` with health checks, dependencies on postgres/redis [town:bridge]

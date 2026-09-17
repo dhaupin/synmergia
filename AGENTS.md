@@ -7,8 +7,7 @@
 > **What this file is NOT:** An operational log, debugging status,
 > or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Last updated 2026-09-16:** Legacy `labs/multi-iso` removed; frame primitives consolidated to
-> `/game/core/frame/` (math, kv, srv, db). All docs updated.
+> **Last updated 2026-09-17:** NSC-9 integration bridge (`nsc9_bridge.gd`) implemented and wired into EntityService + ZoneManager; frame geometry directory added to `/game/core/frame/`. All docs updated.
 
 ## READ FIRST
 
@@ -695,6 +694,7 @@ extract to the multi-iso frame. Different rules apply:
 | Subdirectory | Contains | Examples |
 |--------------|----------|----------|
 | `game/core/frame/math/` | Pure functions. No state. | NSC-9 encoding, icosahedral projection |
+| `game/core/frame/geometry/` | Pure functions for spatial addressing | NSC-9 encoding, spatial fragmenter, bridge |
 | `game/core/frame/kv/` | In-memory data structures | LRU cache, content-hash, state tree |
 | `game/core/frame/srv/` | Service logic | RulesEngine, ScopeEngine, Markov, LOD, Axis |
 | `game/core/frame/db/` | Database integration | snapshot_store, migrations |

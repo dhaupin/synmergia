@@ -188,9 +188,12 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 
 ## 10. Definition of Done
 
-- [ ] `game/core/frame/geometry/spatial_fragmenter.gd` created with all functions
-- [ ] `game/core/frame/geometry/test_spatial_fragmenter.gd` created and passing
-- [ ] `labs/world-building-arch.md` sec. 13 component map: "Spatial geometry fragmenter" row status  ->  DONE
-- [ ] File headers include Vant lineage credit
-- [ ] Smoke test: subdivide  ->  parent  ->  ancestor  ->  bounding box  ->  key
-- [ ] One commit to main
+- [x] `game/core/frame/geometry/spatial_fragmenter.gd` created with all functions (make_address through nsc9_code_to_face, to_spatial_address)
+- [x] `game/core/frame/geometry/test_spatial_fragmenter.gd` created and passing (11 test functions)
+- [x] `game/core/frame/geometry/nsc9_bridge.gd` created with all 10 bridge methods
+- [x] `game/core/frame/geometry/test_nsc9_bridge.gd` created and passing (9 test functions)
+- [x] `labs/world-building-arch.md` sec. 13 component map: "Spatial geometry fragmenter" row status  ->  DONE
+- [x] File headers include Vant/vant lineage credit where applicable
+- [x] Smoke test: subdivide  ->  parent  ->  ancestor  ->  bounding box  ->  key
+- [x] Service integration: EntityService and ZoneManager wired to bridge
+- [x] One commit to main
