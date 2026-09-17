@@ -161,7 +161,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	select_start = sql.find("SELECT")
 	# Find first letter after SELECT
 	var pos := select_start + 6
-	while pos < sql.length() and not sql[pos].isalpha():
+	while pos < sql.length() and not sql[pos].is_alpha():
 		pos += 1
 	select_start = pos
 	
@@ -173,7 +173,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	var columns := _parse_column_list(select_part)
 	
 	var after_from_start := sql.find("FROM", from_upper + 4)
-	while after_from_start < sql.length() and not sql[after_from_start].isalpha():
+	while after_from_start < sql.length() and not sql[after_from_start].is_alpha():
 		after_from_start += 1
 	if after_from_start >= sql.length():
 		return []
