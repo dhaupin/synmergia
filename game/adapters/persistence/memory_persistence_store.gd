@@ -692,7 +692,7 @@ func _match_like(text: String, pattern: String) -> bool:
 		elif c == "\\" and i + 1 < pattern.length():
 			var next := pattern[i + 1]
 			if next == "%" or next == "_" or next == "\\":
-				regex_str += "\\\\" + next
+				regex_str += "\\" + next
 				i += 1
 			else:
 				regex_str += "\\" + next
@@ -701,13 +701,12 @@ func _match_like(text: String, pattern: String) -> bool:
 			regex_str += "[" + c.to_lower() + c.to_upper() + "]"
 		elif c >= "a" and c <= "z":
 			regex_str += "[" + c.to_upper() + c.to_lower() + "]"
-else:
+		else:
 			regex_str += c
-		if regex_str == "":
-			regex_str = ".*"
-	return text.to_lower().find_regexp(regex_str) >= 0
 
-func _parse_order_by(sql: String, params: Array) -> Array:
+	if regex_str == "":
+		regex_str = ".*"
+	return text.to_lower().find_regexp(regex_str) >= 0func _parse_order_by(sql: String, params: Array) -> Array:
 	var result: Array = []
 	
 	sql = sql.strip_edges()
@@ -782,16 +781,13 @@ func _parse_order_by(sql: String, params: Array) -> Array:
 			
 		if col.length() > 0:
 			result.append({"col": col, "dir": dir})
-			
 			if sql.begins_with(","):
 				sql = sql.substr(1).strip_edges()
-		
-		elif sql.length() == 0:
-			break
-			
-		else:
-			break
-	
+			elif sql.length() == 0:
+				break
+			else:
+				break
+
 	return result
 
 func _apply_order_by(rows: Array, order_info: Array) -> Array:
