@@ -56,10 +56,10 @@ var _player_data: Dictionary = {}  # player_id -> PlayerLODData
 var _chunk_states: Dictionary = {}  # chunk_key -> ChunkLODState
 
 ## Markov predictor instance
-var _markov: MarkovScript = null
+var _markov = null
 
 ## Spatial fragmenter instance
-var _spatial_fragmenter: SpatialFragmenterScript = null
+var _spatial_fragmenter = null
 
 
 class PlayerLODData:
@@ -191,7 +191,9 @@ func _update_player_tracked_chunks(player_data: PlayerLODData) -> void:
 
 	for x in range(aoi_min_x, aoi_max_x + 1):
 		for z in range(aoi_min_z, aoi_max_z + 1):
-			var chunk_key := "%d,%d" % [x, z]
+			var y := 0
+			var address := _spatial_fragmenter.make_address(x, y, z, 0, 0)
+			var chunk_key := _spatial_fragmenter.generate_key(address)
 			# Check if chunk center is within AOI radius
 			var chunk_center_x := x * CHUNK_SIZE + CHUNK_SIZE * 0.5
 			var chunk_center_z := z * CHUNK_SIZE + CHUNK_SIZE * 0.5
@@ -364,6 +366,11 @@ func get_tick_number() -> int:
 	return _tick_number
 
 
+## Get the Markov predictor instance (public access)
+func get_markov() -> Object:
+	return _markov
+
+
 ## Register a player's movement for Markov learning
 func record_movement(player_id: String, from_chunk_key: String, to_chunk_key: String) -> void:
 	if _markov:
@@ -373,19 +380,21 @@ func record_movement(player_id: String, from_chunk_key: String, to_chunk_key: St
 ## Force a chunk to be promoted (for testing or manual override)
 func promote_chunk(chunk_key: String, target_state: LODState = LODState.HOT) -> void:
 	var chunk_state := _get_or_create_chunk_state(chunk_key)
-	if target_state > chunk_state.state:
+	var old_state := chunk_state.state
+	if target_state > old_state:
 		chunk_state.state = target_state
 		chunk_state.last_state_change_tick = _tick_number
-		chunk_promoted.emit(chunk_key, LODState.COLD, target_state)
+		chunk_promoted.emit(chunk_key, old_state, target_state)
 
 
 ## Force a chunk to be demoted
 func demote_chunk(chunk_key: String, target_state: LODState = LODState.COLD) -> void:
 	var chunk_state := _chunk_states.get(chunk_key)
 	if chunk_state and target_state < chunk_state.state:
+		var old_state := chunk_state.state
 		chunk_state.state = target_state
 		chunk_state.last_state_change_tick = _tick_number
-		chunk_demoted.emit(chunk_key, LODState.HOT, target_state)
+		chunk_demoted.emit(chunk_key, old_state, target_state)
 
 
 ## Clear all tracking data
@@ -416,17 +425,23 @@ func _get_or_create_chunk_state(chunk_key: String) -> ChunkLODState:
 ## Convert world position to chunk key (x,z)
 func _position_to_chunk_key(pos: Vector3) -> String:
 	var x := int(floor(pos.x / CHUNK_SIZE))
+	var y := int(floor(pos.y / CHUNK_SIZE))
 	var z := int(floor(pos.z / CHUNK_SIZE))
-	return "%d,%d" % [x, z]
+	var address := _spatial_fragmenter.make_address(x, y, z, 0, 0)
+	return _spatial_fragmenter.generate_key(address)
+
+
+func get_chunk_key_from_position(pos: Vector3) -> String:
+	return _position_to_chunk_key(pos)
 
 
 ## Convert chunk key to world position (center of chunk)
 func _chunk_key_to_position(chunk_key: String) -> Vector3:
-	var parts := chunk_key.split(",")
-	if parts.size() < 2:
+	var parts := chunk_key.split("-")
+	if parts.size() < 5:
 		return Vector3.ZERO
-	var x := int(parts[0])
-	var z := int(parts[1])
+	var x := int(parts[0], 16)
+	var z := int(parts[2], 16)
 	return Vector3(
 		x * CHUNK_SIZE + CHUNK_SIZE * 0.5,
 		0,

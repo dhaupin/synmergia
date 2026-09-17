@@ -97,10 +97,10 @@ func _test_markov_basic_prediction() -> void:
 	var player_id := "basic_test_player"
 
 	# Record some movements
-	_markov.record_movement(player_id, "0,0", "1,0")
-	_markov.record_movement(player_id, "1,0", "2,0")
-	_markov.record_movement(player_id, "2,0", "3,0")
-	_markov.record_movement(player_id, "3,0", "4,0")
+	_markov.record_movement(player_id, _ck(0,0), _ck(1,0))
+	_markov.record_movement(player_id, _ck(1,0), _ck(2,0))
+	_markov.record_movement(player_id, _ck(2,0), _ck(3,0))
+	_markov.record_movement(player_id, _ck(3,0), _ck(4,0))
 
 	# Predict from current position
 	var predictions := _markov.predict_next(player_id)
@@ -150,18 +150,18 @@ func _test_lod_classification() -> void:
 
 	# Add a player manually
 	var player_data := _lod_manager._get_or_create_player_data(player_id)
-	player_data.current_chunk_key = "5,5"
+	player_data.current_chunk_key = _ck(5,5)
 	player_data.aoi_center = Vector3(500, 0, 500)
 	player_data.aoi_radius = 500.0
 	player_data.tracked_chunks = {
-		"5,5": 1,   # HOT (current chunk)
-		"4,5": 1,   # HOT (within AOI)
-		"6,5": 1,   # HOT (within AOI)
-		"5,4": 1,   # HOT (within AOI)
-		"5,6": 1,   # HOT (within AOI)
-		"6,6": 2,   # WARM (predicted)
+		_ck(5,5): 1,   # HOT (current chunk)
+		_ck(4,5): 1,   # HOT (within AOI)
+		_ck(6,5): 1,   # HOT (within AOI)
+		_ck(5,4): 1,   # HOT (within AOI)
+		_ck(5,6): 1,   # HOT (within AOI)
+		_ck(6,6): 2,   # WARM (predicted)
 	}
-	player_data.predicted_chunks = ["6,6", "6,7", "7,6"]
+	player_data.predicted_chunks = [_ck(6,6), _ck(6,7), _ck(7,6)]
 	player_data.last_aoi_update_tick = 1
 
 	# Run classification
@@ -171,14 +171,14 @@ func _test_lod_classification() -> void:
 
 	# Check HOT chunks
 	var hot_chunks := _lod_manager.get_chunks_by_state(1)  # HOT = 1
-	if "5,5" in hot_chunks and "4,5" in hot_chunks:
+	if _ck(5,5) in hot_chunks and _ck(4,5) in hot_chunks:
 		_ok("Current and adjacent chunks classified as HOT")
 	else:
 		_fail("Expected chunks 5,5 and 4,5 to be HOT, got: %s" % hot_chunks)
 
 	# Check WARM chunks
 	var warm_chunks := _lod_manager.get_chunks_by_state(2)  # WARM = 2
-	if "6,6" in warm_chunks:
+	if _ck(6,6) in warm_chunks:
 		_ok("Predicted chunk classified as WARM")
 	else:
 		_fail("Expected chunk 6,6 to be WARM, got: %s" % warm_chunks)
@@ -197,15 +197,15 @@ func _test_lod_promotion_demotion() -> void:
 
 	var player_id := "promo_test_player"
 	var player_data := _lod_manager._get_or_create_player_data(player_id)
-	player_data.current_chunk_key = "10,10"
+	player_data.current_chunk_key = _ck(10,10)
 	player_data.aoi_center = Vector3(1000, 0, 1000)
 	player_data.aoi_radius = 500.0
 	player_data.tracked_chunks = {
-		"10,10": 1,  # HOT
-		"9,10": 1,   # HOT
-		"11,10": 2,  # WARM (predicted)
+		_ck(10,10): 1,  # HOT
+		_ck(9,10): 1,   # HOT
+		_ck(11,10): 2,  # WARM (predicted)
 	}
-	player_data.predicted_chunks = ["11,10", "12,10"]
+	player_data.predicted_chunks = [_ck(11,10), _ck(12,10)]
 	player_data.last_aoi_update_tick = 1
 
 	_lod_manager._tick_number = 1
@@ -213,13 +213,13 @@ func _test_lod_promotion_demotion() -> void:
 	_lod_manager._apply_lod_changes()
 
 	# Check initial state
-	var chunk_10_10 := _lod_manager.get_chunk_lod("10,10")
+	var chunk_10_10 := _lod_manager.get_chunk_lod(_ck(10,10))
 	if chunk_10_10 == 1:  # HOT
 		_ok("Chunk 10,10 is HOT initially")
 	else:
 		_fail("Expected 10,10 to be HOT, got %d" % chunk_10_10)
 
-	var chunk_11_10 := _lod_manager.get_chunk_lod("11,10")
+	var chunk_11_10 := _lod_manager.get_chunk_lod(_ck(11,10))
 	if chunk_11_10 == 2:  # WARM
 		_ok("Chunk 11,10 is WARM initially")
 	else:
@@ -234,7 +234,7 @@ func _test_lod_promotion_demotion() -> void:
 	_lod_manager._apply_lod_changes()
 
 	# After 300+ ticks idle, HOT should demote to WARM
-	chunk_10_10 = _lod_manager.get_chunk_lod("10,10")
+	chunk_10_10 = _lod_manager.get_chunk_lod(_ck(10,10))
 	if chunk_10_10 == 2:  # WARM
 		_ok("HOT chunk demoted to WARM after idle timeout")
 	else:
@@ -245,7 +245,7 @@ func _test_lod_promotion_demotion() -> void:
 	_lod_manager._classify_chunks()
 	_lod_manager._apply_lod_changes()
 
-	chunk_11_10 = _lod_manager.get_chunk_lod("11,10")
+	chunk_11_10 = _lod_manager.get_chunk_lod(_ck(11,10))
 	if chunk_11_10 == 0:  # COLD
 		_ok("WARM chunk demoted to COLD after idle timeout")
 	else:
@@ -262,16 +262,16 @@ func _test_predictive_prefetch_integration() -> void:
 
 	var player_id := "prefetch_test"
 	var player_data := _lod_manager._get_or_create_player_data(player_id)
-	player_data.current_chunk_key = "20,20"
+	player_data.current_chunk_key = _ck(20,20)
 	player_data.aoi_center = Vector3(2000, 0, 2000)
 	player_data.aoi_radius = 500.0
 
 	# Record movement history in Markov
-	_markov.record_movement(player_id, "18,20", "19,20")
-	_markov.record_movement(player_id, "19,20", "20,20")
-	_markov.record_movement(player_id, "20,20", "21,20")
-	_markov.record_movement(player_id, "21,20", "22,20")
-	_markov.record_movement(player_id, "22,20", "23,20")
+	_markov.record_movement(player_id, _ck(18,20), _ck(19,20))
+	_markov.record_movement(player_id, _ck(19,20), _ck(20,20))
+	_markov.record_movement(player_id, _ck(20,20), _ck(21,20))
+	_markov.record_movement(player_id, _ck(21,20), _ck(22,20))
+	_markov.record_movement(player_id, _ck(22,20), _ck(23,20))
 
 	# Run LOD tick with predictions
 	_lod_manager._tick_number = 1
@@ -280,7 +280,7 @@ func _test_predictive_prefetch_integration() -> void:
 	_lod_manager._apply_lod_changes()
 
 	# Check that predicted chunks are WARM
-	var predicted := ["24,20", "25,20", "23,21"]  # Likely next positions
+	var predicted := [_ck(24,20), _ck(25,20), _ck(23,21)]  # Likely next positions
 	var warm_found := 0
 	for key in predicted:
 		if _lod_manager.get_chunk_lod(key) == 2:  # WARM
@@ -292,14 +292,14 @@ func _test_predictive_prefetch_integration() -> void:
 		_fail("No predicted chunks promoted to WARM")
 
 	# Test manual promotion
-	_lod_manager.promote_chunk("30,30", 1)  # Promote to HOT
-	if _lod_manager.get_chunk_lod("30,30") == 1:
+	_lod_manager.promote_chunk(_ck(30,30), 1)  # Promote to HOT
+	if _lod_manager.get_chunk_lod(_ck(30,30)) == 1:
 		_ok("Manual promotion to HOT works")
 	else:
 		_fail("Manual promotion failed")
 
-	_lod_manager.demote_chunk("30,30", 0)  # Demote to COLD
-	if _lod_manager.get_chunk_lod("30,30") == 0:
+	_lod_manager.demote_chunk(_ck(30,30), 0)  # Demote to COLD
+	if _lod_manager.get_chunk_lod(_ck(30,30)) == 0:
 		_ok("Manual demotion to COLD works")
 	else:
 		_fail("Manual demotion failed")
@@ -314,15 +314,15 @@ func _test_chunk_tracking_per_player() -> void:
 
 	var player_id := "tracking_test"
 	var player_data := _lod_manager._get_or_create_player_data(player_id)
-	player_data.current_chunk_key = "100,100"
+	player_data.current_chunk_key = _ck(100,100)
 	player_data.aoi_center = Vector3(10000, 0, 10000)
 	player_data.aoi_radius = 500.0
 	player_data.tracked_chunks = {
-		"100,100": 1,
-		"99,100": 1,
-		"101,100": 2,
+		_ck(100,100): 1,
+		_ck(99,100): 1,
+		_ck(101,100): 2,
 	}
-	player_data.predicted_chunks = ["101,100", "102,100"]
+	player_data.predicted_chunks = [_ck(101,100), _ck(102,100)]
 	player_data.last_aoi_update_tick = 1
 
 	_lod_manager._tick_number = 1
@@ -330,18 +330,18 @@ func _test_chunk_tracking_per_player() -> void:
 	_lod_manager._apply_lod_changes()
 
 	var tracked := _lod_manager.get_player_chunks(player_id)
-	if tracked.has("100,100") and tracked["100,100"] == 1:
+	if tracked.has(_ck(100,100)) and tracked[_ck(100,100)] == 1:
 		_ok("Player tracks current chunk as HOT")
 	else:
 		_fail("Current chunk tracking failed: %s" % tracked)
 
-	if tracked.has("101,100") and tracked["101,100"] == 2:
+	if tracked.has(_ck(101,100)) and tracked[_ck(101,100)] == 2:
 		_ok("Player tracks predicted chunk as WARM")
 	else:
 		_fail("Predicted chunk tracking failed: %s" % tracked)
 
 	# Test get_chunk_lod returns correct state
-	if _lod_manager.get_chunk_lod("100,100") == 1:
+	if _lod_manager.get_chunk_lod(_ck(100,100)) == 1:
 		_ok("Global chunk state matches player tracking")
 	else:
 		_fail("Global state mismatch")
@@ -409,3 +409,7 @@ func _print_summary() -> void:
 		print("RESULT: ALL TESTS PASSED")
 	else:
 		print("RESULT: %d TESTS FAILED" % _failed)
+
+
+func _ck(x: int, y: int, z: int = 0, d: int = 0, f: int = 0) -> String:
+	return "%04x-%04x-%04x-d%d-f%d" % [x, y, z, d, f]

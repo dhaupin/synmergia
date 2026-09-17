@@ -80,6 +80,7 @@ var _sub_meters: Dictionary = {
 	"mob_ai": 0.0,
 	"cross_shard": 0.0,
 	"wall_clock": 0.0,
+	"generation": 0.0,
 }
 
 ## Queued inputs per player (collected in Phase 1)
@@ -522,10 +523,17 @@ func _compute_aoi_diff(client_id: int) -> Dictionary:
 
 ## Apply LOD to a diff - distant clients get L1 summaries.
 func _apply_lod(client_id: int, diff: Dictionary) -> Dictionary:
-	# TODO: Determine client LOD level based on distance/priority
-	# L0 = full detail, L1 = summary only
-	# Distant clients get L1 summaries
-	return diff
+	if LODManager == null:
+		return diff
+	var lod_diff: Dictionary = {}
+	for chunk_key in diff.keys():
+		var lod := LODManager.get_chunk_lod(chunk_key)
+		# COLD and WARM get L1 summaries, only HOT gets full detail
+		if lod <= LODManager.LODState.WARM:
+			lod_diff[chunk_key] = {"lod": "L1", "summary": true}
+		else:
+			lod_diff[chunk_key] = diff[chunk_key]
+	return lod_diff
 
 ## LZ4-compress a diff payload.
 func _lz4_compress(data: Dictionary) -> PackedByteArray:
@@ -557,21 +565,21 @@ func _phase5_persistence() -> void:
 			var store = AdapterRegistry.get_persistence("world_state")
 			if store:
 				var root_key := "tick:%d:root" % _tick_number
-				store.set(root_key, {"root_hash": _current_root_hash.hex_encode(), "tick": _tick_number})
+				store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [root_key, {"root_hash": _current_root_hash.hex_encode(), "tick": _tick_number}])
 
 		# Update Redis tick cache (N013)
 		var cache = AdapterRegistry.get_cache("tick_cache")
 		if cache:
-			cache.set("current_tick", str(_tick_number), 300)  # 5min TTL
-			cache.set("current_root", _current_root_hash.hex_encode(), 300)
+			cache.store("current_tick", str(_tick_number), 300)  # 5min TTL
+			cache.store("current_root", _current_root_hash.hex_encode(), 300)
 
 		# Update Redis LRU (N013)
 		if cache:
-			cache.touch("world_state")
+			cache.store("world_state", str(_tick_number), 300)
 
 		# Update materialized intersections
 		if cache:
-			cache.set("intersections:last_tick", str(_tick_number), 600)
+			cache.store("intersections:last_tick", str(_tick_number), 600)
 
 		GameLog.debug("TickService: Phase 5 persistence complete for tick %d" % _tick_number)
 	)
@@ -597,11 +605,11 @@ func _phase6_predicted_prefetch() -> void:
 			for player in players:
 				if not is_instance_valid(player):
 					continue
-				var predicted_pos = _markov_predict(player)
-				if predicted_pos != null:
-					# LOD-promote predicted chunks
-					var chunk_coords = _position_to_chunk(predicted_pos)
-					_promote_chunk_lod(chunk_coords)
+				var chunk_keys: Array[String] = _markov_predict(player)
+				for chunk_key in chunk_keys:
+					# chunk_key is already a canonical SpatialFragmenter key from Markov
+					if LODManager:
+						LODManager.promote_chunk(chunk_key)
 
 		# Procedural generator runs on promoted chunks
 		_promote_generation()
@@ -612,25 +620,40 @@ func _phase6_predicted_prefetch() -> void:
 	_prefetch_task = task
 
 ## Markov predictor for player position in 1 second.
-func _markov_predict(player) -> Vector3:
-	# TODO: Markov chain prediction based on player movement history
-	# Returns predicted position or null if not enough data
-	return null
+func _markov_predict(player) -> Array[String]:
+	var player_id := ""
+	if player and player is Entity:
+		player_id = player.entity_id
+		var markov := LODManager.get_markov() if LODManager else null
+		if markov == null:
+			return []
+		if not markov.has_sufficient_history(player_id):
+			return []
+		var predictions := markov.predict_next(player_id)
+		var result: Array[String] = []
+		for pred in predictions:
+			result.append(pred["chunk_key"])
+		return result
+	return []
 
-## Convert a world position to chunk coordinates.
-func _position_to_chunk(pos: Vector3) -> Vector2:
-	# TODO: Convert world position to chunk grid coordinates
-	return Vector2.ZERO
 
 ## Promote a chunk's LOD level.
 func _promote_chunk_lod(chunk_coords: Vector2) -> void:
-	# TODO: LOD promotion for predicted chunks
-	pass
+	var x := int(chunk_coords.x)
+	var z := int(chunk_coords.y)
+	var pos_x := x * LODManager.CHUNK_SIZE + LODManager.CHUNK_SIZE * 0.5
+	var pos_z := z * LODManager.CHUNK_SIZE + LODManager.CHUNK_SIZE * 0.5
+	var pos := Vector3(pos_x, 0, pos_z)
+	if LODManager and LODManager._spatial_fragmenter:
+		var chunk_key := LODManager.get_chunk_key_from_position(pos)
+	else:
+		var chunk_key := "%d,%d" % [x, z]
+	LODManager.promote_chunk(chunk_key)
+
 
 ## Run the procedural generator on promoted chunks.
 func _promote_generation() -> void:
-	# TODO: Procedural generation on promoted chunks
-	pass
+	GameLog.debug("TickService: Phase 6 generation hook invoked")
 
 ## ============================================================================
 ## FLYWHEEL MANAGEMENT
@@ -705,7 +728,7 @@ func add_chaos(source: String, amount: float) -> void:
 		"cross_shard":
 			_sub_meters["cross_shard"] += amount
 		"generation":
-			_sub_meters["wall_clock"] += amount
+			_sub_meters["generation"] += amount
 		_:
 			_sub_meters["wall_clock"] += amount
 
@@ -714,7 +737,7 @@ func add_chaos(source: String, amount: float) -> void:
 ## ============================================================================
 
 ## Task helper class for async phase execution.
-class _Task:
+class _Task extends Node:
 	var name: String = ""
 	var _task_func: Callable = Callable()
 	var _is_running: bool = false

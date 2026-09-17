@@ -62,7 +62,7 @@ class PlayerMarkovState:
 
 ## The main predictor.
 var _states: Dictionary = {}  # player_id -> PlayerMarkovState
-var _spatial_fragmenter: SpatialFragmenterScript = null
+var _spatial_fragmenter = null
 var _tick_number: int = 0
 
 
@@ -234,7 +234,7 @@ func compute_accuracy(player_id: String, actual_movements: Array) -> float:
 ## Returns accuracy as float.
 func simulate_and_evaluate(player_id: String, movement_pattern: Callable, ticks: int = 1000) -> float:
 	var state := _get_or_create_state(player_id)
-	state.current_chunk_key = "0,0"
+	state.current_chunk_key = "0000-0000-0000-d0-f0"
 	state.last_10_movements = []
 	state.transition_counts = {}
 	state.total_transitions = 0
@@ -329,14 +329,19 @@ func _transition_key(from_key: String, to_key: String) -> String:
 func _chunk_key_to_offset(key: String) -> Vector2:
 	if key == "":
 		return Vector2.ZERO
-	var parts := key.split(",")
-	if parts.size() < 2:
+	var parts := key.split("-")
+	if parts.size() < 3:
 		return Vector2.ZERO
-	return Vector2(float(parts[0]), float(parts[1]))
+	var x: int = int(parts[0], 16)
+	var z: int = int(parts[2], 16)
+	return Vector2(float(x), float(z))
 
 
 func _offset_to_chunk_key(offset: Vector2) -> String:
-	return "%d,%d" % [int(offset.x), int(offset.y)]
+	if _spatial_fragmenter == null:
+		return "%d,%d" % [int(offset.x), int(offset.y)]
+	var address: int = _spatial_fragmenter.make_address(int(offset.x), 0, int(offset.y), 0, 0)
+	return _spatial_fragmenter.generate_key(address)
 
 
 func _sort_predictions(probabilities: Dictionary) -> Array[Dictionary]:
