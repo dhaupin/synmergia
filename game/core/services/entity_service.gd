@@ -11,6 +11,12 @@ const Faction = preload("res://core/schemas/faction.gd")
 # class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+# Spatial fragmenter (pure-function utility, class_name registered, no autoload).
+const SpatialFragmenterScript = preload("res://core/frame/geometry/spatial_fragmenter.gd")
+# Data sharding fragmenter (for fragment/weld of entity state).
+const FragmenterScript = preload("res://core/frame/geometry/fragmenter.gd")
+# T3 content-hash tree substrate (frame primitive, optional).
+const T3Script = preload("res://core/frame/kv/t3.gd")
 const _kv_prefix := "entity:"
 var _entities: Dictionary = {}       # entity_id ->
 var _players: Dictionary = {}        # player_id ->  (subset)
@@ -20,19 +26,108 @@ var _entity_metadata: Dictionary = {}  # entity_id -> SpawnMetadata
 
 var _next_entity_id: int = 1
 
+# --- Spatial Fragmenter Integration (optional) ---
+# Cached SpatialFragmenter instance (pure utility, stateless)
+var _spatial_fragmenter: SpatialFragmenterScript = null
+# Cached Fragmenter instance (for shard/weld of entity state)
+var _fragmenter: FragmenterScript = null
+# T3 content-hash tree instance for entity state storage (optional, lazy)
+var _t3: Variant = null
+# entity_id -> int spatial address
+var _entity_spatial_addresses: Dictionary = {}
+
 signal entity_registered(entity, metadata: SpawnMetadata)
 signal entity_unregistered(entity, metadata: SpawnMetadata)
 signal player_joined(player, metadata: SpawnMetadata)
 signal player_left(player, metadata: SpawnMetadata)
+## Emitted when entity state is fragmented and stored in T3
+signal entity_spatial_state_stored(entity_id: String, t3_hash: PackedByteArray)
+## Emitted when entity state is reconstructed from T3
+signal entity_spatial_state_restored(entity_id: String, state: Dictionary)
 
 func _ready() -> void:
 	GameLog.info("EntityService: Ready")
 	_load_entity_metadata()
+	_init_spatial_and_t3()
 
-## Register a new entity with spawn metadata
-## Returns assigned entity_id
+## Initialize SpatialFragmenter, Fragmenter, and T3 instance (optional).
+## Graceful degradation: if any primitive is unavailable, spatial features
+## are disabled but the rest of EntityService continues to function.
+func _init_spatial_and_t3() -> void:
+	if SpatialFragmenterScript:
+		_spatial_fragmenter = SpatialFragmenterScript.new()
+		GameLog.debug("EntityService: SpatialFragmenter initialized")
+	else:
+		GameLog.warn("EntityService: SpatialFragmenterScript not available; spatial features disabled")
+
+	if FragmenterScript:
+		_fragmenter = FragmenterScript.new()
+		GameLog.debug("EntityService: Fragmenter initialized")
+	else:
+		GameLog.warn("EntityService: FragmenterScript not available; state fragmenting disabled")
+
+	if T3Script:
+		_t3 = T3Script.new()
+		GameLog.debug("EntityService: T3 content-hash tree initialized")
+	else:
+		GameLog.warn("EntityService: T3Script not available; entity state persistence disabled")
+
+## Compute a deterministic SpatialFragmenter address for an entity.
+##
+## Quantizes the entity's world position into 16-bit integer coordinates
+## (quantum = 100 world units), derives depth from entity type/level, and
+## maps the entity's faction to an icosahedral face code.
+##
+## Returns 0 if SpatialFragmenter is unavailable.
+func _compute_spatial_address(entity) -> int:
+	if _spatial_fragmenter == null:
+		return 0
+
+	var pos: Vector3 = entity.global_position if "global_position" in entity else Vector3.ZERO
+	# Quantize to 100-unit cells to avoid floating-point seam cracks.
+	var x: int = int(floor(pos.x / 100.0))
+	var y: int = int(floor(pos.y / 100.0))
+	var z: int = int(floor(pos.z / 100.0))
+
+	# Depth: players sit at the coarsest level (0); NPCs/enemies subdivide
+	# by level so higher-level entities occupy finer cells.
+	var depth: int = 0
+	if entity.entity_type == Entity.EntityType.PLAYER:
+		depth = 0
+	elif entity.entity_type in [Entity.EntityType.NPC, Entity.EntityType.ENEMY]:
+		var lvl: int = int(entity.level) if "level" in entity else 1
+		depth = clampi(lvl, 0, SpatialFragmenterScript.MAX_DEPTH)
+	else:
+		depth = 0
+
+	# Face: derive from faction/team so allied entities cluster on the
+	# same icosahedral face. Use team_id when set, else faction hash.
+	var face: int = 0
+	if "team_id" in entity and entity.team_id != 0:
+		face = abs(entity.team_id) % 12
+	elif "faction_id" in entity and entity.faction_id != "":
+		face = abs(hash(entity.faction_id)) % 12
+	elif "relation" in entity:
+		face = int(entity.relation) % 12
+
+	return _spatial_fragmenter.make_address(x, y, z, depth, face)
+
+## Generate a deterministic T3 path for an entity's spatial fragment.
+func _spatial_path_for_entity(entity_id: String, address: int) -> String:
+	if _spatial_fragmenter == null:
+		return "entity/%s" % entity_id
+	return "entity/%s/%s" % [entity_id, _spatial_fragmenter.path_for_address(address)]
+
+## Get the global T3 instance (creates on first access if T3Script is available).
+func _get_t3() -> Variant:
+	if _t3 != null:
+		return _t3
+	if T3Script:
+		_t3 = T3Script.new()
+		GameLog.debug("EntityService: Lazy-initialized T3 instance")
+	return _t3
+
 func register_entity(entity, metadata: SpawnMetadata = null, id_override: String = "") -> String:
-
 	# SECURITY: Prevent duplicate entity IDs
 	if id_override != "" and _entities.has(id_override):
 		GameLog.error("EntityService ID %s already exists" % id_override)
@@ -57,6 +152,18 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 	metadata.entity_id = entity_id
 	metadata.display_name = entity.display_name
 	_entity_metadata[entity_id] = metadata
+
+	# --- SPATIAL INTEGRATION ---
+	# Generate spatial address for the entity (if SpatialFragmenter available)
+	var spatial_address: int = _compute_spatial_address(entity)
+	if spatial_address != 0:
+		_entity_spatial_addresses[entity_id] = spatial_address
+		GameLog.debug("EntityService: Generated spatial address for entity %s (0x%08x)" % [entity_id, spatial_address])
+
+	# Store entity state in T3 (optional)
+	var t3_hash: PackedByteArray = store_entity_state_in_t3(entity_id)
+	if t3_hash.size() > 0:
+		entity_spatial_state_stored.emit(entity_id, t3_hash)
 
 	# Track by type
 	if entity.entity_type == Entity.EntityType.PLAYER:
@@ -118,6 +225,9 @@ func unregister_entity(entity, reason: String = "despawn") -> void:
 	_enemies.erase(entity_id)
 	_npcs.erase(entity_id)
 	_entity_metadata.erase(entity_id)
+	_entity_spatial_addresses.erase(entity_id)
+	# Clean up T3 state for this entity (optional)
+	_clean_up_entity_t3_state(entity_id)
 
 	entity_unregistered.emit(entity, metadata)
 	EventHub.entity_despawned.emit(entity, metadata)
@@ -360,3 +470,156 @@ func _persist_entity_metadata(entity_id: String) -> void:
 		store.erase(key)
 	else:
 		store.set_kv(key, data)
+
+
+## Fragments entity state and stores it in the T3 content-hash tree.
+## Returns the T3 hash of the stored node, or empty PackedByteArray if unavailable.
+func store_entity_state_in_t3(entity_id: String) -> PackedByteArray:
+	if _t3 == null:
+		_t3 = _get_t3()
+	if _t3 == null:
+		return PackedByteArray()
+	if _spatial_fragmenter == null:
+		return PackedByteArray()
+	if _fragmenter == null:
+		return PackedByteArray()
+
+	var entity = _entities.get(entity_id)
+	if entity == null:
+		return PackedByteArray()
+
+	var address: int = _entity_spatial_addresses.get(entity_id, 0)
+	if address == 0:
+		address = _compute_spatial_address(entity)
+		if address == 0:
+			return PackedByteArray()
+		_entity_spatial_addresses[entity_id] = address
+
+	var path: String = _spatial_path_for_entity(entity_id, address)
+
+	# Build entity state snapshot
+	var state := {
+		"entity_id": entity_id,
+		"display_name": entity.display_name,
+		"entity_type": entity.entity_type,
+		"level": entity.level if "level" in entity else 1,
+		"faction": entity.faction if "faction" in entity else "",
+		"position_x": entity.global_position.x if "global_position" in entity else 0.0,
+		"position_y": entity.global_position.y if "global_position" in entity else 0.0,
+		"position_z": entity.global_position.z if "global_position" in entity else 0.0,
+		"health": entity.health if "health" in entity else 0,
+		"max_health": entity.max_health if "max_health" in entity else 0,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+
+	# Fragment the state data
+	var fragments: Array = _fragmenter.fragment(state, 5)
+	if fragments.is_empty():
+		return PackedByteArray()
+
+	# Store each fragment as a separate T3 node under the entity path
+	var root_hash: PackedByteArray = PackedByteArray()
+	for i, frag in enumerate(fragments):
+		var frag_path: String = "%s/frag_%d" % [path, i]
+		var metadata: Dictionary = {
+			"fragment_index": i,
+			"total_fragments": fragments.size(),
+			"checksum": frag.get("checksum", 0),
+			"size": frag.get("size", 0)
+		}
+		var frag_hash: PackedByteArray = _spatial_fragmenter.store_fragment_in_t3(_t3, frag_path, address, metadata)
+		if frag_hash.size() > 0:
+			root_hash = frag_hash
+
+	GameLog.debug("EntityService: Stored spatial state for entity %s at %s (hash: %s)" % [entity_id, path, root_hash.hex_encode()])
+	return root_hash
+
+
+## Reconstructs entity state from T3 content-hash tree.
+## Returns the reconstructed state dictionary, or empty Dictionary if unavailable.
+func restore_entity_state_from_t3(entity_id: String) -> Dictionary:
+	if _t3 == null:
+		_t3 = _get_t3()
+	if _t3 == null:
+		return {}
+	if _spatial_fragmenter == null:
+		return {}
+	if _fragmenter == null:
+		return {}
+
+	var address: int = _entity_spatial_addresses.get(entity_id, 0)
+	if address == 0:
+		var entity = _entities.get(entity_id)
+		if entity == null:
+			return {}
+		address = _compute_spatial_address(entity)
+		if address == 0:
+			return {}
+		_entity_spatial_addresses[entity_id] = address
+
+	var path: String = _spatial_path_for_entity(entity_id, address)
+
+	# Query T3 for all fragments under this path
+	var results: Array[Dictionary] = _spatial_fragmenter.query_spatial_tree(_t3, path)
+	if results.is_empty():
+		GameLog.debug("EntityService: No spatial fragments found for entity %s at %s" % [entity_id, path])
+		return {}
+
+	# Collect fragment data
+	var fragments: Array[Dictionary] = []
+	for result in results:
+		var value: Variant = result.get("value")
+		if value is Dictionary:
+			fragments.append(value)
+
+	if fragments.is_empty():
+		return {}
+
+	# Sort fragments by fragment_index
+	fragments.sort_custom(func(a: Dictionary, b: Dictionary) -> int:
+		var ai: int = a.get("fragment_index", 0)
+		var bi: int = b.get("fragment_index", 0)
+		if ai < bi:
+			return -1
+		elif ai > bi:
+			return 1
+		return 0
+	)
+
+	# Extract base64 data and reconstruct using Fragmenter.weld
+	var fragment_data: Array = []
+	for frag in fragments:
+		fragment_data.append(frag.get("data", ""))
+
+	var welded: String = _fragmenter.weld(fragment_data)
+	if welded == "":
+		return {}
+
+	var parsed: Variant = JSON.parse_string(welded)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+
+	GameLog.debug("EntityService: Restored spatial state for entity %s from %s" % [entity_id, path])
+	entity_spatial_state_restored.emit(entity_id, parsed)
+	return parsed
+
+
+## Cleans up T3 state for an entity (called on unregister).
+func _clean_up_entity_t3_state(entity_id: String) -> void:
+	if _t3 == null or _spatial_fragmenter == null:
+		return
+
+	var address: int = _entity_spatial_addresses.get(entity_id, 0)
+	if address == 0:
+		return
+
+	var path: String = _spatial_path_for_entity(entity_id, address)
+
+	# Delete all fragments under this entity's path
+	var results: Array[Dictionary] = _spatial_fragmenter.query_spatial_tree(_t3, path)
+	for result in results:
+		var node_path: String = result.get("path", "")
+		if node_path != "":
+			_t3.delete(node_path)
+
+	GameLog.debug("EntityService: Cleaned up T3 state for entity %s at %s" % [entity_id, path])

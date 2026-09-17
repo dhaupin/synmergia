@@ -9,6 +9,16 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 # Entity's class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+# SpatialFragmenter is a pure-function utility (class_name registered, no autoload).
+# Preload the script resource rather than referencing the class_name to avoid
+# any shadowing ambiguity and to keep the dependency explicit.
+const SpatialFragmenterScript = preload("res://core/frame/geometry/spatial_fragmenter.gd")
+
+# Spatial quantization: world units collapsed into a single address cell.
+# A quantum of 500 means coordinates within the same 500-unit cube share
+# the same quantized coordinate.
+const SPATIAL_QUANTUM: float = 500.0
+
 # Zone types
 enum ZoneType {
 	OPEN_WORLD,		 # Seamless, players always in same world
@@ -41,6 +51,13 @@ var _entity_zones: Dictionary = {}	# entity_id -> zone_id
 var _transition_zones: Dictionary = {}	# zone_id -> [transition_bounds]
 var _seamless_enabled: bool = true
 
+# --- Spatial Fragmenter Integration ---
+# Cached SpatialFragmenter instance (pure utility, stateless)
+var _spatial_fragmenter: SpatialFragmenterScript = null
+
+# Zone spatial addresses (zone_id -> int spatial address)
+var _zone_spatial_addresses: Dictionary = {}
+
 signal zone_loaded(zone_data)
 signal zone_unloaded(zone_id: String)
 signal player_entered_zone(player, zone)
@@ -60,7 +77,66 @@ signal instance_left(player, instance_id)
 
 func _ready() -> void:
 	GameLog.info("ZoneManager: Ready")
+	_init_spatial_fragmenter()
 	_load_zone_state()
+
+## Initialize SpatialFragmenter instance
+func _init_spatial_fragmenter() -> void:
+	if SpatialFragmenterScript:
+		_spatial_fragmenter = SpatialFragmenterScript.new()
+		GameLog.debug("ZoneManager: SpatialFragmenter initialized")
+	else:
+		GameLog.warn("ZoneManager: SpatialFragmenterScript not available; spatial features disabled")
+
+## Compute spatial depth based on zone radius
+## Larger zones get lower depth (coarser granularity), smaller zones get higher depth
+func _compute_zone_depth(radius: float) -> int:
+	if radius <= 0.0:
+		return 12
+	# Simple linear depth calculation: larger zones get coarser granularity
+	var depth: int = 24 - int(radius / 100.0)
+	return clamp(depth, 0, 24)
+
+## Compute deterministic face code from zone_id hash (0-11 for icosahedral faces)
+func _compute_zone_face(zone_id: String) -> int:
+	var hash: int = 0
+	for i in range(zone_id.length()):
+		hash = (hash * 31) + zone_id.unicode_at(i)
+	return abs(hash) % 12
+
+## Generate spatial address for a zone based on its center and radius
+func _compute_spatial_address(zone) -> int:
+	if _spatial_fragmenter == null or zone == null:
+		return 0
+	var x: int = int(zone.zone_center.x / SPATIAL_QUANTUM)
+	var y: int = int(zone.zone_center.y / SPATIAL_QUANTUM)
+	var z: int = int(zone.zone_center.z / SPATIAL_QUANTUM)
+	var depth: int = _compute_zone_depth(zone.zone_radius)
+	# Use a single face (0) for all zones to ensure they share the same spatial tree
+	# for neighbor detection and seamless transitions
+	var face: int = 0
+	return _spatial_fragmenter.make_address(x, y, z, depth, face)
+
+
+## Get the spatial address for a zone by ID.
+## Returns 0 if SpatialFragmenter is unavailable or the zone does not exist.
+func get_zone_spatial_address(zone_id: String) -> int:
+	if _spatial_fragmenter == null:
+		return 0
+	var zone = _zones.get(zone_id)
+	if zone == null:
+		return 0
+
+	var cached: int = _zone_spatial_addresses.get(zone_id, 0)
+	if cached != 0:
+		return cached
+
+	var address: int = _compute_spatial_address(zone)
+	if address != 0:
+		_zone_spatial_addresses[zone_id] = address
+		return address
+	return 0
+
 
 ## Load all zones from data
 func load_zones() -> void:
@@ -91,6 +167,14 @@ func register_zone(zone_data) -> bool:
 	_zones[zone_data.id] = zone_data
 	_players_in_zone[zone_data.id] = []
 	_enemies_in_zone[zone_data.id] = []
+
+	# Generate spatial address for the zone (graceful degradation if SpatialFragmenter unavailable)
+	var spatial_addr: int = _compute_spatial_address(zone_data)
+	if spatial_addr != 0:
+		_zone_spatial_addresses[zone_data.id] = spatial_addr
+		if _spatial_fragmenter:
+			GameLog.debug("ZoneManager: Generated spatial address for zone %s (key: %s)" % [zone_data.id, _spatial_fragmenter.generate_key(spatial_addr)])
+
 	_persist_zone(zone_data.id)
 
 	zone_loaded.emit(zone_data)
@@ -99,32 +183,44 @@ func register_zone(zone_data) -> bool:
 
 ## Auto-register zone neighbors based on proximity
 func auto_register_zone_neighbors(max_distance: float = 1500.0) -> void:
-		var zones_array: Array = _zones.values()
-		var registered_count: int = 0
+	var zones_array: Array = _zones.values()
+	var registered_count: int = 0
 
-		for i in range(zones_array.size()):
-						var zone1 = zones_array[i]
-						for j in range(i + 1, zones_array.size()):
-										var zone2 = zones_array[j]
+	for i in range(zones_array.size()):
+		var zone1 = zones_array[i]
+		for j in range(i + 1, zones_array.size()):
+			var zone2 = zones_array[j]
 
-										# Calculate distance between zone centers
-										var distance: float = zone1.zone_center.distance_to(zone2.zone_center)
-										var combined_radius: float = zone1.zone_radius + zone2.zone_radius
+			# Calculate distance between zone centers
+			var distance: float = zone1.zone_center.distance_to(zone2.zone_center)
+			var combined_radius: float = zone1.zone_radius + zone2.zone_radius
 
-										# If zones overlap or are close enough, register as neighbors
-										if distance <= max_distance:
-														register_zone_neighbors(zone1.id, zone2.id)
-														registered_count += 1
+			# Spatial proximity check using SpatialFragmenter if available
+			var is_spatial_neighbor = false
+			if _spatial_fragmenter != null:
+				var addr1: int = get_zone_spatial_address(zone1.id)
+				var addr2: int = get_zone_spatial_address(zone2.id)
+				if addr1 != 0 and addr2 != 0:
+					# Zones are spatially adjacent if they share a common ancestor
+					# at a depth that indicates proximity (lower depth = larger region)
+					var ancestor: int = _spatial_fragmenter.find_common_ancestor([addr1, addr2])
+					if ancestor != 0:
+						var ancestor_depth: int = _spatial_fragmenter.get_depth(ancestor)
+						is_spatial_neighbor = ancestor_depth <= 16
 
-		GameLog.info("ZoneManager: Auto-registered %d zone neighbor connections" % registered_count)
+			# If zones overlap or are close enough, register as neighbors
+			if distance <= max_distance or is_spatial_neighbor:
+				register_zone_neighbors(zone1.id, zone2.id)
+				registered_count += 1
+
+	GameLog.info("ZoneManager: Auto-registered %d zone neighbor connections" % registered_count)
+
+func get_all_zones() -> Array:
+	return _zones.values()
 
 ## Get zone by ID
 func get_zone(zone_id: String) -> ZoneData:
 	return _zones.get(zone_id)
-
-## Get all loaded zones
-func get_all_zones() -> Array:
-	return _zones.values()
 
 ## Get players in a zone
 func get_players_in_zone(zone_id: String) -> Array:
@@ -148,6 +244,27 @@ func get_entity_zone(entity) -> ZoneData:
 ## Get current zone ID for an entity
 func get_entity_zone_id(entity) -> String:
 	return _entity_zones.get(entity.entity_id, "")
+
+## Get spatial fragment metadata for a zone
+func get_zone_spatial_fragment(zone_id: String) -> Dictionary:
+	if _spatial_fragmenter == null:
+		return {}
+	var address: int = get_zone_spatial_address(zone_id)
+	if address == 0:
+		return {}
+	var zone = _zones.get(zone_id)
+	if zone == null:
+		return {}
+	var key: String = _spatial_fragmenter.generate_key(address)
+	var bbox: Dictionary = _spatial_fragmenter.get_bounding_box(address)
+	return {
+		"zone_id": zone_id,
+		"address": address,
+		"key": key,
+		"bbox": bbox,
+		"depth": _spatial_fragmenter.get_depth(address),
+		"face": _spatial_fragmenter.get_face(address)
+	}
 
 ## Handle entity entering a zone
 func entity_enter_zone(entity, zone) -> bool:
@@ -418,11 +535,43 @@ func check_seamless_transition(entity) -> ZoneData:
 	if current_zone == null:
 		return null
 
-	# Check if entity crossed zone boundary
+	# Check if entity crossed zone boundary using registered neighbors
 	var neighbors = get_neighboring_zones(current_zone_id)
 	for neighbor in neighbors:
 		if neighbor.contains_position(entity.global_position):
 			return neighbor
+
+	# Spatial fragmenter-based transition detection
+	# If SpatialFragmenter is available, check if the entity's position maps
+	# to a spatial fragment that belongs to another zone (even if the neighbor
+	# relationship was not yet registered)
+	if _spatial_fragmenter != null:
+		var current_addr: int = get_zone_spatial_address(current_zone_id)
+		if current_addr != 0:
+			var pos := entity.global_position
+			var current_face: int = _spatial_fragmenter.get_face(current_addr)
+			var current_depth: int = _spatial_fragmenter.get_depth(current_addr)
+			# Use a deeper depth for the entity's position to detect movement
+			# within the zone's spatial region
+			var entity_depth: int = mini(current_depth + 4, _spatial_fragmenter.MAX_DEPTH)
+			var entity_addr: int = _spatial_fragmenter.make_address(
+				int(pos.x / SPATIAL_QUANTUM),
+				int(pos.y / SPATIAL_QUANTUM),
+				int(pos.z / SPATIAL_QUANTUM),
+				entity_depth,
+				current_face
+			)
+			if entity_addr != current_addr:
+				# Entity has moved to a different spatial fragment.
+				# Check if any other zone's address is an ancestor of this address.
+				for zone_id in _zones:
+					if zone_id == current_zone_id:
+						continue
+					var zone_addr: int = get_zone_spatial_address(zone_id)
+					if zone_addr != 0 and _spatial_fragmenter.is_ancestor(zone_addr, entity_addr):
+						var zone = _zones.get(zone_id)
+						if zone and zone.contains_position(pos):
+							return zone
 
 	return null
 
@@ -597,6 +746,9 @@ func _load_zones() -> void:
 				zone_data.instance_capacity = data.get("instance_capacity", 0)
 				var center_data = data.get("zone_center", {"x": 0, "y": 0, "z": 0})
 				zone_data.zone_center = Vector3(center_data.get("x", 0), center_data.get("y", 0), center_data.get("z", 0))
+				# Restore spatial address from persisted data if available
+				if data.has("spatial_address") and data["spatial_address"] != 0:
+					_zone_spatial_addresses[zone_id] = data["spatial_address"]
 				_zones[zone_id] = zone_data
 				_players_in_zone[zone_id] = []
 				_enemies_in_zone[zone_id] = []
@@ -623,6 +775,10 @@ func _persist_zone(zone_id: String) -> void:
 		"is_instanced": zone_data.is_instanced,
 		"instance_capacity": zone_data.instance_capacity
 	}
+	# Persist spatial address if available
+	var spatial_addr: int = _zone_spatial_addresses.get(zone_id, 0)
+	if spatial_addr != 0:
+		data["spatial_address"] = spatial_addr
 	var store = DictStore.new()
 	store.set_kv(_kv_prefix + "def:" + zone_id, data)
 
