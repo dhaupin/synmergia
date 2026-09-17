@@ -37,6 +37,7 @@
 15. [Platform Support & Optimization](#15-platform-support--optimization)
 16. [Phases & Milestones](#16-phases--milestones)
 17. [Open Questions](#17-open-questions)
+18. [Geometry Layer: NSC-9 + Spatial Fragmenter](#18-geometry-layer-nsc9--spatial-fragmenter)
 
 ## Architecture documentation
 
@@ -1028,6 +1029,43 @@ When a path needs more than Julia, it moves to GDExtension C++.
 When a path needs less, it stays in GDScript. The migration
 is incremental: profile, port, re-profile, ship.
 
+### 12.11 Geometry Layer: NSC-9 + Spatial Fragmenter
+
+The geometry layer bridges three frame primitives into a
+unified spatial addressing pipeline:
+
+```
+NSC-9 spatial code (9-AAA-BBB-CCCCCC)
+    -> SpatialFragmenter 64-bit address (octree subdivision)
+       -> T3 content-hash tree (deterministic state storage)
+```
+
+**NSC-9** (`game/core/frame/math/nsc9.gd`): Encodes facility/axis/sequence
+into a 14-digit integer. Spatial axes 1-12 map to icosahedral faces.
+Pure functions only; `class_name Nsc9` (NOT an autoload).
+
+**SpatialFragmenter** (`game/core/frame/geometry/spatial_fragmenter.gd`):
+64-bit address encoding (x:16, y:16, z:16, depth:8, face:8), octree
+subdivision, ancestor lineage, bounding boxes. `MAX_DEPTH=24`.
+`class_name SpatialFragmenter` (NOT an autoload).
+
+**Nsc9Bridge** (`game/core/frame/geometry/nsc9_bridge.gd`):
+Pure function bridge connecting NSC-9 -> SpatialFragmenter -> T3.
+`extends RefCounted`. 10 methods: `nsc9_to_address`, `address_to_t3_path`,
+`nsc9_to_t3_path`, `store_nsc9_state`, `store_nsc9_fragmented`,
+`restore_nsc9_fragmented`, `query_nsc9_face`, `query_nsc9_region`,
+`is_spatial_nsc9`, `entity_spatial_to_face`. No state, no autoload,
+no GameManager dependency.
+
+Integration: EntityService caches NSC-9 codes per entity (`_entity_nsc9_codes`);
+ZoneManager derives NSC-9 codes per zone (`get_zone_nsc9_code`). Both
+services gracefully degrade if bridge is unavailable.
+
+Integration tests: `game/core/frame/geometry/test_nsc9_bridge.gd` — 9 test
+cases, runs with `godot --headless --path . --script ...`.
+
+See `labs/prd-geometry.md` for the full fragmenter spec.
+
 ---
 
 ## 13. Data Schemas
@@ -1187,6 +1225,17 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 - [ ] Manifest + backup (D031)
   - See [`prd-manifest-backup.md`](./prd-manifest-backup.md)
 
+### 3.x: Geometry Layer Scaffolding (NSC-9 + Spatial Fragmenter Bridge)
+- [x] **Fragmenter** (`game/core/frame/geometry/fragmenter.gd`)
+  - Knuth multiplicative hash, `derive_lattice_keys`, `fragment`, `weld`
+- [x] **SpatialFragmenter** (`game/core/frame/geometry/spatial_fragmenter.gd`)
+  - 64-bit addresses, octree subdivision, bounding boxes, MAX_DEPTH=24
+- [x] **NSC-9 Bridge** (`game/core/frame/geometry/nsc9_bridge.gd`)
+  - Unified pipeline: NSC-9 -> SpatialFragmenter -> T3
+  - EntityService + ZoneManager wire the bridge
+- [x] **Integration tests** (`test_nsc9_bridge.gd`)
+  - 9 test cases covering full pipeline
+
 ### Phase 4: State + Sync
 - [ ] Server authority model
   - See [`prd-frame-authority.md`](./prd-frame-authority.md)
@@ -1330,3 +1379,114 @@ rules for free.
 
 See [`world-building-arch.md`](./world-building-arch.md) §2 for the
 full dual-goal architecture (frame + game instance).
+
+---
+
+## 18. Geometry Layer: NSC-9 + Spatial Fragmenter
+
+> **Status (2026-09-17):** Implemented and wired into services.
+> See `labs/prd-geometry.md` for the full spec.
+
+The geometry layer bridges three frame primitives into a unified
+spatial addressing pipeline:
+
+```
+NSC-9 spatial code (9-AAA-BBB-CCCCCC)
+    -> SpatialFragmenter 64-bit address (octree subdivision)
+       -> T3 content-hash tree (deterministic state storage)
+```
+
+### 18.1 The Three Primitives
+
+**NSC-9** (`game/core/frame/math/nsc9.gd`):
+Encodes facility/axis/sequence into a 14-digit integer.
+Spatial axes 1-12 map to icosahedral faces.
+Pure functions only; `class_name Nsc9` (NOT an autoload).
+
+Axis reservation:
+- 001-099: spatial axis (icosahedral vertices 1-12)
+- 100-199: factional axes
+- 200-299: temporal sub-axes
+- 300-399: social axes
+- 400-499: game-specific axes
+
+**SpatialFragmenter** (`game/core/frame/geometry/spatial_fragmenter.gd`):
+64-bit address encoding (x:16, y:16, z:16, depth:8, face:8), octree
+subdivision (8 children per step), ancestor lineage, integer-only
+bounding boxes. `MAX_DEPTH=24`. `class_name SpatialFragmenter`
+(NOT an autoload).
+
+**Nsc9Bridge** (`game/core/frame/geometry/nsc9_bridge.gd`):
+Pure function bridge connecting NSC-9 -> SpatialFragmenter -> T3.
+`extends RefCounted`. 10 methods:
+
+| Method | Purpose | Signature |
+|--------|---------|-----------|
+| `nsc9_to_address` | NSC-9 code -> address | `nsc9_to_address(code: int, depth: int = 0, sf: Variant = null) -> int` |
+| `address_to_t3_path` | Address -> T3 path | `address_to_t3_path(address: int, sf: Variant = null) -> String` |
+| `nsc9_to_t3_path` | NSC-9 code -> T3 path | `nsc9_to_t3_path(code: int, depth: int = 0) -> String` |
+| `store_nsc9_state` | Store entity state in T3 | `store_nsc9_state(t3, nsc9_code, state, depth=0, metadata={}) -> PackedByteArray` |
+| `store_nsc9_fragmented` | Fragment + store in T3 | `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth=0) -> PackedByteArray` |
+| `restore_nsc9_fragmented` | Restore fragmented state | `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth=0) -> Dictionary` |
+| `query_nsc9_region` | Query fragments in region | `query_nsc9_region(t3, nsc9_code, depth=0) -> Array[Dictionary]` |
+| `query_nsc9_face` | Query all fragments on face | `query_nsc9_face(t3, nsc9_code) -> Array[Dictionary]` |
+| `is_spatial_nsc9` | Check if code has spatial axis | `is_spatial_nsc9(code: int) -> bool` |
+| `entity_spatial_to_face` | Entity spatial -> face | `entity_spatial_to_face(facility: int, vertex: int) -> int` |
+
+No state, no autoload, no GameManager dependency.
+
+### 18.2 NSC-9 -> Spatial Mapping
+
+NSC-9 components map to SpatialFragmenter address as:
+- `facility` -> x coordinate (0-999, fits in 16 bits)
+- `axis` -> face via `SpatialFragmenter.nsc9_code_to_face` (1-12 -> 0-11)
+- `sequence` -> split into y (bits 10-19, 0-1023) and z (bits 0-9, 0-1023)
+- `depth` -> subdivision depth (caller-specified, default 0)
+
+Non-spatial axes (100+) return 0 (invalid address).
+
+### 18.3 Service-Level Integration
+
+**EntityService** (`game/core/services/entity_service.gd`):
+- `_nsc9_bridge` initialized in `_init_spatial_and_t3()`
+- `_compute_nsc9_code(entity)` derives codes from position + entity_id
+  - Facility: `abs(hash(entity_id)) % 1000`
+  - Axis: `Nsc9.nearest_vertex(lat, lon)` -> `Nsc9.spatial_axis(vertex)`
+  - Sequence: `Nsc9.deterministic_seq(entity_id, "nsc9")`
+- `_entity_nsc9_codes` dict caches codes per entity_id
+- `metadata.nsc9_code` set on registration
+
+**ZoneManager** (`game/core/services/zone_manager.gd`):
+- `_nsc9_bridge` initialized in `_init_spatial_fragmenter()`
+- `_compute_nsc9_code(zone_id, zone_center)` derives codes for zones
+- Public helpers: `get_zone_nsc9_code(zone_id)`, `get_zone_nsc9_t3_path(zone_id)`
+
+Both services gracefully degrade if bridge is unavailable.
+
+### 18.4 Testing
+
+`game/core/frame/geometry/test_nsc9_bridge.gd` — 9 test cases:
+- NSC-9 -> address conversion (face mapping, depth)
+- NSC-9 -> T3 path (format validation)
+- Store/query state + deterministic hash
+- Fragmented store + restore round-trip
+- Face query isolation
+- Non-spatial NSC-9 rejection
+- `is_spatial_nsc9` checks
+- `entity_spatial_to_face` mapping
+
+Run with `godot --headless --path . --script res://core/frame/geometry/test_nsc9_bridge.gd`.
+
+### 18.5 File Organization
+
+```
+game/core/frame/geometry/
+├── fragmenter.gd              # Data sharding (Knuth hash, fragment, weld)
+├── spatial_fragmenter.gd      # Spatial addressing (64-bit, octree)
+├── nsc9_bridge.gd             # NSC-9 -> SpatialFragmenter -> T3 bridge
+├── test_fragmenter.gd         # Fragmenter tests
+├── test_spatial_fragmenter.gd # SpatialFragmenter tests
+└── test_nsc9_bridge.gd        # Bridge integration tests
+```
+
+See `labs/prd-geometry.md` for the full fragmenter spec.
