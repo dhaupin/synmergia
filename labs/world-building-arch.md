@@ -98,7 +98,7 @@ func walk(scope: Scope, callback: Callable) -> void:
 ### 3.2 The contract
 
 - **Determinism:** same path + same value + same schema = same
-  hash. Always. (R004, R009 —” the two-platform determinism
+  hash. Always. (R004, R009  - " the two-platform determinism
   check, the "two clients see the same tree" gate.)
 - **Verifiability:** given a hash and a value, anyone can
   verify the value hashes to the hash. No trusted third party.
@@ -145,19 +145,19 @@ resolve overrides, and flip rules at scope boundaries.
 A scope is a position in a hierarchy. For Synmergia:
 
 ```
-world → shard → instance → player
+world  ->  shard  ->  instance  ->  player
 ```
 
 For another game on the same frame:
 
 ```
-galaxy → sector → system → planet → character
-realm → region → district → character
+galaxy  ->  sector  ->  system  ->  planet  ->  character
+realm  ->  region  ->  district  ->  character
 ```
 
 The hierarchy is a tree. Each node in the hierarchy is a
-scope. Each scope can have its own environment (В§6) and its
-own rule overrides (В§5).
+scope. Each scope can have its own environment (sec. sec. 6) and its
+own rule overrides (sec. sec. 5).
 
 ### 4.2 The scope class
 
@@ -177,7 +177,7 @@ func walk(callback: Callable) -> void:
     ...
 
 func resolve(path: String, stack: Array[Scope]) -> Variant:
-    # Walks the stack top→bottom, returns first match
+    # Walks the stack top -> bottom, returns first match
     ...
 
 func flip(rule_id: String, resolution: String) -> void:
@@ -195,7 +195,7 @@ from the player's scope up to the world scope:
 ```
 
 The stack is what gets content-hashed for the seed derivation
-(В§7.2). The scope engine walks the stack to resolve rules,
+(sec. sec. 7.2). The scope engine walks the stack to resolve rules,
 values, etc.
 
 ### 4.4 The "flip" semantic
@@ -221,7 +221,7 @@ subscription flips the rules for inventory size.
 ## 5. The rules engine + rules tree
 
 The new piece. A generic evaluator that takes
-`(action, context, rules_tree) → decision`.
+`(action, context, rules_tree)  ->  decision`.
 
 ### 5.1 The rules tree
 
@@ -277,7 +277,7 @@ NEW:
 ```
 
 Each rule in the rules tree declares its resolution strategy
-(В§5.1). The "A/B/C/D" stack-direction question is now
+(sec. sec. 5.1). The "A/B/C/D" stack-direction question is now
 per-rule, not per-system. The game developer picks the
 semantics that fit each rule.
 
@@ -317,36 +317,36 @@ func tick(delta: float) -> void:
 ### 6.2 The trees per environment
 
 Each environment has:
-- A seed tree (В§7) —” canonical, recursive, deterministic
-- A state tree (В§8) —” canonical, runtime
-- A rules tree (В§5) —” the gating rules
-- ...any other tree the game wants (В§9)
+- A seed tree (sec. sec. 7)  - " canonical, recursive, deterministic
+- A state tree (sec. sec. 8)  - " canonical, runtime
+- A rules tree (sec. sec. 5)  - " the gating rules
+- ...any other tree the game wants (sec. sec. 9)
 
 For Synmergia's poc/mvp:
 
 | Scope | Trees |
 |---|---|
 | `world_env` | world seed tree, world state tree, world rules tree |
-| `shard_env` (Г—N) | shard seed tree, shard state tree, shard rules tree |
-| `instance_env` (Г—N) | instance seed tree, instance state tree, instance rules tree |
-| `player_env` (Г—N) | player seed tree, player state tree, player rules tree |
+| `shard_env` ([U+0413] - N) | shard seed tree, shard state tree, shard rules tree |
+| `instance_env` ([U+0413] - N) | instance seed tree, instance state tree, instance rules tree |
+| `player_env` ([U+0413] - N) | player seed tree, player state tree, player rules tree |
 
 The data for each tree instance lives in `game/data/roots/`:
 
 ```
 game/data/roots/
-в”ңв”Җв”Җ world/
-в”Ӯ   в”ңв”Җв”Җ seed.tres
-в”Ӯ   в”ңв”Җв”Җ state.tres
-в”Ӯ   в””в”Җв”Җ rules.tres
-в”ңв”Җв”Җ shard_001/
-в”Ӯ   в”ңв”Җв”Җ seed.tres
-в”Ӯ   в”ңв”Җв”Җ state.tres
-в”Ӯ   в””в”Җв”Җ rules.tres
-в”ңв”Җв”Җ instance_abc/
-в”Ӯ   в””в”Җв”Җ ...
-в””в”Җв”Җ player_xyz/
-    в””в”Җв”Җ ...
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] world/
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] seed.tres
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] state.tres
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] rules.tres
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] shard_001/
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] seed.tres
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] state.tres
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] rules.tres
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] instance_abc/
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] ...
+[U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] player_xyz/
+    [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] ...
 ```
 
 ### 6.3 The TTL
@@ -379,14 +379,14 @@ seeds and the world-level configuration. Backup policy:
 Recovery: `manifest --restore --from <date>` rebuilds state
 to that snapshot. **All player state < date is lost.** This
 is the price of the recursive model: lose the manifest, lose
-the world. (D031 —” to be decided when we hit Phase 1 infra.)
+the world. (D031  - " to be decided when we hit Phase 1 infra.)
 
 ---
 
 ## 7. The seed tree (canonical instance)
 
 The first canonical tree. Recursive, deterministic,
-content-hashed. (Spec В§4, D025-D026.)
+content-hashed. (Spec sec. sec. 4, D025-D026.)
 
 ### 7.1 The SeedSchema
 
@@ -413,7 +413,7 @@ func _validate(value: Dictionary) -> bool:
 static func derive_seed(stack: Array[PackedByteArray],
                         path: String) -> PackedByteArray:
     var acc := path.to_utf8_buffer()
-    for layer_seed in stack:  # player → shard → world
+    for layer_seed in stack:  # player  ->  shard  ->  world
         acc = HashingContext.sha256(layer_seed + acc)
     return acc
 ```
@@ -447,7 +447,7 @@ through immediately. Default criticality:
 ## 8. The state tree (canonical instance)
 
 The second canonical tree. Runtime, mutable, content-hashed.
-(Spec В§5, D027.)
+(Spec sec. sec. 5, D027.)
 
 ### 8.1 The StateSchema
 
@@ -508,12 +508,12 @@ lives in the schemas.
 
 A tick, end-to-end:
 
-1. **Client → server:** `cmd` over WebSocket.
+1. **Client  ->  server:** `cmd` over WebSocket.
 2. **Server parse:** `network_manager.gd` parses, validates,
-   queues. (Spec В§11.)
+   queues. (Spec sec. sec. 11.)
 3. **Tick loop** in `tick.gd`:
    a. Walk the active scope stack
-      (player → instance → shard → world).
+      (player  ->  instance  ->  shard  ->  world).
    b. For each `cmd`:
       - Apply to the appropriate tree (state, seed, etc.).
       - The rules engine evaluates the `cmd` against the
@@ -522,7 +522,7 @@ A tick, end-to-end:
    c. Compute the diff per tree (T3::diff).
    d. Filter the diff by visibility scope (D026).
    e. Emit the diff to the appropriate clients.
-4. **Server → client:** diff over WebSocket. Client applies
+4. **Server  ->  client:** diff over WebSocket. Client applies
    the diff, verifies the root hash, requests resync if
    mismatch.
 
@@ -536,32 +536,32 @@ A full description of the tick model is in
 ### 11.1 Today (Phase 2+)
 
 ```
-в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
-в”Ӯ docker-compose                               в”Ӯ
-в”Ӯ                                              в”Ӯ
-в”Ӯ  synmergia (Godot, all autoloads, frame      в”Ӯ
-в”Ӯ  primitives at game/core/frame/)            в”Ӯ
-в”Ӯ  postgres                                    в”Ӯ
-в”Ӯ  redis                                       в”Ӯ
-в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
+[U+0432]"[U+04A2][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0497]
+[U+0432]"[U+04EE] docker-compose                               [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]                                              [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  synmergia (Godot, all autoloads, frame      [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  primitives at game/core/frame/)            [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  postgres                                    [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  redis                                       [U+0432]"[U+04EE]
+[U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+04B3]
 ```
 
 One Godot process. All services autoloaded. Frame primitives
 are consolidated at `game/core/frame/` (math, kv, srv, db).
 
-### 11.2 Phase 2: Frame Primitives Consolidation ✅ COMPLETE
+### 11.2 Phase 2: Frame Primitives Consolidation [U+2705] COMPLETE
 
 Frame primitives were consolidated directly into `game/core/frame/` (math, kv, srv, db) instead of extracting to a separate `srv/frame/` container. The `FrameClient` in `game/core/utils/frame_client.gd` provides a local fallback RulesEngine/Scope/T3 when the frame HTTP bridge is unavailable. Full HTTP bridge extraction to `srv/frame/` is deferred (see Open Questions).
 
 ### 11.3 Phase 3 (coordinator extract)
 
 ```
-в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
-в”Ӯ  synmergia (per shard)                       в”Ӯ
-в”Ӯ  coordinator (HA-pair in prod)               в”Ӯ
-в”Ӯ  postgres (HA)                               в”Ӯ
-в”Ӯ  redis                                       в”Ӯ
-в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
+[U+0432]"[U+04A2][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0497]
+[U+0432]"[U+04EE]  synmergia (per shard)                       [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  coordinator (HA-pair in prod)               [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  postgres (HA)                               [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  redis                                       [U+0432]"[U+04EE]
+[U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+04B3]
 ```
 
 Coordinator becomes its own process. Postgres HA. Cross-
@@ -570,17 +570,17 @@ shard events go through the coordinator.
 ### 11.4 Phase 4 (edge shards)
 
 ```
-в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
-в”Ӯ  synmergia-world-shard-1..N                  в”Ӯ
-в”Ӯ  edge-shard-region-X-1..M (regional cache)   в”Ӯ
-в”Ӯ  coordinator (HA-pair)                       в”Ӯ
-в”Ӯ  postgres (HA)                               в”Ӯ
-в”Ӯ  redis (HA)                                  в”Ӯ
-в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
+[U+0432]"[U+04A2][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0497]
+[U+0432]"[U+04EE]  synmergia-world-shard-1..N                  [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  edge-shard-region-X-1..M (regional cache)   [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  coordinator (HA-pair)                       [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  postgres (HA)                               [U+0432]"[U+04EE]
+[U+0432]"[U+04EE]  redis (HA)                                  [U+0432]"[U+04EE]
+[U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+0496][U+0432]"[U+04B3]
 ```
 
-Edge shards for low-latency regional cache. (Spec В§11.11,
-research doc В§2.)
+Edge shards for low-latency regional cache. (Spec sec. sec. 11.11,
+research doc sec. sec. 2.)
 
 ---
 
@@ -590,71 +590,101 @@ The multipurpose room. Definitions, setups, tooling.
 
 ```
 srv/
-в”ңв”Җв”Җ docker/                # mode dispatcher, certbot, healthcheck
-в”Ӯ   в”ңв”Җв”Җ entrypoint.sh
-в”Ӯ   в”ңв”Җв”Җ test-headless.sh
-в”Ӯ   в””в”Җв”Җ README.md
-в”ңв”Җв”Җ http/                  # route definitions, request/response schemas
-в”Ӯ   в”ңв”Җв”Җ routes/
-в”Ӯ   в””в”Җв”Җ schemas/
-в”ңв”Җв”Җ seed/                  # seed data, fixture players, test worlds
-в”Ӯ   в”ңв”Җв”Җ fixtures/
-в”Ӯ   в””в”Җв”Җ generators/
-в”ңв”Җв”Җ tools/                 # scripts, debug commands, ops utilities
-в”Ӯ   в”ңв”Җв”Җ tick/
-в”Ӯ   в”ңв”Җв”Җ diff/
-в”Ӯ   в””в”Җв”Җ debug/
-в”ңв”Җв”Җ backup/                # manifest backup, recovery (D031)
-в”Ӯ   в”ңв”Җв”Җ backup.sh
-в”Ӯ   в””в”Җв”Җ restore.sh
-в””в”Җв”Җ migration/             # schema migrations, godot project version migrations
-    в””в”Җв”Җ *.sql
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] docker/                # mode dispatcher, certbot, healthcheck
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] entrypoint.sh
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] test-headless.sh
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] README.md
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] http/                  # route definitions, request/response schemas
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] routes/
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] schemas/
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] seed/                  # seed data, fixture players, test worlds
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] fixtures/
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] generators/
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] tools/                 # scripts, debug commands, ops utilities
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] tick/
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] diff/
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] debug/
+[U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] backup/                # manifest backup, recovery (D031)
+[U+0432]"[U+04EE]   [U+0432]"[U+04A3][U+0432]"[U+0496][U+0432]"[U+0496] backup.sh
+[U+0432]"[U+04EE]   [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] restore.sh
+[U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] migration/             # schema migrations, godot project version migrations
+    [U+0432]""[U+0432]"[U+0496][U+0432]"[U+0496] *.sql
 ```
 
-`labs/` routes for providers reference the consolidated frame at `game/core/frame/`. The frame was not extracted to a separate project; it remains embedded in the Godot project. `game/data/roots/` is permanent — it holds the actual game data.
+`labs/` routes for providers reference the consolidated frame at `game/core/frame/`. The frame was not extracted to a separate project; it remains embedded in the Godot project. `game/data/roots/` is permanent  -  it holds the actual game data.
 
 ---
 
-## 13. Component map (spec → code)
+## 13. Component map (spec  ->  code)
 
 | Spec concept | Spec ref | Current code | Target code | Status |
 |---|---|---|---|---|
-| T3 substrate | this doc В§3 | `game/core/frame/kv/t3.gd` | `game/core/frame/kv/t3.gd` | DONE |
-| Scope engine | this doc В§4 | `game/core/frame/srv/scope_hierarchy.gd`, `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` | DONE |
-| Rules engine | this doc В§5 | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | DONE |
-| Definition tree | this doc В§9 | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | DONE |
-| SeedSchema Resource | this doc В§7, spec В§4 | none | `game/data/roots/seed_schema.gd` | DONE |
-| StateSchema Resource | this doc В§8, spec В§5 | none | `game/data/roots/state_schema.gd` | DONE |
-| Seed tree (canonical) | this doc В§7, spec В§4 | `game/core/frame/kv/seed_chain.gd` | `game/core/frame/kv/seed_chain.gd` | DONE |
-| State tree (canonical) | this doc В§8, spec В§5 | `game/core/frame/kv/state_tree.gd` | `game/core/frame/kv/state_tree.gd` | DONE |
-| Recursive seed derivation | spec В§4.2, D025 | `game/core/frame/kv/seed_chain.gd::derive_seed` | `seed_chain.gd::derive_seed` | DONE |
-| Seed tree test | prd-seed-schema В§US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
-| State tree test | prd-state-schema В§US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
-| Seed tree (tests) | prd-seed-schema В§US-005 | `game/core/frame/kv/test_seed_chain.gd` | `game/core/frame/kv/test_seed_chain.gd` | DONE |
-| State tree (tests) | prd-state-schema В§US-005 | `game/core/frame/kv/test_state_tree.gd` | `game/core/frame/kv/test_state_tree.gd` | DONE |
-| SeedReceipt Resource | prd-login-seed-chain В§US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
-| SeedReceipt test | prd-login-seed-chain В§US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
-| FrameService | prd-frame-authority В§US-001 | `game/core/services/frame_service.gd` | `game/core/services/frame_service.gd` | DONE |
-| Frame authority test | prd-frame-authority В§US-005 | none | `game/tests/test_frame_authority.gd` | DONE |
-| ShardParameterDefinition | prd-critical-params В§US-001 | none | `game/core/schemas/shard_parameter_definition.gd` | DONE |
-| ShardParameters autoload | prd-critical-params В§US-002 | none | `game/core/services/shard_parameters.gd` | DONE |
-| Critical params test | prd-critical-params В§US-006 | none | `game/tests/test_critical_params.gd` | DONE |
-| Param .tres samples (4) | prd-critical-params В§US-006 | none | `game/data/roots/world/parameters/` | DONE |
-| Two-orthogonal-axes (D026) | spec В§4.1 | none | `SeedSchema` payload | DONE |
-| State-only diff (D027) | spec В§5.6, D027 | none | `T3::diff` | DONE |
+| T3 substrate | this doc sec. sec. 3 | `game/core/frame/kv/t3.gd` | `game/core/frame/kv/t3.gd` | DONE |
+| Scope engine | this doc sec. sec. 4 | `game/core/frame/srv/scope_hierarchy.gd`, `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` | DONE |
+| Rules engine | this doc sec. sec. 5 | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | `game/core/frame/srv/rules_engine.gd`, `game/core/frame/srv/rules_schema.gd` | DONE |
+| Definition tree | this doc sec. sec. 9 | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | `game/core/frame/kv/definition_tree.gd`, `game/core/frame/kv/definition_schema.gd` | DONE |
+| SeedSchema Resource | this doc sec. sec. 7, spec sec. sec. 4 | none | `game/data/roots/seed_schema.gd` | DONE |
+| StateSchema Resource | this doc sec. sec. 8, spec sec. sec. 5 | none | `game/data/roots/state_schema.gd` | DONE |
+| Seed tree (canonical) | this doc sec. sec. 7, spec sec. sec. 4 | `game/core/frame/kv/seed_chain.gd` | `game/core/frame/kv/seed_chain.gd` | DONE |
+| State tree (canonical) | this doc sec. sec. 8, spec sec. sec. 5 | `game/core/frame/kv/state_tree.gd` | `game/core/frame/kv/state_tree.gd` | DONE |
+| Recursive seed derivation | spec sec. sec. 4.2, D025 | `game/core/frame/kv/seed_chain.gd::derive_seed` | `seed_chain.gd::derive_seed` | DONE |
+| Seed tree test | prd-seed-schema sec. sec. US-005 | none | `game/data/roots/test_seed_schema.gd` | DONE |
+| State tree test | prd-state-schema sec. sec. US-005 | none | `game/data/roots/test_state_schema.gd` | DONE |
+| Seed tree (tests) | prd-seed-schema sec. sec. US-005 | `game/core/frame/kv/test_seed_chain.gd` | `game/core/frame/kv/test_seed_chain.gd` | DONE |
+| State tree (tests) | prd-state-schema sec. sec. US-005 | `game/core/frame/kv/test_state_tree.gd` | `game/core/frame/kv/test_state_tree.gd` | DONE |
+| SeedReceipt Resource | prd-login-seed-chain sec. sec. US-001 | none | `game/core/schemas/seed_receipt.gd` | DONE |
+| SeedReceipt test | prd-login-seed-chain sec. sec. US-001 | none | `game/core/schemas/test_seed_receipt.gd` | DONE |
+| FrameService | prd-frame-authority sec. sec. US-001 | `game/core/services/frame_service.gd` | `game/core/services/frame_service.gd` | DONE |
+| Frame authority test | prd-frame-authority sec. sec. US-005 | none | `game/tests/test_frame_authority.gd` | DONE |
+| ShardParameterDefinition | prd-critical-params sec. sec. US-001 | none | `game/core/schemas/shard_parameter_definition.gd` | DONE |
+| ShardParameters autoload | prd-critical-params sec. sec. US-002 | none | `game/core/services/shard_parameters.gd` | DONE |
+| Critical params test | prd-critical-params sec. sec. US-006 | none | `game/tests/test_critical_params.gd` | DONE |
+| Param .tres samples (4) | prd-critical-params sec. sec. US-006 | none | `game/data/roots/world/parameters/` | DONE |
+| Two-orthogonal-axes (D026) | spec sec. sec. 4.1 | none | `SeedSchema` payload | DONE |
+| State-only diff (D027) | spec sec. sec. 5.6, D027 | none | `T3::diff` | DONE |
 | LRU cache | vant `lib/cache.js` | `game/core/frame/kv/lru_cache.gd` | `game/core/frame/kv/lru_cache.gd` | DONE |
 | Snapshot store | content-hash state tree | `game/core/frame/db/snapshot_store.gd` | `game/core/frame/db/snapshot_store.gd` | DONE |
-| Manifest SPOF (D031) | this doc §6.4 | none | `srv/backup/manifest.sh`, `backup.sh`, `restore.sh` | DONE |
-| Open seed TTL (D032) | this doc §6.3, spec §4.8 | none | `game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd` | DONE |
-| Login seed chain (D029) | validation В§1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
-| Frame seed authority (D030) | validation В§2 | none | `core/services/frame_service.gd` | DONE |
-| Critical params (D033) | this doc В§7.4, spec В§4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
-| Account rollup (D028) | spec В§9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
+| Manifest SPOF (D031) | this doc sec. 6.4 | none | `srv/backup/manifest.sh`, `backup.sh`, `restore.sh` | DONE |
+| Open seed TTL (D032) | this doc sec. 6.3, spec sec. 4.8 | none | `game/core/services/open_seed_registry.gd`, `game/core/schemas/instance_type_definition.gd` | DONE |
+| Login seed chain (D029) | validation sec. sec. 1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
+| Frame seed authority (D030) | validation sec. sec. 2 | none | `core/services/frame_service.gd` | DONE |
+| Critical params (D033) | this doc sec. sec. 7.4, spec sec. sec. 4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
+| Account rollup (D028) | spec sec. sec. 9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
 | Vant multibrain stack | vant `brain.js:1510-1900` | `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` (port) | DONE |
 | NSC-9 barcode format | vant `geometry/nsc9.js` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
 | Icosahedral projection | vant `geometry/icosahedral.js` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
-| Vant fragmenter | [prd-geometry.md](./prd-geometry.md) В§US-001 | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | DONE |
-| Spatial geometry fragmenter | `prd-spatial-geometry.md` В§US-001 | `game/core/frame/geometry/spatial_fragmenter.gd` | `game/core/frame/geometry/spatial_fragmenter.gd` | DONE |
+| Vant fragmenter | [prd-geometry.md](./prd-geometry.md) sec. sec. US-001 | `game/core/frame/geometry/fragmenter.gd` | `game/core/frame/geometry/fragmenter.gd` | DONE |
+| Spatial geometry fragmenter | `prd-spatial-geometry.md` sec. sec. US-001 | `game/core/frame/geometry/spatial_fragmenter.gd` | `game/core/frame/geometry/spatial_fragmenter.gd` | DONE |
+| Geometry integration bridge | `prd-geometry.md` sec. sec. 6K | NSC-9  ->  SpatialFragmenter  ->  T3 wiring | Service-level integration pattern | IN PROGRESS |
+
+---
+
+### 13.1 Geometry Layer Integration Pattern
+
+The geometry layer connects via pure function calls from services. No autoloads, no global state. Services import via `class_name` and instantiate locally.
+
+**Integration chain:**
+```
+NSC-9 code (nsc9.gd)  ->  face code  ->  SpatialFragmenter address  ->  [T3 state tree]
+                                             v 
+                                    Fragmenter.data fragment  ->  [Storage adapter]
+```
+
+**Recommended wiring:**
+1. Services needing spatial addresses call `SpatialFragmenter.make_address()` directly
+2. Services needing spatial state in T3 use `StateTree.insert_state()` with spatial metadata
+3. Services needing data shards call `Fragmenter.fragment()` directly
+4. NSC-9  ->  face conversion is caller-defined (see Open Question NQ-6 in prd-geometry.md)
+
+**File locations:**
+- `game/core/frame/geometry/fragmenter.gd`  -  Aperiodic data fragmenter (Vant port)
+- `game/core/frame/geometry/spatial_fragmenter.gd`  -  Spatial geometry fragmenter
+- `game/core/frame/geometry/test_fragmenter.gd`  -  Fragmenter tests
+- `game/core/frame/geometry/test_spatial_fragmenter.gd`  -  Spatial fragmenter tests
+- `game/core/frame/math/nsc9.gd`  -  NSC-9 barcode encoding (spatial axis source)
+- `game/core/frame/math/icosahedral.gd`  -  Icosahedral projection (face source)
+- `game/core/frame/kv/t3.gd`  -  Content-hash tree substrate (spatial state storage)
+- `game/core/frame/kv/state_tree.gd`  -  State tree wrapper (spatial state persistence)
 
 ---
 
@@ -681,6 +711,7 @@ srv/
 | 3 | Memory tree + social tree | low | game team |
 | 4 | Edge shards | high | infra team |
 | 4 | Vant icosahedral + fragmenter ports | med | frame team | See `labs/prd-geometry.md` |
+| 4 | Geometry integration bridge (NSC-9  ->  SpatialFragmenter  ->  T3) | med | frame team | See `labs/prd-geometry.md` sec. 6K |
 | 4 | Other trees (game-specific) as needed | low | game team |
 
 ---
@@ -704,7 +735,7 @@ For the user to resolve when the time comes:
    the registry is a v2 enhancement.
 
 3. **Scope hierarchy configurability.** Is the hierarchy
-   (world → shard → instance → player) baked into the game,
+   (world  ->  shard  ->  instance  ->  player) baked into the game,
    or is it data? My read: baked for now, data in Phase 4+.
    **Status (2026-09-05):** RESOLVED. Data-driven via
    `ScopeHierarchy.tres`. The hierarchy is a Resource,
@@ -775,24 +806,24 @@ This architecture borrows from
 branch), the user's sibling repo. Specifically:
 
 - **Multibrain stack pattern** (vant `lib/brain.js:1510-1900`)
-  → scope engine (В§4). Vant's brain stack with push/pop/
+   ->  scope engine (sec. sec. 4). Vant's brain stack with push/pop/
   current is the prototype for our scope stack. We extend it
   with: typed scopes (player, shard, etc.), explicit override
-  semantics, and the "flip" mechanism (В§4.4).
+  semantics, and the "flip" mechanism (sec. sec. 4.4).
 
 - **Geometric addressing** (vant `lib/geometry/icosahedral.js`,
-  `tilings.js`, `quasicrystal.js`, `fragmenter.js`) → spatial
+  `tilings.js`, `quasicrystal.js`, `fragmenter.js`)  ->  spatial
   layer. The icosahedral projection is the candidate for world
   chunk addressing; the Penrose P3 tiling is the candidate for
   region distribution; the fragmenter (Knuth multiplicative
-  hash, `LATTICE_MULTIPLIER = floor(ПҶ В· 2ВіВІ)`) is the candidate
+  hash, `LATTICE_MULTIPLIER = floor([U+041F][U+04B6] sec. * 2sec. [U+0456]sec. [U+0406])`) is the candidate
   for shard partitioning in Phase 4+.
 
 - **Single class, schema-as-data** (vant `lib/brain.js` overall)
-  → T3 substrate (В§3). Vant's brain is one class with mode-
+   ->  T3 substrate (sec. sec. 3). Vant's brain is one class with mode-
   as-data. T3 is the same pattern for content-hash trees.
 
-- **Content hashing** (vant `lib/quasicrystal.js` overall) →
+- **Content hashing** (vant `lib/quasicrystal.js` overall)  -> 
   SHA-256 hash chain in T3. Vant's quasicrystal uses barcode
   projection; we use SHA-256 because we need cryptographic
   tamper-evidence, not just deterministic projection.
@@ -822,7 +853,7 @@ Open questions: 7
 
 ## 18. Design rationale and rejected alternatives
 
-The doc above is the *what*. This section is the *why* —
+The doc above is the *what*. This section is the *why*  - 
 the alternatives considered, the rejected options, and the
 reasoning. Future agents reading the spec need this to
 understand which choices were deliberate and which could
@@ -838,7 +869,7 @@ be revisited.
 **Picked:** Single class, schema-as-data.
 
 **Why:** Matches vant's `brain.js` pattern (one class,
-mode-as-data). "We have been complex enough" — the user
+mode-as-data). "We have been complex enough"  -  the user
 flagged this explicitly. Users add their own complexity on
 top via schemas; the substrate doesn't need to anticipate it.
 
@@ -855,7 +886,7 @@ specialization per schema.
 
 **Picked:** 2 canonical + N.
 
-**Why:** The "world tree" was a category error — world is a
+**Why:** The "world tree" was a category error  -  world is a
 *scope*, not a *tree type*. "World environment" is the
 container; inside it are the world's seed tree, state tree,
 rules tree, etc. The 4-tree frame was wrong; the 2+N frame
@@ -879,7 +910,7 @@ Until then, N is open.
   Settings inherit normally, world is a predicate gate.
 
 **Picked:** Per-rule resolution via the rules engine. The
-A/B/C/D question dissolves when rules are data — each rule
+A/B/C/D question dissolves when rules are data  -  each rule
 in the rules tree declares its resolution strategy, and the
 game developer picks the semantics that fit each rule.
 
@@ -902,7 +933,7 @@ consider making resolution a callable on the schema.
 **Picked:** "World environment" (or just "environment,"
 "scope").
 
-**Why:** "World tree" was a misnomer — the world has trees
+**Why:** "World tree" was a misnomer  -  the world has trees
 inside it, the world is not itself a tree. "Runtime" is
 overloaded with the project meaning. "Frame" is the project's
 name. "Environment" is descriptive: it's the runtime
@@ -919,7 +950,7 @@ term is functional, not beautiful.
 
 **Picked:** `data/roots/`.
 
-**Why:** Each tree's data file is its **root hash** — the
+**Why:** Each tree's data file is its **root hash**  -  the
 top-of-tree content-hash. The data file is the canonical
 reference to the whole tree. "Trees" was the obvious name
 but it conflates the concept (a tree is a data structure)
@@ -957,7 +988,7 @@ the canonical trees).
 
 **Picked:** Phase 2.
 
-**Why:** Phase 1 should be minimal — T3 substrate + scope
+**Why:** Phase 1 should be minimal  -  T3 substrate + scope
 engine + the two canonical trees. The rules engine is a
 consolidation of the existing 5 infrastructure services'
 decision logic; it doesn't have to exist before the
@@ -978,12 +1009,12 @@ work forward.
 
 **Picked:** Per-scope-type.
 
-**Why:** Matches the seed-type × visibility-scope taxonomy
-from spec §4. Locked environments (world map, shard terrain,
-player's house) are durable — no TTL. Open environments
-(dungeon run, arena match) are ephemeral — 5 min after the
+**Why:** Matches the seed-type x visibility-scope taxonomy
+from spec sec. 4. Locked environments (world map, shard terrain,
+player's house) are durable  -  no TTL. Open environments
+(dungeon run, arena match) are ephemeral  -  5 min after the
 last player leaves. Frame environments (dream, tutorial,
-jail cell) are one-shot — GC'd at frame end. One size
+jail cell) are one-shot  -  GC'd at frame end. One size
 doesn't fit.
 
 **Revisit if:** frame environments prove useful across
@@ -1027,7 +1058,7 @@ implementation phase has a target. Without IDs, they remain
 
 **Revisit if:** a decision turns out to be wrong in
 implementation. Then update the D### entry in
-`world-building-risks.md` §2.
+`world-building-risks.md` sec. 2.
 
 ### 18.11 Manifest backup: multi-tier
 
@@ -1108,9 +1139,9 @@ reframes before settling on the architecture above:
 
 5. **The vant connection.** The user pointed to vant's
    `lib/geometry/` and `lib/brain.js` as relevant prior
-   art. Multibrain stack → scope engine. Icosahedral /
-   Penrose / fragmenter → spatial layer + shard
-   partitioning. Single class, schema-as-data → T3
+   art. Multibrain stack  ->  scope engine. Icosahedral /
+   Penrose / fragmenter  ->  spatial layer + shard
+   partitioning. Single class, schema-as-data  ->  T3
    substrate. Heavy adoption was picked.
 
 6. **The dual goal.** The user clarified: "The goal of
@@ -1131,7 +1162,7 @@ reframes before settling on the architecture above:
 
 This is a working document, not gospel. Future sessions
 should feel free to revisit any of the 12 design decisions
-in §18 if implementation proves them wrong. The doc is the
+in sec. 18 if implementation proves them wrong. The doc is the
 *current* understanding; the code is the *eventual* truth.
 
 ---
@@ -1146,4 +1177,4 @@ Last updated: 2026-09-16
 Sections: 20
 Decisions referenced: D025-D033 (D029-D033 are new in this doc)
 Open questions: 7
-Design decisions recorded: 12 (in §18)
+Design decisions recorded: 12 (in sec. 18)

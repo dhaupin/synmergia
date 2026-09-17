@@ -1,7 +1,7 @@
-# PRD: Spatial Geometry Fragmenter (Vant → Synmergia)
+# PRD: Spatial Geometry Fragmenter (Vant  ->  Synmergia)
 
 > **For:** geometry layer implementation
-> **Phase:** 4 (per `world-building-arch.md` §11.4, §14, §16)
+> **Phase:** 4 (per `world-building-arch.md` sec. 11.4, sec. 14, sec. 16)
 > **Depends on:** `prd-geometry.md` (data fragmenter), `game/core/frame/math/nsc9.gd`, `game/core/frame/math/icosahedral.gd`
 > **Unblocks:** LOD scoping, spatial memory compression, deterministic client/server subdivision
 
@@ -19,16 +19,16 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 - **Integer/quantized math only:** no floating-point seam cracks
 - **Fixed-width 64-bit address encoding:** no hash collisions
 - **MAX_DEPTH guard:** prevents fragment explosion (tree depth runaway)
-- **Deterministic:** same input → same output, always
+- **Deterministic:** same input  ->  same output, always
 
 **Spec refs:**
-- [`world-building-arch.md`](./world-building-arch.md) §16 (Geometric addressing)
-- [`world-building-arch.md`](./world-building-arch.md) §13 Component map
+- [`world-building-arch.md`](./world-building-arch.md) sec. 16 (Geometric addressing)
+- [`world-building-arch.md`](./world-building-arch.md) sec. 13 Component map
 - [`prd-geometry.md`](./prd-geometry.md) (data fragmenter baseline)
 
 ## 2. Goals
 
-- ONE `spatial_fragmenter.gd` in `game/core/frame/geometry/` — pure functions, no state
+- ONE `spatial_fragmenter.gd` in `game/core/frame/geometry/`  -  pure functions, no state
 - 64-bit address encoding: depth + spatial offsets + face/region type
 - Deterministic octree-style subdivision (8 children per cell)
 - Integer-only bounding boxes (quantized min/max)
@@ -47,7 +47,7 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 - [ ] Function exists in `game/core/frame/geometry/spatial_fragmenter.gd`
 - [ ] Returns exactly 8 children per subdivision step (unless MAX_DEPTH reached)
 - [ ] Children inherit parent face/region type
-- [ ] Same input → same output, always
+- [ ] Same input  ->  same output, always
 - [ ] Depth increments by requested amount (capped at MAX_DEPTH)
 
 ### US-002: Integer-only bounding volumes
@@ -84,10 +84,10 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 **Description:** As a developer, I need `find_common_ancestor(addresses: Array[int]) -> int` to collapse multiple fragments into their coarsest shared cell, enabling spatial memory compression.
 
 **Acceptance Criteria:**
-- [ ] Empty array → 0
-- [ ] Single address → the address itself
-- [ ] Multiple same-face addresses → coarsest shared ancestor
-- [ ] Cross-face addresses → 0
+- [ ] Empty array  ->  0
+- [ ] Single address  ->  the address itself
+- [ ] Multiple same-face addresses  ->  coarsest shared ancestor
+- [ ] Cross-face addresses  ->  0
 
 ### US-006: Collision-free address keys
 
@@ -96,7 +96,7 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 **Acceptance Criteria:**
 - [ ] Format: `%04x-%04x-%04x-d%d-f%d` (x, y, z, depth, face)
 - [ ] Fixed-width hex padding on x/y/z
-- [ ] Distinct addresses → distinct keys
+- [ ] Distinct addresses  ->  distinct keys
 
 ### US-007: Depth limit (fragment explosion guard)
 
@@ -158,7 +158,7 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 - Depth maps directly to LOD level
 
 ### Why MAX_DEPTH = 24?
-- 2^24 ≈ 16.7M subdivisions per axis — far beyond any practical spatial need
+- 2^24  ~  16.7M subdivisions per axis  -  far beyond any practical spatial need
 - Prevents infinite recursion from pathological input
 - Keeps tick latency bounded
 
@@ -171,26 +171,26 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 
 ## 8. Success Metrics
 
-- All 8 user stories have passing tests (≥ 40 assertions)
+- All 8 user stories have passing tests ( >=  40 assertions)
 - Deterministic subdivision verified across repeated runs
 - No floating-point values in bounding boxes
 - No address key collisions for distinct addresses
 - MAX_DEPTH prevents fragment explosion
 - `game/core/frame/geometry/` directory contains `spatial_fragmenter.gd` + `test_spatial_fragmenter.gd`
-- `labs/world-building-arch.md` §13 component map updated: "Spatial geometry fragmenter" → DONE
+- `labs/world-building-arch.md` sec. 13 component map updated: "Spatial geometry fragmenter"  ->  DONE
 - Single commit, conventional message format
 
 ## 9. Open Questions
 
 1. **Face encoding:** NSC-9 prefix (9) vs icosahedron faces (0-19). Should face be a generic region type (8-bit) or a typed enum? Current design: generic 8-bit region type, caller interprets.
-2. **NSC-9 integration:** `Nsc9.encode_int()` returns a 14-digit string. Should we add a helper to convert NSC-9 → `SpatialFragmenter` address? Current design: caller extracts x/y/z/depth/face from NSC-9 fields.
+2. **NSC-9 integration:** `Nsc9.encode_int()` returns a 14-digit string. Should we add a helper to convert NSC-9  ->  `SpatialFragmenter` address? Current design: caller extracts x/y/z/depth/face from NSC-9 fields.
 3. **Icosahedral integration:** icosahedral faces are triangular, not cubic. Should subdivision be barycentric (4 children) or octree-style (8 children)? Current design: octree-style for clean bounding boxes; barycentric is a future extension.
 
 ## 10. Definition of Done
 
 - [ ] `game/core/frame/geometry/spatial_fragmenter.gd` created with all functions
 - [ ] `game/core/frame/geometry/test_spatial_fragmenter.gd` created and passing
-- [ ] `labs/world-building-arch.md` §13 component map: "Spatial geometry fragmenter" row status → DONE
+- [ ] `labs/world-building-arch.md` sec. 13 component map: "Spatial geometry fragmenter" row status  ->  DONE
 - [ ] File headers include Vant lineage credit
-- [ ] Smoke test: subdivide → parent → ancestor → bounding box → key
+- [ ] Smoke test: subdivide  ->  parent  ->  ancestor  ->  bounding box  ->  key
 - [ ] One commit to main
