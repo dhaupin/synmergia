@@ -87,10 +87,24 @@ func weld(fragments: Array) -> String:
 
 	var buffers: PackedByteArray = PackedByteArray()
 	for f in normalized:
+		if not f.has("data"):
+			push_error("Fragmenter: fragment missing 'data' key, skipping")
+			continue
+		if not f.data.is_valid_base64():
+			push_error("Fragmenter: invalid base64 data for shard, skipping")
+			continue
 		var decoded: PackedByteArray = f.data.base64_decode()
 		var restored: PackedByteArray = PackedByteArray()
 		restored.resize(decoded.size())
-		var shard: int = f.shard
+		var shard: int = int(f.shard) if f.has("shard") else 0
+
+		if f.has("checksum"):
+			var computed: int = 0
+			for j in range(decoded.size()):
+				computed = (computed + decoded[j] * (j + 1)) % 65536
+			if computed != f.checksum:
+				push_error("Fragmenter: checksum mismatch for shard %d (expected %s, got %d)" % [shard, str(f.checksum), computed])
+				continue
 
 		for j in range(decoded.size()):
 			restored[j] = decoded[j] ^ ((shard + 1) * 137 >> 5)

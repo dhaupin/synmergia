@@ -36,6 +36,33 @@ func _init() -> void:
 	if not _test_weld_sorting():
 		push_error("FAIL: weld_sorting")
 		ok = false
+	if not _test_empty_weld():
+		push_error("FAIL: empty_weld")
+		ok = false
+	if not _test_non_ascii_utf8():
+		push_error("FAIL: non_ascii_utf8")
+		ok = false
+	if not _test_num_fragments_exceeds_data():
+		push_error("FAIL: num_fragments_exceeds_data")
+		ok = false
+	if not _test_negative_sequence():
+		push_error("FAIL: negative_sequence")
+		ok = false
+	if not _test_fragment_weld_checksum():
+		push_error("FAIL: fragment_weld_checksum")
+		ok = false
+	if not _test_non_ascii_utf8():
+		push_error("FAIL: non_ascii_utf8")
+		ok = false
+	if not _test_num_fragments_exceeds_data():
+		push_error("FAIL: num_fragments_exceeds_data")
+		ok = false
+	if not _test_negative_sequence():
+		push_error("FAIL: negative_sequence")
+		ok = false
+	if not _test_fragment_weld_checksum():
+		push_error("FAIL: fragment_weld_checksum")
+		ok = false
 	quit(0 if ok else 1)
 
 
@@ -154,3 +181,50 @@ func _test_weld_sorting() -> bool:
 	# Weld should still sort by shard and recover original
 	var welded: String = frag.weld(shuffled)
 	return welded == data
+
+
+func _test_empty_weld() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var result: String = frag.weld([])
+	return result == ""
+
+
+func _test_non_ascii_utf8() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var data: String = "你好世界 🌍"
+	var fragments: Array[Dictionary] = frag.fragment(data, 4)
+	var welded: String = frag.weld(fragments)
+	return welded == data
+
+
+func _test_num_fragments_exceeds_data() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var data: String = "hi"
+	var fragments: Array[Dictionary] = frag.fragment(data, 10)
+	if fragments.size() >= 10:
+		return false
+	var welded: String = frag.weld(fragments)
+	return welded == data
+
+
+func _test_negative_sequence() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var keys1: Array[String] = frag.derive_lattice_keys(-1, 3)
+	var keys2: Array[String] = frag.derive_lattice_keys(-1, 3)
+	if keys1.size() != 3:
+		return false
+	for i in range(3):
+		if keys1[i] != keys2[i]:
+			return false
+	return true
+
+
+func _test_fragment_weld_checksum() -> bool:
+	var frag: Fragmenter = Fragmenter.new()
+	var data: String = "checksum_test"
+	var fragments: Array[Dictionary] = frag.fragment(data, 3)
+	var decoded: PackedByteArray = fragments[0].data.base64_decode()
+	decoded[0] = (decoded[0] + 1) % 256
+	fragments[0].data = decoded.to_base64()
+	var welded: String = frag.weld(fragments)
+	return welded != data

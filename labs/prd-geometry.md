@@ -79,18 +79,18 @@ The geometry layer ports Vant's aperiodic quasicrystal memory addressing into th
 
 ## 4. Functional Requirements
 
-- **FR-1:** Single file `game/core/frame/geometry/fragmenter.gd` with three static functions
+- **FR-1:** Single file `game/core/frame/geometry/fragmenter.gd` with `Fragmenter` class containing `derive_lattice_keys`, `fragment`, `weld` (instance methods, `class_name Fragmenter` for instantiation)
 - **FR-2:** Constant `LATTICE_MULTIPLIER = 2654435769`
 - **FR-3:** `derive_lattice_keys(sequence: int, num_fragments: int = 5) -> Array[String]`
 - **FR-4:** `fragment(data: Variant, num_fragments: int = 5) -> Array[Dictionary]`
 - **FR-5:** `weld(fragments: Array) -> String`
-- **FR-5:** NO autoload, NO class_name, NO GameManager dependency (per AGENTS.md frame primitive rules)
-- **FR-6:** NO external dependencies beyond Godot stdlib
-- **FR-7:** Tests in co-located `test_fragmenter.gd`
+- **FR-6:** `class_name Fragmenter` permitted (frame primitive with instantiation; NOT an autoload) per AGENTS.md §Autoloads
+- **FR-7:** NO external dependencies beyond Godot stdlib
+- **FR-8:** Tests in co-located `test_fragmenter.gd`
 
 ## 5. Non-Goals (Out of Scope)
 
-- NO provider coupling (scatter/retrieve/incinerate are Vant-specific Git multi-provider ops; not needed in frame)
+- NO provider coupling in frame layer (scatter/retrieve/incinerate are game-layer; see US-101/102/103 in Phase 4)
 - NO async/await (pure synchronous functions)
 - NO encryption (XOR spreading is obfuscation, not crypto; encryption is a higher layer)
 - NO manifest/index (stateless by design)
@@ -146,19 +146,21 @@ for (let i = 0; i < numFragments; i++) {
 ## 8. Success Metrics
 
 - All 3 functions implemented and pushed to main
-- Test file passes (≥ 15 assertions covering all user stories)
-- Round-trip fragment + weld recovers exact original for: empty string, "hello", JSON object, 100KB binary
-- `derive_lattice_keys(12345, 5)` produces stable output across runs
+- Test file passes (≥ 20 assertions covering all user stories + edge cases)
+- Round-trip fragment + weld recovers exact original for: empty string, "hello", JSON object, 100KB binary, non-ASCII UTF-8 ("你好世界 🌍"), variable num_fragments (2, 5, 10)
+- `derive_lattice_keys(12345, 5)` produces stable, distinct keys across runs
+- `derive_lattice_keys(-1, 3)` produces deterministic keys (negative sequence handling)
+- Checksum verification in `weld()` works: corrupting fragment data → checksum mismatch detected, fragment skipped
 - `game/core/frame/geometry/` directory exists with `fragmenter.gd` + `test_fragmenter.gd`
 - `labs/world-building-arch.md` §13 component map updated: "Vant fragmenter" → DONE
-- `labs/world-building-arch.md` §14 migration roadmap updated: "Vant icosahedral + fragmenter ports" → DONE
+- `labs/world-building-arch.md` §14 migration roadmap: "Vant icosahedral + fragmenter ports" → DONE
 - Single commit, conventional message format
 
 ## 9. Open Questions
 
-1. **Sequence source:** In production, the sequence comes from the seed chain (barcode integer). For testing, any positive int works. The PRD assumes `sequence: int` — caller resolves barcode→int.
+1. **Sequence source:** In production, the sequence comes from the seed chain. `seed_chain.gd::derive_seed()` returns `PackedByteArray` (32-byte SHA-256). Use `int.from_bytes(seed.slice(0, 4), false)` to convert first 4 bytes to a 32-bit int, or hash the full NSC-9 barcode to 32-bit for fragmenter input.
 2. **Fragment size ceiling:** Vant uses `Math.ceil(bytes / numFragments)`. GDScript `ceil()` works identically.
-3. **Base-36 in GDScript:** `int.to_string(36)` works for positive ints. Need to handle unsigned 32-bit → string.
+3. **Base-36 in GDScript:** `int.to_string(36)` works for positive ints. Need to handle unsigned 32-bit → string. Current `itoa()` implementation handles this.
 
 ## 10. Definition of Done
 
@@ -166,7 +168,6 @@ for (let i = 0; i < numFragments; i++) {
 - [ ] `game/core/frame/geometry/test_fragmenter.gd` created and passing
 - [ ] `labs/world-building-arch.md` §13 component map: "Vant fragmenter" row status → DONE
 - [ ] `labs/world-building-arch.md` §14 migration roadmap: "Vant icosahedral + fragmenter ports" → DONE
-- [ ] `labs/prd-geometry.md` linked from `labs/README.md` (PRD list)
 - [ ] File headers include Vant lineage credit
 - [ ] Smoke test: derive keys → fragment "test" → weld → equals "test"
 - [ ] One commit to main
