@@ -1,5 +1,5 @@
 ## Ported from vant axolotl lib/geometry/fragmenter.js
-## Aperiodic Fragmenter — stateless data sharding via Knuth multiplicative hash.
+## Aperiodic Fragmenter - stateless data sharding via Knuth multiplicative hash.
 ##
 ## Vant lineage: lib/geometry/fragmenter.js (axolotl branch, v0.8.6)
 ## Pattern: Knuth multiplicative lattice key derivation, XOR-spread fragments.

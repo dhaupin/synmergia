@@ -191,7 +191,11 @@ func _test_empty_weld() -> bool:
 
 func _test_non_ascii_utf8() -> bool:
 	var frag: Fragmenter = Fragmenter.new()
-	var data: String = "你好世界 🌍"
+	# Build a multi-byte UTF-8 string programmatically so the source
+	# file stays ASCII-only (Godot import requirement).
+	var data: String = ""
+	for code in [0x4F60, 0x597D, 0x4E16, 0x754C, 0x1F30E]:
+		data += chr(code)
 	var fragments: Array[Dictionary] = frag.fragment(data, 4)
 	var welded: String = frag.weld(fragments)
 	return welded == data
