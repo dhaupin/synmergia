@@ -51,6 +51,10 @@ const FLYWHEEL_DECAY: float = 0.5
 ## Flywheel max momentum
 const FLYWHEEL_MAX_MOMENTUM: float = 1000.0
 
+## AOI and chunk constants
+const DEFAULT_AOI_RADIUS: int = 500
+const CHUNK_SIZE: int = 100
+
 ## Chaos weights per source
 const CHAOS_PLAYER_INPUT: int = 1
 const CHAOS_COMBAT_SKILL: int = 5
@@ -516,9 +520,53 @@ func _phase4_diff_emit() -> Dictionary:
 
 ## Compute the AOI diff for a specific client.
 func _compute_aoi_diff(client_id: int) -> Dictionary:
-	# TODO: Compute diff based on client's AOI
-	# Returns only the state changes within the client's area of interest
-	return {}
+	if EntityService == null or _state_tree == null:
+		return {}
+
+	var player_id: String = _get_player_id_from_peer(client_id)
+	if player_id == "":
+		return {}
+
+	var player = EntityService.get_entity(player_id)
+	if player == null:
+		return {}
+
+	var pos: Vector3 = player.global_position if "global_position" in player else Vector3.ZERO
+
+	var min_cx: int = int(floor((pos.x - DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var max_cx: int = int(floor((pos.x + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var min_cz: int = int(floor((pos.z - DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var max_cz: int = int(floor((pos.z + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+
+	var full_diff: Array = []
+	if _previous_root_hash.size() > 0 and _current_root_hash.size() > 0 and _previous_root_hash != _current_root_hash:
+		full_diff = _state_tree.diff_states(_previous_root_hash, _current_root_hash)
+
+	var result: Dictionary = {}
+	for cx in range(min_cx, max_cx + 1):
+		for cz in range(min_cz, max_cz + 1):
+			var chunk_key: String = "%d_%d" % [cx, cz]
+			var chunk_min_x: float = float(cx) * float(CHUNK_SIZE)
+			var chunk_max_x: float = float(cx + 1) * float(CHUNK_SIZE)
+			var chunk_min_z: float = float(cz) * float(CHUNK_SIZE)
+			var chunk_max_z: float = float(cz + 1) * float(CHUNK_SIZE)
+
+			var chunk_changes: Array = []
+			for entry in full_diff:
+				if not entry is Array or entry.size() < 4:
+					continue
+				var value_bytes: PackedByteArray = entry[3]
+				if value_bytes == null or value_bytes.size() == 0:
+					continue
+				var value: Variant = bytes_to_var(value_bytes)
+				if value is Dictionary and value.has("position_x"):
+					var ex: float = float(value.get("position_x", 0.0))
+					var ez: float = float(value.get("position_z", 0.0))
+					if ex >= chunk_min_x and ex < chunk_max_x and ez >= chunk_min_z and ez < chunk_max_z:
+						chunk_changes.append(entry)
+			result[chunk_key] = chunk_changes
+
+	return result
 
 ## Apply LOD to a diff - distant clients get L1 summaries.
 func _apply_lod(client_id: int, diff: Dictionary) -> Dictionary:
@@ -546,6 +594,10 @@ func _send_to_client(client_id: int, compressed: PackedByteArray) -> void:
 ## Redis LRU update, materialized intersections update.
 ## Runs after the tick has emitted, into the next tick.
 func _phase5_persistence() -> void:
+	# Cancel previous task if still running
+	if _persistence_task and is_instance_valid(_persistence_task):
+		_persistence_task.cancel()
+
 	# Fire and forget - async, does not block the tick
 	var task := _Task.new()
 	task.name = "TickPersistence_%d" % _tick_number
@@ -585,12 +637,18 @@ func _phase5_persistence() -> void:
 ## Markov predictor estimates player position in 1s,
 ## LOD-promotes predicted chunks, procedural generator runs on those chunks.
 func _phase6_predicted_prefetch() -> void:
+	# Cancel previous task if still running
+	if _prefetch_task and is_instance_valid(_prefetch_task):
+		_prefetch_task.cancel()
+
 	# Fire and forget - async, does not block the tick
 	var task := _Task.new()
 	task.name = "TickPrefetch_%d" % _tick_number
 	add_child(task)
 
 	task._setup(func() -> void:
+		var promoted_chunks: Array[String] = []
+
 		# Markov predictor estimate player position in 1s
 		if EntityService and PlayerManager:
 			var players = EntityService.get_all_players()
@@ -601,10 +659,13 @@ func _phase6_predicted_prefetch() -> void:
 				if predicted_pos != null:
 					# LOD-promote predicted chunks
 					var chunk_coords = _position_to_chunk(predicted_pos)
-					_promote_chunk_lod(chunk_coords)
+					var chunk_key: String = "%d_%d" % [chunk_coords.x, chunk_coords.y]
+					if LODManager and LODManager.has_method("promote_chunk"):
+						LODManager.promote_chunk(chunk_coords, LODManager.LODState.WARM)
+					promoted_chunks.append(chunk_key)
 
 		# Procedural generator runs on promoted chunks
-		_promote_generation()
+		_promote_generation(promoted_chunks)
 
 		GameLog.debug("TickService: Phase 6 prefetch complete for tick %d" % _tick_number)
 	)
@@ -619,18 +680,17 @@ func _markov_predict(player) -> Vector3:
 
 ## Convert a world position to chunk coordinates.
 func _position_to_chunk(pos: Vector3) -> Vector2:
-	# TODO: Convert world position to chunk grid coordinates
-	return Vector2.ZERO
+	return Vector2(int(floor(pos.x / float(CHUNK_SIZE))), int(floor(pos.z / float(CHUNK_SIZE))))
 
 ## Promote a chunk's LOD level.
-func _promote_chunk_lod(chunk_coords: Vector2) -> void:
-	# TODO: LOD promotion for predicted chunks
-	pass
-
-## Run the procedural generator on promoted chunks.
-func _promote_generation() -> void:
-	# TODO: Procedural generation on promoted chunks
-	pass
+func _promote_generation(chunk_keys: Array[String]) -> void:
+	if WorldService == null:
+		return
+	for chunk_key in chunk_keys:
+		if WorldService.has_method("generate_chunk"):
+			WorldService.generate_chunk(chunk_key)
+		else:
+			GameLog.debug("TickService: WorldService.generate_chunk not available for chunk %s" % chunk_key)
 
 ## ============================================================================
 ## FLYWHEEL MANAGEMENT
@@ -728,11 +788,14 @@ class _Task:
 		call_deferred("_execute")
 
 	func _execute() -> void:
-		if _is_running and _task_func.is_valid():
-			_task_func.call()
+	if not _is_running or not _task_func.is_valid():
 		if is_instance_valid(self):
 			queue_free()
-		_is_running = false
+		return
+	_is_running = false
+	_task_func.call()
+	if is_instance_valid(self):
+		queue_free()
 
 	func cancel() -> void:
 		_is_running = false
