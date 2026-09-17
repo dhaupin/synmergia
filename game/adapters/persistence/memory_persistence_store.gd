@@ -689,28 +689,28 @@ func _match_like(text: String, pattern: String) -> bool:
 			regex_str += ".*"
 		elif c == "_":
 			regex_str += "."
-		elif c == "\\" and i + 1 < pattern.length():
+		elif c == "\" and i + 1 < pattern.length():
 			var next := pattern[i + 1]
-			if next == "%" or next == "_" or next == "\\":
-				regex_str += "\\" + next
+			if next == "%" or next == "_" or next == "\":
+				regex_str += "\" + next
 				i += 1
 			else:
-				regex_str += "\\\\" + next
+				regex_str += "\" + next
 				i += 1
 		elif c >= "A" and c <= "Z":
 			regex_str += "[" + c.to_lower() + c.to_upper() + "]"
 		elif c >= "a" and c <= "z":
-				regex_str += "[" + c.to_upper() + c.to_lower() + "]"
-			else:
-				regex_str += c
-			
+			regex_str += "[" + c.to_upper() + c.to_lower() + "]"
+		else:
+			regex_str += c
+
 	if regex_str == "":
-			regex_str = ".*"
-		return text.to_lower().find_regexp(regex_str) >= 0
+		regex_str = ".*"
+	return text.to_lower().find_regexp(regex_str) >= 0
 
 
 func _parse_order_by(sql: String, params: Array) -> Array:
-	var result: Array = []
+var result: Array = []
 	
 	sql = sql.strip_edges()
 	
