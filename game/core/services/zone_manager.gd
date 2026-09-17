@@ -13,6 +13,10 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # Preload the script resource rather than referencing the class_name to avoid
 # any shadowing ambiguity and to keep the dependency explicit.
 const SpatialFragmenterScript = preload("res://core/frame/geometry/spatial_fragmenter.gd")
+# NSC-9 bridge: connects NSC-9 spatial codes -> SpatialFragmenter -> T3 pipeline.
+const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
+# NSC-9 math utilities (pure function for axis/encoding).
+const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
 
 # Spatial quantization: world units collapsed into a single address cell.
 # A quantum of 500 means coordinates within the same 500-unit cube share
@@ -57,6 +61,9 @@ var _spatial_fragmenter: SpatialFragmenterScript = null
 
 # Zone spatial addresses (zone_id -> int spatial address)
 var _zone_spatial_addresses: Dictionary = {}
+
+# NSC-9 bridge instance (pure utility, stateless)
+var _nsc9_bridge: Nsc9BridgeScript = null
 
 signal zone_loaded(zone_data)
 signal zone_unloaded(zone_id: String)

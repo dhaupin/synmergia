@@ -238,32 +238,24 @@ Vant's `scatter`, `retrieve`, `incinerate` couple to filesystem/Git providers. T
 - Icosahedral vertex index (0-11)  ->  can map to faces 0-11, leaving 8-19 for other region types
 - Current design: generic 8-bit region type; caller resolves interpretation
 
-### 6K. Integration Bridge: Fragmenter [U+2194] SpatialFragmenter [U+2194] T3
-**Recommended wiring pattern** (for services needing both data sharding and spatial addressing):
+### 6K. Integration Bridge: Fragmenter <-> SpatialFragmenter <-> T3
+**Implemented via `Nsc9Bridge`** (`game/core/frame/geometry/nsc9_bridge.gd`):
 
 ```gdscript
-# Example service storing both spatial fragment and data fragment
-func store_entity_state(entity_id: String, nsc9_code: int, data: Variant) -> void:
-    # 1. Derive spatial address from NSC-9
-    var facility = (nsc9_code % 1_000_000_000_000 / 1_000_000_000) % 1000
-    var axis = (nsc9_code % 1_000_000_000 / 1_000_000) % 1000
-    var vertex = axis - 1  # NSC-9 axis 1-12  ->  vertex 0-11
-    var spatial_addr = SpatialFragmenter.make_address(0, 0, 0, 0, vertex)
-    
-    # 2. Store spatial fragment in T3 state tree
-    var spatial_data = {
-        "address": spatial_addr,
-        "nsc9_code": nsc9_code,
-        "data_key": Fragmenter.generate_key(data),
-        "bbox": SpatialFragmenter.get_bounding_box(spatial_addr)
-    }
-    StateTree.insert_state("entities/%s" % entity_id, "spatial_fragment", spatial_data)
-    
-    # 3. Store data fragment separately
-    var fragments = Fragmenter.fragment(data, 5)
-    for i, frag in enumerate(fragments):
-        DataService.store_fragment(entity_id, "%s_frag%d" % [entity_id, i], frag.data)
+var bridge := Nsc9Bridge.new()
+var address := bridge.nsc9_to_address(nsc_code)
+var path := bridge.address_to_t3_path(address)
+var hash := bridge.store_nsc9_state(t3, nsc_code, state_dict)
+var results := bridge.query_nsc9_face(t3, nsc_code)
 ```
+
+The bridge connects three frame primitives into a unified pipeline:
+- NSC-9 spatial code (64-bit GS1 reservation)
+    -> SpatialFragmenter 64-bit address (octree subdivision)
+    -> T3 content-hash tree (deterministic state storage)
+
+Pure functions: no state, no autoload, no GameManager dependency.
+See `labs/prd-geometry.md` sec. 6K for the original wiring pattern spec.
 
 ## 7. Technical Considerations
 
@@ -293,11 +285,11 @@ func store_entity_state(entity_id: String, nsc9_code: int, data: Variant) -> voi
 - [ ] MAX_DEPTH prevents fragment explosion
 
 ### Cross-Layer Integration
-- [ ] `labs/world-building-arch.md` sec. 13 component map updated: "Vant fragmenter"  ->  DONE
-- [ ] `labs/world-building-arch.md` sec. 13 component map updated: "Spatial geometry fragmenter"  ->  DONE
-- [ ] `labs/world-building-arch.md` sec. 14 migration roadmap: "Vant icosahedral + fragmenter ports"  ->  DONE
-- [ ] Integration bridge: NSC-9  ->  SpatialFragmenter  ->  T3 wiring documented
-- [ ] Single commit, conventional message format
+- [x] `labs/world-building-arch.md` sec. 13 component map updated: "Vant fragmenter"  ->  DONE
+- [x] `labs/world-building-arch.md` sec. 13 component map updated: "Spatial geometry fragmenter"  ->  DONE
+- [x] `labs/world-building-arch.md` sec. 14 migration roadmap: "Vant icosahedral + fragmenter ports"  ->  DONE
+- [x] Integration bridge: NSC-9  ->  SpatialFragmenter  ->  T3 wiring documented and implemented via `Nsc9Bridge`
+- [x] Single commit, conventional message format
 
 ## 9. Open Questions
 
@@ -307,9 +299,9 @@ func store_entity_state(entity_id: String, nsc9_code: int, data: Variant) -> voi
 3. **Base-36 in GDScript:** `int.to_string(36)` works for positive ints. Need to handle unsigned 32-bit  ->  string. Current `itoa()` implementation handles this.
 
 ### Spatial Fragmenter (new)
-4. **NSC-9  ->  Face mapping:** NSC-9 prefix=9 with facility/axis/sequence. How does facility/axis map to spatial fragmenter face codes? Current design: generic 8-bit region type; caller interprets. NSC-9 axis 1-12 (icosahedral vertices) can map to faces 0-11; faces 12-19 available for other region types.
+4. **NSC-9  ->  Face mapping:** RESOLVED via `Nsc9Bridge` / `SpatialFragmenter.nsc9_axis_to_face()`. NSC-9 spatial axis 1-12 maps to faces 0-11; non-spatial axes return -1.
 5. **Icosahedral [U+2194] SpatialFragmenter integration:** icosahedral projection returns vertex index 0-11. Should subdivision use octree (8 children) or barycentric (4 children)? Current design: octree for clean bounding boxes; barycentric is a future extension.
-6. **T3 path naming convention:** What path format to use when storing spatial fragment state in T3? Convention: `"spatial/%04x-%04x-%04x-d%d-f%d" % [x, y, z, depth, face]` or `"faces/%d/depth_%d" % [face, depth]`?
+6. **T3 path naming convention:** RESOLVED via `SpatialFragmenter.path_for_address()`: `"spatial/%04x-%04x-%04x-d%d-f%d" % [x, y, z, depth, face]`.
 7. **Cross-service address sharing:** Should spatial fragmenter addresses be shared across services (e.g., EntityService uses them for positioning, QoSService uses them for range queries)? Currently: pure functions; integration pattern per service.
 
 ## 10. Definition of Done

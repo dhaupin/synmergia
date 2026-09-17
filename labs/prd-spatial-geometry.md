@@ -182,8 +182,8 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 
 ## 9. Open Questions
 
-1. **Face encoding:** NSC-9 prefix (9) vs icosahedron faces (0-19). Should face be a generic region type (8-bit) or a typed enum? Current design: generic 8-bit region type, caller interprets.
-2. **NSC-9 integration:** `Nsc9.encode_int()` returns a 14-digit string. Should we add a helper to convert NSC-9  ->  `SpatialFragmenter` address? Current design: caller extracts x/y/z/depth/face from NSC-9 fields.
+1. **Face encoding:** RESOLVED. Generic 8-bit region type; caller interprets. NSC-9 spatial axis 1-12 maps to faces 0-11 via `SpatialFragmenter.nsc9_axis_to_face()`.
+2. **NSC-9 integration:** RESOLVED via `Nsc9Bridge` (`game/core/frame/geometry/nsc9_bridge.gd`). The bridge provides `nsc9_to_address()`, `nsc9_to_t3_path()`, `store_nsc9_state()`, `query_nsc9_face()`, and `store_nsc9_fragmented()` helpers that convert NSC-9 codes directly to SpatialFragmenter addresses and T3 paths.
 3. **Icosahedral integration:** icosahedral faces are triangular, not cubic. Should subdivision be barycentric (4 children) or octree-style (8 children)? Current design: octree-style for clean bounding boxes; barycentric is a future extension.
 
 ## 10. Definition of Done

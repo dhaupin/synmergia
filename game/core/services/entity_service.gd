@@ -17,6 +17,12 @@ const SpatialFragmenterScript = preload("res://core/frame/geometry/spatial_fragm
 const FragmenterScript = preload("res://core/frame/geometry/fragmenter.gd")
 # T3 content-hash tree substrate (frame primitive, optional).
 const T3Script = preload("res://core/frame/kv/t3.gd")
+# NSC-9 bridge: connects NSC-9 spatial codes -> SpatialFragmenter -> T3 pipeline.
+const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
+# NSC-9 math utilities (pure function for axis/encoding).
+const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
+# NSC-9 bridge: connects NSC-9 spatial codes -> SpatialFragmenter -> T3 pipeline.
+const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
 const _kv_prefix := "entity:"
 var _entities: Dictionary = {}       # entity_id ->
 var _players: Dictionary = {}        # player_id ->  (subset)
@@ -35,6 +41,8 @@ var _fragmenter: FragmenterScript = null
 var _t3: Variant = null
 # entity_id -> int spatial address
 var _entity_spatial_addresses: Dictionary = {}
+# NSC-9 bridge instance (pure utility, stateless)
+var _nsc9_bridge: Nsc9BridgeScript = null
 
 signal entity_registered(entity, metadata: SpawnMetadata)
 signal entity_unregistered(entity, metadata: SpawnMetadata)
@@ -50,7 +58,7 @@ func _ready() -> void:
 	_load_entity_metadata()
 	_init_spatial_and_t3()
 
-## Initialize SpatialFragmenter, Fragmenter, and T3 instance (optional).
+## Initialize SpatialFragmenter, Fragmenter, T3 instance, and NSC-9 bridge (optional).
 ## Graceful degradation: if any primitive is unavailable, spatial features
 ## are disabled but the rest of EntityService continues to function.
 func _init_spatial_and_t3() -> void:
@@ -71,6 +79,12 @@ func _init_spatial_and_t3() -> void:
 		GameLog.debug("EntityService: T3 content-hash tree initialized")
 	else:
 		GameLog.warn("EntityService: T3Script not available; entity state persistence disabled")
+
+	if Nsc9BridgeScript:
+		_nsc9_bridge = Nsc9BridgeScript.new()
+		GameLog.debug("EntityService: NSC-9 bridge initialized")
+	else:
+		GameLog.warn("EntityService: Nsc9BridgeScript not available; NSC-9 pipeline disabled")
 
 ## Compute a deterministic SpatialFragmenter address for an entity.
 ##
@@ -111,6 +125,37 @@ func _compute_spatial_address(entity) -> int:
 		face = int(entity.relation) % 12
 
 	return _spatial_fragmenter.make_address(x, y, z, depth, face)
+
+## Compute a deterministic NSC-9 code for an entity.
+##
+## Derives the NSC-9 spatial code from the entity's position
+## (nearest icosahedral vertex -> spatial axis) and entity_id
+## (deterministic sequence). Facility is derived from the entity's
+## zone or entity_id hash.
+## Returns -1 if NSC-9 bridge is unavailable or position is non-spatial.
+func _compute_nsc9_code(entity) -> int:
+	if _nsc9_bridge == null:
+		return -1
+	var entity_id: String = entity.entity_id if "entity_id" in entity else ""
+	if entity_id == "":
+		return -1
+	var pos: Vector3 = entity.global_position if "global_position" in entity else Vector3.ZERO
+	if pos == Vector3.ZERO:
+		return -1
+
+	# Derive facility from entity_id hash (0-999)
+	var facility: int = abs(hash(entity_id)) % 1000
+
+	# Derive spatial axis from nearest icosahedral vertex
+	var lat: float = rad2deg(asin(clampf(pos.normalized().y, -1.0, 1.0)))
+	var lon: float = rad2deg(atan2(pos.normalized().z, pos.normalized().x))
+	var vertex: int = Nsc9.nearest_vertex(lat, lon)
+	var axis: int = Nsc9.spatial_axis(vertex)
+
+	# Derive sequence from entity_id hash (0-16M)
+	var sequence: int = Nsc9.deterministic_seq(entity_id, "nsc9")
+
+	return Nsc9.encode_int(facility, axis, sequence)
 
 ## Generate a deterministic T3 path for an entity's spatial fragment.
 func _spatial_path_for_entity(entity_id: String, address: int) -> String:
@@ -159,6 +204,13 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 	if spatial_address != 0:
 		_entity_spatial_addresses[entity_id] = spatial_address
 		GameLog.debug("EntityService: Generated spatial address for entity %s (0x%08x)" % [entity_id, spatial_address])
+
+	# Generate NSC-9 code for the entity (if NSC-9 bridge available)
+	var nsc9_code: int = _compute_nsc9_code(entity)
+	if nsc9_code != -1:
+		GameLog.debug("EntityService: Generated NSC-9 code for entity %s (0x%08x)" % [entity_id, nsc9_code])
+		# Note: NSC-9 code can be stored in metadata for later retrieval
+		metadata.nsc9_code = nsc9_code
 
 	# Store entity state in T3 (optional)
 	var t3_hash: PackedByteArray = store_entity_state_in_t3(entity_id)
