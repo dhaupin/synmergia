@@ -147,8 +147,8 @@ func _compute_nsc9_code(entity) -> int:
 	var facility: int = abs(hash(entity_id)) % 1000
 
 	# Derive spatial axis from nearest icosahedral vertex
-	var lat: float = rad2deg(asin(clampf(pos.normalized().y, -1.0, 1.0)))
-	var lon: float = rad2deg(atan2(pos.normalized().z, pos.normalized().x))
+	var lat: float = rad_to_deg(asin(clampf(pos.normalized().y, -1.0, 1.0)))
+	var lon: float = rad_to_deg(atan2(pos.normalized().z, pos.normalized().x))
 	var vertex: int = Nsc9.nearest_vertex(lat, lon)
 	var axis: int = Nsc9.spatial_axis(vertex)
 

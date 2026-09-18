@@ -392,16 +392,16 @@ func _update_display(data: Dictionary) -> void:
 		_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
 
 	# Class icon and label
-	var class_name := data.get("class", "")
+	var char_class_name := data.get("class", "")
 	var class_icon_path := data.get("class_icon", "")
-	if class_name != "":
-		_class_label.text = class_name
+	if char_class_name != "":
+		_class_label.text = char_class_name
 		if class_icon_path != "":
 			_class_icon.texture = load(class_icon_path)
 			_class_icon.visible = true
 		else:
 			# Try to resolve class icon from IconResolver
-			var icon := IconResolver.get_icon_for_path("res://ui/textures/classes/%s.png" % class_name.to_lower())
+			var icon := IconResolver.get_icon_for_path("res://ui/textures/classes/%s.png" % char_class_name.to_lower())
 			if icon:
 				_class_icon.texture = icon
 				_class_icon.visible = true

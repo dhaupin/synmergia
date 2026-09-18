@@ -96,15 +96,15 @@ func decode_year(sequence: int) -> int:
 ## Input vector3 is assumed to be on the sphere surface (or will be normalized).
 func project_to_latlon(position: Vector3, planet_radius: float = 20000.0) -> Vector2:
 	var normalized = position.normalized()
-	var lat = rad2deg(asin(clampf(normalized.y, -1.0, 1.0)))
-	var lon = rad2deg(atan2(normalized.z, normalized.x))
+	var lat = rad_to_deg(asin(clampf(normalized.y, -1.0, 1.0)))
+	var lon = rad_to_deg(atan2(normalized.z, normalized.x))
 	return Vector2(lat, lon)
 
 ## Map a lat/lon to the nearest icosahedral vertex index (0-11).
 ## Uses dot product against the 12 unit vertices.
 func nearest_vertex(lat: float, lon: float) -> int:
-	var phi = deg2rad(lat)
-	var theta = deg2rad(lon)
+	var phi = deg_to_rad(lat)
+	var theta = deg_to_rad(lon)
 	var x = cos(phi) * cos(theta)
 	var y = sin(phi)
 	var z = cos(phi) * sin(theta)

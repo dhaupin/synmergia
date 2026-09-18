@@ -777,8 +777,8 @@ func _refresh_stats_display() -> void:
 	if char_header:
 		var name_lbl: Label = char_header.get_node("CharName")
 		var species_name := _char_data.species_id.capitalize()
-		var class_name := _char_data.class_id.capitalize()
-		name_lbl.text = "%s %s - Level %d" % [species_name, class_name, _char_data.level]
+		var char_class_name := _char_data.class_id.capitalize()
+		name_lbl.text = "%s %s - Level %d" % [species_name, char_class_name, _char_data.level]
 
 	# Get stats from character
 	var stats: Dictionary = _char_data.get_stats()

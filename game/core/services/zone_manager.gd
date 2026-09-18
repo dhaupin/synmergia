@@ -175,8 +175,8 @@ func _compute_nsc9_code(zone_id: String, zone_center: Vector3) -> int:
 	var facility: int = abs(hash(zone_id)) % 1000
 
 	# Axis: nearest icosahedral vertex from zone center
-	var lat: float = rad2deg(asin(clampf(zone_center.normalized().y, -1.0, 1.0)))
-	var lon: float = rad2deg(atan2(zone_center.normalized().z, zone_center.normalized().x))
+	var lat: float = rad_to_deg(asin(clampf(zone_center.normalized().y, -1.0, 1.0)))
+	var lon: float = rad_to_deg(atan2(zone_center.normalized().z, zone_center.normalized().x))
 	var vertex: int = Nsc9.nearest_vertex(lat, lon)
 	var axis: int = Nsc9.spatial_axis(vertex)
 
