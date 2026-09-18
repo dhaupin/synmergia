@@ -18,9 +18,15 @@ extends Node
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const AdapterRegistry = preload("res://adapters/registry.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
 const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
+const AccountRollup = preload("res://core/services/account_rollup.gd")
+const NetworkManager = preload("res://core/autoload/network_manager.gd")
+
+const SESSION_TTL_SEC := 86400  # 24 hours
+const _session_cache_name := "session_cache"
+const _session_key_prefix := "session:"
 
 ## This is the client-side gate. Server should always re-validate.
 
@@ -79,8 +85,15 @@ func login(account_id: String, password: String) -> bool:
 	_is_guest = false
 	_failed_attempts.erase(account_id)
 
+	# Store session in cache with 24-hour TTL
+	var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+	if session_cache:
+		session_cache.store(_session_key_prefix + _current_session_token, account_id, SESSION_TTL_SEC)
+
 	if AccountService:
 		AccountService.update_last_login(account_id)
+	if AccountRollup:
+		AccountRollup.rebuild_rollup(account_id)
 	GameLog.info("LoginService: %s logged in" % account_id)
 	login_succeeded.emit(account_id, false)
 	return true
@@ -97,7 +110,7 @@ func register(account_id: String, password: String, display_name: String = "") -
 		_fail("Account already exists")
 		return false
 
-	var validation := SecurityService.validate_player_name(display_name) if SecurityService else {"valid": true}
+	var validation: Dictionary = SecurityService.validate_player_name(display_name) if SecurityService else {"valid": true}
 	if not validation.get("valid", true):
 		_fail("Display name invalid: %s" % validation.get("reason", "unknown"))
 		return false
@@ -130,6 +143,14 @@ func login_as_guest() -> bool:
 	_current_account_id = guest_id
 	_current_session_token = _mint_session_token()
 	_is_guest = true
+	if AccountRollup:
+		AccountRollup.rebuild_rollup(guest_id)
+
+	# Store guest session in cache with 24-hour TTL
+	var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+	if session_cache:
+		session_cache.store(_session_key_prefix + _current_session_token, guest_id, SESSION_TTL_SEC)
+
 	GameLog.info("LoginService: Guest session %s" % guest_id)
 	login_succeeded.emit(guest_id, true)
 	return true
@@ -138,11 +159,42 @@ func logout() -> void:
 	if _current_account_id == "":
 		return
 	var prev := _current_account_id
+	var prev_token := _current_session_token
 	_current_account_id = ""
 	_current_session_token = ""
 	_is_guest = false
+
+	# Remove session from cache
+	if prev_token != "":
+		var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+		if session_cache:
+			session_cache.delete(_session_key_prefix + prev_token)
+
 	GameLog.info("LoginService: %s logged out" % prev)
 	logged_out.emit()
+
+## Invalidates all session tokens (called on manifest restore)
+## Clears current session and forces all clients to re-authenticate
+func invalidate_all_tokens() -> void:
+	GameLog.info("LoginService: Invalidating all session tokens")
+	
+	# Clear current session from cache
+	if _current_session_token != "":
+		var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+		if session_cache:
+			session_cache.delete(_session_key_prefix + _current_session_token)
+	
+	# Clear current session
+	_current_account_id = ""
+	_current_session_token = ""
+	_is_guest = false
+	
+	# Clear rate limit tracking
+	_failed_attempts.clear()
+	
+	# Emit signal for any listeners
+	logged_out.emit()
+	GameLog.info("LoginService: All tokens invalidated")
 
 func is_logged_in() -> bool:
 	return _current_account_id != ""
@@ -178,6 +230,11 @@ func build_seed_receipt(character_id: String) -> Resource:
 	if account_id == "":
 		GameLog.warn("LoginService: Character %s has no account" % character_id)
 		return null
+	
+	# Edge Case B: Double-Join & Connection Hijacking
+	# Check for existing active session for this character and kick it
+	if NetworkManager and NetworkManager.is_server:
+		NetworkManager.kick_player_by_character_id(character_id, "New login for character")
 	
 	# Get server HMAC key from config
 	var server_key := _get_server_hmac_key()
@@ -216,12 +273,27 @@ func build_seed_receipt(character_id: String) -> Resource:
 	receipt.instance_seed = instance_seed
 	receipt.player_seed = player_seed
 	receipt.manifest_hash = manifest_hash
-	receipt.issued_at = Time.get_unix_time_from_system()
+	receipt.issued_at = Time.get_unix_time_from_system() * 1000
 	receipt.sign(server_key)
 	
 	GameLog.info("LoginService: Built seed receipt for %s" % character_id)
 	seed_receipt_ready.emit(character_id, receipt)
 	return receipt
+
+## Server-side handler for character selection.
+## Associates the peer with the character, kicks any existing session
+## for the same character (Edge Case B), builds and sends SeedReceipt.
+## Returns the SeedReceipt resource, or null if character not found.
+func on_character_selected(character_id: String, peer_id: int) -> Resource:
+	if not NetworkManager or not NetworkManager.is_server:
+		GameLog.warn("LoginService.on_character_selected: Not running as server")
+		return null
+	
+	# Associate peer with character (so _find_peer_for_character works)
+	NetworkManager.associate_peer_with_character(peer_id, character_id)
+	
+	# Build seed receipt (includes kick check for Edge Case B)
+	return build_seed_receipt(character_id)
 
 func _get_server_hmac_key() -> PackedByteArray:
 	# In production, load from secure config file (srv/config/server.key)
@@ -383,20 +455,26 @@ func _fail(reason: String) -> void:
 	login_failed.emit(reason)
 
 func _load_accounts() -> void:
-	var store := DictStore.new()
+	var store: PersistenceStore = AdapterRegistry.get_persistence("accounts")
 	if not store.has_key(_kv_prefix + "_init"):
 		_store = {}
 		return
-	var keys := store.all_keys()
+	var keys: Array = store.all_keys()
+	var account_keys: Array = []
 	for key in keys:
 		if key.begins_with(_kv_prefix) and key != _kv_prefix + "_init":
-			var account_id = key.substr(_kv_prefix.length())
-			var entry: Dictionary = store.get_kv(key)
-			if not entry.is_empty():
-				_store[account_id] = entry
+			account_keys.append(key)
+	if account_keys.is_empty():
+		return
+	var results: Dictionary = store.get_many(account_keys)
+	for key in account_keys:
+		var account_id = key.substr(_kv_prefix.length())
+		var entry: Dictionary = results.get(key, {})
+		if not entry.is_empty():
+			_store[account_id] = entry
 
 func _persist_account(account_id: String) -> void:
-	var store := DictStore.new()
+	var store: PersistenceStore = AdapterRegistry.get_persistence("accounts")
 	var entry: Dictionary = _store.get(account_id, {})
 	if entry.is_empty():
 		store.erase(_kv_prefix + account_id)

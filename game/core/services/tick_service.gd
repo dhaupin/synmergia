@@ -37,6 +37,9 @@ const PHASE_4_BUDGET_MS: int = 8
 const TOTAL_SYNC_BUDGET_MS: int = 48
 const TICK_BUDGET_MS: int = 50
 
+## Budget warning threshold (80% of 50ms)
+const BUDGET_WARNING_THRESHOLD_MS: int = 40
+
 ## Adaptive tick intervals
 const HEARTBEAT_FLOOR_HIGH_MS: int = 50   # >80% momentum
 const HEARTBEAT_FLOOR_MID_MS: int = 100   # <80% momentum
@@ -94,6 +97,10 @@ var _connected_clients: Array = []
 
 ## Side queue for overflow work from Phase 2
 var _side_queue: Array = []
+
+## State command buffer: queues all state tree mutations for atomic application in Phase 2
+## Commands: {"type": "insert|update|delete|re_root", "path": "...", "entity_id": "...", "state_type": "...", "payload": {...}}
+var _state_command_buffer: Array = []
 
 ## Async persistence task
 var _persistence_task = null
@@ -237,6 +244,20 @@ func _on_tick() -> void:
 			n014_violation = true
 			GameLog.warn("TickService: N014 violation tick=%d deviation=%.1fms" % [_tick_number, boundary_deviation])
 
+	# Budget warning: log phase breakdown when total sync exceeds 80% of tick budget (40ms)
+	if total_sync_ms > BUDGET_WARNING_THRESHOLD_MS:
+		var phase1_ms := phase_timings.get("phase1_input", 0.0)
+		var phase2_ms := phase_timings.get("phase2_world", 0.0)
+		var phase3_ms := phase_timings.get("phase3_reroot", 0.0)
+		var phase4_ms := phase_timings.get("phase4_emit", 0.0)
+		GameLog.warn(
+			"TickService: TICK BUDGET BREACH tick=%d total_sync=%.1fms (threshold=%dms) "
+			"phase1_input=%.1fms phase2_world=%.1fms phase3_reroot=%.1fms phase4_emit=%.1fms" % [
+				_tick_number, total_sync_ms, BUDGET_WARNING_THRESHOLD_MS,
+				phase1_ms, phase2_ms, phase3_ms, phase4_ms
+			]
+		)
+
 	tick_completed.emit(_tick_number, phase_timings)
 	GameLog.debug("TickService: Tick %d complete. Sync=%.1fms PhaseTimings=%s" % [_tick_number, total_sync_ms, phase_timings])
 
@@ -355,6 +376,11 @@ func _phase2_world_step() -> Dictionary:
 	var overflow: Array = []
 	var entity_count: int = 0
 
+	# Step 0: Process queued state tree mutations atomically
+	var mutate_result := _phase2_mutate()
+	if mutate_result["failed"] > 0:
+		GameLog.warn("TickService: %d state commands failed in Phase 2" % mutate_result["failed"])
+
 	# Step 1: Apply queued player inputs in deterministic order
 	# Deterministic by tick-local sequence, or by entity_id hash for fairness
 	var player_ids: Array = _input_queues.keys()
@@ -437,6 +463,56 @@ func _apply_player_input(player_id: String, input_data: Dictionary) -> bool:
 	# The tree is authoritative - this is the only place state changes
 	return true
 
+## Process all queued state tree mutation commands atomically.
+## This is called during Phase 2 (World Step) to ensure all mutations
+## happen in a single deterministic batch before re-rooting in Phase 3.
+func _phase2_mutate() -> Dictionary:
+	var processed: int = 0
+	var failed: int = 0
+
+	if _state_tree == null or _state_command_buffer.is_empty():
+		return {"processed": 0, "failed": 0}
+
+	for command in _state_command_buffer:
+		var cmd_type := command["type"]
+		var success := false
+
+		match cmd_type:
+			"insert", "update":
+				var path := command["path"]
+				var entity_id := command["entity_id"]
+				var state_type := command["state_type"]
+				var payload := command["payload"]
+				try:
+					_state_tree.insert_state(path, entity_id, state_type, payload)
+					success = true
+				except:
+					push_error("TickService._phase2_mutate: insert/update failed for path %s" % path)
+					success = false
+
+			"delete":
+				var path := command["path"]
+				try:
+					_state_tree.delete_state(path)
+					success = true
+				except:
+					push_error("TickService._phase2_mutate: delete failed for path %s" % path)
+					success = false
+
+			"re_root":
+				# Re-root is implicit after mutations; this is a no-op but kept for explicit signaling
+				success = true
+
+		if success:
+			processed += 1
+		else:
+			failed += 1
+
+	# Clear the buffer after processing
+	_state_command_buffer.clear()
+
+	return {"processed": processed, "failed": failed}
+
 ## Decay active effects (buffs, dots) on all entities.
 func _decay_effects() -> void:
 	# TODO: Decrement effect durations, remove expired effects
@@ -455,9 +531,9 @@ func _pull_cross_shard_events() -> Array:
 
 ## Advance the wall clock (day/night cycle).
 func _advance_wall_clock() -> void:
-	# TODO: Advance wall clock based on tick number
-	# Day/night cycle, buff timer updates
-	pass
+	# Drive WorldService time and events from authoritative tick
+	if WorldService and WorldService.has_method("tick"):
+		WorldService.tick(_tick_interval / 1000.0)
 
 ## ============================================================================
 ## PHASE 3: State Re-root + Diff (10ms budget)
@@ -505,18 +581,84 @@ func _phase4_diff_emit() -> Dictionary:
 		# Apply LOD - distant clients get L1 summaries, not L0 detail
 		var lod_diff = _apply_lod(client_id, client_diff)
 
-		# LZ4-compress
-		var compressed = _lz4_compress(lod_diff)
+		# Flatten chunked AOI diff into T3 diff entry array for network transport
+		var diff_entries: Array = _flatten_aoi_diff(lod_diff)
 
-		# Send over WebSocket
-		if compressed.size() > 0:
-			_send_to_client(client_id, compressed)
+		# Send via NetworkManager
+		if diff_entries.size() > 0 and NetworkManager and NetworkManager.is_server:
+			var payload := {
+				"tick": _tick_number,
+				"root_hash": _current_root_hash,
+				"diff": diff_entries,
+				"lod_level": _get_client_lod_level(client_id)
+			}
+			NetworkManager.send_to_peer(client_id, payload)
 			client_count += 1
 
 		var emit_elapsed := float(Time.get_ticks_msec() - emit_start)
 		emit_times[client_id] = emit_elapsed
 
 	return {"clients_emit": client_count, "emit_times": emit_times}
+
+## Sends a full scope state snapshot to a specific client.
+## Used when client detects hash divergence and requests resync.
+## The scope is the player's AOI (Area of Interest).
+func send_full_scope_sync(client_id: int) -> void:
+	if _state_tree == null or EntityService == null or not NetworkManager or not NetworkManager.is_server:
+		return
+
+	var player_id: String = _get_player_id_from_peer(client_id)
+	if player_id == "":
+		return
+
+	var player = EntityService.get_entity(player_id)
+	if player == null:
+		return
+
+	var pos: Vector3 = player.global_position if "global_position" in player else Vector3.ZERO
+
+	# Build scope path from player's AOI chunks
+	var min_cx: int = int(floor((pos.x - DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var max_cx: int = int(floor((pos.x + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var min_cz: int = int(floor((pos.z - DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var max_cz: int = int(floor((pos.z + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+
+	# Create a scope path that covers the AOI
+	# Use a parent scope path that encompasses all AOI chunks
+	var scope_path: String = "world"
+
+	# Get full snapshot of the scope
+	var full_snapshot: Array = _state_tree.get_full_scope_snapshot(scope_path)
+	if full_snapshot.is_empty():
+		return
+
+	# Send as full state (empty diff marker in payload)
+	var payload := {
+		"tick": _tick_number,
+		"root_hash": _current_root_hash,
+		"diff": full_snapshot,
+		"lod_level": 0,
+		"is_full_sync": true  # Marker for client to know this is a full resync
+	}
+	NetworkManager.send_to_peer(client_id, payload)
+	GameLog.debug("TickService: Sent full scope sync to client %d (%d entries)" % [client_id, full_snapshot.size()])
+
+
+## Flatten chunked AOI diff (Dictionary of chunk_key -> Array[diff_entry])
+## into a flat Array[diff_entry] for network transport.
+func _flatten_aoi_diff(aoi_diff: Dictionary) -> Array:
+	var result: Array = []
+	for chunk_key in aoi_diff.keys():
+		var chunk_changes: Array = aoi_diff[chunk_key]
+		for entry in chunk_changes:
+			if entry is Array and entry.size() >= 4:
+				result.append(entry)
+	return result
+
+## Get LOD level for a client (0 = full detail, 1 = summary).
+func _get_client_lod_level(client_id: int) -> int:
+	# TODO: Determine based on distance, connection quality, etc.
+	return 0
 
 ## Compute the AOI diff for a specific client.
 func _compute_aoi_diff(client_id: int) -> Dictionary:
@@ -575,17 +717,6 @@ func _apply_lod(client_id: int, diff: Dictionary) -> Dictionary:
 	# Distant clients get L1 summaries
 	return diff
 
-## LZ4-compress a diff payload.
-func _lz4_compress(data: Dictionary) -> PackedByteArray:
-	# TODO: LZ4 compression
-	# Returns compressed bytes, or empty if compression fails
-	return PackedByteArray()
-
-## Send compressed data to a client over WebSocket.
-func _send_to_client(client_id: int, compressed: PackedByteArray) -> void:
-	# TODO: Send via NetworkManager's WebSocket
-	pass
-
 ## ============================================================================
 ## PHASE 5: Persistence (async)
 ## ============================================================================
@@ -609,21 +740,36 @@ func _phase5_persistence() -> void:
 			var store = AdapterRegistry.get_persistence("world_state")
 			if store:
 				var root_key := "tick:%d:root" % _tick_number
-				store.set(root_key, {"root_hash": _current_root_hash.hex_encode(), "tick": _tick_number})
+				# Batch the root snapshot with other world state
+				var entries: Dictionary = {
+					root_key: {"root_hash": _current_root_hash.hex_encode(), "tick": _tick_number},
+					"world_state:latest_tick": _tick_number,
+					"world_state:latest_root": _current_root_hash.hex_encode(),
+				}
+				if store.has_method("set_many"):
+					store.set_many(entries)
+				else:
+					for key in entries.keys():
+						store.set_kv(key, entries[key])
 
 		# Update Redis tick cache (N013)
 		var cache = AdapterRegistry.get_cache("tick_cache")
 		if cache:
-			cache.set("current_tick", str(_tick_number), 300)  # 5min TTL
-			cache.set("current_root", _current_root_hash.hex_encode(), 300)
+			var cache_entries: Dictionary = {
+				"current_tick": str(_tick_number),
+				"current_root": _current_root_hash.hex_encode(),
+				"intersections:last_tick": str(_tick_number),
+			}
+			if cache.has_method("set_many"):
+				cache.set_many(cache_entries, 300)  # 5min TTL for tick/root, 10min for intersections
+			else:
+				cache.set("current_tick", str(_tick_number), 300)
+				cache.set("current_root", _current_root_hash.hex_encode(), 300)
+				cache.set("intersections:last_tick", str(_tick_number), 600)
 
 		# Update Redis LRU (N013)
 		if cache:
 			cache.touch("world_state")
-
-		# Update materialized intersections
-		if cache:
-			cache.set("intersections:last_tick", str(_tick_number), 600)
 
 		GameLog.debug("TickService: Phase 5 persistence complete for tick %d" % _tick_number)
 	)
@@ -755,6 +901,35 @@ func unregister_client(client_id: int) -> void:
 	_connected_clients.erase(client_id)
 	_input_queues.erase(client_id)
 	GameLog.debug("TickService: Client %d unregistered" % client_id)
+
+## Queue a state tree mutation command for atomic application in Phase 2.
+## This is the ONLY way to mutate the state tree. Direct mutations from RPC callbacks,
+## agent connectors, or timers are forbidden.
+##
+## Command types:
+##   insert: {"type": "insert", "path": String, "entity_id": String, "state_type": String, "payload": Dictionary}
+##   update: {"type": "update", "path": String, "entity_id": String, "state_type": String, "payload": Dictionary}
+##   delete: {"type": "delete", "path": String}
+##   re_root: {"type": "re_root"} (triggers re-root; normally automatic after mutations)
+func queue_state_command(command: Dictionary) -> void:
+	if command == null or not command.has("type"):
+		push_error("TickService.queue_state_command: invalid command (missing type)")
+		return
+	var cmd_type := command["type"]
+	if cmd_type not in ["insert", "update", "delete", "re_root"]:
+		push_error("TickService.queue_state_command: unknown command type '%s'" % cmd_type)
+		return
+	if cmd_type in ["insert", "update"] and (not command.has("path") or not command.has("entity_id") or not command.has("state_type") or not command.has("payload")):
+		push_error("TickService.queue_state_command: insert/update command missing required fields")
+		return
+	if cmd_type == "delete" and not command.has("path"):
+		push_error("TickService.queue_state_command: delete command missing path")
+		return
+	_state_command_buffer.append(command)
+
+## Returns the number of pending state commands.
+func get_pending_command_count() -> int:
+	return _state_command_buffer.size()
 
 ## Submit chaos to the flywheel from external sources (NPC events, entity signals).
 func add_chaos(source: String, amount: float) -> void:

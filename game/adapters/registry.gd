@@ -113,3 +113,39 @@ func reset_for_tests() -> void:
 	_persistence.clear()
 	_cache.clear()
 	_memory.clear()
+
+
+# --- Observability ---
+
+# Returns metrics for all registered persistence stores.
+# Format: { "store_name": { active_connections, pending_queries, circuit_breaker_tripped, ... } }
+func get_persistence_metrics() -> Dictionary:
+	var result: Dictionary = {}
+	for name in _persistence:
+		var store := _persistence[name]
+		if store and store.has_method("get_metrics"):
+			result[name] = store.get_metrics()
+		else:
+			result[name] = {"error": "no metrics method"}
+	return result
+
+
+# Returns metrics for all registered cache stores.
+# Format: { "store_name": { active_connections, pending_queries, circuit_breaker_tripped, ... } }
+func get_cache_metrics() -> Dictionary:
+	var result: Dictionary = {}
+	for name in _cache:
+		var store := _cache[name]
+		if store and store.has_method("get_metrics"):
+			result[name] = store.get_metrics()
+		else:
+			result[name] = {"error": "no metrics method"}
+	return result
+
+
+# Returns combined metrics for all stores.
+func get_all_metrics() -> Dictionary:
+	return {
+		"persistence": get_persistence_metrics(),
+		"cache": get_cache_metrics()
+	}

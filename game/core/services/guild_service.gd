@@ -810,12 +810,21 @@ func _load_guilds() -> void:
 	var store := DictStore.new()
 	_guilds = {}
 	_player_guilds = {}
-	for key in store.all_keys():
+	var keys: Array = store.all_keys()
+	var guild_keys: Array = []
+	for key in keys:
 		if key.begins_with(_kv_prefix) and ":" in key:
 			var parts = key.split(":")
 			if parts.size() >= 3:
+				guild_keys.append(key)
+	
+	if not guild_keys.is_empty():
+		var results: Dictionary = store.get_many(guild_keys)
+		for key in guild_keys:
+			var parts = key.split(":")
+			if parts.size() >= 3:
 				var guild_id = parts[1] + ":" + parts[2]
-				_guilds[guild_id] = store.get_kv(key)
+				_guilds[guild_id] = results.get(key, {})
 				# Rebuild player->guild mapping
 				var members = _guilds[guild_id].get("members", [])
 				for member in members:
@@ -835,3 +844,14 @@ func _persist_invite(player_id: String) -> void:
 		store.set_kv("guild:invite:" + player_id, _pending_guild_invites[player_id])
 	else:
 		store.erase("guild:invite:" + player_id)
+
+
+func persist_all() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for guild_id in _guilds.keys():
+		entries[_kv_prefix + guild_id] = _guilds[guild_id]
+	for player_id in _pending_guild_invites.keys():
+		entries["guild:invite:" + player_id] = _pending_guild_invites[player_id]
+	if not entries.is_empty():
+		store.set_batch(entries)

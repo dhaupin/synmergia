@@ -117,6 +117,10 @@ func execute_restart() -> void:
 	GameLog.info("ServerManager: Executing restart")
 	restart_executed.emit()
 
+	# Flush all coalesced shard parameters before shutdown (Hazard B fix)
+	if ShardParameters:
+		ShardParameters.flush_all()
+
 	# Final warning
 	# Frame-level broadcast. ADMIN_ALERT, the kind->priority map returns
 	# HIGH (the highest tier the map has), which matches the CRITICAL
@@ -219,6 +223,10 @@ func start_maintenance(message: String = "Server under maintenance", duration_se
 	GameLog.info("ServerManager: Entering maintenance mode")
 	GameLog.info("ServerManager: Message: %s" % message)
 
+	# Flush all coalesced shard parameters before maintenance (Hazard B fix)
+	if ShardParameters:
+		ShardParameters.flush_all()
+
 	maintenance_started.emit(message)
 
 	NotificationService.notify(
@@ -302,6 +310,31 @@ func kick_all_players(reason: String = "Server is shutting down") -> void:
 		var players = entity_service.get_all_players()
 		for player in players:
 			kick_player(player.entity_id, reason)
+
+## Invalidate all active sessions (for manifest restore)
+## Clears OpenSeedRegistry, invalidates SeedReceipt tokens, and disconnects all clients
+func invalidate_all_sessions(reason: String = "World state restored from backup. Please reconnect.") -> void:
+	GameLog.info("ServerManager: Invalidating all sessions: %s" % reason)
+
+	# 1. Clear OpenSeedRegistry entries (invalidates instance seeds)
+	if OpenSeedRegistry:
+		OpenSeedRegistry.clear()
+		GameLog.info("ServerManager: OpenSeedRegistry cleared")
+
+	# 2. Invalidate login tokens server-side
+	if LoginService and LoginService.has_method("invalidate_all_tokens"):
+		LoginService.invalidate_all_tokens()
+		GameLog.info("ServerManager: Login tokens invalidated")
+
+	# 3. Broadcast maintenance disconnect to all connected peers
+	if NetworkManager and NetworkManager.has_method("disconnect_all_peers"):
+		NetworkManager.disconnect_all_peers(reason)
+		GameLog.info("ServerManager: Disconnect broadcast sent to all peers")
+
+	# 4. Kick all players (sends SECURITY_BLOCKED toast)
+	kick_all_players(reason)
+
+	GameLog.info("ServerManager: All sessions invalidated")
 
 # --- Server Info ---
 

@@ -1,4 +1,4 @@
-## RulesEngine — evaluates actions against a rules tree using scope overrides.
+## RulesEngine -- evaluates actions against a rules tree using scope overrides.
 ##
 ## Specification: labs/world-building-arch.md В§5.1-5.3
 ## Architecture: labs/world-building-arch.md В§10 (data flow / tick model)

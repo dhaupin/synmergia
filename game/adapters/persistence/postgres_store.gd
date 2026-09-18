@@ -36,8 +36,57 @@ const NotImplemented = "PostgresStore: pg-bridge sidecar not yet wired. Use Memo
 var _bridge_url: String = ""
 var _http: HTTPRequest
 var _parent: Node
-var _pending: Dictionary = {}  # request_id -> Promise-ish dict
+var _pending: Dictionary = {}
 var _request_counter: int = 0
+
+# Retry configuration
+const MAX_RETRIES: int = 3
+const BASE_RETRY_DELAY_MS: int = 100
+const MAX_RETRY_DELAY_MS: int = 2000
+
+# Circuit breaker state
+var _circuit_breaker_failures: int = 0
+var _circuit_breaker_tripped: bool = false
+var _circuit_breaker_threshold: int = 5
+var _circuit_breaker_reset_timeout_ms: int = 30000
+var _circuit_breaker_tripped_time: int = 0
+
+# Metrics
+var _active_connections: int = 0
+var _pending_queries: int = 0
+
+
+# --- Result type for clean error handling ---
+class_name PostgresResult
+
+class PostgresResult:
+	var success: bool = false
+	var data: Variant = null
+	var error: String = ""
+	var error_code: int = 0
+
+	static func ok(value: Variant) -> PostgresResult:
+		var r := PostgresResult.new()
+		r.success = true
+		r.data = value
+		return r
+
+	static func err(msg: String, code: int = -1) -> PostgresResult:
+		var r := PostgresResult.new()
+		r.success = false
+		r.error = msg
+		r.error_code = code
+		return r
+
+	func unwrap() -> Variant:
+		if not success:
+			push_error("PostgresResult.unwrap() called on error: " + error)
+		return data
+
+	func expect(msg: String) -> Variant:
+		if not success:
+			push_error(msg + ": " + error)
+		return data
 
 
 func _init(parent: Node = null) -> void:
@@ -49,7 +98,6 @@ func open(config: Dictionary) -> int:
 	if _bridge_url == "":
 		push_error(NotImplemented)
 		return -1
-	# Health check before declaring success.
 	if not _parent:
 		_parent = Engine.get_main_loop().root if Engine.get_main_loop() else null
 	if not _parent:
@@ -58,11 +106,11 @@ func open(config: Dictionary) -> int:
 	_http = HTTPRequest.new()
 	_parent.add_child(_http)
 	_http.request_completed.connect(_on_response)
-	# Synchronous health check via polling.
 	var ok := _blocking_get("/health")
 	if not ok:
 		push_error("PostgresStore: bridge %s not reachable" % _bridge_url)
 		return -1
+	_active_connections = 1
 	return 0
 
 
@@ -70,86 +118,262 @@ func close() -> void:
 	if _http and is_instance_valid(_http):
 		_http.queue_free()
 		_http = null
+	_active_connections = 0
+	_pending_queries = 0
+	_circuit_breaker_failures = 0
+	_circuit_breaker_tripped = false
+	_circuit_breaker_tripped_time = 0
 
 
 func healthy() -> bool:
 	if not _http:
 		return false
+	if _circuit_breaker_tripped:
+		var now = Time.get_ticks_msec()
+		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
+			_circuit_breaker_tripped = false
+			_circuit_breaker_failures = 0
+		else:
+			return false
 	return _blocking_get("/health")
 
 
-func query(sql: String, params: Array = []) -> Array:
+# --- Public API returning Result types ---
+
+func query(sql: String, params: Array = []) -> PostgresResult:
 	var body := {"sql": sql, "params": params}
-	var resp := _blocking_post("/query", body)
-	if resp.is_empty() or not resp.has("rows"):
-		return []
-	return resp.get("rows", [])
+	var resp := _request_with_retry("/query", body)
+	if not resp.success:
+		return PostgresResult.err("query failed: " + resp.error, resp.error_code)
+	if not resp.data.has("rows"):
+		return PostgresResult.ok([])
+	return PostgresResult.ok(resp.data.get("rows", []))
 
 
-func execute(sql: String, params: Array = []) -> int:
+func execute(sql: String, params: Array = []) -> PostgresResult:
 	var body := {"sql": sql, "params": params}
-	var resp := _blocking_post("/execute", body)
-	if resp.is_empty():
-		return -1
-	return int(resp.get("affected", -1))
+	var resp := _request_with_retry("/execute", body)
+	if not resp.success:
+		return PostgresResult.err("execute failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty():
+		return PostgresResult.err("empty response", -1)
+	return PostgresResult.ok(int(resp.data.get("affected", -1)))
 
 
-func begin() -> int:
-	var resp := _blocking_post("/tx/begin", {})
-	if resp.is_empty():
-		return -1
-	return int(resp.get("tx_id", -1))
+func begin() -> PostgresResult:
+	var resp := _request_with_retry("/tx/begin", {})
+	if not resp.success:
+		return PostgresResult.err("begin failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty():
+		return PostgresResult.err("empty response", -1)
+	return PostgresResult.ok(int(resp.data.get("tx_id", -1)))
 
 
-func commit(tx_id: int) -> int:
-	return _ok_or_err(_blocking_post("/tx/commit", {"tx_id": tx_id}))
+func commit(tx_id: int) -> PostgresResult:
+	return _ok_or_err_result(_request_with_retry("/tx/commit", {"tx_id": tx_id}))
 
 
-func rollback(tx_id: int) -> int:
-	return _ok_or_err(_blocking_post("/tx/rollback", {"tx_id": tx_id}))
+func rollback(tx_id: int) -> PostgresResult:
+	return _ok_or_err_result(_request_with_retry("/tx/rollback", {"tx_id": tx_id}))
 
 
-func insert_many(table: String, rows: Array, columns: Array) -> int:
+func insert_many(table: String, rows: Array, columns: Array) -> PostgresResult:
 	var body := {"table": table, "rows": rows, "columns": columns}
-	var resp := _blocking_post("/insert_many", body)
-	if resp.is_empty():
-		return -1
-	return int(resp.get("affected", -1))
+	var resp := _request_with_retry("/insert_many", body)
+	if not resp.success:
+		return PostgresResult.err("insert_many failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty():
+		return PostgresResult.err("empty response", -1)
+	return PostgresResult.ok(int(resp.data.get("affected", -1)))
 
 
-func execute_batch(statements: Array) -> int:
-	return _ok_or_err(_blocking_post("/batch", {"statements": statements}))
+func execute_batch(statements: Array) -> PostgresResult:
+	var batch_body: Dictionary = {"statements": []}
+	for stmt in statements:
+		if stmt is String:
+			batch_body["statements"].append({"sql": stmt, "params": []})
+		elif stmt is Dictionary and stmt.has("sql"):
+			batch_body["statements"].append(stmt)
+		else:
+			return PostgresResult.err("execute_batch: invalid statement format: " + str(stmt), -1)
+	return _ok_or_err_result(_request_with_retry("/batch", batch_body))
 
 
-# --- HTTP plumbing ---
+# --- KV Bulk Operations ---
+
+func set_many(entries: Dictionary) -> PostgresResult:
+	if entries.is_empty():
+		return PostgresResult.ok(0)
+	var statements: Array = []
+	for key in entries.keys():
+		var value = entries[key]
+		var json_value = JSON.stringify(value)
+		statements.append(
+			"INSERT INTO kv (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+		)
+	return execute_batch_with_params(statements, entries)
+
+
+func get_many(keys: Array) -> PostgresResult:
+	if keys.is_empty():
+		return PostgresResult.ok({})
+	var placeholders: Array = []
+	var params: Array = []
+	for i in range(keys.size()):
+		placeholders.append("$%d" % (i + 1))
+		params.append(keys[i])
+	var sql := "SELECT key, value FROM kv WHERE key IN (%s)" % [",".join(placeholders)]
+	var resp := _request_with_retry("/query", {"sql": sql, "params": params})
+	if not resp.success:
+		return PostgresResult.err("get_many failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty() or not resp.data.has("rows"):
+		return PostgresResult.ok({})
+	var result: Dictionary = {}
+	for row in resp.data.get("rows", []):
+		var k = row.get("key", "")
+		var raw = row.get("value", "")
+		if raw != "":
+			var parsed = JSON.parse_string(raw)
+			result[k] = parsed
+		else:
+			result[k] = null
+	return PostgresResult.ok(result)
+
+
+func delete_many(keys: Array) -> PostgresResult:
+	if keys.is_empty():
+		return PostgresResult.ok(0)
+	var placeholders: Array = []
+	var params: Array = []
+	for i in range(keys.size()):
+		placeholders.append("$%d" % (i + 1))
+		params.append(keys[i])
+	var sql := "DELETE FROM kv WHERE key IN (%s)" % [",".join(placeholders)]
+	var resp := _request_with_retry("/execute", {"sql": sql, "params": params})
+	if not resp.success:
+		return PostgresResult.err("delete_many failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty():
+		return PostgresResult.err("empty response", -1)
+	return PostgresResult.ok(int(resp.data.get("affected", -1)))
+
+
+func execute_batch_with_params(statements: Array, entries: Dictionary) -> PostgresResult:
+	var keys := entries.keys()
+	var batch_body: Dictionary = {"statements": []}
+	for i in range(statements.size()):
+		var key = keys[i]
+		var value = entries[key]
+		var json_value = JSON.stringify(value)
+		batch_body["statements"].append({
+			"sql": statements[i],
+			"params": [key, json_value]
+		})
+	var resp := _request_with_retry("/batch", batch_body)
+	if not resp.success:
+		return PostgresResult.err("execute_batch_with_params failed: " + resp.error, resp.error_code)
+	return _ok_or_err_result(resp)
+
+
+# --- HTTP plumbing with retry wrapper ---
+
+func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> PostgresResult:
+	if not _http:
+		return PostgresResult.err("HTTP client not initialized", -1)
+	if _circuit_breaker_tripped:
+		var now = Time.get_ticks_msec()
+		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
+			_circuit_breaker_tripped = false
+			_circuit_breaker_failures = 0
+		else:
+			return PostgresResult.err("circuit breaker open", -2)
+
+	var attempt := 0
+	var delay_ms := BASE_RETRY_DELAY_MS
+	var last_error: String = ""
+
+	while attempt <= max_attempts:
+		var result := callable.call()
+		if result is PostgresResult:
+			if result.success:
+				_record_success()
+				return result
+			last_error = result.error
+			_record_failure()
+		elif result is Dictionary:
+			if result.has("ok") and result.get("ok", false):
+				_record_success()
+				return PostgresResult.ok(result)
+			last_error = str(result)
+			_record_failure()
+		else:
+			last_error = "unexpected return type: " + str(result)
+			_record_failure()
+		
+		attempt += 1
+		if attempt <= max_attempts:
+			OS.delay_msec(delay_ms)
+			delay_ms = min(delay_ms * 2, MAX_RETRY_DELAY_MS)
+	
+	return PostgresResult.err("Max retries exceeded: " + last_error, -3)
+
+
+func _request_with_retry(path: String, body: Dictionary) -> PostgresResult:
+	return _retry_request(func() -> PostgresResult:
+		_pending_queries += 1
+		var url := _bridge_url + path
+		var json := JSON.stringify(body)
+		var headers := PackedStringArray([
+			"Content-Type: application/json",
+			"Accept: application/json",
+		])
+		var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)
+		if err != OK:
+			_pending_queries -= 1
+			return PostgresResult.err("HTTP request error: " + str(err), err)
+		var ok := _await_response()
+		_pending_queries -= 1
+		if not ok:
+			return PostgresResult.err("Request timeout or failed", -3)
+		return PostgresResult.ok(_last_response)
+	)
+
 
 func _blocking_get(path: String) -> bool:
 	if not _http:
 		return false
-	var url := _bridge_url + path
-	var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
-	if err != OK:
-		return false
-	return _await_response()
-
-
-func _blocking_post(path: String, body: Dictionary) -> Dictionary:
-	if not _http:
-		return {}
-	var url := _bridge_url + path
-	var json := JSON.stringify(body)
-	var headers := PackedStringArray([
-		"Content-Type: application/json",
-		"Accept: application/json",
-	])
-	var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)
-	if err != OK:
-		return {}
-	var ok := _await_response()
-	if not ok:
-		return {}
-	# Pull the stored body from the signal handler
-	return _last_response
+	if _circuit_breaker_tripped:
+		var now = Time.get_ticks_msec()
+		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
+			_circuit_breaker_tripped = false
+			_circuit_breaker_failures = 0
+		else:
+			return false
+	
+	var attempt := 0
+	var delay_ms := BASE_RETRY_DELAY_MS
+	
+	while attempt <= MAX_RETRIES:
+		_pending_queries += 1
+		var url := _bridge_url + path
+		var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
+		if err != OK:
+			_pending_queries -= 1
+			_record_failure()
+		else:
+			var ok := _await_response()
+			_pending_queries -= 1
+			if not ok:
+				_record_failure()
+			else:
+				_record_success()
+				return true
+		
+		attempt += 1
+		if attempt <= MAX_RETRIES:
+			OS.delay_msec(delay_ms)
+			delay_ms = min(delay_ms * 2, MAX_RETRY_DELAY_MS)
+	
+	return false
 
 
 var _last_response: Dictionary = {}
@@ -165,6 +389,8 @@ func _on_response(result: int, response_code: int, _headers: PackedStringArray, 
 		var parsed = JSON.parse_string(text)
 		if parsed is Dictionary:
 			_last_response = parsed
+		elif parsed != null:
+			_last_response = {"value": parsed}
 	_response_received = true
 
 
@@ -172,15 +398,34 @@ func _await_response() -> bool:
 	_response_received = false
 	_last_response = {}
 	_last_ok = false
-	# Block until the signal fires. Godot polls _process on the
-	# main thread, so this works as long as we're not in a worker thread.
 	var timeout_ms := 5000
 	var elapsed := 0
 	while not _response_received and elapsed < timeout_ms:
-		# Yield to the engine so the HTTPRequest can complete.
 		OS.delay_msec(10)
 		elapsed += 10
 	return _last_ok
+
+
+func _record_success() -> void:
+	_circuit_breaker_failures = 0
+
+
+func _record_failure() -> void:
+	_circuit_breaker_failures += 1
+	if _circuit_breaker_failures >= _circuit_breaker_threshold:
+		_circuit_breaker_tripped = true
+		_circuit_breaker_tripped_time = Time.get_ticks_msec()
+
+
+func _ok_or_err_result(resp: PostgresResult) -> PostgresResult:
+	if not resp.success:
+		return resp
+	var data := resp.data
+	if data.is_empty():
+		return PostgresResult.err("empty response", -1)
+	if data.get("ok", false):
+		return PostgresResult.ok(0)
+	return PostgresResult.err("operation failed: " + str(data), -1)
 
 
 func _ok_or_err(resp: Dictionary) -> int:
@@ -189,3 +434,103 @@ func _ok_or_err(resp: Dictionary) -> int:
 	if resp.get("ok", false):
 		return 0
 	return -1
+
+
+# --- Transaction context manager ---
+
+func with_transaction(callable: Callable) -> PostgresResult:
+	var tx_result := begin()
+	if not tx_result.success or tx_result.data < 0:
+		return PostgresResult.err("begin failed: " + tx_result.error, tx_result.error_code)
+	var tx_id := tx_result.data
+	var result: int = -1
+	var success: bool = false
+	try:
+		result = callable.call(tx_id)
+		if result == 0:
+			success = true
+	else:
+		pass
+	if success:
+		return commit(tx_id)
+	else:
+		rollback(tx_id)
+		return PostgresResult.err("transaction rolled back", -1)
+
+
+# Low-level transaction query/execute that accept tx_id.
+# These are used inside the callable passed to with_transaction.
+func query_tx(sql: String, params: Array, tx_id: int) -> PostgresResult:
+	var body := {"sql": sql, "params": params, "tx_id": tx_id}
+	var resp := _request_with_retry("/query", body)
+	if not resp.success:
+		return PostgresResult.err("query_tx failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty() or not resp.data.has("rows"):
+		return PostgresResult.ok([])
+	return PostgresResult.ok(resp.data.get("rows", []))
+
+
+func execute_tx(sql: String, params: Array, tx_id: int) -> PostgresResult:
+	var body := {"sql": sql, "params": params, "tx_id": tx_id}
+	var resp := _request_with_retry("/execute", body)
+	if not resp.success:
+		return PostgresResult.err("execute_tx failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty():
+		return PostgresResult.err("empty response", -1)
+	return PostgresResult.ok(int(resp.data.get("affected", -1)))
+
+
+func insert_many_tx(table: String, rows: Array, columns: Array, tx_id: int) -> PostgresResult:
+	var body := {"table": table, "rows": rows, "columns": columns, "tx_id": tx_id}
+	var resp := _request_with_retry("/insert_many", body)
+	if not resp.success:
+		return PostgresResult.err("insert_many_tx failed: " + resp.error, resp.error_code)
+	if resp.data.is_empty():
+		return PostgresResult.err("empty response", -1)
+	return PostgresResult.ok(int(resp.data.get("affected", -1)))
+
+
+# --- Shard state atomic commit (Edge Case B) ---
+
+func commit_shard_state_atomic(shard_id: String, snapshot_data: Dictionary) -> PostgresResult:
+	return with_transaction(func(tx_id: int) -> int:
+		var state_tree := snapshot_data.get("state_tree", {})
+		var ok_result := execute_tx(
+			"INSERT INTO shard_snapshots (shard_id, state_tree, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (shard_id) DO UPDATE SET state_tree = EXCLUDED.state_tree, created_at = NOW()",
+			[shard_id, JSON.stringify(state_tree)],
+			tx_id
+		)
+		if not ok_result.success or ok_result.data < 0:
+			return -1
+
+		var locked_seeds := snapshot_data.get("locked_seeds", [])
+		if locked_seeds.size() > 0:
+			var seed_rows := []
+			for seed_id in locked_seeds:
+				seed_rows.append([shard_id, seed_id, Time.get_unix_time_from_system() + 300])
+			ok_result = insert_many_tx("locked_seeds", seed_rows, ["shard_id", "seed_id", "expires_at"], tx_id)
+			if not ok_result.success or ok_result.data < 0:
+				return -1
+
+		var parameters := snapshot_data.get("parameters", {})
+		if parameters.size() > 0:
+			var param_rows := []
+			for key in parameters:
+				var val := parameters[key]
+				param_rows.append([shard_id, key, JSON.stringify(val), Time.get_unix_time_from_system()])
+			ok_result = insert_many_tx("shard_parameters", param_rows, ["shard_id", "param_key", "param_value", "updated_at"], tx_id)
+			if not ok_result.success or ok_result.data < 0:
+				return -1
+
+		return 0
+	)
+
+
+func get_metrics() -> Dictionary:
+	return {
+		"active_connections": _active_connections,
+		"pending_queries": _pending_queries,
+		"circuit_breaker_tripped": _circuit_breaker_tripped,
+		"circuit_breaker_failures": _circuit_breaker_failures,
+		"circuit_breaker_threshold": _circuit_breaker_threshold
+	}

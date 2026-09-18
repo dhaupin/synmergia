@@ -1,5 +1,5 @@
 ## Ported from vant axolotl lib/brain.js
-## RulesSchema Resource — rule node payload for the rules tree.
+## RulesSchema Resource -- rule node payload for the rules tree.
 ## Spec: labs/world-building-arch.md В§5.1
 extends Resource
 

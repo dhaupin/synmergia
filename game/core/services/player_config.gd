@@ -6,10 +6,9 @@
 ## - Gameplay preferences
 ## - Account-wide and character-specific settings
 ##
-## Settings are persisted to disk using ConfigFile
+## Settings are persisted via AdapterRegistry (player_settings store)
 extends Node
-
-const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 
 ## Player setting categories
 enum SettingCategory {
@@ -22,10 +21,8 @@ enum SettingCategory {
 	KEYBINDINGS
 }
 
-## Storage keys for different setting types
-const ACCOUNT_SETTINGS_FILE = "user://account_settings.cfg"
-const CHARACTER_SETTINGS_FILE = "user://settings/char_%s.cfg"
-const GLOBAL_SETTINGS_FILE = "user://global_settings.cfg"
+## DictStore key prefix for player settings
+const _kv_prefix := "player:"
 
 ## Default settings that apply to all new accounts
 const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
@@ -115,13 +112,12 @@ var _account_settings: Dictionary = {}
 var _character_settings: Dictionary = {}
 var _global_settings: Dictionary = {}
 
-# Config file handles
-var _account_config: ConfigFile
-var _character_config: ConfigFile
-var _global_config: ConfigFile
-
-# Current character ID (set when loading character)
+# Current identifiers (set when loading)
+var _current_account_id: String = ""
 var _current_character_id: String = ""
+
+# Persistence store
+var _store: PersistenceStore = null
 
 signal setting_changed(category: SettingCategory, key: String, value: Variant)
 signal settings_loaded()
@@ -132,14 +128,24 @@ func _ready() -> void:
 	_init_defaults()
 	_load_global_settings()
 
-func _load_global_settings() -> void:
-	load_global_settings()
+func _get_registry() -> Node:
+	if get_tree() == null:
+		return null
+	return get_tree().root.get_node_or_null("AdapterRegistry")
 
-## Initialize with default values
 func _init_defaults() -> void:
 	_account_settings = DEFAULT_ACCOUNT_SETTINGS.duplicate(true)
 	_character_settings = DEFAULT_CHARACTER_SETTINGS.duplicate(true)
-	_global_config = ConfigFile.new()
+	_global_settings = {}
+	var reg := _get_registry()
+	if reg == null:
+		GameLog.warn("PlayerConfig: AdapterRegistry not found, using memory fallback")
+		_store = _get_memory_fallback()
+		return
+	_store = reg.get_persistence("player_settings")
+	if _store == null:
+		GameLog.warn("PlayerConfig: player_settings store not registered, using memory fallback")
+		_store = _get_memory_fallback()
 
 ## Load global settings (applies to all accounts on this device)
 func load_global_settings() -> bool:
@@ -152,7 +158,8 @@ func save_global_settings() -> bool:
 
 ## Load account settings
 func load_account_settings(account_id: String) -> bool:
-	_account_settings = _load_settings("account", DEFAULT_ACCOUNT_SETTINGS)
+	_current_account_id = account_id
+	_account_settings = _load_settings("account:%s" % account_id, DEFAULT_ACCOUNT_SETTINGS)
 	if not _account_settings.is_empty():
 		settings_loaded.emit()
 		GameLog.info("PlayerConfig: Account settings loaded")
@@ -161,7 +168,10 @@ func load_account_settings(account_id: String) -> bool:
 
 ## Save account settings
 func save_account_settings() -> bool:
-	var ok := _save_settings("account", _account_settings)
+	if _current_account_id.is_empty():
+		GameLog.warn("PlayerConfig: No account ID set, cannot save")
+		return false
+	var ok := _save_settings("account:%s" % _current_account_id, _account_settings)
 	if ok:
 		settings_saved.emit()
 		GameLog.info("PlayerConfig: Account settings saved")
@@ -327,18 +337,36 @@ func _get_setting_category(key: String) -> SettingCategory:
 	return SettingCategory.GENERAL
 
 func _load_settings(scope: String, defaults: Dictionary) -> Dictionary:
-	var store := DictStore.new()
-	if not store.has_key("player:" + scope):
+	if _store == null:
 		return defaults.duplicate(true)
-	var data: Dictionary = store.get_value("player:" + scope)
-	if data.is_empty():
+	var key := _kv_prefix + scope
+	var rows = _store.query("SELECT value FROM kv WHERE key = $1", [key])
+	if rows.is_empty():
 		return defaults.duplicate(true)
-	var merged: Dictionary = defaults.duplicate(true)
-	for key in data.keys():
-		merged[key] = data[key]
-	return merged
+	var raw = rows[0].get("value", "")
+	if raw == "":
+		return defaults.duplicate(true)
+	var parsed = JSON.parse_string(raw)
+	if parsed is Dictionary:
+		var merged: Dictionary = defaults.duplicate(true)
+		for k in parsed.keys():
+			merged[k] = parsed[k]
+		return merged
+	return defaults.duplicate(true)
 
 func _save_settings(scope: String, source: Dictionary) -> bool:
-	var store := DictStore.new()
-	store.set_kv("player:" + scope, source)
+	if _store == null:
+		return false
+	var key := _kv_prefix + scope
+	var json = JSON.stringify(source)
+	_store.execute("DELETE FROM kv WHERE key = $1", [key])
+	_store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])
 	return true
+
+func _get_memory_fallback() -> PersistenceStore:
+	const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
+	var store = MemoryPersistenceStore.new()
+	store.open({})
+	# Ensure kv table exists
+	store.execute("CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT)", [])
+	return store

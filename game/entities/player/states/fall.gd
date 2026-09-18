@@ -1,7 +1,7 @@
 ## Fall State - Player is falling
-extends State
+extends Node
 
-const State = preload("res://core/state/state.gd")
+const StateBase = preload("res://core/state/state_base.gd")
 class_name FallState
 
 var has_dodged_air: bool = false

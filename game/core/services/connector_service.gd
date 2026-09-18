@@ -104,10 +104,11 @@ func _on_connector_action_received(action: AgentAction) -> void:
 	for agent_id in _connected_agents:
 		var data: Dictionary = _connected_agents[agent_id]
 		if data["connector"] == connector:
-			_execute_action(agent_id, action)
+			_queue_agent_action(agent_id, action)
 			return
 
-func _execute_action(agent_id: String, action: AgentAction) -> void:
+## Queue an agent action as a state command for atomic application in Phase 2
+func _queue_agent_action(agent_id: String, action: AgentAction) -> void:
 	if not _connected_agents.has(agent_id):
 		return
 
@@ -115,59 +116,104 @@ func _execute_action(agent_id: String, action: AgentAction) -> void:
 	if not is_instance_valid(entity):
 		return
 
+	var entity_id := entity.entity_id if entity.has("entity_id") else agent_id
+	var path := "entities/%s" % entity_id
+
 	match action.action_type:
 		AgentAction.ActionType.MOVEMENT:
-			entity.move_direction = action.movement_direction
-			entity.is_sprinting = action.is_sprinting
-			if action.is_jumping:
-				entity.jump()
+			var payload := {
+				"movement_direction": action.movement_direction,
+				"is_sprinting": action.is_sprinting,
+				"is_jumping": action.is_jumping
+			}
+			var command := {
+				"type": "update",
+				"path": path,
+				"entity_id": entity_id,
+				"state_type": "movement",
+				"payload": payload
+			}
+			if TickService:
+				TickService.queue_state_command(command)
 
 		AgentAction.ActionType.COMBAT:
-			if action.action_name == "attack":
-				entity.combat_component.auto_attack(entity.target, entity.attack_power)
-			elif action.action_name == "dodge":
-				entity.dodge()
+			var payload := {
+				"action_name": action.action_name,
+				"target_entity_id": action.target_entity_id,
+				"ground_target_position": action.ground_target_position
+			}
+			var command := {
+				"type": "update",
+				"path": path,
+				"entity_id": entity_id,
+				"state_type": "combat",
+				"payload": payload
+			}
+			if TickService:
+				TickService.queue_state_command(command)
 
 		AgentAction.ActionType.SKILL:
-			var skill: Skill = DataService.get_skill(action.skill_id)
-			if skill:
-				entity.combat_component.execute_skill(skill, entity.target)
+			var payload := {
+				"skill_id": action.skill_id,
+				"target_entity_id": action.target_entity_id,
+				"ground_target_position": action.ground_target_position
+			}
+			var command := {
+				"type": "update",
+				"path": path,
+				"entity_id": entity_id,
+				"state_type": "skill",
+				"payload": payload
+			}
+			if TickService:
+				TickService.queue_state_command(command)
 
 		AgentAction.ActionType.TARGETING:
-			match action.parameters.get("mode", ""):
-				"nearest_enemy":
-					var nearest := EntityService.get_closest_entity(
-						entity.global_position,
-						Entity.EntityType.ENEMY,
-						50.0
-					)
-					entity.target = nearest
-				"clear":
-					entity.target = null
+			var payload := {
+				"mode": action.parameters.get("mode", ""),
+				"target_entity_id": action.target_entity_id
+			}
+			var command := {
+				"type": "update",
+				"path": path,
+				"entity_id": entity_id,
+				"state_type": "targeting",
+				"payload": payload
+			}
+			if TickService:
+				TickService.queue_state_command(command)
 
 		AgentAction.ActionType.INTERACTION:
-			if action.action_name == "interact":
-				_interact_with_target(entity, action.interact_target_id)
-			elif action.action_name == "pickup":
-				_pickup_nearby(entity)
+			var payload := {
+				"action_name": action.action_name,
+				"interact_target_id": action.interact_target_id,
+				"use_item_slot": action.use_item_slot
+			}
+			var command := {
+				"type": "update",
+				"path": path,
+				"entity_id": entity_id,
+				"state_type": "interaction",
+				"payload": payload
+			}
+			if TickService:
+				TickService.queue_state_command(command)
 
 		AgentAction.ActionType.CHAT:
-			ChatService.send_message(entity, action.chat_message, action.chat_channel)
+			# Chat is not a state tree mutation; send directly via ChatService
+			var entity = _connected_agents[agent_id]["entity"]
+			if is_instance_valid(entity):
+				ChatService.send_message(entity, action.chat_message, action.chat_channel)
 
-func _interact_with_target(entity, target_id: String) -> void:
-	var target = EntityService.get_entity(target_id)
-	if target and entity.global_position.distance_to(target.global_position) < 3.0:
-		if target.has_method("on_interact"):
-			target.on_interact(entity)
+		AgentAction.ActionType.ADMIN:
+			# Admin actions handled separately
+			pass
 
-func _pickup_nearby(entity) -> void:
-	# Find nearby items
-	var nearby := EntityService.get_entities_in_radius(entity.global_position, 3.0)
-	for e in nearby:
-		if e.entity_type == Entity.EntityType.ITEM_DROP:
-			if e.has_method("on_pickup"):
-				e.on_pickup(entity)
-				return
+## Execute queued agent action (called from Phase 2 mutate or similar)
+## This is kept for reference but actions should be executed via state commands
+func _execute_action(agent_id: String, action: AgentAction) -> void:
+	# Deprecated: use _queue_agent_action + state command processing
+	pass
 
 func _on_connector_status_changed(status: AgentConnector.ConnectorStatus) -> void:
 	var connector: AgentConnector = get_parent()

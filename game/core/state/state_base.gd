@@ -1,9 +1,8 @@
-## State - Base state class for the state machine
+## StateBase - Clean base class for state machine states (no class_name to avoid autoload conflicts)
+## Replaces the deprecated State class. Used by player controller states.
 extends Node
-class_name State
 
-const StateMachine = preload("res://core/state/state_machine.gd")
-var state_machine: StateMachine
+var state_machine: Node = null
 
 func enter(_data: Dictionary = {}) -> void:
 	pass
@@ -21,7 +20,7 @@ func physics_update(_delta: float) -> void:
 ## Helper: route a transition through the owning state machine.
 ## Subclasses call this unqualified; it forwards to state_machine.
 func transition_to(state_name: String, data: Dictionary = {}) -> void:
-	if state_machine:
+	if state_machine and state_machine.has_method("transition_to"):
 		state_machine.transition_to(state_name, data)
 
 

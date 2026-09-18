@@ -1,7 +1,7 @@
 ## Run State - Player is moving
-extends State
+extends Node
 
-const State = preload("res://core/state/state.gd")
+const StateBase = preload("res://core/state/state_base.gd")
 class_name RunState
 
 var animation_playing: bool = false

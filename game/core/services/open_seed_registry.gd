@@ -44,8 +44,15 @@ var _type_ttl_cache: Dictionary = {}
 ## Custom finalizer callback: Callable(character_id: String, entry: RegistryEntry)
 var _finalize_callback: Callable = Callable()
 
+## GC sweep timer (runs every 60 seconds)
+var _gc_timer: Timer
+
+## GC sweep interval in seconds
+const GC_SWEEP_INTERVAL_SEC: float = 60.0
+
 func _ready() -> void:
 	_load_instance_types()
+	_start_gc_timer()
 	GameLog.info("OpenSeedRegistry: Ready (loaded %d instance type definitions)" % _type_ttl_cache.size())
 
 ## Preloads instance type definitions from disk
@@ -67,6 +74,23 @@ func _load_instance_types() -> void:
 		file_name = dir.get_next()
 	dir.list_dir_end()
 
+## Starts the periodic GC sweep timer
+func _start_gc_timer() -> void:
+	_gc_timer = Timer.new()
+	_gc_timer.name = "GC_Sweep"
+	_gc_timer.wait_time = GC_SWEEP_INTERVAL_SEC
+	_gc_timer.autostart = true
+	_gc_timer.one_shot = false
+	_gc_timer.timeout.connect(_on_gc_timeout)
+	add_child(_gc_timer)
+	GameLog.info("OpenSeedRegistry: GC sweep timer started (interval: %.1fs)" % GC_SWEEP_INTERVAL_SEC)
+
+## GC sweep timeout callback - runs every 60 seconds
+func _on_gc_timeout() -> void:
+	var swept := sweep_expired()
+	if swept > 0:
+		GameLog.info("OpenSeedRegistry: GC sweep finalized %d expired entries" % swept)
+
 ## Returns TTL in milliseconds for an instance type
 func get_ttl_for_type(instance_type: String) -> int:
 	if _type_ttl_cache.has(instance_type):
@@ -79,8 +103,8 @@ func set_finalize_callback(cb: Callable) -> void:
 
 ## Registers an open instance seed for a character
 func register(character_id: String, instance_seed: PackedByteArray, instance_type: String = "dungeon", custom_ttl_ms: int = -1) -> void:
-	var ttl := custom_ttl_ms if custom_ttl_ms > 0 else get_ttl_for_type(instance_type)
-	var now := int(Time.get_unix_time_from_system() * 1000.0)
+	var ttl: int = custom_ttl_ms if custom_ttl_ms > 0 else get_ttl_for_type(instance_type)
+	var now: int = int(Time.get_unix_time_from_system() * 1000.0)
 	var entry := RegistryEntry.new(character_id, instance_seed, instance_type, ttl, now)
 	_entries[character_id] = entry
 	seed_registered.emit(character_id, instance_type)
@@ -91,7 +115,7 @@ func touch_logout(character_id: String, logout_time_ms: int = -1) -> void:
 	if not _entries.has(character_id):
 		return
 	var entry: RegistryEntry = _entries[character_id]
-	var now := logout_time_ms if logout_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
+	var now: int = logout_time_ms if logout_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
 	entry.last_logout_ms = now
 
 ## Looks up active instance seed for a character.
@@ -101,7 +125,7 @@ func lookup(character_id: String, current_time_ms: int = -1) -> PackedByteArray:
 	if not _entries.has(character_id):
 		return PackedByteArray()
 	var entry: RegistryEntry = _entries[character_id]
-	var now := current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
+	var now: int = current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
 	var elapsed := now - entry.last_logout_ms
 	if elapsed < entry.ttl_ms:
 		return entry.instance_seed
@@ -160,7 +184,7 @@ func get_entry(character_id: String) -> Dictionary:
 
 ## Sweeps and finalizes all expired entries
 func sweep_expired(current_time_ms: int = -1) -> int:
-	var now := current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
+	var now: int = current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
 	var expired_keys: Array[String] = []
 	for cid in _entries.keys():
 		var entry: RegistryEntry = _entries[cid]
@@ -174,3 +198,14 @@ func sweep_expired(current_time_ms: int = -1) -> int:
 ## Clears all entries (useful in testing)
 func clear() -> void:
 	_entries.clear()
+
+## Stops the GC sweep timer
+func stop_gc_timer() -> void:
+	if _gc_timer and is_instance_valid(_gc_timer):
+		_gc_timer.stop()
+		_gc_timer.queue_free()
+		_gc_timer = null
+		GameLog.info("OpenSeedRegistry: GC sweep timer stopped")
+
+func _exit_tree() -> void:
+	stop_gc_timer()

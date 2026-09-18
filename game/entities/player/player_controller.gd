@@ -7,7 +7,7 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const Skill = preload("res://core/combat/skill.gd")
-const StateMachine = preload("res://core/state/state_machine.gd")
+const StateMachine = preload("res://core/state/state_machine_base.gd")
 const ActionMenu = preload("res://ui/components/action_menu.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
 # Entity is not an autoload (class_name only). PlayerController
@@ -47,7 +47,7 @@ var current_target: Node3D = null
 
 # Components
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
-@onready var state_machine: StateMachine = $StateMachine
+@onready var state_machine: Node = $StateMachine
 @onready var camera_pivot: Node3D = $CameraPivot
 
 # Multiplayer

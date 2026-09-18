@@ -472,16 +472,28 @@ func _notify_player(player_id: String, message: String, kind: int = NotifKind.SE
 func _load_parties() -> void:
 	var store := DictStore.new()
 	var keys := store.all_keys()
+	var party_keys: Array = []
+	var invite_keys: Array = []
 	for key in keys:
 		if key.begins_with(_kv_party):
-			var data: Dictionary = store.get_kv(key)
+			party_keys.append(key)
+		elif key.begins_with(_kv_invite):
+			invite_keys.append(key)
+	
+	if not party_keys.is_empty():
+		var party_results: Dictionary = store.get_many(party_keys)
+		for key in party_keys:
+			var data: Dictionary = party_results.get(key, {})
 			if data:
 				var party_id: String = key.substr(_kv_party.length())
 				_parties[party_id] = data
 				for member_id in data.get("members", []):
 					_player_parties[member_id] = party_id
-		elif key.begins_with(_kv_invite):
-			var data: Dictionary = store.get_kv(key)
+	
+	if not invite_keys.is_empty():
+		var invite_results: Dictionary = store.get_many(invite_keys)
+		for key in invite_keys:
+			var data: Dictionary = invite_results.get(key, {})
 			if data:
 				var invite_id: String = key.substr(_kv_invite.length())
 				_pending_invites[invite_id] = data
@@ -501,3 +513,18 @@ func _persist_invite(invite_id: String) -> void:
 		store.set_kv(key, _pending_invites[invite_id])
 	else:
 		store.erase(key)
+
+
+func persist_all() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for party_id in _parties.keys():
+		var key := _kv_party + party_id
+		if _parties[party_id] and not _parties[party_id].is_empty():
+			entries[key] = _parties[party_id]
+	for invite_id in _pending_invites.keys():
+		var key := _kv_invite + invite_id
+		if _pending_invites[invite_id] and not _pending_invites[invite_id].is_empty():
+			entries[key] = _pending_invites[invite_id]
+	if not entries.is_empty():
+		store.set_batch(entries)

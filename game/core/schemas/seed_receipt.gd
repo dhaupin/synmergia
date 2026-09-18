@@ -18,10 +18,22 @@ var manifest_hash: PackedByteArray = PackedByteArray()
 var signature: PackedByteArray = PackedByteArray()
 var issued_at: int = 0
 
+## Serializes the payload for signing (excludes signature field).
+## Payload: 4 seeds (4*32) + manifest_hash (32) + issued_at (8) = 168 bytes
+func _payload_bytes() -> PackedByteArray:
+	var buf := PackedByteArray()
+	_write_32(buf, world_seed)
+	_write_32(buf, shard_seed)
+	_write_32(buf, instance_seed)
+	_write_32(buf, player_seed)
+	_write_32(buf, manifest_hash)
+	_write_u64(buf, issued_at)
+	return buf
+
 ## Signs the receipt with the server's HMAC key.
 ## Must be called before sending to client.
 func sign(server_key: PackedByteArray) -> void:
-	var payload := to_bytes()
+	var payload := _payload_bytes()
 	var hmac := HMACContext.new()
 	if hmac.start(HashingContext.HASH_SHA256, server_key) != OK:
 		return
@@ -42,7 +54,7 @@ func verify(server_key: PackedByteArray) -> bool:
 	if now - issued_at > 60000:
 		return false  # expired (more than 60 seconds old)
 
-	var payload := to_bytes()
+	var payload := _payload_bytes()
 	var hmac := HMACContext.new()
 	if hmac.start(HashingContext.HASH_SHA256, server_key) != OK:
 		return false

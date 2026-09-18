@@ -1534,6 +1534,17 @@ class Security:
 
 	const FIREWALL_CLEANUP_INTERVAL: int = 300
 
+	## ============================================================================
+
+	## SEED CHAIN / HMAC CONFIGURATION
+
+	## ============================================================================
+
+	## Server HMAC key for signing SeedReceipts (hex-encoded 32-byte key)
+	## In production, load from secure config file (srv/config/server.key)
+	## For dev, this is a deterministic key derived from a constant.
+	const SERVER_HMAC_KEY: String = ""
+
 ## ============================================================================
 
 ## AUTO-RESPONSE CONFIGURATION
@@ -1716,3 +1727,8 @@ static func _is_valid_security_key(key: String) -> bool:
 func _log_summary() -> void:
 
 	pass  # GameLog.debug
+
+## Returns the server HMAC key for SeedReceipt signing/verification.
+## Returns empty string if not configured (falls back to dev key).
+func get_server_hmac_key() -> String:
+	return Security.SERVER_HMAC_KEY

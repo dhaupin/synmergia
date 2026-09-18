@@ -24,6 +24,14 @@ var _event_templates: Dictionary = {}
 # World seed for procedural generation
 var world_seed: int = 0
 
+# Event scheduler state
+var _next_event_check: float = 0.0
+var _event_check_interval: float = 30.0
+
+# Gateway proximity cooldown (prevent signal spam)
+var _gateway_cooldowns: Dictionary = {}  # player_id -> {gateway_id -> last_emit_time}
+const _GATEWAY_COOLDOWN: float = 5.0  # 5 seconds between emissions
+
 const _kv_prefix := "world:"
 const _kv_events := "world:event:"
 
@@ -69,6 +77,15 @@ func _ready() -> void:
 	GameLog.info("WorldService: Ready")
 	_load_gateways()
 	_load_events()
+	_setup_event_scheduler()
+
+## Main tick loop - call every frame
+func _process(delta: float) -> void:
+	advance_time(delta)
+	process_events(delta)
+	_process_seamless_transitions()
+	_check_gateway_proximity()
+	_process_event_scheduler(delta)
 
 ## Initialize the world
 func initialize_world() -> void:
@@ -88,6 +105,108 @@ func initialize_world() -> void:
 		spawn_service.spawn_all_offering_npcs()
 
 	GameLog.info("WorldService: World initialized")
+
+## Tick helper methods
+
+## Setup event scheduler for periodic/random events
+func _setup_event_scheduler() -> void:
+	# Event templates define possible world events
+	_event_templates = {
+		"double_xp": {
+			"name": "Double XP Weekend",
+			"duration": 3600.0,  # 1 hour
+			"min_interval": 7200.0,  # 2 hours between events
+			"max_interval": 14400.0,  # 4 hours max
+			"weight": 10,
+			"time_restrictions": []  # Empty = any time
+		},
+		"double_loot": {
+			"name": "Loot Festival",
+			"duration": 1800.0,  # 30 minutes
+			"min_interval": 10800.0,  # 3 hours
+			"max_interval": 21600.0,  # 6 hours
+			"weight": 5,
+			"time_restrictions": []
+		},
+		"invasion": {
+			"name": "Monster Invasion",
+			"duration": 600.0,  # 10 minutes
+			"min_interval": 1800.0,  # 30 minutes
+			"max_interval": 3600.0,  # 1 hour
+			"weight": 3,
+			"time_restrictions": ["night"]
+		}
+	}
+	
+	# Initialize next event timers
+	_next_event_check = 0.0
+	_event_check_interval = 30.0  # Check every 30 seconds real-time
+
+## Process seamless zone transitions via ZoneManager
+func _process_seamless_transitions() -> void:
+	var zone_manager = ZoneManager
+	if zone_manager and zone_manager.has_method("process_seamless_transitions"):
+		zone_manager.process_seamless_transitions()
+
+## Check gateway proximity for all players and auto-trigger
+func _check_gateway_proximity() -> void:
+	var entity_service = EntityService
+	if not entity_service:
+		return
+	
+	var current_time = Time.get_ticks_msec() / 1000.0
+	var players = entity_service.get_all_players()
+	for player in players:
+		if not is_instance_valid(player):
+			continue
+		
+		var gateway = get_nearby_gateway(player)
+		if gateway:
+			# Check if player can use this gateway
+			if gateway.can_use(player):
+				# Cooldown check to prevent signal spam
+				var player_id = player.entity_id
+				var gateway_id = gateway.id
+				var last_emit = _gateway_cooldowns.get(player_id, {}).get(gateway_id, 0.0)
+				if current_time - last_emit >= _GATEWAY_COOLDOWN:
+					if not _gateway_cooldowns.has(player_id):
+						_gateway_cooldowns[player_id] = {}
+					_gateway_cooldowns[player_id][gateway_id] = current_time
+					# Emit signal for UI/player to respond, or auto-trigger based on design
+					# For now, emit signal so UI can show prompt
+					gateway_activated.emit(gateway_id, player)
+					GameLog.debug("WorldService: Player %s near gateway %s" % [player.display_name, gateway_id])
+
+## Process event scheduler - randomly trigger world events
+func _process_event_scheduler(delta: float) -> void:
+	_next_event_check += delta
+	if _next_event_check < _event_check_interval:
+		return
+	
+	_next_event_check = 0.0
+	
+	# Don't spawn new events if too many active
+	if _active_events.size() >= 3:
+		return
+	
+	# Check each template for potential trigger
+	var current_time = get_time_of_day()
+	for event_id in _event_templates:
+		if is_event_active(event_id):
+			continue
+		
+		var template = _event_templates[event_id]
+		
+		# Check time restrictions
+		if template.time_restrictions.size() > 0:
+			if current_time not in template.time_restrictions:
+				continue
+		
+		# Random chance based on weight (weight out of 100)
+		var chance = template.weight * 0.01  # 10% base for weight 10
+		if randf() < chance:
+			start_event(event_id, template.duration)
+			break  # Only start one event per check cycle
 
 ## Get current time of day string
 func get_time_of_day() -> String:
@@ -365,21 +484,127 @@ func generate_world_from_seed(seed_value: int) -> void:
 func get_seeded_random(range_max: int) -> int:
 	return randi() % range_max
 
-## Find path between zones (simplified)
+## Find path between zones using ZoneManager neighbor graph (BFS) or NSC-9 spatial adjacency.
+## Returns array of zone IDs representing the path, or empty array if no path found.
 func find_zone_path(from_zone_id: String, to_zone_id: String) -> Array[String]:
-	# Simple direct path for now
-	# Could implement A* or similar for complex routing
 	if from_zone_id == to_zone_id:
 		return [from_zone_id]
 
-	# Check for direct gateway connection
+	var zone_manager = ZoneManager
+	if zone_manager == null:
+		GameLog.warn("WorldService: ZoneManager not available for pathfinding")
+		return []
+
+	# Check for direct gateway connection first
 	var gateways = get_zone_gateways(from_zone_id)
 	for gateway in gateways:
 		if gateway.to_zone_id == to_zone_id:
 			return [from_zone_id, to_zone_id]
 
-	# Return direct path (would need pathfinding for complex world)
-	return [from_zone_id, to_zone_id]
+	# Use ZoneManager's registered neighbor graph (BFS)
+	var path: Array[String] = _bfs_zone_path(zone_manager, from_zone_id, to_zone_id)
+	if not path.is_empty():
+		return path
+
+	# Fallback: NSC-9 spatial adjacency via SpatialFragmenter
+	path = _nsc9_spatial_path(zone_manager, from_zone_id, to_zone_id)
+	if not path.is_empty():
+		return path
+
+	# No path found
+	GameLog.debug("WorldService: No zone path found from %s to %s" % [from_zone_id, to_zone_id])
+	return []
+
+
+## BFS pathfinding on ZoneManager's registered neighbor graph
+func _bfs_zone_path(zone_manager, from_zone_id: String, to_zone_id: String) -> Array[String]:
+	var visited: Dictionary = {}
+	var queue: Array = [[from_zone_id]]  # Queue of paths
+	visited[from_zone_id] = true
+
+	while not queue.is_empty():
+		var current_path: Array[String] = queue.pop_at(0)
+		var current_id: String = current_path[-1]
+
+		if current_id == to_zone_id:
+			return current_path
+
+		var neighbors: Array = zone_manager.get_neighboring_zones(current_id)
+		for neighbor in neighbors:
+			var neighbor_id: String = neighbor.id
+			if not visited.has(neighbor_id):
+				visited[neighbor_id] = true
+				var new_path: Array[String] = current_path.duplicate()
+				new_path.append(neighbor_id)
+				queue.append(new_path)
+
+	return []
+
+
+## NSC-9 spatial pathfinding: find path through zones sharing spatial ancestry
+func _nsc9_spatial_path(zone_manager, from_zone_id: String, to_zone_id: String) -> Array[String]:
+	# Get spatial addresses for both zones
+	var from_addr: int = zone_manager.get_zone_spatial_address(from_zone_id)
+	var to_addr: int = zone_manager.get_zone_spatial_address(to_zone_id)
+	if from_addr == 0 or to_addr == 0:
+		return []
+
+	# Get the spatial fragmenter instance (via a public method if needed)
+	# We'll access it via the bridge which is also available
+	var spatial_fragmenter = null
+	if zone_manager.has_method("get_spatial_fragmenter"):
+		spatial_fragmenter = zone_manager.get_spatial_fragmenter()
+	elif zone_manager.has_method("_get_spatial_fragmenter"):
+		spatial_fragmenter = zone_manager._get_spatial_fragmenter()
+	
+	if spatial_fragmenter == null:
+		return []
+
+	# Check if they share a common ancestor (spatially connected)
+	var common_ancestor: int = spatial_fragmenter.find_common_ancestor([from_addr, to_addr])
+	if common_ancestor == 0:
+		return []
+
+	# Find intermediate zones that bridge the spatial path
+	# We look for zones whose addresses are ancestors/descendants of the common ancestor
+	var candidate_zones: Array[String] = []
+	var all_zones: Array = zone_manager.get_all_zones()
+	for zone in all_zones:
+		if zone.id == from_zone_id or zone.id == to_zone_id:
+			continue
+		if zone.is_instanced:
+			continue
+		
+		var zone_addr: int = zone_manager.get_zone_spatial_address(zone.id)
+		if zone_addr == 0:
+			continue
+		
+		# Zone is on the spatial path if it's an ancestor of from or to,
+		# or a descendant of the common ancestor
+		if spatial_fragmenter.is_ancestor(zone_addr, from_addr) or spatial_fragmenter.is_ancestor(zone_addr, to_addr) or \
+		   spatial_fragmenter.is_ancestor(common_ancestor, zone_addr):
+			candidate_zones.append(zone.id)
+
+	# Simple greedy path: from -> candidates (sorted by depth) -> to
+	if candidate_zones.is_empty():
+		# Direct spatial connection
+		return [from_zone_id, to_zone_id]
+
+	# Sort candidates by depth (shallowest first = larger regions first)
+	candidate_zones.sort_custom(func(a_id, b_id):
+		var a_addr = zone_manager.get_zone_spatial_address(a_id)
+		var b_addr = zone_manager.get_zone_spatial_address(b_id)
+		var a_depth = spatial_fragmenter.get_depth(a_addr)
+		var b_depth = spatial_fragmenter.get_depth(b_addr)
+		return a_depth < b_depth
+	)
+
+	var path: Array[String] = [from_zone_id]
+	for candidate_id in candidate_zones:
+		path.append(candidate_id)
+	path.append(to_zone_id)
+
+	return path
 
 ## == Persistence ============================================================
 

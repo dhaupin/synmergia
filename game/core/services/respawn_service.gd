@@ -783,13 +783,26 @@ func _load_state() -> void:
 	var store := DictStore.new()
 	_karma = {}
 	_revive_counts = {}
-	for key in store.all_keys():
+	var keys: Array = store.all_keys()
+	var karma_keys: Array = []
+	var revive_keys: Array = []
+	for key in keys:
 		if key.begins_with(_kv_prefix + "karma:"):
-			var entity_id = key.substr(_kv_prefix.length() + 6)
-			_karma[entity_id] = int(store.get_kv(key).get("karma", 0))
+			karma_keys.append(key)
 		elif key.begins_with(_kv_prefix + "revives:"):
+			revive_keys.append(key)
+	
+	if not karma_keys.is_empty():
+		var karma_results: Dictionary = store.get_many(karma_keys)
+		for key in karma_keys:
+			var entity_id = key.substr(_kv_prefix.length() + 6)
+			_karma[entity_id] = int(karma_results.get(key, {}).get("karma", 0))
+	
+	if not revive_keys.is_empty():
+		var revive_results: Dictionary = store.get_many(revive_keys)
+		for key in revive_keys:
 			var entity_id = key.substr(_kv_prefix.length() + 8)
-			_revive_counts[entity_id] = store.get_kv(key)
+			_revive_counts[entity_id] = revive_results.get(key, {})
 
 func _persist_karma(entity_id: String) -> void:
 	var store := DictStore.new()
@@ -797,3 +810,14 @@ func _persist_karma(entity_id: String) -> void:
 		store.set_kv(_kv_prefix + "karma:" + entity_id, {"karma": _karma[entity_id]})
 	else:
 		store.erase(_kv_prefix + "karma:" + entity_id)
+
+
+func persist_all() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for entity_id in _karma.keys():
+		entries[_kv_prefix + "karma:" + entity_id] = {"karma": _karma[entity_id]}
+	for entity_id in _revive_counts.keys():
+		entries[_kv_prefix + "revives:" + entity_id] = _revive_counts[entity_id]
+	if not entries.is_empty():
+		store.set_batch(entries)

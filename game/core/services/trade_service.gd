@@ -626,7 +626,7 @@ func _is_item_owned_by_anyone(item_id: String) -> bool:
 	if not InventoryService:
 		return false
 
-	var all_players := EntityService.get_all_players() if EntityService else []
+	var all_players: Array = EntityService.get_all_players() if EntityService else []
 	for player in all_players:
 		if not is_instance_valid(player):
 			continue
@@ -920,10 +920,17 @@ func _verify_player_owns_item(player_id: String, item_id: String) -> bool:
 func _load_trade_history() -> void:
 	var store := DictStore.new()
 	_trade_history = {}
-	for key in store.all_keys():
+	var keys: Array = store.all_keys()
+	var trade_keys: Array = []
+	for key in keys:
 		if key.begins_with(_kv_prefix):
+			trade_keys.append(key)
+	
+	if not trade_keys.is_empty():
+		var results: Dictionary = store.get_many(trade_keys)
+		for key in trade_keys:
 			var player_id = key.substr(_kv_prefix.length())
-			_trade_history[player_id] = store.get_kv(key)
+			_trade_history[player_id] = results.get(key, {})
 
 func _persist_trade_history(player_id: String) -> void:
 	var store := DictStore.new()
@@ -931,3 +938,12 @@ func _persist_trade_history(player_id: String) -> void:
 		store.set_kv(_kv_prefix + player_id, _trade_history[player_id])
 	else:
 		store.erase(_kv_prefix + player_id)
+
+
+func persist_all() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for player_id in _trade_history.keys():
+		entries[_kv_prefix + player_id] = _trade_history[player_id]
+	if not entries.is_empty():
+		store.set_batch(entries)

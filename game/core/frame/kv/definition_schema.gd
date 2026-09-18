@@ -1,4 +1,4 @@
-## DefinitionSchema Resource — definition tree payload schema.
+## DefinitionSchema Resource -- definition tree payload schema.
 ## Architecture: labs/world-building-arch.md §9
 extends Resource
 class_name DefinitionSchema

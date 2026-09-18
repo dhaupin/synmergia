@@ -365,12 +365,19 @@ func get_inventory_summary(player_id: String) -> Dictionary:
 func _load_inventories() -> void:
 	var store := DictStore.new()
 	_player_inventories = {}
-	for key in store.all_keys():
+	var keys: Array = store.all_keys()
+	var inventory_keys: Array = []
+	for key in keys:
 		if key.begins_with(_kv_prefix):
-			var player_id = key.substr(_kv_prefix.length())
-			var data: Dictionary = store.get_kv(key)
-			if not data.is_empty():
-				_player_inventories[player_id] = InventoryComponent.from_dict(data)
+			inventory_keys.append(key)
+	if inventory_keys.is_empty():
+		return
+	var results: Dictionary = store.get_many(inventory_keys)
+	for key in inventory_keys:
+		var player_id = key.substr(_kv_prefix.length())
+		var data: Dictionary = results.get(key, {})
+		if not data.is_empty():
+			_player_inventories[player_id] = InventoryComponent.from_dict(data)
 
 func _persist_inventory(player_id: String) -> void:
 	var store := DictStore.new()
@@ -379,3 +386,13 @@ func _persist_inventory(player_id: String) -> void:
 		store.set_kv(_kv_prefix + player_id, inv.to_dict())
 	else:
 		store.erase(_kv_prefix + player_id)
+
+
+func persist_all_inventories() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for player_id in _player_inventories.keys():
+		var inv: InventoryComponent = _player_inventories[player_id]
+		entries[_kv_prefix + player_id] = inv.to_dict()
+	if not entries.is_empty():
+		store.set_batch(entries)

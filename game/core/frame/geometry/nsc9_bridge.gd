@@ -30,6 +30,7 @@ const MAX_COORD: int = 0xFFFF
 ##   sequence   -> split into y (bits 10-19, 0-1023) and z (bits 0-9, 0-1023)
 ##   depth      -> subdivision depth (caller-specified, default 0)
 ##
+## Hot path: uses bitwise unpack() instead of string parsing.
 ## Returns 0 if the code is invalid or axis is not spatial.
 ## Returns a SpatialFragmenter address on success.
 func nsc9_to_address(code: int, depth: int = 0, sf: Variant = null) -> int:
@@ -43,7 +44,7 @@ func nsc9_to_address(code: int, depth: int = 0, sf: Variant = null) -> int:
 		return 0
 
 	var nsc9: Variant = Nsc9Script.new()
-	var components: Dictionary = nsc9.decode_int(code)
+	var components: Dictionary = nsc9.unpack(code)
 	var facility: int = components.get("facility", 0)
 	var sequence: int = components.get("sequence", 0)
 
@@ -186,9 +187,10 @@ func is_spatial_nsc9(code: int) -> bool:
 
 
 ## Derive an NSC-9 face from an NSC-9 entity-spatial encoding.
-## Wraps Nsc9.encode_entity_spatial() -> SpatialFragmenter face.
+## Wraps Nsc9.pack_entity_spatial() -> SpatialFragmenter face.
+## Hot path: uses bitwise pack() instead of decimal format.
 func entity_spatial_to_face(facility: int, vertex: int) -> int:
 	var nsc9: Variant = Nsc9Script.new()
-	var code: int = nsc9.encode_entity_spatial(facility, vertex)
+	var code: int = nsc9.pack_entity_spatial(facility, vertex)
 	var sf: Variant = SpatialFragmenterScript.new()
 	return sf.nsc9_code_to_face(code)

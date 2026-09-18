@@ -3,6 +3,7 @@
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const AccountRollup = preload("res://core/services/account_rollup.gd")
 
 # Singleton instance
 static var instance: AccountService
@@ -115,13 +116,15 @@ func link_character(character_id: String, account_id: String, character_data: Di
 	_characters[character_id] = character_data
 	_persist_character(character_id)
 
-	# Create mappings
+# Create mappings
 	_character_to_account[character_id] = account_id
 	_account_characters[account_id].append(character_id)
 	_accounts[account_id]["characters"] = _account_characters[account_id]
 	_persist_account(account_id)
 
 	character_linked.emit(character_id, account_id)
+	if AccountRollup:
+		AccountRollup.on_character_linked(character_id, account_id)
 	GameLog.info("AccountService: Linked character %s to account %s" % [character_id, account_id])
 
 	return true
@@ -138,9 +141,11 @@ func unlink_character(character_id: String) -> bool:
 		var chars: Array = _account_characters[account_id]
 		chars.erase(character_id)
 
-	_characters.erase(character_id)
+_characters.erase(character_id)
 
 	character_unlinked.emit(character_id)
+	if AccountRollup:
+		AccountRollup.on_character_unlinked(character_id, account_id)
 	GameLog.info("AccountService: Unlinked character %s from account %s" % [character_id, account_id])
 
 	return true
@@ -275,13 +280,27 @@ func _load_state() -> void:
 	_characters = {}
 	_character_to_account = {}
 	_account_characters = {}
-	for key in store.all_keys():
+	var keys: Array = store.all_keys()
+	var account_keys: Array = []
+	var char_keys: Array = []
+	for key in keys:
 		if key.begins_with(_kv_prefix + "account:"):
-			var account_id = key.substr(_kv_prefix.length() + 8)
-			_accounts[account_id] = store.get_kv(key)
+			account_keys.append(key)
 		elif key.begins_with(_kv_prefix + "char:"):
+			char_keys.append(key)
+	
+	if not account_keys.is_empty():
+		var account_results: Dictionary = store.get_many(account_keys)
+		for key in account_keys:
+			var account_id = key.substr(_kv_prefix.length() + 8)
+			_accounts[account_id] = account_results.get(key, {})
+	
+	if not char_keys.is_empty():
+		var char_results: Dictionary = store.get_many(char_keys)
+		for key in char_keys:
 			var char_id = key.substr(_kv_prefix.length() + 5)
-			_characters[char_id] = store.get_kv(key)
+			_characters[char_id] = char_results.get(key, {})
+	
 	# Rebuild mappings from loaded data
 	for char_id in _characters:
 		var char_data = _characters[char_id]
@@ -307,3 +326,14 @@ func _persist_character(character_id: String) -> void:
 		store.set_kv(_kv_prefix + "char:" + character_id, _characters[character_id])
 	else:
 		store.erase(_kv_prefix + "char:" + character_id)
+
+
+func persist_all() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for account_id in _accounts.keys():
+		entries[_kv_prefix + "account:" + account_id] = _accounts[account_id]
+	for char_id in _characters.keys():
+		entries[_kv_prefix + "char:" + char_id] = _characters[char_id]
+	if not entries.is_empty():
+		store.set_batch(entries)

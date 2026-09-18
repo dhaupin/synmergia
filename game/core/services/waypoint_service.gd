@@ -550,18 +550,24 @@ func _is_valid_icon(icon: int) -> bool:
 
 func _load_waypoints() -> void:
 	var store := DictStore.new()
-	for key in store.all_keys():
-		if not key.begins_with(_kv_prefix):
-			continue
-		var player_id: String = key.substr(_kv_prefix.length())
-		var data: Array = store.get_kv(key)
-		if data is Array:
-			var waypoints: Array = []
-			for wp_data in data:
-				if wp_data is Dictionary:
-					waypoints.append(Waypoint.from_dict(wp_data))
-			if not waypoints.is_empty():
-				_player_waypoints[player_id] = waypoints
+	var keys: Array = store.all_keys()
+	var waypoint_keys: Array = []
+	for key in keys:
+		if key.begins_with(_kv_prefix):
+			waypoint_keys.append(key)
+	
+	if not waypoint_keys.is_empty():
+		var results: Dictionary = store.get_many(waypoint_keys)
+		for key in waypoint_keys:
+			var player_id: String = key.substr(_kv_prefix.length())
+			var data: Array = results.get(key, [])
+			if data is Array:
+				var waypoints: Array = []
+				for wp_data in data:
+					if wp_data is Dictionary:
+						waypoints.append(Waypoint.from_dict(wp_data))
+				if not waypoints.is_empty():
+					_player_waypoints[player_id] = waypoints
 
 func _persist_waypoints(player_id: String) -> void:
 	var store := DictStore.new()
@@ -572,3 +578,15 @@ func _persist_waypoints(player_id: String) -> void:
 		store.set_kv(_kv_prefix + player_id, data)
 	else:
 		store.erase(_kv_prefix + player_id)
+
+
+func persist_all_waypoints() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for player_id in _player_waypoints.keys():
+		var data: Array = []
+		for wp in _player_waypoints[player_id]:
+			data.append(wp.to_dict())
+		entries[_kv_prefix + player_id] = data
+	if not entries.is_empty():
+		store.set_batch(entries)

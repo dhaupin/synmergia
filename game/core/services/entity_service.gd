@@ -147,8 +147,8 @@ func _compute_nsc9_code(entity) -> int:
 	var facility: int = abs(hash(entity_id)) % 1000
 
 	# Derive spatial axis from nearest icosahedral vertex
-	var lat: float = rad2deg(asin(clampf(pos.normalized().y, -1.0, 1.0)))
-	var lon: float = rad2deg(atan2(pos.normalized().z, pos.normalized().x))
+	var lat: float = rad_to_deg(asin(clampf(pos.normalized().y, -1.0, 1.0)))
+	var lon: float = rad_to_deg(atan2(pos.normalized().z, pos.normalized().x))
 	var vertex: int = Nsc9.nearest_vertex(lat, lon)
 	var axis: int = Nsc9.spatial_axis(vertex)
 
@@ -500,16 +500,23 @@ func _metadata_from_dict(data: Dictionary) -> SpawnMetadata:
 
 func _load_entity_metadata() -> void:
 	var store := DictStore.new()
-	for key in store.all_keys():
-		if not key.begins_with(_kv_prefix):
-			continue
-		var entity_id: String = key.substr(_kv_prefix.length())
-		var data: Dictionary = store.get_kv(key)
-		if data.is_empty():
-			continue
-		var metadata := _metadata_from_dict(data)
-		metadata.entity_id = entity_id
-		_entity_metadata[entity_id] = metadata
+	_entity_metadata = {}
+	var keys: Array = store.all_keys()
+	var meta_keys: Array = []
+	for key in keys:
+		if key.begins_with(_kv_prefix):
+			meta_keys.append(key)
+	
+	if not meta_keys.is_empty():
+		var results: Dictionary = store.get_many(meta_keys)
+		for key in meta_keys:
+			var entity_id: String = key.substr(_kv_prefix.length())
+			var data: Dictionary = results.get(key, {})
+			if data.is_empty():
+				continue
+			var metadata := _metadata_from_dict(data)
+			metadata.entity_id = entity_id
+			_entity_metadata[entity_id] = metadata
 
 func _persist_entity_metadata(entity_id: String) -> void:
 	var store := DictStore.new()
@@ -523,6 +530,19 @@ func _persist_entity_metadata(entity_id: String) -> void:
 		store.erase(key)
 	else:
 		store.set_kv(key, data)
+
+
+func persist_all_metadata() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for entity_id in _entity_metadata.keys():
+		var key := _kv_prefix + entity_id
+		var metadata: SpawnMetadata = _entity_metadata[entity_id]
+		var data := _metadata_to_dict(metadata)
+		if not data.is_empty():
+			entries[key] = data
+	if not entries.is_empty():
+		store.set_batch(entries)
 
 
 ## Fragments entity state and stores it in the T3 content-hash tree.
@@ -686,7 +706,15 @@ func _clean_up_entity_t3_state(entity_id: String) -> void:
 	for result in results:
 		var node_path: String = result.get("path", "")
 		if node_path != "":
-			_t3.delete(node_path)
+			var command := {
+				"type": "delete",
+				"path": node_path
+			}
+			if TickService:
+				TickService.queue_state_command(command)
+			else:
+				# Fallback for tests/early boot
+				_t3.delete(node_path)
 
 	GameLog.debug("EntityService: Cleaned up T3 state for entity %s at %s" % [entity_id, path])
 
