@@ -121,18 +121,18 @@ jobs:
             godot --headless --path game/ -s "${test_script}" || true
           done
 
-      - name: Export Web PCK (only on PR merge or manual dispatch)
+      - name: Export Web Game (full wasm bundle)
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         run: |
           mkdir -p web
-          echo "Exporting web resource package (web/game.pck)..."
-          godot --headless --path game/ --export-pack "Web" "../web/game.pck"
-          ls -lh web/game.pck
+          echo "Exporting full Web build (wasm bundle)..."
+          godot --headless --path game/ --export "Web" "../web/game.html"
+          ls -lh web/
 
-      - name: Upload Web PCK Artifact
+      - name: Upload Web Game Artifact
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: synmergia-web-pck
-          path: web/game.pck
-          retention-days: 3 # Conserve storage quota
+          name: synmergia-web-game
+          path: web/
+          retention-days: 3
