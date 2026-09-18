@@ -52,3 +52,8 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 
 func root_hash() -> PackedByteArray:
 	return _t3.hash_subtree("/")
+
+
+## Clears the underlying T3 tree state.
+func clear() -> void:
+	_t3.clear()

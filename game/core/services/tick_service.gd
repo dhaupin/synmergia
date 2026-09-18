@@ -455,9 +455,9 @@ func _pull_cross_shard_events() -> Array:
 
 ## Advance the wall clock (day/night cycle).
 func _advance_wall_clock() -> void:
-	# TODO: Advance wall clock based on tick number
-	# Day/night cycle, buff timer updates
-	pass
+	# Drive WorldService time and events from authoritative tick
+	if WorldService and WorldService.has_method("tick"):
+		WorldService.tick(_tick_interval / 1000.0)
 
 ## ============================================================================
 ## PHASE 3: State Re-root + Diff (10ms budget)
@@ -505,18 +505,40 @@ func _phase4_diff_emit() -> Dictionary:
 		# Apply LOD - distant clients get L1 summaries, not L0 detail
 		var lod_diff = _apply_lod(client_id, client_diff)
 
-		# LZ4-compress
-		var compressed = _lz4_compress(lod_diff)
+		# Flatten chunked AOI diff into T3 diff entry array for network transport
+		var diff_entries: Array = _flatten_aoi_diff(lod_diff)
 
-		# Send over WebSocket
-		if compressed.size() > 0:
-			_send_to_client(client_id, compressed)
+		# Send via NetworkManager
+		if diff_entries.size() > 0 and NetworkManager and NetworkManager.is_server:
+			var payload := {
+				"tick": _tick_number,
+				"root_hash": _current_root_hash,
+				"diff": diff_entries,
+				"lod_level": _get_client_lod_level(client_id)
+			}
+			NetworkManager.send_to_peer(client_id, payload)
 			client_count += 1
 
 		var emit_elapsed := float(Time.get_ticks_msec() - emit_start)
 		emit_times[client_id] = emit_elapsed
 
 	return {"clients_emit": client_count, "emit_times": emit_times}
+
+## Flatten chunked AOI diff (Dictionary of chunk_key -> Array[diff_entry])
+## into a flat Array[diff_entry] for network transport.
+func _flatten_aoi_diff(aoi_diff: Dictionary) -> Array:
+	var result: Array = []
+	for chunk_key in aoi_diff.keys():
+		var chunk_changes: Array = aoi_diff[chunk_key]
+		for entry in chunk_changes:
+			if entry is Array and entry.size() >= 4:
+				result.append(entry)
+	return result
+
+## Get LOD level for a client (0 = full detail, 1 = summary).
+func _get_client_lod_level(client_id: int) -> int:
+	# TODO: Determine based on distance, connection quality, etc.
+	return 0
 
 ## Compute the AOI diff for a specific client.
 func _compute_aoi_diff(client_id: int) -> Dictionary:
@@ -574,17 +596,6 @@ func _apply_lod(client_id: int, diff: Dictionary) -> Dictionary:
 	# L0 = full detail, L1 = summary only
 	# Distant clients get L1 summaries
 	return diff
-
-## LZ4-compress a diff payload.
-func _lz4_compress(data: Dictionary) -> PackedByteArray:
-	# TODO: LZ4 compression
-	# Returns compressed bytes, or empty if compression fails
-	return PackedByteArray()
-
-## Send compressed data to a client over WebSocket.
-func _send_to_client(client_id: int, compressed: PackedByteArray) -> void:
-	# TODO: Send via NetworkManager's WebSocket
-	pass
 
 ## ============================================================================
 ## PHASE 5: Persistence (async)

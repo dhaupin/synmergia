@@ -82,6 +82,10 @@ signal player_entered_zone(player, zone)
 signal player_exited_zone(player, zone)
 signal zone_population_changed(zone_id: String, count: int)
 
+# Entity zone entry/exit signals (for all entity types)
+signal entity_entered_zone(entity, zone)
+signal entity_exited_zone(entity, zone)
+
 # Seamless transition signals
 signal seamless_transition_started(entity, from_zone, to_zone)
 signal seamless_transition_completed(entity, to_zone)
@@ -97,6 +101,13 @@ func _ready() -> void:
 	GameLog.info("ZoneManager: Ready")
 	_init_spatial_fragmenter()
 	_load_zone_state()
+
+## Physics process: check all entities for zone transitions
+func _physics_process(delta: float) -> void:
+	if not _seamless_enabled:
+		return
+	process_seamless_transitions()
+	_detect_new_entity_zone_entries()
 
 ## Initialize SpatialFragmenter, Fragmenter, and NSC-9 bridge instances.
 func _init_spatial_fragmenter() -> void:
@@ -412,6 +423,7 @@ func entity_enter_zone(entity, zone) -> bool:
 		_enemies_in_zone[zone.id].append(entity)
 
 	EventHub.entity_entered_zone.emit(entity, zone)
+	entity_entered_zone.emit(entity, zone)
 	GameLog.debug("ZoneManager: %s entered zone %s" % [entity.display_name, zone.id])
 	return true
 
@@ -434,6 +446,7 @@ func entity_exit_zone(entity) -> bool:
 
 	if zone:
 		EventHub.entity_exited_zone.emit(entity, zone)
+		entity_exited_zone.emit(entity, zone)
 
 	GameLog.debug("ZoneManager: %s exited zone %s" % [entity.display_name, zone_id])
 	return true
@@ -742,7 +755,7 @@ func _notify_zone_change(entity, from_zone, to_zone) -> void:
 	if notification_service and entity.entity_type == Entity.EntityType.PLAYER:
 		notification_service.notify_zone_change(entity.entity_id, from_zone.id, to_zone.id)
 
-## Process all entities for seamless transitions (call from _process)
+## Process all entities for seamless transitions (call from _physics_process)
 func process_seamless_transitions() -> void:
 	for entity_id in _entity_zones:
 		var entity_service = EntityService
@@ -752,6 +765,106 @@ func process_seamless_transitions() -> void:
 				var new_zone = check_seamless_transition(entity)
 				if new_zone:
 					perform_seamless_transition(entity, new_zone)
+
+## Detect new entities entering zones (not yet tracked in _entity_zones)
+func _detect_new_entity_zone_entries() -> void:
+	var entity_service = EntityService
+	if not entity_service:
+		return
+
+	# Get all entities from EntityService
+	var all_entities: Array = entity_service.get_all_entities()
+	if all_entities.is_empty():
+		return
+
+	# Use SpatialFragmenter for efficient spatial queries if available
+	if _spatial_fragmenter != null:
+		_detect_zone_entries_spatial(all_entities)
+	else:
+		_detect_zone_entries_fallback(all_entities)
+
+## Detect zone entries using SpatialFragmenter spatial indexing
+func _detect_zone_entries_spatial(entities: Array) -> void:
+	# Build a map of zone spatial addresses for quick lookup
+	var zone_addresses: Dictionary = {}
+	for zone_id in _zones:
+		var addr: int = get_zone_spatial_address(zone_id)
+		if addr != 0:
+			zone_addresses[zone_id] = addr
+
+	if zone_addresses.is_empty():
+		_detect_zone_entries_fallback(entities)
+		return
+
+	for entity in entities:
+		if not entity or not is_instance_valid(entity):
+			continue
+		if not entity.entity_id:
+			continue
+
+		# Skip entities already tracked in a zone
+		if _entity_zones.has(entity.entity_id):
+			continue
+
+		# Compute entity's spatial address at a deeper depth than zones
+		var pos: Vector3 = entity.global_position
+		var found_zone: ZoneData = null
+
+		# Check each zone - compute entity address at zone's depth + 4
+		for zone_id in zone_addresses:
+			var zone_addr: int = zone_addresses[zone_id]
+			var zone_depth: int = _spatial_fragmenter.get_depth(zone_addr)
+			var zone_face: int = _spatial_fragmenter.get_face(zone_addr)
+			
+			# Use deeper depth for entity to be a descendant of zone
+			var entity_depth: int = mini(zone_depth + 4, _spatial_fragmenter.MAX_DEPTH)
+			var entity_addr: int = _spatial_fragmenter.make_address(
+				int(pos.x / SPATIAL_QUANTUM),
+				int(pos.y / SPATIAL_QUANTUM),
+				int(pos.z / SPATIAL_QUANTUM),
+				entity_depth,
+				zone_face
+			)
+
+			if entity_addr != 0 and _spatial_fragmenter.is_ancestor(zone_addr, entity_addr):
+				var zone = _zones.get(zone_id)
+				if zone and zone.contains_position(pos):
+					found_zone = zone
+					break
+
+		if found_zone:
+			entity_enter_zone(entity, found_zone)
+			entity_entered_zone.emit(entity, found_zone)
+
+## Fallback zone entry detection using Euclidean distance
+func _detect_zone_entries_fallback(entities: Array) -> void:
+	for entity in entities:
+		if not entity or not is_instance_valid(entity):
+			continue
+		if not entity.entity_id:
+			continue
+
+		# Skip entities already tracked in a zone
+		if _entity_zones.has(entity.entity_id):
+			continue
+
+		var pos: Vector3 = entity.global_position
+		var best_zone: ZoneData = null
+		var best_distance: float = INF
+
+		# Check all non-instanced zones
+		for zone in _zones.values():
+			if zone.is_instanced:
+				continue
+			if zone.contains_position(pos):
+				var dist: float = pos.distance_to(zone.zone_center)
+				if dist < best_distance:
+					best_distance = dist
+					best_zone = zone
+
+		if best_zone:
+			entity_enter_zone(entity, best_zone)
+			entity_entered_zone.emit(entity, best_zone)
 
 ## Get zone type
 func get_zone_type(zone_id: String) -> ZoneType:

@@ -39,6 +39,9 @@ var _queues: Dictionary = {}
 ## Per-shard coalesce timers: shard_id -> Timer
 var _timers: Dictionary = {}
 
+## Per-shard write mutex: shard_id -> bool (true = write in progress)
+var _write_locks: Dictionary = {}
+
 ## Path prefix under which shard parameters live in the state tree.
 const _PARAM_PATH_PREFIX := "shards"
 
@@ -100,8 +103,10 @@ func set_param(shard_id: String, param_name: String, value: Variant, actor_id: S
 
 ## Apply a critical parameter immediately to the shard's state tree.
 func _apply_critical(shard_id: String, param_name: String, value: Variant, actor_id: String) -> void:
+	_acquire_write_lock(shard_id)
 	var tree: Variant = _get_state_tree(shard_id)
 	if tree == null:
+		_release_write_lock(shard_id)
 		return
 	var path := "%s/%s/parameters/%s" % [_PARAM_PATH_PREFIX, shard_id, param_name]
 	tree.insert_state(path, shard_id, "other", {"param_name": param_name, "value": value})
@@ -110,6 +115,7 @@ func _apply_critical(shard_id: String, param_name: String, value: Variant, actor
 	print("APPLY_CRITICAL: tree=", tree_check != null, " path=", path)
 	GameLog.info("ShardParameters: critical param applied timestamp=%s shard=%s param=%s value=%s actor=%s" % [ts, shard_id, param_name, str(value), actor_id])
 	param_applied.emit(shard_id, param_name, value, actor_id)
+	_release_write_lock(shard_id)
 
 
 ## Queue a non-critical parameter for the coalesce window.
@@ -136,19 +142,34 @@ func flush(shard_id: String) -> void:
 		return
 	var timer: Timer = _timers[shard_id]
 	timer.stop()
-	_apply_queue(shard_id)
-	timer.queue_free()
-	_timers.erase(shard_id)
+	_apply_queue(shard_id, true)
+
+
+## Timer callback: apply the queued parameters for a shard.
+func _on_coalesce_timeout(shard_id: String) -> void:
+	_apply_queue(shard_id, true)
 
 
 ## Apply every queued parameter for a shard and clear the queue.
-func _apply_queue(shard_id: String) -> void:
+## If cleanup_timer is true, stops and frees the coalesce timer for this shard.
+func _apply_queue(shard_id: String, cleanup_timer: bool = false) -> void:
+	_acquire_write_lock(shard_id)
 	if not _queues.has(shard_id):
+		if cleanup_timer and _timers.has(shard_id):
+			var timer: Timer = _timers[shard_id]
+			timer.queue_free()
+			_timers.erase(shard_id)
+		_release_write_lock(shard_id)
 		return
 	var queue: Dictionary = _queues[shard_id]
 	var tree: Variant = _get_state_tree(shard_id)
 	if tree == null:
 		_queues.erase(shard_id)
+		if cleanup_timer and _timers.has(shard_id):
+			var timer: Timer = _timers[shard_id]
+			timer.queue_free()
+			_timers.erase(shard_id)
+		_release_write_lock(shard_id)
 		return
 	for param_name in queue.keys():
 		var entry: Dictionary = queue[param_name]
@@ -158,12 +179,24 @@ func _apply_queue(shard_id: String) -> void:
 		tree.insert_state(path, shard_id, "other", {"param_name": param_name, "value": value})
 		param_applied.emit(shard_id, param_name, value, actor_id)
 	_queues.erase(shard_id)
+	if cleanup_timer and _timers.has(shard_id):
+		var timer: Timer = _timers[shard_id]
+		timer.queue_free()
+		_timers.erase(shard_id)
+	_release_write_lock(shard_id)
 
 
-## Timer callback: apply the queued parameters for a shard.
-func _on_coalesce_timeout(shard_id: String) -> void:
-	_apply_queue(shard_id)
-	_timers.erase(shard_id)
+## Acquire per-shard write lock (mutex).
+## Yields until lock is available, ensuring single-threaded access to state_tree.insert().
+func _acquire_write_lock(shard_id: String) -> void:
+	while _write_locks.get(shard_id, false):
+		await get_tree().process_frame
+	_write_locks[shard_id] = true
+
+
+## Release per-shard write lock.
+func _release_write_lock(shard_id: String) -> void:
+	_write_locks.erase(shard_id)
 
 
 ## Lazily build (or return) the StateTree wrapper for a shard.

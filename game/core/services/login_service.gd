@@ -221,7 +221,7 @@ func build_seed_receipt(character_id: String) -> Resource:
 	receipt.instance_seed = instance_seed
 	receipt.player_seed = player_seed
 	receipt.manifest_hash = manifest_hash
-	receipt.issued_at = Time.get_unix_time_from_system()
+	receipt.issued_at = Time.get_unix_time_from_system() * 1000
 	receipt.sign(server_key)
 	
 	GameLog.info("LoginService: Built seed receipt for %s" % character_id)

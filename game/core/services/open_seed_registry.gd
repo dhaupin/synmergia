@@ -44,8 +44,15 @@ var _type_ttl_cache: Dictionary = {}
 ## Custom finalizer callback: Callable(character_id: String, entry: RegistryEntry)
 var _finalize_callback: Callable = Callable()
 
+## GC sweep timer (runs every 60 seconds)
+var _gc_timer: Timer
+
+## GC sweep interval in seconds
+const GC_SWEEP_INTERVAL_SEC: float = 60.0
+
 func _ready() -> void:
 	_load_instance_types()
+	_start_gc_timer()
 	GameLog.info("OpenSeedRegistry: Ready (loaded %d instance type definitions)" % _type_ttl_cache.size())
 
 ## Preloads instance type definitions from disk
@@ -66,6 +73,23 @@ func _load_instance_types() -> void:
 				_type_ttl_cache[def.name] = def.default_ttl_ms
 		file_name = dir.get_next()
 	dir.list_dir_end()
+
+## Starts the periodic GC sweep timer
+func _start_gc_timer() -> void:
+	_gc_timer = Timer.new()
+	_gc_timer.name = "GC_Sweep"
+	_gc_timer.wait_time = GC_SWEEP_INTERVAL_SEC
+	_gc_timer.autostart = true
+	_gc_timer.one_shot = false
+	_gc_timer.timeout.connect(_on_gc_timeout)
+	add_child(_gc_timer)
+	GameLog.info("OpenSeedRegistry: GC sweep timer started (interval: %.1fs)" % GC_SWEEP_INTERVAL_SEC)
+
+## GC sweep timeout callback - runs every 60 seconds
+func _on_gc_timeout() -> void:
+	var swept := sweep_expired()
+	if swept > 0:
+		GameLog.info("OpenSeedRegistry: GC sweep finalized %d expired entries" % swept)
 
 ## Returns TTL in milliseconds for an instance type
 func get_ttl_for_type(instance_type: String) -> int:
@@ -174,3 +198,14 @@ func sweep_expired(current_time_ms: int = -1) -> int:
 ## Clears all entries (useful in testing)
 func clear() -> void:
 	_entries.clear()
+
+## Stops the GC sweep timer
+func stop_gc_timer() -> void:
+	if _gc_timer and is_instance_valid(_gc_timer):
+		_gc_timer.stop()
+		_gc_timer.queue_free()
+		_gc_timer = null
+		GameLog.info("OpenSeedRegistry: GC sweep timer stopped")
+
+func _exit_tree() -> void:
+	stop_gc_timer()

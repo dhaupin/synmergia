@@ -322,3 +322,13 @@ func _clone_nodes(nodes: Dictionary) -> Dictionary:
 
 func _root_key(root: PackedByteArray) -> String:
 	return root.hex_encode()
+
+
+## Clears all internal state: nodes, snapshots, and schema refs.
+## Call this before dropping the last reference to allow GC.
+func clear() -> void:
+	_nodes.clear()
+	_snapshots.clear()
+	_schema_refs_by_root.clear()
+	_current_root = _sha256(PackedByteArray())
+	_record_snapshot()

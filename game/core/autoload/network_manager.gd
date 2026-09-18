@@ -2,6 +2,7 @@
 ## Manages client/server connections using ENet
 extends Node
 const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
+const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 
 signal connected_to_server
 signal connection_failed
@@ -9,6 +10,7 @@ signal peer_connected(peer_id: int)
 signal peer_disconnected(peer_id: int)
 signal server_started
 signal server_stopped
+signal world_state_received(tick: int, diff: Array)
 
 # Firewall instance
 var _firewall: AppFirewall
@@ -34,10 +36,9 @@ var _cache: CacheWrapper = CacheWrapper.new()
 const _kv_prefix := "peer:"
 const _kv_index := "peer:index"
 
-# Server data
-var server_ticks: int = 0
-var tick_rate: int = 20  # 20 Hz
-var tick_timer: Timer
+# Client-side state tree for applying server diffs
+var _client_state_tree: StateTreeScript = null
+var _client_root_hash: PackedByteArray = PackedByteArray()
 
 func _log(level: String, message: String) -> void:
 	var gl = get_node_or_null("/root/GameLog")
@@ -49,16 +50,15 @@ func _ready() -> void:
 	DEFAULT_PORT = GameConfig.Network.DEFAULT_PORT
 	MAX_PLAYERS = GameConfig.Network.MAX_PLAYERS
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Initialize firewall with GameConfig values
-	if AppFirewall:
-		AppFirewall._init(
-			GameConfig.Security.FIREWALL_BLOCK_DURATION,
-			GameConfig.Security.FIREWALL_MAX_ATTEMPTS,
-			GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
-		)
-	_firewall = AppFirewall
+
+	# Defer firewall initialization to avoid forward reference (AppFirewall is autoload #69, NetworkManager is #46)
+	call_deferred("_init_firewall")
 
 	_load_peer_mappings()
+
+	# Initialize client-side state tree
+	_client_state_tree = StateTreeScript.new()
+	_client_root_hash = _client_state_tree.root_hash()
 
 	# Auto-start server in headless/production mode
 	var godot_port := int(OS.get_environment("GODOT_PORT")) if OS.has_environment("GODOT_PORT") else DEFAULT_PORT
@@ -66,6 +66,21 @@ func _ready() -> void:
 		var mode := OS.get_environment("START_MODE")
 		if mode in ["prod", "headless", "server"]:
 			_auto_start_server(godot_port)
+
+
+func _init_firewall() -> void:
+	# Late binding: resolve AppFirewall at runtime via scene tree
+	var fw = get_node_or_null("/root/AppFirewall")
+	if fw:
+		fw._init(
+			GameConfig.Security.FIREWALL_BLOCK_DURATION,
+			GameConfig.Security.FIREWALL_MAX_ATTEMPTS,
+			GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
+		)
+		_firewall = fw
+		_log("info", "NetworkManager: AppFirewall initialized via deferred call")
+	else:
+		_log("warn", "NetworkManager: AppFirewall not available (autoload order)")
 
 
 func _auto_start_server(port: int) -> void:
@@ -81,12 +96,15 @@ func _process(_delta: float) -> void:
 		ConnectionState.CONNECTED:
 			_check_connection_health()
 		ConnectionState.SERVER:
-			_process_server_ticks()
+			# TickService drives the authoritative tick loop
+			# NetworkManager only handles transport
+			pass
 
 
-## Stub for server tick processing
+## Stub for server tick processing - TickService drives the authoritative tick
 func _process_server_ticks() -> void:
-	# TODO: Implement server tick processing
+	# TickService handles the authoritative tick loop
+	# NetworkManager only provides transport via send_to_peer() and _broadcast_world_state()
 	pass
 
 ## SERVER FUNCTIONS
@@ -113,45 +131,15 @@ func start_server(port: int = DEFAULT_PORT) -> bool:
 	peer.peer_connected.connect(_on_server_peer_connected)
 	peer.peer_disconnected.connect(_on_server_peer_disconnected)
 
-	_start_server_loop()
+	# Connect seed receipt signal for server
+	_connect_seed_receipt_signal()
+
+	# TickService drives the authoritative tick loop via its own timer
+	# NetworkManager only handles transport
 
 	_log("info", "Server started on port %d" % port)
 	server_started.emit()
 	return true
-
-func _start_server_loop() -> void:
-	tick_timer = Timer.new()
-	tick_timer.wait_time = 1.0 / tick_rate
-	tick_timer.timeout.connect(_on_server_tick)
-	add_child(tick_timer)
-	tick_timer.start()
-
-func _on_server_tick() -> void:
-	server_ticks += 1
-	_process_world_update()
-	_broadcast_world_state()
-
-func _process_world_update() -> void:
-	# Update all entities, physics, AI
-	# This is where server-side game logic happens
-	pass
-
-func _broadcast_world_state() -> void:
-	# Send world state to all clients
-	var state := _get_world_state()
-	for peer_id in connected_peers:
-		rpc_id(peer_id, "_receive_world_state", state)
-
-func _get_world_state() -> Dictionary:
-	return {
-		"tick": server_ticks,
-		"timestamp": Time.get_ticks_msec()
-	}
-
-@rpc("reliable")
-func _receive_world_state(state: Dictionary) -> void:
-	# Client receives world state
-	pass
 
 func _on_server_peer_connected(id: int) -> void:
 	# Get IP from peer (if available)
@@ -173,6 +161,10 @@ func _on_server_peer_connected(id: int) -> void:
 	_persist_peer_mapping(id, "")
 	peer_connected.emit(id)
 
+	# Register client with TickService for diff emission
+	if TickService:
+		TickService.register_client(id)
+
 func _on_server_peer_disconnected(id: int) -> void:
 	_log("info", "Client disconnected: %d" % id)
 	# Cleanup firewall tracking
@@ -181,6 +173,30 @@ func _on_server_peer_disconnected(id: int) -> void:
 	_persist_peer_mapping(id, "")
 	connected_peers.erase(id)
 	peer_disconnected.emit(id)
+
+	# Unregister client from TickService
+	if TickService:
+		TickService.unregister_client(id)
+
+## SERVER TRANSPORT METHODS (called by TickService)
+
+## Send a world state diff to a specific peer.
+## Called by TickService._phase4_diff_emit() for each client in their AOI.
+func send_to_peer(peer_id: int, diff_payload: Dictionary) -> void:
+	if not is_server:
+		return
+	if not connected_peers.has(peer_id):
+		return
+	# diff_payload contains: {"tick": int, "root_hash": PackedByteArray, "diff": Array, "lod_level": int}
+	rpc_id(peer_id, "_receive_world_state", diff_payload)
+
+## Broadcast a world state diff to all connected peers.
+## Used for full-state sync on join or critical updates.
+func _broadcast_world_state(diff_payload: Dictionary) -> void:
+	if not is_server:
+		return
+	for peer_id in connected_peers:
+		send_to_peer(peer_id, diff_payload)
 
 ## CLIENT FUNCTIONS
 
@@ -282,16 +298,11 @@ func stop_server() -> void:
 	if not is_server:
 		return
 
-	if tick_timer:
-		tick_timer.stop()
-		tick_timer.queue_free()
-
 	multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = null
 
 	connection_state = ConnectionState.DISCONNECTED
 	is_server = false
-	server_ticks = 0
 	connected_peers.clear()
 
 	_log("info", "Server stopped")
@@ -364,3 +375,205 @@ func _persist_peer_mapping(peer_id: int, player_id: String) -> void:
 	else:
 		_cache.set_kv(key, player_id)
 		_cache.sadd(_kv_index, str(peer_id))
+
+## CLIENT-SIDE STATE SYNC
+
+## RPC called by server to send world state diff to client.
+## Applies the diff to the client's local state tree.
+@rpc("reliable", "call_local")
+func _receive_world_state(payload: Dictionary) -> void:
+	if not is_client:
+		return
+	
+	var tick: int = payload.get("tick", 0)
+	var root_hash: PackedByteArray = payload.get("root_hash", PackedByteArray())
+	var diff: Array = payload.get("diff", [])
+	var lod_level: int = payload.get("lod_level", 0)
+	
+	if diff.is_empty():
+		# Full state sync - reset client tree to server root
+		_client_root_hash = root_hash
+		_client_state_tree = StateTreeScript.new()
+		_log("debug", "Client full state sync at tick %d" % tick)
+	else:
+		# Apply differential update
+		if _client_root_hash.size() > 0 and root_hash.size() > 0:
+			var new_root = _client_state_tree.apply_diff(_client_root_hash, diff)
+			if new_root.size() > 0:
+				_client_root_hash = new_root
+				_log("debug", "Client applied diff at tick %d, new root: %s" % [tick, new_root.hex_encode()])
+			else:
+				_log("warn", "Client failed to apply diff at tick %d" % tick)
+		else:
+			_log("warn", "Client missing root hash for diff at tick %d" % tick)
+	
+	world_state_received.emit(tick, diff)
+
+## Get the client's local state tree (for reading predicted state)
+func get_client_state_tree() -> StateTreeScript:
+	return _client_state_tree
+
+## Get the client's current root hash
+func get_client_root_hash() -> PackedByteArray:
+	return _client_root_hash
+
+## Force full state resync (call after reconnection)
+func request_full_state_sync() -> void:
+	if is_client and multiplayer.is_network_master():
+		# Client can't request directly, server pushes on reconnect
+		pass
+	elif is_server:
+		# Server can push full state to all clients
+		if _client_state_tree:
+			var full_root = _client_state_tree.root_hash()
+			var payload = {
+				"tick": 0,
+				"root_hash": full_root,
+				"diff": [],
+				"lod_level": 0
+			}
+			_broadcast_world_state(payload)
+
+
+## ============================================================================
+## SEED RECEIPT NETWORK HANDLING
+## ============================================================================
+
+## Signal emitted when client receives and verifies a SeedReceipt
+signal seed_receipt_received(character_id: String, receipt: Resource)
+
+## Signal emitted when client fails to verify a SeedReceipt
+signal seed_receipt_failed(reason: String)
+
+## Server: sends the SeedReceipt to a specific peer after character select
+func _send_seed_receipt(peer_id: int, character_id: String, receipt: Resource) -> void:
+	if not is_server:
+		return
+	if not connected_peers.has(peer_id):
+		return
+	var bytes := receipt.to_bytes()
+	rpc_id(peer_id, "_receive_seed_receipt", character_id, bytes)
+
+## Client: RPC to receive the SeedReceipt from server
+@rpc("reliable", "call_local")
+func _receive_seed_receipt(character_id: String, receipt_bytes: PackedByteArray) -> void:
+	if not is_client:
+		return
+	
+	var SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
+	var receipt: Resource = SeedReceiptScript.from_bytes(receipt_bytes)
+	
+	# Get the server HMAC key (embedded in client at build time)
+	var server_key := _get_client_server_key()
+	if server_key.is_empty():
+		_log("error", "SeedReceipt: Client server key not configured")
+		seed_receipt_failed.emit("Client server key not configured")
+		return
+	
+	# Verify the receipt
+	if not receipt.verify(server_key):
+		_log("error", "SeedReceipt: Verification failed for %s" % character_id)
+		seed_receipt_failed.emit("Signature verification failed")
+		return
+	
+	# Store the seeds for later state verification
+	_store_client_seeds(character_id, receipt)
+	
+	_log("info", "SeedReceipt: Verified and stored for %s" % character_id)
+	seed_receipt_received.emit(character_id, receipt)
+
+## Gets the server HMAC key embedded in the client.
+## In production, this would be a binary key shipped with the client.
+func _get_client_server_key() -> PackedByteArray:
+	# Try to load from GameConfig
+	if GameConfig and GameConfig.has_method("get_server_hmac_key"):
+		var key_str: String = GameConfig.get_server_hmac_key()
+		if key_str != "":
+			return key_str.hex_decode()
+	
+	# Fallback: derive from known constant (dev only, must match server)
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update("synmergia_dev_hmac_key".to_utf8_buffer())
+	return ctx.finish()
+
+## Stores the verified seeds in client-side config for later use.
+func _store_client_seeds(character_id: String, receipt: Resource) -> void:
+	var config := ConfigFile.new()
+	var err := config.load("user://client_seeds.cfg")
+	if err != OK:
+		config = ConfigFile.new()
+	
+	var section := "seeds_%s" % character_id
+	config.set_value(section, "world_seed", receipt.world_seed.hex_encode())
+	config.set_value(section, "shard_seed", receipt.shard_seed.hex_encode())
+	config.set_value(section, "instance_seed", receipt.instance_seed.hex_encode())
+	config.set_value(section, "player_seed", receipt.player_seed.hex_encode())
+	config.set_value(section, "manifest_hash", receipt.manifest_hash.hex_encode())
+	config.set_value(section, "issued_at", receipt.issued_at)
+	config.save("user://client_seeds.cfg")
+
+## Server: connects to LoginService seed_receipt_ready signal
+func _connect_seed_receipt_signal() -> void:
+	if not is_server:
+		return
+	if LoginService:
+		LoginService.seed_receipt_ready.connect(_on_seed_receipt_ready)
+
+func _on_seed_receipt_ready(character_id: String, receipt: Resource) -> void:
+	# Find the peer for this character
+	var peer_id := _find_peer_for_character(character_id)
+	if peer_id > 0:
+		_send_seed_receipt(peer_id, character_id, receipt)
+	else:
+		_log("warn", "SeedReceipt: No peer found for character %s" % character_id)
+
+## Finds the peer ID associated with a character
+func _find_peer_for_character(character_id: String) -> int:
+	for peer_id in connected_peers:
+		var peer_data := connected_peers[peer_id]
+		if peer_data.has("player_id") and peer_data["player_id"] == character_id:
+			return peer_id
+	return -1
+
+## Call this when a player's character is fully loaded to associate peer with character
+func associate_peer_with_character(peer_id: int, character_id: String) -> void:
+	if connected_peers.has(peer_id):
+		connected_peers[peer_id]["player_id"] = character_id
+		_persist_peer_mapping(peer_id, character_id)
+
+## Loads stored client seeds for a character (for state verification).
+## Returns a Dictionary with seed data or empty dict if not found.
+func get_client_seeds(character_id: String) -> Dictionary:
+	var config := ConfigFile.new()
+	var err := config.load("user://client_seeds.cfg")
+	if err != OK:
+		return {}
+	
+	var section := "seeds_%s" % character_id
+	if not config.has_section(section):
+		return {}
+	
+	return {
+		"world_seed": config.get_value(section, "world_seed", "").hex_decode(),
+		"shard_seed": config.get_value(section, "shard_seed", "").hex_decode(),
+		"instance_seed": config.get_value(section, "instance_seed", "").hex_decode(),
+		"player_seed": config.get_value(section, "player_seed", "").hex_decode(),
+		"manifest_hash": config.get_value(section, "manifest_hash", "").hex_decode(),
+		"issued_at": config.get_value(section, "issued_at", 0)
+	}
+
+## Verifies a state tree root hash against the stored world seed.
+## Returns true if the hash matches the expected seed.
+func verify_state_hash(root_hash: PackedByteArray, character_id: String) -> bool:
+	var seeds := get_client_seeds(character_id)
+	if seeds.is_empty():
+		return false
+	
+	var expected_seed := seeds.get("world_seed", PackedByteArray())
+	if expected_seed.is_empty():
+		return false
+	
+	# The root hash should match the world seed (or be derived from it)
+	# For now, direct comparison; can be extended with derivation logic
+	return root_hash == expected_seed

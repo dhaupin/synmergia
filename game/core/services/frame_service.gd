@@ -71,8 +71,12 @@ func exit_frame(player_id: String) -> bool:
 	var env: FrameEnv = stack.pop_back()
 	var frame_id = env.frame_id
 	
-	env.seed_tree = null
-	env.state_tree = null
+	if env.seed_tree != null:
+		env.seed_tree.clear()
+		env.seed_tree = null
+	if env.state_tree != null:
+		env.state_tree.clear()
+		env.state_tree = null
 	
 	if stack.is_empty():
 		_player_frames.erase(player_id)
