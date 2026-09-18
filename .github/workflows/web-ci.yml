@@ -121,8 +121,15 @@ jobs:
             godot --headless --path game/ -s "${test_script}" || true
           done
 
+      - name: Cache Web Export Output
+        id: cache-web
+        uses: actions/cache@v4
+        with:
+          path: web
+          key: ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-web-${{ hashFiles('game/**/*.gd', 'game/**/*.tres', 'game/**/*.tscn', 'game/export_presets.cfg') }}
+
       - name: Export Web Game (full wasm bundle)
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache-web.outputs.cache-hit != 'true'
         run: |
           mkdir -p web
           echo "Exporting full Web build (wasm bundle)..."
