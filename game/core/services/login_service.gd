@@ -110,7 +110,7 @@ func register(account_id: String, password: String, display_name: String = "") -
 		_fail("Account already exists")
 		return false
 
-	var validation := SecurityService.validate_player_name(display_name) if SecurityService else {"valid": true}
+	var validation: Dictionary = SecurityService.validate_player_name(display_name) if SecurityService else {"valid": true}
 	if not validation.get("valid", true):
 		_fail("Display name invalid: %s" % validation.get("reason", "unknown"))
 		return false

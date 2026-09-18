@@ -755,7 +755,7 @@ func check_seamless_transition(entity) -> ZoneData:
 	if _spatial_fragmenter != null:
 		var current_addr: int = get_zone_spatial_address(current_zone_id)
 		if current_addr != 0:
-			var pos := entity.global_position
+			var pos: Vector3 = entity.global_position
 			var current_face: int = _spatial_fragmenter.get_face(current_addr)
 			var current_depth: int = _spatial_fragmenter.get_depth(current_addr)
 			# Use a deeper depth for the entity's position to detect movement

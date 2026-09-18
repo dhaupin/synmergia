@@ -232,7 +232,7 @@ func deposit_gold(player_id: String, vault_type: VaultType, amount: int) -> bool
 	if not _can_deposit(player_id, vault_type):
 		return false
 
-	var limit := PERSONAL_GOLD_LIMIT if vault_type == VaultType.PERSONAL else GUILD_GOLD_LIMIT
+	var limit: int = PERSONAL_GOLD_LIMIT if vault_type == VaultType.PERSONAL else GUILD_GOLD_LIMIT
 	var vault: Dictionary = _get_vault(player_id, vault_type)
 	if vault.is_empty():
 		return false

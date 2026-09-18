@@ -626,7 +626,7 @@ func _is_item_owned_by_anyone(item_id: String) -> bool:
 	if not InventoryService:
 		return false
 
-	var all_players := EntityService.get_all_players() if EntityService else []
+	var all_players: Array = EntityService.get_all_players() if EntityService else []
 	for player in all_players:
 		if not is_instance_valid(player):
 			continue

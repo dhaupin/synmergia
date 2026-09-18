@@ -239,7 +239,7 @@ if not _check_rate_limit(key):
 return {"success": false, "error": "Rate limited"}
 var parsed := parse_key(key)
 var container_type := parsed["container_type"]
-var max_stack := ContainerConfigData.get_max_stack(container_type) if max_stack_override < 0 else max_stack_override
+var max_stack: int = ContainerConfigData.get_max_stack(container_type) if max_stack_override < 0 else max_stack_override
 var allow_stack := ContainerConfigData.allows_stacking(container_type)
 if allow_stack:
 var stack_slot := _find_stackable_slot(key, item.id, item.stack_size, max_stack)

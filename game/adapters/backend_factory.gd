@@ -201,15 +201,15 @@ func boot_defaults() -> void:
 func _make_persistence(backend: String) -> PersistenceStore:
 	match backend:
 		"memory":
-			var s := MemoryPersistenceStore.new()
+			var s: MemoryPersistenceStore = MemoryPersistenceStore.new()
 			s.open({})
 			return s
 		"postgres":
-			var s := PostgresStore.new()
+			var s: PostgresStore = PostgresStore.new()
 			var url := OS.get_environment("PG_BRIDGE_URL")
 			if url == "":
 				url = "http://localhost:8080"
-			var rc := s.open({"bridge_url": url})
+			var rc: int = s.open({"bridge_url": url})
 			if rc != 0:
 				return null
 			return s
@@ -219,15 +219,15 @@ func _make_persistence(backend: String) -> PersistenceStore:
 func _make_cache(backend: String) -> CacheStore:
 	match backend:
 		"memory":
-			var s := MemoryCacheStore.new()
+			var s: MemoryCacheStore = MemoryCacheStore.new()
 			s.open({})
 			return s
 		"redis":
-			var s := RedisStore.new()
+			var s: RedisStore = RedisStore.new()
 			var url := OS.get_environment("REDIS_BRIDGE_URL")
 			if url == "":
 				url = "http://localhost:8081"
-			var rc := s.open({"bridge_url": url})
+			var rc: int = s.open({"bridge_url": url})
 			if rc != 0:
 				return null
 			return s

@@ -1,7 +1,7 @@
 ## Dodge State - Quick evasive roll with i-frames
-extends State
+extends Node
 
-const State = preload("res://core/state/state.gd")
+const StateBase = preload("res://core/state/state_base.gd")
 class_name DodgeState
 
 const DURATION: float = 0.3  # Roll duration

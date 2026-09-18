@@ -105,7 +105,7 @@ func _analyze_player(player_id: String) -> void:
 	var evidence: Dictionary = {}
 
 	# Agent players get a "fairness pass" for some patterns
-	var agent_penalty_modifier := 0.5 if profile.is_agent else 1.0
+	var agent_penalty_modifier: float = 0.5 if profile.is_agent else 1.0
 
 	# Check 1: Perfect timing detection (macro/keyboard)
 	suspicion += _check_perfect_timing(profile) * agent_penalty_modifier
@@ -171,7 +171,7 @@ func _check_perfect_timing(profile: PlayerProfile) -> float:
 
 	# Low variance = suspicious
 	var std_dev := sqrt(variance)
-	var coefficient_of_variation := std_dev / mean if mean > 0 else 1.0
+	var coefficient_of_variation: float = std_dev / mean if mean > 0 else 1.0
 
 	if coefficient_of_variation < PERFECT_TIMING_THRESHOLD:
 		return 0.5  # Very suspicious
@@ -218,7 +218,7 @@ func _check_response_variance(profile: PlayerProfile) -> float:
 	variance /= profile.response_times.size()
 
 	var std_dev := sqrt(variance)
-	var coefficient_of_variation := std_dev / mean if mean > 0 else 1.0
+	var coefficient_of_variation: float = std_dev / mean if mean > 0 else 1.0
 
 	# Humans have high variance, bots have low
 	if coefficient_of_variation < RESPONSE_TIME_VARIANCE_HUMAN:

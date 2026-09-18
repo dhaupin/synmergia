@@ -487,7 +487,7 @@ func notify_item_loot(entity_id: String, item_name: String, rarity: String = "co
 
 ## Gold change notification
 func notify_gold_change(entity_id: String, amount: int, reason: String = "") -> void:
-	var prefix := "+" if amount > 0 else ""
+	var prefix: String = "+" if amount > 0 else ""
 	var message: String = "%s%d Gold" % [prefix, amount]
 	if reason != "":
 		message += " (%s)" % reason

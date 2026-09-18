@@ -103,8 +103,8 @@ func set_finalize_callback(cb: Callable) -> void:
 
 ## Registers an open instance seed for a character
 func register(character_id: String, instance_seed: PackedByteArray, instance_type: String = "dungeon", custom_ttl_ms: int = -1) -> void:
-	var ttl := custom_ttl_ms if custom_ttl_ms > 0 else get_ttl_for_type(instance_type)
-	var now := int(Time.get_unix_time_from_system() * 1000.0)
+	var ttl: int = custom_ttl_ms if custom_ttl_ms > 0 else get_ttl_for_type(instance_type)
+	var now: int = int(Time.get_unix_time_from_system() * 1000.0)
 	var entry := RegistryEntry.new(character_id, instance_seed, instance_type, ttl, now)
 	_entries[character_id] = entry
 	seed_registered.emit(character_id, instance_type)
@@ -115,7 +115,7 @@ func touch_logout(character_id: String, logout_time_ms: int = -1) -> void:
 	if not _entries.has(character_id):
 		return
 	var entry: RegistryEntry = _entries[character_id]
-	var now := logout_time_ms if logout_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
+	var now: int = logout_time_ms if logout_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
 	entry.last_logout_ms = now
 
 ## Looks up active instance seed for a character.
@@ -125,7 +125,7 @@ func lookup(character_id: String, current_time_ms: int = -1) -> PackedByteArray:
 	if not _entries.has(character_id):
 		return PackedByteArray()
 	var entry: RegistryEntry = _entries[character_id]
-	var now := current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
+	var now: int = current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
 	var elapsed := now - entry.last_logout_ms
 	if elapsed < entry.ttl_ms:
 		return entry.instance_seed
@@ -184,7 +184,7 @@ func get_entry(character_id: String) -> Dictionary:
 
 ## Sweeps and finalizes all expired entries
 func sweep_expired(current_time_ms: int = -1) -> int:
-	var now := current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
+	var now: int = current_time_ms if current_time_ms >= 0 else int(Time.get_unix_time_from_system() * 1000.0)
 	var expired_keys: Array[String] = []
 	for cid in _entries.keys():
 		var entry: RegistryEntry = _entries[cid]

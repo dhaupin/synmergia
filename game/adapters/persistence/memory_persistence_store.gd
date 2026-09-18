@@ -146,59 +146,6 @@ func execute_batch(statements: Array) -> int:
 	return 0
 
 
-# --- KV Bulk Operations ---
-
-# Store uses 'kv' table with 'key' and 'value' columns
-func set_many(entries: Dictionary) -> int:
-	var table := "kv"
-	if not _tables.has(table):
-		_tables[table] = []
-	var t: Array = _tables[table]
-	# Build lookup for existing keys
-	var existing: Dictionary = {}
-	for row in t:
-		if row.has("key"):
-			existing[row["key"]] = row
-	
-	var n := 0
-	for key in entries.keys():
-		var value = entries[key]
-		var json_value = JSON.stringify(value)
-		if existing.has(key):
-			existing[key]["value"] = json_value
-		else:
-			t.append({"key": key, "value": json_value})
-			n += 1
-	return n
-
-
-func get_many(keys: Array) -> Dictionary:
-	var table := "kv"
-	if not _tables.has(table):
-		return {}
-	var t: Array = _tables[table]
-	var result: Dictionary = {}
-	for key in keys:
-		result[key] = null
-	for row in t:
-		if row.has("key") and result.has(row["key"]):
-			var raw = row.get("value", "")
-			if raw != "":
-				var parsed = JSON.parse_string(raw)
-				result[row["key"]] = parsed
-	return result
-
-
-func delete_many(keys: Array) -> int:
-	var table := "kv"
-	if not _tables.has(table):
-		return 0
-	var t: Array = _tables[table]
-	var initial_size := t.size()
-	_tables[table] = t.filter(func(row): return not keys.has(row.get("key", "")))
-	return initial_size - (_tables[table] as Array).size()
-
-
 # --- Internal SQL shim ---
 # Deliberately minimal. Real Postgres handles the hard cases.
 
@@ -1133,16 +1080,6 @@ func row_count(table: String) -> int:
 func _is_alpha(c: int) -> bool:
 	# Check if character code is alphabetic (A-Z or a-z)
 	return (c >= 65 and c <= 90) or (c >= 97 and c <= 122)
-
-
-func get_metrics() -> Dictionary:
-	return {
-		"active_connections": 1,
-		"pending_queries": 0,
-		"circuit_breaker_tripped": false,
-		"circuit_breaker_failures": 0,
-		"circuit_breaker_threshold": 0
-	}
 
 
 func _split_csv(s: String) -> Array:

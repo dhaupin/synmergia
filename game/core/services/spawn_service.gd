@@ -495,7 +495,7 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 	enemy.faction_id = spawn_point.enemy_data.faction
 
 	# Apply species if set
-	var effective_species_id := spawn_point.species_id if spawn_point.species_id != "" else spawn_point.enemy_data.species_id
+	var effective_species_id: String = spawn_point.species_id if spawn_point.species_id != "" else spawn_point.enemy_data.species_id
 	if effective_species_id != "":
 		var data_service = DataService
 		if data_service:
