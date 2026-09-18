@@ -3,6 +3,7 @@
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const AccountRollup = preload("res://core/services/account_rollup.gd")
 
 # Singleton instance
 static var instance: AccountService
@@ -115,13 +116,15 @@ func link_character(character_id: String, account_id: String, character_data: Di
 	_characters[character_id] = character_data
 	_persist_character(character_id)
 
-	# Create mappings
+# Create mappings
 	_character_to_account[character_id] = account_id
 	_account_characters[account_id].append(character_id)
 	_accounts[account_id]["characters"] = _account_characters[account_id]
 	_persist_account(account_id)
 
 	character_linked.emit(character_id, account_id)
+	if AccountRollup:
+		AccountRollup.on_character_linked(character_id, account_id)
 	GameLog.info("AccountService: Linked character %s to account %s" % [character_id, account_id])
 
 	return true
@@ -138,9 +141,11 @@ func unlink_character(character_id: String) -> bool:
 		var chars: Array = _account_characters[account_id]
 		chars.erase(character_id)
 
-	_characters.erase(character_id)
+_characters.erase(character_id)
 
 	character_unlinked.emit(character_id)
+	if AccountRollup:
+		AccountRollup.on_character_unlinked(character_id, account_id)
 	GameLog.info("AccountService: Unlinked character %s from account %s" % [character_id, account_id])
 
 	return true

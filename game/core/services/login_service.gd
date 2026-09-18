@@ -21,6 +21,7 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
 const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
+const AccountRollup = preload("res://core/services/account_rollup.gd")
 
 ## This is the client-side gate. Server should always re-validate.
 
@@ -81,6 +82,8 @@ func login(account_id: String, password: String) -> bool:
 
 	if AccountService:
 		AccountService.update_last_login(account_id)
+	if AccountRollup:
+		AccountRollup.rebuild_rollup(account_id)
 	GameLog.info("LoginService: %s logged in" % account_id)
 	login_succeeded.emit(account_id, false)
 	return true
@@ -130,6 +133,8 @@ func login_as_guest() -> bool:
 	_current_account_id = guest_id
 	_current_session_token = _mint_session_token()
 	_is_guest = true
+	if AccountRollup:
+		AccountRollup.rebuild_rollup(guest_id)
 	GameLog.info("LoginService: Guest session %s" % guest_id)
 	login_succeeded.emit(guest_id, true)
 	return true

@@ -6,6 +6,7 @@ extends Node
 static var instance: VaultService
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const AccountRollup = preload("res://core/services/account_rollup.gd")
 
 const _kv_personal := "vault:personal:"
 const _kv_guild := "vault:guild:"
@@ -444,6 +445,8 @@ func _persist_account(account_id: String) -> void:
 		store.set_value(key, _account_vaults[account_id])
 	else:
 		store.erase(key)
+	if AccountRollup:
+		AccountRollup.on_account_vault_changed(account_id)
 
 func _load_vaults() -> void:
 	var store := DictStore.new()
