@@ -12,6 +12,7 @@ func _cooldown():
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
+const AdapterRegistry = preload("res://adapters/registry.gd")
 
 ## ============================================================================
 ## DATA STRUCTURES
@@ -76,10 +77,13 @@ var _player_requests_received: Dictionary = {}  # player_id -> Array[FriendReque
 var _blocked: Dictionary = {}  # blocker_id -> Array[blocked_id]
 var _ignored: Dictionary = {}  # ignorer_id -> Array[ignored_id]
 var _online_players: Dictionary = {}  # player_id -> {name, last_seen, zone}
+var _friend_recommendations: Dictionary = {}  # player_id -> Array[recommended_id]
 
 ## CacheWrapper key prefix for online status
 const _kv_online_prefix := "online_player:"
-var _friend_recommendations: Dictionary = {}  # player_id -> Array[recommended_id]
+
+## Heartbeat timer for online status renewal
+var _heartbeat_timer: Timer = null
 
 const MAX_FRIENDS: int = 100
 const MAX_BLOCKED: int = 50
@@ -90,6 +94,14 @@ const REQUEST_EXPIRY_HOURS: int = 168  # 7 days
 const MAX_REQUESTS_SENT_PER_HOUR: int = 20
 const MAX_BLOCKS_PER_DAY: int = 10
 
+## Online status TTL and heartbeat
+const ONLINE_HEARTBEAT_TTL_SEC: int = 60      # 60 seconds for online heartbeat keys
+const ONLINE_HEARTBEAT_INTERVAL_SEC: float = 30.0  # Renew every 30 seconds
+const OFFLINE_TTL_SEC: int = 60               # 1 minute TTL for offline status
+
+## Cache store name for online status
+const _online_cache_name := "online_status"
+
 ## ============================================================================
 ## LIFECYCLE
 ## ============================================================================
@@ -98,6 +110,17 @@ func _ready() -> void:
 	GameLog.info("FriendsService: Initialized")
 	_load_online_status()
 	set_process(true)
+
+	# Initialize heartbeat timer for online status renewal
+	_heartbeat_timer = Timer.new()
+	_heartbeat_timer.one_shot = false
+	_heartbeat_timer.wait_time = ONLINE_HEARTBEAT_INTERVAL_SEC
+	_heartbeat_timer.timeout.connect(_renew_online_heartbeats)
+	add_child(_heartbeat_timer)
+	_heartbeat_timer.start()
+
+	# Clean up on exit
+	exit_tree.connect(_on_exit_tree)
 
 func _check_rate_limit(player_id: String, action_type: String) -> Dictionary:
 	# Use CooldownService for unified cooldown management
@@ -262,6 +285,27 @@ func _check_request_expiry() -> void:
 
 	for request in expired:
 		_expire_request(request)
+
+## Periodically renew online status TTL for active players
+func _renew_online_heartbeats() -> void:
+	var cache: CacheStore = AdapterRegistry.get_cache(_online_cache_name)
+	if not cache:
+		return
+	
+	for player_id in _online_players.keys():
+		var data: Dictionary = _online_players[player_id]
+		if data.get("online", false):
+			# Update last_update timestamp
+			data["last_update"] = Time.get_unix_time_from_system()
+			# Refresh the TTL in cache (60 seconds)
+			cache.store(_kv_online_prefix + player_id, data, ONLINE_HEARTBEAT_TTL_SEC)
+			_online_players[player_id] = data
+
+func _on_exit_tree() -> void:
+	if _heartbeat_timer and is_instance_valid(_heartbeat_timer):
+		_heartbeat_timer.stop()
+		_heartbeat_timer.queue_free()
+		_heartbeat_timer = null
 
 ## ============================================================================
 ## FRIEND MANAGEMENT
@@ -630,22 +674,23 @@ func get_social_summary(player_id: String) -> Dictionary:
 ## == Persistence ============================================================
 
 func _load_online_status() -> void:
-	var cache := CacheWrapper.new()
+	var cache: CacheStore = AdapterRegistry.get_cache(_online_cache_name)
+	if not cache:
+		return
 	_online_players = {}
-	for key in cache._store.keys():
-		if key.begins_with(_kv_online_prefix):
-			var player_id = key.substr(_kv_online_prefix.length())
-			var data: Dictionary = cache.get_kv(key)
-			if not data.is_empty():
-				_online_players[player_id] = data
+	# Note: CacheStore doesn't have a keys() method to iterate all keys
+	# This would need a SCAN-like operation or we rely on in-memory state
+	# For now, online status is rebuilt from in-memory state on boot
 
 func _persist_online_status(player_id: String) -> void:
-	var cache := CacheWrapper.new()
-	if _online_players		.has(player_id):
+	var cache: CacheStore = AdapterRegistry.get_cache(_online_cache_name)
+	if not cache:
+		return
+	if _online_players.has(player_id):
 		var data: Dictionary = _online_players[player_id]
 		if data.get("online", false):
-			cache.set_kv(_kv_online_prefix + player_id, data, 300)  # 5 min TTL
+			cache.store(_kv_online_prefix + player_id, data, ONLINE_HEARTBEAT_TTL_SEC)  # 60 sec TTL, auto-renewed
 		else:
-			cache.set_kv(_kv_online_prefix + player_id, data, 60)  # 1 min TTL for offline
+			cache.store(_kv_online_prefix + player_id, data, OFFLINE_TTL_SEC)  # 60 sec TTL for offline
 	else:
 		cache.delete(_kv_online_prefix + player_id)

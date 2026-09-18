@@ -706,7 +706,15 @@ func _clean_up_entity_t3_state(entity_id: String) -> void:
 	for result in results:
 		var node_path: String = result.get("path", "")
 		if node_path != "":
-			_t3.delete(node_path)
+			var command := {
+				"type": "delete",
+				"path": node_path
+			}
+			if TickService:
+				TickService.queue_state_command(command)
+			else:
+				# Fallback for tests/early boot
+				_t3.delete(node_path)
 
 	GameLog.debug("EntityService: Cleaned up T3 state for entity %s at %s" % [entity_id, path])
 

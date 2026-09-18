@@ -22,6 +22,11 @@ const AdapterRegistry = preload("res://adapters/registry.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
 const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 const AccountRollup = preload("res://core/services/account_rollup.gd")
+const NetworkManager = preload("res://core/autoload/network_manager.gd")
+
+const SESSION_TTL_SEC := 86400  # 24 hours
+const _session_cache_name := "session_cache"
+const _session_key_prefix := "session:"
 
 ## This is the client-side gate. Server should always re-validate.
 
@@ -80,6 +85,11 @@ func login(account_id: String, password: String) -> bool:
 	_is_guest = false
 	_failed_attempts.erase(account_id)
 
+	# Store session in cache with 24-hour TTL
+	var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+	if session_cache:
+		session_cache.store(_session_key_prefix + _current_session_token, account_id, SESSION_TTL_SEC)
+
 	if AccountService:
 		AccountService.update_last_login(account_id)
 	if AccountRollup:
@@ -135,6 +145,12 @@ func login_as_guest() -> bool:
 	_is_guest = true
 	if AccountRollup:
 		AccountRollup.rebuild_rollup(guest_id)
+
+	# Store guest session in cache with 24-hour TTL
+	var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+	if session_cache:
+		session_cache.store(_session_key_prefix + _current_session_token, guest_id, SESSION_TTL_SEC)
+
 	GameLog.info("LoginService: Guest session %s" % guest_id)
 	login_succeeded.emit(guest_id, true)
 	return true
@@ -143,9 +159,17 @@ func logout() -> void:
 	if _current_account_id == "":
 		return
 	var prev := _current_account_id
+	var prev_token := _current_session_token
 	_current_account_id = ""
 	_current_session_token = ""
 	_is_guest = false
+
+	# Remove session from cache
+	if prev_token != "":
+		var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+		if session_cache:
+			session_cache.delete(_session_key_prefix + prev_token)
+
 	GameLog.info("LoginService: %s logged out" % prev)
 	logged_out.emit()
 
@@ -153,6 +177,12 @@ func logout() -> void:
 ## Clears current session and forces all clients to re-authenticate
 func invalidate_all_tokens() -> void:
 	GameLog.info("LoginService: Invalidating all session tokens")
+	
+	# Clear current session from cache
+	if _current_session_token != "":
+		var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+		if session_cache:
+			session_cache.delete(_session_key_prefix + _current_session_token)
 	
 	# Clear current session
 	_current_account_id = ""
@@ -201,6 +231,11 @@ func build_seed_receipt(character_id: String) -> Resource:
 		GameLog.warn("LoginService: Character %s has no account" % character_id)
 		return null
 	
+	# Edge Case B: Double-Join & Connection Hijacking
+	# Check for existing active session for this character and kick it
+	if NetworkManager and NetworkManager.is_server:
+		NetworkManager.kick_player_by_character_id(character_id, "New login for character")
+	
 	# Get server HMAC key from config
 	var server_key := _get_server_hmac_key()
 	if server_key.is_empty():
@@ -244,6 +279,21 @@ func build_seed_receipt(character_id: String) -> Resource:
 	GameLog.info("LoginService: Built seed receipt for %s" % character_id)
 	seed_receipt_ready.emit(character_id, receipt)
 	return receipt
+
+## Server-side handler for character selection.
+## Associates the peer with the character, kicks any existing session
+## for the same character (Edge Case B), builds and sends SeedReceipt.
+## Returns the SeedReceipt resource, or null if character not found.
+func on_character_selected(character_id: String, peer_id: int) -> Resource:
+	if not NetworkManager or not NetworkManager.is_server:
+		GameLog.warn("LoginService.on_character_selected: Not running as server")
+		return null
+	
+	# Associate peer with character (so _find_peer_for_character works)
+	NetworkManager.associate_peer_with_character(peer_id, character_id)
+	
+	# Build seed receipt (includes kick check for Edge Case B)
+	return build_seed_receipt(character_id)
 
 func _get_server_hmac_key() -> PackedByteArray:
 	# In production, load from secure config file (srv/config/server.key)

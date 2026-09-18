@@ -117,6 +117,10 @@ func execute_restart() -> void:
 	GameLog.info("ServerManager: Executing restart")
 	restart_executed.emit()
 
+	# Flush all coalesced shard parameters before shutdown (Hazard B fix)
+	if ShardParameters:
+		ShardParameters.flush_all()
+
 	# Final warning
 	# Frame-level broadcast. ADMIN_ALERT, the kind->priority map returns
 	# HIGH (the highest tier the map has), which matches the CRITICAL
@@ -218,6 +222,10 @@ func start_maintenance(message: String = "Server under maintenance", duration_se
 
 	GameLog.info("ServerManager: Entering maintenance mode")
 	GameLog.info("ServerManager: Message: %s" % message)
+
+	# Flush all coalesced shard parameters before maintenance (Hazard B fix)
+	if ShardParameters:
+		ShardParameters.flush_all()
 
 	maintenance_started.emit(message)
 

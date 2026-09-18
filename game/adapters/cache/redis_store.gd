@@ -54,6 +54,11 @@ var _last_response: Dictionary = {}
 var _last_ok: bool = false
 var _response_received: bool = false
 
+# Retry configuration
+const MAX_RETRIES: int = 3
+const BASE_RETRY_DELAY_MS: int = 100
+const MAX_RETRY_DELAY_MS: int = 2000
+
 # Circuit breaker state
 var _circuit_breaker_failures: int = 0
 var _circuit_breaker_tripped: bool = false
@@ -64,6 +69,133 @@ var _circuit_breaker_tripped_time: int = 0
 # Metrics
 var _active_connections: int = 0
 var _pending_queries: int = 0
+
+
+# --- Result type for clean error handling ---
+class RedisResult:
+	var success: bool = false
+	var data: Variant = null
+	var error: String = ""
+	var error_code: int = 0
+
+	static func ok(value: Variant) -> RedisResult:
+		var r := RedisResult.new()
+		r.success = true
+		r.data = value
+		return r
+
+	static func err(msg: String, code: int = -1) -> RedisResult:
+		var r := RedisResult.new()
+		r.success = false
+		r.error = msg
+		r.error_code = code
+		return r
+
+	func unwrap() -> Variant:
+		if not success:
+			push_error("RedisResult.unwrap() called on error: " + error)
+		return data
+
+	func expect(msg: String) -> Variant:
+		if not success:
+			push_error(msg + ": " + error)
+		return data
+
+
+# --- Retry wrapper with exponential backoff and circuit breaker ---
+
+func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> RedisResult:
+	if not _http:
+		return RedisResult.err("HTTP client not initialized", -1)
+	if _circuit_breaker_tripped:
+		var now = Time.get_ticks_msec()
+		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
+			_circuit_breaker_tripped = false
+			_circuit_breaker_failures = 0
+		else:
+			return RedisResult.err("circuit breaker open", -2)
+
+	var attempt := 0
+	var delay_ms := BASE_RETRY_DELAY_MS
+	var last_error: String = ""
+
+	while attempt <= max_attempts:
+		var result := callable.call()
+		if result is RedisResult:
+			if result.success:
+				_record_success()
+				return result
+			last_error = result.error
+			_record_failure()
+		elif result is Dictionary:
+			if result.has("ok") and result.get("ok", false):
+				_record_success()
+				return RedisResult.ok(result)
+			last_error = str(result)
+			_record_failure()
+		else:
+			last_error = "unexpected return type: " + str(result)
+			_record_failure()
+		
+		attempt += 1
+		if attempt <= max_attempts:
+			OS.delay_msec(delay_ms)
+			delay_ms = min(delay_ms * 2, MAX_RETRY_DELAY_MS)
+	
+	return RedisResult.err("Max retries exceeded: " + last_error, -3)
+
+
+func _blocking_get(path: String) -> bool:
+	return _retry_request(func() -> RedisResult:
+		_pending_queries += 1
+		var url := _bridge_url + path
+		var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
+		if err != OK:
+			_pending_queries -= 1
+			return RedisResult.err("HTTP request error: " + str(err), err)
+		var ok := _await_response()
+		_pending_queries -= 1
+		if not ok:
+			return RedisResult.err("Request timeout or failed", -3)
+		return RedisResult.ok(_last_response)
+	).success
+
+
+func _blocking_get_with_body(path: String) -> Dictionary:
+	return _retry_request(func() -> RedisResult:
+		_pending_queries += 1
+		var url := _bridge_url + path
+		var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
+		if err != OK:
+			_pending_queries -= 1
+			return RedisResult.err("HTTP request error: " + str(err), err)
+		var ok := _await_response()
+		_pending_queries -= 1
+		if not ok:
+			return RedisResult.err("Request timeout or failed", -3)
+		return RedisResult.ok(_last_response)
+	).data
+
+
+func _blocking_post(path: String, body: Dictionary) -> Dictionary:
+	return _retry_request(func() -> RedisResult:
+		_pending_queries += 1
+		var url := _bridge_url + path
+		var json := JSON.stringify(body)
+		var headers := PackedStringArray([
+			"Content-Type: application/json",
+			"Accept: application/json",
+		])
+		var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)
+		if err != OK:
+			_pending_queries -= 1
+			return RedisResult.err("HTTP request error: " + str(err), err)
+		if not _await_response():
+			_pending_queries -= 1
+			return RedisResult.err("Request timeout or failed", -3)
+		_pending_queries -= 1
+		return RedisResult.ok(_last_response)
+	).data
 
 
 func _init(parent: Node = null) -> void:
@@ -295,56 +427,6 @@ func delete_many(keys: Array) -> int:
 	if resp.is_empty() or not resp.get("ok", false):
 		return -1
 	return int(resp.get("deleted", 0))
-
-
-# --- HTTP plumbing ---
-
-func _blocking_get(path: String) -> bool:
-	if not _http:
-		return false
-	_pending_queries += 1
-	var url := _bridge_url + path
-	var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
-	if err != OK:
-		_pending_queries -= 1
-		_record_failure()
-		return false
-	var ok := _await_response()
-	_pending_queries -= 1
-	if not ok:
-		_record_failure()
-	else:
-		_record_success()
-	return ok
-
-
-func _blocking_get_with_body(path: String) -> Dictionary:
-	_blocking_get(path)
-	return _last_response
-
-
-func _blocking_post(path: String, body: Dictionary) -> Dictionary:
-	if not _http:
-		return {}
-	_pending_queries += 1
-	var url := _bridge_url + path
-	var json := JSON.stringify(body)
-	var headers := PackedStringArray([
-		"Content-Type: application/json",
-		"Accept: application/json",
-	])
-	var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)
-	if err != OK:
-		_pending_queries -= 1
-		_record_failure()
-		return {}
-	if not _await_response():
-		_pending_queries -= 1
-		_record_failure()
-		return {}
-	_pending_queries -= 1
-	_record_success()
-	return _last_response
 
 
 func _on_response(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:

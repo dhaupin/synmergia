@@ -98,6 +98,10 @@ var _connected_clients: Array = []
 ## Side queue for overflow work from Phase 2
 var _side_queue: Array = []
 
+## State command buffer: queues all state tree mutations for atomic application in Phase 2
+## Commands: {"type": "insert|update|delete|re_root", "path": "...", "entity_id": "...", "state_type": "...", "payload": {...}}
+var _state_command_buffer: Array = []
+
 ## Async persistence task
 var _persistence_task = null
 
@@ -372,6 +376,11 @@ func _phase2_world_step() -> Dictionary:
 	var overflow: Array = []
 	var entity_count: int = 0
 
+	# Step 0: Process queued state tree mutations atomically
+	var mutate_result := _phase2_mutate()
+	if mutate_result["failed"] > 0:
+		GameLog.warn("TickService: %d state commands failed in Phase 2" % mutate_result["failed"])
+
 	# Step 1: Apply queued player inputs in deterministic order
 	# Deterministic by tick-local sequence, or by entity_id hash for fairness
 	var player_ids: Array = _input_queues.keys()
@@ -453,6 +462,56 @@ func _apply_player_input(player_id: String, input_data: Dictionary) -> bool:
 	# Input is applied to the entity's state
 	# The tree is authoritative - this is the only place state changes
 	return true
+
+## Process all queued state tree mutation commands atomically.
+## This is called during Phase 2 (World Step) to ensure all mutations
+## happen in a single deterministic batch before re-rooting in Phase 3.
+func _phase2_mutate() -> Dictionary:
+	var processed: int = 0
+	var failed: int = 0
+
+	if _state_tree == null or _state_command_buffer.is_empty():
+		return {"processed": 0, "failed": 0}
+
+	for command in _state_command_buffer:
+		var cmd_type := command["type"]
+		var success := false
+
+		match cmd_type:
+			"insert", "update":
+				var path := command["path"]
+				var entity_id := command["entity_id"]
+				var state_type := command["state_type"]
+				var payload := command["payload"]
+				try:
+					_state_tree.insert_state(path, entity_id, state_type, payload)
+					success = true
+				except:
+					push_error("TickService._phase2_mutate: insert/update failed for path %s" % path)
+					success = false
+
+			"delete":
+				var path := command["path"]
+				try:
+					_state_tree.delete_state(path)
+					success = true
+				except:
+					push_error("TickService._phase2_mutate: delete failed for path %s" % path)
+					success = false
+
+			"re_root":
+				# Re-root is implicit after mutations; this is a no-op but kept for explicit signaling
+				success = true
+
+		if success:
+			processed += 1
+		else:
+			failed += 1
+
+	# Clear the buffer after processing
+	_state_command_buffer.clear()
+
+	return {"processed": processed, "failed": failed}
 
 ## Decay active effects (buffs, dots) on all entities.
 func _decay_effects() -> void:
@@ -540,6 +599,50 @@ func _phase4_diff_emit() -> Dictionary:
 		emit_times[client_id] = emit_elapsed
 
 	return {"clients_emit": client_count, "emit_times": emit_times}
+
+## Sends a full scope state snapshot to a specific client.
+## Used when client detects hash divergence and requests resync.
+## The scope is the player's AOI (Area of Interest).
+func send_full_scope_sync(client_id: int) -> void:
+	if _state_tree == null or EntityService == null or not NetworkManager or not NetworkManager.is_server:
+		return
+
+	var player_id: String = _get_player_id_from_peer(client_id)
+	if player_id == "":
+		return
+
+	var player = EntityService.get_entity(player_id)
+	if player == null:
+		return
+
+	var pos: Vector3 = player.global_position if "global_position" in player else Vector3.ZERO
+
+	# Build scope path from player's AOI chunks
+	var min_cx: int = int(floor((pos.x - DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var max_cx: int = int(floor((pos.x + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var min_cz: int = int(floor((pos.z - DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var max_cz: int = int(floor((pos.z + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+
+	# Create a scope path that covers the AOI
+	# Use a parent scope path that encompasses all AOI chunks
+	var scope_path: String = "world"
+
+	# Get full snapshot of the scope
+	var full_snapshot: Array = _state_tree.get_full_scope_snapshot(scope_path)
+	if full_snapshot.is_empty():
+		return
+
+	# Send as full state (empty diff marker in payload)
+	var payload := {
+		"tick": _tick_number,
+		"root_hash": _current_root_hash,
+		"diff": full_snapshot,
+		"lod_level": 0,
+		"is_full_sync": true  # Marker for client to know this is a full resync
+	}
+	NetworkManager.send_to_peer(client_id, payload)
+	GameLog.debug("TickService: Sent full scope sync to client %d (%d entries)" % [client_id, full_snapshot.size()])
+
 
 ## Flatten chunked AOI diff (Dictionary of chunk_key -> Array[diff_entry])
 ## into a flat Array[diff_entry] for network transport.
@@ -798,6 +901,35 @@ func unregister_client(client_id: int) -> void:
 	_connected_clients.erase(client_id)
 	_input_queues.erase(client_id)
 	GameLog.debug("TickService: Client %d unregistered" % client_id)
+
+## Queue a state tree mutation command for atomic application in Phase 2.
+## This is the ONLY way to mutate the state tree. Direct mutations from RPC callbacks,
+## agent connectors, or timers are forbidden.
+##
+## Command types:
+##   insert: {"type": "insert", "path": String, "entity_id": String, "state_type": String, "payload": Dictionary}
+##   update: {"type": "update", "path": String, "entity_id": String, "state_type": String, "payload": Dictionary}
+##   delete: {"type": "delete", "path": String}
+##   re_root: {"type": "re_root"} (triggers re-root; normally automatic after mutations)
+func queue_state_command(command: Dictionary) -> void:
+	if command == null or not command.has("type"):
+		push_error("TickService.queue_state_command: invalid command (missing type)")
+		return
+	var cmd_type := command["type"]
+	if cmd_type not in ["insert", "update", "delete", "re_root"]:
+		push_error("TickService.queue_state_command: unknown command type '%s'" % cmd_type)
+		return
+	if cmd_type in ["insert", "update"] and (not command.has("path") or not command.has("entity_id") or not command.has("state_type") or not command.has("payload")):
+		push_error("TickService.queue_state_command: insert/update command missing required fields")
+		return
+	if cmd_type == "delete" and not command.has("path"):
+		push_error("TickService.queue_state_command: delete command missing path")
+		return
+	_state_command_buffer.append(command)
+
+## Returns the number of pending state commands.
+func get_pending_command_count() -> int:
+	return _state_command_buffer.size()
 
 ## Submit chaos to the flywheel from external sources (NPC events, entity signals).
 func add_chaos(source: String, amount: float) -> void:

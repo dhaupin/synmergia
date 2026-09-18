@@ -233,6 +233,30 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 	return _current_root
 
 
+## Returns a full snapshot of all nodes under scope_path as diff entries
+## with old_hash=null (indicating full state, not differential).
+## Used for client resync when hash divergence is detected.
+func get_full_scope_snapshot(scope_path: String) -> Array:
+	var scope := _normalize_path(scope_path)
+	var paths: Array = []
+	for node_path in _nodes.keys():
+		if _is_under(node_path, scope):
+			paths.append(node_path)
+	paths.sort()
+
+	var snapshot: Array = []
+	for node_path in paths:
+		var node: Dictionary = _nodes[node_path]
+		var entry := [
+			node_path,
+			PackedByteArray(),  # old_hash = null (full state marker)
+			node.get("hash"),
+			node.get("value_bytes"),
+		]
+		snapshot.append(entry)
+	return snapshot
+
+
 ## Walks nodes under scope_path in deterministic depth-first pre-order.
 func walk(scope_path: String, callback: Callable) -> void:
 	var scope := _normalize_path(scope_path)

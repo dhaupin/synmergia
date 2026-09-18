@@ -11,6 +11,8 @@ signal peer_disconnected(peer_id: int)
 signal server_started
 signal server_stopped
 signal world_state_received(tick: int, diff: Array)
+signal full_state_sync_requested  # Client requested full resync due to hash divergence
+signal full_state_sync_received(tick: int, scope_size: int)  # Client received full resync
 
 # Firewall instance
 var _firewall: AppFirewall
@@ -365,6 +367,27 @@ func _receive_client_message(message: Dictionary) -> void:
 			"chat":
 				if ChatService:
 					ChatService.handle_client_chat(message.get("peer_id", 1), message.get("data", {}))
+			"character_select":
+				_handle_character_select(message.get("peer_id", 1), message.get("data", {}))
+
+## Handles character selection from client.
+## Kicks any existing session for the character (Edge Case B),
+## builds seed receipt, and sends it to the client.
+func _handle_character_select(peer_id: int, data: Dictionary) -> void:
+	var character_id: String = data.get("character_id", "")
+	if character_id == "":
+		_log("warn", "Character select: missing character_id from peer %d" % peer_id)
+		return
+	
+	_log("info", "Character select: peer %d selected character %s" % [peer_id, character_id])
+	
+	if LoginService:
+		var receipt: Resource = LoginService.on_character_selected(character_id, peer_id)
+		if receipt:
+			_send_seed_receipt(peer_id, character_id, receipt)
+		else:
+			_log("error", "Character select: failed to build seed receipt for %s" % character_id)
+			rpc_id(peer_id, "_receive_seed_receipt_failed", "Failed to build seed receipt")
 
 ## SERVER: Send chunked world state to a specific peer.
 func _send_chunked_to_peer(peer_id: int, diff_payload: Dictionary, chunk_type: int) -> void:
@@ -686,6 +709,28 @@ func track_failed_attempt(ip: String) -> void:
 	if _firewall:
 		_firewall.track_failed_attempt(ip)
 
+## Kick an existing session for a character (prevents double-join/hijacking)
+## Returns true if a peer was found and disconnected
+func kick_player_by_character_id(character_id: String, reason: String = "New session started") -> bool:
+	if not is_server:
+		_log("warn", "kick_player_by_character_id called but not running as server")
+		return false
+	
+	var peer_id := _find_peer_for_character(character_id)
+	if peer_id > 0:
+		_log("info", "Kicking existing session for character %s (peer %d): %s" % [character_id, peer_id, reason])
+		if multiplayer.multiplayer_peer:
+			rpc_id(peer_id, "_receive_maintenance_disconnect", reason)
+			# Brief delay to let RPC deliver, then force close
+			var t = Timer.new()
+			t.timeout.connect(func(): multiplayer.multiplayer_peer.disconnect_peer(peer_id, true))
+			t.one_shot = true
+			t.wait_time = 0.2
+			add_child(t)
+			t.start()
+		return true
+	return false
+
 func _player_ip_from_id(player_id: String) -> String:
 	# Look up IP from connected peers
 	for peer_id in connected_peers:
@@ -734,12 +779,20 @@ func _process_reassembled_world_state(payload: Dictionary) -> void:
 	var root_hash: PackedByteArray = payload.get("root_hash", PackedByteArray())
 	var diff: Array = payload.get("diff", [])
 	var lod_level: int = payload.get("lod_level", 0)
+	var is_full_sync: bool = payload.get("is_full_sync", false)
 	
 	if diff.is_empty():
 		# Full state sync - reset client tree to server root
 		_client_root_hash = root_hash
 		_client_state_tree = StateTreeScript.new()
 		_log("debug", "Client full state sync at tick %d" % tick)
+	elif is_full_sync:
+		# Server sent full scope snapshot (resync after hash divergence)
+		# Rebuild local state tree from the full snapshot
+		_client_state_tree.apply_full_snapshot(diff, root_hash)
+		_client_root_hash = root_hash
+		_log("info", "Client received full scope resync at tick %d (%d entries)" % [tick, diff.size()])
+		full_state_sync_received.emit(tick, diff.size())
 	else:
 		# Apply differential update
 		if _client_root_hash.size() > 0 and root_hash.size() > 0:
@@ -748,11 +801,42 @@ func _process_reassembled_world_state(payload: Dictionary) -> void:
 				_client_root_hash = new_root
 				_log("debug", "Client applied diff at tick %d, new root: %s" % [tick, new_root.hex_encode()])
 			else:
-				_log("warn", "Client failed to apply diff at tick %d" % tick)
+				# Hash divergence detected - client root doesn't match server's expected old_root
+				_log("error", "Client hash divergence at tick %d: local root %s != server expected %s" % [
+					tick, _client_root_hash.hex_encode(), root_hash.hex_encode()])
+				_request_full_state_sync()
 		else:
 			_log("warn", "Client missing root hash for diff at tick %d" % tick)
 	
 	world_state_received.emit(tick, diff)
+
+
+## Client requests full state sync from server due to hash divergence.
+func _request_full_state_sync() -> void:
+	if not is_client:
+		return
+	
+	_log("info", "Requesting full state sync from server due to hash divergence")
+	full_state_sync_requested.emit()
+	
+	# Send request to server via RPC
+	if multiplayer.is_network_connected() and multiplayer.multiplayer_peer:
+		rpc_id(1, "_receive_full_sync_request", peer_id)
+
+
+## Server RPC: receives client's full sync request.
+@rpc("any_peer", "call_local")
+func _receive_full_sync_request(requesting_peer_id: int) -> void:
+	if not is_server:
+		return
+	if not connected_peers.has(requesting_peer_id):
+		return
+	
+	_log("info", "Server received full sync request from peer %d" % requesting_peer_id)
+	
+	# Delegate to TickService to send full scope snapshot
+	if TickService:
+		TickService.send_full_scope_sync(requesting_peer_id)
 
 ## Get the client's local state tree (for reading predicted state)
 func get_client_state_tree() -> StateTreeScript:
@@ -762,11 +846,10 @@ func get_client_state_tree() -> StateTreeScript:
 func get_client_root_hash() -> PackedByteArray:
 	return _client_root_hash
 
-## Force full state resync (call after reconnection)
+## Force full state resync (call after reconnection or manually)
 func request_full_state_sync() -> void:
-	if is_client and multiplayer.is_network_master():
-		# Client can't request directly, server pushes on reconnect
-		pass
+	if is_client:
+		_request_full_state_sync()
 	elif is_server:
 		# Server can push full state to all clients
 		if _client_state_tree:
@@ -826,6 +909,14 @@ func _receive_seed_receipt(character_id: String, receipt_bytes: PackedByteArray)
 	
 	_log("info", "SeedReceipt: Verified and stored for %s" % character_id)
 	seed_receipt_received.emit(character_id, receipt)
+
+## Client: RPC to receive seed receipt failure from server
+@rpc("reliable", "call_local")
+func _receive_seed_receipt_failed(reason: String) -> void:
+	if not is_client:
+		return
+	_log("error", "SeedReceipt failed: %s" % reason)
+	seed_receipt_failed.emit(reason)
 
 ## Gets the server HMAC key embedded in the client.
 ## In production, this would be a binary key shipped with the client.
