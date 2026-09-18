@@ -18,7 +18,7 @@ extends Node
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const AdapterRegistry = preload("res://adapters/registry.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
 const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 const AccountRollup = preload("res://core/services/account_rollup.gd")
@@ -388,11 +388,11 @@ func _fail(reason: String) -> void:
 	login_failed.emit(reason)
 
 func _load_accounts() -> void:
-	var store := DictStore.new()
+	var store: PersistenceStore = AdapterRegistry.get_persistence("accounts")
 	if not store.has_key(_kv_prefix + "_init"):
 		_store = {}
 		return
-	var keys := store.all_keys()
+	var keys: Array = store.all_keys()
 	for key in keys:
 		if key.begins_with(_kv_prefix) and key != _kv_prefix + "_init":
 			var account_id = key.substr(_kv_prefix.length())
@@ -401,7 +401,7 @@ func _load_accounts() -> void:
 				_store[account_id] = entry
 
 func _persist_account(account_id: String) -> void:
-	var store := DictStore.new()
+	var store: PersistenceStore = AdapterRegistry.get_persistence("accounts")
 	var entry: Dictionary = _store.get(account_id, {})
 	if entry.is_empty():
 		store.erase(_kv_prefix + account_id)
