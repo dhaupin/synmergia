@@ -6,27 +6,11 @@ on:
     paths:
       - 'game/**'
       - '.github/workflows/web-ci.yml'
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'labs/**'
-      - 'web/**'
-      - 'src/**'
-      - 'scripts/**'
-      - '.gitignore'
   pull_request:
     branches: [main]
     paths:
       - 'game/**'
       - '.github/workflows/web-ci.yml'
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'labs/**'
-      - 'web/**'
-      - 'src/**'
-      - 'scripts/**'
-      - '.gitignore'
   workflow_dispatch:
     inputs:
       run_full_suite:
