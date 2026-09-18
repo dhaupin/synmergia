@@ -500,16 +500,23 @@ func _metadata_from_dict(data: Dictionary) -> SpawnMetadata:
 
 func _load_entity_metadata() -> void:
 	var store := DictStore.new()
-	for key in store.all_keys():
-		if not key.begins_with(_kv_prefix):
-			continue
-		var entity_id: String = key.substr(_kv_prefix.length())
-		var data: Dictionary = store.get_kv(key)
-		if data.is_empty():
-			continue
-		var metadata := _metadata_from_dict(data)
-		metadata.entity_id = entity_id
-		_entity_metadata[entity_id] = metadata
+	_entity_metadata = {}
+	var keys: Array = store.all_keys()
+	var meta_keys: Array = []
+	for key in keys:
+		if key.begins_with(_kv_prefix):
+			meta_keys.append(key)
+	
+	if not meta_keys.is_empty():
+		var results: Dictionary = store.get_many(meta_keys)
+		for key in meta_keys:
+			var entity_id: String = key.substr(_kv_prefix.length())
+			var data: Dictionary = results.get(key, {})
+			if data.is_empty():
+				continue
+			var metadata := _metadata_from_dict(data)
+			metadata.entity_id = entity_id
+			_entity_metadata[entity_id] = metadata
 
 func _persist_entity_metadata(entity_id: String) -> void:
 	var store := DictStore.new()
@@ -523,6 +530,19 @@ func _persist_entity_metadata(entity_id: String) -> void:
 		store.erase(key)
 	else:
 		store.set_kv(key, data)
+
+
+func persist_all_metadata() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for entity_id in _entity_metadata.keys():
+		var key := _kv_prefix + entity_id
+		var metadata: SpawnMetadata = _entity_metadata[entity_id]
+		var data := _metadata_to_dict(metadata)
+		if not data.is_empty():
+			entries[key] = data
+	if not entries.is_empty():
+		store.set_batch(entries)
 
 
 ## Fragments entity state and stores it in the T3 content-hash tree.

@@ -2,9 +2,10 @@
 ##
 ## Shown after a successful login. Lists characters linked to the
 ## current account (via AccountService), with Play / Create / Delete
-## / Logout actions. Backed by disk via LoginService.
+## / Logout actions. Backed by AdapterRegistry (characters store).
 extends Control
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
@@ -182,58 +183,87 @@ func _on_logged_out() -> void:
 
 # == Persistence ========================================================
 
-const CHARS_SAVE_PATH := "user://characters.json"
+func _get_registry() -> Node:
+	if get_tree() == null:
+		return null
+	return get_tree().root.get_node_or_null("AdapterRegistry")
+
+func _get_store() -> PersistenceStore:
+	var reg := _get_registry()
+	if reg == null:
+		GameLog.warn("Lobby: AdapterRegistry not found")
+		return null
+	var store: PersistenceStore = reg.get_persistence("characters")
+	if store == null:
+		GameLog.warn("Lobby: characters store not registered")
+	return store
 
 func _load_saved_characters(account_id: String) -> Array:
-	if not FileAccess.file_exists(CHARS_SAVE_PATH):
+	var store := _get_store()
+	if store == null:
 		return []
-	var f := FileAccess.open(CHARS_SAVE_PATH, FileAccess.READ)
-	if not f:
+	var key := "account:%s" % account_id
+	var rows = store.query("SELECT value FROM kv WHERE key = $1", [key])
+	if rows.is_empty():
 		return []
-	var parsed = JSON.parse_string(f.get_as_text())
-	f.close()
+	var raw = rows[0].get("value", "")
+	if raw == "":
+		return []
+	var parsed = JSON.parse_string(raw)
 	if not (parsed is Dictionary):
 		return []
 	var by_account: Dictionary = parsed
-	var list: Array = by_account.get(account_id, [])
-	return list
+	return by_account.get(account_id, [])
 
 func _save_all_characters() -> void:
-	# Read existing, replace, write. We don't touch other accounts.
+	var store := _get_store()
+	if store == null:
+		return
+	var acc_id := LoginService.get_current_account_id() if LoginService else "default"
+	var key := "account:%s" % acc_id
+	
+	# Load existing to preserve other accounts
+	var rows = store.query("SELECT value FROM kv WHERE key = $1", [key])
 	var by_account: Dictionary = {}
-	if FileAccess.file_exists(CHARS_SAVE_PATH):
-		var rf := FileAccess.open(CHARS_SAVE_PATH, FileAccess.READ)
-		if rf:
-			var parsed = JSON.parse_string(rf.get_as_text())
-			rf.close()
+	if not rows.is_empty():
+		var raw = rows[0].get("value", "")
+		if raw != "":
+			var parsed = JSON.parse_string(raw)
 			if parsed is Dictionary:
 				by_account = parsed
-	var acc_id := LoginService.get_current_account_id() if LoginService else "default"
+	
 	var serialized: Array = []
 	for cd in _characters:
 		serialized.append(cd.to_dict())
 	by_account[acc_id] = serialized
-	var wf := FileAccess.open(CHARS_SAVE_PATH, FileAccess.WRITE)
-	if wf:
-		wf.store_string(JSON.stringify(by_account))
-		wf.close()
+	
+	var json = JSON.stringify(by_account)
+	# Use set_many for bulk KV upsert (single HTTP call via /batch)
+	var entries: Dictionary = {key: json}
+	store.set_many(entries)
 
 func _remove_character_blob(account_id: String, character_id: String) -> void:
+	var store := _get_store()
+	if store == null:
+		return
+	var key := "account:%s" % account_id
+	
+	var rows = store.query("SELECT value FROM kv WHERE key = $1", [key])
 	var by_account: Dictionary = {}
-	if FileAccess.file_exists(CHARS_SAVE_PATH):
-		var rf := FileAccess.open(CHARS_SAVE_PATH, FileAccess.READ)
-		if rf:
-			var parsed = JSON.parse_string(rf.get_as_text())
-			rf.close()
+	if not rows.is_empty():
+		var raw = rows[0].get("value", "")
+		if raw != "":
+			var parsed = JSON.parse_string(raw)
 			if parsed is Dictionary:
 				by_account = parsed
 	var list: Array = by_account.get(account_id, [])
 	list = list.filter(func(blob): return blob.get("character_id", "") != character_id)
 	by_account[account_id] = list
-	var wf := FileAccess.open(CHARS_SAVE_PATH, FileAccess.WRITE)
-	if wf:
-		wf.store_string(JSON.stringify(by_account))
-		wf.close()
+	
+	var json = JSON.stringify(by_account)
+	# Use set_many for bulk KV upsert (single HTTP call via /batch)
+	var entries: Dictionary = {key: json}
+	store.set_many(entries)
 
 func _blob_to_character_data(blob: Dictionary) -> CharacterData:
 	var cd := CharacterData.new(

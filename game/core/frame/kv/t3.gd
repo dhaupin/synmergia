@@ -7,6 +7,9 @@ var _snapshots: Dictionary = {}
 var _schema_refs_by_root: Dictionary = {}
 var _current_root: PackedByteArray = PackedByteArray()
 
+## Reusable HashingContext to avoid allocation churn.
+var _hashing_context: HashingContext = HashingContext.new()
+
 
 func _init() -> void:
 	_current_root = _sha256(PackedByteArray())
@@ -38,6 +41,49 @@ func insert(path: String, value: Variant, schema: Resource) -> PackedByteArray:
 	_current_root = _root_hash(_nodes)
 	_record_snapshot()
 	return node_hash
+
+
+## Batch insert multiple nodes and compute root hash once at the end.
+## Returns array of [path, node_hash] for each inserted node.
+func insert_batch(entries: Array) -> Array:
+	if entries.is_empty():
+		return []
+
+	_record_snapshot()
+
+	var results: Array = []
+	for entry in entries:
+		if not entry is Array or entry.size() < 3:
+			push_error("T3.insert_batch: entry must be [path, value, schema]")
+			continue
+		var path: String = str(entry[0])
+		var value: Variant = entry[1]
+		var schema: Resource = entry[2]
+
+		var normalized_path := _normalize_path(path)
+		var value_bytes := var_to_bytes(value)
+		var schema_id := _schema_id(schema)
+		var node_hash := _node_hash(normalized_path, value_bytes, schema_id)
+
+		var existing = _nodes.get(normalized_path)
+		if existing != null and existing.get("hash") == node_hash:
+			results.append([normalized_path, node_hash])
+			continue
+
+		var node := {
+			"path": normalized_path,
+			"hash": node_hash,
+			"value_bytes": value_bytes,
+			"schema_ref": schema,
+			"schema_id": schema_id,
+			"value": value
+		}
+		_nodes[normalized_path] = node
+		results.append([normalized_path, node_hash])
+
+	_current_root = _root_hash(_nodes)
+	_record_snapshot()
+	return results
 
 
 ## Returns the stored value at path, or null when the node does not exist.
@@ -242,13 +288,13 @@ func _node_hash(path: String, value_bytes: PackedByteArray, schema_id: String) -
 	return _sha256(canonical)
 
 
+## Reuses _hashing_context to compute SHA-256 without allocation.
 func _sha256(data: PackedByteArray) -> PackedByteArray:
-	var context := HashingContext.new()
-	if context.start(HashingContext.HASH_SHA256) != OK:
+	if _hashing_context.start(HashingContext.HASH_SHA256) != OK:
 		return PackedByteArray()
 	if not data.is_empty():
-		context.update(data)
-	return context.finish()
+		_hashing_context.update(data)
+	return _hashing_context.finish()
 
 
 func _append_u32(target: PackedByteArray, value: int) -> void:
@@ -260,9 +306,14 @@ func _root_hash(nodes: Dictionary) -> PackedByteArray:
 	var paths: Array = nodes.keys()
 	paths.sort()
 	var combined := PackedByteArray()
+	combined.resize(paths.size() * 32)
+	var offset: int = 0
 	for node_path in paths:
 		var node: Dictionary = nodes[node_path]
-		combined.append_array(node.get("hash"))
+		var hash_bytes: PackedByteArray = node.get("hash")
+		for i in range(32):
+			combined[offset + i] = hash_bytes[i]
+		offset += 32
 	return _sha256(combined)
 
 

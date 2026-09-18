@@ -19,6 +19,28 @@ var DEFAULT_PORT: int = 10555
 var MAX_PLAYERS: int = 100
 const SERVER_IP: String = "127.0.0.1"
 
+## WASM-SAFE NETWORKING CONSTANTS
+## Maximum packet size: 64KB (65536 bytes) to prevent heap spikes in browser WASM
+const MAX_PACKET_SIZE: int = 65536
+## Chunk header size overhead (type, chunk_id, total_chunks, sequence, flags)
+const CHUNK_HEADER_SIZE: int = 32
+## Maximum payload per chunk after header overhead
+const MAX_CHUNK_PAYLOAD: int = MAX_PACKET_SIZE - CHUNK_HEADER_SIZE
+
+## Chunked message types for reassembly
+const CHUNK_TYPE_FULL_STATE = 0
+const CHUNK_TYPE_DIFF = 1
+const CHUNK_TYPE_CONTINUATION = 2
+const CHUNK_TYPE_FINAL = 3
+
+## Client-side reassembly buffer (pre-allocated to avoid unbounded growth)
+const REASSEMBLY_BUFFER_SIZE: int = 1024 * 1024  # 1MB max per message
+
+## Client-side outbound send buffer (pre-allocated ring buffer for WASM safety)
+## Prevents unbounded queue growth when sending many messages (e.g., input updates)
+const SEND_BUFFER_CAPACITY: int = 256  # Max queued messages
+const SEND_BUFFER_MAX_BYTES: int = 1024 * 1024  # 1MB total buffer
+
 enum ConnectionState {
 	DISCONNECTED,
 	CONNECTING,
@@ -39,6 +61,26 @@ const _kv_index := "peer:index"
 # Client-side state tree for applying server diffs
 var _client_state_tree: StateTreeScript = null
 var _client_root_hash: PackedByteArray = PackedByteArray()
+
+## CLIENT-SIDE REASSEMBLY STATE (WASM-safe: fixed-size, pre-allocated)
+## Inbound chunk reassembly buffer - pre-allocated to prevent unbounded array growth
+var _reassembly_buffer: Dictionary = {}
+## Expected total chunks for current reassembly
+var _reassembly_expected_chunks: int = 0
+## Received chunk count
+var _reassembly_received_count: int = 0
+## Reassembly message ID (to handle out-of-order/overlapping messages)
+var _reassembly_message_id: int = 0
+## Accumulated payload bytes for reassembly
+var _reassembly_accumulated: PackedByteArray = PackedByteArray()
+
+## CLIENT-SIDE OUTBOUND SEND BUFFER (WASM-safe: fixed-size ring buffer)
+## Pre-allocated array to prevent unbounded growth when queueing sends
+var _send_buffer: Array = []
+var _send_buffer_head: int = 0
+var _send_buffer_tail: int = 0
+var _send_buffer_size: int = 0
+var _send_buffer_bytes: int = 0
 
 func _log(level: String, message: String) -> void:
 	var gl = get_node_or_null("/root/GameLog")
@@ -95,17 +137,259 @@ func _process(_delta: float) -> void:
 	match connection_state:
 		ConnectionState.CONNECTED:
 			_check_connection_health()
+			_flush_send_buffer()
 		ConnectionState.SERVER:
 			# TickService drives the authoritative tick loop
 			# NetworkManager only handles transport
 			pass
 
 
-## Stub for server tick processing - TickService drives the authoritative tick
-func _process_server_ticks() -> void:
-	# TickService handles the authoritative tick loop
-	# NetworkManager only provides transport via send_to_peer() and _broadcast_world_state()
-	pass
+## ============================================================================
+## WASM-SAFE CHUNKING & REASSEMBLY HELPERS
+## ============================================================================
+
+## Serializes a diff payload to bytes for size checking and chunking.
+## Returns PackedByteArray of the serialized payload.
+func _serialize_payload(payload: Dictionary) -> PackedByteArray:
+	var bytes := payload.to_json().to_utf8_buffer()
+	return bytes
+
+## Estimates the network packet size for a payload (includes RPC overhead).
+func _estimate_packet_size(payload: Dictionary) -> int:
+	var serialized := _serialize_payload(payload)
+	return serialized.size() + 64  # RPC framing overhead estimate
+
+## Splits a large payload into chunks that fit within MAX_PACKET_SIZE.
+## Returns an array of chunk payloads (each a Dictionary with chunk metadata).
+func _chunk_payload(payload: Dictionary, chunk_type: int) -> Array:
+	var serialized: PackedByteArray = _serialize_payload(payload)
+	var total_size: int = serialized.size()
+	
+	if total_size <= MAX_CHUNK_PAYLOAD:
+		# Fits in single packet - no chunking needed
+		var single_chunk = {
+			"type": chunk_type,
+			"message_id": 0,
+			"chunk_id": 0,
+			"total_chunks": 1,
+			"is_final": true,
+			"payload": payload
+		}
+		return [single_chunk]
+	
+	# Need to chunk
+	var chunks: Array = []
+	var message_id: int = _generate_message_id()
+	var offset: int = 0
+	var chunk_id: int = 0
+	var total_chunks: int = ceil(total_size / MAX_CHUNK_PAYLOAD)
+	
+	while offset < total_size:
+		var chunk_size := min(MAX_CHUNK_PAYLOAD, total_size - offset)
+		var chunk_data: PackedByteArray = serialized.slice(offset, offset + chunk_size)
+		
+		var is_final: bool = (chunk_id == total_chunks - 1)
+		var chunk_type_actual: int = CHUNK_TYPE_FULL_STATE if chunk_type == CHUNK_TYPE_FULL_STATE else CHUNK_TYPE_DIFF
+		if chunk_id > 0:
+			chunk_type_actual = CHUNK_TYPE_CONTINUATION
+		if is_final:
+			chunk_type_actual = CHUNK_TYPE_FINAL
+		
+		var chunk = {
+			"type": chunk_type_actual,
+			"message_id": message_id,
+			"chunk_id": chunk_id,
+			"total_chunks": total_chunks,
+			"is_final": is_final,
+			"payload_bytes": chunk_data
+		}
+		chunks.append(chunk)
+		
+		offset += chunk_size
+		chunk_id += 1
+	
+	return chunks
+
+## Generates a unique message ID for chunking tracking.
+var _message_id_counter: int = 0
+func _generate_message_id() -> int:
+	_message_id_counter += 1
+	if _message_id_counter > 2147483647:
+		_message_id_counter = 1
+	return _message_id_counter
+
+## Reassembles chunks into the original payload.
+## Returns the reassembled payload Dictionary or null if incomplete.
+func _reassemble_chunks(chunk: Dictionary) -> Dictionary:
+	var msg_id: int = chunk.get("message_id", 0)
+	var chunk_id: int = chunk.get("chunk_id", 0)
+	var total_chunks: int = chunk.get("total_chunks", 1)
+	var is_final: bool = chunk.get("is_final", true)
+	var payload_bytes: PackedByteArray = chunk.get("payload_bytes", PackedByteArray())
+	
+	# Handle single-chunk messages (no chunking)
+	if total_chunks == 1:
+		if payload_bytes.size() > 0:
+			return _deserialize_payload(payload_bytes)
+		return chunk.get("payload", {})
+	
+	# Multi-chunk reassembly
+	if msg_id != _reassembly_message_id:
+		# New message - reset reassembly state
+		_reassembly_message_id = msg_id
+		_reassembly_expected_chunks = total_chunks
+		_reassembly_received_count = 0
+		_reassembly_accumulated = PackedByteArray()
+		_reassembly_buffer.clear()
+	
+	# Bounds check: prevent buffer overflow
+	if _reassembly_accumulated.size() + payload_bytes.size() > REASSEMBLY_BUFFER_SIZE:
+		_log("warn", "Reassembly buffer overflow, discarding message %d" % msg_id)
+		_reassembly_buffer.clear()
+		_reassembly_message_id = 0
+		return null
+	
+	# Store chunk
+	_reassembly_buffer[chunk_id] = payload_bytes
+	_reassembly_received_count += 1
+	
+	# Check if complete
+	if _reassembly_received_count >= _reassembly_expected_chunks or is_final:
+		# Reassemble in order
+		var complete: PackedByteArray = PackedByteArray()
+		for i in range(_reassembly_expected_chunks):
+			if _reassembly_buffer.has(i):
+				complete.append_array(_reassembly_buffer[i])
+			else:
+				_log("warn", "Missing chunk %d for message %d" % [i, msg_id])
+				_reassembly_buffer.clear()
+				_reassembly_message_id = 0
+				return null
+		
+		# Reset for next message
+		_reassembly_buffer.clear()
+		_reassembly_message_id = 0
+		_reassembly_expected_chunks = 0
+		_reassembly_received_count = 0
+		_reassembly_accumulated = PackedByteArray()
+		
+		return _deserialize_payload(complete)
+	
+	return null  # Still waiting for more chunks
+
+## Deserializes payload bytes back to Dictionary.
+func _deserialize_payload(bytes: PackedByteArray) -> Dictionary:
+	var json_str: String = bytes.get_string_from_utf8()
+	return JSON.parse_string(json_str)
+
+## ============================================================================
+## CLIENT-SIDE OUTBOUND SEND BUFFER HELPERS (WASM-safe)
+## ============================================================================
+
+## Initializes the send buffer (call on client connect).
+func _init_send_buffer() -> void:
+	_send_buffer = []
+	_send_buffer.resize(SEND_BUFFER_CAPACITY)
+	_send_buffer_head = 0
+	_send_buffer_tail = 0
+	_send_buffer_size = 0
+	_send_buffer_bytes = 0
+
+## Clears the send buffer (call on client disconnect).
+func _clear_send_buffer() -> void:
+	_send_buffer.clear()
+	_send_buffer_head = 0
+	_send_buffer_tail = 0
+	_send_buffer_size = 0
+	_send_buffer_bytes = 0
+
+## Queues a message for sending (client-side).
+## Returns true if queued, false if buffer full (backpressure).
+func _queue_send(message: Dictionary) -> bool:
+	if _send_buffer_size >= SEND_BUFFER_CAPACITY:
+		_log("warn", "Send buffer full, dropping message (backpressure)")
+		return false
+	
+	var msg_bytes: int = _estimate_packet_size(message)
+	if _send_buffer_bytes + msg_bytes > SEND_BUFFER_MAX_BYTES:
+		_log("warn", "Send buffer byte limit reached, dropping message")
+		return false
+	
+	_send_buffer[_send_buffer_tail] = message
+	_send_buffer_tail = (_send_buffer_tail + 1) % SEND_BUFFER_CAPACITY
+	_send_buffer_size += 1
+	_send_buffer_bytes += msg_bytes
+	return true
+
+## Flushes the send buffer by sending all queued messages.
+## Call this periodically (e.g., in _process when connected).
+func _flush_send_buffer() -> void:
+	if not is_client or _send_buffer_size == 0:
+		return
+	
+	while _send_buffer_size > 0:
+		var message: Dictionary = _send_buffer[_send_buffer_head]
+		_send_buffer[_send_buffer_head] = null
+		_send_buffer_head = (_send_buffer_head + 1) % SEND_BUFFER_CAPACITY
+		_send_buffer_size -= 1
+		_send_buffer_bytes -= _estimate_packet_size(message)
+		
+		# Send via RPC to server (server is peer 1 in Godot multiplayer)
+		if multiplayer.is_network_connected() and multiplayer.multiplayer_peer:
+			# Use rpc for client->server messages
+			rpc("_receive_client_message", message)
+
+## Client-side RPC to send messages to server (input, actions, etc.)
+## This is the client-facing API - queues message for batched sending.
+func send_to_server(message: Dictionary) -> bool:
+	if not is_client:
+		return false
+	return _queue_send(message)
+
+## Server-side RPC to receive client messages.
+@rpc("any_peer", "call_local")
+func _receive_client_message(message: Dictionary) -> void:
+	if not is_server:
+		return
+	# Handle client message (input, actions, etc.)
+	# Forward to appropriate service based on message type
+	if message.has("type"):
+		var msg_type: String = message["type"]
+		match msg_type:
+			"input":
+				if InputManager:
+					InputManager.handle_client_input(message.get("peer_id", 1), message.get("data", {}))
+			"action":
+				if InteractionLayer:
+					InteractionLayer.handle_client_action(message.get("peer_id", 1), message.get("data", {}))
+			"chat":
+				if ChatService:
+					ChatService.handle_client_chat(message.get("peer_id", 1), message.get("data", {}))
+
+## SERVER: Send chunked world state to a specific peer.
+func _send_chunked_to_peer(peer_id: int, diff_payload: Dictionary, chunk_type: int) -> void:
+	if not is_server:
+		return
+	if not connected_peers.has(peer_id):
+		return
+	
+	var chunks: Array = _chunk_payload(diff_payload, chunk_type)
+	for chunk in chunks:
+		rpc_id(peer_id, "_receive_chunked_world_state", chunk)
+
+## CLIENT: RPC to receive a chunked world state piece.
+@rpc("reliable", "call_local")
+func _receive_chunked_world_state(chunk: Dictionary) -> void:
+	if not is_client:
+		return
+	
+	var reassembled: Dictionary = _reassemble_chunks(chunk)
+	if reassembled == null:
+		return  # Still waiting for more chunks
+	
+	# Process the fully reassembled payload
+	_process_reassembled_world_state(reassembled)
+
 
 ## SERVER FUNCTIONS
 
@@ -182,21 +466,30 @@ func _on_server_peer_disconnected(id: int) -> void:
 
 ## Send a world state diff to a specific peer.
 ## Called by TickService._phase4_diff_emit() for each client in their AOI.
+## Uses chunking to enforce MAX_PACKET_SIZE (64KB) for WASM safety.
 func send_to_peer(peer_id: int, diff_payload: Dictionary) -> void:
 	if not is_server:
 		return
 	if not connected_peers.has(peer_id):
 		return
 	# diff_payload contains: {"tick": int, "root_hash": PackedByteArray, "diff": Array, "lod_level": int}
-	rpc_id(peer_id, "_receive_world_state", diff_payload)
+	# Determine chunk type: full state (empty diff) or differential
+	var chunk_type: int = CHUNK_TYPE_DIFF
+	if diff_payload.get("diff", []).is_empty():
+		chunk_type = CHUNK_TYPE_FULL_STATE
+	_send_chunked_to_peer(peer_id, diff_payload, chunk_type)
 
 ## Broadcast a world state diff to all connected peers.
 ## Used for full-state sync on join or critical updates.
+## Uses chunking to enforce MAX_PACKET_SIZE (64KB) for WASM safety.
 func _broadcast_world_state(diff_payload: Dictionary) -> void:
 	if not is_server:
 		return
+	var chunk_type: int = CHUNK_TYPE_DIFF
+	if diff_payload.get("diff", []).is_empty():
+		chunk_type = CHUNK_TYPE_FULL_STATE
 	for peer_id in connected_peers:
-		send_to_peer(peer_id, diff_payload)
+		_send_chunked_to_peer(peer_id, diff_payload, chunk_type)
 
 ## CLIENT FUNCTIONS
 
@@ -230,12 +523,14 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 func _on_client_connected() -> void:
 	connection_state = ConnectionState.CONNECTED
 	peer_id = multiplayer.get_unique_id()
+	_init_send_buffer()
 	_log("info", "Connected to server! Peer ID: %d" % peer_id)
 	connected_to_server.emit()
 
 func _on_client_connection_failed() -> void:
 	connection_state = ConnectionState.DISCONNECTED
 	is_client = false
+	_clear_send_buffer()
 	_log("error", "Connection to server failed")
 	connection_failed.emit()
 
@@ -252,6 +547,7 @@ func disconnect_from_server() -> void:
 	connection_state = ConnectionState.DISCONNECTED
 	is_client = false
 	peer_id = 0
+	_clear_send_buffer()
 	_log("info", "Disconnected from server")
 
 ## WEBSOCKET CLIENT (browser only)
@@ -416,13 +712,24 @@ func _persist_peer_mapping(peer_id: int, player_id: String) -> void:
 
 ## CLIENT-SIDE STATE SYNC
 
-## RPC called by server to send world state diff to client.
+## RPC called by server to send world state diff to client (legacy, non-chunked).
+## Kept for backward compatibility with non-chunked peers.
 ## Applies the diff to the client's local state tree.
 @rpc("reliable", "call_local")
 func _receive_world_state(payload: Dictionary) -> void:
 	if not is_client:
 		return
 	
+	# Check if this is a chunked message (has chunk metadata)
+	if payload.has("type") and payload.has("message_id"):
+		# This is a chunk - delegate to chunked receiver
+		_receive_chunked_world_state(payload)
+		return
+	
+	_process_reassembled_world_state(payload)
+
+## Processes a fully reassembled world state payload (chunked or legacy).
+func _process_reassembled_world_state(payload: Dictionary) -> void:
 	var tick: int = payload.get("tick", 0)
 	var root_hash: PackedByteArray = payload.get("root_hash", PackedByteArray())
 	var diff: Array = payload.get("diff", [])

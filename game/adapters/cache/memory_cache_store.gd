@@ -256,6 +256,31 @@ func publish(channel: String, message: Variant) -> int:
 	return 0
 
 
+# --- Bulk KV Operations ---
+
+func set_many(entries: Dictionary, ttl_sec: int = 0) -> int:
+	var n := 0
+	for key in entries.keys():
+		store(key, entries[key], ttl_sec)
+		n += 1
+	return n
+
+
+func get_many(keys: Array) -> Dictionary:
+	var result: Dictionary = {}
+	for key in keys:
+		result[key] = fetch(key)
+	return result
+
+
+func delete_many(keys: Array) -> int:
+	var n := 0
+	for key in keys:
+		if delete(key) > 0:
+			n += 1
+	return n
+
+
 # --- Test/dev helpers ---
 
 func _is_expired(key: String) -> bool:

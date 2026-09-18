@@ -144,7 +144,87 @@ func insert_many(table: String, rows: Array, columns: Array) -> int:
 
 
 func execute_batch(statements: Array) -> int:
-	return _ok_or_err(_blocking_post("/batch", {"statements": statements}))
+	# Support both formats:
+	# 1. Array of strings (raw SQL) - for migrations
+	# 2. Array of {sql, params} objects - for parameterized queries
+	var batch_body: Dictionary = {"statements": []}
+	for stmt in statements:
+		if stmt is String:
+			batch_body["statements"].append({"sql": stmt, "params": []})
+		elif stmt is Dictionary and stmt.has("sql"):
+			batch_body["statements"].append(stmt)
+		else:
+			push_error("execute_batch: invalid statement format: %s" % str(stmt))
+			return -1
+	return _ok_or_err(_blocking_post("/batch", batch_body))
+
+
+# --- KV Bulk Operations ---
+
+func set_many(entries: Dictionary) -> int:
+	if entries.is_empty():
+		return 0
+	var statements: Array = []
+	for key in entries.keys():
+		var value = entries[key]
+		var json_value = JSON.stringify(value)
+		statements.append(
+			"INSERT INTO kv (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+		)
+	return execute_batch_with_params(statements, entries)
+
+func get_many(keys: Array) -> Dictionary:
+	if keys.is_empty():
+		return {}
+	var placeholders: Array = []
+	var params: Array = []
+	for i in range(keys.size()):
+		placeholders.append("$%d" % (i + 1))
+		params.append(keys[i])
+	var sql := "SELECT key, value FROM kv WHERE key IN (%s)" % [",".join(placeholders)]
+	var resp := _blocking_post("/query", {"sql": sql, "params": params})
+	if resp.is_empty() or not resp.has("rows"):
+		return {}
+	var result: Dictionary = {}
+	for row in resp.get("rows", []):
+		var k = row.get("key", "")
+		var raw = row.get("value", "")
+		if raw != "":
+			var parsed = JSON.parse_string(raw)
+			result[k] = parsed
+		else:
+			result[k] = null
+	return result
+
+func delete_many(keys: Array) -> int:
+	if keys.is_empty():
+		return 0
+	var placeholders: Array = []
+	var params: Array = []
+	for i in range(keys.size()):
+		placeholders.append("$%d" % (i + 1))
+		params.append(keys[i])
+	var sql := "DELETE FROM kv WHERE key IN (%s)" % [",".join(placeholders)]
+	var resp := _blocking_post("/execute", {"sql": sql, "params": params})
+	if resp.is_empty():
+		return -1
+	return int(resp.get("affected", -1))
+
+func execute_batch_with_params(statements: Array, entries: Dictionary) -> int:
+	var keys := entries.keys()
+	var batch_body: Dictionary = {"statements": []}
+	for i in range(statements.size()):
+		var key = keys[i]
+		var value = entries[key]
+		var json_value = JSON.stringify(value)
+		batch_body["statements"].append({
+			"sql": statements[i],
+			"params": [key, json_value]
+		})
+	var resp := _blocking_post("/batch", batch_body)
+	if resp.is_empty():
+		return -1
+	return _ok_or_err(resp)
 
 
 # --- HTTP plumbing ---

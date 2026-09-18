@@ -16,6 +16,25 @@ class_name Nsc9
 
 const PHI: float = 1.6180339887498949
 
+## Bit positions for packed uint64 encoding.
+## layout (MSB->LSB): prefix(4) | facility(10) | axis(10) | sequence(24) = 48 bits
+const BITS_PREFIX: int = 4
+const BITS_FACILITY: int = 10
+const BITS_AXIS: int = 10
+const BITS_SEQUENCE: int = 24
+
+const SHIFT_SEQUENCE: int = 0
+const SHIFT_AXIS: int = BITS_SEQUENCE
+const SHIFT_FACILITY: int = SHIFT_AXIS + BITS_AXIS
+const SHIFT_PREFIX: int = SHIFT_FACILITY + BITS_FACILITY
+
+const MASK_PREFIX: int = (1 << BITS_PREFIX) - 1
+const MASK_FACILITY: int = (1 << BITS_FACILITY) - 1
+const MASK_AXIS: int = (1 << BITS_AXIS) - 1
+const MASK_SEQUENCE: int = (1 << BITS_SEQUENCE) - 1
+
+const PREFIX_VALUE: int = 9
+
 ## The 12 vertices of a unit icosahedron (cyclic permutations of (0, ±1, ±phi)).
 const ICOSAHEDRAL_VERTICES: PackedVector3Array = [
 	Vector3(0, 1, PHI),
@@ -46,17 +65,55 @@ const AXIS_SOCIAL_MAX: int = 399
 const AXIS_GAME_BASE: int = 400
 const AXIS_GAME_MAX: int = 499
 
-## Encode a facility/axis/sequence into a 14-digit NSC-9 integer.
-## Returns an int: 9AAA BBB CCCCCC (concatenated digits).
-## Example: encode_int(7, 42, 123456) = 90070420123456
+## Pack facility/axis/sequence into a uint64 using bitwise operations.
+## Hot path: use this for all internal spatial queries, storage, and comparisons.
+## Returns packed uint64: prefix(4) | facility(10) | axis(10) | sequence(24)
+func pack(facility: int, axis: int, sequence: int) -> int:
+	return ((PREFIX_VALUE & MASK_PREFIX) << SHIFT_PREFIX) | \
+		((facility & MASK_FACILITY) << SHIFT_FACILITY) | \
+		((axis & MASK_AXIS) << SHIFT_AXIS) | \
+		(sequence & MASK_SEQUENCE)
+
+## Unpack a uint64 into facility/axis/sequence components.
+## Hot path: use this for all internal spatial queries, storage, and comparisons.
+## Returns Dictionary with keys: prefix, facility, axis, sequence
+func unpack(code: int) -> Dictionary:
+	return {
+		"prefix" = (code >> SHIFT_PREFIX) & MASK_PREFIX,
+		"facility" = (code >> SHIFT_FACILITY) & MASK_FACILITY,
+		"axis" = (code >> SHIFT_AXIS) & MASK_AXIS,
+		"sequence" = code & MASK_SEQUENCE,
+	}
+
+## Encode a facility/axis/sequence into a 14-digit NSC-9 integer (decimal format).
+## LEGACY: for backward compatibility with existing decimal-format storage.
+## Use pack()/unpack() for new hot-path code.
 func encode_int(facility: int, axis: int, sequence: int) -> int:
 	return 9_000_000_000_000 + facility * 1_000_000_000 + axis * 1_000_000 + sequence
 
+## Decode a 14-digit decimal NSC-9 integer into components.
+## LEGACY: for backward compatibility with existing decimal-format storage.
+func decode_int(code: int) -> Dictionary:
+	var prefix = code / 1_000_000_000_000
+	var facility = (code % 1_000_000_000_000) / 1_000_000_000
+	var axis = (code % 1_000_000_000) / 1_000_000
+	var sequence = code % 1_000_000
+	return {
+		"prefix" = prefix,
+		"facility" = facility,
+		"axis" = axis,
+		"sequence" = sequence,
+	}
+
 ## Encode as a string: "9-AAA-BBB-CCCCCC"
+## DISPLAY ONLY: for logging, UI, and REST API boundaries.
+## Do NOT use in hot paths (spatial queries, storage keys, comparisons).
 func encode_str(facility: int, axis: int, sequence: int) -> String:
 	return "9-%03d-%03d-%06d" % [facility, axis, sequence]
 
 ## Parse an NSC-9 string code into {prefix, facility, axis, sequence}.
+## DISPLAY ONLY: for logging, UI, and REST API boundaries.
+## Do NOT use in hot paths (spatial queries, storage keys, comparisons).
 func parse_str(code: str) -> Dictionary:
 	var parts = code.split("-")
 	if parts.size() != 4:
@@ -118,54 +175,88 @@ func nearest_vertex(lat: float, lon: float) -> int:
 			best = i
 	return best
 
+## Full entity encoding: returns a packed NSC-9 uint64 for the spatial axis.
+## Hot path: use this for spatial queries, storage, and comparisons.
+func pack_entity_spatial(facility: int, vertex: int) -> int:
+	return pack(facility, spatial_axis(vertex), 0)
+
+## Full entity encoding for faction axis (packed uint64).
+## Hot path: use this for spatial queries, storage, and comparisons.
+func pack_entity_faction(facility: int, faction_id: int, sequence: int = 0) -> int:
+	return pack(facility, faction_axis(faction_id), sequence)
+
+## Full entity encoding for social axis (packed uint64).
+## Hot path: use this for spatial queries, storage, and comparisons.
+func pack_entity_social(facility: int, group: int, sequence: int = 0) -> int:
+	return pack(facility, social_axis(group), sequence)
+
+## Full entity encoding for game class axis (packed uint64).
+## Hot path: use this for spatial queries, storage, and comparisons.
+func pack_entity_game(facility: int, game_class: int, sequence: int = 0) -> int:
+	return pack(facility, game_axis(game_class), sequence)
+
+## Full entity encoding for temporal year axis (packed uint64).
+## Hot path: use this for spatial queries, storage, and comparisons.
+func pack_entity_temporal_year(facility: int, year: int) -> int:
+	return pack(facility, AXIS_TEMPORAL_YEAR, encode_year(year))
+
+## Full entity encoding for temporal season axis (packed uint64).
+## Hot path: use this for spatial queries, storage, and comparisons.
+func pack_entity_temporal_season(facility: int, season: int) -> int:
+	return pack(facility, AXIS_TEMPORAL_SEASON, season)
+
+## LEGACY entity encoding methods (decimal format).
+## Use pack_entity_*() variants for hot paths.
+
 ## Full entity encoding: returns an NSC-9 integer code for the spatial axis.
+## LEGACY: decimal format for backward compatibility.
 func encode_entity_spatial(facility: int, vertex: int) -> int:
 	return encode_int(facility, spatial_axis(vertex), 0)
 
 ## Full entity encoding for faction axis.
+## LEGACY: decimal format for backward compatibility.
 func encode_entity_faction(facility: int, faction_id: int, sequence: int = 0) -> int:
 	return encode_int(facility, faction_axis(faction_id), sequence)
 
 ## Full entity encoding for social axis.
+## LEGACY: decimal format for backward compatibility.
 func encode_entity_social(facility: int, group: int, sequence: int = 0) -> int:
 	return encode_int(facility, social_axis(group), sequence)
 
 ## Full entity encoding for game class axis.
+## LEGACY: decimal format for backward compatibility.
 func encode_entity_game(facility: int, game_class: int, sequence: int = 0) -> int:
 	return encode_int(facility, game_axis(game_class), sequence)
 
 ## Full entity encoding for temporal year axis.
+## LEGACY: decimal format for backward compatibility.
 func encode_entity_temporal_year(facility: int, year: int) -> int:
 	return encode_int(facility, AXIS_TEMPORAL_YEAR, encode_year(year))
 
 ## Full entity encoding for temporal season axis (0-3).
+## LEGACY: decimal format for backward compatibility.
 func encode_entity_temporal_season(facility: int, season: int) -> int:
 	return encode_int(facility, AXIS_TEMPORAL_SEASON, season)
 
 ## Build a cell key string for hash lookups.
+## DISPLAY ONLY: for logging, UI, and REST API boundaries.
 ## Returns "nsc9:{facility}:{axis}:{sequence}" style key.
 func cell_key(facility: int, axis: int, sequence: int) -> String:
 	return "nsc9:%03d:%03d:%06d" % [facility, axis, sequence]
 
-## Build a cell key from an encoded int.
+## Build a cell key string from a packed uint64.
+## DISPLAY ONLY: for logging, UI, and REST API boundaries.
+func cell_key_from_packed(code: int) -> String:
+	var u = unpack(code)
+	return cell_key(u["facility"], u["axis"], u["sequence"])
+
+## Build a cell key from an encoded int (decimal format).
+## LEGACY: for backward compatibility.
 func cell_key_from_int(code: int) -> String:
 	var facility = (code % 1_000_000_000_000 / 1_000_000_000) % 1000
 	var axis = (code % 1_000_000_000 / 1_000_000) % 1000
 	var sequence = code % 1_000_000
 	return cell_key(facility, axis, sequence)
-
-## Extract components from an NSC-9 integer code.
-func decode_int(code: int) -> Dictionary:
-	var prefix = code / 1_000_000_000_000
-	var facility = (code % 1_000_000_000_000) / 1_000_000_000
-	var axis = (code % 1_000_000_000) / 1_000_000
-	var sequence = code % 1_000_000
-	return {
-		"prefix" = prefix,
-		"facility" = facility,
-		"axis" = axis,
-		"sequence" = sequence,
-	}
 
 ## Deterministic sequence from an entity id + tag (for stable NSC-9 sequences).
 func deterministic_seq(entity_id: String, tag: String) -> int:

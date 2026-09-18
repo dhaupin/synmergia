@@ -637,21 +637,36 @@ func _phase5_persistence() -> void:
 			var store = AdapterRegistry.get_persistence("world_state")
 			if store:
 				var root_key := "tick:%d:root" % _tick_number
-				store.set(root_key, {"root_hash": _current_root_hash.hex_encode(), "tick": _tick_number})
+				# Batch the root snapshot with other world state
+				var entries: Dictionary = {
+					root_key: {"root_hash": _current_root_hash.hex_encode(), "tick": _tick_number},
+					"world_state:latest_tick": _tick_number,
+					"world_state:latest_root": _current_root_hash.hex_encode(),
+				}
+				if store.has_method("set_many"):
+					store.set_many(entries)
+				else:
+					for key in entries.keys():
+						store.set_kv(key, entries[key])
 
 		# Update Redis tick cache (N013)
 		var cache = AdapterRegistry.get_cache("tick_cache")
 		if cache:
-			cache.set("current_tick", str(_tick_number), 300)  # 5min TTL
-			cache.set("current_root", _current_root_hash.hex_encode(), 300)
+			var cache_entries: Dictionary = {
+				"current_tick": str(_tick_number),
+				"current_root": _current_root_hash.hex_encode(),
+				"intersections:last_tick": str(_tick_number),
+			}
+			if cache.has_method("set_many"):
+				cache.set_many(cache_entries, 300)  # 5min TTL for tick/root, 10min for intersections
+			else:
+				cache.set("current_tick", str(_tick_number), 300)
+				cache.set("current_root", _current_root_hash.hex_encode(), 300)
+				cache.set("intersections:last_tick", str(_tick_number), 600)
 
 		# Update Redis LRU (N013)
 		if cache:
 			cache.touch("world_state")
-
-		# Update materialized intersections
-		if cache:
-			cache.set("intersections:last_tick", str(_tick_number), 600)
 
 		GameLog.debug("TickService: Phase 5 persistence complete for tick %d" % _tick_number)
 	)

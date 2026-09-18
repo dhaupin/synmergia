@@ -2,6 +2,7 @@
 ## Uses UIStyles for consistent theming
 extends Control
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 
 
 const SpeciesCard := preload("res://ui/menus/species_card.tscn")
@@ -162,26 +163,46 @@ func _auto_play() -> void:
 		_on_play_pressed()
 
 
+func _get_registry() -> Node:
+	if get_tree() == null:
+		return null
+	return get_tree().root.get_node_or_null("AdapterRegistry")
+
+func _get_store() -> PersistenceStore:
+	var reg := _get_registry()
+	if reg == null:
+		GameLog.warn("CharacterSelect: AdapterRegistry not found")
+		return null
+	var store: PersistenceStore = reg.get_persistence("characters")
+	if store == null:
+		GameLog.warn("CharacterSelect: characters store not registered")
+	return store
+
 func _lobby_save_character(data: CharacterData, _account_id: String) -> void:
-	# Append to characters.json under the account key. The lobby reads
-	# this on _ready; both writers are in this process so we don't need
-	# file locking. Server-authoritative path would use RPC instead.
-	var path := "user://characters.json"
+	# Save character blob to AdapterRegistry characters store
+	var store := _get_store()
+	if store == null:
+		return
+	
+	# Load existing characters for this account
+	var key := "account:%s" % _account_id
+	var rows = store.query("SELECT value FROM kv WHERE key = $1", [key])
 	var by_account: Dictionary = {}
-	if FileAccess.file_exists(path):
-		var rf := FileAccess.open(path, FileAccess.READ)
-		if rf:
-			var parsed = JSON.parse_string(rf.get_as_text())
-			rf.close()
+	if not rows.is_empty():
+		var raw = rows[0].get("value", "")
+		if raw != "":
+			var parsed = JSON.parse_string(raw)
 			if parsed is Dictionary:
 				by_account = parsed
+	
 	var list: Array = by_account.get(_account_id, [])
 	list.append(data.to_dict())
 	by_account[_account_id] = list
-	var wf := FileAccess.open(path, FileAccess.WRITE)
-	if wf:
-		wf.store_string(JSON.stringify(by_account))
-		wf.close()
+	
+	var json = JSON.stringify(by_account)
+	# Use set_many for bulk KV upsert (single HTTP call via /batch)
+	var entries: Dictionary = {key: json}
+	store.set_many(entries)
 
 
 func _apply_button_styles() -> void:

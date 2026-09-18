@@ -324,13 +324,26 @@ func _load_state() -> void:
 	var store := DictStore.new()
 	_suspicion_scores = {}
 	_banned_players = {}
-	for key in store.all_keys():
+	var keys: Array = store.all_keys()
+	var suspicion_keys: Array = []
+	var ban_keys: Array = []
+	for key in keys:
 		if key.begins_with(_kv_prefix + "suspicion:"):
-			var player_id = key.substr(_kv_prefix.length() + 10)
-			_suspicion_scores[player_id] = store.get_kv(key)
+			suspicion_keys.append(key)
 		elif key.begins_with(_kv_prefix + "ban:"):
+			ban_keys.append(key)
+	
+	if not suspicion_keys.is_empty():
+		var suspicion_results: Dictionary = store.get_many(suspicion_keys)
+		for key in suspicion_keys:
+			var player_id = key.substr(_kv_prefix.length() + 10)
+			_suspicion_scores[player_id] = suspicion_results.get(key, {})
+	
+	if not ban_keys.is_empty():
+		var ban_results: Dictionary = store.get_many(ban_keys)
+		for key in ban_keys:
 			var player_id = key.substr(_kv_prefix.length() + 4)
-			_banned_players[player_id] = store.get_kv(key)
+			_banned_players[player_id] = ban_results.get(key, {})
 
 func _persist_suspicion(player_id: String) -> void:
 	var store := DictStore.new()
@@ -345,3 +358,14 @@ func _persist_ban(player_id: String) -> void:
 		store.set_kv(_kv_prefix + "ban:" + player_id, _banned_players[player_id])
 	else:
 		store.erase(_kv_prefix + "ban:" + player_id)
+
+
+func persist_all() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for player_id in _suspicion_scores.keys():
+		entries[_kv_prefix + "suspicion:" + player_id] = {"score": _suspicion_scores[player_id]}
+	for player_id in _banned_players.keys():
+		entries[_kv_prefix + "ban:" + player_id] = _banned_players[player_id]
+	if not entries.is_empty():
+		store.set_batch(entries)

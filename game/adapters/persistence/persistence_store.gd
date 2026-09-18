@@ -85,6 +85,28 @@ func execute_batch(statements: Array) -> int:
 	return -1
 
 
+# --- KV Bulk Operations ---
+
+# Set multiple key-value pairs in one call. `entries` is a Dictionary
+# mapping keys to values. Returns 0 on success, -1 on error.
+func set_many(entries: Dictionary) -> int:
+	push_error("PersistenceStore.set_many: not implemented")
+	return -1
+
+
+# Get multiple values by keys in one call. Returns a Dictionary
+# mapping keys to their values (missing keys map to null).
+func get_many(keys: Array) -> Dictionary:
+	push_error("PersistenceStore.get_many: not implemented")
+	return {}
+
+
+# Delete multiple keys in one call. Returns count of deleted keys.
+func delete_many(keys: Array) -> int:
+	push_error("PersistenceStore.delete_many: not implemented")
+	return -1
+
+
 # --- Transaction context manager ---
 
 # Execute a callable inside a transaction.

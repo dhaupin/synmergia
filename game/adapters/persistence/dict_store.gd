@@ -62,8 +62,9 @@ func set_value(key: String, value: Variant, ttl_sec: int = 0) -> void:
 	if _store == null:
 		return
 	var json = JSON.stringify(value)
-	_store.execute("DELETE FROM kv WHERE key = $1", [key])
-	_store.execute("INSERT INTO kv (key, value) VALUES ($1, $2)", [key, json])
+	# Use set_many for single key (still uses batch endpoint)
+	var entries: Dictionary = {key: json}
+	_store.set_many(entries)
 	if ttl_sec > 0:
 		_expires[key] = Time.get_unix_time_from_system() + ttl_sec
 	else:
@@ -96,7 +97,7 @@ func erase(key: String) -> void:
 	_ensure_store()
 	if _store == null:
 		return
-	_store.execute("DELETE FROM kv WHERE key = $1", [key])
+	_store.delete_many([key])
 	_expires.erase(key)
 
 func delete(key: String) -> void:
@@ -116,34 +117,45 @@ func all_keys() -> Array:
 		if k != "" and not _is_expired(k):
 			keys.append(k)
 	return keys
-
 func set_batch(entries: Dictionary) -> void:
 	_ensure_store()
 	if _store == null:
 		return
-	for key in entries.keys():
-		var value = entries[key]
-		if value is Dictionary and not value.is_empty():
-			set_value(key, value)
-		else:
-			erase(key)
+	# Use underlying store's set_many if available
+	if _store.has_method("set_many"):
+		_store.set_many(entries)
+	else:
+		for key in entries.keys():
+			var value = entries[key]
+			if value is Dictionary and not value.is_empty():
+				set_value(key, value)
+			else:
+				erase(key)
+
 
 func get_many(keys: Array) -> Dictionary:
 	_ensure_store()
 	if _store == null:
 		return {}
+	# Use underlying store's get_many if available
+	if _store.has_method("get_many"):
+		return _store.get_many(keys)
 	var result: Dictionary = {}
 	for key in keys:
 		result[key] = get_value(key)
 	return result
 
+
 func erase_batch(keys: Array) -> void:
 	_ensure_store()
 	if _store == null:
 		return
-	for key in keys:
-		erase(key)
-
+	# Use underlying store's delete_many if available
+	if _store.has_method("delete_many"):
+		_store.delete_many(keys)
+	else:
+		for key in keys:
+			erase(key)
 func sweep_expired() -> int:
 	var now := Time.get_unix_time_from_system()
 	var removed := 0

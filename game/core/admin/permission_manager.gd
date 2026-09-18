@@ -73,8 +73,114 @@ const ADMIN_RATE_WINDOW: int = 60000  # 1 minute in ms
 var _validation_cache: Dictionary = {}  # player_id -> {time, level}
 const VALIDATION_CACHE_TTL: int = 5000  # 5 seconds
 
+## Audit persistence key prefix
+const _audit_kv_prefix := "audit:log:"
+
+## Batch flush timer
+var _audit_flush_timer: Timer = null
+
 func _ready() -> void:
 	GameLog.info("PermissionManager: Initialized")
+	_load_audit_log()
+	_setup_audit_flush_timer()
+
+
+func _setup_audit_flush_timer() -> void:
+	_audit_flush_timer = Timer.new()
+	_audit_flush_timer.name = "AuditFlushTimer"
+	_audit_flush_timer.wait_time = 30.0  # Flush every 30 seconds
+	_audit_flush_timer.timeout.connect(_flush_audit_log)
+	_audit_flush_timer.one_shot = false
+	add_child(_audit_flush_timer)
+	_audit_flush_timer.start()
+
+
+func _load_audit_log() -> void:
+	var store := DictStore.new()
+	var keys: Array = store.all_keys()
+	var audit_keys: Array = []
+	for key in keys:
+		if key.begins_with(_audit_kv_prefix):
+			audit_keys.append(key)
+	
+	if not audit_keys.is_empty():
+		var results: Dictionary = store.get_many(audit_keys)
+		for key in audit_keys:
+			var data: Array = results.get(key, [])
+			if data is Array:
+				for entry_data in data:
+					if entry_data is Dictionary:
+						var entry = AuditEntry.new(
+							entry_data.get("admin_id", ""),
+							entry_data.get("action", ""),
+							entry_data.get("target_id", ""),
+							entry_data.get("details", {}),
+							entry_data.get("success", true),
+							entry_data.get("ip_address", "")
+						)
+						entry.timestamp = entry_data.get("timestamp", 0.0)
+						entry.admin_level = entry_data.get("admin_level", 0)
+						_audit_log.push_front(entry)
+	
+	# Trim to max size
+	while _audit_log.size() > MAX_AUDIT_LOG_SIZE:
+		_audit_log.pop_back()
+
+
+func _flush_audit_log() -> void:
+	if _audit_log.is_empty():
+		return
+	
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	
+	# Batch audit entries by time bucket (hourly)
+	var now := Time.get_unix_time_from_system()
+	var bucket := int(now / 3600)  # Hourly buckets
+	var bucket_key := _audit_kv_prefix + str(bucket)
+	
+	var bucket_data: Array = []
+	for entry in _audit_log:
+		bucket_data.append(entry.to_dict())
+	
+	entries[bucket_key] = bucket_data
+	
+	if not entries.is_empty():
+		store.set_batch(entries)
+		GameLog.debug("PermissionManager: Flushed %d audit entries to bucket %s" % [bucket_data.size(), str(bucket)])
+
+
+func _audit(admin_id: String, action: String, target_id: String = "",
+		details: Dictionary = {}, success: bool = true) -> void:
+	var entry := AuditEntry.new(admin_id, action, target_id, details, success)
+	_audit_log.push_front(entry)
+
+	# Trim log
+	while _audit_log.size() > MAX_AUDIT_LOG_SIZE:
+		_audit_log.pop_back()
+
+	# Log to file/console
+	var entry_str := entry.format_entry()
+	GameLog.info("AUDIT: " + entry_str)
+
+	# Emit signal for external logging (Discord, etc.)
+	admin_action.emit(entry)
+
+func _log_deny(admin_id: String, action: String, target_id: String,
+		details: Dictionary, ip_address: String) -> void:
+	var entry := AuditEntry.new(admin_id, action, target_id, details, false, ip_address)
+	_audit_log.push_front(entry)
+
+	GameLog.warn("AUDIT_DENIED: " + entry.format_entry())
+
+func _log_action(admin_id: String, action: String, target_id: String,
+		details: Dictionary, success: bool, ip_address: String) -> void:
+	var entry := AuditEntry.new(admin_id, action, target_id, details, success, ip_address)
+	_audit_log.push_front(entry)
+	if success:
+		GameLog.info("AUDIT_ALLOWED: " + entry.format_entry())
+	else:
+		GameLog.warn("AUDIT_DENIED: " + entry.format_entry())
 
 ## ============================================================================
 ## CORE PERMISSION CHECKS
@@ -410,38 +516,6 @@ func get_audit_log_string(limit: int = 50) -> String:
 		output += "[color=gray]No admin actions recorded[/color]"
 
 	return output
-
-func _audit(admin_id: String, action: String, target_id: String = "",
-		details: Dictionary = {}, success: bool = true) -> void:
-	var entry := AuditEntry.new(admin_id, action, target_id, details, success)
-	_audit_log.push_front(entry)
-
-	# Trim log
-	while _audit_log.size() > MAX_AUDIT_LOG_SIZE:
-		_audit_log.pop_back()
-
-	# Log to file/console
-	var entry_str := entry.format_entry()
-	GameLog.info("AUDIT: " + entry_str)
-
-	# Emit signal for external logging (Discord, etc.)
-	admin_action.emit(entry)
-
-func _log_deny(admin_id: String, action: String, target_id: String,
-		details: Dictionary, ip_address: String) -> void:
-	var entry := AuditEntry.new(admin_id, action, target_id, details, false, ip_address)
-	_audit_log.push_front(entry)
-
-	GameLog.warn("AUDIT_DENIED: " + entry.format_entry())
-
-func _log_action(admin_id: String, action: String, target_id: String,
-		details: Dictionary, success: bool, ip_address: String) -> void:
-	var entry := AuditEntry.new(admin_id, action, target_id, details, success, ip_address)
-	_audit_log.push_front(entry)
-	if success:
-		GameLog.info("AUDIT_ALLOWED: " + entry.format_entry())
-	else:
-		GameLog.warn("AUDIT_DENIED: " + entry.format_entry())
 
 ## ============================================================================
 ## INTERNAL HELPERS

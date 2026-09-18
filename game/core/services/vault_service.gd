@@ -451,20 +451,38 @@ func _persist_account(account_id: String) -> void:
 func _load_vaults() -> void:
 	var store := DictStore.new()
 	var keys := store.all_keys()
+	var personal_keys: Array = []
+	var guild_keys: Array = []
+	var account_keys: Array = []
 	for key in keys:
 		if key.begins_with(_kv_personal):
+			personal_keys.append(key)
+		elif key.begins_with(_kv_guild):
+			guild_keys.append(key)
+		elif key.begins_with(_kv_account):
+			account_keys.append(key)
+	
+	if not personal_keys.is_empty():
+		var personal_results: Dictionary = store.get_many(personal_keys)
+		for key in personal_keys:
 			var player_id: String = key.substr(_kv_personal.length())
-			var data = store.get_value(key)
+			var data = personal_results.get(key)
 			if data:
 				_personal_vaults[player_id] = data
-		if key.begins_with(_kv_guild):
+	
+	if not guild_keys.is_empty():
+		var guild_results: Dictionary = store.get_many(guild_keys)
+		for key in guild_keys:
 			var guild_id: String = key.substr(_kv_guild.length())
-			var data: Dictionary = store.get_value(key)
+			var data: Dictionary = guild_results.get(key, {})
 			if data:
 				_guild_vaults[guild_id] = data
-		if key.begins_with(_kv_account):
+	
+	if not account_keys.is_empty():
+		var account_results: Dictionary = store.get_many(account_keys)
+		for key in account_keys:
 			var account_id: String = key.substr(_kv_account.length())
-			var data: Dictionary = store.get_value(key)
+			var data: Dictionary = account_results.get(key, {})
 			if data:
 				_account_vaults[account_id] = data
 
@@ -500,12 +518,28 @@ func _deduct_player_gold(player_id: String, amount: int) -> bool:
 		GameLog.warn("VaultService: InventoryService not available for gold deduction")
 		return false
 	return InventoryService.modify_gold(player_id, -amount)
-
 func _add_player_gold(player_id: String, amount: int) -> bool:
 	if not InventoryService:
 		GameLog.warn("VaultService: InventoryService not available for gold addition")
 		return false
 	return InventoryService.modify_gold(player_id, amount)
+
+
+func persist_all() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for player_id in _personal_vaults.keys():
+		if _personal_vaults[player_id]:
+			entries[_kv_personal + player_id] = _personal_vaults[player_id]
+	for guild_id in _guild_vaults.keys():
+		if _guild_vaults[guild_id] and not _guild_vaults[guild_id].is_empty():
+			entries[_kv_guild + guild_id] = _guild_vaults[guild_id]
+	for account_id in _account_vaults.keys():
+		if _account_vaults[account_id] and not _account_vaults[account_id].is_empty():
+			entries[_kv_account + account_id] = _account_vaults[account_id]
+	if not entries.is_empty():
+		store.set_batch(entries)
+
 
 ## ============================================================================
 ## PUBLIC API

@@ -157,6 +157,29 @@ func publish(channel: String, message: Variant) -> int:
 	return 0
 
 
+# --- Bulk KV Operations ---
+
+# Set multiple key-value pairs in one call. `entries` is a Dictionary
+# mapping keys to values. `ttl_sec` applies to all entries.
+# Returns count of keys set.
+func set_many(entries: Dictionary, ttl_sec: int = 0) -> int:
+	push_error("CacheStore.set_many: not implemented")
+	return 0
+
+
+# Get multiple values by keys in one call. Returns a Dictionary
+# mapping keys to their values (missing keys map to null).
+func get_many(keys: Array) -> Dictionary:
+	push_error("CacheStore.get_many: not implemented")
+	return {}
+
+
+# Delete multiple keys in one call. Returns count of deleted keys.
+func delete_many(keys: Array) -> int:
+	push_error("CacheStore.delete_many: not implemented")
+	return 0
+
+
 # --- Observability ---
 
 # Returns connection pool and circuit breaker metrics.

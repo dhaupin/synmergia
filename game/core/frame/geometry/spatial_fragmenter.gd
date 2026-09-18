@@ -259,26 +259,29 @@ func nsc9_code_to_face(code: int) -> int:
 	"""
 	Map a full NSC-9 code to a SpatialFragmenter face code.
 
-	NSC-9 format: 9-AAA-BBB-CCCCC
-	- prefix = 9 (GS1 non-product)
-	- facility = AAA (000-999)
-	- axis = BBB (000-999)
-	- sequence = CCCCCC (0-16M)
+	Supports both formats:
+	- Decimal (legacy): 9_000_000_000_000 + facility * 1_000_000_000 + axis * 1_000_000 + sequence
+	- Packed (hot path): prefix(4) | facility(10) | axis(10) | sequence(24)
 
-	The spatial axis is the BBB component (third component).
+	The spatial axis is the BBB/axis component (1-12).
 	Only spatial axes 1-12 map to icosahedral faces 0-11.
 
-	:arg code: Full NSC-9 code integer
+	:arg code: Full NSC-9 code integer (decimal or packed)
 	:return: SpatialFragmenter face code (0-11), or -1 if invalid
 	"""
 	if code < 0:
 		return -1
 
-	# Extract NSC-9 components
-	# 9-AAA-BBB-CCCCC where AAA is facility, BBB is axis, CCCCCC is sequence
-	# The axis is in the hundreds-thousands place
-	axis = code // 1_000_000
-	axis = axis % 1_000
+	var axis: int
+	# Detect format: if high nibble is 9 (0x9), it's likely decimal format
+	# Packed format has prefix=9 in bits 44-47, but facility/axis/sequence fill lower bits
+	# Heuristic: decimal format has value >= 9_000_000_000_000
+	if code >= 9_000_000_000_000:
+		# Decimal format: axis at 1_000_000 position
+		axis = (code // 1_000_000) % 1_000
+	else:
+		# Packed format: axis at bits 24-33 (10 bits)
+		axis = (code >> 24) & 0x3FF
 
 	return nsc9_axis_to_face(axis)
 

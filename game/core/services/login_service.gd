@@ -410,12 +410,18 @@ func _load_accounts() -> void:
 		_store = {}
 		return
 	var keys: Array = store.all_keys()
+	var account_keys: Array = []
 	for key in keys:
 		if key.begins_with(_kv_prefix) and key != _kv_prefix + "_init":
-			var account_id = key.substr(_kv_prefix.length())
-			var entry: Dictionary = store.get_kv(key)
-			if not entry.is_empty():
-				_store[account_id] = entry
+			account_keys.append(key)
+	if account_keys.is_empty():
+		return
+	var results: Dictionary = store.get_many(account_keys)
+	for key in account_keys:
+		var account_id = key.substr(_kv_prefix.length())
+		var entry: Dictionary = results.get(key, {})
+		if not entry.is_empty():
+			_store[account_id] = entry
 
 func _persist_account(account_id: String) -> void:
 	var store: PersistenceStore = AdapterRegistry.get_persistence("accounts")

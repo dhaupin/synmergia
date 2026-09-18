@@ -261,13 +261,19 @@ func _do_get_equipped_suffix(player_id: String) -> TitleData:
 
 func _load_player_titles() -> void:
 	var store := DictStore.new()
-	for key in store.all_keys():
-		var player_id: String = key.replace(_kv_prefix, "")
-		var data: Dictionary = store.get_value(key) as Dictionary
-		if data == null:
-			data = {}
-		if not data.is_empty():
-			_player_titles[player_id] = data
+	var keys: Array = store.all_keys()
+	var title_keys: Array = []
+	for key in keys:
+		if key.begins_with(_kv_prefix):
+			title_keys.append(key)
+	
+	if not title_keys.is_empty():
+		var results: Dictionary = store.get_many(title_keys)
+		for key in title_keys:
+			var player_id: String = key.replace(_kv_prefix, "")
+			var data: Dictionary = results.get(key, {})
+			if not data.is_empty():
+				_player_titles[player_id] = data
 
 func _persist_player_titles(player_id: String) -> void:
 	var store := DictStore.new()
@@ -276,3 +282,14 @@ func _persist_player_titles(player_id: String) -> void:
 		store.erase(_kv_prefix + player_id)
 	else:
 		store.set_value(_kv_prefix + player_id, state)
+
+
+func persist_all_titles() -> void:
+	var store := DictStore.new()
+	var entries: Dictionary = {}
+	for player_id in _player_titles.keys():
+		var state: Dictionary = _player_titles[player_id]
+		if not state.is_empty():
+			entries[_kv_prefix + player_id] = state
+	if not entries.is_empty():
+		store.set_batch(entries)

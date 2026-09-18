@@ -266,6 +266,37 @@ func publish(channel: String, message: Variant) -> int:
 	}))
 
 
+# --- Bulk KV Operations ---
+
+func set_many(entries: Dictionary, ttl_sec: int = 0) -> int:
+	var statements: Array = []
+	for key in entries.keys():
+		statements.append({
+			"op": "set",
+			"key": key,
+			"value": entries[key],
+			"ttl_sec": ttl_sec
+		})
+	var resp := _blocking_post("/mset", {"operations": statements})
+	if resp.is_empty() or not resp.get("ok", false):
+		return -1
+	return int(resp.get("count", 0))
+
+
+func get_many(keys: Array) -> Dictionary:
+	var resp := _blocking_post("/mget", {"keys": keys})
+	if resp.is_empty() or not resp.get("ok", false):
+		return {}
+	return resp.get("values", {})
+
+
+func delete_many(keys: Array) -> int:
+	var resp := _blocking_post("/mdel", {"keys": keys})
+	if resp.is_empty() or not resp.get("ok", false):
+		return -1
+	return int(resp.get("deleted", 0))
+
+
 # --- HTTP plumbing ---
 
 func _blocking_get(path: String) -> bool:
