@@ -47,7 +47,7 @@ jobs:
   validate-and-pack:
     name: Validate & Export Web PCK
     runs-on: ubuntu-latest
-    timeout-minutes: 5 # Strict safeguard against hung processes
+    timeout-minutes: 10 # Increased for template download + export
 
     steps:
       # Explicit step to cancel any lingering runs on this branch immediately
@@ -82,10 +82,35 @@ jobs:
         run: |
           echo "/home/runner/godot-bin" >> $GITHUB_PATH
 
+      - name: Cache Godot Export Templates
+        id: cache-templates
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-templates-${{ env.GODOT_VERSION }}-web
+
+      - name: Download Godot 4.7.2 Export Templates (if not cached)
+        if: steps.cache-templates.outputs.cache-hit != 'true'
+        run: |
+          echo "Downloading Godot 4.7.2 export templates..."
+          mkdir -p /home/runner/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o /tmp/templates.tpz
+          unzip -q /tmp/templates.tpz -d /home/runner/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+          rm -f /tmp/templates.tpz
+          ls -la /home/runner/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+
       - name: Fast Syntax & Charset Audit
         run: |
           echo "Running fast GDScript syntax check..."
           godot --headless --path game/ --import
+
+      - name: Run Lint Tests
+        run: |
+          echo "Running lint tests..."
+          for test_script in $(find game/tests/lint -name "*.gd" | sort); do
+            echo "Running ${test_script}..."
+            godot --headless --path game/ -s "${test_script}" || exit 1
+          done
 
       - name: Optional Full Test Suite
         if: ${{ github.event.inputs.run_full_suite == 'true' }}
