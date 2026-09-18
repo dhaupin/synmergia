@@ -35,7 +35,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-      workflows: write
 
     steps:
       - name: Checkout Code
