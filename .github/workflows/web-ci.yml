@@ -32,15 +32,12 @@ jobs:
     name: Validate & Export Web PCK
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+      workflows: write
 
     steps:
-      # Explicit step to cancel any lingering runs on this branch immediately
-      - name: Cancel Previous Incomplete Runs
-        uses: styfle/cancel-workflow-action@0.12.1
-        with:
-          access_token: ${{ github.token }}
-          all_but_latest: true
-
       - name: Checkout Code
         uses: actions/checkout@v4
 
