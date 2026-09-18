@@ -83,3 +83,51 @@ func insert_many(table: String, rows: Array, columns: Array) -> int:
 func execute_batch(statements: Array) -> int:
 	push_error("PersistenceStore.execute_batch: not implemented")
 	return -1
+
+
+# --- Transaction context manager ---
+
+# Execute a callable inside a transaction.
+# Callable signature: func(tx_id: int) -> int (0 = commit, non-zero = rollback)
+# Returns 0 on success (commit), -1 on failure (rollback).
+func with_transaction(callable: Callable) -> int:
+	push_error("PersistenceStore.with_transaction: not implemented")
+	return -1
+
+
+# Low-level transaction query/execute that accept tx_id.
+# These are used inside the callable passed to with_transaction.
+func query_tx(sql: String, params: Array, tx_id: int) -> Array:
+	push_error("PersistenceStore.query_tx: not implemented")
+	return []
+
+
+func execute_tx(sql: String, params: Array, tx_id: int) -> int:
+	push_error("PersistenceStore.execute_tx: not implemented")
+	return -1
+
+
+func insert_many_tx(table: String, rows: Array, columns: Array, tx_id: int) -> int:
+	push_error("PersistenceStore.insert_many_tx: not implemented")
+	return -1
+
+
+# --- Shard state atomic commit (Edge Case B) ---
+
+# Atomically commit shard state snapshot + locked seeds + parameter flushes.
+# Prevents partial state on crash during finalization.
+func commit_shard_state_atomic(shard_id: String, snapshot_data: Dictionary) -> int:
+	push_error("PersistenceStore.commit_shard_state_atomic: not implemented")
+	return -1
+
+
+# --- Observability ---
+
+# Returns connection pool and circuit breaker metrics.
+# Keys: active_connections (int), pending_queries (int), circuit_breaker_tripped (bool)
+func get_metrics() -> Dictionary:
+	return {
+		"active_connections": 0,
+		"pending_queries": 0,
+		"circuit_breaker_tripped": false
+	}

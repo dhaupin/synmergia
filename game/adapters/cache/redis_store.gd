@@ -54,6 +54,17 @@ var _last_response: Dictionary = {}
 var _last_ok: bool = false
 var _response_received: bool = false
 
+# Circuit breaker state
+var _circuit_breaker_failures: int = 0
+var _circuit_breaker_tripped: bool = false
+var _circuit_breaker_threshold: int = 5
+var _circuit_breaker_reset_timeout_ms: int = 30000
+var _circuit_breaker_tripped_time: int = 0
+
+# Metrics
+var _active_connections: int = 0
+var _pending_queries: int = 0
+
 
 func _init(parent: Node = null) -> void:
 	_parent = parent
@@ -75,6 +86,7 @@ func open(config: Dictionary) -> int:
 	if not _blocking_get("/health"):
 		push_error("RedisStore: bridge %s not reachable" % _bridge_url)
 		return -1
+	_active_connections = 1
 	return 0
 
 
@@ -82,11 +94,25 @@ func close() -> void:
 	if _http and is_instance_valid(_http):
 		_http.queue_free()
 		_http = null
+	_active_connections = 0
+	_pending_queries = 0
+	_circuit_breaker_failures = 0
+	_circuit_breaker_tripped = false
+	_circuit_breaker_tripped_time = 0
 
 
 func healthy() -> bool:
 	if not _http:
 		return false
+	# Check circuit breaker
+	if _circuit_breaker_tripped:
+		# Auto-reset after timeout
+		var now = Time.get_ticks_msec()
+		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
+			_circuit_breaker_tripped = false
+			_circuit_breaker_failures = 0
+		else:
+			return false
 	return _blocking_get("/health")
 
 
@@ -245,11 +271,20 @@ func publish(channel: String, message: Variant) -> int:
 func _blocking_get(path: String) -> bool:
 	if not _http:
 		return false
+	_pending_queries += 1
 	var url := _bridge_url + path
 	var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
 	if err != OK:
+		_pending_queries -= 1
+		_record_failure()
 		return false
-	return _await_response()
+	var ok := _await_response()
+	_pending_queries -= 1
+	if not ok:
+		_record_failure()
+	else:
+		_record_success()
+	return ok
 
 
 func _blocking_get_with_body(path: String) -> Dictionary:
@@ -260,6 +295,7 @@ func _blocking_get_with_body(path: String) -> Dictionary:
 func _blocking_post(path: String, body: Dictionary) -> Dictionary:
 	if not _http:
 		return {}
+	_pending_queries += 1
 	var url := _bridge_url + path
 	var json := JSON.stringify(body)
 	var headers := PackedStringArray([
@@ -268,9 +304,15 @@ func _blocking_post(path: String, body: Dictionary) -> Dictionary:
 	])
 	var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)
 	if err != OK:
+		_pending_queries -= 1
+		_record_failure()
 		return {}
 	if not _await_response():
+		_pending_queries -= 1
+		_record_failure()
 		return {}
+	_pending_queries -= 1
+	_record_success()
 	return _last_response
 
 
@@ -301,6 +343,17 @@ func _await_response() -> bool:
 	return _last_ok
 
 
+func _record_success() -> void:
+	_circuit_breaker_failures = 0
+
+
+func _record_failure() -> void:
+	_circuit_breaker_failures += 1
+	if _circuit_breaker_failures >= _circuit_breaker_threshold:
+		_circuit_breaker_tripped = true
+		_circuit_breaker_tripped_time = Time.get_ticks_msec()
+
+
 func _ok_or_err(resp: Dictionary) -> int:
 	if resp.is_empty():
 		return -1
@@ -311,3 +364,13 @@ func _ok_or_err(resp: Dictionary) -> int:
 
 func _url_escape(s: String) -> String:
 	return s.replace(" ", "%20").replace("&", "%26").replace("?", "%3F")
+
+
+func get_metrics() -> Dictionary:
+	return {
+		"active_connections": _active_connections,
+		"pending_queries": _pending_queries,
+		"circuit_breaker_tripped": _circuit_breaker_tripped,
+		"circuit_breaker_failures": _circuit_breaker_failures,
+		"circuit_breaker_threshold": _circuit_breaker_threshold
+	}

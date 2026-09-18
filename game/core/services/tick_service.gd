@@ -37,6 +37,9 @@ const PHASE_4_BUDGET_MS: int = 8
 const TOTAL_SYNC_BUDGET_MS: int = 48
 const TICK_BUDGET_MS: int = 50
 
+## Budget warning threshold (80% of 50ms)
+const BUDGET_WARNING_THRESHOLD_MS: int = 40
+
 ## Adaptive tick intervals
 const HEARTBEAT_FLOOR_HIGH_MS: int = 50   # >80% momentum
 const HEARTBEAT_FLOOR_MID_MS: int = 100   # <80% momentum
@@ -236,6 +239,20 @@ func _on_tick() -> void:
 		if boundary_deviation > 2.0:
 			n014_violation = true
 			GameLog.warn("TickService: N014 violation tick=%d deviation=%.1fms" % [_tick_number, boundary_deviation])
+
+	# Budget warning: log phase breakdown when total sync exceeds 80% of tick budget (40ms)
+	if total_sync_ms > BUDGET_WARNING_THRESHOLD_MS:
+		var phase1_ms := phase_timings.get("phase1_input", 0.0)
+		var phase2_ms := phase_timings.get("phase2_world", 0.0)
+		var phase3_ms := phase_timings.get("phase3_reroot", 0.0)
+		var phase4_ms := phase_timings.get("phase4_emit", 0.0)
+		GameLog.warn(
+			"TickService: TICK BUDGET BREACH tick=%d total_sync=%.1fms (threshold=%dms) "
+			"phase1_input=%.1fms phase2_world=%.1fms phase3_reroot=%.1fms phase4_emit=%.1fms" % [
+				_tick_number, total_sync_ms, BUDGET_WARNING_THRESHOLD_MS,
+				phase1_ms, phase2_ms, phase3_ms, phase4_ms
+			]
+		)
 
 	tick_completed.emit(_tick_number, phase_timings)
 	GameLog.debug("TickService: Tick %d complete. Sync=%.1fms PhaseTimings=%s" % [_tick_number, total_sync_ms, phase_timings])

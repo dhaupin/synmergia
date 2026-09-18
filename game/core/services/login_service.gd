@@ -149,6 +149,23 @@ func logout() -> void:
 	GameLog.info("LoginService: %s logged out" % prev)
 	logged_out.emit()
 
+## Invalidates all session tokens (called on manifest restore)
+## Clears current session and forces all clients to re-authenticate
+func invalidate_all_tokens() -> void:
+	GameLog.info("LoginService: Invalidating all session tokens")
+	
+	# Clear current session
+	_current_account_id = ""
+	_current_session_token = ""
+	_is_guest = false
+	
+	# Clear rate limit tracking
+	_failed_attempts.clear()
+	
+	# Emit signal for any listeners
+	logged_out.emit()
+	GameLog.info("LoginService: All tokens invalidated")
+
 func is_logged_in() -> bool:
 	return _current_account_id != ""
 

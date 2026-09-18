@@ -308,6 +308,44 @@ func stop_server() -> void:
 	_log("info", "Server stopped")
 	server_stopped.emit()
 
+## Disconnect all connected peers with a maintenance/reason message
+## Called by ServerManager.invalidate_all_sessions() on manifest restore
+func disconnect_all_peers(reason: String = "Server maintenance: world state restored") -> void:
+	if not is_server:
+		_log("warn", "disconnect_all_peers called but not running as server")
+		return
+
+	_log("info", "NetworkManager: Disconnecting all peers: %s" % reason)
+
+	# Send maintenance disconnect RPC to all peers before closing
+	for peer_id in connected_peers:
+		if connected_peers.has(peer_id):
+			rpc_id(peer_id, "_receive_maintenance_disconnect", reason)
+
+	# Brief delay to let RPCs deliver, then force close
+	var t = Timer.new()
+	t.timeout.connect(_force_close_all_peers)
+	t.one_shot = true
+	t.wait_time = 0.5
+	add_child(t)
+	t.start()
+
+@rpc("reliable", "call_local")
+func _receive_maintenance_disconnect(reason: String) -> void:
+	# Client receives this and should handle graceful disconnect
+	_log("info", "Received maintenance disconnect: %s" % reason)
+	if is_client:
+		disconnect_from_server()
+
+func _force_close_all_peers() -> void:
+	if not is_server:
+		return
+	for peer_id in connected_peers:
+		if multiplayer.multiplayer_peer:
+			multiplayer.multiplayer_peer.disconnect_peer(peer_id, true)
+	connected_peers.clear()
+	_log("info", "NetworkManager: All peers force-disconnected")
+
 func is_multiplayer_active() -> bool:
 	return connection_state == ConnectionState.CONNECTED or connection_state == ConnectionState.SERVER
 

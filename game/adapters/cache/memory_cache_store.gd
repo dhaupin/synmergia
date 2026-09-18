@@ -265,3 +265,13 @@ func _is_expired(key: String) -> bool:
 	if exp <= 0:
 		return false
 	return Time.get_unix_time_from_system() >= exp
+
+
+func get_metrics() -> Dictionary:
+	return {
+		"active_connections": 1,
+		"pending_queries": 0,
+		"circuit_breaker_tripped": false,
+		"circuit_breaker_failures": 0,
+		"circuit_breaker_threshold": 0
+	}

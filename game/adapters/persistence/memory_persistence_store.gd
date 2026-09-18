@@ -160,8 +160,8 @@ func _query_select(sql: String, params: Array) -> Array:
 		return []
 	select_start = sql.find("SELECT")
 	# Find first letter after SELECT
-	var pos := select_start + 6
-	while pos < sql.length() and not sql[pos].is_alpha():
+	var pos: int = select_start + 6
+	while pos < sql.length() and not _is_alpha(sql[pos]):
 		pos += 1
 	select_start = pos
 	
@@ -173,7 +173,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	var columns := _parse_column_list(select_part)
 	
 	var after_from_start := sql.find("FROM", from_upper + 4)
-	while after_from_start < sql.length() and not sql[after_from_start].is_alpha():
+	while after_from_start < sql.length() and not _is_alpha(sql[after_from_start]):
 		after_from_start += 1
 	if after_from_start >= sql.length():
 		return []
@@ -266,7 +266,7 @@ func _query_select(sql: String, params: Array) -> Array:
 		var limit_part := rest.substr(where_idx + 7 + limit_idx + 7).strip_edges()
 		var num_str := ""
 		for c in limit_part:
-			if c.is_decimal():
+			if c.unicode_is_digit():
 				num_str += c
 			else:
 				break
@@ -366,7 +366,7 @@ func _apply_inner_join(left_rows: Array, right_rows: Array, condition: String, p
 	for lrow in left_rows:
 		for rrow in right_rows:
 			if _match_join_condition(lrow, rrow, condition, params):
-				var merged := lrow.duplicate(true)
+				var merged: Dictionary = lrow.duplicate(true)
 				for k in rrow.keys():
 					if not merged.has(k):
 						merged[k] = rrow[k]
@@ -380,7 +380,7 @@ func _apply_left_join(left_rows: Array, right_rows: Array, condition: String, pa
 		var found := false
 		for rrow in right_rows:
 			if _match_join_condition(lrow, rrow, condition, params):
-				var merged := lrow.duplicate(true)
+				var merged: Dictionary = lrow.duplicate(true)
 				for k in rrow.keys():
 					if not merged.has(k):
 						merged[k] = rrow[k]
@@ -399,14 +399,14 @@ func _match_join_condition(left: Dictionary, right: Dictionary, condition: Strin
 
 func _match_conds_full_with_join(left: Dictionary, right: Dictionary, conds: Array, params: Array) -> bool:
 	for c in conds:
-		var col_spec := c.get("col", "")
-		var op := c.get("op", "=")
-		var pidx := c.get("param", -1)
+		var col_spec: String = c.get("col", "")
+		var op: String = c.get("op", "=")
+		var pidx: int = c.get("param", -1)
 		var val: Variant = null
-		var is_subquery := c.get("subquery", false)
+		var is_subquery: bool = c.get("subquery", false)
 		
 		if is_subquery:
-			var subquery_sql := c.get("subquery_sql", "")
+			var subquery_sql: String = c.get("subquery_sql", "")
 			var subquery_result := query(subquery_sql, params)
 			var subquery_vals: Array = []
 			for row in subquery_result:
@@ -477,7 +477,7 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 						"op": "IN",
 						"params": values
 					}
-			
+	
 	# Check for operators (>=, <=, >, <, !=, LIKE, =)
 	var operators := ["IN(", " LIKE ", " like ", ">=", "<=", "!=", ">", "<", " = ", "="]
 	var op_idx := -1
@@ -492,8 +492,8 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 			break
 		
 	if op_idx < 0:
-			return null
-		
+			return {}
+	
 	var col := clause.substr(0, op_idx).strip_edges()
 	var rhs := clause.substr(op_idx + op_str.length()).strip_edges()
 	
@@ -706,7 +706,9 @@ func _match_like(text: String, pattern: String) -> bool:
 
 	if regex_str == "":
 		regex_str = ".*"
-	return text.to_lower().find_regexp(regex_str) >= 0
+	var reg_ex := RegEx.new()
+	reg_ex.compile(regex_str)
+	return reg_ex.search(text.to_lower()) != null
 func _parse_order_by(sql: String, params: Array) -> Array:
 	var result: Array = []
 	
@@ -797,10 +799,10 @@ func _apply_order_by(rows: Array, order_info: Array) -> Array:
 	
 	rows.sort_custom(func(a, b):
 		for o in order_info:
-			var col := o["col"]
-			var dir := o["dir"]
-			var av := a.get(col, null)
-			var bv := b.get(col, null)
+			var col: String = o["col"]
+			var dir: String = o["dir"]
+			var av: Variant = a.get(col, null)
+			var bv: Variant = b.get(col, null)
 			
 			if av == bv:
 				continue
@@ -857,8 +859,8 @@ func _apply_group_by(rows: Array, group_cols: Array, params: Array) -> Array:
 	
 	var result: Array = []
 	for key in groups.keys():
-		var group_rows := groups[key]
-		var agg := group_rows[0].duplicate(true)
+		var group_rows: Array = groups[key]
+		var agg: Dictionary = group_rows[0].duplicate(true)
 		result.append(agg)
 	
 	return result
@@ -1071,3 +1073,39 @@ func row_count(table: String) -> int:
 	if not _tables.has(table):
 		return 0
 	return (_tables[table] as Array).size()
+
+
+# --- Helper functions ---
+
+func _is_alpha(c: int) -> bool:
+	# Check if character code is alphabetic (A-Z or a-z)
+	return (c >= 65 and c <= 90) or (c >= 97 and c <= 122)
+
+
+func get_metrics() -> Dictionary:
+	return {
+		"active_connections": 1,
+		"pending_queries": 0,
+		"circuit_breaker_tripped": false,
+		"circuit_breaker_failures": 0,
+		"circuit_breaker_threshold": 0
+	}
+
+
+func _split_csv(s: String) -> Array:
+	var result: Array = []
+	for part in s.split(","):
+		result.append(part.strip_edges())
+	return result
+
+
+func _get_all_keys() -> Array:
+	var all_keys: Array = []
+	for table_name in _tables.keys():
+		var rows: Array = _tables[table_name] as Array
+		for row in rows:
+			if row is Dictionary:
+				for key in row.keys():
+					if not all_keys.has(key):
+						all_keys.append(key)
+	return all_keys

@@ -3,6 +3,7 @@
 extends AgentConnector
 
 const AgentConnector = preload("res://core/schemas/agent_connector.gd")
+const QoSService = preload("res://core/autoload/qos_service.gd")
 class_name MCPConnector
 
 # MCP server configuration
@@ -10,13 +11,22 @@ class_name MCPConnector
 @export var access_token: String = ""
 @export var model: String = "claude-3-sonnet"
 
+# Rate limiting: max actions per agent per server tick
+@export var max_actions_per_tick: int = 10
+
 var _ws_client: WebSocketClient
 var _message_queue: Array[Dictionary] = []
 var _pending_requests: Dictionary = {}
 
+# Per-agent action tracking for per-tick limiting
+var _agent_action_counts: Dictionary = {}
+var _last_tick: int = 0
+
 func _init() -> void:
 	connector_name = "MCP"
 	agent_type = AgentType.CUSTOM
+	_agent_action_counts = {}
+	_last_tick = 0
 
 func _ready() -> void:
 	super._ready()
@@ -30,6 +40,9 @@ func connect(config: Dictionary) -> bool:
 	mcp_server_url = config.get("server_url", mcp_server_url)
 	access_token = config.get("access_token", access_token)
 	model = config.get("model", model)
+	
+	# Set agent ID for rate limiting
+	_agent_id = config.get("agent_id", "mcp_agent_%d" % Time.get_ticks_msec())
 
 	# Connect WebSocket
 	var url := "ws://%s/mcp" % mcp_server_url.replace("http://", "").replace("https://", "")
@@ -129,7 +142,11 @@ func _on_ws_message(message: String) -> void:
 				var result: Dictionary = data["result"]
 				if result.has("action"):
 					var action := AgentAction.from_dict(result["action"])
-					action_received.emit(action)
+					# Rate limit check before emitting action
+					if _check_agent_rate_limit(action):
+						action_received.emit(action)
+					else:
+						GameLog.warn("MCPConnector: Rate limited action from agent %s" % _agent_id)
 	elif data.has("method"):
 		match data["method"]:
 			"observation/ack":
@@ -140,6 +157,32 @@ func _on_ws_message(message: String) -> void:
 				var state: Dictionary = data["params"]["state"]
 				# Process state...
 				pass
+
+## Check agent rate limits (QoS + per-tick)
+func _check_agent_rate_limit(action: AgentAction) -> bool:
+	var agent_id := _agent_id if _agent_id != "" else "mcp_agent"
+	
+	# Per-tick action limit
+	var current_tick := Time.get_ticks_msec() / 16  # ~60 ticks/sec
+	if current_tick != _last_tick:
+		_last_tick = current_tick
+		_agent_action_counts.erase(agent_id)
+	
+	var count := _agent_action_counts.get(agent_id, 0)
+	if count >= max_actions_per_tick:
+		# Exceeded per-tick limit
+		if QoSService:
+			QoSService.rate_limit(agent_id, "agent_action_burst")
+		return false
+	
+	_agent_action_counts[agent_id] = count + 1
+	
+	# QoS rate limit (token bucket per action type)
+	var action_type_str := AgentAction.ActionType.keys()[action.action_type].lower()
+	if QoSService and not QoSService.rate_limit(agent_id, "agent_" + action_type_str):
+		return false
+	
+	return true
 
 func _on_ws_connected() -> void:
 	GameLog.debug("MCPConnector: WebSocket connected")

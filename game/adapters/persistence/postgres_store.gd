@@ -39,6 +39,17 @@ var _parent: Node
 var _pending: Dictionary = {}  # request_id -> Promise-ish dict
 var _request_counter: int = 0
 
+# Circuit breaker state
+var _circuit_breaker_failures: int = 0
+var _circuit_breaker_tripped: bool = false
+var _circuit_breaker_threshold: int = 5
+var _circuit_breaker_reset_timeout_ms: int = 30000
+var _circuit_breaker_tripped_time: int = 0
+
+# Metrics
+var _active_connections: int = 0
+var _pending_queries: int = 0
+
 
 func _init(parent: Node = null) -> void:
 	_parent = parent
@@ -63,6 +74,7 @@ func open(config: Dictionary) -> int:
 	if not ok:
 		push_error("PostgresStore: bridge %s not reachable" % _bridge_url)
 		return -1
+	_active_connections = 1
 	return 0
 
 
@@ -70,11 +82,25 @@ func close() -> void:
 	if _http and is_instance_valid(_http):
 		_http.queue_free()
 		_http = null
+	_active_connections = 0
+	_pending_queries = 0
+	_circuit_breaker_failures = 0
+	_circuit_breaker_tripped = false
+	_circuit_breaker_tripped_time = 0
 
 
 func healthy() -> bool:
 	if not _http:
 		return false
+	# Check circuit breaker
+	if _circuit_breaker_tripped:
+		# Auto-reset after timeout
+		var now = Time.get_ticks_msec()
+		if now - _circuit_breaker_tripped_time >= _circuit_breaker_reset_timeout_ms:
+			_circuit_breaker_tripped = false
+			_circuit_breaker_failures = 0
+		else:
+			return false
 	return _blocking_get("/health")
 
 
@@ -126,16 +152,26 @@ func execute_batch(statements: Array) -> int:
 func _blocking_get(path: String) -> bool:
 	if not _http:
 		return false
+	_pending_queries += 1
 	var url := _bridge_url + path
 	var err := _http.request(url, PackedStringArray(["Accept: application/json"]), HTTPClient.METHOD_GET)
 	if err != OK:
+		_pending_queries -= 1
+		_record_failure()
 		return false
-	return _await_response()
+	var ok := _await_response()
+	_pending_queries -= 1
+	if not ok:
+		_record_failure()
+	else:
+		_record_success()
+	return ok
 
 
 func _blocking_post(path: String, body: Dictionary) -> Dictionary:
 	if not _http:
 		return {}
+	_pending_queries += 1
 	var url := _bridge_url + path
 	var json := JSON.stringify(body)
 	var headers := PackedStringArray([
@@ -144,11 +180,16 @@ func _blocking_post(path: String, body: Dictionary) -> Dictionary:
 	])
 	var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)
 	if err != OK:
+		_pending_queries -= 1
+		_record_failure()
 		return {}
 	var ok := _await_response()
+	_pending_queries -= 1
 	if not ok:
+		_record_failure()
 		return {}
 	# Pull the stored body from the signal handler
+	_record_success()
 	return _last_response
 
 
@@ -183,9 +224,133 @@ func _await_response() -> bool:
 	return _last_ok
 
 
+func _record_success() -> void:
+	_circuit_breaker_failures = 0
+
+
+func _record_failure() -> void:
+	_circuit_breaker_failures += 1
+	if _circuit_breaker_failures >= _circuit_breaker_threshold:
+		_circuit_breaker_tripped = true
+		_circuit_breaker_tripped_time = Time.get_ticks_msec()
+
+
 func _ok_or_err(resp: Dictionary) -> int:
 	if resp.is_empty():
 		return -1
 	if resp.get("ok", false):
 		return 0
 	return -1
+
+
+# --- Transaction context manager ---
+
+# Execute a callable inside a Postgres transaction.
+# Usage:
+#   var ok := store.with_transaction(func(tx_id: int) -> int:
+#       var r1 := store.query("SELECT ...", [], tx_id)
+#       var r2 := store.execute("INSERT ...", [], tx_id)
+#       return 0
+#   )
+# Returns 0 on success (commit), -1 on failure (rollback).
+func with_transaction(callable: Callable) -> int:
+	var tx_id := begin()
+	if tx_id < 0:
+		return -1
+	var result: int = -1
+	var success: bool = false
+	try:
+		result = callable.call(tx_id)
+		if result == 0:
+			success = true
+	else:
+		pass
+	if success:
+		return commit(tx_id)
+	else:
+		rollback(tx_id)
+		return -1
+
+
+# Low-level transaction query/execute that accept tx_id.
+# These are used inside the callable passed to with_transaction.
+func query_tx(sql: String, params: Array, tx_id: int) -> Array:
+	var body := {"sql": sql, "params": params, "tx_id": tx_id}
+	var resp := _blocking_post("/query", body)
+	if resp.is_empty() or not resp.has("rows"):
+		return []
+	return resp.get("rows", [])
+
+
+func execute_tx(sql: String, params: Array, tx_id: int) -> int:
+	var body := {"sql": sql, "params": params, "tx_id": tx_id}
+	var resp := _blocking_post("/execute", body)
+	if resp.is_empty():
+		return -1
+	return int(resp.get("affected", -1))
+
+
+func insert_many_tx(table: String, rows: Array, columns: Array, tx_id: int) -> int:
+	var body := {"table": table, "rows": rows, "columns": columns, "tx_id": tx_id}
+	var resp := _blocking_post("/insert_many", body)
+	if resp.is_empty():
+		return -1
+	return int(resp.get("affected", -1))
+
+
+# --- Shard state atomic commit (Edge Case B) ---
+
+# Atomically commit shard state snapshot + locked seeds + parameter flushes.
+# Prevents partial state on crash during finalization.
+# Args:
+#   shard_id: String identifier for the shard
+#   snapshot_data: Dictionary with keys:
+#     - "state_tree": content-hash state tree data
+#     - "locked_seeds": Array of seed IDs that are locked for reconnect window
+#     - "parameters": Dictionary of shard parameters to flush
+# Returns 0 on success, -1 on failure (full rollback).
+func commit_shard_state_atomic(shard_id: String, snapshot_data: Dictionary) -> int:
+	return with_transaction(func(tx_id: int) -> int:
+		# 1. Insert/replace shard state snapshot
+		var state_tree := snapshot_data.get("state_tree", {})
+		var ok := execute_tx(
+			"INSERT INTO shard_snapshots (shard_id, state_tree, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (shard_id) DO UPDATE SET state_tree = EXCLUDED.state_tree, created_at = NOW()",
+			[shard_id, JSON.stringify(state_tree)],
+			tx_id
+		)
+		if ok < 0:
+			return -1
+
+		# 2. Commit locked seeds (reconnect window TTL tracking)
+		var locked_seeds := snapshot_data.get("locked_seeds", [])
+		if locked_seeds.size() > 0:
+			var seed_rows := []
+			for seed_id in locked_seeds:
+				seed_rows.append([shard_id, seed_id, Time.get_unix_time_from_system() + 300])  # 5 min TTL
+			ok = insert_many_tx("locked_seeds", seed_rows, ["shard_id", "seed_id", "expires_at"], tx_id)
+			if ok < 0:
+				return -1
+
+		# 3. Flush shard parameters (immediate or coalesced)
+		var parameters := snapshot_data.get("parameters", {})
+		if parameters.size() > 0:
+			var param_rows := []
+			for key in parameters:
+				var val := parameters[key]
+				param_rows.append([shard_id, key, JSON.stringify(val), Time.get_unix_time_from_system()])
+			ok = insert_many_tx("shard_parameters", param_rows, ["shard_id", "param_key", "param_value", "updated_at"], tx_id)
+			if ok < 0:
+				return -1
+
+		return 0
+	))
+
+
+func get_metrics() -> Dictionary:
+	return {
+		"active_connections": _active_connections,
+		"pending_queries": _pending_queries,
+		"circuit_breaker_tripped": _circuit_breaker_tripped,
+		"circuit_breaker_failures": _circuit_breaker_failures,
+		"circuit_breaker_threshold": _circuit_breaker_threshold
+	}

@@ -155,3 +155,15 @@ func llen(key: String) -> int:
 func publish(channel: String, message: Variant) -> int:
 	push_error("CacheStore.publish: not implemented")
 	return 0
+
+
+# --- Observability ---
+
+# Returns connection pool and circuit breaker metrics.
+# Keys: active_connections (int), pending_queries (int), circuit_breaker_tripped (bool)
+func get_metrics() -> Dictionary:
+	return {
+		"active_connections": 0,
+		"pending_queries": 0,
+		"circuit_breaker_tripped": false
+	}

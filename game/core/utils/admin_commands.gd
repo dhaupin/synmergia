@@ -173,8 +173,26 @@ func _register_commands() -> void:
 			"description": "Toggle godmode (invincible)",
 			"usage": "/godmode [0|1]",
 			"handler": _cmd_godmode
+		},
+		"invalidate_sessions": {
+			"permission": GameConfig.Security.ADMIN_LEVEL,
+			"description": "Invalidate all sessions (for manifest restore)",
+			"usage": "/invalidate_sessions [reason]",
+			"handler": _cmd_invalidate_sessions
 		}
 	}
+
+## Audit logging helper
+func _audit_log(admin_id: String, command_name: String, modified_target: String, details: Dictionary = {}) -> void:
+	var timestamp = Time.get_unix_time_from_system()
+	var log_data = {
+		"timestamp": timestamp,
+		"admin_id": admin_id,
+		"command_name": command_name,
+		"modified_target": modified_target,
+		"details": details
+	}
+	GameLog.info("AUDIT_ADMIN: %s" % JSON.stringify(log_data))
 
 ## Execute a command
 func execute_command(cmd_name: String, args: Array, caller_id: String) -> Dictionary:
@@ -186,12 +204,12 @@ func execute_command(cmd_name: String, args: Array, caller_id: String) -> Dictio
 
 	if caller_level < cmd["permission"]:
 		SecurityService.log_permission_denied(caller_id, "admin_command:" + cmd_name, cmd["permission"])
+		_audit_log(caller_id, cmd_name, "", {"result": "permission_denied"})
 		return {"success": false, "message": "Permission denied"}
 
 	var handler: Callable = cmd["handler"]
 	_caller = caller_id
 	var result = handler.call(args)
-	GameLog.info("AdminCommand: %s executed /%s" % [caller_id, cmd_name])
 
 	return result
 
@@ -222,6 +240,7 @@ func _cmd_ban(args: Array) -> Dictionary:
 			{"target": player_id, "reason": reason, "command": "ban"},
 			"admins"
 		)
+	_audit_log(_caller, "ban", player_id, {"reason": reason})
 	return {"success": true, "message": "Banned: " + player_id}
 
 func _cmd_unban(args: Array) -> Dictionary:
@@ -239,6 +258,7 @@ func _cmd_unban(args: Array) -> Dictionary:
 				{"target": args[0], "command": "unban"},
 				"admins"
 			)
+		_audit_log(_caller, "unban", args[0], {})
 		return {"success": true, "message": "Unbanned: " + args[0]}
 	return {"success": false, "message": "Firewall not available"}
 
@@ -273,6 +293,7 @@ func _cmd_kick(args: Array) -> Dictionary:
 			{"target": player_id, "reason": reason, "command": "kick"},
 			"admins"
 		)
+	_audit_log(_caller, "kick", player_id, {"reason": reason})
 	return {"success": true, "message": "Kicked: " + player_id}
 
 func _cmd_mute(args: Array) -> Dictionary:
@@ -292,6 +313,7 @@ func _cmd_mute(args: Array) -> Dictionary:
 			{"target": args[0], "duration": duration, "command": "mute"},
 			"admins"
 		)
+	_audit_log(_caller, "mute", args[0], {"duration": duration})
 	return {"success": true, "message": "Muted: " + args[0]}
 
 func _cmd_unmute(args: Array) -> Dictionary:
@@ -307,6 +329,7 @@ func _cmd_unmute(args: Array) -> Dictionary:
 			{"target": args[0], "command": "unmute"},
 			"admins"
 		)
+	_audit_log(_caller, "unmute", args[0], {})
 	return {"success": true, "message": "Unmuted: " + args[0]}
 
 func _cmd_block_ip(args: Array) -> Dictionary:
@@ -328,6 +351,7 @@ func _cmd_block_ip(args: Array) -> Dictionary:
 				{"target": args[0], "duration": int(args[1]), "command": "block_ip"},
 				"admins"
 			)
+		_audit_log(_caller, "block_ip", args[0], {"duration": int(args[1]), "reason": " ".join(args.slice(2, args.size()))})
 		return {"success": true, "message": "Blocked IP: " + args[0]}
 	return {"success": false, "message": "Firewall not available"}
 
@@ -346,6 +370,7 @@ func _cmd_unblock_ip(args: Array) -> Dictionary:
 				{"target": args[0], "command": "unblock_ip"},
 				"admins"
 			)
+		_audit_log(_caller, "unblock_ip", args[0], {})
 		return {"success": true, "message": "Unblocked IP: " + args[0]}
 	return {"success": false, "message": "Firewall not available"}
 
@@ -383,6 +408,7 @@ func _cmd_shutdown(args: Array) -> Dictionary:
 			"admin:shutdown:%d:%d" % [delay, Time.get_ticks_msec()],
 			{"delay_seconds": delay}
 		)
+	_audit_log(_caller, "shutdown", "server", {"delay_seconds": delay})
 	var t = Timer.new()
 	t.timeout.connect(func(): get_tree().quit())
 	t.one_shot = true
@@ -403,6 +429,7 @@ func _cmd_broadcast(args: Array) -> Dictionary:
 			"admin:broadcast:%d" % Time.get_ticks_msec(),
 			{"command": "/broadcast"}
 		)
+	_audit_log(_caller, "broadcast", "all_players", {"message": msg})
 	return {"success": true, "message": "Broadcast sent"}
 
 func _cmd_resurrect(args: Array) -> Dictionary:
@@ -440,6 +467,7 @@ func _cmd_resurrect(args: Array) -> Dictionary:
 			int(mana_percent * 100)
 		]
 		GameLog.info("AdminCommand: %s" % msg)
+		_audit_log(_caller, "resurrect", player_id, {"health_percent": health_percent, "mana_percent": mana_percent})
 		return {"success": true, "message": msg}
 	else:
 		return {"success": false, "message": result.get("reason", "Failed to resurrect")}
@@ -462,6 +490,7 @@ func _cmd_kill_player(args: Array) -> Dictionary:
 
 	entity.health_component.take_damage(entity.health_component.current_health + 100, null, "admin_kill")
 
+	_audit_log(_caller, "kill", player_id, {"reason": reason})
 	return {"success": true, "message": "Killed: %s (%s)" % [entity.display_name, reason]}
 
 func _cmd_goto_player(args: Array) -> Dictionary:
@@ -481,6 +510,7 @@ func _cmd_goto_player(args: Array) -> Dictionary:
 
 	admin.global_position = target.global_position
 
+	_audit_log(_caller, "goto", player_id, {})
 	return {"success": true, "message": "Teleported to: %s" % target.display_name}
 
 func _cmd_summon_player(args: Array) -> Dictionary:
@@ -499,6 +529,7 @@ func _cmd_summon_player(args: Array) -> Dictionary:
 
 	target.global_position = admin.global_position
 
+	_audit_log(_caller, "summon", player_id, {})
 	return {"success": true, "message": "Summoned: %s" % target.display_name}
 
 ## ============================================================================
@@ -528,6 +559,7 @@ func _cmd_invisible(args: Array) -> Dictionary:
 		admin.set_visible(not enable)
 
 	var status := "invisible" if enable else "visible"
+	_audit_log(_caller, "invisible", _caller, {"enabled": enable})
 	return {"success": true, "message": "You are now %s" % status}
 
 func _cmd_fly(args: Array) -> Dictionary:
@@ -550,6 +582,7 @@ func _cmd_fly(args: Array) -> Dictionary:
 			admin.set("gravity_scale", 1.0)
 
 	var status := "fly mode enabled" if enable else "fly mode disabled"
+	_audit_log(_caller, "fly", _caller, {"enabled": enable})
 	return {"success": true, "message": status}
 
 func _cmd_noclip(args: Array) -> Dictionary:
@@ -573,6 +606,7 @@ func _cmd_noclip(args: Array) -> Dictionary:
 		admin.set("gravity_scale", 1.0)
 
 	var status := "noclip enabled" if enable else "noclip disabled"
+	_audit_log(_caller, "noclip", _caller, {"enabled": enable})
 	return {"success": true, "message": status}
 
 func _cmd_speed(args: Array) -> Dictionary:
@@ -596,6 +630,7 @@ func _cmd_speed(args: Array) -> Dictionary:
 	var original: float = admin.get("_original_move_speed")
 	admin.set("move_speed", original * multiplier)
 
+	_audit_log(_caller, "speed", _caller, {"multiplier": multiplier, "new_speed": original * multiplier})
 	return {"success": true, "message": "Speed set to %.1fx (%.1f)" % [multiplier, original * multiplier]}
 
 func _cmd_teleport(args: Array) -> Dictionary:
@@ -613,6 +648,7 @@ func _cmd_teleport(args: Array) -> Dictionary:
 		var y := float(args[1])
 		var z := float(args[2])
 		admin.global_position = Vector3(x, y, z)
+		_audit_log(_caller, "teleport", _caller, {"target": "coordinates", "x": x, "y": y, "z": z})
 		return {"success": true, "message": "Teleported to (%.1f, %.1f, %.1f)" % [x, y, z]}
 	else:
 		# Teleport to player
@@ -621,6 +657,7 @@ func _cmd_teleport(args: Array) -> Dictionary:
 		if not target:
 			return {"success": false, "message": "Player not found: " + target_id}
 		admin.global_position = target.global_position
+		_audit_log(_caller, "teleport", target_id, {"target": "player"})
 		return {"success": true, "message": "Teleported to: %s" % target.display_name}
 
 func _cmd_heal(args: Array) -> Dictionary:
@@ -630,12 +667,14 @@ func _cmd_heal(args: Array) -> Dictionary:
 
 	var target: Node3D = admin
 	var target_name := "yourself"
+	var target_id := _caller
 
 	if args.size() >= 1:
 		target = _find_entity_by_id(args[0])
 		if not target:
 			return {"success": false, "message": "Player not found: " + args[0]}
 		target_name = target.display_name
+		target_id = args[0]
 
 	if not target.health_component:
 		return {"success": false, "message": "Target has no health component"}
@@ -647,6 +686,7 @@ func _cmd_heal(args: Array) -> Dictionary:
 	if target.has_method("restore_mana"):
 		target.restore_mana(target.max_mana if target.has("max_mana") else 1000)
 
+	_audit_log(_caller, "heal", target_id, {})
 	return {"success": true, "message": "Healed %s to full HP" % target_name}
 
 func _cmd_godmode(args: Array) -> Dictionary:
@@ -669,7 +709,29 @@ func _cmd_godmode(args: Array) -> Dictionary:
 		admin.set("collision_layer", 0b0000001)  # Keep visible but invincible layer
 
 	var status := "enabled" if enable else "disabled"
+	_audit_log(_caller, "godmode", _caller, {"enabled": enable})
 	return {"success": true, "message": "Godmode %s" % status}
+
+func _cmd_invalidate_sessions(args: Array) -> Dictionary:
+	var reason = "World state restored from backup. Please reconnect."
+	if args.size() >= 1:
+		reason = " ".join(args)
+	
+	if ServerManager and ServerManager.has_method("invalidate_all_sessions"):
+		ServerManager.invalidate_all_sessions(reason)
+		if is_instance_valid(NotificationService):
+			NotificationService.notify(
+				NotifKind.ADMIN_ALERT,
+				"Admin %s invalidated all sessions: %s" % [_caller, reason],
+				"AdminCommands",
+				"admin_cmd:invalidate_sessions:%s:%s" % [_caller, reason],
+				{"command": "invalidate_sessions", "reason": reason},
+				"admins"
+			)
+		_audit_log(_caller, "invalidate_sessions", "all_sessions", {"reason": reason})
+		return {"success": true, "message": "All sessions invalidated"}
+	
+	return {"success": false, "message": "ServerManager not available"}
 
 ## Helper: Find entity by ID
 func _find_entity_by_id(entity_id: String) -> Node3D:
