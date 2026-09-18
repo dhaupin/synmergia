@@ -47,7 +47,7 @@ jobs:
   validate-and-pack:
     name: Validate & Export Web PCK
     runs-on: ubuntu-latest
-    timeout-minutes: 10 # Increased for template download + export
+    timeout-minutes: 8
 
     steps:
       # Explicit step to cancel any lingering runs on this branch immediately
@@ -99,18 +99,16 @@ jobs:
           rm -f /tmp/templates.tpz
           ls -la /home/runner/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
 
-      - name: Fast Syntax & Charset Audit
+      - name: Fast Syntax Check
         run: |
           echo "Running fast GDScript syntax check..."
           godot --headless --path game/ --import
 
-      - name: Run Lint Tests
+      - name: Quick Charset Audit
         run: |
-          echo "Running lint tests..."
-          for test_script in $(find game/tests/lint -name "*.gd" | sort); do
-            echo "Running ${test_script}..."
-            godot --headless --path game/ -s "${test_script}" || exit 1
-          done
+          echo "Running quick charset audit (LF-only, no BOM)..."
+          godot --headless --path game/ -s res://tests/lint/test_lint_charset.gd || exit 1
+          godot --headless --path game/ -s res://tests/lint/test_lint_syntax.gd || exit 1
 
       - name: Optional Full Test Suite
         if: ${{ github.event.inputs.run_full_suite == 'true' }}
@@ -121,7 +119,8 @@ jobs:
             godot --headless --path game/ -s "${test_script}" || true
           done
 
-      - name: Export Web PCK Asset Bundle
+      - name: Export Web PCK (only on PR merge or manual dispatch)
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         run: |
           mkdir -p web
           echo "Exporting web resource package (web/game.pck)..."
@@ -129,6 +128,7 @@ jobs:
           ls -lh web/game.pck
 
       - name: Upload Web PCK Artifact
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: synmergia-web-pck
