@@ -122,7 +122,7 @@ func reset_for_tests() -> void:
 func get_persistence_metrics() -> Dictionary:
 	var result: Dictionary = {}
 	for name in _persistence:
-		var store := _persistence[name]
+		var store: PersistenceStore = _persistence[name]
 		if store and store.has_method("get_metrics"):
 			result[name] = store.get_metrics()
 		else:
@@ -135,7 +135,7 @@ func get_persistence_metrics() -> Dictionary:
 func get_cache_metrics() -> Dictionary:
 	var result: Dictionary = {}
 	for name in _cache:
-		var store := _cache[name]
+		var store: CacheStore = _cache[name]
 		if store and store.has_method("get_metrics"):
 			result[name] = store.get_metrics()
 		else:

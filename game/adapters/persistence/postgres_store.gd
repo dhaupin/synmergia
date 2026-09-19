@@ -490,11 +490,10 @@ func _ok_or_err(resp: Dictionary) -> int:
 # --- Transaction context manager ---
 
 func with_transaction(callable: Callable) -> int:
-	var tx_result: PostgresResult = begin()
-	if not tx_result.success or tx_result.data < 0:
-		push_error("with_transaction: begin failed: " + tx_result.error)
+	var tx_id: int = begin()
+	if tx_id < 0:
+		push_error("with_transaction: begin failed")
 		return -1
-	var tx_id: int = tx_result.data
 	var result: int = -1
 	var success: bool = false
 	

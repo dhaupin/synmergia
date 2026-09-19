@@ -116,11 +116,10 @@ func _init_firewall() -> void:
 	# Late binding: resolve AppFirewall at runtime via scene tree
 	var fw = get_node_or_null("/root/AppFirewall")
 	if fw:
-		fw._init(
-			GameConfig.Security.FIREWALL_BLOCK_DURATION,
-			GameConfig.Security.FIREWALL_MAX_ATTEMPTS,
-			GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
-		)
+		# AppFirewall._init() takes no args; configure via properties
+		fw.block_duration = GameConfig.Security.FIREWALL_BLOCK_DURATION
+		fw.max_attempts = GameConfig.Security.FIREWALL_MAX_ATTEMPTS
+		fw.max_connections_per_ip = GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
 		_firewall = fw
 		_log("info", "NetworkManager: AppFirewall initialized via deferred call")
 	else:
@@ -153,7 +152,7 @@ func _process(_delta: float) -> void:
 ## Serializes a diff payload to bytes for size checking and chunking.
 ## Returns PackedByteArray of the serialized payload.
 func _serialize_payload(payload: Dictionary) -> PackedByteArray:
-	var bytes := payload.to_json().to_utf8_buffer()
+	var bytes: PackedByteArray = JSON.stringify(payload).to_utf8_buffer()
 	return bytes
 
 ## Estimates the network packet size for a payload (includes RPC overhead).
@@ -187,7 +186,7 @@ func _chunk_payload(payload: Dictionary, chunk_type: int) -> Array:
 	var total_chunks: int = ceil(total_size / MAX_CHUNK_PAYLOAD)
 	
 	while offset < total_size:
-		var chunk_size := min(MAX_CHUNK_PAYLOAD, total_size - offset)
+		var chunk_size: int = min(MAX_CHUNK_PAYLOAD, total_size - offset)
 		var chunk_data: PackedByteArray = serialized.slice(offset, offset + chunk_size)
 		
 		var is_final: bool = (chunk_id == total_chunks - 1)
@@ -249,7 +248,7 @@ func _reassemble_chunks(chunk: Dictionary) -> Dictionary:
 		_log("warn", "Reassembly buffer overflow, discarding message %d" % msg_id)
 		_reassembly_buffer.clear()
 		_reassembly_message_id = 0
-		return null
+		return {}
 	
 	# Store chunk
 	_reassembly_buffer[chunk_id] = payload_bytes
@@ -266,7 +265,7 @@ func _reassemble_chunks(chunk: Dictionary) -> Dictionary:
 				_log("warn", "Missing chunk %d for message %d" % [i, msg_id])
 				_reassembly_buffer.clear()
 				_reassembly_message_id = 0
-				return null
+				return {}
 		
 		# Reset for next message
 		_reassembly_buffer.clear()
@@ -277,7 +276,7 @@ func _reassemble_chunks(chunk: Dictionary) -> Dictionary:
 		
 		return _deserialize_payload(complete)
 	
-	return null  # Still waiting for more chunks
+	return {}  # Still waiting for more chunks
 
 ## Deserializes payload bytes back to Dictionary.
 func _deserialize_payload(bytes: PackedByteArray) -> Dictionary:
@@ -879,7 +878,7 @@ func _send_seed_receipt(peer_id: int, character_id: String, receipt: Resource) -
 		return
 	if not connected_peers.has(peer_id):
 		return
-	var bytes := receipt.to_bytes()
+	var bytes: PackedByteArray = receipt.to_bytes()
 	rpc_id(peer_id, "_receive_seed_receipt", character_id, bytes)
 
 ## Client: RPC to receive the SeedReceipt from server
@@ -967,7 +966,7 @@ func _on_seed_receipt_ready(character_id: String, receipt: Resource) -> void:
 ## Finds the peer ID associated with a character
 func _find_peer_for_character(character_id: String) -> int:
 	for peer_id in connected_peers:
-		var peer_data := connected_peers[peer_id]
+		var peer_data: Dictionary = connected_peers[peer_id]
 		if peer_data.has("player_id") and peer_data["player_id"] == character_id:
 			return peer_id
 	return -1
@@ -1006,7 +1005,7 @@ func verify_state_hash(root_hash: PackedByteArray, character_id: String) -> bool
 	if seeds.is_empty():
 		return false
 	
-	var expected_seed := seeds.get("world_seed", PackedByteArray())
+	var expected_seed: PackedByteArray = seeds.get("world_seed", PackedByteArray())
 	if expected_seed.is_empty():
 		return false
 	

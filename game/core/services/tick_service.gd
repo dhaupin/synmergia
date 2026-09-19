@@ -254,19 +254,19 @@ func _on_tick() -> void:
 	_last_tick_end_ms = tick_end_ms
 
 	# N014 invariant check: diff must be sent within +/-2ms of tick boundary
-	var n014_violation := false
+	var n014_violation: bool = false
 	if phase4_elapsed > 0.0:
-		var boundary_deviation := abs((tick_end_ms - tick_start_ms) - TOTAL_SYNC_BUDGET_MS)
+		var boundary_deviation: float = abs((tick_end_ms - tick_start_ms) - TOTAL_SYNC_BUDGET_MS)
 		if boundary_deviation > 2.0:
 			n014_violation = true
 			GameLog.warn("TickService: N014 violation tick=%d deviation=%.1fms" % [_tick_number, boundary_deviation])
 
 	# Budget warning: log phase breakdown when total sync exceeds 80% of tick budget (40ms)
 	if total_sync_ms > BUDGET_WARNING_THRESHOLD_MS:
-		var phase1_ms := phase_timings.get("phase1_input", 0.0)
-		var phase2_ms := phase_timings.get("phase2_world", 0.0)
-		var phase3_ms := phase_timings.get("phase3_reroot", 0.0)
-		var phase4_ms := phase_timings.get("phase4_emit", 0.0)
+		var phase1_ms: float = phase_timings.get("phase1_input", 0.0)
+		var phase2_ms: float = phase_timings.get("phase2_world", 0.0)
+		var phase3_ms: float = phase_timings.get("phase3_reroot", 0.0)
+		var phase4_ms: float = phase_timings.get("phase4_emit", 0.0)
 		var msg := "TickService: TICK BUDGET BREACH tick=%d total_sync=%.1fms (threshold=%dms) phase1_input=%.1fms phase2_world=%.1fms phase3_reroot=%.1fms phase4_emit=%.1fms" % [
 			_tick_number, total_sync_ms, BUDGET_WARNING_THRESHOLD_MS,
 			phase1_ms, phase2_ms, phase3_ms, phase4_ms
@@ -346,7 +346,7 @@ func _read_websocket_frames(peer_id: int) -> Array:
 	return frames
 
 ## Parse a single input frame into structured data.
-func _parse_input_frame(frame) -> Dictionary:
+func _parse_input_frame(frame) -> Variant:
 	if frame is Dictionary:
 		return frame
 	return null
@@ -440,8 +440,8 @@ func _phase2_world_step() -> Dictionary:
 
 ## Compare input frames by tick-local sequence for deterministic ordering.
 static func _compare_input_sequence(a: Dictionary, b: Dictionary) -> bool:
-	var seq_a := a.get("seq", 0)
-	var seq_b := b.get("seq", 0)
+	var seq_a: int = a.get("seq", 0)
+	var seq_b: int = b.get("seq", 0)
 	return seq_a < seq_b
 
 ## Determine if an entity should be stepped this tick.
@@ -490,30 +490,22 @@ func _phase2_mutate() -> Dictionary:
 		return {"processed": 0, "failed": 0}
 
 	for command in _state_command_buffer:
-		var cmd_type := command["type"]
-		var success := false
+		var cmd_type: String = command["type"]
+		var success: bool = false
 
 		match cmd_type:
 			"insert", "update":
-				var path := command["path"]
-				var entity_id := command["entity_id"]
-				var state_type := command["state_type"]
-				var payload := command["payload"]
-				try:
-					_state_tree.insert_state(path, entity_id, state_type, payload)
-					success = true
-				except:
-					push_error("TickService._phase2_mutate: insert/update failed for path %s" % path)
-					success = false
+				var path: String = command["path"]
+				var entity_id: String = command["entity_id"]
+				var state_type: String = command["state_type"]
+				var payload: Dictionary = command["payload"]
+				_state_tree.insert_state(path, entity_id, state_type, payload)
+				success = true
 
 			"delete":
-				var path := command["path"]
-				try:
-					_state_tree.delete_state(path)
-					success = true
-				except:
-					push_error("TickService._phase2_mutate: delete failed for path %s" % path)
-					success = false
+				var path: String = command["path"]
+				_state_tree.delete_state(path)
+				success = true
 
 			"re_root":
 				# Re-root is implicit after mutations; this is a no-op but kept for explicit signaling
@@ -810,7 +802,6 @@ func _phase6_predicted_prefetch() -> void:
 
 	# Fire and forget - async, does not block the tick
 	var task := _Task.new()
-	task.name = "TickPrefetch_%d" % _tick_number
 	add_child(task)
 
 	task._setup(func() -> void:
@@ -840,7 +831,7 @@ func _phase6_predicted_prefetch() -> void:
 	_prefetch_task = task
 
 ## Markov predictor for player position in 1 second.
-func _markov_predict(player) -> Vector3:
+func _markov_predict(player) -> Variant:
 	# TODO: Markov chain prediction based on player movement history
 	# Returns predicted position or null if not enough data
 	return null
@@ -936,7 +927,7 @@ func queue_state_command(command: Dictionary) -> void:
 	if command == null or not command.has("type"):
 		push_error("TickService.queue_state_command: invalid command (missing type)")
 		return
-	var cmd_type := command["type"]
+	var cmd_type: String = command["type"]
 	if cmd_type not in ["insert", "update", "delete", "re_root"]:
 		push_error("TickService.queue_state_command: unknown command type '%s'" % cmd_type)
 		return
@@ -970,8 +961,7 @@ func add_chaos(source: String, amount: float) -> void:
 ## ============================================================================
 
 ## Task helper class for async phase execution.
-class _Task:
-	var name: String = ""
+class _Task extends Node:
 	var _task_func: Callable = Callable()
 	var _is_running: bool = false
 
@@ -984,14 +974,14 @@ class _Task:
 		call_deferred("_execute")
 
 	func _execute() -> void:
-	if not _is_running or not _task_func.is_valid():
+		if not _is_running or not _task_func.is_valid():
+			if is_instance_valid(self):
+				queue_free()
+			return
+		_is_running = false
+		_task_func.call()
 		if is_instance_valid(self):
 			queue_free()
-		return
-	_is_running = false
-	_task_func.call()
-	if is_instance_valid(self):
-		queue_free()
 
 	func cancel() -> void:
 		_is_running = false

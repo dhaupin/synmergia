@@ -2,6 +2,8 @@
 ## All admin operations MUST go through this system
 extends Node
 
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+
 ## Permission levels (must match GameConfig.Security)
 enum Level {
 	PLAYER = 0,

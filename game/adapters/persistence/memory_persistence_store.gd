@@ -161,7 +161,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	select_start = sql.find("SELECT")
 	# Find first letter after SELECT
 	var pos: int = select_start + 6
-	while pos < sql.length() and not _is_alpha(sql[pos].ord()):
+	while pos < sql.length() and not _is_alpha(sql.unicode_at(pos)):
 		pos += 1
 	select_start = pos
 	
@@ -173,7 +173,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	var columns := _parse_column_list(select_part)
 	
 	var after_from_start := sql.find("FROM", from_upper + 4)
-	while after_from_start < sql.length() and not _is_alpha(sql[after_from_start].ord()):
+	while after_from_start < sql.length() and not _is_alpha(sql.unicode_at(after_from_start)):
 		after_from_start += 1
 	if after_from_start >= sql.length():
 		return []
@@ -266,7 +266,7 @@ func _query_select(sql: String, params: Array) -> Array:
 		var limit_part := rest.substr(where_idx + 7 + limit_idx + 7).strip_edges()
 		var num_str := ""
 		for c in limit_part:
-			var char_code := c.ord()
+			var char_code := c.unicode_at(0)
 			if char_code >= 48 and char_code <= 57:
 				num_str += c
 			else:
@@ -485,7 +485,7 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 	var op_str := ""
 	
 	for i in range(operators.size() - 1, -1, -1):
-		var op: String := operators[i]
+		var op: String = operators[i]
 		var idx := clause.to_upper().find(op)
 		if idx >= 0:
 			op_idx = idx

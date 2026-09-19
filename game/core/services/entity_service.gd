@@ -149,13 +149,13 @@ func _compute_nsc9_code(entity) -> int:
 	# Derive spatial axis from nearest icosahedral vertex
 	var lat: float = rad_to_deg(asin(clampf(pos.normalized().y, -1.0, 1.0)))
 	var lon: float = rad_to_deg(atan2(pos.normalized().z, pos.normalized().x))
-	var vertex: int = Nsc9.nearest_vertex(lat, lon)
-	var axis: int = Nsc9.spatial_axis(vertex)
+	var vertex: int = Nsc9Script.nearest_vertex(lat, lon)
+	var axis: int = Nsc9Script.spatial_axis(vertex)
 
 	# Derive sequence from entity_id hash (0-16M)
-	var sequence: int = Nsc9.deterministic_seq(entity_id, "nsc9")
+	var sequence: int = Nsc9Script.deterministic_seq(entity_id, "nsc9")
 
-	return Nsc9.encode_int(facility, axis, sequence)
+	return Nsc9Script.encode_int(facility, axis, sequence)
 
 ## Generate a deterministic T3 path for an entity's spatial fragment.
 func _spatial_path_for_entity(entity_id: String, address: int) -> String:
@@ -520,7 +520,7 @@ func _load_entity_metadata() -> void:
 
 func _persist_entity_metadata(entity_id: String) -> void:
 	var store := DictStore.new()
-	var key := _kv_prefix + entity_id
+	var key: String = _kv_prefix + entity_id
 	if not _entity_metadata.has(entity_id):
 		store.erase(key)
 		return
@@ -536,7 +536,7 @@ func persist_all_metadata() -> void:
 	var store := DictStore.new()
 	var entries: Dictionary = {}
 	for entity_id in _entity_metadata.keys():
-		var key := _kv_prefix + entity_id
+		var key: String = _kv_prefix + entity_id
 		var metadata: SpawnMetadata = _entity_metadata[entity_id]
 		var data := _metadata_to_dict(metadata)
 		if not data.is_empty():
@@ -592,7 +592,8 @@ func store_entity_state_in_t3(entity_id: String) -> PackedByteArray:
 
 	# Store each fragment as a separate T3 node under the entity path
 	var root_hash: PackedByteArray = PackedByteArray()
-	for i, frag in enumerate(fragments):
+	for i in range(fragments.size()):
+		var frag: Dictionary = fragments[i]
 		var frag_path: String = "%s/frag_%d" % [path, i]
 		var metadata: Dictionary = {
 			"fragment_index": i,
@@ -718,13 +719,13 @@ func _clean_up_entity_t3_state(entity_id: String) -> void:
 
 	GameLog.debug("EntityService: Cleaned up T3 state for entity %s at %s" % [entity_id, path])
 
-/// Public API: Restores entity state from T3 and emits signal.
+## Public API: Restores entity state from T3 and emits signal.
 func restore_entity_state(entity_id: String) -> Dictionary:
 	var parsed: Dictionary = restore_entity_state_from_t3(entity_id)
 	entity_spatial_state_restored.emit(entity_id, parsed)
 	return parsed
 
-/// Public API: Gets the NSC-9 spatial code for an entity from the cache.
+## Public API: Gets the NSC-9 spatial code for an entity from the cache.
 func get_entity_nsc9_code(entity_id: String) -> int:
 	if _nsc9_bridge == null:
 		return -1

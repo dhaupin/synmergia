@@ -41,7 +41,7 @@ func fragment(data: Variant, num_fragments: int = 5) -> Array[Dictionary]:
 	else:
 		json = JSON.stringify(data)
 
-	var bytes: PackedByteArray = json.to_utf8()
+	var bytes: PackedByteArray = json.to_utf8_buffer()
 	var total_bytes: int = bytes.size()
 	var fragment_size: int = maxi(1, ceil(float(total_bytes) / float(num_fragments)))
 	var fragments: Array[Dictionary] = []
@@ -67,7 +67,7 @@ func fragment(data: Variant, num_fragments: int = 5) -> Array[Dictionary]:
 
 		fragments.append({
 			shard = i,
-			data = encoded.to_base64(),
+			data = encoded,
 			size = chunk_size,
 			checksum = checksum
 		})
@@ -90,10 +90,15 @@ func weld(fragments: Array) -> String:
 		if not f.has("data"):
 			push_error("Fragmenter: fragment missing 'data' key, skipping")
 			continue
-		if not f.data.is_valid_base64():
-			push_error("Fragmenter: invalid base64 data for shard, skipping")
+		# data is PackedByteArray (stored directly in fragment) or String (legacy)
+		var decoded: Variant = f.data
+		if decoded is PackedByteArray:
+			pass  # Already correct type
+		elif decoded is String:
+			decoded = decoded.to_utf8_buffer()
+		else:
+			push_error("Fragmenter: invalid data type for shard, skipping")
 			continue
-		var decoded: PackedByteArray = f.data.base64_decode()
 		var restored: PackedByteArray = PackedByteArray()
 		restored.resize(decoded.size())
 		var shard: int = int(f.shard) if f.has("shard") else 0
