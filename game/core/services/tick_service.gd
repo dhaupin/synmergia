@@ -69,6 +69,23 @@ const CHAOS_GENERATION: int = 100
 ## Flywheel high-entropy threshold (for adaptive tick rate)
 const FLYWHEEL_HIGH_THRESHOLD: float = 800.0  # 80% of max
 
+## Helper functions to safely resolve autoloads (avoids parse-time "Identifier not declared")
+func _cooldown_service():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("CooldownService")
+
+func _adapter_registry():
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("AdapterRegistry")
+
 ## Tick state
 var _tick_number: int = 0
 var _is_running: bool = false
@@ -250,13 +267,11 @@ func _on_tick() -> void:
 		var phase2_ms := phase_timings.get("phase2_world", 0.0)
 		var phase3_ms := phase_timings.get("phase3_reroot", 0.0)
 		var phase4_ms := phase_timings.get("phase4_emit", 0.0)
-		GameLog.warn(
-			"TickService: TICK BUDGET BREACH tick=%d total_sync=%.1fms (threshold=%dms) "
-			"phase1_input=%.1fms phase2_world=%.1fms phase3_reroot=%.1fms phase4_emit=%.1fms" % [
-				_tick_number, total_sync_ms, BUDGET_WARNING_THRESHOLD_MS,
-				phase1_ms, phase2_ms, phase3_ms, phase4_ms
-			]
-		)
+		var msg := "TickService: TICK BUDGET BREACH tick=%d total_sync=%.1fms (threshold=%dms) phase1_input=%.1fms phase2_world=%.1fms phase3_reroot=%.1fms phase4_emit=%.1fms" % [
+			_tick_number, total_sync_ms, BUDGET_WARNING_THRESHOLD_MS,
+			phase1_ms, phase2_ms, phase3_ms, phase4_ms
+		]
+		GameLog.warn(msg)
 
 	tick_completed.emit(_tick_number, phase_timings)
 	GameLog.debug("TickService: Tick %d complete. Sync=%.1fms PhaseTimings=%s" % [_tick_number, total_sync_ms, phase_timings])
@@ -347,10 +362,11 @@ func _auth_input(player_id: String, input_data: Dictionary) -> bool:
 
 ## Rate-limit an input for a player.
 func _rate_limit_input(player_id: String, input_data: Dictionary) -> bool:
-	if CooldownService == null:
+	var cs = _cooldown_service()
+	if cs == null:
 		return true
 	var action: String = input_data.get("action", "")
-	return CooldownService.try_consume(player_id, action)
+	return cs.try_consume(player_id, action)
 
 ## Determine if an input is a combat-skill message.
 func _is_combat_input(input_data: Dictionary) -> bool:
@@ -731,13 +747,14 @@ func _phase5_persistence() -> void:
 
 	# Fire and forget - async, does not block the tick
 	var task := _Task.new()
-	task.name = "TickPersistence_%d" % _tick_number
+	task.task_name = "TickPersistence_%d" % _tick_number
 	add_child(task)
 
 	task._setup(func() -> void:
 		# Snapshot root hash to Postgres (N017)
-		if AdapterRegistry and _current_root_hash.size() > 0:
-			var store = AdapterRegistry.get_persistence("world_state")
+		var ar = _adapter_registry()
+		if ar and _current_root_hash.size() > 0:
+			var store = ar.get_persistence("world_state")
 			if store:
 				var root_key := "tick:%d:root" % _tick_number
 				# Batch the root snapshot with other world state
@@ -753,23 +770,27 @@ func _phase5_persistence() -> void:
 						store.set_kv(key, entries[key])
 
 		# Update Redis tick cache (N013)
-		var cache = AdapterRegistry.get_cache("tick_cache")
-		if cache:
-			var cache_entries: Dictionary = {
-				"current_tick": str(_tick_number),
-				"current_root": _current_root_hash.hex_encode(),
-				"intersections:last_tick": str(_tick_number),
-			}
-			if cache.has_method("set_many"):
-				cache.set_many(cache_entries, 300)  # 5min TTL for tick/root, 10min for intersections
-			else:
-				cache.set("current_tick", str(_tick_number), 300)
-				cache.set("current_root", _current_root_hash.hex_encode(), 300)
-				cache.set("intersections:last_tick", str(_tick_number), 600)
+		ar = _adapter_registry()
+		if ar:
+			var cache = ar.get_cache("tick_cache")
+			if cache:
+				var cache_entries: Dictionary = {
+					"current_tick": str(_tick_number),
+					"current_root": _current_root_hash.hex_encode(),
+					"intersections:last_tick": str(_tick_number),
+				}
+				if cache.has_method("set_many"):
+					cache.set_many(cache_entries)
+				else:
+					for key in cache_entries.keys():
+						cache.set(key, cache_entries[key])
 
 		# Update Redis LRU (N013)
-		if cache:
-			cache.touch("world_state")
+		ar = _adapter_registry()
+		if ar:
+			var cache = ar.get_cache("tick_cache")
+			if cache:
+				cache.touch("world_state")
 
 		GameLog.debug("TickService: Phase 5 persistence complete for tick %d" % _tick_number)
 	)
