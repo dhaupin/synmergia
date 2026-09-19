@@ -3,10 +3,9 @@
 extends Node
 
 ## Singleton
-static var instance: VaultService
+static var instance: Node
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
-const AccountRollup = preload("res://core/services/account_rollup.gd")
 
 const _kv_personal := "vault:personal:"
 const _kv_guild := "vault:guild:"

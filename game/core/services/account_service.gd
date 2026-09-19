@@ -2,11 +2,11 @@
 ## Manages accounts, character linking, and account-wide features
 extends Node
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const DictStore = preload("res://adapters/persistence/dict_store.gd")
-const AccountRollup = preload("res://core/services/account_rollup.gd")
+const AdapterRegistry = preload("res://adapters/registry.gd")
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 
 # Singleton instance
-static var instance: AccountService
+static var instance: Node
 
 # Accounts (account_id -> account_data)
 var _accounts: Dictionary = {}
@@ -26,6 +26,13 @@ const _kv_prefix := "account_service:"
 # Settings
 var _allow_same_account_trade: bool = false	 # Can trade between own characters
 var _max_characters_per_account: int = 5
+
+## Resolve AdapterRegistry autoload safely.
+func _adapter_registry() -> AdapterRegistry:
+	var root = get_tree().root if has_node("/root") else null
+	if root:
+		return root.get_node_or_null("AdapterRegistry")
+	return null
 
 signal account_created(account_id: String)
 signal character_linked(character_id: String, account_id: String)
@@ -141,7 +148,7 @@ func unlink_character(character_id: String) -> bool:
 		var chars: Array = _account_characters[account_id]
 		chars.erase(character_id)
 
-_characters.erase(character_id)
+	_characters.erase(character_id)
 
 	character_unlinked.emit(character_id)
 	if AccountRollup:
@@ -275,7 +282,10 @@ func delete_account(account_id: String) -> bool:
 ## == Persistence ============================================================
 
 func _load_state() -> void:
-	var store := DictStore.new()
+	var registry = _adapter_registry()
+	if not registry:
+		return
+	var store: PersistenceStore = registry.get_persistence("accounts")
 	_accounts = {}
 	_characters = {}
 	_character_to_account = {}
@@ -314,14 +324,20 @@ func _load_state() -> void:
 				_accounts[account_id]["characters"] = _account_characters[account_id]
 
 func _persist_account(account_id: String) -> void:
-	var store := DictStore.new()
+	var registry = _adapter_registry()
+	if not registry:
+		return
+	var store: PersistenceStore = registry.get_persistence("accounts")
 	if _accounts.has(account_id):
 		store.set_kv(_kv_prefix + "account:" + account_id, _accounts[account_id])
 	else:
 		store.erase(_kv_prefix + "account:" + account_id)
 
 func _persist_character(character_id: String) -> void:
-	var store := DictStore.new()
+	var registry = _adapter_registry()
+	if not registry:
+		return
+	var store: PersistenceStore = registry.get_persistence("accounts")
 	if _characters.has(character_id):
 		store.set_kv(_kv_prefix + "char:" + character_id, _characters[character_id])
 	else:
@@ -329,7 +345,10 @@ func _persist_character(character_id: String) -> void:
 
 
 func persist_all() -> void:
-	var store := DictStore.new()
+	var registry = _adapter_registry()
+	if not registry:
+		return
+	var store: PersistenceStore = registry.get_persistence("accounts")
 	var entries: Dictionary = {}
 	for account_id in _accounts.keys():
 		entries[_kv_prefix + "account:" + account_id] = _accounts[account_id]

@@ -154,7 +154,7 @@ func _check_shard_snapshot_triggers(shard_id: String) -> void:
 	var momentum_ratio: float = momentum / max_momentum
 
 	# Check triggers (OR logic - any true fires snapshot)
-	var trigger: String = null
+	var trigger: String = ""
 
 	# 1. High-entropy threshold crossed
 	if momentum_ratio > 0.8:
@@ -168,10 +168,10 @@ func _check_shard_snapshot_triggers(shard_id: String) -> void:
 	if _shutdown_requested:
 		trigger = "sigterm"
 
-	if trigger != null:
-		_take_shard_snapshot(shard_id, trigger)
+	if trigger != "":
+		_take_shard_snapshot(shard_id, trigger, momentum_ratio)
 
-func _take_shard_snapshot(shard_id: String, trigger: String) -> void:
+func _take_shard_snapshot(shard_id: String, trigger: String, momentum_ratio: float) -> void:
 	var momentum: float = _shard_momenta[shard_id]
 	var max_momentum: float = MAX_MOMENTUM
 	var now: int = Time.get_unix_time_from_system() * 1000

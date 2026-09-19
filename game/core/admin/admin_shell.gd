@@ -2,7 +2,14 @@
 ## Provides a sandboxed command interface for game administration
 ## Not connected to OS shell - game-internal commands only
 extends Node
-class_name AdminShell
+
+const EntityScript = preload("res://core/entities/entity.gd")
+
+func _get_gamelog() -> Object:
+	var root = get_tree().root if has_node("/root") else null
+	if root:
+		return root.get_node_or_null("GameLog")
+	return null
 
 func _get_qos_service() -> Object:
 	var root = get_tree().root if has_node("/root") else null
@@ -11,7 +18,7 @@ func _get_qos_service() -> Object:
 	return null
 
 static func _esc(text: String) -> String:
-	return text.replace('[', '[lb]').replace(']', '[rb]')
+	return text.replace("[", "［").replace("]", "］")
 
 ## Command result structure
 class CommandResult:
@@ -59,7 +66,9 @@ var _current_executor_id: String = ""
 
 func _ready() -> void:
 	_register_default_commands()
-	GameLog.info("AdminShell: Initialized with %d commands" % _commands.size())
+	var gl := _get_gamelog()
+	if gl:
+		gl.info("AdminShell: Initialized with %d commands" % _commands.size())
 
 ## Register a command
 func register_command(cmd: Command) -> void:
@@ -79,15 +88,15 @@ func execute(command_line: String, executor_id: String = "") -> CommandResult:
 		history_index = -1
 
 	# Parse command
-	var parts := command_line.strip_edges().split(" ", false, 2)
+	var parts: Array = command_line.strip_edges().split(" ", false, 2)
 	if parts.is_empty() or parts[0] == "":
 		return CommandResult.new(false, "", "No command entered. Type 'help' for commands.")
 
-	var cmd_name := parts[0].to_lower()
-	var args := parts[1] if parts.size() > 1 else ""
+	var cmd_name: String = parts[0].to_lower()
+	var args: String = parts[1] if parts.size() > 1 else ""
 
 	# Check if command exists (check aliases first)
-	var actual_name := _aliases.get(cmd_name, cmd_name)
+	var actual_name: String = _aliases.get(cmd_name, cmd_name)
 	if not _commands.has(actual_name):
 		return CommandResult.new(false, "", "Unknown command: %s. Type 'help' for commands." % cmd_name)
 
@@ -112,7 +121,7 @@ func execute(command_line: String, executor_id: String = "") -> CommandResult:
 ## Get tab completion suggestions
 func get_suggestions(partial: String, executor_id: String = "") -> Array:
 	var suggestions: Array = []
-	var search := partial.to_lower()
+	var search: String = partial.to_lower()
 
 	for cmd_name in _commands.keys():
 		if cmd_name.begins_with(search):
@@ -123,7 +132,7 @@ func get_suggestions(partial: String, executor_id: String = "") -> Array:
 	# Also check aliases
 	for alias in _aliases.keys():
 		if alias.begins_with(search):
-			var actual := _aliases[alias]
+			var actual: String = _aliases[alias]
 			if actual in suggestions:
 				continue
 			var cmd: Command = _commands[actual]
@@ -137,12 +146,12 @@ func get_help(cmd_name: String = "") -> String:
 	if cmd_name == "":
 		return _get_general_help()
 
-	var actual := _aliases.get(cmd_name.to_lower(), cmd_name.to_lower())
-	if not _commands.has(actual):
+	var actual_name: String = _aliases.get(cmd_name.to_lower(), cmd_name.to_lower())
+	if not _commands.has(actual_name):
 		return "Unknown command: %s" % cmd_name
 
-	var cmd: Command = _commands[actual]
-	var help_text := "[color=yellow]%s[/color]" % cmd.name
+	var cmd: Command = _commands[actual_name]
+	var help_text: String = "[color=yellow]%s[/color]" % cmd.name
 
 	if not cmd.aliases.is_empty():
 		help_text += " (aliases: %s)" % ", ".join(cmd.aliases)
@@ -157,7 +166,7 @@ func get_help(cmd_name: String = "") -> String:
 	return help_text
 
 func _get_general_help() -> String:
-	var help_text := "[color=yellow]=== Admin Shell Commands ===[/color]\n"
+	var help_text: String = "[color=yellow]=== Admin Shell Commands ===[/color]\n"
 	help_text += "Type 'help <command>' for detailed info.\n\n"
 
 	for cmd_name in _commands.keys():
@@ -241,7 +250,7 @@ func _cmd_lookup(args: String, executor_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: lookup <player_id>")
 
-	var player_id := args.strip_edges()
+	var player_id: String = args.strip_edges()
 
 	# Use PermissionManager for secured lookup
 	if PermissionManager:
@@ -252,22 +261,22 @@ func _cmd_lookup(args: String, executor_id: String) -> CommandResult:
 			return CommandResult.new(false, "", "Failed: %s" % result.message)
 
 	# Fallback
-	var info := _get_player_info(player_id)
+	var info: String = _get_player_info(player_id)
 	if info == "":
 		return CommandResult.new(false, "", "Player not found: %s" % player_id)
 	return CommandResult.new(true, info, "")
 
 func _cmd_players(args: String, executor_id: String) -> CommandResult:
-	var filter := args.strip_edges().to_lower()
-	var output := "[color=yellow]=== Online Players ===[/color]\n"
+	var filter: String = args.strip_edges().to_lower()
+	var output: String = "[color=yellow]=== Online Players ===[/color]\n"
 
 	var count: int = 0
-	var players := _get_online_players()
+	var players: Array = _get_online_players()
 
 	for player in players:
 		var id: String = player if player is String else str(player)
 		if filter == "" or id.to_lower().contains(filter):
-			var restricted := ""
+			var restricted: String = ""
 			if SecurityService and SecurityService.is_restricted(id, "chat"):
 				restricted = " [color=red](MUTED)[/color]"
 			output += "  %s%s\n" % [_esc(id), restricted]
@@ -277,17 +286,17 @@ func _cmd_players(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, output, "")
 
 func _cmd_count(args: String, executor_id: String) -> CommandResult:
-	var players := _get_online_players()
+	var players: Array = _get_online_players()
 	return CommandResult.new(true, "Online players: %d" % players.size(), "")
 
 func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
-	var parts := args.split(" ", false, 2)
+	var parts: Array = args.split(" ", false, 2)
 	if parts.size() < 2:
 		return CommandResult.new(false, "", "Usage: restrict <player> <type> [duration_sec]")
 
-	var player_id := parts[0].strip_edges()
-	var restriction_type := parts[1].strip_edges()
-	var duration := 300  # 5 minutes default
+	var player_id: String = parts[0].strip_edges()
+	var restriction_type: String = parts[1].strip_edges()
+	var duration: int = 300  # 5 minutes default
 
 	if parts.size() > 2:
 		duration = int(parts[2])
@@ -310,12 +319,12 @@ func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
 
 func _cmd_unrestrict(args: String, executor_id: String) -> CommandResult:
-	var parts := args.split(" ", false, 1)
+	var parts: Array = args.split(" ", false, 1)
 	if parts.is_empty():
 		return CommandResult.new(false, "", "Usage: unrestrict <player> [type]")
 
-	var player_id := parts[0].strip_edges()
-	var restriction_type := "" if parts.size() < 2 else parts[1].strip_edges()
+	var player_id: String = parts[0].strip_edges()
+	var restriction_type: String = "" if parts.size() < 2 else parts[1].strip_edges()
 
 	# Use PermissionManager for secured operation
 	if PermissionManager:
@@ -333,24 +342,24 @@ func _cmd_unrestrict(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Unrestricted %s" % player_id, "")
 
 func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
-	var player_id := args.strip_edges()
-	var output := "[color=yellow]=== Active Restrictions ===[/color]\n"
+	var player_id: String = args.strip_edges()
+	var output: String = "[color=yellow]=== Active Restrictions ===[/color]\n"
 
 	if player_id != "":
 		output += "[color=cyan]Player:[/color] %s\n\n" % _esc(player_id)
 		if SecurityService:
-			var restrictions := SecurityService.get_active_restrictions(player_id)
+			var restrictions: Array = SecurityService.get_active_restrictions(player_id)
 			if restrictions.is_empty():
 				output += "  No active restrictions"
 			else:
 				for r in restrictions:
-					var expires := int(r.get("expires_at", 0)) - int(Time.get_unix_time_from_system())
-					var time_str := "%d seconds" % expires if expires > 0 else "expired"
+					var expires: int = int(r.get("expires_at", 0)) - int(Time.get_unix_time_from_system())
+					var time_str: String = "%d seconds" % expires if expires > 0 else "expired"
 					output += "  [color=red]%s[/color] - expires in %s\n" % [r.get("type", "?"), time_str]
 	else:
 		# List all restrictions
 		if SecurityService:
-			var all := SecurityService.get_all_restrictions()
+			var all: Dictionary = SecurityService.get_all_restrictions()
 			if all.is_empty():
 				output += "  No active restrictions"
 			else:
@@ -360,12 +369,12 @@ func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, output, "")
 
 func _cmd_mute(args: String, executor_id: String) -> CommandResult:
-	var parts := args.split(" ", false, 1)
+	var parts: Array = args.split(" ", false, 1)
 	if parts.is_empty():
 		return CommandResult.new(false, "", "Usage: mute <player> [duration_sec]")
 
-	var player_id := parts[0].strip_edges()
-	var duration := 300
+	var player_id: String = parts[0].strip_edges()
+	var duration: int = 300
 
 	if parts.size() > 1:
 		duration = int(parts[1])
@@ -385,7 +394,7 @@ func _cmd_unmute(args: String, executor_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: unmute <player>")
 
-	var player_id := args.strip_edges()
+	var player_id: String = args.strip_edges()
 
 	# Use PermissionManager for secured operation
 	if PermissionManager:
@@ -399,12 +408,12 @@ func _cmd_unmute(args: String, executor_id: String) -> CommandResult:
 	return _cmd_unrestrict("%s chat" % player_id, executor_id)
 
 func _cmd_kick(args: String, executor_id: String) -> CommandResult:
-	var parts := args.split(" ", false, 1)
+	var parts: Array = args.split(" ", false, 1)
 	if parts.is_empty():
 		return CommandResult.new(false, "", "Usage: kick <player> [reason]")
 
-	var player_id := parts[0].strip_edges()
-	var reason := "" if parts.size() < 2 else parts[1]
+	var player_id: String = parts[0].strip_edges()
+	var reason: String = "" if parts.size() < 2 else parts[1]
 
 	# Use PermissionManager for secured operation (includes hierarchy check)
 	if PermissionManager:
@@ -419,17 +428,17 @@ func _cmd_kick(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Kicked %s: %s" % [player_id, reason], "")
 
 func _cmd_ban(args: String, executor_id: String) -> CommandResult:
-	var parts := args.split(" ", false, 2)
+	var parts: Array = args.split(" ", false, 2)
 	if parts.is_empty():
 		return CommandResult.new(false, "", "Usage: ban <player> [duration_sec] [reason]")
 
-	var player_id := parts[0].strip_edges()
-	var duration := -1  # Permanent
+	var player_id: String = parts[0].strip_edges()
+	var duration: int = -1  # Permanent
 
 	if parts.size() > 1:
 		duration = int(parts[1])
 
-	var reason := "" if parts.size() < 3 else parts[2]
+	var reason: String = "" if parts.size() < 3 else parts[2]
 
 	# Use PermissionManager for secured operation (includes hierarchy check)
 	if PermissionManager:
@@ -442,7 +451,7 @@ func _cmd_ban(args: String, executor_id: String) -> CommandResult:
 
 	# Fallback
 	if SecurityService:
-		var actual_duration := 31536000 if duration == -1 else duration
+		var actual_duration: int = 31536000 if duration == -1 else duration
 		SecurityService.restrict_player(player_id, "all", actual_duration)
 
 	player_banned.emit(player_id, duration, reason, executor_id)
@@ -453,12 +462,12 @@ func _cmd_qos(args: String, executor_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: qos <player>")
 
-	var player_id := args.strip_edges()
-	var output := "[color=yellow]=== QoS Status for %s ===[/color]\n" % _esc(player_id)
+	var player_id: String = args.strip_edges()
+	var output: String = "[color=yellow]=== QoS Status for %s ===[/color]\n" % _esc(player_id)
 
 	var qos := _get_qos_service()
 	if qos:
-		var rates := qos.get_player_rates(player_id)
+		var rates: Dictionary = qos.get_player_rates(player_id)
 		if rates.is_empty():
 			output += "  No recent activity"
 		else:
@@ -471,11 +480,11 @@ func _cmd_qos(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, output, "")
 
 func _cmd_rateinfo(args: String, executor_id: String) -> CommandResult:
-	var output := "[color=yellow]=== Rate Limit Configuration ===[/color]\n"
+	var output: String = "[color=yellow]=== Rate Limit Configuration ===[/color]\n"
 
 	var qos := _get_qos_service()
 	if qos:
-		var info := qos.get_rate_limit_info()
+		var info: Dictionary = qos.get_rate_limit_info()
 		for action in info.keys():
 			var limit: Dictionary = info[action]
 			output += "  [color=cyan]%s:[/color] max %.2f/sec\n" % [action, limit.get("max_rate", 0)]
@@ -486,13 +495,13 @@ func _cmd_clear(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "", "")  # UI handles clearing
 
 func _cmd_history(args: String, executor_id: String) -> CommandResult:
-	var output := "[color=yellow]=== Command History ===[/color]\n"
+	var output: String = "[color=yellow]=== Command History ===[/color]\n"
 
-	var limit := 20
+	var limit: int = 20
 	if args != "":
 		limit = int(args)
 
-	var shown := 0
+	var shown: int = 0
 	for cmd in history:
 		if shown >= limit:
 			break
@@ -502,7 +511,7 @@ func _cmd_history(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, output, "")
 
 func _cmd_whoami(args: String, executor_id: String) -> CommandResult:
-	var output := "[color=yellow]=== Current Admin ===[/color]\n"
+	var output: String = "[color=yellow]=== Current Admin ===[/color]\n"
 	output += "  ID: %s\n" % (_current_executor_id if _current_executor_id != "" else "(none)")
 
 	if SecurityService and _current_executor_id != "":
@@ -512,45 +521,45 @@ func _cmd_whoami(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, output, "")
 
 func _cmd_status(args: String, executor_id: String) -> CommandResult:
-	var output := "[color=yellow]=== System Status ===[/color]\n"
+	var output: String = "[color=yellow]=== System Status ===[/color]\n"
 
 	# Player count
-	var players := _get_online_players()
+	var players: Array = _get_online_players()
 	output += "[color=green]Players online:[/color] %d\n" % players.size()
 
 	# Restrictions
 	if SecurityService:
-		var restrictions := SecurityService.get_all_restrictions()
+		var restrictions: Dictionary = SecurityService.get_all_restrictions()
 		output += "[color=red]Active restrictions:[/color] %d\n" % restrictions.size()
 
 	# Services
 	output += "\n[color=cyan]Services:[/color]\n"
 	output += "  SecurityService: %s\n" % ("[color=green]OK[/color]" if SecurityService else "[color=red]OFFLINE[/color]")
-	var qos := _get_qos_service()
+	var qos: Object = _get_qos_service()
 	output += "  QoSService: %s\n" % ("[color=green]OK[/color]" if qos else "[color=red]OFFLINE[/color]")
 	output += "  NotificationService: %s\n" % ("[color=green]OK[/color]" if NotificationService else "[color=red]OFFLINE[/color]")
 
 	return CommandResult.new(true, output, "")
 
 func _cmd_uptime(args: String, executor_id: String) -> CommandResult:
-	var elapsed := Time.get_ticks_msec() / 1000.0
-	var hours := int(elapsed / 3600)
-	var minutes := int(fmod(elapsed, 3600) / 60)
-	var seconds := int(fmod(elapsed, 60))
+	var elapsed: float = Time.get_ticks_msec() / 1000.0
+	var hours: int = int(elapsed / 3600)
+	var minutes: int = int(fmod(elapsed, 3600) / 60)
+	var seconds: int = int(fmod(elapsed, 60))
 	return CommandResult.new(true, "Uptime: %02d:%02d:%02d" % [hours, minutes, seconds], "")
 
 func _cmd_stats(args: String, executor_id: String) -> CommandResult:
-	var output := "[color=yellow]=== Service Statistics ===[/color]\n"
+	var output: String = "[color=yellow]=== Service Statistics ===[/color]\n"
 
-	var qos := _get_qos_service()
+	var qos: Object = _get_qos_service()
 	if qos:
-		var stats := qos.get_statistics()
+		var stats: Dictionary = qos.get_statistics()
 		output += "[color=cyan]QoS:[/color]\n"
 		output += "  Total checks: %d\n" % stats.get("total_checks", 0)
 		output += "  Rate limited: %d\n" % stats.get("rate_limited_count", 0)
 
 	if SecurityService:
-		var stats := SecurityService.get_statistics()
+		var stats: Dictionary = SecurityService.get_statistics()
 		output += "[color=cyan]Security:[/color]\n"
 		output += "  Blocks: %d\n" % stats.get("blocks", 0)
 		output += "  Restrictions: %d\n" % stats.get("restrictions", 0)
@@ -558,9 +567,9 @@ func _cmd_stats(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, output, "")
 
 func _cmd_config(args: String, executor_id: String) -> CommandResult:
-	var parts := args.split(" ", false, 1)
-	var key := parts[0] if not parts.is_empty() else ""
-	var value := parts[1] if parts.size() > 1 else ""
+	var parts: Array = args.split(" ", false, 1)
+	var key: String = parts[0] if not parts.is_empty() else ""
+	var value: String = parts[1] if parts.size() > 1 else ""
 
 	if key == "":
 		return _cmd_toggles("", executor_id)
@@ -569,11 +578,11 @@ func _cmd_config(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(false, "", "Runtime config modification not implemented. Use toggles command.")
 
 func _cmd_toggles(args: String, executor_id: String) -> CommandResult:
-	var output := "[color=yellow]=== Security/QoS Toggles ===[/color]\n"
+	var output: String = "[color=yellow]=== Security/QoS Toggles ===[/color]\n"
 	output += "[color=cyan]GameConfig.Security:[/color]\n"
 	output += "  ENABLE_SECURITY_ALERTS: %s\n" % GameConfig.Security.ENABLE_SECURITY_ALERTS
 	output += "  ALERT_ON_RATE_LIMIT: %s\n" % GameConfig.Security.ALERT_ON_RATE_LIMIT
-	output += "  ALERT_ON_RESTRICTION: %s\n" % GameConfig.Security.ALERT_ON_RESTRICTION
+	output += "  ALERT_ON_RESTRICTION: %s\n" % GameConfig.Security.ALERT_ON_UNRESTRICTION
 	output += "  ALERT_ON_UNRESTRICTION: %s\n" % GameConfig.Security.ALERT_ON_UNRESTRICTION
 	output += "  ALERT_ON_EXPLOIT_DETECTED: %s\n" % GameConfig.Security.ALERT_ON_EXPLOIT_DETECTED
 
@@ -584,16 +593,16 @@ func _cmd_toggles(args: String, executor_id: String) -> CommandResult:
 ## ============================================================================
 
 func _get_player_info(player_id: String) -> String:
-	var info := "[color=yellow]=== Player Info: %s ===[/color]\n" % _esc(player_id)
+	var info: String = "[color=yellow]=== Player Info: %s ===[/color]\n" % _esc(player_id)
 
 	# Online status
-	var online := _is_player_online(player_id)
+	var online: bool = _is_player_online(player_id)
 	info += "[color=cyan]Status:[/color] %s\n" % ("[color=green]Online[/color]" if online else "[color=gray]Offline[/color]")
 
 	# Permissions
 	if SecurityService:
 		var level: int = SecurityService.get_player_permission_level(player_id)
-		var perm_name := "Player"
+		var perm_name: String = "Player"
 		if level >= GameConfig.Security.ADMIN_LEVEL:
 			perm_name = "Admin"
 		elif level >= GameConfig.Security.MOD_LEVEL:
@@ -604,7 +613,7 @@ func _get_player_info(player_id: String) -> String:
 
 	# Restrictions
 	if SecurityService:
-		var restricted := SecurityService.is_restricted(player_id, "chat")
+		var restricted: bool = SecurityService.is_restricted(player_id, "chat")
 		if restricted:
 			info += "[color=red]MUTED[/color]\n"
 		restricted = SecurityService.is_restricted(player_id, "trade")
@@ -612,8 +621,9 @@ func _get_player_info(player_id: String) -> String:
 			info += "[color=red]TRADE RESTRICTED[/color]\n"
 
 	# QoS rates
-	if QoSService:
-		var rates := QoSService.get_player_rates(player_id)
+	var qos: Object = _get_qos_service()
+	if qos:
+		var rates: Dictionary = qos.get_player_rates(player_id)
 		if not rates.is_empty():
 			info += "\n[color=cyan]Recent activity:[/color]\n"
 			for action in rates.keys():
@@ -633,10 +643,10 @@ func _get_online_players() -> Array:
 
 func _cmd_audit(args: String, executor_id: String) -> CommandResult:
 	# Parse arguments
-	var parts := args.split(" ", false, 3)
-	var limit := 50
-	var admin_filter := ""
-	var action_filter := ""
+	var parts: Array = args.split(" ", false, 3)
+	var limit: int = 50
+	var admin_filter: String = ""
+	var action_filter: String = ""
 
 	if parts.size() >= 1 and parts[0].is_valid_int():
 		limit = int(parts[0])
@@ -647,15 +657,15 @@ func _cmd_audit(args: String, executor_id: String) -> CommandResult:
 
 	# Use PermissionManager to get audit log
 	if PermissionManager:
-		var log := PermissionManager.get_audit_log(limit, admin_filter, action_filter)
-		var output := "[color=yellow]=== Admin Audit Log ===[/color]\n\n"
+		var log: Array = PermissionManager.get_audit_log(limit, admin_filter, action_filter)
+		var output: String = "[color=yellow]=== Admin Audit Log ===[/color]\n\n"
 
 		if log.is_empty():
 			output += "[color=gray]No audit entries found[/color]"
 		else:
 			for entry in log:
-				var time_str := Time.get_datetime_string_from_unix_time(entry.timestamp)
-				var status := "[color=green][/color]" if entry.success else "[color=red][/color]"
+				var time_str: String = Time.get_datetime_string_from_unix_time(entry.timestamp)
+				var status: String = "[color=green][/color]" if entry.success else "[color=red][/color]"
 				output += "[%s] %s %s: %s -> %s\n" % [
 					time_str,
 					status,
@@ -669,7 +679,7 @@ func _cmd_audit(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(false, "", "PermissionManager not available")
 
 func _format_player_info(info: Dictionary) -> String:
-	var output := "[color=yellow]=== Player: %s ===[/color]\n" % _esc(info.get("id", "?"))
+	var output: String = "[color=yellow]=== Player: %s ===[/color]\n" % _esc(info.get("id", "?"))
 	output += "[color=cyan]Level:[/color] %s (Lvl %d)\n" % [_esc(str(info.get("level_name", "?"))), info.get("level", 0)]
 	output += "[color=cyan]Online:[/color] %s\n" % ("Yes" if info.get("online", false) else "No")
 
@@ -682,7 +692,7 @@ func _format_player_info(info: Dictionary) -> String:
 	if not restrictions.is_empty():
 		output += "\n[color=yellow]Active Restrictions:[/color]\n"
 		for r in restrictions:
-			var expires_in := int(r.get("expires_at", 0)) - int(Time.get_unix_time_from_system())
+			var expires_in: int = int(r.get("expires_at", 0)) - int(Time.get_unix_time_from_system())
 			output += "  - %s (expires in %ds)\n" % [r.get("type", "?"), expires_in]
 
 	return output
@@ -692,11 +702,11 @@ func _format_player_info(info: Dictionary) -> String:
 ## ============================================================================
 
 func _cmd_invisible(args: String, executor_id: String) -> CommandResult:
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
-	var enable := true
+	var enable: bool = true
 	if args == "0":
 		enable = false
 
@@ -714,11 +724,11 @@ func _cmd_invisible(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "You are now %s" % ("invisible" if enable else "visible"), "")
 
 func _cmd_fly(args: String, executor_id: String) -> CommandResult:
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
-	var enable := true
+	var enable: bool = true
 	if args == "0":
 		enable = false
 
@@ -728,11 +738,11 @@ func _cmd_fly(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Fly mode %s" % ("enabled" if enable else "disabled"), "")
 
 func _cmd_noclip(args: String, executor_id: String) -> CommandResult:
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
-	var enable := true
+	var enable: bool = true
 	if args == "0":
 		enable = false
 
@@ -748,32 +758,32 @@ func _cmd_noclip(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Noclip %s" % ("enabled" if enable else "disabled"), "")
 
 func _cmd_speed(args: String, executor_id: String) -> CommandResult:
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
 	if args == "":
-		var current := admin.get("move_speed") if admin.has("move_speed") else "unknown"
+		var current: Variant = admin.get("move_speed") if admin.has("move_speed") else "unknown"
 		return CommandResult.new(true, "Current speed: %s" % str(current), "")
 
-	var multiplier := float(args)
+	var multiplier: float = float(args)
 	if multiplier <= 0:
 		return CommandResult.new(false, "", "Speed must be > 0")
 
 	if not admin.has("_original_move_speed"):
 		admin.set("_original_move_speed", admin.get("move_speed") if admin.has("move_speed") else 5.0)
 
-	var original := admin.get("_original_move_speed")
+	var original: float = admin.get("_original_move_speed")
 	admin.set("move_speed", original * multiplier)
 
 	return CommandResult.new(true, "Speed set to %.1fx (%.1f)" % [multiplier, original * multiplier], "")
 
 func _cmd_godmode(args: String, executor_id: String) -> CommandResult:
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
-	var enable := true
+	var enable: bool = true
 	if args == "0":
 		enable = false
 
@@ -784,23 +794,23 @@ func _cmd_godmode(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Godmode %s" % ("enabled" if enable else "disabled"), "")
 
 func _cmd_teleport(args: String, executor_id: String) -> CommandResult:
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
-	var parts := args.split(" ", false)
+	var parts: Array = args.split(" ", false)
 	if parts.is_empty():
 		return CommandResult.new(false, "", "Usage: teleport <x> <y> <z> OR <player_id>")
 
 	if parts.size() >= 3:
-		var x := float(parts[0])
-		var y := float(parts[1])
-		var z := float(parts[2])
+		var x: float = float(parts[0])
+		var y: float = float(parts[1])
+		var z: float = float(parts[2])
 		admin.global_position = Vector3(x, y, z)
 		return CommandResult.new(true, "Teleported to (%.1f, %.1f, %.1f)" % [x, y, z], "")
 	else:
-		var target_id := parts[0]
-		var target := _find_entity_by_id_shell(target_id)
+		var target_id: String = parts[0]
+		var target: Object = _find_entity_by_id_shell(target_id)
 		if not target:
 			return CommandResult.new(false, "", "Player not found: " + target_id)
 		admin.global_position = target.global_position
@@ -813,11 +823,11 @@ func _cmd_summon(args: String, executor_id: String) -> CommandResult:
 	if args == "":
 		return CommandResult.new(false, "", "Usage: summon <player_id>")
 
-	var target := _find_entity_by_id_shell(args)
+	var target: Object = _find_entity_by_id_shell(args)
 	if not target:
 		return CommandResult.new(false, "", "Player not found: " + args)
 
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
@@ -825,12 +835,12 @@ func _cmd_summon(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Summoned: %s" % target.display_name, "")
 
 func _cmd_heal(args: String, executor_id: String) -> CommandResult:
-	var admin := _get_executor_entity(executor_id)
+	var admin: Object = _get_executor_entity(executor_id)
 	if not admin:
 		return CommandResult.new(false, "", "Could not find your entity")
 
-	var target := admin
-	var target_name := "yourself"
+	var target: Object = admin
+	var target_name: String = "yourself"
 
 	if args != "":
 		target = _find_entity_by_id_shell(args)
@@ -847,22 +857,22 @@ func _cmd_heal(args: String, executor_id: String) -> CommandResult:
 
 	return CommandResult.new(true, "Healed %s to full HP" % target_name, "")
 
-func _get_executor_entity(executor_id: String) -> Entity:
+func _get_executor_entity(executor_id: String) -> Object:
 	if executor_id == "" and PlayerManager:
-		var local := PlayerManager.get_local_player()
-		return local as Entity
+		var local: Object = PlayerManager.get_local_player()
+		return local
 	return _find_entity_by_id_shell(executor_id)
 
-func _find_entity_by_id_shell(entity_id: String) -> Entity:
+func _find_entity_by_id_shell(entity_id: String) -> Object:
 	if EntityService:
-		var entity = EntityService.get_entity(entity_id)
+		var entity: Object = EntityService.get_entity(entity_id)
 		if entity:
 			return entity
 	if PlayerManager:
-		var players := PlayerManager.get_all_players()
-		for p in players:
+		var players: Array = PlayerManager.get_all_players()
+		for p: Object in players:
 			if p.get("entity_id") == entity_id or p.get("name") == entity_id:
-				return p as Entity
+				return p as Object
 	return null
 
 ## ============================================================================
