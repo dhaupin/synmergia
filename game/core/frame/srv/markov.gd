@@ -107,7 +107,7 @@ func record_movement(player_id: String, from_chunk_key: String, to_chunk_key: St
 ## Returns an Array[Dictionary] sorted by probability desc, each:
 ##   {"chunk_key": String, "probability": float, "offset": Vector2}
 func predict_next(player_id: String) -> Array[Dictionary]:
-	var state := _states.get(player_id)
+	var state: PlayerMarkovState = _states.get(player_id)
 	if state == null or state.current_chunk_key == "":
 		return []
 
@@ -116,8 +116,8 @@ func predict_next(player_id: String) -> Array[Dictionary]:
 		return _sort_predictions(state.prediction_cache)
 
 	# Build 3x3 transition probabilities from current chunk
-	var from_key := state.current_chunk_key
-	var current_offset := _chunk_key_to_offset(from_key)
+	var from_key: String = state.current_chunk_key
+	var current_offset: Vector2 = _chunk_key_to_offset(from_key)
 	var probabilities: Dictionary = {}
 
 	# For each possible next position in the 3x3 grid
@@ -143,7 +143,7 @@ func predict_next(player_id: String) -> Array[Dictionary]:
 ## Predict positions T+5s, T+30s, T+5min (multiple steps ahead).
 ## Returns a Dictionary with "near" (5s), "mid" (30s), "far" (5min) arrays.
 func predict_multi_horizon(player_id: String) -> Dictionary:
-	var state := _states.get(player_id)
+	var state: PlayerMarkovState = _states.get(player_id)
 	if state == null or state.current_chunk_key == "":
 		return {"near": [], "mid": [], "far": []}
 
@@ -160,18 +160,18 @@ func predict_multi_horizon(player_id: String) -> Dictionary:
 
 ## Predict N steps ahead by iterating the transition matrix.
 func predict_n_steps(player_id: String, steps: int) -> Array[Dictionary]:
-	var state := _states.get(player_id)
+	var state: PlayerMarkovState = _states.get(player_id)
 	if state == null or state.current_chunk_key == "":
 		return []
 
-	var current_key := state.current_chunk_key
-	var current_offset := _chunk_key_to_offset(current_key)
+	var current_key: String = state.current_chunk_key
+	var current_offset: Vector2 = _chunk_key_to_offset(current_key)
 	var probs: Dictionary = {current_key: 1.0}
 
 	for step in range(steps):
 		var next_probs: Dictionary = {}
 		for key in probs.keys():
-			var p := probs[key]
+			var p: float = probs[key]
 			var offset := _chunk_key_to_offset(key)
 			for grid_offset in GRID_OFFSETS:
 				var neighbor_key := _offset_to_chunk_key(offset + grid_offset)
@@ -196,7 +196,7 @@ func predict_n_steps(player_id: String, steps: int) -> Array[Dictionary]:
 ## actual_movements is an Array[Vector2] of relative offsets from current chunk.
 ## Returns accuracy as float [0.0, 1.0].
 func compute_accuracy(player_id: String, actual_movements: Array) -> float:
-	var state := _states.get(player_id)
+	var state: PlayerMarkovState = _states.get(player_id)
 	if state == null or actual_movements.is_empty():
 		return 0.0
 
@@ -205,7 +205,7 @@ func compute_accuracy(player_id: String, actual_movements: Array) -> float:
 
 	for i in range(actual_movements.size()):
 		# Rebuild state up to point i
-		var test_state := _states.get(player_id)
+		var test_state: PlayerMarkovState = _states.get(player_id)
 		if test_state == null:
 			continue
 
@@ -216,9 +216,9 @@ func compute_accuracy(player_id: String, actual_movements: Array) -> float:
 			continue
 
 		# Check if actual movement matches the top prediction
-		var actual_offset := actual_movements[i]
-		var actual_key := _offset_to_chunk_key(test_state.current_chunk_key)
-		actual_key = _offset_to_chunk_key(_chunk_key_to_offset(actual_key) + actual_offset)
+		var actual_offset: Vector2 = actual_movements[i]
+		var current_offset: Vector2 = _chunk_key_to_offset(test_state.current_chunk_key)
+		var actual_key: String = _offset_to_chunk_key(current_offset + actual_offset)
 
 		if predictions[0]["chunk_key"] == actual_key:
 			correct += 1
@@ -226,7 +226,7 @@ func compute_accuracy(player_id: String, actual_movements: Array) -> float:
 
 		# Advance the state
 		if i + 1 < actual_movements.size():
-			var next_offset := actual_movements[i + 1]
+			var next_offset: Vector2 = actual_movements[i + 1]
 			record_movement(player_id, test_state.current_chunk_key, actual_key)
 
 	return float(correct) / float(max(total, 1))
@@ -236,7 +236,7 @@ func compute_accuracy(player_id: String, actual_movements: Array) -> float:
 ## movement_pattern is a function that takes (tick, current_offset) and returns next_offset.
 ## Returns accuracy as float.
 func simulate_and_evaluate(player_id: String, movement_pattern: Callable, ticks: int = 1000) -> float:
-	var state := _get_or_create_state(player_id)
+	var state: PlayerMarkovState = _get_or_create_state(player_id)
 	state.current_chunk_key = "0000-0000-0000-d0-f0"
 	state.last_10_movements = []
 	state.transition_counts = {}
@@ -244,7 +244,7 @@ func simulate_and_evaluate(player_id: String, movement_pattern: Callable, ticks:
 	state.history.clear()
 	state.prediction_cache.clear()
 
-	var current_offset := Vector2.ZERO
+	var current_offset: Vector2 = Vector2.ZERO
 	var correct := 0
 	var total := 0
 
@@ -256,8 +256,8 @@ func simulate_and_evaluate(player_id: String, movement_pattern: Callable, ticks:
 		var predictions := predict_next(player_id)
 
 		# Determine actual next position
-		var next_offset := movement_pattern.call(tick, current_offset)
-		var actual_key := _offset_to_chunk_key(next_offset)
+		var next_offset: Vector2 = movement_pattern.call(tick, current_offset)
+		var actual_key: String = _offset_to_chunk_key(next_offset)
 
 		# Check accuracy
 		if predictions.size() > 0:
@@ -280,7 +280,7 @@ func get_accuracy_threshold() -> float:
 
 ## Check if a player has enough history for valid prediction.
 func has_sufficient_history(player_id: String) -> bool:
-	var state := _states.get(player_id)
+	var state: PlayerMarkovState = _states.get(player_id)
 	if state == null:
 		return false
 	return state.total_transitions >= MIN_HISTORY_SAMPLES
@@ -288,7 +288,7 @@ func has_sufficient_history(player_id: String) -> bool:
 
 ## Get the current chunk key for a player.
 func get_current_chunk(player_id: String) -> String:
-	var state := _states.get(player_id)
+	var state: PlayerMarkovState = _states.get(player_id)
 	if state == null:
 		return ""
 	return state.current_chunk_key
@@ -296,7 +296,7 @@ func get_current_chunk(player_id: String) -> String:
 
 ## Get player state for debugging.
 func get_player_state(player_id: String) -> Dictionary:
-	var state := _states.get(player_id)
+	var state: PlayerMarkovState = _states.get(player_id)
 	if state == null:
 		return {}
 	return {
@@ -319,8 +319,7 @@ func clear_all() -> void:
 
 func _get_or_create_state(player_id: String) -> PlayerMarkovState:
 	if not _states.has(player_id):
-		var new_state := PlayerMarkovState.new()
-		new_state.player_id = player_id
+		var new_state: PlayerMarkovState = PlayerMarkovState.new(player_id)
 		_states[player_id] = new_state
 	return _states[player_id] as PlayerMarkovState
 
@@ -335,8 +334,8 @@ func _chunk_key_to_offset(key: String) -> Vector2:
 	var parts := key.split("-")
 	if parts.size() < 3:
 		return Vector2.ZERO
-	var x: int = int(parts[0], 16)
-	var z: int = int(parts[2], 16)
+	var x: int = int("0x" + parts[0])
+	var z: int = int("0x" + parts[2])
 	return Vector2(float(x), float(z))
 
 
@@ -348,7 +347,7 @@ func _offset_to_chunk_key(offset: Vector2) -> String:
 
 
 func _sort_predictions(probabilities: Dictionary) -> Array[Dictionary]:
-	var sorted := []
+	var sorted: Array = []
 	for key in probabilities.keys():
 		sorted.append({"chunk_key": key, "probability": probabilities[key]})
 	sorted.sort_custom(_sort_by_probability)

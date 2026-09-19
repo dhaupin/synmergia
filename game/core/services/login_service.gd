@@ -18,15 +18,31 @@ extends Node
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const AdapterRegistry = preload("res://adapters/registry.gd")
+const CacheStore = preload("res://adapters/cache/cache_store.gd")
+const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")
 const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
-const AccountRollup = preload("res://core/services/account_rollup.gd")
-const NetworkManager = preload("res://core/autoload/network_manager.gd")
 
 const SESSION_TTL_SEC := 86400  # 24 hours
 const _session_cache_name := "session_cache"
 const _session_key_prefix := "session:"
+
+## Helper functions to safely resolve autoloads (avoids parse-time "Identifier not declared")
+func _adapter_registry() -> Variant:
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("AdapterRegistry")
+
+func _network_manager() -> Variant:
+	var ml = Engine.get_main_loop()
+	if ml == null:
+		return null
+	if not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("NetworkManager")
 
 ## This is the client-side gate. Server should always re-validate.
 
@@ -86,14 +102,15 @@ func login(account_id: String, password: String) -> bool:
 	_failed_attempts.erase(account_id)
 
 	# Store session in cache with 24-hour TTL
-	var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+	var ar = _adapter_registry()
+	var session_cache: CacheStore = ar.get_cache(_session_cache_name) if ar else null
 	if session_cache:
 		session_cache.store(_session_key_prefix + _current_session_token, account_id, SESSION_TTL_SEC)
 
 	if AccountService:
 		AccountService.update_last_login(account_id)
 	if AccountRollup:
-		AccountRollup.rebuild_rollup(account_id)
+		AccountRollup.rebuild_rollup_static(account_id)
 	GameLog.info("LoginService: %s logged in" % account_id)
 	login_succeeded.emit(account_id, false)
 	return true
@@ -144,10 +161,11 @@ func login_as_guest() -> bool:
 	_current_session_token = _mint_session_token()
 	_is_guest = true
 	if AccountRollup:
-		AccountRollup.rebuild_rollup(guest_id)
+		AccountRollup.rebuild_rollup_static(guest_id)
 
 	# Store guest session in cache with 24-hour TTL
-	var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+	var ar = _adapter_registry()
+	var session_cache: CacheStore = ar.get_cache(_session_cache_name) if ar else null
 	if session_cache:
 		session_cache.store(_session_key_prefix + _current_session_token, guest_id, SESSION_TTL_SEC)
 
@@ -166,7 +184,8 @@ func logout() -> void:
 
 	# Remove session from cache
 	if prev_token != "":
-		var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+		var ar = _adapter_registry()
+		var session_cache: CacheStore = ar.get_cache(_session_cache_name) if ar else null
 		if session_cache:
 			session_cache.delete(_session_key_prefix + prev_token)
 
@@ -180,7 +199,8 @@ func invalidate_all_tokens() -> void:
 	
 	# Clear current session from cache
 	if _current_session_token != "":
-		var session_cache: CacheStore = AdapterRegistry.get_cache(_session_cache_name)
+		var ar = _adapter_registry()
+		var session_cache: CacheStore = ar.get_cache(_session_cache_name) if ar else null
 		if session_cache:
 			session_cache.delete(_session_key_prefix + _current_session_token)
 	
@@ -233,8 +253,9 @@ func build_seed_receipt(character_id: String) -> Resource:
 	
 	# Edge Case B: Double-Join & Connection Hijacking
 	# Check for existing active session for this character and kick it
-	if NetworkManager and NetworkManager.is_server:
-		NetworkManager.kick_player_by_character_id(character_id, "New login for character")
+	var nm = _network_manager()
+	if nm and nm.is_server:
+		nm.kick_player_by_character_id(character_id, "New login for character")
 	
 	# Get server HMAC key from config
 	var server_key := _get_server_hmac_key()
@@ -285,12 +306,13 @@ func build_seed_receipt(character_id: String) -> Resource:
 ## for the same character (Edge Case B), builds and sends SeedReceipt.
 ## Returns the SeedReceipt resource, or null if character not found.
 func on_character_selected(character_id: String, peer_id: int) -> Resource:
-	if not NetworkManager or not NetworkManager.is_server:
+	var nm = _network_manager()
+	if not nm or not nm.is_server:
 		GameLog.warn("LoginService.on_character_selected: Not running as server")
 		return null
 	
 	# Associate peer with character (so _find_peer_for_character works)
-	NetworkManager.associate_peer_with_character(peer_id, character_id)
+	nm.associate_peer_with_character(peer_id, character_id)
 	
 	# Build seed receipt (includes kick check for Edge Case B)
 	return build_seed_receipt(character_id)
@@ -455,7 +477,11 @@ func _fail(reason: String) -> void:
 	login_failed.emit(reason)
 
 func _load_accounts() -> void:
-	var store: PersistenceStore = AdapterRegistry.get_persistence("accounts")
+	var ar = _adapter_registry()
+	var store: PersistenceStore = ar.get_persistence("accounts") if ar else null
+	if not store:
+		_store = {}
+		return
 	if not store.has_key(_kv_prefix + "_init"):
 		_store = {}
 		return
@@ -474,7 +500,10 @@ func _load_accounts() -> void:
 			_store[account_id] = entry
 
 func _persist_account(account_id: String) -> void:
-	var store: PersistenceStore = AdapterRegistry.get_persistence("accounts")
+	var ar = _adapter_registry()
+	var store: PersistenceStore = ar.get_persistence("accounts") if ar else null
+	if not store:
+		return
 	var entry: Dictionary = _store.get(account_id, {})
 	if entry.is_empty():
 		store.erase(_kv_prefix + account_id)

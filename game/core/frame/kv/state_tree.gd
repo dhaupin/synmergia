@@ -7,6 +7,7 @@ const StateSchemaScript = preload("res://data/roots/state_schema.gd")
 
 var _t3: T3Script
 var _schema: StateSchemaScript
+var _current_root: PackedByteArray = PackedByteArray()
 
 
 func _init(t3_instance = null) -> void:

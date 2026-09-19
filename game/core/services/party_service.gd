@@ -519,11 +519,11 @@ func persist_all() -> void:
 	var store := DictStore.new()
 	var entries: Dictionary = {}
 	for party_id in _parties.keys():
-		var key := _kv_party + party_id
+		var key: String = _kv_party + party_id
 		if _parties[party_id] and not _parties[party_id].is_empty():
 			entries[key] = _parties[party_id]
 	for invite_id in _pending_invites.keys():
-		var key := _kv_invite + invite_id
+		var key: String = _kv_invite + invite_id
 		if _pending_invites[invite_id] and not _pending_invites[invite_id].is_empty():
 			entries[key] = _pending_invites[invite_id]
 	if not entries.is_empty():

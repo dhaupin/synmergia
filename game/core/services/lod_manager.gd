@@ -160,8 +160,8 @@ func _update_all_players() -> void:
 
 ## Update a single player's data
 func _update_player(player) -> void:
-	var player_id := player.entity_id
-	var pos := player.global_position
+	var player_id: String = player.entity_id
+	var pos: Vector3 = player.global_position
 
 	var player_data := _get_or_create_player_data(player_id)
 	player_data.aoi_center = pos
@@ -192,8 +192,8 @@ func _update_player_tracked_chunks(player_data: PlayerLODData) -> void:
 	for x in range(aoi_min_x, aoi_max_x + 1):
 		for z in range(aoi_min_z, aoi_max_z + 1):
 			var y := 0
-			var address := _spatial_fragmenter.make_address(x, y, z, 0, 0)
-			var chunk_key := _spatial_fragmenter.generate_key(address)
+			var address: int = _spatial_fragmenter.make_address(x, y, z, 0, 0)
+			var chunk_key: String = _spatial_fragmenter.generate_key(address)
 			# Check if chunk center is within AOI radius
 			var chunk_center_x := x * CHUNK_SIZE + CHUNK_SIZE * 0.5
 			var chunk_center_z := z * CHUNK_SIZE + CHUNK_SIZE * 0.5
@@ -217,12 +217,12 @@ func _update_predictions() -> void:
 	_markov.tick()
 
 	for player_id in _player_data.keys():
-		var player_data := _player_data[player_id]
+		var player_data: PlayerLODData = _player_data[player_id]
 		if player_data.current_chunk_key == "":
 			continue
 
 		# Get predictions
-		var predictions := _markov.predict_next(player_id)
+		var predictions: Array = _markov.predict_next(player_id)
 		var new_predicted: Array[String] = []
 		for pred in predictions:
 			new_predicted.append(pred["chunk_key"])
@@ -239,10 +239,10 @@ func _classify_chunks() -> void:
 
 	# Aggregate player tracking
 	for player_id in _player_data.keys():
-		var player_data := _player_data[player_id]
+		var player_data: PlayerLODData = _player_data[player_id]
 		for chunk_key in player_data.tracked_chunks.keys():
-			var lod_state := player_data.tracked_chunks[chunk_key]
-			var chunk_state := _get_or_create_chunk_state(chunk_key)
+			var lod_state: LODState = player_data.tracked_chunks[chunk_key]
+			var chunk_state: ChunkLODState = _get_or_create_chunk_state(chunk_key)
 
 			if lod_state == LODState.HOT:
 				if not chunk_state.players_hot.has(player_id):
@@ -259,8 +259,8 @@ func _apply_lod_changes() -> void:
 	var chunks_to_remove: Array[String] = []
 
 	for chunk_key in _chunk_states.keys():
-		var chunk_state := _chunk_states[chunk_key]
-		var old_state := chunk_state.state
+		var chunk_state: ChunkLODState = _chunk_states[chunk_key]
+		var old_state: LODState = chunk_state.state
 		var new_state := _compute_desired_lod(chunk_state)
 
 		if new_state != old_state:
@@ -280,7 +280,7 @@ func _apply_lod_changes() -> void:
 
 		# Clean up chunks with no tracking for too long
 		if chunk_state.players_hot.is_empty() and chunk_state.players_warm.is_empty():
-			var idle_ticks := _tick_number - chunk_state.last_state_change_tick
+			var idle_ticks: int = _tick_number - chunk_state.last_state_change_tick
 			if idle_ticks > HOT_DEMOTION_TICKS:
 				chunks_to_remove.append(chunk_key)
 
@@ -299,7 +299,7 @@ func _compute_desired_lod(chunk_state: ChunkLODState) -> LODState:
 		return LODState.WARM
 
 	# Check demotion timers
-	var idle_ticks := _tick_number - chunk_state.last_state_change_tick
+	var idle_ticks: int = _tick_number - chunk_state.last_state_change_tick
 
 	if chunk_state.state == LODState.HOT:
 		if idle_ticks > HOT_DEMOTION_TICKS:
@@ -336,7 +336,7 @@ func _compute_stats() -> Dictionary:
 
 ## Get the current LOD state of a chunk
 func get_chunk_lod(chunk_key: String) -> LODState:
-	var chunk_state := _chunk_states.get(chunk_key)
+	var chunk_state: ChunkLODState = _chunk_states.get(chunk_key)
 	if chunk_state == null:
 		return LODState.COLD
 	return chunk_state.state
@@ -353,7 +353,7 @@ func get_chunks_by_state(state: LODState) -> Array[String]:
 
 ## Get chunks tracked by a specific player
 func get_player_chunks(player_id: String) -> Dictionary:
-	var player_data := _player_data.get(player_id)
+	var player_data: PlayerLODData = _player_data.get(player_id)
 	if player_data == null:
 		return {}
 	return player_data.tracked_chunks.duplicate()
@@ -377,8 +377,8 @@ func record_movement(player_id: String, from_chunk_key: String, to_chunk_key: St
 
 ## Force a chunk to be promoted (for testing or manual override)
 func promote_chunk(chunk_key: String, target_state: LODState = LODState.HOT) -> void:
-	var chunk_state := _get_or_create_chunk_state(chunk_key)
-	var old_state := chunk_state.state
+	var chunk_state: ChunkLODState = _get_or_create_chunk_state(chunk_key)
+	var old_state: LODState = chunk_state.state
 	if target_state > old_state:
 		chunk_state.state = target_state
 		chunk_state.last_state_change_tick = _tick_number
@@ -387,9 +387,9 @@ func promote_chunk(chunk_key: String, target_state: LODState = LODState.HOT) -> 
 
 ## Force a chunk to be demoted
 func demote_chunk(chunk_key: String, target_state: LODState = LODState.COLD) -> void:
-	var chunk_state := _chunk_states.get(chunk_key)
+	var chunk_state: ChunkLODState = _chunk_states.get(chunk_key)
 	if chunk_state and target_state < chunk_state.state:
-		var old_state := chunk_state.state
+		var old_state: LODState = chunk_state.state
 		chunk_state.state = target_state
 		chunk_state.last_state_change_tick = _tick_number
 		chunk_demoted.emit(chunk_key, old_state, target_state)
@@ -427,7 +427,7 @@ func _position_to_chunk_key(pos: Vector3) -> String:
 	var x := int(floor(pos.x / CHUNK_SIZE))
 	var y := int(floor(pos.y / CHUNK_SIZE))
 	var z := int(floor(pos.z / CHUNK_SIZE))
-	var address := _spatial_fragmenter.make_address(x, y, z, 0, 0)
+	var address: int = _spatial_fragmenter.make_address(x, y, z, 0, 0)
 	return _spatial_fragmenter.generate_key(address)
 
 
@@ -440,8 +440,8 @@ func _chunk_key_to_position(chunk_key: String) -> Vector3:
 	var parts := chunk_key.split("-")
 	if parts.size() < 3:
 		return Vector3.ZERO
-	var x := int(parts[0], 16)
-	var z := int(parts[2], 16)
+	var x: int = int("0x" + parts[0])
+	var z: int = int("0x" + parts[2])
 	return Vector3(
 		x * CHUNK_SIZE + CHUNK_SIZE * 0.5,
 		0,

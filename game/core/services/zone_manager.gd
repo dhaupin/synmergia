@@ -196,13 +196,13 @@ func _compute_nsc9_code(zone_id: String, zone_center: Vector3) -> int:
 	# Axis: nearest icosahedral vertex from zone center
 	var lat: float = rad_to_deg(asin(clampf(zone_center.normalized().y, -1.0, 1.0)))
 	var lon: float = rad_to_deg(atan2(zone_center.normalized().z, zone_center.normalized().x))
-	var vertex: int = Nsc9.nearest_vertex(lat, lon)
-	var axis: int = Nsc9.spatial_axis(vertex)
+	var vertex: int = Nsc9Script.nearest_vertex(lat, lon)
+	var axis: int = Nsc9Script.spatial_axis(vertex)
 
 	# Sequence: deterministic from zone_id hash (0-16M)
 	var sequence: int = abs(hash(zone_id + ":nsc9")) % 1_000_000
 
-	return Nsc9.encode_int(facility, axis, sequence)
+	return Nsc9Script.encode_int(facility, axis, sequence)
 
 ## Generate spatial address for a zone based on its center and radius
 func _compute_spatial_address(zone) -> int:

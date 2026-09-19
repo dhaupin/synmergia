@@ -161,7 +161,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	select_start = sql.find("SELECT")
 	# Find first letter after SELECT
 	var pos: int = select_start + 6
-	while pos < sql.length() and not _is_alpha(sql[pos]):
+	while pos < sql.length() and not _is_alpha(sql.unicode_at(pos)):
 		pos += 1
 	select_start = pos
 	
@@ -173,7 +173,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	var columns := _parse_column_list(select_part)
 	
 	var after_from_start := sql.find("FROM", from_upper + 4)
-	while after_from_start < sql.length() and not _is_alpha(sql[after_from_start]):
+	while after_from_start < sql.length() and not _is_alpha(sql.unicode_at(after_from_start)):
 		after_from_start += 1
 	if after_from_start >= sql.length():
 		return []
@@ -261,12 +261,13 @@ func _query_select(sql: String, params: Array) -> Array:
 		all_rows = _apply_order_by(all_rows, order_info)
 	
 	# Apply LIMIT
-	var limit_val := -1
+	var limit_val: int = -1
 	if limit_idx >= 0:
 		var limit_part := rest.substr(where_idx + 7 + limit_idx + 7).strip_edges()
 		var num_str := ""
 		for c in limit_part:
-			if c.unicode_is_digit():
+			var char_code := c.unicode_at(0)
+			if char_code >= 48 and char_code <= 57:
 				num_str += c
 			else:
 				break
@@ -484,7 +485,7 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 	var op_str := ""
 	
 	for i in range(operators.size() - 1, -1, -1):
-		var op := operators[i]
+		var op: String = operators[i]
 		var idx := clause.to_upper().find(op)
 		if idx >= 0:
 			op_idx = idx
@@ -598,10 +599,10 @@ func _match_conds_full(row: Dictionary, conds: Array, params: Array) -> bool:
 		var op: String = c.get("op", "=")
 		var param_idx: int = c.get("param", -1)
 		var val: Variant = c.get("val", null)
-		var is_or_group := c.get("or_group", false)
+		var is_or_group: bool = c.get("or_group", false)
 		
 		if op == "IN_SUBQUERY":
-			var subquery_sql := c.get("subquery_sql", "")
+			var subquery_sql: String = c.get("subquery_sql", "")
 			var row_val = row.get(col, null)
 			var subquery_result := query(subquery_sql, params)
 			var found := false

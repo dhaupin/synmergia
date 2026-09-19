@@ -126,7 +126,7 @@ signal settings_saved()
 func _ready() -> void:
 	GameLog.info("PlayerConfig: Ready")
 	_init_defaults()
-	_load_global_settings()
+	load_global_settings()
 
 func _get_registry() -> Node:
 	if get_tree() == null:

@@ -120,7 +120,7 @@ func _retry_request(callable: Callable, max_attempts: int = MAX_RETRIES) -> Redi
 	var last_error: String = ""
 
 	while attempt <= max_attempts:
-		var result := callable.call()
+		var result: Variant = callable.call()
 		if result is RedisResult:
 			if result.success:
 				_record_success()

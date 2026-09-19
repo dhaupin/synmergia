@@ -2,14 +2,11 @@
 ## Aggregates playtime, gold, achievements, vault, and progression per account
 extends Node
 
-const AccountService = preload("res://core/services/account_service.gd")
-const VaultService = preload("res://core/services/vault_service.gd")
-const AchievementService = preload("res://core/services/achievement_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const _kv_prefix := "account_rollup:"
 
-static var instance: AccountRollup
+static var instance: Node
 
 ## Account rollup data: account_id -> rollup_data
 var _rollups: Dictionary = {}
@@ -158,8 +155,8 @@ func update_character_data(account_id: String, character_id: String, char_data: 
 		rebuild_rollup(account_id)
 		return
 
-	var rollup := _rollups[account_id]
-	var old_char := rollup.characters.get(character_id, {})
+	var rollup: Dictionary = _rollups[account_id]
+	var old_char: Dictionary = rollup.characters.get(character_id, {})
 
 	# Update playtime
 	var old_playtime: int = old_char.get("playtime", 0)
@@ -227,7 +224,7 @@ func on_character_unlinked(character_id: String, account_id: String) -> void:
 func on_account_vault_changed(account_id: String) -> void:
 	if not _rollups.has(account_id):
 		return
-	var rollup := _rollups[account_id]
+	var rollup: Dictionary = _rollups[account_id]
 	if VaultService:
 		var vault_data: Dictionary = VaultService.open_vault("", VaultService.VaultType.ACCOUNT)
 		if not vault_data.is_empty():
@@ -252,20 +249,20 @@ func get_rollup_summary(account_id: String) -> Dictionary:
 		"total_achievements": rollup.total_achievements,
 		"character_count": rollup.character_count,
 		"highest_level": rollup.highest_level,
-		"average_level": rollup.character_count > 0 ? rollup.total_levels / rollup.character_count : 0,
+		"average_level": rollup.total_levels / rollup.character_count if rollup.character_count > 0 else 0,
 		"account_vault_gold": rollup.account_vault_gold,
 		"account_vault_items": rollup.account_vault_items,
 		"last_updated": rollup.last_updated
 	}
 
 ## Static convenience method
-static func get_rollup(account_id: String) -> Dictionary:
+static func get_rollup_static(account_id: String) -> Dictionary:
 	var inst := singleton()
 	if inst == null:
 		return {}
 	return inst.get_rollup(account_id)
 
-static func rebuild_rollup(account_id: String) -> Dictionary:
+static func rebuild_rollup_static(account_id: String) -> Dictionary:
 	var inst := singleton()
 	if inst == null:
 		return {}

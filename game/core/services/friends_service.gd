@@ -2,6 +2,11 @@
 # FriendsService - registered as autoload
 extends Node
 
+const QoSService = preload("res://core/autoload/qos_service.gd")
+const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
+const AdapterRegistry = preload("res://adapters/registry.gd")
+const CacheStore = preload("res://adapters/cache/cache_store.gd")
+
 ## Resolve CooldownService autoload safely.
 func _cooldown():
 	var ml = Engine.get_main_loop()
@@ -10,9 +15,13 @@ func _cooldown():
 	if not ml is SceneTree:
 		return null
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
-const QoSService = preload("res://core/autoload/qos_service.gd")
-const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
-const AdapterRegistry = preload("res://adapters/registry.gd")
+
+## Resolve AdapterRegistry autoload safely.
+func _adapter_registry() -> AdapterRegistry:
+	var root = get_tree().root if has_node("/root") else null
+	if root:
+		return root.get_node_or_null("AdapterRegistry")
+	return null
 
 ## ============================================================================
 ## DATA STRUCTURES
@@ -120,7 +129,7 @@ func _ready() -> void:
 	_heartbeat_timer.start()
 
 	# Clean up on exit
-	exit_tree.connect(_on_exit_tree)
+	tree_exiting.connect(_on_exit_tree)
 
 func _check_rate_limit(player_id: String, action_type: String) -> Dictionary:
 	# Use CooldownService for unified cooldown management
@@ -288,7 +297,10 @@ func _check_request_expiry() -> void:
 
 ## Periodically renew online status TTL for active players
 func _renew_online_heartbeats() -> void:
-	var cache: CacheStore = AdapterRegistry.get_cache(_online_cache_name)
+	var registry = _adapter_registry()
+	if not registry:
+		return
+	var cache: CacheStore = registry.get_cache(_online_cache_name)
 	if not cache:
 		return
 	
@@ -674,7 +686,10 @@ func get_social_summary(player_id: String) -> Dictionary:
 ## == Persistence ============================================================
 
 func _load_online_status() -> void:
-	var cache: CacheStore = AdapterRegistry.get_cache(_online_cache_name)
+	var registry = _adapter_registry()
+	if not registry:
+		return
+	var cache: CacheStore = registry.get_cache(_online_cache_name)
 	if not cache:
 		return
 	_online_players = {}
@@ -683,7 +698,10 @@ func _load_online_status() -> void:
 	# For now, online status is rebuilt from in-memory state on boot
 
 func _persist_online_status(player_id: String) -> void:
-	var cache: CacheStore = AdapterRegistry.get_cache(_online_cache_name)
+	var registry = _adapter_registry()
+	if not registry:
+		return
+	var cache: CacheStore = registry.get_cache(_online_cache_name)
 	if not cache:
 		return
 	if _online_players.has(player_id):

@@ -93,12 +93,12 @@ func _initialize() -> void:
 		_assert("After unlink highest_level = 5", after_unlink.highest_level == 5)
 
 	# 9. Test static singleton methods
-	var static_rollup := AccountRollup.get_rollup(test_account)
+	var static_rollup := AccountRollup.get_rollup_static(test_account)
 	_assert("Static get_rollup works", static_rollup.total_gold == 2000)
 
 	# 10. Test new account gets empty rollup
 	var new_account := "new_rollup_%d" % Time.get_ticks_msec()
-	var empty := AccountRollup.get_rollup(new_account)
+	var empty := AccountRollup.get_rollup_static(new_account)
 	_assert("New account gets empty rollup", empty.character_count == 0 and empty.total_gold == 0)
 
 	# 11. Test update_character_data incremental update

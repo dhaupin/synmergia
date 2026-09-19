@@ -34,6 +34,9 @@ const MemoryCacheStore = preload("res://adapters/cache/memory_cache_store.gd")
 const RedisStore = preload("res://adapters/cache/redis_store.gd")
 const MigrationRunner = preload("res://adapters/migrations/migration_runner.gd")
 
+const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
+const PostgresStore = preload("res://adapters/persistence/postgres_store.gd")
+
 # Store name -> which service consumes it. Just a comment map for now;
 # the real wiring happens when each service calls AdapterRegistry at runtime.
 const STORE_MANIFEST := {

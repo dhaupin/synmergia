@@ -88,7 +88,7 @@ func unpack(code: int) -> Dictionary:
 ## Encode a facility/axis/sequence into a 14-digit NSC-9 integer (decimal format).
 ## LEGACY: for backward compatibility with existing decimal-format storage.
 ## Use pack()/unpack() for new hot-path code.
-func encode_int(facility: int, axis: int, sequence: int) -> int:
+static func encode_int(facility: int, axis: int, sequence: int) -> int:
 	return 9_000_000_000_000 + facility * 1_000_000_000 + axis * 1_000_000 + sequence
 
 ## Decode a 14-digit decimal NSC-9 integer into components.
@@ -114,7 +114,7 @@ func encode_str(facility: int, axis: int, sequence: int) -> String:
 ## Parse an NSC-9 string code into {prefix, facility, axis, sequence}.
 ## DISPLAY ONLY: for logging, UI, and REST API boundaries.
 ## Do NOT use in hot paths (spatial queries, storage keys, comparisons).
-func parse_str(code: str) -> Dictionary:
+func parse_str(code: String) -> Dictionary:
 	var parts = code.split("-")
 	if parts.size() != 4:
 		return {}
@@ -126,7 +126,7 @@ func parse_str(code: str) -> Dictionary:
 	}
 
 ## Spatial axis for icosahedral vertex index (0-11 → axis 1-12).
-func spatial_axis(vertex: int) -> int:
+static func spatial_axis(vertex: int) -> int:
 	return AXIS_SPATIAL_BASE + vertex
 
 ## Factional axis for faction id (0-99 → axis 100-199).
@@ -159,7 +159,7 @@ func project_to_latlon(position: Vector3, planet_radius: float = 20000.0) -> Vec
 
 ## Map a lat/lon to the nearest icosahedral vertex index (0-11).
 ## Uses dot product against the 12 unit vertices.
-func nearest_vertex(lat: float, lon: float) -> int:
+static func nearest_vertex(lat: float, lon: float) -> int:
 	var phi = deg_to_rad(lat)
 	var theta = deg_to_rad(lon)
 	var x = cos(phi) * cos(theta)
@@ -259,7 +259,7 @@ func cell_key_from_int(code: int) -> String:
 	return cell_key(facility, axis, sequence)
 
 ## Deterministic sequence from an entity id + tag (for stable NSC-9 sequences).
-func deterministic_seq(entity_id: String, tag: String) -> int:
+static func deterministic_seq(entity_id: String, tag: String) -> int:
 	var input = entity_id + ":" + tag
 	var hash_val = 5381
 	for i in range(input.length()):
