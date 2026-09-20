@@ -7,6 +7,9 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
 const CacheStore = preload("res://adapters/cache/cache_store.gd")
+# Social tree (frame primitive, arch §9): authoritative mirror of
+# friend/block/ignore edges under /social/<player_id>/...
+const SocialTreeScript = preload("res://core/frame/kv/social_tree.gd")
 
 ## Resolve CooldownService autoload safely.
 func _cooldown():
@@ -82,6 +85,7 @@ signal player_unignored(ignorer_id: String, ignored_id: String)
 ## ============================================================================
 
 var _friends: Dictionary = {}  # player_id -> Array[FriendData]
+var _social_tree = null  # lazy SocialTreeScript instance
 var _pending_requests: Dictionary = {}  # request_id -> FriendRequest
 var _player_requests: Dictionary = {}  # player_id -> Array[FriendRequest] (sent)
 var _player_requests_received: Dictionary = {}  # player_id -> Array[FriendRequest] (received)
@@ -121,6 +125,26 @@ func _ready() -> void:
 	GameLog.info("FriendsService: Initialized")
 	_load_online_status()
 	set_process(true)
+
+## Lazy SocialTree (frame definition of player relationships, arch §9).
+func _social() :
+	if _social_tree != null:
+		return _social_tree
+	if SocialTreeScript:
+		_social_tree = SocialTreeScript.new()
+	return _social_tree
+
+## Mirror one edge change into the social tree (best-effort; in-memory
+## dicts stay the hot path, the tree is the durable/frame-side view).
+func _mirror_edge(kind: String, owner_id: String, other_id: String, present: bool) -> void:
+	var tree = _social()
+	if tree == null:
+		return
+	var edge_path := "social/%s/%s/%s" % [owner_id, kind, other_id]
+	if present:
+		tree.insert_edge(edge_path, kind, other_id, {"mirrored_at": Time.get_unix_time_from_system()})
+	else:
+		tree.delete_edge(edge_path)
 
 	# Initialize heartbeat timer for online status renewal
 	_heartbeat_timer = Timer.new()
@@ -345,6 +369,8 @@ func add_friend(player_id: String, friend_id: String, friend_name: String = "") 
 	friends.append(data)
 	_friends[player_id] = friends
 
+	_mirror_edge("friend", player_id, friend_id, true)
+
 	friend_added.emit(player_id, friend_id)
 
 	return {"success": true}
@@ -361,6 +387,7 @@ func remove_friend(player_id: String, friend_id: String) -> Dictionary:
 	for i in range(friends.size()):
 		if friends[i].player_id == friend_id:
 			friends.remove_at(i)
+			_mirror_edge("friend", player_id, friend_id, false)
 			friend_removed.emit(player_id, friend_id)
 
 			# Remove reciprocal friendship
@@ -369,6 +396,7 @@ func remove_friend(player_id: String, friend_id: String) -> Dictionary:
 				for j in range(reciprocal.size()):
 					if reciprocal[j].player_id == player_id:
 						reciprocal.remove_at(j)
+						_mirror_edge("friend", friend_id, player_id, false)
 						break
 
 			return {"success": true}
@@ -450,6 +478,8 @@ func block_player(blocker_id: String, blocked_id: String, reason: String = "") -
 	blocked.append(blocked_id)
 	_blocked[blocker_id] = blocked
 
+	_mirror_edge("rival", blocker_id, blocked_id, true)
+
 	# Auto-unfriend when blocking
 	if is_friend(blocker_id, blocked_id):
 		remove_friend(blocker_id, blocked_id)
@@ -473,6 +503,8 @@ func unblock_player(blocker_id: String, blocked_id: String) -> Dictionary:
 	var blocked: Array = _blocked[blocker_id]
 	blocked.erase(blocked_id)
 	_blocked[blocker_id] = blocked
+
+	_mirror_edge("rival", blocker_id, blocked_id, false)
 
 	player_unblocked.emit(blocker_id, blocked_id)
 
@@ -515,6 +547,8 @@ func ignore_player(ignorer_id: String, ignored_id: String, reason: String = "") 
 	ignored.append(ignored_id)
 	_ignored[ignorer_id] = ignored
 
+	_mirror_edge("rival", ignorer_id, ignored_id, true)
+
 	player_ignored.emit(ignorer_id, ignored_id)
 
 	return {"success": true}
@@ -526,6 +560,8 @@ func unignore_player(ignorer_id: String, ignored_id: String) -> Dictionary:
 	var ignored: Array = _ignored[ignorer_id]
 	ignored.erase(ignored_id)
 	_ignored[ignorer_id] = ignored
+
+	_mirror_edge("rival", ignorer_id, ignored_id, false)
 
 	player_unignored.emit(ignorer_id, ignored_id)
 
@@ -683,6 +719,37 @@ func get_social_summary(player_id: String) -> Dictionary:
 		"ignored_count": _ignored.get(player_id, []).size() if _ignored		.has(player_id) else 0,
 		"pending_sent": get_pending_requests_sent(player_id).size(),
 		"pending_received": get_pending_requests_received(player_id).size()
+	}
+
+## == Social tree (frame) accessors ==========================================
+
+## Frame-side friend ids for a player, read from the social tree.
+func get_social_friend_ids(player_id: String) -> Array:
+	var tree = _social()
+	if tree == null:
+		return []
+	return tree.list_related_ids("social/%s" % player_id, "friend")
+
+## Frame-side social edge count by kind for a player ("friend", "rival").
+func get_social_edge_count(player_id: String, kind: String) -> int:
+	var tree = _social()
+	if tree == null:
+		return 0
+	return tree.list_by_rel("social/%s" % player_id, kind).size()
+
+## Verify the in-memory friend list matches the social-tree mirror.
+## Returns {"in_sync": bool, "memory_count": int, "tree_count": int}.
+func verify_social_mirror(player_id: String) -> Dictionary:
+	var tree_ids: Array = get_social_friend_ids(player_id)
+	var memory_ids: Array = []
+	for fd in _friends.get(player_id, []):
+		memory_ids.append(fd.player_id)
+	tree_ids.sort()
+	memory_ids.sort()
+	return {
+		"in_sync": tree_ids == memory_ids,
+		"memory_count": memory_ids.size(),
+		"tree_count": tree_ids.size(),
 	}
 
 ## == Persistence ============================================================

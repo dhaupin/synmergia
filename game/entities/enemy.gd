@@ -4,6 +4,7 @@ extends "res://core/entities/entity.gd"
 class_name Enemy
 const LootTable = preload("res://core/schemas/loot_table.gd")
 const HealthComponent = preload("res://core/components/health_component.gd")
+const AggroComponent = preload("res://core/components/aggro_component.gd")
 
 
 @export var enemy_data: Resource
@@ -19,6 +20,8 @@ const HealthComponent = preload("res://core/components/health_component.gd")
 ## @onready block runs. The deferred lookup runs from _ready after
 ## the node is fully in the tree.
 var health_component: HealthComponent = null
+var aggro_component: AggroComponent = null
+var _ai = null  # EnemyAI child, if attached (set via attach_ai)
 
 var _ai_state: String = "idle"
 var _wander_target: Vector3 = Vector3.ZERO
@@ -42,6 +45,12 @@ func _ready() -> void:
 		health_component.max_health = max_health
 		health_component.current_health = current_health
 		health_component.health_depleted.connect(_on_died)
+
+	# Threat table: enemies track who generates threat (damage, heals,
+	# taunts) and EnemyAI reads it for in-combat target switching.
+	if aggro_component == null:
+		aggro_component = AggroComponent.new()
+		add_child(aggro_component)
 
 	GameLog.info("Enemy spawned: %s (lvl %d, %d HP)" % [display_name, level, max_health])
 
@@ -116,7 +125,22 @@ func take_damage(amount: int, source = null) -> int:
 		health_changed.emit(current_health, max_health, -amount)
 		if current_health <= 0:
 			died.emit(source)
+
+	# Threat: damage on this enemy builds the attacker's position on the
+	# threat table (drives in-combat target switching in EnemyAI).
+	if aggro_component and source is Entity:
+		aggro_component.add_damage_threat(source, amount)
+
+	# Grudge memory + engagement: let the AI remember and fight back.
+	if _ai and source is Entity:
+		_ai.on_damaged(source)
+
 	return amount
+
+## Attach an EnemyAI brain and hook engagement callbacks.
+func attach_ai(ai) -> void:
+	_ai = ai
+	add_child(ai)
 
 
 func _on_died() -> void:

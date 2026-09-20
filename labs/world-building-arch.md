@@ -735,7 +735,7 @@ NSC-9 code (nsc9.gd)  ->  Nsc9Bridge  ->  SpatialFragmenter address  ->  [T3 sta
 | 2 | Frame extract to separate container | high | infra team | DEFERRED (in-process; FrameClient is the integration point -- see TASKS.md 2026-09-19) |
 | 3 | Coordinator process | high | infra team | PENDING |
 | 3 | Account rollup (D028) | med | anticheat team | DONE |
-| 3 | Memory tree + social tree | low | game team | DONE (core/frame/kv/memory_tree.gd, social_tree.gd; wiring into NPC AI + FriendsService pending) |
+| 3 | Memory tree + social tree | low | game team | DONE (primitives + game wiring: EnemyAI memory/grudges, FriendsService social mirror) |
 | 3 | Geometry layer: fragmenter, spatial fragmenter, NSC-9 bridge | med | frame team | DONE |
 | 3.x | Geometry integration: EntityService + ZoneManager wired to Nsc9Bridge | med | frame team | DONE |
 | 4 | Edge shards | high | infra team | PENDING |

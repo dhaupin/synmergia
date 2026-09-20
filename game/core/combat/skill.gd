@@ -165,6 +165,29 @@ func can_cast(caster: Node) -> bool:
 
 	return true
 
+## Heal threat: push threat onto the tables of in-combat enemies near
+## the healed target. Silent no-op when EntityService is unavailable
+## (parse-time) or no enemies are in combat nearby.
+func _generate_heal_threat(healer: Entity, heal_amount: int) -> void:
+	var es = _entity_service()
+	if es == null or heal_amount <= 0:
+		return
+	var heal_pos: Vector3 = healer.global_position
+	var nearby: Array = es.get_entities_in_radius(heal_pos, 20.0, Entity.EntityType.ENEMY)
+	for enemy in nearby:
+		if not is_instance_valid(enemy):
+			continue
+		var ac = enemy.get("aggro_component")
+		if ac != null and ac._is_in_combat:
+			ac.record_heal_threat(healer, heal_amount)
+
+func _entity_service():
+	# Autoloads are unavailable at parse time; resolve via the scene tree.
+	var ml = Engine.get_main_loop()
+	if ml == null or not ml is SceneTree:
+		return null
+	return (ml as SceneTree).root.get_node_or_null("EntityService")
+
 func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
 	var result := {
 		"success": false,
@@ -198,6 +221,11 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 			target.heal(actual_heal)
 		else:
 			caster.heal(actual_heal)
+
+		# Heal threat: healing in combat draws enemy attention. Notify
+		# every nearby enemy in combat so their tables add threat on the
+		# healer (classic healer-aggro; AggroComponent scales by factor).
+		_generate_heal_threat(caster, actual_heal)
 
 	# Apply heal-over-time (HoT)
 	if hot_heal > 0 and hot_duration > 0:

@@ -229,3 +229,79 @@ definition tree into a real consumer.
 ### Verification
 - Full frame battery (14 suites: kv/srv/math/geometry) OK.
 - Lint battery (5 suites) OK -- includes charset + tabs on new files.
+
+## Trees made load-bearing: NPC memory + FriendsService social mirror (2026-09-20)
+
+### EnemyAI remembers players (memory tree)
+- `core/ai/enemy_ai.gd` now owns a MemoryTree at
+  `memory/enemies/<entity_id>`. `remember()` writes weighted event
+  memories (attacked/killed); `_update_known_threats()` keeps the top
+  16 by recency in `_known_threats` (player_id -> weight).
+- Targeting bias: `_check_for_targets()` prefers valid targets with
+  the highest remembered threat weight (grudge aggro) before falling
+  back to first-valid. Kills are remembered at weight 1.5, hits at 1.0.
+- Fixed two pre-existing parse bugs surfaced by --check-only:
+  `StatusEffectData.EffectType.BUFF` -> `.STEALTH` (BUFF never existed
+  in the enum) and Variant inference on `entity.attack_power`.
+- New `tests/test_ai_memory.gd` (10 PASS).
+
+### FriendsService backed by the social tree
+- `core/services/friends_service.gd` lazily instantiates a SocialTree
+  and mirrors every friend/block/ignore mutation into
+  `social/<player_id>/{friend,rival}/<other_id>` (`_mirror_edge`),
+  including reciprocal friend removal. In-memory dicts remain the hot
+  path; the tree is the durable frame-side view (same pattern as the
+  ZoneManager definition mirror).
+- New tree-backed accessors: `get_social_friend_ids()`,
+  `get_social_edge_count()`, and `verify_social_mirror()` (sync
+  report between memory dicts and tree).
+- New `tests/test_friends_social_tree.gd` (19 PASS).
+
+### Verification
+- Frame battery + integration suites + login/e2e + lint all green.
+
+## Full aggro system wired (2026-09-20)
+
+### Threat table becomes real (AggroComponent)
+- Fixed `transfer_threat_to` (checked `has_method("aggro_component")`
+  on a property -- always false) and `_decay_threat` (erased dict keys
+  mid-iteration; now collects then erases).
+- New capabilities: `taunt(tank, duration, sticky_threat)` tank grab
+  with force-locked target + sticky threat (no snap-back on expiry),
+  `taunt_resist` for bosses, `add_damage_threat` (per-type threat
+  modifiers for tank kits / enrage), `record_heal_threat`
+  (healer threat at 0.5x default), `scale_threat` (percentage aggro
+  dumps / feign death), negative-amount dumps floor at 0.
+- Taunt timing is delta-driven (testable, pause-respecting).
+
+### Damage/heal flows now generate threat
+- EventHub: added the missing `damage_dealt` signal that
+  `health_component.take_damage` was already emitting (latent runtime
+  error on every player damage event).
+- `Enemy.take_damage` now feeds the enemy's own threat table AND calls
+  `ai.on_damaged(source)` (grudge memory + engagement were previously
+  unreachable -- nothing ever called them).
+- `Enemy._ready` attaches an AggroComponent (component was 100%
+  orphaned before -- never instantiated anywhere).
+- `skill.gd` heal path generates heal threat on all in-combat enemies
+  within 20m of the heal.
+
+### EnemyAI: threat-driven switching + forgiveness + persistence
+- COMBAT state now follows `get_highest_threat_target()`; taunts hold
+  the lock. Damage threat recorded onto both combatant tables.
+- RETURN arrival decays all grudges by 0.5 (weights below 0.25 are
+  forgotten) -- leash now grants forgiveness, repeated offenders stay hot.
+- Memory persists via shared DictStore KV (`frame:enemy_memory:*`),
+  restored on `_ready`, re-saved every 30s and on tree exit. Grudges
+  survive restarts.
+
+### Systemic fix: DictStore shared fallback
+- `_ensure_store` created a per-instance memory fallback, silently
+  isolating every DictStore writer (permission_manager, faction_manager,
+  skill_academy, loot_service, zone state...). All instances now share
+  one static fallback backend until an AdapterRegistry is bound.
+
+### Tests
+- New `tests/test_aggro_system.gd` (33 PASS): switching, taunt
+  lock/expiry/resist, dumps, heal threat, modifiers, transfer fix,
+  decay, grudge decay, persistence.

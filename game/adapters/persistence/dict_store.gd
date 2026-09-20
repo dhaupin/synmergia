@@ -8,6 +8,10 @@ var _store: PersistenceStore = null
 var _expires: Dictionary = {}
 
 static var _adapter_registry = null
+# Shared fallback backend: all DictStore instances must see the same KV
+# data when no AdapterRegistry is available (tests / pre-boot). A
+# per-instance fallback silently isolated every writer.
+static var _shared_fallback: PersistenceStore = null
 
 static func set_adapter_registry(reg) -> void:
 	_adapter_registry = reg
@@ -17,15 +21,19 @@ func _ensure_store() -> void:
 		return
 	var reg = _adapter_registry
 	if reg == null:
-		# Fallback to memory store if registry not available yet
-		_store = MemoryPersistenceStore.new()
-		_store.open({})
+		# Fallback to shared memory store if registry not available yet
+		if _shared_fallback == null:
+			_shared_fallback = MemoryPersistenceStore.new()
+			_shared_fallback.open({})
+		_store = _shared_fallback
 		return
 	if reg and reg.has_method("get_persistence"):
 		_store = reg.get_persistence("default")
 	if _store == null:
-		_store = MemoryPersistenceStore.new()
-		_store.open({})
+		if _shared_fallback == null:
+			_shared_fallback = MemoryPersistenceStore.new()
+			_shared_fallback.open({})
+		_store = _shared_fallback
 		if reg and reg.has_method("register_persistence"):
 			reg.register_persistence("default", _store)
 

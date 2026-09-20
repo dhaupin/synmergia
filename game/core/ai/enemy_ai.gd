@@ -3,6 +3,12 @@
 extends Node
 class_name EnemyAI
 
+# Memory tree (frame primitive, arch §9): enemies remember who attacked
+# them and who they lost (fled from), and bias future targeting.
+const MemoryTreeScript = preload("res://core/frame/kv/memory_tree.gd")
+const MemorySchemaScript = preload("res://core/frame/kv/memory_schema.gd")
+const MAX_MEMORY_ENTRIES := 16
+
 
 enum AIState {
 	IDLE,
@@ -31,11 +37,142 @@ var _patrol_target: Vector3 = Vector3.ZERO
 var _patrol_wait_time: float = 0.0
 var _attack_timer: float = 0.0
 var _aggro_timer: float = 0.0
+var _memory_tree = null  # lazy MemoryTreeScript instance
+var _memory_agent_path := ""
+var _known_threats: Dictionary = {}  # player_id -> weight (remembered attackers)
 
 func _ready() -> void:
 	var entity: Entity = get_parent()
 	if entity:
 		_spawn_position = entity.global_position
+		_memory_agent_path = "memory/enemies/%s" % entity.entity_id
+		_restore_memory()
+		# Persist periodically so grudges survive restarts (mirrors the
+		# frame snapshot_store durability story; in-memory tree + durable KV).
+		_persist_timer = Timer.new()
+		_persist_timer.wait_time = PERSIST_INTERVAL_SEC
+		_persist_timer.one_shot = false
+		_persist_timer.timeout.connect(_persist_memory)
+		add_child(_persist_timer)
+		_persist_timer.start()
+	tree_exiting.connect(_persist_memory)
+
+const PERSIST_INTERVAL_SEC := 30.0
+const MEMORY_KV_KEY := "frame:enemy_memory:%s"
+var _persist_timer: Timer = null
+
+## Serialize the agent's memory subtree into a plain dictionary.
+func _memory_snapshot() -> Dictionary:
+	var tree = _get_memory_tree()
+	if tree == null or _memory_agent_path == "":
+		return {}
+	var snap: Dictionary = {}
+	for p in tree.list_memories(_memory_agent_path):
+		var mem: Dictionary = tree.get_memory(str(p))
+		snap[str(p)] = {"kind": mem.get("kind", "event"), "content": mem.get("content", {}), "weight": mem.get("weight", 1.0)}
+	return snap
+
+## Restore a previously persisted memory snapshot into the tree.
+func _restore_memory() -> void:
+	var tree = _get_memory_tree()
+	if tree == null or _memory_agent_path == "":
+		return
+	var store = _kv_store()
+	if store == null:
+		return
+	var key := MEMORY_KV_KEY % _memory_agent_path
+	if not store.has_key(key):
+		return
+	var snap: Variant = store.get_kv(key)
+	if snap is String:
+		snap = JSON.parse_string(str(snap))
+	if not snap is Dictionary:
+		return
+	var entries: Dictionary = snap
+	for path in entries.keys():
+		var e: Dictionary = entries[path]
+		tree.insert_memory(str(path), str(e.get("kind", "event")), e.get("content", {}), float(e.get("weight", 1.0)))
+	_update_known_threats(tree)
+
+## Write the current memory snapshot to the durable KV store.
+func _persist_memory() -> void:
+	var tree = _get_memory_tree()
+	if tree == null or _memory_agent_path == "":
+		return
+	var store = _kv_store()
+	if store == null:
+		return
+	var snap := _memory_snapshot()
+	var key := MEMORY_KV_KEY % _memory_agent_path
+	if snap.is_empty():
+		if store.has_key(key):
+			store.erase(key)
+		return
+	store.set_kv(key, snap)
+
+func _kv_store():
+	if _kv_store_ref != null:
+		return _kv_store_ref
+	if DictStoreScript:
+		_kv_store_ref = DictStoreScript.new()
+	return _kv_store_ref
+
+const DictStoreScript = preload("res://adapters/persistence/dict_store.gd")
+var _kv_store_ref = null
+
+func _get_memory_tree():
+	if _memory_tree != null:
+		return _memory_tree
+	if MemoryTreeScript:
+		_memory_tree = MemoryTreeScript.new()
+	return _memory_tree
+
+## Record an event in this enemy's memory tree (observation kind, weighted).
+func remember(event_key: String, content: Dictionary, weight: float) -> void:
+	var tree = _get_memory_tree()
+	if tree == null or _memory_agent_path == "":
+		return
+	tree.insert_memory(_memory_agent_path + "/events/" + event_key, "event", content, weight)
+	_update_known_threats(tree)
+
+## Load the remembered attacker weights into _known_threats (id -> weight).
+func _update_known_threats(tree) -> void:
+	_known_threats.clear()
+	var paths: Array = tree.list_by_kind(_memory_agent_path, "event")
+	var entries: Array = []
+	for p in paths:
+		var mem: Dictionary = tree.get_memory(str(p))
+		var content: Dictionary = mem.get("content", {})
+		var pid: String = str(content.get("player_id", ""))
+		if pid != "":
+			entries.append({"id": pid, "weight": float(mem.get("weight", 0.0)), "time": float(content.get("time", 0.0)), "path": str(p)})
+	# Keep only the most recent MAX_MEMORY_ENTRIES threat memories.
+	entries.sort_custom(func(a, b): return float(a["time"]) > float(b["time"]))
+	for i in range(mini(entries.size(), MAX_MEMORY_ENTRIES)):
+		_known_threats[entries[i]["id"]] = entries[i]["weight"]
+
+## Forgiveness: after a leash return completes, decay every remembered
+## grudge by GRUDGE_DECAY_FACTOR (weights below GRUDGE_FORGET_THRESHOLD
+## are forgotten entirely). Attackers who keep re-offending keep their
+## grudge hot because newer memories are written at full weight.
+const GRUDGE_DECAY_FACTOR := 0.5
+const GRUDGE_FORGET_THRESHOLD := 0.25
+
+func _decay_grudges() -> void:
+	var tree = _get_memory_tree()
+	if tree == null or _memory_agent_path == "":
+		return
+	var paths: Array = tree.list_by_kind(_memory_agent_path, "event")
+	for p in paths:
+		var mem: Dictionary = tree.get_memory(str(p))
+		var weight: float = float(mem.get("weight", 0.0))
+		var decayed: float = weight * GRUDGE_DECAY_FACTOR
+		if decayed < GRUDGE_FORGET_THRESHOLD:
+			tree.delete_memory(str(p))
+		else:
+			var content: Dictionary = mem.get("content", {})
+			tree.update_memory(str(p), "event", content, decayed)
+	_update_known_threats(tree)
 
 func _physics_process(delta: float) -> void:
 	match state:
@@ -64,6 +201,19 @@ func _check_for_targets() -> Entity:
 		Entity.EntityType.PLAYER
 	)
 
+	# Memory bias: prefer remembered attackers (grudge) -- highest weight first.
+	var best_target: Entity = null
+	var best_weight: float = 0.0
+	for target in nearby:
+		if not _is_valid_target(target):
+			continue
+		var weight: float = float(_known_threats.get(target.entity_id, 0.0))
+		if weight > best_weight:
+			best_weight = weight
+			best_target = target
+	if best_target != null:
+		return best_target
+
 	for target in nearby:
 		if _is_valid_target(target):
 			return target
@@ -78,7 +228,7 @@ func _is_valid_target(target: Entity) -> bool:
 	# Check if can see (stealth check)
 		# Stealth detection
 		if target.status_handler:
-			var stealth_effect = target.status_handler.get_effect_by_type(StatusEffectData.EffectType.BUFF, "stealth")
+			var stealth_effect = target.status_handler.get_effect_by_type(StatusEffectData.EffectType.STEALTH, "stealth")
 			if stealth_effect and stealth_effect.is_active():
 				# Check if this enemy can see stealth
 				var entity: Entity = get_parent()
@@ -228,6 +378,15 @@ func _update_combat(delta: float) -> void:
 		set_state(AIState.RETURN)
 		return
 
+	# Threat-based switching: while in combat, whoever sits on top of the
+	# threat table becomes the target (damage, heals, taunts all feed it).
+	# Taunts force-lock the table so the tank holds the enemy.
+	if entity.aggro_component:
+		var threat_target: Entity = entity.aggro_component.get_highest_threat_target()
+		if threat_target != null and threat_target != _target and is_instance_valid(threat_target):
+			if threat_target.entity_type == Entity.EntityType.PLAYER or _is_valid_target(threat_target):
+				_set_target(threat_target)
+
 	var dist: float = entity.global_position.distance_to(_target.global_position)
 
 	# Target out of range? Chase again
@@ -252,13 +411,16 @@ func _perform_attack() -> void:
 	if not entity:
 		return
 
-	# Add threat
-	if entity.aggro_component and _target.aggro_component:
-		_target.aggro_component.add_threat(entity, 100)
-
 	# Deal damage
-	var damage := entity.attack_power
+	var damage: float = entity.attack_power
 	_target.health_component.take_damage(damage, entity)
+
+	# Damage threat onto OUR OWN table (drives target switching), and the
+	# target's table records damage taken from us (player threat meters).
+	if entity.aggro_component:
+		entity.aggro_component.add_damage_threat(_target, int(damage))
+	if "aggro_component" in _target and _target.aggro_component != null:
+		_target.aggro_component.add_damage_threat(entity, int(damage))
 
 ## FLEE: Run away from target
 func _update_flee(delta: float) -> void:
@@ -287,6 +449,7 @@ func _update_return(delta: float) -> void:
 
 	# Back at spawn?
 	if dist < 1.0:
+		_decay_grudges()
 		set_state(AIState.IDLE)
 		return
 
@@ -321,8 +484,25 @@ func on_damaged(source: Entity) -> void:
 	if state == AIState.IDLE or state == AIState.PATROL:
 		# Become aware
 		engage_target(source)
+	# Remember who hurt us -- keying by tick-unique id keeps every hit
+	# as its own memory entry; weights sum effectively via recall sort.
+	if source and source.entity_type == Entity.EntityType.PLAYER:
+		remember("hit_%s_%d" % [source.entity_id, Time.get_ticks_msec()], {
+			"player_id": source.entity_id,
+			"player_name": source.display_name,
+			"action": "attacked",
+			"time": Time.get_unix_time_from_system(),
+		}, 1.0)
 
 ## Handle target death
 func on_target_death() -> void:
+	# Record the kill in memory before releasing the target.
+	if _target and _target.entity_type == Entity.EntityType.PLAYER:
+		remember("kill_%s_%d" % [_target.entity_id, Time.get_ticks_msec()], {
+			"player_id": _target.entity_id,
+			"player_name": _target.display_name,
+			"action": "killed",
+			"time": Time.get_unix_time_from_system(),
+		}, 1.5)
 	_clear_target()
 	set_state(AIState.RETURN)

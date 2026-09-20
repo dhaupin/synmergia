@@ -9,10 +9,17 @@ signal threat_changed(target: Entity, threat_amount: int)
 signal threat_overflow(source: Entity)
 signal out_of_combat()
 
+## Threat multipliers per damage type. Set on the component to model
+## tank kits (e.g. {"physical": 0.5} halves physical threat taken) or
+## enrage mechanics (multipliers above 1.0).
+@export var threat_modifiers: Dictionary = {}
+
 @export var aggro_range: float = 15.0  # Detection radius
 @export var threat_decay_rate: float = 1.0  # Threat lost per second when out of combat
 @export var max_threat_per_target: int = 10000
 @export var threat_transfer_on_death: bool = true
+@export var heal_threat_factor: float = 0.5  # Heal threat = heal amount * factor
+@export var taunt_resist: bool = false  # Bosses may ignore taunts
 
 var _threat_table: Dictionary = {}  # Entity -> threat amount
 var _current_target: Entity = null
@@ -20,10 +27,25 @@ var _is_in_combat: bool = false
 var _out_of_combat_timer: float = 0.0
 @export var out_of_combat_delay: float = 5.0  # Seconds before out of combat
 
+# Taunt state (tank grab). _taunt_source is force-locked as target until
+# the remaining seconds tick to zero (driven by _process delta, so it
+# respects pause/testing). While taunted, _update_target() keeps the source.
+var _taunt_source: Entity = null
+var _taunt_remaining_sec: float = 0.0
+
 func _ready() -> void:
 	pass
 
 func _process(delta: float) -> void:
+	# Expire an active taunt
+	if _taunt_source != null:
+		_taunt_remaining_sec -= delta
+		if not is_instance_valid(_taunt_source) or _taunt_remaining_sec <= 0.0:
+			var expired: Entity = _taunt_source
+			_taunt_source = null
+			_update_target()
+			target_changed.emit(expired, _current_target)
+
 	if not _is_in_combat:
 		return
 
@@ -34,31 +56,86 @@ func _process(delta: float) -> void:
 	else:
 		_decay_threat(delta)
 
-## Add threat for a target
-func add_threat(target: Entity, amount: int) -> void:
+## Add threat for a target. amount may be negative for aggro dumps
+## (e.g. feign-death debuffs); threat floors at 0.
+func add_threat(target: Entity, amount: int, damage_type: String = "") -> void:
 	if not is_instance_valid(target):
 		return
+
+	# Apply per-damage-type threat modifiers (tank kits / enrage).
+	var modified: int = amount
+	if not threat_modifiers.is_empty() and damage_type != "":
+		if threat_modifiers.has(damage_type):
+			modified = int(round(float(amount) * float(threat_modifiers[damage_type])))
 
 	# Initialize threat entry if needed
 	if not _threat_table.has(target):
 		_threat_table[target] = 0
 
-	# Add threat
-	_threat_table[target] = min(_threat_table[target] + amount, max_threat_per_target)
+	# Add threat (negative amounts allowed for dumps; floor at 0)
+	_threat_table[target] = clampi(_threat_table[target] + modified, 0, max_threat_per_target)
 
 	# Enter combat if this is the first significant threat
-	if not _is_in_combat and amount > 0:
+	if not _is_in_combat and modified > 0:
 		_enter_combat(target)
 
 	threat_changed.emit(target, _threat_table[target])
 
-	# Update target if needed
+	# Update target if needed (respects active taunts)
 	_update_target()
 
-## Reduce threat on a target (taunt removal, etc.)
+## Record a damaging hit: applies the damage-type modifier to the table.
+## CombatSystem/enemy code should call this instead of add_threat so the
+## damage type drives the modifier lookup.
+func add_damage_threat(attacker: Entity, amount: int, damage_type: String = "physical") -> void:
+	add_threat(attacker, amount, damage_type)
+
+## Record a heal: nearby enemies gain threat on the healer proportional
+## to the heal amount (scaled by heal_threat_factor).
+func record_heal_threat(healer: Entity, heal_amount: int) -> void:
+	if heal_threat_factor <= 0.0 or not is_instance_valid(healer):
+		return
+	var threat: int = int(round(float(heal_amount) * heal_threat_factor))
+	if threat > 0:
+		add_threat(healer, threat)
+
+## Taunt (tank grab): force-lock target for duration_msec. While the
+## taunt is active, _update_target() will not switch away. A taunting
+## tank also gets enough threat to stay on top after the taunt expires.
+func taunt(tank: Entity, duration_msec: int = 3000, sticky_threat: int = 1000) -> bool:
+	if taunt_resist or not is_instance_valid(tank):
+		return false
+	var was_target: Entity = _current_target
+	_taunt_source = tank
+	_taunt_remaining_sec = float(duration_msec) / 1000.0
+	# Sticky threat: place the tank at the top of the table so the
+	# switch-back after expiry feels natural, not a snap to second place.
+	if not _threat_table.has(tank):
+		_threat_table[tank] = 0
+	var top: Entity = get_highest_threat_target()
+	if top != null and top != tank:
+		_threat_table[tank] = mini(get_threat(top) + sticky_threat, max_threat_per_target)
+	_is_in_combat = true
+	_out_of_combat_timer = 0.0
+	_set_target(tank)
+	target_changed.emit(was_target, tank)
+	return true
+
+## True while a taunt force-locks the target.
+func is_taunted() -> bool:
+	return _taunt_source != null
+
+## Reduce threat on a target (taunt removal, aggro dumps, etc.)
 func reduce_threat(target: Entity, amount: int) -> void:
 	if _threat_table.has(target):
-		_threat_table[target] = max(0, _threat_table[target] - amount)
+		_threat_table[target] = maxi(0, _threat_table[target] - amount)
+		threat_changed.emit(target, _threat_table[target])
+
+## Multiply a target's threat by a fraction (percentage aggro dumps,
+## e.g. 0.5 = lose half your threat). Floors at 0.
+func scale_threat(target: Entity, factor: float) -> void:
+	if _threat_table.has(target):
+		_threat_table[target] = int(float(_threat_table[target]) * clampf(factor, 0.0, 1.0))
 		threat_changed.emit(target, _threat_table[target])
 
 ## Remove all threat from a target
@@ -70,6 +147,7 @@ func clear_threat(target: Entity) -> void:
 ## Clear all threat
 func clear_all_threat() -> void:
 	_threat_table.clear()
+	_taunt_source = null
 	_set_target(null)
 
 ## Get highest threat target
@@ -107,6 +185,11 @@ func _set_target(new_target: Entity) -> void:
 		target_changed.emit(old, new_target)
 
 func _update_target() -> void:
+	# While taunted, the tank keeps the enemy locked.
+	if _taunt_source != null and is_instance_valid(_taunt_source):
+		if _current_target != _taunt_source:
+			_set_target(_taunt_source)
+		return
 	var new_target := get_highest_threat_target()
 	_set_target(new_target)
 
@@ -124,23 +207,30 @@ func _end_combat() -> void:
 	_is_in_combat = false
 	_out_of_combat_timer = 0.0
 	_threat_table.clear()
+	_taunt_source = null
 	_set_target(null)
 	out_of_combat.emit()
 
 ## Decay threat over time (when out of combat)
 func _decay_threat(delta: float) -> void:
 	var decay_amount := int(threat_decay_rate * delta)
+	if decay_amount <= 0:
+		return
 
+	var to_remove: Array = []
 	for target in _threat_table:
 		if is_instance_valid(target):
-			_threat_table[target] = max(0, _threat_table[target] - decay_amount)
-
-			# Remove targets with 0 threat
+			_threat_table[target] = maxi(0, _threat_table[target] - decay_amount)
 			if _threat_table[target] <= 0:
-				_threat_table.erase(target)
+				to_remove.append(target)
+		else:
+			to_remove.append(target)
+
+	for target in to_remove:
+		_threat_table.erase(target)
 
 	# Update target if current has 0 threat
-	if _current_target and _threat_table.get(_current_target, 0) <= 0:
+	if _current_target and not _threat_table.has(_current_target):
 		_update_target()
 
 ## Transfer threat to another source (on death, etc.)
@@ -150,9 +240,11 @@ func transfer_threat_to(source: Entity) -> void:
 
 	# Give all current threat to the new source
 	for target in _threat_table:
-		if is_instance_valid(target) and target.has_method("aggro_component"):
-			var threat := _threat_table[target]
-			target.aggro_component.add_threat(source, threat)
+		if is_instance_valid(target):
+			var threat: int = _threat_table[target]
+			# aggro_component is a property (Node), not a method.
+			if "aggro_component" in target and target.aggro_component != null:
+				target.aggro_component.add_threat(source, threat)
 
 ## Check if entity is in aggro range
 func is_in_aggro_range(position: Vector3, target_position: Vector3) -> bool:
@@ -170,6 +262,7 @@ func get_threat_info() -> Dictionary:
 	var info: Dictionary = {
 		"in_combat": _is_in_combat,
 		"current_target": _current_target.name if _current_target else null,
+		"taunted": is_taunted(),
 		"threats": []
 	}
 
