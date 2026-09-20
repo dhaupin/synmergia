@@ -74,7 +74,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			if child is Button:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -82,7 +82,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	for label in [_compass_label, _zone_label, _coords_label, _time_label]:
 		if label and is_instance_valid(label):
 			var scale = UIStyles.get_text_scale()
-			var current_size := label.get_theme_font_size("font_size")
+			var current_size: int = label.get_theme_font_size("font_size")
 			if current_size > 0:
 				label.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -225,8 +225,6 @@ func _setup_ui() -> void:
 	_zoom_slider.offset_left = 20
 	_zoom_slider.offset_right = -20
 	_zoom_slider.focus_mode = Control.FOCUS_ALL
-	_zoom_slider.
-	_zoom_slider.
 	_zoom_slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	_zoom_slider.value_changed.connect(_on_zoom_changed)
 	panel.add_child(_zoom_slider)
@@ -405,8 +403,9 @@ func _open_quest_tracker(position: Vector3) -> void:
 			quest_track_requested.emit(quests[0].get("id", ""))
 
 func _open_world_map(position: Vector3) -> void:
-	if WorldMap and WorldMap.has_method("show_position"):
-		WorldMap.show_position(position)
+	# WorldMap is a class_name singleton (static instance), not an autoload.
+	if WorldMap.instance and WorldMap.instance.has_method("show_position"):
+		WorldMap.instance.show_position(position)
 
 func _connect_signals() -> void:
 	if not ZoneManager:
@@ -418,8 +417,10 @@ func _connect_signals() -> void:
 		if not ZoneManager.player_entered_zone.is_connected(_on_player_entered_zone):
 			ZoneManager.player_entered_zone.connect(_on_player_entered_zone)
 
-	if TimeOfDay and TimeOfDay.has_signal("time_changed"):
-		TimeOfDay.time_changed.connect(_on_time_changed)
+	# Time of day comes from WorldService (no TimeOfDay service exists).
+	if WorldService and WorldService.has_signal("time_changed"):
+		if not WorldService.time_changed.is_connected(_on_time_changed):
+			WorldService.time_changed.connect(_on_time_changed)
 
 	if EntityService and EntityService.has_signal("entity_spawned"):
 		EntityService.entity_spawned.connect(_on_entity_spawned)
@@ -788,9 +789,9 @@ func update_marker_position(entity_id: String, position: Vector3) -> void:
 func set_zoom(level: float) -> void:
 	# Snap to nearest discrete zoom level
 	var closest_index := 0
-	var closest_diff := abs(ZOOM_LEVELS[0] - level)
+	var closest_diff: float = abs(ZOOM_LEVELS[0] - level)
 	for i in range(1, ZOOM_LEVELS.size()):
-		var diff := abs(ZOOM_LEVELS[i] - level)
+		var diff: float = abs(ZOOM_LEVELS[i] - level)
 		if diff < closest_diff:
 			closest_diff = diff
 			closest_index = i

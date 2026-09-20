@@ -5,19 +5,26 @@
 
 extends SceneTree
 
-const FrameServiceScript = preload("res://core/services/frame_service.gd")
+# --script mode cannot resolve autoload identifiers at preload/parse time
+# (GameLog inside frame_service.gd), so load FrameService at runtime instead.
+var FrameServiceScript = null
 const T3Script = preload("res://core/frame/kv/t3.gd")
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 
 var FrameService
 var ok: bool = true
 
+func _init() -> void:
+	pass
+
+# NOTE: _init runs before _initialize in SceneTree scripts, so all test
+# execution lives in _initialize (same pattern as test_login_flow.gd).
 func _initialize() -> void:
 	FrameService = root.get_node_or_null("FrameService")
 	if FrameService == null:
+		if FrameServiceScript == null:
+			FrameServiceScript = load("res://core/services/frame_service.gd")
 		FrameService = FrameServiceScript.new()
-
-func _init() -> void:
 	_run_tests()
 	quit(0 if ok else 1)
 
@@ -80,27 +87,25 @@ func _test_state_tree_cleared_on_exit() -> void:
 func _test_nested_frames_cleared_in_order() -> void:
 	var player_id = "mem_test_3"
 	
-	# Enter nested frames
+	# Per prd-frame-authority.md US-001, a second enter_frame while a frame is
+	# active is rejected (frames do not nest). Verify the rejected enter leaves
+	# the outer frame's trees untouched, then that the outer exit clears them.
 	FrameService.enter_frame(player_id, "outer_frame")
 	var outer_seed = FrameService.get_seed_tree(player_id)
 	var outer_state = FrameService.get_state_tree(player_id)
 	outer_seed.insert("/outer", {"data": 1}, Resource.new())
 	outer_state.insert_state("/outer", player_id, "test", {"v": 1})
 	
-	FrameService.enter_frame(player_id, "inner_frame")
-	var inner_seed = FrameService.get_seed_tree(player_id)
-	var inner_state = FrameService.get_state_tree(player_id)
-	inner_seed.insert("/inner", {"data": 2}, Resource.new())
-	inner_state.insert_state("/inner", player_id, "test", {"v": 2})
+	var inner_result = FrameService.enter_frame(player_id, "inner_frame")
+	_assert(inner_result == false, "second enter_frame rejected while in frame")
+	_assert(FrameService.get_current_frame_id(player_id) == "outer_frame", "still in outer frame after rejected enter")
 	
-	# Exit inner frame - inner trees should be cleared
-	FrameService.exit_frame(player_id)
-	var current_seed = FrameService.get_seed_tree(player_id)
-	var current_state = FrameService.get_state_tree(player_id)
-	_assert(current_seed == outer_seed, "outer seed_tree restored after inner exit")
-	_assert(current_state == outer_state, "outer state_tree restored after inner exit")
+	var seed_after_reject = FrameService.get_seed_tree(player_id)
+	var state_after_reject = FrameService.get_state_tree(player_id)
+	_assert(seed_after_reject == outer_seed, "outer seed_tree untouched by rejected enter")
+	_assert(state_after_reject == outer_state, "outer state_tree untouched by rejected enter")
 	
-	# Exit outer frame - outer trees should be cleared
+	# Exit the outer frame - trees should be cleared
 	FrameService.exit_frame(player_id)
 	_assert(FrameService.get_seed_tree(player_id) == null, "seed_tree null after outer exit")
 	_assert(FrameService.get_state_tree(player_id) == null, "state_tree null after outer exit")
@@ -184,18 +189,19 @@ func _test_state_tree_apply_full_snapshot() -> void:
 	var root_after = new_state_tree.root_hash()
 	_assert(root_after == root_before, "Applied snapshot root matches original root")
 	
-	# Verify data is accessible
+	# Verify data is accessible. Stored values are {type, entity_id, payload}
+	# per insert_state's contract.
 	var entity1 = new_state_tree.get_state("/world/entity_1")
-	_assert(entity1.has("position"), "Entity 1 data preserved")
-	_assert(entity1.position.x == 100, "Entity 1 x position correct")
+	_assert(entity1.get("type", "") == "position", "Entity 1 data preserved")
+	_assert(entity1.get("payload", {}).get("x", 0) == 100, "Entity 1 x position correct")
 	
 	var entity2 = new_state_tree.get_state("/world/entity_2")
-	_assert(entity2.has("position"), "Entity 2 data preserved")
-	_assert(entity2.position.x == 300, "Entity 2 x position correct")
+	_assert(entity2.get("type", "") == "position", "Entity 2 data preserved")
+	_assert(entity2.get("payload", {}).get("x", 0) == 300, "Entity 2 x position correct")
 	
 	var chunk = new_state_tree.get_state("/world/chunk_0_0")
-	_assert(chunk.has("terrain"), "Chunk data preserved")
-	_assert(chunk.terrain.height == 50, "Chunk height correct")
+	_assert(chunk.get("type", "") == "terrain", "Chunk data preserved")
+	_assert(chunk.get("payload", {}).get("height", 0) == 50, "Chunk height correct")
 
 
 func _test_t3_full_scope_snapshot() -> void:

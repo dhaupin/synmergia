@@ -1,8 +1,8 @@
 ## WaypointUI - UI for managing player waypoints
 ## Handles creation, editing, deletion, and display of waypoints
 extends Control
+# NOTE: WaypointService is an autoload; reference it directly.
 
-const WaypointService = preload("res://core/services/waypoint_service.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 ## Security: Escape text to prevent BBCode injection
@@ -305,7 +305,7 @@ func _create_waypoint_row(wp_data: Dictionary) -> Control:
 	# Activate button
 	var active_btn := Button.new()
 	var wp_id: String = wp_data.get("id", "")
-	var is_active := WaypointService.get_active_waypoint(str(PlayerManager.get_local_player_id())).get("id", "") == wp_id
+	var is_active: bool = WaypointService.get_active_waypoint(str(PlayerManager.get_local_player_id())).get("id", "") == wp_id
 	active_btn.text = "" if is_active else ""
 	active_btn.pressed.connect(func(): _on_activate_pressed(wp_id))
 	hbox.add_child(active_btn)

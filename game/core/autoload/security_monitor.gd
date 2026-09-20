@@ -1,6 +1,7 @@
 ## SecurityMonitor - Centralized security event monitoring
 ## Listens to security events and logs/alerts appropriately
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).

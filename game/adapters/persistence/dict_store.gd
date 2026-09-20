@@ -44,13 +44,14 @@ func get_value(key: String) -> Variant:
 	if _is_expired(key):
 		erase(key)
 		return null
-	var rows = _store.query("SELECT value FROM kv WHERE key = $1", [key])
-	if rows.is_empty():
+	# Route through the KV batch API, not the SQL shim: the SQL path
+	# depends on per-backend dialect support (parameterized WHERE on the
+	# kv table), while set_many/get_many is the portable interface.
+	var rows: Dictionary = _store.get_many([key])
+	var raw = rows.get(key)
+	if raw == null or str(raw) == "":
 		return null
-	var raw = rows[0].get("value", "")
-	if raw == "":
-		return null
-	var parsed = JSON.parse_string(raw)
+	var parsed = JSON.parse_string(str(raw))
 	return parsed
 
 func get_kv(key: String, default: Variant = null) -> Variant:
@@ -87,8 +88,8 @@ func has_key(key: String) -> bool:
 	if _is_expired(key):
 		erase(key)
 		return false
-	var rows = _store.query("SELECT 1 FROM kv WHERE key = $1", [key])
-	return not rows.is_empty()
+	var rows: Dictionary = _store.get_many([key])
+	return rows.get(key) != null
 
 func has(key: String) -> bool:
 	return has_key(key)
@@ -121,28 +122,38 @@ func set_batch(entries: Dictionary) -> void:
 	_ensure_store()
 	if _store == null:
 		return
-	# Use underlying store's set_many if available
+	# Serialize exactly like set_value so every backend receives JSON
+	# strings and reads parse back uniformly.
+	var encoded: Dictionary = {}
+	for key in entries.keys():
+		var value = entries[key]
+		if value is Dictionary and not value.is_empty():
+			encoded[key] = JSON.stringify(value)
+			_expires[key] = 0
 	if _store.has_method("set_many"):
-		_store.set_many(entries)
+		_store.set_many(encoded)
 	else:
-		for key in entries.keys():
-			var value = entries[key]
-			if value is Dictionary and not value.is_empty():
-				set_value(key, value)
-			else:
-				erase(key)
+		for key in encoded.keys():
+			set_value(key, JSON.parse_string(encoded[key]))
+	# Empty or non-dictionary values erase the key (set_batch contract).
+	for key in entries.keys():
+		if not encoded.has(key):
+			erase(key)
 
 
 func get_many(keys: Array) -> Dictionary:
 	_ensure_store()
 	if _store == null:
 		return {}
-	# Use underlying store's get_many if available
-	if _store.has_method("get_many"):
-		return _store.get_many(keys)
 	var result: Dictionary = {}
-	for key in keys:
-		result[key] = get_value(key)
+	if _store.has_method("get_many"):
+		var raw: Dictionary = _store.get_many(keys)
+		for key in keys:
+			var v = raw.get(key)
+			result[key] = JSON.parse_string(str(v)) if v != null and str(v) != "" else null
+	else:
+		for key in keys:
+			result[key] = get_value(key)
 	return result
 
 

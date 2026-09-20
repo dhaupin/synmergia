@@ -63,6 +63,18 @@ func rebuild_rollup(account_id: String) -> Dictionary:
 		if char_id == "":
 			continue
 
+		# Per-character rollup entry must exist before field writes; the
+		# characters dict starts empty in _empty_rollup.
+		if not rollup.characters.has(char_id):
+			rollup.characters[char_id] = {
+				"playtime": 0,
+				"gold": 0,
+				"level": 1,
+				"class": "",
+				"species": "",
+				"achievements": 0
+			}
+
 		# Character playtime
 		var playtime: int = char_data.get("playtime", 0)
 		rollup.total_playtime += playtime
@@ -249,7 +261,7 @@ func get_rollup_summary(account_id: String) -> Dictionary:
 		"total_achievements": rollup.total_achievements,
 		"character_count": rollup.character_count,
 		"highest_level": rollup.highest_level,
-		"average_level": rollup.total_levels / rollup.character_count if rollup.character_count > 0 else 0,
+		"average_level": rollup.total_levels / float(rollup.character_count) if rollup.character_count > 0 else 0.0,
 		"account_vault_gold": rollup.account_vault_gold,
 		"account_vault_items": rollup.account_vault_items,
 		"last_updated": rollup.last_updated

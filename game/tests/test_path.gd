@@ -5,11 +5,11 @@ func _init() -> void:
 	if d:
 		print("res://adapters/persistence/ exists")
 		print("  contents:", d.get_current_dir())
-		for e in d.get_list():
+		for e in d.get_files():
 			print("   -", e)
 	else:
 		print("res://adapters/persistence/ NOT accessible")
 	var d2 = DirAccess.open("res://tests/")
 	if d2:
-		print("res://tests/ contents:", d2.get_list())
+		print("res://tests/ contents:", d2.get_files())
 	quit(0)

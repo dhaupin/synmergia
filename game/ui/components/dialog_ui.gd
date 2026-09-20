@@ -3,7 +3,7 @@
 ## Extends UIPanel with bottom-anchored positioning
 extends "res://ui/components/ui_panel.gd"
 class_name DialogUI
-const DialogService = preload("res://core/services/dialog_service.gd")
+# NOTE: DialogService is an autoload; reference it directly.
 
 ## Dialog state
 var _current_npc: String = ""

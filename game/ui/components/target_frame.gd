@@ -26,6 +26,7 @@ var _interruptible_indicator: TextureRect
 
 ## Target data
 var _target_id: String = ""
+var _target_schema_id: String = "enemy"
 var _current_hp: int = 100
 var _max_hp: int = 100
 var _current_mp: int = 50
@@ -69,7 +70,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	var scale = UIStyles.get_text_scale()
 	for label in [_name_label, _level_label, _class_label, _guild_label, _cast_label]:
 		if label and is_instance_valid(label):
-			var current_size := label.get_theme_font_size("font_size")
+			var current_size: int = label.get_theme_font_size("font_size")
 			if current_size > 0:
 				label.add_theme_font_size_override("font_size", int(current_size * scale))
 
@@ -273,23 +274,31 @@ func _connect_signals() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			# Left click - target the entity
-			if _target_id != "":
-				if TargetingManager:
-					TargetingManager.set_target(_target_id)
+			# Left click - re-target with the entity's schema type
+			if _target_id != "" and TargetingManager:
+				TargetingManager.set_target(_target_id, _target_schema_id)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			# Right click - show action menu
 			if _target_id != "" and ActionMenu:
 				var action_menu: ActionMenu = ActionMenu.new()
 				add_child(action_menu)
-				var target_data := _target_effects.get("target_data", {})
-				var target_type := target_data.get("entity_type", Entity.EntityType.ENEMY)
+				var target_data: Dictionary = _target_effects.get("target_data", {})
+				var target_type: int = target_data.get("entity_type", Entity.EntityType.ENEMY)
 				action_menu.show_menu(get_global_mouse_position(), _target_id, target_type)
 
 func set_target(target) -> void:
 	if target == null:
 		clear_target()
 		return
+	
+	var schema_id: String = "enemy"
+	if target and "entity_type" in target:
+		match target.entity_type:
+			Entity.EntityType.PLAYER:
+				schema_id = "player"
+			Entity.EntityType.NPC:
+				schema_id = "npc"
+	_target_schema_id = schema_id
 
 	_target_id = target.entity_id if target and "entity_id" in target else ""
 	if _target_id.is_empty():
@@ -325,8 +334,8 @@ func _refresh_effects() -> void:
 	_clear_effects(_debuff_container)
 	
 	for effect_id in _target_effects:
-		var effect := _target_effects[effect_id]
-		var is_debuff := effect.get("is_debuff", false)
+		var effect: Dictionary = _target_effects[effect_id]
+		var is_debuff: bool = effect.get("is_debuff", false)
 		var container := _debuff_container if is_debuff else _buff_container
 		_add_effect_icon(container, effect)
 
@@ -357,10 +366,10 @@ func _add_effect_icon(container: HBoxContainer, effect: Dictionary) -> void:
 	icon.add_child(timer)
 
 func _build_effect_tooltip(effect: Dictionary) -> String:
-	var name := effect.get("name", "Unknown Effect")
-	var desc := effect.get("description", "")
-	var remaining := effect.get("remaining", 0)
-	var stack := effect.get("stack", 1)
+	var name: String = effect.get("name", "Unknown Effect")
+	var desc: String = effect.get("description", "")
+	var remaining: float = effect.get("remaining", 0)
+	var stack: int = effect.get("stack", 1)
 	var text := "[b]%s[/b]\n" % name
 	if stack > 1:
 		text += "Stack: %d\n" % stack
@@ -392,8 +401,8 @@ func _update_display(data: Dictionary) -> void:
 		_level_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
 
 	# Class icon and label
-	var char_class_name := data.get("class", "")
-	var class_icon_path := data.get("class_icon", "")
+	var char_class_name: String = data.get("class", "")
+	var class_icon_path: String = data.get("class_icon", "")
 	if char_class_name != "":
 		_class_label.text = char_class_name
 		if class_icon_path != "":
@@ -566,11 +575,11 @@ func _update_effect_timers(delta: float) -> void:
 				var timer: Label = child.get_node_or_null("Timer")
 				if timer:
 					# Use tooltip text to find matching effect (name is in tooltip)
-					var tooltip_name := child.tooltip_text.get_slice("[b]", 1).get_slice("[/b]", 0)
+					var tooltip_name: String = str(child.tooltip_text).get_slice("[b]", 1).get_slice("[/b]", 0)
 					for eid in _target_effects:
-						var effect := _target_effects[eid]
+						var effect: Dictionary = _target_effects[eid]
 						if effect.get("name", "") == tooltip_name:
-							var remaining := effect.get("remaining", 0) - delta
+							var remaining: float = effect.get("remaining", 0) - delta
 							effect.remaining = remaining
 							if remaining <= 0:
 								_target_effects.erase(eid)

@@ -98,6 +98,19 @@ func _init(
 		_block_duration, _max_failed_attempts, _max_connections_per_ip
 	])
 
+## Runtime configuration entry point for autoload wiring (autoloads cannot
+## receive _init args from project.godot). Call after the node is ready.
+func configure(block_duration: int = -1, max_failed_attempts: int = -1, max_connections_per_ip: int = -1) -> void:
+	if block_duration > 0:
+		_block_duration = block_duration
+	if max_failed_attempts > 0:
+		_max_failed_attempts = max_failed_attempts
+	if max_connections_per_ip > 0:
+		_max_connections_per_ip = max_connections_per_ip
+	GameLog.debug("AppFirewall: Configured (block=%ds, max_attempts=%d, max_conn=%d)" % [
+		_block_duration, _max_failed_attempts, _max_connections_per_ip
+	])
+
 func _ready() -> void:
 	# Initialize RulesEngine
 	_rules_engine = RulesEngineScript.new()

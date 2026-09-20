@@ -1,8 +1,9 @@
 ## ChatService - Chat channels and messaging
 ## Handles all chat channels, filters, commands, and channel permissions
 extends Node
-const CharacterData = preload("res://core/schemas/character_data.gd")
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
+const CharacterData = preload("res://core/schemas/character_data.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")

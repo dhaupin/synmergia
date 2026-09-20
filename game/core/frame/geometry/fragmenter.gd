@@ -90,12 +90,16 @@ func weld(fragments: Array) -> String:
 		if not f.has("data"):
 			push_error("Fragmenter: fragment missing 'data' key, skipping")
 			continue
-		# data is PackedByteArray (stored directly in fragment) or String (legacy)
+		# data is PackedByteArray (stored directly in fragment) or String
+		# (legacy plain-text shard: XOR bytes are rarely valid UTF-8, so string
+		# fragments can only ever carry plain text and bypass XOR decoding).
 		var decoded: Variant = f.data
+		var needs_xor: bool = true
 		if decoded is PackedByteArray:
 			pass  # Already correct type
 		elif decoded is String:
 			decoded = decoded.to_utf8_buffer()
+			needs_xor = false
 		else:
 			push_error("Fragmenter: invalid data type for shard, skipping")
 			continue
@@ -111,22 +115,24 @@ func weld(fragments: Array) -> String:
 				push_error("Fragmenter: checksum mismatch for shard %d (expected %s, got %d)" % [shard, str(f.checksum), computed])
 				continue
 
-		for j in range(decoded.size()):
-			restored[j] = decoded[j] ^ ((shard + 1) * 137 >> 5)
+		if needs_xor:
+			for j in range(decoded.size()):
+				restored[j] = decoded[j] ^ ((shard + 1) * 137 >> 5)
+		else:
+			restored = decoded
 
 		buffers.append_array(restored)
 
 	return buffers.get_string_from_utf8()
 
 
-func _compare_shard(a: Dictionary, b: Dictionary) -> int:
+func _compare_shard(a: Dictionary, b: Dictionary) -> bool:
+	# Godot 4 sort_custom expects a bool: true means a sorts before b.
+	# The old -1/0/1 comparator made every nonzero return truthy, so higher
+	# shards could sort before lower ones and welds came back scrambled.
 	var a_shard: int = a.shard if a.has("shard") else 0
 	var b_shard: int = b.shard if b.has("shard") else 0
-	if a_shard < b_shard:
-		return -1
-	elif a_shard > b_shard:
-		return 1
-	return 0
+	return a_shard < b_shard
 
 
 func itoa(n: int, radix: int) -> String:

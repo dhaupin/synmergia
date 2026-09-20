@@ -1,9 +1,10 @@
 ## TitleService - Player title management
 ## Handles title data, unlocking, equipping, and display
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const TitleData = preload("res://core/schemas/title_data.gd")
-const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const _kv_prefix := "title:player:"
 

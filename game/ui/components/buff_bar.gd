@@ -54,7 +54,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			if child is Button:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -110,8 +110,6 @@ func _setup_ui() -> void:
 	player_only_btn.add_theme_font_size_override("font_size", 9)
 	player_only_btn.tooltip_text = "Show only player-cast effects"
 	player_only_btn.focus_mode = Control.FOCUS_ALL
-	player_only_btn.
-	player_only_btn.
 	player_only_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	player_only_btn.toggled.connect(_on_player_only_toggled)
 	_filter_bar.add_child(player_only_btn)
@@ -124,8 +122,6 @@ func _setup_ui() -> void:
 	category_btn.add_theme_font_size_override("font_size", 9)
 	category_btn.tooltip_text = "Filter by effect type"
 	category_btn.focus_mode = Control.FOCUS_ALL
-	category_btn.
-	category_btn.
 	category_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 	_filter_bar.add_child(category_btn)
 
@@ -223,13 +219,13 @@ func _on_category_selected(id: int) -> void:
 func _should_show_effect(effect: Dictionary) -> bool:
 	# Check player-only filter
 	if _show_only_player_cast:
-		var is_player_cast := effect.get("is_player_cast", false)
+		var is_player_cast: bool = effect.get("is_player_cast", false)
 		if not is_player_cast:
 			return false
 	
 	# Check category filter
 	if _filter_category != EffectCategory.ALL:
-		var effect_category := effect.get("category", EffectCategory.MAGIC)
+		var effect_category: int = effect.get("category", EffectCategory.MAGIC)
 		if effect_category != _filter_category:
 			return false
 	
@@ -310,7 +306,7 @@ func _update_icon_timer(effect: Dictionary, remaining: float) -> void:
 			var timer: Label = child.get_node_or_null("Timer")
 			if timer:
 				# Match by tooltip name
-				var tooltip_name := child.tooltip_text.get_slice("[b]", 1).get_slice("[/b]", 0)
+				var tooltip_name: String = str(child.tooltip_text).get_slice("[b]", 1).get_slice("[/b]", 0)
 				if tooltip_name == effect.get("name", ""):
 					timer.text = UIStyles.format_time_remaining(remaining)
 					# Pulse if <5s remaining
@@ -418,11 +414,11 @@ func _flash_new_effect(icon: TextureRect) -> void:
 	tween.tween_property(icon, "modulate", Color(1, 1, 1, 1), 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 func _build_effect_tooltip(effect: Dictionary) -> String:
-	var name := effect.get("name", "Unknown Effect")
-	var desc := effect.get("description", "")
-	var remaining := effect.get("remaining", 0)
-	var stack := effect.get("stack", 1)
-	var category := effect.get("category", 0)
+	var name: String = effect.get("name", "Unknown Effect")
+	var desc: String = effect.get("description", "")
+	var remaining: float = effect.get("remaining", 0)
+	var stack: int = effect.get("stack", 1)
+	var category: int = effect.get("category", 0)
 	var category_names := ["Magic", "Physical", "Poison", "Disease", "Curse"]
 	var cat_name := "Magic"
 	if category >= 0 and category < category_names.size():

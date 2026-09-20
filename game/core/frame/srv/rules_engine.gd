@@ -41,7 +41,7 @@ func register_rule(rule_id: String, resolution: String = TOP_WINS, default_allow
 
 func evaluate(action: String, context: Dictionary, stack: Array, player_id: String = "") -> Dictionary:
 	var rule_value = get_rule(action)
-	if rule_value == null:
+	if rule_value.is_empty():
 		return {
 			"allow": false,
 			"reason": "no rule registered for action: %s" % action,
@@ -92,7 +92,7 @@ func evaluate(action: String, context: Dictionary, stack: Array, player_id: Stri
 
 
 func get_rule(rule_id: String) -> Dictionary:
-	var value = _rules_tree.get(rule_id)
+	var value = _rules_tree.get_at(rule_id)
 	if value is Dictionary:
 		return value
 	return {}
@@ -117,7 +117,7 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 
 func _evaluate_top_wins(stack: Array, action: String, context: Dictionary) -> bool:
 	if stack.is_empty():
-		return true
+		return _default_allow_for(action)
 	var top_scope = stack[0]
 	var override := _scope_override(top_scope, action)
 	if override != "":
@@ -127,7 +127,7 @@ func _evaluate_top_wins(stack: Array, action: String, context: Dictionary) -> bo
 
 func _evaluate_bottom_wins(stack: Array, action: String, context: Dictionary) -> bool:
 	if stack.is_empty():
-		return true
+		return _default_allow_for(action)
 	var bottom_scope = stack[stack.size() - 1]
 	var override := _scope_override(bottom_scope, action)
 	if override != "":

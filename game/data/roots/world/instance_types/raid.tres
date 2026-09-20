@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="InstanceTypeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/instance_type_definition.gd" id="1_itd"]
+
+[resource]
+script = ExtResource("1_itd")
+name = "raid"
+default_ttl_ms = 300000
+category = "raid"
+description = "Raid instance. Reconnect window: 5 minutes (PRD open-seed-ttl US-004 default)."

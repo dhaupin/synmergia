@@ -173,7 +173,7 @@ func _test_type_agnostic_nine_types() -> void:
 	var tree := StateTreeScript.new()
 	var types := ["position", "inventory", "health", "faction", "status", "quest", "social", "behavior_state", "other"]
 	for i in range(types.size()):
-		var type_name := types[i]
+		var type_name: String = types[i]
 		var path := "entities/entity_%d" % i
 		var payload := {}
 		match type_name:

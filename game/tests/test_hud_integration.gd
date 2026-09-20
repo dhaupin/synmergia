@@ -25,7 +25,7 @@ func _initialize() -> void:
 	_world = root.get_node_or_null("WorldPlayable")
 	if not _world:
 		# Headless mode: manually set up HUD
-		_world = _setup_headless_hud()
+		_world = await _setup_headless_hud()
 		if not _world:
 			_fail("Failed to set up headless HUD for testing")
 			return
@@ -120,10 +120,19 @@ func _setup_headless_hud() -> Node:
 
 	var hud: Node = HudLayerScript.new()
 	hud.name = "HudLayer"
+	# Pre-create the widget children this test exercises. In the real scene
+	# they come from hud_layer.tscn; a script-instantiated headless HUD has
+	# no scene children, and _find() resolves direct children only at _ready,
+	# so add them BEFORE the HUD enters the tree.
+	var CombatLogScript := load("res://ui/components/combat_log.gd")
+	if CombatLogScript:
+		var log: Control = CombatLogScript.new()
+		log.name = "CombatLog"
+		hud.add_child(log)
 	test_world.add_child(hud)
-
-	# Call _ready to initialize the HUD (installs HudIntegrator, etc.)
-	hud.call("_ready")
+	# NOTE: do NOT call _ready() manually -- add_child() on a node already
+	# inside the tree triggers it, and HudLayer guards double-init with a
+	# static instance (second _ready() queue_free()s the HUD).
 	await process_frame
 	await process_frame
 

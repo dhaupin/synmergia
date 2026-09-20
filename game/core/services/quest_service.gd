@@ -1,9 +1,10 @@
 ## QuestService - Player quest management
 ## Handles quest acceptance, progress tracking, and completion
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const QuestData = preload("res://core/schemas/quest_data.gd")
-const QoSService = preload("res://core/autoload/qos_service.gd")
 # UIStyles is not an autoload (class_name only). QuestService
 # references UIStyles.COLORS.X in BBColor formatting, which requires
 # the class_name registered at parse time. Preload it here.

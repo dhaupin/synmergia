@@ -99,13 +99,20 @@ func pop(player_id: String) -> bool:
 		_stacks.erase(player_id)
 	return true
 
-func get_stack(player_id: String) -> Array[ScopeScript]:
+## 4.7.2 strictness: "get_stack" collides with a native 0-arg Object method,
+## so the member must carry a non-colliding name (see lru_cache.gd, t3.gd).
+func get_stack_for_player(player_id: String) -> Array[ScopeScript]:
+	var result: Array[ScopeScript] = []
 	if not _stacks.has(player_id):
-		return []
-	return _stacks[player_id].duplicate()
+		return result
+	# _stacks holds untyped Arrays; duplicate() alone would return a plain
+	# Array and fail the declared Array[ScopeScript] return type.
+	for scope in _stacks[player_id]:
+		result.append(scope)
+	return result
 
 func resolve_rule(player_id: String, rule_id: String, default_resolution: String) -> String:
-	var stack = get_stack(player_id)
+	var stack = get_stack_for_player(player_id)
 	for scope in stack:
 		var override = scope.get_override(rule_id)
 		if override != "":

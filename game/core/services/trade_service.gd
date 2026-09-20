@@ -1,6 +1,8 @@
 ## TradeService - Player-to-player trading
 ## Handles trade requests, windows, confirmations, and completion
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Resolve CooldownService autoload safely.
 func _cooldown():
@@ -10,7 +12,6 @@ func _cooldown():
 	if not ml is SceneTree:
 		return null
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
-const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 const Item = preload("res://core/schemas/item.gd")

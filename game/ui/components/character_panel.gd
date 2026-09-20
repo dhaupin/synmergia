@@ -49,6 +49,9 @@ func _ready() -> void:
 
 
 func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
+	# Apply default accessibility settings via the settings updater.
+	update_accessibility_settings(false, 1.0, false)
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update tab buttons
 	if _tab_buttons:
@@ -56,7 +59,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			if btn and is_instance_valid(btn):
 				btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := btn.get_theme_font_size("font_size")
+				var current_size: int = btn.get_theme_font_size("font_size")
 				if current_size > 0:
 					btn.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -74,7 +77,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 					if child is Button:
 						child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 						var scale = UIStyles.get_text_scale()
-						var current_size := child.get_theme_font_size("font_size")
+						var current_size: int = child.get_theme_font_size("font_size")
 						if current_size > 0:
 							child.add_theme_font_size_override("font_size", int(current_size * scale))
 					elif child is PanelContainer:
@@ -521,7 +524,7 @@ func _equip_item_from_picker(inv: InventoryComponent, item: Item, slot_id: int) 
 	# Equip the item
 	if inv.equip_item(inv_slot):
 		show_notification("Equipped %s" % item.name, false)
-		_refresh_equipment()
+		_refresh_equipment_display()
 	else:
 		show_notification("Failed to equip item", false)
 
@@ -544,17 +547,18 @@ func _unequip_item(slot_id: int) -> void:
 		show_notification("Failed to unequip - inventory may be full", false)
 
 func _show_item_details(item: Item) -> void:
+	# Item is a typed Resource (ItemSchema); use its exported fields
+	# directly instead of Dictionary-style get(key, default) calls
+	# (removed in 4.7.2).
 	var stats_text := ""
-	if item.has("stats"):
-		var stats: Dictionary = item.get("stats", {})
-		for key in stats.keys():
-			stats_text += "\n%s: %s" % [key.capitalize(), stats[key]]
+	if item.description != "":
+		stats_text = "\n%s" % item.description
 
 	var dialog := AcceptDialog.new()
-	dialog.title = item.name if item.name else "Item Details"
+	dialog.title = item.display_name if item.display_name != "" else "Item Details"
 	dialog.dialog_text = "Type: %s\nRarity: %s%s" % [
-		item.get("item_type", "Unknown"),
-		item.get("rarity", "Common"),
+		Item.ItemCategory.keys()[item.item_category] if item.item_category != Item.ItemCategory.MISC else "Misc",
+		Item.Rarity.keys()[item.rarity] if item.rarity != Item.Rarity.COMMON else "Common",
 		stats_text
 	]
 	add_child(dialog)
@@ -789,8 +793,9 @@ func _refresh_stats_display() -> void:
 	var display_keys := ["str", "int", "wis", "agi", "vit", "end"]
 
 	for i in range(stat_keys.size()):
-		var stat_key := stat_keys[i]
-		var disp_key := display_keys[i]
+		# Untyped Array elements: explicit annotations required (4.7.2).
+		var stat_key: String = stat_keys[i]
+		var disp_key: String = display_keys[i]
 		var stat_card: PanelContainer = vbox.get_node_or_null("GridContainer/Stat_" + disp_key)
 		if stat_card:
 			var val_lbl: Label = stat_card.get_node_or_null("VBox/Value")
@@ -1089,7 +1094,7 @@ func refresh_titles() -> void:
 		titles_list.clear()
 		var titles: Array = TitleService.get_unlocked_titles(player_id)
 		for title in titles:
-			var display := title.display_name
+			var display: String = str(title.display_name)
 			if title.has_prefix():
 				display += " (Prefix)"
 			if title.has_suffix():

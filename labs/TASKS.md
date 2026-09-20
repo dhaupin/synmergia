@@ -109,3 +109,85 @@ Scope: world-building.md sec. 18 phase definitions vs. actual code + wiring.
 - [x] **Verification limits**: no Godot binary or Docker in this environment; headless test suite could not be run. Static checks (paths, tabs, UTF-8, autoload order, class_name/ autoload collisions, signal-handler signatures on audited paths) all pass.
 - [x] **Frame Extract to Container (CORRECTED 2026-09-20)**: `srv/frame/` was never committed (confirmed absent from disk and git history). FrameClient (`game/core/utils/frame_client.gd`) exists with circuit breaker + local RulesEngine fallback and is the active integration point; rules/Scope/T3 evaluate in-process per world-building-arch.md sec. 11.2. HTTP bridge extraction remains deferred.
 - [x] **Docker Compose Integration (CORRECTED 2026-09-20)**: The `frame` service block referenced the nonexistent `srv/frame/Dockerfile` and broke `docker compose --profile dev/prod up --build`; it has been removed with an explanatory comment.
+
+## Phases 0-4 Integration Audit - HEADLESS TEST EXECUTION (2026-09-20) [town:test]
+
+Continuation of the audit above. Godot 4.7.2 binary installed in the sandbox
+(`/tmp/Godot_v4.7.2-stable_linux.x86_64`); the full test battery is now
+executable. Result: **57/57 test files exit 0** (was: 25/40 with 63 runtime
+errors). Production bugs found and fixed, in order of severity:
+
+### Production bugs fixed
+- [x] **markov.gd hex chunk keys** [town:frame]: `_chunk_key_to_offset` used
+  `int("0x"+s)` (decimal-only) so every chunk with a hex letter (a-f)
+  collapsed to offset (0,0) -> predictions garbage past x=9. Now `hex_to_int()`.
+- [x] **markov.gd prediction model** [town:frame]: absolute-only
+  P(next|chunk) cannot exceed ~50% on any revisited path and 0% on straight
+  lines (N021 requires 70%). Added velocity-conditioned transition table
+  P(next|chunk, arrival delta) with graceful fallback to the PRD baseline
+  row, momentum tie-break, and cold-start momentum. Accuracy now
+  straight 99.9% / patrol 99.6% / oscillation 98.9%.
+- [x] **memory_persistence_store.gd SQL engine** [town:adapter]: (1) base-table
+  parse block indented inside `if join_pos` after `continue` (dead code);
+  (2) `_parse_from_with_joins` re-searched "FROM" in text past FROM ->
+  every SELECT returned []; (3) "first letter after SELECT" skipped `*` ->
+  all projections empty; (4) table name greedily ate `WHERE ...`; (5)
+  UPDATE sliced WHERE param indices against global $N -> parameterized
+  UPDATE matched nothing. All fixed; SELECT/UPDATE/DELETE/tx now correct.
+- [x] **memory_persistence_store.gd KV batch API** [town:adapter]:
+  `set_many`/`get_many`/`delete_many` were base-class stubs -> DictStore
+  writes silently vanished. Implemented on the `kv` table per prd-db.md.
+- [x] **dict_store.gd read/batch paths** [town:adapter]: reads now use the
+  portable KV batch API (not per-backend SQL dialect), `set_batch` serializes
+  exactly like `set_value` (raw dicts previously stored unparseable).
+- [x] **open_seed_registry instance types missing** [town:core]: PRD
+  open-seed-ttl US-004 requires `.tres` per instance type; the directory
+  `data/roots/world/instance_types/` never existed so every TTL fell back
+  to 300s (arena could never have its shorter window). Added
+  `dungeon.tres` (300s), `arena.tres` (180s), `raid.tres` (300s).
+- [x] **server_manager.gd** [town:core]: emitted nonexistent
+  `EventHub.server_shutdown`; now `EventHub.system.server_stopping`.
+- [x] **tick_service.gd `_should_step_entity`** [town:core]: Dictionary
+  `.has()` on Node3D entities (109x/tick errors); now the `in` operator.
+- [x] **entity_service.gd `_create_default_metadata`** [town:core]: direct
+  `.faction`/`.level` access on NPCEntity (property is `faction_id`);
+  guarded with `in` checks.
+- [x] **targeting_manager.gd entity handlers** [town:core]: `.has()`/`get(k,d)`
+  on entity Nodes; rewritten with `in` guards, spawn/despawn/died.
+- [x] **backend_factory.gd / migration_runner.gd** [town:adapter]: bare
+  `GameLog` fallback in scripts load()ed by --script tests; print fallback.
+- [x] **UI widget fixes** [town:web]: combat_log `RARITY_COLORS.rarity_legendary`
+  (crashed _setup_ui) + null-guarded `clear()`; character_panel Item-schema
+  fields (Resource.get(k,d) removal), missing `_refresh_equipment_display`,
+  typed loops; shop_ui `InventoryService.get_gold` (no .singleton()); hud
+  invite handlers now pass sender id (`invite_player(my_id, target)`).
+- [x] **inventory_ui.gd** [town:web]: Python-ism `func _on_inventory_changed(...)`
+  broke parse; explicit dual-signal signature.
+- [x] **scope_node.gd** [town:frame]: `class_name` before `extends` (lint).
+
+### Test-harness bugs fixed (tests were silently vacuous or hanging)
+- [x] `_init()` vs `_initialize()`: test_open_seed_ttl, test_lod_predictor,
+  frame tests ran before autoload registration (or before their own setup).
+- [x] Missing `quit()` made test_notification_toast / test_autoload_scope
+  tick forever (the "hung command" at the audit start).
+- [x] `SceneTree._ready` does not exist (test_autoload_scope).
+- [x] Double `_ready()` on HudLayer tripped its static-instance guard and
+  queue_free()d the HUD; headless HUDs must pre-create widget children
+  (CombatLog/TooltipManager) before add_child, as hud_layer.tscn does.
+- [x] Lambda captures by value; wall-clock lookups in simulated-clock tests
+  (open_seed_ttl). Registry awaits one frame for autoload _ready.
+
+### Final state (all exit 0)
+- Frame battery: kv (lru/definition/seed_chain/state_tree/t3), srv
+  (rules/scope), math (icosahedral/nsc9), geometry (fragmenter/spatial/
+  nsc9_bridge), db (snapshot_store).
+- Adapters: parse, registry, dict_store(+ttl), memory, persistence, cache,
+  integration (7/7), e2e.
+- Smoke: e2e_flow (40 OK), login_flow (21 OK), hud_integration (7 OK),
+  notification_toast (9 OK), notification_frame, notif migrations x4,
+  islands, open_seed_ttl (19 PASS), lod_predictor (15 OK), critical_params
+  (41 PASS), account_rollup, respawn, base/base2, entity_autoload,
+  autoload_audit, eh, path, preload, seed/state schema, parse_check, lint
+  x5 (syntax/indent/charset/autoload/general).
+- Residual SCRIPT ERRORs in some logs are the documented --script-mode
+  autoload-identifier noise (files compile fine under full boot).

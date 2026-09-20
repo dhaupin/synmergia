@@ -3,10 +3,9 @@
 ## Cooldown spiral animation + text, keybind display, drag-drop, right-click clear, stack counts, glow on proc, range indicator
 extends "res://ui/components/ui_panel.gd"
 class_name ActionBar
-const UIStyles = preload("res://ui/components/ui_styles.gd")
+# NOTE: DataService is an autoload; reference it directly.
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
-const DataService = preload("res://core/services/data_service.gd")
 
 ## Configuration
 const SLOTS_PER_BAR: int = 12
@@ -46,6 +45,9 @@ func _ready() -> void:
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
+	# Apply default accessibility settings via the settings updater.
+	update_accessibility_settings(false, 1.0, false)
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for all slots
 	for bar_slots in _slots:
@@ -92,7 +94,7 @@ func _build_keybinds() -> void:
 			8: key = KEY_9
 			9: key = KEY_0
 			10: key = KEY_MINUS
-			11: key = KEY_EQUALS
+			11: key = KEY_EQUAL
 		_keybinds.append(key)
 
 func load_from_character(char_data: CharacterData) -> void:
@@ -111,15 +113,17 @@ func load_from_character(char_data: CharacterData) -> void:
 			else:
 				update_slot(global_index, {})
 
-func _schema_to_dict(schema: Resource, char_data: CharacterData) -> Dictionary:
+func _schema_to_dict(schema: Skill, char_data: CharacterData) -> Dictionary:
+	# Skill properties are accessed directly (Resource.get(key, default) is
+	# removed in 4.7.2); id falls back to display_name.
 	var dict := {
-		"skill_id": schema.get("skill_id", ""),
-		"name": schema.get("name", ""),
-		"icon_path": schema.get("icon_path", ""),
-		"mana_cost": schema.get("mana_cost", 0),
-		"cooldown": schema.get("cooldown", 0.0),
-		"skill_type": schema.get("skill_type", 0),
-		"range": schema.get("range", 0.0),
+		"skill_id": schema.id if schema.id != "" else schema.display_name,
+		"name": schema.display_name,
+		"icon_path": schema.icon_path,
+		"mana_cost": schema.mana_cost,
+		"cooldown": schema.cooldown,
+		"skill_type": schema.skill_type,
+		"range": schema.range,
 	}
 	var upgrade_level := char_data.get_skill_upgrade_level(dict.skill_id)
 	dict["upgrade_level"] = upgrade_level
@@ -211,7 +215,7 @@ func _create_slot(index: int) -> Control:
 	cooldown_spiral.value = 100
 	cooldown_spiral.under_texture = _create_spiral_under()
 	cooldown_spiral.progress_texture = _create_spiral_progress()
-	cooldown_spiral.radial_mode = TextureProgressBar.RADIAL_CLOCKWISE
+	cooldown_spiral.radial_mode = TextureProgressBar.FILL_CLOCKWISE
 	cooldown_spiral.initial_angle = -90
 	cooldown_spiral.radial_fill = 1.0
 	cooldown_spiral.clip_contents = true

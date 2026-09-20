@@ -16,7 +16,9 @@ var _passed := 0
 var _failed := 0
 
 
-func _init() -> void:
+func _initialize() -> void:
+	# Autoloads are registered by the time _initialize runs (unlike _init),
+	# so scripts referencing GameLog compile correctly here.
 	print("=== LOD PREDICTOR INTEGRATION TEST ===")
 	_init_services()
 	await process_frame
@@ -42,7 +44,9 @@ func _init_services() -> void:
 		_ok("Markov predictor instantiated")
 
 	# Load and instantiate LOD Manager
-	var LODManagerScript = preload("res://core/services/lod_manager.gd")
+	# Runtime load: lod_manager.gd references the GameLog autoload, which is
+	# not resolvable at parse time when the test is run with --script mode.
+	var LODManagerScript = load("res://core/services/lod_manager.gd")
 	_lod_manager = LODManagerScript.new()
 	if _lod_manager == null:
 		_fail("Failed to instantiate LOD Manager")
@@ -82,7 +86,7 @@ func _test_markov_accuracy() -> void:
 		_fail("FAIL: Oscillation accuracy %.2f%% < 70%" % (accuracy3 * 100.0))
 
 	# Overall: at least one pattern should exceed 70% for the test to pass
-	var max_accuracy := max(accuracy1, max(accuracy2, accuracy3))
+	var max_accuracy: float = max(accuracy1, max(accuracy2, accuracy3))
 	if max_accuracy >= 0.70:
 		_ok("OVERALL PASS: Max pattern accuracy %.2f%% >= 70%" % (max_accuracy * 100.0))
 	else:
@@ -103,7 +107,7 @@ func _test_markov_basic_prediction() -> void:
 	_markov.record_movement(player_id, _ck(3,0), _ck(4,0))
 
 	# Predict from current position
-	var predictions := _markov.predict_next(player_id)
+	var predictions: Array[Dictionary] = _markov.predict_next(player_id)
 	if predictions.size() > 0:
 		_ok("Predictions returned: %d" % predictions.size())
 		_ok("Top prediction: %s (prob=%.2f)" % [predictions[0]["chunk_key"], predictions[0]["probability"]])
@@ -117,7 +121,7 @@ func _test_markov_basic_prediction() -> void:
 		_fail("Expected at least 3 predictions, got %d" % predictions.size())
 
 	# Check multi-horizon prediction
-	var multi := _markov.predict_multi_horizon(player_id)
+	var multi: Dictionary = _markov.predict_multi_horizon(player_id)
 	if multi.has("near") and multi.has("mid") and multi.has("far"):
 		_ok("Multi-horizon prediction has near/mid/far")
 		_ok("Near preds: %d, Mid preds: %d, Far preds: %d" % [
@@ -126,7 +130,7 @@ func _test_markov_basic_prediction() -> void:
 		_fail("Multi-horizon prediction missing horizons")
 
 	# Check accuracy threshold constant
-	var threshold := _markov.get_accuracy_threshold()
+	var threshold: float = _markov.get_accuracy_threshold()
 	if abs(threshold - 0.70) < 0.001:
 		_ok("Accuracy threshold is 70%")
 	else:
@@ -149,7 +153,7 @@ func _test_lod_classification() -> void:
 	# For this test, we directly test the chunk classification logic
 
 	# Add a player manually
-	var player_data := _lod_manager._get_or_create_player_data(player_id)
+	var player_data = _lod_manager._get_or_create_player_data(player_id)
 	player_data.current_chunk_key = _ck(5,5)
 	player_data.aoi_center = Vector3(500, 0, 500)
 	player_data.aoi_radius = 500.0
@@ -170,21 +174,21 @@ func _test_lod_classification() -> void:
 	_lod_manager._apply_lod_changes()
 
 	# Check HOT chunks
-	var hot_chunks := _lod_manager.get_chunks_by_state(1)  # HOT = 1
+	var hot_chunks = _lod_manager.get_chunks_by_state(1)  # HOT = 1
 	if _ck(5,5) in hot_chunks and _ck(4,5) in hot_chunks:
 		_ok("Current and adjacent chunks classified as HOT")
 	else:
 		_fail("Expected chunks 5,5 and 4,5 to be HOT, got: %s" % hot_chunks)
 
 	# Check WARM chunks
-	var warm_chunks := _lod_manager.get_chunks_by_state(2)  # WARM = 2
+	var warm_chunks = _lod_manager.get_chunks_by_state(2)  # WARM = 2
 	if _ck(6,6) in warm_chunks:
 		_ok("Predicted chunk classified as WARM")
 	else:
 		_fail("Expected chunk 6,6 to be WARM, got: %s" % warm_chunks)
 
 	# Test COLD classification (chunks not tracked)
-	var cold_chunks := _lod_manager.get_chunks_by_state(0)  # COLD = 0
+	var cold_chunks = _lod_manager.get_chunks_by_state(0)  # COLD = 0
 	_ok("Total chunks tracked: %d" % _lod_manager._chunk_states.size())
 
 
@@ -196,7 +200,7 @@ func _test_lod_promotion_demotion() -> void:
 	await process_frame
 
 	var player_id := "promo_test_player"
-	var player_data := _lod_manager._get_or_create_player_data(player_id)
+	var player_data = _lod_manager._get_or_create_player_data(player_id)
 	player_data.current_chunk_key = _ck(10,10)
 	player_data.aoi_center = Vector3(1000, 0, 1000)
 	player_data.aoi_radius = 500.0
@@ -213,13 +217,13 @@ func _test_lod_promotion_demotion() -> void:
 	_lod_manager._apply_lod_changes()
 
 	# Check initial state
-	var chunk_10_10 := _lod_manager.get_chunk_lod(_ck(10,10))
+	var chunk_10_10 = _lod_manager.get_chunk_lod(_ck(10,10))
 	if chunk_10_10 == 1:  # HOT
 		_ok("Chunk 10,10 is HOT initially")
 	else:
 		_fail("Expected 10,10 to be HOT, got %d" % chunk_10_10)
 
-	var chunk_11_10 := _lod_manager.get_chunk_lod(_ck(11,10))
+	var chunk_11_10 = _lod_manager.get_chunk_lod(_ck(11,10))
 	if chunk_11_10 == 2:  # WARM
 		_ok("Chunk 11,10 is WARM initially")
 	else:
@@ -261,7 +265,7 @@ func _test_predictive_prefetch_integration() -> void:
 	await process_frame
 
 	var player_id := "prefetch_test"
-	var player_data := _lod_manager._get_or_create_player_data(player_id)
+	var player_data = _lod_manager._get_or_create_player_data(player_id)
 	player_data.current_chunk_key = _ck(20,20)
 	player_data.aoi_center = Vector3(2000, 0, 2000)
 	player_data.aoi_radius = 500.0
@@ -313,7 +317,7 @@ func _test_chunk_tracking_per_player() -> void:
 	await process_frame
 
 	var player_id := "tracking_test"
-	var player_data := _lod_manager._get_or_create_player_data(player_id)
+	var player_data = _lod_manager._get_or_create_player_data(player_id)
 	player_data.current_chunk_key = _ck(100,100)
 	player_data.aoi_center = Vector3(10000, 0, 10000)
 	player_data.aoi_radius = 500.0
@@ -329,7 +333,7 @@ func _test_chunk_tracking_per_player() -> void:
 	_lod_manager._classify_chunks()
 	_lod_manager._apply_lod_changes()
 
-	var tracked := _lod_manager.get_player_chunks(player_id)
+	var tracked = _lod_manager.get_player_chunks(player_id)
 	if tracked.has(_ck(100,100)) and tracked[_ck(100,100)] == 1:
 		_ok("Player tracks current chunk as HOT")
 	else:
@@ -383,7 +387,7 @@ func _simulate_pattern_accuracy(player_id: String, pattern_func: Callable, ticks
 	_markov.clear_all()
 
 	# Use the Markov predictor's built-in simulation
-	var accuracy := _markov.simulate_and_evaluate(player_id, pattern_func, ticks)
+	var accuracy: float = _markov.simulate_and_evaluate(player_id, pattern_func, ticks)
 	return accuracy
 
 

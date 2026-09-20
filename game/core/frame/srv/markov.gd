@@ -41,12 +41,15 @@ const MIN_HISTORY_SAMPLES: int = 5
 class PlayerMarkovState:
 	var player_id: String = ""
 	var history: Array[Dictionary] = []  # [{chunk_key: String, tick: int}, ...]
-	var transition_counts: Dictionary = {}  # "from->to" -> count
+	var transition_counts: Dictionary = {}  # "from->to" -> count (velocity-agnostic)
+	var velocity_transition_counts: Dictionary = {}  # "from@d(dx,dy)->to" -> count
 	var total_transitions: int = 0
 	var current_chunk_key: String = ""
 	var last_10_movements: Array[Vector2] = []  # Relative offsets from current
 	var prediction_cache: Dictionary = {}  # chunk_key -> probability
 	var cache_tick: int = 0
+	var cache_chunk_key: String = ""  # origin chunk the cache was computed from
+	var last_move_delta: Vector2 = Vector2.ZERO  # last observed movement delta (chunk units)
 
 
 	func _init(p_player_id: String) -> void:
@@ -84,17 +87,24 @@ func record_movement(player_id: String, from_chunk_key: String, to_chunk_key: St
 	if state.history.size() > HISTORY_WINDOW * 2:
 		state.history.erase(state.history.front())
 
-	# Update transition counts
+	# Update transition counts. The velocity-conditioned table keys on the
+	# arrival delta at `from_chunk_key` (state.last_move_delta is still the
+	# previous move's delta here; this move's delta is computed below).
 	if from_chunk_key != "":
 		var key := _transition_key(from_chunk_key, to_chunk_key)
 		state.transition_counts[key] = state.transition_counts.get(key, 0) + 1
+		var vkey := _velocity_transition_key(state.last_move_delta, from_chunk_key, to_chunk_key)
+		state.velocity_transition_counts[vkey] = state.velocity_transition_counts.get(vkey, 0) + 1
 		state.total_transitions += 1
 
-	# Update current chunk
+	# Update current chunk and remember the movement delta (for momentum)
+	var offset := _chunk_key_to_offset(to_chunk_key)
+	var prev_chunk: Vector2 = _chunk_key_to_offset(state.current_chunk_key)
+	if from_chunk_key != "" and state.current_chunk_key != "":
+		state.last_move_delta = offset - prev_chunk
 	state.current_chunk_key = to_chunk_key
 
 	# Update last 10 movements (relative offsets from current chunk)
-	var offset := _chunk_key_to_offset(to_chunk_key)
 	state.last_10_movements.append(offset)
 	if state.last_10_movements.size() > HISTORY_WINDOW:
 		state.last_10_movements.erase(state.last_10_movements.front())
@@ -111,8 +121,11 @@ func predict_next(player_id: String) -> Array[Dictionary]:
 	if state == null or state.current_chunk_key == "":
 		return []
 
-	# Check cache validity
-	if state.prediction_cache.size() > 0 and _tick_number - state.cache_tick < 5:
+	# Check cache validity: stale after 5 ticks OR after the player moved
+	# to a different chunk (predictions are position-dependent).
+	if (state.prediction_cache.size() > 0
+			and _tick_number - state.cache_tick < 5
+			and state.cache_chunk_key == state.current_chunk_key):
 		return _sort_predictions(state.prediction_cache)
 
 	# Build 3x3 transition probabilities from current chunk
@@ -120,23 +133,57 @@ func predict_next(player_id: String) -> Array[Dictionary]:
 	var current_offset: Vector2 = _chunk_key_to_offset(from_key)
 	var probabilities: Dictionary = {}
 
-	# For each possible next position in the 3x3 grid
+	# Outgoing transition rows for the current chunk, over the 3x3
+# neighbor grid. Tier 1 conditions on the arrival velocity (handles
+# periodic reversals); tier 2 is the velocity-agnostic PRD baseline
+# P(next_chunk | current_chunk); tier 3 is the cold-start fallback.
+	var row_sum := 0.0
+	var row_counts: Dictionary = {}
+	var vrow_sum := 0.0
+	var vrow_counts: Dictionary = {}
 	for offset in GRID_OFFSETS:
 		var to_key := _offset_to_chunk_key(current_offset + offset)
 		var trans_key := _transition_key(from_key, to_key)
 		var count := float(state.transition_counts.get(trans_key, 0))
-		var total := float(max(state.total_transitions, 1))
-		probabilities[to_key] = count / total
+		row_counts[to_key] = count
+		row_sum += count
+		var vkey := _velocity_transition_key(state.last_move_delta, from_key, to_key)
+		var vcount := float(state.velocity_transition_counts.get(vkey, 0))
+		vrow_counts[to_key] = vcount
+		vrow_sum += vcount
+	var source_counts: Dictionary = vrow_counts if vrow_sum > 0.0 else row_counts
+	var source_sum: float = vrow_sum if vrow_sum > 0.0 else row_sum
 
-	# If no transitions recorded, use uniform distribution over neighbors
-	if state.total_transitions == 0:
+	# For each possible next position in the 3x3 grid
+	if source_sum > 0.0:
+		var momentum_key := _offset_to_chunk_key(current_offset + state.last_move_delta)
+		var momentum_valid := state.last_move_delta != Vector2.ZERO \
+			and source_counts.has(momentum_key)
+		var momentum_bonus := 0.001 if momentum_valid else 0.0
+		for to_key in row_counts:
+			var p: float = source_counts[to_key] / source_sum
+			# Tiny momentum bias breaks exact ties (e.g. revisited chunks
+			# approached from two directions) toward movement continuity.
+			probabilities[to_key] = p + (momentum_bonus if to_key == momentum_key else 0.0)
+	else:
+		# No recorded outgoing transitions from this chunk (first visit).
+		# Players carry momentum: continue the last observed movement delta
+		# when it points at a valid neighbor, else fall back to uniform.
+		var momentum_key := _offset_to_chunk_key(current_offset + state.last_move_delta)
+		var momentum_valid: bool = state.last_move_delta != Vector2.ZERO \
+			and source_counts.has(momentum_key)
+		var reserved: float = 0.9 if momentum_valid else 0.0
 		var neighbor_count := float(GRID_OFFSETS.size())
-		for offset in GRID_OFFSETS:
-			var to_key := _offset_to_chunk_key(current_offset + offset)
-			probabilities[to_key] = 1.0 / neighbor_count
+		for to_key in row_counts:
+			if momentum_valid and to_key == momentum_key:
+				probabilities[to_key] = reserved
+			else:
+				probabilities[to_key] = (1.0 - reserved) / neighbor_count
+
 
 	state.prediction_cache = probabilities
 	state.cache_tick = _tick_number
+	state.cache_chunk_key = from_key
 	return _sort_predictions(probabilities)
 
 
@@ -183,7 +230,7 @@ func predict_n_steps(player_id: String, steps: int) -> Array[Dictionary]:
 		probs = next_probs
 
 	# Sort by probability and return top predictions
-	var sorted := []
+	var sorted: Array[Dictionary] = []
 	for key in probs.keys():
 		sorted.append({"chunk_key": key, "probability": probs[key]})
 	sorted.sort_custom(_sort_by_probability)
@@ -240,6 +287,8 @@ func simulate_and_evaluate(player_id: String, movement_pattern: Callable, ticks:
 	state.current_chunk_key = "0000-0000-0000-d0-f0"
 	state.last_10_movements = []
 	state.transition_counts = {}
+	state.velocity_transition_counts = {}
+	state.last_move_delta = Vector2.ZERO
 	state.total_transitions = 0
 	state.history.clear()
 	state.prediction_cache.clear()
@@ -328,14 +377,21 @@ func _transition_key(from_key: String, to_key: String) -> String:
 	return "%s->%s" % [from_key, to_key]
 
 
+func _velocity_transition_key(delta: Vector2, from_key: String, to_key: String) -> String:
+	return "%s@d(%d,%d)->%s" % [from_key, int(delta.x), int(delta.y), to_key]
+
+
 func _chunk_key_to_offset(key: String) -> Vector2:
 	if key == "":
 		return Vector2.ZERO
 	var parts := key.split("-")
 	if parts.size() < 3:
 		return Vector2.ZERO
-	var x: int = int("0x" + parts[0])
-	var z: int = int("0x" + parts[2])
+	# hex_to_int, not int("0x" + s): String-to-int conversion is decimal-only,
+	# so "0x000a" parsed via int() yields 0 and every chunk key containing a
+	# hex letter (a-f) collapsed to offset (0,0).
+	var x: int = parts[0].hex_to_int()
+	var z: int = parts[2].hex_to_int()
 	return Vector2(float(x), float(z))
 
 
@@ -347,7 +403,7 @@ func _offset_to_chunk_key(offset: Vector2) -> String:
 
 
 func _sort_predictions(probabilities: Dictionary) -> Array[Dictionary]:
-	var sorted: Array = []
+	var sorted: Array[Dictionary] = []
 	for key in probabilities.keys():
 		sorted.append({"chunk_key": key, "probability": probabilities[key]})
 	sorted.sort_custom(_sort_by_probability)

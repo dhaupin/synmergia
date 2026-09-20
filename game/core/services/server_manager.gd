@@ -134,8 +134,10 @@ func execute_restart() -> void:
 		""
 	)
 
-	# Trigger actual server shutdown via event bus
-	EventHub.server_shutdown.emit()
+	# Trigger actual server shutdown via the system event bus. EventHub
+	# wraps domain buses; the shutdown signal lives on the system bus
+	# (EventHub.server_shutdown never existed).
+	EventHub.system.server_stopping.emit("restart")
 
 	# Schedule actual process quit after a brief delay
 	var t = Timer.new()

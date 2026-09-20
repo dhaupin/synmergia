@@ -138,6 +138,53 @@ func insert_many(table: String, rows: Array, columns: Array) -> int:
 	return n
 
 
+# --- KV batch API (prd-db.md section 4) ---
+# The reference backend must satisfy the full PersistenceStore interface.
+# DictStore routes its values through these methods (JSON-encoded).
+
+func set_many(entries: Dictionary) -> int:
+	if not _tables.has("kv"):
+		_tables["kv"] = []
+	var t: Array = _tables["kv"]
+	for key in entries.keys():
+		var val = entries[key]
+		var updated := false
+		for row in t:
+			if row is Dictionary and row.get("key", "") == key:
+				row["value"] = str(val)
+				updated = true
+				break
+		if not updated:
+			t.append({"key": key, "value": str(val)})
+	return 0
+
+
+func get_many(keys: Array) -> Dictionary:
+	var result: Dictionary = {}
+	for key in keys:
+		result[key] = null
+	if not _tables.has("kv"):
+		return result
+	for row in _tables["kv"]:
+		if row is Dictionary and result.has(row.get("key", "")):
+			result[row["key"]] = row.get("value", null)
+	return result
+
+
+func delete_many(keys: Array) -> int:
+	var n := 0
+	if not _tables.has("kv"):
+		return 0
+	var remaining: Array = []
+	for row in _tables["kv"]:
+		if row is Dictionary and keys.has(row.get("key", "")):
+			n += 1
+		else:
+			remaining.append(row)
+	_tables["kv"] = remaining
+	return n
+
+
 func execute_batch(statements: Array) -> int:
 	for stmt in statements:
 		var r := execute(stmt, [])
@@ -159,9 +206,11 @@ func _query_select(sql: String, params: Array) -> Array:
 	if select_upper < 0:
 		return []
 	select_start = sql.find("SELECT")
-	# Find first letter after SELECT
+	# Skip only whitespace after SELECT. Skipping ALL non-alpha chars was
+	# wrong: for "SELECT * FROM t" it jumped past the '*' into "FROM",
+	# producing a garbage column list and always-empty projections.
 	var pos: int = select_start + 6
-	while pos < sql.length() and not _is_alpha(sql.unicode_at(pos)):
+	while pos < sql.length() and sql.unicode_at(pos) == 32:
 		pos += 1
 	select_start = pos
 	
@@ -299,12 +348,10 @@ func _parse_column_list(s: String) -> Array:
 
 
 func _parse_from_with_joins(sql: String, joins: Array) -> Array:
-	var upper := sql.to_upper()
-	var from_idx := upper.find("FROM")
-	if from_idx < 0:
-		return []
-	
-	var after_from := sql.substr(from_idx + 4).strip_edges()
+	# `sql` is the text AFTER the FROM keyword (the caller strips it).
+	# Re-searching for "FROM" here always returned -1, which made every
+	# SELECT against the memory backend return an empty result set.
+	var after_from := sql.strip_edges()
 	
 	var tables: Array = []
 	var current_pos := after_from
@@ -354,10 +401,18 @@ func _parse_from_with_joins(sql: String, joins: Array) -> Array:
 			current_pos = after_join.substr(on_idx + 4 + join_condition.length()).strip_edges()
 			continue
 			
-		# No more JOINs, this is the base table
-			table_name = current_pos.strip_edges()
-			tables.append(table_name)
-			break
+		# No more JOINs: this is the base table. Stop at the first clause
+		# keyword (WHERE/ORDER BY/GROUP BY/LIMIT) -- everything after it
+		# belongs to those clauses, not the table name.
+		var clause_upper: String = current_pos.to_upper()
+		var table_end: int = current_pos.length()
+		for kw in [" WHERE ", " WHERE", " ORDER BY", " GROUP BY", " LIMIT"]:
+			var kw_i: int = clause_upper.find(kw)
+			if kw_i >= 0 and kw_i < table_end:
+				table_end = kw_i
+		table_name = current_pos.substr(0, table_end).strip_edges()
+		tables.append(table_name)
+		break
 		
 	return tables
 
@@ -1009,7 +1064,10 @@ func _exec_update(sql: String, params: Array) -> int:
 	
 	var set_count := set_pairs.size()
 	var where_conds := _parse_where(where_part)
-	var where_params := params.slice(set_count)
+	# Both SET values and WHERE conds store GLOBAL $N indices (1-based,
+	# over the full params array). Slicing here shifted every WHERE index
+	# and made parameterized UPDATEs match no rows.
+	var where_params := params
 	
 	if not _tables.has(table):
 		return 0
@@ -1022,7 +1080,7 @@ func _exec_update(sql: String, params: Array) -> int:
 			for pair in set_pairs:
 				var col: String = pair[0]
 				var set_idx_in_params: int = pair[1]
-				if set_idx_in_params < set_count:
+				if set_idx_in_params >= 0 and set_idx_in_params < params.size():
 					row[col] = params[set_idx_in_params]
 			updated += 1
 	return updated

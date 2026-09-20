@@ -438,17 +438,20 @@ func _color_kill() -> Color:
 
 
 func _on_action_selected(action_id: String, target_id: String) -> void:
+	# Local player id, resolved once for all branches (match branches have
+	# their own scope, so per-branch declarations would not be shared).
+	var my_id: String = ""
+	if PlayerManager:
+		my_id = str(PlayerManager.get_local_player_id())
 	match action_id:
 		"trade":
-			if TradeService and PlayerManager:
-				var my_id := str(PlayerManager.get_local_player_id())
+			if TradeService:
 				var ok := TradeService.request_trade(my_id, target_id)
 				if not ok:
 					GameLog.info("Trade request failed")
 		"add_friend":
-			if FriendsService and PlayerManager:
-				var my_id := str(PlayerManager.get_local_player_id())
-				var my_name := PlayerManager.get_local_player_name() if PlayerManager.has_method("get_local_player_name") else ""
+			if FriendsService:
+				var my_name: String = PlayerManager.get_local_player_name() if PlayerManager.has_method("get_local_player_name") else ""
 				FriendsService.send_friend_request(my_id, my_name, target_id)
 		"view_character":
 			_open_character_inspect(target_id)
@@ -465,10 +468,10 @@ func _on_action_selected(action_id: String, target_id: String) -> void:
 				ChatService.open_whisper(target_id)
 		"invite_party":
 			if PartyService:
-				PartyService.invite_player(target_id)
+				PartyService.invite_player(my_id, target_id)
 		"invite_guild":
 			if GuildService:
-				GuildService.invite_player(target_id)
+				GuildService.invite_player(my_id, target_id)
 		"report":
 			# TODO: Open report dialog
 			GameLog.info("Report action: %s" % target_id)

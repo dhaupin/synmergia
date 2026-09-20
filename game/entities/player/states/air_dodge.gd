@@ -14,7 +14,7 @@ var dodge_direction: Vector3 = Vector3.ZERO
 func enter(_data: Dictionary = {}) -> void:
 	elapsed = 0.0
 
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Calculate dodge direction
 	var move_dir := parent.get_movement_direction()
@@ -34,13 +34,13 @@ func enter(_data: Dictionary = {}) -> void:
 	animation_play("air_dodge")
 
 func exit() -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	parent.is_invincible = false
 
 func update(delta: float) -> void:
 	elapsed += delta
 
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# I-frames active
 	parent.is_invincible = elapsed >= IFRAMES_START and elapsed <= IFRAMES_END
@@ -53,7 +53,7 @@ func update(delta: float) -> void:
 			transition_to("Fall")
 
 func physics_update(delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Strong initial burst, then slow
 	var t := elapsed / DURATION
@@ -67,7 +67,7 @@ func physics_update(delta: float) -> void:
 		parent.velocity.y = lerp(parent.velocity.y, -5.0, delta * 3)
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)
 

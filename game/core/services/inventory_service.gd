@@ -1,6 +1,7 @@
 ## InventoryService - Player inventory operations
 ## Handles inventory-related operations and cross-player inventory access
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 

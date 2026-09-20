@@ -41,6 +41,24 @@ func _on_quit_pressed() -> void:
 	# print removed: print("Quit button pressed")
 	get_tree().quit()
 
+func _open_settings_panel() -> void:
+	# Lazily instantiate the shared settings panel over the menu.
+	if _settings_panel != null and is_instance_valid(_settings_panel):
+		_settings_panel.open()
+		return
+	var SettingsPanelScript = load("res://ui/components/settings_panel.gd")
+	if SettingsPanelScript == null:
+		return
+	_settings_panel = SettingsPanelScript.new()
+	add_child(_settings_panel)
+	if _settings_panel.has_method("open"):
+		_settings_panel.open()
+
+func _on_settings_pressed() -> void:
+	_open_settings_panel()
+
+var _settings_panel: Control = null
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_TAB:

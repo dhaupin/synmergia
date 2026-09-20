@@ -3,7 +3,6 @@
 ## Keybind remapping with conflict detection, UI scale, colorblind shaders
 ## Wired to PlayerConfig for persistent settings.
 extends "res://ui/components/ui_panel.gd"
-const UIPanel = preload("res://ui/components/ui_panel.gd")
 class_name SettingsPanel
 
 enum Category {
@@ -130,10 +129,10 @@ func _setup_ui() -> void:
 
 func _on_category_clicked(cat_id: int) -> void:
 	_current_category = cat_id
-	for cat_id_key, container in _category_containers:
-		container.visible = (cat_id_key == cat_id)
-	for i, btn in _tab_buttons:
-		btn.button_pressed = (i == cat_id)
+	for cat_id_key in _category_containers:
+		_category_containers[cat_id_key].visible = (cat_id_key == cat_id)
+	for i in range(_tab_buttons.size()):
+		_tab_buttons[i].button_pressed = (i == cat_id)
 
 func _create_setting_row(label_text: String, tooltip: String = "") -> HBoxContainer:
 	var row := HBoxContainer.new()
@@ -290,18 +289,18 @@ func _keycode_to_string(keycode: int) -> String:
 		KEY_Z: return "Z"
 		KEY_MINUS: return "-"
 		KEY_EQUAL: return "="
-		KEY_BRACKET_LEFT: return "["
-		KEY_BRACKET_RIGHT: return "]"
+		KEY_BRACKETLEFT: return "["
+		KEY_BRACKETRIGHT: return "]"
 		KEY_BACKSLASH: return "\\"
 		KEY_SEMICOLON: return ";"
 		KEY_APOSTROPHE: return "'"
 		KEY_COMMA: return ","
 		KEY_PERIOD: return "."
 		KEY_SLASH: return "/"
-		KEY_GRAVE_ACCENT: return "`"
-		KEY_CAPS_LOCK: return "CapsLock"
-		KEY_SCROLL_LOCK: return "ScrollLock"
-		KEY_NUM_LOCK: return "NumLock"
+		KEY_QUOTELEFT: return "`"
+		KEY_CAPSLOCK: return "CapsLock"
+		KEY_SCROLLLOCK: return "ScrollLock"
+		KEY_NUMLOCK: return "NumLock"
 		KEY_PRINT: return "Print"
 		KEY_PAUSE: return "Pause"
 		KEY_KP_0: return "Numpad 0"
@@ -317,10 +316,10 @@ func _keycode_to_string(keycode: int) -> String:
 		KEY_KP_PERIOD: return "Numpad ."
 		KEY_KP_DIVIDE: return "Numpad /"
 		KEY_KP_MULTIPLY: return "Numpad *"
-		KEY_KP_MINUS: return "Numpad -"
-		KEY_KP_PLUS: return "Numpad +"
+		KEY_KP_SUBTRACT: return "Numpad -"
+		KEY_KP_ADD: return "Numpad +"
 		KEY_KP_ENTER: return "Numpad Enter"
-		KEY_KP_EQUALS: return "Numpad ="
+		KEY_KP_MULTIPLY: return "Numpad ="
 		_: return "Key(%d)" % keycode
 
 func _start_keybind_remap(setting_key: String, action_name: String, button: Button) -> void:
@@ -335,7 +334,7 @@ func _start_keybind_remap(setting_key: String, action_name: String, button: Butt
 
 func _input(event: InputEvent) -> void:
 	if _remapping_action != "" and event is InputEventKey and event.pressed and not event.echo:
-		var new_key := event.keycode
+		var new_key: int = (event as InputEventKey).keycode
 		if new_key == KEY_ESCAPE:
 			_cancel_keybind_remap()
 			return
@@ -345,10 +344,11 @@ func _input(event: InputEvent) -> void:
 
 func _check_keybind_conflicts(new_key: int) -> void:
 	_keybind_conflicts.clear()
-	for key, data in _keybind_actions:
+	for key in _keybind_actions:
+		var data = _keybind_actions[key]
 		if data.current_key == new_key and key != _remapping_action:
-			var conflict_action := data.action_name
-			var current_action := _keybind_actions[_remapping_action].action_name
+			var conflict_action: String = data.action_name
+			var current_action: String = _keybind_actions[_remapping_action].action_name
 			_keybind_conflicts[key] = true
 			data.conflict_label.text = "Conflicts: %s" % current_action
 			data.conflict_label.visible = true
@@ -356,7 +356,7 @@ func _check_keybind_conflicts(new_key: int) -> void:
 			_keybind_actions[_remapping_action].conflict_label.visible = true
 
 func _apply_keybind_remap(new_key: int) -> void:
-	var data := _keybind_actions[_remapping_action]
+	var data: Dictionary = _keybind_actions[_remapping_action]
 	data.current_key = new_key
 	data.button.text = _keycode_to_string(new_key)
 	data.button.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
@@ -371,7 +371,7 @@ func _apply_keybind_remap(new_key: int) -> void:
 func _cancel_keybind_remap() -> void:
 	if _remapping_action == "":
 		return
-	var data := _keybind_actions[_remapping_action]
+	var data: Dictionary = _keybind_actions[_remapping_action]
 	data.button.text = _keycode_to_string(data.current_key)
 	data.button.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	data.button.button_pressed = false
@@ -391,8 +391,8 @@ func _load_from_config() -> void:
 			"slider":
 				if ctrl is HSlider:
 					ctrl.value = val
-					var fmt := info.get("format", "%.2f")
-					var lbl := info.get("label")
+					var fmt: String = info.get("format", "%.2f")
+					var lbl: Variant = info.get("label")
 					if lbl is Label:
 						lbl.text = fmt % val
 			"toggle":
@@ -403,7 +403,7 @@ func _load_from_config() -> void:
 					ctrl.selected = val
 			"keybind":
 				if ctrl is Button:
-					var kb_data := _keybind_actions.get(key, {})
+					var kb_data: Dictionary = _keybind_actions.get(key, {})
 					kb_data.current_key = val
 					ctrl.text = _keycode_to_string(val)
 
@@ -419,7 +419,7 @@ func _on_slider_changed(value: float, key: String) -> void:
 		PlayerConfig.set_account_setting(key, value, false)
 	var info: Dictionary = _setting_controls.get(key, {})
 	var lbl = info.get("label")
-	var fmt := info.get("format", "%.2f")
+	var fmt: String = info.get("format", "%.2f")
 	if lbl is Label:
 		lbl.text = fmt % value
 
@@ -449,7 +449,7 @@ func _on_dropdown_changed(index: int, key: String) -> void:
 		_apply_colorblind_shader()
 
 func _apply_ui_scale() -> void:
-	var scale := PlayerConfig.get_account_setting("ui_scale", 1.0)
+	var scale: float = PlayerConfig.get_account_setting("ui_scale", 1.0)
 	if scale < 0.75:
 		scale = 0.75
 	elif scale > 1.5:
@@ -462,7 +462,7 @@ func _apply_ui_scale() -> void:
 				canvas_layer.scale = Vector2(scale, scale)
 
 func _apply_text_scale() -> void:
-	var scale := PlayerConfig.get_account_setting("ui_text_scale", 1.0)
+	var scale: float = PlayerConfig.get_account_setting("ui_text_scale", 1.0)
 	if scale < 0.8:
 		scale = 0.8
 	elif scale > 1.5:
@@ -473,8 +473,8 @@ func _apply_text_scale() -> void:
 	EventHub.emit_signal("accessibility_text_scale_changed", scale)
 
 func _apply_colorblind_shader() -> void:
-	var enabled := PlayerConfig.get_account_setting("colorblind_mode", false)
-	var type_idx := PlayerConfig.get_account_setting("colorblind_type", 0)
+	var enabled: bool = PlayerConfig.get_account_setting("colorblind_mode", false)
+	var type_idx: int = PlayerConfig.get_account_setting("colorblind_type", 0)
 	
 	## Shader application would go here
 	## For now we just store the setting; actual shader application
@@ -486,7 +486,7 @@ func _apply_colorblind_shader() -> void:
 		GameLog.info("Colorblind mode: Off")
 
 func _apply_reduce_motion() -> void:
-	var enabled := PlayerConfig.get_account_setting("reduce_motion", false)
+	var enabled: bool = PlayerConfig.get_account_setting("reduce_motion", false)
 	if enabled:
 		GameLog.info("Reduce motion: Enabled (disabling UI animations)")
 	else:
@@ -496,7 +496,7 @@ func _apply_reduce_motion() -> void:
 	EventHub.emit_signal("accessibility_reduce_motion_changed", enabled)
 
 func _apply_high_contrast() -> void:
-	var enabled := PlayerConfig.get_account_setting("high_contrast", false)
+	var enabled: bool = PlayerConfig.get_account_setting("high_contrast", false)
 	if enabled:
 		GameLog.info("High contrast: Enabled")
 	else:
@@ -506,7 +506,7 @@ func _apply_high_contrast() -> void:
 	EventHub.emit_signal("accessibility_high_contrast_changed", enabled)
 
 func _apply_screen_shake() -> void:
-	var enabled := PlayerConfig.get_account_setting("screen_shake", true)
+	var enabled: bool = PlayerConfig.get_account_setting("screen_shake", true)
 	GameLog.info("Screen shake: %s" % ("Enabled" if enabled else "Disabled"))
 
 func _populate_graphics_settings(parent: VBoxContainer) -> void:
@@ -644,7 +644,7 @@ func _populate_controls_settings(parent: VBoxContainer) -> void:
 	combat_section.add_theme_font_size_override("font_size", 12)
 	content.add_child(combat_section)
 
-	content.add_child(_create_keybind_row("key_attack", "Basic Attack", KEY_MOUSE_BUTTON_LEFT, "attack"))
+	content.add_child(_create_keybind_row("key_attack", "Basic Attack", -1, "attack"))  # -1: mouse-bound
 	content.add_child(_create_keybind_row("key_interact", "Interact", KEY_E, "interact"))
 	content.add_child(_create_keybind_row("key_ability_1", "Ability 1", KEY_1, "ability_1"))
 	content.add_child(_create_keybind_row("key_ability_2", "Ability 2", KEY_2, "ability_2"))

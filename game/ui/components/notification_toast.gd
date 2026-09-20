@@ -60,6 +60,9 @@ func _ready() -> void:
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
+	# Apply default accessibility settings via the settings updater.
+	update_accessibility_settings(false, 1.0, false)
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update toast stack children
 	if _toast_stack:
@@ -139,8 +142,6 @@ func _create_notification_center() -> Control:
 	panel.offset_right = 250
 	panel.offset_bottom = 200
 	panel.focus_mode = Control.FOCUS_ALL
-	panel.
-	panel.
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
 	style.border_color = UIStyles.COLORS.accent_gold
@@ -176,8 +177,6 @@ func _create_notification_center() -> Control:
 	close_btn.text = "[X]"
 	close_btn.custom_minimum_size = Vector2(30, 30)
 	close_btn.focus_mode = Control.FOCUS_ALL
-	close_btn.
-	close_btn.
 	close_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	close_btn.pressed.connect(_close_notification_center)
 	header.add_child(close_btn)
@@ -186,8 +185,6 @@ func _create_notification_center() -> Control:
 	clear_all_btn.text = "Clear All"
 	clear_all_btn.custom_minimum_size = Vector2(80, 30)
 	clear_all_btn.focus_mode = Control.FOCUS_ALL
-	clear_all_btn.
-	clear_all_btn.
 	clear_all_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	close_btn.pressed.connect(_clear_all_notifications)
 	header.add_child(clear_all_btn)
@@ -334,7 +331,6 @@ func _create_history_item(entry: Dictionary, index: int) -> Control:
 	delete_btn.custom_minimum_size = Vector2(24, 24)
 	delete_btn.add_theme_color_override("font_color", UIStyles.COLORS.error)
 	delete_btn.focus_mode = Control.FOCUS_ALL
-	delete_btn.
 	delete_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	delete_btn.pressed.connect(func(): _remove_history_item(index))
 	hbox.add_child(delete_btn)
@@ -492,7 +488,7 @@ func _create_and_show_toast(data: Dictionary) -> void:
 	var start_pos = panel.position + Vector2(420, 0)
 	panel.position = start_pos
 
-	var tween = UIStyles.create_accessible_tween(panel, "position", Vector2(0, 0), slide_dur)
+	var tween: Tween = UIStyles.create_accessible_tween(panel, slide_dur)
 	tween.parallel().tween_property(panel, "modulate:a", 1.0, fade_dur).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 	# Progress bar animation
@@ -501,7 +497,7 @@ func _create_and_show_toast(data: Dictionary) -> void:
 	progress_tween.tween_property(progress, "value", 0, dur).set_trans(Tween.TRANS_LINEAR)
 
 	# Auto-dismiss
-	var dismiss_tween = UIStyles.create_accessible_tween(panel, "position:x", 420, slide_dur)
+	var dismiss_tween: Tween = UIStyles.create_accessible_tween(panel, slide_dur)
 	dismiss_tween.tween_interval(dur)
 	dismiss_tween.tween_callback(func(): _dismiss_toast(panel))
 
@@ -526,7 +522,7 @@ func _dismiss_toast(panel: Control) -> void:
 	var slide_dur = UIStyles.get_animation_duration(SLIDE_DURATION)
 	var fade_dur = UIStyles.get_animation_duration(FADE_DURATION)
 
-	var tween = UIStyles.create_accessible_tween(panel, "position:x", 420, slide_dur)
+	var tween: Tween = UIStyles.create_accessible_tween(panel, slide_dur)
 	tween.parallel().tween_property(panel, "modulate:a", 0.0, fade_dur).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_callback(panel.queue_free).set_delay(fade_dur)
 

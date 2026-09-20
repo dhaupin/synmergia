@@ -2,6 +2,7 @@
 ## All players (human/agent) are equals with same capabilities and limits
 extends Node
 class_name FairnessService
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 signal fairness_violation(player_id: String, violation_type: String, severity: int)

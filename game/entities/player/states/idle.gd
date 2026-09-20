@@ -1,7 +1,5 @@
 ## Idle State - Player is standing still
-extends Node
-
-const StateBase = preload("res://core/state/state_base.gd")
+extends "res://core/state/state_base.gd"
 class_name IdleState
 
 var idle_timer: float = 0.0
@@ -26,7 +24,7 @@ func update(delta: float) -> void:
 
 func physics_update(_delta: float) -> void:
 	# Apply friction when idle
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.velocity.length() > 0.1:
 		parent.velocity.x = lerp(parent.velocity.x, 0, 10.0 * _delta)
 		parent.velocity.z = lerp(parent.velocity.z, 0, 10.0 * _delta)

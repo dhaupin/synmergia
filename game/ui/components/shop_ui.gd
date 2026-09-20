@@ -365,7 +365,9 @@ func _refresh_gold() -> void:
 		_gold_label.text = "0"
 		return
 	if InventoryService:
-		var gold: int = InventoryService.singleton().get_gold(_player_id)
+		# InventoryService is an autoload instance; call get_gold on it
+		# directly (there is no .singleton() accessor on the script).
+		var gold: int = InventoryService.get_gold(_player_id)
 		_gold_label.text = str(gold)
 	else:
 		_gold_label.text = "0"

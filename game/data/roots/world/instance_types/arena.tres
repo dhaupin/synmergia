@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="InstanceTypeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/instance_type_definition.gd" id="1_itd"]
+
+[resource]
+script = ExtResource("1_itd")
+name = "arena"
+default_ttl_ms = 180000
+category = "arena"
+description = "Arena instance. Reconnect window: 3 minutes (PRD open-seed-ttl US-004: fast-paced match, shorter TTL)."

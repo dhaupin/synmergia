@@ -1,9 +1,9 @@
 ## DeathFeatures - Comprehensive death system manager
 ## Handles: penalties, invincibility, griefing protection, kill streaks, stats
 extends Node
+# NOTE: AchievementService is an autoload; reference it directly.
 
 const Item = preload("res://core/schemas/item.gd")
-const AchievementService = preload("res://core/services/achievement_service.gd")
 # Frame-level notification dispatch (typed-Kind pipeline).
 # Death events route through NotifKind.* with sender "DeathFeatures".
 # Dedupe keys carry event identity so a 5-second respawn-invincibility

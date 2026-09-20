@@ -1,10 +1,11 @@
 ## FriendsService - Friends, block, and ignore list management
 # FriendsService - registered as autoload
 extends Node
-
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
+# NOTE: AdapterRegistry is an autoload; reference it directly.
+
 const CacheWrapper = preload("res://adapters/cache/cache_wrapper.gd")
-const AdapterRegistry = preload("res://adapters/registry.gd")
 const CacheStore = preload("res://adapters/cache/cache_store.gd")
 
 ## Resolve CooldownService autoload safely.
@@ -16,8 +17,9 @@ func _cooldown():
 		return null
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 
-## Resolve AdapterRegistry autoload safely.
-func _adapter_registry() -> AdapterRegistry:
+## Resolve AdapterRegistry autoload safely. Typed as Node because the
+# AdapterRegistry script has no class_name (autoload shadow rule).
+func _adapter_registry() -> Node:
 	var root = get_tree().root if has_node("/root") else null
 	if root:
 		return root.get_node_or_null("AdapterRegistry")

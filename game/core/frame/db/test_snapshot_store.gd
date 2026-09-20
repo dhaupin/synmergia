@@ -30,7 +30,7 @@ func _test_store_load() -> bool:
 	store.store_snapshot(root, state)
 	var loaded = store.load_snapshot(root)
 	assert(loaded.has("entities"))
-	assert(loaded["entities"] has "player_1")
+	assert(loaded["entities"].has("player_1"))
 	return true
 
 func _test_latest() -> bool:

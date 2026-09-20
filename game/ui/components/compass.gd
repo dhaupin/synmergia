@@ -1,8 +1,8 @@
 ## Compass - Directional indicator for waypoints and points of interest
 ## Shows waypoints in a horizontal arc around the player
 extends Control
+# NOTE: WaypointService is an autoload; reference it directly.
 
-const WaypointService = preload("res://core/services/waypoint_service.gd")
 
 # Configuration
 const INDICATOR_COUNT: int = 9  # Number of indicator slots

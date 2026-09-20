@@ -1,9 +1,10 @@
 ## ZoneManager - Zone state and transition management
 ## Handles zone transitions (seamless & instanced), population, and zone boundaries
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const ZoneData = preload("res://core/schemas/zone_data.gd")
-const QoSService = preload("res://core/autoload/qos_service.gd")
 # Entity is not an autoload (class_name only). ZoneManager uses
 # Entity.EntityType.X in entity classification, which requires
 # Entity's class_name registered at parse time. Preload it here.
@@ -245,9 +246,9 @@ func load_zones() -> void:
 		GameLog.warn("ZoneManager: DataService not available")
 		return
 
-	var zone_data_dict = data_service.get_all_zones()
-	for zone_id in zone_data_dict:
-		register_zone(zone_data_dict[zone_id])
+	var zone_data_list: Array = data_service.get_all_zones()
+	for zone_data in zone_data_list:
+		register_zone(zone_data)
 
 	GameLog.info("ZoneManager: Loaded %d zones" % _zones.size())
 

@@ -167,4 +167,5 @@ func _log(log: Object, msg: String) -> void:
 	if log != null and log.has_method("info"):
 		log.info(msg)
 	else:
-		GameLog.info(msg)
+		# GameLog autoload is not resolvable when load()ed from --script mode.
+		print("[INFO] %s" % msg)

@@ -52,7 +52,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	if _search_box:
 		_search_box.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		var scale = UIStyles.get_text_scale()
-		var current_size := _search_box.get_theme_font_size("font_size")
+		var current_size: int = _search_box.get_theme_font_size("font_size")
 		if current_size > 0:
 			_search_box.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -61,14 +61,14 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 		if btn and is_instance_valid(btn):
 			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			var scale = UIStyles.get_text_scale()
-			var current_size := btn.get_theme_font_size("font_size")
+			var current_size: int = btn.get_theme_font_size("font_size")
 			if current_size > 0:
 				btn.add_theme_font_size_override("font_size", int(current_size * scale))
 	
 	# Update rich text label
 	if _rich_label:
 		var scale = UIStyles.get_text_scale()
-		var current_size := _rich_label.get_theme_font_size("default_font_size")
+		var current_size: int = _rich_label.get_theme_font_size("default_font_size")
 		if current_size > 0:
 			_rich_label.add_theme_font_size_override("default_font_size", int(current_size * scale))
 
@@ -131,7 +131,7 @@ func _setup_ui() -> void:
 	_create_filter_button("System", EntryType.SYSTEM, UIStyles.COLORS.info)
 	_create_filter_button("Loot", EntryType.LOOT, UIStyles.COLORS.accent_gold)
 	_create_filter_button("Quest", EntryType.QUEST, UIStyles.COLORS.warning)
-	_create_filter_button("Achievement", EntryType.ACHIEVEMENT, UIStyles.COLORS.rarity_legendary)
+	_create_filter_button("Achievement", EntryType.ACHIEVEMENT, UIStyles.RARITY_COLORS.rarity_legendary)
 	_create_filter_button("Guild", EntryType.GUILD, UIStyles.COLORS.info)
 	_create_filter_button("Trade", EntryType.TRADE, UIStyles.COLORS.success)
 
@@ -264,7 +264,8 @@ func log_trade(message: String) -> void:
 
 func clear() -> void:
 	_entries.clear()
-	_rich_label.clear()
+	if _rich_label:
+		_rich_label.clear()
 
 
 func get_message_count() -> int:

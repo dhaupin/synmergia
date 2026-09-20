@@ -4,7 +4,7 @@ extends SceneTree
 const ScopeHierarchy = preload("res://core/frame/srv/scope_hierarchy.gd")
 const ScopeEngine = preload("res://core/frame/srv/scope_engine.gd")
 const Scope = preload("res://core/frame/srv/scope.gd")
-const ScopeNode = preload("res://core/frame/srv/scope_hierarchy.gd").ScopeNode
+const ScopeNode = preload("res://core/frame/srv/scope_node.gd")
 
 var _all_passed = true
 
@@ -67,7 +67,8 @@ func _make_test_hierarchy() -> ScopeHierarchy:
 	player_node.environment_path = "player/environment.tres"
 	player_node.rules_overrides = {}
 
-	hierarchy.nodes = [world_node, shard_node, instance_node, player_node]
+	var node_list: Array[ScopeNode] = [world_node, shard_node, instance_node, player_node]
+	hierarchy.nodes = node_list
 	return hierarchy
 
 func _save_hierarchy_to_temp(hierarchy: ScopeHierarchy, path: String) -> void:
@@ -235,7 +236,8 @@ func _test_invalid_hierarchy_rejection() -> void:
 	n2.parent_name = ""
 	n2.environment_path = "b.tres"
 	n2.rules_overrides = {}
-	hierarchy.nodes = [n1, n2]
+	var two_nodes: Array[ScopeNode] = [n1, n2]
+	hierarchy.nodes = two_nodes
 	var temp_path = "user://bad_multi_root.tres"
 	ResourceSaver.save(hierarchy, temp_path)
 
@@ -254,7 +256,8 @@ func _test_invalid_hierarchy_rejection() -> void:
 	n2.parent_name = "a"
 	n2.environment_path = "b.tres"
 	n2.rules_overrides = {}
-	hierarchy.nodes = [n1, n2]
+	var cycle_nodes: Array[ScopeNode] = [n1, n2]
+	hierarchy.nodes = cycle_nodes
 	temp_path = "user://bad_cycle.tres"
 	ResourceSaver.save(hierarchy, temp_path)
 
@@ -268,7 +271,8 @@ func _test_invalid_hierarchy_rejection() -> void:
 	n1.parent_name = "missing"
 	n1.environment_path = "a.tres"
 	n1.rules_overrides = {}
-	hierarchy.nodes = [n1]
+	var missing_nodes: Array[ScopeNode] = [n1]
+	hierarchy.nodes = missing_nodes
 	temp_path = "user://bad_missing_parent.tres"
 	ResourceSaver.save(hierarchy, temp_path)
 
@@ -322,7 +326,8 @@ func _test_custom_hierarchy() -> void:
 	character.environment_path = "character/environment.tres"
 	character.rules_overrides = {}
 
-	hierarchy.nodes = [galaxy, sector, system, planet, character]
+	var custom_nodes: Array[ScopeNode] = [galaxy, sector, system, planet, character]
+	hierarchy.nodes = custom_nodes
 
 	var temp_path = "user://custom_hierarchy.tres"
 	_create_dummy_environments(hierarchy)

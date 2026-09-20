@@ -1,6 +1,8 @@
 ## DialogService - NPC dialogue loading and state management
 ## Loads DialogueData resources from data/dialogues/*.tres and drives DialogUI.
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Singleton instance (use singleton() to access)
 static var _instance: Node = null
@@ -17,7 +19,6 @@ static func singleton() -> Node:
 static func _esc(text: String) -> String:
 	return text.replace("[", "[lb]").replace("]", "[rb]")
 
-const QoSService = preload("res://core/autoload/qos_service.gd")
 const DialogueData = preload("res://core/schemas/dialogue_data.gd")
 # ShopUI and UIStyles are not autoloads (class_name only).
 # MenuManager is NOT preloaded here: it pulls in dialog_ui.gd at

@@ -2,7 +2,9 @@
 ## Displays who you're following and offers cancel option
 extends Control
 
-const FollowService = preload("res://core/services/follow_service.gd")
+# NOTE: FollowService is an autoload. The old `const FollowService = preload(...)`
+# here shadowed the autoload with the script resource, so signal connections
+# targeted the script (where signals don't exist) instead of the instance.
 
 @onready var container: VBoxContainer = $Panel/VBox
 @onready var target_label: Label = $Panel/VBox/TargetLabel

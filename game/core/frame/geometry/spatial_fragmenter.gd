@@ -273,15 +273,17 @@ func nsc9_code_to_face(code: int) -> int:
 		return -1
 
 	var axis: int
-	# Detect format: if high nibble is 9 (0x9), it's likely decimal format
-	# Packed format has prefix=9 in bits 44-47, but facility/axis/sequence fill lower bits
-	# Heuristic: decimal format has value >= 9000000000000
-	if code >= 9000000000000:
-		# Decimal format: axis at 1000000 position
-		axis = int(code / 1000000) % 1000
-	else:
+	# Format discrimination by bit layout, not magnitude: packed codes carry a
+	# 4-bit prefix (value 9) at bits 44-47, so they are always >= 9 << 44.
+	# Decimal codes max at ~9.99e12, which is below 1 << 44, so the ranges
+	# cannot overlap. The old magnitude heuristic (>= 9e12 => decimal) matched
+	# every packed code and extracted garbage axes.
+	if code & (0xF << 44):
 		# Packed format: axis at bits 24-33 (10 bits)
 		axis = (code >> 24) & 0x3FF
+	else:
+		# Decimal (legacy) format: axis at 1000000 position
+		axis = int(code / 1000000) % 1000
 
 	return nsc9_axis_to_face(axis)
 

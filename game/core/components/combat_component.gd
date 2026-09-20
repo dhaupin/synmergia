@@ -2,8 +2,9 @@
 ## Attached to entities that can fight
 extends Node
 class_name CombatComponent
+# NOTE: AntiCheatService is an autoload; reference it directly.
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const AntiCheatService = preload("res://core/services/anticheat_service.gd")
 const Skill = preload("res://core/combat/skill.gd")
 const Item = preload("res://core/schemas/item.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")

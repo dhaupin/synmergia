@@ -1,6 +1,8 @@
 ## PartyService - Party management
 ## Handles party creation, invites, member management, loot rules, and XP sharing
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Resolve CooldownService autoload safely.
 func _cooldown():
@@ -11,7 +13,6 @@ func _cooldown():
 		return null
 	return (ml as SceneTree).root.get_node_or_null("CooldownService")
 const CharacterData = preload("res://core/schemas/character_data.gd")
-const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Frame-level notification dispatch (see game/core/notifications/).

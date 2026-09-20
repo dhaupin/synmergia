@@ -2,6 +2,8 @@
 ## Allows players to follow other players around the world
 ## Used for: Group play assistance, NPC quest followers, Mounts, etc.
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Resolve CooldownService autoload safely.
 func _cooldown():
@@ -15,7 +17,6 @@ func _cooldown():
 # QoSService exposes a static facade (QoSService.rate_limit(...)), so a
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
-const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 # EventHub is an autoload singleton (autoload #19, before this
 # service at #77). It is accessed bare so the singleton instance is

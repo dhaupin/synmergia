@@ -448,13 +448,15 @@ static func _compare_input_sequence(a: Dictionary, b: Dictionary) -> bool:
 func _should_step_entity(entity) -> bool:
 	if entity == null:
 		return false
-	# Entities with inputs this tick or with AI decisions to make
-	if entity.has("has_input") and entity.has_input:
+	# Entities with inputs this tick or with AI decisions to make.
+	# Use the `in` operator: entities are Nodes, not Dictionaries, so
+	# Dictionary.has() is invalid on them.
+	if "has_input" in entity and entity.has_input:
 		return true
-	if entity.has("needs_ai") and entity.needs_ai:
+	if "needs_ai" in entity and entity.needs_ai:
 		return true
 	# Always step entities with active effects
-	if entity.has("effect_count") and entity.effect_count > 0:
+	if "effect_count" in entity and entity.effect_count > 0:
 		return true
 	return false
 
@@ -739,7 +741,6 @@ func _phase5_persistence() -> void:
 
 	# Fire and forget - async, does not block the tick
 	var task := _Task.new()
-	task.task_name = "TickPersistence_%d" % _tick_number
 	add_child(task)
 
 	task._setup(func() -> void:

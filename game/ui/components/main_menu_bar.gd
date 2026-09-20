@@ -43,7 +43,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 		if btn and is_instance_valid(btn):
 			btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 			var scale = UIStyles.get_text_scale()
-			var current_size := btn.get_theme_font_size("font_size")
+			var current_size: int = btn.get_theme_font_size("font_size")
 			if current_size > 0:
 				btn.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -53,7 +53,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			if child is Button:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 
@@ -86,7 +86,6 @@ func _setup_ui() -> void:
 	_menu_button = _create_icon_button("=", "menu_button", "Open Main Menu (M)")
 	_menu_button.pressed.connect(_on_menu_button_pressed)
 	_menu_button.focus_mode = Control.FOCUS_ALL
-	_menu_button.
 	bar.add_child(_menu_button)
 	
 	# Center spacer (pushes avatar to center-ish, settings to right)
@@ -98,7 +97,6 @@ func _setup_ui() -> void:
 	_avatar_button = _create_avatar_button()
 	_avatar_button.pressed.connect(_on_avatar_pressed)
 	_avatar_button.focus_mode = Control.FOCUS_ALL
-	_avatar_button.
 	bar.add_child(_avatar_button)
 	
 	# Right spacer
@@ -110,7 +108,6 @@ func _setup_ui() -> void:
 	_settings_button = _create_icon_button("*", "settings_button", "Settings (O)")
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_settings_button.focus_mode = Control.FOCUS_ALL
-	_settings_button.
 	bar.add_child(_settings_button)
 	
 	add_child(bar)
@@ -118,9 +115,9 @@ func _setup_ui() -> void:
 	# Expanded menu panel (initially hidden)
 	_create_expanded_panel()
 	
-	_anchors_preset = Control.PRESET_TOP_WIDE
-	_offset_top = 8
-	_offset_bottom = 68
+	set_anchors_preset(Control.PRESET_TOP_WIDE)
+	offset_top = 8
+	offset_bottom = 68
 
 func _create_icon_button(text: String, name: String, tooltip: String) -> Button:
 	var btn := Button.new()
@@ -176,8 +173,6 @@ func _create_avatar_button() -> Button:
 	btn.toggle_mode = false
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.clip_contents = true
-	btn.
-	btn.
 	var style_normal := StyleBoxFlat.new()
 	style_normal.bg_color = _get_color("background_dark", Color(0.12, 0.12, 0.18, 0.9))
 	style_normal.border_color = _get_color("accent_gold", UIStyles.COLORS.accent_gold)
@@ -262,8 +257,6 @@ func _create_expanded_panel() -> void:
 	_expanded_panel.offset_top = 76
 	_expanded_panel.custom_minimum_size = Vector2(220, 0)
 	_expanded_panel.focus_mode = Control.FOCUS_ALL
-	_expanded_panel.
-	_expanded_panel.
 	var style := StyleBoxFlat.new()
 	style.bg_color = _get_color("background_dark", Color(0.08, 0.08, 0.12, 0.98))
 	style.border_color = _get_color("border_highlight", UIStyles.COLORS.border_highlight)
@@ -318,8 +311,6 @@ func _create_expanded_panel() -> void:
 	admin_btn.name = "menu_item_admin_panel"
 	admin_btn.visible = _is_admin_or_mod
 	admin_btn.tooltip_text = "Admin Panel (requires Moderator+)"
-	admin_btn.
-	admin_btn.
 	_menu_items.add_child(admin_btn)
 	
 	# Debug panel (only visible to ADMIN+ or dev mode)
@@ -327,14 +318,10 @@ func _create_expanded_panel() -> void:
 	debug_btn.name = "menu_item_debug_panel"
 	debug_btn.visible = _is_dev_mode
 	debug_btn.tooltip_text = "Debug Panel (requires Admin/Dev Mode)"
-	debug_btn.
-	debug_btn.
 	_menu_items.add_child(debug_btn)
 	
 	# Settings item
 	var settings_btn := _create_menu_item("settings", "Settings", "O", "[*]")
-	settings_btn.
-	settings_btn.
 	_menu_items.add_child(settings_btn)
 	
 	# Separator
@@ -345,8 +332,6 @@ func _create_expanded_panel() -> void:
 	
 	# Close menu item
 	var close_btn := _create_menu_item("close", "Close Menu", "", "X")
-	close_btn.
-	close_btn.
 	_menu_items.add_child(close_btn)
 	
 	add_child(_expanded_panel)
@@ -456,7 +441,6 @@ func show_expanded() -> void:
 	_expanded_panel.visible = true
 	_menu_button.text = "X"
 	_menu_button.tooltip_text = "Close Main Menu (M)"
-	_menu_button.
 	# Focus first visible menu item for keyboard navigation
 	call_deferred("_focus_first_menu_item")
 	
@@ -478,7 +462,6 @@ func hide_expanded() -> void:
 	_is_expanded = false
 	_menu_button.text = "="
 	_menu_button.tooltip_text = "Open Main Menu (M)"
-	_menu_button.
 	# Return focus to menu button
 	call_deferred("_return_focus_to_menu_button")
 	
@@ -530,7 +513,7 @@ func _input(event: InputEvent) -> void:
 	
 	# Touch support
 	if _is_expanded and event is InputEventScreenTouch and event.pressed:
-		var touch_pos := event.position
+		var touch_pos: Vector2 = (event as InputEventScreenTouch).position
 		if not _expanded_panel.get_global_rect().has_point(touch_pos) and not _menu_button.get_global_rect().has_point(touch_pos):
 			hide_expanded()
 	

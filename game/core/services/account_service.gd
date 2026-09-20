@@ -1,8 +1,9 @@
 ## AccountService - Account-level operations
 ## Manages accounts, character linking, and account-wide features
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
-const AdapterRegistry = preload("res://adapters/registry.gd")
+# NOTE: AdapterRegistry is an autoload; reference it directly.
 const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 
 # Singleton instance
@@ -27,8 +28,9 @@ const _kv_prefix := "account_service:"
 var _allow_same_account_trade: bool = false	 # Can trade between own characters
 var _max_characters_per_account: int = 5
 
-## Resolve AdapterRegistry autoload safely.
-func _adapter_registry() -> AdapterRegistry:
+## Resolve AdapterRegistry autoload safely. Typed as Node because the
+# AdapterRegistry script has no class_name (autoload shadow rule).
+func _adapter_registry() -> Node:
 	var root = get_tree().root if has_node("/root") else null
 	if root:
 		return root.get_node_or_null("AdapterRegistry")

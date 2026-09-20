@@ -119,12 +119,18 @@ func _test_rate_limiting_via_counter(service) -> void:
 	for i in range(4):
 		service.login(user, "wrong")
 	var fifth = service.login(user, "correct")
-	if fifth == false or fifth == "":
+	# login() returns String on success/unknown, bool false when blocked.
+	# Comparing Variant to bool with == raises "Invalid operands" in
+	# 4.7.2, so branch on the runtime type first.
+	if typeof(fifth) == TYPE_BOOL and fifth == false:
 		_fail("5th attempt should still be allowed (limit=5)")
+		return
+	if typeof(fifth) == TYPE_STRING and fifth == "":
+		_fail("5th attempt failed with empty token (limit=5)")
 		return
 	# 6th attempt should be blocked
 	var sixth = service.login(user, "correct")
-	if sixth != false:
+	if not (typeof(sixth) == TYPE_BOOL and sixth == false):
 		_fail("6th attempt should be blocked by rate limiter")
 		return
 	_ok("rate limit: 5 allowed, 6th blocked")

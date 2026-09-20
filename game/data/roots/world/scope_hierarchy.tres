@@ -1,28 +1,31 @@
-[gd_resource type="Resource" script_class="ScopeHierarchy" load_steps=5 format=3 uid://uid5]
+[gd_resource type="Resource" format=3]
 
-[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_1"]
+[ext_resource type="Script" path="res://core/frame/srv/scope_node.gd" id="1_w2hp7"]
+[ext_resource type="Script" path="res://core/frame/srv/scope_hierarchy.gd" id="2_8r6it"]
+
+[sub_resource type="Resource" id="Resource_w3687"]
+script = ExtResource("1_w2hp7")
 name = "world"
-parent_name = ""
 environment_path = "world/environment.tres"
-rules_overrides = {}
 
-[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_2"]
+[sub_resource type="Resource" id="Resource_ovogr"]
+script = ExtResource("1_w2hp7")
 name = "shard"
 parent_name = "world"
 environment_path = "../shard/environment.tres"
-rules_overrides = {}
 
-[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_3"]
+[sub_resource type="Resource" id="Resource_hqqjq"]
+script = ExtResource("1_w2hp7")
 name = "instance"
 parent_name = "shard"
 environment_path = "../instance/environment.tres"
-rules_overrides = {}
 
-[sub_resource type="ScopeHierarchy.ScopeNode" id="ScopeNode_4"]
+[sub_resource type="Resource" id="Resource_6vejw"]
+script = ExtResource("1_w2hp7")
 name = "player"
 parent_name = "instance"
 environment_path = "../player/environment.tres"
-rules_overrides = {}
 
 [resource]
-nodes = [SubResource("ScopeNode_1"), SubResource("ScopeNode_2"), SubResource("ScopeNode_3"), SubResource("ScopeNode_4")]
+script = ExtResource("2_8r6it")
+nodes = Array[ExtResource("1_w2hp7")]([SubResource("Resource_w3687"), SubResource("Resource_ovogr"), SubResource("Resource_hqqjq"), SubResource("Resource_6vejw")])

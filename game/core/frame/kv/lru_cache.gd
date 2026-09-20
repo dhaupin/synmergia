@@ -12,13 +12,15 @@ var _order: Array = []
 func _init(max_size: int = 256) -> void:
 	_max_size = max(1, max_size)
 
-func get(key: String) -> Variant:
+## 4.7.2 strictness: get/set collide with native Object members and fail to
+## parse as class members. Canonical accessors are get_value/set_value.
+func get_value(key: String) -> Variant:
 	if not _data.has(key):
 		return null
 	_move_to_front(key)
 	return _data[key]
 
-func set(key: String, value: Variant) -> void:
+func set_value(key: String, value: Variant) -> void:
 	if _data.has(key):
 		_data[key] = value
 		_move_to_front(key)

@@ -1030,27 +1030,30 @@ func get_targets_in_radius(origin: Vector3, radius: float, entity_type: int = 0)
 ## ============================================================================
 
 func _on_entity_spawned(entity, _metadata: SpawnMetadata) -> void:
-	if entity.has("entity_id"):
-		var entity_type = entity.get("entity_type", 0)
-		var schema_id = _entity_type_to_schema.get(entity_type, "")
-		if schema_id == "":
-			schema_id = _infer_schema_id(entity)
+	# Entities are Nodes, not Dictionaries: use the `in` operator for
+	# property presence and avoid Object.get(key, default) (removed in 4.7.2).
+	if entity == null or not ("entity_id" in entity):
+		return
+	var entity_type: int = entity.entity_type if "entity_type" in entity else 0
+	var schema_id: String = _entity_type_to_schema.get(entity_type, "")
+	if schema_id == "":
+		schema_id = _infer_schema_id(entity)
 
-		register_targetable(
-			entity.entity_id,
-			schema_id,
-			entity,
-			entity.get("display_name", entity.entity_id),
-			entity.global_position if entity is Node3D else Vector3.ZERO,
-			entity_type
-		)
+	register_targetable(
+		entity.entity_id,
+		schema_id,
+		entity,
+		entity.display_name if "display_name" in entity else entity.entity_id,
+		entity.global_position if entity is Node3D else Vector3.ZERO,
+		entity_type
+	)
 
 func _on_entity_despawned(entity, _metadata: SpawnMetadata) -> void:
-	if entity.has("entity_id"):
+	if entity != null and "entity_id" in entity:
 		unregister_targetable(entity.entity_id)
 
 func _on_entity_died(entity, _killer, _metadata: SpawnMetadata) -> void:
-	if entity.has("entity_id"):
+	if entity != null and "entity_id" in entity:
 		# Optionally clear target if they died
 		if _current_target and _current_target.id == entity.entity_id:
 			# Don't auto-clear, let player decide

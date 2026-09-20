@@ -65,7 +65,7 @@ func _test_projection() -> bool:
 	var latlon = nsc9.project_to_latlon(Vector3(1, 0, 0))
 	assert(abs(latlon.x) < 0.01)
 	assert(abs(latlon.y) < 0.01)
-	var v = nsc9.nearest_vertex(Vector3(0, 1, 0))
+	var v = nsc9.nearest_vertex(90.0, 0.0)  # north pole
 	assert(v >= 0 and v < 12)
 	return true
 

@@ -2,6 +2,7 @@
 ## Free-form combat system (RYL2-style)
 extends CharacterBody3D
 class_name PlayerController
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const CharacterData = preload("res://core/schemas/character_data.gd")

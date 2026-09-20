@@ -293,10 +293,13 @@ func _normalize_path(path: String) -> String:
 func _schema_id(schema: Resource) -> String:
 	if schema == null:
 		return ""
-	var resource_path := schema.resource_path
-	if resource_path != "":
-		return resource_path
-	return str(schema)
+	# Deterministic schema identity: content hashes must not depend on
+	# object instance ids (str(schema) embeds <Resource#-92233...>), or
+	# identical trees would hash differently across instances and restarts.
+	var script: Variant = schema.get_script()
+	if script != null and script.resource_path != "":
+		return script.resource_path
+	return "native:" + schema.get_class()
 
 
 func _node_hash(path: String, value_bytes: PackedByteArray, schema_id: String) -> PackedByteArray:

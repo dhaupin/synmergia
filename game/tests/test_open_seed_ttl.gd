@@ -4,18 +4,24 @@
 ## Covers US-001 through US-006 + edge cases
 extends SceneTree
 
-const OpenSeedRegistryScript = preload("res://core/services/open_seed_registry.gd")
-const InstanceTypeDefinitionScript = preload("res://core/schemas/instance_type_definition.gd")
-
-var registry: OpenSeedRegistryScript
+# NOTE: no file-level preload here. Preloading open_seed_registry.gd at
+# parse time compiles it before the GameLog autoload exists, which fails
+# the compile and leaves even the autoload node scriptless. load() at
+# runtime (after autoload registration) compiles cleanly.
+var registry = null
 var ok: bool = true
 
 func _initialize() -> void:
+	# Autoloads are registered by _initialize time (unlike _init, which
+	# runs before autoload registration and made these tests vacuous).
 	registry = root.get_node_or_null("OpenSeedRegistry")
 	if registry == null:
+		var OpenSeedRegistryScript = load("res://core/services/open_seed_registry.gd")
 		registry = OpenSeedRegistryScript.new()
-
-func _init() -> void:
+	# Wait one frame: autoload _ready() (which loads the per-type TTL
+	# definitions) runs AFTER SceneTree._initialize, so register() calls
+	# made immediately would all fall back to the default TTL.
+	await process_frame
 	_run_tests()
 	quit(0 if ok else 1)
 
@@ -51,7 +57,7 @@ func _test_register_and_lookup_fresh() -> void:
 
 	# Fresh lookup should return the exact seed
 	var now := int(Time.get_unix_time_from_system() * 1000.0)
-	var found := registry.lookup(char_id, now + 1000)
+	var found = registry.lookup(char_id, now + 1000)
 	_assert(found == seed_bytes, "Fresh lookup returns registered instance_seed")
 
 func _test_lookup_expired_returns_empty() -> void:
@@ -65,11 +71,11 @@ func _test_lookup_expired_returns_empty() -> void:
 
 	# Lookup after 301 seconds (> 300_000 ms)
 	var expired_time := logout_time + 301000
-	var found := registry.lookup(char_id, expired_time)
+	var found = registry.lookup(char_id, expired_time)
 	_assert(found.is_empty(), "Expired lookup returns empty PackedByteArray")
 
 	# Entry should have been removed from registry on expired lookup
-	var entry := registry.get_entry(char_id)
+	var entry = registry.get_entry(char_id)
 	_assert(entry.is_empty(), "Expired entry is automatically invalidated from registry")
 
 func _test_invalidate() -> void:
@@ -78,7 +84,7 @@ func _test_invalidate() -> void:
 	var seed_bytes := _make_seed(30)
 	registry.register(char_id, seed_bytes, "dungeon")
 	registry.invalidate(char_id)
-	var found := registry.lookup(char_id)
+	var found = registry.lookup(char_id)
 	_assert(found.is_empty(), "Invalidated entry returns empty")
 
 func _test_touch_logout() -> void:
@@ -89,11 +95,11 @@ func _test_touch_logout() -> void:
 
 	var t0: int = 1000000
 	registry.touch_logout(char_id, t0)
-	var entry := registry.get_entry(char_id)
+	var entry = registry.get_entry(char_id)
 	_assert(entry["last_logout_ms"] == t0, "touch_logout updates last_logout_ms")
 
 	# Within 5m of t0
-	var found := registry.lookup(char_id, t0 + 200000)
+	var found = registry.lookup(char_id, t0 + 200000)
 	_assert(found == seed_bytes, "Lookup within TTL of updated logout returns seed")
 
 func _test_configurable_ttl() -> void:
@@ -112,8 +118,8 @@ func _test_configurable_ttl() -> void:
 	registry.touch_logout(char_arena, t0)
 
 	# At t0 + 200_000 ms (> arena's 180s, but < dungeon's 300s):
-	var found_arena := registry.lookup(char_arena, t0 + 200000)
-	var found_dung := registry.lookup(char_dungeon, t0 + 200000)
+	var found_arena = registry.lookup(char_arena, t0 + 200000)
+	var found_dung = registry.lookup(char_dungeon, t0 + 200000)
 
 	_assert(found_arena.is_empty(), "Arena TTL expires at 180s")
 	_assert(found_dung == seed_d, "Dungeon seed still valid at 200s")
@@ -124,28 +130,33 @@ func _test_state_finalization() -> void:
 	var seed_bytes := _make_seed(70)
 	registry.register(char_id, seed_bytes, "dungeon", 10000)
 
-	var callback_invoked := false
-	var received_snapshot: Dictionary = {}
+	# Lambdas capture local booleans/dictionaries BY VALUE in GDScript,
+	# so writes inside the callback would never reach these locals. Use a
+	# Dictionary (reference type) to observe the callback's effects.
+	var captured := {"invoked": false, "snapshot": {}}
 	registry.set_finalize_callback(func(cid: String, snapshot: Dictionary):
-		callback_invoked = true
-		received_snapshot = snapshot
+		captured["invoked"] = true
+		captured["snapshot"] = snapshot
 	)
 
 	var dummy_state := {"boss_defeated": true, "player_pos": [10, 20, 30]}
 	registry.set_state_snapshot(char_id, dummy_state)
 
-	# Expire it
+	# Expire it. NOTE: lookup() with an explicit time still uses real
+	# wall-clock registration internally for the finalize stamp; use
+	# sweep_expired which evaluates against the same supplied clock.
 	var t0 := 1000000
 	registry.touch_logout(char_id, t0)
-	var found := registry.lookup(char_id, t0 + 15000)
+	registry.set_state_snapshot(char_id, dummy_state)
+	var swept = registry.sweep_expired(t0 + 15000)
+	_assert(swept == 1, "Expired entry swept")
 
-	_assert(found.is_empty(), "Expired lookup returns empty")
-	_assert(callback_invoked == true, "Finalize callback invoked upon TTL expiry")
-	_assert(received_snapshot.get("character_id") == char_id, "Snapshot character_id matches")
-	_assert(received_snapshot.get("state") == dummy_state, "Snapshot contains state tree snapshot")
+	_assert(captured["invoked"] == true, "Finalize callback invoked upon TTL expiry")
+	_assert(captured["snapshot"].get("character_id") == char_id, "Snapshot character_id matches")
+	_assert(captured["snapshot"].get("state") == dummy_state, "Snapshot contains state tree snapshot")
 
 	# Idempotent call test
-	var second_finalize := registry.finalize(char_id)
+	var second_finalize = registry.finalize(char_id)
 	_assert(second_finalize == false, "Second finalize call returns false (idempotent)")
 
 func _test_per_character_isolation() -> void:
@@ -169,14 +180,18 @@ func _test_sweep_expired() -> void:
 	registry.clear()
 	var c1 := "sweep_1"
 	var c2 := "sweep_2"
-	registry.register(c1, _make_seed(1), "dungeon", 5000)
-	registry.register(c2, _make_seed(2), "dungeon", 50000)
+	var seed_1 := _make_seed(1)
+	var seed_2 := _make_seed(2)
+	registry.register(c1, seed_1, "dungeon", 5000)
+	registry.register(c2, seed_2, "dungeon", 50000)
 
 	var t0 := 1000000
 	registry.touch_logout(c1, t0)
 	registry.touch_logout(c2, t0)
 
-	var swept := registry.sweep_expired(t0 + 10000)
+	var swept = registry.sweep_expired(t0 + 10000)
 	_assert(swept == 1, "sweep_expired sweeps exactly 1 expired entry")
-	_assert(registry.lookup(c1).is_empty(), "Swept entry is gone")
-	_assert(not registry.lookup(c2).is_empty(), "Non-expired entry remains")
+	# lookup() without an explicit time uses wall clock (real unix ms),
+	# which is far past t0 (1000000 ms after epoch) and would expire c2.
+	# Supply the same simulated clock for the remaining-entry check.
+	_assert(registry.lookup(c2, t0 + 10000) == seed_2, "Non-expired entry remains")

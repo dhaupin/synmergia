@@ -2,7 +2,6 @@
 ## Spinner, progress bar, and loading states
 extends "res://ui/components/ui_panel.gd"
 class_name LoadingUI
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 
 ## Loading states

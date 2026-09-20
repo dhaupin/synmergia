@@ -105,20 +105,20 @@ func set_param(shard_id: String, param_name: String, value: Variant, actor_id: S
 func _apply_critical(shard_id: String, param_name: String, value: Variant, actor_id: String) -> void:
 	_acquire_write_lock(shard_id)
 	var path := "%s/%s/parameters/%s" % [_PARAM_PATH_PREFIX, shard_id, param_name]
-	var command := {
-		"type": "insert",
-		"path": path,
-		"entity_id": shard_id,
-		"state_type": "other",
-		"payload": {"param_name": param_name, "value": value}
-	}
+	# Critical parameters must apply immediately (prd-critical-params.md US-002):
+	# write to the state tree now, then hand the command to TickService so the
+	# change flows through the normal tick-phase persistence/re-root pipeline.
+	var tree: Variant = _get_state_tree(shard_id)
+	if tree != null:
+		tree.insert_state(path, shard_id, "other", {"param_name": param_name, "value": value})
 	if TickService:
-		TickService.queue_state_command(command)
-	else:
-		# Fallback for tests/early boot when TickService not ready
-		var tree: Variant = _get_state_tree(shard_id)
-		if tree != null:
-			tree.insert_state(path, shard_id, "other", {"param_name": param_name, "value": value})
+		TickService.queue_state_command({
+			"type": "insert",
+			"path": path,
+			"entity_id": shard_id,
+			"state_type": "other",
+			"payload": {"param_name": param_name, "value": value}
+		})
 	var ts := Time.get_unix_time_from_system()
 	GameLog.info("ShardParameters: critical param applied timestamp=%s shard=%s param=%s value=%s actor=%s" % [ts, shard_id, param_name, str(value), actor_id])
 	param_applied.emit(shard_id, param_name, value, actor_id)

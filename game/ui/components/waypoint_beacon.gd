@@ -1,8 +1,8 @@
 ## WaypointBeacon - Visual indicator for waypoints in game world
 ## Creates a pillar of light / marker that can be seen from a distance
 extends Node3D
+# NOTE: WaypointService is an autoload; reference it directly.
 
-const WaypointService = preload("res://core/services/waypoint_service.gd")
 
 # Beacon components
 var _pillar: ImmediateMeshInstance3D

@@ -52,7 +52,7 @@ func _test_registration_and_lookup() -> void:
 	cache.open({})
 	_reg("sessions", cache)
 	cache.store("session:abc", "user_1", 60)
-	if _lookup("sessions").get("session:abc") != "user_1":
+	if _lookup("sessions").fetch("session:abc") != "user_1":
 		_fail("cache store via registry failed")
 		return
 	_ok("register + retrieve + use cache store")
@@ -60,7 +60,7 @@ func _test_registration_and_lookup() -> void:
 	var mem = MemoryStore.new()
 	_reg("cooldowns", mem)
 	mem.store("plr_1:fireball", 1234567890.0)
-	if _lookup("cooldowns").get("plr_1:fireball") != 1234567890.0:
+	if _lookup("cooldowns").fetch("plr_1:fireball") != 1234567890.0:
 		_fail("memory store via registry failed")
 		return
 	_ok("register + retrieve + use memory store")

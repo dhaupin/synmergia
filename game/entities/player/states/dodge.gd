@@ -16,7 +16,7 @@ func enter(_data: Dictionary = {}) -> void:
 	elapsed = 0.0
 	has_i_frames = false
 
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Calculate dodge direction (movement direction or forward if stationary)
 	var move_dir := parent.get_movement_direction()
@@ -36,7 +36,7 @@ func enter(_data: Dictionary = {}) -> void:
 	animation_play("dodge")
 
 func exit() -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	parent.is_invincible = false
 	has_i_frames = false
 
@@ -44,7 +44,7 @@ func update(delta: float) -> void:
 	elapsed += delta
 
 	# Update i-frames
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	has_i_frames = elapsed >= IFRAMES_START and elapsed <= IFRAMES_END
 	parent.is_invincible = has_i_frames
 
@@ -53,7 +53,7 @@ func update(delta: float) -> void:
 		transition_to("Land")
 
 func physics_update(delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Slow down during dodge
 	var t := elapsed / DURATION
@@ -74,7 +74,7 @@ func physics_update(delta: float) -> void:
 			transition_to("Jump")
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)
 

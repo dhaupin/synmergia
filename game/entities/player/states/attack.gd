@@ -21,7 +21,7 @@ signal attack_hit(target: Node3D, damage: int)
 signal attack_finished()
 
 func enter(_data: Dictionary = {}) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Check if a skill was passed
 	if _data.has("skill"):
@@ -51,7 +51,7 @@ func _setup_basic_attack() -> void:
 	is_attacking = false
 
 func exit() -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	parent.is_attacking = false
 	current_skill = null
 	is_attacking = false
@@ -60,7 +60,7 @@ func exit() -> void:
 func update(delta: float) -> void:
 	attack_timer -= delta
 
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Handle attack initiation
 	if not has_initiated and attack_timer <= get_attack_start_time():
@@ -71,7 +71,7 @@ func update(delta: float) -> void:
 		_finish_attack()
 
 func _physics_process(delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Allow movement during attack if permitted
 	if can_move_during_attack:
@@ -86,7 +86,7 @@ func _physics_process(delta: float) -> void:
 		transition_to("Dodge")
 
 func _handle_movement_during_attack(_delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	var move_dir := parent.get_movement_direction()
 
 	if move_dir.length() > 0.1:
@@ -101,7 +101,7 @@ func _initiate_attack() -> void:
 	has_initiated = true
 	is_attacking = true
 
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	parent.is_attacking = true
 
 	# Play attack animation
@@ -118,7 +118,7 @@ func _initiate_attack() -> void:
 		_execute_immediate_attack()
 
 func _execute_immediate_attack() -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Create hitbox
 	if current_skill and current_skill.hitbox_size > 0:
@@ -126,7 +126,7 @@ func _execute_immediate_attack() -> void:
 
 func _execute_ground_targeted_skill() -> void:
 	# Ground-targeted AoE skill - player chooses location
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Lock movement during cast (but can still rotate)
 	can_move_during_attack = false
@@ -146,7 +146,7 @@ func get_attack_animation_name() -> String:
 	return "attack"
 
 func _finish_attack() -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Clean up
 	if current_skill and current_skill.is_ground_targeted:
@@ -164,6 +164,6 @@ func _finish_attack() -> void:
 		transition_to("Fall")
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)

@@ -47,7 +47,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	for label in [_name_label, _hp_label, _phase_label, _timer_label, _mechanics_warning]:
 		if label and is_instance_valid(label):
 			var scale = UIStyles.get_text_scale()
-			var current_size := label.get_theme_font_size("font_size")
+			var current_size: int = label.get_theme_font_size("font_size")
 			if current_size > 0:
 				label.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -56,7 +56,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 		for child in _mechanics_container.get_children():
 			if child is Label:
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 	
@@ -248,7 +248,7 @@ func set_target(target) -> void:
 		clear_boss()
 		return
 
-	var boss_id := target.entity_id if target and "entity_id" in target else ""
+	var boss_id: String = target.entity_id if target and "entity_id" in target else ""
 	var name := ""
 	var max_hp := 100
 
@@ -365,7 +365,8 @@ func _check_phase_transition(percent: int) -> void:
 	var thresholds := [75, 50, 25]
 	
 	# Check if we crossed a threshold
-	for i, threshold in enumerate(thresholds):
+	for i in range(thresholds.size()):
+		var threshold: int = thresholds[i]
 		if percent <= threshold and _phase == i + 1:
 			set_phase(i + 2)
 			break
@@ -381,7 +382,7 @@ func set_phase(phase: int) -> void:
 	# Emit signal for phase change
 	emit_signal("phase_changed", _phase)
 
-func show_mechanics_warning(message: String, duration: float = 5.0, color: Color = null) -> void:
+func show_mechanics_warning(message: String, duration: float = 5.0, color: Color = UIStyles.COLORS.warning) -> void:
 	_show_mechanics_warning(message, duration, color)
 
 func _show_mechanics_warning(message: String, duration: float, color: Color) -> void:
@@ -392,10 +393,11 @@ func _show_mechanics_warning(message: String, duration: float, color: Color) -> 
 	_mechanics_warning.add_theme_color_override("font_color", color)
 	_mechanics_container.visible = true
 	
-	var fade_dur = UIStyles.get_animation_duration(0.2)
+	var fade_dur: float = UIStyles.get_animation_duration(0.2)
 	
 	# Flash animation (respect reduce motion)
-	var tween := UIStyles.create_accessible_tween(_mechanics_warning, "modulate:a", 1.0, fade_dur)
+	var tween: Tween = _mechanics_warning.create_tween()
+	tween.tween_property(_mechanics_warning, "modulate:a", 1.0, fade_dur)
 	tween.tween_interval(duration - fade_dur * 2)
 	tween.tween_property(_mechanics_warning, "modulate:a", 0.0, fade_dur).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_callback(func() -> void:

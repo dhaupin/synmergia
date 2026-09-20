@@ -28,6 +28,9 @@ func _ready() -> void:
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
+	# Apply default accessibility settings via the settings updater.
+	update_accessibility_settings(false, 1.0, false)
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update focus styles for grid slots
 	if _grid:
@@ -59,7 +62,10 @@ func _bind_service_signals() -> void:
 	InventoryService.item_transferred.connect(_on_inventory_changed)
 	InventoryService.gold_transferred.connect(_on_inventory_changed)
 
-func _on_inventory_changed(...) -> void:
+func _on_inventory_changed(_from_id: String = "", _to_id: String = "", _item = null, _qty: int = 0, _amount: int = 0) -> void:
+	# Connected to item_transferred(from, to, item, qty) and
+	# gold_transferred(from, to, amount); extra default args let one
+	# handler accept both signals.
 	_refresh_inventory()
 
 func _setup_panel() -> void:
@@ -95,8 +101,6 @@ func _setup_panel() -> void:
 	_info_label.name = "ItemInfo"
 	_info_label.text = "Select an item"
 	_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_info_label.
-	_info_label.
 	info_panel.add_child(_info_label)
 
 	var btn_row := HBoxContainer.new()
@@ -105,8 +109,6 @@ func _setup_panel() -> void:
 	var use_btn := Button.new()
 	use_btn.text = "Use"
 	use_btn.focus_mode = Control.FOCUS_ALL
-	use_btn.
-	use_btn.
 	use_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	use_btn.pressed.connect(_on_use_item)
 	btn_row.add_child(use_btn)
@@ -114,8 +116,6 @@ func _setup_panel() -> void:
 	var equip_btn := Button.new()
 	equip_btn.text = "Equip"
 	equip_btn.focus_mode = Control.FOCUS_ALL
-	equip_btn.
-	equip_btn.
 	equip_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	equip_btn.pressed.connect(_on_equip_item)
 	btn_row.add_child(equip_btn)
@@ -123,8 +123,6 @@ func _setup_panel() -> void:
 	var drop_btn := Button.new()
 	drop_btn.text = "Drop"
 	drop_btn.focus_mode = Control.FOCUS_ALL
-	drop_btn.
-	drop_btn.
 	drop_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	drop_btn.pressed.connect(_on_drop_item)
 	btn_row.add_child(drop_btn)
@@ -156,15 +154,12 @@ func _setup_header() -> void:
 	_gold_label.text = "Gold: 0"
 	_gold_label.name = "GoldLabel"
 	_gold_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-	_gold_label.
 	_gold_label.accessible_description = "Displays the player's current gold."
 	header.add_child(_gold_label)
 
 	var close_btn := Button.new()
 	close_btn.text = "X"
 	close_btn.focus_mode = Control.FOCUS_ALL
-	close_btn.
-	close_btn.
 	close_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	close_btn.pressed.connect(close)
 	header.add_child(close_btn)
@@ -211,7 +206,6 @@ func _create_slot(index: int) -> PanelContainer:
 	slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
 	slot.focus_mode = Control.FOCUS_ALL
 	slot.accessible_name = "Inventory Slot %d" % (index + 1)
-	slot.
 	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	slot.add_theme_stylebox_override("panel", UIStyles.create_panel_style(
 		UIStyles.COLORS.background_dark,

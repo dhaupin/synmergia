@@ -1,7 +1,5 @@
 ## Fall State - Player is falling
-extends Node
-
-const StateBase = preload("res://core/state/state_base.gd")
+extends "res://core/state/state_base.gd"
 class_name FallState
 
 var has_dodged_air: bool = false
@@ -14,7 +12,7 @@ func exit() -> void:
 	has_dodged_air = false
 
 func update(_delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Air attack
 	if Input.is_action_just_pressed("attack") and parent.is_on_floor() == false:
@@ -25,7 +23,7 @@ func update(_delta: float) -> void:
 		transition_to("AirDodge")
 
 func physics_update(delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Air control
 	var move_dir: Vector3 = parent.get_movement_direction()
@@ -40,6 +38,6 @@ func physics_update(delta: float) -> void:
 		transition_to("Land")
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)

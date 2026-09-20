@@ -49,9 +49,9 @@ func _validate(value: Dictionary) -> bool:
 		return false
 	if scope_val not in ["world", "shard", "instance", "player"]:
 		return false
-	if path_val.get_type() != TYPE_STRING:
+	if typeof(path_val) != TYPE_STRING:
 		return false
-	if params_val.get_type() != TYPE_DICTIONARY:
+	if typeof(params_val) != TYPE_DICTIONARY:
 		return false
 
 	# Parameters are a free-form dictionary. Each key must be a String
@@ -59,10 +59,10 @@ func _validate(value: Dictionary) -> bool:
 	# Numeric scalars are accepted by _validate (the canonical encoder
 	# adds length-prefixed encoding per NSC-9 style).
 	for key in params_val.keys():
-		if key.get_type() != TYPE_STRING:
+		if typeof(key) != TYPE_STRING:
 			return false
 		var v = params_val[key]
-		var vt: int = v.get_type()
+		var vt: int = typeof(v)
 		if vt not in [TYPE_INT, TYPE_FLOAT, TYPE_STRING, TYPE_BOOL, TYPE_NIL, TYPE_ARRAY, TYPE_DICTIONARY]:
 			return false
 
@@ -102,7 +102,7 @@ class _CanonicalWriter:
 		# pattern (NSC-9 / T3 canonical style). This removes the
 		# JSON-ambiguity where "abc"+"def" would collide with
 		# "ab"+"cdef".
-		match v.get_type():
+		match typeof(v):
 			TYPE_INT:
 				var val: int = v
 				# Signed 64-bit little-endian, stripped of

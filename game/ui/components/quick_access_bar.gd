@@ -2,7 +2,6 @@
 ## 6 slots for consumables with cooldown spiral, stack counts, drag-drop, auto-fill
 extends "res://ui/components/ui_panel.gd"
 class_name QuickAccessBar
-const UIStyles = preload("res://ui/components/ui_styles.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 
 ## Configuration
@@ -18,6 +17,7 @@ var _slot_cooldowns: Dictionary = {}
 var _dragging: bool = false
 var _drag_source_index: int = -1
 var _drag_preview: Control = null
+var _qa_high_contrast: bool = false
 
 ## Signals
 signal item_used(index: int, item_id: String)
@@ -33,6 +33,7 @@ func _ready() -> void:
 	_setup_accessibility()
 
 func _setup_accessibility() -> void:
+	focus_mode = Control.FOCUS_ALL
 func _on_open() -> void:
 	pass
 
@@ -40,6 +41,7 @@ func _on_close() -> void:
 	pass
 
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
+	_qa_high_contrast = high_contrast
 	# Update focus styles for all slots
 	for slot in _slots:
 		if slot and is_instance_valid(slot):
@@ -130,7 +132,7 @@ func _create_slot(index: int) -> Control:
 	cooldown_spiral.value = 100
 	cooldown_spiral.under_texture = _create_spiral_under()
 	cooldown_spiral.progress_texture = _create_spiral_progress()
-	cooldown_spiral.radial_mode = TextureProgressBar.RADIAL_CLOCKWISE
+	cooldown_spiral.radial_mode = TextureProgressBar.FILL_CLOCKWISE
 	cooldown_spiral.initial_angle = -90
 	cooldown_spiral.radial_fill = 1.0
 	cooldown_spiral.clip_contents = true
@@ -366,7 +368,7 @@ func _clear_slot(index: int) -> void:
 	if cooldown_text:
 		cooldown_text.visible = false
 	if style:
-		style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if high_contrast else UIStyles.COLORS.border
+		style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if _qa_high_contrast else UIStyles.COLORS.border
 
 	slot_cleared.emit(index)
 
@@ -391,7 +393,7 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 		if low_warning:
 			low_warning.visible = false
 		if style:
-			style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if high_contrast else UIStyles.COLORS.border
+			style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if _qa_high_contrast else UIStyles.COLORS.border
 		return
 
 	_slot_items[index] = item_data
@@ -408,10 +410,10 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 		if low_warning and style:
 			if qty > 0 and qty < 3:
 				low_warning.visible = true
-				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.warning if high_contrast else UIStyles.COLORS.warning
+				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.warning if _qa_high_contrast else UIStyles.COLORS.warning
 			else:
 				low_warning.visible = false
-				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if high_contrast else UIStyles.COLORS.border
+				style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if _qa_high_contrast else UIStyles.COLORS.border
 
 	item_changed.emit(index, item_data)
 
@@ -422,41 +424,44 @@ func load_from_inventory() -> void:
 	if not InventoryService:
 		return
 
-	var inventory: Array = InventoryService.get_inventory("")
-	if inventory.is_empty():
+	# get_inventory returns an InventoryComponent, not an Array.
+	var inv: InventoryComponent = InventoryService.get_inventory("")
+	if inv == null:
+		return
+
+	var items: Array = inv.get_all_items()
+	if items.is_empty():
 		return
 
 	var consumables: Array = []
-	for item in inventory:
-		var item_type: String = str(item.get("item_type", "")).to_lower()
-		var category: String = str(item.get("category", "")).to_lower()
-		if item_type in ["potion", "food", "scroll", "consumable", "tool"] or category in ["potion", "food", "scroll", "consumable", "tool"]:
+	for item in items:
+		if item is Item and item.item_category == Item.ItemCategory.CONSUMABLE:
 			consumables.append(item)
 
 	# Sort by priority: potions > food > scrolls > tools, then by stack size
 	consumables.sort_custom(func(a, b):
-		var a_priority = _get_item_priority(a)
-		var b_priority = _get_item_priority(b)
+		var a_priority: int = _get_item_priority(a)
+		var b_priority: int = _get_item_priority(b)
 		if a_priority != b_priority:
 			return a_priority < b_priority
-		return a.get("quantity", 1) > b.get("quantity", 1)
+		return a.current_stack > b.current_stack
 	)
 
 	for i in range(min(SLOT_COUNT, consumables.size())):
-		set_slot_item(i, consumables[i])
+		var item_dict: Dictionary = consumables[i].to_dict()
+		item_dict["quantity"] = consumables[i].current_stack
+		set_slot_item(i, item_dict)
 
-func _get_item_priority(item: Dictionary) -> int:
-	var item_type: String = str(item.get("item_type", "")).to_lower()
-	var category: String = str(item.get("category", "")).to_lower()
-	var name: String = str(item.get("name", "")).to_lower()
+func _get_item_priority(item: Item) -> int:
+	var name_lower: String = item.display_name.to_lower()
 
-	if item_type == "potion" or category == "potion" or "potion" in name:
+	if "potion" in name_lower:
 		return 0
-	if item_type == "food" or category == "food" or "food" in name:
+	if "food" in name_lower or "bread" in name_lower or "meat" in name_lower:
 		return 1
-	if item_type == "scroll" or category == "scroll" or "scroll" in name:
+	if "scroll" in name_lower:
 		return 2
-	if item_type == "tool" or category == "tool" or "tool" in name:
+	if "tool" in name_lower or "kit" in name_lower:
 		return 3
 	return 4
 

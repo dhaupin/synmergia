@@ -26,35 +26,35 @@ func _init() -> void:
 
 
 func _test_derive_seed_basic() -> void:
-	var stack := [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
+	var stack: Array[PackedByteArray] = [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
 	var hash := SeedChainScript.derive_seed(stack, "/test/path")
 	_assert(hash.size() == 32, "derive_seed returns 32 bytes")
 
 
 func _test_derive_seed_deterministic() -> void:
-	var stack := [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
+	var stack: Array[PackedByteArray] = [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
 	var first := SeedChainScript.derive_seed(stack, "/zone/5")
 	var second := SeedChainScript.derive_seed(stack, "/zone/5")
 	_assert_eq(first, second, "same stack + path produces same seed")
 
 
 func _test_derive_seed_different_paths() -> void:
-	var stack := [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
+	var stack: Array[PackedByteArray] = [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
 	var a := SeedChainScript.derive_seed(stack, "/zone/1")
 	var b := SeedChainScript.derive_seed(stack, "/zone/2")
 	_assert(a != b, "different paths produce different seeds")
 
 
 func _test_derive_seed_different_stacks() -> void:
-	var stack_a := [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
-	var stack_b := [_make_bytes("player"), _make_bytes("shard"), _make_bytes("different_world")]
+	var stack_a: Array[PackedByteArray] = [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
+	var stack_b: Array[PackedByteArray] = [_make_bytes("player"), _make_bytes("shard"), _make_bytes("different_world")]
 	var a := SeedChainScript.derive_seed(stack_a, "/zone/1")
 	var b := SeedChainScript.derive_seed(stack_b, "/zone/1")
 	_assert(a != b, "different stacks produce different seeds")
 
 
 func _test_derive_seed_empty_path() -> void:
-	var stack := [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
+	var stack: Array[PackedByteArray] = [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
 	var hash := SeedChainScript.derive_seed(stack, "")
 	_assert(hash.size() == 32, "empty path still produces a 32-byte seed")
 
@@ -63,7 +63,7 @@ func _test_derive_seed_bottom_up_order() -> void:
 	var player_seed := _make_bytes("p")
 	var shard_seed := _make_bytes("s")
 	var world_seed := _make_bytes("w")
-	var stack := [player_seed, shard_seed, world_seed]
+	var stack: Array[PackedByteArray] = [player_seed, shard_seed, world_seed]
 	var path := "/test"
 	var acc := path.to_utf8_buffer()
 	acc = _sha256(world_seed + acc)
@@ -77,7 +77,7 @@ func _test_derive_seed_bottom_up_order() -> void:
 func _test_build_seed_tree_basic() -> void:
 	var t3 := T3Script.new()
 	var chain := SeedChainScript.new()
-	var stack := [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
+	var stack: Array[PackedByteArray] = [_make_bytes("player"), _make_bytes("shard"), _make_bytes("world")]
 	var world_root := {
 		"root_node": {
 			"seed_type": "locked",
@@ -89,7 +89,7 @@ func _test_build_seed_tree_basic() -> void:
 	}
 	var root_hash := chain.build_seed_tree(t3, stack, world_root)
 	_assert(root_hash.size() == 32, "build_seed_tree returns 32-byte root hash")
-	var value := t3.get_at("root_node")
+	var value: Variant = t3.get_at("root_node")
 	_assert(value != null, "root_node was inserted into T3")
 	if value:
 		_assert_eq(value["seed_type"], "locked", "seed_type is preserved")
@@ -98,7 +98,7 @@ func _test_build_seed_tree_basic() -> void:
 func _test_build_seed_tree_nested() -> void:
 	var t3 := T3Script.new()
 	var chain := SeedChainScript.new()
-	var stack := [_make_bytes("p"), _make_bytes("s"), _make_bytes("w")]
+	var stack: Array[PackedByteArray] = [_make_bytes("p"), _make_bytes("s"), _make_bytes("w")]
 	var world_root := {
 		"world": {
 			"seed_type": "locked",
@@ -134,7 +134,7 @@ func _test_build_seed_tree_nested() -> void:
 func _test_build_seed_tree_seed_types() -> void:
 	var t3 := T3Script.new()
 	var chain := SeedChainScript.new()
-	var stack := [_make_bytes("p"), _make_bytes("s"), _make_bytes("w")]
+	var stack: Array[PackedByteArray] = [_make_bytes("p"), _make_bytes("s"), _make_bytes("w")]
 	var world_root := {
 		"locked_node": {"seed_type": "locked", "visibility_scope": "world", "path": "/locked", "parameters": {}, "children": {}},
 		"open_node": {"seed_type": "open", "visibility_scope": "instance", "path": "/open", "parameters": {}, "children": {}},

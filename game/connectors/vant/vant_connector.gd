@@ -4,8 +4,9 @@
 extends AgentConnector
 
 const AgentConnector = preload("res://core/schemas/agent_connector.gd")
-const QoSService = preload("res://core/autoload/qos_service.gd")
 class_name VantConnector
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # Vant API configuration
 # Vant endpoint: http://localhost:8080/api/agent/connect

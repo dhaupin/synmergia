@@ -25,7 +25,7 @@ func _initialize() -> void:
 	# Manually instantiate the HudLayer with TooltipManager for testing.
 	_world = root.get_node_or_null("WorldPlayable")
 	if not _world:
-		_world = _setup_headless_hud()
+		_world = await _setup_headless_hud()
 		if not _world:
 			_fail("Failed to set up headless HUD for testing")
 			return
@@ -120,6 +120,9 @@ func _initialize() -> void:
 			guard.exit("test_toast_ctx")
 			guard.exit("test_toast_ctx")
 
+	_print_summary()
+	quit(0 if _failed == 0 else 1)
+
 
 func _find_node(root_node: Node, node_name: String) -> Node:
 	if root_node.name == node_name:
@@ -145,10 +148,19 @@ func _setup_headless_hud() -> Node:
 
 	var hud: Node = HudLayerScript.new()
 	hud.name = "HudLayer"
+	# Pre-create the widget children this test exercises. In the real scene
+	# they come from hud_layer.tscn; a script-instantiated headless HUD has
+	# no scene children, and _find() resolves direct children only at _ready,
+	# so add them BEFORE the HUD enters the tree.
+	var TooltipScript := load("res://ui/components/tooltip_manager.gd")
+	if TooltipScript:
+		var tooltip: Control = TooltipScript.new()
+		tooltip.name = "TooltipManager"
+		hud.add_child(tooltip)
 	test_world.add_child(hud)
-
-	# Call _ready to initialize the HUD (installs HudIntegrator, etc.)
-	hud.call("_ready")
+	# NOTE: do NOT call _ready() manually -- add_child() on a node already
+	# inside the tree triggers it, and HudLayer guards double-init with a
+	# static instance (second _ready() queue_free()s the HUD).
 	await process_frame
 	await process_frame
 
@@ -195,3 +207,13 @@ func _ok(msg: String) -> void:
 func _fail(msg: String) -> void:
 	_failed += 1
 	printerr("  [FAIL] %s" % msg)
+
+
+func _print_summary() -> void:
+	print("\n=== TEST SUMMARY ===")
+	print("Passed: %d" % _passed)
+	print("Failed: %d" % _failed)
+	if _failed == 0:
+		print("RESULT: ALL TESTS PASSED")
+	else:
+		print("RESULT: %d TESTS FAILED" % _failed)

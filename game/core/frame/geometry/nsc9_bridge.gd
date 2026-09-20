@@ -148,12 +148,22 @@ func restore_nsc9_fragmented(t3: Variant, nsc9_code: int, fragmenter: Variant, d
 	if results.is_empty():
 		return {}
 
+	# Rebuild the fragment dictionaries the Fragmenter.weld() contract expects:
+	# each entry needs shard index, data (PackedByteArray), and checksum. The
+	# store path persists whole metadata dicts, so recover the original fragment
+	# fields from them instead of passing raw data blobs.
 	var fragment_data: Array = []
 	for result in results:
 		var metadata: Dictionary = result.get("metadata", {})
-		if metadata.is_empty():
+		if metadata.is_empty() or not metadata.has("data"):
 			continue
-		fragment_data.append(metadata.get("data", ""))
+		fragment_data.append({
+			shard = metadata.get("fragment_index", fragment_data.size()),
+			data = metadata.get("data"),
+			checksum = metadata.get("checksum", 0)
+		})
+	if fragment_data.is_empty():
+		return {}
 	var welded: String = fragmenter.weld(fragment_data)
 	if welded == "":
 		return {}

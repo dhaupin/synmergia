@@ -1,6 +1,7 @@
 ## SameAccountTransferService - Quick transfers between own characters
 ## Handles fast item/gold transfers without trade window
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 

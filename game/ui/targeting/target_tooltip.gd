@@ -2,6 +2,7 @@
 ## Wired to TargetingManager for unified targeting display
 extends Control
 class_name TargetTooltip
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")

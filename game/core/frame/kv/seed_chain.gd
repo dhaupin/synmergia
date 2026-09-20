@@ -14,6 +14,10 @@ static func derive_seed(stack: Array[PackedByteArray], path: String) -> PackedBy
 	var acc := path.to_utf8_buffer()
 	for i in range(stack.size() - 1, -1, -1):
 		acc = _sha256(stack[i] + acc)
+	# Edge case: an empty stack runs no fold, so acc is still raw path
+	# bytes. Always finish with a hash so the output is 32 bytes.
+	if stack.is_empty():
+		acc = _sha256(acc)
 	return acc
 
 ## Builds a seed tree by recursively deriving seeds and inserting

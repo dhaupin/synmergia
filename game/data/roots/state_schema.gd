@@ -43,9 +43,9 @@ func _validate(value: Dictionary) -> bool:
 	var valid_types := ["position", "inventory", "health", "faction", "status", "quest", "social", "behavior_state", "other"]
 	if type_val not in valid_types:
 		return false
-	if entity_id_val.get_type() != TYPE_STRING:
+	if typeof(entity_id_val) != TYPE_STRING:
 		return false
-	if payload_val.get_type() != TYPE_DICTIONARY:
+	if typeof(payload_val) != TYPE_DICTIONARY:
 		return false
 
 	match type_val:
@@ -62,47 +62,47 @@ func _validate(value: Dictionary) -> bool:
 		"health":
 			if not payload_val.has("current") or not payload_val.has("max"):
 				return false
-			if payload_val["current"].get_type() != TYPE_INT:
+			if typeof(payload_val["current"]) != TYPE_INT:
 				return false
-			if payload_val["max"].get_type() != TYPE_INT:
+			if typeof(payload_val["max"]) != TYPE_INT:
 				return false
 		"inventory":
 			if not payload_val.has("items"):
 				return false
-			if payload_val["items"].get_type() != TYPE_ARRAY:
+			if typeof(payload_val["items"]) != TYPE_ARRAY:
 				return false
 		"faction":
 			if not payload_val.has("faction_id"):
 				return false
-			if payload_val["faction_id"].get_type() != TYPE_STRING:
+			if typeof(payload_val["faction_id"]) != TYPE_STRING:
 				return false
 			if not payload_val.has("standing"):
 				return false
-			if payload_val["standing"].get_type() not in [TYPE_FLOAT, TYPE_INT]:
+			if typeof(payload_val["standing"]) not in [TYPE_FLOAT, TYPE_INT]:
 				return false
 		"status":
 			if not payload_val.has("effects"):
 				return false
-			if payload_val["effects"].get_type() != TYPE_ARRAY:
+			if typeof(payload_val["effects"]) != TYPE_ARRAY:
 				return false
 		"quest":
 			if not payload_val.has("quest_id"):
 				return false
-			if payload_val["quest_id"].get_type() != TYPE_STRING:
+			if typeof(payload_val["quest_id"]) != TYPE_STRING:
 				return false
 			if not payload_val.has("progress"):
 				return false
-			if payload_val["progress"].get_type() != TYPE_INT:
+			if typeof(payload_val["progress"]) != TYPE_INT:
 				return false
 		"social":
 			if not payload_val.has("relations"):
 				return false
-			if payload_val["relations"].get_type() != TYPE_DICTIONARY:
+			if typeof(payload_val["relations"]) != TYPE_DICTIONARY:
 				return false
 		"behavior_state":
 			if not payload_val.has("current_state"):
 				return false
-			if payload_val["current_state"].get_type() != TYPE_STRING:
+			if typeof(payload_val["current_state"]) != TYPE_STRING:
 				return false
 			# Valid FSM states: idle, move, attack, interact.
 			if payload_val["current_state"] not in ["idle", "move", "attack", "interact"]:
@@ -110,7 +110,7 @@ func _validate(value: Dictionary) -> bool:
 			if not payload_val.has("ai_tick_state"):
 				return false
 			# ai_tick_state is an integer.
-			if payload_val["ai_tick_state"].get_type() != TYPE_INT:
+			if typeof(payload_val["ai_tick_state"]) != TYPE_INT:
 				return false
 		"other":
 			pass
@@ -174,7 +174,7 @@ func _type_to_enum(type_str: String) -> int:
 # Returns null for non-numeric inputs (caller must reject).
 # Integers are converted to floats; floats are rounded to 2 decimal places.
 func _quantize_position(v) -> Variant:
-	var t: int = v.get_type()
+	var t: int = typeof(v)
 	if t == TYPE_INT:
 		return float(v)
 	if t == TYPE_FLOAT:

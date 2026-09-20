@@ -3,8 +3,9 @@
 extends AgentConnector
 
 const AgentConnector = preload("res://core/schemas/agent_connector.gd")
-const QoSService = preload("res://core/autoload/qos_service.gd")
 class_name MCPConnector
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # MCP server configuration
 @export var mcp_server_url: String = "http://localhost:3000"

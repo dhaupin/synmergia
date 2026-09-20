@@ -13,11 +13,12 @@
 ##    brute force (5 attempts / 10s / account).
 ##  - Display names flow through SecurityService.validate_player_name.
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # QoSService exposes a static facade (QoSService.rate_limit(...)), so a
 # const preload here resolves to the class and the static methods still
 # dispatch to the singleton at runtime -- no shadow.
-const QoSService = preload("res://core/autoload/qos_service.gd")
 const CacheStore = preload("res://adapters/cache/cache_store.gd")
 const PersistenceStore = preload("res://adapters/persistence/persistence_store.gd")
 const SeedReceiptScript = preload("res://core/schemas/seed_receipt.gd")

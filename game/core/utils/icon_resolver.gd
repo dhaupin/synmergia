@@ -142,3 +142,36 @@ static func _item_category_icon(cat: int) -> Texture2D:
 static func _skill_type_icon(t: int) -> Texture2D:
 	var s := _tex(SKILL_ICONS.get(t, SKILL_ICONS[2]))
 	return s if s != null else _fallback()
+
+## Faction relation icon (hostile/friendly/neutral or raw color key).
+## Falls back to the generic icon when no faction art is registered.
+static func get_faction_icon(relation: String) -> Texture2D:
+	var rel: String = relation.to_lower()
+	for rel_key in ["hostile", "enemy", "friendly", "ally", "neutral"]:
+		if rel == rel_key or (rel_key == "enemy" and rel == "hostile") or (rel_key == "ally" and rel == "friendly"):
+			var tex := _tex("res://assets/icons/factions/%s.png" % rel)
+			if tex:
+				return tex
+	return _fallback()
+
+
+## Status-effect icon for effect dictionaries (buff bar / target frame).
+static func get_effect_icon_from_dict(data: Dictionary) -> Texture2D:
+	if data.is_empty():
+		return _fallback()
+	# Explicit icon path wins.
+	var path: String = str(data.get("icon_path", ""))
+	if path.is_empty():
+		var nested = data.get("data", {})
+		if nested is Dictionary:
+			path = str((nested as Dictionary).get("icon_path", ""))
+	if not path.is_empty():
+		var tex := _tex(path)
+		if tex:
+			return tex
+	# Buff vs debuff default art
+	var is_debuff: bool = bool(data.get("is_debuff", false))
+	if is_debuff:
+		return _tex("res://assets/icons/effects/debuff_default.png") if _tex("res://assets/icons/effects/debuff_default.png") else _fallback()
+	return _tex("res://assets/icons/effects/buff_default.png") if _tex("res://assets/icons/effects/buff_default.png") else _fallback()
+

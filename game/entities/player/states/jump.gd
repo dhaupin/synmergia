@@ -1,7 +1,5 @@
 ## Jump State - Player is airborne
-extends Node
-
-const StateBase = preload("res://core/state/state_base.gd")
+extends "res://core/state/state_base.gd"
 class_name JumpState
 
 var has_jumped: bool = false
@@ -14,7 +12,7 @@ func exit() -> void:
 	has_jumped = false
 
 func update(_delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Jump initiation
 	if not has_jumped and parent.velocity.y > 0:
@@ -33,7 +31,7 @@ func update(_delta: float) -> void:
 		transition_to("Land")
 
 func physics_update(delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Allow some air control
 	var move_dir: Vector3 = parent.get_movement_direction()
@@ -47,6 +45,6 @@ func physics_update(delta: float) -> void:
 	# Gravity is handled by parent
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)

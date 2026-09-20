@@ -2,6 +2,8 @@
 ## Allows players to create, manage, and navigate to waypoints
 ## Supports: Custom waypoints, Quest waypoints, Map integration, Minimap, Compass
 extends Node
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
+const QoSService = preload("res://core/autoload/qos_service.gd")
 
 # QoSService and NotificationService are autoloads. QoSService
 # exposes a static facade (QoSService.rate_limit(...)), so a const
@@ -10,7 +12,6 @@ extends Node
 # is NOT preloaded: it is accessed bare as the singleton instance
 # (NotificationService.notify(...)), which requires the autoload
 # to be registered before this file compiles.
-const QoSService = preload("res://core/autoload/qos_service.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 # Waypoint colors (preset options)

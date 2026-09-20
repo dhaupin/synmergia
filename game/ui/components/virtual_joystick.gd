@@ -52,7 +52,6 @@ func _create_joystick_visuals() -> void:
 	_joystick_base.add_theme_stylebox_override("normal", UIStyles.create_panel_style(colors.background_dark, colors.border, 2, 60))
 	_joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_joystick_base.visible = false
-	_joystick_base.
 	add_child(_joystick_base)
 	
 	_joystick_thumb = TextureRect.new()
@@ -61,7 +60,6 @@ func _create_joystick_visuals() -> void:
 	_joystick_thumb.add_theme_stylebox_override("normal", UIStyles.create_panel_style(colors.accent, colors.border_highlight, 2, 30))
 	_joystick_thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_joystick_thumb.visible = false
-	_joystick_thumb.
 	add_child(_joystick_thumb)
 
 func _create_circle_texture(radius: int, color: Color) -> ImageTexture:

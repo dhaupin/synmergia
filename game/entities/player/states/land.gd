@@ -13,7 +13,7 @@ func enter(_data: Dictionary = {}) -> void:
 	animation_play("land")
 
 	# Reduce fall velocity
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	parent.velocity.y = 0
 
 func exit() -> void:
@@ -26,13 +26,13 @@ func update(delta: float) -> void:
 		transition_to("Idle")
 
 func physics_update(_delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Quick friction on landing
 	parent.velocity.x = lerp(parent.velocity.x, 0, 20.0 * _delta)
 	parent.velocity.z = lerp(parent.velocity.z, 0, 20.0 * _delta)
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)

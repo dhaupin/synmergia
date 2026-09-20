@@ -116,10 +116,13 @@ func _init_firewall() -> void:
 	# Late binding: resolve AppFirewall at runtime via scene tree
 	var fw = get_node_or_null("/root/AppFirewall")
 	if fw:
-		# AppFirewall._init() takes no args; configure via properties
-		fw.block_duration = GameConfig.Security.FIREWALL_BLOCK_DURATION
-		fw.max_attempts = GameConfig.Security.FIREWALL_MAX_ATTEMPTS
-		fw.max_connections_per_ip = GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
+		# AppFirewall._init() takes no args; configure via its public API.
+		if fw.has_method("configure"):
+			fw.configure(
+				GameConfig.Security.FIREWALL_BLOCK_DURATION,
+				GameConfig.Security.FIREWALL_MAX_ATTEMPTS,
+				GameConfig.Security.FIREWALL_MAX_CONNECTIONS_PER_IP
+			)
 		_firewall = fw
 		_log("info", "NetworkManager: AppFirewall initialized via deferred call")
 	else:

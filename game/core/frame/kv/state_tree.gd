@@ -82,8 +82,10 @@ func apply_full_snapshot(snapshot: Array, root_hash: PackedByteArray) -> void:
 		var value_bytes: PackedByteArray = entry[3]
 		if new_hash.size() > 0 and value_bytes != null:
 			var value: Variant = bytes_to_var(value_bytes)
-			var schema: Resource = Resource.new()
-			_t3.insert(node_path, value, schema)
+			# Must use the same schema instance as insert_state/update_state:
+			# node hashes fold the schema id, so a different schema here would
+			# make resynced client roots diverge from server roots.
+			_t3.insert(node_path, value, _schema)
 	_current_root = _t3.hash_subtree("/")
 	# Verify the resulting root matches expected
 	if _current_root != root_hash:

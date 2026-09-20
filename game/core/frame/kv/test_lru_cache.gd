@@ -25,58 +25,58 @@ func _init() -> void:
 
 func _test_basic_get_set() -> bool:
 	var lru = LRUCache.new(3)
-	lru.set("a", 1)
-	lru.set("b", 2)
-	assert(lru.get("a") == 1)
-	assert(lru.get("b") == 2)
-	assert(lru.get("missing") == null)
+	lru.set_value("a", 1)
+	lru.set_value("b", 2)
+	assert(lru.get_value("a") == 1)
+	assert(lru.get_value("b") == 2)
+	assert(lru.get_value("missing") == null)
 	assert(lru.size() == 2)
 	return true
 
 func _test_lru_eviction() -> bool:
 	var lru = LRUCache.new(3)
-	lru.set("a", 1)
-	lru.set("b", 2)
-	lru.set("c", 3)
-	lru.set("d", 4)
-	assert(lru.get("a") == null)
-	assert(lru.get("b") == 2)
-	assert(lru.get("c") == 3)
-	assert(lru.get("d") == 4)
+	lru.set_value("a", 1)
+	lru.set_value("b", 2)
+	lru.set_value("c", 3)
+	lru.set_value("d", 4)
+	assert(lru.get_value("a") == null)
+	assert(lru.get_value("b") == 2)
+	assert(lru.get_value("c") == 3)
+	assert(lru.get_value("d") == 4)
 	assert(lru.size() == 3)
 	return true
 
 func _test_get_promotes() -> bool:
 	var lru = LRUCache.new(2)
-	lru.set("a", 1)
-	lru.set("b", 2)
-	lru.get("a")
-	lru.set("c", 3)
-	assert(lru.get("a") == 1)
-	assert(lru.get("b") == null)
-	assert(lru.get("c") == 3)
+	lru.set_value("a", 1)
+	lru.set_value("b", 2)
+	lru.get_value("a")
+	lru.set_value("c", 3)
+	assert(lru.get_value("a") == 1)
+	assert(lru.get_value("b") == null)
+	assert(lru.get_value("c") == 3)
 	return true
 
 func _test_delete() -> bool:
 	var lru = LRUCache.new(5)
-	lru.set("x", 99)
+	lru.set_value("x", 99)
 	assert(lru.delete("x") == true)
-	assert(lru.get("x") == null)
+	assert(lru.get_value("x") == null)
 	assert(lru.delete("missing") == false)
 	return true
 
 func _test_has() -> bool:
 	var lru = LRUCache.new(5)
-	lru.set("k", 42)
+	lru.set_value("k", 42)
 	assert(lru.has("k") == true)
 	assert(lru.has("nope") == false)
 	return true
 
 func _test_clear() -> bool:
 	var lru = LRUCache.new(5)
-	lru.set("a", 1)
-	lru.set("b", 2)
+	lru.set_value("a", 1)
+	lru.set_value("b", 2)
 	lru.clear()
 	assert(lru.size() == 0)
-	assert(lru.get("a") == null)
+	assert(lru.get_value("a") == null)
 	return true

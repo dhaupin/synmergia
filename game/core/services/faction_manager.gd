@@ -69,9 +69,9 @@ func load_factions() -> void:
 		GameLog.warn("FactionManager: DataService not available")
 		return
 
-	var faction_data_dict = data_service.get_all_factions()
-	for faction_id in faction_data_dict:
-		register_faction(faction_data_dict[faction_id])
+	var faction_data_list: Array = data_service.get_all_factions()
+	for faction_data in faction_data_list:
+		register_faction(faction_data)
 
 	GameLog.info("FactionManager: Loaded %d factions" % _factions.size())
 

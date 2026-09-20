@@ -3,6 +3,7 @@
 ## Completely separate from admin tools - sandboxed to player actions only
 extends Node
 class_name PlayerShell
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Escape BBCode brackets in user-supplied strings.

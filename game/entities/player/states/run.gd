@@ -1,7 +1,5 @@
 ## Run State - Player is moving
-extends Node
-
-const StateBase = preload("res://core/state/state_base.gd")
+extends "res://core/state/state_base.gd"
 class_name RunState
 
 var animation_playing: bool = false
@@ -14,7 +12,7 @@ func exit() -> void:
 	animation_playing = false
 
 func update(_delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Check for idle (no input)
 	if not parent.is_moving() and parent.is_on_floor():
@@ -33,7 +31,7 @@ func update(_delta: float) -> void:
 		transition_to("Attack")
 
 func physics_update(delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Get movement direction
 	var move_dir: Vector3 = parent.get_movement_direction()
@@ -52,6 +50,6 @@ func physics_update(delta: float) -> void:
 		parent.rotation.y = lerp_angle(parent.rotation.y, target_rotation, 10.0 * delta)
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)

@@ -5,19 +5,26 @@
 
 extends SceneTree
 
-const FrameServiceScript = preload("res://core/services/frame_service.gd")
+# --script mode cannot resolve autoload identifiers at preload/parse time
+# (GameLog inside frame_service.gd), so load FrameService at runtime instead.
+var FrameServiceScript = null
 const T3Script = preload("res://core/frame/kv/t3.gd")
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 
 var FrameService
 var ok: bool = true
 
+func _init() -> void:
+	pass
+
+# NOTE: _init runs before _initialize in SceneTree scripts, so all test
+# execution lives in _initialize (same pattern as test_login_flow.gd).
 func _initialize() -> void:
 	FrameService = root.get_node_or_null("FrameService")
 	if FrameService == null:
+		if FrameServiceScript == null:
+			FrameServiceScript = load("res://core/services/frame_service.gd")
 		FrameService = FrameServiceScript.new()
-
-func _init() -> void:
 	_run_tests()
 	quit(0 if ok else 1)
 
@@ -118,7 +125,8 @@ func _test_state_tree_empty_on_enter() -> void:
 	var state_tree = FrameService.get_state_tree(player_id)
 	
 	var root_hash = state_tree.root_hash()
-	_assert(root_hash == FrameService._empty_hash(), "state tree root is empty hash")
+	var fresh_tree = StateTreeScript.new()
+	_assert(root_hash == fresh_tree.root_hash(), "state tree root is empty hash")
 	
 	FrameService.exit_frame(player_id)
 
@@ -135,7 +143,7 @@ func _test_cross_frame_isolation() -> void:
 	var tree_b = FrameService.get_state_tree(player_id)
 	var hash_b = tree_b.root_hash()
 	_assert(hash_b != hash_a, "frame_B state tree different from frame_A")
-	_assert(tree_b.get("/progress").is_empty(), "frame_B state tree is empty")
+	_assert(tree_b.get_state("/progress").is_empty(), "frame_B state tree is empty")
 	
 	FrameService.exit_frame(player_id)
 
@@ -146,13 +154,15 @@ func _test_frame_state_discarded() -> void:
 	var frame_tree = FrameService.get_state_tree(player_id)
 	frame_tree.insert_state("/temp", player_id, "data", {"value": 42})
 	var frame_hash = frame_tree.root_hash()
-	_assert(not frame_hash == FrameService._empty_hash(), "frame tree has data")
+	var fresh_tree_x = StateTreeScript.new()
+	_assert(not frame_hash == fresh_tree_x.root_hash(), "frame tree has data")
 	FrameService.exit_frame(player_id)
 	
 	FrameService.enter_frame(player_id, "frame_Y")
 	var new_frame_tree = FrameService.get_state_tree(player_id)
 	var new_hash = new_frame_tree.root_hash()
-	_assert(new_hash == FrameService._empty_hash(), "new frame tree is empty")
+	var fresh_tree_y = StateTreeScript.new()
+	_assert(new_hash == fresh_tree_y.root_hash(), "new frame tree is empty")
 	
 	var player_tree = FrameService.get_player_state_tree(player_id)
 	player_tree.insert_state("/persistent", player_id, "xp", {"amount": 100})
@@ -162,7 +172,7 @@ func _test_frame_state_discarded() -> void:
 	var player_tree2 = FrameService.get_player_state_tree(player_id)
 	var persisted = player_tree2.get_state("/persistent")
 	_assert(not persisted.is_empty(), "persistent state survives frame exit")
-	_assert(persisted.payload.amount == 100, "persistent state value correct")
+	_assert(persisted.get("payload", {}).get("amount", 0) == 100, "persistent state value correct")
 	
 	FrameService.exit_frame(player_id)
 

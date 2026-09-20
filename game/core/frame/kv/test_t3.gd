@@ -25,7 +25,7 @@ func _test_empty_tree() -> void:
 	var empty_hash: PackedByteArray = tree.hash_subtree("/")
 	_assert(empty_hash.size() == 32, "empty root hash has 32 bytes")
 	_assert(tree.hash_subtree("/missing/") == empty_hash, "missing subtree hashes empty bytes")
-	_assert(tree.get("missing") == null, "missing value returns null")
+	_assert(tree.get_at("missing") == null, "missing value returns null")
 	_assert(not tree.delete("missing"), "missing delete returns false")
 
 
@@ -34,9 +34,9 @@ func _test_insert_get_and_normalize() -> void:
 	var schema := Resource.new()
 	var hash: PackedByteArray = tree.insert("//alpha///beta//", {"count": 3}, schema)
 	_assert(hash.size() == 32, "insert returns a 32-byte hash")
-	_assert(tree.get("alpha/beta") == {"count": 3}, "inserted value is retrievable")
-	_assert(tree.get("/alpha/beta/") == {"count": 3}, "path normalization is symmetric")
-	_assert(tree.get("alpha/beta///") == {"count": 3}, "trailing slashes normalize")
+	_assert(tree.get_at("alpha/beta") == {"count": 3}, "inserted value is retrievable")
+	_assert(tree.get_at("/alpha/beta/") == {"count": 3}, "path normalization is symmetric")
+	_assert(tree.get_at("alpha/beta///") == {"count": 3}, "trailing slashes normalize")
 	_assert(tree.insert("alpha/beta", {"count": 3}, schema) == hash, "idempotent insert returns same hash")
 
 
@@ -48,9 +48,13 @@ func _test_hash_determinism() -> void:
 	_assert(first == second, "same path value and schema produce same hash")
 	var changed: PackedByteArray = tree.insert("deterministic", [1, 2, 4], schema)
 	_assert(changed != first, "different value produces different hash")
-	var other_schema := Resource.new()
-	var schema_changed: PackedByteArray = tree.insert("schema", 1, other_schema)
-	_assert(schema_changed != tree.insert("schema", 1, Resource.new()), "different schema changes hash")
+	# Schema identity is deterministic (script path / native class), so
+	# distinct hashes require semantically distinct schemas.
+	var other_type_schema: Resource = load("res://core/frame/kv/definition_schema.gd").new()
+	var schema_changed: PackedByteArray = tree.insert("schema", 1, other_type_schema)
+	_assert(schema_changed == tree.insert("schema", 1, other_type_schema), "same schema is idempotent")
+	var base_hash: PackedByteArray = tree.insert("schema_native", 1, Resource.new())
+	_assert(base_hash != tree.insert("schema_native", 1, other_type_schema), "different schema changes hash")
 
 
 func _test_subtree_hashes() -> void:
@@ -75,8 +79,8 @@ func _test_delete() -> void:
 	var root_before: PackedByteArray = tree.hash_subtree("/")
 	_assert(tree.delete("parent/child"), "existing node deletes successfully")
 	_assert(not tree.delete("parent/child"), "second delete returns false")
-	_assert(tree.get("parent/child") == null, "deleted value is unavailable")
-	_assert(tree.get("parent") == "parent-value", "deleting child keeps parent value")
+	_assert(tree.get_at("parent/child") == null, "deleted value is unavailable")
+	_assert(tree.get_at("parent") == "parent-value", "deleting child keeps parent value")
 	_assert(tree.hash_subtree("parent") != parent_before, "parent hash changes after child deletion")
 	_assert(tree.hash_subtree("/") != root_before, "root reflects deletion")
 
@@ -118,7 +122,7 @@ func _test_apply_diff() -> void:
 	var changes: Array = tree.diff(root_a, root_b)
 	_assert(tree.apply_diff(root_b, []) == root_b, "empty diff leaves root unchanged")
 	_assert(tree.apply_diff(root_a, changes) == root_b, "diff roundtrip returns target root")
-	_assert(tree.get("a") == 10 and tree.get("c") == 3 and tree.get("b") == null, "applied diff restores values")
+	_assert(tree.get_at("a") == 10 and tree.get_at("c") == 3 and tree.get_at("b") == null, "applied diff restores values")
 
 
 func _test_walk() -> void:

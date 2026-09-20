@@ -132,13 +132,14 @@ func _registry() -> Node:
 
 
 # Same indirection pattern for GameLog. Bare-identifier autoload
-# references fail to parse in --script mode.
+# references fail to compile when the script is load()ed in --script
+# mode (no autoload registration), so fall back to a silent no-op.
 func _log_info(msg: String) -> void:
 	var gl = get_tree().root.get_node_or_null("GameLog") if get_tree() else null
 	if gl and gl.has_method("info"):
 		gl.info(msg)
 	else:
-		GameLog.info(msg)
+		print("[INFO] %s" % msg)
 
 
 # Wire up the default set of stores. Services that need their

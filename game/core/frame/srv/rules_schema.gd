@@ -30,14 +30,15 @@ func _validate(value: Dictionary) -> bool:
 	var rule_id_val = value["rule_id"]
 	var resolution_val = value["resolution"]
 	var default_allow_val = value["default_allow"]
-	if rule_id_val.get_type() != TYPE_STRING:
+	# Variant type checks use typeof(); Strings/bools have no get_type().
+	if typeof(rule_id_val) != TYPE_STRING:
 		return false
 	if rule_id_val == "":
 		return false
 	var valid_resolutions := ["TOP_WINS", "BOTTOM_WINS", "PREDICATE_GATED", "ALL_WINS_WITH_EFFECT"]
 	if resolution_val not in valid_resolutions:
 		return false
-	if default_allow_val.get_type() != TYPE_BOOL:
+	if typeof(default_allow_val) != TYPE_BOOL:
 		return false
 	return true
 

@@ -260,7 +260,7 @@ func _derive_entity_seed(entity_id: String, entity) -> String:
 	if frame_seed.is_empty():
 		frame_seed = entity_id.to_utf8_buffer()
 	var stack: Array[PackedByteArray] = [frame_seed]
-	var derived := SeedChainScript.derive_seed(stack, "/entity/%s" % entity_id)
+	var derived: PackedByteArray = SeedChainScript.derive_seed(stack, "/entity/%s" % entity_id)
 	if derived.is_empty():
 		return ""
 	return SeedChainScript.seed_hash(derived)
@@ -280,8 +280,10 @@ func _create_default_metadata(entity) -> SpawnMetadata:
 			spawn_type = SpawnMetadata.SpawnType.NORMAL
 
 	var metadata := SpawnMetadata.new(spawn_type, entity.display_name, "", entity.global_position)
-	metadata.level = entity.level
-	metadata.faction = entity.faction
+	if "level" in entity:
+		metadata.level = entity.level
+	if "faction" in entity:
+		metadata.faction = entity.faction
 	return metadata
 
 ## Get spawn metadata for an entity

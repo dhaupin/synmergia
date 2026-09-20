@@ -20,14 +20,14 @@ func exit() -> void:
 func update(delta: float) -> void:
 	attack_timer -= delta
 
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Allow air dodge during attack
 	if Input.is_action_just_pressed("dodge"):
 		transition_to("AirDodge")
 
 func physics_process(delta: float) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Continue falling during attack
 	if parent.velocity.y > -5:
@@ -43,7 +43,7 @@ func physics_process(delta: float) -> void:
 		execute_air_attack()
 
 func execute_air_attack() -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 
 	# Create hitbox in front of player
 	var forward: Vector3 = -parent.global_transform.basis.z
@@ -59,6 +59,6 @@ func execute_air_attack() -> void:
 				enemy.take_damage(damage, parent)
 
 func animation_play(anim_name: String) -> void:
-	var parent := state_machine.get_parent()
+	var parent: PlayerController = state_machine.get_parent()
 	if parent.animation_player.has_animation(anim_name):
 		parent.animation_player.play(anim_name)
