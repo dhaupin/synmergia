@@ -222,7 +222,7 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 			penalties["gold_loss"] = gold_loss
 
 	# Durability Loss
-	if Config.DURABILITY_LOSS_PERCENT > 0 and entity.inventory_component:
+	if Config.DURABILITY_LOSS_PERCENT > 0 and "inventory_component" in entity and entity.inventory_component != null:
 		var durability_loss: float = entity.inventory_component.apply_durability_loss(Config.DURABILITY_LOSS_PERCENT)
 		penalties["durability_loss"] = durability_loss
 
@@ -609,7 +609,7 @@ func _is_safe_zone(zone_id: String) -> bool:
 
 func _on_player_died(entity, killer) -> void:
 	# Apply death penalties
-	var is_pvp: bool = killer if killer else false
+	var is_pvp: bool = killer != null
 	apply_death_penalties(entity, killer, is_pvp)
 
 	# Record for death stats

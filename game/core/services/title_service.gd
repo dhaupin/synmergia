@@ -138,7 +138,7 @@ static func singleton() -> Node:
 static func get_local_player_id() -> String:
 	if PlayerManager and PlayerManager.get_local_player():
 		var player: Node = PlayerManager.get_local_player()
-		if player.has("entity_id"):
+		if "entity_id" in player:
 			return player.get("entity_id")
 	return ""
 

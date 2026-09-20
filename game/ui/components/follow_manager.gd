@@ -6,18 +6,19 @@ extends Control
 # here shadowed the autoload with the script resource, so signal connections
 # targeted the script (where signals don't exist) instead of the instance.
 
-@onready var container: VBoxContainer = $Panel/VBox
-@onready var target_label: Label = $Panel/VBox/TargetLabel
-@onready var distance_label: Label = $Panel/VBox/DistanceLabel
-@onready var state_label: Label = $Panel/VBox/StateLabel
-@onready var cancel_btn: Button = $Panel/VBox/CancelButton
+@onready var container: VBoxContainer = get_node_or_null("Panel/VBox")
+@onready var target_label: Label = get_node_or_null("Panel/VBox/TargetLabel")
+@onready var distance_label: Label = get_node_or_null("Panel/VBox/DistanceLabel")
+@onready var state_label: Label = get_node_or_null("Panel/VBox/StateLabel")
+@onready var cancel_btn: Button = get_node_or_null("Panel/VBox/CancelButton")
 
 var _is_visible: bool = false
 var _is_following: bool = false
 
 func _ready() -> void:
 	visible = false
-	cancel_btn.pressed.connect(_on_cancel_pressed)
+	if cancel_btn != null:
+		cancel_btn.pressed.connect(_on_cancel_pressed)
 
 	# Connect to FollowService signals
 	if FollowService:

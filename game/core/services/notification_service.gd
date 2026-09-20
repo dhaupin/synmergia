@@ -124,7 +124,10 @@ func _on_entity_spawned(entity_or_id, metadata: SpawnMetadata) -> void:
 		SpawnMetadata.SpawnType.ELITE:
 			message = "Elite enemy %s has appeared!" % metadata.display_name
 		_:
-			message = metadata.notification_message % [metadata.display_name, metadata.zone_id]
+			if metadata.notification_message != "":
+				message = metadata.notification_message % [metadata.display_name, metadata.zone_id]
+			else:
+				message = "%s has spawned." % metadata.display_name
 
 	# Determine notification settings from metadata
 	var notif_type := NotificationType.WORLD_EVENT

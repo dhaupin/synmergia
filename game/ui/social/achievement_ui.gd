@@ -56,8 +56,6 @@ func _setup_ui() -> void:
 		btn.toggle_mode = true
 		btn.button_pressed = (cat.id == -1)
 		btn.focus_mode = Control.FOCUS_ALL
-		btn.accessible_name = "Category Filter: %s" % cat.name
-		btn.accessible_description = "Show %s achievements only." % cat.name
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		btn.pressed.connect(_on_category_selected.bind(cat.id))
 		_category_buttons.append(btn)
@@ -156,8 +154,6 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 80
 	panel.focus_mode = Control.FOCUS_ALL
-	panel.accessible_name = "Achievement: %s" % ach.display_name
-	panel.accessible_description = "%s. %s" % [ach.display_name, ach.description]
 	panel.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var style := StyleBoxFlat.new()
@@ -183,7 +179,6 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 	icon.text = "" if is_unlocked else ""
 	icon.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold if is_unlocked else UIStyles.COLORS.text_disabled)
 	icon.custom_minimum_size.x = 30
-	icon.accessible_description = "Achievement is %s." % ("unlocked" if is_unlocked else "locked")
 	hbox.add_child(icon)
 
 	# Info section
@@ -224,7 +219,6 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 			progress_bar.add_theme_color_override("fill", UIStyles.COLORS.info)
 
 		progress_bar.custom_minimum_size.y = 8
-		progress_bar.accessible_description = "Progress: %d percent complete." % int(percentage * 100)
 		info_vbox.add_child(progress_bar)
 
 	# Rewards section (right side)

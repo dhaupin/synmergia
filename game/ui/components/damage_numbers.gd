@@ -36,7 +36,9 @@ func _init_pool() -> void:
 		label.visible = false
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		label.add_theme_font_size_override("font_size", _font_size)
-		label.add_theme_font_override("font", UIStyles.get_damage_font())
+		var dmg_font: Font = UIStyles.get_damage_font()
+		if dmg_font != null:
+			label.add_theme_font_override("font", dmg_font)
 		add_child(label)
 		_label_pool.append(label)
 
@@ -104,6 +106,14 @@ func show_absorb(target: Node3D, amount: int) -> void:
 		return
 	_spawn_number(target, "Absorb %d" % amount, Color(0.5, 0.8, 1.0), false, "Absorb")
 
+## Floating reward/text notice over a target (XP gains, level-ups,
+## reputation, "+5 Gold", etc). Reuses the damage-number pool and float
+## animation; num_type is only metadata on the animation.
+func show_text(target: Node3D, text: String, color: Color) -> void:
+	if not is_instance_valid(target) or text.is_empty():
+		return
+	_spawn_number(target, text, color, false, "Reward")
+
 func set_show_damage(show: bool) -> void:
 	_show_damage = show
 
@@ -124,6 +134,7 @@ func _spawn_number(target: Node3D, text: String, color: Color, is_crit: bool, nu
 	var label := _get_pooled_label()
 	label.text = text
 	label.add_theme_color_override("font_color", color)
+	label.set_meta("num_color", color)
 	label.visible = true
 	
 	# Position at target's screen position with random offset
@@ -193,7 +204,7 @@ func _process(delta: float) -> void:
 		
 		# Fade out
 		var alpha: float = 1.0 - progress
-		var color: Color = label.get_theme_color_override("font_color")
+		var color: Color = label.get_meta("num_color", Color.WHITE)
 		color.a = alpha
 		label.add_theme_color_override("font_color", color)
 		

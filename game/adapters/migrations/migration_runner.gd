@@ -125,14 +125,17 @@ func _load_applied(store: PersistenceStore) -> Dictionary:
 
 
 func _split_statements(sql: String) -> Array:
-	# Split on semicolons NOT inside single-quoted strings (handles
-	# string literals containing "; "). Good enough for migration SQL.
+	# Strip -- line comments first (respecting single-quoted strings),
+	# then split on semicolons NOT inside strings. Without the comment
+	# strip, migration headers ("-- First migration...") were handed to
+	# execute() as statements and failed the run.
+	var stripped := _strip_sql_comments(sql)
 	var out: Array = []
 	var buf: String = ""
 	var in_str := false
 	var i := 0
-	while i < sql.length():
-		var ch := sql[i]
+	while i < stripped.length():
+		var ch := stripped[i]
 		if ch == "'":
 			in_str = not in_str
 		if ch == ";" and not in_str:
@@ -143,6 +146,45 @@ func _split_statements(sql: String) -> Array:
 		i += 1
 	if buf.strip_edges() != "":
 		out.append(buf)
+	return out
+
+
+## Removes -- line comments outside of string literals. /* */ block
+## comments are rare in these migrations but handled too.
+func _strip_sql_comments(sql: String) -> String:
+	var out := ""
+	var in_str := false
+	var in_line := false
+	var in_block := false
+	var i := 0
+	while i < sql.length():
+		var ch := sql[i]
+		var nxt := sql[i + 1] if i + 1 < sql.length() else ""
+		if in_line:
+			if ch == "\n":
+				in_line = false
+				out += ch
+			i += 1
+			continue
+		if in_block:
+			if ch == "*" and nxt == "/":
+				in_block = false
+				i += 2
+				continue
+			i += 1
+			continue
+		if not in_str and ch == "-" and nxt == "-":
+			in_line = true
+			i += 2
+			continue
+		if not in_str and ch == "/" and nxt == "*":
+			in_block = true
+			i += 2
+			continue
+		if ch == "'":
+			in_str = not in_str
+		out += ch
+		i += 1
 	return out
 
 

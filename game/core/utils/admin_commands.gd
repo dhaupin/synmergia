@@ -775,7 +775,7 @@ func _do_resurrect(entity: Node3D, health_percent: float, mana_percent: float) -
 
 	# Clear death state
 	entity.health_component.respawned.emit()
-	EventHub.entity_spawned.emit(entity)
+	EventHub.entity_spawned.emit(entity, null)
 	EventHub.player_resurrected.emit(entity, "admin")
 	EventHub.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE if RespawnService else 0)
 

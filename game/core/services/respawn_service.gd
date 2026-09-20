@@ -244,7 +244,7 @@ func get_available_respawn_modes(player, zone_id: String = "") -> Array[RespawnM
 	available.append(RespawnMode.TIMED)
 
 	# Ankh - if player has bound one and zone allows
-	if player.respawn_ankh_id != "" and not config.ankh_required:
+	if "respawn_ankh_id" in player and player.respawn_ankh_id != "" and not config.ankh_required:
 		var ankh := _get_ankh_by_id(player.respawn_ankh_id)
 		if ankh and ankh.can_bind(player):
 			available.append(RespawnMode.ANKH)
@@ -467,7 +467,7 @@ func _do_respawn_at(player, position: Vector3, mode: RespawnMode) -> void:
 	player.global_position = position
 
 	player.health_component.respawned.emit()
-	EventHub.entity_spawned.emit(player)
+	EventHub.entity_spawned.emit(player, null)
 	EventHub.player_respawned.emit(player, position, mode)
 
 	respawn_completed.emit(player, position)
@@ -505,7 +505,7 @@ func get_zone_config(zone_id: String) -> Dictionary:
 
 ## Internal: Get player's bound ankh
 func _get_bound_ankh(player) -> Ankh:
-	if player.respawn_ankh_id == "":
+	if player == null or not ("respawn_ankh_id" in player) or player.respawn_ankh_id == "":
 		return null
 	return _get_ankh_by_id(player.respawn_ankh_id)
 
@@ -682,7 +682,7 @@ func get_revive_ability_info(context: String = "") -> Dictionary:
 	}
 
 ## Internal: Get nearby healers
-func _get_nearby_potential_healers(player: Entity) -> Array:
+func _get_nearby_potential_healers(player) -> Array:
 	var nearby: Array = []
 	var entities := EntityService.get_entities_in_radius(player.global_position, REVIVE_RANGE)
 	for entity in entities:
@@ -692,7 +692,7 @@ func _get_nearby_potential_healers(player: Entity) -> Array:
 	return nearby
 
 ## Internal: Get arena team
-func _get_arena_team(player: Entity) -> int:
+func _get_arena_team(player) -> int:
 	var party := PartyService.get_player_party(player.entity_id)
 	if not party.is_empty() and party.has("id"):
 		return party["id"].hash() % 2  # Split party into teams

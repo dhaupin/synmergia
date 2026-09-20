@@ -51,7 +51,7 @@ func _show_respawn_ui(player) -> void:
 
 func _get_respawn_options(player) -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
-	var zone_id: String = player.current_zone if player.has("current_zone") else ""
+	var zone_id: String = player.current_zone if "current_zone" in player else ""
 
 	# Check what respawn modes are available
 	var available_modes = RespawnService.get_available_respawn_modes(player, zone_id)

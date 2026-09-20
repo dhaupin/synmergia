@@ -124,7 +124,6 @@ func _create_member_frame(index: int) -> Control:
 	frame.name = "MemberFrame_%d" % index
 	frame.custom_minimum_size = Vector2(240, 52)
 	frame.focus_mode = Control.FOCUS_ALL
-	frame.accessible_name = "Party Member %d" % (index + 1)
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIStyles.COLORS.background_dark
 	style.border_color = UIStyles.COLORS.border

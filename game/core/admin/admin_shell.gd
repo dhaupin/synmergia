@@ -637,7 +637,7 @@ func _is_player_online(player_id: String) -> bool:
 	return PlayerManager != null and PlayerManager.has_player(player_id)
 
 func _get_online_players() -> Array:
-	if PlayerManager:
+	if PlayerManager and PlayerManager.has_method("get_online_player_ids"):
 		return PlayerManager.get_online_player_ids()
 	return []
 

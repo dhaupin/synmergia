@@ -154,7 +154,6 @@ func _setup_header() -> void:
 	_gold_label.text = "Gold: 0"
 	_gold_label.name = "GoldLabel"
 	_gold_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
-	_gold_label.accessible_description = "Displays the player's current gold."
 	header.add_child(_gold_label)
 
 	var close_btn := Button.new()
@@ -205,7 +204,6 @@ func _create_slot(index: int) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
 	slot.focus_mode = Control.FOCUS_ALL
-	slot.accessible_name = "Inventory Slot %d" % (index + 1)
 	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	slot.add_theme_stylebox_override("panel", UIStyles.create_panel_style(
 		UIStyles.COLORS.background_dark,

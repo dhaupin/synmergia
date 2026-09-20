@@ -29,9 +29,9 @@ var _player_position: Vector3 = Vector3.ZERO
 var _is_visible: bool = false
 
 # UI Elements
-@onready var center_marker: Control = $CenterMarker
-@onready var direction_labels: HBoxContainer = $DirectionLabels
-@onready var waypoint_container: Control = $WaypointContainer
+@onready var center_marker: Control = get_node_or_null("CenterMarker")
+@onready var direction_labels: HBoxContainer = get_node_or_null("DirectionLabels")
+@onready var waypoint_container: Control = get_node_or_null("WaypointContainer")
 
 func _ready() -> void:
 	_setup_ui()

@@ -126,8 +126,6 @@ func _create_icon_button(text: String, name: String, tooltip: String) -> Button:
 	btn.custom_minimum_size = Vector2(48, 48)  # 48dp minimum touch target
 	btn.toggle_mode = false
 	btn.focus_mode = Control.FOCUS_ALL
-	btn.accessible_name = tooltip.split(" (")[0] if " (" in tooltip else tooltip
-	btn.accessible_description = tooltip
 	
 	var style_normal := StyleBoxFlat.new()
 	style_normal.bg_color = _get_color("background_dark", Color(0.12, 0.12, 0.18, 0.9))
@@ -343,14 +341,12 @@ func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: Str
 	btn.toggle_mode = false
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.flat = false
-	btn.accessible_name = text
-	btn.accessible_description = "Open %s panel. Hotkey: %s" % [text, hotkey] if hotkey != "" else "Open %s panel" % text
 	
 	var display_text := "%s %s" % [icon, text] if icon != "" else text
 	if hotkey != "":
 		display_text = "%s  [%s]" % [display_text, hotkey]
 	btn.text = display_text
-	btn.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.tooltip_text = "%s (Hotkey: %s)" % [text, hotkey] if hotkey != "" else text
 	
 	var style_normal := StyleBoxFlat.new()
@@ -490,7 +486,6 @@ func update_character_info(name: String, level: int, class_icon: String = "[C]")
 					level_label.text = "Level %d" % level
 		
 		# Update accessibility info
-		_avatar_button.accessible_name = "%s, Level %d" % [name, level]
 		_avatar_button.tooltip_text = "Character: %s (Level %d)" % [name, level]
 
 func bind(hud: Node, menu_manager: Node) -> void:
@@ -498,7 +493,7 @@ func bind(hud: Node, menu_manager: Node) -> void:
 	_mm = menu_manager
 	
 	if _mm:
-		panel_requested.connect(_mm.callable("_on_main_menu_panel_requested"))
+		panel_requested.connect(Callable(_mm, "_on_main_menu_panel_requested"))
 	
 	# Re-check permissions after bind (in case GameManager wasn't ready)
 	call_deferred("_check_permissions")

@@ -39,7 +39,7 @@ func _on_health_depleted() -> void:
 		killer_name = _killer.display_name
 		if _killer is PlayerController:
 			killer_type = "player"
-		elif _killer.faction_id != entity.faction_id:
+		elif "faction_id" in _killer and "faction_id" in entity and _killer.faction_id != entity.faction_id:
 			killer_type = "pvp"
 
 	if NotificationService:
@@ -114,7 +114,7 @@ func die(killer: Node3D = null) -> void:
 
 	# Stop all combat state
 	var entity: Node3D = get_parent()
-	if entity.combat_component:
+	if entity != null and "combat_component" in entity and entity.combat_component != null:
 		entity.combat_component.interrupt()
 
 	# SECURITY: Cancel any active locks on death
@@ -157,10 +157,10 @@ func _create_corpse(killer: Node3D) -> void:
 
 	if corpse_scene:
 		_corpse = corpse_scene.instantiate()
+		get_tree().root.add_child(_corpse)
 		_corpse.global_position = entity.global_position
 		if _corpse.has_method("setup"):
 			_corpse.setup(entity, killer)
-		get_tree().root.add_child(_corpse)
 		EventHub.corpse_created.emit(entity, _corpse, killer)
 		GameLog.debug("HealthComponent: Created corpse at %s" % entity.global_position)
 	else:
@@ -229,7 +229,7 @@ func _do_respawn_at(position: Vector3) -> void:
 	entity.global_position = position
 
 	respawned.emit()
-	EventHub.entity_spawned.emit(entity)
+	EventHub.entity_spawned.emit(entity, null)
 
 ## Start respawn process
 func _start_respawn() -> void:
@@ -280,7 +280,7 @@ func _do_respawn() -> void:
 	entity.global_position = _bind_position
 
 	respawned.emit()
-	EventHub.entity_spawned.emit(entity)
+	EventHub.entity_spawned.emit(entity, null)
 
 ## Set max health
 func set_max_health(new_max: int) -> void:
@@ -382,7 +382,7 @@ func use_self_rez_item(item: Item) -> Dictionary:
 
 	# Emit signals
 	respawned.emit()
-	EventHub.entity_spawned.emit(entity)
+	EventHub.entity_spawned.emit(entity, null)
 	EventHub.self_resurrected.emit(entity, item)
 
 	GameLog.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])

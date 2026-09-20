@@ -90,8 +90,6 @@ func _setup_ui() -> void:
 		btn.toggle_mode = true
 		btn.button_pressed = false
 		btn.focus_mode = Control.FOCUS_ALL
-		btn.accessible_name = "Quest Tab: %s" % tab_data.name
-		btn.accessible_description = "Show %s quests." % tab_data.name
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		btn.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 		btn.pressed.connect(_on_tab_clicked.bind(tab_data.id))
@@ -197,7 +195,6 @@ func _create_quest_button(quest_id: String) -> Button:
 	btn.text_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	btn.focus_mode = Control.FOCUS_ALL
-	btn.accessible_name = "Quest: %s" % _get_quest_name(quest_id)
 	btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	# Get quest name

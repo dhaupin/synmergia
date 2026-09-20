@@ -66,7 +66,7 @@ func _ready() -> void:
 		# We'll check for zone_changed signal
 
 func _on_player_died(entity, killer) -> void:
-	if entity and entity.has("entity_id"):
+	if entity != null and "entity_id" in entity:
 		cancel_all_for_player(str(entity.entity_id))
 
 ## Called when a player teleports/zones - cancels follow

@@ -320,8 +320,6 @@ func _create_action_slot(index: int) -> PanelContainer:
 	slot.custom_minimum_size = Vector2(50, 50)
 	slot.name = "ActionSlot%d" % index
 	slot.focus_mode = Control.FOCUS_ALL
-	slot.accessible_name = "Action Slot %d" % (index + 1)
-	slot.accessible_description = "Press %d to use this skill." % (index + 1)
 	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var style := StyleBoxFlat.new()
@@ -352,8 +350,6 @@ func _create_quick_slot(index: int) -> PanelContainer:
 	slot.custom_minimum_size = Vector2(40, 40)
 	slot.name = "QuickSlot%d" % index
 	slot.focus_mode = Control.FOCUS_ALL
-	slot.accessible_name = "Quick Slot %d" % (index + 1)
-	slot.accessible_description = "Press F%d to use this consumable." % (index + 1)
 	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var style := StyleBoxFlat.new()
@@ -659,15 +655,19 @@ func _create_debug_panel() -> Control:
 	panel.set_panel_title("Debug Panel")
 	panel.custom_minimum_size = Vector2(600, 400)
 	
-	# Build the debug UI after the panel is in the scene tree
-	panel.call_deferred("_debug_build_panel_ui", self)
+	# Build the debug UI after the panel is in the scene tree.
+	# NOTE: the builder lives on MenuManager and must receive the panel
+	# explicitly -- it used to be deferred onto the panel itself, which
+	# has no such method ("Error calling deferred method ... Method not
+	# found" at full boot).
+	call_deferred("_debug_build_panel_ui", panel, self)
 	
 	return panel
 
-func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
-	# The UIPanel creates a "Panel" child in _setup_overlay()
-	# We need to add our content to that Panel container
-	var panel_container: PanelContainer = get_node_or_null("Panel")
+func _debug_build_panel_ui(panel: Control, menu_manager: MenuManager) -> void:
+	# The UIPanel creates a "Panel" child in _setup_overlay().
+	# Resolve it on the panel, not on self (MenuManager).
+	var panel_container: PanelContainer = panel.get_node_or_null("Panel")
 	if not panel_container:
 		return
 	
@@ -727,7 +727,6 @@ func _debug_build_panel_ui(menu_manager: MenuManager) -> void:
 	net_refresh_btn.pressed.connect(func(): menu_manager._update_debug_net_info(net_info))
 	net_refresh_btn.focus_mode = Control.FOCUS_ALL
 	net_refresh_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-	net_tab.add_child(net_refresh_btn)
 	net_tab.add_child(net_refresh_btn)
 	
 	# Performance tab

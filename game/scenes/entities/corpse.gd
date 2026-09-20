@@ -26,8 +26,8 @@ enum Visibility {
 @export var owner_guild_id: String = ""
 @export var owner_party_id: String = ""
 
-var _owner: Entity = null
-var _killer: Entity = null
+var _owner = null
+var _killer = null
 var _loot_items: Array[Dictionary] = []
 var _is_looted: bool = false
 var _decay_timer: float = 0.0
@@ -43,16 +43,16 @@ func _ready() -> void:
 	# Start decay timer
 	_decay_timer = _decay_duration
 
-func setup(owner: Entity, killer: Entity = null) -> void:
+func setup(owner, killer = null) -> void:
 	_owner = owner
 	_killer = killer
 	owner_entity_id = owner.entity_id
 	corpse_id = "corpse_%s_%d" % [owner.entity_id, Time.get_unix_time_from_system()]
 
 	# Store faction/guild/party info for visibility
-	owner_faction_id = owner.faction_id if owner.has("faction_id") else ""
-	owner_guild_id = owner.guild_id if owner.has("guild_id") else ""
-	owner_party_id = owner.party_id if owner.has("party_id") else ""
+	owner_faction_id = owner.faction_id if "faction_id" in owner else ""
+	owner_guild_id = owner.guild_id if "guild_id" in owner else ""
+	owner_party_id = owner.party_id if "party_id" in owner else ""
 
 	# Copy position
 	if owner.has_method("get_global_position"):
@@ -65,23 +65,23 @@ func _roll_loot() -> void:
 	_loot_items = []
 
 	# Check if owner has a loot table
-	if _owner and _owner.has("enemy_data"):
+	if _owner and "enemy_data" in _owner and _owner.enemy_data != null:
 		var enemy_data = _owner.enemy_data
-		if enemy_data and enemy_data.has("roll_loot"):
+		if enemy_data.has("roll_loot"):
 			_loot_items = enemy_data.roll_loot()
-	elif _owner and _owner.has("loot_table_id"):
+	elif _owner and "loot_table_id" in _owner:
 		var loot_table_id = _owner.get("loot_table_id")
 		if loot_table_id != "" and LootService:
 			_loot_items = LootService.roll_loot_table(loot_table_id)
 
 	# Also include dropped equipment/items
-	if _owner and _owner.has("inventory_component"):
+	if _owner and "inventory_component" in _owner and _owner.inventory_component != null:
 		var inventory = _owner.inventory_component
 		if inventory:
 			_loot_items.append_array(inventory.get_all_items())
 
 	# Add karma/gold drops
-	if _owner and _owner.has("karma"):
+	if _owner and "karma" in _owner:
 		var karma := _owner.get("karma") as int
 		if karma > 0:
 			var gold_drop := karma / 10  # 10% of karma as gold

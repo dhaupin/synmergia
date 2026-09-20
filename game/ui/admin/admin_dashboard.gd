@@ -33,6 +33,9 @@ func _ready() -> void:
 	add_child(_shell)
 	_shell.command_executed.connect(_on_command_executed)
 
+	# Build the panel UI first: _refresh_player_list clears _player_list,
+	# which only exists after _setup_panel has run.
+	_setup_panel()
 	_refresh_player_list()
 	_bind_admin_signals()
 

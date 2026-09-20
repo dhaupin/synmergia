@@ -533,6 +533,43 @@ func get_crit_chance() -> float:
 func get_crit_multiplier() -> float:
 	return 1.5
 
+# --- Progression surface (duck-typed Entity API) --------------------------
+# Mirrors PlayerManager's add_experience/add_gold so the XP/kill-reward
+# hook (core/services/kill_rewards.gd) can pay any combatant through the
+# same duck-typed convention as the combat surface above. The node-level
+# values are authoritative for the player in the world; PlayerManager is
+# the persistent mirror the HUD reads.
+
+var experience: int = 0
+var experience_to_next_level: int = 1000
+var gold: int = 0
+
+signal experience_changed(current: int, level: int)
+signal gold_changed(current: int)
+signal leveled_up(new_level: int)
+
+func add_experience(amount: int) -> void:
+	if amount <= 0:
+		return
+	experience += amount
+	while experience >= experience_to_next_level:
+		experience -= experience_to_next_level
+		level += 1
+		experience_to_next_level = int(experience_to_next_level * 1.5)
+		# Full restore on level up, mirroring PlayerManager.
+		if health_component != null:
+			max_health += 10
+			current_health = max_health
+		leveled_up.emit(level)
+		GameLog.info("Player level up: now level %d" % level)
+	experience_changed.emit(experience, level)
+
+func add_gold(amount: int) -> void:
+	if amount <= 0:
+		return
+	gold += amount
+	gold_changed.emit(gold)
+
 func get_stat(stat_name: String) -> int:
 	return int(stats.get(stat_name, 0))
 

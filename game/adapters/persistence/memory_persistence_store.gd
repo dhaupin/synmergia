@@ -82,8 +82,57 @@ func execute(sql: String, params: Array = []) -> int:
 		return _exec_update(s, params)
 	if upper.begins_with("DELETE"):
 		return _exec_delete(s, params)
+	if upper.begins_with("CREATE"):
+		return _exec_create_table(s)
+	if upper.begins_with("DROP"):
+		return _exec_drop_table(s)
+	if upper.begins_with("ALTER"):
+		return 0  # no constraints in memory; schema-only no-op
 	push_warning("MemoryPersistenceStore: unrecognized statement: " + s)
 	return -1
+
+
+## DDL: the memory engine models tables as row arrays. CREATE TABLE
+## (with or without IF NOT EXISTS) creates an empty table; indexes and
+## triggers are no-ops. Required by the migration runner's bootstrap
+## (schema_migrations) and by migrations run against the memory backend
+## at boot (prd-db.md sec. 9.2).
+func _exec_create_table(sql: String) -> int:
+	var rest := sql.substr(6, sql.length() - 6).strip_edges()  # past CREATE
+	var rest_upper := rest.to_upper()
+	if rest_upper.begins_with("INDEX") or rest_upper.begins_with("UNIQUE") or rest_upper.begins_with("TRIGGER"):
+		return 0  # meaningless in memory
+	var pos := rest_upper.find("TABLE")
+	if pos < 0:
+		push_warning("MemoryPersistenceStore: unsupported CREATE: " + sql)
+		return -1
+	rest = rest.substr(pos + 5, rest.length() - pos - 5).strip_edges()
+	if rest.to_upper().begins_with("IF NOT EXISTS"):
+		rest = rest.substr(13, rest.length() - 13).strip_edges()
+	var name := rest.split(" ")[0].strip_edges()
+	if name.is_empty():
+		push_warning("MemoryPersistenceStore: CREATE TABLE with no table name: " + sql)
+		return -1
+	if not _tables.has(name):
+		_tables[name] = []
+	return 0
+
+
+func _exec_drop_table(sql: String) -> int:
+	var rest := sql.substr(4, sql.length() - 4).strip_edges()  # past DROP
+	if rest.to_upper().begins_with("INDEX"):
+		return 0
+	var pos := rest.to_upper().find("TABLE")
+	if pos < 0:
+		push_warning("MemoryPersistenceStore: unsupported DROP: " + sql)
+		return -1
+	rest = rest.substr(pos + 5, rest.length() - pos - 5).strip_edges()
+	if rest.to_upper().begins_with("IF EXISTS"):
+		rest = rest.substr(9, rest.length() - 9).strip_edges()
+	var name := rest.split(" ")[0].strip_edges()
+	if not name.is_empty():
+		_tables.erase(name)
+	return 0
 
 
 func query_one(sql: String, params: Array = []) -> Dictionary:
@@ -183,6 +232,42 @@ func delete_many(keys: Array) -> int:
 			remaining.append(row)
 	_tables["kv"] = remaining
 	return n
+
+
+# --- KV single-key API ---
+# Services call these directly on the persistence store (see
+# account_service._ready, follow_service, vault_service, etc). They
+# route through the batch API above so the kv table stays canonical.
+
+func set_value(key: String, value) -> int:
+	return set_many({key: value})
+
+
+func get_value(key: String):
+	var result := get_many([key])
+	return result.get(key, null)
+
+
+func delete_value(key: String) -> int:
+	return delete_many([key])
+
+
+func has_key(key: String) -> bool:
+	return get_value(key) != null
+
+
+func all_keys() -> Array:
+	var keys: Array = []
+	if not _tables.has("kv"):
+		return keys
+	for row in _tables["kv"]:
+		if row is Dictionary and row.has("key"):
+			keys.append(row["key"])
+	return keys
+
+
+func key_count() -> int:
+	return all_keys().size()
 
 
 func execute_batch(statements: Array) -> int:

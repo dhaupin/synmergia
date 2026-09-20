@@ -116,6 +116,9 @@ func _setup_hud_bridge() -> void:
 	_ensure_damage_numbers()
 	if not EventHub.damage_dealt.is_connected(_on_combat_damage):
 		EventHub.damage_dealt.connect(_on_combat_damage)
+	# XP/gold kill rewards float over the player's head.
+	if not EventHub.kill_rewarded.is_connected(_on_kill_rewarded):
+		EventHub.kill_rewarded.connect(_on_kill_rewarded)
 
 
 func _ensure_damage_numbers() -> void:
@@ -143,3 +146,38 @@ func _on_combat_damage(source, target, amount: int, damage_type: String) -> void
 			target_name = target.display_name
 		combat_log.add_message(
 			"%s hits %s for %d %s damage" % [source_name, target_name, amount, damage_type])
+
+func _on_kill_rewarded(entity, killer, rewards: Dictionary) -> void:
+	var xp: int = int(rewards.get("xp", 0))
+	var gold: int = int(rewards.get("gold", 0))
+
+	var combat_log = get_node_or_null("HudLayer/CombatLog")
+	if combat_log and combat_log.has_method("add_message"):
+		var killer_name: String = "Something"
+		if killer != null and "display_name" in killer:
+			killer_name = killer.display_name
+		var enemy_name: String = "enemy"
+		if entity != null and "display_name" in entity:
+			enemy_name = entity.display_name
+		var parts: Array[String] = []
+		if xp > 0:
+			parts.append("+%d XP" % xp)
+		if gold > 0:
+			parts.append("+%d gold" % gold)
+		if rewards.get("party_shared", false):
+			parts.append("(party)")
+		if not parts.is_empty():
+			combat_log.add_message(
+				"%s killed %s: %s" % [killer_name, enemy_name, ", ".join(parts)])
+
+	# Float over the player only when they earned the reward.
+	if _damage_numbers and killer != null and killer is Node3D and gold + xp > 0:
+		var local = PlayerManager.get_local_player()
+		if local != null and local == killer:
+			var parts2: Array[String] = []
+			if xp > 0:
+				parts2.append("+%d XP" % xp)
+			if gold > 0:
+				parts2.append("+%d gold" % gold)
+			if not parts2.is_empty():
+				_damage_numbers.show_text(killer, ", ".join(parts2), Color(1.0, 0.9, 0.4))

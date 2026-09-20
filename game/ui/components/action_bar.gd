@@ -149,8 +149,6 @@ func _setup_ui() -> void:
 		btn.button_pressed = (bar_idx == 0)
 		btn.custom_minimum_size = Vector2(80, 20)
 		btn.focus_mode = Control.FOCUS_ALL
-		btn.accessible_name = "Action Bar %d" % (bar_idx + 1)
-		btn.accessible_description = "Switch to action bar %d" % (bar_idx + 1)
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 		btn.pressed.connect(_on_page_button_pressed.bind(bar_idx))
 		_page_buttons.append(btn)
@@ -174,8 +172,6 @@ func _create_slot(index: int) -> Control:
 	slot.custom_minimum_size = Vector2(52, 52)
 	slot.mouse_filter = Control.MOUSE_FILTER_PASS
 	slot.focus_mode = Control.FOCUS_ALL
-	slot.accessible_name = "Skill Slot %d" % (index + 1)
-	slot.accessible_description = "Skill slot. Press %s to activate. Right-click to clear." % _get_keybind_text(index, 0)
 
 	var bg_style := StyleBoxFlat.new()
 	bg_style.bg_color = UIStyles.COLORS.background_dark

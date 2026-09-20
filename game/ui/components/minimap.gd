@@ -301,8 +301,6 @@ func _build_layer_toggles() -> void:
 		btn.custom_minimum_size = Vector2(22, 22)
 		btn.tooltip_text = layer.tooltip
 		btn.focus_mode = Control.FOCUS_ALL
-		btn.accessible_name = layer.tooltip
-		btn.accessible_description = "Toggle %s layer visibility" % layer.tooltip
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(3, false))
 
 		var style = StyleBoxFlat.new()
@@ -439,13 +437,18 @@ func _on_player_entered_zone(_player, zone) -> void:
 	if zone and zone.has("minimap_texture"):
 		_map_texture.texture = zone.minimap_texture
 
-func _on_time_changed(hour: int, minute: int) -> void:
+## WorldService.time_changed emits (time_of_day: String, hour: int);
+## the local set_time_of_day(hour, minute) path reuses this slot. Both
+## args arrive as Variant here and are coerced, so one slot serves both
+## callers without the String->int conversion error seen in full boot.
+func _on_time_changed(time_of_day, hour) -> void:
 	if _time_label:
-		var am_pm = "AM" if hour < 12 else "PM"
-		var display_hour = hour % 12
+		var h := int(hour)
+		var am_pm := "AM" if h < 12 else "PM"
+		var display_hour := h % 12
 		if display_hour == 0:
 			display_hour = 12
-		_time_label.text = "%02d:%02d %s" % [display_hour, minute, am_pm]
+		_time_label.text = "%02d:00 %s" % [display_hour, am_pm]
 
 func _on_entity_spawned(entity, metadata) -> void:
 	if not is_instance_valid(entity):
@@ -913,4 +916,6 @@ func add_ping(position: Vector3, duration: float = 5.0) -> void:
 			pulse_tween.tween_property(ping_marker, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func set_time_of_day(hour: int, minute: int) -> void:
-	_on_time_changed(hour, minute)
+	# Signature-compatible shim over the WorldService slot; minute is
+	# display-rounded here (time_of_day granularity is the hour).
+	_on_time_changed("", hour)

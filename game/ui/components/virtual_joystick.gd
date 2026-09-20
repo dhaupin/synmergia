@@ -84,7 +84,6 @@ func _create_action_buttons() -> void:
 		btn.custom_minimum_size = Vector2(80, 80)
 		btn.text = cfg.text
 		btn.focus_mode = Control.FOCUS_ALL
-		btn.accessible_name = cfg.action.capitalize() + " Button"
 		btn.tooltip_text = cfg.text
 		
 		var normal_style = UIStyles.create_panel_style(colors.background, colors.border, 2, 12)

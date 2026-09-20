@@ -247,8 +247,6 @@ func _create_history_item(entry: Dictionary, index: int) -> Control:
 	item.custom_minimum_size.y = 60
 	item.mouse_filter = Control.MOUSE_FILTER_PASS
 	item.focus_mode = Control.FOCUS_ALL
-	item.accessible_name = "Notification: %s" % entry.get("title", "Unknown")
-	item.accessible_description = "%s. %s" % [entry.get("title", "Notification"), entry.get("message", "")]
 	item.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var style := StyleBoxFlat.new()
@@ -317,11 +315,10 @@ func _create_history_item(entry: Dictionary, index: int) -> Control:
 	hbox.add_child(time_lbl)
 
 	var read_btn := Button.new()
-	read_btn.text = entry.get("read", false) ? "Read" : "Mark Read"
+	read_btn.text = "Read" if entry.get("read", false) else "Mark Read"
 	read_btn.custom_minimum_size = Vector2(70, 24)
 	read_btn.disabled = entry.get("read", false)
 	read_btn.focus_mode = Control.FOCUS_ALL
-	read_btn.accessible_name = "Mark as %s" % ("Read" if entry.get("read", false) else "Unread")
 	read_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	read_btn.pressed.connect(func(): _mark_history_read(index))
 	hbox.add_child(read_btn)
@@ -391,8 +388,6 @@ func _create_and_show_toast(data: Dictionary) -> void:
 	panel.modulate = Color(1, 1, 1, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.focus_mode = Control.FOCUS_ALL
-	panel.accessible_name = "Notification: %s" % data.get("title", "Notification")
-	panel.accessible_description = "%s. %s" % [data.get("title", "Notification"), data.get("message", "")]
 	panel.set_meta("toast_data", data)
 
 	var style := StyleBoxFlat.new()

@@ -267,9 +267,12 @@ func _connect_signals() -> void:
 		TargetingManager.target_acquired.connect(_on_target_acquired)
 		TargetingManager.target_cleared.connect(_on_target_cleared)
 		TargetingManager.target_updated.connect(_on_target_updated)
-	if EntityService:
-		EntityService.entity_effect_added.connect(_on_effect_added)
-		EntityService.entity_effect_removed.connect(_on_effect_removed)
+	# Effect signals live on EventHub only when provided; EntityService
+	# does not declare entity_effect_added/removed.
+	if EventHub and EventHub.has_signal("entity_effect_added"):
+		EventHub.entity_effect_added.connect(_on_effect_added)
+	if EventHub and EventHub.has_signal("entity_effect_removed"):
+		EventHub.entity_effect_removed.connect(_on_effect_removed)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:

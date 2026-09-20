@@ -225,7 +225,10 @@ func _setup_tabs() -> void:
 
 
 func _setup_grid() -> void:
-	# Pre-populate grid with empty slots
+	# Pre-populate grid with empty slots. Skip when constructed without a
+	# scene (get_panel() was null in _setup_tabs, so the grid never built).
+	if _item_grid == null:
+		return
 	for i in range(COLS * 4):
 		var slot := _make_slot(i)
 		_item_grid.add_child(slot)

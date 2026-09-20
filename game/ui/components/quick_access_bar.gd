@@ -93,8 +93,6 @@ func _create_slot(index: int) -> Control:
 	slot.custom_minimum_size = Vector2(50, 50)
 	slot.mouse_filter = Control.MOUSE_FILTER_PASS
 	slot.focus_mode = Control.FOCUS_ALL
-	slot.accessible_name = "Quick Slot %d" % (index + 1)
-	slot.accessible_description = "Press F%d to use item. Right-click to clear." % (index + 1)
 	slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 	var bg_style := StyleBoxFlat.new()

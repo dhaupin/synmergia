@@ -5,6 +5,7 @@ class_name Enemy
 const LootTable = preload("res://core/schemas/loot_table.gd")
 const HealthComponent = preload("res://core/components/health_component.gd")
 const AggroComponent = preload("res://core/components/aggro_component.gd")
+const KillRewards = preload("res://core/services/kill_rewards.gd")
 
 ## Mirror of the Entity damage event with explicit damage_type, consumed
 ## by the HUD bridge (world_playable) and CombatSystem listeners.
@@ -29,6 +30,11 @@ var _ai = null  # EnemyAI child, if attached (set via attach_ai)
 
 var _wander_target: Vector3 = Vector3.ZERO
 var _wander_timer: float = 0.0
+
+## Last combatant that damaged this enemy (killer-of-record fallback).
+## Set in take_damage; cleared when no valid source. Used by the
+## XP/kill-reward hook when no explicit killer reaches _on_died.
+var _last_damager: Node = null
 
 
 func _ready() -> void:
@@ -120,7 +126,7 @@ func take_damage(amount: int, source = null) -> int:
 		health_changed.emit(health_component.current_health, health_component.max_health)
 		if health_component.current_health <= 0:
 			health_component.health_depleted.emit()
-			# TODO: loot drop, XP reward
+			# TODO: loot drop (loot_table_id rolls still log)
 	else:
 		current_health -= amount
 		health_changed.emit(current_health, max_health)
@@ -141,7 +147,22 @@ func take_damage(amount: int, source = null) -> int:
 	if _ai and source is Entity:
 		_ai.on_damaged(source)
 
+	# Killer-of-record: any valid in-tree combatant counts (duck-typed,
+	# so PlayerController qualifies). Used for kill credit when no
+	# explicit killer is threaded through the death flow.
+	if _is_valid_damager(source):
+		_last_damager = source
+
 	return amount
+
+## A valid damager: live in-tree Node with a combatant id. Deliberately
+## duck-typed so PlayerController (not an Entity subclass) qualifies.
+func _is_valid_damager(node) -> bool:
+	if node == null or not (node is Node):
+		return false
+	if not is_instance_valid(node) or not node.is_inside_tree():
+		return false
+	return "entity_id" in node or "player_id" in node
 
 ## Attach an EnemyAI brain and hook engagement callbacks.
 func attach_ai(ai) -> void:
@@ -152,6 +173,9 @@ func attach_ai(ai) -> void:
 func _on_died() -> void:
 	GameLog.info("Enemy died: %s" % display_name)
 	_roll_and_drop_loot()
+	# XP/kill-reward hook: pays the killer (or top threat holder) via
+	# the duck-typed progression surface and broadcasts kill_rewarded.
+	KillRewards.award_kill(self, _last_damager)
 	# Unify with base Entity death semantics so combat systems
 	# (CombatSystem death hooks, threat cleanup) see one signal.
 	died.emit(null)

@@ -215,16 +215,22 @@ func _rate_limit_impl(player_id: String, action_type: String) -> bool:
 		_rate_limit_buckets[player_id] = {}
 
 	var buckets = _rate_limit_buckets[player_id]
+	# Capacity allows at least ONE action of burst; the refill RATE
+	# (max_rate) still governs how fast the bucket refills after that.
+	# Capping at max_rate instead dead-ends every sub-1.0/s action
+	# (account_create 0.1/s could never fire, not even once).
+	var capacity: float = maxf(1.0, max_rate)
 	if not buckets.has(action_type):
-		buckets[action_type] = {"tokens": max_rate, "last_update": Time.get_ticks_msec()}
+		buckets[action_type] = {"tokens": capacity, "last_update": Time.get_ticks_msec()}
 
 	var bucket = buckets[action_type]
 	var now = Time.get_ticks_msec()
 	var elapsed = (now - bucket["last_update"]) / 1000.0
 
-	# Replenish tokens based on elapsed time
+	# Replenish tokens based on elapsed time (minf: mini int-truncates
+	# and crushed fractional capacities to 0).
 	var tokens_to_add = elapsed * max_rate
-	bucket["tokens"] = mini(bucket["tokens"] + tokens_to_add, max_rate)
+	bucket["tokens"] = minf(bucket["tokens"] + tokens_to_add, capacity)
 	bucket["last_update"] = now
 
 	# Check if we have tokens available

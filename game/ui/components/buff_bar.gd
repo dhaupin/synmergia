@@ -358,8 +358,6 @@ func _add_effect_icon(container: HBoxContainer, effect: Dictionary, is_debuff: b
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.focus_mode = Control.FOCUS_ALL
-	icon.accessible_name = effect.get("name", "Unknown Effect")
-	icon.accessible_description = _build_effect_tooltip(effect)
 	
 	# Use provided icon or resolve from effect data
 	if effect.has("icon") and effect.icon:

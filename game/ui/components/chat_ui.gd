@@ -142,8 +142,6 @@ func _create_channel_tabs() -> void:
 		btn.toggle_mode = true
 		btn.button_pressed = false
 		btn.focus_mode = Control.FOCUS_ALL
-		btn.accessible_name = "Chat Channel: %s" % ch.name
-		btn.accessible_description = "Switch to %s channel." % ch.name
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		btn.pressed.connect(_on_tab_clicked.bind(ch.id))
 		_tabs.add_child(btn)
@@ -358,7 +356,6 @@ func _create_admin_shell() -> void:
 	panel.offset_right = -10
 	panel.offset_bottom = 200
 	panel.focus_mode = Control.FOCUS_ALL
-	panel.accessible_description = "Administrative command shell. Type 'help' for available commands."
 
 	var style := UIStyles.create_panel_style(
 		UIStyles.COLORS.background_dark,

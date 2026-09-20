@@ -209,8 +209,6 @@ func _create_mechanic_icon(mechanic_type: String, tooltip: String) -> TextureRec
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.tooltip_text = tooltip
 	icon.focus_mode = Control.FOCUS_ALL
-	icon.accessible_name = "Mechanic: %s" % mechanic_type
-	icon.accessible_description = tooltip
 	icon.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	
 	# Use IconResolver to get appropriate icon

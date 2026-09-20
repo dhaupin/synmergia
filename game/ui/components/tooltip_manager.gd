@@ -224,11 +224,16 @@ func show_toast(text: String, color: Color = UIStyles.TEXT_COLORS.default_bright
 	tween.tween_interval(maxf(0.1, duration))
 	tween.tween_property(panel, "modulate:a", 0.0, _TOAST_FADE_SECONDS)
 	tween.tween_callback(Callable(panel, "queue_free"))
-	# Keep the stack list in sync if Godot frees it earlier.
+	# Keep the stack list in sync if Godot frees it earlier. Capture the
+	# instance id (an int) rather than the node: the manager-owned tween
+	# outlives the panel, and invoking a lambda whose captured Object was
+	# freed prints "Lambda capture at index 0 was freed" every toast.
+	var panel_id := panel.get_instance_id()
 	tween.tween_callback(func() -> void:
-		var idx := _active_toasts.find(panel)
-		if idx >= 0:
-			_active_toasts.remove_at(idx)
+		for i in range(_active_toasts.size() - 1, -1, -1):
+			var t = _active_toasts[i]
+			if not is_instance_valid(t) or t.get_instance_id() == panel_id:
+				_active_toasts.remove_at(i)
 	)
 
 

@@ -20,6 +20,19 @@ signal revive_completed(entity, success: bool)
 ## Enemy.take_damage; consumed by AggroComponent for threat tracking).
 signal damage_dealt(source, target, amount: int, damage_type: String)
 
+## XP/gold kill reward paid out (kill_rewards.gd). Consumers: HUD
+## floating reward text, kill stat tracking, quest kill objectives.
+signal kill_rewarded(entity, killer, rewards: Dictionary)
+
+## Accessibility settings broadcasts (SettingsPanel -> interested UI panels).
+signal accessibility_text_scale_changed(scale: float)
+signal accessibility_reduce_motion_changed(enabled: bool)
+signal accessibility_high_contrast_changed(enabled: bool)
+
+## Corpse lifecycle (HealthComponent creates/removes corpse nodes).
+signal corpse_created(entity, corpse, killer)
+signal corpse_removed(entity_id: String)
+
 ## Spawn metadata for entity lifecycle events
 ## SpawnMetadata now lives in core/events/spawn_metadata.gd
 ## Domain-specific event buses (use these to emit/listen)

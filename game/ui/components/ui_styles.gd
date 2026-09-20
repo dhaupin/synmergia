@@ -312,12 +312,10 @@ static func create_high_contrast_panel_style(border_width: int = 3, corner_radiu
 	style.corner_radius_bottom_right = corner_radius
 	return style
 
-## Apply accessibility properties to a control
+## Apply focus behavior to a control. (The old accessible_name/
+## accessible_description assignments were removed: those properties do
+## not exist on Control in Godot 4.7.2 and errored at runtime.)
 static func apply_accessibility(control: Control, accessible_name: String = "", accessible_description: String = "", focus_mode: int = Control.FOCUS_ALL) -> void:
-	if accessible_name != "":
-		control.accessible_name = accessible_name
-	if accessible_description != "":
-		control.accessible_description = accessible_description
 	control.focus_mode = focus_mode
 
 ## Create accessible button with standard focus and tooltip
@@ -325,7 +323,6 @@ static func create_accessible_button(text: String, accessible_name: String = "",
 	var btn := Button.new()
 	btn.text = text
 	btn.focus_mode = Control.FOCUS_ALL
-	btn.accessible_name = accessible_name if accessible_name != "" else text
 	if tooltip != "":
 		btn.tooltip_text = tooltip
 	else:

@@ -500,7 +500,7 @@ func _do_resurrect_fallback(entity) -> void:
 
 	# Clear death state
 	entity.health_component.respawned.emit()
-	EventHub.entity_spawned.emit(entity)
+	EventHub.entity_spawned.emit(entity, null)
 	EventHub.player_resurrected.emit(entity, "tooltip_action")
 	EventHub.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE)
 

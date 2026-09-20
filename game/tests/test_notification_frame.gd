@@ -88,13 +88,14 @@ func _initialize() -> void:
 				_ok("AppFirewall recursion block dispatches SECURITY_BLOCKED per-context (saw %d events)" % captured.size())
 
 		# QoS autoload rate-limit -> RATE_LIMITED notification. The
-		# autoload's script has class_name QoSService, which collides
-		# with the autoload's registered name. Godot renames the
-		# autoload node to "#ServicesQoSService" to disambiguate;
-		# looking it up by that name avoids parsing the script
-		# during the test's own compile pass (which would fail
-		# because NotificationService isn't visible yet).
-		var qos_inst: Node = root.get_node_or_null("#ServicesQoSService")
+		# historical lookup here targeted "#ServicesQoSService": a
+		# project.godot comment line inside [autoload] used to corrupt
+		# the registered node name. The mangling is fixed, so resolve
+		# the autoload by its real name (with the stale name kept as a
+		# fallback for older checkouts).
+		var qos_inst: Node = root.get_node_or_null("QoSService")
+		if qos_inst == null:
+			qos_inst = root.get_node_or_null("#ServicesQoSService")
 		if qos_inst == null:
 			_fail("QoSService autoload missing")
 		else:

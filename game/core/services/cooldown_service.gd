@@ -34,7 +34,9 @@ func _ready() -> void:
 ## Check if action is on cooldown
 func is_on_cooldown(player_id: String, action_type: String) -> bool:
 	var key := "cooldown:%s:%s" % [player_id, action_type]
-	var ts: float = _cache.get_value(key)
+	# Untyped: a cache miss returns null, and assigning null to a
+	# typed float is a runtime error in 4.7.2.
+	var ts = _cache.get_value(key)
 	if ts == null or ts == 0:
 		return false
 	var elapsed: float = Time.get_unix_time_from_system() - ts
