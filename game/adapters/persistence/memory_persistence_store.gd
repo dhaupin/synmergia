@@ -172,7 +172,7 @@ func _query_select(sql: String, params: Array) -> Array:
 	var select_part := sql.substr(select_start, from_upper - select_start).strip_edges()
 	var columns := _parse_column_list(select_part)
 	
-	var after_from_start := sql.find("FROM", from_upper + 4)
+	var after_from_start := from_upper + 4
 	while after_from_start < sql.length() and not _is_alpha(sql.unicode_at(after_from_start)):
 		after_from_start += 1
 	if after_from_start >= sql.length():

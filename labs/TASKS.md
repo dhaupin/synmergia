@@ -63,10 +63,8 @@ Persistent memory across resets for Synmergia development.
 - [x] **Rules Engine** (`game/core/frame/srv/rules_engine.gd`, `rules_schema.gd`)  -  Gating rules and multi-scope rule resolution [town:frame]
 - [x] **Definition Tree** (`game/core/frame/kv/definition_tree.gd`, `definition_schema.gd`)  -  Static data catalog in T3 [town:frame]
 - [x] **Consolidate 4 Core Services into Rules Engine**: QoS, Security, AppFirewall, AutoResponse [town:core]
-- [x] **Frame Extract** (`srv/frame/`)  -  Frame HTTP bridge container with FrameClient GDScript [town:bridge]
-
-### World Building PRD  -  Phase 3 & 4
-- [ ] **Account Rollup (D028)** (`game/core/services/account_rollup.gd`)  -  Account-level state aggregation across characters [town:core]
+- [x] **Frame Extract** (`srv/frame/`)  -  Frame HTTP bridge container with FrameClient GDScript [town:bridge]### World Building PRD - Phase 3 & 4
+- [x] **Account Rollup (D028)** (`game/core/services/account_rollup.gd`)  -  Account-level state aggregation across characters [town:core]  -  verified 2026-09-20: implemented and wired into LoginService (rebuild_rollup_static) and AccountService (on_character_linked / on_character_unlinked)
 - [x] **Vant Fragmenter** (`game/core/frame/geometry/fragmenter.gd`)  -  stateless data sharding via Knuth hash (lattice keys) [town:frame]  -  spec: `labs/prd-geometry.md` (created 2026-09-17)
 - [x] **Spatial Geometry Fragmenter** (`game/core/frame/geometry/spatial_fragmenter.gd`)  -  deterministic sub-cell addressing, quantized bounding volumes, 64-bit address encoding, depth-limited subdivision [town:frame]  -  spec: `labs/prd-spatial-geometry.md` (created 2026-09-17)
 - [x] **Geometry Integration Bridge**  -  NSC-9  ->  SpatialFragmenter  ->  T3 wiring pattern, service-level integration, cross-layer tests [town:frame]  -  spec: `labs/prd-geometry.md` sec. 6K, sec. 9 (implemented via `Nsc9Bridge` in `game/core/frame/geometry/nsc9_bridge.gd`, NSC-9 methods in `spatial_fragmenter.gd`, tests in `test_spatial_fragmenter.gd`)
@@ -96,5 +94,18 @@ Persistent memory across resets for Synmergia development.
 - [x] **Docs refresh**: `labs/prd-geometry.md` sec. 6K + sec. 9 updated, `labs/prd-spatial-geometry.md` open questions 1-3 marked RESOLVED, `labs/TASKS.md` bridge milestone detailed [town:docs]
 
 - [x] **RulesEngine Consolidation**: Refactored QoSService (`matchmaking_qos.gd`), SecurityService (`security_service.gd`), AppFirewall (`app_firewall.gd`), AutoResponseService (`auto_response_service.gd`) to use RulesEngine for all decision logic [town:core]
-- [x] **Frame Extract to Container**: Created `srv/frame/` with Dockerfile, docker-compose.yml, FastAPI bridge server (`frame_server.py`), GDScript FrameClient (`game/core/utils/frame_client.gd`) with circuit breaker and local fallback [town:bridge]
-- [x] **Docker Compose Integration**: Added `frame` service to main `docker-compose.yml` with health checks, dependencies on postgres/redis [town:bridge]
+
+## Phases 0-4 Integration Audit (2026-09-20) [town:test]
+
+Scope: world-building.md sec. 18 phase definitions vs. actual code + wiring.
+
+- [x] **Inventory & existence check**: all frame primitives present (`core/frame/{kv,srv,math,geometry,db}` with co-located tests); AccountRollup exists and is wired (TASKS.md was stale); 73 autoloads registered in valid order.
+- [x] **Preload integrity sweep**: zero missing `res://` script paths repo-wide; scene ext_resources resolve; no dangling refs to the renamed `state_machine.gd`.
+- [x] **Uncommitted syntax-fix pass verified and preserved**: stale `res://labs/` preloads -> `res://core/frame/`, `ScopeNode` inner-class fix, self-preload shadow fixes, memory-store SQL parser fix, `frame_client.gd` rewrite (tabs, RefCounted-safe HTTPRequest, local fallback). All validated.
+- [x] **FIXED: docker-compose `frame` service** pointed at nonexistent `srv/frame/Dockerfile` (broke `--profile dev/prod` builds). Removed; extraction remains deferred per world-building-arch.md sec. 11.2.
+- [x] **FIXED: Phase 0 item "seed field on all entity types"** was never done. Added `Entity.seed` and deterministic derivation in `EntityService.register_entity` via `SeedChain.derive_seed` (`/entity/<id>` path, frame seed as stack base).
+- [x] **Docs corrected**: D028 marked DONE in world-building-arch.md (roadmap sec. 14 + component map); Frame Extract entries corrected above; Definition Tree noted as Phase 3 candidate (implemented + tested, no game consumers yet).
+- [x] **Known deferred (by design, not broken)**: Coordinator process + edge shards (Phase 3/4 infra); Vant icosahedral ports; `srv/frame/` HTTP bridge; world seed on entities (per-player frame seeds only; world seed is Phase 5).
+- [x] **Verification limits**: no Godot binary or Docker in this environment; headless test suite could not be run. Static checks (paths, tabs, UTF-8, autoload order, class_name/ autoload collisions, signal-handler signatures on audited paths) all pass.
+- [x] **Frame Extract to Container (CORRECTED 2026-09-20)**: `srv/frame/` was never committed (confirmed absent from disk and git history). FrameClient (`game/core/utils/frame_client.gd`) exists with circuit breaker + local RulesEngine fallback and is the active integration point; rules/Scope/T3 evaluate in-process per world-building-arch.md sec. 11.2. HTTP bridge extraction remains deferred.
+- [x] **Docker Compose Integration (CORRECTED 2026-09-20)**: The `frame` service block referenced the nonexistent `srv/frame/Dockerfile` and broke `docker compose --profile dev/prod up --build`; it has been removed with an explanatory comment.

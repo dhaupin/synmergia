@@ -135,42 +135,11 @@ services:
     networks:
       - synmergia-net
 
-  # ── Frame Bridge (dev + prod profiles) ────────────────────────────────────
-  # HTTP bridge for T3 substrate + Scope Engine + Rules Engine
-  # Phase 2: Frame extraction to separate container
-  frame:
-    build:
-      context: .
-      dockerfile: srv/frame/Dockerfile
-    profiles:
-      - dev
-      - prod
-    ports:
-      - "8080:8080"
-    environment:
-      - PORT=8080
-      - LOG_LEVEL=INFO
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=synmergia
-      - POSTGRES_USER=synmergia
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-synmergia_dev_pass}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - synmergia-net
+  # NOTE: Frame HTTP bridge extraction to srv/frame/ was DEFERRED (see
+  # world-building-arch.md sec. 11.2). Rules/Scope/T3 evaluate in-process
+  # via FrameClient's local fallback, so no frame container is defined.
+  # The frame service block was removed: it pointed at a nonexistent
+  # srv/frame/Dockerfile and broke `docker compose --profile dev/prod up --build`.
 
   # ── Certbot (prod, run-once to get HTTPS certs) ─────────────────────────
   # Run once: docker compose --profile prod run --rm certbot

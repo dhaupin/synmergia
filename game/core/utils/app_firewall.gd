@@ -3,8 +3,8 @@
 extends Node
 
 const RecursionGuard = preload("res://core/utils/recursion_guard.gd")
-const RulesEngineScript = preload("res://labs/srv/rules_engine.gd")
-const ScopeScript = preload("res://labs/srv/scope.gd")
+const RulesEngineScript = preload("res://core/frame/srv/rules_engine.gd")
+const ScopeScript = preload("res://core/frame/srv/scope.gd")
 # Frame-level notification dispatch (see game/core/notifications/).
 # AppFirewall surfaces ban / block / recursion-guard events to admins
 # through the typed-Kind pipeline. ADMIN_ALERT -> ALERT + HIGH.

@@ -3,8 +3,8 @@
 extends Node
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
-const RulesEngineScript = preload("res://labs/srv/rules_engine.gd")
-const ScopeScript = preload("res://labs/srv/scope.gd")
+const RulesEngineScript = preload("res://core/frame/srv/rules_engine.gd")
+const ScopeScript = preload("res://core/frame/srv/scope.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 ## ============================================================================

@@ -63,8 +63,8 @@ func to_dict() -> Dictionary:
 	}
 
 static func from_dict(data: Dictionary) -> InventoryComponent:
-	var InventoryComponentScript = preload("res://core/components/inventory_component.gd")
-	var comp: InventoryComponent = InventoryComponentScript.new()
+	const __InventoryComponent__ = preload("res://core/components/inventory_component.gd")
+	var comp: InventoryComponent = __InventoryComponent__.new()
 	comp._owner_id = data.get("owner_id", "")
 	comp._gold = int(data.get("gold", 0))
 	var inv_array: Array = data.get("inventory", [])

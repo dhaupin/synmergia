@@ -36,6 +36,11 @@ enum ControllerType {
 }
 
 @export var entity_id: String = ""
+# Per-entity seed (world-building.md sec. 18.8 Phase 0 item).
+# Assigned deterministically by EntityService at registration from
+# (frame_seed, entity_id); empty until then. Derivation uses the
+# canonical seed chain in seed_chain.gd.
+@export var seed: String = ""
 @export var display_name: String = "Entity"
 @export var level: int = 1
 @export var entity_type: EntityType = EntityType.NPC

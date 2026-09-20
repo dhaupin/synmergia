@@ -582,7 +582,7 @@ func _nsc9_spatial_path(zone_manager, from_zone_id: String, to_zone_id: String) 
 		# Zone is on the spatial path if it's an ancestor of from or to,
 		# or a descendant of the common ancestor
 		if spatial_fragmenter.is_ancestor(zone_addr, from_addr) or spatial_fragmenter.is_ancestor(zone_addr, to_addr) or \
-		   spatial_fragmenter.is_ancestor(common_ancestor, zone_addr):
+			spatial_fragmenter.is_ancestor(common_ancestor, zone_addr):
 			candidate_zones.append(zone.id)
 
 	# Simple greedy path: from -> candidates (sorted by depth) -> to

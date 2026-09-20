@@ -7,7 +7,7 @@ extends SceneTree
 const OpenSeedRegistryScript = preload("res://core/services/open_seed_registry.gd")
 const InstanceTypeDefinitionScript = preload("res://core/schemas/instance_type_definition.gd")
 
-var registry
+var registry: OpenSeedRegistryScript
 var ok: bool = true
 
 func _initialize() -> void:

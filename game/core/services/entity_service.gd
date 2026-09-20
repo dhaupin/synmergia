@@ -21,6 +21,9 @@ const T3Script = preload("res://core/frame/kv/t3.gd")
 const Nsc9BridgeScript = preload("res://core/frame/geometry/nsc9_bridge.gd")
 # NSC-9 math utilities (pure function for axis/encoding).
 const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
+# Seed chain (frame primitive): canonical seed derivation (world-building.md
+# sec. 18.8 Phase 0 item: seed field on all entity types).
+const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 const _kv_prefix := "entity:"
 var _entities: Dictionary = {}       # entity_id ->
 var _players: Dictionary = {}        # player_id ->  (subset)
@@ -213,6 +216,14 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 		# Note: NSC-9 code can be stored in metadata for later retrieval
 		metadata.nsc9_code = nsc9_code
 
+	# Assign the per-entity seed (world-building.md sec. 18.8). Derived
+	# deterministically from the owning player's frame seed (or the entity
+	# id when no frame exists) through the canonical seed chain.
+	if "seed" in entity:
+		entity.seed = _derive_entity_seed(entity_id, entity)
+	else:
+		GameLog.warn("EntityService: entity type %s has no seed field; skipping seed assignment" % entity.get_class())
+
 	# Store entity state in T3 (optional)
 	var t3_hash: PackedByteArray = store_entity_state_in_t3(entity_id)
 	if t3_hash.size() > 0:
@@ -234,6 +245,25 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 	GameLog.debug("EntityService: Registered %s as %s (type: %s)" % [
 		entity.display_name, entity_id, metadata.get_spawn_type_string()])
 	return entity_id
+
+## Derive the deterministic per-entity seed (world-building.md sec. 18.8:
+## "Add seed column / field to all entity types"). The seed-chain stack is
+## [frame_seed]; with no owning player frame the entity_id bytes stand in
+## for the frame seed so derivation stays deterministic across logins.
+## Returns the hex-encoded 32-byte seed, or "" if the entity has no field.
+func _derive_entity_seed(entity_id: String, entity) -> String:
+	if entity == null or not "seed" in entity:
+		return ""
+	var frame_seed := PackedByteArray()
+	if entity.entity_type == Entity.EntityType.PLAYER and FrameService:
+		frame_seed = FrameService.get_frame_seed(entity_id)
+	if frame_seed.is_empty():
+		frame_seed = entity_id.to_utf8_buffer()
+	var stack: Array[PackedByteArray] = [frame_seed]
+	var derived := SeedChainScript.derive_seed(stack, "/entity/%s" % entity_id)
+	if derived.is_empty():
+		return ""
+	return SeedChainScript.seed_hash(derived)
 
 ## Create default metadata based on entity type
 func _create_default_metadata(entity) -> SpawnMetadata:

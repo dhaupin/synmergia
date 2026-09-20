@@ -4,7 +4,7 @@ extends SceneTree
 const ScopeHierarchy = preload("res://core/frame/srv/scope_hierarchy.gd")
 const ScopeEngine = preload("res://core/frame/srv/scope_engine.gd")
 const Scope = preload("res://core/frame/srv/scope.gd")
-const ScopeNode = preload("res://core/frame/srv/scope_node.gd")
+const ScopeNode = preload("res://core/frame/srv/scope_hierarchy.gd").ScopeNode
 
 var _all_passed = true
 

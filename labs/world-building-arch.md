@@ -650,7 +650,7 @@ srv/
 | Login seed chain (D029) | validation sec. 1 | none | `core/services/login_service.gd` (build_seed_receipt), `core/schemas/seed_receipt.gd` | DONE |
 | Frame seed authority (D030) | validation sec. 2 | none | `core/services/frame_service.gd` | DONE |
 | Critical params (D033) | this doc sec. 7.4, spec sec. 4.8 | none | `core/services/shard_parameters.gd`, `core/schemas/shard_parameter_definition.gd` | DONE |
-| Account rollup (D028) | spec sec. 9.18, D028 | none | `core/services/account_rollup.gd` | TODO (Phase 3) |
+| Account rollup (D028) | spec sec. 9.18, D028 | none | `core/services/account_rollup.gd` | DONE |
 | Vant multibrain stack | vant `brain.js:1510-1900` | `game/core/frame/srv/scope.gd`, `game/core/frame/srv/scope_engine.gd` | `game/core/frame/srv/scope.gd` (port) | DONE |
 | NSC-9 barcode format | vant `geometry/nsc9.js` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | `game/core/frame/math/nsc9.gd` + `test_nsc9.gd` | DONE |
 | Icosahedral projection | vant `geometry/icosahedral.js` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | `game/core/frame/math/icosahedral.gd` + `test_icosahedral.gd` | DONE |
@@ -734,7 +734,7 @@ NSC-9 code (nsc9.gd)  ->  Nsc9Bridge  ->  SpatialFragmenter address  ->  [T3 sta
 | 2 | Definition tree (world config) | low | game team | DONE |
 | 2 | Frame extract to separate container | high | infra team | DONE |
 | 3 | Coordinator process | high | infra team | PENDING |
-| 3 | Account rollup (D028) | med | anticheat team | PENDING |
+| 3 | Account rollup (D028) | med | anticheat team | DONE |
 | 3 | Memory tree + social tree | low | game team | PENDING |
 | 3 | Geometry layer: fragmenter, spatial fragmenter, NSC-9 bridge | med | frame team | DONE |
 | 3.x | Geometry integration: EntityService + ZoneManager wired to Nsc9Bridge | med | frame team | DONE |

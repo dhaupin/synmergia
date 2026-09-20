@@ -635,8 +635,8 @@ func _bboxes_overlap(bbox1: Dictionary, bbox2: Dictionary) -> bool:
 	if bbox1.is_empty() or bbox2.is_empty():
 		return false
 	return (bbox1.min_x <= bbox2.max_x and bbox1.max_x >= bbox2.min_x and
-	        bbox1.min_y <= bbox2.max_y and bbox1.max_y >= bbox2.min_y and
-	        bbox1.min_z <= bbox2.max_z and bbox1.max_z >= bbox2.min_z)
+		bbox1.min_y <= bbox2.max_y and bbox1.max_y >= bbox2.min_y and
+		bbox1.min_z <= bbox2.max_z and bbox1.max_z >= bbox2.min_z)
 
 ## Get zones by PvP mode
 func get_zones_by_pvp_mode(pvp_mode) -> Array:
