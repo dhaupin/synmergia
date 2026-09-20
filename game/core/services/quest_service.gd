@@ -42,6 +42,47 @@ func _ready() -> void:
 	instance = self
 	GameLog.info("QuestService: Ready")
 	_load_player_quests()
+	_connect_combat_event_bridges()
+
+## ============================================================================
+## EVENT BRIDGES (combat -> objectives)
+## ============================================================================
+
+## Wire combat events into objective tracking. update_quest_progress had
+## zero callers -- objectives could never advance. The kill bridge feeds
+## off EventHub.kill_rewarded (the same signal the HUD reward floats use),
+## so credit semantics match the XP/gold payout exactly: direct killer
+## first, threat-table owner as fallback (tank credit, heal threat).
+## Party members ALSO progress shared "kill X" objectives when their
+## party XP split shows they were present for the kill.
+func _connect_combat_event_bridges() -> void:
+	if EventHub != null and EventHub.has_signal("kill_rewarded") \
+			and not EventHub.kill_rewarded.is_connected(_on_kill_rewarded_for_quest):
+		EventHub.kill_rewarded.connect(_on_kill_rewarded_for_quest)
+
+func _on_kill_rewarded_for_quest(entity, killer, rewards: Dictionary) -> void:
+	if entity == null:
+		return
+	var target := ""
+	if "display_name" in entity:
+		target = str(entity.display_name)
+	elif "entity_id" in entity:
+		target = str(entity.entity_id)
+	if target == "":
+		return
+
+	# Primary credit: whoever the reward resolved to (killer == credit).
+	var credit_id := str(rewards.get("player_id", ""))
+	if credit_id != "":
+		update_quest_progress(credit_id, QuestData.ObjectiveType.KILL, target, 1)
+
+	# Party members present for the kill also tick shared objectives.
+	if rewards.get("party_shared", false):
+		var distribution: Dictionary = rewards.get("party_distribution", {})
+		for member_id in distribution:
+			if str(member_id) == credit_id:
+				continue
+			update_quest_progress(str(member_id), QuestData.ObjectiveType.KILL, target, 1)
 
 ## ============================================================================
 ## QUEST LOADING / PERSISTENCE

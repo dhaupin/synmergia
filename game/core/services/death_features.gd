@@ -608,9 +608,16 @@ func _is_safe_zone(zone_id: String) -> bool:
 ## ============================================================================
 
 func _on_player_died(entity, killer) -> void:
-	# Apply death penalties
-	var is_pvp: bool = killer != null
+	# Apply death penalties. PvP = killed by a player, duck-typed (an
+	# entity_id on the killer and no loot table => a player).
+	var is_pvp: bool = killer != null and "entity_id" in killer \
+		and not "loot_table_id" in killer
 	apply_death_penalties(entity, killer, is_pvp)
+
+	# PvP/duel ground drops: dead player scatters equipment into the
+	# world where the killer (or anyone, after the loot window) can
+	# pick it up. Zone rules decide how much drops; duels drop nothing.
+	_drop_player_loot(entity, killer)
 
 	# Record for death stats
 	var zone_id := ""
@@ -621,6 +628,128 @@ func _on_player_died(entity, killer) -> void:
 	# Record kill for griefing detection
 	if killer:
 		record_kill(entity.entity_id, killer.entity_id)
+
+## ============================================================================
+## PLAYER LOOT DROPS (PvP zones / duels)
+## ============================================================================
+
+## Drop rules by context:
+##   - Duel: nothing drops (honor duel -- kill_rewarded signals credit
+##     but the loser keeps their gear).
+##   - WARZONE / FREE_PVP zone: full loot -- every equipped and bagged
+##     item hits the ground with an owner-lock window for the killer.
+##   - Other PvP zones: no equipment drops (penalties already applied).
+##   - PvE death: nothing drops (equipment survives).
+## Dropped items are removed from the victim's inventory -- the ground
+## copy is now the only copy.
+const DUEL_DROP_ITEMS: int = 0
+const FULL_LOOT_OWNER_LOCK: float = 0.25  # killer claims first 25% of lifetime
+
+func _drop_player_loot(entity, killer) -> void:
+	if GroundLootService == null:
+		return
+	if not ("inventory_component" in entity) or entity.inventory_component == null:
+		return
+
+	var drop_mode := _resolve_drop_mode(entity, killer)
+	match drop_mode:
+		"duel":
+			GameLog.info("DeathFeatures: %s died in a duel -- no items dropped" % entity.display_name)
+			return
+		"none":
+			return
+		"full":
+			pass  # handled below
+
+	var inventory = entity.inventory_component
+	var dropped_items: Array = []
+
+	# Equipment first (the valuable part of full loot). Equipment lives
+	# in its own dict keyed by EquipSlot, not in bag slots.
+	var equipment: Dictionary = inventory.get_all_equipment()
+	for slot in equipment.keys():
+		var item = equipment[slot]
+		if item == null:
+			continue
+		inventory.clear_equipment_slot(slot)
+		dropped_items.append(item)
+
+	# Then bag items. remove_item(slot) hands back the removed Item.
+	for slot in range(inventory.max_inventory_slots):
+		var removed = inventory.remove_item(slot)
+		if removed != null:
+			dropped_items.append(removed)
+
+	if dropped_items.is_empty():
+		GameLog.info("DeathFeatures: %s had nothing to drop" % entity.display_name)
+		return
+
+	# Scatter around the death spot so items do not perfectly stack.
+	var base_pos: Vector3 = entity.global_position
+	var killer_id := ""
+	if killer != null and "entity_id" in killer:
+		killer_id = str(killer.entity_id)
+	var placed := 0
+	for item in dropped_items:
+		var offset := Vector3(
+			randf_range(-1.0, 1.0) * GroundLootService.DROP_SCATTER_RADIUS,
+			-0.5,
+			randf_range(-1.0, 1.0) * GroundLootService.DROP_SCATTER_RADIUS)
+		var drop_id: String = GroundLootService.create_drop(base_pos + offset, [item], {
+			"source": "pvp_drop",
+			"owner_id": killer_id,
+			"owner_lock_fraction": FULL_LOOT_OWNER_LOCK,
+		})
+		if drop_id != "":
+			placed += 1
+
+	GameLog.info("DeathFeatures: %s dropped %d/%d items in %s" % [
+		entity.display_name, placed, dropped_items.size(), drop_mode])
+
+	# Victim toast so the loss is communicated, not silent.
+	if placed > 0 and is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.ITEM_REMOVED,
+			"You dropped %d item(s) on death." % placed,
+			"DeathFeatures",
+			"pvp_drop:%s" % entity.entity_id,
+			{"dropped": placed},
+			entity.entity_id
+		)
+
+## "duel" | "full" | "none"
+func _resolve_drop_mode(entity, killer) -> String:
+	if killer == null:
+		return "none"
+	# Player-killer check, duck-typed (PlayerController is a
+	# CharacterBody3D with an entity_id; Enemy is an Entity with a
+	# loot_table_id). Anything that itself carries a loot table is a
+	# monster, not a player.
+	if not "entity_id" in killer or "loot_table_id" in killer:
+		return "none"  # PvE death: environment/enemy kill, gear survives
+
+	# Duel tracking: DeathStats records duels when flagged by the
+	# combat layer; a duel kill is recorded with context "duel".
+	# Duel tracking: the duel flag is stamped on the victim by the
+	# combat layer before the death lands (meta so any Node can carry
+	# it); a duel kill drops nothing.
+	if entity.has_meta("_duel_death") and bool(entity.get_meta("_duel_death")):
+		return "duel"
+
+	# Zone-based rules.
+	var zone_id := ""
+	if ZoneManager != null and ZoneManager.has_method("get_entity_zone_id"):
+		zone_id = ZoneManager.get_entity_zone_id(entity)
+	var zone: ZoneData = null
+	if ZoneManager != null and zone_id != "" and ZoneManager.has_method("get_zone"):
+		zone = ZoneManager.get_zone(zone_id)
+	if zone == null:
+		return "none"
+	match zone.pvp_mode:
+		ZoneData.PvPZoneMode.WARZONE, ZoneData.PvPZoneMode.FREE_PVP:
+			return "full"
+		_:
+			return "none"
 
 func _on_player_respawned(entity, respawn_point: Vector3, mode: RespawnService.RespawnMode) -> void:
 	# Apply respawn invincibility

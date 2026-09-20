@@ -51,6 +51,16 @@ var current_target: Node3D = null
 @onready var state_machine: Node = $StateMachine
 @onready var camera_pivot: Node3D = $CameraPivot
 
+## Respawn binding (Ankh.bind_player writes respawn_ankh_id;
+## RespawnService reads it when offering the ANKH respawn mode).
+var respawn_ankh_id: String = ""
+var respawn_point: Vector3 = Vector3.ZERO
+
+## Player bag (GroundLootService routes pickups here via
+## InventoryService). Created in _ready -- every PlayerController gets
+## one regardless of which scene instantiates it.
+var inventory_component: InventoryComponent = null
+
 # Multiplayer
 var player_id: int = 1
 var is_local_player: bool = true
@@ -134,6 +144,25 @@ func _ready() -> void:
 		health_component.max_health = max_health
 		health_component.current_health = current_health
 		add_child(health_component)
+
+	# Inventory component: was never created for the local player, so
+	# loot pickups had nowhere to land. Register with InventoryService
+	# (GroundLootService routes pickups through it by entity_id).
+	if inventory_component == null:
+		inventory_component = InventoryComponent.new()
+		inventory_component.name = "InventoryComponent"
+		add_child(inventory_component)
+	var _inv_id := entity_id if entity_id != "" else str(player_id)
+	if entity_id == "":
+		entity_id = _inv_id
+	inventory_component.set_owner_id(_inv_id)
+	if InventoryService and InventoryService.has_method("register_inventory"):
+		InventoryService.register_inventory(_inv_id, inventory_component)
+
+	# Duck-typed respawn fields RespawnService/Ankh read (CharacterBody3D
+	# has none of them natively; Ankh.bind_player sets respawn_ankh_id).
+	respawn_ankh_id = ""
+	respawn_point = global_position
 
 	# Add GM indicator if this is a GM character
 	_add_gm_indicator()
@@ -436,6 +465,43 @@ func _on_player_input(action: String, pressed: bool) -> void:
 		"target_previous":
 			if pressed:
 				cycle_target_previous()
+		"interact":
+			if pressed:
+				_try_interact()
+
+## Interact (E / F / gamepad A / right-click): pick up the nearest
+## ground drop in range, else activate a nearby ankh (bind respawn
+## point). Objects declare themselves via groups ("ground_drops" are
+## resolved by GroundLootService; ankhs by RespawnService).
+func _try_interact() -> void:
+	if GroundLootService and GroundLootService.has_method("try_pickup"):
+		var picked: Array = GroundLootService.try_pickup(self)
+		if not picked.is_empty():
+			return
+	_activate_nearby_ankh()
+
+## Bind to the closest ankh within activation range.
+func _activate_nearby_ankh() -> void:
+	var ankhs := get_tree().get_nodes_in_group("ankhs")
+	var best: Node3D = null
+	var best_dist := INF
+	for ankh in ankhs:
+		if ankh == null or not is_instance_valid(ankh):
+			continue
+		if ankh.has_method("is_within_activation_range") \
+				and not ankh.is_within_activation_range(global_position):
+			continue
+		var dist: float = global_position.distance_to(ankh.global_position)
+		if dist < best_dist:
+			best_dist = dist
+			best = ankh
+	if best != null and best.has_method("bind_player"):
+		if best.bind_player(self):
+			GameLog.info("Bound to ankh: %s" % best.display_name)
+			if is_instance_valid(NotificationService) and NotificationService.has_method("notify_ankh_bound"):
+				NotificationService.notify_ankh_bound(entity_id, str(best.display_name))
+		else:
+			GameLog.info("Cannot bind to ankh: %s" % best.display_name)
 
 ## Cycle to next target (Tab)
 func cycle_target() -> void:

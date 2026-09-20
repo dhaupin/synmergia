@@ -30,6 +30,14 @@ var _gold: int = 0
 # owner to attribute actions to (e.g. security checks, chat).
 var _owner_id: String = ""
 
+## Set the owning player id (GroundLootService/InventoryService route
+## by this). Separate setter so creation order never matters.
+func set_owner_id(id: String) -> void:
+	_owner_id = id
+
+func get_owner_id() -> String:
+	return _owner_id
+
 # Weight / Encumbrance
 var _current_weight: float = 0.0
 var _max_weight: float = GameConfig.Inventory.DEFAULT_MAX_WEIGHT	# Base carry capacity
@@ -217,6 +225,13 @@ func get_equipped(equip_slot: int) -> Item:
 ## Get all equipment
 func get_all_equipment() -> Dictionary:
 	return _equipment.duplicate()
+
+## Clear an equipment slot without routing the item back to the bag
+## (used by full-loot drops where the ground copy is the only copy).
+func clear_equipment_slot(equip_slot: int) -> void:
+	if _equipment.has(equip_slot) and _equipment[equip_slot] != null:
+		_equipment[equip_slot] = null
+		_apply_equipment_stats()
 
 ## Get all equipped items as array
 func get_all_equipped_items() -> Array:

@@ -415,3 +415,88 @@ Commit fec5e83. Closes the reward half of the spawn-to-combat loop.
 - Regression green: aggro 33, combat_loop 31, ai_memory 10, e2e 40,
   login 21, friends_social 19, zone_def_tree 14, notification
   frame/toast/hud, lint x4. Full boot (--quit-after) clean.
+
+## Ankh + quest kill objectives + loot pickup flow (2026-09-20)
+
+Three systems built as one loop: kills advance quests, kills drop
+loot, loot lands in a (finally existing) player inventory, and the
+ankh anchors death/respawn into the world.
+
+### Ankh placed and wired (was 100% orphaned)
+- core/schemas/ankh.gd had never been instantiated anywhere. Placed
+  in world_playable.tscn at (4, 0.9, 4) with a glowing marker mesh
+  (CylinderMesh placeholder + OmniLight) as "Haven Plaza Ankh".
+- Fixed duck-typing bugs in the schema: player.level/faction_id/
+  guild_rank direct access crashed on PlayerController (CharacterBody3D
+  with different props); bind while dead guard now tolerates stubs
+  without health_component; bind_player now also sets the health
+  component bind position (its timer respawns to _bind_position).
+- FIXED RespawnService.get_available_respawn_modes: `not
+  config.ankh_required` INVERTED the gate -- the ANKH option was
+  hidden exactly when a player HAD bound an ankh. Also can_bind() on
+  a bound ankh re-checked the bind cooldown (60s), always blocking
+  the respawn offer after a fresh bind; mode offer no longer
+  re-runs can_bind.
+- Player interacts (E/F/gamepad A): nearest ground drop pickup first,
+  else ankh bind within activation_radius. Bind toasts via
+  NotificationService.notify_ankh_bound.
+
+### Player inventory (did not exist)
+- No InventoryComponent was ever created for the local player -- loot
+  had nowhere to land. PlayerController._ready now creates one,
+  registers it with InventoryService (keyed by entity_id), and
+  InventoryComponent gained set_owner_id/get_owner_id.
+
+### GroundLootService (new autoload, ground_loot_service.gd)
+- create_drop(position, items, options): resolves {item_id, quantity}
+  dicts via DataService.get_item into per-drop Item instances
+  (duplicate(true), stack preserved); unknown ids skipped with a warn.
+- Sources: enemy deaths (Enemy._on_died now creates a real drop from
+  its LootTable roll -- previously rolls only logged), chests
+  (create_container_drop, 3x linger), quest rewards
+  (create_reward_drop, owner-locked, never despawns), PvP deaths.
+- Owner-lock loot window: pvp_drop owner_id claims first
+  owner_lock_fraction of the lifetime (FULL_LOOT_OWNER_LOCK = 0.25);
+  rewards are owner-only forever. Others get the toast, not the loot.
+- Pickup: try_pickup(player) routes through InventoryService ->
+  InventoryComponent.add_item (full-bag partial pickup keeps the
+  remainder on the ground); currency rides along via duck-typed
+  add_gold. Despawn sweep in _process. Ground-dropped copies are
+  removed from the source inventory (ground copy is the only copy).
+- EventHub: ground_loot_spawned/picked_up/despawned signals added
+  (plus item_dropped, which InventoryComponent was already emitting
+  into a nonexistent hub signal).
+
+### PvP/duel drop rules (DeathFeatures)
+- _on_player_died now calls _drop_player_loot with mode resolution:
+  duel meta flag -> nothing drops; WARZONE/FREE_PVP zones -> full
+  loot (equipment via clear_equipment_slot + all bag slots removed
+  and scattered within DROP_SCATTER_RADIUS); SAFE/other PvP and PvE
+  deaths -> no equipment drop. Victim gets a loss toast.
+- Player-killer detection is duck-typed (entity_id + no
+  loot_table_id) instead of `is PlayerController`, matching the
+  kill_rewards convention; apply_death_penalties is_pvp uses it too.
+- InventoryComponent.clear_equipment_slot added (drops equipment
+  without routing it back to the bag).
+
+### Quest kill objectives (update_quest_progress had ZERO callers)
+- QuestService._ready connects EventHub.kill_rewarded ->
+  _on_kill_rewarded_for_quest: advances ObjectiveType.KILL objectives
+  matching the entity's display_name, for the credit holder
+  (rewards.player_id = direct killer or threat-table owner, same
+  semantics as XP) and for every party member in the shared
+  party_distribution.
+- world_playable auto-accepts quest_wolves_hunt (the elder's quest)
+  so the loop is live in the playable scene; combat log shows
+  objective progress + QUEST COMPLETE.
+
+### Tests
+- NEW tests/test_ground_loot.gd (17 PASS): drop creation/resolution,
+  unknown-id skip, pickup gating (inventory/range/owner-lock), pickup
+  into real InventoryComponent with currency, reward drops, despawn
+  sweep, ankh bind + cooldown + dead-block + respawn-mode offer,
+  kill-objective bridge (single + party shared, wrong-target
+  rejection), drop-mode resolution (PvE/duel/zone).
+- Regression green: kill_rewards 21, aggro 33, combat_loop 31,
+  ai_memory 10, e2e 40, login 21, friends 19, zone_def_tree 14,
+  notification frame 26/toast, hud, lint x4. Clean full boot.

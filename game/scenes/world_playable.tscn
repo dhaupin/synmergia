@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://scenes/world_playable.gd" id="0"]
 [ext_resource type="Script" path="res://entities/player/player_controller.gd" id="1"]
@@ -17,6 +17,7 @@
 [ext_resource type="Resource" path="res://data/npc/test_merchant.tres" id="15_npc_data"]
 [ext_resource type="Resource" path="res://data/npc/village_elder.tres" id="16_elder_data"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_layer.tscn" id="13_hud"]
+[ext_resource type="Script" path="res://core/schemas/ankh.gd" id="17_ankh"]
 
 [sub_resource type="StandardMaterial3D" id="SubResource_floor_mat"]
 albedo_color = Color(0.35, 0.55, 0.25, 1)
@@ -28,6 +29,11 @@ size = Vector2(200, 200)
 
 [sub_resource type="BoxShape3D" id="SubResource_floor_shape"]
 size = Vector3(200, 0.5, 200)
+
+[sub_resource type="CylinderMesh" id="SubResource_ankh_mesh"]
+top_radius = 0.15
+bottom_radius = 0.3
+height = 1.5
 
 [sub_resource type="CapsuleShape3D" id="SubResource_player_hitbox"]
 radius = 0.4
@@ -233,5 +239,23 @@ display_name = "Village Elder"
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="ElderNPC"]
 mesh = null
+
+[node name="Ankh" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.9, 4)
+script = ExtResource("17_ankh")
+ankh_id = "ankh_haven_plaza"
+display_name = "Haven Plaza Ankh"
+description = "The village resurrection ankh. Walk close and press E to bind."
+zone_id = "world_playable"
+glow_color = Color(0.55, 0.85, 1, 1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ankh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+mesh = SubResource("SubResource_ankh_mesh")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="Ankh"]
+light_color = Color(0.55, 0.85, 1, 1)
+light_energy = 1.4
+omni_range = 6.0
 
 [node name="HudLayer" parent="." instance=ExtResource("13_hud")]

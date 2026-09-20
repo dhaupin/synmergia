@@ -33,6 +33,18 @@ signal accessibility_high_contrast_changed(enabled: bool)
 signal corpse_created(entity, corpse, killer)
 signal corpse_removed(entity_id: String)
 
+## Inventory events (InventoryComponent emits both; the signals were
+## missing from the hub, a latent runtime error on every pickup/overflow).
+signal item_picked_up(entity, item)
+signal inventory_full(entity)
+signal item_dropped(entity, item)
+
+## Ground loot lifecycle (GroundLootService): items on the ground from
+## enemy drops, PvP deaths, chests, and reward bundles.
+signal ground_loot_spawned(loot_id: String, position: Vector3, items: Array)
+signal ground_loot_picked_up(player, loot_id: String, items: Array)
+signal ground_loot_despawned(loot_id: String, reason: String)
+
 ## Spawn metadata for entity lifecycle events
 ## SpawnMetadata now lives in core/events/spawn_metadata.gd
 ## Domain-specific event buses (use these to emit/listen)

@@ -119,6 +119,21 @@ func _setup_hud_bridge() -> void:
 	# XP/gold kill rewards float over the player's head.
 	if not EventHub.kill_rewarded.is_connected(_on_kill_rewarded):
 		EventHub.kill_rewarded.connect(_on_kill_rewarded)
+	# Ground loot feedback: combat-log line on pickup, drop notice on spawn.
+	if not EventHub.ground_loot_picked_up.is_connected(_on_ground_loot_picked_up):
+		EventHub.ground_loot_picked_up.connect(_on_ground_loot_picked_up)
+	if not EventHub.ground_loot_spawned.is_connected(_on_ground_loot_spawned):
+		EventHub.ground_loot_spawned.connect(_on_ground_loot_spawned)
+	# Quest progress: objective updates and completions hit the combat log.
+	if QuestService and QuestService.has_signal("quest_updated"):
+		if not QuestService.quest_updated.is_connected(_on_quest_updated):
+			QuestService.quest_updated.connect(_on_quest_updated)
+	if QuestService and QuestService.has_signal("quest_completed"):
+		if not QuestService.quest_completed.is_connected(_on_quest_completed):
+			QuestService.quest_completed.connect(_on_quest_completed)
+	# Make the starter quest available at the Village Elder (dialog/quest
+	# UI already route through QuestService.accept_quest).
+	_accept_starter_quest()
 
 
 func _ensure_damage_numbers() -> void:
@@ -128,6 +143,55 @@ func _ensure_damage_numbers() -> void:
 		_damage_numbers.name = "DamageNumbers"
 		add_child(_damage_numbers)
 
+
+## Auto-accept the Wolf Hunt quest for the local player so the kill
+## objective bridge is exercised in the playable scene. Players accept
+## it through the elder NPC dialog in the full flow.
+func _accept_starter_quest() -> void:
+	var player := get_node_or_null("Player")
+	if player == null or not ("entity_id" in player) or str(player.entity_id) == "":
+		return
+	var player_id := str(player.entity_id)
+	if QuestService == null or not QuestService.has_method("accept_quest"):
+		return
+	var active: Array = QuestService.get_active_quests(player_id) if QuestService.has_method("get_active_quests") else []
+	if not active.has("quest_wolves_hunt"):
+		QuestService.accept_quest(player_id, "quest_wolves_hunt")
+
+func _on_ground_loot_picked_up(player, _loot_id: String, items: Array) -> void:
+	var combat_log = get_node_or_null("HudLayer/CombatLog")
+	if combat_log == null or not combat_log.has_method("add_message"):
+		return
+	var local = PlayerManager.get_local_player()
+	if local == null or player != local:
+		return
+	for item in items:
+		var item_name: String = "an item"
+		if item != null and "display_name" in item:
+			item_name = str(item.display_name)
+		var qty: int = 1
+		if item != null and "current_stack" in item:
+			qty = int(item.current_stack)
+		combat_log.add_message("Picked up %s x%d" % [item_name, qty])
+
+func _on_ground_loot_spawned(_loot_id: String, _position: Vector3, _items: Array) -> void:
+	pass  # reserved for minimap loot markers / 3D drop labels
+
+func _on_quest_updated(player_id: String, quest_id: String, objective_id: String, progress: int) -> void:
+	var local = PlayerManager.get_local_player()
+	if local == null or not ("entity_id" in local) or str(local.entity_id) != player_id:
+		return
+	var combat_log = get_node_or_null("HudLayer/CombatLog")
+	if combat_log and combat_log.has_method("add_message"):
+		combat_log.add_message("Quest %s: %s progress %d" % [quest_id, objective_id, progress])
+
+func _on_quest_completed(player_id: String, quest_id: String) -> void:
+	var local = PlayerManager.get_local_player()
+	if local == null or not ("entity_id" in local) or str(local.entity_id) != player_id:
+		return
+	var combat_log = get_node_or_null("HudLayer/CombatLog")
+	if combat_log and combat_log.has_method("add_message"):
+		combat_log.add_message("QUEST COMPLETE: %s -- return to the quest giver" % quest_id)
 
 func _on_combat_damage(source, target, amount: int, damage_type: String) -> void:
 	if amount <= 0:

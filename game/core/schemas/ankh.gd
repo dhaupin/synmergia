@@ -77,25 +77,38 @@ var _bound_guilds: Array[String] = []  # Guild IDs (for guild ankhs)
 
 func _ready() -> void:
 	add_to_group("ankhs")
+	# Persist across scene reloads is NOT wanted for scene-placed ankhs
+	# (the scene owns them); group membership is what RespawnService
+	# resolves by, and that survives as long as the node does.
 
-## Check if a player can bind to this ankh
+## Check if a player can bind to this ankh. Duck-typed on purpose:
+## callers pass PlayerController (not an Entity), which carries
+## entity_id/display_name/level/health_component but no faction_id or
+## guild_rank properties.
 func can_bind(player) -> bool:
-	# Level check
-	if player.level < min_level or player.level > max_level:
+	if player == null:
 		return false
 
-	# Faction check
-	if required_faction != "" and player.faction_id != required_faction:
+	# Level check (missing on entities without levels -> treat as 1)
+	var plevel := 1
+	if "level" in player:
+		plevel = int(player.level)
+	if plevel < min_level or plevel > max_level:
 		return false
 
-	# Quest check
-	for quest_id in required_quest_ids:
-		if not player.has_completed_quest(quest_id):
+	# Faction check (only when the ankh restricts AND the entity has one)
+	if required_faction != "":
+		if not "faction" in player or player.faction != required_faction:
 			return false
 
-	# Guild check for guild ankhs
+	# Quest check (has_completed_quest is optional on stubs)
+	for quest_id in required_quest_ids:
+		if not player.has_method("has_completed_quest") or not player.has_completed_quest(quest_id):
+			return false
+
+	# Guild check for guild ankhs (guild_rank may not exist)
 	if ankh_type == AnkhType.GUILD:
-		if player.guild_rank < required_guild_rank:
+		if not "guild_rank" in player or int(player.guild_rank) < required_guild_rank:
 			return false
 
 	# Cooldown check (anti-exploit)
@@ -112,8 +125,11 @@ func bind_player(player) -> bool:
 	if not can_bind(player):
 		return false
 
-	# Prevent binding while dead (exploit prevention)
-	if player.health_component and player.health_component.is_dead():
+	# Prevent binding while dead (exploit prevention); health_component
+	# is optional on test stubs.
+	if "health_component" in player and player.health_component != null \
+			and player.health_component.has_method("is_dead") \
+			and player.health_component.is_dead():
 		GameLog.warn("Ankh '%s': Player '%s' tried to bind while dead" % [ankh_id, player.display_name])
 		return false
 
@@ -123,9 +139,15 @@ func bind_player(player) -> bool:
 	# Record binding time for cooldown
 	_player_bind_times[player.entity_id] = Time.get_unix_time_from_system()
 
-	# Set as player's respawn point
-	player.respawn_point = global_position
+	# Set as player's respawn point. RespawnService reads
+	# player.respawn_ankh_id when offering the ANKH respawn mode; the
+	# health component's bind position is what its own timer respawns to.
 	player.respawn_ankh_id = ankh_id
+	if "respawn_point" in player:
+		player.respawn_point = global_position
+	if "health_component" in player and player.health_component != null \
+			and player.health_component.has_method("set_bind_position"):
+		player.health_component.set_bind_position(global_position)
 
 	bound_to.emit(player, self)
 	activated.emit(player, self)

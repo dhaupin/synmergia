@@ -207,3 +207,15 @@ func _roll_and_drop_loot() -> void:
 
 	for cid in result.currency:
 		GameLog.info("  currency: %s %d" % [cid, result.currency[cid]])
+
+	# Spawn a real ground drop at the corpse. GroundLootService resolves
+	# the {item_id, quantity} dicts into Item instances; an empty roll
+	# (nothing dropped) creates no drop. Currency rides along and is
+	# paid via the duck-typed add_gold on pickup.
+	if GroundLootService and not result.items.is_empty():
+		var drop_pos := global_position + Vector3(0.0, -0.5, 0.0)
+		GroundLootService.create_drop(drop_pos, result.items, {
+			"source": "enemy",
+			"currency": result.currency,
+			"despawn_seconds": GroundLootService.DEFAULT_DESPAWN_SECONDS,
+		})

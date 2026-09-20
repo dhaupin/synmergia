@@ -243,10 +243,15 @@ func get_available_respawn_modes(player, zone_id: String = "") -> Array[RespawnM
 	# Timed - always available
 	available.append(RespawnMode.TIMED)
 
-	# Ankh - if player has bound one and zone allows
-	if "respawn_ankh_id" in player and player.respawn_ankh_id != "" and not config.ankh_required:
+	# Ankh - if player has bound one and zone allows. The zone config
+	# flag is ankh_required ("must bind an ankh to respawn here"), which
+	# GATES nothing about offering the bound-ankh mode; an empty bound id
+	# simply means the mode is unavailable. (Previously the flag
+	# INVERTED the check, hiding the ANKH option exactly when the player
+	# HAD bound an ankh.)
+	if "respawn_ankh_id" in player and player.respawn_ankh_id != "":
 		var ankh := _get_ankh_by_id(player.respawn_ankh_id)
-		if ankh and ankh.can_bind(player):
+		if ankh != null:
 			available.append(RespawnMode.ANKH)
 
 	# Gateway - if in zone with gateways
