@@ -358,15 +358,60 @@ play. The loop is now live end-to-end.
   seed) assigned by services crashed in 4.7.2 -> declared explicitly.
 - damage_numbers.gd: C-style ternary + six Variant-inference parse
   errors under 4.7.2 strictness + void reverse() call -> fixed; file
-  now compiles clean.
+  now compiles clean.### Verification
+- NEW tests/test_combat_loop.gd: 31 assertions -- spawn->AI attach->
+registration->aggro acquire->combat->threat table populated->player
+takes damage->threat switching->taunt->threat modifiers->death->
+unregistration. Green across 3 consecutive runs (deterministic).
+- Regression: aggro, ai_memory, friends_social, zone_def_tree, login,
+e2e, notification x2, hud, open_seed_ttl, entity_autoload,
+autoload_audit, islands, auto_response, frame battery
+(t3/state_tree/lru/definition/memory/social/seed_chain/rules/scope/
+nsc9), adapters (memory/dict), lint x5 -- all green.
+
+## XP/gold kill-reward hook + full-boot fixes (2026-09-20)
+
+Commit fec5e83. Closes the reward half of the spawn-to-combat loop.
+
+### Kill rewards (core/services/kill_rewards.gd)
+- Kill-credit resolution: direct killer -> threat-table owner (tank
+  keeps credit when DPS lands the last hit; heal threat pays out).
+  Creditless kills (fall damage, despawn) emit nothing.
+- EnemyData.xp_reward/gold_min/gold_max drive payouts; deterministic
+  level-based fallback when no data. Level-difference scaling with
+  grey-kill floor (0.1 at 8+ levels up) and 5x lowbie cap.
+- Party split via PartyService.share_xp; offline shares logged.
+- Grants via duck-typed add_experience/add_gold on the node, mirrored
+  into PlayerManager (HUD XP bar + level read from it).
+- EventHub.kill_rewarded broadcast; world_playable HUD bridge logs the
+  kill to CombatLog and floats +XP/+gold over the local player.
+- player_controller gained the progression surface (experience, gold,
+  level-up curve mirroring PlayerManager, full restore on level up).
+
+### Full-boot runtime fixes found while verifying (committed together)
+- project.godot: comment lines inside [autoload] corrupted a node
+  name (QoSService registered as "#ServicesQoSService"). Comments and
+  blank lines removed; test_notification_frame now resolves the real
+  name with the stale name as fallback.
+- UI: nonexistent accessible_name/accessible_description Control
+  properties removed (menu_manager, ui_styles + callers); MenuManager
+  debug panel call_deferred targeted the panel instead of self and
+  resolved "Panel" on the wrong node; duplicate add_child of
+  net_refresh_btn.
+- corpse.gd: typed _owner/_killer params rejected PlayerController;
+  has() on Objects/Resources -> "in" operators; untyped setup().
+- death_features: unguarded entity.inventory_component access.
+- notification_service: "" notification_message crashed %-format in
+  the default branch.
+- event_hub: accessibility + corpse lifecycle signals declared.
+- Cleanup: 11 probe_*.tscn bisect artifacts + tests/probe_bisect.gd
+  removed (world_playable debug leftovers, probe_a.tscn referenced
+  nonexistent scene).
 
 ### Verification
-- NEW tests/test_combat_loop.gd: 31 assertions -- spawn->AI attach->
-  registration->aggro acquire->combat->threat table populated->player
-  takes damage->threat switching->taunt->threat modifiers->death->
-  unregistration. Green across 3 consecutive runs (deterministic).
-- Regression: aggro, ai_memory, friends_social, zone_def_tree, login,
-  e2e, notification x2, hud, open_seed_ttl, entity_autoload,
-  autoload_audit, islands, auto_response, frame battery
-  (t3/state_tree/lru/definition/memory/social/seed_chain/rules/scope/
-  nsc9), adapters (memory/dict), lint x5 -- all green.
+- NEW tests/test_kill_rewards.gd: 21 PASS (credit resolution,
+  threat-table fallback, EnemyData vs fallback rewards, level
+  scaling, grants, PlayerManager mirror, signal payload).
+- Regression green: aggro 33, combat_loop 31, ai_memory 10, e2e 40,
+  login 21, friends_social 19, zone_def_tree 14, notification
+  frame/toast/hud, lint x4. Full boot (--quit-after) clean.
