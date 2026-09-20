@@ -4,9 +4,9 @@ extends Resource
 class_name Skill
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
-# Entity is not an autoload (class_name only). Several method
-# signatures here use `: Entity`, which requires Entity's class_name
-# to be registered at parse time. Preloading it here guarantees that.
+# Entity is preloaded for EntityType constants (e.g. the heal-threat
+# radius scan). Caster/target method params are deliberately untyped so
+# PlayerController (a CharacterBody3D) can cast without an Entity cast.
 const Entity = preload("res://core/entities/entity.gd")
 
 
@@ -168,7 +168,7 @@ func can_cast(caster: Node) -> bool:
 ## Heal threat: push threat onto the tables of in-combat enemies near
 ## the healed target. Silent no-op when EntityService is unavailable
 ## (parse-time) or no enemies are in combat nearby.
-func _generate_heal_threat(healer: Entity, heal_amount: int) -> void:
+func _generate_heal_threat(healer, heal_amount: int) -> void:
 	var es = _entity_service()
 	if es == null or heal_amount <= 0:
 		return
@@ -188,7 +188,7 @@ func _entity_service():
 		return null
 	return (ml as SceneTree).root.get_node_or_null("EntityService")
 
-func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
+func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
 	var result := {
 		"success": false,
 		"damage_dealt": 0,
@@ -263,7 +263,7 @@ func execute(caster: Entity, target: Entity = null, ground_position: Vector3 = V
 	result.success = true
 	return result
 
-func consume_resources(caster: Entity) -> bool:
+func consume_resources(caster) -> bool:
 	if "current_mana" in caster and caster.current_mana < mana_cost:
 		return false
 	if "current_stamina" in caster and caster.current_stamina < stamina_cost:
@@ -277,7 +277,7 @@ func consume_resources(caster: Entity) -> bool:
 
 	return true
 
-func calculate_damage(caster: Entity, target: Entity) -> int:
+func calculate_damage(caster, target) -> int:
 	var base_damage := damage
 
 	# Apply caster's attack power based on damage type
@@ -299,7 +299,7 @@ func calculate_damage(caster: Entity, target: Entity) -> int:
 
 	return max(1, base_damage)
 
-func calculate_healing(caster: Entity) -> int:
+func calculate_healing(caster) -> int:
 	var base_heal := heal_amount
 
 	# Apply caster's healing power (WIS-based)
@@ -307,7 +307,7 @@ func calculate_healing(caster: Entity) -> int:
 
 	return base_heal
 
-func applyCrowdControl(caster: Entity, target: Entity, _ground_position: Vector3) -> void:
+func applyCrowdControl(caster, target, _ground_position: Vector3) -> void:
 	# Apply CC effect based on type
 	match crowd_control_type:
 		"stun":
@@ -317,15 +317,15 @@ func applyCrowdControl(caster: Entity, target: Entity, _ground_position: Vector3
 		"slow":
 			target.apply_status_effect(create_slow_effect(caster))
 
-func applyShield(caster: Entity) -> void:
+func applyShield(caster) -> void:
 	# Create shield buff
 	pass
 
-func applyInvincibility(caster: Entity) -> void:
+func applyInvincibility(caster) -> void:
 	# Create invincibility buff
 	pass
 
-func applyDoT(caster: Entity, target: Entity) -> void:
+func applyDoT(caster, target) -> void:
 	if target == null:
 		return
 
@@ -341,7 +341,7 @@ func applyDoT(caster: Entity, target: Entity) -> void:
 
 	target.apply_status_effect(dot)
 
-func applyTeleport(caster: Entity, ground_position: Vector3) -> void:
+func applyTeleport(caster, ground_position: Vector3) -> void:
 	if ground_position != Vector3.ZERO:
 		caster.global_position = ground_position
 	else:
@@ -350,21 +350,21 @@ func applyTeleport(caster: Entity, ground_position: Vector3) -> void:
 		forward.y = 0
 		caster.global_position += forward * teleport_distance
 
-func create_stun_effect(_caster: Entity) -> StatusEffect:
+func create_stun_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Stunned"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
 	effect.duration = crowd_control_duration
 	return effect
 
-func create_root_effect(_caster: Entity) -> StatusEffect:
+func create_root_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Rooted"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
 	effect.duration = crowd_control_duration
 	return effect
 
-func create_slow_effect(_caster: Entity) -> StatusEffect:
+func create_slow_effect(_caster) -> StatusEffect:
 	var effect := StatusEffect.new()
 	effect.effect_name = "Slowed"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF

@@ -56,6 +56,39 @@ var player_id: int = 1
 var is_local_player: bool = true
 var entity_id: String = ""
 
+# --- Combat surface ------------------------------------------------------
+# EnemyAI, Skill, and EntityService treat all combatants uniformly via this
+# duck-typed surface. PlayerController is a CharacterBody3D (not an Entity
+# subclass), so these mirror the Entity API at runtime.
+const HealthComponent = preload("res://core/components/health_component.gd")
+
+## Entity.EntityType.PLAYER constant, mirrored so `entity.entity_type`
+## reads work without an Entity cast.
+var entity_type: int = 1
+
+var display_name: String = "Player"
+var level: int = 1
+
+# Standard stat block (Entity-compatible shape used by get_* accessors).
+var stats: Dictionary = {
+	"strength": 10,
+	"agility": 10,
+	"intelligence": 10,
+	"vitality": 10,
+	"wisdom": 10,
+}
+
+## Health component (created in _ready, mirrors Enemy's pattern).
+var health_component: HealthComponent = null
+var max_health: int = 100
+var current_health: int = 100
+var team_id: int = 0
+
+# Allegiance alias (Entity.Relation.HOSTILE etc.) read by
+# EntityService.is_enemy via `entity.faction`.
+var faction: int = 0
+var relation: int = 0
+
 # Context menu
 var _action_menu: ActionMenu = null
 var _skill_academy_ui: SkillAcademyUI = null
@@ -93,6 +126,14 @@ func _ready() -> void:
 
 	# Connect to InteractionLayer for touch targeting
 	_connect_interaction_layer()
+
+	# Health component: created here (not a scene child) so every
+	# player gets one regardless of which scene instantiates them.
+	if health_component == null:
+		health_component = HealthComponent.new()
+		health_component.max_health = max_health
+		health_component.current_health = current_health
+		add_child(health_component)
 
 	# Add GM indicator if this is a GM character
 	_add_gm_indicator()
@@ -447,6 +488,53 @@ func _find_and_set_nearest_target() -> void:
 			Entity.EntityType.ENEMY
 		)
 		is_targeting = true
+
+## --- Combat surface (duck-typed Entity API) -----------------------------
+
+## Receive damage from any combatant (enemies route here through
+## EnemyAI._perform_attack and skill.gd's untyped take_damage).
+func take_damage(amount: int, source = null, damage_type: String = "physical") -> int:
+	if health_component == null:
+		return 0
+	var dealt: int = health_component.take_damage(amount, source, damage_type)
+	if dealt > 0:
+		health_changed.emit(current_health, max_health, -dealt)
+		GameLog.info("Player hit: %d %s damage (HP %d/%d)" % [
+			dealt, damage_type, health_component.current_health, health_component.max_health])
+	return dealt
+
+## Heal (skill.gd target.heal / self-heal path).
+func heal(amount: int, source = null) -> int:
+	if health_component == null:
+		return 0
+	return health_component.heal(amount, source)
+
+signal health_changed(current: int, maximum: int, delta: int)
+signal player_died(killer)
+
+func is_dead() -> bool:
+	return health_component != null and health_component.is_dead()
+
+func get_attack_power() -> int:
+	return get_stat("strength") * 2
+
+func get_spell_power() -> int:
+	return get_stat("intelligence") * 2
+
+func get_healing_power() -> int:
+	return get_stat("wisdom") * 2
+
+func get_defense() -> int:
+	return get_stat("vitality") * 2
+
+func get_crit_chance() -> float:
+	return 0.05 + (get_stat("agility") * 0.003)
+
+func get_crit_multiplier() -> float:
+	return 1.5
+
+func get_stat(stat_name: String) -> int:
+	return int(stats.get(stat_name, 0))
 
 ## SKILL SYSTEM
 

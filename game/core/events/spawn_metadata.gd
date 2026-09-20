@@ -18,6 +18,14 @@ var notification_scopes: Array = []
 var notification_message: String = ""
 var notification_priority: int = 0
 
+# Dynamic fields attached by services (EntityService, SpawnService) and
+# read by consumers. Declared explicitly so 4.7.2's strict property
+# assignment doesn't reject them on a Resource/RefCounted base.
+var nsc9_code: int = -1
+var spatial_address: int = 0
+var faction: int = 0
+var seed: int = 0
+
 enum SpawnType {
 	NORMAL = 0,
 	ELITE = 1,

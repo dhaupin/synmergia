@@ -305,3 +305,68 @@ definition tree into a real consumer.
 - New `tests/test_aggro_system.gd` (33 PASS): switching, taunt
   lock/expiry/resist, dumps, heal threat, modifiers, transfer fix,
   decay, grudge decay, persistence.
+
+## Spawn-to-combat vertical slice (2026-09-20)
+
+Goal: make every previously built system (threat, taunt, heal aggro,
+grudge memory, leash decay, persistent memory) reachable through actual
+play. The loop is now live end-to-end.
+
+### The loop as shipped
+- PlayerController._ready creates a HealthComponent and exposes the full
+  Entity duck-typed combat surface (entity_type/display_name/level/stats/
+  take_damage/heal/get_attack_power/get_defense/get_crit_*/is_dead/
+  faction/relation/team_id).
+- world_playable.gd is now the playable scene controller: registers the
+  player with EntityService (id player_1) + fixes the TargetingManager
+  ""-id registration, attaches EnemyAI to every scene enemy with ranges
+  from EnemyData, and bridges EventHub.damage_dealt into DamageNumbers +
+  CombatLog (creates a DamageNumbers layer if the scene lacks one).
+- SpawnService._create_enemy now spawns the real Enemy class (with
+  HealthComponent + AggroComponent created on demand), attaches an
+  EnemyAI configured from EnemyData ranges, and parents the enemy into
+  the scene tree so _physics_process/AI actually run.
+
+### Latent production bugs found by wiring the loop (all fixed)
+- skill.gd: Entity-typed caster/target params would reject
+  PlayerController (a CharacterBody3D) at runtime -- all combat-relevant
+  signatures untyped (execute/calculate_damage/calculate_healing/
+  consume_resources/apply*/create_*_effect).
+- AggroComponent + EnemyAI: same Entity-typed params holding a
+  PlayerController target -> untyped; repaired the misindented,
+  unreachable stealth-validation block in _is_valid_target.
+- Entity.faction did not exist while is_enemy() reads it -> added a
+  faction alias (getter/setter over `relation`, cannot disagree).
+- Enemy.take_damage: set the dead flag via health_component._is_dead so
+  the AI death gate works; emits damage_dealt + EventHub.damage_dealt
+  (mirrors HealthComponent's player-side event) for the HUD bridge.
+- Enemy death previously never unregistered from EntityService ->
+  despawned_from_world() now calls unregister_entity on death.
+- EnemyAI._perform_attack used nonexistent entity.attack_power ->
+  get_attack_power(); target-death check tested the ENEMY's health
+  instead of the target's -> now checks _target, routes through
+  on_target_death (kill memory) -- which nothing ever called.
+- EnemyAI._match_state_behavior wrote entity.move_speed on Enemy (no
+  such property, runtime error every state change) -> speed application
+  split into _match_state_speed guarded by "move_speed" in entity.
+- PlayerManager.set_local_player used player.has(...) (nonexistent on
+  Object) -> `in` operator.
+- HealthComponent.take_damage crashed on owners without
+  combat_component/inventory_component (PlayerController/Enemy) ->
+  guarded duck-typed access.
+- SpawnMetadata: dynamic fields (nsc9_code/faction/spatial_address/
+  seed) assigned by services crashed in 4.7.2 -> declared explicitly.
+- damage_numbers.gd: C-style ternary + six Variant-inference parse
+  errors under 4.7.2 strictness + void reverse() call -> fixed; file
+  now compiles clean.
+
+### Verification
+- NEW tests/test_combat_loop.gd: 31 assertions -- spawn->AI attach->
+  registration->aggro acquire->combat->threat table populated->player
+  takes damage->threat switching->taunt->threat modifiers->death->
+  unregistration. Green across 3 consecutive runs (deterministic).
+- Regression: aggro, ai_memory, friends_social, zone_def_tree, login,
+  e2e, notification x2, hud, open_seed_ttl, entity_autoload,
+  autoload_audit, islands, auto_response, frame battery
+  (t3/state_tree/lru/definition/memory/social/seed_chain/rules/scope/
+  nsc9), adapters (memory/dict), lint x5 -- all green.

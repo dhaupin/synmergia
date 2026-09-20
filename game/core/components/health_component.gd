@@ -59,14 +59,15 @@ func take_damage(amount: int, source: Entity = null, damage_type: String = "phys
 	if _is_dead:
 		return 0
 
-	# Check for interrupt (before applying damage)
+	# Check for interrupt (before applying damage). Owner may be any
+	# combatant (Enemy, PlayerController); components are optional.
 	var entity: Node3D = get_parent()
-	if entity.combat_component:
+	if entity != null and "combat_component" in entity and entity.combat_component != null:
 		entity.combat_component.on_damage_taken(amount, source, damage_type)
 
 	# Apply armor/mitigation
 	var mitigated: int = 0
-	if entity.inventory_component:
+	if entity != null and "inventory_component" in entity and entity.inventory_component != null:
 		mitigated = entity.inventory_component.get_equipment_armor()
 	var actual_damage: int = max(1, amount - mitigated)
 

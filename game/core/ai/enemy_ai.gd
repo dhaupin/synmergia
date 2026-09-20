@@ -31,7 +31,7 @@ signal target_lost()
 @export var patrol_speed: float = 2.0
 @export var chase_speed: float = 5.0
 
-var _target: Entity = null
+var _target = null  # untyped: may be PlayerController (CharacterBody3D)
 var _spawn_position: Vector3 = Vector3.ZERO
 var _patrol_target: Vector3 = Vector3.ZERO
 var _patrol_wait_time: float = 0.0
@@ -190,7 +190,7 @@ func _physics_process(delta: float) -> void:
 			_update_return(delta)
 
 ## Check for nearby targets (aggro detection)
-func _check_for_targets() -> Entity:
+func _check_for_targets():
 	var entity: Entity = get_parent()
 	if not entity:
 		return null
@@ -202,7 +202,7 @@ func _check_for_targets() -> Entity:
 	)
 
 	# Memory bias: prefer remembered attackers (grudge) -- highest weight first.
-	var best_target: Entity = null
+	var best_target = null
 	var best_weight: float = 0.0
 	for target in nearby:
 		if not _is_valid_target(target):
@@ -220,23 +220,23 @@ func _check_for_targets() -> Entity:
 
 	return null
 
-func _is_valid_target(target: Entity) -> bool:
+func _is_valid_target(target) -> bool:
 	# Check if dead
 	if target.health_component and target.health_component.is_dead():
 		return false
 
-	# Check if can see (stealth check)
-		# Stealth detection
-		if target.status_handler:
-			var stealth_effect = target.status_handler.get_effect_by_type(StatusEffectData.EffectType.STEALTH, "stealth")
-			if stealth_effect and stealth_effect.is_active():
-				# Check if this enemy can see stealth
-				var entity: Entity = get_parent()
-				if entity and entity.enemy_data:
-					if not entity.enemy_data.see_stealth:
-						return false  # Can't see stealthed targets
-				else:
-					return false  # No enemy_data, assume can't see stealth
+	# Stealth check: a stealthed target is invisible unless this enemy
+	# can see stealth (enemy_data.see_stealth). Duck-typed: PlayerController
+	# has no status_handler, which simply means "not stealthed".
+	if "status_handler" in target and target.status_handler != null:
+		var stealth_effect = target.status_handler.get_effect_by_type(StatusEffectData.EffectType.STEALTH, "stealth")
+		if stealth_effect and stealth_effect.is_active():
+			var parent_entity = get_parent()
+			var see_stealth: bool = false
+			if parent_entity and "enemy_data" in parent_entity and parent_entity.enemy_data:
+				see_stealth = true if ("see_stealth" in parent_entity.enemy_data and parent_entity.enemy_data.see_stealth) else false
+			if not see_stealth:
+				return false
 
 	# Check faction/enemy status
 	if EntityService.is_enemy(get_parent(), target):
@@ -260,12 +260,23 @@ func _match_state_behavior() -> void:
 	if not entity:
 		return
 
+	# Enemies steer via move_direction; move_speed is only meaningful on
+	# controllers that read it (PlayerController). Set it if present so
+	# future movement code can consult it without crashing on Enemy.
+	if "move_speed" in entity:
+		_match_state_speed(entity)
+
+	match state:
+		AIState.PATROL:
+			_patrol_wait_time = 0
+
+## State-dependent speed, applied only when the parent exposes move_speed.
+func _match_state_speed(entity) -> void:
 	match state:
 		AIState.IDLE:
 			entity.move_speed = 0
 		AIState.PATROL:
 			entity.move_speed = patrol_speed
-			_patrol_wait_time = 0
 		AIState.CHASE:
 			entity.move_speed = chase_speed
 		AIState.COMBAT:
@@ -274,6 +285,7 @@ func _match_state_behavior() -> void:
 			entity.move_speed = chase_speed * 1.2
 		AIState.RETURN:
 			entity.move_speed = patrol_speed
+
 
 ## IDLE: Wait and look for targets
 func _update_idle(delta: float) -> void:
@@ -362,7 +374,7 @@ func _update_chase(delta: float) -> void:
 		return
 
 	# Move toward target
-	var dir := (_target.global_position - entity.global_position).normalized()
+	var dir: Vector3 = (_target.global_position - entity.global_position).normalized()
 	entity.move_direction = dir
 
 ## COMBAT: Attack target
@@ -372,17 +384,16 @@ func _update_combat(delta: float) -> void:
 		set_state(AIState.RETURN)
 		return
 
-	# Check if target is dead or invalid
-	if not is_instance_valid(_target) or (entity.health_component and entity.health_component.is_dead()):
-		_clear_target()
-		set_state(AIState.RETURN)
+	# Check if target is dead or invalid (test the TARGET's health, not ours)
+	if not is_instance_valid(_target) or (_target.health_component and _target.health_component.is_dead()):
+		on_target_death()
 		return
 
 	# Threat-based switching: while in combat, whoever sits on top of the
 	# threat table becomes the target (damage, heals, taunts all feed it).
 	# Taunts force-lock the table so the tank holds the enemy.
 	if entity.aggro_component:
-		var threat_target: Entity = entity.aggro_component.get_highest_threat_target()
+		var threat_target = entity.aggro_component.get_highest_threat_target()
 		if threat_target != null and threat_target != _target and is_instance_valid(threat_target):
 			if threat_target.entity_type == Entity.EntityType.PLAYER or _is_valid_target(threat_target):
 				_set_target(threat_target)
@@ -411,8 +422,8 @@ func _perform_attack() -> void:
 	if not entity:
 		return
 
-	# Deal damage
-	var damage: float = entity.attack_power
+	# Deal damage (get_attack_power handles EnemyData scaling)
+	var damage: float = float(entity.get_attack_power())
 	_target.health_component.take_damage(damage, entity)
 
 	# Damage threat onto OUR OWN table (drives target switching), and the
@@ -430,7 +441,7 @@ func _update_flee(delta: float) -> void:
 		return
 
 	# Run away from target
-	var dir := (entity.global_position - _target.global_position).normalized()
+	var dir: Vector3 = (entity.global_position - _target.global_position).normalized()
 	entity.move_direction = dir
 
 	# Stop fleeing when far enough
@@ -458,7 +469,7 @@ func _update_return(delta: float) -> void:
 	entity.move_direction = dir
 
 ## Set target
-func _set_target(new_target: Entity) -> void:
+func _set_target(new_target) -> void:
 	if _target == new_target:
 		return
 
@@ -474,7 +485,7 @@ func _clear_target() -> void:
 	target_lost.emit()
 
 ## Force engage target (called by EventBus when aggro'd)
-func engage_target(target: Entity) -> void:
+func engage_target(target) -> void:
 	if _is_valid_target(target):
 		_set_target(target)
 		set_state(AIState.CHASE)

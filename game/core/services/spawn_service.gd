@@ -11,6 +11,8 @@ const NPCEntity = preload("res://core/entities/npc_entity.gd")
 # Entity.new() and Entity.EntityType.X, which requires Entity's
 # class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
+const EnemyScript = preload("res://entities/enemy.gd")
+const EnemyAIScript = preload("res://core/ai/enemy_ai.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
 var _spawn_points: Dictionary = {}
 
@@ -215,6 +217,23 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 
 	# Position enemy
 	enemy.global_position = spawn_point.get_spawn_position()
+
+	# Attach an AI brain configured from EnemyData ranges. Without this the
+	# enemy stands inert: aggro/threat/memory systems are unreachable.
+	var ai = EnemyAIScript.new()
+	ai.aggro_range = spawn_point.enemy_data.aggro_range
+	ai.chase_range = spawn_point.enemy_data.chase_range
+	ai.attack_range = spawn_point.enemy_data.attack_range
+	enemy.attach_ai(ai)
+
+	# Parent into the scene tree so _physics_process runs (movement, AI
+	# steering) and the enemy is visible. SpawnService is an autoload Node;
+	# spawn under the current scene's root.
+	var ml = Engine.get_main_loop()
+	if ml is SceneTree and is_instance_valid(enemy):
+		var tree := ml as SceneTree
+		var parent_node: Node = tree.current_scene if tree.current_scene else tree.root
+		parent_node.add_child(enemy)
 
 	# Add to zone
 	var zone_manager = ZoneManager
@@ -487,12 +506,15 @@ func _create_enemy(spawn_point: SpawnPoint) -> Variant:
 		GameLog.warn("SpawnService: No enemy data for template %s" % spawn_point.enemy_template_id)
 		return null
 
-	var enemy = Entity.new()
+	# Full Enemy class (has HealthComponent + AggroComponent + damage
+	# events), not the bare Entity this used to create.
+	var enemy = EnemyScript.new()
+	enemy.enemy_data = spawn_point.enemy_data
 	enemy.display_name = spawn_point.enemy_data.display_name
 	enemy.entity_type = Entity.EntityType.ENEMY
-	enemy.level = spawn_point.enemy_data.level
-	enemy.faction = Entity.Relation.HOSTILE
+	enemy.relation = Entity.Relation.HOSTILE
 	enemy.faction_id = spawn_point.enemy_data.faction
+	enemy.level = spawn_point.enemy_data.level
 
 	# Apply species if set
 	var effective_species_id: String = spawn_point.species_id if spawn_point.species_id != "" else spawn_point.enemy_data.species_id

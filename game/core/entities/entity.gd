@@ -46,6 +46,17 @@ enum ControllerType {
 @export var entity_type: EntityType = EntityType.NPC
 @export var relation: Relation = Relation.NEUTRAL
 
+# AI steering contract: the EnemyAI child writes the desired movement
+# vector each frame; concrete entities (Enemy) apply it in their
+# _physics_process. Zero vector = stand still.
+var move_direction: Vector3 = Vector3.ZERO
+
+# Runtime threat hooks. The AggroComponent (when present) reads these
+# via add_damage_threat/record_heal_threat; kept on the base class so
+# combat code can treat every entity uniformly.
+# NOTE: `relation` (NEUTRAL/FRIENDLY/HOSTILE) is the allegiance field;
+# there is no separate `faction` property on Entity.
+
 # Controller type - for fairness system (HUMAN and AGENT are equals)
 @export var controller_type: ControllerType = ControllerType.NPC
 @export var connector_id: String = ""  # Which connector controls this (for agents)
@@ -86,6 +97,15 @@ var pending_respawn: bool = false         # Waiting to respawn
 
 # Faction
 var faction_id: String = ""
+
+## Allegiance alias used by EntityService.is_enemy and combat code
+## ("entity.faction == Entity.Relation.HOSTILE"). Kept as a getter/setter
+## pair over `relation` so the two fields can never disagree.
+var faction: int:
+	get:
+		return relation
+	set(value):
+		relation = value
 
 # Species (using untyped var to avoid circular dependency with Species schema)
 var species_id: String = ""

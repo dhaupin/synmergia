@@ -6,6 +6,10 @@ const LootTable = preload("res://core/schemas/loot_table.gd")
 const HealthComponent = preload("res://core/components/health_component.gd")
 const AggroComponent = preload("res://core/components/aggro_component.gd")
 
+## Mirror of the Entity damage event with explicit damage_type, consumed
+## by the HUD bridge (world_playable) and CombatSystem listeners.
+signal damage_dealt(source, target, amount: int, damage_type: String)
+
 
 @export var enemy_data: Resource
 @export var starting_health: int = 30
@@ -23,7 +27,6 @@ var health_component: HealthComponent = null
 var aggro_component: AggroComponent = null
 var _ai = null  # EnemyAI child, if attached (set via attach_ai)
 
-var _ai_state: String = "idle"
 var _wander_target: Vector3 = Vector3.ZERO
 var _wander_timer: float = 0.0
 
@@ -41,6 +44,10 @@ func _ready() -> void:
 		current_health = starting_health
 
 	_resolve_health()
+	if health_component == null:
+		# Runtime-spawned enemies (no scene HealthComponent child) get one here.
+		health_component = HealthComponent.new()
+		add_child(health_component)
 	if health_component:
 		health_component.max_health = max_health
 		health_component.current_health = current_health
@@ -86,45 +93,44 @@ func _resolve_health() -> void:
 func _physics_process(delta: float) -> void:
 	if health_component and health_component._is_dead:
 		return
-	_ai_update(delta)
+
+	# EnemyAI (when attached) steers via move_direction; also apply
+	# basic separation-free movement for a wandering feel.
+	if _ai != null:
+		if move_direction.length_squared() > 0.001:
+			var speed: float = _current_speed()
+			global_position += move_direction * speed * delta
+			move_direction = Vector3.ZERO  # consume the steer for this frame
 
 
-func _ai_update(delta: float) -> void:
-	match _ai_state:
-		"idle":
-			_wander_timer += delta
-			if _wander_timer > 3.0:
-				_wander_timer = 0.0
-				_wander_target = global_position + Vector3(
-					randf_range(-5, 5), 0, randf_range(-5, 5))
-				_ai_state = "wander"
-		"wander":
-			var dir := (_wander_target - global_position)
-			dir.y = 0
-			if dir.length() > 0.5:
-				dir = dir.normalized()
-				global_position += dir * 1.5 * delta
-			else:
-				_ai_state = "idle"
-		"chase":
-			pass  # TODO: path toward target
+func _current_speed() -> float:
+	if enemy_data and "move_speed" in enemy_data:
+		return float(enemy_data.move_speed)
+	return 2.0
 
 
 func take_damage(amount: int, source = null) -> int:
 	if health_component:
 		health_component.current_health -= amount
+		health_component._is_dead = health_component.current_health <= 0
 		health_component.health_changed.emit(
 			health_component.current_health,
 			health_component.max_health,
 			-amount)
+		health_changed.emit(health_component.current_health, health_component.max_health)
 		if health_component.current_health <= 0:
 			health_component.health_depleted.emit()
 			# TODO: loot drop, XP reward
 	else:
 		current_health -= amount
-		health_changed.emit(current_health, max_health, -amount)
+		health_changed.emit(current_health, max_health)
 		if current_health <= 0:
 			died.emit(source)
+
+	# HUD feed: mirror the player-side damage event so CombatLog and
+	# DamageNumbers see enemy->player and player->enemy hits alike.
+	damage_dealt.emit(source, self, amount, "physical")
+	EventHub.damage_dealt.emit(source, self, amount, "physical")
 
 	# Threat: damage on this enemy builds the attacker's position on the
 	# threat table (drives in-combat target switching in EnemyAI).
@@ -146,7 +152,20 @@ func attach_ai(ai) -> void:
 func _on_died() -> void:
 	GameLog.info("Enemy died: %s" % display_name)
 	_roll_and_drop_loot()
+	# Unify with base Entity death semantics so combat systems
+	# (CombatSystem death hooks, threat cleanup) see one signal.
+	died.emit(null)
+	despawned_from_world()
 	queue_free()
+
+## Called before queue_free: allow services to clean up references.
+func despawned_from_world() -> void:
+	var ml = Engine.get_main_loop()
+	if ml == null or not ml is SceneTree:
+		return
+	var es = (ml as SceneTree).root.get_node_or_null("EntityService")
+	if es and entity_id != "" and es.has_method("unregister_entity"):
+		es.unregister_entity(self)
 
 
 func _roll_and_drop_loot() -> void:

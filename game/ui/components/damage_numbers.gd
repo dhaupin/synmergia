@@ -96,7 +96,7 @@ func show_miss(target: Node3D, miss_type: String = "Miss") -> void:
 		"Resist": Color(0.7, 0.5, 1.0)
 	}
 	
-	var color := colors.get(miss_type, UIStyles.COLORS.text_secondary)
+	var color: Color = colors.get(miss_type, UIStyles.COLORS.text_secondary)
 	_spawn_number(target, miss_type, color, false, "Miss")
 
 func show_absorb(target: Node3D, amount: int) -> void:
@@ -143,7 +143,7 @@ func _spawn_number(target: Node3D, text: String, color: Color, is_crit: bool, nu
 		"start_time": Time.get_ticks_msec() / 1000.0,
 		"duration": _float_duration,
 		"is_crit": is_crit,
-		"scale": is_crit ? 1.5 : 1.0,
+		"scale": 1.5 if is_crit else 1.0,
 		"type": num_type
 	}
 	
@@ -163,13 +163,13 @@ func _spawn_number(target: Node3D, text: String, color: Color, is_crit: bool, nu
 		anim_data["outline"] = outline
 
 func _process(delta: float) -> void:
-	var current_time := Time.get_ticks_msec() / 1000.0
+	var current_time: float = Time.get_ticks_msec() / 1000.0
 	var to_remove: Array = []
 	
 	for i in range(_active_numbers.size()):
 		var anim := _active_numbers[i]
-		var elapsed := current_time - anim.start_time
-		var progress := elapsed / anim.duration
+		var elapsed: float = current_time - anim.start_time
+		var progress: float = elapsed / anim.duration
 		
 		if progress >= 1.0:
 			to_remove.append(i)
@@ -181,10 +181,10 @@ func _process(delta: float) -> void:
 			continue
 		
 		# Ease out animation
-		var eased := 1.0 - pow(1.0 - progress, 3)
+		var eased: float = 1.0 - pow(1.0 - progress, 3)
 		
 		# Position
-		var pos := anim.start_pos.lerp(anim.end_pos, eased)
+		var pos: Vector2 = anim.start_pos.lerp(anim.end_pos, eased)
 		label.global_position = pos
 		
 		# Update outline if crit
@@ -192,21 +192,22 @@ func _process(delta: float) -> void:
 			anim.outline.global_position = pos + Vector2(2, 2)
 		
 		# Fade out
-		var alpha := 1.0 - progress
-		var color := label.get_theme_color_override("font_color")
+		var alpha: float = 1.0 - progress
+		var color: Color = label.get_theme_color_override("font_color")
 		color.a = alpha
 		label.add_theme_color_override("font_color", color)
 		
 		# Scale for crit
 		if anim.is_crit:
-			var scale := anim.scale * (1.0 - progress * 0.3)
+			var scale: float = anim.scale * (1.0 - progress * 0.3)
 			label.add_theme_font_size_override("font_size", int(_font_size * scale))
 			if anim.has("outline") and is_instance_valid(anim.outline):
 				anim.outline.add_theme_font_size_override("font_size", int(_font_size * scale))
 	
 	# Remove finished animations (reverse order to maintain indices)
-	for i in to_remove.reverse():
-		var anim := _active_numbers[i]
+	to_remove.reverse()
+	for i in to_remove:
+		var anim: Dictionary = _active_numbers[i]
 		anim.label.visible = false
 		if anim.has("outline") and is_instance_valid(anim.outline):
 			anim.outline.queue_free()
