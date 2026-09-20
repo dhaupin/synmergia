@@ -191,3 +191,41 @@ errors). Production bugs found and fixed, in order of severity:
   x5 (syntax/indent/charset/autoload/general).
 - Residual SCRIPT ERRORs in some logs are the documented --script-mode
   autoload-identifier noise (files compile fine under full boot).
+
+## Phase 3 completion: memory tree + social tree (2026-09-20)
+
+Goal: close the last open Phase 3 roadmap item and wire the orphaned
+definition tree into a real consumer.
+
+### New frame primitives (core/frame/kv/, arch doc §9)
+- `memory_tree.gd` + `memory_schema.gd` -- AI agent memory over T3
+  (kinds: observation/event/relationship/goal/fact, weighted).
+  API: insert/update/get/delete_memory, list_memories, list_by_kind,
+  agent_root_hash, root_hash, diff/apply_diff, clear.
+- `social_tree.gd` + `social_schema.gd` -- player relationships over T3
+  (rels: friend/guild/party/rival/mentor). API: insert/get/delete_edge,
+  list_edges, list_by_rel, list_related_ids, player_root_hash,
+  root_hash, diff/apply_diff, clear.
+- Co-located tests: `test_memory_tree.gd` (24 PASS),
+  `test_social_tree.gd` (25 PASS). Both follow the definition-tree
+  test conventions (full-tree root_hash() for diff; T3 diff resolves
+  only same-instance snapshot history, and paths are normalized
+  without leading slash).
+
+### Definition tree wired (was orphaned)
+- `zone_manager.gd` now mirrors every loaded ZoneData into the frame
+  definition tree under `definitions/zones/<id>` (def_type "zone"),
+  via a lazy `_get_definition_tree()`. New accessor
+  `get_zone_def(zone_id)` for frame-side world-config reads.
+- New smoke test `tests/test_zone_def_tree.gd` (14 PASS) verifies
+  mirroring, path layout, and accessor behavior.
+
+### Docs
+- `labs/world-building-arch.md` roadmap: memory+social tree
+  PENDING -> DONE (NPC-AI/FriendsService wiring noted as follow-up);
+  frame extract DONE -> DEFERRED in-process (FrameClient), matching
+  the corrected TASKS.md note from 2026-09-19.
+
+### Verification
+- Full frame battery (14 suites: kv/srv/math/geometry) OK.
+- Lint battery (5 suites) OK -- includes charset + tabs on new files.

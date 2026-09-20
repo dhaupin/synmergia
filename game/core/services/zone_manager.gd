@@ -22,6 +22,7 @@ const Nsc9Script = preload("res://core/frame/math/nsc9.gd")
 const FragmenterScript = preload("res://core/frame/geometry/fragmenter.gd")
 # T3 state tree for persistence.
 const T3Script = preload("res://core/frame/kv/t3.gd")
+const DefinitionTreeScript = preload("res://core/frame/kv/definition_tree.gd")
 
 # Spatial quantization: world units collapsed into a single address cell.
 # A quantum of 500 means coordinates within the same 500-unit cube share
@@ -76,6 +77,7 @@ var _nsc9_bridge: Nsc9BridgeScript = null
 var _zone_nsc9_codes: Dictionary = {}
 var _zone_shards: Dictionary = {}
 var _t3: Variant = null
+var _definition_tree: Variant = null
 
 signal zone_loaded(zone_data)
 signal zone_unloaded(zone_id: String)
@@ -134,6 +136,12 @@ func _get_t3() -> Variant:
 	if _t3 != null: return _t3
 	if T3Script: _t3 = T3Script.new()
 	return _t3
+
+## Lazy DefinitionTree (frame definition tree, arch §9) for world-config mirroring.
+func _get_definition_tree() -> Variant:
+	if _definition_tree != null: return _definition_tree
+	if DefinitionTreeScript: _definition_tree = DefinitionTreeScript.new()
+	return _definition_tree
 
 ## Public accessor for SpatialFragmenter (for cross-service spatial queries)
 func get_spatial_fragmenter():
@@ -252,8 +260,34 @@ func load_zones() -> void:
 
 	GameLog.info("ZoneManager: Loaded %d zones" % _zones.size())
 
+	# Mirror zone definitions into the frame definition tree (arch §9:
+	# definition tree holds world config -- zones, npcs, loot tables, ...)
+	var def_tree = _get_definition_tree()
+	if def_tree:
+		var mirrored := 0
+		for zone_data in zone_data_list:
+			if zone_data == null or zone_data.id == "":
+				continue
+			var def_data := {
+				"display_name": zone_data.display_name,
+				"pvp_mode": str(zone_data.pvp_mode),
+				"level_requirement": zone_data.level_requirement,
+				"zone_radius": zone_data.zone_radius,
+			}
+			def_tree.insert_def("definitions/zones/%s" % zone_data.id, "zone", zone_data.id, def_data)
+			mirrored += 1
+		GameLog.info("ZoneManager: Mirrored %d zone definitions into definition tree" % mirrored)
+
 	# Auto-register zone neighbors based on proximity
 	auto_register_zone_neighbors()
+
+
+## Definition-tree lookup for a zone (mirror of the ZoneData world config).
+func get_zone_def(zone_id: String) -> Dictionary:
+	var def_tree = _get_definition_tree()
+	if def_tree == null:
+		return {}
+	return def_tree.get_def("definitions/zones/%s" % zone_id)
 
 ## Register a zone
 func register_zone(zone_data) -> bool:
