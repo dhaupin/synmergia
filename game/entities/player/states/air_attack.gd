@@ -1,8 +1,5 @@
 ## AirAttack State - Mid-air attack with damage bonus
-extends Node
-
-const StateBase = preload("res://core/state/state_base.gd")
-class_name AirAttackState
+extends "res://core/state/state_base.gd"
 
 var attack_timer: float = 0.0
 var has_hit: bool = false
@@ -26,7 +23,7 @@ func update(delta: float) -> void:
 	if Input.is_action_just_pressed("dodge"):
 		transition_to("AirDodge")
 
-func physics_process(delta: float) -> void:
+func physics_update(delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()
 
 	# Continue falling during attack

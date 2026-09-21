@@ -37,17 +37,13 @@ var _controller_right_stick: Vector2 = Vector2.ZERO
 var _joystick_active: bool = false
 var _joystick_offset: Vector2 = Vector2.ZERO
 var _joystick_max_radius: float = 60.0
-var _camera_touch_id: int = -1
-var _camera_last_pos: Vector2 = Vector2.ZERO
-var _camera_sensitivity: float = 0.5
 var _camera_move: Vector2 = Vector2.ZERO
 
-## VirtualJoystick component
-var _virtual_joystick: VirtualJoystick = null
-
-## Touch zones (normalized 0-1)
-const LEFT_ZONE := Rect2(0.0, 0.3, 0.35, 0.7)
-const RIGHT_ZONE := Rect2(0.65, 0.3, 0.35, 0.7)
+## TouchHud component (res://ui/components/virtual_joystick.gd).
+## The identifier must never collide with Godot's native VirtualJoystick
+## class, which the old script's class_name shadowed until parse.
+const TouchHud = preload("res://ui/components/virtual_joystick.gd")
+var _virtual_joystick: TouchHud = null
 
 ## Keybindings (action -> key codes)
 var _keybindings: Dictionary = {
@@ -58,6 +54,7 @@ var _keybindings: Dictionary = {
 	"jump": [KEY_SPACE],
 	"dodge": [KEY_Q],
 	"sprint": [KEY_SHIFT],
+	"crouch": [KEY_CTRL],
 	"interact": [KEY_E],
 	"target_self": [KEY_F1],
 	"target_nearest": [KEY_F2],
@@ -112,10 +109,16 @@ func _ready() -> void:
 	_check_controller()
 	_setup_input_actions()
 	camera_move.connect(_on_camera_move)
-	
-	if _is_mobile or _input_mode == InputMode.TOUCH:
-		_create_virtual_joystick()
-	
+
+	# The COD-style touch HUD is created on every platform so desktop
+	# players can toggle it on too (Settings > Controls > Touch Controls).
+	# Default visibility: on for touch devices, off for desktop.
+	_create_virtual_joystick()
+	var touch_default: bool = _is_mobile or _input_mode == InputMode.TOUCH
+	if PlayerConfig:
+		touch_default = bool(PlayerConfig.get_account_setting("touch_controls", touch_default))
+	set_touch_ui_visible(touch_default)
+
 	GameLog.info("InputManager: Mode=%s Mobile=%s Desktop=%s" % [_input_mode, _is_mobile, _is_desktop])
 
 func _detect_platform() -> void:
@@ -143,7 +146,7 @@ func _setup_input_actions() -> void:
 	# Create input actions if they don't exist
 	var actions := [
 		"move_forward", "move_backward", "move_left", "move_right",
-		"jump", "dodge", "sprint", "interact",
+		"jump", "dodge", "sprint", "crouch", "interact",
 		"ability_1", "ability_2", "ability_3", "ability_4",
 		"ability_5", "ability_6", "ability_7", "ability_8"
 	]
@@ -161,21 +164,32 @@ func _create_virtual_joystick() -> void:
 	if _virtual_joystick:
 		return
 	
-	_virtual_joystick = VirtualJoystick.new()
+	_virtual_joystick = TouchHud.new()
 	add_child(_virtual_joystick)
 	_virtual_joystick.joystick_moved.connect(_on_virtual_joystick_moved)
 	_virtual_joystick.joystick_released.connect(_on_virtual_joystick_released)
 	_virtual_joystick.button_pressed.connect(_on_virtual_button_pressed)
 	_virtual_joystick.button_released.connect(_on_virtual_button_released)
-	_virtual_joystick.show_joystick()
+	# Camera-look drags from the touch HUD feed the same camera_move
+	# pipeline the controller right stick uses.
+	_virtual_joystick.camera_look.connect(_on_virtual_camera_look)
+	# COD auto-sprint: full-stick hold engages sprint like the Shift key.
+	_virtual_joystick.sprint_override.connect(_on_virtual_sprint_override)
 
-func _on_virtual_joystick_moved(offset: Vector2, normalized: Vector2) -> void:
+func _on_virtual_joystick_moved(_offset: Vector2, normalized: Vector2) -> void:
 	_joystick_active = true
-	_joystick_offset = offset
+	_joystick_offset = normalized * _joystick_max_radius
 
 func _on_virtual_joystick_released() -> void:
 	_joystick_active = false
 	_joystick_offset = Vector2.ZERO
+
+func _on_virtual_camera_look(delta: Vector2) -> void:
+	_camera_move = delta
+	camera_move.emit(delta)
+
+func _on_virtual_sprint_override(active: bool) -> void:
+	player_input.emit("sprint", active)
 
 func _on_virtual_button_pressed(action: String) -> void:
 	player_input.emit(action, true)
@@ -232,9 +246,9 @@ func _handle_event(event: InputEvent) -> void:
 		InputMode.KEYBOARD_MOUSE:
 			_handle_keyboard_mouse(event)
 		InputMode.TOUCH:
-			# Touch events are now handled by VirtualJoystick component
-			# We still need to handle camera touch on right zone
-			_handle_touch_camera(event)
+			# Touch input is fully owned by the VirtualJoystick HUD: floating
+			# stick (left half), camera look (right half), buttons via GUI.
+			pass
 		InputMode.CONTROLLER:
 			_handle_controller(event)
 
@@ -263,26 +277,6 @@ func _handle_keyboard_mouse(event: InputEvent) -> void:
 			player_input.emit("interact", true)
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			player_input.emit("target_next", true)
-
-func _handle_touch_camera(event: InputEvent) -> void:
-	# Handle camera touch on right zone only
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			var pos = event.position
-			var screen_size = get_viewport().get_visible_rect().size
-			var normalized = pos / screen_size
-			if RIGHT_ZONE.has_point(normalized):
-				_camera_touch_id = event.index
-				_camera_last_pos = pos
-		else:
-			if event.index == _camera_touch_id:
-				_camera_touch_id = -1
-				_camera_last_pos = Vector2.ZERO
-	elif event is InputEventScreenDrag:
-		if event.index == _camera_touch_id:
-			var relative = (event.position - _camera_last_pos) * _camera_sensitivity
-			_camera_last_pos = event.position
-			camera_move.emit(relative)
 
 func _handle_controller(event: InputEvent) -> void:
 	if event is InputEventJoypadButton and event.pressed:
@@ -404,12 +398,11 @@ func get_camera_input() -> Vector2:
 	if _input_mode == InputMode.CONTROLLER:
 		return _controller_right_stick
 
-	if _input_mode == InputMode.TOUCH and _camera_touch_id >= 0:
+	if _input_mode == InputMode.TOUCH:
 		var move := _camera_move
 		_camera_move = Vector2.ZERO
 		return move
 
-	# Mouse drag or touch right zone
 	return Vector2.ZERO
 
 func get_joystick_position() -> Vector2:
@@ -424,6 +417,13 @@ func set_touch_ui_visible(visible: bool) -> void:
 			_virtual_joystick.show_joystick()
 		else:
 			_virtual_joystick.hide_joystick()
+	if PlayerConfig and visible != bool(PlayerConfig.get_account_setting("touch_controls", not visible)):
+		PlayerConfig.set_account_setting("touch_controls", visible)
+
+## Direct access for scenes that bridge touch-HUD signals (world_playable
+## connects camera_look into the player's ThirdPersonCamera).
+func get_virtual_joystick() -> TouchHud:
+	return _virtual_joystick
 
 func rebind_key(action: String, key_code: int) -> bool:
 	if not _keybindings.has(action):

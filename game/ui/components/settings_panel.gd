@@ -440,6 +440,10 @@ func _on_toggle_changed(value: bool, key: String) -> void:
 		_apply_high_contrast()
 	elif key == "screen_shake":
 		_apply_screen_shake()
+	elif key == "touch_controls":
+		# Live-apply: show/hide the touch HUD immediately.
+		if InputManager:
+			InputManager.set_touch_ui_visible(value)
 
 func _on_dropdown_changed(index: int, key: String) -> void:
 	if PlayerConfig:
@@ -611,10 +615,26 @@ func _populate_controls_settings(parent: VBoxContainer) -> void:
 	content.add_child(_create_slider_row("camera_distance", "Camera Distance:", 5.0, 30.0, 10.0, 1.0, "%.1f"))
 
 	var section2 := Label.new()
-	section2.text = "Keybinds"
+	section2.text = "Touch Controls"
 	section2.add_theme_color_override("font_color", UIStyles.COLORS.info)
 	section2.add_theme_font_size_override("font_size", 14)
 	content.add_child(section2)
+
+	content.add_child(_create_toggle_row("touch_controls", "On-screen Controls (touch HUD)", InputManager.is_mobile() if InputManager else false))
+
+	var touch_hint := Label.new()
+	touch_hint.text = "COD-style stick (left half), camera look (right half), action cluster with editable layout. Hold ATK to auto-repeat; hold full stick to auto-sprint."
+	touch_hint.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	touch_hint.add_theme_font_size_override("font_size", 10)
+	touch_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+	touch_hint.custom_minimum_size = Vector2(0, 30)
+	content.add_child(touch_hint)
+
+	var section3 := Label.new()
+	section3.text = "Keybinds"
+	section3.add_theme_color_override("font_color", UIStyles.COLORS.info)
+	section3.add_theme_font_size_override("font_size", 14)
+	content.add_child(section3)
 
 	var keybind_info := Label.new()
 	keybind_info.text = "Click a button and press a new key. Conflicts will be highlighted."

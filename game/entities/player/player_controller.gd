@@ -32,6 +32,7 @@ const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 @export var dodge_force: float = 4.5
 @export var dodge_cost: float = 25.0
 @export var dodge_cooldown: float = 1.5
+@export var crouch_speed: float = 2.0  # COD-style crouch-walk speed
 
 # Combat
 @export var basic_attack: Skill = null
@@ -43,6 +44,8 @@ const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 var is_invincible: bool = false
 var is_attacking: bool = false
 var is_sprinting: bool = false
+var is_sliding: bool = false
+var is_crouching: bool = false
 var is_targeting: bool = false
 var current_target: Node3D = null
 
@@ -510,6 +513,13 @@ func _on_player_input(action: String, pressed: bool) -> void:
 		"interact":
 			if pressed:
 				_try_interact()
+		"ability_1", "ability_2", "ability_3", "ability_4", \
+		"ability_5", "ability_6", "ability_7", "ability_8":
+			# Skill slots: keyboard 1-8 and touch skill buttons route here
+			# through the same player_input signal.
+			if pressed:
+				var slot := int(action.replace("ability_", "")) - 1
+				use_skill(slot)
 
 ## Interact (E / F / gamepad A / right-click): pick up the nearest
 ## ground drop in range, else activate a nearby ankh (bind respawn

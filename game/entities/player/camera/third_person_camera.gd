@@ -1,83 +1,143 @@
-## ThirdPersonCamera - 3rd person camera following player
-## Supports mouse/keyboard and touch input
+## ThirdPersonCamera - COD Mobile-style 3rd person follow camera.
+## Shoulder offset, mouse/touch orbit, wheel/pinch zoom, and a GUI-hover
+## guard so a drag starting on HUD controls never spins the camera.
 extends Camera3D
 class_name ThirdPersonCamera
 
-@export var distance: float = 6.0
-@export var height: float = 2.5
+@export var distance: float = 5.5
+@export var height: float = 1.7
+@export var shoulder_offset: float = 0.9  # right-side over-the-shoulder frame
 @export var rotation_speed: float = 0.003
-@export var follow_smoothness: float = 10.0
-@export var min_pitch: float = -30.0
-@export var max_pitch: float = 60.0
-@export var min_distance: float = 3.0
-@export var max_distance: float = 12.0
+@export var follow_smoothness: float = 12.0
+@export var min_pitch: float = -55.0
+@export var max_pitch: float = 70.0
+@export var min_distance: float = 2.5
+@export var max_distance: float = 10.0
+@export var aim_distance: float = 3.0
+@export var aim_height: float = 1.55
+@export var aim_shoulder: float = 0.55
+@export var aim_fov: float = 55.0
 
 var target: Node3D
 var yaw: float = 0.0
-var pitch: float = 30.0
+var pitch: float = 18.0
 var current_distance: float = 6.0
+var is_aiming: bool = false
 
-var is_rotating: bool = false
-var is_zooming: bool = false
+var _dragging: bool = false
+var _last_mouse: Vector2 = Vector2.ZERO
+var _default_fov: float = 70.0
+var _wheel_accum: float = 0.0
 
 func _ready() -> void:
-	# Find player target
 	target = get_parent()
 	if not target:
 		GameLog.warn("ThirdPersonCamera: No target (parent) found")
+	_default_fov = fov
+	current_distance = distance
 
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(target):
 		return
 
-	# Mouse rotation
-	if event is InputEventMouseMotion:
-		if event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
-			yaw -= event.relative.x * rotation_speed
-			pitch -= event.relative.y * rotation_speed
-			pitch = clamp(pitch, min_pitch, max_pitch)
-
-	# Mouse zoom
+	# Mouse orbit (right-button drag), with a GUI guard: when the press
+	# starts over a Control, the camera must ignore the whole drag.
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			current_distance = max(min_distance, current_distance - 0.5)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			current_distance = min(max_distance, current_distance + 0.5)
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			if event.pressed:
+				if not _is_mouse_over_gui(event.position):
+					_dragging = true
+					_last_mouse = event.position
+			else:
+				_dragging = false
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_wheel_accum -= 0.5
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_wheel_accum += 0.5
+		_apply_zoom()
 
-	# Touch rotation
+	if event is InputEventMouseMotion and _dragging:
+		var rel: Vector2 = event.position - _last_mouse
+		_last_mouse = event.position
+		orbit(rel * rotation_speed * 60.0)
+
+	# Aim mode (right mouse button hold).
+	is_aiming = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+
+	# Touch orbit: any drag on the right half of the screen rotates the
+	# camera (the left half belongs to the movement joystick).
 	if event is InputEventScreenDrag:
-		if event.position.x > get_viewport().get_visible_rect().size.x * 0.5:
-			# Right side of screen - camera control
-			yaw -= event.relative.x * rotation_speed * 2
-			pitch -= event.relative.y * rotation_speed * 2
-			pitch = clamp(pitch, min_pitch, max_pitch)
-		elif event.position.y < get_viewport().get_visible_rect().size.y * 0.3:
-			# Top of screen - zoom
-			current_distance = clamp(current_distance - event.relative.y * 0.05, min_distance, max_distance)
+		var half := get_viewport().get_visible_rect().size.x * 0.5
+		if event.position.x > half:
+			orbit(event.relative * rotation_speed * 2.0)
+
+	# Touch pinch zoom (two-finger gesture reported by the viewport).
+	if event is InputEventMagnifyGesture:
+		current_distance = clampf(
+			current_distance / event.factor, min_distance, max_distance)
+
+func _is_mouse_over_gui(pos: Vector2) -> bool:
+	var vp := get_viewport()
+	if vp == null:
+		return false
+	var over: Control = vp.gui_get_hovered_control()
+	if over == null:
+		# Hover tracking can lag the press by a frame; fall back to a
+		# focus check so clicks inside a text field never spin the view.
+		over = vp.gui_get_focus_owner()
+	return over != null
+
+func orbit(delta: Vector2) -> void:
+	yaw -= delta.x
+	pitch -= delta.y
+	pitch = clampf(pitch, min_pitch, max_pitch)
+
+func _apply_zoom() -> void:
+	if _wheel_accum == 0.0:
+		return
+	current_distance = clampf(current_distance + _wheel_accum, min_distance, max_distance)
+	_wheel_accum = 0.0
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(target):
 		return
-
 	_update_camera(delta)
 
 func _update_camera(delta: float) -> void:
-	# Calculate offset based on yaw and pitch
+	var pitch_rad := deg_to_rad(pitch)
+	var yaw_rad := deg_to_rad(yaw)
+
+	# Orbit offset around the pivot.
 	var offset := Vector3.ZERO
-	offset.x = sin(deg_to_rad(yaw)) * cos(deg_to_rad(pitch)) * current_distance
-	offset.y = sin(deg_to_rad(pitch)) * current_distance
-	offset.z = -cos(deg_to_rad(yaw)) * cos(deg_to_rad(pitch)) * current_distance
+	offset.x = sin(yaw_rad) * cos(pitch_rad)
+	offset.y = sin(pitch_rad)
+	offset.z = -cos(yaw_rad) * cos(pitch_rad)
+	offset = offset.normalized()
 
-	# Target position + offset
-	var desired_position := target.global_position + offset
-	desired_position.y += height
+	# Pivot at the player's upper body; camera keeps a level horizon
+	# reference so the shoulder offset is applied in view space.
+	var pivot := target.global_position + Vector3(0, height, 0)
+	var shoulder := aim_shoulder if is_aiming else shoulder_offset
+	var dist := aim_distance if is_aiming else current_distance
+	var eye_height := aim_height if is_aiming else height
 
-	# Smooth follow
-	global_position = global_position.lerp(desired_position, follow_smoothness * delta)
+	# Shift the pivot sideways in view space for the over-the-shoulder frame.
+	var right := Vector3(cos(yaw_rad), 0.0, sin(yaw_rad))
+	pivot += right * shoulder
 
-	# Look at target
-	var look_target := target.global_position + Vector3(0, height * 0.7, 0)
+	var desired_position := pivot + offset * dist
+	desired_position.y = maxf(desired_position.y, pivot.y - dist * 0.25 + eye_height * 0.5)
+
+	# Tighter follow while aiming; smooth otherwise.
+	var smooth := follow_smoothness * (2.0 if is_aiming else 1.0)
+	global_position = global_position.lerp(desired_position, clampf(smooth * delta, 0.0, 1.0))
+
+	var look_target := pivot
+	look_target.y += (eye_height - height) * 0.5
 	look_at(look_target)
+
+	var target_fov := aim_fov if is_aiming else _default_fov
+	fov = lerpf(fov, target_fov, clampf(8.0 * delta, 0.0, 1.0))
 
 func set_target(new_target: Node3D) -> void:
 	target = new_target
@@ -86,7 +146,7 @@ func set_yaw(new_yaw: float) -> void:
 	yaw = new_yaw
 
 func set_pitch(new_pitch: float) -> void:
-	pitch = clamp(new_pitch, min_pitch, max_pitch)
+	pitch = clampf(new_pitch, min_pitch, max_pitch)
 
 func get_yaw() -> float:
 	return yaw
@@ -109,4 +169,4 @@ func get_right_direction() -> Vector3:
 
 func reset_rotation() -> void:
 	yaw = 0.0
-	pitch = 30.0
+	pitch = 18.0

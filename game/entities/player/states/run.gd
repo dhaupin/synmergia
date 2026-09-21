@@ -17,18 +17,31 @@ func update(_delta: float) -> void:
 	# Check for idle (no input)
 	if not parent.is_moving() and parent.is_on_floor():
 		transition_to("Idle")
+		return
+
+	# Crouch on the ground -> crouch-walk
+	if Input.is_action_just_pressed("crouch") and parent.is_on_floor():
+		transition_to("Crouch")
+		return
 
 	# Check for jump
 	if Input.is_action_just_pressed("jump") and parent.is_on_floor():
 		transition_to("Jump")
+		return
 
-	# Check for dodge
+	# COD-style slide: sprinting + dodge input throws the player into
+	# a crouched slide that carries the sprint momentum.
 	if Input.is_action_just_pressed("dodge") and parent.is_on_floor():
-		transition_to("Dodge")
+		if parent.is_sprinting:
+			transition_to("Slide")
+		else:
+			transition_to("Dodge")
+		return
 
 	# Check for attack
 	if Input.is_action_just_pressed("attack"):
 		transition_to("Attack")
+		return
 
 func physics_update(delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()
@@ -36,7 +49,7 @@ func physics_update(delta: float) -> void:
 	# Get movement direction
 	var move_dir: Vector3 = parent.get_movement_direction()
 
-	# Calculate speed
+	# Calculate speed (crouch handled by its own state)
 	var speed: float = parent.sprint_speed if parent.is_sprinting else parent.move_speed
 
 	# Apply movement

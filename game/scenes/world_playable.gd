@@ -28,6 +28,7 @@ func _ready() -> void:
 	_setup_guards()
 	_setup_housing()
 	_setup_hud_bridge()
+	_setup_touch_hud()
 	_notify_world_entry()
 	_enter_scene_zone()
 
@@ -237,6 +238,23 @@ func _accept_starter_quest() -> void:
 	var active: Array = QuestService.get_active_quests(player_id) if QuestService.has_method("get_active_quests") else []
 	if not active.has("quest_wolves_hunt"):
 		QuestService.accept_quest(player_id, "quest_wolves_hunt")
+
+## Bridge the touch HUD into the player's camera. The VirtualJoystick
+## emits camera_look for drags on the right half; the ThirdPersonCamera
+## consumes them through the same orbit() path as mouse drags.
+func _setup_touch_hud() -> void:
+	var player := get_node_or_null("Player")
+	if player == null or not ("camera_pivot" in player):
+		return
+	var joystick = InputManager.get_virtual_joystick() if InputManager else null
+	if joystick == null:
+		return
+	var cam: Camera3D = player.camera_pivot.get_node_or_null("Camera3D")
+	if cam == null or not cam.has_method("orbit"):
+		return
+	if not joystick.camera_look.is_connected(cam.orbit):
+		joystick.camera_look.connect(cam.orbit)
+	GameLog.info("WorldPlayable: touch HUD wired to third-person camera")
 
 func _on_ground_loot_picked_up(player, loot_id: String, items: Array) -> void:
 	_clear_loot_marker(loot_id)

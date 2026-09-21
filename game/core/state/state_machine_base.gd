@@ -18,8 +18,17 @@ func _ready() -> void:
 			states[child.name] = child
 			child.state_machine = self
 
-	if initial_state:
-		current_state = initial_state
+	if current_state == null:
+		# Scene-declared initial state wins; otherwise prefer Idle, then
+		# the first registered state. Scenes that predate initial_state
+		# (world_playable's StateMachine had none) used to sit with
+		# current_state == null: update()/physics_update() no-oped and
+		# the player never responded to input.
+		if states.has("Idle"):
+			current_state = states["Idle"]
+		elif not states.is_empty():
+			current_state = states.values()[0]
+	if current_state:
 		current_state.enter()
 
 func _process(delta: float) -> void:

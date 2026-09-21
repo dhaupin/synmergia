@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3]
+[gd_scene load_steps=42 format=3]
 
 [ext_resource type="Script" path="res://scenes/world_playable.gd" id="0"]
 [ext_resource type="Script" path="res://entities/player/player_controller.gd" id="1"]
@@ -11,6 +11,13 @@
 [ext_resource type="Script" path="res://entities/player/states/run.gd" id="8"]
 [ext_resource type="Script" path="res://entities/player/states/jump.gd" id="9"]
 [ext_resource type="Script" path="res://entities/player/states/fall.gd" id="10"]
+[ext_resource type="Script" path="res://entities/player/states/dodge.gd" id="11_dodge"]
+[ext_resource type="Script" path="res://entities/player/states/attack.gd" id="12_attack"]
+[ext_resource type="Script" path="res://entities/player/states/land.gd" id="22_land"]
+[ext_resource type="Script" path="res://entities/player/states/air_attack.gd" id="23_airatk"]
+[ext_resource type="Script" path="res://entities/player/states/air_dodge.gd" id="24_airdodge"]
+[ext_resource type="Script" path="res://entities/player/states/slide.gd" id="25_slide"]
+[ext_resource type="Script" path="res://entities/player/states/crouch.gd" id="26_crouch"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_wolf.tres" id="11"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_bandit.tres" id="12"]
 [ext_resource type="Script" path="res://core/entities/npc_entity.gd" id="14_npc"]
@@ -169,6 +176,27 @@ script = ExtResource("9")
 
 [node name="Fall" type="Node" parent="Player/StateMachine"]
 script = ExtResource("10")
+
+[node name="Dodge" type="Node" parent="Player/StateMachine"]
+script = ExtResource("11_dodge")
+
+[node name="Attack" type="Node" parent="Player/StateMachine"]
+script = ExtResource("12_attack")
+
+[node name="Land" type="Node" parent="Player/StateMachine"]
+script = ExtResource("22_land")
+
+[node name="AirAttack" type="Node" parent="Player/StateMachine"]
+script = ExtResource("23_airatk")
+
+[node name="AirDodge" type="Node" parent="Player/StateMachine"]
+script = ExtResource("24_airdodge")
+
+[node name="Slide" type="Node" parent="Player/StateMachine"]
+script = ExtResource("25_slide")
+
+[node name="Crouch" type="Node" parent="Player/StateMachine"]
+script = ExtResource("26_crouch")
 
 [node name="CameraPivot" type="Marker3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)

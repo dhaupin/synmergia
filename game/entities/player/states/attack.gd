@@ -1,9 +1,7 @@
 ## Attack State - Free-form combat (RYL2-style)
 ## Player can move, jump, and use skills during combat
-extends Node
+extends "res://core/state/state_base.gd"
 
-const StateBase = preload("res://core/state/state_base.gd")
-class_name AttackState
 const Skill = preload("res://core/combat/skill.gd")
 
 
@@ -70,7 +68,7 @@ func update(delta: float) -> void:
 	if attack_timer <= 0:
 		_finish_attack()
 
-func _physics_process(delta: float) -> void:
+func physics_update(delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()
 
 	# Allow movement during attack if permitted
