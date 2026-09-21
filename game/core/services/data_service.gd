@@ -219,8 +219,11 @@ func load_gateways() -> void:
 	_gateways = _scan_directory(_data_path + "gateways", "gateway")
 	GameLog.info("DataService: Loaded %d gateways" % _gateways.size())
 
-## Get methods
-func get_skill(id: String) -> Skill:
+## Get methods. Returns SkillSchema (the .tres class); the return type
+## must be SkillSchema -- the global class_name Skill (combat) shadowed
+## the intended annotation here, which made every actual load a
+## runtime type error once this path was finally exercised.
+func get_skill(id: String) -> SkillSchema:
 	if _skills.has(id):
 		return _skills.get(id)
 	GameLog.warn("DataService: Skill not found: " + id)
@@ -457,7 +460,7 @@ func _create_skill_book_from_id(item_id: String) -> Item:
 	}
 	var upgrade_level: int = tier_map.get(tier_str, 1)
 
-	var skill: Skill = _skills.get(skill_id)
+	var skill: SkillSchema = _skills.get(skill_id)
 	var display_name: String = skill.display_name if skill else skill_id
 
 	return SkillBook.create(skill_id, upgrade_level, display_name)

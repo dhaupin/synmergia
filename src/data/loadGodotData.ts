@@ -9,6 +9,8 @@ import type {
   NPC,
   Quest,
   Achievement,
+  AchievementCategoryId,
+  AchievementTier,
   CharacterStats,
   ItemStats,
   ItemRarity,
@@ -363,14 +365,41 @@ export function transformAchievements(): Achievement[] {
   for (const [id, a] of Object.entries(RAW.achievements || {})) {
     const ac = a as any;
     out.push({
-      id: ac.id,
+      id: ac.id || id,
       title: ac.display_name || id,
       description: ac.description || '',
       icon: ac.icon_path?.split('/').pop()?.replace('.png', '') || 'Award',
+      category: mapAchievementCategory(ac.category),
       unlocked: false,
+      points: 10,
+      tier: mapAchievementTier(ac.rarity),
     });
   }
   return out;
+}
+
+const ACHIEVEMENT_CATEGORY_MAP: Record<number, AchievementCategoryId> = {
+  0: 'combat',
+  1: 'social',
+  2: 'economy',
+  3: 'exploration',
+  4: 'progression',
+};
+
+function mapAchievementCategory(n: number | undefined): AchievementCategoryId {
+  return ACHIEVEMENT_CATEGORY_MAP[n ?? 4] ?? 'progression';
+}
+
+const ACHIEVEMENT_TIER_MAP: Record<number, AchievementTier> = {
+  0: 'bronze',
+  1: 'silver',
+  2: 'gold',
+  3: 'epic',
+  4: 'epic',
+};
+
+function mapAchievementTier(n: number | undefined): AchievementTier {
+  return ACHIEVEMENT_TIER_MAP[n ?? 0] ?? 'bronze';
 }
 
 // --- Aggregated exports ---
@@ -382,6 +411,19 @@ export const ITEMS_DATA = transformItems();
 export const ENEMIES_DATA = transformEnemies();
 export const QUESTS_DATA = transformQuests();
 export const ACHIEVEMENTS_DATA = transformAchievements();
+
+// --- Raw .tres achievement rows (rewards live here, not in the UI mapping) ---
+export const ACHIEVEMENTS_TRES = (RAW.achievements || {}) as Record<
+  string,
+  {
+    id?: string;
+    display_name?: string;
+    description?: string;
+    gold_reward?: number;
+    xp_reward?: number;
+    title_reward?: string;
+  }
+>;
 
 // --- Init skills per class (for backward compat) ---
 export const INITIAL_SKILLS: Record<ClassId, Skill[]> = SKILLS_BY_CLASS;

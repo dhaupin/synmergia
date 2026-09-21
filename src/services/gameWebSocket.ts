@@ -19,6 +19,7 @@ export type WSMessageType =
   | 'combat_event' // { type: 'damage' | 'heal' | 'cast', ... }
   | 'chat' // { channel, sender, text }
   | 'zone_change' // { zoneId, x, y }
+  | 'achievement_unlocked' // { achievementId | id, title, playerId }
   | 'ping'
   | 'pong';
 

@@ -120,9 +120,9 @@ func _handle_tab_cycling(shift: bool) -> void:
 			if panel_node and panel_node.has_method("_on_tab_pressed"):
 				panel_node._on_tab_pressed(shift)
 			return
-	# No panel open -> cycle targets
-	if TargetingManager and TargetingManager.has_method("cycle_target"):
-		TargetingManager.cycle_target(shift)
+	# No panel open -> do nothing here. Target cycling on Tab is owned
+	# by InputManager (player_input "target_next" -> PlayerController).
+	# Cycling here as well double-advanced the target on every press.
 
 
 func _handle_escape() -> void:

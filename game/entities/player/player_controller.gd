@@ -79,6 +79,11 @@ var entity_type: int = 1
 var display_name: String = "Player"
 var level: int = 1
 
+## The player's class id ("human_warrior", ...). Required by
+## Skill.can_cast's required_class gate; boot paths without login use
+## the default class so the starting skillbar is actually castable.
+var character_class: String = "human_warrior"
+
 # Standard stat block (Entity-compatible shape used by get_* accessors).
 var stats: Dictionary = {
 	"strength": 10,
@@ -112,6 +117,8 @@ func _ready() -> void:
 	# Connect to input
 	InputManager.player_input.connect(_on_player_input)
 	PlayerManager.set_local_player(self)
+	add_to_group("players")
+	_setup_starting_skills()
 
 	# Set collision
 	collision_mask = 0b0000111
@@ -404,6 +411,15 @@ func _physics_process(delta: float) -> void:
 	else:
 		GameLog.debug("PlayerController: Rate limited movement for %s" % entity_id)
 
+	# Out-of-combat mana regen (5/s matches the class-schema default).
+	_mana_regen_accum += 5.0 * delta
+	if _mana_regen_accum >= 1.0:
+		var gain := int(_mana_regen_accum)
+		_mana_regen_accum -= gain
+		if current_mana < max_mana:
+			current_mana = mini(max_mana, current_mana + gain)
+			mana_changed.emit(current_mana, max_mana)
+
 ## Handle automatic follow movement
 func _handle_follow_movement() -> void:
 	if not FollowService or not entity_id:
@@ -468,6 +484,17 @@ func _on_player_input(action: String, pressed: bool) -> void:
 		"target_previous":
 			if pressed:
 				cycle_target_previous()
+		"target_nearest":
+			# F2: hard nearest-enemy select (Tab is camera-relative).
+			if pressed:
+				_find_and_set_nearest_target()
+				is_targeting = true
+		"target_self":
+			# F1: target yourself (healers/casters, self-buff flow).
+			if pressed:
+				TargetingManager.set_target(
+					entity_id, "player", display_name, global_position, self, entity_type)
+				is_targeting = true
 		"interact":
 			if pressed:
 				_try_interact()
@@ -646,9 +673,18 @@ var experience: int = 0
 var experience_to_next_level: int = 1000
 var gold: int = 0
 
+# Resource pool. Entity carries current_mana/max_mana; PlayerController
+# (CharacterBody3D) never had one, so skill mana costs were silently
+# skipped by the duck-typed cost checks and _consume_resources would
+# have crashed writing to a nonexistent property.
+var current_mana: int = 100
+var max_mana: int = 100
+var _mana_regen_accum: float = 0.0
+
 signal experience_changed(current: int, level: int)
 signal gold_changed(current: int)
 signal leveled_up(new_level: int)
+signal mana_changed(current: int, maximum: int)
 
 func add_experience(amount: int) -> void:
 	if amount <= 0:
@@ -676,6 +712,42 @@ func get_stat(stat_name: String) -> int:
 	return int(stats.get(stat_name, 0))
 
 ## SKILL SYSTEM
+
+## Populate the skillbar from the character's class data. The class
+## schema (core/schemas/character_class.gd) declares starting_skills;
+## DataService resolves the ids to loaded Skill resources. Was never
+## called before, so the skillbar (and thus keys 1-8) started empty.
+func _setup_starting_skills() -> void:
+	if not skillbar.is_empty():
+		return
+	var class_data = null
+	var char_data = GameManager.selected_character_data if is_instance_valid(GameManager) else null
+	if char_data != null and "class_data" in char_data and char_data.class_data != null:
+		class_data = char_data.class_data
+	else:
+		# Boot paths without login (demo scene, showcases) run the
+		# default class; CharacterData.class_id defaults to "warrior".
+		var class_id: String = "human_warrior"
+		if char_data != null and "class_id" in char_data and str(char_data.class_id) != "":
+			class_id = str(char_data.class_id)
+		if is_instance_valid(DataService) and DataService.has_method("get_character_class"):
+			class_data = DataService.get_character_class(class_id)
+	# Keep can_cast's class gate consistent with the skillbar source.
+	if class_data != null and "id" in class_data and str(class_data.id) != "":
+		character_class = str(class_data.id)
+	if class_data == null or not ("starting_skills" in class_data) \
+			or class_data.starting_skills.is_empty():
+		return
+	for skill_id: String in class_data.starting_skills:
+		if is_instance_valid(DataService) and DataService.has_method("get_skill"):
+			var schema = DataService.get_skill(skill_id)
+			if schema != null:
+				# .tres skills load as SkillSchema; the skillbar + combat
+				# pipeline run on the runtime Skill class.
+				skillbar.append(Skill.from_schema(schema))
+	if not skillbar.is_empty():
+		GameLog.info("Player skillbar loaded: %d starting skill(s)" % skillbar.size())
+
 
 func use_skill(slot: int) -> void:
 	if slot < 0 or slot >= skillbar.size():

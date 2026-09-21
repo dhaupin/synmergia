@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ob_wake"
+display_name = "A New Dawn"
+description = "Enter Synmergia for the first time"
+achievement_type = 0
+category = 4
+rarity = 0
+target = 1
+target_type = "session"
+required_achievements = []
+gold_reward = 0
+xp_reward = 25
+title_reward = ""
+icon_path = "res://icons/achievements/ob_wake.png"
+sort_order = 101

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "elite_hunter_10"
+display_name = "Elite Hunter"
+description = "Defeat 10 elite enemies"
+achievement_type = 1
+category = 0
+rarity = 2
+target = 10
+target_type = "elite"
+required_achievements = []
+gold_reward = 150
+xp_reward = 150
+title_reward = ""
+icon_path = "res://icons/achievements/elite_hunter.png"
+sort_order = 57

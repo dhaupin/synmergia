@@ -28,8 +28,6 @@ func _ready() -> void:
 	_setup_guards()
 	_setup_housing()
 	_setup_hud_bridge()
-	if OS.get_environment("SYNMERGIA_SHOWCASE") == "1":
-		_run_showcase()  # fire-and-forget coroutine; logs its own checkpoints
 
 
 func _apply_character_data(data: Resource) -> void:
@@ -307,85 +305,3 @@ func _on_kill_rewarded(entity, killer, rewards: Dictionary) -> void:
 				_damage_numbers.show_text(killer, ", ".join(parts2), Color(1.0, 0.9, 0.4))
 
 
-## ---------------------------------------------------------------------------
-## SHOWCASE DRIVER (non-headless verification)
-## ---------------------------------------------------------------------------
-## Set SYNMERGIA_SHOWCASE=1 to boot world_playable in full (rendering)
-## mode and have the player walk through every placement system: ankh
-## binds (shared/guild/faction), the guard formation, the demo plot
-## purchase via the REAL /buyplot + /placeguard chat commands, and
-## dev screenshots at each stop (captures/screenshots/, need 10s+).
-## Added at the file end so it is inert unless the env var is set.
-## ---------------------------------------------------------------------------
-
-const _SHOWCASE_STEP_SECONDS := 2.5
-
-func _run_showcase() -> void:
-	await get_tree().create_timer(_SHOWCASE_STEP_SECONDS).timeout
-	var player := get_node_or_null("Player")
-	if player == null:
-		GameLog.warn("Showcase: no player node; aborting")
-		return
-	await _showcase_stop(player, "start", Vector3(0, 1, 0))
-	await _showcase_stop(player, "plaza_guards", Vector3(2, 1, -6))
-	await _showcase_stop(player, "plaza_ankh_bind", Vector3(4, 1, 3))
-	await _showcase_bind(player, Vector3(4, 1, 4))
-	await _showcase_stop(player, "demo_plot", Vector3(-5, 1, -4))
-	_showcase_grant_showcase_gold(player)  # before buyplot: the plot costs 50k
-	_showcase_chat(player, "/plotinfo")
-	_showcase_chat(player, "/buyplot")
-	_showcase_chat(player, "/plotinfo")
-	await _showcase_stop(player, "guild_ankh_denied", Vector3(-13, 1, -13))
-	await _showcase_bind(player, Vector3(-14, 1, -14))
-	await _showcase_stop(player, "faction_ankh_denied", Vector3(-13, 1, 13))
-	await _showcase_bind(player, Vector3(-14, 1, 14))
-	_showcase_grant_showcase_gold(player)  # guard costs another 250k
-	# /placeguard requires standing ON the owned plot (radius check).
-	await _showcase_stop(player, "return_plot", Vector3(-5, 1, -4))
-	_showcase_chat(player, "/placeguard")
-	await _showcase_stop(player, "gate_guards", Vector3(21, 1, 0))
-	GameLog.info("Showcase: complete")
-
-
-## Teleport to a stop, give the renderer a beat, screenshot.
-func _showcase_stop(player: Node3D, label: String, pos: Vector3) -> void:
-	player.global_position = pos
-	GameLog.info("Showcase: at %s %s" % [label, pos])
-	await get_tree().create_timer(_SHOWCASE_STEP_SECONDS).timeout
-	_showcase_screenshot(label)
-
-
-func _showcase_bind(player: Node, pos: Vector3) -> void:
-	player.global_position = pos
-	await get_tree().create_timer(0.5).timeout
-	# The world is live: roaming wolves may have killed the tour guide.
-	if "health_component" in player and player.health_component != null \
-			and player.health_component.has_method("revive_in_place"):
-		player.health_component.revive_in_place()
-	if player.has_method("_activate_nearby_ankh"):
-		player._activate_nearby_ankh()
-
-
-func _showcase_chat(player: Node, message: String) -> void:
-	var chat = get_node_or_null("/root/ChatService")
-	if chat != null and chat.has_method("send_message"):
-		var ok: bool = chat.send_message(str(player.entity_id), chat.Channel.SAY, message)
-		GameLog.info("Showcase: chat '%s' -> %s" % [message, str(ok)])
-	else:
-		GameLog.warn("Showcase: ChatService unavailable for '%s'" % message)
-
-
-## The plot costs 50k; the guard 250k. A clean session has neither.
-func _showcase_grant_showcase_gold(player: Node) -> void:
-	if player.has_method("add_gold"):
-		player.add_gold(300000)
-		GameLog.info("Showcase: granted 300000 showcase gold")
-
-
-func _showcase_screenshot(label: String) -> void:
-	var ss = get_node_or_null("/root/ScreenshotService")
-	if ss != null and ss.has_method("save_dev_screenshot"):
-		var path: String = ss.save_dev_screenshot()
-		GameLog.info("Showcase: screenshot [%s] -> %s" % [label, path])
-	else:
-		GameLog.info("Showcase: screenshot [%s] skipped (ScreenshotService unavailable)" % label)

@@ -33,11 +33,18 @@ const DROP_SCATTER_RADIUS: float = 1.5
 var _drops: Dictionary = {}
 var _next_id: int = 1
 
+## Autoload-safe logging: bare GameLog references abort at compile time
+## in --script test mode (autoloads are not pre-loaded there).
+func _log(level: String, msg: String) -> void:
+	var gl := get_node_or_null("/root/GameLog")
+	if gl != null and gl.has_method(level):
+		gl.call(level, msg)
+
 func _ready() -> void:
 	# Persistence: drops are session-transient world state. Rehydrating
 	# them across a server restart would need snapshot_store; for now
 	# they live and die with the process (same tier as enemy AI memory).
-	GameLog.info("GroundLootService: ready")
+	_log("info", "GroundLootService: ready")
 
 ## Create a ground drop at a world position.
 ## items: Array of either Item instances or {item_id, quantity} dicts
@@ -75,7 +82,7 @@ func create_drop(position: Vector3, items: Array, options: Dictionary = {}) -> S
 	EventHub.ground_loot_spawned.emit(drop_id, position, resolved_items)
 	drop_spawned.emit(drop_id, drop)
 	_attach_visual(drop_id, drop)
-	GameLog.info("GroundLootService: %s drop '%s' (%d items) at %s" % [
+	_log("info", "GroundLootService: %s drop '%s' (%d items) at %s" % [
 		drop["source"], drop_id, resolved_items.size(), position])
 	return drop_id
 
@@ -137,7 +144,7 @@ func _resolve_items(items: Array) -> Array:
 			if DataService != null and DataService.has_method("get_item"):
 				item = DataService.get_item(item_id)
 			if item == null:
-				GameLog.warn("GroundLootService: unknown item id '%s', skipped" % item_id)
+				_log("warn", "GroundLootService: unknown item id '%s', skipped" % item_id)
 				continue
 			# Give each drop its own instance so stacking/binding on one
 			# player's pickup does not mutate a shared template resource.
@@ -211,7 +218,7 @@ func try_pickup(player, drop_id: String = "") -> Array:
 
 	var player_id := _player_id_of(player)
 	if player_id == "":
-		GameLog.warn("GroundLootService: pickup blocked, no player id")
+		_log("warn", "GroundLootService: pickup blocked, no player id")
 		return []
 
 	# Range check (specific-id pickup still requires being in range).
@@ -263,7 +270,7 @@ func try_pickup(player, drop_id: String = "") -> Array:
 	if InventoryService != null and InventoryService.has_method("get_inventory"):
 		inventory = InventoryService.get_inventory(player_id)
 	if inventory == null:
-		GameLog.warn("GroundLootService: no inventory for %s" % player_id)
+		_log("warn", "GroundLootService: no inventory for %s" % player_id)
 		return []
 
 	var picked: Array = []
@@ -303,9 +310,9 @@ func try_pickup(player, drop_id: String = "") -> Array:
 	else:
 		_remove_drop(final_drop_id, "picked_up")
 
-	EventHub.ground_loot_picked_up.emit(final_drop_id, player, picked)
+	EventHub.ground_loot_picked_up.emit(player, final_drop_id, picked)
 	drop_picked_up.emit(final_drop_id, player, picked)
-	GameLog.info("GroundLootService: %s picked up %d item(s) from %s" % [
+	_log("info", "GroundLootService: %s picked up %d item(s) from %s" % [
 		player_id, picked.size(), str(drop.get("source", "drop"))])
 	return picked
 

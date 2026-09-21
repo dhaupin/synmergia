@@ -490,8 +490,22 @@ func _open_panel(menu_name: String, panel: Control) -> void:
 	if not _open_panels.has(menu_name):
 		_open_panels.append(menu_name)
 	_is_menu_open = true
+	# Give UIPanel-derived panels their player context. Without this the
+	# panel renders against an empty _player_id (stale/blank data).
+	if "open" in panel and panel.get("_player_id") != null and _local_player_id() != "":
+		panel.open(_local_player_id())
 	panel.visible = true
 	menu_toggled.emit(menu_name, true)
+
+func _local_player_id() -> String:
+	var pm := get_node_or_null("/root/PlayerManager")
+	if pm == null:
+		return ""
+	var local = pm.get("local_player")
+	if local == null or not is_instance_valid(local):
+		return ""
+	var eid = local.get("entity_id")
+	return String(eid) if eid != null else ""
 
 func _close_top_menu_internal() -> void:
 	if _open_panels.is_empty():

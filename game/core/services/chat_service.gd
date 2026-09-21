@@ -428,12 +428,16 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_dwelling(sender_id, "placeguard", args)
 		"placeankh":
 			return _cmd_dwelling(sender_id, "placeankh", args)
+		"dismissguard":
+			return _cmd_dwelling(sender_id, "dismissguard", args)
+		"buildhouse":
+			return _cmd_dwelling(sender_id, "buildhouse", args)
 		"plotinfo":
 			return _cmd_dwelling(sender_id, "plotinfo", args)
 
 	return false
 
-## Command: /buyplot /placeguard /placeankh /plotinfo
+## Command: /buyplot /placeguard /placeankh /dismissguard /buildhouse /plotinfo
 ## DwellingService is registered after ChatService: lazy resolution.
 func _cmd_dwelling(sender_id: String, command: String, args: Array) -> bool:
 	var ds = get_node_or_null(NodePath("/root/DwellingService"))

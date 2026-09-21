@@ -138,6 +138,54 @@ var schema: SkillSchema = null
 
 var remaining_cooldown: float = 0.0
 
+
+## Build a runtime Skill from a SkillSchema resource (.tres in
+## data/skills/). The .tres files load as SkillSchema; the combat
+## pipeline (CombatSystem, attack state) runs on this class. Maps the
+## shared fields by name, flattens the schema's effect dictionaries
+## into the runtime damage/heal fields (the runtime class has no
+## effects array), and translates enums BY NAME (the two TargetType
+## enums have different orderings -- DEAD_ALLY exists only in the
+## schema).
+static func from_schema(s: SkillSchema) -> Skill:
+	var sk: Skill = Skill.new()
+	sk.skill_id = s.id
+	sk.skill_name = s.display_name
+	sk.description = s.description
+	# SkillType: the first 8 members align (REVIVE is schema-only).
+	var st_values: Array = SkillType.values()
+	sk.skill_type = st_values[mini(int(s.skill_type), st_values.size() - 1)]
+	# TargetType: translate by NAME; unknown names fall back to single.
+	var tt_names: Array = SkillSchema.TargetType.keys()
+	var tt_name: String = tt_names[int(s.target_type)] if int(s.target_type) < tt_names.size() else "SINGLE_ENEMY"
+	sk.target_type = TargetType[tt_name] if TargetType.has(tt_name) else TargetType.SINGLE_ENEMY
+	sk.is_ground_targeted = tt_name == "GROUND"
+	sk.mana_cost = s.mana_cost
+	sk.stamina_cost = s.stamina_cost
+	sk.health_cost = s.health_cost
+	sk.cooldown = s.cooldown
+	sk.cast_time = s.cast_time
+	sk.animation_duration = s.animation_duration
+	sk.recovery_time = s.recovery_time
+	sk.range = s.range
+	sk.aoe_radius = s.aoe_radius
+	sk.targeted_aoe_radius = s.targeted_aoe_radius
+	sk.required_level = s.required_level
+	sk.required_class = s.required_class
+	sk.required_stance = s.required_stance
+	sk.schema = s
+	# Flatten effect dictionaries into runtime fields.
+	for effect: Dictionary in s.effects:
+		match str(effect.get("type", "")):
+			"damage":
+				sk.damage += int(effect.get("value", 0))
+			"heal":
+				sk.heal_amount += int(effect.get("value", 0))
+			"stun", "root", "slow":
+				sk.crowd_control_type = str(effect.get("type", ""))
+				sk.crowd_control_duration = float(effect.get("duration", 0.0))
+	return sk
+
 func _init() -> void:
 	if skill_id == "":
 		skill_id = skill_name.to_lower().replace(" ", "_")
@@ -271,9 +319,14 @@ func consume_resources(caster) -> bool:
 	if "current_health" in caster and caster.current_health < health_cost:
 		return false
 
-	caster.current_mana -= mana_cost
-	caster.current_stamina -= stamina_cost
-	caster.current_health -= health_cost
+	# Duck-typed writes: PlayerController carries mana but no stamina;
+	# test stubs may carry neither.
+	if mana_cost > 0 and "current_mana" in caster:
+		caster.current_mana -= mana_cost
+	if stamina_cost > 0 and "current_stamina" in caster:
+		caster.current_stamina -= stamina_cost
+	if health_cost > 0 and "current_health" in caster:
+		caster.current_health -= health_cost
 
 	return true
 

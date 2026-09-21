@@ -18,8 +18,10 @@ import {
   ENEMIES_DATA as LOADED_ENEMIES_DATA,
   QUESTS_DATA as LOADED_QUESTS_DATA,
   ACHIEVEMENTS_DATA as LOADED_ACHIEVEMENTS_DATA,
+  ACHIEVEMENTS_TRES,
   INITIAL_SKILLS as LOADED_INITIAL_SKILLS,
 } from './data/loadGodotData';
+import { initAchievementCatalog } from './services/achievements';
 
 // --- Static fallback data for development and missing keys ---
 
@@ -98,6 +100,11 @@ export const ITEMS_DATA = LOADED_ITEMS_DATA;
 export const ENEMIES_DATA = LOADED_ENEMIES_DATA;
 export const QUESTS_DATA = LOADED_QUESTS_DATA;
 export const ACHIEVEMENTS_DATA = LOADED_ACHIEVEMENTS_DATA;
+
+// Build the achievement engine catalog once at module load. The .tres rows
+// (godot_data.json) carry canonical ids + rewards; the engine layers web
+// tuning and the onboarding chain on top.
+initAchievementCatalog(ACHIEVEMENTS_TRES);
 
 // Ensure every class has skills, falling back to FALLBACK_SKILLS if needed
 export const INITIAL_SKILLS: Record<ClassId, Skill[]> = {

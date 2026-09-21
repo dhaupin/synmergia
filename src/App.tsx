@@ -24,6 +24,15 @@ import {
 import { soundEngine } from './soundEngine';
 import { synmergiaBridge } from './services/bridgeClient';
 import { gameWebSocket, type WSMessage } from './services/gameWebSocket';
+import {
+  applyEvent as applyAchievementEvent,
+  createEngineState,
+  getAchievementById,
+  migrateLegacyUnlocks,
+  toPersistedProgress,
+} from './services/achievements';
+import type { AchievementEngineState, AchievementUnlock } from './services/achievements';
+import type { AchievementEvent } from './types';
 
 // Components
 import { GameCanvas } from './components/GameCanvas';
@@ -37,6 +46,7 @@ import { BlacksmithModal } from './components/BlacksmithModal';
 import { WorldMapModal } from './components/WorldMapModal';
 import { ChatBox } from './components/ChatBox';
 import { AchievementsModal } from './components/AchievementsModal';
+import { AchievementToast } from './components/AchievementToast';
 import { VirtualJoystick } from './components/VirtualJoystick';
 import { PortalHeader, PortalMode } from './components/PortalHeader';
 import { GodotClientView } from './components/wasm/GodotClientView';
@@ -277,6 +287,7 @@ const createDefaultCharacter = (): PlayerCharacter => ({
   completedQuests: [],
   activeBuffs: [],
   unlockedAchievements: [],
+  achievementProgress: undefined,
 });
 
 export default function App() {
@@ -604,6 +615,51 @@ export default function App() {
     };
   }, [refreshTelemetry]);
 
+  // Server-authoritative seam: when the real server unlocks an achievement,
+  // reflect it locally instead of re-simulating via emitAchievementEvent.
+  const applyServerAchievementUnlock = useCallback(
+    (payload: { achievementId?: string; id?: string; title?: string }) => {
+      const id = payload.achievementId || payload.id;
+      if (!id) return;
+      const engine = achievementEngineRef.current;
+      if (!engine || engine.unlocked[id]) return;
+      engine.unlocked[id] = Date.now();
+      setUnlockedAchievementIds(Object.keys(engine.unlocked));
+      const def = getAchievementById(id);
+      setAchievementToasts((prev) => [
+        ...prev,
+        {
+          def:
+            def ?? {
+              id,
+              title: payload.title ?? id,
+              description: 'Unlocked by the server',
+              icon: 'Award',
+              category: 'progression',
+              tier: 'bronze',
+              trigger: 'instant',
+              goldReward: 0,
+              xpReward: 0,
+              points: 10,
+            },
+          unlockedAt: Date.now(),
+        },
+      ]);
+      soundEngine.playLevelUp();
+      addChatMessage(
+        `Achievement Unlocked: "${def?.title ?? payload.title ?? id}"! Check your Hall of Valor [H].`,
+        'system'
+      );
+
+      // Keep the persisted blob in lockstep (server unlocks survive reload too).
+      setPlayer((p) => ({
+        ...p,
+        achievementProgress: toPersistedProgress(engine),
+      }));
+    },
+    [addChatMessage]
+  );
+
   // --- Real-time WebSocket sync (companion mode) ---
   useEffect(() => {
     if (portalMode !== 'companion') return;
@@ -678,6 +734,20 @@ export default function App() {
       if (!cancelled) applyTelemetryFromMessage(msg.payload, msg.timestamp);
     });
 
+    // Achievement seam: the authoritative server can unlock achievements
+    // directly (party/guild/trade events it observes). Mirror them locally.
+    const unsubscribeAchUnlock = gameWebSocket.on('achievement_unlocked', (msg: WSMessage) => {
+      if (cancelled) return;
+      const payload = msg.payload as {
+        achievementId?: string;
+        id?: string;
+        title?: string;
+        playerId?: string;
+      };
+      if (payload?.playerId && payload.playerId !== player.id) return;
+      applyServerAchievementUnlock(payload ?? {});
+    });
+
     gameWebSocket.connect().catch(() => {
       // Offline fallback: local-only play continues.
     });
@@ -690,6 +760,7 @@ export default function App() {
       unsubscribeChat();
       unsubscribeZoneChange();
       unsubscribePong();
+      unsubscribeAchUnlock();
       gameWebSocket.disconnect();
     };
   }, [
@@ -699,6 +770,7 @@ export default function App() {
     addChatMessage,
     addCombatText,
     applyTelemetryFromMessage,
+    applyServerAchievementUnlock,
     refreshTelemetry,
   ]);
 
@@ -743,21 +815,76 @@ export default function App() {
     [addChatMessage]
   );
 
-  // --- Check Achievements ---
-  const checkAchievement = useCallback(
-    (achId: string, title: string) => {
-      setPlayer((prev) => {
-        if (prev.unlockedAchievements.includes(achId)) return prev;
-        soundEngine.playLevelUp();
-        addChatMessage(
-          `Achievement Unlocked: "${title}"! Check your Hall of Valor [H].`,
-          'system'
-        );
-        return {
-          ...prev,
-          unlockedAchievements: [...prev.unlockedAchievements, achId],
-        };
-      });
+  // --- Achievement Engine Bootstrap & Event Bus ---
+  // One engine state in a ref (never re-created), mirrored into React state
+  // for render. Game code calls `emitAchievementEvent` instead of setting
+  // unlock booleans directly — the engine owns counters, gating, and rewards.
+  const achievementEngineRef = useRef<AchievementEngineState | null>(null);
+  const [unlockedAchievementIds, setUnlockedAchievementIds] = useState<string[]>([]);
+  const [achievementToasts, setAchievementToasts] = useState<AchievementUnlock[]>([]);
+
+  // Bootstrap: migrate legacy unlocks, seed counters from the loaded save,
+  // then fire the first-session event (ob_wake) once per character.
+  useEffect(() => {
+    const state = createEngineState();
+    migrateLegacyUnlocks(player.unlockedAchievements, state);
+    const persisted = player.achievementProgress;
+    if (persisted) {
+      state.unlocked = { ...state.unlocked, ...persisted.unlocked };
+      state.counters = { ...state.counters, ...persisted.counters };
+      state.visitedZones =
+        persisted.visitedZones.length > 0 ? [...persisted.visitedZones] : [currentZoneId];
+    } else {
+      state.visitedZones = [currentZoneId];
+    }
+    if (!state.unlocked['ob_wake']) {
+      applyAchievementEvent(state, { type: 'session_started' });
+    }
+    achievementEngineRef.current = state;
+    setUnlockedAchievementIds(Object.keys(state.unlocked));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Single entry point for the rest of the game to drive achievements.
+   * Runs the pure engine, applies rewards, and raises the unlock moment
+   * (sound + chat + toast queue). Safe to call from any handler.
+   */
+  const emitAchievementEvent = useCallback(
+    (event: AchievementEvent) => {
+      const engine = achievementEngineRef.current;
+      if (!engine) return;
+      const result = applyAchievementEvent(engine, event);
+      if (result.newlyUnlocked.length === 0) return;
+
+      setUnlockedAchievementIds(Object.keys(engine.unlocked));
+      setAchievementToasts((prev) => [...prev, ...result.newlyUnlocked]);
+
+      const first = result.newlyUnlocked[0].def;
+      soundEngine.playLevelUp();
+      addChatMessage(
+        `Achievement Unlocked: "${first.title}"! Check your Hall of Valor [H].`,
+        'system'
+      );
+      if (result.newlyUnlocked.length > 1) {
+        addChatMessage(`${result.newlyUnlocked.length} achievements unlocked at once!`, 'system');
+      }
+
+      // Grant rewards (gold + xp; xp rides the level curve in awardExperience
+      // only for quest XP, achievement XP is applied directly here).
+      if (result.rewards.gold > 0 || result.rewards.xp > 0) {
+        setPlayer((p) => ({
+          ...p,
+          gold: p.gold + result.rewards.gold,
+          xp: p.xp + result.rewards.xp,
+        }));
+      }
+
+      // Keep the persisted blob in lockstep so unlocks survive reload.
+      setPlayer((p) => ({
+        ...p,
+        achievementProgress: toPersistedProgress(engine),
+      }));
     },
     [addChatMessage]
   );
@@ -785,6 +912,8 @@ export default function App() {
             'system'
           );
           addCombatText(`LEVEL UP! (Lv.${newLevel})`, prev.x, prev.y - 30, '#facc15', 'crit');
+          // Achievement: level counter (Veteran Adventurer at 10)
+          emitAchievementEvent({ type: 'level_up', amount: newLevel });
           return {
             ...prev,
             level: newLevel,
@@ -964,6 +1093,8 @@ export default function App() {
             y: gw.targetY,
           }));
           addChatMessage(`You entered the portal to ${gw.name}.`, 'system');
+          // Achievement: zone discovery via portal (counters + onboarding Wanderer)
+          emitAchievementEvent({ type: 'zone_visited', targetId: gw.targetZoneId });
           break;
         }
       }
@@ -1101,6 +1232,8 @@ export default function App() {
         });
 
         addChatMessage(`You cast ${skill.name}!`, 'combat');
+        // Achievement: heal/buff casts count toward "First Techniques"
+        emitAchievementEvent({ type: 'skill_cast' });
         return;
       }
 
@@ -1158,6 +1291,12 @@ export default function App() {
         Math.round((baseDamage + bonusDamage) * (isCrit ? 1.8 : 1.0) - target.armor * 0.4)
       );
 
+      // Achievement: skill cast (any offensive cast counts)
+      emitAchievementEvent({ type: 'skill_cast' });
+      if (isCrit) {
+        emitAchievementEvent({ type: 'crit_landed' });
+      }
+
       addCombatText(
         isCrit ? `CRIT! -${finalDamage}` : `-${finalDamage}`,
         target.x,
@@ -1186,13 +1325,16 @@ export default function App() {
             );
             addCombatText(`+${en.xpReward} XP`, player.x, player.y - 15, '#38bdf8', 'xp');
 
-            // Check Achievements
-            checkAchievement('ach_first_blood', 'First Blood');
-            if (en.templateId === 'bandit') {
-              checkAchievement('ach_bandit_scourge', 'Scourge of the Outlaws');
-            }
-            if (en.isBoss) {
-              checkAchievement('ach_boss_slayer', 'Conqueror of the Depths');
+            // Achievements: kill counters + gold earned (engine routes these
+            // to first_blood, slayer track, bandit/boss counters, onboarding).
+            emitAchievementEvent({
+              type: 'enemy_defeated',
+              targetId: en.templateId,
+              isBoss: en.isBoss,
+              isElite: en.isElite,
+            });
+            if (en.goldReward > 0) {
+              emitAchievementEvent({ type: 'gold_earned', amount: en.goldReward });
             }
 
             // Award XP & Gold
@@ -1234,7 +1376,7 @@ export default function App() {
       enemies,
       addChatMessage,
       addCombatText,
-      checkAchievement,
+      emitAchievementEvent,
       awardExperience,
       trackQuestKill,
     ]
@@ -1252,6 +1394,9 @@ export default function App() {
 
     const potion = player.inventory[potionIdx]!;
     soundEngine.playHeal();
+
+    // Achievement: potion use (onboarding "Steady Hands")
+    emitAchievementEvent({ type: 'potion_used' });
 
     setPlayer((prev) => {
       const heal = potion.healAmount || 50;
@@ -1272,7 +1417,7 @@ export default function App() {
         inventory: newInv,
       };
     });
-  }, [player.inventory, addChatMessage, addCombatText]);
+  }, [player.inventory, addChatMessage, addCombatText, emitAchievementEvent]);
 
   // --- Inventory Actions ---
   const handleEquipItem = (item: Item, slot: EquipSlot) => {
@@ -1342,6 +1487,7 @@ export default function App() {
       gold: prev.gold - item.value,
       inventory: [...prev.inventory, { ...item, id: `${item.id}_${Date.now()}` }],
     }));
+    emitAchievementEvent({ type: 'item_bought', targetId: item.id, amount: 1 });
     addChatMessage(`Purchased ${item.name} for ${item.value} Gold.`, 'system');
   };
 
@@ -1359,6 +1505,9 @@ export default function App() {
         inventory: newInv,
       };
     });
+    // Achievement: sale counts as coin earned (onboarding "Honest Coin")
+    emitAchievementEvent({ type: 'item_sold', targetId: item.id, amount: price });
+    emitAchievementEvent({ type: 'gold_earned', amount: price });
     addChatMessage(`Sold ${item.name} for ${price} Gold.`, 'system');
   };
 
@@ -1410,7 +1559,7 @@ export default function App() {
       };
     });
 
-    checkAchievement('ach_master_smith', 'Dwarven Temper');
+    emitAchievementEvent({ type: 'item_crafted', targetId: weapon.id });
     addChatMessage(`Torvald tempered your ${weapon.name}! (+4 Attack Power)`, 'system');
   };
 
@@ -1443,7 +1592,7 @@ export default function App() {
       };
     });
 
-    checkAchievement('ach_master_smith', 'Dwarven Temper');
+    emitAchievementEvent({ type: 'item_crafted', targetId: item.id });
     addChatMessage(`Successfully forged ${item.name}!`, 'system');
   };
 
@@ -1461,6 +1610,12 @@ export default function App() {
       activeQuests: prev.activeQuests.filter((q) => q.questId !== questId),
       completedQuests: [...prev.completedQuests, questId],
     }));
+
+    // Achievements: quest turn-in + quest gold (onboarding path + canon quests_completed counters)
+    emitAchievementEvent({ type: 'quest_completed', targetId: questId });
+    if (quest.rewards.gold > 0) {
+      emitAchievementEvent({ type: 'gold_earned', amount: quest.rewards.gold });
+    }
 
     addChatMessage(
       `Turned in quest: "${quest.title}"! Received ${quest.rewards.xp} XP and ${quest.rewards.gold} Gold!`,
@@ -1480,7 +1635,7 @@ export default function App() {
       y: targetZone.height / 2,
     }));
 
-    checkAchievement('ach_realm_traveler', 'Wayfarer of the Shards');
+    emitAchievementEvent({ type: 'zone_visited', targetId: zoneId });
     addChatMessage(`Teleported to ${targetZone.name}.`, 'system');
     setIsMapOpen(false);
   };
@@ -1489,6 +1644,9 @@ export default function App() {
   const handleSelectNpc = (npc: NPC | null) => {
     setSelectedNpc(npc);
     if (!npc) return;
+
+    // Achievement: NPC conversation (counter reserved for future social track)
+    emitAchievementEvent({ type: 'npc_talked', targetId: npc.id });
 
     if (npc.role === 'blacksmith') {
       setIsBlacksmithOpen(true);
@@ -1533,6 +1691,8 @@ export default function App() {
     }
 
     addChatMessage(text, 'global', player.name);
+    // Achievement: chat participation (counter reserved for future social track)
+    emitAchievementEvent({ type: 'chat_sent' });
   };
 
   // --- Character Creation / Switch ---
@@ -1556,6 +1716,15 @@ export default function App() {
 
     setPlayer(freshChar);
     setIsCharSelectOpen(false);
+
+    // Fresh achievement engine for the new character (re-fires ob_wake).
+    const engine = createEngineState();
+    applyAchievementEvent(engine, { type: 'session_started' });
+    achievementEngineRef.current = engine;
+    setUnlockedAchievementIds(Object.keys(engine.unlocked));
+    setAchievementToasts([]);
+    setPlayer((p) => ({ ...p, achievementProgress: toPersistedProgress(engine) }));
+
     addChatMessage(
       `Character created: ${name} the ${spec.name} ${cls.name}! Welcome to the world.`,
       'system'
@@ -1626,6 +1795,7 @@ export default function App() {
           setSelectedNpc(null);
         }}
         isMuted={isMuted}
+        unlockedAchievementCount={unlockedAchievementIds.length}
         onToggleMute={() => {
           soundEngine.isMuted = !isMuted;
           setIsMuted(!isMuted);
@@ -1698,8 +1868,15 @@ export default function App() {
 
       <AchievementsModal
         isOpen={isAchievementsOpen}
-        unlockedIds={player.unlockedAchievements}
+        unlockedIds={unlockedAchievementIds} engineState={achievementEngineRef.current}
         onClose={() => setIsAchievementsOpen(false)}
+      />
+      <AchievementToast
+        toasts={achievementToasts}
+        onDismiss={(unlock) =>
+          setAchievementToasts((prev) => prev.filter((t) => t.def.id !== unlock.def.id))
+        }
+        muted={isMuted}
       />
         </div>
       )}

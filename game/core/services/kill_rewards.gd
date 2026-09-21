@@ -26,6 +26,10 @@ const MAX_REWARD_SCALE: float = 5.0  # lowbie-farming cap
 # Killers more than this many levels above the enemy get the floor.
 const GREY_LEVEL_SPREAD: int = 8
 
+## Guard schema for the WatchTrigger enum (preload is parse-safe:
+## guard_data.gd has no autoload references).
+const GuardDataScript = preload("res://core/schemas/guard_data.gd")
+
 ## Entry point: resolve credit, grant rewards, broadcast the event.
 ## Emits only when a valid credit holder was resolved -- a creditless
 ## kill (wild animal died to fall damage, despawn, etc.) is not a
@@ -79,6 +83,20 @@ static func award_kill_detailed(entity, killer) -> Dictionary:
 	if credit == null:
 		return result
 	result["killer"] = credit
+
+	# GUARD HARDENING: guards are not XP/gold pinatas. Killing one pays
+	# nothing -- and IS the KILLING offense (worse than Assault): the
+	# dying guard reports the killer so the whole watch marks them.
+	if _is_guard(entity):
+		result["credit_source"] = "guard_no_reward"
+		if entity.has_method("report_offense") and _is_valid_combatant(credit) \
+				and "entity_id" in credit and not ("loot_table_id" in credit):
+			entity.report_offense(str(credit.entity_id), GuardDataScript.WatchTrigger.KILLING,
+					"killed %s" % str(entity.display_name))
+		var hub := _event_hub()
+		if hub != null and hub.has_signal("kill_rewarded"):
+			hub.kill_rewarded.emit(entity, credit, {"xp": 0, "gold": 0, "guard": true})
+		return result
 
 	# EnemyData is the data-driven source of truth when present.
 	var xp := 0
@@ -236,6 +254,16 @@ static func _enemy_data_of(entity) -> Resource:
 ## A valid credit holder: in-tree Node3D-ish combatant with an entity
 ## id. Deliberately duck-typed so PlayerController (not an Entity)
 ## qualifies -- same convention as the vertical slice.
+## Is the victim a guard? Duck-typed: guards expose report_offense and
+## carry GuardData; regular enemies never do either. Kept duck-typed so
+## this static stays script-mode safe (no preload of entity classes).
+static func _is_guard(victim) -> bool:
+	if victim == null or not (victim is Node):
+		return false
+	return victim.has_method("report_offense") and "guard_data" in victim \
+			and victim.get("guard_data") != null
+
+
 static func _is_valid_combatant(node) -> bool:
 	if node == null or not (node is Node):
 		return false

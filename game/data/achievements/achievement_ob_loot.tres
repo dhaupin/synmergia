@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ob_loot"
+display_name = "Spoils of War"
+description = "Pick up loot from the ground"
+achievement_type = 1
+category = 4
+rarity = 0
+target = 1
+target_type = "item"
+required_achievements = ["ob_first_kill"]
+gold_reward = 50
+xp_reward = 50
+title_reward = ""
+icon_path = "res://icons/achievements/ob_loot.png"
+sort_order = 104

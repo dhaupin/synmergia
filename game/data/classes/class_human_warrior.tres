@@ -43,7 +43,7 @@ attack_power_per_level = 2
 base_spell_power = 5
 spell_power_per_level = 1
 
-starting_skills = []
+starting_skills = ["human_strike", "human_shield_bash"]
 skill_tree_unlocks = {}
 
 respec_cost_gold = 500

@@ -116,6 +116,7 @@ export interface PlayerCharacter {
   activeQuests: { questId: string; progress: number }[];
   completedQuests: string[];
   unlockedAchievements: string[];
+  achievementProgress?: AchievementProgress;
   x: number;
   y: number;
   zoneId?: ZoneId;
@@ -190,13 +191,135 @@ export interface Quest {
   };
 }
 
+export type AchievementCategoryId =
+  | 'combat'
+  | 'social'
+  | 'economy'
+  | 'exploration'
+  | 'progression';
+
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'epic';
+
+export type AchievementTriggerType = 'instant' | 'counter' | 'first_session';
+
+/** Canonical definition merged from godot_data.json (.tres source of truth) + web tuning. */
+export interface AchievementDef {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: AchievementCategoryId;
+  tier: AchievementTier;
+  trigger: AchievementTriggerType;
+  /** Counter key this achievement reads (when trigger is counter/threshold). */
+  counter?: AchievementCounterKey;
+  /** Unlock threshold for counter achievements. */
+  target?: number;
+  /** Gold awarded on unlock (from .tres gold_reward). */
+  goldReward: number;
+  /** XP awarded on unlock (from .tres xp_reward). */
+  xpReward: number;
+  /** Title granted on unlock (from .tres title_reward -> TitleData). */
+  titleReward?: string;
+  /** Event types that instantly unlock this achievement (trigger === 'instant'). */
+  instantOn?: AchievementEventType[];
+  /** Points shown in the Hall of Valor. */
+  points: number;
+  /** Onboarding chain id (e.g. 'onboarding'); non-chain achievements omit this. */
+  chain?: string;
+  /** Sort position within the chain (1-based) — unlocks gate on the previous step. */
+  chainStep?: number;
+}
+
+export type AchievementCounterKey =
+  | 'kills'
+  | 'boss_kills'
+  | 'bandit_kills'
+  | 'elite_kills'
+  | 'gold_earned'
+  | 'items_collected'
+  | 'items_sold'
+  | 'items_crafted'
+  | 'potions_used'
+  | 'skills_cast'
+  | 'crits'
+  | 'quests_completed'
+  | 'zones_visited'
+  | 'chat_messages'
+  | 'npcs_talked';
+
+export type AchievementEventType =
+  | 'session_started'
+  | 'enemy_defeated'
+  | 'crit_landed'
+  | 'gold_earned'
+  | 'item_bought'
+  | 'item_sold'
+  | 'item_crafted'
+  | 'item_looted'
+  | 'potion_used'
+  | 'skill_cast'
+  | 'quest_completed'
+  | 'zone_visited'
+  | 'chat_sent'
+  | 'npc_talked'
+  | 'level_up'
+  | 'party_joined'
+  | 'guild_joined'
+  | 'trade_completed';
+
+export interface AchievementEvent {
+  type: AchievementEventType;
+  /** Enemy templateId for kills, item id for economy, zone id for travel, etc. */
+  targetId?: string;
+  amount?: number;
+  isBoss?: boolean;
+  isElite?: boolean;
+  meta?: Record<string, unknown>;
+}
+
+export interface AchievementCounters {
+  kills: number;
+  boss_kills: number;
+  bandit_kills: number;
+  elite_kills: number;
+  gold_earned: number;
+  items_collected: number;
+  items_sold: number;
+  items_crafted: number;
+  potions_used: number;
+  skills_cast: number;
+  crits: number;
+  quests_completed: number;
+  zones_visited: number;
+  chat_messages: number;
+  npcs_talked: number;
+  [key: string]: number;
+}
+
+/** Persisted with the character save so onboarding chains survive reloads. */
+export interface AchievementProgress {
+  /** id -> unlock timestamp (0 = migrated, time unknown). */
+  unlocked: Record<string, number>;
+  counters: AchievementCounters;
+  /** Zone ids already credited toward zones_visited. */
+  visitedZones: string[];
+}
+
+export interface AchievementUnlock {
+  def: AchievementDef;
+  unlockedAt: number;
+}
+
 export interface Achievement {
   id: string;
   title: string;
   description: string;
   icon?: string;
-  category?: 'combat' | 'exploration' | 'progression' | 'crafting';
+  category?: AchievementCategoryId;
   unlocked: boolean;
+  points?: number;
+  tier?: AchievementTier;
 }
 
 export interface ZoneGateway {
@@ -249,4 +372,12 @@ export interface ChatMessage {
   channel: 'global' | 'local' | 'party' | 'guild' | 'system' | 'combat' | 'all';
   text: string;
   timestamp: string | number;
+}
+
+/** WebSocket message emitted by the authoritative server when it unlocks an achievement. */
+export interface AchievementUnlockedMessage {
+  achievementId?: string;
+  id?: string;
+  title?: string;
+  playerId?: string;
 }

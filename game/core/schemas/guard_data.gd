@@ -77,6 +77,13 @@ enum GuardDuty {
 @export var forgive_after_seconds: float = 0.0 # 0 = permanent grudge (never forget)
 @export var attack_on_sight_karma_below: int = -100  # Karma-based wanted level
 
+## Durability. Lawful guards (town watch, house guards) are NOT loot/XP
+## pinatas and never truly die: at 0 HP they are DOWNED, then respawn
+## at their post after respawn_delay seconds. Non-lawful guards (arena
+## foes, event guards) use the normal enemy death path.
+@export var is_lawful: bool = true
+@export var respawn_delay: float = 30.0
+
 ## NPC face: dialog/offering ref ids so the guard still talks like an NPC.
 @export var npc_data_id: String = ""           # NPCData id for the friendly face
 @export var greeting_text: String = "Move along, citizen."

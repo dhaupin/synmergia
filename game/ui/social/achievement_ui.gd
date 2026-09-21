@@ -3,7 +3,7 @@ extends "res://ui/components/ui_panel.gd"
 class_name AchievementUI
 const AchievementData = preload("res://core/schemas/achievement_data.gd")
 
-var _achievement_defs: Dictionary = {}
+var _achievement_defs = {}  # Array of AchievementData (untyped: service may return Array)
 var _current_category: int = -1  # -1 = all categories
 var _category_buttons: Array[Button] = []
 
@@ -23,9 +23,16 @@ func _setup_ui() -> void:
 	if not panel:
 		return
 
+	# The base _ensure_panel() only creates "Panel"; every social panel
+	# builds its own "Main" body container (see party_ui/guild_ui). Create
+	# it here or the panel renders as an empty frame.
 	var main: VBoxContainer = panel.get_node_or_null("Main")
 	if not main:
-		return
+		main = VBoxContainer.new()
+		main.name = "Main"
+		main.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		panel.add_child(main)
+	main.add_theme_constant_override("separation", 8)
 
 	# Stats
 	var stats := Label.new()
@@ -107,12 +114,18 @@ func _load_achievement_definitions() -> void:
 	if root:
 		var ach_inst: Node = root.get_node_or_null("AchievementService")
 		if ach_inst and ach_inst.has_method("get_all_achievements"):
-			_achievement_defs = ach_inst.get_all_achievements()
+			# The service returns an Array of AchievementData; re-fetch each
+			# open so late-loaded defs (or reload_all) are picked up.
+			var defs = ach_inst.get_all_achievements()
+			_achievement_defs = defs if defs is Array else []
 
 func _get_achievement_list() -> Array:
 	var list: Array = []
-	for ach_id in _achievement_defs:
-		list.append(_achievement_defs[ach_id])
+	if _achievement_defs is Array:
+		list = _achievement_defs.duplicate()
+	elif _achievement_defs is Dictionary:
+		for ach_id in _achievement_defs:
+			list.append(_achievement_defs[ach_id])
 	list.sort_custom(func(a, b): return a.sort_order < b.sort_order)
 	return list
 
@@ -174,9 +187,9 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 
 	var is_unlocked: bool = progress.get("unlocked", false)
 
-	# Icon
+	# Icon: plain-text glyph (no UTF-8 per code standards).
 	var icon := Label.new()
-	icon.text = "" if is_unlocked else ""
+	icon.text = "OK" if is_unlocked else "--"
 	icon.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold if is_unlocked else UIStyles.COLORS.text_disabled)
 	icon.custom_minimum_size.x = 30
 	hbox.add_child(icon)
@@ -209,7 +222,7 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 		progress_bar.show_percentage = false
 
 		var progress_val: float = progress.get("progress", 0.0)
-		var percentage: float = ach.get_progress_percentage(progress_val)
+		var percentage: float = ach.get_progress_percentage(int(progress_val))
 		progress_bar.value = percentage * 100
 
 		# Color based on completion
@@ -229,8 +242,9 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 
 	if ach.gold_reward > 0:
 		var gold_lbl := Label.new()
-		gold_lbl.text = " %d" % ach.gold_reward
+		gold_lbl.text = "Gold: %d" % ach.gold_reward
 		gold_lbl.add_theme_font_size_override("font_size", 10)
+		gold_lbl.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 		rewards_vbox.add_child(gold_lbl)
 
 	if ach.xp_reward > 0:
@@ -241,7 +255,7 @@ func _create_achievement_row(ach: AchievementData, progress: Dictionary) -> Cont
 
 	if ach.title_reward != "":
 		var title_lbl := Label.new()
-		title_lbl.text = " Title"
+		title_lbl.text = "Title: %s" % ach.title_reward
 		title_lbl.add_theme_font_size_override("font_size", 10)
 		title_lbl.add_theme_color_override("font_color", UIStyles.COLORS.warning)
 		rewards_vbox.add_child(title_lbl)

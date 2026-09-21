@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "first_boss"
+display_name = "Giant Slayer"
+description = "Defeat your first boss"
+achievement_type = 0
+category = 0
+rarity = 3
+target = 1
+target_type = "boss"
+required_achievements = []
+gold_reward = 250
+xp_reward = 250
+title_reward = ""
+icon_path = "res://icons/achievements/first_boss.png"
+sort_order = 56

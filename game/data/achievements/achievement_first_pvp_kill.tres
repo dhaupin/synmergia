@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "first_pvp_kill"
+display_name = "First Blood Between Kin"
+description = "Defeat another player in PvP"
+achievement_type = 0
+category = 0
+rarity = 2
+target = 1
+target_type = "player_kill"
+required_achievements = []
+gold_reward = 100
+xp_reward = 100
+title_reward = ""
+icon_path = "res://icons/achievements/first_pvp_kill.png"
+sort_order = 55

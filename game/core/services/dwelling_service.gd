@@ -26,6 +26,10 @@ const ANKH_SCRIPT_PATH := "res://core/schemas/ankh.gd"  # runtime load (class_na
 
 signal plot_purchased(player_id: String, plot_id: String, price: int)
 signal object_placed(player_id: String, plot_id: String, object_type: String, object_id: String)
+signal object_removed(player_id: String, plot_id: String, object_type: String, object_id: String)
+signal house_built(player_id: String, plot_id: String, house_id: String)
+
+const HOUSE_COST := 750000  # the actual house: walls, door, roof, and a roof to sleep under
 
 const DEFAULT_PLOT_PRICE := 50000
 const HOUSE_GUARD_COST := 250000   # The 250k-gold dream, as requested.
@@ -286,6 +290,10 @@ func handle_dwelling_command(sender_id: String, command: String, args: Array) ->
 			return _cmd_place(sender_id, player, pos, "guard", args)
 		"placeankh":
 			return _cmd_place(sender_id, player, pos, "ankh", args)
+		"dismissguard":
+			return _cmd_dismiss_guard(sender_id, player, pos)
+		"buildhouse":
+			return _cmd_build_house(sender_id, player, pos)
 		"plotinfo":
 			var plot := get_nearest_plot(pos, "")
 			if plot.is_empty():
@@ -314,6 +322,161 @@ func _cmd_place(sender_id: String, player, pos: Vector3, kind: String, args: Arr
 		placed = place_personal_ankh(player, str(plot["id"]))
 	if placed == null:
 		_notify(sender_id, "Placement failed (not owner, already placed, or not enough gold).")
+	return true
+
+## Dismiss the house guard on YOUR plot: unregisters it from the
+## EntityService, frees the node, clears the plot's guard slot. No
+## refund (the guard was paid for; fair-weather employers eat the cost).
+func _cmd_dismiss_guard(sender_id: String, player, pos: Vector3) -> bool:
+	var plot := get_nearest_plot(pos, "owned")
+	if plot.is_empty() or str(plot["owner_id"]) != sender_id:
+		_notify(sender_id, "You must stand on your own plot.")
+		return true
+	var guard_id := str(plot.get("guard_id", ""))
+	if guard_id == "":
+		_notify(sender_id, "You have no house guard here.")
+		return true
+	var es = _svc("EntityService")
+	var guard = null
+	if es != null and es.has_method("get_entity"):
+		guard = es.get_entity(guard_id)
+	if guard == null or not is_instance_valid(guard):
+		# Registry lost the node (scene reload): just clear the slot.
+		plot["guard_id"] = ""
+		_notify(sender_id, "Guard slot cleared.")
+		return true
+	if es != null and es.has_method("unregister_by_id"):
+		es.unregister_by_id(guard_id, "dismissed")
+	guard.queue_free()
+	plot["guard_id"] = ""
+	object_removed.emit(sender_id, str(plot["id"]), "guard", guard_id)
+	_notify(sender_id, "House guard dismissed.")
+	GameLog.info("DwellingService: %s dismissed house guard %s on plot %s" % [sender_id, guard_id, str(plot["id"])])
+	return true
+
+## ------------------------------------------------------------------
+## THE HOUSE ITSELF: a 3D structure you can walk into.
+## ------------------------------------------------------------------
+
+## Build a wooden house on the plot: floor, four walls with a doorway
+## gap (front), and a gabled roof, all with StaticBody collision so the
+## player physically enters and exists inside. The plot's house_id is
+## stamped; one house per plot.
+func build_house(player, plot_id: String) -> Dictionary:
+	if player == null or not ("entity_id" in player):
+		return {"ok": false, "reason": "invalid_player"}
+	var pid := str(player.entity_id)
+	var plot: Dictionary = _plots.get(plot_id, {})
+	if plot.is_empty():
+		return {"ok": false, "reason": "unknown_plot"}
+	if str(plot["owner_id"]) != pid:
+		return {"ok": false, "reason": "not_owner"}
+	if str(plot.get("house_id", "")) != "":
+		return {"ok": false, "reason": "already_built"}
+	if not _spend_gold(player, HOUSE_COST):
+		return {"ok": false, "reason": "insufficient_gold"}
+
+	var house := _build_house_node(str(plot["id"]), plot["center"])
+	if not _spawn_at(house, plot):
+		house.queue_free()
+		return {"ok": false, "reason": "spawn_failed"}
+	plot["house_id"] = house.name
+	house_built.emit(pid, plot_id, house.name)
+	GameLog.info("DwellingService: %s built a house on plot %s (%d gold)" % [pid, plot_id, HOUSE_COST])
+	return {"ok": true, "house_id": house.name}
+
+
+## Construct the structure node. Geometry: a 6x6m footprint, 3m walls,
+## doorway gap (1.4m wide) centered on the +Z wall, gabled roof. Every
+## piece is a StaticBody3D + CollisionShape3D + MeshInstance3D so the
+## player can walk in but not through walls.
+func _build_house_node(house_id: String, center: Vector3) -> StaticBody3D:
+	var house := StaticBody3D.new()
+	house.name = "house_%s" % house_id
+
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.55, 0.38, 0.22)  # plank brown
+	var darker := StandardMaterial3D.new()
+	darker.albedo_color = Color(0.42, 0.28, 0.16)  # beam brown
+
+	var parts: Array = [
+		# [size, center-y from ground, material]
+		[Vector3(6.0, 0.2, 6.0), 0.1, wood],    # floor
+		[Vector3(6.0, 3.0, 0.2), 1.7, wood],    # back wall (-Z)
+		[Vector3(0.2, 3.0, 6.0), 1.7, wood],    # left wall (-X)
+		[Vector3(0.2, 3.0, 6.0), 1.7, wood],    # right wall (+X)
+		[Vector3(2.3, 3.0, 0.2), 1.7, wood],    # front wall left of door
+		[Vector3(2.3, 3.0, 0.2), 1.7, wood],    # front wall right of door
+		[Vector3(1.4, 0.8, 0.2), 2.6, wood],    # door lintel (above the 2.2m gap)
+	]
+	var offsets: Array = [
+		Vector3(0, 0, 0),
+		Vector3(0, 0, -2.9),
+		Vector3(-2.9, 0, 0),
+		Vector3(2.9, 0, 0),
+		Vector3(-1.85, 0, 2.9),
+		Vector3(1.85, 0, 2.9),
+		Vector3(0, 0, 2.9),
+	]
+	for i in parts.size():
+		var size: Vector3 = parts[i][0]
+		var piece := StaticBody3D.new()
+		piece.name = "piece_%d" % i
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = size
+		shape.shape = box
+		piece.add_child(shape)
+		var mesh := MeshInstance3D.new()
+		var box_mesh := BoxMesh.new()
+		box_mesh.size = size
+		box_mesh.material = parts[i][2]
+		mesh.mesh = box_mesh
+		piece.add_child(mesh)
+		house.add_child(piece)
+		# Position: x/z from the layout, y = the piece's own center height.
+		piece.position = Vector3(offsets[i].x, float(parts[i][1]), offsets[i].z)
+
+	# Gabled roof: two slabs meeting at a ridge, no collision interior
+	# issues since the player is below them.
+	var roof_mat := StandardMaterial3D.new()
+	roof_mat.albedo_color = Color(0.35, 0.2, 0.14)  # shingle brown
+	for side in [-1.0, 1.0]:
+		var slab := StaticBody3D.new()
+		slab.name = "roof_%s" % ("neg" if side < 0 else "pos")
+		var rshape := CollisionShape3D.new()
+		var rbox := BoxShape3D.new()
+		rbox.size = Vector3(3.6, 0.15, 6.6)
+		rshape.shape = rbox
+		slab.add_child(rshape)
+		var rmesh := MeshInstance3D.new()
+		var rmesh_box := BoxMesh.new()
+		rmesh_box.size = Vector3(3.6, 0.15, 6.6)
+		rmesh_box.material = roof_mat
+		rmesh.mesh = rmesh_box
+		slab.add_child(rmesh)
+		slab.rotation = Vector3(0, 0, side * 0.5)  # ~30 degrees pitch
+		slab.position = Vector3(side * 1.55, 3.85, 0)
+		house.add_child(slab)
+	return house
+
+
+func _cmd_build_house(sender_id: String, player, pos: Vector3) -> bool:
+	var plot := get_nearest_plot(pos, "owned")
+	if plot.is_empty() or str(plot["owner_id"]) != sender_id:
+		_notify(sender_id, "You must stand on your own plot to build.")
+		return true
+	var result := build_house(player, str(plot["id"]))
+	if result["ok"]:
+		_notify(sender_id, "House built! Your home stands at last.")
+	else:
+		var why := str(result["reason"])
+		if why == "already_built":
+			_notify(sender_id, "You already have a house here.")
+		elif why == "insufficient_gold":
+			_notify(sender_id, "Not enough gold (%d needed)." % HOUSE_COST)
+		else:
+			_notify(sender_id, "Build failed: %s." % why)
 	return true
 
 ## Player feedback. NotificationService may be absent in script mode.

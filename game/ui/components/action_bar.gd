@@ -113,7 +113,7 @@ func load_from_character(char_data: CharacterData) -> void:
 			else:
 				update_slot(global_index, {})
 
-func _schema_to_dict(schema: Skill, char_data: CharacterData) -> Dictionary:
+func _schema_to_dict(schema: SkillSchema, char_data: CharacterData) -> Dictionary:
 	# Skill properties are accessed directly (Resource.get(key, default) is
 	# removed in 4.7.2); id falls back to display_name.
 	var dict := {
@@ -408,6 +408,12 @@ func _on_player_input(action: String, pressed: bool) -> void:
 
 	if slot_index >= 0:
 		_use_slot(slot_index)
+		# Route to the local player's skillbar: keys 1-8 cast the bound
+		# skill via PlayerController.use_skill (CombatSystem resolves
+		# target/damage from there). Was visual-only before this.
+		var player = get_tree().get_first_node_in_group("players")
+		if player != null and player.has_method("use_skill"):
+			player.use_skill(slot_index)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:

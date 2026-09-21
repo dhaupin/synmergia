@@ -55,6 +55,8 @@ interface HUDProps {
   onClearTarget: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  /** Number of achievements unlocked (renders a badge on the trophy). */
+  unlockedAchievementCount?: number;
 }
 
 // Icon helper mapping
@@ -120,6 +122,7 @@ export const HUD: React.FC<HUDProps> = ({
   onClearTarget,
   isMuted,
   onToggleMute,
+  unlockedAchievementCount,
 }) => {
   const hpPercent = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
   const mpPercent = Math.max(0, Math.min(100, (player.mp / player.maxMp) * 100));
@@ -452,10 +455,15 @@ export const HUD: React.FC<HUDProps> = ({
             <button
               id="open-achievements-btn"
               onClick={onToggleAchievements}
-              className="p-2 rounded-lg text-slate-300 hover:text-amber-300 hover:bg-slate-800 transition"
+              className="p-2 rounded-lg text-slate-300 hover:text-amber-300 hover:bg-slate-800 transition relative"
               title="Achievements [H]"
             >
               <Trophy className="w-5 h-5" />
+              {(unlockedAchievementCount ?? 0) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 text-[9px] font-bold px-1 rounded-full border border-slate-900">
+                  {unlockedAchievementCount}
+                </span>
+              )}
             </button>
           </div>
         </div>

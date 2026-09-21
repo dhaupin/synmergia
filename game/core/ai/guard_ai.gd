@@ -44,6 +44,18 @@ func _exit_tree() -> void:
 	_leave_watch_group()
 
 
+## Called when the guard reforms at its post after being downed: drop
+## the fight (target, threat, chase state) but KEEP the watchlist -- a
+## downed guard does not forget who downed them.
+func reset_combat() -> void:
+	var entity = get_parent()
+	if entity != null and "aggro_component" in entity and entity.aggro_component != null \
+			and entity.aggro_component.has_method("clear_all_threat"):
+		entity.aggro_component.clear_all_threat()
+	_clear_target()
+	set_state(AIState.IDLE)
+
+
 ## Attach the guard's data definition.
 func setup(data) -> void:
 	guard_data = data
@@ -325,6 +337,11 @@ func _decay_grudges() -> void:
 
 ## Guards never leash-forget (no RETURN forgiveness). Their patrol
 ## behavior is "return to post", not "return to spawn and forget".
+## HOUSE-GUARD LEASH: a PERSONAL guard whose watch_area_radius is set
+## treats the post as a hard fence -- if a fight carries it beyond the
+## fence, it disengages entirely and walks home (no target re-acquire
+## past the fence). Town watches use the wide jurisdiction radius, so
+## they are unaffected in practice.
 func _update_return(_delta: float) -> void:
 	var entity = get_parent()
 	if entity == null:
@@ -338,11 +355,49 @@ func _update_return(_delta: float) -> void:
 	entity.move_direction = dir
 
 
+## Hard fence for posted guards (house guards never chase past it).
+## Returns true when the guard is beyond its leash and must disengage.
+func _beyond_leash() -> bool:
+	if guard_data == null:
+		return false
+	# Only guards WITH a personal duty (or a tiny radius) leash hard;
+	# town watches roam their whole jurisdiction.
+	if guard_data.guard_duty != GuardData.GuardDuty.PERSONAL:
+		return false
+	var leash := float(guard_data.watch_area_radius)
+	if leash <= 0.0:
+		leash = 20.0  # sane default fence for a plot-sized guard
+	var entity = get_parent()
+	if entity == null:
+		return false
+	return entity.global_position.distance_to(_guard_post()) > leash
+
+
 func _guard_post() -> Vector3:
 	if guard_data != null:
 		return guard_data.post_position
 	var entity = get_parent()
 	return entity._spawn_position if entity != null and "_spawn_position" in entity else Vector3.ZERO
+
+
+## CHASE override: the house-guard fence applies while chasing too --
+## a lured guard drops the chase at the fence and walks home.
+func _update_chase(delta: float) -> void:
+	if _beyond_leash():
+		_clear_target()
+		set_state(AIState.RETURN)
+		return
+	super._update_chase(delta)
+
+
+## COMBAT override: same fence mid-combat, so a guard being kited
+## cannot be dragged off its post forever.
+func _update_combat(delta: float) -> void:
+	if _beyond_leash():
+		_clear_target()
+		set_state(AIState.RETURN)
+		return
+	super._update_combat(delta)
 
 
 ## Handle being damaged: the ATTACKED trigger. Attacking a guard is

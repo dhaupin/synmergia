@@ -199,10 +199,15 @@ func execute(caster, target= null, ground_pos: Vector3 = Vector3.ZERO) -> Dictio
 	result["success"] = true
 	return result
 
-func _consume_resources(caster: ) -> void:
-	caster.current_mana -= mana_cost
-	caster.current_stamina -= stamina_cost
-	caster.current_health -= health_cost
+func _consume_resources(caster) -> void:
+	# Duck-typed: casters (PlayerController, Entity, test stubs) carry
+	# different subsets of the resource fields; only deduct what exists.
+	if mana_cost > 0 and "current_mana" in caster:
+		caster.current_mana -= mana_cost
+	if stamina_cost > 0 and "current_stamina" in caster:
+		caster.current_stamina -= stamina_cost
+	if health_cost > 0 and "current_health" in caster:
+		caster.current_health -= health_cost
 
 func _apply_effects(caster, target, ground_pos: Vector3, result: Dictionary) -> void:
 	for effect in effects:

@@ -689,6 +689,10 @@ func quick_same_account_trade(from_id: String, to_id: String,
 		result["success"] = r1["success"] and r2["success"]
 		result["from_transfer"] = r1
 		result["to_transfer"] = r2
+		# Attribute the trade so signal consumers know the parties
+		# (transfer result dicts do not carry the character ids).
+		result["from_id"] = from_id
+		result["to_id"] = to_id
 		trade_completed.emit("", result)
 		return result
 	# Fallback to inventory service

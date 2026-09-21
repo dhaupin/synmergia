@@ -58,7 +58,7 @@ var _keybindings: Dictionary = {
 	"jump": [KEY_SPACE],
 	"dodge": [KEY_Q],
 	"sprint": [KEY_SHIFT],
-	"interact": [KEY_E, KEY_F],
+	"interact": [KEY_E],
 	"target_self": [KEY_F1],
 	"target_nearest": [KEY_F2],
 	"target_previous": [KEY_TAB],
@@ -239,6 +239,13 @@ func _handle_event(event: InputEvent) -> void:
 			_handle_controller(event)
 
 func _handle_keyboard_mouse(event: InputEvent) -> void:
+	# Text entry guard: while the user is typing in a chat LineEdit or
+	# any text field, gameplay keys must be inert (typing WASD in chat
+	# must not walk the character). _input runs BEFORE GUI focus
+	# consumes the event, so this check is the only thing standing
+	# between the keyboard and the player.
+	if _is_text_entry_focused():
+		return
 	# Keyboard actions
 	if event is InputEventKey and event.pressed:
 		var action := _get_keyboard_action(event)
@@ -322,6 +329,19 @@ func _get_keyboard_action(event: InputEventKey) -> String:
 			return action
 	return ""
 
+
+## True while the user is typing into a text control (chat input,
+## admin shell, settings fields). Guards both the event pipeline and
+## the raw-key movement poll.
+func _is_text_entry_focused() -> bool:
+	var loop := Engine.get_main_loop()
+	if loop == null or not (loop is SceneTree):
+		return false
+	var focus: Control = (loop as SceneTree).root.gui_get_focus_owner()
+	if focus == null:
+		return false
+	return focus is LineEdit or focus is TextEdit or focus is CodeEdit
+
 func _get_controller_action(button: int) -> String:
 	for action in _controller_mappings:
 		var mapping: Dictionary = _controller_mappings[action]
@@ -356,6 +376,10 @@ func is_controller_connected() -> bool:
 	return _controller_id >= 0
 
 func get_movement_input() -> Vector2:
+	# Text entry guard: raw-key polling ignores GUI focus, so chat
+	# typing would otherwise keep driving movement.
+	if _is_text_entry_focused():
+		return Vector2.ZERO
 	# Priority: Controller > Touch joystick > Keyboard
 	if _input_mode == InputMode.CONTROLLER and _controller_left_stick.length() > 0:
 		return _controller_left_stick
