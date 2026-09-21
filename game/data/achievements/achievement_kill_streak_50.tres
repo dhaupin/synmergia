@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "kill_streak_50"
+display_name = "Unkillable"
+description = "Kill 50 enemies without dying"
+achievement_type = 0
+category = 0
+rarity = 4
+target = 1
+target_type = "kill_streak"
+required_achievements = ["kill_streak_25"]
+gold_reward = 250
+xp_reward = 400
+title_reward = "unkillable"
+icon_path = "res://icons/achievements/kill_streak_50.png"
+sort_order = 24

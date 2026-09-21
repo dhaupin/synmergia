@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "kill_streak_10"
+display_name = "Bloodthirsty"
+description = "Kill 10 enemies without dying"
+achievement_type = 0
+category = 0
+rarity = 2
+target = 1
+target_type = "kill_streak"
+required_achievements = ["kill_streak_5"]
+gold_reward = 50
+xp_reward = 50
+title_reward = "bloodthirsty"
+icon_path = "res://icons/achievements/kill_streak_10.png"
+sort_order = 22

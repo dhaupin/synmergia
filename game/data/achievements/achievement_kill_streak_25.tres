@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "kill_streak_25"
+display_name = "Juggernaut"
+description = "Kill 25 enemies without dying"
+achievement_type = 0
+category = 0
+rarity = 3
+target = 1
+target_type = "kill_streak"
+required_achievements = ["kill_streak_10"]
+gold_reward = 100
+xp_reward = 150
+title_reward = "juggernaut"
+icon_path = "res://icons/achievements/kill_streak_25.png"
+sort_order = 23

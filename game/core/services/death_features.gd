@@ -394,8 +394,6 @@ func record_kill_for_streak(killer_id: String, victim_id: String) -> void:
 	if streak_data["streak"] > streak_data["best_streak"]:
 		streak_data["best_streak"] = streak_data["streak"]
 		_persist_kill_streak(killer_id)
-		if AchievementService:
-			AchievementService.unlock(killer_id, "kill_streak_%d" % streak_data["streak"])
 
 	# Check for threshold
 	var thresholds: Array = Config.KILL_STREAK_THRESHOLDS
@@ -403,6 +401,10 @@ func record_kill_for_streak(killer_id: String, victim_id: String) -> void:
 		if streak_data["streak"] == threshold:
 			kill_streak_increased.emit(killer_id, streak_data["streak"], threshold)
 			_apply_kill_streak_reward(killer_id, streak_data["streak"])
+			# Streak achievements exist only for configured thresholds; the
+			# unlock is direct (event achievements, not counters).
+			if AchievementService:
+				AchievementService.unlock(killer_id, "kill_streak_%d" % threshold)
 
 			# Announce if enabled
 			if Config.ANNOUNCE_KILL_STREAKS and streak_data["streak"] >= Config.KILL_STREAK_ANNOUNCE_THRESHOLD:

@@ -164,9 +164,23 @@ func _handle_playing_state() -> void:
 		var cd := selected_character_data as CharacterData
 		var player_id := cd.character_id if cd else ""
 		if not player_id.is_empty():
-			player_entered_world.emit(player_id, selected_character_data)
-			if get_node_or_null("/root/GameLog"):
-				get_node_or_null("/root/GameLog").info("Emitted player_entered_world for: %s" % player_id)
+			notify_player_entered_world(player_id, selected_character_data)
+
+## Emit player_entered_world exactly once per player per boot. Both the
+## login flow and direct world_playable scene runs route through here so
+## services listening on this signal (StarterKitService, the achievement
+## onboarding chain) never double-fire.
+var _entered_world_ids: Dictionary = {}
+
+func notify_player_entered_world(player_id: String, character_data = null) -> void:
+	if player_id.is_empty():
+		return
+	if _entered_world_ids.has(player_id):
+		return
+	_entered_world_ids[player_id] = true
+	player_entered_world.emit(player_id, character_data)
+	if get_node_or_null("/root/GameLog"):
+		get_node_or_null("/root/GameLog").info("Emitted player_entered_world for: %s" % player_id)
 
 func _show_loading_and_change_scene(scene_path: String, status_text: String) -> void:
 	var LoadingUI = load("res://ui/components/loading_ui.gd")

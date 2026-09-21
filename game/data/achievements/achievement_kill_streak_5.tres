@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "kill_streak_5"
+display_name = "On Fire"
+description = "Kill 5 enemies without dying"
+achievement_type = 0
+category = 0
+rarity = 1
+target = 1
+target_type = "kill_streak"
+required_achievements = ["kill_streak_3"]
+gold_reward = 25
+xp_reward = 0
+title_reward = "streaker"
+icon_path = "res://icons/achievements/kill_streak_5.png"
+sort_order = 21

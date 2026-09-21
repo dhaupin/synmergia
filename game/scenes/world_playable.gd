@@ -28,6 +28,8 @@ func _ready() -> void:
 	_setup_guards()
 	_setup_housing()
 	_setup_hud_bridge()
+	_notify_world_entry()
+	_enter_scene_zone()
 
 
 func _apply_character_data(data: Resource) -> void:
@@ -85,6 +87,43 @@ func _register_player() -> void:
 	_player_registered = true
 
 	GameLog.info("WorldPlayable: player registered as %s" % player.entity_id)
+
+
+## Fire the world-entry event for direct playable-scene runs. The login
+## flow emits this in GameManager._handle_playing_state; when the scene
+## is run directly there is no login, so the scene does it here. The
+## dedupe in GameManager keeps both paths idempotent.
+func _notify_world_entry() -> void:
+	var player := get_node_or_null("Player")
+	if player == null or not ("entity_id" in player):
+		return
+	var player_id := str(player.entity_id)
+	if player_id == "":
+		return
+	if GameManager and GameManager.has_method("notify_player_entered_world"):
+		GameManager.notify_player_entered_world(player_id, GameManager.selected_character_data)
+
+
+## Place the player in the starter zone so ZoneManager signals fire for
+## direct playable-scene runs (achievement zone tracking, minimap, etc).
+## Zones self-register in ZoneManager._ready before this scene loads.
+func _enter_scene_zone() -> void:
+	if ZoneManager == null or not ZoneManager.has_method("entity_enter_zone"):
+		return
+	var player := get_node_or_null("Player")
+	if player == null or not ("entity_id" in player):
+		return
+	# Direct scene runs skip WorldService.initialize_world (the login path's
+	# zone loader), so load zone defs on demand the first time.
+	var zone = ZoneManager.get_zone("starter_plains")
+	if zone == null and ZoneManager.has_method("load_zones"):
+		ZoneManager.load_zones()
+		zone = ZoneManager.get_zone("starter_plains")
+	if zone == null:
+		GameLog.warn("WorldPlayable: starter_plains zone not registered")
+		return
+	if not ZoneManager.entity_enter_zone(player, zone):
+		GameLog.warn("WorldPlayable: could not place player in starter_plains")
 
 
 ## Give every scene-placed enemy an AI brain and a service registration.
