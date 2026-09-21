@@ -18,6 +18,9 @@
 [ext_resource type="Resource" path="res://data/npc/village_elder.tres" id="16_elder_data"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_layer.tscn" id="13_hud"]
 [ext_resource type="Script" path="res://core/schemas/ankh.gd" id="17_ankh"]
+[ext_resource type="Script" path="res://entities/guard.gd" id="18_guard"]
+[ext_resource type="Resource" path="res://data/guards/guard_town.tres" id="19_guard_data"]
+[ext_resource type="Resource" path="res://data/guards/guard_town.tres" id="20_guard_data2"]
 
 [sub_resource type="StandardMaterial3D" id="SubResource_floor_mat"]
 albedo_color = Color(0.35, 0.55, 0.25, 1)
@@ -220,6 +223,19 @@ shape = SubResource("SubResource_bandit_hitbox")
 material_override = SubResource("SubResource_bandit_mat")
 mesh = SubResource("SubResource_bandit_mesh")
 
+
+
+[node name="TownGuardA" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.9, -3)
+script = ExtResource("18_guard")
+guard_data = ExtResource("19_guard_data")
+display_name = "Town Guard"
+
+[node name="TownGuardB" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.9, -9)
+script = ExtResource("18_guard")
+guard_data = ExtResource("20_guard_data2")
+display_name = "Town Guard"
 
 [node name="MerchantNPC" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.9, -5)

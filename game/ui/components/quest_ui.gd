@@ -152,6 +152,9 @@ func _on_tab_clicked(tab_id: int) -> void:
 	refresh_quest_list()
 
 func refresh_quest_list() -> void:
+	# _ready can reach here via _connect_signals before the list is built.
+	if _quest_list == null:
+		return
 	# Clear list
 	for child in _quest_list.get_children():
 		child.queue_free()

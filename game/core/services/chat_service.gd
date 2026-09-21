@@ -409,7 +409,63 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_feedback(sender_id, args)
 		"suggest":
 			return _cmd_suggest(sender_id, args)
+		"duel":
+			return _cmd_duel(sender_id, args)
+		"accept":
+			return _cmd_duel_accept(sender_id)
+		"decline":
+			return _cmd_duel_decline(sender_id)
+		"concede":
+			return _cmd_duel_concede(sender_id)
+		"lootrule":
+			return _cmd_loot_rule(sender_id, args)
 
+	return false
+
+## Command: /lootrule <ffa|round|leader|master>
+## LootRulesService is registered after ChatService: lazy resolution.
+func _cmd_loot_rule(sender_id: String, args: Array) -> bool:
+	var lr = get_node_or_null(NodePath("/root/LootRulesService"))
+	if lr != null and lr.has_method("handle_loot_rule_command"):
+		return lr.handle_loot_rule_command(sender_id, str(args[0]) if not args.is_empty() else "")
+	return false
+
+## Command: /duel <player>
+## DuelService is registered after ChatService; bare forward
+## identifiers poison script-mode compilation, so resolve lazily.
+func _duel_svc():
+	return get_node_or_null(NodePath("/root/DuelService"))
+
+func _cmd_duel(sender_id: String, args: Array) -> bool:
+	if args.is_empty():
+		return false
+	var target_id := _find_player_id_by_name(str(args[0]))
+	if target_id == "" or target_id == sender_id:
+		return false
+	var duel = _duel_svc()
+	if duel != null:
+		duel.challenge_duel(sender_id, target_id)
+		return true
+	return false
+
+func _cmd_duel_accept(sender_id: String) -> bool:
+	var duel = _duel_svc()
+	if duel != null:
+		duel.accept_duel(sender_id)
+		return true
+	return false
+
+func _cmd_duel_decline(sender_id: String) -> bool:
+	var duel = _duel_svc()
+	if duel != null:
+		duel.decline_duel(sender_id)
+		return true
+	return false
+
+func _cmd_duel_concede(sender_id: String) -> bool:
+	var duel = _duel_svc()
+	if duel != null:
+		return duel.concede_duel(sender_id)
 	return false
 
 ## Command: Whisper

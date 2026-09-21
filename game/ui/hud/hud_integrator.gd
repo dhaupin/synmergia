@@ -66,44 +66,61 @@ func _find(node_name: String) -> Node:
 func _connect_all() -> void:
 	# Player resources -> MenuManager status bars (HP/MP/XP).
 	if PlayerManager:
-		PlayerManager.health_changed.connect(_on_health_changed)
-		PlayerManager.mana_changed.connect(_on_mana_changed)
-		PlayerManager.experience_changed.connect(_on_xp_changed)
-		PlayerManager.level_up.connect(_on_level_up)
-		PlayerManager.died.connect(_on_player_died)
+		if not PlayerManager.health_changed.is_connected(_on_health_changed):
+			PlayerManager.health_changed.connect(_on_health_changed)
+		if not PlayerManager.mana_changed.is_connected(_on_mana_changed):
+			PlayerManager.mana_changed.connect(_on_mana_changed)
+		if not PlayerManager.experience_changed.is_connected(_on_xp_changed):
+			PlayerManager.experience_changed.connect(_on_xp_changed)
+		if not PlayerManager.level_up.is_connected(_on_level_up):
+			PlayerManager.level_up.connect(_on_level_up)
+		if not PlayerManager.died.is_connected(_on_player_died):
+			PlayerManager.died.connect(_on_player_died)
 
 	# Targeting -> TargetFrame + BossHealthBar.
 	if TargetingManager:
-		TargetingManager.target_acquired.connect(_on_target_acquired)
-		TargetingManager.target_cleared.connect(_on_target_cleared)
-		TargetingManager.target_updated.connect(_on_target_updated)
-		TargetingManager.action_executed.connect(_on_action_executed)
+		if not TargetingManager.target_acquired.is_connected(_on_target_acquired):
+			TargetingManager.target_acquired.connect(_on_target_acquired)
+		if not TargetingManager.target_cleared.is_connected(_on_target_cleared):
+			TargetingManager.target_cleared.connect(_on_target_cleared)
+		if not TargetingManager.target_updated.is_connected(_on_target_updated):
+			TargetingManager.target_updated.connect(_on_target_updated)
+		if not TargetingManager.action_executed.is_connected(_on_action_executed):
+			TargetingManager.action_executed.connect(_on_action_executed)
 
 	# Entity lifecycle -> CombatLog + NamePlate.
 	if EntityService:
-		if EntityService.has_signal("entity_registered"):
+		if EntityService.has_signal("entity_registered") \
+				and not EntityService.entity_registered.is_connected(_on_entity_spawned):
 			EntityService.entity_registered.connect(_on_entity_spawned)
-		if EntityService.has_signal("entity_unregistered"):
+		if EntityService.has_signal("entity_unregistered") \
+				and not EntityService.entity_unregistered.is_connected(_on_entity_unregistered):
 			EntityService.entity_unregistered.connect(_on_entity_unregistered)
-		if EntityService.has_signal("player_joined"):
+		if EntityService.has_signal("player_joined") \
+				and not EntityService.player_joined.is_connected(_on_entity_spawned):
 			EntityService.player_joined.connect(_on_entity_spawned)
-		if EntityService.has_signal("player_left"):
+		if EntityService.has_signal("player_left") \
+				and not EntityService.player_left.is_connected(_on_entity_unregistered):
 			EntityService.player_left.connect(_on_entity_unregistered)
 
 	# Death events -> kill messages in the combat log.
 	if EventHub:
-		if EventHub.has_signal("entity_died"):
+		if EventHub.has_signal("entity_died") \
+				and not EventHub.entity_died.is_connected(_on_entity_died):
 			EventHub.entity_died.connect(_on_entity_died)
 
 	# Chat messages -> ChatUI.
-	if ChatService:
+	if ChatService and ChatService.has_signal("message_received") \
+			and not ChatService.message_received.is_connected(_on_chat_received):
 		ChatService.message_received.connect(_on_chat_received)
 
 	# Notifications -> CombatLog system messages.
 	if NotificationService:
-		if NotificationService.has_signal("notification_received"):
+		if NotificationService.has_signal("notification_received") \
+				and not NotificationService.notification_received.is_connected(_on_notification):
 			NotificationService.notification_received.connect(_on_notification)
-		if NotificationService.has_signal("notification_sent"):
+		if NotificationService.has_signal("notification_sent") \
+				and not NotificationService.notification_sent.is_connected(_on_notification):
 			NotificationService.notification_sent.connect(_on_notification)
 
 	# Buff/Debuff signals from the local player's AuraComponent.

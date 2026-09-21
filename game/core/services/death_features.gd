@@ -4,6 +4,7 @@ extends Node
 # NOTE: AchievementService is an autoload; reference it directly.
 
 const Item = preload("res://core/schemas/item.gd")
+const GuardData = preload("res://core/schemas/guard_data.gd")
 # Frame-level notification dispatch (typed-Kind pipeline).
 # Death events route through NotifKind.* with sender "DeathFeatures".
 # Dedupe keys carry event identity so a 5-second respawn-invincibility
@@ -91,6 +92,7 @@ func _ready() -> void:
 		EventHub.self_resurrected.connect(_on_self_resurrected)
 		EventHub.revive_completed.connect(_on_revive_completed)
 		EventHub.entity_killed.connect(_on_entity_killed)
+		EventHub.damage_dealt.connect(_on_guard_crime_check)
 
 	# Start cleanup timer
 	var cleanup_timer := Timer.new()
@@ -197,7 +199,7 @@ func apply_respawn_invincibility(entity) -> void:
 ## ============================================================================
 
 ## Apply death penalties to a player
-func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dictionary:
+func apply_death_penalties(entity, killer = null, is_pvp: bool = false, was_duel: bool = false) -> Dictionary:
 	var penalties := {
 		"xp_loss": 0,
 		"gold_loss": 0,
@@ -226,8 +228,8 @@ func apply_death_penalties(entity, killer = null, is_pvp: bool = false) -> Dicti
 		var durability_loss: float = entity.inventory_component.apply_durability_loss(Config.DURABILITY_LOSS_PERCENT)
 		penalties["durability_loss"] = durability_loss
 
-	# Karma Loss (PVP only)
-	if is_pvp and killer and killer != entity:
+	# Karma Loss (PVP only; duels are honorable -- no karma changes hands)
+	if is_pvp and not was_duel and killer and killer != entity:
 		if Config.PVP_KARMA_LOSS > 0:
 			if RespawnService:
 				RespawnService.remove_karma(entity.entity_id, Config.PVP_KARMA_LOSS, "Killed by %s" % killer.display_name)
@@ -608,16 +610,25 @@ func _is_safe_zone(zone_id: String) -> bool:
 ## ============================================================================
 
 func _on_player_died(entity, killer) -> void:
+	# Duel resolution: the duel flag is stamped on the victim by
+	# DuelService. Resolve the duel BEFORE anything reads the flag so the
+	# outcome (no drops, no karma) is captured here and threaded through.
+	var was_duel: bool = entity.has_meta("_duel_death") and bool(entity.get_meta("_duel_death"))
+	if was_duel and DuelService != null and DuelService.has_method("resolve_duel_death"):
+		var killer_id: String = str(killer.entity_id) if killer != null and "entity_id" in killer else ""
+		DuelService.resolve_duel_death(str(entity.entity_id), killer_id)
+
 	# Apply death penalties. PvP = killed by a player, duck-typed (an
-	# entity_id on the killer and no loot table => a player).
+	# entity_id on the killer and no loot table => a player). Duel kills
+	# are honorable combat: no karma loss.
 	var is_pvp: bool = killer != null and "entity_id" in killer \
 		and not "loot_table_id" in killer
-	apply_death_penalties(entity, killer, is_pvp)
+	apply_death_penalties(entity, killer, is_pvp, was_duel)
 
 	# PvP/duel ground drops: dead player scatters equipment into the
 	# world where the killer (or anyone, after the loot window) can
 	# pick it up. Zone rules decide how much drops; duels drop nothing.
-	_drop_player_loot(entity, killer)
+	_drop_player_loot(entity, killer, was_duel)
 
 	# Record for death stats
 	var zone_id := ""
@@ -625,8 +636,9 @@ func _on_player_died(entity, killer) -> void:
 		zone_id = entity.get_zone_id()
 	record_death(entity, killer, zone_id, "death")
 
-	# Record kill for griefing detection
-	if killer:
+	# Record kill for griefing detection. Duel kills are consensual --
+	# they never count toward griefing.
+	if killer and not was_duel:
 		record_kill(entity.entity_id, killer.entity_id)
 
 ## ============================================================================
@@ -645,13 +657,13 @@ func _on_player_died(entity, killer) -> void:
 const DUEL_DROP_ITEMS: int = 0
 const FULL_LOOT_OWNER_LOCK: float = 0.25  # killer claims first 25% of lifetime
 
-func _drop_player_loot(entity, killer) -> void:
+func _drop_player_loot(entity, killer, was_duel: bool = false) -> void:
 	if GroundLootService == null:
 		return
 	if not ("inventory_component" in entity) or entity.inventory_component == null:
 		return
 
-	var drop_mode := _resolve_drop_mode(entity, killer)
+	var drop_mode := _resolve_drop_mode(entity, killer, was_duel)
 	match drop_mode:
 		"duel":
 			GameLog.info("DeathFeatures: %s died in a duel -- no items dropped" % entity.display_name)
@@ -718,7 +730,7 @@ func _drop_player_loot(entity, killer) -> void:
 		)
 
 ## "duel" | "full" | "none"
-func _resolve_drop_mode(entity, killer) -> String:
+func _resolve_drop_mode(entity, killer, was_duel: bool = false) -> String:
 	if killer == null:
 		return "none"
 	# Player-killer check, duck-typed (PlayerController is a
@@ -732,8 +744,9 @@ func _resolve_drop_mode(entity, killer) -> String:
 	# combat layer; a duel kill is recorded with context "duel".
 	# Duel tracking: the duel flag is stamped on the victim by the
 	# combat layer before the death lands (meta so any Node can carry
-	# it); a duel kill drops nothing.
-	if entity.has_meta("_duel_death") and bool(entity.get_meta("_duel_death")):
+	# it); a duel kill drops nothing. was_duel is captured by
+	# _on_player_died before DuelService clears the flags.
+	if was_duel or (entity.has_meta("_duel_death") and bool(entity.get_meta("_duel_death"))):
 		return "duel"
 
 	# Zone-based rules.
@@ -768,6 +781,23 @@ func _on_entity_killed(killer, victim, damage_type: String) -> void:
 	# Record kill for streak tracking
 	if killer and killer:
 		record_kill_for_streak(killer.entity_id, victim.entity_id)
+
+## Town-watch crime reporting: when a player attacks a FRIENDLY NPC that
+## exposes report_offense (guards), every watching guard marks the
+## attacker. Guards stay FRIENDLY to everyone else -- hostility is
+## per-player, so no global relation flip occurs. This is the
+## ATTACKED_FACTION trigger (a guard's protected_faction covers its own
+## watch); future hooks: theft reports, trespass checkpoints.
+func _on_guard_crime_check(source, target, _amount: int, _damage_type: String) -> void:
+	if source == null or target == null or not is_instance_valid(target):
+		return
+	if not "entity_id" in source or "loot_table_id" in source:
+		return  # only players commit crimes here
+	if not target.has_method("report_offense"):
+		return
+	if "relation" in target and target.relation == Entity.Relation.FRIENDLY:
+		target.report_offense(str(source.entity_id), GuardData.WatchTrigger.ATTACKED_FACTION,
+			"assaulted %s" % str(target.display_name))
 
 ## ============================================================================
 ## CLEANUP

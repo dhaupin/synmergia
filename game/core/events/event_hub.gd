@@ -12,7 +12,9 @@ signal player_resurrected(entity, source: String)
 signal self_resurrected(entity)
 signal player_respawned(entity, position: Vector3, mode)
 signal entity_despawned(entity_id: String, reason: String)
-signal entity_killed(entity_id: String, killer_id: String)
+# Emitted by HealthComponent with (killer, victim, damage_type) object
+# args -- matches the death_features streak handler and combat_events.gd.
+signal entity_killed(killer, victim, damage_type: String)
 signal entity_targeted(target_id: String, source_id: String)
 signal skill_executed(caster_id: String, skill_id: String, target_ids: Array)
 signal revive_completed(entity, success: bool)

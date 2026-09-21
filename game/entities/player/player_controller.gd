@@ -398,6 +398,9 @@ func _physics_process(delta: float) -> void:
 	# QoS: Rate limit movement
 	if QoSService.rate_limit(entity_id, "movement"):
 		move_and_slide()
+		# Walk-over auto-loot (settings toggle): when enabled, walking
+		# over a lootable drop vacuums it without pressing interact.
+		_try_auto_loot()
 	else:
 		GameLog.debug("PlayerController: Rate limited movement for %s" % entity_id)
 
@@ -479,6 +482,27 @@ func _try_interact() -> void:
 		if not picked.is_empty():
 			return
 	_activate_nearby_ankh()
+
+## Walk-over auto-loot. Enabled via Settings > Gameplay > Auto-loot
+## Items (PlayerConfig "auto_loot"). Skipped entirely in full-loot PvP
+## zones so looting a battlefield is always a deliberate act.
+func _try_auto_loot() -> void:
+	if GroundLootService == null or not GroundLootService.has_method("find_nearest_pickup"):
+		return
+	if PlayerConfig and not bool(PlayerConfig.get_account_setting("auto_loot", false)):
+		return
+	var zone_id := ""
+	if ZoneManager != null and ZoneManager.has_method("get_entity_zone_id"):
+		zone_id = str(ZoneManager.get_entity_zone_id(self))
+	if zone_id != "" and ZoneManager.has_method("get_zone"):
+		var zone = ZoneManager.get_zone(zone_id)
+		if zone != null and "pvp_mode" in zone \
+				and (zone.pvp_mode == ZoneData.PvPZoneMode.WARZONE \
+					or zone.pvp_mode == ZoneData.PvPZoneMode.FREE_PVP):
+			return
+	if GroundLootService.find_nearest_pickup(self).is_empty():
+		return
+	GroundLootService.try_pickup(self)
 
 ## Bind to the closest ankh within activation range.
 func _activate_nearby_ankh() -> void:

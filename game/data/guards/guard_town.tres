@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="GuardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/guard_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "guard_town"
+display_name = "Town Guard"
+description = "A sworn member of the town watch. Friendly to law-abiding citizens, relentless to offenders."
+level = 10
+health = 250
+attack_power = 18
+defense = 12
+move_speed = 4.5
+aggro_range = 14.0
+chase_range = 30.0
+attack_range = 2.2
+watch_triggers = [1, 2, 5, 7]
+watch_group = "watch_haven_plaza"
+watch_area_radius = 35.0
+protected_faction = "town"
+bounty_per_offense = 0
+forgive_after_seconds = 0.0
+greeting_text = "Move along, citizen."

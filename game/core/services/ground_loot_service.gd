@@ -74,9 +74,33 @@ func create_drop(position: Vector3, items: Array, options: Dictionary = {}) -> S
 	_drops[drop_id] = drop
 	EventHub.ground_loot_spawned.emit(drop_id, position, resolved_items)
 	drop_spawned.emit(drop_id, drop)
+	_attach_visual(drop_id, drop)
 	GameLog.info("GroundLootService: %s drop '%s' (%d items) at %s" % [
 		drop["source"], drop_id, resolved_items.size(), position])
 	return drop_id
+
+
+## Attach the floating 3D drop visual when a live 3D scene is running.
+## Skipped in headless/script tests (no current scene to parent to).
+func _attach_visual(drop_id: String, drop: Dictionary) -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var tree := ml as SceneTree
+	var scene := tree.current_scene
+	if scene == null or not scene.is_inside_tree():
+		return
+	var visual_script := load("res://ui/components/loot_drop_visual.gd")
+	if visual_script == null:
+		return
+	var visual: Node3D = visual_script.new()
+	visual.name = "LootDrop_%s" % drop_id
+	var pos: Vector3 = drop["position"]
+	visual.position = Vector3(pos.x, pos.y + 0.05, pos.z)
+	scene.add_child(visual)
+	if visual.has_method("setup"):
+		visual.setup(drop)
+	drop["node"] = visual
 
 ## Convenience: chest/container style drop (fixed contents).
 func create_container_drop(container_id: String, position: Vector3, items: Array,
@@ -209,6 +233,29 @@ func try_pickup(player, drop_id: String = "") -> Array:
 				player_id
 			)
 		return []
+
+	# Delegation gate (LootRulesService): party rules, smart class
+	# routing, guild locks, karma gates. "" = candidate may loot;
+	# otherwise the drop is reserved for another player. Lazy /root
+	# resolution: LootRulesService is registered after this service, and
+	# a bare forward identifier would poison script-mode compilation.
+	var loot_rules = get_node_or_null(NodePath("/root/LootRulesService"))
+	if loot_rules != null and loot_rules.has_method("resolve_delegation"):
+		var reserved_for := str(loot_rules.resolve_delegation(drop, player_id))
+		if reserved_for != "" and reserved_for != "?":
+			if is_instance_valid(NotificationService):
+				var why := ""
+				if loot_rules.has_method("describe_reservation"):
+					why = str(loot_rules.describe_reservation(drop))
+				NotificationService.notify(
+					NotifKind.ITEM_TRANSFERRED,
+					"This loot is not yours%s." % (" %s" % why if why != "" else ""),
+					"GroundLootService",
+					"delegated:%s:%s" % [player_id, str(drop["id"])],
+					{"drop_id": str(drop["id"])},
+					player_id
+				)
+			return []
 
 	# Route items through InventoryService so persistence, the
 	# InventoryComponent signal chain, and full-bag handling all fire.

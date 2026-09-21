@@ -500,3 +500,114 @@ ankh anchors death/respawn into the world.
 - Regression green: kill_rewards 21, aggro 33, combat_loop 31,
   ai_memory 10, e2e 40, login 21, friends 19, zone_def_tree 14,
   notification frame 26/toast, hud, lint x4. Clean full boot.
+
+## Auto-loot, delegation, drop visuals, duels, guards (2026-09-21)
+
+Five systems in one pass, all data-driven and wired into the
+playable scene. Guards are the big one: an NPC/ENEMY hybrid whose
+hostility is PER-PLAYER, not global.
+
+### Auto-loot (walk-over pickup)
+- Settings panel already had an auto_loot toggle (PlayerConfig
+  account setting, default off). PlayerController now polls the
+  nearest drop each physics tick when the setting is on and runs
+  the same try_pickup path as the E key (deduped per drop).
+- Respect delegation: auto-pickup is blocked by the same gates as
+  manual pickup (owner-lock, party rules) -- no looting around
+  round-robin.
+
+### LootRulesService (delegation + smart routing)
+- NEW core/services/loot_rules_service.gd. evaluate_pickup()
+  gates every GroundLootService pickup:
+  - Party rules via PartyService.set_loot_rule: FFA (default),
+    ROUND_ROBIN (pointer advances ONLY on a real pickup by the
+    designated member -- attempts do not consume the rotation;
+    credit player always loots as a deadlock breaker), LEADER
+    (leader-only), MASTER_LOOTER.
+  - Smart class routing: single-class-usable drops route to the
+    one party member who can use them, regardless of rule.
+  - Guild lock: guild-owner-flagged drops restrict to same guild.
+  - Karma gate: negative-karma players cannot loot reward drops.
+  - Block reasons are recorded on the drop and shown in the HUD
+    pickup prompt ("reserved for <name>", "leader only", etc).
+- /lootrule <ffa|round|leader|master> chat command (party leader
+  only). Enemy drops stamp loot_credit_player_id (same resolution
+  as XP: direct killer or threat-table owner) so party rules have
+  a stable attribution.
+
+### 3D drop visuals + minimap markers
+- NEW ui/components/loot_drop_visual.gd: rotating coin mesh +
+  billboard label listing items colored by rarity (Item.Rarity
+  palette). GroundLootService attaches it to every 3D drop
+  (null-safe for script tests), freed with the drop.
+- Minimap gains MARKER_LOOT (gold diamond, pulse-scale) upserted
+  on ground_loot_spawned and removed on ground_loot_removed;
+  world_playable wires the signals to the minimap node.
+
+### DuelService (challenge flow)
+- NEW core/services/duel_service.gd + /duel, /accept, /decline,
+  /concede chat commands. challenge_duel -> pending -> accept
+  stamps BOTH participants with the _duel_death meta flag; Death
+  Features resolve the duel on death (winner announcement, flag
+  cleared, no drops, no karma, no griefing record).
+- Range + level-delta validation, pending replacement, 60s
+  expiry, disconnect/concede cleanup. DeathFeatures duel-kill
+  path skips equipment drops AND karma entirely.
+
+### Guard system (NPC/ENEMY hybrid, per-player hostility)
+- NEW core/schemas/guard_data.gd (Resource): watch_triggers
+  (ENTERED_ZONE, ENTERED_RADIUS, ATTACKED, ATTACKED_FACTION,
+  WANTED_LEVEL, CUSTOM), protection radius/zone/faction, aggro
+  duration (permanent grudge default), share radius, stats.
+- NEW core/ai/guard_ai.gd extends EnemyAI: mark_criminal()
+  flips hostility for ONE player (immediate full-aggrave memory
+  at weight 10, exempt from decay via has_criminal_grudge()),
+  report_offense() shares the crime with every guard in
+  share_radius (the "other guards attack too" path wired into
+  DeathFeatures griefing records). _is_valid_target() overrides
+  EnemyAI so non-offenders are never engaged even though the
+  global relation stays FRIENDLY (EntityService.is_enemy reads
+  the global relation -- flipping it would make guards enemies
+  for everyone).
+- NEW entities/guard.gd extends Enemy: stays in the enemies
+  group for targeting but is skipped by _setup_enemies
+  (guards get GuardAI, not EnemyAI) and configured from
+  GuardData via configure_from_guard_data().
+- data/guards/guard_town.tres + two guards in world_playable.tscn
+  (Haven Plaza). Boot log: 2 guards active, watch armed.
+
+### Script-mode preload lesson (AGENTS.md-worthy)
+- `--script` test mode fails to resolve bare autoload identifiers
+  when the const-preload chain pulls an autoload script BEFORE the
+  registry is built (newer autoload referencing older via
+  GroundLootService -> LootRulesService etc). Fix: runtime
+  get_node_or_null("/root/Name") lookups for forward edges in
+  GroundLootService/ChatService/DeathFeatures/LootRulesService,
+  and tests preload via load() inside _initialize (probe-proven
+  pattern; committed services keep bare refs where the edge is
+  backward).
+
+### Latent bugs fixed along the way
+- entity_killed declared 2 string args but was emitted with 3
+  object args (an error at EVERY kill emit); declared to match
+  emission. DeathFeatures streak handler now matches the real
+  signature (streaks never recorded before).
+- Two pre-existing glued signal connects in DeathFeatures
+  (double-fire on every death) untangled.
+- HUD integrator: ALL signal connects now guarded with
+  is_connected checks (test double-bind errors: 0).
+- QuestUI/TitleUI refresh-before-build null crashes guarded.
+
+### Tests
+- NEW test_loot_rules.gd 30/30: FFA default, round-robin advance
+  only on real pickup, leader/master gates, class routing,
+  guild lock, karma gate, HUD reason stamping.
+- NEW test_duel_service.gd 28/28: challenge/accept/decline,
+  flag stamping, no-loot death resolution, concede, range
+  break, pending replacement.
+- NEW test_guard_system.gd 31/31: trigger evaluation, per-player
+  hostility (non-offender never engaged), immediate full grudge,
+  permanent memory (survives decay passes), watch sharing across
+  guards, stats from GuardData.
+- Regression green: ground_loot, kill_rewards, aggro, hud (7/7,
+  zero double-connects). Full scene boot clean.

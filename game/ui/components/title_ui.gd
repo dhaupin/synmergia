@@ -183,6 +183,10 @@ func _refresh() -> void:
 
 	if _player_id.is_empty():
 		return
+	# _setup_ui bails early when the panel is not ready yet; the refresh
+	# helpers below dereference its nodes, so they must be guarded too.
+	if _titles_list == null or _preview_label == null:
+		return
 
 	# Load unlocked titles
 	_unlocked_titles = TitleService.get_unlocked_titles(_player_id)
@@ -193,6 +197,9 @@ func _refresh() -> void:
 	_update_preview()
 
 func _update_equipped_display() -> void:
+	# Labels are built lazily; this can run before they exist.
+	if _equipped_prefix_label == null or _equipped_suffix_label == null:
+		return
 	var prefix: TitleData = TitleService.get_equipped_prefix(_player_id)
 	var suffix: TitleData = TitleService.get_equipped_suffix(_player_id)
 

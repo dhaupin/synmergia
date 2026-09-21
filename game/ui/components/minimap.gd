@@ -50,6 +50,7 @@ const MARKER_POI: int = 5
 const MARKER_VENDOR: int = 6
 const MARKER_WAYPOINT: int = 7
 const MARKER_PING: int = 8
+const MARKER_LOOT: int = 9
 
 signal waypoint_set(position: Vector3)
 signal ping_sent(position: Vector3)
@@ -608,6 +609,10 @@ func _create_marker(marker_type: int, label: String) -> Control:
 			size = Vector2(16, 16)
 			color = Color(0.3, 1.0, 0.5)
 			shape = "pulse"
+		MARKER_LOOT:
+			size = Vector2(8, 8)
+			color = Color(1.0, 0.85, 0.3)
+			shape = "loot"
 		_:
 			size = Vector2(8, 8)
 			color = UIStyles.COLORS.info
@@ -740,6 +745,19 @@ func _create_marker_visual(shape: String, size: Vector2, color: Color, label: St
 				tween.set_loops()
 				tween.tween_property(pulse, "modulate:a", 0.3, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 				tween.tween_property(pulse, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+		"loot":
+			var loot := Polygon2D.new()
+			var s = min(size.x, size.y) / 2.0
+			# 4-point star: a loot glint.
+			var points = PackedVector2Array()
+			for i in range(8):
+				var angle = deg_to_rad(i * 45 - 90)
+				var r = s if i % 2 == 0 else s * 0.35
+				points.append(Vector2(cos(angle) * r, sin(angle) * r))
+			loot.polygon = points
+			loot.color = color
+			container.add_child(loot)
 
 		_:
 			var circle := TextureRect.new()

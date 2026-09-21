@@ -25,6 +25,7 @@ func _ready() -> void:
 	_apply_player_from_data(char_data)
 	_register_player()
 	_setup_enemies()
+	_setup_guards()
 	_setup_hud_bridge()
 
 
@@ -92,6 +93,8 @@ func _setup_enemies() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(enemy) or enemy.entity_id != "":
 			continue
+		if enemy.has_method("attach_guard_ai"):
+			continue  # guards get their brain in _setup_guards
 
 		var ai = EnemyAIScript.new()
 		if enemy.enemy_data:
@@ -106,6 +109,30 @@ func _setup_enemies() -> void:
 			es.register_entity(enemy, metadata)
 
 	GameLog.info("WorldPlayable: %d enemies active" % get_tree().get_nodes_in_group("enemies").size())
+
+
+## Give every scene-placed guard its GuardData + GuardAI brain.
+## Guards load their watch config from a GuardData .tres when one is
+## assigned at the scene level (guard_data property); otherwise they
+## fall back to the town-guard preset.
+func _setup_guards() -> void:
+	var es = EntityService
+	var guard_count := 0
+	for guard in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(guard) or guard.entity_id != "":
+			continue
+		if not guard.has_method("attach_guard_ai"):
+			continue
+		var data = guard.get("guard_data")
+		if data == null:
+			data = load("res://data/guards/guard_town.tres")
+		guard.attach_guard_ai(data)
+		guard_count += 1
+		if es:
+			var metadata = SpawnMetadataScript.enemy(
+				guard.display_name, SCENE_ZONE_ID, guard.global_position, guard.level)
+			es.register_entity(guard, metadata)
+	GameLog.info("WorldPlayable: %d guards active" % guard_count)
 
 
 ## Bridge combat events into the HUD. Enemy.take_damage emits
@@ -124,6 +151,8 @@ func _setup_hud_bridge() -> void:
 		EventHub.ground_loot_picked_up.connect(_on_ground_loot_picked_up)
 	if not EventHub.ground_loot_spawned.is_connected(_on_ground_loot_spawned):
 		EventHub.ground_loot_spawned.connect(_on_ground_loot_spawned)
+	if not EventHub.ground_loot_despawned.is_connected(_on_ground_loot_despawned):
+		EventHub.ground_loot_despawned.connect(_on_ground_loot_despawned)
 	# Quest progress: objective updates and completions hit the combat log.
 	if QuestService and QuestService.has_signal("quest_updated"):
 		if not QuestService.quest_updated.is_connected(_on_quest_updated):
@@ -158,7 +187,8 @@ func _accept_starter_quest() -> void:
 	if not active.has("quest_wolves_hunt"):
 		QuestService.accept_quest(player_id, "quest_wolves_hunt")
 
-func _on_ground_loot_picked_up(player, _loot_id: String, items: Array) -> void:
+func _on_ground_loot_picked_up(player, loot_id: String, items: Array) -> void:
+	_clear_loot_marker(loot_id)
 	var combat_log = get_node_or_null("HudLayer/CombatLog")
 	if combat_log == null or not combat_log.has_method("add_message"):
 		return
@@ -174,8 +204,24 @@ func _on_ground_loot_picked_up(player, _loot_id: String, items: Array) -> void:
 			qty = int(item.current_stack)
 		combat_log.add_message("Picked up %s x%d" % [item_name, qty])
 
-func _on_ground_loot_spawned(_loot_id: String, _position: Vector3, _items: Array) -> void:
-	pass  # reserved for minimap loot markers / 3D drop labels
+## Minimap loot glints: a gold 4-point star per live drop, removed on
+## pickup/despawn. Markers live on the HudLayer Minimap node.
+func _on_ground_loot_spawned(loot_id: String, position: Vector3, _items: Array) -> void:
+	var minimap = _get_minimap()
+	if minimap != null and minimap.has_method("add_marker"):
+		minimap.add_marker("loot_%s" % loot_id, position, minimap.MARKER_LOOT, "")
+
+func _on_ground_loot_despawned(loot_id: String, _reason: String) -> void:
+	_clear_loot_marker(loot_id)
+
+func _clear_loot_marker(loot_id: String) -> void:
+	var minimap = _get_minimap()
+	if minimap != null and minimap.has_method("remove_marker"):
+		minimap.remove_marker("loot_%s" % loot_id)
+
+func _get_minimap():
+	var hud := get_node_or_null("HudLayer")
+	return hud.get_node_or_null("Minimap") if hud != null else null
 
 func _on_quest_updated(player_id: String, quest_id: String, objective_id: String, progress: int) -> void:
 	var local = PlayerManager.get_local_player()

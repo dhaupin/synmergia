@@ -6,3 +6,7 @@ extends "res://core/entities/entity.gd"
 
 var enemy_data: Resource = null
 var aggro_component = null
+## Declared so duck-typed reads like "health_component" in target
+## (GuardAI._is_valid_target) resolve instead of erroring on stubs.
+var health_component = null
+var status_handler = null

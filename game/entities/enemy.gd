@@ -211,11 +211,31 @@ func _roll_and_drop_loot() -> void:
 	# Spawn a real ground drop at the corpse. GroundLootService resolves
 	# the {item_id, quantity} dicts into Item instances; an empty roll
 	# (nothing dropped) creates no drop. Currency rides along and is
-	# paid via the duck-typed add_gold on pickup.
+	# paid via the duck-typed add_gold on pickup. Kill credit rides
+	# along too so LootRulesService can apply party delegation rules.
 	if GroundLootService and not result.items.is_empty():
 		var drop_pos := global_position + Vector3(0.0, -0.5, 0.0)
-		GroundLootService.create_drop(drop_pos, result.items, {
+		var options := {
 			"source": "enemy",
 			"currency": result.currency,
 			"despawn_seconds": GroundLootService.DEFAULT_DESPAWN_SECONDS,
-		})
+		}
+		if LootRulesService != null and LootRulesService.has_method("build_enemy_drop_options"):
+			options = LootRulesService.build_enemy_drop_options(_loot_credit_player_id(), options)
+		GroundLootService.create_drop(drop_pos, result.items, options)
+
+
+## Loot-credit resolution: same order as the XP/kill-reward hook (direct
+## killer first, then threat-table owner) so party loot rules apply to
+## exactly the player the kill was credited to.
+func _loot_credit_player_id() -> String:
+	if _last_damager != null and is_instance_valid(_last_damager) \
+			and "entity_id" in _last_damager and not ("loot_table_id" in _last_damager):
+		return str(_last_damager.entity_id)
+	if "aggro_component" in self and aggro_component != null \
+			and aggro_component.has_method("get_highest_threat_target"):
+		var owner = aggro_component.get_highest_threat_target()
+		if owner != null and is_instance_valid(owner) and "entity_id" in owner \
+				and not ("loot_table_id" in owner):
+			return str(owner.entity_id)
+	return ""
