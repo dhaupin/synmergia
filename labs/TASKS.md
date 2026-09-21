@@ -729,3 +729,73 @@ that exercises everything end to end.
 - Regression: placement 54, guard 31, ground_loot 17, e2e, chat
   migration, hud -- all pass after the chat/ankh/inventory fixes.
 
+### 2026-09-21 Live onboarding chain GREEN + pushed to main [town:core][town:test]
+
+**Session goal:** finish the stopped session's pending fixes and get the
+live onboarding chain passing end-to-end. Commit `8359bcd` on main.
+
+#### Fixed (all found by running the real scene, not unit stubs)
+- **EventHub 22 missing signals declared** (entity/zone_entered_zone,
+  ground_loot_*, aura_*, achievement_*, targeting/aoe). Was 800+
+  "Signal not found" errors per run; live boot now logs ZERO script
+  errors.
+- **ZoneData 4.7.2 gotchas:** `minimap.gd` called `.has()` on ZoneData
+  Resources (not a Resource method) and 2-arg `Resource.get()`.
+  Also `_map_size` fed a Vector3 `.size`. `hud_services.gd:677` same
+  get() gotcha + wrong property (`zone_name` vs `display_name`).
+- **faction duck-typing:** `zone_data.can_enter/can_pvp` read
+  `entity.faction_id` unguarded; PlayerController only had
+  `faction: int`. PlayerController now exposes `faction_id` and zone
+  reads are guarded.
+- **kill_rewards payload bug (real integration bug):** `award_kill`
+  omitted `player_id`/`credit_source` from the emitted rewards dict;
+  `QuestService._on_kill_rewarded_for_quest` reads
+  `rewards.get("player_id")` -- so quest kill objectives NEVER
+  advanced on real kills (headless tests passed only because they
+  emitted the signal by hand with the key present).
+- **inventory tree-safety:** `InventoryComponent.add_item` called
+  `get_node_or_null("/root/SecurityService")` which hard-errors when
+  the component is outside the tree -> silently ate items. Added
+  `_resolve_service` (self-or-tree, is_instance_valid guard).
+- **ground_loot script-mode compiles:** bare `EventHub`/
+  `DataService`/`NotificationService` refs broke script-mode parse
+  (autoload edge). Runtime lookups per the documented pattern.
+- **world_playable.tscn:** removed stale scene-level
+  `display_name = "Grey Wolf"`; `Enemy._load_from_data` makes EnemyData
+  the single source of truth and the wolf quest targets "Wolf".
+- **corpse.gd:** same `.has()`-on-object gotcha fixed.
+- **PlayerController entity_id race:** int fallback
+  `str(player_id)` registered the player as "1"; now falls back to the
+  stable `LOCAL_PLAYER_ID` constant.
+
+#### New tests
+- `game/tests/test_onboarding_live.gd` -- 19 assertions, runs the REAL
+  chain in the real scene: boot -> player registered ->
+  `notify_player_entered_world` -> ob_wake fires -> cast skill ->
+  ob_first_skill -> kill wolf via KillRewards award path ->
+  first_blood + ob_first_kill -> quest wolves_hunt completes ->
+  "Achievement"/"Quest" toasts on `notification_sent`.
+  Deterministic handling of the spawn-camp reality: the level-3 wolf
+  kills the idle level-1 player at ~frame 33 (real gameplay finding --
+  aggro range reaches player spawn), so the test revives + freezes AI
+  for its verification window.
+- `test_ground_loot.gd` repaired: un-awaited async test ran after
+  quit (stale FAIL lines); despawn test is now clock-tolerant
+  (engine timer vs wall-clock despawn_at drift under xvfb).
+
+#### Verification
+- test_onboarding_live 19/19, test_ground_loot 42/42 (3x, stable),
+  test_kill_rewards 21/21, test_notification_frame 26/26,
+  test_login_flow 21/21, test_entity_autoload 8/8,
+  test_autoload_audit 2/2. Islands suite: 19 passed, same 20
+  script-errors as HEAD (pre-existing, verified via git stash run --
+  not a regression).
+- Live boot: 0 script errors (was 800+).
+
+#### Open items noticed on the way
+- Wolf spawn-camps the player spawn (aggro reach vs spawn distance).
+  Consider a spawn-safe radius or lowering level-3 wolf aggro near
+  player spawn. Gameplay-level decision, not a bug.
+- Islands suite emits 20 bare-autoload script-mode compile errors
+  (action_bar, minimap, target_frame, etc.) -- same runtime-lookup
+  pattern would clean them, batched work.
