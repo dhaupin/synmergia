@@ -103,6 +103,18 @@ func get_health_percent() -> float:
 func is_dead() -> bool:
 	return _is_dead
 
+
+## Revive where we stand (no respawn-location change). Clears the dead
+## flag and restores full health. RespawnService drives the full
+## respawn flow; this lightweight variant is for in-place revives and
+## drivers that need a live entity without a respawn cycle.
+func revive_in_place() -> void:
+	if not _is_dead and current_health > 0:
+		return
+	_is_dead = false
+	_killer = null
+	current_health = max_health
+
 ## Die
 func die(killer: Node3D = null) -> void:
 	if _is_dead:

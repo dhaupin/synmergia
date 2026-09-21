@@ -249,6 +249,27 @@ func get_low_durability_items(threshold: float = 0.2) -> Array:
 			items.append(item)
 	return items
 
+
+## Apply a percentage-based durability loss to every item (death
+## penalty). Equipped items degrade first, then bag items; indestructible
+## (max_durability 0) and already-broken items are skipped. Returns the
+## total durability POINTS lost -- DeathFeatures records it in penalties.
+func apply_durability_loss(loss_percent: float) -> float:
+	if loss_percent <= 0.0:
+		return 0.0
+	var total_loss := 0
+	for item: Item in get_all_equipped_items() + get_all_items():
+		if item == null or item.max_durability <= 0 or item.current_durability <= 0:
+			continue
+		# Ceil so small items still lose at least 1 point per hit.
+		var loss := int(ceil(item.max_durability * loss_percent / 100.0))
+		if loss <= 0:
+			continue
+		var old := item.current_durability
+		item.current_durability = maxi(0, item.current_durability - loss)
+		total_loss += old - item.current_durability
+	return float(total_loss)
+
 ## Repair all equipped items (costs gold)
 func repair_all_equipped(gold_per_durability: float = 1.0) -> int:
 	var total_cost: int = 0

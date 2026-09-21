@@ -151,27 +151,30 @@ func send_message(sender_id: String, channel: Channel, message: String, target_i
 		# Filter profanity
 	message = _filter_profanity(message)
 
-		# Get targets based on channel
+		# Commands bypass the audience check: a solo player in an empty
+		# zone must still be able to run /buyplot or /duel.
+	var is_command := message.begins_with("/")
 	var targets: Array = _get_channel_targets(sender_id, channel, target_id)
 
-	if targets.is_empty():
+	if targets.is_empty() and not is_command:
 		return false
 
-		# Create chat message
-	var chat_message := {
-	"id": "msg_%d" % Time.get_ticks_msec(),
-	"sender_id": sender_id,
-	"channel": channel,
-	"message": message,
-	"timestamp": Time.get_unix_time_from_system(),
-	"target_id": target_id
-	}
+	if not is_command:
+			# Create chat message
+		var chat_message := {
+		"id": "msg_%d" % Time.get_ticks_msec(),
+		"sender_id": sender_id,
+		"channel": channel,
+		"message": message,
+		"timestamp": Time.get_unix_time_from_system(),
+		"target_id": target_id
+		}
 
-		# Store in history
-	_add_to_history(channel, chat_message)
+			# Store in history
+		_add_to_history(channel, chat_message)
 
-		# Emit signal
-	message_received.emit(sender_id, channel, message, targets)
+			# Emit signal
+		message_received.emit(sender_id, channel, message, targets)
 
 		# Route to appropriate handler
 	_route_message(sender_id, channel, message, targets, target_id)

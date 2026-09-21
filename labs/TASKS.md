@@ -684,3 +684,48 @@ faction halls all resolve "who may use this" the same way.
   notif frame/toast/chat, hud. Full scene boot clean (4 guards,
   DwellingService ready, plot registered, zero double-connects).
 
+## Non-headless wiring pass: visuals + showcase driver (2026-09-21)
+
+Wired the placement systems into the playable scene for REAL rendering
+mode (xvfb-run + Godot binary, not --headless) and ran an in-game tour
+that exercises everything end to end.
+
+### In-world visuals (world_playable.tscn)
+- Guards were invisible untargetable Node3Ds. All 4 guards now carry
+  capsule mesh + hitbox (blue guard material); gate posts flank the
+  gate pair; the demo plot has a translucent gold beacon disc + post
+  at the merchant.
+
+### Showcase driver (world_playable.gd, SYNMERGIA_SHOWCASE=1)
+- Env-gated coroutine (inert in normal play): teleports the player
+  through start -> plaza guards -> plaza ankh BIND -> demo plot
+  (/plotinfo /buyplot /plotinfo) -> guild ankh DENIED -> faction ankh
+  DENIED -> /placeguard on the owned plot -> gate guards. Dev
+  screenshots at every stop into captures/screenshots/.
+- Full run: bind OK, plot purchased for 50k, guild/faction denials
+  surface with reasons, house guard placed, 8 screenshots, ZERO
+  script errors in rendering mode.
+
+### Bugs only full mode could find
+- InventoryComponent.apply_durability_loss DID NOT EXIST --
+  DeathFeatures called it on every player death (3 runtime errors per
+  death in full mode; headless tests never died). Implemented:
+  percent-based, equipped first then bag, ceil so items lose >= 1,
+  returns total points lost.
+- ChatService.send_message rejected commands when the SAY-radius
+  audience was EMPTY -- a solo player could never run /buyplot, /duel,
+  /lootrule at all. Commands now bypass the audience check.
+- Ankh bind-while-dead check bypassed describe_bind_denial (empty
+  reason in prompts). Dead check now lives in _is_player_dead (health
+  component -> is_dead() -> current_health, stub-tolerant) and the
+  "dead" reason flows through describe_bind_denial.
+- HealthComponent.revive_in_place() added (lightweight in-place
+  revive used by the driver; RespawnService still owns full flow).
+
+### Verification
+- Non-headless boot (xvfb): clean, falls back to GL3 gracefully.
+- Showcase: every checkpoint green (see above), screenshots
+  100-140KB real frames, zero SCRIPT ERRORs.
+- Regression: placement 54, guard 31, ground_loot 17, e2e, chat
+  migration, hud -- all pass after the chat/ankh/inventory fixes.
+

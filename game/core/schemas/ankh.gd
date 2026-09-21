@@ -104,6 +104,8 @@ func can_bind(player) -> bool:
 func describe_bind_denial(player) -> String:
 	if player == null:
 		return "invalid"
+	if _is_player_dead(player):
+		return "dead"
 
 	# Level check (missing on entities without levels -> treat as 1)
 	var plevel := 1
@@ -158,16 +160,29 @@ func describe_bind_denial(player) -> String:
 
 	return ""
 
+
+## Dead players cannot bind (exploit prevention). Also surfaced as the
+## "dead" denial reason from describe_bind_denial. Checks
+## health_component, then the is_dead() method, then the
+## current_health property -- test stubs carry different subsets.
+func _is_player_dead(player) -> bool:
+	if "health_component" in player and player.health_component != null \
+			and player.health_component.has_method("is_dead"):
+		return player.health_component.is_dead()
+	if player.has_method("is_dead"):
+		return player.is_dead()
+	if "current_health" in player:
+		return int(player.current_health) <= 0
+	return false
+
 ## Bind player to this ankh
 func bind_player(player) -> bool:
 	if not can_bind(player):
 		return false
 
-	# Prevent binding while dead (exploit prevention); health_component
-	# is optional on test stubs.
-	if "health_component" in player and player.health_component != null \
-			and player.health_component.has_method("is_dead") \
-			and player.health_component.is_dead():
+	# Prevent binding while dead (exploit prevention); surfaces through
+	# the same describe_bind_denial vocabulary as every other gate.
+	if _is_player_dead(player):
 		GameLog.warn("Ankh '%s': Player '%s' tried to bind while dead" % [ankh_id, player.display_name])
 		return false
 

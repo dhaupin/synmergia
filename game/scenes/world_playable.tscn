@@ -53,6 +53,46 @@ radius = 0.75
 radius = 0.6
 height = 1.2
 
+[sub_resource type="StandardMaterial3D" id="SubResource_guard_mat"]
+albedo_color = Color(0.25, 0.35, 0.85, 1)
+metallic = 0.4
+roughness = 0.5
+
+[sub_resource type="CapsuleMesh" id="SubResource_guard_mesh"]
+radius = 0.45
+height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="SubResource_guard_hitbox"]
+radius = 0.45
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="SubResource_plot_mat"]
+transparency = 1
+albedo_color = Color(0.95, 0.8, 0.2, 0.45)
+metallic = 0.2
+roughness = 0.4
+
+[sub_resource type="CylinderMesh" id="SubResource_plot_beacon_mesh"]
+top_radius = 1.2
+bottom_radius = 1.2
+height = 0.15
+
+[sub_resource type="StandardMaterial3D" id="SubResource_plot_post_mat"]
+albedo_color = Color(0.8, 0.65, 0.15, 1)
+metallic = 0.3
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="SubResource_plot_post_mesh"]
+size = Vector3(0.3, 2.2, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="SubResource_gate_post_mat"]
+albedo_color = Color(0.5, 0.42, 0.3, 1)
+metallic = 0.0
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="SubResource_gate_post_mesh"]
+size = Vector3(0.8, 3.2, 0.8)
+
 [sub_resource type="StandardMaterial3D" id="SubResource_slime_mat"]
 albedo_color = Color(0.2, 0.75, 0.3, 1)
 metallic = 0.0
@@ -232,11 +272,27 @@ script = ExtResource("18_guard")
 guard_data = ExtResource("19_guard_data")
 display_name = "Town Guard"
 
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TownGuardA"]
+shape = SubResource("SubResource_guard_hitbox")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TownGuardA"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("SubResource_guard_mesh")
+material_override = SubResource("SubResource_guard_mat")
+
 [node name="TownGuardB" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.9, -9)
 script = ExtResource("18_guard")
 guard_data = ExtResource("20_guard_data2")
 display_name = "Town Guard"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TownGuardB"]
+shape = SubResource("SubResource_guard_hitbox")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TownGuardB"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("SubResource_guard_mesh")
+material_override = SubResource("SubResource_guard_mat")
 
 [node name="GateGuardA" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.9, -2)
@@ -244,11 +300,43 @@ script = ExtResource("18_guard")
 guard_data = ExtResource("21_gatedata")
 display_name = "Gate Guard"
 
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GateGuardA"]
+shape = SubResource("SubResource_guard_hitbox")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="GateGuardA"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("SubResource_guard_mesh")
+material_override = SubResource("SubResource_guard_mat")
+
 [node name="GateGuardB" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.9, 2)
 script = ExtResource("18_guard")
 guard_data = ExtResource("21_gatedata")
 display_name = "Gate Guard"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GateGuardB"]
+shape = SubResource("SubResource_guard_hitbox")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="GateGuardB"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("SubResource_guard_mesh")
+material_override = SubResource("SubResource_guard_mat")
+
+[node name="GatePostWest" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -6)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="GatePostWest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+mesh = SubResource("SubResource_gate_post_mesh")
+material_override = SubResource("SubResource_gate_post_mat")
+
+[node name="GatePostEast" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 6)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="GatePostEast"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+mesh = SubResource("SubResource_gate_post_mesh")
+material_override = SubResource("SubResource_gate_post_mat")
 
 [node name="MerchantNPC" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.9, -5)
@@ -286,6 +374,19 @@ mesh = SubResource("SubResource_ankh_mesh")
 light_color = Color(0.55, 0.85, 1, 1)
 light_energy = 1.4
 omni_range = 6.0
+
+[node name="PlotBeacon" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -5)
+
+[node name="BeaconDisc" type="MeshInstance3D" parent="PlotBeacon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0)
+mesh = SubResource("SubResource_plot_beacon_mesh")
+material_override = SubResource("SubResource_plot_mat")
+
+[node name="BeaconPost" type="MeshInstance3D" parent="PlotBeacon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.1, 2)
+mesh = SubResource("SubResource_plot_post_mesh")
+material_override = SubResource("SubResource_plot_post_mat")
 
 [node name="GuildAnkh" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.9, -14)
