@@ -419,7 +419,23 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_duel_concede(sender_id)
 		"lootrule":
 			return _cmd_loot_rule(sender_id, args)
+		"buyplot":
+			return _cmd_dwelling(sender_id, "buyplot", args)
+		"placeguard":
+			return _cmd_dwelling(sender_id, "placeguard", args)
+		"placeankh":
+			return _cmd_dwelling(sender_id, "placeankh", args)
+		"plotinfo":
+			return _cmd_dwelling(sender_id, "plotinfo", args)
 
+	return false
+
+## Command: /buyplot /placeguard /placeankh /plotinfo
+## DwellingService is registered after ChatService: lazy resolution.
+func _cmd_dwelling(sender_id: String, command: String, args: Array) -> bool:
+	var ds = get_node_or_null(NodePath("/root/DwellingService"))
+	if ds != null and ds.has_method("handle_dwelling_command"):
+		return ds.handle_dwelling_command(sender_id, command, args)
 	return false
 
 ## Command: /lootrule <ffa|round|leader|master>

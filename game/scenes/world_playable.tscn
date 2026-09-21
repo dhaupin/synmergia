@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://entities/guard.gd" id="18_guard"]
 [ext_resource type="Resource" path="res://data/guards/guard_town.tres" id="19_guard_data"]
 [ext_resource type="Resource" path="res://data/guards/guard_town.tres" id="20_guard_data2"]
+[ext_resource type="Resource" path="res://data/guards/guard_gate.tres" id="21_gatedata"]
 
 [sub_resource type="StandardMaterial3D" id="SubResource_floor_mat"]
 albedo_color = Color(0.35, 0.55, 0.25, 1)
@@ -237,6 +238,18 @@ script = ExtResource("18_guard")
 guard_data = ExtResource("20_guard_data2")
 display_name = "Town Guard"
 
+[node name="GateGuardA" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.9, -2)
+script = ExtResource("18_guard")
+guard_data = ExtResource("21_gatedata")
+display_name = "Gate Guard"
+
+[node name="GateGuardB" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.9, 2)
+script = ExtResource("18_guard")
+guard_data = ExtResource("21_gatedata")
+display_name = "Gate Guard"
+
 [node name="MerchantNPC" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.9, -5)
 script = ExtResource("14_npc")
@@ -273,5 +286,44 @@ mesh = SubResource("SubResource_ankh_mesh")
 light_color = Color(0.55, 0.85, 1, 1)
 light_energy = 1.4
 omni_range = 6.0
+
+[node name="GuildAnkh" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.9, -14)
+script = ExtResource("17_ankh")
+ankh_id = "ankh_haven_guild_hall"
+display_name = "Guild Hall Ankh"
+description = "The resurrection ankh of the Haven guild hall. Members only."
+zone_id = "world_playable"
+ankh_type = 2
+glow_color = Color(0.65, 0.45, 1, 1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="GuildAnkh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+mesh = SubResource("SubResource_ankh_mesh")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="GuildAnkh"]
+light_color = Color(0.65, 0.45, 1, 1)
+light_energy = 1.2
+omni_range = 5.0
+
+[node name="FactionAnkh" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.9, 14)
+script = ExtResource("17_ankh")
+ankh_id = "ankh_haven_faction_hall"
+display_name = "Faction Hall Ankh"
+description = "The resurrection ankh of the Haven faction hall. Sworn members only."
+zone_id = "world_playable"
+ankh_type = 3
+required_faction = "town"
+glow_color = Color(1, 0.75, 0.4, 1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="FactionAnkh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+mesh = SubResource("SubResource_ankh_mesh")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="FactionAnkh"]
+light_color = Color(1, 0.75, 0.4, 1)
+light_energy = 1.2
+omni_range = 5.0
 
 [node name="HudLayer" parent="." instance=ExtResource("13_hud")]

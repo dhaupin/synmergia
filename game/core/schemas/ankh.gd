@@ -3,6 +3,8 @@
 extends Node3D
 class_name Ankh
 
+const PlacementAccessScript = preload("res://core/schemas/placement_access.gd")
+
 enum AnkhType {
 	SHARED,      # All players can bind here
 	PERSONAL,    # Individual binding (persist across sessions)
@@ -41,8 +43,15 @@ signal bound_to(player, ankh: Ankh)
 @export var min_level: int = 0
 @export var max_level: int = 100
 @export var required_faction: String = ""
+@export var required_guild_id: String = ""  # Which guild (empty = rank check only)
 @export var required_guild_rank: int = 0
 @export var required_quest_ids: Array[String] = []
+
+# Ownership scoping -- shared vocabulary with guards and dwellings
+# (PlacementAccess). When set and scope != WORLD, evaluate() gates
+# binding on top of the type checks below. DwellingService stamps this
+# on plot-placed ankhs (house/guild-hall respawn points).
+@export var access: Resource
 
 # Respawn modifiers when bound to this ankh
 @export var respawn_time_modifier: float = 1.0  # Multiplier (0.5 = 50% faster)
@@ -86,39 +95,68 @@ func _ready() -> void:
 ## entity_id/display_name/level/health_component but no faction_id or
 ## guild_rank properties.
 func can_bind(player) -> bool:
+	return describe_bind_denial(player) == ""
+
+
+## Why binding fails, for UI prompts/toasts. Empty string = allowed.
+## Single source of truth: can_bind delegates here so the gates can
+## never drift apart.
+func describe_bind_denial(player) -> String:
 	if player == null:
-		return false
+		return "invalid"
 
 	# Level check (missing on entities without levels -> treat as 1)
 	var plevel := 1
 	if "level" in player:
 		plevel = int(player.level)
-	if plevel < min_level or plevel > max_level:
-		return false
+	if plevel < min_level:
+		return "level_low"
+	if plevel > max_level:
+		return "level_high"
 
-	# Faction check (only when the ankh restricts AND the entity has one)
+	# Faction check. Entity carries faction_id; fall back to 'faction'
+	# for older stubs.
 	if required_faction != "":
-		if not "faction" in player or player.faction != required_faction:
-			return false
+		var pfaction := ""
+		if "faction_id" in player:
+			pfaction = str(player.faction_id)
+		elif "faction" in player:
+			pfaction = str(player.faction)
+		if pfaction != required_faction:
+			return "faction"
+
+	# Ownership scope (PlacementAccess): personal/guild/faction ankhs.
+	if access != null and access.scope != PlacementAccessScript.AccessScope.WORLD \
+			and not access.evaluate(player):
+		return "not_allowed"
 
 	# Quest check (has_completed_quest is optional on stubs)
 	for quest_id in required_quest_ids:
 		if not player.has_method("has_completed_quest") or not player.has_completed_quest(quest_id):
-			return false
+			return "quest"
 
-	# Guild check for guild ankhs (guild_rank may not exist)
+	# Guild check for guild ankhs: identity first (which guild), then
+	# rank (guild_rank may not exist on stubs).
 	if ankh_type == AnkhType.GUILD:
+		if required_guild_id != "":
+			var pguild := ""
+			if "guild_id" in player:
+				pguild = str(player.guild_id)
+			elif player.has_method("get_guild_id"):
+				pguild = str(player.get_guild_id())
+			if pguild != required_guild_id:
+				return "guild"
 		if not "guild_rank" in player or int(player.guild_rank) < required_guild_rank:
-			return false
+			return "guild_rank"
 
 	# Cooldown check (anti-exploit)
 	if _player_bind_times.has(player.entity_id):
 		var last_bind: float = _player_bind_times[player.entity_id]
 		var elapsed: float = Time.get_unix_time_from_system() - last_bind
 		if elapsed < bind_cooldown_seconds:
-			return false
+			return "cooldown"
 
-	return true
+	return ""
 
 ## Bind player to this ankh
 func bind_player(player) -> bool:

@@ -26,6 +26,7 @@ func _ready() -> void:
 	_register_player()
 	_setup_enemies()
 	_setup_guards()
+	_setup_housing()
 	_setup_hud_bridge()
 
 
@@ -139,6 +140,17 @@ func _setup_guards() -> void:
 ## EventHub.damage_dealt for enemy<->player hits; player-side
 ## HealthComponent.take_damage emits the same signal, so both directions
 ## feed one handler.
+## Register the purchasable demo plot with DwellingService so
+## /buyplot, /placeguard and /placeankh have something to act on.
+## Anchored at the Merchant (-5, -5): players pass it every session.
+func _setup_housing() -> void:
+	if DwellingService == null:
+		return
+	DwellingService.register_plot(
+		"plot_haven_1", SCENE_ZONE_ID, Vector3(-5, 0, -5), 10.0, 50000)
+	GameLog.info("WorldPlayable: demo plot registered (stand near the merchant, /buyplot)")
+
+
 func _setup_hud_bridge() -> void:
 	_ensure_damage_numbers()
 	if not EventHub.damage_dealt.is_connected(_on_combat_damage):

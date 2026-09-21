@@ -23,6 +23,7 @@
 extends "res://core/ai/enemy_ai.gd"
 
 const GuardData = preload("res://core/schemas/guard_data.gd")
+const PlacementAccessScript = preload("res://core/schemas/placement_access.gd")
 
 ## Static watch-group registry: watch_group -> { guard_id -> GuardAI }.
 ## Guards broadcast offenses here so the whole watch responds.
@@ -229,10 +230,29 @@ func is_criminal(target) -> bool:
 	return false
 
 
+## Should this player be treated as an intruder? Only PERSONAL guards
+## with an access scope do this: anyone who can NOT access the guarded
+## plot is an intruder; owner/allowed/guild/faction members are not.
+func _is_intruder(target) -> bool:
+	if guard_data == null or guard_data.access == null:
+		return false
+	if guard_data.guard_duty != GuardData.GuardDuty.PERSONAL:
+		return false
+	return not guard_data.access.evaluate(target)
+
+
 ## Valid target = alive + criminal/faction-hostile. NOT the base class's
 ## "any player" rule: guards do not attack innocent players.
 func _is_valid_target(target) -> bool:
 	if target == null or not is_instance_valid(target):
+		return false
+	# Owner and explicitly allowed players are never targets (owner may
+	# even be a criminal elsewhere in the world -- home is safe). WORLD
+	# scope evaluates true for everyone, so skip it (town guards must
+	# still be able to fight).
+	if guard_data != null and guard_data.access != null \
+			and guard_data.access.scope != PlacementAccessScript.AccessScope.WORLD \
+			and guard_data.access.evaluate(target):
 		return false
 	if target.health_component and target.health_component.is_dead():
 		return false
@@ -249,6 +269,8 @@ func _is_valid_target(target) -> bool:
 	if is_criminal(target):
 		return true
 	if _is_faction_hostile(target):
+		return true
+	if _is_intruder(target):
 		return true
 	return false
 

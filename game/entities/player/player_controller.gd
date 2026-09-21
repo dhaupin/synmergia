@@ -525,7 +525,19 @@ func _activate_nearby_ankh() -> void:
 			if is_instance_valid(NotificationService) and NotificationService.has_method("notify_ankh_bound"):
 				NotificationService.notify_ankh_bound(entity_id, str(best.display_name))
 		else:
-			GameLog.info("Cannot bind to ankh: %s" % best.display_name)
+			# Scoped ankhs explain themselves: guild/faction/personal
+			# denials surface as toasts instead of failing silently.
+			var reason: String = ""
+			if best.has_method("describe_bind_denial"):
+				reason = best.describe_bind_denial(self)
+			GameLog.info("Cannot bind to ankh: %s (%s)" % [best.display_name, reason])
+			if is_instance_valid(NotificationService) and NotificationService.has_method("notify"):
+				NotificationService.notify(
+					preload("res://core/notifications/notification_kind.gd").NotifKind.PLAYER_WARNED,
+					"You cannot bind to %s yet. (%s)" % [str(best.display_name), reason],
+					"PlayerController",
+					"ankh_deny:%s:%s" % [str(best.ankh_id), reason],
+					{}, entity_id)
 
 ## Cycle to next target (Tab)
 func cycle_target() -> void:

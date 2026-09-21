@@ -611,3 +611,76 @@ hostility is PER-PLAYER, not global.
   guards, stats from GuardData.
 - Regression green: ground_loot, kill_rewards, aggro, hud (7/7,
   zero double-connects). Full scene boot clean.
+
+## PlacementAccess + housing + ankh scoping + spaced guards (2026-09-21)
+
+The common-interface pass: guards, ankhs and dwellings now share ONE
+ownership-scope vocabulary, so house guards, guild-hall ankhs and
+faction halls all resolve "who may use this" the same way.
+
+### PlacementAccess (core/schemas/placement_access.gd)
+- NEW shared Resource: scope WORLD/PERSONAL/GUILD/FACTION + owner,
+  guild_id, faction_id, allowed_ids, deny_ids. Resolution order:
+  deny (beats everything, even WORLD) -> owner -> allowed -> scope
+  match -> denied. Builders personal()/guild()/faction()/world().
+- class_name PlacementAccess (schema convention). NOTE: the enum is
+  AccessScope, not Scope -- the frame's core/frame/srv/scope.gd owns
+  the global class name Scope. Builders type -> Resource and
+  self-load() because a brand-new class_name is missing from the
+  global class cache until an editor import pass (GuardData lesson,
+  fixed at the source this time).
+
+### Ankh revisit (guild/faction halls + the latent faction bug)
+- FIXED: can_bind read player.faction, which no Entity has -- the
+  faction check could NEVER pass. Now reads faction_id (fallback
+  faction).
+- GUILD ankhs check required_guild_id (which guild) before the rank
+  check; rank 0 = any rank. New describe_bind_denial() returns the
+  reason (level_low/faction/not_allowed/guild/...); can_bind
+  delegates to it so gates and prompts can never drift.
+- New access field (PlacementAccess) evaluates on top of type checks;
+  bind denials surface as a toast from the player's E-interact
+  instead of failing silently.
+
+### DwellingService (plots + purchase + placement)
+- NEW core/services/dwelling_service.gd (autoload). register_plot ->
+  purchase_plot (50k demo price, one plot per player, gold via the
+  duck-typed `gold` property) -> place_house_guard (250k, the dream)
+  / place_personal_ankh (100k). One guard + one ankh per plot.
+- Placed guards: GuardData.house_guard + access stamp +
+  attach_guard_ai; registered with EntityService like scene guards.
+- Placed ankhs: PERSONAL type + access stamp, bindable by owner (and
+  allowed ids) only.
+- Chat: /buyplot /placeguard /placeankh /plotinfo (nearest-plot
+  resolution; lazy DwellingService lookup from ChatService).
+- Test seams: register_test_plot, set_service_override,
+  clear_test_state.
+
+### Guards: PERSONAL duty enforced + spaced test guards
+- GuardData gains access (PlacementAccess). GuardAI._is_valid_target:
+  owner/allowed players are NEVER targets (home is safe even if the
+  owner is wanted elsewhere); scope != WORLD means anyone who cannot
+  access the plot is an intruder and a valid target. WORLD-scope
+  stamps are skipped so town guards still fight.
+- world_playable now has 4 guards: the two plaza guards (shared
+  watch_haven_plaza) + GateGuardA/B at the east gate on an INDEPENDENT
+  watch_haven_gate (data/guards/guard_gate.tres, TRESPASS trigger,
+  own post position) -- grudge lists do not leak between watches.
+- Guild-hall ankh (purple, rank >= 1, northwest) and faction-hall
+  ankh (amber, faction 'town', southeast) placed for in-world testing.
+- Demo plot registered at the merchant (-5,-5): /buyplot ->
+  /placeguard to play the 250k scenario.
+
+### Tests
+- NEW test_placement_system.gd 54/54: all four scopes + deny
+  precedence, ankh personal/guild/faction binding (incl. the
+  faction_id regression), plot lookup/purchase flows (insufficient
+  gold, repurchase, one-per-player), placement costs/ownership
+  (250k/100k exact), placed guard duty/ownership/AI wiring, placed
+  ankh scope stamping, and GuardAI personal targeting (intruder
+  valid, owner/friend never, town guards unaffected by WORLD stamps).
+- Regression green: guard 31, ground_loot 17, kill_rewards 21,
+  loot_rules 30, duel 28, aggro 33, e2e, login, friends_social_tree,
+  notif frame/toast/chat, hud. Full scene boot clean (4 guards,
+  DwellingService ready, plot registered, zero double-connects).
+
