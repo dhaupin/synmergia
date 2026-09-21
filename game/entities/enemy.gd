@@ -140,11 +140,14 @@ func take_damage(amount: int, source = null) -> int:
 
 	# Threat: damage on this enemy builds the attacker's position on the
 	# threat table (drives in-combat target switching in EnemyAI).
-	if aggro_component and source is Entity:
+	# Duck-typed: PlayerController (CharacterBody3D, not an Entity subclass)
+	# is the live player, and its attacks must build threat and grudges.
+	var is_combatant: bool = source is Entity or (source is Node and "entity_id" in source)
+	if aggro_component and is_combatant:
 		aggro_component.add_damage_threat(source, amount)
 
 	# Grudge memory + engagement: let the AI remember and fight back.
-	if _ai and source is Entity:
+	if _ai and is_combatant:
 		_ai.on_damaged(source)
 
 	# Killer-of-record: any valid in-tree combatant counts (duck-typed,

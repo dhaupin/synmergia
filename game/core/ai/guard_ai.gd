@@ -403,10 +403,10 @@ func _update_combat(delta: float) -> void:
 ## Handle being damaged: the ATTACKED trigger. Attacking a guard is
 ## itself a crime -- report it (marks the attacker AND shares the
 ## offense with the whole watch) before the base engagement logic.
-## Note: the base signature is (source: Entity), so a bare Node attacker
-## cannot reach here -- the report_offense passthrough on Guard covers
-## service-side callers that only hold a duck-typed source.
-func on_damaged(source: Entity) -> void:
+## Note: the parameter is untyped (the live player is a PlayerController
+## CharacterBody3D, not an Entity subclass; a typed Entity param throws
+## on every real player hit).
+func on_damaged(source) -> void:
 	if source != null and "entity_id" in source and not ("loot_table_id" in source):
 		report_offense(str(source.entity_id), GuardData.WatchTrigger.ATTACKED,
 			"attacked the guard")

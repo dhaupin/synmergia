@@ -238,10 +238,41 @@ func _is_valid_target(target) -> bool:
 			if not see_stealth:
 				return false
 
+	# Spawn sanctuary: a fresh target loitering near a zone spawn/bind
+	# point cannot be aggroed. Grudged targets (they damaged us first)
+	# are exempt so players cannot use spawn as a combat shield.
+	var has_grudge: bool = float(_known_threats.get(target.entity_id, 0.0)) > 0.0
+	if not has_grudge and _is_target_in_spawn_sanctuary(target):
+		return false
+
 	# Check faction/enemy status
 	if EntityService.is_enemy(get_parent(), target):
 		return true
 
+	return false
+
+## True when the target stands within SPAWN_SANCTUARY_RADIUS of any
+## registered spawn point (or bind point) of the zone it is in. Duck-
+## typed throughout: ZoneManager may be absent (script-mode tests) and
+## the zone data may not be registered yet -- both mean "no sanctuary".
+## Radius must exceed the largest aggro_range in enemy data (10.0).
+const SPAWN_SANCTUARY_RADIUS := 12.0
+
+func _is_target_in_spawn_sanctuary(target) -> bool:
+	var zm = get_node_or_null("/root/ZoneManager")
+	if zm == null or not zm.has_method("get_entity_zone"):
+		return false
+	var zone = zm.get_entity_zone(target)
+	if zone == null:
+		return false
+	var anchors: Array = []
+	if "spawn_points" in zone:
+		anchors = zone.spawn_points
+	if "bind_point" in zone:
+		anchors.append(zone.bind_point)
+	for anchor in anchors:
+		if target.global_position.distance_to(anchor) <= SPAWN_SANCTUARY_RADIUS:
+			return true
 	return false
 
 ## Set state
@@ -490,13 +521,15 @@ func engage_target(target) -> void:
 		_set_target(target)
 		set_state(AIState.CHASE)
 
-## Handle being damaged
-func on_damaged(source: Entity) -> void:
-	if state == AIState.IDLE or state == AIState.PATROL:
-		# Become aware
-		engage_target(source)
-	# Remember who hurt us -- keying by tick-unique id keeps every hit
-	# as its own memory entry; weights sum effectively via recall sort.
+## Handle being damaged. Untyped source: the live player is a
+## PlayerController (CharacterBody3D), not an Entity subclass -- a typed
+## `source: Entity` param throws on every real player hit and silently
+## kills threat + grudge recording.
+func on_damaged(source) -> void:
+	# Remember who hurt us BEFORE engaging: engage_target runs the
+	# _is_valid_target gate, which exempts grudged targets from the
+	# spawn-sanctuary rule. Recording first means a player who attacks
+	# us while standing in spawn still gets chased (no combat shield).
 	if source and source.entity_type == Entity.EntityType.PLAYER:
 		remember("hit_%s_%d" % [source.entity_id, Time.get_ticks_msec()], {
 			"player_id": source.entity_id,
@@ -504,6 +537,9 @@ func on_damaged(source: Entity) -> void:
 			"action": "attacked",
 			"time": Time.get_unix_time_from_system(),
 		}, 1.0)
+	if state == AIState.IDLE or state == AIState.PATROL:
+		# Become aware
+		engage_target(source)
 
 ## Handle target death
 func on_target_death() -> void:

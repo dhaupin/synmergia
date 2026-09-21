@@ -799,3 +799,77 @@ live onboarding chain passing end-to-end. Commit `8359bcd` on main.
 - Islands suite emits 20 bare-autoload script-mode compile errors
   (action_bar, minimap, target_frame, etc.) -- same runtime-lookup
   pattern would clean them, batched work.
+
+### 2026-09-21 (later) Spawn sanctuary + zone-storm fix [town:core][town:test]
+
+Follow-up from the same live-session findings. Commits on main.
+
+#### 1. Wolf spawn-camping fixed systemically (spawn sanctuary)
+- The scene wolf (level 3, 7.8u from spawn, 10u aggro) killed the idle
+  level-1 player at ~frame 33. Repositioning alone cannot fix this:
+  EnemyAI patrols 5-15u from spawn, so it can wander back onto the
+  spawn. Fixed in the AI instead:
+  - `EnemyAI._is_target_in_spawn_sanctuary()`: no FRESH aggro on
+    targets within 12u of any zone spawn_points/bind_point (duck-typed
+    ZoneManager lookup; absent manager = no sanctuary, tests fine).
+  - GRUDGE EXEMPTION: a player who damaged the enemy first is still
+    chased inside the sanctuary (no combat shield).
+  - ORDERING BUG fixed while wiring this: `on_damaged` used to engage
+    BEFORE remembering the attacker; now remembers first, so justified
+    counter-chases work.
+- Live test asserts survival: "player alive + full health after idle
+  boot window". No more revive/freeze hack for the wolf.
+
+#### 2. Real bug found under it: typed-param throws on player hits
+- `EnemyAI.on_damaged(source: Entity)` THROWS at runtime when the
+  attacker is the live player (PlayerController is a CharacterBody3D,
+  not an Entity subclass). Every real player hit silently died before
+  threat + grudge recording. Untyped the param in enemy_ai and
+  guard_ai (guard_ai had the same bug class). Enemy.take_damage gate
+  widened to duck-typed `entity_id in source` for threat/grudge.
+- Proved end-to-end: attack slime via take_damage -> grudge
+  `_known_threats["player_1"] = 1.0` -> `_check_for_targets()` returns
+  the player despite sanctuary.
+
+#### 3. Zone transition storm killed (thousands of errors/run)
+Live runs spammed ~954 seamless transitions + ~3272 entry denials +
+out-of-bounds errors per 90-frame run. Causes and fixes in
+zone_manager.gd:
+- Shipped zone data is four CONCENTRIC discs around the origin, so
+  neighbors always "contain" each other's members -> boundary
+  flip-flop every physics frame. `check_seamless_transition` now:
+  current zone HOLDS its members while inside (boot assignments
+  stick, level-gated inner zones entered explicitly); on exit, the
+  strongest claimant wins (level_requirement desc, radius asc) via
+  `_zone_claims_better`. Boot assignment at origin = starter_plains.
+- Double-removal in perform_seamless_transition (`erase` +
+  `remove_at(find(entity))` -> index -1 error per transition):
+  single Array.erase now.
+- Entry-denial cooldown (2s): untracked entities were re-probed every
+  frame; a persistent denial (e.g. level 10 dungeon gate) logged
+  thousands of times.
+- Double `entity_entered_zone` emit in the spatial detector removed.
+- Result: 0 transitions, ~62 denials (one per entity then cooldown),
+  0 index errors. GODOT ENGINE LOG BLOAT ALSO EXPLAINED: two disk-full
+  events this session came from these runs (19GB engine logs in
+  minutes). If disk fills again: purge
+  ~/.local/share/godot/app_userdata/Synmergia/logs/godot*.log.
+
+#### Verification
+- test_onboarding_live: 26/26 (3 runs, deterministic). Includes
+  sanctuary holds, grudge recorded via REAL take_damage path, grudge
+  overrides sanctuary (no shield). Storm counters: 0.
+- Regression: kill_rewards 21, ground_loot 42, notification_frame 26,
+  login_flow 21, entity_autoload 8, autoload_audit 2, guard_system 31,
+  placement_system 54, islands 19 (same 20 pre-existing script-mode
+  compile notes as HEAD baseline).
+- Live boot: 0 SCRIPT ERROR.
+- Note: player entity_type is an int mirror (1 == EntityType.PLAYER);
+  is_enemy/threat paths verified against it.
+
+#### Open
+- islands suite bare-autoload script-mode compiles (unchanged, batched
+  work, baseline documented).
+- Zone data is concentric discs sharing one center; real region shapes
+  would make the overlap resolver's "strongest claimant" rule barely
+  needed. Fine for now: the hold-current rule is correct either way.

@@ -57,6 +57,12 @@ var _zone_neighbors: Dictionary = {}
 # Current zone for each entity
 var _entity_zones: Dictionary = {}	# entity_id -> zone_id
 
+# Anti-storm guards: zone seams overlap, so without these the seamless
+# detector flip-flops entities across boundaries every physics frame and
+# re-probes denied entries thousands of times per run (log spam + errors).
+const ENTRY_RETRY_MSEC := 2000
+var _entry_denied_at: Dictionary = {}	# entity_id -> last denial ticks
+
 # Seamless transition tracking
 var _transition_zones: Dictionary = {}	# zone_id -> [transition_bounds]
 var _seamless_enabled: bool = true
@@ -457,10 +463,20 @@ func entity_enter_zone(entity, zone) -> bool:
 	if entity == null or zone == null:
 		return false
 
+	# Denial cooldown: untracked entities are re-probed every physics
+	# frame by the seamless detector, so a persistent denial (level gate,
+	# blocked faction/species) would spam this path thousands of times
+	# per run. Back off per entity before re-testing the gate.
+	var now_ms: int = Time.get_ticks_msec()
+	if now_ms - int(_entry_denied_at.get(entity.entity_id, -1000000)) < ENTRY_RETRY_MSEC:
+		return false
+
 	# Check entry requirements
 	if not zone.can_enter(entity):
+		_entry_denied_at[entity.entity_id] = now_ms
 		GameLog.debug("ZoneManager: %s cannot enter zone %s" % [entity.display_name, zone.id])
 		return false
+	_entry_denied_at.erase(entity.entity_id)
 
 	# Remove from old zone
 	var old_zone_id = _entity_zones.get(entity.entity_id, "")
@@ -777,11 +793,34 @@ func check_seamless_transition(entity) -> ZoneData:
 	if current_zone == null:
 		return null
 
-	# Check if entity crossed zone boundary using registered neighbors
-	var neighbors = get_neighboring_zones(current_zone_id)
-	for neighbor in neighbors:
-		if neighbor.contains_position(entity.global_position):
-			return neighbor
+	# Overlap resolution (anti flip-flop storm): shipped zone regions
+	# overlap heavily (concentric discs around the origin), so several
+	# zones claim the same position and the losers used to re-claim the
+	# entity every physics frame -- thousands of exit/enter transitions
+	# and entry denials per run.
+	#
+	# Deterministic rule: the CURRENT zone holds its members while they
+	# remain inside it (boot/portal assignments stick; level-gated inner
+	# regions are entered explicitly, never auto-claimed). When the
+	# entity exits the current zone, the strongest other claimant wins:
+	# higher level_requirement first (dangerous inner regions override),
+	# then smaller zone_radius (more specific region). No claimant means
+	# the entity leaves the tracked set until the entry detector finds it.
+	var entity_pos: Vector3 = entity.global_position
+	if current_zone.contains_position(entity_pos):
+		return null
+
+	var best_zone: ZoneData = null
+	for zone in _zones.values():
+		if zone.is_instanced or zone.id == current_zone_id:
+			continue
+		if not zone.contains_position(entity_pos):
+			continue
+		if best_zone == null or _zone_claims_better(zone, best_zone):
+			best_zone = zone
+	if best_zone != null and not best_zone.can_enter(entity):
+		return null  # gate denied: stay untracked rather than flip-flopping
+	return best_zone
 
 	# Spatial fragmenter-based transition detection
 	# If SpatialFragmenter is available, check if the entity's position maps
@@ -817,6 +856,12 @@ func check_seamless_transition(entity) -> ZoneData:
 
 	return null
 
+## Claim comparison: does zone a outrank zone b for overlap resolution?
+func _zone_claims_better(a: ZoneData, b: ZoneData) -> bool:
+	if a.level_requirement != b.level_requirement:
+		return a.level_requirement > b.level_requirement
+	return a.zone_radius < b.zone_radius
+
 ## Perform seamless transition
 func perform_seamless_transition(entity, to_zone) -> bool:
 	if to_zone == null:
@@ -836,10 +881,11 @@ func perform_seamless_transition(entity, to_zone) -> bool:
 	# Emit start signal
 	seamless_transition_started.emit(entity, from_zone, to_zone)
 
-	# Exit current zone
+	# Exit current zone (Array.erase is the single removal; the old code
+	# also called remove_at(find(entity)), which computed -1 and raised an
+	# out-of-bounds error on every single transition).
 	_entity_zones.erase(entity.entity_id)
 	_players_in_zone[from_zone.id].erase(entity)
-	_players_in_zone[from_zone.id].remove_at(_players_in_zone[from_zone.id].find(entity))
 	player_exited_zone.emit(entity, from_zone)
 	EventHub.entity_exited_zone.emit(entity, from_zone)
 
@@ -942,8 +988,7 @@ func _detect_zone_entries_spatial(entities: Array) -> void:
 					break
 
 		if found_zone:
-			entity_enter_zone(entity, found_zone)
-			entity_entered_zone.emit(entity, found_zone)
+			entity_enter_zone(entity, found_zone)  # emits entity_entered_zone itself
 
 ## Fallback zone entry detection using Euclidean distance
 func _detect_zone_entries_fallback(entities: Array) -> void:

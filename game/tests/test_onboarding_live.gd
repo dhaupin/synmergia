@@ -16,10 +16,11 @@
 ##             -> AchievementService.track("enemy") -> first_blood + ob_first_kill
 ##             -> NotificationService toasts
 ##
-## NOTE: the scene wolf is spawn-camped (aggro reaches player spawn) and
-## kills an idle player around frame 33. The test revives the player and
-## freezes the wolf's AI before the kill step -- and this hazard is a
-## real finding: a fresh spawn should not die while reading the controls.
+## NOTE: the scene wolf's aggro range used to reach the player spawn and
+## killed an idle player around frame 33. Fixed systemically: EnemyAI now
+## enforces a spawn sanctuary (no fresh aggro near zone spawn/bind points,
+## grudged players exempt). This test ASSERTS the fix: the player must
+## still be alive at full health after the idle boot window.
 ## Exit 0 = every hop observed. Failures print FAIL lines and exit 1.
 extends SceneTree
 
@@ -127,18 +128,29 @@ func _run() -> void:
 	if wolf == null:
 		return _finish()
 
-	# The scene wolf is spawn-camped: its aggro range reaches the player
-	# spawn and the idle player dies (~frame 33) before the test window.
-	# A dead player fails KillRewards._is_valid_combatant, so credit never
-	# resolves -- and this is also a real gameplay hazard. For the
-	# verification window: revive + full heal, and freeze the wolf's brain
-	# so it can't re-kill during the assertion frames.
-	if player.health_component and player.health_component.is_dead():
-		player.health_component.revive_in_place()
-	if player.health_component:
-		player.health_component.current_health = player.health_component.max_health
-	if wolf.get("_ai") != null and is_instance_valid(wolf._ai):
-		wolf._ai.set_physics_process(false)
+	# The scene wolf used to be spawn-camped: its aggro range reached the
+	# player spawn and the idle player died (~frame 33) before the test
+	# window. The EnemyAI spawn-sanctuary rule now prevents exactly that,
+	# so we ASSERT survival instead of hacking around it: the player must
+	# still be alive at full health after the idle boot window.
+	var hc = player.get("health_component")
+	_assert("player alive after idle boot window (spawn sanctuary)",
+		hc != null and not hc.is_dead())
+	_assert("player at full health after idle boot (no spawn-camp damage)",
+		hc != null and int(hc.current_health) == int(hc.max_health))
+
+	# --- 4a. Kill chain first (highest-value assertions) ----------------
+	# Prepare the slime probe deterministically: its IDLE state patrols at
+	# a 1% per-frame chance, so during the boot window it may have drifted
+	# out of its own 8.0 aggro radius (scan would miss the player no
+	# matter what the grudge says). Freeze the brain and pin it 5 units
+	# from the player: inside aggro range AND inside the sanctuary.
+	var slime := _find_node("SlimeA")
+	_assert("SlimeA present in scene", slime != null)
+	if slime != null:
+		if slime.get("_ai") != null and is_instance_valid(slime._ai):
+			slime._ai.set_physics_process(false)
+		slime.global_position = player.global_position + Vector3(5.0, 0.0, 0.0)
 
 	var before_xp: int = int(player.experience)
 	var before_gold: int = int(player.gold)
@@ -156,7 +168,7 @@ func _run() -> void:
 		await process_frame
 		frames2 += 1
 
-	# --- 5. Assert every hop -------------------------------------------
+	# --- 4b. Assert every hop -------------------------------------------
 	_assert("EventHub.kill_rewarded fired", got["kill_rewarded"])
 	_assert("quest objective advanced (quest_updated)", got["quest_updated"])
 	_assert("quest NOT completed at 1/10 (correct gate)", not got["quest_completed"])
@@ -166,6 +178,24 @@ func _run() -> void:
 	_assert("achievement toast dispatched", got["ach_toast"])
 	_assert("player granted kill XP", int(player.experience) > before_xp)
 	_assert("player granted kill gold", int(player.gold) > before_gold)
+
+	# --- 4c. Sanctuary semantics: no shield-abuse -----------------------
+	# SlimeA sits 7.07 units from spawn (inside its 8.0 aggro range) with
+	# its brain already frozen: fresh player -> no aggro (sanctuary
+	# holds). Player attacks it -> grudge recorded via the REAL
+	# Enemy.take_damage path -> grudge overrides sanctuary (no shield).
+	if slime != null and slime.get("_ai") != null and is_instance_valid(slime._ai):
+		var ai = slime._ai
+		_assert("fresh player in sanctuary is not aggroed",
+			ai._check_for_targets() == null)
+		var before_slime_hp: int = int(slime.health_component.current_health)
+		slime.take_damage(5, player)
+		_assert("player attack landed on slime", int(slime.health_component.current_health) == before_slime_hp - 5)
+		_assert("grudge recorded for attacking player",
+			float(ai._known_threats.get(player.entity_id, 0.0)) > 0.0)
+		_assert("grudged player re-aggroed despite sanctuary (no combat shield)",
+			ai._check_for_targets() == player)
+
 	_finish()
 
 ## Read the kill_wolves objective's current progress from quest state.
@@ -189,6 +219,10 @@ func _find_enemy(display: String) -> Node:
 	return _dfs(root, func(n: Node) -> bool:
 		return "display_name" in n and str(n.display_name) == display \
 			and "enemy_data" in n)
+
+func _find_node(node_name: String) -> Node:
+	return _dfs(root, func(n: Node) -> bool:
+		return str(n.name) == node_name)
 
 func _dfs(n: Node, pred: Callable) -> Node:
 	if n != root and pred.call(n):
