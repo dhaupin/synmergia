@@ -41,12 +41,17 @@ static func award_kill(entity, killer) -> void:
 	var hub := _event_hub()
 	if hub == null or not hub.has_signal("kill_rewarded"):
 		return
+	# player_id rides along so QuestService kill-objective credit (and any
+	# other consumer attributing the kill) resolves the same winner as the
+	# XP payout -- direct killer, else threat-table owner.
 	hub.kill_rewarded.emit(
 			entity,
 			result.get("killer", null),
 			{
 				"xp": int(result.get("xp", 0)),
 				"gold": int(result.get("gold", 0)),
+				"player_id": str(result.get("player_id", "")),
+				"credit_source": str(result.get("credit_source", "")),
 				"party_shared": bool(result.get("party_shared", false)),
 				"scaling": float(result.get("scaling", 1.0)),
 				"party_distribution": result.get("party_distribution", {}),

@@ -65,6 +65,10 @@ var inventory_component: InventoryComponent = null
 var player_id: int = 1
 var is_local_player: bool = true
 var entity_id: String = ""
+## Canonical fallback id when the scene doesn't assign one (matches
+## world_playable.LOCAL_PLAYER_ID; the old int str(player_id) fallback
+## produced "1" and desynced every service keyed by entity_id).
+const LOCAL_PLAYER_ID := "player_1"
 
 # --- Combat surface ------------------------------------------------------
 # EnemyAI, Skill, and EntityService treat all combatants uniformly via this
@@ -103,6 +107,10 @@ var team_id: int = 0
 # EntityService.is_enemy via `entity.faction`.
 var faction: int = 0
 var relation: int = 0
+# Entity parity: services (FactionManager wars, RespawnService rez rules,
+# ZoneData entry gates, PlacementAccess) read faction_id off any
+# combatant. Empty string = unaligned.
+var faction_id: String = ""
 
 # Context menu
 var _action_menu: ActionMenu = null
@@ -159,7 +167,11 @@ func _ready() -> void:
 		inventory_component = InventoryComponent.new()
 		inventory_component.name = "InventoryComponent"
 		add_child(inventory_component)
-	var _inv_id := entity_id if entity_id != "" else str(player_id)
+	# Stable id BEFORE anything else keys off it: world_playable only fills
+	# entity_id when it's still empty, so an int fallback here (str(1) -> "1")
+	# used to win the race and desync InventoryService/EntityService/quest
+	# credit from the canonical "player_1". Use the scene-agnostic string id.
+	var _inv_id := entity_id if entity_id != "" else LOCAL_PLAYER_ID
 	if entity_id == "":
 		entity_id = _inv_id
 	inventory_component.set_owner_id(_inv_id)

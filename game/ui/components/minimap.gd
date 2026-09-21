@@ -427,16 +427,22 @@ func _connect_signals() -> void:
 		EntityService.entity_despawned.connect(_on_entity_despawned)
 
 func _on_zone_loaded(zone_data) -> void:
-	if zone_data and zone_data.has("bounds"):
-		_map_size = zone_data.bounds.size
-	if zone_data and zone_data.has("minimap_texture"):
+	# ZoneData is a Resource: use `in` (Resources have no .has(); the
+	# direct property access then also must be guarded).
+	if zone_data != null and "bounds" in zone_data:
+		_map_size = _v3_to_v2(zone_data.bounds.size)
+	if zone_data != null and "minimap_texture" in zone_data:
 		_map_texture.texture = zone_data.minimap_texture
 
 func _on_player_entered_zone(_player, zone) -> void:
-	if zone and zone.has("bounds"):
-		_map_size = zone.bounds.size
-	if zone and zone.has("minimap_texture"):
+	if zone != null and "bounds" in zone:
+		_map_size = _v3_to_v2(zone.bounds.size)
+	if zone != null and "minimap_texture" in zone:
 		_map_texture.texture = zone.minimap_texture
+
+## AABB.size is a Vector3; the minimap works in XZ-plane Vector2 space.
+func _v3_to_v2(v3: Vector3) -> Vector2:
+	return Vector2(v3.x, v3.z)
 
 ## WorldService.time_changed emits (time_of_day: String, hour: int);
 ## the local set_time_of_day(hour, minute) path reuses this slot. Both

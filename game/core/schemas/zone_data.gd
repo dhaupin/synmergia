@@ -66,19 +66,26 @@ func _init() -> void:
 
 ## Check if a player can enter this zone
 func can_enter(entity) -> bool:
-	# Level check
+	# Level check (stubs without level always pass)
+	if not "level" in entity:
+		return false
 	if entity.level < level_requirement:
 		return false
 	if entity.level > max_level and max_level > 0:
 		return false
 
-	# Faction check
-	if not allowed_factions.is_empty():
-		if "faction_id" in entity:
-			if not allowed_factions.has(entity.faction_id):
-				return false
+	# Faction check. Entity carries faction_id; PlayerController and
+	# other stubs may not (4.7.2: direct access on a missing property
+	# is a runtime error, so guard every read).
+	var faction_id := ""
+	if "faction_id" in entity:
+		faction_id = str(entity.faction_id)
 
-	if blocked_sactions.has(entity.faction_id):
+	if not allowed_factions.is_empty():
+		if faction_id == "" or not allowed_factions.has(faction_id):
+			return false
+
+	if faction_id != "" and blocked_sactions.has(faction_id):
 		return false
 
 	# Species check
@@ -87,6 +94,15 @@ func can_enter(entity) -> bool:
 			return false
 
 	return true
+
+## Resolve a faction id off a duck-typed combatant (Entity carries
+## faction_id; PlayerController/stubs may carry neither).
+static func _faction_of(entity) -> String:
+	if entity == null:
+		return ""
+	if "faction_id" in entity:
+		return str(entity.faction_id)
+	return ""
 
 ## Can entity1 attack entity2 in this zone?
 func can_pvp(entity1, entity2) -> bool:
@@ -98,11 +114,11 @@ func can_pvp(entity1, entity2) -> bool:
 			# Different species can fight
 			if "species_id" in entity1 and "species_id" in entity2:
 				return entity1.species_id != entity2.species_id
-			return entity1.faction != entity2.faction
+			return _faction_of(entity1) != _faction_of(entity2)
 
 		PvPZoneMode.FACTION_PVP:
 			# Different factions can fight
-			return entity1.faction != entity2.faction
+			return _faction_of(entity1) != _faction_of(entity2)
 
 		PvPZoneMode.FREE_PVP:
 			# Everyone can fight

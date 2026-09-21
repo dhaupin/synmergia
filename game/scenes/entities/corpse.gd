@@ -114,20 +114,22 @@ func _start_decay_visual() -> void:
 	GameLog.debug("Corpse %s: Starting decay visual (will fade out)" % corpse_id)
 
 ## Check if a player can SEE this corpse (visibility)
-func can_see(observer: Entity) -> bool:
+func can_see(observer) -> bool:
+	# Duck-typed: observer may be an Entity, PlayerController, or test stub.
+	# `.has()` is not a method on Objects (4.7.2) -- use the `in` operator.
 	match visibility_mode:
 		Visibility.EVERYONE:
 			return true
 		Visibility.FACTION_ONLY:
-			return observer.faction_id == owner_faction_id if observer.has("faction_id") else false
+			return "faction_id" in observer and observer.faction_id == owner_faction_id
 		Visibility.GUILD_ONLY:
-			return observer.guild_id == owner_guild_id if observer.has("guild_id") else false
+			return "guild_id" in observer and observer.guild_id == owner_guild_id
 		Visibility.PARTY_ONLY:
-			return observer.party_id == owner_party_id if observer.has("party_id") else false
+			return "party_id" in observer and observer.party_id == owner_party_id
 		Visibility.OWNER_ONLY:
 			return observer.entity_id == owner_entity_id
 		Visibility.ENEMIES_ONLY:
-			return observer.faction_id != owner_faction_id if observer.has("faction_id") else true
+			return not ("faction_id" in observer) or observer.faction_id != owner_faction_id
 	return true
 
 ## Set visibility mode (can be changed based on zone rules)

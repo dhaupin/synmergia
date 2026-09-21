@@ -40,6 +40,23 @@ func _log(level: String, msg: String) -> void:
 	if gl != null and gl.has_method(level):
 		gl.call(level, msg)
 
+## Autoload-safe hub emit (same reason as _log): a bare EventHub
+## identifier is a parse-time edge, which aborts --script-mode compiles
+## of this file and every test that preloads it.
+func _hub_emit(signal_name: String, args: Array) -> void:
+	var hub := get_node_or_null("/root/EventHub")
+	if hub != null and hub.has_signal(signal_name):
+		hub.callv("emit_signal", [signal_name] + args)
+
+## Autoload-safe player toast (NotificationService has the same parse-time
+## edge as EventHub in --script test mode).
+func _notify_player(entity_id: String, kind: int, message: String,
+		source: String, dedupe_key: String, data: Dictionary) -> void:
+	var ns := get_node_or_null("/root/NotificationService")
+	if ns == null or not ns.has_method("notify"):
+		return
+	ns.notify(kind, message, source, dedupe_key, data, entity_id)
+
 func _ready() -> void:
 	# Persistence: drops are session-transient world state. Rehydrating
 	# them across a server restart would need snapshot_store; for now
@@ -79,7 +96,7 @@ func create_drop(position: Vector3, items: Array, options: Dictionary = {}) -> S
 	}
 
 	_drops[drop_id] = drop
-	EventHub.ground_loot_spawned.emit(drop_id, position, resolved_items)
+	_hub_emit("ground_loot_spawned", [drop_id, position, resolved_items])
 	drop_spawned.emit(drop_id, drop)
 	_attach_visual(drop_id, drop)
 	_log("info", "GroundLootService: %s drop '%s' (%d items) at %s" % [
@@ -141,8 +158,11 @@ func _resolve_items(items: Array) -> Array:
 			if item_id == "" or quantity <= 0:
 				continue
 			var item: Item = null
-			if DataService != null and DataService.has_method("get_item"):
-				item = DataService.get_item(item_id)
+			# Runtime lookup: a bare DataService identifier aborts
+			# --script-mode compiles (parse-time autoload edge).
+			var ds := get_node_or_null("/root/DataService")
+			if ds != null and ds.has_method("get_item"):
+				item = ds.get_item(item_id)
 			if item == null:
 				_log("warn", "GroundLootService: unknown item id '%s', skipped" % item_id)
 				continue
@@ -230,15 +250,11 @@ func try_pickup(player, drop_id: String = "") -> Array:
 
 	if not _can_pick_up(player, drop):
 		# Toast: item belongs to someone else's loot window.
-		if is_instance_valid(NotificationService):
-			NotificationService.notify(
-				NotifKind.ITEM_TRANSFERRED,
-				"This loot belongs to someone else for now.",
-				"GroundLootService",
-				"loot_lock:%s:%s" % [player_id, str(drop["id"])],
-				{"drop_id": str(drop["id"])},
-				player_id
-			)
+		_notify_player(player_id, NotifKind.ITEM_TRANSFERRED,
+			"This loot belongs to someone else for now.",
+			"GroundLootService",
+			"loot_lock:%s:%s" % [player_id, str(drop["id"])],
+			{"drop_id": str(drop["id"])})
 		return []
 
 	# Delegation gate (LootRulesService): party rules, smart class
@@ -250,25 +266,23 @@ func try_pickup(player, drop_id: String = "") -> Array:
 	if loot_rules != null and loot_rules.has_method("resolve_delegation"):
 		var reserved_for := str(loot_rules.resolve_delegation(drop, player_id))
 		if reserved_for != "" and reserved_for != "?":
-			if is_instance_valid(NotificationService):
 				var why := ""
 				if loot_rules.has_method("describe_reservation"):
 					why = str(loot_rules.describe_reservation(drop))
-				NotificationService.notify(
-					NotifKind.ITEM_TRANSFERRED,
+				_notify_player(player_id, NotifKind.ITEM_TRANSFERRED,
 					"This loot is not yours%s." % (" %s" % why if why != "" else ""),
 					"GroundLootService",
 					"delegated:%s:%s" % [player_id, str(drop["id"])],
-					{"drop_id": str(drop["id"])},
-					player_id
-				)
-			return []
+					{"drop_id": str(drop["id"])})
+				return []
 
 	# Route items through InventoryService so persistence, the
 	# InventoryComponent signal chain, and full-bag handling all fire.
+	# Runtime lookup (parse-time autoload edge in --script mode).
 	var inventory: Node = null
-	if InventoryService != null and InventoryService.has_method("get_inventory"):
-		inventory = InventoryService.get_inventory(player_id)
+	var inv_svc := get_node_or_null("/root/InventoryService")
+	if inv_svc != null and inv_svc.has_method("get_inventory"):
+		inventory = inv_svc.get_inventory(player_id)
 	if inventory == null:
 		_log("warn", "GroundLootService: no inventory for %s" % player_id)
 		return []
@@ -292,15 +306,12 @@ func try_pickup(player, drop_id: String = "") -> Array:
 			player.add_gold(total)
 
 	if picked.is_empty():
-		if not failed.is_empty() and is_instance_valid(NotificationService):
-			NotificationService.notify(
-				NotifKind.ITEM_FULL,
+		if not failed.is_empty():
+			_notify_player(player_id, NotifKind.ITEM_FULL,
 				"Your bags are full.",
 				"GroundLootService",
 				"bags_full:%s" % player_id,
-				{},
-				player_id
-			)
+				{})
 		return []
 
 	# Partial pickup keeps the remainder on the ground.
@@ -310,7 +321,7 @@ func try_pickup(player, drop_id: String = "") -> Array:
 	else:
 		_remove_drop(final_drop_id, "picked_up")
 
-	EventHub.ground_loot_picked_up.emit(player, final_drop_id, picked)
+	_hub_emit("ground_loot_picked_up", [player, final_drop_id, picked])
 	drop_picked_up.emit(final_drop_id, player, picked)
 	_log("info", "GroundLootService: %s picked up %d item(s) from %s" % [
 		player_id, picked.size(), str(drop.get("source", "drop"))])
@@ -324,7 +335,7 @@ func _remove_drop(drop_id: String, reason: String) -> void:
 	if node != null and is_instance_valid(node):
 		node.queue_free()
 	_drops.erase(drop_id)
-	EventHub.ground_loot_despawned.emit(drop_id, reason)
+	_hub_emit("ground_loot_despawned", [drop_id, reason])
 	drop_despawned.emit(drop_id, reason)
 
 ## Expire old drops.

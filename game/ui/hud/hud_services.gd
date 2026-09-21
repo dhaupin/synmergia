@@ -674,7 +674,11 @@ func _on_player_left(player, metadata) -> void:
 
 func _on_player_entered_zone(player, zone) -> void:
 	var pid: String = player.entity_id if player and "entity_id" in player else ""
-	var zone_name: String = zone.get("zone_name", "?") if zone else "?"
+	# ZoneData is a Resource: no 2-arg get() in 4.7.2, and the display
+	# name property is display_name (not zone_name).
+	var zone_name: String = "?"
+	if zone != null and "display_name" in zone and str(zone.display_name) != "":
+		zone_name = str(zone.display_name)
 	# Update minimap zone name
 	if is_instance_valid(_minimap) and _minimap.has_method("set_zone_name"):
 		_minimap.set_zone_name(zone_name)

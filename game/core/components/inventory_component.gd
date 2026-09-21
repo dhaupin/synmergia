@@ -91,14 +91,27 @@ static func from_dict(data: Dictionary) -> InventoryComponent:
 			comp._equipment[slot] = Item.from_dict(item_data)
 	return comp
 
+## Tree-safe autoload resolution: get_node_or_null("/root/X") hard-errors
+## when this component is not inside the scene tree. Walking the main
+## loop's root works in every mode (game, headless, --script tests).
+func _resolve_service(service_name: String) -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null(service_name)
+
 func add_item(item: Item, quantity: int = 1) -> bool:
-	# Security: Check for item duplication exploit
+	# Security: Check for item duplication exploit. The component may
+	# live outside the scene tree (pre-boot stubs, detached pickups), and
+	# get_node_or_null with an absolute path HARD-ERRORS there instead of
+	# returning null -- which silently failed every add. Resolve via the
+	# main loop, which is null-safe in all modes.
 	if item and item.id != "":
-		var ss = get_node_or_null("/root/SecurityService")
+		var ss = _resolve_service("SecurityService")
 		if ss:
 			var exploit_detected: bool = ss.check_item_duplication(_owner_id, item.id, quantity)
 			if exploit_detected:
-				var gl = get_node_or_null("/root/GameLog")
+				var gl = _resolve_service("GameLog")
 				if gl:
 					gl.warn("InventoryComponent: Item duplication detected for player %s" % _owner_id)
 				return false

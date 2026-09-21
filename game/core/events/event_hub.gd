@@ -26,6 +26,45 @@ signal damage_dealt(source, target, amount: int, damage_type: String)
 ## floating reward text, kill stat tracking, quest kill objectives.
 signal kill_rewarded(entity, killer, rewards: Dictionary)
 
+## Zone transitions (ZoneManager.entity_enter_zone / entity_exit_zone and
+## the gateway path). Payload is the entity node and the ZoneData resource.
+signal entity_entered_zone(entity, zone)
+signal entity_exited_zone(entity, zone)
+
+## Teleport via gateway (world_service.gd).
+signal entity_teleported(entity, from_pos: Vector3, to_pos: Vector3)
+
+## PvP kill attribution (health_component.gd on player death).
+signal player_killed_player(killer, victim)
+
+## Combat channel state (combat_component.gd).
+signal entity_entered_combat(entity)
+signal entity_exited_combat(entity)
+signal channel_tick(entity, skill)
+signal entity_interrupted(entity, skill, reason)
+signal interrupt_resisted(entity, skill)
+
+## Aura/buff lifecycle (aura_component.gd).
+signal buff_applied(entity, buff, source)
+signal buff_removed(entity, buff)
+signal debuff_applied(entity, debuff, source)
+signal aura_activated(entity, aura)
+signal aura_deactivated(entity, aura)
+signal aura_dispelled(entity, aura, caster)
+signal effect_dispelled(entity, debuff, caster)
+
+## Gold balance changes (inventory_component.gd add_gold / remove_gold).
+signal gold_changed(entity, amount: int)
+
+## Projectile lifecycle (projectile.gd).
+signal projectile_hit(projectile, target, damage: int)
+signal projectile_expired(projectile)
+signal area_damage(source, target, damage: int, damage_type: String)
+signal explosion_occurred(position: Vector3, radius: float, source)
+
+## Targeting UI actions (target_tooltip.gd).
+signal target_action_executed(source_id: String, target_id: String, action_id: String, success: bool)
+
 ## Accessibility settings broadcasts (SettingsPanel -> interested UI panels).
 signal accessibility_text_scale_changed(scale: float)
 signal accessibility_reduce_motion_changed(enabled: bool)

@@ -22,7 +22,9 @@ func _initialize() -> void:
 	_test_pickup_range_gate()
 	_test_owner_lock_window()
 	_test_reward_drop_owner_locked()
-	_test_despawn()
+	# _test_despawn awaits a timer inside, so it must be awaited here too
+	# (otherwise its assertion runs after quit and the summary miscounts).
+	await _test_despawn()
 	_test_ankh_bind_and_respawn_modes()
 	_test_ankh_dead_player_cannot_bind()
 	_test_quest_kill_objective_bridge()
@@ -98,6 +100,7 @@ func _test_pickup_into_inventory() -> void:
 		svc.queue_free()
 		return
 	var inv = load("res://core/components/inventory_component.gd").new()
+	root.add_child(inv)  # slots initialize in _ready
 	isvc.register_inventory("gl_picker", inv)
 
 	var player = _mk_player("gl_picker")
@@ -125,6 +128,7 @@ func _test_pickup_range_gate() -> void:
 	var svc := _mk_ground_svc()
 	var isvc = root.get_node_or_null("InventoryService")
 	var inv = load("res://core/components/inventory_component.gd").new()
+	root.add_child(inv)  # slots initialize in _ready
 	isvc.register_inventory("gl_far", inv)
 	var player = _mk_player("gl_far")
 	player.global_position = Vector3(50, 0, 50)
@@ -140,6 +144,8 @@ func _test_owner_lock_window() -> void:
 	var isvc = root.get_node_or_null("InventoryService")
 	var killer_inv = load("res://core/components/inventory_component.gd").new()
 	var victim_inv = load("res://core/components/inventory_component.gd").new()
+	root.add_child(killer_inv)  # slots initialize in _ready
+	root.add_child(victim_inv)
 	isvc.register_inventory("gl_killer", killer_inv)
 	isvc.register_inventory("gl_victim", victim_inv)
 	var killer = _mk_player("gl_killer")
@@ -164,6 +170,8 @@ func _test_reward_drop_owner_locked() -> void:
 	var isvc = root.get_node_or_null("InventoryService")
 	var inv_a = load("res://core/components/inventory_component.gd").new()
 	var inv_b = load("res://core/components/inventory_component.gd").new()
+	root.add_child(inv_a)  # slots initialize in _ready
+	root.add_child(inv_b)
 	isvc.register_inventory("gl_rew_a", inv_a)
 	isvc.register_inventory("gl_rew_b", inv_b)
 	var owner_p = _mk_player("gl_rew_a")
@@ -186,10 +194,11 @@ func _test_reward_drop_owner_locked() -> void:
 
 func _test_despawn() -> void:
 	var svc := _mk_ground_svc()
-	svc.create_drop(Vector3.ZERO, [{"item_id": "potion_health_small", "quantity": 1}],
-		{"despawn_seconds": 0.01})
-	await create_timer(0.05).timeout
+	var did: String = svc.create_drop(Vector3.ZERO, [{"item_id": "potion_health_small", "quantity": 1}],
+		{"despawn_seconds": 2.0})
+	await create_timer(3.0).timeout
 	svc._process(0.0)
+	print("    [despawn] count after sweep: %d" % svc.get_drop_count())
 	_assert(svc.get_drop_count() == 0, "expired drop removed by _process sweep")
 	svc.queue_free()
 
