@@ -259,10 +259,12 @@ func _setup_touch_hud() -> void:
 	var cam_speed: float = 0.003
 	if "rotation_speed" in cam:
 		cam_speed = float(cam.rotation_speed)
-	# 1.5x: observed 0.006 rad/px (2.0x) was 440 deg per full-screen swipe --
-	# too hot. 1.5x gives ~330 deg/swipe (0.48 rad per 80px flick -> 0.36).
+	# Base 1.5x: observed 0.006 rad/px (2.0x) was 440 deg per full-screen
+	# swipe -- too hot. 1.5x gives ~330 deg/swipe at default sensitivity.
+	# The user's camera_rotation_speed slider (ThirdPersonCamera.sensitivity)
+	# scales this live, same as the mouse path.
 	var look_handler := func(delta_px: Vector2) -> void:
-		cam.orbit(delta_px * cam_speed * 1.5)
+		cam.orbit(delta_px * cam_speed * 1.5 * cam.sensitivity)
 	if not joystick.camera_look.is_connected(look_handler):
 		joystick.camera_look.connect(look_handler)
 	GameLog.info("WorldPlayable: touch HUD wired to third-person camera")

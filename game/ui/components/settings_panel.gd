@@ -150,14 +150,17 @@ func _create_slider_row(setting_key: String, label_text: String, min_val: float,
 	var slider := HSlider.new()
 	slider.min_value = min_val
 	slider.max_value = max_val
-	slider.value = default_val
+	# Hydrate from PlayerConfig so the panel shows the SAVED value, not
+	# the hardcoded default (a saved 2.5 sensitivity used to render 1.0).
+	var saved: Variant = PlayerConfig.get_account_setting(setting_key, default_val) if PlayerConfig else default_val
+	slider.value = clampf(float(saved), min_val, max_val)
 	slider.step = step
 	slider.custom_minimum_size.x = 200
 	slider.value_changed.connect(_on_slider_changed.bind(setting_key))
 	row.add_child(slider)
 
 	var value_label := Label.new()
-	value_label.text = format % default_val
+	value_label.text = format % slider.value
 	value_label.custom_minimum_size.x = 50
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(value_label)
@@ -169,7 +172,7 @@ func _create_slider_row(setting_key: String, label_text: String, min_val: float,
 func _create_toggle_row(setting_key: String, label_text: String, default_val: bool, tooltip: String = "") -> HBoxContainer:
 	var row := _create_setting_row(label_text, tooltip)
 	var toggle := CheckButton.new()
-	toggle.button_pressed = default_val
+	toggle.button_pressed = bool(PlayerConfig.get_account_setting(setting_key, default_val)) if PlayerConfig else default_val
 	toggle.toggled.connect(_on_toggle_changed.bind(setting_key))
 	row.add_child(toggle)
 	_setting_controls[setting_key] = {"type": "toggle", "control": toggle}

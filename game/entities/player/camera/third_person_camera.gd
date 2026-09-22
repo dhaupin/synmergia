@@ -24,6 +24,12 @@ var pitch: float = 18.0
 var current_distance: float = 6.0
 var is_aiming: bool = false
 
+# User settings (PlayerConfig-backed; live-updated via setting_changed).
+# sensitivity is the multiplier on rotation_speed (1.0 = default feel).
+var sensitivity: float = 1.0
+var invert_x: bool = false
+var invert_y: bool = false
+
 var _dragging: bool = false
 var _last_mouse: Vector2 = Vector2.ZERO
 var _default_fov: float = 70.0
@@ -35,6 +41,28 @@ func _ready() -> void:
 		GameLog.warn("ThirdPersonCamera: No target (parent) found")
 	_default_fov = fov
 	current_distance = distance
+	_apply_user_settings()
+	if PlayerConfig:
+		PlayerConfig.setting_changed.connect(_on_setting_changed)
+
+## Pull the saved camera settings. rotation_speed stays the base rad/px
+## constant; the slider (0.5..3.0, default 1.0) scales both the mouse
+## path and the touch bridge in world_playable.
+func _apply_user_settings() -> void:
+	if PlayerConfig == null:
+		return
+	sensitivity = float(PlayerConfig.get_account_setting("camera_rotation_speed", 1.0))
+	invert_x = bool(PlayerConfig.get_account_setting("invert_x_axis", false))
+	invert_y = bool(PlayerConfig.get_account_setting("invert_y_axis", false))
+
+func _on_setting_changed(_cat: int, key: String, value: Variant) -> void:
+	match key:
+		"camera_rotation_speed":
+			sensitivity = float(value)
+		"invert_x_axis":
+			invert_x = bool(value)
+		"invert_y_axis":
+			invert_y = bool(value)
 
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(target):
@@ -59,7 +87,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and _dragging:
 		var rel: Vector2 = event.position - _last_mouse
 		_last_mouse = event.position
-		orbit(rel * rotation_speed * 60.0)
+		# 1.0x (not the legacy *60) keeps the mouse path at the same
+		# rad/px as the touch bridge; both scale by the user sensitivity.
+		orbit(rel * rotation_speed * sensitivity)
 
 	# Aim mode (right mouse button hold).
 	is_aiming = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
@@ -85,8 +115,10 @@ func _is_mouse_over_gui(pos: Vector2) -> bool:
 	return over != null
 
 func orbit(delta: Vector2) -> void:
-	yaw -= delta.x
-	pitch -= delta.y
+	var dx: float = -delta.x if invert_x else delta.x
+	var dy: float = -delta.y if invert_y else delta.y
+	yaw -= dx
+	pitch -= dy
 	pitch = clampf(pitch, min_pitch, max_pitch)
 
 func _apply_zoom() -> void:

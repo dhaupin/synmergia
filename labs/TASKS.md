@@ -909,3 +909,60 @@ swallowed during Land, edit-mode 0px drag, then the full live battery.
 - camera look: `cam.orbit(delta_px * rotation_speed(0.003) * 1.5)`
 - stick radius 80px half-extent, auto-sprint at full deflection
 - slide friction/duration unchanged from prior tuning pass
+
+---
+
+## Session 2026-09-22 (splash-to-play journey + camera settings wiring)
+
+### Answer to "do we need sensitivity settings?"
+They already existed in the Settings panel but were DEAD - saved to
+PlayerConfig and never read by anything. Now wired end-to-end:
+- ThirdPersonCamera reads camera_rotation_speed (0.5..3.0 multiplier,
+  1.0 default), invert_x_axis, invert_y_axis from PlayerConfig at
+  _ready and live via setting_changed.
+- Mouse orbit fixed: legacy `rel * rotation_speed * 60.0` was 30x
+  hotter than the touch path (0.18 rad/px). Now both paths share the
+  same rad/px scale (rotation_speed * sensitivity), so the slider
+  governs both identically.
+- Touch bridge (world_playable) scales by cam.sensitivity too, so the
+  slider works for mobile swipes.
+- Settings panel sliders/toggles now hydrate from saved PlayerConfig
+  values on open (a saved 2.5 sensitivity used to render as 1.0).
+- Known gap, NOT wired: camera_fov slider saves but nothing applies
+  it (default fov is set from the node, no PlayerConfig read). Left
+  for a follow-up; listed in "Open".
+
+### New journey test: test_splash_to_play.gd (xvfb, real boot)
+Drives the actual player path: main_menu scene (project main scene) ->
+[Play] -> character_select -> F5 auto-select -> F6 play ->
+GameManager.PLAYING -> world_playable. Checkpoints (14):
+menu scene current, Play enabled, char select reached + state,
+world loaded + state PLAYING, player node, EntityService entities
+(11), camera rig, HudLayer, touch HUD alive, sensitivity round-trip
+(PlayerConfig 2.5 -> live cam.sensitivity 2.5), touch-look bridge
+emits, movement input still works after the journey (state Run).
+
+### Bugs the journey found and fixed
+- character_data.gd is_gm_class(): String class_id compared to int
+  Role enum -> runtime error every world entry for non-GM chars.
+  Now resolves strings via DataService, accepts CharacterClass/Role
+  int/String.
+- main_menu_bar.gd _check_permissions(): read `.id` but
+  CharacterData exposes `character_id` -> error on every world entry.
+  Guarded with `in` check.
+- Both errors fired on EVERY splash-to-play run (every player, every
+  boot). Fixed + verified zero SCRIPT ERROR in journey output.
+
+### Verification
+- test_splash_to_play: 14/14 (xvfb, zero script errors).
+- test_touch_live: 17/17 (camera tuning unaffected; sensitivity
+  default path identical feel).
+- Regression headless green: state_schema, hud_integration,
+  notification_frame, combat_loop, e2e_flow, autoload_audit,
+  parse_check, login_flow, achievement_flow.
+
+### Open (next session candidates)
+- camera_fov + camera_smoothing + camera_distance sliders still
+  unwired (same treatment as rotation_speed: apply in
+  ThirdPersonCamera._apply_user_settings).
+- Settings panel dropdowns do not hydrate saved values yet.

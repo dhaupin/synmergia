@@ -64,10 +64,21 @@ static func load_class(class_id: String) -> CharacterClass:
 	return res if res is CharacterClass else null
 
 ## Check if a class is GM-only (role = 0)
+## Accepts a CharacterClass, a class_id String, or a Role int. Callers
+## used to pass class_id strings straight in and hit a String == int
+## runtime error; resolve strings through DataService instead.
 static func is_gm_class(cls_or_role) -> bool:
 	if cls_or_role is CharacterClass:
 		return cls_or_role.role == CharacterClass.Role.GM
-	return cls_or_role == CharacterClass.Role.GM
+	if cls_or_role is String:
+		var ds = Engine.get_main_loop().root.get_node_or_null("DataService")
+		if ds == null or not ds.has_method("get_character_class"):
+			return false
+		var cls = ds.get_character_class(cls_or_role)
+		return cls != null and cls.role == CharacterClass.Role.GM
+	if cls_or_role is int:
+		return cls_or_role == CharacterClass.Role.GM
+	return false
 
 ## Check if this character data is a GM character
 func is_gm() -> bool:

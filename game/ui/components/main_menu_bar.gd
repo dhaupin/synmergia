@@ -59,7 +59,10 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 
 func _check_permissions() -> void:
 	if GameManager and GameManager.selected_character_data:
-		_player_id = GameManager.selected_character_data.id
+		var cd = GameManager.selected_character_data
+		# CharacterData exposes character_id (not id); guard for the field
+		# so malformed data cannot error every world entry.
+		_player_id = str(cd.character_id) if "character_id" in cd else str(cd.get("id"))
 		if PermissionManager:
 			_is_admin_or_mod = PermissionManager.has_permission(_player_id, PermissionManager.Level.MOD)
 			_is_dev_mode = PermissionManager.has_permission(_player_id, PermissionManager.Level.ADMIN) \
