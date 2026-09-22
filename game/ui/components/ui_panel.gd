@@ -27,6 +27,16 @@ func _ready() -> void:
 	_load_accessibility_settings()
 	_setup_overlay()
 	_setup_panel()
+	# Safety net: UIPanel._setup_panel() is a no-op stub and subclasses
+	# must create the named "Panel" themselves. Nine subclasses never did
+	# (action_bar, bank_ui, quest_ui, title_ui, faction_ui, achievement_ui,
+	# quick_access_bar, character_panel, loading_ui): every one of their
+	# _setup_ui bodies starts with `get_panel()` + `if not panel: return`,
+	# so the whole panel rendered as an invisible/empty overlay. If a
+	# subclass did not build its own Panel, build the base one for it so
+	# at minimum the standard content path works.
+	if get_panel() == null:
+		_setup_base_panel()
 	_setup_header()
 	_setup_content()
 	_apply_accessibility()
@@ -315,6 +325,13 @@ func _setup_base_panel() -> PanelContainer:
 	panel.name = "Panel"
 	panel.focus_mode = Control.FOCUS_ALL
 	add_child(panel)
+
+	# Standard content container: most subclasses hang their UI off
+	# panel/"Main" (VBoxContainer). Panels that build their own layout
+	# simply ignore it.
+	var main := VBoxContainer.new()
+	main.name = "Main"
+	panel.add_child(main)
 
 	return panel
 

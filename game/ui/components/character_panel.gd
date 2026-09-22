@@ -127,8 +127,10 @@ func _setup_tabs() -> void:
 	sep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tab_bar.add_child(sep)
 
-	# Create tab content containers
-	for tab in Tab:
+	# Create tab content containers. Tab is an enum (a Dictionary of
+	# NAME -> int); iterating it directly yields the String names, which
+	# broke both the "TabContent_%d" format and _show_tab()'s int lookup.
+	for tab in Tab.values():
 		var container := ScrollContainer.new()
 		container.name = "TabContent_%d" % tab
 		container.visible = false

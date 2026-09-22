@@ -49,28 +49,28 @@ func _setup_accessibility() -> void:
 	# Apply default accessibility settings via the settings updater.
 	update_accessibility_settings(false, 1.0, false)
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
-	# Update focus styles for all slots
-	for bar_slots in _slots:
-		for slot in bar_slots:
-			if slot and is_instance_valid(slot):
-				slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
-				var style: StyleBoxFlat = slot.get_theme_stylebox("panel")
-				if style:
-					if high_contrast:
-						style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
-						style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
-					else:
-						style.bg_color = UIStyles.COLORS.background_dark
-						style.border_color = UIStyles.COLORS.border
-				
-				# Update text sizes
-				var scale = UIStyles.get_text_scale()
-				for label_name in ["Keybind", "StackCount", "CooldownText"]:
-					var label: Label = slot.get_node_or_null(label_name)
-					if label:
-						var current_size := label.get_theme_font_size("font_size")
-						if current_size > 0:
-							label.add_theme_font_size_override("font_size", int(current_size * scale))
+	# Update focus styles for all slots (_slots is a flat array of slot
+	# controls for the visible bar, not per-bar sub-arrays)
+	for slot in _slots:
+		if slot and is_instance_valid(slot):
+			slot.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
+			var style: StyleBoxFlat = slot.get_theme_stylebox("panel")
+			if style:
+				if high_contrast:
+					style.bg_color = UIStyles.HIGH_CONTRAST_COLORS.background
+					style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border
+				else:
+					style.bg_color = UIStyles.COLORS.background_dark
+					style.border_color = UIStyles.COLORS.border
+			
+			# Update text sizes
+			var scale = UIStyles.get_text_scale()
+			for label_name in ["Keybind", "StackCount", "CooldownText"]:
+				var label: Label = slot.get_node_or_null(label_name)
+				if label:
+					var current_size := label.get_theme_font_size("font_size")
+					if current_size > 0:
+						label.add_theme_font_size_override("font_size", int(current_size * scale))
 
 func _on_open() -> void:
 	pass
@@ -209,11 +209,11 @@ func _create_slot(index: int) -> Control:
 	cooldown_spiral.min_value = 0
 	cooldown_spiral.max_value = 100
 	cooldown_spiral.value = 100
-	cooldown_spiral.under_texture = _create_spiral_under()
-	cooldown_spiral.progress_texture = _create_spiral_progress()
-	cooldown_spiral.radial_mode = TextureProgressBar.FILL_CLOCKWISE
-	cooldown_spiral.initial_angle = -90
-	cooldown_spiral.radial_fill = 1.0
+	cooldown_spiral.texture_under = _create_spiral_under()
+	cooldown_spiral.texture_progress = _create_spiral_progress()
+	cooldown_spiral.fill_mode = TextureProgressBar.FILL_CLOCKWISE
+	cooldown_spiral.radial_initial_angle = -90
+	cooldown_spiral.radial_fill_degrees = 360.0
 	cooldown_spiral.clip_contents = true
 	slot.add_child(cooldown_spiral)
 

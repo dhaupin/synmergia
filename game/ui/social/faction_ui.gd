@@ -62,7 +62,7 @@ func _create_faction_row(faction) -> Control:
 
 	# Faction name
 	var name_lbl := Label.new()
-	name_lbl.text = faction.get("name", "?")
+	name_lbl.text = _field(faction, "name", "?")
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_lbl)
 
@@ -70,13 +70,13 @@ func _create_faction_row(faction) -> Control:
 	var rep_lbl := Label.new()
 	var player_rep: int = 0
 	if _player_id != "" and FactionManager:
-		player_rep = FactionManager.get_reputation(_player_id, faction.get("id", ""))
+		player_rep = FactionManager.get_reputation(_player_id, _field(faction, "id", ""))
 	rep_lbl.text = "Rep: %d" % player_rep
 	rep_lbl.add_theme_color_override("font_color", _get_rep_color(player_rep))
 	hbox.add_child(rep_lbl)
 
 	# War indicator
-	if FactionManager and FactionManager.get_faction_wars(faction.get("id", "")).size() > 0:
+	if FactionManager and FactionManager.get_faction_wars(_field(faction, "id", "")).size() > 0:
 		var war_lbl := Label.new()
 		war_lbl.text = " [AT WAR]"
 		war_lbl.add_theme_color_override("font_color", Color.RED)
@@ -100,3 +100,14 @@ func set_player_id(player_id: String) -> void:
 	_player_id = player_id
 	if visible:
 		_refresh_factions()
+
+## Resource.get(key, default) lost its default arg in 4.7.2; factions may
+## arrive as Dictionary or Resource, so read defensively through either.
+func _field(obj, key: String, default_val) -> Variant:
+	if obj is Dictionary:
+		return obj.get(key, default_val)
+	if obj != null and key in obj:
+		var v = obj.get(key)
+		if v != null:
+			return v
+	return default_val

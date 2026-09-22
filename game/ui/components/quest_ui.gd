@@ -195,7 +195,7 @@ func _get_completed_quests(player_id: String) -> Array:
 func _create_quest_button(quest_id: String) -> Button:
 	var btn := Button.new()
 	btn.custom_minimum_size.y = 40
-	btn.text_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())

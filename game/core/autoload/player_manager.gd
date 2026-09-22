@@ -52,6 +52,14 @@ func set_local_player(player: Node) -> void:
 	character_name = player.display_name if ("display_name" in player) else "Player"
 	_update_resource_signals()
 
+## Resolve the local player's entity id by duck-typing the bound player
+## node (same pattern as TitleService.get_local_player_id). Returns ""
+## when no player is bound or the node carries no entity_id.
+func get_local_player_id() -> String:
+	if local_player != null and is_instance_valid(local_player) and "entity_id" in local_player:
+		return str(local_player.get("entity_id"))
+	return ""
+
 func _update_resource_signals() -> void:
 	health_changed.emit(current_health, max_health)
 	mana_changed.emit(current_mana, max_mana)

@@ -1114,3 +1114,34 @@ interaction_pipeline 16/16, splash_to_play 14/14, ground_loot 42/42
 (one pre-existing stub SCRIPT ERROR in the ankh dead-player test,
 confirmed identical on parent commit, does not affect results),
 hud_integration 7 OK.
+
+### [town:core] 2026-09-22 — UIPanel dead-panel audit: 9 panels revived + phantom-API fix
+- Audit of every `extends UIPanel` subclass found 9 that never built their base
+  "Panel" node (action_bar, bank_ui, quest_ui, title_ui, faction_ui,
+  achievement_ui, quick_access_bar, character_panel, loading_ui) — same root
+  cause as the ShopUI/ActionMenu/SettingsPanel family fixed earlier: they
+  relied on `UIPanel._setup_panel()`, a no-op stub.
+- Fix: central heal in `UIPanel._ready()` — after subclass `_setup_panel()`,
+  if `get_panel()` is still null, `_setup_base_panel()` builds the canonical
+  Panel > Main(VBox) shape. No per-panel boilerplate.
+- Bugs surfaced once panels started executing their bodies (all previously
+  dead code paths):
+  - PlayerManager.get_local_player_id() was a phantom API (~30 call sites in
+    bank_ui, character_panel, hud_integrator, follow_manager, compass,
+    waypoint_ui, chat_ui, chat_service). Added it to PlayerManager
+    (duck-types local_player.entity_id, same pattern as TitleService).
+  - TextureProgressBar Godot-3 property names in cooldown spirals:
+    under_texture/progress_texture/radial_mode/initial_angle/radial_fill ->
+    texture_under/texture_progress/fill_mode/radial_initial_angle/
+    radial_fill_degrees (action_bar, quick_access_bar).
+  - character_panel `for tab in Tab:` iterated enum NAME strings -> broke
+    "TabContent_%d" naming and _show_tab int lookups; now Tab.values().
+  - action_bar update_accessibility_settings double-looped a flat _slots
+    array (iterate Object crash); flattened.
+  - quest_ui Button.text_alignment (G3) -> alignment (G4).
+  - faction_ui Resource.get(key, default) two-arg calls -> _field() helper
+    (4.7.2 removed the default arg; AGENTS.md rule).
+- Verification: audit script instantiates all 9 panels -> 9/9 alive, zero
+  SCRIPT ERROR. Regression battery: ui_alive 33/33, interaction_pipeline
+  16/16, settings_camera 14/14, splash_to_play 14/14 — all zero script
+  errors now (previous runs carried QuestUI/FactionUI noise).
