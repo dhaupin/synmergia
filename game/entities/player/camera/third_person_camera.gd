@@ -48,12 +48,27 @@ func _ready() -> void:
 ## Pull the saved camera settings. rotation_speed stays the base rad/px
 ## constant; the slider (0.5..3.0, default 1.0) scales both the mouse
 ## path and the touch bridge in world_playable.
+##
+## FOV + distance were read nowhere before: the sliders saved values
+## that the camera silently ignored. FOV maps to the camera's base
+## (_default_fov, used whenever not aiming); distance maps to
+## current_distance and widens max_distance so a saved 30.0 is
+## reachable again after zooming.
 func _apply_user_settings() -> void:
 	if PlayerConfig == null:
 		return
 	sensitivity = float(PlayerConfig.get_account_setting("camera_rotation_speed", 1.0))
 	invert_x = bool(PlayerConfig.get_account_setting("invert_x_axis", false))
 	invert_y = bool(PlayerConfig.get_account_setting("invert_y_axis", false))
+	var saved_fov: Variant = PlayerConfig.get_account_setting("camera_fov", 0)
+	if saved_fov != null and int(saved_fov) > 0:
+		_default_fov = float(clampf(int(saved_fov), 60, 110))
+		fov = _default_fov
+	var saved_dist: Variant = PlayerConfig.get_account_setting("camera_distance", 0.0)
+	if saved_dist != null and float(saved_dist) > 0.0:
+		current_distance = clampf(float(saved_dist), min_distance, 30.0)
+		max_distance = maxf(max_distance, current_distance)
+	follow_smoothness = 12.0 if bool(PlayerConfig.get_account_setting("camera_smoothing", true)) else 4.0
 
 func _on_setting_changed(_cat: int, key: String, value: Variant) -> void:
 	match key:
@@ -63,6 +78,19 @@ func _on_setting_changed(_cat: int, key: String, value: Variant) -> void:
 			invert_x = bool(value)
 		"invert_y_axis":
 			invert_y = bool(value)
+		"camera_fov":
+			var v := float(clampf(int(value), 60, 110))
+			_default_fov = v
+			fov = v
+		"camera_distance":
+			var d := clampf(float(value), min_distance, 30.0)
+			current_distance = d
+			max_distance = maxf(max_distance, d)
+		"camera_smoothing":
+			# Slider semantics: higher = snappier follow. The toggle saves a
+			# bool; map it to the canonical smoothing presets (off = loose
+			# 4.0, on = default 12.0) instead of being ignored.
+			follow_smoothness = 12.0 if bool(value) else 4.0
 
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(target):

@@ -27,6 +27,22 @@ var _remapping_action: String = ""
 var _remap_button: Button = null
 var _keybind_conflicts: Dictionary = {}
 
+func _setup_panel() -> void:
+	# Build the base "Panel" node. UIPanel's default _setup_panel() is a
+	# no-op stub -- subclasses must create the named Panel themselves
+	# (see dialog_ui.gd / shop_ui.gd). SettingsPanel is scene-placed in
+	# hud_layer.tscn with only the script attached, so without this its
+	# _ready ran _setup_ui() on a null panel: 0 tabs, 0 controls, and the
+	# Esc settings screen rendered as an empty overlay.
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(700, 550)
+	var style := UIStyles.create_panel_style()
+	panel.add_theme_stylebox_override("panel", style)
+	panel.name = "Panel"
+	panel.focus_mode = Control.FOCUS_ALL
+	add_child(panel)
+
 func _ready() -> void:
 	super._ready()
 	set_title("Settings")
@@ -184,7 +200,13 @@ func _create_dropdown_row(setting_key: String, label_text: String, options: Arra
 	var dropdown := OptionButton.new()
 	for opt in options:
 		dropdown.add_item(opt)
-	dropdown.selected = default_idx
+	# Hydrate from PlayerConfig so the panel shows the SAVED choice, not
+	# the hardcoded default (sliders/toggles already did this; dropdowns
+	# always rendered default_idx until reopened via _load_from_config,
+	# and never hydrate if that key has no saved value).
+	var saved: Variant = PlayerConfig.get_account_setting(setting_key, default_idx) if PlayerConfig else default_idx
+	var sel := int(saved) if saved != null else default_idx
+	dropdown.selected = clampi(sel, 0, maxi(options.size() - 1, 0))
 	dropdown.custom_minimum_size.x = 200
 	dropdown.item_selected.connect(_on_dropdown_changed.bind(setting_key))
 	row.add_child(dropdown)
@@ -403,7 +425,20 @@ func _load_from_config() -> void:
 					ctrl.button_pressed = val
 			"dropdown":
 				if ctrl is OptionButton:
-					ctrl.selected = val
+					# Saved values can be an int index (the panel always stores
+					# indices) or a legacy string ("language" defaults to
+					# "en"). Coerce strings via the stored options list; out-of
+					# -range or missing values fall back to the current build
+					# hydration instead of crashing the whole _ready chain.
+					if val is int:
+						ctrl.selected = clampi(int(val), 0, ctrl.item_count - 1 if ctrl.item_count > 0 else 0)
+					elif val is String:
+						var opts: Array = info.get("options", [])
+						var idx := opts.find(val)
+						ctrl.selected = idx if idx >= 0 else ctrl.selected
+						# Persist the coerced index so the next load is clean.
+						if idx >= 0 and PlayerConfig:
+							PlayerConfig.set_account_setting(key, idx, true)
 			"keybind":
 				if ctrl is Button:
 					var kb_data: Dictionary = _keybind_actions.get(key, {})

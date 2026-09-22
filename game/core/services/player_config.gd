@@ -64,6 +64,8 @@ const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	"camera_distance": 10.0,
 	"camera_rotation_speed": 1.0,
 	"camera_smoothing": true,
+	"camera_fov": 90,  # Settings slider (60..110); ThirdPersonCamera consumes it
+	"camera_mode": 0,  # 0=Follow, 1=Action, 2=Fixed (Controls tab dropdown)
 	"invert_y_axis": false,
 	"invert_x_axis": false,
 	"enable_subtitles": true,
@@ -209,7 +211,24 @@ func set_account_setting(key: String, value: Variant, save: bool = true) -> void
 	var old_value = _account_settings.get(key)
 	_account_settings[key] = value
 
-	if old_value != value:
+	# Variant compare: setting dropdowns store indices while some defaults
+	# (e.g. "language": "en") are strings. String != int is a hard error in
+	# GDScript, so guard the comparison by type instead of letting the
+	# panel's first dropdown change crash.
+	var changed := false
+	if old_value != null and value != null:
+		var old_is_num := old_value is float or old_value is int
+		var new_is_num := value is float or value is int
+		if old_is_num and new_is_num:
+			changed = float(old_value) != float(value)
+		elif typeof(old_value) == typeof(value):
+			changed = old_value != value
+		else:
+			changed = true
+	else:
+		changed = old_value != value
+
+	if changed:
 		setting_changed.emit(SettingCategory.GENERAL, key, value)
 
 	if save:

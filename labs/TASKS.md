@@ -1077,3 +1077,40 @@ Regression battery after fixes (xvfb): ui_alive 33/33,
 interaction_pipeline 16/16, splash_to_play 14/14, ground_loot 42/42,
 hud_integration ALL PASSED, notification_toast ALL PASSED. Zero SCRIPT
 ERROR in run logs.
+
+### [town:core] 2026-09-22b Settings live: camera sliders wired + dropdown hydration + SettingsPanel boot fix
+Closed two carried-over vert-slice items and found a third on the way:
+
+1. SettingsPanel never built UIPanel's base "Panel" node (same bug
+   family as ShopUI/ActionMenu last session). Scene-placed in
+   hud_layer.tscn with only a script, its _ready ran _setup_ui() on a
+   null panel: 0 tabs, 0 controls -- the Esc settings screen rendered
+   an empty overlay. Now overrides _setup_panel() (98 controls build).
+2. Settings dropdowns (camera_mode, language, auto-accept, profile
+   visibility, ...) hardcoded the default index. They hydrate the saved
+   PlayerConfig value at build now, same as sliders/toggles already did.
+   Legacy string values ("language": "en") are coerced to option index
+   on load and persisted back as clean ints.
+3. PlayerConfig.set_account_setting crashed with "Invalid operands
+   'String' and 'int' in operator '!='" on the first dropdown change
+   against a string default. Compare is now type-aware (numeric vs
+   numeric via float, same-type direct, cross-type = changed).
+4. ThirdPersonCamera consumed only camera_rotation_speed/invert axes;
+   the fov/distance/smoothing sliders saved values the camera ignored.
+   It now applies camera_fov (base FOV), camera_distance (zoom start +
+   max_distance widened so a saved 30 is reachable), and
+   camera_smoothing (on=12.0 / off=4.0 follow smoothness) both at boot
+   and live via PlayerConfig.setting_changed.
+5. player_config defaults gained "camera_fov": 90 and "camera_mode": 0
+   (the Controls tab wrote camera_mode but no default existed).
+
+Test: tests/test_settings_camera.gd (xvfb) -- hydrate camera_mode +
+language on a REAL hud_layer.tscn instance, round-trip
+save->reload->restored, camera boot application + live
+setting_changed updates: 14/14 PASS.
+
+Regression (xvfb, zero new script errors): ui_alive 33/33,
+interaction_pipeline 16/16, splash_to_play 14/14, ground_loot 42/42
+(one pre-existing stub SCRIPT ERROR in the ankh dead-player test,
+confirmed identical on parent commit, does not affect results),
+hud_integration 7 OK.
