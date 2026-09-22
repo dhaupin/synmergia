@@ -966,3 +966,75 @@ emits, movement input still works after the journey (state Run).
   unwired (same treatment as rotation_speed: apply in
   ThirdPersonCamera._apply_user_settings).
 - Settings panel dropdowns do not hydrate saved values yet.
+
+---
+
+## Session 2026-09-22 (vertical-slice UI alive: 33/33 + pushed) [town:web][town:test]
+
+Commit `3826d8c` on main. Continued from a crashed session (its
+uncommitted trade-panel / dialog-service / hotkey work was reviewed,
+verified, and shipped).
+
+### The last UI-alive failure and its real root cause
+- Symptom: "ESC preserves panel below" saw ["skill_academy"]
+  instead of ["inventory"].
+- Root cause 1 (production bug): SkillAcademyUI and AdminDashboard
+  override UIPanel._ready() WITHOUT calling super(). UIPanel._ready
+  sets visible = false; these two booted VISIBLE. First toggle then
+  *closed* them, leaving stale _open_panels entries (tracker appended
+  on open, erased only via _close_panel/panel_closed). Found with an
+  env-gated MM_TRACE (open/close/visibility/stack tracing).
+- Root cause 2 (test bug): _c_esc_stack pressed I, then
+  _c_esc_no_panels_pauses pressed I again -> the second press
+  TOGGLED inventory closed before C opened. Also a str_replace
+  mid-edit left a duplicated KEY_C press in the test (two real
+  deliveries, verified via event instance-ids -- not an engine bug).
+
+### Fixes shipped
+- super._ready() added to skill_academy_ui; admin_dashboard boots
+  visible = false (custom _ready kept, double _setup_panel avoided).
+- ESC/pause untangled in game_manager._input: if panels are open, do
+  nothing (HudHotkeys closes top via unhandled-input); else pause.
+- Trade panel: real MenuManager panel + fixed trade_ui
+  (get_local_player_id() did not exist, item-picker dialog crashed,
+  confirm_trade coroutines now awaited). Idle state text for no
+  active session; HudServices populates on trade_started.
+- Debug hotkeys F5/F6 removed from login/lobby/character_select
+  (headless tests drive buttons; TAB focus cycling kept).
+- DialogService singleton() converges onto the autoload (split brain:
+  UI bound to a second instance's signals, dialogue_started never
+  arrived). Dialogue signal pipeline verified live in the test.
+- world_playable re-keys the player inventory when entity_id flips
+  from fallback to the real character id after _ready.
+- blacksmith set_inventory/open_with_context; menu_manager feeds
+  panels their inventory; ui_panel focuses the container (not the X
+  button that swallowed hotkeys); skill_academy toggle/is_open real.
+
+### Verification
+- test_ui_alive (NEW): 33/33 -- 11 panels hotkey open/close, trade +
+  inventory via menu bar (mobile path), ESC LIFO, target frame flow,
+  live dialog signal -> DialogUI visible.
+- touch_live 17/17, splash_to_play 14/14 (xvfb, zero script errors).
+- Headless regression exit-0: notification_frame, hud_integration,
+  combat_loop, e2e_flow, kill_rewards, ground_loot, login_flow,
+  aggro, loot_rules, duel, guard, placement, onboarding_live,
+  autoload_audit, entity_autoload, parse_check, lint battery.
+- Live boot: 0 SCRIPT ERROR.
+
+### Ops note (important for future sessions)
+Disk filled to 100% during this session: zombie Godot processes from
+CRASHED earlier sessions held open handles to deleted 12-13 GB logs
+(/tmp/out_test_*.txt, ~/.local/share/godot/.../godot.log), and stale
+Xvfb sessions from days prior lingered. Runs then died mid-flight and
+looked like flaky tests. Recovery: pkill -f Godot; rm /tmp/out_*.txt
+/tmp/sanc*.log; freed 20 GB. If runs hang: check `df -h /` and
+`ps aux | grep -i godot` FIRST.
+
+### Open (vertical slice, next candidates)
+- WebInputBridge/web HUD not exercised by this battery (browser
+  client path).
+- camera_fov/camera_smoothing/camera_distance sliders (carried over).
+- Settings dropdowns do not hydrate saved values (carried over).
+- ShopUI/DialogUI are reachable via HUD/hotkeys but have no NPC
+  interaction entry points wired to them in world_playable yet
+  (ActionMenu exists; NPC data has no shop/dialog assignment).
