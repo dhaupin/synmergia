@@ -6,6 +6,13 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 
 ## Singleton instance (use singleton() to access)
 static var _instance: Node = null
+func _enter_tree() -> void:
+	# Converge singleton() onto the autoload instance. Without this,
+	# singleton() lazily created a SECOND DialogService and UI code
+	# bound to its signals while npc_entity.gd emitted on the autoload
+	# -- split brain, DialogUI never received dialogue_started.
+	if _instance == null:
+		_instance = self
 static func singleton() -> Node:
 	if _instance == null:
 		_instance = load("res://core/services/dialog_service.gd").new()

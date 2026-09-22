@@ -150,14 +150,12 @@ func _trigger_tab() -> void:
 		next.grab_focus()
 	# print removed: print("[LOGIN] Tabbed to: ", next.name if next else "none")
 
-# F5 = instant guest login (for headless/Docker testing)
+# TAB = focus navigation (accessibility). Former F5/F6 auto-login
+# debug hotkeys removed: they fired real account actions from any
+# scene and collided with the Settings keybind UI. Headless tests
+# drive the buttons directly.
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
-			KEY_F5:
-	# print removed: print("[LOGIN] F5 pressed - guest login")
-				_on_guest_pressed()
 			KEY_TAB:
-				_trigger_tab()
-			KEY_F6:
 				_trigger_tab()

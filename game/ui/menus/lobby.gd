@@ -150,17 +150,12 @@ func _on_logout_pressed() -> void:
 	if LoginService:
 		LoginService.logout()
 
-# F5 = create character, F6 = play (for headless testing)
+# TAB = focus navigation (accessibility). Former F5/F6 debug hotkeys
+# removed (see login.gd note); headless tests drive the buttons.
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_TAB:
 			_cycle_focus([_play_btn, _create_btn, _delete_btn, _logout_btn], event.shift)
-		elif event.keycode == KEY_F5:
-	# print removed: print("[LOBBY] F5 pressed - creating character")
-			_on_create_pressed()
-		elif event.keycode == KEY_F6:
-	# print removed: print("[LOBBY] F6 pressed - playing character")
-			_on_play_pressed()
 
 
 func _cycle_focus(buttons: Array, reverse: bool) -> void:

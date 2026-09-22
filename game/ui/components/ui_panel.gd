@@ -384,9 +384,14 @@ func _focus_first_element() -> void:
 	if not has_node("Panel"):
 		return
 	var panel := get_node("Panel")
-	var focusable := _get_focusable_children(panel)
-	if not focusable.is_empty():
-		focusable[0].grab_focus()
+	# Focus the panel container itself, NOT the first focusable child.
+	# The first child is typically the header X button; while it held
+	# focus it swallowed every subsequent letter hotkey (K, ESC, ...)
+	# as GUI input and other panels could not open until the user
+	# clicked somewhere. Keyboard navigation still works via Tab from
+	# the panel, and hotkeys stay live in HudHotkeys' unhandled phase.
+	if panel is Control:
+		(panel as Control).grab_focus()
 
 func close() -> void:
 	_is_open = false

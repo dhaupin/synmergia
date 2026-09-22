@@ -90,9 +90,9 @@ func _refresh_gold() -> void:
 	if trade.is_empty():
 		return
 	var my_id := _initiator_id
-	var is_p1 := trade.get("player1") == my_id
-	var my_gold := trade.get("player1_gold", 0) if is_p1 else trade.get("player2_gold", 0)
-	var their_gold := trade.get("player2_gold", 0) if is_p1 else trade.get("player1_gold", 0)
+	var is_p1: bool = trade.get("player1") == my_id
+	var my_gold: int = trade.get("player1_gold", 0) if is_p1 else trade.get("player2_gold", 0)
+	var their_gold: int = trade.get("player2_gold", 0) if is_p1 else trade.get("player1_gold", 0)
 	_initiator_gold = my_gold
 	_target_gold = their_gold
 	_update_gold_labels()
@@ -145,7 +145,7 @@ func _unconfirm_if_needed(player_id: String) -> void:
 	if trade.is_empty():
 		return
 	var my_id := _initiator_id
-	var is_p1 := trade.get("player1") == my_id
+	var is_p1: bool = trade.get("player1") == my_id
 	if player_id != my_id:
 		if is_p1:
 			trade["player2_confirmed"] = false
@@ -160,11 +160,11 @@ func _update_confirm_visual() -> void:
 	if trade.is_empty():
 		return
 	var my_id := _initiator_id
-	var is_p1 := trade.get("player1") == my_id
-	var p1_conf := trade.get("player1_confirmed", false)
-	var p2_conf := trade.get("player2_confirmed", false)
-	var my_conf := p1_conf if is_p1 else p2_conf
-	var their_conf := p2_conf if is_p1 else p1_conf
+	var is_p1: bool = trade.get("player1") == my_id
+	var p1_conf: bool = trade.get("player1_confirmed", false)
+	var p2_conf: bool = trade.get("player2_confirmed", false)
+	var my_conf: bool = p1_conf if is_p1 else p2_conf
+	var their_conf: bool = p2_conf if is_p1 else p1_conf
 
 	if my_conf and their_conf:
 		_update_status("Both confirmed! Executing trade...")
@@ -330,7 +330,12 @@ func _setup_header() -> void:
 func _on_open() -> void:
 	# Try to load any active trade for the local player.
 	if TradeService and PlayerManager:
-		var pid := str(PlayerManager.get_local_player_id())
+		# get_local_player_id() does not exist on PlayerManager; resolve
+		# the id off the local player node (duck-typed like MenuManager).
+		var local = PlayerManager.get_local_player()
+		var pid := ""
+		if local != null and is_instance_valid(local) and "entity_id" in local:
+			pid = str(local.entity_id)
 		if not pid.is_empty():
 			var active: Dictionary = TradeService.get_player_trade(pid)
 			if not active.is_empty():
@@ -340,6 +345,8 @@ func _on_open() -> void:
 				_trade_state = TradeState.ACCEPTED
 				_update_status("Trade in progress with %s" % _target_id)
 				_refresh_items()
+			else:
+				_update_status("No trade in progress")
 
 
 
@@ -384,18 +391,18 @@ func _refresh_items() -> void:
 		_initiator_items.add_item("(No items)")
 	else:
 		for item: Dictionary in my_items:
-			var name := item.get("name", "Unknown Item")
-			var qty := item.get("quantity", 1)
-			var label := name if qty <= 1 else "%s x%d" % [name, qty]
+			var item_name: String = item.get("name", "Unknown Item")
+			var qty: int = item.get("quantity", 1)
+			var label := item_name if qty <= 1 else "%s x%d" % [item_name, qty]
 			_initiator_items.add_item(label)
 
 	if their_items.is_empty():
 		_target_items.add_item("(No items)")
 	else:
 		for item: Dictionary in their_items:
-			var name := item.get("name", "Unknown Item")
-			var qty := item.get("quantity", 1)
-			var label := name if qty <= 1 else "%s x%d" % [name, qty]
+			var item_name: String = item.get("name", "Unknown Item")
+			var qty: int = item.get("quantity", 1)
+			var label := item_name if qty <= 1 else "%s x%d" % [item_name, qty]
 			_target_items.add_item(label)
 
 func _on_add_item() -> void:
@@ -427,32 +434,24 @@ func _get_available_items(inv) -> Array:
 	return available
 
 func _show_item_selection_dialog(items: Array) -> void:
-	var dialog := ItemSelectDialog.new()
-	dialog.title = "Select Item to Trade"
-	add_child(dialog)
-	dialog.popup_centered(Vector2(400, 300))
-
-	# Populate item list
-	for idx in range(items.size()):
-		var entry: Dictionary = items[idx]
-		var item = entry.get("item")
-		if item and "display_name" in item:
-			dialog.add_item(item.display_name, idx)
-
-	var selected_idx: int = await dialog.item_selected
-	if selected_idx >= 0 and selected_idx < items.size():
-		var entry: Dictionary = items[selected_idx]
-		var slot_idx: int = entry.get("slot", -1)
-		var item = entry.get("item")
-		if slot_idx >= 0 and item and TradeService:
-			var success := TradeService.add_item(_trade_id, _initiator_id, item.id, 1)
-			if success:
-				show_notification("Added %s to trade" % item.display_name)
-				_refresh_items()
-			else:
-				show_notification("Failed to add item")
-
-	dialog.queue_free()
+	# TODO: full item-picker popup (ItemList). For now add the first
+	# available item directly so the add-item button stays functional.
+	if items.is_empty():
+		show_notification("No items available to trade")
+		return
+	var entry: Dictionary = items[0]
+	var slot_idx: int = entry.get("slot", -1)
+	var item = entry.get("item")
+	if slot_idx < 0 or item == null or not TradeService:
+		show_notification("No items available to trade")
+		return
+	var display_name: String = str(item.get("display_name", "item"))
+	var success: bool = TradeService.add_item(_trade_id, _initiator_id, str(item.get("id", "")), 1)
+	if success:
+		show_notification("Added %s to trade" % display_name)
+		_refresh_items()
+	else:
+		show_notification("Failed to add item")
 
 func _on_add_gold() -> void:
 	# Check if locked (confirmed)
@@ -461,13 +460,15 @@ func _on_add_gold() -> void:
 		return
 
 	var dialog := AcceptDialog.new()
-	dialog.dialog_text = "Enter gold amount:"
 	dialog.title = "Add Gold"
+	var gold_input := LineEdit.new()
+	gold_input.placeholder_text = "Enter gold amount"
+	dialog.add_child(gold_input)
 	add_child(dialog)
 	dialog.popup_centered()
 
 	await dialog.confirmed
-	var gold_text: String = dialog.dialog_text.strip_edges()
+	var gold_text: String = gold_input.text.strip_edges()
 	dialog.queue_free()
 
 	if gold_text.is_valid_int():
@@ -489,7 +490,7 @@ func _on_accept() -> void:
 	if _trade_state == TradeState.PROPOSING:
 		# Send the trade request
 		if TradeService:
-			var ok := TradeService.request_trade(_initiator_id, _target_id)
+			var ok: bool = TradeService.request_trade(_initiator_id, _target_id)
 			if not ok:
 				show_notification("Failed to send trade request")
 				return
@@ -499,7 +500,7 @@ func _on_accept() -> void:
 	elif _trade_state == TradeState.ACCEPTED:
 		# Confirm/lock the trade
 		if TradeService and _trade_id:
-			var ok := TradeService.confirm_trade(_trade_id, _initiator_id)
+			var ok: bool = await TradeService.confirm_trade(_trade_id, _initiator_id)
 			if ok:
 				_my_confirmed = true
 				_update_confirm_button()
@@ -522,7 +523,7 @@ func _on_toggle_confirm() -> void:
 	else:
 		# Confirm
 		if TradeService and _trade_id:
-			var ok := TradeService.confirm_trade(_trade_id, _initiator_id)
+			var ok: bool = await TradeService.confirm_trade(_trade_id, _initiator_id)
 			if ok:
 				_my_confirmed = true
 				_update_confirm_button()
@@ -538,7 +539,7 @@ func _complete_trade() -> void:
 	_trade_state = TradeState.COMPLETED
 
 	if TradeService and _trade_id != "":
-		var ok: bool = TradeService.confirm_trade(_trade_id, _initiator_id)
+		var ok: bool = await TradeService.confirm_trade(_trade_id, _initiator_id)
 		if ok:
 			show_notification("Trade completed!")
 			trade_completed.emit(_initiator_id, _target_id)

@@ -51,7 +51,20 @@ func _apply_player_from_data(data: Resource) -> void:
 		if "display_name" in player:
 			player.display_name = data.display_name
 		if data.class_data and "entity_id" in player:
+			var old_id: String = player.entity_id
 			player.entity_id = data.character_id
+			# PlayerController._ready (child) ran BEFORE this (parent) and
+			# registered the bag under the fallback id ("player_1") because
+			# entity_id was still empty. Every panel/service asking for the
+			# live character id then got null. Re-key the registration.
+			if old_id != player.entity_id and InventoryService:
+				var comp = InventoryService.get_inventory(old_id) if InventoryService.has_method("get_inventory") else null
+				if comp:
+					InventoryService.register_inventory(player.entity_id, comp)
+					if "set_owner_id" in comp:
+						comp.set_owner_id(player.entity_id)
+					InventoryService.unregister_inventory(old_id)
+					GameLog.info("WorldPlayable: re-keyed inventory %s -> %s" % [old_id, player.entity_id])
 
 
 ## Register the scene player with EntityService so enemy aggro scans

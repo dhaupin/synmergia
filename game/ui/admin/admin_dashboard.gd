@@ -28,6 +28,11 @@ static func _esc(text: String) -> String:
 
 
 func _ready() -> void:
+	# Base UIPanel._ready sets visible = false; this class keeps a custom
+	# _ready (double _setup_panel would be wasteful), so mirror the one
+	# state that matters: boot hidden. Without this the admin dashboard
+	# starts visible and MenuManager's first toggle just closes it.
+	visible = false
 	# Get or create admin shell
 	_shell = AdminShell.new()
 	add_child(_shell)

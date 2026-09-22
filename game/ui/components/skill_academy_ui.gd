@@ -22,17 +22,24 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 func open(player_id: String) -> void:
 	_player_id = player_id
 	_is_open = true
+	visible = true
 	panel_opened.emit()
 
 func close() -> void:
 	_is_open = false
+	visible = false
 	panel_closed.emit()
 
 func toggle(player_id: String) -> void:
-	pass
+	# Override: the base UIPanel toggle is a stub in this class hierarchy
+	# (the old no-op left the panel stuck invisible on the K hotkey).
+	if visible:
+		close()
+	else:
+		open(player_id)
 
 func is_open() -> bool:
-	return _is_open
+	return _is_open and visible
 
 func get_panel() -> PanelContainer:
 	return null
@@ -99,6 +106,12 @@ var _buy_result_label: Label
 
 
 func _ready() -> void:
+	# MUST call super: UIPanel._ready sets visible = false and builds the
+	# overlay/panel chrome. Without it this panel boots VISIBLE with an
+	# empty tracker state, which poisons the K toggle (first press sees
+	# visible -> closes; second press re-opens) and leaves a stale
+	# _open_panels entry that breaks ESC stack handling.
+	super._ready()
 	_setup_accessibility()
 	_bind_service_signals()
 

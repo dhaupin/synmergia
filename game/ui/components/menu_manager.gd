@@ -32,6 +32,7 @@ var _title_panel: Control
 var _dialog_panel: Control
 var _shop_panel: Control
 var _transfer_panel: Control
+var _trade_panel: Control
 var _admin_panel: Control
 var _debug_panel: Control
 
@@ -225,6 +226,14 @@ func _initialize_panels() -> void:
 	_transfer_panel.z_index = 500
 	add_child(_transfer_panel)
 	_transfer_panel.panel_closed.connect(_on_panel_closed.bind("transfer"))
+
+	# Trade panel (player-to-player trading; opens empty, populates when
+	# a trade session starts via TradeService signals)
+	_trade_panel = preload("res://ui/social/trade_ui.gd").new()
+	_trade_panel.name = "TradeUI"
+	_trade_panel.z_index = 500
+	add_child(_trade_panel)
+	_trade_panel.panel_closed.connect(_on_panel_closed.bind("trade"))
 
 	# Admin panel (requires MOD+)
 	_admin_panel = preload("res://ui/admin/admin_dashboard.gd").new()
@@ -500,8 +509,17 @@ func _open_panel(menu_name: String, panel: Control) -> void:
 	_is_menu_open = true
 	# Give UIPanel-derived panels their player context. Without this the
 	# panel renders against an empty _player_id (stale/blank data).
-	if "open" in panel and panel.get("_player_id") != null and _local_player_id() != "":
-		panel.open(_local_player_id())
+	var pid := _local_player_id()
+	if "open" in panel and panel.get("_player_id") != null and pid != "":
+		panel.open(pid)
+	# Panels whose data source is the player's InventoryComponent fetch
+	# it by id here; BlacksmithUI otherwise renders an empty repair list
+	# (its _inventory is only set via the NPC-interaction path).
+	if pid != "" and "set_inventory" in panel and panel.get("_inventory") == null:
+		var inv_svc = get_node_or_null("/root/InventoryService")
+		var comp = inv_svc.get_inventory(pid) if inv_svc and inv_svc.has_method("get_inventory") else null
+		if comp:
+			panel.set_inventory(comp)
 	panel.visible = true
 	menu_toggled.emit(menu_name, true)
 
@@ -548,6 +566,7 @@ func _get_panel(menu_name: String) -> Control:
 		"achievement": return _achievement_panel
 		"titles": return _title_panel
 		"transfer": return _transfer_panel
+		"trade": return _trade_panel
 		"dialog": return _dialog_panel
 		"shop": return _shop_panel
 		"admin": return _admin_panel
@@ -630,10 +649,10 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 			HudLayerScript.instance._toggle_world_map()
 		return
 	
-	# Special handling for trade (not in MenuManager yet)
-	if internal_name == "trade":
-		# Trade panel would need to be added
-		return
+	# Trade panel: the menu-item and R hotkey both route here now. With
+	# no active session the panel shows its idle state ("no trade in
+	# progress"); HudServices populates it when TradeService starts one.
+	# (The old code silently no-oped here.)
 	
 	# Permission check for admin panel
 	if internal_name == "admin":

@@ -52,6 +52,15 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
 		if current_state == GameState.PLAYING:
+			# ESC is also the "close top panel" key. _input runs BEFORE
+			# the unhandled-input phase where HudHotkeys lives, so an
+			# immediate pause here froze the game with panels open (they
+			# could never receive ESC). Defer one frame: if a panel closes
+			# on ESC this frame, the pause is skipped; if nothing is open,
+			# the game pauses (Esc-to-pause preserved).
+			var open: Array = MenuManager.get_open_panels() if MenuManager.instance != null else []
+			if not open.is_empty():
+				return  # HudHotkeys closes the top panel via unhandled input
 			pause_game()
 		elif current_state == GameState.PAUSED:
 			resume_game()

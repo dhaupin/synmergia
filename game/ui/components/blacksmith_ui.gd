@@ -15,6 +15,25 @@ var _cost_modifier: float = 1.0
 var _npc_position: Vector3 = Vector3.ZERO
 var _proximity_enabled: bool = false
 
+## Context passed by PlayerController at interaction time. Assigns the
+## repair list's inventory source and the NPC's pricing. Previously
+## player_controller called open_with_context(), a method this class
+## never had, so the context silently never applied and _inventory
+## stayed null (repair list always empty).
+func open_with_context(player_id: String, inventory: InventoryComponent,
+		cost_modifier: float = 1.0, offers_discount: bool = true) -> void:
+	_inventory = inventory
+	_cost_modifier = cost_modifier
+	_offers_discount = offers_discount
+	open(player_id)
+	_refresh_items()
+
+## MenuManager hotkey path: no NPC context, just the player's bag so
+## the repair list has a data source.
+func set_inventory(inventory: InventoryComponent) -> void:
+	_inventory = inventory
+	_refresh_items()
+
 var _item_list: VBoxContainer
 var _total_label: Label
 var _gold_label: Label
@@ -207,8 +226,17 @@ func _on_open() -> void:
 			bs.repair_failed.connect(_on_repair_failed)
 	var inv = get_node_or_null("/root/InventoryService")
 	if inv:
-		if not inv.inventory_updated.is_connected(_refresh_items):
-			inv.inventory_updated.connect(_refresh_items)
+		# InventoryService has no inventory_updated signal (that is on the
+		# per-player InventoryComponent); subscribe to the component's
+		# item signals instead so the list refreshes on changes.
+		var comp = inv.get_inventory(_player_id) if inv.has_method("get_inventory") else null
+		if comp:
+			if not comp.item_added.is_connected(_on_inventory_changed):
+				comp.item_added.connect(_on_inventory_changed)
+			if not comp.item_removed.is_connected(_on_inventory_changed):
+				comp.item_removed.connect(_on_inventory_changed)
+			if not comp.gold_changed.is_connected(_on_inventory_changed):
+				comp.gold_changed.connect(_on_inventory_changed)
 
 
 func set_npc_proximity(pos: Vector3) -> void:

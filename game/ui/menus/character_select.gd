@@ -112,17 +112,12 @@ func _on_play_pressed() -> void:
 	GameManager.selected_character_data = data
 	GameManager.change_state(GameManager.GameState.PLAYING)
 
-# F5 = auto-select first species/class, F6 = play (for headless testing)
+# TAB = focus navigation (accessibility). _auto_select/_auto_play
+# remain as methods for headless tests, but no longer bound to keys.
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_TAB:
 			_cycle_focus([back_button, play_button], event.shift)
-		elif event.keycode == KEY_F5:
-	# print removed: print("[CHAR_SELECT] F5 pressed")
-			_auto_select()
-		elif event.keycode == KEY_F6:
-	# print removed: print("[CHAR_SELECT] F6 pressed, play_button.disabled=", play_button.disabled)
-			_auto_play()
 
 
 func _cycle_focus(buttons: Array, reverse: bool) -> void:
