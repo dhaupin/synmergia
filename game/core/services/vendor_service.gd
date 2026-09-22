@@ -16,7 +16,10 @@ static var _instance = null
 static func singleton():
 	if _instance == null:
 		_instance = load("res://core/services/vendor_service.gd").new()
-		_instance._ready()
+		# No _ready() call: this script defines none (the old call crashed
+		# every ShopUI open with "Nonexistent function '_ready'") and the
+		# node is not in the tree, so _ready would not fire anyway. Stock
+		# state is lazily built in ensure_stock().
 	return _instance
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
@@ -224,9 +227,8 @@ func _resolve_catalog_items(offering, npc_data) -> Array:
 
 func _get_items_by_categories(categories: Array[int]) -> Array:
 	var result: Array = []
-	var all_items: Dictionary = DataService.get_all_items() if DataService else {}
-	for item_id in all_items:
-		var item: Item = all_items[item_id]
+	var all_items: Array = DataService.get_all_items() if DataService else []
+	for item in all_items:
 		if item != null and categories.has(item.item_category):
 			result.append(item)
 	return result

@@ -26,6 +26,7 @@ func _ready() -> void:
 	_register_player()
 	_setup_enemies()
 	_setup_guards()
+	_setup_offering_npcs()
 	_setup_housing()
 	_setup_hud_bridge()
 	_setup_touch_hud()
@@ -163,6 +164,34 @@ func _setup_enemies() -> void:
 			es.register_entity(enemy, metadata)
 
 	GameLog.info("WorldPlayable: %d enemies active" % get_tree().get_nodes_in_group("enemies").size())
+
+
+## Register scene-placed offering NPCs (MerchantNPC, ElderNPC) with the
+## entity/targeting/zone services so they are targetable and the NPC
+## context menu / [E] interact pipeline can resolve their npc_data.
+## Their visual nodes live in the scene (like enemies/guards); the
+## service-side `spawn_all_offering_npcs` twins stay non-visual and are
+## ignored here by the "no offering entries" filter.
+func _setup_offering_npcs() -> void:
+	var es = EntityService
+	var registered := 0
+	for npc in get_tree().get_nodes_in_group("offering_npcs"):
+		if not is_instance_valid(npc) or npc.entity_id != "":
+			continue
+		if not ("npc_data" in npc) or npc.npc_data == null:
+			continue
+		if not npc.npc_data.has_live_offering():
+			continue
+		if es:
+			var metadata = SpawnMetadataScript.npc(
+				npc.display_name, SCENE_ZONE_ID, npc.global_position, npc.level)
+			es.register_entity(npc, metadata)
+		if TargetingManager:
+			TargetingManager.register_targetable(
+				npc.entity_id, "npc", npc, npc.display_name,
+				npc.global_position, npc.entity_type)
+		registered += 1
+	GameLog.info("WorldPlayable: %d offering NPCs active" % registered)
 
 
 ## Give every scene-placed guard its GuardData + GuardAI brain.

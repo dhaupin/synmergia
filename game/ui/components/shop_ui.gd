@@ -62,7 +62,10 @@ const SLOT_SIZE: int = 56
 static func open_for_offering(player_id: String, offering, npc_data, npc_pos: Vector3) -> void:
 	if _instance == null:
 		_instance = load("res://ui/components/shop_ui.gd").new()
-		_instance._ready()
+		# add_child triggers _ready() in-tree, which builds the panel UI.
+		# The previous manual _instance._ready() call ran BEFORE the node
+		# was in the tree, so every get_node/absolute-path lookup inside
+		# the panel build returned null (dead grid, no footer, no tabs).
 		var root: Window = Engine.get_main_loop().root
 		root.add_child(_instance)
 
@@ -71,6 +74,12 @@ static func open_for_offering(player_id: String, offering, npc_data, npc_pos: Ve
 	_instance._player_id = player_id
 	_instance._npc_position = npc_pos
 	_instance._proximity_enabled = true
+	# Vendors are reachable by tap-target + long-press from well beyond
+	# the 5m default, so the default threshold closed the shop the frame
+	# after opening ("Moved too far" toast) whenever the player traded
+	# from just outside melee range. 12m matches the practical
+	# target-then-browse flow while still closing on real walk-aways.
+	_instance.set_max_interact_distance(12.0)
 	_instance._selected_index = -1
 	_instance._current_tab = Tab.BUY
 	_instance._load_catalog()
@@ -94,18 +103,25 @@ func _ready() -> void:
 	super._ready()
 	set_panel_size(Vector2(480, 580))
 	set_title("Shop")
-	_setup_accessibility()
 	_setup_tabs()
 	_setup_grid()
 	_setup_footer()
 
 
-## ============================================================================
-## ACCESSIBILITY
-## ============================================================================
-
-func _setup_accessibility() -> void:
-	pass
+## Build the base "Panel" node. UIPanel's default _setup_panel() is a
+## no-op stub -- subclasses must create the named Panel themselves
+## (see dialog_ui.gd). Without this, get_panel() returned null, so
+## _setup_tabs() bailed and every _tab_buy/_grid/_gold_label refresh
+## crashed on Nil (shop grid dead, no buy/sell possible).
+func _setup_panel() -> void:
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(480, 580)
+	var style := UIStyles.create_panel_style()
+	panel.add_theme_stylebox_override("panel", style)
+	panel.name = "Panel"
+	panel.focus_mode = Control.FOCUS_ALL
+	add_child(panel)
 
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	pass
@@ -265,7 +281,13 @@ func _load_catalog() -> void:
 		return
 	var svc = VendorService.singleton()
 	if svc:
-		_catalog = svc.get_catalog(_offering, _npc_data)
+		# Copy element-wise: the autoload's typed return degrades to a plain
+		# Array across the service boundary, and assigning that to a typed
+		# Array[Dictionary] throws "Cannot assign Array to Dictionary".
+		var raw = svc.get_catalog(_offering, _npc_data)
+		for entry in raw:
+			if entry is Dictionary:
+				_catalog.append(entry)
 		svc.ensure_stock(_offering, _npc_data)
 
 func _load_sellable() -> void:
@@ -274,7 +296,11 @@ func _load_sellable() -> void:
 		return
 	var svc = VendorService.singleton()
 	if svc:
-		_sellable = svc.get_sellable_items(_player_id, _offering, _npc_data)
+		# Same cross-boundary typed-array guard as _load_catalog.
+		var raw = svc.get_sellable_items(_player_id, _offering, _npc_data)
+		for entry in raw:
+			if entry is Dictionary:
+				_sellable.append(entry)
 
 
 ## ============================================================================

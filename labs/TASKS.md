@@ -1038,3 +1038,42 @@ looked like flaky tests. Recovery: pkill -f Godot; rm /tmp/out_*.txt
 - ShopUI/DialogUI are reachable via HUD/hotkeys but have no NPC
   interaction entry points wired to them in world_playable yet
   (ActionMenu exists; NPC data has no shop/dialog assignment).
+
+### [town:core] 2026-09-22 NPC interaction pipeline live (vert slice item closed)
+Closed the "ShopUI/DialogUI have no NPC interaction entry points in
+world_playable" gap. The whole chain works in-world now:
+world scene NPCs (Elder/Merchant) registered with EntityService +
+TargetingManager via new `_setup_offering_npcs()`; context-menu /
+[E] actions route to real content: talk -> DialogService.start_dialogue
+-> DialogUI; quest -> Quests panel; trade -> ShopUI.open_for_offering
+(vendor offering, per-NPC pricing); loot -> LootService.pickup_loot /
+GroundLootService.try_pickup; gateway -> WorldService.use_gateway.
+Inline NPC includes ({type: dialogue|vendor|quest|bank|service}) are now
+dispatched by NPCEntity (ref-based offering path untouched). Test:
+`tests/test_interaction_pipeline.gd` boots main_menu -> world and drives
+the real context handlers: 16/16 PASS (xvfb).
+
+Root causes fixed this session:
+1. UIPanel subclasses ShopUI + ActionMenu never built their base "Panel"
+   node (UIPanel._setup_panel() is a no-op stub; subclasses must build
+   it, see dialog_ui.gd). get_panel() was null, so all panel content
+   bailed: shop grid/tabs/gold dead, NPC menu showed zero items.
+   Both now override _setup_panel().
+2. VendorService.singleton() called `_instance._ready()` but the script
+   defines no _ready (crashed every shop open). Removed; stock state
+   stays lazy via ensure_stock().
+3. VendorService._get_items_by_categories assigned
+   DataService.get_all_items() (Array) to a Dictionary var.
+4. icon_resolver._prop used res.has(key) -- Resource has no has()
+   method; every icon lookup script-errored and returned null instead
+   of its default ("res://<null>" loads, Nil-to-int category crash).
+   Fixed to `key in res`.
+5. ShopUI proximity auto-close used the 5m default while vendors are
+   reachable by tap-target from further out: shop flashed open then
+   closed ("Moved too far") at the common trade range. Threshold is
+   now 12m for shops.
+
+Regression battery after fixes (xvfb): ui_alive 33/33,
+interaction_pipeline 16/16, splash_to_play 14/14, ground_loot 42/42,
+hud_integration ALL PASSED, notification_toast ALL PASSED. Zero SCRIPT
+ERROR in run logs.

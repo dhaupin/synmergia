@@ -11,5 +11,6 @@ location_type = 0
 buy_multiplier = 0.5
 sell_multiplier = 1.0
 includes = [
-  {"type": "dialogue", "dialogue_id": "village_elder_greeting"}
+  {"type": "dialogue", "dialogue_id": "village_elder_greeting"},
+  {"type": "quest", "quest_ids": ["quest_wolves_hunt", "daily_herb_gathering"]}
 ]

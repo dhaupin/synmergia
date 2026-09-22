@@ -151,6 +151,13 @@ func _ready() -> void:
 	# Set local player for TargetingManager
 	TargetingManager.set_local_player(entity_id)
 
+	# Mirror the live targeting context so context-menu actions (Talk,
+	# Trade->vendor shop, loot) can resolve NPC data/position. Without this
+	# _current_target_info stayed null and NPC vendor routing silently fell
+	# through to player-to-player trade.
+	TargetingManager.target_acquired.connect(_on_target_acquired)
+	TargetingManager.target_cleared.connect(_on_target_cleared)
+
 	# Connect to InteractionLayer for touch targeting
 	_connect_interaction_layer()
 
@@ -316,25 +323,30 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 		"invite_guild":
 			if GuildService: GuildService.invite_player(str(player_id), target_id)
 		"trade":
-			if TradeService: TradeService.initiate_trade(str(player_id), target_id)
+			# NPC vendors open the shop panel; players open the trade panel.
+			if _current_target_info and _current_target_info.id == target_id \
+					and _current_target_info.entity_type == Entity.EntityType.NPC:
+				_open_npc_vendor(target_id, _current_target_info)
+			elif TradeService:
+				TradeService.initiate_trade(str(player_id), target_id)
 		"add_friend":
 			if FriendsService: FriendsService.send_friend_request(str(player_id), str(player_id), target_id)
 		"report":
 			_open_report_dialog(target_id)
 		"talk":
-			if is_instance_valid(NotificationService):
-				NotificationService.notify(
-					NotifKind.CUSTOM,
-					"Opening dialogue...",
-					"PlayerController",
-					"npc_talk:%s:%s" % [str(player_id), target_id],
-					{"target_id": target_id},
-					str(player_id)
-				)
+			_open_npc_dialogue(target_id)
+		"quest":
+			_open_npc_quests(target_id)
+		"bank":
+			if MenuManager:
+				MenuManager.open_menu("bank")
 		"loot":
-			LootService.loot_all(str(player_id), target_id)
+			_pickup_loot_target(target_id)
+		"pass":
+			if LootService:
+				LootService.pass_loot(target_id, str(player_id))
 		"enter":
-			pass
+			_activate_gateway_target(target_id)
 
 		"skill_academy":
 			_open_skill_academy_ui()
@@ -342,6 +354,131 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 			_open_blacksmith_ui()
 		"character_stats":
 			_open_character_stats_ui()
+
+
+## Resolve the dialogue id for an NPC's dialogue offering (inline or
+## ref-based), or "" when the NPC has none.
+func _find_npc_dialogue_id(target_id: String) -> String:
+	var npc_data: NPCData = _npc_data_for_target(target_id)
+	if npc_data == null:
+		return ""
+	return npc_data.get_dialogue_id()
+
+func _open_npc_dialogue(target_id: String) -> void:
+	var dialogue_id := _find_npc_dialogue_id(target_id)
+	if dialogue_id.is_empty():
+		GameLog.warn("PlayerController: NPC %s has no dialogue offering" % target_id)
+		return
+	if DialogService and DialogService.start_dialogue(target_id, dialogue_id):
+		GameLog.info("PlayerController: dialogue started with %s (%s)" % [target_id, dialogue_id])
+	else:
+		GameLog.warn("PlayerController: failed to start dialogue %s" % dialogue_id)
+
+
+## Open the QuestUI tab for an NPC's quest offering, if it has one.
+func _open_npc_quests(target_id: String) -> void:
+	var quest_ids := _npc_quest_ids_for_target(target_id)
+	if quest_ids.is_empty():
+		GameLog.warn("PlayerController: NPC %s has no quest offering" % target_id)
+		return
+	if MenuManager:
+		MenuManager.open_menu("quests")
+		var panel: Control = MenuManager.get_panel_node("quests")
+		if panel and panel.has_method("refresh_quest_list"):
+			panel.refresh_quest_list()
+
+
+func _npc_quest_ids_for_target(target_id: String) -> Array:
+	var ids: Array = []
+	var npc_data: NPCData = _npc_data_for_target(target_id)
+	if npc_data == null:
+		return ids
+	for inc: Dictionary in npc_data.includes:
+		var t := str(inc.get("type", ""))
+		if t == "quest":
+			var qids: Variant = inc.get("quest_ids")
+			if qids is Array:
+				ids = qids
+			break
+		if t == "offering":
+			var res := load("res://data/npc_offerings/%s.tres" % str(inc.get("ref_id", "")))
+			if res != null and str(res.get("type")) == "quest":
+				var qids2: Variant = res.get("quest_ids")
+				if qids2 is Array:
+					ids = qids2
+				break
+	return ids
+
+
+## Open the vendor shop for an NPC with a vendor offering.
+func _open_npc_vendor(target_id: String, target_info) -> void:
+	var npc_data: NPCData = _npc_data_for_target(target_id)
+	var vendor_offering: Resource = npc_data.get_vendor_offering() if npc_data else null
+	if vendor_offering == null:
+		GameLog.warn("PlayerController: NPC %s has no vendor offering" % target_id)
+		return
+	var npc_pos: Vector3 = target_info.world_position if target_info else Vector3.ZERO
+	ShopUI.open_for_offering(str(player_id), vendor_offering, npc_data, npc_pos)
+
+
+
+## Keep the context-action mirror of the current target in sync. These
+## fire from TargetingManager whenever the player acquires/clears a
+## target (long-press context menu, [E] interact, tab-targeting).
+func _on_target_acquired(target: TargetingManager.TargetInfo) -> void:
+	if target != null:
+		_current_target_info = target
+
+
+func _on_target_cleared(_previous: TargetingManager.TargetInfo) -> void:
+	_current_target_info = null
+
+
+## Resolve the live NPCData for a target id (entity node first, then
+## the TargetingManager snapshot from the active context menu).
+func _npc_data_for_target(target_id: String) -> NPCData:
+	if EntityService:
+		var npc: Variant = EntityService.get_entity(target_id)
+		if npc != null and is_instance_valid(npc) and "npc_data" in npc \
+				and npc.npc_data != null:
+			return npc.npc_data as NPCData
+	if _current_target_info and _current_target_info.id == target_id \
+			and _current_target_info.npc_data != null:
+		return _current_target_info.npc_data
+	return null
+
+
+## Loot a corpse/loot target: LootService.pickup_loot(player_id) for
+## pending rolls, GroundLootService.try_pickup(player, drop_id) for
+## live ground drops.
+func _pickup_loot_target(target_id: String) -> void:
+	var pid := str(player_id)
+	var picked: Array = []
+	if LootService and LootService.has_method("pickup_loot"):
+		picked = LootService.pickup_loot(pid, target_id)
+	if picked.is_empty() and GroundLootService and GroundLootService.has_method("try_pickup"):
+		picked = GroundLootService.try_pickup(self, target_id)
+	if picked.is_empty():
+		GameLog.info("PlayerController: nothing to loot at %s" % target_id)
+
+
+## Walk the player through a gateway via WorldService.use_gateway.
+func _activate_gateway_target(gateway_id: String) -> void:
+	if not WorldService:
+		return
+	var destination: Dictionary = WorldService.use_gateway(gateway_id, self)
+	if destination.is_empty():
+		GameLog.warn("PlayerController: gateway %s cannot be used" % gateway_id)
+		return
+	if is_instance_valid(NotificationService):
+		NotificationService.notify(
+			NotifKind.CUSTOM,
+			"You pass through the gateway.",
+			"PlayerController",
+			"gw_use:%s:%s" % [str(player_id), gateway_id],
+			{"gateway_id": gateway_id},
+			str(player_id)
+		)
 
 
 func _get_character_data() -> CharacterData:

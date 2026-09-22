@@ -120,7 +120,12 @@ static func get_icon_for_path(path: String, fallback: Texture2D = null) -> Textu
 static func _prop(res: Resource, key: String, default) -> Variant:
 	if res == null:
 		return default
-	return res.get(key) if res.has(key) else default
+	# Resource has no has() method (that's Dictionary/Array); the old
+	# res.has(key) script-errored every call, so the ternary aborted and
+	# returned null instead of `default` -- producing "res://<null>"
+	# loads and Nil-to-int category conversions downstream. `key in res`
+	# is the object property existence check.
+	return res.get(key) if key in res else default
 
 static func _tex(path: String) -> Texture2D:
 	if path.is_empty():

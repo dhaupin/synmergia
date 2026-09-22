@@ -22,7 +22,10 @@ var npc_data: NPCData = null
 func _ready() -> void:
 	entity_type = EntityType.NPC
 	relation = Relation.FRIENDLY
+	add_to_group("offering_npcs")
 	super._ready()
+	if npc_data != null:
+		npc_data.normalize_includes()
 
 
 ## Build interaction prompt from the first offering in includes[].
@@ -38,7 +41,10 @@ func get_interaction_prompt() -> String:
 	return "[E] Interact"
 
 
-## Load an offering resource from data/npc_offerings/<ref_id>.tres
+## Load an offering resource from data/npc_offerings/<ref_id>.tres.
+## Only ref_id entries point at offering files; inline entries
+## (dialogue_id / quest_ids / service_id directly on the include
+## dictionary) are the canonical data/npc/*.tres shape.
 func _load_offering(ref_id: String) -> Resource:
 	if ref_id.is_empty():
 		return null
@@ -84,9 +90,60 @@ func on_interact(player: Entity) -> void:
 			var offering := _load_offering(inc.get("ref_id", ""))
 			if offering:
 				_dispatch_offering(offering, player)
+		else:
+			_dispatch_inline_offering(inc, player)
 
 
-## Route an offering to the right panel/service.
+## Wrap an inline include dictionary into an NPCOffering resource so it
+## can flow through the _dispatch_offering/_dispatch_service resource
+## path (service_id, vault_type, etc.). Returns null when the include
+## carries no service_id.
+func _inline_inc_to_offering(inc: Dictionary) -> Resource:
+	var OfferingClass := load("res://core/schemas/npc_offering.gd")
+	var offering: Resource = OfferingClass.new() if OfferingClass else null
+	if offering == null:
+		return null
+	offering.type = str(inc.get("type", ""))
+	offering.service_id = str(inc.get("service_id", ""))
+	var params: Variant = inc.get("service_params")
+	if params is Dictionary:
+		offering.service_params = params
+	return offering
+
+
+## Route an INLINE include (from data/npc/*.tres: {type: "dialogue",
+## dialogue_id}, {type: "vendor", ref_id}, {type: "quest", quest_ids},
+## {type: "service", service_id}, {type: "bank"}). The ref-based
+## npc_offering.tres path is handled by _dispatch_offering; this covers
+## the shape the playable world actually ships with.
+func _dispatch_inline_offering(inc: Dictionary, player: Entity) -> void:
+	var type: String = inc.get("type", "")
+	match type:
+		"dialogue":
+			var dlg_id := str(inc.get("dialogue_id", ""))
+			if not dlg_id.is_empty() and DialogService:
+				DialogService.start_dialogue(entity_id, dlg_id)
+			else:
+				push_warning("NPCEntity: dialogue include missing dialogue_id on NPC %s" % entity_id)
+		"vendor":
+			var offering := _load_offering(str(inc.get("ref_id", "")))
+			if offering:
+				_dispatch_offering(offering, player)
+			else:
+				push_warning("NPCEntity: vendor include missing ref_id on NPC %s" % entity_id)
+		"quest":
+			if MenuManager:
+				MenuManager.open_menu("quests")
+		"bank":
+			if MenuManager:
+				MenuManager.open_menu("bank")
+		"service":
+			_dispatch_service(_inline_inc_to_offering(inc), player)
+		_:
+			push_warning("NPCEntity: Unknown include type: %s on NPC %s" % [type, entity_id])
+
+
+## Route an offering resource to the right panel/service.
 func _dispatch_offering(offering: Resource, player: Entity) -> void:
 	match offering.type:
 		"vendor":

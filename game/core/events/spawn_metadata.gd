@@ -67,6 +67,11 @@ static func enemy(p_name: String, p_zone: String, p_pos: Vector3, p_level: int =
 	m.notification_enabled = true
 	return m
 
+static func npc(p_name: String, p_zone: String, p_pos: Vector3, p_level: int = 1) -> SpawnMetadata:
+	var m := __SpawnMetadata__.new(SpawnType.NPC, p_name, p_zone, p_pos)
+	m.level = p_level
+	return m
+
 static func elite(p_name: String, p_zone: String, p_pos: Vector3, p_level: int = 1) -> SpawnMetadata:
 	var m := __SpawnMetadata__.new(SpawnType.ELITE, p_name, p_zone, p_pos)
 	m.level = p_level

@@ -35,6 +35,23 @@ func _ready() -> void:
 	hide()
 	visible = false
 
+
+## Build the base "Panel" node. UIPanel's default _setup_panel() is a
+## no-op stub -- subclasses must create the named Panel themselves
+## (see dialog_ui.gd). Without this, get_panel() returned null, so
+## _setup_ui() bailed and the menu rendered empty (no Talk/Trade items
+## for NPC targets).
+func _setup_panel() -> void:
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(200, 80)
+	var style := UIStyles.create_panel_style()
+	panel.add_theme_stylebox_override("panel", style)
+	panel.name = "Panel"
+	panel.focus_mode = Control.FOCUS_ALL
+	add_child(panel)
+
+
 func _setup_touch() -> void:
 	_long_press_timer = Timer.new()
 	_long_press_timer.wait_time = LONG_PRESS_DURATION
@@ -88,6 +105,15 @@ func show_menu(position: Vector2, target_id: String, target_type: int, npc_data:
 	_target_id = target_id
 	_target_type = target_type
 	_npc_data = npc_data
+
+	# Lazy build: _menu_panel is created in _ready(), which only runs once
+	# the node enters the tree. Guard so a programmatic open on a node not
+	# yet in the tree does not crash on get_minimum_size() below.
+	if _menu_panel == null:
+		_setup_ui()
+	if _menu_panel == null:
+		push_warning("ActionMenu: panel not built, cannot open menu")
+		return
 
 	_populate_menu()
 
@@ -144,14 +170,26 @@ func _npc_has_offering_type(npc_data: NPCData, offering_type: String, service_id
 		return false
 	if npc_data.includes.is_empty():
 		return false
+	# Inline includes (the data/npc/*.tres shape: {type: "dialogue",
+	# "vendor", "quest", "bank"}) resolve through the NPCData helper,
+	# which understands both inline and ref-based entries. Previously
+	# this filter only recognized ref-based "offering" includes, so the
+	# world's actual NPCs filtered down to an empty menu.
+	if service_id.is_empty():
+		return npc_data.has_offering(offering_type)
+	# Service-id match: ref-based offerings carry service_id on the
+	# resource; inline "service" includes carry it on the dictionary.
 	for inc: Dictionary in npc_data.includes:
 		if inc.get("type", "") == "offering":
 			var ref_id: String = inc.get("ref_id", "")
 			if not ref_id.is_empty():
 				var offering := _load_offering(ref_id)
-				if offering and offering.type == offering_type:
-					if service_id.is_empty() or offering.service_id == service_id:
-						return true
+				if offering and offering.type == offering_type \
+						and str(offering.service_id) == service_id:
+					return true
+		elif inc.get("type", "") == "service" and offering_type == "service":
+			if str(inc.get("service_id", "")) == service_id:
+				return true
 	return false
 
 
