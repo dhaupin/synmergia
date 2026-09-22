@@ -2,8 +2,6 @@
 ## Free-form combat system (RYL2-style)
 extends CharacterBody3D
 class_name PlayerController
-# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
-const QoSService = preload("res://core/autoload/qos_service.gd")
 
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
@@ -33,6 +31,7 @@ const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 @export var dodge_cost: float = 25.0
 @export var dodge_cooldown: float = 1.5
 @export var crouch_speed: float = 2.0  # COD-style crouch-walk speed
+@export var void_kill_y: float = -25.0  # below this Y the void safety net fires
 
 # Combat
 @export var basic_attack: Skill = null
@@ -417,14 +416,21 @@ func _physics_process(delta: float) -> void:
 		_handle_follow_movement()
 		return
 
-	# QoS: Rate limit movement
-	if QoSService.rate_limit(entity_id, "movement"):
-		move_and_slide()
-		# Walk-over auto-loot (settings toggle): when enabled, walking
-		# over a lootable drop vacuums it without pressing interact.
-		_try_auto_loot()
-	else:
-		GameLog.debug("PlayerController: Rate limited movement for %s" % entity_id)
+	# Gravity + integration always run: this is local physics, not a
+	# networked action. The old QoS token-bucket gate here consumed one
+	# "movement" token per physics frame against a 10/s budget, so
+	# move_and_slide() was skipped on ~5 of every 6 frames (visible as
+	# jerky, mostly-frozen movement and endless "Rate limited" spam).
+	# Server-side movement throttling belongs to the transport layer.
+	if not is_on_floor():
+		velocity.y -= gravity_force * delta
+	elif velocity.y < 0.0:
+		velocity.y = 0.0
+	move_and_slide()
+	_void_recovery(delta)
+	# Walk-over auto-loot (settings toggle): when enabled, walking
+	# over a lootable drop vacuums it without pressing interact.
+	_try_auto_loot()
 
 	# Out-of-combat mana regen (5/s matches the class-schema default).
 	_mana_regen_accum += 5.0 * delta
@@ -434,6 +440,32 @@ func _physics_process(delta: float) -> void:
 		if current_mana < max_mana:
 			current_mana = mini(max_mana, current_mana + gain)
 			mana_changed.emit(current_mana, max_mana)
+
+## Void safety net: the playable floor is finite, so sprinting off the
+## edge used to mean falling forever (state machine stuck in Fall with
+## no ground to land on). Below void_kill_y we restore the player to
+## their respawn point (spawn position by default) and re-ground the
+## state machine through Land. The cooldown guards against a broken
+## respawn point retriggering every frame.
+func _void_recovery(delta: float) -> void:
+	if _void_recovery_cooldown > 0.0:
+		_void_recovery_cooldown -= delta
+		return
+	if global_position.y >= void_kill_y:
+		return
+	_void_recovery_cooldown = 0.5
+	GameLog.warn("Void recovery: %s fell out of the world" % entity_id)
+	if is_instance_valid(NotificationService) and NotificationService.has_method("notify"):
+		NotificationService.notify(
+			NotifKind.PLAYER_WARNED,
+			"You fell out of the world!",
+			"PlayerController",
+			"void_recovery:%s" % entity_id,
+			{}, entity_id)
+	global_position = respawn_point if respawn_point != Vector3.ZERO else Vector3(0, 1.5, 0)
+	velocity = Vector3.ZERO
+	if state_machine and state_machine.has_method("transition_to") and state_machine.has_state("Land"):
+		state_machine.transition_to("Land")
 
 ## Handle automatic follow movement
 func _handle_follow_movement() -> void:
@@ -476,8 +508,13 @@ func get_movement_direction() -> Vector3:
 	forward = forward.normalized()
 	right = right.normalized()
 
+	# Do NOT normalize the result: the keyboard path is already unit
+	# length, and the touch path reports true analog magnitude (0..1),
+	# so half-stick = half-speed walking. Normalizing here collapsed
+	# every stick deflection to full run speed (observed: half-stick
+	# drag measured 5.0 u/s, identical to a full push).
 	var direction := (forward * input.y + right * input.x)
-	return direction.normalized() if direction.length() > 0 else Vector3.ZERO
+	return direction if direction.length() <= 1.0 else direction.normalized()
 
 func get_camera_basis() -> Basis:
 	if camera_pivot and camera_pivot.get_child_count() > 0:
@@ -702,6 +739,7 @@ var gold: int = 0
 var current_mana: int = 100
 var max_mana: int = 100
 var _mana_regen_accum: float = 0.0
+var _void_recovery_cooldown: float = 0.0
 
 signal experience_changed(current: int, level: int)
 signal gold_changed(current: int)
@@ -868,8 +906,9 @@ func _is_click_on_ui(screen_pos: Vector2) -> bool:
 	if not root:
 		return false
 
-	# Check for UI elements at position
-	var controls: Array = root.get_nodes_in_group("clickable")
+	# Check for UI elements at position (group lookup belongs to the
+	# SceneTree, not the root Window).
+	var controls: Array = tree.get_nodes_in_group("clickable")
 	for control in controls:
 		if control is Control:
 			var rect := Rect2(control.global_position, control.size)

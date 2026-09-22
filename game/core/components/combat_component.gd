@@ -124,7 +124,7 @@ func execute_skill(skill: Skill, target: Entity = null, ground_pos: Vector3 = Ve
 
 		# AntiCheat: Record combat action for analysis
 		if AntiCheatService:
-			AntiCheatService.record_action(entity.entity_id, "combat_skill", entity.global_position if entity.has("global_position") else Vector3.ZERO)
+			AntiCheatService.record_action(entity.entity_id, "combat_skill", entity.global_position if ("global_position" in entity) else Vector3.ZERO)
 
 	# Apply Skill Academy upgrade deltas (returns duplicated schema with bonuses applied)
 	var upgraded_skill: Skill = _apply_skill_upgrade_deltas(skill, entity)

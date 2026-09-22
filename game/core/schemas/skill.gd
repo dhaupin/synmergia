@@ -299,29 +299,31 @@ static func find_dead_allies(caster, max_range: float) -> Array:
 
 	return dead_allies
 
-## Check if two entities are allies
+## Check if two entities are allies. Uses the `in` operator for property
+## probes: Object.has() does not exist in Godot 4, and hitbox StaticBody3D
+## children end up here via combat scans.
 static func _is_ally(entity_a, entity_b) -> bool:
 	# Same entity
 	if entity_a == entity_b:
 		return true
 
 	# Check party
-	if entity_a.has("party_id") and entity_b.has("party_id"):
+	if "party_id" in entity_a and "party_id" in entity_b:
 		if entity_a.party_id != "" and entity_a.party_id == entity_b.party_id:
 			return true
 
 	# Check guild
-	if entity_a.has("guild_id") and entity_b.has("guild_id"):
+	if "guild_id" in entity_a and "guild_id" in entity_b:
 		if entity_a.guild_id != "" and entity_a.guild_id == entity_b.guild_id:
 			return true
 
 	# Check faction (friendly)
-	if entity_a.has("faction_id") and entity_b.has("faction_id"):
+	if "faction_id" in entity_a and "faction_id" in entity_b:
 		if entity_a.faction_id == entity_b.faction_id:
 			return true
 
 	# Check team (for PvP)
-	if entity_a.has("team_id") and entity_b.has("team_id"):
+	if "team_id" in entity_a and "team_id" in entity_b:
 		if entity_a.team_id == entity_b.team_id:
 			return true
 

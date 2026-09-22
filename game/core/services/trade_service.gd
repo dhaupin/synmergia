@@ -534,7 +534,7 @@ func _get_entity_position(entity_id: String) -> Vector3:
 	if not EntityService:
 		return Vector3.INF
 	var entity = EntityService.get_entity_by_id(entity_id)
-	if entity and is_instance_valid(entity) and entity.has("global_position"):
+	if entity and is_instance_valid(entity) and ("global_position" in entity):
 		return entity.global_position
 	return Vector3.INF
 

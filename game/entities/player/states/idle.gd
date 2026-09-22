@@ -18,6 +18,16 @@ func update(delta: float) -> void:
 	if state_machine.get_parent().is_moving():
 		transition_to("Run")
 
+	# Check for crouch (touch CRH hold and keyboard C both land here)
+	if Input.is_action_just_pressed("crouch") and state_machine.get_parent().is_on_floor():
+		transition_to("Crouch")
+		return
+
+	# Check for attack (standing attack: basic swings from rest)
+	if Input.is_action_just_pressed("attack"):
+		transition_to("Attack")
+		return
+
 	# Check for jump
 	if Input.is_action_just_pressed("jump") and state_machine.get_parent().is_on_floor():
 		transition_to("Jump")
@@ -26,5 +36,5 @@ func physics_update(_delta: float) -> void:
 	# Apply friction when idle
 	var parent: PlayerController = state_machine.get_parent()
 	if parent.velocity.length() > 0.1:
-		parent.velocity.x = lerp(parent.velocity.x, 0, 10.0 * _delta)
-		parent.velocity.z = lerp(parent.velocity.z, 0, 10.0 * _delta)
+		parent.velocity.x = lerp(parent.velocity.x, 0.0, 10.0 * _delta)
+		parent.velocity.z = lerp(parent.velocity.z, 0.0, 10.0 * _delta)

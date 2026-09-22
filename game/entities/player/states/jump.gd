@@ -6,6 +6,11 @@ var has_jumped: bool = false
 
 func enter(_data: Dictionary = {}) -> void:
 	has_jumped = false
+	# Launch impulse lives here: the Jump state owns the takeoff, the
+	# controller applies gravity every frame. Without this the jump
+	# action did nothing at all.
+	var parent: PlayerController = state_machine.get_parent()
+	parent.velocity.y = parent.jump_force
 	animation_play("jump")
 
 func exit() -> void:

@@ -116,7 +116,7 @@ func _queue_agent_action(agent_id: String, action: AgentAction) -> void:
 	if not is_instance_valid(entity):
 		return
 
-	var entity_id := entity.entity_id if entity.has("entity_id") else agent_id
+	var entity_id := entity.entity_id if ("entity_id" in entity) else agent_id
 	var path := "entities/%s" % entity_id
 
 	match action.action_type:

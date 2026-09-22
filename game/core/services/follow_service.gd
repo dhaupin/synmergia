@@ -305,7 +305,7 @@ func _is_in_range(entity1_id: String, entity2_id: String) -> bool:
 func _get_entity_position(entity_id: String) -> Vector3:
 	if EntityService:
 		var entity = EntityService.get_entity(entity_id)
-		if entity and is_instance_valid(entity) and entity.has("global_position"):
+		if entity and is_instance_valid(entity) and ("global_position" in entity):
 			var pos = entity.global_position
 			# Validate position (prevent NaN/Inf exploits)
 			if is_finite(pos):

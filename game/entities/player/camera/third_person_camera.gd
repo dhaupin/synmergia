@@ -64,12 +64,9 @@ func _input(event: InputEvent) -> void:
 	# Aim mode (right mouse button hold).
 	is_aiming = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
 
-	# Touch orbit: any drag on the right half of the screen rotates the
-	# camera (the left half belongs to the movement joystick).
-	if event is InputEventScreenDrag:
-		var half := get_viewport().get_visible_rect().size.x * 0.5
-		if event.position.x > half:
-			orbit(event.relative * rotation_speed * 2.0)
+	# Touch orbit is owned by the TouchHud (which routes right-half drags
+	# through InputManager -> world_playable bridge into orbit()); this
+	# camera must NOT also consume ScreenDrag or every swipe rotates twice.
 
 	# Touch pinch zoom (two-finger gesture reported by the viewport).
 	if event is InputEventMagnifyGesture:

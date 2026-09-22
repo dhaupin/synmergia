@@ -80,12 +80,20 @@ func _on_high_contrast_changed(enabled: bool) -> void:
 
 func _setup_hud() -> void:
 	# Action bar (bottom center) - skills/actions
+	# NOTE: this bar is INVISIBLE but its slot controls still sit at
+	# bottom-center with MOUSE_FILTER_STOP, so on touch layouts they ate
+	# every press aimed at the touch HUD's CRH/ACT buttons underneath
+	# (CanvasLayer 20 > the touch HUD's layer). Made fully inert: the
+	# touch HUD owns this screen region when active, and keyboard users
+	# cast through keys 1-8, not these placeholder slots.
 	_action_bar = HBoxContainer.new()
 	_action_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_action_bar.offset_top = -80
 	_action_bar.offset_bottom = -10
 	_action_bar.custom_minimum_size.y = 60
 	_action_bar.z_index = 100
+	_action_bar.visible = false
+	_action_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_action_bar.focus_mode = Control.FOCUS_ALL
 	_action_bar.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	add_child(_action_bar)

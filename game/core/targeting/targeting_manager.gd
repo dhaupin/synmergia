@@ -860,7 +860,7 @@ func raycast_from_camera(screen_pos: Vector2, camera: Camera3D) -> TargetInfo:
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:
 		var collider: Node = result["collider"]
-		if collider and collider.has("entity_id"):
+		if collider and ("entity_id" in collider):
 			return _create_target_info_from_node(collider, result.get("position", Vector3.ZERO))
 
 	return null
@@ -925,7 +925,7 @@ func get_target_in_direction(origin: Vector3, direction: Vector3, max_distance: 
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:
 		var collider: Node = result["collider"]
-		if collider and collider.has("entity_id"):
+		if collider and ("entity_id" in collider):
 			return _create_target_info_from_node(collider, result.get("position", Vector3.ZERO))
 
 	return null
@@ -961,11 +961,13 @@ func _get_active_camera() -> Camera3D:
 ## ============================================================================
 
 func _create_target_info_from_node(node: Node, hit_position: Vector3 = Vector3.ZERO) -> TargetInfo:
-	if not node.has("entity_id"):
+	# `in` probes, not Object.has() (which does not exist on Node/Object in
+	# Godot 4; hitbox StaticBody3D children arrive here from raycasts).
+	if not ("entity_id" in node):
 		return null
 
 	var entity_id = node.entity_id
-	var entity_type: int = node.entity_type if node.has("entity_type") else 0
+	var entity_type: int = node.entity_type if ("entity_type" in node) else 0
 
 	# Get schema for this entity type
 	var schema_id = _entity_type_to_schema.get(entity_type, "")
@@ -1085,8 +1087,9 @@ func _is_target_online(target_id: String) -> bool:
 	return false
 
 func _infer_schema_id(entity: Node) -> String:
-	# Try to infer schema from entity type
-	if entity.has("entity_type"):
+	# Try to infer schema from entity type (`in` probe: Object.has() does not
+	# exist in Godot 4 and Node3D-based entities arrive here).
+	if ("entity_type" in entity):
 		match entity.entity_type:
 			1: return "player"  # PLAYER
 			2: return "enemy"    # ENEMY

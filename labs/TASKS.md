@@ -873,3 +873,39 @@ zone_manager.gd:
 - Zone data is concentric discs sharing one center; real region shapes
   would make the overlap resolver's "strongest claimant" rule barely
   needed. Fine for now: the hold-current rule is correct either way.
+
+---
+
+## Session 2026-09-22 (touch HUD live-run completion)
+
+### Context
+Continuation of the touch HUD gameplay pass: crouch-touch routing, ATK
+swallowed during Land, edit-mode 0px drag, then the full live battery.
+
+### Fixes landed this session
+- **P5 battery race:** the ATK-hold check sampled the state machine
+  once; under xvfb the press/check/release can all land in one chunky
+  frame and the parsed action takes effect the next frame, so the
+  sample read Idle. test_touch_live now polls the state machine every
+  frame during the hold window (`_p5_window_open` / `_saw_attack_state`)
+  and asserts Attack was observed at some point. Comment continuation
+  line also fixed (`--` on its own line was a parse error).
+- **Camera swipe tuning:** observed 0.48 rad per 80px flick = 440 deg
+  per full-screen swipe at 2.0x. Dropped to 1.5x in world_playable
+  `_setup_touch_hud` -> 0.36 rad/flick, ~330 deg/full swipe. Matches
+  mouse-look feel.
+
+### Verification
+- test_touch_live (xvfb, real render + synthetic touches): **17/17**.
+  Stick drag/Run, auto-sprint (7.5 u/s), sprint->Slide, slide-jump
+  (vy 3.0), ATK hold-to-repeat + Attack state observed, camera yaw
+  0.360 rad/flick, Crouch hold, edit-mode drag (67px) + PlayerConfig
+  layout persist + reset.
+- Regression (headless, exit-code green): state_schema, hud_integration,
+  notification_frame, combat_loop, e2e_flow, autoload_audit,
+  parse_check, login_flow.
+
+### Feel constants now shipped
+- camera look: `cam.orbit(delta_px * rotation_speed(0.003) * 1.5)`
+- stick radius 80px half-extent, auto-sprint at full deflection
+- slide friction/duration unchanged from prior tuning pass

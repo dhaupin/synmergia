@@ -217,6 +217,16 @@ func _detect_input_type(event: InputEvent) -> void:
 	elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
 		new_type = "controller"
 
+	# Emulated mouse from touch must never fight the touch mode: every
+	# parsed ScreenTouch/Drag also synthesizes a mouse event on desktop,
+	# and honoring it downgraded TOUCH -> KEYBOARD_MOUSE while a finger
+	# was still down (stick and camera-look died instantly). Ignore
+	# synthesized mouse until all fingers lift.
+	if (new_type == "mouse"
+			and _input_mode == InputMode.TOUCH
+			and Input.get_mouse_mode() == Input.MOUSE_MODE_VISIBLE):
+		return
+
 	if new_type != _last_input_type and new_type != "":
 		_last_input_type = new_type
 		_update_input_mode(new_type)
@@ -271,12 +281,32 @@ func _handle_keyboard_mouse(event: InputEvent) -> void:
 		if action != "":
 			player_input.emit(action, false)
 
-	# Mouse click for interact
-	if event is InputEventMouseButton and event.pressed:
+	# Mouse click for interact. device >= 0 excludes the synthesized
+	# echo mouse events Godot generates from parsed touches (they carry
+	# device=-1; real X11/Win32 pointer events carry a real id): without
+	# this, every touch tap ALSO forged an interact press.
+	if event is InputEventMouseButton and event.pressed and event.device >= 0:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			player_input.emit("interact", true)
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			player_input.emit("target_next", true)
+
+	# Left click - attack. The InputMap mouse binding was removed because
+	# emulate_mouse_from_touch synthesized a left click for EVERY touch
+	# (stick drags, camera swipes, button taps), forging attack
+	# just_pressed edges on mobile. Keyboard/mouse mode re-injects the
+	# action edge here so PC click-to-attack still works and touch mode
+	# stays clean. device >= 0 is the deterministic synthesized-event
+	# filter (probed: parsed touches synthesize mouse events with
+	# device=-1; real pointer events carry device=32 under X11): the
+	# synthetic click for the FIRST touch can arrive before the touch
+	# itself, so mode-based guards alone cannot catch it.
+	if event is InputEventMouseButton and event.device >= 0 \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			Input.action_press("attack")
+		else:
+			Input.action_release("attack")
 
 func _handle_controller(event: InputEvent) -> void:
 	if event is InputEventJoypadButton and event.pressed:

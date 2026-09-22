@@ -194,7 +194,7 @@ func create_waypoint_here(player_id: String, name: String) -> Dictionary:
 	if not entity or not is_instance_valid(entity):
 		return {"success": false, "message": "Player not found"}
 
-	var position: Vector3 = entity.global_position if entity.has("global_position") else Vector3.ZERO
+	var position: Vector3 = entity.global_position if ("global_position" in entity) else Vector3.ZERO
 	var zone_id: String = ZoneManager.get_current_zone_id() if ZoneManager else ""
 
 	return create_waypoint(player_id, name, position, zone_id)
@@ -392,7 +392,7 @@ func get_distance_to_active(player_id: String) -> float:
 	if not entity or not is_instance_valid(entity):
 		return -1.0
 
-	var player_pos: Vector3 = entity.global_position if entity.has("global_position") else Vector3.ZERO
+	var player_pos: Vector3 = entity.global_position if ("global_position" in entity) else Vector3.ZERO
 	var wp_pos: Vector3 = Vector3(wp_dict.get("position_x", 0.0), wp_dict.get("position_y", 0.0), wp_dict.get("position_z", 0.0))
 
 	return player_pos.distance_to(wp_pos)

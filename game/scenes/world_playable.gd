@@ -252,8 +252,19 @@ func _setup_touch_hud() -> void:
 	var cam: Camera3D = player.camera_pivot.get_node_or_null("Camera3D")
 	if cam == null or not cam.has_method("orbit"):
 		return
-	if not joystick.camera_look.is_connected(cam.orbit):
-		joystick.camera_look.connect(cam.orbit)
+	# camera_look carries raw pixel deltas; the camera wants radians, so
+	# scale with the camera's own speed here (single touch-look owner: the
+	# HUD; the camera's own ScreenDrag branch was removed to avoid double
+	# rotation).
+	var cam_speed: float = 0.003
+	if "rotation_speed" in cam:
+		cam_speed = float(cam.rotation_speed)
+	# 1.5x: observed 0.006 rad/px (2.0x) was 440 deg per full-screen swipe --
+	# too hot. 1.5x gives ~330 deg/swipe (0.48 rad per 80px flick -> 0.36).
+	var look_handler := func(delta_px: Vector2) -> void:
+		cam.orbit(delta_px * cam_speed * 1.5)
+	if not joystick.camera_look.is_connected(look_handler):
+		joystick.camera_look.connect(look_handler)
 	GameLog.info("WorldPlayable: touch HUD wired to third-person camera")
 
 func _on_ground_loot_picked_up(player, loot_id: String, items: Array) -> void:

@@ -16,8 +16,26 @@ func enter(_data: Dictionary = {}) -> void:
 func exit() -> void:
 	pass
 
-func update(delta: float) -> void:
-	elapsed += delta
+func update(_delta: float) -> void:
+	# Input buffering: a press during the landing recovery must not be
+	# swallowed by the 0.15 s timer (previously the just_pressed edge
+	# expired before Idle/Run could see it, dropping taps entirely).
+	# Reacting immediately cancels the recovery, which matches the
+	# responsive COD-style feel.
+	if Input.is_action_just_pressed("jump"):
+		transition_to("Jump")
+		return
+	if Input.is_action_just_pressed("attack"):
+		transition_to("Attack")
+		return
+	if Input.is_action_just_pressed("dodge"):
+		transition_to("Dodge")
+		return
+	if Input.is_action_just_pressed("crouch"):
+		transition_to("Crouch")
+		return
+
+	elapsed += _delta
 
 	if elapsed >= DURATION:
 		transition_to("Idle")
@@ -26,8 +44,8 @@ func physics_update(_delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()
 
 	# Quick friction on landing
-	parent.velocity.x = lerp(parent.velocity.x, 0, 20.0 * _delta)
-	parent.velocity.z = lerp(parent.velocity.z, 0, 20.0 * _delta)
+	parent.velocity.x = lerp(parent.velocity.x, 0.0, 20.0 * _delta)
+	parent.velocity.z = lerp(parent.velocity.z, 0.0, 20.0 * _delta)
 
 func animation_play(anim_name: String) -> void:
 	var parent: PlayerController = state_machine.get_parent()

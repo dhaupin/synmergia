@@ -2,6 +2,8 @@
 extends "res://core/state/state_base.gd"
 class_name RunState
 
+const AIR_CONTROL := 0.3  # matches jump.gd's in-air steering
+
 var animation_playing: bool = false
 
 func enter(_data: Dictionary = {}) -> void:
@@ -14,8 +16,16 @@ func exit() -> void:
 func update(_delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()
 
+	# Ran off a ledge: hand control to Fall so gravity and the landing
+	# states take over. Without this guard Run held the player in
+	# mid-air forever (its dodge/jump/crouch branches are all
+	# floor-gated) after stepping off the playable floor's edge.
+	if not parent.is_on_floor():
+		transition_to("Fall")
+		return
+
 	# Check for idle (no input)
-	if not parent.is_moving() and parent.is_on_floor():
+	if not parent.is_moving():
 		transition_to("Idle")
 		return
 
@@ -45,6 +55,15 @@ func update(_delta: float) -> void:
 
 func physics_update(delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()
+
+	# Airborne continuation (stepped off a ledge): mild air control
+	# instead of the ground-speed lerp, mirroring the Jump state.
+	if not parent.is_on_floor():
+		var air_dir: Vector3 = parent.get_movement_direction()
+		if air_dir.length() > 0:
+			parent.velocity.x += air_dir.x * parent.move_speed * AIR_CONTROL * delta
+			parent.velocity.z += air_dir.z * parent.move_speed * AIR_CONTROL * delta
+		return
 
 	# Get movement direction
 	var move_dir: Vector3 = parent.get_movement_direction()

@@ -20,6 +20,18 @@ const AUTO_SPRINT_DELAY := 0.28      # seconds at full stick before engaging
 const ATTACK_REPEAT_INTERVAL := 0.45 # hold-to-repeat cadence
 const STICK_RADIUS := 70.0
 const HINT_ALPHA := 0.35
+## Layer above the HUD stack. HudLayer itself is layer 10, but its
+## MenuManager child is a CanvasLayer at 20. Touch mode keeps the touch
+## HUD above MenuManager's inert-but-capturing controls and drops back
+## to layer 6 when hidden (panels/menus must still cover it).
+const LAYER_ABOVE_HUD := 24
+const LAYER_IDLE := 6
+
+## Controls this HUD replaces while active. When the touch HUD is
+## visible the desktop action bar / quick access bar are hidden: the
+## same abilities sit in the touch cluster, and their STOP-filter slot
+## rows overlay the CRH/ACT buttons otherwise.
+const REPLACED_HUD_NODES := ["ActionBar", "QuickAccessBar"]
 
 signal joystick_moved(offset: Vector2, normalized: Vector2)
 signal joystick_released()
@@ -63,6 +75,7 @@ var _thumb: TextureRect = null
 var _hint_base: TextureRect = null
 
 var _enabled: bool = true
+var _debug_touch: bool = false      # tests: trace raw touch routing
 var _high_contrast: bool = false
 var _repeat_timer: float = 0.0
 var _repeat_action: String = ""
@@ -70,7 +83,7 @@ var _auto_sprint_on: bool = false
 var _full_stick_time: float = 0.0
 
 func _ready() -> void:
-	layer = 6
+	layer = LAYER_IDLE
 	_setup_high_contrast()
 	_create_stick_visuals()
 	_create_buttons()
@@ -314,8 +327,14 @@ func _touch_over_control(pos: Vector2) -> bool:
 			return true
 	return false
 
+func _dbg(msg: String) -> void:
+	if _debug_touch:
+		print("[vj-dbg] %s" % msg)
+
 func _on_touch_start(event: InputEventScreenTouch) -> void:
 	var vp_size := get_viewport().get_visible_rect().size
+	_dbg("start idx=%d pos=%s edit=%s over_btn=%s" % [
+		event.index, str(event.position), str(_edit_mode), str(_touch_over_control(event.position))])
 
 	if _edit_mode:
 		if _touch_over_control(event.position):
@@ -323,6 +342,7 @@ func _on_touch_start(event: InputEventScreenTouch) -> void:
 			if action != "":
 				_edit_drag_action = action
 				_edit_drag_offset = _buttons[action].button.global_position - event.position
+				_dbg("edit drag armed: action=%s offset=%s" % [action, str(_edit_drag_offset)])
 		return
 
 	if _touch_over_control(event.position):
@@ -345,6 +365,8 @@ func _on_touch_start(event: InputEventScreenTouch) -> void:
 		_camera_last_pos = event.position
 
 func _on_touch_drag(event: InputEventScreenDrag) -> void:
+	_dbg("drag idx=%d pos=%s edit=%s drag_action='%s'" % [
+		event.index, str(event.position), str(_edit_mode), _edit_drag_action])
 	if _edit_mode and _edit_drag_action != "" and event.index == 0:
 		var entry: Dictionary = _buttons[_edit_drag_action]
 		var vp_size := get_viewport().get_visible_rect().size
@@ -364,6 +386,9 @@ func _on_touch_drag(event: InputEventScreenDrag) -> void:
 	elif event.index == _camera_touch_id:
 		camera_look.emit(event.position - _camera_last_pos)
 		_camera_last_pos = event.position
+	else:
+		_dbg("drag idx=%d matched nothing (joystick=%d camera=%d)" % [
+			event.index, _joystick_touch_id, _camera_touch_id])
 
 func _on_touch_end(event: InputEventScreenTouch) -> void:
 	if _edit_mode:
@@ -409,6 +434,10 @@ func _on_button_up(action: String) -> void:
 ## Inject the press into the global Input state (so state scripts polling
 ## Input.is_action_just_pressed react) and notify listeners.
 func _press_action(action: String) -> void:
+	_dbg("press '%s'" % action)
+	if _debug_touch:
+		for frame in get_stack():
+			_dbg("  via %s:%s (%s)" % [str(frame.get("source", "?")), str(frame.get("line", "?")), str(frame.get("function", "?"))])
 	var ev := InputEventAction.new()
 	ev.action = action
 	ev.pressed = true
@@ -419,6 +448,7 @@ func _press_action(action: String) -> void:
 		_repeat_timer = 0.0
 
 func _release_action(action: String) -> void:
+	_dbg("release '%s'" % action)
 	var ev := InputEventAction.new()
 	ev.action = action
 	ev.pressed = false
@@ -464,6 +494,8 @@ func _cancel_auto_sprint() -> void:
 func show_joystick() -> void:
 	visible = true
 	_enabled = true
+	layer = LAYER_ABOVE_HUD
+	_set_replaced_hud_hidden(true)
 	_apply_layout()
 
 func hide_joystick() -> void:
@@ -471,6 +503,8 @@ func hide_joystick() -> void:
 	_hint_base.visible = false
 	if _edit_mode:
 		_set_edit_mode(false)
+	layer = LAYER_IDLE
+	_set_replaced_hud_hidden(false)
 	_enabled = false
 	_joystick_touch_id = -1
 	_camera_touch_id = -1
@@ -489,3 +523,14 @@ func is_enabled() -> bool:
 
 func is_edit_mode() -> bool:
 	return _edit_mode
+
+## Show/hide the desktop HUD widgets this touch HUD replaces. Duck-typed:
+## nodes that don't exist in a scene are skipped silently.
+func _set_replaced_hud_hidden(hidden_now: bool) -> void:
+	var hud_root := get_tree().root if is_inside_tree() else null
+	if hud_root == null:
+		return
+	for node_name in REPLACED_HUD_NODES:
+		var node := hud_root.find_child(node_name, true, false)
+		if node is CanvasItem:
+			(node as CanvasItem).visible = not hidden_now
