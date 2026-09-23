@@ -117,21 +117,31 @@ func _current_speed() -> float:
 
 func take_damage(amount: int, source = null) -> int:
 	if health_component:
+		# No _is_dead poke here: health_component.die() owns the dead flag
+		# and early-returns when it is already set -- setting it first used
+		# to make the proper death flow a silent no-op.
 		health_component.current_health -= amount
-		health_component._is_dead = health_component.current_health <= 0
 		health_component.health_changed.emit(
 			health_component.current_health,
 			health_component.max_health,
 			-amount)
-		health_changed.emit(health_component.current_health, health_component.max_health)
 		if health_component.current_health <= 0:
-			health_component.health_depleted.emit()
-			# TODO: loot drop (loot_table_id rolls still log)
+			# Proper death flow: die() sets the component's _is_dead/_killer,
+			# creates the corpse, emits health_depleted (-> _on_died: loot,
+			# kill rewards, unregister) and EventHub.entity_died. Poking
+			# _is_dead directly (the old code) skipped all of that.
+			health_component.die(source)
+			# Mirror death onto the base Entity fields so is_alive() -- used
+			# by CombatSystem hitbox sweeps and kill-credit checks -- tells
+			# the truth instead of reporting a dead enemy as alive.
+			is_dead = true
+			current_health = 0
 	else:
 		current_health -= amount
 		health_changed.emit(current_health, max_health)
 		if current_health <= 0:
-			died.emit(source)
+			# Entity.die sets is_dead, clears status effects, emits died.
+			die(source)
 
 	# HUD feed: mirror the player-side damage event so CombatLog and
 	# DamageNumbers see enemy->player and player->enemy hits alike.

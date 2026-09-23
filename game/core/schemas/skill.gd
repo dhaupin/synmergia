@@ -253,9 +253,17 @@ func _apply_revive(caster, target, effect: Dictionary, result: Dictionary) -> bo
 
 	# Use RespawnService to perform the revive
 	var context: String = effect.get("context", "open_world")
-	if RespawnService:
+	# Script-mode-safe lookup: --script tests don't pre-load autoloads, so
+	# a bare RespawnService identifier is a COMPILE error that cascades
+	# through every preload of this file (combat/skill.gd, hitbox skills,
+	# the whole combat pipeline). Resolve via the tree instead.
+	var respawn_svc: Node = null
+	var ml: Variant = Engine.get_main_loop()
+	if ml is SceneTree and (ml as SceneTree).root != null:
+		respawn_svc = (ml as SceneTree).root.get_node_or_null("RespawnService")
+	if respawn_svc != null:
 		# Start the revival process
-		var success: bool = RespawnService.start_revival(caster, target, context)
+		var success: bool = respawn_svc.start_revival(caster, target, context)
 		if success:
 			result["revive_started"] = true
 			return true

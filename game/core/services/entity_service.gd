@@ -239,6 +239,12 @@ func register_entity(entity, metadata: SpawnMetadata = null, id_override: String
 		_npcs[entity_id] = entity
 
 	_persist_entity_metadata(entity_id)
+	# Mirror into CombatSystem's registry: hitbox sweeps iterate ONLY
+	# entities registered here, so skipping this left every melee/AoE
+	# attack hitting nothing (empty registered_entities). Tolerate
+	# duplicates (re-registration overwrites via dictionary key).
+	if CombatSystem:
+		CombatSystem.register_entity(entity)
 	entity_registered.emit(entity, metadata)
 	EventHub.entity_spawned.emit(entity, metadata)
 
@@ -305,6 +311,12 @@ func unregister_entity(entity, reason: String = "despawn") -> void:
 	metadata.notification_message = reason  # Reuse for despawn reason
 
 	_persist_entity_metadata(entity_id)
+	# Keep the combat registry in sync for BOTH combatant families
+	# (Entity subclasses and the PlayerController CharacterBody3D). The
+	# old is_alive() gate skipped the player, leaving a stale entry that
+	# kept eating hitbox sweeps after disconnect/despawn.
+	if CombatSystem:
+		CombatSystem.unregister_entity(entity)
 	_entities.erase(entity_id)
 	_players.erase(entity_id)
 	_enemies.erase(entity_id)

@@ -21,14 +21,16 @@ var active_hitboxes: Array[HitboxData] = []
 var combo_trackers: Dictionary = {}  # entity_id -> ComboTracker
 
 class HitboxData:
-	var owner_id: int
+	# Entity.entity_id is a String; the old int type made every
+	# create_hitbox() a runtime assignment error.
+	var owner_id: String = ""
 	var position: Vector3
 	var size: float
 	var skill: Skill
 	var start_time: float
 	var duration: float
-	var team_id: int
-	var hit_entities: Array[int]  # Entity IDs already hit
+	var team_id: int = 0
+	var hit_entities: Array[String] = []  # Entity IDs already hit
 
 func _physics_process(_delta: float) -> void:
 	_process_hitboxes(_delta)
@@ -36,21 +38,51 @@ func _physics_process(_delta: float) -> void:
 
 ## ENTITY MANAGEMENT
 
-func register_entity(entity: Entity) -> void:
+## Registry accepts ANY combatant: Entity subclasses (Enemy, NPC) AND
+## the live player (PlayerController, a CharacterBody3D). The old
+## `entity: Entity` annotation made every player registration throw
+## "not a subclass of the expected argument class" -- so the player was
+## never in the hitbox sweep registry.
+func register_entity(entity) -> void:
+	if entity == null or not is_instance_valid(entity) or not ("entity_id" in entity):
+		return
 	registered_entities[entity.entity_id] = entity
-	entity.died.connect(_on_entity_died)
+	# Death hook: Entity subclasses emit died(killer); PlayerController
+	# emits player_died(killer). Bind the victim so the re-emit carries
+	# the full (victim, killer) pair either way.
+	var death_signal := "died" if entity.has_signal("died") else "player_died"
+	if entity.has_signal(death_signal):
+		var cb := _on_entity_died.bind(entity)
+		if not entity.is_connected(death_signal, cb):
+			entity.connect(death_signal, cb)
 	combo_trackers[entity.entity_id] = ComboTracker.new()
 
-func unregister_entity(entity: Entity) -> void:
-	registered_entities.erase(entity.entity_id)
-	combo_trackers.erase(entity.entity_id)
-	entity.died.disconnect(_on_entity_died)
+func unregister_entity(entity) -> void:
+	if entity == null:
+		return
+	if "entity_id" in entity:
+		registered_entities.erase(entity.entity_id)
+		combo_trackers.erase(entity.entity_id)
+	# Death paths can reach here after the node is already freed
+	# (enemy self-unregisters in _on_died before queue_free); touching
+	# a freed instance's signals segfaults, so validate first.
+	if not is_instance_valid(entity):
+		return
+	var death_signal := "died" if entity.has_signal("died") else "player_died"
+	if entity.has_signal(death_signal):
+		var cb := _on_entity_died.bind(entity)
+		if entity.is_connected(death_signal, cb):
+			entity.disconnect(death_signal, cb)
 
-func get_entity(entity_id: String) -> Entity:
+func get_entity(entity_id: String):
 	return registered_entities.get(entity_id)
 
-func _on_entity_died(entity: Entity, killer: Entity) -> void:
-	entity_died.emit(entity, killer)
+## Signal arity: Entity.died / PlayerController.player_died emit the
+## killer; the bound victim arrives second. Mismatching this used to
+## break every death hook with "Method expected 2 argument(s), but
+## called with 1". Untyped params: the killer may be PlayerController.
+func _on_entity_died(killer, victim) -> void:
+	entity_died.emit(victim, killer)
 
 ## SKILL EXECUTION
 
@@ -76,9 +108,9 @@ func execute_skill(caster: Node, skill: Skill, target: Node = null, ground_posit
 
 func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Vector3) -> void:
 	var hitbox := HitboxData.new()
-	hitbox.owner_id = caster.entity_id if "entity_id" in caster and caster.entity_id else -1
+	hitbox.owner_id = str(caster.entity_id) if "entity_id" in caster and caster.entity_id else ""
 	hitbox.skill = skill
-	hitbox.team_id = caster.team_id if "team_id" in caster else 0 if "team_id" in caster else 0
+	hitbox.team_id = caster.team_id if "team_id" in caster else 0
 	hitbox.hit_entities = []
 	hitbox.start_time = Time.get_ticks_msec() / 1000.0
 	hitbox.duration = skill.animation_duration * 0.5  # Hitbox active for half animation
@@ -114,12 +146,16 @@ func _process_hitboxes(_delta: float) -> void:
 			if entity.entity_id in hitbox.hit_entities:
 				continue
 
+			# The caster must never be hit by their own hitbox.
+			if hitbox.owner_id != "" and entity.entity_id == hitbox.owner_id:
+				continue
+
 			# Check team (no friendly fire)
 			if entity.team_id == hitbox.team_id and hitbox.team_id != 0:
 				continue
 
 			# Check if already dead
-			if not entity.is_alive():
+			if not _is_alive(entity):
 				continue
 
 			# Apply hit
@@ -130,7 +166,7 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 	var entities_in_range: Array = []
 
 	for entity_id in registered_entities:
-		var entity: Entity = registered_entities[entity_id]
+		var entity = registered_entities[entity_id]
 
 		if not is_instance_valid(entity):
 			continue
@@ -140,8 +176,18 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 
 	return entities_in_range
 
-func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
-	var caster = get_entity(str(hitbox.owner_id)) if hitbox.owner_id != -1 else null
+## Alive check across the two combatant families: Entity subclasses
+## expose is_alive(); PlayerController (CharacterBody3D) exposes
+## is_dead(). The old direct is_alive() call threw on the player.
+func _is_alive(node) -> bool:
+	if node.has_method("is_alive"):
+		return node.is_alive()
+	if node.has_method("is_dead"):
+		return not node.is_dead()
+	return is_instance_valid(node)
+
+func _apply_hit(hitbox: HitboxData, target) -> void:
+	var caster = get_entity(str(hitbox.owner_id)) if hitbox.owner_id != "" else null
 
 	# Calculate and apply damage
 	var damage: int = 0
@@ -158,7 +204,9 @@ func _apply_hit(hitbox: HitboxData, target: Entity) -> void:
 	# Apply additional effects from skill
 	_apply_skill_effects(hitbox.skill, caster, target)
 
-func _apply_skill_effects(skill: Skill, caster: Entity, target: Entity) -> void:
+## Untyped caster/target: PlayerController (CharacterBody3D) is a valid
+## caster/target family; Entity annotations threw on every real swing.
+func _apply_skill_effects(skill: Skill, caster, target) -> void:
 	# Apply DoT if skill has duration
 	if skill.is_dot:
 		_apply_dot(caster, target, skill)
@@ -171,7 +219,7 @@ func _apply_skill_effects(skill: Skill, caster: Entity, target: Entity) -> void:
 	if skill.teleport_distance > 0:
 		_apply_teleport(caster, target, skill)
 
-func _apply_dot(caster: Entity, target: Entity, skill: Skill) -> void:
+func _apply_dot(caster, target, skill: Skill) -> void:
 	# Create and apply DoT effect
 	var effect := DoTEffect.new()
 	effect.damage_per_tick = skill.damage / int(skill.dot_duration / skill.dot_tick_rate)
@@ -181,7 +229,7 @@ func _apply_dot(caster: Entity, target: Entity, skill: Skill) -> void:
 
 	target.apply_status_effect(effect)
 
-func _apply_cc(skill: Skill, caster: Entity, target: Entity) -> void:
+func _apply_cc(skill: Skill, caster, target) -> void:
 	# Nested ternary (a if c1 else b if c2 else d) is rejected by the
 	# 4.7.2 parser -- it mis-parses the second `if` as a statement
 	# terminator. Use an explicit match instead.
@@ -197,7 +245,7 @@ func _apply_cc(skill: Skill, caster: Entity, target: Entity) -> void:
 		return
 	target.apply_status_effect(effect)
 
-func _apply_teleport(caster: Entity, _target: Entity, skill: Skill) -> void:
+func _apply_teleport(caster, _target, skill: Skill) -> void:
 	var forward: Vector3 = -caster.global_transform.basis.z
 	forward.y = 0
 	caster.global_position += forward * skill.teleport_distance
@@ -206,7 +254,10 @@ func _apply_teleport(caster: Entity, _target: Entity, skill: Skill) -> void:
 
 func _process_combos(_delta: float) -> void:
 	for entity_id in combo_trackers:
-		var tracker: Node = combo_trackers[entity_id]
+		# ComboTracker is a RefCounted inner class, NOT a Node; the old
+		# `Node` annotation failed every physics frame with
+		# "Trying to assign value of type 'RefCounted' to a variable of type 'Node'".
+		var tracker: ComboTracker = combo_trackers[entity_id]
 		tracker._physics_process(_delta)
 
 func get_combo_count(entity_id: String) -> int:
@@ -241,7 +292,7 @@ func get_ground_target_position(caster: Node, direction: Vector2, max_range: flo
 
 ## UTILITY
 
-func calculate_damage_output(attacker: Entity, skill: Skill) -> int:
+func calculate_damage_output(attacker, skill: Skill) -> int:
 	if not skill:
 		return 0
 	return skill.calculate_damage(attacker, null)
