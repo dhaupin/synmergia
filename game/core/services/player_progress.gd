@@ -12,9 +12,15 @@
 ##   - Store name "characters" from BackendFactory.STORE_MANIFEST; a
 ##     missing registry (script mode) falls back to a private DictStore
 ##     so tests still exercise the real save/load path.
+##   - Frame bridge: every checkpoint also mirrors the snapshot into
+##     StateSchema-typed state tree nodes (core/frame/bridge/
+##     progress_bridge.gd) so the frame's canonical hashing and D027
+##     diffing see character progress. Tree failure never blocks the
+##     durable adapter-layer save.
 extends Node
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const ProgressBridgeScript = preload("res://core/frame/bridge/progress_bridge.gd")
 
 ## Character-node id -> last saved snapshot (dedupe + diagnostics).
 var _last_saved: Dictionary = {}
@@ -29,6 +35,11 @@ const AUTOSAVE_INTERVAL: float = 30.0
 var _autosave_accum: float = 0.0
 
 var _store: DictStore = null
+
+## Frame bridge (state tree projection). Lazy: created on first
+## checkpoint -- frame primitives are plain objects, nothing to wire
+## at boot.
+var _bridge = null
 
 const _kv_prefix := "progress:char:"
 
@@ -82,6 +93,9 @@ func _wrap(backend) -> DictStore:
 ## Rebind after a test replaces the registry backend.
 func set_store(backend) -> void:
 	_store = _wrap(backend)
+	# The old bridge holds the old store's data; rebuild the projection
+	# from scratch on the new store.
+	_bridge = null
 
 
 ## ---------------------------------------------------------------------------
@@ -113,6 +127,12 @@ func save_player(player: Node, reason: String = "checkpoint") -> bool:
 
 	_store.set_kv(_kv_prefix + character_id, snapshot)
 	_last_saved[character_id] = snapshot
+
+	# Frame bridge: mirror the snapshot into StateSchema-typed state
+	# tree nodes (pure, never throws into the durable path below).
+	var bridge = _get_bridge()
+	if bridge != null:
+		bridge.write_progress(character_id, snapshot)
 	return true
 
 
@@ -204,6 +224,9 @@ func has_progress(character_id: String) -> bool:
 func clear_progress(character_id: String) -> void:
 	_store.erase(_kv_prefix + character_id)
 	_last_saved.erase(character_id)
+	var bridge = _get_bridge()
+	if bridge != null:
+		bridge.clear_progress(character_id)
 
 
 ## Diagnostics: last snapshot captured for a character ({} if none).
@@ -267,3 +290,18 @@ func _find_tracked_player(character_id: String) -> Node:
 ## Direct set for tests that need to simulate a stale save.
 func _debug_set_raw(character_id: String, snapshot: Dictionary) -> void:
 	_store.set_kv(_kv_prefix + character_id, snapshot)
+
+
+## ---------------------------------------------------------------------------
+## Frame bridge (PlayerProgress -> StateSchema state tree)
+## ---------------------------------------------------------------------------
+
+## Diagnostics/test access to the bridge projection.
+func state_tree_bridge():
+	return _get_bridge()
+
+
+func _get_bridge():
+	if _bridge == null:
+		_bridge = ProgressBridgeScript.new()
+	return _bridge

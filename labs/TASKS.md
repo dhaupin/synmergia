@@ -1336,3 +1336,28 @@ hud_integration 7 OK.
   writes the characters store via the adapter layer but does not emit
   StateSchema-typed tree nodes; that bridge is the natural next frame
   step (PRD state tree + D027 diffing).
+
+### [town:core] 2026-09-23 - PlayerProgress -> StateSchema bridge (frame projection)
+- NEW: core/frame/bridge/progress_bridge.gd (frame primitive: no
+  autoload, no class_name, pure over Dictionaries). Maps PlayerProgress
+  snapshots onto the labs/prd-state-schema.md contract:
+  /player/<id>/progress (health: current=xp, max=xp_to_next),
+  /player/<id>/position (0.01m-grid quantized), /player/<id>/inventory
+  (gold coin entry). The bridge is the engine-side quantization point
+  the PRD assumes; every payload validates against StateSchema before
+  insert, and node hashes fold one shared schema instance.
+- PlayerProgress: every checkpoint (kill/respawn/exit/autosave) now
+  mirrors its snapshot into the state tree via the bridge; tree failure
+  never blocks the durable adapter save. clear_progress wipes both the
+  store and the projection.
+- D027 visibility: a progress change moves the tree root hash (asserted
+  in-test), so the frame's state-only diffing now sees character
+  progress. This closes the "not yet bridged" gap from the earlier
+  roots review.
+- NEW TEST: tests/test_progress_bridge.gd (41 passed, 0 failed): pure
+  mapping (XP curve 1000*1.5^n mirrored from restore_player),
+  quantize+validate round-trip, typed node writes + root-hash reaction,
+  per-character tree isolation, bad-input no-write, clear semantics,
+  PlayerProgress integration (checkpoint -> projection -> clear).
+  Regressions: persistence 23, academy 25, respawn live 9, loot live
+  33, combat live 10; lint 36/36.
