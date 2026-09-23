@@ -1229,3 +1229,27 @@ hud_integration 7 OK.
   anyway).
 - Bumped actions to Node 24 targets (clears the Node 20 deprecation
   warning): checkout v4 -> v7, cache v4 -> v6, upload-artifact v4 -> v7.
+
+### [town:core] 2026-09-23 — CI lint triage: parse errors fixed, hygiene zeroed
+- Triaged the "little lint errors" from the wasm CI run (4374-line log).
+  Two real bug classes, two hygiene classes:
+- REAL: data/roots/{world,shard,instance,player}/environment.tres were
+  malformed scaffold (no [resource] section, bogus uid://uid3, no
+  ext_resource) — every CI import logged 4x "Parse Error: Expected '='"
+  per file. EnvironmentData class never existed; but the paths are real
+  ScopeNode.environment_path fixtures in test_scope_engine.gd +
+  probe_hierarchy_roundtrip.gd (string-only, never load()). Repaired to
+  minimal valid Resources; all 4 load() PASS locally.
+- REAL: game/export_presets.tres was a stray fake ([export_presets] is
+  not a Godot file type; real config is export_presets.cfg which CI
+  exports with). Nothing referenced it -> git rm.
+- HYGIENE: 48 .gd files failed the editorconfig final-newline rule
+  (47 missing one, 2 with extras: icon_resolver 2, world_playable 3).
+  Normalized all to exactly one trailing newline (soft WARN check now
+  silent).
+- HYGIENE: island_registry.gd doc-comment examples ("preload
+  res://path/to/...") tripped the placeholder-preload lint. Reworded
+  docs; lint regex unchanged.
+- Lint suites locally: charset 3/3, syntax 7/7, general 12/12, autoload
+  9/9 — all exit 0, ZERO warnings. Regression battery: ui_alive 33/33,
+  interaction 16/16, settings 14/14, splash 14/14, zero script errors.

@@ -4,8 +4,8 @@
 ## All entries use [code]preload[/code] for parse-time resolution.
 ##
 ## To add a new island:
-## 1. For scenes: [code]const X = preload("res://path/to/scene.tscn")[/code]
-## 2. For scripts: [code]const X = preload("res://path/to/script.gd")[/code]
+## 1. For scenes: preload your scene path (see entries below for the shape)
+## 2. For scripts: preload your script path
 ## 3. Add entry to [code]ISLANDS[/code]
 ##
 ## Consumers: [code]IslandRegistry.resolve("name")[/code]

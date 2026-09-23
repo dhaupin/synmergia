@@ -415,5 +415,3 @@ func _on_kill_rewarded(entity, killer, rewards: Dictionary) -> void:
 				parts2.append("+%d gold" % gold)
 			if not parts2.is_empty():
 				_damage_numbers.show_text(killer, ", ".join(parts2), Color(1.0, 0.9, 0.4))
-
-

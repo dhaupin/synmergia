@@ -179,4 +179,3 @@ static func get_effect_icon_from_dict(data: Dictionary) -> Texture2D:
 	if is_debuff:
 		return _tex("res://assets/icons/effects/debuff_default.png") if _tex("res://assets/icons/effects/debuff_default.png") else _fallback()
 	return _tex("res://assets/icons/effects/buff_default.png") if _tex("res://assets/icons/effects/buff_default.png") else _fallback()
-
