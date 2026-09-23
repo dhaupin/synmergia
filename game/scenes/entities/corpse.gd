@@ -67,12 +67,43 @@ func _roll_loot() -> void:
 	# Check if owner has a loot table
 	if _owner and "enemy_data" in _owner and _owner.enemy_data != null:
 		var enemy_data = _owner.enemy_data
-		if enemy_data.has("roll_loot"):
-			_loot_items = enemy_data.roll_loot()
+		# Resource has no .has(); roll_loot is a METHOD on EnemyData.
+		# The old enemy_data.has("roll_loot") crashed corpse creation on
+		# every enemy death and aborted the death flow downstream
+		# (entity_died never fired, no loot, no respawn scheduling).
+		if enemy_data.has_method("roll_loot"):
+			# roll_loot returns {gold, xp, items}: item Dictionaries go into
+			# the corpse loot list; the gold rides along as a coin drop
+			# (same entry shape the karma drop below uses).
+			var loot: Dictionary = enemy_data.roll_loot()
+			var rolled_items = loot.get("items", [])
+			if rolled_items is Array:
+				for item in rolled_items:
+					if item is Dictionary:
+						_loot_items.append(item)
+			var gold_amount := int(loot.get("gold", 0))
+			if gold_amount > 0:
+				_loot_items.append({
+					"item_id": "gold",
+					"quantity": gold_amount,
+					"display_name": "Gold Coins",
+					"looted": false,
+				})
 	elif _owner and "loot_table_id" in _owner:
 		var loot_table_id = _owner.get("loot_table_id")
-		if loot_table_id != "" and LootService:
-			_loot_items = LootService.roll_loot_table(loot_table_id)
+		# LootService.roll_loot_table never existed; roll the LootTable
+		# resource directly (same path EnemyData.roll_loot uses).
+		if loot_table_id != null and str(loot_table_id) != "":
+			var table = null
+			if ResourceLoader.exists(str(loot_table_id)):
+				table = ResourceLoader.load(str(loot_table_id))
+			if table != null and table.has_method("roll_drop"):
+				var roll_result: Dictionary = table.roll_drop()
+				var table_items = roll_result.get("items", [])
+				if table_items is Array:
+					for item in table_items:
+						if item is Dictionary:
+							_loot_items.append(item)
 
 	# Also include dropped equipment/items
 	if _owner and "inventory_component" in _owner and _owner.inventory_component != null:

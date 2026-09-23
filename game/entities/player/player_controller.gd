@@ -869,6 +869,17 @@ var experience: int = 0
 var experience_to_next_level: int = 1000
 var gold: int = 0
 
+# Respawn cycle state parked here by RespawnService between the death
+# signal and the delayed respawn execution. Declared on the node because
+# GDScript 4 cannot add undeclared properties via dot-assignment: the
+# service's `player._pending_respawn_mode_int = ...` used to fail with
+# "Invalid assignment" and silently abort the service cycle (the legacy
+# health timer then respawned the player instead, skipping the
+# checkpoint and player_respawned broadcast).
+var _pending_respawn_mode_int = null      # int(RespawnMode) or null
+var _pending_respawn_position = null      # Vector3 or null
+var _pending_respawn_choice: Dictionary = {}  # UI choice, consumed by the service
+
 # Resource pool. Entity carries current_mana/max_mana; PlayerController
 # (CharacterBody3D) never had one, so skill mana costs were silently
 # skipped by the duck-typed cost checks and _consume_resources would

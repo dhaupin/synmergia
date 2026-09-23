@@ -8,12 +8,27 @@ const CharacterData := preload("res://core/schemas/character_data.gd")
 const EnemyAIScript := preload("res://core/ai/enemy_ai.gd")
 const SpawnMetadataScript := preload("res://core/events/spawn_metadata.gd")
 const DamageNumbersScript := preload("res://ui/components/damage_numbers.gd")
+const EnemyScript := preload("res://entities/enemy.gd")
 
 const LOCAL_PLAYER_ID := "player_1"
 const SCENE_ZONE_ID := "world_playable"
 
 var _damage_numbers = null
 var _player_registered := false
+
+## Scene spawn bookkeeping for the enemy respawn cycle: one record per
+## scene-placed enemy, carrying where it stood and what it was so a
+## killed enemy can be rebuilt after its EnemyData.respawn_time.
+class SceneSpawn:
+	var display_name: String = ""
+	var enemy_data: Resource = null
+	var level: int = 1
+	var spawn_position: Vector3 = Vector3.ZERO
+	var respawn_time: float = 60.0
+	var entity_id: String = ""
+	var respawn_pending: bool = false
+
+var _scene_spawns: Array[SceneSpawn] = []
 
 
 func _ready() -> void:
@@ -24,6 +39,7 @@ func _ready() -> void:
 		GameLog.warn("WorldPlayable: No character data found, using defaults")
 	_apply_player_from_data(char_data)
 	_register_player()
+	_restore_player_progress()
 	_setup_enemies()
 	_setup_guards()
 	_setup_offering_npcs()
@@ -32,6 +48,30 @@ func _ready() -> void:
 	_setup_touch_hud()
 	_notify_world_entry()
 	_enter_scene_zone()
+	_capture_scene_spawns()
+
+
+## Restore the saved progression (xp/gold/level/position) onto the
+## scene player. Must run before _enter_scene_zone so the zone entry
+## sees the restored position. A character with no save keeps defaults.
+func _restore_player_progress() -> void:
+	var player := get_node_or_null("Player")
+	if player == null or not ("entity_id" in player) or str(player.entity_id) == "":
+		return
+	if PlayerProgress == null:
+		return
+	PlayerProgress.restore_player(player)
+
+
+## Session-exit checkpoint: the last durable copy of the character is
+## written when the world scene unloads (quit to menu, app close).
+func _exit_tree() -> void:
+	if PlayerProgress == null:
+		return
+	var player := get_node_or_null("Player")
+	if player != null and is_instance_valid(player) \
+			and "entity_id" in player and str(player.entity_id) != "":
+		PlayerProgress.save_player(player, "exit")
 
 
 func _apply_character_data(data: Resource) -> void:
@@ -164,6 +204,93 @@ func _setup_enemies() -> void:
 			es.register_entity(enemy, metadata)
 
 	GameLog.info("WorldPlayable: %d enemies active" % get_tree().get_nodes_in_group("enemies").size())
+
+
+## Snapshot every scene-placed enemy (position, data, level) so the
+## respawn cycle can rebuild it after a kill. Scene enemies are real
+## nodes, not SpawnService-managed: without this they died forever and
+## the world slowly emptied.
+func _capture_scene_spawns() -> void:
+	var _tracked := 0
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy) or enemy.has_method("attach_guard_ai"):
+			continue  # guards are placements, not respawning wildlife
+		var record := SceneSpawn.new()
+		record.display_name = str(enemy.display_name)
+		record.enemy_data = enemy.enemy_data
+		record.level = int(enemy.level)
+		record.spawn_position = enemy.global_position
+		record.entity_id = str(enemy.entity_id)
+		if enemy.enemy_data != null and "respawn_time" in enemy.enemy_data:
+			record.respawn_time = float(enemy.enemy_data.respawn_time)
+		_scene_spawns.append(record)
+		_tracked += 1
+	if not EventHub.entity_died.is_connected(_on_scene_enemy_died):
+		EventHub.entity_died.connect(_on_scene_enemy_died)
+	if _tracked > 0:
+		GameLog.info("WorldPlayable: %d scene spawns tracked for respawn" % _tracked)
+
+
+## A tracked scene enemy died: schedule its respawn at the original
+## spawn point after the configured delay. Guards and SpawnService
+## enemies are ignored (they own their own cycles).
+func _on_scene_enemy_died(entity, _killer, _metadata) -> void:
+	if entity == null or not is_instance_valid(entity):
+		return
+	var dead_id := str(entity.entity_id) if "entity_id" in entity else ""
+	for record in _scene_spawns:
+		if record.entity_id == dead_id and not record.respawn_pending:
+			record.respawn_pending = true
+			_respawn_scene_enemy_later(record)
+			return
+
+
+func _respawn_scene_enemy_later(record: SceneSpawn) -> void:
+	var delay: float = maxf(1.0, record.respawn_time)
+	var timer := get_tree().create_timer(delay)
+	timer.timeout.connect(func(): _respawn_scene_enemy(record))
+
+
+## Rebuild one scene enemy from its snapshot: fresh Enemy node, real
+## data/level/health, AI brain from EnemyData, and a fresh service
+## registration (the death unregistered the old one).
+func _respawn_scene_enemy(record: SceneSpawn) -> void:
+	if not is_inside_tree():
+		return
+	record.respawn_pending = false
+
+	var enemy: Node = EnemyScript.new()
+	enemy.enemy_data = record.enemy_data
+	enemy.display_name = record.display_name
+	enemy.level = record.level
+	if record.enemy_data != null and "loot_table_id" in record.enemy_data:
+		enemy.loot_table_id = record.enemy_data.loot_table_id
+	# _ready (inside add_child) applies enemy_data stats and builds
+	# HealthComponent + AggroComponent.
+	add_child(enemy)
+	enemy.global_position = record.spawn_position
+
+	var ai = EnemyAIScript.new()
+	if record.enemy_data != null:
+		ai.aggro_range = record.enemy_data.aggro_range
+		ai.chase_range = record.enemy_data.chase_range
+		ai.attack_range = record.enemy_data.attack_range
+	enemy.attach_ai(ai)
+
+	var es = EntityService
+	if es:
+		var metadata = SpawnMetadataScript.enemy(
+			enemy.display_name, SCENE_ZONE_ID, record.spawn_position, enemy.level)
+		es.register_entity(enemy, metadata)
+	if TargetingManager:
+		TargetingManager.register_targetable(
+			enemy.entity_id, "enemy", enemy, enemy.display_name,
+			record.spawn_position, enemy.entity_type)
+
+	# Re-point the snapshot at the new entity so a second kill also
+	# respawns.
+	record.entity_id = str(enemy.entity_id)
+	GameLog.info("WorldPlayable: %s respawned at its spawn point" % enemy.display_name)
 
 
 ## Register scene-placed offering NPCs (MerchantNPC, ElderNPC) with the

@@ -23,6 +23,16 @@ var _respawn_timer: float = 0.0
 var _respawn_time: float = 10.0
 var _bind_position: Vector3 = Vector3.ZERO
 var _killer: Node3D = null
+# Service-aware death handling: RespawnService owns the respawn cycle
+# (modes, delays, positions) for entities that registered with it
+# (players). While _death_hold is set, the built-in auto-respawn timer
+# below is suspended so the UI/service decides when and where the
+# entity comes back. Entities without an entity_id (plain stubs) keep
+# the legacy self-timer behavior.
+var _death_hold: bool = false
+# Set once a service-driven respawn has executed; keeps the legacy
+# timer from ever re-firing for this death.
+var _service_respawn: bool = false
 
 func _ready() -> void:
 	current_health = max_health
@@ -154,7 +164,23 @@ func die(killer: Node3D = null) -> void:
 		if killer is PlayerController and entity is PlayerController:
 			EventHub.player_killed_player.emit(killer, entity)
 
-	# Start respawn timer
+	# Service-managed death (players): RespawnService listens for
+	# player_died and drives the respawn cycle (mode choice via the UI,
+	# zone-configured delay, spawn point). The legacy timer below would
+	# otherwise race it and teleport the corpse-held player to an unset
+	# bind position.
+	if entity != null and "entity_id" in entity:
+		# Clear any stale flag from a previous service respawn so the
+		# legacy timer can act as fallback for this death if
+		# RespawnService never takes it (initiate fails / no modes).
+		# The hold itself is set by begin_service_respawn(), called
+		# synchronously inside the player_died signal below -- so there
+		# is no frame in which a service-managed death falls through to
+		# the legacy timer, and a service-less death keeps it.
+		_service_respawn = false
+		return
+
+	# Legacy self-timer (enemies/stubs without an entity_id)
 	_start_respawn()
 
 ## Create corpse entity
@@ -260,8 +286,50 @@ func get_bind_position() -> Vector3:
 func force_respawn() -> void:
 	_do_respawn()
 
+
+## Called by RespawnService when a death enters the service-managed
+## cycle. Suspends the legacy auto-respawn timer for `delay` seconds,
+## then asks the service to execute (mode + position it already chose).
+func begin_service_respawn(delay: float = 0.0) -> void:
+	_death_hold = true
+	_respawn_timer = maxf(0.0, delay)
+
+
+## True while the entity is dead and held for RespawnService (UI showing,
+## timed delay running). Used by tests and by _process to gate the legacy
+## timer.
+func death_hold_active() -> bool:
+	return _is_dead and _death_hold and not _service_respawn
+
+
+## Execute a service-driven respawn: clears death state, moves the
+## entity to `position`, and re-broadcasts the unified spawn signals.
+## `mode` is a RespawnService.RespawnMode int (or -1 when unknown); it
+## is forwarded on player_respawned so death-feature tracking (streak
+## reset, respawn invincibility) sees the same event as the service.
+func service_respawn(position: Vector3, mode: int = -1) -> void:
+	_service_respawn = true
+	_death_hold = false
+	_remove_corpse()
+	_is_dead = false
+	current_health = max_health
+	_respawn_timer = 0.0
+
+	var entity: Node3D = get_parent()
+	if entity is Node3D:
+		entity.global_position = position
+
+	respawned.emit()
+	EventHub.entity_spawned.emit(entity, null)
+	if mode >= 0 and entity != null and "entity_id" in entity:
+		EventHub.player_respawned.emit(entity, position, mode)
+
 func _process(delta: float) -> void:
 	if _is_dead:
+		# Service-held deaths (RespawnService cycle) never use the legacy
+		# timer; the service calls service_respawn() when the delay ends.
+		if _death_hold or _service_respawn:
+			return
 		_respawn_timer -= delta
 		if _respawn_timer <= 0:
 			_do_respawn()

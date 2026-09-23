@@ -143,6 +143,19 @@ class ZoneRespawnConfig:
 func _ready() -> void:
 	GameLog.info("RespawnService: Flexible respawn system initialized")
 	_load_state()
+	# Self-drive the player death cycle: hold the dead player, then
+	# respawn them via the zone's default cycle (Revive > Ankh > Timed)
+	# when the UI never submits a choice. RespawnUIManager forwards the
+	# player's explicit choice through initiate_respawn(), guarded below.
+	if EventHub:
+		EventHub.player_died.connect(_on_player_died)
+
+## A player died: enter the service-managed respawn cycle. The UI
+## (RespawnUIManager) shows options in parallel; an explicit choice
+## re-enters initiate_respawn() with the choice parked on the player
+## (validated against the zone's available modes there).
+func _on_player_died(entity, _killer) -> void:
+	initiate_respawn(entity)
 
 ## Register a player
 func register_player(player) -> void:
@@ -168,10 +181,28 @@ func remove_karma(entity_id: String, amount: int, reason: String) -> void:
 
 ## Initiate respawn for a player
 func initiate_respawn(player, zone_id: String = "") -> bool:
+	# Guard: a UI choice re-enters this function while the service-driven
+	# cycle from the death signal is already pending. Updating the parked
+	# mode/position is fine (the executor reads them late), but scheduling
+	# a second timer would respawn the player twice. Pending state uses
+	# player.get() (null = unset) rather than "x" in player, because a
+	# nulled dynamic property still reports membership.
+	if player.get("_pending_respawn_mode_int") != null:
+		GameLog.info("RespawnService: respawn already pending for %s; updating choice only" % player.display_name)
+		_apply_ui_choice(player)
+		return true
+
 	# Prevent respawn if a revive is in progress
 	if _active_revives.has(player.entity_id):
 		GameLog.info("RespawnService: Respawn blocked for %s - revive in progress" % player.display_name)
 		return false
+
+	# Resolve zone context for the self-driven death path: the death
+	# signal calls initiate_respawn without a zone, so derive it from
+	# the player's current zone. Zone-configured delays/modes then apply
+	# to the whole service-driven cycle.
+	if zone_id == "" and ZoneManager:
+		zone_id = ZoneManager.get_entity_zone_id(player)
 
 	var config := _get_zone_config(zone_id)
 	var mode: RespawnMode = config.default_mode
@@ -184,7 +215,14 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 		GameLog.warn("RespawnService: No respawn modes available for %s" % player.display_name)
 		return false
 
-	# Priority: Revive > Ankh > Timed
+	# UI choice (respawn_ui.gd emits the selected option dictionary;
+	# RespawnUIManager parks it on the player). Validated against the
+	# zone's available modes so a stale UI can't inject one that isn't
+	# offered. Choice is consumed (cleared) here.
+	var selected: Dictionary = _consume_ui_choice(player)
+
+	# Priority: Revive > Ankh > Timed (the default when the player
+	# skipped the UI or made no explicit choice).
 	if available_modes.has(RespawnMode.REVIVE):
 		mode = RespawnMode.REVIVE
 	elif available_modes.has(RespawnMode.ANKH):
@@ -193,6 +231,9 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 		mode = RespawnMode.TIMED
 	else:
 		mode = available_modes[0]
+
+	if not selected.is_empty() and available_modes.has(_mode_for_choice(selected)):
+		mode = _mode_for_choice(selected)
 
 	# Build respawn data
 	match mode:
@@ -205,9 +246,17 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 					"respawn_time": ankh.get_respawn_time(config.timed_respawn_seconds)
 				}
 		RespawnMode.TIMED:
+			# Respawn at the zone spawn point. If the player explicitly
+			# chose a spot (near-corpse option), use theirs instead. A
+			# zero position is treated as unset (the generic TIMED option
+			# ships Vector3.ZERO), not as "respawn at origin".
+			var timed_pos: Vector3 = _get_default_respawn_position(player)
+			if selected.has("position") and selected["position"] is Vector3 \
+					and (selected["position"] as Vector3) != Vector3.ZERO:
+				timed_pos = selected["position"]
 			respawn_data = {
 				"respawn_time": config.timed_respawn_seconds,
-				"position": _get_default_respawn_position(player)
+				"position": timed_pos
 			}
 		RespawnMode.GATEWAY:
 			respawn_data = {
@@ -225,8 +274,33 @@ func initiate_respawn(player, zone_id: String = "") -> bool:
 			respawn_data = {
 				"team_id": team,
 				"remaining_respawns": _get_team_respawns(player, config),
-				"safe_zone_position": true
+				"safe_zone_position": true,
+				"position": _get_default_respawn_position(player)
 			}
+		RespawnMode.REVIVE:
+			# The revive flow completes through complete_revival(), which
+			# respawns at the healer. This arm exists because initiate_respawn
+			# can still resolve REVIVE (healer nearby when death fired): hold
+			# the player briefly with a position so _start_respawn never reads
+			# respawn_data["respawn_time"] on an empty dictionary. If the heal
+			# lands first, _execute_pending_respawn no-ops (health restored).
+			respawn_data = {
+				"respawn_time": config.timed_respawn_seconds,
+				"position": _get_default_respawn_position(player)
+			}
+		_:
+			# SELF_REVIVE / CONTESTED have no cycle yet: fall back to the
+			# zone spawn point rather than crashing the executor.
+			respawn_data = {
+				"respawn_time": config.timed_respawn_seconds,
+				"position": _get_default_respawn_position(player)
+			}
+
+	# Remember the resolved mode and position for the execution step
+	# (_execute_pending_respawn reads these after the mode's delay).
+	player._pending_respawn_mode_int = int(mode)
+	if respawn_data.has("position") and respawn_data["position"] is Vector3:
+		player._pending_respawn_position = respawn_data["position"]
 
 	respawn_initiated.emit(player, mode, respawn_data)
 	GameLog.info("RespawnService: %s initiating respawn in mode %s" % [player.display_name, RespawnMode.keys()[mode]])
@@ -460,20 +534,156 @@ func cancel_revival(healer_id: String) -> void:
 
 ## Internal: Start respawn
 func _start_respawn(player, mode: RespawnMode, data: Dictionary) -> void:
-	# This would be connected to a timer in the player's health component
-	player.health_component._pending_respawn = true
-	player.health_component._respawn_mode = mode
-	player.health_component._respawn_data = data
+	## RespawnService owns the player respawn cycle. Instead of writing
+	## respawn intent into HealthComponent fields that nothing consumed,
+	## hold the dead player (legacy timer suspended, corpse/UI active),
+	## wait out the mode's delay, then execute the respawn with the
+	## mode + position chosen in initiate_respawn().
+	var delay: float = 0.0
+	# GameConfig.Respawn.MAX_RESPAWN_TIME clamps pathological zone data.
+	var max_delay: float = 300.0
+	if GameConfig and "Respawn" in GameConfig and GameConfig.Respawn.MAX_RESPAWN_TIME > 0.0:
+		max_delay = GameConfig.Respawn.MAX_RESPAWN_TIME
+	delay = clampf(float(data["respawn_time"]), 0.0, max_delay)
+	var hc = player.health_component
+	if hc and hc.has_method("begin_service_respawn"):
+		hc.begin_service_respawn(delay)
+	if delay > 0.0:
+		get_tree().create_timer(delay).timeout.connect(
+			_execute_pending_respawn.bind(player),
+			CONNECT_ONE_SHOT
+		)
+	else:
+		_execute_pending_respawn(player)
+
+
+## Execute the pending service-driven respawn for `player`.
+## The player may have quit mid-delay: SceneTreeTimers outlive nodes, so
+## validate before touching anything.
+func _execute_pending_respawn(player) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var hc = player.health_component
+	if hc == null or not is_instance_valid(hc):
+		return
+	# A revive that completed while the timed respawn was pending wins
+	# (HealthComponent is alive again; nothing to respawn).
+	if not hc.is_dead():
+		return
+	var position: Vector3 = _get_default_respawn_position(player)
+	var mode: RespawnMode = _mode_of(player)
+	var pending_pos = player.get("_pending_respawn_position")
+	if pending_pos != null and pending_pos is Vector3:
+		position = pending_pos
+	_do_respawn_at(player, position, mode)
+
+
+## Pull the player's UI respawn choice off the player (if any),
+## consuming it. Returns {} when there was no choice.
+func _consume_ui_choice(player) -> Dictionary:
+	if "_pending_respawn_choice" in player and player._pending_respawn_choice is Dictionary:
+		var chosen: Dictionary = player._pending_respawn_choice
+		player._pending_respawn_choice = {}
+		return chosen
+	return {}
+
+
+## Consume the UI choice and update the parked mode/position for an
+## already-pending cycle (respawn UI picked an option after the death
+## signal already started the default cycle).
+func _apply_ui_choice(player) -> void:
+	var selected: Dictionary = _consume_ui_choice(player)
+	if selected.is_empty():
+		return
+	var available_modes := get_available_respawn_modes(player)
+	var chosen_mode: RespawnMode = _mode_for_choice(selected)
+	if not available_modes.has(chosen_mode):
+		return
+	var hc = player.health_component if "health_component" in player else null
+	if hc and hc.has_method("death_hold_active"):
+		# The cycle's clock is the SceneTreeTimer scheduled in _start_respawn;
+		# it cannot be shortened, so schedule a replacement timer at the
+		# reduced delay (the faster semantics the UI promises). Whichever
+		# timer fires first executes; the later one no-ops because the
+		# player is alive again by then (_execute_pending_respawn checks).
+		var delay: float = hc._respawn_timer
+		var shrunk := false
+		if str(selected.get("mode", "")) in ["timed", "near_corpse"] \
+				and selected.has("position"):
+			var zone_seconds: float = 10.0
+			var zone_id: String = ZoneManager.get_entity_zone_id(player) if ZoneManager else ""
+			if zone_id != "":
+				var zone_cfg: Dictionary = get_zone_config(zone_id)
+				zone_seconds = float(zone_cfg.get("timed_respawn_seconds", 10.0))
+			var reduced: float = minf(delay, zone_seconds * 0.5)
+			shrunk = reduced < delay
+			delay = reduced
+		hc._respawn_timer = delay
+		if shrunk and get_tree() != null:
+			get_tree().create_timer(delay).timeout.connect(
+				_execute_pending_respawn.bind(player), CONNECT_ONE_SHOT)
+	player._pending_respawn_mode_int = int(chosen_mode)
+	# A zero position means "unset" (the generic timed option ships
+	# Vector3.ZERO), not "respawn at origin": park only real positions
+	# and let the executor fall back to the zone spawn point otherwise.
+	if selected.has("position") and selected["position"] is Vector3 \
+			and (selected["position"] as Vector3) != Vector3.ZERO:
+		player._pending_respawn_position = selected["position"]
+
+
+## Resolve the pending mode for a player between initiate and execute.
+func _mode_of(player) -> RespawnMode:
+	var raw = player.get("_pending_respawn_mode_int")
+	if raw != null:
+		var m: int = int(raw)
+		if m >= 0 and m < RespawnMode.size():
+			return m as RespawnMode
+	return RespawnMode.TIMED
+
+
+## Map a UI choice dictionary (mode string from respawn_ui.gd) to a
+## RespawnMode. "near_corpse" has no dedicated mode: it resolves to
+## TIMED with the choice's position (death spot) carried through the
+## TIMED arm of initiate_respawn. Unknown strings resolve to TIMED;
+## the availability check in initiate_respawn rejects invalid ones.
+func _mode_for_choice(selected: Dictionary) -> RespawnMode:
+	var m: String = str(selected.get("mode", ""))
+	match m:
+		"timed", "near_corpse":
+			return RespawnMode.TIMED
+		"ankh":
+			return RespawnMode.ANKH
+		"revive":
+			return RespawnMode.REVIVE
+		"gateway":
+			return RespawnMode.GATEWAY
+		"safe_zone":
+			return RespawnMode.SAFE_ZONE
+		"arena":
+			return RespawnMode.ARENA_TEAM
+		_:
+			return RespawnMode.TIMED
+
 
 ## Internal: Execute respawn
 func _do_respawn_at(player, position: Vector3, mode: RespawnMode) -> void:
-	player.health_component._is_dead = false
-	player.health_component.current_health = player.health_component.max_health
-	player.global_position = position
-
-	player.health_component.respawned.emit()
-	EventHub.entity_spawned.emit(player, null)
-	EventHub.player_respawned.emit(player, position, mode)
+	# Clear pending state (single choke point for all respawn paths) so
+	# the next death starts a fresh cycle instead of tripping the
+	# "already pending" guard. player.set(null) removes dynamic props.
+	player.set("_pending_respawn_mode_int", null)
+	player.set("_pending_respawn_position", null)
+	var hc = player.health_component if "health_component" in player else null
+	if hc and hc.has_method("service_respawn"):
+		# HealthComponent clears death state, restores health, moves the
+		# entity, drops the corpse, and re-broadcasts the unified signals
+		# (entity_spawned + player_respawned) so downstream listeners
+		# (DeathFeatures invincibility, HUD, ZoneManager) fire once.
+		hc.service_respawn(position, mode as int)
+	else:
+		# Duck-typed fallback for stubs without a real HealthComponent.
+		player.global_position = position
+		EventHub.entity_spawned.emit(player, null)
+		EventHub.player_respawned.emit(player, position, mode)
 
 	respawn_completed.emit(player, position)
 	# Frame-level toast. Dedupe key includes the mode so a player who cycles
