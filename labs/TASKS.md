@@ -1145,3 +1145,45 @@ hud_integration 7 OK.
   SCRIPT ERROR. Regression battery: ui_alive 33/33, interaction_pipeline
   16/16, settings_camera 14/14, splash_to_play 14/14 — all zero script
   errors now (previous runs carried QuestUI/FactionUI noise).
+
+### [town:core] 2026-09-22 — WebInputBridge/browser HUD path: contract fixed + boot repaired
+- Answered the panel-audit questions with receipts: all 24 panels reachable
+  via main menu bar (hamburger, 48dp touch targets) AND hotkeys (desktop);
+  touch stack verified (emulate_touch_from_mouse, virtual joystick,
+  long-press in interaction_layer + action_menu); UIStyles canonical in
+  panels (menu bar has its own scoped _get_color fallback).
+- Surveyed the web path: WebInputBridge autoload was a receiver with no
+  working transmitter. web/shared/input.js existed but the two halves
+  disagreed on the event contract, so nothing actually worked:
+  - keys: JS sent keyCode in `x`, bridge read `data` -> keyboard 100% dead
+  - wheel: JS sent +/-1, bridge mapped 1 -> MOUSE_BUTTON_RIGHT (right-
+    clicking on scroll); no release distinction
+  - touch end sent (0,0); no DPR scaling (mis-aimed taps at any zoom);
+    256-slot ring silently overwrote itself on overflow; stuck keys on
+    tab blur; no modifier flags; no unicode (chat typing impossible)
+- Fixed web_input_bridge.gd (rewritten clean): contract doc header,
+  wheel 3/4 mapping, stateless wheel (no synthetic release double-firing
+  camera zoom), key events x=keyCode/y=mods(1 s,2 c,4 a)/data=unicode,
+  touch coords on all phases, keycode fallthrough -> KEY_UNKNOWN.
+- Rewrote web/shared/input.js to the same contract: DPR-aware coords,
+  wheel 3/4, touch end carries last position, modifier bitmask, unicode
+  payload (chat-ready), OS-repeat suppression, browser-combo passthrough
+  (ctrl/meta), safe overflow drop, blur releases all held keys/buttons/
+  touches, touchcancel handled.
+- Rewrote web/index.html boot: old code called a fabricated Engine API
+  (`new Engine({module, wasm, memory})` + `.start()`) that never existed,
+  so the web client could never start. Now uses the real generated-shell
+  pattern (Engine.getMissingFeatures + startGame + onProgress progress
+  bar + failure notices). Capture layer deliberately NOT auto-initialized:
+  Godot web delivers input natively; wrappers opt in via init() (avoids
+  double-delivery). experimentalVK on (soft keyboard for chat).
+- export_presets.cfg: html/experimental_virtual_keyboard=true (both Web
+  presets).
+- Tests: new game/tests/test_web_input_bridge.gd (18 checks: wheel,
+  touch, keys+mods+unicode, gamepad, stateless wheel, unknown fallback)
+  ALL PASS headless; node vm contract test for input.js (13 checks:
+  DPR scaling, wheel, touch coords, key/mods/unicode, repeat
+  suppression, combo passthrough, blur release) ALL PASS. No web export
+  templates in sandbox -> live browser e2e pending a full export.
+- Regression: ui_alive 33/33, interaction_pipeline 16/16, zero script
+  errors.

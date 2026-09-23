@@ -1,5 +1,20 @@
 ## WebInputBridge - Reads input from JS buffer when running in web browser
-## Polls window.SynmergiaInput.drain() each frame and pushes events into Godot's input system.
+## Polls window.SynmergiaInput.drain() each frame and pushes events into
+## Godot's input system.
+##
+## Event contract (mirrored by web/shared/input.js):
+##   type 1 mouseDown  / 2 mouseUp  : x,y canvas coords, data = button
+##             (0 left, 1 right, 2 middle)
+##   type 3 mouseMove               : x,y canvas coords
+##   type 4 wheel                   : data = 3 (up) / 4 (down); stateless,
+##             no synthetic release is emitted
+##   type 5 touchStart / 6 touchMove / 7 touchEnd
+##                                  : x,y canvas coords, data = touch index
+##   type 8 keyDown  / 9 keyUp      : x = JS keyCode, y = modifier bitmask
+##             (1 shift, 2 ctrl, 4 alt), data = unicode char code (0 if none)
+##   type 10 resize                 : x,y = new window size
+##   type 11 gamepadButton          : x = device, y = button, data = pressed
+##   type 12 gamepadAxis            : x = device, y = axis, data = int16 value
 extends Node
 
 var _poll_timer: float = 0.0
@@ -16,20 +31,20 @@ func _process(delta: float) -> void:
 
 func _poll_js_buffer() -> void:
 	var events = JavaScriptBridge.eval("window.SynmergiaInput.drain()", true)
-	if not events is Array or events.is_empty():
+	if not (events is Array) or events.is_empty():
 		return
 	for evt in events:
-		if not evt is Dictionary:
+		if not (evt is Dictionary):
 			continue
 		var ev = _convert_event(evt)
 		if ev:
 			Input.parse_input_event(ev)
 
 func _convert_event(evt: Dictionary) -> InputEvent:
-	var type = evt.get("type", -1)
-	var x = evt.get("x", 0)
-	var y = evt.get("y", 0)
-	var data = evt.get("data", 0)
+	var type: int = int(evt.get("type", -1))
+	var x: int = int(evt.get("x", 0))
+	var y: int = int(evt.get("y", 0))
+	var data: int = int(evt.get("data", 0))
 
 	match type:
 		1:  # mouse down
@@ -42,6 +57,10 @@ func _convert_event(evt: Dictionary) -> InputEvent:
 		2:  # mouse up
 			var e := InputEventMouseButton.new()
 			e.button_index = _map_mouse_button(data)
+			# Wheel "buttons" are stateless impulses; a synthetic release
+			# would double-fire zoom in the camera.
+			if e.button_index == MOUSE_BUTTON_WHEEL_UP or e.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				return null
 			e.pressed = false
 			e.position = Vector2(x, y)
 			e.global_position = Vector2(x, y)
@@ -52,9 +71,9 @@ func _convert_event(evt: Dictionary) -> InputEvent:
 			e.global_position = Vector2(x, y)
 			e.relative = Vector2.ZERO
 			return e
-		4:  # wheel
+		4:  # wheel (data 3 = up, 4 = down, per contract)
 			var e := InputEventMouseButton.new()
-			e.button_index = data if data > 0 else MOUSE_BUTTON_WHEEL_UP
+			e.button_index = _map_mouse_button(data)
 			e.pressed = true
 			e.position = Vector2(x, y)
 			e.global_position = Vector2(x, y)
@@ -78,17 +97,10 @@ func _convert_event(evt: Dictionary) -> InputEvent:
 			e.position = Vector2(x, y)
 			return e
 		8:  # key down
-			var e := InputEventKey.new()
-			e.physical_keycode = _map_keycode(data)
-			e.pressed = true
-			return e
+			return _make_key_event(x, y, data, true)
 		9:  # key up
-			var e := InputEventKey.new()
-			e.physical_keycode = _map_keycode(data)
-			e.pressed = false
-			return e
+			return _make_key_event(x, y, data, false)
 		10:  # resize
-			# Update viewport
 			var vp = get_viewport()
 			if vp:
 				vp.size = Vector2i(x, y)
@@ -107,6 +119,21 @@ func _convert_event(evt: Dictionary) -> InputEvent:
 			e.axis_value = data / 32767.0
 			return e
 	return null
+
+## Build an InputEventKey from the JS key contract:
+## x = JS keyCode, y = modifier bitmask (1 shift, 2 ctrl, 4 alt),
+## data = unicode char code for printable keys (0 otherwise).
+func _make_key_event(key_code: int, mods: int, unicode: int, pressed: bool) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.physical_keycode = _map_keycode(key_code)
+	e.keycode = e.physical_keycode
+	e.pressed = pressed
+	e.shift_pressed = (mods & 1) != 0
+	e.ctrl_pressed = (mods & 2) != 0
+	e.alt_pressed = (mods & 4) != 0
+	if unicode > 0:
+		e.unicode = unicode
+	return e
 
 static func _map_mouse_button(button: int) -> int:
 	match button:
@@ -239,14 +266,4 @@ static func _map_keycode(keycode: int) -> int:
 		163: return KEY_CTRL
 		164: return KEY_ALT
 		165: return KEY_ALT
-		173: return keycode  # KEY_AUDIO_MUTE (not in Godot 4)
-		174: return keycode  # KEY_AUDIO_VOLUME_DOWN (not in Godot 4)
-		175: return keycode  # KEY_AUDIO_VOLUME_UP (not in Godot 4)
-		176: return keycode  # KEY_MEDIA_NEXT_TRACK (not in Godot 4)
-		177: return keycode  # KEY_MEDIA_PREV_TRACK (not in Godot 4)
-		178: return keycode  # KEY_MEDIA_STOP (not in Godot 4)
-		179: return keycode  # KEY_MEDIA_PLAY_PAUSE (not in Godot 4)
-		181: return keycode  # KEY_AUDIO_VOLUME_UP (not in Godot 4)
-		182: return keycode  # KEY_AUDIO_VOLUME_DOWN (not in Godot 4)
-		183: return keycode  # KEY_MEDIA_PLAY_PAUSE (not in Godot 4)
-	return keycode
+	return KEY_UNKNOWN

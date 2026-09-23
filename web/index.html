@@ -2,21 +2,57 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=coverage">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<meta name="description" content="Synmergia - A free and open source MMORPG">
-	<meta name="theme-color" content="#1a1a2e">
+	<meta name="theme-color" content="#0b0e14">
 	<title>Synmergia</title>
 	<link rel="icon" type="image/svg+xml" href="/icon.svg">
 	<link rel="stylesheet" href="/style.css">
+	<style>
+		/* Keep the existing style.css look; these rules only add the
+		 * missing progress bar and fullscreen affordance. */
+		#loading-bar {
+			width: min(420px, 70vw);
+			height: 8px;
+			margin: 14px auto 0;
+			border: 1px solid #2a3245;
+			border-radius: 6px;
+			background: #141926;
+			overflow: hidden;
+		}
+		#loading-bar-fill {
+			width: 0%;
+			height: 100%;
+			background: linear-gradient(90deg, #b98a2f, #e8b64c);
+			transition: width 0.15s linear;
+		}
+		#fullscreen-btn {
+			display: block;
+			margin: 16px auto 0;
+			padding: 10px 22px;
+			border: 1px solid #2a3245;
+			border-radius: 8px;
+			background: #141926;
+			color: #d7dce8;
+			font-size: 14px;
+			cursor: pointer;
+		}
+		#fullscreen-btn:hover {
+			border-color: #e8b64c;
+			color: #e8b64c;
+		}
+	</style>
 </head>
 <body>
 	<div id="game-container">
-		<canvas id="game-canvas"></canvas>
+		<canvas id="game-canvas" tabindex="1"></canvas>
 		<div id="loading-screen">
 			<div class="spinner"></div>
 			<p id="loading-text">Loading Synmergia...</p>
+			<div id="loading-bar"><div id="loading-bar-fill"></div></div>
+			<button id="fullscreen-btn">Fullscreen</button>
 		</div>
 		<div id="error-screen" class="hidden">
 			<h2>Failed to load</h2>
@@ -25,48 +61,102 @@
 		</div>
 	</div>
 	<script src="/config.js"></script>
+	<!-- SynmergiaInput capture layer (optional). The Godot web runtime
+	     delivers mouse/touch/keyboard natively, so this page does NOT
+	     auto-init it -- initializing would double-deliver input alongside
+	     the engine's own handlers. Embedded wrappers that need the buffered
+	     path (see labs/prd-web.md) call:
+	         SynmergiaInput.init(document.getElementById('game-canvas'));
+	     The WebInputBridge autoload drains it only when initialized. -->
 	<script src="/shared/input.js"></script>
 	<script src="/game.js"></script>
 	<script>
-	(function() {
-		var canvas = document.getElementById('game-canvas');
-		var loading = document.getElementById('loading-screen');
-		var errorScreen = document.getElementById('error-screen');
-		var errorText = document.getElementById('error-text');
+	(function () {
+		"use strict";
 
-		SynmergiaInput.init(canvas);
+		var canvas = document.getElementById("game-canvas");
+		var loading = document.getElementById("loading-screen");
+		var errorScreen = document.getElementById("error-screen");
+		var errorText = document.getElementById("error-text");
+		var loadingText = document.getElementById("loading-text");
+		var barFill = document.getElementById("loading-bar-fill");
+		var loadStart = Date.now();
 
-		function onGodotReady(engine) {
-			var config = window.SynmergiaConfig.engineOptions;
-			var args = config.args || [];
-			args.push('--canvas-id', 'game-canvas');
+		// Capture layer is present but intentionally not auto-initialized
+		// (see the note above the script tag). Godot's web runtime handles
+		// input natively on this page; wrappers opt in via SynmergiaInput.init().
+		window.SynmergiaInputAvailable = typeof SynmergiaInput !== "undefined";
 
-			var engine = new Engine({
-				module: config.module || 'game.wasm',
-				wasm: config.wasm !== false,
-				args: args,
-				memory: config.memory || 256,
-				debug: config.debug || false,
-			});
+		document.getElementById("fullscreen-btn").addEventListener("click", function () {
+			var el = document.documentElement;
+			if (el.requestFullscreen) {
+				el.requestFullscreen().catch(function () {});
+			}
+		});
 
-			engine.start().then(function() {
-				loading.classList.add('hidden');
-			}).catch(function(err) {
-				errorText.textContent = 'Engine failed to start: ' + err.message;
-				errorScreen.classList.remove('hidden');
-				loading.classList.add('hidden');
-			});
+		function fail(message) {
+			loading.classList.add("hidden");
+			errorText.textContent = message;
+			errorScreen.classList.remove("hidden");
 		}
 
-		window.onGodotReady = onGodotReady;
-
-		setTimeout(function() {
-			if (!loading.classList.contains('hidden')) {
-				errorText.textContent = 'Engine did not load in time. Check console for errors.';
-				errorScreen.classList.remove('hidden');
-				loading.classList.add('hidden');
+		function setProgress(current, total) {
+			if (current > 0 && total > 0) {
+				var pct = Math.round((current / total) * 100);
+				barFill.style.width = pct + "%";
+				loadingText.textContent = "Loading Synmergia... " + pct + "%";
 			}
-		}, 15000);
+		}
+
+		// Contract with game.js (Godot's exported launcher): it defines the
+		// Engine class; we start the game exactly like the generated shell.
+		var GODOT_THREADS_ENABLED = typeof window.SynmergiaThreadsEnabled !== "undefined"
+			? window.SynmergiaThreadsEnabled
+			: true;
+
+		var GODOT_CONFIG = {
+			"args": [],
+			"canvasResizePolicy": 2,
+			"ensureCrossOriginIsolationHeaders": true,
+			"executable": "game",
+			"experimentalVK": true,
+			"focusCanvas": true,
+			"gdextensionLibs": [],
+		};
+
+		if (typeof Engine === "undefined") {
+			fail("game.js failed to load (Engine unavailable). Check /game.js exists.");
+			return;
+		}
+
+		var missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+		if (missing.length !== 0) {
+			fail("Your browser is missing required features:\n" + missing.join("\n"));
+			return;
+		}
+
+		var engine = new Engine(GODOT_CONFIG);
+		engine.startGame({
+			"onProgress": function (current, total) {
+				if (current > 0 && total > 0) {
+					setProgress(current, total);
+				}
+			},
+		}).then(function () {
+			loading.classList.add("hidden");
+			canvas.focus();
+		}).catch(function (err) {
+			console.error(err);
+			fail(err && err.message ? err.message : "Engine failed to start.");
+		});
+
+		// The 15s watchdog stays, but only warns while progress is stalled;
+		// large pck downloads on slow links legitimately take longer.
+		setTimeout(function () {
+			if (!loading.classList.contains("hidden") && barFill.offsetWidth === 0) {
+				fail("Engine did not make progress in time. Check your connection and reload.");
+			}
+		}, 20000);
 	})();
 	</script>
 </body>
