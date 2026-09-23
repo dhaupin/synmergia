@@ -1214,3 +1214,18 @@ hud_integration 7 OK.
   fixes); test_parse_check 11/11 on the fresh build.
 - Still true: sandbox has no web export templates, so the first live
   wasm export happens in CI on the next PR/dispatch.
+
+### [town:core] 2026-09-23 — First wasm bundle green; Node 24 action bump
+- User ran workflow_dispatch (force_export): run 35805783246 succeeded
+  1m39s. All steps green incl. first-ever full wasm export. Templates
+  cache populated (1204MB, key godot-web-templates-4.7.2); total cache
+  usage 1.28GB / free 10GB — no storage cost, 7-day access-based expiry
+  kept warm by push runs.
+- Artifact verified by download: game.wasm 38MB (\0asm magic header
+  valid), game.js 308K, game.pck 4.7M, html + audio worklets + icon.
+  14.3MB compressed artifact.
+- Note: sandbox gh dispatch still 403 (Freebuff app lacks actions:write);
+  user clicked Run workflow manually. Fine per PRD (dispatch is manual
+  anyway).
+- Bumped actions to Node 24 targets (clears the Node 20 deprecation
+  warning): checkout v4 -> v7, cache v4 -> v6, upload-artifact v4 -> v7.

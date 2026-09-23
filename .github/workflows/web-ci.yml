@@ -50,11 +50,11 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Cache Godot Headless Binary
         id: cache-godot
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /home/runner/godot-bin
           key: godot-headless-${{ env.GODOT_VERSION }}-linux-x86_64
@@ -78,7 +78,7 @@ jobs:
       # run re-imports all assets inside the first engine boot (the old
       # workflow's 3m07s hang). Keyed on game content + engine version.
       - name: Cache Godot Import Cache (.godot/)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: game/.godot
           key: godot-import-${{ env.GODOT_VERSION }}-${{ hashFiles('game/**', 'game/project.godot') }}
@@ -126,7 +126,7 @@ jobs:
       - name: Cache Web Export Templates
         id: cache-templates
         if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /home/runner/.local/share/godot/export_templates/${{ env.TEMPLATES_DIR }}
           key: godot-web-templates-${{ env.GODOT_VERSION }}
@@ -158,7 +158,7 @@ jobs:
 
       - name: Upload Web Game Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: synmergia-web-game
           path: |
