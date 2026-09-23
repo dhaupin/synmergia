@@ -492,6 +492,9 @@ func _cmd_boss(sender_id: String, args: Array) -> bool:
 	var ss = get_node_or_null(NodePath("/root/SpawnService"))
 	if ss == null or not ss.has_method("spawn_boss"):
 		return false
+	# /boss schedule ... -> timed world-boss schedule surface.
+	if not args.is_empty() and str(args[0]).to_lower() == "schedule":
+		return _cmd_boss_schedule(sender_id, args.slice(1))
 	if not _require_admin(sender_id, "boss"):
 		return true
 	if args.is_empty() or str(args[0]).strip_edges() == "":
@@ -546,6 +549,108 @@ func _zone_spawn_pos(zone_id: String) -> Vector3:
 		return Vector3.ZERO
 	var center: Vector3 = zone.zone_center if "zone_center" in zone else Vector3.ZERO
 	return center
+
+## /boss schedule [list|info <id>|run <id>|stop <id>|start <id>]
+## Admin surface for the timed world-boss schedules SpawnService loads
+## from data/world_bosses/. List shows phase + countdown; run forces a
+## spawn now (post-kill downtime stays honest: respawn counts from
+## death); stop/start manage the loop at runtime.
+func _cmd_boss_schedule(sender_id: String, args: Array) -> bool:
+	var ss = get_node_or_null(NodePath("/root/SpawnService"))
+	if ss == null or not ss.has_method("start_world_boss_schedule"):
+		return false
+	if not _require_admin(sender_id, "boss schedule"):
+		return true
+	var sub := str(args[0]).to_lower() if not args.is_empty() else "list"
+	var ids: Array = ss.get_world_boss_schedule_ids()
+	match sub:
+		"list":
+			if ids.is_empty():
+				_send_system_message(sender_id, "[boss schedule] No schedules loaded.")
+				return true
+			for sid in ids:
+				var st: Dictionary = ss.get_world_boss_schedule_status(str(sid))
+				if st.is_empty():
+					continue
+				var when: String
+				if str(st.get("state", "")) == "live":
+					when = "UP NOW"
+				else:
+					var left := float(st.get("time_left", 0.0))
+					when = "in %d:%02d" % [int(left) / 60, int(left) % 60]
+				_send_system_message(sender_id, "[boss schedule] %s: %s (%s, every %ds) - %s" % [
+					str(sid), str(st.get("display_name", str(sid))),
+					str(st.get("zone_id", "?")),
+					int(st.get("interval_seconds", 0.0)), when])
+			return true
+		"info":
+			if args.size() < 2:
+				_send_system_message(sender_id, "[boss schedule] Usage: /boss schedule info <id>")
+				return true
+			var sid := str(args[1])
+			var st: Dictionary = ss.get_world_boss_schedule_status(sid)
+			if st.is_empty():
+				_send_system_message(sender_id, "[boss schedule] Unknown schedule '%s'. Available: %s" % [sid, ", ".join(PackedStringArray(ids))])
+				return true
+			_send_system_message(sender_id, "[boss schedule] %s -> template=%s zone=%s interval=%ds announce=%s state=%s" % [
+				str(st.get("schedule_id", sid)), str(st.get("boss_template_id", "")),
+				str(st.get("zone_id", "")), int(st.get("interval_seconds", 0.0)),
+				str(bool(st.get("announce", true))), str(st.get("state", ""))])
+			return true
+		"run":
+			if args.size() < 2:
+				_send_system_message(sender_id, "[boss schedule] Usage: /boss schedule run <id>")
+				return true
+			var sid := str(args[1])
+			if not ids.has(sid):
+				_send_system_message(sender_id, "[boss schedule] Unknown schedule '%s'." % sid)
+				return true
+			var boss = ss.run_world_boss_schedule_now(sid)
+			if boss == null:
+				_send_system_message(sender_id, "[boss schedule] '%s' failed to spawn (already up, or zone/template lost)." % sid)
+				return true
+			_send_system_message(sender_id, "[boss schedule] '%s' spawned now." % sid)
+			return true
+		"stop":
+			if args.size() < 2:
+				_send_system_message(sender_id, "[boss schedule] Usage: /boss schedule stop <id>")
+				return true
+			var sid := str(args[1])
+			if not ids.has(sid):
+				_send_system_message(sender_id, "[boss schedule] Unknown schedule '%s'." % sid)
+				return true
+			ss.stop_world_boss_schedule(sid, "stopped by admin")
+			_send_system_message(sender_id, "[boss schedule] '%s' stopped." % sid)
+			return true
+		"start":
+			if args.size() < 2:
+				_send_system_message(sender_id, "[boss schedule] Usage: /boss schedule start <id>")
+				return true
+			var sid := str(args[1])
+			if ids.has(sid):
+				_send_system_message(sender_id, "[boss schedule] '%s' is already running." % sid)
+				return true
+			# Reload the .tres by convention path (same convention the
+			# boot scan and HordeDataResolver use).
+			var res: Resource = load("res://data/world_bosses/world_boss_%s.tres" % sid)
+			if res == null or not res.has_method("to_config"):
+				_send_system_message(sender_id, "[boss schedule] No config found for '%s' (data/world_bosses/world_boss_%s.tres)." % [sid, sid])
+				return true
+			# Resource.get(key, default) lost its default arg in 4.7.2
+			# strictness: fall back to the requested id when the .tres
+			# does not carry one (same fallback DataService uses).
+			var res_id := str(res.get("id"))
+			if res_id.is_empty():
+				res_id = sid
+			var start_id: String = ss.start_world_boss_schedule(res_id, res.to_config())
+			if start_id == "":
+				_send_system_message(sender_id, "[boss schedule] Failed to start '%s' (bad config or unknown template)." % sid)
+				return true
+			_send_system_message(sender_id, "[boss schedule] '%s' started." % sid)
+			return true
+		_:
+			_send_system_message(sender_id, "[boss schedule] Usage: /boss schedule [list|info|run|stop|start] [id]")
+			return true
 
 ## Command: /spawn <template_id> [count] [zone_id] [level]
 ## On-demand normal-enemy spawns (admin events, playtesting). Uses

@@ -77,6 +77,16 @@ CURRENT state + ACTIVE work only.
   level/stats survive Enemy._ready's template reload (the level-7 slime
   regression). Demo configs: horde_haven_siege (bossless siege,
   bosses_alert) + horde_boss_gauntlet (3 boss waves).
+- Timed world bosses: WorldBossData .tres schemas in
+  data/world_bosses/ (SpawnService scans at boot). Respawn counted
+  from DEATH (interval_seconds), not spawn; first_delay_s settles the
+  server before the first appearance; window_seconds despawns unclaimed
+  bosses and rearms the timer; announce=false mutes the spawn callout;
+  interval 0 = one-shot (loop completes on death). Admin surface:
+  /boss schedule list|info|run|stop|start (start reloads the .tres by
+  convention path). Demo: forest_void_lord (3h interval, Gloomwood
+  Meadow). Wedge guards: bosses destroyed without died still rearm the
+  timer; run_now returns the live boss instead of duplicating it.
 - Dungeon loop: world_playable registers the authored gateway .tres
   (data/gateways/dungeon_forest_depths_entrance.tres) as a targetable
   portal; dungeon zone declares horde_config_id="vault_seal" so the
@@ -109,7 +119,8 @@ CURRENT state + ACTIVE work only.
 ## Test suite (run headless: `cd game && godot --headless --path . --script res://tests/<t>.gd`)
 
 Current green baseline: horde_configs 68, boss_commands 52,
-horde_rewards 37, horde_events 34, phase4_aoi 17, projection 44,
+world_boss_schedule 37, horde_rewards 37, horde_events 34, phase4_aoi
+17, projection 44,
 bridge 41, kill_rewards 21, guard 31, loot_tables_live 33, loot_rules
 30, duel 28, placement 54, academy 25, aggro 33, combat_loop 31,
 combat_pipeline, combat_live 10, entity_autoload 8, onboarding_live
@@ -149,8 +160,8 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 - [ ] Wolf spawn-camp mitigated by sanctuary; revisit levels/positions
   when world content grows.
 - [ ] DataService horde catalog admin surface if content grows.
-- [ ] Timed open-world world-boss respawn loop (a boss that spawns
-  every few hours) now that /boss + WORLD_BOSS metadata are separated
-  from hordes.
 - [ ] /boss + /spawn smoke coverage inside a full-boot live test
-  (current coverage is script-mode).
+  (current coverage is script-mode; test_world_boss_schedule 37,
+  test_boss_commands 52).
+- [ ] More world_bosses .tres content once world zones grow (one demo:
+  forest_void_lord).

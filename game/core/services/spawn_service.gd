@@ -90,9 +90,214 @@ signal enemy_despawned(entity, spawn_point_id: String, metadata: SpawnMetadata)
 signal boss_spawned(entity, boss_name: String, metadata: SpawnMetadata)
 signal npc_spawned(npc, npc_id: String, metadata: SpawnMetadata)
 signal spawn_point_cleared(spawn_point_id: String)
+signal world_boss_schedule_started(schedule_id: String, config: Dictionary)
+signal world_boss_schedule_spawned(schedule_id: String, boss: Entity)
 
 func _ready() -> void:
+	load_world_boss_schedules()
 	GameLog.info("SpawnService: Ready")
+
+## ---------------------------------------------------------------------------
+## Timed world-boss schedules (data/world_bosses/*.tres -> WorldBossData)
+## ---------------------------------------------------------------------------
+
+## Live schedule entries: id -> {"config": WorldBossData.to_config(),
+## "time_left": float, "boss_id": String ("" while down), "running":
+## bool, "respawn_from_death": bool}. Timers tick in _process; the
+## first spawn waits first_delay_s, later respawns count from the
+## boss's DEATH (killed 2 min after appearing does not skip downtime).
+var _world_boss_schedules: Dictionary = {}
+
+## Scan data/world_bosses/ and start every schedule at boot. Called
+## from _ready (DataService loads before SpawnService in project.godot
+## autoload order, so get_enemy resolves templates).
+func _process(delta: float) -> void:
+	_tick_world_boss_schedules(delta)
+
+func load_world_boss_schedules() -> void:
+	var dir := DirAccess.open("res://data/world_bosses")
+	if dir == null:
+		GameLog.info("SpawnService: no world_bosses data dir; no schedules")
+		return
+	dir.list_dir_begin()
+	var fname := dir.get_next()
+	var count := 0
+	while fname != "":
+		if not dir.current_is_dir() and fname.ends_with(".tres"):
+			var res: Resource = load("res://data/world_bosses/" + fname)
+			if res != null and res.has_method("to_config"):
+				# Resource.get(key, default) lost its default arg in 4.7.2:
+				# fall back to the file stem when the .tres carries no id.
+				var rid := str(res.get("id"))
+				if rid.is_empty():
+					rid = fname.trim_suffix(".tres").trim_prefix("world_boss_")
+				if start_world_boss_schedule(rid, res.to_config()) != "":
+					count += 1
+		fname = dir.get_next()
+	dir.list_dir_end()
+	GameLog.info("SpawnService: Loaded %d world-boss schedules" % count)
+
+## Start one timed schedule. Returns the schedule id ("" on bad config
+## or unknown template). An id that is already live is stopped first
+## (runtime re-start replaces the entry, mirroring the admin surface).
+func start_world_boss_schedule(schedule_id: String, config: Dictionary) -> String:
+	var sid := str(schedule_id).strip_edges()
+	var template_id := str(config.get("boss_template_id", ""))
+	var zone := str(config.get("zone_id", ""))
+	if sid.is_empty() or template_id.is_empty() or zone.is_empty():
+		GameLog.warn("SpawnService: world-boss schedule '%s' missing id/template/zone" % sid)
+		return ""
+	var ds = DataService
+	if ds == null or ds.get_enemy(template_id) == null:
+		GameLog.warn("SpawnService: world-boss schedule '%s' template '%s' not found" % [sid, template_id])
+		return ""
+	stop_world_boss_schedule(sid, "restarted")
+	_world_boss_schedules[sid] = {
+		"config": config.duplicate(true),
+		"time_left": maxf(0.0, float(config.get("first_delay_s", 0.0))),
+		"boss_id": "",
+		"window_left": maxf(0.0, float(config.get("window_seconds", 0.0))),
+		"running": true,
+	}
+	GameLog.info("SpawnService: world-boss schedule '%s' started (%s in %s, every %ds)" % [
+		sid, template_id, zone, int(config.get("interval_seconds", 0.0))])
+	world_boss_schedule_started.emit(sid, config)
+	return sid
+
+## Stop a schedule: clears its live boss (quiet despawn) and drops the
+## entry. Unknown ids are a no-op returning false.
+func stop_world_boss_schedule(schedule_id: String, reason: String = "stopped") -> void:
+	if not _world_boss_schedules.has(schedule_id):
+		return
+	var entry: Dictionary = _world_boss_schedules[schedule_id]
+	var bid := str(entry.get("boss_id", ""))
+	if bid != "":
+		var boss = _world_bosses.get(bid)
+		if boss != null and is_instance_valid(boss):
+			despawn_boss(boss)
+	_world_boss_schedules.erase(schedule_id)
+	GameLog.info("SpawnService: world-boss schedule '%s' %s" % [schedule_id, reason])
+
+## Schedule status for /boss schedule info and tests: a flat Dictionary
+## with the config and current phase ("waiting" | "live").
+func get_world_boss_schedule_status(schedule_id: String) -> Dictionary:
+	if not _world_boss_schedules.has(schedule_id):
+		return {}
+	var entry: Dictionary = _world_boss_schedules[schedule_id]
+	var out: Dictionary = entry.get("config", {}).duplicate(true)
+	out["schedule_id"] = schedule_id
+	out["state"] = "live" if str(entry.get("boss_id", "")) != "" else "waiting"
+	out["time_left"] = float(entry.get("time_left", 0.0))
+	out["boss_id"] = str(entry.get("boss_id", ""))
+	return out
+
+func get_world_boss_schedule_ids() -> Array:
+	return _world_boss_schedules.keys()
+
+## Fire a schedule's spawn NOW (admin /boss schedule run, tests). When
+## the boss is already up, return it instead of spawning a duplicate.
+## The timer resets to interval_seconds on the boss's death, so a forced
+## early spawn keeps the post-kill downtime honest.
+func run_world_boss_schedule_now(schedule_id: String) -> Variant:
+	var entry: Dictionary = _world_boss_schedules.get(schedule_id, {})
+	if entry.is_empty() or not bool(entry.get("running", false)):
+		return null
+	var live_bid := str(entry.get("boss_id", ""))
+	if live_bid != "":
+		var live = _world_bosses.get(live_bid)
+		if live != null and is_instance_valid(live):
+			return live
+	return _spawn_scheduled_world_boss(schedule_id, entry)
+
+## Spawn the scheduled boss (schedule trigger or forced run). Returns
+## the boss Entity (null on zone loss or spawn failure -- the schedule
+## stays alive and retries on its next tick).
+func _spawn_scheduled_world_boss(schedule_id: String, entry: Dictionary) -> Variant:
+	var cfg: Dictionary = entry.get("config", {})
+	var template_id := str(cfg.get("boss_template_id", ""))
+	var zone_id := str(cfg.get("zone_id", ""))
+	var ds = DataService
+	var template = ds.get_enemy(template_id) if ds != null else null
+	if template == null:
+		GameLog.error("SpawnService: schedule '%s' lost its template '%s'" % [schedule_id, template_id])
+		return null
+	var spawn_pos: Vector3 = cfg.get("position", Vector3.ZERO)
+	if spawn_pos == Vector3.ZERO:
+		var zm = ZoneManager
+		if zm != null:
+			var zone = zm.get_zone(zone_id)
+			if zone != null and "zone_center" in zone:
+				spawn_pos = zone.zone_center
+	var boss_name := str(cfg.get("display_name", ""))
+	if boss_name == "":
+		boss_name = str(template.display_name)
+	# announce=false must actually mute: force_announce=-1 overrides the
+	# default-scope fallback in spawn_boss (an empty scope list otherwise
+	# gets re-forced to server-wide).
+	var announce: bool = bool(cfg.get("announce", true))
+	var scopes: Array = [NotificationService.AlertScope.server_wide()] if announce else []
+	var announce_cfg: int = 1 if announce else -1
+	var boss = spawn_boss(template_id, spawn_pos, zone_id, boss_name, scopes,
+		SpawnMetadata.SpawnType.WORLD_BOSS, announce_cfg)
+	if boss == null:
+		GameLog.error("SpawnService: schedule '%s' spawn failed; retries next tick" % schedule_id)
+		return null
+	entry["boss_id"] = str(boss.entity_id)
+	entry["window_left"] = maxf(0.0, float(cfg.get("window_seconds", 0.0)))
+	# Death -> respawn timer = interval_seconds (counted from DEATH).
+	if boss.has_signal("died") and not boss.died.is_connected(_on_scheduled_boss_died):
+		boss.died.connect(_on_scheduled_boss_died.bind(schedule_id))
+	world_boss_schedule_spawned.emit(schedule_id, boss)
+	GameLog.info("SpawnService: world boss '%s' spawned (schedule %s)" % [boss_name, schedule_id])
+	return boss
+
+## Scheduled boss death: pay rewards (shared boss path already did via
+## _on_boss_entity_died -- this only rearms the respawn timer) and
+## clear the window. Death, not spawn, starts the downtime.
+func _on_scheduled_boss_died(_killer, schedule_id: String) -> void:
+	var entry: Dictionary = _world_boss_schedules.get(schedule_id, {})
+	if entry.is_empty():
+		return
+	var cfg: Dictionary = entry.get("config", {})
+	var interval := float(cfg.get("interval_seconds", 0.0))
+	entry["boss_id"] = ""
+	entry["time_left"] = interval
+	if interval <= 0.0:
+		# One-shot schedule: the boss died and the loop is done.
+		stop_world_boss_schedule(schedule_id, "completed (one-shot)")
+		return
+	GameLog.info("SpawnService: world boss down; '%s' respawns in %ds" % [schedule_id, int(interval)])
+
+## Per-frame schedule tick: fires spawns when timers hit zero and
+## sweeps unclaimed bosses whose window expired.
+func _tick_world_boss_schedules(delta: float) -> void:
+	for sid in _world_boss_schedules.keys():
+		var entry: Dictionary = _world_boss_schedules[sid]
+		var bid := str(entry.get("boss_id", ""))
+		if bid != "":
+			var boss = _world_bosses.get(bid)
+			var gone: bool = boss == null or not is_instance_valid(boss)
+			# A boss destroyed without emitting died (admin free, scene
+			# teardown) must still rearm the timer, or the schedule wedges.
+			if gone:
+				_on_scheduled_boss_died(null, sid)
+				continue
+			var window := float(entry.get("window_left", 0.0))
+			if window > 0.0:
+				window -= delta
+				entry["window_left"] = window
+				if window <= 0.0:
+					GameLog.info("SpawnService: world boss window expired; '%s' despawns" % sid)
+					despawn_boss(boss)
+					# despawn_boss frees without died; rearm here.
+					_on_scheduled_boss_died(null, sid)
+			continue
+		var left := float(entry.get("time_left", 0.0)) - delta
+		if left <= 0.0:
+			entry["time_left"] = 0.0
+			_spawn_scheduled_world_boss(sid, entry)
+		else:
+			entry["time_left"] = left
 
 ## Register a spawn point
 func register_spawn_point(
@@ -269,8 +474,13 @@ func spawn_boss(
 	zone_id: String,
 	boss_name: String = "",
 	alert_scopes: Array = [],
-	metadata_type: int = -1
+	metadata_type: int = -1,
+	force_announce: int = 0
 ) -> Variant:
+	## force_announce: -1 = mute notifications (announce=false schedules,
+	## quiet admin testing); 0 = caller default (empty scopes still get
+	## the classic server-wide world-boss callout); +1 = caller scopes
+	## win over any metadata default.
 	var data_service = DataService
 	if data_service == null:
 		return null
@@ -318,12 +528,12 @@ func spawn_boss(
 		_:
 			metadata = SpawnMetadata.boss(boss.display_name, zone_id, position, boss.level)
 	metadata.faction = boss.faction
-	if silent:
+	if silent or force_announce < 0:
 		metadata.notification_enabled = false
 	elif alert_scopes.size() > 0:
 		metadata.notification_enabled = true
 		metadata.notification_scopes = alert_scopes
-	elif metadata.notification_enabled:
+	elif force_announce == 0 and metadata.notification_enabled:
 		# Enabled metadata with an empty scope list reaches nobody
 		# (broadcast_alert walks zero scopes): default to server-wide so
 		# the classic world-boss spawn actually announces.
