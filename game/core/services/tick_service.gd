@@ -382,12 +382,20 @@ func _is_combat_input(input_data: Dictionary) -> bool:
 	var action: String = input_data.get("action", "")
 	return action.begins_with("ability_") or action == "attack" or action == "dodge"
 
-## Get player_id from peer_id via PlayerManager or NetworkManager.
+## Get player_id from peer_id via NetworkManager's peer mapping, with
+## the local-player fallback for headless/single-user sessions.
 func _get_player_id_from_peer(peer_id: int) -> String:
-	## Single-shard authoritative model: the server's local player is
-	## the only client until peer mapping lands in PlayerManager. The
-	## old get_player_info() probe called a method that never existed,
-	## so every client resolved to "peer_N" and Phase 4 never emitted.
+	## 1. Real peer mapping (NetworkManager.connected_peers[peer][
+	## "player_id"], populated by LoginService.on_character_selected and
+	## persisted through the cache adapter). In headless/script mode
+	## there is no NetworkManager autoload, so this is null there.
+	var nm := get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("get_character_for_peer"):
+		var mapped: String = str(nm.get_character_for_peer(peer_id))
+		if mapped != "":
+			return mapped
+	## 2. Local-player fallback: single-user/headless sessions have no
+	## peer handshake, but the local player is still a real AOI client.
 	if PlayerManager and PlayerManager.has_method("get_local_player_id"):
 		var pid: String = PlayerManager.get_local_player_id()
 		if pid != "":
@@ -690,9 +698,38 @@ func _flatten_aoi_diff(aoi_diff: Dictionary) -> Array:
 ## deterministic lever (per-client distance tiering arrives with client
 ## position tracking in Phase 4).
 func _get_client_lod_level(client_id: int) -> int:
+	# Global load override: degraded service trumps everything.
 	if _flywheel_momentum >= FLYWHEEL_HIGH_THRESHOLD:
 		return 1
+	# Distance tiering: clients with a resolvable AOI whose player is
+	# FAR from an active horde zone get L1 summaries (the horde's live
+	# half is high-volume); in/near the horde they keep full detail.
+	var player_id: String = _get_player_id_from_peer(client_id)
+	if _client_far_from_any_horde_zone(player_id):
+		return 1
 	return 0
+
+## True when the player sits in a zone with an active horde that is NOT
+## the player's own -- far clients summarize, participants keep detail.
+## Unknown players/missing services degrade to false (full detail).
+func _client_far_from_any_horde_zone(player_id: String) -> bool:
+	var horde := get_node_or_null("/root/HordeEventService")
+	if horde == null or not horde.has_method("active_horde_zones"):
+		return false
+	var active_zones: Array = horde.active_horde_zones()
+	if active_zones.is_empty():
+		return false
+	var es := get_node_or_null("/root/EntityService")
+	var zm := get_node_or_null("/root/ZoneManager")
+	if es == null or zm == null or not zm.has_method("get_entity_zone_id"):
+		return false
+	var player = es.get_entity(player_id)
+	if player == null:
+		return false
+	var player_zone: Variant = zm.get_entity_zone_id(player)
+	if player_zone == null or str(player_zone) == "":
+		return false
+	return not active_zones.has(str(player_zone))
 
 ## Compute the AOI diff for a specific client.
 ## Zone-aware: entries under /world/zones/<z>/... flow to a client when

@@ -41,7 +41,12 @@ signal horde_wave_started(horde_id: String, wave_number: int, total_waves: int)
 signal horde_wave_progress(horde_id: String, wave_number: int, remaining: int)
 signal horde_wave_cleared(horde_id: String, wave_number: int)
 signal horde_boss_spawned(horde_id: String, boss)
+signal horde_rewards_distributed(horde_id: String, rewards: Dictionary)
 signal horde_completed(horde_id: String, success: bool)
+
+## Kill credit weight: each credited kill counts as this much damage
+## when computing reward shares, so a pure finisher is not zeroed out.
+const KILL_WEIGHT := 50.0
 
 ## horde_id -> horde state Dictionary (see _start_horde_state).
 var _hordes: Dictionary = {}
@@ -52,6 +57,14 @@ func _ready() -> void:
 	if es != null and es.has_signal("entity_unregistered"):
 		if not es.entity_unregistered.is_connected(_on_entity_unregistered):
 			es.entity_unregistered.connect(_on_entity_unregistered)
+	# Participation sources: damage on horde entities (attacker credited)
+	# and credited kills (KillRewards resolves direct-killer OR threat
+	# owner and reports the winner's player_id in the rewards dict).
+	if EventHub != null:
+		if EventHub.has_signal("damage_dealt") and not EventHub.damage_dealt.is_connected(_on_damage_dealt):
+			EventHub.damage_dealt.connect(_on_damage_dealt)
+		if EventHub.has_signal("kill_rewarded") and not EventHub.kill_rewarded.is_connected(_on_kill_rewarded):
+			EventHub.kill_rewarded.connect(_on_kill_rewarded)
 	GameLog.info("HordeEventService: Ready")
 
 ## ---------------------------------------------------------------------------
@@ -99,6 +112,9 @@ func start_horde(zone_id: String, config: Dictionary = {}) -> String:
 		"mobs_per_wave": maxi(1, int(config.get("mobs_per_wave", 8))),
 		"inter_wave_delay": maxf(0.0, float(config.get("inter_wave_delay", 5.0))),
 		"scale_levels": bool(config.get("scale_levels", false)),
+		"reward_gold": maxi(0, int(config.get("reward_gold", 0))),
+		"reward_xp": maxi(0, int(config.get("reward_xp", 0))),
+		"participants": {},
 		"wave_number": 0,
 		"mobs_spawned_this_wave": 0,
 		"mobs_left_to_spawn": 0,
@@ -132,6 +148,16 @@ func active_horde_in_zone(zone_id: String) -> String:
 		if str(_hordes[horde_id].get("zone_id", "")) == zone_id:
 			return str(horde_id)
 	return ""
+
+## Zone ids with a horde currently running (LOD tiering and Phase 4
+## diagnostics key off this; empty when no horde is active).
+func active_horde_zones() -> Array:
+	var zones: Array = []
+	for horde_id in _hordes:
+		var zid := str(_hordes[horde_id].get("zone_id", ""))
+		if zid != "" and not zones.has(zid):
+			zones.append(zid)
+	return zones
 
 ## Live status snapshot (for debug UI / admin commands).
 func get_horde_status(horde_id: String) -> Dictionary:
@@ -255,6 +281,13 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int):
 	enemy.current_health = enemy.max_health
 	enemy.global_position = pos
 
+	# Parent into the scene tree under this service. Without a tree
+	# presence _is_valid_combatant (KillRewards) rejects the mob, so
+	# every horde kill was creditless: no kill_rewarded, no participation
+	# kill credit, no per-kill rewards. The service node is always in
+	# the tree (autoload), so this works headless and in-world alike.
+	add_child(enemy)
+
 	# Same AI attachment surface as the Enemy API (sets _ai + add_child).
 	enemy.attach_ai(EnemyAIScript.new())
 
@@ -336,8 +369,124 @@ func _finish_horde(horde_id: String, success: bool) -> void:
 		return
 	_hordes.erase(horde_id)
 	if success:
+		var rewards := _distribute_rewards(horde_id, h)
+		_track_horde_achievements(horde_id, h, rewards)
 		_notify_zone(str(h["zone_id"]), "Horde defeated!", "horde_done:%s" % horde_id)
 	horde_completed.emit(horde_id, success)
+
+## ---------------------------------------------------------------------------
+## Participation -> proportional rewards -> achievements
+## ---------------------------------------------------------------------------
+
+## EventHub.damage_dealt(source, target, amount, type): attribute damage
+## to the horde the TARGET belongs to. Both horde mobs and the boss use
+## EnemyData, so one template lookup resolves either.
+func _on_damage_dealt(source, target, amount: int, _damage_type: String) -> void:
+	if source == null or target == null or not is_instance_valid(target):
+		return
+	if not ("entity_id" in source) or not ("enemy_data" in target) or target.enemy_data == null:
+		return
+	var tid := str(target.entity_id)
+	for horde_id in _hordes:
+		var h: Dictionary = _hordes[horde_id]
+		if tid in h.get("all_mob_ids", []) or str(h.get("boss_id", "")) == tid:
+			_record_participation(h, str(source.entity_id), "damage", absi(int(amount)))
+			return
+
+## EventHub.kill_rewarded(entity, killer, rewards): rewards.player_id is
+## the credited winner (direct killer or threat owner) resolved by
+## KillRewards -- reuse its verdict rather than re-deriving credit.
+func _on_kill_rewarded(_entity, _killer, rewards: Dictionary) -> void:
+	var player_id := str(rewards.get("player_id", ""))
+	if player_id == "":
+		return
+	var eid := ""
+	if _entity != null and "entity_id" in _entity:
+		eid = str(_entity.entity_id)
+	if eid == "":
+		return
+	for horde_id in _hordes:
+		var h: Dictionary = _hordes[horde_id]
+		if eid in h.get("all_mob_ids", []) or str(h.get("boss_id", "")) == eid:
+			_record_participation(h, player_id, "kills", 1)
+			return
+
+func _record_participation(h: Dictionary, player_id: String, kind: String, amount: int) -> void:
+	if player_id.is_empty() or amount == 0:
+		return
+	var parts: Dictionary = h["participants"]
+	if not parts.has(player_id):
+		parts[player_id] = {"damage": 0, "kills": 0, "last_seen": 0}
+	parts[player_id][kind] = int(parts[player_id][kind]) + amount
+	parts[player_id]["last_seen"] = Time.get_ticks_msec()
+
+## Proportional completion payout. Shares weight damage + kills; a top
+## contributor takes roughly double a mid contributor. Everyone who
+## swung at least once gets a share; nobody gets a free ride.
+func _distribute_rewards(horde_id: String, h: Dictionary) -> Dictionary:
+	var parts: Dictionary = h.get("participants", {})
+	if parts.is_empty():
+		return {}
+	var total_gold := int(h.get("reward_gold", 0))
+	var total_xp := int(h.get("reward_xp", 0))
+	var weights: Dictionary = {}
+	var weight_sum := 0.0
+	for pid in parts:
+		var p: Dictionary = parts[pid]
+		var w := float(p.get("damage", 0)) + float(p.get("kills", 0)) * KILL_WEIGHT
+		if w > 0.0:
+			weights[pid] = w
+			weight_sum += w
+	if weights.is_empty() or weight_sum <= 0.0:
+		return {}
+	var es := get_node_or_null("/root/EntityService")
+	var report: Dictionary = {}
+	var gold_left := total_gold
+	var xp_left := total_xp
+	var count := weights.size()
+	for pid in weights:
+		var share: float = float(weights[pid]) / weight_sum
+		var gold := 0
+		var xp := 0
+		if count == 1:
+			gold = total_gold
+			xp = total_xp
+		else:
+			gold = mini(gold_left, int(round(float(total_gold) * share)))
+			xp = mini(xp_left, int(round(float(total_xp) * share)))
+		gold_left -= gold
+		xp_left -= xp
+		report[pid] = {"gold": gold, "xp": xp,
+			"damage": int(parts[pid].get("damage", 0)),
+			"kills": int(parts[pid].get("kills", 0))}
+	# Rounding leftovers: largest weight absorbs the remainder.
+	if gold_left > 0 or xp_left > 0:
+		var top: String = ""
+		var top_w := -1.0
+		for pid in weights:
+			if weights[pid] > top_w:
+				top_w = weights[pid]
+				top = str(pid)
+		if top != "":
+			report[top]["gold"] = int(report[top]["gold"]) + gold_left
+			report[top]["xp"] = int(report[top]["xp"]) + xp_left
+	# Grant through the same duck-typed surface KillRewards uses.
+	for pid in report:
+		var player = es.get_entity(str(pid)) if es != null and es.has_method("get_entity") else null
+		if player == null or not is_instance_valid(player):
+			continue
+		var gold: int = int(report[pid]["gold"])
+		var xp: int = int(report[pid]["xp"])
+		if xp > 0 and player.has_method("add_experience"):
+			player.add_experience(xp)
+		elif xp > 0 and "xp" in player:
+			player.xp = int(player.xp) + xp
+		if gold > 0 and player.has_method("add_gold"):
+			player.add_gold(gold)
+		elif gold > 0 and "gold" in player:
+			player.gold = int(player.gold) + gold
+	horde_rewards_distributed.emit(horde_id, report)
+	return report
 
 ## ---------------------------------------------------------------------------
 ## Death tracking (authoritative via EntityService unregistration)
@@ -353,12 +502,43 @@ func _on_entity_unregistered(entity, _metadata = null) -> void:
 			return
 
 ## The boss Entity emits died(killer) on death; bound with horde_id.
-func _on_boss_died(_killer, horde_id: String) -> void:
+## Bosses are bare Entities (no health chain), so unregistration never
+## fires on death -- this signal IS the boss-completion trigger.
+## KillRewards never sees boss deaths (award_kill is Enemy._on_died's
+## job and spawn_boss produces a bare Entity), so the finishing blow's
+## kill participation is attributed here, from the signal's killer.
+func _on_boss_died(killer, horde_id: String) -> void:
 	var h: Dictionary = _hordes.get(horde_id, {})
 	if h.is_empty():
 		return
+	if killer != null and "entity_id" in killer:
+		_record_participation(h, str(killer.entity_id), "kills", 1)
 	if str(h["state"]) == "boss":
 		_finish_horde(horde_id, true)
+
+## Completion-side achievement credit: every participant gets "horde"
+## tracked once; MVP (largest weight) also gets "horde_mvp". Persistence
+## and unlock logic live in AchievementService; this only feeds events.
+## AchievementService has no class_name -- resolve through the tree.
+func _track_horde_achievements(horde_id: String, h: Dictionary, rewards: Dictionary) -> void:
+	var ach := get_node_or_null("/root/AchievementService")
+	if ach == null:
+		return
+	if rewards.is_empty():
+		return
+	var parts: Dictionary = h.get("participants", {})
+	var mvp := ""
+	var mvp_w := -1.0
+	for pid in parts:
+		var p: Dictionary = parts[pid]
+		var w := float(p.get("damage", 0)) + float(p.get("kills", 0)) * KILL_WEIGHT
+		if w > mvp_w:
+			mvp_w = w
+			mvp = str(pid)
+	for pid in rewards:
+		ach.track(str(pid), "horde", 1)
+	if mvp != "" and rewards.has(mvp):
+		ach.track(mvp, "horde_mvp", 1)
 
 ## ---------------------------------------------------------------------------
 ## Helpers

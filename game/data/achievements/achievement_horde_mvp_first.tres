@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "horde_mvp_first"
+display_name = "Horde MVP"
+description = "Deal the most damage in a horde completion"
+achievement_type = 0
+category = 0
+rarity = 3
+target = 1
+target_type = "horde_mvp"
+required_achievements = []
+gold_reward = 250
+xp_reward = 250
+title_reward = "MVP"
+icon_path = "res://icons/achievements/horde_mvp.png"
+sort_order = 71

@@ -116,6 +116,15 @@ func _current_speed() -> float:
 
 
 func take_damage(amount: int, source = null) -> int:
+	# Killer-of-record FIRST: any valid in-tree combatant counts (duck-typed,
+	# so PlayerController qualifies). The death chain below (die() ->
+	# _on_died -> KillRewards.award_kill(self, _last_damager)) runs
+	# synchronously inside health_component.die(), so this must be set
+	# before the lethal branch or one-shot kills credit the PREVIOUS
+	# attacker (or nobody). Found by the horde rewards test: a one-shot
+	# slime kill paid the stale damager.
+	if _is_valid_damager(source):
+		_last_damager = source
 	if health_component:
 		# No _is_dead poke here: health_component.die() owns the dead flag
 		# and early-returns when it is already set -- setting it first used
@@ -159,12 +168,6 @@ func take_damage(amount: int, source = null) -> int:
 	# Grudge memory + engagement: let the AI remember and fight back.
 	if _ai and is_combatant:
 		_ai.on_damaged(source)
-
-	# Killer-of-record: any valid in-tree combatant counts (duck-typed,
-	# so PlayerController qualifies). Used for kill credit when no
-	# explicit killer is threaded through the death flow.
-	if _is_valid_damager(source):
-		_last_damager = source
 
 	return amount
 

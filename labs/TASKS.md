@@ -1498,3 +1498,80 @@ live 10, loot live 33, scene respawn 9, lint 36/36.
 **Next levers**: per-client distance tiers when multi-peer mapping lands
 in PlayerManager; horde configs as .tres data; wave variety (mixed
 templates per wave); horde rewards table on completion.
+
+### [town:core] 2026-09-23 - Horde rewards loop + peer bridge + horde-zone LOD tiers (crash recovery)
+Continued the crashed session's in-flight work (uncommitted diff reviewed, two
+parse bugs repaired, then extended with tests + fixes).
+
+#### Repairing the in-flight code (the crash left it non-compiling)
+1. `_on_boss_died` was deleted but `_spawn_boss` still connected
+   `boss.died` to it -> dangling handler. Restored.
+2. `var share := weights[pid] / weight_sum` -> 4.7.2 Variant inference
+   on Dictionary division; the whole rewards block was a parse error.
+   Explicit float() typing.
+3. `ach.has_method("track")` guard: `track` is a static on
+   AchievementService and `has_method` does not see statics, so the
+   guard was always false and achievements would silently never fire.
+   Removed the guard (resolve the autoload, call through it -- same
+   pattern AchievementListeners uses).
+
+#### Real production bugs found by the new test (all fixed)
+4. **Horde mobs were never in the scene tree**: `_produce_mob` built a
+   full Enemy and registered it with EntityService but never parented
+   it, so `is_inside_tree()` was false, `_is_valid_combatant`
+   (KillRewards) rejected it, and EVERY horde kill was creditless: no
+   kill_rewarded, no per-kill participation, no XP/gold from the
+   standard kill path. Fixed: mobs parent under HordeEventService
+   (an autoload -- in the tree headless and in-world alike).
+5. **One-shot kills credited the previous attacker** (enemy.gd):
+   `take_damage` set `_last_damager` at the END of the method, but the
+   death chain (`die()` -> `_on_died` -> `award_kill(_last_damager)`)
+   runs synchronously inside the lethal branch BEFORE that line. A
+   one-shot kill paid the stale damager (or nobody). Fix: killer-of-
+   record is set FIRST in take_damage.
+6. **Boss kills never counted as participation**: spawn_boss produces
+   a bare Entity (not Enemy), so `award_kill` never fires for the
+   finale. `_on_boss_died` now attributes the killing blow from the
+   `died` signal's killer arg.
+
+#### Landed (completing the crashed session's todo list)
+- **Peer bridge**: `NetworkManager.get_character_for_peer(peer_id)`
+  (reads connected_peers[peer].player_id, empty string when unmapped);
+  `TickService._get_player_id_from_peer` consults the real mapping
+  first, local-player fallback second. Multi-peer AOI emits now
+  address the right state-tree owner instead of everyone collapsing
+  onto the server's local player.
+- **Per-client LOD by horde-zone distance**: `_get_client_lod_level`
+  returns L1 for clients whose player is NOT in any active-horde zone;
+  horde participants keep L0; the global flywheel load override still
+  trumps everything. New `HordeEventService.active_horde_zones()`.
+- **Participation tracking**: `damage_dealt` (attributed by TARGET
+  membership -- the attacker's entity_id) and `kill_rewarded`
+  (reuses KillRewards' credited player_id) feed per-player
+  {damage, kills} records per horde.
+- **Proportional rewards**: weight = damage + kills*KILL_WEIGHT(50);
+  shares of the configured reward_gold/reward_xp pool, rounding
+  remainder to the top contributor, duck-typed grants
+  (add_experience/add_gold -> xp/gold fields),
+  `horde_rewards_distributed` signal. Nobody with zero weight gets a
+  payout.
+- **Horde achievements**: `horde_mvp_first` (GLOBAL, target_type
+  "horde_mvp") and `horde_breaker_5` (PROGRESS, target_type "horde",
+  target 5) .tres defs; every credited participant gets "horde"
+  tracked on completion, the top contributor also "horde_mvp".
+  Persistence/unlock logic stays in AchievementService.
+- **NEW TEST**: `tests/test_horde_rewards.gd` (37 passed, 0 failed):
+  peer bridge round-trip + precedence over the local fallback,
+  participation from real damage/kill events, share conservation
+  (gold sums to 1000, xp to 500), proportional ordering, grant
+  landing, MVP + breaker unlocks (driven through the real
+  AchievementService.track path), LOD same-zone L0 / far-zone L1 /
+  load override / revert-on-stop.
+
+#### Verification
+- New suite 37/0 (x2, stable). Regression battery green: kill_rewards
+  21, aggro 33, combat_loop 31, horde_events 34, phase4_aoi 17,
+  onboarding 26, projection 44, bridge 41, ground_loot 42, loot live
+  33, academy 25, persistence 23, achievement_flow 17, respawn (exit
+  0), parse_check 11, lint battery x5 (exit 0). The app_firewall
+  parse-check noise is pre-existing at HEAD (verified via git stash).

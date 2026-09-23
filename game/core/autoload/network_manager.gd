@@ -966,6 +966,14 @@ func _on_seed_receipt_ready(character_id: String, receipt: Resource) -> void:
 	else:
 		_log("warn", "SeedReceipt: No peer found for character %s" % character_id)
 
+## Character associated with a peer ("" when the peer has not selected
+## a character yet). Inverse of associate_peer_with_character; consumed
+## by TickService's AOI diff emit to map clients onto state-tree owners.
+func get_character_for_peer(peer_id: int) -> String:
+	var data: Dictionary = connected_peers.get(peer_id, {})
+	var player_id: Variant = data.get("player_id", "")
+	return str(player_id) if player_id != null else ""
+
 ## Finds the peer ID associated with a character
 func _find_peer_for_character(character_id: String) -> int:
 	for peer_id in connected_peers:

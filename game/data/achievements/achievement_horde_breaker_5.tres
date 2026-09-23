@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "horde_breaker_5"
+display_name = "Horde Breaker"
+description = "Help defeat 5 hordes"
+achievement_type = 1
+category = 0
+rarity = 2
+target = 5
+target_type = "horde"
+required_achievements = []
+gold_reward = 500
+xp_reward = 500
+title_reward = "Hordebreaker"
+icon_path = "res://icons/achievements/horde_breaker.png"
+sort_order = 70
