@@ -6,6 +6,7 @@
 extends Node
 
 const SkillBook = preload("res://core/schemas/skill_book.gd")
+const InventoryComponent = preload("res://core/components/inventory_component.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
@@ -98,6 +99,14 @@ func create_book(skill_id: String, tier: String) -> SkillBook:
 ## Create a mythic-tier book for a boss loot drop.
 func create_mythic_book(skill_id: String) -> SkillBook:
 	return create_book(skill_id, "mythic")
+
+## Runtime lookup (parse-time autoload edge in --script mode: resolve
+## through the tree, never the bare identifier -- AGENTS.md convention).
+func _inventory_service() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null(NodePath("InventoryService"))
 
 ## Purchase a common-tier book from the academy vendor.
 ## Deducts gold, returns the book item (caller should add to inventory).
@@ -231,6 +240,25 @@ func apply_upgrade(
 			"reason": "Need %d %s books, have %d" % [required_count, tier_name.capitalize(), found_books.size()]
 		}
 
+	# Consume the books from the player's REAL inventory (InventoryService
+	# is the authoritative store). The old code removed them only from the
+	# UI's local snapshot, so reopening the academy resurrected consumed
+	# books -- an infinite-book exploit. Books are stack_size 1 and
+	# interchangeable per id, so removing by id is correct even when the
+	# UI passed a stale instance list.
+	var inv: InventoryComponent = null
+	if not player_id.is_empty():
+		var inv_svc := _inventory_service()
+		if inv_svc != null and inv_svc.has_method("get_inventory"):
+			inv = inv_svc.get_inventory(player_id)
+		if inv == null:
+			return {"success": false, "reason": "Inventory not registered for player"}
+		for book in found_books:
+			var slot: int = inv.find_item(str(book.id))
+			if slot < 0:
+				return {"success": false, "reason": "Book not found in inventory"}
+			inv.remove_item(slot)
+
 	# Apply upgrade
 	var new_upgrades: Dictionary = skill_data.skill_upgrades.duplicate()
 	new_upgrades[skill_id] = next_level
@@ -238,6 +266,13 @@ func apply_upgrade(
 	skill_data.spent_skill_points += 1
 
 	upgrade_applied.emit(player_id, skill_id, next_level)
+
+	# Persist the post-consumption inventory so a reload cannot roll back
+	# the burn (same convention as InventoryService's own mutations).
+	if inv != null:
+		var inv_svc := _inventory_service()
+		if inv_svc != null and inv_svc.has_method("persist_inventory"):
+			inv_svc.persist_inventory(player_id)
 
 	return {
 		"success": true,

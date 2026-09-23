@@ -158,11 +158,17 @@ func _resolve_items(items: Array) -> Array:
 			if item_id == "" or quantity <= 0:
 				continue
 			var item: Item = null
-			# Runtime lookup: a bare DataService identifier aborts
-			# --script-mode compiles (parse-time autoload edge).
-			var ds := get_node_or_null("/root/DataService")
-			if ds != null and ds.has_method("get_item"):
-				item = ds.get_item(item_id)
+			# Skill books are runtime-generated (no .tres files exist for
+			# them): expand book_<skill>_<tier> ids through the academy
+			# catalog. Unknown skills degrade to the warn below.
+			if item_id.begins_with("book_"):
+				item = _expand_skill_book(item_id)
+			if item == null:
+				# Runtime lookup: a bare DataService identifier aborts
+				# --script-mode compiles (parse-time autoload edge).
+				var ds := get_node_or_null("/root/DataService")
+				if ds != null and ds.has_method("get_item"):
+					item = ds.get_item(item_id)
 			if item == null:
 				_log("warn", "GroundLootService: unknown item id '%s', skipped" % item_id)
 				continue
@@ -172,6 +178,28 @@ func _resolve_items(items: Array) -> Array:
 			inst.current_stack = quantity
 			resolved.append(inst)
 	return resolved
+
+
+## Expand a runtime skill-book id (book_<skill_id>_<tier>) into a
+## SkillBook item via the SkillAcademyService catalog. Returns null for
+## unknown skills/tiers -- the caller logs the skip.
+func _expand_skill_book(item_id: String) -> Item:
+	var body := item_id.trim_prefix("book_")
+	var tier := "common"
+	for t in ["common", "rare", "epic", "legendary", "mythic"]:
+		if body.ends_with("_" + t):
+			tier = t
+			body = body.trim_suffix("_" + t)
+			break
+	var academy := get_node_or_null("/root/SkillAcademyService")
+	if academy == null or not academy.has_method("create_book"):
+		_log("warn", "GroundLootService: SkillAcademyService unavailable, cannot expand %s" % item_id)
+		return null
+	var book: Item = academy.create_book(body, tier)
+	if book == null:
+		_log("warn", "GroundLootService: unknown skill book '%s', skipped" % item_id)
+		return null
+	return book
 
 func _despawn_at(options: Dictionary) -> float:
 	var seconds := float(options.get("despawn_seconds", DEFAULT_DESPAWN_SECONDS))

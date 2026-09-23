@@ -161,6 +161,13 @@ func _find_empty_slot() -> int:
 	for i in range(_inventory.size()):
 		if _inventory[i] == null:
 			return i
+	# Lazy sizing: components built via .new() (before _ready) or
+	# from_dict() with a short save array have fewer slots than
+	# max_inventory_slots -- grow instead of silently failing every
+	# subsequent add until the node enters the tree.
+	if _inventory.size() < max_inventory_slots:
+		_inventory.append(null)
+		return _inventory.size() - 1
 	return -1
 
 ## Remove item from inventory

@@ -1123,11 +1123,16 @@ func load_player_context(player_id: String) -> void:
 		return
 
 	var player_entity = EntityService.get_entity(player_id)
-	if player_entity and player_entity.has("character_data"):
+	# NOTE: Node has no .has(); use the `in` operator (4.7.2).
+	if player_entity != null and "character_data" in player_entity:
 		_skill_data = player_entity.character_data
 
 	if InventoryService:
-		var inv_items: Array = InventoryService.get_player_items(player_id)
-		for item in inv_items:
-			if item is SkillBook:
-				_inventory_books.append(item)
+		# get_player_items() never existed; the registered
+		# InventoryComponent is the authoritative item store.
+		var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+		if inv != null:
+			var inv_items: Array = inv.get_all_items()
+			for item in inv_items:
+				if item is SkillBook:
+					_inventory_books.append(item)

@@ -489,10 +489,13 @@ func _get_character_data() -> CharacterData:
 func _get_inventory_books() -> Array:
 	var books: Array = []
 	if InventoryService:
-		var items: Array = InventoryService.get_player_items(str(player_id))
-		for item in items:
-			if item is SkillBook:
-				books.append(item)
+		# get_player_items() never existed; the registered
+		# InventoryComponent is the authoritative item store.
+		var inv: InventoryComponent = InventoryService.get_inventory(str(player_id))
+		if inv != null:
+			for item in inv.get_all_items():
+				if item is SkillBook:
+					books.append(item)
 	return books
 
 func _open_skill_academy_ui() -> void:

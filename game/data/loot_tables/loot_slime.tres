@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_slime"
+name = "Slime Loot"
+description = "Drops from Slime enemies. Mostly gel and junk, rare gel-core."
+level = 1
+min_items_dropped = 0
+max_items_dropped = 2
+base_drop_chance = 1.0
+entries = [{
+"item_id": "potion_health_small",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.15,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "misc_ancient_coin",
+"min_quantity": 1,
+"max_quantity": 3,
+"drop_rate": 0.05,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_iron_ore",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.10,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "wep_iron_sword",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.01,
+"rarity_weight": 2.0,
+"is_guaranteed": false,
+"conditions": []
+}]
+currency_drops = [{
+"currency_id": "gold",
+"min_amount": 1,
+"max_amount": 4,
+"drop_rate": 0.6,
+"is_guaranteed": false
+}]

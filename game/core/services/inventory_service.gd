@@ -389,6 +389,12 @@ func _persist_inventory(player_id: String) -> void:
 		store.erase(_kv_prefix + player_id)
 
 
+## Public persist for one player (used by services that mutate an
+## InventoryComponent directly, e.g. SkillAcademyService book burns).
+func persist_inventory(player_id: String) -> void:
+	_persist_inventory(player_id)
+
+
 func persist_all_inventories() -> void:
 	var store := DictStore.new()
 	var entries: Dictionary = {}

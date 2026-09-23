@@ -206,12 +206,20 @@ func despawned_from_world() -> void:
 
 
 func _roll_and_drop_loot() -> void:
-	if loot_table_id.is_empty():
+	# Node-level loot_table_id wins; fall back to the enemy_data schema
+	# so scene-placed enemies (world_playable copies AI ranges but not
+	# every data field) and any spawn path that only sets enemy_data
+	# still roll their table.
+	var table_id := loot_table_id
+	if table_id.is_empty() and enemy_data != null:
+		table_id = str(enemy_data.loot_table_id)
+	if table_id.is_empty():
 		return
 
-	var path := "res://data/loot_tables/%s.tres" % loot_table_id
+	var path := "res://data/loot_tables/%s.tres" % table_id
 	var table: LootTable = load(path) as LootTable
 	if not table:
+		GameLog.warn("Enemy: loot table not found for id '%s' (dropping base loot only)" % table_id)
 		return
 
 	var result := table.roll_drop()

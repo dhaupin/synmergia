@@ -3,6 +3,8 @@
 extends Resource
 class_name EnemyData
 
+const LootTableResolver = preload("res://core/schemas/loot_table_resolver.gd")
+
 enum EnemyType {
 	NORMAL,
 	ELITE,
@@ -124,11 +126,12 @@ func roll_loot() -> Dictionary:
 		"items": []
 	}
 
-	# Roll against loot table if configured
+	# Roll against loot table if configured. loot_table_id is a bare
+	# table id ("loot_slime_basic"), the same convention every consumer
+	# uses; resolve it through the data directory, then tolerate a full
+	# res:// path for any direct-path authoring.
 	if not loot_table_id.is_empty():
-		var table = null
-		if ResourceLoader.exists(loot_table_id):
-			table = ResourceLoader.load(loot_table_id)
+		var table = LootTableResolver.load_table(loot_table_id)
 		if table != null:
 			var roll_result: Dictionary = table.roll_drop()
 			loot["items"] = roll_result.get("items", [])

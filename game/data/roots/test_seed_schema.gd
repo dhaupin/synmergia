@@ -138,8 +138,8 @@ func _test_canonical_length_prefix_format() -> void:
 	offset += 4 + 5
 	_assert_eq(_read_u32_le(bytes, offset), 8, "visibility_scope length prefix is 8 (instance)")
 	offset += 4 + 8
-	_assert_eq(_read_u32_le(bytes, offset), 5, "path length prefix is 5 (/a/b/c)")
-	offset += 4 + 5
+	_assert_eq(_read_u32_le(bytes, offset), 6, "path length prefix is 6 (/a/b/c)")
+	offset += 4 + 6
 	# Parameters are now per-value encoded:
 	# [len:key]["d"][len:int_value][8 bytes of int 2]
 	var key_len := _read_u32_le(bytes, offset)

@@ -49,16 +49,28 @@ func _init(p_species: String = "human", p_class: String = "warrior", p_name: Str
 	display_name = p_name
 	character_id = str(Time.get_unix_time_from_system()) + "_" + species_id
 
+## Script-mode-safe DataService resolution: a bare autoload identifier
+## aborts --script-mode compilation (parse-time autoload edge), which
+## took the whole CharacterData class down in test harnesses. Same
+## pattern as is_gm_class below.
+static func _data_service() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("DataService")
+
 static func load_species(species_id: String) -> Species:
-	if DataService:
-		return DataService.get_species(species_id)
+	var ds := _data_service()
+	if ds != null:
+		return ds.get_species(species_id) as Species
 	var path := "res://data/species/species_%s.tres" % species_id
 	var res := load(path)
 	return res if res is Species else null
 
 static func load_class(class_id: String) -> CharacterClass:
-	if DataService:
-		return DataService.get_character_class(class_id)
+	var ds := _data_service()
+	if ds != null:
+		return ds.get_character_class(class_id) as CharacterClass
 	var path := "res://data/classes/class_%s.tres" % class_id
 	var res := load(path)
 	return res if res is CharacterClass else null
@@ -89,8 +101,9 @@ func is_gm() -> bool:
 ## For admin use, get_all_classes_for_species() includes GM classes.
 static func get_available_classes_for_species(species_id: String) -> Array[CharacterClass]:
 	var result: Array[CharacterClass] = []
-	if DataService:
-		var all_classes := DataService.get_all_classes()
+	var ds := _data_service()
+	if ds != null:
+		var all_classes: Array = ds.get_all_classes()
 		for cls in all_classes:
 			if cls is CharacterClass and not is_gm_class(cls):
 				# Filter by species prefix: classes follow pattern {species}_{class}
@@ -117,8 +130,9 @@ static func get_available_classes_for_species(species_id: String) -> Array[Chara
 ## ONLY for server-side use when sending class list to admin clients.
 static func get_all_classes_for_species(species_id: String) -> Array[CharacterClass]:
 	var result: Array[CharacterClass] = []
-	if DataService:
-		var all_classes := DataService.get_all_classes()
+	var ds := _data_service()
+	if ds != null:
+		var all_classes: Array = ds.get_all_classes()
 		for cls in all_classes:
 			if cls is CharacterClass:
 				# Filter by species prefix
@@ -156,8 +170,9 @@ static func play_accepted(class_id: String, account_level: int) -> Dictionary:
 
 static func get_all_species() -> Array[Species]:
 	var result: Array[Species] = []
-	if DataService:
-		var all_species := DataService.get_all_species()
+	var ds := _data_service()
+	if ds != null:
+		var all_species: Array = ds.get_all_species()
 		for sp in all_species:
 			if sp is Species:
 				result.append(sp)

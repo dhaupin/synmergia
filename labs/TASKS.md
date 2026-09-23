@@ -1253,3 +1253,86 @@ hud_integration 7 OK.
 - Lint suites locally: charset 3/3, syntax 7/7, general 12/12, autoload
   9/9 — all exit 0, ZERO warnings. Regression battery: ui_alive 33/33,
   interaction 16/16, settings 14/14, splash 14/14, zero script errors.
+
+### [town:core] 2026-09-23 — Loot tables closed end-to-end; roots schema tests green
+- Loot chain was silently dead in 4 places; now verified live:
+  1. RESOLVER: enemy data stores bare ids ("loot_slime") but
+     EnemyData.roll_loot()/corpse.gd treated loot_table_id as a direct
+     res:// path -> every table miss. New core/schemas/
+     loot_table_resolver.gd (convention path -> direct path ->
+     DataService.get_loot_table); enemy_data + corpse use it.
+  2. DANGLING REFS: enemy_slime.tres referenced loot_slime_basic
+     (nonexistent). Rewired all enemy .tres to real table ids; created
+     data/loot_tables/loot_slime.tres (potions/coins/ore, rare sword).
+  3. DOUBLE-DIP: corpse.gd re-rolled the table + paid gold_min/max on
+     top of Enemy._roll_and_drop_loot() and KillRewards -> 2x items and
+     2x gold per kill. Corpse now does carry-loot + karma coins only;
+     table rolls exactly once per kill via the ground-drop path.
+  4. SKILL BOOKS: book_* item ids pointed at signature (non-upgradable)
+     skills and never existed as items. SkillBook extends Resource was
+     also broken (create() assigns Item fields -> runtime crash); now
+     extends Item. loot_skill_books.tres rewritten with real upgradable
+     skills (human_charge, human_rend, akkan_rune_chain_attacker,
+     synthetic_packet_flood); GroundLootService expands book_<skill>_
+     <tier> through SkillAcademyService.create_book at drop time.
+- NEW TEST: tests/test_loot_tables_live.gd (33 passed, 0 failed):
+  resolver coverage, roll_loot gold, SkillBook-as-Item, book expansion,
+  and a LIVE slime kill -> single guaranteed drop -> pickup lands in
+  inventory. Regression battery green (ground loot 42, kill rewards 21,
+  loot rules 30, combat loop 31, combat live 10, respawn live 9, scene
+  respawn 9, persistence 23, onboarding 26, touch 17). Lint 36/36.
+- data/roots/ schema tests: fixed 3 pre-existing failures. Seed test
+  author miscounted "/a/b/c" length (6, not 5) -> cascade. State schema
+  _validate mutated the caller's payload (quantize-in-place); PRD says
+  the engine enforces the 0.01m grid, so validate now REJECTS off-grid
+  floats (_is_grid_coordinate) instead of rewriting. Seed 64/64,
+  State 86/86.
+
+### [town:core] 2026-09-23 - Skill academy loop closed (books/upgrade); roots schemas review
+- Academy flow audited end-to-end. It was broken at three layers:
+  1. SkillBook extends Resource (fixed earlier today) - books could not
+     even exist as items.
+  2. EXPLOIT: SkillAcademyService.apply_upgrade consumed books only from
+     the UI's local snapshot list - never from the registered
+     InventoryComponent. Reopening the academy resurrected the burned
+     books -> infinite upgrade loop. apply_upgrade now burns matching
+     books from InventoryService.get_inventory(player_id) directly
+     (remove by id; stack_size 1 so id removal is exact) and persists
+     the inventory after consumption.
+  3. CRASH: UI load_player_context + PlayerController
+     _get_inventory_books called InventoryService.get_player_items()
+     which NEVER EXISTED -> academy UI died on open with a real
+     character. Both now read the registered InventoryComponent.
+     Also fixed Node.has("character_data") -> `in` operator.
+- Script-mode hygiene: character_data.gd had bare DataService autoload
+  refs (load_species/load_class/get_*_for_species/get_all_species) that
+  aborted --script compilation of the whole CharacterData class (took
+  down tests using the type). All resolve through a _data_service()
+  tree-lookup now (pattern already used by is_gm_class in the same
+  file); Array inference fixed for ds.get_all_*().
+- Robustness: InventoryComponent._find_empty_slot returned -1 forever
+  for .new()/from_dict components not yet in the tree (slots only
+  created in _ready) -> silent add failures. Now grows lazily up to
+  max_inventory_slots.
+- NEW TEST: tests/test_skill_academy_live.gd (25 passed, 0 failed):
+  catalog (upgradable in, signature out), SkillBook-as-Item, purchase
+  (cost/gold/no-funds), 1-of-4 rejection, upgrade success (level 1,
+  skill point spent), REAL-inventory burn (exploit guard), reopen
+  no-resurrection, tier matching (common rejected at level 2, rare
+  accepted). Regressions green: login 21, e2e 40, loot live 33, combat
+  live 10, respawn live 9, persistence 23; lint 36/36.
+- data/roots review (for the discussion): SeedSchema/StateSchema are
+  Phase-1 frame primitives (labs/prd-seed-schema.md,
+  prd-state-schema.md) consumed by core/frame/kv/{seed_chain,
+  state_tree}.gd + frame_client + ShardParameters + OpenSeedRegistry.
+  Live-game surface: ShardParameters reads roots/world/parameters/*.tres
+  (boss_defeated, season_active, respawn_rate_modifier,
+  world_event_active); OpenSeedRegistry reads roots/world/
+  instance_types (dungeon/raid/arena TTLs); scope_hierarchy.tres is a
+  ScopeNode fixture (world->shard->instance->player) consumed by
+  core/frame/srv/scope_engine + tests. environment.tres files are
+  string-only fixtures (repaired 2026-09-23, earlier entry). Seed 64/64,
+  State 86/86 after today's fixes. NOT yet bridged: PlayerProgress
+  writes the characters store via the adapter layer but does not emit
+  StateSchema-typed tree nodes; that bridge is the natural next frame
+  step (PRD state tree + D027 diffing).

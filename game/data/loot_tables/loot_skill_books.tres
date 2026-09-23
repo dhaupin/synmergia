@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "loot_skill_books"
 name = "Skill Book Drops"
-description = "Drops epic/legendary/mythic skill books. Attach to elite and boss enemies. Common and rare books are purchased at the Skill Academy."
+description = "Drops epic/legendary skill books. Attach to elite and boss enemies. Book item ids (book_<skill>_<tier>) are expanded to runtime SkillBook items by GroundLootService via SkillAcademyService.create_book. Common and rare books are purchased at the Skill Academy."
 level = 1
 min_items_dropped = 0
 max_items_dropped = 2
@@ -16,12 +16,11 @@ rarity_weights = {
 "UNCOMMON": 0.5,
 "RARE": 0.2,
 "EPIC": 0.05,
-"LEGENDARY": 0.01,
-"MYTHIC": 0.002
+"LEGENDARY": 0.01
 }
 entries = [
 {
-"item_id": "book_akkan_gravity_well_epic",
+"item_id": "book_human_battle_cry_epic",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.04,
@@ -30,7 +29,7 @@ entries = [
 "conditions": []
 },
 {
-"item_id": "book_human_time_stop_epic",
+"item_id": "book_human_rend_epic",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.04,
@@ -39,7 +38,7 @@ entries = [
 "conditions": []
 },
 {
-"item_id": "book_synthetic_full_stall_epic",
+"item_id": "book_akkan_rune_chain_attacker_epic",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.04,
@@ -48,7 +47,7 @@ entries = [
 "conditions": []
 },
 {
-"item_id": "book_human_time_warp_epic",
+"item_id": "book_synthetic_packet_flood_epic",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.04,
@@ -57,16 +56,7 @@ entries = [
 "conditions": []
 },
 {
-"item_id": "book_human_time_anchor_epic",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.03,
-"rarity_weight": 0.2,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_akkan_gravity_well_legendary",
+"item_id": "book_human_battle_cry_legendary",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.008,
@@ -75,38 +65,11 @@ entries = [
 "conditions": []
 },
 {
-"item_id": "book_human_time_stop_legendary",
+"item_id": "book_akkan_rune_chain_attacker_legendary",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.008,
 "rarity_weight": 0.05,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_synthetic_full_stall_legendary",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.008,
-"rarity_weight": 0.05,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_akkan_gravity_well_mythic",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.002,
-"rarity_weight": 0.01,
-"is_guaranteed": false,
-"conditions": []
-},
-{
-"item_id": "book_human_time_stop_mythic",
-"min_quantity": 1,
-"max_quantity": 1,
-"drop_rate": 0.002,
-"rarity_weight": 0.01,
 "is_guaranteed": false,
 "conditions": []
 }

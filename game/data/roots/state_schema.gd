@@ -52,12 +52,16 @@ func _validate(value: Dictionary) -> bool:
 		"position":
 			if not payload_val.has("x") or not payload_val.has("y") or not payload_val.has("z"):
 				return false
-			# Normalize and validate each coordinate:
-			# ints are converted to floats; floats are quantized to 0.01m.
-			payload_val["x"] = _quantize_position(payload_val["x"])
-			payload_val["y"] = _quantize_position(payload_val["y"])
-			payload_val["z"] = _quantize_position(payload_val["z"])
-			if payload_val["x"] == null or payload_val["y"] == null or payload_val["z"] == null:
+			# Positions are quantized to 0.01m at the engine level (PRD
+			# contract); the schema validates the 0.01m grid instead of
+			# silently rewriting the caller's payload during validation.
+			# Ints are accepted (exact on the grid); floats must sit on
+			# the grid (x * 100 is an integer).
+			if not _is_grid_coordinate(payload_val["x"]):
+				return false
+			if not _is_grid_coordinate(payload_val["y"]):
+				return false
+			if not _is_grid_coordinate(payload_val["z"]):
 				return false
 		"health":
 			if not payload_val.has("current") or not payload_val.has("max"):
@@ -170,16 +174,18 @@ func _type_to_enum(type_str: String) -> int:
 		"other": return 8
 	return 8
 
-# Quantize a position coordinate to 0.01m precision.
-# Returns null for non-numeric inputs (caller must reject).
-# Integers are converted to floats; floats are rounded to 2 decimal places.
-func _quantize_position(v) -> Variant:
+# Is this coordinate already on the 0.01m quantization grid?
+# Ints are exact by definition; floats must satisfy x * 100 being an
+# integer within float epsilon. Off-grid values are rejected by
+# _validate rather than rewritten (validate must not mutate input).
+func _is_grid_coordinate(v) -> bool:
 	var t: int = typeof(v)
 	if t == TYPE_INT:
-		return float(v)
-	if t == TYPE_FLOAT:
-		return roundf(v * 100.0) / 100.0
-	return null
+		return true
+	if t != TYPE_FLOAT:
+		return false
+	var scaled: float = v * 100.0
+	return absf(scaled - roundf(scaled)) < 0.0001
 
 class _CanonicalWriter:
 	var buffer: PackedByteArray = PackedByteArray()
