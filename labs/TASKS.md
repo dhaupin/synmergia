@@ -1437,3 +1437,64 @@ exit 0, zone def tree 14, lint 36/36.
 cadence); everything ephemeral is zone-scoped. Next levers if ever needed: per-zone
 scope pruning inside TickService Phase 4 (AOI diff per zone), LOD tiers on the live
 payload, and instance-scoped subtrees for dungeons.
+
+### [town:core] 2026-09-23 - Horde events end-to-end + zone-aware AOI/LOD in Phase 4
+
+The gameplay half of the horde machinery, plus the emit-side levers.
+
+- **HordeEventService** (new autoload): wave state machine (spawning ->
+  fighting -> inter_wave -> boss -> done). Mobs are produced through the
+  real Enemy data path (template stats via get_scaled_stat, AI via
+  attach_ai, EntityService registration, SpawnMetadata) in ring formation
+  around the zone center, spread MAX_SPAWNS_PER_FRAME per tick. Boss
+  finale goes through SpawnService.spawn_boss; completion is driven by
+  the boss Entity's own died signal (it has no health_component chain,
+  so its unregistration never fires on death). stop_horde sweeps every
+  mob the horde ever produced (cumulative id list) from EntityService.
+  Zone-conflict guard (one horde per zone), zone notifications via
+  NotifKind.ADMIN_ALERT, horde_* signals for UI.
+- **HordeBar** (new HUD widget): wave/remaining display next to
+  BossHealthBar; driven by horde signals through HudIntegrator; horde_id
+  guard so a second zone's horde can't hijack the bar; rejoin shows the
+  active horde via status snapshot.
+- **TickService Phase 4 - zone-aware AOI**: /world/zones/<z>/ entries
+  route by client zone membership OR chunk-box overlap of the zone's
+  spatial extent (ZoneData.zone_center/zone_radius, duck-typed); other
+  zones never leak. Non-spatial entries (character progress) always
+  reach their owner. T3 diff paths are slash-less -- normalized before
+  prefix checks (this alone had made every zone entry invisible).
+- **LOD tiers**: _get_client_lod_level now returns 1 under high flywheel
+  load (was a hardcoded TODO returning 0); L1 strips payload bytes on
+  the /world/zones/ half, keeps structure + the character half.
+- **Dead pipeline revived**: _get_player_id_from_peer called
+  PlayerManager.get_player_info() which NEVER EXISTED -- every client
+  resolved to "peer_N" and _compute_aoi_diff always returned empty;
+  Phase 4 has never actually emitted until now. Resolves through
+  get_local_player_id().
+- **Latent bugs fixed on the way**:
+  1. WorldStateProjection connected EventHub.entity_despawned expecting
+     a Node -- the signal carries (entity_id: String, reason): crash on
+     every SpawnService.despawn_enemy. Handler now duck-types both.
+  2. SpawnService.register_spawn_point_from_config passed config values
+     in the wrong positional order (respawn_time landed in the
+     species_id slot; min/max/enemy_type all shifted).
+  3. Projection _extract used Resource.get(key, default) on real
+     EnemyData (2-arg Resource.get was removed in 4.7.2) -- would have
+     crashed on every real-template projection flush; dict stubs in
+     tests had masked it. Branches on payload shape now.
+  4. Horde's spawn_boss alert_scopes=[\"zone\"] (a bare string) would
+     crash NotificationService's scope walk -- removed; metadata's own
+     AlertScope objects are used.
+
+**Verification**: new test_horde_events (34/0, stable x2: real template
+production, wave engine through real take_damage kills, change-driven
+progress, boss finale + death completion, sweep, zone guard, HordeBar
+transitions) and test_phase4_zone_aoi (17/0: peer resolution, zone
+routing, far-zone exclusion, progress delivery, L0/L1 tiers, headless
+emit). Regression green: projection 44, bridge 41, persistence 23, kill
+rewards 21, academy 25, notification frame 26, autoload audit 2, combat
+live 10, loot live 33, scene respawn 9, lint 36/36.
+
+**Next levers**: per-client distance tiers when multi-peer mapping lands
+in PlayerManager; horde configs as .tres data; wave variety (mixed
+templates per wave); horde rewards table on completion.

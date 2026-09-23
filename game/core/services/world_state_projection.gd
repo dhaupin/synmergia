@@ -66,15 +66,15 @@ func _ready() -> void:
 	if es != null:
 		if es.has_signal("entity_registered") and not es.entity_registered.is_connected(_on_entity_spawned):
 			es.entity_registered.connect(_on_entity_spawned)
-		if es.has_signal("entity_unregistered") and not es.entity_unregistered.is_connected(_on_entity_despawned):
-			es.entity_unregistered.connect(_on_entity_despawned)
+		if es.has_signal("entity_unregistered") and not es.entity_unregistered.is_connected(_on_entity_unregistered):
+			es.entity_unregistered.connect(_on_entity_unregistered)
 	if EventHub != null:
 		if EventHub.has_signal("entity_spawned") and not EventHub.entity_spawned.is_connected(_on_entity_spawned):
 			EventHub.entity_spawned.connect(_on_entity_spawned)
 		if EventHub.has_signal("entity_died") and not EventHub.entity_died.is_connected(_on_entity_died):
 			EventHub.entity_died.connect(_on_entity_died)
-		if EventHub.has_signal("entity_despawned") and not EventHub.entity_despawned.is_connected(_on_entity_despawned):
-			EventHub.entity_despawned.connect(_on_entity_despawned)
+		if EventHub.has_signal("entity_despawned") and not EventHub.entity_despawned.is_connected(_on_entity_despawned_id):
+			EventHub.entity_despawned.connect(_on_entity_despawned_id)
 		if EventHub.has_signal("damage_dealt") and not EventHub.damage_dealt.is_connected(_on_damage_dealt):
 			EventHub.damage_dealt.connect(_on_damage_dealt)
 		# Mob zone crossings re-project the entity whole under the new scope.
@@ -140,10 +140,21 @@ func _on_entity_died(entity, _killer = null, _metadata = null) -> void:
 		return
 	remove_entity(str(entity.entity_id))
 
-func _on_entity_despawned(entity, _metadata = null) -> void:
-	if entity == null:
+## EntityService.entity_unregistered carries (Node, SpawnMetadata).
+func _on_entity_unregistered(entity, _metadata = null) -> void:
+	if entity != null and is_instance_valid(entity):
+		remove_entity(str(entity.entity_id))
+
+## EventHub.entity_despawned carries an ID + reason string, not a Node
+## (SpawnService.despawn_enemy path). Duck-type the shape: id-first
+## removes the projection; node-shaped fallback for other emitters.
+func _on_entity_despawned_id(first, _reason = null) -> void:
+	if first is Node:
+		if is_instance_valid(first):
+			remove_entity(str(first.entity_id))
 		return
-	remove_entity(str(entity.entity_id))
+	if first != null:
+		remove_entity(str(first))
 
 func _on_damage_dealt(_source, target, _amount, _type) -> void:
 	if target != null and is_instance_valid(target) and "entity_id" in target:
@@ -497,18 +508,33 @@ func _is_projectable(entity) -> bool:
 func _is_player_target(target) -> bool:
 	if target == null or not (target is Node) or not is_instance_valid(target):
 		return false
-	return "entity_type" in target and target.entity_type == Entity.EntityType.PLAYER
-
-## Snapshot the projectable fields of an entity. enemy_data may be a
+	return "entity_type" in target and target.entity_type == Entity.EntityType.PLAYER## Snapshot the projectable fields of an entity. enemy_data may be a
 ## full EnemyData Resource or a stub Dictionary; both duck via .get().
+## NOTE: only Dictionaries support get(key, default) in 4.7.2 —
+## Resource.get lost its default argument, so Resource payloads take
+## the guarded branch below.
 func _extract(entity) -> Dictionary:
 	if not _is_projectable(entity):
 		return {}
 	var ed = entity.enemy_data
+	# 4.7.2: Resource.get(key, default) no longer takes a default --
+	# branch on the payload shape instead of .get() with a fallback.
+	var ed_name := ""
+	var ed_level := 1
+	if ed is Dictionary:
+		if ed.has("display_name"):
+			ed_name = str(ed["display_name"])
+		if ed.has("level"):
+			ed_level = int(ed["level"])
+	else:
+		if "display_name" in ed:
+			ed_name = str(ed.display_name)
+		if "level" in ed:
+			ed_level = int(ed.level)
 	var data := {
 		"kind": "enemy",
-		"display_name": str(ed.get("display_name", "") if ed != null else ""),
-		"level": int(ed.get("level", 1) if ed != null else 1),
+		"display_name": ed_name,
+		"level": ed_level,
 	}
 	if "display_name" in entity and str(entity.display_name) != "":
 		data["display_name"] = str(entity.display_name)

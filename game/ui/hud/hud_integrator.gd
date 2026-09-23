@@ -24,6 +24,7 @@ var _buff_bar: Node
 var _combat_log: Node
 var _target_frame: Node
 var _boss_health_bar: Node
+var _horde_bar: Node
 var _action_menu: Node
 var _minimap: Node
 var _world_map: Node
@@ -43,6 +44,7 @@ func bind(hud: CanvasLayer) -> void:
 	_combat_log = _find("CombatLog")
 	_target_frame = _find("TargetFrame")
 	_boss_health_bar = _find("BossHealthBar")
+	_horde_bar = _find("HordeBar")
 	_minimap = _find("Minimap")
 	_world_map = _find("WorldMap")
 	_chat = _find("ChatUI")
@@ -133,6 +135,60 @@ func _connect_all() -> void:
 
 	# Player position -> Minimap (poll via process loop).
 	set_process(true)
+
+	# Horde event signals -> HordeBar.
+	_bind_horde_signals()
+
+
+## HordeEventService signals -> HordeBar. Every service signal carries
+## horde_id first, so the bar only refreshes for the horde it shows
+## (a second horde starting elsewhere can't hijack the display).
+func _bind_horde_signals() -> void:
+	var svc := get_node_or_null("/root/HordeEventService")
+	if svc == null or _horde_bar == null:
+		return
+	if svc.has_signal("horde_started"):
+		svc.horde_started.connect(func(horde_id, zone_id, total_waves):
+			_horde_bar.show_horde_started(horde_id, zone_id, total_waves))
+	if svc.has_signal("horde_wave_started"):
+		svc.horde_wave_started.connect(func(horde_id, wave, total):
+			if _horde_bar.active_horde_id() == horde_id:
+				_horde_bar.show_wave_started(wave, total))
+	if svc.has_signal("horde_wave_progress"):
+		svc.horde_wave_progress.connect(func(horde_id, _wave, remaining):
+			if _horde_bar.active_horde_id() == horde_id:
+				_horde_bar.show_wave_progress(remaining))
+	if svc.has_signal("horde_wave_cleared"):
+		svc.horde_wave_cleared.connect(func(horde_id, _wave):
+			if _horde_bar.active_horde_id() == horde_id:
+				_horde_bar.show_wave_cleared())
+	if svc.has_signal("horde_boss_spawned"):
+		svc.horde_boss_spawned.connect(func(horde_id, _boss):
+			if _horde_bar.active_horde_id() == horde_id:
+				_horde_bar.show_boss())
+	if svc.has_signal("horde_completed"):
+		svc.horde_completed.connect(func(horde_id, _success):
+			if _horde_bar.active_horde_id() == horde_id:
+				_horde_bar.hide_horde())
+
+	# A horde may already be running when the HUD binds (rejoin).
+	if svc.has_method("active_horde_in_zone") and PlayerManager:
+		var pid: String = ""
+		if PlayerManager.has_method("get_local_player_id"):
+			pid = str(PlayerManager.get_local_player_id())
+		if pid != "" and svc.has_method("active_horde_in_zone"):
+			var es := get_node_or_null("/root/EntityService")
+			if es != null and es.has_method("get_entity"):
+				var player = es.get_entity(pid)
+				if player != null:
+					var zm := get_node_or_null("/root/ZoneManager")
+					if zm != null and zm.has_method("get_entity_zone_id"):
+						var zid := str(zm.get_entity_zone_id(player))
+						var horde_id: String = svc.active_horde_in_zone(zid)
+						if horde_id != "":
+							var status: Dictionary = svc.get_horde_status(horde_id)
+							status["horde_id"] = horde_id
+							_horde_bar.set_horde_state(status)
 
 
 func _push_initial_state() -> void:

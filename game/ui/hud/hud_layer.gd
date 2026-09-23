@@ -53,6 +53,7 @@ func _ready() -> void:
 	_setup_accessibility()
 	_wire_widgets()
 	_bind_to_world()
+	_install_horde_bar()
 	_install_integrator()
 	_setup_main_menu_bar()
 
@@ -81,6 +82,17 @@ func _on_high_contrast_changed(enabled: bool) -> void:
 	for child in get_children():
 		if child.has_method("update_accessibility_settings"):
 			child.update_accessibility_settings()
+
+
+## Installs the HordeBar widget (horde/wave encounter display). Lives
+## outside the .tscn so the widget is optional at runtime.
+func _install_horde_bar() -> void:
+	var HordeBarScript := load("res://ui/components/horde_bar.gd")
+	if not HordeBarScript:
+		return
+	var horde_bar: Control = HordeBarScript.new()
+	horde_bar.name = "HordeBar"
+	add_child(horde_bar)
 
 
 func _install_integrator() -> void:

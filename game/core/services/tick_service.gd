@@ -384,10 +384,14 @@ func _is_combat_input(input_data: Dictionary) -> bool:
 
 ## Get player_id from peer_id via PlayerManager or NetworkManager.
 func _get_player_id_from_peer(peer_id: int) -> String:
-	if PlayerManager:
-		var info = PlayerManager.get_player_info(peer_id)
-		if info is Dictionary:
-			return info.get("player_id", "")
+	## Single-shard authoritative model: the server's local player is
+	## the only client until peer mapping lands in PlayerManager. The
+	## old get_player_info() probe called a method that never existed,
+	## so every client resolved to "peer_N" and Phase 4 never emitted.
+	if PlayerManager and PlayerManager.has_method("get_local_player_id"):
+		var pid: String = PlayerManager.get_local_player_id()
+		if pid != "":
+			return pid
 	return "peer_%d" % peer_id
 
 ## ============================================================================
@@ -682,11 +686,21 @@ func _flatten_aoi_diff(aoi_diff: Dictionary) -> Array:
 	return result
 
 ## Get LOD level for a client (0 = full detail, 1 = summary).
+## Under high flywheel load the server degrades detail globally: a real,
+## deterministic lever (per-client distance tiering arrives with client
+## position tracking in Phase 4).
 func _get_client_lod_level(client_id: int) -> int:
-	# TODO: Determine based on distance, connection quality, etc.
+	if _flywheel_momentum >= FLYWHEEL_HIGH_THRESHOLD:
+		return 1
 	return 0
 
 ## Compute the AOI diff for a specific client.
+## Zone-aware: entries under /world/zones/<z>/... flow to a client when
+## the client is IN zone z or z's spatial box overlaps the client's AOI
+## chunk square (horde state reaches everyone in/around the horde zone,
+## and never leaks to unrelated zones). Position-bearing legacy payloads
+## keep the chunk-box filter; everything else (character progress) rides
+## the client's center chunk.
 func _compute_aoi_diff(client_id: int) -> Dictionary:
 	if EntityService == null or _state_tree == null:
 		return {}
@@ -705,6 +719,15 @@ func _compute_aoi_diff(client_id: int) -> Dictionary:
 	var max_cx: int = int(floor((pos.x + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
 	var min_cz: int = int(floor((pos.z - DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
 	var max_cz: int = int(floor((pos.z + DEFAULT_AOI_RADIUS) / float(CHUNK_SIZE)))
+	var aoi_box: Array = [min_cx, max_cx, min_cz, max_cz]
+	var center_key: String = "%d_%d" % [int(floor(pos.x / float(CHUNK_SIZE))), int(floor(pos.z / float(CHUNK_SIZE)))]
+
+	var player_zone := ""
+	var zm := get_node_or_null("/root/ZoneManager")
+	if zm != null and zm.has_method("get_entity_zone_id"):
+		var zid: Variant = zm.get_entity_zone_id(player)
+		if zid != null:
+			player_zone = str(zid)
 
 	var full_diff: Array = []
 	if _previous_root_hash.size() > 0 and _current_root_hash.size() > 0 and _previous_root_hash != _current_root_hash:
@@ -713,35 +736,126 @@ func _compute_aoi_diff(client_id: int) -> Dictionary:
 	var result: Dictionary = {}
 	for cx in range(min_cx, max_cx + 1):
 		for cz in range(min_cz, max_cz + 1):
-			var chunk_key: String = "%d_%d" % [cx, cz]
-			var chunk_min_x: float = float(cx) * float(CHUNK_SIZE)
-			var chunk_max_x: float = float(cx + 1) * float(CHUNK_SIZE)
-			var chunk_min_z: float = float(cz) * float(CHUNK_SIZE)
-			var chunk_max_z: float = float(cz + 1) * float(CHUNK_SIZE)
+			result["%d_%d" % [cx, cz]] = []
 
-			var chunk_changes: Array = []
-			for entry in full_diff:
-				if not entry is Array or entry.size() < 4:
-					continue
-				var value_bytes: PackedByteArray = entry[3]
-				if value_bytes == null or value_bytes.size() == 0:
-					continue
-				var value: Variant = bytes_to_var(value_bytes)
-				if value is Dictionary and value.has("position_x"):
-					var ex: float = float(value.get("position_x", 0.0))
-					var ez: float = float(value.get("position_z", 0.0))
-					if ex >= chunk_min_x and ex < chunk_max_x and ez >= chunk_min_z and ez < chunk_max_z:
-						chunk_changes.append(entry)
-			result[chunk_key] = chunk_changes
+	var zone_boxes: Dictionary = {}
+	for entry in full_diff:
+		if not entry is Array or entry.size() < 4:
+			continue
+		# T3 diff paths carry no leading slash (e.g. "world/zones/...");
+		# normalize so the zone prefix checks below are shape-agnostic.
+		var path: String = str(entry[0])
+		if not path.begins_with("/"):
+			path = "/" + path
+
+		# --- Zone-scoped half (horde entities + player live state) ---
+		if path.begins_with("/world/zones/"):
+			var zone_id: String = _zone_id_from_path(path)
+			if zone_id == "":
+				continue
+			if not zone_boxes.has(zone_id):
+				zone_boxes[zone_id] = _zone_chunk_box(zone_id)
+			var box: Array = zone_boxes[zone_id]
+			var include: bool = zone_id == player_zone
+			if not include and not box.is_empty() and _chunk_boxes_overlap(box, aoi_box):
+				include = true
+			if include:
+				if not result.has(center_key):
+					result[center_key] = []
+				result[center_key].append(entry)
+			continue
+
+		# --- Everything else ---
+		var value_bytes: PackedByteArray = entry[3]
+		if value_bytes == null or value_bytes.size() == 0:
+			continue
+		var value: Variant = bytes_to_var(value_bytes)
+		if value is Dictionary and value.has("position_x"):
+			var ex: float = float(value.get("position_x", 0.0))
+			var ez: float = float(value.get("position_z", 0.0))
+			var cx := int(floor(ex / float(CHUNK_SIZE)))
+			var cz := int(floor(ez / float(CHUNK_SIZE)))
+			if cx >= min_cx and cx <= max_cx and cz >= min_cz and cz <= max_cz:
+				var key: String = "%d_%d" % [cx, cz]
+				if not result.has(key):
+					result[key] = []
+				result[key].append(entry)
+		else:
+			# Character progress and other non-spatial state always
+			# reaches its owner.
+			if not result.has(center_key):
+				result[center_key] = []
+			result[center_key].append(entry)
 
 	return result
 
-## Apply LOD to a diff - distant clients get L1 summaries.
+## Extract the zone id from a zone-scoped tree path:
+## "/world/zones/<zone>/..." -> "<zone>" ("" when the shape is wrong).
+func _zone_id_from_path(path: String) -> String:
+	var prefix := "/world/zones/"
+	if not path.begins_with(prefix):
+		return ""
+	var rest := path.substr(prefix.length())
+	var slash := rest.find("/")
+	return rest.substr(0, slash) if slash >= 0 else rest
+
+## Chunk box [min_cx, max_cx, min_cz, max_cz] covering a zone's extent
+## (center +/- radius, snapped to chunks); empty when the zone is
+## unknown to ZoneManager.
+func _zone_chunk_box(zone_id: String) -> Array:
+	var zm := get_node_or_null("/root/ZoneManager")
+	if zm == null or not zm.has_method("get_zone"):
+		return []
+	var zone: Variant = zm.get_zone(zone_id)
+	if zone == null:
+		return []
+	# ZoneData carries zone_center/zone_radius; stub dictionaries in
+	# tests may use center/radius. Duck-type both shapes.
+	var center: Vector3 = Vector3.ZERO
+	var radius: float = 0.0
+	if "zone_center" in zone:
+		center = zone.zone_center
+	elif "center" in zone:
+		center = zone.center
+	if "zone_radius" in zone:
+		radius = float(zone.zone_radius)
+	elif "radius" in zone:
+		radius = float(zone.radius)
+	if radius <= 0.0:
+		return []
+	return [
+		int(floor((center.x - radius) / float(CHUNK_SIZE))),
+		int(floor((center.x + radius) / float(CHUNK_SIZE))),
+		int(floor((center.z - radius) / float(CHUNK_SIZE))),
+		int(floor((center.z + radius) / float(CHUNK_SIZE))),
+	]
+
+## Component-wise overlap of two [min_cx, max_cx, min_cz, max_cz] boxes.
+func _chunk_boxes_overlap(a: Array, b: Array) -> bool:
+	if a.size() != 4 or b.size() != 4:
+		return false
+	return int(a[0]) <= int(b[1]) and int(b[0]) <= int(a[1]) \
+			and int(a[2]) <= int(b[3]) and int(b[2]) <= int(a[3])
+
+## Apply LOD to a diff - distant/degraded clients get L1 summaries.
 func _apply_lod(client_id: int, diff: Dictionary) -> Dictionary:
-	# TODO: Determine client LOD level based on distance/priority
-	# L0 = full detail, L1 = summary only
-	# Distant clients get L1 summaries
-	return diff
+	var level := _get_client_lod_level(client_id)
+	if level <= 0:
+		return diff
+	# L1 summary: strip payload bytes on the high-volume live half
+	# (/world/zones/...). Structure (path + hashes) survives so clients
+	# can still count changes and request a targeted zone resync;
+	# low-volume entries (character progress) keep full detail.
+	var result: Dictionary = {}
+	for chunk_key in diff.keys():
+		var entries: Array = []
+		for entry in diff[chunk_key]:
+			if entry is Array and entry.size() >= 4 and str(entry[0]).begins_with("/world/zones/"):
+				entries.append([entry[0], entry[1], entry[2], PackedByteArray()])
+			else:
+				entries.append(entry)
+		result[chunk_key] = entries
+	return result
 
 ## ============================================================================
 ## PHASE 5: Persistence (async)

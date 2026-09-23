@@ -140,10 +140,15 @@ func register_spawn_point(
 
 ## Register spawn point from config
 func register_spawn_point_from_config(config: Dictionary) -> String:
+	## Positional order must match register_spawn_point's signature:
+	## (zone_id, position, enemy_template_id, species_id, respawn_time,
+	##  min_enemies, max_enemies, enemy_type). The previous mapping put
+	## respawn_time in the species_id slot and shifted the rest.
 	return register_spawn_point(
 		config.get("zone_id", ""),
 		config.get("position", Vector3.ZERO),
 		config.get("enemy_template_id", ""),
+		config.get("species_id", ""),
 		config.get("respawn_time", 60.0),
 		config.get("min_enemies", 1),
 		config.get("max_enemies", 1),
