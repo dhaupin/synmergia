@@ -65,7 +65,18 @@ CURRENT state + ACTIVE work only.
 - Guards: per-player hostility (GuardAI), watch sharing, spawn sanctuary.
 - Hordes: HordeData .tres configs (mixed-template waves, per-wave
   payouts, instance scoping), HordeEventService state machine, HordeBar
-  UI, proportional rewards, horde achievements, /horde command.
+  UI, proportional rewards, horde achievements, /horde command
+  (config_id, zone, `alert` override for open-world events).
+- Flex spawns: /boss <template> [zone] [name...] [world|zone|none]
+  (standalone bosses: world/zone/quiet metadata, multi-word names),
+  /spawn <template> [count] [zone] [level] (on-demand enemies, capped
+  at 24, level-override scaling), pure-boss-wave hordes, bossless
+  open-world hordes, mid-horde wave champions (per-wave boss_template_id
+  + boss_name, "wave champion" vs finale messaging), per-wave payouts
+  merged at boss death. Enemy.spawn_data_applied flag: pre-configured
+  level/stats survive Enemy._ready's template reload (the level-7 slime
+  regression). Demo configs: horde_haven_siege (bossless siege,
+  bosses_alert) + horde_boss_gauntlet (3 boss waves).
 - Dungeon loop: world_playable registers the authored gateway .tres
   (data/gateways/dungeon_forest_depths_entrance.tres) as a targetable
   portal; dungeon zone declares horde_config_id="vault_seal" so the
@@ -97,14 +108,15 @@ CURRENT state + ACTIVE work only.
 
 ## Test suite (run headless: `cd game && godot --headless --path . --script res://tests/<t>.gd`)
 
-Current green baseline: horde_configs 68, dungeon_portal 19,
+Current green baseline: horde_configs 68, boss_commands 52,
 horde_rewards 37, horde_events 34, phase4_aoi 17, projection 44,
 bridge 41, kill_rewards 21, guard 31, loot_tables_live 33, loot_rules
 30, duel 28, placement 54, academy 25, aggro 33, combat_loop 31,
-onboarding_live 26, e2e 40, login 21, ui_alive 33, interaction 16,
-settings 14, splash 14, touch 17, ground_loot 42, persistence 23,
-notification frame 26, state_schema, frame_authority, frame_memory,
-lint x5, parse_check, autoload_audit, entity_autoload.
+combat_pipeline, combat_live 10, entity_autoload 8, onboarding_live
+26, e2e 40, login 21, ui_alive 33, interaction 16, settings 14,
+splash 14, touch 17, ground_loot 42, persistence 23, notification
+frame 26, state_schema, frame_authority, frame_memory, lint x5,
+parse_check, autoload_audit.
 
 dungeon_portal is the end-to-end loop test: real WorldService gateway
 walk -> zone entry -> auto-start -> wave spawns -> instance pins ->
@@ -137,3 +149,8 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 - [ ] Wolf spawn-camp mitigated by sanctuary; revisit levels/positions
   when world content grows.
 - [ ] DataService horde catalog admin surface if content grows.
+- [ ] Timed open-world world-boss respawn loop (a boss that spawns
+  every few hours) now that /boss + WORLD_BOSS metadata are separated
+  from hordes.
+- [ ] /boss + /spawn smoke coverage inside a full-boot live test
+  (current coverage is script-mode).

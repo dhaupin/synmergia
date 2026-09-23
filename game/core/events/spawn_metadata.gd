@@ -44,6 +44,11 @@ enum NotificationPriority {
 	CRITICAL = 3,
 }
 
+## Sentinel metadata_type for SpawnService.spawn_boss: BOSS-class
+## metadata with notifications disabled (admin quiet spawns). Distinct
+## from the SpawnType enum so it cannot collide with a real type.
+const BOSS_SILENT := 100
+
 func _init(p_type: int = 0, p_name: String = "", p_zone: String = "", p_pos: Vector3 = Vector3.ZERO):
 	spawn_type = p_type
 	display_name = p_name

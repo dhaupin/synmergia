@@ -126,8 +126,19 @@ func start_horde(zone_id: String, config: Dictionary = {}) -> String:
 		"instance_scope": scope,
 		"template_id": template_id,
 		"wave_defs": wave_defs,
-		"boss_template_id": str(config.get("boss_template_id", template_id)),
+		# No default: a config that omits a boss (or passes "") is a
+		# BOSSLESS horde -- defaulting to the mob template would spawn a
+		# phantom finale boss out of trash mobs.
+		"boss_template_id": str(config.get("boss_template_id", "")),
 		"boss_name": str(config.get("boss_name", "")),
+		# Wave bosses announce to the zone (+ neighbors) when set: the
+		# open-world siege path. Instance hordes keep it off -- the party
+		# is already inside the dungeon.
+		"bosses_alert": bool(config.get("bosses_alert", false)),
+		# Set when the boss being fought is the horde's finale (last
+		# wave's boss or the horde-level one): its death completes the
+		# horde instead of rolling into the next wave.
+		"boss_is_finale": false,
 		"waves": waves,
 		"mobs_per_wave": maxi(1, int(config.get("mobs_per_wave", 8))),
 		"inter_wave_delay": maxf(0.0, float(config.get("inter_wave_delay", 5.0))),
@@ -331,6 +342,11 @@ func _begin_next_wave(horde_id: String) -> void:
 	horde_wave_started.emit(horde_id, next_wave, int(h["waves"]))
 	_notify_zone(str(h["zone_id"]), "Wave %d of %d incoming!" % [next_wave, int(h["waves"])],
 			"horde_wave:%s:%d" % [horde_id, next_wave])
+	# A wave that declares no mob spawns but carries a boss (pure boss
+	# wave) skips the spawn phase entirely -- an empty queue here would
+	# otherwise trip the "produced no mobs" abort in the spawn step.
+	if h["spawn_queue"].is_empty() and not _wave_boss_template(h).is_empty():
+		_spawn_boss(horde_id, h)
 
 ## Deterministic ring pattern around the zone center, spread over the
 ## radius so a wave forms a circle rather than a stack. With mixed
@@ -442,6 +458,11 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int, template_id: St
 	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
 	enemy.current_health = enemy.max_health
 
+	# Mark the pre-applied data so Enemy._ready's _load_from_data() does
+	# not clobber the scaled level back to the template's base level when
+	# add_child runs ("Wolf [3]" came out as level 1 otherwise).
+	enemy.spawn_data_applied = true
+
 	# Parent into the scene tree under this service. Without a tree
 	# presence _is_valid_combatant (KillRewards) rejects the mob, so
 	# every horde kill was creditless: no kill_rewarded, no participation
@@ -494,47 +515,70 @@ func _process_fighting(horde_id: String, h: Dictionary, delta: float) -> void:
 	h["grace_left"] = maxf(0.0, float(h["grace_left"]) - delta)
 	if float(h["grace_left"]) > 0.0:
 		return
-	# Wave cleared.
+	# Wave cleared. A wave with its own boss (wave_defs boss_template_id,
+	# or the horde-level boss on the last wave) hands off to the boss
+	# state; a bossless wave rolls into the inter-wave break.
 	var wave: int = int(h["wave_number"])
-	if wave >= int(h["waves"]):
+	var next_boss: String = _wave_boss_template(h)
+	if next_boss.is_empty() and wave >= int(h["waves"]):
+		next_boss = str(h["boss_template_id"])
+	if not next_boss.is_empty():
 		_spawn_boss(horde_id, h)
 	else:
-		# Per-wave payout: a wave_def may pay on CLEAR (merged into the
-		# completion pool so the end-of-horde proportional distribution
-		# includes it).
-		var defs: Array = h.get("wave_defs", [])
-		var wave_idx: int = wave - 1
-		if wave_idx >= 0 and wave_idx < defs.size() and defs[wave_idx] is Dictionary:
-			var wdef: Dictionary = defs[wave_idx]
-			var wgold: int = int(wdef.get("reward_gold", -1))
-			var wxp: int = int(wdef.get("reward_xp", -1))
-			if wgold >= 0:
-				h["reward_gold"] = int(h["reward_gold"]) + wgold
-			if wxp >= 0:
-				h["reward_xp"] = int(h["reward_xp"]) + wxp
+		_merge_wave_rewards(h, wave)
 		horde_wave_cleared.emit(horde_id, wave)
 		_notify_zone(str(h["zone_id"]), "Wave %d cleared!" % wave,
 				"horde_wcleared:%s:%d" % [horde_id, wave])
 		h["state"] = "inter_wave"
 		h["grace_left"] = float(h["inter_wave_delay"])
 
-## Boss finale through the shared spawn_boss pipeline.
+## The CURRENT wave's boss template: per-wave bosses (wave_defs
+## boss_template_id) take precedence; empty means the horde-level
+## finale (or a bossless horde when that is empty too).
+func _wave_boss_template(h: Dictionary) -> String:
+	var defs: Array = h.get("wave_defs", [])
+	var wave_idx: int = int(h["wave_number"]) - 1
+	if wave_idx >= 0 and wave_idx < defs.size() and defs[wave_idx] is Dictionary:
+		return str(defs[wave_idx].get("boss_template_id", ""))
+	return ""
+
+## Wave boss through the shared spawn_boss pipeline. Mid-horde wave
+## bosses roll into the next wave on death; the finale (last wave's
+## boss, or the horde-level boss after the last wave) completes the
+## horde. Bossless horde: finishing the last wave IS completion
+## (spawn_boss("") would error the template lookup).
 func _spawn_boss(horde_id: String, h: Dictionary) -> void:
-	var boss_template := str(h.get("boss_template_id", ""))
-	# Bossless horde: the config authored waves only -- finishing the last
-	# wave IS completion (spawn_boss("") would error the template lookup).
+	var boss_template := _wave_boss_template(h)
+	if boss_template.is_empty():
+		boss_template = str(h.get("boss_template_id", ""))
 	if boss_template.is_empty():
 		_finish_horde(horde_id, true)
 		return
+	var boss_name := ""
+	var defs: Array = h.get("wave_defs", [])
+	var wave_idx: int = int(h["wave_number"]) - 1
+	if wave_idx >= 0 and wave_idx < defs.size() and defs[wave_idx] is Dictionary:
+		boss_name = str(defs[wave_idx].get("boss_name", ""))
+	if boss_name.is_empty():
+		boss_name = str(h.get("boss_name", ""))
+	var is_finale: bool = int(h["wave_number"]) >= int(h["waves"])
+	h["boss_is_finale"] = is_finale
 	var ss := get_node_or_null("/root/SpawnService")
 	var zone_center: Vector3 = _zone_center_radius(str(h["zone_id"]))[0]
 	var boss = null
 	if ss != null and ss.has_method("spawn_boss"):
+		var alert_scopes: Array = []
+		if bool(h.get("bosses_alert", false)):
+			# Zone + neighbors for open-world events (a town siege wants
+			# nearby defenders). AlertScope objects only: a bare string
+			# crashes NotificationService's broadcast scope walk.
+			alert_scopes = [NotificationService.AlertScope.zone(str(h["zone_id"]), true)]
 		boss = ss.spawn_boss(
 			boss_template,
 			zone_center,
 			str(h["zone_id"]),
-			str(h["boss_name"])
+			boss_name,
+			alert_scopes
 		)
 	if boss == null:
 		GameLog.error("HordeEventService: boss spawn failed; completing horde %s as success" % horde_id)
@@ -561,7 +605,8 @@ func _spawn_boss(horde_id: String, h: Dictionary) -> void:
 	h["boss_id"] = str(boss.entity_id)
 	h["state"] = "boss"
 	horde_boss_spawned.emit(horde_id, boss)
-	_notify_zone(str(h["zone_id"]), "The horde leader has arrived!",
+	_notify_zone(str(h["zone_id"]),
+			"The horde leader has arrived!" if is_finale else "A wave champion has arrived!",
 			"horde_boss:%s" % horde_id)
 
 func _finish_horde(horde_id: String, success: bool) -> void:
@@ -717,7 +762,7 @@ func _on_entity_unregistered(entity, _metadata = null) -> void:
 	for horde_id in _hordes.keys():
 		var h: Dictionary = _hordes[horde_id]
 		if str(h["boss_id"]) == str(entity.entity_id) and str(h["state"]) == "boss":
-			_finish_horde(horde_id, true)
+			_advance_after_boss(horde_id)
 			return
 
 ## The boss Entity emits died(killer) on death; bound with horde_id.
@@ -732,7 +777,45 @@ func _on_boss_died(_killer, horde_id: String) -> void:
 	if h.is_empty():
 		return
 	if str(h["state"]) == "boss":
+		_advance_after_boss(horde_id)
+
+## A wave boss went down: the finale completes the horde; a mid-horde
+## wave boss pays its wave rewards, clears the wave, and rolls into
+## the inter-wave break (next wave follows).
+func _advance_after_boss(horde_id: String) -> void:
+	var h: Dictionary = _hordes.get(horde_id, {})
+	if h.is_empty():
+		return
+	var wave: int = int(h["wave_number"])
+	if bool(h.get("boss_is_finale", false)) or wave >= int(h["waves"]):
+		# The finale wave's own payout (wave_def reward) is merged here:
+		# its mobs were cleared into _spawn_boss (no merge on that path)
+		# and this boss death is the completion event.
+		_merge_wave_rewards(h, wave)
 		_finish_horde(horde_id, true)
+		return
+	_merge_wave_rewards(h, wave)
+	horde_wave_cleared.emit(horde_id, wave)
+	_notify_zone(str(h["zone_id"]), "Wave %d cleared!" % wave,
+			"horde_wcleared:%s:%d" % [horde_id, wave])
+	h["boss_id"] = ""
+	h["state"] = "inter_wave"
+	h["grace_left"] = float(h["inter_wave_delay"])
+
+## Per-wave payout: a wave_def may pay on CLEAR (merged into the
+## completion pool so the end-of-horde proportional distribution
+## includes it).
+func _merge_wave_rewards(h: Dictionary, wave: int) -> void:
+	var defs: Array = h.get("wave_defs", [])
+	var wave_idx: int = wave - 1
+	if wave_idx >= 0 and wave_idx < defs.size() and defs[wave_idx] is Dictionary:
+		var wdef: Dictionary = defs[wave_idx]
+		var wgold: int = int(wdef.get("reward_gold", -1))
+		var wxp: int = int(wdef.get("reward_xp", -1))
+		if wgold >= 0:
+			h["reward_gold"] = int(h["reward_gold"]) + wgold
+		if wxp >= 0:
+			h["reward_xp"] = int(h["reward_xp"]) + wxp
 
 ## Completion-side achievement credit: every participant gets "horde"
 ## tracked once; MVP (largest weight) also gets "horde_mvp". Persistence

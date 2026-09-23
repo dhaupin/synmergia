@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="HordeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/horde_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "haven_siege"
+display_name = "Siege of Haven"
+waves = [{
+"spawns": [{
+"template_id": "bandit",
+"count": 6
+}],
+"boss_template_id": "",
+"boss_name": "",
+"reward_gold": 300,
+"reward_xp": 150
+}, {
+"spawns": [{
+"template_id": "bandit",
+"count": 5
+}, {
+"template_id": "wolf",
+"count": 4
+}],
+"boss_template_id": "",
+"boss_name": "",
+"reward_gold": 400,
+"reward_xp": 200
+}, {
+"spawns": [{
+"template_id": "wolf",
+"count": 5
+}, {
+"template_id": "troll_elite",
+"count": 3
+}],
+"boss_template_id": "",
+"boss_name": "",
+"reward_gold": 500,
+"reward_xp": 250
+}]
+boss_template_id = ""
+boss_name = ""
+bosses_alert = true
+reward_gold = 1200
+reward_xp = 600
+scale_levels = true
+inter_wave_delay = 6.0
+instance_scope = ""

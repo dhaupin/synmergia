@@ -16,6 +16,14 @@ signal damage_dealt(source, target, amount: int, damage_type: String)
 @export var starting_level: int = 1
 @export var loot_table_id: String = ""
 
+## Set true by spawn pipelines (SpawnService.spawn_enemy_direct,
+## HordeEventService._produce_mob) AFTER pre-configuring level/stats/
+## health on the node. When set, _ready's _load_from_data() skips the
+## template reload that would otherwise clobber those values (a level-7
+## /spawn enemy came out as the template's level 1). Plain .new() spawns
+## leave it false and keep the default template-driven behavior.
+var spawn_data_applied: bool = false
+
 ## The health component is looked up at runtime (via _resolve_health)
 ## rather than via @onready. The @onready form used to fail in 4.7 with a
 ## "Parent path vanished" warning when the enemy was instantiated
@@ -68,6 +76,12 @@ func _ready() -> void:
 
 
 func _load_from_data() -> void:
+	if spawn_data_applied:
+		# A spawn pipeline pre-applied template data (possibly with a
+		# level override and scaled stats): re-loading from the template
+		# here would reset that work (e.g. the horde's "Wolf [3]"
+		# display suffix and the level itself). Keep everything as-is.
+		return
 	if "display_name" in enemy_data and enemy_data.display_name:
 		display_name = enemy_data.display_name
 	if "level" in enemy_data:

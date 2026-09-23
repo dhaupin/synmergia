@@ -14,9 +14,15 @@
 ## sub_resource serialization, so waves are data, not typed resources):
 ##   {
 ##     "spawns": [{"template_id": "slime", "count": 8}, ...],
+##     "boss_template_id": "",  # optional boss leading/following the wave
+##     "boss_name": "",
 ##     "reward_gold": -1,   # -1 = inherit horde-level reward
 ##     "reward_xp": -1,
 ##   }
+##
+## The format stretches: trash-and-finale (classic), bossless (open-world
+## siege), and pure boss waves (wave_defs with no spawns, one boss each)
+## all fall out of the same fields.
 ##
 ## Consumption: HordeEventService.start_horde_from_config(config_id)
 ## loads the .tres via HordeDataResolver (convention path -> DataService)
@@ -38,6 +44,10 @@ class_name HordeData
 ## Empty template_id = finish after the last wave (no boss).
 @export var boss_template_id: String = ""
 @export var boss_name: String = ""
+
+## Wave bosses announce zone+neighbors when true (open-world events);
+## dungeon hordes keep it off.
+@export var bosses_alert: bool = false
 
 ## Completion payout distributed proportionally by participation.
 @export var reward_gold: int = 0
@@ -64,6 +74,7 @@ func to_config() -> Dictionary:
 		"scale_levels": scale_levels,
 		"inter_wave_delay": inter_wave_delay,
 		"instance_scope": instance_scope,
+		"bosses_alert": bosses_alert,
 	}
 	# Bossless hordes are valid: with no boss_template_id, start_horde
 	# finishes the horde after the last wave instead of spawning a boss.
@@ -88,6 +99,8 @@ func to_config() -> Dictionary:
 						})
 				defs.append({
 					"spawns": spawns,
+					"boss_template_id": str(w.get("boss_template_id", "")),
+					"boss_name": str(w.get("boss_name", "")),
 					"reward_gold": int(w.get("reward_gold", -1)),
 					"reward_xp": int(w.get("reward_xp", -1)),
 				})

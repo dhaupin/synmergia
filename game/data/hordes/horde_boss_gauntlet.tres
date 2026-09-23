@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="HordeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/horde_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "boss_gauntlet"
+display_name = "Gauntlet of the Void"
+waves = [{
+"spawns": [],
+"boss_template_id": "void_lord",
+"boss_name": "Vault Warden",
+"reward_gold": 1500,
+"reward_xp": 700
+}, {
+"spawns": [{
+"template_id": "wolf",
+"count": 4
+}],
+"boss_template_id": "void_lord",
+"boss_name": "Void Ascendant",
+"reward_gold": 1500,
+"reward_xp": 700
+}, {
+"spawns": [{
+"template_id": "troll_elite",
+"count": 2
+}],
+"boss_template_id": "void_lord",
+"boss_name": "The Unmaker",
+"reward_gold": 2000,
+"reward_xp": 1100
+}]
+bosses_alert = false
+reward_gold = 0
+reward_xp = 0
+scale_levels = false
+inter_wave_delay = 8.0
+instance_scope = ""

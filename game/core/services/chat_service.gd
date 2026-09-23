@@ -436,6 +436,10 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_dwelling(sender_id, "plotinfo", args)
 		"horde":
 			return _cmd_horde(sender_id, args)
+		"boss":
+			return _cmd_boss(sender_id, args)
+		"spawn":
+			return _cmd_spawn(sender_id, args)
 
 	return false
 
@@ -445,11 +449,160 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 func _send_system_message(sender_id: String, message: String) -> void:
 	_notify_player(sender_id, message)
 
-## Command: /horde [<config_id>|status|stop] [zone_id]
+## Sender's tracked zone id ("" when unknown/untracked). Shared by the
+## admin spawn-side commands (/horde, /boss, /spawn).
+func _sender_zone(sender_id: String) -> String:
+	var zm = get_node_or_null(NodePath("/root/ZoneManager"))
+	if zm == null or not zm.has_method("get_entity_zone_id"):
+		return ""
+	var es = get_node_or_null(NodePath("/root/EntityService"))
+	var pm = get_node_or_null(NodePath("/root/PlayerManager"))
+	var player = null
+	if es != null and pm != null and pm.has_method("get_local_player_id"):
+		player = es.get_entity(pm.get_local_player_id())
+	if player == null:
+		return ""
+	return str(zm.get_entity_zone_id(player))
+
+## Admin gate for spawn-side commands. Sends the denial line; true when
+## the sender may proceed.
+func _require_admin(sender_id: String, command: String) -> bool:
+	var perm = get_node_or_null(NodePath("/root/PermissionManager"))
+	if perm == null or not perm.has_method("is_admin") or not perm.is_admin(sender_id):
+		_send_system_message(sender_id, "[%s] Admin permission required." % command)
+		return false
+	return true
+
+## Command: /boss <template_id> [zone_id] [name...] [world|zone|none]
+## Standalone boss spawn outside any horde: open-world world bosses on
+## a timer, dungeon bosses on instance init, scripted set pieces.
+## Goes through SpawnService.spawn_boss (the shared boss pipeline:
+## tree parenting, enemy_data for kill credit + projection, targeting,
+## KillRewards on death).
+##   alert mode (default zone):
+##     world -> WORLD_BOSS metadata + server-wide announcement
+##     zone  -> BOSS metadata, zone(+neighbors) announcement
+##     none  -> no spawn notification (quiet admin testing)
+## The name is multi-word: every arg after zone_id up to the trailing
+## alert token joins with spaces ("boss void_lord haven Mr Void world").
+## The trailing token is only consumed when it is exactly world/zone/
+## none, so plain starts keep their full name.
+## Permission: admins (PermissionManager.Level.ADMIN) only.
+func _cmd_boss(sender_id: String, args: Array) -> bool:
+	var ss = get_node_or_null(NodePath("/root/SpawnService"))
+	if ss == null or not ss.has_method("spawn_boss"):
+		return false
+	if not _require_admin(sender_id, "boss"):
+		return true
+	if args.is_empty() or str(args[0]).strip_edges() == "":
+		_send_system_message(sender_id, "[boss] Usage: /boss <template_id> [zone_id] [name] [world|zone|none]")
+		return true
+	var template_id := str(args[0]).strip_edges()
+	var zone_id := str(args[1]).strip_edges() if args.size() > 1 else _sender_zone(sender_id)
+	if zone_id.is_empty():
+		_send_system_message(sender_id, "[boss] No zone resolved (stand in one or pass zone_id).")
+		return true
+	# Trailing alert token: the LAST arg, when it is exactly world|zone|
+	# none, is the alert mode; everything between zone_id and it joins
+	# into the boss name (multi-word names without quote parsing).
+	var alert := "zone"
+	var name_end := args.size()
+	if args.size() > 2:
+		var last := str(args[args.size() - 1]).strip_edges().to_lower()
+		if last == "world" or last == "zone" or last == "none":
+			alert = last
+			name_end = args.size() - 1
+	var name_parts: Array = []
+	for i in range(2, name_end):
+		name_parts.append(str(args[i]).strip_edges())
+	var boss_name := " ".join(name_parts)
+	var metadata_type: int = SpawnMetadata.SpawnType.BOSS
+	var scopes: Array = []
+	match alert:
+		"world":
+			metadata_type = SpawnMetadata.SpawnType.WORLD_BOSS
+			scopes = [NotificationService.AlertScope.server_wide()]
+		"none":
+			metadata_type = SpawnMetadata.BOSS_SILENT  # no spawn announcement
+		_:
+			alert = "zone"
+			scopes = [NotificationService.AlertScope.zone(zone_id, true)]
+	var boss = ss.spawn_boss(template_id, _zone_spawn_pos(zone_id), zone_id, boss_name, scopes, metadata_type)
+	if boss == null:
+		_send_system_message(sender_id, "[boss] Unknown template '%s'." % template_id)
+		return true
+	_send_system_message(sender_id, "[boss] Spawned %s in %s (alert=%s)." % [
+		boss.display_name, zone_id, alert])
+	return true
+
+## Zone-center spawn position for admin commands (Vector3.ZERO when the
+## zone data is unknown -- spawn_boss/spawn_enemy_direct tolerate it).
+func _zone_spawn_pos(zone_id: String) -> Vector3:
+	var zm = get_node_or_null(NodePath("/root/ZoneManager"))
+	if zm == null or not zm.has_method("get_zone"):
+		return Vector3.ZERO
+	var zone = zm.get_zone(zone_id)
+	if zone == null:
+		return Vector3.ZERO
+	var center: Vector3 = zone.zone_center if "zone_center" in zone else Vector3.ZERO
+	return center
+
+## Command: /spawn <template_id> [count] [zone_id] [level]
+## On-demand normal-enemy spawns (admin events, playtesting). Uses
+## SpawnService.spawn_enemy_direct: full Enemy pipeline (template
+## stats, AI, registration) with no spawn-point bookkeeping. Count is
+## capped at MAX_ADMIN_SPAWN so a typo cannot flood a zone; enemies
+## ring the zone center like horde waves do.
+## Permission: admins (PermissionManager.Level.ADMIN) only.
+const MAX_ADMIN_SPAWN := 24
+
+func _cmd_spawn(sender_id: String, args: Array) -> bool:
+	var ss = get_node_or_null(NodePath("/root/SpawnService"))
+	if ss == null or not ss.has_method("spawn_enemy_direct"):
+		return false
+	if not _require_admin(sender_id, "spawn"):
+		return true
+	if args.is_empty() or str(args[0]).strip_edges() == "":
+		_send_system_message(sender_id, "[spawn] Usage: /spawn <template_id> [count] [zone_id] [level]")
+		return true
+	var template_id := str(args[0]).strip_edges()
+	var count := clampi(int(str(args[1])) if args.size() > 1 else 1, 1, MAX_ADMIN_SPAWN)
+	var zone_id := str(args[2]).strip_edges() if args.size() > 2 else _sender_zone(sender_id)
+	if zone_id.is_empty():
+		_send_system_message(sender_id, "[spawn] No zone resolved (stand in one or pass zone_id).")
+		return true
+	var level := clampi(int(str(args[3])) if args.size() > 3 else 0, 0, 100)
+	var zm = get_node_or_null(NodePath("/root/ZoneManager"))
+	var center: Vector3 = Vector3.ZERO
+	var radius := 40.0
+	if zm != null and zm.has_method("get_zone"):
+		var zone = zm.get_zone(zone_id)
+		if zone != null:
+			center = zone.zone_center if "zone_center" in zone else Vector3.ZERO
+			var zr := float(zone.zone_radius) if "zone_radius" in zone else 0.0
+			if zr > 10.0:
+				radius = minf(zr * 0.6, 60.0)
+	var spawned := 0
+	for i in range(count):
+		var angle := TAU * float(i) / float(count)
+		var pos := center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+		if ss.spawn_enemy_direct(template_id, pos, zone_id, level) != null:
+			spawned += 1
+	if spawned == 0:
+		_send_system_message(sender_id, "[spawn] Unknown template '%s'." % template_id)
+		return true
+	_send_system_message(sender_id, "[spawn] Spawned %d/%d %s in %s%s." % [
+		spawned, count, template_id, zone_id,
+		" (level %d)" % level if level > 0 else ""])
+	return true
+
+## Command: /horde [<config_id>|status|stop] [zone_id] [alert]
 ## Live trigger for data-driven horde events (data/hordes/*.tres).
 ##   /horde                      - lists available configs
 ##   /horde trollmoot            - start trollmoot in the sender's zone
 ##   /horde trollmoot westwoods  - start in an explicit zone
+##   /horde trollmoot westwoods alert - boss waves announce zone+neighbors
+##                                 (open-world events: town sieges)
 ##   /horde status               - horde status in the sender's zone
 ##   /horde stop                 - stop the horde in the sender's zone
 ## Permission: admins (PermissionManager.Level.ADMIN) only; the event
@@ -459,18 +612,9 @@ func _cmd_horde(sender_id: String, args: Array) -> bool:
 	var horde = get_node_or_null(NodePath("/root/HordeEventService"))
 	if horde == null:
 		return false
-	var pm = get_node_or_null(NodePath("/root/PlayerManager"))
-	var perm = get_node_or_null(NodePath("/root/PermissionManager"))
-	if perm == null or not perm.has_method("is_admin") or not perm.is_admin(sender_id):
-		_send_system_message(sender_id, "[horde] Admin permission required.")
-		return false
-	var player = null
-	if pm != null and pm.has_method("get_local_player_id"):
-		player = get_node_or_null(NodePath("/root/EntityService")).get_entity(pm.get_local_player_id())
-	var sender_zone := ""
-	var zm = get_node_or_null(NodePath("/root/ZoneManager"))
-	if zm != null and zm.has_method("get_entity_zone_id") and player != null:
-		sender_zone = str(zm.get_entity_zone_id(player))
+	if not _require_admin(sender_id, "horde"):
+		return true
+	var sender_zone := _sender_zone(sender_id)
 
 	var sub := str(args[0]).to_lower() if not args.is_empty() else ""
 	match sub:
@@ -507,15 +651,21 @@ func _cmd_horde(sender_id: String, args: Array) -> bool:
 			_send_system_message(sender_id, "[horde] Stopped %s." % active)
 			return true
 		_:
-			# Start: /horde <config_id> [zone_id]
+			# Start: /horde <config_id> [zone_id] [alert]
 			var config_id := str(args[0])
 			var zone_arg := str(args[1]) if args.size() > 1 else sender_zone
 			if zone_arg.is_empty():
 				_send_system_message(sender_id, "[horde] No zone resolved (stand in one or pass zone_id).")
 				return true
+			# "alert" as the third arg flips the open-world announcement
+			# mode (boss waves announce zone+neighbors). Plain starts keep
+			# the config's own bosses_alert value.
+			var overrides: Dictionary = {}
+			if args.size() > 2 and str(args[2]).to_lower() == "alert":
+				overrides["bosses_alert"] = true
 			if not horde.has_method("start_horde_from_config"):
 				return false
-			var horde_id: String = horde.start_horde_from_config(config_id, zone_arg)
+			var horde_id: String = horde.start_horde_from_config(config_id, zone_arg, overrides)
 			if horde_id == "":
 				var names: Array = horde.list_configs() if horde.has_method("list_configs") else []
 				_send_system_message(sender_id, "[horde] Unknown config '%s'. Available: %s" % [config_id, ", ".join(names)])

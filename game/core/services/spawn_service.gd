@@ -255,12 +255,21 @@ func spawn_enemy(spawn_point_id: String) -> Variant:
 	return enemy
 
 ## Spawn boss
+##
+## metadata_type picks the spawn metadata class (default WORLD_BOSS, the
+## historical behavior; SpawnMetadata.BOSS_SILENT mutes the spawn
+## announcement for admin testing). alert_scopes empty = metadata
+## default: an enabled metadata gets a server-wide announcement (an
+## empty scope list would otherwise silently reach nobody); callers
+## pass explicit scopes for zone/nearby alerts. Horde wave bosses pass
+## BOSS-type ids so a mid-horde champion does not read as a world event.
 func spawn_boss(
 	boss_template_id: String,
 	position: Vector3,
 	zone_id: String,
 	boss_name: String = "",
-	alert_scopes: Array = []
+	alert_scopes: Array = [],
+	metadata_type: int = -1
 ) -> Variant:
 	var data_service = DataService
 	if data_service == null:
@@ -292,11 +301,33 @@ func spawn_boss(
 	boss.current_health = boss_data.health
 
 	# Create spawn metadata with notification settings
-	var metadata := SpawnMetadata.world_boss(boss.display_name, zone_id, position, boss.level)
+	var mtype: int = metadata_type
+	var silent: bool = mtype == SpawnMetadata.BOSS_SILENT
+	if silent:
+		mtype = SpawnMetadata.SpawnType.BOSS
+	if mtype < 0:
+		mtype = SpawnMetadata.SpawnType.WORLD_BOSS
+	var metadata: SpawnMetadata
+	match mtype:
+		SpawnMetadata.SpawnType.WORLD_BOSS:
+			metadata = SpawnMetadata.world_boss(boss.display_name, zone_id, position, boss.level)
+		SpawnMetadata.SpawnType.ELITE:
+			metadata = SpawnMetadata.elite(boss.display_name, zone_id, position, boss.level)
+		SpawnMetadata.SpawnType.NORMAL:
+			metadata = SpawnMetadata.enemy(boss.display_name, zone_id, position, boss.level)
+		_:
+			metadata = SpawnMetadata.boss(boss.display_name, zone_id, position, boss.level)
 	metadata.faction = boss.faction
-	if alert_scopes.size() > 0:
+	if silent:
+		metadata.notification_enabled = false
+	elif alert_scopes.size() > 0:
 		metadata.notification_enabled = true
 		metadata.notification_scopes = alert_scopes
+	elif metadata.notification_enabled:
+		# Enabled metadata with an empty scope list reaches nobody
+		# (broadcast_alert walks zero scopes): default to server-wide so
+		# the classic world-boss spawn actually announces.
+		metadata.notification_scopes = [NotificationService.AlertScope.server_wide()]
 
 	# Parent into the scene tree BEFORE registration: register_entity
 	# derives the NSC-9 spatial address from global_position, which
@@ -364,6 +395,121 @@ func _on_boss_entity_died(killer, boss) -> void:
 	if boss == null or not is_instance_valid(boss):
 		return
 	KillRewards.award_kill(boss, killer)
+
+## Direct template-driven enemy spawn (admin /spawn, future event
+## systems). Unlike spawn_enemy() this has no spawn point of its own --
+## no point bookkeeping, no 30m player proximity guard -- the caller
+## supplies template, position, and zone. Same full Enemy pipeline as
+## the horde/point paths: template stats, optional species, AI from
+## EnemyData ranges, EntityService + TargetingManager registration,
+## zone entry.
+##
+## Metadata mirrors the template's enemy_type (NORMAL -> enemy,
+## ELITE/BOSS/WORLD_BOSS factories) so achievements and HUD read the
+## spawn class rather than just stats; callers may override with
+## metadata_type for scripted spawns. alert=false suppresses the spawn
+## notification (quiet admin testing / events that announce themselves).
+## Returns the spawned Enemy (null on unknown template or service miss).
+func spawn_enemy_direct(
+	template_id: String,
+	position: Vector3,
+	zone_id: String,
+	level_override: int = 0,
+	metadata_type: int = -1,
+	alert: bool = true
+) -> Variant:
+	var data_service = DataService
+	if data_service == null:
+		return null
+	var template = data_service.get_enemy(template_id)
+	if template == null:
+		GameLog.warn("SpawnService: Direct spawn template %s not found" % template_id)
+		return null
+
+	var enemy = EnemyScript.new()
+	enemy.enemy_data = template
+	enemy.display_name = template.display_name
+	enemy.entity_type = Entity.EntityType.ENEMY
+	enemy.relation = Entity.Relation.HOSTILE
+	enemy.faction_id = template.faction
+	enemy.level = template.level if level_override <= 0 else level_override
+
+	# Species when the template declares one (species modifiers shift
+	# stats, so apply before copying them).
+	if "species_id" in template and str(template.species_id) != "":
+		var species = data_service.get_species(str(template.species_id))
+		if species != null:
+			enemy.apply_species(species)
+
+	# Stats from the template; health scales with the resolved level
+	# (level_override raised spawns are tougher, matching horde scaling).
+	enemy.stats["strength"] = template.strength
+	enemy.stats["agility"] = template.agility
+	enemy.stats["intelligence"] = template.intelligence
+	enemy.stats["vitality"] = template.vitality
+	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
+	enemy.current_health = enemy.max_health
+
+	# Mark the pre-applied data so Enemy._ready's _load_from_data() does
+	# not clobber the level override (and scaled stats) back to template
+	# defaults when add_child runs.
+	enemy.spawn_data_applied = true
+
+	# Parent into the tree BEFORE registration: register_entity derives
+	# the NSC-9 spatial address from global_position (tree-required).
+	var tree := get_tree()
+	if tree != null and not enemy.is_inside_tree():
+		var parent_node: Node = tree.current_scene if tree.current_scene else tree.root
+		parent_node.add_child(enemy)
+	enemy.global_position = position
+
+	# AI configured from the template's ranges (same surface as
+	# spawn_enemy): without it the enemy stands inert.
+	var ai = EnemyAIScript.new()
+	ai.aggro_range = template.aggro_range
+	ai.chase_range = template.chase_range
+	enemy.attach_ai(ai)
+
+	var mtype: int = metadata_type
+	if mtype < 0:
+		match int(template.enemy_type):
+			EnemyData.EnemyType.ELITE:
+				mtype = SpawnMetadata.SpawnType.ELITE
+			EnemyData.EnemyType.BOSS:
+				mtype = SpawnMetadata.SpawnType.BOSS
+			EnemyData.EnemyType.WORLD_BOSS:
+				mtype = SpawnMetadata.SpawnType.WORLD_BOSS
+			_:
+				mtype = SpawnMetadata.SpawnType.NORMAL
+	var metadata := SpawnMetadata.new(mtype, enemy.display_name, zone_id, position)
+	metadata.level = enemy.level
+	metadata.faction = enemy.faction
+	metadata.notification_enabled = alert
+
+	var entity_service = EntityService
+	if entity_service:
+		entity_service.register_entity(enemy, metadata)
+
+	var targeting_manager = TargetingManager
+	if targeting_manager:
+		targeting_manager.register_targetable(
+			enemy.entity_id,
+			"enemy",
+			enemy,
+			enemy.display_name,
+			position,
+			enemy.entity_type
+		)
+
+	var zone_manager = ZoneManager
+	if zone_manager:
+		var zone = zone_manager.get_zone(zone_id)
+		if zone:
+			zone_manager.entity_enter_zone(enemy, zone)
+
+	GameLog.info("SpawnService: Direct-spawned %s (lvl %d) in %s" % [
+		enemy.display_name, enemy.level, zone_id])
+	return enemy
 
 ## Despawn a world boss
 func despawn_boss(entity) -> void:
