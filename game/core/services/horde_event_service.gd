@@ -69,6 +69,15 @@ func _ready() -> void:
 			EventHub.damage_dealt.connect(_on_damage_dealt)
 		if EventHub.has_signal("kill_rewarded") and not EventHub.kill_rewarded.is_connected(_on_kill_rewarded):
 			EventHub.kill_rewarded.connect(_on_kill_rewarded)
+	# Portal -> horde loop: a zone whose ZoneData declares horde_config_id
+	# starts that horde when the first PLAYER enters (dungeon entrance
+	# gateways drop the party into zone_dungeon_forest_depths -> the
+	# vault_seal instance horde begins). Duck-typed per the --script-mode
+	# preload lesson.
+	var zm := get_node_or_null("/root/ZoneManager")
+	if zm != null and zm.has_signal("player_entered_zone") \
+			and not zm.player_entered_zone.is_connected(_on_player_entered_zone):
+		zm.player_entered_zone.connect(_on_player_entered_zone)
 	GameLog.info("HordeEventService: Ready")
 
 ## ---------------------------------------------------------------------------
@@ -126,6 +135,10 @@ func start_horde(zone_id: String, config: Dictionary = {}) -> String:
 		"reward_gold": maxi(0, int(config.get("reward_gold", 0))),
 		"reward_xp": maxi(0, int(config.get("reward_xp", 0))),
 		"participants": {},
+		# Everyone pinned via zone entry (auto-start trigger + late
+		# joiners), tracked separately from combat participants so the
+		# sweep releases their scope pins even if they never fight.
+		"zone_entrants": {},
 		"wave_number": 0,
 		"mobs_spawned_this_wave": 0,
 		"mobs_left_to_spawn": 0,
@@ -160,19 +173,76 @@ func start_horde_from_config(config_id: String, zone_id: String, config: Diction
 		cfg[key] = config[key]
 	return start_horde(zone_id, cfg)
 
-## Horde configs available to the trigger command (data/hordes/*.tres).
+## Portal -> horde loop: the first PLAYER to enter a zone whose
+## ZoneData declares horde_config_id starts that config's horde. This
+## is the dungeon-entrance path: a gateway teleports the party into
+## zone_dungeon_forest_depths, this fires, and vault_seal begins inside
+## the instance scope. Mobs are NOT projected yet when this runs (the
+## zone-enter signal lands before the projection flush), which is fine:
+## _produce_mob pins each mob as it spawns. Re-entrancy safe: the zone
+## guard rejects a second horde while one is live, and a failed start
+## (unknown config) warns instead of blocking entry -- the party still
+## gets the dungeon, just not the event.
+func _on_player_entered_zone(player, zone) -> void:
+	if player == null or zone == null or not ("id" in zone) or not ("entity_id" in player):
+		return
+	var zid := str(zone.id)
+	var config_id := ""
+	if "horde_config_id" in zone:
+		config_id = str(zone.horde_config_id)
+	if config_id.is_empty():
+		return
+	if _has_active_horde_in_zone(zid):
+		# Late party member joining a LIVE horde: pin them to the
+		# instance scope so their AOI delivers the dungeon diff.
+		var live_id := active_horde_in_zone(zid)
+		var h: Dictionary = _hordes.get(live_id, {})
+		if not h.is_empty():
+			_pin_participant(h, str(player.entity_id))
+			h["zone_entrants"][str(player.entity_id)] = true
+		return
+	var horde_id := start_horde_from_config(config_id, zid)
+	if horde_id != "":
+		# Pin the triggering player at start: the entrant who opens the
+		# dungeon must see the horde's diffs from the first frame, not
+		# wait for their first hit. Recorded in zone_entrants so the
+		# sweep releases the pin even if they never deal damage.
+		var h: Dictionary = _hordes.get(horde_id, {})
+		if not h.is_empty():
+			_pin_participant(h, str(player.entity_id))
+			h["zone_entrants"][str(player.entity_id)] = true
+		GameLog.info("HordeEventService: auto-started '%s' from zone %s (portal trigger)" % [
+			config_id, zid])
+
+## Horde configs available to the trigger command. Merged from the
+## filesystem scan (data/hordes/*.tres, works in --script mode) and the
+## DataService catalog (get_all_hordes, the authoritative boot-time
+## load), deduped -- a config present in both appears once.
 func list_configs() -> Array:
 	var out: Array = []
 	var dir := DirAccess.open("res://data/hordes")
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var fname := dir.get_next()
-	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			out.append(fname.trim_suffix(".tres").trim_prefix("horde_"))
-		fname = dir.get_next()
-	dir.list_dir_end()
+	if dir != null:
+		dir.list_dir_begin()
+		var fname := dir.get_next()
+		while fname != "":
+			if not dir.current_is_dir() and fname.ends_with(".tres"):
+				var cid := fname.trim_suffix(".tres").trim_prefix("horde_")
+				if not out.has(cid):
+					out.append(cid)
+			fname = dir.get_next()
+		dir.list_dir_end()
+	var ds := get_node_or_null("/root/DataService")
+	if ds != null and ds.has_method("get_all_hordes"):
+		for res in ds.get_all_hordes():
+			if res == null or not res.has_method("to_config"):
+				continue
+			var cid := ""
+			if "id" in res:
+				cid = str(res.id)
+			if cid == "":
+				continue
+			if not out.has(cid):
+				out.append(cid)
 	out.sort()
 	return out
 
@@ -553,11 +623,21 @@ func _record_participation(h: Dictionary, player_id: String, kind: String, amoun
 	parts[player_id]["last_seen"] = Time.get_ticks_msec()
 	# Participants of an instance-scoped horde get their live state
 	# pinned next to the horde (their AOI resolves inside the instance).
+	_pin_participant(h, player_id)
+
+## Pin a player's live state to the horde's instance scope. Participants
+## (damage/kills) AND zone entrants both land here: an entrant must be
+## pinned at entry so their AOI receives the horde's diff entries from
+## the first frame -- waiting for their first hit would blind them to
+## the event they walked into, and late party members entering a live
+## horde would never pin at all (the start guard rejects, not re-roots).
+func _pin_participant(h: Dictionary, player_id: String) -> void:
 	var scope: String = str(h.get("instance_scope", ""))
-	if scope != "":
-		var proj := get_node_or_null("/root/WorldStateProjection")
-		if proj != null and proj.has_method("set_entity_scope_override"):
-			proj.set_entity_scope_override(player_id, scope)
+	if scope == "":
+		return
+	var proj := get_node_or_null("/root/WorldStateProjection")
+	if proj != null and proj.has_method("set_entity_scope_override"):
+		proj.set_entity_scope_override(player_id, scope)
 
 ## Proportional completion payout. Shares weight damage + kills; a top
 ## contributor takes roughly double a mid contributor. Everyone who
@@ -778,6 +858,8 @@ func _sweep_horde(h: Dictionary, reason: String) -> void:
 		for eid in h.get("all_mob_ids", []):
 			proj.clear_entity_scope_override(str(eid))
 		for pid in h.get("participants", {}):
+			proj.clear_entity_scope_override(str(pid))
+		for pid in h.get("zone_entrants", {}):
 			proj.clear_entity_scope_override(str(pid))
 	var boss_id := str(h.get("boss_id", ""))
 	if boss_id != "":

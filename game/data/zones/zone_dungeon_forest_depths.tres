@@ -29,3 +29,4 @@ loot_multiplier = 2.0
 xp_multiplier = 2.0
 is_instanced = true
 instance_capacity = 5
+horde_config_id = "vault_seal"

@@ -44,6 +44,7 @@ func _ready() -> void:
 	_setup_guards()
 	_setup_offering_npcs()
 	_setup_housing()
+	_setup_portal()
 	_setup_hud_bridge()
 	_setup_touch_hud()
 	_notify_world_entry()
@@ -358,6 +359,50 @@ func _setup_housing() -> void:
 	DwellingService.register_plot(
 		"plot_haven_1", SCENE_ZONE_ID, Vector3(-5, 0, -5), 10.0, 50000)
 	GameLog.info("WorldPlayable: demo plot registered (stand near the merchant, /buyplot)")
+
+
+## Register the scene-placed dungeon portal with WorldService from its
+## authored GatewayData .tres, and make it targetable ("teleport" type
+## -> long-press -> Enter). Walking through lands the player in the
+## dungeon zone, whose horde_config_id auto-starts vault_seal -- the
+## portal -> dungeon -> horde loop, all data-driven.
+## The GatewayRecord shape is WorldService's runtime format (from_zone/
+## to_zone/position), NOT the GatewayData schema fields, so this maps
+## between them.
+func _setup_portal() -> void:
+	var portal := get_node_or_null("DungeonPortal")
+	if portal == null:
+		return
+	# Authored config: data/gateways/<id>.tres. The portal node itself is
+	# pure visual; the .tres carries destination + requirements. Loaded by
+	# path (not class_name) -- brand-new schemas miss the global class
+	# cache until an editor import pass (the GuardData lesson).
+	var gateway_data = load("res://data/gateways/dungeon_forest_depths_entrance.tres")
+	if gateway_data == null:
+		return
+	var ws = get_node_or_null("/root/WorldService")
+	var es = EntityService
+	var tm = TargetingManager
+	if ws == null or es == null:
+		return
+	var gateway_id: String = ws.register_gateway({
+		"display_name": str(gateway_data.display_name),
+		"position": portal.global_position,
+		"from_zone": SCENE_ZONE_ID,
+		"to_zone": str(gateway_data.destination_zone_id),
+		"to_position": gateway_data.destination_position,
+		"required_level": int(gateway_data.min_level),
+		"radius": 5.0,
+		"activation_radius": 6.0,
+	})
+	if tm:
+		tm.register_targetable(
+			gateway_id, "teleport", portal,
+			str(gateway_data.display_name), portal.global_position,
+			Entity.EntityType.TELEPORT
+		)
+	GameLog.info("WorldPlayable: dungeon portal active (%s -> %s, /horde starts on entry)" % [
+		gateway_id, str(gateway_data.destination_zone_id)])
 
 
 func _setup_hud_bridge() -> void:

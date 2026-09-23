@@ -334,10 +334,20 @@ func use_gateway(gateway_id: String, entity) -> Dictionary:
 	var destination = gateway.get_destination()
 	entity.global_position = destination.position
 
-	# Enter destination zone
+	# Enter destination zone. Lazy-load zone defs when the destination
+	# is unknown (direct scene runs and headless boots skip
+	# initialize_world, same on-demand pattern as world_playable).
+	# Without this the player teleports but stays zone-less -- and the
+	# seamless detector can re-claim them into an overlapping source
+	# zone, bouncing them right back out of the dungeon.
 	var dest_zone = zone_manager.get_zone(destination.zone_id)
+	if dest_zone == null and zone_manager.has_method("load_zones"):
+		zone_manager.load_zones()
+		dest_zone = zone_manager.get_zone(destination.zone_id)
 	if dest_zone:
 		zone_manager.entity_enter_zone(entity, dest_zone)
+	else:
+		GameLog.warn("WorldService: gateway destination zone unknown: %s" % destination.zone_id)
 
 	gateway_activated.emit(gateway_id, entity)
 	EventHub.entity_teleported.emit(entity, gateway.position, destination.position)

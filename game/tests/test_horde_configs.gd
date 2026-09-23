@@ -16,6 +16,10 @@
 ##      status + stop work, unknown config rejected.
 ##   5. spawn_boss fixes: boss is in the tree, carries enemy_data, and
 ##      its death emits kill_rewarded (credited killer) + pays XP/gold.
+##   6. DataService.get_horde catalog hook (bare + prefixed id, unknown
+##      null) and list_configs() merging both sources.
+##   7. Portal -> horde loop: a player entering a zone with
+##      horde_config_id set auto-starts that config (dungeon entry).
 ##
 ## Exit 0 = all pass.
 extends SceneTree
@@ -272,6 +276,48 @@ func _run() -> void:
 					"boss kill pays XP and gold from EnemyData")
 		_assert(int(player.experience) - xp_before > 0, "boss XP landed on the player")
 		_assert(int(player.gold) - gold_before > 0, "boss gold landed on the player")
+	await process_frame
+
+	# --- 6. DataService catalog + list_configs merge -------------------------
+	var catalog = ds.get_horde("vault_seal")
+	_assert(catalog != null and catalog.has_method("to_config"), "get_horde resolves the bare id")
+	var catalog2 = ds.get_horde("horde_trollmoot")
+	_assert(catalog2 != null, "get_horde resolves the prefixed file-stem id")
+	_assert(ds.get_horde("no_such_horde") == null, "get_horde returns null on unknown id")
+	var listed: Array = horde.list_configs()
+	_assert(listed.has("trollmoot") and listed.has("vault_seal"), "list_configs carries both authored configs")
+
+	# --- 7. Portal -> horde auto-start ---------------------------------------
+	# Zone with horde_config_id set: the FIRST player entering starts it.
+	var ZoneDataScript2 = load("res://core/schemas/zone_data.gd")
+	var dungeon_zone = ZoneDataScript2.new()
+	dungeon_zone.id = "cfg_dungeon"
+	dungeon_zone.display_name = "Config Dungeon"
+	dungeon_zone.horde_config_id = "vault_seal"
+	dungeon_zone.zone_center = Vector3(50, 0, 50)
+	dungeon_zone.zone_radius = 100.0
+	zm.register_zone(dungeon_zone)
+	zm._entity_zones["cfg_helper"] = ""
+	horde.stop_horde(horde.active_horde_in_zone("cfg_dungeon"), "pre-clean") if horde.active_horde_in_zone("cfg_dungeon") != "" else null
+	var auto_id: String = horde.active_horde_in_zone("cfg_dungeon")
+	_assert(auto_id == "", "dungeon starts with no horde")
+	zm.entity_enter_zone(helper, dungeon_zone)
+	await process_frame
+	auto_id = horde.active_horde_in_zone("cfg_dungeon")
+	_assert(auto_id != "", "player entry auto-starts the zone's horde")
+	if auto_id != "":
+		_assert(str(horde._hordes[auto_id]["instance_scope"]) == "dungeon",
+				"auto-started horde uses the config's instance scope")
+	# Second player entering the same zone does NOT double-start.
+	zm.entity_enter_zone(player, dungeon_zone)
+	await process_frame
+	_assert(horde.active_horde_in_zone("cfg_dungeon") == auto_id,
+			"second entrant does not restart the horde")
+	horde.stop_horde(auto_id, "portal test done")
+	await process_frame
+	# A zone without horde_config_id never auto-starts (covered implicitly:
+	# cfg_zone has no config and hordes only ever started explicitly).
+	_assert(horde.active_horde_in_zone("cfg_zone") == "", "plain zone never auto-starts")
 	await process_frame
 
 	_finish()

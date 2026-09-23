@@ -60,6 +60,13 @@ enum PvPZoneMode {
 @export var is_instanced: bool = false
 @export var instance_capacity: int = 0  # 0 = unlimited
 
+## Horde event auto-start: when set (a HordeData id in data/hordes/),
+## the FIRST player to enter this zone starts that horde through
+## HordeEventService.start_horde_from_config (see HordeEventService
+## _on_player_entered_zone). Empty = no auto-start. Example:
+## zone_dungeon_forest_depths.tres sets this to "vault_seal".
+@export var horde_config_id: String = ""
+
 func _init() -> void:
 	if id == "":
 		id = display_name.to_lower().replace(" ", "_")

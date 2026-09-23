@@ -18,6 +18,7 @@ const StatusEffectData = preload("res://core/schemas/status_effect_data.gd")
 const QuestData = preload("res://core/schemas/quest_data.gd")
 const AchievementData = preload("res://core/schemas/achievement_data.gd")
 const GatewayData = preload("res://core/schemas/gateway_data.gd")
+const HordeData = preload("res://core/schemas/horde_data.gd")
 const Skill = preload("res://core/combat/skill.gd")
 var _skills: Dictionary = {}
 var _items: Dictionary = {}
@@ -43,6 +44,7 @@ var _quests: Dictionary = {}
 var _achievements: Dictionary = {}
 var _gateways: Dictionary = {}
 var _titles: Dictionary = {}
+var _hordes: Dictionary = {}
 
 var _data_path: String = "res://data/"
 var _loaded: bool = false
@@ -70,6 +72,7 @@ func load_all_data() -> void:
 	load_titles()
 	load_achievements()
 	load_gateways()
+	load_hordes()
 
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -219,6 +222,11 @@ func load_gateways() -> void:
 	_gateways = _scan_directory(_data_path + "gateways", "gateway")
 	GameLog.info("DataService: Loaded %d gateways" % _gateways.size())
 
+## Load horde event configs from data/hordes/
+func load_hordes() -> void:
+	_hordes = _scan_directory(_data_path + "hordes", "horde")
+	GameLog.info("DataService: Loaded %d horde configs" % _hordes.size())
+
 ## Get methods. Returns SkillSchema (the .tres class); the return type
 ## must be SkillSchema -- the global class_name Skill (combat) shadowed
 ## the intended annotation here, which made every actual load a
@@ -303,6 +311,24 @@ func get_gateway(id: String) -> GatewayData:
 		return _gateways.get(id)
 	GameLog.warn("DataService: Gateway not found: " + id)
 	return null
+
+## Horde event config lookup (data/hordes/*.tres). The HordeDataResolver
+## probes for this hook after its convention paths, so catalog-driven
+## consumers (and the /horde trigger command's listing) share one source.
+## The catalog keys on the resource's id field ("vault_seal"), but
+## callers may pass the file-stem form ("horde_vault_seal") -- the
+## prefix is normalized away so both naming styles resolve.
+func get_horde(id: String):
+	var cid := id.strip_edges().trim_prefix("horde_")
+	if _hordes.has(cid):
+		return _hordes.get(cid)
+	if _hordes.has("horde_" + cid):
+		return _hordes.get("horde_" + cid)
+	GameLog.warn("DataService: Horde config not found: " + id)
+	return null
+
+func get_all_hordes() -> Array:
+	return _hordes.values()
 
 ## Get all of a type
 func get_all_skills() -> Array:

@@ -100,6 +100,19 @@ roughness = 0.9
 [sub_resource type="BoxMesh" id="SubResource_gate_post_mesh"]
 size = Vector3(0.8, 3.2, 0.8)
 
+[sub_resource type="CylinderMesh" id="SubResource_portal_mesh"]
+top_radius = 1.4
+bottom_radius = 1.4
+height = 3.4
+
+[sub_resource type="StandardMaterial3D" id="SubResource_portal_mat"]
+albedo_color = Color(0.35, 0.1, 0.5, 0.55)
+metallic = 0.6
+roughness = 0.2
+emission_enabled = true
+emission = Color(0.45, 0.15, 0.65, 1)
+emission_energy_multiplier = 1.4
+
 [sub_resource type="StandardMaterial3D" id="SubResource_slime_mat"]
 albedo_color = Color(0.2, 0.75, 0.3, 1)
 metallic = 0.0
@@ -363,6 +376,20 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 6)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 mesh = SubResource("SubResource_gate_post_mesh")
 material_override = SubResource("SubResource_gate_post_mat")
+
+[node name="DungeonPortal" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="DungeonPortal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+mesh = SubResource("SubResource_portal_mesh")
+material_override = SubResource("SubResource_portal_mat")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="DungeonPortal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+light_color = Color(0.6, 0.25, 0.85, 1)
+light_energy = 1.6
+omni_range = 9.0
 
 [node name="MerchantNPC" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.9, -5)
