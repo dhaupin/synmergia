@@ -14,7 +14,12 @@ on:
   workflow_dispatch:
     inputs:
       run_full_suite:
-        description: 'Run all 37 Godot test suites (High action minutes cost)'
+        description: 'Run all Godot test suites (High action minutes cost)'
+        required: false
+        default: false
+        type: boolean
+      force_export:
+        description: 'Force full wasm export even on main'
         required: false
         default: false
         type: boolean
@@ -26,12 +31,19 @@ concurrency:
 
 env:
   GODOT_VERSION: "4.7.2"
+  # Exact templates dir name Godot looks up (must match the engine's
+  # version string, not the release tag).
+  TEMPLATES_DIR: "4.7.2.stable"
 
 jobs:
   validate-and-pack:
     name: Validate & Export Web PCK
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    # Historical note: the old value was 3 minutes and every run died at
+    # the syntax-check step, because a fresh checkout re-imports the whole
+    # project inside the first engine invocation. The .godot/ cache below
+    # makes warm runs take seconds; 10 minutes covers the cold import.
+    timeout-minutes: 10
     permissions:
       contents: read
       actions: read
@@ -62,64 +74,100 @@ jobs:
         run: |
           echo "/home/runner/godot-bin" >> $GITHUB_PATH
 
-      - name: Fast Syntax Check (parse only, no import)
-        run: |
-          echo "Running fast GDScript syntax check (parse only)..."
-          godot --headless --path game/ --check-only
+      # The .godot/ import cache is what makes CI viable: without it every
+      # run re-imports all assets inside the first engine boot (the old
+      # workflow's 3m07s hang). Keyed on game content + engine version.
+      - name: Cache Godot Import Cache (.godot/)
+        uses: actions/cache@v4
+        with:
+          path: game/.godot
+          key: godot-import-${{ env.GODOT_VERSION }}-${{ hashFiles('game/**', 'game/project.godot') }}
+          restore-keys: |
+            godot-import-${{ env.GODOT_VERSION }}-
 
-      - name: Quick Charset Audit
+      - name: Resource Import (incremental, also validates resources)
         run: |
-          echo "Running quick charset audit (LF-only, no BOM)..."
+          echo "Importing resources (incremental when cache hit)..."
+          godot --headless --path game/ --import
+
+      - name: Lint Charset & Syntax
+        run: |
           godot --headless --path game/ -s res://tests/lint/test_lint_charset.gd || exit 1
           godot --headless --path game/ -s res://tests/lint/test_lint_syntax.gd || exit 1
 
-      - name: Resource Import & Export Templates (only for export)
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+      - name: Smoke Tests (parse + autoload audit)
         run: |
-          echo "Importing resources for export..."
-          godot --headless --path game/ --import
-          
-          # Download export templates if not cached
-          echo "Downloading Godot 4.7.2 export templates..."
-          mkdir -p /home/runner/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-          curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o /tmp/templates.tpz
-          unzip -q /tmp/templates.tpz -d /home/runner/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
-          rm -f /tmp/templates.tpz
-
-      - name: Quick Test Suite (smoke tests)
-        run: |
-          echo "Running smoke tests..."
           godot --headless --path game/ -s res://tests/lint/test_lint_autoload.gd || exit 1
           godot --headless --path game/ -s res://tests/test_parse_check.gd || exit 1
+
+      # Fast, always: re-pack game.pck on every push (prd-web.md 3.3
+      # "PCK-Only Workflow", <5s, no engine compilation). web/game.pck is
+      # gitignore-whitelisted and tracked, so the artifact stays deployable.
+      - name: Export Web PCK (push path, per PRD strategy 2)
+        run: |
+          mkdir -p web
+          echo "Exporting Web PCK bundle..."
+          godot --headless --path game/ --export-pack "Web" "../web/game.pck"
+          ls -lh web/game.pck
 
       - name: Optional Full Test Suite
         if: ${{ github.event.inputs.run_full_suite == 'true' }}
         run: |
           echo "Executing full test suite per manual workflow dispatch..."
-          for test_script in $(find game/tests -name "*.gd" | sort); do
+          for test_script in $(find game/tests -name "test_*.gd" | sort); do
             echo "Running ${test_script}..."
             godot --headless --path game/ -s "${test_script}" || true
           done
 
-      - name: Cache Web Export Output
-        id: cache-web
+      # Full wasm bundle: PRs and manual dispatch only (PRD 3.3 - never burn
+      # free-tier minutes compiling wasm on routine pushes). The export
+      # templates download is cached; the tpz unpacks into a templates/
+      # subdir that must be flattened into the exact engine version dir.
+      - name: Cache Web Export Templates
+        id: cache-templates
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         uses: actions/cache@v4
         with:
-          path: web
-          key: ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-web-${{ hashFiles('game/**/*.gd', 'game/**/*.tres', 'game/**/*.tscn', 'game/export_presets.cfg') }}
+          path: /home/runner/.local/share/godot/export_templates/${{ env.TEMPLATES_DIR }}
+          key: godot-web-templates-${{ env.GODOT_VERSION }}
+
+      - name: Download Export Templates (if not cached)
+        if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache-templates.outputs.cache-hit != 'true'
+        run: |
+          DEST="/home/runner/.local/share/godot/export_templates/${TEMPLATES_DIR}"
+          mkdir -p "$DEST"
+          echo "Downloading Godot export templates (~800MB, cached after first run)..."
+          curl -fsSL "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o /tmp/templates.tpz
+          unzip -q /tmp/templates.tpz -d /tmp/templates/
+          # tpz contains a templates/ dir; flatten into the version dir.
+          if [ -d /tmp/templates/templates ]; then
+            mv /tmp/templates/templates/* "$DEST/"
+          else
+            mv /tmp/templates/* "$DEST/"
+          fi
+          rm -f /tmp/templates.tpz
+          ls "$DEST" | head -4
 
       - name: Export Web Game (full wasm bundle)
-        if: (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache-web.outputs.cache-hit != 'true'
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event.inputs.force_export == 'true'
         run: |
-          mkdir -p web
           echo "Exporting full Web build (wasm bundle)..."
-          godot --headless --path game/ --export "Web" "../web/game.html"
+          # Godot 4 removed --export; the release export is --export-release.
+          godot --headless --path game/ --export-release "Web" "../web/game.html"
           ls -lh web/
 
       - name: Upload Web Game Artifact
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: synmergia-web-game
-          path: web/
-          retention-days: 3
+          path: |
+            web/game.pck
+            web/game.html
+            web/game.js
+            web/game.wasm
+            web/game.png
+            web/game.audio.worklet.js
+            web/game.audio.position.worklet.js
+          retention-days: 7
+          if-no-files-found: warn

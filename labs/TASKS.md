@@ -1187,3 +1187,30 @@ hud_integration 7 OK.
   templates in sandbox -> live browser e2e pending a full export.
 - Regression: ui_alive 33/33, interaction_pipeline 16/16, zero script
   errors.
+
+### [town:core] 2026-09-23 — Web CI repair: timeout kill fixed, wasm path enabled
+- User asked "CI should export wasm right? check it": every run of
+  web-ci.yml was being cancelled by its own timeout-minutes: 3 — step
+  timestamps show "Fast Syntax Check" ran 3m07s then died. Root cause:
+  `godot --check-only` (no --script) boots the whole game headless, and a
+  fresh CI checkout has no .godot/ import cache, so the boot re-imported
+  the entire project and blew the budget. Workflow cached the Godot
+  binary but not the import cache.
+- Fixed .github/workflows/web-ci.yml:
+  - Cache game/.godot/ keyed on engine version + game content
+    (restore-keys fallback), making warm runs fast and cold runs possible
+  - timeout-minutes 3 -> 10 (covers cold import)
+  - `godot --import` as the explicit incremental import/resource gate
+    (replaces the boot-the-game "syntax check")
+  - PCK export on every push (the prd-web.md 3.3 "PCK-Only Workflow"
+    promised but never implemented): --export-pack "Web" ../web/game.pck
+  - Full wasm export path repaired: template tpz flattening (tpz puts
+    files under templates/, Godot needs them directly in
+    4.7.2.stable/), templates now cached, `--export` (removed in Godot 4)
+    -> `--export-release`; runs on PR + dispatch (+ force_export input)
+  - Artifact upload now always-on with explicit file list
+- Verified locally: --export-pack "Web" succeeds (game.pck 2.6MB ->
+  8.1MB — tracked pck was 3 days stale, missing all of this week's UI
+  fixes); test_parse_check 11/11 on the fresh build.
+- Still true: sandbox has no web export templates, so the first live
+  wasm export happens in CI on the next PR/dispatch.
