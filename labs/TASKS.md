@@ -1361,3 +1361,37 @@ hud_integration 7 OK.
   PlayerProgress integration (checkpoint -> projection -> clear).
   Regressions: persistence 23, academy 25, respawn live 9, loot live
   33, combat live 10; lint 36/36.
+
+### [town:core] 2026-09-23 - Shared world state tree; mob half of the projection
+- FrameService now owns the SHARED world state tree
+  (get_world_state_tree / touch_world_tree / world_root_hash +
+  world_state_changed signal). All frame bridges write through it, so
+  there is ONE root hash over both projection halves and client resync
+  can key off world_root_hash() (compare-last-synced, then request a
+  scope snapshot on mismatch via StateTree.get_full_scope_snapshot).
+- NEW autoload WorldStateProjection (core/services/
+  world_state_projection.gd): the mob half of the projection, closing
+  the "world entities" gap. Layout: /world/entities/<id>/identity
+  (type=other: kind/display_name/level) + /world/entities/<id>/health
+  (type=health: current/max). Wiring: EntityService
+  entity_registered/unregistered (authoritative lifecycle) +
+  EventHub entity_spawned/entity_died/entity_despawned (redundant net)
+  + damage_dealt -> mark_dirty. Health churn is coalesced on a 0.5s
+  flush: a pack pull announces ONE hash per window, not per hit. Only
+  entities carrying enemy_data project (player is PlayerProgress's
+  job); dead/despawned mobs leave the tree (respawn re-adds fresh).
+- PlayerProgress rebinds its bridge onto the shared FrameService tree
+  (script-mode/private-tree fallback preserved), so character progress
+  and world entity state are visible under one root.
+- NEW TEST: tests/test_world_state_projection.gd (29 passed, 0 failed):
+  write/read round-trip + node typing, coalesced flush (3 marks -> 1
+  write; stale ids dropped), remove semantics, shared-tree hash
+  reaction + world_state_changed signal, PlayerProgress cross-half
+  visibility under one root, live EntityService lifecycle (register ->
+  auto-project -> damage flush -> unregister -> removed), and the
+  no-enemy_data no-projection contract. Stub mob
+  (tests/stub_mob.gd) duck-types the enemy surface with
+  entity_type=2 (bitfield enum: ENEMY) and id-override registration.
+- Regressions: persistence 23, bridge 41, academy 25, respawn live 9,
+  loot live 33, combat live 10, onboarding 26, autoload audit 2; lint
+  36/36.

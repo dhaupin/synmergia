@@ -133,6 +133,7 @@ func save_player(player: Node, reason: String = "checkpoint") -> bool:
 	var bridge = _get_bridge()
 	if bridge != null:
 		bridge.write_progress(character_id, snapshot)
+		_touch_frame_tree()
 	return true
 
 
@@ -227,6 +228,7 @@ func clear_progress(character_id: String) -> void:
 	var bridge = _get_bridge()
 	if bridge != null:
 		bridge.clear_progress(character_id)
+		_touch_frame_tree()
 
 
 ## Diagnostics: last snapshot captured for a character ({} if none).
@@ -303,5 +305,25 @@ func state_tree_bridge():
 
 func _get_bridge():
 	if _bridge == null:
-		_bridge = ProgressBridgeScript.new()
+		_bridge = ProgressBridgeScript.new(_world_tree_for_bridge())
 	return _bridge
+
+
+## The shared world state tree lives on FrameService (single root hash
+## for character + world entity projections). Script mode / early boot:
+## null -> the bridge owns a private tree with identical semantics.
+func _world_tree_for_bridge():
+	if get_tree() != null:
+		var fs: Node = get_tree().root.get_node_or_null("FrameService")
+		if fs != null and fs.has_method("get_world_state_tree"):
+			return fs.get_world_state_tree()
+	return null
+
+
+## Announce a bridge mutation so FrameService re-folds the root hash
+## and emits world_state_changed (client resync keys off it).
+func _touch_frame_tree() -> void:
+	if get_tree() != null:
+		var fs: Node = get_tree().root.get_node_or_null("FrameService")
+		if fs != null and fs.has_method("touch_world_tree"):
+			fs.touch_world_tree()

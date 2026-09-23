@@ -16,6 +16,11 @@ const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 signal frame_entered(player_id: String, frame_id: String, frame_seed: PackedByteArray)
 signal frame_exited(player_id: String, frame_id: String)
 
+## Emitted whenever the shared world state tree's root hash changes.
+## Client resync keys off this: compare the hash you last synced
+## against world_root_hash() and request a scope snapshot on mismatch.
+signal world_state_changed(root_hash: PackedByteArray)
+
 class FrameEnv:
 	var frame_id: String
 	var frame_seed: PackedByteArray
@@ -32,6 +37,13 @@ class FrameEnv:
 
 var _player_frames: Dictionary = {}   # player_id -> Array[FrameEnv]
 var _player_state_trees: Dictionary = {}  # player_id -> StateTreeScript
+
+## Shared world state tree (outside any frame): the canonical runtime
+## projection of character + world entity state. The frame bridges
+## write into it (core/frame/bridge/*); every mutation announces the
+## new root hash via world_state_changed so resync can key off it.
+var _world_state_tree: StateTreeScript = null
+var _world_root_hash: PackedByteArray = PackedByteArray()
 
 func _ready() -> void:
 	GameLog.info("FrameService: Ready")
@@ -143,3 +155,31 @@ func get_current_frame_id(player_id: String) -> String:
 	if stack.is_empty():
 		return ""
 	return stack[-1].frame_id
+
+
+## ---------------------------------------------------------------------------
+## Shared world state tree
+## ---------------------------------------------------------------------------
+
+## The canonical world state tree (outside any frame). Created lazily;
+## every writer writes through touch_world_tree() so the root hash and
+## the change signal stay authoritative in ONE place.
+func get_world_state_tree() -> StateTreeScript:
+	if _world_state_tree == null:
+		_world_state_tree = StateTreeScript.new()
+	return _world_state_tree
+
+## Announce a mutation: recompute the root hash, emit world_state_changed.
+## Writers call this AFTER their inserts (hash_subtree("/") reflects the
+## current tree). Safe to call multiple times for one batch.
+func touch_world_tree() -> void:
+	var tree := get_world_state_tree()
+	var hash: PackedByteArray = tree.root_hash()
+	if hash != _world_root_hash:
+		_world_root_hash = hash
+		world_state_changed.emit(hash)
+
+## Last announced root hash of the shared world tree (empty when no
+## state has been written yet).
+func world_root_hash() -> PackedByteArray:
+	return _world_root_hash
