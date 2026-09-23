@@ -28,6 +28,7 @@ const EnemyDataScript = preload("res://core/schemas/enemy_data.gd")
 const EnemyAIScript = preload("res://core/ai/enemy_ai.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const HordeDataResolver = preload("res://core/schemas/horde_data_resolver.gd")
 
 ## Mob production limits per wave tick (all-or-nothing batch would
 ## hitch the frame; this spreads 100 mobs over several frames).
@@ -51,6 +52,9 @@ const KILL_WEIGHT := 50.0
 ## horde_id -> horde state Dictionary (see _start_horde_state).
 var _hordes: Dictionary = {}
 var _next_horde_num: int = 1
+## instance_id -> horde_id: one live horde per dungeon/arena instance
+## (the zone-conflict guard's instance analogue).
+var _instance_hordes: Dictionary = {}
 
 func _ready() -> void:
 	var es := get_node_or_null("/root/EntityService")
@@ -92,10 +96,15 @@ func start_horde(zone_id: String, config: Dictionary = {}) -> String:
 		return ""
 
 	var template_id := str(config.get("template_id", ""))
-	if template_id.is_empty():
+	var wave_defs: Array = config.get("wave_defs", [])
+	if template_id.is_empty() and wave_defs.is_empty():
 		template_id = _template_for_zone(zid)
-	if template_id.is_empty():
+	if template_id.is_empty() and wave_defs.is_empty():
 		GameLog.warn("HordeEventService: no template for horde in zone %s" % zid)
+		return ""
+	var scope: String = str(config.get("instance_scope", ""))
+	if scope != "" and _instance_hordes.has(scope):
+		GameLog.warn("HordeEventService: instance %s already has an active horde" % scope)
 		return ""
 
 	var horde_id := "horde_%s_%d" % [zid, _next_horde_num]
@@ -105,7 +114,9 @@ func start_horde(zone_id: String, config: Dictionary = {}) -> String:
 	var h := {
 		"id": horde_id,
 		"zone_id": zid,
+		"instance_scope": scope,
 		"template_id": template_id,
+		"wave_defs": wave_defs,
 		"boss_template_id": str(config.get("boss_template_id", template_id)),
 		"boss_name": str(config.get("boss_name", "")),
 		"waves": waves,
@@ -126,6 +137,8 @@ func start_horde(zone_id: String, config: Dictionary = {}) -> String:
 		"grace_left": 0.0,
 	}
 	_hordes[horde_id] = h
+	if scope != "":
+		_instance_hordes[scope] = horde_id
 
 	horde_started.emit(horde_id, zid, waves)
 	_notify_zone(zid, "A horde approaches %s! (%d waves)" % [zid, waves],
@@ -133,14 +146,51 @@ func start_horde(zone_id: String, config: Dictionary = {}) -> String:
 	_begin_next_wave(horde_id)
 	return horde_id
 
+## Data-driven entry point: load a HordeData config by id and start it.
+## config_id matches the .tres stem in data/hordes/ ("trollmoot" ->
+## horde_trollmoot.tres). Runtime config overrides beat the file.
+## Returns horde_id ("" on unknown config or start failure).
+func start_horde_from_config(config_id: String, zone_id: String, config: Dictionary = {}) -> String:
+	var res = HordeDataResolver.load_config(config_id)
+	if res == null or not res.has_method("to_config"):
+		GameLog.warn("HordeEventService: unknown horde config '%s'" % config_id)
+		return ""
+	var cfg: Dictionary = res.to_config()
+	for key in config:
+		cfg[key] = config[key]
+	return start_horde(zone_id, cfg)
+
+## Horde configs available to the trigger command (data/hordes/*.tres).
+func list_configs() -> Array:
+	var out: Array = []
+	var dir := DirAccess.open("res://data/hordes")
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var fname := dir.get_next()
+	while fname != "":
+		if not dir.current_is_dir() and fname.ends_with(".tres"):
+			out.append(fname.trim_suffix(".tres").trim_prefix("horde_"))
+		fname = dir.get_next()
+	dir.list_dir_end()
+	out.sort()
+	return out
+
 ## Stop a horde: sweeps all living horde mobs, cancels pending spawns.
 func stop_horde(horde_id: String, reason: String = "stopped") -> void:
 	var h: Dictionary = _hordes.get(horde_id, {})
 	if h.is_empty():
 		return
 	_hordes.erase(horde_id)
+	_unbind_instance_scope(h)
 	_sweep_horde(h, reason)
 	horde_completed.emit(horde_id, false)
+
+## Free the instance slot so the next instance horde can start.
+func _unbind_instance_scope(h: Dictionary) -> void:
+	var scope: String = str(h.get("instance_scope", ""))
+	if scope != "" and str(_instance_hordes.get(scope, "")) == str(h.get("id", "")):
+		_instance_hordes.erase(scope)
 
 ## The one active horde in a zone ("" when none).
 func active_horde_in_zone(zone_id: String) -> String:
@@ -213,7 +263,9 @@ func _begin_next_wave(horde_id: String) -> void:
 			"horde_wave:%s:%d" % [horde_id, next_wave])
 
 ## Deterministic ring pattern around the zone center, spread over the
-## radius so a wave forms a circle rather than a stack.
+## radius so a wave forms a circle rather than a stack. With mixed
+## wave_defs, each slot carries its own template_id (spawns are laid
+## out count-first, interleaved around the ring).
 func _build_spawn_queue(h: Dictionary) -> Array:
 	var center_radius := _zone_center_radius(str(h["zone_id"]))
 	var center: Vector3 = center_radius[0]
@@ -221,11 +273,49 @@ func _build_spawn_queue(h: Dictionary) -> Array:
 	if float(center_radius[1]) > 10.0:
 		radius = minf(float(center_radius[1]) * 0.6, 60.0)
 	var queue: Array = []
-	for i in range(int(h["mobs_per_wave"])):
-		var angle := TAU * float(i) / float(int(h["mobs_per_wave"]))
+	var total := _wave_mob_total(h)
+	if total <= 0:
+		return queue
+	var defs: Array = h.get("wave_defs", [])
+	var wave_idx: int = int(h["wave_number"]) - 1
+	var spawns: Array = []
+	if wave_idx >= 0 and wave_idx < defs.size() and defs[wave_idx] is Dictionary:
+		spawns = defs[wave_idx].get("spawns", [])
+	# Expand per-template counts into ordered template ids (trash first,
+	# elites later -- content order reads as escalation around the ring).
+	var templates: Array = []
+	if spawns.is_empty():
+		for _i in range(total):
+			templates.append(str(h["template_id"]))
+	else:
+		for s in spawns:
+			if s is Dictionary:
+				var n: int = int(s.get("count", 0))
+				var tid: String = str(s.get("template_id", ""))
+				if tid != "":
+					for _i in range(n):
+						templates.append(tid)
+	for i in range(templates.size()):
+		var angle := TAU * float(i) / float(templates.size())
 		var pos := center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
-		queue.append({"pos": pos, "angle": angle})
+		queue.append({"pos": pos, "angle": angle, "template_id": templates[i]})
 	return queue
+
+## Total mobs the CURRENT wave produces: the wave_def's spawn counts,
+## or the flat mobs_per_wave for plain hordes.
+func _wave_mob_total(h: Dictionary) -> int:
+	var defs: Array = h.get("wave_defs", [])
+	var wave_idx: int = int(h["wave_number"]) - 1
+	if wave_idx >= 0 and wave_idx < defs.size() and defs[wave_idx] is Dictionary:
+		return WaveMobCount(defs[wave_idx])
+	return int(h["mobs_per_wave"])
+
+static func WaveMobCount(wave_def: Dictionary) -> int:
+	var n: int = 0
+	for s in wave_def.get("spawns", []):
+		if s is Dictionary:
+			n += int(s.get("count", 0))
+	return n
 
 ## Spread the spawn batch over frames; each spawn is the full Enemy
 ## pipeline (data -> stats -> AI -> services -> metadata).
@@ -236,7 +326,7 @@ func _process_spawn_queue(horde_id: String, h: Dictionary, _delta: float) -> voi
 		var level: int = 0
 		if bool(h["scale_levels"]):
 			level = int(h["wave_number"]) - 1
-		var mob = _produce_mob(h, slot["pos"], level)
+		var mob = _produce_mob(h, slot["pos"], level, str(slot.get("template_id", h["template_id"])))
 		if mob != null:
 			h["mobs_spawned_this_wave"] += 1
 			h["mobs_spawned_ids"].append(str(mob.entity_id))
@@ -253,11 +343,13 @@ func _process_spawn_queue(horde_id: String, h: Dictionary, _delta: float) -> voi
 		h["grace_left"] = 0.0
 		h["last_living"] = -1
 
-func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int):
+func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int, template_id: String = ""):
 	var ds := get_node_or_null("/root/DataService")
+	if template_id.is_empty():
+		template_id = str(h["template_id"])
 	var template = null
 	if ds != null and ds.has_method("get_enemy"):
-		template = ds.get_enemy(str(h["template_id"]))
+		template = ds.get_enemy(template_id)
 	if template == null:
 		return null
 
@@ -279,14 +371,16 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int):
 
 	enemy.max_health = template.get_scaled_stat(template.health, enemy.level)
 	enemy.current_health = enemy.max_health
-	enemy.global_position = pos
 
 	# Parent into the scene tree under this service. Without a tree
 	# presence _is_valid_combatant (KillRewards) rejects the mob, so
 	# every horde kill was creditless: no kill_rewarded, no participation
 	# kill credit, no per-kill rewards. The service node is always in
 	# the tree (autoload), so this works headless and in-world alike.
+	# Parent BEFORE assigning global_position -- setting it on a node
+	# outside the tree errors once per spawn (get_global_transform).
 	add_child(enemy)
+	enemy.global_position = pos
 
 	# Same AI attachment surface as the Enemy API (sets _ai + add_child).
 	enemy.attach_ai(EnemyAIScript.new())
@@ -300,6 +394,14 @@ func _produce_mob(h: Dictionary, pos: Vector3, extra_level: int):
 	if es == null or not es.has_method("register_entity"):
 		return null
 	es.register_entity(enemy, metadata)
+
+	# Instance-scoped hordes pin their mobs under /world/instances/<scope>/
+	# in the state tree (dungeon state stays out of overworld snapshots).
+	var scope: String = str(h.get("instance_scope", ""))
+	if scope != "":
+		var proj := get_node_or_null("/root/WorldStateProjection")
+		if proj != null and proj.has_method("set_entity_scope_override"):
+			proj.set_entity_scope_override(str(enemy.entity_id), scope)
 
 	var zm := get_node_or_null("/root/ZoneManager")
 	var zone = _zone_data(str(h["zone_id"]))
@@ -327,6 +429,19 @@ func _process_fighting(horde_id: String, h: Dictionary, delta: float) -> void:
 	if wave >= int(h["waves"]):
 		_spawn_boss(horde_id, h)
 	else:
+		# Per-wave payout: a wave_def may pay on CLEAR (merged into the
+		# completion pool so the end-of-horde proportional distribution
+		# includes it).
+		var defs: Array = h.get("wave_defs", [])
+		var wave_idx: int = wave - 1
+		if wave_idx >= 0 and wave_idx < defs.size() and defs[wave_idx] is Dictionary:
+			var wdef: Dictionary = defs[wave_idx]
+			var wgold: int = int(wdef.get("reward_gold", -1))
+			var wxp: int = int(wdef.get("reward_xp", -1))
+			if wgold >= 0:
+				h["reward_gold"] = int(h["reward_gold"]) + wgold
+			if wxp >= 0:
+				h["reward_xp"] = int(h["reward_xp"]) + wxp
 		horde_wave_cleared.emit(horde_id, wave)
 		_notify_zone(str(h["zone_id"]), "Wave %d cleared!" % wave,
 				"horde_wcleared:%s:%d" % [horde_id, wave])
@@ -335,12 +450,18 @@ func _process_fighting(horde_id: String, h: Dictionary, delta: float) -> void:
 
 ## Boss finale through the shared spawn_boss pipeline.
 func _spawn_boss(horde_id: String, h: Dictionary) -> void:
+	var boss_template := str(h.get("boss_template_id", ""))
+	# Bossless horde: the config authored waves only -- finishing the last
+	# wave IS completion (spawn_boss("") would error the template lookup).
+	if boss_template.is_empty():
+		_finish_horde(horde_id, true)
+		return
 	var ss := get_node_or_null("/root/SpawnService")
 	var zone_center: Vector3 = _zone_center_radius(str(h["zone_id"]))[0]
 	var boss = null
 	if ss != null and ss.has_method("spawn_boss"):
 		boss = ss.spawn_boss(
-			str(h["boss_template_id"]),
+			boss_template,
 			zone_center,
 			str(h["zone_id"]),
 			str(h["boss_name"])
@@ -349,6 +470,16 @@ func _spawn_boss(horde_id: String, h: Dictionary) -> void:
 		GameLog.error("HordeEventService: boss spawn failed; completing horde %s as success" % horde_id)
 		_finish_horde(horde_id, true)
 		return
+	# Instance-scoped hordes pin their boss too: the boss carries
+	# enemy_data, so it projects like a mob -- unpinned it would leak
+	# into the overworld zone snapshot (the leak instance scoping
+	# exists to prevent). The died->completion binding below still
+	# fires: it watches the signal, not the projection path.
+	var scope: String = str(h.get("instance_scope", ""))
+	if scope != "" and "entity_id" in boss:
+		var proj := get_node_or_null("/root/WorldStateProjection")
+		if proj != null and proj.has_method("set_entity_scope_override"):
+			proj.set_entity_scope_override(str(boss.entity_id), scope)
 	# alert_scopes=[] keeps the metadata's own scope objects (a bare
 	# string like "zone" would crash NotificationService's broadcast
 	# when it walks the scopes array).
@@ -368,6 +499,7 @@ func _finish_horde(horde_id: String, success: bool) -> void:
 	if h.is_empty():
 		return
 	_hordes.erase(horde_id)
+	_unbind_instance_scope(h)
 	if success:
 		var rewards := _distribute_rewards(horde_id, h)
 		_track_horde_achievements(horde_id, h, rewards)
@@ -419,6 +551,13 @@ func _record_participation(h: Dictionary, player_id: String, kind: String, amoun
 		parts[player_id] = {"damage": 0, "kills": 0, "last_seen": 0}
 	parts[player_id][kind] = int(parts[player_id][kind]) + amount
 	parts[player_id]["last_seen"] = Time.get_ticks_msec()
+	# Participants of an instance-scoped horde get their live state
+	# pinned next to the horde (their AOI resolves inside the instance).
+	var scope: String = str(h.get("instance_scope", ""))
+	if scope != "":
+		var proj := get_node_or_null("/root/WorldStateProjection")
+		if proj != null and proj.has_method("set_entity_scope_override"):
+			proj.set_entity_scope_override(player_id, scope)
 
 ## Proportional completion payout. Shares weight damage + kills; a top
 ## contributor takes roughly double a mid contributor. Everyone who
@@ -504,15 +643,14 @@ func _on_entity_unregistered(entity, _metadata = null) -> void:
 ## The boss Entity emits died(killer) on death; bound with horde_id.
 ## Bosses are bare Entities (no health chain), so unregistration never
 ## fires on death -- this signal IS the boss-completion trigger.
-## KillRewards never sees boss deaths (award_kill is Enemy._on_died's
-## job and spawn_boss produces a bare Entity), so the finishing blow's
-## kill participation is attributed here, from the signal's killer.
-func _on_boss_died(killer, horde_id: String) -> void:
+## Kill participation for the boss blow comes from SpawnService's
+## _on_boss_entity_died -> KillRewards.award_kill -> kill_rewarded
+## (connected before this one, while the horde is still live) -- do
+## NOT re-attribute here or the finishing blow double-counts.
+func _on_boss_died(_killer, horde_id: String) -> void:
 	var h: Dictionary = _hordes.get(horde_id, {})
 	if h.is_empty():
 		return
-	if killer != null and "entity_id" in killer:
-		_record_participation(h, str(killer.entity_id), "kills", 1)
 	if str(h["state"]) == "boss":
 		_finish_horde(horde_id, true)
 
@@ -633,6 +771,14 @@ func _sweep_horde(h: Dictionary, reason: String) -> void:
 				if es.has_method("unregister_entity"):
 					es.unregister_entity(e, "horde_sweep")
 				e.queue_free()
+	# Release instance-scope pins (mobs + participants) so the next
+	# horde's state starts from a clean scope.
+	var proj := get_node_or_null("/root/WorldStateProjection")
+	if proj != null and proj.has_method("clear_entity_scope_override"):
+		for eid in h.get("all_mob_ids", []):
+			proj.clear_entity_scope_override(str(eid))
+		for pid in h.get("participants", {}):
+			proj.clear_entity_scope_override(str(pid))
 	var boss_id := str(h.get("boss_id", ""))
 	if boss_id != "":
 		var es2 := get_node_or_null("/root/EntityService")

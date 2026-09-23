@@ -434,7 +434,94 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_dwelling(sender_id, "buildhouse", args)
 		"plotinfo":
 			return _cmd_dwelling(sender_id, "plotinfo", args)
+		"horde":
+			return _cmd_horde(sender_id, args)
 
+	return false
+
+## Deliver a one-player system line (command feedback). Delegates to
+## _notify_player (NotificationService typed pipeline) -- same path the
+## other command feedback uses.
+func _send_system_message(sender_id: String, message: String) -> void:
+	_notify_player(sender_id, message)
+
+## Command: /horde [<config_id>|status|stop] [zone_id]
+## Live trigger for data-driven horde events (data/hordes/*.tres).
+##   /horde                      - lists available configs
+##   /horde trollmoot            - start trollmoot in the sender's zone
+##   /horde trollmoot westwoods  - start in an explicit zone
+##   /horde status               - horde status in the sender's zone
+##   /horde stop                 - stop the horde in the sender's zone
+## Permission: admins (PermissionManager.Level.ADMIN) only; the event
+## broadcasts zone-wide notifications and moves world state, so a
+## random player cannot spam it.
+func _cmd_horde(sender_id: String, args: Array) -> bool:
+	var horde = get_node_or_null(NodePath("/root/HordeEventService"))
+	if horde == null:
+		return false
+	var pm = get_node_or_null(NodePath("/root/PlayerManager"))
+	var perm = get_node_or_null(NodePath("/root/PermissionManager"))
+	if perm == null or not perm.has_method("is_admin") or not perm.is_admin(sender_id):
+		_send_system_message(sender_id, "[horde] Admin permission required.")
+		return false
+	var player = null
+	if pm != null and pm.has_method("get_local_player_id"):
+		player = get_node_or_null(NodePath("/root/EntityService")).get_entity(pm.get_local_player_id())
+	var sender_zone := ""
+	var zm = get_node_or_null(NodePath("/root/ZoneManager"))
+	if zm != null and zm.has_method("get_entity_zone_id") and player != null:
+		sender_zone = str(zm.get_entity_zone_id(player))
+
+	var sub := str(args[0]).to_lower() if not args.is_empty() else ""
+	match sub:
+		"":
+			# List available configs.
+			var names: Array = horde.list_configs() if horde.has_method("list_configs") else []
+			if names.is_empty():
+				_send_system_message(sender_id, "[horde] No horde configs found in data/hordes/.")
+			else:
+				_send_system_message(sender_id, "[horde] Configs: %s" % ", ".join(names))
+			return true
+		"status":
+			if sender_zone == "":
+				_send_system_message(sender_id, "[horde] You are not in a tracked zone.")
+				return true
+			var active: String = horde.active_horde_in_zone(sender_zone) if horde.has_method("active_horde_in_zone") else ""
+			if active == "":
+				_send_system_message(sender_id, "[horde] No active horde in %s." % sender_zone)
+			else:
+				var st: Dictionary = horde.get_horde_status(active)
+				_send_system_message(sender_id, "[horde] %s: wave %d/%d, %d remain, state=%s" % [
+					active, int(st.get("wave_number", 0)), int(st.get("waves", 0)),
+					int(st.get("remaining", 0)), str(st.get("state", ""))])
+			return true
+		"stop":
+			if sender_zone == "":
+				_send_system_message(sender_id, "[horde] You are not in a tracked zone.")
+				return true
+			var active: String = horde.active_horde_in_zone(sender_zone) if horde.has_method("active_horde_in_zone") else ""
+			if active == "":
+				_send_system_message(sender_id, "[horde] No active horde in %s." % sender_zone)
+				return true
+			horde.stop_horde(active, "stopped by %s" % sender_id)
+			_send_system_message(sender_id, "[horde] Stopped %s." % active)
+			return true
+		_:
+			# Start: /horde <config_id> [zone_id]
+			var config_id := str(args[0])
+			var zone_arg := str(args[1]) if args.size() > 1 else sender_zone
+			if zone_arg.is_empty():
+				_send_system_message(sender_id, "[horde] No zone resolved (stand in one or pass zone_id).")
+				return true
+			if not horde.has_method("start_horde_from_config"):
+				return false
+			var horde_id: String = horde.start_horde_from_config(config_id, zone_arg)
+			if horde_id == "":
+				var names: Array = horde.list_configs() if horde.has_method("list_configs") else []
+				_send_system_message(sender_id, "[horde] Unknown config '%s'. Available: %s" % [config_id, ", ".join(names)])
+				return true
+			_send_system_message(sender_id, "[horde] Started %s in %s." % [horde_id, zone_arg])
+			return true
 	return false
 
 ## Command: /buyplot /placeguard /placeankh /dismissguard /buildhouse /plotinfo

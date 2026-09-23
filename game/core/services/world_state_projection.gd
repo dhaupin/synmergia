@@ -53,6 +53,11 @@ var _schema: StateSchemaScript = null
 var _identity_pending: Dictionary = {}
 ## entity_id -> last projected health pair; skips writes when unchanged.
 var _last_health: Dictionary = {}
+## entity_id -> scope token override ("instance:<scope>"). Stamped by
+## HordeEventService for instance-scoped hordes so a dungeon horde's
+## mobs (and participating players' live nodes) project under
+## /world/instances/<scope>/ instead of a /world/zones/ scope.
+var _scope_overrides: Dictionary = {}
 ## player_id -> last projected live payload (String form for compare).
 var _last_player_live: Dictionary = {}
 ## players currently projected (for snapshot + teardown).
@@ -484,6 +489,15 @@ func snapshot_for_zone(zone_id: String) -> Array:
 	# deterministic); the client AOI culls from here.
 	return snapshot.slice(0, MAX_ZONE_SNAPSHOT_NODES)
 
+## Bounded instance-scoped snapshot (dungeon/arena resyncs). Same cap
+## and contract as snapshot_for_zone, under /world/instances/<scope>/.
+func snapshot_for_instance(scope: String) -> Array:
+	var sid := _safe_zone(scope)
+	var snapshot: Array = _tree().get_full_scope_snapshot("/world/instances/%s" % sid)
+	if snapshot.size() <= MAX_ZONE_SNAPSHOT_NODES:
+		return snapshot
+	return snapshot.slice(0, MAX_ZONE_SNAPSHOT_NODES)
+
 ## Which zones currently hold projected state (diagnostics + tests).
 func active_zones() -> Array:
 	return _active_zones.keys()
@@ -549,18 +563,31 @@ func _extract(entity) -> Dictionary:
 static func _safe_zone(zone_id: String) -> String:
 	return zone_id.strip_edges().replace("/", "_")
 
+## Scope token -> tree path prefix. Plain tokens are zone ids
+## (/world/zones/<z>/...); "instance:<scope>" tokens live under the
+## instance subtree (/world/instances/<scope>/...) so instance state
+## never bloats overworld zone snapshots.
+static func _scope_base(zone_or_scope: String, leaf_kind: String, id: String) -> String:
+	var token := str(zone_or_scope)
+	var safe := id.replace("/", "_")
+	if token.begins_with("instance:"):
+		var scope := _safe_zone(token.trim_prefix("instance:"))
+		return "/world/instances/%s/%s/%s/" % [scope, leaf_kind, safe]
+	return "/world/zones/%s/%s/%s/" % [_safe_zone(token), leaf_kind, safe]
+
 static func _entity_base(zone_id: String, entity_id: String) -> String:
-	# Guard the path namespace: no slashes in ids or zones.
-	var safe := entity_id.replace("/", "_")
-	return "/world/zones/%s/entities/%s/" % [_safe_zone(zone_id), safe]
+	return _scope_base(zone_id, "entities", entity_id)
 
 static func _player_base(zone_id: String, player_id: String) -> String:
-	var safe := player_id.replace("/", "_")
-	return "/world/zones/%s/players/%s/" % [_safe_zone(zone_id), safe]
+	return _scope_base(zone_id, "players", player_id)
 
-## Live zone membership: ZoneManager's tracked id, or "unzoned" fallback
-## so entities outside any registered zone still project deterministically.
+## Live scope for an entity: explicit instance override first, then
+## ZoneManager's tracked zone id, else "unzoned" (deterministic fallback
+## so entities outside any registered zone still project).
 func _entity_zone_id(entity_id: String) -> String:
+	var override: String = str(_scope_overrides.get(entity_id, ""))
+	if override != "":
+		return override
 	var zm := get_node_or_null("/root/ZoneManager")
 	if zm != null and zm.has_method("get_entity_zone_id"):
 		var entity = null
@@ -572,6 +599,45 @@ func _entity_zone_id(entity_id: String) -> String:
 			if zid != null and str(zid) != "":
 				return str(zid)
 	return "unzoned"
+
+## ---------------------------------------------------------------------------
+## Instance scope overrides (dungeon/arena hordes)
+## ---------------------------------------------------------------------------
+
+## Pin an entity's projected state under /world/instances/<scope>/.
+## Callers: HordeEventService stamps horde mobs and (on participation)
+## players for instance-scoped hordes. Empty scope clears the pin.
+func set_entity_scope_override(entity_id: String, scope: String) -> void:
+	var eid := entity_id.strip_edges()
+	var sc := scope.strip_edges()
+	if eid.is_empty():
+		return
+	if sc.is_empty():
+		_scope_overrides.erase(eid)
+		# Health re-resolves against ZoneManager on the next flush.
+		_last_health.erase(eid)
+		return
+	_scope_overrides[eid] = "instance:" + sc
+	# Re-resolve on the next flush so identity + health move together.
+	_last_health.erase(eid)
+
+func clear_entity_scope_override(entity_id: String) -> void:
+	set_entity_scope_override(entity_id, "")
+
+## Current override token ("" when none). TickService reads this to
+## route instance-scoped diff entries to participating clients.
+func get_entity_scope_override(entity_id: String) -> String:
+	return str(_scope_overrides.get(entity_id, ""))
+
+## Instance scopes that currently hold projected state (for teardown
+## and diagnostics).
+func active_instance_scopes() -> Array:
+	var scopes: Array = []
+	for eid in _projected_zone:
+		var token := str(_projected_zone[eid])
+		if token.begins_with("instance:") and not scopes.has(token):
+			scopes.append(token)
+	return scopes
 
 ## Queue one insert/update through TickService's command buffer so the
 ## write lands in the next tick's atomic Phase-2 batch (one re-root for

@@ -731,6 +731,18 @@ func _client_far_from_any_horde_zone(player_id: String) -> bool:
 		return false
 	return not active_zones.has(str(player_zone))
 
+## Extract the instance scope token from a diff path
+## "/world/instances/<scope>/..." -> "<scope>" ("" otherwise).
+func _instance_scope_from_path(path: String) -> String:
+	var p := path.strip_edges()
+	if not p.begins_with("/"):
+		p = "/" + p
+	if not p.begins_with("/world/instances/"):
+		return ""
+	var rest: String = p.trim_prefix("/world/instances/")
+	var slash: int = rest.find("/")
+	return rest.substr(0, slash) if slash > 0 else ""
+
 ## Compute the AOI diff for a specific client.
 ## Zone-aware: entries under /world/zones/<z>/... flow to a client when
 ## the client is IN zone z or z's spatial box overlaps the client's AOI
@@ -800,6 +812,25 @@ func _compute_aoi_diff(client_id: int) -> Dictionary:
 				if not result.has(center_key):
 					result[center_key] = []
 				result[center_key].append(entry)
+			continue
+
+		# --- Instance-scoped half (dungeon/arena hordes) ---
+		if path.begins_with("/world/instances/"):
+			var scope: String = _instance_scope_from_path(path)
+			if scope == "":
+				continue
+			# Deliver when the client's player is pinned to this instance
+			# (horde participants) or inside it via zone membership
+			# (ZoneManager tracks dungeon zones as instance:<scope> for
+			# these hordes' residents). Everyone else never sees it.
+			var pinned: String = "instance:" + scope
+			var proj := get_node_or_null("/root/WorldStateProjection")
+			if proj != null and proj.has_method("get_entity_scope_override"):
+				var player_override: String = str(proj.get_entity_scope_override(player_id))
+				if player_override == pinned:
+					if not result.has(center_key):
+						result[center_key] = []
+					result[center_key].append(entry)
 			continue
 
 		# --- Everything else ---

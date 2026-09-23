@@ -10,9 +10,8 @@ const KillRewards = preload("res://core/services/kill_rewards.gd")
 ## Mirror of the Entity damage event with explicit damage_type, consumed
 ## by the HUD bridge (world_playable) and CombatSystem listeners.
 signal damage_dealt(source, target, amount: int, damage_type: String)
+# enemy_data lives on base Entity (entity.gd) so bosses/elites carry it too.
 
-
-@export var enemy_data: Resource
 @export var starting_health: int = 30
 @export var starting_level: int = 1
 @export var loot_table_id: String = ""

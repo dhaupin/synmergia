@@ -1575,3 +1575,97 @@ parse bugs repaired, then extended with tests + fixes).
   33, academy 25, persistence 23, achievement_flow 17, respawn (exit
   0), parse_check 11, lint battery x5 (exit 0). The app_firewall
   parse-check noise is pre-existing at HEAD (verified via git stash).
+
+### [town:core] 2026-09-23 - Horde configs as .tres + instance subtrees + /horde command (crash recovery #2)
+Continued the second crashed session's in-flight work (uncommitted diff
+reviewed, verified, extended, and shipped).
+
+#### What the crashed session had already built (verified intact)
+- **HordeData schema** (`core/schemas/horde_data.gd`): data-driven horde
+  configs under `data/hordes/*.tres` -- MIXED-TEMPLATE waves (each wave
+  carries its own enemy template ids + optional per-wave reward), boss
+  finale, scale_levels, inter_wave_delay, and an `instance_scope` field
+  (dungeon/raid/arena; matches data/roots/world/instance_types/).
+- **HordeDataResolver** (`core/schemas/horde_data_resolver.gd`):
+  convention-path loader (loot_table_resolver pattern: bare id ->
+  `data/hordes/<id>.tres` -> `horde_<id>.tres` -> future DataService
+  hook). Duck-types on `to_config()` (GuardData lesson: new schemas miss
+  the global class cache until an editor import pass).
+- **Two authored configs**: `horde_trollmoot.tres` (3 mixed waves: 8
+  slime -> 6 slime + 4 wolf -> 6 wolf + 2 troll_elite, Chieftain boss,
+  1500g/800xp, zone-scoped) and `horde_vault_seal.tres` (2 waves,
+  Void Lord "Vault Warden" boss, 3000g/1500xp, instance_scope=dungeon).
+- **HordeEventService**: `start_horde_from_config()` (file + runtime
+  override merge), `list_configs()` (dir scan for the trigger command),
+  mixed-template spawn queues (count-first expansion, escalation order
+  around the ring), per-wave reward merge into the completion pool,
+  instance-scope guard (one horde per instance, analogue of the zone
+  guard), mob + participant scope pins.
+- **Instance-scoped subtrees**: WorldStateProjection `_scope_base()` --
+  "instance:<scope>" tokens project under `/world/instances/<scope>/`
+  instead of `/world/zones/`; `set/clear/get_entity_scope_override`,
+  `snapshot_for_instance()` (same 2000-node cap as zones),
+  `active_instance_scopes()`. TickService routes `/world/instances/`
+  diff entries ONLY to clients pinned to that instance or inside it
+  (everyone else never sees dungeon state).
+- **/horde command** (ChatService, admin-gated via PermissionManager):
+  `/horde` lists configs, `/horde <id> [zone]` starts, `/horde status`,
+  `/horde stop`; feedback through NotificationService.notify.
+- **Apply-to-bosses fixes**: `enemy_data` moved from Enemy to base
+  Entity (bare-Entity bosses must carry the template for rewards +
+  projection); spawn_boss parents the boss into the scene tree (kill
+  credit was impossible -- KillRewards rejects out-of-tree combatants)
+  and routes boss deaths through `KillRewards.award_kill` via a
+  `died` -> `_on_boss_entity_died` binding (bare Entities skip
+  Enemy._on_died, so boss kills NEVER paid XP/gold, never advanced
+  quests, never counted as horde participation). Horde's own
+  _on_boss_died no longer re-attributes the killing blow (kill_rewarded
+  already credited it -- double-count guard).
+
+#### Bugs fixed while verifying the in-flight code
+1. **Phantom waves**: `HordeData.to_config()` never emitted `waves`, so
+   `start_horde` defaulted to 3 and a 2-def config spawned an empty
+   wave 3. to_config now emits `waves = waves.size()`.
+2. **Bossless hordes crashed**: the doc promised "empty boss_template_id
+   = finish after last wave" but the code called spawn_boss("").
+   _spawn_boss now completes the horde cleanly on empty template.
+3. **Instance horde boss leaked into the overworld**: mobs got pinned
+   to /world/instances/<scope>/ but the boss (which now projects, since
+   it carries enemy_data) never did -- it would have appeared in the
+   ZONE snapshot, exactly the leak instance scoping exists to prevent.
+   _spawn_boss pins the boss too.
+4. **Per-spawn engine errors**: `enemy.global_position = pos` BEFORE
+   add_child -> "!is_inside_tree()" get_global_transform error for
+   every single mob (22+ per horde run); same pattern in spawn_boss
+   PLUS register_entity derives the NSC-9 spatial address from
+   global_position, so the boss also errored inside register_entity.
+   Both reordered: parent -> position -> register. Given this repo's
+   log-spam disk-full history, per-event engine spam is a real hazard.
+5. **reward_enemy_stub parse break**: the stub re-declared `enemy_data`,
+   which now exists on base Entity ("member already exists in parent
+   class") -> test_kill_rewards cascaded to 6/2. Declaration removed.
+6. **Test seam expiry**: PermissionManager._validation_cache TTL is 5s;
+   the horde run takes ~20s, so the admin stamp expired before the
+   /horde command block (all 6 command assertions failed). Test
+   re-stamps before section 4.
+
+#### New test: tests/test_horde_configs.gd (59 passed, 0 failed, x2)
+Resolver (convention/prefixed/unknown + to_config fields), the FULL
+mixed-template horde through the real pipeline (wave 1 all slimes,
+wave 2 = 6 slime + 4 wolf, wave 3 carries 2 elites, boss finale,
+completion, proportional rewards with kills accumulating across
+waves), the instance horde (mobs + participants pinned to
+instance:dungeon, snapshot_for_instance reads it, zone snapshot clean,
+second-horde-in-instance rejected, sweep releases every pin), the
+/horde command (non-admin denied, list, start, status, stop, unknown
+config), and the spawn_boss credit fixes (in-tree, carries enemy_data,
+death emits kill_rewarded credited to the killer, XP/gold land).
+
+#### Verification
+- NEW suite 59/0 (x2, stable). Regression green: horde_rewards 37,
+  horde_events 34, phase4_aoi 17, projection 44, bridge 41, kill
+  rewards 21 (repaired), guard 31, loot live 33, aggro 33, e2e 40,
+  combat live 10; lint x5 (autoload/charset/general/indentation/syntax)
+  all exit 0; parse_check OK. test_horde_configs runs with ZERO engine
+  errors (was 22+ get_global_transform errors per run) and zero SCRIPT
+  ERRORs.

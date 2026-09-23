@@ -98,6 +98,12 @@ var pending_respawn: bool = false         # Waiting to respawn
 # Faction
 var faction_id: String = ""
 
+## Enemy template for combat-relevant Entities (Enemy mobs, and bosses
+## spawned as bare Entities). Carrying it on the base class lets the
+## kill-reward, loot and state-projection paths treat bosses and elites
+## exactly like regular enemies (duck-typed "enemy_data" in entity).
+@export var enemy_data: Resource
+
 ## Allegiance alias used by EntityService.is_enemy and combat code
 ## ("entity.faction == Entity.Relation.HOSTILE"). Kept as a getter/setter
 ## pair over `relation` so the two fields can never disagree.

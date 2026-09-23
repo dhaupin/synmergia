@@ -11,6 +11,7 @@ const NPCEntity = preload("res://core/entities/npc_entity.gd")
 # Entity.new() and Entity.EntityType.X, which requires Entity's
 # class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
+const KillRewards = preload("res://core/services/kill_rewards.gd")
 const EnemyScript = preload("res://entities/enemy.gd")
 const EnemyAIScript = preload("res://core/ai/enemy_ai.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
@@ -276,6 +277,10 @@ func spawn_boss(
 	boss.level = boss_data.level
 	boss.faction = Entity.Relation.HOSTILE
 	boss.faction_id = boss_data.faction
+	# Carry the template on the node: KillRewards reads enemy_data for
+	# xp/gold, achievement listeners classify boss/elite, and
+	# WorldStateProjection only projects entities carrying enemy_data.
+	boss.enemy_data = boss_data
 
 	# Apply stats from template
 	boss.stats["strength"] = boss_data.strength
@@ -292,6 +297,20 @@ func spawn_boss(
 	if alert_scopes.size() > 0:
 		metadata.notification_enabled = true
 		metadata.notification_scopes = alert_scopes
+
+	# Parent into the scene tree BEFORE registration: register_entity
+	# derives the NSC-9 spatial address from global_position, which
+	# errors on a node outside the tree. Parenting here also keeps the
+	# kill-credit lesson (tree presence makes _is_valid_combatant
+	# (KillRewards) accept the boss -- without it boss kills were
+	# creditless: no kill_rewarded, no XP/gold, no participation).
+	# Prefer the current scene (world visibility), fall back to root for
+	# headless/script mode.
+	var tree := get_tree()
+	if tree != null and not boss.is_inside_tree():
+		var parent_node: Node = tree.current_scene if tree.current_scene else tree.root
+		parent_node.add_child(boss)
+	boss.global_position = position
 
 	# Register with EntityService (emits EventHub.entity_spawned with metadata)
 	var entity_service = EntityService
@@ -310,8 +329,18 @@ func spawn_boss(
 			boss.entity_type
 		)
 
-	boss.global_position = position
 	_world_bosses[boss.entity_id] = boss
+
+	# Boss death -> kill rewards: bare Entities skip Enemy._on_died, so
+	# nothing ever emitted kill_rewarded for a boss kill (no XP/gold,
+	# no quest kill objectives, no achievements, no horde participation).
+	# Route through KillRewards exactly like the enemy death path does;
+	# its credit resolution (direct killer or threat owner) applies to
+	# the killer argument Entity.die already carries. Connected BEFORE
+	# any consumer's died-hook (hordes connect after spawn returns) so
+	# kill_rewarded arrives while a running horde can still credit it.
+	if boss.has_signal("died") and not boss.died.is_connected(_on_boss_entity_died):
+		boss.died.connect(_on_boss_entity_died.bind(boss))
 
 	# Add to zone
 	var zone_manager = ZoneManager
@@ -327,6 +356,14 @@ func spawn_boss(
 	# Notification is now handled by NotificationService listening to EventHub.entity_spawned
 
 	return boss
+
+## Entity.die(killer) handler for bare-Entity bosses: pays kill rewards
+## exactly like Enemy._on_died does (KillRewards resolves credit, grants
+## XP/gold, emits EventHub.kill_rewarded for quests/achievements/hordes).
+func _on_boss_entity_died(killer, boss) -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+	KillRewards.award_kill(boss, killer)
 
 ## Despawn a world boss
 func despawn_boss(entity) -> void:
