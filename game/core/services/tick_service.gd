@@ -143,7 +143,16 @@ var _phase_overruns: Dictionary = {}
 
 func _ready() -> void:
 	GameLog.info("TickService: Ready")
-	_state_tree = StateTreeScript.new()
+	# The tick tree IS the shared world tree on FrameService: one tree,
+	# one root hash over character projections, world entity projections
+	# and tick-buffered state. FrameService loads earlier (autoload #5);
+	# a missing FrameService (script mode) keeps a private tree with
+	# identical semantics so the tick pipeline still runs.
+	var fs: Node = get_node_or_null("/root/FrameService")
+	if fs != null and fs.has_method("get_world_state_tree"):
+		_state_tree = fs.get_world_state_tree()
+	if _state_tree == null:
+		_state_tree = StateTreeScript.new()
 	_previous_root_hash = _state_tree.root_hash()
 	_current_root_hash = _previous_root_hash
 	_start_tick_loop()
@@ -556,6 +565,13 @@ func _phase3_reroot_and_diff() -> Dictionary:
 	# Re-root the state tree
 	# Only mutated subtrees change hashes
 	_current_root_hash = _state_tree.root_hash()
+
+	# Announce through FrameService so world_root_hash() stays the ONE
+	# authoritative hash client resync keys off (dedupes internally: no
+	# emission when nothing changed between ticks).
+	var fs: Node = get_node_or_null("/root/FrameService")
+	if fs != null and fs.has_method("touch_world_tree"):
+		fs.touch_world_tree()
 
 	# Compute diff vs previous root (state-only diff)
 	var diff: Array = []

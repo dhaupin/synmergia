@@ -1395,3 +1395,45 @@ hud_integration 7 OK.
 - Regressions: persistence 23, bridge 41, academy 25, respawn live 9,
   loot live 33, combat live 10, onboarding 26, autoload audit 2; lint
   36/36.
+
+### [town:core] 2026-09-23 - Horde-scale projection: zone scoping + tick routing + player live state
+
+Follow-up to d407bdf (shared world tree + mob projection). Goal: the tree must hold up
+with hordes of mobs AND hordes of players without resync snapshots bloating.
+
+- **Zone-scoped layout** (WorldStateProjection rewrite): all ephemeral state now lives
+  under `/world/zones/<zone>/entities/<id>/{identity,health}` and
+  `/world/zones/<zone>/players/<id>/live` instead of the flat `/world/entities/`.
+  A resync snapshot only covers the zone a client is in; 200 mobs in zone A never
+  bloat zone B's snapshot.
+- **Tick-routed writes**: projection drains into TickService's command buffer at the
+  tick boundary (gated on the 0.5s coalesce window, ALIGNED to ticks), so a pack pull
+  lands as ONE atomic Phase-2 batch with ONE Phase-3 re-root + one root-hash announce.
+  `flush(immediate=true)` bypasses the buffer for tests/CLI; script-mode fallback
+  writes directly (no tick to batch into).
+- **Player live-state half (horde players)**: `register_player()` + ZoneManager
+  enter/exit signals project `{hp_cur, hp_max, pos_x/y/z}` per player; positions
+  quantized to the 0.01m grid via the ProgressBridge quantizer (same contract as the
+  character half); value signatures suppress no-op writes; zone drift deletes the
+  stale-zone node in the same batch as the rewrite.
+- **Mob zone crossings**: `entity_entered_zone` re-projects the entity whole (identity
+  + health move together; `_projected_zone` keeps health on the identity's scope so a
+  wandering mob never splits across two zones).
+- **`snapshot_for_zone(zone_id)`**: bounded resync snapshot via T3
+  `get_full_scope_snapshot` under the zone path, capped at MAX_ZONE_SNAPSHOT_NODES
+  (2000) as the horde guard; client AOI culls from there.
+- TickService unification (this session start): tick tree IS FrameService's shared
+  world tree; Phase 3 announces through `touch_world_tree()` so `world_root_hash()`
+  stays the single resync key.
+
+**Verification**: test_world_state_projection rewritten — 44 passed, 0 failed
+(zone scoping, coalescing, sig suppression, buffered-vs-immediate cadence incl. real
+tick application, player live state + quantization + drift teardown, pruning isolation,
+lifecycle, cross-half root). Regression green: bridge 41, persistence 23, kill rewards
+21, academy 25, loot live 33, scene respawn 9, combat live 10, frame authority/memory
+exit 0, zone def tree 14, lint 36/36.
+
+**Design note**: durable character nodes stay under `/player/<id>/` (PlayerProgress's
+cadence); everything ephemeral is zone-scoped. Next levers if ever needed: per-zone
+scope pruning inside TickService Phase 4 (AOI diff per zone), LOD tiers on the live
+payload, and instance-scoped subtrees for dungeons.
