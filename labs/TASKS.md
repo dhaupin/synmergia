@@ -153,6 +153,22 @@ CURRENT state + ACTIVE work only.
   also had a real hang: a silent script error aborted its coroutine
   before quit()) and test_entity_autoload.gd (load() inside _init hit
   the same poison; 8/8 green again).
+- Play session (play_session.gd): a bot hero PLAYS the real scene under
+  xvfb -- chat, dummy sparring through the new hit table, class skills,
+  slime cull with kill rewards, an honest boss duel (no smites; hitbox
+  swings + mid-fight top-ups), haven_siege spectating + sweep, dungeon
+  gateway tour, dev screenshots, printed journal. One run observed
+  hit x119, miss x27, dodge x11, parry x1 across the session. Playing
+  found + fixed two production bugs: (1) GuardData declared the
+  GuardDuty ENUM but never the guard_duty FIELD -- guard_ai's leash
+  check threw 5,675 script errors per siege and never fenced; field
+  declared (default TOWN_WATCH) + house_guard() now stamps PERSONAL.
+  (2) test_placement_system's GuildPlayer inner-class extends of the
+  stub crashed script-mode compilation (parse-time entity.gd load);
+  extracted to tests/support/guild_player_stub.gd, applied via
+  set_script. Placement 65/65, guard 31/31, full-boot 43/43. Also
+  logged: solo /say sends return false (empty audience rejects your own
+  echo) -- authentic MMO behavior, not a bug.
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;
