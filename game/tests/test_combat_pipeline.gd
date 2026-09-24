@@ -5,8 +5,8 @@
 ## String entity ids.
 extends SceneTree
 
-const EntityScript = preload("res://core/entities/entity.gd")
-const SkillScript = preload("res://core/combat/skill.gd")
+const EntityScript = null  # resolved at runtime; see _load_scripts()
+var SkillScript: GDScript = null
 
 var _fails: int = 0
 
@@ -24,6 +24,17 @@ func _run() -> void:
 	root.get_node_or_null("GameLog")
 	await process_frame
 
+	# entity.gd/skill.gd reference the EventHub autoload at compile time; a
+	# parse-time preload in --script mode poisons the cached script (compile
+	# fails before autoloads exist, then .new() vanishes mid-test). Runtime
+	# load() after boot is the repo's de-flake pattern.
+	var entity_script: GDScript = load("res://core/entities/entity.gd")
+	SkillScript = load("res://core/combat/skill.gd")
+	if entity_script == null or not entity_script.can_instantiate() or SkillScript == null or not SkillScript.can_instantiate():
+		printerr("FAIL  entity/skill failed to compile after boot (EventHub ordering regression)")
+		quit(1)
+		return
+
 	var es = root.get_node_or_null("EntityService")
 	var cs = root.get_node_or_null("CombatSystem")
 	_check(es != null, "EntityService autoload present")
@@ -31,9 +42,9 @@ func _run() -> void:
 
 	# --- Build a caster and a target enemy, register like production does
 	# (world_playable.gd calls es.register_entity explicitly) ---
-	var caster = EntityScript.new()
+	var caster = entity_script.new()
 	caster.display_name = "CombatTester"
-	caster.entity_type = EntityScript.EntityType.PLAYER
+	caster.entity_type = entity_script.EntityType.PLAYER
 	root.add_child(caster)
 	await process_frame
 
@@ -57,7 +68,8 @@ func _run() -> void:
 		"enemy mirrored into CombatSystem registry")
 
 	# --- Basic attack skill ---
-	var skill: Skill = SkillScript.new()
+	# Untyped for the same EventHub-ordering reason as _run()'s guard.
+	var skill = SkillScript.new()
 	skill.skill_name = "TestStrike"
 	skill.skill_id = "test_strike"
 	skill.damage = 10
@@ -116,7 +128,7 @@ func _run() -> void:
 		"death auto-unregistered enemy from combat registry")
 
 	# --- Mirror-guard: direct register_entity still works ---
-	var solo = EntityScript.new()
+	var solo = entity_script.new()
 	root.add_child(solo)
 	await process_frame
 	var solo_id: String = es.register_entity(solo)

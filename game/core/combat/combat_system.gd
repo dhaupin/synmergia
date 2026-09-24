@@ -4,6 +4,9 @@ extends Node
 
 const Skill = preload("res://core/combat/skill.gd")
 const StatusEffect = preload("res://core/entities/status_effect.gd")
+# The MWo-style hit table: _apply_hit rolls it through the skill so
+# miss/dodge/parry/block/crit all resolve in one place.
+const CombatMath = preload("res://core/services/combat_math.gd")
 # Entity is not an autoload (class_name only). The signal and
 # method signatures here use `: Entity`, which requires Entity's
 # class_name to be registered at parse time. Preloading it here
@@ -189,23 +192,36 @@ func _is_alive(node) -> bool:
 func _apply_hit(hitbox: HitboxData, target) -> void:
 	var caster = get_entity(str(hitbox.owner_id)) if hitbox.owner_id != "" else null
 
-	# Calculate and apply damage
+	# Calculate and apply damage through the hit table. calculate_damage
+	# runs the MWo roll (miss/dodge/parry/block/crit) and returns 0 on
+	# miss-family outcomes.
 	var damage: int = 0
+	var outcome: Dictionary = {}
 	if caster:
 		damage = hitbox.skill.calculate_damage(caster, target)
+		outcome = hitbox.skill._last_hit_result
 
-	# Crit flag rides with the hit: Enemy/Entity.take_damage forwards it
-	# onto EventHub.damage_dealt so the HUD can style the number. The
-	# skill's damage_type picks armor vs resist on the target.
-	target.take_damage(damage, caster, hitbox.skill.damage_type, hitbox.skill._last_was_crit)
+	var is_whiff := CombatMath.is_whiff(int(outcome.get("hit_result", CombatMath.HitResult.HIT)))
 
-	# Emit signals
-	if caster:
+	if not is_whiff:
+		# Crit flag rides with the hit: Enemy/Entity.take_damage forwards it
+		# onto EventHub.damage_dealt so the HUD can style the number. The
+		# skill's damage_type picks armor vs resist on the target.
+		target.take_damage(damage, caster, hitbox.skill.damage_type, hitbox.skill._last_was_crit)
+
+	# The HUD bridge turns whiffs into Miss/Dodge/Parry floats and landed
+	# blocks into partial-damage floats. Emitted for both outcomes.
+	EventHub.hit_resolved.emit(caster, target, outcome, hitbox.skill, damage)
+
+	# Emit signals (the landed-hit path only; misses are not "hits")
+	if caster and not is_whiff:
 		skill_hit.emit(caster, target, hitbox.skill, damage)
 		damage_dealt.emit(caster, target, damage, hitbox.skill)
 
-	# Apply additional effects from skill
-	_apply_skill_effects(hitbox.skill, caster, target)
+	# Apply additional effects from skill (landed hits only: a stunned
+	# target should not eat CC off a dodged swing)
+	if not is_whiff:
+		_apply_skill_effects(hitbox.skill, caster, target)
 
 ## Untyped caster/target: PlayerController (CharacterBody3D) is a valid
 ## caster/target family; Entity annotations threw on every real swing.

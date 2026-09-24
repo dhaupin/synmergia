@@ -9,6 +9,8 @@ const EnemyAIScript := preload("res://core/ai/enemy_ai.gd")
 const SpawnMetadataScript := preload("res://core/events/spawn_metadata.gd")
 const DamageNumbersScript := preload("res://ui/components/damage_numbers.gd")
 const EnemyScript := preload("res://entities/enemy.gd")
+# Hit-table lookups (CombatMath.HitResult, is_whiff, hit_label) use the
+# globally registered class_name CombatMath -- no preload, no shadow.
 
 const LOCAL_PLAYER_ID := "player_1"
 const SCENE_ZONE_ID := "world_playable"
@@ -409,6 +411,11 @@ func _setup_hud_bridge() -> void:
 	_ensure_damage_numbers()
 	if not EventHub.damage_dealt.is_connected(_on_combat_damage):
 		EventHub.damage_dealt.connect(_on_combat_damage)
+	# Hit-table outcomes: miss/dodge/parry floats + log lines + defender
+	# toasts. Fired by Skill.execute / CombatSystem._apply_hit /
+	# EnemyAI._perform_attack for every resolved swing (landed or not).
+	if not EventHub.hit_resolved.is_connected(_on_hit_resolved):
+		EventHub.hit_resolved.connect(_on_hit_resolved)
 	# Healing was invisible: no event existed at all, so no heal floats and
 	# no combat-log lines. health_component.heal now emits heal_dealt.
 	if not EventHub.heal_dealt.is_connected(_on_combat_heal):
@@ -579,6 +586,61 @@ func _on_combat_heal(source, target, amount: int) -> void:
 	if source != null and "display_name" in source:
 		source_name = str(source.display_name)
 	combat_log.log_heal("you", amount, source_name)
+
+## Hit-table bridge: one handler for every resolved swing.
+##   Landed hit  -> damage float + log line arrive via damage_dealt (the
+##                  target's take_damage path); blocks also get their
+##                  "Blocked X" annotation here.
+##   Whiff       -> defender-side "Miss/Dodge/Parry" float, log line, and
+##                  a toast when the LOCAL player is the defender (you
+##                  dodged) or attacker (your swing missed).
+func _on_hit_resolved(attacker, defender, outcome: Dictionary, _skill, amount: int) -> void:
+	var outcome_id: int = int(outcome.get("hit_result", CombatMath.HitResult.HIT))
+	if outcome_id == CombatMath.HitResult.HIT and not bool(outcome.get("is_crit", false)):
+		return  # plain landed hit: damage_dealt already drew the number
+
+	var label: String = CombatMath.hit_label(outcome)
+	var local = PlayerManager.get_local_player()
+
+	# Whiff floats over the DEFENDER ("you dodged" reads best over the
+	# dodger's head); blocks land as "Blocked <chip>" on the defender.
+	if _damage_numbers and defender != null and defender is Node3D:
+		if CombatMath.is_whiff(outcome_id):
+			_damage_numbers.show_miss(defender, label)
+		elif outcome_id == CombatMath.HitResult.BLOCK:
+			_damage_numbers.show_miss(defender, label)
+
+	var combat_log = get_node_or_null("HudLayer/CombatLog")
+	if combat_log != null and combat_log.has_method("log_miss"):
+		var attacker_name: String = "Something"
+		if attacker != null and "display_name" in attacker:
+			attacker_name = str(attacker.display_name)
+		var defender_name: String = "Unknown"
+		if defender != null and "display_name" in defender:
+			defender_name = str(defender.display_name)
+		if CombatMath.is_whiff(outcome_id):
+			combat_log.log_miss("%s's attack (%s vs %s)" % [attacker_name, label, defender_name])
+		elif outcome_id == CombatMath.HitResult.BLOCK:
+			combat_log.add_message(
+				"%s blocks %s's attack (%d chip through)" % [defender_name, attacker_name, amount],
+				0)
+
+	# Defender toasts through the legacy notify_combat pipeline: the local
+	# player sees DODGE/PARRY/BLOCK when THEY defend, and a miss notice
+	# when their own swing whiffs. notify_combat rewrites the message for
+	# the known types, so pass a short payload.
+	if local == null:
+		return
+	var notif = get_node_or_null("/root/NotificationService")
+	if notif == null or not notif.has_method("notify_combat"):
+		return
+	if CombatMath.is_whiff(outcome_id):
+		if defender == local:
+			notif.notify_combat(str(local.entity_id), label.to_upper(), label, true)
+		elif attacker == local:
+			notif.notify_combat(str(local.entity_id), "MISS", label, false)
+	elif outcome_id == CombatMath.HitResult.BLOCK and defender == local:
+		notif.notify_combat(str(local.entity_id), "BLOCK", label, true)
 
 ## Crit toast through the typed-Kind pipeline (3s window dedupe so a
 ## crit-streak doesn't spam): the one combat event loud enough to leave

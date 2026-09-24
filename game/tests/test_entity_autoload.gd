@@ -31,6 +31,17 @@ func _fail(label: String, detail: String = "") -> void:
 
 
 func _init() -> void:
+	# Defer past --script autoload setup: entity.gd references the EventHub
+	# autoload at compile time, and load()ing it inside _init (before
+	# autoloads exist) yields a half-compiled script whose instances bind
+	# nothing -- the exact "no script bound" symptom this test guards
+	# against, but from boot ordering instead of an autoload shadow. Same
+	# de-flake pattern as test_aggro_system.gd / test_hit_table.gd.
+	call_deferred("_run")
+
+
+func _run() -> void:
+	await process_frame
 	print("--- ENTITY AUTOLOAD REGRESSION TEST ---")
 
 	# 1. The script must load.

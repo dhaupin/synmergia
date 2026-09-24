@@ -4,6 +4,10 @@ extends Resource
 class_name Skill
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
+# CombatMath runs the MWo-style hit table (miss/dodge/parry/block/crit)
+# inside calculate_damage; no cycle -- combat_math no longer preloads
+# this file.
+const CombatMath = preload("res://core/services/combat_math.gd")
 # Entity is preloaded for EntityType constants (e.g. the heal-threat
 # radius scan). Caster/target method params are deliberately untyped so
 # PlayerController (a CharacterBody3D) can cast without an Entity cast.
@@ -257,8 +261,16 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO) -> 
 		result.damage_dealt = actual_damage
 
 		if target:
-			target.take_damage(actual_damage, caster, damage_type, _last_was_crit)
-			result.targets_hit.append(target)
+			if CombatMath.is_whiff(int(_last_hit_result.get("hit_result", CombatMath.HitResult.HIT))):
+				# Miss/dodge/parry/immune: no damage, no on-hit effects, no
+				# take_damage(0) (Enemy's armor floor would chip 1). The HUD
+				# learns about it through hit_resolved.
+				result.whiff = true
+				EventHub.hit_resolved.emit(caster, target, _last_hit_result, self, 0)
+			else:
+				target.take_damage(actual_damage, caster, damage_type, _last_was_crit)
+				result.targets_hit.append(target)
+				EventHub.hit_resolved.emit(caster, target, _last_hit_result, self, actual_damage)
 
 	# Apply healing
 	if heal_amount > 0:
@@ -330,11 +342,13 @@ func consume_resources(caster) -> bool:
 
 	return true
 
-## Crit roll + crit-aware damage for one hit. The flag is cached in
-## _last_was_crit (fresh per calculate_damage call) so callers can ride
-## it onto the damage event: DamageNumbers, the combat log, and the
-## crit toast all style off it without re-rolling.
+## Hit-table roll + hit-aware damage for one swing. The full result is
+## cached in _last_hit_result (fresh per calculate_damage call) so
+## callers can ride it onto the damage event: DamageNumbers floats, the
+## combat log, and the dodge/parry/block/crit toasts all style off it
+## without re-rolling. _last_was_crit remains for existing readers.
 var _last_was_crit: bool = false
+var _last_hit_result: Dictionary = {}
 
 func calculate_damage(caster, target) -> int:
 	var base_damage := damage
@@ -345,16 +359,17 @@ func calculate_damage(caster, target) -> int:
 	elif damage_type == "magical":
 		base_damage += caster.get_spell_power()
 
-	# Apply crit chance (duck-typed: bare-Entity casters may not roll)
-	var is_crit: bool = false
-	if caster != null and "get_crit_chance" in caster \
-			and caster.has_method("get_crit_chance") and caster.has_method("get_crit_multiplier"):
-		is_crit = randf() < caster.get_crit_chance()
-		if is_crit:
-			base_damage = int(base_damage * caster.get_crit_multiplier())
-	_last_was_crit = is_crit
+	# The MWo-style single-roll combat table: miss -> dodge -> parry ->
+	# block -> crit -> hit in one randf(). Defensive chances come from
+	# the TARGET's stats; duck-typed so bare-Entity and PlayerController
+	# targets both roll. Miss-family outcomes return 0 and the callers
+	# skip take_damage entirely (Enemy's armor floor would chip 1).
+	var outcome := CombatMath.calculate_hit(caster, target, self)
+	_last_hit_result = outcome
+	var final_damage := CombatMath.calculate_damage(base_damage, outcome)
+	_last_was_crit = bool(outcome.get("is_crit", false))
 
-	return base_damage
+	return final_damage
 
 func calculate_healing(caster) -> int:
 	var base_heal := heal_amount

@@ -7,6 +7,9 @@ class_name EnemyAI
 # them and who they lost (fled from), and bias future targeting.
 const MemoryTreeScript = preload("res://core/frame/kv/memory_tree.gd")
 const MemorySchemaScript = preload("res://core/frame/kv/memory_schema.gd")
+# The MWo-style hit table: enemy swings run the same single roll
+# (miss/dodge/parry/block/crit) as player skills.
+const CombatMath = preload("res://core/services/combat_math.gd")
 const MAX_MEMORY_ENTRIES := 16
 
 
@@ -453,16 +456,49 @@ func _perform_attack() -> void:
 	if not entity:
 		return
 
-	# Deal damage (get_attack_power handles EnemyData scaling)
-	var damage: float = float(entity.get_attack_power())
-	_target.health_component.take_damage(damage, entity)
+	# MWo-style single-roll hit table for enemy swings too: one randf()
+	# splits into miss/dodge/parry/block/crit/hit against the TARGET's
+	# stats. calculate_damage applies crit multipliers and block
+	# reduction and returns 0 on miss-family outcomes.
+	var outcome := CombatMath.calculate_hit(entity, _target)
+	var damage := CombatMath.calculate_damage(entity.get_attack_power(), outcome)
+
+	if CombatMath.is_whiff(int(outcome.get("hit_result", CombatMath.HitResult.HIT))):
+		# Nothing landed: no damage, no threat, no on-hit. The HUD bridge
+		# turns this into a defender-side Miss/Dodge/Parry float + toast.
+		EventHub.hit_resolved.emit(entity, _target, outcome, null, 0)
+		return
+
+	var is_crit: bool = bool(outcome.get("is_crit", false))
+
+	# Duck-typed landing with arity safety: Entity subclasses (Enemy,
+	# Guard) take a 4th is_crit param; PlayerController and bare
+	# health_component take 3. Calling a 3-param method with 4 args is a
+	# runtime error, so the arity is read off the method list.
+	if _target.has_method("take_damage"):
+		if _take_damage_arity(_target) >= 4:
+			_target.take_damage(damage, entity, "physical", is_crit)
+		else:
+			_target.take_damage(damage, entity, "physical")
+	elif _target.health_component != null:
+		_target.health_component.take_damage(damage, entity, "physical")
+
+	# The HUD bridge emits defender toasts + landed-hit floats from this.
+	EventHub.hit_resolved.emit(entity, _target, outcome, null, damage)
 
 	# Damage threat onto OUR OWN table (drives target switching), and the
 	# target's table records damage taken from us (player threat meters).
+	# Whiffs build no threat.
 	if entity.aggro_component:
 		entity.aggro_component.add_damage_threat(_target, int(damage))
 	if "aggro_component" in _target and _target.aggro_component != null:
 		_target.aggro_component.add_damage_threat(entity, int(damage))
+
+func _take_damage_arity(node) -> int:
+	for m in node.get_method_list():
+		if m.get("name", "") == "take_damage":
+			return (m.get("args", []) as Array).size()
+	return 3
 
 ## FLEE: Run away from target
 func _update_flee(delta: float) -> void:

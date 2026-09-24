@@ -25,6 +25,14 @@ signal revive_completed(entity, success: bool)
 ## without re-rolling; emitters that don't roll crits pass false.
 signal damage_dealt(source, target, amount: int, damage_type: String, is_crit: bool)
 
+## A hit-table roll resolved (combat_math.gd, run by Skill.calculate_damage
+## and EnemyAI._perform_attack). outcome is the full hit table Dictionary
+## (hit_result enum, is_crit, blocked_damage, ...), skill may be null for
+## plain enemy swings. Emitted for BOTH landed hits and miss-family
+## outcomes (amount 0) so the HUD can show "Miss"/"Dodged" floats and
+## defender toasts. Consumed by the world HUD bridge.
+signal hit_resolved(attacker, defender, outcome: Dictionary, skill, amount: int)
+
 ## Heals applied to any combatant (health_component.heal, the skill.gd
 ## heal path). Mirrors damage_dealt so healing is as visible as damage
 ## on the HUD surfaces (heal floats + combat-log lines).

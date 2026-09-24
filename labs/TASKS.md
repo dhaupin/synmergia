@@ -116,6 +116,43 @@ CURRENT state + ACTIVE work only.
   bosses never emitted damage_dealt (Enemy/HealthComponent was the only
   emitter) -- boss fights showed no damage numbers; spawn_service
   mirrors Entity.took_damage into EventHub.damage_dealt.
+- Hit table wired (MWo-style single roll): CombatMath.calculate_hit
+  splits ONE randf() into miss -> dodge -> parry -> block -> crit ->
+  hit (misses roll first so they can never crit; crit takes only the
+  leftover segment). Level penalty fixed -- the old clamp penalized
+  fighting DOWN, exactly backwards. Defensive chances derive from the
+  target's real stats: dodge/agility, parry/strength (halved without
+  shield), block shield-gated + vitality. Duck-typed across both
+  combatant families (bare Entity/Enemy AND PlayerController) -- the
+  old version dereferenced combat_component and would have thrown on
+  the live player the first time it ran. Wiring: Skill.calculate_damage
+  runs the roll (cached in _last_hit_result); whiffs return 0 and BOTH
+  Skill.execute and CombatSystem._apply_hit skip take_damage(0) (the
+  Enemy armor floor would chip 1 on a miss) and skip on-hit effects/CC;
+  EnemyAI._perform_attack rolls the same table for enemy swings.
+  EventHub.hit_resolved (attacker, defender, outcome dict, skill,
+  amount) fires for BOTH outcomes from all three emitters;
+  world_playable._on_hit_resolved renders defender-side Miss/Dodge/
+  Parry floats, "Blocked <chip>" annotations, log_miss/log lines, and
+  defender toasts through notify_combat (YOU dodged / your swing
+  missed). CombatMath.hit_label is the shared label source and
+  is_whiff() the family test. Tests: test_hit_table.gd (34 asserts, 8
+  groups) de-flaked three ways that matter for future tests: (1) load()
+  entity.gd/skill.gd AFTER boot, never parse-time preload -- both
+  reference EventHub at compile time, and a --script-mode preload
+  before autoloads poisons the cached script so .new() vanishes with
+  "Nonexistent function 'new'" while _fails stays 0; also no `: Skill`
+  type annotations in the test (same poison, different door). (2) await
+  every async group -- un-awaited group calls race quit() and the
+  summary prints while pending groups never run. (3) deterministic
+  chance-curve asserts over raw frequency comparisons, huge HP pool on
+  the whiff dummy (a landed execute used to kill + free it mid-test),
+  and whiff-family asserts instead of flavor-locked EVADE (agi 1000
+  stacks miss+parry, so the first whiff is a coin flip between flavors).
+  Same load()-after-boot fix applied to test_combat_pipeline.gd (which
+  also had a real hang: a silent script error aborted its coroutine
+  before quit()) and test_entity_autoload.gd (load() inside _init hit
+  the same poison; 8/8 green again).
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;
@@ -176,8 +213,9 @@ world_boss_schedule 37, horde_rewards 37, horde_events 34, phase4_aoi
 17, projection 44,
 bridge 41, kill_rewards 21, guard 31, loot_tables_live 33, loot_rules
 30, duel 28, placement 54, academy 25, aggro 33, combat_loop 31,
-combat_pipeline, combat_live 10, entity_autoload 8, onboarding_live
-26, e2e 40, login 21, ui_alive 33, interaction 16, settings 14,
+combat_pipeline, combat_live 10, entity_autoload 8, hit_table 34,
+onboarding_live 26, e2e 40, login 21, ui_alive 33, interaction 16,
+settings 14,
 splash 14, touch 17, ground_loot 42, persistence 23, notification
 frame 26, state_schema, frame_authority, frame_memory, lint x5,
 parse_check, autoload_audit.
