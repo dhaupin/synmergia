@@ -790,7 +790,7 @@ func _on_entity_killed(killer, victim, damage_type: String) -> void:
 ## per-player, so no global relation flip occurs. This is the
 ## ATTACKED_FACTION trigger (a guard's protected_faction covers its own
 ## watch); future hooks: theft reports, trespass checkpoints.
-func _on_guard_crime_check(source, target, _amount: int, _damage_type: String) -> void:
+func _on_guard_crime_check(source, target, _amount: int, _damage_type: String, _is_crit: bool = false) -> void:
 	if source == null or target == null or not is_instance_valid(target):
 		return
 	if not "entity_id" in source or "loot_table_id" in source:

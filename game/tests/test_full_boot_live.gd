@@ -278,6 +278,13 @@ func _run() -> void:
 	_ok("/spawn level override applied", lvl5 >= 2, "(%d at level 5)" % lvl5)
 
 	# Kill one spawned slime through the real combat entry point.
+	# Boost the bot's crit chance to ~100% (agility drives get_crit_chance)
+	# so this deterministic kill exercises the crit styling path: is_crit
+	# rides the widened damage_dealt signal and fires the CRITICAL toast.
+	var crit_tap := [{"n": 0}]
+	_hub.damage_dealt.connect(func(_s, _t, _a, _dt, is_crit): crit_tap[0]["n"] += 1 if is_crit else 0)
+	if "stats" in player and player.stats is Dictionary:
+		player.stats["agility"] = 400
 	var victim: Node = null
 	for s in _named_in_group("enemies", "Slime"):
 		if int(s.level) == 1:
@@ -304,6 +311,8 @@ func _run() -> void:
 		await process_frame
 		_ok("slime kill paid kill rewards", _rewards_log.size() > r_before,
 			"(%d reward events)" % (_rewards_log.size() - r_before))
+		_ok("crit flag rode damage_dealt", int(crit_tap[0]["n"]) >= 1,
+			"(%d crits observed)" % int(crit_tap[0]["n"]))
 		# Loot may or may not roll per table odds; a drop existing at all
 		# proves the ground-loot path. Accept either but log it.
 		loot_from_slime = _gls._drops.size() > drops_before

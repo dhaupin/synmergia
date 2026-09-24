@@ -188,13 +188,14 @@ func apply_species(new_species) -> void:
 
 ## HEALTH
 
-func take_damage(amount: int, source = null) -> int:
+func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	if is_dead:
 		return 0
 
-	var damage := _calculate_damage_received(amount)
+	var damage := _calculate_damage_received(amount, damage_type)
 	current_health = max(0, current_health - damage)
 	health_changed.emit(current_health, max_health)
+	EventHub.damage_dealt.emit(source, self, damage, damage_type, is_crit)
 
 	if current_health <= 0:
 		die(source)
@@ -204,8 +205,13 @@ func take_damage(amount: int, source = null) -> int:
 func heal(amount: int) -> void:
 	if is_dead:
 		return
+	var actual: int = mini(amount, max_health - current_health)
+	if actual <= 0:
+		return
 	current_health = min(max_health, current_health + amount)
 	health_changed.emit(current_health, max_health)
+	# HUD feed parity with damage: heal floats + combat-log lines.
+	EventHub.heal_dealt.emit(null, self, actual)
 
 func heal_percentage(percent: float) -> void:
 	heal(int(max_health * percent))
@@ -213,10 +219,20 @@ func heal_percentage(percent: float) -> void:
 func is_alive() -> bool:
 	return not is_dead and current_health > 0
 
-func _calculate_damage_received(amount: int) -> int:
-	var defense: float = get_defense()
-	var reduction: float = float(defense) / (defense + 100.0)
-	return int(amount * (1.0 - reduction))
+func _calculate_damage_received(amount: int, damage_type: String = "physical") -> int:
+	# Mitigation by school: physical hits face armor-ish defense, magical
+	# hits face magic resistance (both derived from stats). Other schools
+	# (true/pure damage) bypass. Keeps bare-Entity bosses and NPCs
+	# consistent with EnemyData-carrying enemies.
+	var defense: float = 0.0
+	if damage_type == "magical" or damage_type == "magic":
+		defense = float(get_magic_resistance())
+	else:
+		defense = float(get_defense())
+	if defense <= 0.0:
+		return amount
+	var reduction: float = defense / (defense + 100.0)
+	return maxi(1, int(float(amount) * (1.0 - reduction)))
 
 ## MANA
 

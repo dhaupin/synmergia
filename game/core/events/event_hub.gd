@@ -18,9 +18,12 @@ signal entity_killed(killer, victim, damage_type: String)
 signal entity_targeted(target_id: String, source_id: String)
 signal skill_executed(caster_id: String, skill_id: String, target_ids: Array)
 signal revive_completed(entity, success: bool)
-## Direct combat signals (emitted by health_component.take_damage and
-## Enemy.take_damage; consumed by AggroComponent for threat tracking).
-signal damage_dealt(source, target, amount: int, damage_type: String)
+## Direct combat signals (emitted by health_component.take_damage,
+## Entity.take_damage, and Enemy.take_damage; consumed by AggroComponent
+## for threat tracking and the HUD combat surfaces).
+## is_crit rides along so DamageNumbers/log/toasts can style crits
+## without re-rolling; emitters that don't roll crits pass false.
+signal damage_dealt(source, target, amount: int, damage_type: String, is_crit: bool)
 
 ## Heals applied to any combatant (health_component.heal, the skill.gd
 ## heal path). Mirrors damage_dealt so healing is as visible as damage

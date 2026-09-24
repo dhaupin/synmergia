@@ -628,7 +628,7 @@ func _finish_horde(horde_id: String, success: bool) -> void:
 ## EventHub.damage_dealt(source, target, amount, type): attribute damage
 ## to the horde the TARGET belongs to. Both horde mobs and the boss use
 ## EnemyData, so one template lookup resolves either.
-func _on_damage_dealt(source, target, amount: int, _damage_type: String) -> void:
+func _on_damage_dealt(source, target, amount: int, _damage_type: String, _is_crit: bool = false) -> void:
 	if source == null or target == null or not is_instance_valid(target):
 		return
 	if not ("entity_id" in source) or not ("enemy_data" in target) or target.enemy_data == null:

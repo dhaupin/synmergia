@@ -77,6 +77,29 @@ CURRENT state + ACTIVE work only.
   level/stats survive Enemy._ready's template reload (the level-7 slime
   regression). Demo configs: horde_haven_siege (bossless siege,
   bosses_alert) + horde_boss_gauntlet (3 boss waves).
+- Combat cosmetics pass: damage numbers are school-colored (red
+  physical / violet magic / white true / orange CRIT override; heal
+  green via show_heal). EventHub.damage_dealt widened with is_crit
+  (all 5 emitters + 5 handlers migrated). Crit roll lives in
+  Skill.calculate_damage (_last_was_crit) and rides take_damage ->
+  EventHub, so floats/log/toast style one roll. Crits get the [CRITICAL]
+  combat-log line + a deduped CRITICAL! toast (local-player hits only,
+  3s dedupe window). Scene HUD now uses typed CombatLog methods
+  (log_damage/log_critical/log_heal/log_loot) so the Damage/Healing/
+  Loot filter buttons actually route. Entity.take_damage gained
+  damage_type + is_crit params and EMITS damage_dealt itself (bare
+  Entity/bosses/NPCs now report); school-based mitigation: physical vs
+  armor (get_defense), magical vs get_magic_resistance, min 1 chip.
+  Enemy.take_damage applies EnemyData armor/resist by school -- the
+  dummy's 25/40 finally do something visible. Enemy heals also emit
+  heal_dealt. Guard.take_damage aligned to the new parent signature.
+  Fixed: magical DoTs crashed (take_magical_damage never existed ->
+  routed through take_damage "magical"); Entity.heal now caps + emits
+  heal_dealt + no-ops at 0; reward_player_stub gained declared
+  health_component (undeclared assignment silently skipped the ankh
+  dead-player asserts -- ground_loot now 44 asserts).
+  test_full_boot_live at 43 asserts: crit roll proven end-to-end
+  (bot agility boosted, crit observed on the signal + toast fired).
 - Integration audit (post boss/horde side-quest) found + fixed four
   dead wires: (1) heal_dealt signal on EventHub -- heals had NO event,
   so no heal floats and no combat-log lines; health_component.heal

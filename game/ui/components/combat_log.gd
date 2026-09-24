@@ -187,11 +187,15 @@ func _on_search_changed(text: String) -> void:
 static func singleton() -> CombatLog:
 	return instance
 
-func log_damage(target: String, amount: int, damage_type: String = "Physical") -> void:
+func log_damage(target: String, amount: int, damage_type: String = "Physical", attacker: String = "") -> void:
 	if not _show_damage or not UIStyles:
 		return
 	var color: String = UIStyles.COLORS.error.to_html()
-	var text := "[color=%s]%s took %d %s damage[/color]" % [color, _esc(target), amount, _esc(damage_type)]
+	var text: String
+	if attacker.is_empty():
+		text = "[color=%s]%s took %d %s damage[/color]" % [color, _esc(target), amount, _esc(damage_type)]
+	else:
+		text = "[color=%s]%s hits %s for %d %s damage[/color]" % [color, _esc(attacker), _esc(target), amount, _esc(damage_type)]
 	_add_entry(text, EntryType.DAMAGE)
 
 func log_critical(target: String, amount: int) -> void:

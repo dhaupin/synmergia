@@ -61,17 +61,30 @@ func _get_pooled_label() -> Label:
 ## PUBLIC API
 ## ============================================================================
 
-func show_damage(target: Node3D, amount: int, is_crit: bool = false, damage_type: String = "Physical") -> void:
+## School palette: red reads as "hurt me" for physical, violet reads as
+## arcane/magic, true damage is stark white. Crits override with hot
+## orange so a crit pops even inside a sea of same-school numbers.
+const SCHOOL_COLORS := {
+	"physical": Color(1.0, 0.28, 0.25),
+	"magical": Color(0.72, 0.5, 1.0),
+	"magic": Color(0.72, 0.5, 1.0),
+	"true": Color(1.0, 1.0, 1.0),
+}
+const CRIT_COLOR := Color(1.0, 0.62, 0.1)
+const CRIT_PREFIX := "CRIT! "
+
+func show_damage(target: Node3D, amount: int, is_crit: bool = false, damage_type: String = "physical") -> void:
 	if not _show_damage or not is_instance_valid(target):
 		return
-	
-	var color := UIStyles.COLORS.error
+	if is_crit and not _show_crit:
+		return
+
+	var school := damage_type.to_lower()
+	var color: Color = SCHOOL_COLORS.get(school, UIStyles.COLORS.error)
 	if is_crit:
-		color = UIStyles.COLORS.warning
-		if not _show_crit:
-			return
-	
-	var text := "%s%d" % [is_crit and "CRIT! " or "", amount]
+		color = CRIT_COLOR
+
+	var text := "%s%d" % [CRIT_PREFIX if is_crit else "", amount]
 	_spawn_number(target, text, color, is_crit, damage_type)
 
 func show_heal(target: Node3D, amount: int, is_crit: bool = false) -> void:

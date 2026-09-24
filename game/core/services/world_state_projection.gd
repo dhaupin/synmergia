@@ -161,7 +161,7 @@ func _on_entity_despawned_id(first, _reason = null) -> void:
 	if first != null:
 		remove_entity(str(first))
 
-func _on_damage_dealt(_source, target, _amount, _type) -> void:
+func _on_damage_dealt(_source, target, _amount, _type, _is_crit: bool = false) -> void:
 	if target != null and is_instance_valid(target) and "entity_id" in target:
 		mark_dirty(str(target.entity_id))
 	if _is_player_target(target):

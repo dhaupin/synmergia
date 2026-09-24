@@ -257,7 +257,7 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO) -> 
 		result.damage_dealt = actual_damage
 
 		if target:
-			target.take_damage(actual_damage, caster)
+			target.take_damage(actual_damage, caster, damage_type, _last_was_crit)
 			result.targets_hit.append(target)
 
 	# Apply healing
@@ -330,6 +330,12 @@ func consume_resources(caster) -> bool:
 
 	return true
 
+## Crit roll + crit-aware damage for one hit. The flag is cached in
+## _last_was_crit (fresh per calculate_damage call) so callers can ride
+## it onto the damage event: DamageNumbers, the combat log, and the
+## crit toast all style off it without re-rolling.
+var _last_was_crit: bool = false
+
 func calculate_damage(caster, target) -> int:
 	var base_damage := damage
 
@@ -339,18 +345,16 @@ func calculate_damage(caster, target) -> int:
 	elif damage_type == "magical":
 		base_damage += caster.get_spell_power()
 
-	# Apply crit chance
-	var crit_chance: float = caster.get_crit_chance()
-	var is_crit: bool = randf() < crit_chance
-	if is_crit:
-		base_damage = int(base_damage * caster.get_crit_multiplier())
+	# Apply crit chance (duck-typed: bare-Entity casters may not roll)
+	var is_crit: bool = false
+	if caster != null and "get_crit_chance" in caster \
+			and caster.has_method("get_crit_chance") and caster.has_method("get_crit_multiplier"):
+		is_crit = randf() < caster.get_crit_chance()
+		if is_crit:
+			base_damage = int(base_damage * caster.get_crit_multiplier())
+	_last_was_crit = is_crit
 
-	# Apply target's defense
-	var defense: float = target.get_defense() if target else 0
-	var reduction: float = float(defense) / (defense + 100.0)
-	base_damage = int(base_damage * (1.0 - reduction))
-
-	return max(1, base_damage)
+	return base_damage
 
 func calculate_healing(caster) -> int:
 	var base_heal := heal_amount

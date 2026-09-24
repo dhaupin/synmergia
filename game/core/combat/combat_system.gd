@@ -194,7 +194,10 @@ func _apply_hit(hitbox: HitboxData, target) -> void:
 	if caster:
 		damage = hitbox.skill.calculate_damage(caster, target)
 
-	target.take_damage(damage, caster)
+	# Crit flag rides with the hit: Enemy/Entity.take_damage forwards it
+	# onto EventHub.damage_dealt so the HUD can style the number. The
+	# skill's damage_type picks armor vs resist on the target.
+	target.take_damage(damage, caster, hitbox.skill.damage_type, hitbox.skill._last_was_crit)
 
 	# Emit signals
 	if caster:
@@ -366,5 +369,5 @@ class DoTEffect:
 			# Damage applied via signal
 			ticks_remaining -= 1
 
-	func _on_target_take_damage(_damager: Entity, _target: Entity, _amount: int) -> void:
+	func _on_target_take_damage(_damager: Entity, _target: Entity, _amount: int, _damage_type: String = "physical", _is_crit: bool = false) -> void:
 		pass  # Could modify damage or apply effects

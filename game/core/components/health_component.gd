@@ -85,7 +85,7 @@ func take_damage(amount: int, source: Entity = null, damage_type: String = "phys
 	health_changed.emit(current_health, max_health, -actual_damage)
 
 	# Emit combat events
-	EventHub.damage_dealt.emit(source, get_parent(), actual_damage, damage_type)
+	EventHub.damage_dealt.emit(source, get_parent(), actual_damage, damage_type, false)
 
 	if current_health <= 0:
 		die(source)

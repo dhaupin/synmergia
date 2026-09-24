@@ -9,7 +9,7 @@ const KillRewards = preload("res://core/services/kill_rewards.gd")
 
 ## Mirror of the Entity damage event with explicit damage_type, consumed
 ## by the HUD bridge (world_playable) and CombatSystem listeners.
-signal damage_dealt(source, target, amount: int, damage_type: String)
+signal damage_dealt(source, target, amount: int, damage_type: String, is_crit: bool)
 # enemy_data lives on base Entity (entity.gd) so bosses/elites carry it too.
 
 @export var starting_health: int = 30
@@ -130,7 +130,7 @@ func _current_speed() -> float:
 	return 2.0
 
 
-func take_damage(amount: int, source = null) -> int:
+func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	# Killer-of-record FIRST: any valid in-tree combatant counts (duck-typed,
 	# so PlayerController qualifies). The death chain below (die() ->
 	# _on_died -> KillRewards.award_kill(self, _last_damager)) runs
@@ -140,15 +140,27 @@ func take_damage(amount: int, source = null) -> int:
 	# slime kill paid the stale damager.
 	if _is_valid_damager(source):
 		_last_damager = source
+	# EnemyData armor/resist mitigation by school: physical hits face
+	# armor, magical hits face resistance. Training dummy carries 25/40
+	# specifically so players can SEE their mitigation on it. Other
+	# schools (true/pure) bypass. min 1 so chip damage always lands.
+	var applied := amount
+	if enemy_data != null and "armor" in enemy_data:
+		var defense: float = float(enemy_data.resistance) \
+				if (damage_type == "magical" or damage_type == "magic") \
+				else float(enemy_data.armor)
+		if defense > 0.0:
+			var reduction: float = defense / (defense + 100.0)
+			applied = maxi(1, int(float(amount) * (1.0 - reduction)))
 	if health_component:
 		# No _is_dead poke here: health_component.die() owns the dead flag
 		# and early-returns when it is already set -- setting it first used
 		# to make the proper death flow a silent no-op.
-		health_component.current_health -= amount
+		health_component.current_health -= applied
 		health_component.health_changed.emit(
 			health_component.current_health,
 			health_component.max_health,
-			-amount)
+			-applied)
 		if health_component.current_health <= 0:
 			# Proper death flow: die() sets the component's _is_dead/_killer,
 			# creates the corpse, emits health_depleted (-> _on_died: loot,
@@ -161,16 +173,17 @@ func take_damage(amount: int, source = null) -> int:
 			is_dead = true
 			current_health = 0
 	else:
-		current_health -= amount
+		current_health -= applied
 		health_changed.emit(current_health, max_health)
 		if current_health <= 0:
 			# Entity.die sets is_dead, clears status effects, emits died.
 			die(source)
 
-	# HUD feed: mirror the player-side damage event so CombatLog and
-	# DamageNumbers see enemy->player and player->enemy hits alike.
-	damage_dealt.emit(source, self, amount, "physical")
-	EventHub.damage_dealt.emit(source, self, amount, "physical")
+	# HUD feed: the Enemy path bypasses health_component.take_damage (it
+	# pokes the component directly), so the combat event is emitted here.
+	# Crit flag rides along for DamageNumbers/log/toast styling.
+	damage_dealt.emit(source, self, applied, damage_type, is_crit)
+	EventHub.damage_dealt.emit(source, self, applied, damage_type, is_crit)
 
 	# Threat: damage on this enemy builds the attacker's position on the
 	# threat table (drives in-combat target switching in EnemyAI).

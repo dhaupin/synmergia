@@ -122,10 +122,10 @@ func _regen_if_out_of_combat(delta: float) -> void:
 	health_component.health_changed.emit(health_component.current_health, health_component.max_health, int(ceil(amount)))
 
 
-func take_damage(amount: int, source = null) -> int:
+func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	if _guard_downed:
 		return 0  # downed guards are out of play until they reform
-	var applied := super.take_damage(amount, source)
+	var applied := super.take_damage(amount, source, damage_type, is_crit)
 	if is_lawful_guard() and health_component != null \
 			and health_component.current_health <= 0 and not _guard_downed:
 		_become_downed()

@@ -289,7 +289,11 @@ func _apply_damage(target: Entity, amount: int) -> void:
 		"physical":
 			target.take_damage(amount)
 		"magical":
-			target.take_magical_damage(amount)  # Requires magical damage method
+			# take_magical_damage never existed on Entity -- magical DoTs
+			# crashed on their first tick. Route through the standard path:
+			# Entity/Enemy take_damage applies magic-resist mitigation by
+			# school and emits the combat event.
+			target.take_damage(amount, null, "magical")
 		"true":
 			target.current_health -= amount
 			target.health_changed.emit(target.current_health, target.max_health)

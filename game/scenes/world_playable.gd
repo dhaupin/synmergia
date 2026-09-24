@@ -490,7 +490,7 @@ func _setup_touch_hud() -> void:
 func _on_ground_loot_picked_up(player, loot_id: String, items: Array) -> void:
 	_clear_loot_marker(loot_id)
 	var combat_log = get_node_or_null("HudLayer/CombatLog")
-	if combat_log == null or not combat_log.has_method("add_message"):
+	if combat_log == null or not combat_log.has_method("log_loot"):
 		return
 	var local = PlayerManager.get_local_player()
 	if local == null or player != local:
@@ -502,7 +502,7 @@ func _on_ground_loot_picked_up(player, loot_id: String, items: Array) -> void:
 		var qty: int = 1
 		if item != null and "current_stack" in item:
 			qty = int(item.current_stack)
-		combat_log.add_message("Picked up %s x%d" % [item_name, qty])
+		combat_log.log_loot(item_name, qty)
 
 ## Minimap loot glints: a gold 4-point star per live drop, removed on
 ## pickup/despawn. Markers live on the HudLayer Minimap node.
@@ -539,22 +539,28 @@ func _on_quest_completed(player_id: String, quest_id: String) -> void:
 	if combat_log and combat_log.has_method("add_message"):
 		combat_log.add_message("QUEST COMPLETE: %s -- return to the quest giver" % quest_id)
 
-func _on_combat_damage(source, target, amount: int, damage_type: String) -> void:
+func _on_combat_damage(source, target, amount: int, damage_type: String, is_crit: bool = false) -> void:
 	if amount <= 0:
 		return
 
 	if _damage_numbers and target is Node3D:
-		_damage_numbers.show_damage(target, amount, false, damage_type)
+		_damage_numbers.show_damage(target, amount, is_crit, damage_type)
+	# Typed log methods so the Damage/Healing/Loot filters actually route
+	# entries; crits get the [CRITICAL] line.
 	var combat_log = get_node_or_null("HudLayer/CombatLog")
-	if combat_log and combat_log.has_method("add_message"):
-		var source_name: String = "Something"
-		if source != null and "display_name" in source:
-			source_name = source.display_name
-		var target_name: String = "Unknown"
-		if target != null and "display_name" in target:
-			target_name = target.display_name
-		combat_log.add_message(
-			"%s hits %s for %d %s damage" % [source_name, target_name, amount, damage_type])
+	if combat_log == null:
+		return
+	var source_name: String = "Something"
+	if source != null and "display_name" in source:
+		source_name = str(source.display_name)
+	var target_name: String = "Unknown"
+	if target != null and "display_name" in target:
+		target_name = str(target.display_name)
+	if is_crit:
+		combat_log.log_critical(target_name, amount)
+		_notify_crit_toast(source, target_name, amount)
+	else:
+		combat_log.log_damage(target_name, amount, damage_type, source_name)
 
 ## Heal floats + combat-log line. Local-player filter for the log keeps
 ## other players' heals from scrolling the hero's log.
@@ -567,11 +573,30 @@ func _on_combat_heal(source, target, amount: int) -> void:
 	if local == null or target != local:
 		return
 	var combat_log = get_node_or_null("HudLayer/CombatLog")
-	if combat_log and combat_log.has_method("add_message"):
-		var source_name: String = "Healing"
-		if source != null and "display_name" in source:
-			source_name = source.display_name
-		combat_log.add_message("%s heals you for %d" % [source_name, amount])
+	if combat_log == null:
+		return
+	var source_name: String = "Healing"
+	if source != null and "display_name" in source:
+		source_name = str(source.display_name)
+	combat_log.log_heal("you", amount, source_name)
+
+## Crit toast through the typed-Kind pipeline (3s window dedupe so a
+## crit-streak doesn't spam): the one combat event loud enough to leave
+## the combat log and reach the toast layer. Local-player hits only.
+func _notify_crit_toast(attacker, target_name: String, amount: int) -> void:
+	var local = PlayerManager.get_local_player()
+	if local == null or attacker == null or attacker != local:
+		return
+	var notif := get_node_or_null("/root/NotificationService")
+	if notif == null or not notif.has_method("notify"):
+		return
+	var NotifKindConst = load("res://core/notifications/notification_kind.gd").NotifKind
+	notif.notify(
+			NotifKindConst.CUSTOM,
+			"CRITICAL! You hit %s for %d!" % [target_name, amount],
+			"CombatSystem",
+			"crit:%s:%d" % [target_name, int(Time.get_ticks_msec() / 3000.0)],
+			{"target": target_name, "amount": amount})
 
 func _on_kill_rewarded(entity, killer, rewards: Dictionary) -> void:
 	var xp: int = int(rewards.get("xp", 0))
