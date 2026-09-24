@@ -77,7 +77,30 @@ CURRENT state + ACTIVE work only.
   level/stats survive Enemy._ready's template reload (the level-7 slime
   regression). Demo configs: horde_haven_siege (bossless siege,
   bosses_alert) + horde_boss_gauntlet (3 boss waves).
-- Timed world bosses: WorldBossData .tres schemas in
+- Integration audit (post boss/horde side-quest) found + fixed four
+  dead wires: (1) heal_dealt signal on EventHub -- heals had NO event,
+  so no heal floats and no combat-log lines; health_component.heal
+  emits it (zero-heals silent, guard regen bypasses heal() so no
+  spam), world_playable bridges it to show_heal + log (local-player
+  filter). (2) World-boss KILL announcements -- spawns announced,
+  kills never did; _on_boss_entity_died now broadcasts WORLD BOSS
+  DEFEATED via notify() (runtime lookup, NotifKind.CUSTOM, dedupe by
+  entity_id), world-boss flag bound at connect time so horde wave
+  champions sharing the handler stay quiet. (3) Level-up toasts --
+  notify_level_up existed with ZERO callers; NotificationService._ready
+  connects PlayerManager.level_up (loads after PM: reverse connect
+  would resolve null; live run shows the toast firing). (4) Bare-Entity
+  bosses never emitted damage_dealt (Enemy/HealthComponent was the only
+  emitter) -- boss fights showed no damage numbers; spawn_service
+  mirrors Entity.took_damage into EventHub.damage_dealt.
+- Party/loot/reward chains verified live: kill_rewarded -> quest
+  objectives + achievements + XP/gold grant + PlayerManager mirror;
+  party split via PartyService.share_xp with per-member grants;
+  loot pickup -> LootRulesService delegation (FFA/RR/leader/master,
+  class routing, karma gates) -> InventoryService.add_item ->
+  currency via add_gold -> toasts (ITEM_TRANSFERRED / bags full /
+  reserved-for-other). Boss loot tables pay (void_lord: skill-book
+  table + 500g + 5000xp).
   data/world_bosses/ (SpawnService scans at boot). Respawn counted
   from DEATH (interval_seconds), not spawn; first_delay_s settles the
   server before the first appearance; window_seconds despawns unclaimed

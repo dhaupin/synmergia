@@ -409,6 +409,10 @@ func _setup_hud_bridge() -> void:
 	_ensure_damage_numbers()
 	if not EventHub.damage_dealt.is_connected(_on_combat_damage):
 		EventHub.damage_dealt.connect(_on_combat_damage)
+	# Healing was invisible: no event existed at all, so no heal floats and
+	# no combat-log lines. health_component.heal now emits heal_dealt.
+	if not EventHub.heal_dealt.is_connected(_on_combat_heal):
+		EventHub.heal_dealt.connect(_on_combat_heal)
 	# XP/gold kill rewards float over the player's head.
 	if not EventHub.kill_rewarded.is_connected(_on_kill_rewarded):
 		EventHub.kill_rewarded.connect(_on_kill_rewarded)
@@ -541,7 +545,6 @@ func _on_combat_damage(source, target, amount: int, damage_type: String) -> void
 
 	if _damage_numbers and target is Node3D:
 		_damage_numbers.show_damage(target, amount, false, damage_type)
-
 	var combat_log = get_node_or_null("HudLayer/CombatLog")
 	if combat_log and combat_log.has_method("add_message"):
 		var source_name: String = "Something"
@@ -552,6 +555,23 @@ func _on_combat_damage(source, target, amount: int, damage_type: String) -> void
 			target_name = target.display_name
 		combat_log.add_message(
 			"%s hits %s for %d %s damage" % [source_name, target_name, amount, damage_type])
+
+## Heal floats + combat-log line. Local-player filter for the log keeps
+## other players' heals from scrolling the hero's log.
+func _on_combat_heal(source, target, amount: int) -> void:
+	if amount <= 0:
+		return
+	if _damage_numbers and target is Node3D:
+		_damage_numbers.show_heal(target, amount)
+	var local = PlayerManager.get_local_player()
+	if local == null or target != local:
+		return
+	var combat_log = get_node_or_null("HudLayer/CombatLog")
+	if combat_log and combat_log.has_method("add_message"):
+		var source_name: String = "Healing"
+		if source != null and "display_name" in source:
+			source_name = source.display_name
+		combat_log.add_message("%s heals you for %d" % [source_name, amount])
 
 func _on_kill_rewarded(entity, killer, rewards: Dictionary) -> void:
 	var xp: int = int(rewards.get("xp", 0))

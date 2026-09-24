@@ -12,6 +12,7 @@ const NPCEntity = preload("res://core/entities/npc_entity.gd")
 # class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
 const KillRewards = preload("res://core/services/kill_rewards.gd")
+const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const EnemyScript = preload("res://entities/enemy.gd")
 const EnemyAIScript = preload("res://core/ai/enemy_ai.gd")
 # Spawn points organized by zone (zone_id -> [SpawnPoint])
@@ -581,7 +582,13 @@ func spawn_boss(
 	# any consumer's died-hook (hordes connect after spawn returns) so
 	# kill_rewarded arrives while a running horde can still credit it.
 	if boss.has_signal("died") and not boss.died.is_connected(_on_boss_entity_died):
-		boss.died.connect(_on_boss_entity_died.bind(boss))
+		boss.died.connect(_on_boss_entity_died.bind(boss, mtype == SpawnMetadata.SpawnType.WORLD_BOSS))
+	# Bare-Entity bosses never route take_damage through Enemy/HealthComponent,
+	# so EventHub.damage_dealt was never emitted for them: boss fights showed
+	# no damage numbers and no combat-log hit lines. Entity.took_damage carries
+	# (amount, source); bind the boss so the handler can validate it.
+	if boss.has_signal("took_damage") and not boss.took_damage.is_connected(_on_boss_entity_took_damage):
+		boss.took_damage.connect(_on_boss_entity_took_damage.bind(boss))
 
 	# Add to zone
 	var zone_manager = ZoneManager
@@ -601,10 +608,34 @@ func spawn_boss(
 ## Entity.die(killer) handler for bare-Entity bosses: pays kill rewards
 ## exactly like Enemy._on_died does (KillRewards resolves credit, grants
 ## XP/gold, emits EventHub.kill_rewarded for quests/achievements/hordes).
-func _on_boss_entity_died(killer, boss) -> void:
+func _on_boss_entity_died(killer, boss, is_world_boss: bool = false) -> void:
 	if boss == null or not is_instance_valid(boss):
 		return
 	KillRewards.award_kill(boss, killer)
+	# Spawns announce ("X has appeared!"); kills stayed silent. Mirror the
+	# spawn callout -- but only for TRUE world bosses: horde wave champions
+	# share this death handler (they connect with is_world_boss=false), and
+	# the horde state machine already narrates its own bosses ("wave
+	# cleared", finale). Runtime lookup: NotificationService loads after
+	# this service (forward edge, bare references poison --script tests).
+	if not is_world_boss:
+		return
+	var notif := get_node_or_null("/root/NotificationService")
+	if notif != null and notif.has_method("notify"):
+		notif.notify(
+			NotifKind.CUSTOM,
+			"WORLD BOSS DEFEATED: %s has been slain!" % str(boss.display_name),
+			"SpawnService",
+			"boss_slain:%s" % str(boss.entity_id),
+			{"boss_id": str(boss.entity_id), "display_name": str(boss.display_name)})
+
+## Entity.took_damage(amount, source) mirror for bare-Entity bosses: they
+## bypass Enemy/HealthComponent.take_damage, which is where every other
+## combatant's damage_dealt emission lives.
+func _on_boss_entity_took_damage(amount: int, source, boss) -> void:
+	if boss == null or not is_instance_valid(boss) or amount <= 0:
+		return
+	EventHub.damage_dealt.emit(source, boss, int(amount), "physical")
 
 ## Direct template-driven enemy spawn (admin /spawn, future event
 ## systems). Unlike spawn_enemy() this has no spawn point of its own --

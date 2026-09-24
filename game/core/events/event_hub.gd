@@ -22,6 +22,11 @@ signal revive_completed(entity, success: bool)
 ## Enemy.take_damage; consumed by AggroComponent for threat tracking).
 signal damage_dealt(source, target, amount: int, damage_type: String)
 
+## Heals applied to any combatant (health_component.heal, the skill.gd
+## heal path). Mirrors damage_dealt so healing is as visible as damage
+## on the HUD surfaces (heal floats + combat-log lines).
+signal heal_dealt(source, target, amount: int)
+
 ## XP/gold kill reward paid out (kill_rewards.gd). Consumers: HUD
 ## floating reward text, kill stat tracking, quest kill objectives.
 signal kill_rewarded(entity, killer, rewards: Dictionary)

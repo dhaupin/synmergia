@@ -100,6 +100,10 @@ func heal(amount: int, source: Entity = null) -> int:
 	var actual_heal: int = min(amount, max_health - current_health)
 	current_health += actual_heal
 	health_changed.emit(current_health, max_health, actual_heal)
+	# HUD feed: heal floats + combat-log lines. Zero-heals (full HP)
+	# stay silent to avoid regen spam.
+	if actual_heal > 0:
+		EventHub.heal_dealt.emit(source, get_parent(), actual_heal)
 
 	return actual_heal
 

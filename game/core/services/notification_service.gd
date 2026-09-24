@@ -109,6 +109,25 @@ func _ready() -> void:
 	if EventHub:
 		EventHub.entity_spawned.connect(_on_entity_spawned)
 
+	# PlayerManager.level_up -> level-up toast (center screen, plus the
+	# level-10 signature-unlock notice). Connected HERE rather than in
+	# PlayerManager._ready because NotificationService loads after
+	# PlayerManager (autoload order): the reverse connect would resolve
+	# a null NotificationService global. Runtime-only signal, so the
+	# ordering is guaranteed by the time any XP is ever granted.
+	if PlayerManager != null and PlayerManager.has_signal("level_up") \
+			and not PlayerManager.level_up.is_connected(_on_player_manager_level_up):
+		PlayerManager.level_up.connect(_on_player_manager_level_up)
+
+## Level-up bridge: PlayerManager.level_up(new_level) fires on every
+## PlayerManager add_experience crossing; notify_level_up delivers the
+## center-screen toast (with the level-10 signature-unlock special).
+func _on_player_manager_level_up(new_level: int) -> void:
+	var player_id := ""
+	if PlayerManager != null and PlayerManager.has_method("get_local_player_id"):
+		player_id = str(PlayerManager.get_local_player_id())
+	notify_level_up(player_id, int(new_level))
+
 ## Handle unified entity spawn event - auto-send notifications based on metadata
 func _on_entity_spawned(entity_or_id, metadata: SpawnMetadata) -> void:
 	if metadata == null or not metadata.notification_enabled:
