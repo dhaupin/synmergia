@@ -52,14 +52,13 @@ func _assert(cond: bool, msg: String) -> void:
 
 ## Player stub plus the guild surface (no Entity carries guild fields;
 ## real guild identity resolves via GuildService, so stubs declare it).
-class GuildPlayer:
-	extends "res://tests/support/reward_player_stub.gd"
-	var guild_id: String = ""
-	var guild_rank: int = 0
-
-
+## Built via set_script at runtime: an inner class `extends` of the stub
+## is a parse-time load of entity.gd (which references the EventHub
+## autoload) and poisons script-mode compilation -- the same boot-order
+## poison documented in test_hit_table.gd.
 func _mk_player(id: String, props: Dictionary = {}):
-	var p = GuildPlayer.new()
+	var p = load("res://tests/support/reward_player_stub.gd").new()
+	p.set_script(load("res://tests/support/guild_player_stub.gd"))
 	p.entity_id = id
 	p.display_name = id
 	for key in props:

@@ -71,6 +71,10 @@ enum GuardDuty {
 @export var watch_area_radius: float = 30.0    # TRESPASS jurisdiction radius
 @export var protected_faction: String = ""     # ATTACKED_FACTION: protect this faction_id
 @export var hostile_factions: Array = []       # Always hostile to these faction_ids
+## Who the guard answers to. GuardAI._beyond_leash reads this every
+## physics frame while chasing: only PERSONAL-duty guards leash hard to
+## their post; TOWN_WATCH (the default) roam their whole jurisdiction.
+@export var guard_duty: GuardDuty = GuardDuty.TOWN_WATCH
 
 ## Law settings.
 @export var bounty_per_offense: int = 0        # Future: bounty/bail system
@@ -135,6 +139,7 @@ static func house_guard(guard_id: String, guard_name: String, owner: String, all
 		WatchTrigger.ATTACKED_PLAYER,
 	]
 	g.owner_id = owner
+	g.guard_duty = GuardDuty.PERSONAL  # answers to the owner; GuardAI leashes it to the post
 	g.allowed_player_ids = allowed_ids.duplicate()
 	g.watch_group = ""  # Personal guards keep their own watchlist
 	g.level = 15
