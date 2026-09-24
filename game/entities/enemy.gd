@@ -68,7 +68,9 @@ func _ready() -> void:
 
 	# Threat table: enemies track who generates threat (damage, heals,
 	# taunts) and EnemyAI reads it for in-combat target switching.
-	if aggro_component == null:
+	# Training dummies skip it: no threat can exist without a brain,
+	# and a dummy threat table would pollute kill-credit fallbacks.
+	if aggro_component == null and not is_training_dummy():
 		aggro_component = AggroComponent.new()
 		add_child(aggro_component)
 
@@ -194,17 +196,33 @@ func _is_valid_damager(node) -> bool:
 	return "entity_id" in node or "player_id" in node
 
 ## Attach an EnemyAI brain and hook engagement callbacks.
+## Training dummies refuse a brain: they never aggro, chase, or retaliate
+## no matter which spawn pipeline attaches one (scene, SpawnService,
+## horde waves, respawn cycle). Central gate keeps all five sites honest.
 func attach_ai(ai) -> void:
+	if is_training_dummy():
+		return
 	_ai = ai
 	add_child(ai)
 
 
+## True when the template marks this entity as a training dummy:
+## take_damage is welcome, but no retaliation, no threat, no loot,
+## no XP/gold. Duck-typed field check so test doubles stay safe.
+func is_training_dummy() -> bool:
+	return enemy_data != null and "is_dummy" in enemy_data \
+			and bool(enemy_data.is_dummy)
+
+
 func _on_died() -> void:
 	GameLog.info("Enemy died: %s" % display_name)
-	_roll_and_drop_loot()
-	# XP/kill-reward hook: pays the killer (or top threat holder) via
-	# the duck-typed progression surface and broadcasts kill_rewarded.
-	KillRewards.award_kill(self, _last_damager)
+	# Dummies pay nothing: no loot roll, no kill rewards. Death still
+	# runs the normal unregister/free chain so respawn cycles rebuild them.
+	if not is_training_dummy():
+		_roll_and_drop_loot()
+		# XP/kill-reward hook: pays the killer (or top threat holder) via
+		# the duck-typed progression surface and broadcasts kill_rewarded.
+		KillRewards.award_kill(self, _last_damager)
 	# Unify with base Entity death semantics so combat systems
 	# (CombatSystem death hooks, threat cleanup) see one signal.
 	died.emit(null)

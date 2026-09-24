@@ -54,6 +54,7 @@ enum EnemyType {
 # Behavior flags
 @export var is_aggressive: bool = true   # Attacks on sight
 @export var is_passive: bool = false     # Only attacks when hit
+@export var is_dummy: bool = false       # Training dummy: no retaliation, no loot, no rewards
 @export var is_elite: bool = false
 @export var is_boss: bool = false
 @export var is_social: bool = true       # Calls for help when attacked

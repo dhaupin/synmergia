@@ -93,6 +93,13 @@ CURRENT state + ACTIVE work only.
   FIRST player entry auto-starts the instance horde (late joiners pin
   without re-start). DataService.get_horde serves configs from the
   catalog (bare + file-stem ids); list_configs merges catalog + scan.
+- Training dummy: is_dummy flag on EnemyData -> Enemy refuses an AI
+  brain + aggro component (attach_ai gate covers scene, SpawnService,
+  horde waves, respawn cycle), take_damage/heal work for dmg/resist
+  measurement, death chain skips loot roll + kill rewards entirely but
+  still unregisters so the scene respawn cycle rebuilds it. Placed in
+  town in world_playable (enemy_training_dummy.tres, 5000 HP, armor
+  25 / resist 40, 15s respawn).
 - Chat: commands (/horde /duel /lootrule /buyplot ...), channel
   restrictions, profanity/security/QoS pipeline.
 - UI: 24 panels alive (UIPanel base-panel heal), touch HUD, camera
@@ -133,6 +140,21 @@ dungeon_portal is the end-to-end loop test: real WorldService gateway
 walk -> zone entry -> auto-start -> wave spawns -> instance pins ->
 sweep release (19 asserts).
 
+full_boot_live is the full-boot live test under xvfb (NOT headless):
+boots the real world_playable scene and drives every system through
+production entry points (42 asserts, ~60s after boot): dummy
+dmg/heal/no-reward/respawn, /spawn 3+level-override slimes killed via
+create_hitbox (kill rewards verified), /boss world metadata +
+announcement, 4s world-boss timer respawn cycle, haven_siege open-
+world horde swept to success, dungeon portal auto-horde with instance
+scope pin. Gotchas baked in: GatewayRecord exposes .id (not
+.gateway_id), horde wave bosses are bare Entities (duck-type
+is_alive()/take_damage, no health_component), reward-event baseline
+must be captured BEFORE the kill (death chain is synchronous inside
+the lethal hitbox), 300s watchdog force-quits if a SCRIPT ERROR kills
+the run coroutine (otherwise the process ticks forever and hangs the
+session).
+
 Lint lives in `tests/lint/` (run_all.sh). xvfb live-run suites: touch,
 splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
@@ -161,7 +183,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   when world content grows.
 - [ ] DataService horde catalog admin surface if content grows.
 - [ ] /boss + /spawn smoke coverage inside a full-boot live test
-  (current coverage is script-mode; test_world_boss_schedule 37,
-  test_boss_commands 52).
+  (DONE: test_full_boot_live 42 asserts under xvfb -- /boss metadata,
+  /spawn combat loop, 4s timer cycle, both horde flavors).
 - [ ] More world_bosses .tres content once world zones grow (one demo:
   forest_void_lord).
