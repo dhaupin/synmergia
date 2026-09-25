@@ -19,8 +19,8 @@ shop_title = "General Store"
 location_type = 0
 buy_multiplier = 0.5
 sell_multiplier = 1.0
-buy_categories = ["misc", "resources"]
-sell_categories = ["consumables", "accessories", "misc"]
+buy_categories = ["MISC", "RESOURCE"]
+sell_categories = ["CONSUMABLE", "ACCESSORY", "MISC"]
 includes = [
   {"type": "dialogue", "dialogue_id": "merchant_greeting"},
   {"type": "offering", "ref_id": "general_store"}

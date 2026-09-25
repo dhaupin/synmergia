@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "misc_sealed_writ"
+id = "item_quest_sealed_writ"
 display_name = "Sealed Writ"
 description = "A conduit-sealed writ that only opens for its named bearer. Carries a caravan order from the Nexus Central underdeck. Unusable once opened."
 icon_path = "res://icons/items/sealed_writ.png"

@@ -146,7 +146,6 @@ func load_items() -> void:
 	var weapon_paths := _scan_directory(_data_path + "weapons", "item")
 	_items.merge(weapon_paths)
 	_weapons = weapon_paths
-
 	var armor_paths := _scan_directory(_data_path + "armors", "item")
 	_items.merge(armor_paths)
 	_armors = armor_paths
@@ -159,9 +158,12 @@ func load_items() -> void:
 	_items.merge(resource_paths)
 	_resources = resource_paths
 
-	var misc_paths := _scan_directory(_data_path + "misc", "item")
-	_items.merge(misc_paths)
-	_misc = misc_paths
+	# data/items/ holds every leftover item class: coins, quest tokens,
+	# vanity, garbage loot. item_quest_* files are quest items (the
+	# naming lint enforces their quest_id ref).
+	var item_paths := _scan_directory(_data_path + "items", "item")
+	_items.merge(item_paths)
+	_misc = item_paths
 
 	GameLog.info("DataService: Loaded %d items" % _items.size())
 

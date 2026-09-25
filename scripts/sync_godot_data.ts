@@ -21,6 +21,9 @@ export interface GodotDataPayload {
   currencies: Record<string, any>;
   mounts: Record<string, any>;
   vehicles: Record<string, any>;
+  resources: Record<string, any>;
+  items: Record<string, any>;
+  accessories: Record<string, any>;
 }
 
 // Helper to convert Godot values into JS primitives/objects
@@ -197,6 +200,9 @@ export function syncGodotData(): GodotDataPayload {
     currencies: {},
     mounts: {},
     vehicles: {},
+    resources: {},
+    items: {},
+    accessories: {},
   };
 
   const categories: Array<keyof Omit<GodotDataPayload, 'lastSyncedAt' | 'counts'>> = [
@@ -217,6 +223,9 @@ export function syncGodotData(): GodotDataPayload {
     'currencies',
     'mounts',
     'vehicles',
+    'resources',
+    'items',
+    'accessories',
   ];
 
   for (const cat of categories) {

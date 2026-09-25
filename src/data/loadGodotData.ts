@@ -309,6 +309,24 @@ export function transformItems(): Item[] {
       icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Heart',
     });
   }
+  // Generic items: data/items (quest tokens, coins), data/accessories
+  // (rings, necklaces, cloaks, belts), data/resources (crafting mats).
+  for (const src of [RAW.items, RAW.accessories, RAW.resources]) {
+    for (const [id, it] of Object.entries(src || {})) {
+      const i = it as any;
+      out.push({
+        id: i.id,
+        name: i.display_name || id,
+        type: mapItemType(i.item_category),
+        rarity: mapRarity(i.rarity),
+        slot: mapEquipSlot(i.equip_slot),
+        description: i.description || '',
+        stats: i.stats || {},
+        value: i.sell_price || i.buy_price || 0,
+        icon: i.icon_path?.split('/').pop()?.replace('.png', '') || 'Package',
+      });
+    }
+  }
   return out;
 }
 

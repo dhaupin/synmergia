@@ -479,6 +479,21 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 2 (2026-09-25): data/misc -> data/items with
+  item_ prefix + item_quest_* taxonomy (loot table refs updated);
+  deleted the never-loaded vestigial data/buffs/; moved the
+  mislocated test_seed_receipt.gd from core/schemas/ into tests/;
+  killed all 14 phantom model_path/scene_path refs (law: the .glb
+  filename IS the registry -- paths stay empty until the file
+  exists; the naming lint now enforces this, 18/18 incl. item_
+  style + model-path integrity). Web: build now copies web/ ->
+  dist/web/ (prod deploys were losing the WASM shell entirely);
+  GodotClientView probes shell+pck separately (deploy bug vs
+  export notice), auto-focuses the iframe so keyboard input works
+  without clicking, honest read-only labels for the decorative
+  memory/debug controls; sync:data now exports items/resources/
+  accessories and transformItems maps them; merchant vendor
+  categories unified to ItemCategory label casing.
 - [x] Rando-thoughts batch (2026-09-25): anti-stack spawn helper
   (SpawnService.ring_spread hex rings; /spawn jitter for repeated
   singles, spawn-point box -> ring slots; stack=true is the escape

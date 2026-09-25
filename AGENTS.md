@@ -656,6 +656,8 @@ consumers read exactly one form.
 | Zones | `zone_` prefix | `zone_starter_plains` | `zone_starter_plains.tres` |
 | Factions | `faction_` prefix | `faction_human` | `faction_human.tres` |
 | Items | kind prefix | `wep_iron_sword`, `potion_soul_gem`, `res_iron_ore` | filename == id |
+| Misc items (data/items) | `item_` prefix | `item_ancient_coin` | filename == id |
+| Quest items | `item_quest_` prefix | `item_quest_sealed_writ` | filename == id, `is_quest_item = true` |
 | Status effects | `buff_` prefix | `buff_barrier_field` | filename == id |
 | Loot tables | `loot_` prefix | `loot_wolf` | filename == id |
 | Dwellings | `dwel_` prefix | `dwel_fireplace_stone` | filename == id |

@@ -11,7 +11,6 @@ import {
   ExternalLink,
   ShieldCheck,
   AlertCircle,
-  FileCode,
 } from 'lucide-react';
 
 interface GodotClientViewProps {
@@ -26,12 +25,19 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
   const [memoryMb, setMemoryMb] = useState<number>(256);
   const [debugMode, setDebugMode] = useState<boolean>(false);
   const [pckStatus, setPckStatus] = useState<'checking' | 'present' | 'missing'>('checking');
+  const [shellStatus, setShellStatus] = useState<'checking' | 'present' | 'missing'>('checking');
   const [crossOriginIsolated, setCrossOriginIsolated] = useState<boolean>(false);
 
   useEffect(() => {
     setCrossOriginIsolated(typeof window !== 'undefined' && Boolean(window.crossOriginIsolated));
 
-    // Check if game.pck exists
+    // Probe BOTH halves of the WASM client: the exported shell
+    // (web/index.html + game.js) and the resource pack. Missing pck
+    // shows the export notice; missing shell means the web/ directory
+    // did not ship at all (deploy/build problem, not an export problem).
+    fetch('/web/index.html', { method: 'HEAD' })
+      .then((res) => setShellStatus(res.ok ? 'present' : 'missing'))
+      .catch(() => setShellStatus('missing'));
     fetch('/web/game.pck', { method: 'HEAD' })
       .then((res) => {
         if (res.ok) {
@@ -42,6 +48,15 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
       })
       .catch(() => setPckStatus('missing'));
   }, []);
+
+  // Keyboard focus: the iframe does not receive key events until
+  // clicked. Focus it on mount (and after reload) so WASD/input works
+  // immediately -- the #1 confusion with embedded Godot clients.
+  useEffect(() => {
+    if (iframeRef.current) {
+      iframeRef.current.focus();
+    }
+  }, [shellStatus]);
 
   const handleReload = () => {
     if (iframeRef.current) {
@@ -84,7 +99,7 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
 
           <div className="hidden sm:flex items-center gap-1.5 text-slate-400 text-[11px]">
             <Cpu className="w-3.5 h-3.5" />
-            <span>Mem: {memoryMb}MB</span>
+            <span>Shell: {shellStatus === 'present' ? 'ready' : shellStatus === 'missing' ? 'absent' : 'probing'}</span>
             {debugMode && <span className="text-amber-400 font-mono">[DEBUG]</span>}
           </div>
         </div>
@@ -129,18 +144,20 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
       {showConfig && (
         <div className="bg-slate-900 border-b border-slate-800 p-4 text-xs grid grid-cols-1 md:grid-cols-3 gap-4 shadow-lg animate-in slide-in-from-top-2 duration-150">
           <div>
-            <label className="block text-slate-400 font-medium mb-1">Memory Allocation</label>
+            <label className="block text-slate-400 font-medium mb-1">Memory Preference</label>
             <select
               value={memoryMb}
               onChange={(e) => setMemoryMb(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-200"
+              disabled
+              title="Read-only for now: the exported shell fixes initial WASM heap at build time (web/config.js). Re-export the pck to change it."
+              className="w-full bg-slate-800/60 border border-slate-700 rounded px-2 py-1 text-slate-400 cursor-not-allowed"
             >
+              <option value={256}>256 MB (exported shell default)</option>
               <option value={128}>128 MB (Lite)</option>
-              <option value={256}>256 MB (Standard)</option>
               <option value={512}>512 MB (High Density)</option>
               <option value={1024}>1024 MB (Max / Ultra)</option>
             </select>
-            <p className="text-[10px] text-slate-500 mt-1">Initial WASM linear memory heap size.</p>
+            <p className="text-[10px] text-slate-500 mt-1">Initial WASM heap is fixed by the exported shell; re-export to change.</p>
           </div>
 
           <div>
@@ -154,7 +171,7 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
               />
               <span>Verbose Engine Console Output</span>
             </label>
-            <p className="text-[10px] text-slate-500 mt-1">Logs WebGL and bridge packets in browser DevTools.</p>
+            <p className="text-[10px] text-slate-500 mt-1">Toggles shell debug labeling; engine logs stream to browser DevTools regardless.</p>
           </div>
 
           <div>
@@ -186,8 +203,29 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
           allow="cross-origin-isolated; autoplay; fullscreen; gamepad"
         />
 
-        {/* Notice Overlay if game.pck is missing */}
-        {pckStatus === 'missing' && (
+        {/* Notice Overlay if the WASM client cannot run */}
+        {shellStatus === 'missing' && (
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-auto">
+            <div className="max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
+              <div className="w-12 h-12 rounded-full bg-rose-950/80 border border-rose-800/80 flex items-center justify-center mx-auto mb-4 text-rose-400">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-100 mb-2">Godot Web Shell Not Deployed</h3>
+              <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                The <code className="bg-slate-800 px-1 py-0.5 rounded text-amber-300">web/</code> client directory (engine shell) is
+                missing from this deployment. The build should copy it to <code className="bg-slate-800 px-1 py-0.5 rounded text-amber-300">dist/web/</code> automatically.
+              </p>
+              <button
+                type="button"
+                onClick={handleReload}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs transition-colors"
+              >
+                Check Again
+              </button>
+            </div>
+          </div>
+        )}
+        {shellStatus === 'present' && pckStatus === 'missing' && (
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-auto">
             <div className="max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
               <div className="w-12 h-12 rounded-full bg-amber-950/80 border border-amber-800/80 flex items-center justify-center mx-auto mb-4 text-amber-400">
@@ -238,15 +276,7 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
           <span>WASM Mode: Web Workers &amp; SharedArrayBuffer</span>
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href="/labs/prd-web.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-amber-400 transition-colors flex items-center gap-1"
-          >
-            <FileCode className="w-3 h-3" />
-            <span>PRD-Web Docs</span>
-          </a>
+          <span className="text-slate-500">Pipeline: labs/prd-3d-pipeline.md</span>
         </div>
       </footer>
     </div>

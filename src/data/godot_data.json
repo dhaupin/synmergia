@@ -1,5 +1,5 @@
 {
-  "lastSyncedAt": "2026-09-25T18:30:39.796Z",
+  "lastSyncedAt": "2026-09-25T19:16:31.176Z",
   "counts": {
     "classes": 39,
     "weapons": 2,
@@ -17,7 +17,10 @@
     "dialogues": 2,
     "currencies": 4,
     "mounts": 2,
-    "vehicles": 1
+    "vehicles": 1,
+    "resources": 1,
+    "items": 3,
+    "accessories": 4
   },
   "classes": {
     "akkan_stalker": {
@@ -2255,7 +2258,7 @@
       "gold_max": 5,
       "xp_reward": 15,
       "skills": [],
-      "model_path": "res://models/enemies/slime.tscn",
+      "model_path": "",
       "icon_path": "res://icons/enemies/slime.png",
       "scale": 1,
       "animation_set": "slime",
@@ -8555,7 +8558,7 @@
       "id": "human",
       "display_name": "Human",
       "description": "Versatile survivors of the eastern plains. Known for their adaptability and diplomatic skills.",
-      "model_path": "res://models/player/human.tscn",
+      "model_path": "",
       "icon_path": "res://icons/species/human.png",
       "default_skin_color": {
         "r": 0.9,
@@ -8672,7 +8675,7 @@
       "id": "akkan",
       "display_name": "Akkan",
       "description": "Ancient warriors from the dark lands. Known for their strength and martial prowess.",
-      "model_path": "res://models/player/akkan.tscn",
+      "model_path": "",
       "icon_path": "res://icons/species/akkan.png",
       "default_skin_color": {
         "r": 0.6,
@@ -8780,7 +8783,7 @@
       "id": "synthetic",
       "display_name": "Synthetic",
       "description": "An emergent AI consciousness. Equal to humans in rights and capabilities.",
-      "model_path": "res://models/player/synthetic.tscn",
+      "model_path": "",
       "icon_path": "res://icons/species/synthetic.png",
       "default_skin_color": {
         "r": 0.7,
@@ -8963,7 +8966,7 @@
       "display_name": "Plains Runner",
       "description": "A shaggy courser bred on the starter plains. Sure-footed, honest, and faster than it looks.",
       "icon_path": "res://icons/mounts/plains_runner.png",
-      "model_path": "res://models/mounts/plains_runner.tscn",
+      "model_path": "",
       "kind": 0,
       "speed_multiplier": 1.35,
       "required_level": 5,
@@ -8990,7 +8993,7 @@
       "display_name": "Gullwing",
       "description": "A coastal sky-swimmer, half bird and half old-world alloy. Flies the Nexus Central harbor circuit when the wind is honest.",
       "icon_path": "res://icons/mounts/gullwing.png",
-      "model_path": "res://models/mounts/gullwing.tscn",
+      "model_path": "",
       "kind": 1,
       "speed_multiplier": 1.9,
       "required_level": 25,
@@ -9019,7 +9022,7 @@
       "display_name": "Haven Ferry",
       "description": "A flat-bellied barge poled by two patient oxen and one patient ferrymaster. Runs the coastal shallows between the village docks and Nexus Central's harbor.",
       "icon_path": "res://icons/vehicles/ferry.png",
-      "model_path": "res://models/vehicles/haven_ferry.tscn",
+      "model_path": "",
       "kind": 1,
       "speed_multiplier": 1.1,
       "seat_count": 8,
@@ -9036,6 +9039,191 @@
       "soulbound": false,
       "_sourceFile": "game/data/vehicles/veh_haven_ferry.tres",
       "_scriptClass": "VehicleData"
+    }
+  },
+  "resources": {
+    "res_iron_ore": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_iron_ore",
+      "display_name": "Iron Ore",
+      "description": "Raw iron ore. Can be smelted into iron ingots.",
+      "icon_path": "res://icons/resources/iron_ore.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 2,
+      "buy_price": 5,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_iron_ore.tres",
+      "_scriptClass": "Item"
+    }
+  },
+  "items": {
+    "item_quest_gull_feather_seal": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_quest_gull_feather_seal",
+      "display_name": "Gull-Feather Seal",
+      "description": "A token stamped with a single gull feather, given by the harbor-folk to those they trust with their skies. The Gullwing masters answer it.",
+      "icon_path": "res://icons/items/seal_feather.png",
+      "item_category": 8,
+      "rarity": 2,
+      "stack_size": 1,
+      "is_quest_item": true,
+      "quest_id": "quest_wolves_hunt",
+      "keep_after_turn_in": true,
+      "usable_during_quest_only": false,
+      "sell_price": 0,
+      "buy_price": 0,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_quest_gull_feather_seal.tres",
+      "_scriptClass": "Item"
+    },
+    "item_quest_sealed_writ": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_quest_sealed_writ",
+      "display_name": "Sealed Writ",
+      "description": "A conduit-sealed writ that only opens for its named bearer. Carries a caravan order from the Nexus Central underdeck. Unusable once opened.",
+      "icon_path": "res://icons/items/sealed_writ.png",
+      "item_category": 8,
+      "rarity": 1,
+      "stack_size": 1,
+      "is_quest_item": true,
+      "quest_id": "quest_herb_gathering",
+      "keep_after_turn_in": false,
+      "usable_during_quest_only": true,
+      "sell_price": 0,
+      "buy_price": 0,
+      "weight": 0.01,
+      "_sourceFile": "game/data/items/item_quest_sealed_writ.tres",
+      "_scriptClass": "Item"
+    },
+    "item_ancient_coin": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_ancient_coin",
+      "display_name": "Ancient Coin",
+      "description": "A mysterious coin from a forgotten civilization. What does it unlock?",
+      "icon_path": "res://icons/items/coin_ancient.png",
+      "item_category": 7,
+      "rarity": 3,
+      "equip_slot": 0,
+      "stack_size": 1,
+      "sell_price": 0,
+      "buy_price": 0,
+      "required_level": 0,
+      "is_bound": true,
+      "_sourceFile": "game/data/items/item_ancient_coin.tres",
+      "_scriptClass": "Item"
+    }
+  },
+  "accessories": {
+    "acc_ring_first_light": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_ring_first_light",
+      "display_name": "Ring of First Light",
+      "description": "Copper wound around a sliver of conduit glass. It warms at dawn -- the harbor-folk say a ring that remembers the sun keeps its wearer standing.",
+      "icon_path": "res://icons/items/ring_first_light.png",
+      "item_category": 2,
+      "rarity": 1,
+      "equip_slot": 9,
+      "accessory_type": 1,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 12,
+      "buy_price": 60,
+      "item_level": 3,
+      "required_level": 2,
+      "stats": {
+        "vitality": 2
+      },
+      "_sourceFile": "game/data/accessories/acc_ring_first_light.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_necklace_haven_pearl": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_necklace_haven_pearl",
+      "display_name": "Haven Pearl",
+      "description": "A river pearl on braided sinew, traded at the village docks for more than it is worth. Keeps a calm head when the water rises.",
+      "icon_path": "res://icons/items/necklace_haven_pearl.png",
+      "item_category": 2,
+      "rarity": 2,
+      "equip_slot": 11,
+      "accessory_type": 2,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 25,
+      "buy_price": 120,
+      "item_level": 6,
+      "required_level": 5,
+      "stats": {
+        "intelligence": 3,
+        "wisdom": 1
+      },
+      "_sourceFile": "game/data/accessories/acc_necklace_haven_pearl.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_cloak_wanderer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_cloak_wanderer",
+      "display_name": "Wanderer's Cloak",
+      "description": "Patchwork over an old-world thermal weave. Rain beads off it, and campfire smoke follows it long after you leave.",
+      "icon_path": "res://icons/items/cloak_wanderer.png",
+      "item_category": 2,
+      "rarity": 1,
+      "equip_slot": 12,
+      "accessory_type": 4,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 18,
+      "buy_price": 90,
+      "item_level": 4,
+      "required_level": 3,
+      "stats": {
+        "endurance": 2,
+        "armor": 5
+      },
+      "_sourceFile": "game/data/accessories/acc_cloak_wanderer.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_belt_reclaimer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_belt_reclaimer",
+      "display_name": "Reclaimer Toolbelt",
+      "description": "Salvage-hung holsters, a magnet clip, and forty years of burned-in grease. Every pocket has a story; two of them have rations.",
+      "icon_path": "res://icons/items/belt_reclaimer.png",
+      "item_category": 2,
+      "rarity": 2,
+      "equip_slot": 13,
+      "accessory_type": 5,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 30,
+      "buy_price": 150,
+      "item_level": 8,
+      "required_level": 6,
+      "stats": {
+        "strength": 2,
+        "agility": 1,
+        "carry_capacity": 20
+      },
+      "_sourceFile": "game/data/accessories/acc_belt_reclaimer.tres",
+      "_scriptClass": "Item"
     }
   }
 }

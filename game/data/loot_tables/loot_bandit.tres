@@ -20,7 +20,7 @@ entries = [{
 "is_guaranteed": false,
 "conditions": []
 }, {
-"item_id": "misc_ancient_coin",
+"item_id": "item_ancient_coin",
 "min_quantity": 5,
 "max_quantity": 15,
 "drop_rate": 0.7,

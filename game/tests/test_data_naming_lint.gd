@@ -309,4 +309,48 @@ func _run() -> void:
 	else:
 		_fail("Phantom quest-item refs: %s" % ", ".join(bad_quest_items))
 
+	# --- Items (data/items): item_ prefix, quest items item_quest_* ---
+	var item_ids := _load_ids("data/items")
+	var bad_items: Array = []
+	for ib in item_ids:
+		var iid := str(item_ids[ib])
+		if not iid.begins_with("item_"):
+			bad_items.append(iid)
+		if ib != iid:
+			bad_items.append("%s (filename mismatch: %s.tres)" % [iid, ib])
+		if iid.begins_with("item_quest_"):
+			var itxt := _file_text("data/items", ib)
+			if not itxt.contains("is_quest_item = true"):
+				bad_items.append("%s named item_quest_* but not flagged is_quest_item" % iid)
+	if bad_items.is_empty():
+		_ok("Items (misc): all %d ids use 'item_' prefix, filename == id" % item_ids.size())
+	else:
+		_fail("Item style violations: %s" % ", ".join(bad_items))
+
+	# --- Model/scene path integrity across ALL data files ---
+	var bad_model_paths: Array = []
+	for data_dir in ["data/npc", "data/enemies", "data/species", "data/mounts", "data/vehicles", "data/dwellings", "data/gateways", "data/classes"]:
+		var mdir := DirAccess.open("res://" + data_dir)
+		if mdir == null:
+			continue
+		mdir.list_dir_begin()
+		var mf := mdir.get_next()
+		while mf != "":
+			if mf.ends_with(".tres"):
+				var mtxt := FileAccess.get_file_as_string("res://%s/%s" % [data_dir, mf])
+				for line in mtxt.split("\n"):
+					var t := line.strip_edges()
+					if t.begins_with("model_path = \"") or t.begins_with("scene_path = \""):
+						var p := t.substr(t.find("res://"))
+						p = p.trim_suffix("\"")
+						if p.begins_with("res://") and p != "res://":
+							var fs_path := p.trim_prefix("res://")
+							if not FileAccess.file_exists(fs_path):
+								bad_model_paths.append("%s/%s -> %s" % [data_dir, mf, p])
+			mf = mdir.get_next()
+	if bad_model_paths.is_empty():
+		_ok("All model_path/scene_path refs resolve to real files")
+	else:
+		_fail("Phantom model refs: %s" % ", ".join(bad_model_paths))
+
 	_finish()

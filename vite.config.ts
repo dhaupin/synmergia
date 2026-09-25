@@ -54,6 +54,25 @@ function bridgeApiPlugin(): Plugin {
   };
 }
 
+function copyGodotWebToDist(): Plugin {
+  return {
+    name: 'copy-godot-web-to-dist',
+    apply: 'build',
+    closeBundle() {
+      // The Godot WASM client lives in web/ (index.html + game.js +
+      // game.pck + workers). Vite only copies public/ into dist/, so
+      // production deploys lost the engine unless this runs. Ship the
+      // whole web/ directory as-is.
+      const srcDir = path.resolve(process.cwd(), 'web');
+      const destDir = path.resolve(process.cwd(), 'dist', 'web');
+      if (!fs.existsSync(srcDir)) return;
+      fs.cpSync(srcDir, destDir, { recursive: true });
+      // eslint-disable-next-line no-console
+      console.log(`[copy-godot-web] web/ -> dist/web/ (${fs.readdirSync(destDir).length} entries)`);
+    },
+  };
+}
+
 function serveGodotWeb(): Plugin {
   return {
     name: 'serve-godot-web',
@@ -117,7 +136,7 @@ function serveGodotWeb(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), bridgeApiPlugin(), serveGodotWeb()],
+  plugins: [react(), tailwindcss(), bridgeApiPlugin(), serveGodotWeb(), copyGodotWebToDist()],
   server: {
     host: '0.0.0.0',
     port: 3000,

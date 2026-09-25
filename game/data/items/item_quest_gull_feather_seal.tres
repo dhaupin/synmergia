@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "misc_gull_feather_seal"
+id = "item_quest_gull_feather_seal"
 display_name = "Gull-Feather Seal"
 description = "A token stamped with a single gull feather, given by the harbor-folk to those they trust with their skies. The Gullwing masters answer it."
 icon_path = "res://icons/items/seal_feather.png"

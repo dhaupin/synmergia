@@ -27,6 +27,11 @@
 2. **Naming mirrors the data id conventions**: `mount_plains_runner.glb`,
    `npc_village_elder.glb`, `dwel_fireplace_stone.glb`. A model file
    name resolves to its data id with zero mapping code.
+3. **The .glb filename IS the model registry** -- there is no separate
+   model-descriptor schema. `model_path`/`scene_path` fields on data
+   resources stay EMPTY until the real file exists in `game/models/`;
+   the naming lint fails any data file pointing at a phantom path
+   (this killed 14 historical phantom refs in one sweep).
 3. **Pivot + scale law:** all props exported with origin at the base,
    +Y up, 1 unit = 1 meter. Mounts/vehicles pivot at saddle/driver
    seat. Breaking this law breaks housing grid placement.
