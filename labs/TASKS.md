@@ -479,7 +479,25 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
-- [x] Consolidated `data/npc/` + `data/npcs/` into one canonical dir:
+- [x] ID naming convention locked (see AGENTS.md "ID Naming
+  Conventions"): npc_/quest_/zone_/faction_ + kind prefixes for
+  items, one id per entity, filename == id for prefixed categories,
+  NO dual-format shims. Renamed all NPC/quest/zone/faction ids to
+  the convention, soul_gem -> potion_soul_gem, killed the
+  display-name/trimmed-zone dual-candidate loops in QuestService
+  (TALK/EXPLORE now credit one verbatim form). New
+  tests/test_data_naming_lint.gd enforces styles + cross-file refs
+  (it caught faction id/filename mismatches + the phantom
+  npc_alchemist on first run -- both fixed; herb quest now belongs
+  to the herbalist). Trimmed to ONE blacksmith; starter village has
+  elder + blacksmith + merchant + herbalist via spawn_offset
+  placement; armory + skill academy authored-but-unplaced. Scene-
+  placed MerchantNPC/ElderNPC twins removed from world_playable.tscn:
+  spawn_all_offering_npcs is the single spawn path, now idempotent
+  (_spawned_offering_npcs registry + freed-entity prune + lazy zone
+  load) and called from world_playable._ready so every boot route
+  gets NPCs. Live onboarding suite 26/26 after fixing its armor-
+  naive slime damage assert.- [x] Consolidated `data/npc/` + `data/npcs/` into one canonical dir:
   migrated the 8 unique offering NPCs into `data/npc/`, deleted the
   dead `data/npcs/` (was never loaded by DataService), gave the two
   village-tier NPCs `zone_id = "zone_village_center"` so they spawn

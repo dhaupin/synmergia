@@ -190,7 +190,14 @@ func _run() -> void:
 			ai._check_for_targets() == null)
 		var before_slime_hp: int = int(slime.health_component.current_health)
 		slime.take_damage(5, player)
-		_assert("player attack landed on slime", int(slime.health_component.current_health) == before_slime_hp - 5)
+		# Enemy take_damage mitigates by armor (armor/(armor+100) reduction,
+		# min 1 chip). Slime has armor 2, so a raw 5 lands as 4 -- assert
+		# the real mitigated contract, not the raw amount.
+		var slime_armor := 0.0
+		if slime.enemy_data != null and "armor" in slime.enemy_data:
+			slime_armor = float(slime.enemy_data.armor)
+		var expected_applied := maxi(1, int(5.0 * (1.0 - slime_armor / (slime_armor + 100.0))))
+		_assert("player attack landed on slime", int(slime.health_component.current_health) == before_slime_hp - expected_applied)
 		_assert("grudge recorded for attacking player",
 			float(ai._known_threats.get(player.entity_id, 0.0)) > 0.0)
 		_assert("grudged player re-aggroed despite sanctuary (no combat shield)",

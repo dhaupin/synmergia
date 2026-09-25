@@ -24,6 +24,12 @@ var _spawn_timers: Dictionary = {}
 # Spawned entities (spawn_point_id -> [entity_ids])
 var _spawned_entities: Dictionary = {}
 
+# Data-placed offering NPCs (npc_id -> NPCEntity) for idempotent spawn.
+# Both boot routes call spawn_all_offering_npcs; this registry plus the
+# freed-entity prune at the top of that function guarantees one live
+# entity per npc_id and re-spawn after scene changes.
+var _spawned_offering_npcs: Dictionary = {}
+
 # World bosses (boss_id -> )
 var _world_bosses: Dictionary = {}
 
@@ -1048,10 +1054,29 @@ func spawn_all_offering_npcs() -> void:
 		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
 		return
 
+	## Single spawn path for data-placed NPCs. Idempotent: both boot
+	## routes call it (GameManager for headless/server boots,
+	## world_playable._ready for scene runs), so track what we spawned
+	## and skip ids that still have a live entity. Entries whose entity
+	## was freed without despawn (scene change on the login path frees
+	## NPCs parented to the old scene) are pruned first, so the next
+	## call re-spawns them -- never two live entities for one id.
+	for npc_id in _spawned_offering_npcs.keys():
+		var ent = _spawned_offering_npcs[npc_id]
+		if ent == null or not is_instance_valid(ent):
+			_spawned_offering_npcs.erase(npc_id)
+
 	var all_npcs: Array = DataService.get_all_npcs()
 	var spawned := 0
+	# Direct scene runs reach this before world_playable calls
+	# ZoneManager.load_zones (world_playable defers it via
+	# _enter_scene_zone). Load once on demand so zone lookups resolve.
+	if ZoneManager and ZoneManager._zones.is_empty():
+		ZoneManager.load_zones()
 	for npc_data in all_npcs:
 		if npc_data == null:
+			continue
+		if _spawned_offering_npcs.has(npc_data.id):
 			continue
 		if npc_data.includes.is_empty():
 			continue
@@ -1066,8 +1091,10 @@ func spawn_all_offering_npcs() -> void:
 			GameLog.warn("SpawnService: NPC '%s' references unknown zone '%s' -- skipping (broken data reference)" % [npc_data.id, zone_id])
 			continue
 		var spawn_pos: Vector3 = zone_data.bind_point + npc_data.spawn_offset
-		spawn_npc_entity(zone_id, spawn_pos, npc_data)
-		spawned += 1
+		var entity := spawn_npc_entity(zone_id, spawn_pos, npc_data)
+		if entity != null:
+			_spawned_offering_npcs[npc_data.id] = entity
+			spawned += 1
 
 	GameLog.info("SpawnService: Spawned %d offering NPCs" % spawned)
 

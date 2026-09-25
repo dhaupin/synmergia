@@ -1,12 +1,11 @@
 ## Regression test: EXPLORE quest bridge (player_entered_zone).
 ##
-## "The Old Roads" (main_teachings) is the first EXPLORE-objective
+## "The Old Roads" (quest_main_teachings) is the first EXPLORE-objective
 ## quest; before this bridge EXPLORE could never advance -- same
 ## failure class as the TALK/COLLECT gap fixed in
-## test_quest_lore_bridges.gd. The bridge must credit zone entry
-## under BOTH id conventions (ZoneData id "zone_starter_plains" and
-## the species/faction convention "starter_plains"), and must not
-## tick for unrelated zones.
+## test_quest_lore_bridges.gd. The bridge must credit zone entry under
+## the single ZoneData id convention ("zone_starter_plains") and must
+## not tick for unrelated zones.
 ##
 ## Run: godot --headless --path . --script res://tests/test_quest_explore_bridge.gd
 
@@ -38,24 +37,23 @@ func _run() -> void:
 		return
 	_ok("EXPLORE bridge connected (player_entered_zone)")
 
-	var qdata = load("res://data/quests/main_teachings.tres")
+	var qdata = load("res://data/quests/quest_main_teachings.tres")
 	if qdata == null:
-		_fail("main_teachings.tres failed to load")
+		_fail("quest_main_teachings.tres failed to load")
 		_finish()
 		return
 	_ok("main_teachings.tres loads (target=%s count=%d)" % [
 		str(qdata.objectives[0]["target"]), int(qdata.objectives[0]["count"])])
 
 	# Seed an in-progress Old Roads state exactly as the live accept
-	# path would hold it (trimmed-convention target from the .tres).
+	# path would hold it (zone_ id target straight from the .tres).
 	var pid := "explore_bridge_tester"
 	qs._player_quests[pid] = {
-		"main_teachings": {
-			"quest_id": "main_teachings",
+		"quest_main_teachings": {
+			"quest_id": "quest_main_teachings",
 			"state": qs.QuestData.QuestState.IN_PROGRESS,
-			"objectives": [
-				{"id": "wake_waypoints", "type": qs.QuestData.ObjectiveType.EXPLORE,
-				 "target": "starter_plains", "current": 0, "required": 3,
+			"objectives": [				 {"id": "wake_waypoints", "type": qs.QuestData.ObjectiveType.EXPLORE,
+				 "target": "zone_starter_plains", "current": 0, "required": 3,
 				 "completed": false}
 			]
 		}
@@ -67,12 +65,12 @@ func _run() -> void:
 	fake_player.entity_id = pid
 
 	# Enter, leave, re-enter x3 (walking the old roads). ZoneData id is
-	# "zone_starter_plains"; the bridge must credit the trimmed form.
+	# "zone_starter_plains"; the bridge credits it verbatim.
 	for i in range(3):
 		zm.player_entered_zone.emit(fake_player, zone)
-	var obj: Dictionary = qs._player_quests[pid]["main_teachings"]["objectives"][0]
+	var obj: Dictionary = qs._player_quests[pid]["quest_main_teachings"]["objectives"][0]
 	if obj["completed"] and int(obj["current"]) == 3:
-		_ok("EXPLORE: 3 zone entries completed the trimmed target")
+		_ok("EXPLORE: 3 zone entries completed the zone_ target")
 	else:
 		_fail("EXPLORE: not completed (current=%d)" % int(obj["current"]))
 

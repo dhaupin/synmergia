@@ -42,6 +42,12 @@ func _ready() -> void:
 	_apply_player_from_data(char_data)
 	_register_player()
 	_restore_player_progress()
+	# Data-driven NPC spawn (single spawn path, idempotent). Direct scene
+	# runs skip WorldService.initialize_world, and the login path's boot-
+	# time spawns were parented to the previous scene, so this is the
+	# authoritative moment NPCs enter the playable world.
+	if SpawnService:
+		SpawnService.spawn_all_offering_npcs()
 	_setup_enemies()
 	_setup_guards()
 	_setup_offering_npcs()
@@ -173,15 +179,15 @@ func _enter_scene_zone() -> void:
 		return
 	# Direct scene runs skip WorldService.initialize_world (the login path's
 	# zone loader), so load zone defs on demand the first time.
-	var zone = ZoneManager.get_zone("starter_plains")
+	var zone = ZoneManager.get_zone("zone_starter_plains")
 	if zone == null and ZoneManager.has_method("load_zones"):
 		ZoneManager.load_zones()
-		zone = ZoneManager.get_zone("starter_plains")
+		zone = ZoneManager.get_zone("zone_starter_plains")
 	if zone == null:
 		GameLog.warn("WorldPlayable: starter_plains zone not registered")
 		return
 	if not ZoneManager.entity_enter_zone(player, zone):
-		GameLog.warn("WorldPlayable: could not place player in starter_plains")
+		GameLog.warn("WorldPlayable: could not place player in zone_starter_plains")
 
 
 ## Give every scene-placed enemy an AI brain and a service registration.
@@ -296,12 +302,12 @@ func _respawn_scene_enemy(record: SceneSpawn) -> void:
 	GameLog.info("WorldPlayable: %s respawned at its spawn point" % enemy.display_name)
 
 
-## Register scene-placed offering NPCs (MerchantNPC, ElderNPC) with the
-## entity/targeting/zone services so they are targetable and the NPC
-## context menu / [E] interact pipeline can resolve their npc_data.
-## Their visual nodes live in the scene (like enemies/guards); the
-## service-side `spawn_all_offering_npcs` twins stay non-visual and are
-## ignored here by the "no offering entries" filter.
+## Register scene-placed offering NPCs with the entity/targeting/zone
+## services so they are targetable and the NPC context menu / [E]
+## interact pipeline can resolve their npc_data. Data-driven NPCs spawn
+## via SpawnService.spawn_all_offering_npcs -- that is the single spawn
+## path; this loop only covers NPCs physically placed in a scene (none
+## today, kept for placement tooling that adds nodes directly).
 func _setup_offering_npcs() -> void:
 	var es = EntityService
 	var registered := 0

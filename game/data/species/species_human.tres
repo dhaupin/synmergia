@@ -18,8 +18,8 @@ stat_modifiers = {
 "vitality": 5,
 "wisdom": 0
 }
-home_zone = "starter_plains"
-home_faction = "human_faction"
+home_zone = "zone_starter_plains"
+home_faction = "faction_human"
 allied_species = ["elf", "dwarf"]
 hostile_species = ["akkan"]
 health_modifier = 1.05

@@ -47,27 +47,26 @@ func _run() -> void:
 
 	# --- TALK: The Awakening, the game's first quest ---
 	var pid := "lore_bridge_tester"
-	var qdata = load("res://data/quests/main_awakening.tres")
+	var qdata = load("res://data/quests/quest_main_awakening.tres")
 	if qdata == null:
-		_fail("main_awakening.tres failed to load")
+		_fail("quest_main_awakening.tres failed to load")
 		_finish()
 		return
 	qs._player_quests[pid] = {
-		"main_awakening": {
-			"quest_id": "main_awakening",
+		"quest_main_awakening": {
+			"quest_id": "quest_main_awakening",
 			"state": qs.QuestData.QuestState.IN_PROGRESS,
 			"objectives": [
 				{"id": "talk_elder", "type": qs.QuestData.ObjectiveType.TALK,
-				 "target": "Village Elder", "current": 0, "required": 1,
+				 "target": "npc_village_elder", "current": 0, "required": 1,
 				 "completed": false}
 			]
 		}
 	}
-	# dialogue_ended carries only npc_id -- the bridge must resolve the
-	# display name ("Village Elder") via DataService and credit the
-	# player whose objective matches.
+	# dialogue_ended carries the NPCData id -- quest targets author the
+	# same npc_ id verbatim, so the bridge credits it directly.
 	ds.dialogue_ended.emit("npc_village_elder", "village_elder_greeting")
-	var state: Dictionary = qs._player_quests[pid]["main_awakening"]
+	var state: Dictionary = qs._player_quests[pid]["quest_main_awakening"]
 	var obj: Dictionary = state["objectives"][0]
 	if obj["completed"]:
 		_ok("TALK: Awakening objective completed via dialogue_ended")
@@ -82,13 +81,13 @@ func _run() -> void:
 		_fail("TALK: over-tick from unrelated npc")
 
 	# --- COLLECT: daily herb gathering ---
-	var cdata = load("res://data/quests/daily_herb_gathering.tres")
+	var cdata = load("res://data/quests/quest_herb_gathering.tres")
 	if cdata == null:
-		_fail("daily_herb_gathering.tres failed to load")
+		_fail("quest_herb_gathering.tres failed to load")
 		_finish()
 		return
-	qs._player_quests[pid]["daily_herb_gathering"] = {
-		"quest_id": "daily_herb_gathering",
+	qs._player_quests[pid]["quest_herb_gathering"] = {
+		"quest_id": "quest_herb_gathering",
 		"state": qs.QuestData.QuestState.IN_PROGRESS,
 		"objectives": [
 			{"id": "collect_herbs", "type": qs.QuestData.ObjectiveType.COLLECT,
@@ -104,7 +103,7 @@ func _run() -> void:
 	fake_item.display_name = "Moonpetal Flower"
 	eh.item_picked_up.emit(fake_player, fake_item)
 	eh.item_picked_up.emit(fake_player, fake_item)
-	var cstate: Dictionary = qs._player_quests[pid]["daily_herb_gathering"]
+	var cstate: Dictionary = qs._player_quests[pid]["quest_herb_gathering"]
 	var cobj: Dictionary = cstate["objectives"][0]
 	if cobj["completed"] and int(cobj["current"]) == 2:
 		_ok("COLLECT: herb objective completed after 2 pickups")

@@ -20,7 +20,7 @@ entries = [{
 "is_guaranteed": false,
 "conditions": []
 }, {
-"item_id": "soul_gem",
+"item_id": "potion_soul_gem",
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.05,

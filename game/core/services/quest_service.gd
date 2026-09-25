@@ -92,9 +92,10 @@ func _on_kill_rewarded_for_quest(entity, killer, rewards: Dictionary) -> void:
 ## Talk + Collect bridges. Before these, only KILL objectives could ever
 ## advance: the Awakening (the game's first quest) is a TALK objective and
 ## the daily herb run is COLLECT -- both were permanently stuck. Talk
-## credits the dialogue ENDER (dialog_service emits dialogue_ended with
-## only the npc_id); Collect keys off the item's display_name, matching
-## how quest .tres targets are authored ("Moonpetal Flower").
+## credits by npc_ id (dialog_service emits dialogue_ended with the
+## NPCData id; quest targets author the same id). Collect keys off the
+## item's display_name, matching how quest .tres targets are authored
+## ("Moonpetal Flower").
 func _connect_lore_event_bridges() -> void:
 	if DialogService != null and DialogService.has_signal("dialogue_ended") \
 			and not DialogService.dialogue_ended.is_connected(_on_dialogue_ended_for_quest):
@@ -106,52 +107,36 @@ func _connect_lore_event_bridges() -> void:
 			and not ZoneManager.player_entered_zone.is_connected(_on_player_entered_zone_for_quest):
 		ZoneManager.player_entered_zone.connect(_on_player_entered_zone_for_quest)
 
-## EXPLORE bridge: zone entry is the objective's world event. Quest
-## targets use the species/faction convention ("starter_plains")
-## while ZoneData ids are "zone_"-prefixed, so credit BOTH forms --
-## update_quest_progress re-validates each objective, so only the
-## matching form ever ticks (same dual-candidate law as the TALK
-## bridge). When a true world-waypoint wake mechanic lands, its
-## events can call update_quest_progress with the same contract and
-## the two tick sources stack additively.
+## EXPLORE bridge: zone entry is the objective's world event.
+## Data contract: objective targets use the ZoneData id verbatim
+## ("zone_"-prefixed). One id style, one credit path -- no trimmed
+## or display-name fallback candidates.
 func _on_player_entered_zone_for_quest(player, zone) -> void:
 	if player == null or zone == null:
 		return
 	var z_val = zone.get("id")
 	if z_val == null or str(z_val) == "":
 		return
-	var zone_id := str(z_val)
-	var candidates: Array = [zone_id]
-	var trimmed := zone_id.trim_prefix("zone_")
-	if trimmed != zone_id:
-		candidates.push_front(trimmed)
 	var pid_val = player.get("player_id")
 	if pid_val == null or str(pid_val) == "":
 		pid_val = player.get("entity_id")
 	if pid_val == null or str(pid_val) == "":
 		return
-	var player_id := str(pid_val)
-	for target in candidates:
-		update_quest_progress(player_id, QuestData.ObjectiveType.EXPLORE, target, 1)
+	update_quest_progress(str(pid_val), QuestData.ObjectiveType.EXPLORE, str(z_val), 1)
 
 func _on_dialogue_ended_for_quest(npc_id: String, _dialogue_id: String) -> void:
-	# Resolve the NPC's display name so the target matches quest data.
-	# Credit both the resolved display name AND the raw npc_id: quest
-	# authors may target either, and update_quest_progress re-validates
-	# each objective, so only the matching form ever ticks.
-	var candidates: Array = [str(npc_id)]
-	if DataService != null and DataService.has_method("get_npc"):
-		var npc = DataService.get_npc(str(npc_id))
-		var resolved = npc.get("display_name") if npc != null else null
-		if resolved != null and str(resolved) != "" and str(resolved) != str(npc_id):
-			candidates.push_front(str(resolved))
-	for target in candidates:
-		for player_id in _active_dialogue_players(str(target)):
-			update_quest_progress(player_id, QuestData.ObjectiveType.TALK, str(target), 1)
+	# Data contract: TALK objectives target the NPCData id verbatim
+	# ("npc_"-prefixed). dialogue_ended already carries that id -- no
+	# display-name resolution, no dual-candidate loop.
+	var npc := str(npc_id)
+	if npc.is_empty():
+		return
+	for player_id in _active_dialogue_players(npc):
+		update_quest_progress(player_id, QuestData.ObjectiveType.TALK, npc, 1)
 
 ## Best-effort attribution for TALK credit: dialogue_ended carries no
 ## player id, so credit every player whose tracked quest is in progress
-## with this npc's display name as an incomplete TALK objective. Small
+## with this npc id as an incomplete TALK objective. Small
 ## player counts make the scan cheap; correctness is exact because
 ## update_quest_progress re-validates the objective target.
 func _active_dialogue_players(npc_name: String) -> Array:

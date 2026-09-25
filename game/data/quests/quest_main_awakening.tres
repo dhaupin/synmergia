@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "main_awakening"
+id = "quest_main_awakening"
 display_name = "The Awakening"
 description = "You awaken in an unfamiliar land. Speak with the Village Elder to learn about your new home."
 quest_type = 0
@@ -19,4 +19,4 @@ rewards = [{"type": "experience", "id": "", "quantity": 50}]
 xp_reward = 50
 icon_path = "res://icons/quests/awakening.png"
 map_marker = "talk"
-next_quest_id = "main_teachings"
+next_quest_id = "quest_main_teachings"

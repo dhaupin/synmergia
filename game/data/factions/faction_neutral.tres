@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "neutral_faction"
+id = "faction_neutral"
 display_name = "Neutral"
 description = "No PvP allowed until level 20. Safe for new players."
 faction_type = 2

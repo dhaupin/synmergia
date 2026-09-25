@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "merchant_greeting"
-npc_id = "merchant_general_default"
+npc_id = "npc_merchant_general"
 display_name = "Merchant Greeting"
 nodes = [
 	{

@@ -556,7 +556,7 @@ class Respawn:
 
 	## Default ankh for new players (zone_id)
 
-	const DEFAULT_SPAWN_ZONE: String = "starter_plains"
+	const DEFAULT_SPAWN_ZONE: String = "zone_starter_plains"
 
 
 
@@ -632,7 +632,7 @@ class Respawn:
 
 	## Self-rez item ID (must exist in item database)
 
-	const SELF_REZ_ITEM_ID: String = "soul_gem"
+	const SELF_REZ_ITEM_ID: String = "potion_soul_gem"
 
 
 

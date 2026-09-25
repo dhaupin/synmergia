@@ -9,11 +9,12 @@ display_name = "Village Elder"
 description = "The elder of Haven village, keeper of ancient lore."
 scene_path = "res://scenes/npcs/village_elder.tscn"
 zone_id = "zone_village_center"
+spawn_offset = Vector3(-6, 0, -4)
 greeting = "Welcome, traveler. The village has been troubled by wolves..."
 location_type = 0
 buy_multiplier = 0.5
 sell_multiplier = 1.0
 includes = [
   {"type": "dialogue", "dialogue_id": "village_elder_greeting"},
-  {"type": "quest", "quest_ids": ["quest_wolves_hunt", "daily_herb_gathering"]}
+  {"type": "quest", "quest_ids": ["quest_wolves_hunt", "quest_herb_gathering"]}
 ]

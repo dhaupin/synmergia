@@ -387,7 +387,7 @@ func _play() -> void:
 		_horde_completed[0] = true
 		_horde_success[0] = ok)
 	await _cmd("horde haven_siege starter_plains alert")
-	var hid: String = _horde.active_horde_in_zone("starter_plains")
+	var hid: String = _horde.active_horde_in_zone("zone_starter_plains")
 	if hid == "":
 		print("  JOURNAL: the siege never mustered.")
 	else:

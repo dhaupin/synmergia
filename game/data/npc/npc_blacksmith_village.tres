@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "blacksmith_village_default"
+id = "npc_blacksmith_village"
 display_name = "Village Smithy"
 description = "The local blacksmith serving a small rural community."
 npc_type = 1
@@ -12,6 +12,7 @@ level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/blacksmith_village.tscn"
 zone_id = "zone_village_center"
+spawn_offset = Vector3(6, 0, -4)
 greeting = "Good to see ye, traveler. Bring me yer worn gear."
 farewell = "Safe travels, friend."
 shop_title = "Village Smithy"

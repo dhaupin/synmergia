@@ -641,6 +641,41 @@ for persistence. See `labs/prd-db.md` for the full spec.
 
 ---
 
+## ID Naming Conventions (data ids)
+
+Decided 2026-09-25 after the data/npc + data/npcs consolidation.
+One id per entity, filename equals the id for prefixed categories,
+and NO dual-format compatibility shims in code (no trim_prefix
+fallbacks, no display-name OR id candidate loops). Quest bridges and
+consumers read exactly one form.
+
+| Category | Id style | Example | File |
+|----------|----------|---------|------|
+| NPCs | `npc_` prefix | `npc_village_elder` | `npc_village_elder.tres` |
+| Quests | `quest_` prefix | `quest_wolves_hunt` | `quest_wolves_hunt.tres` |
+| Zones | `zone_` prefix | `zone_starter_plains` | `zone_starter_plains.tres` |
+| Factions | `faction_` prefix | `faction_human` | `faction_human.tres` |
+| Items | kind prefix | `wep_iron_sword`, `potion_soul_gem`, `res_iron_ore` | filename == id |
+| Status effects | `buff_` prefix | `buff_barrier_field` | filename == id |
+| Loot tables | `loot_` prefix | `loot_wolf` | filename == id |
+| Dwellings | `dwel_` prefix | `dwel_fireplace_stone` | filename == id |
+| Enemies | bare id | `wolf` | `enemy_wolf.tres` (file keeps prefix) |
+| Dialogues | bare id | `village_elder_greeting` | filename == id |
+| Offerings | bare filename key | `village_quests` | `village_quests.tres` |
+| Species / titles / achievements / world bosses / targets | bare id | `human`, `slayer`, `first_blood` | filename == id or schema prefix |
+
+Quest data contracts (single-form, no fallbacks):
+- TALK objectives target the NPCData id verbatim (`npc_village_elder`).
+- EXPLORE objectives target the ZoneData id verbatim (`zone_starter_plains`).
+- KILL objectives target the enemy display_name ("Wolf") -- combat
+  bridge credits display_name.
+- COLLECT objectives target the item display_name ("Moonpetal Flower").
+
+`game/tests/test_data_naming_lint.gd` enforces the prefixed styles,
+filename==id, and cross-file references (zone_id, quest chains,
+giver/turn_in, offering quest_ids, dialogue npc_id, zone rosters).
+Run it after adding or renaming any data ids.
+
 ## Data Schemas
 
 ### TargetSchema (`data/targets/`)

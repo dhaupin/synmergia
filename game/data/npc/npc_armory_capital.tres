@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "armory_capital_default"
+id = "npc_armory_capital"
 display_name = "Royal Armorer"
 description = "The capital's premier source for weapons and armor."
 npc_type = 2

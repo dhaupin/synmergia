@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "soul_gem"
+id = "potion_soul_gem"
 display_name = "Soul Gem"
 description = "A crystallized essence of life. Use while dead to resurrect with 50% health and mana. Rare and precious - use wisely."
 icon_path = "res://icons/items/soul_gem.png"

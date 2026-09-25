@@ -21,9 +21,6 @@
 [ext_resource type="Resource" path="res://data/enemies/enemy_wolf.tres" id="11"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_bandit.tres" id="12"]
 [ext_resource type="Resource" path="res://data/enemies/enemy_training_dummy.tres" id="22_dummy"]
-[ext_resource type="Script" path="res://core/entities/npc_entity.gd" id="14_npc"]
-[ext_resource type="Resource" path="res://data/npc/test_merchant.tres" id="15_npc_data"]
-[ext_resource type="Resource" path="res://data/npc/village_elder.tres" id="16_elder_data"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_layer.tscn" id="13_hud"]
 [ext_resource type="Script" path="res://core/schemas/ankh.gd" id="17_ankh"]
 [ext_resource type="Script" path="res://entities/guard.gd" id="18_guard"]
@@ -420,25 +417,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 light_color = Color(0.6, 0.25, 0.85, 1)
 light_energy = 1.6
 omni_range = 9.0
-
-[node name="MerchantNPC" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.9, -5)
-script = ExtResource("14_npc")
-npc_data = ExtResource("15_npc_data")
-display_name = "Merchant"
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="MerchantNPC"]
-mesh = null
-
-
-[node name="ElderNPC" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.9, -5)
-script = ExtResource("14_npc")
-npc_data = ExtResource("16_elder_data")
-display_name = "Village Elder"
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="ElderNPC"]
-mesh = null
 
 [node name="Ankh" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.9, 4)

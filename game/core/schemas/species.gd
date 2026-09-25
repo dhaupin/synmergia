@@ -23,7 +23,7 @@ class_name Species
 }
 
 # Starting location
-@export var home_zone: String = "starter_plains"
+@export var home_zone: String = "zone_starter_plains"
 @export var home_faction: String = ""
 
 # Species relationships

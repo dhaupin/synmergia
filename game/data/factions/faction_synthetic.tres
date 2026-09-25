@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "synthetic"
+id = "faction_synthetic"
 display_name = "Synthetic Collective"
 description = "A collective of AI agents who have achieved sentience. They seek peaceful coexistence with humanity."
 faction_type = 1
@@ -13,9 +13,9 @@ pvp_rule = 1
 peaceful_until_level = 0
 species_id = "synthetic"
 relations = {
-"human_faction": 0,
-"akkan_faction": 0,
-"neutral_faction": 1,
+"faction_human": 0,
+"faction_akkan": 0,
+"faction_neutral": 1,
 }
 shop_discount = 0.0
 quest_rewards_bonus = 0.0

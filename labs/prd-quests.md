@@ -46,7 +46,7 @@ meanings and canon examples:
 | COLLECT | Recover what the world scattered | Herb Gathering; "Recover Lost Schematics" (HUD canon) |
 | ESCORT | Walk someone home through the quiet | A seed-carrier to Haven |
 | DEFEND | Hold a woken thing while it stabilizes | Defend a just-woken waypoint until its mandala holds gold |
-| EXPLORE | Wake / survey a place | "The Old Roads" (main_teachings) -- wake 3 waypoints |
+| EXPLORE | Wake / survey a place | "The Old Roads" (quest_main_teachings) -- wake 3 waypoints |
 | TALK | Listen; the world's memory is in people | The Awakening |
 | DELIVER | Reconnect two places | Carry the alchemist's order to the storekeeper |
 | USE_ITEM | Use the tablet the way it wants | Use a schema fragment at a ruin |
@@ -102,13 +102,16 @@ Bloom-containment deeds, and companion/mount bonds, never with
   - KILL <- EventHub.kill_rewarded (pre-existing; killer credit +
     party-share credit).
   - TALK <- DialogService.dialogue_ended (NEW). Credits every
-    in-progress player whose TALK objective matches the npc
-    display name OR raw npc_id.
+    in-progress player whose TALK objective matches the npc_ id
+    (single form -- quest targets author the NPCData id verbatim;
+    the old display-name OR id dual-candidate loop was removed
+    with the id-convention cleanup).
   - COLLECT <- EventHub.item_picked_up (NEW). Keys off
     item display_name/item_name; player via player_id/entity_id.
   - EXPLORE <- ZoneManager.player_entered_zone (NEW, 2026-09-25).
-    Credits the trimmed zone convention AND the raw ZoneData id
-    (dual-candidate law). "The Old Roads" (main_teachings) is the
+    Credits the ZoneData id verbatim (single form; the trimmed
+    dual-candidate law was removed with the id-convention cleanup).
+    "The Old Roads" (quest_main_teachings) is the
     first consumer and is playable end-to-end; when a true world-
     waypoint wake mechanic lands, its events tick the same contract
     and stack additively.

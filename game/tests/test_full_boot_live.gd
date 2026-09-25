@@ -349,7 +349,7 @@ func _run() -> void:
 	var wb: Resource = WBScript.new()
 	wb.id = "test_timer"
 	wb.boss_template_id = "void_lord"
-	wb.zone_id = "starter_plains"
+	wb.zone_id = "zone_starter_plains"
 	wb.interval_seconds = 4.0
 	wb.first_delay_s = 0.5
 	wb.announce = false
@@ -385,7 +385,7 @@ func _run() -> void:
 		_horde_completed[0] = true
 		_horde_success[0] = ok)
 	await _cmd("horde haven_siege starter_plains alert")
-	var hid: String = _horde.active_horde_in_zone("starter_plains")
+	var hid: String = _horde.active_horde_in_zone("zone_starter_plains")
 	_ok("open-world horde started in the player's zone", hid != "")
 	var fighting := await _wait_until(func():
 		var s: Dictionary = _horde.get_horde_status(hid)

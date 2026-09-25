@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "akkan_faction"
+id = "faction_akkan"
 display_name = "Akkan Horde"
 description = "The fierce Akkan warriors. Masters of combat and conquest."
 faction_type = 0
@@ -13,10 +13,10 @@ pvp_rule = 0
 peaceful_until_level = 0
 species_id = "akkan"
 relations = {
-"human_faction": 2,
+"faction_human": 2,
 "elf_faction": 2,
 "dwarf_faction": 2,
-"neutral_faction": 1
+"faction_neutral": 1
 }
 shop_discount = 0.0
 quest_rewards_bonus = 0.0

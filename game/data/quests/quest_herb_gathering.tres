@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1")
-id = "daily_herb_gathering"
+id = "quest_herb_gathering"
 display_name = "Herb Gathering"
 description = "The alchemist needs fresh herbs for potions. Gather 5 moonpetal flowers from the meadows."
 quest_type = 2
 difficulty = 0
-giver_npc_id = "npc_alchemist"
-turn_in_npc_id = "npc_alchemist"
+giver_npc_id = "npc_herbalist_village"
+turn_in_npc_id = "npc_herbalist_village"
 min_level = 1
 max_level = 20
 is_repeatable = true

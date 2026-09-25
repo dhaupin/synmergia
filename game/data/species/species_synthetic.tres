@@ -19,7 +19,7 @@ stat_modifiers = {
 "wisdom": 3
 }
 home_zone = "nexus_central"
-home_faction = "agent_collective"
+home_faction = "faction_synthetic"
 allied_species = ["human"]
 hostile_species = []
 

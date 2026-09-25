@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "human_faction"
+id = "faction_human"
 display_name = "Human Alliance"
 description = "United humans of the eastern territories. Seekers of peace and prosperity."
 faction_type = 0
@@ -13,13 +13,13 @@ pvp_rule = 0
 peaceful_until_level = 0
 species_id = "human"
 relations = {
-"akkan_faction": 2,
+"faction_akkan": 2,
 "elf_faction": 0,
 "dwarf_faction": 0,
-"neutral_faction": 1
+"faction_neutral": 1
 }
 shop_discount = 0.0
 quest_rewards_bonus = 0.0
 is_joinable = true
 is_default = true
-controlled_zones = ["starter_plains", "human_territory"]
+controlled_zones = ["zone_starter_plains", "human_territory"]

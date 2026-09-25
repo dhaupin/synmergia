@@ -4,13 +4,15 @@
 
 [resource]
 script = ExtResource("1")
-id = "potions_village_default"
+id = "npc_herbalist_village"
 display_name = "Herbalist"
 description = "A village herbalist specializing in potions and remedies."
 npc_type = 4
 level = 1
 faction = "friendly"
 model_path = "res://models/npcs/herbalist_female_01.tscn"
+zone_id = "zone_village_center"
+spawn_offset = Vector3(4, 0, 5)
 greeting = "Welcome! I have remedies for what ails you."
 farewell = "Safe travels."
 shop_title = "Potions & Supplies"

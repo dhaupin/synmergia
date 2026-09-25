@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "starter_plains"
+id = "zone_starter_plains"
 display_name = "Starter Plains"
 description = "A peaceful meadow where new adventurers begin their journey. Safe from PvP."
 pvp_mode = 0
@@ -24,7 +24,7 @@ has_weather = false
 weather_type = "clear"
 spawn_points = [Vector3(0, 0, 0), Vector3(50, 0, 30), Vector3(-30, 0, 50)]
 bind_point = Vector3(0, 0, 0)
-npcs = ["npc_guard_captain", "npc_merchant_generic"]
+npcs = []
 loot_multiplier = 1.0
 xp_multiplier = 1.0
 is_instanced = false

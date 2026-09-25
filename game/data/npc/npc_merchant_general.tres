@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "merchant_general_default"
+id = "npc_merchant_general"
 display_name = "General Merchant"
 description = "A traveling merchant selling various goods."
 npc_type = 6
@@ -12,6 +12,7 @@ level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/merchant_general.tscn"
 zone_id = "zone_village_center"
+spawn_offset = Vector3(-2, 0, 5)
 greeting = "Take a look at my wares!"
 farewell = "Come back anytime."
 shop_title = "General Store"
@@ -20,4 +21,7 @@ buy_multiplier = 0.5
 sell_multiplier = 1.0
 buy_categories = ["misc", "resources"]
 sell_categories = ["consumables", "accessories", "misc"]
-includes = [{"type": "offering", "ref_id": "general_store"}]
+includes = [
+  {"type": "dialogue", "dialogue_id": "merchant_greeting"},
+  {"type": "offering", "ref_id": "general_store"}
+]
