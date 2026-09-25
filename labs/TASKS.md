@@ -288,6 +288,18 @@ CURRENT state + ACTIVE work only.
   upload of the round-3 batch not yet visible to the agent's folder
   scrape (still 50 files) -- palette audit pending the upload
   propagating.
+- Round 4 canonized (boss trio + standalone Devourer + all 6 zone
+  splashes, 8/8 seen in chat): WORLD ART SET COMPLETE -- labels
+  clean third round running, ZERO magenta across all six zones,
+  hostility spectrum demonstrated on the trio sheet (Devourer
+  violet+magenta / Saint teal+one-eye / Herald teal-only neutral).
+  Devourer design lock: ROOTS GREW THROUGH THE HULL INTO THE LIMBS.
+  Saint/Herald world_bosses .tres files = code follow-up when
+  encounters get designed. Sec. 6 rewritten as coverage status
+  (iteration queue: species deep-studies unrendered, 3/18 class
+  heroes done, faction banners/mounts/crafting stations/emotes are
+  next-phase subjects). Palette audit still deferred (round-3/4
+  Drive uploads not yet visible to the folder scrape).
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;

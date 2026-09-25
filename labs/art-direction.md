@@ -84,25 +84,25 @@ Cyber-organic creatures are named `<Substance>-<Animal>`:
 - Anatomy rule: animal silhouette first, tech second (shell plating,
   crystal sacs, cable tails). Never a robot wearing fur.
 
-## 6. Known gaps -> brief coverage
+## 6. Coverage status (World Art Set complete; iteration queue)
 
-Every gap now has a brief; render + critique closes them:
+The round-4 drop closed the last two gaps. Remaining work is
+iteration, not coverage:
 
-1. **Akkan + Synthetic deep-study sheets** -- briefs in
-   `labs/prompts/gemini_species_classes.md` sec. 6-7 (Human done,
-   sec. 8.6; three-species lineup canon, sec. 8.9).
-2. **Individual class hero shots** -- DONE, canonized (sec. 8.10);
-   15 more classes can follow the same brief template if wanted.
-3. **Zone establishing shots** -- briefs ready in
-   `labs/prompts/gemini_zones.md` (Gloomwood Meadow, Starter Plains,
-   Village of Haven, Forest Depths, dark highlands, Nexus Central).
-4. **Interiors** -- DONE: service shops (sec. 8.4) + inn/dwelling/
-   gateway canonized (sec. 8.10).
-5. **UI mockups** -- icons + Aether-Conduit menu + HUD skin all DONE
-   (sec. 8.10); the full UI trio is canon.
-6. **Bosses** -- briefs in `labs/prompts/gemini_bosses.md`
-   (Devourer standalone + Clockwork Saint + Mossbound Herald); the
-   Devourer action study is already canon (sec. 8.2).
+1. **Species deep-studies** (Akkan + Synthetic) -- BRIEFED
+   (`gemini_species_classes.md` sec. 6-7), not yet rendered.
+2. **Class hero shots** -- 3/18 rendered (Temporalist, Conduit,
+   Runesmith, sec. 8.10); the template in `gemini_class_heroes.md`
+   covers the other 15.
+3. **Boss data files** -- Saint + Herald titles are canon; their
+   `world_bosses/*.tres` entries are a code follow-up when their
+   encounters get designed.
+4. **Palette audit** -- the round-3/4 Drive uploads have not
+   propagated to the agent's folder scrape (still 50 files); audit
+   runs when they do.
+5. **Next-phase subjects** (no briefs yet): faction banners, mounts
+   and fauna companions, crafting stations, emote/pose sheets,
+   weather variants of the zone splashes.
 
 ## 7. Prompt pipeline
 
@@ -342,7 +342,71 @@ UI canon (first real chrome in the set):
   sitting in hotbar slot 1. The mock's warm pastel backdrop is
   placeholder scenery, not zone canon.
 
-### 9. Engine-facing next steps (from Round 2 + 3 art)
+### 8.11 Round 4 canonization (2026-09-25, bosses + zones -- set complete)
+
+All eight renders reviewed visually: 8/8 on-model, every label
+spelled right, and ZERO magenta in all six zone splashes (the key
+held even across six wide environments). Third consecutive round
+with clean text. With this drop the **World Art Set is complete**:
+species, classes, fauna (neutral + hostile), boss roster, interiors,
+UI, and zones all have canon visuals.
+
+Boss roster (trio sheet "SYNMERGIA: DORMANT COLOSSI" + standalone):
+
+- **The Forest Devourer:** the standalone study is the definitive
+  reference -- cracked stone hull, violet mantle venting a spore
+  plume, drifting hex shards on cable tethers, magenta eyes with a
+  magenta hex-crack web across the chest, and the design-defining
+  detail: ROOTS GREW THROUGH THE HULL INTO THE LIMBS (the mantle
+  assimilated the host). Spore-spiders (violet-capped, magenta-eyed)
+  at the feet. Use the standalone for the boss-intro splash; the
+  battle study (sec. 8.2) for action context.
+- **The Clockwork Saint:** exactly the designed half-corrupted
+  middle of the spectrum -- porcelain-white cracked plate, teal
+  fractured clock-face core with an orbiting seconds-glyph shard
+  halo (ticks, no numerals), kneeling-risen pose, ONE magenta eye
+  beside one hollow socket. Small violet gem-flecks on the gauntlet
+  and shoulder read as corrosion accents; acceptable, keep under
+  1% of frame.
+- **The Mossbound Herald:** the neutral anchor -- tortoise fortress
+  with a full rooftop-garden ruin on its shell (trees, chapel
+  archway, tiny bell tower, all rendered), calm teal circuits, moss
+  waterfall from the shell rim, zero magenta. The trio sheet
+  demonstrates the full hostility spectrum in one image, as briefed.
+- Trio-sheet artifact: labels rendered with surrounding quote marks
+  ('THE FOREST DEVOURER') -- decorative; strip quotes in reruns.
+
+Zone splash set (all six canon; world map + zone-entry splashes):
+
+- **Starter Plains:** seed-pod megaflora half-buried like sleeping
+  whales, grazing Root-Crab herd, teal-veined waypoint stones,
+  winding path. Drift ruling: one pod rendered with GOLD seams
+  (first-waking tech) and one with violet root-veins -- acceptable
+  variety under the semantics, no magenta anywhere.
+- **Gloomwood Meadow:** mist, dark conifers, violet corruption veins
+  creeping from the forest edge (up the trunks), violet stream under
+  the mossy bridge, wolf pack at the treeline, dormant waypoint
+  stone. Exactly the Devourer's front yard.
+- **Village of Haven:** the one warm scene -- village built inside
+  the colossal fallen machine limb, amber windows + fire pit,
+  laundry lines, smoke, TWO Aether-Conduit terminals (canon: hubs
+  may field more than one), villagers + Akkan guard, teal tracery
+  across the great limb.
+- **Forest Depths:** the descent -- root-wrapped geometric walls,
+  teal guide-veins down the steps, violet thickening into spore-haze
+  at the bottom, lone owl silhouette circling the light shafts.
+- **Dark Highlands:** bruised sky, floating islets with moss +
+  dormant orb machines pouring waterfalls, monolith fields,
+  dark-bronze Akkan banners with gold trim, EMBER-ORANGE sigils
+  burning on the great monolith (no teal/violet bleed), cairn line
+  marking the ridge path.
+- **Nexus Central:** cathedral-scale dormant hall, vine-wrapped
+  server-monoliths, Synthetics on catwalks waking patchy teal grids,
+  cable-roots draping from the ceiling, central spire of stacked
+  Agent Core emblems (gold crowns over the teal base mandala).
+  Serene, half-awake, exactly the brief.
+
+### 9. Engine-facing next steps (from Round 2-4 art)
 
 When wiring art into the game, these are the first touchpoints:
 
@@ -359,6 +423,10 @@ When wiring art into the game, these are the first touchpoints:
 7. Service-hub screen <- Aether-Conduit menu (six named tiles)
 8. HUD skin <- the HUD mock (sec. 8.10); quest tags [Main]/[Daily]/
    [Side] + chat tags [System]/[Party]/[Local] carry over to code
+9. World map + zone-entry splashes <- the six zone shots (sec. 8.11)
+10. Boss roster <- trio sheet for the roster screen; Devourer
+    standalone for the intro splash; Saint/Herald .tres data files
+    are a code follow-up (titles canon, behavior undesigned)
 
 ### 10. Palette audit method (reproducible)
 

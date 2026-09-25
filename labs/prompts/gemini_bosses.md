@@ -67,6 +67,11 @@ as one animal-shaped mass, not a mech. Ground shadow, epic scale.
 Labels: "THE FOREST DEVOURER" only. No other text.
 ```
 
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.11) -- the definitive Devourer reference. Design locks:
+> root-assimilated limbs, magenta hex-crack web, spore plume, hex
+> shards on cable tethers.
+
 ---
 
 ## 2. Boss trio sheet (next bosses in line)
@@ -110,6 +115,12 @@ HERALD", and the sheet title. No other text.
 magenta (corrupted); the Saint carries teal + a single magenta
 element (half-corrupted); the Herald is teal + moss only (neutral).
 The sheet demonstrates the full hostility spectrum in one image.
+
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.11). All three landed on-model, including the Herald's
+> bell-tower ruin shell and the Saint's one-magenta-eye /
+> one-socket split. Artifact: labels rendered with surrounding
+> quote marks -- strip in reruns.
 
 ---
 

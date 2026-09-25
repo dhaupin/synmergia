@@ -52,6 +52,10 @@ lonely morning light.
 Labels: "STARTER PLAINS" only. No other text.
 ```
 
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.11). Drift ruling: one gold-seamed pod + one violet-veined
+> pod -- acceptable variety, no magenta.
+
 ---
 
 ## 2. Gloomwood Meadow (corruption at the treeline)
@@ -75,6 +79,9 @@ something large sleeps deeper in.
 
 Labels: "GLOOMWOOD MEADOW" only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.11), incl. the
+> violet veins climbing the trunks and the bridge stream.
 
 ---
 
@@ -100,6 +107,10 @@ hope. Faint teal circuitry traces across the great fallen limb.
 Labels: "VILLAGE OF HAVEN" only. No other text.
 ```
 
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.11). Canon
+> addition: hubs may field more than one Aether-Conduit (two
+> rendered).
+
 ---
 
 ## 4. Forest Depths (dungeon entrance)
@@ -119,6 +130,9 @@ circles in the shafts of light above. Damp, deep, inviting.
 
 Labels: "FOREST DEPTHS" only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.11); the
+> circling owl rendered as a generic bird silhouette -- fine.
 
 ---
 
@@ -140,6 +154,9 @@ ancient.
 
 Labels: "DARK HIGHLANDS" only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.11); ember
+> sigils stayed clean of teal/violet bleed.
 
 ---
 
@@ -163,10 +180,15 @@ ceiling like vines. Serene, immense, half-awake.
 Labels: "NEXUS CENTRAL" only. No other text.
 ```
 
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.11); spire
+> rendered with gold star-crowns over the teal base mandala.
+
 ---
 
 ## Rendering checklist (for after generation)
 
+- [x] Round 4 rendered 2026-09-25: 6/6 on-model, zero magenta,
+      labels clean (sec. 8.11)
 - [ ] One label per image, spelled right, no extra text
 - [ ] Zone mood matches its data: Starter Plains safe/lonely,
       Gloomwood ominous/violet-veined, Haven the only warm scene,
