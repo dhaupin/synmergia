@@ -313,7 +313,11 @@ CURRENT state + ACTIVE work only.
   exception, door-side Aether-Conduit post = house terminal +
   address stone), gemini_crafting_stations.md (Forge/Loom/Crucible
   Table/Rune Anvil; station law: teal idle / gold active = in-world
-  status feedback).
+  status feedback), gemini_vehicles.md (Conduit Glider / Islet
+  Lifter / Caravan Crawler; vehicle law: multi-passenger platforms
+  vs mounts' single-rider split, woken by tablet-socket helm --
+  never built or fueled, no engines/wheels/cabins, teal dormant /
+  gold underway per the station law).
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;

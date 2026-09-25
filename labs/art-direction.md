@@ -109,7 +109,11 @@ iteration, not coverage:
    Claim/Cottage/Hall on one plot + Hearth Kit placeables), and
    crafting stations (`gemini_crafting_stations.md`: Forge/Loom/
    Crucible Table/Rune Anvil with the teal-idle gold-active
-   station law).
+   station law), and vehicles (`gemini_vehicles.md`:
+   Conduit Glider / Islet Lifter / Caravan Crawler -- multi-
+   passenger platforms vs mounts' single-rider split; the vehicle
+   law: woken by tablet-socket helm, never built or fueled, no
+   engines/wheels/cabins, teal dormant / gold underway).
 
 ## 7. Prompt pipeline
 
