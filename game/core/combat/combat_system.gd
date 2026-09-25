@@ -173,6 +173,10 @@ func get_entities_in_hitbox(hitbox: HitboxData) -> Array:
 
 		if not is_instance_valid(entity):
 			continue
+		# Entities torn out of the tree (scene-change race) have no valid
+		# transform: skip them instead of throwing every physics tick.
+		if entity is Node3D and not entity.is_inside_tree():
+			continue
 
 		if entity.global_position.distance_to(hitbox.position) <= hitbox.size:
 			entities_in_range.append(entity)

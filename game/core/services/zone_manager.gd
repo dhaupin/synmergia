@@ -806,6 +806,10 @@ func check_seamless_transition(entity) -> ZoneData:
 	# higher level_requirement first (dangerous inner regions override),
 	# then smaller zone_radius (more specific region). No claimant means
 	# the entity leaves the tracked set until the entry detector finds it.
+	# Out-of-tree entities (scene teardown race) have no valid position:
+	# treat them as fully outside so the tracker drops them.
+	if entity is Node3D and not entity.is_inside_tree():
+		return null
 	var entity_pos: Vector3 = entity.global_position
 	if current_zone.contains_position(entity_pos):
 		return null
@@ -961,6 +965,13 @@ func _detect_zone_entries_spatial(entities: Array) -> void:
 		if _entity_zones.has(entity.entity_id):
 			continue
 
+		# Entities torn out of the tree (scene change, despawn race) still
+		# sit in the registry for a frame or two; global_position on them
+		# throws "!is_inside_tree()" engine errors every physics tick and
+		# once segfaulted the engine during a PLAYING -> MAIN_MENU change.
+		if entity is Node3D and not entity.is_inside_tree():
+			continue
+
 		# Compute entity's spatial address at a deeper depth than zones
 		var pos: Vector3 = entity.global_position
 		var found_zone: ZoneData = null
@@ -996,6 +1007,9 @@ func _detect_zone_entries_fallback(entities: Array) -> void:
 		if not entity or not is_instance_valid(entity):
 			continue
 		if not entity.entity_id:
+			continue
+		# Same out-of-tree guard as the spatial path (scene teardown race).
+		if entity is Node3D and not entity.is_inside_tree():
 			continue
 
 		# Skip entities already tracked in a zone

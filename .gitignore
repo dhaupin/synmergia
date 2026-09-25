@@ -27,6 +27,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Dev-session captures (screenshots from play drivers stay local)
+game/captures/
+
 # IDE
 *.code-workspace
 .vscode/

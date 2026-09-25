@@ -216,7 +216,14 @@ func get_many(keys: Array) -> Dictionary:
 		return result
 	for row in _tables["kv"]:
 		if row is Dictionary and result.has(row.get("key", "")):
-			result[row["key"]] = row.get("value", null)
+			var raw = row.get("value", null)
+			# Values at rest are JSON strings (Postgres parity); decode so
+			# callers receive the same Variant they stored.
+			if raw is String and raw != "":
+				var parsed = JSON.parse_string(raw)
+				result[row["key"]] = parsed if parsed != null else raw
+			else:
+				result[row["key"]] = raw
 	return result
 
 
@@ -236,20 +243,35 @@ func delete_many(keys: Array) -> int:
 
 # --- KV single-key API ---
 # Services call these directly on the persistence store (see
-# account_service._ready, follow_service, vault_service, etc). They
-# route through the batch API above so the kv table stays canonical.
+# account_service, login_service, guild_service, etc). Postgres parity:
+# values at rest are JSON strings, so every read path (get_value,
+# get_many, DictStore wrapper) decodes the same way. Routed through the
+# batch API above so the kv table stays canonical.
 
-func set_value(key: String, value) -> int:
-	return set_many({key: value})
+func set_value(key: String, value: Variant, _ttl_sec: int = 0) -> int:
+	return set_many({key: JSON.stringify(value)})
 
 
-func get_value(key: String):
+func set_kv(key: String, value: Variant, _ttl_sec: int = 0) -> void:
+	set_many({key: JSON.stringify(value)})
+
+
+func get_value(key: String) -> Variant:
 	var result := get_many([key])
 	return result.get(key, null)
 
 
+func get_kv(key: String, default: Variant = null) -> Variant:
+	var val = get_value(key)
+	return val if val != null else default
+
+
 func delete_value(key: String) -> int:
 	return delete_many([key])
+
+
+func erase(key: String) -> void:
+	delete_many([key])
 
 
 func has_key(key: String) -> bool:

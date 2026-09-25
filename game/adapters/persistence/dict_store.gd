@@ -55,12 +55,17 @@ func get_value(key: String) -> Variant:
 	# Route through the KV batch API, not the SQL shim: the SQL path
 	# depends on per-backend dialect support (parameterized WHERE on the
 	# kv table), while set_many/get_many is the portable interface.
+	# Memory/Postgres decode JSON inside get_many and return null for
+	# missing keys; raw/legacy stores may return a JSON string. Tolerate
+	# both shapes without double-decoding native Variants.
 	var rows: Dictionary = _store.get_many([key])
 	var raw = rows.get(key)
 	if raw == null or str(raw) == "":
 		return null
-	var parsed = JSON.parse_string(str(raw))
-	return parsed
+	if raw is String:
+		var parsed = JSON.parse_string(raw)
+		return parsed if parsed != null else raw
+	return raw
 
 func get_kv(key: String, default: Variant = null) -> Variant:
 	var val = get_value(key)
@@ -70,10 +75,14 @@ func set_value(key: String, value: Variant, ttl_sec: int = 0) -> void:
 	_ensure_store()
 	if _store == null:
 		return
-	var json = JSON.stringify(value)
-	# Use set_many for single key (still uses batch endpoint)
-	var entries: Dictionary = {key: json}
-	_store.set_many(entries)
+	# Store through the backend's own encode path: set_value/set_kv on
+	# Memory and Postgres stores persist JSON strings natively.
+	if _store.has_method("set_value"):
+		_store.set_value(key, value)
+	elif _store.has_method("set_many"):
+		_store.set_many({key: value})
+	else:
+		push_warning("DictStore: backend has no KV write method; drop for " + key)
 	if ttl_sec > 0:
 		_expires[key] = Time.get_unix_time_from_system() + ttl_sec
 	else:
@@ -96,8 +105,7 @@ func has_key(key: String) -> bool:
 	if _is_expired(key):
 		erase(key)
 		return false
-	var rows: Dictionary = _store.get_many([key])
-	return rows.get(key) != null
+	return _store.has_key(key) if _store.has_method("has_key") else get_value(key) != null
 
 func has(key: String) -> bool:
 	return has_key(key)
@@ -106,7 +114,10 @@ func erase(key: String) -> void:
 	_ensure_store()
 	if _store == null:
 		return
-	_store.delete_many([key])
+	if _store.has_method("erase"):
+		_store.erase(key)
+	elif _store.has_method("delete_many"):
+		_store.delete_many([key])
 	_expires.erase(key)
 
 func delete(key: String) -> void:
@@ -119,11 +130,21 @@ func all_keys() -> Array:
 	_ensure_store()
 	if _store == null:
 		return []
-	var rows = _store.query("SELECT key FROM kv", [])
+	# Memory/Postgres backends expose all_keys(); raw stores fall back
+	# to the SQL shim (kv table is schema-stable).
+	var keys: Array = _store.all_keys() if _store.has_method("all_keys") else _keys_via_query()
+	var result: Array = []
+	for k in keys:
+		if k != "" and not _is_expired(k):
+			result.append(k)
+	return result
+
+func _keys_via_query() -> Array:
 	var keys: Array = []
+	var rows = _store.query("SELECT key FROM kv", [])
 	for row in rows:
 		var k = row.get("key", "")
-		if k != "" and not _is_expired(k):
+		if k != "":
 			keys.append(k)
 	return keys
 func set_batch(entries: Dictionary) -> void:

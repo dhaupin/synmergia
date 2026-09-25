@@ -163,12 +163,49 @@ CURRENT state + ACTIVE work only.
   GuardDuty ENUM but never the guard_duty FIELD -- guard_ai's leash
   check threw 5,675 script errors per siege and never fenced; field
   declared (default TOWN_WATCH) + house_guard() now stamps PERSONAL.
-  (2) test_placement_system's GuildPlayer inner-class extends of the
+  (2)  test_placement_system's GuildPlayer inner-class extends of the
   stub crashed script-mode compilation (parse-time entity.gd load);
   extracted to tests/support/guild_player_stub.gd, applied via
   set_script. Placement 65/65, guard 31/31, full-boot 43/43. Also
   logged: solo /say sends return false (empty audience rejects your own
   echo) -- authentic MMO behavior, not a bug.
+- Scene-flow journey (play_full_flow.gd, 26 asserts, xvfb): a bot
+  plays the WHOLE player path -- main menu -> Play -> species card ->
+  class card -> world combat (hit table + skillbar) -> MAIN_MENU ->
+  Account -> register (real LoginService) -> lobby -> /create ->
+  linked character -> auto-play -> world again. Playing it found +
+  fixed two production bugs: (1) set_kv/get_kv/erase/has_key existed
+  only on the DictStore WRAPPER -- ~25 services (account_service,
+  login_service, guild_service, faction_manager, ...) call that
+  surface directly on stores from AdapterRegistry.get_persistence(),
+  so every account/character/guild/waypoint persist threw "Nonexistent
+  function 'set_kv' in base 'RefCounted (MemoryPersistenceStore)'"
+  and silently dropped the write. Single-key API now implemented on
+  the PersistenceStore base routed through the portable batch API
+  (set_many/get_many/delete_many, prd-db.md sec 4); Memory + Postgres
+  standardized to JSON-strings-at-rest with get_many DECODING
+  (Postgres already did; memory get_many returned raw strings so even
+  load-time reads were half-broken), DictStore hardened to tolerate
+  both decoded and legacy raw-string backends. (2) spawn_npc_entity
+  configured + registered NPCs BEFORE ever parenting them -- every
+  global_position read/write threw "!is_inside_tree()" engine errors
+  and identity transforms reached TargetingManager + the NSC-9
+  address; NPCs now parent into current_scene first (same ordering as
+  the /spawn enemy path) and EntityService._entity_position() is the
+  safe-read helper for metadata/spatial-address/NSC-9 derivation.
+  Also this session: human_time_warp.tres created (class
+  human_temporalist starting_skills referenced a nonexistent skill
+  id), main_menu gained a working Account button (the login screen
+  was unreachable from the shipped menu), out-of-tree guards in
+  ZoneManager/LODManager/CombatSystem/world_state_projection/
+  NotificationService + LoadingUI._exit_tree nulling the static
+  instance (the PLAYING -> MAIN_MENU segfault class), captures/
+  gitignored so dev screenshots stay local, old screenshots deleted.
+  Verification: journey 26/0 (account character persisted through the
+  real kv path for the first time), adapter suite 5/5, login/e2e/
+  hit_table/account_rollup/full_boot_live green, lint 36/0,
+  parse_check + autoload_audit clean, engine log 0 SCRIPT ERRORs
+  (was 5 set_kv + 26 is_inside_tree per run).
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;

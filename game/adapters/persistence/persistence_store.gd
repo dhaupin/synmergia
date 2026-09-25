@@ -107,6 +107,52 @@ func delete_many(keys: Array) -> int:
 	return -1
 
 
+# --- KV Single-Key Convenience (base implementations) ---
+# ~25 services call these directly on the persistence store they get
+# from AdapterRegistry.get_persistence(...). They were documented only
+# on the DictStore wrapper, so every direct call against a raw backend
+# threw "Nonexistent function 'set_kv'" and silently dropped the write.
+# Routed through the batch API (prd-db.md section 4) so the kv table
+# stays canonical and values round-trip identically across backends.
+# Memory/Postgres overrides below keep the same contract.
+
+func set_kv(key: String, value: Variant, _ttl_sec: int = 0) -> void:
+	set_many({key: value})
+
+
+func get_kv(key: String, default: Variant = null) -> Variant:
+	var val = get_value(key)
+	return val if val != null else default
+
+
+# Stores the decoded Variant. Backends encode for durability however
+# they like (memory: raw column, Postgres: JSON string); get_value
+# decodes symmetrically, so callers always get what they put in.
+func set_value(key: String, value: Variant, _ttl_sec: int = 0) -> int:
+	return set_many({key: value})
+
+
+func get_value(key: String) -> Variant:
+	var result := get_many([key])
+	return result.get(key, null)
+
+
+func delete_value(key: String) -> int:
+	return delete_many([key])
+
+
+func has_key(key: String) -> bool:
+	return get_value(key) != null
+
+
+func erase(key: String) -> void:
+	delete_many([key])
+
+
+func delete(key: String) -> void:
+	erase(key)
+
+
 # --- Transaction context manager ---
 
 # Execute a callable inside a transaction.

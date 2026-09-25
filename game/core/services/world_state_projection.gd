@@ -400,7 +400,9 @@ func _player_live_payload(player) -> Dictionary:
 		var hc = player.health_component
 		payload["hp_cur"] = int(hc.current_health)
 		payload["hp_max"] = int(hc.max_health)
-	if "global_position" in player:
+	# Out-of-tree players (scene teardown race) have no valid transform;
+	# skip the position payload instead of throwing every tick.
+	if "global_position" in player and (not (player is Node3D) or player.is_inside_tree()):
 		var p: Vector3 = player.global_position
 		payload["pos_x"] = ProgressBridgeScript.quantize_coordinate(p.x)
 		payload["pos_y"] = ProgressBridgeScript.quantize_coordinate(p.y)
@@ -423,6 +425,10 @@ func _flush_players(immediate: bool) -> int:
 		if player == null or not is_instance_valid(player):
 			# Player gone (disconnect/logout): tear down their live node.
 			unproject_player(str(pid))
+			continue
+		# Out-of-tree players (scene teardown race) have no valid transform:
+		# skip this drain; the next one after full unregistration cleans up.
+		if player is Node3D and not player.is_inside_tree():
 			continue
 		var payload := _player_live_payload(player)
 		if payload.is_empty():

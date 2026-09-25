@@ -276,6 +276,11 @@ func broadcast_alert(
 	for scope in scopes:
 		var players_to_notify = _get_players_for_scope(scope)
 		for player in players_to_notify:
+			# Players torn out of the tree by a scene change can still sit in
+			# the EntityService registry for a frame or two; touching a freed
+			# object here crashes the crit-toast path on world exit. Skip them.
+			if not is_instance_valid(player):
+				continue
 			if not notified_players.has(player.entity_id):
 				notified_players[player.entity_id] = true
 				send(player.entity_id, message, notif_type, priority, location, sound, data)
@@ -746,6 +751,9 @@ func send_to_player_name(player_name: String, message: String, notif_type: Notif
 
 	var players = entity_service.get_all_players()
 	for player in players:
+		# Out-of-tree players can linger in the registry during scene teardown.
+		if not is_instance_valid(player):
+			continue
 		if player.has("display_name") and player.display_name == player_name:
 			send(player.entity_id, message, notif_type, priority, location, sound, data)
 			return true

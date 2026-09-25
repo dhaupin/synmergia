@@ -155,6 +155,12 @@ func _update_all_players() -> void:
 	for player in players:
 		if not is_instance_valid(player):
 			continue
+		# Players torn out of the tree by a scene change still sit in the
+		# registry for a frame or two; global_position on them throws
+		# "!is_inside_tree()" engine errors every tick (and once segfaulted
+		# the engine mid scene-change).
+		if player is Node3D and not player.is_inside_tree():
+			continue
 		_update_player(player)
 
 

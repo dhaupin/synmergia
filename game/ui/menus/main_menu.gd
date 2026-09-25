@@ -37,6 +37,15 @@ func _on_play_pressed() -> void:
 	if GameManager:
 		GameManager.change_state(GameManager.GameState.CHARACTER_SELECT)
 
+func _on_account_pressed() -> void:
+	if DebugOverlay:
+		DebugOverlay.log_click("AccountButton", "goto_login", true)
+	# The account flow: login / register / guest -> lobby (per-account
+	# character list) -> play. Previously NOTHING routed to GameState.LOGIN,
+	# so the login screen and lobby were unreachable from the shipped menu.
+	if GameManager:
+		GameManager.change_state(GameManager.GameState.LOGIN)
+
 func _on_quit_pressed() -> void:
 	# print removed: print("Quit button pressed")
 	get_tree().quit()

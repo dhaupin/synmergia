@@ -992,12 +992,23 @@ func spawn_npc_entity(
 	entity.level = npc_data.level
 	entity.entity_type = Entity.EntityType.NPC
 	entity.relation = Entity.Relation.FRIENDLY
-	entity.global_position = position
 
 	# Update NameLabel if present (for non-scene NPCs)
 	var name_label := entity.get_node_or_null("NameLabel") as Label3D
 	if name_label:
 		name_label.text = npc_data.display_name
+
+	# Parent into the tree BEFORE positioning/registration: global_position
+	# reads and writes throw outside the tree ("!is_inside_tree()" engine
+	# errors + identity transforms reaching TargetingManager), and
+	# register_entity derives the NSC-9 spatial address + default spawn
+	# metadata from global_position. Same ordering as the /spawn enemy path.
+	var tree := get_tree()
+	if tree != null and entity is Node3D and not entity.is_inside_tree():
+		var parent_node: Node = tree.current_scene if tree.current_scene else tree.root
+		parent_node.add_child(entity)
+	if entity is Node3D:
+		entity.global_position = position
 
 	# Register with EntityService
 	if EntityService:

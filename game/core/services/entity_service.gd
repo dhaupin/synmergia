@@ -100,7 +100,7 @@ func _compute_spatial_address(entity) -> int:
 	if _spatial_fragmenter == null:
 		return 0
 
-	var pos: Vector3 = entity.global_position if "global_position" in entity else Vector3.ZERO
+	var pos: Vector3 = _entity_position(entity)
 	# Quantize to 100-unit cells to avoid floating-point seam cracks.
 	var x: int = int(floor(pos.x / 100.0))
 	var y: int = int(floor(pos.y / 100.0))
@@ -142,7 +142,7 @@ func _compute_nsc9_code(entity) -> int:
 	var entity_id: String = entity.entity_id if "entity_id" in entity else ""
 	if entity_id == "":
 		return -1
-	var pos: Vector3 = entity.global_position if "global_position" in entity else Vector3.ZERO
+	var pos: Vector3 = _entity_position(entity)
 	if pos == Vector3.ZERO:
 		return -1
 
@@ -159,6 +159,16 @@ func _compute_nsc9_code(entity) -> int:
 	var sequence: int = Nsc9Script.deterministic_seq(entity_id, "nsc9")
 
 	return Nsc9Script.encode_int(facility, axis, sequence)
+
+## Safe position read: global_position throws outside the tree
+## ("!is_inside_tree()" engine errors + identity transforms); fall back
+## to the local `position` property, then Vector3.ZERO.
+func _entity_position(entity) -> Vector3:
+	if entity is Node3D and entity.is_inside_tree():
+		return entity.global_position
+	if "position" in entity:
+		return entity.position
+	return Vector3.ZERO
 
 ## Generate a deterministic T3 path for an entity's spatial fragment.
 func _spatial_path_for_entity(entity_id: String, address: int) -> String:
@@ -285,7 +295,7 @@ func _create_default_metadata(entity) -> SpawnMetadata:
 		_:
 			spawn_type = SpawnMetadata.SpawnType.NORMAL
 
-	var metadata := SpawnMetadata.new(spawn_type, entity.display_name, "", entity.global_position)
+	var metadata := SpawnMetadata.new(spawn_type, entity.display_name, "", _entity_position(entity))
 	if "level" in entity:
 		metadata.level = entity.level
 	if "faction" in entity:

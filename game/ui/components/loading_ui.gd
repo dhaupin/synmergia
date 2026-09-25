@@ -37,12 +37,21 @@ func _ready() -> void:
 	visible = false
 
 
+## The static `instance` points into whatever scene owns this HUD node.
+## When that scene is freed (change_scene_to_file defers the free), a
+## stale pointer survives and the next hide_loading() call segfaults the
+## engine -- the PLAYING -> MAIN_MENU crash. Null it on tree exit.
+func _exit_tree() -> void:
+	if instance == self:
+		instance = null
+
+
 func _setup_ui() -> void:
 	var panel := get_panel()
 	if not panel:
 		return
 	var main: VBoxContainer = add_content_to_panel(panel)
-	
+
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_CENTER)
 	center.custom_minimum_size = Vector2(300, 150)
