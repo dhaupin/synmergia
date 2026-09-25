@@ -47,6 +47,10 @@ var _last_damager: Node = null
 ## _movement_profile(); null until first speed query after boot).
 var _movement_profile_cache: MovementProfile = null
 
+## AnimationPlayer on the mounted .glb model (null when the enemy has
+## no model_path or it carries no animations).
+var _model_anim: AnimationPlayer = null
+
 
 func _ready() -> void:
 	entity_type = EntityType.ENEMY
@@ -69,6 +73,10 @@ func _ready() -> void:
 		health_component.max_health = max_health
 		health_component.current_health = current_health
 		health_component.health_depleted.connect(_on_died)
+
+	# Skinned .glb models mount here (wolf was the first; the box
+	# placeholders stay for everything else until models exist).
+	_mount_model()
 
 	# Threat table: enemies track who generates threat (damage, heals,
 	# taunts) and EnemyAI reads it for in-combat target switching.
@@ -126,6 +134,66 @@ func _physics_process(delta: float) -> void:
 			var speed: float = _current_speed()
 			global_position += move_direction * speed * delta
 			move_direction = Vector3.ZERO  # consume the steer for this frame
+		_update_model_anim(true)
+	else:
+		_update_model_anim(false)
+
+
+## Mount the skinned .glb from EnemyData.model_path under a ModelRoot
+## and hide any scene-level placeholder mesh the author left behind.
+## Silence is fine: most enemies still run box placeholders (the
+## phantom-path lint keeps model_path empty until the file exists).
+func _mount_model() -> void:
+	var path := ""
+	if enemy_data != null:
+		var mp = enemy_data.get("model_path")
+		if mp != null:
+			path = str(mp)
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return
+	var packed := load(path) as PackedScene
+	if packed == null:
+		GameLog.warn("Enemy: model_path failed to load: " + path)
+		return
+	var root := Node3D.new()
+	root.name = "ModelRoot"
+	add_child(root)
+	var inst := packed.instantiate()
+	inst.name = path.get_file().get_basename()
+	root.add_child(inst)
+	# Face travel direction -Z like every other entity.
+	root.rotation.y = PI
+	_model_anim = _find_anim_player(inst)
+	# Hide the author's placeholder box mesh (direct child MeshInstance3D)
+	# once a real model is present -- only when it is NOT the model we
+	# just mounted.
+	for c in get_children():
+		if c is MeshInstance3D:
+			c.visible = false
+	GameLog.info("Enemy: mounted model %s" % path)
+
+
+func _find_anim_player(n: Node) -> AnimationPlayer:
+	if n is AnimationPlayer:
+		return n
+	for c in n.get_children():
+		var f := _find_anim_player(c)
+		if f != null:
+			return f
+	return null
+
+
+## Swap walk/idle clips with movement state. The .glb's AnimationPlayer
+## targets an absolute root (like /rig_wolf/Skeleton3D); repoint it
+## relative to the model root so instancing under any parent resolves.
+func _update_model_anim(moving: bool) -> void:
+	if _model_anim == null or not is_instance_valid(_model_anim):
+		return
+	if _model_anim.root_node.is_absolute():
+		_model_anim.root_node = _model_anim.get_parent().get_path()
+	var wanted := "walk" if moving else "idle"
+	if _model_anim.current_animation != wanted and _model_anim.has_animation(wanted):
+		_model_anim.play(wanted)
 
 
 func _current_speed() -> float:

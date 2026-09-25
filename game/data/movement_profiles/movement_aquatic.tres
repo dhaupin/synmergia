@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MovementProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/movement_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "movement_aquatic"
+display_name = "Aquatic (Swimming Mounts)"
+locomotion_class = 3
+walk_speed = 4.0
+run_speed = 7.0
+sprint_speed = 11.0
+crouch_speed = 0.0
+swim_speed = 6.5
+jump_force = 0.0
+gravity_force = 6.0
+terminal_fall_speed = 20.0
+air_control = 0.4
+ground_acceleration = 12.0
+ground_deceleration = 18.0
+air_acceleration = 4.0
+turn_grip = 0.6
+sprint_stamina_cost = 5.0
+dodge_force = 3.0
+backward_speed_multiplier = 0.5
+allow_jump = false
+allow_crouch = false
+allow_sprint = true

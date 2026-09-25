@@ -339,6 +339,26 @@ func get_movement_profile(id: String) -> MovementProfile:
 func get_movement_profiles() -> Dictionary:
 	return _movement_profiles
 
+
+## Single resolution path for rideable/driveable movement: an explicit
+## movement_profile_id on the MountData/VehicleData wins; otherwise the
+## mount's kind derives it (GROUND->quadruped, FLYING->aerial,
+## AQUATIC->aquatic) and vehicles fall back to movement_mechanical.
+## No per-consumer fallback code anywhere else.
+func get_mount_movement_profile(mount) -> MovementProfile:
+	var explicit = mount.get("movement_profile_id") if mount != null else null
+	if explicit != null and not str(explicit).is_empty():
+		return get_movement_profile(str(explicit))
+	if mount != null and mount.get("script") != null and str(mount.get("script").resource_path).ends_with("mount_data.gd"):
+		var kind = mount.get("kind")
+		var derived: String = "movement_quadruped"
+		match int(kind):
+			1: derived = "movement_aerial"    # MountKind.FLYING
+			2: derived = "movement_aquatic"   # MountKind.AQUATIC
+			_: derived = "movement_quadruped" # MountKind.GROUND
+		return get_movement_profile(derived)
+	return get_movement_profile("movement_mechanical")
+
 func get_zone(id: String) -> ZoneData:
 	if _zones.has(id):
 		return _zones.get(id)

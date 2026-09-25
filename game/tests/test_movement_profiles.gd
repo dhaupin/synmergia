@@ -25,8 +25,8 @@ func _initialize() -> void:
 		_ds.load_all_data()
 
 	var profiles: Dictionary = _ds.get_movement_profiles()
-	if profiles.size() < 4:
-		push_error("FAIL: expected >=4 movement profiles, got %d" % profiles.size())
+	if profiles.size() < 6:
+		push_error("FAIL: expected >=6 movement profiles, got %d" % profiles.size())
 		ok = false
 	else:
 		print("[OK] %d movement profiles loaded" % profiles.size())
@@ -40,6 +40,49 @@ func _initialize() -> void:
 		if p == null:
 			push_error("FAIL: a canonical profile is missing")
 			ok = false
+
+	# New rideable classes resolve and gate like the originals.
+	var aerial = _ds.get_movement_profile("movement_aerial")
+	var aquatic = _ds.get_movement_profile("movement_aquatic")
+	if aerial == null or aquatic == null:
+		push_error("FAIL: aerial/aquatic profiles missing")
+		ok = false
+	else:
+		if not (aerial.sprint_speed > standard.sprint_speed and aerial.allow_jump):
+			push_error("FAIL: aerial profile should be fast and fly-capable")
+			ok = false
+		elif not (aquatic.swim_speed > standard.walk_speed and not aquatic.allow_jump):
+			push_error("FAIL: aquatic profile should swim well and never jump")
+			ok = false
+		else:
+			print("[OK] aerial (fast, jump-capable) + aquatic (swim, no jump) profiles sane")
+
+	# Mount/vehicle resolution path: explicit override wins, kind
+	# derives otherwise, vehicles fall to mechanical.
+	var mount_data_script := load("res://core/schemas/mount_data.gd")
+	var gullwing = mount_data_script.new()
+	gullwing.id = "mount_test"
+	gullwing.kind = 1  # FLYING
+	var resolved = _ds.get_mount_movement_profile(gullwing)
+	if resolved == null or resolved.id != "movement_aerial":
+		push_error("FAIL: flying mount should resolve movement_aerial, got %s" % (resolved.id if resolved else "null"))
+		ok = false
+	else:
+		print("[OK] flying mount kind-derives to movement_aerial")
+	gullwing.movement_profile_id = "movement_npc_ambient"
+	resolved = _ds.get_mount_movement_profile(gullwing)
+	if resolved == null or resolved.id != "movement_npc_ambient":
+		push_error("FAIL: explicit mount override lost")
+		ok = false
+	else:
+		print("[OK] explicit mount profile override wins over kind")
+	# gullwing is Resource (RefCounted): no manual free.
+	var vehicle_resolved = _ds.get_mount_movement_profile({"movement_profile_id": ""})
+	if vehicle_resolved == null or vehicle_resolved.id != "movement_mechanical":
+		push_error("FAIL: vehicle fallback should be movement_mechanical")
+		ok = false
+	else:
+		print("[OK] vehicle fallback resolves movement_mechanical")
 
 	if ok:
 		# 1. standard matches the historical hard-coded player defaults

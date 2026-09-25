@@ -88,6 +88,34 @@ func _apply_movement_profile() -> void:
 	GameLog.info("PlayerController: applied movement profile '%s'" % profile.id)
 
 
+## Give AntiCheatService the hard limits derived from THIS player's
+## profile so movement validation always matches legal game feel (a
+## .tres retune retunes the anticheat with it). GM characters exempt
+## themselves here -- the service stays role-blind.
+func _stamp_anticheat() -> void:
+	if AntiCheatService == null or entity_id.is_empty():
+		return
+	var profile: MovementProfile = null
+	if DataService != null:
+		profile = DataService.get_movement_profile(movement_profile_id)
+	if profile == null:
+		# Built-in fallbacks mirror the historical defaults (5.0/10.0/10.0).
+		AntiCheatService.set_movement_limits(entity_id, 25.0, 25.0, 110.0)
+		return
+	var char_data := _get_character_data()
+	var gm: bool = char_data != null and char_data.is_gm()
+	if gm:
+		AntiCheatService.set_movement_exempt(entity_id, true)
+		return
+	var fastest_legal: float = maxf(profile.sprint_speed, profile.walk_speed * 1.9)
+	AntiCheatService.set_movement_limits(
+		entity_id,
+		fastest_legal * AntiCheatService.SPEED_LIMIT_MULTIPLIER,
+		profile.jump_force * AntiCheatService.JUMP_LIMIT_MULTIPLIER,
+		profile.terminal_fall_speed * AntiCheatService.FALL_LIMIT_MULTIPLIER
+	)
+
+
 ## Respawn binding (Ankh.bind_player writes respawn_ankh_id;
 ## RespawnService reads it when offering the ANKH respawn mode).
 var respawn_ankh_id: String = ""
@@ -165,6 +193,10 @@ func _ready() -> void:
 	add_to_group("players")
 	_apply_movement_profile()
 	_setup_starting_skills()
+	# Anticheat limits key on entity_id, which resolves AFTER the
+	# inventory fallback below had a chance to fill it (see _inv_id).
+	# Call deferred so stamping sees the FINAL id exactly once.
+	call_deferred("_stamp_anticheat")
 
 	# Set collision
 	collision_mask = 0b0000111
@@ -603,6 +635,7 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y < 0.0:
 		velocity.y = 0.0
 	move_and_slide()
+	_report_movement_frame(delta)
 	_void_recovery(delta)
 	# Walk-over auto-loot (settings toggle): when enabled, walking
 	# over a lootable drop vacuums it without pressing interact.
@@ -623,6 +656,23 @@ func _physics_process(delta: float) -> void:
 ## their respawn point (spawn position by default) and re-ground the
 ## state machine through Land. The cooldown guards against a broken
 ## respawn point retriggering every frame.
+## One frame of movement telemetry to AntiCheatService. The service
+## owns the hard limits (stamped from our profile at spawn), the
+## sustained-streak logic, and escalation; this is just the feed. Cheap
+## by design: vector math + a Dictionary lookup, no allocation.
+func _report_movement_frame(delta: float) -> void:
+	if AntiCheatService == null or entity_id.is_empty():
+		return
+	AntiCheatService.validate_movement(entity_id, global_position, velocity, delta)
+
+
+func _exit_tree() -> void:
+	# Drop per-player anticheat state (limits, streaks, exemption) so a
+	# departed player's entry can't leak into a recycled entity id.
+	if AntiCheatService != null and not entity_id.is_empty():
+		AntiCheatService.unregister_player(entity_id)
+
+
 func _void_recovery(delta: float) -> void:
 	if _void_recovery_cooldown > 0.0:
 		_void_recovery_cooldown -= delta

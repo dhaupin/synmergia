@@ -853,7 +853,8 @@ godot --headless --path . --script res://tests/test_auto_response_signals.gd
 ```
 
 Or run the committed regression set (default: data-naming lint,
-movement profiles, blacksmith 3D probes; `--all` = every `test_*.gd`):
+movement profiles, anticheat limits, blacksmith + wolf 3D probes;
+`--all` = every `test_*.gd`):
 
 ```bash
 sh ./scripts/godot_test_runner.sh

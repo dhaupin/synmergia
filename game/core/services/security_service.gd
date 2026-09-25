@@ -402,7 +402,12 @@ func _report_exploit(player_id: String, exploit_type: String, details: Dictionar
 			player_id
 		)
 
-## Internal: Detect spam patterns
+## AntiCheatService -> AutoResponseService bridge. cheaters never touch
+## _report_exploit directly; findings arrive here with full evidence and
+## join the SAME exploit pipeline (counting, rules engine, thresholds)
+## as the in-service detections. Kept public for test seams.
+func report_anticheat_finding(player_id: String, cheat_type: String, confidence: float, evidence: Dictionary) -> void:
+	_report_exploit(player_id, cheat_type, evidence)
 func _detect_spam_pattern(message: String) -> bool:
 	# Check for repeated characters (> 5 same char in a row)
 	var last_char := ""

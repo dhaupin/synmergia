@@ -32,6 +32,12 @@ enum MountSource {
 ## Flying above ~2.2 and aquatic above ~1.8 should be rare/late-game.
 @export var speed_multiplier: float = 1.3
 
+## Movement Design System profile override. Empty = derived from kind
+## (GROUND -> movement_quadruped, FLYING -> movement_aerial, AQUATIC ->
+## movement_aquatic) via DataService.get_mount_movement_profile() --
+## the single resolution path, no fallbacks in consumers.
+@export var movement_profile_id: String = ""
+
 ## Character level required to ride.
 @export var required_level: int = 1
 

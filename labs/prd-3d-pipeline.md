@@ -104,7 +104,33 @@ NPCEntity's idle path finds the AnimationPlayer and the clip drives
 arm_r over 0.5s). Script-mode tests must resolve autoloads in
 `_initialize()` -- `_init()` runs before autoloads attach.
 
-## 7. Movement Design System
+## 7. Shared export library
+
+`scripts/model_export_lib.py` carries the whole pipeline
+(export-once-per-clip + stdlib merge + fix_clip_ranges NLA slots +
+`key_quat`/`make_action` helpers). Generators build their body/rig/
+actions, then call `model_export_lib.export_model(rig, out_path,
+[clips], {clip: start_s})`. The blacksmith and wolf both run on it;
+new models must too. `scripts/render_model_screenshot.py -- wolf`
+renders any generator's model via its own build code (Cycles CPU
+only, headless).
+
+## 8. Enemy + mount model mounting
+
+- `EnemyData.model_path` is LIVE: `enemy.gd._mount_model()` instances
+  the .glb under a `ModelRoot` child, hides any author placeholder
+  box mesh, and swaps walk/idle clips with AI movement
+  (`_update_model_anim`). The phantom-path lint keeps model_path
+  empty until the file exists -- populate the .tres only after the
+  .glb lands.
+- Mounts/vehicles resolve their MovementProfile through the single
+  path `DataService.get_mount_movement_profile(mount)`:
+  MountData.movement_profile_id (or VehicleData's) wins, else kind
+  derives it (GROUND->quadruped, FLYING->aerial, AQUATIC->aquatic),
+  vehicles fall back to movement_mechanical. No per-consumer
+  fallback code.
+
+## 9. Movement Design System
 
 Movement feel is DATA, not code: `MovementProfile`
 (`core/schemas/movement_profile.gd`) + `.tres` files in

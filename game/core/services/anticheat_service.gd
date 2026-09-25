@@ -19,9 +19,29 @@ const PATH_REPETITION_THRESHOLD: float = 0.8  # 80% same path = suspicious
 const SESSION_VARIANCE_HUMAN_MIN: float = 0.1  # Variance in session lengths
 const BREAK_FREQUENCY_HUMAN: float = 0.1  # Expected breaks per hour
 
+## Hard physics limits (Movement Design System -- the limits RESOLVE
+## FROM each player's MovementProfile .tres, so a retune of game feel
+## retunes the anticheat with it; nobody edits two sources of truth).
+## Multipliers sit ON TOP of the profile's legal maxima: a speedhack
+## must beat the fastest LEGAL state (slide peaks ~1.9x walk, dodge
+## adds a small hop) by a wide margin before it counts.
+const SPEED_LIMIT_MULTIPLIER: float = 2.5   # x profile's fastest legal speed
+const JUMP_LIMIT_MULTIPLIER: float = 2.5    # x profile's jump_force launch
+const FALL_LIMIT_MULTIPLIER: float = 2.0    # x profile's terminal_fall_speed
+const VERTICAL_HARD_CLAMP: float = 120.0    # abs(vy) sanity bound (m/s)
+## Consecutive violating frames before an exploit report. One bad
+## frame is lag/teleport-lag/noise; half a second of sustained
+## over-limit motion is a hack.
+const SUSTAINED_FRAME_LIMIT: int = 30
+
 var _player_profiles: Dictionary = {}  # player_id -> Profile data
 var _suspicion_scores: Dictionary = {}  # player_id -> suspicion (0.0 to 1.0)
 var _banned_players: Dictionary = {}  # player_id -> ban info
+## Movement-limit state per player: stamped limits, violation streaks,
+## GM bypass. Stamped by PlayerController._apply_movement_profile() at
+## spawn -- an unregistered player's telemetry is still counted (the
+## profile defaults below) so nothing escapes by skipping registration.
+var _movement_limits: Dictionary = {}  # player_id -> {max_speed, max_jump, max_fall}
 
 ## DictStore key prefix
 const _kv_prefix := "anticheat:"
@@ -36,12 +56,24 @@ class PlayerProfile:
 	var session_start: int = 0
 	var last_position: Vector3 = Vector3.ZERO
 	var last_action_time: int = 0
+	## Consecutive frames over a hard movement limit (speedhack streak).
+	var speed_violation_streak: int = 0
 
 	func _init(p_id: String, agent: bool):
 		player_id = p_id
 		is_agent = agent
 		session_start = Time.get_ticks_msec()
 		last_action_time = session_start
+
+## Boot: restore persisted suspicion/ban state and wire the escalation
+## chain -- cheat_detected -> SecurityService.exploit_detected so
+## hard-limit confirmations join AutoResponseService's speedhack rules
+## (3 confirmations -> admin review; auto-ban stays config-gated).
+func _ready() -> void:
+	_load_state()
+	if SecurityService and SecurityService.has_method("report_anticheat_finding"):
+		cheat_detected.connect(SecurityService.report_anticheat_finding)
+
 
 ## Register a new player
 func register_player(player_id: String, is_agent: bool = false) -> void:
@@ -55,6 +87,125 @@ func register_player(player_id: String, is_agent: bool = false) -> void:
 func unregister_player(player_id: String) -> void:
 	_player_profiles.erase(player_id)
 	_suspicion_scores.erase(player_id)
+	_movement_limits.erase(player_id)
+
+
+## == Movement hard limits (Movement Design System) ==========================
+
+## Stamp the hard limits for a player from their MovementProfile. Called
+## by PlayerController._apply_movement_profile() (players) and available
+## to any authoritative spawner (enemies/mounts use their own profiles).
+## Values are the LIMITS (legal max x multipliers), not the feel values.
+func set_movement_limits(player_id: String, max_speed: float, max_jump: float, max_fall: float) -> void:
+	_movement_limits[player_id] = {
+		"max_speed": maxf(max_speed, 1.0),
+		"max_jump": maxf(max_jump, 1.0),
+		"max_fall": maxf(max_fall, 10.0),
+	}
+
+## Resolve the hard limits for a player. Falls back to the standard
+## humanoid profile bounds when nothing was stamped (DataService may be
+## absent in tool contexts; the constants then stand alone).
+func get_movement_limits(player_id: String) -> Dictionary:
+	if _movement_limits.has(player_id):
+		return _movement_limits[player_id]
+	var fallback := {"max_speed": 25.0, "max_jump": 25.0, "max_fall": 110.0}
+	if DataService:
+		var profile = DataService.get_movement_profile("movement_standard")
+		if profile != null:
+			fallback = _limits_from_profile(profile)
+	return fallback
+
+
+## Profile -> limit dictionary (single place so stamping and fallback
+## agree).
+func _limits_from_profile(profile) -> Dictionary:
+	var fastest_legal: float = maxf(profile.sprint_speed, profile.walk_speed * 1.9)  # 1.9 = slide entry peak
+	return {
+		"max_speed": fastest_legal * SPEED_LIMIT_MULTIPLIER,
+		"max_jump": profile.jump_force * JUMP_LIMIT_MULTIPLIER,
+		"max_fall": profile.terminal_fall_speed * FALL_LIMIT_MULTIPLIER,
+	}
+
+
+## Feed one frame of movement telemetry from an authoritative mover
+## (PlayerController._physics_process). Returns true when the sample
+## (or a sustained streak of samples) violates a hard limit -- callers
+## may use the return to clamp velocity server-side.
+##
+## Detection logic:
+##   - horizontal speed  > max_speed  -> speed_hack streak
+##   - upward velocity   > max_jump   -> jump_power streak (launch hack)
+##   - downward velocity > max_fall   -> fast-fall streak (tunneling)
+##   - |vy| > VERTICAL_HARD_CLAMP     -> instant report (absurd)
+## Streaks report ONCE at SUSTAINED_FRAME_LIMIT frames, then every
+## further multiple (escalating count for AutoResponseService).
+func validate_movement(player_id: String, position: Vector3, velocity: Vector3, delta: float) -> bool:
+	if delta <= 0.0 or _exempt_players.has(player_id):
+		return false
+	if not _player_profiles.has(player_id):
+		register_player(player_id)
+	var profile: PlayerProfile = _player_profiles[player_id]
+	var limits := get_movement_limits(player_id)
+
+	# Telemetry feeds the statistical bot checks too (path repetition,
+	# action rates) -- same data, one recorder.
+	if position != Vector3.ZERO:
+		profile.last_position = position
+		profile.movement_paths.append({"pos": position, "time": Time.get_ticks_msec()})
+
+	var horizontal := Vector2(velocity.x, velocity.z).length()
+	var over_speed: bool = horizontal > float(limits["max_speed"])
+	var over_launch: bool = velocity.y > float(limits["max_jump"])
+	var over_fall: bool = velocity.y < -float(limits["max_fall"])
+	var absurd_vertical: bool = absf(velocity.y) > VERTICAL_HARD_CLAMP
+
+	if over_speed or over_launch or over_fall or absurd_vertical:
+		profile.speed_violation_streak += 1
+		# Escalating reports: first at the streak threshold, then every
+		# further SUSTAINED_FRAME_LIMIT frames (count keeps rising so
+		# AutoResponseService's confirmation threshold accumulates).
+		if profile.speed_violation_streak % SUSTAINED_FRAME_LIMIT == 0:
+			var details := {
+				"horizontal_speed": horizontal,
+				"max_speed": limits["max_speed"],
+				"vertical_speed": velocity.y,
+				"max_jump": limits["max_jump"],
+				"max_fall": limits["max_fall"],
+				"streak_frames": profile.speed_violation_streak,
+				"sustained_seconds": profile.speed_violation_streak * delta,
+				"position": {"x": position.x, "y": position.y, "z": position.z},
+			}
+			if over_speed:
+				details["vector"] = "horizontal"
+			elif over_launch:
+				details["vector"] = "launch"
+			elif over_fall:
+				details["vector"] = "fast_fall"
+			else:
+				details["vector"] = "absurd_vertical"
+			_suspicion_scores[player_id] = clampf(_suspicion_scores.get(player_id, 0.0) + 0.15, 0.0, 1.0)
+			_persist_suspicion(player_id)
+			GameLog.warn("AntiCheatService: %s movement violation (%s) streak=%d %.1f m/s" % [player_id, details["vector"], profile.speed_violation_streak, horizontal])
+			cheat_detected.emit(player_id, "speed_hack", 0.6 + 0.1 * float(profile.speed_violation_streak / SUSTAINED_FRAME_LIMIT), details)
+			return true
+	else:
+		profile.speed_violation_streak = 0
+	return false
+
+
+## Whether a player's movement is exempt from hard-limit checks (GM
+## characters fly/teleport by design).
+func is_exempt(player_id: String) -> bool:
+	return _exempt_players.has(player_id)
+
+var _exempt_players: Dictionary = {}  # player_id -> true (GM bypass)
+
+func set_movement_exempt(player_id: String, exempt: bool) -> void:
+	if exempt:
+		_exempt_players[player_id] = true
+	else:
+		_exempt_players.erase(player_id)
 
 ## Record an action with timing
 func record_action(player_id: String, action_type: String, position: Vector3 = Vector3.ZERO,

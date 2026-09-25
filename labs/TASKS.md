@@ -470,6 +470,12 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Ops notes (important)
 
+- Anticheat movement limits are STAMPED per player from their
+  MovementProfile (call_deferred after _ready -- entity_id must
+  resolve first). Limits live in AntiCheatService._movement_limits;
+  get_movement_limits() falls back to movement_standard-derived
+  bounds for unregistered ids. Escalation bridge:
+  cheat_detected -> SecurityService.report_anticheat_finding.
 - Disk fills from Godot logs: purge
   `~/.local/share/godot/app_userdata/Synmergia/logs/godot*.log` and
   check `df -h /` + `ps aux | grep -i godot` when runs hang (zombie
@@ -484,6 +490,34 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 5 (2026-09-25): Anticheat movement hard limits --
+  AntiCheatService.validate_movement() checks horizontal speed / jump
+  launch / fast-fall against limits DERIVED FROM each player's
+  MovementProfile (stamped by PlayerController via call_deferred,
+  GMs exempt via set_movement_exempt); sustained 30-frame streaks
+  (~0.5s) report through cheat_detected -> NEW bridge
+  SecurityService.report_anticheat_finding -> exploit pipeline ->
+  AutoResponseService speedhack rules (3 confirmations -> admin
+  review, auto-ban config-gated false). Legal play (slide peak 9.5,
+  dodge 4.5, jump 10, terminal fall 55) all pass at 2.5x/2.0x
+  multipliers; single-frame lag spikes never report. Anticheat
+  _ready() now loads persisted state + wires the bridge (was
+  orphaned: _load_state never called, cheat_detected never heard).
+  Shared model export lib (scripts/model_export_lib.py) extracted;
+  blacksmith regenerated through it byte-comparable. WOLF: first
+  quadruped model (gen_wolf_model.py, 4 two-bone leg chains, real
+  trot with diagonal pairs, idle breathing/ear/tail) ->
+  game/models/enemies/enemy_wolf.glb; enemy.gd mounts EnemyData.
+  model_path glbs (hides placeholder box, swaps walk/idle clips with
+  AI movement); wolf .tres wired to the model + movement_quadruped.
+  movement_aerial + movement_aquatic profiles added; MountData +
+  VehicleData carry movement_profile_id resolved through the single
+  path DataService.get_mount_movement_profile() (kind-derivation:
+  GROUND->quadruped FLYING->aerial AQUATIC->aquatic; explicit
+  override wins; vehicles -> mechanical). Tests: anticheat_limits 9
+  checks, movement_profiles 11 checks, wolf probe (trot drives all 4
+  legs 0.532 rad), regression 9/9 + lint + xvfb boot clean. Wolf
+  screenshot art/screenshots/enemy_wolf.png.
 - [x] Rando batch 4 follow-up (2026-09-25, session recovery): fixed
   the two parse errors that killed the previous session --
   MovementProfile.get_ground_speed used `var x = match ...` (match is

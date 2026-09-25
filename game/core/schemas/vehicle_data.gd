@@ -34,6 +34,11 @@ enum VehicleSource {
 ## Movement multiplier over base speed while driven.
 @export var speed_multiplier: float = 1.2
 
+## Movement Design System profile override. Empty = movement_mechanical
+## via DataService.get_mount_movement_profile() -- the single
+## resolution path for mounts AND vehicles.
+@export var movement_profile_id: String = ""
+
 ## Seats including the driver. 1 = solo transport.
 @export var seat_count: int = 1
 
