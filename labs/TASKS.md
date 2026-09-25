@@ -318,6 +318,22 @@ CURRENT state + ACTIVE work only.
   vs mounts' single-rider split, woken by tablet-socket helm --
   never built or fueled, no engines/wheels/cabins, teal dormant /
   gold underway per the station law).
+- Story & world-lore PRD written (labs/prd-story.md, CANON): the
+  missing narrative bible -- premise (the unpowered world + the
+  Convergence + the Silence), 4-age timeline (Convergence / Silence
+  / Long Sleep / the Waking), species roles (Human rebuild /
+  Akkan guardians / Synthetic emergent; NO makers in evidence =
+  the setting's mystery engine), institutions, THE BLOOM as the
+  antagonist force (mycelium gone masterless; magenta = the Bloom's
+  refused handshake -- unifies the hostility key diegetically),
+  player identity (tablet-bearer), 3-act arc skeleton (Act 3
+  deliberately open), tone rules ("woke/answered", never "powered
+  on"; the Bloom is never called evil), 5 open mysteries (do not
+  canonize answers), drift log (village elder says "Darkwood", data
+  + art say Gloomwood -- fix when quests are authored), and a
+  canon-pointer table. Prompted by the user asking for a story PRD
+  after the vehicle-law pitch resonated ("old MMO feeling with a
+  twist").
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;
