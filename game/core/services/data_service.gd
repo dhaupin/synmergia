@@ -40,6 +40,7 @@ var _zones: Dictionary = {}
 var _currencies: Dictionary = {}
 var _mounts: Dictionary = {}
 var _vehicles: Dictionary = {}
+var _movement_profiles: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
 var _npcs: Dictionary = {}
@@ -81,6 +82,7 @@ func load_all_data() -> void:
 	load_mounts()
 	load_vehicles()
 	load_accessories()
+	load_movement_profiles()
 
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -229,6 +231,11 @@ func load_accessories() -> void:
 	_items.merge(acc_paths)
 	GameLog.info("DataService: Loaded %d accessories" % acc_paths.size())
 
+## Load movement profiles from data/movement_profiles/.
+func load_movement_profiles() -> void:
+	_movement_profiles = _scan_directory(_data_path + "movement_profiles", "movement")
+	GameLog.info("DataService: Loaded %d movement profiles" % _movement_profiles.size())
+
 ## Load status effects from data/status_effects/
 func load_status_effects() -> void:
 	_status_effects = _scan_directory(_data_path + "status_effects", "status_effect")
@@ -322,6 +329,15 @@ func get_vehicle(id: String) -> VehicleData:
 		return _vehicles.get(id)
 	GameLog.warn("DataService: Vehicle not found: " + id)
 	return null
+
+func get_movement_profile(id: String) -> MovementProfile:
+	if _movement_profiles.has(id):
+		return _movement_profiles.get(id)
+	GameLog.warn("DataService: Movement profile not found: " + id)
+	return null
+
+func get_movement_profiles() -> Dictionary:
+	return _movement_profiles
 
 func get_zone(id: String) -> ZoneData:
 	if _zones.has(id):

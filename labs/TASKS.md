@@ -429,6 +429,11 @@ CURRENT state + ACTIVE work only.
 
 ## Test suite (run headless: `cd game && godot --headless --path . --script res://tests/<t>.gd`)
 
+Regression runner (committed): `sh ./scripts/godot_test_runner.sh`
+(default set: data-naming lint, movement profiles, blacksmith model/
+anim/scene probes). `--all` runs every `test_*.gd`; pass names to run
+specific tests. Use it instead of hand-rolling for loops.
+
 Current green baseline: horde_configs 68, boss_commands 52,
 world_boss_schedule 37, horde_rewards 37, horde_events 34, phase4_aoi
 17, projection 44,
@@ -479,6 +484,28 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 4 follow-up (2026-09-25, session recovery): fixed
+  the two parse errors that killed the previous session --
+  MovementProfile.get_ground_speed used `var x = match ...` (match is
+  a STATEMENT, not an expression) and enemy.gd passed a default arg to
+  Resource.get (removed in 4.7.2). Movement Design System landed +
+  tested: MovementProfile schema, data/movement_profiles/ (standard,
+  quadruped, mechanical, npc_ambient), DataService loader,
+  PlayerController profile stamping + capability gates in idle/run
+  states, EnemyData.movement_profile_id + enemy.gd profile scaling
+  (movement_standard preserves historical 5.0/10.0/10.0 tuning).
+  Blacksmith 3D pipeline PROVEN end-to-end: generator restructured to
+  export-once-per-clip (action swap + scene-range clamp) + stdlib GLB
+  merger + fix_clip_ranges.py NLA slot placement, now writes the
+  final .glb straight into game/models/npcs/ (no manual copy step);
+  blacksmith_village.tscn embeds the skinned glb under ModelRoot and
+  NPCEntity._play_model_idle() drives it; probes confirm walk moves
+  thigh_l 0.399 rad in-slot and idle breathes arm_r in-scene.
+  Screenshot: art/screenshots/npc_blacksmith_village.png (Cycles CPU --
+  EEVEE cannot render headless). Durability: scripts/godot_test_runner.sh
+  (default regression set + --all), flow + gotchas documented in
+  labs/prd-3d-pipeline.md sections 6-7. Lint + autoload suites still
+  green.
 - [x] Rando batch 3 (2026-09-25): Blender 3.0 installed + numpy for
   the glTF addon; blender_smoke_test.sh now dash-safe and PASSES
   end-to-end (headless cube -> .glb -> Godot PackedScene). The

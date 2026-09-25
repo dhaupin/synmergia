@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MovementProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/movement_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "movement_npc_ambient"
+display_name = "Ambient NPC (No Sprint, No Jump)"
+locomotion_class = 0
+walk_speed = 3.2
+run_speed = 4.5
+sprint_speed = 6.0
+crouch_speed = 2.0
+swim_speed = 2.5
+jump_force = 0.0
+gravity_force = 20.0
+terminal_fall_speed = 55.0
+air_control = 0.6
+ground_acceleration = 25.0
+ground_deceleration = 35.0
+air_acceleration = 6.0
+turn_grip = 0.85
+sprint_stamina_cost = 0.0
+dodge_force = 0.0
+backward_speed_multiplier = 0.8
+allow_jump = false
+allow_crouch = false
+allow_sprint = false

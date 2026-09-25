@@ -43,6 +43,10 @@ var _wander_timer: float = 0.0
 ## XP/kill-reward hook when no explicit killer reaches _on_died.
 var _last_damager: Node = null
 
+## Movement Design System: cached MovementProfile (resolved lazily in
+## _movement_profile(); null until first speed query after boot).
+var _movement_profile_cache: MovementProfile = null
+
 
 func _ready() -> void:
 	entity_type = EntityType.ENEMY
@@ -125,9 +129,34 @@ func _physics_process(delta: float) -> void:
 
 
 func _current_speed() -> float:
+	# EnemyData.move_speed stays the per-enemy override (tuned per mob);
+	# the movement profile multiplies on top so global feel changes
+	# (slide speed, gravity, sprint) land everywhere from one .tres.
+	var base: float = 2.0
 	if enemy_data and "move_speed" in enemy_data:
-		return float(enemy_data.move_speed)
-	return 2.0
+		base = float(enemy_data.move_speed)
+	var profile: MovementProfile = _movement_profile()
+	if profile == null:
+		return base
+	# Map enemy move_speed onto the profile's run band proportionally.
+	return base * (profile.run_speed / 7.5)
+
+
+## Resolve this enemy's movement profile from EnemyData.movement_profile_id
+## (falls back to the standard humanoid profile; cached).
+func _movement_profile() -> MovementProfile:
+	if _movement_profile_cache != null:
+		return _movement_profile_cache
+	var profile_id: String = "movement_standard"
+	if enemy_data != null:
+		# 4.7.2: Resource.get(key, default) lost its default arg -- null-check
+		# instead of passing "" as a second argument (parse error).
+		var requested = enemy_data.get("movement_profile_id")
+		if requested != null and not str(requested).is_empty():
+			profile_id = str(requested)
+	if DataService:
+		_movement_profile_cache = DataService.get_movement_profile(profile_id)
+	return _movement_profile_cache
 
 
 func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:

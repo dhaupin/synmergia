@@ -7,7 +7,7 @@
 > **What this file is NOT:** An operational log, debugging status,
 > or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Last updated 2026-09-17:** NSC-9 integration bridge (`nsc9_bridge.gd`) implemented and wired into EntityService + ZoneManager; frame geometry directory added to `/game/core/frame/`. All docs updated.
+> **Last updated 2026-09-25:** 3D pipeline proven end-to-end (`scripts/gen_blacksmith_model.py` -> `game/models/npcs/`; exporter gotchas in `labs/prd-3d-pipeline.md` sec 6). Movement Design System: `data/movement_profiles/` + `MovementProfile` schema drive all speeds/gravity/capability gates. Regression set: `sh ./scripts/godot_test_runner.sh`.
 
 ## READ FIRST
 
@@ -850,6 +850,13 @@ godot --headless --path . --script res://tests/test_notification_toast.gd
 godot --headless --path . --script res://tests/test_hud_integration.gd
 godot --headless --path . --script res://tests/test_login_flow.gd
 godot --headless --path . --script res://tests/test_auto_response_signals.gd
+```
+
+Or run the committed regression set (default: data-naming lint,
+movement profiles, blacksmith 3D probes; `--all` = every `test_*.gd`):
+
+```bash
+sh ./scripts/godot_test_runner.sh
 ```
 
 Or run all tests via Docker (see [DEPLOY.md](./DEPLOY.md)):

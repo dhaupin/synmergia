@@ -68,6 +68,10 @@ enum EnemyType {
 # Skills
 @export var skills: Array[String] = []  # Skill IDs
 
+# Movement (Movement Design System). Empty = movement_standard humanoid
+# profile; per-mob override for e.g. quadruped wolves.
+@export var movement_profile_id: String = ""
+
 # Visual
 @export var model_path: String = ""
 @export var icon_path: String = ""

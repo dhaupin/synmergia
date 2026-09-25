@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MovementProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/movement_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "movement_quadruped"
+display_name = "Quadruped (Mount-Grade)"
+locomotion_class = 1
+walk_speed = 6.0
+run_speed = 9.0
+sprint_speed = 13.5
+crouch_speed = 2.0
+swim_speed = 4.0
+jump_force = 9.0
+gravity_force = 22.0
+terminal_fall_speed = 60.0
+air_control = 0.4
+ground_acceleration = 35.0
+ground_deceleration = 40.0
+air_acceleration = 8.0
+turn_grip = 0.7
+sprint_stamina_cost = 0.0
+dodge_force = 0.0
+backward_speed_multiplier = 0.5
+allow_jump = true
+allow_crouch = false
+allow_sprint = true

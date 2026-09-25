@@ -26,6 +26,24 @@ func _ready() -> void:
 	super._ready()
 	if npc_data != null:
 		npc_data.normalize_includes()
+	_play_model_idle()
+
+
+## Play the idle clip on an instanced .glb model (scene_path scenes that
+## embed a ModelRoot with its own AnimationPlayer). Silence is fine:
+## not every NPC scene carries a skinned model yet.
+func _play_model_idle() -> void:
+	var ap := get_node_or_null("ModelRoot/model/AnimationPlayer") as AnimationPlayer
+	if ap == null:
+		# Older .glb imports nest the player under the model root itself.
+		ap = get_node_or_null("ModelRoot/AnimationPlayer") as AnimationPlayer
+	if ap == null or not ap.has_animation("idle"):
+		return
+	# The .glb's AnimationPlayer targets an absolute root
+	# (/rig_blacksmith/Skeleton3D); repoint it relative to this scene so
+	# instancing under any parent resolves.
+	ap.root_node = ap.get_parent().get_path()
+	ap.play("idle")
 
 
 ## Build interaction prompt from the first offering in includes[].

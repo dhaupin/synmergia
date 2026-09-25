@@ -22,6 +22,11 @@ const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 
 
 # Movement
+## Data-driven profile (Movement Design System). Speeds/gravity below
+## are FALLBACKS only; _ready() resolves movement_standard from
+## DataService and overrides every field the profile defines. Editing
+## feel is now a .tres edit, not a code edit.
+@export var movement_profile_id: String = "movement_standard"
 @export var move_speed: float = 5.0
 @export var sprint_speed: float = 7.5
 @export var air_dodge_force: float = 6.0  # Stronger air dodge
@@ -46,12 +51,42 @@ var is_sprinting: bool = false
 var is_sliding: bool = false
 var is_crouching: bool = false
 var is_targeting: bool = false
+
+## Movement Design System gates (stamped from the movement profile in
+## _ready). Movement states consult these before entering sprint/jump/
+## crouch, so a profile can turn a capability off for whole archetypes.
+var allow_sprint: bool = true
+var allow_jump_input: bool = true
+var allow_crouch: bool = true
 var current_target: Node3D = null
 
 # Components
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var state_machine: Node = $StateMachine
 @onready var camera_pivot: Node3D = $CameraPivot
+
+## Movement Design System: pull the profile from DataService and stamp
+## its values over the fallback exports. Profile fields only overwrite
+## what they define (profiles are authoritative, exports are defaults).
+## Species speed_modifier still multiplies on top via Entity stats.
+func _apply_movement_profile() -> void:
+	if DataService == null:
+		return
+	var profile: MovementProfile = DataService.get_movement_profile(movement_profile_id)
+	if profile == null:
+		GameLog.warn("PlayerController: movement profile '%s' missing -- using built-in defaults" % movement_profile_id)
+		return
+	move_speed = profile.walk_speed
+	sprint_speed = profile.sprint_speed
+	crouch_speed = profile.crouch_speed
+	jump_force = profile.jump_force
+	gravity_force = profile.gravity_force
+	dodge_force = profile.dodge_force
+	allow_sprint = profile.allow_sprint
+	allow_jump_input = profile.allow_jump
+	allow_crouch = profile.allow_crouch
+	GameLog.info("PlayerController: applied movement profile '%s'" % profile.id)
+
 
 ## Respawn binding (Ankh.bind_player writes respawn_ankh_id;
 ## RespawnService reads it when offering the ANKH respawn mode).
@@ -128,6 +163,7 @@ func _ready() -> void:
 	InputManager.player_input.connect(_on_player_input)
 	PlayerManager.set_local_player(self)
 	add_to_group("players")
+	_apply_movement_profile()
 	_setup_starting_skills()
 
 	# Set collision
@@ -669,7 +705,7 @@ func _on_player_input(action: String, pressed: bool) -> void:
 
 	match action:
 		"sprint":
-			is_sprinting = pressed
+			is_sprinting = pressed and allow_sprint
 		"target_next":
 			if pressed:
 				cycle_target()

@@ -29,13 +29,13 @@ func update(_delta: float) -> void:
 		transition_to("Idle")
 		return
 
-	# Crouch on the ground -> crouch-walk
-	if Input.is_action_just_pressed("crouch") and parent.is_on_floor():
+	# Crouch on the ground -> crouch-walk (profile gate)
+	if Input.is_action_just_pressed("crouch") and parent.allow_crouch and parent.is_on_floor():
 		transition_to("Crouch")
 		return
 
-	# Check for jump
-	if Input.is_action_just_pressed("jump") and parent.is_on_floor():
+	# Check for jump (profile gate)
+	if Input.is_action_just_pressed("jump") and parent.allow_jump_input and parent.is_on_floor():
 		transition_to("Jump")
 		return
 

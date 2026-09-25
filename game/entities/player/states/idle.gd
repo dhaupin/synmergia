@@ -28,8 +28,9 @@ func update(delta: float) -> void:
 		transition_to("Attack")
 		return
 
-	# Check for jump
-	if Input.is_action_just_pressed("jump") and state_machine.get_parent().is_on_floor():
+	# Check for jump (profile gate: some archetypes never jump)
+	var parent := state_machine.get_parent()
+	if Input.is_action_just_pressed("jump") and parent.allow_jump_input and parent.is_on_floor():
 		transition_to("Jump")
 
 func physics_update(_delta: float) -> void:
