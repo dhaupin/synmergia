@@ -479,6 +479,20 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 3 (2026-09-25): Blender 3.0 installed + numpy for
+  the glTF addon; blender_smoke_test.sh now dash-safe and PASSES
+  end-to-end (headless cube -> .glb -> Godot PackedScene). The
+  .glb lands in game/models/blocks/ as the first procgen block.
+  Consistency pass: data/roots/ frame schemas (seed_schema/
+  state_schema) moved to core/frame/schemas/ (5 preloads updated,
+  embedded ext_resource paths in world/seed.tres + state.tres
+  fixed, class cache reimported), roots test files co-located in
+  core/frame/kv/, dead quest_guide_npc stub archived to
+  labs/archive/ (never wired, broken refs from day one),
+  test_seed_receipt float-precision assert fixed (pre-existing
+  baseline failure). Web: mapItemType now mirrors the real
+  ItemCategory enum (was silently mis-mapping accessory/material),
+  ItemType widened. Lint 18/18, live 26/26, tsc clean.
 - [x] Rando batch 2 (2026-09-25): data/misc -> data/items with
   item_ prefix + item_quest_* taxonomy (loot table refs updated);
   deleted the never-loaded vestigial data/buffs/; moved the

@@ -14,7 +14,7 @@ func _init() -> void:
 	quit(0 if ok else 1)
 
 func _load_schema() -> void:
-	var script = load("res://data/roots/state_schema.gd")
+	var script = load("res://core/frame/schemas/state_schema.gd")
 	schema = script.new()
 
 func _run_tests() -> void:

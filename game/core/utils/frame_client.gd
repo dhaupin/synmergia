@@ -362,9 +362,9 @@ func _post(endpoint: String, data: Dictionary) -> Dictionary:
 func _get_local_schema(schema_name: String) -> Resource:
 	match schema_name:
 		"seed":
-			return load("res://data/roots/seed_schema.gd").new() as Resource
+			return load("res://core/frame/schemas/seed_schema.gd").new() as Resource
 		"state":
-			return load("res://data/roots/state_schema.gd").new() as Resource
+			return load("res://core/frame/schemas/state_schema.gd").new() as Resource
 		"definition":
 			return load("res://core/frame/kv/definition_schema.gd").new() as Resource
 		_:

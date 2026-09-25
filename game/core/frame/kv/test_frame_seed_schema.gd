@@ -4,7 +4,7 @@
 ## replacing the previous single-JSON-blob approach).
 extends SceneTree
 
-const SeedSchemaScript = preload("res://data/roots/seed_schema.gd")
+const SeedSchemaScript = preload("res://core/frame/schemas/seed_schema.gd")
 
 const SEED_TYPES := ["locked", "open", "frame"]
 const VISIBILITY_SCOPES := ["world", "shard", "instance", "player"]

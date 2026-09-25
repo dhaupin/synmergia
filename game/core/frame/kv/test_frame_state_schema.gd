@@ -4,7 +4,7 @@
 ## ai_tick_state must be int.
 extends SceneTree
 
-const StateSchemaScript = preload("res://data/roots/state_schema.gd")
+const StateSchemaScript = preload("res://core/frame/schemas/state_schema.gd")
 
 const STATE_TYPES := ["position", "inventory", "health", "faction", "status", "quest", "social", "behavior_state", "other"]
 

@@ -4,7 +4,7 @@
 extends RefCounted
 
 const T3Script = preload("res://core/frame/kv/t3.gd")
-const SeedSchemaScript = preload("res://data/roots/seed_schema.gd")
+const SeedSchemaScript = preload("res://core/frame/schemas/seed_schema.gd")
 
 ## Derives a content-hash seed from a scope stack and a path.
 ## The stack is [player_seed, shard_seed, world_seed] (top to bottom).

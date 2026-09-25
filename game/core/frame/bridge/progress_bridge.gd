@@ -26,7 +26,7 @@
 ## point the PRD assumes -- so a raw player position never poisons the tree.
 extends RefCounted
 
-const StateSchemaScript = preload("res://data/roots/state_schema.gd")
+const StateSchemaScript = preload("res://core/frame/schemas/state_schema.gd")
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 
 ## Schema instance shared by every node this bridge writes: node hashes

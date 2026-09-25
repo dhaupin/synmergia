@@ -80,7 +80,12 @@ function mapRarity(n: number): ItemRarity {
 }
 
 function mapItemType(cat: number): ItemType {
-  const map: Record<number, ItemType> = { 0: 'weapon', 1: 'armor', 2: 'consumable', 3: 'material', 5: 'misc' };
+  // Mirrors Item.ItemCategory enum order (schemas/item.gd).
+  const map: Record<number, ItemType> = {
+    0: 'weapon', 1: 'armor', 2: 'accessory', 3: 'consumable',
+    4: 'material', 5: 'gem', 6: 'event', 7: 'dwelling', 8: 'misc',
+    9: 'skill_book',
+  };
   return map[cat] || 'misc';
 }
 

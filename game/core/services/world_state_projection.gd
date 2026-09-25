@@ -26,7 +26,7 @@
 extends Node
 
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
-const StateSchemaScript = preload("res://data/roots/state_schema.gd")
+const StateSchemaScript = preload("res://core/frame/schemas/state_schema.gd")
 const ProgressBridgeScript = preload("res://core/frame/bridge/progress_bridge.gd")
 
 ## Coalesce window before a tick drains the queue (seconds). Marked

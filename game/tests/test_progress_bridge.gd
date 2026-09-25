@@ -55,7 +55,7 @@ func _run() -> void:
 			"checkpoint-only snapshot maps to {}")
 
 	# --- 2. Quantization + validation --------------------------------------
-	var schema = load("res://data/roots/state_schema.gd").new()
+	var schema = load("res://core/frame/schemas/state_schema.gd").new()
 	var q = BridgeScript.quantize_coordinate(1.234567)
 	_assert(q != null and absf(float(q) - 1.23) < 0.0001, "off-grid float quantizes to 0.01m")
 	_assert(schema._validate({"type": "position", "entity_id": "e",

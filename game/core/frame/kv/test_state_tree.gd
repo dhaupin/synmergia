@@ -3,7 +3,7 @@ extends SceneTree
 
 const T3Script = preload("res://core/frame/kv/t3.gd")
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
-const StateSchemaScript = preload("res://data/roots/state_schema.gd")
+const StateSchemaScript = preload("res://core/frame/schemas/state_schema.gd")
 
 var _passed := 0
 var _failed := 0

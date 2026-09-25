@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://seed_schema_sample"]
 
-[ext_resource path="res://data/roots/seed_schema.gd" type="Script" id=1]
+[ext_resource path="res://core/frame/schemas/seed_schema.gd" type="Script" id=1]
 
 [resource]
 script = ExtResource("1")

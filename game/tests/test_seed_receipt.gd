@@ -110,7 +110,9 @@ func _test_corrupted() -> void:
 
 func _test_issued_at() -> void:
 	var receipt = SeedReceiptScript.new()
-	var now = Time.get_unix_time_from_system() * 1000
+	# int64 milliseconds: issued_at is int; comparing against the raw
+	# float from get_unix_time_from_system failed on precision.
+	var now := int(Time.get_unix_time_from_system() * 1000)
 	receipt.issued_at = now
 	var bytes = receipt.to_bytes()
 	var receipt2 = SeedReceiptScript.from_bytes(bytes)
