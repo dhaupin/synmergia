@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "village_elder"
+id = "npc_village_elder"
 display_name = "Village Elder"
 greeting = "Welcome, traveler. The village has been troubled by wolves..."
 location_type = 0

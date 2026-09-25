@@ -43,6 +43,7 @@ func _ready() -> void:
 	GameLog.info("QuestService: Ready")
 	_load_player_quests()
 	_connect_combat_event_bridges()
+	_connect_lore_event_bridges()
 
 ## ============================================================================
 ## EVENT BRIDGES (combat -> objectives)
@@ -83,6 +84,82 @@ func _on_kill_rewarded_for_quest(entity, killer, rewards: Dictionary) -> void:
 			if str(member_id) == credit_id:
 				continue
 			update_quest_progress(str(member_id), QuestData.ObjectiveType.KILL, target, 1)
+
+## ============================================================================
+## EVENT BRIDGES (lore -> objectives)
+## ============================================================================
+
+## Talk + Collect bridges. Before these, only KILL objectives could ever
+## advance: the Awakening (the game's first quest) is a TALK objective and
+## the daily herb run is COLLECT -- both were permanently stuck. Talk
+## credits the dialogue ENDER (dialog_service emits dialogue_ended with
+## only the npc_id); Collect keys off the item's display_name, matching
+## how quest .tres targets are authored ("Moonpetal Flower").
+func _connect_lore_event_bridges() -> void:
+	if DialogService != null and DialogService.has_signal("dialogue_ended") \
+			and not DialogService.dialogue_ended.is_connected(_on_dialogue_ended_for_quest):
+		DialogService.dialogue_ended.connect(_on_dialogue_ended_for_quest)
+	if EventHub != null and EventHub.has_signal("item_picked_up") \
+			and not EventHub.item_picked_up.is_connected(_on_item_picked_up_for_quest):
+		EventHub.item_picked_up.connect(_on_item_picked_up_for_quest)
+
+func _on_dialogue_ended_for_quest(npc_id: String, _dialogue_id: String) -> void:
+	# Resolve the NPC's display name so the target matches quest data.
+	# Credit both the resolved display name AND the raw npc_id: quest
+	# authors may target either, and update_quest_progress re-validates
+	# each objective, so only the matching form ever ticks.
+	var candidates: Array = [str(npc_id)]
+	if DataService != null and DataService.has_method("get_npc"):
+		var npc = DataService.get_npc(str(npc_id))
+		var resolved = npc.get("display_name") if npc != null else null
+		if resolved != null and str(resolved) != "" and str(resolved) != str(npc_id):
+			candidates.push_front(str(resolved))
+	for target in candidates:
+		for player_id in _active_dialogue_players(str(target)):
+			update_quest_progress(player_id, QuestData.ObjectiveType.TALK, str(target), 1)
+
+## Best-effort attribution for TALK credit: dialogue_ended carries no
+## player id, so credit every player whose tracked quest is in progress
+## with this npc's display name as an incomplete TALK objective. Small
+## player counts make the scan cheap; correctness is exact because
+## update_quest_progress re-validates the objective target.
+func _active_dialogue_players(npc_name: String) -> Array:
+	var out: Array = []
+	for player_id in _player_quests.keys():
+		var quests: Dictionary = _player_quests.get(player_id, {})
+		if quests.is_empty():
+			continue
+		for quest_id in quests:
+			var quest_state: Dictionary = quests[quest_id]
+			if quest_state.get("state") != QuestData.QuestState.IN_PROGRESS:
+				continue
+			for obj in quest_state.get("objectives", []):
+				if obj.get("type") == QuestData.ObjectiveType.TALK \
+						and str(obj.get("target", "")) == npc_name \
+						and not obj.get("completed", false):
+					out.append(str(player_id))
+					break
+	return out
+
+func _on_item_picked_up_for_quest(entity, item) -> void:
+	if entity == null or item == null:
+		return
+	# .get() over `in` so dynamic and script properties both resolve.
+	var player_id := ""
+	var pid_val = entity.get("player_id")
+	if pid_val == null or str(pid_val) == "":
+		pid_val = entity.get("entity_id")
+	if pid_val != null:
+		player_id = str(pid_val)
+	var target := ""
+	var t_val = item.get("display_name")
+	if t_val == null or str(t_val) == "":
+		t_val = item.get("item_name")
+	if t_val != null:
+		target = str(t_val)
+	if player_id == "" or target == "":
+		return
+	update_quest_progress(player_id, QuestData.ObjectiveType.COLLECT, target, 1)
 
 ## ============================================================================
 ## QUEST LOADING / PERSISTENCE

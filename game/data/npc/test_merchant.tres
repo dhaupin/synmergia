@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "test_merchant"
+id = "npc_test_merchant"
 display_name = "Test Merchant"
 greeting = "Welcome! Browse my wares!"
 location_type = 0

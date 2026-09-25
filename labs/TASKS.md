@@ -330,6 +330,25 @@ CURRENT state + ACTIVE work only.
   mechanics (Herald passive / Saint aggressive) + template/
   schedule/zone resolution: 8 asserts green; parse_check, world
   boss schedule 37/0, boss commands 52/0 all green.
+- Quest-engine repair + quest design bible (labs/prd-quests.md,
+  CANON for quest design; companion to prd-story.md): TALK and
+  COLLECT objective bridges landed in QuestService (before this,
+  only KILL could advance -- the Awakening, a TALK quest, was
+  permanently stuck). TALK credits via DialogService.dialogue_ended
+  with display-name OR raw-id targets (attribution scan over
+  in-progress players; exact because update_quest_progress
+  re-validates); COLLECT keys off item display_name via
+  EventHub.item_picked_up. NPC ids normalized to npc_-prefix
+  (village_elder/test_merchant -> npc_*; dialogue already referenced
+  npc_village_elder -- the mismatch this fixes; zero stale refs).
+  Story-PRD drift CLOSED: village elder says Gloomwood (was
+  Darkwood). New quest main_teachings.tres "The Old Roads" (EXPLORE
+  wake-3-waypoints, gated on main_awakening) -- first act-1 spine
+  beat past the tutorial. Tests: test_quest_lore_bridges 8/0,
+  notif_migration_quest 10/0, parse_check verdict 11/0 (the 10
+  SCRIPT ERROR lines under --script mode are pre-existing harness
+  noise, identical on clean HEAD -- autoloads do not pre-load in
+  that mode).
 - Story & world-lore PRD written (labs/prd-story.md, CANON): the
   missing narrative bible -- premise (the unpowered world + the
   Convergence + the Silence), 4-age timeline (Convergence / Silence

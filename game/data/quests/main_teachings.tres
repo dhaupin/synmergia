@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "main_teachings"
+display_name = "The Old Roads"
+description = "The Elder speaks of roads that answer when spoken to - waypoint stones the old world left sleeping. Wake three of them on the plains and the village will no longer be alone on the map."
+quest_type = 0
+difficulty = 0
+giver_npc_id = "npc_village_elder"
+turn_in_npc_id = "npc_village_elder"
+min_level = 1
+max_level = 5
+required_quests = ["main_awakening"]
+objectives = [{"id": "wake_waypoints", "type": 4, "target": "starter_plains", "count": 3}]
+rewards = [{"type": "gold", "id": "", "quantity": 40}, {"type": "experience", "id": "", "quantity": 60}]
+gold_reward = 40
+xp_reward = 60
+icon_path = "res://icons/quests/waypoint.png"
+map_marker = "explore"
+next_quest_id = ""
