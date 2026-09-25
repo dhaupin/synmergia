@@ -84,21 +84,27 @@ Cyber-organic creatures are named `<Substance>-<Animal>`:
 - Anatomy rule: animal silhouette first, tech second (shell plating,
   crystal sacs, cable tails). Never a robot wearing fur.
 
-## 6. Known gaps (priority for future prompts)
+## 6. Known gaps -> brief coverage
 
-1. **Akkan + Synthetic deep-study sheets** -- Human is done (sec. 8.6)
-   and the three-species lineup is canon (sec. 8.9); Akkan and
-   Synthetic still want individual head-study/explorer sheets.
-2. **Individual class hero shots** -- the 18-class sheets work as
-   lineups; leads (Temporalist, Conduit, Runesmith) want single-figure
-   key art for ability tooltips and class-select.
-3. **Zone establishing shots** matching authored zones -- briefs ready
-   in `labs/prompts/gemini_zones.md` (Gloomwood Meadow, Starter Plains,
+Every gap now has a brief; render + critique closes them:
+
+1. **Akkan + Synthetic deep-study sheets** -- briefs in
+   `labs/prompts/gemini_species_classes.md` sec. 6-7 (Human done,
+   sec. 8.6; three-species lineup canon, sec. 8.9).
+2. **Individual class hero shots** -- briefs in
+   `labs/prompts/gemini_class_heroes.md` (Temporalist, Conduit,
+   Runesmith; UI-overlay-safe composition).
+3. **Zone establishing shots** -- briefs ready in
+   `labs/prompts/gemini_zones.md` (Gloomwood Meadow, Starter Plains,
    Village of Haven, Forest Depths, dark highlands, Nexus Central).
-4. **Interiors not yet covered:** inn (Echo Plaza), dwelling/house
-   interior, gateway chamber.
-5. **UI mockups** -- HUD skin, inventory icons, and the Aether-Conduit
-   player-facing terminal chrome (see sec. 8.3).
+4. **Interiors not yet covered** (inn, dwelling, gateway) -- briefs in
+   `labs/prompts/gemini_interiors_ui.md` sec. 1-3; the four service
+   shops are done (sec. 8.4).
+5. **UI mockups** (HUD skin, inventory icons, Aether-Conduit chrome)
+   -- briefs in `labs/prompts/gemini_interiors_ui.md` sec. 4-6.
+6. **Bosses** -- briefs in `labs/prompts/gemini_bosses.md`
+   (Devourer standalone + Clockwork Saint + Mossbound Herald); the
+   Devourer action study is already canon (sec. 8.2).
 
 ## 7. Prompt pipeline
 
@@ -241,8 +247,10 @@ All three class sheets and the species lineup landed on-model:
 
 Drift found in this pass, ruled on (do not re-canonize):
 
-- **Marksman rendered twice** on the Human sheet (grid permutation;
-  one variant drops Cleric). Rule: six DISTINCT classes per sheet.
+- **Marksman rendered twice** on one Human-classes variant (7
+  figures, grid permutation); the second variant sheet is the clean
+  six-distinct-class render and is the canon reference. Rule: six
+  DISTINCT classes per sheet.
 - **"RUNEBLADE" label** -- data says Runesmith
   (`class_akkan_rune.tres` display_name). The .tres wins; briefs now
   label RUNESMITH.

@@ -257,6 +257,15 @@ CURRENT state + ACTIVE work only.
   placeholder token rendered as literal header text -- convention
   changed to paste the expanded paragraph (README + all packs),
   stray annotation words are decorative.
+- Prompt pipeline gap-closure: every bible gap now has a brief --
+  species deep-studies added to gemini_species_classes.md sec. 6-7
+  (Akkan civilian/elder/head-row, Synthetic wake-states + faceplate
+  variants), gemini_class_heroes.md (Temporalist/Conduit/Runesmith
+  single-figure key art, right-two-thirds UI-safe composition),
+  gemini_interiors_ui.md (Echo Plaza Inn, dwelling, gateway chamber,
+  HUD mock, 16-icon sheet, Aether-Conduit service menu -- violet
+  never on chrome, gold = reward/active only). art-direction.md
+  sec. 6 rewritten as gap->brief index.
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;

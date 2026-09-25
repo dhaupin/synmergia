@@ -260,6 +260,112 @@ as a small clean wordmark, correctly spelled.
 
 ---
 
+## 6. Akkan Species Deep-Study (fills bible gap 1)
+
+The Human species sheet (sec. 1) has its counterpart. Akkan are
+people first: the war-plate is culture, not anatomy. Anchor:
+`species_akkan.tres` (strength+5, vitality+3, endurance+2,
+intelligence-2; home `dark_highlands`).
+
+**Prompt:**
+
+```
+[STYLE LOCK -- expanded]
+
+Stylized cyber-organic fantasy concept art, inked outlines with
+cel-shaded flats and painted texture. A world of ancient dormant
+symbiotic technology overgrown by nature: geometric circuit forms
+wrapped in roots, moss, and mycelium. Desaturated grey-green base
+palette (#c0c0c0 stone, #404040 shadow, #202020 dark) with three
+semantic accent colors ONLY: pale teal/cyan (#80c0c0) for dormant or
+waking technology, warm gold (#c0a060) for active converged
+technology, violet (#8060c0) exclusively for mycelium and arcane
+magic. No photorealism, no low-poly look, no neon cyberpunk city
+aesthetic. Clean white-grey presentation background, 16:9 sheet with
+a thin margin, hand-lettered style labels under each figure (short
+labels only, no paragraphs of text). Render ONLY the exact label
+words listed at the end -- no filenames, no other text.
+
+Species study sheet titled "SYNMERGIA: THE AKKAN", arranged on a
+white-grey background, same scale throughout:
+
+1. Center: a full-body front view of an Akkan in civilian traveling
+   dress -- layered grey-green cloth and leather, fur mantle over
+   one shoulder, rope belt with a single ceremonial bronze tag.
+   NO war-plate: show the person, not the soldier.
+
+2. Left: full-body back view of the same figure.
+
+3. Right: an Akkan elder in draped robes, deep facial creases,
+   white braids, a carved walking staff with an ember-sigil totem.
+
+4. Head-study row along the bottom: four heads, same species face
+   (broad heavy-boned features, grey-violet skin in the #a0a0c0
+   family, deep-set ember-orange eyes, dark braided hair) with
+   variation in age, scars, braid styles, and one half-mask.
+
+5. Material callout chips floating near the figures: dark bronze,
+   worn gold trim, iron, hide.
+
+Labels: "THE AKKAN", "TRAVELER", "BACK", "ELDER" only. No other text.
+```
+
+---
+
+## 7. Synthetic Species Deep-Study (fills bible gap 1)
+
+The machine species needs material and wake-state studies more than
+fashion. Anchor: `species_synthetic.tres` (intelligence+5, wisdom+3,
+agility+2; home `nexus_central`).
+
+**Prompt:**
+
+```
+[STYLE LOCK -- expanded]
+
+Stylized cyber-organic fantasy concept art, inked outlines with
+cel-shaded flats and painted texture. A world of ancient dormant
+symbiotic technology overgrown by nature: geometric circuit forms
+wrapped in roots, moss, and mycelium. Desaturated grey-green base
+palette (#c0c0c0 stone, #404040 shadow, #202020 dark) with three
+semantic accent colors ONLY: pale teal/cyan (#80c0c0) for dormant or
+waking technology, warm gold (#c0a060) for active converged
+technology, violet (#8060c0) exclusively for mycelium and arcane
+magic. No photorealism, no low-poly look, no neon cyberpunk city
+aesthetic. Clean white-grey presentation background, 16:9 sheet with
+a thin margin, hand-lettered style labels under each figure (short
+labels only, no paragraphs of text). Render ONLY the exact label
+words listed at the end -- no filenames, no other text.
+
+Species study sheet titled "SYNMERGIA: THE SYNTHETIC", same scale
+throughout:
+
+1. Center: full-body front view of the Conduit base frame --
+   humanoid machine, matte pale-ceramic and dark-alloy plating,
+   smooth featureless faceplate with two soft teal light eyes,
+   fine teal circuit tracery across chest and arms, thin coiled
+   cable-tail from the lower back.
+
+2. Left: back view showing the cable-tail articulation and spine
+   tracery.
+
+3. Right: two wake-state studies of the SAME head, side by side --
+   dormant (dark faceplate, circuits unlit) and waking (eyes and
+   tracery lit teal).
+
+4. Head-study row along the bottom: four faceplate variants --
+   smooth, hex-seamed, visor-arch, and one grown-over with moss
+   and thin roots (nature claim, circuits still lit).
+
+5. Material callout chips: pale ceramic, dark alloy, teal tracery,
+   moss-overgrown plate.
+
+Labels: "THE SYNTHETIC", "FRONT", "BACK", "DORMANT", "WAKING"
+only. No other text.
+```
+
+---
+
 ## Rendering checklist (for after generation)
 
 - [ ] Species faces consistent within each sheet; silhouettes distinct
