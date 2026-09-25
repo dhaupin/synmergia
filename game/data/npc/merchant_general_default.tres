@@ -11,6 +11,7 @@ npc_type = 6
 level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/merchant_general.tscn"
+zone_id = "zone_village_center"
 greeting = "Take a look at my wares!"
 farewell = "Come back anytime."
 shop_title = "General Store"

@@ -479,7 +479,13 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
-- [ ] Islands suite: ~20 bare-autoload script-mode compile notes
+- [x] Consolidated `data/npc/` + `data/npcs/` into one canonical dir:
+  migrated the 8 unique offering NPCs into `data/npc/`, deleted the
+  dead `data/npcs/` (was never loaded by DataService), gave the two
+  village-tier NPCs `zone_id = "zone_village_center"` so they spawn
+  via the data-driven placement from the zone_id migration; the
+  capital/town/outpost tier stays authored-but-unplaced until those
+  zones exist.- [ ] Islands suite: ~20 bare-autoload script-mode compile notes
   (batched runtime-lookup conversion).
 - [ ] WebInputBridge browser e2e once a full web export lands.
 - [ ] Zone data is concentric discs sharing one center; real region

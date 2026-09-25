@@ -58,6 +58,12 @@ enum LocationType {
 # Position in world (relative to zone bind point)
 @export var spawn_offset: Vector3 = Vector3.ZERO
 @export var spawn_rotation: float = 0.0
+## Canonical zone this NPC is placed in (ZoneManager zone id, e.g.
+## "zone_village_center"). Empty = authored but not placed yet:
+## spawn_all_offering_npcs skips unplaced NPCs instead of guessing
+## a zone from the id (the old prefix heuristic produced phantom
+## zones like zone_village/zone_capital that were never authored).
+@export var zone_id: String = ""
 
 ## Includes -- what this NPC provides when the player interacts.
 ## Two supported shapes (see normalize_includes()):

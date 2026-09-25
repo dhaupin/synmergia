@@ -1035,54 +1035,42 @@ func spawn_npc_entity(
 	return entity
 
 ## Spawn all offering NPCs for every zone.
-## Infers zone from NPC ID prefix (e.g. blacksmith_village_* -> zone_village).
+## Placement is data-driven: NPCData.zone_id names the ZoneManager zone
+## (spawn at the zone's bind point + spawn_offset). NPCs with an empty
+## zone_id are authored but not yet placed -- skipped with a log, never
+## scattered. A zone_id that matches no registered zone is a broken
+## data reference: warned and skipped. Previously this inferred the
+## zone from the NPC id prefix, which invented phantom zones
+## (zone_village / zone_capital were never authored) and fell back to
+## a random scatter at the world origin when they did not exist.
 func spawn_all_offering_npcs() -> void:
 	if not DataService:
 		GameLog.warn("SpawnService: DataService not available, skipping NPC spawns")
 		return
 
 	var all_npcs: Array = DataService.get_all_npcs()
+	var spawned := 0
 	for npc_data in all_npcs:
 		if npc_data == null:
 			continue
 		if npc_data.includes.is_empty():
 			continue
-
-		var zone_id := _zone_from_npc_id(npc_data.id)
+		var zone_id := str(npc_data.get("zone_id"))
+		if zone_id.is_empty():
+			GameLog.info("SpawnService: NPC '%s' has offerings but no zone_id -- not placed yet, skipping" % npc_data.id)
+			continue
 		var zone_data: ZoneData = null
 		if ZoneManager:
 			zone_data = ZoneManager.get_zone(zone_id)
-
-		var spawn_pos: Vector3
-		if zone_data != null and zone_data.bind_point != Vector3.ZERO:
-			spawn_pos = zone_data.bind_point + npc_data.spawn_offset
-		else:
-			spawn_pos = Vector3(randf_range(-10, 10), 0, randf_range(-10, 10))
-
+		if zone_data == null:
+			GameLog.warn("SpawnService: NPC '%s' references unknown zone '%s' -- skipping (broken data reference)" % [npc_data.id, zone_id])
+			continue
+		var spawn_pos: Vector3 = zone_data.bind_point + npc_data.spawn_offset
 		spawn_npc_entity(zone_id, spawn_pos, npc_data)
+		spawned += 1
 
-	GameLog.info("SpawnService: Spawned all offering NPCs")
+	GameLog.info("SpawnService: Spawned %d offering NPCs" % spawned)
 
-## Derive zone_id from NPC ID naming convention.
-## E.g. "blacksmith_village_default" -> "zone_village"
-static func _zone_from_npc_id(npc_id: String) -> String:
-	var DEFAULT_ZONE := "zone_capital"
-	# Strip known prefixes to get the location tier
-	var prefixes := ["blacksmith_", "merchant_", "potions_", "armory_", "skill_academy_", "bank_"]
-	var remainder := npc_id
-	for prefix in prefixes:
-		if remainder.begins_with(prefix):
-			remainder = remainder.trim_prefix(prefix)
-			break
-	# remainder is now "village_default" or "capital_default"
-	# Take the first segment as the location tier
-	var segments := remainder.split("_")
-	if segments.size() > 0:
-		var location := segments[0]
-		var inferred := "zone_" + location
-		if ZoneManager and ZoneManager.get_zone(inferred) != null:
-			return inferred
-	return DEFAULT_ZONE
 
 
 ## Despawn an NPC

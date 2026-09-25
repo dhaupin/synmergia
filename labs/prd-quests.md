@@ -119,9 +119,10 @@ Bloom-containment deeds, and companion/mount bonds, never with
 - **Data:** `game/data/quests/*.tres` (QuestData schema: objectives
   array of {id, type, target, count}, rewards array, chain fields
   next_quest_id/previous_quest_id, required_quests, repeatable +
-  cooldown, auto_complete). NPCs load from `game/data/npc/` (the
-  `game/data/npcs/` duplicates are DEAD -- DataService scans only
-  `npc/`; ids are now npc_-prefixed, matching every consumer).
+  cooldown, auto_complete). NPCs load from `game/data/npc/` -- the
+  ONLY npc data dir (the old `game/data/npcs/` duplicates were
+  migrated + deleted; ids are now npc_-prefixed, matching every
+  consumer).
 - **Tests:** `game/tests/test_quest_lore_bridges.gd` (TALK + COLLECT
   end-to-end, 8 asserts), `test_quest_explore_bridge.gd` (EXPLORE
   end-to-end, 6 asserts), `test_notif_migration_quest.gd` (10),

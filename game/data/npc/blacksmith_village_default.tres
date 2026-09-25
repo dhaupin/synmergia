@@ -11,6 +11,7 @@ npc_type = 1
 level = 1
 faction = "friendly"
 scene_path = "res://scenes/npcs/blacksmith_village.tscn"
+zone_id = "zone_village_center"
 greeting = "Good to see ye, traveler. Bring me yer worn gear."
 farewell = "Safe travels, friend."
 shop_title = "Village Smithy"
