@@ -52,6 +52,19 @@ func _setup_ui() -> void:
 		return
 	var main: VBoxContainer = add_content_to_panel(panel)
 
+	# Emblem above the spinner when the logo pack is present.
+	var BrandScript = load("res://core/utils/branding.gd")
+	var emblem: Texture2D = BrandScript.emblem_small() if BrandScript else null
+	if emblem != null:
+		var emblem_rect := TextureRect.new()
+		emblem_rect.name = "Emblem"
+		emblem_rect.texture = emblem
+		emblem_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		emblem_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		emblem_rect.custom_minimum_size = Vector2(64, 64)
+		emblem_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		main.add_child(emblem_rect)
+
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_CENTER)
 	center.custom_minimum_size = Vector2(300, 150)
