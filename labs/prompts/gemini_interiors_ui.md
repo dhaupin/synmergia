@@ -137,8 +137,11 @@ a wireframe.
 Labels: "HUD MOCK" only. No other text.
 ```
 
-> **Status:** PENDING RE-RENDER -- this render was dropped from the
-> user's chat batch (client omission) and is not yet reviewed.
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.10). First real-text render in the set -- every string
+> correct. Adopted beyond the brief: quest tags [Main]/[Daily]/[Side]
+> (Main gold-emphasized), chat tags [System]/[Party]/[Local],
+> wireframe minimap with teal sweep cone, tablet in hotbar slot 1.
 
 ---
 

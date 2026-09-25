@@ -98,8 +98,8 @@ Every gap now has a brief; render + critique closes them:
    Village of Haven, Forest Depths, dark highlands, Nexus Central).
 4. **Interiors** -- DONE: service shops (sec. 8.4) + inn/dwelling/
    gateway canonized (sec. 8.10).
-5. **UI mockups** -- icons + Aether-Conduit menu DONE (sec. 8.10);
-   HUD skin re-render pending (dropped render).
+5. **UI mockups** -- icons + Aether-Conduit menu + HUD skin all DONE
+   (sec. 8.10); the full UI trio is canon.
 6. **Bosses** -- briefs in `labs/prompts/gemini_bosses.md`
    (Devourer standalone + Clockwork Saint + Mossbound Herald); the
    Devourer action study is already canon (sec. 8.2).
@@ -262,12 +262,13 @@ Drift found in this pass, ruled on (do not re-canonize):
 
 ### 8.10 Round 3 canonization (2026-09-25, class heroes + interiors/UI)
 
-Eight renders reviewed visually (the HUD mock was dropped by the
-chat client -- re-render pending). Headline: **the text rules held.**
+Nine renders reviewed visually (eight on first attach; the dropped
+HUD mock followed separately). Headline: **the text rules held.**
 Every visible label is correctly spelled (RUNESMITH rendered right
 where round 2 said RUNEBLADE); the only baked text left is decorative
 rune-glyph scribble, which the canon already treats as unreadable
-script. The hardened style lock is doing its job.
+script. The HUD mock goes further -- real UI copy rendered perfect
+(see UI canon below). The hardened style lock is doing its job.
 
 Class heroes -- all three on-model and canonized as the
 tooltip/class-select key art:
@@ -324,6 +325,22 @@ UI canon (first real chrome in the set):
   WAYPOINT NETWORK. Working service mapping: VaultService,
   GuildService, codex/achievements, BlacksmithService,
   TradeService/market, WaypointService.
+- **HUD skin:** rendered + canonized -- the first REAL-text render in
+  the set and every string is correct: "[Main] Reach the Nexus Core
+  (3/7)", "[Daily] Siphon Aether (0/1)", "[Side] Recover Lost
+  Schematics", chat channels "[System] World state: Active. /
+  [Party] Nova: Ready. Checkpoint soon. / [Local] Haven: Patrols
+  report clear." Layout matches the brief exactly (portrait + red
+  health / teal stamina top-left, tracker top-right, chat bottom-
+  left, six-slot hotbar bottom-center, circular minimap bottom-right;
+  graphite panels, ink outlines, teal circuit edging, zero violet).
+  Adopted as HUD canon beyond the brief: quest category tags
+  [Main]/[Daily]/[Side] with the Main line gold-emphasized (gold =
+  active/reward, legal here), chat channel tags [System]/[Party]/
+  [Local], a wireframe-terrain minimap with a teal sweep CONE (the
+  content-addressed map aesthetic), and the player's glowing tablet
+  sitting in hotbar slot 1. The mock's warm pastel backdrop is
+  placeholder scenery, not zone canon.
 
 ### 9. Engine-facing next steps (from Round 2 + 3 art)
 
@@ -340,7 +357,8 @@ When wiring art into the game, these are the first touchpoints:
 6. Inventory UI <- 16-icon reference sheet; currency renders as
    star-stamped ingots
 7. Service-hub screen <- Aether-Conduit menu (six named tiles)
-8. HUD skin <- pending re-render (dropped from the chat batch)
+8. HUD skin <- the HUD mock (sec. 8.10); quest tags [Main]/[Daily]/
+   [Side] + chat tags [System]/[Party]/[Local] carry over to code
 
 ### 10. Palette audit method (reproducible)
 
