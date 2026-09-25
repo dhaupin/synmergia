@@ -7,7 +7,7 @@
 
 ---
 
-## 0. STYLE LOCK (paste at the top of the prompt)
+## 0. STYLE LOCK (paste the full paragraph into the prompt -- never a placeholder token)
 
 ```
 Stylized cyber-organic fantasy concept art, inked outlines with

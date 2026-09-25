@@ -246,6 +246,17 @@ CURRENT state + ACTIVE work only.
   + Mossbound Herald trio) and gemini_zones.md (6 establishing shots
   anchored to zone .tres ids). Full critique + next steps in
   labs/art-direction.md sec. 8-10.
+- Round 2 visual critique pass (user re-attached 8 renders to chat --
+  chat attachments are the only channel the agent actually SEES; the
+  Drive cache is palette-analysis-only): bestiary sheet canonized
+  (magenta eyes only on all 4 variants, violet = corruption medium),
+  trio hero shot = co-op key art, class sheets + species lineup
+  canonized (sec. 8.9). New drift ruled on: MARKSMAN rendered twice
+  (grid permutation), "RUNEBLADE" label -- data says Runesmith
+  (class_akkan_rune.tres display_name, .tres wins), "[STYLE LOCK]"
+  placeholder token rendered as literal header text -- convention
+  changed to paste the expanded paragraph (README + all packs),
+  stray annotation words are decorative.
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;

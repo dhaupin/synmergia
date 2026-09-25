@@ -10,7 +10,7 @@
 
 ---
 
-## 0. STYLE LOCK (paste this at the top of EVERY prompt below)
+## 0. STYLE LOCK (paste the full paragraph into every prompt -- never a placeholder token)
 
 ```
 Stylized cyber-organic fantasy concept art, inked outlines with
@@ -76,10 +76,12 @@ Labels: "HUMAN", "AKKAN", "SYNTHETIC" only -- keep text minimal and
 correctly spelled. Do not render any other text.
 ```
 
-> **Status:** rendered + canonized 2026-09-25. The Human species
-> sheet from this brief is the Human reference (labs/art-direction.md
-> sec. 8.6); note the bottom anchor row rendered with .tres-filename
-> labels -- the no-filenames text rule above is the fix for reruns.
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.9). The Human species sheet from this brief is the Human
+> reference (sec. 8.6). Rerun fixes: no .tres-filename labels on the
+> bottom anchor row (the no-filenames text rule above), and paste
+> the expanded style lock -- the literal "[HAND-LETTERED STYLE]"
+> token leaked onto the rendered header.
 
 ---
 
@@ -125,16 +127,17 @@ Row 2:
 Labels: class names only, correctly spelled. No other text.
 ```
 
-> **Status:** rendered + canonized 2026-09-25 as the class-select
-> reference set (all 18 classes). Permuted-class drift and single-
-> figure hero shots remain open (labs/art-direction.md sec. 6).
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.9). Rerun drift to avoid: Gemini rendered MARKSMAN twice in
+> place of a sixth distinct class -- keep the six named entries
+> verbatim. Single-figure hero shots for leads remain open.
 
 ---
 
 ## 3. Akkan Classes (one sheet)
 
-**Canon classes:** Bulwark, Stalker, Runeblade (Runesmith), Seer,
-Shaman, Attacker. Martial + sigil culture from the dark highlands.
+**Canon classes:** Bulwark, Stalker, Runesmith, Seer, Shaman,
+Attacker. Martial + sigil culture from the dark highlands.
 
 **Prompt:**
 
@@ -154,7 +157,7 @@ Row 1:
 - STALKER: light layered plate over shadow-cloth, twin curved
   daggers with cable-wrapped hilts, face half-shadowed by a carved
   half-mask. Crouched on a broken conduit pipe.
-- RUNEBLADE: slab-sword whose blade is an inscribed rune-tablet --
+- RUNESMITH: slab-sword whose blade is an inscribed rune-tablet --
   carved sigils glow ember-orange (Akkan sigil color, distinct from
   tech teal), detonation sigils dangling from the belt. Mid-draw.
 
@@ -172,9 +175,11 @@ Row 2:
 Labels: class names only, correctly spelled. No other text.
 ```
 
-> **Status:** rendered + canonized 2026-09-25. Ember-orange stays
-> Akkan-only in the rendered set (sigils, eyes) -- the palette audit
-> confirms no teal/gold/violet bleed onto Akkan sigils.
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.9). Rerun fixes: label the class RUNESMITH (the .tres
+> display name -- Gemini rendered "RUNEBLADE"), and paste the
+> expanded style lock (the literal "[STYLE LOCK]" token leaked onto
+> the rendered header).
 
 ---
 
@@ -221,9 +226,11 @@ Row 2:
 Labels: class names only, correctly spelled. No other text.
 ```
 
-> **Status:** rendered + canonized 2026-09-25. Synthetic duel look
-> (lean ceramic frame, cable-tail, teal arcs) is pinned by the Akkan
-> vs Synthetic duel key art (labs/art-direction.md sec. 8.5).
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.9). Stray
+> annotation words rendered as labels ("'Default'", "Tree-Roots",
+> "Luminous-Lemur") -- decorative per sec. 8.6, ignore. The duel
+> look (lean ceramic frame, cable-tail, teal arcs) is pinned by the
+> Akkan vs Synthetic duel key art (sec. 8.5).
 
 ---
 
@@ -246,6 +253,10 @@ core pulses in the same teal. Mist, birds (Data-Owls) circling the
 spire. Epic scale, quiet hope. No text except the word "SYNMERGIA"
 as a small clean wordmark, correctly spelled.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 as co-op/loading key
+> art (labs/art-direction.md sec. 8.8). On-model: tablet teal, spire
+> mandala catching gold, Data-Owl flock, the geometry-organic seam.
 
 ---
 

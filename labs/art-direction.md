@@ -78,15 +78,17 @@ Cyber-organic creatures are named `<Substance>-<Animal>`:
 - Data-Owl, Spore-Spider, Root-Crab, Lichen-Lizard, Mycelial-Mantid,
   Luminous-Lemur (canon so far).
 - Neutral/dormant variants read calm (glassy, pale); hostile/corrupted
-  variants need a visual key (magenta-thread eyes, cracked shells,
-  leaking spores) -- NOT YET DESIGNED (see prompts).
+  variants carry the visual key (magenta eyes, cracked shells,
+  leaking spores) -- designed + canonized 2026-09-25, see sec. 8.7
+  and `labs/prompts/gemini_hostile_agents.md`.
 - Anatomy rule: animal silhouette first, tech second (shell plating,
   crystal sacs, cable tails). Never a robot wearing fur.
 
 ## 6. Known gaps (priority for future prompts)
 
-1. **Akkan + Synthetic species sheets** -- Human is done (see sec. 8.6);
-   Akkan and Synthetic deserve their own head-study/explorer sheets.
+1. **Akkan + Synthetic deep-study sheets** -- Human is done (sec. 8.6)
+   and the three-species lineup is canon (sec. 8.9); Akkan and
+   Synthetic still want individual head-study/explorer sheets.
 2. **Individual class hero shots** -- the 18-class sheets work as
    lineups; leads (Temporalist, Conduit, Runesmith) want single-figure
    key art for ability tooltips and class-select.
@@ -178,6 +180,79 @@ reference. Two drift artifacts to keep fighting in briefs:
   Standing rule unchanged: baked text is decorative; only the words
   enumerated in the brief's "Labels" line are load-bearing, and any
   label not in that list is a known artifact, not lore.
+
+### 8.7 The bestiary sheet is canon (visual critique pass)
+
+All four hostile variants landed on-model; seeing the pixels confirms
+what the palette audit could only imply:
+
+- Magenta appears ONLY as eyes on every variant (plus the feral
+  spider's mouth-cluster) -- never on plating, lichen, or wings.
+- Violet stays the corruption MEDIUM: the spider's burst crystal sac
+  + spore clouds, the Blight-Lizard's bruised patches. Wing swirls
+  stayed grey-green ink, not violet.
+- Neutral forms keep glassy teal accents and calm poses; each pair
+  clearly reads as the same creature. Silhouettes stayed animal-first
+  (the crab keeps its boulder-mace claw; the lizard keeps cable
+  frays on the tail).
+
+Design locks for reruns: Shrike-Owl = laid-flat twin crest ears,
+barbed talon cables, magenta eye-slit. Rust-Root-Crab = split
+boulder-mace claw, torn rusted plating, root tendons. Blight-Lizard
+= taut long limbs, bruised-violet patches, triple cable-fray tail.
+Feral Spore-Spider = hunched bristle, burst violet sac, hooked
+metal legs. These four are the enemy bestiary reference for future
+zone-population art and AI/agent sprite work.
+
+### 8.8 Trio hero shot is canon (co-op key art)
+
+The dawn canyon shot: hooded Human raising the teal tablet, the
+slab-sword Akkan, the pale-ceramic Synthetic with teal spine core,
+all facing the overgrown Convergence Spire door whose mandala is
+just catching gold at the center, Data-Owls circling. It has the
+money shot (geometry-wrapped-in-organic seam), the dormant-to-active
+gold transition, and the quiet hope the brief asked for. Use it as
+co-op/loading key art alongside the duel (sec. 8.5).
+
+### 8.9 Class sheets + species lineup canonized (visual critique pass)
+
+All three class sheets and the species lineup landed on-model:
+
+- **Human classes:** Warrior (crimson tabard, teal-mandala shield),
+  Guardian (teal convergence studs), Marksman (root-grown longrifle),
+  Sorcerer (violet thread ONLY + violet sigil ring), Cleric (gold
+  halo-arch), Temporalist (orbiting teal tablets + seconds-glyph
+  ring, no numerals, rendered larger) -- exactly as briefed.
+- **Akkan classes:** shared face/skin/ember eyes consistent across
+  all six; Bulwark's shield is a dormant Convergence door-seal waking
+  gold at its center (the single best tech-seam in the whole set);
+  Seer reads floating ember sigils; Shaman's talismans are carved
+  tags on cable; Attacker in a full sprint.
+- **Synthetic classes:** Conduit is the icon -- the Agent Core
+  star-core rendered diegetic on a character's chest, teal arcs
+  between the fingertips. Exploiter's hooked gauntlet + stolen gold
+  circuit patches; Overclocker's gold heat-sink fins + cracking
+  ground; Psion's violet mantle grown INTO the plating + violet
+  shards; Tracker's folding sensor array + woven-cable cloak;
+  Warden's teal hex barrier + the Luminous-Lemur cameo.
+- **THE THREE SPECIES lineup** (Human explorer / Akkan warrior /
+  Synthetic Conduit + two-variant head rows per species) is the
+  species-select reference; faces match the class sheets.
+
+Drift found in this pass, ruled on (do not re-canonize):
+
+- **Marksman rendered twice** on the Human sheet (grid permutation;
+  one variant drops Cleric). Rule: six DISTINCT classes per sheet.
+- **"RUNEBLADE" label** -- data says Runesmith
+  (`class_akkan_rune.tres` display_name). The .tres wins; briefs now
+  label RUNESMITH.
+- **"[STYLE LOCK]" token leaked as literal header text** on the
+  Akkan sheet (and "[HAND-LETTERED STYLE]" on Human). New
+  convention: paste the EXPANDED style-lock paragraph into the
+  prompt, never a placeholder token -- all briefs updated.
+- **Stray annotation words** ("'Default'", "Tree-Roots",
+  "Luminous-Lemur", "Variant Helmet/Hair") -- decorative per
+  sec. 8.6, ignore.
 
 ### 9. Engine-facing next steps (from Round 2 art)
 
