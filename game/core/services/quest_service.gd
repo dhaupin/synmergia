@@ -102,6 +102,37 @@ func _connect_lore_event_bridges() -> void:
 	if EventHub != null and EventHub.has_signal("item_picked_up") \
 			and not EventHub.item_picked_up.is_connected(_on_item_picked_up_for_quest):
 		EventHub.item_picked_up.connect(_on_item_picked_up_for_quest)
+	if ZoneManager != null and ZoneManager.has_signal("player_entered_zone") \
+			and not ZoneManager.player_entered_zone.is_connected(_on_player_entered_zone_for_quest):
+		ZoneManager.player_entered_zone.connect(_on_player_entered_zone_for_quest)
+
+## EXPLORE bridge: zone entry is the objective's world event. Quest
+## targets use the species/faction convention ("starter_plains")
+## while ZoneData ids are "zone_"-prefixed, so credit BOTH forms --
+## update_quest_progress re-validates each objective, so only the
+## matching form ever ticks (same dual-candidate law as the TALK
+## bridge). When a true world-waypoint wake mechanic lands, its
+## events can call update_quest_progress with the same contract and
+## the two tick sources stack additively.
+func _on_player_entered_zone_for_quest(player, zone) -> void:
+	if player == null or zone == null:
+		return
+	var z_val = zone.get("id")
+	if z_val == null or str(z_val) == "":
+		return
+	var zone_id := str(z_val)
+	var candidates: Array = [zone_id]
+	var trimmed := zone_id.trim_prefix("zone_")
+	if trimmed != zone_id:
+		candidates.push_front(trimmed)
+	var pid_val = player.get("player_id")
+	if pid_val == null or str(pid_val) == "":
+		pid_val = player.get("entity_id")
+	if pid_val == null or str(pid_val) == "":
+		return
+	var player_id := str(pid_val)
+	for target in candidates:
+		update_quest_progress(player_id, QuestData.ObjectiveType.EXPLORE, target, 1)
 
 func _on_dialogue_ended_for_quest(npc_id: String, _dialogue_id: String) -> void:
 	# Resolve the NPC's display name so the target matches quest data.

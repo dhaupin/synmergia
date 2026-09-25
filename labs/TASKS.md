@@ -349,6 +349,15 @@ CURRENT state + ACTIVE work only.
   SCRIPT ERROR lines under --script mode are pre-existing harness
   noise, identical on clean HEAD -- autoloads do not pre-load in
   that mode).
+- EXPLORE objective bridge wired (third and last of the Act-1
+  objective types): QuestService connects ZoneManager.
+  player_entered_zone, credits the trimmed zone convention AND the
+  raw ZoneData id (dual-candidate law; quest .tres targets use
+  "starter_plains", zone ids are "zone_starter_plains"). The Old
+  Roads is now playable end-to-end. When a true world-waypoint wake
+  mechanic lands, its events tick the same contract and stack
+  additively. test_quest_explore_bridge.gd 6/0; lore bridges 8/0,
+  notif migration 10/0, parse 11/0 all green.
 - Story & world-lore PRD written (labs/prd-story.md, CANON): the
   missing narrative bible -- premise (the unpowered world + the
   Convergence + the Silence), 4-age timeline (Convergence / Silence

@@ -106,11 +106,16 @@ Bloom-containment deeds, and companion/mount bonds, never with
     display name OR raw npc_id.
   - COLLECT <- EventHub.item_picked_up (NEW). Keys off
     item display_name/item_name; player via player_id/entity_id.
-  - EXPLORE and the remaining 7 types have NO bridge yet -- they
-    are await-callers (update_quest_progress) for the systems that
-    own them (ZoneManager for EXPLORE, InventoryService craft
-    paths for CRAFT, etc.). Wire on first use, test like the
-    others.
+  - EXPLORE <- ZoneManager.player_entered_zone (NEW, 2026-09-25).
+    Credits the trimmed zone convention AND the raw ZoneData id
+    (dual-candidate law). "The Old Roads" (main_teachings) is the
+    first consumer and is playable end-to-end; when a true world-
+    waypoint wake mechanic lands, its events tick the same contract
+    and stack additively.
+  - The remaining 7 types have NO bridge yet -- they are
+    await-callers (update_quest_progress) for the systems that own
+    them (InventoryService craft paths for CRAFT, etc.). Wire on
+    first use, test like the others.
 - **Data:** `game/data/quests/*.tres` (QuestData schema: objectives
   array of {id, type, target, count}, rewards array, chain fields
   next_quest_id/previous_quest_id, required_quests, repeatable +
@@ -118,7 +123,8 @@ Bloom-containment deeds, and companion/mount bonds, never with
   `game/data/npcs/` duplicates are DEAD -- DataService scans only
   `npc/`; ids are now npc_-prefixed, matching every consumer).
 - **Tests:** `game/tests/test_quest_lore_bridges.gd` (TALK + COLLECT
-  end-to-end, 8 asserts), `test_notif_migration_quest.gd` (10),
+  end-to-end, 8 asserts), `test_quest_explore_bridge.gd` (EXPLORE
+  end-to-end, 6 asserts), `test_notif_migration_quest.gd` (10),
   `test_achievement_flow.gd`, `test_achievements.gd`.
 - **Known drift:** village elder dialogue fixed to Gloomwood
   (prd-story.md sec. 10). Quest icon paths reference
@@ -129,7 +135,7 @@ Bloom-containment deeds, and companion/mount bonds, never with
 
 1. **Act 1 spine (playable now):** Awakening -> The Old Roads ->
    2-3 more main_* beats ending at the Gloomwood gate. Every beat
-   uses TALK/EXPLORE/COLLECT only (all wired).
+   uses TALK/EXPLORE/COLLECT only (all three wired and tested).
 2. **Dialogue depth:** village_elder_greeting is the only real tree;
    author per-institution greetings (smith, alchemist, storekeeper)
    with quest hooks, using the tone rules.
