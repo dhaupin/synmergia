@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mossbound_herald"
+display_name = "The Mossbound Herald"
+description = "A colossal tortoise-fortress carrying an entire rooftop-garden ruin on its shell: trees, an archway, a tiny dormant bell tower. Calm teal circuitry, no corruption -- an ambulatory ruin that grazes the plains and only retaliates when struck. Leave it in peace and it will outwalk centuries."
+enemy_type = 4
+level = 45
+faction = "hostile"
+species_id = ""
+health = 9000
+mana = 0
+stamina = 300
+strength = 85
+agility = 12
+intelligence = 30
+vitality = 140
+attack_power = 90
+spell_power = 0
+armor = 150
+resistance = 150
+attack_range = 3.5
+attack_speed = 0.4
+move_speed = 1.2
+aggro_range = 1.0
+chase_range = 5.0
+wander_range = 8.0
+see_stealth = false
+is_aggressive = false
+is_passive = true
+is_elite = false
+is_boss = true
+is_social = false
+loot_table_id = ""
+gold_min = 800
+gold_max = 1500
+xp_reward = 4000
+skills = []
+model_path = ""
+icon_path = ""
+scale = 2.6
+animation_set = ""
+respawn_time = 3600.0
+despawn_time = 0.0
+difficulty_modifier = 2.0

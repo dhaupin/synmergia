@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "clockwork_saint"
+display_name = "The Clockwork Saint"
+description = "A porcelain colossus of the Convergence, half-woken: a fractured clock-face core ringed by orbiting seconds-glyph shards, one magenta eye beside one hollow socket. It rises when disturbed and keeps time for no one. Half-corrupted -- the Bloom has a finger in its works."
+enemy_type = 4
+level = 55
+faction = "hostile"
+species_id = ""
+health = 6500
+mana = 400
+stamina = 180
+strength = 70
+agility = 35
+intelligence = 95
+vitality = 110
+attack_power = 120
+spell_power = 90
+armor = 120
+resistance = 40
+attack_range = 3.0
+attack_speed = 0.6
+move_speed = 3.0
+aggro_range = 18.0
+chase_range = 45.0
+wander_range = 12.0
+see_stealth = false
+is_aggressive = true
+is_passive = false
+is_elite = false
+is_boss = true
+is_social = false
+loot_table_id = "loot_skill_books"
+gold_min = 600
+gold_max = 1200
+xp_reward = 6000
+skills = []
+model_path = ""
+icon_path = ""
+scale = 2.2
+animation_set = ""
+respawn_time = 3600.0
+despawn_time = 0.0
+difficulty_modifier = 2.5

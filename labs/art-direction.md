@@ -94,9 +94,13 @@ iteration, not coverage:
 2. **Class hero shots** -- 3/18 rendered (Temporalist, Conduit,
    Runesmith, sec. 8.10); the template in `gemini_class_heroes.md`
    covers the other 15.
-3. **Boss data files** -- Saint + Herald titles are canon; their
-   `world_bosses/*.tres` entries are a code follow-up when their
-   encounters get designed.
+3. **Boss data files** -- DONE 2026-09-25: the Saint and Herald now
+   have EnemyData templates + WorldBossData schedules
+   (`enemy_clockwork_saint.tres` in zone_dungeon_forest_depths,
+   `enemy_mossbound_herald.tres` in zone_starter_plains), with
+   story-PRD canon encoded as mechanics: the Herald is passive with
+   near-zero aggro (neutral law), the Saint aggressive
+   (half-corrupted law). Covered by `tests/test_canon_bosses.gd`.
 4. **Palette audit** -- the round-3/4 Drive uploads have not
    propagated to the agent's folder scrape (still 50 files); audit
    runs when they do.

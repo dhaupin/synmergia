@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WorldBossData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/world_boss_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mossbound_herald"
+boss_template_id = "mossbound_herald"
+display_name = ""
+zone_id = "zone_starter_plains"
+position = Vector3(0, 0, 0)
+interval_seconds = 21600.0
+first_delay_s = 1800.0
+announce = true
+window_seconds = 0.0

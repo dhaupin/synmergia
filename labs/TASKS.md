@@ -318,6 +318,18 @@ CURRENT state + ACTIVE work only.
   vs mounts' single-rider split, woken by tablet-socket helm --
   never built or fueled, no engines/wheels/cabins, teal dormant /
   gold underway per the station law).
+- Saint + Herald wired from art to data (bible sec. 6 item 3
+  closed): enemy_clockwork_saint.tres (lvl 55 WORLD_BOSS,
+  aggressive = half-corrupted law) scheduled in
+  zone_dungeon_forest_depths 4h interval; enemy_mossbound_herald.tres
+  (lvl 45 WORLD_BOSS, is_passive + aggro_range 1.0 = neutral law,
+  heavy armor 150/150 resist, slow 1.2 move) scheduled in
+  zone_starter_plains 6h interval. SpawnService.load_world_boss_
+  schedules scans the dir so both boot automatically. New durable
+  smoke test tests/test_canon_bosses.gd encodes story-PRD canon as
+  mechanics (Herald passive / Saint aggressive) + template/
+  schedule/zone resolution: 8 asserts green; parse_check, world
+  boss schedule 37/0, boss commands 52/0 all green.
 - Story & world-lore PRD written (labs/prd-story.md, CANON): the
   missing narrative bible -- premise (the unpowered world + the
   Convergence + the Silence), 4-age timeline (Convergence / Silence
