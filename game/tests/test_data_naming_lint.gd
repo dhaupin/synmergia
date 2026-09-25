@@ -205,4 +205,33 @@ func _run() -> void:
 	else:
 		_fail("Phantom roster npcs: %s" % ", ".join(bad_rosters))
 
+	# --- Gateway cross-refs (zone ids + reverse gateway id) ---
+	var gateway_files: Array = []
+	var gdir := DirAccess.open("res://data/gateways")
+	if gdir != null:
+		gdir.list_dir_begin()
+		var gf := gdir.get_next()
+		while gf != "":
+			if gf.ends_with(".tres"):
+				gateway_files.append(gf.trim_suffix(".tres"))
+			gf = gdir.get_next()
+	var bad_gateway_refs: Array = []
+	for gbase in gateway_files:
+		var gtxt := _file_text("data/gateways", gbase)
+		for line in gtxt.split("\n"):
+			var t := line.strip_edges()
+			if t.begins_with("source_zone_id = \"") or t.begins_with("destination_zone_id = \""):
+				var zref := t.substr(t.find("\"") + 1)
+				zref = zref.trim_suffix("\"")
+				if zref != "" and not zone_id_set.has(zref):
+					bad_gateway_refs.append("%s -> %s" % [gbase, zref])
+			elif t.begins_with("reverse_gateway_id = \"") and t != "reverse_gateway_id = \"\"":
+				var rref := t.trim_prefix("reverse_gateway_id = \"").trim_suffix("\"")
+				if not gateway_files.has(rref):
+					bad_gateway_refs.append("%s reverse -> %s" % [gbase, rref])
+	if bad_gateway_refs.is_empty():
+		_ok("Gateway zone/reverse refs all resolve (%d gateways)" % gateway_files.size())
+	else:
+		_fail("Phantom gateway refs: %s" % ", ".join(bad_gateway_refs))
+
 	_finish()

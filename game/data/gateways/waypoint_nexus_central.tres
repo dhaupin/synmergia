@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GatewayData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/gateway_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "waypoint_nexus_central"
+display_name = "Nexus Central Waypoint"
+description = "An old-world waypoint stone flickering teal, answering the roads toward the dormant capital."
+gateway_type = 1
+source_zone_id = "zone_starter_plains"
+source_position = Vector3(60, 1, 60)
+destination_zone_id = "zone_nexus_central"
+destination_position = Vector3(0, 0, 0)
+model_path = "res://models/waypoint/crystal_waypoint.tscn"
+particle_effect = "waypoint_glow_blue"
+icon_path = "res://icons/waypoint.png"
+min_level = 1
+is_two_way = true

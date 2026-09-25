@@ -479,6 +479,16 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Capital zone authored: zone_nexus_central ("Nexus Central",
+  the story-PRD machine-age capital) + two-way waypoint from the
+  starter plains (waypoint_nexus_central). npc_armory_capital +
+  npc_skill_academy_capital flipped to it -- spawn system placed
+  all 6 offering NPCs with zero code change (idempotent path did
+  its job). species_synthetic.home_zone + faction_synthetic
+  controlled_zones now resolve to the real zone; dungeon entrance's
+  phantom reverse_gateway_id cleared. Lint extended with gateway
+  zone/reverse cross-ref checks (11/11). Live onboarding 26/26,
+  spawn log: "Spawned 6 offering NPCs".
 - [x] ID naming convention locked (see AGENTS.md "ID Naming
   Conventions"): npc_/quest_/zone_/faction_ + kind prefixes for
   items, one id per entity, filename == id for prefixed categories,

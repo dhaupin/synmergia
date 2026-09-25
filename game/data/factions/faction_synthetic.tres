@@ -21,4 +21,4 @@ shop_discount = 0.0
 quest_rewards_bonus = 0.0
 is_joinable = true
 is_default = false
-controlled_zones = ["nexus_central"]
+controlled_zones = ["zone_nexus_central"]

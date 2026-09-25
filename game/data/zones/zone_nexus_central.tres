@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_nexus_central"
+display_name = "Nexus Central"
+description = "The dormant machine capital. Timber and tarp stack against hull walls the size of hills, conduit lines still hum under ancient plazas, and agent-borne traders salvage the old world beside human crafters. The Skill Academy keeps its halls here."
+pvp_mode = 0
+level_requirement = 1
+max_level = 999
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 5.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 250.0
+ambient_light_color = Color(0.6, 0.7, 0.75, 1)
+ambient_light_energy = 1.0
+environment_path = ""
+has_weather = false
+weather_type = "clear"
+spawn_points = [Vector3(0, 0, 0), Vector3(12, 0, 8), Vector3(-12, 0, 8)]
+bind_point = Vector3(0, 0, 0)
+npcs = ["npc_armory_capital", "npc_skill_academy_capital"]
+loot_multiplier = 1.0
+xp_multiplier = 1.0
+is_instanced = false
+instance_capacity = 0

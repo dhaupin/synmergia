@@ -1,12 +1,12 @@
 {
-  "lastSyncedAt": "2026-09-25T17:32:37.553Z",
+  "lastSyncedAt": "2026-09-25T18:04:28.601Z",
   "counts": {
     "classes": 39,
     "weapons": 2,
     "armors": 1,
     "consumables": 2,
     "enemies": 8,
-    "zones": 4,
+    "zones": 5,
     "skills": 163,
     "quests": 4,
     "buffs": 0,
@@ -2792,6 +2792,76 @@
       "is_instanced": false,
       "instance_capacity": 0,
       "_sourceFile": "game/data/zones/zone_starter_plains.tres",
+      "_scriptClass": "ZoneData"
+    },
+    "zone_nexus_central": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_nexus_central",
+      "display_name": "Nexus Central",
+      "description": "The dormant machine capital. Timber and tarp stack against hull walls the size of hills, conduit lines still hum under ancient plazas, and agent-borne traders salvage the old world beside human crafters. The Skill Academy keeps its halls here.",
+      "pvp_mode": 0,
+      "level_requirement": 1,
+      "max_level": 999,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": true,
+      "respawn_timer": 5,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "zone_radius": 250,
+      "ambient_light_color": {
+        "r": 0.6,
+        "g": 0.7,
+        "b": 0.75,
+        "a": 1
+      },
+      "ambient_light_energy": 1,
+      "environment_path": "",
+      "has_weather": false,
+      "weather_type": "clear",
+      "spawn_points": [
+        {
+          "v3": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "v3": [
+            12,
+            0,
+            8
+          ]
+        },
+        {
+          "v3": [
+            -12,
+            0,
+            8
+          ]
+        }
+      ],
+      "bind_point": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "npcs": [
+        "npc_armory_capital",
+        "npc_skill_academy_capital"
+      ],
+      "loot_multiplier": 1,
+      "xp_multiplier": 1,
+      "is_instanced": false,
+      "instance_capacity": 0,
+      "_sourceFile": "game/data/zones/zone_nexus_central.tres",
       "_scriptClass": "ZoneData"
     }
   },
@@ -7760,7 +7830,7 @@
       "is_joinable": true,
       "is_default": false,
       "controlled_zones": [
-        "nexus_central"
+        "zone_nexus_central"
       ],
       "_sourceFile": "game/data/factions/faction_synthetic.tres",
       "_scriptClass": "Faction"
@@ -8696,7 +8766,7 @@
         "vitality": 0,
         "wisdom": 3
       },
-      "home_zone": "nexus_central",
+      "home_zone": "zone_nexus_central",
       "home_faction": "faction_synthetic",
       "allied_species": [
         "human"
