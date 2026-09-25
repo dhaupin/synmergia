@@ -100,9 +100,16 @@ iteration, not coverage:
 4. **Palette audit** -- the round-3/4 Drive uploads have not
    propagated to the agent's folder scrape (still 50 files); audit
    runs when they do.
-5. **Next-phase subjects** (no briefs yet): faction banners, mounts
-   and fauna companions, crafting stations, emote/pose sheets,
-   weather variants of the zone splashes.
+5. **Next-phase subjects -- BRIEFED 2026-09-25, awaiting renders:**
+   faction banners (`gemini_faction_banners.md`: standards sheet,
+   neutral way-stone, texture close-ups), mounts + companions
+   (`gemini_mounts.md`: Canopy Strider / Boulderhoof / Conduit
+   Courser + Little Symbionts; no mount data exists yet -- this
+   pack is the design seed), housing tiers (`gemini_housing.md`:
+   Claim/Cottage/Hall on one plot + Hearth Kit placeables), and
+   crafting stations (`gemini_crafting_stations.md`: Forge/Loom/
+   Crucible Table/Rune Anvil with the teal-idle gold-active
+   station law).
 
 ## 7. Prompt pipeline
 

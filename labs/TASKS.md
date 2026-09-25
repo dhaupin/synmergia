@@ -300,6 +300,20 @@ CURRENT state + ACTIVE work only.
   heroes done, faction banners/mounts/crafting stations/emotes are
   next-phase subjects). Palette audit still deferred (round-3/4
   Drive uploads not yet visible to the folder scrape).
+- Next-phase briefs written (four new packs, awaiting renders):
+  gemini_faction_banners.md (Akkan Horde / Human Alliance /
+  Synthetic Collective standards + neutral way-stone; faction color
+  law: ember-Akkan, teal-Human/Synthetic, gold finials, violet/
+  magenta forbidden on marks; Agent Core star only on Human
+  quartered + Synthetic alone), gemini_mounts.md (Canopy Strider /
+  Boulderhoof / Conduit Courser + Little Symbionts companions;
+  design seed -- no mount/pet data exists yet; zero magenta, tablet
+  cradle in every saddle), gemini_housing.md (Claim/Cottage/Hall
+  tiers + Hearth Kit placeables; warm windows join the inn's warm
+  exception, door-side Aether-Conduit post = house terminal +
+  address stone), gemini_crafting_stations.md (Forge/Loom/Crucible
+  Table/Rune Anvil; station law: teal idle / gold active = in-world
+  status feedback).
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;
