@@ -689,8 +689,15 @@ func _cmd_spawn(sender_id: String, args: Array) -> bool:
 				radius = minf(zr * 0.6, 60.0)
 	var spawned := 0
 	for i in range(count):
-		var angle := TAU * float(i) / float(count)
-		var pos := center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+		# Anti-stack: hex-ring spread for multi-spawns; a light jitter for
+		# repeated single spawns so they never land pixel-on-pixel.
+		var pos: Vector3
+		if count > 1:
+			var angle := TAU * float(i) / float(count)
+			pos = center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+		else:
+			var jitter_angle := randf() * TAU
+			pos = center + Vector3(cos(jitter_angle), 0.0, sin(jitter_angle)) * randf_range(0.5, minf(radius, 3.0))
 		if ss.spawn_enemy_direct(template_id, pos, zone_id, level) != null:
 			spawned += 1
 	if spawned == 0:

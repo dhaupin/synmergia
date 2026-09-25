@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CurrencyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/currency_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "currency_conduit_shard"
+display_name = "Conduit Shard"
+description = "A crystallized fragment of a live conduit line. Elite enemies and the old machines shed them; the Skill Academy pays well in gold but only trades its deepest secrets for shards."
+icon_path = "res://icons/currency/conduit_shard.png"
+kind = 1
+gold_per_unit = 25.0
+convertible_to_gold = false
+convertible_from_gold = false
+wallet_cap = 999
+dropped_on_death = false
+faction_id = ""
+soulbound = true
+sort_order = 10

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_plains_runner"
+display_name = "Plains Runner"
+description = "A shaggy courser bred on the starter plains. Sure-footed, honest, and faster than it looks."
+icon_path = "res://icons/mounts/plains_runner.png"
+model_path = "res://models/mounts/plains_runner.tscn"
+kind = 0
+speed_multiplier = 1.35
+required_level = 5
+faction_id = ""
+source = 0
+currency_id = ""
+cost = 250
+source_ref = "loot_wolf"
+soulbound = true
+tint = Color(0.72, 0.6, 0.45, 1)

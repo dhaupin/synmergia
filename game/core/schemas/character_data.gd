@@ -40,6 +40,17 @@ const Species = preload("res://core/schemas/species.gd")
 }
 @export var total_stat_respecs: int = 0        # track respec usage
 
+# Visual identity. Colors come from the species' available_*_colors
+# lists (character creation validates against them); hairstyle/body
+# are string ids the renderer resolves. Skins may add more keys via
+# extra_appearance (beards, markings, prosthetics).
+@export var skin_tone: Color = Color(0, 0, 0, 0)   # a=0 = species default
+@export var hair_color: Color = Color(0, 0, 0, 0)  # a=0 = species default
+@export var eye_color: Color = Color(0, 0, 0, 0)   # a=0 = species default
+@export var hairstyle: String = ""                 # renderer hairstyle id
+@export var body_type: String = ""                 # renderer body id
+@export var extra_appearance: Dictionary = {}       # species-specific keys
+
 var species_data: Species
 var class_data: CharacterClass
 

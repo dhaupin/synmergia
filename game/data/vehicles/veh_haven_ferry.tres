@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="VehicleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/vehicle_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "veh_haven_ferry"
+display_name = "Haven Ferry"
+description = "A flat-bellied barge poled by two patient oxen and one patient ferrymaster. Runs the coastal shallows between the village docks and Nexus Central's harbor."
+icon_path = "res://icons/vehicles/ferry.png"
+model_path = "res://models/vehicles/haven_ferry.tscn"
+kind = 1
+speed_multiplier = 1.1
+seat_count = 8
+cargo_capacity = 40
+required_level = 1
+guild_owned = false
+source = 0
+currency_id = ""
+cost = 0
+route_gateways = ["waypoint_village_center", "waypoint_nexus_central"]
+soulbound = false

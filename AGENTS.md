@@ -659,6 +659,10 @@ consumers read exactly one form.
 | Status effects | `buff_` prefix | `buff_barrier_field` | filename == id |
 | Loot tables | `loot_` prefix | `loot_wolf` | filename == id |
 | Dwellings | `dwel_` prefix | `dwel_fireplace_stone` | filename == id |
+| Currencies | `currency_` prefix | `currency_gold` | filename == id |
+| Mounts | `mount_` prefix | `mount_plains_runner` | filename == id |
+| Vehicles | `veh_` prefix | `veh_haven_ferry` | filename == id |
+| Accessories (items) | `acc_` prefix | `acc_ring_first_light` | filename == id |
 | Enemies | bare id | `wolf` | `enemy_wolf.tres` (file keeps prefix) |
 | Dialogues | bare id | `village_elder_greeting` | filename == id |
 | Offerings | bare filename key | `village_quests` | `village_quests.tres` |
@@ -670,6 +674,8 @@ Quest data contracts (single-form, no fallbacks):
 - KILL objectives target the enemy display_name ("Wolf") -- combat
   bridge credits display_name.
 - COLLECT objectives target the item display_name ("Moonpetal Flower").
+- Quest items (Item.is_quest_item) carry a resolvable `quest_id` and
+  never vendor; the lint enforces the ref.
 
 `game/tests/test_data_naming_lint.gd` enforces the prefixed styles,
 filename==id, and cross-file references (zone_id, quest chains,

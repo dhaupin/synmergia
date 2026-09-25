@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_necklace_haven_pearl"
+display_name = "Haven Pearl"
+description = "A river pearl on braided sinew, traded at the village docks for more than it is worth. Keeps a calm head when the water rises."
+icon_path = "res://icons/items/necklace_haven_pearl.png"
+item_category = 2
+rarity = 2
+equip_slot = 11
+accessory_type = 2
+stack_size = 1
+bind_on_equip = true
+sell_price = 25
+buy_price = 120
+item_level = 6
+required_level = 5
+stats = {"intelligence": 3, "wisdom": 1}

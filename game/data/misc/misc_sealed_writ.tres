@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "misc_sealed_writ"
+display_name = "Sealed Writ"
+description = "A conduit-sealed writ that only opens for its named bearer. Carries a caravan order from the Nexus Central underdeck. Unusable once opened."
+icon_path = "res://icons/items/sealed_writ.png"
+item_category = 8
+rarity = 1
+stack_size = 1
+is_quest_item = true
+quest_id = "quest_herb_gathering"
+keep_after_turn_in = false
+usable_during_quest_only = true
+sell_price = 0
+buy_price = 0
+weight = 0.01

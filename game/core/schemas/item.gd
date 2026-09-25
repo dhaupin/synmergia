@@ -69,7 +69,8 @@ enum EquipSlot {
 	RING_1,
 	RING_2,
 	NECKLACE,
-	CLOAK
+	CLOAK,
+	BELT
 }
 
 @export var id: String = ""
@@ -98,6 +99,13 @@ enum EquipSlot {
 
 # Weight & Encumbrance
 @export var weight: float = 0.0  # Weight per unit (ores heavier than leather)
+
+# Quest item flags. Quest items never vendor, never drop on death, and
+# (when flagged) stay on the character after turn-in as a memento.
+@export var is_quest_item: bool = false
+@export var quest_id: String = ""        # Owning quest (quest_ id form)
+@export var keep_after_turn_in: bool = false  # Memento display case
+@export var usable_during_quest_only: bool = false  # e.g. sealed writs
 
 # Economy
 @export var sell_price: int = 0

@@ -1,9 +1,9 @@
 {
-  "lastSyncedAt": "2026-09-25T18:04:28.601Z",
+  "lastSyncedAt": "2026-09-25T18:30:39.796Z",
   "counts": {
     "classes": 39,
     "weapons": 2,
-    "armors": 1,
+    "armors": 2,
     "consumables": 2,
     "enemies": 8,
     "zones": 5,
@@ -14,7 +14,10 @@
     "achievements": 25,
     "titles": 9,
     "species": 3,
-    "dialogues": 2
+    "dialogues": 2,
+    "currencies": 4,
+    "mounts": 2,
+    "vehicles": 1
   },
   "classes": {
     "akkan_stalker": {
@@ -2083,6 +2086,33 @@
       },
       "armor_value": 12,
       "_sourceFile": "game/data/armors/arm_leather_chest.tres",
+      "_scriptClass": "Item"
+    },
+    "arm_shield_haven_wall": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "arm_shield_haven_wall",
+      "display_name": "Haven Wall",
+      "description": "A door plank from the first palisade, banded with hull iron. It has turned away wolves, weather, and one very confused agent. It remembers.",
+      "icon_path": "res://icons/items/shield_haven_wall.png",
+      "item_category": 1,
+      "rarity": 2,
+      "equip_slot": 6,
+      "weapon_type": 11,
+      "armor_type": 3,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 40,
+      "buy_price": 200,
+      "item_level": 7,
+      "required_level": 5,
+      "required_class": "",
+      "stats": {
+        "armor": 14,
+        "block_chance": 18
+      },
+      "_sourceFile": "game/data/armors/arm_shield_haven_wall.tres",
       "_scriptClass": "Item"
     }
   },
@@ -8840,6 +8870,172 @@
       "nodes": "[\n{\n\"speaker\": \"Merchant\",\n\"text\": \"Welcome to my shop! I carry only the finest goods — weapons, armor, potions. Take a look around.\",\n\"choices\": [\n{\"text\": \"Show me your wares.\", \"next_node\": 1},\n{\"text\": \"Just passing through. Farewell.\", \"next_node\": -1}\n]",
       "_sourceFile": "game/data/dialogues/merchant_greeting.tres",
       "_scriptClass": "DialogueData"
+    }
+  },
+  "currencies": {
+    "currency_junker_scrip": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "currency_junker_scrip",
+      "display_name": "Junker Scrip",
+      "description": "Hand-pressed tokens the Junkers mint from flattened hull shims. Nobody official accepts them; the black-market stalls in Nexus Central's underdeck trade in nothing else. Trades well below face value.",
+      "icon_path": "res://icons/currency/scrip.png",
+      "kind": 4,
+      "gold_per_unit": 0.4,
+      "convertible_to_gold": false,
+      "convertible_from_gold": false,
+      "wallet_cap": 5000,
+      "dropped_on_death": false,
+      "faction_id": "",
+      "soulbound": false,
+      "sort_order": 90,
+      "_sourceFile": "game/data/currencies/currency_junker_scrip.tres",
+      "_scriptClass": "CurrencyData"
+    },
+    "currency_gold": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "currency_gold",
+      "display_name": "Gold",
+      "description": "Coin of the reclaim. Melted from conduit copper and old-world alloys, stamped with the tablet marks. The default wallet currency.",
+      "icon_path": "res://icons/currency/gold.png",
+      "kind": 0,
+      "gold_per_unit": 1,
+      "convertible_to_gold": true,
+      "convertible_from_gold": false,
+      "wallet_cap": 0,
+      "dropped_on_death": false,
+      "faction_id": "",
+      "soulbound": false,
+      "sort_order": 0,
+      "_sourceFile": "game/data/currencies/currency_gold.tres",
+      "_scriptClass": "CurrencyData"
+    },
+    "currency_reclaimer_favor": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "currency_reclaimer_favor",
+      "display_name": "Reclaimer Favor",
+      "description": "Trust, measured in salvaged hull plate and kept promises. The Reclaimers extend credit to those who feed their forges.",
+      "icon_path": "res://icons/currency/favor.png",
+      "kind": 2,
+      "gold_per_unit": 2,
+      "convertible_to_gold": false,
+      "convertible_from_gold": false,
+      "wallet_cap": 0,
+      "dropped_on_death": false,
+      "faction_id": "faction_human",
+      "soulbound": true,
+      "sort_order": 20,
+      "_sourceFile": "game/data/currencies/currency_reclaimer_favor.tres",
+      "_scriptClass": "CurrencyData"
+    },
+    "currency_conduit_shard": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "currency_conduit_shard",
+      "display_name": "Conduit Shard",
+      "description": "A crystallized fragment of a live conduit line. Elite enemies and the old machines shed them; the Skill Academy pays well in gold but only trades its deepest secrets for shards.",
+      "icon_path": "res://icons/currency/conduit_shard.png",
+      "kind": 1,
+      "gold_per_unit": 25,
+      "convertible_to_gold": false,
+      "convertible_from_gold": false,
+      "wallet_cap": 999,
+      "dropped_on_death": false,
+      "faction_id": "",
+      "soulbound": true,
+      "sort_order": 10,
+      "_sourceFile": "game/data/currencies/currency_conduit_shard.tres",
+      "_scriptClass": "CurrencyData"
+    }
+  },
+  "mounts": {
+    "mount_plains_runner": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_plains_runner",
+      "display_name": "Plains Runner",
+      "description": "A shaggy courser bred on the starter plains. Sure-footed, honest, and faster than it looks.",
+      "icon_path": "res://icons/mounts/plains_runner.png",
+      "model_path": "res://models/mounts/plains_runner.tscn",
+      "kind": 0,
+      "speed_multiplier": 1.35,
+      "required_level": 5,
+      "faction_id": "",
+      "source": 0,
+      "currency_id": "",
+      "cost": 250,
+      "source_ref": "loot_wolf",
+      "soulbound": true,
+      "tint": {
+        "r": 0.72,
+        "g": 0.6,
+        "b": 0.45,
+        "a": 1
+      },
+      "_sourceFile": "game/data/mounts/mount_plains_runner.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_gullwing": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_gullwing",
+      "display_name": "Gullwing",
+      "description": "A coastal sky-swimmer, half bird and half old-world alloy. Flies the Nexus Central harbor circuit when the wind is honest.",
+      "icon_path": "res://icons/mounts/gullwing.png",
+      "model_path": "res://models/mounts/gullwing.tscn",
+      "kind": 1,
+      "speed_multiplier": 1.9,
+      "required_level": 25,
+      "faction_id": "faction_human",
+      "source": 3,
+      "currency_id": "currency_reclaimer_favor",
+      "cost": 400,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.75,
+        "g": 0.85,
+        "b": 0.9,
+        "a": 1
+      },
+      "_sourceFile": "game/data/mounts/mount_gullwing.tres",
+      "_scriptClass": "MountData"
+    }
+  },
+  "vehicles": {
+    "veh_haven_ferry": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "veh_haven_ferry",
+      "display_name": "Haven Ferry",
+      "description": "A flat-bellied barge poled by two patient oxen and one patient ferrymaster. Runs the coastal shallows between the village docks and Nexus Central's harbor.",
+      "icon_path": "res://icons/vehicles/ferry.png",
+      "model_path": "res://models/vehicles/haven_ferry.tscn",
+      "kind": 1,
+      "speed_multiplier": 1.1,
+      "seat_count": 8,
+      "cargo_capacity": 40,
+      "required_level": 1,
+      "guild_owned": false,
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "route_gateways": [
+        "waypoint_village_center",
+        "waypoint_nexus_central"
+      ],
+      "soulbound": false,
+      "_sourceFile": "game/data/vehicles/veh_haven_ferry.tres",
+      "_scriptClass": "VehicleData"
     }
   }
 }

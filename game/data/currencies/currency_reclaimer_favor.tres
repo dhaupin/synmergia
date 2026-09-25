@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CurrencyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/currency_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "currency_reclaimer_favor"
+display_name = "Reclaimer Favor"
+description = "Trust, measured in salvaged hull plate and kept promises. The Reclaimers extend credit to those who feed their forges."
+icon_path = "res://icons/currency/favor.png"
+kind = 2
+gold_per_unit = 2.0
+convertible_to_gold = false
+convertible_from_gold = false
+wallet_cap = 0
+dropped_on_death = false
+faction_id = "faction_human"
+soulbound = true
+sort_order = 20

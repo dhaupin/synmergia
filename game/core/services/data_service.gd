@@ -36,6 +36,10 @@ var _classes: Dictionary = {}
 var _species: Dictionary = {}
 var _factions: Dictionary = {}
 var _zones: Dictionary = {}
+
+var _currencies: Dictionary = {}
+var _mounts: Dictionary = {}
+var _vehicles: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
 var _npcs: Dictionary = {}
@@ -73,6 +77,10 @@ func load_all_data() -> void:
 	load_achievements()
 	load_gateways()
 	load_hordes()
+	load_currencies()
+	load_mounts()
+	load_vehicles()
+	load_accessories()
 
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -197,6 +205,28 @@ func load_npcs() -> void:
 	_npcs = _scan_directory(_data_path + "npc", "npc")
 	GameLog.info("DataService: Loaded %d NPCs" % _npcs.size())
 
+## Load currencies from data/currencies/
+func load_currencies() -> void:
+	_currencies = _scan_directory(_data_path + "currencies", "currency")
+	GameLog.info("DataService: Loaded %d currencies" % _currencies.size())
+
+## Load mounts from data/mounts/
+func load_mounts() -> void:
+	_mounts = _scan_directory(_data_path + "mounts", "mount")
+	GameLog.info("DataService: Loaded %d mounts" % _mounts.size())
+
+## Load vehicles from data/vehicles/
+func load_vehicles() -> void:
+	_vehicles = _scan_directory(_data_path + "vehicles", "vehicle")
+	GameLog.info("DataService: Loaded %d vehicles" % _vehicles.size())
+
+## Load accessories (rings, necklaces, cloaks, belts) from data/accessories/.
+## Merged into _items so inventory/equip paths see them as plain Items.
+func load_accessories() -> void:
+	var acc_paths := _scan_directory(_data_path + "accessories", "item")
+	_items.merge(acc_paths)
+	GameLog.info("DataService: Loaded %d accessories" % acc_paths.size())
+
 ## Load status effects from data/status_effects/
 func load_status_effects() -> void:
 	_status_effects = _scan_directory(_data_path + "status_effects", "status_effect")
@@ -268,6 +298,27 @@ func get_faction(id: String) -> Faction:
 	if _factions.has(id):
 		return _factions.get(id)
 	GameLog.warn("DataService: Faction not found: " + id)
+	return null
+
+func get_currency(id: String) -> CurrencyData:
+	if _currencies.has(id):
+		return _currencies.get(id)
+	GameLog.warn("DataService: Currency not found: " + id)
+	return null
+
+func get_all_currencies() -> Array:
+	return _currencies.values()
+
+func get_mount(id: String) -> MountData:
+	if _mounts.has(id):
+		return _mounts.get(id)
+	GameLog.warn("DataService: Mount not found: " + id)
+	return null
+
+func get_vehicle(id: String) -> VehicleData:
+	if _vehicles.has(id):
+		return _vehicles.get(id)
+	GameLog.warn("DataService: Vehicle not found: " + id)
 	return null
 
 func get_zone(id: String) -> ZoneData:
@@ -434,6 +485,15 @@ func reload_category(category: String) -> void:
 		"factions":
 			_factions.clear()
 			load_factions()
+		"currencies":
+			_currencies.clear()
+			load_currencies()
+		"mounts":
+			_mounts.clear()
+			load_mounts()
+		"vehicles":
+			_vehicles.clear()
+			load_vehicles()
 		"zones":
 			_zones.clear()
 			load_zones()
@@ -466,6 +526,9 @@ func get_counts() -> Dictionary:
 		"factions": _factions.size(),
 		"zones": _zones.size(),
 		"npcs": _npcs.size(),
+		"currencies": _currencies.size(),
+		"mounts": _mounts.size(),
+		"vehicles": _vehicles.size(),
 		"status_effects": _status_effects.size(),
 		"quests": _quests.size(),
 		"achievements": _achievements.size(),

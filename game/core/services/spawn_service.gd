@@ -28,6 +28,33 @@ var _spawned_entities: Dictionary = {}
 # Both boot routes call spawn_all_offering_npcs; this registry plus the
 # freed-entity prune at the top of that function guarantees one live
 # entity per npc_id and re-spawn after scene changes.
+
+# One entity per position, everywhere. A 2.0-unit hex-ring step keeps
+# body-radius meshes from overlapping; callers needing exact stacking
+# (visual formations) pass stack=true explicitly.
+const SPAWN_RING_STEP := 2.0
+
+## Anti-stack scatter: position for entity `index` of `count` around
+## center. Deterministic (no rng): index 0 lands on center, the rest
+## ring outward in hex rings at SPAWN_RING_STEP spacing. Survives
+## repeated /spawn 1 invocations -- each new entity takes the next
+## free hex slot instead of landing on the last one. stack=true
+## returns center for exact stacking when a caller truly wants it.
+static func ring_spread(center: Vector3, count: int, index: int, stack: bool = false) -> Vector3:
+	if stack or count <= 1:
+		return center
+	var i := maxi(index, 0)
+	if i == 0:
+		return center
+	var ring := 1
+	while 3 * ring * (ring + 1) + 1 <= i:
+		ring += 1
+	var idx_in_ring := i - (3 * ring * (ring - 1) + 1)
+	var side := idx_in_ring / ring
+	var side_pos := idx_in_ring % ring
+	var angle := TAU * float(side) / 6.0 + TAU * float(side_pos) / float(6 * ring)
+	var radius := SPAWN_RING_STEP * float(ring)
+	return center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
 var _spawned_offering_npcs: Dictionary = {}
 
 # World bosses (boss_id -> )
@@ -76,12 +103,21 @@ class SpawnPoint:
 		spawn_type = p_type
 
 	func get_spawn_position() -> Vector3:
-		var offset := Vector3(
-			randf_range(-spawn_radius, spawn_radius),
-			0,
-			randf_range(-spawn_radius, spawn_radius)
-		)
-		return position + offset
+		# Anti-stack: entities from one spawn point ring out in hex slots
+		# instead of dumping into one random box (the old randf_range box
+		# could clump several bodies on the same spot). Respawn waves take
+		# the next ring slot via current_count.
+		var slot := maxi(current_count, 0)
+		var spread: Vector3 = SpawnService.ring_spread(position, slot + 1, slot)
+		if spawn_radius > 0.0:
+			# Constrain to the point's configured radius (ring step 2.0
+			# keeps every slot inside radius for the first ~hundreds).
+			var max_r := maxf(spawn_radius, SpawnService.SPAWN_RING_STEP)
+			var flat := Vector3(spread.x - position.x, 0.0, spread.z - position.z)
+			if flat.length() > max_r:
+				flat = flat.normalized() * max_r
+			spread = position + flat
+		return spread
 
 	func should_spawn() -> bool:
 		if not is_active:

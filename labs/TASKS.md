@@ -479,6 +479,22 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando-thoughts batch (2026-09-25): anti-stack spawn helper
+  (SpawnService.ring_spread hex rings; /spawn jitter for repeated
+  singles, spawn-point box -> ring slots; stack=true is the escape
+  hatch). CurrencyData + data/currencies (gold, conduit shards,
+  Reclaimer favor, Junker scrip -- exchange rates + caps + faction
+  gates in data). MountData/VehicleData + samples (engine-ban
+  consistent: creatures, ferry). Item.is_quest_item/quest_id/
+  keep_after_turn_in flags + EquipSlot.BELT + CharacterData
+  appearance fields (skin/hair/eye/hairstyle/body + species color
+  lists). data/accessories/ dir wired into load_items merge (ring,
+  necklace, cloak, belt, shield samples). Lint 16/16 incl. new
+  currency/mount/vehicle/quest-item ref checks. labs/prd-world.md
+  (sphere, two land masses, seamless zones, waypoint transport,
+  instance contract, procgen pipeline, scale budget) +
+  labs/prd-3d-pipeline.md + scripts/blender_smoke_test.sh
+  (blender not in sandbox yet; script is ready).
 - [x] Capital zone authored: zone_nexus_central ("Nexus Central",
   the story-PRD machine-age capital) + two-way waypoint from the
   starter plains (waypoint_nexus_central). npc_armory_capital +

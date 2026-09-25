@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_ring_first_light"
+display_name = "Ring of First Light"
+description = "Copper wound around a sliver of conduit glass. It warms at dawn -- the harbor-folk say a ring that remembers the sun keeps its wearer standing."
+icon_path = "res://icons/items/ring_first_light.png"
+item_category = 2
+rarity = 1
+equip_slot = 9
+accessory_type = 1
+stack_size = 1
+bind_on_equip = true
+sell_price = 12
+buy_price = 60
+item_level = 3
+required_level = 2
+stats = {"vitality": 2}

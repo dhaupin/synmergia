@@ -234,4 +234,79 @@ func _run() -> void:
 	else:
 		_fail("Phantom gateway refs: %s" % ", ".join(bad_gateway_refs))
 
+	# --- New economy/transport categories ---
+	var currency_ids := _load_ids("data/currencies")
+	var mount_ids := _load_ids("data/mounts")
+	var vehicle_ids := _load_ids("data/vehicles")
+	_has_prefix(currency_ids, "currency_", "Currencies")
+	_has_prefix(mount_ids, "mount_", "Mounts")
+	_has_prefix(vehicle_ids, "veh_", "Vehicles")
+
+	# Currency refs on mounts/vehicles must resolve.
+	var currency_id_set := {}
+	for cb in currency_ids:
+		currency_id_set[currency_ids[cb]] = true
+	var faction_id_set := {}
+	for fb in faction_ids:
+		faction_id_set[faction_ids[fb]] = true
+	var bad_cost_refs: Array = []
+	for mbase in mount_ids:
+		var mtxt := _file_text("data/mounts", mbase)
+		for line in mtxt.split("\n"):
+			var t := line.strip_edges()
+			if t.begins_with("currency_id = \"") and t != "currency_id = \"\"":
+				var cv := t.trim_prefix("currency_id = \"").trim_suffix("\"")
+				if not currency_id_set.has(cv):
+					bad_cost_refs.append("%s -> %s" % [str(mount_ids[mbase]), cv])
+			elif t.begins_with("faction_id = \"") and t != "faction_id = \"\"" and mtxt.begins_with("[gd_resource") and mtxt.contains("MountData"):
+				var fv := t.trim_prefix("faction_id = \"").trim_suffix("\"")
+				if not faction_id_set.has(fv):
+					bad_cost_refs.append("%s faction -> %s" % [str(mount_ids[mbase]), fv])
+	for vbase in vehicle_ids:
+		var vtxt := _file_text("data/vehicles", vbase)
+		for line in vtxt.split("\n"):
+			var t2 := line.strip_edges()
+			if t2.begins_with("currency_id = \"") and t2 != "currency_id = \"\"":
+				var cv2 := t2.trim_prefix("currency_id = \"").trim_suffix("\"")
+				if not currency_id_set.has(cv2):
+					bad_cost_refs.append("%s -> %s" % [str(vehicle_ids[vbase]), cv2])
+			elif t2.begins_with("route_gateways = [") and t2 != "route_gateways = []":
+				for gref in t2.trim_prefix("route_gateways = [").trim_suffix("]").split(","):
+					var gv := gref.strip_edges().trim_prefix("\"").trim_suffix("\"")
+					if gv != "" and not gateway_files.has(gv):
+						bad_cost_refs.append("%s route -> %s" % [str(vehicle_ids[vbase]), gv])
+	if bad_cost_refs.is_empty():
+		_ok("Mount/vehicle currency+faction+route refs all resolve")
+	else:
+		_fail("Phantom cost refs: %s" % ", ".join(bad_cost_refs))
+
+	# --- Quest items carry a resolvable quest_id ---
+	var quest_id_set := {}
+	for qb in quest_ids:
+		quest_id_set[quest_ids[qb]] = true
+	var bad_quest_items: Array = []
+	for item_dir in ["data/misc", "data/accessories"]:
+		var idir := DirAccess.open("res://" + item_dir)
+		if idir == null:
+			continue
+		idir.list_dir_begin()
+		var iff := idir.get_next()
+		while iff != "":
+			if iff.ends_with(".tres"):
+				var itxt := FileAccess.get_file_as_string("res://%s/%s" % [item_dir, iff])
+				if itxt.contains("is_quest_item = true"):
+					var found_qid := ""
+					for line in itxt.split("\n"):
+						var t3 := line.strip_edges()
+						if t3.begins_with("quest_id = \"") and t3 != "quest_id = \"\"":
+							found_qid = t3.trim_prefix("quest_id = \"").trim_suffix("\"")
+							break
+					if found_qid == "" or not quest_id_set.has(found_qid):
+						bad_quest_items.append("%s/%s -> %s" % [item_dir, iff, found_qid if found_qid != "" else "<none>"])
+			iff = idir.get_next()
+	if bad_quest_items.is_empty():
+		_ok("Quest items all carry resolvable quest_id refs")
+	else:
+		_fail("Phantom quest-item refs: %s" % ", ".join(bad_quest_items))
+
 	_finish()

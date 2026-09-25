@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_belt_reclaimer"
+display_name = "Reclaimer Toolbelt"
+description = "Salvage-hung holsters, a magnet clip, and forty years of burned-in grease. Every pocket has a story; two of them have rations."
+icon_path = "res://icons/items/belt_reclaimer.png"
+item_category = 2
+rarity = 2
+equip_slot = 13
+accessory_type = 5
+stack_size = 1
+bind_on_equip = true
+sell_price = 30
+buy_price = 150
+item_level = 8
+required_level = 6
+stats = {"strength": 2, "agility": 1, "carry_capacity": 20}

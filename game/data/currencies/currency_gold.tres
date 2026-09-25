@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CurrencyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/currency_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "currency_gold"
+display_name = "Gold"
+description = "Coin of the reclaim. Melted from conduit copper and old-world alloys, stamped with the tablet marks. The default wallet currency."
+icon_path = "res://icons/currency/gold.png"
+kind = 0
+gold_per_unit = 1.0
+convertible_to_gold = true
+convertible_from_gold = false
+wallet_cap = 0
+dropped_on_death = false
+faction_id = ""
+soulbound = false
+sort_order = 0

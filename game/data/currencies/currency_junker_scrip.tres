@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CurrencyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/currency_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "currency_junker_scrip"
+display_name = "Junker Scrip"
+description = "Hand-pressed tokens the Junkers mint from flattened hull shims. Nobody official accepts them; the black-market stalls in Nexus Central's underdeck trade in nothing else. Trades well below face value."
+icon_path = "res://icons/currency/scrip.png"
+kind = 4
+gold_per_unit = 0.4
+convertible_to_gold = false
+convertible_from_gold = false
+wallet_cap = 5000
+dropped_on_death = false
+faction_id = ""
+soulbound = false
+sort_order = 90

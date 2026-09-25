@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_cloak_wanderer"
+display_name = "Wanderer's Cloak"
+description = "Patchwork over an old-world thermal weave. Rain beads off it, and campfire smoke follows it long after you leave."
+icon_path = "res://icons/items/cloak_wanderer.png"
+item_category = 2
+rarity = 1
+equip_slot = 12
+accessory_type = 4
+stack_size = 1
+bind_on_equip = true
+sell_price = 18
+buy_price = 90
+item_level = 4
+required_level = 3
+stats = {"endurance": 2, "armor": 5}
