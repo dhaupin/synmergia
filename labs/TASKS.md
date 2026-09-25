@@ -206,6 +206,31 @@ CURRENT state + ACTIVE work only.
   hit_table/account_rollup/full_boot_live green, lint 36/0,
   parse_check + autoload_audit clean, engine log 0 SCRIPT ERRORs
   (was 5 set_kv + 26 is_inside_tree per run).
+- Logo pack shipped + wired: user exported the 4-up Gemini logo sheet
+  to assets/branding/ as logo-synmergia-{emblem,emblem-small,
+  horizontal,wordmark}.png (redundant combined sheet deleted); Brand.*
+  loads them with a direct-PNG decode fallback so fresh drops render
+  before Godot's import pass; main menu header takes the horizontal
+  lockup (text fallback kept), loading panel shows the small emblem.
+  test_branding.gd 12 asserts incl. the real shipped pack; journey
+  26/0 with the lockup live (screenshot 01_main_menu).
+- Art direction canonized (labs/art-direction.md): the 26-sheet Gemini
+  concept set (Drive: Synmergia Concept Art (Shared)) is the style
+  bible's source of truth -- stylized cyber-organic, grey-green base
+  with SEMANTIC accents (teal #80c0c0 dormant tech / gold active
+  convergence / violet mycelium-arcane ONLY, magenta = hostility key
+  for corrupted agents), agent fauna naming convention, in-world Agent
+  Core emblem (Convergence Spire door = logo diegetically justified).
+  Measured palettes recorded from pixel analysis of the set. Known
+  gaps prioritized: characters, hostile fauna, bosses, interiors/UI.
+- Prompt staging pipeline (labs/prompts/): human renders via Gemini,
+  agent art-directs/critiques/canonizes. First briefs: 
+  gemini_species_classes.md (3 species + 6 human classes incl.
+  Temporalist flagship, 6 Akkan, 6 Synthetic, trio hero shot; anchors
+  are the real .tres species/classes; style lock block embedded),
+  gemini_hostile_agents.md (neutral->hostile pairs with the magenta
+  key). Gemini-rendered text is often gibberish -- treat baked-in text
+  as decorative; labels-only instruction added to every brief.
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;
