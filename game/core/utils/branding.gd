@@ -1,18 +1,16 @@
 ## Branding asset loader (static helper, preload-only -- no class_name,
-## no autoload). The logo pack lives in assets/branding/; drop the four
-## exports there (see that folder's README) and every Brand.* consumer
-## picks them up with zero code changes.
-##
-## All lookups are runtime load() with existence checks: a missing file
-## returns null and callers fall back to text, so the game never breaks
-## over cosmetics and partial packs are fine.
+## no autoload). The logo pack lives in assets/branding/; the shipped
+## pack uses the logo-synmergia-* filenames below. Every lookup is
+## runtime load() with existence checks: a missing file returns null
+## and callers fall back to text, so the game never breaks over
+## cosmetics and partial packs are fine.
 extends RefCounted
 
 const DIR := "res://assets/branding/"
 
 
-static func _tex(file_name: String) -> Texture2D:
-	var path := DIR + file_name
+static func _tex(file_name: String, dir: String = DIR) -> Texture2D:
+	var path := dir + file_name
 	# Imported pack (editor scanned it / exported build): normal path.
 	if ResourceLoader.exists(path, "Texture2D"):
 		return load(path) as Texture2D
@@ -26,28 +24,26 @@ static func _tex(file_name: String) -> Texture2D:
 	return null
 
 
-## The star emblem alone (sheet: bottom-left variant). Square; use at
-## 128px and up.
-static func emblem() -> Texture2D:
-	return _tex("emblem.png")
+## The star emblem alone. Square; use at 128px and up.
+static func emblem(dir: String = DIR) -> Texture2D:
+	return _tex("logo-synmergia-emblem.png", dir)
 
 
-## Compact emblem (sheet: top-left emblem) for dense UI spots.
-static func emblem_small() -> Texture2D:
-	return _tex("emblem_small.png")
+## Compact emblem for dense UI spots (loading panel, tooltips).
+static func emblem_small(dir: String = DIR) -> Texture2D:
+	return _tex("logo-synmergia-emblem-small.png", dir)
 
 
-## Full-width horizontal lockup: emblem + SYNMERGIA banner bar
-## (sheet: top-right variant).
-static func lockup() -> Texture2D:
-	return _tex("logo_horizontal.png")
+## Full-width horizontal lockup: emblem + SYNMERGIA banner bar.
+static func lockup(dir: String = DIR) -> Texture2D:
+	return _tex("logo-synmergia-horizontal.png", dir)
 
 
-## Wordmark alone (sheet: bottom-right variant).
-static func wordmark() -> Texture2D:
-	return _tex("wordmark.png")
+## Wordmark alone (footers, splash text).
+static func wordmark(dir: String = DIR) -> Texture2D:
+	return _tex("logo-synmergia-wordmark.png", dir)
 
 
 ## True when at least one branding asset is present.
-static func has_pack() -> bool:
-	return emblem() != null or wordmark() != null or lockup() != null
+static func has_pack(dir: String = DIR) -> bool:
+	return emblem(dir) != null or wordmark(dir) != null or lockup(dir) != null
