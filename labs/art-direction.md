@@ -91,17 +91,15 @@ Every gap now has a brief; render + critique closes them:
 1. **Akkan + Synthetic deep-study sheets** -- briefs in
    `labs/prompts/gemini_species_classes.md` sec. 6-7 (Human done,
    sec. 8.6; three-species lineup canon, sec. 8.9).
-2. **Individual class hero shots** -- briefs in
-   `labs/prompts/gemini_class_heroes.md` (Temporalist, Conduit,
-   Runesmith; UI-overlay-safe composition).
+2. **Individual class hero shots** -- DONE, canonized (sec. 8.10);
+   15 more classes can follow the same brief template if wanted.
 3. **Zone establishing shots** -- briefs ready in
    `labs/prompts/gemini_zones.md` (Gloomwood Meadow, Starter Plains,
    Village of Haven, Forest Depths, dark highlands, Nexus Central).
-4. **Interiors not yet covered** (inn, dwelling, gateway) -- briefs in
-   `labs/prompts/gemini_interiors_ui.md` sec. 1-3; the four service
-   shops are done (sec. 8.4).
-5. **UI mockups** (HUD skin, inventory icons, Aether-Conduit chrome)
-   -- briefs in `labs/prompts/gemini_interiors_ui.md` sec. 4-6.
+4. **Interiors** -- DONE: service shops (sec. 8.4) + inn/dwelling/
+   gateway canonized (sec. 8.10).
+5. **UI mockups** -- icons + Aether-Conduit menu DONE (sec. 8.10);
+   HUD skin re-render pending (dropped render).
 6. **Bosses** -- briefs in `labs/prompts/gemini_bosses.md`
    (Devourer standalone + Clockwork Saint + Mossbound Herald); the
    Devourer action study is already canon (sec. 8.2).
@@ -262,17 +260,87 @@ Drift found in this pass, ruled on (do not re-canonize):
   "Luminous-Lemur", "Variant Helmet/Hair") -- decorative per
   sec. 8.6, ignore.
 
-### 9. Engine-facing next steps (from Round 2 art)
+### 8.10 Round 3 canonization (2026-09-25, class heroes + interiors/UI)
+
+Eight renders reviewed visually (the HUD mock was dropped by the
+chat client -- re-render pending). Headline: **the text rules held.**
+Every visible label is correctly spelled (RUNESMITH rendered right
+where round 2 said RUNEBLADE); the only baked text left is decorative
+rune-glyph scribble, which the canon already treats as unreadable
+script. The hardened style lock is doing its job.
+
+Class heroes -- all three on-model and canonized as the
+tooltip/class-select key art:
+
+- **Temporalist:** fractured clock-motif pauldron (teal clock face),
+  two teal tablets orbiting the raised hand, seconds-glyph ring with
+  tiny ticks (no numerals), closed eyes, root-pried causeway, dormant
+  spires in haze, left third UI-clean.
+- **Conduit:** Agent Core star in the chest, teal arcs, cable-tail,
+  and the floor wake-ring -- the circuit grid lighting teal in a
+  spreading circle around its feet with moss retreating is now the
+  canonical "synthetic wakes the ground" gesture.
+- **Runesmith:** ember-orange rune-tablet blade (glyph scribble
+  decorative), sigil-tags on braided cable, one tag free and
+  igniting mid-air with a flame trail -- exactly as briefed.
+
+Interiors -- the remaining rooms are canon:
+
+- **Gateway chamber:** colossal ring door with the Agent Core star
+  and a maze-pattern mandala, teal dormant, ONE segment lit gold; a
+  hand touches the ring with a teal tablet (the activation verb,
+  rendered). Two vine-wrapped headless sentinel statues flank the
+  approach; teal guide-rungs descend the steps; mist under the seam.
+  This frame is a pitch-shot candidate for the store page.
+- **Echo Plaza Inn:** ribcage machine hall strung with warm amber
+  lanterns (the one warm room), pigeonhole locker wall (player
+  mail/storage), a DARK dormant Conduit terminal at the bar
+  (unlit-screen state -- that dormant look is the reference for
+  powered-off terminals), Synthetic sentinel doorman, stair to
+  rooms. Drift note: one patron rendered with saturated purple
+  skin -- Akkan skin stays the desaturated #a0a0c0 family.
+- **Dwelling:** cot, workbench with a LIT teal Aether-Conduit
+  panel, tool wall, chest, pinned sketch, chipped mug, laundry
+  line, and the root-trained coat hook realized literally. Drift
+  note: indoor violet moss patches read as damp/haunted -- rule:
+  violet indoors means moisture and neglect; keep it out of cozy
+  rooms on purpose.
+- **Gateway violet moss** (wall clusters) is acceptable as mycelium
+  overgrowth but stays out of focus zones.
+
+UI canon (first real chrome in the set):
+
+- **Item icon sheet:** all 16 briefed icons rendered and canonized
+  as the inventory icon reference. Currency is now canon: **gold
+  ingots stamped with the Agent Core star** (diegetic emblem on
+  money). The rune-tablet slab-sword icon ties the Runesmith blade
+  into the icon family; the mycelium satchel is the sole violet
+  item, as briefed.
+- **Aether-Conduit service menu:** the six-tile dark-graphite menu
+  with stone-and-root border is the service-hub reference. Gemini
+  named the tiles -- adopt them: VAULT SERVICE, GUILD REGISTRY,
+  CONVERGENCE CHRONICLES (the gold/active tile -- canon as the
+  lore/journal service), SMITHING SERVICES, MARKET EXCHANGE,
+  WAYPOINT NETWORK. Working service mapping: VaultService,
+  GuildService, codex/achievements, BlacksmithService,
+  TradeService/market, WaypointService.
+
+### 9. Engine-facing next steps (from Round 2 + 3 art)
 
 When wiring art into the game, these are the first touchpoints:
 
 1. Species-select card art <- Human species sheet + trio lineup
-2. Class-select card art <- the three class sheets (18 classes)
-3. Service NPC interior backdrops <- the four interior sheets, keyed
-   by service (VaultService/SkillAcademyService/BlacksmithService/vendor)
+2. Class-select card art <- the three class sheets (18 classes);
+   hero shots (Temporalist/Conduit/Runesmith) for the spotlight pane
+3. Service NPC interior backdrops <- the seven interior sheets
+   (vault/academy/blacksmith/storekeeper/inn/dwelling/gateway)
 4. World-boss intro splash <- Forest Devourer battle study
-5. Loading-screen art <- Akkan-vs-Synthetic duel (PvP) and trio hero
-   shot (co-op)
+5. Loading-screen art <- Akkan-vs-Synthetic duel (PvP), trio hero
+   shot (co-op), Gateway chamber (zone transitions)
+6. Inventory UI <- 16-icon reference sheet; currency renders as
+   star-stamped ingots
+7. Service-hub screen <- Aether-Conduit menu (six named tiles)
+8. HUD skin <- pending re-render (dropped from the chat batch)
 
 ### 10. Palette audit method (reproducible)
 

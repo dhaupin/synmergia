@@ -57,6 +57,10 @@ Left third of the frame stays open ground for UI overlay.
 Labels: "TEMPORALIST" only. No other text.
 ```
 
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.10). On-model: clock-motif pauldron, orbiting tablets, tick
+> ring without numerals, UI-clean left third.
+
 ---
 
 ## 2. Conduit (Synthetic flagship / the species icon)
@@ -80,6 +84,10 @@ open (archway and mist) for UI overlay.
 Labels: "CONDUIT" only. No other text.
 ```
 
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.10). The
+> floor wake-ring (circuit grid lighting teal, moss retreating) is
+> now the canonical synthetic-activation gesture.
+
 ---
 
 ## 3. Runesmith (Akkan flagship)
@@ -102,6 +110,10 @@ wind-blown grass, monumental silence. Left third open for UI.
 
 Labels: "RUNESMITH" only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.10). Labeled
+> correctly this time (round 2 rendered "RUNEBLADE"); one sigil-tag
+> ignites free of the belt with a flame trail, exactly as briefed.
 
 ---
 

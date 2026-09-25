@@ -53,6 +53,12 @@ root-wrapped staircase climbs to unseen rooms. Cozy, loud, safe.
 Labels: "ECHO PLAZA INN" only. No other text.
 ```
 
+> **Status:** rendered + canonized 2026-09-25 (labs/art-direction.md
+> sec. 8.10): warm lanterns, locker wall, dormant Conduit at the
+> bar (the powered-off terminal reference), Synthetic doorman.
+> Rerun fix: one patron rendered with saturated purple skin -- Akkan
+> skin is the desaturated #a0a0c0 family.
+
 ---
 
 ## 2. Dwelling Interior (player housing)
@@ -73,6 +79,11 @@ has trained them into a coat hook. Soft daylight, humble, lived-in.
 
 Labels: "DWELLING" only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.10): root-
+> trained coat hook, lit workbench Conduit, pinned sketch, laundry
+> line all realized. Rerun fix: keep violet moss out of cozy rooms
+> (violet indoors = damp/neglect, not cozy).
 
 ---
 
@@ -95,6 +106,10 @@ transitional, the world holding its breath.
 
 Labels: "GATEWAY" only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.10): maze
+> mandala with one gold-lit segment, tablet-touch activation,
+> sentinel statues, guide-rungs. Pitch-shot candidate.
 
 ---
 
@@ -122,6 +137,9 @@ a wireframe.
 Labels: "HUD MOCK" only. No other text.
 ```
 
+> **Status:** PENDING RE-RENDER -- this render was dropped from the
+> user's chat batch (client omission) and is not yet reviewed.
+
 ---
 
 ## 5. Inventory Icon Sheet
@@ -143,6 +161,10 @@ readable, consistent line weight, readable at 48px.
 
 Labels: "ITEM ICONS" only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.10) as the
+> inventory icon reference. Currency canon from this render: gold
+> ingots stamped with the Agent Core star.
 
 ---
 
@@ -167,6 +189,12 @@ edge carries a thin root motif growing into the frame corners.
 Labels: "AETHER-CONDUIT" (header) and "SERVICES" (small, below
 the grid) only. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 (sec. 8.10) as the
+> service-hub reference. Tile names rendered by Gemini and adopted:
+> VAULT SERVICE, GUILD REGISTRY, CONVERGENCE CHRONICLES (gold
+> active tile = lore/journal), SMITHING SERVICES, MARKET EXCHANGE,
+> WAYPOINT NETWORK.
 
 ---
 

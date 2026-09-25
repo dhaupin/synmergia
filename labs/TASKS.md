@@ -266,6 +266,18 @@ CURRENT state + ACTIVE work only.
   HUD mock, 16-icon sheet, Aether-Conduit service menu -- violet
   never on chrome, gold = reward/active only). art-direction.md
   sec. 6 rewritten as gap->brief index.
+- Round 3 canonized (8 of 9 renders seen in chat; HUD mock dropped
+  by the client, re-render pending): text rules HELD -- all labels
+  correctly spelled incl. RUNESMITH. Class heroes + inn/dwelling/
+  gateway + 16-icon sheet + Aether-Conduit service menu canonized
+  (sec. 8.10). New canon: currency = gold ingots stamped with the
+  Agent Core star; Conduit floor wake-ring = synthetic activation
+  gesture; service-menu tile names adopted (VAULT SERVICE, GUILD
+  REGISTRY, CONVERGENCE CHRONICLES = lore/journal, SMITHING
+  SERVICES, MARKET EXCHANGE, WAYPOINT NETWORK). Drift notes:
+  saturated-purple Akkan patron (rerun: desaturated skin), violet
+  moss indoors = damp/neglect rule, violet gateway moss kept out
+  of focus zones.
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;
