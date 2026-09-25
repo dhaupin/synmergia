@@ -18,10 +18,14 @@ palette (#c0c0c0 stone, #404040 shadow, #202020 dark) with three
 semantic accent colors ONLY: pale teal/cyan (#80c0c0) for dormant or
 waking technology, warm gold (#c0a060) for active converged
 technology, violet (#8060c0) exclusively for mycelium and arcane
-magic. No photorealism, no low-poly look, no neon cyberpunk aesthetic.
-Clean white-grey presentation background, 16:9 sheet with a thin
-margin, hand-lettered style labels under each figure (short labels
-only, no paragraphs of text).
+magic. No photorealism, no low-poly look, no neon cyberpunkaesthetic. Clean white-grey presentation background, 16:9 sheet with
+a thin margin, hand-lettered style labels under each figure (short
+labels only, no paragraphs of text).
+
+IMPORTANT TEXT RULE: render ONLY the exact species/variant names listed
+at the end of the prompt. Do NOT render filenames, hex codes, or any
+other text -- readable wrong words are drift. Decorative glyph
+scribbles are fine.
 ```
 
 ---
@@ -66,6 +70,38 @@ Row 2:
 Labels: species names only, correctly spelled. Keep the ink weight and
 proportions consistent with the "FAUNA SPOTLIGHT" sheets (geometric
 agents, animal silhouette first, tech second).
+```
+
+> **Status:** rendered + canonized 2026-09-25. The magenta hostility
+> key survived generation (pixel-audited across the drop: magenta <1%
+> of frame area, only on corrupted agents -- labs/art-direction.md
+> sec. 8.1). The Shrike-Owl battle study is the first action render
+> of a hostile agent; its cracked clock-face core is canon.
+
+---
+
+## 2. Hostile agents in the field (action scenes)
+
+Single-creature action scenes beat sheets for hero moments. Battle
+study example (Shrike-Owl, rendered 2026-09-25): one hostile agent
+mid-fight against an explorer party, full environment -- the world
+reads better in action than in isolation.
+
+**Prompt (template -- swap species and terrain):**
+
+```
+[STYLE LOCK]
+
+Action battle study, 16:9: a SHRIKE-OWL (corrupted Data-Owl) diving
+at an Akkan warrior on a broken stone bridge over a crystal-ringed
+ruin canyon. The owl: stone-grey feather-plate, violet mycelium
+swirls in the wing membranes, a cracked clock-face core in its chest
+venting black spore-smoke, cables whipping from its wing joints, hot
+magenta eyes. The warrior: angular bronze war-plate with gold trim,
+grey-violet skin, ember eyes, braced behind an inscribed slab-blade.
+Spore-Spiders (small, violet-capped, magenta-eyed) scatter below.
+Teal crystal clusters frame the scene; sky pale grey-green, distant
+Dormant spire towers. No text, no labels.
 ```
 
 ---

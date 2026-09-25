@@ -231,6 +231,21 @@ CURRENT state + ACTIVE work only.
   gemini_hostile_agents.md (neutral->hostile pairs with the magenta
   key). Gemini-rendered text is often gibberish -- treat baked-in text
   as decorative; labels-only instruction added to every brief.
+- Round 2 art canonized (23 new renders from the prompt packs, Drive
+  now 50 images; /tmp/syn_concept cache + id_map refreshed): magenta
+  hostility key pixel-audited across the drop (<1% of frame, only on
+  corrupted agents); violet boss battle = canon Forest Devourer visual
+  (world_boss_forest_void_lord.tres, zone_forest_meadow); AETHER-
+  CONDUIT canonized as the in-world terminal/kiosk term; the four
+  service interiors (vault/academy/blacksmith/storekeeper) mapped to
+  VaultService/SkillAcademyService/BlacksmithService/vendor; Akkan-vs-
+  Synthetic duel = PvP key art; Human species sheet = Human reference
+  (label drift noted: anchor filenames baked as labels, "MIY WORDMARK"
+  gibberish). Style-lock text rule hardened (no filenames/other text).
+  New briefs: gemini_bosses.md (Devourer standalone + Clockwork Saint
+  + Mossbound Herald trio) and gemini_zones.md (6 establishing shots
+  anchored to zone .tres ids). Full critique + next steps in
+  labs/art-direction.md sec. 8-10.
 - Party/loot/reward chains verified live: kill_rewarded -> quest
   objectives + achievements + XP/gold grant + PlayerManager mirror;
   party split via PartyService.share_xp with per-member grants;

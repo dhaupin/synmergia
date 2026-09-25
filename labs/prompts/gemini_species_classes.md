@@ -25,6 +25,12 @@ magic. No photorealism, no low-poly look, no neon cyberpunk city
 aesthetic. Clean white-grey presentation background, 16:9 sheet with
 a thin margin, hand-lettered style labels under each figure (short
 labels only, no paragraphs of text).
+
+IMPORTANT TEXT RULE: render ONLY the exact label words listed at the
+end of each prompt. Do NOT render filenames, .tres extensions, hex
+codes, or any other text -- anything else becomes gibberish or drifts
+(misspelled wordmarks like "MIY WORDMARK"). Decorative glyph scribbles
+are fine; readable wrong words are not.
 ```
 
 ---
@@ -64,11 +70,16 @@ spaced, same scale, soft ground shadows:
    the lower back. Hums with restrained power -- dormant, not dead.
 
 4. Small head-study row along the bottom edge: two alternate heads
-   per species (hair/plate variants).
+   per species (hair/plate variants), no labels on this row.
 
 Labels: "HUMAN", "AKKAN", "SYNTHETIC" only -- keep text minimal and
-correctly spelled.
+correctly spelled. Do not render any other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25. The Human species
+> sheet from this brief is the Human reference (labs/art-direction.md
+> sec. 8.6); note the bottom anchor row rendered with .tres-filename
+> labels -- the no-filenames text rule above is the fix for reruns.
 
 ---
 
@@ -111,8 +122,12 @@ Row 2:
   geometric ticks, NOT readable numerals. Calm face, closed eyes,
   absolute control. Render slightly larger than the other five.
 
-Labels: class names only, correctly spelled.
+Labels: class names only, correctly spelled. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25 as the class-select
+> reference set (all 18 classes). Permuted-class drift and single-
+> figure hero shots remain open (labs/art-direction.md sec. 6).
 
 ---
 
@@ -154,8 +169,12 @@ Row 2:
   sigil-scarred skin beneath, war-kilt of cable and bronze. Full
   sprint charge pose.
 
-Labels: class names only, correctly spelled.
+Labels: class names only, correctly spelled. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25. Ember-orange stays
+> Akkan-only in the rendered set (sigils, eyes) -- the palette audit
+> confirms no teal/gold/violet bleed onto Akkan sigils.
 
 ---
 
@@ -199,8 +218,12 @@ Row 2:
   hexagons (teal), capture pincer free hand, broad stable stance.
   A small Luminous-Lemur perches on the shoulder (canon fauna cameo).
 
-Labels: class names only, correctly spelled.
+Labels: class names only, correctly spelled. No other text.
 ```
+
+> **Status:** rendered + canonized 2026-09-25. Synthetic duel look
+> (lean ceramic frame, cable-tail, teal arcs) is pinned by the Akkan
+> vs Synthetic duel key art (labs/art-direction.md sec. 8.5).
 
 ---
 
