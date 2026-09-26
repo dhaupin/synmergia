@@ -30,6 +30,13 @@ const STARTING_GOLD: Dictionary = {
 
 signal starter_kit_granted(player_id: String, items: Array)
 
+## Idempotency: player_entered_world can fire more than once for the
+## same character (early emission during scene bootstrap plus the
+## world's authoritative call), and each firing used to run a full
+## grant -- the first one often burned the attempt while the bag was
+## still under its fallback id, so the player spawned empty-handed.
+var _granted_for: Dictionary = {}
+
 func _ready() -> void:
 	if instance == null:
 		instance = self
@@ -52,6 +59,23 @@ func grant_starter_kit(player_id: String, character_data) -> void:
 	if not character_data:
 		GameLog.warn("StarterKitService: No character data for %s" % player_id)
 		return
+
+	if _granted_for.has(player_id):
+		GameLog.debug("StarterKitService: kit already granted to %s" % player_id)
+		return
+
+	# The bag registers during scene bootstrap, often AFTER the first
+	# player_entered_world emission. If it is not up yet, defer instead
+	# of failing -- a failed grant here is how players spawned empty.
+	if InventoryService == null or not InventoryService.has_inventory(player_id):
+		GameLog.info("StarterKitService: bag not ready for %s -- deferring grant" % player_id)
+		var tree := get_tree()
+		if tree != null:
+			await tree.create_timer(0.5).timeout
+			grant_starter_kit(player_id, character_data)
+		return
+
+	_granted_for[player_id] = true
 
 	var role: int = 0
 	if "class_data" in character_data and character_data.class_data:

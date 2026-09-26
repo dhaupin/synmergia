@@ -539,8 +539,17 @@ func connect_to_server(ip: String = SERVER_IP, port: int = DEFAULT_PORT) -> bool
 	multiplayer.multiplayer_peer = peer
 	is_client = true
 
-	peer.connection_failed.connect(_on_client_connection_failed)
-	peer.server_disconnected.connect(_on_server_disconnected)
+	# Godot 4: connected_to_server / connection_failed /
+	# server_disconnected live on the MultiplayerAPI, NOT on
+	# ENetMultiplayerPeer (the old peer.connection_failed.connect here
+	# crashed every client join attempt at runtime -- clients could
+	# never connect). Guarded so repeated calls do not double-connect.
+	if not multiplayer.connected_to_server.is_connected(_on_client_connected):
+		multiplayer.connected_to_server.connect(_on_client_connected)
+	if not multiplayer.connection_failed.is_connected(_on_client_connection_failed):
+		multiplayer.connection_failed.connect(_on_client_connection_failed)
+	if not multiplayer.server_disconnected.is_connected(_on_server_disconnected):
+		multiplayer.server_disconnected.connect(_on_server_disconnected)
 
 	_log("info", "Connecting to server at %s:%d..." % [ip, port])
 	return true
