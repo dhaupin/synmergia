@@ -26,15 +26,17 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
   const [debugMode, setDebugMode] = useState<boolean>(false);
   const [pckStatus, setPckStatus] = useState<'checking' | 'present' | 'missing'>('checking');
   const [shellStatus, setShellStatus] = useState<'checking' | 'present' | 'missing'>('checking');
+  const [wasmStatus, setWasmStatus] = useState<'checking' | 'present' | 'missing'>('checking');
   const [crossOriginIsolated, setCrossOriginIsolated] = useState<boolean>(false);
 
   useEffect(() => {
     setCrossOriginIsolated(typeof window !== 'undefined' && Boolean(window.crossOriginIsolated));
 
-    // Probe BOTH halves of the WASM client: the exported shell
-    // (web/index.html + game.js) and the resource pack. Missing pck
-    // shows the export notice; missing shell means the web/ directory
-    // did not ship at all (deploy/build problem, not an export problem).
+    // Probe ALL THREE halves of the WASM client: the exported shell
+    // (web/index.html + game.js), the resource pack, and the engine
+    // binary itself. game.wasm is the one CI never commits (artifact-
+    // only), so probing it is what turns "blank pane with green chips"
+    // into an honest diagnosis.
     fetch('/web/index.html', { method: 'HEAD' })
       .then((res) => setShellStatus(res.ok ? 'present' : 'missing'))
       .catch(() => setShellStatus('missing'));
@@ -47,6 +49,9 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
         }
       })
       .catch(() => setPckStatus('missing'));
+    fetch('/web/game.wasm', { method: 'HEAD' })
+      .then((res) => setWasmStatus(res.ok ? 'present' : 'missing'))
+      .catch(() => setWasmStatus('missing'));
   }, []);
 
   // Keyboard focus: the iframe does not receive key events until
@@ -100,6 +105,21 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
           <div className="hidden sm:flex items-center gap-1.5 text-slate-400 text-[11px]">
             <Cpu className="w-3.5 h-3.5" />
             <span>Shell: {shellStatus === 'present' ? 'ready' : shellStatus === 'missing' ? 'absent' : 'probing'}</span>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-medium border ${
+                wasmStatus === 'present'
+                  ? 'bg-emerald-950/60 border-emerald-800 text-emerald-400'
+                  : wasmStatus === 'missing'
+                  ? 'bg-rose-950/60 border-rose-800 text-rose-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
+              }`}
+            >
+              {wasmStatus === 'present'
+                ? 'Engine: game.wasm Ready'
+                : wasmStatus === 'missing'
+                ? 'Engine: game.wasm Missing'
+                : 'Engine: Probing...'}
+            </span>
             {debugMode && <span className="text-amber-400 font-mono">[DEBUG]</span>}
           </div>
         </div>
@@ -263,6 +283,36 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
                   Check Again
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+        {shellStatus === 'present' && pckStatus === 'present' && wasmStatus === 'missing' && (
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 pointer-events-auto">
+            <div className="max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
+              <div className="w-12 h-12 rounded-full bg-rose-950/80 border border-rose-800/80 flex items-center justify-center mx-auto mb-4 text-rose-400">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-100 mb-2">
+                Engine Binary (game.wasm) Missing
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                The shell and resource pack are present, but the compiled engine
+                (<code className="bg-slate-800 px-1 py-0.5 rounded text-amber-300">web/game.wasm</code>) is not -- CI ships it as
+                an artifact only, so a full export must be run locally. This is what a blank pane means.
+              </p>
+
+              <div className="bg-slate-950 rounded-lg p-3 text-left font-mono text-xs text-slate-300 border border-slate-800 mb-4 overflow-x-auto">
+                <div className="text-slate-500 mb-1"># Full wasm export (needs export templates installed):</div>
+                <div className="text-amber-400">cd game &amp;&amp; godot --headless --export-release "Web" ../web/game.html</div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleReload}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs transition-colors"
+              >
+                Check Again
+              </button>
             </div>
           </div>
         )}
