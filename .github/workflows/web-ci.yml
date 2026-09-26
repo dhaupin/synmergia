@@ -45,7 +45,9 @@ jobs:
     # makes warm runs take seconds; 10 minutes covers the cold import.
     timeout-minutes: 10
     permissions:
-      contents: read
+      # contents: write lets the push path commit the refreshed pck back
+      # as github-actions[bot]; PR runs never commit (guarded below).
+      contents: write
       actions: read
 
     steps:
@@ -109,6 +111,32 @@ jobs:
           echo "Exporting Web PCK bundle..."
           godot --headless --path game/ --export-pack "Web" "../web/game.pck"
           ls -lh web/game.pck
+
+      # Close the drift loop: the served client reads the TRACKED
+      # web/game.pck, so a push that changes game content must land its
+      # fresh pack in the repo, not just in an artifact. Commit-back is
+      # push-to-main only (PRs and dispatch leave the branch alone) and
+      # skips cleanly when the pack is unchanged. No re-trigger loop:
+      # the resulting commit touches only web/, which the push-path
+      # filter (game/**) does not match. wasm stays artifact-only per
+      # PRD 3.3 -- it never rides this step.
+      - name: Commit Fresh PCK (push to main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/game.pck
+          if git diff --cached --quiet; then
+            echo "PCK unchanged since HEAD -- nothing to commit"
+          else
+            git commit -m "ci: refresh web/game.pck (game content at ${GITHUB_SHA::7})"
+            # Race guard: another commit may have landed mid-run; rebase
+            # the bot commit on top. If this still fails, the newer
+            # commit's own run re-exports and self-heals.
+            git pull --rebase origin main || true
+            git push
+            echo "Pushed refreshed pck as $(git rev-parse --short HEAD)"
+          fi
 
       - name: Optional Full Test Suite
         if: ${{ github.event.inputs.run_full_suite == 'true' }}
