@@ -33,6 +33,7 @@ test_sign_service
 test_daily_class_blessing
 test_acts_service
 test_daily_quest
+test_blessed_mark
 probe_ancient_loop
 probe_blacksmith_model
 probe_wolf_model

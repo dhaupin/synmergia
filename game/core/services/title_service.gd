@@ -1,11 +1,13 @@
 ## TitleService - Player title management
 ## Handles title data, unlocking, equipping, and display
 extends Node
-# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
-const QoSService = preload("res://core/autoload/qos_service.gd")
-
+# QoSService uses static shim methods (AGENTS.md allowlist); the const is required.const QoSService = preload("res://core/autoload/qos_service.gd")
 const TitleData = preload("res://core/schemas/title_data.gd")
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+# The blessed sigil lives on blessed_mark.gd's statics (no class_name
+# -- the GuardData lesson); preload resolves it parse-time, cycle-free
+# (the mark script preloads nothing from services).
+const BlessedMarkScript = preload("res://entities/blessed_mark.gd")
 const _kv_prefix := "title:player:"
 
 ## Title definitions loaded from data/titles via DataService
@@ -93,6 +95,10 @@ static func get_equipped_suffix(player_id: String) -> TitleData:
 
 ## Get full display name with titles
 ## Example: "[The Slayer] dhaupin, the guildmaster"
+## The blessed sigil "(*)" (Skyward Concord favor, prd-psy.md section
+## 8) rides IN FRONT of the equipped title prefix -- the sky outranks
+## the mortal honors for the day. No sigil on GM classes (gold is
+## staff's palette).
 static func get_display_name(player_id: String, base_name: String) -> String:
 	var inst := singleton()
 	if inst == null:
@@ -102,10 +108,27 @@ static func get_display_name(player_id: String, base_name: String) -> String:
 	var suffix_title: TitleData = inst._do_get_equipped_suffix(player_id)
 
 	var result := base_name
-	if prefix_title != null:
-		result = "[%s] %s" % [prefix_title.prefix_form, result]
 	if suffix_title != null:
 		result = "%s, %s" % [result, suffix_title.suffix_form]
+	var sigil := ""
+	var ml: MainLoop = Engine.get_main_loop()
+	if ml is SceneTree:
+		var es = (ml as SceneTree).root.get_node_or_null("EntityService")
+		if es != null:
+			var ent = es.get_entity(player_id)
+			if ent != null and "character_class" in ent:
+				var cid := str(ent.character_class)
+				var is_gm := false
+				if DataService != null:
+					var cls = DataService.get_character_class(cid)
+					if cls != null and "role" in cls and int(cls.role) == 0:
+						is_gm = true
+				if not is_gm:
+					sigil = BlessedMarkScript.sigil_for_class(cid)
+	if sigil != "":
+		result = "%s %s" % [sigil, result]
+	if prefix_title != null:
+		result = "[%s] %s" % [prefix_title.prefix_form, result]
 
 	return result
 

@@ -11,6 +11,9 @@ const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 # Entity.EntityType.X in range checks, which requires Entity's
 # class_name registered at parse time. Preload it here.
 const Entity = preload("res://core/entities/entity.gd")
+# Blessed sigil constants (prd-psy.md section 8): preload, not
+# class_name (the GuardData lesson).
+const BlessedMarkScript = preload("res://entities/blessed_mark.gd")
 # Frame-level notification dispatch (typed-Kind pipeline).
 # All chat-service-toasts are feedback to the sender about their own
 # blocked/limited message (rate-limit, validation, restriction), so
@@ -1103,6 +1106,7 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 
 	# Check if sender is a GM
 	var is_gm: bool = false
+	var is_blessed: bool = false
 	if sender_id != "":
 		var entity = EntityService.get_entity(sender_id) if EntityService else null
 		if entity:
@@ -1112,12 +1116,22 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 					is_gm = char_data.is_gm()
 				elif char_data		.has("class_id"):
 					is_gm = CharacterData.is_gm_class(char_data.get("class_id"))
+			# The sky's favor (prd-psy.md section 8): the wheel's chosen
+			# class chats with the (*) sigil in sky-cyan. Never on GM
+			# lines -- staff gold and the sky's palette do not mix.
+			if not is_gm and "character_class" in entity \
+					and SignService != null \
+					and SignService.has_method("is_class_blessed"):
+				is_blessed = SignService.is_class_blessed(str(entity.character_class))
 
 	# Add GM indicator to name
 	var display_name: String = sender_name
 	if is_gm:
 		display_name = "[GM] " + sender_name
 		color = "#FFD700"  # Gold color for GM messages
+	elif is_blessed:
+		display_name = "%s %s" % [BlessedMarkScript.CHAT_SIGIL, sender_name]
+		color = BlessedMarkScript.CHAT_COLOR  # Sky-cyan for the wheel's pick
 
 	# Escape brackets so player messages and names cannot inject BBCode markup.
 	var safe_name := _escape_bbcode(display_name)

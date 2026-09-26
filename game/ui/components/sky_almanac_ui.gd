@@ -238,7 +238,7 @@ func refresh() -> void:
 			blessed_name = str(cls.display_name)
 	var pct := int((SignService.BLESSED_DAMAGE_MULTIPLIER - 1.0) * 100.0)
 	if SignService.is_blessing_active(day):
-		_blessed_label.text = "Blessed today: %s (+%d%% damage/heal/XP, +%d effective levels)" % [blessed_name, pct, SignService.BLESSED_LEVEL_BONUS]
+		_blessed_label.text = "Blessed today: (*) %s (+%d%% damage/heal/XP, +%d effective levels) -- that sigil rides their name all day" % [blessed_name, pct, SignService.BLESSED_LEVEL_BONUS]
 		_blessed_label.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 	else:
 		_blessed_label.text = "Tomorrow's wheel names %s -- if the tribe turns the key." % blessed_name

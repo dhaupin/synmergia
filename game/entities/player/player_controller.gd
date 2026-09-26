@@ -239,9 +239,28 @@ var _action_menu: ActionMenu = null
 var _skill_academy_ui: SkillAcademyUI = null
 var _blacksmith_ui: BlacksmithUI = null
 var _character_stats_ui: CharacterStatsUI = null
+var _blessed_mark: Node3D = null
 var _current_target_info: TargetingManager.TargetInfo = null
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+## The blessed-class visual (prd-psy.md section 8): sky-cyan motes
+## only while SignService says the class is the wheel's pick on an
+## earned day. Idempotent -- the world scene also attaches directly.
+func _attach_blessed_mark() -> void:
+	if get_node_or_null("BlessedMark") != null:
+		if _blessed_mark != null:
+			_blessed_mark.set_wearer(character_class, self)
+		return
+	var mark_script = load("res://entities/blessed_mark.gd")
+	if mark_script == null:
+		return
+	_blessed_mark = Node3D.new()
+	_blessed_mark.name = "BlessedMark"
+	_blessed_mark.set_script(mark_script)
+	add_child(_blessed_mark)
+	_blessed_mark.set_wearer(character_class, self)
+
 
 func _ready() -> void:
 	# Connect to input
@@ -257,6 +276,9 @@ func _ready() -> void:
 	# Hitbox likewise keys on the final character data (species); the
 	# scene-authored capsule is the pre-profile placeholder.
 	call_deferred("_apply_hitbox_profile")
+	# The blessed mark keys on the final class id (character data may
+	# arrive after _ready, like the hitbox); call_deferred sees it.
+	call_deferred("_attach_blessed_mark")
 
 	# Set collision
 	collision_mask = 0b0000111

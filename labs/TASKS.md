@@ -490,6 +490,42 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 13 (2026-09-26): blessed-class visual motif (user:
+  "let's make a blessed-class visual motif ... different from GM gold
+  ... leverage the title system to add a blessed title or
+  distinguishable icon in front of the existing title prefix").
+  MOTION MARK (game/entities/blessed_mark.gd): eight sky-cyan motes in
+  a breathing ring + a soft halo behind the head, lit ONLY while
+  SignService.is_class_blessed says the wearer's class is the wheel's
+  earned pick (no solve, no glow -- the earn gate rides inside the
+  mark); 10s recheck cadence for live day-rolls and late code
+  assemblies, transition toasts once per flip, set_wearer(class,
+  wearer) duck-typed so tests pass plain dicts. Attached twice over
+  (world_playable._setup_blessed_marks AND PlayerController
+  _attach_blessed_mark deferred -- both idempotent, class rebinding
+  rebinds). SIGIL: "(*)" in #73D9FF rides IN FRONT of
+  TitleService.get_display_name's composition ("(*) [The Slayer]
+  name") -- the sky outranks the mortal honors for a day; GM classes
+  exempt (staff gold stays alone). CHAT: plain-text sigil + channel
+  color swap in format_message (THE LESSON: display names pass
+  through _escape_bbcode, so injected markup gets stripped -- no
+  [color] in the name, prefix + recolor instead). Almanac's blessed
+  line now demos the sigil. PARSE-ERROR CASCADE (3 compounding
+  traps, all documented but now personally verified): (1) a brand-new
+  class_name is invisible to the global cache until an editor import
+  -- BlessedMark unresolvable everywhere (the GuardData lesson, hit
+  exactly as AGENTS.md warns); fixed by dropping class_name and
+  preloading the script in consumers (statics + consts work through
+  preload). (2) A script preloaded at parse time cannot use BARE
+  autoload identifiers -- entity.gd:198's EventHub made even a
+  string-extends fake uncompilable standalone; the mark now resolves
+  SignService/NotificationService late via Engine.get_main_loop (the
+  CombatMath static pattern). (3) EntityService.register_entity
+  needs a real Entity node (internal targeting + EventHub), so the
+  title-composition test pins the ORDER at the logic level instead
+  of registering fakes. Regression 14/14 (new test_blessed_mark, 5
+  checks: sigil truth, GM-gold distinctness, mark visuals, transition
+  toast, title order), boot clean.
 - [x] Rando batch 12 (2026-09-26): daily quest reset + RECORD_INSIGHT
   objective + Chronicle panel (user: "Yeah we can do the daily-quest
   reset + 'record an insight' objective for quest_watch_the_sky. I

@@ -56,6 +56,7 @@ func _ready() -> void:
 	_setup_ancient_door()
 	_setup_concord_stone()
 	_setup_sky_signs()
+	_setup_blessed_marks()
 	_setup_hud_bridge()
 	_setup_touch_hud()
 	_notify_world_entry()
@@ -409,6 +410,27 @@ func _setup_concord_stone() -> void:
 	add_child(stone)
 	stone.global_position = Vector3(-6, 0, -4)
 	GameLog.info("WorldPlayable: Concord Stone placed (E to watch the sky)")
+
+
+## The shard's chosen class wears the sky's favor (prd-psy.md section
+## 8): mote ring + halo driven by the REAL earn state, live-checked on
+## a cadence inside the mark. Loaded by path, not class_name (the
+## GuardData lesson).
+func _setup_blessed_marks() -> void:
+	var mark_script = load("res://entities/blessed_mark.gd")
+	if mark_script == null:
+		return
+	for player in get_tree().get_nodes_in_group("players"):
+		if not is_instance_valid(player) or not ("character_class" in player):
+			continue
+		if player.get_node_or_null("BlessedMark") != null:
+			continue
+		var mark := Node3D.new()
+		mark.name = "BlessedMark"
+		mark.set_script(mark_script)
+		player.add_child(mark)
+		mark.set_wearer(str(player.character_class), player)
+		GameLog.info("WorldPlayable: BlessedMark on %s (%s)" % [str(player.entity_id), str(player.character_class)])
 
 
 func _setup_housing() -> void:

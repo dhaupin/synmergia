@@ -140,6 +140,13 @@ plays a boosted day.
 - **Voice:** the sky does not "bless" in a religious sense -- UI copy
   says "the wheel names X" / "carries the sky's blessing," matching
   section 4's observational vocabulary.
+- **Visual motif (shipped, batch 13):** the blessed class wears a
+  breathing ring of sky-cyan motes + a soft halo
+  (entities/blessed_mark.gd), lit only while the day is EARNED and
+  live-checked as days roll. The sigil "(*)" rides IN FRONT of the
+  title prefix and in chat (#73D9FF) -- deliberately NOT GM gold
+  (#FFD700), and plain text only (chat names are escaped, so the
+  sigil never injects markup).
 - **Test:** test_daily_class_blessing.gd (hydration x2 rotations,
   determinism, earn gate, all three consumer hooks); loop probe
   extends to the blessing going live after the tribal solve.
@@ -201,6 +208,13 @@ plays a boosted day.
 - **Voice:** the sky does not "bless" in a religious sense -- UI copy
   says "the wheel names X" / "carries the sky's blessing," matching
   section 4's observational vocabulary.
+- **Visual motif (shipped, batch 13):** the blessed class wears a
+  breathing ring of sky-cyan motes + a soft halo
+  (entities/blessed_mark.gd), lit only while the day is EARNED and
+  live-checked as days roll. The sigil "(*)" rides IN FRONT of the
+  title prefix and in chat (#73D9FF) -- deliberately NOT GM gold
+  (#FFD700), and plain text only (chat names are escaped, so the
+  sigil never injects markup).
 - **Test:** test_daily_class_blessing.gd (hydration x2 rotations,
   determinism, earn gate, all three consumer hooks); probe_ancient_loop
   extends to the blessing going live after the tribal solve.
@@ -210,8 +224,8 @@ plays a boosted day.
 - **Server-wide broadcast polish:** region chat lines when a window
   reveals, and the door-open moment as a world event (sound, light
   pillar) so the shard FEELS the payoff.
-- **Blessing visualization:** a subtle shard-wide tint or particle
-  motif on blessed-class characters while their day lasts.
+- **Blessing visualization:** SHIPPED, batch 13 (blessed_mark.gd:
+  sky-cyan mote ring + halo, "(*)" sigil in titles/chat).
 - **Chronicle presentation:** a dedicated lore panel (the almanac
   block is the readable minimum), and act-gated world content --
   doors, vaults, skill academy tiers per section 5, so each chapter
