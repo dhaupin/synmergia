@@ -1,5 +1,5 @@
-class_name CurrencyData
 extends Resource
+class_name CurrencyData
 
 ## Data-driven currency. Makes gold renameable, adds faction currencies,
 ## elite tokens, and black-market scrip without new code paths. Wallets

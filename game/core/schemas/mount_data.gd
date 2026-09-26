@@ -1,5 +1,5 @@
-class_name MountData
 extends Resource
+class_name MountData
 
 ## Data-driven mount. The world forbids engines, so all mounts are
 ## creatures: ground beasts, sky birds, aquatic swimmers. Speed is a

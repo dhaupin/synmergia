@@ -1,5 +1,5 @@
-class_name VehicleData
 extends Resource
+class_name VehicleData
 
 ## Data-driven multi-passenger transport. The engine ban shapes the
 ## roster: everything is creature-drawn, wind-driven, or buoyant -- no
