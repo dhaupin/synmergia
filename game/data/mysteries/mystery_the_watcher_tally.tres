@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MysteryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mystery_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mystery_the_watcher_tally"
+display_name = "The Warden's Tally"
+riddle = "A warden's slate lists every figure the Concord keeps in its sky-ledger. Count the signs the shard has catalogued, and speak the tally."
+gate_act_id = "act_2_the_unpaid_debt"
+gate_chapter_index = 2
+answer_kind = 1
+answer_day = -1
+hint = "Not the sky's rotation -- the ledger itself. How many signs does the almanac know?"
+reward_title_id = "title_wardens_word"
+reward_xp = 60

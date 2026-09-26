@@ -20,10 +20,12 @@ const STAR_SCALE_REVEALED: float = 0.8
 
 var _stars: Array[MeshInstance3D] = []
 var _current_sign_id: String = ""
+var _current_tint: Color = Color(0.7, 0.8, 1.0)
 var _pulse: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("sky_signs")
 	_build_star_pool()
 
 
@@ -59,6 +61,7 @@ func _arrange(sign_id: String, revealed: bool) -> void:
 		count = 7 + (absi(hash(str(sign.id))) % 4)
 		tint = sign.sky_tint
 		seed_hash = hash(str(sign.id) + "arrange")
+	_current_tint = tint
 	var n := _stars.size()
 	for i in n:
 		var star := _stars[i]
@@ -90,6 +93,30 @@ func _star_position(i: int, count: int, seed_hash: int, revealed: bool) -> Vecto
 
 
 ## Pool of emissive quads, big enough for the largest constellation.
+## One-shot shard moment (labs/prd-psy.md section 9, the door-open
+## payoff): tint every VISIBLE star amber and over-bright for ~3s, so
+## even players who cannot see the door feel the sky acknowledge the
+## payoff. Lerps from the CURRENT sign tint and back, so the flash
+## leaves no residue. Safe no-op headless / off-window.
+func flash_payoff(duration: float = 3.0) -> void:
+	var flash_tween := create_tween()
+	flash_tween.tween_method(_set_flash_energy, 0.0, 2.2, duration * 0.25)
+	flash_tween.tween_interval(duration * 0.35)
+	flash_tween.tween_method(_set_flash_energy, 2.2, 0.0, duration * 0.4)
+
+
+func _set_flash_energy(extra: float) -> void:
+	for s in _stars:
+		if s == null or not is_instance_valid(s) or not s.visible:
+			continue
+		var mat := s.get_surface_override_material(0) as StandardMaterial3D
+		if mat == null:
+			continue
+		# Amber wash over the sign's own tint; extra = 0 restores it.
+		mat.albedo_color = _current_tint.lerp(Color(1.0, 0.72, 0.3), clampf(extra / 2.2, 0.0, 1.0))
+		mat.emission = mat.albedo_color
+
+
 func _build_star_pool() -> void:
 	var quad := QuadMesh.new()
 	quad.size = Vector2(1.2, 1.2)

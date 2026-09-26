@@ -109,6 +109,7 @@ func _open(day: int) -> void:
 	_is_open = true
 	_last_unlock_day = day
 	_play_open_animation()
+	_play_payoff_effects()
 	if NotificationService:
 		NotificationService.notify(
 			NotifKind.ANCIENT_OPEN,
@@ -128,6 +129,71 @@ func _play_open_animation() -> void:
 	var tween := create_tween()
 	tween.tween_property(_slab, "position:y", _slab_home.y - 2.4, 2.5) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+
+
+## The shard-wide payoff (labs/prd-psy.md section 9): an amber light
+## pillar erupts from the slab (visible across the playable world),
+## the ceremonial bell rings everywhere, and a one-shot OmniLight
+## flash blooms at the door. Purely additive visuals -- the state
+## machine above is untouched by anything here.
+func _play_payoff_effects() -> void:
+	# The bell: communal sound, non-positional (AudioService pool).
+	var audio = get_node_or_null("/root/AudioService")
+	if audio != null and audio.has_method("play_world"):
+		audio.play_world("ancient_door_open", 0.0)
+	# The sky acknowledges: amber wash over the whole constellation.
+	var sky: Node = null
+	if get_tree() != null:
+		sky = get_tree().get_first_node_in_group("sky_signs")
+	if sky != null and sky.has_method("flash_payoff"):
+		sky.flash_payoff(3.0)
+	# The pillar: emissive cylinder, taller than any structure.
+	var pillar_mesh := CylinderMesh.new()
+	pillar_mesh.top_radius = 0.55
+	pillar_mesh.bottom_radius = 0.7
+	pillar_mesh.height = 30.0
+	pillar_mesh.radial_segments = 12
+	pillar_mesh.cap_top = false
+	pillar_mesh.cap_bottom = false
+	var pillar_mat := StandardMaterial3D.new()
+	pillar_mat.albedo_color = Color(1.0, 0.72, 0.28, 0.5)
+	pillar_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pillar_mat.emission_enabled = true
+	pillar_mat.emission = Color(1.0, 0.7, 0.25)
+	pillar_mat.emission_energy_multiplier = 3.0
+	pillar_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var pillar := MeshInstance3D.new()
+	pillar.name = "PayoffPillar"
+	pillar.mesh = pillar_mesh
+	pillar.material_override = pillar_mat
+	pillar.position = Vector3(0, 15.0, 0)
+	pillar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(pillar)
+	# A one-shot light flash blooming with the pillar.
+	var flash := OmniLight3D.new()
+	flash.name = "PayoffFlash"
+	flash.light_color = Color(1.0, 0.75, 0.3)
+	flash.light_energy = 0.0
+	flash.omni_range = 14.0
+	flash.position = Vector3(0, 2.2, 0)
+	add_child(flash)
+	# Ramp the bloom up, hold the pillar ~4s, then fade both and clean
+	# up (the pillar is one-shot; the door stays open, not glowing).
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(flash, "light_energy", 2.2, 0.9) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(pillar_mat, "emission_energy_multiplier", 4.0, 0.9) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.chain().tween_interval(2.8)
+	tween.chain().tween_property(pillar_mat, "emission_energy_multiplier", 0.0, 1.8) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(flash, "light_energy", 0.0, 1.8)
+	tween.chain().tween_callback(func():
+		if is_instance_valid(pillar):
+			pillar.queue_free()
+		if is_instance_valid(flash):
+			flash.queue_free())
 
 
 ## The dawn moment: the slab rises again (inverse of _play_open_animation).

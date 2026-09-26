@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "title_vault_reader"
+display_name = "Vault-Reader"
+description = "Read the First Vault's answer out of the sky's own record. The Chronicle remembers who paid attention."
+prefix_form = "The Vault-Reader"
+suffix_form = "the vault-reader"
+category = 5
+rarity = 2
+unlock_method = 1
+unlock_source = "mystery_the_first_vault"
+icon_path = ""

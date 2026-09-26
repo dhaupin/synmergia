@@ -52,6 +52,7 @@ func refresh() -> void:
 	for child in _sections.get_children():
 		child.queue_free()
 	_add_acts_section()
+	_add_mysteries_section()
 	_add_concord_hint()
 
 
@@ -78,6 +79,114 @@ func _add_acts_section() -> void:
 			else:
 				lines.append("%d. [sealed -- the next door open records it]" % int(view.index))
 		_add_section("%s (%d/%d recorded)" % [str(act.display_name), ActsService.get_recorded_chapters(str(aid)).size(), act.get_chapter_count()], lines)
+
+
+## Chronicle mysteries (data/mysteries/): locked mysteries tease,
+## unlocked ones show the riddle + an answer field, solved ones record
+## the finding. The riddle IS the data; answers are derived from the
+## sky's own record, never stored.
+func _add_mysteries_section() -> void:
+	if ActsService == null:
+		return
+	ActsService.ensure_initialized()
+	var mystery_ids: Array = ActsService.get_mysteries().keys()
+	mystery_ids.sort()
+	for mid in mystery_ids:
+		var m = ActsService.get_mystery(str(mid))
+		if m == null:
+			continue
+		if not ActsService.is_mystery_unlocked(str(mid)):
+			_add_section("%s [sealed -- the Chronicle gates it]" % str(m.display_name), [
+				"Some records wait for their chapter.",
+			])
+			continue
+		if ActsService.is_mystery_solved(str(mid), _observer_id()):
+			_add_section("%s -- solved" % str(m.display_name), [
+				str(m.riddle),
+				"",
+				"The record opens. The Concord remembers who paid attention.",
+			])
+			continue
+		# Unlocked and unsolved: the riddle + the attempt field.
+		var box := VBoxContainer.new()
+		var title := Label.new()
+		title.text = str(m.display_name)
+		title.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+		box.add_child(title)
+		var riddle := Label.new()
+		riddle.text = str(m.get_riddle_line())
+		riddle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		riddle.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		box.add_child(riddle)
+		var row := HBoxContainer.new()
+		var input := LineEdit.new()
+		input.name = "AnswerInput_%s" % str(mid)
+		input.placeholder_text = "speak the answer"
+		input.custom_minimum_size.x = 260
+		input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(input)
+		var btn := Button.new()
+		btn.text = "Speak"
+		btn.pressed.connect(_on_mystery_submit.bind(str(mid), input))
+		row.add_child(btn)
+		box.add_child(row)
+		_sections.add_child(box)
+		var spacer := Control.new()
+		spacer.custom_minimum_size.y = 6
+		_sections.add_child(spacer)
+
+
+## Whose ledger are we reading? PlayerManager local player in-game;
+## a stable offline id for headless contexts.
+func _observer_id() -> String:
+	var pm := get_node_or_null("/root/PlayerManager")
+	if pm != null and pm.has_method("get_local_player"):
+		var local = pm.get_local_player()
+		if local != null and "entity_id" in local:
+			var eid := str(local.entity_id)
+			if not eid.is_empty():
+				return eid
+	return "chronicle_reader"
+
+
+## An attempt was spoken: route through ActsService truth, then
+## feedback toast + rebuild (solved mysteries flip their block).
+func _on_mystery_submit(mystery_id: String, input: LineEdit) -> void:
+	var attempt := str(input.text)
+	if ActsService == null or attempt.strip_edges().is_empty():
+		return
+	var result: Dictionary = ActsService.attempt_mystery(mystery_id, _observer_id(), attempt)
+	if NotificationService != null:
+		var msg := ""
+		var NotifKindConst = load("res://core/notifications/notification_kind.gd").NotifKind
+		var kind: int = NotifKindConst.CUSTOM
+		match str(result.get("reason", "")):
+			"":
+				msg = "The Chronicle accepts your answer."
+				kind = NotifKindConst.ACHIEVEMENT_UNLOCKED
+			"wrong":
+				msg = "The record stays silent. That is not what the sky said."
+			"locked":
+				msg = "The Chronicle gates this mystery still."
+			"already":
+				msg = "You have already answered this one."
+			_:  # "unknown" and anything unexpected
+				msg = "The Chronicle holds no such record."
+		NotificationService.notify(
+			kind,
+			msg,
+			"ChronicleUI",
+			"chronicle:mystery:%s:%s" % [mystery_id, str(result.get("reason", "err"))],
+			{"mystery_id": mystery_id},
+			_observer_id()
+		)
+	var audio = get_node_or_null("/root/AudioService")
+	if audio != null and audio.has_method("play_ui"):
+		if bool(result.get("ok", false)):
+			audio.play_ui("mystery_solved", -2.0)
+		else:
+			audio.play_ui("ui_click", -8.0)
+	refresh()
 
 
 ## The living part of the world: a short pointer into the Concord loop.

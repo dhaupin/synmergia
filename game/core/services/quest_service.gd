@@ -653,10 +653,16 @@ func _load_player_quests() -> void:
 	var store := DictStore.new()
 	_player_quests.clear()
 	for key in store.all_keys():
-		var player_id: String = key.replace(_kv_prefix, "")
-		var data: Dictionary = store.get_value(key) as Dictionary
-		if data == null:
-			data = {}
+		# Filter OUR prefix: the store is shared KV -- other services'
+		# entries used to hit the cast below and crash _ready (the
+		# SignService loader always filtered; this one forgot).
+		if not str(key).begins_with(_kv_prefix):
+			continue
+		var player_id: String = str(key).replace(_kv_prefix, "")
+		var raw = store.get_value(str(key))
+		if not (raw is Dictionary):
+			continue
+		var data: Dictionary = raw
 		if not data.is_empty():
 			_player_quests[player_id] = data
 

@@ -490,6 +490,58 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 14 (2026-09-26): door-open world event + chapter-
+  gated mysteries (user picked: audio path A + mysteries, sky-code
+  first, title + small XP rewards).
+  AUDIO (the repo's first): scripts/gen_door_open_audio.py synthesizes
+  3 deterministic WAVs into game/audio/ (ancient_door_open chime+
+  rumble, mystery_solved resolve, ui_click tick) -- the model-pipeline
+  convention (deterministic assets from scripts, committed, no
+  hand-edited binaries). AudioService autoload (core/autoload/
+  audio_service.gd, registered after ActsService) plays them through
+  a 6-player round-robin pool, non-positional (the door bell is
+  communal -- heard shard-wide); play/play_world/play_ui, unknown
+  names warn not crash; ensure_initialized for script mode. FRESH WAV
+  LESSON: a new .wav fails to load until an editor/import pass -- run
+  the headless import boot once before the test suite.
+  DOOR PAYOFF (ancient_door._open): PayoffPillar (30m emissive amber
+  cylinder) + PayoffFlash (OmniLight3D) bloom at the slab, sky
+  renderer's new flash_payoff(seconds) tints the whole star pool
+  amber then restores each star's OWN current tint (first cut lerped
+  to the default blue and would have re-colored untouched stars),
+  and AudioService.play_world("ancient_door_open") fires -- the shard
+  FEELS the door. probe_ancient_loop 3d asserts pillar + flash + API.
+  MYSTERIES (chapter-gated puzzle content on ChronicleUI's
+  _add_section hanging point): MysteryData schema (core/schemas/
+  mystery_data.gd); data/mysteries/mystery_*.tres (new mystery_
+  prefix, lint-enforced); answer_kind SKY_CODE derives the answer
+  from SignService.get_ancient_code(answer_day) at attempt time --
+  NOTHING answer-shaped is ever stored (the sky's own record is the
+  answer key); answer_kind OBSERVATION_TALLY derives from the live
+  sign catalog count. ActsService gains the solved ledger (DictStore,
+  per-player, int-key normalize on load): attempt_mystery gates on
+  act chapter records (unknown -> locked -> wrong -> solved), pays
+  TitleService.unlock + duck-typed XP (the KillRewards pattern),
+  toasts ACHIEVEMENT_UNLOCKED. ChronicleUI renders teaser (locked),
+  riddle + LineEdit input (unlocked), full record (solved).
+  Two mysteries shipped: The First Vault (sky code of day 1 -- the
+  almanac IS the world's memory) and The Watcher's Tally (count the
+  catalogued signs), rewarding title_vault_reader and
+  title_wardens_word.
+  FIXES this batch (test-caught): QuestService._load_player_quests
+  scanned ALL DictStore keys without filtering its own prefix and
+  hard-cast with `as Dictionary` -- accumulated KV from other
+  services (4.7.2 strict cast) crashed it; now filters quest:player:
+  and is-instance checks. TitleService._do_unlock hard-failed when
+  _title_defs was empty (boot race / script mode -- definitions load
+  in _ready); lazy-loads once when empty, genuinely unknown ids still
+  warn. Test-side: the tally suite must NOT clear the solved ledger
+  (distinct mystery ids cannot collide; clearing erased the vault
+  solve before the persistence check), and the round-robin assertion
+  derives its expected index instead of assuming a full cycle.
+  Regression 16/16 (new test_mysteries 6 checks + test_audio_service
+  4 checks; probe extended). Docs: prd-psy section 10, AGENTS.md
+  (mystery_ row, test table).
 - [x] Rando batch 13 (2026-09-26): blessed-class visual motif (user:
   "let's make a blessed-class visual motif ... different from GM gold
   ... leverage the title system to add a blessed title or

@@ -34,6 +34,8 @@ test_daily_class_blessing
 test_acts_service
 test_daily_quest
 test_blessed_mark
+test_mysteries
+test_audio_service
 probe_ancient_loop
 probe_blacksmith_model
 probe_wolf_model

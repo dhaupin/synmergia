@@ -457,4 +457,38 @@ func _run() -> void:
 	else:
 		_fail("Act style violations: %s" % ", ".join(bad_acts))
 
+	# --- Chronicle mysteries: mystery_ prefix, filename == id, gated ---
+	var mystery_ids := _load_ids("data/mysteries")
+	var bad_mysteries: Array = []
+	var act_id_set: Dictionary = {}
+	for act_base in act_ids:
+		act_id_set[str(act_ids[act_base])] = true
+	var title_id_set: Dictionary = {}
+	for title_base in _load_ids("data/titles"):
+		var tid := str(_load_ids("data/titles")[title_base])
+		title_id_set[tid] = true
+	for mb in mystery_ids:
+		var mid := str(mystery_ids[mb])
+		if not mid.begins_with("mystery_"):
+			bad_mysteries.append(mid)
+		if mb != mid:
+			bad_mysteries.append("%s (filename mismatch: %s.tres)" % [mid, mb])
+		var mtxt := _file_text("data/mysteries", mb)
+		var gate_act := ""
+		var reward_title := ""
+		for line in mtxt.split("\n"):
+			var t := line.strip_edges()
+			if t.begins_with("gate_act_id = \"") and t != "gate_act_id = \"\"":
+				gate_act = t.trim_prefix("gate_act_id = \"").trim_suffix("\"")
+			elif t.begins_with("reward_title_id = \"") and t != "reward_title_id = \"\"":
+				reward_title = t.trim_prefix("reward_title_id = \"").trim_suffix("\"")
+		if gate_act != "" and not act_id_set.has(gate_act):
+			bad_mysteries.append("%s gate -> missing act %s" % [mid, gate_act])
+		if reward_title != "" and not title_id_set.has(reward_title):
+			bad_mysteries.append("%s reward -> missing title %s" % [mid, reward_title])
+	if bad_mysteries.is_empty():
+		_ok("Mysteries: all %d ids use 'mystery_' prefix, gates + title rewards resolve" % mystery_ids.size())
+	else:
+		_fail("Mystery style violations: %s" % ", ".join(bad_mysteries))
+
 	_finish()

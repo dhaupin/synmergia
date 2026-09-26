@@ -30,17 +30,24 @@ extends Node
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const KillRewards = preload("res://core/services/kill_rewards.gd")
 
 ## Fired when chapters are recorded by a door open (per act_id).
 signal chapter_recorded(act_id: String, chapter_index: int, day_index: int)
+## Fired when a mystery is solved (mystery_id, player_id).
+signal mystery_solved(mystery_id: String, player_id: String)
 
 const _KV := "acts:"
 
 var _acts: Dictionary = {}
+var _mysteries: Dictionary = {}
 ## act_id -> {chapter_index(int) -> day_index(int)} recorded ledgers.
 var _recorded: Dictionary = {}
 ## act_id -> next fill-in chapter index (gate_day = -1 sequencing).
 var _next_fill: Dictionary = {}
+## mystery_id -> {player_id -> true} solved ledgers.
+var _solved: Dictionary = {}
+## act_id -> next fill-in chapter index cache (see _rebuild_next_fill).
 var _initialized: bool = false
 
 
@@ -55,6 +62,7 @@ func ensure_initialized() -> void:
 		return
 	_initialized = true
 	_load_acts()
+	_load_mysteries()
 	_load_state()
 	_rebuild_next_fill()
 	_connect_door_signal()
@@ -208,6 +216,121 @@ func get_act_chapter_views(act_id: String) -> Array:
 	return act.get_chapter_profiles(ledger)
 
 
+## ------------------------------------------------------------------
+## Chronicle mysteries (data/mysteries/, prd-psy.md section 5)
+## ------------------------------------------------------------------
+
+func get_mystery(id: String):
+	return _mysteries.get(id)
+
+
+func get_mysteries() -> Dictionary:
+	return _mysteries
+
+
+## Is the mystery attemptable? Its gate chapter must be recorded.
+func is_mystery_unlocked(mystery_id: String) -> bool:
+	var m = _mysteries.get(mystery_id)
+	if m == null:
+		return false
+	return is_chapter_recorded(str(m.gate_act_id), int(m.gate_chapter_index))
+
+
+func is_mystery_solved(mystery_id: String, player_id: String) -> bool:
+	return _solved.get(mystery_id, {}).has(player_id)
+
+
+func get_mystery_solvers(mystery_id: String) -> Array:
+	return (_solved.get(mystery_id, {}) as Dictionary).keys()
+
+
+## THE CHECK: normalize the attempt and compare to the DERIVED answer
+## (the sky's own record -- nothing answer-shaped is stored). Returns
+## {ok, reason, solved_now}: reasons are "unknown", "locked",
+## "already", "wrong", or "" on success. Rewards on solve: the title
+## (TitleService.unlock) + a little XP (KillRewards, duck-typed).
+func attempt_mystery(mystery_id: String, player_id: String, attempt: String) -> Dictionary:
+	var m = _mysteries.get(mystery_id)
+	if m == null:
+		return {"ok": false, "reason": "unknown"}
+	var pid := str(player_id)
+	if not is_mystery_unlocked(mystery_id):
+		return {"ok": false, "reason": "locked"}
+	if is_mystery_solved(mystery_id, pid):
+		return {"ok": false, "reason": "already"}
+	var correct := false
+	match int(m.answer_kind):
+		0:  # MysteryData.AnswerKind.SKY_CODE -- derived from the day.
+			var svc = _resolve_service("SignService")
+			if svc != null:
+				var code: String = svc.get_ancient_code(int(m.answer_day))
+				correct = str(attempt).to_upper().strip_edges() == str(m.expected_answer(code))
+		1:  # FORECAST family: observation mysteries answer from catalogs.
+			correct = _check_forecast_answer(m, attempt)
+	if not correct:
+		return {"ok": false, "reason": "wrong"}
+	# Solved: ledger, rewards, one toast.
+	var ledger: Dictionary = _solved.get(mystery_id, {})
+	ledger[pid] = true
+	_solved[mystery_id] = ledger
+	_save_solved()
+	_apply_mystery_rewards(m, pid)
+	mystery_solved.emit(mystery_id, pid)
+	return {"ok": true, "reason": "", "solved_now": true}
+
+
+## Observation-mystery answers (answer_kind FORECAST): each mystery id
+## maps to a derived-from-data check. The tally counts the sign
+## catalog; future observation mysteries add cases here.
+func _check_forecast_answer(m, attempt: String) -> bool:
+	var guess := str(attempt).to_upper().strip_edges()
+	match str(m.id):
+		"mystery_the_watcher_tally":
+			var svc = _resolve_service("SignService")
+			if svc == null:
+				return false
+			return guess == str(svc._signs.size())
+		_:
+			return false
+
+
+## Rewards: the NAME (title) and a little XP. Duck-typed recipient --
+## the local player node when registered, else a plain xp mirror in
+## script-mode tests. NOTE: TitleService.unlock is STATIC -- has_method
+## does not see statics, so guard on the instance being present.
+func _apply_mystery_rewards(m, player_id: String) -> void:
+	var ts = _resolve_service("TitleService")
+	if ts != null and str(m.reward_title_id) != "":
+		ts.unlock(player_id, str(m.reward_title_id))
+	var recipient = null
+	var es = _resolve_service("EntityService")
+	if es != null and es.has_method("get_entity"):
+		recipient = es.get_entity(player_id)
+	if recipient == null:
+		recipient = {"xp": 0}  # script-mode / offline mirror
+	KillRewards._grant_xp(recipient, int(m.reward_xp))
+	var nsvc = _resolve_service("NotificationService")
+	if nsvc != null:
+		nsvc.notify(
+			NotifKind.ACHIEVEMENT_UNLOCKED,
+			"Mystery solved: %s. The Chronicle remembers." % str(m.display_name),
+			"ActsService",
+			"mystery:%s:%s" % [str(m.id), player_id],
+			{"mystery_id": str(m.id), "player_id": player_id},
+			player_id
+		)
+
+
+## Late autoload resolution (the CombatMath static pattern) -- this
+## file is preloaded by script-mode tests where bare identifiers do
+## not exist.
+func _resolve_service(svc_name: String) -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null(svc_name)
+
+
 func _count_recorded() -> int:
 	var n := 0
 	for rid in _recorded.keys():
@@ -228,6 +351,12 @@ func _load_acts() -> void:
 	_acts = DataService.get_acts()
 
 
+func _load_mysteries() -> void:
+	if DataService == null:
+		return
+	_mysteries = DataService.get_mysteries()
+
+
 func _load_state() -> void:
 	var store := DictStore.new()
 	var keys: Array = store.all_keys()
@@ -238,7 +367,10 @@ func _load_state() -> void:
 		var val = store.get_kv(ks)
 		if ks == _KV + "recorded" and val is Dictionary:
 			_recorded = val.duplicate()
+		elif ks == _KV + "solved" and val is Dictionary:
+			_solved = val.duplicate()
 	_normalize_ledgers()
+	_normalize_solved()
 
 
 ## DictStore round-trips through JSON, which stringifies dictionary
@@ -257,6 +389,26 @@ func _normalize_ledgers() -> void:
 	_recorded = clean
 
 
+## Same JSON-key lesson for the mystery solved ledger: player_id keys
+## are strings already, but normalize defensively anyway.
+func _normalize_solved() -> void:
+	var clean: Dictionary = {}
+	for mid in _solved.keys():
+		var players: Dictionary = _solved[mid]
+		if not (players is Dictionary):
+			continue
+		var clean_players: Dictionary = {}
+		for pid in players.keys():
+			clean_players[str(pid)] = true
+		clean[str(mid)] = clean_players
+	_solved = clean
+
+
 func _save_recorded() -> void:
 	var store := DictStore.new()
 	store.set_kv(_KV + "recorded", _recorded.duplicate())
+
+
+func _save_solved() -> void:
+	var store := DictStore.new()
+	store.set_kv(_KV + "solved", _solved.duplicate())

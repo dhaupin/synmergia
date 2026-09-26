@@ -205,6 +205,12 @@ func _do_unlock(player_id: String, title_id: String) -> bool:
 	if QoSService and not QoSService.rate_limit(player_id, "title_unlock"):
 		return false
 
+	# Boot-race / script-mode recovery: definitions normally load in _ready,
+	# but a caller (ActsService mystery rewards) can reach us first. Lazy-load
+	# once when empty; a genuinely unknown id still warns below.
+	if _title_defs.is_empty():
+		_load_title_definitions()
+
 	if not _title_defs.has(title_id):
 		GameLog.warn("TitleService: Unknown title %s" % title_id)
 		return false

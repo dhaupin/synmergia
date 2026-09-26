@@ -99,6 +99,7 @@ TitleService="*res://core/services/title_service.gd"
 AchievementListeners="*res://core/services/achievement_listeners.gd"
 SignService="*res://core/services/sign_service.gd"
 ActsService="*res://core/services/acts_service.gd"
+AudioService="*res://core/autoload/audio_service.gd"
 
 [display]
 

@@ -6,6 +6,7 @@ extends Node
 
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const ActProfile = preload("res://core/schemas/act_profile.gd")
+const MysteryData = preload("res://core/schemas/mystery_data.gd")
 const Item = preload("res://core/schemas/item.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
 const CharacterClass = preload("res://core/schemas/character_class.gd")
@@ -45,6 +46,7 @@ var _movement_profiles: Dictionary = {}
 var _hitbox_profiles: Dictionary = {}
 var _signs: Dictionary = {}
 var _acts: Dictionary = {}
+var _mysteries: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
 var _npcs: Dictionary = {}
@@ -90,6 +92,7 @@ func load_all_data() -> void:
 	load_hitbox_profiles()
 	load_signs()
 	load_acts()
+	load_mysteries()
 
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -258,6 +261,11 @@ func load_acts() -> void:
 	_acts = _scan_directory(_data_path + "acts", "act")
 	GameLog.info("DataService: Loaded %d acts" % _acts.size())
 
+## Load Chronicle mysteries from data/mysteries/.
+func load_mysteries() -> void:
+	_mysteries = _scan_directory(_data_path + "mysteries", "mystery")
+	GameLog.info("DataService: Loaded %d mysteries" % _mysteries.size())
+
 ## Load status effects from data/status_effects/
 func load_status_effects() -> void:
 	_status_effects = _scan_directory(_data_path + "status_effects", "status_effect")
@@ -386,6 +394,15 @@ func get_act(id: String) -> ActProfile:
 ## stable order for the almanac's Chronicle block.
 func get_acts() -> Dictionary:
 	return _acts
+
+func get_mystery(id: String) -> MysteryData:
+	if _mysteries.has(id):
+		return _mysteries.get(id)
+	GameLog.warn("DataService: Mystery not found: " + id)
+	return null
+
+func get_mysteries() -> Dictionary:
+	return _mysteries
 
 
 ## Resolve the hitbox profile id for a playable character species.

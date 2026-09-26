@@ -153,6 +153,26 @@ func _initialize() -> void:
 		return
 	print("[OK] tribal loop: 3 observers -> code assembled -> DOOR OPEN")
 
+	# 3d. Payoff spectacle (batch 14): the open erupts a light pillar
+	#	and a light flash at the door, and the sky renderer owns the
+	#	shard-wide amber flash API.
+	if door.get_node_or_null("PayoffPillar") == null:
+		push_error("FAIL: no PayoffPillar after door open")
+		inst.free()
+		quit(1)
+		return
+	if door.get_node_or_null("PayoffFlash") == null:
+		push_error("FAIL: no PayoffFlash after door open")
+		inst.free()
+		quit(1)
+		return
+	if not sky.has_method("flash_payoff"):
+		push_error("FAIL: sky renderer missing flash_payoff")
+		inst.free()
+		quit(1)
+		return
+	print("[OK] payoff spectacle: pillar + light flash + sky flash wired")
+
 	# 3c. Concord Chronicle (labs/prd-psy.md section 5): the door open
 	#    advanced the acts. The real-clock unlock day is today + 1 (the
 	#    door tracks tomorrow), which matches NO authored gate day -- so

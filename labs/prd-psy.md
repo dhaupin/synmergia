@@ -266,3 +266,31 @@ at the sky's day boundary (SignService.current_day_index(), so admin
 time-travel stays coherent). Design note retained: the Chronicle is
 a SHARD milestone (the door opened for everyone), while the daily is
 per-player progress -- keep those separate in the UI copy.
+
+**The door payoff is a felt event (batch 14).** Opening an Ancient
+erupts a PayoffPillar (30 m emissive amber cylinder) and a light
+flash at the slab, tints the whole constellation amber for ~3 s
+each star keeps its own tint afterwards -- and plays the generated
+ancient_door_open chime shard-wide (AudioService, round-robin pool,
+non-positional: the bell is communal). Audio assets come from
+`scripts/gen_door_open_audio.py` -- deterministic assets from
+scripts, same convention as the model pipeline. The repository's
+first audio infrastructure lives in `game/audio/` +
+`core/autoload/audio_service.gd` and is the shared path for all
+future sound.
+
+**Mysteries: chapter-gated puzzle content (batch 14).** The
+Chronicle's records are the vault; mysteries are what a reader can
+DO with them. A Mystery (`data/mysteries/mystery_*.tres`, new
+mystery_ prefix, lint-enforced) gates on a recorded act chapter
+(milestone, not faith) and poses a riddle whose ANSWER IS NEVER
+STORED: answer_kind SKY_CODE re-derives SignService.get_ancient_code
+(answer_day) at attempt time -- the sky's own record is the answer
+key, so the almanac is literally the world's memory -- and
+OBSERVATION_TALLY derives from the live sign catalog. ActsService
+keeps a per-player solved ledger (DictStore, int-key normalized on
+load) and pays the reward the worldview prefers: a NAME, not loot
+(title via TitleService.unlock, small XP). ChronicleUI renders the
+arc: teaser while locked, riddle + answer input once its chapter is
+recorded, the full record once solved. Voice law holds: riddles and
+records are observational, no faith language (section 4).
