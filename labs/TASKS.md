@@ -490,6 +490,35 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 12 (2026-09-26): daily quest reset + RECORD_INSIGHT
+  objective + Chronicle panel (user: "Yeah we can do the daily-quest
+  reset + 'record an insight' objective for quest_watch_the_sky. I
+  feel like a dedicated Chronicle lore panel would be useful too").
+  DAILY QUEST: QuestData gained RECORD_INSIGHT (enum index 11 --
+  ACHIEVE_STEP was the last); QuestService bridges
+  SignService.insight_recorded -> update_quest_progress(RECORD_INSIGHT,
+  "sky_insight") per player (deferred connect: SignService is a later
+  autoload, the null-instance trap), and _maybe_reset_dailies erases
+  REWARDED DAILY quests at the day boundary on a 60s timer -- the
+  reset reads SignService.current_day_index() (NEW helper honoring
+  the clock override; my first version read the raw clock and the
+  admin time-travel desynced the calendar, caught by the test).
+  quest_watch_the_sky.tres (DAILY, repeatable, 1x sky_insight,
+  25g/50xp, elder giver) auto-accepts in world_playable beside the
+  hunt. FOUND + FIXED a live bug on the way: the QUEST_COMPLETED
+  toast used 2-arg Resource.get ("data", {}) -- 4.7.2 removed the
+  default arg, so ANY quest completion script-errored the moment a
+  player completed anything in script mode. CHRONICLE PANEL:
+  chronicle_ui.gd (J key = journal, MenuManager "chronicle"),
+  scrollable acts reader -- full record lines for recorded chapters,
+  sealed frames naming WHAT they wait on ("opens when day N's Ancient
+  is earned"), never the lesson; _add_section(title, lines) is the
+  extension point for future mysteries/puzzles; almanac gained an
+  "Open the Chronicle" button that closes itself and hands off.
+  TESTS: test_daily_quest.gd (5 checks: data shape, per-player
+  credit, turn-in, reset, full re-earn loop; pins days +300/+301 to
+  stay clear of other suites); test_acts_service grew the panel check
+  (13 checks total). Regression 13/13, boot clean.
 - [x] Rando batch 11 (2026-09-26): something behind the open door --
   Acts/chapters consumer + almanac Watch-the-sky button (user: "Let's
   do it! ... This can also show up as a daily quest if that's what you

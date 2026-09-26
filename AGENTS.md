@@ -7,7 +7,7 @@
 > **What this file is NOT:** An operational log, debugging status,
 > or session history. (Session notes go in `labs/TASKS.md`.)
 
-> **Last updated 2026-09-26:** 3D pipeline proven end-to-end (`scripts/gen_blacksmith_model.py` -> `game/models/npcs/`; exporter gotchas in `labs/prd-3d-pipeline.md` sec 6). Movement Design System: `data/movement_profiles/` + `MovementProfile` schema drive all speeds/gravity/capability gates. Hitbox Profile System: `data/hitbox_profiles/` + `HitboxProfile` schema drive all collision shapes; playable species share ONE player hitbox (species/sex never scale it). Skyward Concord: `labs/prd-psy.md` is worldview DESIGN LAW (no religion in Synmergia); SignService + `data/signs/` run the communal sky clock; AncientDoor re-seals at dawn and door_opened drives ActsService -- the Concord Chronicle (`data/acts/`, act_ prefix) records one chapter per solved day; SkyAlmanacUI (V key) has the Watch-the-sky far-gaze button; the Daily Class Blessing (sky wheel -> +20%/+5 levels for the named class, earn-gated on the code) is the retention beat. Regression set: `sh ./scripts/godot_test_runner.sh`.
+> **Last updated 2026-09-26:** 3D pipeline proven end-to-end (`scripts/gen_blacksmith_model.py` -> `game/models/npcs/`; exporter gotchas in `labs/prd-3d-pipeline.md` sec 6). Movement Design System: `data/movement_profiles/` + `MovementProfile` schema drive all speeds/gravity/capability gates. Hitbox Profile System: `data/hitbox_profiles/` + `HitboxProfile` schema drive all collision shapes; playable species share ONE player hitbox (species/sex never scale it). Skyward Concord: `labs/prd-psy.md` is worldview DESIGN LAW (no religion in Synmergia); SignService + `data/signs/` run the communal sky clock; AncientDoor re-seals at dawn and door_opened drives ActsService -- the Concord Chronicle (`data/acts/`, act_ prefix) records one chapter per solved day; SkyAlmanacUI (V key) has the Watch-the-sky far-gaze button; the Daily Class Blessing (sky wheel -> +20%/+5 levels for the named class, earn-gated on the code) is the retention beat; quest_watch_the_sky (RECORD_INSIGHT objective, resets at the sky dawn) is the daily beat and ChronicleUI (J key) is the lore shelf (extensible via _add_section for future mysteries). Regression set: `sh ./scripts/godot_test_runner.sh`.
 
 ## READ FIRST
 
@@ -663,6 +663,7 @@ consumers read exactly one form.
 | Hitbox profiles | `hitbox_` prefix | `hitbox_beast_medium` | filename == id |
 | Sky Signs | `sign_` prefix | `sign_the_awakening` | filename == id |
 | Chronicle Acts | `act_` prefix | `act_1_the_first_vault` | filename == id; chapters are plain dicts (the QuestData pattern); no faith language in copy (prd-psy sec 4) |
+| Daily sky quest | `quest_watch_the_sky` | `quest_watch_the_sky.tres` | RECORD_INSIGHT objective targets the literal `sky_insight`; reset keys off SignService.current_day_index() |
 | Ancient doors | bare id on the node | `AncientDoor` (entities/ancient_door.gd) | no .tres (door state is SignService unlock history) |
 | Dwellings | `dwel_` prefix | `dwel_fireplace_stone` | filename == id |
 | Currencies | `currency_` prefix | `currency_gold` | filename == id |
@@ -880,7 +881,8 @@ docker run --rm -e START_MODE=test synmergia
 | `test_islands.gd` | Core island logic (island_poc.gd) |
 | `test_e2e_flow.gd` | End-to-end account flow |
 | `test_notif_migration_*.gd` | Notification migration tests |
-| `test_acts_service.gd` | ActsService: door_opened consumer, gate/fill/fence logic, voice-law check, almanac watch button, DictStore round-trip (int keys normalized on load -- JSON stringifies them) |
+| `test_acts_service.gd` | ActsService: door_opened consumer, gate/fill/fence logic, voice-law check, almanac watch button, Chronicle panel, DictStore round-trip (int keys normalized on load -- JSON stringifies them) |
+| `test_daily_quest.gd` | quest_watch_the_sky: RECORD_INSIGHT credit per player, turn-in, REWARDED-daily reset at the sky day boundary, full re-earn loop |
 
 > **Note:** `--script` mode does not pre-load autoloads. Resolve them via
 > `root.get_node_or_null("NotificationService")` rather than the bare identifier.

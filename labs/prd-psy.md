@@ -216,7 +216,11 @@ plays a boosted day.
   block is the readable minimum), and act-gated world content --
   doors, vaults, skill academy tiers per section 5, so each chapter
   attaches to something players DO.
-- **Daily quest reset + insight objective** (see section 10).
+- **Daily quest reset + insight objective:** SHIPPED, batch 12
+  (quest_watch_the_sky + RECORD_INSIGHT).
+- **Chronicle mysteries & puzzles:** future lore blocks (cipher
+  hunts, vault riddles) hang on ChronicleUI's _add_section();
+  consider chapter-gated puzzle data (act_ prefix) when authored.
 
 ## 10. Acts & chapters shipped (batch 11), and the daily-quest gap
 
@@ -239,15 +243,12 @@ the almanac's Watch-the-sky button both record insights -- the stone
 for players who walk there, the button for players too far from one.
 Same truth, same one-gaze-per-window price.
 
-**The daily-quest gap (deliberately NOT forced).** The sky solve
-could surface as a daily quest, and it would fit the retention
-loop -- but today's QuestService cannot express it: no objective
-type means "record an insight" (TALK/EXPLORE/KILL/COLLECT only),
-and `check_quest_availability` permanently blocks REWARDED quests --
-there is no daily reset, so a REWARDED daily could never be
-re-accepted. QuestData already carries `DAILY`, `is_repeatable`, and
-`cooldown` fields; when a daily-reset + insight-objective slice
-lands, `quest_watch_the_sky` is the natural first data file. Design
-note: the Chronicle is a SHARD milestone (the door opened for
-everyone), while a daily quest is per-player progress -- keep those
-separate in the UI copy.
+**The daily quest shipped (batch 12).** The sky solve IS a daily now:
+`quest_watch_the_sky` (DAILY, repeatable) uses the new
+RECORD_INSIGHT objective type, credited by
+SignService.insight_recorded per player (the stone and the almanac
+button feed the same bridge). QuestService resets REWARDED dailies
+at the sky's day boundary (SignService.current_day_index(), so admin
+time-travel stays coherent). Design note retained: the Chronicle is
+a SHARD milestone (the door opened for everyone), while the daily is
+per-player progress -- keep those separate in the UI copy.

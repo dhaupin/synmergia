@@ -24,6 +24,10 @@ var _player_quests: Dictionary = {}
 ## Available quests per player: player_id -> [quest_ids]
 var _available_quests: Dictionary = {}
 
+## Epoch day of the last daily-quest reset (SignService day index).
+## -1 until the first check; one reset pass per day boundary.
+var _daily_reset_day: int = -1
+
 ## Signals
 signal quest_accepted(player_id: String, quest_id: String)
 signal quest_updated(player_id: String, quest_id: String, objective_id: String, progress: int)
@@ -44,6 +48,61 @@ func _ready() -> void:
 	_load_player_quests()
 	_connect_combat_event_bridges()
 	_connect_lore_event_bridges()
+	# Insight bridge + daily reset need SignService (a LATER autoload,
+	# the _ready null-instance trap) -- defer both past the boot.
+	call_deferred("_connect_insight_bridge")
+	call_deferred("_maybe_reset_dailies")
+	var reset_timer := Timer.new()
+	reset_timer.wait_time = 60.0
+	reset_timer.autostart = true
+	reset_timer.timeout.connect(_maybe_reset_dailies)
+	add_child(reset_timer)
+
+
+## The sky-solve bridge (prd-psy.md section 10): RECORD_INSIGHT
+## objectives credit SignService.insight_recorded. Target is the
+## literal "sky_insight" -- quest .tres objectives author the same
+## string, one credit path, no candidate fallbacks.
+func _connect_insight_bridge() -> void:
+	if SignService != null and SignService.has_signal("insight_recorded") \
+			and not SignService.insight_recorded.is_connected(_on_insight_recorded):
+		SignService.insight_recorded.connect(_on_insight_recorded)
+
+
+func _on_insight_recorded(player_id: String, _sign_id: String, _window_index: int) -> void:
+	update_quest_progress(player_id, QuestData.ObjectiveType.RECORD_INSIGHT, "sky_insight", 1)
+
+
+## REWARDED daily quests re-accept at the day boundary (the missing
+## reset that kept quest_type DAILY a screen saver). Erasing the
+## REWARDED entry makes check_quest_availability offer it again; the
+## wheel-almanac gate still applies -- accept, watch, earn.
+func _maybe_reset_dailies() -> void:
+	if SignService == null:
+		return
+	# The SKY's day, not the raw clock: admin clock overrides and the
+	# Concord calendar must agree, or dailies reset on the wrong dawn.
+	var day := SignService.current_day_index()
+	if day == _daily_reset_day:
+		return
+	_daily_reset_day = day
+	for player_id in _player_quests.keys():
+		var quests: Dictionary = _player_quests[player_id]
+		var reset := 0
+		for quest_id in quests.keys():
+			var state: Dictionary = quests[quest_id]
+			if int(state.get("state", -1)) != QuestData.QuestState.REWARDED:
+				continue
+			var qdata = state.get("data")
+			if qdata == null or not ("quest_type" in qdata):
+				continue
+			if int(qdata.quest_type) != QuestData.QuestType.DAILY:
+				continue
+			quests.erase(quest_id)
+			reset += 1
+		if reset > 0:
+			_persist_player_quests(str(player_id))
+			GameLog.info("QuestService: %d daily quest(s) reset for %s" % [reset, str(player_id)])
 
 ## ============================================================================
 ## EVENT BRIDGES (combat -> objectives)
@@ -420,10 +479,16 @@ func update_quest_progress(player_id: String, objective_type: int, target: Strin
 			# legacy render path). Dedupe on (player, quest_id) so a
 			# follow-up objective tick that re-evaluates to complete
 			# does not double-toast.
+			# NOTE: no 2-arg Resource.get here -- 4.7.2 removed the
+			# default argument and a completion would SCRIPT ERROR.
+			var qdata = quest_state.get("data")
+			var qname: String = "Unknown"
+			if qdata != null and "display_name" in qdata:
+				qname = str(qdata.display_name)
 			if is_instance_valid(NotificationService):
 				NotificationService.notify(
 					NotifKind.QUEST_COMPLETED,
-					"Quest Complete: %s - Return to quest giver!" % quest_state.get("data", {}).get("display_name", "Unknown"),
+					"Quest Complete: %s - Return to quest giver!" % qname,
 					"QuestService",
 					"quest_complete:%s:%s" % [player_id, quest_id],
 					{"quest_id": quest_id, "player_id": player_id},
@@ -543,6 +608,8 @@ func get_quest_objectives_text(player_id: String, quest_id: String) -> Array:
 				text = "Talk to %s" % _esc(target)
 			QuestData.ObjectiveType.EXPLORE:
 				text = "Explore %s" % _esc(target)
+			QuestData.ObjectiveType.RECORD_INSIGHT:
+				text = "Watch the sky: %d/%d" % [current, required]
 			_:
 				text = "%s: %d/%d" % [_esc(target), current, required]
 

@@ -35,6 +35,7 @@ var _transfer_panel: Control
 var _trade_panel: Control
 var _admin_panel: Control
 var _sky_almanac_panel: Control
+var _chronicle_panel: Control
 var _debug_panel: Control
 
 ## State
@@ -242,6 +243,13 @@ func _initialize_panels() -> void:
 	_sky_almanac_panel.z_index = 500
 	add_child(_sky_almanac_panel)
 	_sky_almanac_panel.panel_closed.connect(_on_panel_closed.bind("sky_almanac"))
+
+	# Chronicle panel (Concord Chronicle reader; J key)
+	_chronicle_panel = load("res://ui/components/chronicle_ui.gd").new()
+	_chronicle_panel.name = "ChronicleUI"
+	_chronicle_panel.z_index = 500
+	add_child(_chronicle_panel)
+	_chronicle_panel.panel_closed.connect(_on_panel_closed.bind("chronicle"))
 
 	# Admin panel (requires MOD+)
 	_admin_panel = preload("res://ui/admin/admin_dashboard.gd").new()
@@ -576,6 +584,7 @@ func _get_panel(menu_name: String) -> Control:
 		"transfer": return _transfer_panel
 		"trade": return _trade_panel
 		"sky_almanac": return _sky_almanac_panel
+		"chronicle": return _chronicle_panel
 		"dialog": return _dialog_panel
 		"shop": return _shop_panel
 		"admin": return _admin_panel

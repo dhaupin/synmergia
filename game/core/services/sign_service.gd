@@ -99,6 +99,13 @@ func _now_unix() -> float:
 func day_index_for(unix: float) -> int:
 	return int(floor(unix / 86400.0))
 
+
+## Epoch day index of "now" (honors the test/admin clock override).
+## Services that key daily state off the sky MUST use this, not the
+## raw clock, or admin time-travel desyncs their calendars.
+func current_day_index() -> int:
+	return day_index_for(_now_unix())
+
 ## 0..3 window index within the day for a unix timestamp.
 func window_index_for(unix: float) -> int:
 	var secs_into_day: float = fposmod(unix, 86400.0)

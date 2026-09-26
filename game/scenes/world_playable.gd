@@ -506,9 +506,11 @@ func _ensure_damage_numbers() -> void:
 		add_child(_damage_numbers)
 
 
-## Auto-accept the Wolf Hunt quest for the local player so the kill
-## objective bridge is exercised in the playable scene. Players accept
-## it through the elder NPC dialog in the full flow.
+## Auto-accept the Wolf Hunt quest and the Watch-the-sky daily for
+## the local player so the kill + insight objective bridges are
+## exercised in the playable scene. Players accept the hunt through
+## the elder NPC dialog in the full flow; the daily rides the Concord
+## loop (prd-psy.md section 10).
 func _accept_starter_quest() -> void:
 	var player := get_node_or_null("Player")
 	if player == null or not ("entity_id" in player) or str(player.entity_id) == "":
@@ -519,6 +521,8 @@ func _accept_starter_quest() -> void:
 	var active: Array = QuestService.get_active_quests(player_id) if QuestService.has_method("get_active_quests") else []
 	if not active.has("quest_wolves_hunt"):
 		QuestService.accept_quest(player_id, "quest_wolves_hunt")
+	if not active.has("quest_watch_the_sky"):
+		QuestService.accept_quest(player_id, "quest_watch_the_sky")
 
 ## Bridge the touch HUD into the player's camera. The VirtualJoystick
 ## emits camera_look for drags on the right half; the ThirdPersonCamera

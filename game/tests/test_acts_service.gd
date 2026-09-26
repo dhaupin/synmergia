@@ -49,6 +49,7 @@ func _initialize() -> void:
 	ok = _test_announcement_toast() and ok
 	ok = await _test_almanac_watch_button() and ok
 	ok = _test_persistence_round_trip() and ok
+	ok = await _test_chronicle_panel() and ok
 
 	print("--- ACTS SERVICE: ok=%s ---" % str(ok))
 	quit(0 if ok else 1)
@@ -324,6 +325,48 @@ func _test_persistence_round_trip() -> bool:
 		push_error("FAIL: reboot lost %s chapter %d" % [sample_act, sample_idx])
 		return false
 	print("[OK] persistence: %d recorded chapters survive reboot" % expected)
+	return true
+
+
+## The dedicated Chronicle panel (J) renders acts + sealed frames
+## without leaking unrecorded lessons, and its _add_section extension
+## point blocks cleanly for future mysteries.
+func _test_chronicle_panel() -> bool:
+	var ui_script = load("res://ui/components/chronicle_ui.gd")
+	if ui_script == null:
+		push_error("FAIL: chronicle_ui.gd missing")
+		return false
+	var panel = ui_script.new()
+	root.add_child(panel)
+	await process_frame
+	panel.refresh()
+	await process_frame
+	if panel._sections == null or panel._sections.get_child_count() == 0:
+		push_error("FAIL: chronicle panel rendered no sections")
+		panel.free()
+		return false
+	var text := ""
+	for block in panel._sections.get_children():
+		if block is Label:
+			text += str(block.text) + "\n"
+	if not text.contains("The First Vault"):
+		push_error("FAIL: chronicle panel missing act title")
+		panel.free()
+		return false
+	# Voice law at the panel layer too.
+	for word in ["prayer", "holy", "sacred", "worship", "divine", "miracle"]:
+		if text.to_lower().contains(word):
+			push_error("FAIL: panel text says '%s'" % word)
+			panel.free()
+			return false
+	# Honesty: at least one sealed frame, and no recorded lesson text
+	# leaks for the act 1 chapters this run never opened.
+	if not text.contains("[sealed"):
+		push_error("FAIL: chronicle panel shows no sealed frames")
+		panel.free()
+		return false
+	panel.free()
+	print("[OK] Chronicle panel: acts render, seals hold, voice law holds")
 	return true
 
 

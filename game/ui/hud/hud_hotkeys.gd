@@ -111,6 +111,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_V:
 				_toggle_panel("sky_almanac")
 				get_viewport().set_input_as_handled()
+			KEY_J:
+				_toggle_panel("chronicle")
+				get_viewport().set_input_as_handled()
 			KEY_TAB:
 				_handle_tab_cycling(k.shift_pressed)
 				get_viewport().set_input_as_handled()

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_watch_the_sky"
+display_name = "Watch the Sky"
+description = "The Concord keeps its ledger by the sky itself. Stand anywhere, open the almanac (V) or find a Concord Stone, and record what the current window shows. One honest gaze a day keeps the Chronicle current."
+quest_type = 2
+difficulty = 0
+giver_npc_id = "npc_village_elder"
+turn_in_npc_id = "npc_village_elder"
+min_level = 1
+max_level = 100
+objectives = [{"id": "watch_sky", "type": 11, "target": "sky_insight", "count": 1}]
+rewards = [{"type": "gold", "id": "", "quantity": 25}, {"type": "experience", "id": "", "quantity": 50}]
+gold_reward = 25
+xp_reward = 50
+icon_path = ""
+map_marker = ""
+is_repeatable = true
+max_completions = 0

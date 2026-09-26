@@ -22,6 +22,7 @@ var _door_label: Label
 var _blessed_label: Label
 var _acts_rows: VBoxContainer
 var _watch_btn: Button
+var _chronicle_btn: Button
 var _refresh_btn: Button
 
 
@@ -104,10 +105,25 @@ func _setup_ui() -> void:
 	_watch_btn.pressed.connect(_on_watch_pressed)
 	main.add_child(_watch_btn)
 
+	_chronicle_btn = Button.new()
+	_chronicle_btn.text = "Open the Chronicle"
+	_chronicle_btn.tooltip_text = "Read the acts and chapters the tribe has recorded (J)"
+	_chronicle_btn.pressed.connect(_on_chronicle_pressed)
+	main.add_child(_chronicle_btn)
+
 	_refresh_btn = Button.new()
 	_refresh_btn.text = "Watch the sky again"
 	_refresh_btn.pressed.connect(refresh)
 	main.add_child(_refresh_btn)
+
+
+## Hand off to the dedicated Chronicle reader (J): the almanac block
+## stays the readable minimum, the panel is the shelf.
+func _on_chronicle_pressed() -> void:
+	if MenuManager == null:
+		return
+	close()
+	MenuManager.toggle_menu("chronicle")
 
 
 ## The far-gaze: record this player's insight for the current window
