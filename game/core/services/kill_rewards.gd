@@ -203,6 +203,18 @@ static func _party_service() -> Node:
 static func _grant_xp(recipient, amount: int) -> void:
 	if recipient == null or amount <= 0:
 		return
+	# Daily Class Blessing (prd-psy.md section 8): the sky-blessed class
+	# earns +20% XP for the day (same multiplier as damage/healing).
+	# Duck-typed + late-resolved: bare Entities and script-mode tests
+	# never touch a bare autoload identifier.
+	if "character_class" in recipient:
+		var cid := str(recipient.get("character_class"))
+		if not cid.is_empty():
+			var ml := Engine.get_main_loop()
+			if ml != null and (ml is SceneTree):
+				var svc = (ml as SceneTree).root.get_node_or_null("SignService")
+				if svc != null and svc.has_method("is_class_blessed") and svc.is_class_blessed(cid):
+					amount = int(float(amount) * float(svc.BLESSED_DAMAGE_MULTIPLIER))
 	if "add_experience" in recipient and recipient.has_method("add_experience"):
 		recipient.add_experience(amount)
 	elif "xp" in recipient:

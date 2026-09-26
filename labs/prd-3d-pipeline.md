@@ -151,3 +151,45 @@ NPC, and mount; retuning is a .tres edit, never a code edit.
 - Test: `test_movement_profiles.gd` (standard preserves historical
   tuning 5.0/10.0/10.0; quadruped faster; ambient NPCs cannot
   sprint/jump; machines cannot jump).
+
+## 10. Hitbox Profile System
+
+Hitbox SIZE is DATA, not scene furniture: `HitboxProfile`
+(`core/schemas/hitbox_profile.gd`) + `.tres` files in
+`data/hitbox_profiles/` (player, humanoid, beast_medium, blob, dummy,
+npc). One profile per body plan; capsule for bipeds, box for beasts,
+sphere for blobs. `build_shape()` emits a fresh Godot `Shape3D`;
+`get_dims(scale, stance)` returns pre-multiplied dims + center offset.
+
+- `DataService.get_creature_hitbox_profile(data)` is the single
+  resolution path for creatures: explicit `hitbox_profile_id` wins,
+  else `animation_set` derives the body plan (wolf -> beast_medium,
+  slime -> blob, else humanoid). NPCs resolve
+  `NPCData.hitbox_profile_id` (default hitbox_npc); NPCEntity applies
+  it to the scene-authored `CollisionShape3D`.
+- Enemies: `_apply_hitbox_profile()` targets the scene's
+  `StaticBody3D/Hitbox` node first (world_playable renames its inline
+  shapes to `Hitbox`), then `Hitbox`, then a bare
+  `CollisionShape3D`; only when none exist does it build the
+  StaticBody3D/Hitbox pair itself. `EnemyData.scale` multiplies the
+  hitbox AND the mounted `ModelRoot` (same clamp band, so visual and
+  collider always agree; wolf 1.2 does both).
+- FAIRNESS RULE (species PvP): every playable species resolves to ONE
+  shared profile via `DataService.resolve_player_hitbox_profile()`;
+  a deviating species override is logged as an error and forced back.
+  `hitbox_player.tres` is `pvp_fair = true` with scale clamped hard
+  to 1.0 -- species, sex, and body_type never resize the player
+  hitbox (bigger hitbox = eats more hits = worse PvP).
+- Players: `PlayerController._apply_hitbox_profile()` in _ready
+  (deferred, after species data resolves) + `set_hitbox_stance()`;
+  Crouch/Slide states swap to the crouch variant (0.9 capsule at half
+  offset), invalid stances ignored.
+- Lint: `test_data_naming_lint.gd` enforces `hitbox_` prefix +
+  filename==id, resolvable refs from enemies/npc/species, and the
+  species fairness rule (all species share one profile).
+- Test: `test_hitbox_profiles.gd` (profile load, dims/stances, scale
+  clamp, species fairness, creature resolution, enemy + player wiring
+  through the live world scene).
+- SpawnService.spawn_npc_entity now defers the add_child when called
+  during scene setup (world_playable._ready NPC spawns were being
+  rejected mid-setup and landed half-configured).

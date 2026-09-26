@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ActProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/act_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "act_2_the_unpaid_debt"
+display_name = "Act II: The Unpaid Debt"
+description = "The dead built what you live in. This act reads the maintenance logs they left behind -- obligations without owners, kept anyway."
+advance_from_day = 3
+chapters = [{
+"gate_day": -1,
+"index": 1,
+"record_text": "A conduit line has been re-wound every eleven years since before the Bloom. The log holds 214 signatures and one instruction, addressed to nobody: 'rewind it again.' Nobody was paid. Everybody was obliged.",
+"source_name": "The Conduit Wardens"
+}, {
+"gate_day": 3,
+"index": 2,
+"record_text": "The wardens refused replacement parts when the originals could be mended. Their reason, on file: 'a spare teaches you nothing; a mend teaches you the whole.' The Skill Academy still teaches from their mends.",
+"source_name": "The Concord of Wardens"
+}, {
+"gate_day": -1,
+"index": 3,
+"record_text": "The final maintenance log has no repair entry at all -- only a roster of names and, beside each, the name of another. Every name appears twice: once as keeper, once as kept. The roster was the repair.",
+"source_name": "The Last Warden Roster"
+}]

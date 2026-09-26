@@ -1045,10 +1045,16 @@ func spawn_npc_entity(
 	# errors + identity transforms reaching TargetingManager), and
 	# register_entity derives the NSC-9 spatial address + default spawn
 	# metadata from global_position. Same ordering as the /spawn enemy path.
+	# Deferred when called during scene setup (world_playable._ready spawns
+	# offering NPCs while the scene is still adding children -- a sync add
+	# there is rejected and the NPC landed half-configured).
 	var tree := get_tree()
 	if tree != null and entity is Node3D and not entity.is_inside_tree():
 		var parent_node: Node = tree.current_scene if tree.current_scene else tree.root
-		parent_node.add_child(entity)
+		if parent_node.is_inside_tree() and not parent_node.is_node_ready():
+			parent_node.add_child.call_deferred(entity)
+		else:
+			parent_node.add_child(entity)
 	if entity is Node3D:
 		entity.global_position = position
 

@@ -24,6 +24,10 @@ enum LocationType {
 @export var model_path: String = ""   # Legacy alias
 @export var icon_path: String = ""
 
+# Hitbox (Hitbox Profile System). Empty = hitbox_humanoid; per-NPC
+# override so a hulking troll vendor can take a wider capsule.
+@export var hitbox_profile_id: String = ""
+
 # Dialog
 @export var greeting: String = "Hello there."
 @export var farewell: String = "Take care."

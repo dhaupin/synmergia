@@ -22,6 +22,7 @@
 ##   X    -> character transfer
 ##   R    -> trade
 ##   T    -> titles
+##   V    -> sky almanac (Skyward Concord)
 ##   TAB  -> cycle targets (or focus within panel)
 extends Node
 
@@ -106,6 +107,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_T:
 				_toggle_panel("titles")
+				get_viewport().set_input_as_handled()
+			KEY_V:
+				_toggle_panel("sky_almanac")
 				get_viewport().set_input_as_handled()
 			KEY_TAB:
 				_handle_tab_cycling(k.shift_pressed)

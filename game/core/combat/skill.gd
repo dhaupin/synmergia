@@ -377,6 +377,18 @@ func calculate_healing(caster) -> int:
 	# Apply caster's healing power (WIS-based)
 	base_heal += caster.get_healing_power()
 
+	# Daily Class Blessing (prd-psy.md section 8): the blessed class
+	# heals +20% for the day. Duck-typed + late-resolved so script-mode
+	# tests and bare Entities (never blessed) pass through clean.
+	if caster != null and "character_class" in caster:
+		var cid := str(caster.get("character_class"))
+		if not cid.is_empty():
+			var ml := Engine.get_main_loop()
+			if ml != null and (ml is SceneTree):
+				var svc = (ml as SceneTree).root.get_node_or_null("SignService")
+				if svc != null and svc.has_method("is_class_blessed") and svc.is_class_blessed(cid):
+					base_heal = int(float(base_heal) * float(svc.BLESSED_DAMAGE_MULTIPLIER))
+
 	return base_heal
 
 func applyCrowdControl(caster, target, _ground_position: Vector3) -> void:

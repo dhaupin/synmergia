@@ -9,11 +9,15 @@ func enter(_data: Dictionary = {}) -> void:
 	var parent: PlayerController = state_machine.get_parent()
 	parent.is_crouching = true
 	parent.is_sprinting = false
+	# Hitbox Profile System: shrink the capsule while crouched.
+	parent.set_hitbox_stance("crouch")
 	animation_play("crouch")
 
 func exit() -> void:
 	var parent: PlayerController = state_machine.get_parent()
 	parent.is_crouching = false
+	# Restore the standing capsule (also on death/interrupt paths).
+	parent.set_hitbox_stance("standing")
 
 func update(_delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()

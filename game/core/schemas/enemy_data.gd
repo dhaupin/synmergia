@@ -72,6 +72,11 @@ enum EnemyType {
 # profile; per-mob override for e.g. quadruped wolves.
 @export var movement_profile_id: String = ""
 
+# Hitbox (Hitbox Profile System). Empty = derived from animation_set
+# via DataService.get_creature_hitbox_profile; per-mob override for
+# odd body plans (a hovering boss, a wide colossus).
+@export var hitbox_profile_id: String = ""
+
 # Visual
 @export var model_path: String = ""
 @export var icon_path: String = ""

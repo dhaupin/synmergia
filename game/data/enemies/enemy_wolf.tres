@@ -46,3 +46,5 @@ respawn_time = 45.0
 despawn_time = 0.0
 difficulty_modifier = 1.0
 movement_profile_id = "movement_quadruped"
+
+hitbox_profile_id = "hitbox_beast_medium"

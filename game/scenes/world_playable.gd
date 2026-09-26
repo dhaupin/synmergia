@@ -53,6 +53,9 @@ func _ready() -> void:
 	_setup_offering_npcs()
 	_setup_housing()
 	_setup_portal()
+	_setup_ancient_door()
+	_setup_concord_stone()
+	_setup_sky_signs()
 	_setup_hud_bridge()
 	_setup_touch_hud()
 	_notify_world_entry()
@@ -361,6 +364,53 @@ func _setup_guards() -> void:
 ## Register the purchasable demo plot with DwellingService so
 ## /buyplot, /placeguard and /placeankh have something to act on.
 ## Anchored at the Merchant (-5, -5): players pass it every session.
+## Skyward Concord visuals (labs/prd-psy.md): the current window's
+## Sign hangs in the sky. Loaded by path (the GuardData lesson).
+func _setup_sky_signs() -> void:
+	var sky_script = load("res://entities/sky_sign_renderer.gd")
+	if sky_script == null:
+		return
+	var sky := Node3D.new()
+	sky.name = "SkySigns"
+	sky.set_script(sky_script)
+	add_child(sky)
+	GameLog.info("WorldPlayable: Sky Signs renderer active (look up)")
+
+
+## Skyward Concord consumer (labs/prd-psy.md): one Ancient Door in the
+## playable world, tracking TODAY's community unlock. Loaded by path
+## (not class_name) -- brand-new scripts miss the global class cache
+## until an editor import pass (the GuardData lesson).
+func _setup_ancient_door() -> void:
+	var door_script = load("res://entities/ancient_door.gd")
+	if door_script == null:
+		return
+	var door := Node3D.new()
+	door.name = "AncientDoor"
+	door.set_script(door_script)
+	door.set("display_name", "The First Ancient")
+	add_child(door)
+	door.global_position = Vector3(12, 0, -6)
+	GameLog.info("WorldPlayable: Ancient Door placed (E to read; the sky holds its code)")
+
+
+## Skyward Concord player trigger (labs/prd-psy.md): the stone where a
+## normal player records a window's insight. Loaded by path, not
+## class_name (the GuardData lesson). One stone at spawn; more can be
+## scattered per zone later.
+func _setup_concord_stone() -> void:
+	var stone_script = load("res://entities/concord_stone.gd")
+	if stone_script == null:
+		return
+	var stone := Node3D.new()
+	stone.name = "ConcordStone"
+	stone.set_script(stone_script)
+	stone.set("display_name", "The Haven Stone")
+	add_child(stone)
+	stone.global_position = Vector3(-6, 0, -4)
+	GameLog.info("WorldPlayable: Concord Stone placed (E to watch the sky)")
+
+
 func _setup_housing() -> void:
 	if DwellingService == null:
 		return

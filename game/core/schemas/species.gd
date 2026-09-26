@@ -38,6 +38,12 @@ class_name Species
 # Movement speed modifier
 @export var speed_modifier: float = 1.0
 
+# Hitbox profile id (Hitbox Profile System). MUST stay "" on playable
+# species: all playable species share hitbox_player so no species spawns
+# with a bigger hitbox (fairness rule). resolve_player_hitbox_profile()
+# forces the shared profile and logs an error if a species deviates.
+@export var hitbox_profile_id: String = ""
+
 # Controller type (for fairness system - agents/humans are equals)
 @export var is_agent_controlled: bool = false  # Can be AI-controlled
 @export var is_human_controlled: bool = true   # Can be human-controlled

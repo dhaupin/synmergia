@@ -224,9 +224,11 @@ static func calculate_hit(attacker, defender, skill = null) -> Dictionary:
 	if roll < cursor:
 		result["is_crit"] = true
 		result["damage_multiplier"] = _crit_multiplier_for(attacker)
+		result["blessing_multiplier"] = _blessing_multiplier_for(attacker)
 		return result
 
 	# Remaining roll width is the plain-hit segment.
+	result["blessing_multiplier"] = _blessing_multiplier_for(attacker)
 	return result
 
 ## HUD-facing label for a hit-result dictionary (floats, log lines,
@@ -307,6 +309,7 @@ static func calculate_magic_hit(attacker, defender, spell_school: String = "arca
 		return result
 
 	result["resist_percent"] = resistance * randf_range(0.25, 1.0)  # Partial resist
+	result["blessing_multiplier"] = _blessing_multiplier_for(attacker)
 
 	return result
 
@@ -323,6 +326,12 @@ static func calculate_damage(base_damage: int, hit_result: Dictionary) -> int:
 	# Apply damage multiplier (crits)
 	damage *= float(hit_result.get("damage_multiplier", 1.0))
 
+	# Daily Class Blessing (prd-psy.md section 8): the shard's lucky
+	# class deals +20% for the day. Read from the hit_result so every
+	# damage path through calculate_hit carries it (skill.gd callsites,
+	# basic attacks, traps). Stamp in calculate_hit below.
+	damage *= float(hit_result.get("blessing_multiplier", 1.0))
+
 	# Apply resist
 	if outcome == HitResult.RESIST:
 		damage *= (1.0 - float(hit_result.get("resist_percent", 0.0)))
@@ -332,6 +341,28 @@ static func calculate_damage(base_damage: int, hit_result: Dictionary) -> int:
 		damage = maxf(1.0, damage - float(hit_result.get("blocked_damage", 0)))
 
 	return maxi(1, int(damage))
+
+
+## Daily Class Blessing lookup, duck-typed: PlayerController carries
+## character_class; bare Entity/Enemy do not (enemies are never
+## blessed -- the sky favors the playable classes). Static + null-safe
+## so callers never crash when SignService is absent (script-mode
+## tests, headless probes).
+static func _blessing_multiplier_for(attacker) -> float:
+	if attacker == null or not ("character_class" in attacker):
+		return 1.0
+	var cid := str(attacker.get("character_class"))
+	if cid.is_empty():
+		return 1.0
+	# Resolve the autoload late (parse-time bare identifiers would break
+	# --script mode compilation of this file).
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return 1.0
+	var svc = (ml as SceneTree).root.get_node_or_null("SignService")
+	if svc == null or not svc.has_method("is_class_blessed"):
+		return 1.0
+	return float(svc.BLESSED_DAMAGE_MULTIPLIER) if svc.is_class_blessed(cid) else 1.0
 
 ## Crit chance off the combatant's own roll when it has one (Entity /
 ## PlayerController get_crit_chance), stat-derived otherwise.

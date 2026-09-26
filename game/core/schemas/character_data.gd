@@ -9,7 +9,7 @@ const Species = preload("res://core/schemas/species.gd")
 @export var character_id: String = ""
 @export var display_name: String = "Hero"
 @export var species_id: String = "human"
-@export var class_id: String = "warrior"
+@export var class_id: String = "human_warrior"
 @export var level: int = 1
 @export var zone_id: String = "zone_starter_plains"
 @export var spawn_position: Vector3 = Vector3(0, 1, 0)
@@ -54,7 +54,7 @@ const Species = preload("res://core/schemas/species.gd")
 var species_data: Species
 var class_data: CharacterClass
 
-func _init(p_species: String = "human", p_class: String = "warrior", p_name: String = "Hero") -> void:
+func _init(p_species: String = "human", p_class: String = "human_warrior", p_name: String = "Hero") -> void:
 	species_id = p_species
 	class_id = p_class
 	display_name = p_name
@@ -331,13 +331,25 @@ func get_allocated_points(stat_name: String) -> int:
 	return allocated_stats.get(stat_name, 0)
 
 ## Get total stat value (base + allocated)
+## Daily Class Blessing (prd-psy.md section 8): when THIS character's
+## class is the sky-blessed one (and the tribe earned the day), stats
+## compute as if level were +5 -- the "their level multiple goes like
+## 5 lvls higher" beat. Late-resolves SignService via the main loop so
+## --script-mode compilation never touches a bare autoload identifier.
 func get_stat_total(stat_name: String) -> int:
 	if not class_data:
 		class_data = load_class(class_id)
 	if not class_data:
 		return 0
 
-	var base := class_data.calculate_stat(stat_name, level)
+	var effective_level := level
+	var ml := Engine.get_main_loop()
+	if ml != null and (ml is SceneTree):
+		var svc = (ml as SceneTree).root.get_node_or_null("SignService")
+		if svc != null and svc.has_method("is_class_blessed") and svc.is_class_blessed(class_id):
+			effective_level = level + int(svc.BLESSED_LEVEL_BONUS)
+
+	var base := class_data.calculate_stat(stat_name, effective_level)
 	var allocated := get_allocated_points(stat_name)
 	return base + allocated
 

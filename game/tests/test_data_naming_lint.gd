@@ -21,7 +21,8 @@ extends SceneTree
 ##   - offering quest_ids must exist
 ##   - dialogue npc_id must exist
 ##   - zone roster npc ids must exist
-##   - achievement title_reward must exist
+##   - Achievement title_reward must exist
+##   - Acts: act_ prefix, filename == id, chapters present
 ##
 ## Run: godot --headless --path . --script res://tests/test_data_naming_lint.gd
 
@@ -352,5 +353,108 @@ func _run() -> void:
 		_ok("All model_path/scene_path refs resolve to real files")
 	else:
 		_fail("Phantom model refs: %s" % ", ".join(bad_model_paths))
+
+	# --- Hitbox profiles: hitbox_ prefix, filename == id ---
+	var hitbox_ids := _load_ids("data/hitbox_profiles")
+	var bad_hitboxes: Array = []
+	for hb in hitbox_ids:
+		var hid := str(hitbox_ids[hb])
+		if not hid.begins_with("hitbox_"):
+			bad_hitboxes.append(hid)
+		if hb != hid:
+			bad_hitboxes.append("%s (filename mismatch: %s.tres)" % [hid, hb])
+	if bad_hitboxes.is_empty():
+		_ok("Hitbox profiles: all %d ids use 'hitbox_' prefix, filename == id" % hitbox_ids.size())
+	else:
+		_fail("Hitbox profile style violations: %s" % ", ".join(bad_hitboxes))
+
+	# --- Hitbox profile refs resolve (enemies + npcs + species) ---
+	var bad_hitbox_refs: Array = []
+	for hb_dir in ["data/enemies", "data/npc", "data/species"]:
+		var hdir := DirAccess.open("res://" + hb_dir)
+		if hdir == null:
+			continue
+		hdir.list_dir_begin()
+		var hf := hdir.get_next()
+		while hf != "":
+			if hf.ends_with(".tres"):
+				var htxt := FileAccess.get_file_as_string("res://%s/%s" % [hb_dir, hf])
+				for line in htxt.split("\n"):
+					if line.begins_with("hitbox_profile_id = \"") and not line.begins_with("hitbox_profile_id = \"\""):
+						var hv := line.strip_edges().trim_prefix("hitbox_profile_id = \"").trim_suffix("\"")
+						if not hitbox_ids.values().has(hv):
+							bad_hitbox_refs.append("%s/%s -> %s" % [hb_dir, hf, hv])
+			hf = hdir.get_next()
+	if bad_hitbox_refs.is_empty():
+		_ok("Hitbox profile refs all resolve")
+	else:
+		_fail("Phantom hitbox profile refs: %s" % ", ".join(bad_hitbox_refs))
+
+	# --- SPECIES HITBOX FAIRNESS RULE: playable species share ONE hitbox ---
+	# Every species without a GM/agent-only marker must reference the same
+	# hitbox profile (or none, which resolves to the shared default).
+	var fair_profile := ""
+	var unfair_species: Array = []
+	var seen_species := 0
+	var sdir := DirAccess.open("res://data/species")
+	if sdir != null:
+		sdir.list_dir_begin()
+		var sf := sdir.get_next()
+		while sf != "":
+			# NOTE: advance the iterator BEFORE any skip logic -- a `continue`
+			# below the get_next() would infinite-loop (real 120s-timeout bug).
+			var fname := sf
+			sf = sdir.get_next()
+			if not fname.ends_with(".tres"):
+				continue
+			seen_species += 1
+			var stxt := FileAccess.get_file_as_string("res://data/species/%s" % fname)
+			var req := ""
+			for line in stxt.split("\n"):
+				if line.begins_with("hitbox_profile_id = \""):
+					req = line.strip_edges().trim_prefix("hitbox_profile_id = \"").trim_suffix("\"")
+					break
+			if req == "":
+				continue  # empty = shared default, always fair
+			if fair_profile == "":
+				fair_profile = req
+			elif req != fair_profile:
+				unfair_species.append("%s wants %s (group: %s)" % [fname, req, fair_profile])
+	if unfair_species.is_empty():
+		_ok("Species hitbox fairness: %d species share one profile (%s)" % [seen_species, fair_profile if fair_profile != "" else "default"])
+	else:
+		_fail("Species hitbox fairness violations: %s" % ", ".join(unfair_species))
+
+	# --- Sky Signs: sign_ prefix, filename == id ---
+	var sign_ids := _load_ids("data/signs")
+	var bad_signs: Array = []
+	for sb in sign_ids:
+		var sid := str(sign_ids[sb])
+		if not sid.begins_with("sign_"):
+			bad_signs.append(sid)
+		if sb != sid:
+			bad_signs.append("%s (filename mismatch: %s.tres)" % [sid, sb])
+		if _file_text("data/signs", sb).strip_edges() == "" or not _file_text("data/signs", sb).contains("glyph ="):
+			bad_signs.append("%s (missing glyph)" % sid)
+	if bad_signs.is_empty():
+		_ok("Sky Signs: all %d ids use 'sign_' prefix, filename == id, glyph present" % sign_ids.size())
+	else:
+		_fail("Sky Sign style violations: %s" % ", ".join(bad_signs))
+
+	# --- Acts of the Concord Chronicle: act_ prefix, filename == id ---
+	var act_ids := _load_ids("data/acts")
+	var bad_acts: Array = []
+	for ab in act_ids:
+		var aid := str(act_ids[ab])
+		if not aid.begins_with("act_"):
+			bad_acts.append(aid)
+		if ab != aid:
+			bad_acts.append("%s (filename mismatch: %s.tres)" % [aid, ab])
+		if not _file_text("data/acts", ab).contains("chapters = ["):
+			bad_acts.append("%s (missing chapters)" % aid)
+	if bad_acts.is_empty():
+		_ok("Acts: all %d ids use 'act_' prefix, filename == id, chapters present" % act_ids.size())
+	else:
+		_fail("Act style violations: %s" % ", ".join(bad_acts))
 
 	_finish()

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SignProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/sign_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sign_the_wandering_grove"
+display_name = "The Wandering Grove"
+description = "A cluster of green-white lights that drifts across the sky over the hours, rooted in nothing. The Concord read it as proof that home is a thing you carry."
+glyph = "GROVE"
+sky_tint = Color(0.55, 0.95, 0.65, 1)
+observation_hint = "Tracked by the caravan folk; it leans toward wherever most people gathered that day."
+icon_path = ""

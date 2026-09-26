@@ -244,7 +244,7 @@ max_health = 30
 
 [node name="StaticBody3D" type="StaticBody3D" parent="SlimeA"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SlimeA/StaticBody3D"]
+[node name="Hitbox" type="CollisionShape3D" parent="SlimeA/StaticBody3D"]
 shape = SubResource("SubResource_slime_hitbox")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="SlimeA"]
@@ -265,7 +265,7 @@ max_health = 30
 
 [node name="StaticBody3D" type="StaticBody3D" parent="SlimeB"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SlimeB/StaticBody3D"]
+[node name="Hitbox" type="CollisionShape3D" parent="SlimeB/StaticBody3D"]
 shape = SubResource("SubResource_slime_hitbox")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="SlimeB"]
@@ -285,7 +285,7 @@ max_health = 55
 
 [node name="StaticBody3D" type="StaticBody3D" parent="Wolf"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Wolf/StaticBody3D"]
+[node name="Hitbox" type="CollisionShape3D" parent="Wolf/StaticBody3D"]
 shape = SubResource("SubResource_wolf_hitbox")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Wolf"]
@@ -307,7 +307,7 @@ max_health = 90
 
 [node name="StaticBody3D" type="StaticBody3D" parent="Bandit"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Bandit/StaticBody3D"]
+[node name="Hitbox" type="CollisionShape3D" parent="Bandit/StaticBody3D"]
 shape = SubResource("SubResource_bandit_hitbox")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Bandit"]
@@ -326,7 +326,7 @@ max_health = 5000
 
 [node name="StaticBody3D" type="StaticBody3D" parent="TrainingDummy"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TrainingDummy/StaticBody3D"]
+[node name="Hitbox" type="CollisionShape3D" parent="TrainingDummy/StaticBody3D"]
 shape = SubResource("SubResource_dummy_hitbox")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="TrainingDummy"]

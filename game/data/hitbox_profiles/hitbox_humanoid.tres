@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HitboxProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/hitbox_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hitbox_humanoid"
+display_name = "Humanoid (Biped Mob)"
+kind = 0
+radius = 0.45
+height = 1.8
+size = Vector3(0.8, 1.8, 0.6)
+sphere_radius = 0.0
+height_offset = 0.9
+crouch_height = 0.0
+crouch_radius = 0.0
+crouch_height_offset = 0.0
+min_scale = 0.25
+max_scale = 4.0
+pvp_fair = false

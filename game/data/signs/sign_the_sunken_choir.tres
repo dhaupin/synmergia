@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SignProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/sign_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sign_the_sunken_choir"
+display_name = "The Sunken Choir"
+description = "Faint points of light arrange below the horizon line, as if a constellation had drowned and kept singing. Not an omen of loss: an anthem that outlived the singer."
+glyph = "SUNKEN"
+sky_tint = Color(0.4, 0.55, 0.9, 1)
+observation_hint = "Only visible when the moon is dark."
+icon_path = ""

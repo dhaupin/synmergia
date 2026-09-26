@@ -490,6 +490,194 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Rando batch 11 (2026-09-26): something behind the open door --
+  Acts/chapters consumer + almanac Watch-the-sky button (user: "Let's
+  do it! ... This can also show up as a daily quest if that's what you
+  mean by act/chapter?"). DOOR RE-SEAL FIX: ancient_door's header
+  promised a dawn re-seal but nothing reset _is_open -- door_opened
+  fired once per server lifetime, which would have dead-ended any
+  milestone consumer. Door now re-seals in _refresh_state when its
+  day's unlock disappears (slab rises via _slab_home, glow back to
+  0.4); probe section 7 covers seal + reopen. ACTS (game/core/
+  services/acts_service.gd, autoload after SignService): the
+  door_opened consumer -- every open records the next eligible
+  chapter per act. Two gates: a concrete gate_day needs
+  SignService.is_ancient_unlocked(day); gate_day = -1 fill-ins
+  advance one per open inside advance_from_day. ActProfile schema
+  (chapters authored as plain dicts -- the QuestData .tres pattern;
+  typed ChapterProfile views via get_chapter_profiles(ledger)).
+  DataService loads data/acts/ (act_ prefix; 3 acts authored: First
+  Vault day-gates 1-3, Unpaid Debt fenced at day 3, Trust Audit
+  open-ended). Persistence: DictStore "acts:recorded" with
+  _normalize_ledgers on load -- JSON round-trips stringify dict keys
+  ("1" vs 1) and every lookup indexes ints. Toasts: NotifKind.CUSTOM
+  broadcast, dedupe keys include the day so repeat opens stay
+  silent. ALMANAC: the old "Watch the sky again" button only
+  refreshed -- added a real "Watch the sky" button that records the
+  local player's insight (PlayerManager.get_local_player,
+  almanac_observer fallback in headless), one insight per window so
+  the tribal price is unchanged, SIGN_INSIGHT_RECORDED toast, rows
+  rebuilt after; Chronicle block in a scroll (act summaries +
+  recorded lines, "[not yet recorded]" otherwise -- the Chronicle
+  withholds what no door has paid for). TEST LESSONS:
+  notification_sent carries kind nested in data for TARGETED notifies
+  (notification_received only fires on the broadcast path);
+  Resource.get(k, default) 2-arg bites on custom Resource scripts
+  (read act.advance_from_day directly); ensure_initialized must guard
+  get_tree() with is_inside_tree (script mode boots before the tree
+  exists); door-scan on a 2s timer, not a one-shot frame await (the
+  world scene attaches after the menu). DAILY QUEST DECISION: not
+  forced -- QuestData has DAILY/is_repeatable fields but
+  check_quest_availability permanently blocks REWARDED (no daily
+  reset) and no objective type expresses "record an insight"; noted
+  in prd-psy.md section 10. Regression 12/12 (new test_acts_service,
+  9 checks), boot clean, lint covers act_ prefix.
+- [x] Rando batch 10 (2026-09-26): Concord Stone + blessed-login
+  toast + legacy warrior deletion (user: "Next slice: Concord stone
+  interact | Let's delete legacy warrior tres too, and make the
+  toast"). CONCORD STONE (game/entities/concord_stone.gd): the
+  player-facing insight trigger -- record_insight was admin-only
+  before, so the tribal loop could never close in-game. Monolith +
+  pulsing crystal (brighter once the window is revealed), E-interact
+  via the "concord_stones" group (same resolver pattern as
+  ancient_doors), idempotent repeat gaze, no-religion voice (the
+  stone observes, it does not bless). One placed at (-6, 0, -4) in
+  world_playable; loop probe now presses it and treats the E-press
+  as tribe_a's insight (watched threshold arithmetic: an extra
+  observer shifts the reveal -- first version used a separate gazer
+  and broke "revealed below threshold"). LOGIN TOAST:
+  SignService._on_player_entered_world on
+  GameManager.player_entered_world -- the blessed class hears "YOUR
+  class today" on login, only when the day is earned; test listens
+  on notification_received (notification_sent was the wrong signal --
+  connect() errored and aborted the function, cascading into the
+  combatmath check). LEGACY WARRIOR DELETED: class_warrior.tres
+  removed (DataService 21 classes = 18 playable + 3 GM);
+  CharacterData default + _init, lobby blob fallback migrated to
+  human_warrior (tests using class_id "warrior" in dicts are data
+  literals, not the .tres -- they pass). FLAKE FIX: combatmath test
+  asserted blessing_multiplier on a raw calculate_hit roll -- the
+  MISS segment returns early WITHOUT the stamp (by design; a miss
+  deals no damage and calculate_damage defaults the key), so the
+  runner intermittently rolled MISS and failed. Test now asserts the
+  deterministic _blessing_multiplier_for() lookup and feeds a stamped
+  dict into calculate_damage; 3 consecutive clean runs. Regression
+  11/11, boot clean.
+- [x] Rando batch 9 (2026-09-26): Daily Class Blessing -- the
+  retention beat (prd-psy.md section 8). The assembled sky code names
+  TOMORROW'S blessed class: +20% damage/heal/XP + effective level +5
+  for the whole shard, one day. SKY WHEEL: per-round Fisher-Yates
+  (seed = round epoch) over sorted playable class ids, walked slot by
+  slot -- every class blesses exactly once per rotation BY
+  CONSTRUCTION (my first two attempts -- per-day hash jitter, then
+  slow-wheel+jitter -- both allowed collisions within a rotation;
+  permutation-per-round is the only construction that guarantees the
+  reroll-if-too-soon rule). WHEEL CATALOG FIX (same session, user
+  asked "18 classes + 1 hidden GM per species, correct?"): the id
+  filter originally only excluded role-0 GMs, so legacy
+  class_warrior.tres (bare id "warrior", role 2, never grantable at
+  creation) occupied a rotation slot -- 19 slots, one unpickable.
+  _playable_class_ids() now requires a species prefix (human_/akkan_/
+  synthetic_), matching CharacterData.get_available_classes_for_
+species doctrine; test gained a wheel-catalog fairness check; 18
+  classes confirmed, regression 11/11. EARN GATE: is_class_blessed pays only
+  when the day is Ancient-unlocked (no solve, no buff; agents may
+  reveal outside game processes). Hooks: CombatMath.calculate_hit +
+  calculate_magic_hit stamp blessing_multiplier into the hit_result,
+  calculate_damage applies it (one choke point for every damage
+  path); Skill.calculate_healing +20%; KillRewards._grant_xp +20%;
+  CharacterData.get_stat_total computes at level+5. All hooks
+  duck-typed + late-resolve SignService via Engine.get_main_loop
+  (script-mode-safe; enemies/bare Entities never blessed).
+  CLASS_BLESSED NotifKind: announced at code-assembly + dawn
+  (_maybe_roll_day, only when the day is earned). Almanac shows
+  blessed class + live state + tomorrow preview. Tests:
+  test_daily_class_blessing 6 checks (hydration x2 rotations,
+  determinism, earn gate, 3 hooks) + probe_ancient_loop now verifies
+  the blessing goes live after the tribal solve. Gotchas: inner-class
+  test fakes beat RefCounted+set() (set() on a nonexistent property
+  SILENTLY no-ops, so every property probe then fails); Skill is a
+  Resource -- never .free(); a test control must zero its stat
+  defaults or WIS healing masks the blessing (plain_heal read 120
+  from WIS, looked like a phantom blessing). Regression 11/11.
+
+- [x] Rando batch 8 (2026-09-26): Concord loop closed -- doors, sky,
+  almanac. AncientDoor entity (entities/ancient_door.gd,
+  for_day_offset=1 = TOMORROW's Ancient: today's completed code turns
+  the key NOW and the door re-seals at dawn -- daily urgency; E via
+  "ancient_doors" group in PlayerController._try_interact; sealed
+  refusal includes tribal glyph progress; glow states dim/amber-pulse/
+  bright; slab sink tween on open; door_opened signal is the future
+  acts/chapters hook). SkySignRenderer (entities/sky_sign_renderer.gd,
+  billboard star pool, per-sign deterministic scatter from
+  hash(sign_id)+"arrange"; sealed = dim flat ring, revealed = bright
+  figure in sign.sky_tint -- the sky withholds the pattern until the
+  tribe shares it). SkyAlmanacUI (ui/components/sky_almanac_ui.gd,
+  hotkey V, MenuManager "sky_almanac" + panel_map + _get_panel;
+  4 window rows with observer counts, current-sign lore, door state;
+  honors the tribal rule: un-revealed = "glyph unknown (N watching)").
+  World placement: world_playable._setup_ancient_door +
+  _setup_sky_signs (loaded by path, the GuardData lesson).
+  Gotchas fixed in passing: UIStyles.COLORS key is text_primary (not
+  "text" -- Dictionary dot-access crashes at runtime not parse time);
+  loop-probe lesson: a door tracking tomorrow is keyed by TODAY's
+  code, so the test reveals now_day's windows. Probe:
+  probe_ancient_loop.gd (6 checks: placement, sealed refusal, tribal
+  3-observer reveal -> DOOR OPEN, open readback, sky stars visible,
+  almanac tribal honesty) in runner DEFAULT_SET. Regression 10/10.
+
+- [x] Rando batch 7 (2026-09-26): Skyward Concord v1 -- the communal
+  sky clock (labs/prd-psy.md created: post-religion worldview as
+  DESIGN LAW + this system as its first mechanic). SignService
+  autoload: four 6h windows/day, window->Sign pick is a pure hash of
+  (day,window) so server+clients agree with zero sync; each window
+  shows one Sign from data/signs/*.tres (SignProfile schema: glyph,
+  sky_tint, observation_hint; 3 signs shipped). TRIBAL RULE: a
+  window's glyph goes public only after 3 DISTINCT players record an
+  insight (record_insight, idempotent per player) -- the day's code
+  is unfillable by one watcher alone. When all 4 windows reveal, the
+  ordered glyph sequence (get_ancient_code) unlocks TOMORROW's
+  server-wide Ancient; rollover wipes rumor state, keeps unlock
+  history. NotifKind +SIGN_WINDOW_CHANGED/SIGN_INSIGHT_RECORDED/
+  ANCIENT_UNLOCKED; admin /sign status|record|force_reveal|
+  unlock_tomorrow; DictStore persistence (mirrors anticheat);
+  ensure_initialized() idempotent boot (script-mode autoloads exist
+  before _ready fires -- real trap); clock override for tests.
+  Lint: sign_ prefix + filename==id + glyph presence. Tests:
+  test_sign_service 7 checks (window math, determinism, tribal
+  reveal, code assembly, rollover, future-day). Fixed in passing:
+  admin_commands ternary type-inference (var sub: String), AGENTS
+  header + last-updated, runner DEFAULT_SET +test_sign_service.
+
+- [x] Rando batch 6 (2026-09-26): Hitbox Profile System + species
+  scale fairness. NEW schema HitboxProfile (core/schemas/
+  hitbox_profile.gd: capsule/box/sphere kinds, stance variants,
+  clamped scale band, pvp_fair flag) + data/hitbox_profiles/*.tres
+  (hitbox_player, hitbox_humanoid, hitbox_beast_medium, hitbox_blob,
+  hitbox_dummy, hitbox_npc). Single resolution path
+  DataService.get_creature_hitbox_profile() (explicit
+  hitbox_profile_id wins, else animation_set derives the body plan;
+  new hitbox_profile_id fields on EnemyData + NPCData, 4 core enemy
+  .tres pinned). enemy.gd _apply_hitbox_profile() targets the
+  scene-authored StaticBody3D/Hitbox node (world_playable inline
+  shapes renamed Hitbox), falls back Hitbox -> bare CollisionShape3D
+  -> built pair; EnemyData.scale now actually applies (hitbox AND
+  ModelRoot multiply the same clamped scale, wolf 1.2). FAIRNESS
+  RULE: all 3 playable species resolve to ONE shared player hitbox
+  via resolve_player_hitbox_profile() (deviating overrides logged +
+  forced back; hitbox_player scale locked to 1.0) so no species/
+  sex/body_type spawns with a bigger target. PlayerController
+  _apply_hitbox_profile() (deferred) + set_hitbox_stance(); Crouch
+  + Slide swap to the 0.9 crouch capsule and restore on exit.
+  NPCEntity applies NPCData hitbox (default hitbox_npc) onto the
+  scene capsule. SpawnService.spawn_npc_entity defers its add_child
+  during scene setup (fixed pre-existing rejected-add error spam +
+  half-configured NPCs). Lint extended: hitbox_ prefix +
+  filename==id, ref resolution, species fairness; runner DEFAULT_SET
+  now includes test_anticheat_limits + probe_wolf_model (was passed
+  by name only). Tests: test_hitbox_profiles (9 checks) + lint;
+  default regression 8/8; xvfb boot clean.
+
 - [x] Rando batch 5 (2026-09-25): Anticheat movement hard limits --
   AntiCheatService.validate_movement() checks horizontal speed / jump
   launch / fast-fall against limits DERIVED FROM each player's

@@ -27,7 +27,14 @@ fi
 DEFAULT_SET="
 test_data_naming_lint
 test_movement_profiles
+test_anticheat_limits
+test_hitbox_profiles
+test_sign_service
+test_daily_class_blessing
+test_acts_service
+probe_ancient_loop
 probe_blacksmith_model
+probe_wolf_model
 probe_anim_play
 probe_blacksmith_scene
 "

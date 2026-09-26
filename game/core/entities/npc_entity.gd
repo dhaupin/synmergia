@@ -19,6 +19,9 @@ const ShopUI = preload("res://ui/components/shop_ui.gd")
 ## Set by SpawnService when the entity is placed
 var npc_data: NPCData = null
 
+## Hitbox Profile System: cached profile (null until _ready resolves).
+var _hitbox_profile_cache: HitboxProfile = null
+
 func _ready() -> void:
 	entity_type = EntityType.NPC
 	relation = Relation.FRIENDLY
@@ -26,7 +29,34 @@ func _ready() -> void:
 	super._ready()
 	if npc_data != null:
 		npc_data.normalize_includes()
+	_apply_hitbox_profile()
 	_play_model_idle()
+
+
+## Hitbox Profile System: apply npc_data.hitbox_profile_id (default
+## hitbox_npc) to the scene-authored CollisionShape3D, or build one.
+## Keeps NPC capsule size a data edit instead of a per-scene edit.
+func _apply_hitbox_profile() -> void:
+	if DataService == null:
+		return
+	var profile_id := "hitbox_npc"
+	if npc_data != null:
+		var requested = npc_data.get("hitbox_profile_id")
+		if requested != null and not str(requested).is_empty():
+			profile_id = str(requested)
+	var profile: HitboxProfile = DataService.get_hitbox_profile(profile_id)
+	if profile == null:
+		return
+	_hitbox_profile_cache = profile
+	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if shape_node == null:
+		# Deferred: _ready-time tree setup can reject sync adds.
+		shape_node = CollisionShape3D.new()
+		shape_node.name = "CollisionShape3D"
+		add_child.call_deferred(shape_node)
+	shape_node.shape = profile.build_shape(1.0)
+	var dims: Dictionary = profile.get_dims(1.0)
+	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
 
 
 ## Play the idle clip on an instanced .glb model (scene_path scenes that

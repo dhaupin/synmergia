@@ -34,6 +34,7 @@ var _shop_panel: Control
 var _transfer_panel: Control
 var _trade_panel: Control
 var _admin_panel: Control
+var _sky_almanac_panel: Control
 var _debug_panel: Control
 
 ## State
@@ -234,6 +235,13 @@ func _initialize_panels() -> void:
 	_trade_panel.z_index = 500
 	add_child(_trade_panel)
 	_trade_panel.panel_closed.connect(_on_panel_closed.bind("trade"))
+
+	# Sky Almanac panel (Skyward Concord; V key)
+	_sky_almanac_panel = load("res://ui/components/sky_almanac_ui.gd").new()
+	_sky_almanac_panel.name = "SkyAlmanacUI"
+	_sky_almanac_panel.z_index = 500
+	add_child(_sky_almanac_panel)
+	_sky_almanac_panel.panel_closed.connect(_on_panel_closed.bind("sky_almanac"))
 
 	# Admin panel (requires MOD+)
 	_admin_panel = preload("res://ui/admin/admin_dashboard.gd").new()
@@ -567,6 +575,7 @@ func _get_panel(menu_name: String) -> Control:
 		"titles": return _title_panel
 		"transfer": return _transfer_panel
 		"trade": return _trade_panel
+		"sky_almanac": return _sky_almanac_panel
 		"dialog": return _dialog_panel
 		"shop": return _shop_panel
 		"admin": return _admin_panel

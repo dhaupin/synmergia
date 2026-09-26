@@ -261,7 +261,7 @@ func _remove_character_blob(account_id: String, character_id: String) -> void:
 func _blob_to_character_data(blob: Dictionary) -> CharacterData:
 	var cd := CharacterData.new(
 		blob.get("species_id", "human"),
-		blob.get("class_id", "warrior"),
+		blob.get("class_id", "human_warrior"),
 		blob.get("display_name", "Hero")
 	)
 	cd.character_id = blob.get("character_id", "")

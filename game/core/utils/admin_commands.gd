@@ -82,6 +82,12 @@ func _register_commands() -> void:
 			"usage": "/shutdown [delay_seconds]",
 			"handler": _cmd_shutdown
 		},
+		"sign": {
+			"permission": GameConfig.Security.MOD_LEVEL,
+			"description": "Skyward Concord: status / record / force-reveal / unlock",
+			"usage": "/sign status | record <player_id> | force_reveal | unlock_tomorrow",
+			"handler": _cmd_sign
+		},
 		"broadcast": {
 			"permission": GameConfig.Security.MOD_LEVEL,
 			"description": "Send server-wide message",
@@ -416,6 +422,50 @@ func _cmd_shutdown(args: Array) -> Dictionary:
 	add_child(t)
 	t.start()
 	return {"success": true, "message": "Shutting down in %d seconds" % delay}
+
+## /sign -- Skyward Concord operations (labs/prd-psy.md).
+##   status         current window snapshot + revealed glyphs
+##   record <pid>   record an insight for a player (testing the tribal reveal)
+##   force_reveal   reveal the current window's glyph now
+##   unlock_tomorrow  complete today's code and unlock tomorrow's Ancient
+func _cmd_sign(args: Array) -> Dictionary:
+	if not is_instance_valid(SignService):
+		return {"success": false, "message": "SignService unavailable"}
+	var sub: String = args[0] if args.size() > 0 else "status"
+	if sub == "status":
+		var w: Dictionary = SignService.get_current_window()
+		var glyphs: Array[String] = SignService.get_revealed_glyphs()
+		var msg := "Window %s day %s: %s | observers %s/%s | glyphs %s" % [
+			str(w.get("window_index", -1)), str(w.get("day_index", -1)),
+			str(w.get("sign_name", "none")), str(w.get("observers", 0)),
+			str(w.get("reveal_threshold", 0)), " ".join(glyphs)]
+		if w.get("revealed", false):
+			msg += " | glyph: %s" % str(w.get("glyph", ""))
+		return {"success": true, "message": msg}
+	if sub == "record":
+		if args.size() < 2:
+			return {"success": false, "message": "Usage: /sign record <player_id>"}
+		var res: Dictionary = SignService.record_insight(str(args[1]))
+		_audit_log(_caller, "sign_record", str(args[1]), res)
+		return {"success": bool(res.get("ok", false)), "message": str(res)}
+	if sub == "force_reveal":
+		var fr: Dictionary = SignService.force_reveal_current()
+		_audit_log(_caller, "sign_force_reveal", "current_window", fr)
+		if bool(fr.get("ok", false)):
+			return {"success": true, "message": "Glyph revealed: %s" % str(fr.get("glyph", ""))}
+		return {"success": false, "message": str(fr)}
+	if sub == "unlock_tomorrow":
+		var ur: Dictionary = SignService.force_reveal_current()
+		# Fill any remaining unrevealed windows of today via pure reveal,
+		# then let _maybe_complete_day_code fire (it is idempotent).
+		var day: int = SignService.day_index_for(SignService._now_unix())
+		for w in SignService.WINDOWS_PER_DAY:
+			SignService.force_reveal_window(day, w)
+		SignService._maybe_complete_day_code(day)
+		_audit_log(_caller, "sign_unlock_tomorrow", "day_%d" % day, {})
+		var code: String = SignService.get_ancient_code(day)
+		return {"success": true, "message": "Code %s assembled; tomorrow unlocked: %s" % [code, str(SignService.is_ancient_unlocked(day + 1))]}
+	return {"success": false, "message": "Usage: /sign status | record <player_id> | force_reveal | unlock_tomorrow"}
 
 func _cmd_broadcast(args: Array) -> Dictionary:
 	if args.size() < 1:

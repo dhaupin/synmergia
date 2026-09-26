@@ -51,6 +51,10 @@ var _movement_profile_cache: MovementProfile = null
 ## no model_path or it carries no animations).
 var _model_anim: AnimationPlayer = null
 
+## Hitbox Profile System: cached profile (resolved lazily; null until
+## first _apply_hitbox_profile after boot).
+var _hitbox_profile_cache: HitboxProfile = null
+
 
 func _ready() -> void:
 	entity_type = EntityType.ENEMY
@@ -77,6 +81,11 @@ func _ready() -> void:
 	# Skinned .glb models mount here (wolf was the first; the box
 	# placeholders stay for everything else until models exist).
 	_mount_model()
+	# Hitbox Profile System: apply the data-driven collision shape and
+	# the matching model scale AFTER _mount_model so the visual and the
+	# collider always agree (both read the same EnemyData.scale).
+	_apply_hitbox_profile()
+	_apply_model_scale()
 
 	# Threat table: enemies track who generates threat (damage, heals,
 	# taunts) and EnemyAI reads it for in-combat target switching.
@@ -171,6 +180,89 @@ func _mount_model() -> void:
 		if c is MeshInstance3D:
 			c.visible = false
 	GameLog.info("Enemy: mounted model %s" % path)
+
+
+## Hitbox Profile System: resolve this creature's HitboxProfile from
+## EnemyData.hitbox_profile_id (falls back through
+## DataService.get_creature_hitbox_profile, which derives the body plan
+## from animation_set; cached).
+func _hitbox_profile() -> HitboxProfile:
+	if _hitbox_profile_cache != null:
+		return _hitbox_profile_cache
+	if DataService:
+		_hitbox_profile_cache = DataService.get_creature_hitbox_profile(enemy_data)
+	if _hitbox_profile_cache == null:
+		GameLog.warn("Enemy: no hitbox profile resolved for %s -- keeping scene shape" % display_name)
+	return _hitbox_profile_cache
+
+
+## Apply the HitboxProfile collision shape to this enemy. Prefers the
+## scene-authored "Hitbox" CollisionShape3D child (StaticBody3D/Hitbox
+## in the playable world); otherwise builds one under a StaticBody3D.
+## The profile's height_offset centers the shape on the entity origin
+## (feet-on-floor), replacing the hand-placed transforms in .tscn files.
+func _apply_hitbox_profile() -> void:
+	var profile: HitboxProfile = _hitbox_profile()
+	if profile == null:
+		return
+	var base_scale: float = 1.0
+	if enemy_data != null:
+		var sc = enemy_data.get("scale")
+		if sc != null:
+			base_scale = float(sc)
+	var shape := profile.build_shape(base_scale)
+	var dims := profile.get_dims(base_scale)
+
+	var target: CollisionShape3D = null
+	# Scene-authored nodes win so level designers keep node-order control.
+	var named_body := get_node_or_null("StaticBody3D")
+	if named_body != null:
+		var named_shape := named_body.get_node_or_null("Hitbox") as CollisionShape3D
+		if named_shape != null:
+			target = named_shape
+		elif named_body is CollisionShape3D:
+			target = named_body
+	if target == null:
+		var direct := get_node_or_null("Hitbox") as CollisionShape3D
+		if direct != null:
+			target = direct
+	if target == null:
+		# Guards (and older scenes) author a bare direct CollisionShape3D.
+		var plain := get_node_or_null("CollisionShape3D") as CollisionShape3D
+		if plain != null:
+			target = plain
+	if target == null:
+		# No scene-authored shape: create the standard StaticBody3D/Hitbox
+		# pair. Deferred add: _ready can run while the tree is mid-setup
+		# during scene instantiation (guards in world_playable hit this)
+		# and a sync add_child there is rejected. Shape/offset are plain
+		# properties, so setting them now still applies when the body lands.
+		var body := StaticBody3D.new()
+		body.name = "StaticBody3D"
+		add_child.call_deferred(body)
+		target = CollisionShape3D.new()
+		target.name = "Hitbox"
+		body.add_child(target)
+
+	target.shape = shape
+	target.position = Vector3(0.0, float(dims["offset"]), 0.0)
+	GameLog.info("Enemy: hitbox '%s' applied to %s" % [profile.id, display_name])
+
+
+## Scale the mounted model by EnemyData.scale so the visual matches the
+## (clamped) hitbox scale. Box placeholders keep their authored size.
+func _apply_model_scale() -> void:
+	if enemy_data == null:
+		return
+	var sc = enemy_data.get("scale")
+	if sc == null or is_equal_approx(float(sc), 1.0):
+		return
+	var model_root := get_node_or_null("ModelRoot") as Node3D
+	if model_root == null:
+		return
+	var profile: HitboxProfile = _hitbox_profile()
+	var s: float = profile.clamp_scale(float(sc)) if profile != null else clampf(float(sc), 0.25, 4.0)
+	model_root.scale = Vector3(s, s, s)
 
 
 func _find_anim_player(n: Node) -> AnimationPlayer:

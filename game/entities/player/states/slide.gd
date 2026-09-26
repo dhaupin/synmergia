@@ -27,11 +27,15 @@ func enter(_data: Dictionary = {}) -> void:
 	_slide_speed = maxf(parent.move_speed * 1.9, parent.get_real_velocity().length())
 	parent.is_sliding = true
 	parent.is_sprinting = false
+	# Hitbox Profile System: low profile while sliding.
+	parent.set_hitbox_stance("crouch")
 	animation_play("slide")
 
 func exit() -> void:
 	var parent: PlayerController = state_machine.get_parent()
 	parent.is_sliding = false
+	# Restore the standing capsule (also on jump-out of slide).
+	parent.set_hitbox_stance("standing")
 
 func update(_delta: float) -> void:
 	var parent: PlayerController = state_machine.get_parent()

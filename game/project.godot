@@ -97,6 +97,8 @@ AchievementService="*res://core/services/achievement_service.gd"
 AccountRollup="*res://core/services/account_rollup.gd"
 TitleService="*res://core/services/title_service.gd"
 AchievementListeners="*res://core/services/achievement_listeners.gd"
+SignService="*res://core/services/sign_service.gd"
+ActsService="*res://core/services/acts_service.gd"
 
 [display]
 

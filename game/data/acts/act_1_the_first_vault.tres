@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ActProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/act_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "act_1_the_first_vault"
+display_name = "Act I: The First Vault"
+description = "The oldest record in the Chronicle. A city that planned four hundred years ahead and died anyway -- what remains is not ruins, it is a curriculum."
+advance_from_day = -1
+chapters = [{
+"gate_day": 1,
+"index": 1,
+"record_text": "The first vault's doors were rated in generations, not seasons. The builders wrote their work orders for heirs they would never meet: 'to those who keep what we kept.' Every mechanism still turns. Nobody is left who remembers why.",
+"source_name": "The First Vault"
+}, {
+"gate_day": 2,
+"index": 2,
+"record_text": "The vault stores no treasure. Its deepest chamber holds a planning ledger and one line, struck through: 'the city will outlast the need for cities.' The Concord reads this as a caution: planning is not the same as knowing.",
+"source_name": "The Concord of Vault-Watchers"
+}, {
+"gate_day": 3,
+"index": 3,
+"record_text": "The vault kept a room where citizens filed objections to their own plans -- and the plans waited for them. The Concord keeps the room open. Attention, not certainty, is what made it work.",
+"source_name": "The Concord of Vault-Keepers"
+}]

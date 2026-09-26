@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ActProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/act_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "act_3_the_trust_audit"
+display_name = "Act III: The Trust Audit"
+description = "Vault records from a society that ran on trust audits instead of commandments. No enforcement -- only attention, and the shared expectation of it."
+advance_from_day = -1
+chapters = [{
+"gate_day": -1,
+"index": 1,
+"record_text": "The audit chamber has no lock. Its door reads: 'you were trusted to arrive.' Records show 400 years of arrivals, and the ledgers reconcile to the coin. The Concord never duplicated the design; it duplicated the expectation.",
+"source_name": "The Vault Auditors"
+}, {
+"gate_day": -1,
+"index": 2,
+"record_text": "A wheat shortage was answered by an unlocked granary and a sign-up sheet, not guards. The sheet came back overfilled. The auditors' note on the surplus: 'the community kept the audit for us.'",
+"source_name": "The Granary Ledger"
+}, {
+"gate_day": -1,
+"index": 3,
+"record_text": "The last audit found nothing to correct and the auditors filed it anyway -- a clean sheet is a record too. The Concord's custom of the daily tally descends from that filing: attention is the audit, not the finding.",
+"source_name": "The Final Tally"
+}]

@@ -5,6 +5,7 @@ extends Node
 
 
 const SkillBook = preload("res://core/schemas/skill_book.gd")
+const ActProfile = preload("res://core/schemas/act_profile.gd")
 const Item = preload("res://core/schemas/item.gd")
 const EnemyData = preload("res://core/schemas/enemy_data.gd")
 const CharacterClass = preload("res://core/schemas/character_class.gd")
@@ -41,6 +42,9 @@ var _currencies: Dictionary = {}
 var _mounts: Dictionary = {}
 var _vehicles: Dictionary = {}
 var _movement_profiles: Dictionary = {}
+var _hitbox_profiles: Dictionary = {}
+var _signs: Dictionary = {}
+var _acts: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
 var _npcs: Dictionary = {}
@@ -83,6 +87,9 @@ func load_all_data() -> void:
 	load_vehicles()
 	load_accessories()
 	load_movement_profiles()
+	load_hitbox_profiles()
+	load_signs()
+	load_acts()
 
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -236,6 +243,21 @@ func load_movement_profiles() -> void:
 	_movement_profiles = _scan_directory(_data_path + "movement_profiles", "movement")
 	GameLog.info("DataService: Loaded %d movement profiles" % _movement_profiles.size())
 
+## Load hitbox profiles from data/hitbox_profiles/.
+func load_hitbox_profiles() -> void:
+	_hitbox_profiles = _scan_directory(_data_path + "hitbox_profiles", "hitbox")
+	GameLog.info("DataService: Loaded %d hitbox profiles" % _hitbox_profiles.size())
+
+## Load Sky Signs from data/signs/.
+func load_signs() -> void:
+	_signs = _scan_directory(_data_path + "signs", "sign")
+	GameLog.info("DataService: Loaded %d signs" % _signs.size())
+
+## Load Acts of the Concord Chronicle from data/acts/.
+func load_acts() -> void:
+	_acts = _scan_directory(_data_path + "acts", "act")
+	GameLog.info("DataService: Loaded %d acts" % _acts.size())
+
 ## Load status effects from data/status_effects/
 func load_status_effects() -> void:
 	_status_effects = _scan_directory(_data_path + "status_effects", "status_effect")
@@ -335,6 +357,76 @@ func get_movement_profile(id: String) -> MovementProfile:
 		return _movement_profiles.get(id)
 	GameLog.warn("DataService: Movement profile not found: " + id)
 	return null
+
+func get_hitbox_profile(id: String) -> HitboxProfile:
+	if _hitbox_profiles.has(id):
+		return _hitbox_profiles.get(id)
+	GameLog.warn("DataService: Hitbox profile not found: " + id)
+	return null
+
+func get_hitbox_profiles() -> Dictionary:
+	return _hitbox_profiles
+
+func get_sign(id: String) -> SignProfile:
+	if _signs.has(id):
+		return _signs.get(id)
+	GameLog.warn("DataService: Sign not found: " + id)
+	return null
+
+func get_signs() -> Dictionary:
+	return _signs
+
+func get_act(id: String) -> ActProfile:
+	if _acts.has(id):
+		return _acts.get(id)
+	GameLog.warn("DataService: Act not found: " + id)
+	return null
+
+## All authored acts sorted by id (act_1... -> act_2... -> act_3...):
+## stable order for the almanac's Chronicle block.
+func get_acts() -> Dictionary:
+	return _acts
+
+
+## Resolve the hitbox profile id for a playable character species.
+## FAIRNESS RULE (species PvP): every playable species resolves to ONE
+## shared profile so no species spawns with a bigger hitbox than
+## another. Set `fair_ids` (ids already known to be fair, e.g. all
+## species agreeing on hitbox_player) to assert consistency; a species
+## deviating from the group logs a fairness error and falls back to the
+## group's profile.
+func resolve_player_hitbox_profile(species_id: String, fair_ids: Dictionary = {}) -> HitboxProfile:
+	var profile_id := "hitbox_player"
+	if fair_ids.has("__profile_id"):
+		profile_id = str(fair_ids["__profile_id"])
+	var sp = get_species(species_id)
+	if sp != null:
+		var requested = sp.get("hitbox_profile_id")
+		if requested != null and not str(requested).is_empty():
+			if not fair_ids.is_empty() and str(requested) != profile_id:
+				GameLog.error("DataService: SPECIES HITBOX FAIRNESS VIOLATION: species '%s' requests '%s' but playable species share '%s' -- forcing shared profile" % [species_id, str(requested), profile_id])
+			else:
+				profile_id = str(requested)
+	return get_hitbox_profile(profile_id)
+
+
+## Single resolution path for creature hitboxes: an explicit
+## hitbox_profile_id on the data wins; otherwise EnemyData.animation_set
+## hints the body plan (wolf -> quadruped beasts, slime -> spheres,
+## dummies -> their own tiny profile) and humanoids fall back to
+## hitbox_humanoid. No per-consumer fallback code anywhere else.
+func get_creature_hitbox_profile(data) -> HitboxProfile:
+	var explicit = data.get("hitbox_profile_id") if data != null else null
+	if explicit != null and not str(explicit).is_empty():
+		return get_hitbox_profile(str(explicit))
+	var anim_set = data.get("animation_set") if data != null else null
+	match str(anim_set):
+		"wolf", "beast", "quadruped":
+			return get_hitbox_profile("hitbox_beast_medium")
+		"slime":
+			return get_hitbox_profile("hitbox_blob")
+		_:
+			return get_hitbox_profile("hitbox_humanoid")
 
 func get_movement_profiles() -> Dictionary:
 	return _movement_profiles

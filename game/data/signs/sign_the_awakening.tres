@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SignProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/sign_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sign_the_awakening"
+display_name = "The Awakening"
+description = "The horizon splits along a seam of pale light. The oldest of the Concord's signs: what slept is waking, and the sky remembers it first."
+glyph = "WAKE"
+sky_tint = Color(0.62, 0.85, 1, 1)
+observation_hint = "Seen at first light in the eastern sky."
+icon_path = ""

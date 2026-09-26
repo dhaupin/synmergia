@@ -58,6 +58,13 @@ var is_targeting: bool = false
 var allow_sprint: bool = true
 var allow_jump_input: bool = true
 var allow_crouch: bool = true
+
+## Hitbox Profile System: cached profile (resolved in _ready via the
+## species-fairness path) + current stance ("standing" | "crouch").
+## Crouch/Slide states swap the stance; the capsule changes size, never
+## scale -- players of every species/sex/body_type share ONE hitbox.
+var _hitbox_profile: HitboxProfile = null
+var _hitbox_stance: String = "standing"
 var current_target: Node3D = null
 
 # Components
@@ -114,6 +121,56 @@ func _stamp_anticheat() -> void:
 		profile.jump_force * AntiCheatService.JUMP_LIMIT_MULTIPLIER,
 		profile.terminal_fall_speed * AntiCheatService.FALL_LIMIT_MULTIPLIER
 	)
+
+
+## Hitbox Profile System: resolve + apply the player collision shape.
+## FAIRNESS RULE (species PvP): resolution goes through the species-fair
+## path (DataService.resolve_player_hitbox_profile) so every playable
+## species lands on the SAME profile. Species, sex, and body_type never
+## scale or swap the player hitbox; hitbox_player.tres clamps scale to
+## 1.0 hard, so even a bad future export cannot shrink or grow one
+## species's capsule relative to another.
+func _apply_hitbox_profile() -> void:
+	if DataService == null:
+		return
+	var species_id := "human"
+	var char_data := _get_character_data()
+	if char_data != null and not char_data.species_id.is_empty():
+		species_id = char_data.species_id
+	_hitbox_profile = DataService.resolve_player_hitbox_profile(species_id)
+	if _hitbox_profile == null:
+		GameLog.warn("PlayerController: hitbox profile missing -- keeping scene capsule")
+		return
+	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if shape_node == null:
+		# Deferred: _ready-time tree setup can reject sync adds.
+		shape_node = CollisionShape3D.new()
+		shape_node.name = "CollisionShape3D"
+		add_child.call_deferred(shape_node)
+	shape_node.shape = _hitbox_profile.build_shape(1.0, _hitbox_stance)
+	var dims: Dictionary = _hitbox_profile.get_dims(1.0, _hitbox_stance)
+	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
+	GameLog.info("PlayerController: applied hitbox profile '%s' (species-fair: %s)" % [_hitbox_profile.id, str(_hitbox_profile.pvp_fair)])
+
+
+## Stance swap for Crouch/Slide states: same profile, same species,
+## SAME scale -- only the crouch variant's smaller capsule applies.
+## Falls back to standing when the profile has no crouch variant.
+func set_hitbox_stance(stance: String) -> void:
+	if _hitbox_profile == null:
+		_hitbox_stance = stance
+		return
+	if stance == _hitbox_stance:
+		return
+	if stance != "standing" and stance != "crouch":
+		return
+	_hitbox_stance = stance
+	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if shape_node == null:
+		return
+	shape_node.shape = _hitbox_profile.build_shape(1.0, _hitbox_stance)
+	var dims: Dictionary = _hitbox_profile.get_dims(1.0, _hitbox_stance)
+	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
 
 
 ## Respawn binding (Ankh.bind_player writes respawn_ankh_id;
@@ -197,6 +254,9 @@ func _ready() -> void:
 	# inventory fallback below had a chance to fill it (see _inv_id).
 	# Call deferred so stamping sees the FINAL id exactly once.
 	call_deferred("_stamp_anticheat")
+	# Hitbox likewise keys on the final character data (species); the
+	# scene-authored capsule is the pre-profile placeholder.
+	call_deferred("_apply_hitbox_profile")
 
 	# Set collision
 	collision_mask = 0b0000111
@@ -794,6 +854,8 @@ func _try_interact() -> void:
 		if not picked.is_empty():
 			return
 	_activate_nearby_ankh()
+	_activate_nearby_ancient_door()
+	_activate_nearby_concord_stone()
 
 ## Walk-over auto-loot. Enabled via Settings > Gameplay > Auto-loot
 ## Items (PlayerConfig "auto_loot"). Skipped entirely in full-loot PvP
@@ -817,6 +879,62 @@ func _try_auto_loot() -> void:
 	GroundLootService.try_pickup(self)
 
 ## Bind to the closest ankh within activation range.
+## Skyward Concord consumer: press E at an Ancient Door. Resolves the
+## nearest "ancient_doors" group member the same way ankhs resolve.
+## Sealed doors get a hint toast (how many glyphs the tribe has);
+## unlocked doors play the open transition server-side.
+func _activate_nearby_ancient_door() -> void:
+	var doors := get_tree().get_nodes_in_group("ancient_doors")
+	var best: Node3D = null
+	var best_dist := INF
+	for door in doors:
+		if door == null or not is_instance_valid(door):
+			continue
+		var d: float = global_position.distance_to(door.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = door
+	if best == null or best_dist > 4.0:
+		return
+	var result: Dictionary = best.try_interact(self)
+	if NotificationService:
+		NotificationService.notify(
+			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
+			str(result.get("message", "")),
+			"AncientDoor",
+			"ancient:interact:%s:%d" % [str(best.name), Time.get_ticks_msec()],
+			{"door": str(best.name), "ok": bool(result.get("ok", false))}
+		)
+
+
+## Skyward Concord trigger: press E at a Concord Stone to record this
+## window's insight. Resolves the nearest "concord_stones" group
+## member exactly like ancient_doors; the stone returns the same
+## {ok, message} contract so the toast pipeline is shared.
+func _activate_nearby_concord_stone() -> void:
+	var stones := get_tree().get_nodes_in_group("concord_stones")
+	var best: Node3D = null
+	var best_dist := INF
+	for stone in stones:
+		if stone == null or not is_instance_valid(stone):
+			continue
+		var d: float = global_position.distance_to(stone.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = stone
+	if best == null or best_dist > 4.0:
+		return
+	var result: Dictionary = best.try_interact(self)
+	if NotificationService:
+		NotificationService.notify(
+			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
+			str(result.get("message", "")),
+			"ConcordStone",
+			"concord:%s:%d" % [str(best.name), Time.get_ticks_msec()],
+			{"stone": str(best.name), "ok": bool(result.get("ok", false))}
+		)
+
+
 func _activate_nearby_ankh() -> void:
 	var ankhs := get_tree().get_nodes_in_group("ankhs")
 	var best: Node3D = null
@@ -1021,9 +1139,8 @@ func _setup_starting_skills() -> void:
 	var char_data = GameManager.selected_character_data if is_instance_valid(GameManager) else null
 	if char_data != null and "class_data" in char_data and char_data.class_data != null:
 		class_data = char_data.class_data
-	else:
-		# Boot paths without login (demo scene, showcases) run the
-		# default class; CharacterData.class_id defaults to "warrior".
+	else:			# Boot paths without login (demo scene, showcases) run the
+			# default class; CharacterData.class_id defaults to human_warrior.
 		var class_id: String = "human_warrior"
 		if char_data != null and "class_id" in char_data and str(char_data.class_id) != "":
 			class_id = str(char_data.class_id)
