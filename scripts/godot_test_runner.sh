@@ -44,6 +44,8 @@ probe_planet_scale_20km
 test_world_shape
 test_terrain_determinism
 test_instance_contract
+probe_arena_instance
+probe_arena_trigger
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

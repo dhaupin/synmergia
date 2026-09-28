@@ -490,6 +490,47 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Instance mode system in the contract (2026-09-28, pre-S10):
+  InstanceContract.InstanceMode (ELIMINATION / TEAM_DEATHMATCH /
+  ROYALE) + bout_rules(zone) pure function (respawn_allowed,
+  kill_target, time_limit_seconds, spawn_shield_seconds; zone
+  overrides win). ZoneData exports instance_mode,
+  instance_kill_target, instance_time_limit, instance_spawn_shield.
+  Modes on disk: zone_arena_sandpit.tres (TDM, kill 20),
+  zone_royale_valley.tres (ROYALE reserved, 30 seats). Coliseum cap
+  raised 8 -> 12 (locked decision: full 6v6). Probe 52/52, lint
+  24/24.
+- [x] S10+ owner follow-ups (2026-09-28): (1) spawn-shield is
+  fire-and-you-lose-it -- ArenaFighter.break_shield() + contract
+  doc; combat bridge enforcement lands in S11. (2) Sandpit widened
+  220 m, spawns at +/-90; rooms now size from zone_radius (coliseum
+  keeps its 120 m square) with 8 deterministic CoverRock_N in TDM
+  rooms only (elimination duels stay clean sand). Lessons: rules
+  must resolve BEFORE _build_room (int(null) crash); Godot renames
+  conflicting siblings to the CLASS name (@StaticBody3D@N), not the
+  assigned name -- unique names in code. Probe 28/28; contract 52;
+  trigger 14; lint 36/36.
+- [ ] S11 goals added (2026-09-28): bout assembly engine, solo
+  matchmaking queue, fill-to-parity consent flag (see PRD S11).
+- [x] S10 arena wiring (2026-09-28): arena_instance.gd planar room
+  + bout controller (rules from bout_rules, never hardcoded;
+  elimination last-team-standing + TDM respawn/shield/kill-target
+  paths; bout_started/ended/fighter_down ready for S11 duels),
+  arena_fighter.gd contract-gravity bodies, arena_gateway.gd Area3D
+  built into globe_island (dedupe in-volume, re-arm on exit, party
+  joins via PartyService roster, OPEN/FULL + deadline toasts).
+  Probes probe_arena_instance 24/24 + probe_arena_trigger 14/14 in
+  DEFAULT_SET; regression 27/27. Scene swap into the room stays a
+  GameManager flow item (headless-probed logic; visual verify in a
+  rendered session later).
+- [ ] S11 duel bouts (planned): private instances. Challenge
+  handshake (PartyService pending-invite pattern, 60s timeout) creates
+  a bout-owned instance; both parties join_party_instance into it;
+  LOCKED on start; ELIMINATION bout = last team standing ->
+  TitleService reward. TEAM_DEATHMATCH bout (sandpit zone) rides the
+  same controller via bout_rules: respawn + spawn shield buff,
+  score to kill_target. S9's one-live-instance rule applies to
+  PUBLIC instances only; private instances are explicit bout rooms.
 - [x] S9 instances/lobby contract (2026-09-28): InstanceContract
   constants (planar -Y gravity 20.0 sealed per locked decision 3,
   LobbyState enum, entry deadline + override), InstanceService
@@ -497,7 +538,8 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   capacity-checked join, lobby queue semantics -- FULL returns
   capacity_ok=false and NEVER spawns a phantom second instance),
   ZoneData.instance_entry_deadline, arena zone_arena_coliseum.tres
-  (FREE_PVP cap 8), ZoneManager.add_to_instance now enforces capacity
+  (FREE_PVP cap 12 -- full 6v6 parties per locked decision 4),
+  ZoneManager.add_to_instance now enforces capacity
   (the gap: can_enter_instance checked it but no join path called
   it). Probe test_instance_contract.gd 40/40 in DEFAULT_SET.
   Pickup: prd-spherical-mvp.md S9.

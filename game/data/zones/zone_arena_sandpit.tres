@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_arena_sandpit"
+display_name = "Haven Sandpit"
+description = "The training pit beside the Coliseum, widened for real bouts. Two parties enter behind rock cover; the first to twenty kills takes the sand. Falls never end a bout here -- you rise again under the marshals' shield, but swing once and it is gone."
+pvp_mode = 3
+level_requirement = 1
+max_level = 999
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = false
+respawn_timer = 5.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 220.0
+ambient_light_color = Color(0.82, 0.78, 0.65, 1)
+ambient_light_energy = 1.0
+environment_path = ""
+has_weather = false
+weather_type = "clear"
+spawn_points = [Vector3(0, 1, -90), Vector3(0, 1, 90)]
+bind_point = Vector3(0, 1, -90)
+npcs = []
+loot_multiplier = 1.0
+xp_multiplier = 1.0
+is_instanced = true
+instance_capacity = 12
+horde_config_id = ""
+instance_entry_deadline = 60.0
+instance_mode = 1
+instance_kill_target = 20
+instance_time_limit = 480.0
+instance_spawn_shield = 4.0

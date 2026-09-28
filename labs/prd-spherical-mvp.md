@@ -45,6 +45,12 @@ touching the existing playable world.
 
 ## 2. Locked decisions (owner, 2026-09-27)
 
+0. **Instance modes are contract-level (2026-09-28).**
+   ELIMINATION / TEAM_DEATHMATCH / ROYALE live in
+   InstanceContract + ZoneData.instance_mode BEFORE S10 wiring;
+   the bout controller is written against bout_rules(), never a
+   hardcoded mode. Arena cap 12 (full 6v6); party size flat 6;
+   duels = public + private instances.
 1. **Planet radius 20 km for v1** (`prd.md` sec on planet scale).
    The S3 prototype globe uses **100 m** so curvature is visible and
    float precision is trivial. Floating origin is Phase C work, NOT
@@ -309,7 +315,8 @@ do not join the icosahedral mesh.
       previously `can_enter_instance` checked capacity but no join
       path called it. All callers get the same enforcement.
 - [x] Arena ZoneData `game/data/zones/zone_arena_coliseum.tres`
-      (zone_ prefix == filename == id): FREE_PVP, capacity 8,
+      (zone_ prefix == filename == id): FREE_PVP, capacity 12
+      (raised from 8 per locked decision 4 -- full 6v6 parties),
       is_instanced, deadline override 60 s, two spawn points.
 - [x] Probe `game/tests/test_instance_contract.gd` (40 asserts,
       exit 0, registered in DEFAULT_SET): contract constants,
@@ -321,6 +328,99 @@ do not join the icosahedral mesh.
       override beats the 20 s default.
 - [x] Regression 25/25 (incl. this probe in DEFAULT_SET) + lint
       quartet green; commit + push via Changes panel (owner).
+
+### S9+ — instance mode system (contract layer, pre-S10)
+Locked decision 4 (owner, 2026-09-28): arena capacity 12 = full
+6v6; party size stays flat 6 (no level scaling); duels use PUBLIC +
+PRIVATE instances (the one-live-instance rule is public-only).
+- [x] `InstanceContract.InstanceMode` enum: ELIMINATION (one life,
+      last team standing), TEAM_DEATHMATCH (respawn + spawn shield,
+      first team to the kill target), ROYALE (reserved). Mode baked
+      in BEFORE S10 so later modes never retrofit the controller.
+- [x] `InstanceContract.bout_rules(zone)` pure function: one dict
+      ({mode, respawn_allowed, kill_target, time_limit_seconds,
+      spawn_shield_seconds}) for every mode; contract defaults
+      (kill 25 / 600 s / 4 s shield) with per-zone overrides.
+- [x] ZoneData exports: instance_mode, instance_kill_target,
+      instance_time_limit, instance_spawn_shield (0 = default).
+- [x] Modes on disk: `zone_arena_sandpit.tres` (TEAM_DEATHMATCH,
+      kill 20, 8 min, 4 s shield, cap 12) and
+      `zone_royale_valley.tres` (ROYALE reserved, 30 seats, 15 min,
+      level 10, fog). Coliseum stays ELIMINATION.
+- [x] Probe extended: 52 asserts -- mode enum, per-zone bout_rules
+      derivations for all three modes, null-zone elimination
+      default; lint 24/24.
+
+### S10 — arena wiring (mode-agnostic)
+- [x] Arena trigger at Haven's edge: `arena_gateway.gd` Area3D built
+      into globe_island under world_root (shift-invariant, east of
+      spawn), fires InstanceService.join_instance /
+      join_party_instance once per entry (dedupe inside the volume,
+      re-arm on exit); party roster read via PartyService.
+      get_player_party / get_party_members; solo degrade on failure.
+- [x] Lobby moment: typed toast through NotificationService.notify
+      (ZONE_CHANGED kind, dedupe key per entity+instance): OPEN
+      state + entry deadline, or the FULL refusal line.
+- [x] Planar instance scene `scenes/instances/arena_instance.gd`
+      (+ arena_fighter.gd): code-built room (floor + 4 perimeter
+      walls, 120 m), spawns at the zone's spawn_points (one per
+      team), fighters land under Contract.GRAVITY_FORCE planar -Y;
+      rules from bout_rules() -- NO hardcoded mode in the scene.
+- [x] Bout controller: start_bout -> LOCKED semantics,
+      report_death attribution (killer team scores; victim's team
+      loses a life), ELIMINATION last-team-standing win,
+      TEAM_DEATHMATCH respawn loop (zone respawn_timer + contract
+      spawn shield blocks kills while active) + kill_target win,
+      bout_started / bout_ended / fighter_down signals ready for
+      S11 duels. Globe <-> instance scene swap stays in GameManager
+      flow (headless skips scenes; the room is data+logic, probed
+      headless).
+- [x] Probes: probe_arena_instance.gd 24/24 (room build from zone
+      data, planar landing, elimination winner, TDM shield-blocks-
+      kill + kill target exactly 20) and probe_arena_trigger.gd
+      14/14 (entry fires join, dedupe, re-arm, 12-of-13 capacity
+      enforcement at the trigger, no phantom instance). Both in
+      DEFAULT_SET.
+- [x] Regression 27/27 + lint quartet green (three-globe-probe
+      regression caught the := load() type-inference parse error
+      within one run -- fixed with an explicit Area3D type).
+
+### S11 — duels + matchmaking (bout assembly)
+Locked S11 goals (owner, 2026-09-28): one bout-assembly path shared
+by manual duels and solo matchmaking; the fill flag bridges them.
+- [ ] Spawn-shield combat enforcement (fire-and-you-lose-it): the
+      combat bridge calls ArenaFighter.break_shield() on any
+      SELF-INITIATED action (attack, skill cast, potion, self-buff);
+      received effects (team aura, aoe heal, buffs from others)
+      never break it. Fighter-side + contract doc DONE (S10+).
+- [ ] Bout assembly engine: `assemble_bout(zone, teams)` -- the one
+      function that seats parties/individuals into teams against
+      bout_rules capacity and starts the private instance.
+- [ ] Duel consent handshake: challenge (/duel or party-leader to
+      party-leader) via the PartyService pending-invite pattern
+      (60 s timeout, sent/accepted/declined/expired signals); accept
+      = assemble_bout with both parties; PRIVATE instance (the
+      explicit exception to the public one-live-instance rule);
+      LOCKED on start.
+- [ ] Solo matchmaking: unmatched players queue per zone+mode; the
+      engine groups them into fair teams (level-proximity first,
+      then FIFO) and auto-assembles when a bout is fillable -- duel
+      is just a manual, consented assembly through the same path.
+- [ ] Fill-to-parity flag: during the challenge/accept phase, the
+      outnumbered party can consent to matchmaking fill (e.g. a 6
+      vs 4 duel becomes 6v6 with 2 queue players). Consent is per
+      accept, surfaced in the handshake UI; fills consume the queue.
+- [ ] Bout flow on ELIMINATION: entity_died attribution -> last
+      team standing -> winner via TitleService reward; losers
+      returned to bind point.
+- [ ] TEAM_DEATHMATCH bout on the sandpit rides the same controller
+      via bout_rules: respawn + shield (with the break rule above),
+      score to kill_target. Sandpit widened to 220 m with 8
+      deterministic cover rocks (line-of-sight leverage; duel rooms
+      stay clean sand) -- DONE in S10+.
+- [ ] Probe: handshake accept creates one private instance with
+      both parties, bout resolves a winner; solo queue assembles a
+      fair TDM bout; fill flag completes a 6v4 challenge.
 
 ### S4 — records + gates
 - [x] Tick the honestly-done boxes in `world-building-spherical.md`
@@ -336,6 +436,16 @@ do not join the icosahedral mesh.
 
 ## 4. Session log (append-only, newest first)
 
+- **2026-09-28 (S10 session)** -- arena wiring SHIPPED: mode layer
+  (InstanceMode + bout_rules + three zones on disk), planar instance
+  room + fighter bodies, gateway trigger on the globe, lobby toasts.
+  Two test-caught lessons: (1) probe arithmetic -- seat/fill counts
+  must be recounted after every fixture change (two rounds of
+  14-vs-13 style off-by-ones); (2) := load() type inference still
+  bites in code-built scenes; annotate the var (Area3D). TDM sync-
+  revive probe pattern: simulate respawns to test controller
+  accounting without waiting the zone timer. Next: S11 duels on
+  ELIMINATION.
 - **2026-09-28 (S8 fix session)** -- 20 km walk stall FIXED via
   floating origin + a re-anchored surface pad. Root cause proven by
   margin experiments: the BODY's own world-transform magnitude

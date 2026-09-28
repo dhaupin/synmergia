@@ -310,6 +310,23 @@ func _build_probe_markers() -> void:
 	_probe_north = _make_marker(Color(0.9, 0.2, 0.2), Vector3(0, planet_radius + 4.0, 0))
 	_probe_east = _make_marker(Color(0.2, 0.4, 0.9), Vector3(10.0, planet_radius + 4.0, 0))
 	_probe_marker = _make_marker(Color(1.0, 0.85, 0.2), Vector3(0, planet_radius + 8.0, -40.0))
+	_build_arena_gateway()
+
+## S10: the arena gateway trigger at the village edge. An Area3D under
+## world_root (shift-invariant: it rides the world rebase like every
+## other planet-bound node) whose body_entered fires InstanceService.
+func _build_arena_gateway() -> void:
+	var GatewayScript = load("res://scenes/worlds/arena_gateway.gd")
+	var gateway: Area3D = GatewayScript.new()
+	gateway.zone_id = "zone_arena_coliseum"
+	gateway.name = "ArenaGateway"
+	# East of spawn on the sand line: tangent-east, just above the
+	# shell so walking through it fires the join once.
+	gateway.position = Vector3(14.0, planet_radius + 1.0, 0.0)
+	world_root.add_child(gateway)
+	arena_gateway = gateway
+
+var arena_gateway: Node3D = null
 
 
 func _make_marker(color: Color, pos: Vector3) -> Node3D:

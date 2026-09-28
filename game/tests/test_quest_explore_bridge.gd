@@ -52,9 +52,10 @@ func _run() -> void:
 		"quest_main_teachings": {
 			"quest_id": "quest_main_teachings",
 			"state": qs.QuestData.QuestState.IN_PROGRESS,
-			"objectives": [				 {"id": "wake_waypoints", "type": qs.QuestData.ObjectiveType.EXPLORE,
-				 "target": "zone_starter_plains", "current": 0, "required": 3,
-				 "completed": false}
+			"objectives": [
+				{"id": "wake_waypoints", "type": qs.QuestData.ObjectiveType.EXPLORE,
+				"target": "zone_starter_plains", "current": 0, "required": 3,
+				"completed": false}
 			]
 		}
 	}

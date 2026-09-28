@@ -65,6 +65,14 @@ enum PvPZoneMode {
 # through InstanceContract.entry_deadline).
 @export var instance_entry_deadline: float = 0.0
 
+# S9+ bout contract: what kind of bouts this zone hosts
+# (InstanceContract.InstanceMode; see InstanceContract.bout_rules).
+@export var instance_mode: int = 0  # 0 = ELIMINATION
+# Mode tuning overrides; 0 keeps the InstanceContract default.
+@export var instance_kill_target: int = 0       # TDM: kills to win
+@export var instance_time_limit: float = 0.0    # Bout time cap
+@export var instance_spawn_shield: float = 0.0  # TDM spawn shield
+
 ## Horde event auto-start: when set (a HordeData id in data/hordes/),
 ## the FIRST player to enter this zone starts that horde through
 ## HordeEventService.start_horde_from_config (see HordeEventService

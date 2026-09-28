@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "zone_arena_coliseum"
 display_name = "Haven Coliseum"
-description = "The reclaimed arena at Haven's edge. Six species fought their wars here once; now it hosts duels under one unbroken sky. Instanced: eight fighters per bout, free PvP, full loot on the sand."
+description = "The reclaimed arena at Haven's edge. Six species fought their wars here once; now it hosts duels under one unbroken sky. Instanced: twelve fighters per bout (full 6v6 parties), free PvP, full loot on the sand."
 pvp_mode = 3
 level_requirement = 1
 max_level = 999
@@ -28,6 +28,6 @@ npcs = []
 loot_multiplier = 1.0
 xp_multiplier = 1.0
 is_instanced = true
-instance_capacity = 8
+instance_capacity = 12
 horde_config_id = ""
 instance_entry_deadline = 60.0

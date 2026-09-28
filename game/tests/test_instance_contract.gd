@@ -5,9 +5,9 @@
 ##   B. Lobby-state math: OPEN/FULL/LOCKED/CLOSED derivation + party
 ##      fits (pure functions of the ZoneManager instance dict shape).
 ##   C. Arena ZoneData: zone_ prefix == filename == id, instanced
-##      flag, capacity 8, deadline override, FREE_PVP.
+##      flag, capacity 12, deadline override, FREE_PVP.
 ##   D. Service: join routes to a live instance, fills to capacity 8,
-##      the 9th queues (capacity_ok=false), lobby transitions
+##      the 13th queues (capacity_ok=false), lobby transitions
 ##      OPEN -> FULL, forced-seam routing, contract served per zone.
 ## Run: godot --headless --path . --script res://tests/test_instance_contract.gd
 extends SceneTree
@@ -61,11 +61,44 @@ func _run() -> void:
 		var arena: Resource = packed
 		_check("arena id == filename stem", arena.id == "zone_arena_coliseum")
 		_check("arena is instanced", arena.is_instanced)
-		_check("arena capacity 8", arena.instance_capacity == 8)
+		_check("arena capacity 12 (full 6v6)", arena.instance_capacity == 12)
+		_check("arena mode ELIMINATION", arena.instance_mode == Contract.InstanceMode.ELIMINATION)
+		var arena_rules: Dictionary = Contract.bout_rules(arena)
+		_check("arena rules: no respawn, no kill target", \
+			not bool(arena_rules.get("respawn_allowed")) \
+			and int(arena_rules.get("kill_target")) == 0)
 		_check("arena FREE_PVP", arena.pvp_mode == ZoneData.PvPZoneMode.FREE_PVP)
 		_check("arena deadline override (60)", Contract.entry_deadline(arena) == 60.0)
 		_check("arena planar contract served", \
 			Contract.gravity_contract().get("shape") == "planar")
+
+	# ---- C2. Instance modes on disk (all three modes exist) ----------
+	var sandpit: Resource = load("res://data/zones/zone_arena_sandpit.tres")
+	_check("sandpit zone loads", sandpit != null)
+	if sandpit != null:
+		_check("sandpit mode TEAM_DEATHMATCH", \
+			sandpit.instance_mode == Contract.InstanceMode.TEAM_DEATHMATCH)
+		var sp_rules: Dictionary = Contract.bout_rules(sandpit)
+		_check("sandpit rules: respawn + kill target 20 + shield 4", \
+			bool(sp_rules.get("respawn_allowed")) \
+			and int(sp_rules.get("kill_target")) == 20 \
+			and float(sp_rules.get("spawn_shield_seconds")) == 4.0)
+		_check("sandpit time limit 480 from zone override", \
+			float(sp_rules.get("time_limit_seconds")) == 480.0)
+	var valley: Resource = load("res://data/zones/zone_royale_valley.tres")
+	_check("valley zone loads", valley != null)
+	if valley != null:
+		_check("valley mode ROYALE", \
+			valley.instance_mode == Contract.InstanceMode.ROYALE)
+		var vr_rules: Dictionary = Contract.bout_rules(valley)
+		_check("valley rules: no respawn, 15 min cap", \
+			not bool(vr_rules.get("respawn_allowed")) \
+			and float(vr_rules.get("time_limit_seconds")) == 900.0)
+		_check("valley seats 30", valley.instance_capacity == 30)
+	var null_rules: Dictionary = Contract.bout_rules(null)
+	_check("bout_rules(null) is elimination default", \
+		int(null_rules.get("mode")) == Contract.InstanceMode.ELIMINATION \
+		and float(null_rules.get("time_limit_seconds")) == Contract.DEFAULT_TIME_LIMIT_SECONDS)
 
 	# ---- D. Service behaviors (real autoloads via get_node_or_null) --
 	var isvc = root.get_node_or_null("InstanceService")
@@ -87,7 +120,7 @@ func _run() -> void:
 
 		var contract: Dictionary = isvc.get_contract("zone_arena_coliseum")
 		_check("service contract: planar", contract.get("shape") == "planar")
-		_check("service contract: capacity 8", int(contract.get("capacity")) == 8)
+		_check("service contract: capacity 12", int(contract.get("capacity")) == 12)
 		_check("service contract: deadline 60", float(contract.get("entry_deadline")) == 60.0)
 		var other: Dictionary = isvc.get_contract("zone_nexus_central")
 		_check("unknown zone gets shared constants (cap 0)", \
@@ -106,22 +139,22 @@ func _run() -> void:
 		_check("lobby OPEN after first join", \
 			isvc.get_lobby_state("zone_arena_coliseum") == Contract.LobbyState.OPEN)
 
-		# Fill the remaining 7 seats (capacity 8 total).
+		# Fill the remaining 11 seats (capacity 12 total).
 		var filled := 1
-		for i in range(7):
+		for i in range(11):
 			var pj = _make_stub("probe_fighter_%d" % (i + 2))
 			var r: Dictionary = isvc.join_instance(pj, "zone_arena_coliseum")
 			if bool(r.get("capacity_ok")):
 				filled += 1
-		_check("seats fill to 8 (got %d)" % filled, filled == 8)
+		_check("seats fill to 12 (got %d)" % filled, filled == 12)
 		_check("lobby FULL at capacity", \
 			isvc.get_lobby_state("zone_arena_coliseum") == Contract.LobbyState.FULL)
 
 		# The 9th must queue: join refused, existing instance kept.
-		var p9 = _make_stub("probe_queued_ninth")
-		var r9: Dictionary = isvc.join_instance(p9, "zone_arena_coliseum")
-		_check("9th join queues (capacity_ok=false)", \
-			not bool(r9.get("capacity_ok")))
+		var p13 = _make_stub("probe_queued_thirteenth")
+		var r13: Dictionary = isvc.join_instance(p13, "zone_arena_coliseum")
+		_check("13th join queues (capacity_ok=false)", \
+			not bool(r13.get("capacity_ok")))
 		_check("queued join did not create a new instance", \
 			isvc.live_instance_id("zone_arena_coliseum") == iid)
 

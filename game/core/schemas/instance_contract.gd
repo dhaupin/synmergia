@@ -34,6 +34,28 @@ enum LobbyState {
 	CLOSED      ## Teardown pending; not accepting anyone
 }
 
+## What kind of bout an instance hosts (owner decision, 2026-09-28:
+## modes are a contract-level concept, baked in BEFORE S10 wiring so
+## later modes never retrofit the bout controller).
+enum InstanceMode {
+	ELIMINATION,     ## One life; last team standing wins (duels)
+	TEAM_DEATHMATCH, ## Respawn + shield; first team to kill target
+	ROYALE           ## Reserved: shrinking bounds, later session
+}
+
+## Contract defaults per mode. ZoneData exports can override
+## kill_target / time_limit_seconds / spawn_shield_seconds per zone
+## (see zone_data.gd instance_* fields); bout_rules() applies them.
+const DEFAULT_KILL_TARGET: int = 25
+const DEFAULT_TIME_LIMIT_SECONDS: float = 600.0
+const DEFAULT_SPAWN_SHIELD_SECONDS: float = 4.0
+##
+## Spawn-shield conduct (owner decision, S11 goals): the shield is
+## fire-and-you-lose-it. Any SELF-INITIATED action (attack, skill
+## cast, potion, self-buff) breaks it; received effects (team aura,
+## aoe heal, buffs from others) never do. Combat bridge enforces via
+## ArenaFighter.break_shield().
+
 ## Planar-gravity guarantee for an instanced zone. Instances ignore
 ## the world shape knob entirely; this returns the values an instance
 ## scene must set on its physics bodies. Pure function of nothing --
@@ -54,6 +76,58 @@ static func entry_deadline(zone) -> float:
 		if d > 0.0:
 			return d
 	return DEFAULT_ENTRY_DEADLINE
+
+## Everything a bout controller needs for one zone, derived from its
+## InstanceMode. Pure function; duck-typed zone reads (hand-built or
+## old ZoneData without the exports still resolve). ELIMINATION has
+## no respawn and no kill target; TEAM_DEATHMATCH respawns under a
+## spawn shield and races to kill_target; ROYALE reports the same
+## shape so controllers can be written against one dict.
+static func bout_rules(zone) -> Dictionary:
+	var mode := int(InstanceMode.ELIMINATION)
+	if zone != null and "instance_mode" in zone:
+		mode = int(zone.instance_mode)
+	var kill_target := DEFAULT_KILL_TARGET
+	if zone != null and "instance_kill_target" in zone:
+		var kt = int(zone.instance_kill_target)
+		if kt > 0:
+			kill_target = kt
+	var time_limit := DEFAULT_TIME_LIMIT_SECONDS
+	if zone != null and "instance_time_limit" in zone:
+		var tl = float(zone.instance_time_limit)
+		if tl > 0.0:
+			time_limit = tl
+	var shield := DEFAULT_SPAWN_SHIELD_SECONDS
+	if zone != null and "instance_spawn_shield" in zone:
+		var ss = float(zone.instance_spawn_shield)
+		if ss > 0.0:
+			shield = ss
+	match mode:
+		InstanceMode.ELIMINATION:
+			return {
+				"mode": mode,
+				"respawn_allowed": false,
+				"kill_target": 0,
+				"time_limit_seconds": time_limit,
+				"spawn_shield_seconds": 0.0,
+			}
+		InstanceMode.TEAM_DEATHMATCH:
+			return {
+				"mode": mode,
+				"respawn_allowed": true,
+				"kill_target": kill_target,
+				"time_limit_seconds": time_limit,
+				"spawn_shield_seconds": shield,
+			}
+		InstanceMode.ROYALE:
+			return {
+				"mode": mode,
+				"respawn_allowed": false,
+				"kill_target": 0,
+				"time_limit_seconds": time_limit,
+				"spawn_shield_seconds": 0.0,
+			}
+	return bout_rules(null)
 
 ## Lobby state for one instance, derived from ZoneManager's instance
 ## dict shape ({"players": [...], "zone_data": ZoneData}). Pure

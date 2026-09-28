@@ -58,8 +58,8 @@ func _run() -> void:
 			"state": qs.QuestData.QuestState.IN_PROGRESS,
 			"objectives": [
 				{"id": "talk_elder", "type": qs.QuestData.ObjectiveType.TALK,
-				 "target": "npc_village_elder", "current": 0, "required": 1,
-				 "completed": false}
+				"target": "npc_village_elder", "current": 0, "required": 1,
+				"completed": false}
 			]
 		}
 	}
@@ -90,9 +90,9 @@ func _run() -> void:
 		"quest_id": "quest_herb_gathering",
 		"state": qs.QuestData.QuestState.IN_PROGRESS,
 		"objectives": [
-			{"id": "collect_herbs", "type": qs.QuestData.ObjectiveType.COLLECT,
-			 "target": "Moonpetal Flower", "current": 0, "required": 2,
-			 "completed": false}
+				{"id": "collect_herbs", "type": qs.QuestData.ObjectiveType.COLLECT,
+				"target": "Moonpetal Flower", "current": 0, "required": 2,
+				"completed": false}
 		]
 	}
 	# item_picked_up(entity, item) -- use real schema objects so the
