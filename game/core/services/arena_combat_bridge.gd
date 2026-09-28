@@ -72,13 +72,29 @@ func _on_entity_died(victim, killer) -> void:
 
 # ---- 2. Actions: shield break + activity ---------------------------------
 
-func _on_damage_dealt(damager, _target, _amount, _skill) -> void:
+func _on_damage_dealt(damager, target, amount, _skill) -> void:
 	var did: String = _id_of(damager)
 	var room = _room_holding(did)
 	if room == null:
 		return
 	# The attacker LIVED this moment: AFK ledger + fire-and-you-lose-it.
 	room.notify_action(did)
+	# Trial-bout dummies: damage from a REAL entity onto an entity-less
+	# dummy body resolves the dummy's death via its tuned presence.
+	# The attacker's shield rule already ran; the dummy's death is the
+	# room's own accounting (trial payout/credit follows bout end).
+	var tid: String = _id_of(target)
+	if tid == "" or not room.has_fighter(tid):
+		return
+	var f = room._fighters.get(tid)
+	if f == null or not f.alive:
+		return
+	var hp: int = int(f.get("trial_health")) if "trial_health" in f else 0
+	if hp <= 0:
+		return  # real fighters die through entity death events, not here
+	f.trial_health = hp - int(amount)
+	if f.trial_health <= 0:
+		room.report_death(tid, did)
 
 
 # ---- 3. Power normalization ----------------------------------------------

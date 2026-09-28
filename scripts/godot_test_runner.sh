@@ -50,6 +50,7 @@ probe_lobby_service
 probe_arena_bridge
 probe_bout_flow
 probe_bout_host
+probe_trial_bout
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

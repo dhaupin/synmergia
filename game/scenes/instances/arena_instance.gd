@@ -45,6 +45,8 @@ var origin_stones: Dictionary = {}  # fighter_id -> Vector3
 # S11: real levels per fighter (bridged in from the live entities at
 # spawn time; default 1 when the entity is not resolvable).
 var _levels: Dictionary = {}  # fighter_id -> int
+# S12: trial bout flag -- dummies + AFK sweep exemption + no ring out.
+var _trial: bool = false
 
 ## Emitted when a bout closes: fighter_id -> return position (their
 ## origin stone). The GameManager scene flow listens and teleports.
@@ -98,6 +100,15 @@ func spawn_fighter(id: String, team_id: int):
 		f.apply_spawn_shield(float(_rules.get("spawn_shield_seconds")))
 	fighter_spawned.emit(id, team_id)
 	return f
+
+## Seat one dummy (the marshal's trial bout): entity-FREE filler with
+## trial-tuned health. Dummies never sit in the bridge's entity paths;
+## the bridge resolves their deaths via effective_health().
+func spawn_dummy_fighter(id: String, team_id: int) -> void:
+	spawn_fighter(id, team_id)
+	var f = _fighters.get(id)
+	if f != null:
+		f.trial_health = 45
 
 ## Bridge-facing book: the real level of a fighter (from their live
 ## entity). Consumed by power normalization at bout start.
@@ -311,6 +322,10 @@ func _process(_delta: float) -> void:
 	if not _started or _over:
 		return
 	if int(_rules.get("mode")) == Contract.InstanceMode.ROYALE:
+		return
+	# Trial bouts skip the AFK sweep: a nervous first-timer standing
+	# still to read the room is not idling out of their lesson.
+	if _trial:
 		return
 	var window: float = Contract.afk_kick_seconds(zone_data)
 	if window <= 0.0:

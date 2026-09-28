@@ -12,6 +12,13 @@
 ## The loop after tonight: stone -> queue -> assemble -> HOSTED ROOM
 ## -> fight -> payout -> home.
 ##
+## Trial bout (the retention keystone): on LobbyService's
+## trial_fallback_due, the host fabricates the marshal's dummies and
+## hosts a winnable 1 v N lesson. Reduced payout; QuestService
+## (KILL "marshal's dummies") and AchievementService (bout_win)
+## credit on the win. Empty-queue hour: queue-of-one still means a
+## fight, and the first stone touch ends in one.
+##
 ## Payout (first pass, honest bookkeeping): winners take XP + gold,
 ## losers take consolation XP, via PlayerManager's duck-typed
 ## progression surface. Depth (per-kill credit, titles, wagers) is
@@ -30,15 +37,83 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 const WIN_XP: int = 120
 const WIN_GOLD: int = 25
 const CONSOLATION_XP: int = 40
+const TRIAL_WIN_XP: int = 40
+const TRIAL_WIN_GOLD: int = 10
+const TRIAL_LOSS_XP: int = 15
+## Dummy display name (QuestService KILL objectives target display
+## names -- the lint's credit rule, same as "Wolf" for wolves).
+const TRIAL_DUMMY_NAME: String = "marshal's dummies"
+const TRIAL_DUMMY_COUNT: int = 2
 
 # instance_id -> {zone_id, room, participants: Array, started: bool}
 var _hosted: Dictionary = {}
+# Trial id uniquifier (two trials can be born in the same second).
+var _trial_seq: int = 0
 
 
 func _ready() -> void:
 	if LobbyService != null and LobbyService.has_signal("bout_assembled"):
 		LobbyService.bout_assembled.connect(_on_bout_assembled)
 		GameLog.info("BoutHostService: armed on bout_assembled")
+	if LobbyService != null and LobbyService.has_signal("trial_fallback_due"):
+		LobbyService.trial_fallback_due.connect(_on_trial_fallback_due)
+		GameLog.info("BoutHostService: armed on trial_fallback_due (the marshal watches)")
+
+
+## The marshal's trial bout: fabricate the dummy block, host a real
+## room around it. Dummies are entity-free (bridge bypasses them);
+## the queued player gets a winnable fight that teaches the mode.
+func _on_trial_fallback_due(zone_id: String, block: Dictionary) -> void:
+	var pids: Array = block.get("player_ids", [])
+	if pids.is_empty():
+		return
+	var zone = _zone(zone_id)
+	if zone == null:
+		GameLog.warn("BoutHostService: trial for unknown zone %s dropped" % zone_id)
+		return
+	_trial_seq += 1
+	var instance_id: String = "trial_%s_%d_%d" % [zone_id, int(Time.get_unix_time_from_system()), _trial_seq]
+	var room = ArenaScene.new()
+	room.zone_data = zone
+	room.instance_id = instance_id
+	room._trial = true
+	get_tree().root.add_child(room)
+
+	var participants: Array = []
+	# The queuer keeps their real identity, level book, and stone --
+	# the aged block CARRIES the origin stone they queued at.
+	var solo_stones: Dictionary = {}
+	var queued_stone = block.get("origin_stone", Vector3.ZERO)
+	for i in range(pids.size()):
+		if queued_stone != Vector3.ZERO:
+			room.origin_stones[str(pids[i])] = queued_stone
+		_seat(room, str(pids[i]), 0, zone, participants)
+		solo_stones[str(pids[i])] = room.origin_stones.get(str(pids[i]), Vector3.ZERO)
+	# The marshal's dummies: entity-free, trial-tuned, team 1.
+	for d in range(TRIAL_DUMMY_COUNT):
+		room.spawn_dummy_fighter("trial_dummy_%d" % d, 1)
+
+	_hosted[instance_id] = {
+		"zone_id": zone_id,
+		"room": room,
+		"participants": participants,
+		"started": false,
+		"trial": true,
+	}
+	if room.has_signal("bout_ended"):
+		room.bout_ended.connect(_on_bout_ended.bind(instance_id))
+
+	# Trial bouts start fast -- the lesson should not make anyone wait
+	# out a lobby deadline.
+	room.start_deadline_override = 4.0
+	var timer := get_tree().create_timer(4.0)
+	timer.timeout.connect(func(): _start_if_live(instance_id))
+
+	# Inbound teleport: the queuer is already standing at the stone;
+	# stage them into the trial via the standard assembly path.
+	LobbyService.bout_assembled.emit(zone_id, instance_id, participants, [], solo_stones)
+	for pid in participants:
+		_toast(str(pid), "The marshal nods. A trial bout begins -- show them what you carry.", "trial_start:%s:%s" % [str(pid), instance_id])
 
 
 ## Host a bout: room + linked seats + start timer.
@@ -151,17 +226,36 @@ func _pay_out(winner_team: int, book: Dictionary) -> void:
 	var room = book.get("room")
 	if room == null:
 		return
+	var trial: bool = bool(book.get("trial", false))
 	for pid in book.get("participants", []):
 		var sid: String = str(pid)
 		var f = room._fighters.get(sid)
 		if f == null:
 			continue
 		if int(f.team) == winner_team:
-			_grant(sid, WIN_XP, WIN_GOLD)
-			_toast(sid, "Victory. The marshal's purse opens. (+%d XP, +%d gold)" % [WIN_XP, WIN_GOLD], "bout_win:%s" % sid)
+			if trial:
+				_grant(sid, TRIAL_WIN_XP, TRIAL_WIN_GOLD)
+				_toast(sid, "The marshal is satisfied. (+%d XP, +%d gold)" % [TRIAL_WIN_XP, TRIAL_WIN_GOLD], "trial_win:%s" % sid)
+				_credit_trial_win(sid)
+			else:
+				_grant(sid, WIN_XP, WIN_GOLD)
+				_toast(sid, "Victory. The marshal's purse opens. (+%d XP, +%d gold)" % [WIN_XP, WIN_GOLD], "bout_win:%s" % sid)
 		else:
-			_grant(sid, CONSOLATION_XP, 0)
-			_toast(sid, "The bout is lost. The lesson is paid. (+%d XP)" % CONSOLATION_XP, "bout_lose:%s" % sid)
+			var xp: int = TRIAL_LOSS_XP if trial else CONSOLATION_XP
+			_grant(sid, xp, 0)
+			_toast(sid, "The bout is lost. The lesson is paid. (+%d XP)" % xp, "bout_lose:%s" % sid)
+
+
+## Quest + achievement credit on a trial win. QuestService KILL
+## objectives target the dummy display name; AchievementService
+## tracks the bout_win category (data/achievements trial_by_fire).
+func _credit_trial_win(player_id: String) -> void:
+	var qs = _quest_service()
+	if qs != null and qs.has_method("update_quest_progress"):
+		qs.update_quest_progress(player_id, 0, TRIAL_DUMMY_NAME, 1)
+	var ach = _achievement_service()
+	if ach != null:
+		ach.track(player_id, "bout_win", 1)
 
 
 func _grant(pid: String, xp: int, gold: int) -> void:
@@ -223,3 +317,17 @@ func _notification_service():
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null("NotificationService")
+
+
+func _quest_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("QuestService")
+
+
+func _achievement_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("AchievementService")

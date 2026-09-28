@@ -90,6 +90,20 @@ stone touch ALWAYS ends in a fight, and the fight teaches the mode.
   block. Parked until the keystone lands -- flagged here because it
   is the actual retention answer at low population.
 
+**UPDATE, same day: the trial bout SHIPPED.** LobbyService ages
+queue blocks (TRIAL_PATIENCE_SECONDS 45, swept on the 5 s timer) and
+emits trial_fallback_due(zone, block); BoutHostService fabricates
+TWO marshal's dummies (trial_health 45, entity-free, bridge resolves
+their deaths from real entity damage via effective_health), hosts
+the trial (AFK sweep exempt, 4 s fast start, queued origin stone
+honored), pays reduced (40 XP + 10 gold win / 15 XP loss) and
+credits the win into the quest and achievement hooks:
+- quest_arena_trial "Prove Yourself" (data/quests): KILL "marshal's
+  dummies" x1, elder-gated lvl 1-8 -- the first fight IS a quest.
+- achievement_trial_by_fire "Trial by Fire": target_type bout_win,
+  credited via AchievementService.track on every trial win.
+probe_trial_bout 26/26 in DEFAULT_SET (regression 32/32).
+
 ## Golden-path probe (regression guard for the whole loop)
 
 One probe driving two fake players through the REAL chain: stone

@@ -559,6 +559,24 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S12 trial bout SHIPPED (2026-09-28): LobbyService queue-aging
+  sweep (TRIAL_PATIENCE_SECONDS 45 on the 5 s timer ->
+  trial_fallback_due(zone, block), block popped, _player_zone
+  cleaned); BoutHostService fabricates 2 marshal's dummies
+  (trial_health 45 via ArenaFighter, entity-FREE, bridge resolves
+  their deaths from real entity damage_dealt via effective_health
+  -- real fighters untouched, hp<=0 guard), AFK sweep exempt,
+  4 s fast start, queued block's origin stone honored, reduced
+  payout (40 XP + 10 gold / 15 XP loss) + quest/achievement credit:
+  quest_arena_trial "Prove Yourself" (KILL "marshal's dummies" x1,
+  elder-gated lvl 1-8) + achievement_trial_by_fire (bout_win via
+  AchievementService.track). Trial id uniquifier (_trial_seq) after
+  a same-second collision. probe_trial_bout 26/26 in DEFAULT_SET;
+  regression 32/32; lint EXIT 0. Lessons: a str_replace inserting
+  effective_health() replaced respawn_at's header (orphan body,
+  parse errors downstream) -- always re-read after insertion edits;
+  the sweep signal auto-hosts, so probes ride the real wiring
+  instead of double-calling (same-second id collision).
 - [x] S12 keystone SHIPPED (2026-09-28): BoutHostService autoload
   (on bout_assembled: spawn room, seat LINKED fighters by entity_id
   w/ real levels into the power book, seed origin stones from the

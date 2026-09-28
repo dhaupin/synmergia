@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_arena_trial"
+display_name = "Prove Yourself"
+description = "Marshal Thane watches every stone. Step into a trial bout at a queue stone and defeat the marshal's dummies to earn the marshal's nod -- and your first taste of real bouts."
+quest_type = 0
+difficulty = 0
+giver_npc_id = "npc_village_elder"
+turn_in_npc_id = "npc_village_elder"
+min_level = 1
+max_level = 8
+objectives = [{"id": "win_trial", "type": 0, "target": "marshal's dummies", "count": 1}]
+rewards = [{"type": "gold", "id": "", "quantity": 50}, {"type": "experience", "id": "", "quantity": 60}]
+gold_reward = 50
+xp_reward = 60
+icon_path = "res://icons/quests/arena_trial.png"
+map_marker = "kill"

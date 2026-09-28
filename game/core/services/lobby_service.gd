@@ -54,14 +54,23 @@ var _next_challenge_id: int = 1
 var _next_post_id: int = 1
 
 
+signal trial_fallback_due(zone_id: String, block: Dictionary)
+
+## Trial-bout patience: a queue aging past this with no band partner
+## fabricates a marshal's trial bout (queue-of-one still means a
+## fight; the owner's retention keystone for low population).
+const TRIAL_PATIENCE_SECONDS: float = 45.0
+
 func _ready() -> void:
 	if PartyService != null and PartyService.has_signal("party_disbanded"):
 		PartyService.party_disbanded.connect(_on_party_disbanded)
-	# Duel expiry sweep: one cheap timer beats per-frame scanning.
+	# Duel expiry + queue-aging sweep: one cheap timer beats per-frame
+	# scanning.
 	var sweep := Timer.new()
 	sweep.wait_time = 5.0
 	sweep.autostart = true
 	sweep.timeout.connect(_sweep_expired_challenges)
+	sweep.timeout.connect(_sweep_queue_aging)
 	add_child(sweep)
 	GameLog.info("LobbyService: Ready (lobby is canonical)")
 
@@ -380,6 +389,26 @@ func _sweep_expired_challenges() -> void:
 		var duel: Dictionary = _challenges[cid]
 		if not bool(duel.get("resolved", false)) and now - float(duel.get("created_at", 0.0)) > DUEL_TIMEOUT_SECONDS:
 			_resolve_duel(cid, false)
+
+
+## The trial fallback: every sweep, any block older than the patience
+## window pops its queue and emits trial_fallback_due(zone, block).
+## BoutHostService listens and hosts the marshal's bout. Skipped-not-
+## evicted blocks (band mismatches) age too -- nobody waits forever.
+func _sweep_queue_aging() -> void:
+	var now: float = Time.get_unix_time_from_system()
+	for zone_id in _queues.keys():
+		var zone_queue: Array = _queues[zone_id]
+		for i in range(zone_queue.size() - 1, -1, -1):
+			var block: Dictionary = zone_queue[i]
+			var waited: float = now - float(block.get("joined_at", now))
+			if waited < TRIAL_PATIENCE_SECONDS:
+				continue
+			zone_queue.remove_at(i)
+			for pid in block.get("player_ids", []):
+				_player_zone.erase(str(pid))
+			trial_fallback_due.emit(str(zone_id), block)
+			GameLog.info("LobbyService: trial fallback due for %s in %s (waited %ds)" % [block.get("player_ids", []), zone_id, int(waited)])
 
 
 # ---- 3. LFG / LFM (open-world parties included) ------------------------

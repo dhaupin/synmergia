@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trial_by_fire"
+display_name = "Trial by Fire"
+description = "Win a trial bout against the marshal's dummies"
+achievement_type = 1
+category = 0
+rarity = 0
+target = 1
+target_type = "bout_win"
+gold_reward = 25
+xp_reward = 30
+title_reward = ""
+icon_path = "res://icons/achievements/first_blood.png"
+sort_order = 2

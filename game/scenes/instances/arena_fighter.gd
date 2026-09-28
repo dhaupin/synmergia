@@ -17,6 +17,9 @@ const Contract = preload("res://core/schemas/instance_contract.gd")
 var fighter_id: String = ""
 var team: int = 0
 var alive: bool = true
+## Trial-bout filler (marshal's dummies): reduced combat presence --
+## a new player's first fight must be winnable. Zero = full health.
+var trial_health: int = 0
 # Spawn-shield deadline (unix seconds). While now < shielded_until the
 # controller rejects the fighter's death (TEAM_DEATHMATCH protection).
 var shielded_until: float = 0.0
@@ -30,9 +33,11 @@ func _ready() -> void:
 	up_direction = Vector3.UP
 	_build_visual()
 
-func setup(id: String, team_id: int) -> void:
+func setup(id: String, team_id: int, trial: bool = false) -> void:
 	fighter_id = id
 	team = team_id
+	if trial:
+		trial_health = 45
 
 func _physics_process(delta: float) -> void:
 	if not alive:
@@ -81,6 +86,12 @@ func respawn_at(pos: Vector3, shield_seconds: float) -> void:
 	collision_mask = 1
 	apply_spawn_shield(shield_seconds)
 	_set_tint(_team_color(team))
+
+## Effective combat presence for this fighter (trial dummies scale
+## down; real fighters are full). The combat bridge reads this when
+## resolving damage-to-death for entity-less fighters.
+func effective_health() -> int:
+	return trial_health if trial_health > 0 else 100
 
 func _build_visual() -> void:
 	var col := CollisionShape3D.new()
