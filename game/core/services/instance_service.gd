@@ -18,6 +18,9 @@ const InstanceContract = preload("res://core/schemas/instance_contract.gd")
 
 signal lobby_state_changed(zone_id: String, instance_id: String, state: int)
 signal instance_contract_changed(zone_id: String)
+## S12 item 3: dungeon session lifecycle (the shared front door).
+signal dungeon_session_opened(zone_id: String, instance_id: String, members: Array)
+signal dungeon_return_requested(return_map: Dictionary)
 
 ## zone_id -> true for zones with a live instance pair
 ## (base + live instance). Rebuilt in _ready from ZoneManager.
@@ -28,9 +31,20 @@ var _arena_zones := {}
 ## stays ZoneManager's (party instance reuse -> fresh create).
 var _forced_instance := {}  # zone_id -> instance_id
 
+## S12 item 3: dungeon session books. instance_id -> {zone_id,
+## members: Array, opened_at: float, activity: Dictionary}. The
+## dwell sweep uses them for the AFK + time-limit backstops.
+var _dungeon_sessions: Dictionary = {}
+const DUNGEON_SWEEP_SECONDS: float = 5.0
+
 
 func _ready() -> void:
 	_rebuild_arena_registry()
+	var sweep := Timer.new()
+	sweep.wait_time = DUNGEON_SWEEP_SECONDS
+	sweep.autostart = true
+	sweep.timeout.connect(_sweep_dungeon_sessions)
+	add_child(sweep)
 	GameLog.info("InstanceService: Ready (%d instanced zone defs)" % _arena_zones.size())
 
 
@@ -181,6 +195,161 @@ func live_instance_id(zone_id: String) -> String:
 ## has a live instance.
 func is_instanced_zone(zone_id: String) -> bool:
 	return _arena_zones.has(zone_id)
+
+
+## ---- S12 item 3: the shared front door ---------------------------------
+
+## Zone kind: "bout" (an arena; hosted by BoutHostService),
+## "dungeon" (instanced horde scope; the horde loop sits on top),
+## "open" (everything else). The discriminator is horde_config_id:
+## dungeons declare one, arenas never do (ELIMINATION's mode value
+## is 0, the schema default, so instance_mode cannot separate them).
+func zone_kind(zone_id: String) -> String:
+	if ZoneManager == null:
+		return "open"
+	var zone: ZoneData = ZoneManager.get_zone(zone_id)
+	if zone == null or not is_instanced_zone(zone_id):
+		return "open"
+	if "horde_config_id" in zone and str(zone.horde_config_id) != "":
+		return "dungeon"
+	return "bout"
+
+
+## The dungeon front door: contract checks (capacity, party fits,
+## QoS attribution) + a SESSION BOOK with AFK/dwell backstops, then
+## the same ZoneManager routing arenas use. HordeEventService keeps
+## firing on zone entry -- the horde loop sits ON TOP of this door,
+## not beside it. Returns the same shape as join_instance.
+func join_dungeon(entity, zone_id: String, party_ids: Array[String] = []) -> Dictionary:
+	if zone_kind(zone_id) != "dungeon":
+		return {"capacity_ok": false, "instance_id": ""}
+	var result: Dictionary = join_party_instance(entity, zone_id, party_ids) \
+		if not party_ids.is_empty() else join_instance(entity, zone_id)
+	if not bool(result.get("capacity_ok")):
+		return result
+	_open_dungeon_session(zone_id, str(result.get("instance_id", "")), entity, party_ids)
+	return result
+
+
+## The backstops (owner point: dungeon boss rooms must not become
+## hotels). AFK: an idler past the zone's kick window goes home.
+## Dwell: a party past the zone's time limit (instance_time_limit,
+## 0 = uncapped) ALL go home to the bind point and the session closes.
+func _sweep_dungeon_sessions() -> void:
+	var now: float = Time.get_unix_time_from_system()
+	for instance_id in _dungeon_sessions.keys():
+		var session: Dictionary = _dungeon_sessions[instance_id]
+		var zone: ZoneData = ZoneManager.get_zone(str(session.get("zone_id", ""))) if ZoneManager != null else null
+		var members: Array = session.get("members", [])
+		var kicked: Array = []
+		# AFK backstop (contract default 90 s; instance_afk_kick override).
+		var window: float = InstanceContract.afk_kick_seconds(zone)
+		if window > 0.0:
+			for m in members.duplicate():
+				var mid: String = str(m)
+				var idle: float = now - float(session.get("activity", {}).get(mid, now))
+				if idle > window:
+					kicked.append(mid)
+		# Dwell backstop (zone instance_time_limit > 0 only).
+		if zone != null and "instance_time_limit" in zone and float(zone.instance_time_limit) > 0.0:
+			if now - float(session.get("opened_at", now)) >= float(zone.instance_time_limit):
+				for m in members:
+					var mid: String = str(m)
+					if not kicked.has(mid):
+						kicked.append(mid)
+		if kicked.is_empty():
+			continue
+		_return_members(kicked, zone, instance_id)
+
+
+## Return members to the zone bind point and book the departure.
+## Also frees their seats in the ZoneManager instance roster -- the
+## session book and the instance roster must agree, or a returned
+## member's seat stays burned against capacity.
+func _return_members(member_ids: Array, zone: ZoneData, instance_id: String) -> void:
+	var session: Dictionary = _dungeon_sessions.get(instance_id, {})
+	var members: Array = session.get("members", [])
+	var bind: Vector3 = zone.bind_point if zone != null and "bind_point" in zone else Vector3.ZERO
+	var return_map: Dictionary = {}
+	for mid in member_ids:
+		var sid: String = str(mid)
+		return_map[sid] = bind
+		members.erase(sid)
+		var activity: Dictionary = session.get("activity", {})
+		activity.erase(sid)
+		var entity = _entity_by_id(sid)
+		if entity != null and (entity is Node3D):
+			(entity as Node3D).global_position = bind
+		_remove_instance_seat(entity, instance_id)
+	if members.is_empty():
+		_dungeon_sessions.erase(instance_id)
+	else:
+		session["members"] = members
+		_dungeon_sessions[instance_id] = session
+	if not return_map.is_empty():
+		dungeon_return_requested.emit(return_map)
+		GameLog.info("InstanceService: dungeon %s returned %d member(s) to bind" % [instance_id, return_map.size()])
+
+
+## Free the seat in the ZoneManager instance roster (ZoneManager has
+## no removal API; the roster holds live entity refs).
+func _remove_instance_seat(entity, instance_id: String) -> void:
+	if ZoneManager == null or entity == null or instance_id == "":
+		return
+	var data: Dictionary = ZoneManager.get_instance(instance_id)
+	if data.is_empty():
+		return
+	var players: Array = data.get("players", [])
+	players.erase(entity)
+	data["players"] = players
+
+
+## Fight/room code pokes this for dungeon members (the AFK ledger).
+func note_instance_activity(entity_id: String) -> void:
+	for instance_id in _dungeon_sessions:
+		var session: Dictionary = _dungeon_sessions[instance_id]
+		var members: Array = session.get("members", [])
+		if members.has(entity_id):
+			session["activity"][entity_id] = Time.get_unix_time_from_system()
+
+
+func _open_dungeon_session(zone_id: String, instance_id: String, entity, party_ids: Array[String]) -> void:
+	if instance_id == "":
+		return
+	var session: Dictionary = _dungeon_sessions.get(instance_id, {})
+	if session.is_empty():
+		session = {
+			"zone_id": zone_id,
+			"members": [],
+			"opened_at": Time.get_unix_time_from_system(),
+			"activity": {},
+		}
+		_dungeon_sessions[instance_id] = session
+	var now: float = Time.get_unix_time_from_system()
+	var all: Array = [entity.entity_id] if entity != null and "entity_id" in entity else []
+	for pid in party_ids:
+		all.append(str(pid))
+	for sid in all:
+		if not session["members"].has(sid):
+			session["members"].append(sid)
+		session["activity"][sid] = now
+	dungeon_session_opened.emit(zone_id, instance_id, session["members"])
+	GameLog.info("InstanceService: dungeon session open in %s (%d member(s))" % [instance_id, session["members"].size()])
+
+
+## Probe/tool seam: age a session so the sweep can act headlessly.
+func _age_dungeon_session(instance_id: String, seconds: float, idle_seconds: float = -1.0) -> void:
+	var session: Dictionary = _dungeon_sessions.get(instance_id, {})
+	if session.is_empty():
+		return
+	session["opened_at"] = float(session.get("opened_at", 0.0)) - seconds
+	if idle_seconds >= 0.0:
+		var now: float = Time.get_unix_time_from_system()
+		var activity: Dictionary = session.get("activity", {})
+		for key in activity.keys():
+			activity[key] = now - idle_seconds
+		session["activity"] = activity
+	_dungeon_sessions[instance_id] = session
 
 
 ## One-shot re-read of the registry (after external instance churn).

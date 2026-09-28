@@ -559,6 +559,27 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S12 dungeon front door SHIPPED (2026-09-28): InstanceService
+  zone_kind (bout/dungeon/open; discriminator = horde_config_id
+  because ELIMINATION is instance_mode 0 -- mode cannot separate
+  arenas from dungeons), join_dungeon (same contract checks as
+  bouts: capacity/party_fits/QoS) + session book + backstops:
+  AFK sweep (90 s contract / instance_afk_kick) returns idlers to
+  the dungeon bind; dwell sweep (instance_time_limit > 0) returns
+  the whole party and closes the session; _remove_instance_seat
+  frees ZoneManager roster seats on return (no removal API existed
+  -- seats were burning against capacity); note_instance_activity
+  AFK ledger for fight code; HordeEventService untouched (horde
+  loop rides zone entry ON TOP of the door). Gloomwood Depths:
+  instance_time_limit 3600. probe_dungeon_front_door 19/19 in
+  DEFAULT_SET (kinds, admission, session book, AFK return-to-bind,
+  activity survival, dwell expiry, capacity enforcement).
+  Lessons: _dungeon_sessions.get returns a COPY -- mutate then
+  write back or the change evaporates; a str_replace cleanup can
+  leave an orphan duplicate line two lines below the fix (sweep
+  TWICE with --check-only before probes); entry-denial backoff +
+  cooldowns + QoS buckets all need clearing in probes when the
+  subject is the path, not the throttle.
 - [x] S12 social presence + LFG kinds (2026-09-28, next session):
   LobbyService get_presence/get_friend_presence (joins EntityService,
   ZoneManager._entity_zones, PartyService, lobby queues,

@@ -98,10 +98,23 @@ must be ALIGNED because both are instances on one lobby:
   (PARTY/DUNGEON/RAID) in the ONE book; post_lfg kind arg;
   list_lfg kind_filter; solo posters auto-form their party on the
   first petition; LobbyUI posts carry the kind for row styling.
-- [ ] 3. InstanceService as the shared front door for dungeon/raid
-  joins -- PARTIAL: party instance creation now attributes the QoS
-  owner (leader) via get_or_create_party_instance; the full move
-  (dungeon join paths through the contract front door) remains.
+- [x] 3. InstanceService as the shared front door for dungeon/raid
+  joins -- SHIPPED (2026-09-28, next session): zone_kind taxonomy
+  (bout/dungeon/open; discriminator = horde_config_id -- arenas
+  never declare one, so instance_mode cannot separate them since
+  ELIMINATION is schema value 0); join_dungeon runs the SAME
+  contract checks (capacity via party_fits, QoS attribution) then
+  opens a SESSION BOOK. Backstops (owner point 1 generalized):
+  AFK sweep (contract 90 s / instance_afk_kick override) returns
+  idlers to the dungeon bind; DWELL sweep (instance_time_limit > 0)
+  returns the whole party and closes the session. Roster seats are
+  freed on return (ZoneManager has no removal API -- the front door
+  owns the bookkeeping) so returned seats are never burned against
+  capacity. note_instance_activity is the AFK ledger for fight
+  code. HordeEventService untouched -- the horde loop sits ON TOP
+  of the door (it keys off zone entry). Gloomwood Depths tres got
+  instance_time_limit 3600 (1 h dwell cap). probe
+  probe_dungeon_front_door 19/19 in DEFAULT_SET.
 - [ ] Spectate permissions model; recent-players privacy UI; loot-
   mode griefing rules -- open, recorded above.
 
