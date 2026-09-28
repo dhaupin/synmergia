@@ -9,6 +9,7 @@
 extends RefCounted
 
 const FacePatches = preload("res://core/frame/math/icosahedral_faces.gd")
+const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 
 ## Tiles render just above the scene's visual sphere shell (which sits
 ## at radius + SKIN_THICKNESS = +0.5) so they never hide inside it.
@@ -24,9 +25,12 @@ var target_patch_edge: float = 7.0
 
 var current_face: int = -1
 var parent: Node3D
+## World seed bytes for deterministic content (TerrainGen).
+var world_seed: PackedByteArray = PackedByteArray()
 
 var _patches := {}  # int face -> MeshInstance3D
 var _face_tints := {}  # int face -> Color (deterministic per face)
+var _patch_rocks := {}  # int face -> Array of rock StaticBody3D
 
 
 ## Wire the streamer to a scene. Call before the first update().
@@ -34,6 +38,7 @@ func configure(p_radius: float, p_target_edge: float, p_parent: Node3D) -> void:
 	radius = p_radius
 	target_patch_edge = p_target_edge
 	parent = p_parent
+	world_seed = TerrainGen.world_seed_bytes()
 
 
 ## Call every physics frame with the player position. Loads the
@@ -124,7 +129,37 @@ func _load_patch(face: int) -> void:
 	parent.add_child(mi)
 	_patches[face] = mi
 	_patch_tris[face] = verts.size()
+
+	_spawn_rocks(face)
 	patch_loaded.emit(face)
+
+
+## Seeded rocks for one face: deterministic content (S7), parented
+## under the patch node so unload is free. VISUAL-ONLY: the walk-over
+## authority is the snap_height_provider (the exact smoothstep cap) --
+## adding StaticBody colliders duplicates that authority and fights
+## it (slide friction stalls the walk; test-caught lesson). If
+## projectiles/raycasts ever need rock hits, add colliders on a
+## separate physics layer, not the player's.
+func _spawn_rocks(face: int) -> void:
+	var specs: Array = TerrainGen.rock_specs(world_seed, face)
+	var nodes: Array = []
+	var patch_node: MeshInstance3D = _patches[face]
+	for s in specs:
+		var rmi := MeshInstance3D.new()
+		var rmesh := SphereMesh.new()
+		rmesh.radius = TerrainGen.ROCK_RADIUS * s.scale
+		rmesh.height = rmesh.radius * 2.0
+		var rmat := StandardMaterial3D.new()
+		rmat.albedo_color = Color(0.45, 0.42, 0.40)
+		rmat.roughness = 1.0
+		rmesh.material = rmat
+		rmi.mesh = rmesh
+		rmi.position = s.dir * (radius + TerrainGen.ROCK_EMBED)
+		rmi.rotation.y = s.yaw
+		patch_node.add_child(rmi)
+		nodes.append(rmi)
+	_patch_rocks[face] = nodes
 
 
 func _unload_patch(face: int) -> void:
@@ -133,6 +168,7 @@ func _unload_patch(face: int) -> void:
 		mi.queue_free()
 	_patches.erase(face)
 	_patch_tris.erase(face)
+	_patch_rocks.erase(face)
 	patch_unloaded.emit(face)
 
 

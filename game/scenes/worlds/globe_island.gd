@@ -41,6 +41,13 @@ func _setup_streamer() -> void:
 	streamer = load("res://scenes/worlds/globe_terrain_streamer.gd").new()
 	streamer.configure(SHELL_RADIUS, 7.0, self)
 	streamer.update(player.global_position)
+	# Rock walk-over: the player's radial snap rides seeded rock tops
+	# (S7). Callable receives the player's world direction.
+	var Faces = load("res://core/frame/math/icosahedral_faces.gd")
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	player.snap_height_provider = func(dir: Vector3) -> float:
+		var face: int = Faces.face_for_direction(dir)
+		return Gen.rock_top_height(dir, streamer.world_seed, face, SHELL_RADIUS)
 
 
 func _physics_process(_delta: float) -> void:

@@ -8,6 +8,9 @@ const SETTINGS_KEY: String = "synmergia/world/shape"
 
 func _init() -> void:
 	var ok := true
+	if not _test_project_default_spherical():
+		push_error("FAIL: project_default_spherical")
+		ok = false
 	if not _test_default_planar():
 		push_error("FAIL: default_planar")
 		ok = false
@@ -22,6 +25,16 @@ func _init() -> void:
 
 func _resolver() -> GDScript:
 	return load("res://core/frame/math/world_shape.gd")
+
+
+## The shipped project default is SPHERICAL (the globe is live).
+## This test documents it: flipping the project setting back to
+## planar must be a conscious decision that updates this test.
+func _test_project_default_spherical() -> bool:
+	# Must run before any set_setting call clobbers the loaded value.
+	var raw: String = str(ProjectSettings.get_setting(SETTINGS_KEY, "planar"))
+	assert(raw == "spherical")
+	return true
 
 
 func _test_default_planar() -> bool:

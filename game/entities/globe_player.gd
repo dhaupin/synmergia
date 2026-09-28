@@ -25,11 +25,17 @@ var walk_speed: float = WALK_SPEED_DEFAULT
 var gravity_force: float = GRAVITY_DEFAULT
 ## Set true by the probe to auto-walk eastward without input.
 var auto_walk: bool = false
+## Optional provider: func(dir: Vector3) -> float, height above the
+## base surface at that direction (rock tops). The radial snap rides
+## rock tops smoothly so walk-over colliders decorate, not block.
+var snap_height_provider: Callable = Callable()
 
 var _surface_normal: Vector3 = Vector3.UP
 ## Accumulated path length (for the probe's curvature assertion).
 var path_walked: float = 0.0
 var _loop_start: Vector3 = Vector3.ZERO
+## Smoothed ride height above the base shell (rock walk-over).
+var _ride_lift: float = 0.0
 
 
 func _physics_process(delta: float) -> void:
@@ -71,8 +77,15 @@ func _physics_process(delta: float) -> void:
 	path_walked += global_position.distance_to(before)
 
 	# Snap to the surface: cancel residual radial drift so the body
-	# rides the shell exactly (probe asserts this stays true).
+	# rides the shell exactly (probe asserts this stays true). The
+	# snap provider (rock tops, S7) lifts the target ride height.
+	# IMPORTANT: the lift is applied EXACTLY, never lerped - the cap
+	# profile is already smooth in space, and a lagged lift lets the
+	# body intersect rock colliders and stall (test-caught lesson).
 	var target_r: float = planet_radius + SKIN
+	if snap_height_provider.is_valid():
+		_ride_lift = snap_height_provider.call(global_position)
+		target_r += _ride_lift
 	var err: float = global_position.length() - target_r
 	if abs(err) > 0.001:
 		global_position = global_position.normalized() * target_r

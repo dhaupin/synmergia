@@ -155,6 +155,44 @@ touching the existing playable world.
 - [x] Regression 22/22 (adds test_world_shape + globe_driver to
       DEFAULT_SET); lint quartet green on final tree.
 
+### Wave A — the globe is live for humans (2026-09-28)
+- [x] `project.godot` gains a `[synmergia]` section with
+      `world/shape="spherical"` -- the shipped default. LESSON:
+      project.godot comments are `;` not `#` (a `#` comment inside a
+      section silently breaks the next key's parse).
+- [x] `test_world_shape.gd` asserts the project default IS spherical
+      (flipping back must be a conscious, test-flagged decision).
+- [x] `play_driver.gd` pins planar explicitly -- it verifies the
+      CLASSIC world and stays honest about that. xvfb-verified.
+- [x] `globe_driver.gd` unchanged -- it now exercises the SHIPPED
+      path (no runtime flip needed, kept for explicitness).
+
+### S7 — seeded chunk content + walk-over (2026-09-28)
+- [x] `scenes/worlds/terrain_gen.gd` -- SeedChain-driven per-face
+      rock content: `SeedChain.derive_seed([world_seed],
+      "terrain/rocks_v1/face/<id>")`, 32 bytes folded to an RNG seed,
+      2-5 rocks per face, pure function of (world seed, face id,
+      RULESET_VERSION). World seed from `synmergia/world/seed`.
+- [x] Determinism tests (`test_terrain_determinism.gd`): order
+      independence (interleaved vs sorted derive identical), seed/face
+      sensitivity, all-faces 2-5 rocks, provider continuity via
+      REFINEMENT RATIO (max step delta halves when step halves -- a
+      fixed threshold is the wrong instrument for steep-but-continuous
+      caps; test-caught).
+- [x] Streamer spawns rocks per loaded patch (parented to the patch;
+      unload is free). VISUAL-ONLY on purpose: colliders duplicate
+      the walk-over authority and stall movement via slide friction
+      (test-caught lesson; colliders may return on a separate layer
+      for raycasts).
+- [x] Walk-over: `globe_player.snap_height_provider` -- exact
+      smoothstep cap height (never lerped; a lagged lift lets the
+      body intersect and stall, test-caught lesson), MAX across
+      overlapping caps (max of continuous is continuous; first-match
+      return jumps, test-caught lesson). Rock top geometry matches
+      the provider (ROCK_EMBED + R*scale).
+- [x] Regression: globe probe 12/12 (250 m walk restored over rocky
+      terrain, curvature 1.32), stream probe 9/9 with rocks.
+
 ### S4 — records + gates
 - [x] Tick the honestly-done boxes in `world-building-spherical.md`
       sec 6.1 (haversine, bearing, position->cell); leave map/UI boxes
@@ -173,6 +211,12 @@ touching the existing playable world.
   Context: phases 1-5 substrate all COMPLETE (TASKS.md); this PRD
   covers the unclaimed gap between "addressing math exists" and "a
   player stands on a curve". Commit hashes appended as waves land.
+- **2026-09-28 (part 3)** — Wave A (globe SHIPPED as the default
+  world; [synmergia] project section, `;`-comment lesson, planar
+  pinned in play_driver) + S7 (SeedChain rocks, walk-over provider,
+  three test-caught lessons: min-chord faces needed it, max-union
+  caps, exact-not-lerped lift, colliders-vs-provider double
+  authority). Determinism test uses refinement ratios.
 - **2026-09-28 (same day, part 2)** — S6 (full-flow driver) DONE:
   shape knob now picks the world scene (planar default intact);
   globe_driver walks the real menu->select->Play->globe flow with

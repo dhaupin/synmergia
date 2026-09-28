@@ -209,3 +209,9 @@ warnings/unsafe_cast=0
 warnings/unsafe_call_argument=0
 warnings/unsafe_self_use=0
 warnings/infer_variant=0
+
+[synmergia]
+
+; World shape (world-building.md sec 1.6; GameManager branches on it):
+; "planar" = classic world_playable, "spherical" = the spherical world.
+world/shape="spherical"

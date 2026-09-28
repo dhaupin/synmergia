@@ -17,6 +17,10 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
+	# This driver verifies the CLASSIC planar world; pin the shape so
+	# the shipped spherical default does not change what it walks.
+	ProjectSettings.set_setting("synmergia/world/shape", "planar")
+
 	# --- Stage 1: main menu (project boot scene) ---------------------
 	change_scene_to_file("res://ui/menus/main_menu.tscn")
 	if not await _wait_scene("MainMenu", 4.0):

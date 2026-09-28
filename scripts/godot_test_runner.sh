@@ -41,6 +41,7 @@ frame/math/test_icosahedral_faces
 probe_globe_island
 probe_terrain_stream
 test_world_shape
+test_terrain_determinism
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model
