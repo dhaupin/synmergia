@@ -21,6 +21,7 @@ func _init() -> void:
 
 func _run() -> void:
 	var Contract = load("res://core/schemas/instance_contract.gd")
+	var ach = root.get_node_or_null("AchievementService")
 	var zm = root.get_node_or_null("ZoneManager")
 	var esvc = root.get_node_or_null("EntityService")
 	var cs = root.get_node_or_null("CombatSystem")
@@ -71,6 +72,8 @@ func _run() -> void:
 		lobby.join_queue("gold_p2", 12, "zone_arena_coliseum", false, stone_b))
 
 	# ---- 2. Assembly -> HOST (the keystone moment) ----------------------
+	# Script-mode boot order: InstanceService built its zone registry
+	# before load_zones() ran -- refresh it (the service's own seam).
 	# Script-mode boot order: InstanceService built its zone registry
 	# before load_zones() ran -- refresh it (the service's own seam).
 	var isvc = root.get_node_or_null("InstanceService")
@@ -134,6 +137,89 @@ func _run() -> void:
 		(p2.global_position as Vector3).distance_to(stone_b) < 0.01)
 	_check("stats restored after the bout (no permanent form)", \
 		int(p1.stats["strength"]) == base_strength)
+
+	# ---- 8. S12 hardening: clock + streaks ------------------------------
+	# The clock: a trial room (AFK-exempt) still ends on its window.
+	# start_bout stamps _bout_start_time, so the backdate lands after.
+	var ArenaScene: GDScript = load("res://scenes/instances/arena_instance.gd")
+	var clock_room = ArenaScene.new()
+	clock_room.zone_data = coliseum
+	clock_room.instance_id = "clock_probe"
+	clock_room._trial = true
+	root.add_child(clock_room)
+	clock_room.spawn_fighter("clock_a", 0)
+	clock_room.spawn_fighter("clock_b", 1)
+	clock_room.start_bout()
+	clock_room._bout_start_time = Time.get_unix_time_from_system() - 400.0
+	await process_frame
+	await process_frame
+	_check("trial clock caps the bout (draw at -1)", clock_room.is_over())
+	var draw_book: Dictionary = {"room": clock_room, "participants": ["clock_a", "clock_b"], "trial": true}
+	host._pay_draw(draw_book)
+	_check("draw pays consolation, not a win", int(pm.experience) >= 40)
+	clock_room.queue_free()
+	await process_frame
+
+	# Streaks: TDM room (respawn keeps the bout alive), manual revive
+	# between kills (the real timer will not wait out in headless).
+	var sandpit: Resource = zm.get_zone("zone_arena_sandpit")
+	var streak_room = ArenaScene.new()
+	streak_room.zone_data = sandpit
+	streak_room.instance_id = "streak_probe"
+	root.add_child(streak_room)
+	streak_room.spawn_fighter("streaker", 0)
+	streak_room.spawn_fighter("victim", 1)
+	streak_room.start_bout()
+	for i in range(3):
+		var victim_f = streak_room._fighters.get("victim")
+		victim_f.alive = true
+		victim_f.shielded_until = 0.0
+		streak_room.report_death("victim", "streaker")
+	_check("streak book counts 3", streak_room.best_streak_for("streaker") == 3)
+	var streak_book: Dictionary = {"room": streak_room, "participants": ["streaker", "victim"]}
+	host._credit_streak_achievements(streak_book)
+	_check("kill_streak_3 unlocked via the tracker", \
+		ach != null and bool(ach.has_unlocked("streaker", "kill_streak_3")))
+	streak_room.queue_free()
+	await process_frame
+
+	# ---- 9. S12 hardening: QoS refusal paths ----------------------------
+	# Instance creation is rate-limited (capacity 1 token at 0.05/s):
+	# gold_p1 spent their token creating the coliseum instance in the
+	# golden path, so a fresh-zone create is refused for them -- but
+	# a fresh player still gets through (per-player buckets).
+	var spammer2 = E.new()
+	spammer2.entity_id = "qos_fresh"
+	spammer2.display_name = "qos_fresh"
+	spammer2.level = 5
+	spammer2.entity_type = E.EntityType.PLAYER
+	root.add_child(spammer2)
+	esvc._entities["qos_fresh"] = spammer2
+	var refused: Dictionary = isvc.join_instance(p1, "zone_arena_sandpit")
+	var allowed: Dictionary = isvc.join_instance(spammer2, "zone_arena_sandpit")
+	_check("instance create rate-limited for the spent owner", \
+		not bool(refused.get("capacity_ok")) and str(refused.get("instance_id")) == "")
+	_check("fresh owner still creates (per-player buckets)", bool(allowed.get("capacity_ok")))
+
+	# Queue churn is rate-limited: after leaving, an immediate re-join
+	# flood exhausts the party bucket -- the refusal is the LIMIT (the
+	# player is NOT queued anymore, so a plain already-queued refusal
+	# cannot explain it).
+	lobby.leave_queue("gold_p1")
+	for i in range(30):
+		lobby.join_queue("gold_p1", 8, "zone_arena_coliseum", false, stone_a)
+	_check("queue flood rate-limited (not queued, refused anyway)", \
+		lobby.queue_for("gold_p1") == "")
+	lobby.leave_queue("gold_p1")
+
+	# Duel challenge spam is rate-limited (whisper bucket = 20/min =
+	# 0.33/s; bucket capacity is maxf(1.0, rate) = 1 token). One
+	# challenge lands, the flood stops until the bucket refills.
+	var sent: int = 0
+	for i in range(14):
+		if lobby.challenge_duel("qos_dueler", "qos_target_%d" % i, "zone_arena_coliseum") != "":
+			sent += 1
+	_check("duel challenge flood capped by QoS (burst of 1)", sent == 1)
 
 	if _fails == 0:
 		print("BOUT HOST PROBE PASSED (%d checks)" % _checks)

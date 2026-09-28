@@ -123,6 +123,12 @@ func _run() -> void:
 	_check("self-duel refused", lobby.challenge_duel("duelist_one", "duelist_one", "zone_arena_sandpit") == "")
 
 	# Expiry: stamp the challenge old, sweep, expect resolution.
+	# The S12 QoS throttle caps challenge bursts (whisper bucket, 1
+	# token) -- the probe clears the bucket so the SECOND challenge
+	# under test is the expiry path, not the rate limit.
+	var qos = root.get_node_or_null("QoSService")
+	if qos != null and "_rate_limit_buckets" in qos:
+		(qos._rate_limit_buckets as Dictionary).erase("duelist_one")
 	var cid2: String = lobby.challenge_duel("duelist_one", "duelist_two", "zone_arena_sandpit")
 	_check("second challenge after resolution ok", cid2 != "")
 	lobby._challenges[cid2]["created_at"] = Time.get_unix_time_from_system() - 120.0
@@ -164,6 +170,10 @@ func _run() -> void:
 	# Disband cleanup: queue entries + posts die with the party.
 	var pid2: String = ps.create_party("disband_leader")
 	var post2: String = lobby.post_lfg(pid2, "disband_leader", "soon gone")
+	# create_party spent the QoS party token; clear it so the queue
+	# join under test is the disband path, not the rate limit.
+	if qos != null and "_rate_limit_buckets" in qos:
+		(qos._rate_limit_buckets as Dictionary).erase("disband_leader")
 	lobby.join_queue("disband_leader", 15, "zone_arena_sandpit", true, Vector3.ZERO, pid2)
 	_check("disbanded party leaves the queue", \
 		lobby.queue_for("disband_leader") == "zone_arena_sandpit")

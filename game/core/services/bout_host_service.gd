@@ -208,16 +208,52 @@ func _announce_start(book: Dictionary, instance_id: String) -> void:
 
 ## Bout closed: payout, release, teardown. instance_id arrives via
 ## the connect-time bind (signal args first, bound args after).
+## winner_team -1 = DRAW (the clock ran out -- owner point 1: squatting
+## pays nobody; everyone takes consolation XP so the queue is the loop).
 func _on_bout_ended(winner_team: int, _stats: Dictionary, instance_id: String) -> void:
 	var book: Dictionary = _hosted.get(instance_id, {})
 	if book.is_empty():
 		return
 	_hosted.erase(instance_id)
-	_pay_out(winner_team, book)
+	if winner_team >= 0:
+		_pay_out(winner_team, book)
+		_credit_streak_achievements(book)
+	else:
+		_pay_draw(book)
 	var room = book.get("room")
 	if room != null:
 		room.queue_free()
 	GameLog.info("BoutHostService: bout %s closed (winner team %d)" % [instance_id, winner_team])
+
+
+## Consolation for everyone on a draw -- never zero, never a win.
+func _pay_draw(book: Dictionary) -> void:
+	var room = book.get("room")
+	if room == null:
+		return
+	for pid in book.get("participants", []):
+		var sid: String = str(pid)
+		if room._fighters.has(sid):
+			_grant(sid, CONSOLATION_XP, 0)
+			_toast(sid, "The clock ran out. A draw -- the marshal pays the lesson. (+%d XP)" % CONSOLATION_XP, "bout_draw:%s" % sid)
+
+
+## Killstreak achievements (owner point 2): the templated kill_streak
+## defs (3/5/10/25/50) get their missing tracker. One increment per
+## fighter per bout at their BEST streak; the service caps progress
+## at each def's target and _do_unlock guards repeats.
+func _credit_streak_achievements(book: Dictionary) -> void:
+	var room = book.get("room")
+	if room == null:
+		return
+	var ach = _achievement_service()
+	if ach == null:
+		return
+	for pid in book.get("participants", []):
+		var sid: String = str(pid)
+		var best: int = room.best_streak_for(sid)
+		if best > 0:
+			ach.track(sid, "kill_streak", best)
 
 
 ## Payout via the duck-typed progression surface. Never throws on

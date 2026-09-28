@@ -47,6 +47,13 @@ var origin_stones: Dictionary = {}  # fighter_id -> Vector3
 var _levels: Dictionary = {}  # fighter_id -> int
 # S12: trial bout flag -- dummies + AFK sweep exemption + no ring out.
 var _trial: bool = false
+# S12 hardening: bouts are FINITE. The AFK sweep is exempt in trials,
+# so the time limit does the capping there; everywhere else it is the
+# backstop against squatters eating instance runtime (owner point 1).
+# A bout that runs out the clock is a DRAW (stats keep the book).
+var _time_limit: float = 0.0  # 0 = disabled (probe scratch rooms)
+var _streaks: Dictionary = {}   # fighter_id -> current kill streak
+var _best_streaks: Dictionary = {}  # fighter_id -> best streak this bout
 
 ## Emitted when a bout closes: fighter_id -> return position (their
 ## origin stone). The GameManager scene flow listens and teleports.
@@ -162,6 +169,11 @@ func start_bout() -> void:
 		return
 	_started = true
 	_bout_start_time = Time.get_unix_time_from_system()
+	# The clock owner asked for: every mode is finite. Trials count
+	# their own (shorter) window from the zone's time limit.
+	_time_limit = float(_rules.get("time_limit_seconds", 0.0))
+	if _trial:
+		_time_limit = minf(_time_limit if _time_limit > 0.0 else 300.0, 300.0)
 	bout_started.emit(_rules)
 	# Deferred so the bridge (and any other listener) can react to
 	# bout_started before the power book lands.
@@ -232,6 +244,7 @@ func report_death(victim_id: String, killer_id: String) -> int:
 		return -1
 	victim.eliminate()
 	fighter_down.emit(victim_id, killer_id, victim.team)
+	_book_streaks(victim_id, killer_id)
 	if _rules.get("respawn_allowed", false):
 		_scores[victim.team] = int(_scores.get(victim.team, 0))
 		# Credit the killer's team and respawn the victim under the
@@ -280,6 +293,22 @@ func _check_elimination_win() -> void:
 	if living_teams <= 1 and _teams.size() > 1:
 		_end_bout(last_team)
 
+## Streak bookkeeping on every booked death (owner point 2): the
+## killer's streak climbs, the victim's resets. Lives in the room so
+## probes and the payout layer share one truth.
+func _book_streaks(victim_id: String, killer_id: String) -> void:
+	if killer_id == "" or killer_id == victim_id:
+		_streaks[victim_id] = 0
+		return
+	if not (_fighters.has(killer_id) and _fighters.has(victim_id)):
+		return
+	_streaks[killer_id] = int(_streaks.get(killer_id, 0)) + 1
+	_best_streaks[killer_id] = maxi(int(_best_streaks.get(killer_id, 0)), int(_streaks[killer_id]))
+	_streaks[victim_id] = 0
+
+func best_streak_for(fighter_id: String) -> int:
+	return int(_best_streaks.get(fighter_id, 0))
+
 func _end_bout(winner_team: int) -> void:
 	if _over:
 		return
@@ -321,10 +350,18 @@ func note_activity(fighter_id: String) -> void:
 func _process(_delta: float) -> void:
 	if not _started or _over:
 		return
+	# The clock (owner point 1): when the window runs out, the bout is
+	# a DRAW -- a defensible resolution the book already supports.
+	# Squatting buys you nothing; the instance frees on schedule.
+	if _time_limit > 0.0 \
+			and Time.get_unix_time_from_system() - _bout_start_time >= _time_limit:
+		_end_bout(-1)
+		return
 	if int(_rules.get("mode")) == Contract.InstanceMode.ROYALE:
 		return
 	# Trial bouts skip the AFK sweep: a nervous first-timer standing
-	# still to read the room is not idling out of their lesson.
+	# still to read the room is not idling out of their lesson. The
+	# time limit above is the trial's own cap instead.
 	if _trial:
 		return
 	var window: float = Contract.afk_kick_seconds(zone_data)

@@ -194,7 +194,7 @@ func _force_instance(zone_id: String, instance_id: String) -> void:
 	_arena_zones[zone_id] = true
 
 
-func _route_instance(zone_id: String, _entity, party_ids: Array[String]) -> String:
+func _route_instance(zone_id: String, entity, party_ids: Array[String]) -> String:
 	if _forced_instance.has(zone_id):
 		return str(_forced_instance[zone_id])
 	if ZoneManager == null:
@@ -209,6 +209,14 @@ func _route_instance(zone_id: String, _entity, party_ids: Array[String]) -> Stri
 	var live: String = live_instance_id(zone_id)
 	if live != "":
 		return live
+	# QoS: instance creation is a rate-limited action (0.05/s per
+	# owner in GameConfig). The requester is the owner of record so
+	# a spamming player cannot churn instances; the limit was dead
+	# code before this attribution (create_instance took no owner).
+	var owner_id: String = str(entity.entity_id) if entity != null and "entity_id" in entity else ""
+	if owner_id != "" and QoSService != null and not QoSService.rate_limit(owner_id, "instance"):
+		GameLog.warn("InstanceService: instance creation rate-limited for %s" % owner_id)
+		return ""
 	return ZoneManager.create_instance(zone_id)
 
 

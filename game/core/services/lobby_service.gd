@@ -82,7 +82,12 @@ func _ready() -> void:
 ## this entry to top up the OPPOSING team (fill-to-parity); origin
 ## stone is the round-trip address (bout end + AFK kicks land there).
 ## Returns false when already queued elsewhere (leave first).
+## QoS: queue churn is rate-limited (the "party" bucket) so a
+## spamming client cannot hammer the lobby books.
 func join_queue(player_id: String, level: int, zone_id: String, consent_fill: bool = true, origin_stone: Vector3 = Vector3.ZERO, party_id: String = "") -> bool:
+	if QoSService != null and not QoSService.rate_limit(player_id, "party"):
+		GameLog.warn("LobbyService: queue rate-limited for %s" % player_id)
+		return false
 	if _player_zone.has(player_id):
 		return false
 	var member_ids: Array = [player_id]
@@ -301,7 +306,12 @@ func _stamp_stones(instance_id: String, stones: Dictionary) -> void:
 
 ## Challenge one player to a bout in one zone. One pending challenge
 ## per player (either direction); 60 s expiry, PartyService pattern.
+## QoS: challenge spam is rate-limited (the "whisper" bucket -- a
+## duel challenge IS a whisper with stakes).
 func challenge_duel(from_id: String, to_id: String, zone_id: String) -> String:
+	if QoSService != null and not QoSService.rate_limit(from_id, "whisper"):
+		GameLog.warn("LobbyService: duel challenge rate-limited for %s" % from_id)
+		return ""
 	if from_id == to_id or _player_challenge.has(from_id) or _player_challenge.has(to_id):
 		return ""
 	var cid: String = "duel_%d" % _next_challenge_id
