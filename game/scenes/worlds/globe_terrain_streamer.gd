@@ -3,8 +3,13 @@
 ## icosahedron faces, via IcosahedralFaces). The active set is always
 ## the player's current face plus its 3 edge-neighbors (max 4 patches);
 ## crossing a face border swaps exactly the stale patches out.
-## Visual-only: the globe's sphere StaticBody stays the physics truth;
-## patch tiles dip below it by <6 cm at prototype scale (sagitta).
+## Visual-only: the globe's sphere StaticBody stays the physics truth
+## at prototype scale; at planet scale the globe scene's re-anchored
+## surface pad carries the collision (see globe_island._build_surface_pad).
+## S8 FLOATING ORIGIN: patches are planet-relative children of the
+## scene's world_root, and all patch vertices are LOCAL to the patch
+## node (world-space vertices at |r| ~20 km silently break Godot's
+## physics import even for visuals-adjacent paths; rendering is fine).
 ## RefCounted helper (preloaded by the globe scene; no autoload).
 extends RefCounted
 
@@ -13,6 +18,7 @@ const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 
 ## Tiles render just above the scene's visual sphere shell (which sits
 ## at radius + SKIN_THICKNESS = +0.5) so they never hide inside it.
+## Mirrored by globe_island.STREAMER_TILE_LIFT (spawn / snap / pad).
 const TILE_LIFT: float = 0.52
 
 signal face_changed(old_face: int, new_face: int)
@@ -30,10 +36,13 @@ var world_seed: PackedByteArray = PackedByteArray()
 
 var _patches := {}  # int face -> MeshInstance3D
 var _face_tints := {}  # int face -> Color (deterministic per face)
-var _patch_rocks := {}  # int face -> Array of rock StaticBody3D
+var _patch_rocks := {}  # int face -> Array of rock MeshInstance3D
 
 
 ## Wire the streamer to a scene. Call before the first update().
+## Ground support is NOT the streamer's job: at planet scale the globe
+## scene's re-anchored surface pad carries collision (single authority
+## for physics; the streamer stays visual-only).
 func configure(p_radius: float, p_target_edge: float, p_parent: Node3D) -> void:
 	radius = p_radius
 	target_patch_edge = p_target_edge
@@ -45,6 +54,10 @@ func configure(p_radius: float, p_target_edge: float, p_parent: Node3D) -> void:
 ## current face + neighbors, unloads stale patches, emits signals on
 ## changes. Returns a stats dict for probes/tests.
 func update(player_pos: Vector3) -> Dictionary:
+	# player_pos must be PLANET-RELATIVE (the globe scene passes
+	# player.global_position - planet_center). Planet-relative coords
+	# are invariant under floating-origin shifts, so face addressing
+	# never sees the shift at all.
 	var f: int = FacePatches.face_for_position(player_pos, radius)
 	if f == current_face:
 		return {"face": f, "loaded": [], "unloaded": [], "active": _patches.keys()}
@@ -84,14 +97,15 @@ func active_faces() -> Array:
 	return _patches.keys()
 
 
+var _patch_tris := {}
+
+
 ## Total triangles across live patches (probe/observability).
 func triangle_count() -> int:
 	var total := 0
 	for face in _patch_tris:
 		total += _patch_tris[face]
 	return total
-
-var _patch_tris := {}
 
 
 # -- internals ---------------------------------------------------------
@@ -101,12 +115,13 @@ func _load_patch(face: int) -> void:
 		return
 	var fv: PackedInt32Array = FacePatches.face_vertices(face)
 	var tile_r: float = radius + TILE_LIFT
-	var a: Vector3 = Icosahedral.VERTICES[fv[0]].normalized() * tile_r
-	var b: Vector3 = Icosahedral.VERTICES[fv[1]].normalized() * tile_r
-	var c: Vector3 = Icosahedral.VERTICES[fv[2]].normalized() * tile_r
+	var center: Vector3 = FacePatches.face_center(face) * tile_r
+	var a: Vector3 = Icosahedral.VERTICES[fv[0]].normalized() * tile_r - center
+	var b: Vector3 = Icosahedral.VERTICES[fv[1]].normalized() * tile_r - center
+	var c: Vector3 = Icosahedral.VERTICES[fv[2]].normalized() * tile_r - center
 
 	var level: int = _level_for_edge()
-	var verts: Array = []  # tile corner triples (world space)
+	var verts: Array = []  # tile corner triples, LOCAL to the patch node
 	_subdivide(a, b, c, level, verts)
 
 	var st := SurfaceTool.new()
@@ -126,6 +141,7 @@ func _load_patch(face: int) -> void:
 	mat.vertex_color_use_as_albedo = true
 	mat.roughness = 0.95
 	mi.material_override = mat
+	mi.position = center
 	parent.add_child(mi)
 	_patches[face] = mi
 	_patch_tris[face] = verts.size()

@@ -193,6 +193,135 @@ touching the existing playable world.
 - [x] Regression: globe probe 12/12 (250 m walk restored over rocky
       terrain, curvature 1.32), stream probe 9/9 with rocks.
 
+### S8 — planet_radius config + 20 km scale probe (2026-09-28)
+- [x] `project.godot` `[synmergia]` gains `planet_radius=100.0` (the
+      100 m prototype stays the shipped default; 20000 is the v1
+      planet scale from locked decision 1). `globe_island.gd` reads
+      it in `_ready` (PLANET_RADIUS_SETTING); SHELL_RADIUS const is
+      replaced by `planet_radius` everywhere; probe_globe_island and
+      probe_terrain_stream consume `_globe.planet_radius`.
+- [x] `globe_player.gd` gains `snap_enabled: bool = true` -- an
+      additive diagnostic (default true = zero behavior change) that
+      lets the probe separate snap interaction from raw contact
+      physics.
+- [x] `tests/probe_planet_scale_20km.gd` (11 asserts, exit 0):
+      Stage A control (100 m walk 30.1 m, glued), Stage B 20 km
+      snap-ON (spawn radius 20001.0 m exact, walk 0.14 m / 8 s,
+      glued), Stage C 20 km snap-OFF (walk 0.02 m, radial speed
+      0.00, stays near shell), Stage D face resolution at 20 km.
+      Bounded frame caps; single quit; globes freed between stages.
+- [x] **20 km WALK STALL -- FIXED (floating origin + surface pad).**
+      Root cause PROVEN by isolation experiments (tmp experiment,
+      deleted after the verdict): the stall is the BODY's own
+      world-transform magnitude, not the collider. A body at |r| = 200
+      with planet_radius = 20000 walks freely on a perfect local floor
+      (29.7 m); the same floor at |r| = 20001 walks 0.03 m. Collider
+      locality alone does NOT fix it, and a trimesh built in
+      world-space coords (|v| ~ 20000) is worse: physics import of
+      huge-magnitude triangle soup degenerates (ray/shape queries see
+      NOTHING, bodies fall through). The fix:
+      1. Floating-origin rebase. Planet-bound content (shell, patches,
+         markers, pad) lives under `world_root`; the PLAYER stays a
+         direct child of the scene. Past `SHIFT_RADIUS = 1500` m
+         (inside the measured free-walk threshold: <2 km free, 5 km
+         degraded, 10 km dead), `_maybe_shift_world()` translates the
+         planet by -player_offset AND teleports the player by the
+         same delta. Both move; relative pose is identical and every
+         float32 magnitude is small. A world-only shift is NOT
+         enough: the killer is the body's magnitude, and with snap
+         off the body is stranded mid-air above the moved surface.
+      2. Planet-relative math end to end. `planet_center` on the
+         scene and the player; `globe_player.planet_up()` /
+         `planet_distance()` replace global-origin math; the snap
+         target, glue check, streamer face addressing (update() takes
+         the planet-relative position), and the rock-top provider
+         (now takes a world POSITION and derives its own direction)
+         all read from the planet center. Planet-relative coordinates
+         are shift-invariant.
+      3. Planet-scale ground = ONE re-anchored surface pad. Above
+         `PLANAR_SHELL_MAX_R = 2000` the megasphere SphereShape
+         collider is disabled and a single StaticBody with a fixed
+         curved-disc trimesh (local coords <= 64 m, rings dipped by
+         the exact spherical sagitta, backface_collision on) is
+         re-anchored under the player every physics frame (the scene
+         node processes before its player child) and after every
+         rebase. The proven primitive: small local collider,
+         meter-scale coordinates, dynamic anchor.
+      4. Walk surface: R + TILE_LIFT + SKIN (0.52 + 1.0) ONLY at
+         planet scale. At prototype scale the collision shell IS the
+         surface (lift 0) -- streamed tiles are visual-only there and
+         the player keeps real shell contact (probe_globe_island
+         radial rest |v_rad| = 0.01; applying the lift at 100 m
+         masked contact as free-fall, test-caught).
+      5. Streamer patches are planet-relative children of world_root
+         with LOCAL vertices (node position = face center * tile_r);
+         the per-patch trimesh collider machinery was REMOVED
+         (face-local coords are still ~10 km at 20 km radius and the
+         pad carries physics). `face_for_position` grew an optional
+         `planet_center` arg (default ZERO; existing callers
+         unchanged).
+      Probe flipped to the fix (25 asserts, exit 0): Stage B spawn
+      r = 20001.52 exact, snap-ON walks 30.08 m (arc 29.3 m); Stage C
+      snap-OFF walks 30.08 m with |v_r| = 0.000 (the old stall
+      tripwire); Stage D forces a rebase (teleport 1600 m): exactly
+      one more shift, body re-lands at the gap between the shifted
+      planet-center radius and the walk surface (~64 m; asserted
+      structurally |body_r| = |c| - walk_r), still glued, streaming
+      holds 4 patches, walks 10 m post-shift, no runaway loop; Stage
+      E face resolution. The honest walk metric is ARC distance
+      measured FROM THE PLANET CENTER (from the world origin a 10 m
+      walk post-rebase swings the direction by ~9 deg -- the body
+      sits only ~64 m from the origin after a rebase). Rebase counts
+      assert as DELTAS: the spawn itself (20 km out) triggers the
+      first rebase on frame 1.
+- [x] Regression registered: probe_planet_scale_20km in DEFAULT_SET
+      -- regression 24/24 + lint quartet green on the fixed tree.
+      Commit + push via Changes panel (owner).
+
+### S9 — instances/lobby contract (2026-09-28)
+The "separate future session" of locked decision 4. Locked decision
+3 governs: instances stay planar AABB with vanilla -Y gravity; they
+do not join the icosahedral mesh.
+- [x] `game/core/schemas/instance_contract.gd`: the contract as
+      constants + pure functions -- GRAVITY_FORCE 20.0, UP_DIRECTION
+      +Y (planar, never radial), DEFAULT_ENTRY_DEADLINE 20 s,
+      LobbyState enum (OPEN/FULL/LOCKED/CLOSED), `gravity_contract()`
+      (what every instance scene must set on its bodies),
+      `entry_deadline(zone)` (ZoneData override wins),
+      `lobby_state_for(instance_data, started)` and
+      `party_fits(instance_data, party_size, started)` (pure functions
+      of ZoneManager's instance dict shape, so probes and future
+      lobby UI agree with the service). No autoload, no class_name
+      collision (static helper, preloaded by the service).
+- [x] `ZoneData.instance_entry_deadline: float = 0.0` (0 = shared
+      default) -- the per-zone lobby deadline override.
+- [x] `game/core/services/instance_service.gd` (autoload):
+      the front door over ZoneManager's lifecycle. `get_contract`
+      (planar gravity + capacity + deadline per zone),
+      `join_instance` / `join_party_instance` (capacity-checked
+      join; FULL returns capacity_ok=false so the caller queues --
+      NEVER silently opens a second instance for the same base
+      zone), `live_instance_id` (party routing via ZoneManager,
+      test seam `_force_instance`), `get_lobby_state`,
+      `refresh_registry` (script-mode boots load zones late).
+- [x] ZoneManager capacity fix: `add_to_instance` now enforces
+      `instance_capacity` (0 = unlimited) at the single chokepoint;
+      previously `can_enter_instance` checked capacity but no join
+      path called it. All callers get the same enforcement.
+- [x] Arena ZoneData `game/data/zones/zone_arena_coliseum.tres`
+      (zone_ prefix == filename == id): FREE_PVP, capacity 8,
+      is_instanced, deadline override 60 s, two spawn points.
+- [x] Probe `game/tests/test_instance_contract.gd` (40 asserts,
+      exit 0, registered in DEFAULT_SET): contract constants,
+      lobby-state derivation incl. LOCKED-beats-FULL and unlimited
+      capacity, arena data shape, real-autoload service flow --
+      solo join routes to the live instance, 8 seats fill, the 9th
+      queues (capacity_ok=false, no phantom instance), lobby
+      OPEN -> FULL, forced-seam routing, per-zone contract, 45 s
+      override beats the 20 s default.
+- [x] Regression 25/25 (incl. this probe in DEFAULT_SET) + lint
+      quartet green; commit + push via Changes panel (owner).
+
 ### S4 — records + gates
 - [x] Tick the honestly-done boxes in `world-building-spherical.md`
       sec 6.1 (haversine, bearing, position->cell); leave map/UI boxes
@@ -207,6 +336,35 @@ touching the existing playable world.
 
 ## 4. Session log (append-only, newest first)
 
+- **2026-09-28 (S8 fix session)** -- 20 km walk stall FIXED via
+  floating origin + a re-anchored surface pad. Root cause proven by
+  margin experiments: the BODY's own world-transform magnitude
+  (walks freely at |r| = 200 on a local floor even with
+  planet_radius = 20000; 0.03 m at |r| = 20001), NOT the collider;
+  world-space trimeshes at |v| ~ 20000 are degenerate for physics
+  import entirely. Ship shape: globe_island world_root +
+  _maybe_shift_world (planet AND player move by the same delta),
+  planet_center threading through player/streamer/rock provider,
+  one curved-disc surface pad re-anchored every physics frame at
+  planet scale (megasphere disabled > 2000 m), streamer patches
+  vertex-local under world_root. Probe flipped to the fix (25/25
+  incl. a forced-rebase stage); regression 24/24 + lint quartet.
+  Lessons: (1) a floating-origin rebase must teleport the BODY too;
+  (2) at planet scale one dynamically anchored small collider beats
+  per-face colliders (face-local coords are still ~10 km); (3) the
+  prototype walk surface stays the shell -- the tile lift only
+  applies where the pad carries physics. Next: S9 instances/lobby
+  contract.
+- **2026-09-28 (S8 session)** — planet_radius config wired end to
+  end; 20 km probe built with a control/stall/isolation experiment.
+  Two lessons recorded for future sessions: (1) a rebase-drift
+  measurement must compare against a REBASED frame, not the walk
+  start -- the crashed session's "0.14 m float32 escape" was walked
+  distance mislabeled; (2) hypothesis-driven probes need the
+  negative control (snap OFF) BEFORE the verdict is written -- the
+  control overturned the snap theory in one run. Open verdict: 20 km
+  walk stall is physics-contact precision, not snap, not transform.
+  Next: S9 instances/lobby contract, or the 20 km stall fix.
 - **2026-09-27 (night)** — Session opened. PRD written; S1 starting.
   Context: phases 1-5 substrate all COMPLETE (TASKS.md); this PRD
   covers the unclaimed gap between "addressing math exists" and "a

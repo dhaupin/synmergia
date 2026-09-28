@@ -490,6 +490,44 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] S9 instances/lobby contract (2026-09-28): InstanceContract
+  constants (planar -Y gravity 20.0 sealed per locked decision 3,
+  LobbyState enum, entry deadline + override), InstanceService
+  autoload (front door over ZoneManager lifecycle: per-zone contract,
+  capacity-checked join, lobby queue semantics -- FULL returns
+  capacity_ok=false and NEVER spawns a phantom second instance),
+  ZoneData.instance_entry_deadline, arena zone_arena_coliseum.tres
+  (FREE_PVP cap 8), ZoneManager.add_to_instance now enforces capacity
+  (the gap: can_enter_instance checked it but no join path called
+  it). Probe test_instance_contract.gd 40/40 in DEFAULT_SET.
+  Pickup: prd-spherical-mvp.md S9.
+- [x] 20 km stall FIXED (S8 continuation, 2026-09-28): floating
+  origin + re-anchored surface pad. Proven root cause: the BODY's
+  own world-transform magnitude (local-floor experiment: free walk
+  at |r| = 200 with planet_radius = 20000, 0.03 m at |r| = 20001);
+  collider-locality alone does not fix it and world-space trimeshes
+  are degenerate for physics import. globe_island.gd: planet-bound
+  content under world_root, _maybe_shift_world moves planet AND
+  player by the same delta past SHIFT_RADIUS = 1500; one curved-disc
+  pad (local coords <= 64 m) re-anchored under the player every
+  frame carries planet-scale collision (megasphere disabled > 2000
+  m). planet_center threads through player snap/glue, streamer face
+  addressing (planet-relative update()), and the rock-top provider.
+  Streamer patches are vertex-local under world_root; per-patch
+  trimesh machinery REMOVED. Walk surface = R + 0.52 + 1.0 only at
+  planet scale (prototype keeps shell contact; test-caught).
+  probe_planet_scale_20km flipped to the fix: 25/25 incl. forced
+  rebase stage. Regression 24/24 + lint quartet. Pickup:
+  prd-spherical-mvp.md S8.
+- [x] Planet-radius config + 20 km probe S8 (2026-09-28): config
+  `synmergia/world/planet_radius` read by globe_island.gd; SHELL_RADIUS
+  renamed to planet_radius var; probe_planet_scale_20km.gd
+  (control/stall/isolation experiment, 11 asserts exit 0) registered
+  in the runner. VERDICT OPEN: 20 km walk stall (0.14 m vs ~48 m
+  commanded) persists with the radial snap OFF and gravity is
+  canceled by the shell contact -- physics-contact float32 precision
+  is the lead suspect, not the snap and not transform precision.
+  Probe Stage C tripwire asserts the stall until a fix lands.
 - [x] Full-flow spherical driver S6 (2026-09-28): GameManager world
   scene branches on the shape knob (planar default intact),
   test_world_shape.gd, globe_driver.gd (real menu->select->Play->

@@ -606,12 +606,24 @@ func destroy_instance(instance_id: String) -> bool:
 func get_instance(instance_id: String) -> Dictionary:
 	return _instances.get(instance_id, {})
 
-## Add entity to instance
+## Add entity to instance. Capacity gate (S9): instance_capacity 0 =
+## unlimited; otherwise the join is refused when full. One chokepoint
+## so every caller (InstanceService lobby joins, direct party joins)
+## gets the same enforcement.
 func add_to_instance(entity, instance_id: String) -> bool:
 	if not _instances.has(instance_id):
 		return false
 
 	var instance_data = _instances[instance_id]
+	var max_capacity: int = 0
+	var zdata = instance_data.get("zone_data")
+	if zdata != null and "instance_capacity" in zdata:
+		max_capacity = int(zdata.instance_capacity)
+	if max_capacity > 0 and instance_data.get("players", []).size() >= max_capacity:
+		GameLog.debug("ZoneManager: Instance %s is full (%d/%d)" % \
+			[instance_id, instance_data.get("players", []).size(), max_capacity])
+		return false
+
 	instance_data.players.append(entity)
 
 	# Switch entity to instance zone

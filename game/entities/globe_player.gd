@@ -4,6 +4,15 @@
 ## the MovementProfile schema values (gravity_force / walk_speed),
 ## consistent with the movement profile system.
 ##
+## S8 FLOATING ORIGIN: at planet scale (R = 20 km) a CharacterBody at
+## world magnitude ~20000 stalls: the body's OWN float32 transform
+## precision degenerates horizontal locomotion (experiment: walks
+## freely at |r| = 200, stalls at |r| >= ~5000, ON A PERFECT LOCAL
+## FLOOR). So the scene shifts the whole world back around the player
+## (floating-origin rebase, see globe_island._maybe_shift_world), and
+## ALL radial math here is done RELATIVE TO planet_center - never the
+## world origin. planet_center is maintained by the globe scene.
+##
 ## Tangent-frame conventions (planar-matching, verified):
 ##   north = pole direction projected onto the tangent plane
 ##   east  = north x up          (planar: north=-Z, up=+Y -> east=+X)
@@ -20,6 +29,16 @@ const SKIN: float = 1.0
 
 ## Radius of the sphere this player stands on (set by the globe scene).
 var planet_radius: float = 100.0
+## S8: world-space position of the PLANET CENTER. The scene keeps the
+## PLAYER near the world origin (floating origin); the planet moves.
+## All radial quantities derive from (global_position - planet_center).
+var planet_center: Vector3 = Vector3.ZERO
+## S8: height of the WALKABLE SURFACE above planet_radius. Zero for
+## the bare shell; the streamed patch tiles sit TILE_LIFT (0.52) above
+## it, so a streaming globe sets this and every height that matters
+## (snap target, glue check, spawn) is measured from the surface the
+## player actually stands on. One reference, no per-system drift.
+var ground_offset: float = 0.0
 
 var walk_speed: float = WALK_SPEED_DEFAULT
 var gravity_force: float = GRAVITY_DEFAULT
@@ -29,6 +48,10 @@ var auto_walk: bool = false
 ## base surface at that direction (rock tops). The radial snap rides
 ## rock tops smoothly so walk-over colliders decorate, not block.
 var snap_height_provider: Callable = Callable()
+## Diagnostic (S8): when false the radial surface snap is skipped and
+## gravity still pulls, so the probe can separate snap interaction
+## from raw contact physics. Default true = unchanged behavior.
+var snap_enabled: bool = true
 
 var _surface_normal: Vector3 = Vector3.UP
 ## Accumulated path length (for the probe's curvature assertion).
@@ -38,8 +61,18 @@ var _loop_start: Vector3 = Vector3.ZERO
 var _ride_lift: float = 0.0
 
 
+## Radial direction from the planet center to this body (local up).
+func planet_up() -> Vector3:
+	return (global_position - planet_center).normalized()
+
+
+## Distance from the planet center to this body's collision center.
+func planet_distance() -> float:
+	return (global_position - planet_center).length()
+
+
 func _physics_process(delta: float) -> void:
-	var up: Vector3 = global_position.normalized()
+	var up: Vector3 = planet_up()
 	_surface_normal = up
 	up_direction = up
 
@@ -77,18 +110,19 @@ func _physics_process(delta: float) -> void:
 	path_walked += global_position.distance_to(before)
 
 	# Snap to the surface: cancel residual radial drift so the body
-	# rides the shell exactly (probe asserts this stays true). The
+	# rides the surface exactly (probe asserts this stays true). The
 	# snap provider (rock tops, S7) lifts the target ride height.
 	# IMPORTANT: the lift is applied EXACTLY, never lerped - the cap
 	# profile is already smooth in space, and a lagged lift lets the
 	# body intersect rock colliders and stall (test-caught lesson).
-	var target_r: float = planet_radius + SKIN
-	if snap_height_provider.is_valid():
-		_ride_lift = snap_height_provider.call(global_position)
-		target_r += _ride_lift
-	var err: float = global_position.length() - target_r
-	if abs(err) > 0.001:
-		global_position = global_position.normalized() * target_r
+	if snap_enabled:
+		var target_r: float = planet_radius + ground_offset + SKIN
+		if snap_height_provider.is_valid():
+			_ride_lift = snap_height_provider.call(global_position)
+			target_r += _ride_lift
+		var err: float = planet_distance() - target_r
+		if abs(err) > 0.001:
+			global_position = planet_center + (global_position - planet_center).normalized() * target_r
 
 	# Keep the camera pivot aligned with local up.
 	var pivot: Node3D = get_node_or_null("CameraPivot")
@@ -103,9 +137,9 @@ func get_surface_normal() -> Vector3:
 	return _surface_normal
 
 
-## True when the player is glued to the surface (probe helper).
+## True when the player is glued to the walk surface (probe helper).
 func is_glued(tolerance: float = 0.5) -> bool:
-	return abs(global_position.length() - (planet_radius + SKIN)) <= tolerance
+	return abs(planet_distance() - (planet_radius + ground_offset + SKIN)) <= tolerance
 
 
 ## Curvature signature: a closed equator loop walks 2*pi*R but ends

@@ -86,12 +86,12 @@ func _run() -> void:
 	# Stage 3: addressing - live position -> Icosahedral cell.
 	var Ico = load("res://core/frame/math/icosahedral.gd").new()
 	var pos: Vector3 = player.global_position
-	var cell: int = Ico.position_to_cell(pos, _globe.SHELL_RADIUS)
+	var cell: int = Ico.position_to_cell(pos, _globe.planet_radius)
 	ok = _check("cell resolved (got %d)" % cell, cell >= 0 and cell < 12) and ok
 	var center: Vector3 = Ico.cell_center(cell)
-	var near_center: Vector3 = (center.normalized() * _globe.SHELL_RADIUS) - pos.normalized() * _globe.SHELL_RADIUS
+	var near_center: Vector3 = (center.normalized() * _globe.planet_radius) - pos.normalized() * _globe.planet_radius
 	ok = _check("player within ~6300 m of cell center (got %.0f)" % near_center.length(), \
-		near_center.length() < _globe.SHELL_RADIUS * 1.2) and ok
+		near_center.length() < _globe.planet_radius * 1.2) and ok
 	# Neighbors of the resolved cell exist (adjacency live).
 	var nbrs: PackedInt32Array = Ico.neighbors(cell)
 	ok = _check("neighbors resolved (%d)" % nbrs.size(), nbrs.size() > 0) and ok
@@ -101,8 +101,8 @@ func _run() -> void:
 		var f: float = float(i) / float(CELLS_TO_SAMPLE)
 		var a: Vector3 = player._loop_start.normalized()
 		var b: Vector3 = pos.normalized()
-		var probe_pos: Vector3 = a.slerp(b, f).normalized() * _globe.SHELL_RADIUS
-		var c: int = Ico.position_to_cell(probe_pos, _globe.SHELL_RADIUS)
+		var probe_pos: Vector3 = a.slerp(b, f).normalized() * _globe.planet_radius
+		var c: int = Ico.position_to_cell(probe_pos, _globe.planet_radius)
 		if c < 0 or c >= 12:
 			sweep_ok = false
 			break

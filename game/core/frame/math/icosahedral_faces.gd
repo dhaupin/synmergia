@@ -146,8 +146,12 @@ static func face_for_direction(d: Vector3) -> int:
 
 
 ## Face containing a world position on a planet of the given radius.
-static func face_for_position(pos: Vector3, _planet_radius: float = 20000.0) -> int:
-	return face_for_direction(pos)
+## Floating-origin note (S8): callers near a planet whose center is
+## NOT the world origin must pass planet_center so the direction is
+## planet-relative (directions are what the Voronoi lookup needs;
+## radius is accepted for signature stability only).
+static func face_for_position(pos: Vector3, _planet_radius: float = 20000.0, planet_center: Vector3 = Vector3.ZERO) -> int:
+	return face_for_direction(pos - planet_center)
 
 
 ## Great-circle arc length (radians) from a unit direction to the

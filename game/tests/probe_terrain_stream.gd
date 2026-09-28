@@ -53,9 +53,9 @@ func _run() -> void:
 	# derived from the primitive, never hardcoded).
 	var F1 = load(FacesScript)
 	var Sph = load("res://core/frame/math/spherical.gd")
-	var target_dir: Vector3 = Sph.spherical_to_cartesian(19.4712, 0.0, 0.0, 100.0)
+	var target_dir: Vector3 = Sph.spherical_to_cartesian(19.4712, 0.0, 0.0, _globe.planet_radius)
 	var target_face: int = F1.face_for_direction(target_dir)
-	var spawn: Vector3 = target_dir.normalized() * 101.0
+	var spawn: Vector3 = target_dir.normalized() * (_globe.planet_radius + 1.0)
 	player.global_position = spawn
 	player.velocity = Vector3.ZERO
 	player.begin_loop()

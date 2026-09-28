@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_arena_coliseum"
+display_name = "Haven Coliseum"
+description = "The reclaimed arena at Haven's edge. Six species fought their wars here once; now it hosts duels under one unbroken sky. Instanced: eight fighters per bout, free PvP, full loot on the sand."
+pvp_mode = 3
+level_requirement = 1
+max_level = 999
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = false
+respawn_timer = 8.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 120.0
+ambient_light_color = Color(0.85, 0.8, 0.72, 1)
+ambient_light_energy = 1.0
+environment_path = ""
+has_weather = false
+weather_type = "clear"
+spawn_points = [Vector3(0, 1, -40), Vector3(0, 1, 40)]
+bind_point = Vector3(0, 1, -40)
+npcs = []
+loot_multiplier = 1.0
+xp_multiplier = 1.0
+is_instanced = true
+instance_capacity = 8
+horde_config_id = ""
+instance_entry_deadline = 60.0

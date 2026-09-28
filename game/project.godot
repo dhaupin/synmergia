@@ -100,6 +100,7 @@ AchievementListeners="*res://core/services/achievement_listeners.gd"
 SignService="*res://core/services/sign_service.gd"
 ActsService="*res://core/services/acts_service.gd"
 AudioService="*res://core/autoload/audio_service.gd"
+InstanceService="*res://core/services/instance_service.gd"
 
 [display]
 
@@ -215,3 +216,7 @@ warnings/infer_variant=0
 ; World shape (world-building.md sec 1.6; GameManager branches on it):
 ; "planar" = classic world_playable, "spherical" = the spherical world.
 world/shape="spherical"
+
+; Planet scale in meters (default 100 = prototype globe, 20000 = v1 planet scale).
+; planet_radius is read at runtime by globe_island.gd from this setting.
+planet_radius=100.0

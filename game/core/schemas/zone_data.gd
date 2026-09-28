@@ -59,6 +59,11 @@ enum PvPZoneMode {
 # Zone is instanced (dungeons)
 @export var is_instanced: bool = false
 @export var instance_capacity: int = 0  # 0 = unlimited
+# S9 lobby contract: seconds this zone's lobby waits for a full
+# party before auto-launching short-handed. 0 = the shared default
+# (InstanceContract.DEFAULT_ENTRY_DEADLINE; InstanceService reads it
+# through InstanceContract.entry_deadline).
+@export var instance_entry_deadline: float = 0.0
 
 ## Horde event auto-start: when set (a HordeData id in data/hordes/),
 ## the FIRST player to enter this zone starts that horde through
