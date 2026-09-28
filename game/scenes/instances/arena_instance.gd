@@ -20,6 +20,8 @@ const FighterScript = preload("res://scenes/instances/arena_fighter.gd")
 signal bout_started(rules: Dictionary)
 signal bout_ended(winner_team: int, stats: Dictionary)
 signal fighter_down(fighter_id: String, killer_id: String, team_of_victim: int)
+## S11: roster churn surface for ArenaRoomService's fighter index.
+signal fighter_spawned(fighter_id: String, team_id: int)
 
 ## ZoneData for this arena (set before add_child by the join path).
 var zone_data: Resource = null
@@ -40,18 +42,29 @@ var _last_activity: Dictionary = {}
 # the lobby path) to the world-space position of the stone/gateway the
 # fighter queued at; bout end + AFK kicks send them back there.
 var origin_stones: Dictionary = {}  # fighter_id -> Vector3
+# S11: real levels per fighter (bridged in from the live entities at
+# spawn time; default 1 when the entity is not resolvable).
+var _levels: Dictionary = {}  # fighter_id -> int
 
 ## Emitted when a bout closes: fighter_id -> return position (their
 ## origin stone). The GameManager scene flow listens and teleports.
 signal bout_return_requested(return_map: Dictionary)
 ## Emitted per fighter when the AFK sweep ejects someone early.
 signal fighter_afk_kicked(fighter_id: String, return_position: Vector3)
+## S11 combat bridge: fired on start_bout with the level book so the
+## bridge can apply capped power normalization (locked decision 5).
+signal power_reference_ready(levels: Dictionary)
 
 func _ready() -> void:
 	# Rules BEFORE the room builds: cover placement reads the mode
 	# (int(null) crashes -- 4.7.2 has no null->int constructor).
 	_rules = Contract.bout_rules(zone_data)
 	_build_room()
+	# Self-register with the node-side room registry (probe scratch
+	# rooms have no instance_id and stay off the books).
+	var room_svc = _room_service()
+	if room_svc != null:
+		room_svc.register_room(self)
 	# Seed score/roster state from spawn_points: team i uses spawn i
 	# (two spawn points = two teams; ROYALE's four are reserved).
 	var spawns: Array = []
@@ -60,6 +73,11 @@ func _ready() -> void:
 	for i in range(spawns.size()):
 		_teams[i] = []
 		_scores[i] = 0
+
+func _exit_tree() -> void:
+	var room_svc = _room_service()
+	if room_svc != null and instance_id != "":
+		room_svc.unregister_room(self)
 
 ## Place a fighter for a team at that team's spawn. Returns the node.
 ## The spawn position is SCATTERED (contract primitive) so fighters
@@ -78,7 +96,17 @@ func spawn_fighter(id: String, team_id: int):
 	# First spawn of a TDM bout also gets the shield.
 	if _rules.get("spawn_shield_seconds", 0.0) > 0.0:
 		f.apply_spawn_shield(float(_rules.get("spawn_shield_seconds")))
+	fighter_spawned.emit(id, team_id)
 	return f
+
+## Bridge-facing book: the real level of a fighter (from their live
+## entity). Consumed by power normalization at bout start.
+func set_fighter_level(fighter_id: String, level: int) -> void:
+	if _fighters.has(fighter_id):
+		_levels[fighter_id] = maxi(level, 1)
+
+func has_fighter(fighter_id: String) -> bool:
+	return _fighters.has(fighter_id)
 
 ## Owner decision: every teleport into a bout scatters. TDM respawns
 ## re-scatter around the team's spawn center (index = arrival order
@@ -119,6 +147,28 @@ func start_bout() -> void:
 	_started = true
 	_bout_start_time = Time.get_unix_time_from_system()
 	bout_started.emit(_rules)
+	# Deferred so the bridge (and any other listener) can react to
+	# bout_started before the power book lands.
+	call_deferred("_emit_power_reference")
+
+func _emit_power_reference() -> void:
+	if _over:
+		return
+	var levels: Dictionary = {}
+	for fid in _fighters:
+		levels[fid] = int(_levels.get(fid, 1))
+	power_reference_ready.emit(levels)
+
+## Combat bridge entry: any SELF-initiated action (attack, skill cast,
+## potion, self-buff) routes here. Fire-and-you-lose-it: breaks the
+## spawn shield; received effects never call this (locked conduct).
+func notify_action(fighter_id: String) -> void:
+	if not _fighters.has(fighter_id):
+		return
+	note_activity(fighter_id)
+	var f = _fighters.get(fighter_id)
+	if f != null and f.alive and f.is_shielded():
+		f.break_shield()
 
 ## The combat bridge calls this on CombatSystem.entity_died while the
 ## bout is live. Returns the surviving-team index when the bout ends,
@@ -202,6 +252,12 @@ func _end_bout(winner_team: int) -> void:
 	bout_return_requested.emit(return_map)
 
 # ---- Inspection surface (probe + future UI) -------------------------
+
+func _room_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("ArenaRoomService")
 
 ## Lobby/fight code pokes this on any self-driven action (attack,
 ## skill, move intent) so the AFK sweep sees life. Cheap on purpose.

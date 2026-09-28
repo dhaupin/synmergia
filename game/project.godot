@@ -58,6 +58,7 @@ CommunityGovernance="*res://core/community/community_governance.gd"
 AutoResponseService="*res://core/services/auto_response_service.gd"
 ServerManager="*res://core/services/server_manager.gd"
 CombatSystem="*res://core/combat/combat_system.gd"
+ArenaRoomService="*res://core/services/arena_room_service.gd"
 ChatService="*res://core/services/chat_service.gd"
 GuildService="*res://core/services/guild_service.gd"
 PartyService="*res://core/services/party_service.gd"
@@ -102,6 +103,7 @@ ActsService="*res://core/services/acts_service.gd"
 AudioService="*res://core/autoload/audio_service.gd"
 InstanceService="*res://core/services/instance_service.gd"
 LobbyService="*res://core/services/lobby_service.gd"
+ArenaCombatBridge="*res://core/services/arena_combat_bridge.gd"
 
 [display]
 

@@ -200,6 +200,16 @@ func _check_s11_primitives(Contract) -> void:
 	_check("normalize caps at ratio 2 (5 vs 60 -> 10)", Contract.normalized_level(5, 60) == 10)
 	_check("normalize full-reaches reference (30 vs 60 -> 60)", Contract.normalized_level(30, 60) == 60)
 	_check("normalize never nerfs", Contract.normalized_level(70, 60) == 70)
+	# Power scale: the combat multiplier form of the same cap.
+	var ps5: float = Contract.power_scale(5, 60)
+	var ps70: float = Contract.power_scale(70, 60)
+	_check("power_scale caps at 2.0 and never nerfs", \
+		abs(ps5 - 2.0) < 0.0001 and abs(ps70 - 1.0) < 0.0001)
+	var scaled: Dictionary = Contract.power_scale_target( \
+		{"strength": 10, "vitality": 10, "damage_multiplier": 1.5}, 30, 60)
+	_check("power_scale_target doubles base six, skips extras", \
+		int(scaled.get("strength", 0)) == 20 and int(scaled.get("vitality", 0)) == 20 \
+		and not scaled.has("damage_multiplier"))
 	# AFK: zone override wins; shared default 90 s; 0 disables.
 	var no_zone: float = Contract.afk_kick_seconds(null)
 	_check("afk default 90 s", no_zone == 90.0)

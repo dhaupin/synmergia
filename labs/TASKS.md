@@ -540,6 +540,25 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   autoloads at runtime, never bare identifiers. Probes: lobby 45,
   arena 34, contract 63, trigger 14. Regression pending at commit
   time.
+- [x] S11 combat bridge SHIPPED (2026-09-28): ArenaCombatBridge
+  autoload + ArenaRoomService (node-side instance_id -> room +
+  fighter_id -> room registry; rooms self-register on tree entry
+  when they carry a real instance_id). Deaths: CombatSystem
+  entity_died -> room.report_death for the room holding the victim.
+  Fire-and-you-lose-it ENFORCED through the live signal path:
+  damage_dealt BY a fighter calls room.notify_action (breaks their
+  shield + refreshes AFK); received damage does neither. Power
+  normalization ENFORCED: on power_reference_ready the bridge
+  snapshots the six base stats, applies power_scale_target (capped
+  ratio 2), recomputes max health, restores at bout end -- and on
+  room_closed as a teardown safety net. Lessons: CombatSystem
+  events carry live ENTITIES (entity_id), not fighter bodies (the
+  bridge accepts both keys); Object.get(key, default) is GONE in
+  4.7.2 (two-arg get = invalid call -- use `in` + property read);
+  a str_replace cleanup once glued two statements onto one line
+  (parse error 'found for instead'). Probe 24/24 (new in
+  DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
+  time.
 - [ ] S11 goals added (2026-09-28): bout assembly engine, solo
   matchmaking queue, fill-to-parity consent flag (see PRD S11).
 - [x] S10 arena wiring (2026-09-28): arena_instance.gd planar room

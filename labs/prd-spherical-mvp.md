@@ -416,14 +416,25 @@ conversation):
    -- a lvl 5 next to a 60 plays at 10, never at 60 -- via bout-local
    buffs only; real stats never change.
 Status: LobbyService + LobbyUI + contract primitives + stone queue
-path SHIPPED (probes 45 + 34 + contract 63). Still open: combat-bridge
-shield + power-scale enforcement, scene-flow teleport listener,
+path SHIPPED (probes 45 + 34 + contract 63). Combat bridge SHIPPED
+(2026-09-28): ArenaCombatBridge autoload + ArenaRoomService node
+registry -- deaths route into the right room via CombatSystem
+signals, self-initiated actions break the shield (fire-and-you-lose-
+it) and refresh AFK activity (received damage counts as neither),
+and power normalization is ENFORCED: the bridge snapshots a
+fighter's six base stats, scales them toward the capped normalized
+level, recomputes max health, and RESTORES the snapshot at bout end
+(bout-local only; real stats never change). Bridge probe 24.
+Still open: scene-flow teleport listener (bout_return_requested),
 ROYALE drop scatter wiring.
-- [ ] Spawn-shield combat enforcement (fire-and-you-lose-it): the
+- [x] Spawn-shield combat enforcement (fire-and-you-lose-it): the
       combat bridge calls ArenaFighter.break_shield() on any
       SELF-INITIATED action (attack, skill cast, potion, self-buff);
       received effects (team aura, aoe heal, buffs from others)
-      never break it. Fighter-side + contract doc DONE (S10+).
+      never break it. Fighter-side + contract doc DONE (S10+);
+      enforcement DONE via ArenaCombatBridge (S11): skill casts and
+      damage dealt BY the fighter break their shield and refresh
+      their AFK ledger; damage RECEIVED does neither.
 - [ ] Bout assembly engine: `assemble_bout(zone, teams)` -- the one
       function that seats parties/individuals into teams against
       bout_rules capacity and starts the private instance.

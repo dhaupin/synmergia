@@ -47,6 +47,7 @@ test_instance_contract
 probe_arena_instance
 probe_arena_trigger
 probe_lobby_service
+probe_arena_bridge
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

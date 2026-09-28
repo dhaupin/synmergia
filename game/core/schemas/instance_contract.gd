@@ -228,3 +228,28 @@ static func afk_kick_seconds(zone) -> float:
 		if v > 0.0:
 			return float(v)
 	return DEFAULT_AFK_KICK_SECONDS
+
+
+## Relative power multiplier for one fighter inside a bout: their
+## normalized level (capped boost) against the bout's reference -- the
+## ratio is the combat scale. 1.0 at/above reference, never below 1.0
+## (a stronger fighter is never nerfed). Pair with power_scale_target
+## stats for the Entity.stats dictionary.
+static func power_scale(level: int, reference_level: int, max_boost_ratio: float = 2.0) -> float:
+	var lvl: int = maxi(level, 1)
+	var norm := normalized_level(lvl, reference_level, max_boost_ratio)
+	return maxf(float(norm) / float(lvl), 1.0)
+
+## The six Entity stats a power scale multiplies (Entity.stats keys).
+const POWER_SCALED_STATS: Array = [
+	"strength", "agility", "intelligence", "vitality", "endurance", "wisdom",
+]
+
+## Per-stat scaled targets for one fighter. Non-scaled keys in the
+## entity's stats (e.g. damage_multiplier) pass through untouched.
+static func power_scale_target(stats: Dictionary, level: int, reference_level: int, max_boost_ratio: float = 2.0) -> Dictionary:
+	var scale: float = power_scale(level, reference_level, max_boost_ratio)
+	var out: Dictionary = {}
+	for key in POWER_SCALED_STATS:
+		out[key] = int(round(float(int(stats.get(key, 10))) * scale))
+	return out
