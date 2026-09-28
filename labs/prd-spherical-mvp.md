@@ -416,8 +416,12 @@ by manual duels and solo matchmaking; the fill flag bridges them.
 - [ ] TEAM_DEATHMATCH bout on the sandpit rides the same controller
       via bout_rules: respawn + shield (with the break rule above),
       score to kill_target. Sandpit widened to 220 m with 8
-      deterministic cover rocks (line-of-sight leverage; duel rooms
-      stay clean sand) -- DONE in S10+.
+      deterministic cover rocks (line-of-sight leverage). Elimination
+      rooms carry their OWN pattern (2026-09-28 owner request): an
+      8-pillar perimeter ring -- cardinal columns at 0.78 of half,
+      diagonals at 0.55 -- that keeps the duel CENTER clean sand
+      while breaking line-of-sight near the rim; tall 3x7x3 pillars,
+      lighter tint, visually distinct from TDM slabs.
 - [ ] Probe: handshake accept creates one private instance with
       both parties, bout resolves a winner; solo queue assembles a
       fair TDM bout; fill flag completes a 6v4 challenge.

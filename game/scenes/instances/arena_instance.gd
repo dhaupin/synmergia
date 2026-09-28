@@ -184,10 +184,22 @@ func alive_count(team_id: int) -> int:
 ## Deterministic mid-field cover for TDM rooms (owner decision: the
 ## sandpit gives both teams the same line-of-sight breaking rocks).
 ## Relative offsets of the room half-extent; spawn lanes (|z| > 0.6)
-## stay clear. Elimination/duel rooms get CLEAN SAND -- no cover.
+## stay clear. Wide slabs including two midfield stones on the z=0
+## lane -- the flanking pattern.
 const COVER_LAYOUT: Array = [
 	[0.45, 0.35], [-0.45, 0.35], [0.45, -0.35], [-0.45, -0.35],
 	[0.15, -0.45], [-0.15, 0.45], [0.30, 0.00], [-0.30, 0.00],
+]
+
+## Elimination rooms get a DIFFERENT pattern, per owner request: a
+## perimeter pillar ring. Four columns near the walls (0.78 of half)
+## and four at the diagonals (0.55 of half) -- the duel CENTER stays
+## clean sand so the opening clash is never cover-camped, while
+## disengages near the rim still break line-of-sight. Narrow tall
+## pillars (arena colonnade) instead of TDM's low slabs.
+const ELIM_COVER_LAYOUT: Array = [
+	[0.78, 0.00], [0.00, 0.78], [-0.78, 0.00], [0.00, -0.78],
+	[0.55, 0.55], [-0.55, 0.55], [0.55, -0.55], [-0.55, -0.55],
 ]
 
 func _build_room() -> void:
@@ -231,29 +243,38 @@ func _build_room() -> void:
 		wall_body.position = wall[0]
 		add_child(wall_body)
 
-	# Cover rocks: TEAM_DEATHMATCH rooms only (fair, symmetric,
-	# deterministic layout). Elimination duels stay clean sand.
-	if int(_rules.get("mode")) == Contract.InstanceMode.TEAM_DEATHMATCH:
+	# Cover rocks: TDM rooms get midfield slabs; elimination rooms get
+	# their own perimeter pillar ring (different pattern, owner
+	# request). Both are fair, symmetric, deterministic. ROYALE rooms
+	# stay bare (terrain cover is reserved for S-royale).
+	if int(_rules.get("mode")) != Contract.InstanceMode.ROYALE:
 		_build_cover(half)
 
 func _build_cover(half: float) -> void:
+	# Per-mode silhouette: TDM slabs are wide/low (lane breakers),
+	# elimination pillars are narrow/tall (colonnade feel, full-height
+	# LOS blocks). Center stone tint differs so the two patterns read
+	# apart at a glance.
+	var elim_mode: bool = int(_rules.get("mode")) == Contract.InstanceMode.ELIMINATION
+	var layout: Array = ELIM_COVER_LAYOUT if elim_mode else COVER_LAYOUT
+	var rock_size := Vector3(3, 7, 3) if elim_mode else Vector3(6, 5, 3)
 	var rock_mat := StandardMaterial3D.new()
-	rock_mat.albedo_color = Color(0.45, 0.42, 0.38)
+	rock_mat.albedo_color = Color(0.55, 0.52, 0.46) if elim_mode else Color(0.45, 0.42, 0.38)
 	var rock_index := 0
-	for spot in COVER_LAYOUT:
+	for spot in layout:
 		var rock := StaticBody3D.new()
 		var rock_col := CollisionShape3D.new()
 		var rock_shape := BoxShape3D.new()
-		rock_shape.size = Vector3(6, 5, 3)
+		rock_shape.size = rock_size
 		rock_col.shape = rock_shape
-		rock_col.position = Vector3(0, 2.5, 0)
+		rock_col.position = Vector3(0, rock_size.y * 0.5, 0)
 		rock.add_child(rock_col)
 		var rock_mesh := MeshInstance3D.new()
 		var rock_box := BoxMesh.new()
-		rock_box.size = Vector3(6, 5, 3)
+		rock_box.size = rock_size
 		rock_mesh.mesh = rock_box
 		rock_mesh.material_override = rock_mat
-		rock_mesh.position = Vector3(0, 2.5, 0)
+		rock_mesh.position = Vector3(0, rock_size.y * 0.5, 0)
 		rock.add_child(rock_mesh)
 		rock.position = Vector3(spot[0] * half, 0, spot[1] * half)
 		# Unique name IN CODE: add_child renames conflicting siblings to

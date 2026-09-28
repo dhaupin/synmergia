@@ -505,11 +505,20 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   doc; combat bridge enforcement lands in S11. (2) Sandpit widened
   220 m, spawns at +/-90; rooms now size from zone_radius (coliseum
   keeps its 120 m square) with 8 deterministic CoverRock_N in TDM
-  rooms only (elimination duels stay clean sand). Lessons: rules
-  must resolve BEFORE _build_room (int(null) crash); Godot renames
-  conflicting siblings to the CLASS name (@StaticBody3D@N), not the
-  assigned name -- unique names in code. Probe 28/28; contract 52;
-  trigger 14; lint 36/36.
+  rooms only (elimination rooms now get their own pattern -- see
+  below). Lessons: rules must resolve BEFORE _build_room (int(null)
+  crash); Godot renames conflicting siblings to the CLASS name
+  (@StaticBody3D@N), not the assigned name -- unique names in code.
+  Probe 28/28; contract 52; trigger 14; lint 36/36.
+- [x] Elimination cover rocks (2026-09-28, owner request): 8-rock
+  perimeter pillar ring (ELIM_COVER_LAYOUT) -- 4 cardinal columns at
+  0.78 of half-extent (off the +-40 z spawn lanes) + 4 diagonals at
+  0.55; duel CENTER stays clean so the opening clash is never
+  cover-camped. Silhouette distinct from TDM: 3x7x3 tall pillars,
+  lighter stone tint vs TDM's 6x5x3 low slabs. _build_cover now runs
+  for every non-ROYALE mode; probe grew to 30 asserts (rock count,
+  pillar-vs-slab sizes, center-clear check). Probe 30/30; contract
+  52; trigger 14; lint EXIT 0; regression 27/27.
 - [ ] S11 goals added (2026-09-28): bout assembly engine, solo
   matchmaking queue, fill-to-parity consent flag (see PRD S11).
 - [x] S10 arena wiring (2026-09-28): arena_instance.gd planar room

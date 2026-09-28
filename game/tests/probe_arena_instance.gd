@@ -96,15 +96,21 @@ func _run() -> void:
 	room2.start_bout()
 
 	# Room grew with the zone (radius 220 -> 220 m square) and carries
-	# deterministic cover; the elimination room above stayed clean.
+	# deterministic cover; the elimination room above carries its OWN
+	# pattern (perimeter pillar ring), same rock-count family.
 	var rock_count: int = _room_rock_count(room2)
 	_check("TDM room has cover rocks", rock_count == 8)
-	# Fresh elimination room for the cover split (the first room was
+	# Fresh elimination room for the pattern split (the first room was
 	# freed after its bout; freed rooms cannot be inspected).
 	var room3 = ArenaScene.new()
 	room3.zone_data = arena
 	root.add_child(room3)
-	_check("cover only in TDM rooms", _room_rock_count(room3) == 0 and rock_count == 8)
+	var elim_rocks: int = _room_rock_count(room3)
+	_check("elimination room has its own cover", elim_rocks == 8)
+	_check("elim rocks are tall pillars, TDM rocks low slabs", \
+		_room_rock_size(room3) == Vector3(3, 7, 3) \
+		and _room_rock_size(room2) == Vector3(6, 5, 3))
+	_check("elim ring keeps the duel center clean", not _room_center_blocked(room3))
 	room3.queue_free()
 	await process_frame
 
@@ -159,6 +165,27 @@ func _room_rock_count(room) -> int:
 		if String(c.name).begins_with("CoverRock_"):
 			n += 1
 	return n
+
+## Size of the first cover rock (probe helper: pillar vs slab check).
+func _room_rock_size(room) -> Vector3:
+	for c in room.get_children():
+		if String(c.name).begins_with("CoverRock_"):
+			for sub in c.get_children():
+				if sub is CollisionShape3D and sub.shape is BoxShape3D:
+					return (sub.shape as BoxShape3D).size
+	return Vector3.ZERO
+
+## True when any rock sits inside the central duel circle (r = 0.25
+## of the room half) -- the elimination ring must keep it open.
+func _room_center_blocked(room) -> bool:
+	var half: float = float(room.zone_data.zone_radius) * 0.5
+	var r: float = half * 0.25
+	for c in room.get_children():
+		if String(c.name).begins_with("CoverRock_"):
+			var flat := Vector2(c.position.x, c.position.z)
+			if flat.length() < r:
+				return true
+	return false
 
 ## Force a fighter back to life synchronously (probe-only: simulates
 ## the respawn without waiting the zone timer out).
