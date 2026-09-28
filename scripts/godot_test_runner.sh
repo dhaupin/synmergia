@@ -49,6 +49,7 @@ probe_arena_trigger
 probe_lobby_service
 probe_arena_bridge
 probe_bout_flow
+probe_bout_host
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

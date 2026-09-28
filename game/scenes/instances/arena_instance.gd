@@ -141,6 +141,11 @@ func _spawn_for_team(team_id: int) -> Vector3:
 
 ## Begin the bout: LOCKED from here (no more joins). Emits bout_started
 ## with the resolved rules so UI/lobby surfaces the same contract.
+## Probe/tool seam: a non-negative override caps the host's start
+## timer (script-mode tests cannot wait the zone's 60-90 s deadline).
+## The host reads this once per bout; -1 = untouched.
+var start_deadline_override: float = -1.0
+
 func start_bout() -> void:
 	if _started or _over:
 		return

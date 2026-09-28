@@ -559,6 +559,22 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S12 keystone SHIPPED (2026-09-28): BoutHostService autoload
+  (on bout_assembled: spawn room, seat LINKED fighters by entity_id
+  w/ real levels into the power book, seed origin stones from the
+  signal's 5th arg, arm the start timer at the zone entry deadline
+  w/ room.start_deadline_override probe seam, on bout_ended -- bind-
+  keyed -- payout + queue_free). Payout: winners 120 XP + 25 gold,
+  losers 40 XP via PlayerManager duck-typed ledger. Owner clarifier
+  enforced: seats bind the live entity, no loaner forms, stats
+  restore post-bout. bout_assembled grew a 5th arg (origin stones
+  dict); teleport + host listeners updated. probe_bout_host 21/21
+  golden path (enqueue -> assemble -> host -> start -> normalize ->
+  kill -> payout -> home -> restore), in DEFAULT_SET. Lessons:
+  script-mode InstanceService needs refresh_registry() after
+  load_zones() (boot-order registry gap); bind signal args (connect
+  .bind) over emitter-scanning when a handler needs its source.
+  Regression 31/31. Trial-bout fallback is the next open S12 item.
 - [x] S11 loop closed + ROYALE/glider groundwork (2026-09-28):
   BoutTeleportService autoload (assembly scatters player entities
   into team staging via Contract.scatter_spawn; bout_return_requested

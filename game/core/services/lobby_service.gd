@@ -225,7 +225,9 @@ func try_assemble(zone_id: String) -> Dictionary:
 	if zone_queue.is_empty():
 		_queues.erase(zone_id)
 
-	bout_assembled.emit(zone_id, instance_id, joined_a, joined_b)
+	# 5th arg: per-player origin stones (the round-trip addresses;
+	# listeners that do not need them just take the default).
+	bout_assembled.emit(zone_id, instance_id, joined_a, joined_b, stones)
 	return {
 		"ok": true,
 		"zone_id": zone_id,

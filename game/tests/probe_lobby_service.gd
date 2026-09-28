@@ -73,7 +73,7 @@ func _run() -> void:
 
 	# Band-compatible pair assembles into teams of one each.
 	var assembled: Array = []
-	lobby.bout_assembled.connect(func(z, iid, a, b): assembled.append({"zone": z, "iid": iid, "a": a, "b": b}))
+	lobby.bout_assembled.connect(func(z, iid, a, b, _s = {}): assembled.append({"zone": z, "iid": iid, "a": a, "b": b}))
 	_check("queue: two solo accepts", \
 		lobby.join_queue("probe_a", 20, "zone_arena_coliseum", false) \
 		and lobby.join_queue("probe_b", 22, "zone_arena_coliseum", false))
@@ -133,7 +133,7 @@ func _run() -> void:
 	# so booking degrades to bookkeeping with an assembled_* id).
 	var accepted: Dictionary = {}
 	var cid3: String = lobby.challenge_duel("duelist_five", "duelist_six", "zone_arena_sandpit")
-	lobby.bout_assembled.connect(func(z, iid, a, b): accepted["fired"] = true)
+	lobby.bout_assembled.connect(func(z, iid, a, b, _s = {}): accepted["fired"] = true)
 	_check("accept_duel assembles 1v1", \
 		lobby.accept_duel(cid3) and bool(accepted.get("fired", false)))
 

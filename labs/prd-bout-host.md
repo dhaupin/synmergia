@@ -6,8 +6,15 @@
 
 ## Status quo (2026-09-28)
 
-Every part exists and is probe-verified; nothing in production
-assembles them. Only probes create rooms and start bouts:
+**UPDATE, same day: BoutHostService SHIPPED.** The golden path runs:
+stone enqueue -> assembly -> hosted room with linked fighters ->
+host start -> bridge power normalization -> CombatSystem kill ->
+payout (PlayerManager ledger) -> return home to the stones -> stats
+restored. probe_bout_host 21/21, in DEFAULT_SET (regression guards
+the WHOLE loop now). bout_assembled grew a 5th arg (per-player
+origin stones). Next open item: the trial-bout fallback below.
+
+Original survey (parts existed, nothing assembled them):
 
 - Queue/assembly: LobbyService (party blocks, bands, fill consent)
 - Front door: InstanceService join paths (capacity/contract)

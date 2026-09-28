@@ -36,7 +36,10 @@ func _on_room_opened(instance_id: String, room) -> void:
 
 
 ## Assembly: teleport each player entity to their team's staged ring.
-func _on_bout_assembled(zone_id: String, instance_id: String, team_a: Array, team_b: Array) -> void:
+## stones (5th arg, optional) overrides the generic staging ring with
+## per-player fidelity -- unused for inbound movement (staging IS the
+## ring), kept for signature parity with the 5-arg signal.
+func _on_bout_assembled(zone_id: String, instance_id: String, team_a: Array, team_b: Array, _stones: Dictionary = {}) -> void:
 	var zone = _zone(zone_id)
 	var spawns: Array = []
 	if zone != null and "spawn_points" in zone:
