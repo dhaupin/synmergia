@@ -35,6 +35,7 @@ var _duel_target: LineEdit
 var _duel_zone: OptionButton
 var _duel_status: Label
 var _duel_pending: VBoxContainer
+var _recent_list: VBoxContainer
 var _lfg_note: LineEdit
 var _lfg_min: SpinBox
 var _lfg_max: SpinBox
@@ -210,6 +211,17 @@ func _setup_duels_tab() -> void:
 	_duel_pending.add_theme_constant_override("separation", 6)
 	duels.add_child(_duel_pending)
 
+	duels.add_child(HSeparator.new())
+	duels.add_child(_section_label("Recent rivals"))
+	var recent_hint := Label.new()
+	recent_hint.text = "The rival list remembers who shared your bouts. One click to a rematch."
+	recent_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	recent_hint.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	duels.add_child(recent_hint)
+	_recent_list = VBoxContainer.new()
+	_recent_list.add_theme_constant_override("separation", 6)
+	duels.add_child(_recent_list)
+
 
 func _on_challenge_pressed() -> void:
 	var svc = _lobby_service()
@@ -323,6 +335,7 @@ func _refresh_bouts(svc) -> void:
 
 func _refresh_duels(svc) -> void:
 	_clear_children(_duel_pending)
+	_refresh_recent(svc)
 	var pending: Dictionary = svc.pending_duel_for(_local_id) if _local_id != "" else {}
 	if pending.is_empty():
 		var idle := Label.new()
@@ -349,6 +362,52 @@ func _refresh_duels(svc) -> void:
 	decline.pressed.connect(_on_duel_decline.bind(cid))
 	row.add_child(decline)
 	_duel_pending.add_child(row)
+
+
+## The rival book: who shared your last bouts, one-click rematch.
+func _refresh_recent(_svc) -> void:
+	if _recent_list == null:
+		return
+	_clear_children(_recent_list)
+	var recent = get_node_or_null("/root/RecentPlayersService")
+	if recent == null or _local_id == "":
+		return
+	var entries: Array = recent.list_recent(_local_id, 5)
+	if entries.is_empty():
+		var idle := Label.new()
+		idle.text = "No rivals yet. Finish a bout and they will be remembered."
+		idle.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		_recent_list.add_child(idle)
+		return
+	for i in range(entries.size()):
+		var entry: Dictionary = entries[i]
+		var fighters: Array = entry.get("fighters", [])
+		if fighters.is_empty():
+			continue
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var lbl := Label.new()
+		lbl.text = "%s -- %s (%s)" % [
+			_short_id(str(fighters[0])),
+			_zone_label(str(entry.get("zone_id", ""))),
+			str(entry.get("result", "loss")),
+		]
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(lbl)
+		var rematch := Button.new()
+		rematch.text = "Rematch"
+		rematch.pressed.connect(_on_rematch.bind(i))
+		row.add_child(rematch)
+		_recent_list.add_child(row)
+
+
+func _on_rematch(entry_index: int) -> void:
+	var recent = get_node_or_null("/root/RecentPlayersService")
+	if recent == null or _local_id == "":
+		return
+	var cid: String = str(recent.rematch_last(_local_id, entry_index))
+	_duel_status.text = "Rematch sent." if cid != "" else "Rematch blocked (pending duel or throttle)."
 
 
 func _refresh_lfg(svc) -> void:

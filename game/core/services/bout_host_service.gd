@@ -220,6 +220,7 @@ func _on_bout_ended(winner_team: int, _stats: Dictionary, instance_id: String) -
 		_credit_streak_achievements(book)
 	else:
 		_pay_draw(book)
+	_record_recent(winner_team, book, instance_id)
 	var room = book.get("room")
 	if room != null:
 		room.queue_free()
@@ -236,6 +237,35 @@ func _pay_draw(book: Dictionary) -> void:
 		if room._fighters.has(sid):
 			_grant(sid, CONSOLATION_XP, 0)
 			_toast(sid, "The clock ran out. A draw -- the marshal pays the lesson. (+%d XP)" % CONSOLATION_XP, "bout_draw:%s" % sid)
+
+
+## The rival book (owner point 4): every REAL bout (no trial, at
+## least two participants) records a recent-players entry per fighter
+## -- who else fought, where, the result. One-click Rematch reads
+## this book. Privacy: is_recent_hidden fighters are not written
+## into OTHERS' books; they still keep their own record.
+func _record_recent(winner_team: int, book: Dictionary, _instance_id: String) -> void:
+	var svc = _recent_service()
+	if svc == null:
+		return
+	if bool(book.get("trial", false)):
+		return
+	var participants: Array = book.get("participants", [])
+	if participants.size() < 2:
+		return
+	var room = book.get("room")
+	if room == null:
+		return
+	var teams: Dictionary = {}
+	for pid in participants:
+		var f = room._fighters.get(str(pid))
+		teams[str(pid)] = int(f.team) if f != null else -1
+	for pid in participants:
+		var sid: String = str(pid)
+		if svc.is_recent_hidden(sid):
+			continue
+		svc.record_bout(participants, str(book.get("zone_id", "")), \
+			int(room._rules.get("mode", 0)), winner_team, teams)
 
 
 ## Killstreak achievements (owner point 2): the templated kill_streak
@@ -367,3 +397,10 @@ func _achievement_service():
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null("AchievementService")
+
+
+func _recent_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("RecentPlayersService")

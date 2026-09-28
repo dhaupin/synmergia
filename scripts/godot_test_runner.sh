@@ -51,6 +51,7 @@ probe_arena_bridge
 probe_bout_flow
 probe_bout_host
 probe_trial_bout
+probe_recent_players
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model
