@@ -37,7 +37,9 @@ test_blessed_mark
 test_mysteries
 test_audio_service
 frame/math/test_spherical
+frame/math/test_icosahedral_faces
 probe_globe_island
+probe_terrain_stream
 probe_ancient_loop
 probe_blacksmith_model
 probe_wolf_model

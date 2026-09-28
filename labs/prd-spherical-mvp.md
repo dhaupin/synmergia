@@ -110,6 +110,33 @@ touching the existing playable world.
 - [x] Standalone: NO edits to world_playable.tscn, main menu, or
       live services beyond S2's shape-gated math.
 
+### S5 — terrain streaming (2026-09-28)
+- [x] `core/frame/math/icosahedral_faces.gd` — the 20 spherical-
+      triangle face REGIONS: min-chord edge construction (30 edges,
+      each edge + its exactly-2 common edge-neighbors), outward
+      winding, Voronoi-exact point->face (argmax dot with face
+      center), neighbors-by-shared-edge. Test: `test_icosahedral_faces.gd`
+      6/6 groups (counts/degree, adjacency symmetry, 30 edges x 2
+      faces, vertex/center resolution, 2000-dir partition coverage,
+      12 verts x 5 incidence). LESSON: the golden-rectangle vertex
+      set forms spurious equilateral triples at chord 2.0 -- anchor
+      triangles to the MINIMUM chord (a naive mutual-equal filter
+      yields 42 faces).
+- [x] `scenes/worlds/globe_terrain_streamer.gd` — patch meshes per
+      face (spherical midpoint subdivision, ~7 m tile edge = level 4,
+      256 tris/patch), active set = current face + 3 neighbors
+      (steady state 4 patches / 1024 tris), load/unload signals,
+      deterministic per-face tints, tiles lifted +0.52 above the
+      sphere visual. Scene wired via stream_terrain (per-frame update
+      from the player).
+- [x] `tests/probe_terrain_stream.gd` 9/9 headless AND rendered:
+      initial 4-patch set, border crossing at 41.9 m swaps stale
+      patches, steady state holds 4, all-20-face sweep at 4-patch
+      steady state. xvfb stages pixel-verified (1624/1938 unique
+      colors vs 326 for the flat-tint shell -- patch tints visible).
+- [x] Regression 20/20 with both new tests in DEFAULT_SET; lint
+      quartet re-run on final tree.
+
 ### S4 — records + gates
 - [x] Tick the honestly-done boxes in `world-building-spherical.md`
       sec 6.1 (haversine, bearing, position->cell); leave map/UI boxes
@@ -128,6 +155,13 @@ touching the existing playable world.
   Context: phases 1-5 substrate all COMPLETE (TASKS.md); this PRD
   covers the unclaimed gap between "addressing math exists" and "a
   player stands on a curve". Commit hashes appended as waves land.
+- **2026-09-28** — S5 (terrain streaming) DONE, commit 6b2f42d is
+  the S1-S4 baseline. Faces primitive + streamer + probe 9/9,
+  regression 20/20. Streaming is VISUAL-ONLY (sphere StaticBody
+  stays the physics truth; tiles sag <6 cm below it at prototype
+  scale). Next candidates: chunk geometry follows SeedChain rules
+  (deterministic per-face content), full-flow menu->globe driver,
+  floating origin for the 20 km planet.
 - **2026-09-27 (night, same session)** — S1+S2+S3 DONE: 12/12 probe
   asserts headless AND rendered (xvfb), pixel-verified stages,
   regression 18/18 with the two new tests in DEFAULT_SET. S4 docs

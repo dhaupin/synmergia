@@ -490,6 +490,13 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Terrain streaming S5 (2026-09-28): icosahedral_faces.gd
+  (20 face regions, Voronoi-exact point->face, min-chord edge
+  construction -- lesson: chord-2.0 golden-rectangle triples force
+  min-chord anchoring), globe_terrain_streamer.gd (4-patch steady
+  state, ~7 m tiles, per-face tints), probe_terrain_stream.gd 9/9
+  headless + rendered (border crossing swaps stale patches; all-20
+  sweep). Regression 20/20. Pickup: prd-spherical-mvp.md sec 0.
 - [x] Spherical world MVP (2026-09-27 night): S1 spherical.gd
   frame primitive (haversine/bearing/great-circle/converters,
   7/7 known-answer groups incl. Icosahedral convention match),

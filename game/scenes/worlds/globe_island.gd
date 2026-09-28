@@ -14,6 +14,12 @@ const WALK_SECONDS: float = 30.0
 ## ~40% of a full equator lap at 6 m/s on a 100 m sphere.
 const WALK_DISTANCE_METERS: float = 250.0
 
+## S5: when true the ground visual is STREAMED face patches (the
+## sphere StaticBody stays the physics truth either way).
+var stream_terrain: bool = true
+
+var streamer  # GlobeTerrainStreamer; untyped - preload-by-path pattern
+
 var player  # GlobeIslandPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
 var _probe_north: Node3D
@@ -26,6 +32,20 @@ func _ready() -> void:
 	_build_sun()
 	_build_probe_markers()
 	_build_player()
+	_setup_streamer()
+
+
+func _setup_streamer() -> void:
+	if not stream_terrain:
+		return
+	streamer = load("res://scenes/worlds/globe_terrain_streamer.gd").new()
+	streamer.configure(SHELL_RADIUS, 7.0, self)
+	streamer.update(player.global_position)
+
+
+func _physics_process(_delta: float) -> void:
+	if streamer and player:
+		streamer.update(player.global_position)
 
 
 func _build_shell() -> void:
@@ -165,6 +185,16 @@ func player_path_walked() -> float:
 ## Straight-line displacement since begin_loop (probe).
 func player_displacement() -> float:
 	return _loop_start_position().distance_to(player.global_position)
+
+
+## Streamer observability (probe): face ids currently streaming.
+func stream_active_faces() -> Array:
+	return streamer.active_faces() if streamer else []
+
+
+## Streamer observability (probe): live triangle count.
+func stream_triangle_count() -> int:
+	return streamer.triangle_count() if streamer else 0
 
 
 func _loop_start_position() -> Vector3:
