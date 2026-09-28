@@ -159,13 +159,21 @@ func _handle_character_select_state() -> void:
 func _handle_playing_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Entering gameplay")
 	_initialize_world_services()
-	# Load the playable world scene, replacing current scene
+	# Load the playable world scene, replacing current scene.
+	# Map shape chooses the world (world-building.md sec 1.6: shape is a
+	# parameter): planar (default) = the classic world, spherical = the
+	# spherical world scene (globe prototype; the 20 km planet later).
+	var WorldShapeResolver = load("res://core/frame/math/world_shape.gd")
+	var world_scene: String = "res://scenes/world_playable.tscn"
+	if WorldShapeResolver.is_spherical():
+		world_scene = "res://scenes/worlds/globe_island.tscn"
+		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Spherical world shape: loading globe scene")
 	# Skip 3D scene change in headless mode (no rendering context available)
 	var is_headless := OS.has_feature("headless") or DisplayServer.get_name() == "headless"
 	if is_headless:
-		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Headless mode: skipping WorldPlayable scene load")
+		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Headless mode: skipping world scene load")
 	else:
-		_show_loading_and_change_scene("res://scenes/world_playable.tscn", "Loading world...")
+		_show_loading_and_change_scene(world_scene, "Loading world...")
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
 
 	# Emit player_entered_world for services like StarterKitService

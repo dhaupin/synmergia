@@ -137,6 +137,24 @@ touching the existing playable world.
 - [x] Regression 20/20 with both new tests in DEFAULT_SET; lint
       quartet re-run on final tree.
 
+### S6 — full-flow spherical world driver (2026-09-28)
+- [x] GameManager `_handle_playing_state` branches on the S2 shape
+      knob: planar (default) -> world_playable.tscn, spherical ->
+      `scenes/worlds/globe_island.tscn`. The parameter is now
+      load-bearing; planar default keeps every existing flow intact.
+- [x] `tests/test_world_shape.gd` (default planar / spherical flip /
+      garbage fallback incl. casing).
+- [x] `tests/globe_driver.gd` -- the REAL flow on the sphere: menu ->
+      character select (species/class handlers) -> Play -> GlobeIsland
+      via the shape branch; walk via the real input map; HUD panel
+      over the live world; ground-truth radial error 0.001 m at the
+      shell. Rendered-only (self-skips headless honestly, since
+      GameManager skips world scenes without a render context).
+      Pixel-verified 6 stages (menu 21653 colors -> globe 61%
+      green ground -> walked -> panel).
+- [x] Regression 22/22 (adds test_world_shape + globe_driver to
+      DEFAULT_SET); lint quartet green on final tree.
+
 ### S4 — records + gates
 - [x] Tick the honestly-done boxes in `world-building-spherical.md`
       sec 6.1 (haversine, bearing, position->cell); leave map/UI boxes
@@ -155,6 +173,13 @@ touching the existing playable world.
   Context: phases 1-5 substrate all COMPLETE (TASKS.md); this PRD
   covers the unclaimed gap between "addressing math exists" and "a
   player stands on a curve". Commit hashes appended as waves land.
+- **2026-09-28 (same day, part 2)** — S6 (full-flow driver) DONE:
+  shape knob now picks the world scene (planar default intact);
+  globe_driver walks the real menu->select->Play->globe flow with
+  pixel verification (radial err 0.001 m). Regression 22/22.
+  Next candidates: chunk geometry follows SeedChain rules
+  (deterministic per-face content), floating origin for the 20 km
+  planet, instances/lobby contract PRD.
 - **2026-09-28** — S5 (terrain streaming) DONE, commit 6b2f42d is
   the S1-S4 baseline. Faces primitive + streamer + probe 9/9,
   regression 20/20. Streaming is VISUAL-ONLY (sphere StaticBody

@@ -40,6 +40,8 @@ frame/math/test_spherical
 frame/math/test_icosahedral_faces
 probe_globe_island
 probe_terrain_stream
+test_world_shape
+globe_driver
 probe_ancient_loop
 probe_blacksmith_model
 probe_wolf_model

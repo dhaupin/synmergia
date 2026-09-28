@@ -490,6 +490,11 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Full-flow spherical driver S6 (2026-09-28): GameManager world
+  scene branches on the shape knob (planar default intact),
+  test_world_shape.gd, globe_driver.gd (real menu->select->Play->
+  GlobeIsland flow, xvfb pixel-verified 6 stages, radial err
+  0.001 m, HUD over the globe). Regression 22/22.
 - [x] Terrain streaming S5 (2026-09-28): icosahedral_faces.gd
   (20 face regions, Voronoi-exact point->face, min-chord edge
   construction -- lesson: chord-2.0 golden-rectangle triples force
