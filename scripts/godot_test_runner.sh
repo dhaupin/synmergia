@@ -52,6 +52,7 @@ probe_bout_flow
 probe_bout_host
 probe_trial_bout
 probe_recent_players
+probe_social_presence
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

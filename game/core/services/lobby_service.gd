@@ -423,9 +423,19 @@ func _sweep_queue_aging() -> void:
 
 # ---- 3. LFG / LFM (open-world parties included) ------------------------
 
+## Post kinds (owner point 5: dungeon-finder posts live in the SAME
+## book -- one panel, one engine, more row types).
+enum LfgKind {
+	PARTY,    ## open-world crew / arena party (the original book)
+	DUNGEON,  ## dungeon delve: needs roles, shares one instance
+	RAID,     ## raid group
+}
+
 ## Advertise a party (LFM) or a solo player's crew ambitions (LFG).
 ## level bounds are the advertisement's promise, not a hard gate.
-func post_lfg(party_id: String, leader_id: String, note: String, level_min: int = 1, level_max: int = 999) -> String:
+## kind selects the row type (PARTY/DUNGEON/RAID) -- petitions route
+## identically (leader invite), display differs.
+func post_lfg(party_id: String, leader_id: String, note: String, level_min: int = 1, level_max: int = 999, kind: int = LfgKind.PARTY) -> String:
 	if party_id != "" and _party_post.has(party_id):
 		return str(_party_post[party_id])
 	var pid: String = "lfg_%d" % _next_post_id
@@ -436,6 +446,7 @@ func post_lfg(party_id: String, leader_id: String, note: String, level_min: int 
 		"note": note,
 		"level_min": level_min,
 		"level_max": level_max,
+		"kind": kind,
 		"created_at": Time.get_unix_time_from_system(),
 	}
 	if party_id != "":
@@ -461,11 +472,13 @@ func lfg_post_for_party(party_id: String) -> String:
 	return str(_party_post.get(party_id, ""))
 
 
-## UI snapshot: open posts as display dicts.
-func list_lfg() -> Array:
+## UI snapshot: open posts as display dicts. kind_filter: -1 = all.
+func list_lfg(kind_filter: int = -1) -> Array:
 	var out: Array = []
 	for post_id in _lfg_posts:
 		var post: Dictionary = _lfg_posts[post_id]
+		if kind_filter >= 0 and int(post.get("kind", 0)) != kind_filter:
+			continue
 		var seats: int = _party_seats(str(post.get("party_id", "")))
 		if seats <= 0:
 			continue  # full party: auto-hidden until the leader closes it
@@ -475,6 +488,7 @@ func list_lfg() -> Array:
 			"note": str(post.get("note", "")),
 			"level_min": int(post.get("level_min", 1)),
 			"level_max": int(post.get("level_max", 999)),
+			"kind": int(post.get("kind", 0)),
 			"open_seats": seats,
 		})
 	return out
@@ -489,11 +503,21 @@ func petition_lfg(post_id: String, petitioner_id: String) -> bool:
 	var leader_id: String = str(post.get("leader_id", ""))
 	if leader_id == "" or leader_id == petitioner_id:
 		return false
+	var post_party: String = str(post.get("party_id", ""))
+	# Solo posters: recruit-by-post first. Form their party on the
+	# first petition so the leader->petitioner invite has a home.
+	if post_party == "":
+		post_party = PartyService.create_party(leader_id)
+		if post_party != "":
+			post["party_id"] = post_party
+			_party_post[post_party] = post_id
 	return bool(PartyService.invite_player(leader_id, petitioner_id))
 
 
 func _party_seats(party_id: String) -> int:
-	if party_id == "" or PartyService == null:
+	if party_id == "":
+		return 1  # solo poster: one company-slot on the advertisement
+	if PartyService == null:
 		return 0
 	var members: Array = PartyService.get_party_members(party_id)
 	var max_size: int = 6
@@ -521,6 +545,113 @@ func _on_party_disbanded(party_id: String) -> void:
 
 
 # ---- Resolvers ----------------------------------------------------------
+
+## ---- 4. Presence (friends + party + lobby, seamless) -------------------
+
+## Ambient presence for one player (owner point 4: presence is
+## ambient, action is one click). Joins the books: EntityService
+## (online), ZoneManager (zone), PartyService (party), the lobby
+## queues (queued), ArenaRoomService (live bout).
+func get_presence(player_id: String) -> Dictionary:
+	var out: Dictionary = {
+		"online": false,
+		"zone_id": "",
+		"party_id": "",
+		"party_size": 0,
+		"queue_zone": "",
+		"bout_instance_id": "",
+		"instance_zone_id": "",
+	}
+	var entity = _entity_by_id(player_id)
+	if entity == null:
+		return out
+	out["online"] = true
+	out["queue_zone"] = queue_for(player_id)
+	if PartyService != null:
+		var party: Dictionary = PartyService.get_player_party(player_id)
+		out["party_id"] = str(party.get("id", ""))
+		if out["party_id"] != "":
+			out["party_size"] = PartyService.get_party_members(out["party_id"]).size()
+	var room_svc = _room_service()
+	if room_svc != null:
+		var room = room_svc.room_for_fighter(player_id)
+		if room != null:
+			out["bout_instance_id"] = str(room.instance_id)
+	var zone_id: String = _entity_zone_id(player_id)
+	out["zone_id"] = zone_id
+	if zone_id != "" and out["bout_instance_id"] == "" and _is_instanced_zone(zone_id):
+		out["instance_zone_id"] = zone_id
+	return out
+
+
+## Presence rows for a friend list (the LobbyUI People tab binds
+## this). Joins FriendsService.get_friends with presence books.
+func get_friend_presence(player_id: String) -> Array:
+	var fs = _friends_service()
+	if fs == null:
+		return []
+	var out: Array = []
+	for friend in fs.get_friends(player_id):
+		var fid: String = str(friend.get("player_id", ""))
+		if fid == "":
+			continue
+		var presence: Dictionary = get_presence(fid)
+		presence["player_id"] = fid
+		presence["player_name"] = str(friend.get("player_name", ""))
+		out.append(presence)
+	return out
+
+
+## Petition a friend's party (presence action). Same consent shape as
+## petition_lfg: an invite from the leader lands on the petitioner,
+## seats permitting. Returns true when the invite was created.
+func petition_party(party_id: String, petitioner_id: String) -> bool:
+	if PartyService == null or party_id == "":
+		return false
+	var party: Dictionary = PartyService.get_party(party_id)
+	if party.is_empty():
+		return false
+	var leader_id: String = str(party.get("leader_id", ""))
+	if leader_id == "" or leader_id == petitioner_id:
+		return false
+	return bool(PartyService.invite_player(leader_id, petitioner_id))
+
+
+## The party leader of record (presence rows + petitions).
+func party_leader_id(party_id: String) -> String:
+	if PartyService == null:
+		return ""
+	var party: Dictionary = PartyService.get_party(party_id)
+	return str(party.get("leader_id", ""))
+
+
+func _room_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("ArenaRoomService")
+
+
+func _friends_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("FriendsService")
+
+
+func _entity_zone_id(player_id: String) -> String:
+	if ZoneManager == null:
+		return ""
+	var zones: Dictionary = ZoneManager._entity_zones
+	return str(zones.get(player_id, ""))
+
+
+func _is_instanced_zone(zone_id: String) -> bool:
+	if ZoneManager == null:
+		return false
+	var zone = ZoneManager.get_zone(zone_id)
+	return zone != null and "is_instanced" in zone and bool(zone.is_instanced)
+
 
 func _instance_service():
 	var ml := Engine.get_main_loop()

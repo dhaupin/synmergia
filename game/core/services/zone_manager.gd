@@ -1092,8 +1092,9 @@ func get_or_create_party_instance(base_zone_id: String, party_leader_id: String,
 	if existing_instance != "":
 		return existing_instance
 
-	# Create new instance for party
-	var instance_id = create_instance(base_zone_id)
+	# Create new instance for party. The leader is the owner of
+	# record: instance-creation QoS binds per requester (S12).
+	var instance_id = create_instance(base_zone_id, party_leader_id)
 	if instance_id != "":
 		var instance_data = _instances.get(instance_id, {})
 		instance_data["party_id"] = party_leader_id

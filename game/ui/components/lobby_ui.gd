@@ -41,6 +41,7 @@ var _lfg_min: SpinBox
 var _lfg_max: SpinBox
 var _lfg_status: Label
 var _lfg_list: VBoxContainer
+var _friends_list: VBoxContainer
 var _local_id: String = ""
 
 
@@ -288,6 +289,105 @@ func _setup_lfg_tab() -> void:
 	_lfg_list.add_theme_constant_override("separation", 6)
 	lfg.add_child(_lfg_list)
 
+	# People tab (S12 social): friends with ambient presence and
+	# one-click actions -- the queue/bout/party books, joined.
+	_setup_people_tab()
+
+
+## Tab 4: People (friends + presence + actions).
+func _setup_people_tab() -> void:
+	var people := VBoxContainer.new()
+	people.add_theme_constant_override("separation", 8)
+	_tabs.add_child(people)
+	_tabs.set_tab_title(3, " People ")
+
+	var head := Label.new()
+	head.text = "Your people, ambient: queued, in a bout, or out in the party wilds. Actions ride the consent paths."
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	head.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	people.add_child(head)
+
+	_friends_list = VBoxContainer.new()
+	_friends_list.add_theme_constant_override("separation", 6)
+	people.add_child(_friends_list)
+
+
+func _refresh_people() -> void:
+	if _friends_list == null:
+		return
+	_clear_children(_friends_list)
+	var svc = _lobby_service()
+	if svc == null or not svc.has_method("get_friend_presence") or _local_id == "":
+		return
+	var rows: Array = svc.get_friend_presence(_local_id)
+	if rows.is_empty():
+		var idle := Label.new()
+		idle.text = "No friends yet -- rivals met in bouts can be found in the Duels tab."
+		idle.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		_friends_list.add_child(idle)
+		return
+	for row_data in rows:
+		_friends_list.add_child(_build_presence_row(svc, row_data))
+
+
+func _build_presence_row(svc, p: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var lbl := Label.new()
+	lbl.text = "%s%s" % [str(p.get("player_name", "")), _presence_text(p)]
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if not bool(p.get("online", false)):
+		lbl.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	row.add_child(lbl)
+	var fid: String = str(p.get("player_id", ""))
+	var party_id: String = str(p.get("party_id", ""))
+	var queue_zone: String = str(p.get("queue_zone", ""))
+	if queue_zone != "":
+		var jq := Button.new()
+		jq.text = "Join queue"
+		jq.pressed.connect(_on_join_queue_with.bind(fid, queue_zone))
+		row.add_child(jq)
+	elif party_id != "":
+		var pj := Button.new()
+		pj.text = "Ask to join"
+		pj.pressed.connect(_on_petition_party.bind(party_id))
+		row.add_child(pj)
+	elif str(p.get("bout_instance_id", "")) != "":
+		var spec := Button.new()
+		spec.text = "Spectate"
+		spec.disabled = true
+		spec.tooltip_text = "Spectating arrives with the scene swap."
+		row.add_child(spec)
+	return row
+
+
+func _presence_text(p: Dictionary) -> String:
+	if not bool(p.get("online", false)):
+		return " -- offline"
+	if str(p.get("bout_instance_id", "")) != "":
+		return " -- in a bout"
+	if str(p.get("queue_zone", "")) != "":
+		return " -- queued (%s)" % _zone_label(str(p.get("queue_zone")))
+	if str(p.get("party_id", "")) != "":
+		return " -- party of %d" % int(p.get("party_size", 1))
+	if str(p.get("instance_zone_id", "")) != "":
+		return " -- in an instance"
+	return " -- online"
+
+
+func _on_join_queue_with(_fid: String, zone_id: String) -> void:
+	var svc = _lobby_service()
+	if svc != null and _local_id != "":
+		svc.leave_queue(_local_id)
+		svc.join_queue(_local_id, _local_level(), zone_id, _queue_fill.button_pressed)
+
+
+func _on_petition_party(party_id: String) -> void:
+	var svc = _lobby_service()
+	if svc != null and _local_id != "":
+		svc.petition_party(party_id, _local_id)
+
 
 func _on_post_pressed() -> void:
 	var svc = _lobby_service()
@@ -310,6 +410,7 @@ func refresh() -> void:
 	_refresh_bouts(svc)
 	_refresh_duels(svc)
 	_refresh_lfg(svc)
+	_refresh_people()
 
 
 func _refresh_bouts(svc) -> void:
@@ -473,7 +574,7 @@ func _lobby_service():
 
 
 func _local_level() -> int:
-	var local := _local_player_node()
+	var local = _local_player_node()
 	if local != null and "level" in local:
 		return int(local.level)
 	return 1

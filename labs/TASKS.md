@@ -559,6 +559,26 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S12 social presence + LFG kinds (2026-09-28, next session):
+  LobbyService get_presence/get_friend_presence (joins EntityService,
+  ZoneManager._entity_zones, PartyService, lobby queues,
+  ArenaRoomService into one row: online/zone/party+size/queue/
+  bout-instance/instance-zone); petition_party + party_leader_id
+  (consent path). LobbyUI 4th tab People: presence rows with
+  Join-queue / Ask-to-join / Spectate-greyed actions. LfgKind enum
+  (PARTY/DUNGEON/RAID) in the one LFG book; list_lfg kind_filter;
+  solo posters auto-form their party on first petition (petitions
+  need a party home; 0-seat hidden rows fixed with a company-slot).
+  QoS: party instance creation now attributes the leader as owner
+  (get_or_create_party_instance threads party_leader_id into
+  create_instance -- the previously dead per-owner limit now binds
+  for party joins too). probe_social_presence 17/17 in DEFAULT_SET;
+  regression 34/34; lint EXIT 0. Lessons: create_party spends the
+  same 30 s party_invite cooldown (clear the bucket when the test
+  subject is the routing, not the throttle); pending INVITE != party
+  membership (inspect _pending_invites "to"+"party_id"); a
+  --check-only Compile Error for an autoload identifier is script-
+  mode noise, full-boot regression is the arbiter.
 - [x] S12 trial bout SHIPPED (2026-09-28): LobbyService queue-aging
   sweep (TRIAL_PATIENCE_SECONDS 45 on the 5 s timer ->
   trial_fallback_due(zone, block), block popped, _player_zone

@@ -84,8 +84,25 @@ must be ALIGNED because both are instances on one lobby:
 
 ## Implementation order (when we pick this up)
 
-1. Recent players ring buffer + Rematch button (smallest, highest
-   delight).
-2. Friend presence join in FriendsService/LobbyUI.
-3. InstanceService as the shared front door for dungeon/raid joins.
-4. Dungeon-finder post type in the LFG book.
+**STATUS 2026-09-28 (next session): items 1, 2 (partial), 4 SHIPPED.**
+
+- [x] 1. Recent players ring buffer + Rematch -- SHIPPED
+  (RecentPlayersService, LobbyUI Duels tab, probe 12/12).
+- [x] 2. Friend presence + actions -- SHIPPED: LobbyService
+  get_presence/get_friend_presence join the books (online, zone,
+  party+size, queue zone, live bout instance, instance zone);
+  LobbyUI People tab (4th tab) renders presence rows with
+  Join-queue / Ask-to-join / Spectate (greyed) actions;
+  petition_party routes the leader->petitioner consent path.
+- [x] 4. Dungeon-finder post type -- SHIPPED: LfgKind enum
+  (PARTY/DUNGEON/RAID) in the ONE book; post_lfg kind arg;
+  list_lfg kind_filter; solo posters auto-form their party on the
+  first petition; LobbyUI posts carry the kind for row styling.
+- [ ] 3. InstanceService as the shared front door for dungeon/raid
+  joins -- PARTIAL: party instance creation now attributes the QoS
+  owner (leader) via get_or_create_party_instance; the full move
+  (dungeon join paths through the contract front door) remains.
+- [ ] Spectate permissions model; recent-players privacy UI; loot-
+  mode griefing rules -- open, recorded above.
+
+Original order (for reference):
