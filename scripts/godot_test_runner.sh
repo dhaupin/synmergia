@@ -46,6 +46,7 @@ test_terrain_determinism
 test_instance_contract
 probe_arena_instance
 probe_arena_trigger
+probe_lobby_service
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

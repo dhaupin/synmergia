@@ -1,10 +1,15 @@
-# ArenaGateway - the S10 world-side trigger at Haven's edge.
+# ArenaGateway - the S10 world-side trigger, now the S11 queue stone.
 #
 # An Area3D the player walks into on the globe; entering fires the S9
 # front door (InstanceService.join_instance / join_party_instance) and
 # surfaces the lobby moment (OPEN/FULL + deadline) through the typed
 # notification pipeline. Mode-agnostic: the gateway never reads the
 # bout mode; the instance room and lobby UI do.
+#
+# S11 owner decision: stones in towns are the lobby's doors -- queue
+# here (LobbyService.join_queue with this stone as origin), the bout
+# teleports you in at assembly, and every ending (win, loss, AFK kick)
+# returns you to this stone. Round trip, no stranding.
 #
 # Data-driven: the zone id comes from `zone_id` (set in code by
 # globe_island when it builds the gateway; later a .tres if gateway
@@ -20,6 +25,9 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 
 ## ZoneData id this gateway leads to (e.g. zone_arena_coliseum).
 @export var zone_id: String = "zone_arena_coliseum"
+## S11: when true, entering queues via LobbyService (assembly joins
+## everyone at once) instead of the direct S10 join path.
+@export var queue_mode: bool = false
 
 ## Set true when the join path accepted the entity (dedupe: do not
 ## re-fire while the entity stands in the volume).
@@ -27,6 +35,12 @@ var _entered: Dictionary = {}  # entity_id -> true
 
 signal join_requested(entity, zone_id: String)
 signal join_result(entity, result: Dictionary)
+
+## The stone is a round trip: results and bout returns land back here.
+## Read by the scene flow after a bout (bout_return_requested) to know
+## where a returning fighter belongs.
+func stone_position_for(entity) -> Vector3:
+	return global_position + Vector3(0, 1.5, 2.5)
 
 func _init() -> void:
 	monitoring = true
@@ -56,6 +70,12 @@ func _on_body_entered(body: Node3D) -> void:
 	_entered[eid] = true
 	join_requested.emit(body, zone_id)
 
+	# S11 stone path: entering a queue stone enqueues you for the
+	# zone's bout; assembly (LobbyService.try_assemble) does the join.
+	if queue_mode:
+		_enqueue_at_stone(body)
+		return
+
 	var isvc = _instance_service()
 	if isvc == null:
 		return
@@ -67,6 +87,11 @@ func _on_body_entered(body: Node3D) -> void:
 		result = isvc.join_instance(body, zone_id)
 	else:
 		result = isvc.join_party_instance(body, zone_id, party_ids)
+	# The stone remembers who it sent: origin_stones in the result is
+	# the round-trip address (bout end + AFK kicks land back here).
+	if bool(result.get("capacity_ok")):
+		result["origin_stone"] = stone_position_for(body)
+		_stamp_origin_stones(isvc, result["instance_id"], body.entity_id, result["origin_stone"])
 	_join_toasted(body, result)
 	join_result.emit(body, result)
 
@@ -109,11 +134,65 @@ func _join_toasted(entity, result: Dictionary) -> void:
 
 # ---- Service resolvers (script-mode safe; AGENTS defensive pattern) -
 
+## Stamp the origin stone into the live instance's session record so
+## the room (origin_stones) can send everyone home later. Duck-typed
+## against ZoneManager's instance dict shape.
+func _stamp_origin_stones(_isvc, instance_id: String, entity_id: String, stone: Vector3) -> void:
+	var zm = _zone_manager()
+	if zm == null:
+		return
+	var data: Dictionary = zm.get_instance(instance_id)
+	if data.is_empty():
+		return
+	var stones: Dictionary = data.get("origin_stones", {})
+	stones[str(entity_id)] = stone
+	data["origin_stones"] = stones
+
 func _instance_service():
 	var ml := Engine.get_main_loop()
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null("InstanceService")
+
+func _zone_manager():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("ZoneManager")
+
+func _lobby_service():
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	return (ml as SceneTree).root.get_node_or_null("LobbyService")
+
+## The stone's queue: level read duck-typed off the body (player
+## entities carry it; probes may not).
+func _enqueue_at_stone(body: Node3D) -> void:
+	var svc = _lobby_service()
+	if svc == null:
+		return
+	var level: int = int(body.get("level")) if "level" in body else 1
+	var ok: bool = svc.join_queue(str(body.entity_id), level, zone_id, true, stone_position_for(body))
+	var notif = _notification_service()
+	if notif == null:
+		return
+	if ok:
+		notif.notify(
+			NotifKind.ZONE_CHANGED,
+			"Queued for the bout. The stone will carry you when both sides stand ready.",
+			"ArenaGateway",
+			"stone_queue:%s:%s" % [str(body.entity_id), zone_id],
+			{},
+			str(body.entity_id))
+	else:
+		notif.notify(
+			NotifKind.ZONE_CHANGED,
+			"Already queued -- open the Lobby (L) to check or leave.",
+			"ArenaGateway",
+			"stone_queue_dup:%s" % str(body.entity_id),
+			{},
+			str(body.entity_id))
 
 func _notification_service():
 	var ml := Engine.get_main_loop()

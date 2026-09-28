@@ -519,6 +519,27 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   for every non-ROYALE mode; probe grew to 30 asserts (rock count,
   pillar-vs-slab sizes, center-clear check). Probe 30/30; contract
   52; trigger 14; lint EXIT 0; regression 27/27.
+- [x] S11 lobby engine SHIPPED (2026-09-28, owner decisions locked
+  in PRD S11): contract primitives (scatter_spawn golden-angle ring,
+  level_band_ok + widened wait, normalized_level capped ratio 2,
+  afk_kick_seconds w/ instance_afk_kick override); arena_instance
+  scatter (first member exact, ring radius 0.45*n for the rest),
+  origin_stones round trip (bout_return_requested map per fighter),
+  AFK sweep + kick_fighter (booked departure, ROYALE exempt);
+  arena_gateway queue_mode stone path (join_queue at the stone,
+  origin stamped into the instance record); LobbyService autoload
+  (per-zone FIFO of party blocks, band-checked assembly with
+  skip-not-evict, fill-to-parity for consenting solos, duel
+  handshake 60 s one-pending-per-player, LFG/LFM posts with seats +
+  petition -> PartyService invite, disband cleanup); LobbyUI panel
+  (Bouts/Duels/LFG tabs, L key, MenuManager "lobby"). Lessons:
+  golden-angle ring needs radius ~0.45*n for 1.5 m neighbor gap at
+  n=12; PartyService rate-limits invites 30 s/inviter (probe resets
+  via CooldownService.cancel_cooldown); UI lambdas must be one
+  expression (use bound methods); script-mode probes resolve
+  autoloads at runtime, never bare identifiers. Probes: lobby 45,
+  arena 34, contract 63, trigger 14. Regression pending at commit
+  time.
 - [ ] S11 goals added (2026-09-28): bout assembly engine, solo
   matchmaking queue, fill-to-parity consent flag (see PRD S11).
 - [x] S10 arena wiring (2026-09-28): arena_instance.gd planar room

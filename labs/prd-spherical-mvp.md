@@ -388,6 +388,37 @@ PRIVATE instances (the one-live-instance rule is public-only).
 ### S11 — duels + matchmaking (bout assembly)
 Locked S11 goals (owner, 2026-09-28): one bout-assembly path shared
 by manual duels and solo matchmaking; the fill flag bridges them.
+Locked S11 decisions (owner, 2026-09-28, second round -- the lobby
+conversation):
+1. **The lobby is CANONICAL.** One panel (LobbyUI, L key; Bouts /
+   Duels / LFG tabs) over one engine (LobbyService). Open-world play
+   is first class: grinding crews, horde raids, dungeon delves, and
+   hunting parties advertise through the same LFG book as arena
+   queues -- the lobby ties PartyService, duels, matchmaking, and
+   LFG/LFM into one place.
+2. **Stones in towns are the lobby's doors; teleports complete the
+   trip.** Players queue by proximity to a gateway stone (arena_gateway
+   queue_mode), the bout teleports the assembled teams in, and EVERY
+   ending (win, loss, AFK kick) returns fighters to the stone they
+   queued at -- origin_stones round trip, no post-match stranding.
+3. **AFK kick.** Idle longer than the zone's kick window (contract
+   default 90 s, instance_afk_kick override, 0 = off) and the bout
+   books your departure and sends you to your stone. ROYALE rooms
+   skip the sweep (drop pacing is the mode's own tension).
+4. **Every teleport into a bout scatters** (initial spawns, TDM
+   respawns, ROYALE drops): contract scatter_spawn golden-angle ring,
+   first member exact, radius scaling with roster (no stacking).
+5. **Level bands + capped power normalization.** Matchmaking pairs
+   within a level band (base 10) that widens with wait (halves the
+   distance after 30 s); absolute gulfs (5 vs 60) never auto-assemble.
+   When a pairing does happen with consent (duel or fill), the
+   fighter's level normalizes toward the reference CAPPED at ratio 2
+   -- a lvl 5 next to a 60 plays at 10, never at 60 -- via bout-local
+   buffs only; real stats never change.
+Status: LobbyService + LobbyUI + contract primitives + stone queue
+path SHIPPED (probes 45 + 34 + contract 63). Still open: combat-bridge
+shield + power-scale enforcement, scene-flow teleport listener,
+ROYALE drop scatter wiring.
 - [ ] Spawn-shield combat enforcement (fire-and-you-lose-it): the
       combat bridge calls ArenaFighter.break_shield() on any
       SELF-INITIATED action (attack, skill cast, potion, self-buff);

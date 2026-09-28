@@ -72,6 +72,7 @@ enum PvPZoneMode {
 @export var instance_kill_target: int = 0       # TDM: kills to win
 @export var instance_time_limit: float = 0.0    # Bout time cap
 @export var instance_spawn_shield: float = 0.0  # TDM spawn shield
+@export var instance_afk_kick: float = 0.0      # AFK kick; 0 = contract default
 
 ## Horde event auto-start: when set (a HordeData id in data/hordes/),
 ## the FIRST player to enter this zone starts that horde through

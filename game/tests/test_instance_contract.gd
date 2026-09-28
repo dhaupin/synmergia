@@ -173,12 +173,41 @@ func _run() -> void:
 		zm.destroy_instance(iid)
 		zm.destroy_instance(iid2)
 
+	# ---- E. S11 primitives (locked owner decisions) -------------------
+	_check_s11_primitives(Contract)
+
 	if _fails == 0:
 		print("INSTANCE CONTRACT PROBE PASSED")
 		quit(0)
 	else:
 		push_error("INSTANCE CONTRACT PROBE FAILED")
 		quit(1)
+
+
+## ---- S11 primitives (locked owner decisions, 2026-09-28) ------------
+func _check_s11_primitives(Contract) -> void:
+	# Scatter: golden-angle ring, index 0 on +X, height preserved.
+	var s0: Vector3 = Contract.scatter_spawn(Vector3(10, 4, 10), 0)
+	_check("scatter 0 on +X of ring", s0.distance_to(Vector3(13, 4, 10)) < 0.001)
+	_check("scatter deterministic", \
+		Contract.scatter_spawn(Vector3.ZERO, 7) == Contract.scatter_spawn(Vector3.ZERO, 7))
+	# Bands: base 10, widening halves distance, gulfs never pass.
+	_check("band base: 25 vs 30 ok", Contract.level_band_ok(25, 30))
+	_check("band base: 25 vs 36 refused", not Contract.level_band_ok(25, 36))
+	_check("band widens at 30 s wait", Contract.level_band_ok(25, 36, 30.0))
+	_check("gulf never auto-passes", not Contract.level_band_ok(5, 60, 999.0))
+	# Power: capped normalize; ratio 2 ceiling keeps levels meaningful.
+	_check("normalize caps at ratio 2 (5 vs 60 -> 10)", Contract.normalized_level(5, 60) == 10)
+	_check("normalize full-reaches reference (30 vs 60 -> 60)", Contract.normalized_level(30, 60) == 60)
+	_check("normalize never nerfs", Contract.normalized_level(70, 60) == 70)
+	# AFK: zone override wins; shared default 90 s; 0 disables.
+	var no_zone: float = Contract.afk_kick_seconds(null)
+	_check("afk default 90 s", no_zone == 90.0)
+	var z := ZoneData.new()
+	z.instance_afk_kick = 45.0
+	_check("afk zone override wins", Contract.afk_kick_seconds(z) == 45.0)
+	z.instance_afk_kick = 0.0
+	_check("afk 0 falls back to default", Contract.afk_kick_seconds(z) == 90.0)
 
 
 ## ZoneData duck-type case with an explicit override (45 s): a plain

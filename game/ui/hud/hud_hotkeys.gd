@@ -23,6 +23,7 @@
 ##   R    -> trade
 ##   T    -> titles
 ##   V    -> sky almanac (Skyward Concord)
+##   L    -> lobby (matchmaking / duels / LFG -- the lobby is canonical)
 ##   TAB  -> cycle targets (or focus within panel)
 extends Node
 
@@ -113,6 +114,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_J:
 				_toggle_panel("chronicle")
+				get_viewport().set_input_as_handled()
+			KEY_L:
+				_toggle_panel("lobby")
 				get_viewport().set_input_as_handled()
 			KEY_TAB:
 				_handle_tab_cycling(k.shift_pressed)

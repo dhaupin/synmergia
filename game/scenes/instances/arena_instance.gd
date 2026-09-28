@@ -34,6 +34,18 @@ var _scores: Dictionary = {}    # team -> kill count (TDM)
 var _started: bool = false
 var _over: bool = false
 var _bout_start_time: float = 0.0
+# S11: last-activity (unix) per fighter id -- the AFK sweep's ledger.
+var _last_activity: Dictionary = {}
+# S11: every fighter leaves the way it came. Set (by the gateway or
+# the lobby path) to the world-space position of the stone/gateway the
+# fighter queued at; bout end + AFK kicks send them back there.
+var origin_stones: Dictionary = {}  # fighter_id -> Vector3
+
+## Emitted when a bout closes: fighter_id -> return position (their
+## origin stone). The GameManager scene flow listens and teleports.
+signal bout_return_requested(return_map: Dictionary)
+## Emitted per fighter when the AFK sweep ejects someone early.
+signal fighter_afk_kicked(fighter_id: String, return_position: Vector3)
 
 func _ready() -> void:
 	# Rules BEFORE the room builds: cover placement reads the mode
@@ -50,6 +62,8 @@ func _ready() -> void:
 		_scores[i] = 0
 
 ## Place a fighter for a team at that team's spawn. Returns the node.
+## The spawn position is SCATTERED (contract primitive) so fighters
+## teleporting in together never stack on one point.
 func spawn_fighter(id: String, team_id: int):
 	var f := FighterScript.new()
 	f.setup(id, team_id)
@@ -58,12 +72,35 @@ func spawn_fighter(id: String, team_id: int):
 		_scores[team_id] = 0
 	_teams[team_id].append(id)
 	_fighters[id] = f
+	_last_activity[id] = Time.get_unix_time_from_system()
 	add_child(f)
-	f.global_position = _spawn_for_team(team_id)
+	f.global_position = _scatter_for(team_id, _teams[team_id].size() - 1)
 	# First spawn of a TDM bout also gets the shield.
 	if _rules.get("spawn_shield_seconds", 0.0) > 0.0:
 		f.apply_spawn_shield(float(_rules.get("spawn_shield_seconds")))
 	return f
+
+## Owner decision: every teleport into a bout scatters. TDM respawns
+## re-scatter around the team's spawn center (index = arrival order
+## in the roster so positions stay deterministic per roster state).
+func _respawn_position_for(fighter_id: String) -> Vector3:
+	var f = _fighters.get(fighter_id)
+	var team_id: int = f.team if f != null else 0
+	var roster: Array = _teams.get(team_id, [])
+	var idx: int = roster.find(fighter_id)
+	return _scatter_for(team_id, maxi(idx, 0))
+
+## First member of a team spawns EXACT at the spawn point; the rest
+## take a ring around it. Ring radius grows with the roster: 12
+## fighters need more than 3 m of circumference to keep >= 1.5 m
+## between neighbors (golden-angle worst case ~20 degrees apart).
+func _scatter_for(team_id: int, index: int) -> Vector3:
+	var center := _spawn_for_team(team_id)
+	if index <= 0:
+		return center
+	var count: int = (_teams.get(team_id, []) as Array).size()
+	var ring: float = maxf(3.0, 0.45 * float(maxi(count, 1)))
+	return Contract.scatter_spawn(center, index - 1, ring)
 
 ## Spawn position for a team: its spawn_points entry (fallback center).
 func _spawn_for_team(team_id: int) -> Vector3:
@@ -118,7 +155,7 @@ func _schedule_respawn(victim) -> void:
 	timer.timeout.connect(func():
 		if not _over and is_instance_valid(victim):
 			var shield: float = float(_rules.get("spawn_shield_seconds", 0.0))
-			victim.respawn_at(_spawn_for_team(victim.team), shield))
+			victim.respawn_at(_respawn_position_for(victim.fighter_id), shield))
 
 func _check_tdm_win() -> void:
 	var target: int = int(_rules.get("kill_target", 0))
@@ -155,9 +192,62 @@ func _end_bout(winner_team: int) -> void:
 		"scores": _scores.duplicate(),
 		"fighters": _fighters.size(),
 	}
+	# Owner decision: everyone goes home to the stone they queued at
+	# (round-trip, no post-match stranding). The scene flow teleports;
+	# the room only declares who goes where.
+	var return_map: Dictionary = {}
+	for fid in _fighters:
+		return_map[fid] = origin_stones.get(fid, _spawn_for_team(0))
 	bout_ended.emit(winner_team, stats)
+	bout_return_requested.emit(return_map)
 
 # ---- Inspection surface (probe + future UI) -------------------------
+
+## Lobby/fight code pokes this on any self-driven action (attack,
+## skill, move intent) so the AFK sweep sees life. Cheap on purpose.
+func note_activity(fighter_id: String) -> void:
+	if _fighters.has(fighter_id):
+		_last_activity[fighter_id] = Time.get_unix_time_from_system()
+
+## The AFK sweep: idle longer than the zone's kick window (contract
+## default 90 s, 0 disables) gets returned to their origin stone and
+## booked like a departure. Owner decision: the guy in the woods
+## never stalls a bout again. ROYALE rooms skip it (drop pacing is
+## the mode's own tension).
+func _process(_delta: float) -> void:
+	if not _started or _over:
+		return
+	if int(_rules.get("mode")) == Contract.InstanceMode.ROYALE:
+		return
+	var window: float = Contract.afk_kick_seconds(zone_data)
+	if window <= 0.0:
+		return
+	var now: float = Time.get_unix_time_from_system()
+	for fid in _fighters.keys():
+		var f = _fighters.get(fid)
+		if f == null or not f.alive:
+			note_activity(fid)  # dead men register no idle
+			continue
+		if now - float(_last_activity.get(fid, now)) > window:
+			kick_fighter(str(fid))
+
+## Eject one fighter to their origin stone (AFK path; the caller has
+## already decided). Books the departure so elimination accounting
+## stays truthful.
+func kick_fighter(fighter_id: String) -> void:
+	if not _fighters.has(fighter_id):
+		return
+	var f = _fighters.get(fighter_id)
+	if f == null or not f.alive:
+		return
+	var back: Vector3 = origin_stones.get(fighter_id, _spawn_for_team(0))
+	f.eliminate()
+	fighter_afk_kicked.emit(fighter_id, back)
+	if _rules.get("respawn_allowed", false):
+		_schedule_respawn(f)
+		_check_tdm_win()
+	else:
+		_check_elimination_win()
 
 func bout_rules() -> Dictionary:
 	return _rules

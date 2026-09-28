@@ -165,3 +165,66 @@ static func party_fits(instance_data: Dictionary, party_size: int, started: bool
 	if players is Array:
 		count = players.size()
 	return cap <= 0 or count + party_size <= cap
+
+
+## ---- S11 lobby primitives (owner decisions, 2026-09-28) ---------------
+
+## Scatter-spawn: deterministic radial jitter so simultaneously
+## teleported fighters never stack (initial spawns, TDM respawns,
+## ROYALE drop -- owner decision: EVERY teleport into a bout scatters).
+## Golden-angle stepping gives an even ring with no clamping; index 0
+## lands exactly on +X of the ring. Pure function.
+const SCATTER_GOLDEN_ANGLE: float = 2.399963229728653
+
+static func scatter_spawn(center: Vector3, index: int, ring_radius: float = 3.0) -> Vector3:
+	var angle: float = float(index) * SCATTER_GOLDEN_ANGLE
+	return center + Vector3(cos(angle) * ring_radius, 0.0, sin(angle) * ring_radius)
+
+
+## Relative power normalization (owner decision: the lvl 5 vs lvl 60
+## problem). Scales a level toward a reference with the boost CAPPED
+## at max_boost_ratio so levels keep meaning: a 5 next to a 60 plays
+## at 10, never at 60. Callers map the normalized level to bout-local
+## stat scaling (AuraComponent buffs inside the room only -- real
+## stats never change). 1.0 when at or above the reference.
+static func normalized_level(level: int, reference_level: int, max_boost_ratio: float = 2.0) -> int:
+	var lvl: int = maxi(level, 1)
+	if reference_level <= lvl:
+		return lvl
+	var ratio: float = float(reference_level) / float(lvl)
+	if ratio > max_boost_ratio:
+		ratio = max_boost_ratio
+	return int(round(float(lvl) * ratio))
+
+
+## Level-band matchmaking. Raw distance with the band widening as the
+## waiter's patience grows (queue head only): after WIDEN_AFTER seconds
+## the distance halves, doubling effective reach. Absolute gulfs never
+## pass -- a 5 and a 60 do not auto-assemble at any patience; that
+## pairing requires the normalized-power consent path instead.
+const LEVEL_BAND_BASE: int = 10
+const LEVEL_BAND_WIDEN_AFTER_SECONDS: float = 30.0
+const LEVEL_BAND_WIDEN_FACTOR: float = 2.0
+
+static func level_band_distance(level_a: int, level_b: int, wait_seconds: float = 0.0) -> int:
+	var dist: int = absi(level_a - level_b)
+	if wait_seconds >= LEVEL_BAND_WIDEN_AFTER_SECONDS:
+		dist = int(float(dist) / LEVEL_BAND_WIDEN_FACTOR)
+	return dist
+
+static func level_band_ok(level_a: int, level_b: int, wait_seconds: float = 0.0) -> bool:
+	return level_band_distance(level_a, level_b, wait_seconds) <= LEVEL_BAND_BASE
+
+
+## AFK kick (owner decision: the guy in the woods never stalls a bout
+## again). A fighter idle this long inside a live bout is returned to
+## their queue stone and the bout books it like a departure. ZoneData
+## can override per zone (instance_afk_kick); 0 = disabled.
+const DEFAULT_AFK_KICK_SECONDS: float = 90.0
+
+static func afk_kick_seconds(zone) -> float:
+	if zone != null and "instance_afk_kick" in zone:
+		var v = zone.instance_afk_kick
+		if v > 0.0:
+			return float(v)
+	return DEFAULT_AFK_KICK_SECONDS

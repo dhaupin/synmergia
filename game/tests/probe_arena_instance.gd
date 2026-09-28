@@ -66,6 +66,14 @@ func _run() -> void:
 		f1.is_on_floor() and f2.is_on_floor() and f3.is_on_floor())
 	_check("floor contact near sand height", \
 		f1.global_position.y < 2.5)
+	# S11 owner decision: every teleport into a bout scatters. Index 0
+	# lands exact; the second red fighter rides the ring (radius >= 3).
+	_check("first fighter spawns exact", \
+		Vector2(f1.global_position.x, f1.global_position.z) \
+			.distance_to(Vector2(spawns[0].x, spawns[0].z)) < 0.01)
+	_check("team members scatter apart (no stacking)", \
+		f3.global_position.distance_to(spawns[1]) > 2.0 \
+		and f3.global_position.distance_to(f2.global_position) > 2.0)
 
 	var ended: Array = []
 	room.bout_ended.connect(func(w, _s): ended.append(w))
@@ -149,6 +157,38 @@ func _run() -> void:
 	_check("TDM bout resolves at kill target", room2.is_over())
 
 	room2.queue_free()
+	await process_frame
+
+	# ---- D. Round trip + AFK kick (S11 owner decisions) --------------
+	var room4 = ArenaScene.new()
+	room4.zone_data = arena
+	root.add_child(room4)
+	var a1 = room4.spawn_fighter("rt_blue", 0)
+	var a2 = room4.spawn_fighter("rt_red", 1)
+	room4.origin_stones = {
+		"rt_blue": Vector3(5, 1, 5),
+		"rt_red": Vector3(-5, 1, -5),
+	}
+	room4.start_bout()
+
+	var kicked: Array = []
+	room4.fighter_afk_kicked.connect(func(fid, pos): kicked.append([fid, pos]))
+	var returns: Array = []
+	room4.bout_return_requested.connect(func(rmap): returns.append(rmap))
+
+	# AFK kick: idle fighter ejected to their stone; the departure is
+	# booked, so elimination resolves last-team-standing.
+	room4.kick_fighter("rt_blue")
+	_check("AFK kick ejects to origin stone", \
+		kicked.size() == 1 and str(kicked[0][0]) == "rt_blue" \
+		and (kicked[0][1] as Vector3).distance_to(Vector3(5, 1, 5)) < 0.01)
+	_check("bout resolves after AFK departure", room4.is_over())
+	_check("bout return map sends everyone to their stone", \
+		returns.size() == 1 \
+		and (returns[0].get("rt_blue", Vector3.ZERO) as Vector3).distance_to(Vector3(5, 1, 5)) < 0.01 \
+		and (returns[0].get("rt_red", Vector3.ZERO) as Vector3).distance_to(Vector3(-5, 1, -5)) < 0.01)
+	_check("AFK-kicked fighter is down", not a1.alive and a2.alive)
+	room4.queue_free()
 	await process_frame
 
 	if _fails == 0:

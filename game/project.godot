@@ -101,6 +101,7 @@ SignService="*res://core/services/sign_service.gd"
 ActsService="*res://core/services/acts_service.gd"
 AudioService="*res://core/autoload/audio_service.gd"
 InstanceService="*res://core/services/instance_service.gd"
+LobbyService="*res://core/services/lobby_service.gd"
 
 [display]
 
