@@ -559,6 +559,22 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S11 loop closed + ROYALE/glider groundwork (2026-09-28):
+  BoutTeleportService autoload (assembly scatters player entities
+  into team staging via Contract.scatter_spawn; bout_return_requested
+  -- room signal AND direct apply_return_map seam -- moves everyone
+  home; missing nodes skip+log, never half-apply). ROYALE drop in
+  arena_instance: start_bout throws fighters to 0.8x-half height on
+  a wide ring (0.35x half, min 0.45/fighter, 30 never stack).
+  Glider groundwork: 5 glider_ .tres devices (data/gliders, MountData
+  schema), movement_glider profile (AERIAL, gravity 4.5, fall 8,
+  jump 0/false), anticheat GLIDE_MAX_SPEED/FALL + set_glide_active
+  swap/restore. Probe probe_bout_flow 26/26 (new in DEFAULT_SET).
+  Lessons: stamp WORLD limits from the player's ground profile (fall
+  55x2=110) and GLIDE maxima from the wing profile separately --
+  conflating them fails the restore check; standard tres fall is
+  55.0 (the 110 in the service fallback is a constant, not a
+  profile value).
 - [ ] S11 goals added (2026-09-28): bout assembly engine, solo
   matchmaking queue, fill-to-parity consent flag (see PRD S11).
 - [x] S10 arena wiring (2026-09-28): arena_instance.gd planar room

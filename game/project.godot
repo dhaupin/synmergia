@@ -104,6 +104,7 @@ AudioService="*res://core/autoload/audio_service.gd"
 InstanceService="*res://core/services/instance_service.gd"
 LobbyService="*res://core/services/lobby_service.gd"
 ArenaCombatBridge="*res://core/services/arena_combat_bridge.gd"
+BoutTeleportService="*res://core/services/bout_teleport_service.gd"
 
 [display]
 

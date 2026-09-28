@@ -29,6 +29,15 @@ const SPEED_LIMIT_MULTIPLIER: float = 2.5   # x profile's fastest legal speed
 const JUMP_LIMIT_MULTIPLIER: float = 2.5    # x profile's jump_force launch
 const FALL_LIMIT_MULTIPLIER: float = 2.0    # x profile's terminal_fall_speed
 const VERTICAL_HARD_CLAMP: float = 120.0    # abs(vy) sanity bound (m/s)
+
+## Glide device bounds (S11 groundwork: gliders, BotW-style). Gliding
+## is SLOW and gravity-tamed by design -- a fast-falling or speeding
+## wing is a hacked wing. While a player is flagged gliding, these
+## REPLACE their profile speed/fall maxima (jump stays profile-bound;
+## gliders cannot jump). The controller calls set_glide_active() when
+## the wing deploys/stows.
+const GLIDE_MAX_SPEED: float = 24.0   # ~1.4x the fastest wing's sprint
+const GLIDE_MAX_FALL: float = 14.0    # glide sink is gentle by design
 ## Consecutive violating frames before an exploit report. One bad
 ## frame is lag/teleport-lag/noise; half a second of sustained
 ## over-limit motion is a hack.
@@ -96,20 +105,37 @@ func unregister_player(player_id: String) -> void:
 ## by PlayerController._apply_movement_profile() (players) and available
 ## to any authoritative spawner (enemies/mounts use their own profiles).
 ## Values are the LIMITS (legal max x multipliers), not the feel values.
-func set_movement_limits(player_id: String, max_speed: float, max_jump: float, max_fall: float) -> void:
+func set_movement_limits(player_id: String, max_speed: float, max_jump: float, max_fall: float, max_glide_speed: float = GLIDE_MAX_SPEED, max_glide_fall: float = GLIDE_MAX_FALL) -> void:
 	_movement_limits[player_id] = {
 		"max_speed": maxf(max_speed, 1.0),
 		"max_jump": maxf(max_jump, 1.0),
 		"max_fall": maxf(max_fall, 10.0),
+		"max_glide_speed": maxf(max_glide_speed, 1.0),
+		"max_glide_fall": maxf(max_glide_fall, 1.0),
+		"gliding": false,
 	}
+
+
+## Wing deployed/stowed. While true, get_movement_limits swaps the
+## speed/fall maxima for the glide bounds (BotW-style flight rules).
+func set_glide_active(player_id: String, gliding: bool) -> void:
+	if _movement_limits.has(player_id):
+		_movement_limits[player_id]["gliding"] = gliding
 
 ## Resolve the hard limits for a player. Falls back to the standard
 ## humanoid profile bounds when nothing was stamped (DataService may be
 ## absent in tool contexts; the constants then stand alone).
 func get_movement_limits(player_id: String) -> Dictionary:
 	if _movement_limits.has(player_id):
-		return _movement_limits[player_id]
-	var fallback := {"max_speed": 25.0, "max_jump": 25.0, "max_fall": 110.0}
+		var limits: Dictionary = _movement_limits[player_id]
+		if bool(limits.get("gliding", false)):
+			return {
+				"max_speed": limits["max_glide_speed"],
+				"max_jump": limits["max_jump"],
+				"max_fall": limits["max_glide_fall"],
+			}
+		return limits
+	var fallback := {"max_speed": 25.0, "max_jump": 25.0, "max_fall": 110.0, "max_glide_speed": GLIDE_MAX_SPEED, "max_glide_fall": GLIDE_MAX_FALL, "gliding": false}
 	if DataService:
 		var profile = DataService.get_movement_profile("movement_standard")
 		if profile != null:

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "glider_drift_kite"
+display_name = "Drift Kite"
+description = "A ridged linen wing on a willow frame. Snap it open over a drop and the valley slows down beneath you."
+icon_path = "res://icons/mounts/gullwing.png"
+model_path = ""
+kind = 1
+speed_multiplier = 1.25
+required_level = 5
+faction_id = ""
+source = 2
+currency_id = "currency_gold"
+cost = 120
+source_ref = ""
+soulbound = false
+tint = Color(0.72, 0.8, 0.9, 1)
+movement_profile_id = "movement_glider"

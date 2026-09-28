@@ -425,8 +425,42 @@ and power normalization is ENFORCED: the bridge snapshots a
 fighter's six base stats, scales them toward the capped normalized
 level, recomputes max health, and RESTORES the snapshot at bout end
 (bout-local only; real stats never change). Bridge probe 24.
-Still open: scene-flow teleport listener (bout_return_requested),
-ROYALE drop scatter wiring.
+Still open: nothing on the loop itself -- BoutTeleportService SHIPPED
+(2026-09-28): bout_assembled scatters player entities into team
+staging rings, bout_return_requested (room signal or direct seam)
+moves everyone home to their stone. The queue -> stone -> teleport-in
+-> bout -> teleport-home loop is mechanically COMPLETE. Position is
+authoritative; the visual scene swap (globe <-> instance) stays a
+GameManager render-flow item.
+
+### S11.5 - ROYALE drop + gliders (groundwork shipped)
+Owner vision (2026-09-28): ROYALE opens with the classic DROP FROM
+THE SKY and glide-to-where-you-are-going. That means Synmergia gets
+a GLIDER mechanic eventually -- usable in the open world too,
+Zelda-BotW style. Groundwork SHIPPED ahead of the zone going live:
+- ROYALE drop scatter (arena_instance): at start_bout, every fighter
+  is thrown into the sky (height 0.8 x room half -- 160 m over the
+  valley) over a wide golden-angle ring (0.35 x half, min 0.45 per
+  fighter -- 30 drops never stack), velocity zeroed. The glide does
+  the steering from there. ROYALE is exempt from the AFK sweep while
+  the drop plays out.
+- Glider devices (data/gliders/, glider_ prefix, MountData schema --
+  placeholders for the real device art): glider_drift_kite (starter,
+  1.25x, lvl 5), glider_sewn_swallow (1.45x, lvl 15),
+  glider_gullwing_shade (1.65x, lvl 25), glider_reclaimer_ribs
+  (faction favor, 1.8x, lvl 30), glider_storm_spine (event, 1.95x,
+  lvl 35).
+- movement_glider profile (data/movement_profiles/, AERIAL class):
+  gravity 4.5, terminal fall 8.0 (gentle sink), sprint 14.0,
+  jump_force 0 + allow_jump false (a wing does not jump), air
+  control 0.65.
+- Anticheat: GLIDE_MAX_SPEED 24 + GLIDE_MAX_FALL 14; set_glide_active
+  swaps the speed/fall maxima while a wing is deployed (jump stays
+  profile-bound); world limits restore on stow.
+Open items for the Royale season: real glider mechanic (deploy/stow
+input, thermal model, stamina, BotW-style open-world use), glider
+models/art, bounds-shrink pacing, drop AI for the marshal's bout,
+per-zone glide profile overrides.
 - [x] Spawn-shield combat enforcement (fire-and-you-lose-it): the
       combat bridge calls ArenaFighter.break_shield() on any
       SELF-INITIATED action (attack, skill cast, potion, self-buff);

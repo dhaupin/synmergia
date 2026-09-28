@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "glider_storm_spine"
+display_name = "Storm Spine"
+description = "A spine of storm-forged struts carrying a wing of woven sky. It does not fall so much as choose where the ground happens."
+icon_path = "res://icons/mounts/gullwing.png"
+model_path = ""
+kind = 1
+speed_multiplier = 1.95
+required_level = 35
+faction_id = ""
+source = 4
+currency_id = "currency_gold"
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(0.45, 0.55, 0.7, 1)
+movement_profile_id = "movement_glider"

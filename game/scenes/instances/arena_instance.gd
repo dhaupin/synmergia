@@ -154,10 +154,42 @@ func start_bout() -> void:
 func _emit_power_reference() -> void:
 	if _over:
 		return
+	# ROYALE drop (owner decision: classic sky drop + glide): the
+	# moment the bout arms, every fighter is thrown into the sky over
+	# a wide golden-angle ring around the map center -- the glider
+	# (movement_glider) does the steering from there. Fighters above
+	# floor contact never get affected by the planar settle.
+	if int(_rules.get("mode")) == Contract.InstanceMode.ROYALE:
+		_emit_royale_drop()
 	var levels: Dictionary = {}
 	for fid in _fighters:
 		levels[fid] = int(_levels.get(fid, 1))
 	power_reference_ready.emit(levels)
+
+## The drop: index-stable wide ring (no stacking -- 30 fighters need
+## ~2.2 m neighbors at r 21), height = 0.8 x room half (160 m over
+## the valley's 400 m half), always inside the walls.
+const ROYALE_DROP_HEIGHT_RATIO: float = 0.8
+const ROYALE_DROP_RING_RATIO: float = 0.35
+
+func _emit_royale_drop() -> void:
+	var half: float = 60.0
+	if zone_data != null and "zone_radius" in zone_data:
+		half = float(zone_data.zone_radius) * 0.5
+	var ring: float = maxf(half * ROYALE_DROP_RING_RATIO, 3.0)
+	var count: int = _fighters.size()
+	if count > 1:
+		ring = maxf(ring, 0.45 * float(count))
+	var height: float = half * ROYALE_DROP_HEIGHT_RATIO
+	var idx := 0
+	for fid in _fighters:
+		var f = _fighters.get(fid)
+		if f == null:
+			continue
+		var drop := Contract.scatter_spawn(Vector3(0, height, 0), idx, ring)
+		f.global_position = drop
+		f.velocity = Vector3.ZERO
+		idx += 1
 
 ## Combat bridge entry: any SELF-initiated action (attack, skill cast,
 ## potion, self-buff) routes here. Fire-and-you-lose-it: breaks the
