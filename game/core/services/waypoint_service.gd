@@ -14,6 +14,11 @@ const QoSService = preload("res://core/autoload/qos_service.gd")
 # to be registered before this file compiles.
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
+# Spherical-world math (prd-spherical-mvp.md S2). Frame primitives
+# preloaded by path; the shape resolver gates which math applies.
+const SphericalMath = preload("res://core/frame/math/spherical.gd")
+const WorldShapeResolver = preload("res://core/frame/math/world_shape.gd")
+
 # Waypoint colors (preset options)
 enum WaypointColor {
 	RED,
@@ -395,7 +400,44 @@ func get_distance_to_active(player_id: String) -> float:
 	var player_pos: Vector3 = entity.global_position if ("global_position" in entity) else Vector3.ZERO
 	var wp_pos: Vector3 = Vector3(wp_dict.get("position_x", 0.0), wp_dict.get("position_y", 0.0), wp_dict.get("position_z", 0.0))
 
+	# Spherical worlds measure along the surface (great-circle),
+	# planar worlds keep euclidean distance. Shape-gated (S2).
+	if WorldShapeResolver.is_spherical():
+		var p1: Vector2 = SphericalMath.cartesian_to_spherical(player_pos)
+		var p2: Vector2 = SphericalMath.cartesian_to_spherical(wp_pos)
+		return SphericalMath.haversine(p1.x, p1.y, p2.x, p2.y)
+
 	return player_pos.distance_to(wp_pos)
+
+## Bearing (degrees, 0 = north, 90 = east) to the active waypoint.
+## Spherical worlds: geodesic initial bearing. Planar worlds: map
+## north = -Z (the compass convention in ui/components/compass.gd).
+## Returns -1.0 when there is no active waypoint or no entity.
+func get_bearing_to_active(player_id: String) -> float:
+	var wp_dict := get_active_waypoint(player_id)
+	if wp_dict.is_empty():
+		return -1.0
+
+	if not EntityService:
+		return -1.0
+
+	var entity = EntityService.get_entity_by_id(player_id)
+	if not entity or not is_instance_valid(entity):
+		return -1.0
+
+	var player_pos: Vector3 = entity.global_position if ("global_position" in entity) else Vector3.ZERO
+	var wp_pos: Vector3 = Vector3(wp_dict.get("position_x", 0.0), wp_dict.get("position_y", 0.0), wp_dict.get("position_z", 0.0))
+
+	if WorldShapeResolver.is_spherical():
+		var p1s: Vector2 = SphericalMath.cartesian_to_spherical(player_pos)
+		var p2s: Vector2 = SphericalMath.cartesian_to_spherical(wp_pos)
+		return SphericalMath.geodesic_bearing(p1s.x, p1s.y, p2s.x, p2s.y)
+
+	var offset: Vector3 = wp_pos - player_pos
+	var bearing: float = rad_to_deg(atan2(offset.x, -offset.z))
+	if bearing < 0.0:
+		bearing += 360.0
+	return bearing
 
 ## Check if player reached active waypoint
 func check_waypoint_reached(player_id: String) -> bool:

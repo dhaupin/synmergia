@@ -1,6 +1,9 @@
 # Synmergia — Spherical World & Navigation PRD
 
 > **Status:** Draft — 2026-09-06
+> **Updated:** 2026-09-27 — implementation picked up in
+> [prd-spherical-mvp.md](prd-spherical-mvp.md): wave checkboxes (S1-S4),
+> locked decisions, and the crash pickup protocol live there.
 > **Updated:** 2026-09-07 to align with world-building.md
 > **Sources:** [`world-building.md`](../world-building.md), [`world-building-arch.md`](./world-building-arch.md)
 > **Purpose:** Design for spherical planet map and navigation systems
@@ -252,10 +255,18 @@ func get_compass_direction_at_pole(player_pos: Vector3, waypoint: Vector3) -> St
 
 ### 6.1 Immediate (Phase 1)
 
-- [ ] Implement haversine distance function
-- [ ] Compass: Add true-north bearing calculation
-- [ ] Waypoint: Update distance calc to haversine
-- [ ] NSC-9 cell calculation for position→cell mapping
+- [x] Implement haversine distance function
+  (`core/frame/math/spherical.gd`, done 2026-09-27 per
+  prd-spherical-mvp.md S1)
+- [x] Compass: Add true-north bearing calculation
+  (`Spherical.geodesic_bearing` + `WaypointService.get_bearing_to_active`;
+  planar north = -Z per compass.gd convention)
+- [x] Waypoint: Update distance calc to haversine
+  (shape-gated: spherical worlds measure great-circle, planar
+  worlds keep euclidean)
+- [x] NSC-9 cell calculation for position→cell mapping
+  (Icosahedral position_to_cell + neighbors proven live on the
+  walkable globe prototype, probe_globe_island.gd 12/12)
 
 ### 6.2 Medium Term (Phase 2)
 

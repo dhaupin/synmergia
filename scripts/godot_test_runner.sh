@@ -36,6 +36,8 @@ test_daily_quest
 test_blessed_mark
 test_mysteries
 test_audio_service
+frame/math/test_spherical
+probe_globe_island
 probe_ancient_loop
 probe_blacksmith_model
 probe_wolf_model
@@ -56,14 +58,21 @@ pass=0
 fail=0
 failed_names=""
 for t in ${TESTS}; do
-	if [ ! -f "${GAME_DIR}/tests/${t}.gd" ]; then
+	# Frame primitives keep their tests co-located (frame rule);
+	# a "frame/..." name resolves under core/frame/, else tests/.
+	RES_PATH="res://tests/${t}.gd"
+	FRAME_REL="${t#frame/}"
+	if [ ! -f "${GAME_DIR}/tests/${t}.gd" ] && [ -f "${GAME_DIR}/core/frame/${FRAME_REL}.gd" ]; then
+		RES_PATH="res://core/frame/${FRAME_REL}.gd"
+	fi
+	if [ ! -f "${GAME_DIR}/tests/${t}.gd" ] && [ ! -f "${GAME_DIR}/core/frame/${FRAME_REL}.gd" ]; then
 		echo "[runner] ?? ${t}: no such test (game/tests/${t}.gd)"
 		fail=$((fail + 1))
 		failed_names="${failed_names} ${t}"
 		continue
 	fi
 	echo "[runner] == ${t}"
-	if (cd "${GAME_DIR}" && timeout 120 godot --headless --path . --script "res://tests/${t}.gd" >"/tmp/syn_${t}.log" 2>&1); then
+	if (cd "${GAME_DIR}" && timeout 120 godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${t##*/}.log" 2>&1); then
 		echo "[runner]    PASS ${t}"
 		pass=$((pass + 1))
 	else

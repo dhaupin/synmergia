@@ -490,6 +490,18 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 
 ## Open / next candidates
 
+- [x] Spherical world MVP (2026-09-27 night): S1 spherical.gd
+  frame primitive (haversine/bearing/great-circle/converters,
+  7/7 known-answer groups incl. Icosahedral convention match),
+  S2 world_shape.gd project setting + WaypointService shape-gated
+  haversine + new get_bearing_to_active, S3 globe-island radial-
+  gravity prototype (globe_player.gd + globe_island.tscn/.gd,
+  probe 12/12 headless AND xvfb-rendered, pixel-verified stages:
+  250 m equator walk, zero radial drift, curvature ratio 1.31 =
+  predicted chord math, live cell+neighbors) -- pickable via
+  labs/prd-spherical-mvp.md (pickup protocol in its sec 0).
+  Runner now resolves co-located frame tests (`frame/<rel>` names);
+  regression 18/18 including the two new tests in DEFAULT_SET.
 - [x] Rando batch 14 (2026-09-26): door-open world event + chapter-
   gated mysteries (user picked: audio path A + mysteries, sky-code
   first, title + small XP rewards).
