@@ -678,6 +678,28 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] prd-industry-labs.md SHIPPED (2026-09-29, owner: "let's call
+  bluff on the game industry"): the industry call doc. T1-T7
+  theorems, each citing shipped code -- seed derivation (T1),
+  closed-form time (T2), NSC-9 GEOMETRIC ASSIMILATION AND ADDRESSING
+  (T3, the owner's idea mapped onto what the frame already runs:
+  nsc9.gd bit-packed cells + spatial_fragmenter + nsc9_bridge -- the
+  address IS the identity, adjacency is arithmetic), T3 content-hash
+  state (T4), cadence valves (T5: 5-min coalesce + horcrux), laws
+  not triggers (T6), nested invocations (T7: reality state is
+  callable, side-effect free). Extension ladder: X1 heliocentric
+  clock (planets = one more nesting level; seasons =
+  parent_sky_direction), X2 address-space galaxy (stars exist
+  because their NSC-9 address says so -- derive_seed on
+  "star:<address>"), X3 universe slow ticks (civilization
+  fast-forward = closed-form evaluation at large epoch + REPLAYING
+  THE LEDGER of chosen events through deterministic folds -- the
+  Concord Chronicle at century scale; drift never accumulates
+  because there is no integration), X4 the epoch valve.
+  Not-build list: no N-body, no streamed space mesh, no tick for
+  things that are functions. Falsifiable claims C1-C7 with the
+  probe/test that breaks each. Citations verified before ship
+  (COALESCE_WINDOW_MS, state_tree/t3 + tests, nsc9 bridge tests).
 - [x] S16.4 world physics SHIPPED (2026-09-29, owner: "we aren't
   building stubs or simulations"): per-world physics as DECLARATION.
   movement_lunar.tres (Movement Design System profile: 6 m/s^2
