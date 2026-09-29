@@ -289,3 +289,57 @@ Stone. Lessons: the probe caught a BACKWARDS squeeze formula (more
 grace made squeeze start shallower), a depth/column conflation,
 and a str_replace line-glue that commented out the entire clamp
 block -- all before any swimmer existed.
+
+## 13. S14.2-S14.4 as built (2026-09-29): swim, anticheat, gear, sailing
+
+**The swim class (S14.2).** `core/frame/srv/swim_state.gd` is the
+glider's below-water twin: DRY/WADING (1.2 m)/SURFACE_SWIM (the
+top meter breathes)/SUBMERGED/SQUEEZE/CRUSH, a 45 s breath clock,
+and a pressure pool that accrues only when the volume taxes
+(`pressure_per_meter > 0` -- the tame pool is tame by
+declaration). The rock sentinel (-1) reads DRY: no breath spent,
+no clocks. `movement_swim.tres` (AQUATIC class 3, swim 3.4 m/s,
+no jump, gentle gravity) makes the feel data. OceanService.
+tick_swimmer drives it and returns {state, depth, band, current,
+breath, pressure, drowning_s} in one call.
+
+**Aquatic anticheat (S14.3).** While `_aquatic_limits` holds a
+body, validate_movement judges it by the SWIM maxima (speeds x
+the standard multipliers), never the humanoid's. The current is
+SERVER TRUTH: `set_current_drift` stamps the OceanVolume's
+declared vector, and `_legal_under_current` resolves the body's
+horizontal velocity onto it -- the parallel component is passive
+water, the perpendicular is the swimmer's own effort and stays
+hard-checked; parallel <= 0 (upstream) earns nothing. A zero
+current erases the stamp (still water judges again). DIVE
+TICKETS mirror the launch tickets (30 m/s ceiling, 3 s,
+prune-on-read) and forgive ONLY the downward plunge past the swim
+terminal -- the boat-fall entry; horizontal and absurd-vertical
+checks never yield. unregister_player clears all three books.
+
+**The breather (S14.4).** Gear owns air; the MovementProfile owns
+speed (orthogonal or soup). Item gains AccessoryType.BREATHER +
+breath_multiplier/squeeze_grace_m; the Hollow Reed (x2, +2 m) and
+the Lungshell (x4, +8 m) sit on the NECKLACE slot;
+`OceanService.breather_for(player_id)` resolves through
+InventoryService to {mult, grace_m} (default {1.0, 0.0} when
+anything is missing). The grace deepens the squeeze line and the
+multiplier feeds set_breath_capacity -- CRUSH never moves (gear
+extends the swim, not the stone's patience). THE ONE-DERIVATION
+LAW (learned by probe): the PRIMITIVE applies the grace
+(squeeze_eff); band_for applies the same grace -- service and
+state can never disagree about where squeeze starts.
+
+**The sailing page (sec 9 honesty law, delivered).** VehicleData
+gains ferries_per_day / first_departure_hour / crossing_hours: a
+closed-form schedule evaluated off the Concord epoch (the same
+one-clock-read discipline as the moon) -- no timetable table is
+stored, so chart and dock cannot disagree. veh_haven_ferry
+declares 8 cast-offs/day, first at 06:00, a 30-min crossing.
+SkyAlmanacUI's sailing page shows the route, the crossing in
+minutes, the next cast-off (Day N, h into the day, hours out,
+with a departing-now window), and the wake law line ("The first
+ride always takes the water. After that, the wake remembers
+you."). `_sail_ferries` reads the vehicle declarations directly:
+the almanac is a chart, not a service; the FerryService (S14.5)
+will honor the same math.

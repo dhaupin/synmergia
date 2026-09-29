@@ -820,8 +820,62 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   globe shape; (3) conjure-holder must be the current SCENE, never
   the gate (a freed gate must not take the moon with it -- same
   law as ScopeService's escape capture).
-- [x] S16.5 Almanac Moon Page SHIPPED (2026-09-29, owner: "build
-  the window math (favorability, next window, the moon's position),
+- [x] S14.2 the Swim Class + S14.3 Aquatic Anticheat + S14.4 the First
+  Breather Gear + the Sailing Almanac Page SHIPPED (2026-09-29,
+  owner: "first the sailing Almanac, then let's hit S14.3
+  (anticheat aquatic limits + dive tickets -- currents exempted as
+  server truth) followed by S14.4 (the first breather gear)").
+  (1) SWIM CLASS (S14.2, committed 26be90a): SwimState frame
+  primitive (the glider's below-water twin: DRY/WADING/
+  SURFACE_SWIM/SUBMERGED/SQUEEZE/CRUSH; 45 s breath; pressure
+  accrues only when the volume taxes; rock sentinel -1 reads DRY;
+  set_breath_capacity for gear) + movement_swim.tres (AQUATIC=3,
+  swim 3.4, no jump) + OceanService.tick_swimmer returning the
+  whole water truth per tick. test_swim_state (25) + probe_swim
+  (20) in DEFAULT_SET. (2) AQUATIC ANTICHEAT (S14.3): the validator
+  now judges a swimming body by its SWIM maxima
+  (set_aquatic_limits, speeds x the same multipliers, stamped into
+  validate_movement as an override) -- land maxima never apply
+  underwater. CURRENTS ARE SERVER TRUTH: set_current_drift stamps
+  the OceanVolume's declared vector and _legal_under_current
+  forgives displacement ALONG it only -- the perpendicular
+  component (the swimmer's own effort) stays hard-checked, and
+  parallel <= 0 (upstream) gets no forgiveness at all; a zero
+  current erases the stamp. DIVE TICKETS mirror the launch tickets
+  (ceiling 30 m/s, 3 s, prune-on-read): they forgive ONLY the
+  downward plunge past the swim terminal (the boat-fall entry);
+  horizontal/absurd stay flagged. unregister_player clears all
+  three books. test_anticheat_limits +4 sections (10-13). (3)
+  BREATHER GEAR (S14.4): Item gains AccessoryType.BREATHER +
+  breath_multiplier/squeeze_grace_m exports; two .tres pieces
+  (Hollow Reed x2/+2 m, Lungshell x4/+8 m, NECKLACE slot) +
+  OceanService.breather_for resolving through InventoryService to
+  {mult, grace_m} (unbreathered default when anything is missing).
+  ORTHOGONAL LAW kept: gear owns air (multiplier + grace), the
+  MovementProfile owns speed -- a breather never swims faster.
+  The primitive now applies the grace itself (squeeze_eff), so
+  band_for and tick state can never disagree about where squeeze
+  starts; CRUSH never moves. (4) SAILING PAGE (sec 9 ferry honesty
+  law): VehicleData gains ferries_per_day/first_departure_hour/
+  crossing_hours (closed-form schedule off the Concord epoch -- no
+  timetable table stored, chart and dock cannot disagree, same law
+  as the moon page); veh_haven_ferry declares 8 cast-offs/day,
+  first at 06:00, 30-min crossing; SkyAlmanacUI grows the sailing
+  page (route, crossing minutes, next cast-off with the departing-
+  now window, the wake law line) and _sail_ferries reads the
+  vehicle declarations directly (the almanac is a chart, not a
+  service). Panel grew 520 -> 620 tall. probe_ocean 27 -> 44
+  checks (H breather + I schedule + J page-render via the panel
+  driver). Full regression 47 -> 51/0, lint 36/36. Lessons this
+  leg: (1) the band and the state MUST share one squeeze-line
+  derivation -- the service passing band_with_grace but raw state
+  line made a breathered body at 51 m SQUEEZE by state and
+  SUBMERGED by band (caught by probe section H's service-path
+  drive-by); (2) when a test passes TWO representations of one
+  thing (deepened line AND grace), it is asserting the bug --
+  caller-applied grace was the old contract; the primitive owns
+  it now; (3) write_file batches can silently no-op on a busy
+  workspace -- ls the files before trusting a green tool result.
   which is also the mystery hook the lore's been promising"):
   SkyAlmanacUI grows the moon page (between the sky rows and the
   Chronicle): where the pale stone stands (orbit_position, km out
