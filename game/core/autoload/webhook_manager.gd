@@ -137,13 +137,18 @@ func _on_urgent_report(report) -> void:
 		report.description
 	)
 
-func _on_exploit_detected(player_id: String, exploit_type: String, details: String) -> void:
+## NOTE: SecurityService.exploit_detected carries a Dictionary (not a
+## String) -- the arity mismatch here used to break every exploit
+## webhook with "Cannot convert argument 3 from Dictionary to String".
+## JSON-encode the evidence dict so the alert keeps its data.
+func _on_exploit_detected(player_id: String, exploit_type: String, details) -> void:
 	if not enabled or not notify_on_exploit:
 		return
 	if not _discord or discord_webhook_url == "":
 		return
 
-	_get_discord().send_exploit_alert(player_id, exploit_type, details)
+	var detail_text: String = details if details is String else JSON.stringify(details)
+	_get_discord().send_exploit_alert(player_id, exploit_type, detail_text)
 
 func _on_vote_created(vote) -> void:
 	if not enabled:

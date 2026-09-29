@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thermal_valley_east"
+display_name = "The Eastern Lift"
+kind = 0
+activation = 0
+zone_id = "zone_royale_valley"
+position = Vector3(90, 0, 45)
+radius = 12.0
+column_height = 120.0
+strength = 0.6
+launch_speed = 26.0
+feeds_thermal_id = ""
+lore = "A rift-draft climbing off the eastern scar. The marshals pretend they do not use it to reposition."

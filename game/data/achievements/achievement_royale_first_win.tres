@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "royale_first_win"
+display_name = "Last Light"
+description = "Win a Last Light in the Sundered Valley"
+achievement_type = 0
+category = 0
+rarity = 3
+target = 1
+target_type = "royale_win"
+required_achievements = []
+gold_reward = 50
+xp_reward = 100
+title_reward = "last_light"
+icon_path = "res://icons/achievements/first_pvp_kill.png"
+sort_order = 56

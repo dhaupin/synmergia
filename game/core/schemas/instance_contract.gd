@@ -40,6 +40,11 @@ const STORM_PHASES: Array = [
 	{"hold": 45.0, "shrink": 30.0, "radius_ratio": 0.40, "damage": 2.0},
 	{"hold": 30.0, "shrink": 30.0, "radius_ratio": 0.22, "damage": 4.0},
 	{"hold": 30.0, "shrink": 45.0, "radius_ratio": 0.10, "damage": 7.0},
+	# NO QUARTER (owner, 2026-09-29): the last phase closes to ZERO --
+	# no safe circle, no camper's point, the fog takes everyone still
+	# standing at 10 dps. The draw clock becomes mathematically
+	# unreachable in a live bout: the ladder ends the argument.
+	{"hold": 20.0, "shrink": 30.0, "radius_ratio": 0.0, "damage": 10.0},
 ]
 
 ## The storm's final safe radius as a fraction of the room half
@@ -58,12 +63,17 @@ static func storm_total_seconds() -> float:
 
 ## The storm plan for one bout: radius ratios resolved against the
 ## room's half-extent into absolute safe radii. Pure function so
-## probes, UI and the room agree on one truth.
+## probes, UI and the room agree on one truth. A phase with
+## radius_ratio <= 0.0 means a TRUE ZERO circle (no quarter): the
+## MIN_STORM_RADIUS_M floor applies only to positive ratios.
 static func storm_plan(room_half: float) -> Dictionary:
 	var phases: Array = []
 	var t := 0.0
 	for p in STORM_PHASES:
-		var end_radius: float = maxf(room_half * float(p.get("radius_ratio", 0.5)), MIN_STORM_RADIUS_M)
+		var ratio: float = float(p.get("radius_ratio", 0.5))
+		var end_radius: float = room_half * ratio
+		if ratio > 0.0:
+			end_radius = maxf(end_radius, MIN_STORM_RADIUS_M)
 		phases.append({
 			"start": t,
 			"end": t + float(p.get("hold", 0.0)) + float(p.get("shrink", 0.0)),

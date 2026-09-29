@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "royale_streak_5"
+display_name = "Fog Reaper"
+description = "Take 5 lives in a single Last Light"
+achievement_type = 1
+category = 0
+rarity = 2
+target = 5
+target_type = "royale_kill"
+required_achievements = []
+gold_reward = 40
+xp_reward = 60
+title_reward = ""
+icon_path = "res://icons/achievements/first_pvp_kill.png"
+sort_order = 57

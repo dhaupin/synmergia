@@ -31,6 +31,7 @@ extends Node
 
 const ArenaScene = preload("res://scenes/instances/arena_instance.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const Contract = preload("res://core/schemas/instance_contract.gd")
 
 ## Payout: base XP for the winning team (per member), consolation for
 ## losers, plus gold to winners. Zone-scaled base lands later.
@@ -44,6 +45,21 @@ const TRIAL_LOSS_XP: int = 15
 ## names -- the lint's credit rule, same as "Wolf" for wolves).
 const TRIAL_DUMMY_NAME: String = "marshal's dummies"
 const TRIAL_DUMMY_COUNT: int = 2
+
+## ---- ROYALE payout shape (owner answers, 2026-09-29) --------------------
+## Placement economy: the Last Light pays, survival pays, kills pay,
+## and dying to the fog still pays the lesson. Anti-fog-squat credit
+## (last standing team takes fog kills) is the room's job; this is
+## the ledger.
+const ROYALE_WIN_XP: int = 250
+const ROYALE_WIN_GOLD: int = 60
+const ROYALE_SURVIVAL_XP_PER_MIN: int = 12
+const ROYALE_KILL_XP: int = 25
+const ROYALE_CONSOLATION_XP: int = 30
+## First Last Light: the title (title_last_light) + the achievement
+## (royale_first_win) carry the marker; the flat bonus makes the
+## FIRST win pay like a small heist.
+const ROYALE_FIRST_WIN_XP: int = 400
 
 # instance_id -> {zone_id, room, participants: Array, started: bool}
 var _hosted: Dictionary = {}
@@ -210,12 +226,16 @@ func _announce_start(book: Dictionary, instance_id: String) -> void:
 ## the connect-time bind (signal args first, bound args after).
 ## winner_team -1 = DRAW (the clock ran out -- owner point 1: squatting
 ## pays nobody; everyone takes consolation XP so the queue is the loop).
-func _on_bout_ended(winner_team: int, _stats: Dictionary, instance_id: String) -> void:
+func _on_bout_ended(winner_team: int, stats: Dictionary, instance_id: String) -> void:
 	var book: Dictionary = _hosted.get(instance_id, {})
 	if book.is_empty():
 		return
 	_hosted.erase(instance_id)
-	if winner_team >= 0:
+	var mode: int = _book_mode(book)
+	if mode == Contract.InstanceMode.ROYALE:
+		_pay_royale(winner_team, stats, book)
+		_credit_streak_achievements(book)
+	elif winner_team >= 0:
 		_pay_out(winner_team, book)
 		_credit_streak_achievements(book)
 	else:
@@ -225,6 +245,67 @@ func _on_bout_ended(winner_team: int, _stats: Dictionary, instance_id: String) -
 	if room != null:
 		room.queue_free()
 	GameLog.info("BoutHostService: bout %s closed (winner team %d)" % [instance_id, winner_team])
+
+
+## The bout's mode from the room's own rules (draws never misroute).
+func _book_mode(book: Dictionary) -> int:
+	var room = book.get("room")
+	if room != null and room.bout_rules() != null:
+		return int(room.bout_rules().get("mode", -1))
+	return -1
+
+
+## ---- ROYALE ledger -------------------------------------------------------
+
+## Placement payout (owner answers): Last Light takes the crown purse
+## + survival XP + kill credit + the first-win marker; everyone else
+## takes survival XP + kill credit + consolation. Kills come from the
+## room's streak book (each booked death credits one killer). The fog
+## itself never pays a kill; the last standing team took the credit
+## in-world already.
+func _pay_royale(winner_team: int, stats: Dictionary, book: Dictionary) -> void:
+	var room = book.get("room")
+	if room == null:
+		return
+	var ach = _achievement_service()
+	var elapsed: float = float(stats.get("elapsed_seconds", 0.0))
+	for pid in book.get("participants", []):
+		var sid: String = str(pid)
+		var f = room._fighters.get(sid)
+		if f == null:
+			continue
+		var kills: int = int(room.kill_counts.get(sid, 0))
+		var survival_xp: int = int(elapsed / 60.0) * ROYALE_SURVIVAL_XP_PER_MIN
+		if ach != null:
+			ach.track(sid, "royale_survival", 1)
+			if kills >= 5:
+				ach.track(sid, "royale_kill", kills)
+		if int(f.team) == winner_team:
+			var first: bool = _grant_last_light(sid, ach)
+			var xp: int = ROYALE_WIN_XP + survival_xp + kills * ROYALE_KILL_XP \
+				+ (ROYALE_FIRST_WIN_XP if first else 0)
+			_grant(sid, xp, ROYALE_WIN_GOLD)
+			var crown: String = " LAST LIGHT. The valley remembers." if first \
+				else " Last Light. The valley empties."
+			_toast(sid, "You are the%s (+%d XP, +%d gold)" % [crown, xp, ROYALE_WIN_GOLD], "royale_win:%s" % sid)
+		else:
+			var xp2: int = ROYALE_CONSOLATION_XP + survival_xp + kills * ROYALE_KILL_XP
+			_grant(sid, xp2, 0)
+			_toast(sid, "The fog takes you. You survived %.0f s. (+%d XP)" % [elapsed, xp2], "royale_out:%s" % sid)
+
+
+## First Last Light ever: tracks the royale_win category (the
+## royale_first_win achievement unlocks at 1 and carries
+## title_reward = title_last_light) and reports whether this call
+## was the player's first.
+func _grant_last_light(player_id: String, ach) -> bool:
+	if ach == null:
+		return false
+	var first := true
+	if ach.has_method("get_unlocked_achievements"):
+		first = not ("royale_first_win" in ach.get_unlocked_achievements(player_id))
+	ach.track(player_id, "royale_win", 1)
+	return first
 
 
 ## Consolation for everyone on a draw -- never zero, never a win.

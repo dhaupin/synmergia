@@ -653,6 +653,31 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   the integration on vant (repo-scoped creds); branch tagging via
   the [axolotl] title prefix instead. Hotfix for #92 lives in the
   workspace install only until someone claims the issue.
+- [x] S13.5 ROYALE ONLINE pass (2026-09-29, owner answered all five
+  design questions). NO QUARTER: storm ladder gains a 5th phase that
+  closes to a TRUE ZERO circle at 10 dps (storm_plan treats ratio
+  <= 0 as real zero; MIN_STORM_RADIUS_M floors only positive ratios)
+  -- the draw clock is now mathematically unreachable in a live bout.
+  ANTI-FOG-SQUAT CREDIT: lethal fog bites attribute to the LAST
+  standing team (room picks the killer entity, swaps it into
+  take_damage, storm_kill_credited signal; non-lethal bites stay
+  fog-attributed) so hiding from the final squad cannot deny their
+  kill. Room keeps kill_counts (honest per-bout kill ledger; streaks
+  reset on death, counts do not). ROYALE LEDGER in BoutHostService:
+  Last Light crown 250 XP + 60 g + survival 12 XP/min + 25 XP/kill +
+  400 XP first-win bonus; everyone else 30 XP + survival + kills;
+  achievements royale_first_win (carries title_last_light, "The Last
+  Light"), royale_streak_5 (Fog Reaper), royale_survivor_10 (Fog
+  Walker). VALLEY THERMALS: thermal_valley_east/west (strength 0.6,
+  no launchers -- owner reserves them for future classes). HUD:
+  StormBar widget (horde_bar pattern, wire-only) + ArenaRoomService
+  storm->HUD relay (show/arm/bite/hide); probe mounts a stub
+  HudLayer to exercise the real relay path. BUGFIX: webhook_manager
+  _on_exploit_detected declared details as String but
+  SecurityService.exploit_detected carries a Dictionary -- every
+  exploit webhook was erroring (now JSON-encoded). probe_royale_storm
+  53 checks; bout_host 29 + trial 26 still green (mode-routed payout
+  leaves other modes untouched); lint EXIT 0.
 - [x] S12 real glider mechanic SHIPPED (2026-09-28): GliderState
   frame primitive (game/core/frame/srv/glider_state.gd + co-located
   test 14/14): GROUNDED/FALLING/GLIDING/STOWED_FALL; deploy gate

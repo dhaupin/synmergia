@@ -41,7 +41,7 @@ func _run() -> void:
 	# ---- A. Contract storm math -----------------------------------------
 	var plan: Dictionary = Contract.storm_plan(100.0)
 	var phases: Array = plan.get("phases", [])
-	_check("storm plan has 4 phases (horde ladder shape)", phases.size() == 4)
+	_check("storm plan has 5 phases (horde ladder + no quarter)", phases.size() == 5)
 	var first: Dictionary = phases[0]
 	var last: Dictionary = phases[phases.size() - 1]
 	_check("phase 1 holds then shrinks to 0.65 of half", \
@@ -49,8 +49,11 @@ func _run() -> void:
 		and abs(float(first.get("radius")) - 65.0) < 0.01)
 	_check("final phase ends at the plan total", \
 		abs(float(last.get("end")) - float(plan.get("total"))) < 0.01)
-	_check("final radius is the min circle (>= MIN_STORM_RADIUS_M)", \
-		float(last.get("radius")) >= Contract.MIN_STORM_RADIUS_M)
+	_check("phase 4 radius honors the min circle", \
+		float(phases[3].get("radius")) >= Contract.MIN_STORM_RADIUS_M)
+	_check("NO QUARTER: the ladder has a true-zero final phase", \
+		phases.size() == 5 and float(phases[-1].get("radius")) == 0.0 \
+		and float(phases[-1].get("damage")) >= 10.0)
 	_check("damage climbs per phase (1 -> 7 dps)", \
 		float(phases[0].get("damage")) < float(phases[-1].get("damage")) \
 		and float(phases[0].get("damage")) == 1.0)
@@ -98,6 +101,7 @@ func _run() -> void:
 
 	# Live entities: the storm routes its bite through the bridge.
 	var E: GDScript = load("res://core/entities/entity.gd")
+	var cs2 = root.get_node_or_null("CombatSystem")
 	var p1 = E.new()
 	p1.entity_id = "storm_p1"
 	p1.display_name = "storm_p1"
@@ -107,6 +111,8 @@ func _run() -> void:
 	p1.current_health = 200
 	root.add_child(p1)
 	esvc._entities["storm_p1"] = p1
+	if cs2 != null:
+		cs2.register_entity(p1)  # production registers at spawn; the probe mirrors it
 	var p2 = E.new()
 	p2.entity_id = "storm_p2"
 	p2.display_name = "storm_p2"
@@ -116,6 +122,8 @@ func _run() -> void:
 	p2.current_health = 200
 	root.add_child(p2)
 	esvc._entities["storm_p2"] = p2
+	if cs2 != null:
+		cs2.register_entity(p2)
 
 	room.spawn_fighter("storm_p1", 0)
 	room.spawn_fighter("storm_p2", 1)
@@ -129,6 +137,9 @@ func _run() -> void:
 	var storm_hits: Array = []
 	room.storm_damage_applied.connect(func(fid: String, dps: float):
 		storm_hits.append({"fighter": fid, "dps": dps}))
+	var kill_credits: Array = []
+	room.storm_kill_credited.connect(func(victim: String, team: int):
+		kill_credits.append({"victim": victim, "team": team}))
 
 	room.start_bout()
 	await process_frame
@@ -158,7 +169,11 @@ func _run() -> void:
 	var full_plan: Dictionary = Contract.storm_plan(200.0)
 	var final_t: float = float(full_plan.get("total")) + 1.0
 	var safe_now: float = Contract.storm_radius_at(full_plan, final_t, 200.0)
-	_check("valley storm final circle is knife-range", safe_now <= 25.0)
+	_check("no quarter: the wall closes to ZERO", safe_now == 0.0)
+	var knife_t: float = float(full_plan.get("phases", [])[3].get("end")) + 1.0
+	var knife_r: float = Contract.storm_radius_at(full_plan, knife_t, 200.0)
+	_check("phase 4 rests at knife-range (>= min circle)", knife_r > 0.0 \
+		and knife_r <= 25.0)
 	# Direct grind: the room's damage route with a fighter far out.
 	room._storm_damage_cooldown.clear()
 	room._fighters.get("storm_p2").global_position = Vector3(150, 2, 0)
@@ -177,9 +192,20 @@ func _run() -> void:
 		and str(room._storm_entity.entity_id) == "royale_storm")
 	_check("fog is registered with CombatSystem (kill relay)", \
 		cs != null and cs.get_entity("royale_storm") == room._storm_entity)
-	room.report_death("storm_p2", "royale_storm")
+	# LETHAL fog bite: the kill routes to the last standing team (p1,
+	# team 0), the death relay books it, and the credit signal flies.
+	for i in range(4):
+		if not room._fighters.get("storm_p2").alive:
+			break
+		room._storm_damage_cooldown.clear()
+		room._damage_fighter("storm_p2", 250)
 	_check("fog-kill credited into the room without error", \
 		room.has_fighter("storm_p2") and not room._fighters.get("storm_p2").alive)
+	_check("fog-kill credit emitted to the last standing team", \
+		kill_credits.size() >= 1 and int(kill_credits[0].get("team")) == 0 \
+		and str(kill_credits[0].get("victim")) == "storm_p2")
+	_check("kill ledger books the fog kill to the survivor", \
+		int(room.kill_counts.get("storm_p1", 0)) == 1)
 
 	room.queue_free()
 	await process_frame
@@ -247,6 +273,61 @@ func _run() -> void:
 	_check("the same ticket never covers horizontal hacks", h_trip)
 	_check("above the ceiling no ticket can be bought", \
 		not bool(ac.grant_launch_grace("royale_thrower", 999.0)))
+
+	# ---- G. Valley thermals (owner: two, no launchers) -------------------
+	var ts = root.get_node_or_null("ThermalService")
+	_check("thermal service present", ts != null)
+	if ts != null:
+		var valley_lifts: Array = []
+		for u in ts.get_updrafts():
+			if str(u.zone_id) == "zone_royale_valley":
+				valley_lifts.append(u)
+		_check("valley has exactly two thermals", valley_lifts.size() == 2)
+		var no_launchers := true
+		var in_bounds := true
+		for u in valley_lifts:
+			if int(u.kind) != 0:  # ThermalUpdraft.Kind.THERMAL
+				no_launchers = false
+			var flat := Vector2(u.position.x, u.position.z).length()
+			if flat > 120.0:  # inside the 200 m walls, OUTSIDE the knife circle
+				in_bounds = false
+		_check("valley thermals are THERMAL kind (no launchers)", no_launchers)
+		_check("valley thermals sit inside the walls (fog swallows them late)", in_bounds)
+
+	# ---- H. HUD relay: ArenaRoomService drives the StormBar --------------
+	# The real HudLayer lives in the playable world scene; the probe
+	# mounts a stub CanvasLayer under the SAME name so the service's
+	# relay resolution path is exercised for real.
+	var room_svc = root.get_node_or_null("ArenaRoomService")
+	_check("room service present (HUD relay source)", room_svc != null)
+	var StormBarScript = load("res://ui/components/storm_bar.gd")
+	var stub_hud := CanvasLayer.new()
+	stub_hud.name = "HudLayer"
+	root.add_child(stub_hud)
+	var bar = StormBarScript.new()
+	bar.name = "StormBar"
+	stub_hud.add_child(bar)
+	await process_frame
+	_check("StormBar resolvable via the service's HUD lookup", \
+		room_svc._storm_bar() == bar)
+	if bar != null and room_svc != null:
+		# The real room was freed earlier in this probe; the relay only
+		# needs a zone_data carrier (dictionaries duck-access .zone_data).
+		room_svc._on_room_bout_started({"mode": 2, "storm_phases": \
+			[{}, {}, {}, {}, {}]}, "probe_chip", {"zone_data": null})
+		_check("bout start shows the calm before the wall", bar.visible \
+			and not bar._armed and bar.active_instance_id() == "probe_chip")
+		room_svc._on_storm_phase(65.0, 0, "probe_chip")
+		_check("phase advance arms the chip with the radius", bar._armed \
+			and abs(bar._radius - 65.0) < 0.01)
+		room_svc._on_storm_bite("storm_p1", 7.0)
+		_check("fog bite flashes the label", \
+			bar._radius_label.text.contains("BITES"))
+		room_svc._on_room_bout_ended(0, {}, "probe_chip")
+		_check("bout close hides the chip", not bar.visible \
+			and bar.active_instance_id() == "")
+	stub_hud.queue_free()
+	await process_frame
 
 	if _fails == 0:
 		print("ROYALE STORM PROBE PASSED (%d checks)" % _checks)

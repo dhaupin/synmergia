@@ -54,6 +54,7 @@ func _ready() -> void:
 	_wire_widgets()
 	_bind_to_world()
 	_install_horde_bar()
+	_install_storm_bar()
 	_install_integrator()
 	_setup_main_menu_bar()
 
@@ -93,6 +94,17 @@ func _install_horde_bar() -> void:
 	var horde_bar: Control = HordeBarScript.new()
 	horde_bar.name = "HordeBar"
 	add_child(horde_bar)
+
+
+## Installs the StormBar widget (S13 ROYALE fog-wall display), same
+## optional-at-runtime convention as HordeBar.
+func _install_storm_bar() -> void:
+	var StormBarScript := load("res://ui/components/storm_bar.gd")
+	if not StormBarScript:
+		return
+	var storm_bar: Control = StormBarScript.new()
+	storm_bar.name = "StormBar"
+	add_child(storm_bar)
 
 
 func _install_integrator() -> void:

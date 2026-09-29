@@ -58,6 +58,9 @@ var spectators: Array = []
 var _time_limit: float = 0.0  # 0 = disabled (probe scratch rooms)
 var _streaks: Dictionary = {}   # fighter_id -> current kill streak
 var _best_streaks: Dictionary = {}  # fighter_id -> best streak this bout
+## S13: honest per-bout kill ledger (Royale payout reads this; a
+## streak resets on death, a kill count does not).
+var kill_counts: Dictionary = {}  # fighter_id -> total kills this bout
 
 ## ---- S13 ROYALE storm (the fog wall) ------------------------------------
 ## The Sundered Valley's fog is a RULE: after storm_start_seconds the
@@ -72,6 +75,13 @@ var _storm_damage_cooldown: Dictionary = {}  # fighter_id -> last hit (unix)
 ## Emitted per second while someone bleeds in the fog (UI reads the
 ## phase labels off the rules dict): fighter_id -> dps.
 signal storm_damage_applied(fighter_id: String, dps: float)
+## Emitted when the fog KILLS: (victim_id, fog_killer_team) -- the
+## killer team is the LAST team still standing outside the fog
+## (anti-fog-squat credit, owner rule 2026-09-29: dying in the fog
+## against the last team hands THEM the kill, so hiding from the
+## final squad cannot deny them credit). listener: ArenaCombatBridge
+## forwards into CombatSystem.entity_died for kill books/achievements.
+signal storm_kill_credited(victim_id: String, killer_team: int)
 ## Emitted when a shrink starts: new radius, phase index. The web/HUD
 ## layer turns this into the fog visuals.
 signal storm_phase_advanced(radius: float, phase_index: int)
@@ -346,6 +356,23 @@ func storm_armed() -> bool:
 	return _storm_armed
 
 
+## The last living team (checked BEFORE this fighter's death books):
+## fog kills credit them, never the fog itself.
+func _last_standing_team(excluding: String) -> int:
+	var found: int = -1
+	var contested: bool = false
+	for fid in _fighters:
+		if str(fid) == excluding:
+			continue
+		var f = _fighters.get(fid)
+		if f != null and f.alive:
+			if found == -1:
+				found = int(f.team)
+			elif int(f.team) != found:
+				contested = true
+	return found if not contested else -1
+
+
 ## Route one fighter's storm damage to their live entity through the
 ## combat bridge (rooms hold bodies; entities live in the world).
 ## The source is a room-owned storm entity REGISTERED WITH
@@ -372,7 +399,24 @@ func _damage_fighter(fighter_id: String, amount: int) -> void:
 			if cs != null and cs.has_method("register_entity"):
 				cs.register_entity(_storm_entity)
 	storm_damage_applied.emit(fighter_id, float(amount))
-	ent.take_damage(amount, _storm_entity, "storm")
+	# Anti-fog-squat credit (owner rule): a LETHAL fog hit is attributed
+	# to the last team still standing (never the fog), so hiding from
+	# the final squad cannot deny them the kill. Non-lethal bites stay
+	# fog-attributed. The normal death relay does the booking.
+	var source = _storm_entity
+	var lethal: bool = "current_health" in ent and amount >= int(ent.current_health)
+	if lethal:
+		var last_team := _last_standing_team(fighter_id)
+		if last_team >= 0:
+			for fid in _fighters:
+				var candidate = _fighters.get(fid)
+				if candidate != null and candidate.alive and int(candidate.team) == last_team:
+					var killer_ent = bridge._entity_for(str(fid)) if bridge != null else null
+					if killer_ent != null:
+						source = killer_ent
+						storm_kill_credited.emit(fighter_id, last_team)
+					break
+	ent.take_damage(amount, source, "storm")
 
 ## Combat bridge entry: any SELF-initiated action (attack, skill cast,
 ## potion, self-buff) routes here. Fire-and-you-lose-it: breaks the
@@ -459,6 +503,7 @@ func _book_streaks(victim_id: String, killer_id: String) -> void:
 		return
 	_streaks[killer_id] = int(_streaks.get(killer_id, 0)) + 1
 	_best_streaks[killer_id] = maxi(int(_best_streaks.get(killer_id, 0)), int(_streaks[killer_id]))
+	kill_counts[killer_id] = int(kill_counts.get(killer_id, 0)) + 1
 	_streaks[victim_id] = 0
 
 func best_streak_for(fighter_id: String) -> int:

@@ -30,7 +30,7 @@ func _run() -> void:
 
 	# ---- A. The book loaded ---------------------------------------------
 	var updrafts: Array = ts.get_updrafts()
-	_check("5 updrafts loaded from data/thermals", updrafts.size() == 5)
+	_check("7 updrafts loaded from data/thermals", updrafts.size() == 7)
 	var thermal_count := 0
 	var launcher_count := 0
 	for u in updrafts:
@@ -38,8 +38,8 @@ func _run() -> void:
 			thermal_count += 1
 		if str(u.id).begins_with("launcher_"):
 			launcher_count += 1
-	_check("3 thermals + 2 launchers (prefix taxonomy)", \
-		thermal_count == 3 and launcher_count == 2)
+	_check("5 thermals + 2 launchers (prefix taxonomy)", \
+		thermal_count == 5 and launcher_count == 2)
 
 	# ---- B. Thermal sampling --------------------------------------------
 	var haven = _by_id(ts, "thermal_haven_rise")
