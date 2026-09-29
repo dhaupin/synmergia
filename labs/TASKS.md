@@ -630,10 +630,14 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   layer with S15.2 boot flip as its dev workbench role.
 - [x] Agent rig + horcrux stood up (2026-09-29, owner request):
   vant axolotl installed at /home/daytona/vant (workspace, NOT the
-  repo); brain `buffy` (identity/goals/lessons/errors/preferences
-  in models/public/buffy); org rig via lib/teams: Synmergia >
+  repo); brain `cairn` (identity/goals/lessons/errors/preferences
+  in models/public/cairn); org rig via lib/teams: Synmergia >
   Frame Engineering > World Frame > world-frame-architect > agent
-  Buffy (trust high). Horcrux: horcrux/buffy-p_windtheclock2026.svg
+  Cairn (trust high). NOTE (same day, Derek): the agent is "Buffy,
+  callsign Cairn" -- Derek flagged the vant engineer side already
+  has a Buffy on the same master entity, so all mesh identifiers
+  re-keyed to cairn to keep self-distinction clean in the multi-org
+  mesh. Horcrux: horcrux/cairn-p_windtheclock2026.svg
   (796 KB stego SVG, password-in-filename vant convention, inspect-
   verified) committed to main + horcrux/README.md handoff. Vant
   findings: bin/org.js grant is per-process (grant + op in ONE
