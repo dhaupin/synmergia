@@ -149,6 +149,28 @@ func _run() -> void:
 	_check("H0 is declared for the day the lattice stretches", \
 		uni.expansion_rate_h0_km_s_mpc == 67.4)
 
+	# ---- H. QC: the phantom-star law (out-of-domain coordinates refused) ----------
+	# Facility/axis only span 0..999 in the NSC-9 decimal format. A
+	# star derived at an address no decoder can reach would be a
+	# phantom: stored, counted, and unreachable by any telescope.
+	var sky3 = SC.new(64)
+	_check("out-of-domain facet walk is refused (no phantom stars)", \
+		sky3.observe_facet(u, 1234, 1, "ghost") == 0 \
+		and sky3.observe_facet(u, -1, 1, "ghost") == 0 \
+		and sky3.observe_facet(u, 0, 1000, "ghost") == 0 \
+		and sky3.shell().fact_count() == 0 \
+		and sky3.visible_count("ghost") == 0)
+	_check("out-of-domain telescope pointing returns {} (empty, never a phantom)", \
+		SC.telescope_lookup(u, 1000, 1, 0).is_empty() \
+		and SC.telescope_lookup(u, 0, 1, 1000000).is_empty() \
+		and SC.telescope_lookup(u, 0, 1, -1).is_empty())
+	_check("domain corners still evaluate (999 is a real facility)", \
+		SC.telescope_lookup(u, 999, 999, 999999).is_empty() == SC.star_record(u, SC.NSC9.new().encode_int(999, 999, 999999)).is_empty())
+	var tiny = SC.new(64)
+	var tiny_seen: int = tiny.observe_facet(u, 0, 1, "tiny", 8)
+	_check("sequence_limit bounds the walk (8 probes evaluated, not the whole facet)", \
+		tiny.evaluated() == 8 and tiny_seen >= 0 and tiny_seen <= 8)
+
 	if _fails == 0:
 		print("STAR CELLS TEST PASSED (%d checks)" % _checks)
 		quit(0)

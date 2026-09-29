@@ -753,6 +753,36 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   edge in SeedChain is a real derivation surface: a 32-byte
   SHA("universe:...") works as an alternate-universe seed for
   testing "different seed = different sky".
+- [x] QC pass on the two new consumers (2026-09-29, owner: "run
+  some qc and logic tests against our new changes first ... make
+  sure there's no weird edges, gaps, bugs we missed"): three real
+  gaps found and closed BEFORE the moon arc builds on them.
+  (1) PHANTOM STARS: star_cells took unguarded facility/axis -- a
+  call at facility 1234 (or negative) would derive stars at
+  addresses NO NSC-9 decoder can reach: stored, counted,
+  unreachable by any telescope. Fixed with the address-domain law
+  (facility/axis 0..999, sequence 0..999999; observe_facet refuses
+  + push_error, telescope_lookup returns {} -- the same answer as
+  an empty coordinate, never a phantom; sequence_limit clamped so
+  a bad caller cannot turn the hourly EVALUATE into a stress
+  generator). encode_int is INJECTIVE on the domain (999*1e6 +
+  999999 < 1e9), which is what makes one address name exactly one
+  star -- now stated and tested. (2) CONTENT LAW UNPINNED: the
+  hash IS identity, so first store wins and key ORDER is part of
+  content (var_to_bytes is insertion-order) -- both now tested
+  rather than assumed; two equal-but-distinct Resources stay
+  distinct (identity law). (3) UPDATE-HEAVY WORKLOADS pinned:
+  overwrites accumulate distinct content cells (content-addressed
+  history, same asymptotics as the T3 snapshot law -- no
+  regression, stated honestly; savings_ratio() = 0.0 on
+  all-distinct workloads as it should be), and a 20-update chain
+  roundtrips through diff/apply EXACTLY with the root DELTA only
+  -- intermediate history never crosses the wire (diff carried 1
+  entry, destination paid 2 cells, not 21: the transport theorem
+  working BETTER than my first assertion claimed). Insert-batch
+  obeys the same rebate (50 over 10 distinct = 10 cells). Test
+  totals: t3_dedup 15 -> 23 checks, star_cells 21 -> 25.
+  Regression + lint re-run before push.
 - [x] The Rest and the Horizon (2026-09-29, owner: "calibration
   state and origin from 3 of the intersecting isos ... we have to
   have an outer limit in synmergia, like irl. If mine doesn't work,

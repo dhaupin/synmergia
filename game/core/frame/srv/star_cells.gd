@@ -38,6 +38,19 @@ const SPECTRAL_CLASSES: Array = ["O", "B", "A", "F", "G", "K", "M"]
 ## Illustrative surface temperature (K) per class index.
 const CLASS_TEMPERATURE_K: Array = [30000.0, 10000.0, 7500.0, 6000.0, 5500.0, 4000.0, 3000.0]
 
+## The NSC-9 address domain (decimal format): facility and axis are
+## 0..999 (three digits each), sequence 0..999999 (six digits).
+## encode_int is INJECTIVE within this domain (999*1e6 + 999999 <
+## 1e9), which is what makes one address name exactly one star.
+## Coordinates outside the domain are refused: a star at an address
+## no decoder can reach would be a phantom -- derived, stored, and
+## unreachable by any telescope.
+const MIN_FACILITY: int = 0
+const MAX_FACILITY: int = 999
+const MIN_AXIS: int = 0
+const MAX_AXIS: int = 999
+const MAX_SEQUENCE: int = 999999
+
 ## Storage: content-hash cells on the shell; every observer space
 ## (a shard, a far-gaze, an almanac page) re-claims the shared sky
 ## and the rebate is measured between them.
@@ -110,11 +123,18 @@ static func star_record(universe_seed: PackedByteArray, address: int) -> Diction
 ## `observer_id` (the shell re-claims already-stored stars for free).
 ## Returns the count of stars VISIBLE to this observer (claims).
 ## The galaxy tier's hourly EVALUATE is exactly this walk.
+## Coordinates outside the NSC-9 domain are refused (phantom-star
+## law); sequence_limit is clamped to the sequence space -- a facet
+## walk never exceeds the domain that addresses can encode.
 func observe_facet(universe_seed: PackedByteArray, facility: int, axis: int, observer_id: String, sequence_limit: int = 4096) -> int:
+	if facility < MIN_FACILITY or facility > MAX_FACILITY or axis < MIN_AXIS or axis > MAX_AXIS:
+		push_error("StarCells.observe_facet: facility/axis outside NSC-9 domain (%d/%d) -- refused" % [facility, axis])
+		return 0
+	var limit: int = clampi(sequence_limit, 0, MAX_SEQUENCE + 1)
 	var nsc9 := NSC9.new()
 	var visible: int = 0
 	var seq := 0
-	while seq < sequence_limit:
+	while seq < limit:
 		var address: int = nsc9.encode_int(facility, axis, seq)
 		_evaluated += 1
 		if star_exists(universe_seed, address):
@@ -141,7 +161,13 @@ func shared_sky(a: String, b: String) -> int:
 
 ## Look one star up by address (a telescope is a LOOKUP, not a
 ## raycast: address in, verdict out). Re-derives; never misses a star
-## the seed says is there.
+## the seed says is there. Out-of-domain coordinates point at no
+## address any decoder can reach: {} -- the same answer as an empty
+## coordinate, never a phantom star.
 static func telescope_lookup(universe_seed: PackedByteArray, facility: int, axis: int, sequence: int) -> Dictionary:
+	if facility < MIN_FACILITY or facility > MAX_FACILITY \
+			or axis < MIN_AXIS or axis > MAX_AXIS \
+			or sequence < 0 or sequence > MAX_SEQUENCE:
+		return {}
 	var address: int = NSC9.new().encode_int(facility, axis, sequence)
 	return star_record(universe_seed, address)

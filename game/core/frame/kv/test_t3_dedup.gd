@@ -112,6 +112,66 @@ func _run() -> void:
 	t3r.clear()
 	_check("clear releases the tree's claim set", t3r.shell().space_size("t3") == 0)
 
+	# ---- H. QC: the content-hash law (same hash IS the same fact) ------------------
+	# Two paths storing BYTE-IDENTICAL values but through DIFFERENT
+	# node paths share the cell; and a value that serializes
+	# identically but differs in key ORDER is the same content too
+	# (var_to_bytes follows insertion order -- so it does NOT fold key
+	# order; different order = different bytes = different cells, and
+	# that is the honest contract: bytes are identity).
+	var t3h = T3.new()
+	var ord_a := {"a": 1, "b": 2}
+	var ord_b := {"b": 2, "a": 1}
+	t3h.insert("o/a", ord_a, schema)
+	t3h.insert("o/b", ord_b, schema)
+	_check("key order is part of content (bytes are identity, stated honestly)", \
+		t3h.shell().fact_count() == 2)
+	# A resource value falls back to inline storage even when another
+	# resource with the same meta exists -- identity, not content.
+	var res_a := Resource.new()
+	res_a.set_meta("k", "x")
+	var res_b := Resource.new()
+	res_b.set_meta("k", "x")
+	t3h.insert("r/a", res_a, schema)
+	t3h.insert("r/b", res_b, schema)
+	_check("two equal-but-distinct resources stay distinct (identity law)", \
+		t3h.get_at("r/a") != t3h.get_at("r/b"))
+
+	# ---- I. QC: shared cells under update-heavy workloads ---------------------------
+	# Overwrites accumulate distinct content cells (the shell keeps
+	# content-addressed history -- same asymptotics as the T3 snapshot
+	# law, no regression). Roundtrip through diff/apply must still be
+	# exact after a long update chain.
+	var t3u = T3.new()
+	t3u.insert("hot", {"tick": 0}, schema)
+	var roots: Array = [t3u.hash_subtree("/")]
+	for tick in range(1, 21):
+		t3u.insert("hot", {"tick": tick}, schema)
+		roots.append(t3u.hash_subtree("/"))
+	_check("each update made a new distinct cell (content-addressed history)", \
+		t3u.shell().fact_count() == 21)
+	_check("savings honestly near zero on all-distinct workloads", \
+		t3u.savings_ratio() == 0.0)
+	var deep = T3.new()
+	deep.insert("hot", {"tick": 0}, schema)
+	var hot_patch: Array = t3u.diff(roots[0], roots[20])
+	var applied_root: PackedByteArray = deep.apply_diff(roots[0], hot_patch)
+	_check("20-update chain roundtrips to the source root", \
+		applied_root == roots[20] and deep.get_at("hot").get("tick") == 20)
+	_check("diff carries only the root DELTA (intermediate history never crosses the wire)", \
+		hot_patch.size() == 1 and deep.shell().fact_count() == 2)
+
+	# ---- J. QC: batch inserts obey the same rebate -----------------------------------
+	var t3b = T3.new()
+	var entries: Array = []
+	for i in range(50):
+		entries.append(["batch/%d" % (i % 10), {"slot": i % 10}, schema])
+	t3b.insert_batch(entries)
+	_check("batch of 50 over 10 distinct payloads pays 10 cells", \
+		t3b.shell().fact_count() == 10)
+	_check("batch paths read back correctly", \
+		t3b.get_at("batch/3").get("slot") == 3 and t3b.get_at("batch/9").get("slot") == 9)
+
 	if _fails == 0:
 		print("T3 DEDUP TEST PASSED (%d checks)" % _checks)
 		quit(0)
