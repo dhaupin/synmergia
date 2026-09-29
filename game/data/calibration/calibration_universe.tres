@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CalibrationTier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/calibration_tier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "calibration_universe"
+display_name = "Universe Tier (slow ticks)"
+scale = 4
+advance_mode = 1
+epoch_source = "unix"
+tick_hz = 0.0
+tick_horizon_s = 0.0
+eval_period_s = 86400.0
+max_drift_s = 86400.0
+anchor = "nsc9:0"
+derives_state = false
+lore = "The civilization tier (X3): fast-forward folds the player-choice ledger at sky-day cadence. A day of drift is a rounding error here; what players chose is the only state worth folding, and the Concord Chronicle is already its day-scale ledger."

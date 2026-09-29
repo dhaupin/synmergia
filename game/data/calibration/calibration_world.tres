@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CalibrationTier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/calibration_tier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "calibration_world"
+display_name = "World Tier (world heart)"
+scale = 1
+advance_mode = 0
+epoch_source = "unix"
+tick_hz = 2.0
+tick_horizon_s = 1.0
+eval_period_s = 0.0
+max_drift_s = 0.5
+anchor = "world_center"
+derives_state = false
+lore = "The world heart: weather, spawns, room hearts. Two beats a second; a half-second drift budget keeps it honest with the epoch while letting schedulers batch."

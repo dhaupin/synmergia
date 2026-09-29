@@ -44,6 +44,8 @@ var _mounts: Dictionary = {}
 var _vehicles: Dictionary = {}
 var _movement_profiles: Dictionary = {}
 var _hitbox_profiles: Dictionary = {}
+## id -> CalibrationTier (data/calibration/, the alignment substrate).
+var _calibration: Dictionary = {}
 var _signs: Dictionary = {}
 var _acts: Dictionary = {}
 var _mysteries: Dictionary = {}
@@ -93,6 +95,7 @@ func load_all_data() -> void:
 	load_signs()
 	load_acts()
 	load_mysteries()
+	load_calibration()
 
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
@@ -250,6 +253,22 @@ func load_movement_profiles() -> void:
 func load_hitbox_profiles() -> void:
 	_hitbox_profiles = _scan_directory(_data_path + "hitbox_profiles", "hitbox")
 	GameLog.info("DataService: Loaded %d hitbox profiles" % _hitbox_profiles.size())
+
+## Load calibration tiers from data/calibration/ (the alignment
+## substrate, prd-industry-labs.md: time/space/state aligned to the
+## Linux epoch, declared as data for the OSS frame).
+func load_calibration() -> void:
+	_calibration = _scan_directory(_data_path + "calibration", "calibration")
+	GameLog.info("DataService: Loaded %d calibration tiers" % _calibration.size())
+
+func get_calibration_tier(id: String) -> Resource:
+	if _calibration.has(id):
+		return _calibration.get(id)
+	GameLog.warn("DataService: Calibration tier not found: " + id)
+	return null
+
+func get_calibration_tiers() -> Dictionary:
+	return _calibration.duplicate()
 
 ## Load Sky Signs from data/signs/.
 func load_signs() -> void:

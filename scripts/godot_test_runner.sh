@@ -59,6 +59,7 @@ probe_glider
 probe_thermals
 probe_royale_storm
 probe_world_lattice
+probe_calibration
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

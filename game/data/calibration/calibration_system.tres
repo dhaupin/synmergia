@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CalibrationTier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/calibration_tier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "calibration_system"
+display_name = "System Tier (the Concord clock)"
+scale = 2
+advance_mode = 1
+epoch_source = "unix"
+tick_hz = 0.0
+tick_horizon_s = 0.0
+eval_period_s = 0.0
+max_drift_s = 0.0
+anchor = "barycenter:main"
+derives_state = true
+lore = "The tier the S16 lattice already lives on: orbits, windows, earthrise. Evaluates on every read because the closed forms are that cheap (the T2 theorem); zero drift because there is no integration. Linux epoch, exactly as the owner ordered: sky_epoch_days() IS unix/86400."

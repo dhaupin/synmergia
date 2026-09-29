@@ -678,6 +678,27 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] CalibrationTier substrate SHIPPED (2026-09-29, owner: "the
+  universe should align time, space, state irl; Linux epoch is/and
+  should be aligned -- that's the first thing I'd do in a physics
+  engine; .tres/schema it for the OSS frame"): the alignment
+  substrate as DATA. core/schemas/calibration_tier.gd (TierScale
+  LOCAL/UNIVERSE, AdvanceMode TICK/EVALUATE, epoch_source, tick_hz,
+  tick_horizon_s, eval_period_s, max_drift_s accuracy contract,
+  anchor -- space spine, derives_state -- derive-vs-fold law) +
+  data/calibration/*.tres x5: local 60 Hz tick (0.05 s drift
+  budget), world 2 Hz tick, system EVALUATE (barycenter:main, the
+  tier the lattice already lives on), galaxy EVALUATE hourly
+  (nsc9:0 anchor, X2 reservation), universe folds the ledger daily
+  (X3). DataService consumes (load_calibration/get_calibration_tier;
+  Resource-typed getter per the GuardData lesson -- new class_name
+  misses the cache until an import pass). probe_calibration.gd (16
+  checks, in DEFAULT_SET now): THE EPOCH LAW measured live --
+  Concord epoch IS unix/86400 and the sky calendar is floor(unix/
+  86400); mode law (fast tick / slow evaluate); drift monotone per
+  mode; schedulers served by period_s(); anchors name the spine;
+  pure physics derives, the universe folds. Regression 41/0, lint
+  36/36.
 - [x] prd-industry-labs.md SHIPPED (2026-09-29, owner: "let's call
   bluff on the game industry"): the industry call doc. T1-T7
   theorems, each citing shipped code -- seed derivation (T1),

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CalibrationTier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/calibration_tier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "calibration_galaxy"
+display_name = "Galaxy Tier (address-space stars)"
+scale = 3
+advance_mode = 1
+epoch_source = "unix"
+tick_hz = 0.0
+tick_horizon_s = 0.0
+eval_period_s = 3600.0
+max_drift_s = 1.0
+anchor = "nsc9:0"
+derives_state = true
+lore = "The X2 reservation: stars exist because their NSC-9 address says so. Re-derives hourly; a one-second drift budget is extravagance at a scale where light takes years to cross a facility."
