@@ -678,6 +678,31 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] The Folded Shell BUILT (2026-09-29, owner: "intersection
+  vectors as infinite, even between 2 spaces; increasing surface
+  area increases store/state; let's crush on a literal geometric
+  shape that solves storage, compute, ram, and stress"): frame
+  primitive frame/kv/folded_shell.gd + co-located test (21 checks,
+  in DEFAULT_SET). The owner's two intuitions are real physics and
+  now mechanism: (1) SURFACE STORAGE -- the holographic law
+  (Bekenstein: information scales with boundary area, not volume;
+  brains fold cortex in a fixed skull): NSC-9 cells on a folded
+  2-manifold, each fold FOURFOLDS capacity in the same footprint,
+  complete 4-ary heap addressing children(p)=4p+1..4p+4, 4^depth
+  per facet, MAX_FOLD_DEPTH 11 (4.2M cells/facet in the 24-bit
+  sequence), fold refused past the budget; (2) THE INTERSECTION
+  REBATE -- content-hash cells claimed by many spaces, shared
+  facts stored ONCE (T3 law applied to geometry), removal
+  intersection-aware (a leaving space never erases claimed
+  state), rebate() MEASURES the savings. Stress bounded not
+  feared: LRU hot set with evictions counted, no integration.
+  LESSON (the discipline pays): my first slot-base addressing had
+  the root's first child = the root's own address (cell 0
+  collision) -- the co-located test caught it before any consumer
+  existed; rebuilt on the classic complete-heap law, provably
+  collision-free. Also: GDScript compares dicts by CONTENT, so
+  never branch on dictionary equality (use ids). Regression 41/0
+  pending re-run with the new entry, lint 36/36.
 - [x] The Rest and the Horizon (2026-09-29, owner: "calibration
   state and origin from 3 of the intersecting isos ... we have to
   have an outer limit in synmergia, like irl. If mine doesn't work,

@@ -309,5 +309,37 @@ Consumers reserved, not built: horizon-bounded fast-forward (X3),
 lookback telescopes (X2), and the Rest as the parallax anchor for
 the trilateral facilities.
 
+## 10. The Folded Shell (owner mechanism, 2026-09-29 -- built)
+
+Owner: "I feel like I see the intersection vectors as infinite, even
+between 2 spaces. Increasing surface area increases store/state.
+Let's crush on a literal geometric shape that solves storage,
+compute, ram, and frankly stress. Someone's gonna do it -- how about
+us."
+
+Built the same day as a frame primitive (`frame/kv/folded_shell.gd`,
+21 co-located checks). The two owner intuitions are real physics:
+
+1. **Surface storage (the holographic law).** Max information in a
+   region scales with boundary AREA, not volume (Bekenstein bound;
+   black holes store on their horizons; brains fold cortex inside a
+   fixed skull). The shell stores on a folded 2-manifold: NSC-9
+   cells on icosahedral surface; each fold FOURFOLDS capacity in
+   the same footprint (complete 4-ary heap: children(p) = 4p+1..4p+4,
+   4^depth per facet, MAX_FOLD_DEPTH = 11 -- 4.2M cells/facet inside
+   the 24-bit sequence). Folding is the storage multiplier; the
+   shape refuses to overrun.
+2. **The intersection rebate (the dedup law).** Two spaces that
+   share state pay ONCE: the shared fact lives in one content-hash
+   cell, claimed by both (T3 applied to geometry). Removal is
+   intersection-aware -- a leaving space never erases claimed
+   state. Two spaces, five facts, one store: the rebate measured.
+
+Stress is bounded, not feared: a finite fold budget, an LRU hot
+working set with evictions COUNTED, no integration anywhere.
+Consumers reserved: T3 dedup at scale, X2 star cells, ram-bounded
+shard state. The game will be one of the best tests -- as the owner
+said, fist bump.
+
 -- Buffy, callsign Cairn. The clock is wound. Everything else is
 evaluation.
