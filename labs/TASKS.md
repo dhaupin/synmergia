@@ -820,6 +820,27 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   globe shape; (3) conjure-holder must be the current SCENE, never
   the gate (a freed gate must not take the moon with it -- same
   law as ScopeService's escape capture).
+- [x] S16.5 Almanac Moon Page SHIPPED (2026-09-29, owner: "build
+  the window math (favorability, next window, the moon's position),
+  which is also the mystery hook the lore's been promising"):
+  SkyAlmanacUI grows the moon page (between the sky rows and the
+  Chronicle): where the pale stone stands (orbit_position, km out
+  + period), how the sky aligns (window_favorability, colored by
+  regime: aligns/leans/against), the next favorable window
+  (next_transfer_window at the Gate's 0.25 threshold, Day N + days
+  out), and the moon's declaration lore as the mystery line. THE
+  CHART-AND-STONE LAW: the page reads the same closed-form math on
+  the same canonical epoch as the Moon Gate's window law -- one
+  derivation, two readers, they can never disagree. Probe section
+  J asserts it (same registry, same epoch, same favorability, same
+  next window to 1e-7, periodic position) through the panel's math
+  seam -- headless-safe. 87 -> 93 checks. Verification notes: the
+  render path was exercised with a standalone driver (4 rows live,
+  lore included; refresh twice shows 12 unique ids 0 shared -- the
+  old rows free next frame, no accumulation leak). Design law for
+  the ledger: when two surfaces read one law, the TEST must pin
+  their AGREEMENT, not just each one's correctness -- a drift
+  between chart and stone would be a silent lore break.
 - [x] The Rest and the Horizon (2026-09-29, owner: "calibration
   state and origin from 3 of the intersecting isos ... we have to
   have an outer limit in synmergia, like irl. If mine doesn't work,

@@ -135,7 +135,7 @@ one HMAC and a camera trick to exist.
 | S16.2 | Closed-form orbit math + epoch clock integration (frame/math, co-located tests) |
 | S16.3 | ScopeService world scopes + Moon Gate scene swap (offline door first) |
 | S16.4 | world_moon minimal globe (lunar movement profile, no-atmosphere glider rule, earthrise) |
-| S16.5 | Transfer windows + almanac moon page (the mystery shell) |
+| S16.5 | Transfer windows + almanac moon page (the mystery shell) -- SHIPPED: the gate honors the sky (7a08b09) and the almanac moon page reads the same math (sec 9, the chart-and-stone law) |
 | S16.6 | Dev target: probes/tests run on the moon globe -- SHIPPED: the moon globe CONJURES at gate transit (scenes/worlds/moon_globe.gd), the placed gate carries the dev_hatch, default gates stay sealed; see sec 9 + TASKS.md |
 
 ## 8. Open Questions (owner)
@@ -231,3 +231,19 @@ main world stays clean. Mechanism, in order of authority:
 
 Default gates still prove the sealed law (probe section G): the
 mystery shell stands for anyone without the hatch.
+
+### The moon page (S16.5, the chart-and-stone law)
+
+The almanac's moon page (SkyAlmanacUI, between the sky rows and
+the Chronicle) fills the blank page with the SAME closed-form math
+the Moon Gate reads: `orbit_position` (where the pale stone
+stands), `window_favorability` (how aligned the sky is, colored by
+regime), `next_transfer_window` at the Gate's threshold (Day N,
+how many days out). One derivation, two readers -- the chart and
+the stone can never disagree, and the probe asserts it (section J:
+same favorability, same next window, same epoch, to 1e-7). The
+page reads the moon's own declaration for its lore line, which is
+the mystery hook: the page has been blank since the first dawn;
+now it tells you when to go fill it. When a player solves the
+moon's mystery (future slice), this page is where the answer
+lands -- the chart already knows the way.

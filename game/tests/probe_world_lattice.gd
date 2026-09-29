@@ -436,6 +436,43 @@ func _run() -> void:
 			str(gate_dev_win.get_interaction_prompt()).contains("the sky aligns"))
 		_check("an aligned prompt does not warn of the sky", \
 			not str(gate_dev_win.get_interaction_prompt()).contains("against"))
+
+		# ---- J. The almanac moon page (S16.5): chart and stone agree ---
+		# The page reads the SAME closed-form math the Gate's window law
+		# reads (window_favorability / next_transfer_window on the same
+		# epoch). Chart and stone can never disagree -- one derivation,
+		# two readers. The UI is exercised through its math seam so the
+		# probe stays headless.
+		var AlmanacScript: GDScript = load("res://ui/components/sky_almanac_ui.gd")
+		_check("sky_almanac_ui.gd loads (the chart exists)", AlmanacScript != null)
+		if AlmanacScript != null:
+			# The panel's registry path: a fresh instance reads the same
+			# declarations the Gate's registry reads.
+			var chart = AlmanacScript.new()
+			root.add_child(chart)
+			var chart_reg = chart._moon_registry()
+			_check("the chart reads the same lattice the gate reads", \
+				chart_reg != null and chart_reg.get_world("moon") != null \
+				and chart_reg.world_seed_hex("moon") == reg.world_seed_hex("moon"))
+			var chart_epoch: float = chart._moon_epoch_days()
+			var gate_epoch: float = gate_dev_win._epoch_days()
+			_check("the chart and the stone read ONE epoch (the Concord clock)", \
+				absf(chart_epoch - gate_epoch) < 0.001)
+			var chart_fav: float = WR.window_favorability(chart_reg.get_world("main"), chart_reg.get_world("moon"), chart_epoch)
+			var gate_fav: float = WR.window_favorability(main_w2, moon_w2, gate_epoch)
+			_check("chart and stone agree on the sky (same favorability)", \
+				absf(chart_fav - gate_fav) < 0.0000001)
+			var chart_next: float = WR.next_transfer_window(chart_reg.get_world("main"), chart_reg.get_world("moon"), chart_epoch, 0.25)
+			var gate_next: float = WR.next_transfer_window(main_w2, moon_w2, gate_epoch, 0.25)
+			_check("chart and stone agree on the next window (same epoch, same search)", \
+				absf(chart_next - gate_next) < 0.0000001)
+			# The page's position row is the closed-form orbit: periodic
+			# and derived, never stored.
+			var pos_now: Vector3 = WR.orbit_position(moon_w2, chart_epoch)
+			var pos_next_period: Vector3 = WR.orbit_position(moon_w2, chart_epoch + float(moon_w2.orbit_period_days))
+			_check("the chart's moon position is periodic (derives, never stores)", \
+				pos_now != Vector3.ZERO and pos_now.is_equal_approx(pos_next_period))
+			chart.queue_free()
 		# The hatch bypasses the window law: dev work does not wait.
 		svc2.set_clock_override((e_align + P * 0.5) * 86400.0)
 		var res_dev: Dictionary = gate_dev_win.try_interact(null)

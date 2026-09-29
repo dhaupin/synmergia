@@ -12,6 +12,7 @@ extends "res://ui/components/ui_panel.gd"
 class_name SkyAlmanacUI
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const WorldRegistry = preload("res://core/frame/srv/world_registry.gd")
 
 const WINDOW_HOURS: Array[String] = ["00-06", "06-12", "12-18", "18-24"]
 
@@ -24,6 +25,15 @@ var _acts_rows: VBoxContainer
 var _watch_btn: Button
 var _chronicle_btn: Button
 var _refresh_btn: Button
+
+## The moon page (S16.5, prd-multiworld sec 4): the blank page fills
+## with the same closed-form math the Moon Gate reads -- where the
+## moon IS, how aligned the sky is, when the next window opens. The
+## chart and the stone can never disagree: one derivation, two
+## readers.
+var _moon_title: Label
+var _moon_rows: VBoxContainer
+var _registry = null
 
 
 func _ready() -> void:
@@ -73,6 +83,21 @@ func _setup_ui() -> void:
 	_blessed_label = Label.new()
 	_blessed_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	main.add_child(_blessed_label)
+
+	main.add_child(HSeparator.new())
+
+	# The moon page (prd-multiworld sec 4): "the almanac gets a moon
+	# page that has been blank since forever". It reads the lattice
+	# live at open/refresh -- where the moon is, how the sky aligns,
+	# when the next window opens.
+	_moon_title = Label.new()
+	_moon_title.text = "-- The Moon Page --"
+	_moon_title.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	main.add_child(_moon_title)
+
+	_moon_rows = VBoxContainer.new()
+	_moon_rows.add_theme_constant_override("separation", 3)
+	main.add_child(_moon_rows)
 
 	main.add_child(HSeparator.new())
 
@@ -244,6 +269,13 @@ func refresh() -> void:
 		_blessed_label.text = "Tomorrow's wheel names %s -- if the tribe turns the key." % blessed_name
 		_blessed_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 
+	# The moon page: the same math the Moon Gate reads, derived live.
+	# Nothing here is stored -- where the moon is, how aligned the sky
+	# is, and when the next window opens are all functions of the
+	# epoch (the clock you wind once). The page is the far-gaze's
+	# chart: it names the window the Gate will honor.
+	_refresh_moon_page(day)
+
 	# Concord Chronicle (labs/prd-psy.md section 5): acts + chapters the
 	# tribe has recorded. Unrecorded chapters read as the act's frame,
 	# never the lesson -- the Chronicle withholds what no door has paid
@@ -281,6 +313,93 @@ func refresh() -> void:
 					ch_line.text = "%d. [not yet recorded]" % int(view.index)
 					ch_line.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 				_acts_rows.add_child(ch_line)
+
+
+## The moon page rows (S16.5). The moon's declaration carries its own
+## lore; the page reads the sky live and reports what the Gate's law
+## will decide. Window math: WorldRegistry.window_favorability (the
+## Gate's threshold is the gate's business -- the chart shows the
+## alignment itself, plus the next window the Gate's threshold
+## implies).
+func _refresh_moon_page(day: int) -> void:
+	if _moon_rows == null:
+		return
+	for child in _moon_rows.get_children():
+		child.queue_free()
+	var reg = _moon_registry()
+	var moon = reg.get_world("moon") if reg != null else null
+	if reg == null or moon == null:
+		var missing := Label.new()
+		missing.text = "The moon is not on any chart."
+		missing.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		_moon_rows.add_child(missing)
+		return
+	var main_w = reg.get_world("main")
+	var epoch: float = _moon_epoch_days()
+
+	# Where is it: closed-form orbit position (meters, world frame).
+	var pos: Vector3 = WorldRegistry.orbit_position(moon, epoch)
+	var pos_row := Label.new()
+	if pos == Vector3.ZERO:
+		pos_row.text = "The pale stone does not move."
+	else:
+		pos_row.text = "The pale stone stands %.0f km out, on its %.1f-day walk." % [pos.length() / 1000.0, float(moon.orbit_period_days)]
+	pos_row.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	_moon_rows.add_child(pos_row)
+
+	# The sky alignment (the Gate's window law reads the same number).
+	var fav: float = WorldRegistry.window_favorability(main_w, moon, epoch)
+	var fav_row := Label.new()
+	if fav <= 0.25:
+		fav_row.text = "The sky aligns (%.0f%%) -- the gate will take you." % [(1.0 - fav) * 100.0]
+		fav_row.add_theme_color_override("font_color", UIStyles.COLORS.success)
+	elif fav >= 0.75:
+		fav_row.text = "The sky is against it (%.0f%% aligned)." % [(1.0 - fav) * 100.0]
+		fav_row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	else:
+		fav_row.text = "The sky leans your way (%.0f%% aligned) -- soon." % [(1.0 - fav) * 100.0]
+		fav_row.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+	_moon_rows.add_child(fav_row)
+
+	# The next window (same search the Gate's refusal message uses).
+	var next_e: float = WorldRegistry.next_transfer_window(main_w, moon, epoch, 0.25)
+	var next_row := Label.new()
+	if next_e >= 0.0:
+		var days_ahead: float = maxf(next_e - epoch, 0.0)
+		var day_of: int = day + int(ceil(days_ahead))
+		next_row.text = "Next favorable window: Day %d (%.1f days out)." % [day_of, days_ahead]
+		next_row.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	else:
+		next_row.text = "No window opens within the chart's horizon."
+		next_row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	_moon_rows.add_child(next_row)
+
+	# The mystery hook (prd-multiworld sec 4): the page has been blank
+	# since forever; the lore is the moon's own declaration. One day
+	# someone fills it -- the chart already tells them when to go.
+	var lore := str(moon.lore).strip_edges()
+	if lore != "":
+		var lore_row := Label.new()
+		lore_row.text = lore
+		lore_row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lore_row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		_moon_rows.add_child(lore_row)
+
+
+## The moon page's registry: lazy, per-panel, frame primitive.
+func _moon_registry():
+	if _registry == null:
+		_registry = WorldRegistry.new()
+		_registry.load_worlds()
+	return _registry
+
+
+## The moon page reads the same canonical epoch as the Gate and the
+## sky (SignService.sky_epoch_days -- override-aware).
+func _moon_epoch_days() -> float:
+	if SignService != null and SignService.has_method("sky_epoch_days"):
+		return SignService.sky_epoch_days()
+	return float(Time.get_unix_time_from_system()) / 86400.0
 
 
 func _sign_name_for(day: int, window: int) -> String:
