@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="OceanVolume" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/ocean_volume.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ocean_haven_shelf"
+display_name = "The Haven Shelf"
+surface_height = 0.0
+floor_is_radial = false
+floor_center = Vector3(3000, 0, 0)
+floor_radius = 2500.0
+floor_y = -60.0
+max_depth = 60.0
+current_direction = Vector3(1, 0, 0)
+current_strength = 0.4
+pressure_per_meter = 0.1
+salinity = 1.0
+ambient_fog_color = Color(0.1, 0.3, 0.45, 1)
+ambient_fog_density = 0.02
+ambient_sounds = Array[String](["ocean_lap", "ocean_deep"])
+lore = "West of Haven the green world remembers it was once all water. The reef gardens start shallow; the kelp keeps the middle dark; the trench keeps whatever it keeps. The Concord charted the shelf top to bottom -- what lives below the light is the sea's own business."

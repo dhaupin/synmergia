@@ -41,6 +41,7 @@ frame/math/test_icosahedral_faces
 frame/kv/test_folded_shell
 frame/kv/test_t3_dedup
 frame/srv/test_star_cells
+probe_ocean
 probe_globe_island
 probe_terrain_stream
 probe_planet_scale_20km

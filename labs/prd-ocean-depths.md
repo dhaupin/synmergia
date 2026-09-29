@@ -192,7 +192,7 @@ to move.
 
 | Slice | Content | Gate |
 |-------|---------|------|
-| S14.1 | OceanVolume schema + service (sample_depth) + surface detection | probe_ocean 12+ |
+| S14.1 | OceanVolume schema + service (sample_depth) + surface detection -- SHIPPED (see sec 12) | probe_ocean 27 |
 | S14.2 | Swim movement class + state machine + air clock + pressure | probe_swim 14+ |
 | S14.3 | Anticheat aquatic limits + dive tickets + current exemption | extend probe_ocean |
 | S14.4 | Breathable accessories + abyss pearl economy | lint + data refs |
@@ -210,3 +210,50 @@ is landlocked, and that is canon now).
    to your body to recover gear)?
 2. Should currents power small watermill dwellings (economy hook)?
 3. Ferries: free, ticket-priced (gold sink), or faction-gated?
+
+## 12. S14.1 as built (2026-09-29) + the moon lore lock
+
+**The Watched Stone (lore decision, owner-approved).** Moon lore
+options A+B adopted: the moon is where the world works on itself --
+the builders (the ancients, the devs) come and go as the sky
+aligns, the regolith workshop is canonically where Synmergia is
+maintained ("whatever they are working on, they always come through
+for us"), and the address observatory idea reserves the star-cell
+endgame. In a world without religion this is the faith-shaped hole
+the builders fill. The dev hatch is PERMANENT and never lore-gated;
+the world_moon.tres lore and the gate's arrival line carry it.
+
+**Water as data, shipped.** `core/schemas/ocean_volume.gd` (schema,
+filename == id, `ocean_` prefix) + `core/services/ocean_service.gd`
+(autoload, NO class_name) + `data/oceans/*.tres`:
+
+- **Sign discipline** (the ThermalService mirror): sample_depth < 0
+  = meters ABOVE the waterline, >= 0 = meters below.
+- **Pressure depth is the water ABOVE the body.** 23 m of water
+  over a body 1 m above the floor is 23 m pressure depth. The rock
+  does not reduce depth; it REFUSES: a body pushed inside the stone
+  reads the -1 no-water sentinel (the rock is not water).
+- **Two honest floor models** on one schema: WORLD-SHELL (radial
+  sphere -- ready for a true globe-wrapped scene) and LOCAL pool
+  (rock plane at floor_y -- the honest geometry for a playable
+  dish/shelf). Both shipped volumes are LOCAL: the Haven Shelf
+  (60 m, currents 0.4 m/s -- the ferry lane) and the **Builder's
+  Pool** (24 m tame crater water on the moon: no current, no
+  pressure -- the dev workshop's test water, S14.2's first swimmer).
+- **One sampler, three readers**: physics/renderer/anticheat all
+  call OceanService; band_for maps depth+breather grace to
+  DRY/WADING/SUBMERGED/SQUEEZE/CRUSH. The breather law: grace
+  DEEPENS the squeeze line (50 -> 58 with grace 8 on a 60 m
+  volume); CRUSH never moves (gear extends the swim, not the
+  stone's patience).
+- **Specificity rule**: overlapping claims resolve to the TIGHTER
+  horizontal reach (the 40 m crater dish beats a broad shelf
+  column); volumes that do not overlap in XZ do not fight at all.
+
+`probe_ocean.gd` (27 checks, in DEFAULT_SET) holds the law set:
+sign law, stone-sentinel, band ladder + breather direction,
+current truth, specificity, and the Builder's Pool on the Watched
+Stone. Lessons: the probe caught a BACKWARDS squeeze formula (more
+grace made squeeze start shallower), a depth/column conflation,
+and a str_replace line-glue that commented out the entire clamp
+block -- all before any swimmer existed.

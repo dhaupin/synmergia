@@ -1,0 +1,147 @@
+# probe_ocean.gd - S14.1: water is data (labs/prd-ocean-depths.md).
+#
+# Covers:
+#   A. Declarations: both volumes load (the real shelf + the moon
+#      crater), filename == id, prefixed ids (naming law).
+#   B. THE SIGN LAW: sample_depth is negative above the waterline,
+#      meters below below it -- the ThermalService mirror.
+#   C. Terrain respect: the floor clamp -- depth never reads through
+#      the rock (one collision truth, the radial floor).
+#   D. Band mapping: DRY/WADING/SUBMERGED/SQUEEZE/CRUSH as a pure
+#      function of depth + breather grace (one mapping, three
+#      readers: physics, renderer, anticheat).
+#   E. Current truth: the declared vector is what the drag model and
+#      the anticheat's current-only exemption both read.
+#   F. Volume lookup: the sampler resolves the containing volume;
+#      unknown water reads as dry.
+#   G. The moon crater: the Builder's Pool is real -- tame by design
+#      (no current, no pressure) and sitting on the Watched Stone.
+#
+# Script mode: autoloads resolved at runtime (OceanService).
+extends SceneTree
+
+var _fails: int = 0
+var _checks: int = 0
+
+func _init() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
+	var svc = root.get_node_or_null("OceanService")
+	_check("OceanService present in script mode", svc != null)
+	if svc == null:
+		quit(1)
+		return
+	var OVS: GDScript = load("res://core/schemas/ocean_volume.gd")
+	var B = OVS.DepthBand  # the band enum (used across sections C-G)
+
+	# ---- A. Declarations -----------------------------------------------------
+	svc.ensure_loaded()
+	var shelf = svc.get_volume("ocean_haven_shelf")
+	var crater = svc.get_volume("ocean_lunar_crater")
+	_check("both volumes load (the shelf + the Builder's Pool)", \
+		shelf != null and crater != null)
+	_check("ids are ocean_-prefixed and match filenames (naming law)", \
+		str(shelf.id) == "ocean_haven_shelf" and str(crater.id) == "ocean_lunar_crater")
+	_check("the schema is Resource-typed with the class registered", OVS != null)
+
+	# ---- B. The sign law -------------------------------------------------------
+	# The shelf: waterline at y=0, floor plane at y=-60, centered at
+	# x=3000 (west of Haven -- the crater pool sits at the origin in
+	# scene space; volumes do not share water). A body 5 m above the
+	# waterline reads -5; 5 m below reads +5.
+	var above := Vector3(3000, 5, 0)
+	var below := Vector3(3000, -5, 0)
+	_check("above the waterline is NEGATIVE (meters above)", \
+		svc.sample_depth(above, shelf) == -5.0)
+	_check("below the waterline is POSITIVE (meters below)", \
+		absf(svc.sample_depth(below, shelf) - 5.0) < 0.0001)
+	_check("the waterline itself reads zero", absf(svc.sample_depth(Vector3(0, 0, 0), shelf)) < 0.0001)
+
+	# ---- C. Terrain respect (the floor clamp) ----------------------------------
+	# The Builder's Pool: surface plane y=-6, rock plane y=-30 (24 m
+	# of honest water). Pressure depth is the WATER ABOVE the body:
+	# a body 1 m above the rock reads 23 m deep (23 m of water over
+	# it); a body pushed INSIDE the stone reads the no-water sentinel
+	# (-1, same as unknown space) -- the rock is not water.
+	var on_rock := Vector3(0, -29.0, 0)
+	var honest: float = svc.sample_depth(on_rock, crater)
+	_check("the floor reads honest pressure depth near the rock (23 m)", absf(honest - 23.0) < 0.0001)
+	var under_rock := Vector3(0, -31.0, 0)
+	var clamped: float = svc.sample_depth(under_rock, crater)
+	_check("inside the stone there is no water (the -1 sentinel)", clamped == -1.0)
+	_check("the band inside the stone is DRY (stone is not water)", \
+		svc.band_at(under_rock) == B.DRY)
+	_check("the surface plane never lies about the waterline", \
+		svc.sample_depth(Vector3(0, -10.0, 0), crater) == 4.0)
+
+	# ---- D. Band mapping ---------------------------------------------------------
+	# band_for is an INSTANCE method of the schema; the enum is the
+	# script's. A throwaway volume carries the mapping for pure-depth
+	# checks (the mapping does not depend on the instance's fields
+	# except max_depth -- set to the shelf's 60 m for the ladder).
+	var ladder = OVS.new()
+	ladder.max_depth = 60.0
+	_check("DRY is above the line", ladder.band_for(-0.5, 0.0) == B.DRY)
+	_check("WADING is the ankle band", ladder.band_for(1.0, 0.0) == B.WADING)
+	_check("SUBMERGED is the swim band", ladder.band_for(10.0, 0.0) == B.SUBMERGED)
+	_check("SQUEEZE starts at max_depth minus the natural free band", \
+		ladder.band_for(52.0, 0.0) == B.SQUEEZE)
+	_check("CRUSH is past max_depth", ladder.band_for(60.0, 0.0) == B.CRUSH)
+	# The breather law (fixed direction): grace DEEPENS the squeeze
+	# line (50 -> 58 with grace 8) -- gear extends the free swim
+	# toward the rock; CRUSH never moves.
+	_check("a breather pushes the SQUEEZE line deeper (grace extends)", \
+		ladder.band_for(52.0, 8.0) == B.SUBMERGED \
+		and ladder.band_for(59.0, 8.0) == B.SQUEEZE \
+		and ladder.band_for(60.0, 8.0) == B.CRUSH)
+	# Through the service (the band_at path readers use).
+	_check("band_at resolves through the volume", \
+		svc.band_at(below) == B.SUBMERGED and svc.band_at(above) == B.DRY)
+
+	# ---- E. Current truth -----------------------------------------------------------
+	_check("the shelf's current is declared and readable (the ferry lane)", \
+		svc.current_at(below).length() > 0.0 \
+		and svc.current_at(below).is_equal_approx(shelf.current_vector()) \
+		and svc.volume_at(below) == shelf)
+	_check("the crater has no current (tame by design)", \
+		svc.current_at(Vector3(0, -8, 0)).length() == 0.0)
+
+	# ---- F. Volume lookup --------------------------------------------------------------
+	_check("the sampler resolves the containing volume (shelf, its own span)", \
+		svc.volume_at(below) == shelf)
+	_check("the sampler resolves the crater (pool scale)", \
+		svc.volume_at(Vector3(0, -12.0, 0)) == crater)
+	var nowhere := Vector3(500000.0, 500000.0, 500000.0)
+	_check("unknown water reads as dry (no invented ocean)", \
+		svc.volume_at(nowhere) == null and svc.sample_depth(nowhere) == -1.0 \
+		and svc.band_at(nowhere) == B.DRY and svc.current_at(nowhere) == Vector3.ZERO)
+
+	# ---- G. The Builder's Pool (the dev workshop's water) ------------------------------
+	_check("the pool is tame: no current, no pressure (a workshop, not a monster)", \
+		float(crater.current_strength) == 0.0 and float(crater.pressure_per_meter) == 0.0)
+	_check("the pool sits on the Watched Stone (a dish carved in the regolith)", \
+		not bool(crater.floor_is_radial) and absf(float(crater.floor_y) + 30.0) < 0.001 \
+		and absf(float(crater.surface_height) + 6.0) < 0.001)
+	_check("the pool's lore carries the workshop mystery", \
+		str(crater.lore).contains("builders") and str(crater.lore).contains("workshop"))
+	# The full swim band exists in the crater (24 m of honest water).
+	var crater_mid := Vector3(0, -12.0, 0)
+	_check("the crater holds a real swim band (6 m at the mid mark)", \
+		absf(svc.sample_depth(crater_mid, crater) - 6.0) < 0.0001 \
+		and svc.band_at(crater_mid) == B.SUBMERGED)
+
+	if _fails == 0:
+		print("OCEAN PROBE PASSED (%d checks)" % _checks)
+		quit(0)
+	else:
+		push_error("OCEAN PROBE FAILED")
+		quit(1)
+
+func _check(label: String, cond: bool) -> void:
+	_checks += 1
+	if cond:
+		print("  PASS " + label)
+	else:
+		_fails += 1
+		print("  FAIL " + label)

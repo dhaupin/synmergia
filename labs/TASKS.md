@@ -841,6 +841,39 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   the ledger: when two surfaces read one law, the TEST must pin
   their AGREEMENT, not just each one's correctness -- a drift
   between chart and stone would be a silent lore break.
+- [x] S14.1 Water-Is-Data + Moon Lore Lock SHIPPED (2026-09-29,
+  owner: "moon lore options A and B make sense -- the world
+  builders, the ancients, the devs ... we can def dev the ocean on
+  the moon, let's fill in a crater"): (1) LORE LOCK -- the Watched
+  Stone adopted: the moon is where the world works on itself, the
+  builders come and go as the sky aligns (faith-shaped hole in a
+  religion-free world, prd-psy-safe); world_moon.tres lore + gate
+  arrival line carry it; the dev hatch is permanent and never
+  lore-gated; the address observatory (star cells endgame) is
+  reserved. (2) WATER AS DATA -- OceanVolume schema +
+  OceanService autoload (NO class_name) + two volumes: the Haven
+  Shelf (main, 60 m, ferry-lane currents) and the Builder's Pool
+  (the moon crater: 24 m, no current, no pressure -- tame by
+  design, the dev workshop's test water where S14.2 swims first).
+  The law set: sign discipline (negative above the waterline,
+  ThermalService mirror); pressure depth is the WATER ABOVE the
+  body -- the rock does not reduce depth, it REFUSES (inside the
+  stone reads the -1 no-water sentinel); two floor models on one
+  schema (radial world-shell ready for a true globe scene, local
+  rock-plane for playable dishes); breather grace DEEPENS the
+  squeeze line and CRUSH never moves; specificity rule (tighter
+  horizontal reach wins overlapping claims). probe_ocean.gd (27
+  checks, in DEFAULT_SET). The probe EARNED its keep: caught a
+  BACKWARDS squeeze formula (more grace made squeeze start
+  shallower), a pressure-depth/column conflation, an
+  overlapping-claim resolution bug, and a str_replace line-glue
+  that commented out the whole clamp block -- all before any
+  swimmer existed. Lessons: (1) define WHICH quantity the clamp
+  caps before writing min/max -- pressure depth (water above) and
+  floor column (water below) are DIFFERENT quantities; (2) overlap
+  policy: separate volumes in XZ when you can, specificity tiebreak
+  when you cannot; (3) grep the seams after every str_replace that
+  joins a return line to a comment block (gotcha #7, twice now).
 - [x] The Rest and the Horizon (2026-09-29, owner: "calibration
   state and origin from 3 of the intersecting isos ... we have to
   have an outer limit in synmergia, like irl. If mine doesn't work,

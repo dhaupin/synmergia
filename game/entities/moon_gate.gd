@@ -216,7 +216,7 @@ func _transit(player) -> Dictionary:
 		if NotificationService != null:
 			NotificationService.notify(
 				NotifKind.CUSTOM,
-				"The gate takes you. %s fills the sky." % str(_target_data().display_name),
+				"The gate takes you. %s fills the sky -- welcome to the workshop." % str(_target_data().display_name),
 				"MoonGate",
 				"moon_gate:transit:%s" % pid,
 				{"world": target_world}

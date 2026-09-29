@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="OceanVolume" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/ocean_volume.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ocean_lunar_crater"
+display_name = "The Builder's Pool"
+surface_height = -6.0
+floor_is_radial = false
+floor_center = Vector3(0, -6, 0)
+floor_radius = 40.0
+floor_y = -30.0
+max_depth = 24.0
+current_direction = Vector3(0, 0, 1)
+current_strength = 0.0
+pressure_per_meter = 0.0
+salinity = 0.3
+ambient_fog_color = Color(0.35, 0.4, 0.5, 1)
+ambient_fog_density = 0.015
+ambient_sounds = Array[String](["ocean_lap"])
+lore = "The builders filled a crater to learn what water is. Tame by design: no currents, no pressure, nothing that bites -- the workshop pool where the world works on itself. Whatever swims here first swims on the moon."
