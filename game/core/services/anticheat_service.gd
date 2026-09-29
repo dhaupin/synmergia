@@ -113,6 +113,9 @@ func unregister_player(player_id: String) -> void:
 	_suspicion_scores.erase(player_id)
 	_movement_limits.erase(player_id)
 	_launch_grants.erase(player_id)
+	_aquatic_limits.erase(player_id)
+	_current_drift.erase(player_id)
+	_dive_grants.erase(player_id)
 
 
 ## == Launch tickets (launcher rides / bout throws) ==========================
@@ -143,6 +146,97 @@ func _launch_ticket_live(player_id: String) -> bool:
 ## launch ticket?
 func has_launch_ticket(player_id: String) -> bool:
 	return _launch_ticket_live(player_id)
+
+
+## == Aquatic limits + dive tickets (S14.3) ==================================
+
+## The aquatic limit book: per-body swim maxima, stamped by the body
+## when it binds the swim movement profile (mirrors set_movement_limits
+## but sourced from movement_swim.tres -- a swimmer's hard limits are
+## the swim maxima, NOT the humanoid's).
+var _aquatic_limits: Dictionary = {}   # body_id -> {max_speed, max_dive, max_fall}
+
+## Current-drift exemption book: per-body current vector at the last
+## stamp. Currents move bodies PASSIVELY (server-side truth from the
+## OceanVolume declaration); the horizontal validator forgives drift
+## up to this stamped vector while it is live (a swimmer fighting a
+## current is legal displacement, not a speed hack).
+var _current_drift: Dictionary = {}    # body_id -> Vector3 (m/s)
+
+## Dive tickets (prd sec 6: "grant_vector_grace with a NEGATIVE speed
+## legalizes the entry plunge -- falling off a boat at sail speed;
+## horizontal stays hard-checked"). Same ticket discipline as the
+## launcher's grant: speed ceiling, expiry, prune-on-read.
+const DIVE_SPEED_CEILING: float = 30.0
+const DIVE_GRACE_SECONDS: float = 3.0
+var _dive_grants: Dictionary = {}      # body_id -> expiry (msec)
+
+
+## Stamp the aquatic limits for a body from its swim profile. Speeds
+## are the swim maxima x the same multipliers the humanoid stamping
+## uses, so the validator's horizontal check stays one code path.
+func set_aquatic_limits(player_id: String, swim_speed: float, dive_speed: float, max_fall: float) -> void:
+	_aquatic_limits[player_id] = {
+		"max_speed": maxf(swim_speed, 1.0) * SPEED_LIMIT_MULTIPLIER,
+		"max_dive": maxf(dive_speed, 1.0),
+		"max_fall": maxf(max_fall, 1.0),
+	}
+
+
+## Stamp the current a body is floating in (server truth from
+## OceanService.current_at). While stamped, the horizontal validator
+## forgives displacement along the current vector -- not across it.
+func set_current_drift(player_id: String, current: Vector3) -> void:
+	if current == Vector3.ZERO:
+		_current_drift.erase(player_id)
+	else:
+		_current_drift[player_id] = current
+
+
+## Stamp a dive ticket: legalizes the DOWNWARD plunge after a boat
+## fall / dive entry (negative vertical beyond the swim terminal).
+## Refused above the ceiling (no caller can legalize an absurd dive).
+func grant_dive_grace(player_id: String, speed: float = 18.0, duration: float = DIVE_GRACE_SECONDS) -> bool:
+	if speed <= 0.0 or speed > DIVE_SPEED_CEILING:
+		return false
+	_dive_grants[player_id] = Time.get_ticks_msec() + int(duration * 1000.0)
+	return true
+
+
+func _dive_ticket_live(player_id: String) -> bool:
+	var until: int = int(_dive_grants.get(player_id, 0))
+	if until == 0:
+		return false
+	if Time.get_ticks_msec() > until:
+		_dive_grants.erase(player_id)
+		return false
+	return true
+
+
+func has_dive_ticket(player_id: String) -> bool:
+	return _dive_ticket_live(player_id)
+
+
+## Is this horizontal velocity legal under a stamped current? The
+## drift exemption forgives displacement ALONG the stamped vector:
+## resolve the body's horizontal velocity onto the current direction;
+## the parallel component is passive water, the perpendicular
+## component is the swimmer's own effort and stays hard-checked.
+func _legal_under_current(player_id: String, velocity: Vector3, max_speed: float) -> bool:
+	if not _current_drift.has(player_id):
+		return false
+	var drift: Vector3 = _current_drift[player_id]
+	var dir := Vector2(drift.x, drift.z)
+	if dir.length() < 0.001:
+		return false
+	dir = dir.normalized()
+	var v := Vector2(velocity.x, velocity.z)
+	var parallel: float = v.dot(dir)
+	if parallel <= 0.0:
+		return false  # moving against or across the current: no forgiveness
+	# Perpendicular (the swimmer's own effort) must be within limits.
+	var perp: Vector2 = v - dir * parallel
+	return perp.length() <= max_speed
 
 
 ## == Movement hard limits (Movement Design System) ==========================
@@ -219,6 +313,13 @@ func validate_movement(player_id: String, position: Vector3, velocity: Vector3, 
 		register_player(player_id)
 	var profile: PlayerProfile = _player_profiles[player_id]
 	var limits := get_movement_limits(player_id)
+	# Aquatic stamp overrides the land maxima while the body swims
+	# (set_aquatic_limits stamped the swim maxima -- a swimming body
+	# is judged by the swim profile, not the humanoid's).
+	var aquatic: Dictionary = _aquatic_limits.get(player_id, {})
+	if not aquatic.is_empty():
+		limits["max_speed"] = aquatic["max_speed"]
+		limits["max_fall"] = aquatic["max_fall"]
 
 	# Telemetry feeds the statistical bot checks too (path repetition,
 	# action rates) -- same data, one recorder.
@@ -227,12 +328,22 @@ func validate_movement(player_id: String, position: Vector3, velocity: Vector3, 
 		profile.movement_paths.append({"pos": position, "time": Time.get_ticks_msec()})
 
 	var horizontal := Vector2(velocity.x, velocity.z).length()
-	var over_speed: bool = horizontal > float(limits["max_speed"])
+	# The current exemption: displacement ALONG the stamped current is
+	# passive water (server truth), not the swimmer's effort. Across
+	# the current, the swimmer's own effort stays hard-checked.
+	var over_speed: bool = horizontal > float(limits["max_speed"]) \
+		and not _legal_under_current(player_id, velocity, float(limits["max_speed"]))
 	# A live launch ticket forgives ONLY the upward vector (launcher
 	# ride / bout throw); horizontal and absurd-vertical checks still run.
 	var launch_ticket: bool = velocity.y > 0.0 and _launch_ticket_live(player_id)
+	# A live dive ticket forgives ONLY the downward plunge (boat-fall
+	# entry); horizontal, upward, and absurd checks still run.
+	var over_fall: bool
+	if velocity.y < -float(limits["max_fall"]):
+		over_fall = not (velocity.y < 0.0 and _dive_ticket_live(player_id))
+	else:
+		over_fall = false
 	var over_launch: bool = velocity.y > float(limits["max_jump"]) and not launch_ticket
-	var over_fall: bool = velocity.y < -float(limits["max_fall"])
 	var absurd_vertical: bool = absf(velocity.y) > VERTICAL_HARD_CLAMP
 
 	if over_speed or over_launch or over_fall or absurd_vertical:
