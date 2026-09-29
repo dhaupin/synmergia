@@ -608,6 +608,39 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (reset it between probe blocks); str_replace once glued two
   statements onto one line AGAIN (twice this session -- always
   re-grep edited seams before running).
+- [x] S14-S16 traversal arc DESIGNED (2026-09-29, owner side-quest:
+  "let's make this world traversible"). Three PRDs authored:
+  labs/prd-ocean-depths.md (S14 water volumes as data `ocean_` ids,
+  swim locomotion class in the Movement Design System, air clock
+  + pressure depth tax, breather accessory class acc_breather_*,
+  ferries/boats veh_ ids, water mounts incl. the octopus, anticheat
+  aquatic limits + dive tickets + current-drift exemption);
+  labs/prd-underworld.md (S15 planet-in-planet: second mini-globe
+  in the shell cavity, sky = interior wall render, underworld seed
+  = HMAC(universe, world:underworld), dev/test env relocates there,
+  OFFLINE to players by design); labs/prd-multiworld.md (S16
+  WorldData registry with derived seeds, CLOSED-FORM orbits keyed
+  to the sky-clock epoch -- no N-body, transfer windows computed
+  years ahead, Moon Gate scope swap reusing ScopeService,
+  world_moon minimal globe: no atmosphere = no gliders, earthrise
+  closed form, almanac moon page = the blank-page mystery).
+  DEV-TARGET DECISION (owner gave the pick): the MOON for S16.6
+  probe/test relocation -- tiny globe, zero production risk, proves
+  the exterior-sky trick; underworld stays the offline mystery
+  layer with S15.2 boot flip as its dev workbench role.
+- [x] Agent rig + horcrux stood up (2026-09-29, owner request):
+  vant axolotl installed at /home/daytona/vant (workspace, NOT the
+  repo); brain `buffy` (identity/goals/lessons/errors/preferences
+  in models/public/buffy); org rig via lib/teams: Synmergia >
+  Frame Engineering > World Frame > world-frame-architect > agent
+  Buffy (trust high). Horcrux: horcrux/buffy-p_windtheclock2026.svg
+  (796 KB stego SVG, password-in-filename vant convention, inspect-
+  verified) committed to main + horcrux/README.md handoff. Vant
+  findings: bin/org.js grant is per-process (grant + op in ONE
+  process or E_SANDBOX); bin/brain-registry.js is a stub; CLI
+  horcrux create has a password-resolution bug (use lib/transform
+  .toHorcrux directly); vant.wake() pipeline ReferenceError in
+  this env (brain files + horcrux unaffected).
 - [x] S12 real glider mechanic SHIPPED (2026-09-28): GliderState
   frame primitive (game/core/frame/srv/glider_state.gd + co-located
   test 14/14): GROUNDED/FALLING/GLIDING/STOWED_FALL; deploy gate
