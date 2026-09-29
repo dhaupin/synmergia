@@ -33,13 +33,14 @@ var _refresh_btn: Button
 ## readers.
 var _moon_title: Label
 var _moon_rows: VBoxContainer
+var _sail_rows: VBoxContainer
 var _registry = null
 
 
 func _ready() -> void:
 	super._ready()
 	set_title("Sky Almanac")
-	set_panel_size(Vector2(520, 520))
+	set_panel_size(Vector2(520, 620))
 	_setup_ui()
 	refresh()
 
@@ -98,6 +99,21 @@ func _setup_ui() -> void:
 	_moon_rows = VBoxContainer.new()
 	_moon_rows.add_theme_constant_override("separation", 3)
 	main.add_child(_moon_rows)
+
+	main.add_child(HSeparator.new())
+
+	# The sailing page (prd-ocean-depths sec 9: "the almanac gets a
+	# sailing page"): the ferry's own declaration, read live -- when
+	# the next boat casts off and how long the crossing takes. Closed
+	# form off the Concord day, like the moon: chart and dock agree.
+	var sail_title := Label.new()
+	sail_title.text = "-- The Sailing Page --"
+	sail_title.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	main.add_child(sail_title)
+
+	_sail_rows = VBoxContainer.new()
+	_sail_rows.add_theme_constant_override("separation", 3)
+	main.add_child(_sail_rows)
 
 	main.add_child(HSeparator.new())
 
@@ -276,6 +292,9 @@ func refresh() -> void:
 	# chart: it names the window the Gate will honor.
 	_refresh_moon_page(day)
 
+	# The sailing page: the ferry's schedule derived live (sec 9).
+	_refresh_sailing_page(day)
+
 	# Concord Chronicle (labs/prd-psy.md section 5): acts + chapters the
 	# tribe has recorded. Unrecorded chapters read as the act's frame,
 	# never the lesson -- the Chronicle withholds what no door has paid
@@ -400,6 +419,106 @@ func _moon_epoch_days() -> float:
 	if SignService != null and SignService.has_method("sky_epoch_days"):
 		return SignService.sky_epoch_days()
 	return float(Time.get_unix_time_from_system()) / 86400.0
+
+
+## The sailing page rows (prd-ocean-depths sec 9). The ferry's own
+## declaration carries its schedule -- closed form off the Concord
+## day, exactly like the moon's orbit -- so the chart and the dock
+## can never disagree: one declaration, two readers (the almanac now,
+## the FerryService when it sails). No scheduled ferry = the page
+## stays honest: the tide table is blank.
+func _refresh_sailing_page(day: int) -> void:
+	if _sail_rows == null:
+		return
+	for child in _sail_rows.get_children():
+		child.queue_free()
+	var ferries := _sail_ferries()
+	if ferries.is_empty():
+		var none := Label.new()
+		none.text = "The tide table is blank. No ferry runs a schedule yet."
+		none.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+		_sail_rows.add_child(none)
+		return
+	var ferry: Dictionary = ferries[0]
+	var route_row := Label.new()
+	route_row.text = "%s: %s -- %s (%d cast-offs a day)" % [str(ferry["name"]), str(ferry["from"]), str(ferry["to"]), int(ferry["per_day"])]
+	route_row.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	_sail_rows.add_child(route_row)
+	var cross_row := Label.new()
+	cross_row.text = "The crossing takes %.0f minutes -- the current does the rowing." % [float(ferry["cross_h"]) * 60.0]
+	cross_row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	_sail_rows.add_child(cross_row)
+	var dep: Dictionary = ferry["dep"]
+	var dep_row := Label.new()
+	if bool(dep.get("departing", false)):
+		dep_row.text = "CASTING OFF NOW -- be on the dock."
+		dep_row.add_theme_color_override("font_color", UIStyles.COLORS.success)
+	else:
+		dep_row.text = "Next cast-off: Day %d, %.2f h into the day (%.1f h from now)." % [day + int(dep.get("day_offset", 0)), float(dep.get("hour", 0.0)), float(dep.get("in_h", 0.0))]
+		dep_row.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	_sail_rows.add_child(dep_row)
+	var law_row := Label.new()
+	law_row.text = "The first ride always takes the water. After that, the wake remembers you."
+	law_row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	law_row.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	_sail_rows.add_child(law_row)
+
+
+## The scheduled ferries: every vehicle that declares a route + a
+## per-day count (data/vehicles scan -- the almanac is a chart, not a
+## service; it reads the declarations directly, like the moon page
+## reads the worlds).
+func _sail_ferries() -> Array:
+	var out: Array = []
+	var dir := DirAccess.open("res://data/vehicles")
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var fname := dir.get_next()
+	while fname != "":
+		if not dir.current_is_dir() and fname.ends_with(".tres"):
+			var v = load("res://data/vehicles/" + fname)
+			if v != null and "ferries_per_day" in v and int(v.ferries_per_day) > 0 \
+					and v.route_gateways != null and v.route_gateways.size() >= 2:
+				out.append(_ferry_row(v))
+		fname = dir.get_next()
+	return out
+
+
+func _ferry_row(v) -> Dictionary:
+	return {
+		"name": str(v.display_name),
+		"from": str(v.route_gateways[0]).trim_prefix("waypoint_").replace("_", " "),
+		"to": str(v.route_gateways[v.route_gateways.size() - 1]).trim_prefix("waypoint_").replace("_", " "),
+		"per_day": int(v.ferries_per_day),
+		"cross_h": float(v.crossing_hours),
+		"dep": _next_departure(int(v.ferries_per_day), float(v.first_departure_hour)),
+	}
+
+
+## The next cast-off for a closed-form schedule: per-day departures
+## spread evenly across the sky day, first at first_h. Day boundary
+## is the Concord epoch day -- the same day index the sky rows show
+## (one clock: calendar, moon, and ferry). Returns {hour, day_offset,
+## in_h, departing}.
+func _next_departure(per_day: int, first_h: float) -> Dictionary:
+	var epoch: float = _moon_epoch_days()
+	var hour_now: float = fposmod(epoch, 1.0) * 24.0
+	var step: float = 24.0 / float(per_day)
+	var best: Dictionary = {}
+	for k in per_day:
+		var h: float = first_h + float(k) * step
+		var d_off := 0
+		while h >= 24.0:
+			h -= 24.0
+			d_off += 1
+		var in_h := h - hour_now
+		if in_h < 0.0:
+			in_h += 24.0
+			d_off += 1
+		if best.is_empty() or in_h < float(best.get("in_h", 999.0)):
+			best = {"hour": h, "day_offset": d_off, "in_h": in_h, "departing": in_h <= 0.25}
+	return best
 
 
 func _sign_name_for(day: int, window: int) -> String:

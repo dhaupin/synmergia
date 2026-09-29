@@ -60,5 +60,18 @@ enum VehicleSource {
 ## Route definition for FERRY kind (gateway/waypoint ids it docks at).
 @export var route_gateways: Array[String] = []
 
+## The sailing schedule (prd-ocean-depths sec 9: the almanac gets a
+## sailing page). Closed form from the CONCORD epoch
+## (SignService.sky_epoch_days -- the same clock the moon reads), so
+## the chart and the dock never disagree and no timetable table is
+## ever stored. FERRIES_PER_DAY departures spread evenly across the
+## sky day, first cast-off at FIRST_DEPARTURE_HOUR; a crossing takes
+## CROSSING_HOURS. Zero ferries per day = no schedule (not a ferry
+## run). Consumers: SkyAlmanacUI's sailing page; the future
+## FerryService honors the same math.
+@export var ferries_per_day: int = 0
+@export var first_departure_hour: float = 6.0
+@export var crossing_hours: float = 0.5
+
 ## Soulbound vehicles cannot transfer ownership.
 @export var soulbound: bool = true
