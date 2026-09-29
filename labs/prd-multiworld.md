@@ -136,7 +136,7 @@ one HMAC and a camera trick to exist.
 | S16.3 | ScopeService world scopes + Moon Gate scene swap (offline door first) |
 | S16.4 | world_moon minimal globe (lunar movement profile, no-atmosphere glider rule, earthrise) |
 | S16.5 | Transfer windows + almanac moon page (the mystery shell) |
-| S16.6 | Dev target: probes/tests run on the moon globe (with S15.2 underworld, pick ONE -- see TASKS.md decision) |
+| S16.6 | Dev target: probes/tests run on the moon globe -- SHIPPED: the moon globe CONJURES at gate transit (scenes/worlds/moon_globe.gd), the placed gate carries the dev_hatch, default gates stay sealed; see sec 9 + TASKS.md |
 
 ## 8. Open Questions (owner)
 
@@ -147,3 +147,87 @@ one HMAC and a camera trick to exist.
 3. Time zones: does the underworld/moon share the main sky clock
    (one epoch everywhere) or drift (local clocks)? I vote one
    clock everywhere -- the clock you wind once a year.
+
+## 9. How the Ladder Works (orientation for new hands)
+
+Everything S16 shipped lives in five files plus one data
+folder. Read them in this order and the whole lattice falls out:
+
+1. **`game/data/worlds/*.tres`** -- the DECLARATIONS. Each file is
+   one WorldData: id, parent (lattice placement), physics
+   (radius/gravity/atmosphere), orbit (radius/period/phase/tilt,
+   all closed form), spin, and an OfflineState (ONLINE / OFFLINE /
+   DEV_ONLY). Adding a world is adding a .tres. No code.
+2. **`core/frame/srv/world_registry.gd`** -- the RELATIONS. Loads
+   the declarations; derives every world's seed from the one
+   universe constant through its nesting path
+   (SeedChain.derive_seed); and answers every spatial question as
+   a PURE FUNCTION of the Concord epoch: orbit_position,
+   window_favorability, next_transfer_window, parent_sky_direction
+   (earthrise), parent_beat_period_days, cosmic_age_s,
+   observable_radius_m. Nothing here simulates; everything here
+   evaluates.
+3. **`core/frame/srv/sign_service.gd`** -- the CLOCK. One epoch:
+   sky_epoch_days() = unix/86400. Orbits, calendars, and the
+   horizon all hang off it. The sky clock IS the Linux epoch --
+   the alignment is the point.
+4. **`core/schemas/calibration_tier.gd` + `data/calibration/`** --
+   the SCALES. Five tiers declare how each scale of the universe
+   advances (fast tiers TICK at hz, slow tiers EVALUATE on a
+   cadence) and where each scale's constants live (c and H0 only
+   on the universe tier; premature precision is the only evil).
+5. **`core/services/scope_service.gd`** -- the SEAM. The player is
+   reparented between roots (bout rooms, and now world roots).
+   The entry law is enforced HERE: is_enterable() gates every
+   world swap; force=true is the DEV_ONLY probe hatch. A player is
+   always in exactly one world; world_of(player_id) is the truth.
+
+The gate (`entities/moon_gate.gd`) and the sky
+(`entities/parent_sky.gd`) are consumers: the gate reads the law
+and animates its three honest states; the sky disc evaluates the
+parent's direction every frame on the epoch. Neither stores
+anything.
+
+Storage follows the same law: per-world T3 roots live in the
+`world:<id>` namespace; content is stored ONCE in FoldedShell
+cells (`core/frame/kv/t3.gd`, `folded_shell.gd`) and re-claimed
+by every path that needs it; stars exist at NSC-9 addresses
+because their derived bytes say so (`core/frame/srv/star_cells.gd`)
+-- one sky, many claimants.
+
+Test map: `game/tests/probe_world_lattice.gd` (sections A-H: the
+whole lattice law live), `game/tests/probe_calibration.gd` (the
+tiers + the epoch + the horizon), co-located frame tests
+(`core/frame/srv/test_world_lattice.gd`, `core/frame/kv/*`), and
+`scripts/godot_test_runner.sh` DEFAULT_SET wires them all. If you
+change the lattice and one probe fails, the probe name tells you
+which law you bent.
+
+### The dev flip (S16.6, how it works)
+
+The moon is the dev target: dev work and probes boot there so the
+main world stays clean. Mechanism, in order of authority:
+
+1. `world_moon.tres` keeps `offline = 2` (DEV_ONLY). The LATTICE
+   still says the moon is not a player world -- the flip does not
+   change the declaration, it changes WHO may knock.
+2. `entities/moon_gate.gd` grew `dev_hatch` (default false). A
+   hatched gate lifts a DEV_ONLY destination to open FOR ITSELF
+   (law state 2, prompt "Step through"); OFFLINE worlds (the
+   underworld) refuse for everyone -- the hatch cannot open
+   doorless worlds. The placed gate in world_playable opts in.
+3. At transit the hatched gate CONJURES the destination:
+   `scenes/worlds/moon_globe.gd` instantiates, registers
+   `world_root_moon`, reads its radius from the declaration
+   (1.2 km), hangs earthrise (ParentSky), and stands a return
+   Earthward Gate. The visitor adopts lunar law (gravity from
+   WorldData, wing stowed by the vacuum gate) and lands on the
+   regolith facing the home meridian.
+4. The swap itself rides the SAME ScopeService seam with
+   force=true (the service's law hatch) -- one seam, no new
+   transport. The conjured globe folds back into derivation when
+   its last visitor leaves; the next transit re-derives it
+   identically (the seed never forgot).
+
+Default gates still prove the sealed law (probe section G): the
+mystery shell stands for anyone without the hatch.

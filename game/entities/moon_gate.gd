@@ -34,6 +34,14 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 @export var target_world: String = "moon"
 @export var display_name: String = "Moon Gate"
 
+## S16.6 dev hatch: THIS gate completes transit to DEV_ONLY worlds
+## (the dev-target flip -- the moon hosts the dev work so the main
+## world stays clean). Default false: a default gate is still the
+## sealed mystery shell (the entry law reads DEV_ONLY as no door).
+## The placed gate in the playable world opts in; probe gates keep
+## proving the sealed law with the default.
+@export var dev_hatch: bool = false
+
 signal transit_requested(player, world_id: String)
 signal transit_completed(player, world_id: String)
 signal interact_failed(reason: String)
@@ -70,11 +78,15 @@ func _process(delta: float) -> void:
 
 
 ## 0 unknown destination, 1 sealed by the entry law, 2 enterable.
+## The dev hatch lifts a DEV_ONLY destination to 2 FOR THIS GATE
+## (the way is real; the world is still not a player world).
 func _law_state() -> int:
 	var world = _target_data()
 	if world == null:
 		return 0
 	if world.is_enterable():
+		return 2
+	if dev_hatch and int(world.offline) == 2:
 		return 2
 	return 1
 
@@ -111,8 +123,10 @@ func try_interact(player) -> Dictionary:
 		return {"ok": false, "reason": "unknown_world", "message": "The monolith names a place that is not on any chart."}
 	# The entry law (WorldData.is_enterable) is the gate's whole
 	# truth: no player path to OFFLINE/DEV_ONLY worlds, so the way
-	# reads as sealed-by-the-sky, not merely locked.
-	if not world.is_enterable():
+	# reads as sealed-by-the-sky, not merely locked. The dev hatch is
+	# the S16.6 exception FOR THIS GATE (DEV_ONLY only -- OFFLINE
+	# worlds like the underworld stay doorless for everyone).
+	if not world.is_enterable() and not (dev_hatch and int(world.offline) == 2):
 		interact_failed.emit("sealed")
 		var lore: String = str(world.lore).strip_edges()
 		if lore == "":
@@ -133,10 +147,28 @@ func _transit(player) -> Dictionary:
 		# registered player): honest about the partial success.
 		interact_failed.emit("no_scope_path")
 		return {"ok": false, "reason": "no_scope_path", "message": "The gate hums, but the way will not open here."}
-	var root := _destination_root()
+	var world = _target_data()
 	var pid := str(player.entity_id)
-	var swapped: bool = scope.enter_world_scope(pid, target_world, root, false)
+	_ensure_home_root()
+	# S16.6 DEV FLIP: a DEV_ONLY world conjures its globe at transit
+	# time -- the moon exists because someone chose to go. The
+	# conjured root registers in "world_root_<id>" so the return gate
+	# resolves home. OFFLINE worlds never reach this line (the entry
+	# law refused them already: no door).
+	var root := _destination_root()
+	if root == null and not bool(world.is_enterable()) and str(world.offline) == "2":
+		root = _conjure_destination(player)
+	if root == null:
+		interact_failed.emit("transit_refused")
+		return {"ok": false, "reason": "transit_refused", "message": "The gate hums, but the way will not open here."}
+	# The dev hatch rides the SAME seam the entry law guards: players
+	# through an ONLINE gate swap with force=false; a DEV_ONLY
+	# destination needs the hatch (force=true) because the law still
+	# says the moon is not a player world.
+	var needs_hatch: bool = not bool(world.is_enterable())
+	var swapped: bool = scope.enter_world_scope(pid, target_world, root, needs_hatch)
 	if swapped:
+		_adapt_visitor(player, root)
 		transit_completed.emit(player, target_world)
 		if NotificationService != null:
 			NotificationService.notify(
@@ -149,6 +181,44 @@ func _transit(player) -> Dictionary:
 		return {"ok": true, "reason": "transit", "message": "The slab takes your weight. %s fills the sky." % str(_target_data().display_name)}
 	interact_failed.emit("transit_refused")
 	return {"ok": false, "reason": "transit_refused", "message": "The gate hums, but the way will not open here."}
+
+
+## Conjure the destination globe (dev target). Loads the world scene
+## by path (the GuardData lesson: no class_name for a fresh script),
+## parents it under the COMMON ancestor of this gate and the player
+## so it survives scope swaps, and receives the visitor.
+func _conjure_destination(player) -> Node3D:
+	var packed: PackedScene = load("res://scenes/worlds/moon_globe.tscn")
+	if packed == null:
+		return null
+	var globe := packed.instantiate()
+	if globe == null:
+		return null
+	var holder := _conjure_holder()
+	holder.add_child(globe)
+	var root: Node3D = globe.get("world_root")
+	return root
+
+
+## Where conjured worlds live: the current SCENE (never this gate --
+## a freed gate must not take the moon with it).
+func _conjure_holder() -> Node:
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return get_parent()
+	return tree.current_scene
+
+
+## Adopt the visitor into the destination's physics (the conjured
+## globe binds the body: lunar gravity, no wing, landing placement).
+## The main world's planar PlayerController has no planet_center/
+## planet_radius (it walks the classic world); the moon globe binds
+## only what the body actually has. The body's world_id drives the
+## per-world gravity law (S16.4) and the vacuum wing gate.
+func _adapt_visitor(player, root: Node3D) -> void:
+	var globe := root.get_parent()
+	if globe != null and globe.has_method("receive_visitor"):
+		globe.receive_visitor(player)
 
 
 ## The destination world's globe root, resolved from the scene the
@@ -166,6 +236,19 @@ func get_interaction_prompt() -> String:
 	if _law_state() == 2:
 		return "[E] Step through the %s" % display_name
 	return "[E] Read the %s" % display_name
+
+
+## The moon globe's return gate stands on CONJURED ground: its
+## destination root is the main scene itself. Register the boot
+## scene's root in "world_root_main" when the holder is the live
+## playable world so _destination_root resolves from anywhere.
+func _ensure_home_root() -> void:
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return
+	if tree.get_first_node_in_group("world_root_main") != null:
+		return
+	tree.current_scene.add_to_group("world_root_main")
 
 
 ## Placeholder visuals: monolith slab + lunar glow strip (same

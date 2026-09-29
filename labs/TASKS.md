@@ -783,6 +783,43 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   obeys the same rebate (50 over 10 distinct = 10 cells). Test
   totals: t3_dedup 15 -> 23 checks, star_cells 21 -> 25.
   Regression + lint re-run before push.
+- [x] S16.6 Dev Flip SHIPPED (2026-09-29, owner: "hit the dev flip
+  next, get all our stuff on the moon lol, so the world is clean"):
+  the moon is the dev target and the Moon Gate COMPLETES transit.
+  Mechanism in authority order: (1) world_moon.tres keeps offline=2
+  (DEV_ONLY) -- the lattice still says not-a-player-world; the flip
+  changes WHO MAY KNOCK, not the declaration. (2) moon_gate.gd grew
+  dev_hatch (default false): a hatched gate lifts a DEV_ONLY
+  destination to open FOR ITSELF (law state 2, prompt "Step
+  through"); OFFLINE worlds refuse for everyone -- the hatch
+  cannot open doorless worlds (probe-verified). The placed gate in
+  world_playable opts in; default gates stay the sealed mystery
+  shell. (3) At transit the gate CONJURES the destination:
+  scenes/worlds/moon_globe.gd instantiates (load-by-path, GuardData
+  lesson), registers world_root_moon, reads radius from the
+  declaration (1.2 km, sphere collider ON -- under the
+  PLANAR_SHELL_MAX_R stall threshold), hangs earthrise (ParentSky),
+  stands a return Earthward Gate, and receive_visitor() adopts the
+  body (bind_to_world for globe bodies, world_id for planar
+  visitors -- the gravity/vacuum laws read it; landing on the
+  regolith tilted toward the home meridian). (4) The swap rides the
+  SAME ScopeService seam with force=true -- one seam, no new
+  transport. The conjured globe folds back into derivation when
+  the last visitor leaves (tree_exiting tracking); the next
+  transit re-derives it identically (the seed never forgot).
+  Probe: section G rewritten for the flip (default gate sealed,
+  hatch opens, underworld unopenable even hatched) + G2 end-to-end
+  (conjure, group, scale-from-declaration, return gate, earthrise,
+  lunar law adoption, landing radius, seam transit, return) -- 65
+  -> 77 checks. Lessons: (1) the probe's visitor needed
+  EntityService registration (gate_walker got it, moon_dev didn't
+  -- _player_node resolves through EntityService.get_entity);
+  (2) world_playable's player is the PLANAR PlayerController (the
+  main world has no planet_center) -- adaptation must probe for
+  what a body actually has ("world_id" in body), not assume the
+  globe shape; (3) conjure-holder must be the current SCENE, never
+  the gate (a freed gate must not take the moon with it -- same
+  law as ScopeService's escape capture).
 - [x] The Rest and the Horizon (2026-09-29, owner: "calibration
   state and origin from 3 of the intersecting isos ... we have to
   have an outer limit in synmergia, like irl. If mine doesn't work,

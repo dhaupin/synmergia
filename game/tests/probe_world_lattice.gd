@@ -17,9 +17,12 @@
 #      within the horizon, determinism across calls.
 #   F. One clock (S16.2): SignService.sky_epoch_days() is the
 #      canonical epoch -- time travel moves the calendar AND the moon.
-#   G. Moon Gate law (S16.3): the underworld has no door, the moon is
-#      the sealed mystery shell, world scopes ride the bout/return
-#      seam, and force=true is the S16.6 dev hatch.
+#   G. Moon Gate law (S16.3 + the S16.6 dev flip): the underworld
+#      has no door, the DEFAULT gate stays the sealed mystery shell,
+#      and the dev-hatch gate completes the transit -- the moon
+#      globe conjures, the visitor adopts lunar law, home resolves.
+#      World scopes ride the bout/return seam; force stays the law
+#      hatch inside ScopeService.
 #   H. World physics (S16.4): per-world gravity is a declaration, the
 #      vacuum glider gate closes the wing honestly, earthrise is the
 #      closed-form synodic theorem (tidal lock = home hangs forever),
@@ -197,15 +200,30 @@ func _run() -> void:
 			not bool(res_under.get("ok")) and str(res_under.get("reason")) == "sealed" \
 			and str(res_under.get("message", "")).length() > 0)
 
-		# C. The moon is DEV_ONLY: the mystery shell stands, sealed.
+		# C. The moon is DEV_ONLY: the DEFAULT gate stays sealed; the
+		# dev-hatch gate is the S16.6 flip (the way is real for it).
 		var gate_moon = GateScript.new()
 		gate_moon.set("target_world", "moon")
 		root.add_child(gate_moon)
 		var res_moon: Dictionary = gate_moon.try_interact(null)
-		_check("moon gate is the sealed mystery shell (DEV_ONLY)", \
+		_check("default moon gate is the sealed mystery shell (DEV_ONLY)", \
 			not bool(res_moon.get("ok")) and str(res_moon.get("reason")) == "sealed")
-		_check("moon prompt reads until the dev flip", \
+		_check("default moon prompt still reads (the law holds for default gates)", \
 			str(gate_moon.get_interaction_prompt()).begins_with("[E] Read"))
+		var gate_dev = GateScript.new()
+		gate_dev.set("target_world", "moon")
+		gate_dev.set("dev_hatch", true)
+		root.add_child(gate_dev)
+		_check("dev-hatch gate lifts DEV_ONLY to open (the S16.6 flip)", \
+			int(gate_dev._law_state()) == 2 \
+			and str(gate_dev.get_interaction_prompt()).begins_with("[E] Step through"))
+		var gate_under_hatched = GateScript.new()
+		gate_under_hatched.set("target_world", "underworld")
+		gate_under_hatched.set("dev_hatch", true)
+		root.add_child(gate_under_hatched)
+		var res_under_hatched: Dictionary = gate_under_hatched.try_interact(null)
+		_check("even the hatch cannot open OFFLINE (the underworld has no door for anyone)", \
+			not bool(res_under_hatched.get("ok")) and str(res_under_hatched.get("reason")) == "sealed")
 
 		# D. The scope swap seam (world:main, ONLINE): reparent + scope.
 		_check("enter_world_scope performs the main-world transit", \
@@ -245,6 +263,56 @@ func _run() -> void:
 		gate_main.queue_free()
 		gate_under.queue_free()
 		gate_moon.queue_free()
+		gate_dev.queue_free()
+		gate_under_hatched.queue_free()
+
+		# ---- G2. The S16.6 dev flip, end to end -------------------------
+		# The hatch gate CONJURES the moon globe at transit time, the
+		# swap rides the same ScopeService seam (force=true inside the
+		# service -- the law there is untouched), the visitor adopts
+		# the lunar declaration, and the return gate resolves home.
+		var moon_scene: PackedScene = load("res://scenes/worlds/moon_globe.tscn")
+		_check("moon_globe scene loads (the dev target is real)", moon_scene != null)
+		if moon_scene != null:
+			var holder := Node3D.new()
+			holder.name = "ConjureHolder"
+			root.add_child(holder)
+			var globe = moon_scene.instantiate()
+			holder.add_child(globe)
+			await process_frame
+			await process_frame
+			var conj_root: Node3D = globe.get("world_root")
+			_check("the conjured moon registers its world root group", \
+				conj_root != null and conj_root.is_in_group("world_root_moon"))
+			_check("the globe reads its scale from the declaration (1.2 km)", \
+				absf(float(globe.get("planet_radius")) - 1200.0) < 0.5)
+			_check("a return gate stands on the conjured ground", \
+				globe.get("_return_gate") != null)
+			_check("earthrise is hung (ParentSky aboard)", globe.get("_parent_sky") != null)
+			# Visitor adoption: lunar law + landing placement.
+			var visitor = GP2.new()
+			visitor.entity_id = "moon_dev"
+			root.add_child(visitor)
+			esvc._entities["moon_dev"] = visitor
+			globe.receive_visitor(visitor)
+			_check("the visitor adopts the lunar law (6 m/s^2, no wing)", \
+				visitor.gravity_force == 6.0 and not visitor._world_allows_gliding())
+			var vdist: float = visitor.global_position.distance_to(globe.get("planet_center"))
+			_check("the visitor lands ON the regolith (radius + skin)", \
+				absf(vdist - (1200.0 + 1.0 + 0.2)) < 0.5)
+			_check("scope only moves through the service (visitor still reads main pre-swap)", \
+				scope.world_of("moon_dev") == "main")
+			# The transit through the service (the same seam, hatch side).
+			_check("dev-hatch transit rides the seam (force inside the service)", \
+				scope.enter_world_scope("moon_dev", "moon", conj_root, true) \
+				and scope.world_of("moon_dev") == "moon")
+			_check("the return transit resolves home", \
+				scope.exit_to_world("moon_dev", "main", main_root, false) \
+				and scope.world_of("moon_dev") == "main")
+			visitor.queue_free()
+			esvc._entities.erase("moon_dev")
+			globe.queue_free()
+			holder.queue_free()
 
 	# ---- H. World physics (S16.4) ------------------------------------------
 	# Per-world physics: the moon's 6 m/s^2 is a LAW of that globe (a

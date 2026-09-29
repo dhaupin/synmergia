@@ -410,9 +410,13 @@ func _setup_moon_gate() -> void:
 	gate.set_script(gate_script)
 	gate.set("display_name", "Moon Gate")
 	gate.set("target_world", "moon")
+	# S16.6 dev flip: THIS gate carries the dev hatch -- the moon is
+	# the dev target now (probes + dev work boot there; the main
+	# world stays clean). OFFLINE worlds stay doorless for everyone.
+	gate.set("dev_hatch", true)
 	add_child(gate)
 	gate.global_position = Vector3(-16, 0, 10)
-	GameLog.info("WorldPlayable: Moon Gate placed (E to read; the entry law holds it sealed until the moon is real)")
+	GameLog.info("WorldPlayable: Moon Gate placed (E to step through; the dev hatch opens the pale stone)")
 
 
 ## Skyward Concord player trigger (labs/prd-psy.md): the stone where a
