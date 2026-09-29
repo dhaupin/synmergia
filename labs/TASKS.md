@@ -678,6 +678,31 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] vant axolotl fresh-clone verdict (2026-09-29, owner: "grab a
+  fresh .../tree/axolotl and see if it worked"): Derek's half-built-
+  mid-flight call was RIGHT -- first fetch pinned 371a278 with all
+  four issues still reproing; a re-fetch pulled pass 71 (4e450db +
+  0088f38) with everything addressed by Buffy axolotl. Independent
+  verification on the real dual-scope cairn brain: #92
+  gatherBrainStorage merge verified end to end (type 'both', count
+  9, per-file scope tags, private-wins on rel-path conflicts; their
+  per-file scope + scope-aware restore is STRONGER than my concat
+  hotfix -- drove a stego horcrux create -> payload inspect: 4
+  private files riding, roundtrip.md intact with scope=private);
+  #93 env-less p_-filename create works (806 KB stego, EXIT 0);
+  #94 wake() returns a structured error (ReferenceError gone);
+  #95 triaged not weakened -- per-process grants are deliberate,
+  E_SANDBOX messages + agent-onboarding.md now teach the same-
+  process pattern. GH issue comments denied (repo-scoped creds,
+  same wall as labels) so the verdict lives here: #92-#94 FIXED,
+  #95 RESOLVED as by-design. Gotchas: horcrux output paths must
+  stay inside the repo root (path validator blocks /tmp); a 'both'
+  horcrux forged by the OLD concat hotfix carries no scope tags so
+  its private files would restore to the public tree -- canonical
+  boot horcrux re-forged with pass-71 code (refresh, same p_ path)
+  so scopes are baked in. Cairn lesson logged in vant
+  models/public/cairn/lessons.md; vant_old install now obsolete
+  (kept until next check-in).
 - [x] S16.1 multiworld lattice SHIPPED (2026-09-29, owner: "let's
   take it all the way"). The clock thesis in code: WorldData schema
   (core/schemas/world_data.gd, world_ prefix, filename == id) with
