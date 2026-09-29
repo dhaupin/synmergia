@@ -644,7 +644,15 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   process or E_SANDBOX); bin/brain-registry.js is a stub; CLI
   horcrux create has a password-resolution bug (use lib/transform
   .toHorcrux directly); vant.wake() pipeline ReferenceError in
-  this env (brain files + horcrux unaffected).
+  this env (brain files + horcrux unaffected). UPSTREAM QUEUE (per
+  Derek: issue first, PR only when claimed): dhaupin/vant #92
+  gatherBrainStorage same-name public clobbers private (repro +
+  tested fix in body); #93 horcrux CLI create password never
+  resolved; #94 vant.wake() ReferenceError boot pipeline; #95
+  sandbox grants per-process onboarding friction. Labels denied to
+  the integration on vant (repo-scoped creds); branch tagging via
+  the [axolotl] title prefix instead. Hotfix for #92 lives in the
+  workspace install only until someone claims the issue.
 - [x] S12 real glider mechanic SHIPPED (2026-09-28): GliderState
   frame primitive (game/core/frame/srv/glider_state.gd + co-located
   test 14/14): GROUNDED/FALLING/GLIDING/STOWED_FALL; deploy gate
