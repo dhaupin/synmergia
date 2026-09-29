@@ -678,6 +678,22 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] S16.2 orbit clock SHIPPED (2026-09-29): the one-clock seam --
+  SignService.sky_epoch_days() returns the Concord clock in
+  fractional days (override-honoring exactly like current_day_index,
+  whose docstring law this extends: services that key off the sky
+  read the override-aware accessors, so admin time travel moves the
+  moon with the calendar); WorldRegistry.orbit_position docstring
+  now names it THE canonical epoch. probe_world_lattice gained
+  section F "one clock" (7 checks, 27 -> 34): override moves the
+  epoch AND the day index together (far-future day 99001, year
+  2241 -- probes time-travel in isolation, never roll the live dev
+  calendar), moon position is a function of the Concord clock,
+  epoch/day agreement at a far-future day, orbit periodicity under
+  the sky clock, override reset returns to the live sky. Regression
+  40/0 (incl. test_daily_quest + test_blessed_mark, the shared-
+  clock consumers), lint 36/36 EXIT 0. Next: S16.3 Moon Gate
+  (ScopeService world: scope + sealed offline door).
 - [x] vant axolotl fresh-clone verdict (2026-09-29, owner: "grab a
   fresh .../tree/axolotl and see if it worked"): Derek's half-built-
   mid-flight call was RIGHT -- first fetch pinned 371a278 with all

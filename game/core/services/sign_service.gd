@@ -106,6 +106,16 @@ func day_index_for(unix: float) -> int:
 func current_day_index() -> int:
 	return day_index_for(_now_unix())
 
+
+## The canonical sky-clock epoch in fractional days -- the single
+## number every sky-driven system reads (S16.2: closed-form orbits
+## evaluate WorldRegistry.orbit_position against THIS). Honors the
+## clock override exactly like current_day_index, so admin time
+## travel moves the moon with the calendar. One clock: the Concord
+## and the lattice never disagree about when it is.
+func sky_epoch_days() -> float:
+	return _now_unix() / 86400.0
+
 ## 0..3 window index within the day for a unix timestamp.
 func window_index_for(unix: float) -> int:
 	var secs_into_day: float = fposmod(unix, 86400.0)

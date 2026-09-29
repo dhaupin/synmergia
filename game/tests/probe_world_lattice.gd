@@ -15,6 +15,8 @@
 #      differ across epochs and repeat after a period.
 #   E. Transfer windows: favorability is 0..1, windows are found
 #      within the horizon, determinism across calls.
+#   F. One clock (S16.2): SignService.sky_epoch_days() is the
+#      canonical epoch -- time travel moves the calendar AND the moon.
 #
 # Script mode: no autoloads needed -- the registry is a frame
 # primitive (pure functions + res:// data).
@@ -115,6 +117,39 @@ func _run() -> void:
 	# ask inside a tiny horizon).
 	var w_none: float = WR.next_transfer_window(main, moon, w1 + 0.1, 0.0001, 0.25, 0.2)
 	_check("no window inside an impossible horizon", w_none < 0.0)
+
+	# ---- F. One clock (S16.2) ----------------------------------------------
+	# The Concord clock IS the orbit clock: closed-form orbits evaluate
+	# against SignService.sky_epoch_days(), the same override-honoring
+	# clock that rolls the sky calendar (sign_service.gd law: services
+	# that key off the sky MUST read the override-aware accessors).
+	var svc = root.get_node_or_null("SignService")
+	_check("SignService available in script mode", svc != null)
+	if svc != null:
+		svc.ensure_initialized()
+		_check("sky_epoch_days seam exists on SignService", svc.has_method("sky_epoch_days"))
+		# Far-future day (year 2241): the override rolls the calendar in
+		# ISOLATION -- never mutate the live dev calendar from a probe.
+		var day_future := 99001
+		var e_hi := float(day_future) + 0.25
+		svc.set_clock_override(e_hi * 86400.0)
+		var e_over: float = svc.sky_epoch_days()
+		_check("override moves the epoch AND the day index together", \
+			absf(e_over - e_hi) < 0.000001 and svc.current_day_index() == day_future)
+		var m_lo: Vector3 = WR.orbit_position(moon, svc.sky_epoch_days())
+		var m_hi: Vector3 = WR.orbit_position(moon, e_over + 0.5)
+		_check("moon position is a function of the Concord clock", \
+			m_lo != Vector3.ZERO and not m_lo.is_equal_approx(m_hi))
+		var e_final := float(day_future + 3) + 0.5
+		svc.set_clock_override(e_final * 86400.0)
+		_check("epoch and day index agree at the far-future day", \
+			absf(svc.sky_epoch_days() - e_final) < 0.000001 and svc.current_day_index() == day_future + 3)
+		_check("moon orbit periodic across one period under the sky clock", \
+			WR.orbit_position(moon, e_final).is_equal_approx( \
+				WR.orbit_position(moon, e_final + float(moon.orbit_period_days))))
+		svc.set_clock_override(-1.0)
+		_check("override reset returns to the live sky clock", \
+			absf(svc.sky_epoch_days() - float(Time.get_unix_time_from_system()) / 86400.0) < 0.001)
 
 	if _fails == 0:
 		print("WORLD LATTICE PROBE PASSED (%d checks)" % _checks)
