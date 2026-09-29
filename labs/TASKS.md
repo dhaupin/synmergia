@@ -678,6 +678,15 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] prd-industry-labs.md sec 7 "On precision" (2026-09-29, owner
+  riff: "Knuth heavy ... a physics frame is based on precision"):
+  the reconciliation -- Knuth's evil is PREMATURE cost, not
+  precision; the CalibrationTier IS the schedule of when each
+  scale's precision becomes load-bearing. Spent where it compounds
+  (one epoch law, O(1) skies), withheld where it doesn't (circular
+  orbits, named heuristics, the not-build list), budgeted in data
+  so recalibration never recompiles the universe. The allocation of
+  precision is the architecture.
 - [x] CalibrationTier substrate SHIPPED (2026-09-29, owner: "the
   universe should align time, space, state irl; Linux epoch is/and
   should be aligned -- that's the first thing I'd do in a physics

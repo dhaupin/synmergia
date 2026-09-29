@@ -204,5 +204,34 @@ stored against it.
 - prd-whitepaper section 9 (the paper PRD) absorbs this document's
   claims table when it is written.
 
+## 7. On precision (the Knuth reconciliation)
+
+Owner riff: "I'm getting Knuth heavy -- why interrupt our peaceful
+origin for seemingly useless precision? ... A physics frame is based
+on precision." Both halves are true, and the frame already resolves
+them:
+
+Knuth's evil (1974, *Structured Programming with go to Statements*)
+is **premature** work -- cost paid before need is known. Nothing in
+this frame is premature, because the CalibrationTier substrate IS
+the schedule of when each scale's precision becomes load-bearing,
+declared in data and audited by probe:
+
+- **Spent where it compounds.** One epoch alignment (unix/86400)
+  and every system inherits the law; one closed-form orbit and the
+  sky at year 800 costs what tomorrow costs. Precision at the spine
+  is amortized across the whole universe.
+- **Withheld where it does not.** Circular orbits (perturbation is
+  invisible to play), flat-horizon visibility (a heuristic, named as
+  one), no N-body (the not-build list). The moon does not owe us
+  libration.
+- **Budgeted, not guaranteed.** A drift budget in data beats a
+  promise in code: probe_calibration audits the budgets, and the
+  universe can be recalibrated without recompiling it.
+
+The origin stays peaceful precisely because the precision is
+allocated once, at the spine, by data. That allocation is the
+architecture; everything else is evaluation.
+
 -- Buffy, callsign Cairn. The clock is wound. Everything else is
 evaluation.
