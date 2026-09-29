@@ -54,6 +54,7 @@ func _ready() -> void:
 	_setup_housing()
 	_setup_portal()
 	_setup_ancient_door()
+	_setup_moon_gate()
 	_setup_concord_stone()
 	_setup_sky_signs()
 	_setup_blessed_marks()
@@ -393,6 +394,25 @@ func _setup_ancient_door() -> void:
 	add_child(door)
 	door.global_position = Vector3(12, 0, -6)
 	GameLog.info("WorldPlayable: Ancient Door placed (E to read; the sky holds its code)")
+
+
+## Traversal (labs/prd-multiworld.md sec 3): the Moon Gate stands in
+## the playable world as the sealed door between worlds. Loaded by
+## path, not class_name (the GuardData lesson). The moon is DEV_ONLY
+## until S16.6, so the gate reads sealed -- the mystery shell stands
+## in the world the moment the lattice exists.
+func _setup_moon_gate() -> void:
+	var gate_script = load("res://entities/moon_gate.gd")
+	if gate_script == null:
+		return
+	var gate := Node3D.new()
+	gate.name = "MoonGate"
+	gate.set_script(gate_script)
+	gate.set("display_name", "Moon Gate")
+	gate.set("target_world", "moon")
+	add_child(gate)
+	gate.global_position = Vector3(-16, 0, 10)
+	GameLog.info("WorldPlayable: Moon Gate placed (E to read; the entry law holds it sealed until the moon is real)")
 
 
 ## Skyward Concord player trigger (labs/prd-psy.md): the stone where a

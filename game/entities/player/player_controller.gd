@@ -878,6 +878,7 @@ func _try_interact() -> void:
 	_activate_nearby_ankh()
 	_activate_nearby_ancient_door()
 	_activate_nearby_concord_stone()
+	_activate_nearby_moon_gate()
 
 ## Walk-over auto-loot. Enabled via Settings > Gameplay > Auto-loot
 ## Items (PlayerConfig "auto_loot"). Skipped entirely in full-loot PvP
@@ -926,6 +927,34 @@ func _activate_nearby_ancient_door() -> void:
 			"AncientDoor",
 			"ancient:interact:%s:%d" % [str(best.name), Time.get_ticks_msec()],
 			{"door": str(best.name), "ok": bool(result.get("ok", false))}
+		)
+
+
+## Traversal trigger (labs/prd-multiworld.md sec 3): press E at a
+## Moon Gate. Resolves the nearest "moon_gates" group member exactly
+## like ancient_doors; the gate returns the same {ok, message}
+## contract so the toast pipeline is shared.
+func _activate_nearby_moon_gate() -> void:
+	var gates := get_tree().get_nodes_in_group("moon_gates")
+	var best: Node3D = null
+	var best_dist := INF
+	for gate in gates:
+		if gate == null or not is_instance_valid(gate):
+			continue
+		var d: float = global_position.distance_to(gate.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = gate
+	if best == null or best_dist > 4.0:
+		return
+	var result: Dictionary = best.try_interact(self)
+	if NotificationService:
+		NotificationService.notify(
+			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
+			str(result.get("message", "")),
+			"MoonGate",
+			"moon_gate:%s:%d" % [str(best.name), Time.get_ticks_msec()],
+			{"gate": str(best.name), "ok": bool(result.get("ok", false))}
 		)
 
 

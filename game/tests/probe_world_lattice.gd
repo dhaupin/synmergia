@@ -17,6 +17,9 @@
 #      within the horizon, determinism across calls.
 #   F. One clock (S16.2): SignService.sky_epoch_days() is the
 #      canonical epoch -- time travel moves the calendar AND the moon.
+#   G. Moon Gate law (S16.3): the underworld has no door, the moon is
+#      the sealed mystery shell, world scopes ride the bout/return
+#      seam, and force=true is the S16.6 dev hatch.
 #
 # Script mode: no autoloads needed -- the registry is a frame
 # primitive (pure functions + res:// data).
@@ -150,6 +153,94 @@ func _run() -> void:
 		svc.set_clock_override(-1.0)
 		_check("override reset returns to the live sky clock", \
 			absf(svc.sky_epoch_days() - float(Time.get_unix_time_from_system()) / 86400.0) < 0.001)
+
+	# ---- G. Moon Gate law (S16.3) ------------------------------------------
+	# The gate is the AncientDoor pattern between worlds: the entry law
+	# lives in the lattice (WorldData.is_enterable), the scope swap is
+	# the SAME seam as bout/return, and the underworld has no door.
+	var scope = root.get_node_or_null("ScopeService")
+	_check("ScopeService available in script mode", scope != null)
+	var GateScript: GDScript = load("res://entities/moon_gate.gd")
+	_check("moon_gate.gd loads", GateScript != null)
+	if scope != null and GateScript != null:
+		var esvc = root.get_node_or_null("EntityService")
+		var GP2: GDScript = load("res://entities/globe_player.gd")
+		var walker = GP2.new()
+		walker.entity_id = "gate_walker"
+		root.add_child(walker)
+		esvc._entities["gate_walker"] = walker
+		var main_root: Node3D = Node3D.new()
+		main_root.name = "GateMainRoot"
+		main_root.add_to_group("world_root_main")
+		root.add_child(main_root)
+		walker.reparent(main_root)
+
+		# A. Law states: unknown world dark, offline dim, online lit.
+		var gate_main = GateScript.new()
+		gate_main.set("target_world", "main")
+		root.add_child(gate_main)
+		var gate_under = GateScript.new()
+		gate_under.set("target_world", "underworld")
+		root.add_child(gate_under)
+		_check("gate law states: online 2 / offline 1", \
+			int(gate_main._law_state()) == 2 and int(gate_under._law_state()) == 1)
+		_check("sealed prompt reads the structure", \
+			str(gate_under.get_interaction_prompt()).begins_with("[E] Read"))
+
+		# B. The underworld has no door: interact refuses with lore.
+		var res_under: Dictionary = gate_under.try_interact(null)
+		_check("underworld gate refuses (OFFLINE has no door)", \
+			not bool(res_under.get("ok")) and str(res_under.get("reason")) == "sealed" \
+			and str(res_under.get("message", "")).length() > 0)
+
+		# C. The moon is DEV_ONLY: the mystery shell stands, sealed.
+		var gate_moon = GateScript.new()
+		gate_moon.set("target_world", "moon")
+		root.add_child(gate_moon)
+		var res_moon: Dictionary = gate_moon.try_interact(null)
+		_check("moon gate is the sealed mystery shell (DEV_ONLY)", \
+			not bool(res_moon.get("ok")) and str(res_moon.get("reason")) == "sealed")
+		_check("moon prompt reads until the dev flip", \
+			str(gate_moon.get_interaction_prompt()).begins_with("[E] Read"))
+
+		# D. The scope swap seam (world:main, ONLINE): reparent + scope.
+		_check("enter_world_scope performs the main-world transit", \
+			scope.enter_world_scope("gate_walker", "main", main_root, false) \
+			and scope.world_of("gate_walker") == "main" \
+			and walker.get_parent() == main_root)
+		_check("unknown players read as the main world", \
+			scope.world_of("nobody") == "main" and not scope.is_off_world("nobody"))
+
+		# E. Defense in depth: the law blocks swaps with no gate at all.
+		_check("law refuses OFFLINE swap (no gate needed)", \
+			not scope.enter_world_scope("gate_walker", "underworld", main_root, false))
+		_check("law refuses DEV_ONLY swap for players", \
+			not scope.enter_world_scope("gate_walker", "moon", main_root, false))
+		_check("law refuses unknown worlds", \
+			not scope.enter_world_scope("gate_walker", "nowhere", main_root, false))
+		_check("refused swaps never move the player", \
+			scope.world_of("gate_walker") == "main" and walker.get_parent() == main_root)
+
+		# F. The S16.6 dev hatch: force=true boots the moon globe.
+		var moon_root: Node3D = Node3D.new()
+		moon_root.name = "GateMoonRoot"
+		moon_root.add_to_group("world_root_moon")
+		root.add_child(moon_root)
+		_check("dev hatch force=true reaches the moon", \
+			scope.enter_world_scope("gate_walker", "moon", moon_root, true) \
+			and scope.world_of("gate_walker") == "moon" \
+			and walker.get_parent() == moon_root \
+			and walker.get("planar_mode") == false)
+
+		# G. Return transit: the ride home names main.
+		_check("exit_to_world returns the walker home", \
+			scope.exit_to_world("gate_walker", "main", main_root, false) \
+			and scope.world_of("gate_walker") == "main" \
+			and walker.get_parent() == main_root)
+
+		gate_main.queue_free()
+		gate_under.queue_free()
+		gate_moon.queue_free()
 
 	if _fails == 0:
 		print("WORLD LATTICE PROBE PASSED (%d checks)" % _checks)

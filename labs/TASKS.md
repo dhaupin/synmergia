@@ -678,6 +678,26 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] S16.3 Moon Gate SHIPPED (2026-09-29): the AncientDoor pattern
+  between worlds (prd-multiworld.md sec 3). ScopeService gained world
+  scopes -- "world:<id>" joins globe|bout|spectate on the SAME seam
+  (reparent + scope record; NO planar flip, every world is a globe):
+  enter_world_scope/exit_to_world + world_of/is_off_world; the entry
+  law is enforced IN the service (registry is_enterable gates every
+  swap, force=true is the S16.6 dev hatch), a transit without a
+  destination root refuses rather than strand the player, escape
+  capture only on the first hop out of main. entities/moon_gate.gd:
+  monolith + lunar glow strip, states dark/dim-pulse/bright-pulse
+  (unknown/offline/online), try_interact {ok,reason,message}
+  contract, prompts; the underworld's gate refuses as if the place
+  is not on any chart; the moon's gate is the SEALED MYSTERY SHELL
+  (DEV_ONLY) until the dev flip makes the moon real. Placed in
+  world_playable (-16,0,10; loaded by path, GuardData lesson) +
+  _try_interact dispatch (moon_gates group, nearest within 4 m, same
+  toast pipeline as doors/stones). probe_world_lattice section G:
+  34 -> 49 checks. Regression 40/0, lint 36/36. Next: S16.4
+  world_moon minimal globe (lunar movement profile, no-atmosphere
+  glider rule, earthrise).
 - [x] S16.2 orbit clock SHIPPED (2026-09-29): the one-clock seam --
   SignService.sky_epoch_days() returns the Concord clock in
   fractional days (override-honoring exactly like current_day_index,
