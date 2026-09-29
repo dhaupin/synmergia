@@ -39,6 +39,9 @@ const PRESSURE_GRACE_M: float = 10.0
 ## The default floor radius when a volume declares none (the main
 ## planet's surface scale).
 const DEFAULT_FLOOR_RADIUS: float = 20000.0
+## Item schema script (enum reads in breather_for). Item is a plain
+## class_name Resource (no autoload shadow), so preload is safe here.
+const ItemScript = preload("res://core/schemas/item.gd")
 
 var _volumes: Dictionary = {}
 var _loaded: bool = false
@@ -232,6 +235,34 @@ func swim_state(body_id: String):
 ## Forget a body (logout, death -- the book never holds the dead).
 func forget_swimmer(body_id: String) -> void:
 	_swimmers.erase(body_id)
+
+
+## ---- S14.4: the breather (gear owns air, the profile owns speed) -----------
+
+## Resolve a player's breather: the equipped BREATHER accessory's
+## breath_multiplier x squeeze_grace_m, as {mult, grace_m} (the
+## unbreathered default {1.0, 0.0}). Grace feeds band_for/tick_swimmer
+## (the squeeze line DEEPENS); the multiplier feeds SwimState's air
+## capacity. Orthogonal by law: no speed, no pressure, no depth limit
+## -- a bigger breath and a longer free swim, never a faster swimmer.
+##
+## Resolution is the InventoryService path (registered components;
+## NECKLACE slot holds the breather). Anything missing -- no
+## inventory, no component, nothing equipped -- resolves to the
+## unbreathered default so callers never null-check.
+func breather_for(player_id: String) -> Dictionary:
+	var out := {"mult": 1.0, "grace_m": 0.0}
+	var inv = null
+	if InventoryService != null and InventoryService.has_method("get_inventory"):
+		inv = InventoryService.get_inventory(player_id)
+	if inv == null:
+		return out
+	var item = inv.get_equipped(ItemScript.EquipSlot.NECKLACE) if inv.has_method("get_equipped") else null
+	if item == null or item.accessory_type != ItemScript.AccessoryType.BREATHER:
+		return out
+	out["mult"] = maxf(float(item.breath_multiplier), 1.0)
+	out["grace_m"] = maxf(float(item.squeeze_grace_m), 0.0)
+	return out
 
 
 func _default_center() -> Vector3:

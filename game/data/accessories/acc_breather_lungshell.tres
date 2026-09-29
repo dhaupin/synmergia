@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "acc_breather_lungshell"
+display_name = "Lungshell"
+description = "A spiral shell the size of a head, mouth-blown through its apex by divers who swear it 'remembers the air'. Four breaths for every one, and the squeeze line opens eight meters deeper -- the shelf's far wall is suddenly a swim, not a wall."
+icon_path = "res://icons/items/breather_lungshell.png"
+item_category = 2
+rarity = 2
+equip_slot = 11
+accessory_type = 6
+breath_multiplier = 4.0
+squeeze_grace_m = 8.0
+stack_size = 1
+bind_on_equip = true
+sell_price = 40
+buy_price = 220
+item_level = 9
+required_level = 6
+stats = {}

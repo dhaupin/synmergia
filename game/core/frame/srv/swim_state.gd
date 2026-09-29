@@ -78,11 +78,16 @@ func reset() -> void:
 func tick(delta: float, depth: float, squeeze_line: float, max_depth: float, pressure_per_meter: float = 0.0, breather_grace_m: float = 0.0) -> int:
 	var prev := state
 	var refilling := false
+	# The breather's grace (S14.4) deepens the squeeze line -- the
+	# free-swim band extends toward the rock, CRUSH never moves. The
+	# service passes the raw line; the primitive owns the grace so
+	# every caller's banding agrees with band_for's.
+	var squeeze_eff := squeeze_line + maxf(breather_grace_m, 0.0)
 	if depth < 0.0:
 		state = State.DRY
 	elif depth <= WADING_DEPTH_M:
 		state = State.WADING
-	elif depth < squeeze_line:
+	elif depth < squeeze_eff:
 		state = State.SUBMERGED
 	elif depth < max_depth:
 		state = State.SQUEEZE
@@ -121,13 +126,13 @@ func tick(delta: float, depth: float, squeeze_line: float, max_depth: float, pre
 			# pool declares pressure_per_meter 0 -- the workshop is
 			# kind; the sea is not).
 			if pressure_per_meter > 0.0:
-				pressure += (PRESSURE_BASE_DPS + pressure_per_meter * (depth - squeeze_line)) * delta
+				pressure += (PRESSURE_BASE_DPS + pressure_per_meter * (depth - squeeze_eff)) * delta
 		State.CRUSH:
 			breath -= CRUSH_DRAIN_MULTIPLIER * delta
 			if breath < 0.0:
 				drowning_s += delta
 			if pressure_per_meter > 0.0:
-				pressure += (PRESSURE_BASE_DPS + pressure_per_meter * (depth - squeeze_line)) * CRUSH_DRAIN_MULTIPLIER * delta
+				pressure += (PRESSURE_BASE_DPS + pressure_per_meter * (depth - squeeze_eff)) * CRUSH_DRAIN_MULTIPLIER * delta
 	surfaced_last_tick = refilling
 	if prev != State.DRY and state == State.DRY and depth == -1.0:
 		pass  # rock entry: state jumps are the sampler's truth

@@ -131,6 +131,76 @@ func _run() -> void:
 		absf(svc.sample_depth(crater_mid, crater) - 6.0) < 0.0001 \
 		and svc.band_at(crater_mid) == B.SUBMERGED)
 
+	# ---- H. The breather (S14.4: gear owns air, the profile owns speed) ---
+	var ds = root.get_node_or_null("DataService")
+	_check("DataService present (gear is data)", ds != null)
+	var reed = ds.get_item("acc_breather_reed")
+	var shell = ds.get_item("acc_breather_lungshell")
+	_check("the Hollow Reed loads as BREATHER data (air x2, +2 m grace)", \
+		reed != null and int(reed.accessory_type) == 6 \
+		and absf(float(reed.breath_multiplier) - 2.0) < 0.001 \
+		and absf(float(reed.squeeze_grace_m) - 2.0) < 0.001)
+	_check("the Lungshell loads as BREATHER data (air x4, +8 m grace)", \
+		shell != null and int(shell.accessory_type) == 6 \
+		and absf(float(shell.breath_multiplier) - 4.0) < 0.001 \
+		and absf(float(shell.squeeze_grace_m) - 8.0) < 0.001)
+	_check("the reed sits on the neck (one breath slot)", \
+		reed != null and int(reed.equip_slot) == 11)
+	var b_none: Dictionary = svc.breather_for("swimmer_with_no_gear")
+	_check("no gear resolves to the unbreathered default", \
+		absf(float(b_none["mult"]) - 1.0) < 0.001 and absf(float(b_none["grace_m"])) < 0.001)
+	# Grace deepens the squeeze line on the shelf: 50 -> 52 m with the
+	# reed, 58 m with the lungshell; CRUSH never moves (the stone's
+	# patience is not for sale).
+	_check("the reed's grace deepens the squeeze line (50 -> 52 m)", \
+		ladder.band_for(51.0, 2.0) == B.SUBMERGED and ladder.band_for(53.0, 2.0) == B.SQUEEZE)
+	_check("the lungshell's grace deepens it further (58 m), CRUSH unmoved", \
+		ladder.band_for(59.0, 8.0) == B.SQUEEZE and ladder.band_for(60.0, 8.0) == B.CRUSH)
+	# The full service path: tick_swimmer with the grace breathes the
+	# state machine deeper (drive-by of the helper's contract).
+	svc.forget_swimmer("breather_prober")
+	svc.tick_swimmer("breather_prober", Vector3(3000, -51.0, 0), 0.5, 2.0)
+	var bstate = svc.swim_state("breather_prober")
+	_check("a breathered body at 51 m is still in the free swim (no pressure)", \
+		bstate != null and float(bstate.pressure) == 0.0)
+	svc.forget_swimmer("breather_prober")
+
+	# ---- I. The sailing schedule (sec 9: the almanac gets a page) --------
+	var ferry = ds.get_vehicle("veh_haven_ferry")
+	_check("the ferry declares a schedule (8 cast-offs a day)", \
+		ferry != null and int(ferry.ferries_per_day) == 8)
+	_check("the schedule is closed-form data (first cast-off, crossing time)", \
+		ferry != null and absf(float(ferry.first_departure_hour) - 6.0) < 0.001 \
+		and absf(float(ferry.crossing_hours) - 0.5) < 0.001)
+	_check("the ferry is a FERRY with a real route", \
+		ferry != null and int(ferry.kind) == 1 and ferry.route_gateways.size() >= 2)
+	_check("the crater pool has no ferry (it is a workshop pool)", \
+		ferry == null or not str(ferry.description).to_lower().contains("crater"))
+
+	# ---- J. The sailing page renders (sec 9: the almanac gets a page) ---
+	var ui_script = load("res://ui/components/sky_almanac_ui.gd")
+	_check("the almanac script loads (the page's paper)", ui_script != null)
+	if ui_script != null:
+		var panel = ui_script.new()
+		root.add_child(panel)
+		await process_frame
+		var sails = panel._sail_rows
+		_check("the sailing page exists on the panel", \
+			sails != null and sails.get_child_count() > 0)
+		var ferry_text := ""
+		if sails != null:
+			for c in sails.get_children():
+				if c is Label:
+					ferry_text += str(c.text) + " "
+		_check("the page names the Haven Ferry and its route", \
+			ferry_text.contains("Haven Ferry") and ferry_text.contains("village center") \
+			and ferry_text.contains("nexus central"))
+		_check("the page names the crossing time and the wake law", \
+			ferry_text.contains("crossing takes") and ferry_text.contains("first ride"))
+		_check("the page counts the cast-offs", ferry_text.contains("8"))
+		root.remove_child(panel)
+		panel.free()
+
 	if _fails == 0:
 		print("OCEAN PROBE PASSED (%d checks)" % _checks)
 		quit(0)

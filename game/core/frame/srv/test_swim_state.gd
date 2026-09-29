@@ -78,14 +78,16 @@ func _run() -> void:
 		absf((breath_before - c.breath) - dt * SS.CRUSH_DRAIN_MULTIPLIER) < 0.001)
 
 	# ---- E. The breather law ------------------------------------------------------------
+	# The service passes the RAW squeeze line; the primitive applies
+	# the grace itself (one law -- no caller double-applies it).
 	var g = SS.new()
-	g.tick(dt, 52.0, 58.0, 60.0, 0.1, 8.0)
+	g.tick(dt, 52.0, 50.0, 60.0, 0.1, 8.0)
 	_check("grace 8 deepens the squeeze line (52 m is now free swim)", \
 		g.state == SS.State.SUBMERGED)
-	g.tick(dt, 59.0, 58.0, 60.0, 0.1, 8.0)
+	g.tick(dt, 59.0, 50.0, 60.0, 0.1, 8.0)
 	_check("but CRUSH never moves (59 m is still SQUEEZE, 60+ is CRUSH)", \
 		g.state == SS.State.SQUEEZE)
-	g.tick(dt, 61.0, 58.0, 60.0, 0.1, 8.0)
+	g.tick(dt, 61.0, 50.0, 60.0, 0.1, 8.0)
 	_check("the stone's patience is gear-proof (61 m is CRUSH)", \
 		g.state == SS.State.CRUSH)
 	# Breath capacity multiplies the clock (gear owns air).

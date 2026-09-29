@@ -44,7 +44,10 @@ enum AccessoryType {
 	NECKLACE,
 	BRACELET,
 	CLOAK,
-	BELT
+	BELT,
+	BREATHER   ## S14.4: the water accessory class (air x N + grace +N m;
+	## stats own speed is untouched -- gear owns air, the
+	## MovementProfile owns speed, orthogonal or soup)
 }
 
 enum Rarity {
@@ -87,6 +90,14 @@ enum EquipSlot {
 @export var weapon_type: WeaponType = WeaponType.NONE
 @export var armor_type: ArmorType = ArmorType.NONE
 @export var accessory_type: AccessoryType = AccessoryType.NONE
+
+## S14.4 BREATHER accessories only: the air-clock multiplier (breath
+## x N) and the squeeze-line grace (meters the free-swim band deepens
+## past the volume's natural 10). Both feed SwimState through
+## OceanService.tick_swimmer's breather params; speed is untouched
+## (the MovementProfile owns speed -- orthogonal systems or soup).
+@export var breath_multiplier: float = 1.0
+@export var squeeze_grace_m: float = 0.0
 
 # Stack & Trade
 @export var stack_size: int = 1
