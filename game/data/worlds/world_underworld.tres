@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WorldData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/world_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "underworld"
+display_name = "The Deep Root"
+kind = 1
+offline = 1
+parent_world = "main"
+radius_m = 2000.0
+gravity_force = 20.0
+has_atmosphere = true
+orbit_radius_m = 0.0
+orbit_period_days = 0.0
+orbit_phase_rad = 0.0
+orbit_inclination_rad = 0.0
+lore = "A planet inside the planet. Its sky is the inside of the world above, and it has never had a sun -- only the glow of strata, and tides that follow the far-off weather."

@@ -58,6 +58,7 @@ probe_scene_swap
 probe_glider
 probe_thermals
 probe_royale_storm
+probe_world_lattice
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

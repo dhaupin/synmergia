@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WorldData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/world_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "moon"
+display_name = "the pale stone"
+kind = 2
+offline = 2
+parent_world = "main"
+radius_m = 1200.0
+gravity_force = 6.0
+has_atmosphere = false
+orbit_radius_m = 90000.0
+orbit_period_days = 8.0
+orbit_phase_rad = 0.7
+orbit_inclination_rad = 0.12
+lore = "It watches. The almanac's moon page has been blank since the first dawn; whoever fills it will have walked farther than any road goes."

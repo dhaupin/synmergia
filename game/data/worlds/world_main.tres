@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WorldData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/world_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "main"
+display_name = "Synmergia"
+kind = 0
+offline = 0
+parent_world = ""
+radius_m = 20000.0
+gravity_force = 20.0
+has_atmosphere = true
+orbit_radius_m = 0.0
+orbit_period_days = 0.0
+orbit_phase_rad = 0.0
+orbit_inclination_rad = 0.0
+lore = "The green world. Every road starts at a stone, and every stone remembers the way home."

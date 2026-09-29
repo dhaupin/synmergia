@@ -677,7 +677,33 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   SecurityService.exploit_detected carries a Dictionary -- every
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
-  leaves other modes untouched); lint EXIT 0.
+  leaves  other modes untouched); lint EXIT 0.
+- [x] S16.1 multiworld lattice SHIPPED (2026-09-29, owner: "let's
+  take it all the way"). The clock thesis in code: WorldData schema
+  (core/schemas/world_data.gd, world_ prefix, filename == id) with
+  kind MAIN/SUBWORLD/CELESTIAL + offline ONLINE/OFFLINE/DEV_ONLY +
+  globe physics (radius/gravity) + has_atmosphere (no air = no
+  gliders, the moon is honest) + closed-form orbit fields;
+  WorldRegistry frame primitive (core/frame/srv/world_registry.gd,
+  no autoload/class_name, co-located conventions): ONE universe
+  seed (hex constant) derives every world seed through nesting
+  paths (world:main, world:main/subworld:underworld) via the
+  existing SeedChain.derive_seed -- fresh registry derives identical
+  bytes (determinism proof in probe). CLOSED-FORM ORBITS:
+  orbit_position(epoch) is pure (periodic, radius-honoring, null
+  safe); window_favorability keys on ORBITAL PHASE not distance
+  (a circular moon keeps constant parent distance -- physics note
+  in the docstring; first implementation normalized against a
+  pivot-relative span and was wrong for root-pivoted moons);
+  next_transfer_window scans epochs to the horizon. Content:
+  data/worlds/{world_main,world_underworld,world_moon}.tres (moon:
+  1.2 km, 6 m/s^2, no atmosphere, 8-sky-day orbit, DEV_ONLY;
+  underworld: 2 km, OFFLINE mystery layer). probe_world_lattice
+  27 checks in DEFAULT_SET (16 entries); regression 40/40; lint
+  EXIT 0. Lesson: window_favorability's arg-pairing bug was caught
+  by driving the function inline with prints -- the swap logic read
+  the moon twice; untyped `var body = b if ab == a else a` was the
+  culprit (condition inverted, not the math).
 - [x] S12 real glider mechanic SHIPPED (2026-09-28): GliderState
   frame primitive (game/core/frame/srv/glider_state.gd + co-located
   test 14/14): GROUNDED/FALLING/GLIDING/STOWED_FALL; deploy gate
