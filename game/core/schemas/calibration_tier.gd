@@ -85,6 +85,23 @@ enum AdvanceMode {
 ## Worldbuilding notes (what this tier is FOR).
 @export_multiline var lore: String = ""
 
+## --- Cosmic constants (declared, consumed when the ladder reaches them) ----
+## 0.0 = undeclared: the tier makes no cosmic claim. Declaring them in
+## data (owner: "our calibration is speed of light and big bang
+## velocity") reserves the seams WITHOUT spending premature precision
+## -- the Knuth reconciliation, section 7.
+
+## Speed of light in vacuum (m/s). SI exact: 299792458.0. Future
+## consumers: inter-world communication lag (orbit_radius / c),
+## telescope lookback on the galaxy tier, honest speed ceilings.
+@export var light_speed_m_s: float = 0.0
+
+## The big-bang velocity reservation: expansion rate H0 (km/s/Mpc).
+## Future consumer: X3 cosmic fast-forward -- how the galaxy address
+## space stretches over long epochs (the lattice grows because the
+## universe says so, declared here rather than hard-coded).
+@export var expansion_rate_h0_km_s_mpc: float = 0.0
+
 
 ## The tier's natural period (s): tick period for TICK tiers, eval
 ## cadence for EVALUATE tiers. Convenience for schedulers.

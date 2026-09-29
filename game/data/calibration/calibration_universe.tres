@@ -15,4 +15,6 @@ eval_period_s = 86400.0
 max_drift_s = 86400.0
 anchor = "nsc9:0"
 derives_state = false
-lore = "The civilization tier (X3): fast-forward folds the player-choice ledger at sky-day cadence. A day of drift is a rounding error here; what players chose is the only state worth folding, and the Concord Chronicle is already its day-scale ledger."
+light_speed_m_s = 299792458.0
+expansion_rate_h0_km_s_mpc = 67.4
+lore = "The civilization tier (X3): fast-forward folds the player-choice ledger at sky-day cadence. A day of drift is a rounding error here; what players chose is the only state worth folding, and the Concord Chronicle is already its day-scale ledger. Cosmic calibration declared: SI-exact c (299792458 m/s) and the measured expansion rate H0 (67.4 km/s/Mpc, Planck 2018) -- consumed when the ladder reaches them, never hard-coded."

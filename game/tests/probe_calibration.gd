@@ -97,6 +97,22 @@ func _run() -> void:
 		bool(system_t.derives_state) and bool(galaxy_t.derives_state) \
 		and not bool(local_t.derives_state) and not bool(universe_t.derives_state))
 
+	# ---- H. Cosmic constants (declared where the ladder will consume them) ----
+	_check("cosmic constants undeclared on the fast tiers", \
+		local_t.light_speed_m_s == 0.0 and world_t.light_speed_m_s == 0.0 \
+		and system_t.light_speed_m_s == 0.0 and galaxy_t.light_speed_m_s == 0.0)
+	_check("c is the SI exact value (299792458 m/s)", \
+		universe_t.light_speed_m_s == 299792458.0)
+	_check("H0 declared (Planck 2018, 67.4 km/s/Mpc)", \
+		universe_t.expansion_rate_h0_km_s_mpc == 67.4)
+	# Light-lag honesty: the system tier's own scale is sub-light-ms.
+	# Orbit radius 90 km / c is ~0.3 ms -- the slow tiers may ignore
+	# lag today; the constant is there for the day it matters.
+	var moon = reg.get_world("moon")
+	var lag_s: float = float(moon.orbit_radius_m) / universe_t.light_speed_m_s
+	_check("system-scale light lag is honestly negligible (< 1 ms)", \
+		lag_s > 0.0 and lag_s < 0.001)
+
 	if _fails == 0:
 		print("CALIBRATION PROBE PASSED (%d checks)" % _checks)
 		quit(0)

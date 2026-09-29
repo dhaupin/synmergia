@@ -233,5 +233,32 @@ The origin stays peaceful precisely because the precision is
 allocated once, at the spine, by data. That allocation is the
 architecture; everything else is evaluation.
 
+## 8. The globe typewriter (owner insight, 2026-09-29 -- the X2 mechanism sketch)
+
+Owner, on folding surface area and intersecting icosahedrons: "like
+those old globe typewriters spinning and ... dimensions in code. We
+don't need to do that, just wanted to show you."
+
+Recorded because it is the X2 mechanism, already half-shipped:
+
+- A regular icosahedron IS the sphere folded flat -- twenty
+  triangles, the Dymaxion net. Unfold the world, work on paper,
+  fold it back: that is why the frame addresses space with
+  icosahedral cells instead of float octrees.
+- NSC-9 is the typewriter carriage: prefix/facility/axis/sequence
+  bit-packed (nsc9.gd). The globe spins (subdivide/step); the
+  carriage reports a cell. "Dimensions in code" -- axis and
+  sequence bits ARE the dimensions, folded into one integer.
+- Assimilation = assigning a cell; intersection of two folded
+  globes = comparing prefixes; adjacency = bit truncation. Surface
+  area becomes cell counts; intersection becomes arithmetic.
+- The galaxy tier (X2) consumes this literally: stars are typed at
+  NSC-9 facility addresses on the folded sphere; a telescope is a
+  carriage move, not a raycast; H0 (now declared in the universe
+  tier) is the slow stretch of the paper under the type.
+
+Not built today -- shown, understood, and reserved: the schematic
+lives here so X2 lands as mechanism, not metaphor.
+
 -- Buffy, callsign Cairn. The clock is wound. Everything else is
 evaluation.

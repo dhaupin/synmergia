@@ -678,6 +678,23 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] Cosmic constants + the globe typewriter (2026-09-29, owner:
+  "yes use the constants ... fold the surface area and intersect our
+  isohedrons like those old globe typewriters ... dimensions in
+  code"): CalibrationTier gained light_speed_m_s (SI exact
+  299792458.0) + expansion_rate_h0_km_s_mpc (Planck 2018 67.4) --
+  DECLARED on the universe tier only (0.0 = undeclared elsewhere;
+  premature precision is the only evil, sec 7). probe_calibration
+  grew 16 -> 20 checks: constants exact, fast tiers make no cosmic
+  claim, and light-lag honesty measured (90 km orbit / c ~ 0.3 ms
+  -- the system tier may ignore lag today, proven not assumed).
+  prd-industry-labs.md sec 8: the owner's sketch recorded as the X2
+  MECHANISM -- icosahedron = the sphere folded flat (Dymaxion net),
+  NSC-9 = the typewriter carriage (axis/sequence bits are the
+  dimensions folded into an integer), assimilation = assigning a
+  cell, intersection = comparing prefixes, telescopes = carriage
+  moves not raycasts, H0 = the slow stretch of the paper under the
+  type. Reserved, not built. Regression 41/0, lint 36/36.
 - [x] prd-industry-labs.md sec 7 "On precision" (2026-09-29, owner
   riff: "Knuth heavy ... a physics frame is based on precision"):
   the reconciliation -- Knuth's evil is PREMATURE cost, not
