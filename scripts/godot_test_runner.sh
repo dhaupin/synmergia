@@ -57,6 +57,7 @@ probe_dungeon_front_door
 probe_scene_swap
 probe_glider
 probe_thermals
+probe_royale_storm
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

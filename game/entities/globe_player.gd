@@ -73,6 +73,20 @@ func _set_ac_gliding(gliding: bool) -> void:
 	if ac != null and ac.has_method("set_glide_active"):
 		ac.set_glide_active(entity_id, gliding)
 
+
+## Anticheat seam (S12.5): the radial body feeds the same movement
+## validator the planar controller does, so the glide speed/fall
+## ceilings are ENFORCED on the globe, not just declared. The launch
+## ticket book (ThermalService -> grant_launch_grace) forgives the
+## upward vector while an ancient launcher throws this body.
+func _validate_movement() -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var ac = (ml as SceneTree).root.get_node_or_null("AntiCheatService")
+	if ac != null and ac.has_method("validate_movement"):
+		ac.validate_movement(entity_id, global_position, velocity, get_physics_process_delta_time())
+
 func planet_up() -> Vector3:
 	return (global_position - planet_center).normalized()
 
@@ -169,7 +183,10 @@ func _physics_process(delta: float) -> void:
 			var lift: float = 0.0
 			var ts = Engine.get_main_loop().root.get_node_or_null("ThermalService") if Engine.get_main_loop() is SceneTree else null
 			if ts != null:
-				lift = ts.sample(global_position)
+				# entity_id passed through: an ancient launcher ride grants
+				# this body's anticheat book a launch ticket (server-side;
+				# the 30+ m/s throw is the world throwing you, not a hack).
+				lift = ts.sample(global_position, entity_id)
 				ts.record_glide_tick(entity_id, velocity.length() * delta, altitude)
 			var sink: Vector3 = up * glider.glide_vertical_speed(clampf(lift / 3.0, 0.0, 1.0))
 			var glide_wish: Vector3 = wish if wish.length_squared() > 0.0001 \
@@ -185,6 +202,7 @@ func _physics_process(delta: float) -> void:
 				vertical = vertical.move_toward(-sink, gravity_force * 2.0 * delta)
 			velocity = horizontal + vertical
 			move_and_slide()
+			_validate_movement()
 			return
 		if is_on_floor():
 			glider.on_grounded()
@@ -202,6 +220,7 @@ func _physics_process(delta: float) -> void:
 	velocity = horizontal + vertical
 	var before: Vector3 = global_position
 	move_and_slide()
+	_validate_movement()
 	path_walked += global_position.distance_to(before)
 
 	# Snap to the surface: cancel residual radial drift so the body

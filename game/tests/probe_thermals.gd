@@ -69,13 +69,20 @@ func _run() -> void:
 		and _by_id(ts, "thermal_meadow_column") != null)
 
 	# ---- E. Glide stats + achievement routing ------------------------------
-	ts.record_glide_tick("glide_ace", 2.5, 45.0)
-	ts.record_glide_tick("glide_ace", 2.5, 60.0)
+	# Per-frame distances (0.25 m at 60 fps): the anticheat farm clamp
+	# counts a tick at most 1.0 m, so tests feed LEGAL tick sizes.
+	for i in range(20):
+		ts.record_glide_tick("glide_ace", 0.25, 45.0)
+	ts.record_glide_tick("glide_ace", 0.25, 60.0)
 	var stats: Dictionary = ts.glide_stats("glide_ace")
 	_check("glide ticks accrue distance + altitude + time", \
 		float(stats.get("distance", 0.0)) > 4.0 \
 		and float(stats.get("max_altitude", 0.0)) >= 60.0 \
 		and float(stats.get("time", 0.0)) > 0.03)
+	var before_farm: float = float(stats.get("distance", 0.0))
+	ts.record_glide_tick("glide_ace", 99.0, 60.0)
+	_check("farm clamp: an absurd tick adds at most the cap", \
+		float(ts.glide_stats("glide_ace").get("distance", 0.0)) - before_farm <= 1.0)
 	ts.push_glide_achievements("glide_ace")
 	_check("achievement categories routed without error", true)
 	var defs_ok := true
@@ -87,6 +94,51 @@ func _run() -> void:
 	var quest: Resource = load("res://data/quests/quest_wings_over_haven.tres")
 	_check("teaching quest loads (Wings Over Haven)", quest != null \
 		and (quest.objectives as Array).size() == 1)
+
+	# ---- F. Anticheat launch tickets (S12.5 security seam) -----------------
+	# The service grants tickets server-side when its own book says a
+	# launcher is throwing a body; upward violations are forgiven only
+	# while the ticket lives (and only the upward vector).
+	var ac = root.get_node_or_null("AntiCheatService")
+	_check("anticheat service resolvable", ac != null)
+	if ac != null and ac.has_method("grant_launch_grace"):
+		var spire_speed: float = float(spire.launch_speed)
+		_check("30 m/s throw exceeds the legal jump limit (the threat is real)", \
+			spire_speed > 12.5)
+		_check("launcher ride grants a live launch ticket", \
+			ts.sample(spire.position + Vector3(0, 3, 0), "ticketed_rider") > 0.0 \
+			and bool(ac.has_launch_ticket("ticketed_rider")))
+		ac.set_movement_limits("ticketed_rider", 25.0, 12.5, 110.0)
+		var flagged := false
+		for i in range(40):
+			if ac.validate_movement("ticketed_rider", Vector3(i * 0.1, 3, 0), \
+					Vector3(0, 30.0, 0), 1.0 / 60.0):
+				flagged = true
+				break
+		_check("ticketed 30 m/s throw does NOT trip the jump hack", not flagged)
+		var unluck := false
+		for i in range(40):
+			if ac.validate_movement("ticketed_rider", Vector3(i * 0.1, 3, 0), \
+					Vector3(90.0, 0, 0), 1.0 / 60.0):
+				unluck = true
+				break
+		_check("ticket does NOT cover horizontal speedhacks", unluck)
+		# Fresh violation window for the expiry check: the horizontal
+		# block above left streak=30, and reports fire on a NEW 30-frame
+		# sustained run (the same escalation rule the service enforces).
+		var prof = ac._player_profiles.get("ticketed_rider")
+		if prof != null:
+			prof.speed_violation_streak = 0
+		ac._launch_grants.erase("ticketed_rider")
+		var post := false
+		for i in range(40):
+			if ac.validate_movement("ticketed_rider", Vector3(i * 0.1, 3, 0), \
+					Vector3(0, 30.0, 0), 1.0 / 60.0):
+				post = true
+				break
+		_check("expired ticket: the same throw now trips the hack", post)
+		_check("an absurd 999 m/s throw cannot buy a ticket", \
+			not bool(ac.grant_launch_grace("cheater", 999.0)))
 
 	if _fails == 0:
 		print("THERMALS PROBE PASSED (%d checks)" % _checks)

@@ -35,3 +35,5 @@ instance_mode = 2
 instance_kill_target = 0
 instance_time_limit = 900.0
 instance_spawn_shield = 0.0
+instance_storm_start = 45.0
+instance_storm_scale = 1.0

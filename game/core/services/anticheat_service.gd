@@ -43,6 +43,21 @@ const GLIDE_MAX_FALL: float = 14.0    # glide sink is gentle by design
 ## over-limit motion is a hack.
 const SUSTAINED_FRAME_LIMIT: int = 30
 
+## Launch/throw whitelist (S12.5 sky roads + S13 ROYALE drop): an
+## ancient launcher hurls you up at 30+ m/s and the Royale throw
+## starts the bout from the sky. Both are LEGAL upward speeds far
+## above the profile jump limit, so upward violations are forgiven
+## while a launch ticket is live. Tickets are written server-side by
+## ThermalService's launcher path and the arena drop -- a player can
+## never claim one -- and they legalize ONLY the vertical vector:
+## horizontal speedhacks and absurd |vy| stay hard-flagged.
+const LAUNCH_GRACE_SECONDS: float = 2.5
+const LAUNCH_SPEED_CEILING: float = 40.0  # above this, no ticket helps
+
+## player_id -> expiry (Time.get_ticks_msec). Transient by design:
+## a reboot kills seconds-old tickets, which is harmless.
+var _launch_grants: Dictionary = {}
+
 var _player_profiles: Dictionary = {}  # player_id -> Profile data
 var _suspicion_scores: Dictionary = {}  # player_id -> suspicion (0.0 to 1.0)
 var _banned_players: Dictionary = {}  # player_id -> ban info
@@ -97,6 +112,37 @@ func unregister_player(player_id: String) -> void:
 	_player_profiles.erase(player_id)
 	_suspicion_scores.erase(player_id)
 	_movement_limits.erase(player_id)
+	_launch_grants.erase(player_id)
+
+
+## == Launch tickets (launcher rides / bout throws) ==========================
+
+## Stamp a launch ticket for one upward burst. `speed` is the throw's
+## vertical speed: refused above LAUNCH_SPEED_CEILING so no caller can
+## legalize an absurd velocity. Returns whether the ticket was granted.
+func grant_launch_grace(player_id: String, speed: float = 32.0, duration: float = LAUNCH_GRACE_SECONDS) -> bool:
+	if speed <= 0.0 or speed > LAUNCH_SPEED_CEILING:
+		return false
+	_launch_grants[player_id] = Time.get_ticks_msec() + int(duration * 1000.0)
+	return true
+
+
+## Is a launch ticket live for this player? Expired entries are pruned
+## on read so the book never grows.
+func _launch_ticket_live(player_id: String) -> bool:
+	var until: int = int(_launch_grants.get(player_id, 0))
+	if until == 0:
+		return false
+	if Time.get_ticks_msec() > until:
+		_launch_grants.erase(player_id)
+		return false
+	return true
+
+
+## Public read (probe/UI seam): does this body currently ride a
+## launch ticket?
+func has_launch_ticket(player_id: String) -> bool:
+	return _launch_ticket_live(player_id)
 
 
 ## == Movement hard limits (Movement Design System) ==========================
@@ -182,7 +228,10 @@ func validate_movement(player_id: String, position: Vector3, velocity: Vector3, 
 
 	var horizontal := Vector2(velocity.x, velocity.z).length()
 	var over_speed: bool = horizontal > float(limits["max_speed"])
-	var over_launch: bool = velocity.y > float(limits["max_jump"])
+	# A live launch ticket forgives ONLY the upward vector (launcher
+	# ride / bout throw); horizontal and absurd-vertical checks still run.
+	var launch_ticket: bool = velocity.y > 0.0 and _launch_ticket_live(player_id)
+	var over_launch: bool = velocity.y > float(limits["max_jump"]) and not launch_ticket
 	var over_fall: bool = velocity.y < -float(limits["max_fall"])
 	var absurd_vertical: bool = absf(velocity.y) > VERTICAL_HARD_CLAMP
 

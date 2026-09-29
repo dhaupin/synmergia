@@ -59,6 +59,29 @@ var _time_limit: float = 0.0  # 0 = disabled (probe scratch rooms)
 var _streaks: Dictionary = {}   # fighter_id -> current kill streak
 var _best_streaks: Dictionary = {}  # fighter_id -> best streak this bout
 
+## ---- S13 ROYALE storm (the fog wall) ------------------------------------
+## The Sundered Valley's fog is a RULE: after storm_start_seconds the
+## safe circle walks inward through the contract's phase ladder; the
+## wall's teeth are DAMAGE (outside = dps grind). The draw clock stays
+## as backstop. ROYALE is the reason the AFK sweep skips this room:
+## the storm is the mode's own pressure. Fighter-side damage routes
+## through the bridge (rooms hold bodies, not entities).
+var _storm_plan: Dictionary = {}   # Contract.storm_plan(half) once armed
+var _storm_armed: bool = false     # the wall is live
+var _storm_damage_cooldown: Dictionary = {}  # fighter_id -> last hit (unix)
+## Emitted per second while someone bleeds in the fog (UI reads the
+## phase labels off the rules dict): fighter_id -> dps.
+signal storm_damage_applied(fighter_id: String, dps: float)
+## Emitted when a shrink starts: new radius, phase index. The web/HUD
+## layer turns this into the fog visuals.
+signal storm_phase_advanced(radius: float, phase_index: int)
+var _storm_last_phase: int = -1
+## Wall-relative clock (set once when the fog arms).
+var _storm_started_at: float = 0.0
+## Room-owned damage source so storm kills credit the fog, not a
+## ghost player (lazy-built on first bite; freed at bout end).
+var _storm_entity = null
+
 ## Emitted when a bout closes: fighter_id -> return position (their
 ## origin stone). The GameManager scene flow listens and teleports.
 signal bout_return_requested(return_map: Dictionary)
@@ -178,6 +201,11 @@ func start_bout() -> void:
 	_time_limit = float(_rules.get("time_limit_seconds", 0.0))
 	if _trial:
 		_time_limit = minf(_time_limit if _time_limit > 0.0 else 300.0, 300.0)
+	# S13 storm bookkeeping (ROYALE): arm at storm_start_seconds; a
+	# negative value in the rules disables the wall for this bout.
+	_storm_armed = false
+	_storm_plan = {}
+	_storm_damage_cooldown.clear()
 	bout_started.emit(_rules)
 	# Deferred so the bridge (and any other listener) can react to
 	# bout_started before the power book lands.
@@ -200,7 +228,10 @@ func _emit_power_reference() -> void:
 
 ## The drop: index-stable wide ring (no stacking -- 30 fighters need
 ## ~2.2 m neighbors at r 21), height = 0.8 x room half (160 m over
-## the valley's 400 m half), always inside the walls.
+## the valley's 400 m half), always inside the walls. With the glider
+## contract armed the fighters' fall is a WING ride (planar bodies
+## fall at the glider profile through ArenaFighter._glider_tick);
+## without it they drop straight -- both land inside the ring.
 const ROYALE_DROP_HEIGHT_RATIO: float = 0.8
 const ROYALE_DROP_RING_RATIO: float = 0.35
 
@@ -213,6 +244,11 @@ func _emit_royale_drop() -> void:
 	if count > 1:
 		ring = maxf(ring, 0.45 * float(count))
 	var height: float = half * ROYALE_DROP_HEIGHT_RATIO
+	# S13: the drop rides the WING (same GliderState primitive as the
+	# globe path). Arm before the first physics frame so the fall
+	# starts under glider rules; horizontal steering is the controls
+	# seam (fighter bodies carry no input today).
+	var gprof: Resource = load("res://data/movement_profiles/movement_glider.tres")
 	var idx := 0
 	for fid in _fighters:
 		var f = _fighters.get(fid)
@@ -221,7 +257,122 @@ func _emit_royale_drop() -> void:
 		var drop := Contract.scatter_spawn(Vector3(0, height, 0), idx, ring)
 		f.global_position = drop
 		f.velocity = Vector3.ZERO
+		if gprof != null and f.has_method("arm_glider"):
+			f.arm_glider(gprof)
+			f.drop_height_m = maxf(drop.y - 1.0, 0.0)
 		idx += 1
+
+
+## ---- S13 storm engine -----------------------------------------------------
+
+## Arm the wall (called from _process when the clock says so). Builds
+## the storm plan against the room half and announces phase 0's radius
+## so UI can paint the fog ring before it moves.
+func _arm_storm() -> void:
+	var half: float = 60.0
+	if zone_data != null and "zone_radius" in zone_data:
+		half = float(zone_data.zone_radius) * 0.5
+	_storm_plan = Contract.storm_plan(half)
+	_storm_armed = true
+	_storm_started_at = Time.get_unix_time_from_system()
+	var phases: Array = _storm_plan.get("phases", [])
+	if not phases.is_empty():
+		storm_phase_advanced.emit(float(phases[0].get("radius", half)), 0)
+		GameLog.info("ArenaInstance: the fog closes (storm armed, final r=%.0f)" % float(phases[-1].get("radius", 0.0)))
+
+
+## The storm's per-frame beat: arm -> announce phases -> grind anyone
+## outside the safe circle. Damage cadence is 1.0 s per fighter (dps),
+## so a stuttering server never multi-ticks the wall. Storm time is
+## WALL-RELATIVE (seconds since the wall armed) -- the plan's phase
+## ladder starts at arm, not at bout start.
+func _storm_tick() -> void:
+	var now: float = Time.get_unix_time_from_system()
+	var elapsed: float = now - _bout_start_time
+	if not _storm_armed:
+		if elapsed >= float(_rules.get("storm_start_seconds", Contract.DEFAULT_STORM_START_SECONDS)):
+			_arm_storm()
+		return
+	var t: float = now - _storm_started_at
+	# Phase announcements (once per shrink start) drive the fog UI.
+	var phase_idx := _storm_phase_index(t)
+	if phase_idx != _storm_last_phase and phase_idx >= 0:
+		_storm_last_phase = phase_idx
+		storm_phase_advanced.emit(_storm_safe_radius(t), phase_idx)
+	# The grind: every living fighter outside the safe circle bleeds.
+	var dps: float = Contract.storm_damage_at(_storm_plan, t)
+	if dps <= 0.0:
+		return
+	var safe: float = _storm_safe_radius(t)
+	for fid in _fighters.keys():
+		var f = _fighters.get(fid)
+		if f == null or not f.alive:
+			continue
+		var flat := Vector2(f.global_position.x, f.global_position.z)
+		if flat.length() <= safe:
+			continue
+		var last: float = float(_storm_damage_cooldown.get(fid, 0.0))
+		if now - last < 1.0:
+			continue
+		_storm_damage_cooldown[str(fid)] = now
+		_damage_fighter(str(fid), int(ceilf(dps)))
+
+
+## Which phase is the storm in (-1 = past the ladder).
+func _storm_phase_index(elapsed: float) -> int:
+	var phases: Array = _storm_plan.get("phases", [])
+	for i in range(phases.size()):
+		if elapsed < float(phases[i].get("end", 0.0)):
+			return i
+	return -1
+
+
+## Safe radius right now (lerped inside a shrink). Pure read.
+func _storm_safe_radius(elapsed: float) -> float:
+	var half: float = 60.0
+	if zone_data != null and "zone_radius" in zone_data:
+		half = float(zone_data.zone_radius) * 0.5
+	return Contract.storm_radius_at(_storm_plan, elapsed, half)
+
+
+## Probe/UI surface: the live safe radius (0 = wall not armed yet).
+func storm_safe_radius() -> float:
+	if not _storm_armed:
+		return 0.0
+	return _storm_safe_radius(Time.get_unix_time_from_system() - _storm_started_at)
+
+
+func storm_armed() -> bool:
+	return _storm_armed
+
+
+## Route one fighter's storm damage to their live entity through the
+## combat bridge (rooms hold bodies; entities live in the world).
+## The source is a room-owned storm entity REGISTERED WITH
+## CombatSystem, so a fog kill rides the same death relay as any
+## fight kill and credits the fog by name. Missing bridge/entity
+## (early-boot tool contexts) = no-op.
+func _damage_fighter(fighter_id: String, amount: int) -> void:
+	var ml := Engine.get_main_loop()
+	var bridge = null
+	if ml != null and (ml is SceneTree):
+		bridge = (ml as SceneTree).root.get_node_or_null("ArenaCombatBridge")
+	var ent = null
+	if bridge != null:
+		ent = bridge._entity_for(fighter_id)
+	if ent == null:
+		return
+	if _storm_entity == null:
+		_storm_entity = load("res://core/entities/entity.gd").new()
+		_storm_entity.entity_id = "royale_storm"
+		_storm_entity.display_name = "the closing fog"
+		_storm_entity.level = 999
+		if ml != null and (ml is SceneTree):
+			var cs = (ml as SceneTree).root.get_node_or_null("CombatSystem")
+			if cs != null and cs.has_method("register_entity"):
+				cs.register_entity(_storm_entity)
+	storm_damage_applied.emit(fighter_id, float(amount))
+	ent.take_damage(amount, _storm_entity, "storm")
 
 ## Combat bridge entry: any SELF-initiated action (attack, skill cast,
 ## potion, self-buff) routes here. Fire-and-you-lose-it: breaks the
@@ -332,6 +483,18 @@ func _end_bout(winner_team: int) -> void:
 	bout_ended.emit(winner_team, stats)
 	bout_return_requested.emit(return_map)
 	spectators.clear()
+	# The fog lifts: the room-owned storm source is unregistered from
+	# CombatSystem (no freed-entity ref left in the kill relay) and
+	# freed with the bout.
+	if _storm_entity != null:
+		if is_instance_valid(_storm_entity):
+			var ml := Engine.get_main_loop()
+			if ml != null and (ml is SceneTree):
+				var cs = (ml as SceneTree).root.get_node_or_null("CombatSystem")
+				if cs != null and cs.has_method("unregister_entity"):
+					cs.unregister_entity(_storm_entity)
+				_storm_entity.queue_free()
+		_storm_entity = null
 
 # ---- Inspection surface (probe + future UI) -------------------------
 
@@ -372,6 +535,7 @@ func _process(_delta: float) -> void:
 		_end_bout(-1)
 		return
 	if int(_rules.get("mode")) == Contract.InstanceMode.ROYALE:
+		_storm_tick()
 		return
 	# Trial bouts skip the AFK sweep: a nervous first-timer standing
 	# still to read the room is not idling out of their lesson. The

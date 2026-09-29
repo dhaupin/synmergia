@@ -26,6 +26,82 @@ const UP_DIRECTION: Vector3 = Vector3(0, 1, 0)
 ## (see instance_entry_deadline below).
 const DEFAULT_ENTRY_DEADLINE: float = 20.0
 
+## ---- S13 ROYALE storm (the fog wall) ------------------------------------
+## The bounds close with the horde phase-timer shape the shard already
+## uses: STORM_* phases tick in order, each holds then shrinks. The
+## "fog" is the Sundered Valley's weather_type = "fog" made into a
+## rule: a closing wall of ancient wind, not a cosmetic. Outside the
+## wall the storm grinds you down (DAMAGE is the wall's teeth -- PUSH
+## would shove campers into each other and be read as a mechanic,
+## not a punishment). Time limit stays as the DRAW backstop (locked
+## decision); the storm is the primary clock.
+const STORM_PHASES: Array = [
+	{"hold": 60.0, "shrink": 30.0, "radius_ratio": 0.65, "damage": 1.0},
+	{"hold": 45.0, "shrink": 30.0, "radius_ratio": 0.40, "damage": 2.0},
+	{"hold": 30.0, "shrink": 30.0, "radius_ratio": 0.22, "damage": 4.0},
+	{"hold": 30.0, "shrink": 45.0, "radius_ratio": 0.10, "damage": 7.0},
+]
+
+## The storm's final safe radius as a fraction of the room half
+## (clamped by MIN_STORM_RADIUS_M so a tiny zone never closes to
+## nothing): 10 fighters in a 5 m circle is a knife fight, which is
+## the point of the last phase.
+const MIN_STORM_RADIUS_M: float = 5.0
+
+## Total storm length (sum of holds + shrinks) for schedules/UI.
+static func storm_total_seconds() -> float:
+	var t := 0.0
+	for p in STORM_PHASES:
+		t += float(p.get("hold", 0.0)) + float(p.get("shrink", 0.0))
+	return t
+
+
+## The storm plan for one bout: radius ratios resolved against the
+## room's half-extent into absolute safe radii. Pure function so
+## probes, UI and the room agree on one truth.
+static func storm_plan(room_half: float) -> Dictionary:
+	var phases: Array = []
+	var t := 0.0
+	for p in STORM_PHASES:
+		var end_radius: float = maxf(room_half * float(p.get("radius_ratio", 0.5)), MIN_STORM_RADIUS_M)
+		phases.append({
+			"start": t,
+			"end": t + float(p.get("hold", 0.0)) + float(p.get("shrink", 0.0)),
+			"shrink_start": t + float(p.get("hold", 0.0)),
+			"radius": end_radius,
+			"damage": float(p.get("damage", 1.0)),
+		})
+		t = phases[-1]["end"]
+	return {"phases": phases, "total": t}
+
+
+## The storm's safe radius at bout-time `elapsed` (0 before the storm
+## starts). Pure function; the room lerps between shrinks.
+static func storm_radius_at(plan: Dictionary, elapsed: float, start_radius: float) -> float:
+	var prev: float = start_radius
+	var phases: Array = plan.get("phases", [])
+	for p in phases:
+		var shrink_start: float = float(p.get("shrink_start", 0.0))
+		var phase_end: float = float(p.get("end", 0.0))
+		var target: float = float(p.get("radius", 0.0))
+		if elapsed <= shrink_start:
+			return prev
+		if elapsed >= phase_end:
+			prev = target
+			continue
+		var t: float = (elapsed - shrink_start) / maxf(phase_end - shrink_start, 0.001)
+		return lerpf(prev, target, t)
+	return prev
+
+
+## Storm damage per second at bout-time `elapsed` (0 = outside any
+## live storm phase).
+static func storm_damage_at(plan: Dictionary, elapsed: float) -> float:
+	for p in plan.get("phases", []):
+		if elapsed >= float(p.get("start", 0.0)) and elapsed < float(p.get("end", 0.0)):
+			return float(p.get("damage", 1.0))
+	return 0.0
+
 ## Lobby states for one instance's front door.
 enum LobbyState {
 	OPEN,       ## Accepting join requests (seats remain)
@@ -49,6 +125,11 @@ enum InstanceMode {
 const DEFAULT_KILL_TARGET: int = 25
 const DEFAULT_TIME_LIMIT_SECONDS: float = 600.0
 const DEFAULT_SPAWN_SHIELD_SECONDS: float = 4.0
+## S13 ROYALE storm defaults: the wall arms this long after the bout
+## starts (the drop and first looting stay calm), then walks inward
+## phase by phase (STORM_PHASES above). ZoneData overrides via
+## instance_storm_start; a negative value disables the wall entirely.
+const DEFAULT_STORM_START_SECONDS: float = 45.0
 ##
 ## Spawn-shield conduct (owner decision, S11 goals): the shield is
 ## fire-and-you-lose-it. Any SELF-INITIATED action (attack, skill
@@ -120,12 +201,29 @@ static func bout_rules(zone) -> Dictionary:
 				"spawn_shield_seconds": shield,
 			}
 		InstanceMode.ROYALE:
+			var storm_phase := DEFAULT_STORM_START_SECONDS
+			if zone != null and "instance_storm_start" in zone:
+				var ss = float(zone.instance_storm_start)
+				if ss != 0.0:
+					storm_phase = ss
+			var storm_scale := 1.0
+			if zone != null and "instance_storm_scale" in zone:
+				var sc = float(zone.instance_storm_scale)
+				if sc > 0.0:
+					storm_scale = sc
 			return {
 				"mode": mode,
 				"respawn_allowed": false,
 				"kill_target": 0,
 				"time_limit_seconds": time_limit,
 				"spawn_shield_seconds": 0.0,
+				# S13 storm: the fog wall. The phase ladder (holds, shrinks,
+				# radii, per-phase damage) rides the rules dict so UI and
+				# probes read the SAME plan the room enforces. Negative
+				# storm_start disables the wall for a zone.
+				"storm_start_seconds": storm_phase,
+				"storm_scale": storm_scale,
+				"storm_phases": STORM_PHASES.duplicate(true),
 			}
 	return bout_rules(null)
 

@@ -16,6 +16,14 @@ const DictStore = preload("res://adapters/persistence/dict_store.gd")
 ## THERMAL_LIFT_MAX mirrored here so the schema samples against it.
 const MAX_LIFT: float = 3.0
 
+## Anti-farm clamp (anticheat seam): one glide tick may credit at
+## most ~60 m/s of travel. The wing's fastest legal dive is 16 m/s,
+## so the clamp sits far above any legal glide -- lag bursts do not
+## eat stats -- while a velocity-hacked wing cannot mint distance.
+## Time accrues fixed per call (1/60 s), so call rate is not a lever:
+## the caller is the physics tick, one call per frame by construction.
+const GLIDE_TICK_MAX_DISTANCE: float = 1.0
+
 ## Launch-boost bookkeeping: player_id -> {until: unix, speed: float}
 var _launches: Dictionary = {}
 ## player_id -> glide stats {"distance": float, "max_altitude": float,
@@ -64,11 +72,30 @@ func get_updrafts() -> Array:
 
 
 ## Total vertical contribution at a position (m/s, positive = lift).
-func sample(pos: Vector3) -> float:
+## player_id (optional): when provided AND the sample includes an
+## ancient launcher column, the service grants that body's anticheat
+## book a launch ticket -- a launcher ride is the WORLD throwing you,
+## never a jump hack. The ticket forgives only the upward vector and
+## is refreshed every sample tick inside the column.
+func sample(pos: Vector3, player_id: String = "") -> float:
 	var total: float = 0.0
 	for u in _updrafts:
-		total += u.sample_vertical_speed(pos, MAX_LIFT)
+		var v: float = u.sample_vertical_speed(pos, MAX_LIFT)
+		if v <= 0.0:
+			continue
+		total += v
+		if player_id != "" and u.kind == ThermalUpdraft.Kind.LAUNCHER:
+			_grant_launch_ticket(player_id, v)
 	return total
+
+
+## Server-side launch authority: bodies cannot claim tickets; the
+## service writes them when its own book says the world is throwing
+## someone. Speed refused above AntiCheatService.LAUNCH_SPEED_CEILING.
+func _grant_launch_ticket(player_id: String, speed: float) -> void:
+	var ac = get_node_or_null("/root/AntiCheatService")
+	if ac != null and ac.has_method("grant_launch_grace"):
+		ac.grant_launch_grace(player_id, speed)
 
 
 ## Is there a launch burst under this position right now?
@@ -120,7 +147,7 @@ func is_awake(launcher_id: String) -> bool:
 ## altitude above the local surface. Time accrues per gliding second.
 func record_glide_tick(player_id: String, distance: float, altitude: float) -> void:
 	var stats: Dictionary = _glide_stats.get(player_id, {"distance": 0.0, "max_altitude": 0.0, "time": 0.0})
-	stats["distance"] = float(stats.get("distance", 0.0)) + distance
+	stats["distance"] = float(stats.get("distance", 0.0)) + clampf(distance, 0.0, GLIDE_TICK_MAX_DISTANCE)
 	stats["max_altitude"] = maxf(float(stats.get("max_altitude", 0.0)), altitude)
 	stats["time"] = float(stats.get("time", 0.0)) + (1.0 / 60.0)
 	_glide_stats[player_id] = stats

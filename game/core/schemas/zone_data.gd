@@ -73,6 +73,12 @@ enum PvPZoneMode {
 @export var instance_time_limit: float = 0.0    # Bout time cap
 @export var instance_spawn_shield: float = 0.0  # TDM spawn shield
 @export var instance_afk_kick: float = 0.0      # AFK kick; 0 = contract default
+# S13 ROYALE storm (the fog wall): seconds after bout start the wall
+# arms, and a speed multiplier on the phase ladder (1.0 = contract
+# timing; 2.0 = the storm moves twice as fast). Negative storm_start
+# disables the wall for a zone; 0 keeps the contract default.
+@export var instance_storm_start: float = 0.0
+@export var instance_storm_scale: float = 1.0
 
 ## Horde event auto-start: when set (a HordeData id in data/hordes/),
 ## the FIRST player to enter this zone starts that horde through

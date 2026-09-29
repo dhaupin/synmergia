@@ -10,6 +10,14 @@
 #
 # No class_name (never instantiated by type elsewhere; the instance
 # scene preloads this file). Built entirely in code like globe_player.
+#
+# S13: the ROYALE drop rides the S12 glider contract -- the same
+# frame primitive the globe body drives (all-realms rule). When the
+# bout arms, the room throws fighters from 160 m; a fighter whose
+# bout rules carry movement_glider opens the WING at the 6 m gate and
+# sinks at the wing's gentle 4.5 m/s (steering later at the controls
+# seam); without it they fall contract-gravity and land fast. Trials
+# and other modes never see the wing (the room does not arm it).
 extends CharacterBody3D
 
 const Contract = preload("res://core/schemas/instance_contract.gd")
@@ -26,12 +34,37 @@ var shielded_until: float = 0.0
 # Contract gravity force; straight down, set once at ready.
 var gravity_force: float = Contract.GRAVITY_FORCE
 
+# S13 glider drop: armed by the room on bout start (royale rules with
+# a movement profile). Drives the SAME frame primitive as the globe.
+var glider = null          # GliderState when armed, else null
+var drop_height_m: float = 0.0  # meters above the floor (set per frame)
+
 var _mesh: MeshInstance3D
 
 func _ready() -> void:
 	gravity_force = Contract.GRAVITY_FORCE
 	up_direction = Vector3.UP
 	_build_visual()
+
+## Arm the wing for a bout (room calls with the glider profile). The
+## machine starts FALLING -- the drop is already mid-air by contract.
+func arm_glider(glider_profile: Resource) -> void:
+	glider = load("res://core/frame/srv/glider_state.gd").new()
+	if glider_profile != null and "gravity_force" in glider_profile:
+		gravity_force = float(glider_profile.gravity_force)
+	glider.on_airborne()
+
+## One glide tick: returns the body's vertical speed this frame
+## (accumulating contract fall while falling; the wing's gentle sink
+## once GLIDING). Pure read; no tree access -- the probe drives this
+## directly and _physics_process feeds it every frame.
+func _glider_tick(delta: float, current_vy: float) -> float:
+	if glider == null:
+		return current_vy - gravity_force * delta
+	var state: int = glider.tick(delta, maxf(drop_height_m, 0.0), 0.0)
+	if state == glider.State.GLIDING:
+		return -glider.glide_vertical_speed(0.0)
+	return current_vy - gravity_force * delta
 
 func setup(id: String, team_id: int, trial: bool = false) -> void:
 	fighter_id = id
@@ -43,10 +76,18 @@ func _physics_process(delta: float) -> void:
 	if not alive:
 		return
 	# Planar contract gravity: -Y at the shared force, never radial.
-	velocity.y -= gravity_force * delta
+	# The glider drop swaps the raw fall for the wing's sink once the
+	# machine reaches GLIDING (armed only for the ROYALE drop); the
+	# pre-deploy fall still accumulates like vanilla.
+	if glider != null:
+		drop_height_m = maxf(drop_height_m - absf(velocity.y) * delta, 0.0)
+	velocity.y = _glider_tick(delta, velocity.y)
 	move_and_slide()
 	if is_on_floor():
 		velocity.y = 0.0
+		if glider != null:
+			glider.on_grounded()
+			glider = null  # the wing is spent once the boots hit sand
 
 ## Apply the spawn shield (TEAM_DEATHMATCH respawns). Seconds from the
 ## zone's bout rules; the controller decides when this is granted.

@@ -578,6 +578,36 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   EXIT 0. Lesson: a service-side awake book is dead weight unless
   the flag lands ON the resource the sampler reads -- services and
   schemas must agree on where truth lives.
+- [x] S13 anticheat seams + ROYALE fog SHIPPED (2026-09-29, owner:
+  "test runs, hook it to Anticheat, use the system in Royale, set up
+  fog/timing"). ANTICHEAT: AntiCheatService gains LAUNCH TICKETS
+  (grant_launch_grace/has_launch_grace; launch bursts up to a 40 m/s
+  ceiling legalize ONLY the upward vector for 2.5 s -- server-side
+  grants via ThermalService.sample(pos, player_id) when a launcher
+  column holds a body; players can never claim one); glide farm
+  clamp (record_glide_tick counts max 1.0 m/tick -- a velocity-hacked
+  wing cannot mint achievement distance; time stays cadence-locked);
+  globe_player now feeds validate_movement every frame (GAP: radial
+  bodies were never validated -- glide ceilings were decorative).
+  ROYALE (the fog wall): InstanceContract storm engine (STORM_PHASES
+  horde-ladder: hold/shrink/radius_ratio/damage 1->7 dps; helpers
+  storm_plan/storm_radius_at/storm_damage_at, MIN_STORM_RADIUS_M;
+  DEFAULT_STORM_START 45 s; negative disables; storm_scale)
+  + ZoneData instance_storm_start/scale (.tres on the valley);
+  arena_instance: _storm_tick (arm -> phase announcements -> 1 s
+  cadence grind outside the safe circle) through a room-owned
+  royale_storm Entity REGISTERED with CombatSystem so fog kills ride
+  the normal death relay; signals storm_phase_advanced (UI fog ring)
+  + storm_damage_applied; draw clock stays as backstop; AFK sweep
+  already skipped (the storm IS the pressure); arena_fighter arms
+  the S12 glider for the drop (wing opens tick one at 160 m, sinks
+  4.5 m/s, spent on landing; wingless bodies keep contract gravity).
+  probe_royale_storm 39/39 (new in DEFAULT_SET, 15 entries);
+  probe_thermals 24/24 (tickets + clamp); lint EXIT 0. Gotchas:
+  speed_violation_streak persists across validate_movement phases
+  (reset it between probe blocks); str_replace once glued two
+  statements onto one line AGAIN (twice this session -- always
+  re-grep edited seams before running).
 - [x] S12 real glider mechanic SHIPPED (2026-09-28): GliderState
   frame primitive (game/core/frame/srv/glider_state.gd + co-located
   test 14/14): GROUNDED/FALLING/GLIDING/STOWED_FALL; deploy gate
