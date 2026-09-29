@@ -30,6 +30,21 @@ func _ready() -> void:
 	GameLog.info("BoutTeleportService: listening (assembly in, returns home)")
 
 
+## The player's globe world_root (ScopeService reparent target on
+## exit). Resolved lazily from the current scene; script-mode probes
+## inject roots directly instead.
+func _globe_root() -> Node3D:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	var scene = (ml as SceneTree).current_scene
+	if scene != null:
+		var wr: Node = scene.get_node_or_null("WorldRoot")
+		if wr is Node3D:
+			return wr
+	return scene as Node3D
+
+
 func _on_room_opened(instance_id: String, room) -> void:
 	if room.has_signal("bout_return_requested") and not room.bout_return_requested.is_connected(_on_return_map):
 		room.bout_return_requested.connect(_on_return_map)
@@ -58,6 +73,12 @@ func _teleport_team(team_ids: Array, team_index: int, spawns: Array, instance_id
 		if entity == null or not (entity is Node3D):
 			GameLog.warn("BoutTeleportService: no live node for %s (assembly %s); scene flow owns the swap" % [pid, instance_id])
 			continue
+		# S12: the RENDER SCOPE follows the body. Reparent into the
+		# room root + planar_mode (ScopeService), position inside it.
+		var room = _room_by_id(instance_id)
+		var scope = _scope_service()
+		if room != null and scope != null:
+			scope.enter_room_scope(pid, room)
 		(entity as Node3D).global_position = Contract.scatter_spawn(center, i)
 		_toast(pid, "The stone carries you. Fight well.", "bout_in:%s:%s" % [pid, instance_id])
 
@@ -73,6 +94,11 @@ func _on_return_map(return_map: Dictionary) -> void:
 		if entity == null or not (entity is Node3D):
 			GameLog.warn("BoutTeleportService: no live node for %s (return); scene flow owns the swap" % pid)
 			continue
+		# S12: leave the render scope BEFORE the world move (radial math
+		# resumes at the globe coordinates of the origin stone).
+		var scope = _scope_service()
+		if scope != null and scope.scope_of(pid) != "globe":
+			scope.exit_to_globe(pid, _globe_root())
 		(entity as Node3D).global_position = pos
 		_toast(pid, "The bout is over. The stone takes you back.", "bout_home:%s" % pid)
 
@@ -94,6 +120,17 @@ func _entity(pid: String):
 	if EntityService == null:
 		return null
 	return EntityService.get_entity(pid)
+
+
+func _room_by_id(instance_id: String):
+	var rs = get_node_or_null("/root/ArenaRoomService")
+	if rs == null:
+		return null
+	return rs.room_by_id(instance_id)
+
+
+func _scope_service():
+	return get_node_or_null("/root/ScopeService")
 
 
 func _toast(player_id: String, message: String, dedupe_key: String) -> void:

@@ -559,6 +559,25 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S12 scene swap + spectate SHIPPED (2026-09-28): ScopeService
+  autoload (enter_room_scope / exit_to_globe / enter_spectate_scope;
+  reparent + planar_mode flip; pre-swap parent remembered as escape
+  hatch; room-closed net RESCUES players from freed rooms -- the
+  regression caught the trial probe dying on 'previously freed')
+  + globe_player.planar_mode (radial math yields to planar contract
+  in-room; globe path verbatim when off; + entity_id field) +
+  LobbyService.request_spectate (friend/party allowed with reason,
+  stranger refused) + ArenaInstance.spectators book +
+  BoutTeleportService drives both swaps (assembly reparents before
+  positioning; return exits scope before the world move).
+  ZoneManager zone-entry log de-crashed for bodies without
+  display_name (get() guard, not direct access). probe_scene_swap
+  14/14 in DEFAULT_SET: reparent/flag both ways, planar gravity,
+  permission matrix, spectator exclusions, rescue net. Lessons:
+  the scope swap MUST rescue on room close or queue_free'd rooms
+  free reparented players (regression caught it solo probes
+  missed); Node.get on a missing property returns null and
+  bool(null) throws in 4.7.2 -- compare == true instead.
 - [x] S12 dungeon front door SHIPPED (2026-09-28): InstanceService
   zone_kind (bout/dungeon/open; discriminator = horde_config_id
   because ELIMINATION is instance_mode 0 -- mode cannot separate

@@ -625,6 +625,33 @@ func party_leader_id(party_id: String) -> String:
 	return str(party.get("leader_id", ""))
 
 
+## ---- Spectate permissions (owner point: spectate needs a model) ----
+
+## Who may spectate whom. Default policy (locked shape, tweakable
+## later without call-site changes):
+##   - a FRIEND of any fighter: allowed
+##   - same PARTY as any fighter: allowed
+##   - GM/admin: allowed (PermissionManager path lands with the panel)
+##   - everyone else: refused (no public casting of private bouts)
+## Returns {"ok": bool, "reason": String}.
+func request_spectate(spectator_id: String, fighter_ids: Array) -> Dictionary:
+	if fighter_ids.is_empty():
+		return {"ok": false, "reason": "no_fighters"}
+	var fs = _friends_service()
+	if fs != null and fs.has_method("is_friend"):
+		for fid in fighter_ids:
+			if bool(fs.is_friend(spectator_id, str(fid))):
+				return {"ok": true, "reason": "friend"}
+	if PartyService != null:
+		var my_party: Dictionary = PartyService.get_player_party(spectator_id)
+		var my_id: String = str(my_party.get("id", ""))
+		if my_id != "":
+			for fid in fighter_ids:
+				if PartyService.get_player_party(str(fid)).get("id", "") == my_id:
+					return {"ok": true, "reason": "party"}
+	return {"ok": false, "reason": "not_friend_or_party"}
+
+
 func _room_service():
 	var ml := Engine.get_main_loop()
 	if ml == null or not (ml is SceneTree):

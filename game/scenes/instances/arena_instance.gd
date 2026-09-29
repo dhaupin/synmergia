@@ -47,6 +47,10 @@ var origin_stones: Dictionary = {}  # fighter_id -> Vector3
 var _levels: Dictionary = {}  # fighter_id -> int
 # S12: trial bout flag -- dummies + AFK sweep exemption + no ring out.
 var _trial: bool = false
+# S12: spectators in scope (permission-checked by the caller --
+# LobbyService.request_spectate). They are cameras, never fighters:
+# no seat, no streaks, no payout, no return map.
+var spectators: Array = []
 # S12 hardening: bouts are FINITE. The AFK sweep is exempt in trials,
 # so the time limit does the capping there; everywhere else it is the
 # backstop against squatters eating instance runtime (owner point 1).
@@ -327,6 +331,7 @@ func _end_bout(winner_team: int) -> void:
 		return_map[fid] = origin_stones.get(fid, _spawn_for_team(0))
 	bout_ended.emit(winner_team, stats)
 	bout_return_requested.emit(return_map)
+	spectators.clear()
 
 # ---- Inspection surface (probe + future UI) -------------------------
 
@@ -335,6 +340,15 @@ func _room_service():
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null("ArenaRoomService")
+
+## Spectator bookkeeping (ScopeService drives the scope swap; the
+## room records who watches for the permission + exclusion paths).
+func add_spectator(spectator_id: String) -> void:
+	if not spectators.has(spectator_id):
+		spectators.append(spectator_id)
+
+func remove_spectator(spectator_id: String) -> void:
+	spectators.erase(spectator_id)
 
 ## Lobby/fight code pokes this on any self-driven action (attack,
 ## skill, move intent) so the AFK sweep sees life. Cheap on purpose.

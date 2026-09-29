@@ -107,6 +107,7 @@ ArenaCombatBridge="*res://core/services/arena_combat_bridge.gd"
 BoutTeleportService="*res://core/services/bout_teleport_service.gd"
 BoutHostService="*res://core/services/bout_host_service.gd"
 RecentPlayersService="*res://core/services/recent_players_service.gd"
+ScopeService="*res://core/services/scope_service.gd"
 
 [display]
 

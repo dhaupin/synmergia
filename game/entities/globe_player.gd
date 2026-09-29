@@ -29,6 +29,10 @@ const SKIN: float = 1.0
 
 ## Radius of the sphere this player stands on (set by the globe scene).
 var planet_radius: float = 100.0
+## S12: the entity/book id this body belongs to (ScopeService resolves
+## the local player's node by it; harmless on scripts that never join
+## an instance).
+var entity_id: String = ""
 ## S8: world-space position of the PLANET CENTER. The scene keeps the
 ## PLAYER near the world origin (floating origin); the planet moves.
 ## All radial quantities derive from (global_position - planet_center).
@@ -71,7 +75,35 @@ func planet_distance() -> float:
 	return (global_position - planet_center).length()
 
 
+## S12 scene swap: when true the player renders inside a PLANAR
+## instance room (the InstanceContract), so radial math yields to the
+## planar gravity + world-up contract. Set by ScopeService on swap;
+## never touches the globe path when false (locked decision 3 holds:
+## instances never change the globe's radial ground).
+var planar_mode: bool = false
+
 func _physics_process(delta: float) -> void:
+	if planar_mode:
+		# Planar contract: -Y at InstanceContract.GRAVITY_FORCE, world up.
+		up_direction = Vector3.UP
+		var horizontal: Vector3 = velocity - Vector3.UP * velocity.dot(Vector3.UP)
+		var vertical: Vector3 = velocity - horizontal
+		var input_vec := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		var cam_dir: Vector3 = -global_transform.basis.z
+		cam_dir.y = 0.0
+		cam_dir = cam_dir.normalized() if cam_dir.length_squared() > 0.0001 else Vector3.FORWARD
+		var right: Vector3 = cam_dir.cross(Vector3.UP).normalized()
+		var wish: Vector3 = (cam_dir * -input_vec.y + right * input_vec.x)
+		if wish.length() > 1.0:
+			wish = wish.normalized()
+		if wish.length_squared() > 0.0001:
+			horizontal = horizontal.move_toward(wish * walk_speed, walk_speed * 8.0 * delta)
+		else:
+			horizontal = horizontal.move_toward(Vector3.ZERO, walk_speed * 10.0 * delta)
+		vertical -= Vector3.DOWN * gravity_force * delta
+		velocity = horizontal + vertical
+		move_and_slide()
+		return
 	var up: Vector3 = planet_up()
 	_surface_normal = up
 	up_direction = up

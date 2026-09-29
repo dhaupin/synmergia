@@ -82,6 +82,40 @@ must be ALIGNED because both are instances on one lobby:
   players privacy option ("hide me from recent lists"); dungeon/
   raid loot-mode griefing rules when they share the lobby.
 
+## Scene swap + spectate (SHIPPED 2026-09-28)
+
+The swap is a SCOPE SWAP, not a scene reload: the player node
+reparents between scopes and one flag flips. Both gravity truths
+stay load-bearing.
+
+- **ScopeService** (autoload): enter_room_scope (reparent under the
+  room root + planar_mode on), exit_to_globe (back + planar_mode
+  off, radial math resumes verbatim), enter_spectate_scope (same
+  room, spectate scope string). The pre-swap parent is remembered
+  as an ESCAPE hatch: the room-closed safety net physically
+  rescues players from a queue_free'd room (a freed room must
+  never take the player with it -- this was the crash the
+  regression caught). Registry: "globe" | "bout:<id>" |
+  "spectate:<id>".
+- **globe_player.planar_mode**: inside a room, radial math yields
+  to the planar contract (world-up, -Y at GRAVITY_FORCE, camera-
+  relative move intent). Locked decision 3 still holds: the globe
+  path is untouched when the flag is off. globe_player also gained
+  an entity_id (ScopeService resolves the local body by it).
+- **Spectate permissions** (LobbyService.request_spectate): friend
+  of a fighter -> allowed (reason: friend); same party -> allowed
+  (reason: party); everyone else refused -- no public casting of
+  private bouts. ArenaInstance.spectators is the room book; the
+  return map and payout/streak/recent paths carry fighters only.
+- **BoutTeleportService drives the swaps**: assembly reparents the
+  team into the room scope before positioning; the return map
+  exits the scope before the world move. ZoneManager's zone-entry
+  debug log no longer crashes on bodies without display_name.
+
+probe_scene_swap 14/14 (DEFAULT_SET): reparent + flag flips both
+ways, planar gravity math, permission matrix (friend/party/
+stranger/none), spectator room book, room-close rescue.
+
 ## Implementation order (when we pick this up)
 
 **STATUS 2026-09-28 (next session): items 1, 2 (partial), 4 SHIPPED.**

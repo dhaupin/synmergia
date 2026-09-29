@@ -474,7 +474,8 @@ func entity_enter_zone(entity, zone) -> bool:
 	# Check entry requirements
 	if not zone.can_enter(entity):
 		_entry_denied_at[entity.entity_id] = now_ms
-		GameLog.debug("ZoneManager: %s cannot enter zone %s" % [entity.display_name, zone.id])
+		GameLog.debug("ZoneManager: %s cannot enter zone %s" % \
+			[str(entity.get("display_name")) if entity.get("display_name") != null else "entity", zone.id])
 		return false
 	_entry_denied_at.erase(entity.entity_id)
 
