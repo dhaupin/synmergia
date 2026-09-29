@@ -33,6 +33,10 @@ const DEFAULT_ACCOUNT_SETTINGS: Dictionary = {
 	"auto_accept_guild_invites": false,
 	"friend_on_whisper": false,
 
+	# Glider (S12): "auto" pops the wing above the height gate; "manual"
+	# requires pressing jump again mid-fall (owner decision).
+	"glider_deployment": "auto",
+
 	# Graphics
 	"graphics_quality": 2,  # 0=Low, 1=Medium, 2=High, 3=Ultra
 	"vsync_enabled": true,

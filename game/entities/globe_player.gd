@@ -66,6 +66,13 @@ var _ride_lift: float = 0.0
 
 
 ## Radial direction from the planet center to this body (local up).
+## Anticheat glide-flag helper (defensive resolve; GM/spawn contexts
+## without a limit stamp are no-ops there).
+func _set_ac_gliding(gliding: bool) -> void:
+	var ac = Engine.get_main_loop().root.get_node_or_null("AntiCheatService") if Engine.get_main_loop() is SceneTree else null
+	if ac != null and ac.has_method("set_glide_active"):
+		ac.set_glide_active(entity_id, gliding)
+
 func planet_up() -> Vector3:
 	return (global_position - planet_center).normalized()
 
@@ -81,6 +88,23 @@ func planet_distance() -> float:
 ## never touches the globe path when false (locked decision 3 holds:
 ## instances never change the globe's radial ground).
 var planar_mode: bool = false
+
+## S12 glider: the state machine lives in the frame primitive; this
+## body feeds it altitude + up and applies its vertical speed. The
+## deployment setting is fed by PlayerConfig ("auto"/"manual").
+var glider = null  # GliderState (load-time assigned; frame primitive)
+var _glide_up: Vector3 = Vector3.UP  # up vector captured per frame
+
+func _ready() -> void:
+	if glider == null:
+		glider = load("res://core/frame/srv/glider_state.gd").new()
+	# Deployment setting: runtime resolve (script-mode/check-only has
+	# no autoloads mounted).
+	var pc = Engine.get_main_loop().root.get_node_or_null("PlayerConfig") if Engine.get_main_loop() is SceneTree else null
+	if pc != null:
+		var mode = pc.get_account_setting("glider_deployment", "auto")
+		if mode != null:
+			glider.deployment_mode = str(mode)
 
 func _physics_process(delta: float) -> void:
 	if planar_mode:
@@ -128,6 +152,33 @@ func _physics_process(delta: float) -> void:
 
 	var horizontal: Vector3 = velocity - up * velocity.dot(up)
 	var vertical: Vector3 = velocity - horizontal
+
+	# S12 glider: feed the state machine (altitude above the surface,
+	# no thermal model on the globe yet -- thermal zones land later),
+	# then apply its vertical speed instead of raw gravity.
+	if glider != null:
+		var altitude: float = global_position.distance_to(planet_center) - planet_radius - ground_offset
+		var gstate: int = glider.tick(delta, maxf(altitude, 0.0), 0.0)
+		if gstate == glider.State.GLIDING:
+			_glide_up = up
+			var ac = Engine.get_main_loop().root.get_node_or_null("AntiCheatService") if Engine.get_main_loop() is SceneTree else null
+			if ac != null and ac.has_method("set_glide_active"):
+				ac.set_glide_active(entity_id, true)
+			var sink: Vector3 = up * glider.glide_vertical_speed(0.0)
+			var glide_wish: Vector3 = wish if wish.length_squared() > 0.0001 \
+				else (north if true else Vector3.ZERO)
+			var forward: Vector3 = (glide_wish.normalized() if glide_wish.length_squared() > 0.0001 else -up.cross(Vector3(0, 0, 1)).normalized()) \
+				* glider.glide_forward_speed(0.0)
+			horizontal = horizontal.move_toward(forward, walk_speed * 4.0 * delta)
+			vertical = vertical.move_toward(-sink + up * 0.0, gravity_force * 2.0 * delta)
+			velocity = horizontal + vertical
+			move_and_slide()
+			return
+		if is_on_floor():
+			glider.on_grounded()
+			_set_ac_gliding(false)
+		elif vertical.dot(up) < 0.0 or wish.length_squared() > 0.0001:
+			glider.on_airborne()
 
 	# Accelerate along the tangent plane, gravity toward the center.
 	if wish.length_squared() > 0.0001:

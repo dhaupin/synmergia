@@ -559,6 +559,24 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S12 real glider mechanic SHIPPED (2026-09-28): GliderState
+  frame primitive (game/core/frame/srv/glider_state.gd + co-located
+  test 14/14): GROUNDED/FALLING/GLIDING/STOWED_FALL; deploy gate
+  6 m, auto vs manual (jump-again, 4 s grace, PlayerConfig
+  "glider_deployment" account setting), stow mid-air; glide model
+  4.5 m/s sink / 7-16 m/s by dive pitch / thermal lift to 3 m/s.
+  All-realms: the same primitive drives the radial globe body
+  (altitude above local surface, integrated in _physics_process
+  with glide vertical/horizontal move_toward) and planar rooms
+  (ROYALE drop). Anticheat set_glide_active swap wired in the
+  glide branch + cleared on landing. MOUNT_DISMOUNT_ON_FALL: the
+  mount bails, the rider keeps the fall (rule decided once in the
+  primitive; implementation rides the mount system when it lands).
+  probe_glider 9/9 in DEFAULT_SET; regression 37/37; lint EXIT 0.
+  Lessons: --check-only has no autoloads (resolve PlayerConfig/
+  AntiCheatService at runtime via Engine.get_main_loop); the
+  headless probe cannot run the physics loop -- verify the math
+  the body executes (settle-loop pattern), not the loop.
 - [x] S12 scene swap + spectate SHIPPED (2026-09-28): ScopeService
   autoload (enter_room_scope / exit_to_globe / enter_spectate_scope;
   reparent + planar_mode flip; pre-swap parent remembered as escape

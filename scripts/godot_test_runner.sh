@@ -55,6 +55,7 @@ probe_recent_players
 probe_social_presence
 probe_dungeon_front_door
 probe_scene_swap
+probe_glider
 globe_driver
 probe_ancient_loop
 probe_blacksmith_model

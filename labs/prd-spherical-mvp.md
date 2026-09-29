@@ -457,10 +457,36 @@ Zelda-BotW style. Groundwork SHIPPED ahead of the zone going live:
 - Anticheat: GLIDE_MAX_SPEED 24 + GLIDE_MAX_FALL 14; set_glide_active
   swaps the speed/fall maxima while a wing is deployed (jump stays
   profile-bound); world limits restore on stow.
-Open items for the Royale season: real glider mechanic (deploy/stow
-input, thermal model, stamina, BotW-style open-world use), glider
-models/art, bounds-shrink pacing, drop AI for the marshal's bout,
-per-zone glide profile overrides.
+### Real glider mechanic (SHIPPED 2026-09-28)
+
+- **GliderState** (game/core/frame/srv/glider_state.gd, frame
+  primitive + co-located test): realm-agnostic state machine --
+  GROUNDED / FALLING / GLIDING / STOWED_FALL. Deploy gate 6 m;
+  auto mode pops the wing above the gate, manual mode opens it on
+  jump-again mid-fall (4 s grace); stow mid-air resumes the fall.
+  Glide model: 4.5 m/s sink, 7-16 m/s forward by dive pitch,
+  thermal lift up to 3 m/s (floats, never launches).
+- **All realms/zones** (owner requirement): the SAME primitive
+  drives the radial globe body (altitude = height above the local
+  surface) and planar room bodies (the ROYALE drop already scatters
+  fighters into the sky -- the glide steering is this machine).
+- **Player setting**: PlayerConfig "glider_deployment" (auto|
+  manual), account-level.
+- **Anticheat**: set_glide_active swaps the speed/fall maxima while
+  the wing is out; world bounds restore on landing (S11.5
+  groundwork)
+- **The mount cliff answer** (owner question, decided once):
+  MOUNT_DISMOUNT_ON_FALL -- the mount BAILS. The rider dismounts
+  into freefall (glider usable from there); the mount returns to
+  its whistle instead of falling. Implementation rides the
+  mount-riding system when it lands.
+- probe_glider 9/9 + test_glider_state 14/14 (probe in
+  DEFAULT_SET; regression 37/37). Open: thermal zone data, stamina
+  cost, glider models/art, per-zone glide overrides.
+
+Open items for the Royale season: glider models/art, bounds-shrink
+pacing, drop AI for the marshal's bout, per-zone glide profile
+overrides.
 - [x] Spawn-shield combat enforcement (fire-and-you-lose-it): the
       combat bridge calls ArenaFighter.break_shield() on any
       SELF-INITIATED action (attack, skill cast, potion, self-buff);
