@@ -2,6 +2,16 @@
 ## Generic content-hash tree substrate.
 extends RefCounted
 
+## The FoldedShell (first consumer, the owner's storage mechanism):
+## payloads are stored as content-hash cells on the folded shell, so
+## identical state blocks pay ONCE no matter how many paths hold them
+## (the intersection rebate, prd-industry-labs T3-at-scale). The tree
+## keeps only the node record (path, hash, schema); the payload VALUE
+## lives in the shell. Plain RefCounted payloads are the common case;
+## Resource payloads fall back to inline storage (duplicate() is
+## id-entity, not content, for Objects).
+const FOLDED_SHELL = preload("res://core/frame/kv/folded_shell.gd")
+
 var _nodes: Dictionary = {}
 var _snapshots: Dictionary = {}
 var _schema_refs_by_root: Dictionary = {}
@@ -10,10 +20,41 @@ var _current_root: PackedByteArray = PackedByteArray()
 ## Reusable HashingContext to avoid allocation churn.
 var _hashing_context: HashingContext = HashingContext.new()
 
+## The shell behind _cells: one store, many claimant paths. Space
+## "t3" holds every distinct payload this tree has ever stored; a
+## rebased path re-claims its content instead of re-paying.
+var _shell: FOLDED_SHELL = null
+
+## Measurement: how many payload stores were ATTEMPTED (a no-dedup
+## tree would have paid every one of them). Distinct cells actually
+## stored is shell.space_size("t3") -- the difference is the rebate,
+## see savings_ratio().
+var _stores_attempted: int = 0
+
 
 func _init() -> void:
+	_shell = FOLDED_SHELL.new(256)
+	_shell.ensure_space("t3")
 	_current_root = _sha256(PackedByteArray())
 	_record_snapshot()
+
+
+## The shell measurement surface (cells, rebate, evictions). Frame
+## rule: stress is MEASURED, not feared. read-only shell accessor.
+func shell() -> FOLDED_SHELL:
+	return _shell
+
+
+## How much dedup saved at scale: (stores a no-dedup tree would have
+## paid) minus (distinct cells actually stored), as a ratio of the
+## no-dedup baseline. 0.0 = no duplicates; approaches 1.0 when most
+## writes are repeats (the T3-at-scale thesis: N entities sharing K
+## distinct states pay K, not N).
+func savings_ratio() -> float:
+	var distinct := _shell.space_size("t3")
+	if _stores_attempted == 0 or distinct == 0:
+		return 0.0
+	return clampf(1.0 - float(distinct) / float(_stores_attempted), 0.0, 1.0)
 
 
 ## Inserts or replaces a node and returns its 32-byte content hash.
@@ -35,7 +76,7 @@ func insert(path: String, value: Variant, schema: Resource) -> PackedByteArray:
 		"value_bytes": value_bytes,
 		"schema_ref": schema,
 		"schema_id": schema_id,
-		"value": value
+		"cell": _store_value(value, value_bytes)
 	}
 	_nodes[normalized_path] = node
 	_current_root = _root_hash(_nodes)
@@ -76,7 +117,7 @@ func insert_batch(entries: Array) -> Array:
 			"value_bytes": value_bytes,
 			"schema_ref": schema,
 			"schema_id": schema_id,
-			"value": value
+			"cell": _store_value(value, value_bytes)
 		}
 		_nodes[normalized_path] = node
 		results.append([normalized_path, node_hash])
@@ -93,9 +134,12 @@ func get_at(path: StringName) -> Variant:
 	var node = _nodes.get(normalized_path)
 	if node == null:
 		return null
-	if node.has("value"):
-		return node.get("value")
-	return bytes_to_var(node.get("value_bytes"))
+	# Cell-resident payload: the value lives in the shell (T3 content
+	# is immutable, so a shared cell is always the right value).
+	var rec: Variant = _shell.get_value(node.get("cell"))
+	if rec is Dictionary and rec.has("inline"):
+		return rec["inline"]
+	return rec
 
 
 ## Deletes one node and returns whether the node existed.
@@ -185,6 +229,10 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 	if base_value == null:
 		return root
 
+	# apply_diff re-bases nodes from DIFF bytes (which carry no cell
+	# keys); shell cells from the base tree are simply re-claimed by
+	# the rebased node records below (the rebate re-claims, never
+	# re-pays).
 	var result: Dictionary = _clone_nodes(base_value)
 	for entry_value in diff:
 		if not entry_value is Array:
@@ -201,6 +249,10 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 			result.erase(node_path)
 			continue
 
+		# The diff carries value BYTES (transport format); the rebased
+		# node re-claims its content cell through the shell -- the
+		# rebate means a content already in the tree is claimed, not
+		# re-paid (apply_diff = rebasing pointers, not re-storing).
 		var value_bytes: Variant = entry[3]
 		var old_node: Variant = base_value.get(node_path)
 		if value_bytes == null:
@@ -208,6 +260,8 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 				value_bytes = old_node.get("value_bytes")
 			else:
 				value_bytes = PackedByteArray()
+		var byte_arr: PackedByteArray = value_bytes
+		var rebased_value: Variant = bytes_to_var(byte_arr)
 
 		var schema_ref: Resource = _schema_for_root(root, node_path)
 		if schema_ref == null and old_node != null:
@@ -217,14 +271,13 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 		if schema_ref == null:
 			schema_ref = Resource.new()
 
-		var value: Variant = bytes_to_var(value_bytes)
 		result[node_path] = {
 			"path": node_path,
 			"hash": new_hash,
-			"value_bytes": value_bytes,
+			"value_bytes": byte_arr,
 			"schema_ref": schema_ref,
 			"schema_id": _schema_id(schema_ref),
-			"value": value
+			"cell": _store_value(rebased_value, byte_arr)
 		}
 
 	_nodes = _clone_nodes(result)
@@ -257,6 +310,22 @@ func get_full_scope_snapshot(scope_path: String) -> Array:
 	return snapshot
 
 
+## Store a payload as a content-hash cell on the shell; returns the
+## cell hash key. Plain payloads (Dictionary/Array/String/numbers/
+## bool -- var_to_bytes is content-identity for them) go through the
+## rebate: the same content stored again re-claims the existing cell
+## and pays nothing. Resources are stored inline on their own cell
+## (their content hash is the NODE hash, not a resource identity).
+func _store_value(value: Variant, value_bytes: PackedByteArray) -> String:
+	var content_hash := value_bytes.hex_encode()
+	if value is Resource:
+		_shell.put("t3", 0, content_hash, {"inline": value})
+	else:
+		_shell.put("t3", 0, content_hash, value)
+	_stores_attempted += 1
+	return content_hash
+
+
 ## Walks nodes under scope_path in deterministic depth-first pre-order.
 func walk(scope_path: String, callback: Callable) -> void:
 	var scope := _normalize_path(scope_path)
@@ -272,9 +341,10 @@ func walk(scope_path: String, callback: Callable) -> void:
 
 	for node_path in paths:
 		var node: Dictionary = _nodes[node_path]
-		var value: Variant = node.get("value")
-		if not node.has("value"):
-			value = bytes_to_var(node.get("value_bytes"))
+		var rec: Variant = _shell.get_value(node.get("cell"))
+		var value: Variant = rec
+		if rec is Dictionary and rec.has("inline"):
+			value = rec["inline"]
 		if not callback.is_valid():
 			push_error("T3.walk: callback became invalid")
 			continue
@@ -402,11 +472,16 @@ func _root_key(root: PackedByteArray) -> String:
 	return root.hex_encode()
 
 
-## Clears all internal state: nodes, snapshots, and schema refs.
+## Clears all internal state: nodes, snapshots, schema refs, and the
+## shell's tree space ("t3" -- release_space orphans only the cells
+## this tree uniquely claimed; shared content survives, which is the
+## intersection-aware removal law).
 ## Call this before dropping the last reference to allow GC.
 func clear() -> void:
 	_nodes.clear()
 	_snapshots.clear()
 	_schema_refs_by_root.clear()
+	_shell.release_space("t3")
+	_stores_attempted = 0
 	_current_root = _sha256(PackedByteArray())
 	_record_snapshot()
