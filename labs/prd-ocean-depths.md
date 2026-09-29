@@ -188,6 +188,38 @@ Vehicles reuse the bout physics contract: PLANAR deck gravity,
 radial world outside -- a ferry is a small instance that happens
 to move.
 
+### The ferry honesty law (owner question, 2026-09-29: "are they
+real time, like you ride them, or like a gate?")
+
+**Both, honestly labeled.** Three crossing tiers on one route:
+
+1. **The real ferry (ride it).** A server-owned vessel on a
+   schedule: a deck scope riding a path (the bout physics
+   contract -- planar deck, radial world). The crossing is REAL
+   TIME and that is the point: the Sundered Sea crossing is ~8
+   minutes at ferry speed, and those minutes are CONTENT -- other
+   passengers, the oPvP window, the sky changing overhead (the
+   Concord clock makes the ride's sky a function of when you
+   sail). Fitted with benches (seats), the crew lore, and the
+   wake. The ferry is not a loading screen; it is a moving room.
+2. **The chartered skiff (fast, priced).** For players who have
+   crossed before: an NPC-piloted small boat that rides the same
+   path at ~2.5x speed (~3 minutes), ticket-priced (the gold
+   sink). Still real time -- you see the crossing go by -- but you
+   are not socializing it.
+3. **The established wake (the gate tier).** Once a ferry route
+   has run N crossings (or a player has ridden it M times), the
+   route's PORTS unlock a warp option at the dock: "the wake is
+   known." This is the honest teleport: you are paying (gold or
+   the ride history) for ROUTINE. First crossings are never
+   skippable -- the world makes you ride the sea at least once.
+
+This mirrors the Concord's own law: the sky is a clock you can
+read, so a scheduled boat is trustworthy -- and the almanac gets a
+sailing page (when the next ferry leaves) exactly like the moon
+page. Rivers later reuse the current data + the same three tiers
+at smaller scale (rowboat ferry across a river bend).
+
 ## 10. Implementation Order
 
 | Slice | Content | Gate |

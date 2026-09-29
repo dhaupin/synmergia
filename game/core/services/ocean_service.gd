@@ -31,6 +31,7 @@
 extends Node
 
 const OceanVolumeScript = preload("res://core/schemas/ocean_volume.gd")
+const SwimStateScript = preload("res://core/frame/srv/swim_state.gd")
 
 ## The grace band before pressure ramps (prd sec 4), which breathers
 ## extend (S14.4). Lives here so schema and probes read one number.
@@ -186,6 +187,51 @@ func current_at(pos: Vector3) -> Vector3:
 	if v == null:
 		return Vector3.ZERO
 	return v.current_vector()
+
+
+## ---- S14.2: the swim driver -------------------------------------------------
+
+## Per-body swim state (the below-the-waterline twin of the glider
+## book). Bodies without a book never tick water physics.
+var _swimmers: Dictionary = {}   # body_id -> SwimState
+
+
+## Tick one body's water truth: reads the sampler and the volume's
+## declared bands, drives the body's SwimState (breath, pressure,
+## drowning), and returns {state, depth, band, current, breath,
+## pressure, drowning_s} -- everything the body's physics, the HUD,
+## and the anticheat need, from ONE call. A body in no volume reads
+## DRY with no clocks.
+func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m: float = 0.0) -> Dictionary:
+	ensure_loaded()
+	var v = volume_at(pos)
+	var depth: float = sample_depth(pos, v)
+	var s = _swimmers.get(body_id)
+	if s == null:
+		s = SwimStateScript.new()
+		_swimmers[body_id] = s
+	if v == null:
+		s.tick(delta, depth if depth < 0.0 else -1.0, 1.0, 1.0, 0.0, breather_grace_m)
+		return {"state": s.state, "depth": depth, "band": OceanVolumeScript.DepthBand.DRY, \
+			"current": Vector3.ZERO, "breath": s.breath, "pressure": s.pressure, "drowning_s": s.drowning_s}
+	var squeeze_line: float = float(v.max_depth) - OceanVolumeScript.NATURAL_PRESSURE_FREE_M
+	if squeeze_line < 0.0:
+		squeeze_line = float(v.max_depth)
+	var state: int = s.tick(delta, depth, squeeze_line, float(v.max_depth), \
+		float(v.pressure_per_meter), breather_grace_m)
+	return {"state": state, "depth": depth, "band": v.band_for(depth, breather_grace_m), \
+		"current": v.current_vector(), "breath": s.breath, "pressure": s.pressure, \
+		"drowning_s": s.drowning_s}
+
+
+## A body's swim state (null when it never swam).
+func swim_state(body_id: String):
+	return _swimmers.get(body_id)
+
+
+## Forget a body (logout, death -- the book never holds the dead).
+func forget_swimmer(body_id: String) -> void:
+	_swimmers.erase(body_id)
 
 
 func _default_center() -> Vector3:

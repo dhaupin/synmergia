@@ -127,8 +127,14 @@ func _run() -> void:
 	# older than a day (it has history), younger than ten years (young).
 	_check("the universe is young (its code is its fossil record)", \
 		age_now > 1.0 * 86400.0 and age_now < 10.0 * 365.25 * 86400.0)
-	var r0: float = WR.observable_radius_m(origin, svc.sky_epoch_days(), universe_t.light_speed_m_s)
-	var r1: float = WR.observable_radius_m(origin, svc.sky_epoch_days() + 1.0, universe_t.light_speed_m_s)
+	# The two epochs must be sampled through ONE clock read: taking
+	# sky_epoch_days() twice can straddle a wall-clock second under
+	# runner load (two reads 1 s apart shift the +1.0 day baseline by
+	# ~1e-6 relative -- inside float64 but outside a 1e-9 tolerance).
+	# One read, two pure evaluations: the theorem is load-proof.
+	var epoch_i: float = svc.sky_epoch_days()
+	var r0: float = WR.observable_radius_m(origin, epoch_i, universe_t.light_speed_m_s)
+	var r1: float = WR.observable_radius_m(origin, epoch_i + 1.0, universe_t.light_speed_m_s)
 	# Relative tolerance: at horizon magnitudes (~2e15 m) an absolute
 	# 1 m bound is below float64 resolution -- the honest check is the
 	# GROWTH RATE, not the meter count.
