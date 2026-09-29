@@ -381,6 +381,76 @@ func _run() -> void:
 				disc != null and disc.visible and (disc.position as Vector3).length() > 7000.0)
 			sky.queue_free()
 
+	# ---- I. Transfer windows at the gate (S16.5) ----------------------------
+	# The window law layers onto the entry law: entry first (does the
+	# way exist), window second (does the sky agree), hatch bypasses
+	# both (dev work does not wait for the moon). The math is pure,
+	# so the probe computes the exact alignment epoch and time-travels
+	# the Concord clock to both sides of it.
+	var svc2 = root.get_node_or_null("SignService")
+	_check("SignService present for the window law", svc2 != null)
+	if svc2 != null and GateScript != null and scope != null:
+		var moon_w2 = reg.get_world("moon")
+		var main_w2 = reg.get_world("main")
+		var P: float = float(moon_w2.orbit_period_days)
+		var phi: float = float(moon_w2.orbit_phase_rad)
+		# window_favorability for a static pivot: |phase distance from
+		# alignment|. The EXACT aligned epoch: a = 0 mod 2pi.
+		var e_align: float = (-phi / TAU) * P
+		while e_align < svc2.sky_epoch_days():
+			e_align += P
+		var gate_win = GateScript.new()
+		gate_win.set("target_world", "moon")
+		root.add_child(gate_win)
+		# Aligned sky: the window is OPEN (entry passes via the hatch
+		# exemption is OFF -- this gate tests the window law alone, so
+		# hatch stays false and DEV_ONLY would refuse first; use the
+		# law state directly: window_status is entry-independent).
+		svc2.set_clock_override(e_align * 86400.0)
+		var win_open: Dictionary = gate_win.window_status()
+		_check("at the alignment epoch the window is OPEN (favorability ~0)", \
+			bool(win_open.get("open")) and float(win_open.get("favorability")) < 0.01)
+		_check("an open window says so in plain words", \
+			str(win_open.get("message")) == "The sky aligns.")
+		# Half a period away: the window is CLOSED and the next window
+		# is named (within the search horizon).
+		svc2.set_clock_override((e_align + P * 0.5) * 86400.0)
+		var win_shut: Dictionary = gate_win.window_status()
+		_check("half a period away the window is SHUT (favorability ~1)", \
+			not bool(win_shut.get("open")) and float(win_shut.get("favorability")) > 0.9)
+		_check("a shut window names the next window", \
+			str(win_shut.get("message")).contains("Next window in"))
+		# The prompt follows the sky -- through a HATCHED gate (the
+		# stone is a chart; the non-hatched gate to a DEV_ONLY world
+		# is sealed at law state 1 and 'Read' means the seal, not
+		# the sky).
+		var gate_dev_win = GateScript.new()
+		gate_dev_win.set("target_world", "moon")
+		gate_dev_win.set("dev_hatch", true)
+		root.add_child(gate_dev_win)
+		svc2.set_clock_override((e_align + P * 0.5) * 86400.0)
+		_check("a hatched stone still SPEAKS an against-sky (charts never lie by omission)", \
+			str(gate_dev_win.get_interaction_prompt()).contains("against the sky"))
+		svc2.set_clock_override(e_align * 86400.0)
+		_check("the prompt reads 'Step through' when the sky aligns", \
+			str(gate_dev_win.get_interaction_prompt()).contains("the sky aligns"))
+		_check("an aligned prompt does not warn of the sky", \
+			not str(gate_dev_win.get_interaction_prompt()).contains("against"))
+		# The hatch bypasses the window law: dev work does not wait.
+		svc2.set_clock_override((e_align + P * 0.5) * 86400.0)
+		var res_dev: Dictionary = gate_dev_win.try_interact(null)
+		_check("the hatch ignores an unfavorable sky (dev does not wait)", \
+			str(res_dev.get("reason")) == "no_scope_path")
+		# The window law at the ENTRY layer: a non-hatched DEV_ONLY
+		# target still refuses SEALED (entry first, window second).
+		svc2.set_clock_override(e_align * 86400.0)
+		var res_sealed: Dictionary = gate_win.try_interact(null)
+		_check("entry law outranks the window (sealed before sky)", \
+			str(res_sealed.get("reason")) == "sealed")
+		svc2.set_clock_override(-1.0)
+		gate_win.queue_free()
+		gate_dev_win.queue_free()
+
 	if _fails == 0:
 		print("WORLD LATTICE PROBE PASSED (%d checks)" % _checks)
 		quit(0)

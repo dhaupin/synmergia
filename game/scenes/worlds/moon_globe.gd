@@ -152,6 +152,12 @@ func _build_landing_gate() -> void:
 	_return_gate.name = "ReturnGate"
 	_return_gate.set("target_world", "main")
 	_return_gate.set("display_name", "Earthward Gate")
+	# The ride home obeys the same sky law (a window opens both ways
+	# -- phase alignment is symmetric in the relation). The return
+	# gate carries the hatch too: the dev crew never gets stranded
+	# behind an unfavorable sky on the moon the dev work lives on.
+	_return_gate.set("window_law", true)
+	_return_gate.set("dev_hatch", true)
 	_return_gate.position = Vector3(3.0, 0.0, 3.0)
 	world_root.add_child(_return_gate)
 	# The main world's root is the boot scene itself; register the

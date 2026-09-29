@@ -29,17 +29,28 @@
 extends Node3D
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const WorldRegistry = preload("res://core/frame/srv/world_registry.gd")
 
 ## The world this gate leads to (data/worlds/<world_<id>>.tres id).
 @export var target_world: String = "moon"
 @export var display_name: String = "Moon Gate"
 
+## The transfer-window law (S16.5): this gate opens only in a
+## FAVORABLE SKY -- the closed-form phase alignment between the
+## origin and destination worlds (WorldRegistry.window_favorability,
+## 0.0 = perfect alignment). Threshold 0.25 = within a quarter of the
+## alignment angle; the almanac page reads the same math, so what the
+## stone says and what the chart says can never disagree.
+@export var window_law: bool = true
+@export var window_threshold: float = 0.25
+
 ## S16.6 dev hatch: THIS gate completes transit to DEV_ONLY worlds
 ## (the dev-target flip -- the moon hosts the dev work so the main
 ## world stays clean). Default false: a default gate is still the
 ## sealed mystery shell (the entry law reads DEV_ONLY as no door).
-## The placed gate in the playable world opts in; probe gates keep
-## proving the sealed law with the default.
+## The hatch also bypasses the window law: dev work does not wait
+## for the sky (and the probe must be able to pin time without the
+## moon's orbit period making windows flaky).
 @export var dev_hatch: bool = false
 
 signal transit_requested(player, world_id: String)
@@ -91,6 +102,27 @@ func _law_state() -> int:
 	return 1
 
 
+## The S16.5 window law: is the sky favorable RIGHT NOW? Pure read
+## of the closed-form phase alignment on the live Concord epoch
+## (override-aware: admin time travel moves the windows). Non-orbit
+## pairs are always favorable (favorability 1.0 fails the check --
+## so the origin/dest pair MUST both be in the lattice and at least
+## one must orbit; a gate to a static pair has no sky to read).
+## Returns {open: bool, favorability: float, message: String}.
+func window_status() -> Dictionary:
+	var origin = _world_of_origin()
+	var dest = _target_data()
+	if origin == null or dest == null:
+		return {"open": false, "favorability": 1.0, "message": "The sky names neither world."}
+	var fav: float = WorldRegistry.window_favorability(origin, dest, _epoch_days())
+	if fav <= window_threshold:
+		return {"open": true, "favorability": fav, "message": "The sky aligns."}
+	var next_e: float = WorldRegistry.next_transfer_window(origin, dest, _epoch_days(), window_threshold)
+	var days_ahead: float = next_e - _epoch_days()
+	return {"open": false, "favorability": fav, "message": \
+		"The sky is against it (%.0f%% aligned). Next window in %.1f days." % [(1.0 - fav) * 100.0, maxf(days_ahead, 0.0)]}
+
+
 ## The target WorldData through ScopeService's lazy registry; falls
 ## back to a direct registry when the autoload is absent (deep
 ## script-mode). Never a hard dependency: the gate is world content,
@@ -116,6 +148,9 @@ func _glow_mat() -> StandardMaterial3D:
 
 ## Player-facing moment: what pressing E does here. Returns
 ## {ok, reason, message} like every other law-gated structure.
+## Law order: ENTRY first (does the way exist at all), then WINDOW
+## (is the sky favorable now). The dev hatch bypasses both -- dev
+## work does not wait for the sky.
 func try_interact(player) -> Dictionary:
 	var world = _target_data()
 	if world == null:
@@ -126,12 +161,20 @@ func try_interact(player) -> Dictionary:
 	# reads as sealed-by-the-sky, not merely locked. The dev hatch is
 	# the S16.6 exception FOR THIS GATE (DEV_ONLY only -- OFFLINE
 	# worlds like the underworld stay doorless for everyone).
-	if not world.is_enterable() and not (dev_hatch and int(world.offline) == 2):
+	var entry_open: bool = world.is_enterable() or (dev_hatch and int(world.offline) == 2)
+	if not entry_open:
 		interact_failed.emit("sealed")
 		var lore: String = str(world.lore).strip_edges()
 		if lore == "":
 			lore = "The stone is older than the words for it."
 		return {"ok": false, "reason": "sealed", "message": "Sealed. %s" % lore}
+	# The window law (S16.5): the way exists; the sky must agree.
+	# The hatch bypasses it (dev work does not wait for the moon).
+	if window_law and not dev_hatch:
+		var win := window_status()
+		if not bool(win.get("open")):
+			interact_failed.emit("unfavorable_sky")
+			return {"ok": false, "reason": "unfavorable_sky", "message": str(win.get("message"))}
 	return _transit(player)
 
 
@@ -234,8 +277,53 @@ func _destination_root() -> Node3D:
 
 func get_interaction_prompt() -> String:
 	if _law_state() == 2:
+		# The window law speaks in the prompt too (the stone is a
+		# chart): favorable = step through; unfavorable = read and
+		# wait (the message carries the next window). The hatch
+		# BYPASSES the window for transit but the stone still SPEAKS
+		# the sky -- a chart that lies by omission is no chart.
+		if window_law:
+			var win := window_status()
+			if bool(win.get("open")):
+				return "[E] Step through the %s (the sky aligns)" % display_name
+			if not dev_hatch:
+				return "[E] Read the %s" % display_name
+			return "[E] Step through the %s (against the sky -- dev)" % display_name
 		return "[E] Step through the %s" % display_name
 	return "[E] Read the %s" % display_name
+
+
+## The gate reads the sky on the Concord epoch (override-aware:
+## admin time travel moves the windows with the calendar -- the
+## one-clock law).
+func _epoch_days() -> float:
+	var svc = get_node_or_null("/root/SignService")
+	if svc != null and svc.has_method("sky_epoch_days"):
+		return svc.sky_epoch_days()
+	return float(Time.get_unix_time_from_system()) / 86400.0
+
+
+## The world the STANDER is on (the window law is a relation between
+## two worlds). Falls back to the main world: the boot world is main
+## and every current route stands there.
+func _world_of_origin():
+	var scope = get_node_or_null("/root/ScopeService")
+	if scope != null and scope.has_method("world_data"):
+		var origin_id: String = "main"
+		var pm = get_node_or_null("/root/PlayerManager")
+		if pm != null:
+			var local = pm.get("local_player")
+			if local != null and is_instance_valid(local) and scope.has_method("world_of"):
+				origin_id = scope.world_of(str(local.get("entity_id")))
+		return scope.world_data(origin_id)
+	# Deep script mode: the main declaration directly.
+	var reg_script: GDScript = load("res://core/frame/srv/world_registry.gd")
+	if reg_script == null:
+		return null
+	if _registry == null:
+		_registry = reg_script.new()
+		_registry.load_worlds()
+	return _registry.get_world("main")
 
 
 ## The moon globe's return gate stands on CONJURED ground: its
