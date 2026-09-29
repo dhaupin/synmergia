@@ -698,11 +698,61 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   feared: LRU hot set with evictions counted, no integration.
   LESSON (the discipline pays): my first slot-base addressing had
   the root's first child = the root's own address (cell 0
-  collision) -- the co-located test caught it before any consumer
-  existed; rebuilt on the classic complete-heap law, provably
-  collision-free. Also: GDScript compares dicts by CONTENT, so
-  never branch on dictionary equality (use ids). Regression 41/0
-  pending re-run with the new entry, lint 36/36.
+  collision) -- the co-located test  caught it before any consumer existed; rebuilt on the classic
+  complete-heap law, provably collision-free. Also: GDScript
+  compares dicts by CONTENT, so never branch on dictionary equality
+  (use ids). Regression 41/0 pending re-run with the new entry,
+  lint 36/36.
+- [x] T3 Dedup at Scale SHIPPED (2026-09-29, owner queue: "square
+  up T3 dedup at scale"): the FIRST FoldedShell consumer. t3.gd
+  node records slimmed to (path, hash, schema, cell); the payload
+  VALUE lives in a content-hash cell on the shell -- identical
+  state blocks pay ONE store, every path re-claims the cell (the
+  rebate in production; savings_ratio() measured, test shows 300
+  stores over 12 distinct states = 12 cells, ~0.96 savings).
+  Content bytes are identity, so dedup CANNOT change tree identity
+  -- the same-root proof is in the co-located test (15 checks,
+  DEFAULT_SET frame/kv/test_t3_dedup): byte-identical rebate,
+  no-false-merge, scale measurement, same-root, diff/apply re-claim
+  (transport unchanged -- only the store changed), Resource
+  fallback (inline cells; Object identity is not content),
+  intersection-aware clear. get_full_scope_snapshot/diff still
+  carry value_bytes, so the wire format and full-boot resync paths
+  are untouched. Lessons: (1) T3 content is IMMUTABLE (the node
+  hash folds the content) which is WHY sharing decoded values
+  across paths is safe -- but only while every consumer treats
+  returned payloads as read-only; the contract test holds that
+  line; (2) rebasing nodes under apply_diff must _store_value again
+  -- diff bytes carry no cell keys; (3) a no-dedup baseline counter
+  must count ATTEMPTED stores, not paid ones (paid == distinct
+  makes the ratio identically zero -- caught it in review).
+- [x] X2 Star Cells SHIPPED (2026-09-29, owner queue: "star cells
+  for X2"): frame/srv/star_cells.gd + co-located test (21 checks,
+  in DEFAULT_SET as frame/srv/test_star_cells). Stars exist because
+  their NSC-9 address says so -- one 32-byte derive_seed(universe,
+  "star:<address>") IS the verdict: top byte high bit = existence,
+  ladder bytes map into the historical O B A F G K M spectral
+  classes with temperature/luminosity/radius, ALL DERIVED (nothing
+  stored that nobody chose; empty addresses return {}). Storage is
+  the FoldedShell: observe_facet walks a facility/axis sequence
+  space (the galaxy tier's hourly EVALUATE exercised for real),
+  stores each found star as a content-hash cell, and every observer
+  (shard / far-gaze / almanac page) is a shell space that RE-CLAIMS
+  the shared sky -- one universe, one sky, many claimants, rebate
+  measured between observers (test: two observers of one facet, one
+  store; different facets ~no intersection). Telescope = address
+  lookup not raycast: telescope_lookup(facility, axis, sequence)
+  deterministic across installs. Ladder closure: the galaxy tier's
+  own anchor (nsc9:0) now evaluates through the primitive, and the
+  test reads c + H0 off the universe tier -- the reservations
+  consume. Lessons: (1) NSC-9 has TWO encodings (decimal 14-digit,
+  bit-packed uint64) -- decode with the format you encoded with,
+  their decoders do NOT interchange (my own gotcha list, bit me
+  again in test code); (2) shell measurement needed a total
+  distinct-fact accessor -- added fact_count(); (3) empty-seed
+  edge in SeedChain is a real derivation surface: a 32-byte
+  SHA("universe:...") works as an alternate-universe seed for
+  testing "different seed = different sky".
 - [x] The Rest and the Horizon (2026-09-29, owner: "calibration
   state and origin from 3 of the intersecting isos ... we have to
   have an outer limit in synmergia, like irl. If mine doesn't work,

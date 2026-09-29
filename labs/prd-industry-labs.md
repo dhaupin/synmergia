@@ -191,6 +191,8 @@ stored against it.
 | C5 | Adjacent NSC-9 cells share prefixes | test_nsc9_bridge |
 | C6 | Coalesced persistence bounds loss by cadence | COALESCE_WINDOW_MS + per-shard queues in shard_parameters.gd |
 | C7 | T3 shards agree by hash, not by sync | frame/kv state_tree tests |
+| C8 | N entities sharing K distinct states pay K stores, not N | test_t3_dedup (300 stores, 12 cells, savings ~0.96) |
+| C9 | One universe, one sky, many claimants: the star sky is stored once | test_star_cells section E (rebate measured between observers) |
 
 ---
 
@@ -340,6 +342,51 @@ working set with evictions COUNTED, no integration anywhere.
 Consumers reserved: T3 dedup at scale, X2 star cells, ram-bounded
 shard state. The game will be one of the best tests -- as the owner
 said, fist bump.
+
+## 11. The first two consumers (shipped 2026-09-29)
+
+### T3 dedup at scale (the owner's queue item 1)
+
+The FoldedShell now sits UNDER the T3 tree
+(`frame/kv/t3.gd`): node records keep (path, hash, schema); the
+payload VALUE lives in a content-hash cell on the shell. Identical
+state blocks -- the 10,000 wolves all idle at the same waypoint
+state -- pay ONE store and every path re-claims the cell (the
+rebate, in production). Content bytes are the identity, so
+deduplication CANNOT change tree identity: the same-root proof is
+in the test. diff/apply_diff re-base node records and re-claim
+cells -- transport is unchanged, only the store changed. Resources
+fall back to inline cells (Object identity is not content) and
+clear() releases the tree's claim set intersection-aware. Measured:
+300 stores over 12 distinct states pay 12 cells, savings_ratio
+~0.96 (C8). 15 co-located checks.
+
+Law learned while wiring: T3 content is IMMUTABLE (the node hash
+folds the content), so sharing decoded values across paths is safe
+-- but only because every consumer treats the returned value as
+read-only. The day someone mutates a payload in place, the shared
+cell leaks across paths. The contract test (same-root + content
+roundtrip) holds the line.
+
+### Star cells for X2 (the owner's queue item 2)
+
+Stars exist because their NSC-9 address says so
+(`frame/srv/star_cells.gd`, 21 co-located checks). One 32-byte
+`derive_seed(universe, "star:<address>")` IS the star's verdict: the
+top byte's high bit decides existence, the ladder bytes map into
+the historical O B A F G K M classes with temperature/luminosity
+-- all DERIVED, nothing stored that nobody chose. The galaxy tier's
+hourly EVALUATE is a facet walk (`observe_facet`) that stores each
+found star as a content-hash cell on a FoldedShell; a shard, a
+far-gaze, and an almanac page are all just observer spaces that
+RE-CLAIM the shared sky -- one universe, one sky, many claimants,
+the rebate measured between them (C9). A telescope is an address
+lookup, not a raycast: `telescope_lookup(facility, axis, sequence)`
+in, verdict out, deterministic across installs.
+
+Gotcha re-learned at the test seam: NSC-9 has TWO encodings
+(decimal 14-digit and bit-packed uint64) and their decoders do not
+interchange -- decode with the format you encoded with.
 
 -- Buffy, callsign Cairn. The clock is wound. Everything else is
 evaluation.

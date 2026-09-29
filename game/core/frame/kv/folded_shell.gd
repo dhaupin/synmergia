@@ -161,6 +161,13 @@ func fact_cells(content_hash: String) -> Array:
 	return _cell_index.get(content_hash, [])
 
 
+## Distinct facts stored across ALL spaces (the shell's true
+## footprint -- what a no-dedup store of every claim would have paid
+## minus the overlaps). Measurement surface for consumers.
+func fact_count() -> int:
+	return _cells.size()
+
+
 func _index_cell(content_hash: String, cell: int) -> void:
 	if not _cell_index.has(content_hash):
 		_cell_index[content_hash] = []
