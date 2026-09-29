@@ -678,6 +678,26 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] The Rest and the Horizon (2026-09-29, owner: "calibration
+  state and origin from 3 of the intersecting isos ... we have to
+  have an outer limit in synmergia, like irl. If mine doesn't work,
+  what's your idea?"): BOTH landed. THE REST declared on the
+  universe tier (origin_unix = 1789861412 -- THE FIRST COMMIT, the
+  universe began when its code did; rest_frame =
+  "nsc9:trilateral:0+1+2", three facilities at balanced rest --
+  IRL has no center, ours is wound). THE HORIZON derived in
+  world_registry: cosmic_age_s (clamped) and observable_radius_m =
+  age * c -- the light cone AS the outer limit (the edge exists
+  because light has only had time to travel so far; grows at
+  exactly c; nothing observable before the bang). Balance law:
+  centers are CHOSEN, limits are DISCOVERED (Rest without Horizon
+  = prison; Horizon without Rest = drift). probe_calibration grew
+  20 -> 28 checks (age IS now-minus-bang, horizon growth rate,
+  pre-bang clamp, trilateral validity, origin lives only on the
+  universe tier; lessons: date arithmetic bit me twice -- unix
+  1789861412 = 2026-09-19/20 not July, and horizon growth needs a
+  RELATIVE tolerance, absolute meters are below float64 resolution
+  at 2e15). labs sec 9 written. Regression 41/0, lint 36/36.
 - [x] Cosmic constants + the globe typewriter (2026-09-29, owner:
   "yes use the constants ... fold the surface area and intersect our
   isohedrons like those old globe typewriters ... dimensions in

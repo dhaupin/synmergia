@@ -260,5 +260,54 @@ Recorded because it is the X2 mechanism, already half-shipped:
 Not built today -- shown, understood, and reserved: the schematic
 lives here so X2 lands as mechanism, not metaphor.
 
+## 9. The Rest and the Horizon (owner calibration, 2026-09-29)
+
+Owner: "You can get a calibration state and origin from 3 of the
+intersecting [isos] -- a center of the universe, per se, would be the
+state of rest between 3 new isos, balanced gravity and orbit. Play
+God ... we have to have an outer limit in synmergia (like irl). If
+mine doesn't work, what's your idea for balance of the universe?"
+
+Both landed the same day, and they answer different halves of the
+question:
+
+**The Rest (declared -- the owner's).** Three intersecting
+icosahedral facilities in balanced gravity/orbit define the
+reference frame: `rest_frame = "nsc9:trilateral:0+1+2"` on the
+universe tier. IRL has no center -- every observer sits at the
+center of their own light cone, and astronomy anchors the sky to
+conventions (quasars, the CMB dipole, the solar barycenter), never
+a place. Synmergia is allowed better: the center is WOUND, not
+found. Facilities 0, 1, 2 are the trilateral seat; addressing and
+lore hang from it.
+
+**The Horizon (derived -- my answer to "like irl").** IRL's outer
+limit is not a wall; it is the LIGHT CONE: the edge exists because
+light has only had time to travel so far. With c and the origin
+declared, ours is one subtraction:
+
+    cosmic_age_s        = epoch*86400 - origin_unix      (clamped at 0)
+    observable_radius_m = cosmic_age_s * c                (grows at exactly c)
+
+The origin is not invented: it is the FIRST COMMIT of the repo
+(unix 1789861412). The universe began when its code did; git is the
+fossil record. At this writing the universe is about ten days old
+and its horizon grows a light-day per day, forever.
+
+**The balance of the universe, stated as law:** centers are
+CHOSEN, limits are DISCOVERED. A declared Rest without a derived
+Horizon is a prison (walls someone built); a derived Horizon
+without a declared Rest is a drift (no anchor, no address).
+Synmergia takes both: the Rest anchors the galaxy tier's frame
+(parallax, telescope pointing, the X2 carriage home), the Horizon
+bounds everything observable -- fast-forward cannot evaluate past
+the light cone, telescopes see only the lookback they have earned,
+and the edge is never a place you can reach, only a time you can
+wait out.
+
+Consumers reserved, not built: horizon-bounded fast-forward (X3),
+lookback telescopes (X2), and the Rest as the parallax anchor for
+the trilateral facilities.
+
 -- Buffy, callsign Cairn. The clock is wound. Everything else is
 evaluation.

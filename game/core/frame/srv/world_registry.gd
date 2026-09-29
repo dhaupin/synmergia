@@ -213,6 +213,24 @@ static func parent_visible_from(child, epoch: float, local_azimuth: float) -> bo
 	return az.dot(dir) > 0.0
 
 
+## ---- The Horizon (the outer limit, derived: prd-industry-labs sec 9) -------
+
+## Age of the universe at a sky epoch, given the declared origin
+## (calibration_tier.origin_unix -- Synmergia's is the first commit).
+## Negative ages clamp to 0: nothing is observable before the bang.
+## Pure function -- the outer limit is a subtraction, not a wall.
+static func cosmic_age_s(origin_unix: float, epoch_days: float) -> float:
+	return maxf(epoch_days * 86400.0 - origin_unix, 0.0)
+
+
+## The observable-universe radius at an epoch: how far light has
+## traveled since the origin. THE outer limit (like IRL: the edge
+## exists because light has only had time to travel so far). Grows
+## at exactly c -- the probe asserts the growth rate. Pure.
+static func observable_radius_m(origin_unix: float, epoch_days: float, light_speed_m_s: float) -> float:
+	return cosmic_age_s(origin_unix, epoch_days) * light_speed_m_s
+
+
 ## ---- Bytes helper (hex constant -> PackedByteArray) -----------------------
 
 static func _hex_to_bytes(hex: String) -> PackedByteArray:

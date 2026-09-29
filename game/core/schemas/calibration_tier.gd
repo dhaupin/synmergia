@@ -102,6 +102,21 @@ enum AdvanceMode {
 ## universe says so, declared here rather than hard-coded).
 @export var expansion_rate_h0_km_s_mpc: float = 0.0
 
+## The origin: unix seconds of the big bang (0.0 = undeclared).
+## Synmergia's is the FIRST COMMIT of its repo -- the universe began
+## when the first line of its code was written; git is the fossil
+## record. Consumers: cosmic_age_s and the light-cone horizon in
+## world_registry (the outer limit, derived -- nothing stored).
+@export var origin_unix: float = 0.0
+
+## The Rest frame: the declared state of rest (the owner's trilateral
+## calibration -- three intersecting icosahedral facilities define
+## the reference, the way IRL astronomy anchors the sky to fixed
+## quasars + the barycenter). Format: "nsc9:trilateral:<a>+<b>+<c>".
+## DECLARED, not discovered: IRL has no center (every observer sits
+## at the center of their own light cone); ours is wound.
+@export var rest_frame: String = ""
+
 
 ## The tier's natural period (s): tick period for TICK tiers, eval
 ## cadence for EVALUATE tiers. Convenience for schedulers.

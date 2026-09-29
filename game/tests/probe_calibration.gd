@@ -113,6 +113,40 @@ func _run() -> void:
 	_check("system-scale light lag is honestly negligible (< 1 ms)", \
 		lag_s > 0.0 and lag_s < 0.001)
 
+	# ---- I. The Horizon (the outer limit, derived -- owner: "we have
+	# to have an outer limit in synmergia, like irl") -----------------------
+	var WR: GDScript = reg_script
+	var origin: float = universe_t.origin_unix
+	_check("the origin is declared (the first commit)", origin == 1789861412.0)
+	var age_now: float = WR.cosmic_age_s(origin, svc.sky_epoch_days())
+	var age_direct: float = float(Time.get_unix_time_from_system()) - origin
+	_check("cosmic age IS now minus the bang (pure evaluation)", \
+		absf(age_now - age_direct) < 1.0)
+	# t0 = 1789861412 = 2026-09-19/20 (unix 1767225600 = 2026-01-01,
+	# +261.9 days): the universe is DAYS old at this writing. Bounds:
+	# older than a day (it has history), younger than ten years (young).
+	_check("the universe is young (its code is its fossil record)", \
+		age_now > 1.0 * 86400.0 and age_now < 10.0 * 365.25 * 86400.0)
+	var r0: float = WR.observable_radius_m(origin, svc.sky_epoch_days(), universe_t.light_speed_m_s)
+	var r1: float = WR.observable_radius_m(origin, svc.sky_epoch_days() + 1.0, universe_t.light_speed_m_s)
+	# Relative tolerance: at horizon magnitudes (~2e15 m) an absolute
+	# 1 m bound is below float64 resolution -- the honest check is the
+	# GROWTH RATE, not the meter count.
+	_check("the horizon grows at exactly c", \
+		r0 > 0.0 and absf((r1 - r0) / (universe_t.light_speed_m_s * 86400.0) - 1.0) < 0.000000001)
+	_check("nothing is observable before the bang", \
+		WR.cosmic_age_s(origin, float(origin) / 86400.0 - 10.0) == 0.0 \
+		and WR.observable_radius_m(origin, float(origin) / 86400.0 - 10.0, universe_t.light_speed_m_s) == 0.0)
+	_check("the Rest frame is declared (trilateral facilities)", \
+	str(universe_t.rest_frame).begins_with("nsc9:trilateral:"))
+	var rest_facets: PackedStringArray = str(universe_t.rest_frame).trim_prefix("nsc9:trilateral:").split("+")
+	var rest_ok: bool = rest_facets.size() == 3
+	for f in rest_facets:
+		rest_ok = rest_ok and int(f) < 1024
+	_check("the rest frame names three valid NSC-9 facilities", rest_ok)
+	_check("only the universe tier carries the origin", \
+		local_t.get("origin_unix") == 0.0 and system_t.get("origin_unix") == 0.0)
+
 	if _fails == 0:
 		print("CALIBRATION PROBE PASSED (%d checks)" % _checks)
 		quit(0)

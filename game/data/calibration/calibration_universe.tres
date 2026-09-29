@@ -17,4 +17,6 @@ anchor = "nsc9:0"
 derives_state = false
 light_speed_m_s = 299792458.0
 expansion_rate_h0_km_s_mpc = 67.4
-lore = "The civilization tier (X3): fast-forward folds the player-choice ledger at sky-day cadence. A day of drift is a rounding error here; what players chose is the only state worth folding, and the Concord Chronicle is already its day-scale ledger. Cosmic calibration declared: SI-exact c (299792458 m/s) and the measured expansion rate H0 (67.4 km/s/Mpc, Planck 2018) -- consumed when the ladder reaches them, never hard-coded."
+origin_unix = 1789861412.0
+rest_frame = "nsc9:trilateral:0+1+2"
+lore = "The civilization tier (X3): fast-forward folds the player-choice ledger at sky-day cadence. A day of drift is a rounding error here; what players chose is the only state worth folding, and the Concord Chronicle is already its day-scale ledger. Cosmic calibration declared: SI-exact c (299792458 m/s), the measured expansion rate H0 (67.4 km/s/Mpc, Planck 2018), the origin (unix 1789861412 -- the first commit: the universe began when its code did), and the Rest frame (three facilities at trilateral rest -- the center is wound, not found). The outer limit needs no wall: the horizon is how far light has traveled since the origin, and it grows at exactly c."
