@@ -155,6 +155,64 @@ static func next_transfer_window(a, b, from_epoch: float, threshold: float = 0.1
 	return -1.0
 
 
+## ---- Earthrise (prd-multiworld sec 4: the honest sky) ---------------------
+
+## The parent world's direction in an orbiting child's BODY-FIXED sky
+## (unit vector in the child's local frame; ZERO when the child is not
+## an orbiting body). Closed form, no simulation:
+##
+##   parent azimuth in the body frame = a - sigma (the SYNODIC angle)
+##
+## where a is the orbital angle and sigma the spin angle. With
+## spin_period_days <= 0 (tidal lock) sigma follows a, so the parent
+## hangs over ONE meridian forever -- where your base lands decides
+## whether home ever rises. With a spin period the beat rate is
+## 2pi * (1/P_orbit - 1/P_spin) and home rises and sets every
+## parent_beat_period_days. Pure function of the sky epoch.
+static func parent_sky_direction(child, epoch: float) -> Vector3:
+	if child == null or float(child.orbit_radius_m) <= 0.0 or float(child.orbit_period_days) <= 0.0:
+		return Vector3.ZERO
+	var a: float = _orbit_angle(child, epoch)
+	var sigma: float = _spin_angle(child, epoch)
+	return Vector3(-cos(a - sigma), 0.0, -sin(a - sigma))
+
+
+## The body's spin angle (rad). spin_period_days <= 0: tidally locked
+## (the spin follows the orbit -- the synchronous theorem). Pure.
+static func _spin_angle(w, epoch: float) -> float:
+	var p := float(w.spin_period_days)
+	if p <= 0.0:
+		return _orbit_angle(w, epoch)
+	return TAU * (epoch / p)
+
+
+## Synodic beat period of parent-rise in sky days (home rises every
+## this many days in the child's sky). -1.0 = tidally locked: the
+## parent never rises nor sets. Pure.
+static func parent_beat_period_days(child) -> float:
+	if child == null or float(child.orbit_radius_m) <= 0.0 or float(child.orbit_period_days) <= 0.0:
+		return -1.0
+	var po := float(child.orbit_period_days)
+	var ps := float(child.spin_period_days)
+	if ps <= 0.0:
+		return -1.0
+	var rate: float = absf(1.0 / po - 1.0 / ps)
+	return -1.0 if rate < 0.0000001 else 1.0 / rate
+
+
+## Is the parent above the horizon for a base at body-local azimuth
+## `local_azimuth` (rad, measured in the body-fixed frame) at `epoch`?
+## Flat-horizon heuristic (no terrain/curvature bulge -- the sky UI
+## and lore read this; visuals place the disc by the exact vector).
+## Pure.
+static func parent_visible_from(child, epoch: float, local_azimuth: float) -> bool:
+	var dir := parent_sky_direction(child, epoch)
+	if dir == Vector3.ZERO:
+		return false
+	var az := Vector3(cos(local_azimuth), 0.0, sin(local_azimuth))
+	return az.dot(dir) > 0.0
+
+
 ## ---- Bytes helper (hex constant -> PackedByteArray) -----------------------
 
 static func _hex_to_bytes(hex: String) -> PackedByteArray:

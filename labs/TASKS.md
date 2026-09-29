@@ -678,6 +678,35 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   exploit webhook was erroring (now JSON-encoded). probe_royale_storm
   53 checks; bout_host 29 + trial 26 still green (mode-routed payout
   leaves  other modes untouched); lint EXIT 0.
+- [x] S16.4 world physics SHIPPED (2026-09-29, owner: "we aren't
+  building stubs or simulations"): per-world physics as DECLARATION.
+  movement_lunar.tres (Movement Design System profile: 6 m/s^2
+  gravity, 4.6 m/s jump -- the 1.75 m hop, slow 14 m/s terminal
+  fall, floaty accel; consumed via DataService.get_movement_profile).
+  globe_player.bind_to_world(id) adopts WorldData.gravity_force (the
+  moon's 6 is a law of that globe, not a tweak; only gravity --
+  profile/species layers stay authoritative for feel); the vacuum
+  glider gate runs INSIDE _physics_process: no atmosphere = the wing
+  closes the same frame, the body falls honestly (globe_player:
+  world_id + _world_allows_gliding, allows_gliding is the law).
+  Earthrise as closed-form theorem (world_registry): spin_period_days
+  on WorldData (0 = tidal lock, the synchronous theorem -- sigma
+  follows a, home hangs over ONE meridian forever, where your base
+  lands decides whether Earth ever rises); parent_sky_direction =
+  the synodic angle a - sigma (unit vector, body-fixed; direction
+  convention: sub-parent meridian at a-sigma+PI); parent_beat_period
+  = |1/Po - 1/Ps|^-1 (spun moon: home rises every 24 d);
+  parent_visible_from (flat-horizon heuristic, visuals use the exact
+  vector). entities/parent_sky.gd: the home world's disc at EXACT
+  angular size (2*asin(r_parent/r_orbit) ~= 26 degrees in our
+  lattice -- real Luna's Earth gets 2; our universe is
+  bigger-hearted), positioned by the closed-form vector every frame
+  on the Concord epoch, constant size/brightness (circular orbit,
+  constant distance -- the sky keeps its promise). Probe section H:
+  49 -> 65 checks (real one-frame physics step: vacuum closes the
+  wing, 6 m/s^2 pull; theorems; disc hung). Regression 40/0, lint
+  36/36. Next: S16.5 transfer windows + almanac moon page (the
+  mystery shell), S16.6 moon hosts dev/probes (the dev flip).
 - [x] S16.3 Moon Gate SHIPPED (2026-09-29): the AncientDoor pattern
   between worlds (prd-multiworld.md sec 3). ScopeService gained world
   scopes -- "world:<id>" joins globe|bout|spectate on the SAME seam

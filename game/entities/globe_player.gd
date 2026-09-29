@@ -46,6 +46,10 @@ var ground_offset: float = 0.0
 
 var walk_speed: float = WALK_SPEED_DEFAULT
 var gravity_force: float = GRAVITY_DEFAULT
+## S16.4: which world this body stands on ("" = the main world). Set
+## through bind_to_world(); drives per-world gravity/speeds and the
+## no-atmosphere glider gate.
+var world_id: String = ""
 ## Set true by the probe to auto-walk eastward without input.
 var auto_walk: bool = false
 ## Optional provider: func(dir: Vector3) -> float, height above the
@@ -108,6 +112,37 @@ var planar_mode: bool = false
 ## deployment setting is fed by PlayerConfig ("auto"/"manual").
 var glider = null  # GliderState (load-time assigned; frame primitive)
 var _glide_up: Vector3 = Vector3.UP  # up vector captured per frame
+
+
+## S16.4: bind this body to a lattice world. Per-world physics is a
+## DECLARATION (WorldData.gravity_force), never a hard-coded number:
+## the moon's 6 m/s^2 is a law of that globe, not a tweak. Only the
+## world's gravity is adopted (walk_speed keeps its profile layer --
+## species/profile modifiers stay authoritative for feel).
+func bind_to_world(id: String) -> void:
+	world_id = id
+	if id == "" or id == "main":
+		return
+	var ws = Engine.get_main_loop().root.get_node_or_null("ScopeService") if Engine.get_main_loop() is SceneTree else null
+	if ws == null or not ws.has_method("world_data"):
+		return
+	var w = ws.world_data(id)
+	if w != null:
+		gravity_force = float(w.gravity_force)
+
+
+## S16.4: can this body's CURRENT world deploy a glider? No
+## atmosphere = the wing stays stowed (WorldData.allows_gliding --
+## "the wing is a wing"). Unknown/unbound worlds allow (the main
+## world is the atmosphere world).
+func _world_allows_gliding() -> bool:
+	if world_id == "" or world_id == "main":
+		return true
+	var ws = Engine.get_main_loop().root.get_node_or_null("ScopeService") if Engine.get_main_loop() is SceneTree else null
+	if ws == null or not ws.has_method("world_data"):
+		return true
+	var w = ws.world_data(world_id)
+	return w == null or w.allows_gliding()
 
 func _ready() -> void:
 	if glider == null:
@@ -173,6 +208,12 @@ func _physics_process(delta: float) -> void:
 	if glider != null:
 		var altitude: float = global_position.distance_to(planet_center) - planet_radius - ground_offset
 		var gstate: int = glider.tick(delta, maxf(altitude, 0.0), 0.0)
+		# S16.4 vacuum rule: no atmosphere, no wing. If the machine
+		# opened the wing over an airless world, the vacuum closes it
+		# the same frame -- the body falls honestly.
+		if gstate == glider.State.GLIDING and not _world_allows_gliding():
+			glider.state = glider.State.FALLING
+			gstate = glider.State.FALLING
 		if gstate == glider.State.GLIDING:
 			_glide_up = up
 			var ac = Engine.get_main_loop().root.get_node_or_null("AntiCheatService") if Engine.get_main_loop() is SceneTree else null

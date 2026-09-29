@@ -20,6 +20,10 @@
 #   G. Moon Gate law (S16.3): the underworld has no door, the moon is
 #      the sealed mystery shell, world scopes ride the bout/return
 #      seam, and force=true is the S16.6 dev hatch.
+#   H. World physics (S16.4): per-world gravity is a declaration, the
+#      vacuum glider gate closes the wing honestly, earthrise is the
+#      closed-form synodic theorem (tidal lock = home hangs forever),
+#      and the parent disc hangs at exact angular size.
 #
 # Script mode: no autoloads needed -- the registry is a frame
 # primitive (pure functions + res:// data).
@@ -241,6 +245,73 @@ func _run() -> void:
 		gate_main.queue_free()
 		gate_under.queue_free()
 		gate_moon.queue_free()
+
+	# ---- H. World physics (S16.4) ------------------------------------------
+	# Per-world physics: the moon's 6 m/s^2 is a LAW of that globe (a
+	# declaration in world_moon.tres), the wing is a wing (no air, no
+	# glide), and the sky is the theorem: tidal lock means home hangs
+	# over one meridian forever.
+	var GP3: GDScript = load("res://entities/globe_player.gd")
+	_check("globe_player loads", GP3 != null)
+	if GP3 != null:
+		var lun = GP3.new()
+		lun.entity_id = "moon_walker"
+		_check("unbound body keeps earth gravity", lun.gravity_force == 20.0)
+		lun.bind_to_world("moon")
+		_check("bind_to_world adopts the world's law (6 m/s^2)", lun.gravity_force == 6.0)
+		_check("the moon forbids the wing (no atmosphere)", not lun._world_allows_gliding())
+		var earth_body = GP3.new()
+		earth_body.entity_id = "earth_walker"
+		_check("unbound worlds allow gliding (the atmosphere world)", earth_body._world_allows_gliding())
+
+		# The vacuum gate: open the wing by force, run one real physics
+		# step over the moon, and the vacuum closes it the same frame.
+		root.add_child(lun)
+		lun.planet_radius = 100.0
+		lun.global_position = Vector3(0, 106, 0)
+		lun.velocity = Vector3.ZERO
+		lun.glider.state = lun.glider.State.GLIDING
+		lun._physics_process(1.0 / 60.0)
+		_check("vacuum closes the wing the same frame", lun.glider.state == lun.glider.State.FALLING)
+		_check("lunar gravity pulled at 6 m/s^2", absf(lun.velocity.y + 6.0 / 60.0) < 0.001)
+		lun.queue_free()
+
+		# The earthrise theorem (closed form, prd-multiworld sec 4).
+		var moon_w = reg.get_world("moon")
+		_check("the moon is tidally locked (no beat)", \
+			WR.parent_beat_period_days(moon_w) < 0.0)
+		var d1: Vector3 = WR.parent_sky_direction(moon_w, 0.3)
+		var d2: Vector3 = WR.parent_sky_direction(moon_w, 4.1)
+		_check("locked sky is constant across epochs", \
+			d1 != Vector3.ZERO and d1.is_equal_approx(d2))
+		_check("home spans ~26 degrees of lunar sky", \
+			absf(rad_to_deg(asin(20000.0 / 90000.0)) * 2.0 - 25.7) < 1.0)
+		_check("base longitude decides earthrise", \
+			WR.parent_visible_from(moon_w, 0.3, 0.7 + PI) \
+			and not WR.parent_visible_from(moon_w, 0.3, 0.7))
+		# A spun moon: the beat theorem gives the synodic schedule.
+		moon_w.spin_period_days = 12.0
+		_check("spun moon beats at the synodic period (24 d)", \
+			absf(WR.parent_beat_period_days(moon_w) - 24.0) < 0.01)
+		var d3: Vector3 = WR.parent_sky_direction(moon_w, 0.3)
+		var d4: Vector3 = WR.parent_sky_direction(moon_w, 4.1)
+		_check("spun sky sweeps (home rises and sets)", not d3.is_equal_approx(d4))
+		moon_w.spin_period_days = 0.0
+		_check("lock restored", WR.parent_beat_period_days(moon_w) < 0.0)
+
+		# The honest sky: the disc hangs at the closed-form direction.
+		var PSS: GDScript = load("res://entities/parent_sky.gd")
+		_check("parent_sky.gd loads", PSS != null)
+		if PSS != null:
+			var sky = PSS.new()
+			sky.world_id = "moon"
+			root.add_child(sky)
+			await process_frame
+			await process_frame
+			var disc = sky.get_node_or_null("ParentDisc")
+			_check("parent disc built and hung in the sky", \
+				disc != null and disc.visible and (disc.position as Vector3).length() > 7000.0)
+			sky.queue_free()
 
 	if _fails == 0:
 		print("WORLD LATTICE PROBE PASSED (%d checks)" % _checks)

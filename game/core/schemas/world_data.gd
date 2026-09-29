@@ -51,6 +51,13 @@ enum OfflineState {
 @export var orbit_phase_rad: float = 0.0
 @export var orbit_inclination_rad: float = 0.0
 
+## Spin period in sky days. 0 = tidally locked (the parent hangs over
+## one meridian forever -- real Luna's condition, and the moon's
+## default: where your base lands decides whether home ever rises).
+## A positive value beats against the orbit and the parent rises and
+## sets on the synodic schedule (WorldRegistry.parent_beat_period_days).
+@export var spin_period_days: float = 0.0
+
 ## Worldbuilding flavor (what the almanac says about this place).
 @export_multiline var lore: String = ""
 
