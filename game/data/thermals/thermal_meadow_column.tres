@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thermal_meadow_column"
+display_name = "Meadow Column"
+kind = 0
+activation = 0
+zone_id = "zone_forest_meadow"
+position = Vector3(-40, 0, -20)
+radius = 12.0
+column_height = 120.0
+strength = 0.5
+launch_speed = 26.0
+feeds_thermal_id = ""
+lore = "Pollens and warm air braid together here; the birds learned the spiral before the people did."

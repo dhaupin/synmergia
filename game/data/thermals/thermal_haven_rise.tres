@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thermal_haven_rise"
+display_name = "Haven Rise"
+kind = 0
+activation = 0
+zone_id = "zone_village_center"
+position = Vector3(60, 0, 30)
+radius = 14.0
+column_height = 140.0
+strength = 0.7
+launch_speed = 26.0
+feeds_thermal_id = ""
+lore = "The warm breath of the valley, rising off the hearth-stones since before the village had a name."

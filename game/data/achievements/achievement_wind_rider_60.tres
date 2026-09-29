@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wind_rider_60"
+display_name = "Wind Rider"
+description = "Spend 60 seconds airborne on a glider"
+achievement_type = 1
+category = 0
+rarity = 0
+target = 60
+target_type = "glide_time"
+gold_reward = 45
+xp_reward = 60
+title_reward = "wind_rider"
+icon_path = "res://icons/achievements/first_blood.png"
+sort_order = 42

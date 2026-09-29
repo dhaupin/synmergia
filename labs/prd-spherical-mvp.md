@@ -484,9 +484,38 @@ Zelda-BotW style. Groundwork SHIPPED ahead of the zone going live:
   DEFAULT_SET; regression 37/37). Open: thermal zone data, stamina
   cost, glider models/art, per-zone glide overrides.
 
-Open items for the Royale season: glider models/art, bounds-shrink
-pacing, drop AI for the marshal's bout, per-zone glide profile
-overrides.
+### Sky roads: thermals + ancient launchers (SHIPPED 2026-09-28)
+
+Owner insight: without engines the sky needs roads. Two kinds of
+sky infrastructure, data-driven (data/thermals/, thermal_ prefix,
+ThermalUpdraft schema):
+- **THERMAL** columns: standing updrafts -- glide in, the sink
+  bends toward float (strength 0..1 of MAX_LIFT 3.0). Three shipped:
+  Haven Rise (0.7), Meadow Column (0.5), Coliseum Bowl (0.9).
+- **LAUNCHER** apparatus: the CODM totem, bent -- nobody places
+  them; they EXIST strategically around the lands, DORMANT, waiting
+  for server effort to wake them (ThermalService.awaken_launcher,
+  persisted through DictStore -- the mystery/ritual beat). Awake,
+  one hurls anyone inside skyward at launch_speed (26-32 m/s) so
+  they can catch the nearby thermal it `feeds_thermal_id` points
+  to. Two shipped, both dormant: Haven Spire -> Meadow Column,
+  Meadow Gate -> Coliseum Bowl. The intended gameplay: launcher hop
+  -> thermal -> glide -> next launcher, airfoil-style, no motors.
+- **ThermalService** (autoload): loads the book, samples lift at a
+  position, owns awakening, and tracks per-player glide stats
+  (distance/altitude/time) for the achievement feed.
+- **Glide achievements** (data/achievements): Sky Trail (500 m,
+  glide_distance), Cloudkiss (100 m, glide_altitude), Wind Rider
+  (60 s, glide_time -- title_reward wind_rider).
+- **Teaching quest**: quest_wings_over_haven "Wings Over Haven"
+  (elder-gated, glide 300 m total).
+- The globe body's glide branch samples ThermalService per tick:
+  lift reduces the sink; an awake launcher's burst overrides the
+  sink entirely inside the column. probe_thermals 16/16 in
+  DEFAULT_SET (sampling, proportionality, dormancy, awakening,
+  persistence, launch burst, stats, defs). Open: ritual contribution
+  plumbing (who counts toward waking), launcher visuals, more
+  columns, per-zone overrides.
 - [x] Spawn-shield combat enforcement (fire-and-you-lose-it): the
       combat bridge calls ArenaFighter.break_shield() on any
       SELF-INITIATED action (attack, skill cast, potion, self-buff);

@@ -559,6 +559,25 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   (parse error 'found for instead'). Probe 24/24 (new in
   DEFAULT_SET); contract 65; lint EXIT 0; regression at commit
   time.
+- [x] S12.5 sky roads SHIPPED (2026-09-28, owner insight: no engines
+  = the sky needs roads): ThermalUpdraft schema (data/thermals,
+  thermal_ prefix, kind THERMAL/LAUNCHER, activation ALWAYS/RITUAL,
+  column sample() with strength-scaled lift, launcher burst decay)
+  + ThermalService autoload (book load, sample(pos), awaken_launcher
+  with DictStore persistence, note the schema .awakened flag the
+  service flips -- the sampler reads the resource truth;
+  record_glide_tick + push_glide_achievements for the stats feed).
+  Content: 3 thermals (Haven Rise 0.7 / Meadow Column 0.5 /
+  Coliseum Bowl 0.9) + 2 DORMANT ancient launchers (Haven Spire ->
+  Meadow Column, Meadow Gate -> Coliseum Bowl, launch 30-32 m/s).
+  Achievements sky_trail_500 / high_alts_100 / wind_rider_60
+  (glide_distance/altitude/time categories) + teaching quest
+  quest_wings_over_haven. Globe body glide branch samples lift per
+  tick; launcher bursts override the sink inside the column.
+  probe_thermals 16/16 in DEFAULT_SET; regression 38/38; lint
+  EXIT 0. Lesson: a service-side awake book is dead weight unless
+  the flag lands ON the resource the sampler reads -- services and
+  schemas must agree on where truth lives.
 - [x] S12 real glider mechanic SHIPPED (2026-09-28): GliderState
   frame primitive (game/core/frame/srv/glider_state.gd + co-located
   test 14/14): GROUNDED/FALLING/GLIDING/STOWED_FALL; deploy gate

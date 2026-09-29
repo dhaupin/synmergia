@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "launcher_meadow_gate"
+display_name = "The Meadow Gate"
+kind = 1
+activation = 1
+zone_id = "zone_forest_meadow"
+position = Vector3(10, 0, 40)
+radius = 5.0
+column_height = 220.0
+strength = 0.0
+launch_speed = 32.0
+feeds_thermal_id = "thermal_coliseum_bowl"
+lore = "Two standing stones and a basin of cool fire. It waits for the shard to remember how to wake it."

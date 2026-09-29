@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/achievement_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sky_trail_500"
+display_name = "Sky Trail"
+description = "Glide 500 meters total"
+achievement_type = 1
+category = 0
+rarity = 0
+target = 500
+target_type = "glide_distance"
+gold_reward = 30
+xp_reward = 40
+title_reward = ""
+icon_path = "res://icons/achievements/first_blood.png"
+sort_order = 40

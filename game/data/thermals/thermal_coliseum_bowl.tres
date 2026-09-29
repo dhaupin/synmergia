@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thermal_coliseum_bowl"
+display_name = "Coliseum Bowl"
+kind = 0
+activation = 0
+zone_id = "zone_arena_coliseum"
+position = Vector3(0, 0, 0)
+radius = 30.0
+column_height = 200.0
+strength = 0.9
+launch_speed = 26.0
+feeds_thermal_id = ""
+lore = "Ten thousand shouted duels warmed the air in the bowl. The sky remembers a crowd."

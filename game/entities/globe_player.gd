@@ -164,13 +164,25 @@ func _physics_process(delta: float) -> void:
 			var ac = Engine.get_main_loop().root.get_node_or_null("AntiCheatService") if Engine.get_main_loop() is SceneTree else null
 			if ac != null and ac.has_method("set_glide_active"):
 				ac.set_glide_active(entity_id, true)
-			var sink: Vector3 = up * glider.glide_vertical_speed(0.0)
+			# S12.5 sky roads: sample the thermal book; updrafts reduce
+			# the sink (a launcher bursts you up the column).
+			var lift: float = 0.0
+			var ts = Engine.get_main_loop().root.get_node_or_null("ThermalService") if Engine.get_main_loop() is SceneTree else null
+			if ts != null:
+				lift = ts.sample(global_position)
+				ts.record_glide_tick(entity_id, velocity.length() * delta, altitude)
+			var sink: Vector3 = up * glider.glide_vertical_speed(clampf(lift / 3.0, 0.0, 1.0))
 			var glide_wish: Vector3 = wish if wish.length_squared() > 0.0001 \
 				else (north if true else Vector3.ZERO)
 			var forward: Vector3 = (glide_wish.normalized() if glide_wish.length_squared() > 0.0001 else -up.cross(Vector3(0, 0, 1)).normalized()) \
 				* glider.glide_forward_speed(0.0)
 			horizontal = horizontal.move_toward(forward, walk_speed * 4.0 * delta)
-			vertical = vertical.move_toward(-sink + up * 0.0, gravity_force * 2.0 * delta)
+			# Launchers throw: a positive lift burst overrides the sink
+			# entirely while inside the launch column.
+			if lift > 0.0:
+				vertical = vertical.move_toward(up * lift, gravity_force * 6.0 * delta)
+			else:
+				vertical = vertical.move_toward(-sink, gravity_force * 2.0 * delta)
 			velocity = horizontal + vertical
 			move_and_slide()
 			return

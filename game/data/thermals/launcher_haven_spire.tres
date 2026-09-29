@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ThermalUpdraft" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/thermal_updraft.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "launcher_haven_spire"
+display_name = "The Haven Spire Apparatus"
+kind = 1
+activation = 1
+zone_id = "zone_village_center"
+position = Vector3(90, 0, 60)
+radius = 5.0
+column_height = 220.0
+strength = 0.0
+launch_speed = 30.0
+feeds_thermal_id = "thermal_meadow_column"
+lore = "Rings of old-world alloy, humming faintly. The elders say the ancients did not build stairs -- they built throws."
