@@ -48,20 +48,15 @@ func _load_achievement_definitions() -> void:
 	else:
 		_log("info", "AchievementService: Loaded %d achievements from .tres fallback" % _achievement_defs.size())
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func _load_defs_from_tres_dir() -> Array:
 	var out: Array = []
-	var dir := DirAccess.open(_TRES_DIR)
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var fname := dir.get_next()
-	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var res: Resource = load(_TRES_DIR + fname)
-			if res != null and res is AchievementData:
-				out.append(res)
-		fname = dir.get_next()
-	dir.list_dir_end()
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
+	for p in ResourceScan.list_resources(_TRES_DIR):
+		var res: Resource = load(p)
+		if res != null and res is AchievementData:
+			out.append(res)
 	return out
 
 ## ============================================================================

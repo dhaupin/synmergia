@@ -56,23 +56,20 @@ func _ready() -> void:
 	GameLog.info("OpenSeedRegistry: Ready (loaded %d instance type definitions)" % _type_ttl_cache.size())
 
 ## Preloads instance type definitions from disk
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func _load_instance_types() -> void:
 	var dir_path := "res://data/roots/world/instance_types"
-	var dir := DirAccess.open(dir_path)
-	if not dir:
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
+	var paths := ResourceScan.list_resources(dir_path)
+	if paths.is_empty() and DirAccess.open(dir_path) == null:
 		GameLog.warn("OpenSeedRegistry: Instance types dir not found: %s" % dir_path)
 		return
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".tres"):
-			var res_path := dir_path + "/" + file_name
-			var res: Resource = load(res_path)
-			if res is InstanceTypeDefinitionScript:
-				var def := res as InstanceTypeDefinitionScript
-				_type_ttl_cache[def.name] = def.default_ttl_ms
-		file_name = dir.get_next()
-	dir.list_dir_end()
+	for p in paths:
+		var res: Resource = load(p)
+		if res is InstanceTypeDefinitionScript:
+			var def := res as InstanceTypeDefinitionScript
+			_type_ttl_cache[def.name] = def.default_ttl_ms
 
 ## Starts the periodic GC sweep timer
 func _start_gc_timer() -> void:

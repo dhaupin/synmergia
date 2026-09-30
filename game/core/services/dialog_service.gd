@@ -49,22 +49,18 @@ func _ready() -> void:
 	_load_dialogues()
 	GameLog.info("DialogService: Loaded %d dialogues" % _dialogues.size())
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func _load_dialogues() -> void:
-	var dir := DirAccess.open("res://data/dialogues/")
-	if not dir:
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
+	var paths := ResourceScan.list_resources("res://data/dialogues")
+	if paths.is_empty() and DirAccess.open("res://data/dialogues") == null:
 		GameLog.warn("DialogService: No data/dialogues/ directory")
 		return
-
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var path := "res://data/dialogues/" + file_name
-			var dialogue: DialogueData = load(path)
-			if dialogue and dialogue.id != "":
-				_dialogues[dialogue.id] = dialogue
-		file_name = dir.get_next()
-	dir.list_dir_end()
+	for p in paths:
+		var dialogue: DialogueData = load(p)
+		if dialogue and dialogue.id != "":
+			_dialogues[dialogue.id] = dialogue
 
 func get_dialogue(dialogue_id: String) -> DialogueData:
 	return _dialogues.get(dialogue_id)

@@ -47,6 +47,7 @@ probe_swim
 frame/srv/test_ferry_schedule
 probe_ferry
 probe_startup_flow
+frame/srv/test_resource_scan
 probe_globe_island
 probe_terrain_stream
 probe_planet_scale_20km

@@ -471,21 +471,17 @@ func _refresh_sailing_page(day: int) -> void:
 ## The scheduled ferries: every vehicle that declares a route + a
 ## per-day count (data/vehicles scan -- the almanac is a chart, not a
 ## service; it reads the declarations directly, like the moon page
-## reads the worlds).
+## reads the worlds). Export-safe scan: the pack stores .tres as
+## .res + .tres.remap.
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func _sail_ferries() -> Array:
 	var out: Array = []
-	var dir := DirAccess.open("res://data/vehicles")
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var fname := dir.get_next()
-	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var v = load("res://data/vehicles/" + fname)
-			if v != null and "ferries_per_day" in v and int(v.ferries_per_day) > 0 \
-					and v.route_gateways != null and v.route_gateways.size() >= 2:
-				out.append(_ferry_row(v))
-		fname = dir.get_next()
+	for p in ResourceScan.list_resources("res://data/vehicles"):
+		var v = load(p)
+		if v != null and "ferries_per_day" in v and int(v.ferries_per_day) > 0 \
+				and v.route_gateways != null and v.route_gateways.size() >= 2:
+			out.append(_ferry_row(v))
 	return out
 
 

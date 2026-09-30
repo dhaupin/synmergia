@@ -107,6 +107,11 @@ static func is_gm_class(cls_or_role) -> bool:
 func is_gm() -> bool:
 	return is_gm_class(class_id)
 
+## EXPORT-SAFE scanning for the filesystem fallbacks (S14-web): the
+## exported pack converts .tres to .res + .tres.remap sidecars; a
+## by-extension scan finds NOTHING in the pack.
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 ## Get available classes for a species.
 ## FILTERS OUT GM classes by default for security.
 ## For admin use, get_all_classes_for_species() includes GM classes.
@@ -123,18 +128,13 @@ static func get_available_classes_for_species(species_id: String) -> Array[Chara
 					result.append(cls)
 		return result
 	
-	# Fallback to filesystem if DataService not available
-	var dir := DirAccess.open("res://data/classes/")
-	if dir:
-		dir.list_dir_begin()
-		var file := dir.get_next()
-		while file != "":
-			if file.ends_with(".tres"):
-				var res := load("res://data/classes/" + file)
-				if res is CharacterClass and not is_gm_class(res):
-					if res.id.begins_with(species_id + "_"):
-						result.append(res)
-			file = dir.get_next()
+	# Fallback to filesystem if DataService not available (export-safe
+	# scan: the pack stores .tres as .res + .tres.remap)
+	for p in ResourceScan.list_resources("res://data/classes"):
+		var res := load(p)
+		if res is CharacterClass and not is_gm_class(res):
+			if res.id.begins_with(species_id + "_"):
+				result.append(res)
 	return result
 
 ## Get ALL classes for a species (including GM classes).
@@ -151,18 +151,12 @@ static func get_all_classes_for_species(species_id: String) -> Array[CharacterCl
 					result.append(cls)
 		return result
 	
-	# Fallback to filesystem if DataService not available
-	var dir := DirAccess.open("res://data/classes/")
-	if dir:
-		dir.list_dir_begin()
-		var file := dir.get_next()
-		while file != "":
-			if file.ends_with(".tres"):
-				var res := load("res://data/classes/" + file)
-				if res is CharacterClass:
-					if res.id.begins_with(species_id + "_"):
-						result.append(res)
-			file = dir.get_next()
+	# Fallback to filesystem if DataService not available (export-safe)
+	for p in ResourceScan.list_resources("res://data/classes"):
+		var res := load(p)
+		if res is CharacterClass:
+			if res.id.begins_with(species_id + "_"):
+				result.append(res)
 	return result
 
 ## Server-side validation: Can this account play this class?
@@ -189,17 +183,11 @@ static func get_all_species() -> Array[Species]:
 				result.append(sp)
 		return result
 	
-	# Fallback to filesystem if DataService not available
-	var dir := DirAccess.open("res://data/species/")
-	if dir:
-		dir.list_dir_begin()
-		var file := dir.get_next()
-		while file != "":
-			if file.ends_with(".tres"):
-				var res := load("res://data/species/" + file)
-				if res is Species:
-					result.append(res)
-			file = dir.get_next()
+	# Fallback to filesystem if DataService not available (export-safe)
+	for p in ResourceScan.list_resources("res://data/species"):
+		var res := load(p)
+		if res is Species:
+			result.append(res)
 	return result
 
 func get_stats() -> Dictionary:

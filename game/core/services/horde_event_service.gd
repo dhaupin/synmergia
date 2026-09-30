@@ -229,19 +229,15 @@ func _on_player_entered_zone(player, zone) -> void:
 ## filesystem scan (data/hordes/*.tres, works in --script mode) and the
 ## DataService catalog (get_all_hordes, the authoritative boot-time
 ## load), deduped -- a config present in both appears once.
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func list_configs() -> Array:
 	var out: Array = []
-	var dir := DirAccess.open("res://data/hordes")
-	if dir != null:
-		dir.list_dir_begin()
-		var fname := dir.get_next()
-		while fname != "":
-			if not dir.current_is_dir() and fname.ends_with(".tres"):
-				var cid := fname.trim_suffix(".tres").trim_prefix("horde_")
-				if not out.has(cid):
-					out.append(cid)
-			fname = dir.get_next()
-		dir.list_dir_end()
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
+	for p in ResourceScan.list_resources("res://data/hordes"):
+		var cid: String = ResourceScan.resource_base(p.get_file()).trim_prefix("horde_")
+		if not out.has(cid):
+			out.append(cid)
 	var ds := get_node_or_null("/root/DataService")
 	if ds != null and ds.has_method("get_all_hordes"):
 		for res in ds.get_all_hordes():

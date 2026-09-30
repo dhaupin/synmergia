@@ -51,21 +51,18 @@ func _ready() -> void:
 	ensure_loaded()
 
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 ## Load every data/oceans/*.tres. Idempotent (re-load refreshes).
+## Export-safe scan: the pack stores .tres as .res + .tres.remap.
 func ensure_loaded() -> void:
 	if _loaded:
 		return
 	_volumes.clear()
-	var dir := DirAccess.open("res://data/oceans")
-	if dir != null:
-		dir.list_dir_begin()
-		var fname := dir.get_next()
-		while fname != "":
-			if not dir.current_is_dir() and fname.ends_with(".tres"):
-				var v: Resource = load("res://data/oceans/" + fname)
-				if v != null and v is OceanVolumeScript:
-					_volumes[str(v.id)] = v
-			fname = dir.get_next()
+	for p in ResourceScan.list_resources("res://data/oceans"):
+		var v: Resource = load(p)
+		if v != null and v is OceanVolumeScript:
+			_volumes[str(v.id)] = v
 	_loaded = true
 
 

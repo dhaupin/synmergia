@@ -77,24 +77,21 @@ func _on_schedule_tick() -> void:
 	tick(1.0)
 
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 ## Load every data/vehicles/*.tres that declares a schedule.
-## Idempotent (re-load refreshes).
+## Idempotent (re-load refreshes). Export-safe scan: the pack stores
+## .tres as .res + .tres.remap.
 func ensure_loaded() -> void:
 	if _loaded:
 		return
 	_ferries.clear()
-	var dir := DirAccess.open("res://data/vehicles")
-	if dir != null:
-		dir.list_dir_begin()
-		var fname := dir.get_next()
-		while fname != "":
-			if not dir.current_is_dir() and fname.ends_with(".tres"):
-				var v = load("res://data/vehicles/" + fname)
-				if v != null and "ferries_per_day" in v and int(v.ferries_per_day) > 0 \
-						and v.route_gateways != null and v.route_gateways.size() >= 2:
-					_ferries[str(v.id)] = v
-					_manifests[str(v.id)] = {}
-			fname = dir.get_next()
+	for p in ResourceScan.list_resources("res://data/vehicles"):
+		var v = load(p)
+		if v != null and "ferries_per_day" in v and int(v.ferries_per_day) > 0 \
+				and v.route_gateways != null and v.route_gateways.size() >= 2:
+			_ferries[str(v.id)] = v
+			_manifests[str(v.id)] = {}
 	_loaded = true
 
 

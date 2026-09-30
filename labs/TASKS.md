@@ -853,10 +853,36 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   anchors; cards 240/300 px min height) + sensor_landscape
   orientation for handhelds. Login/lobby were already responsive
   full-rect (why they worked on the phone). Regression 50/0,
-  lint 36/36, data naming 24/24. Lesson: fixed-pixel menu layouts
+  lint 36/36, data naming 24/24.  Lesson: fixed-pixel menu layouts
   + a stretch-based scale factor = invisible-but-real mobile
   dead-ends; probe the SCENE GEOMETRY (anchors, min sizes), not
   just the signal graph.
+- [x] EXPORT-SAFE RESOURCE SCANNING SHIPPED (2026-09-30, species
+  select still empty after the responsive fix: owner reloaded in a
+  private tab, same result). ROOT CAUSE: Godot's exporter converts
+  text .tres resources into BINARY .res files inside the pack (plus
+  .tres.remap sidecars that rewrite path references) -- 14 runtime
+  scanners filtered ends_with(".tres") and found NOTHING in the
+  exported web pack (boot printed "Loaded 0 species / 0 classes";
+  data grep-proved present). Dev-tree tests cannot see this: the
+  exporter only runs in CI. FIX: new frame primitive
+  core/frame/srv/resource_scan.gd (ResourceScan.list_resources /
+  load_dir / resource_base: handles .tres, .res, .tres.remap,
+  .res.remap; dedupes the .res vs .tres.remap pair to one resource;
+  normalizes trailing slashes; missing dir = empty). All 14 scan
+  sites refactored onto it (data_service, character_data fallbacks
+  x3, world_registry, achievement_service, dialog_service,
+  ferry_service, horde_event_service, ocean_service,
+  open_seed_registry, shard_parameters, spawn_service,
+  thermal_service, targeting_manager, sky_almanac_ui -- the last
+  one missed by the original grep, found via the regression).
+  _get_resource_id now delegates to ResourceScan.resource_base,
+  killing the latent ternary-precedence bug (length-5-if-else)
+  before it ever fired. Co-located test_resource_scan (11 checks,
+  DEFAULT_SET after probe_startup_flow). Regression 51/0, lint
+  36/36, data naming 24/24. Lesson: scan by CONTENT FORM, never by
+  one extension -- and the pack must be booted to prove an export
+  fix (godot --headless --main-pack ../web/game.pck).
 - [x] S14.5 FerryService + the One-Law Cleanup SHIPPED (2026-09-30,
   owner: "S14.5 rides the same schedule math and a water cleanup
   round before we tackle wasm"). (1) THE PRIMITIVE:

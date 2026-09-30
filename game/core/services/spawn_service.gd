@@ -157,27 +157,25 @@ var _world_boss_schedules: Dictionary = {}
 func _process(delta: float) -> void:
 	_tick_world_boss_schedules(delta)
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func load_world_boss_schedules() -> void:
-	var dir := DirAccess.open("res://data/world_bosses")
-	if dir == null:
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
+	var paths := ResourceScan.list_resources("res://data/world_bosses")
+	if paths.is_empty() and DirAccess.open("res://data/world_bosses") == null:
 		GameLog.info("SpawnService: no world_bosses data dir; no schedules")
 		return
-	dir.list_dir_begin()
-	var fname := dir.get_next()
 	var count := 0
-	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var res: Resource = load("res://data/world_bosses/" + fname)
-			if res != null and res.has_method("to_config"):
-				# Resource.get(key, default) lost its default arg in 4.7.2:
-				# fall back to the file stem when the .tres carries no id.
-				var rid := str(res.get("id"))
-				if rid.is_empty():
-					rid = fname.trim_suffix(".tres").trim_prefix("world_boss_")
-				if start_world_boss_schedule(rid, res.to_config()) != "":
-					count += 1
-		fname = dir.get_next()
-	dir.list_dir_end()
+	for p in paths:
+		var res: Resource = load(p)
+		if res != null and res.has_method("to_config"):
+			# Resource.get(key, default) lost its default arg in 4.7.2:
+			# fall back to the file stem when the resource carries no id.
+			var rid := str(res.get("id"))
+			if rid.is_empty():
+				rid = ResourceScan.resource_base(p.get_file()).trim_prefix("world_boss_")
+			if start_world_boss_schedule(rid, res.to_config()) != "":
+				count += 1
 	GameLog.info("SpawnService: Loaded %d world-boss schedules" % count)
 
 ## Start one timed schedule. Returns the schedule id ("" on bad config

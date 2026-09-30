@@ -51,19 +51,15 @@ func _ready() -> void:
 	GameLog.info("ThermalService: Ready (%d updrafts, %d ancient launchers awake)" % [_updrafts.size(), _awake.size()])
 
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func _load_updrafts() -> void:
 	_updrafts.clear()
-	var dir := DirAccess.open("res://data/thermals")
-	if dir == null:
-		return
-	dir.list_dir_begin()
-	var fname := dir.get_next()
-	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var updraft: Resource = load("res://data/thermals/" + fname)
-			if updraft != null and updraft is ThermalUpdraft:
-				_updrafts.append(updraft)
-		fname = dir.get_next()
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
+	for p in ResourceScan.list_resources("res://data/thermals"):
+		var updraft: Resource = load(p)
+		if updraft != null and updraft is ThermalUpdraft:
+			_updrafts.append(updraft)
 
 
 ## All updrafts (probe/UI).

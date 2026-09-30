@@ -100,35 +100,18 @@ func load_all_data() -> void:
 	_loaded = true
 	GameLog.info("DataService: Loaded all data")
 
-## Scan directory for .tres files
+## Scan directory for data resources. EXPORT-SAFE (S14-web): the
+## exported pack converts .tres to .res + .tres.remap sidecars, so a
+## by-extension scan finds NOTHING -- the boot showed "Loaded 0
+## species" inside the web client. ResourceScan handles all forms
+## and dedupes them; only the id extraction stays local.
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func _scan_directory(path: String, resource_type: String) -> Dictionary:
-	var results: Dictionary = {}
-
-	var dir := DirAccess.open(path)
-	if dir == null:
+	var results := ResourceScan.load_dir(path, func(res: Resource, p: String):
+		return _get_resource_id(res, p.get_file()))
+	if results.is_empty() and DirAccess.open(path) == null:
 		GameLog.warn("DataService: Cannot open directory: " + path)
-		return results
-
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-
-	while file_name != "":
-		if dir.current_is_dir():
-			if file_name != "." and file_name != "..":
-				var sub_results := _scan_directory(path + "/" + file_name, resource_type)
-				results.merge(sub_results)
-		else:
-			if file_name.ends_with(".tres"):
-				var resource_path := path + "/" + file_name
-				var resource = load_resource(resource_path)
-				if resource:
-					var id := _get_resource_id(resource, file_name)
-					results[id] = resource
-					GameLog.debug("DataService: Loaded " + resource_type + ": " + id)
-
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
 	return results
 
 ## Load a single resource
@@ -141,8 +124,12 @@ func load_resource(path: String) -> Resource:
 ## Extract ID from resource or filename
 func _get_resource_id(resource: Resource, filename: String) -> String:
 	if resource and resource.get("id") != null:
-		return resource.get("id")
-	return filename.replace(".tres", "").to_lower()
+		return str(resource.get("id"))
+	# Explicit if/else, NOT a ternary: GDScript binds
+	# `base.length() - 5 if cond else 4` as `(base.length() - 5) if cond
+	# else 4`, which silently returns literal 4 on the .res branch.
+	var base: String = ResourceScan.resource_base(filename)
+	return base.to_lower()
 
 ## Load skills from data/skills/
 func load_skills() -> void:

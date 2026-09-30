@@ -58,23 +58,16 @@ func _ready() -> void:
 
 ## Load every ShardParameterDefinition .tres under the parameters dir.
 ## Definitions are cached by param_name for O(1) lookup in set().
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func load_definitions() -> void:
 	_definitions = {}
-	var dir := DirAccess.open(_DEFINITION_DIR)
-	if dir == null:
-		return
-	dir.list_dir_begin()
-	var entry := dir.get_next()
-	while entry != "":
-		if entry.begins_with("."):
-			entry = dir.get_next()
-			continue
-		if entry.ends_with(".tres"):
-			var res = load(_DEFINITION_DIR + entry)
-			if res is ShardParameterDefinitionScript:
-				_definitions[res.name] = res
-		entry = dir.get_next()
-	dir.list_dir_end()
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap
+	# (the trailing slash in _DEFINITION_DIR is normalized by ResourceScan).
+	for p in ResourceScan.list_resources(_DEFINITION_DIR):
+		var res = load(p)
+		if res is ShardParameterDefinitionScript:
+			_definitions[res.name] = res
 
 
 ## Return the definition for a parameter, or null if unknown.

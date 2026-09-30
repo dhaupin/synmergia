@@ -202,29 +202,21 @@ func _connect_eventbus() -> void:
 ## SCHEMA LOADING
 ## ============================================================================
 
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
 func _load_schemas() -> void:
 	var schema_dir := "res://data/targets/"
-
-	var dir := DirAccess.open(schema_dir)
-	if dir == null:
+	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
+	var paths := ResourceScan.list_resources(schema_dir)
+	if paths.is_empty() and DirAccess.open(schema_dir) == null:
 		GameLog.warn("TargetingManager: Cannot open schema directory: " + schema_dir)
 		return
-
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var schema_path := schema_dir + file_name
-			var schema: TargetSchema = load(schema_path)
-			if schema and schema.id != "":
-				_schema_cache[schema.id] = schema
-				_entity_type_to_schema[schema.entity_type] = schema.id
-				GameLog.debug("TargetingManager: Loaded schema: " + schema.id)
-
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
+	for p in paths:
+		var schema: TargetSchema = load(p)
+		if schema and schema.id != "":
+			_schema_cache[schema.id] = schema
+			_entity_type_to_schema[schema.entity_type] = schema.id
+			GameLog.debug("TargetingManager: Loaded schema: " + schema.id)
 
 ## Get schema by ID (with caching)
 func get_schema(schema_id: String) -> TargetSchema:

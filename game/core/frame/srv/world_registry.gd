@@ -29,21 +29,17 @@ var _worlds: Dictionary = {}   # id -> WorldData
 var _seeds: Dictionary = {}    # id -> PackedByteArray (derived, cached)
 
 
-## Load every data/worlds/*.tres declaration.
+const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
+
+## Load every data/worlds/*.tres declaration. Export-safe scan: the
+## pack stores .tres as .res + .tres.remap (ResourceScan dedupes).
 func load_worlds() -> void:
 	_worlds.clear()
 	_seeds.clear()
-	var dir := DirAccess.open("res://data/worlds")
-	if dir == null:
-		return
-	dir.list_dir_begin()
-	var fname := dir.get_next()
-	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var w: Resource = load("res://data/worlds/" + fname)
-			if w != null and w is WorldDataScript:
-				_worlds[str(w.id)] = w
-		fname = dir.get_next()
+	for p in ResourceScan.list_resources("res://data/worlds"):
+		var w: Resource = load(p)
+		if w != null and w is WorldDataScript:
+			_worlds[str(w.id)] = w
 
 
 func get_world(id: String):
