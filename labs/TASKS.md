@@ -1010,6 +1010,71 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   the deleted marker builder); (c) a walk that "feels stuck" after a
   camera turn is a frame-authority bug -- input must be relative to the
   look frame, never the map frame.
+- [x] PLAY-DAY 3: round-2 feedback (2026-09-30, owner playing in the
+  Freebuff preview: "jump works, sun works, minimap fixed... but").
+  (1) #7 MOBILE HUD DEAD AFTER THE X: the panel's own close button
+  routes through panel_closed -> _on_panel_closed, which erased the
+  panel from _open_panels but never re-armed the touch HUD (only the
+  MenuManager-initiated _close_panel path did). Same re-arm law
+  applied to _on_panel_closed -- X, Esc, and funnel closes now all
+  re-arm. (2) #4 MENU BELOW CHAT: chat sat at z 90 in MenuManager
+  (layer 20) while every panel is z 500 -- the menu could never
+  cover it. Chat is a persistent overlay, not a menu peer: z 700,
+  above everything. (3) #5b SETTINGS X + the second-pass header: UI
+  subclasses that build their Main AFTER super._ready() (settings
+  builds Main in _setup_ui called from its own _ready) had no Main
+  when _setup_standard_header ran -- fix is a DEFERRED second
+  _setup_standard_header pass (idempotent; hand-rolled headers with
+  a title Label are not double-titled via _header_row_has_label).
+  (4) #5a ScrollFrame (ui/components/scroll_frame.gd): reusable
+  scroll body with UP/DOWN arrow Buttons that appear only when the
+  content actually overflows that way (tap-friendly on touch, built
+  in _init so set_content works pre-tree). Wired into the expanded
+  MainMenuBar (capped at 72% viewport height) and the Settings
+  category stack (Controls keybinds overflow a 550px panel alone).
+  (5) #3 NO ROCKS/TREES/TEXTURE: root cause was a PRE-EXISTING S7
+  transform bug the trees inherited -- rock_specs dirs are
+  GLOBE-absolute but the rocks/trees were parented to the patch node
+  sitting at the face-center offset, so absolute coords used as
+  patch-LOCAL displaced every scatter roughly a face-width off its
+  true spot (floating in space off your tile). Placement now
+  subtracts the scaled patch offset (patch-local), the tile mesh
+  gained tangent-plane UVs * 0.22 with a 2x2 checker
+  StandardMaterial3D texture (repeat via default UV wrap), and the
+  tree basis handed to Godot had a mirrored north (det<0) -- fixed.
+  (6) #1 PCK HASH CACHING: CI writes web/game.pck.hash (sha256 of
+  the exported pack, tracked via .gitignore whitelist); game.html
+  fetches it no-cache and starts the engine with mainPack =
+  game.pck?v=<hash> (falls back to the bare path on any failure);
+  worker.js serves ?v= requests immutable-for-a-year (edge-cached
+  per full URL), 302s the bare path to the current hash, and serves
+  the hash file itself no-store. A refresh now re-validates a tiny
+  hash file instead of re-downloading the multi-MB pack; a new pack
+  gets a new hash and every client picks it up next visit. PCK_HASH
+  wrangler var is an optional zero-fetch shortcut for the 302.
+  vite mime map gained .hash (dev + preview servers). (7) #8
+  LOADING SCREEN NEVER SEEN: _show_loading_and_change_scene hid the
+  overlay one frame after the deferred swap -- a 2-frame flash. Now
+  it waits until the new scene is actually current_scene (safety cap
+  600 frames), then holds a 700 ms minimum so fast transitions read
+  as an intentional screen. (8) #6 EMPTY PANELS: MenuManager only
+  called panel.open(pid) when a PlayerManager character resolved --
+  in the guest/offline flow pid was empty, so _on_open (where most
+  panels refresh) never ran and panels showed their ready-time
+  skeleton. open() now runs unconditionally (panels defend against
+  empty ids), and quest/bank/title gained _on_open refresh hooks.
+  probe_round2_ui.gd (17 checks: ScrollFrame arrows, settings
+  header/X/title, chat z, X-close re-arm) joins DEFAULT_SET.
+  Verified: round-2 probe 17/17, touch battery 17/17 xvfb,
+  regression 54/0, lint 36/36 (lint caught the scroll_frame doc
+  example's self-preload string -- reworded), boot clean, tsc clean.
+  Lessons: (1) a funnel law is only as strong as its least-used
+  path -- the X button had its own close path nobody re-armed;
+  (2) parent-local vs world-absolute coordinates: every scatter
+  helper must DECLARE its frame in the comment next to the math,
+  or the next helper inherits the lie; (3) deferred second passes
+  are the honest fix for 'super._ready ran before my Main existed'
+  -- fighting call order in subclasses just moves the bug.
 - [x] PLAY-DAY 2: the wasm round + the ghost-teleport SOLVED
   (2026-09-30, owner playing in browser: "the minimap is bars, jump
   does nothing, panels won't close, Character tabs are empty...").
