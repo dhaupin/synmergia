@@ -72,6 +72,14 @@ var streamer  # GlobeTerrainStreamer; untyped - preload-by-path pattern
 
 var player  # GlobeIslandPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
+
+## S14-web: the playable HUD (menus, action bars, combat log, touch
+## controls). Loaded by path at runtime so the scene keeps no parse-time
+## dependency on the UI tree; the planar world_playable.tscn embeds the
+## same scene. The TouchHud (floating joystick + camera-look + buttons)
+## lives inside InputManager on every platform; visibility is the
+## InputManager's call (touch devices default on, desktop off).
+var hud: CanvasLayer = null
 var _probe_north: Node3D
 var _probe_east: Node3D
 var _probe_marker: Node3D
@@ -91,6 +99,8 @@ func _ready() -> void:
 	_setup_streamer()
 	planet_center = world_root.position
 	player.planet_center = planet_center
+	_install_hud()
+	_setup_touch_hud()
 
 
 ## S8 floating-origin rebase: when the player has drifted SHIFT_RADIUS
@@ -125,6 +135,46 @@ func _maybe_shift_world() -> void:
 	# the loop metrics for honest post-shift walk measurements.
 	_update_surface_pad()
 	player.begin_loop()
+
+
+## S14-web: instantiate the playable HUD. The globe previously booted
+## bare (no menus, no bars, no touch controls) because the HUD lived
+## only inside world_playable.tscn and this scene builds itself at
+## runtime. Same composition, one CanvasLayer, added last so it draws
+## above the world.
+func _install_hud() -> void:
+	if hud != null:
+		return
+	var packed: PackedScene = load("res://ui/hud/hud_layer.tscn")
+	if packed == null:
+		GameLog.warn("GlobeIsland: hud_layer.tscn missing; HUD disabled")
+		return
+	hud = packed.instantiate()
+	hud.name = "HudLayer"
+	add_child(hud)
+	GameLog.info("GlobeIsland: playable HUD installed")
+
+
+## Bridge the touch HUD into the globe player's camera (same shape as
+## WorldPlayable._setup_touch_hud): the VirtualJoystick emits
+## camera_look in raw pixel deltas; the player's orbit_camera turns
+## them into yaw/pitch on the local tangent frame.
+func _setup_touch_hud() -> void:
+	if player == null or not player.has_method("orbit_camera"):
+		return
+	var joystick = InputManager.get_virtual_joystick() if InputManager else null
+	if joystick == null:
+		return
+	var cam_speed: float = 0.003
+	var sensitivity: float = 1.0
+	if "sensitivity" in player:
+		sensitivity = float(player.sensitivity)
+	var look_handler := func(delta_px: Vector2) -> void:
+		player.orbit_camera(delta_px.x * cam_speed * 1.5 * sensitivity, \
+			delta_px.y * cam_speed * 1.5 * sensitivity)
+	if not joystick.camera_look.is_connected(look_handler):
+		joystick.camera_look.connect(look_handler)
+	GameLog.info("GlobeIsland: touch HUD wired to orbit_camera")
 
 
 func _setup_streamer() -> void:

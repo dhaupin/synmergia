@@ -109,6 +109,59 @@ func _run() -> void:
 	ok = _check("position->cell sweep valid", sweep_ok) and ok
 	_shoot("globe_stage3")
 
+	# Stage 4 (S14-web): the playable HUD rides the globe. The scene
+	# must instantiate hud_layer.tscn (menus, bars, combat log) and the
+	# player must expose orbit_camera for the touch HUD's camera-look.
+	var globe_hud: Node = _globe.get("hud")
+	ok = _check("HUD CanvasLayer installed in the globe scene", \
+		globe_hud != null and globe_hud.is_inside_tree()) and ok
+	if globe_hud != null:
+		var mm: Node = globe_hud.get_node_or_null("MenuManager")
+		ok = _check("MenuManager present (menus exist in-world)", mm != null) and ok
+		var widgets := ["CombatLog", "Minimap", "ActionBar", "QuickAccessBar"]
+		for w in widgets:
+			ok = _check("HUD widget present: %s" % w, \
+				globe_hud.get_node_or_null(w) != null) and ok
+	var has_orbit: bool = player.has_method("orbit_camera")
+	ok = _check("player exposes orbit_camera (touch-look target)", has_orbit) and ok
+	if has_orbit:
+		# The orbit must actually move the view: yaw 90 deg rotates the
+		# camera's forward off true north.
+		var cam2: Camera3D = player.get_node("CameraPivot/Camera3D")
+		var fwd_before: Vector3 = -cam2.global_transform.basis.z
+		player.orbit_camera(-PI / 2.0, 0.0)
+		await root.get_tree().physics_frame
+		await root.get_tree().physics_frame
+		var fwd_after: Vector3 = -cam2.global_transform.basis.z
+		var turned: float = rad_to_deg(fwd_before.angle_to(fwd_after))
+		ok = _check("orbit_camera turns the view (yaw 90 deg -> %.0f deg)" % turned, \
+			turned > 60.0) and ok
+		player.look_yaw = 0.0
+		player.look_pitch = 0.0
+		await root.get_tree().physics_frame
+
+	# Stage 5 (S14-web): the touch pipeline exists and merges with WASD.
+	# Script mode boots with autoloads, so InputManager is live here.
+	var im: Node = root.get_node_or_null("InputManager")
+	ok = _check("InputManager exposes the touch HUD", \
+		im != null and im.get("_virtual_joystick") != null) and ok
+	ok = _check("movement input merges joystick + keyboard", \
+		im != null and im.has_method("get_movement_input")) and ok
+	# Drive the real touch path: the stick only merges while the input
+	# mode is TOUCH (headless defaults to keyboard mode), so enter TOUCH,
+	# push the stick, read the merged vector, restore.
+	if im != null:
+		var prev_mode: int = im.get_input_mode()
+		im.set_input_mode(im.InputMode.TOUCH)
+		im._joystick_active = true
+		im._joystick_offset = Vector2(0, -1) * im._joystick_max_radius
+		var merged: Vector2 = im.get_movement_input()
+		ok = _check("touch stick drives movement input (forward %.2f)" % merged.y, \
+			merged.y <= -0.9) and ok
+		im._joystick_active = false
+		im._joystick_offset = Vector2.ZERO
+		im.set_input_mode(prev_mode)
+
 	if not ok:
 		push_error("GLOBE PROBE FAILED")
 	quit(0 if ok else 1)

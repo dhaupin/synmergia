@@ -883,6 +883,33 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   36/36, data naming 24/24. Lesson: scan by CONTENT FORM, never by
   one extension -- and the pack must be booted to prove an export
   fix (godot --headless --main-pack ../web/game.pck).
+- [x] GLOBE HUD + WEB TOUCH CONTROLS SHIPPED (2026-09-30, owner:
+  "species and class work, we got in -- but there is no HUD, no
+  mobile controls, no menus"). ROOT CAUSE (two independent gaps):
+  (1) synmergia/world/shape="spherical" makes GameManager load
+  globe_island.tscn, which was born as a movement PROBE scene and
+  never received the HUD that world_playable.tscn embeds -- the
+  screenshot's curved horizon + moons was the tell. (2)
+  InputManager._detect_platform classed only Android/iOS as mobile,
+  so a phone BROWSER got keyboard mode: no touch HUD, no stick, no
+  buttons. FIXES: globe_island._install_hud() instantiates
+  res://ui/hud/hud_layer.tscn (the same composition -- MenuManager,
+  bars, combat log, minimap) and _setup_touch_hud() bridges the
+  VirtualJoystick camera_look into a new
+  GlobePlayer.orbit_camera(dx, dy) (yaw/pitch on the local tangent
+  frame; pivot basis re-derived per physics frame so the old fixed
+  north/east frame is the zero-look special case; probe asserts
+  yaw 90 deg turns the view 90 deg). globe_player now reads
+  InputManager.get_movement_input() (controller > touch stick >
+  keyboard merge) instead of raw Input.get_vector, so the phone
+  stick drives the globe walk. InputManager: web +
+  DisplayServer.is_touchscreen_available() => mobile (PlayerConfig
+  touch_controls still overrides). probe_globe_island extended to
+  24 checks (HUD installed, MenuManager + CombatLog/Minimap/
+  ActionBar/QuickAccessBar present, orbit_camera turns the view,
+  TOUCH-mode stick drives merged movement input). Lesson: every
+  playable scene carries the HUD composition; web touch-capable
+  hardware is mobile.
 - [x] S14.5 FerryService + the One-Law Cleanup SHIPPED (2026-09-30,
   owner: "S14.5 rides the same schedule math and a water cleanup
   round before we tackle wasm"). (1) THE PRIMITIVE:

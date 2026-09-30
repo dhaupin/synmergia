@@ -128,6 +128,14 @@ func _detect_platform() -> void:
 		DisplayServer.get_name() == "iOS" or
 		OS.has_feature("mobile")
 	)
+	# S14-web: the web export IS touch-capable hardware whenever the
+	# browser reports a coarse pointer (phones/tablets). Without this,
+	# a phone browser was classed desktop: no touch HUD, no stick, no
+	# buttons -- the world rendered but had no controls at all. The
+	# PlayerConfig "touch_controls" setting still overrides in either
+	# direction.
+	if _is_web and DisplayServer.is_touchscreen_available():
+		_is_mobile = true
 	_is_desktop = (
 		DisplayServer.get_name() == "Windows" or
 		DisplayServer.get_name() == "Linux" or

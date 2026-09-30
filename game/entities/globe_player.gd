@@ -68,6 +68,24 @@ var _loop_start: Vector3 = Vector3.ZERO
 ## Smoothed ride height above the base shell (rock walk-over).
 var _ride_lift: float = 0.0
 
+## Touch-look state (S14-web): the VirtualJoystick's camera_look feeds
+## orbit_camera(); the pivot's basis is then re-derived from (yaw,
+## pitch) every physics frame instead of the fixed north/east frame.
+var look_yaw: float = 0.0
+var look_pitch: float = 0.0
+## Sane clamp: near +/-90 deg the pivot basis degenerates (east and
+## north collapse); the planar camera clamps to similar bounds.
+const LOOK_PITCH_LIMIT: float = 1.35 # ~77 deg
+
+## Rotate the camera around the player (radians). Called by the touch
+## HUD's camera_look (pixel deltas * sensitivity) and available to any
+## other look source. Same sign convention as the planar
+## ThirdPersonCamera.orbit: positive dx turns the view right (yaw
+## decreases toward -north, matching Godot's -Z forward convention).
+func orbit_camera(dx: float, dy: float) -> void:
+	look_yaw -= dx
+	look_pitch = clampf(look_pitch - dy, -LOOK_PITCH_LIMIT, LOOK_PITCH_LIMIT)
+
 
 ## Radial direction from the planet center to this body (local up).
 ## Anticheat glide-flag helper (defensive resolve; GM/spawn contexts
@@ -194,7 +212,10 @@ func _physics_process(delta: float) -> void:
 	if auto_walk:
 		wish = east
 	else:
-		var input_vec := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		# Touch stick feeds the same pipeline as WASD: InputManager merges
+		# controller > touch joystick > keyboard into one vector.
+		var input_vec: Vector2 = InputManager.get_movement_input() if InputManager \
+			else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		wish = east * input_vec.x + north * (-input_vec.y)
 	if wish.length() > 1.0:
 		wish = wish.normalized()
@@ -279,11 +300,15 @@ func _physics_process(delta: float) -> void:
 		if abs(err) > 0.001:
 			global_position = planet_center + (global_position - planet_center).normalized() * target_r
 
-	# Keep the camera pivot aligned with local up.
+	# Keep the camera pivot aligned with local up, then apply the
+	# look orbit (yaw around local up, pitch around local east). With no
+	# look input yet this reproduces the original fixed frame exactly.
 	var pivot: Node3D = get_node_or_null("CameraPivot")
 	if pivot:
 		var xform: Transform3D = pivot.global_transform
 		xform.basis = Basis(east, up, -north)
+		xform.basis = xform.basis.rotated(up, look_yaw)
+		xform.basis = xform.basis.rotated(xform.basis.x, look_pitch)
 		pivot.global_transform = xform
 
 
