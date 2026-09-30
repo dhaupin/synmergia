@@ -1010,6 +1010,79 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   the deleted marker builder); (c) a walk that "feels stuck" after a
   camera turn is a frame-authority bug -- input must be relative to the
   look frame, never the map frame.
+- [x] PLAY-DAY 2: the wasm round + the ghost-teleport SOLVED
+  (2026-09-30, owner playing in browser: "the minimap is bars, jump
+  does nothing, panels won't close, Character tabs are empty...").
+  (1) THE GHOST TELEPORT (play-day root-cause hunt, pre-existing
+  S15 bug, NOT the day's edits): test_touch_live's player ended at
+  (3, 2002.001, 2) = EXACTLY Deep Warden spawn (camp bind (0,2000,0)
+  + npc spawn_offset (3,0,2)). Chain: S15.3 registered
+  zone_deep_root_camp in the GLOBAL ZoneManager with planar-frame
+  coords -> spawn_all_offering_npcs spawned the Warden INTO the
+  planar world at y=2000 -> planar entry detection + boot position
+  law seamless-transitioned the player to stand on him (only under
+  the full live schedule; reduced repros stayed clean -- the
+  schedule's movement phases put the player where the detector
+  could claim him). THE FIX = world scoping (S16 law pulled into
+  the data layer): ZoneData.world_id ("" = main/planar;
+  zone_deep_root_camp = "underworld" -- world ids are UNPREFIXED,
+  world_main.tres says id="main"); spawn_all_offering_npcs skips
+  NPCs whose zone names a non-main world (the owning globe spawns
+  them itself in its own frame); ZoneManager._zone_is_planar gates
+  the seamless claimant scan, BOTH entry detectors (spatial +
+  fallback), and perform_seamless_transition refuses subworld
+  destinations outright. entity_enter_zone stays OPEN (globe
+  bodies roster through it deliberately). probe_world_scoping.gd
+  7 checks (new, DEFAULT_SET candidate). touch battery after the
+  gate: xvfb 17/17 (was 12/5; headless stays un-runnable -- 64x64
+  viewport vs the test's absolute coords, documented, NOT in
+  DEFAULT_SET). P1 flake fixed the test's way (Land-recovery
+  window at t=2.0 caught the spawn drop; same re-check pattern as
+  P7's retry, release moved 2.2 -> 2.8 so P2's sprint phases keep
+  their wall-clock offsets). (2) Web asset caching (#A):
+  web/worker.js serveStatic now sets Cache-Control per file class
+  -- game.wasm/game.js immutable 1y behind the Workers cache API
+  (they change ~never); game.pck + index.html/game.html no-store
+  must-revalidate (CI re-commits the pck on every content push);
+  everything else 1h; + nosniff. Players stop re-pulling 38MB per
+  visit; the pck still revalidates (hash-suffix scheme noted in a
+  comment as the follow-up). (3) The day's fix list (all in this
+  round): #1 loading screens -- root-level CanvasLayer overlay in
+  GameManager survives change_scene (the old LoadingUI.instance
+  lived inside hud_layer.tscn, the very scene being freed);
+  #2/#6 UIPanel standard header (Title/Spacer/CloseButton) built
+  in _ready and by set_title for header-less panels, Main gets
+  EXPAND_FILL so ScrollContainer tab pages stop rendering 0px
+  (Character tabs), close buttons everywhere; #3 touch HUD below
+  panels (layer 24 -> 18 < MenuManager 20) AND set_panels_open
+  input gate funneled from MenuManager._open_panel/_close_panel
+  through InputManager (a hidden-but-enabled CanvasLayer still
+  gets _input); #4 minimap bars = the toggle HBox was a direct
+  child of the PanelContainer (7 buttons stretched screen-tall);
+  re-parented under map_container + hud_layer.tscn rects
+  de-overlapped (Minimap/QuickAccessBar/BuffBar); #5 jump wired on
+  globe_player (ballistic hop, snap re-arms on fall-back-to-ground,
+  anticheat stamped like the planar controller); #7 motion
+  parallax -- streamer _spawn_trees (4-8 seeded trees/face,
+  tangent-aligned) + world_playable checker-grass 256x256 + seeded
+  rocks, all visual-only (snap_height_provider stays walk
+  authority); #8 sky_sun.gd -- the sun is a pure function of the
+  Concord epoch (fposmod day phase, ARC_TILT 28 deg, NIGHT 0.18 /
+  DAY 1.15 energy, sun_direction() exposed for future shadows),
+  built by world_playable + globe_world. Boot clean throughout.
+  Verified: probe_world_scoping 7/7, underworld 42/42, lattice
+  94/94, globe 23/23 (caught my TerrainGen.TILE_LIFT vs streamer
+  TILE_LIFT misref -- the streamer owns the constant), touch
+  17/17 xvfb, regression 52/0, lint 36/36. Lessons: (1) world ids
+  are "main"/"underworld"/"moon" -- data/worlds/world_main.tres
+  carries the FILE prefix only; scoping checks must compare the
+  id, never the filename shape (caught by probe before commit);
+  (2) a subworld zone in the shared ZoneManager is a loaded gun:
+  every planar consumer (spawn, claim, entry, transition, respawn)
+  must either filter or the coordinates lie -- filter ONCE in the
+  data (world_id) and gate the four read paths;
+  (3) xfail-in-headless is fine, but document WHY in the test
+  header (viewport size) or the next agent re-hunts the ghost.
 - [x] GLOBE HUD + WEB TOUCH CONTROLS SHIPPED (2026-09-30, owner:
   "species and class work, we got in -- but there is no HUD, no
   mobile controls, no menus"). ROOT CAUSE (two independent gaps):
