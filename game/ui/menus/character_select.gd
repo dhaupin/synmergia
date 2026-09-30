@@ -15,9 +15,12 @@ var selected_class: CharacterClass
 var selected_species: Species
 var player_name: String = "Hero"
 
-@onready var species_container: HBoxContainer = $SpeciesContainer
+@onready var species_container: HBoxContainer = $SpeciesScroll/List/SpeciesContainer
+@onready var list_container: VBoxContainer = $SpeciesScroll/List
 @onready var play_button: Button = $PlayButton
 @onready var back_button: Button = $BackButton
+
+var _class_header: Label = null
 
 signal character_confirmed(data: CharacterData)
 
@@ -52,13 +55,19 @@ func _on_species_card_selected(species_id: String) -> void:
 func _show_class_selection() -> void:
 	for child in species_container.get_children():
 		child.queue_free()
+	# The class header is a ROW ABOVE the card strip (the List VBox),
+	# not an inline sibling of the cards.
+	if _class_header != null and is_instance_valid(_class_header):
+		_class_header.queue_free()
 
 	var label := Label.new()
 	label.text = "CLASSES -- " + selected_species.display_name.to_upper()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 18)
 	label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-	species_container.add_child(label)
+	_class_header = label
+	list_container.add_child(label)
+	list_container.move_child(label, 0)
 
 	var all_classes := CharacterData.get_available_classes_for_species(selected_species_id)
 	for cls in all_classes:

@@ -820,6 +820,43 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   globe shape; (3) conjure-holder must be the current SCENE, never
   the gate (a freed gate must not take the moon with it -- same
   law as ScopeService's escape capture).
+- [x] WASM BOOT FIXED + Startup-Flow Audit SHIPPED (2026-09-30,
+  owner: "now it's loading! Got to the species select page, and
+  there's no way to choose -- go through startup, guest, species
+  select, class select, through playing and see what isn't wired
+  up"). ROOT CAUSE of the wasm dead-end: the custom shell loaded
+  /game.js ABSOLUTELY while served under /web/ -- the request fell
+  through to the React SPA and returned HTML as JavaScript, so
+  Engine never existed (black pane + Retry for every visitor). The
+  shell also carried invented identifiers (SynmergiaThreadsEnabled
+  -- a Godot-to-Synmergia rename accident) and a 20 s watchdog that
+  faked failure on slow 38 MB downloads. FIX (df6426b): boot block
+  now mirrors the REAL export shell (web/game.html): relative asset
+  paths, the 4.7 config keys (pools 8/4, fileSizes matching the
+  shipped binaries for honest progress), watchdog fires only when
+  NOTHING ever progressed. Memory dropdown: disabled BY DESIGN but
+  the reason hid in a desktop-only tooltip -- now the lock's
+  explanation is drawer text (initial heap is baked in game.wasm;
+  getModuleConfig whitelists Module keys; Emscripten grows the
+  heap at runtime anyway). STARTUP FLOW AUDIT (probe_startup_flow,
+  18 checks, DEFAULT_SET): species data -> picker (3 species, GM
+  filtered), species select -> class list (6 human classes), class
+  select ENABLES Play, direct play reaches PLAYING with species +
+  class + home zone, guest login exists, LOBBY-without-auth
+  bounces to LOGIN (the gate holds). The REAL species-select
+  dead-end: character_select.tscn was a FIXED-PIXEL layout (an
+  800 px bottom-anchored strip) inside a 1280x720 canvas_items
+  stretch -- on a portrait phone the UI renders at ~0.3x and the
+  card Select buttons are ~9 px: untappable. FIX: scene rebuilt
+  responsive (full-rect ScrollContainer -> List VBox -> HBox strip
+  sized by content; Back bottom-left / Play bottom-right corner
+  anchors; cards 240/300 px min height) + sensor_landscape
+  orientation for handhelds. Login/lobby were already responsive
+  full-rect (why they worked on the phone). Regression 50/0,
+  lint 36/36, data naming 24/24. Lesson: fixed-pixel menu layouts
+  + a stretch-based scale factor = invisible-but-real mobile
+  dead-ends; probe the SCENE GEOMETRY (anchors, min sizes), not
+  just the signal graph.
 - [x] S14.5 FerryService + the One-Law Cleanup SHIPPED (2026-09-30,
   owner: "S14.5 rides the same schedule math and a water cleanup
   round before we tackle wasm"). (1) THE PRIMITIVE:
