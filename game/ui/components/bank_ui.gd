@@ -169,6 +169,9 @@ func _can_access_guild_vault() -> bool:
 		return false
 	return GuildService.is_in_guild(player_id)
 
+func _on_open() -> void:
+	_refresh_vault()
+
 func _refresh_vault() -> void:
 	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
 	if player_id.is_empty():

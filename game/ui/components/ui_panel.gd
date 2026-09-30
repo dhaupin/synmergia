@@ -39,6 +39,13 @@ func _ready() -> void:
 		_setup_base_panel()
 	_setup_standard_header()
 	_setup_content()
+	# Second pass, DEFERRED: subclasses that build their Main after
+	# super._ready() (settings_panel builds Main inside _setup_ui, called
+	# from its own _ready) had no Main yet during the first pass, so
+	# their header/close X never attached. Deferred runs after the whole
+	# _ready chain (subclass included) and is idempotent -- panels with a
+	# hand-rolled header are untouched.
+	call_deferred("_setup_standard_header")
 	_apply_accessibility()
 	_apply_visual_settings()
 
@@ -71,8 +78,11 @@ func _setup_standard_header() -> void:
 		main.add_child(header)
 		main.move_child(header, 0)
 	# Title (set_title writes into it later; a default reads the panel
-	# name until then).
-	if header.get_node_or_null("Title") == null:
+	# name until then). A hand-rolled header may already carry an
+	# unnamed title Label (inventory_ui's first child is its title) --
+	# adding our own would duplicate the row, so only add when the row
+	# has no Label at all.
+	if header.get_node_or_null("Title") == null and not _header_row_has_label(header):
 		var title := Label.new()
 		title.name = "Title"
 		title.text = _panel_title if not _panel_title.is_empty() else String(name)
@@ -100,6 +110,15 @@ func _ensure_close_button(header: HBoxContainer = null) -> void:
 	var close_btn := create_close_button()
 	close_btn.name = "CloseButton"
 	row.add_child(close_btn)
+
+## True when the header row already carries any Label (a hand-rolled
+## header's title). The standard header must not stack a second title
+## next to it.
+func _header_row_has_label(row: HBoxContainer) -> bool:
+	for child in row.get_children():
+		if child is Label:
+			return true
+	return false
 
 ## Load accessibility settings from PlayerConfig
 func _load_accessibility_settings() -> void:

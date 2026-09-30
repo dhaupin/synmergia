@@ -5,6 +5,9 @@ extends Control
 class_name MainMenuBar
 
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+## Play-day feedback #5b: the expanded menu must scroll on low-res
+## devices, with an arrow hint when content overflows.
+const ScrollFrame = preload("res://ui/components/scroll_frame.gd")
 
 var _menu_button: Button
 var _avatar_button: Button
@@ -276,7 +279,8 @@ func _create_expanded_panel() -> void:
 	_menu_items.name = "MenuItems"
 	_menu_items.add_theme_constant_override("separation", 4)
 	_menu_items.focus_mode = Control.FOCUS_ALL
-	_expanded_panel.add_child(_menu_items)
+	# Wrapped in a ScrollFrame below (after the items are built): the
+	# menu is taller than most phone viewports.
 	
 	# Add all panel shortcuts
 	var panels := [
@@ -334,7 +338,22 @@ func _create_expanded_panel() -> void:
 	# Close menu item
 	var close_btn := _create_menu_item("close", "Close Menu", "", "X")
 	_menu_items.add_child(close_btn)
-	
+
+	# Scroll wrapper: cap the menu at ~72% of the viewport so it always
+	# fits under the bar; the frame's arrows appear only when the items
+	# actually overflow (short menus stay clean).
+	var item_heights := 0.0
+	for child in _menu_items.get_children():
+		if child is Control:
+			item_heights += child.get_combined_minimum_size().y
+	item_heights += maxf(0.0, _menu_items.get_child_count() - 1) * 4.0
+	var max_menu_h := maxf(300.0, get_viewport_rect().size.y * 0.72)
+	var scroll_frame: VBoxContainer = ScrollFrame.new()
+	scroll_frame.name = "MenuScroll"
+	scroll_frame.custom_minimum_size = Vector2(208, minf(item_heights, max_menu_h))
+	scroll_frame.set_content(_menu_items)
+	_expanded_panel.add_child(scroll_frame)
+
 	add_child(_expanded_panel)
 
 func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: String = "", is_special: bool = false) -> Button:

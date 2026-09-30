@@ -31,6 +31,11 @@ func _ready() -> void:
 func _setup_accessibility() -> void:
 	pass
 
+func _on_open() -> void:
+	# Re-read the journal at open time: quests accepted while the panel
+	# was closed (or in a previous session) only appear on refresh.
+	refresh_quest_list()
+
 func update_accessibility_settings(high_contrast: bool, text_scale: float, reduce_motion: bool) -> void:
 	# Update tab buttons
 	if _tab_buttons:

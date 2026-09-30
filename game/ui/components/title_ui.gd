@@ -177,6 +177,9 @@ func set_player(player_id: String) -> void:
 ## REFRESH
 ## ============================================================================
 
+func _on_open() -> void:
+	_refresh()
+
 func _refresh() -> void:
 	if _player_id.is_empty():
 		_player_id = TitleService.get_local_player_id()

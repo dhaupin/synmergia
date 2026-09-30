@@ -71,6 +71,7 @@ probe_royale_storm
 probe_world_lattice
 probe_underworld
 probe_world_scoping
+probe_round2_ui
 probe_calibration
 globe_driver
 probe_ancient_loop

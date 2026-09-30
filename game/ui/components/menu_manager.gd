@@ -142,7 +142,10 @@ func _initialize_panels() -> void:
 	# Chat panel - created from script
 	_chat_panel = preload("res://ui/components/chat_ui.gd").new()
 	_chat_panel.name = "ChatUI"
-	_chat_panel.z_index = 90
+	# Play-day feedback #4: chat floats ABOVE every panel (z 500) so the
+	# menu can never "open below" it -- the chat is a persistent overlay,
+	# not a menu peer.
+	_chat_panel.z_index = 700
 	add_child(_chat_panel)
 
 	# Inventory panel
@@ -296,6 +299,15 @@ func _initialize_panels() -> void:
 func _on_panel_closed(panel_name: String) -> void:
 	if _open_panels.has(panel_name):
 		_open_panels.erase(panel_name)
+	# Play-day feedback #7: the panel's own close (X) button routes
+	# through panel_closed -- not _close_panel -- so without this the
+	# touch HUD stayed disarmed (dead buttons) after closing a panel
+	# with the X on mobile. Same re-arm law as _close_panel.
+	if _open_panels.is_empty() and _is_menu_open:
+		_is_menu_open = false
+		var im = get_node_or_null("/root/InputManager")
+		if im != null and im.has_method("set_touch_hud_panels_open"):
+			im.set_touch_hud_panels_open(false)
 	menu_toggled.emit(panel_name, false)
 
 func _setup_action_slots() -> void:
@@ -542,10 +554,15 @@ func _open_panel(menu_name: String, panel: Control) -> void:
 	var im_open = get_node_or_null("/root/InputManager")
 	if im_open != null and im_open.has_method("set_touch_hud_panels_open"):
 		im_open.set_touch_hud_panels_open(true)
-	# Give UIPanel-derived panels their player context. Without this the
-	# panel renders against an empty _player_id (stale/blank data).
+	# Give UIPanel-derived panels their player context, and ALWAYS route
+	# through open(): open() fires _on_open(), which is where most panels
+	# refresh their content (faction list, achievement ledger, quest
+	# log). The old pid != "" guard skipped open() in the guest/offline
+	# flow (no PlayerManager character) -- panels then showed their
+	# empty ready-time skeleton (play-day feedback #6). Panels already
+	# defend against empty ids.
 	var pid := _local_player_id()
-	if "open" in panel and panel.get("_player_id") != null and pid != "":
+	if "open" in panel:
 		panel.open(pid)
 	# Panels whose data source is the player's InventoryComponent fetch
 	# it by id here; BlacksmithUI otherwise renders an empty repair list

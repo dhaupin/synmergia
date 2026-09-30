@@ -91,11 +91,17 @@ func _setup_ui() -> void:
 
 	_tab_buttons[0].button_pressed = true
 
-	## Content stack (one container per category)
+	## Content stack (one container per category). Wrapped in a
+	## ScrollFrame: Controls keybinds alone overflow a 550px panel, and
+	## low-res devices must scroll with a visible hint (play-day #5b).
+	var ScrollFrame = preload("res://ui/components/scroll_frame.gd")
+	var scroll_frame: VBoxContainer = ScrollFrame.new()
+	scroll_frame.name = "CategoryScroll"
+	main.add_child(scroll_frame)
 	var stack := VBoxContainer.new()
 	stack.name = "CategoryStack"
 	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main.add_child(stack)
+	scroll_frame.set_content(stack)
 
 	for cat in categories:
 		var container := VBoxContainer.new()
