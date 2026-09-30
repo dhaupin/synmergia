@@ -526,12 +526,22 @@ func _close_panel(menu_name: String, panel: Control) -> void:
 	panel.visible = false
 	if _open_panels.is_empty():
 		_is_menu_open = false
+		# Play-day feedback #3: the touch HUD yields while panels are
+		# open; the last panel closing re-arms it.
+		var im = get_node_or_null("/root/InputManager")
+		if im != null and im.has_method("set_touch_hud_panels_open"):
+			im.set_touch_hud_panels_open(false)
 	menu_toggled.emit(menu_name, false)
 
 func _open_panel(menu_name: String, panel: Control) -> void:
 	if not _open_panels.has(menu_name):
 		_open_panels.append(menu_name)
 	_is_menu_open = true
+	# Play-day feedback #3: the touch HUD must not capture input or
+	# draw over panels. One funnel call covers every panel opener.
+	var im_open = get_node_or_null("/root/InputManager")
+	if im_open != null and im_open.has_method("set_touch_hud_panels_open"):
+		im_open.set_touch_hud_panels_open(true)
 	# Give UIPanel-derived panels their player context. Without this the
 	# panel renders against an empty _player_id (stale/blank data).
 	var pid := _local_player_id()

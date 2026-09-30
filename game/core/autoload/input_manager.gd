@@ -150,14 +150,29 @@ func _on_gameplay_state_changed(_state: int = 0) -> void:
 		# receives events while invisible, so an "enabled but hidden" HUD
 		# would keep capturing touches in menus.
 		_virtual_joystick.hide_joystick()
+		_virtual_joystick.set_panels_open(false)
 		return
 	var want: bool = _is_mobile or _input_mode == InputMode.TOUCH
 	if PlayerConfig:
 		want = bool(PlayerConfig.get_account_setting("touch_controls", want))
 	if want:
 		set_touch_ui_visible(true)
+		# A panel opened while we were hidden (or the boot race) must not
+		# leave the touch HUD armed over it.
+		_virtual_joystick.set_panels_open(false)
+		var mm = get_node_or_null("/root/MenuManager")
+		if mm != null and mm.get("_is_menu_open"):
+			_virtual_joystick.set_panels_open(true)
 	else:
 		_virtual_joystick.hide_joystick()
+
+
+## Panels opened/closed (MenuManager funnel). Forwards to the touch HUD
+## so it yields while any panel is up (feedback #3: panels over touch).
+func set_touch_hud_panels_open(open_now: bool) -> void:
+	var vj := get_virtual_joystick()
+	if vj != null and vj.has_method("set_panels_open"):
+		vj.set_panels_open(open_now)
 
 
 func _detect_platform() -> void:

@@ -20,11 +20,15 @@ const AUTO_SPRINT_DELAY := 0.28      # seconds at full stick before engaging
 const ATTACK_REPEAT_INTERVAL := 0.45 # hold-to-repeat cadence
 const STICK_RADIUS := 70.0
 const HINT_ALPHA := 0.35
-## Layer above the HUD stack. HudLayer itself is layer 10, but its
-## MenuManager child is a CanvasLayer at 20. Touch mode keeps the touch
-## HUD above MenuManager's inert-but-capturing controls and drops back
-## to layer 6 when hidden (panels/menus must still cover it).
-const LAYER_ABOVE_HUD := 24
+## Layering (play-day feedback #3: panels must cover the touch HUD).
+## MenuManager (which owns every panel) is a CanvasLayer at 20; the
+## touch HUD sits just BELOW it so open panels always draw over the
+## movement controls, and drops to 6 when hidden. The panel funnel
+## (MenuManager._open_panel/_close_panel) calls
+## InputManager.set_touch_hud_panels_open() so the touch controls also
+## STOP CAPTURING input while a panel is up -- layering alone keeps
+## drawing honest, but _input would still eat drags meant for panels.
+const LAYER_ABOVE_HUD := 18
 const LAYER_IDLE := 6
 
 ## Controls this HUD replaces while active. When the touch HUD is
@@ -75,6 +79,7 @@ var _thumb: TextureRect = null
 var _hint_base: TextureRect = null
 
 var _enabled: bool = true
+var _panels_open: bool = false      # a panel/menu is up: yield to it
 var _debug_touch: bool = false      # tests: trace raw touch routing
 var _high_contrast: bool = false
 var _repeat_timer: float = 0.0
@@ -309,7 +314,7 @@ func _default_stick_spot() -> Vector2:
 ## ---------------------------------------------------------------------------
 
 func _input(event: InputEvent) -> void:
-	if not _enabled:
+	if not _enabled or _panels_open:
 		return
 
 	if event is InputEventScreenTouch:
@@ -510,6 +515,26 @@ func hide_joystick() -> void:
 	_camera_touch_id = -1
 	_cancel_auto_sprint()
 	joystick_released.emit()
+
+## S15 play-day feedback #3: while any panel/menu is open the touch
+## HUD yields -- it drops below the panel stack (layer 18 < MenuManager
+## 20) AND stops capturing input entirely (a hidden-but-enabled
+## CanvasLayer still gets _input, so layering alone is not enough).
+## The gate lives here so every panel opener gets it for free.
+func set_panels_open(open_now: bool) -> void:
+	_panels_open = open_now
+	if _panels_open:
+		layer = LAYER_IDLE
+		_enabled = false
+		_cancel_auto_sprint()
+		_joystick_touch_id = -1
+		_camera_touch_id = -1
+		joystick_released.emit()
+	elif visible:
+		# Re-arm only if we are in a playable context (InputManager
+		# re-runs its own gate on the next state change anyway).
+		layer = LAYER_ABOVE_HUD
+		_enabled = true
 
 func set_enabled(enabled: bool) -> void:
 	_enabled = enabled
