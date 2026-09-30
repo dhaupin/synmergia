@@ -17,7 +17,6 @@
 # Build args (change with --build-arg):
 #   GODOT_VERSION=4.7.2
 #   JULIA_VERSION=1.11.1
-#   GO_VERSION=1.23.1
 #   NODE_VERSION=20
 # ============================================================================
 
@@ -30,11 +29,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Tool versions
+# Tool versions (Julia runs the srv/julia-bridge sidecar)
 ENV GODOT_VERSION=4.7.2 \
     JULIA_VERSION=1.11.1 \
     JULIA_MINOR=1.11 \
-    GO_VERSION=1.23.1 \
     NODE_VERSION=20 \
     GODOT_PORT=9000 \
     GODOT_PATH=/workspace/project/game
@@ -83,17 +81,6 @@ RUN curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_MINOR}/
     && tar -xzf /tmp/julia.tar.gz -C /opt \
     && ln -s "/opt/julia-${JULIA_VERSION}/bin/julia" /usr/local/bin/julia \
     && rm /tmp/julia.tar.gz
-
-# ── Go ─────────────────────────────────────────────────────────────────────
-RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
-    -o /tmp/go.tar.gz \
-    && tar -C /usr/local -xzf /tmp/go.tar.gz \
-    && rm /tmp/go.tar.gz
-
-ENV PATH="/usr/local/go/bin:${PATH}" \
-    GOPATH="/go" \
-    CARGO_HOME="/cargo" \
-    RUSTUP_HOME="/rustup"
 
 # ── Node.js ────────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - \

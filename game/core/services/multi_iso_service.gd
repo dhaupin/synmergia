@@ -10,6 +10,13 @@
 ## boundary without a full polyglot FFI setup. When polyglot-ffi
 ## is mature, this service can be replaced with direct FFI calls.
 ##
+## STATUS (2026-09-30): DORMANT. Nothing calls this service yet --
+## it is not an autoload and has zero call sites in the tree. It
+## stands as the documented HTTP contract for srv/julia-bridge/
+## (the Julia orchestrator), whose pre-solve/theorem work has not
+## graduated (labs/prd-industry-labs.md sec 6). Wire it into
+## project.godot before its first real consumer.
+##
 ## Usage:
 ##   MultiIsoService.register_entity(player_id, spatial_vertex, faction_id)
 ##   var nearby := await MultiIsoService.query_spatial_faction(vertex, faction_id)
