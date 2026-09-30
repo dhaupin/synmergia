@@ -12,6 +12,7 @@
 *.dll
 *.wasm
 *.tsbuildinfo
+/builds/
 
 # Whitelist web deployment exports
 !web/*.pck

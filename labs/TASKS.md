@@ -883,6 +883,60 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   36/36, data naming 24/24. Lesson: scan by CONTENT FORM, never by
   one extension -- and the pack must be booted to prove an export
   fix (godot --headless --main-pack ../web/game.pck).
+- [x] FEEDBACK SIX-PACK: touch gate + globe cleanup + camera-relative
+  walk + HUD layout + one-HUD init + dual export SHIPPED (2026-09-30,
+  owner 6-item in-browser feedback: controls over the main menu; garbled
+  HUD; probe pillars; "remove globe island"; "1 init for the HUD";
+  "wasm + native in one command"). (1) TOUCH GATE: InputManager no
+  longer auto-shows the touch HUD at boot -- _ready creates it hidden
+  and GameManager game_state_changed/paused/resumed drive
+  _on_gameplay_state_changed, which only reveals it in PLAYING/PAUSED
+  and hides it EVERYWHERE else (menus, character select). hide_joystick
+  not visible=false: a CanvasLayer keeps receiving _input while
+  invisible. PlayerConfig touch_controls still decides WHETHER it shows
+  in gameplay. (2) PROBE PILLARS REMOVED: globe_island._build_probe
+  _markers/_make_marker deleted (the red/blue/yellow boxes the owner
+  walked into); _build_arena_gateway now called from _ready (it used to
+  ride inside the deleted function -- caught on diff review, the
+  gateway would have silently vanished). Scene stays: planet_radius
+  setting makes it the 20 km prod globe and the dev moon shell.
+  (3) THE REAL WALK-BLOCKER was not the pillars:
+  globe_player's spherical branch moved on WORLD north/east
+  (wish = east*x + north*(-y)), so after orbiting the camera "forward"
+  walked map-north -- read as stuck against an invisible wall. Now
+  camera-relative like the planar branch: forward/right projected from
+  the PREVIOUS frame's CameraPivot basis onto the tangent plane
+  (collapse guards fall back to the compass frame); auto_walk follows
+  cam_fwd.rotated(up, auto_walk_yaw). Probe asserts are direction
+  agnostic so no expectations changed. (4) HUD GARBAGE: hud_layer no
+  longer forwards the class icon_path -- res://ui/icons/... rendered as
+  literal text over the chat (now a "[C]" badge; paths are not glyphs).
+  chat_ui self-anchors one TOP_LEFT rect (tabs+history+input in ONE
+  panel; the old inner-vbox BOTTOM_LEFT anchor inside a CanvasLayer
+  parent left its rect undefined) and _esc()s system messages.
+  buff_bar/minimap keep their .tscn placement (they used to self-anchor
+  over each other -- the corner pile + P N E Q * $ W strip). KEY LESSON:
+  the guard is "were my own anchors set" (anchor_left/top/right != 0),
+  NOT parent type -- hud_layer.tscn parents widgets to a CanvasLayer
+  root, so `get_parent() is Control` is always false and the old-style
+  self-anchor would have come right back. (5) ONE HUD INIT:
+  HudLayer.ensure_installed(scene_root) is the single idempotent entry
+  (instance-in-tree or child-name check, else load hud_layer.tscn);
+  world_playable.tscn embeds it, globe_island delegates to it, any
+  future playable scene calls one static. Touch controls are the other
+  half of the contract and live behind the state gate. (6) DUAL EXPORT:
+  scripts/export_clients.sh builds web/game.pck (preset "Web Default")
+  + builds/linux/synmergia.x86_64 (NEW preset "Linux", embed_pck) in
+  one command; --web-only / --native-only flags; web first (itch.io
+  demos). Verified: boot parse clean, probe_globe_island 24/24 (walked
+  250.0 m, curvature 1.75, orbit 90 deg, touch stick forward -1.00),
+  regression 51/0, lint 36/36. Lessons: (a) fuzzy str_replace silently
+  ate an `extends` line (hud_layer) and duplicated a function header --
+  ALWAYS git-diff each patch and grep the residue; (b) when you delete a
+  function, grep for what it CALLED (the gateway call was hiding inside
+  the deleted marker builder); (c) a walk that "feels stuck" after a
+  camera turn is a frame-authority bug -- input must be relative to the
+  look frame, never the map frame.
 - [x] GLOBE HUD + WEB TOUCH CONTROLS SHIPPED (2026-09-30, owner:
   "species and class work, we got in -- but there is no HUD, no
   mobile controls, no menus"). ROOT CAUSE (two independent gaps):
