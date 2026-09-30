@@ -1215,7 +1215,7 @@ Implementation per PRD specs in `/labs/prd-*.md`:
 - [x] **Scope Engine** — `game/core/frame/srv/scope.gd` (DONE)
 - [x] **Rules Engine** — `game/core/frame/srv/rules_engine.gd` (DONE)
 
-> All frame primitives consolidated at `game/core/frame/` (math, kv, srv, db). Legacy `labs/multi-iso/` removed.
+> All frame primitives consolidated at `game/core/frame/` (math, kv, srv, db). Legacy `labs/multi-iso/` removed -- the Julia orchestrator now lives at `srv/julia-bridge/` with the other HTTP bridges (2026-09-30).
 
 ### Phase 3: Seed System
 - [ ] Login + seed chain (D029)

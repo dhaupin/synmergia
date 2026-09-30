@@ -1,13 +1,16 @@
 """
-orchestrator.jl — Julia multi-iso orchestrator (frame primitive)
+orchestrator.jl — Julia multi-iso orchestrator (HTTP sidecar)
 
-Upgraded from the Python prototype and placed in the canonical
-`labs/multi-iso/srv/` slot per the /labs/ convention:
-  https://github.com/dhaupin/synmergia/blob/main/docs/architecture/labs-organization.md
+Relocated 2026-09-30 to `srv/julia-bridge/` -- the bridge-service
+slot (sibling of pg-bridge/ and redis-bridge/), NOT a Godot frame
+primitive. The canonical-slot doc this file once cited
+(docs/architecture/labs-organization.md) lives archived at
+labs/archive/docs/architecture/.
 
 This is a pure Julia orchestrator with no external dependencies.
 The Godot game consumes it via the HTTP server wrapper (server.jl)
-or the polyglot FFI (labs/polyglot-ffi/).
+through MultiIsoService; the polyglot FFI (labs/polyglot-ffi/) is
+the future replacement.
 
 Usage:
     julia --project=. server.jl    # Start HTTP API server

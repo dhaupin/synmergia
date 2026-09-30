@@ -9,6 +9,6 @@ Residents: swim/glider state machines, the ferry schedule,
 rules/scope engine, star cells, world registry.
 
 NOT this folder: services in other languages, sidecars, servers,
-and their manifests. Those live under labs/ (e.g. the Julia
-orchestrator at labs/multi-iso/srv/ -- relocated 2026-09-30,
-MultiIsoService reaches it over HTTP, never by path).
+and their manifests. Those live under srv/ with the other bridges
+(the Julia orchestrator at srv/julia-bridge/ -- relocated
+2026-09-30; MultiIsoService reaches it over HTTP, never by path).

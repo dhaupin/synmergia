@@ -9,9 +9,9 @@
 >
 > **Relocation note (2026-09-30):** the Julia orchestrator files
 > cited below (`game/core/frame/srv/orchestrator.jl`, `server.jl`,
-> `Project.toml`) now live at `labs/multi-iso/srv/` -- they are a
-> Julia service, not Godot frame primitives. Paths below are
-> historical.
+> `Project.toml`) now live at `srv/julia-bridge/` -- they are an
+> HTTP bridge sidecar (sibling of pg-bridge/redis-bridge), not
+> Godot frame primitives. Paths below are historical.
 > **Phase:** Pre-vertical-slice. Codebase was rapid-filled with
 > ideas and design angles; no consensus-pass has been run.
 
