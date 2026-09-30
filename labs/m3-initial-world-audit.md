@@ -6,6 +6,12 @@
 > happens in `/labs/world-building.md`.
 >
 > **Date:** 2026-09-05
+>
+> **Relocation note (2026-09-30):** the Julia orchestrator files
+> cited below (`game/core/frame/srv/orchestrator.jl`, `server.jl`,
+> `Project.toml`) now live at `labs/multi-iso/srv/` -- they are a
+> Julia service, not Godot frame primitives. Paths below are
+> historical.
 > **Phase:** Pre-vertical-slice. Codebase was rapid-filled with
 > ideas and design angles; no consensus-pass has been run.
 

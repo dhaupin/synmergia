@@ -198,8 +198,9 @@ stored against it.
 
 ## 6. Adjacent lanes (kept in sight, not blocking)
 
-- Julia lanes (`frame/srv/orchestrator.jl`, `server.jl`,
-  `Project.toml`): the pre-solve/race theorem work (owner: "pre-solves
+- Julia lanes (`labs/multi-iso/srv/orchestrator.jl`, `server.jl`,
+  `Project.toml` -- relocated out of `game/core/frame/srv/`
+  2026-09-30): the pre-solve/race theorem work (owner: "pre-solves
   races") belongs here when it graduates from paper -- deterministic
   evaluation is embarrassingly parallel, and Julia is the right
   substrate for the Monte Carlo of "what did the ledger fold to."
