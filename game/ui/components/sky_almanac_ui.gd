@@ -13,6 +13,10 @@ class_name SkyAlmanacUI
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const WorldRegistry = preload("res://core/frame/srv/world_registry.gd")
+## The schedule primitive the DOCK reads (FerryService): the page
+## calls the same math so chart and dock cannot disagree -- one
+## derivation, two readers (the S14.5 one-law cleanup).
+const FerrySchedule = preload("res://core/frame/srv/ferry_schedule.gd")
 
 const WINDOW_HOURS: Array[String] = ["00-06", "06-12", "12-18", "18-24"]
 
@@ -492,33 +496,8 @@ func _ferry_row(v) -> Dictionary:
 		"to": str(v.route_gateways[v.route_gateways.size() - 1]).trim_prefix("waypoint_").replace("_", " "),
 		"per_day": int(v.ferries_per_day),
 		"cross_h": float(v.crossing_hours),
-		"dep": _next_departure(int(v.ferries_per_day), float(v.first_departure_hour)),
+		"dep": FerrySchedule.next_departure(int(v.ferries_per_day), float(v.first_departure_hour), _moon_epoch_days()),
 	}
-
-
-## The next cast-off for a closed-form schedule: per-day departures
-## spread evenly across the sky day, first at first_h. Day boundary
-## is the Concord epoch day -- the same day index the sky rows show
-## (one clock: calendar, moon, and ferry). Returns {hour, day_offset,
-## in_h, departing}.
-func _next_departure(per_day: int, first_h: float) -> Dictionary:
-	var epoch: float = _moon_epoch_days()
-	var hour_now: float = fposmod(epoch, 1.0) * 24.0
-	var step: float = 24.0 / float(per_day)
-	var best: Dictionary = {}
-	for k in per_day:
-		var h: float = first_h + float(k) * step
-		var d_off := 0
-		while h >= 24.0:
-			h -= 24.0
-			d_off += 1
-		var in_h := h - hour_now
-		if in_h < 0.0:
-			in_h += 24.0
-			d_off += 1
-		if best.is_empty() or in_h < float(best.get("in_h", 999.0)):
-			best = {"hour": h, "day_offset": d_off, "in_h": in_h, "departing": in_h <= 0.25}
-	return best
 
 
 func _sign_name_for(day: int, window: int) -> String:

@@ -820,6 +820,49 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   globe shape; (3) conjure-holder must be the current SCENE, never
   the gate (a freed gate must not take the moon with it -- same
   law as ScopeService's escape capture).
+- [x] S14.5 FerryService + the One-Law Cleanup SHIPPED (2026-09-30,
+  owner: "S14.5 rides the same schedule math and a water cleanup
+  round before we tackle wasm"). (1) THE PRIMITIVE:
+  core/frame/srv/ferry_schedule.gd -- departure_hours /
+  next_departure / crossing_in_progress, closed form off the
+  Concord epoch, co-located test (11 checks). THE CLEANUP: the
+  almanac's private _next_departure is DELETED; the sailing page
+  calls the same primitive the dock reads -- chart-dock
+  disagreement is now structurally impossible (one derivation,
+  two readers, the moon-page law applied to boats). (2) THE
+  SERVICE: FerryService autoload (NO class_name, after
+  OceanService): board_ferry free, boarding-window only; empty
+  boat stays tied; arrival records the wake + per-rider
+  ZONE_CHANGED toast; skiff = 2.5x + ticket via remove_gold (the
+  gold sink) + THE WAKE LAW (zero recorded rides = refused --
+  first crossings are never skippable); wake ledger one
+  DictStore key per player (WaypointService idiom), reboot-safe;
+  wake_is_known(3) staged for the dock-warp tier. Manifest =
+  session truth (logout misses the boat); emptied dock releases
+  the sailing slot; boat at sea sails on; 1 s driver timer
+  (SignService idiom); abandon_riding is the logout seam (no
+  roster-left signal exists yet). v0 path contract: positions
+  are the ports, ride time honest, deck motion S14.6+. (3)
+  probe_ferry.gd (25 checks, DEFAULT_SET) caught: the cast-off
+  boundary (crossing_in_progress claimed the boat at sea AT the
+  departure instant, swallowing the boarding window -- the
+  instant belongs to boarding, crossing starts strictly after)
+  and the phantom sailing (board then desert = a sailing slot
+  ticking at an empty dock). Also caught three wrong
+  hand-derivations in my own schedule test -- the primitive was
+  right every time; the test now verifies one clock read against
+  pinned epochs. Regression 49/0 (47 + the two new ferry suites:
+  test_ferry_schedule 11 checks, probe_ferry 25), lint 36/36.
+  Lessons: (1)
+  boundary ownership must be DECLARED (who owns the instant:
+  boarding or sea) -- floats make "at the instant" a real
+  question, not a pedantic one; (2) delete the private copy when
+  you promote math to a primitive -- a kept copy is a future
+  disagreement; (3) claims need release paths (a stamped slot
+  with nobody left to sail it is a leak the state machine won't
+  catch). Next: wasm preview triage (the game, playable), then
+  S14.6 water mounts + ride motion; owner has a GLB-on-Colab
+  side quest after.
 - [x] S14.2 the Swim Class + S14.3 Aquatic Anticheat + S14.4 the First
   Breather Gear + the Sailing Almanac Page SHIPPED (2026-09-29,
   owner: "first the sailing Almanac, then let's hit S14.3

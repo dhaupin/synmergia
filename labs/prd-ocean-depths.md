@@ -343,3 +343,45 @@ ride always takes the water. After that, the wake remembers
 you."). `_sail_ferries` reads the vehicle declarations directly:
 the almanac is a chart, not a service; the FerryService (S14.5)
 will honor the same math.
+
+## 14. S14.5 as built (2026-09-30): the ferry is a moving room
+
+**The schedule is ONE primitive.** `core/frame/srv/ferry_schedule.gd`
+(pure, no autoload, co-located test) is the closed-form law:
+departure_hours / next_departure / crossing_in_progress off the
+Concord epoch. The almanac page and FerryService BOTH call it --
+a disagreement between chart and dock is now structurally
+impossible (the S14.5 cleanup: the page used to keep its own
+private departure math). THE CAST-OFF INSTANT BELONGS TO THE
+BOARDING WINDOW: crossing_in_progress starts strictly after the
+departure hour, so "boarding" and "at sea" can never both be
+true at 09:00 (the probe caught the boundary claiming both).
+
+**The tiers (prd sec 9, honest).** FerryService (autoload, NO
+class_name, registered after OceanService): board_ferry is FREE
+and refuses outside the boarding window ("the boat has sailed");
+an empty boat stays tied up (the crew waits for a manifest);
+arrival records the wake and notifies each rider (ZONE_CHANGED).
+The chartered skiff is 2.5x (SKIFF_SPEED_MULT), ticket-priced
+through InventoryService.remove_gold (the gold sink), and the
+WAKE LAW refuses a rider with zero recorded rides -- first
+crossings are never skippable. The wake ledger persists one
+DictStore key per player (the WaypointService idiom) and
+survives reboots; wake_is_known at 3 rides is the dock-warp
+tier's gate (UI later).
+
+**The manifest is session truth.** A rider who logs out misses
+the boat; an EMPTIED DOCK releases its claimed sailing slot (no
+phantom sailings), but a boat at sea sails on. The v0 path
+contract: positions are the ports (the deck is virtual; ride
+time and schedule are honest already -- ride motion is S14.6+).
+The driver is a 1 s timer (the SignService idiom); abandon_riding
+is the logout seam until a roster signal exists (there is none
+yet -- InventoryService.unregister_inventory is equally
+uncalled).
+
+`probe_ferry.gd` (25 checks, in DEFAULT_SET) + `test_ferry_schedule.gd`
+(11 checks, co-located, in DEFAULT_SET). The probe caught: the
+cast-off boundary ambiguity, the phantom sailing after a full
+desertion, and (in the schedule test) three of my own wrong
+hand-derivations -- the primitive was right every time.
