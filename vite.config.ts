@@ -98,6 +98,10 @@ function serveGodotWeb(): Plugin {
             res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
             res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
             res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+            // Dev/preview must never serve a stale engine: the pck and
+            // shell change every CI content refresh, and a cached pack
+            // silently reverts game fixes on the player's side.
+            res.setHeader('Cache-Control', 'no-cache');
             return fs.createReadStream(filePath).pipe(res);
           }
         }
@@ -126,6 +130,10 @@ function serveGodotWeb(): Plugin {
             res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
             res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
             res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+            // Dev/preview must never serve a stale engine: the pck and
+            // shell change every CI content refresh, and a cached pack
+            // silently reverts game fixes on the player's side.
+            res.setHeader('Cache-Control', 'no-cache');
             return fs.createReadStream(filePath).pipe(res);
           }
         }

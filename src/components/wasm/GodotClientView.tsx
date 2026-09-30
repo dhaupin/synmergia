@@ -63,6 +63,11 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
     }
   }, [shellStatus]);
 
+  // Reload with a one-time cache-buster: browsers may hold the shell
+  // (and the pack it fetches) for a session, and a stale pack silently
+  // reverts game fixes. The ?t= forces the iframe to refetch the shell;
+  // the shell's own assets are same-origin relative fetches, which the
+  // no-cache header on the dev/preview server keeps honest.
   const handleReload = () => {
     if (iframeRef.current) {
       iframeRef.current.src = `/web/index.html?t=${Date.now()}`;
