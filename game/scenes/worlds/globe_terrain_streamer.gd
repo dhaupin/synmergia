@@ -131,6 +131,11 @@ func _load_patch(face: int) -> void:
 		for v in tri:
 			st.set_normal(v.normalized())
 			st.set_color(tint)
+			# Planar UVs on the tangent plane (patch-local x/z). Gives the
+			# tile a real texture map so ground motion reads while walking
+			# (play-day feedback #7: the pure-vertex-tint globe had zero
+			# ground detail -- nothing to see move under you).
+			st.set_uv(Vector2(v.x, v.z) * 0.22)
 			st.add_vertex(v)
 	var mesh: ArrayMesh = st.commit()
 
@@ -140,6 +145,10 @@ func _load_patch(face: int) -> void:
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
 	mat.roughness = 0.95
+	# Subtle grass checker (seeded per-run like the planar floor): keeps
+	# the face tint readable while giving walking a parallax cue.
+	mat.albedo_texture = _make_checker_texture()
+	mat.uv1_scale = Vector3(1, 1, 1)
 	mi.material_override = mat
 	mi.position = center
 	parent.add_child(mi)
@@ -148,6 +157,17 @@ func _load_patch(face: int) -> void:
 
 	_spawn_rocks(face)
 	patch_loaded.emit(face)
+
+
+## 2x2-pixel green checker. StandardMaterial3D wraps UVs by default,
+## so the small texture tiles across the 0.22-scaled UVs.
+func _make_checker_texture() -> ImageTexture:
+	var img := Image.create(2, 2, false, Image.FORMAT_RGBA8)
+	img.set_pixel(0, 0, Color(0.42, 0.55, 0.30))
+	img.set_pixel(1, 0, Color(0.38, 0.51, 0.27))
+	img.set_pixel(0, 1, Color(0.38, 0.51, 0.27))
+	img.set_pixel(1, 1, Color(0.42, 0.55, 0.30))
+	return ImageTexture.create_from_image(img)
 
 
 ## Seeded rocks + trees for one face: deterministic content (S7),
@@ -164,6 +184,8 @@ func _spawn_rocks(face: int) -> void:
 	var specs: Array = TerrainGen.rock_specs(world_seed, face)
 	var nodes: Array = []
 	var patch_node: MeshInstance3D = _patches[face]
+	# The patch node's offset (same derivation as _load_patch).
+	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
 	for s in specs:
 		var rmi := MeshInstance3D.new()
 		var rmesh := SphereMesh.new()
@@ -174,7 +196,13 @@ func _spawn_rocks(face: int) -> void:
 		rmat.roughness = 1.0
 		rmesh.material = rmat
 		rmi.mesh = rmesh
-		rmi.position = s.dir * (radius + TerrainGen.ROCK_EMBED)
+		# rock_specs dirs are GLOBE-absolute; the patch node sits at the
+		# face-center offset, so the child position must be patch-LOCAL:
+		# absolute point minus the node's offset. (Pre-existing S7 bug:
+		# absolute coords used as local ones displaced every rock roughly
+		# a face-width off its true spot -- visually "no rocks near the
+		# ground you walk".)
+		rmi.position = s.dir * (radius + TerrainGen.ROCK_EMBED) - patch_center
 		rmi.rotation.y = s.yaw
 		patch_node.add_child(rmi)
 		nodes.append(rmi)
@@ -195,10 +223,11 @@ func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
 	rng.seed = acc
 	var count: int = rng.randi_range(4, 8)
 	var verts: PackedInt32Array = FacePatches.face_vertices(face)
-	var center: Vector3 = FacePatches.face_center(face)
+	# Scaled patch offset (matches _load_patch), for patch-local trees.
+	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
 	for i in range(count):
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
-		var dir: Vector3 = (center * 0.55 + v * 0.45).normalized()
+		var dir: Vector3 = (FacePatches.face_center(face) * 0.55 + v * 0.45).normalized()
 		var tree := Node3D.new()
 		tree.name = "Tree%d" % i
 		var trunk_height: float = rng.randf_range(1.8, 3.2)
@@ -227,7 +256,9 @@ func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
 		canopy.mesh = cmesh
 		canopy.position = Vector3(0, trunk_height + crown * 0.55, 0)
 		tree.add_child(canopy)
-		tree.position = dir * (radius + TILE_LIFT)
+		# Patch-local like the mesh vertices and the rocks: absolute
+		# scatter position minus the patch node's offset.
+		tree.position = dir * (radius + TILE_LIFT) - patch_center
 		# Stand the trunk along the local radial up.
 		var up: Vector3 = dir
 		var hint := Vector3(0, 1, 0)
@@ -235,7 +266,7 @@ func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
 			hint = Vector3(0, 0, -1)
 		var east: Vector3 = (hint - up * hint.dot(up)).normalized()
 		var north: Vector3 = east.cross(up)
-		tree.basis = Basis(east, up, -north).rotated(up, rng.randf_range(0.0, TAU))
+		tree.basis = Basis(east, up, north).rotated(up, rng.randf_range(0.0, TAU))
 		patch_node.add_child(tree)
 
 
