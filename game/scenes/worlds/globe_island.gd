@@ -1,16 +1,17 @@
-## GlobeIsland - standalone spherical-world prototype scene root
-## (prd-spherical-mvp.md S3). Builds the shell (visual sphere +
-## sphere-shell collider), the player, a sun, and the probe markers.
-## Deliberately additive: nothing in the live playable world changes.
+## GlobeIsland - spherical-world scene root (prd-spherical-mvp.md S3).
+## Builds the shell (visual sphere + sphere-shell collider), the player,
+## the sun, and the arena gateway. The playable HUD is installed by the
+## shared HudLayer.ensure_installed() init so every playable scene gets
+## the same composition.
 ##
 ## S8 FLOATING ORIGIN: everything planet-bound (shell, streamed
-## patches, probe markers, surface pad) lives under world_root; the
-## player is a direct child of this scene and stays near the world
-## origin. When the player drifts past SHIFT_RADIUS, the whole planet
-## is translated back around it (_maybe_shift_world). At planet scale
-## ground support is a single re-anchored surface pad (see
-## _build_surface_pad) - the megasphere SphereShape and face-scale
-## patch trimeshes both degenerate at R = 20 km (measured, S8).
+## patches, surface pad) lives under world_root; the player is a direct
+## child of this scene and stays near the world origin. When the player
+## drifts past SHIFT_RADIUS, the whole planet is translated back around
+## it (_maybe_shift_world). At planet scale ground support is a single
+## re-anchored surface pad (see _build_surface_pad) - the megasphere
+## SphereShape and face-scale patch trimeshes both degenerate at
+## R = 20 km (measured, S8).
 extends Node3D
 
 const PLAYER_SKIN: float = 1.0
@@ -73,16 +74,11 @@ var streamer  # GlobeTerrainStreamer; untyped - preload-by-path pattern
 var player  # GlobeIslandPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
 
-## S14-web: the playable HUD (menus, action bars, combat log, touch
-## controls). Loaded by path at runtime so the scene keeps no parse-time
-## dependency on the UI tree; the planar world_playable.tscn embeds the
-## same scene. The TouchHud (floating joystick + camera-look + buttons)
-## lives inside InputManager on every platform; visibility is the
-## InputManager's call (touch devices default on, desktop off).
+## S14-web: the playable HUD. Kept as a thin wrapper for back-compat:
+## the real install is the shared HudLayer.ensure_installed() init
+## (feedback #5 -- one cohesive playable-HUD system loaded the same way
+## on every playable scene).
 var hud: CanvasLayer = null
-var _probe_north: Node3D
-var _probe_east: Node3D
-var _probe_marker: Node3D
 
 
 func _ready() -> void:
@@ -94,7 +90,7 @@ func _ready() -> void:
 	_build_shell()
 	_build_surface_pad()
 	_build_sun()
-	_build_probe_markers()
+	_build_arena_gateway()
 	_build_player()
 	_setup_streamer()
 	planet_center = world_root.position
@@ -145,14 +141,10 @@ func _maybe_shift_world() -> void:
 func _install_hud() -> void:
 	if hud != null:
 		return
-	var packed: PackedScene = load("res://ui/hud/hud_layer.tscn")
-	if packed == null:
-		GameLog.warn("GlobeIsland: hud_layer.tscn missing; HUD disabled")
-		return
-	hud = packed.instantiate()
-	hud.name = "HudLayer"
-	add_child(hud)
-	GameLog.info("GlobeIsland: playable HUD installed")
+	HudLayer.ensure_installed(self)
+	hud = get_node_or_null("HudLayer") as CanvasLayer
+	if hud != null:
+		GameLog.info("GlobeIsland: playable HUD installed")
 
 
 ## Bridge the touch HUD into the globe player's camera (same shape as
@@ -353,15 +345,6 @@ func _build_sun() -> void:
 	env.environment = e
 
 
-## A tall box at the north pole and a second one one tangent-east step
-## away: if radial gravity and the tangent frame are right, the north
-## marker stays ABOVE the player (in local up) for the whole walk.
-func _build_probe_markers() -> void:
-	_probe_north = _make_marker(Color(0.9, 0.2, 0.2), Vector3(0, planet_radius + 4.0, 0))
-	_probe_east = _make_marker(Color(0.2, 0.4, 0.9), Vector3(10.0, planet_radius + 4.0, 0))
-	_probe_marker = _make_marker(Color(1.0, 0.85, 0.2), Vector3(0, planet_radius + 8.0, -40.0))
-	_build_arena_gateway()
-
 ## S10: the arena gateway trigger at the village edge. An Area3D under
 ## world_root (shift-invariant: it rides the world rebase like every
 ## other planet-bound node) whose body_entered fires InstanceService.
@@ -377,24 +360,6 @@ func _build_arena_gateway() -> void:
 	arena_gateway = gateway
 
 var arena_gateway: Node3D = null
-
-
-func _make_marker(color: Color, pos: Vector3) -> Node3D:
-	var root := Node3D.new()
-	var mi := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(2.0, 8.0, 2.0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.emission_enabled = true
-	mat.emission = color
-	mat.emission_energy_multiplier = 0.6
-	box.material = mat
-	mi.mesh = box
-	root.add_child(mi)
-	root.position = pos
-	world_root.add_child(root)
-	return root
 
 
 func _build_player() -> void:
@@ -449,6 +414,7 @@ func _build_player() -> void:
 ## Drive the auto-walk for `seconds` of wall-clock physics, then stop.
 func run_walk(seconds: float = WALK_SECONDS) -> void:
 	player.auto_walk = true
+	player.auto_walk_yaw = 0.0
 	var elapsed: float = 0.0
 	while elapsed < seconds and is_inside_tree():
 		await get_tree().create_timer(0.5).timeout

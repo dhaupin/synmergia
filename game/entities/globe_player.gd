@@ -50,8 +50,11 @@ var gravity_force: float = GRAVITY_DEFAULT
 ## through bind_to_world(); drives per-world gravity/speeds and the
 ## no-atmosphere glider gate.
 var world_id: String = ""
-## Set true by the probe to auto-walk eastward without input.
+## Set true by the probe to auto-walk forward (along the camera
+## heading) without input. auto_walk_yaw is a look offset in radians
+## the walk follows.
 var auto_walk: bool = false
+var auto_walk_yaw: float = 0.0
 ## Optional provider: func(dir: Vector3) -> float, height above the
 ## base surface at that direction (rock tops). The radial snap rides
 ## rock tops smoothly so walk-over colliders decorate, not block.
@@ -208,15 +211,43 @@ func _physics_process(delta: float) -> void:
 	var north: Vector3 = (pole_hint - up * pole_hint.dot(up)).normalized()
 	var east: Vector3 = north.cross(up)
 
+	# Camera heading on the tangent plane. The pivot's basis is rebuilt
+	# every physics frame at the bottom of this function, so read the
+	# PREVIOUS frame's basis here (one-frame lag; same as the planar
+	# controller reading the camera in _physics_process). Forward is
+	# the projected camera forward, right the projected camera right.
+	var cam_fwd: Vector3 = north
+	var cam_right: Vector3 = east
+	var pivot: Node3D = get_node_or_null("CameraPivot")
+	if pivot:
+		var f: Vector3 = -pivot.global_transform.basis.z
+		var r: Vector3 = pivot.global_transform.basis.x
+		# Project onto the tangent plane (drop the radial component);
+		# at extreme pitch the projected forward collapses toward zero,
+		# then the compass frame keeps movement sane.
+		var fp: Vector3 = f - up * f.dot(up)
+		var rp: Vector3 = r - up * r.dot(up)
+		if fp.length_squared() > 0.000001:
+			cam_fwd = fp.normalized()
+		if rp.length_squared() > 0.000001:
+			cam_right = rp.normalized()
+
 	var wish: Vector3 = Vector3.ZERO
 	if auto_walk:
-		wish = east
+		# Probe/automation walk: follow the camera heading rotated by
+		# auto_walk_yaw (0 = straight ahead).
+		var dir: Vector3 = cam_fwd.rotated(up, auto_walk_yaw)
+		wish = (dir - up * dir.dot(up)).normalized()
 	else:
 		# Touch stick feeds the same pipeline as WASD: InputManager merges
-		# controller > touch joystick > keyboard into one vector.
+		# controller > touch joystick > keyboard into one vector. Input is
+		# CAMERA-RELATIVE like the planar controller: forward walks where
+		# you look, so orbiting the view re-aims movement (walking used to
+		# pin to map north/east regardless of where the camera pointed,
+		# which read as "stuck" against invisible walls while circling).
 		var input_vec: Vector2 = InputManager.get_movement_input() if InputManager \
 			else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-		wish = east * input_vec.x + north * (-input_vec.y)
+		wish = cam_fwd * (-input_vec.y) + cam_right * input_vec.x
 	if wish.length() > 1.0:
 		wish = wish.normalized()
 
@@ -303,7 +334,6 @@ func _physics_process(delta: float) -> void:
 	# Keep the camera pivot aligned with local up, then apply the
 	# look orbit (yaw around local up, pitch around local east). With no
 	# look input yet this reproduces the original fixed frame exactly.
-	var pivot: Node3D = get_node_or_null("CameraPivot")
 	if pivot:
 		var xform: Transform3D = pivot.global_transform
 		xform.basis = Basis(east, up, -north)
