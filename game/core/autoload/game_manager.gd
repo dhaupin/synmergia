@@ -133,10 +133,11 @@ func _check_loading_complete() -> void:
 func _handle_loading_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Loading resources...")
 	var overlay := _ensure_boot_loading_overlay()
+	var shown_ms := Time.get_ticks_msec()
 	if overlay != null:
 		overlay.show_loading("Loading resources...")
 		await get_tree().process_frame
-		overlay.hide_loading()
+		await _hold_loading_min(overlay, shown_ms)
 
 func _handle_login_state() -> void:
 	_show_loading_and_change_scene("res://ui/menus/login.tscn", "Loading login screen...")
@@ -226,14 +227,38 @@ func _ensure_boot_loading_overlay() -> Control:
 
 func _show_loading_and_change_scene(scene_path: String, status_text: String) -> void:
 	var overlay := _ensure_boot_loading_overlay()
+	var shown_ms := Time.get_ticks_msec()
 	if overlay != null:
 		overlay.show_loading(status_text)
 		await get_tree().process_frame
 	var err = get_tree().change_scene_to_file(scene_path)
 	if err != OK:
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Failed to load %s: %s" % [scene_path, err])
+	# Play-day feedback #8: hold the screen until the new scene is
+	# actually current. The old code hid the overlay one frame after the
+	# swap -- a 2-frame flash nobody can see (species-select "Play"
+	# showed NO loading screen at all). The heavy world _ready runs
+	# synchronously inside the deferred swap, so this genuinely covers
+	# the freeze; the safety cap keeps a broken path from sticking.
+	if err == OK:
+		var safety := 0
+		while safety < 600:
+			safety += 1
+			var cs := get_tree().current_scene
+			if cs != null and cs.is_inside_tree() and cs.scene_file_path == scene_path:
+				break
+			await get_tree().process_frame
 	if overlay != null:
-		await get_tree().process_frame
+		await _hold_loading_min(overlay, shown_ms)
+
+## Keep the overlay up at least long enough to read as an intentional
+## screen (fast transitions otherwise flash under 200 ms).
+func _hold_loading_min(overlay: Control, shown_ms: int) -> void:
+	var elapsed := Time.get_ticks_msec() - shown_ms
+	const MIN_VISIBLE_MS := 700
+	if elapsed < MIN_VISIBLE_MS:
+		await get_tree().create_timer((MIN_VISIBLE_MS - elapsed) / 1000.0).timeout
+	if overlay != null and is_instance_valid(overlay):
 		overlay.hide_loading()
 
 func _initialize_world_services() -> void:
