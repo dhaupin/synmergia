@@ -212,14 +212,18 @@ func _setup_ui() -> void:
 	_time_label.add_theme_color_override("outline_color", Color(0, 0, 0, 1))
 	panel.add_child(_time_label)
 
-	# Layer toggle buttons row
+	# Layer toggle buttons row. MUST live inside the map container (a
+	# plain Control), never as a direct child of the PanelContainer:
+	# containers stretch every child to fill their rect, which turned
+	# this HBox row into a column of screen-tall color bars over the
+	# map (play-day feedback #4 -- the "garbled minimap").
 	_layer_toggle_container = HBoxContainer.new()
 	_layer_toggle_container.name = "LayerToggles"
 	_layer_toggle_container.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_layer_toggle_container.offset_bottom = -2
 	_layer_toggle_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	_layer_toggle_container.add_theme_constant_override("separation", 2)
-	panel.add_child(_layer_toggle_container)
+	map_container.add_child(_layer_toggle_container)
 
 	_build_layer_toggles()
 
