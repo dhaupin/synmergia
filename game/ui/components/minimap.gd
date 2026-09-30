@@ -97,11 +97,20 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 
 func _setup_ui() -> void:
 	name = "Minimap"
-	set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	offset_left = -190
-	offset_top = 60
-	offset_right = -10
-	offset_bottom = 240
+	# Placement authority is the host scene (hud_layer.tscn pins the
+	# minimap top-right at y12..182). The old self-anchor moved the
+	# widget DOWN 60px over the BuffBar/QuickAccessBar stack, which is
+	# why the corner read as a garbled pile on the globe (feedback #4).
+	# Only self-place when nothing anchored us yet (standalone/code
+	# use): the scene root is a CanvasLayer, so parent-type checks do
+	# not work here.
+	var placed: bool = anchor_left != 0.0 or anchor_top != 0.0 or anchor_right != 0.0
+	if not placed:
+		set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		offset_left = -190
+		offset_top = 60
+		offset_right = -10
+		offset_bottom = 240
 	custom_minimum_size = Vector2(180, 180)
 
 	# Main panel with circular mask

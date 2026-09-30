@@ -84,11 +84,20 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 
 func _setup_ui() -> void:
 	name = "BuffBar"
-	set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	offset_left = -380
-	offset_top = 60
-	offset_right = -20
-	offset_bottom = 140
+	# Placement authority is the host scene (hud_layer.tscn anchors the
+	# widget top-right at y230..290 under the QuickAccessBar). This widget
+	# used to re-anchor itself top-right at y60..140 -- exactly over the
+	# Minimap -- so on the globe the minimap's layer toggles (P N E Q * $ W)
+	# rendered UNDER a pile of buff filter chrome (feedback #4). Only
+	# self-place when nothing anchored us yet (standalone/code use): the
+	# scene root is a CanvasLayer, so parent-type checks do not work here.
+	var placed: bool = anchor_left != 0.0 or anchor_top != 0.0 or anchor_right != 0.0
+	if not placed:
+		set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		offset_left = -380
+		offset_top = 60
+		offset_right = -20
+		offset_bottom = 140
 
 	# Main container
 	var vbox := VBoxContainer.new()

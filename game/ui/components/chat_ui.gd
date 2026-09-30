@@ -68,11 +68,25 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			_chat_input.add_theme_font_size_override("font_size", int(current_size * scale))
 
 func _setup_ui() -> void:
+	# Self-contained rect (top-left, below the top bar): tabs, history,
+	# and input stack inside ONE anchored panel. The old layout anchored
+	# the inner vbox to BOTTOM_LEFT inside a CanvasLayer parent, which
+	# left the panel's own rect undefined -- on the web export the tabs
+	# rendered at the top edge while the input landed mid-screen with a
+	# dead gap between them (the "garbled chat" in feedback #4).
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	offset_left = 0
+	offset_top = 90
+	offset_right = CHAT_WIDTH
+	offset_bottom = 90 + CHAT_HEIGHT + INPUT_HEIGHT + 40
+
 	# Main container
 	var vbox := VBoxContainer.new()
-	vbox.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	vbox.offset_right = CHAT_WIDTH
-	vbox.offset_bottom = CHAT_HEIGHT + INPUT_HEIGHT + 40
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vbox.offset_left = 4
+	vbox.offset_top = 4
+	vbox.offset_right = -4
+	vbox.offset_bottom = -4
 	add_child(vbox)
 
 	# Channel tabs
@@ -261,7 +275,7 @@ func add_message(sender_id: String, channel: int, message: String) -> void:
 		_trim_history()
 
 func add_system_message(message: String) -> void:
-	var formatted := "[color=%s][System]:[/color] %s" % [UIStyles.COLORS.warning.to_html(), message]
+	var formatted := "[color=%s][System]:[/color] %s" % [UIStyles.COLORS.warning.to_html(), _esc(message)]
 	_chat_history.append_text(formatted + "\n")
 	_message_count += 1
 
