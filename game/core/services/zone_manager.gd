@@ -831,6 +831,8 @@ func check_seamless_transition(entity) -> ZoneData:
 	for zone in _zones.values():
 		if zone.is_instanced or zone.id == current_zone_id:
 			continue
+		if not _zone_is_planar(zone):
+			continue
 		if not zone.contains_position(entity_pos):
 			continue
 		if best_zone == null or _zone_claims_better(zone, best_zone):
@@ -879,9 +881,26 @@ func _zone_claims_better(a: ZoneData, b: ZoneData) -> bool:
 		return a.level_requirement > b.level_requirement
 	return a.zone_radius < b.zone_radius
 
+## Planar-only filter (S16 world scoping): a zone that names a
+## non-main world holds coordinates in THAT world's own frame, not
+## planar world coords. Planar detectors and transitions must never
+## claim entities into such zones -- the underworld camp is entered
+## through its globe scene, never by position matching. (World ids
+## are unprefixed: "main" is the planar world; data/worlds/world_main.tres.)
+func _zone_is_planar(zone: ZoneData) -> bool:
+	if zone == null:
+		return false
+	var wid := str(zone.world_id)
+	return wid.is_empty() or wid == "main"
+
 ## Perform seamless transition
 func perform_seamless_transition(entity, to_zone) -> bool:
 	if to_zone == null:
+		return false
+	# S16 world scoping: the planar transition path cannot carry an
+	# entity into a subworld zone (its coordinates mean nothing here).
+	if not _zone_is_planar(to_zone):
+		GameLog.warn("ZoneManager: refusing planar transition into subworld zone %s" % to_zone.id)
 		return false
 
 	var from_zone = _zones.get(_entity_zones.get(entity.entity_id, ""))
@@ -960,6 +979,8 @@ func _detect_zone_entries_spatial(entities: Array) -> void:
 	# Build a map of zone spatial addresses for quick lookup
 	var zone_addresses: Dictionary = {}
 	for zone_id in _zones:
+		if not _zone_is_planar(_zones[zone_id]):
+			continue
 		var addr: int = get_zone_spatial_address(zone_id)
 		if addr != 0:
 			zone_addresses[zone_id] = addr
@@ -1007,7 +1028,7 @@ func _detect_zone_entries_spatial(entities: Array) -> void:
 
 			if entity_addr != 0 and _spatial_fragmenter.is_ancestor(zone_addr, entity_addr):
 				var zone = _zones.get(zone_id)
-				if zone and zone.contains_position(pos):
+				if zone and zone.contains_position(pos) and _zone_is_planar(zone):
 					found_zone = zone
 					break
 
@@ -1036,6 +1057,8 @@ func _detect_zone_entries_fallback(entities: Array) -> void:
 		# Check all non-instanced zones
 		for zone in _zones.values():
 			if zone.is_instanced:
+				continue
+			if not _zone_is_planar(zone):
 				continue
 			if zone.contains_position(pos):
 				var dist: float = pos.distance_to(zone.zone_center)

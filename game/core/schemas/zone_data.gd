@@ -56,6 +56,14 @@ enum PvPZoneMode {
 @export var loot_multiplier: float = 1.0
 @export var xp_multiplier: float = 1.0
 
+# World scoping (S16 lattice): which world this zone lives in. Empty
+# = the main world (planar world coords). A non-main zone (e.g. the
+# underworld camp) holds SUBWORLD-local coordinates and must never be
+# consumed by planar paths: spawn_all_offering_npcs skips its NPCs
+# (the owning globe scene spawns them itself in its own frame), and
+# planar transition/respawn law never claims entities into it.
+@export var world_id: String = ""
+
 # Zone is instanced (dungeons)
 @export var is_instanced: bool = false
 @export var instance_capacity: int = 0  # 0 = unlimited

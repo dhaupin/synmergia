@@ -70,6 +70,7 @@ probe_thermals
 probe_royale_storm
 probe_world_lattice
 probe_underworld
+probe_world_scoping
 probe_calibration
 globe_driver
 probe_ancient_loop

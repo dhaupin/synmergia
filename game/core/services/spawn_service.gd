@@ -1130,6 +1130,17 @@ func spawn_all_offering_npcs() -> void:
 		if zone_data == null:
 			GameLog.warn("SpawnService: NPC '%s' references unknown zone '%s' -- skipping (broken data reference)" % [npc_data.id, zone_id])
 			continue
+		# World scoping (S16): a zone that names a non-main world holds
+		# coordinates in THAT world's frame, not planar world coords.
+		# spawn_all_offering_npcs is a planar-coordinate path -- it must
+		# not guess underworld/moon placements (e.g. the Deep Warden
+		# once landed in the planar world at y=2000, and boot position
+		# law then seamless-transitioned players up to stand on him).
+		# The owning globe scene spawns these NPCs itself in its own
+		# coordinate frame (globe_underworld._build_camp_keeper).
+		var zone_world := str(zone_data.get("world_id"))
+		if not zone_world.is_empty() and zone_world != "main":
+			continue
 		var spawn_pos: Vector3 = zone_data.bind_point + npc_data.spawn_offset
 		var entity := spawn_npc_entity(zone_id, spawn_pos, npc_data)
 		if entity != null:

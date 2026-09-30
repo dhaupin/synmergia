@@ -33,6 +33,7 @@ var _fail := 0
 var _yaw_before := 0.0
 var _atk_pos_before := Vector2.ZERO
 var _p7_retried := false
+var _p1_retried := false
 var _last_attack_pressed := false
 var _phase_label := "boot"
 var _p5_window_open := false
@@ -61,8 +62,8 @@ func _initialize() -> void:
 		[0.8, _enable_trace],
 		[1.0, _p1_start_drag],
 		[2.0, _p1_check],
-		[2.2, _p1_release],
-		[2.5, _p2_start_full_stick],
+		[2.8, _p1_release],
+		[3.0, _p2_start_full_stick],
 		[4.0, _p2_check],
 		[4.1, _p3_dodge],
 		[4.4, _p3_check],
@@ -204,6 +205,14 @@ func _p1_start_drag() -> void:
 
 func _p1_check() -> void:
 	# ~1s of half-stick movement from spawn (8, 0): well inside the floor.
+	# Under xvfb the spawn drop can still be inside its 0.15 s Land
+	# recovery at t=2.0 (Land lerps stick velocity to zero), so the
+	# first sample re-checks once if it caught the landing window.
+	if _state_name() == "Land" and not _p1_retried:
+		_p1_retried = true
+		_schedule.append([_t + 0.3, _p1_check])
+		_schedule.sort_custom(func(a, b): return float(a[0]) < float(b[0]))
+		return
 	_ok("stick moves player", _planar_speed() > 2.0,
 		"(vel %.1f, state %s)" % [_planar_speed(), _state_name()])
 	_ok("InputManager mirrors stick", _hud().joystick_moved.get_connections().size() > 0)
