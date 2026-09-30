@@ -111,6 +111,11 @@ jobs:
           echo "Exporting Web PCK bundle..."
           godot --headless --path game/ --export-pack "Web" "../web/game.pck"
           ls -lh web/game.pck
+          # Content-addressed cache-buster: game.html fetches this and
+          # requests game.pck?v=<sha256> (immutable); the worker 302s
+          # the bare path here too. Tracked so it deploys with the pck.
+          sha256sum web/game.pck | awk '{print $1}' > web/game.pck.hash
+          cat web/game.pck.hash
 
       # Close the drift loop: the served client reads the TRACKED
       # web/game.pck, so a push that changes game content must land its
@@ -125,7 +130,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/game.pck
+          git add web/game.pck web/game.pck.hash
           if git diff --cached --quiet; then
             echo "PCK unchanged since HEAD -- nothing to commit"
           else

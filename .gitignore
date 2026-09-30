@@ -16,6 +16,7 @@
 
 # Whitelist web deployment exports
 !web/*.pck
+!web/*.pck.hash
 !web/*.wasm
 !web/*.js
 

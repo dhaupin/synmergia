@@ -199,19 +199,34 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 	} else {
 		setStatusMode('progress');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
-				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
-				}
-			},
-		}).then(() => {
-			setStatusMode('hidden');
-		}, displayFailureNotice);
+		// Content-addressed pack: read game.pck.hash (updated by CI on
+		// every content change) and point mainPack at game.pck?v=<hash>.
+		// The pack then caches immutable -- a refresh only re-validates
+		// the tiny hash file, never the multi-MB pack. On any failure
+		// fall back to the bare path (no-store) so the game still boots.
+		const startOpts = { 'onProgress': function (current, total) {
+			if (current > 0 && total > 0) {
+				statusProgress.value = current;
+				statusProgress.max = total;
+			} else {
+				statusProgress.removeAttribute('value');
+				statusProgress.removeAttribute('max');
+			}
+		}};
+		const startWithPack = function (packUrl) {
+			engine.startGame({
+				'mainPack': packUrl,
+				'onProgress': startOpts['onProgress'],
+			}).then(() => {
+				setStatusMode('hidden');
+			}, displayFailureNotice);
+		};
+		fetch('game.pck.hash', { cache: 'no-cache' })
+			.then((r) => (r.ok ? r.text() : Promise.reject(new Error('no hash'))))
+			.then((h) => {
+				const hash = h.trim();
+				startWithPack(hash !== '' ? 'game.pck?v=' + encodeURIComponent(hash) : 'game.pck');
+			})			.catch(() => startWithPack('game.pck'));
 	}
 }());
 		</script>

@@ -94,6 +94,7 @@ function serveGodotWeb(): Plugin {
               '.png': 'image/png',
               '.json': 'application/json',
               '.toml': 'text/plain',
+              '.hash': 'text/plain',
             };
             res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
             res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
@@ -126,6 +127,7 @@ function serveGodotWeb(): Plugin {
               '.png': 'image/png',
               '.json': 'application/json',
               '.toml': 'text/plain',
+              '.hash': 'text/plain',
             };
             res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
             res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
