@@ -169,7 +169,7 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
               value={memoryMb}
               onChange={(e) => setMemoryMb(Number(e.target.value))}
               disabled
-              title="Read-only for now: the exported shell fixes initial WASM heap at build time (web/config.js). Re-export the pck to change it."
+              title="Locked by design: the exported engine fixes its initial WASM heap at build time (baked into game.wasm). The heap still GROWS at runtime as needed -- this only sets the starting floor, so the locked value is not a cap."
               className="w-full bg-slate-800/60 border border-slate-700 rounded px-2 py-1 text-slate-400 cursor-not-allowed"
             >
               <option value={256}>256 MB (exported shell default)</option>
@@ -177,7 +177,15 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
               <option value={512}>512 MB (High Density)</option>
               <option value={1024}>1024 MB (Max / Ultra)</option>
             </select>
-            <p className="text-[10px] text-slate-500 mt-1">Initial WASM heap is fixed by the exported shell; re-export to change.</p>
+            {/* The lock's explanation lives in the DRAWER (not just the
+                tooltip): mobile taps never show tooltips, so the select
+                read as broken. Show the value + why it is locked. */}
+            <p className="text-[10px] text-slate-500 mt-1">
+              Locked at {memoryMb} MB -- the exported engine fixes its initial heap
+              at build time (baked into game.wasm). The heap still grows at
+              runtime as needed; re-export with a different memory budget to
+              change the floor.
+            </p>
           </div>
 
           <div>

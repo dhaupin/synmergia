@@ -8,11 +8,11 @@
 	<meta name="description" content="Synmergia - A free and open source MMORPG">
 	<meta name="theme-color" content="#0b0e14">
 	<title>Synmergia</title>
-	<link rel="icon" type="image/svg+xml" href="/icon.svg">
-	<link rel="stylesheet" href="/style.css">
+	<link rel="icon" type="image/svg+xml" href="icon.svg">
+	<link rel="stylesheet" href="style.css">
 	<style>
 		/* Keep the existing style.css look; these rules only add the
-		 * missing progress bar and fullscreen affordance. */
+		 * progress bar and fullscreen affordance. */
 		#loading-bar {
 			width: min(420px, 70vw);
 			height: 8px;
@@ -60,7 +60,7 @@
 			<button onclick="location.reload()">Retry</button>
 		</div>
 	</div>
-	<script src="/config.js"></script>
+	<script src="config.js"></script>
 	<!-- SynmergiaInput capture layer (optional). The Godot web runtime
 	     delivers mouse/touch/keyboard natively, so this page does NOT
 	     auto-init it -- initializing would double-deliver input alongside
@@ -68,8 +68,8 @@
 	     path (see labs/prd-web.md) call:
 	         SynmergiaInput.init(document.getElementById('game-canvas'));
 	     The WebInputBridge autoload drains it only when initialized. -->
-	<script src="/shared/input.js"></script>
-	<script src="/game.js"></script>
+	<script src="shared/input.js"></script>
+	<script src="game.js"></script>
 	<script>
 	(function () {
 		"use strict";
@@ -80,7 +80,6 @@
 		var errorText = document.getElementById("error-text");
 		var loadingText = document.getElementById("loading-text");
 		var barFill = document.getElementById("loading-bar-fill");
-		var loadStart = Date.now();
 
 		// Capture layer is present but intentionally not auto-initialized
 		// (see the note above the script tag). Godot's web runtime handles
@@ -108,24 +107,31 @@
 			}
 		}
 
-		// Contract with game.js (Godot's exported launcher): it defines the
-		// Engine class; we start the game exactly like the generated shell.
-		var GODOT_THREADS_ENABLED = typeof window.SynmergiaThreadsEnabled !== "undefined"
-			? window.SynmergiaThreadsEnabled
-			: true;
+		// Contract with game.js (Godot 4.7.2's exported launcher): it defines
+		// the Engine class; GODOT_CONFIG mirrors the generated shell
+		// (web/game.html) -- resize policy, thread pool sizes, and the
+		// fileSizes that drive honest download progress. All asset
+		// references are RELATIVE so the shell works served under /web/.
+		// NOTE: initial WASM heap is baked at export time (the glue's
+		// getModuleConfig whitelists what reaches the Module -- memory is
+		// not settable from here; Emscripten grows the heap at runtime).
+		var GODOT_THREADS_ENABLED = true;
 
 		var GODOT_CONFIG = {
 			"args": [],
 			"canvasResizePolicy": 2,
+			"emscriptenPoolSize": 8,
 			"ensureCrossOriginIsolationHeaders": true,
 			"executable": "game",
 			"experimentalVK": true,
+			"fileSizes": { "game.pck": 4670752, "game.wasm": 38820072 },
 			"focusCanvas": true,
 			"gdextensionLibs": [],
+			"godotPoolSize": 4,
 		};
 
 		if (typeof Engine === "undefined") {
-			fail("game.js failed to load (Engine unavailable). Check /game.js exists.");
+			fail("game.js failed to load (Engine unavailable). The client must be served from /web/ -- a reload usually fixes a stale deploy.");
 			return;
 		}
 
@@ -135,12 +141,12 @@
 			return;
 		}
 
+		var progressSeen = false;
 		var engine = new Engine(GODOT_CONFIG);
 		engine.startGame({
 			"onProgress": function (current, total) {
-				if (current > 0 && total > 0) {
-					setProgress(current, total);
-				}
+				progressSeen = progressSeen || current > 0;
+				setProgress(current, total);
 			},
 		}).then(function () {
 			loading.classList.add("hidden");
@@ -150,10 +156,10 @@
 			fail(err && err.message ? err.message : "Engine failed to start.");
 		});
 
-		// The 15s watchdog stays, but only warns while progress is stalled;
-		// large pck downloads on slow links legitimately take longer.
+		// The watchdog: only fires when NOTHING ever progressed (a stalled
+		// download or a blocked asset). A slow pck that shows % never trips.
 		setTimeout(function () {
-			if (!loading.classList.contains("hidden") && barFill.offsetWidth === 0) {
+			if (!progressSeen && !loading.classList.contains("hidden")) {
 				fail("Engine did not make progress in time. Check your connection and reload.");
 			}
 		}, 20000);
