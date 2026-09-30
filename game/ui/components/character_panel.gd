@@ -130,11 +130,16 @@ func _setup_tabs() -> void:
 	# Create tab content containers. Tab is an enum (a Dictionary of
 	# NAME -> int); iterating it directly yields the String names, which
 	# broke both the "TabContent_%d" format and _show_tab()'s int lookup.
+	# Play-day feedback #6: the containers EXPAND FILL horizontally too
+	# -- ScrollContainers default to a 0-width fit, which left the tab
+	# bodies invisible even where content existed.
 	for tab in Tab.values():
 		var container := ScrollContainer.new()
 		container.name = "TabContent_%d" % tab
 		container.visible = false
 		container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		main.add_child(container)
 		_tab_contents[tab] = container
 
@@ -206,6 +211,7 @@ func _setup_inventory_tab() -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.add_child(vbox)
 
 	# Inventory grid
@@ -293,6 +299,7 @@ func _setup_equip_tab() -> void:
 
 	var hbox := HBoxContainer.new()
 	hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.add_child(hbox)
 
 	# Equipment slots (left side)
@@ -579,6 +586,7 @@ func _setup_stats_tab() -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.add_child(vbox)
 
 	# Character info header
@@ -689,6 +697,7 @@ func _setup_skills_tab() -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.add_child(vbox)
 
 	# Skill categories
@@ -869,6 +878,7 @@ func _setup_titles_tab() -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.add_child(vbox)
 
 	# Preview section

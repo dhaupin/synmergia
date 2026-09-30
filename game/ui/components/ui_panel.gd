@@ -37,10 +37,69 @@ func _ready() -> void:
 	# at minimum the standard content path works.
 	if get_panel() == null:
 		_setup_base_panel()
-	_setup_header()
+	_setup_standard_header()
 	_setup_content()
 	_apply_accessibility()
 	_apply_visual_settings()
+
+## Play-day feedback #2 + #6: EVERY panel gets a title row with a close
+## (X) button, and the content box expands to fill the panel (the old
+## base Main collapsed to minimum height -- the Character panel's tabs
+## rendered over an empty body). Subclasses that build their own header
+## (inventory_ui, guild_ui, ...) keep theirs; _setup_standard_header
+## only fills the gap, and _ensure_close_button guarantees the X even
+## on hand-rolled headers.
+func _setup_standard_header() -> void:
+	# Loading screens never get a header/close X (there is nothing to
+	# close -- the world is loading). Duck-typed: no preload cycle.
+	if self.has_method("show_loading"):
+		return
+	var panel := get_panel()
+	if panel == null:
+		return
+	var main := panel.get_node_or_null("Main") as VBoxContainer
+	if main == null:
+		return
+	# The content box must claim the panel's height. ScrollContainers
+	# inside (tab pages, lists) need an expand-fill parent to show at
+	# all; without this they render 0 px tall ("empty tabs").
+	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var header := main.get_node_or_null("Header") as HBoxContainer
+	if header == null:
+		header = HBoxContainer.new()
+		header.name = "Header"
+		main.add_child(header)
+		main.move_child(header, 0)
+	# Title (set_title writes into it later; a default reads the panel
+	# name until then).
+	if header.get_node_or_null("Title") == null:
+		var title := Label.new()
+		title.name = "Title"
+		title.text = _panel_title if not _panel_title.is_empty() else String(name)
+		title.add_theme_font_size_override("font_size", 18)
+		title.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+		header.add_child(title)
+	if header.get_node_or_null("Spacer") == null:
+		var spacer := Control.new()
+		spacer.name = "Spacer"
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header.add_child(spacer)
+	_ensure_close_button(header)
+
+## Guarantee a close (X) on the given header row (or the panel's
+## standard header). Idempotent: panels that already built one keep it.
+func _ensure_close_button(header: HBoxContainer = null) -> void:
+	var row := header
+	if row == null:
+		var panel := get_panel()
+		if panel == null:
+			return
+		row = panel.get_node_or_null("Main/Header") as HBoxContainer
+	if row == null or row.get_node_or_null("CloseButton") != null:
+		return
+	var close_btn := create_close_button()
+	close_btn.name = "CloseButton"
+	row.add_child(close_btn)
 
 ## Load accessibility settings from PlayerConfig
 func _load_accessibility_settings() -> void:
@@ -463,23 +522,27 @@ func show_notification(message: String, success: bool = true) -> void:
 	notif.queue_free()
 
 func set_title(text: String) -> void:
-	var title: Label = get_node_or_null("Panel/Header/Title")
+	_panel_title = text
+	var title: Label = get_node_or_null("Panel/Main/Header/Title")
 	if title == null:
 		var panel := get_panel()
 		if panel == null:
 			return
-		var header := HBoxContainer.new()
-		header.name = "Header"
-		panel.add_child(header)
-		header.set_anchors_preset(Control.PRESET_TOP_WIDE)
-		title = Label.new()
-		title.name = "Title"
-		title.text = text
-		title.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
-		title.add_theme_font_size_override("font_size", 18)
-		header.add_child(title)
-	else:
-		title.text = text
+		var header := panel.get_node_or_null("Main/Header") as HBoxContainer
+		if header == null:
+			# No header yet: build the standard one (title + spacer + X)
+			# so the title has a home and the close law holds.
+			_setup_standard_header()
+			header = panel.get_node_or_null("Main/Header") as HBoxContainer
+			if header == null:
+				return
+		title = header.get_node_or_null("Title") as Label
+		if title == null:
+			title = Label.new()
+			title.name = "Title"
+			header.add_child(title)
+			header.move_child(title, 0)
+	title.text = text
 
 func set_panel_size(size: Vector2) -> void:
 	var panel := get_panel()
