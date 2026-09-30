@@ -166,7 +166,7 @@ func _handle_playing_state() -> void:
 	var WorldShapeResolver = load("res://core/frame/math/world_shape.gd")
 	var world_scene: String = "res://scenes/world_playable.tscn"
 	if WorldShapeResolver.is_spherical():
-		world_scene = "res://scenes/worlds/globe_island.tscn"
+		world_scene = "res://scenes/worlds/globe_world.tscn"
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Spherical world shape: loading globe scene")
 	# Skip 3D scene change in headless mode (no rendering context available)
 	var is_headless := OS.has_feature("headless") or DisplayServer.get_name() == "headless"

@@ -100,12 +100,12 @@ touching the existing playable world.
 - [x] Regression set still green (16/16 pre-existing at S2 close).
 
 ### S3 — globe island prototype (radial gravity proof)
-- [x] `game/scenes/worlds/globe_island.tscn` (+ `.gd` root) +
+- [x] `game/scenes/worlds/globe_world.tscn` (+ `.gd` root) +
       `game/entities/globe_player.gd`: `up_direction =
       global_position.normalized()` per physics frame, gravity along
       -up, camera basis Basis(east, up, -north) tracks local up,
       north = pole tangent (pole fallback per spherical PRD 5.3).
-- [x] `game/tests/probe_globe_island.gd`: 12/12 -- spawn glue,
+- [x] `game/tests/probe_globe_world.gd`: 12/12 -- spawn glue,
       radial normal, 250 m walk (250.1), glue + no radial drift
       after walk, curvature ratio 1.31 (predicted chord 191 m),
       camera-up dot 1.000, live Icosahedral cell + neighbors + sweep.
@@ -146,12 +146,12 @@ touching the existing playable world.
 ### S6 — full-flow spherical world driver (2026-09-28)
 - [x] GameManager `_handle_playing_state` branches on the S2 shape
       knob: planar (default) -> world_playable.tscn, spherical ->
-      `scenes/worlds/globe_island.tscn`. The parameter is now
+      `scenes/worlds/globe_world.tscn`. The parameter is now
       load-bearing; planar default keeps every existing flow intact.
 - [x] `tests/test_world_shape.gd` (default planar / spherical flip /
       garbage fallback incl. casing).
 - [x] `tests/globe_driver.gd` -- the REAL flow on the sphere: menu ->
-      character select (species/class handlers) -> Play -> GlobeIsland
+      character select (species/class handlers) -> Play -> GlobeWorld
       via the shape branch; walk via the real input map; HUD panel
       over the live world; ground-truth radial error 0.001 m at the
       shell. Rendered-only (self-skips headless honestly, since
@@ -202,9 +202,9 @@ touching the existing playable world.
 ### S8 — planet_radius config + 20 km scale probe (2026-09-28)
 - [x] `project.godot` `[synmergia]` gains `planet_radius=100.0` (the
       100 m prototype stays the shipped default; 20000 is the v1
-      planet scale from locked decision 1). `globe_island.gd` reads
+      planet scale from locked decision 1). `globe_world.gd` reads
       it in `_ready` (PLANET_RADIUS_SETTING); SHELL_RADIUS const is
-      replaced by `planet_radius` everywhere; probe_globe_island and
+      replaced by `planet_radius` everywhere; probe_globe_world and
       probe_terrain_stream consume `_globe.planet_radius`.
 - [x] `globe_player.gd` gains `snap_enabled: bool = true` -- an
       additive diagnostic (default true = zero behavior change) that
@@ -256,7 +256,7 @@ touching the existing playable world.
       4. Walk surface: R + TILE_LIFT + SKIN (0.52 + 1.0) ONLY at
          planet scale. At prototype scale the collision shell IS the
          surface (lift 0) -- streamed tiles are visual-only there and
-         the player keeps real shell contact (probe_globe_island
+         the player keeps real shell contact (probe_globe_world
          radial rest |v_rad| = 0.01; applying the lift at 100 m
          masked contact as free-fall, test-caught).
       5. Streamer patches are planet-relative children of world_root
@@ -353,7 +353,7 @@ PRIVATE instances (the one-live-instance rule is public-only).
 
 ### S10 — arena wiring (mode-agnostic)
 - [x] Arena trigger at Haven's edge: `arena_gateway.gd` Area3D built
-      into globe_island under world_root (shift-invariant, east of
+      into globe_world under world_root (shift-invariant, east of
       spawn), fires InstanceService.join_instance /
       join_party_instance once per entry (dedupe inside the volume,
       re-arm on exit); party roster read via PartyService.
@@ -564,7 +564,7 @@ ThermalUpdraft schema):
 - [x] `labs/TASKS.md` session entry (files listed; hashes to append
       at commit time).
 - [ ] CI lint gates + regression green -- regression 18/18 LOCAL
-      (incl. new `frame/math/test_spherical` + `probe_globe_island`
+      (incl. new `frame/math/test_spherical` + `probe_globe_world`
       in DEFAULT_SET; runner now resolves co-located frame tests);
       lint quartet re-run pending on final tree. Commits + push via
       Changes panel (owner).
@@ -587,7 +587,7 @@ ThermalUpdraft schema):
   (walks freely at |r| = 200 on a local floor even with
   planet_radius = 20000; 0.03 m at |r| = 20001), NOT the collider;
   world-space trimeshes at |v| ~ 20000 are degenerate for physics
-  import entirely. Ship shape: globe_island world_root +
+  import entirely. Ship shape: globe_world world_root +
   _maybe_shift_world (planet AND player move by the same delta),
   planet_center threading through player/streamer/rock provider,
   one curved-disc surface pad re-anchored every physics frame at

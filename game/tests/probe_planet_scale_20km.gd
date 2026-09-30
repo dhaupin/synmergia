@@ -25,7 +25,7 @@
 ## The probe pins the project setting, restores 100.0 on exit.
 extends SceneTree
 
-const GLOBE_SCENE := "res://scenes/worlds/globe_island.tscn"
+const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 const RADIUS_SETTING: String = "synmergia/world/planet_radius"
 const PLANET_RADIUS_100: float = 100.0
 const PLANET_RADIUS_20KM: float = 20000.0

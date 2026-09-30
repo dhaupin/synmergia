@@ -5,7 +5,7 @@
 ## crossing a face border swaps exactly the stale patches out.
 ## Visual-only: the globe's sphere StaticBody stays the physics truth
 ## at prototype scale; at planet scale the globe scene's re-anchored
-## surface pad carries the collision (see globe_island._build_surface_pad).
+## surface pad carries the collision (see globe_world._build_surface_pad).
 ## S8 FLOATING ORIGIN: patches are planet-relative children of the
 ## scene's world_root, and all patch vertices are LOCAL to the patch
 ## node (world-space vertices at |r| ~20 km silently break Godot's
@@ -18,7 +18,7 @@ const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 
 ## Tiles render just above the scene's visual sphere shell (which sits
 ## at radius + SKIN_THICKNESS = +0.5) so they never hide inside it.
-## Mirrored by globe_island.STREAMER_TILE_LIFT (spawn / snap / pad).
+## Mirrored by globe_world.STREAMER_TILE_LIFT (spawn / snap / pad).
 const TILE_LIFT: float = 0.52
 
 signal face_changed(old_face: int, new_face: int)

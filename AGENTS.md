@@ -643,6 +643,35 @@ for persistence. See `labs/prd-db.md` for the full spec.
 
 ---
 
+## Scene & World Naming Conventions (spatial layer)
+
+Decided 2026-09-30 after the globe rename. The DATA layer names by
+category prefix (`world_`, `zone_`); the SCENE layer names by
+containment relation so orbit/nesting is readable from the filename.
+
+| Thing | Pattern | Example |
+|-------|---------|---------|
+| Generic globe scene (radius from `synmergia/world/planet_radius` -- boots AS Synmergia at 20 km, the prototype at 100 m) | `globe_world.gd/.tscn` | the S3 spherical scene root |
+| A world's moon globe | `globe_<world>.gd/.tscn` | `globe_moon.gd` (the pale stone, dev target) |
+| Future orbiting/nested bodies | `globe_<world>` | `globe_underworld` when S15 gets its own scene (today it reuses the generic globe via `world_underworld.tres` radius) |
+| Runtime node names | `Globe<Scope>`, PascalCase | `GlobeWorld`, `GlobeMoon` (globe_driver waits on these names) |
+| Player controller on any globe | `globe_player.gd` (`class_name GlobeWorldPlayer`) | scope-generic on purpose; one controller, every globe |
+| World declarations (data) | `world_<id>.tres` | `world_main.tres` (Synmergia), `world_moon.tres` (the pale stone), `world_underworld.tres` (The Deep Root) |
+
+Rules:
+- Scene filenames never contain category words in REVERSE order
+  (`moon_globe` was the inconsistency; fixed to `globe_moon`).
+- The generic globe scene is NOT named after any one world -- it is
+  the shape, and `world_<id>.tres` declarations give it identity
+  (radius, gravity, orbit, lore). One scene, every planet.
+- Canon display names live ONLY in the .tres (`display_name`,
+  `lore`); code comments may use them, code identifiers may not.
+  Canon today: planet = Synmergia, moon = the pale stone,
+  underworld = The Deep Root.
+- When renaming a scene, grep `globe_driver.gd` node-name waits and
+  the `game/tests/probe_*` paths BEFORE committing; the runtime node
+  name changes with the file (`.tscn` root `name=`).
+
 ## ID Naming Conventions (data ids)
 
 Decided 2026-09-25 after the data/npc + data/npcs consolidation.

@@ -136,7 +136,7 @@ one HMAC and a camera trick to exist.
 | S16.3 | ScopeService world scopes + Moon Gate scene swap (offline door first) |
 | S16.4 | world_moon minimal globe (lunar movement profile, no-atmosphere glider rule, earthrise) |
 | S16.5 | Transfer windows + almanac moon page (the mystery shell) -- SHIPPED: the gate honors the sky (7a08b09) and the almanac moon page reads the same math (sec 9, the chart-and-stone law) |
-| S16.6 | Dev target: probes/tests run on the moon globe -- SHIPPED: the moon globe CONJURES at gate transit (scenes/worlds/moon_globe.gd), the placed gate carries the dev_hatch, default gates stay sealed; see sec 9 + TASKS.md |
+| S16.6 | Dev target: probes/tests run on the moon globe -- SHIPPED: the moon globe CONJURES at gate transit (scenes/worlds/globe_moon.gd), the placed gate carries the dev_hatch, default gates stay sealed; see sec 9 + TASKS.md |
 
 ## 8. Open Questions (owner)
 
@@ -217,7 +217,7 @@ main world stays clean. Mechanism, in order of authority:
    underworld) refuse for everyone -- the hatch cannot open
    doorless worlds. The placed gate in world_playable opts in.
 3. At transit the hatched gate CONJURES the destination:
-   `scenes/worlds/moon_globe.gd` instantiates, registers
+   `scenes/worlds/globe_moon.gd` instantiates, registers
    `world_root_moon`, reads its radius from the declaration
    (1.2 km), hangs earthrise (ParentSky), and stands a return
    Earthward Gate. The visitor adopts lunar law (gravity from

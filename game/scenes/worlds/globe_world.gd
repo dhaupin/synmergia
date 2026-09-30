@@ -1,4 +1,4 @@
-## GlobeIsland - spherical-world scene root (prd-spherical-mvp.md S3).
+## GlobeWorld - spherical-world scene root (prd-spherical-mvp.md S3).
 ## Builds the shell (visual sphere + sphere-shell collider), the player,
 ## the sun, and the arena gateway. The playable HUD is installed by the
 ## shared HudLayer.ensure_installed() init so every playable scene gets
@@ -71,7 +71,7 @@ var stream_terrain: bool = true
 
 var streamer  # GlobeTerrainStreamer; untyped - preload-by-path pattern
 
-var player  # GlobeIslandPlayer; untyped on purpose - set_script + dynamic
+var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
 # dispatch keeps this scene free of parse-time class_name dependencies.
 
 ## S14-web: the playable HUD. Kept as a thin wrapper for back-compat:
@@ -144,7 +144,7 @@ func _install_hud() -> void:
 	HudLayer.ensure_installed(self)
 	hud = get_node_or_null("HudLayer") as CanvasLayer
 	if hud != null:
-		GameLog.info("GlobeIsland: playable HUD installed")
+		GameLog.info("GlobeWorld: playable HUD installed")
 
 
 ## Bridge the touch HUD into the globe player's camera (same shape as
@@ -166,7 +166,7 @@ func _setup_touch_hud() -> void:
 			delta_px.y * cam_speed * 1.5 * sensitivity)
 	if not joystick.camera_look.is_connected(look_handler):
 		joystick.camera_look.connect(look_handler)
-	GameLog.info("GlobeIsland: touch HUD wired to orbit_camera")
+	GameLog.info("GlobeWorld: touch HUD wired to orbit_camera")
 
 
 func _setup_streamer() -> void:
@@ -322,7 +322,7 @@ func _update_surface_pad() -> void:
 ## Height of the WALKABLE SURFACE above planet_radius. At prototype
 ## scale the collision shell IS the walk surface (lift 0): the
 ## streamed tiles are visual-only there (no colliders, S5b) and the
-## player must keep shell contact (probe_globe_island asserts radial
+## player must keep shell contact (probe_globe_world asserts radial
 ## rest). At planet scale the re-anchored pad carries the collision
 ## at planet_radius + TILE_LIFT, matching the visual tile tops.
 func _surface_lift() -> float:

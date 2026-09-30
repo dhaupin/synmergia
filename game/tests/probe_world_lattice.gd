@@ -271,8 +271,8 @@ func _run() -> void:
 		# swap rides the same ScopeService seam (force=true inside the
 		# service -- the law there is untouched), the visitor adopts
 		# the lunar declaration, and the return gate resolves home.
-		var moon_scene: PackedScene = load("res://scenes/worlds/moon_globe.tscn")
-		_check("moon_globe scene loads (the dev target is real)", moon_scene != null)
+		var moon_scene: PackedScene = load("res://scenes/worlds/globe_moon.tscn")
+		_check("globe_moon scene loads (the dev target is real)", moon_scene != null)
 		if moon_scene != null:
 			var holder := Node3D.new()
 			holder.name = "ConjureHolder"

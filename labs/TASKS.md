@@ -795,7 +795,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   cannot open doorless worlds (probe-verified). The placed gate in
   world_playable opts in; default gates stay the sealed mystery
   shell. (3) At transit the gate CONJURES the destination:
-  scenes/worlds/moon_globe.gd instantiates (load-by-path, GuardData
+  scenes/worlds/globe_moon.gd instantiates (load-by-path, GuardData
   lesson), registers world_root_moon, reads radius from the
   declaration (1.2 km, sphere collider ON -- under the
   PLANAR_SHELL_MAX_R stall threshold), hangs earthrise (ParentSky),
@@ -883,6 +883,29 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   36/36, data naming 24/24. Lesson: scan by CONTENT FORM, never by
   one extension -- and the pack must be booted to prove an export
   fix (godot --headless --main-pack ../web/game.pck).
+- [x] GLOBE NAMING CONVENTION + RENAME SHIPPED (2026-09-30, owner:
+  "why is it called globe_island? let's make this a naming convention
+  opp for zones, planets, etc -- imply relations like orbiting").
+  DECISIONS: planet = Synmergia (already canon in world_main.tres),
+  moon = the pale stone (kept -- lowercase, in-lore, mystery-friendly;
+  "The Watched Stone" stays the epithet), underworld = The Deep Root
+  (already canon). THE CONVENTION (now AGENTS.md "Scene & World
+  Naming Conventions"): scene layer names by CONTAINMENT relation --
+  globe_world (generic globe; radius from synmergia/world/planet
+  _radius so one scene boots AS Synmergia at 20 km or the prototype
+  at 100 m), globe_<world> for other bodies (globe_moon), runtime
+  nodes Globe<Scope>, one scope-generic globe_player controller.
+  RENAMES: globe_island.gd/.tscn -> globe_world (5 code refs +
+  game_manager routing + project.godot comment + globe_driver node
+  waits + 3 test files + test-runner entry), moon_globe.gd/.tscn ->
+  globe_moon (the reversed-order inconsistency; group moon_globes ->
+  globe_moons, no external consumers), class GlobeIslandPlayer ->
+  GlobeWorldPlayer, ~20 labs doc refs. Residue sweep clean (only
+  .godot cache, regenerates). Lesson: a rename's blast radius hides
+  in (1) runtime NODE names the drivers wait on, (2) test-runner
+  entries, (3) probe scene-path constants -- grep all three before
+  committing. Canon names live in the .tres only; identifiers stay
+  structural.
 - [x] FEEDBACK SIX-PACK: touch gate + globe cleanup + camera-relative
   walk + HUD layout + one-HUD init + dual export SHIPPED (2026-09-30,
   owner 6-item in-browser feedback: controls over the main menu; garbled
@@ -894,7 +917,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   and hides it EVERYWHERE else (menus, character select). hide_joystick
   not visible=false: a CanvasLayer keeps receiving _input while
   invisible. PlayerConfig touch_controls still decides WHETHER it shows
-  in gameplay. (2) PROBE PILLARS REMOVED: globe_island._build_probe
+  in gameplay. (2) PROBE PILLARS REMOVED: globe_world._build_probe
   _markers/_make_marker deleted (the red/blue/yellow boxes the owner
   walked into); _build_arena_gateway now called from _ready (it used to
   ride inside the deleted function -- caught on diff review, the
@@ -922,13 +945,13 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   self-anchor would have come right back. (5) ONE HUD INIT:
   HudLayer.ensure_installed(scene_root) is the single idempotent entry
   (instance-in-tree or child-name check, else load hud_layer.tscn);
-  world_playable.tscn embeds it, globe_island delegates to it, any
+  world_playable.tscn embeds it, globe_world delegates to it, any
   future playable scene calls one static. Touch controls are the other
   half of the contract and live behind the state gate. (6) DUAL EXPORT:
   scripts/export_clients.sh builds web/game.pck (preset "Web Default")
   + builds/linux/synmergia.x86_64 (NEW preset "Linux", embed_pck) in
   one command; --web-only / --native-only flags; web first (itch.io
-  demos). Verified: boot parse clean, probe_globe_island 24/24 (walked
+  demos). Verified: boot parse clean, probe_globe_world 24/24 (walked
   250.0 m, curvature 1.75, orbit 90 deg, touch stick forward -1.00),
   regression 51/0, lint 36/36. Lessons: (a) fuzzy str_replace silently
   ate an `extends` line (hud_layer) and duplicated a function header --
@@ -941,12 +964,12 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   "species and class work, we got in -- but there is no HUD, no
   mobile controls, no menus"). ROOT CAUSE (two independent gaps):
   (1) synmergia/world/shape="spherical" makes GameManager load
-  globe_island.tscn, which was born as a movement PROBE scene and
+  globe_world.tscn, which was born as a movement PROBE scene and
   never received the HUD that world_playable.tscn embeds -- the
   screenshot's curved horizon + moons was the tell. (2)
   InputManager._detect_platform classed only Android/iOS as mobile,
   so a phone BROWSER got keyboard mode: no touch HUD, no stick, no
-  buttons. FIXES: globe_island._install_hud() instantiates
+  buttons. FIXES: globe_world._install_hud() instantiates
   res://ui/hud/hud_layer.tscn (the same composition -- MenuManager,
   bars, combat log, minimap) and _setup_touch_hud() bridges the
   VirtualJoystick camera_look into a new
@@ -958,7 +981,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   keyboard merge) instead of raw Input.get_vector, so the phone
   stick drives the globe walk. InputManager: web +
   DisplayServer.is_touchscreen_available() => mobile (PlayerConfig
-  touch_controls still overrides). probe_globe_island extended to
+  touch_controls still overrides). probe_globe_world extended to
   24 checks (HUD installed, MenuManager + CombatLog/Minimap/
   ActionBar/QuickAccessBar present, orbit_camera turns the view,
   TOUCH-mode stick drives merged movement input). Lesson: every
@@ -1455,7 +1478,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   elimination last-team-standing + TDM respawn/shield/kill-target
   paths; bout_started/ended/fighter_down ready for S11 duels),
   arena_fighter.gd contract-gravity bodies, arena_gateway.gd Area3D
-  built into globe_island (dedupe in-volume, re-arm on exit, party
+  built into globe_world (dedupe in-volume, re-arm on exit, party
   joins via PartyService roster, OPEN/FULL + deadline toasts).
   Probes probe_arena_instance 24/24 + probe_arena_trigger 14/14 in
   DEFAULT_SET; regression 27/27. Scene swap into the room stays a
@@ -1486,7 +1509,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   own world-transform magnitude (local-floor experiment: free walk
   at |r| = 200 with planet_radius = 20000, 0.03 m at |r| = 20001);
   collider-locality alone does not fix it and world-space trimeshes
-  are degenerate for physics import. globe_island.gd: planet-bound
+  are degenerate for physics import. globe_world.gd: planet-bound
   content under world_root, _maybe_shift_world moves planet AND
   player by the same delta past SHIFT_RADIUS = 1500; one curved-disc
   pad (local coords <= 64 m) re-anchored under the player every
@@ -1500,7 +1523,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   rebase stage. Regression 24/24 + lint quartet. Pickup:
   prd-spherical-mvp.md S8.
 - [x] Planet-radius config + 20 km probe S8 (2026-09-28): config
-  `synmergia/world/planet_radius` read by globe_island.gd; SHELL_RADIUS
+  `synmergia/world/planet_radius` read by globe_world.gd; SHELL_RADIUS
   renamed to planet_radius var; probe_planet_scale_20km.gd
   (control/stall/isolation experiment, 11 asserts exit 0) registered
   in the runner. VERDICT OPEN: 20 km walk stall (0.14 m vs ~48 m
@@ -1511,7 +1534,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
 - [x] Full-flow spherical driver S6 (2026-09-28): GameManager world
   scene branches on the shape knob (planar default intact),
   test_world_shape.gd, globe_driver.gd (real menu->select->Play->
-  GlobeIsland flow, xvfb pixel-verified 6 stages, radial err
+  GlobeWorld flow, xvfb pixel-verified 6 stages, radial err
   0.001 m, HUD over the globe). Regression 22/22.
 - [x] Terrain streaming S5 (2026-09-28): icosahedral_faces.gd
   (20 face regions, Voronoi-exact point->face, min-chord edge
@@ -1525,7 +1548,7 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   7/7 known-answer groups incl. Icosahedral convention match),
   S2 world_shape.gd project setting + WaypointService shape-gated
   haversine + new get_bearing_to_active, S3 globe-island radial-
-  gravity prototype (globe_player.gd + globe_island.tscn/.gd,
+  gravity prototype (globe_player.gd + globe_world.tscn/.gd,
   probe 12/12 headless AND xvfb-rendered, pixel-verified stages:
   250 m equator walk, zero radial drift, curvature ratio 1.31 =
   predicted chord math, live cell+neighbors) -- pickable via

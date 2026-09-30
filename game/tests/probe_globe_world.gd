@@ -1,10 +1,10 @@
 ## Globe island probe (prd-spherical-mvp.md S3)
-## Run headless:   godot --headless --path . --script res://tests/probe_globe_island.gd
-## Run rendered:   GODOT_PROBE_XVFB=1 xvfb-run -a godot --path . --script res://tests/probe_globe_island.gd
+## Run headless:   godot --headless --path . --script res://tests/probe_globe_world.gd
+## Run rendered:   GODOT_PROBE_XVFB=1 xvfb-run -a godot --path . --script res://tests/probe_globe_world.gd
 ##   -> writes /tmp/play/globe_stage{1,2,3}.png
 extends SceneTree
 
-const GLOBE_SCENE := "res://scenes/worlds/globe_island.tscn"
+const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 const WALK_SECONDS: float = 30.0
 const WALK_DISTANCE_METERS: float = 250.0
 const CELLS_TO_SAMPLE: int = 20

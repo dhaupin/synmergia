@@ -62,10 +62,10 @@ func _run() -> void:
 	# --- Stage 4: Play -> spherical world ----------------------------
 	if sel != null and sel.has_method("_on_play_pressed"):
 		sel.call("_on_play_pressed")
-	var world_ok: bool = await _wait_scene_any(["GlobeIsland", "WorldPlayable"], 12.0)
+	var world_ok: bool = await _wait_scene_any(["GlobeWorld", "WorldPlayable"], 12.0)
 	if not world_ok:
 		_fail += "world_route; "
-	if current_scene != null and current_scene.name != "GlobeIsland":
+	if current_scene != null and current_scene.name != "GlobeWorld":
 		_fail += "wrong_world_" + (current_scene.name if current_scene else "null") + "; "
 	await _settle(2.0)
 	_shot("globe_flow_4_globe_spawn")

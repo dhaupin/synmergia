@@ -266,7 +266,7 @@ func get_compass_direction_at_pole(player_pos: Vector3, waypoint: Vector3) -> St
   worlds keep euclidean)
 - [x] NSC-9 cell calculation for position→cell mapping
   (Icosahedral position_to_cell + neighbors proven live on the
-  walkable globe prototype, probe_globe_island.gd 12/12)
+  walkable globe prototype, probe_globe_world.gd 12/12)
 
 ### 6.2 Medium Term (Phase 2)
 

@@ -231,7 +231,7 @@ func _transit(player) -> Dictionary:
 ## parents it under the COMMON ancestor of this gate and the player
 ## so it survives scope swaps, and receives the visitor.
 func _conjure_destination(player) -> Node3D:
-	var packed: PackedScene = load("res://scenes/worlds/moon_globe.tscn")
+	var packed: PackedScene = load("res://scenes/worlds/globe_moon.tscn")
 	if packed == null:
 		return null
 	var globe := packed.instantiate()

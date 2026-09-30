@@ -1,4 +1,4 @@
-## GlobeIslandPlayer - radial-gravity CharacterBody3D (prd-spherical-mvp.md S3)
+## GlobeWorldPlayer - radial-gravity CharacterBody3D (prd-spherical-mvp.md S3)
 ## Prototype-only: up_direction is the surface normal every physics
 ## frame and gravity pulls toward the planet center. Live movement uses
 ## the MovementProfile schema values (gravity_force / walk_speed),
@@ -9,7 +9,7 @@
 ## precision degenerates horizontal locomotion (experiment: walks
 ## freely at |r| = 200, stalls at |r| >= ~5000, ON A PERFECT LOCAL
 ## FLOOR). So the scene shifts the whole world back around the player
-## (floating-origin rebase, see globe_island._maybe_shift_world), and
+## (floating-origin rebase, see globe_world._maybe_shift_world), and
 ## ALL radial math here is done RELATIVE TO planet_center - never the
 ## world origin. planet_center is maintained by the globe scene.
 ##
@@ -20,7 +20,7 @@
 ##   sits behind at +z local and looks along forward/north)
 extends CharacterBody3D
 
-class_name GlobeIslandPlayer
+class_name GlobeWorldPlayer
 
 const GRAVITY_DEFAULT: float = 20.0
 const WALK_SPEED_DEFAULT: float = 6.0

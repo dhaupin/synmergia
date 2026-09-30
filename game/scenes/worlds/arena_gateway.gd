@@ -12,11 +12,11 @@
 # returns you to this stone. Round trip, no stranding.
 #
 # Data-driven: the zone id comes from `zone_id` (set in code by
-# globe_island when it builds the gateway; later a .tres if gateway
+# globe_world when it builds the gateway; later a .tres if gateway
 # content grows). Party play is all-or-nothing via party_fits inside
 # the service; solo players just join.
 #
-# Conventions: code-built children (globe_island pattern), no
+# Conventions: code-built children (globe_world pattern), no
 # class_name, tabs, ASCII only.
 extends Area3D
 

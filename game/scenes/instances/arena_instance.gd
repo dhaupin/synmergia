@@ -1,6 +1,6 @@
 # ArenaInstance - the S10 planar bout world (mode-agnostic controller).
 #
-# Built entirely in code (globe_island convention). Promises from
+# Built entirely in code (globe_world convention). Promises from
 # InstanceContract: PLANAR -Y gravity at GRAVITY_FORCE (locked
 # decision 3 -- radial gravity never reaches instances), spawns at the
 # zone's spawn_points, and bout rules from bout_rules() rather than
@@ -637,7 +637,7 @@ func alive_count(team_id: int) -> int:
 			n += 1
 	return n
 
-# ---- Room construction (code-built, globe_island convention) --------
+# ---- Room construction (code-built, globe_world convention) --------
 
 ## Deterministic mid-field cover for TDM rooms (owner decision: the
 ## sandpit gives both teams the same line-of-sight breaking rocks).

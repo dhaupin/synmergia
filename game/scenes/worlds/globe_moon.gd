@@ -1,4 +1,4 @@
-## MoonGlobe -- the S16.6 dev-target moon (labs/prd-multiworld.md
+## GlobeMoon -- the S16.6 dev-target moon (labs/prd-multiworld.md
 ## sec 4, sec 7). CONJURED ON DEMAND: the moon exists because someone
 ## chose to go -- the Moon Gate conjures this globe as the
 ## destination root at transit time, and it tears down when the last
@@ -49,12 +49,12 @@ func _ready() -> void:
 	world_root.name = "WorldRoot"
 	world_root.add_to_group("world_root_" + WORLD_ID)
 	add_child(world_root)
-	add_to_group("moon_globes")
+	add_to_group("globe_moons")
 	planet_center = world_root.position
 	_build_regolith()
 	_build_landing_gate()
 	_build_earthrise()
-	GameLog.info("MoonGlobe: conjured (dev target; radius %.0f m, the earthrise meridian waits)" % planet_radius)## Bring a visitor across. Called by the Moon Gate AFTER ScopeService
+	GameLog.info("GlobeMoon: conjured (dev target; radius %.0f m, the earthrise meridian waits)" % planet_radius)## Bring a visitor across. Called by the Moon Gate AFTER ScopeService
 ## accepted the swap; adopts the body into lunar physics and places
 ## it on the surface at the landing site. Idempotent per body.
 ## Bodies from the planar main world (PlayerController) get the
@@ -98,7 +98,7 @@ func release_visitor(body: Node) -> void:
 	if pid != "":
 		_visitors.erase(pid)
 	if _visitors.is_empty():
-		GameLog.info("MoonGlobe: last visitor gone -- the pale stone folds back into derivation")
+		GameLog.info("GlobeMoon: last visitor gone -- the pale stone folds back into derivation")
 		queue_free()
 
 

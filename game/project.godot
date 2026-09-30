@@ -229,5 +229,5 @@ warnings/infer_variant=0
 world/shape="spherical"
 
 ; Planet scale in meters (default 100 = prototype globe, 20000 = v1 planet scale).
-; planet_radius is read at runtime by globe_island.gd from this setting.
+; planet_radius is read at runtime by globe_world.gd from this setting.
 planet_radius=100.0

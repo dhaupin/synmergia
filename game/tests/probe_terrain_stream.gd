@@ -4,7 +4,7 @@
 ##   -> writes /tmp/play/stream_stage{1,2}.png
 extends SceneTree
 
-const GLOBE_SCENE := "res://scenes/worlds/globe_island.tscn"
+const GLOBE_SCENE := "res://scenes/worlds/globe_world.tscn"
 const FacesScript := "res://core/frame/math/icosahedral_faces.gd"
 
 var _globe: Node3D
