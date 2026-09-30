@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_deep_warden"
+display_name = "Deep Warden"
+description = "Keeper of the Root Camp. The Warden counts the glow tides and tends the first hearth ever lit down here."
+scene_path = "res://scenes/npcs/deep_warden.tscn"
+zone_id = "zone_deep_root_camp"
+spawn_offset = Vector3(3, 0, 2)
+greeting = "You came down the sky way, or up from nothing? Either way: the glow tide is rising. Sit."
+location_type = 0
+buy_multiplier = 0.5
+sell_multiplier = 1.0
+includes = [
+  {"type": "dialogue", "dialogue_id": "deep_warden_greeting"},
+  {"type": "quest", "quest_ids": ["quest_listen_to_the_deep"]}
+]

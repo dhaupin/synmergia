@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_deep_root_camp"
+display_name = "The Root Camp"
+description = "A strata-lit shelf in the Deep Root, where the Warden keeps a hearth for travelers the sun never finds."
+pvp_mode = 0
+level_requirement = 1
+max_level = 30
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 6.0
+bounds = null
+zone_center = Vector3(0, 2000, 0)
+zone_radius = 60.0
+ambient_light_color = Color(0.9, 0.62, 0.38, 1)
+ambient_light_energy = 0.6
+environment_path = ""
+has_weather = false
+weather_type = "clear"
+spawn_points = [Vector3(0, 2000, 0)]
+bind_point = Vector3(0, 2000, 0)
+npcs = ["npc_deep_warden"]
+loot_multiplier = 1.0
+xp_multiplier = 1.1
+is_instanced = false
+instance_capacity = 0

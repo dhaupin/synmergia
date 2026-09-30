@@ -182,21 +182,25 @@ func _run() -> void:
 		root.add_child(main_root)
 		walker.reparent(main_root)
 
-		# A. Law states: unknown world dark, offline dim, online lit.
+		# A. Law states: unknown world dark, DEV_ONLY dim, online lit.
+		# (S15.2: the underworld flipped to DEV_ONLY -- like the moon,
+		# its DEFAULT gate stays the sealed shell; only the hatched
+		# gate lifts it, and the player's entry law still refuses.)
 		var gate_main = GateScript.new()
 		gate_main.set("target_world", "main")
 		root.add_child(gate_main)
 		var gate_under = GateScript.new()
 		gate_under.set("target_world", "underworld")
 		root.add_child(gate_under)
-		_check("gate law states: online 2 / offline 1", \
+		_check("gate law states: online 2 / dev_only 1 (default gates stay sealed)", \
 			int(gate_main._law_state()) == 2 and int(gate_under._law_state()) == 1)
 		_check("sealed prompt reads the structure", \
 			str(gate_under.get_interaction_prompt()).begins_with("[E] Read"))
 
-		# B. The underworld has no door: interact refuses with lore.
+		# B. Default gates to DEV_ONLY worlds read sealed (the mystery
+		# shell): the Deep Root's way exists only for the hatched gate.
 		var res_under: Dictionary = gate_under.try_interact(null)
-		_check("underworld gate refuses (OFFLINE has no door)", \
+		_check("default underworld gate refuses (DEV_ONLY: no door for players)", \
 			not bool(res_under.get("ok")) and str(res_under.get("reason")) == "sealed" \
 			and str(res_under.get("message", "")).length() > 0)
 
@@ -222,8 +226,11 @@ func _run() -> void:
 		gate_under_hatched.set("dev_hatch", true)
 		root.add_child(gate_under_hatched)
 		var res_under_hatched: Dictionary = gate_under_hatched.try_interact(null)
-		_check("even the hatch cannot open OFFLINE (the underworld has no door for anyone)", \
-			not bool(res_under_hatched.get("ok")) and str(res_under_hatched.get("reason")) == "sealed")
+		_check("the hatch lifts DEV_ONLY for the underworld too (the S15.2 flip -- the way is real for dev)", \
+			int(gate_under_hatched._law_state()) == 2 \
+			and str(gate_under_hatched.get_interaction_prompt()).begins_with("[E] Step through"))
+		_check("the entry law still refuses players (DEV_ONLY is not a player world)", \
+			not scope.enter_world_scope("gate_walker", "underworld", main_root, false))
 
 		# D. The scope swap seam (world:main, ONLINE): reparent + scope.
 		_check("enter_world_scope performs the main-world transit", \
@@ -234,7 +241,9 @@ func _run() -> void:
 			scope.world_of("nobody") == "main" and not scope.is_off_world("nobody"))
 
 		# E. Defense in depth: the law blocks swaps with no gate at all.
-		_check("law refuses OFFLINE swap (no gate needed)", \
+		# (S15.2: the underworld is DEV_ONLY now -- force=false refuses
+		# it exactly like before, only the label of the law changed.)
+		_check("law refuses DEV_ONLY swap (no gate needed)", \
 			not scope.enter_world_scope("gate_walker", "underworld", main_root, false))
 		_check("law refuses DEV_ONLY swap for players", \
 			not scope.enter_world_scope("gate_walker", "moon", main_root, false))

@@ -35,6 +35,12 @@ const WorldRegistry = preload("res://core/frame/srv/world_registry.gd")
 @export var target_world: String = "moon"
 @export var display_name: String = "Moon Gate"
 
+## The destination globe scene conjured at transit time. Empty = the
+## convention path (res://scenes/worlds/globe_<target_world>.tscn --
+## the Scene & World naming law). S15.2: the underworld sets its own
+## scene; the moon keeps the convention.
+@export var destination_scene: String = ""
+
 ## The transfer-window law (S16.5): this gate opens only in a
 ## FAVORABLE SKY -- the closed-form phase alignment between the
 ## origin and destination worlds (WorldRegistry.window_favorability,
@@ -226,12 +232,18 @@ func _transit(player) -> Dictionary:
 	return {"ok": false, "reason": "transit_refused", "message": "The gate hums, but the way will not open here."}
 
 
-## Conjure the destination globe (dev target). Loads the world scene
+## Conjure the destination globe (dev targets). Loads the world scene
 ## by path (the GuardData lesson: no class_name for a fresh script),
 ## parents it under the COMMON ancestor of this gate and the player
-## so it survives scope swaps, and receives the visitor.
+## so it survives scope swaps, and receives the visitor. Scene
+## resolution: the explicit destination_scene export wins; otherwise
+## the naming convention (globe_<target_world>.tscn) -- a new world
+## with a conforming scene needs no gate code at all.
 func _conjure_destination(player) -> Node3D:
-	var packed: PackedScene = load("res://scenes/worlds/globe_moon.tscn")
+	var scene_path := destination_scene
+	if scene_path.is_empty():
+		scene_path = "res://scenes/worlds/globe_%s.tscn" % target_world
+	var packed: PackedScene = load(scene_path)
 	if packed == null:
 		return null
 	var globe := packed.instantiate()

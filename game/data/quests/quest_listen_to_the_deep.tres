@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_listen_to_the_deep"
+display_name = "Listen to the Deep"
+description = "The Deep Warden asks you to stand at the shelf's edge and give the Deep Root one honest ear. The glow tide will do the rest."
+quest_type = 1
+difficulty = 0
+giver_npc_id = "npc_deep_warden"
+turn_in_npc_id = "npc_deep_warden"
+min_level = 1
+max_level = 30
+objectives = [{"id": "hear_the_deep", "type": 4, "target": "zone_deep_root_camp", "count": 1}, {"id": "report_to_warden", "type": 5, "target": "npc_deep_warden", "count": 1}]
+rewards = [{"type": "gold", "id": "", "quantity": 60}, {"type": "experience", "id": "", "quantity": 120}]
+gold_reward = 60
+xp_reward = 120
+icon_path = ""
+map_marker = "explore"

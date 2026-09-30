@@ -55,6 +55,7 @@ func _ready() -> void:
 	_setup_portal()
 	_setup_ancient_door()
 	_setup_moon_gate()
+	_setup_ascent_gate()
 	_setup_concord_stone()
 	_setup_sky_signs()
 	_setup_blessed_marks()
@@ -417,6 +418,31 @@ func _setup_moon_gate() -> void:
 	add_child(gate)
 	gate.global_position = Vector3(-16, 0, 10)
 	GameLog.info("WorldPlayable: Moon Gate placed (E to step through; the dev hatch opens the pale stone)")
+
+
+## S15.4 THE ASCENT (labs/prd-underworld.md sec 4): the shaft-head of
+## the sealed passage down -- the future PLAYER door into the Deep
+## Root. It stands on the surface as the mystery layer (players read
+## a sealed monolith; OFFLINE law: no door, the stone does not open),
+## while the dev hatch makes it the dev round-trip to the underworld
+## globe. Same moon_gate law, different direction of mystery.
+func _setup_ascent_gate() -> void:
+	var gate_script = load("res://entities/moon_gate.gd")
+	if gate_script == null:
+		return
+	var gate := Node3D.new()
+	gate.name = "AscentGate"
+	gate.set_script(gate_script)
+	gate.set("display_name", "The Ascent")
+	gate.set("target_world", "underworld")
+	# The underworld declares its own globe scene at the convention
+	# path (globe_underworld.tscn) -- the gate's scene resolution
+	# finds it without code. The hatch is the S15.2 dev reachability
+	# (DEV_ONLY lifts for this gate only; players still read sealed).
+	gate.set("dev_hatch", true)
+	add_child(gate)
+	gate.global_position = Vector3(-22, 0, 10)
+	GameLog.info("WorldPlayable: the Ascent placed (E to read the shaft-head; the dev hatch opens the Deep Root)")
 
 
 ## Skyward Concord player trigger (labs/prd-psy.md): the stone where a

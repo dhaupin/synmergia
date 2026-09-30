@@ -883,6 +883,56 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   36/36, data naming 24/24. Lesson: scan by CONTENT FORM, never by
   one extension -- and the pack must be booted to prove an export
   fix (godot --headless --main-pack ../web/game.pck).
+- [x] S15 THE DEEP ROOT BUILT OUT (2026-09-30, owner: "full S15 1-4
+  -- set the underworld up and make it alive"). (1) S15.1 THE
+  INTERIOR SKY: entities/interior_sky.gdshader -- an inverted dome
+  (cull_front) rendering Synmergia's inner wall: strata banding by
+  elevation, root veins by value-noise, all pulsing on a glow tide
+  that is a PURE FUNCTION of the Concord epoch (fposmod(epoch_days /
+  1.0) -- one cycle per surface day, dawn = high glow; no second
+  clock ever). globe_underworld.gd feeds the material per frame and
+  breathes a strata DirectionalLight with the same phase (the honest
+  light floor for any renderer). (2) S15.2 REACHABILITY:
+  world_underworld.tres offline 1 -> 2 (DEV_ONLY -- the same flip
+  the moon got; the PLAYER entry law still refuses, OFFLINE-to-players
+  stays true). MoonGate grew destination_scene (empty = convention
+  path globe_<target_world>.tscn -- a conforming world needs NO gate
+  code), so the underworld conjures like the moon. Lattice probe
+  law-states updated (default gates still sealed; the hatch lifts
+  DEV_ONLY; force=false still refuses). (3) S15.3 THE CAMP LIVES:
+  zone_deep_root_camp.tres (bind at the camp head), npc_deep_warden
+  .tres (glowing-cloak scene twin of the elder), deep_warden_greeting
+  dialogue (where are we / why does the rock glow / work),
+  quest_listen_to_the_deep (EXPLORE zone_deep_root_camp + TALK the
+  Warden -- both REAL bridges: the globe fires player_entered_zone
+  itself because ZoneManager's planar distance loop never sees a
+  conjured globe, and dialogue_ended credits the turn-in; probe
+  asserts COMPLETE through the live QuestService). Globe bodies have
+  no entity_type, so _credit_arrival branches: globe bodies get the
+  signal only (entity_enter_zone would dereference entity_type and
+  crash), PlayerController bodies get the full roster path. The
+  Warden spawns DIRECTLY on the surface (spawn_npc_entity + reparent
+  under world_root -- the planar bind-point path would land her at
+  the planet's core). (4) S15.4 THE ASCENT: the shaft-head monolith
+  stands on Synmergia (-22, 0, 10) next to the Moon Gate -- the
+  future PLAYER door down, sealed for everyone today (the mystery
+  layer is the door that does not open), dev-hatched for round
+  trips; at camp the Ascent names main with window_law OFF (a world
+  and its own interior have no orbit phase to read -- moon_gate's
+  static-pair refusal would block the way home). probe_underworld.gd
+  42 checks (A declaration law, B gate law, C conjure+transit+law
+  adoption, D internals, E interior sky + tide periodicity, F camp
+  + zone, G quest bridge end-to-end, H fold-back), DEFAULT_SET.
+  Verified: boot clean, underworld 42/42, lattice 94/94, lint 36/36,
+  regression 52/0. Lessons: (1) a zone credit bridge is SIGNAL
+  shaped, not coordinate shaped -- emit the same event the planar
+  path emits and the whole quest pipeline works on a globe; (2)
+  gates to non-orbiting pairs must set window_law=false or the sky
+  law refuses a way that has no sky; (3) dev flips are DECLARATION
+  edits (offline=2) plus ONE hatched gate -- the player law never
+  changed and no default gate moved. Next: glow-tide content hooks
+  (S14.x water mount in the crater pool?), the Warden's second beat,
+  and eventually the mystery that seals the Ascent shut.
 - [x] GLOBE NAMING CONVENTION + RENAME SHIPPED (2026-09-30, owner:
   "why is it called globe_island? let's make this a naming convention
   opp for zones, planets, etc -- imply relations like orbiting").
