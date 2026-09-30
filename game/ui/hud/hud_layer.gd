@@ -22,6 +22,27 @@ const LAYER_HUD: int = 10
 
 static var instance: CanvasLayer = null
 
+## THE one playable-HUD init (feedback #5): every playable scene calls
+## HudLayer.ensure_installed(scene_root) and gets the same composition
+## -- hud_layer.tscn (menus, bars, chat, minimap) plus the touch HUD
+## bridged to the player's camera when it exposes orbit_camera. Scenes
+## that embed hud_layer.tscn directly (world_playable.tscn) need
+## nothing; the touch-HUD half of this contract is the InputManager's
+## gameplay-state gate, so menus never show controls. Idempotent.
+static func ensure_installed(scene_root: Node) -> void:
+	if instance != null and is_instance_valid(instance) and instance.is_inside_tree():
+		return
+	if scene_root.get_node_or_null("HudLayer") != null:
+		return
+	var packed: PackedScene = load("res://ui/hud/hud_layer.tscn")
+	if packed == null:
+		GameLog.warn("HudLayer: hud_layer.tscn missing; HUD disabled")
+		return
+	var hud: CanvasLayer = packed.instantiate()
+	hud.name = "HudLayer"
+	scene_root.add_child(hud)
+	GameLog.info("HudLayer: installed on %s (single playable-HUD init)" % scene_root.name)
+
 ## All widget children are optional; missing widgets just disable their
 ## own panel. We look them up by name and skip wiring if absent.
 @onready var _menu_manager: Node = _find("MenuManager")
@@ -244,12 +265,12 @@ func _push_character_to_main_menu() -> void:
 	if not (data is CharacterData):
 		return
 	
-	# Get class icon from CharacterClass data
-	var class_icon := "Sword"  # Default fallback
-	if DataService:
-		var class_data := DataService.get_character_class(data.class_id)
-		if class_data and class_data.icon_path and not class_data.icon_path.is_empty():
-			class_icon = class_data.icon_path
+	# Class icon: a SHORT badge glyph, never a res:// path. The raw
+	# icon_path used to be passed through and rendered as literal text
+	# ("res://ui/icons...") across the HUD's top-left on the web build
+	# (feedback #4). Class .tres icon_path values are filesystem paths,
+	# so they are deliberately not forwarded.
+	var class_icon := "[C]"  # Default fallback
 	
 	_main_menu_bar.update_character_info(data.display_name, data.level, class_icon)
 

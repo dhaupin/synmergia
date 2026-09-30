@@ -112,14 +112,53 @@ func _ready() -> void:
 
 	# The COD-style touch HUD is created on every platform so desktop
 	# players can toggle it on too (Settings > Controls > Touch Controls).
-	# Default visibility: on for touch devices, off for desktop.
+	# It is created HIDDEN on every platform: gameplay gating (feedback
+	# #1) owns its visibility, and _on_gameplay_state_changed re-reveals
+	# it the moment the game reaches a playable state. Without the gate
+	# the controls rendered over the main menu, character select, and
+	# every non-playable scene on touch devices.
 	_create_virtual_joystick()
-	var touch_default: bool = _is_mobile or _input_mode == InputMode.TOUCH
-	if PlayerConfig:
-		touch_default = bool(PlayerConfig.get_account_setting("touch_controls", touch_default))
-	set_touch_ui_visible(touch_default)
+	if GameManager:
+		if not GameManager.game_state_changed.is_connected(_on_gameplay_state_changed):
+			GameManager.game_state_changed.connect(_on_gameplay_state_changed)
+		if not GameManager.paused.is_connected(_on_gameplay_state_changed):
+			GameManager.paused.connect(_on_gameplay_state_changed)
+		if not GameManager.resumed.is_connected(_on_gameplay_state_changed):
+			GameManager.resumed.connect(_on_gameplay_state_changed)
+		_on_gameplay_state_changed()
+	else:
+		GameLog.warn("InputManager: GameManager absent; touch HUD stays hidden")
 
 	GameLog.info("InputManager: Mode=%s Mobile=%s Desktop=%s" % [_input_mode, _is_mobile, _is_desktop])
+
+
+## Touch-HUD gameplay gate (feedback #1 + #5): the touch controls are
+## part of the cohesive playable-HUD system, so they may only render in
+## a playable state (PLAYING, or PAUSED where the HUD keeps context).
+## Menus, character select, and any non-playable scene never see them.
+## The per-platform PREFERENCE (PlayerConfig "touch_controls") decides
+## WHETHER the controls appear in gameplay, not the state gate itself.
+func _on_gameplay_state_changed(_state: int = 0) -> void:
+	var gameplay: bool = false
+	if GameManager:
+		var st := GameManager.get_state()
+		gameplay = (st == GameManager.GameState.PLAYING or st == GameManager.GameState.PAUSED)
+	if _virtual_joystick == null:
+		return
+	if not gameplay:
+		# hide_joystick, not just visible=false: CanvasLayer._input still
+		# receives events while invisible, so an "enabled but hidden" HUD
+		# would keep capturing touches in menus.
+		_virtual_joystick.hide_joystick()
+		return
+	var want: bool = _is_mobile or _input_mode == InputMode.TOUCH
+	if PlayerConfig:
+		want = bool(PlayerConfig.get_account_setting("touch_controls", want))
+	if want:
+		set_touch_ui_visible(true)
+	else:
+		_virtual_joystick.hide_joystick()
+
 
 func _detect_platform() -> void:
 	_is_web = OS.has_feature("web")
