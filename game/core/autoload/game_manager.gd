@@ -132,11 +132,11 @@ func _check_loading_complete() -> void:
 
 func _handle_loading_state() -> void:
 	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Loading resources...")
-	var LoadingUI = load("res://ui/components/loading_ui.gd")
-	if LoadingUI.instance:
-		LoadingUI.instance.show_loading("Loading resources...")
+	var overlay := _ensure_boot_loading_overlay()
+	if overlay != null:
+		overlay.show_loading("Loading resources...")
 		await get_tree().process_frame
-		LoadingUI.instance.hide_loading()
+		overlay.hide_loading()
 
 func _handle_login_state() -> void:
 	_show_loading_and_change_scene("res://ui/menus/login.tscn", "Loading login screen...")
@@ -199,17 +199,42 @@ func notify_player_entered_world(player_id: String, character_data = null) -> vo
 	if get_node_or_null("/root/GameLog"):
 		get_node_or_null("/root/GameLog").info("Emitted player_entered_world for: %s" % player_id)
 
+## Play-day feedback #1: LOADING SCREENS. The old path read the static
+## LoadingUI.instance -- which lives INSIDE hud_layer.tscn, i.e. inside
+## the scene being replaced -- so it was null exactly when a loading
+## screen is needed (character select -> world). The boot overlay is a
+## persistent root-level CanvasLayer (layer 100, above every HUD): it
+## survives scene changes and shows for every transition.
+var _loading_layer: CanvasLayer = null
+var _loading_overlay: Control = null
+
+func _ensure_boot_loading_overlay() -> Control:
+	if _loading_overlay != null and is_instance_valid(_loading_overlay):
+		return _loading_overlay
+	if _loading_layer == null or not is_instance_valid(_loading_layer):
+		_loading_layer = CanvasLayer.new()
+		_loading_layer.name = "BootLoadingLayer"
+		_loading_layer.layer = 100
+		get_tree().root.add_child(_loading_layer)
+	var LUI = load("res://ui/components/loading_ui.gd")
+	if LUI == null:
+		return null
+	_loading_overlay = LUI.new()
+	_loading_overlay.name = "BootLoadingOverlay"
+	_loading_layer.add_child(_loading_overlay)
+	return _loading_overlay
+
 func _show_loading_and_change_scene(scene_path: String, status_text: String) -> void:
-	var LoadingUI = load("res://ui/components/loading_ui.gd")
-	if LoadingUI.instance:
-		LoadingUI.instance.show_loading(status_text)
+	var overlay := _ensure_boot_loading_overlay()
+	if overlay != null:
+		overlay.show_loading(status_text)
 		await get_tree().process_frame
 	var err = get_tree().change_scene_to_file(scene_path)
 	if err != OK:
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Failed to load %s: %s" % [scene_path, err])
-	if LoadingUI.instance:
+	if overlay != null:
 		await get_tree().process_frame
-		LoadingUI.instance.hide_loading()
+		overlay.hide_loading()
 
 func _initialize_world_services() -> void:
 	# Only initialize once
