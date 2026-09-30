@@ -90,6 +90,7 @@ func _ready() -> void:
 	_build_shell()
 	_build_surface_pad()
 	_build_sun()
+	_build_sky_sun()
 	_build_arena_gateway()
 	_build_player()
 	_setup_streamer()
@@ -327,6 +328,18 @@ func _update_surface_pad() -> void:
 ## at planet_radius + TILE_LIFT, matching the visual tile tops.
 func _surface_lift() -> float:
 	return STREAMER_TILE_LIFT if planet_radius > PLANAR_SHELL_MAX_R else 0.0
+
+
+## Play-day feedback #8: the visible sun on the globe too (the clock
+## arc rides on top of the scene's static fill light).
+func _build_sky_sun() -> void:
+	var sun_script: GDScript = load("res://entities/sky_sun.gd")
+	if sun_script == null:
+		return
+	var sun := Node3D.new()
+	sun.name = "SkySun"
+	sun.set_script(sun_script)
+	add_child(sun)
 
 
 func _build_sun() -> void:

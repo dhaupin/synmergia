@@ -54,6 +54,8 @@ func _ready() -> void:
 	_setup_housing()
 	_setup_portal()
 	_setup_ancient_door()
+	_setup_sky_sun()
+	_setup_ground_detail()
 	_setup_moon_gate()
 	_setup_ascent_gate()
 	_setup_concord_stone()
@@ -384,6 +386,65 @@ func _setup_sky_signs() -> void:
 ## playable world, tracking TODAY's community unlock. Loaded by path
 ## (not class_name) -- brand-new scripts miss the global class cache
 ## until an editor import pass (the GuardData lesson).
+## Play-day feedback #7: ground detail. The flat green plane gives no
+## motion parallax; a seeded checker of grass-tone patches + scattered
+## rocks reads movement instantly. Deterministic (same scatter every
+## boot), visual-only (no colliders -- the Floor's BoxShape stays the
+## one walk authority).
+func _setup_ground_detail() -> void:
+	var floor_node := get_node_or_null("Floor/MeshInstance3D")
+	if floor_node == null:
+		return
+	var mat := StandardMaterial3D.new()
+	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	for x in range(256):
+		for y in range(256):
+			var cell := (int(x / 32.0) + int(y / 32.0)) % 2 == 0
+			var n: float = float((x * 7 + y * 13) % 17) / 17.0
+			var k: float = (0.92 + 0.16 * n) if cell else (0.78 + 0.14 * n)
+			img.set_pixel(x, y, Color(0.30 * k, 0.52 * k, 0.24 * k))
+	mat.albedo_texture = ImageTexture.create_from_image(img)
+	mat.uv1_scale = Vector3(10, 10, 1)
+	mat.roughness = 0.95
+	floor_node.material_override = mat
+	# Scattered rocks (visual-only): seeded from the world seed so the
+	# field is stable across boots.
+	var seed_val: int = 0
+	var ss = get_node_or_null("/root/SignService")
+	if ss != null and ss.has_method("current_day_index"):
+		seed_val = int(ss.current_day_index())
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_val
+	for i in range(24):
+		var rock := MeshInstance3D.new()
+		var rmesh := SphereMesh.new()
+		var r: float = rng.randf_range(0.3, 1.1)
+		rmesh.radius = r
+		rmesh.height = r * 1.4
+		var rmat := StandardMaterial3D.new()
+		rmat.albedo_color = Color(0.45, 0.42, 0.4)
+		rmat.roughness = 1.0
+		rmesh.material = rmat
+		rock.mesh = rmesh
+		rock.position = Vector3(rng.randf_range(-90, 90), r * 0.35, rng.randf_range(-90, 90))
+		add_child(rock)
+	GameLog.info("WorldPlayable: ground detail scattered (rocks + checker tones)")
+
+
+## Play-day feedback #8: the sun. Placeholder disc + honest clock --
+## the light rides the Concord epoch (direction sense + day/night),
+## so the end-game sun swaps the disc without touching the math.
+func _setup_sky_sun() -> void:
+	var sun_script = load("res://entities/sky_sun.gd")
+	if sun_script == null:
+		return
+	var sun := Node3D.new()
+	sun.name = "SkySun"
+	sun.set_script(sun_script)
+	add_child(sun)
+	GameLog.info("WorldPlayable: the sun hangs on the Concord clock (dawn east, dusk west)")
+
+
 func _setup_ancient_door() -> void:
 	var door_script = load("res://entities/ancient_door.gd")
 	if door_script == null:

@@ -150,13 +150,16 @@ func _load_patch(face: int) -> void:
 	patch_loaded.emit(face)
 
 
-## Seeded rocks for one face: deterministic content (S7), parented
-## under the patch node so unload is free. VISUAL-ONLY: the walk-over
-## authority is the snap_height_provider (the exact smoothstep cap) --
-## adding StaticBody colliders duplicates that authority and fights
-## it (slide friction stalls the walk; test-caught lesson). If
-## projectiles/raycasts ever need rock hits, add colliders on a
-## separate physics layer, not the player's.
+## Seeded rocks + trees for one face: deterministic content (S7),
+## parented under the patch node so unload is free. VISUAL-ONLY: the
+## walk-over authority is the snap_height_provider (the exact
+## smoothstep cap) -- adding StaticBody colliders duplicates that
+## authority and fights it (slide friction stalls the walk;
+## test-caught lesson). If projectiles/raycasts ever need rock hits,
+## add colliders on a separate physics layer, not the player's.
+## Play-day feedback #7: TREES joined the rocks -- motion cues. Both
+## ride the same seeded RNG stream, so the scatter re-derives
+## identically (no drift between visits) and streams with the patch.
 func _spawn_rocks(face: int) -> void:
 	var specs: Array = TerrainGen.rock_specs(world_seed, face)
 	var nodes: Array = []
@@ -175,7 +178,65 @@ func _spawn_rocks(face: int) -> void:
 		rmi.rotation.y = s.yaw
 		patch_node.add_child(rmi)
 		nodes.append(rmi)
+	_spawn_trees(face, patch_node)
 	_patch_rocks[face] = nodes
+
+
+## Trees: 4-8 seeded scatters per face -- trunk cylinder + canopy
+## sphere on the tangent surface. The canopy greens shift subtly per
+## tree (same hash family as the face tints). Height rides the walk
+## surface (radius + TILE_LIFT); they are visual-only like the rocks.
+func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
+	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
+	var acc: int = 0
+	for b in bytes:
+		acc = (acc * 131 + b) % 9007199254740991
+	var rng := RandomNumberGenerator.new()
+	rng.seed = acc
+	var count: int = rng.randi_range(4, 8)
+	var verts: PackedInt32Array = FacePatches.face_vertices(face)
+	var center: Vector3 = FacePatches.face_center(face)
+	for i in range(count):
+		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
+		var dir: Vector3 = (center * 0.55 + v * 0.45).normalized()
+		var tree := Node3D.new()
+		tree.name = "Tree%d" % i
+		var trunk_height: float = rng.randf_range(1.8, 3.2)
+		var trunk := MeshInstance3D.new()
+		var tmesh := CylinderMesh.new()
+		tmesh.top_radius = 0.14
+		tmesh.bottom_radius = 0.22
+		tmesh.height = trunk_height
+		var tmat := StandardMaterial3D.new()
+		tmat.albedo_color = Color(0.36, 0.26, 0.17)
+		tmat.roughness = 1.0
+		tmesh.material = tmat
+		trunk.mesh = tmesh
+		trunk.position = Vector3(0, trunk_height * 0.5, 0)
+		tree.add_child(trunk)
+		var canopy := MeshInstance3D.new()
+		var cmesh := SphereMesh.new()
+		var crown: float = rng.randf_range(1.1, 2.0)
+		cmesh.radius = crown
+		cmesh.height = crown * 1.8
+		var g: float = 0.3 + 0.14 * rng.randf()
+		var cmat := StandardMaterial3D.new()
+		cmat.albedo_color = Color(0.18 + 0.06 * rng.randf(), g, 0.16)
+		cmat.roughness = 1.0
+		cmesh.material = cmat
+		canopy.mesh = cmesh
+		canopy.position = Vector3(0, trunk_height + crown * 0.55, 0)
+		tree.add_child(canopy)
+		tree.position = dir * (radius + TILE_LIFT)
+		# Stand the trunk along the local radial up.
+		var up: Vector3 = dir
+		var hint := Vector3(0, 1, 0)
+		if abs(up.dot(hint)) > 0.999:
+			hint = Vector3(0, 0, -1)
+		var east: Vector3 = (hint - up * hint.dot(up)).normalized()
+		var north: Vector3 = east.cross(up)
+		tree.basis = Basis(east, up, -north).rotated(up, rng.randf_range(0.0, TAU))
+		patch_node.add_child(tree)
 
 
 func _unload_patch(face: int) -> void:

@@ -46,6 +46,15 @@ var ground_offset: float = 0.0
 
 var walk_speed: float = WALK_SPEED_DEFAULT
 var gravity_force: float = GRAVITY_DEFAULT
+## Jump (play-day feedback #5): the same action the planar controller
+## polls ("jump", touch JMP injects it). A real ballistic hop off the
+## tangent plane; the radial snap only pins the body back when it is
+## NOT above the surface (snap target = radius + skin + ground offset,
+## so an airborne body at higher radius is left alone).
+var jump_force: float = 7.0
+## Movement Design System stamp: the anticheat ceiling for this body.
+## Stamped at bind/ready like the planar controller does.
+var allow_jump_input: bool = true
 ## S16.4: which world this body stands on ("" = the main world). Set
 ## through bind_to_world(); drives per-world gravity/speeds and the
 ## no-atmosphere glider gate.
@@ -175,6 +184,22 @@ func _ready() -> void:
 		var mode = pc.get_account_setting("glider_deployment", "auto")
 		if mode != null:
 			glider.deployment_mode = str(mode)
+	# Anticheat stamp (the planar controller's law): the validator
+	# needs a jump ceiling for this body or any hop reads as a hack.
+	_call_deferred_stamp()
+
+## Deferred stamp so entity_id is final (the planar controller's
+## pattern). Defensive: missing AC is a no-op (deep script mode).
+func _call_deferred_stamp() -> void:
+	var ac = Engine.get_main_loop().root.get_node_or_null("AntiCheatService") if Engine.get_main_loop() is SceneTree else null
+	if ac != null and ac.has_method("set_movement_limits"):
+		ac.set_movement_limits(
+			entity_id,
+			walk_speed * 2.4,
+			jump_force * 2.0,
+			40.0
+		)
+
 
 func _physics_process(delta: float) -> void:
 	if planar_mode:
@@ -254,6 +279,15 @@ func _physics_process(delta: float) -> void:
 	var horizontal: Vector3 = velocity - up * velocity.dot(up)
 	var vertical: Vector3 = velocity - horizontal
 
+	# Jump: the same "jump" action the planar controller and the touch
+	# JMP button feed. Fires only while surface contact holds (the glue
+	# snap means is_on_floor() is always true at rest -- gate on radial
+	# speed so a hop is never re-fired mid-air).
+	if allow_jump_input and is_on_floor() \
+			and Input.is_action_just_pressed("jump"):
+		vertical += up * jump_force
+		snap_enabled = false
+
 	# S12 glider: feed the state machine (altitude above the surface,
 	# no thermal model on the globe yet -- thermal zones land later),
 	# then apply its vertical speed instead of raw gravity.
@@ -322,6 +356,9 @@ func _physics_process(delta: float) -> void:
 	# IMPORTANT: the lift is applied EXACTLY, never lerped - the cap
 	# profile is already smooth in space, and a lagged lift lets the
 	# body intersect rock colliders and stall (test-caught lesson).
+	# A JUMP disables the snap until the body falls back to contact
+	# (radial velocity <= 0 and at/below the surface again), so the
+	# hop is a real ballistic arc, not a teleport back to the ground.
 	if snap_enabled:
 		var target_r: float = planet_radius + ground_offset + SKIN
 		if snap_height_provider.is_valid():
@@ -330,6 +367,8 @@ func _physics_process(delta: float) -> void:
 		var err: float = planet_distance() - target_r
 		if abs(err) > 0.001:
 			global_position = planet_center + (global_position - planet_center).normalized() * target_r
+	elif vertical.dot(up) <= 0.0 and planet_distance() <= planet_radius + ground_offset + SKIN + 0.05:
+		snap_enabled = true
 
 	# Keep the camera pivot aligned with local up, then apply the
 	# look orbit (yaw around local up, pitch around local east). With no
