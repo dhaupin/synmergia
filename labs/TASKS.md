@@ -2418,3 +2418,57 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   (rewired flow reaches select + state cleanly; card signals don't land
   in the harness). Suspect the shared cause is the harnesses' input
   dispatch, not the panels; filed for round 7.
+- [x] Play-test round 7 (4 items, Android portrait web client):
+  (1) Boot loader rendered small in the upper-left: LoadingUI is a
+  root Control under a CanvasLayer; set_anchors_preset(PRESET_FULL_RECT)
+  PRESERVES the node's current rect, and on the boot path that rect is
+  0x0 -- anchors froze correct while offsets stayed (0,0,-1280,-1280),
+  collapsing the overlay to 0x0 (spinner drew at its content size,
+  169x222, top-left). _setup_ui now assigns anchors 0/0/1/1 + all-zero
+  offsets + GROW_DIRECTION_BOTH explicitly on overlay and backdrop.
+  New probe tests/probe_boot_loader_rect.gd reproduces the exact boot
+  path (CanvasLayer 100 + LUI.new() + show_loading): 4/4 (overlay/
+  backdrop/center all 1280x1280, no stray auto Panel). Law: PRESET_*
+  on a zero rect must be followed by explicit offsets.
+  (2) Settings panel obeyed the vertical clamp but hung off the
+  horizontal: _clamp_panel_to_viewport shrank custom_minimum_size, but
+  PRESET_CENTER had frozen the OFFSETS at the original size, so the box
+  kept its old displacement. After clamping, center-anchored panels
+  (all anchors ~0.5) re-run set_anchors_and_offsets_preset(
+  PRESET_CENTER) so offsets recompute from the new min-size; hand-
+  placed panels untouched. probe_round2_ui 20/20.
+  (3) Character/eq tabs blank on the globe: the globe had NO inventory
+  loop at all. globe_player now builds an InventoryComponent in _ready
+  (deferred 0.1 s SceneTree timer -- NOTE: root_node.create_timer does
+  not exist, Window is not a SceneTree; resolve via Engine.get_main_loop
+  + cast), stamps entity_id (selected character id, else globe_player_1)
+  and registers with InventoryService; globe_world stamps the id before
+  spawn and emits player_entered_world via new _notify_world_entry()
+  after begin_loop() (world_playable ~line 175 was the only emitter, so
+  StarterKitService never granted on the globe; GameManager dedupes per
+  boot). character_panel._resolve_inventory read property "inventory"
+  (real property: inventory_component) + bag-child fallback. lobby.
+  _blob_to_character_data now hydrates species_data/class_data like
+  character_select does (get_stats() lazily self-heals class_data but
+  species stat modifiers were silently skipped when null).
+  (4) Ocean spawn: CharacterData.spawn_position (0,1,0) pole theory
+  DISPROVED -- zero consumers (enemy AI has its own _spawn_position);
+  the globe boot uses its equator plaza consts and the round-6 sea
+  guard holds. Real hazard found + fixed: RespawnService.
+  _get_default_respawn_position returned PLANAR zone coords, which on a
+  sphere decode to arbitrary ocean/planet-interior points; it now
+  detects globe bodies (has_method planet_up) and respawns ON the walk
+  surface at the body's own direction using the exact resting law
+  (radius + ground_offset + SKIN + provider lift) -- all 4 call sites
+  funnel through it. No PlayerProgress restore on the globe path
+  (world_playable only) and no waypoint/gateway raw-position writes:
+  respawn was the one live planar-coord funnel. Diagnostic for future
+  reports: on-screen spawn-truth line (top-right of the playable HUD,
+  2 Hz) prints lat/lon, ground height, sea line; WET tints amber --
+  the Android reporter cannot read GameLog. Landscape: project.godot
+  already pins window/handheld/orientation=sensor_landscape (line 121);
+  the web/pck path takes orientation from the browser and portrait
+  letterboxes correctly since the round-6 viewport guard -- nothing to
+  lock in code. Verified: lint 36, regression 56/56 (3 chunks),
+  probe_boot_loader_rect 4/4, probe_round2_ui 20/20, probe_globe_world
+  23/23, test_splash_to_play 17/17 (xvfb, through the Start flow).
