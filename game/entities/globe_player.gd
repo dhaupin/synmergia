@@ -241,9 +241,6 @@ func _ready() -> void:
 		var stick = jm.get_virtual_joystick()
 		if stick != null and not stick.sprint_override.is_connected(_on_sprint_override):
 			stick.sprint_override.connect(_on_sprint_override)
-
-func _on_sprint_override(active: bool) -> void:
-	_sprint_override_on = active
 	if glider == null:
 		glider = load("res://core/frame/srv/glider_state.gd").new()
 	# Deployment setting: runtime resolve (script-mode/check-only has
@@ -256,6 +253,9 @@ func _on_sprint_override(active: bool) -> void:
 	# Anticheat stamp (the planar controller's law): the validator
 	# needs a jump ceiling for this body or any hop reads as a hack.
 	_call_deferred_stamp()
+
+func _on_sprint_override(active: bool) -> void:
+	_sprint_override_on = active
 
 ## Deferred stamp so entity_id is final (the planar controller's
 ## pattern). Defensive: missing AC is a no-op (deep script mode).
@@ -369,27 +369,32 @@ func _physics_process(delta: float) -> void:
 		_terrain_slope = _slope_cos
 	var grounded: bool = is_on_floor() or snap_enabled
 
-	# Crouch is a TOGGLE (tap CRH / C). Steering input cancels it
-	# while sliding (you bail out of the slide to take control).
+	# -- CROUCH CHAIN (one tap, one meaning, in priority order) ------
+	# While SLIDING: the tap bails out of the slide -- back into the
+	# run (the slide tick's own exit path also lands here, not in
+	# crouch).
+	# While SPRINTING on the ground: the tap ENGAGES the slide.
+	# Otherwise: the tap toggles crouch.
 	if allow_jump_input and Input.is_action_just_pressed("crouch"):
 		if is_sliding:
 			is_sliding = false
+			is_crouching = false
 			_slide_t = 0.0
+		elif grounded and is_sprinting:
+			is_sliding = true
+			is_crouching = false
+			_slide_t = 0.0
+			var dirv: Vector3 = horizontal.normalized() if horizontal.length_squared() > 0.001 \
+				else (wish if wish.length_squared() > 0.001 else cam_fwd)
+			_slide_dir = dirv.normalized() if dirv.length_squared() > 0.001 else north
 		else:
 			is_crouching = not is_crouching
 	# Sprint: keyboard SHIFT or the touch auto-sprint override. Needs
 	# stamina reserve (stamina is the climb pool -- one pool, honest).
+	# (Recomputed AFTER the chain: a bail leaves sprint live, so the
+	# slide flows straight back into the run when the input is held.)
 	is_sprinting = (Input.is_action_pressed("sprint") or _sprint_override_on) \
 		and climb_stamina > 0.6 and not is_crouching
-	# SLIDE ENGAGE: crouch pressed while sprinting on a slope.
-	if grounded and not is_sliding and is_sprinting \
-			and Input.is_action_just_pressed("crouch"):
-		var dirv: Vector3 = horizontal.normalized() if horizontal.length_squared() > 0.001 \
-			else (wish if wish.length_squared() > 0.001 else cam_fwd)
-		is_sliding = true
-		is_crouching = false
-		_slide_t = 0.0
-		_slide_dir = dirv.normalized() if dirv.length_squared() > 0.001 else north
 
 	# WALK SPEED law: base x crouch / sprint / slope, then the climb
 	# check (a jump-hold against a wall outranks everything below).
@@ -446,7 +451,15 @@ func _physics_process(delta: float) -> void:
 	# no thermal model on the globe yet -- thermal zones land later),
 	# then apply its vertical speed instead of raw gravity.
 	if glider != null:
-		var altitude: float = global_position.distance_to(planet_center) - planet_radius - ground_offset
+		# Altitude is height above the nearest LANDING SURFACE -- the
+		# walk surface law (terrain + caps), not the bare static lift:
+		# with the terrain arc, a body on a 9 m plaza is ON THE GROUND,
+		# not 10 m in the air (the wing otherwise pops the moment you
+		# walk -- dbg_walk caught the body GLIDING at spawn).
+		var altitude: float = planet_distance() - (planet_radius + ground_offset + SKIN)
+		if snap_height_provider.is_valid():
+			altitude -= snap_height_provider.call(global_position)
+		altitude = maxf(altitude, 0.0)
 		var gstate: int = glider.tick(delta, maxf(altitude, 0.0), 0.0)
 		# S16.4 vacuum rule: no atmosphere, no wing. If the machine
 		# opened the wing over an airless world, the vacuum closes it
@@ -454,6 +467,16 @@ func _physics_process(delta: float) -> void:
 		if gstate == glider.State.GLIDING and not _world_allows_gliding():
 			glider.state = glider.State.FALLING
 			gstate = glider.State.FALLING
+		# MANUAL DEPLOY / STOW (runs for FALLING and GLIDING alike): a
+		# jump tap mid-fall opens the wing (within the grace window);
+		# tapping again mid-glide stows it and drops the body honestly.
+		if allow_jump_input and Input.is_action_just_pressed("jump"):
+			if gstate == glider.State.GLIDING:
+				glider.on_stow_pressed()
+				gstate = glider.State.STOWED_FALL
+			elif gstate == glider.State.FALLING:
+				glider.on_deploy_pressed()
+				gstate = glider.state
 		if gstate == glider.State.GLIDING:
 			_glide_up = up
 			var ac = Engine.get_main_loop().root.get_node_or_null("AntiCheatService") if Engine.get_main_loop() is SceneTree else null
@@ -470,10 +493,13 @@ func _physics_process(delta: float) -> void:
 				lift = ts.sample(global_position, entity_id)
 				ts.record_glide_tick(entity_id, velocity.length() * delta, altitude)
 			var sink: Vector3 = up * glider.glide_vertical_speed(clampf(lift / 3.0, 0.0, 1.0))
-			var glide_wish: Vector3 = wish if wish.length_squared() > 0.0001 \
-				else (north if true else Vector3.ZERO)
+			var glide_wish: Vector3 = wish
+			# DIVE PITCH: looking DOWN pitches the wing into a dive (7 ->
+			# 16 m/s); level flight holds by default. The camera pitch
+			# IS the stick here -- no extra input to learn.
+			var dive: float = clampf(-look_pitch / LOOK_PITCH_LIMIT, 0.0, 1.0)
 			var forward: Vector3 = (glide_wish.normalized() if glide_wish.length_squared() > 0.0001 else -up.cross(Vector3(0, 0, 1)).normalized()) \
-				* glider.glide_forward_speed(0.0)
+				* glider.glide_forward_speed(dive)
 			horizontal = horizontal.move_toward(forward, walk_speed * 4.0 * delta)
 			# Launchers throw: a positive lift burst overrides the sink
 			# entirely while inside the launch column.
@@ -514,8 +540,11 @@ func _physics_process(delta: float) -> void:
 		if _slide_t > 1.4 or (horizontal.length() <= SLIDE_MIN_SPEED and _slide_t > 0.25) \
 				or not grounded:
 			is_sliding = false
-			is_crouching = true
+			is_crouching = false
 			_slide_t = 0.0
+			# Ends back into the RUN: is_sprinting recomputes next frame
+			# from the held input (shift / full stick), so a still-held
+			# sprint flows straight out of the slide at full speed.
 	elif wish.length_squared() > 0.0001:
 		horizontal = horizontal.move_toward(wish * speed, walk_speed * 8.0 * delta)
 	else:
