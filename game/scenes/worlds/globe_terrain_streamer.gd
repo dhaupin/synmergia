@@ -182,36 +182,41 @@ func _load_patch(face: int) -> void:
 	_subdivide(a, b, c, level, verts)
 
 	# -- Terrain arc: radial displacement per vertex --------------------
-	# The subsampled corner directions are cached with their displaced
-	# radii, so every vertex mapping to the same direction (shared tile
-	# corners) reads the SAME height -- no cracks at tile borders where
-	# two patches subdivide differently. Vertices are rebuilt along the
-	# ORIGINAL direction at the displaced radius.
-	var dir_h := {}  # Vector3 (quantized dir) -> displaced radius
+	# The corner directions are GLOBE directions: the tile corners are
+	# patch-LOCAL (face-center subtracted), so the direction must be
+	# reconstructed as (v + center).normalized() -- normalizing the local
+	# vector alone points somewhere near the face EDGE with a ~5 km
+	# magnitude, and displacing along it scattered every vertex into
+	# invisible debris (play-day round 5: the world looked like open
+	# ocean -- the water shell was the only intact sphere). The cache is
+	# keyed on the quantized GLOBE direction, so shared tile corners
+	# still read identical heights (no border cracks). Vertices are
+	# emitted back in patch-LOCAL space: globe point minus the center.
+	var dir_h := {}  # Vector3 (quantized globe dir) -> displaced radius
 	var sea: float = TerrainGen.sea_level(world_seed)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for tri in verts:
 		for i in range(3):
 			var v: Vector3 = tri[i]
-			var d: Vector3 = v.normalized()
-			var r: float = tile_r
+			var d_abs: Vector3 = (v + center).normalized()
+			var r_abs: float = tile_r
 			if terrain_on:
-				var key: Vector3 = (d * 4096.0).floor()
+				var key: Vector3 = (d_abs * 4096.0).floor()
 				if not dir_h.has(key):
-					dir_h[key] = tile_r + TerrainGen.terrain_height(d, world_seed)
-				r = dir_h[key]
-			st.set_normal(d)
+					dir_h[key] = tile_r + TerrainGen.terrain_height(d_abs, world_seed)
+				r_abs = dir_h[key]
+			st.set_normal(d_abs)
 			# Prototype keeps the S7 per-face tint; terrain-on paints the
 			# height-band map (seabed through snow).
-			var col: Color = _tint_for(face) if not terrain_on else _band_color(r - tile_r, sea)
+			var col: Color = _tint_for(face) if not terrain_on else _band_color(r_abs - tile_r, sea)
 			st.set_color(col)
 			# Planar UVs on the tangent plane (patch-local x/z). Gives the
 			# tile a real texture map so ground motion reads while walking
 			# (play-day feedback #7: the pure-vertex-tint globe had zero
 			# ground detail -- nothing to see move under you).
 			st.set_uv(Vector2(v.x, v.z) * 0.22)
-			st.add_vertex(d * r)
+			st.add_vertex(d_abs * r_abs - center)
 	var mesh: ArrayMesh = st.commit()
 
 	var mi := MeshInstance3D.new()

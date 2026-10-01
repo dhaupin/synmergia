@@ -103,6 +103,32 @@ func _run() -> void:
 		absf(surface_gap) < 1.5) and ok
 	ok = _check("walk: water shell present at planet scale", _globe.water_body != null) and ok
 
+	# MESH TRUTH: the streamed tile VERTICES must ride the same law the
+	# walker rides (round-5 lesson: the analytic law was green while the
+	# mesh displaced along garbage directions -- the world looked like
+	# open ocean because the water shell was the only intact sphere).
+	var mesh_ok := true
+	var mesh_checked := 0
+	var spawn_face: int = load("res://core/frame/math/icosahedral_faces.gd").face_for_direction(d_spawn)
+	var patch: MeshInstance3D = _globe.streamer._patches.get(spawn_face)
+	if patch != null and patch.mesh != null:
+		var arrays: Array = (patch.mesh as ArrayMesh).surface_get_arrays(0)
+		var verts_arr: PackedVector3Array = arrays[ArrayMesh.ARRAY_VERTEX]
+		var patch_center: Vector3 = load("res://core/frame/math/icosahedral_faces.gd").face_center(spawn_face) \
+			* (R20KM + 0.52)
+		for vi in range(0, verts_arr.size(), 97):
+			var local_v: Vector3 = verts_arr[vi]
+			var globe_v: Vector3 = local_v + patch_center
+			var vdir: Vector3 = globe_v.normalized()
+			# Radial position must be within the terrain band of the law
+			# (not ~2x planet radius -- the debris signature).
+			var expected_r: float = R20KM + 0.52 + Gen.terrain_height(vdir, seed_b)
+			if absf(globe_v.length() - expected_r) > 3.0:
+				mesh_ok = false
+			mesh_checked += 1
+	ok = _check("mesh: tile vertices ride the terrain law (%d sampled)" % mesh_checked, \
+		mesh_ok and mesh_checked > 0) and ok
+
 	# The provider really feeds the terrain law: sample it at the body.
 	var d_body: Vector3 = (player.global_position - _globe.planet_center).normalized()
 	var prov: float = player.snap_height_provider.call(player.global_position)
