@@ -78,7 +78,7 @@ func _run() -> void:
 		quit(1)
 		return
 
-	var settings = hud.get_node_or_null("SettingsPanel") if hud != null else null
+	var settings = hud._resolve_settings_panel() if hud != null else null
 	ok = _check("SettingsPanel available", settings != null) and ok
 	if settings != null:
 		var panel = settings.get_node_or_null("Panel")
@@ -89,6 +89,12 @@ func _run() -> void:
 		var title = header.get_node_or_null("Title") if header != null else null
 		ok = _check("settings title reads 'Settings'", \
 			title != null and title.text == "Settings") and ok
+		# Round 5 z-stack law: the panel re-parents into MenuManager's
+		# layer (20) at panel depth -- above the touch HUD (layer 18) and
+		# the expanded menu (350). Resolve must agree with MenuManager.
+		ok = _check("settings adopted by MenuManager", settings.get_parent() == mm) and ok
+		ok = _check("settings z at panel depth (>= 500)", int(settings.z_index) >= 500) and ok
+		ok = _check("resolve finds adopted panel", hud._resolve_settings_panel() == settings) and ok
 
 	var chat = mm.get_node_or_null("ChatUI")
 	ok = _check("chat exists", chat != null) and ok

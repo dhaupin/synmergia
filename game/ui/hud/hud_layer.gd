@@ -293,17 +293,41 @@ func _is_admin() -> bool:
 
 
 func open_settings() -> void:
-	if instance and instance.has_node("SettingsPanel"):
-		var panel: Node = instance.get_node("SettingsPanel")
-		if panel:
+	var panel := _resolve_settings_panel()
+	if panel != null:
+		# Prefer the UIPanel lifecycle (keeps _is_open in sync so the
+		# hotkey toggle and the header X stay coherent) and fall back to
+		# a bare visibility flip for non-UIPanel shapes.
+		if panel.has_method("open"):
+			panel.open("")
+		else:
 			panel.visible = true
 
 
 func close_settings() -> void:
-	if instance and instance.has_node("SettingsPanel"):
-		var panel: Node = instance.get_node("SettingsPanel")
-		if panel:
+	var panel := _resolve_settings_panel()
+	if panel != null:
+		if panel.has_method("close"):
+			panel.close()
+		else:
 			panel.visible = false
+
+
+## The settings panel re-parents into MenuManager's layer at ready
+## (z-stack law: it must render above the touch HUD + menu widgets).
+## Resolve by node NAME wherever it now lives: direct HUD child first,
+## then through MenuManager's static instance (the post-adoption home).
+func _resolve_settings_panel() -> Node:
+	if instance == null:
+		return null
+	if instance.has_node("SettingsPanel"):
+		return instance.get_node("SettingsPanel")
+	var MenuManagerScript = load("res://ui/components/menu_manager.gd")
+	if MenuManagerScript != null and MenuManagerScript.instance != null:
+		var found = MenuManagerScript.instance.get_node_or_null("SettingsPanel")
+		if found != null:
+			return found
+	return null
 
 
 func show_dialog(dialogue_id: String, npc_id: String = "") -> void:

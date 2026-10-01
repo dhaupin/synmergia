@@ -273,7 +273,11 @@ func _create_expanded_panel() -> void:
 	style.corner_radius_bottom_left = 8
 	style.corner_radius_bottom_right = 8
 	_expanded_panel.add_theme_stylebox_override("panel", style)
-	_expanded_panel.z_index = 100
+	# Z-STACK LAW (see menu_manager._initialize_panels): the expanded
+	# MENU (350) covers chat (300) and the raw HUD widgets (100); the
+	# panel stack (500) covers the menu. Round-4 fix: the menu used to
+	# sit at 100 -- BELOW chat, so menu items were unreadable.
+	_expanded_panel.z_index = 350
 	
 	_menu_items = VBoxContainer.new()
 	_menu_items.name = "MenuItems"
@@ -328,6 +332,11 @@ func _create_expanded_panel() -> void:
 	# Settings item
 	var settings_btn := _create_menu_item("settings", "Settings", "O", "[*]")
 	_menu_items.add_child(settings_btn)
+
+	# Exit to character select (play-day: "we need a way to exit back
+	# to char select in menu") -- after the separator, always visible.
+	var exit_btn := _create_menu_item("exit_to_select", "Exit to Character Select", "", "[<<]")
+	_menu_items.add_child(exit_btn)
 	
 	# Separator
 	var sep2 := HSeparator.new()
@@ -438,6 +447,11 @@ func _on_settings_pressed() -> void:
 func _on_menu_item_pressed(panel_id: String) -> void:
 	if panel_id == "close":
 		hide_expanded()
+	elif panel_id == "exit_to_select":
+		# Straight out of the world: back to character select (the
+		# GameManager state handles the scene swap + loading screen).
+		hide_expanded()
+		GameManager.change_state(GameManager.GameState.CHARACTER_SELECT)
 	elif panel_id == "settings":
 		panel_requested.emit("settings")
 		hide_expanded()

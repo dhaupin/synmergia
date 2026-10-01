@@ -172,11 +172,18 @@ func _toggle_world_map() -> void:
 
 func _toggle_settings() -> void:
 	if _hud:
-		var panel: Node = _hud.get_node_or_null("SettingsPanel")
+		# The panel re-parents into MenuManager's layer at ready (z-stack
+		# law), so a direct "SettingsPanel" child lookup goes stale --
+		# route through HudLayer's dynamic resolver.
+		var panel: Node = null
+		if _hud.has_method("_resolve_settings_panel"):
+			panel = _hud._resolve_settings_panel()
+		else:
+			panel = _hud.get_node_or_null("SettingsPanel")
 		if panel and panel.has_method("toggle"):
-			panel.toggle()
+			panel.toggle("")
 		elif panel and panel.has_method("open"):
-			panel.open()
+			panel.open("")
 		elif panel:
 			panel.visible = not panel.visible
 

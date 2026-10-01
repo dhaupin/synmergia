@@ -14,6 +14,8 @@ enum Category {
 	SOCIAL = 5
 }
 
+const MenuManagerScript = preload("res://ui/components/menu_manager.gd")
+
 var _current_category: Category = Category.GRAPHICS
 var _tab_buttons: Array = []
 var _category_containers: Dictionary = {}
@@ -51,6 +53,34 @@ func _ready() -> void:
 	if PlayerConfig:
 		_load_from_config()
 	_apply_current_settings()
+	_adopt_into_menu_manager()
+
+## Z-STACK LAW (round-5): this panel is scene-placed in hud_layer
+## (CanvasLayer 10) -- BELOW the touch HUD (layer 18 when engaged) and
+## every MenuManager widget (layer 20). A full-screen panel under
+## mobile buttons is unreadable. Re-parent into MenuManager's layer
+## (20) at panel depth (z 500), keeping the node name so every
+## get_node("SettingsPanel") consumer keeps working (lookups go
+## through HudLayer._resolve_settings_panel()).
+##
+## DEFERRED one frame and written WITHOUT ternaries: the first cut
+## used a nested ternary over /root/MenuManager (a path that does not
+## exist -- MenuManager is scene-placed under HudLayer), and in the
+## headless probe the block was never even reached because an unguarded
+## PlayerConfig read in _apply_current_settings aborted _ready first.
+## Explicit ifs + a one-frame wait make the adoption deterministic.
+func _adopt_into_menu_manager() -> void:
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var mm = MenuManagerScript.instance
+	if mm == null or not is_instance_valid(mm):
+		return
+	if get_parent() == mm:
+		return
+	get_parent().remove_child(self)
+	mm.add_child(self)
+	z_index = 500
 
 func _setup_ui() -> void:
 	var panel := get_panel()
@@ -497,6 +527,8 @@ func _on_dropdown_changed(index: int, key: String) -> void:
 		_apply_colorblind_shader()
 
 func _apply_ui_scale() -> void:
+	if PlayerConfig == null:
+		return
 	var scale: float = PlayerConfig.get_account_setting("ui_scale", 1.0)
 	if scale < 0.75:
 		scale = 0.75
@@ -510,6 +542,8 @@ func _apply_ui_scale() -> void:
 				canvas_layer.scale = Vector2(scale, scale)
 
 func _apply_text_scale() -> void:
+	if PlayerConfig == null:
+		return
 	var scale: float = PlayerConfig.get_account_setting("ui_text_scale", 1.0)
 	if scale < 0.8:
 		scale = 0.8
@@ -518,9 +552,12 @@ func _apply_text_scale() -> void:
 	
 	# Broadcast text scale change to all UI components
 	# Components that listen for this will update themselves
-	EventHub.emit_signal("accessibility_text_scale_changed", scale)
+	if EventHub:
+		EventHub.emit_signal("accessibility_text_scale_changed", scale)
 
 func _apply_colorblind_shader() -> void:
+	if PlayerConfig == null:
+		return
 	var enabled: bool = PlayerConfig.get_account_setting("colorblind_mode", false)
 	var type_idx: int = PlayerConfig.get_account_setting("colorblind_type", 0)
 	
@@ -534,6 +571,8 @@ func _apply_colorblind_shader() -> void:
 		GameLog.info("Colorblind mode: Off")
 
 func _apply_reduce_motion() -> void:
+	if PlayerConfig == null:
+		return
 	var enabled: bool = PlayerConfig.get_account_setting("reduce_motion", false)
 	if enabled:
 		GameLog.info("Reduce motion: Enabled (disabling UI animations)")
@@ -541,9 +580,12 @@ func _apply_reduce_motion() -> void:
 		GameLog.info("Reduce motion: Disabled")
 	
 	# Broadcast reduce motion change to all UI components
-	EventHub.emit_signal("accessibility_reduce_motion_changed", enabled)
+	if EventHub:
+		EventHub.emit_signal("accessibility_reduce_motion_changed", enabled)
 
 func _apply_high_contrast() -> void:
+	if PlayerConfig == null:
+		return
 	var enabled: bool = PlayerConfig.get_account_setting("high_contrast", false)
 	if enabled:
 		GameLog.info("High contrast: Enabled")
@@ -551,9 +593,12 @@ func _apply_high_contrast() -> void:
 		GameLog.info("High contrast: Disabled")
 	
 	# Broadcast high contrast change to all UI components
-	EventHub.emit_signal("accessibility_high_contrast_changed", enabled)
+	if EventHub:
+		EventHub.emit_signal("accessibility_high_contrast_changed", enabled)
 
 func _apply_screen_shake() -> void:
+	if PlayerConfig == null:
+		return
 	var enabled: bool = PlayerConfig.get_account_setting("screen_shake", true)
 	GameLog.info("Screen shake: %s" % ("Enabled" if enabled else "Disabled"))
 

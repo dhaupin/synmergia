@@ -142,10 +142,14 @@ func _initialize_panels() -> void:
 	# Chat panel - created from script
 	_chat_panel = preload("res://ui/components/chat_ui.gd").new()
 	_chat_panel.name = "ChatUI"
-	# Play-test round 3: chat sits BELOW the panel stack (z < 500) so
-	# panels can cover it -- unreadable text bleeding through menus was
-	# worse UX than the chat being hidden while a panel is up. Chat
-	# remains above the raw HUD widgets (z 100).
+	# Play-test round 3/4 Z-STACK LAW (the one ordering, all readers):
+	#   raw HUD widgets (action bar etc.) z 100
+	#   < chat z 300 (persistent, covers HUD, sits under menus)
+	#   < expanded MENU z 350 (covers chat -- round 4: "menu still
+	#     renders below chat"; the expanded panel lives on MainMenuBar,
+	#     also a child of THIS layer, so one ordering governs)
+	#   < panels z 500 (full cover)
+	#   < loading overlay (CanvasLayer 100, whole other layer)
 	_chat_panel.z_index = 300
 	add_child(_chat_panel)
 
