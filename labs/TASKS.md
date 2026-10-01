@@ -1010,6 +1010,47 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   the deleted marker builder); (c) a walk that "feels stuck" after a
   camera turn is a frame-authority bug -- input must be relative to the
   look frame, never the map frame.
+- [x] PLAY-DAY 4: chat layering revert + the CLIMB LAW (2026-09-30,
+  owner mid-party play-test: "fix chat to load under menus -- can't
+  read stuff underneath it; make props not walk-through with a
+  handler we can attach or that default-attaches; big rocks/features
+  should need BotW-style CLIMBING with stamina"). (1) CHAT z 700 ->
+  300: above the raw HUD widgets (100), BELOW the panel stack (500)
+  -- unreadable bleed-through was worse than hidden chat; round-2
+  probe assertion flipped to match the new law. (2) PropCollider
+  (entities/prop_collider.gd, RefCounted, no autoload): the one-law
+  attachment. attach(prop) auto-sizes a StaticBody3D (layer 2,
+  "climbable" group) from the prop's mesh AABB union;
+  attach_trunk(tree) makes a SLIM cylinder around the trunk only --
+  canopies stay intangible (walking under a crown must not hit a
+  ceiling); attach_all(root) is the default-wiring sweep for missed
+  props (skips sub-MIN_VOL m^3 decorations). Bodies are prop
+  children, so streaming drops them free. Globe streamer attaches
+  trunks per patch; globe_player defaults collision_mask |= 2 in
+  _ready so a scene that forgets the wiring still collides.
+  LESSON (probe-caught twice): the trunk collider is a CYLINDER, not
+  a box -- a sphere body wedges on box corners (slide budget
+  exhausts) and dead-stops the walk; and a head-on push into a thin
+  prop has zero tangential velocity so move_and_slide has nothing to
+  slide along at all. The WEDGE ASSIST: when the wish speed is high
+  but frame progress collapses against a climbable body, deflect
+  along the wall tangent toward the wish -- walking into a tree
+  slides you around it. (3) THE CLIMB LAW (globe_player): hold jump
+  (not the tap that hops) against a steep face (normal steepness >=
+  50 deg off up) or a climbable body within CLIMB_REACH 1.7 m
+  (PhysicsRayQueryParameters3D, mask 2, group check) engages the
+  climb; CLIMB_STAMINA_MAX 6 drains 1/s while grabbing, regens 2/s
+  off-wall; the body sticks (-normal * 0.6) and rides the wall
+  (wall-projected up * 2.2 m/s); cresting the wall mantles onto the
+  surface and re-arms the radial snap; stamina empty or button let
+  go releases. probe_climb.gd (11 checks: trunk slimness/group/
+  layer, attach auto-size, idempotency, stamina pool, props mask,
+  wall probe zero-in-open-space + steep-normal-on-hit) joins
+  DEFAULT_SET. Verified: climb probe 11/11, terrain stream 9/9 (the
+  blind auto-walk now deflects around a trunk sitting exactly on its
+  line -- the probe IS the wedge test), round-2 UI 17/17, globe
+  23/23, regression 55/0, lint 36/36, touch battery 17/17 xvfb,
+  boot clean.
 - [x] PLAY-DAY 3: round-2 feedback (2026-09-30, owner playing in the
   Freebuff preview: "jump works, sun works, minimap fixed... but").
   (1) #7 MOBILE HUD DEAD AFTER THE X: the panel's own close button
