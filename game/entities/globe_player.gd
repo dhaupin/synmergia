@@ -67,9 +67,39 @@ const CLIMB_SPEED: float = 2.2
 const CLIMB_REACH: float = 1.7
 const CLIMB_MIN_ANGLE_DEG: float = 50.0
 const CLIMB_WALL_GROUP := "climbable"
+const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
+## PERCH LAW: a walk-over cap this high above the terrain law is a
+## climbable ledge (step off = airborne; the climb grabs it).
+const PERCH_MIN_LIFT: float = 0.55
 var climb_stamina: float = CLIMB_STAMINA_MAX
 var _climbing: bool = false
 var _climb_wall_normal: Vector3 = Vector3.ZERO
+
+## -- CROUCH / SLIDE / SPRINT (terrain arc; terrain mobility law) -----
+## Crouch: a TOGGLE (tap CRH / C) -- the Q-dodge lane is free on
+## desktop and the touch CRH button is a tap. While crouched the walk
+## speed drops and steep downhill faces become slide ground.
+## Slide: crouch WHILE SPRINTING on a slope = a momentum slide that
+## carries you down the fall line with steering, then it runs out.
+## Sprint: hold SHIFT (or the stick-full auto-sprint the touch HUD
+## already drives via sprint_override) -- SPRINT_MULT over walk speed
+## while the stamina pool has reserve.
+var is_crouching: bool = false
+var is_sprinting: bool = false
+var is_sliding: bool = false
+var _slide_t: float = 0.0
+var _slide_dir: Vector3 = Vector3.ZERO
+const CROUCH_MULT: float = 0.5
+const SPRINT_MULT: float = 1.55
+const SLOPE_WALK_MULT: float = 0.55
+const SLOPE_WALK_SIN: float = 0.55
+const SLIDE_INIT_SPEED: float = 8.5
+const SLIDE_MIN_SPEED: float = 3.0
+const SLIDE_FRICTION: float = 3.5
+const SLOPE_SLIDE_SIN: float = 0.55
+## Terrain slope law: the surface tilt at the body's direction (0 on
+## flat ground, 1 on a wall). Feeds walk slowdown and slide engage.
+var _terrain_slope: float = 0.0
 ## S16.4: which world this body stands on ("" = the main world). Set
 ## through bind_to_world(); drives per-world gravity/speeds and the
 ## no-atmosphere glider gate.
@@ -94,6 +124,14 @@ var path_walked: float = 0.0
 var _loop_start: Vector3 = Vector3.ZERO
 ## Smoothed ride height above the base shell (rock walk-over).
 var _ride_lift: float = 0.0
+## Terrain slope (cos of the slope angle, 1 = flat) this frame.
+var _slope_cos: float = 1.0
+## Touch auto-sprint mirror (VirtualJoystick.sprint_override).
+var _sprint_override_on: bool = false
+## Surface slope at the body's direction this frame (cos of the slope
+## angle; 1 on flat ground). The glue check adds the slope ramp:
+## walking uphill puts the snap target a head above the surface --
+## still glued while the slope is walkable.
 
 ## Touch-look state (S14-web): the VirtualJoystick's camera_look feeds
 ## orbit_camera(); the pivot's basis is then re-derived from (yaw,
@@ -195,6 +233,17 @@ func _ready() -> void:
 	# that forgets to wire the mask still gets one-law collision.
 	collision_layer = 1
 	collision_mask = collision_mask | 2
+	# Touch auto-sprint: the joystick flips the same sprint flag the
+	# keyboard SHIFT does (defensive: headless/script contexts have no
+	# joystick mounted).
+	var jm = Engine.get_main_loop().root.get_node_or_null("InputManager") if Engine.get_main_loop() is SceneTree else null
+	if jm != null and jm.has_method("get_virtual_joystick"):
+		var stick = jm.get_virtual_joystick()
+		if stick != null and not stick.sprint_override.is_connected(_on_sprint_override):
+			stick.sprint_override.connect(_on_sprint_override)
+
+func _on_sprint_override(active: bool) -> void:
+	_sprint_override_on = active
 	if glider == null:
 		glider = load("res://core/frame/srv/glider_state.gd").new()
 	# Deployment setting: runtime resolve (script-mode/check-only has
@@ -302,6 +351,66 @@ func _physics_process(delta: float) -> void:
 
 	var horizontal: Vector3 = velocity - up * velocity.dot(up)
 
+	# -- TERRAIN MOBILITY LAW (crouch / slide / sprint / slope) ----------
+	# Terrain slope reads the TERRAIN COMPONENT of the ground law only
+	# (the provider's terrain_h seam) -- walk-over rock CAPS are free
+	# ground by law and must never read as "steep hills" that slow the
+	# walk (probe-caught: capping the walk at 55% cost 175 m/30 s).
+	var ground_law: float = 0.0
+	if snap_height_provider.is_valid():
+		ground_law = snap_height_provider.call(global_position)
+	var terrain_now: float = _terrain_only(global_position, up, ground_law)
+	if snap_enabled:
+		var ahead: Vector3 = (global_position - planet_center).normalized() \
+			* (planet_radius + ground_offset) + up * 0.5
+		var terrain_ahead: float = _terrain_only(ahead, up, ground_law)
+		var slope_sin: float = absf(terrain_ahead - terrain_now) / 0.5
+		_slope_cos = clampf(sqrt(maxf(0.0, 1.0 - slope_sin * slope_sin)), 0.0, 1.0)
+		_terrain_slope = _slope_cos
+	var grounded: bool = is_on_floor() or snap_enabled
+
+	# Crouch is a TOGGLE (tap CRH / C). Steering input cancels it
+	# while sliding (you bail out of the slide to take control).
+	if allow_jump_input and Input.is_action_just_pressed("crouch"):
+		if is_sliding:
+			is_sliding = false
+			_slide_t = 0.0
+		else:
+			is_crouching = not is_crouching
+	# Sprint: keyboard SHIFT or the touch auto-sprint override. Needs
+	# stamina reserve (stamina is the climb pool -- one pool, honest).
+	is_sprinting = (Input.is_action_pressed("sprint") or _sprint_override_on) \
+		and climb_stamina > 0.6 and not is_crouching
+	# SLIDE ENGAGE: crouch pressed while sprinting on a slope.
+	if grounded and not is_sliding and is_sprinting \
+			and Input.is_action_just_pressed("crouch"):
+		var dirv: Vector3 = horizontal.normalized() if horizontal.length_squared() > 0.001 \
+			else (wish if wish.length_squared() > 0.001 else cam_fwd)
+		is_sliding = true
+		is_crouching = false
+		_slide_t = 0.0
+		_slide_dir = dirv.normalized() if dirv.length_squared() > 0.001 else north
+
+	# WALK SPEED law: base x crouch / sprint / slope, then the climb
+	# check (a jump-hold against a wall outranks everything below).
+	var mult: float = 1.0
+	if is_sliding:
+		mult = 0.0
+	elif is_crouching:
+		mult = CROUCH_MULT
+	elif is_sprinting:
+		mult = SPRINT_MULT
+	# Steep uphill TERRAIN slows the walk (downhill keeps its speed;
+	# walk-over caps are free ground and never slow it).
+	if wish.length_squared() > 0.001:
+		var terrain_wish: Vector3 = (global_position - planet_center).normalized() \
+			* (planet_radius + ground_offset) + wish * 0.5
+		var grad: float = (terrain_now - _terrain_only(terrain_wish, up, ground_law)) / 0.5
+		if grad > 0.45:
+			mult *= SLOPE_WALK_MULT
+
+	var speed: float = walk_speed * mult
+
 	# -- CLIMB LAW -------------------------------------------------------
 	# Engage: jump HELD (not the tap that hops) + ground contact + a
 	# steep/climbable face within reach ahead. While climbing, the body
@@ -383,8 +492,32 @@ func _physics_process(delta: float) -> void:
 			glider.on_airborne()
 
 	# Accelerate along the tangent plane, gravity toward the center.
-	if wish.length_squared() > 0.0001:
-		horizontal = horizontal.move_toward(wish * walk_speed, walk_speed * 8.0 * delta)
+	if is_sliding:
+		# -- SLIDE TICK: momentum down the fall line with steering ------
+		# Speed law: the drop of the ground law AHEAD of the body
+		# accelerates the slide (fall-line gravity, honest because the
+		# height law IS the ground), friction decays it. Direction:
+		# steering input blends the slide line while it lasts.
+		var slide_v: Vector3 = horizontal if horizontal.length_squared() > 0.001 else _slide_dir * SLIDE_INIT_SPEED
+		var sdir: Vector3 = slide_v.normalized()
+		var h_now: float = ground_law
+		var h_ahead: float = ground_law
+		if snap_enabled and snap_height_provider.is_valid():
+			h_ahead = snap_height_provider.call( \
+				(global_position - planet_center).normalized() * (planet_radius + ground_offset) + sdir * 0.5)
+		var slide_speed: float = maxf(slide_v.length() + (h_now - h_ahead) * gravity_force * delta \
+			- SLIDE_FRICTION * delta, SLIDE_MIN_SPEED)
+		if wish.length_squared() > 0.001:
+			sdir = sdir.move_toward(wish.normalized(), 2.5 * delta).normalized()
+		_slide_t += delta
+		horizontal = sdir * slide_speed
+		if _slide_t > 1.4 or (horizontal.length() <= SLIDE_MIN_SPEED and _slide_t > 0.25) \
+				or not grounded:
+			is_sliding = false
+			is_crouching = true
+			_slide_t = 0.0
+	elif wish.length_squared() > 0.0001:
+		horizontal = horizontal.move_toward(wish * speed, walk_speed * 8.0 * delta)
 	else:
 		horizontal = horizontal.move_toward(Vector3.ZERO, walk_speed * 10.0 * delta)
 	vertical -= up * gravity_force * delta
@@ -400,7 +533,7 @@ func _physics_process(delta: float) -> void:
 	# slides you around it instead of freezing you (probe-caught: the
 	# blind auto-walk wedged forever on a trunk exactly on its line).
 	var moved: float = global_position.distance_to(before)
-	if wish.length_squared() > 0.1 and moved < walk_speed * delta * 0.6:
+	if wish.length_squared() > 0.1 and moved < maxf(speed, walk_speed) * delta * 0.6:
 		for i in range(get_slide_collision_count()):
 			var c := get_slide_collision(i)
 			var col = c.get_collider()
@@ -427,14 +560,26 @@ func _physics_process(delta: float) -> void:
 	# (radial velocity <= 0 and at/below the surface again), so the
 	# hop is a real ballistic arc, not a teleport back to the ground.
 	if snap_enabled:
-		var target_r: float = planet_radius + ground_offset + SKIN
+		# THE WALK LAW: terrain arc rides the walk surface (displaced
+		# terrain + small-rock caps); the prototype rides the flat shell.
+		# The lift is applied EXACTLY, never lerped - the law is already
+		# smooth in space, and a lagged lift lets the body intersect rock
+		# colliders and stall (test-caught lesson).
+		var lift: float = 0.0
 		if snap_height_provider.is_valid():
-			_ride_lift = snap_height_provider.call(global_position)
-			target_r += _ride_lift
+			lift = snap_height_provider.call(global_position)
+		var target_r: float = planet_radius + ground_offset + SKIN + lift
+		_ride_lift = lift
 		var err: float = planet_distance() - target_r
 		if abs(err) > 0.001:
 			global_position = planet_center + (global_position - planet_center).normalized() * target_r
-	elif vertical.dot(up) <= 0.0 and planet_distance() <= planet_radius + ground_offset + SKIN + 0.05:
+		# PERCH LAW: standing on a walk-over cap whose top is a
+		# climbable ledge (0.55 m or more above the terrain law) -- step
+		# off it and the body becomes AIRBORNE immediately (no snap
+		# crutch): the fall is honest, the arc is real.
+		if _perch_height() >= PERCH_MIN_LIFT:
+			snap_enabled = false
+	elif vertical.dot(up) <= 0.0 and planet_distance() <= planet_radius + ground_offset + SKIN + lift_expected() + 0.05:
 		snap_enabled = true
 
 	# Keep the camera pivot aligned with local up, then apply the
@@ -461,9 +606,22 @@ func _tick_climb(delta: float, up: Vector3, wish: Vector3, horizontal: Vector3) 
 	var dir: Vector3 = -_climb_wall_normal
 	var still := _wall_ahead(up, dir)
 	if still == Vector3.ZERO:
-		# Crested the top: mantle -- lift onto the surface and stand.
-		var top_r: float = planet_radius + ground_offset + SKIN
-		global_position = planet_center + (global_position - planet_center).normalized() * top_r
+		# Crested the top: mantle -- a short down-ray from above the
+		# crest lands the body ON the walk surface (terrain law, boulder
+		# top, whatever the climb topped out on), then the snap law
+		# keeps it there.
+		var radial: Vector3 = (global_position - planet_center).normalized()
+		var top_r: float = planet_radius + ground_offset + SKIN + lift_expected() + CLIMB_REACH
+		global_position = planet_center + radial * top_r
+		var space := get_world_3d().direct_space_state
+		var down := PhysicsRayQueryParameters3D.create( \
+			planet_center + radial * top_r, planet_center + radial * (planet_radius + ground_offset), 0xFFFFFFFF, [get_rid()])
+		down.collision_mask = 0xFFFFFFFF
+		var dh := space.intersect_ray(down)
+		var land_r: float = planet_radius + ground_offset + SKIN
+		if dh.has("position"):
+			land_r = (dh["position"] as Vector3).distance_to(planet_center) + SKIN
+		global_position = planet_center + radial * land_r
 		velocity = Vector3.ZERO
 		_end_climb(up)
 		return
@@ -520,7 +678,12 @@ func get_surface_normal() -> Vector3:
 
 ## True when the player is glued to the walk surface (probe helper).
 func is_glued(tolerance: float = 0.5) -> bool:
-	return abs(planet_distance() - (planet_radius + ground_offset + SKIN)) <= tolerance
+	# THE SNAP EQUATION: glued means the body rests at SKIN above the
+	# WALK SURFACE law at its own direction (terrain + caps; the same
+	# value the snap targets). The prototype (no provider) keeps the
+	# bare-shell check. Tolerance absorbs the slope ramp (the law is
+	# evaluated pointwise; on a tilt the contact sits a hair high).
+	return abs(planet_distance() - (planet_radius + ground_offset + SKIN + lift_expected())) <= tolerance
 
 
 ## Curvature signature: a closed equator loop walks 2*pi*R but ends
@@ -537,3 +700,49 @@ func walked_curvature_ratio() -> float:
 func begin_loop() -> void:
 	_loop_start = global_position
 	path_walked = 0.0
+
+
+## -- Terrain arc helpers -----------------------------------------------
+
+## The TERRAIN component of the ground law at a world position: the
+## scene's terrain_h seam when wired (globe_world), else the walk law
+## passthrough. Slope/mobility must read terrain, never the walk-over
+## caps on top of it. The seam resolves up the parent chain (the
+## player's parent IS the globe scene in game AND in script-mode
+## probes, where current_scene is null).
+func _terrain_only(wpos: Vector3, up: Vector3, walk_law: float) -> float:
+	var node: Node = self
+	for _hop in range(3):
+		node = node.get_parent() if node != null else null
+		if node == null:
+			break
+		if node.has_method("terrain_h_at"):
+			return node.terrain_h_at(wpos)
+	if snap_height_provider.is_valid():
+		return walk_law
+	return 0.0
+
+## Perch height this frame: the walk-surface law at the body's
+## direction MINUS the terrain law (how far the body rides above the
+## ground -- positive only on walk-over caps and boulder tops).
+func _perch_height() -> float:
+	if not snap_height_provider.is_valid():
+		return 0.0
+	var d: Vector3 = (global_position - planet_center).normalized()
+	var walk: float = snap_height_provider.call(global_position)
+	var ground: float = TerrainGen.terrain_height(d, world_seed_bytes_local())
+	return walk - ground
+
+
+## World seed bytes for the terrain law (project setting resolve;
+## mirrors TerrainGen.world_seed_bytes -- one source of truth).
+func world_seed_bytes_local() -> PackedByteArray:
+	return TerrainGen.world_seed_bytes()
+
+
+## The surface gap the re-arm law accepts: the walk surface at the
+## body's direction (terrain + cap), or 0 on the prototype shell.
+func lift_expected() -> float:
+	if snap_height_provider.is_valid():
+		return maxf(snap_height_provider.call(global_position), 0.0)
+	return 0.0
