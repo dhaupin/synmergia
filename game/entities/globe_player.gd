@@ -55,6 +55,21 @@ var jump_force: float = 7.0
 ## Movement Design System stamp: the anticheat ceiling for this body.
 ## Stamped at bind/ready like the planar controller does.
 var allow_jump_input: bool = true
+
+## Play-day feedback: BOTW-STYLE CLIMBING. Hold jump against a steep
+## or climbable face (big rocks, trees, future features) to grab it;
+## climb while held; stamina drains while grabbing and regenerates on
+## the ground. Tapping jump stays a hop -- the climb engages on HOLD.
+const CLIMB_STAMINA_MAX: float = 6.0
+const CLIMB_DRAIN_PER_S: float = 1.0
+const CLIMB_REGEN_PER_S: float = 2.0
+const CLIMB_SPEED: float = 2.2
+const CLIMB_REACH: float = 1.7
+const CLIMB_MIN_ANGLE_DEG: float = 50.0
+const CLIMB_WALL_GROUP := "climbable"
+var climb_stamina: float = CLIMB_STAMINA_MAX
+var _climbing: bool = false
+var _climb_wall_normal: Vector3 = Vector3.ZERO
 ## S16.4: which world this body stands on ("" = the main world). Set
 ## through bind_to_world(); drives per-world gravity/speeds and the
 ## no-atmosphere glider gate.
@@ -175,6 +190,11 @@ func _world_allows_gliding() -> bool:
 	return w == null or w.allows_gliding()
 
 func _ready() -> void:
+	# Props layer (2) is always in the mask: PropCollider bodies (tree
+	# trunks, features) block and are climbable by default -- a scene
+	# that forgets to wire the mask still gets one-law collision.
+	collision_layer = 1
+	collision_mask = collision_mask | 2
 	if glider == null:
 		glider = load("res://core/frame/srv/glider_state.gd").new()
 	# Deployment setting: runtime resolve (script-mode/check-only has
@@ -226,6 +246,10 @@ func _physics_process(delta: float) -> void:
 	var up: Vector3 = planet_up()
 	_surface_normal = up
 	up_direction = up
+	# Climb stamina regenerates whenever the body is not on a wall
+	# (grounded or airborne -- gliding rests you too, this is a game).
+	if not _climbing:
+		climb_stamina = minf(CLIMB_STAMINA_MAX, climb_stamina + CLIMB_REGEN_PER_S * delta)
 
 	# True-north tangent: project the +Y pole direction onto the
 	# tangent plane. Degenerate only at the poles; fall back to the
@@ -277,6 +301,27 @@ func _physics_process(delta: float) -> void:
 		wish = wish.normalized()
 
 	var horizontal: Vector3 = velocity - up * velocity.dot(up)
+
+	# -- CLIMB LAW -------------------------------------------------------
+	# Engage: jump HELD (not the tap that hops) + ground contact + a
+	# steep/climbable face within reach ahead. While climbing, the body
+	# rides the wall upward, stamina drains, and the radial snap stays
+	# off (the wall is not the walk surface). Cresting the wall mantles
+	# onto the top and hands control back to the snap law.
+	if _climbing:
+		_tick_climb(delta, up, wish, horizontal)
+		return
+	if allow_jump_input and is_on_floor() and climb_stamina > 0.25 \
+			and Input.is_action_pressed("jump") and not Input.is_action_just_pressed("jump"):
+		var probe_dir: Vector3 = (wish if wish.length_squared() > 0.001 \
+			else cam_fwd).normalized()
+		var wall := _wall_ahead(up, probe_dir)
+		if wall != Vector3.ZERO:
+			_climbing = true
+			_climb_wall_normal = wall
+			snap_enabled = false
+			velocity = Vector3.ZERO
+			return
 	var vertical: Vector3 = velocity - horizontal
 
 	# Jump: the same "jump" action the planar controller and the touch
@@ -347,6 +392,28 @@ func _physics_process(delta: float) -> void:
 	velocity = horizontal + vertical
 	var before: Vector3 = global_position
 	move_and_slide()
+	# Wedge assist: a head-on push into a thin prop (tree trunk) has
+	# zero tangential velocity, so move_and_slide has nothing to slide
+	# along and the body dead-stops. When the requested speed is high
+	# but progress is tiny against a climbable wall, deflect along the
+	# wall tangent toward the intended direction -- walking into a tree
+	# slides you around it instead of freezing you (probe-caught: the
+	# blind auto-walk wedged forever on a trunk exactly on its line).
+	var moved: float = global_position.distance_to(before)
+	if wish.length_squared() > 0.1 and moved < walk_speed * delta * 0.6:
+		for i in range(get_slide_collision_count()):
+			var c := get_slide_collision(i)
+			var col = c.get_collider()
+			if col is StaticBody3D and col.is_in_group(CLIMB_WALL_GROUP):
+				var wn: Vector3 = c.get_normal()
+				var t: Vector3 = wn.cross(up)
+				if t.length_squared() < 0.0001:
+					t = Vector3(1, 0, 0).cross(up)
+				t = t.normalized()
+				if t.dot(wish) < 0.0:
+					t = -t
+				global_position += t * walk_speed * delta * 0.8
+				break
 	_validate_movement()
 	path_walked += global_position.distance_to(before)
 
@@ -380,6 +447,71 @@ func _physics_process(delta: float) -> void:
 		xform.basis = xform.basis.rotated(xform.basis.x, look_pitch)
 		pivot.global_transform = xform
 
+
+## -- Climb internals ---------------------------------------------------
+
+## One climbing frame: radial climb toward the wall top, stamina law,
+## release conditions. Runs INSTEAD of the normal movement tail (the
+## caller returns right after).
+func _tick_climb(delta: float, up: Vector3, wish: Vector3, horizontal: Vector3) -> void:
+	# Release: button let go, or the wall is gone (streamed away).
+	if not Input.is_action_pressed("jump") or climb_stamina <= 0.0:
+		_end_climb(up)
+		return
+	var dir: Vector3 = -_climb_wall_normal
+	var still := _wall_ahead(up, dir)
+	if still == Vector3.ZERO:
+		# Crested the top: mantle -- lift onto the surface and stand.
+		var top_r: float = planet_radius + ground_offset + SKIN
+		global_position = planet_center + (global_position - planet_center).normalized() * top_r
+		velocity = Vector3.ZERO
+		_end_climb(up)
+		return
+	_climb_wall_normal = still
+	climb_stamina = maxf(0.0, climb_stamina - CLIMB_DRAIN_PER_S * delta)
+	# Ride the wall: press into it (stick), climb up its face.
+	var wall_up: Vector3 = (up - _climb_wall_normal * up.dot(_climb_wall_normal)).normalized()
+	var radial: Vector3 = (global_position - planet_center).normalized()
+	velocity = -_climb_wall_normal * 0.6 + wall_up * CLIMB_SPEED
+	# Keep gravity honest (the wall friction cancels it via the stick).
+	velocity += -radial * 0.0
+	move_and_slide()
+	# Never sink below the walk surface while stuck to a low wall.
+	var floor_r: float = planet_radius + ground_offset + SKIN
+	if planet_distance() < floor_r - 0.05:
+		global_position = planet_center + radial * floor_r
+	_validate_movement()
+
+func _end_climb(up: Vector3) -> void:
+	_climbing = false
+	snap_enabled = true
+	velocity = Vector3.ZERO
+
+## Probe for a steep or climbable surface within reach ahead. Returns
+## the wall NORMAL (globe-frame) or Vector3.ZERO when nothing climbable
+## is in reach. Two sources: (a) physics bodies in the "climbable"
+## group (PropCollider-attached props), (b) the walk surface itself
+## when its slope exceeds CLIMB_MIN_ANGLE_DEG (sheer cliffs).
+func _wall_ahead(up: Vector3, probe_dir: Vector3) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return Vector3.ZERO
+	var from: Vector3 = global_position + up * 0.5
+	var to: Vector3 = from + probe_dir * CLIMB_REACH
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 2  # world props layer (PropCollider)
+	query.exclude = [get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.has("collider") and is_instance_valid(hit["collider"]):
+		var col = hit["collider"]
+		if col.is_in_group(CLIMB_WALL_GROUP) or col is StaticBody3D:
+			var n: Vector3 = hit["normal"]
+			# Steepness: wall normal vs local up. A slope steeper than
+			# the climb angle is climbable; a wall is always near 90 deg.
+			var steepness: float = 1.0 - absf(n.dot(up))
+			if steepness >= sin(deg_to_rad(CLIMB_MIN_ANGLE_DEG)):
+				return n.normalized()
+	return Vector3.ZERO
 
 ## Surface normal at the player (probe helper).
 func get_surface_normal() -> Vector3:

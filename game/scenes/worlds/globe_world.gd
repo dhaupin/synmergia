@@ -380,6 +380,10 @@ func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.set_script(script)
 	player.name = "GlobePlayer"
+	# Layer 1 = the player; MASK 1|2 = walk surfaces + world props
+	# (PropCollider trunks/features on layer 2 block and are climbable).
+	player.collision_layer = 1
+	player.collision_mask = 1 | 2
 
 	var col := CollisionShape3D.new()
 	var shape := SphereShape3D.new()

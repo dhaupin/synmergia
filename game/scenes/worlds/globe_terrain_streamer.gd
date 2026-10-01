@@ -15,6 +15,9 @@ extends RefCounted
 
 const FacePatches = preload("res://core/frame/math/icosahedral_faces.gd")
 const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
+## One-law prop collision + climbable registration (play-day:
+## "stuff shouldn't be walk-through"). RefCounted helper, no autoload.
+const PropCollider = preload("res://entities/prop_collider.gd")
 
 ## Tiles render just above the scene's visual sphere shell (which sits
 ## at radius + SKIN_THICKNESS = +0.5) so they never hide inside it.
@@ -208,6 +211,14 @@ func _spawn_rocks(face: int) -> void:
 		nodes.append(rmi)
 	_spawn_trees(face, patch_node)
 	_patch_rocks[face] = nodes
+	# One-law collision (play-day: "stuff shouldn't be walk-through"):
+	# tree TRUNKS block movement and join the climbable group so the
+	# climb law can grab them. Canopies stay intangible (walking under
+	# a crown must not feel like a ceiling). Bodies are tree children,
+	# so streamed-out faces drop theirs for free.
+	for tree in patch_node.get_children():
+		if tree is Node3D and str(tree.name).begins_with("Tree"):
+			PropCollider.attach_trunk(tree)
 
 
 ## Trees: 4-8 seeded scatters per face -- trunk cylinder + canopy
