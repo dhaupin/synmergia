@@ -1,5 +1,17 @@
-## LoadingUI - Unified loading overlay
-## Spinner, progress bar, and loading states
+## LoadingUI - the unified loading overlay (round-5 redesign).
+## A CENTERED SPINNER on a dimmed full-screen backdrop -- not a small
+## panel (play-day: "should be like a centered spinner"). The whole
+## overlay covers the viewport, so whatever scene is dying underneath
+## never shows through.
+##
+## Two owners:
+##  - BootLoadingLayer (GameManager's root CanvasLayer 100): survives
+##    scene swaps -- this is the one that covers menu -> world.
+##  - hud_layer.tscn embeds a second LoadingUI for in-game states; the
+##    static `instance` clobber risk is handled by _exit_tree.
+##
+## The UI is built in _setup_ui() over UIPanel's Panel path for
+## compatibility, but the visible surface is the full-rect backdrop.
 extends "res://ui/components/ui_panel.gd"
 class_name LoadingUI
 
@@ -17,6 +29,7 @@ var _status_text: String = ""
 var _sub_text: String = ""
 
 ## Components
+var _backdrop: ColorRect
 var _panel: PanelContainer
 var _icon_container: Control
 var _spinner: Control
@@ -47,10 +60,29 @@ func _exit_tree() -> void:
 
 
 func _setup_ui() -> void:
-	var panel := get_panel()
-	if not panel:
-		return
-	var main: VBoxContainer = add_content_to_panel(panel)
+	# FULL-SCREEN BACKDROP: the overlay IS the Control (full rect when
+	# under BootLoadingLayer or the HUD), dimmed so the dying scene
+	# never bleeds through. mouse_filter STOP: nothing under it can be
+	# clicked while loading.
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	_backdrop = ColorRect.new()
+	_backdrop.name = "Backdrop"
+	_backdrop.color = Color(0.03, 0.04, 0.07, 0.94)
+	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_backdrop)
+
+	# The centered spinner stack: emblem, spinner, status, substatus.
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_backdrop.add_child(center)
+
+	var stack := VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 14)
+	center.add_child(stack)
 
 	# Emblem above the spinner when the logo pack is present.
 	var BrandScript = load("res://core/utils/branding.gd")
@@ -61,56 +93,45 @@ func _setup_ui() -> void:
 		emblem_rect.texture = emblem
 		emblem_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		emblem_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		emblem_rect.custom_minimum_size = Vector2(64, 64)
+		emblem_rect.custom_minimum_size = Vector2(72, 72)
 		emblem_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		main.add_child(emblem_rect)
-
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_CENTER)
-	center.custom_minimum_size = Vector2(300, 150)
-	main.add_child(center)
-
-	_panel = PanelContainer.new()
-	_panel.name = "Panel"
-	_panel.custom_minimum_size = Vector2(300, 150)
-	if UIStyles:
-		_panel.add_theme_stylebox_override("panel", UIStyles.create_panel_style())
-	center.add_child(_panel)
-
-	var vbox := VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	_panel.add_child(vbox)
+		stack.add_child(emblem_rect)
 
 	_icon_container = Control.new()
-	_icon_container.custom_minimum_size = Vector2(50, 50)
-	vbox.add_child(_icon_container)
+	_icon_container.custom_minimum_size = Vector2(64, 64)
+	_icon_container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	stack.add_child(_icon_container)
 
 	_create_spinner()
+
+	_status_label = Label.new()
+	_status_label.name = "Status"
+	_status_label.text = "Loading..."
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_label.add_theme_font_size_override("font_size", 18)
+	if UIStyles:
+		_status_label.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+	stack.add_child(_status_label)
+
+	_sub_label = Label.new()
+	_sub_label.name = "SubStatus"
+	_sub_label.text = ""
+	_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_sub_label.add_theme_font_size_override("font_size", 13)
+	if UIStyles:
+		_sub_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	stack.add_child(_sub_label)
 
 	_progress_bar = ProgressBar.new()
 	_progress_bar.name = "ProgressBar"
 	_progress_bar.min_value = 0
 	_progress_bar.max_value = 100
 	_progress_bar.value = 0
-	_progress_bar.custom_minimum_size = Vector2(200, 8)
+	_progress_bar.custom_minimum_size = Vector2(260, 8)
 	_progress_bar.show_percentage = false
 	_progress_bar.visible = false
-	vbox.add_child(_progress_bar)
-
-	_status_label = Label.new()
-	_status_label.name = "Status"
-	_status_label.text = "Loading..."
-	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status_label.add_theme_font_size_override("font_size", 16)
-	vbox.add_child(_status_label)
-
-	_sub_label = Label.new()
-	_sub_label.name = "SubStatus"
-	_sub_label.text = ""
-	_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if UIStyles:
-		_sub_label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
-	vbox.add_child(_sub_label)
+	_progress_bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	stack.add_child(_progress_bar)
 
 
 func _on_open() -> void:
@@ -122,8 +143,24 @@ func _on_close() -> void:
 func _create_spinner() -> void:
 	_spinner = Control.new()
 	_spinner.name = "Spinner"
-	_spinner.custom_minimum_size = Vector2(40, 40)
-	_spinner.set_anchors_preset(Control.PRESET_CENTER)
+	_spinner.custom_minimum_size = Vector2(56, 56)
+	# A visible arc ring: four rotating cards around a hub. Simple
+	# _process rotation drives it (no AnimationPlayer in overlays).
+	var ring := Control.new()
+	ring.name = "Ring"
+	ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_spinner.add_child(ring)
+	for i in range(4):
+		var card := ColorRect.new()
+		card.name = "Card%d" % i
+		card.color = Color(0.95, 0.82, 0.45) if i % 2 == 0 else Color(0.45, 0.62, 0.85)
+		card.custom_minimum_size = Vector2(10, 22)
+		card.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		card.position = Vector2(-5, 0)
+		# Fan the four cards around the hub; the ring rotates the fan.
+		card.pivot_offset = Vector2(5, 28)
+		card.rotation = TAU * float(i) / 4.0
+		ring.add_child(card)
 	_icon_container.add_child(_spinner)
 
 
@@ -133,7 +170,7 @@ func _process(delta: float) -> void:
 
 	match _current_state:
 		LoadingState.LOADING:
-			_spinner_rotation += 180.0 * delta
+			_spinner_rotation += 220.0 * delta
 			if _spinner:
 				_spinner.rotation = deg_to_rad(_spinner_rotation)
 			_pulse_time += delta
@@ -198,27 +235,7 @@ func show_success(message: String = "Complete!", sub_message: String = "") -> vo
 	_current_state = LoadingState.SUCCESS
 	_status_text = message
 	_sub_text = sub_message
-
-	if _progress_bar:
-		_progress_bar.visible = false
-	if _spinner:
-		_spinner.visible = true
-
 	show()
-
-	await get_tree().create_timer(1.0).timeout
-	hide()
-
-
-func show_error(message: String = "Error", sub_message: String = "") -> void:
-	_current_state = LoadingState.ERROR
-	_status_text = message
-	_sub_text = sub_message
-
-	if _progress_bar:
-		_progress_bar.visible = false
-	if _spinner:
-		_spinner.visible = true
 
 
 func hide_loading() -> void:

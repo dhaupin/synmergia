@@ -87,6 +87,9 @@ func change_state(new_state: GameState) -> void:
 		GameState.CHARACTER_SELECT:
 			_handle_character_select_state()
 		GameState.PLAYING:
+			# Async (the world path awaits frames to paint the loading
+			# overlay before the heavy scene build). GDScript fire-and-
+			# forget: the coroutine continues on its own.
 			_handle_playing_state()
 		GameState.PAUSED:
 			pass  # Handled by pause_game/resume_game
@@ -174,6 +177,15 @@ func _handle_playing_state() -> void:
 	if is_headless:
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Headless mode: skipping world scene load")
 	else:
+		# The overlay must be VISIBLE and PAINTED before the world's
+		# heavy _ready freezes the tree (round-5: species-select Join
+		# never showed a loading screen -- the first frame painted the
+		# overlay and the world build in the same frozen frame).
+		var overlay := _ensure_boot_loading_overlay()
+		if overlay != null:
+			overlay.show_loading("Loading world...")
+			await get_tree().process_frame
+			await get_tree().process_frame
 		_show_loading_and_change_scene(world_scene, "Loading world...")
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
 
@@ -230,6 +242,11 @@ func _show_loading_and_change_scene(scene_path: String, status_text: String) -> 
 	var shown_ms := Time.get_ticks_msec()
 	if overlay != null:
 		overlay.show_loading(status_text)
+		# TWO frames, not one: the overlay must be on screen BEFORE the
+		# swap starts -- one frame only painted it during the same frame
+		# the heavy world _ready froze the tree, so the species-select
+		# "Join" hop never showed anything (round-5 report).
+		await get_tree().process_frame
 		await get_tree().process_frame
 	var err = get_tree().change_scene_to_file(scene_path)
 	if err != OK:
