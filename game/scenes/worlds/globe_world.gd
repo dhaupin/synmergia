@@ -406,6 +406,11 @@ func _build_water() -> void:
 
 ## Play-day feedback #8: the visible sun on the globe too (the clock
 ## arc rides on top of the scene's static fill light).
+## CELESTIAL FRAME: the sun node is a child of the PLAYER, not the
+## scene/world_root -- at planet scale the floating origin slides the
+## world under the player, and a scene-anchored disc swung across the
+## sky with every step (round 5). As a player child it rides the
+## rebase for free and stays a fixed star overhead.
 func _build_sky_sun() -> void:
 	var sun_script: GDScript = load("res://entities/sky_sun.gd")
 	if sun_script == null:
@@ -413,7 +418,13 @@ func _build_sky_sun() -> void:
 	var sun := Node3D.new()
 	sun.name = "SkySun"
 	sun.set_script(sun_script)
-	add_child(sun)
+	if player != null:
+		player.add_child(sun)
+	else:
+		# Player not built yet (build order); fall back to the scene
+		# and let the player adopt it after _build_player.
+		add_child(sun)
+		sun.set_meta("adopt_by_player", true)
 
 
 func _build_sun() -> void:
@@ -515,6 +526,13 @@ func _build_player() -> void:
 	player.ground_offset = static_lift
 	add_child(player)
 	_install_walk_provider()
+	# Adopt the sky sun (built before the player existed): the celestial
+	# frame is the PLAYER (floating origin -- see _build_sky_sun).
+	var sky_sun := get_node_or_null("SkySun")
+	if sky_sun != null:
+		sky_sun.position = Vector3.ZERO
+		sky_sun.get_parent().remove_child(sky_sun)
+		player.add_child(sky_sun)
 	player.begin_loop()
 
 

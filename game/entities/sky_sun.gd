@@ -45,8 +45,14 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	var phase := _day_phase()
 	_sun_dir = _direction_for_phase(phase)
-	# Face the sun: the node sits at the world origin's sky; the disc
-	# rides the direction at fixed distance.
+	# CELESTIAL FRAME: the disc is "infinitely far" -- at planet scale
+	# (floating origin) the world slides under the player, and a disc
+	# fixed to the world origin swung across the sky with every step
+	# (round-5: "the sun is tracking across the sky like the planet is
+	# still 100"). The parent scene re-anchors this node under the
+	# PLAYER (it re-parents/re-positions at build time); the disc rides
+	# the direction at fixed distance from the PLAYER, so the sun is
+	# stable the way a real star is.
 	position = _sun_dir * SUN_DISTANCE
 	if _disc_mat != null:
 		# Day factor: smooth dawn/dusk ramp (phase distance from the
