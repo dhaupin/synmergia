@@ -66,10 +66,23 @@ func _setup_accessibility() -> void:
 		if child is Control:
 			pass
 func _on_text_scale_changed(scale: float) -> void:
-	# Propagate text scale changes to all child widgets
+	# Propagate text scale changes to all child widgets. The widgets
+	# take (high_contrast, text_scale, reduce_motion); read the other
+	# two live from PlayerConfig so one broadcast refreshes everything.
+	var pc = get_node_or_null("/root/PlayerConfig")
+	var hc: bool = pc.get_account_setting("high_contrast", false) if pc else false
+	var rm: bool = pc.get_account_setting("reduce_motion", false) if pc else false
 	for child in get_children():
 		if child.has_method("update_accessibility_settings"):
-			child.update_accessibility_settings()
+			child.update_accessibility_settings(hc, scale, rm)
+
+## Re-broadcast the SAVED text scale once at HUD install (the settings
+## panel only emits when a slider moves; a saved 1.2x otherwise never
+## reached the widgets).
+func _apply_saved_text_scale() -> void:
+	var pc = get_node_or_null("/root/PlayerConfig")
+	var scale: float = pc.get_account_setting("ui_text_scale", 1.0) if pc else 1.0
+	_on_text_scale_changed(scale)
 
 func _on_reduce_motion_changed(enabled: bool) -> void:
 	# Propagate reduce motion changes to all child widgets
@@ -452,6 +465,14 @@ func _connect_signals() -> void:
 	# ChatService messages
 	if ChatService:
 		ChatService.message_received.connect(_on_chat_message_received)
+	# Text-scale broadcast (round 9): the settings panel emits this and
+	# the HUD widgets refresh live. It was emitted with zero listeners
+	# before -- the broadcast went nowhere.
+	var hub = get_node_or_null("/root/EventHub")
+	if hub != null and hub.has_signal("accessibility_text_scale_changed"):
+		hub.accessibility_text_scale_changed.connect(_on_text_scale_changed)
+	_ensure_back_button()
+	_apply_saved_text_scale()
 
 ## ============================================================================
 ## PUBLIC API
@@ -538,6 +559,7 @@ func _open_menu_internal(menu_name: String) -> void:
 	_is_menu_open = true
 	panel.visible = true
 	menu_toggled.emit(menu_name, true)
+	_update_back_button()
 
 func _close_menu_internal(menu_name: String) -> void:
 	var panel := _get_panel(menu_name)
@@ -558,6 +580,7 @@ func _close_panel(menu_name: String, panel: Control) -> void:
 		if im != null and im.has_method("set_touch_hud_panels_open"):
 			im.set_touch_hud_panels_open(false)
 	menu_toggled.emit(menu_name, false)
+	_update_back_button()
 
 func _open_panel(menu_name: String, panel: Control) -> void:
 	if not _open_panels.has(menu_name):
@@ -588,6 +611,7 @@ func _open_panel(menu_name: String, panel: Control) -> void:
 			panel.set_inventory(comp)
 	panel.visible = true
 	menu_toggled.emit(menu_name, true)
+	_update_back_button()
 
 func _local_player_id() -> String:
 	var pm := get_node_or_null("/root/PlayerManager")
@@ -621,8 +645,71 @@ var _exit_confirm: Control = null
 ## JavaScriptObject type does not exist on non-web builds and a typed
 ## declaration would break desktop parsing).
 var _web_back_cb = null
+## INTERACTION STACK (play-test round 9): in-canvas modals (Add Friend,
+## exit confirm, future dialogs) register here. The back gesture pops
+## the topmost interaction BEFORE touching panels, and the permanent
+## Back button is visible while the stack (or a panel) is active.
+var _interactions: Array = []
+## The permanent Back button (round 9, item 7): visible whenever a
+## panel or interaction is open -- the phone back gesture collides
+## with "exit fullscreen" (browser-owned), so an always-present,
+## always-tappable back lives on the HUD itself.
+var _back_button: Button = null
+
+func push_interaction(node: Node) -> void:
+	if not _interactions.has(node):
+		_interactions.append(node)
+	_update_back_button()
+
+func pop_interaction(node: Node) -> void:
+	_interactions.erase(node)
+	_update_back_button()
+
+func _ensure_back_button() -> void:
+	if _back_button != null and is_instance_valid(_back_button):
+		return
+	var btn := Button.new()
+	btn.text = "< Back"
+	btn.custom_minimum_size = Vector2(140, 56)
+	btn.add_theme_font_size_override("font_size", 20)
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.visible = false
+	# Bottom-center: clear of the chat (bottom-left) and the touch
+	# action buttons (bottom-right).
+	btn.anchor_left = 0.5
+	btn.anchor_right = 0.5
+	btn.anchor_top = 1.0
+	btn.anchor_bottom = 1.0
+	btn.offset_left = -70.0
+	btn.offset_right = 70.0
+	btn.offset_top = -150.0
+	btn.offset_bottom = -94.0
+	btn.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	btn.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	btn.pressed.connect(request_back_internal)
+	add_child(btn)
+	_back_button = btn
+
+func _update_back_button() -> void:
+	if _back_button == null or not is_instance_valid(_back_button):
+		return
+	_back_button.visible = (not _interactions.is_empty()
+		or not _open_panels.is_empty()
+		or (_exit_confirm != null and is_instance_valid(_exit_confirm)))
 
 func request_back_internal() -> void:
+	# 0) Topmost interaction modal (Add Friend, exit confirm, ...)
+	# closes first -- its close() pops it from the stack itself.
+	if not _interactions.is_empty():
+		var top = _interactions[-1]
+		_interactions.erase(top)
+		_update_back_button()
+		if top != null and is_instance_valid(top):
+			if top.has_method("close_modal"):
+				top.close_modal()
+			else:
+				top.queue_free()
+		return
 	# 1) A live exit-confirm swallows the next back (dismiss it).
 	if _exit_confirm != null and is_instance_valid(_exit_confirm):
 		_hide_exit_confirm()
@@ -766,6 +853,7 @@ func _close_all_menus_internal() -> void:
 		menu_toggled.emit(panel_name, false)
 	_open_panels.clear()
 	_is_menu_open = false
+	_update_back_button()
 
 func _get_panel(menu_name: String) -> Control:
 	match menu_name:

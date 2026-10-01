@@ -405,10 +405,21 @@ static func get_text_scale() -> float:
 	# touchscreen, or a native mobile OS). Desktop keeps 1.0. The HUD
 	# widgets (buff bar, action bar, panels) already multiply their
 	# fonts by this value.
+	var base: float = 1.0
 	if DisplayServer.is_touchscreen_available() \
 			and (OS.has_feature("web") or OS.has_feature("mobile")):
-		return 1.3
-	return 1.0
+		base = 1.3
+	# Round 9: the settings panel's UI Text Scale slider (ui_text_scale)
+	# previously went nowhere -- the broadcast had zero listeners and
+	# this getter ignored it. Compose it in (0.8x - 1.5x). Resolved
+	# through the root, not the bare autoload identifier, so --script
+	# mode cannot abort compilation.
+	var ml := Engine.get_main_loop()
+	if ml != null and (ml is SceneTree):
+		var pc = (ml as SceneTree).root.get_node_or_null("PlayerConfig")
+		if pc != null:
+			base *= clampf(float(pc.get_account_setting("ui_text_scale", 1.0)), 0.8, 1.5)
+	return base
 
 ## Get animation duration (0 if reduce motion enabled)
 static func get_animation_duration(default_duration: float) -> float:

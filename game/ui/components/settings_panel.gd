@@ -534,12 +534,17 @@ func _apply_ui_scale() -> void:
 		scale = 0.75
 	elif scale > 1.5:
 		scale = 1.5
-	
+
+	# Round 9 fix: this used to set .scale on every CanvasLayer NODE,
+	# which scales each layer from its top-left origin -- center-anchored
+	# panels flew off-screen (the "panels bleed off the screen" reports
+	# were partly THIS) and layouts stopped matching their anchors. The
+	# correct lever with the canvas_items stretch mode is the root
+	# window's content_scale_factor: the whole UI canvas scales
+	# uniformly and every anchor/layout/clamp keeps working.
 	var root := get_tree().root
 	if root:
-		for canvas_layer in root.get_children():
-			if canvas_layer is CanvasLayer:
-				canvas_layer.scale = Vector2(scale, scale)
+		root.content_scale_factor = scale
 
 func _apply_text_scale() -> void:
 	if PlayerConfig == null:

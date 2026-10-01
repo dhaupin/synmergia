@@ -4,6 +4,12 @@ extends "res://ui/components/ui_panel.gd"
 class_name FriendsListUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 const CharacterData = preload("res://core/schemas/character_data.gd")
+## Preload const (NOT the bare global class): the --script-mode global
+## class cache can be stale for brand-new class_names, so probes
+## compile this file before the editor ever rescans. The const name
+## deliberately differs from class_name InteractionModal to avoid the
+## shadow AGENTS.md warns about.
+const InteractionModalLib = preload("res://ui/components/interaction_modal.gd")
 
 var _tab_container: TabContainer
 var _friends_list: ItemList
@@ -256,12 +262,14 @@ func _on_friend_selected(index: int) -> void:
 		_show_friend_options(friend_id, friend.get("player_name", ""))
 
 func _show_friend_options(friend_id: String, friend_name: String) -> void:
-	var confirm := ConfirmationDialog.new()
-	confirm.dialog_text = "Remove %s from friends?" % friend_name
-	confirm.confirmed.connect(func() -> void: _remove_friend(friend_id))
-	confirm.canceled.connect(confirm.queue_free)
-	add_child(confirm)
-	confirm.popup_centered()
+	# Round 9: native ConfirmationDialog's close button never receives
+	# touches in the embedded web canvas (unclosable dialogs). The
+	# in-canvas InteractionModal registers with the back-gesture stack,
+	# so back/ESC/< Back all close it too.
+	var friend_id_ref := friend_id
+	InteractionModalLib.show_modal(self, "Remove Friend",
+		"Remove %s from friends?" % friend_name, "Remove", false,
+		func(_text: String) -> void: _remove_friend(friend_id_ref))
 
 func _remove_friend(friend_id: String) -> void:
 	if FriendsService:
@@ -269,22 +277,21 @@ func _remove_friend(friend_id: String) -> void:
 		_refresh_friends()
 
 func _on_add_friend() -> void:
-	var dialog := AcceptDialog.new()
-	dialog.dialog_text = "Enter player name to add:"
-	dialog.title = "Add Friend"
-	add_child(dialog)
-	dialog.popup_centered()
-
-	await dialog.confirmed
-	var player_name: String = dialog.dialog_text.strip_edges()
-	dialog.queue_free()
-
-	if player_name != "" and FriendsService:
-		# NOTE: signature is send_friend_request(from_id, from_name, to_id).
-		# Pre-existing call passes _player_id twice; preserved here until Phase C
-		# passes the real from_name via the player's CharacterData.
-		var result: Dictionary = FriendsService.send_friend_request(_player_id, _player_id, player_name)
-		_show_notification(result.get("message", "Request sent"))
+	# Round 9, two bugs in one: the native AcceptDialog had NO input
+	# field (the old code read the PROMPT TEXT as the player name and
+	# sent a friend request to "Enter player name to add:"), and its
+	# close button never received touches in the embedded web canvas.
+	# InteractionModal carries a real LineEdit, a working X, and
+	# registers with the back-gesture stack.
+	InteractionModalLib.show_modal(self, "Add Friend",
+		"Enter the player name to add:", "Add", true,
+		func(player_name: String) -> void:
+			if player_name != "" and FriendsService:
+				# NOTE: signature is send_friend_request(from_id, from_name, to_id).
+				# Pre-existing call passes _player_id twice; preserved here until Phase C
+				# passes the real from_name via the player's CharacterData.
+				var result: Dictionary = FriendsService.send_friend_request(_player_id, _player_id, player_name)
+				_show_notification(result.get("message", "Request sent")))
 
 func _on_accept_request() -> void:
 	if not _requests_list or not FriendsService:
