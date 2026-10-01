@@ -1189,6 +1189,43 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   data (world_id) and gate the four read paths;
   (3) xfail-in-headless is fine, but document WHY in the test
   header (viewport size) or the next agent re-hunts the ghost.
+- [x] PLAYTEST ROUND 5 (2026-10-01, owner in-browser wasm round).
+  Seven items. (1) "SPAWNED IN AN OCEAN": ROOT CAUSE was NOT the
+  height law -- globe_terrain_streamer._load_patch displaced verts by
+  the patch-LOCAL corner vector (center subtracted, ~5 km magnitude)
+  instead of the GLOBE direction (v+center).normalized(), scattering
+  every tile vertex as debris; only the water shell survived intact.
+  LESSON: probe the GEOMETRY, not just the function -- the analytic
+  law was green for rounds while the mesh was soup. Added a mesh-truth
+  check to probe_terrain_planet (samples real patch verts vs law, 22
+  checks now). (2+3) Z-STACK LAW documented in
+  menu_manager._initialize_panels: HUD widgets 100 < chat 300 <
+  expanded menu 350 < panels 500 < boot overlay (root CanvasLayer
+  100); settings panel ADOPTS into MenuManager's layer at z 500 one
+  frame after ready (its first cut never ran: a nested ternary read a
+  /root/MenuManager path that does not exist AND an unguarded
+  PlayerConfig read in _apply_current_settings aborted _ready before
+  the block -- in headless probes the ternary was not even the first
+  killer; explicit ifs + deferred adoption, verified by 3 new
+  probe_round2_ui checks). Lookups go through HudLayer.
+  _resolve_settings_panel (MenuManager instance fallback); hud_hotkeys
+  routes via it (direct child lookup goes stale post-adoption).
+  LESSON: a deferred re-parent invalidates every static get_node path
+  at once -- give panels ONE dynamic resolver and wire all consumers
+  through it. (4) Exit to Character Select in the in-game menu, wired
+  through GameManager.CHARACTER_SELECT (loading overlay rides along).
+  (5+6) LoadingUI rewritten as a full-screen dimmed backdrop + centered
+  spinner ring; scene change now awaits TWO process_frames after
+  show_loading so the overlay paints before the world freezes the
+  frame, and _handle_playing_state shows it before the heavy world
+  init. (7) Sun tracked too fast because the disc was parented to the
+  WORLD (its _process produced a celestial bearing, but the node rode
+  world space) -- at 100 m scale the world is 200x denser per frame,
+  so the disc whipped; now globe_world parents SkySun under the PLAYER
+  (celestial frame, adopt fallback in _build_player) and it rides
+  floating-origin rebases. Verified: boot clean, terrain 22/22,
+  globe_world 23/23, round2_ui 20/20, regression 58/58, lint 36/36,
+  xvfb touch 17/17.
 - [x] WORLD AT CANON SCALE (2026-10-01, owner: "I didn't see
   terrain last test"). ROOT CAUSE: the shipped game booted the 100 m
   PROTOTYPE globe (project.godot synmergia/world/planet_radius=100)
