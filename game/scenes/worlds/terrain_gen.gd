@@ -73,6 +73,15 @@ const SPAWN_HEIGHT: float = 9.0
 ## (at 20 km that is ~240 m of clear shore; at prototype scale it
 ## covers the old rock-cap-free spawn guarantee the probes pin).
 const SPAWN_CLEAR_ANG: float = 0.012
+## SPAWN SHORE APRON (play-test round 8): a guaranteed-dry ring around
+## the plaza. The detail noise carved the coast right up to the plaza
+## edge, so the boot view was half ocean and every report read
+## "spawned in the ocean" while the truth line showed dry ground 3 m
+## above the sea line. From the plaza edge out to this angle the land
+## floors to (sea + margin), blending down from the plaza height so
+## the ramp-continuity law still holds (no cliffs).
+const SPAWN_APRON_ANG: float = 0.004 # ~80 m at the 20 km planet scale
+const SPAWN_APRON_SEA_MARGIN: float = 0.25
 ## The homeland's angular reach: the STARTING CONTINENT's guaranteed
 ## land around the spawn. 2.0 rad = ~40 km at the 20 km planet scale
 ## -- the streamed neighborhood (faces span ~60 deg) is solid land,
@@ -271,6 +280,17 @@ static func terrain_height(dir: Vector3, world_seed: PackedByteArray) -> float:
 	if ang_spawn < SPAWN_FLAT_ANG:
 		var t: float = 1.0 - ang_spawn / SPAWN_FLAT_ANG
 		h = lerpf(h, SPAWN_HEIGHT, smoothstep(0.0, 1.0, clampf(t * 2.5, 0.0, 1.0)))
+	# Spawn shore apron (see the const block): from the plaza edge out
+	# to SPAWN_APRON_ANG the land floors to just above the sea line,
+	# ramping down from the plaza height. The floor meets the plaza at
+	# exactly SPAWN_HEIGHT (continuous) and ends at sea + margin (the
+	# worst-case step down to the natural dome terrain stays under the
+	# 4 m ramp-continuity bound the probe pins).
+	var ang_apron: float = d.angle_to(SPAWN_CENTER)
+	if ang_apron >= SPAWN_FLAT_ANG and ang_apron < SPAWN_APRON_ANG:
+		var t_apron: float = 1.0 - (ang_apron - SPAWN_FLAT_ANG) / (SPAWN_APRON_ANG - SPAWN_FLAT_ANG)
+		var apron_floor: float = lerpf(sea + SPAWN_APRON_SEA_MARGIN, SPAWN_HEIGHT, smoothstep(0.0, 1.0, t_apron))
+		h = maxf(h, apron_floor)
 	return h
 
 

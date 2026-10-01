@@ -2472,3 +2472,59 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   lock in code. Verified: lint 36, regression 56/56 (3 chunks),
   probe_boot_loader_rect 4/4, probe_round2_ui 20/20, probe_globe_world
   23/23, test_splash_to_play 17/17 (xvfb, through the Start flow).
+- [x] Play-test round 8 (11 items, desktop web client):
+  (1) Boot progress bar never filled: the launcher takes PER-FILE
+  totals ONLY from config.fileSizes (never Content-Length) and looks
+  the pack up by the EXACT mainPack string -- our content-addressed
+  'game.pck?v=<hash>' key missed (fileSizes was keyed 'game.pck'), the
+  pack tracked total 0, animateProgress invalidates the aggregate
+  total to 0 when ANY file is unknown, and the shell's total>0 guard
+  never drew. index.html now HEADs game.wasm + the pack for real
+  sizes, keys fileSizes under the pack URL TOO, and onProgress falls
+  back to the known sum (capped 100%) when the engine reports 0.
+  (2) Splash Start was a ~200x30 default-theme button under a huge
+  logo: UIStyles.apply_cta_button() -- Synmergia green fill (new
+  accent_green tokens), dark text, 380x76, font 30. (3) Loaders on
+  guest-login/create-hero: ALREADY wired (GameManager.
+  _show_loading_and_change_scene); they stay -- accounts go live and
+  auth needs the cover. Species tap swaps cards in-scene, no loader.
+  (4) Char select UX: class-card button says Select (was Play), Enter
+  World is the green CTA (340x64, font 26) disabled until a class is
+  picked, Back is a neutral 180x64 secondary, card/species headers
+  bigger. (5) Flow panels bigger: login 420x520 -> 540x640 (fields
+  48, buttons 52, fonts up), lobby 720x520 -> 880x640 (buttons
+  180x52), class cards 260x380, species cards 300x340, fonts 13-26.
+  (6) Tab-away refresh: NOT a React remount (GodotClientView's iframe
+  src is static) -- browser tab-discard reloads the page, and the old
+  middleware forced Cache-Control: no-cache on EVERYTHING with no
+  Content-Length, so every return re-downloaded 44 MB. godot-
+  WebRequestHandler (one handler for dev+preview, no more pasted
+  copies) sets Content-Length + answers HEAD, keeps index.html +
+  .hash as no-cache anchors, serves game.pck?v=<hash> immutable (1y)
+  and game.wasm 1-day. A discard-reload now reboots in seconds; the
+  discard itself is browser-owned (Memory Saver) and cannot be
+  disabled from the page. (7) "Spawned in ocean" perception: the
+  truth line read ground 9.0 m / sea 6.0 m / DRY -- the boot was ON
+  dry land; the homeland-dome detail noise carved the coast right up
+  to the plaza edge, so half the view was water. New SPAWN_SHORE
+  APRON in terrain_gen: from the plaza edge out to 0.004 rad (~80 m)
+  the land floors to sea+0.25 m, ramping down from SPAWN_HEIGHT so
+  the plaza-flat, ramp-continuity (worst step ~3.2 m < 4 m) and
+  homeland laws all still hold (probe_terrain_planet 22/22).
+  (8) Char/eq panel bled off-screen and was unclosable: the R7
+  recenter only fixed center-anchored panels; _clamp_panel_to_viewport
+  now ALSO shifts any laid-out rect that escapes the viewport back
+  inside (by overflow, after the size clamp), so the close X is always
+  reachable. (9) Back gesture stack: Android back (NOTIFICATION_WM_GO_
+  BACK_REQUEST on MenuManager), web browser back (popstate bridge:
+  sentinel history.pushState at HUD install, popstate re-pushes +
+  fires request_back via a JavaScriptBridge callback -- resolved
+  through Engine.has_singleton, never a bare identifier), and ESC
+  (HudHotkeys._handle_escape upgraded) share ONE law: close top panel
+  -> collapse expanded menu bar -> modal "Leave the world?" confirm
+  (dim + CenterContainer -- never hand-place a center-anchored box,
+  the round-7 frozen-offsets trap) -> Exit runs GameManager.
+  change_state(CHARACTER_SELECT). Verified: tsc clean, lint 36,
+  regression 56/56 (3 chunks), probe_boot_loader_rect 4/4,
+  probe_round2_ui 20/20, probe_globe_world 23/23, probe_terrain_planet
+  22/22 (with the apron), test_splash_to_play 17/17 (xvfb).
