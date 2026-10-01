@@ -70,11 +70,20 @@ restore + boot -- is exactly this drill; it is now repeatable with
 
 Or just: `sh ./scripts/cairn_recover.sh` (does all of the above + boot check).
 
+## Search hygiene (don't grep the stone)
+
+The stone is one ~800 KB line of base64 ciphertext: any line-oriented
+code-search match echoes the whole wall and starves the result budget.
+The repo-root `.ignore` lists `horcrux/*.svg` for search tools only
+(ripgrep honors it, git does not -- the stone stays tracked and
+committed). Inspect the stone with `vant horcrux inspect`, never text
+search. Lockfiles (`bun.lock`) are listed there for the same reason.
+
 ## Inventory
 
 | File | Agent | Password | Contains |
 |------|-------|----------|----------|
-| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | `windtheclock2026` | brain (identity/goals/lessons/errors/preferences + private state/notes), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state; forged with pass-71 code (per-file scope tags, type 'both') |
+| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | `windtheclock2026` | brain (identity/goals/lessons/errors/preferences + private state/notes), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state; refreshed 2026-10-01 (lessons 1-5: play-test round 5 + search/forge tooling); forged from the vant root and cold round-trip proven (fresh clone -> restore -> 9 files to cairn, private roundtrip marker + lesson 5 verified) |
 
 Superseded: `buffy-p_windtheclock2026.svg` (pre-callsign snapshot,
 removed from main in favor of the cairn one; recoverable from git

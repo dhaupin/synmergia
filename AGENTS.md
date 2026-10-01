@@ -1083,4 +1083,11 @@ var char_class_name := "warrior"  # OK
 - `await get_tree().process_frame` in `_ready()` is a valid
   way to defer past the autoload order; cheaper than
   `call_deferred` for one-shot deferred work.
+- **Don't grep the horcrux.** `horcrux/*.svg` stones are one ~800 KB
+  line of base64 ciphertext; a ripgrep-style match echoes the whole
+  wall and starves the search result budget. They are listed in the
+  repo-root `.ignore` (which search tools honor and git does not --
+  the stone stays tracked and committed). If you must inspect the
+  stone, use `vant horcrux inspect horcrux/<file>.svg` or read the
+  README, never text search.
 

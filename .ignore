@@ -1,0 +1,14 @@
+# Search-tool ignore (ripgrep respects this; GIT DOES NOT -- files here
+# stay tracked and committed). Purpose: keep enormous single-line
+# machine-generated files from flooding code-search results.
+#
+# horcrux/*.svg -- vant stego horcruxes are one 800 KB+ line of base64
+# ciphertext; any repo-wide match echoes the whole wall and starves the
+# result budget (see horcrux/README.md + AGENTS.md). The stone stays
+# committed to main; disaster recovery (scripts/cairn_recover.sh) is
+# unaffected.
+horcrux/*.svg
+
+# bun.lock -- lockfiles are churned by tooling, never edited by hand;
+# noise for search, still tracked for reproducible installs.
+bun.lock
