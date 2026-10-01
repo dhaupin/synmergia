@@ -69,6 +69,13 @@ const SHIFT_RADIUS: float = 1500.0
 ## sphere StaticBody stays the physics truth either way).
 var stream_terrain: bool = true
 
+## WATER (terrain arc): at planet scale the scene paints a water shell
+## at the terrain sea line (TerrainGen.sea_level). The shell is visual
+## only -- the floor is the displaced terrain itself (the ocean depth
+## law: the sea floor IS the ground law, no second collision truth).
+const WATER_ON: bool = true
+var water_body: MeshInstance3D = null
+
 var streamer  # GlobeTerrainStreamer; untyped - preload-by-path pattern
 
 var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
@@ -91,9 +98,13 @@ func _ready() -> void:
 	_build_surface_pad()
 	_build_sun()
 	_build_sky_sun()
+	# Streamer FIRST: the player spawn height rides the terrain law
+	# (walk surface at the spawn direction), so the ground must exist
+	# before the boot lands on it.
+	_setup_streamer()
+	_build_water()
 	_build_arena_gateway()
 	_build_player()
-	_setup_streamer()
 	planet_center = world_root.position
 	player.planet_center = planet_center
 	_install_hud()
@@ -175,17 +186,33 @@ func _setup_streamer() -> void:
 		return
 	streamer = load("res://scenes/worlds/globe_terrain_streamer.gd").new()
 	streamer.configure(planet_radius, 7.0, world_root)
-	streamer.update(player.global_position)
-	# Rock walk-over: the player's radial snap rides seeded rock tops
-	# (S7). Callable receives the player's WORLD position; directions
-	# are derived relative to planet_center (floating origin: the
-	# world origin is NOT the planet center after the first shift).
-	var Faces = load("res://core/frame/math/icosahedral_faces.gd")
-	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	# Terrain arc: the heightfield joins the tiles at planet scale only
+	# (prototype stays the flat shell -- every S5b/S8 probe contract
+	# keeps its geometry).
+	streamer.terrain_on = planet_radius > PLANAR_SHELL_MAX_R
+	streamer.update(_spawn_dir() * planet_radius)
+
+
+## The player's radial snap rides the WALK SURFACE (displaced terrain
+## + seeded rock caps) via the streamer's single ground law. Callable
+## receives the player's WORLD position; directions are derived
+## relative to planet_center (floating origin: the world origin is
+## NOT the planet center after the first shift). Installed by
+## _build_player (the streamer is built first; the player second).
+func _install_walk_provider() -> void:
+	if streamer == null or player == null:
+		return
 	player.snap_height_provider = func(wpos: Vector3) -> float:
 		var dir: Vector3 = (wpos - planet_center).normalized()
-		var face: int = Faces.face_for_direction(dir)
-		return Gen.rock_top_height(dir, streamer.world_seed, face, planet_radius)
+		return streamer.walk_surface_h(dir)
+
+
+## Terrain-only read at a world position (the player's mobility law
+## samples this seam so walk-over rock caps never read as hills).
+func terrain_h_at(wpos: Vector3) -> float:
+	if streamer == null:
+		return 0.0
+	return streamer.terrain_h((wpos - planet_center).normalized())
 
 
 func _physics_process(_delta: float) -> void:
@@ -325,9 +352,51 @@ func _update_surface_pad() -> void:
 ## streamed tiles are visual-only there (no colliders, S5b) and the
 ## player must keep shell contact (probe_globe_world asserts radial
 ## rest). At planet scale the re-anchored pad carries the collision
-## at planet_radius + TILE_LIFT, matching the visual tile tops.
+## at planet_radius + TILE_LIFT + TERRAIN: the walk surface is the
+## displaced terrain under the player (the streamer's ground law --
+## the same law the snap provider rides), so hills lift the pad and
+## the sea floor drops it.
 func _surface_lift() -> float:
-	return STREAMER_TILE_LIFT if planet_radius > PLANAR_SHELL_MAX_R else 0.0
+	if planet_radius <= PLANAR_SHELL_MAX_R:
+		return 0.0
+	if streamer == null:
+		return STREAMER_TILE_LIFT
+	var dir: Vector3 = _spawn_dir()
+	if player != null:
+		dir = (player.global_position - planet_center).normalized()
+	return STREAMER_TILE_LIFT + streamer.terrain_h(dir)
+
+
+## The spawn direction (unit) -- the scene's lat/lon convention.
+func _spawn_dir() -> Vector3:
+	var Sph = load("res://core/frame/math/spherical.gd")
+	return Sph.spherical_to_cartesian(SPAWN_LAT_DEG, SPAWN_LON_DEG, 0.0, 1.0)
+
+
+## WATER (terrain arc): one translucent shell at the sea line. Visual
+## only: the ocean floor is the displaced terrain (one ground law; the
+## sea floor IS the ground). Prototype globes stay dry (WATER_ON and
+## planet scale both gate).
+func _build_water() -> void:
+	if not WATER_ON or planet_radius <= PLANAR_SHELL_MAX_R:
+		return
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var sea: float = Gen.sea_level(streamer.world_seed)
+	water_body = MeshInstance3D.new()
+	water_body.name = "WaterShell"
+	var wmesh := SphereMesh.new()
+	wmesh.radius = planet_radius + STREAMER_TILE_LIFT + sea
+	wmesh.height = wmesh.radius * 2.0
+	wmesh.radial_segments = 96
+	wmesh.rings = 48
+	var wmat := StandardMaterial3D.new()
+	wmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	wmat.albedo_color = Color(0.12, 0.35, 0.5, 0.62)
+	wmat.roughness = 0.15
+	wmat.metallic = 0.1
+	wmesh.material = wmat
+	water_body.mesh = wmesh
+	world_root.add_child(water_body)
 
 
 ## Play-day feedback #8: the visible sun on the globe too (the clock
@@ -417,14 +486,23 @@ func _build_player() -> void:
 	# same offset feeds the player's snap target and glue check. The
 	# player is added to THIS scene (NOT world_root): it is the
 	# floating-origin anchor and stays near the world origin.
-	var surface_lift: float = _surface_lift()
+	# The body's ground_offset is the STATIC tile lift only -- the
+	# terrain law arrives through the snap provider (double-counting
+	# it here would float the body a terrain-height above the ground).
+	# The spawn POSITION does ride the terrain (born on the surface;
+	# the frame-1 snap would otherwise teleport it up from inside the
+	# hill).
+	var static_lift: float = STREAMER_TILE_LIFT if planet_radius > PLANAR_SHELL_MAX_R else 0.0
+	var spawn_terrain: float = (streamer.terrain_h(_spawn_dir()) if streamer else 0.0) \
+		if planet_radius > PLANAR_SHELL_MAX_R else 0.0
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var spawn: Vector3 = Sph.spherical_to_cartesian(
-		SPAWN_LAT_DEG, SPAWN_LON_DEG, PLAYER_SKIN, planet_radius + surface_lift)
+		SPAWN_LAT_DEG, SPAWN_LON_DEG, PLAYER_SKIN, planet_radius + static_lift + spawn_terrain)
 	player.position = spawn
 	player.planet_radius = planet_radius
-	player.ground_offset = surface_lift
+	player.ground_offset = static_lift
 	add_child(player)
+	_install_walk_provider()
 	player.begin_loop()
 
 
