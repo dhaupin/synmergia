@@ -25,11 +25,18 @@ var _panel_cursor := 0
 func _initialize() -> void:
 	print("=== UI ALIVE TEST ===")
 	change_scene_to_file("res://ui/menus/main_menu.tscn")
+	# Classic-world panels under test live in the planar scene; pin it.
+	ProjectSettings.set_setting("synmergia/world/shape", "planar")
+	# Round-6 journey: Start -> login guest -> lobby create -> select
+	# -> world. Four hops (was one), so the world lands later and the
+	# panel battery's absolute clocks shift accordingly.
 	_schedule = [
 		[1.0, _goto_char_select],
-		[2.0, _auto_select_step],
-		[2.6, _auto_play_step],
-		[4.8, _build_panel_cases],
+		[2.2, _goto_char_select],
+		[3.4, _goto_char_select],
+		[4.0, _auto_select_step],
+		[4.3, _auto_play_step],
+		[7.5, _build_panel_cases],
 	]
 
 func _ok(label: String, cond: bool, detail: String = "") -> void:
@@ -51,9 +58,22 @@ func _process(delta: float) -> bool:
 ## ------------------------------------------------------------------ journey
 
 func _goto_char_select() -> void:
-	var btn: Button = current_scene.get_node_or_null("MenuButtons/PlayButton")
-	if btn and not btn.disabled:
-		btn.pressed.emit()
+	# Round-6 menu: Start -> login guest -> lobby create -> select.
+	var start_btn: Button = current_scene.get_node_or_null("MenuButtons/StartButton")
+	if start_btn and not start_btn.disabled:
+		start_btn.pressed.emit()
+		return
+	if current_scene == null:
+		return
+	if current_scene.name == "Login":
+		var guest: Button = current_scene.get_node_or_null("Center/Panel/Form/Buttons/GuestButton")
+		if guest and not guest.disabled:
+			guest.pressed.emit()
+			return
+	if current_scene.name == "Lobby":
+		var create: Button = current_scene.get_node_or_null("Center/Panel/VBox/Buttons/CreateButton")
+		if create and not create.disabled:
+			create.pressed.emit()
 
 func _auto_select_step() -> void:
 	if current_scene and current_scene.name == "CharacterSelect" and current_scene.has_method("_auto_select"):
@@ -97,7 +117,7 @@ func _panel_visible(panel_id: String) -> bool:
 ## mode "hotkey" presses the key; mode "menu" clicks the menu-bar item.
 func _build_panel_cases() -> void:
 	print("--- panel battery (hotkey + menu-bar paths) ---")
-	var base := 5.0
+	var base := 8.5
 	var cases := [
 		["inventory", KEY_I, "menu_item_inventory", "hotkey"],
 		["character", KEY_C, "menu_item_character", "hotkey"],

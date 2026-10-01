@@ -28,15 +28,30 @@ func _run() -> void:
 	await _settle(0.6)
 	_shot("1_menu")
 
-	# Focus-walk like a keyboard player: focus Play explicitly (a mouse
-	# click also focuses; TAB-counting across a 3-button menu is how you
-	# accidentally quit) then press Enter.
-	var play_btn := current_scene.get_node_or_null("MenuButtons/PlayButton")
-	if play_btn != null:
-		play_btn.grab_focus()
+	# Focus-walk like a keyboard player through the round-6 flow: Start
+	# -> login (guest) -> lobby (create) -> character select.
+	var start_btn := current_scene.get_node_or_null("MenuButtons/StartButton")
+	if start_btn != null:
+		start_btn.grab_focus()
 	await _settle(0.3)
 	_key(KEY_ENTER)
-	# The menu routes through GameManager -> character select. Follow it.
+	if not await _wait_scene("Login", 6.0):
+		_fail += "login_route; "
+	await _settle(0.4)
+	var guest_btn := current_scene.get_node_or_null("Center/Panel/Form/Buttons/GuestButton")
+	if guest_btn != null:
+		guest_btn.grab_focus()
+	await _settle(0.2)
+	_key(KEY_ENTER)
+	if not await _wait_scene("Lobby", 6.0):
+		_fail += "lobby_route; "
+	await _settle(0.4)
+	var create_btn := current_scene.get_node_or_null("Center/Panel/VBox/Buttons/CreateButton")
+	if create_btn != null:
+		create_btn.grab_focus()
+	await _settle(0.2)
+	_key(KEY_ENTER)
+	# The lobby create routes to character select. Follow it.
 	if not await _wait_scene("CharacterSelect", 6.0):
 		_fail += "char_select_route; "
 		# Recovery so later stages still run: load it ourselves.

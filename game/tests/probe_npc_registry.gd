@@ -6,27 +6,43 @@ var _done := false
 
 func _initialize() -> void:
 	change_scene_to_file("res://ui/menus/main_menu.tscn")
+	# NPC registry content lives in the planar world; pin the shape.
+	ProjectSettings.set_setting("synmergia/world/shape", "planar")
 
 var _steps := {
 	1.0: false,
-	2.0: false,
-	2.6: false,
+	1.6: false,
+	2.2: false,
+	2.8: false,
+	3.4: false,
+	3.8: false,
 }
 
 func _process(delta: float) -> bool:
 	_t += delta
-	# Journey: play -> select -> play (same as test_interaction_pipeline).
-	if _t >= 1.0 and not _steps[1.0]:
-		_steps[1.0] = true
-		var btn: Button = current_scene.get_node_or_null("MenuButtons/PlayButton")
-		if btn and not btn.disabled:
-			btn.pressed.emit()
-	if _t >= 2.0 and not _steps[2.0]:
-		_steps[2.0] = true
+	# Journey (round-6 menu): Start -> guest -> lobby create -> select
+	# -> play. Each press advances exactly one hop, so fire repeatedly.
+	for step_t in [1.0, 1.6, 2.2, 2.8]:
+		if _t >= step_t and not _steps[step_t]:
+			_steps[step_t] = true
+			if current_scene and current_scene.name == "MainMenu":
+				var sb: Button = current_scene.get_node_or_null("MenuButtons/StartButton")
+				if sb and not sb.disabled:
+					sb.pressed.emit()
+			elif current_scene and current_scene.name == "Login":
+				var gb: Button = current_scene.get_node_or_null("Center/Panel/Form/Buttons/GuestButton")
+				if gb and not gb.disabled:
+					gb.pressed.emit()
+			elif current_scene and current_scene.name == "Lobby":
+				var cb: Button = current_scene.get_node_or_null("Center/Panel/VBox/Buttons/CreateButton")
+				if cb and not cb.disabled:
+					cb.pressed.emit()
+	if _t >= 3.4 and not _steps[3.4]:
+		_steps[3.4] = true
 		if current_scene and current_scene.name == "CharacterSelect" and current_scene.has_method("_auto_select"):
 			current_scene._auto_select()
-	if _t >= 2.6 and not _steps[2.6]:
-		_steps[2.6] = true
+	if _t >= 3.8 and not _steps[3.8]:
+		_steps[3.8] = true
 		if current_scene and current_scene.has_method("_auto_play"):
 			current_scene._auto_play()
 	if _t < 6.0 or _done:

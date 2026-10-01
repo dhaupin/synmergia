@@ -23,10 +23,19 @@ var _fail := 0
 func _initialize() -> void:
 	print("=== INTERACTION PIPELINE TEST ===")
 	change_scene_to_file("res://ui/menus/main_menu.tscn")
+	# Classic-world content (NPCs, dummies, context menus) lives in the
+	# planar scene; pin the shape like play_driver does.
+	ProjectSettings.set_setting("synmergia/world/shape", "planar")
+	# The single _goto_char_select callable walks the whole round-6
+	# journey (Start -> guest -> lobby create -> select), firing the
+	# NEXT hop each time it runs -- so schedule it repeatedly.
 	_schedule = [
 		[1.0, _goto_char_select],
-		[2.0, _auto_select_step],
-		[2.6, _auto_play_step],
+		[1.9, _goto_char_select],
+		[2.8, _goto_char_select],
+		[3.7, _goto_char_select],
+		[4.4, _auto_select_step],
+		[4.7, _auto_play_step],
 		[5.0, _c_npc_catalog],
 		[5.4, _c_dialog_via_context_action],
 		[6.2, _c_quest_via_context_action],
@@ -55,9 +64,23 @@ func _process(delta: float) -> bool:
 ## ------------------------------------------------------------------ journey
 
 func _goto_char_select() -> void:
-	var btn: Button = current_scene.get_node_or_null("MenuButtons/PlayButton")
-	if btn and not btn.disabled:
-		btn.pressed.emit()
+	# Round-6 menu: one Start button -> login guest -> lobby create ->
+	# character select (the account creation flow the lobby drives).
+	var start_btn: Button = current_scene.get_node_or_null("MenuButtons/StartButton")
+	if start_btn and not start_btn.disabled:
+		start_btn.pressed.emit()
+		return
+	if current_scene == null:
+		return
+	if current_scene.name == "Login":
+		var guest: Button = current_scene.get_node_or_null("Center/Panel/Form/Buttons/GuestButton")
+		if guest and not guest.disabled:
+			guest.pressed.emit()
+			return
+	if current_scene.name == "Lobby":
+		var create: Button = current_scene.get_node_or_null("Center/Panel/VBox/Buttons/CreateButton")
+		if create and not create.disabled:
+			create.pressed.emit()
 
 func _auto_select_step() -> void:
 	if current_scene and current_scene.name == "CharacterSelect" and current_scene.has_method("_auto_select"):

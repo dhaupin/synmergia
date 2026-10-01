@@ -38,11 +38,28 @@ func _run() -> void:
 	await _settle(0.6)
 	_shot("globe_flow_1_menu")
 
-	# --- Stage 2: Play -> character select ---------------------------
-	var play_btn := current_scene.get_node_or_null("MenuButtons/PlayButton")
-	if play_btn != null:
-		play_btn.grab_focus()
+	# --- Stage 2: Start -> login(guest) -> lobby(create) -> select ---
+	# (round-6 menu: one Start button, one flow)
+	var start_btn := current_scene.get_node_or_null("MenuButtons/StartButton")
+	if start_btn != null:
+		start_btn.grab_focus()
 	await _settle(0.3)
+	_key(KEY_ENTER)
+	if not await _wait_scene("Login", 6.0):
+		_fail += "login_route; "
+	await _settle(0.4)
+	var guest_btn := current_scene.get_node_or_null("Center/Panel/Form/Buttons/GuestButton")
+	if guest_btn != null:
+		guest_btn.grab_focus()
+	await _settle(0.2)
+	_key(KEY_ENTER)
+	if not await _wait_scene("Lobby", 6.0):
+		_fail += "lobby_route; "
+	await _settle(0.4)
+	var create_btn := current_scene.get_node_or_null("Center/Panel/VBox/Buttons/CreateButton")
+	if create_btn != null:
+		create_btn.grab_focus()
+	await _settle(0.2)
 	_key(KEY_ENTER)
 	if not await _wait_scene("CharacterSelect", 6.0):
 		_fail += "char_select_route; "

@@ -2374,3 +2374,47 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   /spawn combat loop, 4s timer cycle, both horde flavors).
 - [ ] More world_bosses .tres content once world zones grow (one demo:
   forest_void_lord).
+- [x] Play-test round 6 (9 items, web client + shell + world): (1) LoadingUI
+  full-screen again -- UIPanel._ready's missing-Panel safety net auto-built
+  its centered 400x500 PanelContainer inside the boot overlay (built with
+  LUI.new(), no scene Panel); _setup_ui now frees any stray Panel before
+  raising the backdrop. (2) web/index.html wires onProgress into BOTH the
+  Engine config and startGame options (some exports read the config-level
+  key -- the loader showed no percent) + a MB readout. (3) Expanded menu
+  adopts into MenuManager's CanvasLayer 20 (settings-panel pattern): chat
+  lives on layer 20, MainMenuBar on layer 10 -- CanvasLayer order beats
+  z_index, so the round-5 z=350 could never cover chat. (4) Spawn sea
+  guard: boot height < sea line now fails LOUD (error + lifted boot) and
+  one always-on boot log prints walk surface vs sea line ("boot at lat 0.0
+  lon 0.0, walk surface 9.0 m (sea line 6.0 m)"); plaza law was verified
+  correct (SPAWN_HEIGHT 9 > max sea 7) so a reported ocean spawn would
+  now be diagnosable from the log alone. (5) CharacterPanel tabs populate:
+  refresh_inventory actually fills the grid now (was a pass stub),
+  _refresh_equipment_display paints equipped names (was pass), _on_open
+  self-resolves character data + refreshes all tabs, player-id resolution
+  falls back through InventoryService -> local player component; index-
+  zipped raw slot array (get_all_items skips nulls -> misaligned grid).
+  (6) Splash: ONE Start button (old Account flow: login/register/guest ->
+  lobby -> play); Play button + its parallel direct flow deleted, 7
+  journey/driver tests rewired through the real flow (Start -> guest ->
+  create). (7) UIPanel viewport guard: _clamp_panel_to_viewport() clamps
+  panel minimum size to 92% viewport at ready + every open (settings
+  700x550 bled off phones). (8) Mobile scale: UIStyles.get_text_scale()
+  returns 1.3 on web/mobile touch devices (was hardcoded 1.0; HUD widgets
+  already multiply by it; canvas_items stretch keeps fonts fixed unless
+  scaled). (9) Minimap: layer-toggle row had NEGATIVE height
+  (BOTTOM_WIDE + only offset_bottom=-2 on a zero-size control) -> pinned
+  20px strip; added the missing MapButton emitting map_button_pressed
+  (hud_layer connected that signal since round 2 -- it never existed, a
+  silent has_signal no-op) -> WorldMap opens via M or the button.
+  Verified: lint 36, regression 56/56 (3 chunks), probe_round2_ui 20/20,
+  probe_globe_world 23, probe_terrain_planet 22, play_driver (planar)
+  clean, test_splash_to_play 17/17 through the NEW flow, touch/click
+  probes exit 0. Known pre-existing (failed identically at HEAD in a
+  clean worktree, NOT round-6 regressions): test_ui_alive 13/17
+  (panels don't open via hotkeys in the xvfb harness), the world-content
+  legs of test_interaction_pipeline (NPC/loot checks; journey itself now
+  passes 4/10 vs 0/10 at HEAD) and play_full_flow leg1 card picks
+  (rewired flow reaches select + state cleanly; card signals don't land
+  in the harness). Suspect the shared cause is the harnesses' input
+  dispatch, not the panels; filed for round 7.

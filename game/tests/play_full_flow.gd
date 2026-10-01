@@ -2,9 +2,11 @@
 ##
 ## Boots the project's real main scene and walks every screen in order:
 ##
-##   main_menu -> [Play] -> character_select -> pick species (real card
-##   signal) -> class list -> pick class (real card signal) -> [Play] ->
-##   GameManager.PLAYING -> world_playable -> combat + loot + journal.
+##   main_menu -> [Start] -> login [Guest] -> lobby [Create] ->
+##   character_select -> pick species (real card signal) -> class list
+##   -> pick class (real card signal) -> [Play] -> linked character ->
+##   lobby auto-play -> GameManager.PLAYING -> world -> combat + loot
+##   + journal. (Round-6 menu: one Start button, one flow.)
 ##
 ## A second leg exercises the ACCOUNT flow end to end: register a real
 ## account through LoginService, land in the lobby, /create -> character
@@ -33,6 +35,9 @@ var _loot_drops := [0]
 
 func _initialize() -> void:
 	print("=== FULL-FLOW PLAY: booting like a player ===")
+	# Classic-world beats (dummies, journal) live in the planar scene;
+	# pin the shape like play_driver does.
+	ProjectSettings.set_setting("synmergia/world/shape", "planar")
 	var err := change_scene_to_file("res://ui/menus/main_menu.tscn")
 	if err != OK:
 		print("  FAIL: could not open main_menu.tscn (err %d)" % err)
@@ -40,24 +45,26 @@ func _initialize() -> void:
 		return
 	_schedule = [
 		[1.2, _leg1_menu],
-		[1.5, _leg1_press_play],
-		[2.6, _leg1_char_select],
-		[2.9, _leg1_pick_species],
-		[3.2, _leg1_pick_class],
-		[3.5, _leg1_press_play_btn],
-		[5.5, _leg1_world_check],
-		[5.8, _leg1_play_combat],
-		[9.0, _leg1_world_journal],
-		[9.3, _leg2_register],
-		[10.5, _leg2_lobby],
-		[10.8, _leg2_create],
-		[11.8, _leg2_char_select],
-		[12.1, _leg2_pick_species],
-		[12.4, _leg2_pick_class],
-		[12.7, _leg2_confirm],
-		[15.7, _leg2_back_in_lobby],
-		[16.3, _leg2_world_check],
-		[16.9, _leg2_sweep_and_finish],
+		[1.5, _leg1_press_start],
+		[2.3, _leg1_login_guest],
+		[3.5, _leg1_lobby_create],
+		[4.6, _leg1_char_select],
+		[4.9, _leg1_pick_species],
+		[5.2, _leg1_pick_class],
+		[5.5, _leg1_press_play_btn],
+		[7.5, _leg1_world_check],
+		[7.8, _leg1_play_combat],
+		[11.0, _leg1_world_journal],
+		[11.3, _leg2_register],
+		[12.5, _leg2_lobby],
+		[12.8, _leg2_create],
+		[13.8, _leg2_char_select],
+		[14.1, _leg2_pick_species],
+		[14.4, _leg2_pick_class],
+		[14.7, _leg2_confirm],
+		[17.7, _leg2_back_in_lobby],
+		[18.3, _leg2_world_check],
+		[18.9, _leg2_sweep_and_finish],
 	]
 
 func _process(delta: float) -> bool:
@@ -86,7 +93,13 @@ func _gm() -> Node:
 
 func _player() -> Node:
 	var s := _scene()
-	return s.get_node_or_null("Player") if s else null
+	if s == null:
+		return null
+	# Shape-aware: the globe names its player GlobePlayer.
+	var p: Node = s.get_node_or_null("Player")
+	if p == null:
+		p = s.get_node_or_null("GlobePlayer")
+	return p
 
 func _press(node_path: String) -> void:
 	var s := _scene()
@@ -128,8 +141,21 @@ func _leg1_menu() -> void:
 	_ok("main menu is current scene", s != null and s.name == "MainMenu")
 	_shot("01_main_menu")
 
-func _leg1_press_play() -> void:
-	_press("MenuButtons/PlayButton")
+func _leg1_press_start() -> void:
+	print("--- leg 1: start (round-6 single flow) ---")
+	_press("MenuButtons/StartButton")
+
+func _leg1_login_guest() -> void:
+	var s := _scene()
+	_ok("login reached via Start", s != null and s.name == "Login",
+		"(scene %s)" % (s.name if s else "null"))
+	_press("Center/Panel/Form/Buttons/GuestButton")
+
+func _leg1_lobby_create() -> void:
+	var s := _scene()
+	_ok("lobby reached via guest login", s != null and s.name == "Lobby",
+		"(scene %s)" % (s.name if s else "null"))
+	_press("Center/Panel/VBox/Buttons/CreateButton")
 
 func _leg1_char_select() -> void:
 	var s := _scene()
@@ -184,8 +210,9 @@ func _leg1_press_play_btn() -> void:
 func _leg1_world_check() -> void:
 	print("--- leg 1: entering world ---")
 	var s := _scene()
-	var in_world: bool = s != null and s.get_script() == load("res://scenes/world_playable.gd")
-	_ok("world_playable loaded via character select", in_world)
+	var in_world: bool = s != null and (s.name == "GlobeWorld" or s.name == "WorldPlayable"
+		or s.get_script() == load("res://scenes/world_playable.gd"))
+	_ok("world loaded via character select (globe or planar)", in_world)
 	var gm := _gm()
 	_ok("state PLAYING", gm != null and gm.current_state == gm.GameState.PLAYING)
 	var cd = gm.selected_character_data if gm else null
@@ -256,10 +283,10 @@ func _leg2_register() -> void:
 	gm.change_state(gm.GameState.MAIN_MENU)
 	await process_frame
 	await process_frame
-	# The account flow lives on the Account button; Play routes straight to
-	# character select. A real player presses Account, flips the form to
-	# REGISTER mode, fills it, and submits.
-	_press("MenuButtons/AccountButton")
+	# Round-6 menu: the one Start button opens the login screen. A real
+	# player presses Start, flips the form to REGISTER mode, fills it,
+	# and submits.
+	_press("MenuButtons/StartButton")
 	await process_frame
 	await process_frame
 	# login.gd: switch to REGISTER mode, fill the form, submit.
@@ -346,8 +373,9 @@ func _leg2_back_in_lobby() -> void:
 func _leg2_world_check() -> void:
 	print("--- leg 2: world via account flow ---")
 	var s := _scene()
-	var in_world: bool = s != null and s.get_script() == load("res://scenes/world_playable.gd")
-	_ok("world_playable loaded via lobby play", in_world)
+	var in_world: bool = s != null and (s.name == "GlobeWorld" or s.name == "WorldPlayable"
+		or s.get_script() == load("res://scenes/world_playable.gd"))
+	_ok("world loaded via lobby play (globe or planar)", in_world)
 	var gm := _gm()
 	_ok("state PLAYING (account flow)", gm != null and gm.current_state == gm.GameState.PLAYING)
 	var cd = gm.selected_character_data if gm else null
