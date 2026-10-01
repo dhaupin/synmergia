@@ -72,16 +72,32 @@ func _setup_ui() -> void:
 	if stray != null:
 		stray.queue_free()
 
-	# FULL-SCREEN BACKDROP: the overlay IS the Control (full rect when
-	# under BootLoadingLayer or the HUD), dimmed so the dying scene
-	# never bleeds through. mouse_filter STOP: nothing under it can be
-	# clicked while loading.
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# FULL-SCREEN BACKDROP (round 7, item 1 -- measured, not guessed):
+	# this overlay is a ROOT control (a CanvasLayer child, no parent
+	# Control). set_anchors_preset(PRESET_FULL_RECT) PRESERVES the
+	# node's current rect when applied, and on the boot path that rect
+	# is 0x0 -- the preset froze offsets at minus-viewport and the whole
+	# overlay collapsed to 0x0, leaving the spinner at its content size
+	# (169x222) in the top-left corner ("loading small in upper left").
+	# Assign anchors AND zero offsets explicitly; grow both so viewport
+	# changes (orientation flip) keep tracking.
+	anchor_left = 0.0
+	anchor_top = 0.0
+	anchor_right = 1.0
+	anchor_bottom = 1.0
+	offset_left = 0.0
+	offset_top = 0.0
+	offset_right = 0.0
+	offset_bottom = 0.0
+	grow_horizontal = Control.GROW_DIRECTION_BOTH
+	grow_vertical = Control.GROW_DIRECTION_BOTH
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_backdrop = ColorRect.new()
 	_backdrop.name = "Backdrop"
 	_backdrop.color = Color(0.03, 0.04, 0.07, 0.94)
 	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_backdrop.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_backdrop.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_backdrop)
 

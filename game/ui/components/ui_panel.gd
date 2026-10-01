@@ -591,8 +591,22 @@ func _clamp_panel_to_viewport() -> void:
 		return
 	var max_size := Vector2(vp.x * 0.92, vp.y * 0.92)
 	var min_size := panel.custom_minimum_size
-	if min_size.x > max_size.x or min_size.y > max_size.y:
-		panel.custom_minimum_size = Vector2(minf(min_size.x, max_size.x), minf(min_size.y, max_size.y))
+	var clamped := Vector2(minf(min_size.x, max_size.x), minf(min_size.y, max_size.y))
+	if clamped != min_size:
+		panel.custom_minimum_size = clamped
+	# Re-center after a shrink (round 7, item 2): PRESET_CENTER froze
+	# the panel's OFFSETS when it first laid out at the ORIGINAL size,
+	# so after clamping the min the box kept its old displacement and
+	# hung off the screen horizontally ("obeyed vertical, hung off
+	# horizontal"). set_anchors_and_offsets_preset recomputes the
+	# offsets from the CURRENT min-size. Only for panels that actually
+	# use center anchors -- hand-placed panels keep their layout.
+	var is_centered: bool = absf(panel.anchor_left - 0.5) < 0.01 \
+		and absf(panel.anchor_right - 0.5) < 0.01 \
+		and absf(panel.anchor_top - 0.5) < 0.01 \
+		and absf(panel.anchor_bottom - 0.5) < 0.01
+	if is_centered:
+		panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 
 func _get_focusable_recursive(node: Node, out: Array[Control]) -> void:
 	if node is Control and node.focus_mode != FOCUS_NONE:
