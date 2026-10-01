@@ -107,6 +107,17 @@
 			}
 		}
 
+		// Live file sizes (round 8, item 1): the launcher tracks progress
+		// with PER-FILE totals taken ONLY from config.fileSizes -- it never
+		// reads Content-Length. It looks the pack size up by the EXACT
+		// mainPack string, so a content-addressed 'game.pck?v=<hash>' key
+		// must exist (the old static 'game.pck' key missed, the pack
+		// tracked total 0, the aggregate total invalidated to 0, and the
+		// bar never moved). HEAD both files here for the REAL sizes; the
+		// static fileSizes below stay as a fallback for a HEAD-less
+		// server, and onProgress falls back to their sum when the engine
+		// reports an invalid (0) aggregate total.
+
 		// Contract with game.js (Godot 4.7.2's exported launcher): it defines
 		// the Engine class; GODOT_CONFIG mirrors Godot's generated shell
 		// (exported to builds/web-shell/ as a reference; THIS file is the
@@ -154,6 +165,7 @@
 			cfg.mainPack = packUrl;
 			var progressSeen = false;
 			var lastPct = -1;
+			var knownTotal = 0;
 			// The launcher reads progress from BOTH surfaces: the Engine
 			// config (onProgress at config level) and startGame options.
 			// Setting only the startGame option let some exports read the
@@ -162,25 +174,51 @@
 			// engine honors, the bar moves.
 			var onProg = function (current, total) {
 				progressSeen = progressSeen || current > 0;
-				if (current > 0 && total > 0) {
-					var pct = Math.round((current / total) * 100);
+				// One file with an unknown size invalidates the engine's
+				// aggregate total (it zeroes it) -- fall back to the sum we
+				// HEADed before start. Cap at 100: a stale fallback size
+				// must not show a bar that runs past full.
+				var denom = total > 0 ? total : knownTotal;
+				if (current > 0 && denom > 0) {
+					var pct = Math.min(100, Math.round((current / denom) * 100));
 					if (pct !== lastPct) {
 						lastPct = pct;
 						barFill.style.width = pct + "%";
-						loadingText.textContent = "Loading Synmergia... " + pct + "% (" + (current / 1048576).toFixed(1) + " / " + (total / 1048576).toFixed(1) + " MB)";
+						loadingText.textContent = "Loading Synmergia... " + pct + "% (" + (current / 1048576).toFixed(1) + " / " + (denom / 1048576).toFixed(1) + " MB)";
 					}
 				}
 			};
 			cfg.onProgress = onProg;
-			var engine = new Engine(cfg);
-			engine.startGame({
-				"onProgress": onProg,
-			}).then(function () {
-				loading.classList.add("hidden");
-				canvas.focus();
-			}).catch(function (err) {
-				console.error(err);
-				fail(err && err.message ? err.message : "Engine failed to start.");
+			var headSize = function (url) {
+				return fetch(url, { method: "HEAD", cache: "no-cache" }).then(function (r) {
+					var len = parseInt(r.headers.get("content-length") || "0", 10);
+					return isFinite(len) && len > 0 ? len : 0;
+				}).catch(function () { return 0; });
+			};
+			// Sizes keyed BOTH ways: the wasm is looked up as '<exe>.wasm',
+			// the pack as the EXACT mainPack string (query included) -- plus
+			// the bare 'game.pck' key for any code path that asks for it.
+			Promise.all([headSize("game.wasm"), headSize(packUrl)]).then(function (sizes) {
+				var wasmSize = sizes[0] || (cfg.fileSizes["game.wasm"] || 0);
+				var pckSize = sizes[1] || (cfg.fileSizes["game.pck"] || 0);
+				if (wasmSize > 0) cfg.fileSizes["game.wasm"] = wasmSize;
+				if (pckSize > 0) {
+					cfg.fileSizes["game.pck"] = pckSize;
+					cfg.fileSizes[packUrl] = pckSize;
+				}
+				knownTotal = wasmSize + pckSize;
+				var engine = new Engine(cfg);
+				engine.startGame({
+					"onProgress": onProg,
+				}).then(function () {
+					loading.classList.add("hidden");
+					canvas.focus();
+				}).catch(function (err) {
+					console.error(err);
+					fail(err && err.message ? err.message : "Engine failed to start.");
+				});
+			}).catch(function () {
+				fail("Could not size the engine download. Check your connection and reload.");
 			});
 		}
 

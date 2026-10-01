@@ -73,74 +73,74 @@ function copyGodotWebToDist(): Plugin {
   };
 }
 
+// One handler for BOTH the dev server and the preview server so the
+// two never drift (they were pasted copies).
+//
+// Round 8, item 10 (tab-away refresh): every /web response used to be
+// `Cache-Control: no-cache` with NO Content-Length and no validators,
+// so a browser tab-discard (Memory Saver / mobile memory pressure)
+// came back as a full re-download of the 38 MB wasm + pack. Now:
+//   - Content-Length is always set (this also fixes HEAD, which the
+//     shell uses to size the boot progress bar), and HEAD gets no body.
+//   - Freshness anchors stay no-cache: index.html + game.pck.hash.
+//   - The content-addressed pack (game.pck?v=<hash>) is immutable --
+//     the hash in the query IS the cache key, exactly one fetch ever.
+//   - game.wasm gets a 1-day TTL: the engine binary only changes on a
+//     Godot export bump, and the no-cache shell always re-anchors it.
+function godotWebRequestHandler(req: any, res: any, next: any): void {
+  const url = req.url ? req.url.split('?')[0] : '';
+  if (url === '/web' || url.startsWith('/web/')) {
+    const subPath = url.replace(/^\/web\/?/, '') || 'index.html';
+    const filePath = path.resolve(process.cwd(), 'web', subPath);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath);
+      const mimeTypes: Record<string, string> = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.wasm': 'application/wasm',
+        '.pck': 'application/octet-stream',
+        '.css': 'text/css',
+        '.svg': 'image/svg+xml',
+        '.png': 'image/png',
+        '.json': 'application/json',
+        '.toml': 'text/plain',
+        '.hash': 'text/plain',
+      };
+      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+      res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+      // Cache law (see block comment above): the pack is
+      // content-addressed by its ?v=<hash> query -- immutable; the
+      // named binaries and anchors stay honest so a new CI pack
+      // commit-back is picked up by the next reload.
+      const rawUrl: string = req.url || '';
+      const isContentAddressed = subPath.endsWith('.pck') && rawUrl.includes('?v=');
+      if (isContentAddressed) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (ext === '.wasm') {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+      } else {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+      res.setHeader('Content-Length', String(fs.statSync(filePath).size));
+      if (req.method === 'HEAD') {
+        res.end();
+        return;
+      }
+      return fs.createReadStream(filePath).pipe(res);
+    }
+  }
+  next();
+}
+
 function serveGodotWeb(): Plugin {
   return {
     name: 'serve-godot-web',
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        const url = req.url ? req.url.split('?')[0] : '';
-        if (url === '/web' || url.startsWith('/web/')) {
-          const subPath = url.replace(/^\/web\/?/, '') || 'index.html';
-          const filePath = path.resolve(process.cwd(), 'web', subPath);
-          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-            const ext = path.extname(filePath);
-            const mimeTypes: Record<string, string> = {
-              '.html': 'text/html',
-              '.js': 'application/javascript',
-              '.wasm': 'application/wasm',
-              '.pck': 'application/octet-stream',
-              '.css': 'text/css',
-              '.svg': 'image/svg+xml',
-              '.png': 'image/png',
-              '.json': 'application/json',
-              '.toml': 'text/plain',
-              '.hash': 'text/plain',
-            };
-            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
-            res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-            res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-            // Dev/preview must never serve a stale engine: the pck and
-            // shell change every CI content refresh, and a cached pack
-            // silently reverts game fixes on the player's side.
-            res.setHeader('Cache-Control', 'no-cache');
-            return fs.createReadStream(filePath).pipe(res);
-          }
-        }
-        next();
-      });
+      server.middlewares.use(godotWebRequestHandler);
     },
     configurePreviewServer(server) {
-      server.middlewares.use((req, res, next) => {
-        const url = req.url ? req.url.split('?')[0] : '';
-        if (url === '/web' || url.startsWith('/web/')) {
-          const subPath = url.replace(/^\/web\/?/, '') || 'index.html';
-          const filePath = path.resolve(process.cwd(), 'web', subPath);
-          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-            const ext = path.extname(filePath);
-            const mimeTypes: Record<string, string> = {
-              '.html': 'text/html',
-              '.js': 'application/javascript',
-              '.wasm': 'application/wasm',
-              '.pck': 'application/octet-stream',
-              '.css': 'text/css',
-              '.svg': 'image/svg+xml',
-              '.png': 'image/png',
-              '.json': 'application/json',
-              '.toml': 'text/plain',
-              '.hash': 'text/plain',
-            };
-            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
-            res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-            res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-            // Dev/preview must never serve a stale engine: the pck and
-            // shell change every CI content refresh, and a cached pack
-            // silently reverts game fixes on the player's side.
-            res.setHeader('Cache-Control', 'no-cache');
-            return fs.createReadStream(filePath).pipe(res);
-          }
-        }
-        next();
-      });
+      server.middlewares.use(godotWebRequestHandler);
     },
   };
 }
