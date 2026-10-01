@@ -93,7 +93,10 @@ func _run() -> void:
 	var chat = mm.get_node_or_null("ChatUI")
 	ok = _check("chat exists", chat != null) and ok
 	if chat != null:
-		ok = _check("chat z above panels (700 > 500)", int(chat.z_index) > 500) and ok
+		# Round 3 (owner play-test): chat UNDER the panels (300 < 500),
+		# above the raw HUD widgets (100).
+		ok = _check("chat z below panels (300 < 500, > 100)", \
+			int(chat.z_index) < 500 and int(chat.z_index) > 100) and ok
 
 	# C. X-close re-arm: open character panel via the funnel, then close
 	# it the way the X button does (panel.close() -> panel_closed ->

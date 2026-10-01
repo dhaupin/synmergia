@@ -142,10 +142,11 @@ func _initialize_panels() -> void:
 	# Chat panel - created from script
 	_chat_panel = preload("res://ui/components/chat_ui.gd").new()
 	_chat_panel.name = "ChatUI"
-	# Play-day feedback #4: chat floats ABOVE every panel (z 500) so the
-	# menu can never "open below" it -- the chat is a persistent overlay,
-	# not a menu peer.
-	_chat_panel.z_index = 700
+	# Play-test round 3: chat sits BELOW the panel stack (z < 500) so
+	# panels can cover it -- unreadable text bleeding through menus was
+	# worse UX than the chat being hidden while a panel is up. Chat
+	# remains above the raw HUD widgets (z 100).
+	_chat_panel.z_index = 300
 	add_child(_chat_panel)
 
 	# Inventory panel
