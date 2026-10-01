@@ -82,6 +82,12 @@ const SPAWN_CLEAR_ANG: float = 0.012
 ## the ramp-continuity law still holds (no cliffs).
 const SPAWN_APRON_ANG: float = 0.004 # ~80 m at the 20 km planet scale
 const SPAWN_APRON_SEA_MARGIN: float = 0.25
+## Tier 2 (play-test round 9): the 80 m apron was smaller than the
+## boot horizon (~360 m from a 3 m eye height), so the screenshot
+## still showed the sea beyond it and the report repeated. The shore
+## floor is now HELD out to this angle -- the coast starts past the
+## horizon, and the dome carve makes the first bays a journey away.
+const SPAWN_APRON_OUTER_ANG: float = 0.02 # ~400 m at the 20 km scale
 ## The homeland's angular reach: the STARTING CONTINENT's guaranteed
 ## land around the spawn. 2.0 rad = ~40 km at the 20 km planet scale
 ## -- the streamed neighborhood (faces span ~60 deg) is solid land,
@@ -287,9 +293,17 @@ static func terrain_height(dir: Vector3, world_seed: PackedByteArray) -> float:
 	# worst-case step down to the natural dome terrain stays under the
 	# 4 m ramp-continuity bound the probe pins).
 	var ang_apron: float = d.angle_to(SPAWN_CENTER)
-	if ang_apron >= SPAWN_FLAT_ANG and ang_apron < SPAWN_APRON_ANG:
-		var t_apron: float = 1.0 - (ang_apron - SPAWN_FLAT_ANG) / (SPAWN_APRON_ANG - SPAWN_FLAT_ANG)
-		var apron_floor: float = lerpf(sea + SPAWN_APRON_SEA_MARGIN, SPAWN_HEIGHT, smoothstep(0.0, 1.0, t_apron))
+	if ang_apron >= SPAWN_FLAT_ANG and ang_apron < SPAWN_APRON_OUTER_ANG:
+		# Inner tier: ramp the plaza height down to the shore floor
+		# across SPAWN_APRON_ANG. Outer tier: HOLD the shore floor to
+		# the apron edge (round 9) so no water shows within the boot
+		# horizon. The worst-case step down to the natural dome terrain
+		# at the outer edge stays under the 4 m ramp-continuity bound
+		# the probe pins.
+		var apron_floor: float = sea + SPAWN_APRON_SEA_MARGIN
+		if ang_apron < SPAWN_APRON_ANG:
+			var t_apron: float = 1.0 - (ang_apron - SPAWN_FLAT_ANG) / (SPAWN_APRON_ANG - SPAWN_FLAT_ANG)
+			apron_floor = lerpf(sea + SPAWN_APRON_SEA_MARGIN, SPAWN_HEIGHT, smoothstep(0.0, 1.0, t_apron))
 		h = maxf(h, apron_floor)
 	return h
 

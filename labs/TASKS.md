@@ -2528,3 +2528,62 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   regression 56/56 (3 chunks), probe_boot_loader_rect 4/4,
   probe_round2_ui 20/20, probe_globe_world 23/23, probe_terrain_planet
   22/22 (with the apron), test_splash_to_play 17/17 (xvfb).
+- [x] Play-test round 9 (7 items, Android portrait + desktop):
+  (1) RESPONSIVE FRAMEWORK seed: new ui/components/responsive.gd
+  (viewport-class helpers: is_narrow/is_compact + card_size/panel_size
+  -- screens ask the viewport layer, never hardcode). Card strips in
+  character_select are HFlowContainer now (Godot's flex-wrap): species
+  and class cards WRAP to new rows on portrait instead of clipping at
+  both edges; card mins adapt (two-up on narrow). probe_startup_flow
+  typed its strip handle HBoxContainer -- retyped FlowContainer (the
+  tscn type change broke it: "assign HFlowContainer to HBoxContainer"
+  + a probe hang). Also: the static SPECIES header now hides in the
+  class view (both headers showed at once).
+  (2) SETTINGS EXPOSED BUT BROKEN, now fixed: the UI Scale + UI Text
+  Scale sliders already existed -- _apply_ui_scale set .scale on every
+  CanvasLayer NODE (scaling from top-left origin: center-anchored
+  panels flew off-screen -- the bleed reports were partly THIS), and
+  the text-scale broadcast had ZERO listeners (UIStyles.get_text_scale
+  ignored the setting entirely; MenuManager's propagation called
+  update_accessibility_settings with the WRONG arg count). Now:
+  content_scale_factor on the root window (the correct lever with the
+  canvas_items stretch -- everything scales, anchors keep working);
+  get_text_scale() composes the saved ui_text_scale (resolved through
+  the root, script-mode-safe); MenuManager connects the EventHub
+  signal and re-broadcasts the SAVED value once at HUD install, with
+  (high_contrast, scale, reduce_motion) read live from PlayerConfig.
+  (3) GODOT LEVERAGE (answered in the report): HFlowContainer,
+  content_scale_factor, anchors presets, Theme/type variations,
+  CenterContainer, custom Resources -- the responsive.gd + UIStyles
+  pair is our thin frame over them; keep new screens on containers
+  only, no absolute offsets.
+  (4) OCEAN VIEW round 2: the 80 m apron was smaller than the boot
+  horizon (~360 m from 3 m eye height) -- the screenshot showed sea
+  past it. Tier 2: the shore floor is now HELD from 80 m out to
+  SPAWN_APRON_OUTER_ANG 0.02 rad (~400 m); the coast begins past the
+  horizon. Worst step to natural dome terrain at the outer edge stays
+  under the 4 m continuity bound (probe_terrain_planet 22/22).
+  (5) UNCLOSABLE DIALOG root-caused: friends used native AcceptDialog
+  / ConfirmationDialog popups -- their close buttons never receive
+  touches in the embedded web canvas (round-9 screenshot: dead X).
+  BONUS BUG: _on_add_friend read dialog_text (the PROMPT STRING) as
+  the player name and sent a request to "Enter player name to add:";
+  the native dialog had no input field at all. New ui/components/
+  interaction_modal.gd: in-canvas modal (dim + CenterContainer + real
+  LineEdit + working X), PRELOAD-CYCLE-SAFE (resolves menu_manager via
+  runtime load(); menu_manager load-time-preloads friends_list, so a
+  preload here closes menu_manager -> friends_list -> modal ->
+  menu_manager) and STALE-CACHE-SAFE (no self-name annotations; new()
+  inside the static -- the global class cache is cold for new
+  class_names in --script mode). friends add/remove now use it.
+  (6+7) INTERACTION STATES + PERM BACK: MenuManager gained an
+  interaction stack (push_interaction/pop_interaction) that request_back
+  pops before panels, and a permanent bottom-center "< Back" button
+  visible while any panel/interaction/exit-confirm is live -- the
+  phone back gesture collides with browser exit-fullscreen (first
+  back is browser-owned), so an always-tappable back lives on the HUD.
+  Panel open/close funnel through _update_back_button.
+  Verified: lint 36, regression 56/56 (small chunks -- the 180 s cap
+  ate the old 19-test chunks), probe_round2_ui 20/20 with ZERO script
+  errors, probe_terrain_planet 22/22, probe_boot_loader_rect 4/4,
+  probe_globe_world 23/23, test_splash_to_play 17/17 (xvfb).
