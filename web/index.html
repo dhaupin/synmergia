@@ -153,12 +153,28 @@
 			var cfg = GODOT_CONFIG;
 			cfg.mainPack = packUrl;
 			var progressSeen = false;
+			var lastPct = -1;
+			// The launcher reads progress from BOTH surfaces: the Engine
+			// config (onProgress at config level) and startGame options.
+			// Setting only the startGame option let some exports read the
+			// config-level key instead (play-day round 6: the pre-game
+			// loader showed no percent). Wire both; whichever surface the
+			// engine honors, the bar moves.
+			var onProg = function (current, total) {
+				progressSeen = progressSeen || current > 0;
+				if (current > 0 && total > 0) {
+					var pct = Math.round((current / total) * 100);
+					if (pct !== lastPct) {
+						lastPct = pct;
+						barFill.style.width = pct + "%";
+						loadingText.textContent = "Loading Synmergia... " + pct + "% (" + (current / 1048576).toFixed(1) + " / " + (total / 1048576).toFixed(1) + " MB)";
+					}
+				}
+			};
+			cfg.onProgress = onProg;
 			var engine = new Engine(cfg);
 			engine.startGame({
-				"onProgress": function (current, total) {
-					progressSeen = progressSeen || current > 0;
-					setProgress(current, total);
-				},
+				"onProgress": onProg,
 			}).then(function () {
 				loading.classList.add("hidden");
 				canvas.focus();

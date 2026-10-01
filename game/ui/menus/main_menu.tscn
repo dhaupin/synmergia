@@ -57,18 +57,11 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_constants/separation = 20
 
-[node name="PlayButton" type="Button" parent="MenuButtons"]
+[node name="StartButton" type="Button" parent="MenuButtons"]
 layout_mode = 2
 focus_mode = 2
-text = "Play"
-accessible_string = "Enter the game world and play"
-accessible_description = "Press Enter or click to start playing"
-
-[node name="AccountButton" type="Button" parent="MenuButtons"]
-layout_mode = 2
-focus_mode = 2
-text = "Account"
-accessible_string = "Open the account login screen"
+text = "Start"
+accessible_string = "Start playing"
 accessible_description = "Press Enter or click to log in, register, or play as a guest"
 
 [node name="QuitButton" type="Button" parent="MenuButtons"]
@@ -93,6 +86,5 @@ text = "Version 0.0.1"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[connection signal="pressed" from="MenuButtons/PlayButton" to="." method="_on_play_pressed"]
-[connection signal="pressed" from="MenuButtons/AccountButton" to="." method="_on_account_pressed"]
+[connection signal="pressed" from="MenuButtons/StartButton" to="." method="_on_start_pressed"]
 [connection signal="pressed" from="MenuButtons/QuitButton" to="." method="_on_quit_pressed"]

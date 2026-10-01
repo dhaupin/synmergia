@@ -518,10 +518,36 @@ func _build_player() -> void:
 	var static_lift: float = STREAMER_TILE_LIFT if planet_radius > PLANAR_SHELL_MAX_R else 0.0
 	var spawn_terrain: float = (streamer.terrain_h(_spawn_dir()) if streamer else 0.0) \
 		if planet_radius > PLANAR_SHELL_MAX_R else 0.0
+	# SEA GUARD (play-test round 6, item 4): the spawn plaza flattens to
+	# SPAWN_HEIGHT (9 m) and the sea line tops out at SEA_LEVEL_MIN +
+	# SEA_LEVEL_SPAN (7 m), so the boot can never legally land in water.
+	# Enforce it here anyway -- a future const drift or seed-rule change
+	# must fail LOUD (log + lifted boot) instead of quietly drowning the
+	# player ("I spawned on the ocean, green above me").
+	if planet_radius > PLANAR_SHELL_MAX_R:
+		var Gen4Spawn = load("res://scenes/worlds/terrain_gen.gd")
+		var sea_at_spawn: float = Gen4Spawn.sea_level(streamer.world_seed) if streamer else 0.0
+		if spawn_terrain < sea_at_spawn:
+			if get_node_or_null("/root/GameLog"):
+				get_node_or_null("/root/GameLog").error(
+					"GlobeWorld: spawn height %.1f m is BELOW the sea line %.1f m -- lifting the boot onto dry land. Fix the terrain law (SPAWN_HEIGHT vs sea band)." % [spawn_terrain, sea_at_spawn])
+			spawn_terrain = sea_at_spawn + 1.0
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var spawn: Vector3 = Sph.spherical_to_cartesian(
 		SPAWN_LAT_DEG, SPAWN_LON_DEG, PLAYER_SKIN, planet_radius + static_lift + spawn_terrain)
 	player.position = spawn
+	# Boot truth line (round-6 follow-up): one always-on log so the next
+	# play-test report can settle "spawned in the ocean" with the spawn
+	# height vs the sea line in black and white. Prototype globes run
+	# terrain-off (no water exists there), so say so instead of reading
+	# like an underwater boot.
+	if get_node_or_null("/root/GameLog"):
+		if planet_radius > PLANAR_SHELL_MAX_R:
+			get_node_or_null("/root/GameLog").info(
+				"GlobeWorld: boot at lat %.1f lon %.1f, walk surface %.1f m (sea line %.1f m)" % [SPAWN_LAT_DEG, SPAWN_LON_DEG, spawn_terrain, (load("res://scenes/worlds/terrain_gen.gd").sea_level(streamer.world_seed) if streamer else 0.0)])
+		else:
+			get_node_or_null("/root/GameLog").info(
+				"GlobeWorld: boot at lat %.1f lon %.1f (prototype globe, terrain off)" % [SPAWN_LAT_DEG, SPAWN_LON_DEG])
 	player.planet_radius = planet_radius
 	player.ground_offset = static_lift
 	add_child(player)
