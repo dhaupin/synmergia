@@ -141,20 +141,39 @@
 			return;
 		}
 
-		var progressSeen = false;
-		var engine = new Engine(GODOT_CONFIG);
-		engine.startGame({
-			"onProgress": function (current, total) {
-				progressSeen = progressSeen || current > 0;
-				setProgress(current, total);
-			},
-		}).then(function () {
-			loading.classList.add("hidden");
-			canvas.focus();
-		}).catch(function (err) {
-			console.error(err);
-			fail(err && err.message ? err.message : "Engine failed to start.");
-		});
+		// Content-addressed pack (same contract as web/game.html): read
+		// game.pck.hash (CI rewrites it on every content change) and point
+		// mainPack at game.pck?v=<hash>. The filename never mutates -- the
+		// query string makes the URL unique per build, so the browser caches
+		// each pack exactly once and refreshes re-validate ~65 bytes, never
+		// the multi-MB pack. On any hash failure: the bare path (server
+		// then decides caching), never a hard block.
+		function startWithPack(packUrl) {
+			var cfg = GODOT_CONFIG;
+			cfg.mainPack = packUrl;
+			var progressSeen = false;
+			var engine = new Engine(cfg);
+			engine.startGame({
+				"onProgress": function (current, total) {
+					progressSeen = progressSeen || current > 0;
+					setProgress(current, total);
+				},
+			}).then(function () {
+				loading.classList.add("hidden");
+				canvas.focus();
+			}).catch(function (err) {
+				console.error(err);
+				fail(err && err.message ? err.message : "Engine failed to start.");
+			});
+		}
+
+		fetch('game.pck.hash', { cache: 'no-cache' })
+			.then((r) => (r.ok ? r.text() : Promise.reject(new Error('no hash'))))
+			.then((h) => {
+				const hash = h.trim();
+				startWithPack(hash !== '' ? 'game.pck?v=' + encodeURIComponent(hash) : 'game.pck');
+			})
+			.catch(() => startWithPack('game.pck'));
 
 		// The watchdog: only fires when NOTHING ever progressed (a stalled
 		// download or a blocked asset). A slow pck that shows % never trips.
