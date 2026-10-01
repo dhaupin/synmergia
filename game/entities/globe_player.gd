@@ -33,6 +33,10 @@ var planet_radius: float = 100.0
 ## the local player's node by it; harmless on scripts that never join
 ## an instance).
 var entity_id: String = ""
+## This body's inventory bag (round 7: the globe world had no bag at
+## all -- the starter kit had nothing to land in and panels rendered
+## empty). Created + registered in _setup_inventory_bag().
+var _inventory_bag = null
 ## S8: world-space position of the PLANET CENTER. The scene keeps the
 ## PLAYER near the world origin (floating origin); the planet moves.
 ## All radial quantities derive from (global_position - planet_center).
@@ -233,6 +237,13 @@ func _ready() -> void:
 	# that forgets to wire the mask still gets one-law collision.
 	collision_layer = 1
 	collision_mask = collision_mask | 2
+	# INVENTORY BAG (round 7, item 3): the globe body never carried one,
+	# so the globe world had NO inventory loop at all -- no bag for the
+	# starter kit to land in (tabs rendered blank), nothing to receive
+	# loot. Same wiring the planar controller does: create the bag,
+	# stamp the id, register it with InventoryService. All resolves are
+	# defensive (script-mode probes have no autoloads mounted).
+	_setup_inventory_bag()
 	# Touch auto-sprint: the joystick flips the same sprint flag the
 	# keyboard SHIFT does (defensive: headless/script contexts have no
 	# joystick mounted).
@@ -256,6 +267,40 @@ func _ready() -> void:
 
 func _on_sprint_override(active: bool) -> void:
 	_sprint_override_on = active
+
+## Create + register the inventory bag (round-7 item 3). Deferred id
+## stamp like the anticheat stamp: the scene fills entity_id after
+## add_child, so registration uses the FINAL id exactly once.
+func _setup_inventory_bag() -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var root_node: Node = (ml as SceneTree).root
+	var InvComp = load("res://core/components/inventory_component.gd")
+	var InvSvc = root_node.get_node_or_null("InventoryService")
+	if _inventory_bag == null and InvComp != null:
+		var bag = InvComp.new()
+		bag.name = "InventoryComponent"
+		add_child(bag)
+		_inventory_bag = bag
+	# The world scene assigns entity_id right after add_child(this);
+	# stamp + register a moment later so the id is final. StarterKit
+	# defers its grant while the bag is absent, so a 0.1 s delay is
+	# inside its retry window.
+	var tree := ml as SceneTree
+	if tree != null:
+		tree.create_timer(0.1).timeout.connect(func(): _register_bag())
+
+func _register_bag() -> void:
+	if _inventory_bag == null or not is_instance_valid(_inventory_bag):
+		return
+	if entity_id == null or str(entity_id) == "":
+		entity_id = "globe_player_1"
+	_inventory_bag.set_owner_id(str(entity_id))
+	var root_node: Node = Engine.get_main_loop().root
+	var InvSvc = root_node.get_node_or_null("InventoryService")
+	if InvSvc != null and InvSvc.has_method("register_inventory"):
+		InvSvc.register_inventory(str(entity_id), _inventory_bag)
 
 ## Deferred stamp so entity_id is final (the planar controller's
 ## pattern). Defensive: missing AC is a no-op (deep script mode).

@@ -267,4 +267,10 @@ func _blob_to_character_data(blob: Dictionary) -> CharacterData:
 	cd.character_id = blob.get("character_id", "")
 	cd.level = int(blob.get("level", 1))
 	cd.zone_id = blob.get("zone_id", "zone_starter_plains")
+	# Hydrate schema refs like character_select does (lines ~94-95):
+	# get_stats() self-heals class_data lazily, but species stat
+	# modifiers are skipped when species_data is null, and panels
+	# that read class_data directly would see nothing.
+	cd.species_data = CharacterData.load_species(cd.species_id)
+	cd.class_data = CharacterData.load_class(cd.class_id)
 	return cd

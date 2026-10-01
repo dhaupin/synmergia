@@ -86,6 +86,11 @@ var player  # GlobeWorldPlayer; untyped on purpose - set_script + dynamic
 ## (feedback #5 -- one cohesive playable-HUD system loaded the same way
 ## on every playable scene).
 var hud: CanvasLayer = null
+## Spawn-truth throttle (round 7, item 4): the on-screen lat/lon/
+## height line refreshes twice a second, not every physics tick.
+var _truth_accum: float = 0.0
+## The truth line itself (built into the playable HUD CanvasLayer).
+var _truth_label: Label = null
 
 
 func _ready() -> void:
@@ -114,6 +119,14 @@ func _ready() -> void:
 	player.planet_center = planet_center
 	_install_hud()
 	_setup_touch_hud()
+	# SPAWN TRUTH (play-test round 7, item 4): the Android reporter
+	# cannot read GameLog, so the boot/terrain truth also lives ON
+	# SCREEN -- one small line, top-right of the playable HUD: lat/lon,
+	# ground height, sea line. The next "I spawned on the ocean" report
+	# settles WHERE and WHETHER with one glance (WET vs dry). Built
+	# HERE, after _install_hud(): _build_player runs before the HUD
+	# exists, and the line parents into it.
+	_build_spawn_truth()
 
 
 ## S8 floating-origin rebase: when the player has drifted SHIFT_RADIUS
@@ -220,7 +233,7 @@ func terrain_h_at(wpos: Vector3) -> float:
 	return streamer.terrain_h((wpos - planet_center).normalized())
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if player == null:
 		return
 	# Pad first: the player's move_and_slide this frame must find
@@ -234,6 +247,13 @@ func _physics_process(_delta: float) -> void:
 		# floating-origin shifts).
 		streamer.update(player.global_position - planet_center)
 	_maybe_shift_world()
+	# SPAWN TRUTH (round 7, item 4): keep the on-screen position line
+	# fresh at 2 Hz. No-op until _build_spawn_truth() made the label
+	# (terrain globes with a playable HUD only).
+	_truth_accum += delta
+	if _truth_accum >= 0.5:
+		_truth_accum = 0.0
+		_update_spawn_truth()
 
 
 func _build_shell() -> void:
@@ -532,6 +552,18 @@ func _build_player() -> void:
 				get_node_or_null("/root/GameLog").error(
 					"GlobeWorld: spawn height %.1f m is BELOW the sea line %.1f m -- lifting the boot onto dry land. Fix the terrain law (SPAWN_HEIGHT vs sea band)." % [spawn_terrain, sea_at_spawn])
 			spawn_terrain = sea_at_spawn + 1.0
+	# IDENTITY (round 7, item 3): the planar world stamps its player's
+	# entity_id before registration; the globe never did, so the body
+	# had no id to register a bag under and the starter kit had no
+	# owner. Prefer the selected character's id (the account flow's
+	# identity), fall back to the planar scene's local id.
+	if str(player.entity_id) == "":
+		var gm_id = get_node_or_null("/root/GameManager")
+		var cd_id = (gm_id.selected_character_data if gm_id != null and "selected_character_data" in gm_id else null)
+		if cd_id != null and "character_id" in cd_id and str(cd_id.character_id) != "":
+			player.entity_id = str(cd_id.character_id)
+		else:
+			player.entity_id = "player_1"
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var spawn: Vector3 = Sph.spherical_to_cartesian(
 		SPAWN_LAT_DEG, SPAWN_LON_DEG, PLAYER_SKIN, planet_radius + static_lift + spawn_terrain)
@@ -560,6 +592,74 @@ func _build_player() -> void:
 		sky_sun.get_parent().remove_child(sky_sun)
 		player.add_child(sky_sun)
 	player.begin_loop()
+	# WORLD ENTRY (round 7, item 3): world_playable emits
+	# player_entered_world so StarterKitService grants the kit; the
+	# globe scene never did -- players spawned with an empty bag and
+	# the character/eq tabs rendered blank. Same emission, defensively
+	# resolved (script-mode probes mount no autoloads).
+	_notify_world_entry()
+
+
+## Emit player_entered_world exactly once per boot for the local globe
+## player (StarterKitService listens and grants the kit into the bag
+## the player just registered -- one frame later, via its own
+## _register_bag deferral).
+func _notify_world_entry() -> void:
+	var gm = get_node_or_null("/root/GameManager")
+	if gm == null or not gm.has_method("notify_player_entered_world"):
+		return
+	var cd = gm.selected_character_data if "selected_character_data" in gm else null
+	var player_id := str(player.entity_id) if player != null and "entity_id" in player else ""
+	if player_id.is_empty():
+		return
+	gm.notify_player_entered_world(player_id, cd)
+
+
+## Build the on-screen spawn-truth line into the playable HUD (round
+## 7, item 4). Terrain globes only: prototype globes run terrain-off
+## (no sea exists there), and probes mount no HUD. Silent no-op when
+## either is missing.
+func _build_spawn_truth() -> void:
+	if planet_radius <= PLANAR_SHELL_MAX_R or streamer == null or hud == null:
+		return
+	var label := Label.new()
+	label.name = "SpawnTruthLabel"
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	label.add_theme_constant_override("outline_size", 4)
+	label.text = ""
+	# Top-right, growing leftward: the menu bar owns the top-left and
+	# the touch joystick owns the bottom-left.
+	label.anchor_left = 1.0
+	label.anchor_right = 1.0
+	label.offset_left = -420.0
+	label.offset_right = -12.0
+	label.offset_top = 8.0
+	label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hud.add_child(label)
+	_truth_label = label
+	_update_spawn_truth()
+
+
+## Refresh the spawn-truth line from the player's live position:
+## lat/lon (same convention as the boot log), ground height at the
+## player's direction, and the sea line. WET tints the line amber so
+## an ocean report is self-evident from a screenshot.
+func _update_spawn_truth() -> void:
+	if _truth_label == null or player == null or streamer == null:
+		return
+	var Sph = load("res://core/frame/math/spherical.gd")
+	var dir: Vector3 = (player.global_position - planet_center).normalized()
+	var ll: Vector2 = Sph.cartesian_to_spherical(dir * planet_radius, planet_radius)
+	var Gen4 = load("res://scenes/worlds/terrain_gen.gd")
+	var ground: float = streamer.terrain_h(dir)
+	var sea: float = Gen4.sea_level(streamer.world_seed)
+	var wet: bool = ground < sea
+	_truth_label.text = "lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s" % \
+		[ll.x, ll.y, ground, sea, "WET" if wet else "dry"]
+	_truth_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2, 0.95) if wet else Color(1, 1, 1, 0.85))
 
 
 ## Drive the auto-walk for `seconds` of wall-clock physics, then stop.

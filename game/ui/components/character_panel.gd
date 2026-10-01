@@ -868,10 +868,17 @@ func _resolve_inventory():
 		if inv != null:
 			return inv
 	var player := _get_local_player()
-	if player != null and "inventory" in player:
-		var comp = player.get("inventory")
-		if comp is InventoryComponent:
-			return comp
+	if player != null:
+		# The planar controller and the globe body both name their bag
+		# inventory_component (a registered InventoryComponent child).
+		if "inventory_component" in player:
+			var comp = player.get("inventory_component")
+			if comp is InventoryComponent:
+				return comp
+		# Defensive: a bag child node works too.
+		var bag = player.get_node_or_null("InventoryComponent")
+		if bag is InventoryComponent:
+			return bag
 	return null
 
 func refresh_stats() -> void:

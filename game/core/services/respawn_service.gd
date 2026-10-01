@@ -753,6 +753,23 @@ func _get_ankh_by_id(ankh_id: String) -> Ankh:
 
 ## Internal: Get default respawn position
 func _get_default_respawn_position(player) -> Vector3:
+	# GLOBE (play-test round 7, item 4): planar zone coords are
+	# meaningless on a spherical world -- a Vector3 from a zone .tres
+	# decodes to a point that is almost never ON the shell (arbitrary
+	# ocean or deep inside the planet). Respawn ON the walk surface at
+	# the body's own direction instead: the exact resting law
+	# globe_player uses for its radial snap (radius + ground offset +
+	# skin + terrain lift), so the body is already glued where its own
+	# snap law wants it the frame after respawn. No streamer, no seed,
+	# no scene coupling needed. Dry-land deaths respawn dry; the boot
+	# spawn sea guard in globe_world keeps the plaza case honest.
+	if player != null and player.has_method("planet_up"):
+		var up: Vector3 = player.planet_up()
+		var lift: float = 0.0
+		if "snap_height_provider" in player and player.snap_height_provider.is_valid():
+			lift = player.snap_height_provider.call(player.global_position)
+		var rest_r: float = player.planet_radius + player.ground_offset + player.SKIN + lift
+		return player.planet_center + up * rest_r
 	# Get zone spawn point from ZoneManager
 	if ZoneManager:
 		var zone := ZoneManager.get_entity_zone(player)
