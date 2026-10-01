@@ -1189,6 +1189,27 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   data (world_id) and gate the four read paths;
   (3) xfail-in-headless is fine, but document WHY in the test
   header (viewport size) or the next agent re-hunts the ghost.
+- [x] PLAYTEST FOLLOW-UPS (2026-10-01): (1) SLIDE END LAW: a slide
+  ends back into the RUN (not crouch) -- held sprint flows straight
+  out of the slide; the crouch tap is now ONE chain: bail-while-
+  sliding > engage-while-sprinting > toggle otherwise. (2) GLIDER
+  LIVE ON THE GLOBE: the S12 machine was wired but two gaps --
+  altitude measured against the static lift only, so terrain made
+  every hill read as airborne (the wing auto-popped on a 9 m plaza;
+  dbg-walk caught the body GLIDING at spawn). Altitude now measures
+  against the WALK SURFACE law (provider), the same law everything
+  else reads. Plus: manual deploy/stow (jump tap mid-fall/mid-glide,
+  the primitive's grace window), dive pitch from camera look
+  (7->16 m/s, the look stick IS the pitch stick). (3) ROUND-2
+  REGRESSION CAUGHT: the sprint-override hook had swallowed the
+  glider init + anticheat stamp inside _on_sprint_override --
+  probe_glider (previously not in DEFAULT_SET) failed 'body carries
+  a state machine'; _ready owns its chain again. LESSON: when a
+  probe exists and starts failing after unrelated edits, that is
+  the system talking -- add it to DEFAULT_SET (now 58 with
+  probe_glider) instead of trusting old green runs. VERIFIED:
+  glider 10, globe 23, terrain planet 21, 20 km 25, climb, lava-
+  clean regression 57 + glider, lint 36/36, xvfb touch 17/17.
 - [x] TERRAIN ARC V1 SHIPPED (2026-10-01, owner: "we should add
   terrain ... hills, valleys, mountains, plains, rivers, lakes ...
   then oceans ... the continent and a smaller island ... hook up the
