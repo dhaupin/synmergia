@@ -139,7 +139,12 @@ func _handle_tab_cycling(shift: bool) -> void:
 func _handle_escape() -> void:
 	if not _mm:
 		return
-	if _mm.has_method("close_top_menu"):
+	# Round 8: ESC runs the FULL back stack (panel -> menu bar -> exit
+	# confirm), same as Android back and the web browser back bridge --
+	# one gesture, one law, all entry points.
+	if _mm.has_method("request_back_internal"):
+		_mm.request_back_internal()
+	elif _mm.has_method("close_top_menu"):
 		_mm.close_top_menu()
 	elif _mm.has_method("close_all_menus"):
 		_mm.close_all_menus()

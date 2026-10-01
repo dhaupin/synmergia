@@ -58,6 +58,7 @@ func _ready() -> void:
 	_setup_hud()
 	_initialize_panels()
 	_connect_signals()
+	_install_web_back_bridge()
 
 func _setup_accessibility() -> void:
 	# MenuManager is CanvasLayer, apply accessibility to child containers
@@ -485,6 +486,14 @@ static func close_top_menu() -> void:
 	if instance:
 		instance._close_top_menu_internal()
 
+## The back gesture (play-test round 8, item 13): Android system back,
+## the web browser back bridge, and ESC all funnel here. One stack:
+## close the top panel, then collapse the expanded menu bar, then ask
+## before leaving the world for character select.
+static func request_back() -> void:
+	if instance:
+		instance.request_back_internal()
+
 static func close_all_menus() -> void:
 	if instance:
 		instance._close_all_menus_internal()
@@ -597,6 +606,157 @@ func _close_top_menu_internal() -> void:
 	var panel: Control = _get_panel(top)
 	if panel:
 		_close_panel(top, panel)
+
+
+## ---------- BACK STACK (play-test round 8, item 13) ----------
+## One gesture, one law, three entry points: ESC (HudHotkeys), Android
+## system back (NOTIFICATION_WM_GO_BACK_REQUEST below), and the web
+## browser back bridge (installed in _ready, web builds only).
+## Stack: topmost panel -> expanded menu bar -> exit confirm.
+
+## The modal overlay (dim + centered box) while the exit question is
+## up. Null when closed.
+var _exit_confirm: Control = null
+## JS callback object for the web popstate bridge (untyped: the
+## JavaScriptObject type does not exist on non-web builds and a typed
+## declaration would break desktop parsing).
+var _web_back_cb = null
+
+func request_back_internal() -> void:
+	# 1) A live exit-confirm swallows the next back (dismiss it).
+	if _exit_confirm != null and is_instance_valid(_exit_confirm):
+		_hide_exit_confirm()
+		return
+	# 2) Topmost open panel closes first.
+	if not _open_panels.is_empty():
+		_close_top_menu_internal()
+		return
+	# 3) The expanded menu bar collapses before the exit question.
+	var bar := _find_menu_bar()
+	if bar != null and bar.get("_is_expanded") == true:
+		if bar.has_method("hide_expanded"):
+			bar.hide_expanded()
+		return
+	# 4) Nothing left to close: ask before leaving the world.
+	_show_exit_confirm()
+
+func _find_menu_bar() -> Node:
+	var bar := get_node_or_null("MainMenuBar")
+	if bar != null:
+		return bar
+	return find_child("MainMenuBar", true, false)
+
+func _show_exit_confirm() -> void:
+	if _exit_confirm != null and is_instance_valid(_exit_confirm):
+		return
+	# Modal dim; ColorRect's default mouse filter blocks the game
+	# behind it. CenterContainer does the centering (never hand-place a
+	# center-anchored box -- the frozen-offsets trap from round 7).
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	dim.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var box := PanelContainer.new()
+	box.custom_minimum_size = Vector2(520, 0)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 16)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	var title := Label.new()
+	title.text = "Leave the world?"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 26)
+	var body := Label.new()
+	body.text = "Exit to the character select screen? Your progress stays saved."
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_font_size_override("font_size", 16)
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 16)
+	var stay := Button.new()
+	stay.text = "Keep Playing"
+	stay.custom_minimum_size = Vector2(200, 54)
+	stay.add_theme_font_size_override("font_size", 19)
+	var leave := Button.new()
+	leave.text = "Exit"
+	leave.custom_minimum_size = Vector2(150, 54)
+	leave.add_theme_font_size_override("font_size", 19)
+	buttons.add_child(stay)
+	buttons.add_child(leave)
+	v.add_child(title)
+	v.add_child(body)
+	v.add_child(buttons)
+	margin.add_child(v)
+	box.add_child(margin)
+	center.add_child(box)
+	dim.add_child(center)
+	add_child(dim)
+	_exit_confirm = dim
+	stay.pressed.connect(_hide_exit_confirm)
+	leave.pressed.connect(_exit_to_character_select)
+
+func _hide_exit_confirm() -> void:
+	if _exit_confirm != null and is_instance_valid(_exit_confirm):
+		_exit_confirm.queue_free()
+	_exit_confirm = null
+
+func _exit_to_character_select() -> void:
+	_hide_exit_confirm()
+	var gm = get_node_or_null("/root/GameManager")
+	if gm != null and gm.has_method("change_state"):
+		gm.change_state(gm.GameState.CHARACTER_SELECT)
+
+func _notification(what: int) -> void:
+	# Android system back (native builds): same stack as ESC/web back.
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		request_back_internal()
+
+## Install the web back bridge: browser back pops history and would
+## LEAVE the game. Push a sentinel history entry at HUD install; every
+## popstate re-pushes it and fires request_back_internal() instead.
+## Web-only and defensive: JavaScriptBridge is absent on other builds,
+## so this resolves it through Engine (never a bare identifier -- that
+## broke script-mode parsing before).
+func _install_web_back_bridge() -> void:
+	if _web_back_cb != null:
+		return
+	if not Engine.has_singleton("JavaScriptBridge"):
+		return
+	var js = Engine.get_singleton("JavaScriptBridge")
+	if js == null or not js.has_method("create_callback"):
+		return
+	_web_back_cb = js.create_callback(_on_web_back)
+	var win = js.get_interface("window")
+	if win == null:
+		_web_back_cb = null
+		return
+	win.synmergiaBackCallback = _web_back_cb
+	js.eval("""
+		if (!window.synmergiaBackInstalled) {
+			window.synmergiaBackInstalled = true;
+			history.pushState({synmergia: 1}, '');
+			window.addEventListener('popstate', function () {
+				history.pushState({synmergia: 1}, '');
+				if (window.synmergiaBackCallback) {
+					window.synmergiaBackCallback();
+				}
+			});
+		}
+	""", true)
+
+func _on_web_back(_args: Array) -> void:
+	request_back_internal()
+
+## ---------- END BACK STACK ----------
 
 func _close_all_menus_internal() -> void:
 	for panel_name in _open_panels:
