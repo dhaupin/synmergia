@@ -368,6 +368,16 @@ static func is_high_contrast_enabled() -> bool:
 
 ## Get text scale (reads from PlayerConfig or OS)
 static func get_text_scale() -> float:
+	# Mobile bump (play-test round 6, item 8): everything read tiny on
+	# phones. The canvas_items stretch scales layout but fonts stay at
+	# their design size, so the text layer scales up on touch devices
+	# -- same detection InputManager uses for the touch HUD (web +
+	# touchscreen, or a native mobile OS). Desktop keeps 1.0. The HUD
+	# widgets (buff bar, action bar, panels) already multiply their
+	# fonts by this value.
+	if DisplayServer.is_touchscreen_available() \
+			and (OS.has_feature("web") or OS.has_feature("mobile")):
+		return 1.3
 	return 1.0
 
 ## Get animation duration (0 if reduce motion enabled)

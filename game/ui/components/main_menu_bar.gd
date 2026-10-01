@@ -362,8 +362,15 @@ func _create_expanded_panel() -> void:
 	scroll_frame.custom_minimum_size = Vector2(208, minf(item_heights, max_menu_h))
 	scroll_frame.set_content(_menu_items)
 	_expanded_panel.add_child(scroll_frame)
-
 	add_child(_expanded_panel)
+	# Adopt into MenuManager's layer (round-6 fix for "menu still under
+	# chat z layer"): chat is a child of MenuManager's CanvasLayer 20,
+	# while MainMenuBar itself is scene-placed on HudLayer's root
+	# CanvasLayer 10. CanvasLayer ordering always beats z_index, so no
+	# z value under layer 10 could ever cover chat's z 300. Same
+	# adoption the settings panel uses; the visual position is
+	# viewport-relative and unchanged.
+	_adopt_expanded_into_menu_manager()
 
 func _create_menu_item(panel_id: String, text: String, hotkey: String, icon: String = "", is_special: bool = false) -> Button:
 	var btn := Button.new()
@@ -639,3 +646,26 @@ func update_admin_debug_visibility(is_admin_or_mod: bool, is_dev_mode: bool) -> 
 	_is_admin_or_mod = is_admin_or_mod
 	_is_dev_mode = is_dev_mode
 	_refresh_admin_debug_visibility()
+
+
+## The expanded menu is a child of MainMenuBar (scene-placed on
+## HudLayer's root CanvasLayer 10), but chat lives on MenuManager's
+## CanvasLayer 20. CanvasLayer order always beats z_index, so the
+## round-5 z=350 could never beat chat's z=300 (play-test round 6:
+## "menu is still underneath chat z layer"). Re-parent the expanded
+## panel into MenuManager's layer -- the settings-panel adoption
+## pattern, deferred one frame and written without ternaries (the
+## headless probe aborts _ready on an unguarded autoload read).
+func _adopt_expanded_into_menu_manager() -> void:
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var mm = load("res://ui/components/menu_manager.gd").instance
+	if mm == null or not is_instance_valid(mm):
+		return
+	if _expanded_panel == null or not is_instance_valid(_expanded_panel):
+		return
+	if _expanded_panel.get_parent() == mm:
+		return
+	_expanded_panel.get_parent().remove_child(_expanded_panel)
+	mm.add_child(_expanded_panel)

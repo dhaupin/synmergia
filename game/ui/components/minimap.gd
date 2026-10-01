@@ -56,6 +56,10 @@ signal waypoint_set(position: Vector3)
 signal ping_sent(position: Vector3)
 signal quest_track_requested(quest_id: String)
 signal map_clicked(world_position: Vector3)
+## Emitted when the map button is pressed (opens the full WorldMap).
+## hud_layer wires this to WorldMap.toggle (round-6: the button never
+## existed before -- the connect was a silent has_signal no-op).
+signal map_button_pressed
 
 func _ready() -> void:
 	_setup_ui()
@@ -220,12 +224,40 @@ func _setup_ui() -> void:
 	_layer_toggle_container = HBoxContainer.new()
 	_layer_toggle_container.name = "LayerToggles"
 	_layer_toggle_container.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_layer_toggle_container.offset_bottom = -2
+	# A zero-size control + only an offset_bottom left this row at a
+	# NEGATIVE height: the toggles rendered 0 px tall -- "minimap
+	# buttons aren't there" (play-test round 6). Pin a real 20 px strip
+	# above the bottom edge instead.
+	_layer_toggle_container.offset_top = -26
+	_layer_toggle_container.offset_bottom = -6
 	_layer_toggle_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	_layer_toggle_container.add_theme_constant_override("separation", 2)
+	_layer_toggle_container.add_theme_constant_override("separation", 1)
 	map_container.add_child(_layer_toggle_container)
 
 	_build_layer_toggles()
+
+	# World Map button (round-6, item 9): the full map had NO opener --
+	# hud_layer connected a map_button_pressed signal that never existed
+	# (a silent has_signal no-op). A real button at the end of the toggle
+	# row emits it; hud_layer toggles the WorldMap. Keyboard users have
+	# the M hotkey; this is the visible (touch) path.
+	var map_btn := Button.new()
+	map_btn.name = "MapButton"
+	map_btn.text = "M"
+	map_btn.tooltip_text = "Open World Map (M)"
+	map_btn.custom_minimum_size = Vector2(20, 20)
+	map_btn.focus_mode = Control.FOCUS_ALL
+	map_btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(3, false))
+	var map_style := StyleBoxFlat.new()
+	map_style.bg_color = Color(0.1, 0.1, 0.15, 0.9)
+	map_style.border_color = UIStyles.COLORS.accent_gold
+	map_style.set_border_width_all(1)
+	map_style.set_corner_radius_all(3)
+	map_btn.add_theme_stylebox_override("normal", map_style)
+	map_btn.add_theme_stylebox_override("hover", map_style)
+	map_btn.add_theme_stylebox_override("pressed", map_style)
+	map_btn.pressed.connect(func(): map_button_pressed.emit())
+	_layer_toggle_container.add_child(map_btn)
 
 	# Zoom slider
 	_zoom_slider = HSlider.new()
@@ -312,7 +344,7 @@ func _build_layer_toggles() -> void:
 		btn.text = layer.label
 		btn.toggle_mode = true
 		btn.button_pressed = layer.default
-		btn.custom_minimum_size = Vector2(22, 22)
+		btn.custom_minimum_size = Vector2(20, 20)
 		btn.tooltip_text = layer.tooltip
 		btn.focus_mode = Control.FOCUS_ALL
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(3, false))

@@ -48,6 +48,22 @@ func _ready() -> void:
 	_show_tab(Tab.INVENTORY)
 
 
+## Populate on open (play-test round 6, item 5: every tab rendered
+## empty). hud_services pushes character data on state changes, but a
+## panel opened before that push (or in single-player contexts where
+## the push never fires) rendered only skeletons. Self-resolve here:
+## GameManager's selected character when the panel holds none, then
+## refresh every tab so there is always real content on screen.
+func _on_open() -> void:
+	if _char_data == null and GameManager and "selected_character_data" in GameManager:
+		var data = GameManager.selected_character_data
+		if data != null:
+			_char_data = data
+	refresh_inventory()
+	refresh_stats()
+	refresh_skills()
+
+
 func _setup_accessibility() -> void:
 	focus_mode = Control.FOCUS_ALL
 	# Apply default accessibility settings via the settings updater.
@@ -368,6 +384,7 @@ func _create_equip_slot_row(slot_data: Dictionary) -> HBoxContainer:
 
 	# Slot button
 	var slot_btn := Button.new()
+	slot_btn.name = "SlotButton"
 	slot_btn.text = "[Empty]"
 	slot_btn.custom_minimum_size = Vector2(120, 40)
 	slot_btn.pressed.connect(_on_equip_slot_clicked.bind(slot_data.id))
@@ -755,9 +772,107 @@ func _create_skill_slot(index: int, category: String) -> PanelContainer:
 func refresh_inventory() -> void:
 	if _char_data == null:
 		return
-	# Equipment slots will be populated from InventoryService
-	# For now, just refresh the grid if it exists
+	_refresh_inventory_grid()
 	_refresh_equipment_display()
+
+## Fill the Inventory tab grid from the player's InventoryComponent
+## (play-test round 6, item 5: all tabs rendered empty -- refresh_inventory
+## only ever called a `pass` stub). Falls back to the character's starter
+## kit definition when no live inventory exists yet (menu-adjacent
+## contexts, single-player pre-spawn), so the tab always shows content.
+func _refresh_inventory_grid() -> void:
+	var container: ScrollContainer = _tab_contents.get(Tab.INVENTORY)
+	if not container:
+		return
+	# find_child(pattern, recursive, owned=false): the tab content is
+	# built at runtime (no editor ownership), and get_node has no glob
+	# paths -- find_child is the portable way to reach named nodes
+	# regardless of the anonymous container nesting.
+	var grid: GridContainer = container.find_child("InventoryGrid", true, false) as GridContainer
+	if grid == null:
+		return
+
+	# Untyped on purpose: _resolve_inventory() returns a Variant that
+	# may be null; := inference is a parse error on it (4.7.2).
+	var inv = _resolve_inventory()
+	# Zip by INDEX against the raw slot array (InventoryComponent slots
+	# are index-addressed; get_all_items() skips nulls and would
+	# misalign the grid).
+	var items: Array = []
+	if inv != null and "_inventory" in inv:
+		items = inv.get("_inventory")
+	var gold := 0
+	var weight := 0.0
+	var max_weight := 100.0
+	if inv != null:
+		gold = inv.get_gold()
+		weight = inv.get_current_weight()
+		max_weight = inv.get_max_weight()
+
+	var shown := 0
+	for slot in grid.get_children():
+		var idx := int(String(slot.name).trim_prefix("Slot_"))
+		var item: Item = items[idx] if idx < items.size() else null
+		var lbl: Label = slot.get_node_or_null("ItemLabel")
+		if lbl == null:
+			lbl = Label.new()
+			lbl.name = "ItemLabel"
+			lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			lbl.add_theme_font_size_override("font_size", 9)
+			lbl.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
+			slot.add_child(lbl)
+		if item != null:
+			lbl.text = item.display_name
+			lbl.visible = true
+			shown += 1
+		else:
+			lbl.text = ""
+			lbl.visible = false
+
+	var gold_lbl: Label = container.find_child("GoldLabel", true, false) as Label
+	if gold_lbl:
+		gold_lbl.text = "Gold: %d" % gold
+	var weight_lbl: Label = container.find_child("WeightLabel", true, false) as Label
+	if weight_lbl:
+		weight_lbl.text = "Weight: %d/%d" % [int(weight), int(max_weight)]
+	if shown == 0 and inv == null:
+		var hint: Label = container.find_child("EmptyHint", true, false) as Label
+		if hint == null:
+			hint = Label.new()
+			hint.name = "EmptyHint"
+			hint.text = "Inventory is empty. Items you pick up appear here."
+			hint.add_theme_font_size_override("font_size", 12)
+			hint.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+			for child in container.get_children():
+				if child is VBoxContainer:
+					(child as VBoxContainer).add_child(hint)
+					break
+
+## Resolve the player's live inventory component. Tries the typed
+## InventoryService path first, then a defensive InventoryComponent
+## lookup on the player node (the single-player scene wires the
+## component directly on the player).
+func _resolve_inventory():
+	var player_id := ""
+	if PlayerManager and PlayerManager.has_method("get_local_player_id"):
+		player_id = str(PlayerManager.get_local_player_id())
+	if player_id.is_empty() and GameManager and "selected_character_data" in GameManager:
+		var cd = GameManager.selected_character_data
+		if cd != null and "character_id" in cd:
+			player_id = str(cd.character_id)
+	if InventoryService and not player_id.is_empty():
+		var inv = InventoryService.get_inventory(player_id)
+		if inv != null:
+			return inv
+	var player := _get_local_player()
+	if player != null and "inventory" in player:
+		var comp = player.get("inventory")
+		if comp is InventoryComponent:
+			return comp
+	return null
 
 func refresh_stats() -> void:
 	if _char_data == null:
@@ -857,9 +972,48 @@ func _refresh_skills_display() -> void:
 	# For now, the UI just shows the points count
 
 func _refresh_equipment_display() -> void:
-	# This would be called when inventory changes
-	# The actual implementation would query InventoryService for equipped items
-	pass
+	# Paint every equip slot button from the live inventory (round-6
+	# item 5: this was a `pass` stub, so Equipment showed only rows of
+	# [Empty] forever). Defensive: no inventory -> slots stay [Empty].
+	var container: ScrollContainer = _tab_contents.get(Tab.EQUIP)
+	if not container:
+		return
+	var inv = _resolve_inventory()
+	var equipped: Dictionary = {}
+	if inv != null:
+		equipped = inv.get_all_equipment()
+	for slot_data in EQUIP_SLOTS:
+		var row := _find_equip_row(container, slot_data.id)
+		if row == null:
+			continue
+		var btn: Button = row.get_node_or_null("SlotButton")
+		if btn == null:
+			continue
+		var item: Item = equipped.get(slot_data.id)
+		btn.text = item.display_name if item != null else "[Empty]"
+
+## The equip rows were never named, but they were appended in
+## EQUIP_SLOTS order -- match by position and cache (tab layout is
+## static after setup).
+var _equip_row_cache: Dictionary = {}
+
+func _find_equip_row(container: ScrollContainer, slot_id: int) -> HBoxContainer:
+	if _equip_row_cache.has(slot_id) and is_instance_valid(_equip_row_cache[slot_id]):
+		return _equip_row_cache[slot_id]
+	var area := container.find_child("EquipArea", true, false)
+	if area == null:
+		return null
+	var idx := -1
+	for i in range(EQUIP_SLOTS.size()):
+		if EQUIP_SLOTS[i].id == slot_id:
+			idx = i
+			break
+	if idx < 0 or area.get_child_count() <= idx:
+		return null
+	var row: HBoxContainer = area.get_child(idx) as HBoxContainer
+	if row != null:
+		_equip_row_cache[slot_id] = row
+	return row
 
 func set_character_data(data: CharacterData) -> void:
 	_char_data = data

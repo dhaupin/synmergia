@@ -48,6 +48,11 @@ func _ready() -> void:
 	call_deferred("_setup_standard_header")
 	_apply_accessibility()
 	_apply_visual_settings()
+	# Keep-in-view guard (see _clamp_panel_to_viewport): run after the
+	# whole _ready chain so the panel's final minimum size is what gets
+	# clamped. call_deferred also re-clamps panels whose Main is built
+	# later in the subclass chain.
+	call_deferred("_clamp_panel_to_viewport")
 
 ## Play-day feedback #2 + #6: EVERY panel gets a title row with a close
 ## (X) button, and the content box expands to fill the panel (the old
@@ -469,6 +474,9 @@ func open(player_id: String) -> void:
 	_player_id = player_id
 	_is_open = true
 	visible = true
+	# Re-clamp at open time: the viewport may have changed since ready
+	# (phone rotation, resize) and the guard must hold then too.
+	_clamp_panel_to_viewport()
 	_on_open()
 	panel_opened.emit()
 	# Focus first focusable element
@@ -567,6 +575,24 @@ func set_panel_size(size: Vector2) -> void:
 	var panel := get_panel()
 	if panel:
 		panel.custom_minimum_size = size
+
+## VIEWPORT GUARD (play-test round 6, item 7): a centered panel whose
+## minimum size exceeds the viewport (700x550 settings on a phone)
+## bleeds off-screen with no way to reach the far edge. Clamp the
+## minimum to 92% of the viewport so the panel always fits; content
+## inside scrolls (ScrollFrame paths). Idempotent -- safe to call on
+## every open (orientation flips while closed are caught there).
+func _clamp_panel_to_viewport() -> void:
+	var panel := get_panel()
+	if panel == null:
+		return
+	var vp := get_viewport_rect().size
+	if vp.x <= 0.0 or vp.y <= 0.0:
+		return
+	var max_size := Vector2(vp.x * 0.92, vp.y * 0.92)
+	var min_size := panel.custom_minimum_size
+	if min_size.x > max_size.x or min_size.y > max_size.y:
+		panel.custom_minimum_size = Vector2(minf(min_size.x, max_size.x), minf(min_size.y, max_size.y))
 
 func _get_focusable_recursive(node: Node, out: Array[Control]) -> void:
 	if node is Control and node.focus_mode != FOCUS_NONE:

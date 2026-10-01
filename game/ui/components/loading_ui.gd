@@ -60,6 +60,18 @@ func _exit_tree() -> void:
 
 
 func _setup_ui() -> void:
+	# STRAY PANEL KILL (play-test round 6, item 1): the boot overlay is
+	# built with LUI.new() straight on the CanvasLayer, so no scene
+	# provides a "Panel" -- UIPanel._ready's safety net auto-built its
+	# standard centered 400x500 PanelContainer on top of the backdrop,
+	# which read as "the loading screen is contained in a panel". The
+	# overlay is ONLY the full-rect backdrop + spinner stack; any auto
+	# panel dies here (both the boot instance and the hud_layer.tscn
+	# embed run this path).
+	var stray := get_node_or_null("Panel")
+	if stray != null:
+		stray.queue_free()
+
 	# FULL-SCREEN BACKDROP: the overlay IS the Control (full rect when
 	# under BootLoadingLayer or the HUD), dimmed so the dying scene
 	# never bleeds through. mouse_filter STOP: nothing under it can be
