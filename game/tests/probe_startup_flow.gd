@@ -59,7 +59,9 @@ func _run() -> void:
 	root.add_child(panel)
 	await process_frame
 	var play_btn: Button = panel.get_node("PlayButton")
-	var species_box: HBoxContainer = panel.get_node_or_null("SpeciesScroll/List/SpeciesContainer")
+	# Round 9: the strip is an HFlowContainer now (wraps like flex on
+	# portrait devices), typed as its base FlowContainer.
+	var species_box: FlowContainer = panel.get_node_or_null("SpeciesScroll/List/SpeciesContainer")
 	_check("the card strip is inside a scroll (responsive layout)", species_box != null)
 	var cards: Array = species_box.get_children() if species_box else []
 	_check("the strip renders one card per species", cards.size() == species.size())

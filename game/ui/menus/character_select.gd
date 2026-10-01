@@ -8,6 +8,7 @@ const PersistenceStore = preload("res://adapters/persistence/persistence_store.g
 const SpeciesCard := preload("res://ui/menus/species_card.tscn")
 const ClassCard := preload("res://ui/menus/class_card.tscn")
 const CharacterData := preload("res://core/schemas/character_data.gd")
+const Responsive := preload("res://ui/components/responsive.gd")
 
 var selected_species_id: String = ""
 var selected_class_id: String = ""
@@ -15,7 +16,7 @@ var selected_class: CharacterClass
 var selected_species: Species
 var player_name: String = "Hero"
 
-@onready var species_container: HBoxContainer = $SpeciesScroll/List/SpeciesContainer
+@onready var species_container: FlowContainer = $SpeciesScroll/List/SpeciesContainer
 @onready var list_container: VBoxContainer = $SpeciesScroll/List
 @onready var play_button: Button = $PlayButton
 @onready var back_button: Button = $BackButton
@@ -37,10 +38,18 @@ func _ready() -> void:
 func _load_species() -> void:
 	for child in species_container.get_children():
 		child.queue_free()
+	# The static SPECIES header belongs to this view only.
+	if _class_header != null and is_instance_valid(_class_header):
+		_class_header.visible = false
+	if has_node("SpeciesLabel"):
+		$SpeciesLabel.visible = true
 
 	var all_species := CharacterData.get_all_species()
 	for sp in all_species:
 		var card := SpeciesCard.instantiate()
+		# RESPONSIVE (round 9): card mins adapt to the viewport class
+		# (two-up on portrait phones, base size on wide screens).
+		card.custom_minimum_size = Responsive.card_size(Vector2(300, 340))
 		species_container.add_child(card)
 		card.species_selected.connect(_on_species_card_selected)
 		card.setup(sp)
@@ -55,6 +64,11 @@ func _on_species_card_selected(species_id: String) -> void:
 func _show_class_selection() -> void:
 	for child in species_container.get_children():
 		child.queue_free()
+	# Round 9: the static SPECIES header overlapped the CLASSES header
+	# (both visible at once on the portrait screenshot). One header at
+	# a time.
+	if has_node("SpeciesLabel"):
+		$SpeciesLabel.visible = false
 	# The class header is a ROW ABOVE the card strip (the List VBox),
 	# not an inline sibling of the cards.
 	if _class_header != null and is_instance_valid(_class_header):
@@ -72,6 +86,11 @@ func _show_class_selection() -> void:
 	var all_classes := CharacterData.get_available_classes_for_species(selected_species_id)
 	for cls in all_classes:
 		var card := ClassCard.instantiate()
+		# RESPONSIVE (round 9): the class strip was a hard HBox that
+		# clipped at both edges on portrait phones; the container is now
+		# an HFlowContainer (wraps like flex) and card mins shrink so
+		# two cards share a narrow row.
+		card.custom_minimum_size = Responsive.card_size(Vector2(260, 380), 2.4)
 		species_container.add_child(card)
 		card.class_selected.connect(_on_class_selected)
 		card.setup(cls, selected_species)

@@ -60,11 +60,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="SpeciesContainer" type="HBoxContainer" parent="SpeciesScroll/List"]
+[node name="SpeciesContainer" type="HFlowContainer" parent="SpeciesScroll/List"]
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
-theme_override_constants/separation = 24
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 16
 
 [node name="BackButton" type="Button" parent="."]
 layout_mode = 1
