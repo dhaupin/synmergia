@@ -11,13 +11,16 @@
 ##   sh ./scripts/export_clients.sh --native-only  # just the Linux binary
 ##
 ## Presets (game/export_presets.cfg):
-##   "Web Default" -> ../web/game.pck                    (wasm shell loads this)
-##   "Web"         -> ../web/game.html (manual full-html export)
+##   "Web Default" -> ../web/game.pck                     (the wasm shell loads this)
+##   "Web"         -> ../builds/web-shell/game.html (stock shell; web/index.html
+##                   is the hand-maintained shell that ships -- an export
+##                   must NEVER write into web/)
 ##   "Linux"       -> ../builds/linux/synmergia.x86_64  (pck embedded)
 ##
-## itch.io demo flow: run this, then upload web/ (game.html + game.pck
-## + game.wasm + game.js stay from the last full web export; this
-## script refreshes the content pack).
+## itch.io demo flow: upload web/ (index.html + config.js + shared/
+## + game.js + game.wasm + game.pck + game.pck.hash) -- zip the
+## folder's CONTENTS and check "this file will be played on the
+## frame" -> web/index.html. This script refreshes the content pack.
 
 set -eu  # POSIX-safe (repo runs scripts with `sh`, not bash)
 

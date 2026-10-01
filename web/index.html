@@ -108,8 +108,9 @@
 		}
 
 		// Contract with game.js (Godot 4.7.2's exported launcher): it defines
-		// the Engine class; GODOT_CONFIG mirrors the generated shell
-		// (web/game.html) -- resize policy, thread pool sizes, and the
+		// the Engine class; GODOT_CONFIG mirrors Godot's generated shell
+		// (exported to builds/web-shell/ as a reference; THIS file is the
+		// shipped shell) -- resize policy, thread pool sizes, and the
 		// fileSizes that drive honest download progress. All asset
 		// references are RELATIVE so the shell works served under /web/.
 		// NOTE: initial WASM heap is baked at export time (the glue's
@@ -141,7 +142,7 @@
 			return;
 		}
 
-		// Content-addressed pack (same contract as web/game.html): read
+		// Content-addressed pack: read
 		// game.pck.hash (CI rewrites it on every content change) and point
 		// mainPack at game.pck?v=<hash>. The filename never mutates -- the
 		// query string makes the URL unique per build, so the browser caches

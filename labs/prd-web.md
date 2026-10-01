@@ -61,7 +61,7 @@ Godot Web exports consist of two distinct layers:
 
 | Component | Files | Frequency of Change | Size | Packaging Mechanism |
 |-----------|-------|---------------------|------|---------------------|
-| **Engine Runtime** | `game.wasm`, `game.js`, `game.html` | Rare (only upon Godot 4.7.2 patch updates) | ~25 MB | Exported **once** locally or via release tags. Committed or cached in `/web`. |
+| **Engine Runtime** | `game.wasm`, `game.js` | Rare (only upon Godot 4.7.2 patch updates) | ~25 MB | Exported **once** locally or via release tags. Committed or cached in `/web`. |
 | **Game Logic & Assets** | `game.pck` | High (code, scenes, resources) | ~5–15 MB | Packaged using fast PCK pack tool (`< 5 seconds`, zero engine compilation). |
 
 ### 3.3 CI Execution Rules

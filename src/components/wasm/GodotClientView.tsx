@@ -316,7 +316,7 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
 
               <div className="bg-slate-950 rounded-lg p-3 text-left font-mono text-xs text-slate-300 border border-slate-800 mb-4 overflow-x-auto">
                 <div className="text-slate-500 mb-1"># Full wasm export (needs export templates installed):</div>
-                <div className="text-amber-400">cd game &amp;&amp; godot --headless --export-release "Web" ../web/game.html</div>
+                <div className="text-amber-400">cd game &amp;&amp; godot --headless --export-release "Web" ../builds/web-shell/game.html</div>
               </div>
 
               <button

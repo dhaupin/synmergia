@@ -186,8 +186,12 @@ jobs:
         run: |
           echo "Exporting full Web build (wasm bundle)..."
           # Godot 4 removed --export; the release export is --export-release.
-          godot --headless --path game/ --export-release "Web" "../web/game.html"
-          ls -lh web/
+          # The STOCK shell exports OUTSIDE web/ (builds/web-shell/):
+          # web/index.html is the hand-maintained shell (input bridge,
+          # hash bootstrap) that the app actually serves -- a stock-shell
+          # export into web/ would silently clobber it.
+          godot --headless --path game/ --export-release "Web" "../builds/web-shell/game.html"
+          ls -lh web/ builds/web-shell/
 
       - name: Upload Web Game Artifact
         if: always()
@@ -196,7 +200,6 @@ jobs:
           name: synmergia-web-game
           path: |
             web/game.pck
-            web/game.html
             web/game.js
             web/game.wasm
             web/game.png

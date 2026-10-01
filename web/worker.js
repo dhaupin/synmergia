@@ -52,11 +52,12 @@ function proxyToApi(request, env) {
 //     Cloudflare edge-caches these (cacheEverything), so most players
 //     never even hit origin.
 //   game.pck?v=<hash>    -> immutable, 1 year (content-addressed: CI
-//     writes web/game.pck.hash on every content change and game.html
-//     appends ?v=<hash> via mainPack). Bare /game.pck 302s to the
-//     current hash so old bookmarks and direct links still resolve.
+//     writes web/game.pck.hash on every content change and BOTH shells
+//     (web/index.html, the app's game surface) append ?v=<hash> via
+//     mainPack). Bare /game.pck 302s to the current hash so old
+//     bookmarks and direct links still resolve.
 //   game.pck.hash        -> no-store (the cache-buster itself).
-//   index/game.html      -> no-store (must always pair the right
+//   index.html           -> no-store (must always pair the right
 //     wasm/pck pair). Everything else (icons, css, config) -> 1 hour.
 const IMMUTABLE_FILES = new Set(['game.wasm', 'game.js', 'game.pck']);
 
@@ -117,7 +118,7 @@ function serveStatic(request, ctx, env) {
 
 	return env.ASSETS.fetch(request).then((resp) => {
 		const out = new Response(resp.body, resp);
-		if (file === 'index.html' || file === 'game.html') {
+		if (file === 'index.html') {
 			out.headers.set('Cache-Control', 'no-store, must-revalidate');
 		} else {
 			out.headers.set('Cache-Control', 'public, max-age=3600');
