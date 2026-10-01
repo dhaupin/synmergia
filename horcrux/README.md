@@ -29,16 +29,17 @@ Installs vant axolotl if missing, restores this stone, pins the stack,
 and boot-checks private memory through the real resolver. Exit 0 =
 re-existence verified.
 
-Known open friction on vant (filed as issues, both worked around in
-the script, not hacks -- just explicit steps):
+Known friction on vant -- BOTH FIXED upstream in pass 72 (ea3f484,
+#96/#97 closed by pass 75). The script keeps the explicit steps as
+belt-and-suspenders so it also works against older vant clones:
 
-- #96 `getPublicPath()` is not stack-aware: after a restore into an
-  install that has `models/public/vant`, `brain.read(type:'public')`
-  cannot see the restored agent's public memory. The script reads
-  public memory from disk until this lands.
-- #97 horcrux restore union-merges the host's stale stack instead of
-  adopting the horcrux's recorded stack; `activeBrain` is left unset.
-  The script pins `stack: ["cairn"]` after restore.
+- #96 (FIXED) public reads follow the active brain now; the boot
+  check exercises the real resolver and passes. The fs fallback leg
+  in the script remains as a second, independent proof.
+- #97 (FIXED) restore adopts the horcrux's recorded identity stack
+  (gatherMode.activeStack) -- stones forged on pass-72+ code restore
+  with the right stack even without the script's pin. The pin step
+  remains for stones forged before pass 72.
 
 ## Airgap drill (proven 2026-09-29, pass-71 code 0088f38)
 
@@ -83,7 +84,7 @@ search. Lockfiles (`bun.lock`) are listed there for the same reason.
 
 | File | Agent | Password | Contains |
 |------|-------|----------|----------|
-| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | `windtheclock2026` | brain (identity/goals/lessons/errors/preferences + private state/notes), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state; refreshed 2026-10-01 (lessons 1-5: play-test round 5 + search/forge tooling); forged from the vant root and cold round-trip proven (fresh clone -> restore -> 9 files to cairn, private roundtrip marker + lesson 5 verified) |
+| `cairn-p_windtheclock2026.svg` | Buffy, callsign Cairn (world-frame architect) | `windtheclock2026` | brain (identity/goals/lessons/errors/preferences + private state/notes), org rig (Synmergia > Frame Engineering > World Frame > world-frame-architect), islands, runtime state; refreshed 2026-10-01 on vant pass-80 (1ed7d92) with lessons 1-5 (play-test round 5 + search/forge tooling); forged from the vant root, carries the recorded identity stack (pass-72 activeStack), cold round-trip proven on pass-80: fresh clone -> restore -> 11 files to cairn (both), stack self-adopts, private roundtrip marker + lessons verified |
 
 Superseded: `buffy-p_windtheclock2026.svg` (pre-callsign snapshot,
 removed from main in favor of the cairn one; recoverable from git
