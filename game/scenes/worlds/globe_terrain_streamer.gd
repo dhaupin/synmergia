@@ -6,6 +6,14 @@
 ## Visual-only: the globe's sphere StaticBody stays the physics truth
 ## at prototype scale; at planet scale the globe scene's re-anchored
 ## surface pad carries the collision (see globe_world._build_surface_pad).
+##
+## TERRAIN ARC (v2): patches are no longer flat. Each tile vertex is
+## displaced radially by TerrainGen.terrain_height -- the seeded
+## heightfield (one big continent, hills, inland mountains, a lake,
+## the offshore island plateau, an ocean floor). Props pose onto the
+## displaced surface, boulders join as big climbable colliders, and
+## the scene reads walk_surface_h() for the pad lift and the snap
+## provider, so visuals and physics share ONE ground law.
 ## S8 FLOATING ORIGIN: patches are planet-relative children of the
 ## scene's world_root, and all patch vertices are LOCAL to the patch
 ## node (world-space vertices at |r| ~20 km silently break Godot's
@@ -24,6 +32,20 @@ const PropCollider = preload("res://entities/prop_collider.gd")
 ## Mirrored by globe_world.STREAMER_TILE_LIFT (spawn / snap / pad).
 const TILE_LIFT: float = 0.52
 
+## WATER (terrain arc): at planet scale the scene paints a water shell
+## at the terrain sea line. Patches below the waterline dim to a wet
+## seabed tint (foreshortening cheat: the shell renders the water
+## body; the dimmed ground reads as depth through it).
+const WATER_ON: bool = true
+## Height-band tints (read like a map): deep seabed -> sand -> grass
+## -> forest green -> rock -> snow.
+const TINT_DEEP: Color = Color(0.24, 0.30, 0.34)
+const TINT_SAND: Color = Color(0.62, 0.55, 0.40)
+const TINT_GRASS: Color = Color(0.34, 0.52, 0.30)
+const TINT_FOREST: Color = Color(0.22, 0.42, 0.24)
+const TINT_ROCK: Color = Color(0.44, 0.42, 0.40)
+const TINT_SNOW: Color = Color(0.88, 0.90, 0.93)
+
 signal face_changed(old_face: int, new_face: int)
 signal patch_loaded(face: int)
 signal patch_unloaded(face: int)
@@ -40,6 +62,13 @@ var world_seed: PackedByteArray = PackedByteArray()
 var _patches := {}  # int face -> MeshInstance3D
 var _face_tints := {}  # int face -> Color (deterministic per face)
 var _patch_rocks := {}  # int face -> Array of rock MeshInstance3D
+var _patch_boulders := {}  # int face -> Array of boulder MeshInstance3D
+var _patch_mats := {}  # int face -> StandardMaterial3D (per-face cache)
+## Terrain arc: the heightfield displaces tile vertices when on
+## (planet scale -- the scene flips it; prototype stays the flat
+## shell so every S5b/S8 probe contract keeps its geometry).
+var terrain_on: bool = false
+var _patch_walk_h := {}  # int face -> Callable(dir) -> walk height
 
 
 ## Wire the streamer to a scene. Call before the first update().
@@ -51,6 +80,7 @@ func configure(p_radius: float, p_target_edge: float, p_parent: Node3D) -> void:
 	target_patch_edge = p_target_edge
 	parent = p_parent
 	world_seed = TerrainGen.world_seed_bytes()
+	terrain_on = false
 
 
 ## Call every physics frame with the player position. Loads the
@@ -95,6 +125,30 @@ func is_loaded(face: int) -> bool:
 	return _patches.has(face)
 
 
+## -- Terrain arc ground law --------------------------------------------
+
+## The WALK SURFACE (meters above the base shell) at world direction
+## `dir`: the displaced terrain (terrain arc, planet scale) with the
+## small-rock walk-over caps on top. Boulder tops are NOT included:
+## boulders block (their collider carries that) and are climbed, not
+## ridden. The scene feeds this to the pad lift and the snap provider
+## -- one ground law for visuals and physics.
+func walk_surface_h(dir: Vector3) -> float:
+	var d: Vector3 = dir.normalized()
+	var face: int = FacePatches.face_for_direction(d)
+	if not is_loaded(face):
+		# Not streamed (should not happen: the walker streams its own
+		# face): the analytic terrain alone is still the truth.
+		var base: float = TerrainGen.terrain_height(d, world_seed) if terrain_on else 0.0
+		return base
+	return _patch_walk_h[face].call(d)
+
+
+## Terrain height at a direction, live value of the streamer's flag.
+func terrain_h(dir: Vector3) -> float:
+	return TerrainGen.terrain_height(dir.normalized(), world_seed) if terrain_on else 0.0
+
+
 ## All live face ids.
 func active_faces() -> Array:
 	return _patches.keys()
@@ -127,36 +181,66 @@ func _load_patch(face: int) -> void:
 	var verts: Array = []  # tile corner triples, LOCAL to the patch node
 	_subdivide(a, b, c, level, verts)
 
+	# -- Terrain arc: radial displacement per vertex --------------------
+	# The subsampled corner directions are cached with their displaced
+	# radii, so every vertex mapping to the same direction (shared tile
+	# corners) reads the SAME height -- no cracks at tile borders where
+	# two patches subdivide differently. Vertices are rebuilt along the
+	# ORIGINAL direction at the displaced radius.
+	var dir_h := {}  # Vector3 (quantized dir) -> displaced radius
+	var sea: float = TerrainGen.sea_level(world_seed)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var tint: Color = _tint_for(face)
 	for tri in verts:
-		for v in tri:
-			st.set_normal(v.normalized())
-			st.set_color(tint)
+		for i in range(3):
+			var v: Vector3 = tri[i]
+			var d: Vector3 = v.normalized()
+			var r: float = tile_r
+			if terrain_on:
+				var key: Vector3 = (d * 4096.0).floor()
+				if not dir_h.has(key):
+					dir_h[key] = tile_r + TerrainGen.terrain_height(d, world_seed)
+				r = dir_h[key]
+			st.set_normal(d)
+			# Prototype keeps the S7 per-face tint; terrain-on paints the
+			# height-band map (seabed through snow).
+			var col: Color = _tint_for(face) if not terrain_on else _band_color(r - tile_r, sea)
+			st.set_color(col)
 			# Planar UVs on the tangent plane (patch-local x/z). Gives the
 			# tile a real texture map so ground motion reads while walking
 			# (play-day feedback #7: the pure-vertex-tint globe had zero
 			# ground detail -- nothing to see move under you).
 			st.set_uv(Vector2(v.x, v.z) * 0.22)
-			st.add_vertex(v)
+			st.add_vertex(d * r)
 	var mesh: ArrayMesh = st.commit()
 
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.name = "Patch%d" % face
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 0.95
-	# Subtle grass checker (seeded per-run like the planar floor): keeps
-	# the face tint readable while giving walking a parallax cue.
-	mat.albedo_texture = _make_checker_texture()
-	mat.uv1_scale = Vector3(1, 1, 1)
+	var mat: StandardMaterial3D = _patch_mats.get(face)
+	if mat == null:
+		mat = StandardMaterial3D.new()
+		mat.vertex_color_use_as_albedo = true
+		mat.roughness = 0.95
+		# Subtle grass checker (seeded per-run like the planar floor): keeps
+		# the face tint readable while giving walking a parallax cue.
+		mat.albedo_texture = _make_checker_texture()
+		mat.uv1_scale = Vector3(1, 1, 1)
+		_patch_mats[face] = mat
 	mi.material_override = mat
 	mi.position = center
 	parent.add_child(mi)
 	_patches[face] = mi
 	_patch_tris[face] = verts.size()
+	# Terrain arc: the per-face walk law for walk_surface_h(). The
+	# closure captures the same displacement law the mesh used, so
+	# physics and visuals can never disagree about the ground.
+	var captured_seed: PackedByteArray = world_seed
+	var captured_on: bool = terrain_on
+	var captured_radius: float = radius
+	_patch_walk_h[face] = func(d: Vector3) -> float:
+		var base: float = TerrainGen.terrain_height(d, captured_seed) if captured_on else 0.0
+		return base + TerrainGen.rock_top_height(d, captured_seed, face, captured_radius)
 
 	_spawn_rocks(face)
 	patch_loaded.emit(face)
@@ -173,23 +257,58 @@ func _make_checker_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-## Seeded rocks + trees for one face: deterministic content (S7),
-## parented under the patch node so unload is free. VISUAL-ONLY: the
-## walk-over authority is the snap_height_provider (the exact
-## smoothstep cap) -- adding StaticBody colliders duplicates that
-## authority and fights it (slide friction stalls the walk;
-## test-caught lesson). If projectiles/raycasts ever need rock hits,
-## add colliders on a separate physics layer, not the player's.
-## Play-day feedback #7: TREES joined the rocks -- motion cues. Both
-## ride the same seeded RNG stream, so the scatter re-derives
-## identically (no drift between visits) and streams with the patch.
+## Height-band ground color (the map you walk on): seabed through
+## snowline. Blend bands overlap so no hard rings. Wet tint below the
+## waterline (the shell paints the water; dimmed ground reads as
+## depth through it).
+func _band_color(lift: float, sea: float) -> Color:
+	var c: Color
+	if lift < sea - 4.0:
+		c = TINT_DEEP
+	elif lift < sea - 0.8:
+		c = TINT_DEEP.lerp(TINT_SAND, (lift - (sea - 4.0)) / 3.2)
+	elif lift < sea + 1.2:
+		c = TINT_SAND
+	elif lift < sea + 9.0:
+		c = TINT_SAND.lerp(TINT_GRASS, (lift - (sea + 1.2)) / 7.8)
+	elif lift < sea + 20.0:
+		c = TINT_GRASS.lerp(TINT_FOREST, (lift - (sea + 9.0)) / 11.0)
+	elif lift < sea + 30.0:
+		c = TINT_FOREST.lerp(TINT_ROCK, (lift - (sea + 20.0)) / 10.0)
+	else:
+		c = TINT_ROCK.lerp(TINT_SNOW, clampf((lift - (sea + 30.0)) / 8.0, 0.0, 1.0))
+	if lift < sea - 0.2:
+		c = c.darkened(0.45)
+	return c
+
+
+## Seeded rocks + trees + boulders for one face: deterministic
+## content (S7), parented under the patch node so unload is free.
+## TERRAIN ARC (v2):
+##  - every prop poses ONTO the displaced surface (its base rides the
+##    terrain law + the small-rock walk-over cap),
+##  - props below the waterline are SKIPPED (no kelp forests yet --
+##    the shelf is honest water),
+##  - BOULDERS join: big climbable colliders (PropCollider.attach)
+##    -- they block, the climb law grabs them, and their collar ring
+##    of small rocks decorates the base.
+## WALK-OVER LAW (unchanged): small rocks stay collider-less; the
+## snap provider carries their tops. TUNNEL LAW: nothing is buried;
+## tree trunks get colliders via PropCollider.attach_trunk.
 func _spawn_rocks(face: int) -> void:
 	var specs: Array = TerrainGen.rock_specs(world_seed, face)
 	var nodes: Array = []
 	var patch_node: MeshInstance3D = _patches[face]
 	# The patch node's offset (same derivation as _load_patch).
 	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
+	var sea: float = TerrainGen.sea_level(world_seed)
+	var scaled: float = radius + TILE_LIFT
 	for s in specs:
+		var base_h: float = _prop_ground_h(face, s.dir)
+		# WATER SKIP (terrain arc only): no props in the ocean yet. The
+		# prototype (terrain off) keeps its S7 greenery untouched.
+		if terrain_on and base_h < sea - 0.6:
+			continue
 		var rmi := MeshInstance3D.new()
 		var rmesh := SphereMesh.new()
 		rmesh.radius = TerrainGen.ROCK_RADIUS * s.scale
@@ -199,16 +318,17 @@ func _spawn_rocks(face: int) -> void:
 		rmat.roughness = 1.0
 		rmesh.material = rmat
 		rmi.mesh = rmesh
-		# rock_specs dirs are GLOBE-absolute; the patch node sits at the
-		# face-center offset, so the child position must be patch-LOCAL:
-		# absolute point minus the node's offset. (Pre-existing S7 bug:
-		# absolute coords used as local ones displaced every rock roughly
-		# a face-width off its true spot -- visually "no rocks near the
-		# ground you walk".)
-		rmi.position = s.dir * (radius + TerrainGen.ROCK_EMBED) - patch_center
+		# Radial placement: the rock rides its own direction at (scaled
+		# + terrain), ROCKS EXCLUDING their own walk-over cap (walk_height
+		# would double-count it). At prototype scale (terrain 0) this
+		# reduces to the S7 formula exactly (probe-pinned).
+		var rock_r: float = scaled + TerrainGen.terrain_height(s.dir, world_seed) if terrain_on else scaled
+		rmi.position = _tangent_patch_local(s.dir, patch_center, rock_r + TerrainGen.ROCK_EMBED)
 		rmi.rotation.y = s.yaw
 		patch_node.add_child(rmi)
 		nodes.append(rmi)
+	if terrain_on:
+		_spawn_boulders(face, patch_node)
 	_spawn_trees(face, patch_node)
 	_patch_rocks[face] = nodes
 	# One-law collision (play-day: "stuff shouldn't be walk-through"):
@@ -221,10 +341,81 @@ func _spawn_rocks(face: int) -> void:
 			PropCollider.attach_trunk(tree)
 
 
+## Big climbable boulders (terrain arc): PropCollider-carried, so they
+## BLOCK movement and join the climbable group. A decorative collar of
+## small rocks (1-2, seeded) decorates the base -- and their walk-over
+## caps are already part of the ground law, so the ring never tunnels
+## the boulder (a cap rises to >= collar top at the boulder rim).
+func _spawn_boulders(face: int, patch_node: MeshInstance3D) -> void:
+	var specs: Array = TerrainGen.boulder_specs(world_seed, face)
+	var nodes: Array = []
+	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
+	var scaled: float = radius + TILE_LIFT
+	var sea: float = TerrainGen.sea_level(world_seed)
+	for s in specs:
+		var base_h: float = _prop_ground_h(face, s.dir)
+		if base_h < sea - 0.6:
+			continue  # boulders are land content (for now)
+		var bmi := MeshInstance3D.new()
+		var bmesh := SphereMesh.new()
+		bmesh.radius = s.radius
+		bmesh.height = s.radius * 1.7  # squat, not a perfect ball
+		var bmat := StandardMaterial3D.new()
+		bmat.albedo_color = Color(0.40, 0.38, 0.37)
+		bmat.roughness = 1.0
+		bmesh.material = bmat
+		bmi.mesh = bmesh
+		bmi.name = "Boulder%d" % nodes.size()
+		# Sink the squat ellipsoid by ~1/3 radius: a believable embed
+		# whose visible top is 1.13*radius above the ground (center sits
+		# 0.28*radius above the surface; the lower 0.57*radius is buried).
+		# Placement is RADIAL (height baked into the arc distance along
+		# the boulder's own direction), and the basis stands the squash
+		# axis along the local radial up (world +y is TANGENT at the
+		# spawn face -- an identity basis would squash sideways).
+		var bdir_r: float = scaled + TerrainGen.terrain_height(s.dir, world_seed) if terrain_on else scaled
+		bmi.position = _tangent_patch_local(s.dir, patch_center, bdir_r + s.radius * 0.28)
+		var bup: Vector3 = s.dir
+		var bhint := Vector3(0, 1, 0)
+		if abs(bup.dot(bhint)) > 0.999:
+			bhint = Vector3(0, 0, -1)
+		var beast: Vector3 = (bhint - bup * bhint.dot(bup)).normalized()
+		var bnorth: Vector3 = beast.cross(bup)
+		bmi.basis = Basis(beast, bup, bnorth)
+		patch_node.add_child(bmi)
+		nodes.append(bmi)
+		PropCollider.attach(bmi)
+		# Decorative collar: 1-2 small rocks at the rim (seeded from the
+		# face stream + boulder index -- same fold discipline as rocks).
+		var acc: int = 0
+		for b in TerrainGen.face_seed_bytes(world_seed, face):
+			acc = (acc * 256 + b) % 9007199254740991
+		acc = (acc * 131 + nodes.size()) % 9007199254740991
+		var rng := RandomNumberGenerator.new()
+		rng.seed = acc
+		var collar_n: int = rng.randi_range(1, 2)
+		for k in range(collar_n):
+			var rim_hint: Vector3 = Vector3(0, 1, 0) if abs(s.dir.dot(Vector3(0, 1, 0))) < 0.9 else Vector3(1, 0, 0)
+			var rim_axis: Vector3 = s.dir.cross(rim_hint).normalized()
+			var rim_dir: Vector3 = s.dir.rotated(rim_axis, \
+				(s.radius * 0.95) / maxf(bdir_r, 1.0) + rng.randf_range(0.0, 0.02))
+			var crmi := MeshInstance3D.new()
+			var crm := SphereMesh.new()
+			crm.radius = TerrainGen.ROCK_RADIUS
+			crm.height = crm.radius * 2.0
+			crm.material = bmat
+			crmi.mesh = crm
+			crmi.position = _tangent_patch_local(rim_dir, patch_center, bdir_r + TerrainGen.ROCK_EMBED)
+			patch_node.add_child(crmi)
+	_patch_boulders[face] = nodes
+
+
 ## Trees: 4-8 seeded scatters per face -- trunk cylinder + canopy
-## sphere on the tangent surface. The canopy greens shift subtly per
-## tree (same hash family as the face tints). Height rides the walk
-## surface (radius + TILE_LIFT); they are visual-only like the rocks.
+## sphere on the displaced surface. TERRAIN ARC: the scatter direction
+## (patch-tangent arc placement, like the rocks) rides terrain_height;
+## trees below the waterline are skipped and mountain tops (above the
+## tree line) grow no trees. The canopy greens shift subtly per
+## tree (same hash family as the face tints).
 func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
 	var bytes: PackedByteArray = TerrainGen.face_seed_bytes(world_seed, face)
 	var acc: int = 0
@@ -236,9 +427,16 @@ func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
 	var verts: PackedInt32Array = FacePatches.face_vertices(face)
 	# Scaled patch offset (matches _load_patch), for patch-local trees.
 	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
+	var scaled: float = radius + TILE_LIFT
+	var sea: float = TerrainGen.sea_level(world_seed)
 	for i in range(count):
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.55 + v * 0.45).normalized()
+		var base_h: float = _prop_ground_h(face, dir)
+		# WATER SKIP + tree line (terrain arc only; the prototype keeps
+		# its S7 greenery untouched).
+		if terrain_on and (base_h < sea - 0.6 or base_h > sea + 24.0):
+			continue
 		var tree := Node3D.new()
 		tree.name = "Tree%d" % i
 		var trunk_height: float = rng.randf_range(1.8, 3.2)
@@ -267,9 +465,11 @@ func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
 		canopy.mesh = cmesh
 		canopy.position = Vector3(0, trunk_height + crown * 0.55, 0)
 		tree.add_child(canopy)
-		# Patch-local like the mesh vertices and the rocks: absolute
-		# scatter position minus the patch node's offset.
-		tree.position = dir * (radius + TILE_LIFT) - patch_center
+		# Radial placement riding the displaced ground: the walk-surface
+		# height (terrain + any rock cap beneath) is baked into the
+		# RADIAL distance so the tree rides its own direction exactly
+		# (patch-local +y is world up, not surface up).
+		tree.position = _tangent_patch_local(dir, patch_center, scaled + base_h)
 		# Stand the trunk along the local radial up.
 		var up: Vector3 = dir
 		var hint := Vector3(0, 1, 0)
@@ -288,7 +488,28 @@ func _unload_patch(face: int) -> void:
 	_patches.erase(face)
 	_patch_tris.erase(face)
 	_patch_rocks.erase(face)
+	_patch_boulders.erase(face)
+	_patch_mats.erase(face)
+	_patch_walk_h.erase(face)
 	patch_unloaded.emit(face)
+
+
+## Radial prop placement: the patch-LOCAL position of the point at
+## radius `r` along direction `dir` (the patch node sits at the
+## face-center offset, so local = absolute point minus that offset).
+## This is the S7 chord formula and it is EXACT for a radial point:
+## the rotated-arc construction it replaced reduces to this identity.
+func _tangent_patch_local(dir: Vector3, patch_center: Vector3, r: float) -> Vector3:
+	return dir.normalized() * r - patch_center
+
+
+## Prop ground law: the walk-surface height (terrain + small-rock
+## cap) at the prop's direction via the face's captured closure.
+func _prop_ground_h(face: int, dir: Vector3) -> float:
+	var closure = _patch_walk_h.get(face)
+	if closure != null:
+		return float(closure.call(dir))
+	return TerrainGen.terrain_height(dir, world_seed) if terrain_on else 0.0
 
 
 ## Subdivision level so tile edges land near target_patch_edge.
