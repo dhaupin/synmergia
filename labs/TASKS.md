@@ -1189,6 +1189,26 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   data (world_id) and gate the four read paths;
   (3) xfail-in-headless is fine, but document WHY in the test
   header (viewport size) or the next agent re-hunts the ghost.
+- [x] WORLD AT CANON SCALE (2026-10-01, owner: "I didn't see
+  terrain last test"). ROOT CAUSE: the shipped game booted the 100 m
+  PROTOTYPE globe (project.godot synmergia/world/planet_radius=100)
+  while the terrain arc only exists at planet scale (terrain_on gated
+  at > 2000 m) -- every probe passed because they PIN 20 km
+  explicitly; the real game never did. The data layer already
+  declared the truth (world_main.tres radius_m=20000); the project
+  setting contradicted it. FIX: planet_radius=20000.0 (the .tres is
+  the declaration; the setting must match), globe_world fallback
+  updated, prototype-scale probes (probe_globe_world,
+  probe_terrain_stream) PIN 100 explicitly with restore-to-20000 on
+  exit, probe_planet_scale_20km already did. Also: the arena gateway
+  now rides the walk law at its direction (fixed radius+1 was buried
+  under the plaza at planet scale). LESSONS: (a) a project setting
+  and a data declaration can silently disagree -- the probes pin the
+  setting they test, so only a live boot catches the shipped value;
+  (b) "probes green" means "the pinned scales are green", not "the
+  game as booted is green". VERIFIED: terrain 21, globe 23, stream
+  9, 20 km 25, climb 11, glider 10, regression 58/58 in chunks,
+  lint 36/36, xvfb touch 17/17, boot clean.
 - [x] PLAYTEST FOLLOW-UPS (2026-10-01): (1) SLIDE END LAW: a slide
   ends back into the RUN (not crouch) -- held sprint flows straight
   out of the slide; the crouch tap is now ONE chain: bail-while-

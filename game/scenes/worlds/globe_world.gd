@@ -89,7 +89,12 @@ var hud: CanvasLayer = null
 
 
 func _ready() -> void:
-	planet_radius = float(ProjectSettings.get_setting(PLANET_RADIUS_SETTING, 100.0))
+	# The canon radius comes from world_main.tres (20000, the v1 planet
+	# scale); the project setting must match it (AGENTS data law: the
+	# .tres is the declaration). The 100 m prototype is a TEST scale --
+	# probes pin it explicitly; the shipped game boots the real planet
+	# (terrain heightfield, ocean, island -- all planet-scale systems).
+	planet_radius = float(ProjectSettings.get_setting(PLANET_RADIUS_SETTING, 20000.0))
 	# S8 floating origin: planet-bound content lives under world_root.
 	world_root = Node3D.new()
 	world_root.name = "WorldRoot"
@@ -437,7 +442,14 @@ func _build_arena_gateway() -> void:
 	gateway.name = "ArenaGateway"
 	# East of spawn on the sand line: tangent-east, just above the
 	# shell so walking through it fires the join once.
-	gateway.position = Vector3(14.0, planet_radius + 1.0, 0.0)
+	# ON the walk surface: the trigger rides the walk law at its
+	# placement direction (a fixed radius + 1 would be buried under
+	# the plaza at planet scale -- 9 m of terrain above the bare
+	# shell), lifted a body-height so the walking player crosses it.
+	var gw_dir: Vector3 = Vector3(14.0, 0.0, 0.0).normalized()
+	var gw_r: float = planet_radius + STREAMER_TILE_LIFT \
+		+ (streamer.walk_surface_h(gw_dir) if streamer else 0.0) + 1.0
+	gateway.position = gw_dir * gw_r
 	world_root.add_child(gateway)
 	arena_gateway = gateway
 

@@ -15,6 +15,10 @@ func _init() -> void:
 
 
 func _run() -> void:
+	# PROTOTYPE-SCALE CONTRACT: streaming order/unload laws at the 100 m
+	# shell (the shipped game boots 20 km with terrain; probe_terrain_planet
+	# covers that). Pin the prototype radius explicitly.
+	ProjectSettings.set_setting("synmergia/world/planet_radius", 100.0)
 	var ok := true
 	var packed: PackedScene = load(GLOBE_SCENE)
 	if packed == null or not packed.can_instantiate():
@@ -104,6 +108,7 @@ func _run() -> void:
 			break
 	ok = _check("all 20 faces stream (4-patch steady state)", sweep_ok) and ok
 
+	ProjectSettings.set_setting("synmergia/world/planet_radius", 20000.0)
 	if not ok:
 		push_error("TERRAIN STREAM PROBE FAILED")
 	quit(0 if ok else 1)

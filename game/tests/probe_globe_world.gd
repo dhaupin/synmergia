@@ -18,6 +18,10 @@ func _init() -> void:
 
 
 func _run() -> void:
+	# PROTOTYPE-SCALE CONTRACT: this probe pins the 100 m globe
+	# explicitly (the shipped game boots 20 km; the prototype shell
+	# walk/glue laws are what's under test here, not the terrain arc).
+	ProjectSettings.set_setting("synmergia/world/planet_radius", 100.0)
 	var ok := true
 	# Running mode: real physics frames drive _physics_process. The
 	# waiting-in-_init script-mode trap (engine would sleep forever) is
@@ -162,6 +166,9 @@ func _run() -> void:
 		im._joystick_offset = Vector2.ZERO
 		im.set_input_mode(prev_mode)
 
+	# Restore the shipped planet scale (the canon 20 km) for any test
+	# that runs after this one in the same process family.
+	ProjectSettings.set_setting("synmergia/world/planet_radius", 20000.0)
 	if not ok:
 		push_error("GLOBE PROBE FAILED")
 	quit(0 if ok else 1)

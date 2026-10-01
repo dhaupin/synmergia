@@ -228,6 +228,10 @@ warnings/infer_variant=0
 ; "planar" = classic world_playable, "spherical" = the spherical world.
 world/shape="spherical"
 
-; Planet scale in meters (default 100 = prototype globe, 20000 = v1 planet scale).
-; planet_radius is read at runtime by globe_world.gd from this setting.
-planet_radius=100.0
+; Planet scale in meters. 20000 = the v1 planet scale (prd.md, and
+; world_main.tres radius_m -- the canon declaration this setting must
+; match). The 100 m prototype globe lives on in the tests, which pin
+; their radius explicitly (probe_globe_world, probe_terrain_stream,
+; probe_planet_scale_20km stage A). The terrain heightfield, ocean,
+; and island only exist at planet scale (> 2000 m).
+planet_radius=20000.0
