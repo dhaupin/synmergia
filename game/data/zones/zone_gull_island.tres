@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_gull_island"
+display_name = "Gull Island"
+description = "A volcanic plateau offshore of the spawn shore. The gulls hold it, the Concord charted it, and the ferry will bring you to it. No main-world law applies: its zone id is all it claims."
+pvp_mode = 0
+level_requirement = 1
+max_level = 999
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 8.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 250.0
+ambient_light_color = Color(0.6, 0.7, 0.8, 1)
+ambient_light_energy = 1.0
+environment_path = "res://environments/day_01.tres"
+has_weather = false
+weather_type = "clear"
+spawn_points = [Vector3(0, 0, 0)]

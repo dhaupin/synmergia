@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="VehicleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/vehicle_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "veh_island_ferry"
+display_name = "Gullwing Ferry"
+description = "A shallow-draft skiff with one wide gullwing sail. Runs the open water from the village docks out to the island - the Concord keeps the schedule honest even when the wind does not."
+icon_path = "res://icons/vehicles/ferry.png"
+model_path = ""
+kind = 1
+speed_multiplier = 1.15
+seat_count = 6
+cargo_capacity = 24
+required_level = 1
+guild_owned = false
+source = 0
+currency_id = ""
+cost = 0
+route_gateways = ["waypoint_village_center", "waypoint_island_dock"]
+soulbound = false
+ferries_per_day = 6
+first_departure_hour = 7.0
+crossing_hours = 0.75
