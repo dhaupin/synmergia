@@ -25,7 +25,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(420, 520)
+custom_minimum_size = Vector2(540, 640)
 layout_mode = 2
 
 [node name="Form" type="VBoxContainer" parent="Center/Panel"]
@@ -42,7 +42,7 @@ theme_override_font_sizes/font_size = 32
 layout_mode = 2
 text = "Sign in to continue"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 
 [node name="Spacer1" type="Control" parent="Center/Panel/Form"]
@@ -54,7 +54,7 @@ layout_mode = 2
 text = "Username"
 
 [node name="UsernameField" type="LineEdit" parent="Center/Panel/Form"]
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 focus_mode = 2
 placeholder_text = "username"
@@ -66,7 +66,7 @@ layout_mode = 2
 text = "Password"
 
 [node name="PasswordField" type="LineEdit" parent="Center/Panel/Form"]
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 focus_mode = 2
 placeholder_text = "••••••••"
@@ -80,7 +80,7 @@ text = "Display Name (optional)"
 
 [node name="DisplayNameField" type="LineEdit" parent="Center/Panel/Form"]
 visible = false
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 focus_mode = 2
 placeholder_text = "How others see you"
@@ -104,25 +104,28 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="LoginButton" type="Button" parent="Center/Panel/Form/Buttons"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 focus_mode = 2
+theme_override_font_sizes/font_size = 19
 text = "Login"
 accessible_string = "Sign in to your account"
 accessible_description = "Press Enter or click to login"
 
 [node name="RegisterButton" type="Button" parent="Center/Panel/Form/Buttons"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 focus_mode = 2
+theme_override_font_sizes/font_size = 19
 text = "Create Account"
 accessible_string = "Create a new account"
 accessible_description = "Press Enter or click to create a new account"
 
 [node name="GuestButton" type="Button" parent="Center/Panel/Form/Buttons"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 focus_mode = 2
+theme_override_font_sizes/font_size = 19
 text = "Play as Guest"
 accessible_string = "Play without an account"
 accessible_description = "Press Enter or click to play as a guest"
@@ -131,5 +134,5 @@ accessible_description = "Press Enter or click to play as a guest"
 layout_mode = 2
 text = "v0.0.1 · Single-machine mode"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)

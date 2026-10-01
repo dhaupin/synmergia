@@ -17,6 +17,11 @@ const COLORS := {
 	"text_disabled": Color(0.5, 0.5, 0.5),
 	"accent": Color(0.6, 0.4, 0.2),
 	"accent_gold": Color(1, 0.8, 0.2),
+	# Synmergia brand green (the logo banner mint, play-test round 8):
+	# the primary CTA color across the flow screens (Start, Enter World).
+	"accent_green": Color(0.36, 0.78, 0.58),
+	"accent_green_dark": Color(0.24, 0.58, 0.42),
+	"accent_green_deep": Color(0.14, 0.36, 0.26),
 	"success": Color(0.2, 0.8, 0.3),
 	"error": Color(1, 0.3, 0.3),
 	"warning": Color(1, 0.8, 0.2),
@@ -136,6 +141,31 @@ static func get_rarity_display_name(rarity: String) -> String:
 		"mythic": return "Mythic"
 		_: return rarity
 
+
+## The primary call-to-action style (play-test round 8): Synmergia
+## green fill, dark text, big hit target, generous font. Used by the
+## splash Start and the character-select Enter World -- the two buttons
+## that MOVE THE PLAYER FORWARD. Back/secondary buttons keep the
+## standard neutral style so the hierarchy reads at a glance.
+static func apply_cta_button(btn: Button, font_size: int = 26) -> void:
+	var styles := create_button_style(
+		COLORS.accent_green,
+		COLORS.accent_green,
+		COLORS.accent_green_dark,
+		COLORS.accent_green_deep,
+	)
+	apply_button_styles(btn, styles)
+	btn.add_theme_font_size_override("font_size", font_size)
+	btn.add_theme_color_override("font_color", Color(0.05, 0.12, 0.09))
+	btn.add_theme_color_override("font_hover_color", Color(0.05, 0.12, 0.09))
+	btn.add_theme_color_override("font_pressed_color", Color(0.05, 0.12, 0.09))
+	btn.add_theme_color_override("font_disabled_color", Color(0.05, 0.12, 0.09, 0.4))
+	# A 1 px deep-green border reads as a bezel on the fill.
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var sb: StyleBoxFlat = btn.get_theme_stylebox(state)
+		if sb != null:
+			sb.border_color = COLORS.accent_green_dark
+			sb.set_border_width_all(2)
 
 static func _make_button_stylebox(bg: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

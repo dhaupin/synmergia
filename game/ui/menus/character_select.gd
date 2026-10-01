@@ -63,7 +63,7 @@ func _show_class_selection() -> void:
 	var label := Label.new()
 	label.text = "CLASSES -- " + selected_species.display_name.to_upper()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 	_class_header = label
 	list_container.add_child(label)
@@ -209,9 +209,16 @@ func _lobby_save_character(data: CharacterData, _account_id: String) -> void:
 
 
 func _apply_button_styles() -> void:
+	# CTA hierarchy (play-test round 8, item 7): Enter World is THE
+	# forward action -- Synmergia green, large, unmistakable. Back is a
+	# neutral secondary. Card buttons say "Select" (a selection, not a
+	# jump into the world); Enter World is what enters the world.
+	play_button.custom_minimum_size = Vector2(340, 64)
+	UIStyles.apply_cta_button(play_button, 26)
+	back_button.custom_minimum_size = Vector2(180, 64)
 	var button_styles := UIStyles.create_button_style()
-	UIStyles.apply_button_styles(play_button, button_styles)
 	UIStyles.apply_button_styles(back_button, button_styles)
+	back_button.add_theme_font_size_override("font_size", 22)
 
 func _on_back_pressed() -> void:
 	# If we were routed here from the lobby "Create New" flow, return

@@ -44,8 +44,12 @@ func _apply_branding() -> void:
 	move_child(banner, 1)  # just above Background
 
 func _apply_styles() -> void:
+	# Start is THE primary action (play-test round 8, item 2): it used
+	# to render as a ~200x30 default-theme button under a huge logo --
+	# invisible CTA. Big green fill, generous font, dark text.
+	start_button.custom_minimum_size = Vector2(380, 76)
+	UIStyles.apply_cta_button(start_button, 30)
 	var button_styles := UIStyles.create_button_style()
-	UIStyles.apply_button_styles(start_button, button_styles)
 	UIStyles.apply_button_styles(quit_button, button_styles)
 
 	var title: Label = $Title

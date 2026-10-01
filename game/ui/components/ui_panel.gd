@@ -607,6 +607,27 @@ func _clamp_panel_to_viewport() -> void:
 		and absf(panel.anchor_bottom - 0.5) < 0.01
 	if is_centered:
 		panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	# Keep the WHOLE rect on screen (play-test round 8, item 12):
+	# recentering fixes center-anchored panels, but hand-placed panels
+	# (the character panel) could still sit half off-screen -- its close
+	# X landed outside the viewport and the panel was unclosable. Shift
+	# any laid-out rect that escapes the viewport back inside by its
+	# overflow. Runs after the size clamp so the shift uses the FINAL
+	# size; the call sites defer a frame, so containers have laid out.
+	var rect := panel.get_global_rect()
+	if rect.size.x <= 0.0 or rect.size.y <= 0.0:
+		return
+	var shift := Vector2.ZERO
+	if rect.position.x < 0.0:
+		shift.x = -rect.position.x
+	elif rect.end.x > vp.x:
+		shift.x = vp.x - rect.end.x
+	if rect.position.y < 0.0:
+		shift.y = -rect.position.y
+	elif rect.end.y > vp.y:
+		shift.y = vp.y - rect.end.y
+	if shift != Vector2.ZERO:
+		panel.position += shift
 
 func _get_focusable_recursive(node: Node, out: Array[Control]) -> void:
 	if node is Control and node.focus_mode != FOCUS_NONE:
