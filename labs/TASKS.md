@@ -1189,6 +1189,71 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   data (world_id) and gate the four read paths;
   (3) xfail-in-headless is fine, but document WHY in the test
   header (viewport size) or the next agent re-hunts the ghost.
+- [x] TERRAIN ARC V1 SHIPPED (2026-10-01, owner: "we should add
+  terrain ... hills, valleys, mountains, plains, rivers, lakes ...
+  then oceans ... the continent and a smaller island ... hook up the
+  ferry"). WHAT SHIPPED:
+  (1) TERRAIN HEIGHTFIELD: terrain_gen.gd v2 (RULESET terrain_v2) --
+  trilinear value-noise ground law terrain_height(dir, seed), pure
+  and deterministic. Bands: ocean floor -> shelf -> beach -> plains
+  -> hills -> mountains (rare, mask-tuned) -> snowline ceiling at
+  TERRAIN_MAX 42. A guaranteed-land STARTING CONTINENT (homeland
+  dome, PLATEAU shape, 2.0 rad ~ 40 km, detail-noise-carved bays)
+  with the spawn plaza flattened at SPAWN_HEIGHT (flat + clean of
+  props via SPAWN_CLEAR_ANG). A volcanic ISLAND offshore (lat 60,
+  lon 90, 240 m radius, ISLAND_PLATEAU 20 m) with an explicit MOAT
+  channel (the ferry's crossing). A mountain LAKE bowl below the sea
+  line. Per-seed sea level (SEA_LEVEL_MIN+SPAN).
+  (2) BOULDERS: 1-2 per face (VARIETY LAW: universal), 3.5-6.5 m,
+  PropCollider-carried (BLOCK + climbable), squat ellipsoids sunk
+  1/3 radius, radial basis, decorative collar rocks whose walk-over
+  caps the ground law already carries (no tunnel).
+  (3) STREAMER: tile vertices displaced radially by the terrain law
+  (dir-quantized cache -> no tile-border cracks); height-band vertex
+  colors (seabed->sand->grass->forest->rock->snow, wet darkening
+  below the waterline); props pose onto the displaced surface
+  (radial, arc-exact, ROCKS EXCLUDE their own cap -- walk_height
+  double-count lesson); underwater/tree-line gating (terrain only,
+  prototype keeps S7 look). walk_surface_h()/terrain_h() = the ONE
+  ground law the pad, snap provider, and mobility read.
+  (4) GLOBE WORLD: _ready order streamer-BEFORE-player (spawn rides
+  the terrain law); water shell SphereMesh at sea level (translucent,
+  visual only -- the sea floor IS the terrain, one collision truth);
+  _surface_lift = TILE_LIFT + terrain under the player (pad rides
+  hills/valleys); player.ground_offset = STATIC lift only (terrain
+  arrives via provider -- double-count lesson err=10m caught by
+  probe); terrain_h_at() seam for the player's slope law.
+  (5) GLOBE PLAYER MOBILITY: crouch TOGGLE (CRH/C, x0.5), SPRINT
+  (SHIFT or touch auto-sprint via sprint_override signal, x1.55,
+  needs stamina reserve), SLIDE (crouch while sprinting: fall-line
+  momentum law -- accelerate on ground-law drop ahead, friction,
+  steering blend, ends to crouch), steep-uphill terrain slow-down
+  (reads TERRAIN ONLY via the seam -- walk-over caps are free
+  ground; probe-caught 175 m/30 s loss when caps counted), mantle
+  down-ray lands on the walk surface (provider top), is_glued = the
+  snap equation (provider law at the body's direction), perch law:
+  stepping off a >=0.55 m cap is AIRBORNE (no snap crutch).
+  (6) FERRY: veh_island_ferry.tres (Gullwing Ferry, village docks ->
+  waypoint_island_dock, 6/day, 0.75 h) + waypoint_island_dock.tres
+  + zone_gull_island.tres (bare zone id -- NO underworld world_id;
+  the S15.3 scoping lesson). FerryService.ensure_loaded() picks the
+  route up from data automatically (schedule primitive shared).
+  (7) PROBE: probe_terrain_planet.gd 21 checks (law bands, spawn
+  glue, provider==law, water shell radius, boulder pipeline
+  survive=attach audit, homeland solid-land) in DEFAULT_SET (now
+  57). 20 km probe updated: surface expectations add the terrain law
+  read (documented in-place; the re-land exact-gap identity was
+  flat-pad-era, replaced by the glue + walk proofs).
+  LESSONS: (a) icosa neighbor-face centers sit 0.955 rad from the
+  spawn face -- a homeland dome smaller than that reads as "start
+  area is an island" (fixed: plateau 2.0 rad); (b) Vector3 has NO
+  .orthogonal() in GDScript -- build the axis from a hint cross;
+  (c) slope law must read terrain, never walk-over caps; (d)
+  double-counting terrain in ground_offset AND the provider floats
+  the body exactly one terrain-height (probe err=10.00 m read it
+  instantly). VERIFIED: probe_terrain_planet 21/21, determinism,
+  terrain stream 9, globe 23, 20 km 25, climb 11, ocean 44, ferry,
+  swim, regression 36/36 (57 tests), lint 36/36, xvfb touch 17/17.
 - [x] GLOBE HUD + WEB TOUCH CONTROLS SHIPPED (2026-09-30, owner:
   "species and class work, we got in -- but there is no HUD, no
   mobile controls, no menus"). ROOT CAUSE (two independent gaps):

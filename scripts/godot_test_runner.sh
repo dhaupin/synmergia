@@ -53,6 +53,7 @@ probe_terrain_stream
 probe_planet_scale_20km
 test_world_shape
 test_terrain_determinism
+probe_terrain_planet
 test_instance_contract
 probe_arena_instance
 probe_arena_trigger

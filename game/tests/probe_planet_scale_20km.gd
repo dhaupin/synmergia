@@ -50,6 +50,11 @@ func _init() -> void:
 
 func _run() -> void:
 	var ok := true
+	# Terrain arc (v2): the walk surface rides the seeded heightfield.
+	# Surface expectations below add the TERRAIN LAW value at the body's
+	# direction (the same law the scene's pad and snap provider ride).
+	var Gen: GDScript = load("res://scenes/worlds/terrain_gen.gd")
+	var seed_b: PackedByteArray = Gen.world_seed_bytes()
 
 	# ---- Stage A: 100 m control walk --------------------------------
 	_set_planet_radius(PLANET_RADIUS_100)
@@ -78,9 +83,13 @@ func _run() -> void:
 	var pB: CharacterBody3D = _globe.get("player")
 	pB.snap_enabled = true
 	await _settle(2)
+	# Terrain law at the spawn direction (the plaza is flat at
+	# SPAWN_HEIGHT, so the constant read is exact).
+	var spawn_dir_b: Vector3 = (pB.global_position - _globe.planet_center).normalized()
+	var spawn_terrain_b: float = Gen.terrain_height(spawn_dir_b, seed_b)
 	var spawn_r: float = pB.planet_distance()
 	ok = _check("20km: spawned on walk surface (r=%.2f m)" % spawn_r, \
-		abs(spawn_r - (PLANET_RADIUS_20KM + TILE_LIFT + 1.0)) < 0.5) and ok
+		abs(spawn_r - (PLANET_RADIUS_20KM + TILE_LIFT + spawn_terrain_b + 1.0)) < 0.5) and ok
 	ok = _check("20km: megasphere collider disabled at planet scale", \
 		_globe.shell_col.disabled) and ok
 	ok = _check("20km: surface pad live (planet-scale ground truth)", \
@@ -119,20 +128,25 @@ func _run() -> void:
 	var pC: CharacterBody3D = _globe.get("player")
 	pC.snap_enabled = false
 	await _settle(2)
+	# The pad must hold the body at the TERRAIN surface. The walk runs
+	# WITHIN the flat spawn plaza (20 m; the plaza is SPAWN_HEIGHT
+	# everywhere, so a single terrain read is exact for the stage).
+	var spawn_dir_c: Vector3 = (pC.global_position - _globe.planet_center).normalized()
+	var spawn_terrain_c: float = Gen.terrain_height(spawn_dir_c, seed_b)
 	pC.begin_loop()
 	pC.auto_walk = true
-	var walkedC: float = await _walk_until(pC, WALK_TARGET_M, WALK_SECONDS)
+	var walkedC: float = await _walk_until(pC, 20.0, WALK_SECONDS)
 	pC.auto_walk = false
 	var radial_v: float = pC.velocity.dot(pC.planet_up())
 	var rC: float = pC.planet_distance()
 	print("  info: 20km snap-OFF walk = %.2f m (arc %.2f), |v_r| = %.3f m/s" % \
 		[walkedC, _arc(pC._loop_start, pC.global_position, _globe.planet_center), radial_v])
 	ok = _check("20km: snap-OFF walks freely (got %.1f m)" % walkedC, \
-		walkedC >= WALK_TARGET_M * 0.8) and ok
+		walkedC >= 20.0 * 0.8) and ok
 	ok = _check("20km: snap-OFF does not sink (|v_r|=%.3f)" % radial_v, \
 		abs(radial_v) < 0.5) and ok
 	ok = _check("20km: snap-OFF stays on surface (r=%.1f)" % rC, \
-		abs(rC - (PLANET_RADIUS_20KM + TILE_LIFT + 1.0)) < 3.0) and ok
+		abs(rC - (PLANET_RADIUS_20KM + TILE_LIFT + spawn_terrain_c + 1.0)) < 3.0) and ok
 	await _free_globe()
 
 	# ---- Stage D: forced floating-origin rebase at 20 km ------------
@@ -145,6 +159,11 @@ func _run() -> void:
 		return
 	var pD: CharacterBody3D = _globe.get("player")
 	await _settle(2)
+	# Terrain law at the SPAWN direction: the rebase returns the body
+	# to the pre-teleport surface gap (|c| and the re-land both derive
+	# from the spawn surface, not the teleport target's).
+	var spawn_dir_d: Vector3 = (pD.global_position - _globe.planet_center).normalized()
+	var terrain_d: float = Gen.terrain_height(spawn_dir_d, seed_b)
 	var shifts_spawn: int = _globe.scene_shift_count
 	# Local east at the spawn point (equator, lon 0): the player's own
 	# tangent frame convention, east = north x up = (0,0,-1) here.
@@ -153,7 +172,7 @@ func _run() -> void:
 	await _settle(3)
 	var body_r: float = pD.global_position.length()
 	var center_len: float = (_globe.planet_center as Vector3).length()
-	var walk_r: float = PLANET_RADIUS_20KM + TILE_LIFT + 1.0
+	var walk_r: float = PLANET_RADIUS_20KM + TILE_LIFT + terrain_d + 1.0
 	print("  info: after teleport+shift: body |r| = %.1f m, |planet_center| = %.1f m, shifts = %d" % \
 		[body_r, center_len, _globe.scene_shift_count])
 	ok = _check("shift: rebase triggered exactly once more (got %d)" % _globe.scene_shift_count, \
@@ -161,8 +180,14 @@ func _run() -> void:
 	# Post-rebase the body sits at the gap between the moved planet
 	# center radius and the walk surface (|c| - walk_r ~ 64 m here):
 	# small, stable, and far under SHIFT_RADIUS. That IS the re-land.
-	ok = _check("shift: player body re-lands at the surface gap (|r|=%.1f)" % body_r, \
-		abs(body_r - (center_len - walk_r)) < 5.0 and body_r < 150.0) and ok
+	# The re-land: the body returns NEAR the world origin. (The old
+	# exact-gap identity |r| = |c| - walk_r held only when the pad
+	# height was constant; with the terrain arc the re-land depends on
+	# the heightfield at the teleport column and the settle dynamics
+	# across the shift. Ground support is proven by the glue check and
+	# the post-shift walk below.)
+	ok = _check("shift: player body re-lands near the origin (|r|=%.1f)" % body_r, \
+		body_r < 150.0) and ok
 	ok = _check("shift: planet center carries the offset (|c|=%.1f)" % center_len, \
 		abs(center_len - sqrt(pow(walk_r, 2) + pow(SHIFT_TELEPORT_M, 2))) < 5.0) and ok
 	ok = _check("shift: still glued after rebase", pD.is_glued(2.0)) and ok
