@@ -2587,3 +2587,59 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   ate the old 19-test chunks), probe_round2_ui 20/20 with ZERO script
   errors, probe_terrain_planet 22/22, probe_boot_loader_rect 4/4,
   probe_globe_world 23/23, test_splash_to_play 17/17 (xvfb).
+- [x] Round 10 (4 items: engine layers, one interest law, ownership
+  doc, spawn-on-ocean diagnosis):
+  (1) NAMED COLLISION BITS: audit found ~50 magic-bit sites in 14
+  files (de-facto map: 1=entity, 2=solid, 4=ground; broad masks 63 /
+  126 / 0xFFFFFFFF spanning reserved bits). New LayerProfile schema
+  (core/schemas/layer_profile.gd, HitboxProfile pattern) + DATA at
+  data/physics_layers/physics_layers_main.tres (bits + named GROUPS:
+  world/entity_solid/solid_ground composed; all_solid/geometry_no_
+  entity/everything as explicit value overrides so the legacy broad
+  masks ride data instead of arithmetic). DataService loads it
+  (get_layer_profile); every call site now reads
+  Layers.layer_bit("entity") / Layers.group_mask("world"); admin
+  ghost toggles use 0/0 + named restore. GUARD TEST test_layer_
+  profile.gd pins the .tres values to the audit map (a data edit that
+  renumbers a bit is now a LOUD test failure, not a silent physics
+  change); added to the regression runner. LESSON (twice): a static
+  cannot share a name with an instance method (static bit() vs
+  instance bit() -> renamed statics layer_bit/group_mask), and new
+  class_names are invisible to --script mode's class cache until the
+  local import cache regenerates (static-factory new() dodges the
+  self-reference).
+  (2) ONE INTEREST LAW: core/services/entity_interest.gd --
+  query_interest (players+enemies, combat), query_all (+NPCs),
+  query_players. FIXED A REAL BUG: get_entities_in_radius defaults to
+  NPC, so the four projectile scans (trap, chain, ricochet, explosion)
+  only ever saw NPCs -- player explosions could not hit wolves or
+  players. Rewired: projectile x4 -> query_interest; guard_ai /
+  enemy_ai -> query_players (guard_ai inherits the const -- cannot
+  redeclare a parent's member); chat channel range -> query_players;
+  respawn healers -> query_all; skill heal-threat -> query_interest;
+  agent_connector observation -> query_all.
+  (3) labs/prd-world-layers.md: the ownership law (FrameService =
+  canonical state, physics = spatial truth, EntityService = interest,
+  LayerProfile = named bits, TerrainGen = ground law;
+  NavigationServer = future, MultiplayerSynchronizer = deliberately
+  unused). Nobody re-litigates this.
+  (4) SPAWN-ON-OCEAN, root-caused as a WEB RENDER bug: the sim is
+  airtight (truth line reads the analytic law; streamer loads the
+  spawn face SYNCHRONOUSLY at boot; tiles sit R+0.52+terrain, water
+  shell at R+0.52+sea -- the tile floor is always >= 0.25 m above
+  water at spawn). The terrain UVs were patch-local * 0.22 where
+  patch-local coords reach +-5 km: UVs ~10^6. Desktop fp32 varyings
+  survive that (moire); the WEBGL2 fragment path is mediump (max
+  ~65504), so ground UVs read INF on web -- sampling breaks and the
+  tiles render garbage/vanish, leaving the water shell as the only
+  intact sphere. EXACTLY the round-5 and round-9 screenshots (truth
+  says dry, pixels say ocean). Fix: fposmod-wrapped UVs (the checker
+  texture repeats, wrapping is invisible). TRUTH LINE now reports the
+  stream state (mesh:fN xC/T) so a render-side break is visible ON
+  the next screenshot instead of a sim-vs-render argument; boot log
+  gains a spawn-face mesh-ready/mesh-FAILED gate line.
+  Verified: lint 36/36, test_layer_profile 18/18,
+  test_data_naming_lint 24/24, probe_terrain_planet 22/22,
+  probe_globe_world 23/23, probe_round2_ui 20/20, probe_startup_flow
+  18, probe_arena_instance PASS, probe_climb 11/11 (zero SCRIPT
+  ERRORs across all logs).
