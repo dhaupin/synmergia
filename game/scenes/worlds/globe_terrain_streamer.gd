@@ -215,7 +215,15 @@ func _load_patch(face: int) -> void:
 			# tile a real texture map so ground motion reads while walking
 			# (play-day feedback #7: the pure-vertex-tint globe had zero
 			# ground detail -- nothing to see move under you).
-			st.set_uv(Vector2(v.x, v.z) * 0.22)
+			# WEB RENDER LAW (round 10): UVs must stay small. The patch
+			# is LOCAL to the face center, so patch-local coords reach
+			# +-5 km at planet scale -- x0.22 UVs reach ~10^6. Desktop
+			# fp32 varyings survive that (moire only); WebGL2 fragment
+			# paths are mediump (max ~65504), so huge UVs read as INF
+			# and ground sampling breaks (round-5/9 "the world looked
+			# like open ocean"). fposmod wrapping is invisible: the
+			# checker texture repeats by design.
+			st.set_uv(Vector2(fposmod(v.x * 0.22, 512.0), fposmod(v.z * 0.22, 512.0)))
 			st.add_vertex(d_abs * r_abs - center)
 	var mesh: ArrayMesh = st.commit()
 
