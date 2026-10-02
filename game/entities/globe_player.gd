@@ -37,6 +37,11 @@ var entity_id: String = ""
 ## all -- the starter kit had nothing to land in and panels rendered
 ## empty). Created + registered in _setup_inventory_bag().
 var _inventory_bag = null
+## Same bag under the name the planar controller exposes. UI resolvers
+## (character_panel._resolve_inventory) duck-type this property; the
+## globe body only had _inventory_bag, so the panel's player-node
+## fallback missed the bag it was standing on.
+var inventory_component = null
 ## S8: world-space position of the PLANET CENTER. The scene keeps the
 ## PLAYER near the world origin (floating origin); the planet moves.
 ## All radial quantities derive from (global_position - planet_center).
@@ -249,6 +254,15 @@ func _ready() -> void:
 	# stamp the id, register it with InventoryService. All resolves are
 	# defensive (script-mode probes have no autoloads mounted).
 	_setup_inventory_bag()
+	# Local-player binding (the planar controller's law, line-for-line
+	# the same wiring): panels and services resolve the bag through
+	# PlayerManager.get_local_player_id(); the globe body never bound
+	# itself, so in globe mode the character panel could not find the
+	# bag it had just registered. Defensive: script-mode probes mount
+	# no PlayerManager.
+	var pm = Engine.get_main_loop().root.get_node_or_null("PlayerManager") if Engine.get_main_loop() is SceneTree else null
+	if pm != null and pm.has_method("set_local_player"):
+		pm.set_local_player(self)
 	# Touch auto-sprint: the joystick flips the same sprint flag the
 	# keyboard SHIFT does (defensive: headless/script contexts have no
 	# joystick mounted).
@@ -288,6 +302,7 @@ func _setup_inventory_bag() -> void:
 		bag.name = "InventoryComponent"
 		add_child(bag)
 		_inventory_bag = bag
+		inventory_component = bag
 	# The world scene assigns entity_id right after add_child(this);
 	# stamp + register a moment later so the id is final. StarterKit
 	# defers its grant while the bag is absent, so a 0.1 s delay is

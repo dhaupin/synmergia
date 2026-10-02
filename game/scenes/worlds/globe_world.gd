@@ -683,8 +683,12 @@ func _update_spawn_truth() -> void:
 	var stream_tag: String = "mesh:OFF"
 	if faces > 0:
 		stream_tag = "mesh:f%d x%d/%d" % [streamer.current_face, faces, streamer.triangle_count()]
-	_truth_label.text = "lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s | %s" % \
-		[ll.x, ll.y, ground, sea, "WET" if wet else "dry", stream_tag]
+	# Mesh tag FIRST: the right end of this line sits under the minimap
+	# on phone/portrait layouts, and the round-10 pack-freshness question
+	# ("did the client run the UV-fix pack?") is exactly the tag that got
+	# hidden. Leading segment = always on screen.
+	_truth_label.text = "%s | lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s" % \
+		[stream_tag, ll.x, ll.y, ground, sea, "WET" if wet else "dry"]
 	_truth_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2, 0.95) if wet else Color(1, 1, 1, 0.85))
 
 
