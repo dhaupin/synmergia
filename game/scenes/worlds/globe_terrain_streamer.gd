@@ -211,19 +211,15 @@ func _load_patch(face: int) -> void:
 			# height-band map (seabed through snow).
 			var col: Color = _tint_for(face) if not terrain_on else _band_color(r_abs - tile_r, sea)
 			st.set_color(col)
-			# Planar UVs on the tangent plane (patch-local x/z). Gives the
-			# tile a real texture map so ground motion reads while walking
-			# (play-day feedback #7: the pure-vertex-tint globe had zero
-			# ground detail -- nothing to see move under you).
-			# WEB RENDER LAW (round 10): UVs must stay small. The patch
-			# is LOCAL to the face center, so patch-local coords reach
-			# +-5 km at planet scale -- x0.22 UVs reach ~10^6. Desktop
-			# fp32 varyings survive that (moire only); WebGL2 fragment
-			# paths are mediump (max ~65504), so huge UVs read as INF
-			# and ground sampling breaks (round-5/9 "the world looked
-			# like open ocean"). fposmod wrapping is invisible: the
-			# checker texture repeats by design.
-			st.set_uv(Vector2(fposmod(v.x * 0.22, 512.0), fposmod(v.z * 0.22, 512.0)))
+			# Planar UVs on the tangent plane (patch-local x/z), WRAPPED TO
+			# [0,1). Round-12 web law: UVs reaching 512 in a mediump varying
+			# were the second half of the draw-killer (ULP at 512 is ~0.03,
+			# bigger than the entire 2x2 texture) -- and the texture itself
+			# had no mipmaps, which strict GLES3/WebGL2 drivers treat as an
+			# INCOMPLETE texture (black). Desktop drivers are lenient on
+			# both counts; the web draw produced no tile fragments. 64x64
+			# POT + generate_mipmaps + [0,1) UVs is legal everywhere.
+			st.set_uv(Vector2(fposmod(v.x * 0.0015, 1.0), fposmod(v.z * 0.0015, 1.0)))
 			st.add_vertex(d_abs * r_abs - center)
 	var mesh: ArrayMesh = st.commit()
 
@@ -235,8 +231,11 @@ func _load_patch(face: int) -> void:
 		mat = StandardMaterial3D.new()
 		mat.vertex_color_use_as_albedo = true
 		mat.roughness = 0.95
-		# Subtle grass checker (seeded per-run like the planar floor): keeps
-		# the face tint readable while giving walking a parallax cue.
+		# Grass checker, mipmapped (round-12 web law): strict
+		# GLES3/WebGL2 drivers render INCOMPLETE textures (mip-less with
+		# a mipmap-requiring filter) as BLACK. 64x64 POT + generated
+		# mipmaps + [0,1) UVs is legal on every driver; the 8x8 checker
+		# cell still reads ground motion at walking scale.
 		mat.albedo_texture = _make_checker_texture()
 		mat.uv1_scale = Vector3(1, 1, 1)
 		_patch_mats[face] = mat
@@ -259,14 +258,19 @@ func _load_patch(face: int) -> void:
 	patch_loaded.emit(face)
 
 
-## 2x2-pixel green checker. StandardMaterial3D wraps UVs by default,
-## so the small texture tiles across the 0.22-scaled UVs.
+## 64x64 POT grass checker with generated mipmaps. Strict
+## GLES3/WebGL2 drivers draw mip-less textures BLACK under a
+## mipmap-requiring filter (the round-12 web tiles vanished -- the
+## user was looking at the water shell through the hole). The 8x8
+## checker cell keeps the walking parallax cue at [0,1) UVs.
 func _make_checker_texture() -> ImageTexture:
-	var img := Image.create(2, 2, false, Image.FORMAT_RGBA8)
-	img.set_pixel(0, 0, Color(0.42, 0.55, 0.30))
-	img.set_pixel(1, 0, Color(0.38, 0.51, 0.27))
-	img.set_pixel(0, 1, Color(0.38, 0.51, 0.27))
-	img.set_pixel(1, 1, Color(0.42, 0.55, 0.30))
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	for y in range(64):
+		for x in range(64):
+			var cell := ((x / 8) + (y / 8)) % 2 == 0
+			img.set_pixel(x, y, Color(0.42, 0.55, 0.30) if cell else Color(0.38, 0.51, 0.27))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 	return ImageTexture.create_from_image(img)
 
 
