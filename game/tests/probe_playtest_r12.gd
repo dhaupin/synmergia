@@ -49,10 +49,29 @@ func _run() -> void:
 		map.size.x >= vp_size.x * 0.9 and map.size.y >= vp_size.y * 0.9) and ok
 	var backdrop = map.find_child("MapBackdrop", true, false)
 	ok = _check("A4 full map has a backdrop (not raw black)", backdrop != null) and ok
-	map.toggle()
+	# Round 13: the full map generates a world canvas from the terrain
+	# law (the streaming globe has no ZoneData texture) and carries a
+	# CLOSE button that sits below the web shell's EDIT chip.
+	var tex = map.find_child("MapTexture", true, false)
+	ok = _check("A5 world canvas generated on open",
+		tex != null and tex.texture != null) and ok
+	var close_btn = map.find_child("CloseButton", true, false)
+	ok = _check("A6 close button present and visible", close_btn != null and close_btn.visible) and ok
+	map.set_player_lat_lon(0.0, 0.0)
 	await process_frame
-	ok = _check("A5 second toggle closes the map", not map.visible) and ok
-	ok = _check("A6 closed map restored corner size", map.size.x <= 200.0) and ok
+	var marker = map.find_child("Player", true, false)
+	var vp2: Vector2 = root.get_viewport().get_visible_rect().size
+	var inside := false
+	if marker != null:
+		var mp: Vector2 = marker.position
+		inside = mp.x >= 0.0 and mp.x <= vp2.x and mp.y >= 0.0 and mp.y <= vp2.y
+	ok = _check("A7 player dot positioned on the canvas", inside) and ok
+	# close_modal is the interaction-stack path (Back gesture).
+	map.close_modal()
+	await process_frame
+	ok = _check("A8 close_modal() closes the map", not map.visible) and ok
+	ok = _check("A9 closed map restored corner size", map.size.x <= 200.0) and ok
+	map.queue_free()
 
 	# --- B. FactionUI names ---------------------------------------------
 	# Script mode has no loaded faction KV store; the fix under test is

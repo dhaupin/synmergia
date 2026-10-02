@@ -2724,3 +2724,42 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   Verified: probe_playtest_r12 12/12, probe_globe_world +
   probe_terrain_planet green after the truth-line change, full
   regression 59/59 in 7 chunks.
+- [x] Round 13 (R12 screenshots: vis4 | ALT 10.5 | dry ON SCREEN with
+  teal pixels; map opens fullscreen but empty, no exit, touch HUD on
+  top):
+  (1) THE OCEAN, root-caused (evidence chain now closed): vis4 = four
+  patches IN-TREE and visible, ALT 10.5 = body standing on land, law
+  says dry -- desktop-GL xvfb render of the same scene is green.
+  Remaining web-only draw suspects, both fixed in the tile path:
+  (a) the checker TEXTURE had no mipmaps -- Godot's default filter is
+  linear-with-mipmaps and STRICT GLES3/WebGL2 drivers render
+  incomplete textures BLACK (desktop is lenient). Black tiles under
+  dim ambient + the water shell showing where the expected ground
+  isn't = exactly the user's teal-over-gray-green frames with a
+  curved horizon (the water sphere horizon at eye height, not a
+  coastline -- the coast scan proved none exists within 600 m).
+  (b) UVs reached 512 in a mediump varying: ULP at 512 ~0.03 is
+  larger than the whole 2x2 texture. Texture is now 64x64 POT with
+  generate_mipmaps (6 levels verified headless); UVs wrapped to
+  [0,1) at 0.0015 scale (the 8x8 checker cell keeps the walking
+  parallax cue). This is the round-12 WEB RENDER LAW, continued:
+  small UVs AND complete textures.
+  (2) MAP UX (round-13 screenshot fixes): the fullscreen map had no
+  world content (globe mounts no ZoneData), no visible exit (the X
+  sat under the web shell's EDIT chip at top-right), and the touch
+  HUD drew over it (CanvasLayer 18 vs HudLayer 10 -- MenuManager's
+  yield only fires for ITS panels; the map is a HudLayer child).
+  Now: _ensure_world_canvas() generates an equirectangular world
+  map ONCE from the terrain law (384x384, height-band colors, water
+  by depth) -- "map with no content" is dead; the gold player dot
+  rides the truth line's lat/lon via set_player_lat_lon(); the close
+  button moved below the EDIT chip with a title + "M / Back / X
+  closes" hint; the map registers with MenuManager's interaction
+  stack (push_interaction/close_modal) so the BACK gesture and the
+  always-tappable Back button close it; _set_touch_hud_yield(true)
+  drops the joystick below the map, re-asserted on a 0.5 s _process
+  cadence against the last-panel-closed re-arm race.
+  probe_playtest_r12 extended to 15 checks (canvas generated, close
+  button visible, dot inside viewport, close_modal path). Verified:
+  15/15, probe_terrain_planet/globe_world/stream green with the new
+  UVs, tex check 64x64 mips=6, full regression 56/56 in 6 chunks.
