@@ -42,11 +42,14 @@ signal join_result(entity, result: Dictionary)
 func stone_position_for(entity) -> Vector3:
 	return global_position + Vector3(0, 1.5, 2.5)
 
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
+
 func _init() -> void:
 	monitoring = true
 	monitorable = false
 	collision_layer = 0
-	collision_mask = 1
+	collision_mask = Layers.layer_bit("entity")
 	# Bigger than a doorway; a fighter cannot miss the sand line.
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()

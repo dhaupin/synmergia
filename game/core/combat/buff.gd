@@ -4,6 +4,8 @@ extends StatusEffect
 
 class_name Buff
 const PhysicsArea = preload("res://core/combat/physics_area.gd")
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
 
 
 enum BuffType {
@@ -402,7 +404,7 @@ func _get_entities_in_aura_range() -> Array:
 	shape.radius = aura_radius
 	query.shape = shape
 	query.transform = Transform3D(Basis.IDENTITY, target_pos)
-	query.collision_mask = 0b0000001  # Entities layer
+	query.collision_mask = Layers.layer_bit("entity")  # Entities layer
 
 	var results := space_state.intersect_shape(query, 100)
 
@@ -414,7 +416,7 @@ func _get_entities_in_aura_range() -> Array:
 				var entity_pos := entity.global_position + Vector3(0, 1.0, 0)
 				var caster_pos := target_pos + Vector3(0, 1.5, 0)
 				var los_query := PhysicsRayQueryParameters3D.create(caster_pos, entity_pos)
-				los_query.collision_mask = 0b0000010  # Walls layer
+				los_query.collision_mask = Layers.layer_bit("solid")  # Walls layer
 				var los_result := space_state.intersect_ray(los_query)
 				if not los_result.is_empty():
 					continue  # Blocked by wall

@@ -2,6 +2,8 @@
 extends Node
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
 
 ## ============================================================================
 ## ADMIN COMMANDS REGISTRY
@@ -596,13 +598,13 @@ func _cmd_invisible(args: Array) -> Dictionary:
 	if args.size() >= 1:
 		enable = args[0] != "0"
 
-	# Toggle collision layer (bit 0 = player)
+	# Toggle collision (ghost = no layer, no mask)
 	if enable:
-		admin.collision_layer = 0b0000000  # No collision
-		admin.collision_mask = 0b0000000
+		admin.collision_layer = 0
+		admin.collision_mask = 0
 	else:
-		admin.collision_layer = 0b0000001  # Restore
-		admin.collision_mask = 0b0000111
+		admin.collision_layer = Layers.layer_bit("entity")  # Restore
+		admin.collision_mask = Layers.group_mask("world")
 
 	# Also hide the visual
 	if admin.has_method("set_visible"):
@@ -645,14 +647,14 @@ func _cmd_noclip(args: Array) -> Dictionary:
 	if args.size() >= 1:
 		enable = args[0] != "0"
 
-	# Disable collision completely
+	# Disable collision completely (ghost = no layer, no mask)
 	if enable:
-		admin.collision_layer = 0b0000000
-		admin.collision_mask = 0b0000000
+		admin.collision_layer = 0
+		admin.collision_mask = 0
 		admin.set("gravity_scale", 0.0)
 	else:
-		admin.collision_layer = 0b0000001
-		admin.collision_mask = 0b0000111
+		admin.collision_layer = Layers.layer_bit("entity")
+		admin.collision_mask = Layers.group_mask("world")
 		admin.set("gravity_scale", 1.0)
 
 	var status := "noclip enabled" if enable else "noclip disabled"
@@ -756,7 +758,7 @@ func _cmd_godmode(args: Array) -> Dictionary:
 
 	# Also make collision ignore damage
 	if enable:
-		admin.set("collision_layer", 0b0000001)  # Keep visible but invincible layer
+		admin.set("collision_layer", Layers.layer_bit("entity"))  # Visible, unhittable layer 0 stays for damage
 
 	var status := "enabled" if enable else "disabled"
 	_audit_log(_caller, "godmode", _caller, {"enabled": enable})

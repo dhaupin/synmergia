@@ -122,6 +122,10 @@ var snap_height_provider: Callable = Callable()
 ## from raw contact physics. Default true = unchanged behavior.
 var snap_enabled: bool = true
 
+## Collision-bit law (round 10): named bits from the LayerProfile
+## (data/physics_layers/), no magic numbers at the physics calls.
+const Layers = preload("res://core/schemas/layer_profile.gd")
+
 var _surface_normal: Vector3 = Vector3.UP
 ## Accumulated path length (for the probe's curvature assertion).
 var path_walked: float = 0.0
@@ -232,11 +236,12 @@ func _world_allows_gliding() -> bool:
 	return w == null or w.allows_gliding()
 
 func _ready() -> void:
-	# Props layer (2) is always in the mask: PropCollider bodies (tree
-	# trunks, features) block and are climbable by default -- a scene
-	# that forgets to wire the mask still gets one-law collision.
-	collision_layer = 1
-	collision_mask = collision_mask | 2
+	# Props layer (solid, round 10) is always in the mask: PropCollider
+	# bodies (tree trunks, features) block and are climbable by default
+	# -- a scene that forgets to wire the mask still gets one-law
+	# collision.
+	collision_layer = Layers.layer_bit("entity")
+	collision_mask = collision_mask | Layers.layer_bit("solid")
 	# INVENTORY BAG (round 7, item 3): the globe body never carried one,
 	# so the globe world had NO inventory loop at all -- no bag for the
 	# starter kit to land in (tabs rendered blank), nothing to receive
@@ -689,8 +694,8 @@ func _tick_climb(delta: float, up: Vector3, wish: Vector3, horizontal: Vector3) 
 		global_position = planet_center + radial * top_r
 		var space := get_world_3d().direct_space_state
 		var down := PhysicsRayQueryParameters3D.create( \
-			planet_center + radial * top_r, planet_center + radial * (planet_radius + ground_offset), 0xFFFFFFFF, [get_rid()])
-		down.collision_mask = 0xFFFFFFFF
+			planet_center + radial * top_r, planet_center + radial * (planet_radius + ground_offset), Layers.group_mask("everything"), [get_rid()])
+		down.collision_mask = Layers.group_mask("everything")
 		var dh := space.intersect_ray(down)
 		var land_r: float = planet_radius + ground_offset + SKIN
 		if dh.has("position"):
@@ -731,7 +736,7 @@ func _wall_ahead(up: Vector3, probe_dir: Vector3) -> Vector3:
 	var from: Vector3 = global_position + up * 0.5
 	var to: Vector3 = from + probe_dir * CLIMB_REACH
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 2  # world props layer (PropCollider)
+	query.collision_mask = Layers.layer_bit("solid")  # world props layer (PropCollider)
 	query.exclude = [get_rid()]
 	var hit := space.intersect_ray(query)
 	if hit.has("collider") and is_instance_valid(hit["collider"]):

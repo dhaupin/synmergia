@@ -29,6 +29,7 @@ test_data_naming_lint
 test_movement_profiles
 test_anticheat_limits
 test_hitbox_profiles
+test_layer_profile
 test_sign_service
 test_daily_class_blessing
 test_acts_service

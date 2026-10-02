@@ -44,6 +44,8 @@ var _mounts: Dictionary = {}
 var _vehicles: Dictionary = {}
 var _movement_profiles: Dictionary = {}
 var _hitbox_profiles: Dictionary = {}
+## id -> LayerProfile (data/physics_layers/, named collision bits).
+var _layer_profiles: Dictionary = {}
 ## id -> CalibrationTier (data/calibration/, the alignment substrate).
 var _calibration: Dictionary = {}
 var _signs: Dictionary = {}
@@ -92,6 +94,7 @@ func load_all_data() -> void:
 	load_accessories()
 	load_movement_profiles()
 	load_hitbox_profiles()
+	load_layer_profiles()
 	load_signs()
 	load_acts()
 	load_mysteries()
@@ -240,6 +243,20 @@ func load_movement_profiles() -> void:
 func load_hitbox_profiles() -> void:
 	_hitbox_profiles = _scan_directory(_data_path + "hitbox_profiles", "hitbox")
 	GameLog.info("DataService: Loaded %d hitbox profiles" % _hitbox_profiles.size())
+
+## Load layer profiles from data/physics_layers/ (named collision bits).
+func load_layer_profiles() -> void:
+	_layer_profiles = _scan_directory(_data_path + "physics_layers", "physics")
+	GameLog.info("DataService: Loaded %d layer profiles" % _layer_profiles.size())
+
+func get_layer_profile(id: String) -> Resource:
+	if _layer_profiles.has(id):
+		return _layer_profiles.get(id)
+	GameLog.warn("DataService: Layer profile not found: " + id)
+	return null
+
+func get_layer_profiles() -> Dictionary:
+	return _layer_profiles
 
 ## Load calibration tiers from data/calibration/ (the alignment
 ## substrate, prd-industry-labs.md: time/space/state aligned to the

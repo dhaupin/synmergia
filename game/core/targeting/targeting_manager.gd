@@ -22,6 +22,8 @@ const PlayerController = preload("res://entities/player/player_controller.gd")
 const SpawnMetadata = preload("res://core/events/spawn_metadata.gd")
 const NPCData = preload("res://core/schemas/npc_data.gd")
 const TargetSchema = preload("res://core/schemas/target_schema.gd")
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
 ## ============================================================================
 ## SINGLETON
 ## ============================================================================
@@ -847,7 +849,7 @@ func raycast_from_camera(screen_pos: Vector2, camera: Camera3D) -> TargetInfo:
 
 	var space_state := camera.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 0b0000001  # Entity layer
+	query.collision_mask = Layers.layer_bit("entity")  # Entity layer
 
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:
@@ -895,7 +897,7 @@ func get_entity_at_screen_position(screen_pos: Vector2, camera: Camera3D = null)
 
 	var space_state := camera.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 0b0000001  # Entity layer
+	query.collision_mask = Layers.layer_bit("entity")  # Entity layer
 
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:
@@ -912,7 +914,7 @@ func get_target_in_direction(origin: Vector3, direction: Vector3, max_distance: 
 	var to := origin + direction * max_distance
 
 	var query := PhysicsRayQueryParameters3D.create(origin, to)
-	query.collision_mask = 0b0000001  # Entity layer
+	query.collision_mask = Layers.layer_bit("entity")  # Entity layer
 
 	var result := space_state.intersect_ray(query)
 	if result.size() > 0:

@@ -4,6 +4,9 @@
 extends Node3D
 class_name PhysicsArea
 
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
+
 
 signal entity_entered(entity: Entity)
 signal entity_exited(entity: Entity)
@@ -70,17 +73,17 @@ func _setup_area() -> void:
 	_area.body_shape_exited.connect(_on_body_shape_exited)
 
 func _configure_collision() -> void:
-	# Configure what layers this area monitors
-	# Layer 1 = walls, Layer 2 = floors, Layer 3 = entities, etc.
+	# Configure what layers this area monitors (named bits: the mask
+	# law is DATA now -- entity|solid|ground, see data/physics_layers/).
 	match blocking_mode:
 		BlockingMode.NONE:
-			_area.collision_mask = 0b0000001  # Only entities layer
+			_area.collision_mask = Layers.layer_bit("entity")  # Only entities layer
 		BlockingMode.WALLS_ONLY:
-			_area.collision_mask = 0b0000011  # Entities + walls
+			_area.collision_mask = Layers.group_mask("entity_solid")  # Entities + walls
 		BlockingMode.WALLS_AND_FLOORS:
-			_area.collision_mask = 0b0000111  # Entities + walls + floors
+			_area.collision_mask = Layers.group_mask("world")  # Entities + walls + floors
 		BlockingMode.ALL_GEOMETRY:
-			_area.collision_mask = 0b0111111  # All solid geometry
+			_area.collision_mask = Layers.group_mask("all_solid")  # All solid geometry
 
 func start_monitoring() -> void:
 	_monitoring = true
@@ -123,7 +126,7 @@ func get_entities_in_sphere(origin: Vector3, sphere_radius: float, ignore_source
 	shape.radius = sphere_radius
 	query.shape = shape
 	query.transform = Transform3D(Basis.IDENTITY, origin)
-	query.collision_mask = 0b0000001  # Only entities layer
+	query.collision_mask = Layers.layer_bit("entity")  # Only entities layer
 
 	var results := space_state.intersect_shape(query, 50)
 
@@ -150,11 +153,11 @@ func has_line_of_sight(from: Vector3, to: Vector3) -> bool:
 
 	match blocking_mode:
 		BlockingMode.WALLS_ONLY:
-			query.collision_mask = 0b0000010  # Just walls
+			query.collision_mask = Layers.layer_bit("solid")  # Just walls
 		BlockingMode.WALLS_AND_FLOORS:
-			query.collision_mask = 0b0000110  # Walls + floors
+			query.collision_mask = Layers.group_mask("solid_ground")  # Walls + floors
 		BlockingMode.ALL_GEOMETRY:
-			query.collision_mask = 0b0111111  # All solid
+			query.collision_mask = Layers.group_mask("all_solid")  # All solid
 
 	var result := space_state.intersect_ray(query)
 
@@ -189,7 +192,7 @@ func get_blocking_objects(from: Vector3, to: Vector3) -> Array[Dictionary]:
 	var blockers: Array[Dictionary] = []
 
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 0b1111110  # All geometry except entities
+	query.collision_mask = Layers.group_mask("geometry_no_entity")  # All geometry except entities
 
 	var result := space_state.intersect_ray(query)
 

@@ -15,6 +15,8 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 # here -- no shadow: Entity is a class_name, not an autoload.
 const Entity = preload("res://core/entities/entity.gd")
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
+# Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
 const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
 const GMIndicator = preload("res://entities/player/components/gm_indicator.gd")
 const ReportDialog = preload("res://ui/player/report_dialog.gd")
@@ -280,9 +282,10 @@ func _ready() -> void:
 	# arrive after _ready, like the hitbox); call_deferred sees it.
 	call_deferred("_attach_blessed_mark")
 
-	# Set collision
-	collision_mask = 0b0000111
-	collision_layer = 0b0000001
+	# Set collision (named bits, round 10): the body rides the entity
+	# layer and collides with the whole world (entities, props, ground).
+	collision_mask = Layers.group_mask("world")
+	collision_layer = Layers.layer_bit("entity")
 
 	# Initialize basic attack if null
 	if basic_attack == null:

@@ -4,6 +4,8 @@ extends Node
 
 const Skill = preload("res://core/combat/skill.gd")
 const StatusEffect = preload("res://core/entities/status_effect.gd")
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
 # The MWo-style hit table: _apply_hit rolls it through the skill so
 # miss/dodge/parry/block/crit all resolve in one place.
 const CombatMath = preload("res://core/services/combat_math.gd")
@@ -303,7 +305,7 @@ func get_ground_target_position(caster: Node, direction: Vector2, max_range: flo
 	var space_state: PhysicsDirectSpaceState3D = caster.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collide_with_bodies = true
-	query.collision_mask = 0b0000111  # World layers
+	query.collision_mask = Layers.group_mask("world")  # World layers
 
 	var result: Dictionary = space_state.intersect_ray(query)
 

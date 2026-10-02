@@ -4,6 +4,8 @@
 extends Node
 
 const EntityScript = preload("res://core/entities/entity.gd")
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
 
 func _get_gamelog() -> Object:
 	var root = get_tree().root if has_node("/root") else null
@@ -711,13 +713,13 @@ func _cmd_invisible(args: String, executor_id: String) -> CommandResult:
 		enable = false
 
 	if enable:
-		admin.collision_layer = 0b0000000
-		admin.collision_mask = 0b0000000
+		admin.collision_layer = 0  # ghost: no layer, no mask
+		admin.collision_mask = 0
 		if admin.has_method("set_visible"):
 			admin.set_visible(false)
 	else:
-		admin.collision_layer = 0b0000001
-		admin.collision_mask = 0b0000111
+		admin.collision_layer = Layers.layer_bit("entity")
+		admin.collision_mask = Layers.group_mask("world")
 		if admin.has_method("set_visible"):
 			admin.set_visible(true)
 
@@ -747,12 +749,12 @@ func _cmd_noclip(args: String, executor_id: String) -> CommandResult:
 		enable = false
 
 	if enable:
-		admin.collision_layer = 0b0000000
-		admin.collision_mask = 0b0000000
+		admin.collision_layer = 0  # ghost: no layer, no mask
+		admin.collision_mask = 0
 		admin.set("gravity_scale", 0.0)
 	else:
-		admin.collision_layer = 0b0000001
-		admin.collision_mask = 0b0000111
+		admin.collision_layer = Layers.layer_bit("entity")
+		admin.collision_mask = Layers.group_mask("world")
 		admin.set("gravity_scale", 1.0)
 
 	return CommandResult.new(true, "Noclip %s" % ("enabled" if enable else "disabled"), "")

@@ -14,6 +14,9 @@
 ## R = 20 km (measured, S8).
 extends Node3D
 
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
+
 const PLAYER_SKIN: float = 1.0
 ## Visual shell sits slightly above the collider to avoid z-fighting.
 const SKIN_THICKNESS: float = 0.5
@@ -209,6 +212,19 @@ func _setup_streamer() -> void:
 	# keeps its geometry).
 	streamer.terrain_on = planet_radius > PLANAR_SHELL_MAX_R
 	streamer.update(_spawn_dir() * planet_radius)
+	# SPAWN MESH GATE (round 10): the boot must be able to SEE its own
+	# ground. The first update is synchronous, so an unloaded spawn face
+	# means the streamer is broken -- fail LOUD here instead of booting
+	# over a bare water shell (the round-5/9 "spawned on the ocean"
+	# reports were render-side; this gate splits loader failure from
+	# renderer failure with one log line).
+	var log4 = get_node_or_null("/root/GameLog")
+	if streamer.is_loaded(streamer.current_face):
+		if log4:
+			log4.info("GlobeWorld: spawn face %d mesh-ready at boot (%d faces, %d tris)" % [streamer.current_face, streamer.active_faces().size(), streamer.triangle_count()])
+	else:
+		if log4:
+			log4.error("GlobeWorld: spawn face %d did NOT load at boot -- the world will render as bare shell/water. Streamer load path is broken." % streamer.current_face)
 
 
 ## The player's radial snap rides the WALK SURFACE (displaced terrain
@@ -492,10 +508,11 @@ func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.set_script(script)
 	player.name = "GlobePlayer"
-	# Layer 1 = the player; MASK 1|2 = walk surfaces + world props
-	# (PropCollider trunks/features on layer 2 block and are climbable).
-	player.collision_layer = 1
-	player.collision_mask = 1 | 2
+	# Named bits (round 10): the player rides the entity layer; the mask
+	# is world props (solid) + walk surfaces (ground via the pad, solid
+	# via PropCollider).
+	player.collision_layer = Layers.layer_bit("entity")
+	player.collision_mask = Layers.group_mask("entity_solid")
 
 	var col := CollisionShape3D.new()
 	var shape := SphereShape3D.new()
@@ -633,7 +650,9 @@ func _build_spawn_truth() -> void:
 	# the touch joystick owns the bottom-left.
 	label.anchor_left = 1.0
 	label.anchor_right = 1.0
-	label.offset_left = -420.0
+	# Round 10: the line grew the mesh-stream tag; widen the box so the
+	# extra segment never clips on the right-anchored label.
+	label.offset_left = -620.0
 	label.offset_right = -12.0
 	label.offset_top = 8.0
 	label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -645,8 +664,11 @@ func _build_spawn_truth() -> void:
 
 ## Refresh the spawn-truth line from the player's live position:
 ## lat/lon (same convention as the boot log), ground height at the
-## player's direction, and the sea line. WET tints the line amber so
-## an ocean report is self-evident from a screenshot.
+## player's direction, the sea line, and the MESH STREAM STATE (round
+## 10). WET tints the line amber so an ocean report is self-evident
+## from a screenshot; mesh:OFF / mesh:fN tell the render half of the
+## story -- "dry at 9.0 m" over a rendered ocean is now visible AS a
+## render bug on the screenshot itself (the sim-vs-render split).
 func _update_spawn_truth() -> void:
 	if _truth_label == null or player == null or streamer == null:
 		return
@@ -657,8 +679,12 @@ func _update_spawn_truth() -> void:
 	var ground: float = streamer.terrain_h(dir)
 	var sea: float = Gen4.sea_level(streamer.world_seed)
 	var wet: bool = ground < sea
-	_truth_label.text = "lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s" % \
-		[ll.x, ll.y, ground, sea, "WET" if wet else "dry"]
+	var faces: int = streamer.active_faces().size()
+	var stream_tag: String = "mesh:OFF"
+	if faces > 0:
+		stream_tag = "mesh:f%d x%d/%d" % [streamer.current_face, faces, streamer.triangle_count()]
+	_truth_label.text = "lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s | %s" % \
+		[ll.x, ll.y, ground, sea, "WET" if wet else "dry", stream_tag]
 	_truth_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2, 0.95) if wet else Color(1, 1, 1, 0.85))
 
 

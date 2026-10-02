@@ -23,6 +23,11 @@ const CLIMBABLE_GROUP := "climbable"
 ## children (AABB union, prop-local). Returns the StaticBody3D.
 ## Idempotent: a prop that already carries a PropCollider body is
 ## returned untouched.
+
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+## The prop law: props ride the solid layer, block entities, and are
+## never seen by other props (mask 0).
+const Layers = preload("res://core/schemas/layer_profile.gd")
 static func attach(prop: Node3D) -> StaticBody3D:
 	if prop == null or not is_instance_valid(prop):
 		return null
@@ -31,7 +36,7 @@ static func attach(prop: Node3D) -> StaticBody3D:
 		return existing
 	var body := StaticBody3D.new()
 	body.name = "PropBody"
-	body.collision_layer = 2
+	body.collision_layer = Layers.layer_bit("solid")
 	body.collision_mask = 0
 	body.add_to_group(CLIMBABLE_GROUP)
 	var aabb := _union_aabb(prop)
@@ -61,7 +66,7 @@ static func attach_trunk(tree: Node3D) -> StaticBody3D:
 		return existing
 	var body := StaticBody3D.new()
 	body.name = "PropBody"
-	body.collision_layer = 2
+	body.collision_layer = Layers.layer_bit("solid")
 	body.collision_mask = 0
 	body.add_to_group(CLIMBABLE_GROUP)
 	var trunk := tree.get_node_or_null("*trunk*")

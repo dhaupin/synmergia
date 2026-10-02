@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="LayerProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/layer_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "physics_layers_main"
+display_name = "Physics Layers (audit 2026-10-02)"
+audit_locked = true
+bits = [{
+"name": "entity",
+"bit": 1,
+"description": "Players, enemies, NPCs -- anything targetable or physically active"
+}, {
+"name": "solid",
+"bit": 2,
+"description": "PropCollider props, walls, tree trunks, boulders"
+}, {
+"name": "ground",
+"bit": 4,
+"description": "Floors and terrain collision truth"
+}]
+groups = [{
+"name": "world",
+"bits": "entity,solid,ground"
+}, {
+"name": "entity_solid",
+"bits": "entity,solid"
+}, {
+"name": "solid_ground",
+"bits": "solid,ground"
+}, {
+"name": "all_solid",
+"value": 63
+}, {
+"name": "geometry_no_entity",
+"value": 126
+}, {
+"name": "everything",
+"value": 4294967295
+}]

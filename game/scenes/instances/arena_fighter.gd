@@ -11,6 +11,8 @@
 # No class_name (never instantiated by type elsewhere; the instance
 # scene preloads this file). Built entirely in code like globe_player.
 #
+# Named collision bits (round 10): data/physics_layers/ LayerProfile.
+#
 # S13: the ROYALE drop rides the S12 glider contract -- the same
 # frame primitive the globe body drives (all-realms rule). When the
 # bout arms, the room throws fighters from 160 m; a fighter whose
@@ -21,6 +23,7 @@
 extends CharacterBody3D
 
 const Contract = preload("res://core/schemas/instance_contract.gd")
+const Layers = preload("res://core/schemas/layer_profile.gd")
 
 var fighter_id: String = ""
 var team: int = 0
@@ -113,7 +116,7 @@ func eliminate() -> void:
 	alive = false
 	velocity = Vector3.ZERO
 	collision_layer = 0
-	collision_mask = 0
+	collision_mask = 0  # eliminated bodies collide with nothing
 	if _mesh != null:
 		_set_tint(Color(0.4, 0.4, 0.4))
 
@@ -123,8 +126,8 @@ func respawn_at(pos: Vector3, shield_seconds: float) -> void:
 	global_position = pos
 	velocity = Vector3.ZERO
 	alive = true
-	collision_layer = 1
-	collision_mask = 1
+	collision_layer = Layers.layer_bit("entity")
+	collision_mask = Layers.layer_bit("entity")
 	apply_spawn_shield(shield_seconds)
 	_set_tint(_team_color(team))
 

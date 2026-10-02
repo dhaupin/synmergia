@@ -2,6 +2,9 @@
 ## Speed, stealth, immunity, damage over time
 extends Node
 
+## Named collision bits (round 10): data/physics_layers/ LayerProfile.
+const Layers = preload("res://core/schemas/layer_profile.gd")
+
 
 ## SpeedModifier - Adjusts movement speed
 class_name SpeedModifier
@@ -104,23 +107,23 @@ func _apply_stealth(target: Entity) -> void:
 		StealthType.INVISIBLE:
 			target.visible = false
 			target.collision_layer = 0  # Can't be hit
-			target.collision_mask = 0b0000100  # Only collides with world (not entities)
+			target.collision_mask = Layers.group_mask("solid_ground")  # world only, no entities
 
 		StealthType.STEALTH:
 			target.visible = true  # Still visible but
-			target.collision_layer = 0b0000001  # Can be hit but not targeted
+			target.collision_layer = Layers.layer_bit("entity")  # Can be hit but not targeted
 			# Targeting logic would be handled by the enemy AI
 
 		StealthType.VANISH:
 			target.visible = false
 			target.collision_layer = 0
-			target.collision_mask = 0b0000100
+			target.collision_mask = Layers.group_mask("solid_ground")
 			# Would also need to clear aggro from enemies
 
 func _revert_stealth(target: Entity) -> void:
 	target.visible = _was_visible
-	target.collision_layer = 0b0000001  # Default player layer
-	target.collision_mask = 0b0000111
+	target.collision_layer = Layers.layer_bit("entity")  # Default player layer
+	target.collision_mask = Layers.group_mask("world")
 
 func is_stealthed() -> bool:
 	return is_active
@@ -171,7 +174,7 @@ func _apply_immunities(target: Entity) -> void:
 
 func _revert_immunities(target: Entity) -> void:
 	target.stats.damage_multiplier = 1.0
-	target.collision_layer = 0b0000001
+	target.collision_layer = Layers.layer_bit("entity")
 
 ## Check if target is immune to a specific effect
 func is_immune_to(effect: String) -> bool:
