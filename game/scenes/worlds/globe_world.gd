@@ -698,6 +698,11 @@ func _update_spawn_truth() -> void:
 	# hidden. Leading segment = always on screen.
 	_truth_label.text = "%s vis%d | ALT %.1f | lat %.2f lon %.2f | ground %.1f m | sea %.1f m | %s" % \
 		[stream_tag, vis, alt_m, ll.x, ll.y, ground, sea, "WET" if wet else "dry"]
+	# Feed the full map's player dot (round 13: the map is generated
+	# from the terrain law; the gold dot rides the same lat/lon).
+	var map := hud.find_child("WorldMap", true, false) if hud != null else null
+	if map != null and map.has_method("set_player_lat_lon"):
+		map.set_player_lat_lon(ll.x, ll.y)
 	_truth_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2, 0.95) if wet else Color(1, 1, 1, 0.85))
 
 

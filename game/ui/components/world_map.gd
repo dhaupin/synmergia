@@ -3,6 +3,7 @@
 extends Control
 class_name WorldMap
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
 
 
 ## Singleton
@@ -22,6 +23,15 @@ var _zoom_level: float = 1.0
 var _pan_offset: Vector2 = Vector2.ZERO
 var _is_dragging: bool = false
 var _drag_start: Vector2 = Vector2.ZERO
+## Round-13: the world canvas is generated ONCE from the terrain law
+## (the streaming globe mounts no ZoneData map texture) and the map
+## registers with MenuManager's interaction stack so the Back button
+## and the touch-HUD yield that every panel gets apply here too.
+var _canvas_texture: ImageTexture = null
+var _registered := false
+var _yield_accum := 0.0
+var _player_lat := 999.0
+var _player_lon := 0.0
 
 ## Quest waypoints
 var _waypoints: Array = []
@@ -121,17 +131,38 @@ func _setup_ui() -> void:
 	controls.visible = false
 	container.add_child(controls)
 
-	# Close button (for full map)
+	# Close button (for full map). Top-right sat under the web shell's
+	# EDIT chip on phone layouts (round-13 screenshot: the X was there,
+	# just invisible) -- drop below it so it is always tappable.
 	var close_btn := Button.new()
 	close_btn.name = "CloseButton"
 	close_btn.text = "X"
 	close_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	close_btn.offset_left = -50
-	close_btn.offset_top = 10
+	close_btn.offset_left = -56
+	close_btn.offset_top = 64
 	close_btn.offset_right = -10
-	close_btn.offset_bottom = 40
+	close_btn.offset_bottom = 106
 	close_btn.pressed.connect(_on_close_pressed)
 	controls.add_child(close_btn)
+	# Title + hint so the surface never reads as an empty black sheet.
+	var title_lbl := Label.new()
+	title_lbl.name = "MapTitle"
+	title_lbl.text = "World Map"
+	title_lbl.position = Vector2(16, 12)
+	title_lbl.add_theme_font_size_override("font_size", 20)
+	title_lbl.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
+	title_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	title_lbl.add_theme_constant_override("outline_size", 4)
+	controls.add_child(title_lbl)
+	var hint_lbl := Label.new()
+	hint_lbl.name = "MapHint"
+	hint_lbl.text = "M / Back / X closes the map"
+	hint_lbl.position = Vector2(16, 40)
+	hint_lbl.add_theme_font_size_override("font_size", 13)
+	hint_lbl.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
+	hint_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	hint_lbl.add_theme_constant_override("outline_size", 3)
+	controls.add_child(hint_lbl)
 
 func _create_marker(name: String, color: Color) -> Control:
 	var marker := Control.new()
@@ -254,11 +285,57 @@ func hide_map() -> void:
 
 func expand_to_fullscreen() -> void:
 	_set_fullmap_mode()
+	_ensure_world_canvas()
+	_register_with_menu_manager(true)
+	_set_touch_hud_yield(true)
 	show()
 
 func minimize_to_minimap() -> void:
 	_set_minimap_mode()
+	_register_with_menu_manager(false)
+	_set_touch_hud_yield(false)
 	hide()
+
+## The back gesture and the MenuManager funnel call close_modal() on
+## interaction-stack entries. Without this the back gesture would
+## queue_free the map (the stack's fallback).
+func close_modal() -> void:
+	minimize_to_minimap()
+
+## Full-map re-assert: a panel opened AND closed while the map stayed
+## open re-arms the touch HUD (MenuManager's "last panel closed" path
+## knows nothing about us) -- re-claim the yield twice a second while
+## the full map is up.
+func _process(delta: float) -> void:
+	if visible and not _minimap_mode:
+		_yield_accum += delta
+		if _yield_accum >= 0.5:
+			_yield_accum = 0.0
+			_set_touch_hud_yield(true)
+
+func _register_with_menu_manager(active: bool) -> void:
+	if active == _registered:
+		return
+	var script = load("res://ui/components/menu_manager.gd")
+	if script == null:
+		return
+	var mm = script.instance
+	if mm == null or not is_instance_valid(mm):
+		return
+	if active and mm.has_method("push_interaction"):
+		mm.push_interaction(self)
+		_registered = true
+	elif not active and mm.has_method("pop_interaction"):
+		mm.pop_interaction(self)
+		_registered = false
+
+func _set_touch_hud_yield(yield_now: bool) -> void:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return
+	var im = (ml as SceneTree).root.get_node_or_null("InputManager")
+	if im != null and im.has_method("set_touch_hud_panels_open"):
+		im.set_touch_hud_panels_open(yield_now)
 
 func is_minimap() -> bool:
 	return _minimap_mode
@@ -271,6 +348,72 @@ func set_zone_name(name: String) -> void:
 func set_player_position(world_pos: Vector3) -> void:
 	if _minimap_mode:
 		_update_minimap_position(world_pos)
+
+## The globe truth line already computes the player's lat/lon at 2 Hz;
+## it feeds the full map here so the gold dot rides the generated
+## world canvas (equirectangular, texture aspect 1:1 letterboxed into
+## the viewport).
+func set_player_lat_lon(lat: float, lon: float) -> void:
+	_player_lat = lat
+	_player_lon = lon
+	if not _minimap_mode:
+		_position_player_marker()
+
+func _position_player_marker() -> void:
+	if _player_marker == null or _marker_container == null:
+		return
+	if _player_lat > 90.0:
+		return
+	var px := (_player_lon + 180.0) / 360.0
+	var py := (90.0 - _player_lat) / 180.0
+	# KEEP_ASPECT_CENTERED with a square canvas: drawn height = control
+	# height, drawn width = height (letterbox bars left/right on wide
+	# windows). Markers must sit inside the DRAWN rect, not the control.
+	var vp_size := size
+	var drawn := vp_size.y
+	var x0 := maxf(0.0, (vp_size.x - drawn) * 0.5)
+	_player_marker.position = Vector2(
+		x0 + px * drawn - _player_marker.size.x * 0.5,
+		py * vp_size.y - _player_marker.size.y * 0.5)
+
+## Generate the world canvas from the terrain law (once per session).
+## Equirectangular lat/lon scan, height-band colors matching the tile
+## palette; water shades by depth. 384x384 = ~147k pure-function calls,
+## a one-time sub-second cost on first open.
+func _ensure_world_canvas() -> void:
+	if _canvas_texture != null:
+		return
+	var Sph = load("res://core/frame/math/spherical.gd")
+	var R := 20000.0
+	var seed_bytes: PackedByteArray = TerrainGen.world_seed_bytes()
+	var sea: float = TerrainGen.sea_level(seed_bytes)
+	var img := Image.create(384, 384, false, Image.FORMAT_RGBA8)
+	for py in range(384):
+		var lat := -90.0 + 180.0 * (float(py) + 0.5) / 384.0
+		for px in range(384):
+			var lon := -180.0 + 360.0 * (float(px) + 0.5) / 384.0
+			var d: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, R).normalized()
+			var h: float = TerrainGen.terrain_height(d, seed_bytes)
+			img.set_pixel(px, py, _canvas_color(h, sea))
+	_canvas_texture = ImageTexture.create_from_image(img)
+	_map_texture.texture = _canvas_texture
+	_position_player_marker()
+
+## Height-band canvas colors (the tile palette, map-styled).
+func _canvas_color(h: float, sea: float) -> Color:
+	if h < sea - 4.0:
+		return Color(0.07, 0.20, 0.30)  # deep water
+	if h < sea:
+		return Color(0.13, 0.33, 0.44)  # shallow water
+	if h < sea + 1.5:
+		return Color(0.76, 0.70, 0.50)  # shore sand
+	if h < 15.0:
+		return Color(0.30, 0.46, 0.26)  # lowland
+	if h < 28.0:
+		return Color(0.24, 0.36, 0.21)  # highland
+	if h < 38.0:
+		return Color(0.45, 0.43, 0.40)  # mountain
+	return Color(0.88, 0.90, 0.92)  # snow cap
 
 func _update_minimap_position(world_pos: Vector3) -> void:
 	# In minimap mode, player is always centered
