@@ -2682,3 +2682,45 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   Added to the runner DEFAULT_SET after probe_round2_ui.
   Verified: probe_character_panel 14/14; full regression in 7 chunks
   58/58 (zero script errors).
+- [x] Round 12 (screenshots after R11: char/inv loads; new evidence --
+  mesh:f16 x4/16384 ON SCREEN):
+  (1) PACK FRESHNESS + SPAWN TRUTH SETTLED: mesh:f16 visible means the
+  UV-fix pack RAN and 4 faces/16384 tris are loaded, law says dry 9.0
+  vs sea 6.0 -- yet pixels show ocean. The coast-scan probe kills the
+  apron-sea theory: with the REAL seed (sea 6.03, spawn 9.0) there is
+  NO coastline within 600 m in any of 16 directions, and terrain is
+  already 30 m at 200 m out. An xvfb render of the real spawn scene
+  (Compatibility GL = the WebGL2 family) shows GREEN ground with teal
+  only at the physical horizon -- so the draw works in-family on
+  desktop and the break is web-specific. TRUTH LINE UPGRADED to split
+  the remaining hypotheses on the next screenshot: ALT = the player
+  BODY's altitude above the base shell (law said dry; if ALT ~ 10
+  while pixels are teal, the body never sank and the break is in the
+  draw; if ALT collapsed to ~6, the body sank), vis = patches visible
+  in-tree (vis>0 + teal pixels = tiles in tree but not drawn; vis=0 =
+  streamer side). Line: mesh:fN xC/T visV | ALT A | lat .. | ground ..
+  | sea .. | WET/dry. Streamer gains visible_patch_count().
+  (2) WORLD MAP WAS A 150x150 CORNER BOX: _ready pins corner geometry,
+  and toggle() (the R6 minimap-button target) only flipped VISIBILITY
+  -- never switched to full-map mode. toggle() now opens FULL-RECT
+  (expand_to_fullscreen) and closing restores the corner. The
+  1920x1080 custom_minimum_size forced overflow on small windows (now
+  ZERO in full mode, anchors govern; _screen_to_world divides by the
+  real size now). Backdrop added: the globe streams per-face terrain
+  and mounts no ZoneData, so MapTexture was textureless and the full
+  map drew raw black.
+  (3) FACTIONS RENDERED '? Rep: 0': the Faction schema field is
+  display_name; the panel read "name". Falls back name -> id, never
+  anonymous. (First probe run caught MY OWN dropped var line here --
+  parse error cascade, the hang-signature lesson again.)
+  (4) QUEST JOURNAL TABS read as one text run: buttons now carry the
+  Bank panel's 100 px min width. ("(No quests)" on all three tabs is
+  CORRECT globe state -- no quest givers exist in the globe scene
+  yet, not a hydration bug. Titles list empty is also correct: First
+  Blood needs 1 kill.)
+  New probe_playtest_r12 (12 checks): full-size open/close round
+  trip, backdrop, display_name rows (resource + dict + empty), quest
+  tab widths. In DEFAULT_SET after probe_character_panel.
+  Verified: probe_playtest_r12 12/12, probe_globe_world +
+  probe_terrain_planet green after the truth-line change, full
+  regression 59/59 in 7 chunks.
