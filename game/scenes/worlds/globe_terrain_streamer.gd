@@ -494,6 +494,19 @@ func _spawn_trees(face: int, patch_node: MeshInstance3D) -> void:
 		patch_node.add_child(tree)
 
 
+## How many loaded patches are actually VISIBLE in the tree right now
+## (the round-12 web question: truth line said dry + meshes loaded, but
+## pixels showed ocean -- if visible patches > 0 while the screen shows
+## water, the tiles ARE in the tree and the break is in the draw).
+func visible_patch_count() -> int:
+	var n := 0
+	for f in _patches:
+		var mi = _patches[f]
+		if is_instance_valid(mi) and mi.is_visible_in_tree():
+			n += 1
+	return n
+
+
 func _unload_patch(face: int) -> void:
 	var mi: MeshInstance3D = _patches.get(face)
 	if mi and is_instance_valid(mi):
