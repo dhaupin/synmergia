@@ -131,9 +131,10 @@ func build_observation(entity: Entity) -> Dictionary:
 	obs["level"] = entity.level
 	obs["xp_percent"] = entity.xp / entity.xp_to_next_level if entity.xp_to_next_level > 0 else 1.0
 
-	# Nearby entities (simplified)
+	# Nearby entities (simplified; shared interest law, round 10)
 	var nearby: Array = []
-	var nearby_entities = EntityService.get_entities_in_radius(entity.global_position, 30.0)
+	var Interest = load("res://core/services/entity_interest.gd")
+	var nearby_entities: Array = Interest.query_all(entity.global_position, 30.0, [entity])
 	for e in nearby_entities:
 		if e == entity:
 			continue

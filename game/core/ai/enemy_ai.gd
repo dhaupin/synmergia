@@ -10,6 +10,8 @@ const MemorySchemaScript = preload("res://core/frame/kv/memory_schema.gd")
 # The MWo-style hit table: enemy swings run the same single roll
 # (miss/dodge/parry/block/crit) as player skills.
 const CombatMath = preload("res://core/services/combat_math.gd")
+# Shared interest queries (round 10): one "nearby" law.
+const EntityInterest = preload("res://core/services/entity_interest.gd")
 const MAX_MEMORY_ENTRIES := 16
 
 
@@ -198,10 +200,9 @@ func _check_for_targets():
 	if not entity:
 		return null
 
-	var nearby := EntityService.get_entities_in_radius(
+	var nearby: Array = EntityInterest.query_players(
 		entity.global_position,
-		aggro_range,
-		Entity.EntityType.PLAYER
+		aggro_range
 	)
 
 	# Memory bias: prefer remembered attackers (grudge) -- highest weight first.

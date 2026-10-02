@@ -219,13 +219,16 @@ func can_cast(caster: Node) -> bool:
 
 ## Heal threat: push threat onto the tables of in-combat enemies near
 ## the healed target. Silent no-op when EntityService is unavailable
-## (parse-time) or no enemies are in combat nearby.
+## (parse-time) or no enemies are in combat nearby. Interest law is
+## the shared helper (round 10).
+const EntityInterest = preload("res://core/services/entity_interest.gd")
+
 func _generate_heal_threat(healer, heal_amount: int) -> void:
 	var es = _entity_service()
 	if es == null or heal_amount <= 0:
 		return
 	var heal_pos: Vector3 = healer.global_position
-	var nearby: Array = es.get_entities_in_radius(heal_pos, 20.0, Entity.EntityType.ENEMY)
+	var nearby: Array = EntityInterest.query_interest(heal_pos, 20.0)
 	for enemy in nearby:
 		if not is_instance_valid(enemy):
 			continue

@@ -6,6 +6,11 @@ class_name Projectile
 
 
 const __Projectile__ = preload("res://core/combat/projectile.gd")
+## Shared interest queries (round 10): one "nearby" law. Hostile
+## scans ask for combat interest (enemies + players), so explosions
+## and traps hit every hostile type -- the old default-type call
+## scanned NPCs only and players/wolves were explosion-immune.
+const EntityServiceHelper = preload("res://core/services/entity_interest.gd")
 signal hit(target: Entity, damage: int)
 signal expired()
 signal destroyed()
@@ -179,7 +184,7 @@ func _check_collision(from: Vector3, to: Vector3) -> void:
 				_explode(result["position"])
 
 func _check_trap_activation() -> void:
-	var nearby := EntityService.get_entities_in_radius(global_position, trap_trigger_radius)
+	var nearby: Array = EntityServiceHelper.query_interest(global_position, trap_trigger_radius)
 
 	for entity in nearby:
 		if entity == source:
@@ -238,7 +243,7 @@ func _on_hit(target: Entity) -> void:
 	_destroy()
 
 func _ricochet(from_target: Entity) -> void:
-	var nearby := EntityService.get_entities_in_radius(from_target.global_position, chain_range)
+	var nearby: Array = EntityServiceHelper.query_interest(from_target.global_position, chain_range)
 	var next_target: Entity = null
 	var min_dist := INF
 
@@ -259,7 +264,7 @@ func _ricochet(from_target: Entity) -> void:
 		_expire()
 
 func _chain_to_next(from_target: Entity) -> void:
-	var nearby := EntityService.get_entities_in_radius(from_target.global_position, chain_range)
+	var nearby: Array = EntityServiceHelper.query_interest(from_target.global_position, chain_range)
 	var next_target: Entity = null
 	var min_dist := INF
 
@@ -304,7 +309,7 @@ func _explode(position: Vector3) -> void:
 	if sfx_hit != "":
 		_spawn_sfx(position)
 
-	var nearby := EntityService.get_entities_in_radius(position, explosion_radius)
+	var nearby: Array = EntityServiceHelper.query_interest(position, explosion_radius)
 
 	for entity in nearby:
 		if entity == source:

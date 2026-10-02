@@ -12,6 +12,7 @@
 ##   2. The threat table (AggroComponent) -- combat being done TO the
 ##      guard right now, standard MMO semantics.
 ##
+## Sight queries ride the shared interest helper (round 10).
 ## Watchlist sharing: report_offense() forwards to every other guard in
 ## the same watch_group via the static _watch_registry, so "other guards
 ## see the same aggro and attack too" works even when they are out of
@@ -20,6 +21,7 @@
 ## GuardData (core/schemas/guard_data.gd) defines what triggers an
 ## offense. Future triggers (house guards, faction quests, checkpoints)
 ## only need new call sites of report_offense().
+## (EntityInterest arrives through EnemyAI -- one declaration, one law.)
 extends "res://core/ai/enemy_ai.gd"
 
 const GuardData = preload("res://core/schemas/guard_data.gd")
@@ -197,11 +199,10 @@ func _check_for_targets():
 	if not entity:
 		return null
 
-	var nearby: Array = _resolve_entity_service().get_entities_in_radius(
+	var nearby: Array = EntityInterest.query_players(
 		entity.global_position,
-		aggro_range,
-		Entity.EntityType.PLAYER
-	) if _resolve_entity_service() != null else []
+		aggro_range
+	)
 
 	# Priority 1: criminals -- instant full aggro on sight.
 	for target in nearby:

@@ -287,11 +287,11 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 	if channel_range <= 0:
 		return []
 
-		# Get players within range
-	var nearby_entities := EntityService.get_entities_in_radius(
+		# Get players within range (shared interest helper, round 10)
+	var Interest = load("res://core/services/entity_interest.gd")
+	var nearby_entities: Array = Interest.query_players(
 	sender.global_position if sender is Node3D else Vector3.ZERO,
-	channel_range,
-	Entity.EntityType.PLAYER
+	channel_range
 	)
 
 		# Convert to player IDs, excluding sender
