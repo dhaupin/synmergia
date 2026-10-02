@@ -210,8 +210,13 @@ func _show_tab(tab_id: int) -> void:
 		else:
 			btn.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 
-	# Show/hide tab contents
-	for tab in Tab:
+	# Show/hide tab contents. Iterate Tab.values() (ints) -- _tab_contents
+	# is keyed by those same ints from _setup_tabs. Iterating the enum
+	# itself yields the String NAMES, every lookup missed, and NO tab
+	# body was ever shown: tabs painted, body blank (play-test round 11
+	# screenshot -- the R6 fix note even called this lookup out, but only
+	# the _setup_tabs half got fixed).
+	for tab in Tab.values():
 		var container: Control = _tab_contents.get(tab)
 		if container:
 			container.visible = (tab == tab_id)
@@ -770,8 +775,11 @@ func _create_skill_slot(index: int, category: String) -> PanelContainer:
 ## ============================================================================
 
 func refresh_inventory() -> void:
-	if _char_data == null:
-		return
+	# No _char_data gate: the grid and equipment rows read the LIVE bag,
+	# which exists before any character data is pushed (the globe
+	# single-player world never sets selected_character_data, so the old
+	# gate made the tab refuse to hydrate exactly where it was blank).
+	# Stats/skills keep their gate -- they genuinely need _char_data.
 	_refresh_inventory_grid()
 	_refresh_equipment_display()
 
@@ -850,6 +858,14 @@ func _refresh_inventory_grid() -> void:
 				if child is VBoxContainer:
 					(child as VBoxContainer).add_child(hint)
 					break
+	else:
+		# The hint is sticky: an open that ran before the bag registered
+		# leaves it behind even after a live bag hydrates (round 11). A
+		# hint plus visible items is a lie -- retire it.
+		var stale_hint: Label = container.find_child("EmptyHint", true, false) as Label
+		if stale_hint != null:
+			stale_hint.get_parent().remove_child(stale_hint)
+			stale_hint.queue_free()
 
 ## Resolve the player's live inventory component. Tries the typed
 ## InventoryService path first, then a defensive InventoryComponent

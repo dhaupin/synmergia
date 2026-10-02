@@ -74,6 +74,7 @@ probe_world_lattice
 probe_underworld
 probe_world_scoping
 probe_round2_ui
+probe_character_panel
 probe_climb
 probe_calibration
 globe_driver
