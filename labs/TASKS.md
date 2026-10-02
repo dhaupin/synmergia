@@ -2643,3 +2643,42 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   probe_globe_world 23/23, probe_round2_ui 20/20, probe_startup_flow
   18, probe_arena_instance PASS, probe_climb 11/11 (zero SCRIPT
   ERRORs across all logs).
+- [x] Round 11 (post-crash screenshots: "still ocean under player" +
+  "Character panel Inventory tab STILL blank"):
+  (1) PACK FRESHNESS settled by reading the loader chain end to end:
+  web/index.html fetches game.pck.hash no-cache -> mainPack =
+  game.pck?v=<hash>; the worker serves index.html + .hash no-store,
+  hashed packs immutable, and 302s bare game.pck to the hashed URL.
+  A hash change makes a NEW url, so a plain reload must fetch the new
+  pack -- no staleness path found. The screenshot problem was
+  VISIBILITY: the mesh:fN xC/T tag sat at the END of the truth line,
+  exactly where the minimap overlaps. Moved the tag to the FRONT
+  ("mesh:f0 x12/3456 | lat .. | ground .. | sea .. | dry"); no test
+  parses the old order. Next screenshot reads pack-fresh even on a
+  phone/portrait layout.
+  (2) BLANK CHARACTER PANEL -- ROOT CAUSE, not hydration timing:
+  _show_tab() iterated `for tab in Tab:` -- the enum DICT yields
+  String NAMES, but _tab_contents is keyed by the ints from
+  Tab.values() -- every get() missed and NO tab body was ever shown.
+  Tabs painted, body blank (the R6 fix note even called this lookup
+  out, but only the _setup_tabs half got fixed). Fixed to
+  Tab.values(). ALSO: refresh_inventory() gated on _char_data !=
+  null -- the globe single-player world never sets
+  GameManager.selected_character_data, so even a visible tab refused
+  to hydrate. Gate removed (grid + equipment read the live bag;
+  stats/skills keep their gate).
+  (3) THE BAG WAS UNREACHABLE IN GLOBE MODE: the planar controller
+  binds PlayerManager.set_local_player(self) and exposes
+  `inventory_component`; the globe body did neither, so the panel's
+  resolve path (get_local_player_id -> InventoryService, or the
+  player-node duck type) missed the bag it was standing on. Globe
+  body now binds itself + exposes inventory_component (same wiring,
+  line-for-line). Bonus fix: the "Inventory is empty" hint was
+  sticky -- an open before the bag registered left it behind forever
+  even after hydration; retired when a live bag resolves.
+  New probe_character_panel (14 checks) pins all of it: tab-body
+  visibility flip, hydration WITHOUT character data, globe binding,
+  service registration, panel->globe bag resolve, un-sticky hint.
+  Added to the runner DEFAULT_SET after probe_round2_ui.
+  Verified: probe_character_panel 14/14; full regression in 7 chunks
+  58/58 (zero script errors).
