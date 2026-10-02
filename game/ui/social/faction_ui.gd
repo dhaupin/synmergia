@@ -60,9 +60,16 @@ func _create_faction_row(faction) -> Control:
 	var hbox := HBoxContainer.new()
 	panel.add_child(hbox)
 
-	# Faction name
+	# Faction name. The Faction schema field is display_name (reading
+	# "name" rendered a column of "?" -- round-12 screenshot). Fall
+	# back hard so a row can never be anonymous again.
 	var name_lbl := Label.new()
-	name_lbl.text = _field(faction, "name", "?")
+	var faction_name: String = _field(faction, "display_name", "")
+	if faction_name == "":
+		faction_name = _field(faction, "name", "")
+	if faction_name == "":
+		faction_name = _field(faction, "id", "Unknown faction")
+	name_lbl.text = faction_name
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_lbl)
 

@@ -31,7 +31,6 @@ var _entity_markers: Dictionary = {}
 
 ## Sizes
 var _minimap_size: Vector2 = Vector2(150, 150)
-var _fullmap_size: Vector2 = Vector2(1920, 1080)
 var _world_size: Vector2 = Vector2(8192, 8192)  # 8km x 8km world
 
 signal waypoint_clicked(position: Vector3)
@@ -64,6 +63,17 @@ func _setup_ui() -> void:
 	container.name = "Container"
 	container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(container)
+
+	# Backdrop: the globe streams per-face terrain and mounts no
+	# ZoneData, so MapTexture has no texture -- without a backdrop the
+	# full map drew as raw black. A dark slate canvas reads as a map
+	# under the markers.
+	var backdrop := ColorRect.new()
+	backdrop.name = "MapBackdrop"
+	backdrop.color = Color(0.04, 0.07, 0.10)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(backdrop)
 
 	# Map viewport
 	_map_view = Control.new()
@@ -207,7 +217,10 @@ func _set_fullmap_mode() -> void:
 	offset_top = 0
 	offset_right = 0
 	offset_bottom = 0
-	custom_minimum_size = _fullmap_size
+	# Anchors govern the size in full mode. The old 1920x1080
+	# custom_minimum_size FORCED the control larger than small windows
+	# (the map overflowed instead of fitting).
+	custom_minimum_size = Vector2.ZERO
 
 	# Show/hide controls
 	var controls: Control = get_node_or_null("Container/Controls")
@@ -222,13 +235,19 @@ static func singleton() -> WorldMap:
 	return instance
 
 func toggle() -> void:
+	# OPEN = FULL MAP. The R6 note wired the minimap button to this
+	# toggle, but toggle only flipped visibility: _ready had already
+	# pinned the control to 150x150 corner geometry, so "the map" opened
+	# as a tiny empty box in the corner (round-12 screenshot). Opening
+	# now re-pins to full-rect first; closing restores the corner
+	# geometry and hides.
 	if visible:
-		hide()
+		minimize_to_minimap()
 	else:
-		show()
+		expand_to_fullscreen()
 
 func show_map() -> void:
-	show()
+	expand_to_fullscreen()
 
 func hide_map() -> void:
 	hide()
@@ -430,9 +449,16 @@ func _handle_map_click(screen_pos: Vector2) -> void:
 	map_clicked.emit(map_pos)
 
 func _screen_to_world(screen_pos: Vector2) -> Vector3:
-	# Convert screen position to world position
-	var world_x := (screen_pos.x / custom_minimum_size.x) * _world_size.x
-	var world_z := (screen_pos.y / custom_minimum_size.y) * _world_size.y
+	# Convert screen position to world position. The denominator is the
+	# control's REAL size -- custom_minimum_size is ZERO in full-map
+	# mode (anchors govern there), and dividing by it was INF/garbage.
+	var denom := size
+	if denom.x <= 1.0 or denom.y <= 1.0:
+		denom = custom_minimum_size
+	if denom.x <= 1.0 or denom.y <= 1.0:
+		return Vector3.ZERO
+	var world_x := (screen_pos.x / denom.x) * _world_size.x
+	var world_z := (screen_pos.y / denom.y) * _world_size.y
 	return Vector3(world_x, 0, world_z)
 
 	## ============================================================================

@@ -94,6 +94,10 @@ func _setup_ui() -> void:
 		btn.text = tab_data.name
 		btn.toggle_mode = true
 		btn.button_pressed = false
+		# Bank-panel tab treatment: without a min width the buttons hug
+		# into one text run (round-12 screenshot: "Active Complete
+		# Available" read as a single line).
+		btn.custom_minimum_size.x = 100
 		btn.focus_mode = Control.FOCUS_ALL
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 		btn.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
