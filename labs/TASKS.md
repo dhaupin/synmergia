@@ -2763,3 +2763,57 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   button visible, dot inside viewport, close_modal path). Verified:
   15/15, probe_terrain_planet/globe_world/stream green with the new
   UVs, tex check 64x64 mips=6, full regression 56/56 in 6 chunks.
+- [x] Round 14 (web play-test automation; black-viewport hunt closes
+  as NOT reproducible on the R13 pack; loader + panel fixes):
+  (1) HEADLESS WEBGL2 TOOLING (user-authorized installs): Playwright
+  1.63 + full Chromium in ~/.cache/ms-playwright, pngjs, libvulkan1
+  (pulls Mesa lavapipe). PROVEN boot config: the FULL chrome binary,
+  headless:true, args --enable-unsafe-swiftshader --no-sandbox
+  --disable-dev-shm-usage --in-process-gpu -> webgl2 = ANGLE (Google,
+  Vulkan 1.3.0 (SwiftShader)). headless-shell and separate-GPU-process
+  Chromium both FAIL in this container (eglInitialize SwANGLE ->
+  EGL_NOT_INITIALIZED -> GPU process exits -> NO webgl2). The probe,
+  labs/web_probe_r14.cjs (committed this round), serves web/ with
+  COOP/COEP on :8099, boots the engine, classifies screenshots (top
+  colors + 4x4 region grid), drives input, and writes console.txt +
+  summary.json + PNGs to /home/daytona/r14-webtest/out/.
+  (2) FULL CLICK-THROUGH, IN-WORLD FOR THE FIRST TIME headless:
+  Start(640,408) -> Guest(640,588) -> Create(544,646) -> species
+  Select(316,436) -> class Select(214,516) -> Enter World(1086,676)
+  RETURNS TO LOBBY (character_select links the new character and
+  goes back; lobby Play(352,646) is the real world entry). Ground
+  truth = DebugOverlay "Click:" lines + GameLog "Game state changed:",
+  never pixels alone (login/lobby/char-select all classify as dark
+  16,16,16 ~90%). world.png: green terrain 48.7% + teal water 38.6%,
+  black 0.5%; ZERO shader/material errors across the whole boot (only
+  noise: the pre-existing invalid-UID warnings). M opens and closes
+  the fullscreen map with the generated world canvas. VERDICT: the
+  user's black in-game viewport is NOT reproducible on the current CI
+  pack (game.pck 3c7f522f) under working WebGL2 -- the R13 web draw
+  law (POT textures + mipmaps + [0,1) UVs) holds. Remaining suspect
+  is user-side GPU/context loss (a strict driver chokes where
+  SwiftShader is lenient, or the context dies mid-game). Hardened
+  that failure class: index.html now listens for webglcontextlost and
+  shows the error screen with a reload hint instead of a silent black
+  canvas. Open item: W-hold produced no pixel delta in the probe
+  (canvas focus/keyboard reach under headless unproven) -- movement
+  is still verified only by the native probes.
+  (3) index.html WATCHDOG BUG FIXED: the 20s stall watchdog read
+  progressSeen, declared inside startWithPack() -- 'progressSeen is
+  not defined' threw on EVERY page load at 20s (captured in probe
+  console), so the stalled-download safety net never ran. The flag
+  now lives at IIFE scope (anyProgressSeen).
+  (4) SCREENSHOT UI FIXES: character_panel.gd (a) emoji stat icons
+  removed (no-UTF-8 law; they rendered as tofu boxes); (b) the
+  "Human Human Marksman" header -- class_id is species-prefixed
+  (human_marksman) so .capitalize() double-printed the species; the
+  header now prefers CharacterClass.display_name ("Marksman"),
+  falling back to the id only when class data cannot load; (c)
+  derived stats showed "--" forever -- the refresh pass looks for
+  rows named Derived_<key> holding a child Label named "Value", but
+  the rows were nameless; named both, values now fill from
+  get_derived_stats(). Also removed a duplicated dead return line in
+  globe_terrain_streamer._make_checker_texture.
+  (5) Verified: probe exit 0 with an in-world frame; full regression
+  58/58 in 6 chunks (probe_character_panel, probe_terrain_stream,
+  probe_globe_world all green with the edits).
