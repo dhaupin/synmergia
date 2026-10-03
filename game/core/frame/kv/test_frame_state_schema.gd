@@ -82,6 +82,8 @@ func _test_validate_missing_fields() -> void:
 func _test_validate_invalid_type() -> void:
 	var s := StateSchemaScript.new()
 	_assert(s._validate({"type": "bad", "entity_id": "e", "payload": {}}) == false, "invalid type rejected")
+	# Audit round 19: wrong-TYPED type must return false, not throw.
+	_assert(s._validate({"type": 123, "entity_id": "e", "payload": {}}) == false, "wrong-typed type rejected (no throw)")
 
 
 func _test_validate_entity_id_not_string() -> void:

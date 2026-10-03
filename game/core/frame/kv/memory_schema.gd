@@ -28,11 +28,14 @@ func _validate(value: Dictionary) -> bool:
 	var valid_kinds := ["observation", "event", "relationship", "goal", "fact"]
 	if typeof(kind_val) != TYPE_STRING or kind_val not in valid_kinds:
 		return false
-	if content_val.get_type() != TYPE_DICTIONARY:
+	# typeof(), not X.get_type(): Variant has no get_type() in Godot 4.7.2
+	# (the old calls errored to null and rejected VALID payloads).
+	if typeof(content_val) != TYPE_DICTIONARY:
 		return false
 	if value.has("weight"):
 		var w = value["weight"]
-		if w.get_type() != TYPE_FLOAT and w.get_type() != TYPE_INT:
+		var wt: int = typeof(w)
+		if wt != TYPE_FLOAT and wt != TYPE_INT:
 			return false
 	return true
 

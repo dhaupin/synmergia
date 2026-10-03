@@ -27,11 +27,13 @@ func _validate(value: Dictionary) -> bool:
 	var valid_rels := ["friend", "guild", "party", "rival", "mentor"]
 	if typeof(rel_val) != TYPE_STRING or rel_val not in valid_rels:
 		return false
-	if other_val.get_type() != TYPE_STRING:
+	# typeof(), not X.get_type(): Variant has no get_type() in Godot 4.7.2
+	# (the old calls errored to null and rejected VALID payloads).
+	if typeof(other_val) != TYPE_STRING:
 		return false
 	if value.has("meta"):
 		var meta_val = value["meta"]
-		if meta_val.get_type() != TYPE_DICTIONARY:
+		if typeof(meta_val) != TYPE_DICTIONARY:
 			return false
 	return true
 

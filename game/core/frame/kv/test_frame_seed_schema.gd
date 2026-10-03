@@ -96,6 +96,10 @@ func _test_validate_path_not_string() -> void:
 func _test_validate_parameters_not_dict() -> void:
 	var schema := SeedSchemaScript.new()
 	_assert(schema._validate({"seed_type": "locked", "visibility_scope": "world", "path": "/s", "parameters": "str"}) == false, "string parameters rejected")
+	# Audit round 19: wrong-TYPED fields must return false, not throw from a
+	# typed local in _validate.
+	_assert(schema._validate({"seed_type": 123, "visibility_scope": "world", "path": "/s", "parameters": {}}) == false, "wrong-typed seed_type rejected (no throw)")
+	_assert(schema._validate({"seed_type": "locked", "visibility_scope": 5, "path": "/s", "parameters": {}}) == false, "wrong-typed visibility_scope rejected (no throw)")
 
 
 func _test_canonical_determinism() -> void:

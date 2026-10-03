@@ -32,9 +32,12 @@ func _validate(value: Dictionary) -> bool:
 	var valid_types := ["zone","npc","loot_table","quest","dialogue","item","skill","other"]
 	if typeof(def_type_val) != TYPE_STRING or def_type_val not in valid_types:
 		return false
-	if key_val.get_type() != TYPE_STRING:
+	# typeof(), not X.get_type(): Variant has no get_type() in Godot 4.7.2,
+	# so the old calls errored (Invalid call) and returned null, which is
+	# != TYPE_*, silently rejecting VALID payloads (audit round 19).
+	if typeof(key_val) != TYPE_STRING:
 		return false
-	if data_val.get_type() != TYPE_DICTIONARY:
+	if typeof(data_val) != TYPE_DICTIONARY:
 		return false
 	return true
 

@@ -41,6 +41,7 @@ frame/math/test_spherical
 frame/math/test_icosahedral_faces
 frame/kv/test_folded_shell
 frame/kv/test_t3_dedup
+frame/kv/test_kv_schemas
 frame/srv/test_star_cells
 probe_ocean
 frame/srv/test_swim_state

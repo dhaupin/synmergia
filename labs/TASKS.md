@@ -3042,6 +3042,14 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   seed/state schemas read untrusted fields as Variant and typeof-check
   them; a wrong-typed field now returns false instead of THROWING from
   a typed local (var x: String = value["x"]).
+  (2b) ALSO FIXED (found while writing (2)'s test) -- definition/memory/
+  social _validate called X.get_type(), which Variant does NOT have in
+  Godot 4.7.2. The call errored to null, so `null != TYPE_*` was always
+  true and _validate rejected VALID payloads. Now typeof()-based. New
+  co-located test_kv_schemas (valid + wrong-typed for all three) proves
+  it and is in DEFAULT_SET. Invisible in production because T3.insert
+  does not validate; only tests ever called these validators
+  (scope_engine calls ScopeHierarchy._validate, a different function).
   (3) FIXED -- memory_schema's writer was named write_f32 but stored
   int(weight * 1000) (a 1/1000-quantized int), folding distinct nearby
   weights into one content hash; it now writes a real IEEE-754 float32.
