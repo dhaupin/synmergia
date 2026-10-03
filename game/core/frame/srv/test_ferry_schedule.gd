@@ -51,16 +51,29 @@ func _init() -> void:
 		and absf(float(c3["departed_h"])) < 1e-9 \
 		and absf(float(c3["elapsed_h"]) - 0.1) < 1e-9 \
 		and absf(float(c3["remaining_h"]) - 3.4) < 1e-9)
-	# The OLDEST-sail preference: inside yesterday 23:00's window (a
-	# 3.5 h crossing still running at 00:06 is not possible for a boat
-	# that left at 21:00 when 00:00 also sails -- so prove day_offset
-	# -1 with an epoch before today's first departure can interfere... it
-	# cannot; instead assert the -1 leg directly at 23:30 yesterday's
-	# frame: the 21:00 boat of the PREVIOUS day read from day 100.98).
+	# A sparser schedule (2/day: 06:00 and 18:00) with a 3.5 h crossing.
 	var c4 = FS.crossing_in_progress(2, 6.0, 3.5, 100.0 + 8.0 / 24.0)
 	_check("a two-ferry day finds the 06:00 boat at sea at 08:00", \
 		not c4.is_empty() and absf(float(c4["departed_h"]) - 6.0) < 1e-9 \
 		and absf(float(c4["remaining_h"]) - 1.5) < 1e-9)
+
+	# Audit round 18: a crossing that departed YESTERDAY and is still
+	# running TODAY must be seen (day_offset -1). One ferry a day at
+	# 20:00 with a 6 h crossing is at sea at 01:00.
+	var overnight = FS.crossing_in_progress(1, 20.0, 6.0, 100.0 + 1.0 / 24.0)
+	_check("an overnight crossing is seen at 01:00 (departed yesterday)", \
+		not overnight.is_empty() and int(overnight["day_offset"]) == -1 \
+		and absf(float(overnight["departed_h"]) - 20.0) < 1e-9 \
+		and absf(float(overnight["elapsed_h"]) - 5.0) < 1e-9 \
+		and absf(float(overnight["remaining_h"]) - 1.0) < 1e-9)
+	var overnight_done = FS.crossing_in_progress(1, 20.0, 6.0, 100.0 + 2.5 / 24.0)
+	_check("the overnight crossing is over at 02:30", overnight_done.is_empty())
+	# Newest-sail preference: with a 7 h crossing (step 3 h) two boats are
+	# at sea at 09:00 (03:00 and 06:00) -- the more recent one is reported.
+	var newest = FS.crossing_in_progress(8, 6.0, 7.0, 100.0 + 9.0 / 24.0)
+	_check("two simultaneous sails report the newest (06:00)", \
+		absf(float(newest["departed_h"]) - 6.0) < 1e-9 \
+		and absf(float(newest["elapsed_h"]) - 3.0) < 1e-9)
 
 	# The empty schedule is honest.
 	_check("no schedule: no departures, no crossing", \

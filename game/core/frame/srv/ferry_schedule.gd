@@ -76,11 +76,20 @@ static func crossing_in_progress(per_day: int, first_h: float, cross_h: float, e
 	if per_day <= 0 or cross_h <= 0.0:
 		return {}
 	var now_h: float = fposmod(epoch_days, 1.0) * 24.0
+	# Newest sail first: today's departures (day_offset 0) before
+	# yesterday's (day_offset -1), and within a day the LATEST hour
+	# before now -- a later cast-off is the more recent crossing.
+	# Audit round 18: yesterday's leg used dep_h = h + 24, so elapsed
+	# = now_h - h - 24 was ALWAYS negative and an overnight crossing
+	# (a boat still at sea after midnight) was never reported -- the
+	# dock read "in_port" and offered "next cast-off in Xh". Yesterday's
+	# hour h sits at h - 24 on today's axis.
 	for back in [0, 1]:
 		var day_off: int = -back
 		var hours := departure_hours(per_day, first_h)
-		for h in hours:
-			var dep_h: float = h + float(back) * 24.0
+		for i in range(hours.size() - 1, -1, -1):
+			var h: float = hours[i]
+			var dep_h: float = h - float(back) * 24.0
 			var elapsed: float = now_h - dep_h
 			if elapsed > 0.0 and elapsed < cross_h:
 				return {"departed_h": h, "day_offset": day_off, \

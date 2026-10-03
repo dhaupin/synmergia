@@ -3000,3 +3000,32 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   resource_scan) + probes startup_flow/globe_world/world_scoping/
   terrain_stream + test_lod_predictor (the last three boot autoloads,
   so the edited services compile). No new non-ASCII; tabs only.
+- [x] Round 18 (continue the frame audit into the files R16 deferred):
+  (1) FIXED -- FerrySchedule.crossing_in_progress never detected an
+  OVERNIGHT crossing. The yesterday leg used dep_h = h + 24, so
+  elapsed = now_h - h - 24 was always negative and day_offset -1 was
+  unreachable (the boat vanished between midnight and its arrival: the
+  dock read "in_port" and offered "next cast-off in Xh"). dep_h is now
+  h - back*24, and the scan walks departures NEWEST-first within a day
+  (the doc's "newest sail" intent). New tests: overnight seen at 01:00
+  (day_offset -1), gone at 02:30, and two simultaneous sails report the
+  newest. test_ferry_schedule + probe_ferry green.
+  (2) NOTED, not fixed (need an owner call / are not defects on their
+  current contract):
+  - Every kv schema defines _to_canonical_bytes (sorted keys,
+    length-prefixed values, seed_schema's sign-stripping), but T3
+    hashes var_to_bytes(value) and never calls them -- the canonical
+    encoders are effectively dead w.r.t. content addressing. Wiring
+    them changes EVERY content hash, so it is a deliberate migration,
+    not a drive-by.
+  - The *_schema._validate methods read untrusted values into typed
+    locals (var x: String = value["x"]), which throws on a wrong-typed
+    field instead of returning false.
+  - memory_schema's writer names a float encoder write_f32 but stores
+    int(weight * 1000) (a 1/1000 quantized int).
+  - world_registry.cosmic_age_s subtracts a Unix origin_unix (seconds
+    since 1970) from epoch_days * 86400 (seconds since the Concord
+    epoch) -- two different origins; the mapped design intent needs
+    confirming before it is called a bug. resource_scan,
+    scope_hierarchy/scope_node, the kv tree wrappers, star_cells and
+    seed_chain were read and are clean.
