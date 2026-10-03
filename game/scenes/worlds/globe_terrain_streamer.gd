@@ -271,7 +271,6 @@ func _make_checker_texture() -> ImageTexture:
 			img.set_pixel(x, y, Color(0.42, 0.55, 0.30) if cell else Color(0.38, 0.51, 0.27))
 	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
-	return ImageTexture.create_from_image(img)
 
 
 ## Height-band ground color (the map you walk on): seabed through

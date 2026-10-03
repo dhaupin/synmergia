@@ -99,6 +99,14 @@
 			errorScreen.classList.remove("hidden");
 		}
 
+		// A lost WebGL2 context mid-game renders as a SILENT BLACK canvas
+		// (the exact "in-game viewport is black" report class). Surface it
+		// with an actionable message instead of a void.
+		canvas.addEventListener("webglcontextlost", function (e) {
+			e.preventDefault();
+			fail("The graphics context was lost (GPU driver or browser tab reclamation). Reload the page to resume.");
+		});
+
 		function setProgress(current, total) {
 			if (current > 0 && total > 0) {
 				var pct = Math.round((current / total) * 100);
@@ -153,6 +161,12 @@
 			return;
 		}
 
+		// Watchdog state lives HERE (IIFE scope). It used to live inside
+		// startWithPack(), so this 20s timer read an undefined identifier,
+		// threw 'progressSeen is not defined' on EVERY load at 20s, and the
+		// stall safety net below never actually ran.
+		var anyProgressSeen = false;
+
 		// Content-addressed pack: read
 		// game.pck.hash (CI rewrites it on every content change) and point
 		// mainPack at game.pck?v=<hash>. The filename never mutates -- the
@@ -163,7 +177,6 @@
 		function startWithPack(packUrl) {
 			var cfg = GODOT_CONFIG;
 			cfg.mainPack = packUrl;
-			var progressSeen = false;
 			var lastPct = -1;
 			var knownTotal = 0;
 			// The launcher reads progress from BOTH surfaces: the Engine
@@ -173,7 +186,7 @@
 			// loader showed no percent). Wire both; whichever surface the
 			// engine honors, the bar moves.
 			var onProg = function (current, total) {
-				progressSeen = progressSeen || current > 0;
+				anyProgressSeen = anyProgressSeen || current > 0;
 				// One file with an unknown size invalidates the engine's
 				// aggregate total (it zeroes it) -- fall back to the sum we
 				// HEADed before start. Cap at 100: a stale fallback size
@@ -233,7 +246,7 @@
 		// The watchdog: only fires when NOTHING ever progressed (a stalled
 		// download or a blocked asset). A slow pck that shows % never trips.
 		setTimeout(function () {
-			if (!progressSeen && !loading.classList.contains("hidden")) {
+			if (!anyProgressSeen && !loading.classList.contains("hidden")) {
 				fail("Engine did not make progress in time. Check your connection and reload.");
 			}
 		}, 20000);
