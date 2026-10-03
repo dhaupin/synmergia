@@ -50,6 +50,7 @@ frame/srv/test_ferry_schedule
 probe_ferry
 probe_startup_flow
 frame/srv/test_resource_scan
+frame/srv/test_world_registry
 probe_globe_world
 probe_terrain_stream
 probe_planet_scale_20km

@@ -82,7 +82,8 @@ func world_seed_hex(id: String) -> String:
 
 ## World-local position of an orbiting world at sky-epoch `epoch`
 ## (SignService.sky_epoch_days() -- the Concord clock in fractional
-## days; THE canonical epoch since S16.2). Pure function:
+## days, and it IS unix/86400 per calibration_tier; THE canonical
+## epoch since S16.2). Pure function:
 ## angle = 2pi * (epoch / period) + phase, rotated into the inclined
 ## plane. Returns ZERO for non-orbiting worlds.
 static func orbit_position(w, epoch: float) -> Vector3:
@@ -213,6 +214,10 @@ static func parent_visible_from(child, epoch: float, local_azimuth: float) -> bo
 
 ## Age of the universe at a sky epoch, given the declared origin
 ## (calibration_tier.origin_unix -- Synmergia's is the first commit).
+## BOTH axes are Unix seconds: sky_epoch_days() IS unix/86400, so
+## epoch_days * 86400 is the current unix time and subtracting
+## origin_unix (also unix seconds) is well-posed -- not a mixed-epoch
+## bug (calibration_tier.gd: "sky_epoch_days() IS unix/86400").
 ## Negative ages clamp to 0: nothing is observable before the bang.
 ## Pure function -- the outer limit is a subtraction, not a wall.
 static func cosmic_age_s(origin_unix: float, epoch_days: float) -> float:

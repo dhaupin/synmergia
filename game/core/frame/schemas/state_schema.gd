@@ -36,12 +36,14 @@ func _validate(value: Dictionary) -> bool:
 	if not value.has("payload"):
 		return false
 
-	var type_val: String = value["type"]
+	# Untrusted input: read as Variant and type-check before use (a typed
+	# local would THROW on a wrong-typed field instead of returning false).
+	var type_val = value["type"]
 	var entity_id_val = value["entity_id"]
 	var payload_val = value["payload"]
 
 	var valid_types := ["position", "inventory", "health", "faction", "status", "quest", "social", "behavior_state", "other"]
-	if type_val not in valid_types:
+	if typeof(type_val) != TYPE_STRING or type_val not in valid_types:
 		return false
 	if typeof(entity_id_val) != TYPE_STRING:
 		return false

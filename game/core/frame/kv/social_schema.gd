@@ -20,10 +20,12 @@ func _validate(value: Dictionary) -> bool:
 		return false
 	if not value.has("other_id"):
 		return false
-	var rel_val: String = value["rel"]
+	# Untrusted input: read as Variant and type-check before use (a typed
+	# local would THROW on a wrong-typed field instead of returning false).
+	var rel_val = value["rel"]
 	var other_val = value["other_id"]
 	var valid_rels := ["friend", "guild", "party", "rival", "mentor"]
-	if rel_val not in valid_rels:
+	if typeof(rel_val) != TYPE_STRING or rel_val not in valid_rels:
 		return false
 	if other_val.get_type() != TYPE_STRING:
 		return false

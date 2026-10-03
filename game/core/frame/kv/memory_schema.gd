@@ -20,10 +20,13 @@ func _validate(value: Dictionary) -> bool:
 		return false
 	if not value.has("content"):
 		return false
-	var kind_val: String = value["kind"]
+	# Untrusted input: read as Variant and type-check before use. A typed
+	# local (var kind_val: String = ...) THROWS on a wrong-typed field
+	# instead of letting _validate return false.
+	var kind_val = value["kind"]
 	var content_val = value["content"]
 	var valid_kinds := ["observation", "event", "relationship", "goal", "fact"]
-	if kind_val not in valid_kinds:
+	if typeof(kind_val) != TYPE_STRING or kind_val not in valid_kinds:
 		return false
 	if content_val.get_type() != TYPE_DICTIONARY:
 		return false
@@ -54,10 +57,12 @@ class _CanonicalWriter:
 		buffer.append(val & 0xFF)
 
 	func write_f32(val: float) -> void:
-		var buf := val
+		# A real IEEE-754 float32 (audit round 19). The old body stored
+		# int(val * 1000) -- a 1/1000-quantized int under a float name,
+		# which folded distinct nearby weights into one content hash.
 		var packed := PackedByteArray()
 		packed.resize(4)
-		packed.encode_s32(0, int(buf * 1000.0))
+		packed.encode_float(0, val)
 		buffer.append_array(packed)
 
 	func write_string(s: String) -> void:

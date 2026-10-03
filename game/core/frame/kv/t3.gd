@@ -62,7 +62,7 @@ func insert(path: String, value: Variant, schema: Resource) -> PackedByteArray:
 	var normalized_path := _normalize_path(path)
 	var value_bytes := var_to_bytes(value)
 	var schema_id := _schema_id(schema)
-	var node_hash := _node_hash(normalized_path, value_bytes, schema_id)
+	var node_hash := _node_hash(normalized_path, _hash_bytes_for(schema, value, value_bytes), schema_id)
 
 	_record_snapshot()
 
@@ -104,7 +104,7 @@ func insert_batch(entries: Array) -> Array:
 		var normalized_path := _normalize_path(path)
 		var value_bytes := var_to_bytes(value)
 		var schema_id := _schema_id(schema)
-		var node_hash := _node_hash(normalized_path, value_bytes, schema_id)
+		var node_hash := _node_hash(normalized_path, _hash_bytes_for(schema, value, value_bytes), schema_id)
 
 		var existing = _nodes.get(normalized_path)
 		if existing != null and existing.get("hash") == node_hash:
@@ -370,6 +370,22 @@ func _schema_id(schema: Resource) -> String:
 	if script != null and script.resource_path != "":
 		return script.resource_path
 	return "native:" + schema.get_class()
+
+
+## The bytes a node's CONTENT HASH is derived from. When the payload is a
+## Dictionary and the schema provides a canonical encoder
+## (_to_canonical_bytes -- the whole point of the kv schema classes), the
+## canonical form is hashed, so key order and encoding choices cannot fork
+## otherwise-identical facts. Otherwise it falls back to the raw
+## var_to_bytes serialization. NOTE: value_bytes (the TRANSPORT form that
+## diff entries carry and apply_diff decodes) stays var_to_bytes --
+## hashing and serialization are different jobs.
+func _hash_bytes_for(schema: Resource, value: Variant, value_bytes: PackedByteArray) -> PackedByteArray:
+	if value is Dictionary and schema != null and schema.has_method("_to_canonical_bytes"):
+		var encoded: Variant = schema.call("_to_canonical_bytes", value)
+		if encoded is PackedByteArray:
+			return encoded
+	return value_bytes
 
 
 func _node_hash(path: String, value_bytes: PackedByteArray, schema_id: String) -> PackedByteArray:

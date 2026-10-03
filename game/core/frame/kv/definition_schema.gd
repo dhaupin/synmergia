@@ -24,11 +24,13 @@ func _validate(value: Dictionary) -> bool:
 		return false
 	if not value.has("data"):
 		return false
-	var def_type_val: String = value["def_type"]
+	# Untrusted input: read as Variant and type-check before use (a typed
+	# local would THROW on a wrong-typed field instead of returning false).
+	var def_type_val = value["def_type"]
 	var key_val = value["key"]
 	var data_val = value["data"]
 	var valid_types := ["zone","npc","loot_table","quest","dialogue","item","skill","other"]
-	if def_type_val not in valid_types:
+	if typeof(def_type_val) != TYPE_STRING or def_type_val not in valid_types:
 		return false
 	if key_val.get_type() != TYPE_STRING:
 		return false

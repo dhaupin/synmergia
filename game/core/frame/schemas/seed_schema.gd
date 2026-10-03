@@ -40,14 +40,16 @@ func _validate(value: Dictionary) -> bool:
 	if not value.has("parameters"):
 		return false
 
-	var seed_type_val: String = value["seed_type"]
-	var scope_val: String = value["visibility_scope"]
+	# Untrusted input: read as Variant and type-check before use (a typed
+	# local would THROW on a wrong-typed field instead of returning false).
+	var seed_type_val = value["seed_type"]
+	var scope_val = value["visibility_scope"]
 	var path_val = value["path"]
 	var params_val = value["parameters"]
 
-	if seed_type_val not in ["locked", "open", "frame"]:
+	if typeof(seed_type_val) != TYPE_STRING or seed_type_val not in ["locked", "open", "frame"]:
 		return false
-	if scope_val not in ["world", "shard", "instance", "player"]:
+	if typeof(scope_val) != TYPE_STRING or scope_val not in ["world", "shard", "instance", "player"]:
 		return false
 	if typeof(path_val) != TYPE_STRING:
 		return false

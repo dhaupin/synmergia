@@ -3029,3 +3029,34 @@ species doctrine; test gained a wheel-catalog fairness check; 18
     confirming before it is called a bug. resource_scan,
     scope_hierarchy/scope_node, the kv tree wrappers, star_cells and
     seed_chain were read and are clean.
+- [x] Round 19 (owner-requested fixes for the round-18 open items):
+  (1) WIRED -- T3 now hashes a payload's SCHEMA CANONICAL BYTES when
+  the schema provides _to_canonical_bytes and the payload is a
+  Dictionary (new _hash_bytes_for); the kv schema encoders are no
+  longer dead w.r.t. content addressing. value_bytes (the TRANSPORT
+  form diff carries and apply_diff decodes) stays var_to_bytes, so
+  serialization round-trips are unchanged, and native/plain-Resource
+  schemas fall back to var_to_bytes (test_t3_dedup's key-order law
+  still holds).
+  (2) HARDENED -- the _validate methods of definition/memory/social/
+  seed/state schemas read untrusted fields as Variant and typeof-check
+  them; a wrong-typed field now returns false instead of THROWING from
+  a typed local (var x: String = value["x"]).
+  (3) FIXED -- memory_schema's writer was named write_f32 but stored
+  int(weight * 1000) (a 1/1000-quantized int), folding distinct nearby
+  weights into one content hash; it now writes a real IEEE-754 float32.
+  (4) VERIFIED, NOT A BUG -- world_registry.cosmic_age_s is correct:
+  SignService.sky_epoch_days() IS unix/86400 (calibration_tier.gd), so
+  epoch_days * 86400 - origin_unix is unix seconds since the origin.
+  The round-18 note was a misread of the world_registry "Concord clock"
+  comment; the comment is clarified and the new co-located
+  test_world_registry.gd locks the alignment (age = unix elapsed, the
+  horizon grows at exactly c, negative age clamps). Noted: the
+  UNIVERSE_SEED_HEX constant is 33 bytes ("synmergia" + zeros), not 32
+  -- harmless (SeedChain hashes it) and left as-is because changing it
+  re-derives every world seed.
+  Verified green: frame/kv/{test_t3, test_t3_dedup,
+  test_frame_seed_schema, test_frame_state_schema, test_memory_tree,
+  test_social_tree, test_definition_tree}, frame/srv/{test_rules_engine,
+  test_star_cells, test_world_registry (new, added to DEFAULT_SET)},
+  probe_world_lattice.
