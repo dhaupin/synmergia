@@ -227,10 +227,10 @@ func _compute_spatial_address(zone) -> int:
 	var y: int = int(zone.zone_center.y / SPATIAL_QUANTUM)
 	var z: int = int(zone.zone_center.z / SPATIAL_QUANTUM)
 	var depth: int = _compute_zone_depth(zone.zone_radius)
-	# Use a single face (0) for all zones to ensure they share the same spatial tree
+	# Use a single vertex (0) for all zones to ensure they share the same spatial tree
 	# for neighbor detection and seamless transitions
-	var face: int = 0
-	return _spatial_fragmenter.make_address(x, y, z, depth, face)
+	var vertex: int = 0
+	return _spatial_fragmenter.make_address(x, y, z, depth, vertex)
 
 
 ## Get the spatial address for a zone by ID.
@@ -426,7 +426,7 @@ func get_zone_spatial_fragment(zone_id: String) -> Dictionary:
 		"key": key,
 		"bbox": bbox,
 		"depth": _spatial_fragmenter.get_depth(address),
-		"face": _spatial_fragmenter.get_face(address)
+		"vertex": _spatial_fragmenter.get_vertex(address)
 	}
 
 ## Get the NSC-9 code for a zone by ID.
@@ -849,7 +849,7 @@ func check_seamless_transition(entity) -> ZoneData:
 		var current_addr: int = get_zone_spatial_address(current_zone_id)
 		if current_addr != 0:
 			var pos: Vector3 = entity.global_position
-			var current_face: int = _spatial_fragmenter.get_face(current_addr)
+			var current_vertex: int = _spatial_fragmenter.get_vertex(current_addr)
 			var current_depth: int = _spatial_fragmenter.get_depth(current_addr)
 			# Use a deeper depth for the entity's position to detect movement
 			# within the zone's spatial region
@@ -859,7 +859,7 @@ func check_seamless_transition(entity) -> ZoneData:
 				int(pos.y / SPATIAL_QUANTUM),
 				int(pos.z / SPATIAL_QUANTUM),
 				entity_depth,
-				current_face
+				current_vertex
 			)
 			if entity_addr != current_addr:
 				# Entity has moved to a different spatial fragment.
@@ -1014,7 +1014,7 @@ func _detect_zone_entries_spatial(entities: Array) -> void:
 		for zone_id in zone_addresses:
 			var zone_addr: int = zone_addresses[zone_id]
 			var zone_depth: int = _spatial_fragmenter.get_depth(zone_addr)
-			var zone_face: int = _spatial_fragmenter.get_face(zone_addr)
+			var zone_vertex: int = _spatial_fragmenter.get_vertex(zone_addr)
 			
 			# Use deeper depth for entity to be a descendant of zone
 			var entity_depth: int = mini(zone_depth + 4, _spatial_fragmenter.MAX_DEPTH)
@@ -1023,7 +1023,7 @@ func _detect_zone_entries_spatial(entities: Array) -> void:
 				int(pos.y / SPATIAL_QUANTUM),
 				int(pos.z / SPATIAL_QUANTUM),
 				entity_depth,
-				zone_face
+				zone_vertex
 			)
 
 			if entity_addr != 0 and _spatial_fragmenter.is_ancestor(zone_addr, entity_addr):

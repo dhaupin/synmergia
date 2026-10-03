@@ -220,13 +220,26 @@ func predict_n_steps(player_id: String, steps: int) -> Array[Dictionary]:
 		for key in probs.keys():
 			var p: float = probs[key]
 			var offset := _chunk_key_to_offset(key)
+			# Row-normalize on the SOURCE key's outgoing counts -- the same
+			# conditioning predict_next uses. The old code divided by the
+			# GLOBAL state.total_transitions, which leaked probability mass
+			# every step (sum < 1) and disagreed with predict_next (audit
+			# round 17).
+			var row_sum := 0.0
+			var row_counts: Dictionary = {}
 			for grid_offset in GRID_OFFSETS:
 				var neighbor_key := _offset_to_chunk_key(offset + grid_offset)
 				var trans_key := _transition_key(key, neighbor_key)
 				var count := float(state.transition_counts.get(trans_key, 0))
-				var total := float(max(state.total_transitions, 1))
-				var prob := count / total if total > 0 else 1.0 / float(GRID_OFFSETS.size())
-				next_probs[neighbor_key] = next_probs.get(neighbor_key, 0.0) + p * prob
+				row_counts[neighbor_key] = count
+				row_sum += count
+			if row_sum > 0.0:
+				for neighbor_key in row_counts:
+					next_probs[neighbor_key] = next_probs.get(neighbor_key, 0.0) + p * (row_counts[neighbor_key] / row_sum)
+			else:
+				var uniform := 1.0 / float(GRID_OFFSETS.size())
+				for neighbor_key in row_counts:
+					next_probs[neighbor_key] = next_probs.get(neighbor_key, 0.0) + p * uniform
 		probs = next_probs
 
 	# Sort by probability and return top predictions
@@ -284,7 +297,7 @@ func compute_accuracy(player_id: String, actual_movements: Array) -> float:
 ## Returns accuracy as float.
 func simulate_and_evaluate(player_id: String, movement_pattern: Callable, ticks: int = 1000) -> float:
 	var state: PlayerMarkovState = _get_or_create_state(player_id)
-	state.current_chunk_key = "0000-0000-0000-d0-f0"
+	state.current_chunk_key = "0000-0000-0000-d0-v0"
 	state.last_10_movements = []
 	state.transition_counts = {}
 	state.velocity_transition_counts = {}
@@ -390,14 +403,24 @@ func _chunk_key_to_offset(key: String) -> Vector2:
 	# hex_to_int, not int("0x" + s): String-to-int conversion is decimal-only,
 	# so "0x000a" parsed via int() yields 0 and every chunk key containing a
 	# hex letter (a-f) collapsed to offset (0,0).
-	var x: int = parts[0].hex_to_int()
-	var z: int = parts[2].hex_to_int()
+	#
+	# Audit round 16: the 16-bit field is UNSIGNED on the wire but the
+	# 3x3 neighbour grid runs -1..+1, so a west/south step encoded as
+	# "ffff" decoded as 65535 instead of -1. Sign-extend 16-bit fields
+	# so the local grid round-trips; positive offsets are unaffected.
+	var x: int = _sign16(parts[0].hex_to_int())
+	var z: int = _sign16(parts[2].hex_to_int())
 	return Vector2(float(x), float(z))
+
+
+## Interpret a 16-bit chunk coordinate as signed (two's complement).
+static func _sign16(value: int) -> int:
+	return value - 0x10000 if value >= 0x8000 else value
 
 
 func _offset_to_chunk_key(offset: Vector2) -> String:
 	if _spatial_fragmenter == null:
-		return "0000-0000-0000-d0-f0"
+		return "0000-0000-0000-d0-v0"
 	var address: int = _spatial_fragmenter.make_address(int(offset.x), 0, int(offset.y), 0, 0)
 	return _spatial_fragmenter.generate_key(address)
 

@@ -256,9 +256,11 @@ func release_space(space_id: String) -> int:
 		if not still_claimed:
 			orphans.append(h)
 	var count: int = orphans.size()
+	# Each orphan hash is dropped once (audit round 17: the old loop
+	# iterated fact_cells(h) but deleted h per cell, leaking the hot
+	# entry when a fact had zero indexed cells).
 	for h in orphans:
-		for cell in fact_cells(h):
-			_hot.delete(h)
+		_hot.delete(h)
 		_cells.erase(h)
 		_cell_index.erase(h)
 	_spaces.erase(space_id)

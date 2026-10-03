@@ -21,6 +21,15 @@ var _rules_tree: Object = null
 var _scope_engine: ScopeEngineScript = null
 var _schema: Object = null
 
+## Predicates live OUTSIDE the T3 content tree (audit round 17).
+## A rule's predicate is runtime behavior, not content-addressed data:
+## storing it in the node payload forced register_rule to write
+## str(predicate) (a non-invokable descriptor like "<anonymous
+## lambda>(lambda)") into the tree, and a real Callable in the payload
+## would break var_to_bytes/bytes_to_var round-trips in diff/apply_diff.
+## Keyed by rule_id; an invalid predicate on re-register drops the old one.
+var _predicates: Dictionary = {}
+
 func _init(scope_engine: Object = null) -> void:
 	_rules_tree = T3Script.new()
 	_schema = RulesSchemaScript.new()
@@ -34,8 +43,12 @@ func register_rule(rule_id: String, resolution: String = TOP_WINS, default_allow
 		"resolution": resolution,
 		"default_allow": default_allow
 	}
+	# The predicate is held on the engine, not in the tree payload; the
+	# payload stays portable (no Callable, no str(callable) descriptor).
 	if predicate.is_valid():
-		value["predicate"] = str(predicate)
+		_predicates[rule_id] = predicate
+	else:
+		_predicates.erase(rule_id)
 	return _rules_tree.insert(rule_id, value, _schema)
 
 
@@ -51,7 +64,7 @@ func evaluate(action: String, context: Dictionary, stack: Array, player_id: Stri
 
 	var resolution: String = rule_value.get("resolution", TOP_WINS)
 	var default_allow: bool = rule_value.get("default_allow", true)
-	var predicate_str: String = rule_value.get("predicate", "")
+	var predicate: Callable = _predicates.get(action, Callable())
 
 	if _scope_engine != null and _scope_engine.has_method("resolve_rule"):
 		var resolved: String = _scope_engine.resolve_rule(player_id, action, resolution)
@@ -70,7 +83,7 @@ func evaluate(action: String, context: Dictionary, stack: Array, player_id: Stri
 			allow = _evaluate_bottom_wins(stack, action, context)
 			reason = "BOTTOM_WINS: outermost scope decision"
 		PREDICATE_GATED:
-			allow = _evaluate_predicate_gated(default_allow, predicate_str, action, context)
+			allow = _evaluate_predicate_gated(default_allow, predicate, action, context)
 			reason = "PREDICATE_GATED: predicate evaluation"
 		ALL_WINS_WITH_EFFECT:
 			var results := _evaluate_all_wins(stack, action, context)
@@ -115,10 +128,19 @@ func apply_diff(root: PackedByteArray, diff: Array) -> PackedByteArray:
 	return _rules_tree.apply_diff(root, diff)
 
 
+## Stack convention (audit round 17, see ScopeEngine): push() appends, so
+## stack[0] is the FIRST scope pushed (root/outermost, the BOTTOM of the
+## stack) and stack[stack.size() - 1] is the LAST scope pushed
+## (player/innermost, the TOP of the stack).
+##   TOP_WINS    -> the innermost scope decides (player's setting wins)
+##   BOTTOM_WINS -> the outermost scope decides (world/root rule wins)
+## This matches the spec (prd-scope-engine.md US-006: under BOTTOM_WINS
+## the world's rule overrides the player's; under TOP_WINS the player's
+## setting wins) and the reason strings below.
 func _evaluate_top_wins(stack: Array, action: String, context: Dictionary) -> bool:
 	if stack.is_empty():
 		return _default_allow_for(action)
-	var top_scope = stack[0]
+	var top_scope = stack[stack.size() - 1]
 	var override := _scope_override(top_scope, action)
 	if override != "":
 		return _override_allows(override)
@@ -128,16 +150,23 @@ func _evaluate_top_wins(stack: Array, action: String, context: Dictionary) -> bo
 func _evaluate_bottom_wins(stack: Array, action: String, context: Dictionary) -> bool:
 	if stack.is_empty():
 		return _default_allow_for(action)
-	var bottom_scope = stack[stack.size() - 1]
+	var bottom_scope = stack[0]
 	var override := _scope_override(bottom_scope, action)
 	if override != "":
 		return _override_allows(override)
 	return _default_allow_for(action)
 
 
-func _evaluate_predicate_gated(default_allow: bool, predicate_str: String, action: String, context: Dictionary) -> bool:
-	if predicate_str == "":
+## Evaluate the registered predicate. The predicate is invoked with
+## (action, context) and must return a bool; an invalid predicate or a
+## non-bool result falls back to default_allow.
+func _evaluate_predicate_gated(default_allow: bool, predicate: Callable, action: String, context: Dictionary) -> bool:
+	if not predicate.is_valid():
 		return default_allow
+	var result = predicate.call(action, context)
+	if typeof(result) == TYPE_BOOL:
+		return result
+	push_warning("RulesEngine: predicate for action '%s' returned %s, not bool; using default_allow" % [action, type_string(typeof(result))])
 	return default_allow
 
 

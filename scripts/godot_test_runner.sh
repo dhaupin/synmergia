@@ -44,6 +44,7 @@ frame/kv/test_t3_dedup
 frame/srv/test_star_cells
 probe_ocean
 frame/srv/test_swim_state
+frame/srv/test_markov
 probe_swim
 frame/srv/test_ferry_schedule
 probe_ferry

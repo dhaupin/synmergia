@@ -1319,9 +1319,9 @@ Deterministic sub-cell addressing for icosahedral/NSC-9 spatial state.
 - `is_ancestor(ancestor, descendant) -> bool` — Lineage check (cross-face returns false)
 - `get_bounding_box(address) -> Dictionary` — Integer min/max bounds (`min_x`, `max_x`, etc.)
 - `find_common_ancestor(addresses) -> int` — Spatial compression (cross-face = 0)
-- `generate_key(address) -> String` — Fixed-width key: `%04x-%04x-%04x-d%d-f%d`
-- `nsc9_code_to_face(code) -> int` — NSC-9 axis 1-12 -> face 0-11 (non-spatial = -1)
-- `path_for_address(address) -> String` — T3 path: `spatial/%04x-%04x-%04x-d%d-f%d`
+- `generate_key(address) -> String` — Fixed-width key: `%04x-%04x-%04x-d%d-v%d`
+- `nsc9_code_to_vertex(code) -> int` — NSC-9 axis 1-12 -> face 0-11 (non-spatial = -1)
+- `path_for_address(address) -> String` — T3 path: `spatial/%04x-%04x-%04x-d%d-v%d`
 - `store_fragment_in_t3(t3, path, address, metadata) -> PackedByteArray` — T3 bridge
 - `query_spatial_tree(t3, scope_path="/") -> Array[Dictionary]` — T3 query
 
@@ -1340,13 +1340,13 @@ Unified pipeline: NSC-9 spatial code -> SpatialFragmenter address -> T3 content-
 | `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth)` | Fragment + store in T3 |
 | `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth)` | Restore fragmented state |
 | `query_nsc9_region(t3, nsc9_code, depth)` | Query fragments in region |
-| `query_nsc9_face(t3, nsc9_code)` | Query all fragments on face |
+| `query_nsc9_vertex(t3, nsc9_code)` | Query all fragments on face |
 | `is_spatial_nsc9(code)` | Check if code has spatial axis |
-| `entity_spatial_to_face(facility, vertex)` | Entity spatial -> face |
+| `entity_spatial_to_vertex(facility, vertex)` | Entity spatial -> face |
 
 **NSC-9 -> Spatial mapping:**
 - `facility` -> x coordinate (0-999, fits in 16 bits)
-- `axis` -> face via `SpatialFragmenter.nsc9_code_to_face` (1-12 -> 0-11)
+- `axis` -> face via `SpatialFragmenter.nsc9_code_to_vertex` (1-12 -> 0-11)
 - `sequence` -> split into y (bits 10-19) and z (bits 0-9)
 - `depth` -> subdivision depth (caller-specified)
 

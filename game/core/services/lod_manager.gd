@@ -429,7 +429,7 @@ func _get_or_create_chunk_state(chunk_key: String) -> ChunkLODState:
 ## Convert world position to chunk key (x,z)
 func _position_to_chunk_key(pos: Vector3) -> String:
 	if _spatial_fragmenter == null:
-		return "0000-0000-0000-d0-f0"
+		return "0000-0000-0000-d0-v0"
 	var x := int(floor(pos.x / CHUNK_SIZE))
 	var y := int(floor(pos.y / CHUNK_SIZE))
 	var z := int(floor(pos.z / CHUNK_SIZE))
@@ -456,10 +456,10 @@ func _chunk_key_to_position(chunk_key: String) -> Vector3:
 
 
 ## Convert world position to SpatialFragmenter address
-func _position_to_spatial_address(pos: Vector3, depth: int = 0, face: int = 0) -> int:
+func _position_to_spatial_address(pos: Vector3, depth: int = 0, vertex: int = 0) -> int:
 	if _spatial_fragmenter == null:
 		return 0
 	var x := int(floor(pos.x / CHUNK_SIZE))
 	var y := int(floor(pos.y / CHUNK_SIZE))
 	var z := int(floor(pos.z / CHUNK_SIZE))
-	return _spatial_fragmenter.make_address(x, y, z, depth, face)
+	return _spatial_fragmenter.make_address(x, y, z, depth, vertex)

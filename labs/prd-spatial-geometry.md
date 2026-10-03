@@ -62,7 +62,7 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 
 ### US-003: Face/region isolation
 
-**Description:** As a developer, I need `get_face(address: int) -> int` and face-aware subdivision, so icosahedral faces (0-19) and NSC-9 prefix (9) never collide or cross-contaminate.
+**Description:** As a developer, I need `get_vertex(address: int) -> int` and face-aware subdivision, so icosahedral faces (0-19) and NSC-9 prefix (9) never collide or cross-contaminate.
 
 **Acceptance Criteria:**
 - [ ] Face is encoded in top 8 bits of the 64-bit address
@@ -94,7 +94,7 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 **Description:** As a developer, I need `generate_key(address: int) -> String` with fixed-width formatting, so cell 1 sub-fragment 12 never collides with cell 11 sub-fragment 2.
 
 **Acceptance Criteria:**
-- [ ] Format: `%04x-%04x-%04x-d%d-f%d` (x, y, z, depth, face)
+- [ ] Format: `%04x-%04x-%04x-d%d-v%d` (x, y, z, depth, face)
 - [ ] Fixed-width hex padding on x/y/z
 - [ ] Distinct addresses  ->  distinct keys
 
@@ -122,7 +122,7 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 - **FR-2:** Constant `MAX_DEPTH = 24`
 - **FR-3:** 64-bit address encoding: x (16 bits), y (16 bits), z (16 bits), depth (8 bits), face (8 bits)
 - **FR-4:** `make_address(x: int, y: int, z: int, depth: int, face: int = 0) -> int`
-- **FR-5:** `get_x`, `get_y`, `get_z`, `get_depth`, `get_face` accessors
+- **FR-5:** `get_x`, `get_y`, `get_z`, `get_depth`, `get_vertex` accessors
 - **FR-6:** `subdivide(address: int, depth: int = 1) -> Array[int]`
 - **FR-7:** `get_parent(address: int) -> int`
 - **FR-8:** `is_ancestor(ancestor: int, descendant: int) -> bool`
@@ -182,13 +182,13 @@ The spatial geometry fragmenter decomposes discrete spatial cells (icosahedral f
 
 ## 9. Open Questions
 
-1. **Face encoding:** RESOLVED. Generic 8-bit region type; caller interprets. NSC-9 spatial axis 1-12 maps to faces 0-11 via `SpatialFragmenter.nsc9_axis_to_face()`.
-2. **NSC-9 integration:** RESOLVED via `Nsc9Bridge` (`game/core/frame/geometry/nsc9_bridge.gd`). The bridge provides `nsc9_to_address()`, `nsc9_to_t3_path()`, `store_nsc9_state()`, `query_nsc9_face()`, and `store_nsc9_fragmented()` helpers that convert NSC-9 codes directly to SpatialFragmenter addresses and T3 paths.
+1. **Face encoding:** RESOLVED. Generic 8-bit region type; caller interprets. NSC-9 spatial axis 1-12 maps to vertices 0-11 via `SpatialFragmenter.nsc9_axis_to_vertex()`.
+2. **NSC-9 integration:** RESOLVED via `Nsc9Bridge` (`game/core/frame/geometry/nsc9_bridge.gd`). The bridge provides `nsc9_to_address()`, `nsc9_to_t3_path()`, `store_nsc9_state()`, `query_nsc9_vertex()`, and `store_nsc9_fragmented()` helpers that convert NSC-9 codes directly to SpatialFragmenter addresses and T3 paths.
 3. **Icosahedral integration:** icosahedral faces are triangular, not cubic. Should subdivision be barycentric (4 children) or octree-style (8 children)? Current design: octree-style for clean bounding boxes; barycentric is a future extension.
 
 ## 10. Definition of Done
 
-- [x] `game/core/frame/geometry/spatial_fragmenter.gd` created with all functions (make_address through nsc9_code_to_face, to_spatial_address)
+- [x] `game/core/frame/geometry/spatial_fragmenter.gd` created with all functions (make_address through nsc9_code_to_vertex, to_spatial_address)
 - [x] `game/core/frame/geometry/test_spatial_fragmenter.gd` created and passing (11 test functions)
 - [x] `game/core/frame/geometry/nsc9_bridge.gd` created with all 10 bridge methods
 - [x] `game/core/frame/geometry/test_nsc9_bridge.gd` created and passing (9 test functions)

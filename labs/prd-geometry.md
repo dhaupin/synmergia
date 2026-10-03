@@ -101,7 +101,7 @@ The geometry layer has **two distinct ported modules** from Vant:
 - [ ] Parent and child boxes are consistent
 
 ### US-006: Face/region isolation (spatial_fragmenter)
-**Description:** As a developer, I need `get_face(address: int) -> int` and face-aware subdivision, so NSC-9 prefixes and icosahedron faces never collide.
+**Description:** As a developer, I need `get_vertex(address: int) -> int` and face-aware subdivision, so NSC-9 prefixes and icosahedron faces never collide.
 
 **Acceptance Criteria:**
 - [ ] Face is encoded in top 8 bits of the 64-bit address
@@ -129,7 +129,7 @@ The geometry layer has **two distinct ported modules** from Vant:
 **Description:** As a developer, I need `generate_key(address: int) -> String` with fixed-width formatting.
 
 **Acceptance Criteria:**
-- [ ] Format: `%04x-%04x-%04x-d%d-f%d` (x, y, z, depth, face)
+- [ ] Format: `%04x-%04x-%04x-d%d-v%d` (x, y, z, depth, face)
 - [ ] Fixed-width hex padding on x/y/z
 - [ ] Distinct addresses  ->  distinct keys
 
@@ -166,7 +166,7 @@ The geometry layer has **two distinct ported modules** from Vant:
 - **FR-10:** Constant `MAX_DEPTH = 24`
 - **FR-11:** 64-bit address encoding: x (16 bits), y (16 bits), z (16 bits), depth (8 bits), face (8 bits)
 - **FR-12:** `make_address(x: int, y: int, z: int, depth: int, face: int = 0) -> int`
-- **FR-13:** `get_x`, `get_y`, `get_z`, `get_depth`, `get_face` accessors
+- **FR-13:** `get_x`, `get_y`, `get_z`, `get_depth`, `get_vertex` accessors
 - **FR-14:** `subdivide(address: int, depth: int = 1) -> Array[int]`
 - **FR-15:** `get_parent(address: int) -> int`
 - **FR-16:** `is_ancestor(ancestor: int, descendant: int) -> bool`
@@ -246,7 +246,7 @@ var bridge := Nsc9Bridge.new()
 var address := bridge.nsc9_to_address(nsc_code)
 var path := bridge.address_to_t3_path(address)
 var hash := bridge.store_nsc9_state(t3, nsc_code, state_dict)
-var results := bridge.query_nsc9_face(t3, nsc_code)
+var results := bridge.query_nsc9_vertex(t3, nsc_code)
 ```
 
 The bridge connects three frame primitives into a unified pipeline:
@@ -267,15 +267,15 @@ Pure functions: no state, no autoload, no GameManager dependency.
 | `store_nsc9_fragmented` | Fragment + store in T3 | `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth=0) -> PackedByteArray` |
 | `restore_nsc9_fragmented` | Restore fragmented state from T3 | `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth=0) -> Dictionary` |
 | `query_nsc9_region` | Query fragments in region | `query_nsc9_region(t3, nsc9_code, depth=0) -> Array[Dictionary]` |
-| `query_nsc9_face` | Query all fragments on a face | `query_nsc9_face(t3, nsc9_code) -> Array[Dictionary]` |
+| `query_nsc9_vertex` | Query all fragments on a face | `query_nsc9_vertex(t3, nsc9_code) -> Array[Dictionary]` |
 | `is_spatial_nsc9` | Check if code has spatial axis | `is_spatial_nsc9(code: int) -> bool` |
-| `entity_spatial_to_face` | Entity spatial -> face | `entity_spatial_to_face(facility: int, vertex: int) -> int` |
+| `entity_spatial_to_vertex` | Entity spatial -> face | `entity_spatial_to_vertex(facility: int, vertex: int) -> int` |
 
 ### 6K.2 NSC-9 -> Spatial Mapping
 
 NSC-9 components map to SpatialFragmenter address as:
 - `facility` -> x coordinate (0-999, fits in 16 bits)
-- `axis` -> face via `SpatialFragmenter.nsc9_code_to_face` (1-12 -> 0-11)
+- `axis` -> face via `SpatialFragmenter.nsc9_code_to_vertex` (1-12 -> 0-11)
 - `sequence` -> split into y (bits 10-19, 0-1023) and z (bits 0-9, 0-1023)
 - `depth` -> subdivision depth (caller-specified, default 0)
 
@@ -346,9 +346,9 @@ Two services wire the bridge into the game layer:
 3. **Base-36 in GDScript:** `int.to_string(36)` works for positive ints. Need to handle unsigned 32-bit  ->  string. Current `itoa()` implementation handles this.
 
 ### Spatial Fragmenter (new)
-4. **NSC-9  ->  Face mapping:** RESOLVED via `Nsc9Bridge` / `SpatialFragmenter.nsc9_axis_to_face()`. NSC-9 spatial axis 1-12 maps to faces 0-11; non-spatial axes return -1.
+4. **NSC-9  ->  Face mapping:** RESOLVED via `Nsc9Bridge` / `SpatialFragmenter.nsc9_axis_to_vertex()`. NSC-9 spatial axis 1-12 maps to vertices 0-11; non-spatial axes return -1.
 5. **Icosahedral [U+2194] SpatialFragmenter integration:** icosahedral projection returns vertex index 0-11. Should subdivision use octree (8 children) or barycentric (4 children)? Current design: octree for clean bounding boxes; barycentric is a future extension.
-6. **T3 path naming convention:** RESOLVED via `SpatialFragmenter.path_for_address()`: `"spatial/%04x-%04x-%04x-d%d-f%d" % [x, y, z, depth, face]`.
+6. **T3 path naming convention:** RESOLVED via `SpatialFragmenter.path_for_address()`: `"spatial/%04x-%04x-%04x-d%d-v%d" % [x, y, z, depth, face]`.
 7. **Cross-service address sharing:** Should spatial fragmenter addresses be shared across services (e.g., EntityService uses them for positioning, QoSService uses them for range queries)? Currently: pure functions; integration pattern per service.
 
 ## 10. Definition of Done

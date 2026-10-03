@@ -51,10 +51,12 @@ func _test_cell_center() -> bool:
 	for i in range(12):
 		var center = ic.cell_center(i)
 		assert(center != Vector3.ZERO)
-		assert(abs(center.length() - 1.0) < 0.001 or abs(center.length() - PHI) < 0.001 or abs(center.length() - 1.0) > 0)
+		# Audit round 16: the old assertion's trailing clause
+		# `abs(len - 1.0) > 0` is true for every non-unit vector, so it
+		# was a tautology that passed while cell_center returned the raw
+		# 1.902-length vertex. Assert UNIT length for real.
+		assert(abs(center.length() - 1.0) < 0.001)
 	return true
-
-const PHI = 1.6180339887498949
 
 func _test_neighbors() -> bool:
 	var ic = Icosahedral.new()

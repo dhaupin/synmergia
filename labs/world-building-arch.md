@@ -679,15 +679,15 @@ NSC-9 code (nsc9.gd)  ->  Nsc9Bridge  ->  SpatialFragmenter address  ->  [T3 sta
 - `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth)` — Fragment + store in T3
 - `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth)` — Restore fragmented state from T3
 - `query_nsc9_region(t3, nsc9_code, depth)` — Query fragments in region
-- `query_nsc9_face(t3, nsc9_code)` — Query all fragments on a face
+- `query_nsc9_vertex(t3, nsc9_code)` — Query all fragments on a face
 - `is_spatial_nsc9(code)` — Check if code has spatial axis (1-12)
-- `entity_spatial_to_face(facility, vertex)` — Entity spatial -> face code
+- `entity_spatial_to_vertex(facility, vertex)` — Entity spatial -> face code
 
 **Recommended wiring:**
 1. Services needing spatial addresses call `Nsc9Bridge.nsc9_to_address()` directly
 2. Services needing spatial state in T3 call `Nsc9Bridge.store_nsc9_state()` or `store_nsc9_fragmented()`
 3. Services needing data shards call `Fragmenter.fragment()` directly
-4. NSC-9 -> face conversion is handled by `SpatialFragmenter.nsc9_code_to_face()` (1-12 -> 0-11)
+4. NSC-9 -> face conversion is handled by `SpatialFragmenter.nsc9_code_to_vertex()` (1-12 -> 0-11)
 
 **Service-level integration:**
 - **EntityService**: `_nsc9_bridge` initialized in `_init_spatial_and_t3()`, caches NSC-9 codes per entity in `_entity_nsc9_codes`, sets `metadata.nsc9_code` on registration
@@ -925,7 +925,7 @@ branch), the user's sibling repo. Specifically:
    candidate for shard partitioning. The NSC-9  ->  SpatialFragmenter
    ->  T3 bridge (`Nsc9Bridge` in `game/core/frame/geometry/nsc9_bridge.gd`)
    completes the integration; NSC-9 axes 1-12 map to faces 0-11
-   via `SpatialFragmenter.nsc9_code_to_face()`.
+   via `SpatialFragmenter.nsc9_code_to_vertex()`.
 
    In Phase 3.x the fragmenter, spatial fragmenter, and NSC-9 bridge
    are implemented and wired into EntityService + ZoneManager.

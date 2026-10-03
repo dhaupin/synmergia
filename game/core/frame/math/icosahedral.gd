@@ -59,11 +59,16 @@ func position_to_cell(position: Vector3, planet_radius: float = 20000.0, resolut
 	var latlon = project(position, planet_radius)
 	return to_cell(latlon.x, latlon.y, resolution)
 
-## Compute the 3D position at the center of an icosahedral vertex cell.
+## Unit direction at the center of an icosahedral vertex cell.
+## Audit round 16: this used to return the RAW vertex (length
+## sqrt(1+phi^2) ~= 1.902), inconsistent with face_center /
+## nearest_vertex / to_cell, which all work in unit directions. The
+## only co-located test hid it behind a tautological assertion. Now
+## normalized like every other direction accessor.
 func cell_center(cell_id: int, resolution: int = 0) -> Vector3:
 	if cell_id < 0 or cell_id >= VERTICES.size():
 		return Vector3.ZERO
-	return VERTICES[cell_id]
+	return _normalized[cell_id]
 
 ## Return the neighboring vertex indices for a given cell.
 ## On a regular icosahedron, each vertex connects to 5 others.

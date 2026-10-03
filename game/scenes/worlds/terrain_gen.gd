@@ -67,7 +67,18 @@ const ISLAND_ANGULAR_REACH: float = 0.012
 const ISLAND_PLATEAU: float = 20.0
 ## The spawn shore: guaranteed land + a flattened build/walk plaza.
 const SPAWN_CENTER: Vector3 = Vector3(1.0, 0.0, 0.0)
-const SPAWN_FLAT_ANG: float = 0.0015 # ~30 m at planet scale
+## MESH-RESOLUTION LAW (web play-test round 15): at the v1 planet
+## scale the streamed terrain mesh samples the heightfield only every
+## ~330 m (icosahedral face edge ~21 km / 2^6 subdivisions). A 30 m
+## plaza is smaller than ONE tile, so the mesh never saw it: the boot
+## sat at SPAWN_HEIGHT (9 m) while the rendered ground stayed at the
+## natural ~30 m peak. The camera ended up INSIDE the hillside, the
+## backface-culled terrain vanished, and the water shell was the only
+## surface left -- "I spawned on the ocean layer, land above me". The
+## plaza must span several tiles to exist in the mesh at all.
+## 0.04 rad = 800 m (~2.4 tiles), full-flat within 0.024 rad = 480 m,
+## past the ~360 m boot horizon (so the whole visible ground is plaza).
+const SPAWN_FLAT_ANG: float = 0.04
 const SPAWN_HEIGHT: float = 9.0
 ## No rock, boulder, or tree may center within this angle of spawn
 ## (at 20 km that is ~240 m of clear shore; at prototype scale it
@@ -80,14 +91,16 @@ const SPAWN_CLEAR_ANG: float = 0.012
 ## above the sea line. From the plaza edge out to this angle the land
 ## floors to (sea + margin), blending down from the plaza height so
 ## the ramp-continuity law still holds (no cliffs).
-const SPAWN_APRON_ANG: float = 0.004 # ~80 m at the 20 km planet scale
+## Round 15: pushed out with SPAWN_FLAT_ANG -- the apron is the tier
+## OUTSIDE the plaza, so its inner edge must never sit inside it.
+const SPAWN_APRON_ANG: float = 0.06 # ~1200 m at the 20 km planet scale
 const SPAWN_APRON_SEA_MARGIN: float = 0.25
 ## Tier 2 (play-test round 9): the 80 m apron was smaller than the
 ## boot horizon (~360 m from a 3 m eye height), so the screenshot
 ## still showed the sea beyond it and the report repeated. The shore
 ## floor is now HELD out to this angle -- the coast starts past the
 ## horizon, and the dome carve makes the first bays a journey away.
-const SPAWN_APRON_OUTER_ANG: float = 0.02 # ~400 m at the 20 km scale
+const SPAWN_APRON_OUTER_ANG: float = 0.09 # ~1800 m at the 20 km scale
 ## The homeland's angular reach: the STARTING CONTINENT's guaranteed
 ## land around the spawn. 2.0 rad = ~40 km at the 20 km planet scale
 ## -- the streamed neighborhood (faces span ~60 deg) is solid land,

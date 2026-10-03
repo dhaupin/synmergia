@@ -416,4 +416,4 @@ func _print_summary() -> void:
 
 
 func _ck(x: int, y: int, z: int = 0, d: int = 0, f: int = 0) -> String:
-	return "%04x-%04x-%04x-d%d-f%d" % [x, y, z, d, f]
+	return "%04x-%04x-%04x-d%d-v%d" % [x, y, z, d, f]

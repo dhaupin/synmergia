@@ -21,8 +21,11 @@ func _init() -> void:
 	if not _test_max_depth_limit():
 		push_error("FAIL: max_depth_limit")
 		ok = false
-	if not _test_face_isolation():
-		push_error("FAIL: face_isolation")
+	if not _test_depth_within_coord_bits():
+		push_error("FAIL: depth_within_coord_bits")
+		ok = false
+	if not _test_vertex_isolation():
+		push_error("FAIL: vertex_isolation")
 		ok = false
 	if not _test_bounding_box():
 		push_error("FAIL: bounding_box")
@@ -110,17 +113,40 @@ func _test_max_depth_limit() -> bool:
 	return children.size() == 1 and sf.get_depth(children[0]) == 24
 
 
-func _test_face_isolation() -> bool:
+## Audit round 16: the address layout gives 16 bits per coordinate, so
+## a subdivision path can hold at most 16 levels (3 bits per level =
+## 48 bits). A deeper MAX_DEPTH silently aliases distinct cells. Guard
+## the layout law and the refusal past it.
+func _test_depth_within_coord_bits() -> bool:
 	var sf: SpatialFragmenter = SpatialFragmenter.new()
-	var face0: int = sf.make_address(0, 0, 0, 0, 0)
-	var face1: int = sf.make_address(0, 0, 0, 0, 1)
-	var c0: Array[int] = sf.subdivide(face0, 1)
-	var c1: Array[int] = sf.subdivide(face1, 1)
+	# Distinct cells at depth d need 3*d coordinate bits; the address
+	# provides 16 bits per coordinate (48 total).
+	if 3 * sf.MAX_DEPTH > 48:
+		return false
+	# A depth-MAX_DEPTH address refuses to subdivide (no silent overflow).
+	var deep: int = sf.make_address(123, 456, 789, sf.MAX_DEPTH, 0)
+	var kids: Array[int] = sf.subdivide(deep, 1)
+	if kids.size() != 1 or kids[0] != deep:
+		return false
+	# Every depth-MAX_DEPTH coordinate stays inside its 16-bit field, so
+	# distinct cells cannot alias (the pre-audit depth-24 aliasing).
+	var max_coord: int = (1 << sf.MAX_DEPTH) - 1
+	var a: int = sf.make_address(max_coord, 0, 0, sf.MAX_DEPTH, 0)
+	var b: int = sf.make_address(0, 0, 0, sf.MAX_DEPTH, 0)
+	return a != b and sf.get_x(a) == max_coord
+
+
+func _test_vertex_isolation() -> bool:
+	var sf: SpatialFragmenter = SpatialFragmenter.new()
+	var vertex0: int = sf.make_address(0, 0, 0, 0, 0)
+	var vertex1: int = sf.make_address(0, 0, 0, 0, 1)
+	var c0: Array[int] = sf.subdivide(vertex0, 1)
+	var c1: Array[int] = sf.subdivide(vertex1, 1)
 	for child in c0:
-		if sf.get_face(child) != 0:
+		if sf.get_vertex(child) != 0:
 			return false
 	for child in c1:
-		if sf.get_face(child) != 1:
+		if sf.get_vertex(child) != 1:
 			return false
 	return true
 
@@ -201,21 +227,21 @@ func _test_deterministic() -> bool:
 
 func _test_nsc9_bridge() -> bool:
 	var sf: SpatialFragmenter = SpatialFragmenter.new()
-	# Test nsc9_axis_to_face
-	if sf.nsc9_axis_to_face(1) != 0:
+	# Test nsc9_axis_to_vertex
+	if sf.nsc9_axis_to_vertex(1) != 0:
 		return false
-	if sf.nsc9_axis_to_face(12) != 11:
+	if sf.nsc9_axis_to_vertex(12) != 11:
 		return false
-	if sf.nsc9_axis_to_face(0) != -1:
+	if sf.nsc9_axis_to_vertex(0) != -1:
 		return false
-	if sf.nsc9_axis_to_face(13) != -1:
+	if sf.nsc9_axis_to_vertex(13) != -1:
 		return false
-	# Test nsc9_code_to_face with valid NSC-9 codes
-	if sf.nsc9_code_to_face(9_000_000_000_000 + 1_000_000_000 + 1_000_000) != 0:
+	# Test nsc9_code_to_vertex with valid NSC-9 codes
+	if sf.nsc9_code_to_vertex(9_000_000_000_000 + 1_000_000_000 + 1_000_000) != 0:
 		return false
-	if sf.nsc9_code_to_face(9_000_000_000_000 + 1_000_000_000 + 12_000_000) != 11:
+	if sf.nsc9_code_to_vertex(9_000_000_000_000 + 1_000_000_000 + 12_000_000) != 11:
 		return false
-	if sf.nsc9_code_to_face(-1) != -1:
+	if sf.nsc9_code_to_vertex(-1) != -1:
 		return false
 	# Test to_spatial_address
 	var addr: int = sf.to_spatial_address(9_000_000_000_000 + 1_000_000_000 + 1_000_000, 100, 200, 50)
@@ -255,9 +281,9 @@ func _test_t3_integration() -> bool:
 		return false
 	if not fragment.has("depth") or fragment["depth"] != 0:
 		return false
-	if not fragment.has("face") or fragment["face"] != 4:
+	if not fragment.has("vertex") or fragment["vertex"] != 4:
 		return false
-	if not fragment.has("key") or fragment["key"] != "0001-0002-0003-d0-f4":
+	if not fragment.has("key") or fragment["key"] != "0001-0002-0003-d0-v4":
 		return false
 	if not fragment.has("bbox") or not fragment["bbox"].has("min_x"):
 		return false
@@ -280,15 +306,15 @@ func _test_path_for_address() -> bool:
 	var sf: SpatialFragmenter = SpatialFragmenter.new()
 	# Test path_for_address with known address
 	var addr1: int = sf.make_address(1, 2, 3, 0, 4)
-	if sf.path_for_address(addr1) != "spatial/0001-0002-0003-d0-f4":
+	if sf.path_for_address(addr1) != "spatial/0001-0002-0003-d0-v4":
 		return false
 
 	var addr2: int = sf.make_address(16, 32, 48, 1, 0)
-	if sf.path_for_address(addr2) != "spatial/0010-0020-0030-d1-f0":
+	if sf.path_for_address(addr2) != "spatial/0010-0020-0030-d1-v0":
 		return false
 
 	var addr3: int = sf.make_address(0, 0, 0, 0, 0)
-	if sf.path_for_address(addr3) != "spatial/0000-0000-0000-d0-f0":
+	if sf.path_for_address(addr3) != "spatial/0000-0000-0000-d0-v0":
 		return false
 
 	return true

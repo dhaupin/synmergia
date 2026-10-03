@@ -1053,8 +1053,8 @@ subdivision, ancestor lineage, bounding boxes. `MAX_DEPTH=24`.
 Pure function bridge connecting NSC-9 -> SpatialFragmenter -> T3.
 `extends RefCounted`. 10 methods: `nsc9_to_address`, `address_to_t3_path`,
 `nsc9_to_t3_path`, `store_nsc9_state`, `store_nsc9_fragmented`,
-`restore_nsc9_fragmented`, `query_nsc9_face`, `query_nsc9_region`,
-`is_spatial_nsc9`, `entity_spatial_to_face`. No state, no autoload,
+`restore_nsc9_fragmented`, `query_nsc9_vertex`, `query_nsc9_region`,
+`is_spatial_nsc9`, `entity_spatial_to_vertex`. No state, no autoload,
 no GameManager dependency.
 
 Integration: EntityService caches NSC-9 codes per entity (`_entity_nsc9_codes`);
@@ -1429,9 +1429,9 @@ Pure function bridge connecting NSC-9 -> SpatialFragmenter -> T3.
 | `store_nsc9_fragmented` | Fragment + store in T3 | `store_nsc9_fragmented(t3, nsc9_code, state, fragmenter, depth=0) -> PackedByteArray` |
 | `restore_nsc9_fragmented` | Restore fragmented state | `restore_nsc9_fragmented(t3, nsc9_code, fragmenter, depth=0) -> Dictionary` |
 | `query_nsc9_region` | Query fragments in region | `query_nsc9_region(t3, nsc9_code, depth=0) -> Array[Dictionary]` |
-| `query_nsc9_face` | Query all fragments on face | `query_nsc9_face(t3, nsc9_code) -> Array[Dictionary]` |
+| `query_nsc9_vertex` | Query all fragments on face | `query_nsc9_vertex(t3, nsc9_code) -> Array[Dictionary]` |
 | `is_spatial_nsc9` | Check if code has spatial axis | `is_spatial_nsc9(code: int) -> bool` |
-| `entity_spatial_to_face` | Entity spatial -> face | `entity_spatial_to_face(facility: int, vertex: int) -> int` |
+| `entity_spatial_to_vertex` | Entity spatial -> face | `entity_spatial_to_vertex(facility: int, vertex: int) -> int` |
 
 No state, no autoload, no GameManager dependency.
 
@@ -1439,7 +1439,7 @@ No state, no autoload, no GameManager dependency.
 
 NSC-9 components map to SpatialFragmenter address as:
 - `facility` -> x coordinate (0-999, fits in 16 bits)
-- `axis` -> face via `SpatialFragmenter.nsc9_code_to_face` (1-12 -> 0-11)
+- `axis` -> vertex via `SpatialFragmenter.nsc9_code_to_vertex` (1-12 -> 0-11)
 - `sequence` -> split into y (bits 10-19, 0-1023) and z (bits 0-9, 0-1023)
 - `depth` -> subdivision depth (caller-specified, default 0)
 
@@ -1473,7 +1473,7 @@ Both services gracefully degrade if bridge is unavailable.
 - Face query isolation
 - Non-spatial NSC-9 rejection
 - `is_spatial_nsc9` checks
-- `entity_spatial_to_face` mapping
+- `entity_spatial_to_vertex` mapping
 
 Run with `godot --headless --path . --script res://core/frame/geometry/test_nsc9_bridge.gd`.
 

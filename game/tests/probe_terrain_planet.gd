@@ -129,6 +129,87 @@ func _run() -> void:
 	ok = _check("mesh: tile vertices ride the terrain law (%d sampled)" % mesh_checked, \
 		mesh_ok and mesh_checked > 0) and ok
 
+	# MESH RESIDENCY (web play-test round 15): the spawn plaza must survive
+	# the mesh RESOLUTION, not just the law. At the v1 scale the streamed
+	# mesh samples the heightfield only every ~330 m; a sub-tile plaza
+	# leaves the boot buried inside the hillside (the camera drops under
+	# the surface, the backface-culled terrain vanishes, and the water
+	# shell is the only surface left: "I spawned on the ocean layer").
+	# Pin: the spawn-face vertices within the ~360 m boot horizon all ride
+	# the plaza height (the walk surface).
+	var near_n := 0
+	var boot_flat := true
+	var best_ang := 1e9
+	var best_lift := 0.0
+	if patch != null and patch.mesh != null:
+		var arrays3: Array = (patch.mesh as ArrayMesh).surface_get_arrays(0)
+		var verts3: PackedVector3Array = arrays3[ArrayMesh.ARRAY_VERTEX]
+		var pc: Vector3 = load("res://core/frame/math/icosahedral_faces.gd").face_center(spawn_face) * (R20KM + 0.52)
+		for v in verts3:
+			var gv: Vector3 = v + pc
+			var vd: Vector3 = gv.normalized()
+			var ang: float = vd.angle_to(d_spawn)
+			var lift: float = gv.length() - (R20KM + 0.52)
+			if ang < best_ang:
+				best_ang = ang
+				best_lift = lift
+			if ang * R20KM <= 360.0:
+				near_n += 1
+				if absf(lift - Gen.SPAWN_HEIGHT) > 1.0:
+					boot_flat = false
+	ok = _check("mesh: spawn plaza is RESOLVED (nearest vert lift %.2f m == SPAWN_HEIGHT %.1f)" % [best_lift, Gen.SPAWN_HEIGHT], \
+		near_n > 0 and absf(best_lift - Gen.SPAWN_HEIGHT) < 1.0) and ok
+	ok = _check("mesh: boot horizon is flat plaza (%d verts within 360 m)" % near_n, \
+		near_n > 0 and boot_flat) and ok
+
+	# WINDING (web play-test round 15): the patches were built in the
+	# icosahedral (outward-CCW) corner order, which is the OPPOSITE of
+	# Godot's front-face convention, so every patch was BACK-facing and
+	# CULLED -- the streamed terrain drew no fragments and the boot saw
+	# only the base green shell + the teal water shell ("I spawned on the
+	# ocean layer, land above me"). Compare the patch's triangle
+	# orientation to a Godot-built mesh (a SphereMesh renders correctly
+	# under CULL_BACK by construction): they MUST agree in sign.
+	var patch_orient := 0.0
+	var patch_tris := 0
+	if patch != null and patch.mesh != null:
+		var w_arrays: Array = (patch.mesh as ArrayMesh).surface_get_arrays(0)
+		var w_verts: PackedVector3Array = w_arrays[ArrayMesh.ARRAY_VERTEX]
+		var w_pc: Vector3 = load("res://core/frame/math/icosahedral_faces.gd").face_center(spawn_face) * (R20KM + 0.52)
+		var ti := 0
+		while ti + 2 < w_verts.size():
+			var va: Vector3 = w_verts[ti] + w_pc
+			var vb: Vector3 = w_verts[ti + 1] + w_pc
+			var vc: Vector3 = w_verts[ti + 2] + w_pc
+			var gnorm: Vector3 = (vb - va).cross(vc - va)
+			if gnorm.length_squared() > 0.000001:
+				patch_orient += gnorm.normalized().dot(((va + vb + vc) / 3.0).normalized())
+				patch_tris += 1
+			ti += 3
+	var ref_sphere := SphereMesh.new()
+	ref_sphere.radius = 10.0
+	ref_sphere.height = 20.0
+	ref_sphere.radial_segments = 24
+	ref_sphere.rings = 12
+	var ref_arrays: Array = ref_sphere.surface_get_arrays(0)
+	var ref_verts: PackedVector3Array = ref_arrays[ArrayMesh.ARRAY_VERTEX]
+	var ref_orient := 0.0
+	var ref_n := 0
+	var ri := 0
+	while ri + 2 < ref_verts.size():
+		var ra: Vector3 = ref_verts[ri]
+		var rb: Vector3 = ref_verts[ri + 1]
+		var rc: Vector3 = ref_verts[ri + 2]
+		var rgn: Vector3 = (rb - ra).cross(rc - ra)
+		if rgn.length_squared() > 0.000001:
+			ref_orient += rgn.normalized().dot((ra + rb + rc).normalized())
+			ref_n += 1
+		ri += 3
+	var ref_mean: float = ref_orient / float(maxi(ref_n, 1))
+	var patch_mean: float = patch_orient / float(maxi(patch_tris, 1))
+	ok = _check("mesh: patch winding matches a Godot sphere (patch %.4f vs sphere %.4f)" % [patch_mean, ref_mean], \
+		patch_tris > 0 and signf(patch_mean) == signf(ref_mean) and absf(patch_mean) > 0.001) and ok
+
 	# The provider really feeds the terrain law: sample it at the body.
 	var d_body: Vector3 = (player.global_position - _globe.planet_center).normalized()
 	var prov: float = player.snap_height_provider.call(player.global_position)

@@ -24,6 +24,10 @@ func _init() -> void:
 	_test_multiple_rules_independent()
 	_test_all_wins_with_effect()
 	_test_predicate_gated_no_predicate()
+	_test_top_wins_uses_innermost()
+	_test_bottom_wins_uses_outermost()
+	_test_predicate_gated_invokes_predicate()
+	_test_register_rule_excludes_predicate_from_payload()
 	_test_canonical_bytes_deterministic()
 	_test_schema_validate()
 	_test_schema_display()
@@ -137,6 +141,48 @@ func _test_predicate_gated_no_predicate() -> void:
 	engine.register_rule("pred_rule", "PREDICATE_GATED", true)
 	var result := engine.evaluate("pred_rule", {}, [])
 	_assert_eq(result["allow"], true, "PREDICATE_GATED without predicate falls back to default_allow")
+
+
+# Stack order: push() appends, so stack[0] is the outermost (root) scope
+# and the last element is the innermost (player) scope. TOP_WINS must read
+# the innermost; BOTTOM_WINS must read the outermost. (_override_allows:
+# PREDICATE_GATED denies, TOP_WINS allows, so a scope's strategy value is
+# usable as an allow/deny marker here.)
+func _test_top_wins_uses_innermost() -> void:
+	var engine := RulesEngineScript.new()
+	var outer := ScopeScript.new("outer", null, "", {"can_x": "PREDICATE_GATED"})
+	var inner := ScopeScript.new("inner", null, "", {"can_x": "TOP_WINS"})
+	engine.register_rule("can_x", "TOP_WINS", false)
+	var result := engine.evaluate("can_x", {}, [outer, inner])
+	_assert_eq(result["allow"], true, "TOP_WINS: innermost (last pushed) scope decides")
+
+
+func _test_bottom_wins_uses_outermost() -> void:
+	var engine := RulesEngineScript.new()
+	var outer := ScopeScript.new("outer", null, "", {"can_x": "TOP_WINS"})
+	var inner := ScopeScript.new("inner", null, "", {"can_x": "PREDICATE_GATED"})
+	engine.register_rule("can_x", "BOTTOM_WINS", false)
+	var result := engine.evaluate("can_x", {}, [outer, inner])
+	_assert_eq(result["allow"], true, "BOTTOM_WINS: outermost (first pushed) scope decides")
+
+
+func _test_predicate_gated_invokes_predicate() -> void:
+	var engine := RulesEngineScript.new()
+	engine.register_rule("pred_allow", "PREDICATE_GATED", false, func(_action, _context): return true)
+	var allow := engine.evaluate("pred_allow", {"k": 1}, [])
+	_assert_eq(allow["allow"], true, "PREDICATE_GATED: predicate true allows")
+
+	var engine_deny := RulesEngineScript.new()
+	engine_deny.register_rule("pred_deny", "PREDICATE_GATED", true, func(_action, _context): return false)
+	var deny := engine_deny.evaluate("pred_deny", {}, [])
+	_assert_eq(deny["allow"], false, "PREDICATE_GATED: predicate false denies (overrides default_allow)")
+
+
+func _test_register_rule_excludes_predicate_from_payload() -> void:
+	var engine := RulesEngineScript.new()
+	engine.register_rule("pred_rule", "PREDICATE_GATED", true, func(_action, _context): return true)
+	var rule := engine.get_rule("pred_rule")
+	_assert(not rule.has("predicate"), "register_rule does not store a predicate descriptor in the rule payload")
 
 
 func _test_canonical_bytes_deterministic() -> void:

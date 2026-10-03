@@ -23,6 +23,9 @@ func _init() -> void:
 	if not _test_vertex_coverage():
 		push_error("FAIL: vertex_coverage")
 		ok = false
+	if not _test_winding_is_outward_ccw():
+		push_error("FAIL: winding_is_outward_ccw")
+		ok = false
 	quit(0 if ok else 1)
 
 func _faces() -> GDScript:
@@ -104,6 +107,29 @@ func _test_partition() -> bool:
 	# Coverage: every face claimed territory (all faces are reachable).
 	assert(counts.size() == 20)
 	return true
+
+## WINDING CONTRACT (audit round 16): face_vertices() is wound
+## COUNTER-clockwise as seen from OUTSIDE (right-handed, outward
+## normal) for ALL 20 faces. That is the math convention, and it is
+## the OPPOSITE of Godot's front face (clockwise), which is exactly
+## how the round-15 terrain streamer ended up back-facing and culled.
+## This guard pins the contract so a Godot mesh builder MUST flip the
+## winding (or the primitive must gain a godot-wound accessor).
+func _test_winding_is_outward_ccw() -> bool:
+	var F = _faces()
+	var verts: PackedVector3Array = _icos().VERTICES
+	var outward_ccw := 0
+	for f in range(F.face_count()):
+		var fv: PackedInt32Array = F.face_vertices(f)
+		var a: Vector3 = verts[fv[0]].normalized()
+		var b: Vector3 = verts[fv[1]].normalized()
+		var c: Vector3 = verts[fv[2]].normalized()
+		# Outward normal by the right-hand rule = CCW from outside.
+		if a.cross(b).dot(c) > 0.0 and b.cross(c).dot(a) > 0.0:
+			outward_ccw += 1
+	assert(outward_ccw == 20)
+	return true
+
 
 func _test_vertex_coverage() -> bool:
 	# All 12 vertices appear in exactly 5 faces.

@@ -66,6 +66,37 @@ func _run() -> void:
 		var mp: Vector2 = marker.position
 		inside = mp.x >= 0.0 and mp.x <= vp2.x and mp.y >= 0.0 and mp.y <= vp2.y
 	ok = _check("A7 player dot positioned on the canvas", inside) and ok
+	# Round 15: the canvas MUST be north-up (Image row 0 = north pole)
+	# and share ONE lat/lon->UV convention with the dot. Before the fix
+	# the canvas painted row 0 as the SOUTH pole (lat = -90 + ...) while
+	# the marker read py = (90 - lat): the map rendered upside down and
+	# the dot disagreed with it.
+	var uv_n: Vector2 = MapScript.lat_lon_to_uv(60.0, 0.0)
+	var uv_s: Vector2 = MapScript.lat_lon_to_uv(-60.0, 0.0)
+	ok = _check("A10 lat/lon->UV is north-up (v(+60)=%.3f < v(-60)=%.3f)" % [uv_n.y, uv_s.y], \
+		uv_n.y < uv_s.y) and ok
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var Sph = load("res://core/frame/math/spherical.gd")
+	var seed_b: PackedByteArray = Gen.world_seed_bytes()
+	var sea: float = Gen.sea_level(seed_b)
+	var canvas_tex: ImageTexture = map._canvas_texture
+	var discrim := 0
+	var matches := 0
+	if canvas_tex != null and canvas_tex.get_image() != null:
+		var img: Image = canvas_tex.get_image()
+		var iw: int = img.get_width()
+		var ih: int = img.get_height()
+		for la in [75.0, 60.0, 45.0, 30.0, 15.0, -15.0, -30.0, -45.0, -60.0, -75.0]:
+			var cn: Color = _canvas_expected(map, Gen, Sph, seed_b, sea, la, 0.0)
+			var cm: Color = _canvas_expected(map, Gen, Sph, seed_b, sea, -la, 0.0)
+			if _color_near(cn, cm):
+				continue  # law is symmetric here -- cannot discriminate
+			discrim += 1
+			var uv: Vector2 = MapScript.lat_lon_to_uv(la, 0.0)
+			if _row_matches(img, int(uv.y * float(ih)), int(uv.x * float(iw)), cn):
+				matches += 1
+	ok = _check("A11 canvas is north-up, not mirrored (%d/%d discriminating samples match the law)" % [matches, discrim], \
+		discrim > 0 and matches == discrim) and ok
 	# close_modal is the interaction-stack path (Back gesture).
 	map.close_modal()
 	await process_frame
@@ -115,6 +146,29 @@ func _run() -> void:
 
 	print("probe_playtest_r12: %d checks, %s" % [_checks, "PASS" if ok else "FAIL"])
 	quit(0 if ok else 1)
+
+
+## The canvas color the terrain law dictates at a lat/lon (same call the
+## generator makes), for the map-orientation check.
+func _canvas_expected(map, Gen, Sph, seed_b: PackedByteArray, sea: float, lat: float, lon: float) -> Color:
+	var d: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, 20000.0).normalized()
+	return map._canvas_color(Gen.terrain_height(d, seed_b), sea)
+
+
+## Pixel match with a half-pixel row tolerance: the canvas writes rows at
+## (py + 0.5) / N while lat_lon_to_uv reads py / N.
+func _row_matches(img: Image, row: int, col: int, expect: Color) -> bool:
+	for r in [row - 1, row, row + 1]:
+		if r < 0 or r >= img.get_height():
+			continue
+		if _color_near(img.get_pixel(col, r), expect):
+			return true
+	return false
+
+
+func _color_near(a: Color, b: Color) -> bool:
+	var tol := 2.0 / 255.0
+	return absf(a.r - b.r) <= tol and absf(a.g - b.g) <= tol and absf(a.b - b.b) <= tol
 
 
 ## First Label text walking a faction row (row > HBox > name Label).

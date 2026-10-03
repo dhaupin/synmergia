@@ -2832,3 +2832,171 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   index.html edits: zero progressSeen pageerrors); full regression
   58/58 in 6 chunks (probe_character_panel, probe_terrain_stream,
   probe_globe_world all green with the edits).
+- [x] Round 15 (R14 web frames: "player spawns on the ocean, land is
+  above me" + "the fullscreen map is MIRRORED"; two independent root
+  causes, both in the WORLD BUILD, plus a map orientation law):
+  (1) THE PLAZA WAS SUB-TILE. At the v1 planet scale the streamed
+  icosahedral mesh samples the heightfield only every ~330 m (face
+  edge ~21 km / 2^6 subdivisions). The old spawn plaza was
+  SPAWN_FLAT_ANG 0.0015 rad = 30 m -- SMALLER THAN ONE TILE -- so the
+  mesh never rendered it: the body sat at SPAWN_HEIGHT (9 m) while
+  the rendered ground stayed at the natural ~30 m hills. The camera
+  ended up INSIDE the hillside. terrain_gen.gd: SPAWN_FLAT_ANG 0.04
+  (~800 m, full-flat within 0.024 = 480 m, past the ~360 m boot
+  horizon), SPAWN_APRON_ANG 0.06 (~1200 m), SPAWN_APRON_OUTER_ANG
+  0.09 (~1800 m); the apron is the tier OUTSIDE the plaza so its
+  inner edge must never sit inside it. Verified: the nearest mesh
+  vertex to spawn now has terrain lift exactly 9.00 m, and six verts
+  within 360 m are all 9.00 m -- the whole visible ground is plaza.
+  (2) EVERY STREAMED PATCH WAS BACK-FACING AND CULLED. Godot's front
+  face is CLOCKWISE, but the icosahedral face corner order is
+  COUNTER-clockwise from outside (the math convention).
+  globe_terrain_streamer._load_patch built corners (fv[0], fv[1],
+  fv[2]) = the wrong winding, so no terrain fragments drew and the
+  boot saw only the base green shell + the teal water shell -- the
+  literal "I spawned on the ocean layer, land above me" report.
+  Corners are now (fv[0], fv[2], fv[1]); the radial normals already
+  point outward. Proof chain: UNSHADED / CULL_DISABLED changed the
+  frame ([3]22,25,32 -> [3]246,8,3 red fills), i.e. the stock
+  material was drawing almost nothing. Patch mean gnorm.dot(radial)
+  went +0.7737 (inward) -> -0.0502, matching a Godot-built
+  SphereMesh reference (-0.0067): same sign, so the patch is now
+  front-facing like a normal mesh.
+  (3) MAP MIRRORED -- LAT SIGN FLIPPED BETWEEN CANVAS AND MARKER.
+  world_map.gd painted row 0 as the SOUTH pole (lat = -90 + ...)
+  while the player marker read py = (90 - lat) / 180: the map was
+  vertically flipped AND the dot disagreed with it. One shared
+  static lat_lon_to_uv(lat, lon) = ((lon+180)/360, (90-lat)/180) now
+  drives both -- u grows EAST, v grows SOUTH from lat +90, image row
+  0 = the north pole; the canvas uses the inverse (lat = 90 - 180 *
+  row / 384).
+  (4) REGRESSION GUARDS: probe_terrain_planet adds "mesh: spawn
+  plaza is RESOLVED", "mesh: boot horizon is flat plaza", and "mesh:
+  patch winding matches a Godot sphere (patch %.4f vs sphere
+  %.4f)"; probe_playtest_r12 adds A10 (lat/lon->UV is north-up) +
+  A11 (canvas is north-up, not mirrored -- N/N discriminating
+  samples match the law).
+  (5) Verified: probe_terrain_planet, probe_playtest_r12,
+  probe_globe_world, probe_planet_scale_20km, probe_terrain_stream,
+  test_world_shape, test_terrain_determinism green; full default
+  regression 59/59 in 8 chunks; web/game.pck rebuilt (export-pack
+  Web Default) AFTER the winding fix -- the world frame's teal water
+  share dropped from 38.6% to 1.8% (terrain now renders). NOTE: the
+  user's browser only picks this up once the refreshed pack is
+  committed + reloaded with the cache-buster; until then the live
+  site still serves the pre-fix pack, which is why the R15
+  screenshots still looked wrong.
+- [x] Round 16 (frame audit, second set of eyes -- game/core/frame/*,
+  triggered by the R15 clockwise/counter finding; every claim below
+  was reproduced with a headless probe before it was written down):
+  (1) FIXED -- SpatialFragmenter.MAX_DEPTH was 24 but the 64-bit
+  address layout gives each coordinate a 16-bit field, so a
+  subdivision path holds 16 x-bits + 16 y-bits + 16 z-bits = 48 bits =
+  16 levels (3 bits/level). Past depth 16 the coordinate shift is
+  silently masked and DISTINCT cells collapse onto the same address.
+  Reproduced: two distinct depth-16 parents produced fully-overlapping
+  depth-17 child sets (8/8), and make_address(x=0x10000) ==
+  make_address(x=0) at depth 17. MAX_DEPTH is now 16; new guard
+  _test_depth_within_coord_bits (3*MAX_DEPTH <= 48 + refusal at
+  MAX_DEPTH). Consumers: nsc9_bridge clamps depth to it; no other
+  caller depended on 24.
+  (2) FIXED -- Icosahedral.cell_center returned the RAW vertex
+  (length sqrt(1+phi^2) ~= 1.902) while face_center / nearest_vertex /
+  to_cell all work in unit directions; the only test hid it behind a
+  tautology (`... or abs(len - 1.0) > 0` is true for every non-unit
+  vector). cell_center now returns _normalized[cell_id]; the test
+  asserts unit length for real.
+  (3) FIXED -- Markov chunk keys could not represent negative offsets.
+  The 3x3 neighbour grid runs -1..+1, but generate_key masks to
+  16-bit unsigned, so offset(-1,-1) encoded as "ffff-...-ffff" and
+  decoded back as (65535,65535) instead of (-1,-1), poisoning
+  last_move_delta and the velocity-conditioned transitions.
+  _chunk_key_to_offset now sign-extends 16-bit fields (_sign16).
+  Verified round-trip true.
+  (4) FIXED/guarded -- the frame winding contract is now pinned and
+  documented: IcosahedralFaces.face_vertices() is wound
+  COUNTER-clockwise from OUTSIDE (right-handed, outward normal) for
+  ALL 20 faces -- the math convention and the OPPOSITE of Godot's
+  front face. Reproduced: 20/20 CCW, 0 CW. That is precisely how the
+  R15 terrain streamer ended up back-facing and culled, so the
+  contract now has a guard (_test_winding_is_outward_ccw) and a
+  comment saying any Godot mesh builder MUST flip the winding.
+  (5) NOTED, not fixed (behavioral/design, needs an owner call):
+  - "face" names TWO namespaces: IcosahedralFaces = 0..19 triangles
+    (the terrain); SpatialFragmenter/Nsc9 = 0..11 icosahedral VERTICES
+    (nsc9_axis_to_face = axis-1), yet the address field is documented
+    "icosahedron face". Mixing them silently addresses the wrong cell.
+  - RulesEngine: _evaluate_top_wins reads stack[0] but reports
+    "innermost scope decision" while _evaluate_bottom_wins reads
+    stack[-1] and reports "outermost" -- the two labels/indices
+    contradict; one is wrong. _evaluate_predicate_gated is a stub
+    (both branches return default_allow; the predicate is never
+    evaluated) and register_rule stores str(predicate), which is not a
+    portable or invokable representation.
+  - LRUCache comment claims O(1) get/set/evict but _move_to_front uses
+    Array.erase (O(n)); FoldedShell.release_space loops `for cell in
+    fact_cells(h)` only to call _hot.delete(h) once per cell.
+  - swim_state.set_breath_capacity multiplies CURRENT breath (partial
+    drain scales the remaining too) rather than the capacity.
+  (6) Verified: frame/math/test_icosahedral, test_icosahedral_faces,
+  frame/geometry/test_spatial_fragmenter green; probe_terrain_planet,
+  probe_globe_world, frame/math/test_spherical, test_terrain_determinism,
+  probe_terrain_stream green. NOT yet audited (next pass): scope_*,
+  rules_schema, resource_scan, ferry_schedule, world_registry,
+  memory/social/definition trees, schemas/.
+- [x] Round 17 (owner-directed follow-ups to the R16 second-eyes
+  report: the 4 fix requests + Markov tests + the face-namespace
+  split). Item 1 (switching the math/iso layer to CW winding) was
+  DISCUSSED ONLY -- no code changed; see the chat analysis.
+  (1) MARKOV TESTS + FIX -- added co-located frame/srv/test_markov
+  (sign16 round-trip incl. "ffff" negative encode, transition
+  learning, predict_next ordering/probabilities, predict_n_steps,
+  multi-horizon, simulation accuracy, sufficiency/current/clear) and
+  added it to the runner DEFAULT_SET. Fixed predict_n_steps: it
+  divided each outgoing count by the GLOBAL state.total_transitions
+  while predict_next row-normalizes, so multi-step probabilities
+  leaked mass every step and disagreed with predict_next. It now
+  row-normalizes on the source key's outgoing counts (guard: two
+  rows of 10 with global total 20 -> probability 1.0, was 0.5).
+  (2) FACE NAMESPACE SPLIT -- "face" named two things: IcosahedralFaces
+  = 0..19 TRIANGLES (terrain); SpatialFragmenter/Nsc9 = 0..11
+  icosahedral VERTICES. The iso/triangle layer KEEPS "face"; the
+  fragmenter field/API/key suffix were renamed to "vertex":
+  make_address(...,vertex), get_vertex(), VERTEX_MASK/SHIFT,
+  nsc9_axis_to_vertex(), nsc9_code_to_vertex(),
+  to_spatial_address(...,vertex), entity_spatial_to_vertex(),
+  query_nsc9_vertex(), the frag dict/bbox key "vertex", and the
+  encoded key suffix f->v (%-d%d-v%d). Numeric semantics unchanged
+  (axis 1-12 -> vertex 0-11). Callers updated: lod_manager,
+  zone_manager, entity_service, test_lod_predictor, and the
+  prd-geometry / prd-spatial-geometry / prd / world-building-arch /
+  world-building specs. (globe_terrain_streamer's "face" is the
+  triangle terrain -- untouched.)
+  (3) RULES ENGINE -- _evaluate_top_wins read stack[0] while
+  _evaluate_bottom_wins read stack[-1]; both contradicted their own
+  reason strings. Fixed to the spec (prd-scope-engine US-006):
+  push() appends, so stack[0] = outermost/root (BOTTOM of stack) and
+  stack[last] = innermost/player (TOP). TOP_WINS now reads the last
+  element, BOTTOM_WINS the first. _evaluate_predicate_gated now
+  actually invokes the predicate as predicate.call(action, context)
+  and requires a bool (invalid/non-bool falls back to default_allow).
+  register_rule no longer writes str(predicate) into the T3 payload:
+  predicates live in an engine-side table keyed by rule_id (a real
+  Callable in the payload would break var_to_bytes/bytes_to_var in
+  diff/apply_diff). New tests: TOP/BOTTOM ordering, predicate
+  true/false, payload excludes predicate.
+  (4) GAME-LOOP MINORS -- LRUCache replaced its Array order (erase =
+  O(n) per get/set) with an O(1) intrusive doubly-linked recency
+  order (_prev/_next, MRU head / LRU tail); FoldedShell.release_space
+  now deletes each orphan hash once (the old loop iterated
+  fact_cells(h) but deleted h per cell, leaking the hot entry when a
+  fact had zero indexed cells); swim_state.set_breath_capacity now
+  sets breath to the new FULL capacity BREATH_SECONDS * multiplier
+  instead of scaling the current (possibly drained) breath.
+  (5) Verified green: frame/{math,geometry,kv,srv} set (spherical,
+  icosahedral, icosahedral_faces, spatial_fragmenter, nsc9_bridge,
+  lru_cache, folded_shell, t3_dedup, rules_engine, markov,
+  scope_engine, swim_state, star_cells, ferry_schedule,
+  resource_scan) + probes startup_flow/globe_world/world_scoping/
+  terrain_stream + test_lod_predictor (the last three boot autoloads,
+  so the edited services compile). No new non-ASCII; tabs only.

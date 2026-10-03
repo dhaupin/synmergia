@@ -173,9 +173,18 @@ func _load_patch(face: int) -> void:
 	var fv: PackedInt32Array = FacePatches.face_vertices(face)
 	var tile_r: float = radius + TILE_LIFT
 	var center: Vector3 = FacePatches.face_center(face) * tile_r
+	# WINDING (web play-test round 15): Godot's front face is CLOCKWISE,
+	# but the icosahedral face order is COUNTER-clockwise from outside
+	# (the math convention). Every streamed patch was therefore
+	# back-facing and CULLED -- the terrain drew almost no fragments, so
+	# the boot saw only the base green shell + the teal water shell: the
+	# exact "I spawned on the ocean layer, land above me" report. Taking
+	# the corners in (0, 2, 1) order flips the winding into Godot's
+	# convention while the normals (set to the radial d_abs) already
+	# point outward.
 	var a: Vector3 = Icosahedral.VERTICES[fv[0]].normalized() * tile_r - center
-	var b: Vector3 = Icosahedral.VERTICES[fv[1]].normalized() * tile_r - center
-	var c: Vector3 = Icosahedral.VERTICES[fv[2]].normalized() * tile_r - center
+	var b: Vector3 = Icosahedral.VERTICES[fv[2]].normalized() * tile_r - center
+	var c: Vector3 = Icosahedral.VERTICES[fv[1]].normalized() * tile_r - center
 
 	var level: int = _level_for_edge()
 	var verts: Array = []  # tile corner triples, LOCAL to the patch node

@@ -359,13 +359,24 @@ func set_player_lat_lon(lat: float, lon: float) -> void:
 	if not _minimap_mode:
 		_position_player_marker()
 
+## The ONE lat/lon -> UV convention shared by the generated world canvas
+## and the player marker. Round 15: the canvas painted row 0 as the
+## SOUTH pole (lat = -90 + ...) while the marker read py = (90 - lat),
+## so the map rendered upside down AND the dot disagreed with it.
+## u grows EAST from lon -180; v grows SOUTH from lat +90 (image row 0
+## is the top row, so row 0 is the north pole).
+static func lat_lon_to_uv(lat: float, lon: float) -> Vector2:
+	return Vector2((lon + 180.0) / 360.0, (90.0 - lat) / 180.0)
+
+
 func _position_player_marker() -> void:
 	if _player_marker == null or _marker_container == null:
 		return
 	if _player_lat > 90.0:
 		return
-	var px := (_player_lon + 180.0) / 360.0
-	var py := (90.0 - _player_lat) / 180.0
+	var uv: Vector2 = lat_lon_to_uv(_player_lat, _player_lon)
+	var px: float = uv.x
+	var py: float = uv.y
 	# KEEP_ASPECT_CENTERED with a square canvas: drawn height = control
 	# height, drawn width = height (letterbox bars left/right on wide
 	# windows). Markers must sit inside the DRAWN rect, not the control.
@@ -397,7 +408,10 @@ func _ensure_world_canvas() -> void:
 		var img := Image.create(384, 384, false, Image.FORMAT_RGBA8)
 		var painted := 0
 		for py in range(384):
-			var lat := -90.0 + 180.0 * (float(py) + 0.5) / 384.0
+			# Inverse of lat_lon_to_uv: row 0 MUST be the north pole
+			# (Image row 0 is the top row; the old -90 start painted the
+			# map upside down).
+			var lat := 90.0 - 180.0 * (float(py) + 0.5) / 384.0
 			for px in range(384):
 				var lon := -180.0 + 360.0 * (float(px) + 0.5) / 384.0
 				var d: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, R).normalized()

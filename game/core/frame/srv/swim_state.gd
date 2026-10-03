@@ -143,7 +143,11 @@ func tick(delta: float, depth: float, squeeze_line: float, max_depth: float, pre
 ## an S14.4 breather with air x4 feeds breath = BREATH_SECONDS * 4
 ## through set_breath_capacity at equip time.
 func set_breath_capacity(multiplier: float) -> void:
-	breath = clampf(breath * multiplier, 0.0, BREATH_SECONDS * multiplier)
+	# Capacity, not current air (audit round 17): equipping a xN breather
+	# sets the clock to its new FULL value BREATH_SECONDS * N. The old
+	# code scaled the CURRENT breath, so equipping mid-dive gave a partly
+	# drained body a smaller tank than it had earned.
+	breath = maxf(BREATH_SECONDS * multiplier, 0.0)
 
 
 ## Is the body currently drowning (breath gone, still under)?

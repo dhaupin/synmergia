@@ -11,7 +11,7 @@
 ##   var bridge := Nsc9Bridge.new()
 ##   var address := bridge.nsc9_to_address(nsc_code)
 ##   var hash := bridge.store_nsc9_state(t3, nsc_code, state_dict)
-##   var results := bridge.query_nsc9_face(t3, nsc_code)
+##   var results := bridge.query_nsc9_vertex(t3, nsc_code)
 ##
 ## See labs/prd-geometry.md sec. 6K for the wiring pattern spec.
 extends RefCounted
@@ -26,7 +26,7 @@ const MAX_COORD: int = 0xFFFF
 ##
 ## NSC-9 components map to spatial coords as:
 ##   facility   -> x coordinate (0-999, fits in 16 bits)
-##   axis       -> face via SpatialFragmenter.nsc9_code_to_face (1-12 -> 0-11)
+##   axis       -> vertex via SpatialFragmenter.nsc9_code_to_vertex (1-12 -> 0-11)
 ##   sequence   -> split into y (bits 10-19, 0-1023) and z (bits 0-9, 0-1023)
 ##   depth      -> subdivision depth (caller-specified, default 0)
 ##
@@ -39,8 +39,8 @@ func nsc9_to_address(code: int, depth: int = 0, sf: Variant = null) -> int:
 	if sf == null:
 		sf = SpatialFragmenterScript.new()
 
-	var face: int = sf.nsc9_code_to_face(code)
-	if face < 0:
+	var vertex: int = sf.nsc9_code_to_vertex(code)
+	if vertex < 0:
 		return 0
 
 	var nsc9: Variant = Nsc9Script.new()
@@ -53,11 +53,11 @@ func nsc9_to_address(code: int, depth: int = 0, sf: Variant = null) -> int:
 	var z: int = (sequence & 0x3FF) & MAX_COORD
 	depth = clampi(depth, 0, SpatialFragmenterScript.MAX_DEPTH)
 
-	return sf.make_address(x, y, z, depth, face)
+	return sf.make_address(x, y, z, depth, vertex)
 
 
 ## Convert a SpatialFragmenter address to a T3 path string.
-## Example: "spatial/0001-0002-0003-d0-f4"
+## Example: "spatial/0001-0002-0003-d0-v4"
 func address_to_t3_path(address: int, sf: Variant = null) -> String:
 	if sf == null:
 		sf = SpatialFragmenterScript.new()
@@ -65,7 +65,7 @@ func address_to_t3_path(address: int, sf: Variant = null) -> String:
 
 
 ## Convert an NSC-9 code directly to a T3 path.
-## Example: "spatial/0001-0000-0000-d0-f0"
+## Example: "spatial/0001-0000-0000-d0-v0"
 func nsc9_to_t3_path(code: int, depth: int = 0) -> String:
 	var address: int = nsc9_to_address(code, depth)
 	if address == 0:
@@ -73,7 +73,7 @@ func nsc9_to_t3_path(code: int, depth: int = 0) -> String:
 	return address_to_t3_path(address)
 
 
-## Query spatial fragments in an NSC-9-derived region (face + depth).
+## Query spatial fragments in an NSC-9-derived region (vertex + depth).
 ## Returns fragments within the bounding box of the NSC-9 address.
 func query_nsc9_region(t3: Variant, nsc9_code: int, depth: int = 0) -> Array[Dictionary]:
 	if t3 == null:
@@ -173,19 +173,19 @@ func restore_nsc9_fragmented(t3: Variant, nsc9_code: int, fragmenter: Variant, d
 	return parsed
 
 
-## Query all spatial fragments stored under a given NSC-9 face code.
+## Query all spatial fragments stored under a given NSC-9 vertex code.
 ## Returns Array[Dictionary] with path, hash, address, metadata for each fragment.
-func query_nsc9_face(t3: Variant, nsc9_code: int) -> Array[Dictionary]:
+func query_nsc9_vertex(t3: Variant, nsc9_code: int) -> Array[Dictionary]:
 	if t3 == null:
 		return []
 	var sf: Variant = SpatialFragmenterScript.new()
-	var face: int = sf.nsc9_code_to_face(nsc9_code)
-	if face < 0:
+	var vertex: int = sf.nsc9_code_to_vertex(nsc9_code)
+	if vertex < 0:
 		return []
 	var results: Array[Dictionary] = sf.query_spatial_tree(t3, "/")
 	var filtered: Array[Dictionary] = []
 	for result in results:
-		if result.get("face") == face:
+		if result.get("vertex") == vertex:
 			filtered.append(result)
 	return filtered
 
@@ -193,14 +193,14 @@ func query_nsc9_face(t3: Variant, nsc9_code: int) -> Array[Dictionary]:
 ## Check if an NSC-9 code has a valid spatial axis mapping (axis 1-12).
 func is_spatial_nsc9(code: int) -> bool:
 	var sf: Variant = SpatialFragmenterScript.new()
-	return sf.nsc9_code_to_face(code) >= 0
+	return sf.nsc9_code_to_vertex(code) >= 0
 
 
-## Derive an NSC-9 face from an NSC-9 entity-spatial encoding.
-## Wraps Nsc9.pack_entity_spatial() -> SpatialFragmenter face.
+## Derive an NSC-9 vertex from an NSC-9 entity-spatial encoding.
+## Wraps Nsc9.pack_entity_spatial() -> SpatialFragmenter vertex.
 ## Hot path: uses bitwise pack() instead of decimal format.
-func entity_spatial_to_face(facility: int, vertex: int) -> int:
+func entity_spatial_to_vertex(facility: int, vertex: int) -> int:
 	var nsc9: Variant = Nsc9Script.new()
 	var code: int = nsc9.pack_entity_spatial(facility, vertex)
 	var sf: Variant = SpatialFragmenterScript.new()
-	return sf.nsc9_code_to_face(code)
+	return sf.nsc9_code_to_vertex(code)

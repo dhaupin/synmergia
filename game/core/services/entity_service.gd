@@ -117,17 +117,17 @@ func _compute_spatial_address(entity) -> int:
 	else:
 		depth = 0
 
-	# Face: derive from faction/team so allied entities cluster on the
-	# same icosahedral face. Use team_id when set, else faction hash.
-	var face: int = 0
+	# Vertex: derive from faction/team so allied entities cluster on the
+	# same icosahedral vertex. Use team_id when set, else faction hash.
+	var vertex: int = 0
 	if "team_id" in entity and entity.team_id != 0:
-		face = abs(entity.team_id) % 12
+		vertex = abs(entity.team_id) % 12
 	elif "faction_id" in entity and entity.faction_id != "":
-		face = abs(hash(entity.faction_id)) % 12
+		vertex = abs(hash(entity.faction_id)) % 12
 	elif "relation" in entity:
-		face = int(entity.relation) % 12
+		vertex = int(entity.relation) % 12
 
-	return _spatial_fragmenter.make_address(x, y, z, depth, face)
+	return _spatial_fragmenter.make_address(x, y, z, depth, vertex)
 
 ## Compute a deterministic NSC-9 code for an entity.
 ##

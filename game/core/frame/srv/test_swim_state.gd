@@ -95,6 +95,15 @@ func _run() -> void:
 	cap.set_breath_capacity(4.0)
 	_check("a x4 breather quadruples the clock", \
 		absf(cap.breath - SS.BREATH_SECONDS * 4.0) < 0.001)
+	# Audit round 17: capacity is multiplied, not the current air.
+	# Drain first, then equip; the clock must jump to the new FULL value.
+	var cap2 = SS.new()
+	cap2.tick(dt, 20.0, 50.0, 60.0)
+	cap2.tick(dt, 20.0, 50.0, 60.0)
+	_check("breath is below full before equipping", cap2.breath < SS.BREATH_SECONDS)
+	cap2.set_breath_capacity(2.0)
+	_check("a x2 breather sets CAPACITY, not scaled current air", \
+		absf(cap2.breath - SS.BREATH_SECONDS * 2.0) < 0.001)
 
 	# ---- F. Speed honesty + the glider gate ---------------------------------------------
 	_check("WADING is a slow walk", SS.new().swim_speed_scale() != 0.0)
