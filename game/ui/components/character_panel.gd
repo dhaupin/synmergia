@@ -630,12 +630,12 @@ func _setup_stats_tab() -> void:
 	vbox.add_child(stats_grid)
 
 	var stats := [
-		{"name": "Strength", "key": "str", "icon": "\U0001F4AA"},
-		{"name": "Intelligence", "key": "int", "icon": "\U0001F4DA"},
-		{"name": "Wisdom", "key": "wis", "icon": "\U0001F4DD"},
-		{"name": "Agility", "key": "agi", "icon": "\U0001F3C3"},
-		{"name": "Vitality", "key": "vit", "icon": "\U00002764"},
-		{"name": "Endurance", "key": "end", "icon": "\U0001F4AA"}
+		{"name": "Strength", "key": "str"},
+		{"name": "Intelligence", "key": "int"},
+		{"name": "Wisdom", "key": "wis"},
+		{"name": "Agility", "key": "agi"},
+		{"name": "Vitality", "key": "vit"},
+		{"name": "Endurance", "key": "end"}
 	]
 
 	for stat in stats:
@@ -661,12 +661,17 @@ func _setup_stats_tab() -> void:
 	for stat in derived:
 		var row := HBoxContainer.new()
 		row.custom_minimum_size.y = 25
+		# The refresh pass finds these rows by name (Derived_<key> + a
+		# child Label named "Value") -- without the names the loop never
+		# matched and every derived stat stayed at "--" forever.
+		row.name = "Derived_" + stat.key
 
-		var name := Label.new()
-		name.text = stat.name
-		row.add_child(name)
+		var stat_name := Label.new()
+		stat_name.text = stat.name
+		row.add_child(stat_name)
 
 		var val := Label.new()
+		val.name = "Value"
 		val.text = stat.value
 		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(val)
@@ -687,10 +692,6 @@ func _create_stat_card(stat: Dictionary) -> PanelContainer:
 
 	var hbox := HBoxContainer.new()
 	card.add_child(hbox)
-
-	var icon := Label.new()
-	icon.text = stat.icon
-	hbox.add_child(icon)
 
 	var info := VBoxContainer.new()
 	hbox.add_child(info)
@@ -930,7 +931,16 @@ func _refresh_stats_display() -> void:
 	if char_header:
 		var name_lbl: Label = char_header.get_node("CharName")
 		var species_name := _char_data.species_id.capitalize()
+		# class_id is species-prefixed ("human_marksman"), so capitalizing
+		# it printed the species twice ("Human Human Marksman"). Prefer
+		# the class .tres display_name ("Marksman"); only fall back to the
+		# raw id when the class data cannot load.
 		var char_class_name := _char_data.class_id.capitalize()
+		var cls_data: CharacterClass = _char_data.class_data
+		if cls_data == null:
+			cls_data = CharacterData.load_class(_char_data.class_id)
+		if cls_data and cls_data.display_name != "":
+			char_class_name = cls_data.display_name
 		name_lbl.text = "%s %s - Level %d" % [species_name, char_class_name, _char_data.level]
 
 	# Get stats from character
