@@ -386,16 +386,39 @@ func _ensure_world_canvas() -> void:
 	var Sph = load("res://core/frame/math/spherical.gd")
 	var R := 20000.0
 	var seed_bytes: PackedByteArray = TerrainGen.world_seed_bytes()
-	var sea: float = TerrainGen.sea_level(seed_bytes)
-	var img := Image.create(384, 384, false, Image.FORMAT_RGBA8)
-	for py in range(384):
-		var lat := -90.0 + 180.0 * (float(py) + 0.5) / 384.0
-		for px in range(384):
-			var lon := -180.0 + 360.0 * (float(px) + 0.5) / 384.0
-			var d: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, R).normalized()
-			var h: float = TerrainGen.terrain_height(d, seed_bytes)
-			img.set_pixel(px, py, _canvas_color(h, sea))
-	_canvas_texture = ImageTexture.create_from_image(img)
+	# A broken dependency must not silently yield the raw-black overlay:
+	# Image.create starts TRANSPARENT black, and a GDScript runtime error
+	# inside the loop does NOT abort it -- the pixels just never get
+	# painted, and the map shows the dark backdrop = "the map is a black
+	# overlay" (the exact round-14 report). Verify preconditions before
+	# the loop and painted coverage after it.
+	if Sph != null and seed_bytes.size() > 0:
+		var sea: float = TerrainGen.sea_level(seed_bytes)
+		var img := Image.create(384, 384, false, Image.FORMAT_RGBA8)
+		var painted := 0
+		for py in range(384):
+			var lat := -90.0 + 180.0 * (float(py) + 0.5) / 384.0
+			for px in range(384):
+				var lon := -180.0 + 360.0 * (float(px) + 0.5) / 384.0
+				var d: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, R).normalized()
+				var h: float = TerrainGen.terrain_height(d, seed_bytes)
+				var c: Color = _canvas_color(h, sea)
+				img.set_pixel(px, py, c)
+				if c.a > 0.5:
+					painted += 1
+		# The law always returns opaque colors; a mostly-transparent image
+		# means the dependency errored per pixel. Do NOT cache that.
+		if painted > 384 * 384 / 2:
+			_canvas_texture = ImageTexture.create_from_image(img)
+	if _canvas_texture == null:
+		# Retry on the next open (boot-order races heal themselves);
+		# meanwhile show a non-black chart so the map stays usable.
+		GameLog.warn("WorldMap: terrain canvas generation failed; showing fallback ocean chart")
+		var fb := Image.create(384, 384, false, Image.FORMAT_RGBA8)
+		fb.fill(Color(0.07, 0.20, 0.30))
+		_map_texture.texture = ImageTexture.create_from_image(fb)
+		_position_player_marker()
+		return
 	_map_texture.texture = _canvas_texture
 	_position_player_marker()
 

@@ -2814,6 +2814,21 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   the rows were nameless; named both, values now fill from
   get_derived_stats(). Also removed a duplicated dead return line in
   globe_terrain_streamer._make_checker_texture.
-  (5) Verified: probe exit 0 with an in-world frame; full regression
+  (5) USER CLARIFICATION + MAP HARDENING: the round's black
+  screenshots were the MAP OVERLAY (opened in-game), not the world
+  viewport -- the R12-era "textureless map drew raw black" symptom.
+  On the current pack the probe's map_open.png HAS content (landmass,
+  water, gold dot), so headless cannot repro it. Hardened the one
+  silent-failure path that would repaint that symptom on any machine:
+  _ensure_world_canvas now verifies preconditions (math script + seed
+  bytes present) and painted coverage after the pixel loop
+  (Image.create starts transparent black; a GDScript runtime error
+  inside the loop does NOT abort it -- the pixels just never get
+  painted and the map shows the dark backdrop = black overlay). A
+  failed generation is NOT cached (retry next open, boot-order races
+  heal), warns via GameLog, and shows a fallback ocean chart so the
+  map stays usable. probe_playtest_r12 A5 (canvas generated) green.
+  (6) Verified: probe exit 0 with an in-world frame (re-run AFTER the
+  index.html edits: zero progressSeen pageerrors); full regression
   58/58 in 6 chunks (probe_character_panel, probe_terrain_stream,
   probe_globe_world all green with the edits).
