@@ -188,7 +188,15 @@ func refresh_quest_list() -> void:
 		_quest_list.add_child(empty)
 		return
 
-	for quest_id in quests:
+	# The three tabs yield different element shapes: ACTIVE/COMPLETE are
+	# id strings, AVAILABLE is {id, name, description, min_level} dicts
+	# (QuestService.get_available_quests). Normalize to the id the button
+	# is built from -- passing a Dictionary into _create_quest_button's
+	# String param is a runtime "Cannot convert" error. Round 20.
+	for quest in quests:
+		var quest_id: String = str(quest.get("id", "")) if quest is Dictionary else str(quest)
+		if quest_id.is_empty():
+			continue
 		var quest_btn := _create_quest_button(quest_id)
 		_quest_list.add_child(quest_btn)
 

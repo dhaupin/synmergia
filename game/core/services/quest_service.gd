@@ -274,19 +274,25 @@ func _get_available_quest_ids(player_id: String) -> Array:
 	var player_level: int = _get_player_level(player_id)
 
 	if DataService:
+		# get_all_quests() returns the VALUES (Array[QuestData]); index
+		# by the resource's own id, never by the value itself. The old
+		# `all_quests[quest_id]` treated the value as a key (broken) and
+		# `quest.get("min_level", 1)` used the Resource default arg that
+		# 4.7.2 removed (runtime "Expected 1 argument(s)"). Round 20.
 		var all_quests: Array = DataService.get_all_quests()
-		for quest_id in all_quests:
-			var quest = all_quests[quest_id]
+		for quest in all_quests:
 			if not quest is QuestData:
 				continue
+			var qid: String = str(quest.id)
+			if qid.is_empty():
+				continue
 			# Skip already accepted/completed quests
-			if player_data.has(quest_id):
+			if player_data.has(qid):
 				continue
 			# Check level requirement
-			var min_level: int = quest.get("min_level", 1)
-			if player_level < min_level:
+			if player_level < int(quest.min_level):
 				continue
-			available.append(quest_id)
+			available.append(qid)
 	return available
 
 func get_player_quests(player_id: String) -> Dictionary:
@@ -312,22 +318,29 @@ func get_available_quests(player_id: String) -> Array:
 	var player_level: int = _get_player_level(player_id)
 
 	if DataService:
+		# Values are QuestData resources; read exports directly (4.7.2
+		# removed Resource.get's default arg). Round 20.
 		var all_quests: Array = DataService.get_all_quests()
-		for quest_id in all_quests:
-			var quest = all_quests[quest_id]
+		for quest in all_quests:
 			if not quest is QuestData:
 				continue
+			var qid: String = str(quest.id)
+			if qid.is_empty():
+				continue
 			# Skip already accepted quests
-			if player_data.has(quest_id):
+			if player_data.has(qid):
 				continue
 			# Check level requirement
-			var min_level: int = quest.get("min_level", 1)
+			var min_level: int = int(quest.min_level)
 			if player_level < min_level:
 				continue
+			var qname: String = str(quest.display_name)
+			if qname.is_empty():
+				qname = qid
 			available.append({
-				"id": quest_id,
-				"name": quest.get("display_name", quest_id),
-				"description": quest.get("description", ""),
+				"id": qid,
+				"name": qname,
+				"description": str(quest.description),
 				"min_level": min_level
 			})
 	return available

@@ -528,9 +528,12 @@ func _is_projectable(entity) -> bool:
 func _is_player_target(target) -> bool:
 	if target == null or not (target is Node) or not is_instance_valid(target):
 		return false
-	return "entity_type" in target and target.entity_type == Entity.EntityType.PLAYER## Snapshot the projectable fields of an entity. enemy_data may be a
+	return "entity_type" in target and target.entity_type == Entity.EntityType.PLAYER
+
+
+## Snapshot the projectable fields of an entity. enemy_data may be a
 ## full EnemyData Resource or a stub Dictionary; both duck via .get().
-## NOTE: only Dictionaries support get(key, default) in 4.7.2 —
+## NOTE: only Dictionaries support get(key, default) in 4.7.2 --
 ## Resource.get lost its default argument, so Resource payloads take
 ## the guarded branch below.
 func _extract(entity) -> Dictionary:

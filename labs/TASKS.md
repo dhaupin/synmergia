@@ -3118,3 +3118,42 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   test_auto_response_signals, test_notification_frame, test_login_flow,
   probe_{startup_flow, globe_world, world_scoping, ferry, world_lattice},
   test_terrain_determinism. No new non-ASCII; tabs only.
+- [x] Round 21 (walk world_state_projection + scope_service, then the
+  game layer -- quest availability was broken end-to-end):
+  Audited core/services/scope_service.gd (WorldRegistry API use is
+  correct -- load_worlds/get_world/is_enterable all exist; the room and
+  world scope reparent/escape seam is sound) and
+  core/services/world_state_projection.gd (scope token -> tree path
+  prefix, zone-drift teardown, instance overrides, tick buffering all
+  correct). Only a cosmetic defect there: a `##` doc block was glued to
+  the tail of _is_player_target's return (so it never documented
+  _extract) and carried a non-ASCII em dash; now separated and ASCII.
+  REAL BUGS found while walking the game layer (QuestService
+  get_available_quests / _get_available_quest_ids):
+  (1) DataService.get_all_quests() returns the VALUES (Array[QuestData]),
+  but the code indexed the array BY the value (all_quests[quest_id]
+  where quest_id was itself a QuestData) -- an invalid index that aborted
+  the whole function, so quest availability always came back empty.
+  (2) quest.get("min_level", 1) used Resource.get's default argument,
+  which 4.7.2 removed; on a QuestData it raises "Invalid call to function
+  'get' ... Expected 1 argument(s)" and aborts. Verified empirically on
+  the engine (static parse error when typed; runtime error when dynamic).
+  Now the loops iterate the values and read the exports directly
+  (quest.id, quest.min_level, quest.display_name, quest.description).
+  (3) META-BUG exposed by (1): once get_available_quests actually returned
+  its rich dicts, the live consumer QuestUI.refresh_quest_list fed each
+  one into a String-typed _create_quest_button -- a runtime "Cannot
+  convert argument 1 from Dictionary to String" (verified) that would
+  blank the AVAILABLE tab. The UI now normalizes each element to its id
+  (dict["id"] or the string itself).
+  New booting test test_quest_availability (in DEFAULT_SET) locks the
+  whole chain: ids are Strings that resolve through DataService.get_quest,
+  the dict shape is String id/name/description + int min_level, level
+  gating, and the real QuestUI AVAILABLE tab renders buttons.
+  Verified green: test_quest_availability (new), test_data_naming_lint,
+  test_quest_explore_bridge, test_quest_lore_bridges, test_daily_quest,
+  test_world_state_projection, test_horde_configs, test_dungeon_portal,
+  probe_playtest_r12, probe_round2_ui. No new non-ASCII; tabs only.
+  NOTE: test_full_boot_live's open-world horde phase FAILS, but it fails
+  identically on a clean tree (confirmed by stashing) -- pre-existing and
+  unrelated to this round.

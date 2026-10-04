@@ -34,6 +34,7 @@ test_sign_service
 test_daily_class_blessing
 test_acts_service
 test_daily_quest
+test_quest_availability
 test_blessed_mark
 test_mysteries
 test_audio_service
