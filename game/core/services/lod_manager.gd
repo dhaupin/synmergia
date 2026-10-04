@@ -441,6 +441,13 @@ func get_chunk_key_from_position(pos: Vector3) -> String:
 	return _position_to_chunk_key(pos)
 
 
+## Public chunk-position accessor (fragmenter-format key -> world
+## position at the chunk center). Phase 6 prefetch converts Markov
+## predictions into world positions through this.
+func get_chunk_position(chunk_key: String) -> Vector3:
+	return _chunk_key_to_position(chunk_key)
+
+
 ## Convert chunk key to world position (center of chunk)
 func _chunk_key_to_position(chunk_key: String) -> Vector3:
 	var parts := chunk_key.split("-")

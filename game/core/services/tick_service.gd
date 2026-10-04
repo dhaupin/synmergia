@@ -1128,11 +1128,33 @@ func _phase6_predicted_prefetch() -> void:
 	task.start()
 	_prefetch_task = task
 
-## Markov predictor for player position in 1 second.
+## Markov prediction for Phase 6 prefetch: the player's predicted
+## position in ~1s (top-probability chunk center), or null when the
+## frame Markov has no prediction (no state / no current chunk -- it
+## cold-starts on momentum, else falls back to uniform over the 3x3
+## grid). The predictor and its movement feed live in LODManager
+## (record_movement fires on every chunk change at LOD tick rate);
+## Phase 6 only consumes the top prediction.
 func _markov_predict(player) -> Variant:
-	# TODO: Markov chain prediction based on player movement history
-	# Returns predicted position or null if not enough data
-	return null
+	var lod := get_node_or_null("/root/LODManager")
+	if lod == null or not lod.has_method("get_markov"):
+		return null
+	var markov: Variant = lod.get_markov()
+	if markov == null or not markov.has_method("predict_next"):
+		return null
+	var player_id: String = ""
+	if player != null and "entity_id" in player:
+		player_id = str(player.entity_id)
+	if player_id == "":
+		return null
+	var predictions: Array = markov.predict_next(player_id)
+	if predictions.is_empty() or not (predictions[0] is Dictionary):
+		return null
+	var top: Dictionary = predictions[0]
+	var chunk_key: String = str(top.get("chunk_key", ""))
+	if chunk_key == "" or not lod.has_method("get_chunk_position"):
+		return null
+	return lod.get_chunk_position(chunk_key)
 
 ## Convert a world position to chunk coordinates.
 func _position_to_chunk(pos: Vector3) -> Vector2:

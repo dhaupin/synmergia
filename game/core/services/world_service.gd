@@ -3,6 +3,7 @@
 extends Node
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const WorldRegistryScript = preload("res://core/frame/srv/world_registry.gd")
 
 # World time (in minutes, 0 = midnight)
 var world_time_minutes: int = 0
@@ -89,6 +90,10 @@ func _process(delta: float) -> void:
 
 ## Initialize the world
 func initialize_world() -> void:
+	# Bind the canonical world's lattice seed BEFORE anything generates
+	# from it (procedural chunks derive their content from world_seed).
+	_bind_registry_seed()
+
 	# Load all zones
 	var zone_manager = ZoneManager
 	if zone_manager:
@@ -489,6 +494,27 @@ func generate_world_from_seed(seed_value: int) -> void:
 	GameLog.info("WorldService: Generating world from seed %d" % seed_value)
 	# Zone generation would happen here
 	# For now, we assume zones are pre-defined
+
+## Bind the canonical world's lattice seed at boot: WorldRegistry
+## derives every world's 32-byte seed from the committed universe
+## constant through the nesting path ("main" under the universe root)
+## -- same bytes on every install, forever. The first 8 bytes become
+## WorldService.world_seed, the domain input for procedural chunk
+## generation (chunk content is DERIVED from it, never stored, so the
+## committed constant reveals no content -- the S16.1 width law).
+## Idempotent and failure-safe: a missing lattice leaves world_seed
+## untouched.
+func _bind_registry_seed() -> void:
+	var registry = WorldRegistryScript.new()
+	registry.load_worlds()
+	var seed_bytes: PackedByteArray = registry.world_seed("main")
+	if seed_bytes.size() < 8:
+		GameLog.warn("WorldService: lattice seed unavailable; chunk domain seed unchanged")
+		return
+	var seed_int: int = seed_bytes.decode_s64(0)
+	if world_seed == seed_int:
+		return
+	generate_world_from_seed(seed_int)
 
 ## Get seeded random value
 func get_seeded_random(range_max: int) -> int:

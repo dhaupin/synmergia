@@ -3355,3 +3355,44 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   next build; then _decay_effects/_regen_entities/_step_entity (Phase 2
   stubs), _pull_cross_shard_events (coordinator HLC), and
   seed_chain.update_root().
+- [x] Round 26 (the prefetch loop is CLOSED end-to-end + the world
+  boot now binds the lattice seed):
+  (1) TickService._markov_predict built (was a null stub): resolves
+  the frame Markov through LODManager.get_markov(), takes the TOP
+  prediction for the player (predict_next returns probability-sorted
+  {chunk_key, probability, offset} in fragmenter key format), and
+  converts it to a world position at the predicted chunk's center via
+  LODManager's new public get_chunk_position(). Null on every cold
+  path: no LODManager, no markov, no entity_id, empty predictions,
+  empty key. The movement feed already existed (LODManager
+  record_movement fires on every chunk change; _update_predictions
+  refreshes predictions at LOD tick rate) -- Phase 6 only consumed it
+  for the first time now. The full chain is live: movement -> Markov
+  -> prediction -> LOD promote_chunk(WARM) ->
+  WorldService.generate_chunk.
+  (2) World seed binding fixed (was the R25 limitation): WorldService
+  initialize_world now calls _bind_registry_seed() FIRST -- builds the
+  frame's WorldRegistry (same lazy pattern scope_service uses), derives
+  the canonical "main" world's 32-byte seed from the committed
+  universe constant through the nesting path, and takes its first 8
+  bytes as the chunk domain seed via generate_world_from_seed
+  (idempotent: early-returns when already bound; lattice-unavailable
+  warns and leaves world_seed untouched). Every chunk now derives from
+  the real lattice seed instead of 0, deterministically, on every
+  install.
+  Tests: test_phase4_zone_aoi section 10 feeds six real chunk-key
+  movements through LODManager.record_movement and asserts the
+  prediction returns a chunk-center world position plus all four null
+  paths (null player, entity without id, player with no history);
+  test_world_chunks section 6 asserts _bind_registry_seed adopts the
+  registry's derived main seed and is idempotent. Validation:
+  test_phase4_zone_aoi (34/0), test_world_chunks (21/0),
+  frame/srv/test_markov, frame/srv/test_world_registry, test_e2e_flow,
+  test_login_flow, test_world_state_projection, test_horde_rewards
+  (8/8). Hygiene: tabs only, no new non-ASCII, extends-first intact.
+  Note: live Phase 6 generation only fires for players WITH movement
+  history (headless boot suites have no players, so e2e coverage is
+  boot-path only; the unit path is what the new asserts lock).
+  Remaining stubs (deliberate, vertical-slice scale):
+  _decay_effects/_regen_entities/_step_entity (Phase 2 gameplay),
+  _pull_cross_shard_events (coordinator HLC), seed_chain.update_root().

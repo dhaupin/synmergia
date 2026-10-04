@@ -75,6 +75,17 @@ func _run() -> void:
 	_assert(ws.generate_chunk("1_2_3").is_empty(), "three-part key generates nothing")
 	_assert(ws.generate_chunk("x_y").is_empty(), "non-numeric key generates nothing")
 
+	# --- 6. Boot seed binding: the lattice seed becomes the chunk domain ------
+	var RegScript = load("res://core/frame/srv/world_registry.gd")
+	var reg = RegScript.new()
+	reg.load_worlds()
+	var expected_seed: int = reg.world_seed("main").decode_s64(0)
+	_assert(expected_seed != 0, "registry derives a nonzero main-world seed")
+	ws._bind_registry_seed()
+	_assert(ws.world_seed == expected_seed, "bind_registry_seed adopts the lattice seed")
+	ws._bind_registry_seed()
+	_assert(ws.world_seed == expected_seed, "bind is idempotent")
+
 	_finish()
 
 func _assert(cond: bool, label: String) -> void:

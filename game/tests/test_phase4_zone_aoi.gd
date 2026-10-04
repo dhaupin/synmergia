@@ -196,6 +196,40 @@ func _run() -> void:
 	_assert(tick._side_queue.is_empty(), "side queue: item past the retry cap is dropped (no unbounded growth)")
 	_assert(tick.get_side_queue_size() == 0, "side queue: accessor agrees with the internal state")
 
+	# --- 10. Phase 6 Markov prediction ---------------------------------------
+	# The frame Markov lives in LODManager (movement recorded on every
+	# chunk change); Phase 6 consumes its top prediction as a world
+	# position at the predicted chunk's center.
+	var lod = root.get_node_or_null("LODManager")
+	_assert(lod != null, "LODManager present")
+	if lod != null:
+		var from_key: String = lod.get_chunk_key_from_position(Vector3(500, 0, 500))
+		var cur_key: String = from_key
+		for step in range(1, 7):
+			var next_key: String = lod.get_chunk_key_from_position(Vector3(500.0 + 100.0 * step, 0, 500))
+			lod.record_movement("aoi_char", cur_key, next_key)
+			cur_key = next_key
+		var pred: Variant = tick._markov_predict(player)
+		_assert(pred != null, "markov: prediction returns a position once history exists")
+		if pred != null:
+			var pv: Vector3 = pred
+			var cx_frac: float = (pv.x - 50.0) / 100.0
+			var cz_frac: float = (pv.z - 50.0) / 100.0
+			_assert(absf(cx_frac - roundf(cx_frac)) < 0.001 and absf(cz_frac - roundf(cz_frac)) < 0.001,
+					"markov: predicted position sits on a chunk center")
+		var ghost_pred: Variant = tick._markov_predict(null)
+		_assert(ghost_pred == null, "markov: null player predicts nothing")
+		var stranger := Node.new()
+		stranger.name = "MarkovStranger"
+		var stranger_pred: Variant = tick._markov_predict(stranger)
+		_assert(stranger_pred == null, "markov: entity without an id predicts nothing")
+		var fresh: Node = PlayerScript.new()
+		fresh.entity_id = "markov_fresh"
+		var fresh_pred: Variant = tick._markov_predict(fresh)
+		_assert(fresh_pred == null, "markov: player with no movement history predicts nothing")
+		stranger.free()
+		fresh.free()
+
 	_finish()
 
 func _assert(cond: bool, label: String) -> void:
