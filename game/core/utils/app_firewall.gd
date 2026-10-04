@@ -115,14 +115,20 @@ func _ready() -> void:
 	# Initialize RulesEngine
 	_rules_engine = RulesEngineScript.new()
 
-	# Create scopes (innermost to outermost)
+	# Create scopes root-first: IP_Scope is the ROOT (no parent) and each
+	# following scope is a child of the previous, so WorldScope is the
+	# deepest. (The old "innermost to outermost" comment was backwards and
+	# caused real confusion about stack order -- audit round 20.)
 	_ip_scope = ScopeScript.new("IP_Scope", null, "", {})
 	_player_scope = ScopeScript.new("Player_Scope", _ip_scope, "", {})
 	_instance_scope = ScopeScript.new("InstanceScope", _player_scope, "", {})
 	_shard_scope = ScopeScript.new("ShardScope", _instance_scope, "", {})
 	_world_scope = ScopeScript.new("WorldScope", _shard_scope, "", {})
 
-	# Build scope stack for evaluation (innermost first)
+	# Canonical stack order (audit round 20): ROOT-FIRST -- stack[0] is the
+	# outermost/root scope, stack[size-1] the innermost/leaf scope. This
+	# matches ScopeEngine, the spec (prd-scope-engine.md US-006), and
+	# RulesEngine (TOP_WINS reads stack[size-1]; BOTTOM_WINS reads stack[0]).
 	_scope_stack = [_ip_scope, _player_scope, _instance_scope, _shard_scope, _world_scope]
 
 	# Register rules

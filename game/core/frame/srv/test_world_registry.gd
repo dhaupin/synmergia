@@ -51,6 +51,12 @@ func _test_universe_seed() -> void:
 	_assert(s1.size() > 0, "the universe seed is non-empty")
 	_assert_eq(s1.hex_encode(), WR.UNIVERSE_SEED_HEX, "the universe seed round-trips the hex constant")
 	_assert(s1 == s2, "the universe seed is deterministic across instances")
+	# Round 20: the root must be SHA-256 wide (32 bytes) like every
+	# derived link in the chain -- the constant was 33 bytes before.
+	_assert_eq(s1.size(), 32, "the universe seed is exactly 32 bytes (SHA-256 width)")
+	_assert_eq(WR.UNIVERSE_SEED_HEX.length(), 64, "the hex constant is 64 chars (32 bytes)")
+	_assert_eq(WR.UNIVERSE_SEED_HEX.substr(0, 18), "73796e6d6572676961", "the root still reads as the ASCII phrase")
+	_assert_eq(WR.UNIVERSE_SEED_HEX.substr(18), "0".repeat(46), "the root tail is zero padding")
 
 
 func _assert(condition: bool, label: String) -> void:

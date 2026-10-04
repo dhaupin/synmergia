@@ -23,7 +23,13 @@ const SeedChain = preload("res://core/frame/kv/seed_chain.gd")
 ## generation re-binds per-shard runtime seeds ON TOP of these world
 ## seeds (world seed = domain, shard seed = variation), which is why
 ## the constant is safe to commit: knowing it reveals no content.
-const UNIVERSE_SEED_HEX: String = "73796e6d6572676961000000000000000000000000000000000000000000000000"
+##
+## Width law (round 20): a seed is SHA-256 wide -- 32 bytes. The root
+## is "synmergia" (9 ASCII bytes) + 23 zero bytes, exactly 32. Every
+## derived seed in the chain is a 32-byte SHA-256, so the root is
+## uniform with them (a 33-byte root would still hash, but it would
+## be the lone odd-width link).
+const UNIVERSE_SEED_HEX: String = "73796e6d65726769610000000000000000000000000000000000000000000000"
 
 var _worlds: Dictionary = {}   # id -> WorldData
 var _seeds: Dictionary = {}    # id -> PackedByteArray (derived, cached)

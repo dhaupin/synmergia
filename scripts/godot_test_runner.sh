@@ -45,6 +45,7 @@ frame/kv/test_kv_schemas
 frame/srv/test_star_cells
 probe_ocean
 frame/srv/test_swim_state
+test_scope_stack_order
 frame/srv/test_markov
 probe_swim
 frame/srv/test_ferry_schedule

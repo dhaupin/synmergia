@@ -21,6 +21,9 @@ func _init() -> void:
 	if not _test_overwrite():
 		push_error("FAIL: overwrite")
 		ok = false
+	if not _test_latest_after_restore():
+		push_error("FAIL: latest_after_restore")
+		ok = false
 	quit(0 if ok else 1)
 
 func _test_store_load() -> bool:
@@ -79,4 +82,19 @@ func _test_overwrite() -> bool:
 	var loaded = store.load_snapshot(root)
 	assert(loaded["v"] == 2)
 	assert(store.snapshot_count() == 1)
+	return true
+
+## Audit round 20: re-storing an existing root must move it to the front
+## of the recency order. The old code only rebuilt the order for NEW keys,
+## so latest_snapshot() kept pointing at a stale key.
+func _test_latest_after_restore() -> bool:
+	var store = SnapshotStore.new()
+	var root1 = PackedByteArray([0x01])
+	var root2 = PackedByteArray([0x02])
+	store.store_snapshot(root1, {"v": 1})
+	store.store_snapshot(root2, {"v": 2})
+	store.store_snapshot(root1, {"v": 3})  # root1 is newest again
+	var latest = store.latest_snapshot()
+	assert(latest.size() == 1)
+	assert(latest[0] == 0x01)
 	return true

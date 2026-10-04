@@ -19,6 +19,7 @@ func _init() -> void:
 	_test_build_seed_tree_basic()
 	_test_build_seed_tree_nested()
 	_test_build_seed_tree_seed_types()
+	_test_build_seed_tree_stack_sensitive()
 	_test_seed_hash_hex()
 	_test_derive_seed_uses_sha256()
 	print("SeedChain tests: %d passed, %d failed" % [_passed, _failed])
@@ -147,6 +148,28 @@ func _test_build_seed_tree_seed_types() -> void:
 	_assert_eq(locked_val["seed_type"], "locked", "locked seed type preserved")
 	_assert_eq(open_val["seed_type"], "open", "open seed type preserved")
 	_assert_eq(frame_val["seed_type"], "frame", "frame seed type preserved")
+
+
+func _test_build_seed_tree_stack_sensitive() -> void:
+	# Round 20: the same world declaration built over two DIFFERENT seed
+	# stacks must not collide. The node payload carries the derived seed,
+	# and SeedSchema folds it into the canonical bytes T3 hashes -- so a
+	# different stack yields a different tree hash.
+	var chain := SeedChainScript.new()
+	var root := {
+		"world": {"seed_type": "locked", "visibility_scope": "world", "path": "/world", "parameters": {}, "children": {}}
+	}
+	var stack_a: Array[PackedByteArray] = [_make_bytes("p"), _make_bytes("s"), _make_bytes("world_a")]
+	var stack_b: Array[PackedByteArray] = [_make_bytes("p"), _make_bytes("s"), _make_bytes("world_b")]
+	var t3a := T3Script.new()
+	var t3b := T3Script.new()
+	var ha := chain.build_seed_tree(t3a, stack_a, root)
+	var hb := chain.build_seed_tree(t3b, stack_b, root)
+	_assert(ha != hb, "same declaration + different seed stacks -> different tree hashes")
+	var va = t3a.get_at("world")
+	var vb = t3b.get_at("world")
+	_assert(va["derived_seed"] != vb["derived_seed"], "the two trees carry different derived seeds")
+	_assert(va["derived_seed"].length() == 64, "derived_seed is a 32-byte hex string")
 
 
 func _test_seed_hash_hex() -> void:

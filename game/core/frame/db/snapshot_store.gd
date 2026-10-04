@@ -8,6 +8,10 @@ class_name SnapshotStore
 var _snapshots: Dictionary = {}
 var _ordered_keys: Array = []
 var _pg_bridge_url: String = ""
+## Monotonic store counter: a tiebreaker for same-second stores and the
+## thing that makes latest() correct when a root is RE-stored (its
+## stored_at moves, its seq moves too).
+var _seq: int = 0
 
 func store_snapshot(root_hash: PackedByteArray, tree_state: Dictionary) -> bool:
 	var hash_str: String
@@ -15,13 +19,16 @@ func store_snapshot(root_hash: PackedByteArray, tree_state: Dictionary) -> bool:
 		hash_str = ""
 	else:
 		hash_str = root_hash.hex_encode()
+	_seq += 1
 	_snapshots[hash_str] = {
 		"root_hash" = root_hash,
 		"tree_state" = tree_state,
 		"stored_at" = Time.get_unix_time_from_system(),
+		"seq" = _seq,
 	}
-	if not _ordered_keys.has(hash_str):
-		_rebuild_ordered_keys()
+	# Always rebuild: re-storing an existing root moves its stored_at/seq, so
+	# keeping the old ordering would leave latest() pointing at a stale key.
+	_rebuild_ordered_keys()
 	return true
 
 func load_snapshot(root_hash: PackedByteArray) -> Dictionary:
@@ -73,7 +80,12 @@ func _rebuild_ordered_keys() -> void:
 	_ordered_keys.sort_custom(func(a: String, b: String) -> bool:
 		var ta = _snapshots[a].get("stored_at", 0) as int
 		var tb = _snapshots[b].get("stored_at", 0) as int
-		return ta < tb
+		if ta != tb:
+			return ta < tb
+		# Same-second stores: the monotonic seq breaks the tie so
+		# latest() is deterministic instead of depending on sort
+		# stability.
+		return int(_snapshots[a].get("seq", 0)) < int(_snapshots[b].get("seq", 0))
 	)
 
 func set_bridge_url(url: String) -> void:

@@ -36,6 +36,7 @@ func _init() -> void:
 	_test_canonical_deep_path()
 	_test_validate_empty_dict()
 	_test_canonical_empty_parameters()
+	_test_canonical_folds_derived_seed()
 	_test_display_long_path()
 	print("SeedSchema tests: %d passed, %d failed" % [_passed, _failed])
 	quit(0 if _failed == 0 else 1)
@@ -154,6 +155,9 @@ func _test_canonical_length_prefix_format() -> void:
 	_assert_eq(val_len, 1, "parameter int value length prefix is 1")
 	offset += 4 + val_len
 	_assert_eq(bytes[offset - 1], 2, "parameter int value byte is 2")
+	# Round 20: a trailing derived_seed field (empty here -> u32(0)).
+	_assert_eq(_read_u32_le(bytes, offset), 0, "derived_seed length prefix is 0 when absent")
+	offset += 4
 	_assert_eq(offset, bytes.size(), "canonical encoding has no trailing bytes")
 
 
@@ -206,6 +210,27 @@ func _test_canonical_empty_parameters() -> void:
 	var v := {"seed_type": "open", "visibility_scope": "shard", "path": "/s", "parameters": {}}
 	_assert(schema._validate(v) == true, "empty parameters are valid")
 	_assert(schema._to_canonical_bytes(v).size() > 0, "empty parameters encode")
+
+
+func _test_canonical_folds_derived_seed() -> void:
+	# Round 20: the payload's other fields do not capture the seed STACK,
+	# so two trees built from the same declaration with different stacks
+	# would otherwise hash identically. derived_seed closes that hole.
+	var schema := SeedSchemaScript.new()
+	var base := {"seed_type": "locked", "visibility_scope": "world", "path": "/world", "parameters": {}, "derived_seed": "aa"}
+	var other := base.duplicate()
+	other["derived_seed"] = "bb"
+	_assert(schema._to_canonical_bytes(base) != schema._to_canonical_bytes(other),
+		"a different derived_seed produces different canonical bytes")
+	# A node without derived_seed encodes the same as one carrying ""
+	# (deterministic default), and differs from one that carries a value.
+	var absent := {"seed_type": "locked", "visibility_scope": "world", "path": "/world", "parameters": {}}
+	var empty := base.duplicate()
+	empty["derived_seed"] = ""
+	_assert_eq(schema._to_canonical_bytes(absent), schema._to_canonical_bytes(empty),
+		"absent and empty derived_seed encode identically")
+	_assert(schema._to_canonical_bytes(absent) != schema._to_canonical_bytes(base),
+		"present derived_seed changes the canonical bytes")
 
 
 func _test_display_long_path() -> void:

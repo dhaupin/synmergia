@@ -28,6 +28,16 @@ func _to_canonical_bytes(value: Dictionary) -> PackedByteArray:
 	writer.write_string(path_str)
 	writer.write_dict(params_dict)
 
+	# Fold the DERIVED seed into the content bytes. The payload's other
+	# fields do NOT capture the seed STACK (player/shard/world), so two
+	# trees built from the SAME declaration with DIFFERENT stacks would
+	# otherwise produce byte-identical nodes -- and therefore identical
+	# T3 content hashes -- for genuinely different worlds. Including
+	# derived_seed makes the hash stack-sensitive, which is the whole
+	# point of a seed tree. Optional in _validate (it is derived, not a
+	# caller-supplied input): absent -> empty, deterministic.
+	writer.write_string(str(value.get("derived_seed", "")))
+
 	return writer.to_bytes()
 
 func _validate(value: Dictionary) -> bool:

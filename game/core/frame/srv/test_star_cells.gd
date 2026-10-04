@@ -45,10 +45,23 @@ func _run() -> void:
 			hits += 1
 	_check("star existence is a real coin (a sky that is all-empty or all-full would be a broken hash)", \
 		hits > probes / 4 and hits < probes * 3 / 4)
-	var empty: Dictionary = SC.star_record(universe, 100001) if not first else {}
-	if first:
-		empty = SC.star_record(universe, 100002)
+	# Round 20: whether a given address is empty depends on the universe
+	# seed, so SEARCH the probe slice for a genuinely empty address and a
+	# populated one instead of hardcoding an address that happened to be
+	# empty under the old 33-byte root. Covers BOTH branches.
+	var empty: Dictionary = {}
+	var occupied: Dictionary = {}
+	for seq in range(probes):
+		var addr: int = 9000000 + seq
+		if SC.star_exists(universe, addr):
+			if occupied.is_empty():
+				occupied = SC.star_record(universe, addr)
+		elif empty.is_empty():
+			empty = SC.star_record(universe, addr)
+		if not empty.is_empty() and not occupied.is_empty():
+			break
 	_check("an empty address returns {} (nothing stored that nobody chose)", empty.is_empty())
+	_check("a populated address returns a record", not occupied.is_empty())
 
 	# ---- B. Derivation is honest ------------------------------------------------
 	# A different universe: SHA-256 of a different root phrase (the

@@ -3068,3 +3068,53 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   test_social_tree, test_definition_tree}, frame/srv/{test_rules_engine,
   test_star_cells, test_world_registry (new, added to DEFAULT_SET)},
   probe_world_lattice.
+- [x] Round 20 (seed width + derived-seed hashing, and the scope-stack
+  order bug):
+  (1) FIXED -- UNIVERSE_SEED_HEX was 33 bytes ("synmergia" + 24 zero
+  bytes), the lone odd-width link in a chain where every derived seed
+  is a 32-byte SHA-256. Now exactly 32 bytes (9 ASCII + 23 zeros); the
+  root is uniform with its descendants. The owner approved re-deriving
+  seeds (alpha, no players, world not built). test_world_registry locks
+  the 32-byte width, the 64-char hex, and the ASCII-prefix tail.
+  (2) FIXED -- seed_schema._to_canonical_bytes omitted derived_seed. The
+  payload fields do NOT capture the seed STACK, so two seed trees built
+  from the SAME declaration under DIFFERENT stacks produced
+  byte-identical nodes and therefore identical T3 content hashes -- a
+  real collision, not a theoretical one. derived_seed is now folded into
+  the canonical bytes (absent -> empty, deterministic). New tests:
+  test_frame_seed_schema case (derived_seed changes the bytes),
+  test_seed_chain case (same declaration + different stacks -> different
+  tree hashes), and an updated length-prefix layout assertion.
+  (2b) ROBUSTNESS -- test_star_cells hardcoded an address it assumed was
+  empty; the re-derived sky moved it. The test now SEARCHES the probe
+  slice for a genuinely empty and a populated address (covers both
+  branches) instead of weakening the assertion.
+  (3) FIXED (real, live bug) -- core/services/matchmaking_qos.gd had
+  `extends Node` AFTER two const preloads, which is a PARSE ERROR. The
+  script never compiled, so `class_name MatchmakingQoS` never registered
+  even though backend_factory.gd maps "matchmaking_queue" to it by name.
+  extends now precedes the consts. Only .gd in the repo with the defect.
+  (4) FIXED (real bug) -- the rules scope stack had TWO orders in the
+  wild. The canonical order is ROOT-FIRST (spec prd-scope-engine.md
+  US-006: resolve_rule walks root -> player; RulesEngine R17 reads
+  stack[0] as BOTTOM/outermost and stack[size-1] as TOP/innermost).
+  SecurityService and MatchmakingQoS built the stack INNERMOST-FIRST,
+  silently inverting TOP_WINS and BOTTOM_WINS for both (e.g. a
+  BOTTOM_WINS permission_check read the player scope, not the world's).
+  Both now build root-first. AppFirewall was already root-first; its
+  "innermost first" comments were backwards and are corrected. New
+  booting test test_scope_stack_order (in DEFAULT_SET) locks both.
+  (5) FIXED -- SnapshotStore.latest_snapshot() kept a stale ordering when
+  an EXISTING root was re-stored (the order was only rebuilt for new
+  keys, so stored_at moved but the sort did not), and same-second stores
+  tied non-deterministically. Added a monotonic seq tiebreaker and
+  rebuild-on-every-store. New test_snapshot_store case (re-store moves a
+  root to the front).
+  Verified green: frame/kv/{test_seed_chain, test_frame_seed_schema,
+  test_t3, test_t3_dedup, test_kv_schemas}, frame/srv/{test_world_registry,
+  test_star_cells, test_rules_engine, test_scope_engine},
+  frame/db/test_snapshot_store, frame/geometry/{test_spatial_fragmenter,
+  test_nsc9_bridge}, test_scope_stack_order (new), test_anticheat_limits,
+  test_auto_response_signals, test_notification_frame, test_login_flow,
+  probe_{startup_flow, globe_world, world_scoping, ferry, world_lattice},
+  test_terrain_determinism. No new non-ASCII; tabs only.

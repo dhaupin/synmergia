@@ -1,10 +1,16 @@
 ## QoSService - Quality of Service for fair matchmaking
-const DictStore = preload("res://adapters/persistence/dict_store.gd")
-const ScopeScript = preload("res://core/frame/srv/scope.gd")
 ## Handles latency compensation, throttling, and connection quality
+##
+## Audit round 20: `extends` must precede everything but comments (the
+## parser reads it first). It previously sat AFTER two const preloads,
+## which is a parse error -- the script never compiled, so class_name
+## MatchmakingQoS never registered even though backend_factory.gd maps
+## "matchmaking_queue" to it by that name.
 extends Node
 class_name MatchmakingQoS
 
+const DictStore = preload("res://adapters/persistence/dict_store.gd")
+const ScopeScript = preload("res://core/frame/srv/scope.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const RulesEngine = preload("res://core/frame/srv/rules_engine.gd")
 
@@ -76,19 +82,25 @@ func _register_rules() -> void:
 	_rules_engine.register_rule("throttle_action", RulesEngine.TOP_WINS, true)
 
 func _build_scope_stack(player_id: String) -> Array:
+	# Canonical stack order (audit round 20): ROOT-FIRST -- stack[0] is
+	# the outermost/root scope, stack[size-1] the innermost/player
+	# scope, matching ScopeEngine, AppFirewall, the spec
+	# (prd-scope-engine.md US-006), and RulesEngine. TOP_WINS reads the
+	# player's override; BOTTOM_WINS reads the world's. The previous
+	# innermost-first order silently inverted both for this service.
 	var stack: Array = []
-	# Player scope (per-player overrides) - innermost for TOP_WINS
-	if _player_scopes.has(player_id):
-		stack.append(_player_scopes[player_id])
-	# Instance scope
-	if _instance_scope:
-		stack.append(_instance_scope)
-	# Shard scope
-	if _shard_scope:
-		stack.append(_shard_scope)
-	# World scope (global defaults) - outermost
+	# World scope (global defaults) - outermost / root
 	if _world_scope:
 		stack.append(_world_scope)
+	# Shard scope - middle layer
+	if _shard_scope:
+		stack.append(_shard_scope)
+	# Instance scope - inner layer
+	if _instance_scope:
+		stack.append(_instance_scope)
+	# Player scope (per-player overrides) - innermost
+	if _player_scopes.has(player_id):
+		stack.append(_player_scopes[player_id])
 	return stack
 
 ## Register a player connection
