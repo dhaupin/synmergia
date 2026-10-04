@@ -58,6 +58,26 @@ const FLYWHEEL_MAX_MOMENTUM: float = 1000.0
 const DEFAULT_AOI_RADIUS: int = 500
 const CHUNK_SIZE: int = 100
 
+## N014 tick-alignment tolerance (labs/world-building-risks.md N014): a
+## recorded diff SEND may land at most this many ms past the tick's
+## scheduled end before the tick counts as misaligned. Early sends are
+## healthy (idle ticks run trivial phases 1-3).
+const N014_TOLERANCE_MS: int = 2
+
+## Side-queue retry cap: an overflow item is retried this many ticks,
+## then dropped (a logged-off player's unappliable input must not loop
+## forever). The queue drains every Phase 2, so it stays bounded.
+const SIDE_QUEUE_RETRY_CAP: int = 5
+
+## Tick-root history retained in the persistence store (N017). The
+## per-tick "tick:N:root" keys have no reader today (the live-read
+## keys are the latest_* pointers); without a window they grow one row
+## per tick forever (~1.7M/day at 50ms ticks).
+const TICK_ROOT_HISTORY: int = 100
+
+## Root keys persisted by Phase 5, oldest first (drives the prune).
+var _persisted_root_keys: Array[String] = []
+
 ## Chaos weights per source
 const CHAOS_PLAYER_INPUT: int = 1
 const CHAOS_COMBAT_SKILL: int = 5
@@ -227,8 +247,6 @@ func _on_tick() -> void:
 	if phase2_elapsed > PHASE_2_BUDGET_MS:
 		_phase_overruns["phase2"] = phase2_elapsed
 		tick_overrun.emit(_tick_number, "phase2", phase2_elapsed)
-		# Overflow goes to side queue
-		_side_queue.append_array(phase2_result.get("overflow", []))
 
 	# ---- Phase 3: State re-root + diff (10ms) ----
 	var phase3_start := Time.get_ticks_msec()
@@ -267,13 +285,16 @@ func _on_tick() -> void:
 	var tick_end_ms := Time.get_ticks_msec()
 	_last_tick_end_ms = tick_end_ms
 
-	# N014 invariant check: diff must be sent within +/-2ms of tick boundary
-	var n014_violation: bool = false
-	if phase4_elapsed > 0.0:
-		var boundary_deviation: float = abs((tick_end_ms - tick_start_ms) - TOTAL_SYNC_BUDGET_MS)
-		if boundary_deviation > 2.0:
-			n014_violation = true
-			GameLog.warn("TickService: N014 violation tick=%d deviation=%.1fms" % [_tick_number, boundary_deviation])
+	# N014 invariant check (labs/world-building-risks.md N014): measure
+	# each recorded diff SEND timestamp against the tick's scheduled END
+	# (tick_start + TICK_BUDGET_MS) -- when the next tick is due. Sends
+	# PAST the boundary + tolerance started the next tick late (Q1);
+	# early sends are healthy. The old form compared whole-tick duration
+	# against the 48ms sync budget, which false-positived every quiet
+	# tick (~47ms "deviation" with one connected client).
+	var worst_late_ms: float = _n014_worst_late_ms(phase4_result.get("send_times", {}), tick_start_ms)
+	if worst_late_ms > float(N014_TOLERANCE_MS):
+		GameLog.warn("TickService: N014 violation tick=%d diff sent %.1fms past the tick boundary" % [_tick_number, worst_late_ms])
 
 	# Budget warning: log phase breakdown when total sync exceeds 80% of tick budget (40ms)
 	if total_sync_ms > BUDGET_WARNING_THRESHOLD_MS:
@@ -423,6 +444,27 @@ func _phase2_world_step() -> Dictionary:
 	if mutate_result["failed"] > 0:
 		GameLog.warn("TickService: %d state commands failed in Phase 2" % mutate_result["failed"])
 
+	# Step 0.5: Drain the side queue -- overflow work carried from
+	# previous ticks is retried here (nothing is silently dropped).
+	# Items past the retry cap are dropped with a log so a logged-off
+	# player's unappliable input cannot loop forever.
+	var carried: Array = _side_queue
+	_side_queue = []
+	for item in carried:
+		if not (item is Dictionary):
+			continue
+		var retries: int = int(item.get("_retries", 0))
+		var applied: bool = false
+		if str(item.get("type", "")) == "input":
+			applied = _apply_player_input(str(item.get("player_id", "")), item.get("data", {}))
+		if applied:
+			entity_count += 1
+		elif retries >= SIDE_QUEUE_RETRY_CAP:
+			GameLog.debug("TickService: side-queue item dropped after %d retries (type=%s)" % [retries, str(item.get("type", "?"))])
+		else:
+			item["_retries"] = retries + 1
+			_side_queue.append(item)
+
 	# Step 1: Apply queued player inputs in deterministic order
 	# Deterministic by tick-local sequence, or by entity_id hash for fairness
 	var player_ids: Array = _input_queues.keys()
@@ -461,6 +503,13 @@ func _phase2_world_step() -> Dictionary:
 
 	# Step 6: Advance wall clock (day/night cycle)
 	_advance_wall_clock()
+
+	# Overflow from this tick retries next tick (the retry counter makes
+	# the cap apply). The returned overflow stays informational.
+	for item in overflow:
+		if item is Dictionary:
+			item["_retries"] = int(item.get("_retries", 0))
+			_side_queue.append(item)
 
 	return {"processed": entity_count, "overflow": overflow}
 
@@ -615,11 +664,14 @@ func _phase3_reroot_and_diff() -> Dictionary:
 ## PHASE 4: Diff Emit (8ms budget)
 ## ============================================================================
 
-## For each connected client, compute AOI diff, apply LOD, LZ4-compress, send.
-## N014 invariant: every diff is sent within +/-2ms of tick boundary.
+## For each connected client, compute AOI diff, apply LOD, send.
+## N014 invariant: every diff is sent within +/-2ms of the tick
+## boundary. Wall-clock send timestamps are recorded per client and
+## checked in _on_tick against the tick's scheduled end.
 func _phase4_diff_emit() -> Dictionary:
 	var client_count: int = 0
 	var emit_times: Dictionary = {}
+	var send_times: Dictionary = {}
 
 	for client_id in _connected_clients:
 		var emit_start := Time.get_ticks_msec()
@@ -643,11 +695,25 @@ func _phase4_diff_emit() -> Dictionary:
 			}
 			NetworkManager.send_to_peer(client_id, payload)
 			client_count += 1
+			send_times[client_id] = Time.get_ticks_msec()
 
 		var emit_elapsed := float(Time.get_ticks_msec() - emit_start)
 		emit_times[client_id] = emit_elapsed
 
-	return {"clients_emit": client_count, "emit_times": emit_times}
+	return {"clients_emit": client_count, "emit_times": emit_times, "send_times": send_times}
+
+## Worst lateness (ms) of any recorded diff send relative to the tick
+## boundary -- the tick's scheduled END (tick_start + TICK_BUDGET_MS),
+## when the next tick is due. 0.0 when nothing was sent or every send
+## was early/on time. N014 violates when this exceeds N014_TOLERANCE_MS.
+func _n014_worst_late_ms(send_times: Dictionary, tick_start_ms: int) -> float:
+	var worst: float = 0.0
+	for client_id in send_times:
+		var send_ms: float = float(send_times[client_id])
+		var late: float = send_ms - float(tick_start_ms + TICK_BUDGET_MS)
+		if late > worst:
+			worst = late
+	return worst
 
 ## Sends a full scope state snapshot to a specific client.
 ## Used when client detects hash divergence and requests resync.
@@ -975,6 +1041,16 @@ func _phase5_persistence() -> void:
 					for key in entries.keys():
 						store.set_kv(key, entries[key])
 
+				# Bound the per-tick root history: prune keys older
+				# than the retention window (nothing reads them back;
+				# the latest_* pointers above are the live reads).
+				_persisted_root_keys.append(root_key)
+				var stale: Array = []
+				while _persisted_root_keys.size() > TICK_ROOT_HISTORY:
+					stale.append(_persisted_root_keys.pop_front())
+				if stale.size() > 0 and store.has_method("delete_many"):
+					store.delete_many(stale)
+
 		# Update Redis tick cache (N013)
 		ar = _adapter_registry()
 		if ar:
@@ -1029,11 +1105,16 @@ func _phase6_predicted_prefetch() -> void:
 					continue
 				var predicted_pos = _markov_predict(player)
 				if predicted_pos != null:
-					# LOD-promote predicted chunks
+					# LOD-promote predicted chunks. The key MUST be in
+					# LODManager's own fragmenter format or the promoted
+					# state lands under a key nothing ever reads back
+					# (the old call passed a Vector2 where promote_chunk
+					# wants a String chunk key).
+					if LODManager and LODManager.has_method("promote_chunk") and LODManager.has_method("get_chunk_key_from_position"):
+						var lod_key: String = LODManager.get_chunk_key_from_position(predicted_pos)
+						LODManager.promote_chunk(lod_key, LODManager.LODState.WARM)
 					var chunk_coords = _position_to_chunk(predicted_pos)
 					var chunk_key: String = "%d_%d" % [chunk_coords.x, chunk_coords.y]
-					if LODManager and LODManager.has_method("promote_chunk"):
-						LODManager.promote_chunk(chunk_coords, LODManager.LODState.WARM)
 					promoted_chunks.append(chunk_key)
 
 		# Procedural generator runs on promoted chunks
@@ -1125,7 +1206,12 @@ func register_client(client_id: int) -> void:
 ## Unregister a connected client.
 func unregister_client(client_id: int) -> void:
 	_connected_clients.erase(client_id)
-	_input_queues.erase(client_id)
+	# Queued inputs are keyed by player_id, not peer id; resolve before
+	# erasing. Phase 1 clears the queues every tick, so a failed
+	# resolution self-heals next tick either way.
+	var player_id: String = _get_player_id_from_peer(client_id)
+	if player_id != "":
+		_input_queues.erase(player_id)
 	GameLog.debug("TickService: Client %d unregistered" % client_id)
 
 ## Queue a state tree mutation command for atomic application in Phase 2.
@@ -1156,6 +1242,11 @@ func queue_state_command(command: Dictionary) -> void:
 ## Returns the number of pending state commands.
 func get_pending_command_count() -> int:
 	return _state_command_buffer.size()
+
+## Returns the number of overflow items waiting in the side queue
+## (carried work from previous ticks; drains each Phase 2).
+func get_side_queue_size() -> int:
+	return _side_queue.size()
 
 ## Submit chaos to the flywheel from external sources (NPC events, entity signals).
 func add_chaos(source: String, amount: float) -> void:

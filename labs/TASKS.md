@@ -3257,3 +3257,51 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   test_memory_sql_shim, test_persistence_store, test_dict_store_ttl,
   test_adapter_e2e, test_adapter_integration, test_service_integration
   (10/10). Hygiene: tabs only, no new non-ASCII, extends-first intact.
+- [x] Round 24 (tick core walk continues: the N014 known-noted item
+  fixed for real, plus three more defects found in the same file):
+  TickService (game/core/services/tick_service.gd):
+  (1) N014 fixed properly (was the round-23 "known-noted, warn-only").
+  The old check computed |whole-tick duration - 48ms sync budget|, but
+  the spec (risks doc N014) says: record SEND timestamps, assert within
+  +/-2ms of a tick boundary -- and the old form FALSE-POSITIVED every
+  quiet tick (~47ms deviation with one connected client, phases taking
+  ~1ms). Phase 4 now records wall-clock send timestamps per client
+  (send_times in the emit result); _on_tick measures the worst lateness
+  against the tick's scheduled END (tick_start + TICK_BUDGET_MS, when
+  the next tick is due) via new _n014_worst_late_ms(); warn only past
+  N014_TOLERANCE_MS=2. Early sends are healthy (idle ticks run trivial
+  phases 1-3) and never warn.
+  (2) Side queue LEAK: _side_queue was appended on Phase 2 overrun and
+  NEVER read or drained anywhere -- overflow work silently lost AND
+  unbounded growth on a busy server. Phase 2 now drains it (Step 0.5)
+  each tick: input items re-apply via _apply_player_input, items carry
+  a _retries counter, and items past SIDE_QUEUE_RETRY_CAP=5 drop with
+  a debug log (a logged-off player's input must not loop forever).
+  Fresh overflow appends with the counter regardless of budget overrun
+  (entity-not-found races happen under budget too). New accessor
+  get_side_queue_size().
+  (3) unregister_client erased _input_queues by client_id (int peer)
+  while queues are keyed by player_id (String) -- dead erase. Resolves
+  via _get_player_id_from_peer first; Phase 1's per-tick clear already
+  bounded the leak to one tick.
+  (4) Phase 6 prefetch passed a Vector2 chunk coord where
+  LODManager.promote_chunk wants a String fragmenter-format chunk key
+  -- latent (Markov stub returns null so the branch never ran) but it
+  would corrupt LOD state under a key nothing reads back the moment
+  prediction lands. Now resolves through LODManager's own
+  get_chunk_key_from_position first.
+  (5) Phase 5 persistence wrote a NEW key per tick ("tick:N:root")
+  with NO reader anywhere (the live reads are the latest_* pointers)
+  -- unbounded store growth (~1.7M rows/day at 50ms ticks). Now bounded
+  by TICK_ROOT_HISTORY=100: _persisted_root_keys window, stale keys
+  batch-deleted via store.delete_many (exists on the store contract and
+  the memory store). Restart-time orphan keys in a real DB backend are
+  a known remainder (N017 retention is owner-level design).
+  test_phase4_zone_aoi extended: send_times shape check, four N014
+  measurement checks (empty/early/tolerance/exceeds), and side-queue
+  retry-then-drop checks driving _phase2_world_step directly with a
+  ghost player's input. Validation: test_phase4_zone_aoi,
+  test_world_state_projection, test_horde_rewards, test_e2e_flow,
+  test_login_flow (5/5, e2e/login run the real tick loop so the new
+  drain + prune execute every live tick). Hygiene: tabs only, no new
+  non-ASCII, extends-first intact.

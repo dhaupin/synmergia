@@ -16,6 +16,10 @@
 ##   7. The live Phase 3 -> 4 handoff: Phase 4 routes from the
 ##      _last_tick_diff stash even when the hash pair has rotated
 ##      (prev == cur by the time Phase 4 runs).
+##   8. N014 measurement: send timestamps are judged against the tick's
+##      scheduled end (start + 50ms), not whole-tick duration vs 48ms.
+##   9. Side queue: overflow drains each Phase 2, retries bounded by
+##      SIDE_QUEUE_RETRY_CAP, then drops (no unbounded growth).
 ##
 ## Exit 0 = all pass.
 extends SceneTree
@@ -169,6 +173,28 @@ func _run() -> void:
 	# --- 6. Phase 4 without a network peer -----------------------------------
 	var result: Dictionary = tick._phase4_diff_emit()
 	_assert(result.has("clients_emit"), "phase 4 emit runs headless without crashing")
+	_assert(result.has("send_times"), "phase 4 emit records send timestamps for N014")
+
+	# --- 8. N014 measurement -------------------------------------------------
+	# Boundary = tick_start + 50ms. A send at 1053 with tick_start 1000
+	# is 3ms late; at 1052 exactly the tolerance; 1049 is still early.
+	_assert(tick._n014_worst_late_ms({}, 1000) == 0.0, "N014: no sends -> nothing misaligned")
+	_assert(tick._n014_worst_late_ms({1: 1040, 2: 1049}, 1000) <= 0.0, "N014: early sends are not late")
+	_assert(tick._n014_worst_late_ms({1: 1053}, 1000) == 3.0, "N014: send 3ms past the boundary measures 3ms late")
+	_assert(tick._n014_worst_late_ms({1: 1052}, 1000) <= tick.N014_TOLERANCE_MS, "N014: exactly-tolerance send stays inside the invariant")
+
+	# --- 9. Side queue drains with a retry cap --------------------------------
+	# A ghost player's input can never apply (no entity): it must retry
+	# with a counter, then drop past SIDE_QUEUE_RETRY_CAP.
+	var poison := {"type": "input", "player_id": "ghost_player", "data": {"seq": 1}}
+	tick._side_queue = [poison]
+	tick._phase2_world_step()
+	_assert(tick._side_queue.size() == 1 and int(tick._side_queue[0].get("_retries", 0)) == 1,
+			"side queue: unappliable input retries next tick with a counter")
+	for _i in range(5):
+		tick._phase2_world_step()
+	_assert(tick._side_queue.is_empty(), "side queue: item past the retry cap is dropped (no unbounded growth)")
+	_assert(tick.get_side_queue_size() == 0, "side queue: accessor agrees with the internal state")
 
 	_finish()
 
