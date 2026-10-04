@@ -3206,3 +3206,54 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   test_dungeon_portal, test_horde_events, test_horde_rewards,
   test_progress_persistence, quest bridges). Hygiene: tabs only, no
   new non-ASCII.
+- [x] Round 23 (inside-out audit lands on the adapters + tick core;
+  SQL-shim query defects fixed, two live-flow defects in
+  TickService/T3 fixed):
+  Adapters (game/adapters/): Registry/BackendFactory/MigrationRunner/
+  MemoryCacheStore audited CLEAN (manifest maps every persistence name
+  to one shared store; migrations lexical + metadata table + env skip;
+  cache TTL math correct). Five REAL defects fixed in the memory
+  persistence SQL shim (memory_persistence_store.gd) + dict_store.gd:
+  (1) operator scan matched '=' inside '>=' / '<=' / '!=' (earliest-
+  match ordering now, ops list explicit); (2) IN param slice off-by-2
+  (defensive paren strip before value parse); (3) ORDER BY / GROUP BY /
+  LIMIT only parsed when a WHERE was present (clause indices now on
+  the clause tail unconditionally); (4) DictStore.get_many double-
+  decoded plain strings to null (decode only when the raw value parses
+  as JSON); (5) 'IN (' spelling never matched (added to the ops list).
+  Permanent regression suite game/tests/adapters/test_memory_sql_shim.gd
+  (26 checks: WHERE ops, IN forms, LIKE, clause tails with/without
+  WHERE, UPDATE, DELETE, kv type round-trips) -- 26/26 green.
+  TickService (game/core/services/tick_service.gd) DEFECT A (major,
+  live flow): _phase3_reroot_and_diff rotated the hash pair at the end
+  of Phase 3, so Phase 4's _compute_aoi_diff gate
+  (_previous_root_hash != _current_root_hash) was ALWAYS false -- no
+  client ever received incremental diffs in the live tick; the phase-4
+  test masked it by setting the hash pair by hand. Fix: Phase 3 now
+  stashes the computed diff in _last_tick_diff BEFORE the rotation;
+  _compute_aoi_diff prefers the stash and keeps the hash-pair recompute
+  as a fallback for direct Phase 4 entry. test_phase4_zone_aoi extended
+  with a live-flow mirror case (rotated pair + stash only) that asserts
+  the same zone/progress routing; both paths covered (7 checks added
+  total incl. the helper).
+  T3 (game/core/frame/kv/t3.gd) DEFECT B (memory): _record_snapshot
+  cloned the full node dict into _snapshots on every insert/apply/walk
+  and NEVER pruned -- one snapshot per tick root on a live server,
+  unbounded. Fix: bounded retention (SNAPSHOT_RETENTION = 64) driven by
+  an insertion-ordered _snapshot_order; re-recorded roots move to the
+  newest slot, oldest evicted from both _snapshots and
+  _schema_refs_by_root; clear() resets the order. 64 (not 16) because
+  the dedup contract test diffs a 20-update chain end to end
+  (diff(roots[0], roots[20])) -- long-range diff is a documented frame
+  capability, so the window must exceed it; consumers diff adjacent
+  roots in the tick flow, which 64 covers with headroom.
+  Known-noted (not fixed, harmless): _on_tick's N014 check measures
+  tick DURATION against TOTAL_SYNC_BUDGET_MS, not diff-emit latency vs
+  the boundary; warn-only either way.
+  Validation: frame/kv/test_t3, frame/kv/test_t3_dedup,
+  frame/kv/test_state_tree, frame/kv/test_folded_shell,
+  test_phase4_zone_aoi (5/5), adapter chunk adapters/test_registry,
+  test_dict_store, test_cache_store, test_memory_store,
+  test_memory_sql_shim, test_persistence_store, test_dict_store_ttl,
+  test_adapter_e2e, test_adapter_integration, test_service_integration
+  (10/10). Hygiene: tabs only, no new non-ASCII, extends-first intact.

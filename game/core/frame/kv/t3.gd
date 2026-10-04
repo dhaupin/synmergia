@@ -17,6 +17,17 @@ var _snapshots: Dictionary = {}
 var _schema_refs_by_root: Dictionary = {}
 var _current_root: PackedByteArray = PackedByteArray()
 
+## How many historical root snapshots to retain. Every recorded root
+## clone pays the full node dictionary, so unbounded retention leaks
+## snapshots per tick on a live server. The window must comfortably
+## exceed legitimate backtracking spans -- the dedup contract test
+## diffs a 20-update chain end to end -- so 64 keeps long-range
+## diff/apply exact while capping what used to grow forever.
+const SNAPSHOT_RETENTION: int = 64
+
+## Root keys (hex) in recording order; oldest first. Drives eviction.
+var _snapshot_order: Array[String] = []
+
 ## Reusable HashingContext to avoid allocation churn.
 var _hashing_context: HashingContext = HashingContext.new()
 
@@ -457,6 +468,16 @@ func _record_snapshot() -> void:
 		root_schemas[node_path] = node.get("schema_ref")
 	_schema_refs_by_root[root_key] = root_schemas
 
+	# Bounded retention: re-recording a root moves it to the newest
+	# slot, then the oldest roots fall off (never the current one --
+	# it was just recorded, so it is always the newest slot).
+	_snapshot_order.erase(root_key)
+	_snapshot_order.push_back(root_key)
+	while _snapshot_order.size() > SNAPSHOT_RETENTION:
+		var oldest: String = _snapshot_order.pop_front()
+		_snapshots.erase(oldest)
+		_schema_refs_by_root.erase(oldest)
+
 
 func _snapshot_for_root(root: PackedByteArray) -> Variant:
 	var root_key := _root_key(root)
@@ -497,6 +518,7 @@ func clear() -> void:
 	_nodes.clear()
 	_snapshots.clear()
 	_schema_refs_by_root.clear()
+	_snapshot_order.clear()
 	_shell.release_space("t3")
 	_stores_attempted = 0
 	_current_root = _sha256(PackedByteArray())

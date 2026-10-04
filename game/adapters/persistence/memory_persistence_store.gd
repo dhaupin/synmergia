@@ -361,6 +361,10 @@ func _query_select(sql: String, params: Array) -> Array:
 			all_rows = _apply_left_join(all_rows, join_rows, join_condition, params)
 	
 	# Parse WHERE, ORDER BY, GROUP BY, LIMIT
+	# Clause indices are located on `rest` (AFTER FROM) so ORDER BY /
+	# GROUP BY / LIMIT parse even with NO WHERE clause. They previously
+	# lived inside the where_idx >= 0 branch, so "SELECT * FROM t LIMIT
+	# 2" silently returned every row (round 23).
 	var where_idx := rest.find(" WHERE ")
 	if where_idx < 0:
 		where_idx = rest.find(" where ")
@@ -368,6 +372,16 @@ func _query_select(sql: String, params: Array) -> Array:
 	var order_by_idx := -1
 	var group_by_idx := -1
 	var limit_idx := -1
+	
+	order_by_idx = rest.to_upper().find(" ORDER BY")
+	if order_by_idx < 0:
+		order_by_idx = rest.to_upper().find(" order by")
+	group_by_idx = rest.to_upper().find(" GROUP BY")
+	if group_by_idx < 0:
+		group_by_idx = rest.to_upper().find(" group by")
+	limit_idx = rest.to_upper().find(" LIMIT")
+	if limit_idx < 0:
+		limit_idx = rest.to_upper().find(" limit")
 	
 	if where_idx >= 0:
 		var after_where := rest.substr(where_idx + 7).strip_edges()
@@ -378,15 +392,6 @@ func _query_select(sql: String, params: Array) -> Array:
 			if kw_idx >= 0 and kw_idx < where_end:
 				where_end = kw_idx
 		where_clause = after_where.substr(0, where_end).strip_edges()
-		order_by_idx = after_where.find(" ORDER BY")
-		if order_by_idx < 0:
-			order_by_idx = after_where.find(" order by")
-		group_by_idx = after_where.find(" GROUP BY")
-		if group_by_idx < 0:
-			group_by_idx = after_where.find(" group by")
-		limit_idx = after_where.find(" LIMIT")
-		if limit_idx < 0:
-			limit_idx = after_where.find(" limit")
 	
 	# Apply WHERE conditions
 	if where_clause != "" and not all_rows.is_empty():
@@ -396,30 +401,27 @@ func _query_select(sql: String, params: Array) -> Array:
 	# Apply GROUP BY
 	var group_by_cols: Array = []
 	if group_by_idx >= 0:
-		var group_part := rest.substr(where_idx + 7 + group_by_idx + 9).strip_edges()
-		var where_limit_pos := group_part.find(" WHERE ")
-		if where_limit_pos >= 0:
-			group_part = group_part.substr(0, where_limit_pos)
+		var group_part := rest.substr(group_by_idx + 9).strip_edges()
 		group_by_cols = _split_csv(group_part)
 		all_rows = _apply_group_by(all_rows, group_by_cols, params)
 	
 	# Apply ORDER BY
 	var order_info: Array = []
 	if order_by_idx >= 0:
-		var order_part := rest.substr(where_idx + 7 + order_by_idx + 9).strip_edges()
-		var where_limit_pos := order_part.find(" WHERE ")
-		if where_limit_pos >= 0:
-			order_part = order_part.substr(0, where_limit_pos)
-		var group_limit_pos := order_part.find(" GROUP BY")
+		var order_part := rest.substr(order_by_idx + 9).strip_edges()
+		var group_limit_pos := order_part.to_upper().find(" GROUP BY")
 		if group_limit_pos >= 0:
 			order_part = order_part.substr(0, group_limit_pos)
+		var limit_pos := order_part.to_upper().find(" LIMIT")
+		if limit_pos >= 0:
+			order_part = order_part.substr(0, limit_pos)
 		order_info = _parse_order_by(order_part, params)
 		all_rows = _apply_order_by(all_rows, order_info)
 	
 	# Apply LIMIT
 	var limit_val: int = -1
 	if limit_idx >= 0:
-		var limit_part := rest.substr(where_idx + 7 + limit_idx + 7).strip_edges()
+		var limit_part := rest.substr(limit_idx + 6).strip_edges()
 		var num_str := ""
 		for c in limit_part:
 			var char_code := c.unicode_at(0)
@@ -639,23 +641,23 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 						"col": col,
 						"op": "IN",
 						"params": values
-					}
-	
-	# Check for operators (>=, <=, >, <, !=, LIKE, =)
-	var operators := ["IN(", " LIKE ", " like ", ">=", "<=", "!=", ">", "<", " = ", "="]
+					}	# Check for operators (>=, <=, >, <, !=, LIKE, =)
+	# LONGEST-MATCH FIRST. The old list was scanned last-to-first, so the
+	# '=' inside '>=', '<=' and '!=' matched before the two-char op did:
+	# the column became 'level >' and the rhs '= $1', silently matching
+	# no rows (or all rows) for any >=/<=/!= query (round 23).
+	var operators := ["IN(", "IN (", " >= ", " <= ", " != ", " LIKE ", " like ", ">=", "<=", "!=", ">", "<", " = ", "="]
 	var op_idx := -1
 	var op_str := ""
 	
-	for i in range(operators.size() - 1, -1, -1):
-		var op: String = operators[i]
-		var idx := clause.to_upper().find(op)
+	for op_candidate in operators:
+		var idx := clause.find(op_candidate)
 		if idx >= 0:
-			op_idx = idx
-			op_str = op
-			break
-		
+			if op_idx < 0 or idx < op_idx:
+				op_idx = idx
+				op_str = op_candidate
 	if op_idx < 0:
-			return {}
+		return {}
 	
 	var col := clause.substr(0, op_idx).strip_edges()
 	var rhs := clause.substr(op_idx + op_str.length()).strip_edges()
@@ -679,9 +681,19 @@ func _parse_single_condition(clause: String, params: Array) -> Dictionary:
 		literal_val = _parse_literal(rhs)
 		
 	var result: Dictionary = {"col": col, "op": op_str.strip_edges(), "param": param_idx, "val": literal_val}
-	if op_str.to_upper() == "IN(":
+	if op_str.begins_with("IN"):
 		result["op"] = "IN"
-		result["params"] = _parse_in_values(rhs.substr(3, rhs.length() - 4), params)
+		# Both spellings land here ("IN(" and "IN ("). The paren may sit
+		# in the matched op ("IN (" consumes it) or start the rhs ("IN("
+		# leaves it), so strip defensively instead of assuming a fixed
+		# offset. The old substr(3, len-4) dropped $1 from every
+		# parameterized IN (round 23).
+		var in_content := rhs.strip_edges()
+		if in_content.begins_with("("):
+			in_content = in_content.substr(1)
+		if in_content.ends_with(")"):
+			in_content = in_content.substr(0, in_content.length() - 1)
+		result["params"] = _parse_in_values(in_content, params)
 	return result
 
 

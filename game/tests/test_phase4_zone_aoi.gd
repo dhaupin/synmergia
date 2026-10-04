@@ -13,6 +13,9 @@
 ##   5. LOD L1 strips /world/zones/ payload bytes, keeps structure;
 ##      L0 passes everything through.
 ##   6. _phase4_diff_emit runs without a network peer (no crash).
+##   7. The live Phase 3 -> 4 handoff: Phase 4 routes from the
+##      _last_tick_diff stash even when the hash pair has rotated
+##      (prev == cur by the time Phase 4 runs).
 ##
 ## Exit 0 = all pass.
 extends SceneTree
@@ -92,15 +95,11 @@ func _run() -> void:
 
 	tick._previous_root_hash = prev
 	tick._current_root_hash = cur
+	# Clear the Phase 3 stash so this case exercises the hash-pair
+	# fallback path (direct Phase 4 entry) deterministically.
+	tick._last_tick_diff = []
 	var aoi: Dictionary = tick._compute_aoi_diff(1)
-
-	var seen: Array = []
-	for chunk_key in aoi.keys():
-		for entry in aoi[chunk_key]:
-			if entry is Array and entry.size() >= 4:
-				# Diff entries carry raw (slash-less) paths; normalize.
-				var p: String = str(entry[0])
-				seen.append(p if p.begins_with("/") else "/" + p)
+	var seen: Array = _aoi_paths(aoi)
 
 	var has_near := false
 	var has_far := false
@@ -115,6 +114,31 @@ func _run() -> void:
 	_assert(has_near, "near-zone horde entry reaches the client")
 	_assert(not has_far, "far-zone entry is excluded (no cross-zone leak)")
 	_assert(has_progress, "character progress entry reaches its owner")
+
+	# --- 2b. Live flow: Phase 4 reads the Phase 3 diff stash -----------------
+	# In the real tick, Phase 3 computes the diff, stashes it in
+	# _last_tick_diff, THEN rotates the hash pair -- so by Phase 4 time
+	# prev == cur and the hash-pair gate cannot fire. Phase 4 must route
+	# from the stash alone or clients never receive incremental diffs.
+	tick._last_tick_diff = tree.diff_states(prev, cur)
+	tick._previous_root_hash = cur
+	tick._current_root_hash = cur
+	var aoi_live: Dictionary = tick._compute_aoi_diff(1)
+	var seen_live: Array = _aoi_paths(aoi_live)
+	var live_near := false
+	var live_far := false
+	var live_progress := false
+	for p in seen_live:
+		if p.begins_with("/world/zones/aoi_zone/"):
+			live_near = true
+		if p.begins_with("/world/zones/far_zone/"):
+			live_far = true
+		if p.begins_with("/player/aoi_char/"):
+			live_progress = true
+	_assert(live_near, "live flow: near-zone horde entry routes from the Phase 3 stash")
+	_assert(not live_far, "live flow: far-zone entry excluded from the Phase 3 stash")
+	_assert(live_progress, "live flow: character progress routes from the Phase 3 stash")
+	tick._last_tick_diff = []
 
 	# --- 5. LOD tiers --------------------------------------------------------
 	# L0 (default momentum): everything passes through untouched.
@@ -155,6 +179,17 @@ func _assert(cond: bool, label: String) -> void:
 	else:
 		_fail += 1
 		print("FAIL: %s" % label)
+
+## Collect normalized (leading-slash) paths from an AOI diff dict.
+func _aoi_paths(aoi: Dictionary) -> Array:
+	var out: Array = []
+	for chunk_key in aoi.keys():
+		for entry in aoi[chunk_key]:
+			if entry is Array and entry.size() >= 4:
+				# Diff entries carry raw (slash-less) paths; normalize.
+				var p: String = str(entry[0])
+				out.append(p if p.begins_with("/") else "/" + p)
+	return out
 
 func _finish() -> void:
 	print("Phase4ZoneAoi: %d passed, %d failed" % [_pass, _fail])

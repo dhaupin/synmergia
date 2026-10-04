@@ -179,7 +179,16 @@ func get_many(keys: Array) -> Dictionary:
 		var raw: Dictionary = _store.get_many(keys)
 		for key in keys:
 			var v = raw.get(key)
-			result[key] = JSON.parse_string(str(v)) if v != null and str(v) != "" else null
+			# get_value's contract: only decode the JSON envelope. A plain
+			# String value was stored AS a JSON string ("hello"), and
+			# str()-then-parse here double-decoded it to null (round 23).
+			if v == null or (v is String and v == ""):
+				result[key] = null
+			elif v is String:
+				var parsed = JSON.parse_string(v)
+				result[key] = parsed if parsed != null else v
+			else:
+				result[key] = v
 	else:
 		for key in keys:
 			result[key] = get_value(key)

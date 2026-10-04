@@ -97,6 +97,11 @@ var _state_tree: StateTreeScript = null
 var _previous_root_hash: PackedByteArray = PackedByteArray()
 var _current_root_hash: PackedByteArray = PackedByteArray()
 
+## Diff computed by Phase 3 for THIS tick, consumed by Phase 4.
+## Phase 3 rotates _previous_root_hash at the end, so Phase 4 can no
+## longer recover the tick's diff from the hash pair; it reads this.
+var _last_tick_diff: Array = []
+
 ## Flywheel momentum and sub-meters
 var _flywheel_momentum: float = 0.0
 var _sub_meters: Dictionary = {
@@ -590,6 +595,12 @@ func _phase3_reroot_and_diff() -> Dictionary:
 	if _previous_root_hash != _current_root_hash:
 		diff = _state_tree.diff_states(_previous_root_hash, _current_root_hash)
 
+	# Stash for Phase 4 BEFORE rotating the hash pair below: after the
+	# rotation _previous_root_hash == _current_root_hash, which used to
+	# leave _compute_aoi_diff() gated to an empty diff and clients never
+	# received incremental updates in the live flow.
+	_last_tick_diff = diff
+
 	# Update previous root hash for next tick
 	_previous_root_hash = _current_root_hash
 
@@ -778,8 +789,12 @@ func _compute_aoi_diff(client_id: int) -> Dictionary:
 		if zid != null:
 			player_zone = str(zid)
 
-	var full_diff: Array = []
-	if _previous_root_hash.size() > 0 and _current_root_hash.size() > 0 and _previous_root_hash != _current_root_hash:
+	# Prefer the diff Phase 3 computed for this tick (the hash pair is
+	# rotated at the end of Phase 3, so the recompute below only serves
+	# direct Phase 4 entry that never ran Phase 3 -- e.g. tests that set
+	# the hash pair by hand).
+	var full_diff: Array = _last_tick_diff
+	if full_diff.is_empty() and _previous_root_hash.size() > 0 and _current_root_hash.size() > 0 and _previous_root_hash != _current_root_hash:
 		full_diff = _state_tree.diff_states(_previous_root_hash, _current_root_hash)
 
 	var result: Dictionary = {}
