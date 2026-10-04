@@ -384,7 +384,11 @@ func _run() -> void:
 	_horde.horde_completed.connect(func(_hid, ok):
 		_horde_completed[0] = true
 		_horde_success[0] = ok)
-	await _cmd("horde haven_siege starter_plains alert")
+	# Canonical zone id (data-naming law): the service stores zone_id
+	# verbatim, so the legacy shorthand "starter_plains" here made the
+	# canonical-id query below permanently mismatch (pre-dates the
+	# headless world fix; it just could not fail louder before).
+	await _cmd("horde haven_siege zone_starter_plains alert")
 	var hid: String = _horde.active_horde_in_zone("zone_starter_plains")
 	_ok("open-world horde started in the player's zone", hid != "")
 	var fighting := await _wait_until(func():

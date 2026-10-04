@@ -221,6 +221,12 @@ func _click_menu_item(item_name: String) -> void:
 	if btn == null:
 		# MenuItems may be nested; search recursively.
 		btn = _find_button(bar, item_name)
+	if btn == null and mm != null:
+		# Round-6 z-fix ADOPTED the expanded panel (MenuItems and all)
+		# into MenuManager's CanvasLayer 20 (_adopt_expanded_into_menu_
+		# manager) so the menu can cover chat. The item buttons live
+		# under MenuManager now -- search there too.
+		btn = _find_button(mm, item_name)
 	if btn == null:
 		_ok("menu item %s exists" % item_name, false)
 		return

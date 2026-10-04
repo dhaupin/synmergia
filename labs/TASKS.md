@@ -3157,3 +3157,52 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   NOTE: test_full_boot_live's open-world horde phase FAILS, but it fails
   identically on a clean tree (confirmed by stashing) -- pre-existing and
   unrelated to this round.
+- [x] Round 22 (fix the six dead suites from the round-21 sweep; ROOT
+  CAUSE of the whole class: the headless boot never loaded the world
+  scene, so headless runs had NO PLAYER at all):
+  ROOT FIX -- core/autoload/game_manager.gd _handle_playing_state
+  skipped change_scene under headless, on the misconception that
+  headless has "no rendering context". Godot 4 headless runs the full
+  scene tree + physics (probes/terrain tests already build real 3D
+  worlds headless); only DRAWING is absent. And the Player node lives
+  INSIDE world_playable.tscn, so skipping the scene skipped the player
+  spawn itself. The world scene now loads in every mode (loading
+  overlay flow unchanged). Visible player spawn on the globe works as
+  conceptually intended: boot -> world scene -> Player ready ->
+  EntityService registers (player_1) -> ZoneManager zone entry ->
+  player_entered_world fires once (StarterKitService, achievements).
+  Per-suite fixes (test paths stale against product, product code was
+  right):
+  (1) test_ui_alive: MenuManager's round-6 z-fix ADOPTS the expanded
+  panel (MenuItems and all menu_item_* buttons) into MenuManager's
+  CanvasLayer 20 (_adopt_expanded_into_menu_manager) so the menu can
+  cover chat; the test only searched under MainMenuBar. Now searches
+  MenuManager too. 0/37+ -> 31 pass.
+  (2) test_touch_live: injected touches are WINDOW coords;
+  parse_input_event runs the stretch inverse. xvfb window == the
+  1280x720 canvas (scale 1) so raw positions worked; headless's dummy
+  window gave a ~x20 scale that flung every touch into the camera-look
+  half (probed: injected (50,50) arrives at (1000,1000)). Injection now
+  converts through get_final_transform(). P4 check re-timed 4.9 -> 4.65
+  (0.15s after the jump press; 0.4s raced the apex under precise 60Hz
+  headless physics). 8/17 -> 17/17.
+  (3) test_respawn_live: poll window (frame 900) raced RespawnService's
+  15s timer (frame ~990 at headless 60Hz) and the test then hung with
+  no terminal verdict. Window widened to frame 3600 with an honest
+  FAIL verdict past it; _verify guarded once. All 9 respawn checks
+  PASS (the respawn chain itself was never broken).
+  (4) test_settings_camera: MenuManager also adopts SettingsPanel (same
+  round-6 z-fix); test lookup now falls back to a recursive find.
+  14/14.
+  (5) test_full_boot_live (LAST round-21 open item): phase 6 started
+  the horde in legacy shorthand "starter_plains" but queried
+  "zone_starter_plains" (canonical, per the data-naming law); the
+  service stores zone_id verbatim so the query could never match. The
+  start command now uses the canonical id. FULL-BOOT 43/43.
+  Validation: DEFAULT_SET 64/64 green in 7 chunks (C1..C7 exit 0) with
+  the boot-path change in place; login-flow-driven suites re-run green
+  after it (test_e2e_flow, test_login_flow, test_onboarding_live,
+  test_achievement_flow, test_combat_live, test_scene_enemy_respawn,
+  test_dungeon_portal, test_horde_events, test_horde_rewards,
+  test_progress_persistence, quest bridges). Hygiene: tabs only, no
+  new non-ASCII.

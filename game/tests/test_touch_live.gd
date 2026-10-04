@@ -68,7 +68,11 @@ func _initialize() -> void:
 		[4.1, _p3_dodge],
 		[4.4, _p3_check],
 		[4.5, _p4_jump],
-		[4.9, _p4_check],
+		# Sample 0.15s after the press (well before the ~0.5s apex):
+		# under xvfb the slow frames sampled the rise mid-flight, but
+		# headless physics runs precise 60Hz and 0.4s after the press
+		# raced the landing window (round 22).
+		[4.65, _p4_check],
 		[5.6, _p4_release_stick],
 		[6.0, _p5_attack_press],
 		[6.15, _observe],
@@ -143,18 +147,27 @@ func _ok(label: String, cond: bool, detail: String = "") -> void:
 		_fail += 1
 		print("  FAIL: %s %s" % [label, detail])
 
+## Injected touch events are in WINDOW coordinates: parse_input_event
+## runs them through the stretch transform's inverse to reach viewport
+## space. Under xvfb the window == the 1280x720 canvas (scale 1, so raw
+## positions worked); headless's dummy window is tiny, giving a ~x20
+## scale that flung every touch into the camera-look half (round 22).
+## Viewport positions are converted through the final transform first.
+func _to_window_pos(pos: Vector2) -> Vector2:
+	return root.get_final_transform() * pos
+
 func _touch(idx: int, pos: Vector2, pressed: bool) -> void:
 	var ev := InputEventScreenTouch.new()
 	ev.index = idx
-	ev.position = pos
+	ev.position = _to_window_pos(pos)
 	ev.pressed = pressed
 	Input.parse_input_event(ev)
 
 func _drag(idx: int, from: Vector2, to: Vector2) -> void:
 	var ev := InputEventScreenDrag.new()
 	ev.index = idx
-	ev.position = to
-	ev.relative = to - from
+	ev.position = _to_window_pos(to)
+	ev.relative = _to_window_pos(to) - _to_window_pos(from)
 	Input.parse_input_event(ev)
 
 func _press_action(action: String) -> void:

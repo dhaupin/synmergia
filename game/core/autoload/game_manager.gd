@@ -172,22 +172,25 @@ func _handle_playing_state() -> void:
 	if WorldShapeResolver.is_spherical():
 		world_scene = "res://scenes/worlds/globe_world.tscn"
 		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Spherical world shape: loading globe scene")
-	# Skip 3D scene change in headless mode (no rendering context available)
-	var is_headless := OS.has_feature("headless") or DisplayServer.get_name() == "headless"
-	if is_headless:
-		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("Headless mode: skipping world scene load")
-	else:
-		# The overlay must be VISIBLE and PAINTED before the world's
-		# heavy _ready freezes the tree (round-5: species-select Join
-		# never showed a loading screen -- the first frame painted the
-		# overlay and the world build in the same frozen frame).
-		var overlay := _ensure_boot_loading_overlay()
-		if overlay != null:
-			overlay.show_loading("Loading world...")
-			await get_tree().process_frame
-			await get_tree().process_frame
-		_show_loading_and_change_scene(world_scene, "Loading world...")
-		if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
+	# The world scene loads in EVERY mode. The old headless skip was
+	# built on a misconception: Godot 4 headless runs the full scene
+	# tree + physics (only drawing is absent -- probes/terrain tests
+	# build real 3D worlds headless), and the Player node lives INSIDE
+	# world_playable.tscn, so skipping the scene here skipped the
+	# player spawn itself. Live-journey tests booted fine but had no
+	# player to find (audit round 22).
+	#
+	# The overlay must be VISIBLE and PAINTED before the world's
+	# heavy _ready freezes the tree (round-5: species-select Join
+	# never showed a loading screen -- the first frame painted the
+	# overlay and the world build in the same frozen frame).
+	var overlay := _ensure_boot_loading_overlay()
+	if overlay != null:
+		overlay.show_loading("Loading world...")
+		await get_tree().process_frame
+		await get_tree().process_frame
+	_show_loading_and_change_scene(world_scene, "Loading world...")
+	if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").info("World scene loaded")
 
 	# Emit player_entered_world for services like StarterKitService
 	if selected_character_data:

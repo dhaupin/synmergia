@@ -57,6 +57,12 @@ func _run() -> void:
 	root.add_child(hud)
 	await process_frame
 	var panel: Node = hud.get_node_or_null("SettingsPanel")
+	if panel == null:
+		# Round-6 z-order ADOPTION: MenuManager re-parents the panel into
+		# its own CanvasLayer at ready (same seam as the expanded main
+		# menu), so at runtime it lives at HudLayer/MenuManager/Settings.
+		# Panel, not at the HUD root where the .tscn places it.
+		panel = hud.find_child("SettingsPanel", true, false)
 	_ok("SettingsPanel present in HUD scene", panel != null)
 	if panel == null:
 		_finish()

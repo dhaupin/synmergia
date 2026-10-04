@@ -20,6 +20,7 @@ var _pass := 0
 var _fail := 0
 var _done := false
 var _frames := 0
+var _verified := false
 
 var _player: Node = null
 var _pp: Node = null
@@ -46,8 +47,19 @@ func _process(_delta: float) -> bool:
 	_frames += 1
 	if _frames == 90 and not _done:
 		_run()
-	elif _done and _frames < 900 and _frames % 30 == 0:
-		_poll_respawn()
+	elif _done and not _verified and _frames % 30 == 0:
+		if respawned:
+			_verify()
+		else:
+			_poll_respawn()
+		# Terminal verdict: RespawnService's 15s timer lands near frame
+		# 990 at precise headless 60Hz -- the old window (< frame 900)
+		# raced it and the test then ran forever to the runner kill.
+		# 3600 frames (~60s) covers the timer; past it is a FAIL, not a
+		# hang (round 22).
+		if not _verified and _frames >= 3600:
+			_assert(false, "respawn completed within 60s")
+			_finish()
 	return false
 
 
@@ -101,6 +113,9 @@ func _poll_respawn() -> void:
 
 
 func _verify() -> void:
+	if _verified:
+		return
+	_verified = true
 	var hc = _player.health_component
 	_assert(respawned, "respawn_completed fired")
 	_assert(hc != null and not hc.is_dead(), "player alive again")
