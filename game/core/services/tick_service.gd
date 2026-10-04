@@ -180,6 +180,9 @@ func _ready() -> void:
 		_state_tree = StateTreeScript.new()
 	_previous_root_hash = _state_tree.root_hash()
 	_current_root_hash = _previous_root_hash
+	# N017 boot policy: wipe the previous session's per-tick root
+	# history before the loop starts (see _cleanup_orphan_root_keys).
+	_cleanup_orphan_root_keys()
 	_start_tick_loop()
 
 func _exit_tree() -> void:
@@ -1144,6 +1147,39 @@ func _promote_generation(chunk_keys: Array[String]) -> void:
 			WorldService.generate_chunk(chunk_key)
 		else:
 			GameLog.debug("TickService: WorldService.generate_chunk not available for chunk %s" % chunk_key)
+
+## N017 boot policy: the per-tick root history keys ("tick:N:root")
+## are write-only telemetry -- nothing reads them back; the live reads
+## are the world_state:latest_* pointers -- and the retention window
+## (TICK_ROOT_HISTORY) only covers the CURRENT session. Any such key
+## present at boot is therefore an orphan of a previous session:
+## delete them all, once, for a clean slate. Best-effort: stores
+## without the query shim skip cleanup (the session window still
+## bounds current growth).
+func _cleanup_orphan_root_keys() -> void:
+	var ar = _adapter_registry()
+	if ar == null:
+		return
+	var store = ar.get_persistence("world_state")
+	if store == null or not store.has_method("query"):
+		return
+	var rows: Array = store.query("SELECT key FROM kv WHERE key LIKE 'tick:%'", [])
+	var orphan_keys: Array = []
+	for row in rows:
+		if row is Dictionary and row.has("key"):
+			var k: String = str(row["key"])
+			if k.begins_with("tick:") and k.ends_with(":root"):
+				orphan_keys.append(k)
+	if orphan_keys.is_empty():
+		return
+	var removed: int = 0
+	if store.has_method("delete_many"):
+		removed = store.delete_many(orphan_keys)
+	else:
+		for k in orphan_keys:
+			store.delete(k)
+			removed += 1
+	GameLog.info("TickService: N017 boot cleanup removed %d orphan tick-root key(s)" % removed)
 
 ## ============================================================================
 ## FLYWHEEL MANAGEMENT

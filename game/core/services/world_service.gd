@@ -494,6 +494,184 @@ func generate_world_from_seed(seed_value: int) -> void:
 func get_seeded_random(range_max: int) -> int:
 	return randi() % range_max
 
+## == Procedural chunks (Phase 6 prefetch target) ============================
+
+## Chunk edge length for procedural generation. Must match TickService's
+## CHUNK_SIZE; kept local so the world layer does not depend on the
+## tick service.
+const CHUNK_SIZE: int = 100
+const _kv_chunks := "world:chunk:"
+
+## Terrain-level biomes a chunk can roll. Item/enemy ids are the
+## spawn and loot layers' concern, not the chunk's.
+const CHUNK_BIOMES: Array[String] = ["plains", "forest", "rocky", "wetland"]
+
+signal chunk_generated(chunk_key: String)
+
+# Generated chunk records ("cx_cz" -> Dictionary), loaded lazily from
+# the kv store so reboots never regenerate existing chunks.
+var _chunks: Dictionary = {}
+var _chunks_loaded: bool = false
+
+## Generate one world chunk's content.
+## Deterministic by law: content derives ONLY from world_seed + chunk
+## coordinates through SeedChain.derive_seed (the frame's folded
+## SHA-256 derivation) -- never from global RNG state -- so the same
+## chunk regenerates identically on every server and every reboot.
+## Already-generated chunks return as-is (the Phase 6 prefetch may ask
+## for the same chunk repeatedly); records persist under
+## world:chunk:<key> so reboots load instead of regenerate.
+func generate_chunk(chunk_key: String) -> Dictionary:
+	var coords := _parse_chunk_key(chunk_key)
+	if coords.is_empty():
+		return {}
+	if not _chunks_loaded:
+		_load_chunks()
+	if _chunks.has(chunk_key):
+		return _chunks[chunk_key]
+	var record := _build_chunk_record(coords[0], coords[1], chunk_key)
+	_chunks[chunk_key] = record
+	_persist_chunk(chunk_key, record)
+	chunk_generated.emit(chunk_key)
+	GameLog.debug("WorldService: generated chunk %s (%s)" % [chunk_key, str(record.get("biome", "?"))])
+	return record
+
+## Fetch a generated chunk WITHOUT generating it ({} when unknown).
+func get_chunk(chunk_key: String) -> Dictionary:
+	if not _chunks_loaded:
+		_load_chunks()
+	var chunk: Variant = _chunks.get(chunk_key, {})
+	if chunk is Dictionary:
+		return chunk
+	return {}
+
+func is_chunk_generated(chunk_key: String) -> bool:
+	if not _chunks_loaded:
+		_load_chunks()
+	return _chunks.has(chunk_key)
+
+func generated_chunk_count() -> int:
+	if not _chunks_loaded:
+		_load_chunks()
+	return _chunks.size()
+
+## Parse "cx_cz" into [cx, cz]; [] when the key is not a chunk key.
+func _parse_chunk_key(chunk_key: String) -> Array:
+	var parts := chunk_key.split("_")
+	if parts.size() != 2:
+		return []
+	if not parts[0].is_valid_int() or not parts[1].is_valid_int():
+		return []
+	return [int(parts[0]), int(parts[1])]
+
+## Build the chunk record. Every roll comes from one RNG seeded with
+## the SeedChain-derived chunk seed, so the record is a pure function
+## of (world_seed, cx, cz).
+func _build_chunk_record(cx: int, cz: int, chunk_key: String) -> Dictionary:
+	var chunk_seed := _chunk_seed_bytes(cx, cz)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = chunk_seed.decode_u64(0)
+
+	var biome: String = CHUNK_BIOMES[rng.randi() % CHUNK_BIOMES.size()]
+	var elevation: int = rng.randi_range(0, 255)
+
+	var resources: Array = []
+	var resource_count: int = rng.randi_range(0, 4)
+	for _i in range(resource_count):
+		resources.append({
+			"kind": ["ore", "herb", "wood"][rng.randi() % 3],
+			"x": _chunk_local(rng, cx),
+			"z": _chunk_local(rng, cz),
+		})
+
+
+	var spawn_hints: Array = []
+	var pack_count: int = rng.randi_range(0, 2)
+	for _i in range(pack_count):
+		spawn_hints.append({
+			"pack_size": rng.randi_range(1, 3),
+			"x": _chunk_local(rng, cx),
+			"z": _chunk_local(rng, cz),
+		})
+
+	return {
+		"chunk_key": chunk_key,
+		"cx": cx,
+		"cz": cz,
+		"biome": biome,
+		"elevation": elevation,
+		"resources": resources,
+		"spawn_hints": spawn_hints,
+		"seed": chunk_seed.hex_encode(),
+		"world_seed": world_seed,
+	}
+
+## Snap a world position to the millimeter grid. Positions only ever
+## carry millimeter precision, and short decimal forms round-trip
+## exactly through the store's JSON encoding -- long float64 reprs lose
+## the last bit, which made a reboot-loaded chunk differ from a freshly
+## generated one under record equality.
+func _snap_mm(v: float) -> float:
+	return float(round(v * 1000.0)) / 1000.0
+
+## A world-space position inside the chunk (chunk origin + local offset).
+func _chunk_local(rng: RandomNumberGenerator, origin: int) -> float:
+	return _snap_mm(float(origin * CHUNK_SIZE) + rng.randf_range(0.0, float(CHUNK_SIZE)))
+
+## The chunk's derivation seed: SeedChain folds the world seed bytes
+## with the chunk path. Same world seed + coords -> same 32-byte seed.
+## When the frame boot wires WorldRegistry's per-world seed through
+## generate_world_from_seed, every chunk re-derives deterministically.
+func _chunk_seed_bytes(cx: int, cz: int) -> PackedByteArray:
+	var SeedChainScript = load("res://core/frame/kv/seed_chain.gd")
+	var world_bytes := PackedByteArray()
+	world_bytes.resize(8)
+	world_bytes.encode_s64(0, world_seed)
+	var stack: Array[PackedByteArray] = [world_bytes]
+	return SeedChainScript.derive_seed(stack, "chunk/%d/%d" % [cx, cz])
+
+func _load_chunks() -> void:
+	_chunks = {}
+	_chunks_loaded = true
+	var store := DictStore.new()
+	for key in store.all_keys():
+		if key.begins_with(_kv_chunks):
+			var chunk_key: String = key.substr(_kv_chunks.length())
+			var loaded: Variant = store.get_kv(key)
+			if loaded is Dictionary and not loaded.is_empty():
+				_chunks[chunk_key] = _normalize_chunk_record(loaded)
+
+## JSON round-trips (the store's native encoding) turn ints into floats,
+## so a record read back after a reboot would be type-different from a
+## freshly generated one (int 41 vs float 41.0) -- unstable for
+## consumers and for record equality. Normalize the integer fields on
+## load so both paths are identical.
+func _normalize_chunk_record(record: Dictionary) -> Dictionary:
+	if record.has("cx"):
+		record["cx"] = int(record["cx"])
+	if record.has("cz"):
+		record["cz"] = int(record["cz"])
+	if record.has("elevation"):
+		record["elevation"] = int(record["elevation"])
+	if record.has("world_seed"):
+		record["world_seed"] = int(record["world_seed"])
+	for list_key in ["resources", "spawn_hints"]:
+		var arr: Variant = record.get(list_key, [])
+		if arr is Array:
+			for item in arr:
+				if item is Dictionary:
+					if item.has("x"):
+						item["x"] = _snap_mm(float(item["x"]))
+					if item.has("z"):
+						item["z"] = _snap_mm(float(item["z"]))
+					if list_key == "spawn_hints" and item.has("pack_size"):
+						item["pack_size"] = int(item["pack_size"])
+	return record
+
+func _persist_chunk(chunk_key: String, record: Dictionary) -> void:
+	var store := DictStore.new()
+	store.set_kv(_kv_chunks + chunk_key, record)
+
 ## Find path between zones using ZoneManager neighbor graph (BFS) or NSC-9 spatial adjacency.
 ## Returns array of zone IDs representing the path, or empty array if no path found.
 func find_zone_path(from_zone_id: String, to_zone_id: String) -> Array[String]:

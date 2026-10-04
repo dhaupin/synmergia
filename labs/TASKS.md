@@ -3305,3 +3305,53 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   test_login_flow (5/5, e2e/login run the real tick loop so the new
   drain + prune execute every live tick). Hygiene: tabs only, no new
   non-ASCII, extends-first intact.
+- [x] Round 25 (N017 boot cleanup built + WorldService.generate_chunk
+  built for real -- Phase 6's generation step is no longer a no-op):
+  (1) N017 boot policy implemented: TickService._ready calls
+  _cleanup_orphan_root_keys() before the tick loop starts. The
+  per-tick root history keys ("tick:N:root") are write-only telemetry
+  (verified R24: no reader anywhere) and the TICK_ROOT_HISTORY window
+  only covers the current session, so ANY such key present at boot is
+  an orphan of a previous session -- all removed once via the store's
+  SQL shim (SELECT key FROM kv WHERE key LIKE 'tick:%', filtered to
+  the ':root' suffix, batch delete_many; stores without the shim skip
+  best-effort). Live world_state:latest_* pointers and lookalike keys
+  survive. New suite test_tick_n017_cleanup seeds three orphans + a
+  lookalike + the live pointers and asserts exactly that.
+  (2) WorldService.generate_chunk built: one chunk = biome
+  (plains/forest/rocky/wetland), elevation, 0-4 resource nodes
+  (ore/herb/wood) and 0-2 enemy pack hints with in-chunk world
+  positions. DETERMINISM LAW: content derives ONLY from world_seed +
+  coords via SeedChain.derive_seed (the frame's folded SHA-256
+  derivation) through a per-chunk-seeded RNG -- never global RNG
+  state -- so the same chunk regenerates identically everywhere.
+  Records persist under world:chunk:<key> (the service's existing
+  DictStore pattern) and load lazily, so reboots load instead of
+  regenerate; in-session repeats return as-is. Signal chunk_generated
+  for later consumers; Phase 6's _promote_generation now hits the real
+  implementation (was a guarded debug no-op).
+  TWO real defects the new test caught during the build, both fixed:
+  (a) JSON round-trips through the kv store turn ints into floats, so
+  a reboot-loaded chunk was TYPE-different from a freshly generated
+  one (int 41 vs float 41.0; GDScript dict equality is type-strict).
+  Fixed in the schema owner: _normalize_chunk_record coerces the
+  record's integer fields on load. (b) float64 last-bit loss in JSON
+  stringify/parse (15-digit reprs) broke record equality while
+  field-by-field str() comparison looked identical -- fixed by
+  snapping positions to the millimeter grid (_snap_mm) at build AND
+  load, since short decimal forms round-trip exactly.
+  test_world_chunks: generation + in-session dedup, record shape and
+  in-chunk bounds, fresh-instance reboot dedup, seed law (different
+  world seed AND different coords derive different chunk seeds),
+  garbage-key rejection. Both suites added to DEFAULT_SET. Validation:
+  test_world_chunks, test_tick_n017_cleanup, test_phase4_zone_aoi,
+  test_world_state_projection, test_horde_rewards, test_e2e_flow,
+  test_login_flow, frame/srv/test_world_registry, frame/srv/test_markov
+  (9/9). Hygiene: tabs only, no new non-ASCII, extends-first intact.
+  NEXT-ROUND CANDIDATES (unbuilt stub survey, tick/world ring):
+  _markov_predict is a null stub while frame/srv already ships a Markov
+  implementation LODManager.get_markov() exposes -- wiring Phase 6
+  prediction to the frame Markov + record_movement feed is the natural
+  next build; then _decay_effects/_regen_entities/_step_entity (Phase 2
+  stubs), _pull_cross_shard_events (coordinator HLC), and
+  seed_chain.update_root().
