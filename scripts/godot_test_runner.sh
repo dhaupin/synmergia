@@ -37,6 +37,7 @@ test_daily_quest
 test_quest_availability
 test_world_chunks
 test_tick_n017_cleanup
+test_tick_phase2_systems
 test_blessed_mark
 test_mysteries
 test_audio_service

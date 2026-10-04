@@ -23,6 +23,7 @@ extends Node
 
 const T3Script = preload("res://core/frame/kv/t3.gd")
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
+const SeedChainScript = preload("res://core/frame/kv/seed_chain.gd")
 
 signal tick_started(tick_number: int)
 signal tick_completed(tick_number: int, phase_timings: Dictionary)
@@ -156,8 +157,11 @@ var _last_tick_end_ms: int = 0
 ## Whether the tree is in a read-only state between ticks
 var _is_read_only: bool = true
 
-## Seed chain reference for content-hashable state
-var _seed_chain: T3Script = null
+## Seed chain for content-hashable state. Phase 3 folds each tick's
+## authoritative root into the chain head via update_root(). Created
+## eagerly: the head must exist for every fold, not just ticks that
+## happen to carry a diff.
+var _seed_chain: SeedChainScript = SeedChainScript.new()
 
 ## Mark a phase as timed out (budget exceeded)
 var _phase_overruns: Dictionary = {}
@@ -539,13 +543,16 @@ func _should_step_entity(entity) -> bool:
 	return false
 
 ## Step a single entity (apply AI, movement, etc.).
+## Movement/steering runs in EnemyAI's own physics loop; the tick step
+## performs the SERVER-AUTHORITATIVE upkeep: grudge decay on the AI's
+## threat memory at tick cadence (tick rate, not frame rate).
 func _step_entity(entity) -> Dictionary:
 	var overflow: Array = []
-	# TODO: Entity-specific step logic
-	# - Move entities
-	# - Execute combat skills
-	# - Update AI state
-	# - Process interactions
+	if entity == null or not is_instance_valid(entity) or not entity.is_alive():
+		return {"overflow": overflow}
+	if "_ai" in entity and entity._ai != null and is_instance_valid(entity._ai) \
+			and entity._ai.has_method("_decay_grudges"):
+		entity._ai._decay_grudges()
 	return {"overflow": overflow}
 
 ## Apply a player input to the game state.
@@ -602,20 +609,96 @@ func _phase2_mutate() -> Dictionary:
 	return {"processed": processed, "failed": failed}
 
 ## Decay active effects (buffs, dots) on all entities.
-func _decay_effects() -> void:
-	# TODO: Decrement effect durations, remove expired effects
-	pass
+## StatusEffects manage their own timers (duration/tick), so the tick
+## is the SERVER-AUTHORITATIVE janitor: advance wall-clock remaining
+## duration for duration-type effects, then sweep anything expired,
+## inactive, or freed out of each entity's status_effects array.
+const StatusEffectScript = preload("res://core/entities/status_effect.gd")
 
-## Regenerate health, mana, stamina on entities.
+func _decay_effects() -> Dictionary:
+	var swept: int = 0
+	var advanced: int = 0
+	if EntityService == null:
+		return {"swept": swept, "advanced": advanced}
+	var dt: float = _tick_interval / 1000.0
+	var entities = EntityService.get_all_entities()
+	for entity in entities:
+		if entity == null or not is_instance_valid(entity) or not entity.is_alive():
+			continue
+		if "status_effects" not in entity or entity.status_effects.is_empty():
+			continue
+		for effect in entity.status_effects.duplicate():
+			if effect == null or not is_instance_valid(effect):
+				entity.status_effects.erase(effect)
+				swept += 1
+				continue
+			if effect.tick_behavior == StatusEffectScript.TickBehavior.DURATION and effect.remaining_duration > 0.0:
+				effect.remaining_duration = maxf(0.0, effect.remaining_duration - dt)
+				advanced += 1
+			if effect.is_expired() or not effect.is_active:
+				# remove_status_effect reverses the effect (it no-ops on
+				# already-inactive effects) and erases from the array.
+				entity.remove_status_effect(effect)
+				swept += 1
+	return {"swept": swept, "advanced": advanced}
+
+## Health/mana regen per tick (out-of-combat pacing: 1% max health and
+## 2% max mana per second, scaled by the tick interval). Fractional
+## amounts accumulate per entity until a whole point applies, so the
+## 50ms tick never rounds regen to zero.
+const REGEN_HEALTH_PCT_PER_SEC: float = 0.01
+const REGEN_MANA_PCT_PER_SEC: float = 0.02
+
+var _regen_health_acc: Dictionary = {}   # entity_id -> float
+var _regen_mana_acc: Dictionary = {}     # entity_id -> float
+
 func _regen_entities() -> void:
-	# TODO: Regen logic based on entity state
-	pass
+	if EntityService == null:
+		return
+	var dt: float = _tick_interval / 1000.0
+	var entities = EntityService.get_all_entities()
+	for entity in entities:
+		if entity == null or not is_instance_valid(entity) or not entity.is_alive():
+			continue
+		var eid: String = str(entity.entity_id)
+		if eid == "":
+			continue
+		if entity.current_health < entity.max_health:
+			var h_acc: float = float(_regen_health_acc.get(eid, 0.0)) + float(entity.max_health) * REGEN_HEALTH_PCT_PER_SEC * dt
+			while h_acc >= 1.0:
+				h_acc -= 1.0
+				entity.heal(1)
+			_regen_health_acc[eid] = h_acc
+		else:
+			_regen_health_acc.erase(eid)
+		if entity.current_mana < entity.max_mana:
+			var m_acc: float = float(_regen_mana_acc.get(eid, 0.0)) + float(entity.max_mana) * REGEN_MANA_PCT_PER_SEC * dt
+			while m_acc >= 1.0:
+				m_acc -= 1.0
+				entity.current_mana = mini(entity.max_mana, entity.current_mana + 1)
+			_regen_mana_acc[eid] = m_acc
+		else:
+			_regen_mana_acc.erase(eid)
 
 ## Pull cross-shard HLC events from the coordinator.
+## Absorbs the coordinator's pending event queue into the world step:
+## events are returned to the caller (Phase 2 counts chaos per event)
+## and the queue is cleared -- each event is processed by exactly one
+## tick. Returns array of {event_type, source_shard, source_entity_id,
+## payload, hlc_timestamp}.
+var _cross_shard_events_absorbed: int = 0
+
 func _pull_cross_shard_events() -> Array:
-	# TODO: Pull HLC events from coordinator
-	# Returns array of HLC event dictionaries
-	return []
+	var coordinator := get_node_or_null("/root/CoordinatorService")
+	if coordinator == null or not coordinator.has_method("get_pending_events"):
+		return []
+	var events: Array = coordinator.get_pending_events()
+	if events.is_empty():
+		return []
+	if coordinator.has_method("clear_processed_events"):
+		coordinator.clear_processed_events()
+	_cross_shard_events_absorbed += events.size()
+	return events
 
 ## Advance the wall clock (day/night cycle).
 func _advance_wall_clock() -> void:
@@ -653,13 +736,13 @@ func _phase3_reroot_and_diff() -> Dictionary:
 	# received incremental updates in the live flow.
 	_last_tick_diff = diff
 
+	# Fold the authoritative root into the seed chain head (empty hash
+	# on a first tick with an empty tree is a no-op inside update_root).
+	if _current_root_hash.size() > 0:
+		_seed_chain.update_root(_current_root_hash)
+
 	# Update previous root hash for next tick
 	_previous_root_hash = _current_root_hash
-
-	# Update seed chain (recomputable from world_seed + path)
-	# TODO: seed_chain.update_root() is not yet implemented in seed_chain.gd
-	# if _seed_chain and _current_root_hash.size() > 0:
-	# 	_seed_chain.update_root(_current_root_hash)
 
 	return {"root_hash": _current_root_hash, "diff": diff, "diff_size": diff.size()}
 

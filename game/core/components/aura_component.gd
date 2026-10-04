@@ -4,18 +4,19 @@ extends Node
 class_name AuraComponent
 const Buff = preload("res://core/combat/buff.gd")
 const StatusEffect = preload("res://core/entities/status_effect.gd")
+const AuraBuffScript = preload("res://core/combat/aura_buff.gd")
 
 
 signal buff_added(buff: Buff)
 signal buff_removed(buff: Buff)
 signal debuff_added(debuff: StatusEffect)
 signal debuff_removed(debuff: StatusEffect)
-signal aura_activated(aura: AuraBuff)
-signal aura_deactivated(aura: AuraBuff)
+signal aura_activated(aura: AuraBuffScript)
+signal aura_deactivated(aura: AuraBuffScript)
 
 var _active_buffs: Array[Buff] = []
 var _active_debuffs: Array[StatusEffect] = []
-var _active_auras: Array[AuraBuff] = []
+var _active_auras: Array[AuraBuffScript] = []
 
 @export var max_buffs: int = 32
 @export var max_debuffs: int = 16
@@ -50,7 +51,7 @@ func remove_buff(buff: Buff) -> void:
 	if not _active_buffs.has(buff):
 		return
 
-	buff.remove()
+	buff.remove(get_parent())
 	_active_buffs.erase(buff)
 
 	buff_removed.emit(buff)
@@ -83,14 +84,14 @@ func remove_debuff(debuff: StatusEffect) -> void:
 	if not _active_debuffs.has(debuff):
 		return
 
-	debuff.remove()
+	debuff.remove(get_parent())
 	_active_debuffs.erase(debuff)
 
 	debuff_removed.emit(debuff)
 	EventHub.buff_removed.emit(get_parent(), debuff)
 
 ## Add an aura (toggleable buff)
-func add_aura(aura: AuraBuff, source: Entity = null) -> bool:
+func add_aura(aura: AuraBuffScript, source: Entity = null) -> bool:
 	if not aura:
 		return false
 
@@ -106,24 +107,24 @@ func add_aura(aura: AuraBuff, source: Entity = null) -> bool:
 	return true
 
 ## Remove an aura
-func remove_aura(aura: AuraBuff) -> void:
+func remove_aura(aura: AuraBuffScript) -> void:
 	if not _active_auras.has(aura):
 		return
 
-	aura.remove()
+	aura.remove(get_parent())
 	_active_auras.erase(aura)
 
 	aura_deactivated.emit(aura)
 	EventHub.aura_deactivated.emit(get_parent(), aura)
 
 ## Toggle an aura on/off
-func toggle_aura(aura: AuraBuff, enabled: bool) -> void:
+func toggle_aura(aura: AuraBuffScript, enabled: bool) -> void:
 	if enabled:
 		if not _active_auras.has(aura):
 			add_aura(aura)
 		aura.apply(get_parent())
 	else:
-		aura.remove()
+		aura.remove(get_parent())
 
 ## Check if has buff
 func has_buff(effect_id: String) -> bool:
@@ -155,7 +156,7 @@ func get_all_debuffs() -> Array[StatusEffect]:
 	return _active_debuffs.duplicate()
 
 ## Get all active auras
-func get_all_auras() -> Array[AuraBuff]:
+func get_all_auras() -> Array[AuraBuffScript]:
 	return _active_auras.duplicate()
 
 ## Dispel buffs by category
@@ -179,8 +180,9 @@ func dispel_debuffs(category: String) -> int:
 	var removed := 0
 	var debuffs_to_remove := []
 
+	var cat_enum: int = _get_category_enum(category)
 	for debuff in _active_debuffs:
-		if debuff.effect_category == category:
+		if cat_enum >= 0 and debuff.effect_category == cat_enum:
 			debuffs_to_remove.append(debuff)
 
 	for debuff in debuffs_to_remove:
@@ -222,11 +224,18 @@ func get_stat_modifiers() -> Dictionary:
 
 	return modifiers
 
-## Process physics (for DOTs, etc.)
+## Process physics (for DOTs, etc.). DoT damage ticks are owned by the
+## DamageOverTime effect's own Timer; this loop only advances each
+## debuff's wall-clock remaining duration (SpeedModifier is a Node --
+## it has no _physics_process of its own).
 func _physics_process(delta: float) -> void:
-	# Process DOTs
-		if debuff is DamageOverTime:
-			debuff.tick(delta)
+	for debuff in _active_debuffs:
+		if debuff == null or not is_instance_valid(debuff):
+			continue
+		if debuff.remaining_duration > 0.0:
+			debuff.remaining_duration = maxf(0.0, debuff.remaining_duration - delta)
+			if debuff.remaining_duration <= 0.0:
+				remove_debuff(debuff)
 
 ## Count buffs/debuffs
 func get_buff_count() -> int:
@@ -239,7 +248,7 @@ func get_debuff_count() -> int:
 
 ## Convert category string to enum
 func _get_category_enum(category: String) -> int:
-	for key in StatusEffect.EffectCategory.keys():
+	for key: String in StatusEffect.EffectCategory.keys():
 		if key.to_lower() == category.to_lower():
 			return StatusEffect.EffectCategory.get(key)
 	return -1
@@ -267,7 +276,7 @@ func dispel_all(caster: Entity = null) -> int:
 ## Cleanse (removes debuffs, often player ability)
 func cleanse(caster: Entity = null) -> int:
 	return _dispel_by_category([
-		StatusEffect.EffectCategory.POISON, StatusEffect.EffectCategory.DISEASE, StatusEffect.EffectCategory.CURSE
+		StatusEffect.EffectCategory.POISON, StatusEffect.EffectCategory.CURSE
 	], caster)
 
 ## Internal dispel by categories
@@ -339,7 +348,7 @@ func get_dispel_info() -> Dictionary:
 	var categories: Dictionary = {}
 
 	for debuff in _active_debuffs:
-		var cat_name := StatusEffect.EffectCategory.keys()[debuff.effect_category]
+		var cat_name: String = str(StatusEffect.EffectCategory.keys()[debuff.effect_category])
 		if not categories.has(cat_name):
 			categories[cat_name] = []
 		categories[cat_name].append({

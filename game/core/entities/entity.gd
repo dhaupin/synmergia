@@ -300,7 +300,11 @@ func apply_status_effect(effect) -> void:
 		return
 	status_effects.append(effect)
 	effect.apply(self)
-	effect.effect_expired.connect(_on_status_effect_expired)
+	# effect_expired is a no-arg signal; bind the effect so the handler
+	# receives it (a bare connect turns every natural timer/tick expiry
+	# into a wrong-argument-count runtime error and leaves the effect
+	# stuck in the array).
+	effect.effect_expired.connect(_on_status_effect_expired.bind(effect))
 
 func _on_status_effect_expired(effect) -> void:
 	status_effects.erase(effect)

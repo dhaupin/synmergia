@@ -128,10 +128,10 @@ func get_entities_in_sphere(origin: Vector3, sphere_radius: float, ignore_source
 	query.transform = Transform3D(Basis.IDENTITY, origin)
 	query.collision_mask = Layers.layer_bit("entity")  # Only entities layer
 
-	var results := space_state.intersect_shape(query, 50)
+	var results: Array = space_state.intersect_shape(query, 50)
 
 	for result in results:
-		var collider := result["collider"]
+		var collider: Variant = result["collider"]
 		if collider is Entity:
 			if ignore_source and collider == source_entity:
 				continue
@@ -171,7 +171,7 @@ func get_entities_with_los(origin: Vector3, sphere_radius: float) -> Array:
 
 	for entity in all_entities:
 		# Check LOS to entity's center
-		var target_pos := entity.global_position
+		var target_pos: Vector3 = entity.global_position
 		# Offset slightly above ground for better LOS
 		target_pos.y += 1.0
 

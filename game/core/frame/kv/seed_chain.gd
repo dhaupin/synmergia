@@ -1,6 +1,6 @@
 ## Seed chain derivation for recursive seed trees.
 ## Ported from game/core/frame/prototype/iso_math.py (section 7.2)
-## Spec: labs/world-building-arch.md В§7.2
+## Spec: labs/world-building-arch.md sec 7.2
 extends RefCounted
 
 const T3Script = preload("res://core/frame/kv/t3.gd")
@@ -59,6 +59,25 @@ func _insert_seed_node(t3: Variant, schema: Resource, stack: Array[PackedByteArr
 ## Returns a hex-encoded string representation of a seed hash for logging.
 static func seed_hash(seed: PackedByteArray) -> String:
 	return seed.hex_encode()
+
+
+## Rolling chain anchor: folds the authoritative world-tree root hash
+## into the chain head, so the seed chain always carries the latest
+## re-rooted tree state (Phase 3 of the tick calls this per tick; the
+## head is a deterministic function of every root the server has ever
+## re-rooted to). Empty hashes are ignored (no fold, head unchanged).
+var _chain_head: PackedByteArray = PackedByteArray()
+
+func update_root(root_hash: PackedByteArray) -> PackedByteArray:
+	if root_hash.is_empty():
+		return _chain_head
+	_chain_head = _sha256(_chain_head + root_hash)
+	return _chain_head
+
+
+## The current chain head (all folded roots so far).
+func chain_head() -> PackedByteArray:
+	return _chain_head
 
 
 static func _sha256(data: PackedByteArray) -> PackedByteArray:

@@ -3,12 +3,13 @@
 extends Resource
 class_name StatusEffect
 
-## The Entity class is resolved via preload + is_instance_of()
-## rather than the bare `target.is_instance_of(EntityScript)` type check. Entity's
-## class_name is registered at parse time only when entity.gd has
-## loaded first, which is not guaranteed for this file (it is
-## preloaded by RegisterTypes, but other paths load it directly).
-## is_instance_of(Script) is the runtime equivalent of `is Entity`
+## The Entity class is resolved via preload + the global is_instance_of()
+## function (NOT a method call: `target.is_instance_of(...)` is a
+## Nonexistent-function runtime error on any Node). Entity's class_name
+## is registered at parse time only when entity.gd has loaded first,
+## which is not guaranteed for this file (it is preloaded by
+## RegisterTypes, but other paths load it directly).
+## is_instance_of(obj, Script) is the runtime equivalent of `is Entity`
 ## and needs no global class_name registration.
 const EntityScript = preload("res://core/entities/entity.gd")
 
@@ -70,7 +71,15 @@ signal tick_occurred(entity, amount: int, tick_type: String)
 @export var tick_behavior: TickBehavior = TickBehavior.INSTANT
 
 # Duration and stacking
-@export var duration: float = 0.0
+## The setter keeps remaining_duration in sync: _init captures duration
+## BEFORE callers (or .tres loads, which assign exported props after
+## _init) set it, and apply_status_effect's is_expired() gate would
+## otherwise reject every configured DURATION effect as already-dead
+## (stale remaining_duration = 0.0).
+@export var duration: float = 0.0:
+	set(value):
+		duration = value
+		remaining_duration = value
 @export var max_stacks: int = 1
 @export var stack_behavior: StackBehavior = StackBehavior.NONE
 
@@ -158,7 +167,7 @@ func apply(target_entity: Node) -> bool:
 	_apply_stat_modifiers(true)
 	_apply_combat_modifiers(true)
 
-	if make_invisible and target.is_instance_of(EntityScript):
+	if make_invisible and is_instance_of(target, EntityScript):
 		_was_visible = target.visible
 		target.visible = false
 
@@ -185,7 +194,7 @@ func remove(target_entity: Node) -> void:
 	_apply_stat_modifiers(false)
 	_apply_combat_modifiers(false)
 
-	if make_invisible and target.is_instance_of(EntityScript):
+	if make_invisible and is_instance_of(target, EntityScript):
 		target.visible = _was_visible
 
 	_stop_timers()
@@ -209,7 +218,7 @@ func _handle_stacking() -> void:
 			_apply_combat_modifiers(true)
 
 func _apply_stat_modifiers(adding: bool) -> void:
-	if not target or not target.is_instance_of(EntityScript):
+	if not target or not is_instance_of(target, EntityScript):
 		return
 
 	var sign: int = 1 if adding else -1
@@ -299,11 +308,11 @@ func _apply_tick_effect() -> void:
 	if not target or not is_instance_valid(target):
 		return
 
-	if tick_damage > 0 and target.is_instance_of(EntityScript):
+	if tick_damage > 0 and is_instance_of(target, EntityScript):
 		target.current_health = maxi(0, target.current_health - tick_damage * current_stacks)
 		target.health_changed.emit(target.current_health, target.max_health)
 
-	if tick_heal > 0 and target.is_instance_of(EntityScript):
+	if tick_heal > 0 and is_instance_of(target, EntityScript):
 		target.current_health = mini(target.max_health, target.current_health + tick_heal * current_stacks)
 		target.health_changed.emit(target.current_health, target.max_health)
 

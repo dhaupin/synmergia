@@ -3396,3 +3396,70 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   Remaining stubs (deliberate, vertical-slice scale):
   _decay_effects/_regen_entities/_step_entity (Phase 2 gameplay),
   _pull_cross_shard_events (coordinator HLC), seed_chain.update_root().
+- [x] Round 27 (Phase 2 tick systems built + the buff/effect stack
+  resurrected from a parse-broken dormant island; the new suite caught
+  three product defects in the working path):
+  (1) Effect stack repairs. buff.gd carried a second mid-file
+  class_name (AuraBuff) -- a parse error that made the whole island
+  dead weight. AuraBuff extracted to core/combat/aura_buff.gd (extends
+  Buff) with its undefined refs repaired: target_entity->target,
+  phantom Faction enum->Entity.Relation, costs renamed
+  aura_cost_mana/aura_cost_stamina (Buff owns mana_cost/stamina_cost),
+  is_active()->is_toggled_on() (clash), remove(Node) signature,
+  explicit types for inference traps. buff.gd truncated to the Buff
+  class only (198 lines) and de-shadowed: removed re-declarations of
+  effect_name/effect_id/duration/max_stacks/shield_amount/resistances/
+  target/_shield_remaining inherited from StatusEffect; target->
+  target_rule (the Target enum); shield_amount_export feeds
+  _shield_remaining = export * stack_count; apply/remove signatures
+  aligned with the parent. aura_component.gd's orphan double-indented
+  _physics_process rewritten (advances each debuff's remaining_duration
+  per frame, removes at 0), AuraBuff refs via AuraBuffScript preload,
+  nonexistent EffectCategory.DISEASE dropped (cleanse = POISON+CURSE),
+  remove(get_parent()) at 4 sites. physics_area.gd: 3 Variant-inference
+  fixes. status_handlers.gd DELETED (+ .uid): four classes illegally
+  nested after a Node extends; DamageOverTime already lives in
+  status_effect.gd. Island confirmed never instantiated (no
+  CombatComponent.new, no aura_component referencers) -- the WORKING
+  path is Entity.status_effects + StatusEffect, which is what the tick
+  janitor targets.
+  (2) Five Phase 2/3 systems built (R26's stub list retired):
+  _decay_effects = the server-authoritative janitor (advances
+  DURATION-behavior remaining_duration by tick dt, then sweeps
+  expired/inactive/null slots out of every entity's status_effects via
+  remove_status_effect, which reverses modifiers); _regen_entities =
+  out-of-combat regen 1% max HP + 2% max mana per second through
+  per-entity fractional accumulators, whole-point application so the
+  50ms tick never rounds to zero; _step_entity = tick-cadence AI grudge
+  decay via EnemyAI._decay_grudges (server authority at tick rate, not
+  frame rate); _pull_cross_shard_events = exactly-once CoordinatorService
+  drain (get_pending_events + clear_processed_events,
+  _cross_shard_events_absorbed counter); seed_chain.update_root =
+  SHA-256 fold of each Phase 3 root hash into the chain head (empty
+  root = no-op; same fold order -> same head), chain now created
+  eagerly in TickService so every fold lands.
+  (3) Three product defects the new suite caught in the working path:
+  (a) status_effect.gd called target.is_instance_of(EntityScript) at 5
+  sites -- is_instance_of is a GLOBAL function, not an Object method,
+  so every apply to an Entity errored (stealth/invisible path +
+  tick_damage/tick_heal); fixed to the global-function form.
+  (b) apply_status_effect's is_expired() gate rejected every effect
+  configured after construction as dead-on-arrival: _init captures
+  remaining_duration = duration BEFORE callers assign duration (and
+  .tres loads assign exported props after _init) -- skill.gd's entire
+  HoT/DoT/stun/root/slow pipeline sets duration then applies, i.e. all
+  DOA; fixed with a duration setter that keeps remaining_duration in
+  sync. (c) entity.gd connected the NO-ARG effect_expired signal to a
+  1-arg handler -- every natural timer/tick expiry was a
+  wrong-argument-count error and the effect stayed stuck in the array
+  (the janitor masked it); fixed with .bind(effect).
+  Tests: new game/tests/test_tick_phase2_systems.gd (24 asserts, 5
+  sections: decay sweep incl. permanent-survival + null-slot sweep,
+  regen accumulators, cross-shard exactly-once, AI grudge decay via
+  _step_entity, seed-chain fold determinism + eager chain); added to
+  the runner DEFAULT_SET. Regression: 8/8 (test_phase4_zone_aoi,
+  test_world_chunks, test_tick_n017_cleanup, test_e2e_flow,
+  test_horde_rewards, test_world_state_projection, frame/kv/test_t3,
+  frame/kv/test_seed_chain). Hygiene: tabs only, extends-first intact,
+  two stray non-ASCII comment chars normalized (seed_chain header,
+  aura_component comment).
