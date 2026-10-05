@@ -27,6 +27,7 @@ fi
 DEFAULT_SET="
 test_data_naming_lint
 test_a11y_service
+test_a11y_contrast
 test_movement_profiles
 test_anticheat_limits
 test_hitbox_profiles

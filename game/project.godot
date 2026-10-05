@@ -8,6 +8,10 @@
 
 config_version=5
 
+[accessibility]
+
+accessibility_support=0
+
 [application]
 
 config/name="Synmergia"

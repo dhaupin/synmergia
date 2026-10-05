@@ -3898,4 +3898,53 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   GL (documented sandbox limitation). The suite now proves the
   in-world bridge directly, so no probe re-run was required.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 38 (PRD-ACCESSIBILITY ROUND 4 SHIPPED: engine AT support
+  on, the palettes audited against WCAG with two real fixes, and the
+  probe rig moved into the repo):
+  (1) The rig first (committed as 06f13ed): scripts/web_probe/ --
+  probe_boot.js (boot smoke) + probe_a11y.js (the snapshot-driven
+  journey, extended with the round-3 in-world entity step) +
+  package.json (playwright-core) + README.md carrying the R32/R33
+  sandbox GL recipe (xvfb + mesa-vulkan-drivers/lavapipe; the flags
+  that work and the one that broke it). Paths env-driven
+  (PROBE_CHROME/PROBE_PORT/PROBE_WEB); the harness no longer lives in
+  /tmp. Verified live in-sandbox: syntax + install + a boot-smoke
+  PASS through the committed files (engine banner, TickService/
+  LODManager streaming; the two ERR_ABORTED reqfails are the
+  documented post-boot worker-pool handoff, not failures).
+  (2) Engine AT support: accessibility/general/accessibility_support=0
+  (Auto -- active when a screen reader is detected) pinned in
+  project.godot. Verified the setting exists on our 4.7.2 binary
+  (strings) and read the enum from the docs (Auto=0/Always=1/
+  Disabled=2); Always was rejected deliberately (upstream reports of
+  AT-triggered log spam and focus side effects). PRD's "(Auto)"
+  honored.
+  (3) High-contrast audit: new game/tests/test_a11y_contrast.gd in
+  the runner DEFAULT_SET computes WCAG 2.x ratios for the pairs the
+  UI really renders (4.5:1 normal text AA 1.4.3; 3.0:1 for status
+  indicators under 1.4.11) and prints the table as the audit record.
+  TWO REAL FIXES: text_disabled 0.5 -> 0.55 (was 4.35:1, below AA --
+  Synmergia's disabled states carry actionable hints so their text
+  must be readable) and the panel border 0.3/0.3/0.4 ->
+  0.42/0.42/0.5 (was 2.10:1, below 1.4.11's 3.0 for component
+  boundaries; now 3.33:1). The HIGH_CONTRAST palette's "WCAG 4.5:1
+  compliant" comment is now proven, not trusted (8.3-20.4:1 across
+  its pairs); the mint CTA's dark-on-green design validated at
+  8.22:1; offline status 3.01:1 within 1.4.11.
+  (4) Mobile/tablet focus review (the PRD's sec-8 flag): InputManager
+  self-detects web+coarse-pointer as mobile (Mode=TOUCH) but nothing
+  in the touch path gates keyboard focus or the a11y walk -- the R36
+  touch-cluster annotations ride the same actionable snapshot, and
+  A11yService.focus_next/prev work identically in TOUCH mode. No
+  defect found; PlayerConfig "touch_controls" remains the override.
+  (5) Probe step (OS screen reader smoke + manual web pass): NVDA
+  cannot run in this sandbox -- recorded as the manual desktop
+  acceptance step; the web half is tooling-complete via the
+  committed rig. Verification: 8-test regression batch 8/0
+  (a11y_service, a11y_contrast, combat_stack_live, kill_rewards,
+  horde_rewards, e2e_flow, hud_integration, login_flow -- login_flow
+  doubles as the project.godot boot canary). Test lessons: `pass` is
+  a reserved word in GDScript 4 (renamed in the audit test), and a
+  const needs preload, not load (4.7.2 constant-expression rule).
+  Hygiene: tabs only, ASCII, extends-first intact.
 

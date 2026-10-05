@@ -10,11 +10,17 @@ const COLORS := {
 	"background": Color(0.1, 0.1, 0.15, 0.98),
 	"background_dark": Color(0.08, 0.08, 0.1, 0.98),
 	"background_overlay": Color(0, 0, 0, 0.7),
-	"border": Color(0.3, 0.3, 0.4),
+	# 0.42/0.42/0.5, not 0.3/0.3/0.4: the R38 WCAG audit measured the old
+	# border at 2.10:1 on the panel background -- below 1.4.11's 3.0 for
+	# component boundaries. The brightened slate is 3.33:1.
+	"border": Color(0.42, 0.42, 0.5),
 	"border_highlight": Color(0.5, 0.4, 0.3),
 	"text_primary": Color(1, 1, 1),
 	"text_secondary": Color(0.7, 0.7, 0.7),
-	"text_disabled": Color(0.5, 0.5, 0.5),
+	# 0.55, not 0.5: the R38 WCAG audit measured 0.5 at 4.35:1 on the
+	# panel background -- below AA 4.5. Disabled states carry actionable
+	# hints ("no mana", "locked"), so their text must stay readable.
+	"text_disabled": Color(0.55, 0.55, 0.55),
 	"accent": Color(0.6, 0.4, 0.2),
 	"accent_gold": Color(1, 0.8, 0.2),
 	# Synmergia brand green (the logo banner mint, play-test round 8):
