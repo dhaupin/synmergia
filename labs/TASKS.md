@@ -3653,3 +3653,37 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   frame/kv/test_t3_dedup, kill_rewards, horde_rewards,
   skill_academy_live).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 32 (live WASM probe: the harness works, the sandbox can't
+  render -- everything short of engine boot verified, tooling banked):
+  (1) Rebuilt web/game.pck + game.pck.hash locally with the CI recipe
+  (--export-pack "Web" + sha256sum) so the served export embeds
+  R29-R31 content (CI had not refreshed yet at fetch time). Content
+  proof: res://tests/stub_buff_bar.gd -- a path that exists only since
+  R30 -- is in the pack's embedded file list (3248 res:// entries).
+  Script BODY text does not grep in a Godot 4 pck (binary tokens) --
+  source-string greps are a false-negative trap.
+  (2) scripts/serve_web.py committed: stdlib static server for web/
+  with the COOP/COEP headers the THREADED Godot web build requires
+  (the shell checks window.crossOriginIsolated; a plain http.server
+  sends neither header and the engine refuses to start), plus wasm/pck
+  MIME and the injected PORT. Verified live: 200 + both headers +
+  application/wasm.
+  (3) The managed preview currently runs the Vite dev server (no
+  cross-origin headers, would never boot the engine) and the
+  freebuff-preview set CLI rejects every port with "must be an integer
+  from 1024 to 65535" (even valid ints / both argument orders / with
+  --help) -- CLI quirk to revisit; serve_web.py is the manual workaround.
+  (4) Boot probe harness (playwright-core 1.63 + the pre-cached
+  chromium-1243, /tmp/wasmtest/test.js, not committed): drove the real
+  export headless. VERIFIED LIVE: cross-origin isolation achieved,
+  index.html shell runs, canvas created, 12MB pck fetched with zero
+  failed requests, and the shell's feature gate correctly fails closed
+  with its friendly "missing required features: WebGL2" message.
+  BLOCKED in this sandbox: ANGLE's Vulkan/SwiftShader backend cannot
+  initialize (vk_renderer.cpp Internal Vulkan error -3; explicit
+  VK_ICD_FILENAMES, vulkan/swiftshader/gl backends, and headless shell
+  vs full chrome all tried) -- no WebGL2 headless means the ENGINE
+  itself never starts here. In-browser verification of gameplay needs
+  a real GPU-capable browser (user's machine / GPU runner) against
+  serve_web.py.
+  Hygiene: tabs only, ASCII, extends-first intact.
