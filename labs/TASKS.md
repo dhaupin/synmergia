@@ -3802,4 +3802,44 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   was 600 FRAMES -- minutes of stuck loading screen on low-fps
   devices; now a 90-second wall-clock cap with a loud timeout error.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 36 (PRD-ACCESSIBILITY ROUND 2 SHIPPED: the HUD and
+  in-game surfaces are actionable by name -- dynamic populations
+  annotate themselves at assignment):
+  (1) Service upgrade: an EXPLICITLY annotated control is actionable
+  regardless of kind (`accessibility_name` present and non-empty),
+  while unannotated non-buttons stay invisible (20-assert suite pins
+  both directions). activate() synthesizes a REAL press+release
+  through the viewport's GUI input path for annotated non-buttons
+  (skill slots are PanelContainers driven by gui_input buttons/
+  slots): push_input(event, true) -- the in_gui flag is REQUIRED in
+  headless/script mode (plain push_input drops the event; found by
+  the suite). A hit-test guard refuses clicks the pointer path would
+  deliver elsewhere (stale overlays can never swallow an agent tap).
+  (2) Surfaces annotated: ActionBar page buttons ("Show skill bar N")
+  and slots at update_slot time ("Cast <Skill>" + mana cost + key,
+  empty slots self-describe); QuickAccessBar slots at set_slot_item
+  ("Use <Item> xN"); virtual joystick touch cluster ("Attack",
+  "Jump", "Dodge", "Interact", "Use ability N" -- the short ATK/JMP
+  labels are agent/reader meaningless); DialogUI Continue ("Continue
+  dialog") and reply choices ("Say: <line>"); RespawnUI option
+  buttons ("Respawn: <destination>") + the skip action; the loading
+  overlay restores MOUSE_FILTER_STOP while showing and hands the
+  pointer back (IGNORE) on hide -- a hidden full-rect STOP backdrop
+  was a latent pointer-swallowing window during handoffs.
+  (3) Test lessons (suite 20/0): synthesized clicks need a REAL
+  rect (zero-size contains no point), and Container children ALWAYS
+  fill their parent -- a sibling added to the same PanelContainer
+  stacks over the slot and (later in tree order) legitimately wins
+  pointer delivery; fixtures must not overlap their own targets.
+  The loading-layer hijack from the first draft was a phantom (the
+  fixture button was never actually hidden); the real LoadingUI
+  discipline fix stands on its own merits.
+  (4) Regression: 5/5 (a11y_service 20/0 in DEFAULT_SET,
+  combat_stack_live, e2e_flow, login_flow, hud_integration). Live
+  probe re-verified the full journey on the repacked pck (dec1ccb4
+  ...): actions arrive mid-journey (lobby/species/class announced
+  live), all hops verified, in-world pause/resume working. The known
+  sandbox limitation persists: world-build log marks land outside
+  the wait window at 2-4fps software GL stdout batching.
+  Hygiene: tabs only, ASCII, extends-first intact.
 

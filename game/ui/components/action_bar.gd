@@ -151,6 +151,11 @@ func _setup_ui() -> void:
 		btn.focus_mode = Control.FOCUS_ALL
 		btn.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, false))
 		btn.pressed.connect(_on_page_button_pressed.bind(bar_idx))
+		UIStyles.apply_accessibility(
+			btn,
+			"Show skill bar %d" % (bar_idx + 1),
+			"Pages the action bar to its skill set %d" % (bar_idx + 1)
+		)
 		_page_buttons.append(btn)
 		_page_container.add_child(btn)
 
@@ -633,6 +638,10 @@ func update_slot(local_index: int, skill_data: Dictionary) -> void:
 			cooldown_text.visible = false
 		if range_overlay:
 			range_overlay.visible = false
+		# A11y: empty slots announce themselves as empty so the snapshot
+		# explains the bar instead of showing mystery boxes.
+		UIStyles.apply_accessibility(slot, "Empty skill slot %d" % (local_index + 1), "Drag a skill here to bind it")
+		slot.disabled = false
 		return
 
 	if icon:
@@ -647,6 +656,16 @@ func update_slot(local_index: int, skill_data: Dictionary) -> void:
 		keybind.text = skill_data.keybind
 	else:
 		keybind.text = _get_keybind_text(local_index)
+
+	# A11y: name the SKILL and its cost, state the key and the cast verb.
+	var skill_label: String = str(skill_data.name) if skill_data.has("name") else str(skill_data.get("skill_id", "Skill"))
+	var cost_piece := " " + str(skill_data["mana_cost"]) + " mana" if skill_data.has("mana_cost") and float(skill_data["mana_cost"]) > 0.0 else ""
+	var key_text: String = keybind.text if keybind else ""
+	UIStyles.apply_accessibility(
+		slot,
+		"Cast %s" % skill_label,
+		("%s. Key %s. Click to cast." % [cost_piece, key_text]).replace(". .", ".")
+	)
 
 	if stack and skill_data.has("charges"):
 		var charges: int = skill_data.charges

@@ -392,9 +392,19 @@ func set_slot_item(index: int, item_data: Dictionary) -> void:
 			low_warning.visible = false
 		if style:
 			style.border_color = UIStyles.HIGH_CONTRAST_COLORS.border if _qa_high_contrast else UIStyles.COLORS.border
+		# A11y: empty consumable slots self-describe (round 2).
+		UIStyles.apply_accessibility(slot, "Empty item slot %d" % (index + 1), "Drag a consumable here")
 		return
 
 	_slot_items[index] = item_data
+	# A11y: name the ITEM and its stack, state the use verb.
+	var item_label: String = str(item_data.get("name", item_data.get("id", "Item")))
+	var qty_note := " x%s" % str(item_data["quantity"]) if item_data.has("quantity") and int(item_data["quantity"]) > 1 else ""
+	UIStyles.apply_accessibility(
+		slot,
+		"Use %s%s" % [item_label, qty_note],
+		"Consumable. Click or press its key to use."
+	)
 	if icon:
 		icon.modulate = Color(1, 1, 1, 1)
 		icon.texture = IconResolver.get_item_icon_from_dict(item_data)

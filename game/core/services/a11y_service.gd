@@ -87,9 +87,15 @@ func _is_actionable(ctrl: Control) -> bool:
 		if ancestor is CanvasLayer and ancestor.name == "BootLoadingLayer":
 			return false
 		ancestor = ancestor.get_parent()
-	# `is` checks, not is_class(): is_class matches the EXACT class name
-	# and would miss HSlider/VSlider under "Slider". CheckBox/OptionButton
-	# are BaseButton subclasses and ride along for free.
+	# R36: an EXPLICITLY ANNOTATED control is actionable regardless of
+	# kind (CustomSlot PanelContainers, labeled panels); unannotated
+	# non-buttons never are. `is` checks, not is_class(): is_class
+	# matches the EXACT class name and would miss HSlider/VSlider under
+	# "Slider". CheckBox/OptionButton are BaseButton subclasses.
+	if "accessibility_name" in ctrl:
+		var annotated = ctrl.get("accessibility_name")
+		if annotated != null and String(annotated) != "":
+			return true
 	return ctrl is BaseButton or ctrl is LineEdit or ctrl is ItemList or ctrl is Slider
 
 
@@ -176,9 +182,11 @@ func focus_index(index: int) -> bool:
 
 
 ## Activate by snapshot index: keyboard activation semantics (button =
-## emit pressed; line edit = focus + let the agent type). Agents act by
-## name/index here, then confirm effects through the game's own logs --
-## never by bypassing the input pipeline.
+## emit pressed; line edit = focus + let the agent type; annotated
+## non-buttons = synthesized click, which their gui_input handlers
+## handle exactly like a real one). Agents act by name/index here, then
+## confirm effects through the game's own logs -- never by bypassing
+## the input pipeline.
 func activate(index: int) -> bool:
 	var snap := snapshot()
 	if index < 0 or index >= snap.size():
@@ -195,6 +203,7 @@ func activate(index: int) -> bool:
 		return true
 	if node is Control:
 		focus_index(index)
+		_synthesize_click(node as Control)
 		return true
 	return false
 
@@ -250,3 +259,48 @@ func _detail_label(ctrl: Control) -> String:
 func _rect_dict(ctrl: Control) -> Dictionary:
 	var r := ctrl.get_global_rect()
 	return {"x": r.position.x, "y": r.position.y, "w": r.size.x, "h": r.size.y}
+
+
+## Synthesized click for annotated non-buttons (skill slots, touch-
+## cluster buttons with custom input handlers): press + release at the
+## control center, with the viewport focus set so gui_input routing
+## matches a real user tap. Nothing bypasses the input pipeline.
+func _synthesize_click(ctrl: Control) -> void:
+	var rect := ctrl.get_global_rect()
+	var center := rect.position + rect.size * 0.5
+	var vp := ctrl.get_viewport()
+	if vp == null:
+		return
+	# Hit-test guard: whatever the viewport's pointer path would pick at
+	# that point must be (or be inside) the target. An invisible overlay
+	# (e.g. a button in a hidden-but-hit-testable CanvasLayer, or a slot
+	# whose texture is gone) would otherwise win the pointer pick and
+	# the click would vanish -- found by the R36 suite when a hidden
+	# BootLoadingLayer button ate a probe click.
+	var winner := ctrl.get_viewport().gui_get_hovered_control()
+	if winner != null and winner != ctrl and not _is_at_or_above(winner, ctrl, center) and not ctrl.is_ancestor_of(winner):
+		return
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = center
+	down.global_position = center
+	var up: InputEventMouseButton = down.duplicate()
+	up.pressed = false
+	# Route through the GUI input path explicitly: headless/script-mode
+	# viewports only deliver to gui_input handlers when in_gui=true
+	# (found by the test suite -- plain push_input dropped the event).
+	vp.push_input(down, true)
+	vp.push_input(up, true)
+
+
+## True when `candidate` is the target itself or the target's ancestor
+## chain covers the click point (hit-testing delivers to the deepest
+## control; ancestors legitimately receive it too).
+func _is_at_or_above(candidate: Control, ctrl: Control, _point: Vector2) -> bool:
+	var node: Node = candidate
+	while node != null:
+		if node == ctrl:
+			return true
+		node = node.get_parent()
+	return false

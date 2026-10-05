@@ -153,6 +153,21 @@ func _create_buttons() -> void:
 		btn.add_theme_stylebox_override("focus", _button_style(colors, false))
 		btn.button_down.connect(_on_button_down.bind(str(cfg.action)))
 		btn.button_up.connect(_on_button_up.bind(str(cfg.action)))
+		# A11y (round 2): short HUD labels are meaningless to readers and
+		# agents; the annotated action names the VERB ("Attack", "Jump").
+		var verb_map := {
+			"attack": "Attack", "jump": "Jump", "crouch": "Crouch",
+			"dodge": "Dodge", "interact": "Interact",
+			"ability_1": "Use ability 1", "ability_2": "Use ability 2",
+			"ability_3": "Use ability 3", "ability_4": "Use ability 4",
+		}
+		var verb: String = verb_map.get(str(cfg.action), str(cfg.action))
+		if UIStyles and "apply_accessibility" in UIStyles:
+			UIStyles.apply_accessibility(
+				btn,
+				verb,
+				"Hold to act" if bool(cfg.get("repeat", false)) else "Tap to " + verb.to_lower()
+			)
 		add_child(btn)
 		_buttons[str(cfg.action)] = {
 			"button": btn,

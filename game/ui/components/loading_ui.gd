@@ -236,6 +236,11 @@ func show_loading(message: String = "Loading...", sub_message: String = "") -> v
 	_status_text = message
 	_sub_text = sub_message
 	_progress = 0.0
+	# Restore modal pointer blocking while genuinely visible (the
+	# hide_loading counterpart of this is MOUSE_FILTER_IGNORE).
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	if _backdrop:
+		_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	if _progress_bar:
 		_progress_bar.visible = false
@@ -269,6 +274,14 @@ func show_success(message: String = "Complete!", sub_message: String = "") -> vo
 func hide_loading() -> void:
 	_current_state = LoadingState.IDLE
 	hide()
+	# Also stop blocking the pointer: the full-rect backdrop is built
+	# MOUSE_FILTER_STOP for genuine loading modal duty, but a hidden
+	# control must never win pointer hit-tests -- a stale pick from an
+	# invisible backdrop silently ate agent clicks aimed at HUD slots
+	# (R36 probe: skill-slot clicks vanished during the burst handoff).
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _backdrop:
+		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func set_status(message: String) -> void:

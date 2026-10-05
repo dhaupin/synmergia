@@ -23,6 +23,11 @@ var _is_visible: bool = false
 func _ready() -> void:
 	visible = false
 	_is_visible = false
+	# A11y: the skip action names itself for readers and agents (the
+	# button text is minimal by design).
+	var A11yStyles = load("res://ui/components/ui_styles.gd")
+	if A11yStyles and _skip_button:
+		A11yStyles.apply_accessibility(_skip_button, "Skip timer and wait it out", "Closes this screen; the zone's timed respawn completes on its own")
 
 	# Connect signals
 	respawn_skipped.connect(_on_respawn_skipped)
@@ -66,6 +71,17 @@ func _populate_options() -> void:
 		var button := Button.new()
 		button.text = _get_option_display(option)
 		button.pressed.connect(_on_option_selected.bind(i))
+		# A11y: the death screen must be navigable by every reader and
+		# agent -- name the destination, detail the consequence.
+		var A11yStyles = load("res://ui/components/ui_styles.gd")
+		if A11yStyles:
+			var mode: String = option.get("mode", "unknown")
+			var label: String = String(_get_option_display(option))
+			A11yStyles.apply_accessibility(
+				button,
+				"Respawn: %s" % label,
+				"Returns you to the world via %s" % ("your bound Ankh" if mode == "ankh" else ("the death spot, faster" if mode == "near_corpse" else "the zone's respawn rules"))
+			)
 		_options_container.add_child(button)
 
 func _get_option_display(option: Dictionary) -> String:

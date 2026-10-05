@@ -132,6 +132,10 @@ func _setup_panel() -> void:
 	_continue_btn.text = "Continue..."
 	_continue_btn.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_continue_btn.pressed.connect(_on_continue_pressed)
+	# A11y: reader hears the verb and its consequence, not just text.
+	var A11yStyles = load("res://ui/components/ui_styles.gd")
+	if A11yStyles:
+		A11yStyles.apply_accessibility(_continue_btn, "Continue dialog", "Advances the conversation to the next line")
 	vbox.add_child(_continue_btn)
 
 func show_dialog(npc_id: String, dialogue_id: String) -> void:
@@ -170,6 +174,10 @@ func _show_node(node_index: int) -> void:
 		var btn := Button.new()
 		btn.text = choice.text
 		btn.pressed.connect(_on_choice_selected.bind(choice))
+		# A11y: name the REPLY, not the widget (reader hears the words).
+		var A11yStyles = load("res://ui/components/ui_styles.gd")
+		if A11yStyles:
+			A11yStyles.apply_accessibility(btn, "Say: %s" % choice.text, "Replies to the NPC with this choice")
 		_choice_buttons.add_child(btn)
 		_choices.append(choice)
 
