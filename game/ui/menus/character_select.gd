@@ -149,21 +149,13 @@ func _on_play_pressed() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_TAB:
-			_cycle_focus([back_button, play_button], event.shift)
+			# Focus cycling lives on A11yService (one implementation for
+			# every menu; prd-accessibility.md sec 8 disposition).
+			if event.shift:
+				A11yService.focus_prev()
+			else:
+				A11yService.focus_next()
 
-
-func _cycle_focus(buttons: Array, reverse: bool) -> void:
-	var current := get_viewport().gui_get_focus_owner()
-	var idx := -1
-	for i in range(buttons.size()):
-		if buttons[i] == current:
-			idx = i
-			break
-	if reverse:
-		idx = (idx - 1 + buttons.size()) % buttons.size()
-	else:
-		idx = (idx + 1) % buttons.size()
-	buttons[idx].grab_focus()
 
 func _auto_select() -> void:
 	# print removed: print("[CHAR_SELECT] _auto_select called, selected_species_id=", selected_species_id)

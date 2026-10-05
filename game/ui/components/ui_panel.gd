@@ -266,9 +266,7 @@ func create_accessible_slider(min_val: float, max_val: float, default_val: float
 	slider.value = default_val
 	slider.step = step
 	slider.focus_mode = Control.FOCUS_ALL
-	# Accessibility properties - set if available in this Godot version
-	# if accessible_name != "":
-	# if accessible_description != "":
+	UIStyles.apply_accessibility(slider, accessible_name, accessible_description)
 	slider.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return slider
 
@@ -279,8 +277,7 @@ func create_accessible_dropdown(options: Array, default_idx: int, accessible_nam
 		dropdown.add_item(opt)
 	dropdown.selected = default_idx
 	dropdown.focus_mode = Control.FOCUS_ALL
-	# if accessible_name != "":
-	# if accessible_description != "":
+	UIStyles.apply_accessibility(dropdown, accessible_name, accessible_description)
 	dropdown.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return dropdown
 
@@ -289,9 +286,7 @@ func create_accessible_checkbox(default_val: bool, accessible_name: String = "",
 	var checkbox := CheckButton.new()
 	checkbox.button_pressed = default_val
 	checkbox.focus_mode = Control.FOCUS_ALL
-	# Accessibility properties - set if available in this Godot version
-	# if accessible_name != "":
-	# if accessible_description != "":
+	UIStyles.apply_accessibility(checkbox, accessible_name, accessible_description)
 	checkbox.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return checkbox
 
@@ -300,9 +295,7 @@ func create_accessible_line_edit(placeholder: String = "", accessible_name: Stri
 	var line_edit := LineEdit.new()
 	line_edit.placeholder_text = placeholder
 	line_edit.focus_mode = Control.FOCUS_ALL
-	# Accessibility properties - set if available in this Godot version
-	# if accessible_name != "":
-	# if accessible_description != "":
+	UIStyles.apply_accessibility(line_edit, accessible_name, accessible_description)
 	line_edit.add_theme_stylebox_override("focus", UIStyles.create_focus_style(4, _high_contrast))
 	return line_edit
 

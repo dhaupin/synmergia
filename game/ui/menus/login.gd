@@ -141,15 +141,6 @@ func _on_password_submitted(text: String) -> void:
 		return
 	_on_login_pressed()
 
-func _trigger_tab() -> void:
-	var focus_owner = get_viewport().gui_get_focus_owner()
-	if focus_owner and focus_owner.has_method("get_parent"):
-		focus_owner.release_focus()
-	var next = focus_owner.find_next_valid_focus()
-	if next:
-		next.grab_focus()
-	# print removed: print("[LOGIN] Tabbed to: ", next.name if next else "none")
-
 # TAB = focus navigation (accessibility). Former F5/F6 auto-login
 # debug hotkeys removed: they fired real account actions from any
 # scene and collided with the Settings keybind UI. Headless tests

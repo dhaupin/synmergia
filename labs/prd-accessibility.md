@@ -1,6 +1,8 @@
 # PRD: Synmergia Accessibility & Agent-Action Layer (S-A11Y)
 
-> **Status:** DESIGN (accepted direction; implementation rounds to follow)
+> **Status:** SHIPPED (all five rounds landed -- R35 menus, R36 HUD,
+> R37 world entities, R38 engine settings + contrast audit, R39
+> graveyard cleanup; see labs/TASKS.md)
 > **Owner:** world-frame-architect
 > **Created:** 2026-10-05, out of the R32/R33 live-WASM probe rounds
 > **Supersedes:** every previous partial attempt (see sec 8, Graveyard)

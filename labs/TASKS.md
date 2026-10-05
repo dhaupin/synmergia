@@ -3947,4 +3947,42 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   a reserved word in GDScript 4 (renamed in the audit test), and a
   const needs preload, not load (4.7.2 constant-expression rule).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 39 (PRD-ACCESSIBILITY ROUND 5 SHIPPED: the graveyard is
+  empty -- every sec-8 disposition executed, PRD status flips to
+  SHIPPED):
+  (1) Scene keys: login.tscn still carried six invented
+  accessible_description keys (R35 renamed accessible_string but the
+  description keys were missed) -- renamed to the real
+  accessibility_description; the descriptions were dead property
+  writes before, now they are live AccessKit data.
+  (2) ui_panel.gd: create_accessible_slider/dropdown/checkbox/
+  line_edit all carried the "set if available in this Godot version"
+  stub with the property writes commented out -- wired through
+  UIStyles.apply_accessibility (the real properties, one
+  implementation); signatures unchanged so callers keep compiling.
+  (3) Focus folds complete: character_select.gd was the last menu
+  with its own _cycle_focus (back/play buttons) -- now delegates to
+  A11yService.focus_prev/focus_next and the copy is deleted; login.gd
+  orphaned _trigger_tab removed (its caller was replaced in R35).
+  Grep confirms no per-menu focus-cycle implementation remains
+  outside A11yService.
+  (4) F13 disposition executed: the keycode mapping stays
+  (forward-compatible, unconsumed) and the NEW agent-only JS hook
+  ships in web_input_bridge.gd -- on web, _ready registers
+  window.__synA11yDump via JavaScriptBridge.create_callback; calling
+  it from the console forces A11yService.dump() ([A11Y] lines to the
+  console the probes already parse). Web-guarded; desktop/headless
+  never touch JavaScriptBridge.
+  (5) Docs: AGENTS.md carries the one-paragraph note (dated
+  2026-10-05) and the PRD status line flips to SHIPPED with the
+  round map. Rows verified closed: nname/ndescription remnants gone
+  (grep hits were "Unnamed" substrings), [CS] dumps never landed,
+  DebugOverlay walker kept per disposition, InputManager mobile
+  reviewed in R38.
+  (6) Verification: 8-test regression batch 8/0 (a11y_service,
+  a11y_contrast, combat_stack_live, kill_rewards, horde_rewards,
+  e2e_flow, hud_integration, login_flow -- the menu/panel edits are
+  exercised by login_flow/e2e_flow/hud_integration; the bridge
+  autoload boots in every test).
+  Hygiene: tabs only, ASCII, extends-first intact.
 

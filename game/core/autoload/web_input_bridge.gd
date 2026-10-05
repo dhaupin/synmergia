@@ -20,6 +20,18 @@ extends Node
 var _poll_timer: float = 0.0
 var _poll_interval: float = 0.016  # ~60fps
 
+func _ready() -> void:
+	# Agent-only hook (prd-accessibility.md sec 8, F13 disposition):
+	# window.__synA11yDump() forces an A11yService.dump() -- reachable
+	# from the JS console by agents/probes, never a human hotkey (the
+	# F13 keycode mapping below stays, forward-compatible, unconsumed).
+	if OS.has_feature("web"):
+		var cb := JavaScriptBridge.create_callback(_js_a11y_dump)
+		JavaScriptBridge.get_interface("window").__synA11yDump = cb
+
+func _js_a11y_dump(args: Array) -> void:
+	A11yService.dump()
+
 func _process(delta: float) -> void:
 	if not OS.has_feature("web"):
 		return
