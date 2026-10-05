@@ -157,6 +157,10 @@ func _run() -> void:
 	melee.damage = 3
 	melee.hitbox_size = 0.0
 	melee.mana_cost = 0
+	# The hit table is ONE randf() consumed synchronously inside the cast
+	# -- seed immediately before so the roll is deterministic (the old
+	# unseeded cast flaked ~5-10% of runs on a miss-family outcome).
+	seed(20261005)
 	var mhp0: int = int(carrier.current_health)
 	var melee_ok: bool = enemy.combat_component.execute_skill(melee, carrier)
 	_assert(melee_ok, "melee cast routes through the component")
@@ -235,6 +239,40 @@ func _run() -> void:
 	_assert(kit_ai._skills.size() == 1 and kit_ai._skills[0].skill_id == "human_smite", "EnemyData.skills materialize into combat Skills")
 	_assert(kit_ai._skills[0].required_class == "human_cleric", "schema class gate carried into the combat Skill")
 	_assert(kit_ai._next_ready_skill(kit_enemy) == null, "class-locked kit skill correctly not castable by a classless enemy")
+
+	# --- 11. BuffBar handler contract (R29 follow-up) ---------------------------
+	# The HUD handlers read effect_id/duration off live StatusEffects
+	# (the old .get("id") reads returned nothing -- the bar never
+	# rendered). Probed with a stub bar, no scene deps.
+	var HudIntScript = load("res://ui/hud/hud_integrator.gd")
+	var bar_integ: Node = HudIntScript.new()  # not in tree: _ready-free
+	# Duck-typed stub bar (add_buff/remove_buff recorded on itself).
+	var BarProbe: Node = load("res://tests/stub_buff_bar.gd").new()
+	bar_integ._buff_bar = BarProbe
+	var bar_buff = StatusScript.new()
+	bar_buff.effect_id = "bar_buff"
+	bar_buff.effect_name = "Bar Buff"
+	bar_buff.effect_type = StatusScript.EffectType.BUFF
+	bar_buff.duration = 3.0
+	bar_integ._on_buff_added(bar_buff)
+	bar_integ._on_debuff_added(bar_buff)
+	bar_integ._on_buff_removed(bar_buff)
+	var bar_added: Array = BarProbe.added
+	var bar_removed: Array = BarProbe.removed
+	_assert(bar_added.size() == 2 and bar_added[0]["id"] == "bar_buff" and bar_added[0]["debuff"] == false and bar_added[1]["debuff"] == true, "buff/debuff handlers read effect_id and polarity correctly")
+	_assert(float(bar_added[0]["duration"]) == 3.0, "handler duration survives the duck-typed read")
+	_assert(bar_removed.size() == 1 and bar_removed[0] == "bar_buff", "removal handler keys off effect_id")
+	# Binding: the stack-attached aura component (auto-named node) is
+	# found via the entity field / script-class scan, not the old
+	# get_class() check that never matched.
+	var pm = root.get_node_or_null("PlayerManager")
+	if pm:
+		pm.local_player = carrier
+		bar_integ._bind_aura_signals()
+		_assert(carrier.aura_component.buff_added.is_connected(bar_integ._on_buff_added), "_bind_aura_signals finds the stack-attached aura component")
+		pm.local_player = null
+	bar_integ.free()
+	BarProbe.free()
 
 	_finish()
 

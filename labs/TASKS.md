@@ -3579,3 +3579,34 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   extras (hud_integration, notification_toast/frame, e2e_flow,
   login_flow, entity_autoload, autoload_audit).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 30 (the player's own buff bar was a dead display -- four
+  stacked defects in the HudIntegrator binding path, found by walking
+  the same signal/wiring bug class as R29):
+  (1) _bind_aura_signals first tries get_node("AuraComponent"), but
+  _ensure_effect_stack attaches the component with an AUTO-GENERATED
+  name (@AuraComponent@N) -- that lookup never resolves for stack
+  components. Now falls back to the entity's aura_component field.
+  (2) The last-resort child scan compared child.get_class() ==
+  "AuraComponent" -- get_class() returns the ENGINE class ("Node");
+  the scan never matched anything. Now `child is AuraComponent`.
+  (3) All four handlers read buff.get("id") / debuff.get("id") --
+  neither Buff nor StatusEffect has an "id" key (both use effect_id),
+  so every handler early-returned and the bar stayed empty forever.
+  Handlers now read effect_id/duration via `in` guards (4.7.2-dropped
+  default args on get() avoided).
+  (4) The "rebind on local_player change" comment described behavior
+  that does not exist (set_local_player emits nothing; the bind runs
+  once at HUD ready) -- comment corrected to say so.
+  Test hardening: the "melee damage landed" assert in
+  test_combat_stack_live flaked ~5-10% of runs (95% base hit + 3%
+  dodge means an unseeded single roll sometimes lands a miss-family
+  outcome) -- the cast path consumes exactly one randf() synchronously,
+  so the test now seeds immediately before the cast (deterministic;
+  verified 2/2 consecutive runs).
+  Tests: test_combat_stack_live now 47 asserts -- new section 11 pins
+  the handler contract (effect_id + polarity + duration reads off a
+  live StatusEffect through a stub bar) and that _bind_aura_signals
+  finds the stack-attached aura component; game/tests/stub_buff_bar.gd
+  added (Node-based: the typed _buff_bar property rejects RefCounted).
+  Regression: hud_integration + combat_stack_live green (2/2 runs).
+  Hygiene: tabs only, ASCII, extends-first intact.

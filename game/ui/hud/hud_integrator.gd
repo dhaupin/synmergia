@@ -425,18 +425,25 @@ func _notification_color(notification: Dictionary) -> Color:
 
 # Find the local player's AuraComponent and subscribe to its buff/debuff
 # signals. Buffs go to the BuffBar; status effects as debuffs to the
-# BuffBar's debuff slot. We rebind every time local_player changes so
-# scene transitions don't strand old connections.
+# BuffBar's debuff slot. Bound once at HUD ready (PlayerManager.set_local_player
+# fires no signal to rebind on; scene transitions that swap the player
+# node need an explicit HUD refresh).
 func _bind_aura_signals() -> void:
 	if not PlayerManager or not PlayerManager.local_player:
 		return
 	var player: Node = PlayerManager.local_player
 	var aura: Node = player.get_node_or_null("AuraComponent")
+	if not aura and "aura_component" in player and player.aura_component != null:
+		# _ensure_effect_stack attaches the component as a child with an
+		# auto-generated node name (@AuraComponent@N) -- the canonical
+		# handle is the entity's field, not a node-path lookup.
+		aura = player.aura_component
 	if not aura:
-		# AuraComponent may be attached under a different name; try a
-		# recursive search by class name.
+		# Last resort: scan children. get_class() returns the ENGINE class
+		# ("Node"), never the script class_name -- compare scripts instead
+		# or the scan never matches anything.
 		for child in player.get_children():
-			if child.get_script() and child.get_class() == "AuraComponent":
+			if child is AuraComponent:
 				aura = child
 				break
 	if not aura:
@@ -454,8 +461,10 @@ func _bind_aura_signals() -> void:
 func _on_buff_added(buff) -> void:
 	if not _buff_bar or not _buff_bar.has_method("add_buff"):
 		return
-	var id: String = str(buff.get("id", ""))
-	var duration: float = float(buff.get("duration", 0))
+	# Buff extends StatusEffect: the id key is effect_id (never "id"),
+	# and 4.7.2 dropped default args on Object.get -- read guarded fields.
+	var id: String = str(buff.effect_id) if buff != null and "effect_id" in buff else ""
+	var duration: float = float(buff.duration) if buff != null and "duration" in buff else 0.0
 	if id == "":
 		return
 	_buff_bar.add_buff(id, null, duration, 1, false)
@@ -464,7 +473,7 @@ func _on_buff_added(buff) -> void:
 func _on_buff_removed(buff) -> void:
 	if not _buff_bar or not _buff_bar.has_method("remove_buff"):
 		return
-	var id: String = str(buff.get("id", ""))
+	var id: String = str(buff.effect_id) if buff != null and "effect_id" in buff else ""
 	if id != "":
 		_buff_bar.remove_buff(id)
 
@@ -472,8 +481,8 @@ func _on_buff_removed(buff) -> void:
 func _on_debuff_added(debuff) -> void:
 	if not _buff_bar or not _buff_bar.has_method("add_buff"):
 		return
-	var id: String = str(debuff.get("id", ""))
-	var duration: float = float(debuff.get("duration", 0))
+	var id: String = str(debuff.effect_id) if debuff != null and "effect_id" in debuff else ""
+	var duration: float = float(debuff.duration) if debuff != null and "duration" in debuff else 0.0
 	if id == "":
 		return
 	_buff_bar.add_buff(id, null, duration, 1, true)
@@ -482,7 +491,7 @@ func _on_debuff_added(debuff) -> void:
 func _on_debuff_removed(debuff) -> void:
 	if not _buff_bar or not _buff_bar.has_method("remove_buff"):
 		return
-	var id: String = str(debuff.get("id", ""))
+	var id: String = str(debuff.effect_id) if debuff != null and "effect_id" in debuff else ""
 	if id != "":
 		_buff_bar.remove_buff(id)
 
