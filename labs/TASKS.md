@@ -3718,4 +3718,41 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   export under /web/ with correct MIME -- the user's browser (real
   GPU) should boot it directly from that URL with the refreshed pack.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 34 (DIRECTION: the canonical Accessibility + Agent-Action
+  layer, designed on an engine fact discovered this round):
+  (1) ENGINE FACT (verified on our 4.7.2 binary with a live probe):
+  accessibility_name / accessibility_description are REAL Control
+  properties -- Godot 4.5 integrated AccessKit; the stale
+  "these properties do not exist" comments in ui_styles.gd predate
+  it and sent the old a11y attempts down the wrong path.
+  (2) labs/prd-accessibility.md written: ONE annotation set on the
+  Controls (accessibility_name = the imperative action,
+  accessibility_description = the consequence, FOCUS_ALL everywhere)
+  feeding FOUR consumers through one tree -- desktop AT (AccessKit),
+  web AT via AccessKit's web adapter, agents/probes via a new
+  A11yService.snapshot()/dump() (walking, never side-car), and the
+  in-world extension through InteractionLayer-shaped entity entries
+  with the same snapshot schema. Non-goals locked: no custom reader
+  protocol, no agent backdoor around the input pipeline, no per-frame
+  scans, no third id namespace.
+  (3) Graveyard inventoried with dispositions (PRD sec 8): the mangled
+  nname/ndescription find-replace remnants, the 2-scene
+  accessible_string keys (invented property), the F13 mapping with no
+  consumer, the three per-menu _cycle_focus copies (fold into
+  A11yService), the DebugOverlay walker (KEEP -- seeds the snapshot
+  walker), the reverted [CS] dumps (superseded). Five landing rounds
+  planned, each green; round 1 rewrites the R33 probe against the
+  contract (snapshot-driven, zero coordinates).
+  (4) Probe-state note: R33's driving run reached char select fully
+  (guest login, create-new at its true center (542,640), species card
+  click, classes dump, class click, Enter World, char:linked) but the
+  world-build wait did not complete inside the probe deadline; also
+  discovered the web build self-detects InputManager Mode=2
+  Mobile=true. That probe is superseded by PRD round 1 -- no more
+  pixel archaeology.
+  (5) pck determinism bonus: after reverting the [CS] hack, a fresh
+  --export-pack reproduced byte-identical web/game.pck (hash
+  651d5598... unchanged) -- exports are deterministic, so pack diffs
+  in CI mean real content changes only.
+  Hygiene: tabs only, ASCII, extends-first intact.
 
