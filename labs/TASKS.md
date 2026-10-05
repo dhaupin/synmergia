@@ -3683,7 +3683,39 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   initialize (vk_renderer.cpp Internal Vulkan error -3; explicit
   VK_ICD_FILENAMES, vulkan/swiftshader/gl backends, and headless shell
   vs full chrome all tried) -- no WebGL2 headless means the ENGINE
-  itself never starts here. In-browser verification of gameplay needs
+  itself never starts here.  In-browser verification of gameplay needs
   a real GPU-capable browser (user's machine / GPU runner) against
   serve_web.py.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 33 (LIVE WASM BOOT ACHIEVED: engine boots and ticks in
+  headless chromium; three real shell defects fixed on the way):
+  (1) Sandbox GL unlocked with user-authorized system installs:
+  mesa-vulkan-drivers (lavapipe) gave ANGLE's SwiftShader backend a
+  working Vulkan ICD -- the R32 "Internal Vulkan error -3" vanished.
+  The rest of the recipe: Xvfb + chrome HEADED (headless=new still
+  killed the GPU process even with desktop GL), plain launch flags
+  (--no-sandbox --disable-dev-shm-usage --disable-gpu-sandbox
+  --enable-unsafe-swiftshader; forcing --use-angle=swiftshader was
+  the thing that BROKE it), playwright-core 1.63 + cached
+  chromium-1243. Probe: Godot banner prints, TickService/LODManager
+  phase timings stream every second -- the live game in WASM.
+  (2) web/index.html shell defects found and fixed by the probe:
+  (a) startGame's promise REJECTS after boot (the worker-pool handoff
+  aborts the main thread's pck/wasm reads -- net::ERR_ABORTED) and
+  the catch painted "Failed to load" over the LIVE game; the catch
+  now ignores post-boot/abort rejections (engineBooted flag set by
+  the engine banner via onPrint, which also hides the loader and
+  focuses the canvas, and re-logs to preserve the default print
+  bridge). (b) GODOT_CONFIG.fileSizes hardcoded the OLD pack size
+  (4.67MB vs 12.16MB actual) and nothing ever updates it -- progress
+  math lied; the real HEAD sizes already override at runtime, plus
+  the static value is corrected. (c) Verified CLEAN, not a bug: the
+  .hidden overlay toggles work (style.css rules exist) -- my probe's
+  wrong .css MIME type made Chrome parse ZERO stylesheet rules,
+  which is a harness lesson, not a shell defect.
+  (3) Probe ecosystem: /tmp/wasmtest/{test,overlay2}.js banked; the
+  e2b preview (Vite on 3000) already sends COOP/COEP and serves the
+  export under /web/ with correct MIME -- the user's browser (real
+  GPU) should boot it directly from that URL with the refreshed pack.
+  Hygiene: tabs only, ASCII, extends-first intact.
+

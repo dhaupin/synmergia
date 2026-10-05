@@ -137,6 +137,13 @@
 		// not settable from here; Emscripten grows the heap at runtime).
 		var GODOT_THREADS_ENABLED = true;
 
+		// Set the moment the engine prints its version banner. startGame's
+		// promise is NOT a reliable success signal: after the worker pool
+		// takes over, the main thread's pck/wasm reads abort (net::ERR_ABORTED
+		// in the console) and the promise REJECTS -- on a fully booted,
+		// ticking game. The banner is the truth; the catch below checks it.
+		var engineBooted = false;
+
 		var GODOT_CONFIG = {
 			"args": [],
 			"canvasResizePolicy": 2,
@@ -144,10 +151,22 @@
 			"ensureCrossOriginIsolationHeaders": true,
 			"executable": "game",
 			"experimentalVK": true,
-			"fileSizes": { "game.pck": 4670752, "game.wasm": 38820072 },
+			"fileSizes": { "game.pck": 12165624, "game.wasm": 38820072 },
 			"focusCanvas": true,
 			"gdextensionLibs": [],
 			"godotPoolSize": 4,
+			"onPrint": function (msg) {
+				// Preserve the default console routing (setting onPrint here
+				// replaces the template's own print bridge).
+				console.log(msg);
+				if (!engineBooted && String(msg).indexOf("Godot Engine v") !== -1) {
+					engineBooted = true;
+					// Belt-and-braces hide: even if startGame hangs after
+					// boot, the player must see the game, not a loader.
+					loading.classList.add("hidden");
+					canvas.focus();
+				}
+			},
 		};
 
 		if (typeof Engine === "undefined") {
@@ -219,6 +238,9 @@
 					cfg.fileSizes["game.pck"] = pckSize;
 					cfg.fileSizes[packUrl] = pckSize;
 				}
+				// The hardcoded fileSizes above go stale the moment content
+				// changes (CI re-packs but never rewrites this file) -- the
+				// real HEAD sizes are the truth for progress math.
 				knownTotal = wasmSize + pckSize;
 				var engine = new Engine(cfg);
 				engine.startGame({
@@ -227,6 +249,21 @@
 					loading.classList.add("hidden");
 					canvas.focus();
 				}).catch(function (err) {
+					// Post-boot rejections are NOT failures: the engine is
+					// alive and ticking (banner already printed) -- the old
+					// code painted the error screen over the running game.
+					// Abort-style rejections from the worker handoff (the
+					// main thread's pck/wasm reads abort) are equally not
+					// failures even if the banner has not landed yet; a
+					// genuinely dead engine fails the missing-features gate
+					// or the watchdog instead.
+					var aborted = err && (err.name === "AbortError" || /abort/i.test(String(err.message || err)));
+					if (engineBooted || aborted) {
+						console.warn("Ignoring post-boot engine rejection (engine is live):", err);
+						loading.classList.add("hidden");
+						canvas.focus();
+						return;
+					}
 					console.error(err);
 					fail(err && err.message ? err.message : "Engine failed to start.");
 				});
