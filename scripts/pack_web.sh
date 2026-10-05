@@ -4,7 +4,10 @@ set -e
 # Synmergia Web Client PCK Pack Script
 # Packages game/ resources into web/game.pck using Godot headless export
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# $0, not BASH_SOURCE: this script is documented as `sh ./scripts/pack_web.sh`,
+# and under dash BASH_SOURCE is unset (the root then misresolves to the
+# shell's parent and every cd below fails).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 GAME_DIR="${ROOT_DIR}/game"
 WEB_DIR="${ROOT_DIR}/web"
@@ -15,7 +18,7 @@ echo "Target output:  ${WEB_DIR}/game.pck"
 
 # Locate Godot 4 binary
 GODOT_BIN=""
-if command -v godot &> /dev/null; then
+if command -v godot >/dev/null 2>&1; then
     GODOT_BIN="godot"
 elif command -v godot4 &> /dev/null; then
     GODOT_BIN="godot4"
@@ -41,6 +44,12 @@ cd "${GAME_DIR}"
 if [ -f "${WEB_DIR}/game.pck" ]; then
     PCK_SIZE=$(du -h "${WEB_DIR}/game.pck" | cut -f1)
     echo "Successfully generated ${WEB_DIR}/game.pck (${PCK_SIZE})"
+    # Refresh the cache-buster the shells fetch (CI rewrites it on every
+    # content change; a stale hash can serve a cached old pck).
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "${WEB_DIR}/game.pck" | cut -d' ' -f1 > "${WEB_DIR}/game.pck.hash"
+        echo "Hash: $(cat "${WEB_DIR}/game.pck.hash")"
+    fi
 else
     echo "Error: game.pck was not generated."
     exit 1

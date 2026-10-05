@@ -3985,4 +3985,39 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   exercised by login_flow/e2e_flow/hud_integration; the bridge
   autoload boots in every test).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 40 (POST-PRD LIVE ACCEPTANCE: the committed rig found and
+  fixed three real defects -- a pack-staleness bug, a silently dead
+  agent hook, and the wasm print bridge):
+  (1) pack_web.sh had three defects: BASH_SOURCE is unset under dash
+  (the repo's own `sh ./scripts/foo.sh` convention) so the root
+  misresolved to the shell's parent and every cd failed; `&>` is a
+  bashism that misparses under dash; and it never refreshed
+  game.pck.hash -- the cache-buster the shells fetch ("CI rewrites it
+  on every content change"), so local repacks shipped stale. Fixed
+  ($0 resolution, POSIX redirects, sha256 step); live-proven: the
+  shell fetched the NEW hash (?v=53d3fb15...) after the first repack.
+  (2) The round-5 agent hook was a SILENT NO-OP on web: the
+  create_callback result lived in a _ready local, got collected, and
+  left a dead function object on window (typeof "function", calls
+  vanish without error). Fixed by retaining it Godot-side for the
+  bridge's lifetime. AND the print bridge swallows or indefinitely
+  holds lines issued from inside a JS callback (forced dumps never
+  surfaced through console across two calls and 45s of polling, while
+  frame-context auto-dumps do) -- the hook now also hands the
+  snapshot to JS directly (window.__synA11yLast, the same direction
+  as the proven drain() polling), so agents get the JSON in the same
+  JS turn they call the hook.
+  (3) Live verification on the rebuilt pack: boot smoke PASS; full
+  menu journey 7/7 hops by action name, 69 actions announced, zero
+  SCRIPT ERROR/pageerror through every round 4-5 change (AT setting,
+  renamed scene keys, wired factories); world rendered (143KB PNG)
+  with the registration mark outside the window (the documented 2-4fps
+  stdout-batching limitation, unchanged); hook probe PASS --
+  __synA11yLast carries the live snapshot (Start playing, path/rect/
+  detail) in the calling turn.
+  (4) Lessons for the rig: the hook is screen-agnostic (the menu alone
+  exercises it -- no world leg needed); wasm stdout batching makes
+  console-line counting an unreliable oracle inside 45s (use the
+  JS-visible return channel instead).
+  Hygiene: tabs only, ASCII, extends-first intact.
 

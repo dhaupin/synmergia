@@ -19,6 +19,11 @@ extends Node
 
 var _poll_timer: float = 0.0
 var _poll_interval: float = 0.016  # ~60fps
+# Retained Godot-side for the bridge's lifetime: a create_callback
+# result that is not held in a member gets collected, leaving a dead
+# function object on window (typeof "function", invocation silently
+# no-ops -- live-verified on wasm, R40).
+var _a11y_dump_cb = null
 
 func _ready() -> void:
 	# Agent-only hook (prd-accessibility.md sec 8, F13 disposition):
@@ -26,11 +31,21 @@ func _ready() -> void:
 	# from the JS console by agents/probes, never a human hotkey (the
 	# F13 keycode mapping below stays, forward-compatible, unconsumed).
 	if OS.has_feature("web"):
-		var cb := JavaScriptBridge.create_callback(_js_a11y_dump)
-		JavaScriptBridge.get_interface("window").__synA11yDump = cb
+		_a11y_dump_cb = JavaScriptBridge.create_callback(_js_a11y_dump)
+		JavaScriptBridge.get_interface("window").__synA11yDump = _a11y_dump_cb
 
 func _js_a11y_dump(args: Array) -> void:
 	A11yService.dump()
+	# The print bridge can swallow or indefinitely delay lines issued
+	# from inside a JS callback (live-verified on wasm: forced dumps
+	# never surfaced through console while frame-context auto-dumps
+	# did), so also hand the snapshot to JS directly -- agents read
+	# window.__synA11yLast in the same JS turn they called the hook.
+	var snap: Array = A11yService.snapshot()
+	var parts: PackedStringArray = []
+	for entry in snap:
+		parts.append(JSON.stringify(entry))
+	JavaScriptBridge.eval("window.__synA11yLast = [%s];" % ",".join(parts), true)
 
 func _process(delta: float) -> void:
 	if not OS.has_feature("web"):
