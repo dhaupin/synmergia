@@ -14,8 +14,11 @@ signal debuff_removed(debuff: StatusEffect)
 signal aura_activated(aura: AuraBuffScript)
 signal aura_deactivated(aura: AuraBuffScript)
 
-var _active_buffs: Array[Buff] = []
-var _active_debuffs: Array[StatusEffect] = []
+# Untyped mirrors: they hold whatever the canonical store holds
+# (plain StatusEffects from skill.applyDoT AND Buff instances), and
+# typed arrays would reject the plain-StatusEffect half at runtime.
+var _active_buffs: Array = []
+var _active_debuffs: Array = []
 var _active_auras: Array[AuraBuffScript] = []
 
 @export var max_buffs: int = 32
@@ -24,10 +27,53 @@ var _active_auras: Array[AuraBuffScript] = []
 func _ready() -> void:
 	pass
 
-## Add a buff
-func add_buff(buff: Buff, source: Entity = null) -> bool:
+## Live-path mirror tracking (R28). Entity owns the canonical
+## status_effects store (its tick janitor sweeps it; StatusEffect
+## self-manages timing); this classifies each applied effect for
+## queries/dispels and fires the EventHub signals the HUD consumes.
+## NO timing here: DURATION/TICKED effects run their own Timers -- a
+## frame-advance on the mirror would double-drain them.
+func track_effect(effect) -> void:
+	if effect == null or not is_instance_valid(effect):
+		return
+	if effect.effect_type == StatusEffect.EffectType.BUFF:
+		if _active_buffs.size() >= max_buffs:
+			_active_buffs.pop_at(0)
+		_active_buffs.append(effect)
+		buff_added.emit(effect)
+		EventHub.buff_applied.emit(get_parent(), effect, effect.source)
+	elif effect.effect_type == StatusEffect.EffectType.DEBUFF:
+		if _active_debuffs.size() >= max_debuffs:
+			_active_debuffs.pop_at(0)
+		_active_debuffs.append(effect)
+		debuff_added.emit(effect)
+		EventHub.debuff_applied.emit(get_parent(), effect, effect.source)
+
+## Mirror untrack (called by Entity on every canonical removal).
+func untrack_effect(effect) -> void:
+	if effect == null:
+		return
+	if _active_buffs.has(effect):
+		_active_buffs.erase(effect)
+		buff_removed.emit(effect)
+		EventHub.buff_removed.emit(get_parent(), effect)
+	elif _active_debuffs.has(effect):
+		_active_debuffs.erase(effect)
+		debuff_removed.emit(effect)
+		EventHub.debuff_removed.emit(get_parent(), effect)
+
+## Add a buff. Delegates to the parent's canonical apply_status_effect
+## (single store; the component mirrors via track_effect). The direct
+## fallback covers orphan components with no canonical owner.
+func add_buff(buff, source: Entity = null) -> bool:
 	if buff == null:
 		return false
+	var parent = get_parent()
+	if parent != null and parent.has_method("apply_status_effect"):
+		if buff.source == null and source != null:
+			buff.source = source
+		parent.apply_status_effect(buff)
+		return true
 
 	# Check max buffs
 	if _active_buffs.size() >= max_buffs:
@@ -40,27 +86,38 @@ func add_buff(buff: Buff, source: Entity = null) -> bool:
 
 	_active_buffs.append(buff)
 
-	buff.apply(get_parent())
+	buff.apply(parent)
 	buff_added.emit(buff)
-	EventHub.buff_applied.emit(get_parent(), buff, source)
+	EventHub.buff_applied.emit(parent, buff, source)
 
 	return true
 
-## Remove a buff
-func remove_buff(buff: Buff) -> void:
+## Remove a buff (canonical removal when an owner exists: it untracks
+## and fires both signal sets; direct fallback for orphan components)
+func remove_buff(buff) -> void:
 	if not _active_buffs.has(buff):
 		return
+	var parent = get_parent()
+	if parent != null and parent.has_method("remove_status_effect"):
+		parent.remove_status_effect(buff)
+		return
 
-	buff.remove(get_parent())
+	buff.remove(parent)
 	_active_buffs.erase(buff)
 
 	buff_removed.emit(buff)
-	EventHub.buff_removed.emit(get_parent(), buff)
+	EventHub.buff_removed.emit(parent, buff)
 
-## Add a debuff
-func add_debuff(debuff: StatusEffect, source: Entity = null) -> bool:
+## Add a debuff (same canonical delegation as add_buff)
+func add_debuff(debuff, source: Entity = null) -> bool:
 	if debuff == null:
 		return false
+	var parent = get_parent()
+	if parent != null and parent.has_method("apply_status_effect"):
+		if debuff.source == null and source != null:
+			debuff.source = source
+		parent.apply_status_effect(debuff)
+		return true
 
 	# Check max debuffs
 	if _active_debuffs.size() >= max_debuffs:
@@ -73,22 +130,27 @@ func add_debuff(debuff: StatusEffect, source: Entity = null) -> bool:
 
 	_active_debuffs.append(debuff)
 
-	debuff.apply(get_parent())
+	debuff.apply(parent)
 	debuff_added.emit(debuff)
-	EventHub.debuff_applied.emit(get_parent(), debuff, source)
+	EventHub.debuff_applied.emit(parent, debuff, source)
 
 	return true
 
-## Remove a debuff
-func remove_debuff(debuff: StatusEffect) -> void:
+## Remove a debuff (canonical removal when an owner exists; the old
+## direct path emitted buff_removed for a debuff -- fixed below)
+func remove_debuff(debuff) -> void:
 	if not _active_debuffs.has(debuff):
 		return
+	var parent = get_parent()
+	if parent != null and parent.has_method("remove_status_effect"):
+		parent.remove_status_effect(debuff)
+		return
 
-	debuff.remove(get_parent())
+	debuff.remove(parent)
 	_active_debuffs.erase(debuff)
 
 	debuff_removed.emit(debuff)
-	EventHub.buff_removed.emit(get_parent(), debuff)
+	EventHub.debuff_removed.emit(parent, debuff)
 
 ## Add an aura (toggleable buff)
 func add_aura(aura: AuraBuffScript, source: Entity = null) -> bool:
@@ -148,11 +210,11 @@ func get_buff(effect_id: String) -> Buff:
 	return null
 
 ## Get all active buffs
-func get_all_buffs() -> Array[Buff]:
+func get_all_buffs() -> Array:
 	return _active_buffs.duplicate()
 
 ## Get all active debuffs
-func get_all_debuffs() -> Array[StatusEffect]:
+func get_all_debuffs() -> Array:
 	return _active_debuffs.duplicate()
 
 ## Get all active auras
@@ -212,30 +274,25 @@ func clear_all() -> void:
 	for aura in auras:
 		remove_aura(aura)
 
-## Get stat modifiers from all active buffs
+## Get stat modifiers from all active buffs. Buff carries typed export
+## fields (strength_bonus etc.), not a stat_modifiers dict -- the old
+## read crashed on the first buff.
 func get_stat_modifiers() -> Dictionary:
 	var modifiers: Dictionary = {}
 
 	for buff in _active_buffs:
-		for stat in buff.stat_modifiers:
-			if not modifiers.has(stat):
-				modifiers[stat] = 0
-			modifiers[stat] += buff.stat_modifiers[stat]
+		if buff == null or not is_instance_valid(buff):
+			continue
+		for stat in ["strength", "agility", "intelligence", "vitality", "endurance", "wisdom"]:
+			var prop: String = stat + "_bonus"
+			if prop in buff:
+				modifiers[stat] = int(modifiers.get(stat, 0)) + int(buff.get(prop))
 
 	return modifiers
 
-## Process physics (for DOTs, etc.). DoT damage ticks are owned by the
-## DamageOverTime effect's own Timer; this loop only advances each
-## debuff's wall-clock remaining duration (SpeedModifier is a Node --
-## it has no _physics_process of its own).
-func _physics_process(delta: float) -> void:
-	for debuff in _active_debuffs:
-		if debuff == null or not is_instance_valid(debuff):
-			continue
-		if debuff.remaining_duration > 0.0:
-			debuff.remaining_duration = maxf(0.0, debuff.remaining_duration - delta)
-			if debuff.remaining_duration <= 0.0:
-				remove_debuff(debuff)
+## Timing note: this component runs NO per-frame loop. DURATION/TICKED
+## effects own their Timers and the tick janitor sweeps expiry -- a
+## frame-advance on the mirror list double-drained every debuff.
 
 ## Count buffs/debuffs
 func get_buff_count() -> int:
@@ -279,24 +336,30 @@ func cleanse(caster: Entity = null) -> int:
 		StatusEffect.EffectCategory.POISON, StatusEffect.EffectCategory.CURSE
 	], caster)
 
-## Internal dispel by categories
+## Internal dispel by categories. Collect first, then remove:
+## remove_debuff mutates _active_debuffs, and erasing during for-in
+## iteration skips elements.
 func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
 	var dispelled := 0
 
-	# Check debuffs
+	var debuffs_to_remove := []
 	for debuff in _active_debuffs:
-		if _can_dispel_effect(debuff, categories):
-			if _check_dispel_resist(debuff, caster):
-				remove_debuff(debuff)
-				dispelled += 1
-				EventHub.effect_dispelled.emit(get_parent(), debuff, caster)
+		if _can_dispel_effect(debuff, categories) and _check_dispel_resist(debuff, caster):
+			debuffs_to_remove.append(debuff)
+	for debuff in debuffs_to_remove:
+		remove_debuff(debuff)
+		dispelled += 1
+		EventHub.effect_dispelled.emit(get_parent(), debuff, caster)
 
 	# Check auras (some auras are dispellable)
+	var auras_to_remove := []
 	for aura in _active_auras:
 		if aura.is_dispellable and _matches_category(aura.effect_category, categories):
-			remove_aura(aura)
-			dispelled += 1
-			EventHub.aura_dispelled.emit(get_parent(), aura, caster)
+			auras_to_remove.append(aura)
+	for aura in auras_to_remove:
+		remove_aura(aura)
+		dispelled += 1
+		EventHub.aura_dispelled.emit(get_parent(), aura, caster)
 
 	return dispelled
 
@@ -305,7 +368,9 @@ func _can_dispel_effect(effect: StatusEffect, categories: Array[int]) -> bool:
 	if not effect.is_dispellable:
 		return false
 
-	return _matches_category(effect.category, categories)
+	# StatusEffect's field is effect_category (the old `.category` read
+	# crashed with a nonexistent-property error on the first dispel).
+	return _matches_category(effect.effect_category, categories)
 
 ## Check if effect category matches
 func _matches_category(effect_category: int, dispel_categories: Array[int]) -> bool:
@@ -323,7 +388,7 @@ func _check_dispel_resist(effect: StatusEffect, caster: Entity) -> bool:
 		return true  # No resist if no caster
 
 	# Boss effects might resist
-	if effect. dispel_resist_chance > 0:
+	if effect.dispel_resist_chance > 0:
 		return randf() > effect.dispel_resist_chance
 
 	return true

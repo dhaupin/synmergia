@@ -95,6 +95,10 @@ func _ready() -> void:
 		aggro_component = AggroComponent.new()
 		add_child(aggro_component)
 
+	# Fighters carry the combat effect stack (aura mirror + GCD/casting
+	# component); training dummies only need the aura tracker.
+	_ensure_effect_stack(not is_training_dummy())
+
 	GameLog.info("Enemy spawned: %s (lvl %d, %d HP)" % [display_name, level, max_health])
 
 

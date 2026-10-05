@@ -278,6 +278,9 @@ func _ready() -> void:
 	# Hitbox likewise keys on the final character data (species); the
 	# scene-authored capsule is the pre-profile placeholder.
 	call_deferred("_apply_hitbox_profile")
+	# Combat effect stack (R28): GCD/casting component + aura tracker,
+	# the same attach pattern the Entity families use.
+	_ensure_effect_stack(true)
 	# The blessed mark keys on the final class id (character data may
 	# arrive after _ready, like the hitbox); call_deferred sees it.
 	call_deferred("_attach_blessed_mark")
@@ -1217,6 +1220,68 @@ func _setup_starting_skills() -> void:
 		GameLog.info("Player skillbar loaded: %d starting skill(s)" % skillbar.size())
 
 
+## COMBAT EFFECT STACK (R28)
+# Status-effect surface mirroring Entity's block so live DoTs/CCs can
+# land on the player (the hitbox sweep calls target.apply_status_effect
+# on whichever family it hits).
+const AuraComponentScript = preload("res://core/components/aura_component.gd")
+const CombatComponentScript = preload("res://core/components/combat_component.gd")
+
+var status_effects: Array = []
+var aura_component = null
+var combat_component = null
+
+func _ensure_effect_stack(with_combat: bool = false) -> void:
+	if aura_component == null:
+		aura_component = AuraComponentScript.new()
+		add_child(aura_component)
+	if with_combat and combat_component == null:
+		combat_component = CombatComponentScript.new()
+		add_child(combat_component)
+
+func apply_status_effect(effect) -> void:
+	if effect == null or effect.is_expired():
+		return
+	status_effects.append(effect)
+	effect.apply(self)
+	# effect_expired is a no-arg signal; bind the effect so the handler
+	# receives it (same reasoning as Entity).
+	effect.effect_expired.connect(_on_status_effect_expired.bind(effect))
+	# The base StatusEffect tick machinery only damages Entity instances;
+	# the player applies its own ticks through take_damage/heal so
+	# depletion and the 3-arg health_changed stay correct.
+	if effect.tick_behavior == effect.TickBehavior.TICKED:
+		effect.tick_occurred.connect(_on_status_effect_tick)
+	if aura_component:
+		aura_component.track_effect(effect)
+
+func _on_status_effect_expired(effect) -> void:
+	status_effects.erase(effect)
+	if aura_component:
+		aura_component.untrack_effect(effect)
+
+func remove_status_effect(effect) -> void:
+	if status_effects.has(effect):
+		effect.remove(self)
+		status_effects.erase(effect)
+		if aura_component:
+			aura_component.untrack_effect(effect)
+
+func clear_all_status_effects() -> void:
+	for effect in status_effects:
+		effect.remove(self)
+		if aura_component:
+			aura_component.untrack_effect(effect)
+	status_effects.clear()
+
+func _on_status_effect_tick(_target, amount: int, tick_type: String) -> void:
+	if is_dead():
+		return
+	if tick_type == "DAMAGE" and amount > 0:
+		take_damage(amount, null, "periodic")
+	elif tick_type == "HEAL" and amount > 0:
+		heal(amount, null)
+
 func use_skill(slot: int) -> void:
 	if slot < 0 or slot >= skillbar.size():
 		return
@@ -1229,7 +1294,17 @@ func use_skill(slot: int) -> void:
 		if target_info:
 			target = target_info.node
 
-		# Check if ground targeted
+		# Route through the component when present (GCD, casting state,
+		# anticheat); it forwards the hitbox family to CombatSystem itself,
+		# so the live execution path is unchanged.
+		if combat_component:
+			if skill.is_ground_targeted:
+				combat_component.execute_skill(skill, null, _get_ground_target_position(skill.ground_target_range))
+			else:
+				combat_component.execute_skill(skill, target)
+			return
+
+		# Legacy fallback (no component attached)
 		if skill.is_ground_targeted:
 			var ground_pos := _get_ground_target_position(skill.ground_target_range)
 			CombatSystem.execute_skill(self, skill, null, ground_pos)

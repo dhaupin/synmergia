@@ -120,7 +120,28 @@ var species = null
 # CharacterData reference for player entities (for allocated stats)
 var character_data = null  # Untyped to avoid circular dependency with CharacterData schema
 
+# The combat effect stack (R28). AuraComponent MIRRORS the canonical
+# status_effects store (classification + the EventHub buff/debuff
+# signals the HUD consumes); CombatComponent owns GCD/casting state
+# for fighters. Attached via _ensure_effect_stack() instead of relying
+# on _ready inheritance: Enemy._ready does not call super._ready(), so
+# a _ready-only attach would miss every enemy.
+const AuraComponentScript = preload("res://core/components/aura_component.gd")
+const CombatComponentScript = preload("res://core/components/combat_component.gd")
+
+var aura_component = null    # AuraComponent once _ensure_effect_stack ran
+var combat_component = null  # CombatComponent (fighters only)
+
+func _ensure_effect_stack(with_combat: bool = false) -> void:
+	if aura_component == null:
+		aura_component = AuraComponentScript.new()
+		add_child(aura_component)
+	if with_combat and combat_component == null:
+		combat_component = CombatComponentScript.new()
+		add_child(combat_component)
+
 func _ready() -> void:
+	_ensure_effect_stack()
 	_calculate_max_resources()
 	current_health = max_health
 	current_mana = max_mana
@@ -305,14 +326,20 @@ func apply_status_effect(effect) -> void:
 	# into a wrong-argument-count runtime error and leaves the effect
 	# stuck in the array).
 	effect.effect_expired.connect(_on_status_effect_expired.bind(effect))
+	if aura_component:
+		aura_component.track_effect(effect)
 
 func _on_status_effect_expired(effect) -> void:
 	status_effects.erase(effect)
+	if aura_component:
+		aura_component.untrack_effect(effect)
 
 func remove_status_effect(effect) -> void:
 	if status_effects.has(effect):
 		effect.remove(self)
 		status_effects.erase(effect)
+		if aura_component:
+			aura_component.untrack_effect(effect)
 
 func has_status_effect(effect_type: String) -> bool:
 	for effect in status_effects:
@@ -323,6 +350,8 @@ func has_status_effect(effect_type: String) -> bool:
 func clear_all_status_effects() -> void:
 	for effect in status_effects:
 		effect.remove(self)
+		if aura_component:
+			aura_component.untrack_effect(effect)
 	status_effects.clear()
 
 ## DEATH

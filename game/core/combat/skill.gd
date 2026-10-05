@@ -243,7 +243,12 @@ func _entity_service():
 		return null
 	return (ml as SceneTree).root.get_node_or_null("EntityService")
 
-func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO) -> Dictionary:
+## defer_target_effects: hitbox-family casts pass true -- the hitbox
+## sweep (_apply_hit -> _apply_skill_effects) owns DoT/CC/teleport on
+## LANDED hits only (a stunned target must not eat CC off a dodged
+## swing). Without it, every landed hit double-applied the effects
+## (once here at cast, once per hit).
+func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, defer_target_effects: bool = false) -> Dictionary:
 	var result := {
 		"success": false,
 		"damage_dealt": 0,
@@ -290,8 +295,9 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO) -> 
 		# healer (classic healer-aggro; AggroComponent scales by factor).
 		_generate_heal_threat(caster, actual_heal)
 
-	# Apply heal-over-time (HoT)
-	if hot_heal > 0 and hot_duration > 0:
+	# Apply heal-over-time (HoT). Target-side: deferred on hitbox casts
+	# (self-HoT with no target still applies at cast).
+	if hot_heal > 0 and hot_duration > 0 and (not defer_target_effects or target == null):
 		var hot := StatusEffect.new()
 		hot.effect_id = skill_id + "_hot"
 		hot.effect_name = skill_name + " HoT"
@@ -306,8 +312,8 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO) -> 
 		else:
 			caster.apply_status_effect(hot)
 
-	# Apply crowd control
-	if crowd_control_type != "":
+	# Apply crowd control (deferred on hitbox casts: landed hits only)
+	if crowd_control_type != "" and not defer_target_effects:
 		applyCrowdControl(caster, target, ground_position)
 
 	# Apply other effects
@@ -317,10 +323,10 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO) -> 
 	if grants_invincibility:
 		applyInvincibility(caster)
 
-	if is_dot:
+	if is_dot and not defer_target_effects:
 		applyDoT(caster, target)
 
-	if teleport_distance > 0:
+	if teleport_distance > 0 and not defer_target_effects:
 		applyTeleport(caster, ground_position)
 
 	result.success = true
@@ -395,6 +401,9 @@ func calculate_healing(caster) -> int:
 	return base_heal
 
 func applyCrowdControl(caster, target, _ground_position: Vector3) -> void:
+	# Self/ground casts and non-StatusEffect families have no CC target.
+	if target == null or not target.has_method("apply_status_effect"):
+		return
 	# Apply CC effect based on type
 	match crowd_control_type:
 		"stun":
@@ -413,7 +422,9 @@ func applyInvincibility(caster) -> void:
 	pass
 
 func applyDoT(caster, target) -> void:
-	if target == null:
+	if target == null or not target.has_method("apply_status_effect"):
+		return
+	if dot_damage <= 0 or dot_duration <= 0:
 		return
 
 	var dot := StatusEffect.new()
@@ -424,6 +435,11 @@ func applyDoT(caster, target) -> void:
 	dot.tick_behavior = StatusEffect.TickBehavior.TICKED
 	dot.tick_interval = dot_tick_rate if dot_tick_rate > 0 else 1.0
 	dot.duration = dot_duration
+	# Self-expire after the tick budget: a TICKED effect with
+	# total_ticks = 0 is infinite by contract, and the tick janitor only
+	# wall-clocks DURATION/TICKED behavior -- without a budget a DoT
+	# would tick forever.
+	dot.total_ticks = maxi(1, int(dot.duration / dot.tick_interval))
 	dot.tick_damage = dot_damage
 
 	target.apply_status_effect(dot)
@@ -442,6 +458,10 @@ func create_stun_effect(_caster) -> StatusEffect:
 	effect.effect_name = "Stunned"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
 	effect.duration = crowd_control_duration
+	# DURATION behavior: the effect's own timer + the tick janitor own
+	# expiry. Without it (INSTANT default) nothing ever advances or
+	# sweeps the CC -- a stun would stick forever.
+	effect.tick_behavior = StatusEffect.TickBehavior.DURATION
 	return effect
 
 func create_root_effect(_caster) -> StatusEffect:
@@ -449,6 +469,10 @@ func create_root_effect(_caster) -> StatusEffect:
 	effect.effect_name = "Rooted"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
 	effect.duration = crowd_control_duration
+	# DURATION behavior: the effect's own timer + the tick janitor own
+	# expiry. Without it (INSTANT default) nothing ever advances or
+	# sweeps the CC -- a stun would stick forever.
+	effect.tick_behavior = StatusEffect.TickBehavior.DURATION
 	return effect
 
 func create_slow_effect(_caster) -> StatusEffect:
@@ -456,6 +480,10 @@ func create_slow_effect(_caster) -> StatusEffect:
 	effect.effect_name = "Slowed"
 	effect.effect_type = StatusEffect.EffectType.DEBUFF
 	effect.duration = crowd_control_duration
+	# DURATION behavior: the effect's own timer + the tick janitor own
+	# expiry. Without it (INSTANT default) nothing ever advances or
+	# sweeps the CC -- a stun would stick forever.
+	effect.tick_behavior = StatusEffect.TickBehavior.DURATION
 	return effect
 
 func _physics_process(delta: float) -> void:

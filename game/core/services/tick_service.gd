@@ -632,7 +632,13 @@ func _decay_effects() -> Dictionary:
 				entity.status_effects.erase(effect)
 				swept += 1
 				continue
-			if effect.tick_behavior == StatusEffectScript.TickBehavior.DURATION and effect.remaining_duration > 0.0:
+			# DURATION and TICKED effects both carry a duration cap; the
+			# wall-clock advance here is the backstop if an effect's own
+			# Timer stalls (TICKED effects self-expire via total_ticks,
+			# this catches the rest).
+			if (effect.tick_behavior == StatusEffectScript.TickBehavior.DURATION \
+					or effect.tick_behavior == StatusEffectScript.TickBehavior.TICKED) \
+					and effect.remaining_duration > 0.0:
 				effect.remaining_duration = maxf(0.0, effect.remaining_duration - dt)
 				advanced += 1
 			if effect.is_expired() or not effect.is_active:

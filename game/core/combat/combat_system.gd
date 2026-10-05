@@ -95,8 +95,11 @@ func execute_skill(caster: Node, skill: Skill, target: Node = null, ground_posit
 	if not skill.can_cast(caster):
 		return {"success": false, "reason": "cannot_cast"}
 
-	# Execute skill
-	var result := skill.execute(caster, target, ground_position)
+	# Execute skill. Hitbox-family casts defer target-side effects:
+	# the sweep's _apply_skill_effects owns DoT/CC on LANDED hits only
+	# (skill.execute applying at cast AND the sweep applying per hit
+	# used to double-apply both).
+	var result := skill.execute(caster, target, ground_position, skill.hitbox_size > 0)
 
 	if result.success:
 		skill_executed.emit(caster, skill, result.targets_hit)
@@ -105,18 +108,23 @@ func execute_skill(caster: Node, skill: Skill, target: Node = null, ground_posit
 		if "entity_id" in caster and caster.entity_id in combo_trackers:
 			combo_trackers[caster.entity_id].record_skill(skill)
 
-		# Create hitbox if applicable
+		# Create hitbox if applicable. Seed hit_entities with the primary
+		# target when skill.execute already damaged it directly -- the
+		# sweep must not hit it a second time.
 		if skill.hitbox_size > 0:
-			create_hitbox(caster, skill, target, ground_position)
+			create_hitbox(caster, skill, target, ground_position, result.targets_hit)
 
 	return result
 
-func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Vector3) -> void:
+func create_hitbox(caster: Node, skill: Skill, target: Node, ground_position: Vector3, already_hit: Array = []) -> void:
 	var hitbox := HitboxData.new()
 	hitbox.owner_id = str(caster.entity_id) if "entity_id" in caster and caster.entity_id else ""
 	hitbox.skill = skill
 	hitbox.team_id = caster.team_id if "team_id" in caster else 0
 	hitbox.hit_entities = []
+	for node in already_hit:
+		if node != null and is_instance_valid(node) and "entity_id" in node and node.entity_id != "":
+			hitbox.hit_entities.append(str(node.entity_id))
 	hitbox.start_time = Time.get_ticks_msec() / 1000.0
 	hitbox.duration = skill.animation_duration * 0.5  # Hitbox active for half animation
 
@@ -231,44 +239,22 @@ func _apply_hit(hitbox: HitboxData, target) -> void:
 
 ## Untyped caster/target: PlayerController (CharacterBody3D) is a valid
 ## caster/target family; Entity annotations threw on every real swing.
+## DoT/CC application routes through the skill's own appliers (the
+## same construction skill.execute uses) so both paths stay identical.
 func _apply_skill_effects(skill: Skill, caster, target) -> void:
+	if target == null or not target.has_method("apply_status_effect"):
+		return
 	# Apply DoT if skill has duration
 	if skill.is_dot:
-		_apply_dot(caster, target, skill)
+		skill.applyDoT(caster, target)
 
 	# Apply CC effects
 	if skill.crowd_control_type != "":
-		_apply_cc(skill, caster, target)
+		skill.applyCrowdControl(caster, target, Vector3.ZERO)
 
-	# Apply movement effects
+	# Apply movement effects (caster-side)
 	if skill.teleport_distance > 0:
 		_apply_teleport(caster, target, skill)
-
-func _apply_dot(caster, target, skill: Skill) -> void:
-	# Create and apply DoT effect
-	var effect := DoTEffect.new()
-	effect.damage_per_tick = skill.damage / int(skill.dot_duration / skill.dot_tick_rate)
-	effect.tick_rate = skill.dot_tick_rate
-	effect.total_duration = skill.dot_duration
-	effect.source = caster
-
-	target.apply_status_effect(effect)
-
-func _apply_cc(skill: Skill, caster, target) -> void:
-	# Nested ternary (a if c1 else b if c2 else d) is rejected by the
-	# 4.7.2 parser -- it mis-parses the second `if` as a statement
-	# terminator. Use an explicit match instead.
-	var effect: StatusEffect = null
-	match skill.crowd_control_type:
-		"slow":
-			effect = skill.create_slow_effect(caster)
-		"stun":
-			effect = skill.create_stun_effect(caster)
-		_:
-			effect = skill.create_root_effect(caster)
-	if effect == null:
-		return
-	target.apply_status_effect(effect)
 
 func _apply_teleport(caster, _target, skill: Skill) -> void:
 	var forward: Vector3 = -caster.global_transform.basis.z
@@ -361,35 +347,3 @@ class ComboTracker:
 		var current_time := Time.get_ticks_msec() / 1000.0
 		if current_time - last_skill_time > COMBO_WINDOW:
 			combo_count = 0
-
-## DoTEffect - Damage over time effect
-class DoTEffect:
-	extends StatusEffect
-
-	var damage_per_tick: int = 0
-	var tick_rate: float = 1.0
-	var total_duration: float = 0.0
-	var ticks_remaining: int = 0
-	var tick_timer: float = 0.0
-
-	func _init() -> void:
-		effect_type = EffectType.DEBUFF
-
-	func apply(target_entity: Node) -> bool:
-		ticks_remaining = int(total_duration / tick_rate)
-		if target_entity.damage_dealt.connect(_on_target_take_damage) == OK:
-			pass
-		return true
-
-	func remove(target_entity: Node) -> void:
-		target_entity.damage_dealt.disconnect(_on_target_take_damage)
-
-	func _physics_process(delta: float) -> void:
-		tick_timer += delta
-		if tick_timer >= tick_rate and ticks_remaining > 0:
-			tick_timer = 0.0
-			# Damage applied via signal
-			ticks_remaining -= 1
-
-	func _on_target_take_damage(_damager: Entity, _target: Entity, _amount: int, _damage_type: String = "physical", _is_crit: bool = false) -> void:
-		pass  # Could modify damage or apply effects

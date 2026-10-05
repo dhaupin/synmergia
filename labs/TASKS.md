@@ -3463,3 +3463,71 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   frame/kv/test_seed_chain). Hygiene: tabs only, extends-first intact,
   two stray non-ASCII comment chars normalized (seed_chain header,
   aura_component comment).
+- [x] Round 28 (the dormant stack is LIVE: CombatComponent +
+  AuraComponent wired into the real attack path; the wiring walk found
+  and fixed seven live-path defects):
+  (1) Component attach. Entity gains _ensure_effect_stack() (aura
+  component always; combat component for fighters) -- attached on
+  demand rather than in _ready inheritance alone, because Enemy._ready
+  does not call super._ready() and a _ready-only attach would miss
+  every enemy. Enemy._ready calls it with combat=true; PlayerController
+  gets its own stack + a status-effect surface mirroring Entity's
+  (the hitbox sweep calls target.apply_status_effect on whichever
+  family it hits -- the player previously had NO surface, so every
+  DoT/CC landing on a live player threw). Player DoT/HoT ticks route
+  through take_damage/heal so depletion + the 3-arg health_changed
+  stay correct.
+  (2) Single-store delegation. Entity.apply_status_effect remains the
+  canonical store (tick janitor sweeps it; StatusEffect self-manages
+  timing); AuraComponent now MIRRORS it via track_effect/untrack_effect
+  (classification + EventHub buff/debuff signals for the HUD) and its
+  add/remove/dispel APIs delegate to the canonical owner instead of
+  keeping a divergent second store. Its per-frame debuff advance is
+  GONE (a frame-advance on the mirror double-drained effects that run
+  their own Timers).
+  (3) CombatComponent is the GATE + state machine: rate limit,
+  anticheat, casting state, GCD. Costs/cooldowns belong to
+  skill.execute (the component consuming too double-spent); hitbox-
+  family skills route through CombatSystem.execute_skill so the sweep/
+  combo/skill_executed path stays the single live one; PlayerController
+  .use_skill routes through the component. Resurrecting it surfaced
+  the island's full defect list: duplicate SkillSchema const (parse
+  error), InventoryComponent.EquipSlot (the enum lives on Item --
+  parse error), ghost `upgraded_skill` emits in _finish_channel/
+  _perform_attack, nonexistent EventHub.emit_skill_used at 3 sites
+  (now _emit_skill_used -> EventHub.skill_executed), Entity-typed
+  params rejecting PlayerController everywhere (all duck-typed),
+  double resource consumption, and a skill.execute double-hit with the
+  hitbox sweep (hitbox now seeds hit_entities with the primary target
+  skill.execute already damaged).
+  (4) Live-path effect fixes in skill.gd/combat_system.gd: DoT/CC/
+  teleport were applied TWICE (skill.execute at cast AND
+  _apply_skill_effects per landed hit) -- execute() gained a
+  defer_target_effects flag that hitbox casts pass, giving landed hits
+  exclusive ownership (the dodge-exploit comment's intent); DoT/CC now
+  route through the skill's own appliers on both paths; the broken
+  DoTEffect inner class is deleted (phantom signal connect,
+  _physics_process that could never run -- DoTs ticked zero damage);
+  applyDoT sets a total_ticks budget (a TICKED effect with 0 budget is
+  infinite by contract and the janitor never reaped it); the three CC
+  creators set DURATION behavior (INSTANT default meant nothing ever
+  expired a stun -- perma-CC); applyDoT/applyCrowdControl guard null
+  and non-StatusEffect targets; the tick janitor advances TICKED
+  remaining_duration too (backstop for stalled timers).
+  (5) AuraComponent defect list: `.category` read (field is
+  effect_category -- first dispel crashed), buff.stat_modifiers read
+  (field does not exist -- now derived from the typed _bonus exports),
+  remove_debuff emitting buff_removed, dispel removing during for-in
+  iteration (collect-then-remove), and the missing
+  EventHub.debuff_removed signal (added to event_hub.gd -- my own first
+  draft of untrack_effect emitted it and the new suite caught the
+  nonexistent signal on the first live removal).
+  Tests: new game/tests/test_combat_stack_live.gd (33 asserts, 9
+  sections: attach, canonical routing + EventHub probes, dispel, live
+  DoT on Entity and player with real-tick expiry, perma-CC expiry,
+  component GCD gate, CombatSystem-preserving melee route, defer-flag
+  double-apply guard); added to the runner DEFAULT_SET. Regression:
+  10/10 (phase4_zone_aoi, world_chunks, tick_n017_cleanup,
+  tick_phase2_systems, combat_stack_live, e2e_flow, horde_rewards,
+  world_state_projection, frame/kv/test_t3, frame/kv/test_seed_chain).
+  Hygiene: tabs only, ASCII, extends-first intact.
