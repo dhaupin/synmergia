@@ -1055,7 +1055,11 @@ func _on_entity_died(entity, _killer, _metadata: SpawnMetadata) -> void:
 			# Don't auto-clear, let player decide
 			pass
 
-func _on_skill_executed(_caster: Node, _skill: Resource, _targets: Array) -> void:
+## Connected to EventHub.skill_executed (caster_id, skill_id, target_ids)
+## -- the STRING-typed hub signal, not CombatSystem's object-typed one.
+## Node/Resource annotations here made every emit throw a conversion
+## error (R29).
+func _on_skill_executed(_caster_id: String, _skill_id: String, _targets: Array) -> void:
 	# Could trigger targeting-related logic
 	pass
 

@@ -468,8 +468,12 @@ func _connect_signals() -> void:
 
 	if EntityService and EntityService.has_signal("entity_spawned"):
 		EntityService.entity_spawned.connect(_on_entity_spawned)
-	if EntityService and EntityService.has_signal("entity_despawned"):
-		EntityService.entity_despawned.connect(_on_entity_despawned)
+	# The despawn-side signal is entity_unregistered(entity, metadata)
+	# -- EntityService has no "entity_despawned" signal, so the old
+	# guarded connect silently never fired and markers piled up.
+	if EntityService and EntityService.has_signal("entity_unregistered"):
+		if not EntityService.entity_unregistered.is_connected(_on_entity_despawned):
+			EntityService.entity_unregistered.connect(_on_entity_despawned)
 
 func _on_zone_loaded(zone_data) -> void:
 	# ZoneData is a Resource: use `in` (Resources have no .has(); the
@@ -531,8 +535,12 @@ func _on_entity_spawned(entity, metadata) -> void:
 
 	add_marker(entity.entity_id, entity.global_position, marker_type, entity.get("display_name", ""))
 
-func _on_entity_despawned(entity_id: String) -> void:
-	remove_marker(entity_id)
+func _on_entity_despawned(entity, _metadata = null) -> void:
+	# Payload is (entity Node, SpawnMetadata): pull the marker key off
+	# the node, not a bare id string.
+	if entity == null or not ("entity_id" in entity):
+		return
+	remove_marker(entity.entity_id)
 
 func _process(_delta: float) -> void:
 	_update_player_marker()

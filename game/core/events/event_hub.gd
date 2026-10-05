@@ -11,7 +11,10 @@ signal player_died(entity, killer)
 signal player_resurrected(entity, source: String)
 signal self_resurrected(entity)
 signal player_respawned(entity, position: Vector3, mode)
-signal entity_despawned(entity_id: String, reason: String)
+## Payload is the entity NODE + SpawnMetadata (EntityService.unregister
+## is the only emitter; the old (entity_id, reason) annotation never
+## matched it and the typed consumers prove the node shape).
+signal entity_despawned(entity, metadata: SpawnMetadata)
 # Emitted by HealthComponent with (killer, victim, damage_type) object
 # args -- matches the death_features streak handler and combat_events.gd.
 signal entity_killed(killer, victim, damage_type: String)
@@ -69,6 +72,12 @@ signal aura_activated(entity, aura)
 signal aura_deactivated(entity, aura)
 signal aura_dispelled(entity, aura, caster)
 signal effect_dispelled(entity, debuff, caster)
+
+## Target-frame effect list (target_frame.gd). Payload is a plain
+## snapshot Dictionary (id/name/description/is_debuff/remaining/stack/
+## icon_path) so the UI never holds a live StatusEffect reference.
+signal entity_effect_added(entity_id: String, effect_data: Dictionary)
+signal entity_effect_removed(entity_id: String, effect_id: String)
 
 ## Gold balance changes (inventory_component.gd add_gold / remove_gold).
 signal gold_changed(entity, amount: int)

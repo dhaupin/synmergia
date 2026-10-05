@@ -3531,3 +3531,51 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   tick_phase2_systems, combat_stack_live, e2e_flow, horde_rewards,
   world_state_projection, frame/kv/test_t3, frame/kv/test_seed_chain).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 29 (enemies cast their kits through the live stack; the
+  signal-signature sweep fixed three more latent EventHub defects):
+  (1) EnemyAI skill kits. EnemyData.skills (already an exported
+  Array[String] on the schema, previously unread by any runtime code)
+  materializes into combat Skills lazily on first attack via
+  DataService.get_skill + Skill.from_schema; _next_ready_skill picks
+  the first off-cooldown castable kit entry and _perform_attack casts
+  it through the enemy's CombatComponent (rate limit -> anticheat ->
+  GCD -> CombatSystem sweep -> landed-hit effect appliers), mirroring
+  swing-path threat on both aggro tables. The plain MWo swing stays as
+  the no-kit / GCD-busy / class-locked fallback. The kit cast is a
+  TRUE live-path test: AI -> component -> CombatSystem hitbox sweep
+  (defer_target_effects) -> DoT lands on the target and drains
+  health.
+  (2) targeting_manager._on_skill_executed was typed for
+  CombatSystem's object signal (Node, Resource) but connected to the
+  hub's (caster_id: String, skill_id: String, target_ids) -- every
+  emit on the live path threw "Cannot convert argument 1 from String
+  to Object". Re-annotated to the hub shape (the handler is a stub,
+  so nothing else changes).
+  (3) EventHub.entity_despawned was DECLARED (entity_id: String,
+  reason: String) but its only emitter (EntityService.unregister)
+  sends (entity Node, SpawnMetadata) -- the declaration never matched
+  reality. Fixed the declaration to the node shape its two consumers
+  already assume.
+  (4) minimap.gd connected EntityService.entity_despawned -- a signal
+  that does not exist -- so the guarded connect silently never fired
+  and despawned entities kept their minimap markers forever. Now
+  connects entity_unregistered(entity, metadata) (guarded +
+  is_connected, matching the file's other connects) and the handler
+  pulls entity_id off the node.
+  (5) The target frame's effect list was permanently dead:
+  EventHub never declared entity_effect_added/removed, so the guarded
+  connects in target_frame.gd never fired. The hub now declares both
+  (payload: (entity_id: String, snapshot Dictionary) with id/name/
+  description/is_debuff/remaining/stack/icon_path -- the UI never
+  holds a live StatusEffect), and AuraComponent track/untrack emits
+  them alongside the buff/debuff signals (orphans with no canonical
+  parent stay silent).
+  Tests: test_combat_stack_live extended to 43 asserts -- new section
+  10 covers EnemyAI kit casting end-to-end (component GCD gate, DoT
+  landing through the sweep, EnemyData.skills materialization, the
+  schema class gate keeping a cleric skill uncastable by a classless
+  enemy) and section 2 now pins both target-frame snapshot emissions.
+  Regression: full runner DEFAULT_SET 53/53 in five chunks + 7/7
+  extras (hud_integration, notification_toast/frame, e2e_flow,
+  login_flow, entity_autoload, autoload_audit).
+  Hygiene: tabs only, ASCII, extends-first intact.

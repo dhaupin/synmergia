@@ -42,12 +42,14 @@ func track_effect(effect) -> void:
 		_active_buffs.append(effect)
 		buff_added.emit(effect)
 		EventHub.buff_applied.emit(get_parent(), effect, effect.source)
+		_emit_hub_effect_added(effect)
 	elif effect.effect_type == StatusEffect.EffectType.DEBUFF:
 		if _active_debuffs.size() >= max_debuffs:
 			_active_debuffs.pop_at(0)
 		_active_debuffs.append(effect)
 		debuff_added.emit(effect)
 		EventHub.debuff_applied.emit(get_parent(), effect, effect.source)
+		_emit_hub_effect_added(effect)
 
 ## Mirror untrack (called by Entity on every canonical removal).
 func untrack_effect(effect) -> void:
@@ -57,10 +59,36 @@ func untrack_effect(effect) -> void:
 		_active_buffs.erase(effect)
 		buff_removed.emit(effect)
 		EventHub.buff_removed.emit(get_parent(), effect)
+		_emit_hub_effect_removed(effect)
 	elif _active_debuffs.has(effect):
 		_active_debuffs.erase(effect)
 		debuff_removed.emit(effect)
 		EventHub.debuff_removed.emit(get_parent(), effect)
+		_emit_hub_effect_removed(effect)
+
+## EventHub.entity_effect_added payload: a plain snapshot Dictionary
+## keyed the way target_frame.gd reads it (id/name/description/
+## is_debuff/remaining/stack/icon_path). The UI never holds the live
+## StatusEffect, and orphan components (no canonical parent) stay silent.
+func _emit_hub_effect_added(effect) -> void:
+	var parent = get_parent()
+	if parent == null or not ("entity_id" in parent):
+		return
+	EventHub.entity_effect_added.emit(parent.entity_id, {
+		"id": effect.effect_id,
+		"name": effect.effect_name,
+		"description": effect.description,
+		"is_debuff": effect.effect_type == StatusEffect.EffectType.DEBUFF,
+		"remaining": effect.remaining_duration,
+		"stack": effect.current_stacks,
+		"icon_path": effect.icon_path,
+	})
+
+func _emit_hub_effect_removed(effect) -> void:
+	var parent = get_parent()
+	if parent == null or not ("entity_id" in parent):
+		return
+	EventHub.entity_effect_removed.emit(parent.entity_id, effect.effect_id)
 
 ## Add a buff. Delegates to the parent's canonical apply_status_effect
 ## (single store; the component mirrors via track_effect). The direct

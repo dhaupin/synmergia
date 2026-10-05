@@ -48,9 +48,20 @@ func _run() -> void:
 	# --- 2. Canonical routing through the aura mirror --------------------------
 	var debuff_applied := {"n": 0}
 	var debuff_removed := {"n": 0}
+	var effect_added := {"n": 0}
+	var effect_removed := {"n": 0}
 	if hub:
 		hub.debuff_applied.connect(func(_e, _b, _s): debuff_applied["n"] += 1)
 		hub.debuff_removed.connect(func(_e, _b): debuff_removed["n"] += 1)
+		hub.entity_effect_added.connect(func(eid, data):
+			effect_added["n"] += 1
+			if eid == "stack_carrier":
+				effect_added["last_id"] = data.get("id", "")
+				effect_added["last_debuff"] = data.get("is_debuff", false))
+		hub.entity_effect_removed.connect(func(eid, eff_id):
+			effect_removed["n"] += 1
+			if eid == "stack_carrier":
+				effect_removed["last_id"] = eff_id)
 
 	var poison = StatusScript.new()
 	poison.effect_id = "live_poison"
@@ -62,9 +73,11 @@ func _run() -> void:
 	_assert(carrier.status_effects.has(poison), "canonical store holds the applied effect")
 	_assert(carrier.aura_component.get_debuff_count() == 1, "aura mirror tracks the debuff")
 	_assert(debuff_applied["n"] == 1, "EventHub.debuff_applied fired on the live path")
+	_assert(effect_added["n"] == 1 and effect_added["last_id"] == "live_poison" and effect_added["last_debuff"] == true, "target-frame snapshot rides the same apply (R29)")
 	carrier.remove_status_effect(poison)
 	_assert(not carrier.status_effects.has(poison) and carrier.aura_component.get_debuff_count() == 0, "canonical removal untracks the mirror")
 	_assert(debuff_removed["n"] == 1, "EventHub.debuff_removed fired on removal")
+	_assert(effect_removed["n"] == 1 and effect_removed["last_id"] == "live_poison", "target-frame removal rides the same untrack (R29)")
 
 	# --- 3. Dispel path (fixed category read + collect-then-remove) ------------
 	var curse = StatusScript.new()
@@ -163,6 +176,65 @@ func _run() -> void:
 	_assert(carrier.status_effects.is_empty(), "deferred cast applies no target effects at cast time")
 	defer_skill.execute(enemy, carrier, Vector3.ZERO, false)
 	_assert(carrier.status_effects.size() == 1, "un-deferred cast applies the DoT (landed-hit path parity)")
+
+	# --- 10. EnemyAI skill casting through the component (R29) ------------------
+	var EnemyDataScript = load("res://core/schemas/enemy_data.gd")
+	var AIScript = load("res://core/ai/enemy_ai.gd")
+	_assert(AIScript != null and EnemyDataScript != null, "AI + EnemyData scripts resolvable")
+	# Let section 9's DoT run out so the array counts below are exact.
+	await create_timer(0.5).timeout
+
+	var kit_enemy: Node = EnemyScript.new()
+	var ed = EnemyDataScript.new()
+	var kit_ids: Array[String] = ["human_smite"]  # typed: the export is Array[String]
+	ed.skills = kit_ids
+	kit_enemy.enemy_data = ed
+	kit_enemy.entity_id = "kit_enemy"
+	root.add_child(kit_enemy)
+	await process_frame
+	_assert(kit_enemy.combat_component != null, "kit enemy carries the combat component")
+	# The hitbox sweep only sees CombatSystem's own registry (the live
+	# spawn flow registers both families there).
+	var combat_sys = root.get_node_or_null("CombatSystem")
+	if combat_sys:
+		combat_sys.register_entity(carrier)
+
+	var kit_ai = AIScript.new()
+	kit_enemy.attach_ai(kit_ai)
+	kit_ai._target = carrier
+	kit_ai._attack_timer = 0.0
+	# Deterministic kit: an injected DoT skill (cast-time effects are not
+	# whiff-gated) exercises the component path end to end without RNG.
+	var ai_dot = SkillScript.new()
+	ai_dot.skill_id = "ai_dot"
+	ai_dot.skill_name = "AI Dot"
+	ai_dot.is_dot = true
+	ai_dot.dot_damage = 3
+	# Long enough to survive the sweep window AND the tick janitor's
+	# wall-clock advance of TICKED effects (a 0.2s DoT is swept before
+	# the assert window closes).
+	ai_dot.dot_duration = 2.0
+	ai_dot.dot_tick_rate = 0.05
+	kit_ai._skills = [ai_dot]
+	kit_ai._skills_loaded = true
+	kit_ai._perform_attack()
+	_assert(kit_enemy.combat_component.gcd_remaining > 0.0, "AI cast routed through the component (GCD)")
+	# The kit skill kept its default hitbox, so the DoT lands through the
+	# sweep (defer_target_effects) a physics frame or two later -- the
+	# TRUE live path: AI -> component -> CombatSystem -> landed-hit effects.
+	var hp_before_sweep: int = int(carrier.current_health)
+	await create_timer(0.3).timeout
+	_assert(carrier.status_effects.size() == 1, "AI DoT landed through the hitbox sweep + live stack")
+	_assert(int(carrier.current_health) < hp_before_sweep, "AI DoT ticks drained health on the live path")
+	carrier.clear_all_status_effects()
+
+	# Data materialization: EnemyData.skills -> combat Skills via DataService.
+	kit_ai._skills = []
+	kit_ai._skills_loaded = false
+	kit_ai._load_skills()
+	_assert(kit_ai._skills.size() == 1 and kit_ai._skills[0].skill_id == "human_smite", "EnemyData.skills materialize into combat Skills")
+	_assert(kit_ai._skills[0].required_class == "human_cleric", "schema class gate carried into the combat Skill")
+	_assert(kit_ai._next_ready_skill(kit_enemy) == null, "class-locked kit skill correctly not castable by a classless enemy")
 
 	_finish()
 

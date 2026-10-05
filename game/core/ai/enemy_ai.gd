@@ -3,7 +3,7 @@
 extends Node
 class_name EnemyAI
 
-# Memory tree (frame primitive, arch §9): enemies remember who attacked
+# Memory tree (frame primitive, arch sec 9): enemies remember who attacked
 # them and who they lost (fled from), and bias future targeting.
 const MemoryTreeScript = preload("res://core/frame/kv/memory_tree.gd")
 const MemorySchemaScript = preload("res://core/frame/kv/memory_schema.gd")
@@ -12,6 +12,11 @@ const MemorySchemaScript = preload("res://core/frame/kv/memory_schema.gd")
 const CombatMath = preload("res://core/services/combat_math.gd")
 # Shared interest queries (round 10): one "nearby" law.
 const EntityInterest = preload("res://core/services/entity_interest.gd")
+# R29: data-driven skill kit. EnemyData.skills lists skill IDs; they
+# materialize into combat Skills on first attack and cast through the
+# enemy's CombatComponent (GCD + the live effect stack). The plain MWo
+# swing stays as the no-kit / GCD-busy fallback.
+const SkillScript = preload("res://core/combat/skill.gd")
 const MAX_MEMORY_ENTRIES := 16
 
 
@@ -45,6 +50,37 @@ var _aggro_timer: float = 0.0
 var _memory_tree = null  # lazy MemoryTreeScript instance
 var _memory_agent_path := ""
 var _known_threats: Dictionary = {}  # player_id -> weight (remembered attackers)
+var _skills: Array = []          # materialized combat Skills
+var _skills_loaded: bool = false
+
+## Materialize EnemyData.skills into combat Skills once (lazy: the
+## DataService catalog may still be filling during boot, and /root
+## resolution keeps this file free of bare-autoload compile deps).
+func _load_skills() -> void:
+	if _skills_loaded:
+		return
+	_skills_loaded = true
+	var entity: Entity = get_parent()
+	if entity == null or not ("enemy_data" in entity) or entity.enemy_data == null:
+		return
+	var skill_ids: Array = entity.enemy_data.skills if "skills" in entity.enemy_data else []
+	var ds = get_node_or_null("/root/DataService")
+	for id in skill_ids:
+		if ds == null or not ds.has_method("get_skill"):
+			break
+		var schema = ds.get_skill(str(id))
+		if schema != null:
+			var skill: Skill = SkillScript.from_schema(schema)
+			if skill != null:
+				_skills.append(skill)
+
+## First off-cooldown, castable skill from the kit (null = plain swing).
+func _next_ready_skill(entity: Entity) -> Skill:
+	_load_skills()
+	for skill in _skills:
+		if skill != null and skill.remaining_cooldown <= 0.0 and skill.can_cast(entity):
+			return skill
+	return null
 
 func _ready() -> void:
 	var entity: Entity = get_parent()
@@ -419,8 +455,13 @@ func _update_combat(delta: float) -> void:
 		set_state(AIState.RETURN)
 		return
 
-	# Check if target is dead or invalid (test the TARGET's health, not ours)
-	if not is_instance_valid(_target) or (_target.health_component and _target.health_component.is_dead()):
+	# Check if target is dead or invalid (test the TARGET's health, not
+	# ours; health_component is duck-typed -- bare Entity targets carry
+	# no such field).
+	var target_dead: bool = false
+	if is_instance_valid(_target) and "health_component" in _target and _target.health_component != null:
+		target_dead = _target.health_component.is_dead()
+	if not is_instance_valid(_target) or target_dead:
 		on_target_death()
 		return
 
@@ -456,6 +497,22 @@ func _perform_attack() -> void:
 	var entity: Entity = get_parent()
 	if not entity:
 		return
+
+	# R29: cast a kit skill through the enemy's CombatComponent when one
+	# is ready (GCD-gated; effects land through the live stack). The
+	# plain swing below remains the no-kit / GCD-busy fallback.
+	var kit_skill: Skill = _next_ready_skill(entity)
+	if kit_skill != null and entity.combat_component != null:
+		if entity.combat_component.execute_skill(kit_skill, _target):
+			# Threat mirrors the swing path: our table tracks the target,
+			# theirs tracks us. Nominal weight (the roll happens inside
+			# CombatSystem; relative threat is what drives switching).
+			if entity.aggro_component:
+				entity.aggro_component.add_damage_threat(_target, maxi(1, int(kit_skill.damage)))
+			if "aggro_component" in _target and _target.aggro_component != null:
+				_target.aggro_component.add_damage_threat(entity, maxi(1, int(kit_skill.damage)))
+			return
+		# Rejected (GCD busy / not castable right now): fall through.
 
 	# MWo-style single-roll hit table for enemy swings too: one randf()
 	# splits into miss/dodge/parry/block/crit/hit against the TARGET's
