@@ -3842,4 +3842,60 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   sandbox limitation persists: world-build log marks land outside
   the wait window at 2-4fps software GL stdout batching.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 37 (PRD-ACCESSIBILITY ROUND 3 SHIPPED: the world is
+  actionable -- entities announce and respond by name; one product
+  bug found by the bridge and one more by the take_damage audit):
+  (1) In-world bridge on A11yService: _append_world_entries walks
+  the entity family (Entity codes 2=ENEMY, 4=NPC, 1=PLAYER) inside
+  40m, skipping dead and self; verb by entity (npc_data -> "Talk",
+  ENEMY -> "Attack", else "Inspect"); detail "Xm away, level N";
+  entries are kind=="entity" with the path law world/entity:<id>.
+  _entity_rect camera-projects with a distance-scaled centered
+  fallback (no camera position leakage into paths); _world_sig
+  signature-gates the announce so world churn cannot spam (same
+  label-signature discipline as the menu walker); _resolve_world_
+  entity -> EntityService.get_entity; _set_game_target ->
+  TargetingManager.set_target (7-arg form).
+  (2) activate() dispatches kind=="entity" BEFORE control
+  resolution: Attack = set target THEN player.use_skill(0) (the
+  player's real attack path, not a damage shortcut); Talk =
+  entity.interact(player) with the _on_interact fallback; Inspect
+  = set target (the HUD panel does the describing).
+  (3) THE PRODUCT BUG (found by the probe, headline of the round):
+  Enemy.take_damage mutated only health_component.current_health
+  and never mirrored back to the base Entity field -- base
+  current_health stayed 100 forever, so anything reading
+  enemy.current_health (CombatSystem damage checks, HUD binds,
+  probes) saw permanently full-health enemies. Evidence:
+  take_damage(10) on an armor-5 wolf left hc=91 but field=100.
+  Fix: clamp into the component then mirror onto the field before
+  the health_changed emit. Full-path proof: use_skill ->
+  CombatSystem sweep took the wolf 100 -> 46 through the real
+  attack path.
+  (4) take_damage audit (all six implementations, same dual-store
+  class): entity.gd and PlayerManager are single-store and
+  consistent; guard.gd extends enemy.gd so the fix covers it;
+  player_controller.gd HAD the miss -- take_damage emitted the
+  stale local current_health (the component owns the damage path),
+  and the add_experience level-up bump (+10 max health, "mirroring
+  PlayerManager") never synced into the health_component, so the
+  per-level HP never actually applied in combat. Fixed both: emit
+  component truth; sync the bump into the component.
+  Test lesson: the level-up block's pre-existing glued `if` on the
+  comment line was a LATENT PARSE ERROR sitting in the tree (cat -A
+  forensics -- a trailing comment swallows the statement); found
+  only because the batch re-ran after the edit. Split it, scanned
+  all six touched files for the same artifact class, re-ran green.
+  (5) Verification: test_a11y_service extended with the R37 world
+  section (fake player_controller as PlayerManager.local_player,
+  Enemy "a11y_wolf" registered in EntityService; asserts announce/
+  verb/kind/rect and that activate-the-wolf deals REAL damage) --
+  25/0. Regression batch 6/0: a11y_service, combat_stack_live,
+  kill_rewards, horde_rewards, e2e_flow, hud_integration.
+  (6) Probe-state note: the live WASM journey already covers the
+  in-world pause/resume hop (53 actions announced, R35/R36); the
+  world-build registration mark still times out at 2-4fps software
+  GL (documented sandbox limitation). The suite now proves the
+  in-world bridge directly, so no probe re-run was required.
+  Hygiene: tabs only, ASCII, extends-first intact.
 

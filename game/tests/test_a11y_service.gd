@@ -229,4 +229,58 @@ func _run() -> void:
 
 	hud_panel.queue_free()
 	await process_frame
+
+	# --- R37: in-world entity actions (PRD sec 6 bridge) -----------------------
+	# PlayerManager local_player real node (the world oracle)
+	var PlayerScript2 = load("res://entities/player/player_controller.gd")
+	var EnemyScript = load("res://entities/enemy.gd")
+	var EnemyDataScript = load("res://core/schemas/enemy_data.gd")
+	var fake_player: Node = PlayerScript2.new()
+	fake_player.entity_id = "a11y_probe_player"
+	var pm2 = root.get_node_or_null("PlayerManager")
+	var had_player: bool = pm2 != null
+	if pm2:
+		pm2.local_player = fake_player
+	root.add_child(fake_player)
+	var es = root.get_node_or_null("EntityService")
+	var enemy2: Node = EnemyScript.new()
+	var ed2 = EnemyDataScript.new()
+	ed2.display_name = "Wolf"
+	enemy2.enemy_data = ed2
+	enemy2.entity_id = "a11y_wolf"
+	root.add_child(enemy2)
+	await process_frame
+	if es:
+		es.register_entity(enemy2, null, "a11y_wolf")
+	await process_frame
+	var world_snap: Array = svc.snapshot()
+	var wolf_entry: Dictionary = {}
+	for e in world_snap:
+		if String(e["path"]) == "world/entity:a11y_wolf":
+			wolf_entry = e
+	if not had_player:
+		print("(world asserts skipped: no PlayerManager in script mode)")
+	else:
+		_assert(not wolf_entry.is_empty(), "enemy within radius is announced as a world action")
+		_assert(String(wolf_entry["action"]) == "Attack Wolf" and String(wolf_entry["kind"]) == "entity", "verb names the family choice (Attack <Name>) with kind=entity")
+		_assert(wolf_entry.has("rect") and float(wolf_entry["rect"]["w"]) > 0.0, "entity rect carries screen geometry for click-through")
+		# Activation routes through the PLAYER's real cast path: use_skill
+		# (component fallback); the wolf should take damage.
+		var idx2: int = -1
+		for i in range(world_snap.size()):
+			if String(world_snap[i]["path"]) == "world/entity:a11y_wolf":
+				idx2 = i
+		seed(37)
+		var hp0: int = int(enemy2.current_health)
+		var activated: bool = svc.activate(idx2)
+		_assert(activated, "world activation routes through the real game verb")
+		await create_timer(0.3).timeout
+		_assert(int(enemy2.current_health) < hp0, "Activate-the-wolf dealt REAL damage through the player's attack path")
+	if es:
+		es.unregister_entity(enemy2, "probe cleanup")
+	if pm2:
+		pm2.local_player = null
+	fake_player.queue_free()
+	enemy2.queue_free()
+	await process_frame
 	print("A11yService: %d passed, %d failed" % [_pass, _fail])

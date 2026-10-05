@@ -349,8 +349,13 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 		# No _is_dead poke here: health_component.die() owns the dead flag
 		# and early-returns when it is already set -- setting it first used
 		# to make the proper death flow a silent no-op.
-		health_component.current_health -= applied
-		health_component.health_changed.emit(
+		health_component.current_health = maxi(0, health_component.current_health - applied)
+		# Mirror onto the base Entity field: CombatSystem damage checks,
+		# HUD binds and a11y/probe reads all use current_health -- the
+		# old unmirrored field reported a full-health enemy after every
+		# hit (R37: the a11y world-bridge probe found it).
+		current_health = health_component.current_health
+		health_changed.emit(
 			health_component.current_health,
 			health_component.max_health,
 			-applied)

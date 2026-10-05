@@ -1087,7 +1087,10 @@ func take_damage(amount: int, source = null, damage_type: String = "physical") -
 		return 0
 	var dealt: int = health_component.take_damage(amount, source, damage_type)
 	if dealt > 0:
-		health_changed.emit(current_health, max_health, -dealt)
+		# Emit the health_component truth, not the stale local field --
+		# the component owns the damage path (same dual-store miss the
+		# Enemy fix closed; R37 audit).
+		health_changed.emit(health_component.current_health, health_component.max_health, -dealt)
 		GameLog.info("Player hit: %d %s damage (HP %d/%d)" % [
 			dealt, damage_type, health_component.current_health, health_component.max_health])
 	return dealt
@@ -1169,7 +1172,12 @@ func add_experience(amount: int) -> void:
 		# Full restore on level up, mirroring PlayerManager.
 		if health_component != null:
 			max_health += 10
+			# Sync into the component: it owns the damage/heal path, so
+			# the bump must land where take_damage actually reads
+			# (dual-store hygiene, R37 audit).
+			health_component.max_health = max_health
 			current_health = max_health
+			health_component.current_health = current_health
 		leveled_up.emit(level)
 		GameLog.info("Player level up: now level %d" % level)
 	experience_changed.emit(experience, level)

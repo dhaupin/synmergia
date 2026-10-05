@@ -158,4 +158,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
 			KEY_TAB:
-				_trigger_tab()
+				# Focus cycling lives on A11yService (one implementation
+				# for every menu; prd-accessibility.md sec 8 disposition).
+				if event.shift:
+					A11yService.focus_prev()
+				else:
+					A11yService.focus_next()

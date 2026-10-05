@@ -93,15 +93,9 @@ var _settings_panel: Control = null
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_TAB:
-			var buttons := [start_button, quit_button]
-			var current := get_viewport().gui_get_focus_owner()
-			var idx := -1
-			for i in range(buttons.size()):
-				if buttons[i] == current:
-					idx = i
-					break
+			# Focus cycling lives on A11yService (one implementation for
+			# every menu; prd-accessibility.md sec 8 disposition).
 			if event.shift:
-				idx = (idx - 1 + buttons.size()) % buttons.size()
+				A11yService.focus_prev()
 			else:
-				idx = (idx + 1) % buttons.size()
-			buttons[idx].grab_focus()
+				A11yService.focus_next()

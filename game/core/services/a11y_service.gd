@@ -100,12 +100,17 @@ func _is_actionable(ctrl: Control) -> bool:
 
 
 ## The one contract. Ordered (focus = tree) list of actionables:
-##   path  : node path from the scene root (stable machine key)
-##   kind  : engine class (button / line_edit / ...)
+##   path  : node path (controls) or world/entity:<id> (entities)
+##   kind  : engine class or "entity"
 ##   action: accessibility_name -- the human/agent action label
 ##   detail: accessibility_description -- the consequence
 ##   rect  : canvas-space geometry {x,y,w,h} for click-through
 ##   focused / disabled / visible: current truth
+##
+## R37 (PRD sec 6): when a local player exists and a world is live,
+## entity actions are APPENDED after the UI entries, ordered nearest-
+## first, so one snapshot serves the menu AND the world and focus
+## order reads as "what is in front of me".
 func snapshot() -> Array:
 	var out: Array = []
 	var root := get_tree().root
@@ -116,7 +121,126 @@ func snapshot() -> Array:
 	# current_scene-relative paths break in script-mode tests and
 	# during scene swaps.
 	_walk(root, "", out)
+	_append_world_entries(out)
 	return out
+
+## ---- In-world entity actions (PRD sec 6) --------------------------------
+## The world is not a second system: InteractionLayer verbs are carried
+## into the SAME snapshot schema. Entries are emitted by a bridge (never
+## a side-car scan), sorted by screen distance from the cursor/center.
+## Focus order in-world = proximity, so TAB cycles world targets the way
+## it cycles menu buttons.
+
+const _WORLD_RADIUS := 40.0   # meters of "in front of me"
+var _world_sig: String = ""
+
+func _local_player() -> Node:
+	var pm = get_node_or_null("/root/PlayerManager")
+	if pm != null and "local_player" in pm and pm.local_player != null and is_instance_valid(pm.local_player):
+		return pm.local_player
+	return null
+
+func _camera() -> Camera3D:
+	var player := _local_player()
+	if player != null and "camera_pivot" in player:
+		var pivot = player.camera_pivot
+		if pivot != null and pivot.get_child_count() > 0:
+			var cam = pivot.get_child(0)
+			if cam is Camera3D:
+				return cam
+	var vp := get_viewport()
+	if vp != null:
+		return vp.get_camera_3d()
+	return null
+
+## One screen rect per world entity via camera projection (controls
+## and entities end up in the same screen space).
+func _entity_rect(cam: Camera3D, entity: Node, dist: float = -1.0) -> Dictionary:
+	var vp := get_viewport()
+	if vp == null:
+		return {"x": 0, "y": 0, "w": 0, "h": 0}
+	var size: Vector2 = Vector2(56, 56)
+	if cam != null and cam.is_inside_tree() and cam.is_current():
+		var screen: Vector2 = cam.unproject_position(entity.global_position)
+		var x: float = clampf(screen.x - size.x * 0.5, 0, vp.get_visible_rect().size.x)
+		var y: float = clampf(screen.y - size.y * 0.5, 0, vp.get_visible_rect().size.y)
+		return {"x": x, "y": y, "w": size.x, "h": size.y}
+	# Camera-less fallback (script mode / boot edge): a centered rect
+	# scaled by distance keeps the entry clickable and the ordering
+	# meaningful until a camera exists. Real gameplay always has one.
+	var _vp_size: Vector2 = vp.get_visible_rect().size
+	var strength: float = clampf(1.0 - (dist if dist > 0 else _WORLD_RADIUS) / _WORLD_RADIUS, 0.3, 1.0)
+	var cx: float = _vp_size.x * 0.5
+	var cy: float = _vp_size.y * 0.62
+	return {"x": cx - size.x * 0.5 * strength, "y": cy - size.y * 0.5 * strength, "w": size.x * strength, "h": size.y * strength}
+
+## The verb: what an agent or player WANTS to do with this thing.
+func _entity_verb(entity: Node) -> String:
+	# NPC=4, ENEMY=2 (Entity.EntityType values).
+	var etype: int = int(entity.entity_type) if "entity_type" in entity else 0
+	if "npc_data" in entity and entity.npc_data != null:
+		return "Talk"
+	if etype == 2:
+		return "Attack"
+	return "Inspect"
+
+func _append_world_entries(out: Array) -> void:
+	var player := _local_player()
+	if player == null:
+		_world_sig = ""
+		return
+	var es = get_node_or_null("/root/EntityService")
+	if es == null or not es.has_method("get_entities_in_radius"):
+		return
+	# Camera may legitimately be null mid-swap / in script mode: the
+	# distance-scaled fallback rect keeps the bridge alive (real
+	# gameplay always has one, and the fallback center sits below the
+	# crosshair where world actions belong).
+	var cam := _camera()
+	var origin: Vector3 = player.global_position
+	var entries: Array = []
+	# Family codes from Entity.EntityType (entity.gd): ENEMY=2, NPC=4,
+	# PLAYER=1. Enemies first (combat is the urgent verb), then NPCs,
+	# then players.
+	for family in [2, 4, 1]:
+		var found: Array = es.get_entities_in_radius(origin, _WORLD_RADIUS, family)
+		for entity in found:
+			if entity == null or not is_instance_valid(entity):
+				continue
+			if entity == player:
+				continue
+			if "is_dead" in entity and bool(entity.is_dead):
+				continue
+			var label: String = str(entity.display_name) if "display_name" in entity else str(entity.entity_id)
+			var dist: float = origin.distance_to(entity.global_position)
+			var verb: String = _entity_verb(entity)
+			var detail := "%.0fm away" % dist
+			if "level" in entity and int(entity.level) > 0:
+				detail += ", level %d" % int(entity.level)
+			entries.append({
+				"path": "world/entity:%s" % str(entity.entity_id),
+				"kind": "entity",
+				"action": "%s %s" % [verb, label],
+				"detail": detail,
+				"rect": _entity_rect(cam, entity, dist),
+				"focused": false,
+				"disabled": false,
+				"_dist": dist,
+			})
+	entries.sort_custom(func(a, b): return float(a["_dist"]) < float(b["_dist"]))
+	for e in entries:
+		e.erase("_dist")
+		out.append(e)
+	# Announce world actions when their SET changes (same signature law
+	# as the UI announcements).
+	var labels: Array = []
+	for e in entries:
+		labels.append(String(e["action"]))
+	var sig := ",".join(labels)
+	if sig != _world_sig:
+		_world_sig = sig
+		for e in entries:
+			print("[A11Y] ", JSON.stringify(e))
 
 
 func _walk(node: Node, base_path: String, out: Array) -> void:
@@ -194,6 +318,9 @@ func activate(index: int) -> bool:
 	var entry: Dictionary = snap[index]
 	if bool(entry["disabled"]):
 		return false
+	# World entries route through the in-world verbs (R37).
+	if String(entry["kind"]) == "entity":
+		return _activate_world(entry)
 	var node = _resolve(entry["path"])
 	if node == null:
 		return false
@@ -304,3 +431,64 @@ func _is_at_or_above(candidate: Control, ctrl: Control, _point: Vector2) -> bool
 			return true
 		node = node.get_parent()
 	return false
+
+
+## ---- World-side activation (same pipeline rule: real game verbs) --------
+
+## Resolve a world/entity:<id> snapshot path back to the live node.
+func _resolve_world_entity(entity_id: String) -> Node:
+	var es = get_node_or_null("/root/EntityService")
+	if es == null or not es.has_method("get_entity"):
+		return null
+	return es.get_entity(entity_id)
+
+## World activation: EVERY verb routes through the game's real combat /
+## interaction verbs -- Attack goes through CombatComponent.execute_skill
+## (the same gate a player keypress takes), Talk talks, Inspect selects.
+## Returns true when a verb executed.
+func _activate_world(entry: Dictionary) -> bool:
+	var path: String = String(entry["path"])
+	if not path.begins_with("world/entity:"):
+		return false
+	var entity := _resolve_world_entity(path.trim_prefix("world/entity:"))
+	if entity == null or not is_instance_valid(entity):
+		return false
+	var player := _local_player()
+	if player == null:
+		return false
+	var action: String = String(entry["action"])
+	if action.begins_with("Attack "):
+		# Set the game's own target FIRST (TargetingManager), then cast
+		# through the player's skillbar exactly like a keypress: use_skill
+		# reads the current target from the targeting pool and routes the
+		# skill through CombatComponent (GCD + live stack). No bypass.
+		_set_game_target(entity)
+		if player.has_method("use_skill"):
+			seed(int(Time.get_ticks_msec()) % 100000)
+			player.use_skill(0)
+			return true
+		return false
+	if action.begins_with("Talk "):
+		if entity.has_method("interact"):
+			entity.interact(player)
+			return true
+		if entity.has_method("_on_interact"):
+			entity._on_interact(player)
+			return true
+		return false
+	# Inspect: set the game's own target (the targeting pool), which
+	# lights the target frame -- the agent sees the same UI a player does.
+	var ok: bool = _set_game_target(entity)
+	return true if ok else false
+
+## Set TargetingManager's current target to this entity (rid real UI
+## routing: lights the target frame; use_skill reads it for Attack).
+func _set_game_target(entity: Node) -> bool:
+	var tm = get_node_or_null("/root/TargetingManager")
+	if tm == null or not tm.has_method("set_target"):
+		return false
+	var eid: String = String(entity.entity_id) if "entity_id" in entity else ""
+	var sname: String = String(entity.display_name) if "display_name" in entity else eid
+	var etype: int = int(entity.entity_type) if "entity_type" in entity else 0
+	tm.set_target(eid, eid, sname, entity.global_position, entity, etype, {})
+	return true
