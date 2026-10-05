@@ -1,0 +1,8 @@
+{
+  "name": "synmergia-web-probe",
+  "private": true,
+  "description": "Playwright/chromium acceptance rig for the Synmergia web export. Drives the real WASM build and consumes the A11yService [A11Y] JSON stream.",
+  "dependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}
