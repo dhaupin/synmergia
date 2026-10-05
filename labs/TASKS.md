@@ -3610,3 +3610,46 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   added (Node-based: the typed _buff_bar property rejects RefCounted).
   Regression: hud_integration + combat_stack_live green (2/2 runs).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 31 (THE DEATH SEAM: DoT kills now trigger the real death
+  chain and pay the caster -- three defects, one ordering wrinkle):
+  (1) StatusEffect._apply_tick_effect applied tick damage by DIRECT
+  health mutation (maxi(0, ...)) -- a killing tick never called
+  take_damage, so no death trigger (0-HP zombie enemies, unkillable,
+  never despawning), no killer attribution (no XP/loot/quest credit),
+  and no damage_dealt signal. Now the canonical applier routes through
+  the family's own combat entry points: duck-typed
+  take_damage(tick_damage * stacks, source, "periodic") /
+  heal(tick_heal * stacks) covering Entity and the PlayerController
+  CharacterBody3D in one path (bare targets without a combat surface
+  keep the legacy mutation fallback). "periodic" bypasses school
+  mitigation by design (tick budget already priced the damage).
+  (2) skill.applyDoT never set dot.source -- attribution was broken at
+  the ROOT: even with the reroute the kill would have paid nobody.
+  applyDoT now stamps the caster onto the effect.
+  (3) PlayerController's tick_occurred handler (take_damage(amount,
+  null, "periodic")) became a DOUBLE-APPLY once _apply_tick_effect
+  went canonical -- handler + connect removed; the source also stops
+  being dropped (was null, now the effect's caster).
+  (4) Ordering wrinkle found BY the new test: Enemy.take_damage
+  mirrored is_dead/current_health onto the base fields only AFTER
+  health_component.die() returned -- but die() emits
+  EventHub.entity_died and runs the whole rewards/unregister chain
+  synchronously, so is_alive() lied DURING the death chain (CombatSystem
+  sweeps and kill-credit checks could see a corpse as alive). The
+  mirror now happens before die(), matching Entity.die's own
+  set-then-emit convention.
+  Tests: test_combat_stack_live now 54 asserts -- new section 12 pins
+  the whole seam ("DoT kills an enemy and the caster gets credit"):
+  source carried on the effect, real death flow with is_dead set at
+  signal time, node freed by the despawn path, kill_rewarded crediting
+  the caster, XP > 0, EntityService unregistration. Test-side lessons:
+  the Enemy family's death chain FREES the node (post-wait asserts
+  must capture state inside the signal -- the first draft poked a
+  freed object and the script error silently aborted the section while
+  still exiting 0), and EventHub.entity_died -- not the base Entity.died
+  -- is the authoritative death event for the health_component family.
+  Regression: 11/11 (tick_phase2_systems, combat_stack_live, e2e_flow,
+  hud_integration, login_flow, tick_n017_cleanup, world_chunks,
+  frame/kv/test_t3_dedup, kill_rewards, horde_rewards,
+  skill_academy_live).
+  Hygiene: tabs only, ASCII, extends-first intact.

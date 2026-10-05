@@ -441,6 +441,10 @@ func applyDoT(caster, target) -> void:
 	# would tick forever.
 	dot.total_ticks = maxi(1, int(dot.duration / dot.tick_interval))
 	dot.tick_damage = dot_damage
+	# Kill attribution: the tick path routes through the target's
+	# take_damage with this source, so a killing tick pays XP/loot/quest
+	# credit to the CASTER (the old source-less effect paid nobody).
+	dot.source = caster
 
 	target.apply_status_effect(dot)
 

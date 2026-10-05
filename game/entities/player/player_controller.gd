@@ -1247,13 +1247,9 @@ func apply_status_effect(effect) -> void:
 	# effect_expired is a no-arg signal; bind the effect so the handler
 	# receives it (same reasoning as Entity).
 	effect.effect_expired.connect(_on_status_effect_expired.bind(effect))
-	# The base StatusEffect tick machinery only damages Entity instances;
-	# the player applies its own ticks through take_damage/heal so
-	# depletion and the 3-arg health_changed stay correct.
-	if effect.tick_behavior == effect.TickBehavior.TICKED:
-		effect.tick_occurred.connect(_on_status_effect_tick)
-	if aura_component:
-		aura_component.track_effect(effect)
+	# Ticks apply through StatusEffect._apply_tick_effect (R31 canonical:
+	# duck-typed take_damage/heal with the effect's source). No local
+	# tick_occurred connect -- a handler here would DOUBLE-apply damage.
 
 func _on_status_effect_expired(effect) -> void:
 	status_effects.erase(effect)
@@ -1274,13 +1270,6 @@ func clear_all_status_effects() -> void:
 			aura_component.untrack_effect(effect)
 	status_effects.clear()
 
-func _on_status_effect_tick(_target, amount: int, tick_type: String) -> void:
-	if is_dead():
-		return
-	if tick_type == "DAMAGE" and amount > 0:
-		take_damage(amount, null, "periodic")
-	elif tick_type == "HEAL" and amount > 0:
-		heal(amount, null)
 
 func use_skill(slot: int) -> void:
 	if slot < 0 or slot >= skillbar.size():

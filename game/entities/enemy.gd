@@ -359,12 +359,14 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 			# creates the corpse, emits health_depleted (-> _on_died: loot,
 			# kill rewards, unregister) and EventHub.entity_died. Poking
 			# _is_dead directly (the old code) skipped all of that.
-			health_component.die(source)
-			# Mirror death onto the base Entity fields so is_alive() -- used
-			# by CombatSystem hitbox sweeps and kill-credit checks -- tells
-			# the truth instead of reporting a dead enemy as alive.
+			# Mirror death onto the base Entity fields BEFORE die(): the
+			# whole die chain runs synchronously and is_alive() -- used by
+			# CombatSystem hitbox sweeps and kill-credit checks -- must tell
+			# the truth inside it, not just after it returns. Entity.die's
+			# own convention is set-then-emit; the mirror now matches.
 			is_dead = true
 			current_health = 0
+			health_component.die(source)
 	else:
 		current_health -= applied
 		health_changed.emit(current_health, max_health)

@@ -308,13 +308,29 @@ func _apply_tick_effect() -> void:
 	if not target or not is_instance_valid(target):
 		return
 
-	if tick_damage > 0 and is_instance_of(target, EntityScript):
-		target.current_health = maxi(0, target.current_health - tick_damage * current_stacks)
-		target.health_changed.emit(target.current_health, target.max_health)
+	# R31: ticks route through the family's own combat entry points so a
+	# killing tick triggers the REAL death flow (health_component.die ->
+	# corpse, loot, KillRewards.award_kill -> kill_rewarded, unregister)
+	# and the kill attributes to this effect's source. The old direct
+	# health mutation left 0-HP zombies and unattributed kills. The
+	# duck-typed call covers both families (Entity and the PlayerController
+	# CharacterBody3D take the same 3-arg shape). "periodic" bypasses
+	# school mitigation by design: the tick budget already priced the
+	# damage, matching the old no-mitigation behavior.
+	if tick_damage > 0:
+		if target.has_method("take_damage"):
+			target.take_damage(tick_damage * current_stacks, source, "periodic")
+		elif is_instance_of(target, EntityScript):
+			# Bare targets with no combat surface: legacy direct mutation.
+			target.current_health = maxi(0, target.current_health - tick_damage * current_stacks)
+			target.health_changed.emit(target.current_health, target.max_health)
 
-	if tick_heal > 0 and is_instance_of(target, EntityScript):
-		target.current_health = mini(target.max_health, target.current_health + tick_heal * current_stacks)
-		target.health_changed.emit(target.current_health, target.max_health)
+	if tick_heal > 0:
+		if target.has_method("heal"):
+			target.heal(tick_heal * current_stacks)
+		elif is_instance_of(target, EntityScript):
+			target.current_health = mini(target.max_health, target.current_health + tick_heal * current_stacks)
+			target.health_changed.emit(target.current_health, target.max_health)
 
 	if tick_shield > 0:
 		_shield_remaining += tick_shield * current_stacks

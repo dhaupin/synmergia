@@ -274,6 +274,60 @@ func _run() -> void:
 	bar_integ.free()
 	BarProbe.free()
 
+	# --- 12. DoT kills attribute + trigger the real death flow (R31) ------------
+	# Ticks route through the target's take_damage with the effect's
+	# source: a killing tick must trigger the REAL death chain (die ->
+	# corpse/loot/kill-rewards/unregister) and pay the CASTER -- the old
+	# direct health mutation left 0-HP zombies and unattributed kills.
+	var kr_victim: Node = EnemyScript.new()
+	var kr_data = EnemyDataScript.new()
+	kr_victim.enemy_data = kr_data
+	kr_victim.entity_id = "dot_kill_victim"
+	root.add_child(kr_victim)
+	await process_frame
+	var dot_caster: Node = EntityScript.new()
+	dot_caster.entity_id = "dot_caster"
+	root.add_child(dot_caster)
+	await process_frame
+	var kill_capt := {"n": 0, "killer": null, "xp": -1}
+	var died_n := {"n": 0}
+	var died_is_dead: Array = []
+	if hub:
+		hub.kill_rewarded.connect(func(_entity, killer, rewards):
+			kill_capt["n"] += 1
+			kill_capt["killer"] = killer
+			kill_capt["xp"] = int(rewards.get("xp", 0)))
+	# Capture death state INSIDE the death signal: the full death chain
+	# frees the node (despawn), so post-wait asserts must not touch it.
+	# The Enemy family dies through health_component.die()'s chain --
+	# the base Entity.died signal never fires for it; EventHub.entity_died
+	# is the authoritative death event for BOTH families.
+	if hub:
+		hub.entity_died.connect(func(entity, _killer, _meta):
+			died_n["n"] += 1
+			if entity != null and is_instance_valid(entity) and "is_dead" in entity:
+				died_is_dead.append(bool(entity.is_dead)))
+	var kill_dot = SkillScript.new()
+	kill_dot.skill_id = "kill_dot"
+	kill_dot.skill_name = "Kill Dot"
+	kill_dot.is_dot = true
+	kill_dot.dot_damage = 99999
+	kill_dot.dot_duration = 1.0
+	kill_dot.dot_tick_rate = 0.05
+	kill_dot.applyDoT(dot_caster, kr_victim)
+	_assert(kr_victim.status_effects.size() == 1, "lethal DoT applied to the enemy")
+	_assert(kr_victim.status_effects[0].source == dot_caster, "DoT carries its caster as source")
+	await create_timer(0.4).timeout
+	_assert(died_n["n"] >= 1 and not died_is_dead.is_empty() and bool(died_is_dead[0]), "killing tick triggered the real death flow with is_dead set (no 0-HP zombie)")
+	_assert(not is_instance_valid(kr_victim), "dead enemy freed by the despawn path")
+	_assert(kill_capt["n"] == 1 and kill_capt["killer"] == dot_caster, "DoT kill credited to the caster via kill_rewarded")
+	_assert(kill_capt["xp"] > 0, "DoT kill paid XP")
+	if es:
+		_assert(es.get_entity("dot_kill_victim") == null, "dead enemy unregistered (despawn path)")
+	if is_instance_valid(kr_victim):
+		kr_victim.queue_free()
+	dot_caster.queue_free()
+
 	_finish()
 
 func _assert(cond: bool, label: String) -> void:
