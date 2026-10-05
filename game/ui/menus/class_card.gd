@@ -26,6 +26,14 @@ func setup(c: CharacterClass, _sp: Species) -> void:
 	cls = c
 	name_label.text = c.display_name
 	desc_label.text = c.description if c.description else ""
+	# Accessibility & Agent-Action layer: name the CHOICE ("Play Warrior",
+	# with role and resource as the consequence).
+	var UIStyles = preload("res://ui/components/ui_styles.gd")
+	UIStyles.apply_accessibility(
+		select_btn,
+		"Play %s" % c.display_name,
+		"%s. Creates the character and enters the world" % String(role_label.text)
+	)
 
 	role_label.text = CharacterClass.Role.keys()[c.role]
 

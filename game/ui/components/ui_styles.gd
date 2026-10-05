@@ -342,13 +342,24 @@ static func create_high_contrast_panel_style(border_width: int = 3, corner_radiu
 	style.corner_radius_bottom_right = corner_radius
 	return style
 
-## Apply focus behavior to a control. (The old accessible_name/
-## accessible_description assignments were removed: those properties do
-## not exist on Control in Godot 4.7.2 and errored at runtime.)
+## Annotate a control for the Accessibility & Agent-Action layer
+## (prd-accessibility.md). Godot 4.5+ ships AccessKit: these are REAL
+## Control properties now (verified on 4.7.2 -- the old "do not exist"
+## comment here predated that integration and sent earlier attempts
+## down the wrong path). accessibility_name = the action from the
+## user's side (imperative, English); accessibility_description = the
+## consequence. One annotation set feeds desktop AT, web AT, agents
+## (A11yService.snapshot), and the in-world extension.
 static func apply_accessibility(control: Control, accessible_name: String = "", accessible_description: String = "", focus_mode: int = Control.FOCUS_ALL) -> void:
 	control.focus_mode = focus_mode
+	if accessible_name != "" and "accessibility_name" in control:
+		control.set("accessibility_name", accessible_name)
+	if accessible_description != "" and "accessibility_description" in control:
+		control.set("accessibility_description", accessible_description)
 
-## Create accessible button with standard focus and tooltip
+## Create accessible button with standard focus, tooltip, and
+## AccessKit annotation (name defaults to the button text, detail to
+## the tooltip when provided).
 static func create_accessible_button(text: String, accessible_name: String = "", tooltip: String = "", high_contrast: bool = false) -> Button:
 	var btn := Button.new()
 	btn.text = text
@@ -357,6 +368,7 @@ static func create_accessible_button(text: String, accessible_name: String = "",
 		btn.tooltip_text = tooltip
 	else:
 		btn.tooltip_text = text
+	apply_accessibility(btn, accessible_name if accessible_name != "" else text, tooltip)
 	
 	# Apply focus style
 	btn.add_theme_stylebox_override("focus", create_focus_style(8, high_contrast))

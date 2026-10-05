@@ -32,6 +32,10 @@ func _ready() -> void:
 	play_button.pressed.connect(_on_play_pressed)
 	play_button.disabled = true
 	_apply_button_styles()
+	# Accessibility & Agent-Action layer (prd-accessibility.md).
+	if UIStyles:
+		UIStyles.apply_accessibility(back_button, "Back to lobby", "Returns to the character lobby without creating")
+		UIStyles.apply_accessibility(play_button, "Enter World", "Creates the chosen character and enters the world immediately")
 	_load_species()
 
 

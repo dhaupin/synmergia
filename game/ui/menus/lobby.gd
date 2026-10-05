@@ -60,6 +60,12 @@ func _apply_styles() -> void:
 	var bs := UIStyles.create_button_style()
 	for b in [_play_btn, _create_btn, _delete_btn, _logout_btn]:
 		UIStyles.apply_button_styles(b, bs)
+	# Accessibility & Agent-Action layer annotations (prd-accessibility.md):
+	# action = what the user wants; detail = the consequence.
+	UIStyles.apply_accessibility(_play_btn, "Play selected character", "Enters the world with the highlighted character")
+	UIStyles.apply_accessibility(_create_btn, "Create New", "Opens character creation; a fresh character enters the world automatically")
+	UIStyles.apply_accessibility(_delete_btn, "Delete", "Removes the highlighted character from this account")
+	UIStyles.apply_accessibility(_logout_btn, "Logout", "Signs out and returns to the login screen")
 
 func _refresh_account_header() -> void:
 	if not LoginService or not _account_label:
@@ -155,21 +161,12 @@ func _on_logout_pressed() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_TAB:
-			_cycle_focus([_play_btn, _create_btn, _delete_btn, _logout_btn], event.shift)
-
-
-func _cycle_focus(buttons: Array, reverse: bool) -> void:
-	var current := get_viewport().gui_get_focus_owner()
-	var idx := -1
-	for i in range(buttons.size()):
-		if buttons[i] == current:
-			idx = i
-			break
-	if reverse:
-		idx = (idx - 1 + buttons.size()) % buttons.size()
-	else:
-		idx = (idx + 1) % buttons.size()
-	buttons[idx].grab_focus()
+			# Focus cycling lives on A11yService (one implementation for
+			# every menu; prd-accessibility.md sec 8 disposition).
+			if event.shift:
+				A11yService.focus_prev()
+			else:
+				A11yService.focus_next()
 
 func _on_logged_out() -> void:
 	if GameManager:

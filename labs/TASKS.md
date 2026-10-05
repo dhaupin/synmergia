@@ -3755,4 +3755,51 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   651d5598... unchanged) -- exports are deterministic, so pack diffs
   in CI mean real content changes only.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 35 (PRD-ACCESSIBILITY ROUND 1 SHIPPED: A11yService + menu
+  annotations + the snapshot-driven probe -- the agent navigated the
+  game BY ACTION NAME, zero coordinates):
+  (1) A11yService autoload (core/services/a11y_service.gd, registered
+  early in project.godot): walking snapshot() of actionable Controls
+  (BaseButton/LineEdit/ItemList/Slider) in tree order, entry =
+  {path(/root-relative), kind, action, detail, rect, focused,
+  disabled, visible}. Action label priority: annotated
+  accessibility_name > button text > placeholder > node name; detail
+  = accessibility_description. BootLoadingLayer family excluded.
+  focus_next/prev/index + activate(index)/activate_by_action(label)
+  (buttons emit pressed; disabled refuse; line edits focus).
+  dump() prints [A11Y] JSON lines; the service ALSO auto-dumps on
+  actual actionable-set changes (label-signature gated, so world
+  churn cannot spam) -- the layer announces every screen by itself.
+  Debounce fixes found by tests: mark-dirty only, NEVER reset the
+  0.25s window on mutation (TickService churn starved a reset-style
+  debounce forever); /root-relative paths (current_scene-relative
+  resolution broke in script mode and scene swaps).
+  (2) UIStyles.apply_accessibility now writes the REAL AccessKit
+  properties (verified exist on 4.7.2) -- the stale "do not exist"
+  comment corrected in place; create_accessible_button annotates;
+  login.tscn/main_menu.tscn renamed accessible_string ->
+  accessibility_name (6+2 keys, the invented property is gone).
+  lobby/character_select annotate their buttons in _ready; species
+  and class cards name the CHOICE ("Choose Human", "Play Warrior")
+  not the widget; the three per-menu _cycle_focus/_trigger_tab know
+  how to cycle focus is now ONE implementation on A11yService
+  (PRD sec 8 disposition).
+  (3) test_a11y_service.gd 13/0 (new in runner DEFAULT_SET): discovery
+  counts, label fallbacks, annotation round-trip, rect/state flags,
+  focus walk, activate-by-name, disabled refusal, dump, debounced
+  focusables_changed + late-arriving actionables. Regression green:
+  combat_stack, e2e_flow, login_flow, hud_integration, world_chunks.
+  (4) LIVE ACCEPTANCE under xvfb (playwright-core + chrome headful,
+  software GL): the [A11Y] stream announced the menu unprompted; the
+  probe clicked Start/Guest/Create New/Choose Akkan/Play Attacker/
+  Enter World purely by reported rect centers, verified each hop via
+  the game's own logs, reached character-linked + ENTERING PLAY, 53
+  actions announced over the journey, pause/resume worked in-world.
+  The world-build registration mark hit the wasm stdout-batching
+  window (2-4fps software GL) but PNG forensics on the screenshots
+  shows the world rendered and stayed alive through the wait.
+  (5) Product fix along the way: GameManager's scene-swap wait loop
+  was 600 FRAMES -- minutes of stuck loading screen on low-fps
+  devices; now a 90-second wall-clock cap with a loud timeout error.
+  Hygiene: tabs only, ASCII, extends-first intact.
 

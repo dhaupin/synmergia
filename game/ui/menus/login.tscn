@@ -58,7 +58,7 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 focus_mode = 2
 placeholder_text = "username"
-accessible_string = "Username input field"
+accessibility_name = "Username input field"
 accessible_description = "Enter your username or email"
 
 [node name="PasswordLabel" type="Label" parent="Center/Panel/Form"]
@@ -71,7 +71,7 @@ layout_mode = 2
 focus_mode = 2
 placeholder_text = "••••••••"
 secret = true
-accessible_string = "Password input field"
+accessibility_name = "Password input field"
 accessible_description = "Enter your password"
 
 [node name="DisplayNameLabel" type="Label" parent="Center/Panel/Form"]
@@ -84,7 +84,7 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 focus_mode = 2
 placeholder_text = "How others see you"
-accessible_string = "Display name input field"
+accessibility_name = "Display name input field"
 accessible_description = "Optional: how others will see you in game"
 
 [node name="ErrorLabel" type="Label" parent="Center/Panel/Form"]
@@ -109,7 +109,7 @@ layout_mode = 2
 focus_mode = 2
 theme_override_font_sizes/font_size = 19
 text = "Login"
-accessible_string = "Sign in to your account"
+accessibility_name = "Sign in to your account"
 accessible_description = "Press Enter or click to login"
 
 [node name="RegisterButton" type="Button" parent="Center/Panel/Form/Buttons"]
@@ -118,7 +118,7 @@ layout_mode = 2
 focus_mode = 2
 theme_override_font_sizes/font_size = 19
 text = "Create Account"
-accessible_string = "Create a new account"
+accessibility_name = "Create a new account"
 accessible_description = "Press Enter or click to create a new account"
 
 [node name="GuestButton" type="Button" parent="Center/Panel/Form/Buttons"]
@@ -127,7 +127,7 @@ layout_mode = 2
 focus_mode = 2
 theme_override_font_sizes/font_size = 19
 text = "Play as Guest"
-accessible_string = "Play without an account"
+accessibility_name = "Play without an account"
 accessible_description = "Press Enter or click to play as a guest"
 
 [node name="Footer" type="Label" parent="Center/Panel/Form"]

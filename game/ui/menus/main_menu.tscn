@@ -61,15 +61,15 @@ theme_override_constants/separation = 20
 layout_mode = 2
 focus_mode = 2
 text = "Start"
-accessible_string = "Start playing"
-accessible_description = "Press Enter or click to log in, register, or play as a guest"
+accessibility_name = "Start playing"
+accessibility_description = "Press Enter or click to log in, register, or play as a guest"
 
 [node name="QuitButton" type="Button" parent="MenuButtons"]
 layout_mode = 2
 focus_mode = 2
 text = "Quit"
-accessible_string = "Exit the game"
-accessible_description = "Press Enter or click to quit the game"
+accessibility_name = "Exit the game"
+accessibility_description = "Press Enter or click to quit the game"
 
 [node name="Version" type="Label" parent="."]
 layout_mode = 1

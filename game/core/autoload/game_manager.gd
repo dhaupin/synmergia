@@ -261,13 +261,21 @@ func _show_loading_and_change_scene(scene_path: String, status_text: String) -> 
 	# synchronously inside the deferred swap, so this genuinely covers
 	# the freeze; the safety cap keeps a broken path from sticking.
 	if err == OK:
-		var safety := 0
-		while safety < 600:
-			safety += 1
+		# TIME cap, not a frame cap: the old 600-frame loop assumed desktop
+		# frame rates; on wasm/software-GL devices frames run 2-4/s, so 600
+		# frames meant minutes of stuck loading screen with zero signal.
+		# 90s wall-clock covers the heaviest legitimate world build; a trip
+		# logs loudly so a broken path can never stick silently.
+		var wait_ms := 0
+		while wait_ms < 90000:
+			var frame_start := Time.get_ticks_msec()
 			var cs := get_tree().current_scene
 			if cs != null and cs.is_inside_tree() and cs.scene_file_path == scene_path:
 				break
 			await get_tree().process_frame
+			wait_ms += Time.get_ticks_msec() - frame_start
+		if wait_ms >= 90000:
+			if get_node_or_null("/root/GameLog"): get_node_or_null("/root/GameLog").error("Scene swap wait timed out for %s (90s)" % scene_path)
 	if overlay != null:
 		await _hold_loading_min(overlay, shown_ms)
 

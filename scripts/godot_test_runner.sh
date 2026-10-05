@@ -26,6 +26,7 @@ fi
 # Default regression set: work streams that must never silently rot.
 DEFAULT_SET="
 test_data_naming_lint
+test_a11y_service
 test_movement_profiles
 test_anticheat_limits
 test_hitbox_profiles

@@ -23,6 +23,15 @@ func setup(sp: Species) -> void:
 	species = sp
 	name_label.text = sp.display_name
 	desc_label.text = sp.description if sp.description else ""
+	# Accessibility & Agent-Action layer (prd-accessibility.md): the
+	# action names the CHOICE, not the widget ("Choose Human", so an
+	# agent or screen reader never sees three identical "Choose" labels).
+	if UIStyles:
+		UIStyles.apply_accessibility(
+			select_btn,
+			"Choose %s" % sp.display_name,
+			"Selects this species and shows its classes"
+		)
 
 	var faction_name := _get_faction_name(sp.home_faction)
 	faction_label.text = faction_name
