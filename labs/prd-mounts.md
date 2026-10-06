@@ -37,8 +37,9 @@ space mounts lawful the same way -- by data, never by special cases.
    resolves the mount's MovementProfile through
    `DataService.get_mount_movement_profile` (the one derivation:
    explicit `movement_profile_id` wins, else kind -- GROUND ->
-   quadruped, FLYING -> aerial, AQUATIC -> aquatic, SPACE -> mechanical
-   today, its own class when space mounts land) and stamps the
+   quadruped, FLYING -> aerial, AQUATIC -> aquatic, SPACE -> lunar,
+   its own class since R44 when the first space mount landed) and
+   stamps the
    anticheat via `AntiCheatService.set_profile_limits`. Dismount hands
    the body back `movement_standard` (humanoid 25/25/110).
 3. **The water handoff is one call.** `RideService.water_stamp_for(
@@ -84,7 +85,8 @@ the same dismount law. When a space mount lands, its profile owns the
 gravity and the stamp just works -- no new RideService code, one new
 profile (a `movement_lunar`-class .tres) and one new mount .tres. That
 is the flexibility the owner asked for: the KIND is data, the LAWS are
-the layer.
+the layer. (As built R44: the Vesper -- `mount_vesper_whale` rides
+`movement_lunar`; see sec 8.)
 
 ## 6. As Built (2026-10-06)
 
@@ -151,3 +153,44 @@ it.
   Lancer" / "The Storm Lancer returns to its whistle") with explicit
   INFO/NORMAL mappings. The service announces RIDING; acquisition
   announcements belong to whatever grants (quest, loot, GM command).
+
+## 8. Round Three as Built (2026-10-06): the first space mount -- the Vesper answers a whistle
+
+Sec 5 promised "one new profile, one new mount .tres, no new service
+code." It held -- plus the one line sec 2 reserved: the kind default
+grew its SPACE case when the mount landed. The Vesper is the proof:
+
+- **`game/data/movement_profiles/movement_lunar.tres`** -- NEW, the
+  lunar class: locomotion 2 (aerial -- the class enum has no space;
+  gravity being PROFILE data is the whole point), sprint 24 (stamp
+  ceiling 60 = 24 x 2.5 -- the fastest PUBLIC body in the sky; the
+  Skywarden's 70 stays warden-only), jump 24 (60), gravity 2.5,
+  terminal 40, air_control 1.0, turn_grip 0.6 (a leviathan turns like
+  a thought), no stamina. Nothing in code knows this mount is
+  special: the profile owns the physics, the anticheat already
+  speaks profile.
+- **`game/data/mounts/mount_vesper_whale.tres`** -- NEW, MountKind
+  .SPACE, EVENT-sourced (the moth's door, the scarcest), required
+  level 60 -- the highest wall yet (the soarer's 55 was), cost 0,
+  soulbound, `hitbox_sky_large` (mounts are rated bodies, not
+  players). It swims the dark between the world's curve and the
+  Watched Stone -- the spherical frame's above-the-sky stratum,
+  lawful because the lunar profile says so.
+- **`data_service.gd`** -- ONE line: kind default SPACE ->
+  `movement_lunar` (was the quadruped catch-all; sec 2's "its own
+  class when space mounts land" is now true). Explicit
+  `movement_profile_id` still wins; the one derivation is untouched.
+- **The layer held.** probe_riding 53 -> 67 checks, 0 failures: the
+  Vesper end-to-end through the IDENTICAL path -- grant/summon/
+  dismiss, the anticheat stamp by its own profile (60 ceiling),
+  wading rides, waterline dismount (space is not a swimmer), the
+  cliff law (space does not bail: it remembers the way down), the
+  level gate (59 waits, 60 rides), and the kind default proven by
+  blanking the explicit id on a duplicate. No new RideService code;
+  sec 5 was not a promise, it was a schedule.
+- **The rider is told.** The Vesper's summon is asserted through the
+  typed pipeline (`MOUNT_SUMMONED -> INFO`, player-directed,
+  message "You summon the Vesper") -- the a11y human/agent controller
+  layer hears the dark arrive the way it hears everything else:
+  typed, mapped, addressable by screen reader and probe alike. No
+  new NotifKind needed; riding already has a voice.

@@ -17,6 +17,10 @@
 #      waterline (book cleared, limits restamped), wading rides, no
 #      mount is "none".
 #   E. Space-ready: MountKind.SPACE exists and rides the same path.
+#      The first space mount (the Vesper) loads, rides its OWN lunar
+#      profile (the kind default points there too), stamps the
+#      anticheat, wades and dismounts at the waterline, does not bail,
+#      and its summon is announced through the typed a11y pipeline.
 #   F. The GM door: the Skywarden is GM-sourced and fail-closed for
 #      non-wardens; a warden's world entry auto-answers the whistle.
 #   G. The cliff law: ground mounts BAIL past the glider deploy gate
@@ -35,6 +39,12 @@ var _checks: int = 0
 func _init() -> void:
 	call_deferred("_run")
 
+var _voice: Dictionary = {}   # the vesper's last typed announcement
+
+func _on_voice(entity_id: String, notification: Dictionary) -> void:
+	if entity_id == "pr_sp":
+		_voice = notification
+
 func _check(label: String, cond: bool) -> void:
 	_checks += 1
 	if cond:
@@ -47,13 +57,16 @@ func _run() -> void:
 	var rides = root.get_node_or_null("RideService")
 	var ac = root.get_node_or_null("AntiCheatService")
 	var ds = root.get_node_or_null("DataService")
+	var ns = root.get_node_or_null("NotificationService")
 	_check("RideService present", rides != null)
 	_check("AntiCheatService present", ac != null)
 	_check("DataService present", ds != null)
-	if rides == null or ac == null or ds == null:
+	_check("NotificationService present (the typed pipeline)", ns != null)
+	if rides == null or ac == null or ds == null or ns == null:
 		quit(1)
 		return
 	var MDS: GDScript = load("res://core/schemas/mount_data.gd")
+	var NK: GDScript = load("res://core/notifications/notification_kind.gd")
 	var DS: GDScript = preload("res://adapters/persistence/dict_store.gd")
 
 	# ---- A. Sky declarations ------------------------------------------------
@@ -133,9 +146,49 @@ func _run() -> void:
 	_check("no mount: 'none' (the naked-swimmer paths run unchanged)", \
 		str(s6.get("action", "")) == "none")
 
-	# ---- E. Space-ready + revoke -------------------------------------------------------
+	# ---- E. Space-ready: the first space mount + revoke -------------------------------
 	_check("MountKind.SPACE exists (space mounts ride the same path)", \
 		int(MDS.MountKind.SPACE) == 3)
+	var vesper = ds.get_mount("mount_vesper_whale")
+	_check("the first space mount loads: SPACE kind, filename == id, EVENT, level 60, soulbound", \
+		vesper != null and str(vesper.id) == "mount_vesper_whale" \
+		and vesper.kind == MDS.MountKind.SPACE \
+		and int(vesper.source) == int(MDS.MountSource.EVENT) \
+		and int(vesper.required_level) == 60 and int(vesper.cost) == 0 \
+		and bool(vesper.soulbound))
+	var vprof = ds.get_mount_movement_profile(vesper)
+	_check("the vesper's profile resolves through the one path (explicit movement_lunar wins)", \
+		vprof != null and str(vprof.id) == "movement_lunar")
+	_check("the lunar profile owns the gravity: gentle 2.5, terminal 40, floaty air, a vast turn", \
+		absf(float(vprof.gravity_force) - 2.5) < 0.001 \
+		and absf(float(vprof.terminal_fall_speed) - 40.0) < 0.001 \
+		and absf(float(vprof.air_control) - 1.0) < 0.001 \
+		and absf(float(vprof.turn_grip) - 0.6) < 0.001)
+	var vblank = vesper.duplicate()
+	vblank.movement_profile_id = ""
+	var vdef = ds.get_mount_movement_profile(vblank)
+	_check("the kind default now points at the lunar class (sec 5's 'its own class' promise)", \
+		vdef != null and str(vdef.id) == "movement_lunar")
+	ns.notification_sent.connect(_on_voice)
+	_check("grant + summon the vesper (an unknown rider stays a trusted service-level caller)", \
+		rides.grant_mount("pr_sp", "mount_vesper_whale") \
+		and rides.summon("pr_sp", "mount_vesper_whale") \
+		and rides.active_mount_id("pr_sp") == "mount_vesper_whale")
+	_check("the rider is told through the typed pipeline: MOUNT_SUMMONED -> INFO, addressed to the rider", \
+		str(_voice.get("message", "")) == "You summon the Vesper" \
+		and int(_voice.get("type", -1)) == int(ns.NotificationType.INFO) \
+		and int(_voice.get("data", {}).get("kind", -1)) == int(NK.NotifKind.MOUNT_SUMMONED))
+	_check("the space body stamps by its own profile (24 m/s sprint = 60 ceiling)", \
+		absf(float(ac.get_movement_limits("pr_sp").get("max_speed", 0.0)) - 60.0) < 0.01)
+	var sp1 = rides.water_stamp_for("pr_sp", 1)
+	_check("space wades: the vesper rides at the ankles", str(sp1.get("action", "")) == "ride")
+	var sp2 = rides.water_stamp_for("pr_sp", 3)
+	_check("space is not a swimmer: the vesper is dismissed at the waterline", \
+		str(sp2.get("action", "")) == "dismount" and rides.active_mount_id("pr_sp").is_empty())
+	_check("summon again for the fall", rides.summon("pr_sp", "mount_vesper_whale"))
+	var sp3 = rides.fall_stamp_for("pr_sp", true, 99.0)
+	_check("space does not bail: the vesper remembers the way down (no bail, still active)", \
+		str(sp3.get("action", "")) == "ride" and not rides.active_mount_id("pr_sp").is_empty())
 	_check("revoke removes ownership and dismisses", \
 		rides.revoke_mount("pr_r1", "mount_storm_lancer") \
 		and not rides.owns_mount("pr_r1", "mount_storm_lancer") \
@@ -209,6 +262,20 @@ func _run() -> void:
 	_check("the level gate opens at the mount's law: level 50 summons the lancer", \
 		rides.grant_mount("pr_ok", "mount_storm_lancer") \
 		and rides.summon("pr_ok", "mount_storm_lancer"))
+	var splow = CDS.new("human", "human_warrior", "Dark Rider")
+	splow.level = 59
+	if gm != null:
+		gm.notify_player_entered_world("pr_sp_low", splow)
+	_check("the level gate holds for space: level 59 waits at the dark", \
+		rides.grant_mount("pr_sp_low", "mount_vesper_whale") \
+		and not rides.summon("pr_sp_low", "mount_vesper_whale"))
+	var spok = CDS.new("human", "human_warrior", "Deep Rider")
+	spok.level = 60
+	if gm != null:
+		gm.notify_player_entered_world("pr_sp_ok", spok)
+	_check("the level gate opens: level 60 rides the dark", \
+		rides.grant_mount("pr_sp_ok", "mount_vesper_whale") \
+		and rides.summon("pr_sp_ok", "mount_vesper_whale"))
 
 	print("probe_riding: %d checks, %d failures" % [_checks, _fails])
 	quit(0 if _fails == 0 else 1)

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_vesper_whale"
+display_name = "Vesper"
+description = "A shadow the size of a harbor that swims the dark between the world's curve and the Watched Stone. The crater gardens sent the moth down; the leviathans stayed. When one answers a whistle it keeps the low road home in its bones -- it does not fall, it remembers the way down. Nobody has ever seen two at once, and nobody who has ridden one will say where it goes when the whistle fades."
+icon_path = ""
+model_path = ""
+kind = 3
+speed_multiplier = 1.0
+movement_profile_id = "movement_lunar"
+required_level = 60
+faction_id = ""
+source = 4
+currency_id = ""
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(0.62, 0.66, 0.82, 1)
+swim_speed = 0.0
+squeeze_grace_m = 0.0
+crush_depth_bonus_m = 0.0
+current_immune = false
+hitbox_profile_id = "hitbox_sky_large"

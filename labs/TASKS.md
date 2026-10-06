@@ -4166,4 +4166,43 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   joined the audit, movement profiles, combat, e2e, ground loot,
   kill/horde rewards -- the loot seams exercised).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 44 (THE FIRST SPACE MOUNT: the Vesper answers a whistle --
+  owner: "Go free spirit, stay in bounds with our physics/reality frame
+  and a11y human/agent controller layer. Build whatever you like,
+  you're the mystery hehe"):
+  (1) prd-mounts.md sec 5 has promised since R41 that "space mounts
+  ride the identical path, one profile .tres away, no new service
+  code" -- nothing had ever called the bluff. The mystery gift is the
+  collection notice: mount_vesper_whale ("Vesper", MountKind.SPACE,
+  EVENT-sourced like the moth, level 60 -- the highest wall yet, cost
+  0, soulbound, hitbox_sky_large) rides movement_lunar (sprint 24 = 60
+  stamp ceiling, fastest PUBLIC body in the sky; jump 24; gravity 2.5,
+  terminal 40, turn_grip 0.6, no stamina -- the PROFILE owns the
+  gravity, which is the entire physics story; nothing in code knows
+  this mount is special).
+  (2) The one reserved line: DataService's kind default grew its SPACE
+  case (3 -> movement_lunar; was the quadruped catch-all -- sec 2's
+  "its own class when space mounts land" is now true). Explicit
+  movement_profile_id still wins; the one derivation is untouched.
+  No RideService changes: sec 5 was not a promise, it was a schedule.
+  (3) The mystery stays in bounds: the Vesper swims the dark between
+  the world's curve and the Watched Stone (the moth's crater-garden
+  canon) -- the spherical frame's above-the-sky stratum, lawful
+  because the lunar profile says so. It does not bail on falls
+  (space is space: "it remembers the way down"), wades, and is
+  dismissed at the waterline (space is not a swimmer).
+  (4) The a11y controller layer is a FIRST-CLASS leg of the probe: the
+  Vesper's summon is asserted through the typed pipeline via the
+  NotificationService.notification_sent signal -- player-directed,
+  MOUNT_SUMMONED -> INFO, message "You summon the Vesper". Human and
+  agent hear the dark arrive identically: typed, mapped, addressable.
+  No new NotifKind needed; riding already has a voice.
+  (5) Verification: probe_riding 53 -> 67 checks, 0 failures (load/
+  declarations, explicit profile + blanked-duplicate kind default,
+  gravity law, anticheat stamp 60, wade/waterline, no-bail fall,
+  level gate both sides 59/60, typed-pipeline toast); family batch
+  8/0 (naming lint -- mount_ + movement_ prefixes, movement profiles,
+  anticheat, hitbox, notification frame + toast, resource scan,
+  riding).
+  Hygiene: tabs only, ASCII, extends-first intact.
 
