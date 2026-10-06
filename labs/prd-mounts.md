@@ -37,8 +37,10 @@ space mounts lawful the same way -- by data, never by special cases.
    resolves the mount's MovementProfile through
    `DataService.get_mount_movement_profile` (the one derivation:
    explicit `movement_profile_id` wins, else kind -- GROUND ->
-   quadruped, FLYING -> aerial, AQUATIC -> aquatic, SPACE -> lunar,
-   its own class since R44 when the first space mount landed) and
+   quadruped, FLYING -> aerial, AQUATIC -> aquatic, SPACE ->
+   leviathan -- its own class since R44, when the first space mount
+   landed (`movement_leviathan`; the id `movement_lunar` was already
+   S16.4's Lunar Settler humanoid and stays untouched)) and
    stamps the
    anticheat via `AntiCheatService.set_profile_limits`. Dismount hands
    the body back `movement_standard` (humanoid 25/25/110).
@@ -86,7 +88,7 @@ gravity and the stamp just works -- no new RideService code, one new
 profile (a `movement_lunar`-class .tres) and one new mount .tres. That
 is the flexibility the owner asked for: the KIND is data, the LAWS are
 the layer. (As built R44: the Vesper -- `mount_vesper_whale` rides
-`movement_lunar`; see sec 8.)
+`movement_leviathan`; see sec 8.)
 
 ## 6. As Built (2026-10-06)
 
@@ -160,8 +162,11 @@ Sec 5 promised "one new profile, one new mount .tres, no new service
 code." It held -- plus the one line sec 2 reserved: the kind default
 grew its SPACE case when the mount landed. The Vesper is the proof:
 
-- **`game/data/movement_profiles/movement_lunar.tres`** -- NEW, the
-  lunar class: locomotion 2 (aerial -- the class enum has no space;
+- **`game/data/movement_profiles/movement_leviathan.tres`** -- NEW,
+  the lunar class, under a NEW id: `movement_lunar` was already
+  shipped canon (S16.4's "Lunar Settler" humanoid, the per-world
+  low-gravity archetype) and the mount profile does not squat it.
+  Locomotion 2 (aerial -- the class enum has no space;
   gravity being PROFILE data is the whole point), sprint 24 (stamp
   ceiling 60 = 24 x 2.5 -- the fastest PUBLIC body in the sky; the
   Skywarden's 70 stays warden-only), jump 24 (60), gravity 2.5,
@@ -177,7 +182,7 @@ grew its SPACE case when the mount landed. The Vesper is the proof:
   Watched Stone -- the spherical frame's above-the-sky stratum,
   lawful because the lunar profile says so.
 - **`data_service.gd`** -- ONE line: kind default SPACE ->
-  `movement_lunar` (was the quadruped catch-all; sec 2's "its own
+  `movement_leviathan` (was the quadruped catch-all; sec 2's "its own
   class when space mounts land" is now true). Explicit
   `movement_profile_id` still wins; the one derivation is untouched.
 - **The layer held.** probe_riding 53 -> 67 checks, 0 failures: the

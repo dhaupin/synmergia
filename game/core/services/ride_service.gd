@@ -11,7 +11,8 @@
 ## stamps the anticheat; the water handoff returns the S14.6 stamp
 ## (swim/dismount/ride) so the band laws live in exactly one place.
 ## Space mounts are already lawful: MountKind.SPACE rides this same
-## path and its profile (movement_lunar-class) owns the gravity.
+## path and its profile (a lunar-class profile: movement_leviathan)
+## owns the gravity.
 ##
 ## Acquisition difficulty lives in the DATA (source, required_level,
 ## the drop's rarity); the service is the ledger, never the gate.

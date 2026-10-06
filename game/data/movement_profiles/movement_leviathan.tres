@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MovementProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/movement_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "movement_leviathan"
+display_name = "Vesper (Lunar Leviathan)"
+locomotion_class = 2
+walk_speed = 8.0
+run_speed = 14.0
+sprint_speed = 24.0
+crouch_speed = 0.0
+swim_speed = 0.0
+jump_force = 24.0
+gravity_force = 2.5
+terminal_fall_speed = 40.0
+air_control = 1.0
+ground_acceleration = 18.0
+ground_deceleration = 20.0
+air_acceleration = 10.0
+turn_grip = 0.6
+sprint_stamina_cost = 0.0
+dodge_force = 6.0
+backward_speed_multiplier = 0.8
+allow_jump = true
+allow_crouch = false
+allow_sprint = true

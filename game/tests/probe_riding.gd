@@ -157,8 +157,8 @@ func _run() -> void:
 		and int(vesper.required_level) == 60 and int(vesper.cost) == 0 \
 		and bool(vesper.soulbound))
 	var vprof = ds.get_mount_movement_profile(vesper)
-	_check("the vesper's profile resolves through the one path (explicit movement_lunar wins)", \
-		vprof != null and str(vprof.id) == "movement_lunar")
+	_check("the vesper's profile resolves through the one path (explicit movement_leviathan wins)", \
+		vprof != null and str(vprof.id) == "movement_leviathan")
 	_check("the lunar profile owns the gravity: gentle 2.5, terminal 40, floaty air, a vast turn", \
 		absf(float(vprof.gravity_force) - 2.5) < 0.001 \
 		and absf(float(vprof.terminal_fall_speed) - 40.0) < 0.001 \
@@ -167,8 +167,8 @@ func _run() -> void:
 	var vblank = vesper.duplicate()
 	vblank.movement_profile_id = ""
 	var vdef = ds.get_mount_movement_profile(vblank)
-	_check("the kind default now points at the lunar class (sec 5's 'its own class' promise)", \
-		vdef != null and str(vdef.id) == "movement_lunar")
+	_check("the kind default now points at its own class (sec 5's promise -- movement_leviathan, not the S16.4 Settler)", \
+		vdef != null and str(vdef.id) == "movement_leviathan")
 	ns.notification_sent.connect(_on_voice)
 	_check("grant + summon the vesper (an unknown rider stays a trusted service-level caller)", \
 		rides.grant_mount("pr_sp", "mount_vesper_whale") \

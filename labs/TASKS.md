@@ -4175,16 +4175,24 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   code" -- nothing had ever called the bluff. The mystery gift is the
   collection notice: mount_vesper_whale ("Vesper", MountKind.SPACE,
   EVENT-sourced like the moth, level 60 -- the highest wall yet, cost
-  0, soulbound, hitbox_sky_large) rides movement_lunar (sprint 24 = 60
-  stamp ceiling, fastest PUBLIC body in the sky; jump 24; gravity 2.5,
-  terminal 40, turn_grip 0.6, no stamina -- the PROFILE owns the
-  gravity, which is the entire physics story; nothing in code knows
-  this mount is special).
+  0, soulbound, hitbox_sky_large) rides movement_leviathan (sprint 24
+  = 60 stamp ceiling, fastest PUBLIC body in the sky; jump 24;
+  gravity 2.5, terminal 40, turn_grip 0.6, no stamina -- the PROFILE
+  owns the gravity, which is the entire physics story; nothing in
+  code knows this mount is special).
   (2) The one reserved line: DataService's kind default grew its SPACE
-  case (3 -> movement_lunar; was the quadruped catch-all -- sec 2's
-  "its own class when space mounts land" is now true). Explicit
+  case (3 -> movement_leviathan; was the quadruped catch-all -- sec
+  2's "its own class when space mounts land" is now true). Explicit
   movement_profile_id still wins; the one derivation is untouched.
   No RideService changes: sec 5 was not a promise, it was a schedule.
+  Lesson earned mid-round: movement_lunar was ALREADY shipped canon
+  (S16.4's Lunar Settler humanoid -- the per-world low-gravity
+  archetype); the first write clobbered it and the kind default
+  squatted its id. Repaired before push: the Settler restored byte
+  for byte, the mount profile took its own id (movement_leviathan),
+  and the lesson is now law -- git log a data id before writing
+  over it, even when every test stays green (no test asserts an
+  archetype's numbers).
   (3) The mystery stays in bounds: the Vesper swims the dark between
   the world's curve and the Watched Stone (the moth's crater-garden
   canon) -- the spherical frame's above-the-sky stratum, lawful

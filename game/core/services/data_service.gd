@@ -504,7 +504,7 @@ func get_mount_movement_profile(mount) -> MovementProfile:
 		match int(kind):
 			1: derived = "movement_aerial"    # MountKind.FLYING
 			2: derived = "movement_aquatic"   # MountKind.AQUATIC
-			3: derived = "movement_lunar"     # MountKind.SPACE (space mounts landed R44)
+			3: derived = "movement_leviathan" # MountKind.SPACE (R44; movement_lunar is S16.4's Lunar Settler)
 			_: derived = "movement_quadruped" # MountKind.GROUND
 		return get_movement_profile(derived)
 	return get_movement_profile("movement_mechanical")
