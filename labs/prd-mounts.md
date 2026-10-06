@@ -111,3 +111,43 @@ the layer.
   (saddle points, mount-follow physics), mount UI, vendor/quest wiring
   that calls grant_mount. RideService is the seam those features plug
   into.
+
+## 7. Round Two as Built (2026-10-06): the cliff law lands, the warden takes the sky, the rider is told
+
+The named seams of sec 6 stay seams (3D saddle physics, mount UI, grant
+wiring). This round makes the LAYER real instead: the two laws that
+were decided but unwired are now executed, and the rider hears about
+it.
+
+- **The cliff law, service-executed.**
+  `glider_state.MOUNT_DISMOUNT_ON_FALL` was decided in S12 ("the mount
+  BAILS ... the rider dismounts into freefall and the glider is usable
+  from there; the mount despawns back to its whistle") with the note
+  "implementation lands with the mount-riding system." It landed:
+  `RideService.fall_stamp_for(player_id, falling, altitude)` ->
+  `{action: none | ride | bail}`. The bail gate is the GLIDER's deploy
+  gate (one number, `GliderState.DEPLOY_HEIGHT_METERS` = 6.0) --
+  falling below it is a hop, not a bail. Only GROUND mounts bail
+  (`MountData.bails_on_fall()`): sky mounts fly -- falling IS their
+  job; swimmers swim; space is space.
+- **The GM door.** `MountSource.GM` is the acquisition door that is
+  not a door: `RideService.grant_mount` is FAIL-CLOSED for it (an
+  unknown rider is not a warden), and `GameManager.player_entered_world`
+  auto-answers a GM's entry with the whistle (idempotent -- the ledger
+  refuses duplicates). `mount_gm_skywarden` ("Skywarden", FLYING,
+  level 1, cost 0, soulbound) rides `movement_gm_sky` -- sprint 28
+  (ceiling 70 = 28 x 2.5), jump 22 (55), gravity 5, air_control 1.0,
+  sprint_stamina_cost 0 (the Warden does not tire). Fastest body in
+  the sky by design; GM tooling, not a leaderboard entry.
+- **The level gate closes.** `MountData.required_level` was declared
+  in the first schema and enforced nowhere. `summon` now enforces it
+  for every rider the service knows (world-entry truth); unknown
+  riders (probes, admin paths, agents) stay trusted service-level
+  callers -- documented, deliberate: the SOURCE gates acquisition
+  (drop, quest, event, GM), the summon gate is the second lock on the
+  same door.
+- **The rider's voice.** `NotifKind.MOUNT_SUMMONED` /
+  `MOUNT_DISMISSED` ride the typed pipeline ("You summon the Storm
+  Lancer" / "The Storm Lancer returns to its whistle") with explicit
+  INFO/NORMAL mappings. The service announces RIDING; acquisition
+  announcements belong to whatever grants (quest, loot, GM command).

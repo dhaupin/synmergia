@@ -957,6 +957,8 @@ func _notif_type_for_kind(kind: int) -> int:
 			return NotificationType.WARNING
 		NotifKind.QOS_RECOVERED:
 			return NotificationType.INFO
+		NotifKind.MOUNT_SUMMONED, NotifKind.MOUNT_DISMISSED:
+			return NotificationType.INFO
 		_:
 			return NotificationType.SYSTEM
 
@@ -968,7 +970,8 @@ func _priority_for_kind(kind: int) -> int:
 			return Priority.HIGH
 		NotifKind.PLAYER_WARNED, NotifKind.ITEM_FULL, NotifKind.ITEM_TRADE_REJECT, \
 		NotifKind.QOS_DEGRADED, NotifKind.RATE_LIMITED, NotifKind.RESPAWN_PENALTY_APPLIED, \
-		NotifKind.FACTION_PVP_MODE_CHANGED:
+		NotifKind.FACTION_PVP_MODE_CHANGED, NotifKind.MOUNT_SUMMONED, \
+		NotifKind.MOUNT_DISMISSED:
 			return Priority.NORMAL
 		_:
 			return Priority.LOW

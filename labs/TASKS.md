@@ -4072,4 +4072,49 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   the stamping seam, the elite table, space-already-lawful; the seams
   NOT built are named: 3D saddle physics, mount UI, grant wiring).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 42 (MOUNTS GET REAL: the cliff law lands, the warden takes
+  the sky, the rider is told -- owner: "further craft the mount systems
+  and make them more real. Gms need a sky mount to get around too"):
+  (1) The S12 cliff law was DECIDED but unwired -- glider_state carried
+  MOUNT_DISMOUNT_ON_FALL with the note "implementation lands with the
+  mount-riding system." It landed: RideService.fall_stamp_for(
+  player_id, falling, altitude) -> none / ride / bail. Bail gate = the
+  glider's own deploy gate (ONE number, GliderState.DEPLOY_HEIGHT_METERS
+  = 6.0 -- hops stay rides); only GROUND mounts bail (MountData.
+  bails_on_fall() -- sky mounts fly, swimmers swim, space is space); a
+  bail dismisses (whistle, humanoid restamp) and the rider keeps the
+  fall, glider usable from there. Callers feed it per tick while
+  airborne, exactly like water_stamp_for while wet.
+  (2) The GM door: MountSource.GM (5) is the acquisition door that is
+  not a door -- grant_mount is FAIL-CLOSED for it (an unknown rider is
+  not a warden) and GameManager.player_entered_world auto-answers a
+  warden's entry with the whistle (idempotent; the ledger refuses
+  duplicates). RideService also keeps session character truth (_chars)
+  from the same hook -- the seam that makes the level gate real.
+  (3) mount_gm_skywarden ("Skywarden", FLYING, level 1, cost 0,
+  soulbound, source GM) rides movement_gm_sky -- sprint 28 (70 ceiling
+  = 28 x 2.5, fastest body in the sky), jump 22 (55), gravity 5,
+  air_control 1.0, sprint_stamina_cost 0 (the Warden does not tire).
+  GM tooling, not a leaderboard entry.
+  (4) The level gate closes: required_level was declared in the first
+  schema and enforced NOWHERE. summon enforces it for every rider the
+  service knows (world-entry truth); unknown riders (probes, admin
+  paths, agents) stay trusted service-level callers -- documented,
+  deliberate: the SOURCE gates acquisition, the summon gate is the
+  second lock on the same door. Probe covers both sides (10 refused,
+  50 summons).
+  (5) The rider's voice: NotifKind.MOUNT_SUMMONED / MOUNT_DISMISSED
+  through the typed pipeline ("You summon the Storm Lancer" / "The ...
+  returns to its whistle"), explicit INFO/NORMAL mappings, dedupe keys
+  per rider+mount. The service announces RIDING only -- acquisition
+  announcements belong to whatever grants.
+  (6) Verification: probe_riding 33 -> 53 checks, 0 failures (GM door
+  incl. fail-closed grant + auto-grant via the real
+  notify_player_entered_world path; cliff matrix incl.
+  bail/hop/sky-carries/none; level gate both sides); family batch 10/0
+  (riding, water_mounts, ocean, swim, ferry x2, naming lint, movement
+  profiles, combat, e2e -- e2e boots the world-entry hook the service
+  now listens on); notification pipeline 3/0 (frame, toast, hud -- the
+  two new kinds ride it).
+  Hygiene: tabs only, ASCII, extends-first intact.
 

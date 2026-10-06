@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_gm_skywarden"
+display_name = "Skywarden"
+description = "The stewards' wind given a body. It does not belong to the wilds and was never wild -- it answered the first warden's whistle before there was a word for whistle, and it has answered every warden since. No vendor sells it, no drop carries it, and no quest ends with it: it simply arrives, the way the law arrives."
+icon_path = ""
+model_path = ""
+kind = 1
+speed_multiplier = 1.0
+movement_profile_id = "movement_gm_sky"
+required_level = 1
+faction_id = ""
+source = 5
+currency_id = ""
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(1, 0.82, 0.3, 1)
+swim_speed = 0.0
+squeeze_grace_m = 0.0
+crush_depth_bonus_m = 0.0
+current_immune = false
+hitbox_profile_id = "hitbox_beast_medium"

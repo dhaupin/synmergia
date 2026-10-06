@@ -18,7 +18,8 @@ enum MountSource {
 	QUEST,
 	VENDOR,
 	FACTION,
-	EVENT
+	EVENT,
+	GM
 }
 
 @export var id: String = ""
@@ -72,6 +73,16 @@ enum MountSource {
 ## the speed is what the anticheat stamps).
 func is_swimmer() -> bool:
 	return kind == MountKind.AQUATIC and swim_speed > 0.0
+
+
+## The cliff law (glider_state.MOUNT_DISMOUNT_ON_FALL, decided in S12,
+## wired by the riding layer): only GROUND mounts can be jumped off a
+## cliff, so only they bail. Sky mounts fly -- falling IS their job;
+## swimmers swim; space is space. A bond that dies at the bottom of a
+## ravine is a broken promise, so the mount never falls: the rider
+## dismounts into freefall and the mount returns to its whistle.
+func bails_on_fall() -> bool:
+	return kind == MountKind.GROUND
 
 ## Flavor: saddle color / harness accent for the renderer.
 @export var tint: Color = Color(1, 1, 1, 1)

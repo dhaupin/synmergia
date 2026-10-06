@@ -72,6 +72,10 @@ enum NotifKind {
 	VOTE_CREATED,
 	VOTE_ENDED,
 
+	# Riding (labs/prd-mounts.md)
+	MOUNT_SUMMONED,
+	MOUNT_DISMISSED,
+
 	# World events (Skyward Concord, labs/prd-psy.md)
 	SIGN_WINDOW_CHANGED,
 	SIGN_INSIGHT_RECORDED,
