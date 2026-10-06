@@ -183,6 +183,23 @@ func set_aquatic_limits(player_id: String, swim_speed: float, dive_speed: float,
 	}
 
 
+## Stamp the hard limits for a body from a MovementProfile by id --
+## the mount/vehicle stamping path (RideService.summon feeds the
+## mount's resolved profile). ONE derivation: _limits_from_profile
+## owns the multipliers, exactly like the humanoid stamping path.
+## Returns false when the profile is unknown (the caller keeps its
+## previous limits).
+func set_profile_limits(player_id: String, profile_id: String) -> bool:
+	var profile = null
+	if DataService:
+		profile = DataService.get_movement_profile(profile_id)
+	if profile == null:
+		return false
+	var lim: Dictionary = _limits_from_profile(profile)
+	set_movement_limits(player_id, float(lim["max_speed"]), float(lim["max_jump"]), float(lim["max_fall"]))
+	return true
+
+
 ## Stamp the current a body is floating in (server truth from
 ## OceanService.current_at). While stamped, the horizontal validator
 ## forgives displacement along the current vector -- not across it.

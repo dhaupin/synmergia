@@ -9,7 +9,8 @@ class_name MountData
 enum MountKind {
 	GROUND,
 	FLYING,
-	AQUATIC
+	AQUATIC,
+	SPACE
 }
 
 enum MountSource {

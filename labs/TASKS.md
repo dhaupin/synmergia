@@ -4020,4 +4020,56 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   console-line counting an unreliable oracle inside 45s (use the
   JS-visible return channel instead).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 41 (THE RIDING LAYER: one ledger for land, water, sky, and
+  space -- owner asked for a riding service tying land+water mounts and
+  flexible for sky+space, plus three elite sky mounts, "the hardest
+  mounts to acquire by far"; the S14.7 slot folded into this slice):
+  (1) RideService (game/core/services/ride_service.gd, NEW autoload
+  after FerryService) is the stamping seam, not a screen: ownership is
+  persisted truth (DictStore ride_service/mounts/<player_id>, the
+  FerryService wake idiom; grant refuses unknown mounts and duplicates
+  -- soulbound is the default posture), riding is session truth (the
+  _active book, summon again next login like the ferry manifest), and
+  the service stores NO numbers -- summon resolves the mount's
+  MovementProfile through DataService.get_mount_movement_profile (the
+  one derivation) and stamps the anticheat via the NEW
+  AntiCheatService.set_profile_limits(profile_id) (resolves through
+  DataService.get_movement_profile, stamps through the existing
+  _limits_from_profile x2.5/x2.5/x2.0 multipliers; unknown -> false).
+  Dismount restamps movement_standard (humanoid 25/25/110).
+  MountKind.SPACE added -- space mounts ride the identical path, one
+  profile .tres away, no new service code.
+  (2) The water handoff is one call: RideService.water_stamp_for(
+  player_id, band) -> ride (wading, any mount) / dismount (non-swimmer
+  past the waterline: dismiss + restamp, the S12 glider law mirrored)
+  / swim (the S14.6 stamp payload: speed, squeeze grace, crush bonus,
+  current immunity) / none (naked-swimmer paths run unchanged). The
+  band laws live in exactly one place.
+  (3) The elite three (FLYING, cost 0, soulbound, locomotion_class 2
+  like movement_aerial): mount_storm_lancer (DROP, lvl 50,
+  movement_sky_lancer sprint 21 jump 16 gravity 8),
+  mount_skyreef_soarer (QUEST, lvl 55, movement_sky_soarer sprint 17
+  air_control 1.0 gravity 7, hitbox_sky_large NEW),
+  mount_moonwing_moth (EVENT, lvl 50, movement_sky_moth sprint 15
+  gravity 5 turn_grip 0.9). Acquisition difficulty lives in the DATA
+  (source/level/drop rarity) -- the service is the ledger, never the
+  gate.
+  (4) The 52.5-ceiling lesson: the lancer's sprint 21 stamps a cruise
+  ceiling of 21 x 2.5 = 52.5 m/s (the anticheat SPEED_LIMIT_MULTIPLIER
+  applies to mount profiles exactly as it did to the water ray's
+  9 -> 22.5) -- sky profiles get deliberate headroom, and every future
+  sky profile chooses its number KNOWING the stamp multiplies it.
+  (5) Verification: probe_riding.gd NEW, 33 checks 0 failures, in the
+  runner DEFAULT_SET after probe_water_mounts -- declarations/elite
+  law/hitbox refs, ledger persistence round-trip + duplicate refusal,
+  summon stamps (lancer 52.5/40.0, dismiss -> 25.0), the full water
+  handoff matrix (ray swim stamp 9/6, glider immune=true, wyrm
+  crush+30, plains_runner wades band 1 then dismounts band 3 with the
+  book cleared + restamp, no-mount "none"), SPACE == 3, revoke
+  dismisses. Family batch 10/0 (riding, water_mounts, ocean, swim,
+  ferry x2, naming lint, movement profiles, combat, e2e).
+  (6) Docs: labs/prd-mounts.md NEW (status SHIPPED; the three laws,
+  the stamping seam, the elite table, space-already-lawful; the seams
+  NOT built are named: 3D saddle physics, mount UI, grant wiring).
+  Hygiene: tabs only, ASCII, extends-first intact.
 

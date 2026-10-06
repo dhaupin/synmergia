@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_moonwing_moth"
+display_name = "Moonwing"
+description = "A vast pale moth out of the Watched Stone's crater gardens, dusted with regolith glow. It falls like a sigh and turns like a thought. Whoever it follows was trusted by something that does not explain itself."
+icon_path = ""
+model_path = ""
+kind = 1
+speed_multiplier = 1.0
+movement_profile_id = "movement_sky_moth"
+required_level = 50
+faction_id = ""
+source = 4
+currency_id = ""
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(0.9, 0.88, 0.8, 1)
+swim_speed = 0.0
+squeeze_grace_m = 0.0
+crush_depth_bonus_m = 0.0
+current_immune = false
+hitbox_profile_id = "hitbox_beast_medium"

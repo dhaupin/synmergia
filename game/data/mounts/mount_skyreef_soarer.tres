@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_skyreef_soarer"
+display_name = "Skyreef Soarer"
+description = "A manta of the high air, wings wide as a dockyard door, cruising the thermal ring where the reef gardens shimmer far below. It bonds to one rider in its whole long life, and only across a crossing made together."
+icon_path = ""
+model_path = ""
+kind = 1
+speed_multiplier = 1.0
+movement_profile_id = "movement_sky_soarer"
+required_level = 55
+faction_id = ""
+source = 1
+currency_id = ""
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(0.7, 0.85, 0.9, 1)
+swim_speed = 0.0
+squeeze_grace_m = 0.0
+crush_depth_bonus_m = 0.0
+current_immune = false
+hitbox_profile_id = "hitbox_sky_large"
