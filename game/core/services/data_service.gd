@@ -53,6 +53,8 @@ var _acts: Dictionary = {}
 var _mysteries: Dictionary = {}
 var _events: Dictionary = {}
 var _dwellings: Dictionary = {}
+## id -> WardGateData (data/gates/, the hard gate registry).
+var _gates: Dictionary = {}
 var _npcs: Dictionary = {}
 var _status_effects: Dictionary = {}
 var _quests: Dictionary = {}
@@ -97,6 +99,7 @@ func load_all_data() -> void:
 	load_layer_profiles()
 	load_signs()
 	load_acts()
+	load_gates()
 	load_mysteries()
 	load_calibration()
 
@@ -221,6 +224,11 @@ func load_currencies() -> void:
 func load_mounts() -> void:
 	_mounts = _scan_directory(_data_path + "mounts", "mount")
 	GameLog.info("DataService: Loaded %d mounts" % _mounts.size())
+
+## Load ward gates from data/gates/ (the hard gate registry).
+func load_gates() -> void:
+	_gates = _scan_directory(_data_path + "gates", "gate")
+	GameLog.info("DataService: Loaded %d ward gates" % _gates.size())
 
 ## Load vehicles from data/vehicles/
 func load_vehicles() -> void:
@@ -376,6 +384,15 @@ func get_mount(id: String) -> MountData:
 		return _mounts.get(id)
 	GameLog.warn("DataService: Mount not found: " + id)
 	return null
+
+func get_gate(id: String) -> WardGateData:
+	if _gates.has(id):
+		return _gates.get(id)
+	GameLog.warn("DataService: Ward gate not found: " + id)
+	return null
+
+func get_all_gates() -> Dictionary:
+	return _gates
 
 func get_vehicle(id: String) -> VehicleData:
 	if _vehicles.has(id):

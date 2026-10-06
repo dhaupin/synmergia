@@ -92,6 +92,7 @@ func _run() -> void:
 	_has_prefix(quest_ids, "quest_", "Quests")
 	_has_prefix(zone_ids, "zone_", "Zones")
 	_has_prefix(faction_ids, "faction_", "Factions")
+	_has_prefix(_load_ids("data/gates"), "gate_", "Ward gates")
 
 	# --- Style: enemy ids stay bare (files carry the enemy_ prefix) ---
 	var bad_enemies: Array = []

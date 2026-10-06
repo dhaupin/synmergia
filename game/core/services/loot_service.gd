@@ -40,10 +40,26 @@ func _ready() -> void:
 	GameLog.info("LootService: Ready")
 
 ## Create loot from enemy death
+## The ward gate seam (labs/prd-ward-gate.md): embargoed items never
+## materialize as drops, and pending loot dies at pickup. Handles both
+## entry shapes ({item_id, quantity} dicts from roll_drop, raw ids).
+func _filter_embargoed(items: Array) -> Array:
+	if WardGateService == null or items.is_empty():
+		return items
+	var kept: Array = []
+	for it in items:
+		var item_id: String = str(it.get("item_id", "")) if it is Dictionary else str(it)
+		if WardGateService.allow_drop(item_id):
+			kept.append(it)
+	return kept
+
 func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1, context: Dictionary = {}) -> String:
 	var loot_id := "loot_%s_%d" % [source_id, Time.get_ticks_msec()]
 
 	var result := loot_table.roll_drop()
+	result["items"] = _filter_embargoed(result["items"])
+	var dropped: bool = bool(result["got_any"]) \
+		and (not result["items"].is_empty() or not result["currency"].is_empty())
 
 	var loot_data := {
 	"id": loot_id,
@@ -51,7 +67,7 @@ func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1
 	"table_id": loot_table.id,
 	"items": result["items"],
 	"currency": result["currency"],
-	"has_loot": result["got_any"],
+	"has_loot": dropped,
 	"auto_loot": loot_table.auto_loot,
 	"need_before_greed": loot_table.need_before_greed,
 	"created_at": Time.get_unix_time_from_system(),
@@ -62,7 +78,7 @@ func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1
 
 	_active_loot[loot_id] = loot_data
 
-	if result["got_any"]:
+	if dropped:
 		loot_dropped.emit(source_id, loot_id, result["items"], result["currency"])
 		GameLog.info("LootService: Created loot %s with %d items" % [loot_id, result["items"].size()])
 
@@ -72,6 +88,7 @@ func create_loot(source_id: String, loot_table: LootTable, player_level: int = 1
 func create_container_loot(container_id: String, items: Array, currency: Dictionary = {},
 		auto_loot: bool = false) -> String:
 	var loot_id := "loot_%s_%d" % [container_id, Time.get_ticks_msec()]
+	items = _filter_embargoed(items)
 
 	var loot_data := {
 	"id": loot_id,
@@ -240,6 +257,11 @@ func pickup_loot(player_id: String, loot_id: String = "") -> Array:
 		for loot_data in _player_loot.get(player_id, []):
 			items_received.append_array(loot_data["items"])
 		_player_loot[player_id] = []
+
+	var allowed := _filter_embargoed(items_received)
+	if allowed.size() != items_received.size():
+		GameLog.warn("LootService: ward gate destroyed %d embargoed item(s) at pickup for %s" % [items_received.size() - allowed.size(), player_id])
+	items_received = allowed
 
 	if not items_received.is_empty():
 		loot_picked_up.emit(player_id, items_received)

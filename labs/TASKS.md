@@ -4117,4 +4117,53 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   now listens on); notification pipeline 3/0 (frame, toast, hud -- the
   two new kinds ride it).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 43 (THE WARD GATE: the hard gate registry and the breach
+  embargo -- owner: "if species 0 gm AND holds mount_gm_skywarden it
+  opens gates and stuff. We should make a tres or inventory for max
+  Gms, skywardens, or other admin things. Hard gate, defense in depth.
+  You could also put items here in a breach ... to temporarily prevent
+  their drops or dupes"):
+  (1) The Skywarden is a CAPABILITY TOKEN. WardGateService (NEW
+  autoload after RideService) holds the admin keys in one registry
+  (data/gates/, gate_ prefix, filename == id; gate_warden_keys ships
+  role 0 + the Skywarden, opens admin_shell/warden_tools, embargo
+  SHIPS EMPTY) and the breach embargo in the same place.
+  (2) Defense in depth is the law: every key signal must match (role
+  truth AND every token mount AND every token item); fail-closed
+  everywhere (unknown rider, unknown gate, missing InventoryService
+  lookup = closed); role resolves through CharacterData.is_gm_class
+  from the service's OWN session book -- kept independent of
+  RideService's (two books, same hook: poison one, the other still
+  gates); the mount token is itself independently verified because
+  the GM source door is fail-closed. can_open/gate_open_for public;
+  the item leg rides the AGENTS defensive-helper pattern and upgrades
+  automatically when InventoryService grows a player-level lookup.
+  (3) The breach embargo has two layers, one check: the .tres
+  embargoed_items (standing) + the runtime ledger (DictStore
+  ward_gate/embargo/<item_id> with reason/by/optional expiry; expired
+  rows erase themselves on read -- "temporarily" is a contract;
+  lift_embargo by hand). ADMIN_ALERT + loud logs; reasons are admin
+  truth, never shown to players.
+  (4) The bite is real: LootService asks allow_drop at CREATION (the
+  rolled drop never materializes) and at PICKUP (pending loot dies at
+  the gate, loudly logged). The duped ore stops existing as a drop
+  the moment it enters the gate -- no restart, no deploy.
+  (5) Lessons: a brand-new class_name is invisible to --script mode
+  until the global class cache regenerates (godot --headless --path
+  game --import; the cache is gitignored, CI regenerates its own) --
+  DataService's typed get_gate cascaded until the scan ran; and typed
+  Array[String] exports reject untyped literals at runtime (even [])
+  -- the probe builds typed locals before assigning.
+  (6) Verification: probe_ward_gate NEW, 31 checks 0 failures, in the
+  runner DEFAULT_SET after probe_riding (registry law; every gate leg:
+  unknown closed, non-warden closed, warden open, revoke-closes,
+  item leg fail-closed, in-memory-gate proofs needing no test-only
+  data; the full embargo cycle: persist, live list, self-erasing
+  expiry, lift, lift-twice no-op; the loot seam end to end: embargoed
+  ore filtered from a drop, fully-embargoed drop spawns NOTHING, lift
+  restores the flow). Family batch 14/0 (riding, ward gate, water
+  mounts, ocean, swim, ferry x2, naming lint -- the gate_ category
+  joined the audit, movement profiles, combat, e2e, ground loot,
+  kill/horde rewards -- the loot seams exercised).
+  Hygiene: tabs only, ASCII, extends-first intact.
 

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WardGateData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/ward_gate_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "gate_warden_keys"
+display_name = "The Wardens' Keyring"
+description = "The hard gate: every admin key in one ring, and the breach embargo in the same place. A gate opens only when every key signal matches -- the reserved role truth, the Skywarden in the ownership ledger, and any token items. The absence of any signal keeps it closed; an unknown rider is always a closed gate."
+key_role = 0
+key_mounts = ["mount_gm_skywarden"]
+key_items = []
+opens = ["admin_shell", "warden_tools"]
+embargoed_items = []
+embargo_reason = ""
