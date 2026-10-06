@@ -28,6 +28,13 @@
 #      rides; no mount is "none".
 #   H. The level gate: a known rider must meet the mount's
 #      required_level; unknown service-level riders are trusted.
+#   I. R45 runtime seams: a REAL GlobeWorldPlayer body adopts the
+#      mount's laws on RideService's summon signal (profile walk/
+#      jump/gravity; the saddle's sprint gear rides under the AC
+#      ceiling), hands them back on dismount (per-world bind
+#      survives), the saddle lift never trips the perch law, a cliff
+#      fall BAILS the runner off the real body, and the vendor door
+#      + the MountUI stable ride the one ledger.
 #
 # Script mode: autoloads resolved at runtime (RideService,
 # AntiCheatService, DataService).
@@ -39,11 +46,33 @@ var _checks: int = 0
 func _init() -> void:
 	call_deferred("_run")
 
-var _voice: Dictionary = {}   # the vesper's last typed announcement
+var _last_voice: Dictionary = {}   # the last typed announcement
+var _voice_pid: String = ""       # addressed to this rider
 
 func _on_voice(entity_id: String, notification: Dictionary) -> void:
-	if entity_id == "pr_sp":
-		_voice = notification
+	if entity_id == "pr_sp" or entity_id == "pr_buy":
+		_last_voice = notification
+		_voice_pid = entity_id
+
+
+## Register a low-level character with the world-entry hook so the
+## level law knows them (the same path sections F/H ride).
+func failsafe_register(pid: String, level: int) -> bool:
+	var gm = root.get_node_or_null("GameManager")
+	if gm == null:
+		return false
+	var cd = load("res://core/schemas/character_data.gd").new("human", "human_warrior", "Young Buyer")
+	cd.level = level
+	gm.notify_player_entered_world(pid, cd)
+	return true
+
+
+## True when the shop catalog carries this mount id.
+func _buy_catalog_has(rides, mount_id: String) -> bool:
+	for row in rides.get_shop_catalog():
+		if str(row.get("id", "")) == mount_id:
+			return true
+	return false
 
 func _check(label: String, cond: bool) -> void:
 	_checks += 1
@@ -175,9 +204,9 @@ func _run() -> void:
 		and rides.summon("pr_sp", "mount_vesper_whale") \
 		and rides.active_mount_id("pr_sp") == "mount_vesper_whale")
 	_check("the rider is told through the typed pipeline: MOUNT_SUMMONED -> INFO, addressed to the rider", \
-		str(_voice.get("message", "")) == "You summon the Vesper" \
-		and int(_voice.get("type", -1)) == int(ns.NotificationType.INFO) \
-		and int(_voice.get("data", {}).get("kind", -1)) == int(NK.NotifKind.MOUNT_SUMMONED))
+		str(_last_voice.get("message", "")) == "You summon the Vesper" \
+		and int(_last_voice.get("type", -1)) == int(ns.NotificationType.INFO) \
+		and int(_last_voice.get("data", {}).get("kind", -1)) == int(NK.NotifKind.MOUNT_SUMMONED))
 	_check("the space body stamps by its own profile (24 m/s sprint = 60 ceiling)", \
 		absf(float(ac.get_movement_limits("pr_sp").get("max_speed", 0.0)) - 60.0) < 0.01)
 	var sp1 = rides.water_stamp_for("pr_sp", 1)
@@ -276,6 +305,101 @@ func _run() -> void:
 	_check("the level gate opens: level 60 rides the dark", \
 		rides.grant_mount("pr_sp_ok", "mount_vesper_whale") \
 		and rides.summon("pr_sp_ok", "mount_vesper_whale"))
+
+	# ---- I. R45 runtime seams: the body, the stable, the shop ------------
+	var GP: GDScript = load("res://entities/globe_player.gd")
+	var body = GP.new()
+	body.entity_id = "pr_rider"
+	root.add_child(body)
+	await process_frame
+	_check("a real globe body is on the ledger's signal wire", \
+		body.ride_service == rides and not body.is_mounted())
+	body.bind_to_world("moon")
+	_check("grant + summon the plains runner for the body", \
+		rides.grant_mount("pr_rider", "mount_plains_runner") \
+		and rides.summon("pr_rider", "mount_plains_runner"))
+	await process_frame
+	_check("the body ADOPTED the mount's laws (walk 6, jump 9, gravity 22 -- declared, not invented)", \
+		body.is_mounted() and absf(body.walk_speed - 6.0) < 0.001 \
+		and absf(body.jump_force - 9.0) < 0.001 and absf(body.gravity_force - 22.0) < 0.001)
+	_check("the saddle's sprint gear rides UNDER the anticheat ceiling (13.5 x 0.6 = 8.1 of the 33.75 legal)", \
+		absf(body.mount_sprint_speed() - 8.1) < 0.001)
+	_check("the summit test: the body's laws survive a per-world bind (dismount restores the CAPTURED humanoid gravity -- the moon's 6)", \
+		rides.dismiss("pr_rider") and absf(body.gravity_force - 6.0) < 0.001 \
+		and absf(body.walk_speed - body.WALK_SPEED_DEFAULT) < 0.001 \
+		and absf(body.jump_force - body.JUMP_FORCE_HUMANOID) < 0.001 \
+		and not body.is_mounted())
+	_check("re-summon: the saddle lift is a saddle, not a perch (0.4 < the 0.55 gate)", \
+		rides.summon("pr_rider", "mount_plains_runner") and body.is_mounted() \
+		and body.SADDLE_LIFT < body.PERCH_MIN_LIFT)
+	var f5 = rides.fall_stamp_for("pr_rider", true, 12.0)
+	_check("the cliff law fires through the REAL body: the runner bails, the body hands back the humanoid", \
+		str(f5.get("action", "")) == "bail" and not body.is_mounted())
+
+	_check("the vendor door opens with data truth: exactly the gold-priced mounts (plains_runner; the 400-favor gullwing is OUT)", \
+		_buy_catalog_has(rides, "mount_plains_runner") and not _buy_catalog_has(rides, "mount_gullwing"))
+	var InvComp = load("res://core/components/inventory_component.gd")
+	var poor = InvComp.new()
+	poor.name = "ProbePurse"
+	root.add_child(poor)
+	poor.set_owner_id("pr_buy")
+	var inv_svc = root.get_node_or_null("InventoryService")
+	_check("the shop resolves a purse through InventoryService (the vendor idiom)", \
+		inv_svc != null and inv_svc.has_method("register_inventory"))
+	if inv_svc != null:
+		inv_svc.register_inventory("pr_buy", poor)
+	_check("gold law: a broke rider is refused (need 250)", \
+		not rides.purchase_mount("pr_buy", "mount_plains_runner").get("success", true))
+	poor.add_gold(249)
+	_check("249 gold is one short: still refused", \
+		not rides.purchase_mount("pr_buy", "mount_plains_runner").get("success", true))
+	poor.add_gold(1)
+	var buy = rides.purchase_mount("pr_buy", "mount_plains_runner")
+	_check("250 gold buys the runner: purse drained to 0, the ONE ledger carries the grant", \
+		bool(buy.get("success", false)) and poor.get_gold() == 0 \
+		and rides.owns_mount("pr_buy", "mount_plains_runner"))
+	poor.add_gold(250)
+	_check("the ledger's second lock: a re-purchase is refused", \
+		not rides.purchase_mount("pr_buy", "mount_plains_runner").get("success", true) \
+		and poor.get_gold() == 250)
+	_check("the level law closes the shop door too: level 4 does not buy the level-5 runner", \
+		failsafe_register("pr_young", 4) and not rides.purchase_mount("pr_young", "mount_plains_runner").get("success", true))
+	_check("the grantor announces acquisition through the typed pipeline (MOUNT_ACQUIRED -> INFO)", \
+		str(_last_voice.get("message", "")) == "You have acquired the Plains Runner" \
+		and int(_last_voice.get("type", -1)) == int(ns.NotificationType.INFO) \
+		and int(_last_voice.get("data", {}).get("kind", -1)) == int(NK.NotifKind.MOUNT_ACQUIRED))
+	_check("summon through the signal wire: the new owner takes the saddle", \
+		rides.summon("pr_buy", "mount_plains_runner"))
+	var buyer = GP.new()
+	buyer.entity_id = "pr_buy"
+	root.add_child(buyer)
+	await process_frame
+	rides.dismiss("pr_buy")
+	_check("the buyer's body is local (PlayerManager duck-types entity_id) and takes the saddle on the re-summon", \
+		buyer.ride_service == rides and rides.summon("pr_buy", "mount_plains_runner") \
+		and buyer.is_mounted())
+
+	var stable = load("res://ui/components/mount_ui.gd").new()
+	stable.name = "ProbeStable"
+	root.add_child(stable)
+	await process_frame
+	var spanel = stable.get_panel()
+	_check("the MountUI stable builds on the panel contract (panel + Main + title + close X)", \
+		spanel != null and spanel.get_node_or_null("Main") != null \
+		and spanel.get_node_or_null("Main/Header/Title") != null \
+		and spanel.get_node_or_null("Main/Header/CloseButton") != null)
+	_check("the stable reads the ONE ledger: the runner's row exists (text label for the a11y layer)", \
+		spanel.get_node_or_null("Main/MountList/Row_mount_plains_runner/Mount_mount_plains_runner") != null)
+	var sbtn: Button = spanel.get_node_or_null("Main/MountList/Row_mount_plains_runner/Summon_mount_plains_runner")
+	_check("the Summon button exists, is pressable, and the panel knows the active truth", \
+		sbtn is Button and str(stable._active_label.text) == "Riding: Plains Runner")
+	if sbtn is Button:
+		sbtn.pressed.emit()
+		await process_frame
+	_check("one button, one meaning: the press DISMISSED the active mount (panel refreshed)", \
+		rides.active_mount_id("pr_buy").is_empty() \
+		and str(stable._active_label.text) == "Walking" \
+		and stable._list.get_child_count() == 1)
 
 	print("probe_riding: %d checks, %d failures" % [_checks, _fails])
 	quit(0 if _fails == 0 else 1)

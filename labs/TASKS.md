@@ -4213,4 +4213,69 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   anticheat, hitbox, notification frame + toast, resource scan,
   riding).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 45 (THE SEAMS LAND: the body takes the saddle, the stable
+  opens its doors, the shop takes gold -- owner: "Awesome work! Ty!
+  Let's keep going, buikding out runtime 3D saddle physics, mount UI,
+  and grant wiring remain named seams"):
+  (1) prd-mounts.md sec 6 named three seams and sec 8 recorded them
+  still open; all three land this round by existing idioms -- no new
+  service, no data schema, no --import regen. The body adopts the
+  mount's movement profile (the S16.4 law-adoption shape, now for a
+  quadruped); the stable is a UIPanel island (the BankUI shape); the
+  shop is RideService.purchase_mount, a gate chain ending in the
+  existing grant door.
+  (2) The body: RideService grew mount_summoned/mount_dismounted
+  signals -- ONE sync path, emitted where _active is written, so the
+  player can never drift from the service's ledger. On summon,
+  globe_player adopts the profile's walk/jump/gravity; the live
+  gravity is captured and restored on dismiss -- the summit test
+  binds the body to the moon (6.0), summons (adopts 22.0), dismisses,
+  and the captured 6.0 comes home. Sprint gear is SADDLE_SPRINT_SCALE
+  0.6 under the existing x2.5 anticheat ceiling (plains runner
+  13.5 x 0.6 = 8.1 against 33.75). SADDLE_LIFT 0.4 rides under the
+  0.55 perch law, so a standing mount never trips the perch gate.
+  fall_stamp_for is fed every tick in the glider branch, with cliff
+  bail EXECUTED (radial velocity damped) -- the saddle rides the
+  frame's laws, not around them. F (dismount, physical_keycode 70)
+  taps out before the climb chain.
+  (3) The stable: mount_ui.gd extends the UIPanel base and resolves
+  RideService BEFORE super._ready(); IslandRegistry carries it as
+  "mounts" (TRIGGERS untouched -- the stable opens from the menu and
+  examine paths, not a keyword; a deliberate seam for a future stable
+  door if canon asks). Ledger truth only: rows rebuild from DictStore
+  ride_service/mounts/<player_id>; text labels for the a11y layer;
+  ONE button per mount, one meaning -- Summon_ becomes dismiss when
+  that mount is active. refresh() is idempotent (clear + rebuild).
+  The island is reached by preload path, not global class lookup, so
+  the brand-new class_name needs no cache regen (the R43 lesson,
+  sidestepped on purpose).
+  (4) The shop: get_shop_catalog is data truth -- only priced mounts
+  (currency "" or gold AND cost > 0); the gullwing's favor wallet is
+  excluded and waits for the reclaimer economy. purchase_mount is the
+  VendorService-shaped gate chain: known -> priced -> not owned ->
+  level law (world-entry truth) -> gold law (InventoryService purse;
+  a ledger refusal ROLLS BACK the gold) -> grant_mount, and the
+  grantor speaks: NotifKind.MOUNT_ACQUIRED joins the enum and BOTH
+  maps (INFO type, NORMAL priority) -- "You have acquired the Plains
+  Runner" rides the same typed pipeline human and agent hear.
+  (5) Lessons, again the hard way: a void call (bind_to_world) inside
+  a boolean `and` chain is a parse error, not a style smell -- hoist
+  it; a block-scoped var (snap lift inside its if) is invisible to
+  the elif below -- lift_expected() lives in scope; a body created
+  AFTER a signal fired never hears it -- dismiss then re-summon
+  re-fires the wire; PlayerManager duck-types the LAST body that
+  self-registered -- the buyer is created last, on purpose.
+  (6) Verification: probe_riding 67 -> 88 checks, 0 failures (real
+  GlobeWorldPlayer on the signal wire; law adoption walk 6 / jump 9 /
+  gravity 22; sprint gear 8.1 under 33.75; summit restore on the
+  moon; perch note 0.4 < 0.55; cliff bail through the real body;
+  catalog has plains_runner, not gullwing; the gold chain broke ->
+  249 short -> 250 buys -> purse 0 -> re-buy refused, purse intact;
+  the young buyer, level 4, refused; MOUNT_ACQUIRED toast typed end
+  to end; the buyer wire re-fired; the stable's panel, row, button,
+  and Riding/Walking labels; the button press dismisses and the list
+  shrinks). Family batch 8/0 (naming lint, movement profiles,
+  anticheat, notification frame + toast, a11y service + contrast,
+  riding).
+  Hygiene: tabs only, ASCII, extends-first intact.
 

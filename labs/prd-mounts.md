@@ -199,3 +199,63 @@ grew its SPACE case when the mount landed. The Vesper is the proof:
   layer hears the dark arrive the way it hears everything else:
   typed, mapped, addressable by screen reader and probe alike. No
   new NotifKind needed; riding already has a voice.
+
+## 9. Round Four as Built (2026-10-06): the three named seams land -- the body, the stable, the shop
+
+Sec 6 named them seams "not screens": runtime 3D riding, mount UI,
+grant wiring. R45 lands all three, each by an existing idiom -- no
+new systems, three doors into the layer R41 built.
+
+- **The body (`globe_player.gd`).** The saddle is LAW ADOPTION, not
+  a new controller: RideService gained `mount_summoned` /
+  `mount_dismounted` signals (one sync path -- service and body ride
+  the same wire), and the body listens for them exactly the way it
+  binds a lattice world's gravity (S16.4 style: a DECLARATION from
+  the resolved MovementProfile, never a number invented here). On
+  summon: profile walk/jump/gravity replace the humanoid's (the
+  pre-mount gravity is CAPTURED, so a per-world bind -- the moon's
+  6 -- survives a mount round trip); on dismiss: the captured laws
+  come back. The body scales its own ground speed to the saddle's
+  sprint gear (profile sprint x 0.6, under the anticheat's full
+  profile x2.5 ceiling -- the body can never outride the stamp),
+  rides a 0.4 m SADDLE_LIFT above the surface law (added before the
+  perch check, so a standing mount is a saddle, not a perch -- 0.4
+  < the 0.55 gate), and feeds `fall_stamp_for` per tick from the
+  glider branch -- a bail EXECUTES on the body (radial damped, the
+  rider keeps the fall, the mount never falls). One tap (the new
+  `dismount` action, F) walks into the same dismiss. A body that
+  misses the whistle simply summons again -- the signal is the sync,
+  not a hand-tied second book.
+- **The stable (`game/ui/components/mount_ui.gd`).** A UIPanel
+  island (BankUI's shape, registered as `mounts` in
+  IslandRegistry): the rider's OWNED list read straight from the
+  ledger's persisted key, one row per mount with a TEXT label (the
+  a11y layer reads buttons, never icons alone), one button with one
+  meaning (summon, or dismiss the active one), the active line up
+  top. The panel invents nothing: what is owned, what is active,
+  and what a press does are all RideService truth, and every press
+  is announced by the service through the typed pipeline.
+- **The shop (RideService).** `get_shop_catalog()` builds from DATA
+  truth only -- every mount with a gold (or empty-currency) price;
+  the 400-favor gullwing waits for a favor wallet, zero-cost
+  mounts are not shop goods. `purchase_mount(player_id, mount_id)`
+  is one gate chain, each leg loud: known -> priced -> not already
+  owned -> level law (world-entry truth when known) -> gold law
+  (the vendor idiom: the purse is the InventoryComponent, resolved
+  through InventoryService.get_inventory) -> grant through the ONE
+  ledger (a ledger refusal ROLLS BACK the gold). The grantor
+  announces acquisition (`MOUNT_ACQUIRED -> INFO`, new kind, both
+  maps wired) -- "the service announces RIDING; acquisition
+  announcements belong to whatever grants," now true in practice.
+- **Verification.** probe_riding 67 -> 88 checks, 0 failures: the
+  real body adopts/hands back the laws (summit test: mount on the
+  moon, dismount, the 6 m/s^2 survives), the sprint gear rides
+  under the ceiling (8.1 of the 33.75 legal), the saddle lift
+  never trips the perch, the cliff bail executes through the real
+  body, the catalog carries exactly the priced truth, the gold
+  chain (broke -> 249 short -> 250 buys -> purse 0 -> re-purchase
+  refused -> level-4 buyer refused), the acquisition toast typed
+  end-to-end, and the stable's row/button/active-line ride the
+  ledger live. Family batch 8/0 (naming lint, movement profiles,
+  anticheat, notification frame + toast, a11y service + contrast,
+  riding).

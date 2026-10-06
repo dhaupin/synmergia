@@ -36,6 +36,7 @@ const ACTION_MENU := preload("res://ui/components/action_menu.gd")
 const DIALOG_UI := preload("res://ui/components/dialog_ui.gd")
 const SETTINGS_PANEL := preload("res://ui/components/settings_panel.gd")
 const COMBAT_LOG := preload("res://ui/components/combat_log.gd")
+const MOUNT_UI := preload("res://ui/components/mount_ui.gd")
 
 const ISLANDS: Dictionary = {
 	# Scenes
@@ -61,6 +62,7 @@ const ISLANDS: Dictionary = {
 	"dialog": DIALOG_UI,
 	"settings": SETTINGS_PANEL,
 	"combat_log": COMBAT_LOG,
+	"mounts": MOUNT_UI,
 }
 
 const TRIGGERS: Dictionary = {

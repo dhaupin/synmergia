@@ -26,6 +26,14 @@ const GRAVITY_DEFAULT: float = 20.0
 const WALK_SPEED_DEFAULT: float = 6.0
 ## Height of the collision-sphere center above the surface.
 const SKIN: float = 1.0
+## R45 saddle: the humanoid laws restored on dismount (the body's own
+## defaults -- captured indirections, not invented numbers).
+const WALK_SPEED_HUMANOID: float = WALK_SPEED_DEFAULT
+const JUMP_FORCE_HUMANOID: float = 7.0
+## The saddle's sprint gear: the body runs the mount's sprint through
+## this low ratio (the ANTICHEAT ceiling stays the full profile stamp
+## x2.5 -- the body can never outride its legal ceiling).
+const SADDLE_SPRINT_SCALE: float = 0.6
 
 ## Radius of the sphere this player stands on (set by the globe scene).
 var planet_radius: float = 100.0
@@ -209,6 +217,19 @@ var planar_mode: bool = false
 var glider = null  # GliderState (load-time assigned; frame primitive)
 var _glide_up: Vector3 = Vector3.UP  # up vector captured per frame
 
+# R45 saddle: the riding layer (labs/prd-mounts.md sec 9). The body
+# listens to RideService's summon/dismiss signals and adopts the
+# mount's movement laws the way bind_to_world adopts a world's
+# gravity -- a DECLARATION from the resolved MovementProfile, never a
+# number invented here. While mounted: profile walk/sprint/jump/gravity
+# replace the humanoid's, a saddle lift rides the body above the
+# surface law, and the cliff law (fall_stamp_for) is fed per tick.
+var ride_service = null                 # RideService (runtime; null in tests)
+var mounted_mount_id: String = ""       # the mount's data id ("" = unmounted)
+var _mount_profile = null               # the resolved MovementProfile
+var _humanoid_gravity: float = -1.0     # pre-mount gravity, restored on dismount
+const SADDLE_LIFT: float = 0.4          # m above the surface law (hooves, not boots)
+
 
 ## S16.4: bind this body to a lattice world. Per-world physics is a
 ## DECLARATION (WorldData.gravity_force), never a hard-coded number:
@@ -225,6 +246,92 @@ func bind_to_world(id: String) -> void:
 	var w = ws.world_data(id)
 	if w != null:
 		gravity_force = float(w.gravity_force)
+
+
+## -- R45 saddle: the mount's laws, adopted and handed back ------------
+
+## The riding layer whistled: adopt the mount's movement laws from its
+## resolved MovementProfile (the same ONE derivation RideService
+## stamps the anticheat with). Only the profile's laws are adopted --
+## walk/sprint/jump/gravity; the body's radial ground law, snap chain,
+## and camera frame are untouched (the mount rides THIS body, it does
+## not replace it).
+func _on_mount_summoned(player_id: String, mount_id: String) -> void:
+	if entity_id != player_id or ride_service == null:
+		return
+	var mount = ride_service.active_mount(player_id)
+	if mount == null or DataService == null:
+		return
+	var profile = DataService.get_mount_movement_profile(mount)
+	if profile == null:
+		return
+	_mount_profile = profile
+	mounted_mount_id = str(mount_id)
+	if _humanoid_gravity < 0.0:
+		_humanoid_gravity = gravity_force
+	walk_speed = float(profile.walk_speed)
+	jump_force = float(profile.jump_force)
+	gravity_force = float(profile.gravity_force)
+	GameLog.info("GlobeWorldPlayer: %s takes the saddle of the %s" % [entity_id, str(mount.display_name)])
+
+
+## Back to the whistle: restore the humanoid laws the body carried
+## before the saddle (captured at adoption -- even the per-world
+## gravity bind_to_world declared survives a mount round trip).
+func _on_mount_dismounted(player_id: String, mount_id: String) -> void:
+	if entity_id != player_id or not mounted_mount_id.is_empty() and mounted_mount_id != mount_id:
+		return
+	_mount_profile = null
+	mounted_mount_id = ""
+	if _humanoid_gravity >= 0.0:
+		gravity_force = _humanoid_gravity
+		_humanoid_gravity = -1.0
+	walk_speed = WALK_SPEED_HUMANOID
+	jump_force = JUMP_FORCE_HUMANOID
+
+
+## True while a mount is under this body (drives the saddle lift,
+## the speed scale, and the dismount tap).
+func is_mounted() -> bool:
+	return not mounted_mount_id.is_empty() and _mount_profile != null
+
+
+## The mount's sprint law, resolved here (the body has no sprint
+## profile field): profile sprint (0 = the body cannot sprint on this
+## mount) x the saddle's low-gear scale. The anticheat is stamped by
+## RideService with the FULL profile sprint x2.5, so the body can
+## never outride its legal ceiling.
+func mount_sprint_speed() -> float:
+	if not is_mounted():
+		return 0.0
+	return float(_mount_profile.sprint_speed) * SADDLE_SPRINT_SCALE
+
+
+## The cliff law, fed per tick from the body (the surface data the
+## service has no other way to know: airborne + radial altitude).
+## A bail is EXECUTED here -- the body has already inherited the
+## humanoid laws through the dismount signal by the time this
+## returns, and the rider keeps the fall (the mount never falls).
+func _feed_mount_fall_law(delta: float, up: Vector3, falling: bool, altitude: float) -> void:
+	if not is_mounted() or ride_service == null:
+		return
+	var stamp: Dictionary = ride_service.fall_stamp_for(entity_id, falling, altitude)
+	if str(stamp.get("action", "")) == "bail":
+		velocity = horizontal_only(velocity, up) * 0.5 + up * -1.0
+
+
+## Radial altitude above the surface law (the same number the glider
+## branch feeds its state machine).
+func _radial_altitude(up: Vector3) -> float:
+	var altitude: float = planet_distance() - (planet_radius + ground_offset + SKIN)
+	if snap_height_provider.is_valid():
+		altitude -= snap_height_provider.call(global_position)
+	return maxf(altitude, 0.0)
+
+
+## Horizontal component of a velocity on the tangent plane.
+func horizontal_only(v: Vector3, up: Vector3) -> Vector3:
+	return v - up * v.dot(up)
 
 
 ## S16.4: can this body's CURRENT world deploy a glider? No
@@ -273,6 +380,15 @@ func _ready() -> void:
 			stick.sprint_override.connect(_on_sprint_override)
 	if glider == null:
 		glider = load("res://core/frame/srv/glider_state.gd").new()
+	# R45 saddle wiring: listen to the riding layer's signals (defensive
+	# -- script-mode probes mount no RideService; they call the saddle
+	# functions directly).
+	ride_service = Engine.get_main_loop().root.get_node_or_null("RideService") if Engine.get_main_loop() is SceneTree else null
+	if ride_service != null:
+		if not ride_service.mount_summoned.is_connected(_on_mount_summoned):
+			ride_service.mount_summoned.connect(_on_mount_summoned)
+		if not ride_service.mount_dismounted.is_connected(_on_mount_dismounted):
+			ride_service.mount_dismounted.connect(_on_mount_dismounted)
 	# Deployment setting: runtime resolve (script-mode/check-only has
 	# no autoloads mounted).
 	var pc = Engine.get_main_loop().root.get_node_or_null("PlayerConfig") if Engine.get_main_loop() is SceneTree else null
@@ -490,6 +606,9 @@ func _physics_process(delta: float) -> void:
 	if _climbing:
 		_tick_climb(delta, up, wish, horizontal)
 		return
+	if is_mounted() and allow_jump_input and Input.is_action_just_pressed("dismount"):
+		ride_service.dismiss(entity_id)
+		return
 	if allow_jump_input and is_on_floor() and climb_stamina > 0.25 \
 			and Input.is_action_pressed("jump") and not Input.is_action_just_pressed("jump"):
 		var probe_dir: Vector3 = (wish if wish.length_squared() > 0.001 \
@@ -511,6 +630,13 @@ func _physics_process(delta: float) -> void:
 			and Input.is_action_just_pressed("jump"):
 		vertical += up * jump_force
 		snap_enabled = false
+	elif is_mounted() and wish.length_squared() > 0.0001:
+		# The saddle's sprint gear: profile sprint x the low ratio, ONLY
+		# under a held sprint (crouch outranks it as always; the climb
+		# check above outranks everything). The anticheat is judged by
+		# the mount's full profile -- this scale keeps the gallop legal.
+		if is_sprinting and not is_crouching and mount_sprint_speed() > 0.0:
+			speed = mount_sprint_speed()
 
 	# S12 glider: feed the state machine (altitude above the surface,
 	# no thermal model on the globe yet -- thermal zones land later),
@@ -521,10 +647,10 @@ func _physics_process(delta: float) -> void:
 		# with the terrain arc, a body on a 9 m plaza is ON THE GROUND,
 		# not 10 m in the air (the wing otherwise pops the moment you
 		# walk -- dbg_walk caught the body GLIDING at spawn).
-		var altitude: float = planet_distance() - (planet_radius + ground_offset + SKIN)
-		if snap_height_provider.is_valid():
-			altitude -= snap_height_provider.call(global_position)
-		altitude = maxf(altitude, 0.0)
+		var altitude: float = _radial_altitude(up)
+		_feed_mount_fall_law(delta, up, true, altitude)
+		if is_mounted():
+			return
 		var gstate: int = glider.tick(delta, maxf(altitude, 0.0), 0.0)
 		# S16.4 vacuum rule: no atmosphere, no wing. If the machine
 		# opened the wing over an airless world, the vacuum closes it
@@ -656,12 +782,17 @@ func _physics_process(delta: float) -> void:
 	if snap_enabled:
 		# THE WALK LAW: terrain arc rides the walk surface (displaced
 		# terrain + small-rock caps); the prototype rides the flat shell.
+		# R45 saddle: a mount rides a LIFT above the surface law -- and
+		# the lift is added BEFORE the perch check, so a mount standing
+		# still is a saddle, not a perch awaiting a step-off fall.
 		# The lift is applied EXACTLY, never lerped - the law is already
 		# smooth in space, and a lagged lift lets the body intersect rock
 		# colliders and stall (test-caught lesson).
 		var lift: float = 0.0
 		if snap_height_provider.is_valid():
 			lift = snap_height_provider.call(global_position)
+		if is_mounted():
+			lift += SADDLE_LIFT
 		var target_r: float = planet_radius + ground_offset + SKIN + lift
 		_ride_lift = lift
 		var err: float = planet_distance() - target_r
@@ -670,10 +801,13 @@ func _physics_process(delta: float) -> void:
 		# PERCH LAW: standing on a walk-over cap whose top is a
 		# climbable ledge (0.55 m or more above the terrain law) -- step
 		# off it and the body becomes AIRBORNE immediately (no snap
-		# crutch): the fall is honest, the arc is real.
+		# crutch): the fall is honest, the arc is real. R45 saddle: a
+		# mount standing still is a saddle, not a perch -- the 0.4 m
+		# saddle lift alone never trips the perch (0.55 m gate).
 		if _perch_height() >= PERCH_MIN_LIFT:
 			snap_enabled = false
-	elif vertical.dot(up) <= 0.0 and planet_distance() <= planet_radius + ground_offset + SKIN + lift_expected() + 0.05:
+	elif vertical.dot(up) <= 0.0 and planet_distance() <= planet_radius + ground_offset + SKIN + lift_expected() + 0.05 \
+			and not (is_mounted() and planet_distance() <= planet_radius + ground_offset + SKIN + lift_expected() + SADDLE_LIFT + 0.05):
 		snap_enabled = true
 
 	# Keep the camera pivot aligned with local up, then apply the

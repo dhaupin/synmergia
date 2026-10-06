@@ -73,6 +73,7 @@ enum NotifKind {
 	VOTE_ENDED,
 
 	# Riding (labs/prd-mounts.md)
+	MOUNT_ACQUIRED,
 	MOUNT_SUMMONED,
 	MOUNT_DISMISSED,
 

@@ -394,6 +394,9 @@ func get_gate(id: String) -> WardGateData:
 func get_all_gates() -> Dictionary:
 	return _gates
 
+func get_all_mounts() -> Dictionary:
+	return _mounts
+
 func get_vehicle(id: String) -> VehicleData:
 	if _vehicles.has(id):
 		return _vehicles.get(id)
