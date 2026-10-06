@@ -39,10 +39,10 @@ space mounts lawful the same way -- by data, never by special cases.
    explicit `movement_profile_id` wins, else kind -- GROUND ->
    quadruped, FLYING -> aerial, AQUATIC -> aquatic, SPACE ->
    leviathan -- its own class since R44, when the first space mount
-   landed (`movement_leviathan`; the id `movement_lunar` was already
-   S16.4's Lunar Settler humanoid and stays untouched)) and
-   stamps the
-   anticheat via `AntiCheatService.set_profile_limits`. Dismount hands
+   landed) and stamps the anticheat via
+   `AntiCheatService.set_profile_limits`. (The SPACE default is
+   `movement_leviathan`; the id `movement_lunar` was already S16.4's
+   Lunar Settler humanoid and stays untouched.) Dismount hands
    the body back `movement_standard` (humanoid 25/25/110).
 3. **The water handoff is one call.** `RideService.water_stamp_for(
    player_id, band)` returns `{action: ride | dismount | swim | none}`:
