@@ -55,5 +55,22 @@ enum MountSource {
 ## Soulbound mounts cannot be traded once bound.
 @export var soulbound: bool = true
 
+# S14.6 aquatic mounts (prd-ocean-depths.md sec 7): water mounts are
+# rated BODIES for the squeeze band without a breather; land mounts
+# bail at the waterline (swim_state.MOUNT_DISMOUNT_ON_SUBMERGE). The
+# speed truth for a swimmer is swim_speed (m/s underwater cruise);
+# speed_multiplier stays the land/air story.
+@export var swim_speed: float = 0.0          # m/s underwater; 0 = cannot swim
+@export var squeeze_grace_m: float = 0.0     # deepens the squeeze line (pearl_ray +6)
+@export var crush_depth_bonus_m: float = 0.0 # the BODY's crush rating (trench_wyrm +30; gear never moves crush)
+@export var current_immune: bool = false     # reef_glider swims its own vector; the sea does not carry it
+@export var hitbox_profile_id: String = ""   # water mounts share the HitboxProfile system
+
+## True when this mount can carry a rider underwater (kind AQUATIC
+## with a real cruise speed -- the AQUATIC kind alone is not enough;
+## the speed is what the anticheat stamps).
+func is_swimmer() -> bool:
+	return kind == MountKind.AQUATIC and swim_speed > 0.0
+
 ## Flavor: saddle color / harness accent for the renderer.
 @export var tint: Color = Color(1, 1, 1, 1)

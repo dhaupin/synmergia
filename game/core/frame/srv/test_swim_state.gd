@@ -117,6 +117,27 @@ func _run() -> void:
 	swimmer.tick(dt, -3.0, 50.0, 60.0)
 	_check("a dry body may deploy the glider", swimmer.allows_glider())
 
+	# ---- G. The mount law (S14.6): dismount at the waterline, rated bodies ----
+	_check("the law exists: MOUNT_DISMOUNT_ON_SUBMERGE", SS.MOUNT_DISMOUNT_ON_SUBMERGE == true)
+	_check("a land mount wades with its rider", SS.mount_band_allowed(false, SS.State.WADING))
+	_check("a land mount bails when the body is in the water (surface swim)", \
+		not SS.mount_band_allowed(false, SS.State.SURFACE_SWIM))
+	_check("a land mount bails when submerged", not SS.mount_band_allowed(false, SS.State.SUBMERGED))
+	_check("a land mount is long gone at crush", not SS.mount_band_allowed(false, SS.State.CRUSH))
+	_check("a water mount rides every band (its rating is the limiter, not a gate)", \
+		SS.mount_band_allowed(true, SS.State.SQUEEZE) and SS.mount_band_allowed(true, SS.State.CRUSH))
+	# The body-rating law through tick: the wyrm's crush bonus moves the
+	# CRUSH line (and only a rated body's bonus ever does).
+	var wyrm = SS.new()
+	wyrm.tick(dt, 62.0, 50.0, 60.0, 0.1, 0.0, 30.0)
+	_check("the wyrm at 62 m (rated +30) SQUEEZES, not crushes", wyrm.state == SS.State.SQUEEZE)
+	var others = SS.new()
+	others.tick(dt, 62.0, 50.0, 60.0, 0.1, 0.0, 0.0)
+	_check("the same depth without the rating is CRUSH", others.state == SS.State.CRUSH)
+	var geared = SS.new()
+	geared.tick(dt, 62.0, 50.0, 60.0, 0.1, 20.0, 0.0)
+	_check("gear grace never buys crush: 62 m at grace 20 is still CRUSH", geared.state == SS.State.CRUSH)
+
 	if _fails == 0:
 		print("SWIM STATE TEST PASSED (%d checks)" % _checks)
 		quit(0)

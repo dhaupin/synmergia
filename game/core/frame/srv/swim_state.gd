@@ -45,6 +45,23 @@ const CRUSH_DRAIN_MULTIPLIER: float = 4.0
 ## Wading threshold (m): mirrors OceanVolume.band_for's ankle band.
 const WADING_DEPTH_M: float = 1.2
 
+## S14.6 mount rules (prd-ocean-depths.md sec 7): the water twin of
+## glider_state.MOUNT_DISMOUNT_ON_FALL. A land mount bails to the
+## whistle at the waterline -- the rider keeps swimming. Water mounts
+## (kind AQUATIC with swim_speed > 0) ride every band; their squeeze
+## and crush reach is the BODY rating's job (squeeze_grace_m /
+## crush_depth_bonus_m flow through band_for and tick -- one
+## derivation), never a second gate here.
+const MOUNT_DISMOUNT_ON_SUBMERGE: bool = true
+
+## May this body stay mounted at this band? Land mounts: DRY and
+## WADING only (ankle-deep riding is honest; body-in-water riding is
+## not -- the horse swims badly). Aquatic mounts: yes, everywhere.
+static func mount_band_allowed(is_aquatic_swimmer: bool, band: int) -> bool:
+	if not is_aquatic_swimmer:
+		return band <= State.WADING
+	return true
+
 var state: int = State.DRY
 ## Breath remaining (seconds). 0 = drowning: the driver converts to
 ## damage per second of continued submersion.
@@ -75,24 +92,32 @@ func reset() -> void:
 ## depth tax; breather_grace_m: total breather grace (S14.4).
 ## Returns the resulting state (drivers read it to apply physics:
 ## band speeds, buoyancy, damage).
-func tick(delta: float, depth: float, squeeze_line: float, max_depth: float, pressure_per_meter: float = 0.0, breather_grace_m: float = 0.0) -> int:
+func tick(delta: float, depth: float, squeeze_line: float, max_depth: float, pressure_per_meter: float = 0.0, breather_grace_m: float = 0.0, crush_bonus_m: float = 0.0) -> int:
 	var prev := state
 	var refilling := false
 	# The breather's grace (S14.4) deepens the squeeze line -- the
-	# free-swim band extends toward the rock, CRUSH never moves. The
-	# service passes the raw line; the primitive owns the grace so
-	# every caller's banding agrees with band_for's.
+	# free-swim band extends toward the rock. The service passes the
+	# raw line; the primitive owns the grace so every caller's banding
+	# agrees with band_for's. S14.6: gear grace (breather + mount
+	# squeeze_grace_m, summed by the caller) moves SQUEEZE only -- a
+	# BODY's crush rating (trench_wyrm crush_depth_bonus_m) is the one
+	# thing that moves CRUSH: the stone bends for rated bodies, never
+	# for equipment. CRUSH is checked FIRST (the band_for order): a
+	# big gear grace removes the SQUEEZE band, it never un-crushes the
+	# stone (R40: the probe caught tick and band_for disagreeing at
+	# grace > max_depth - squeeze_line).
 	var squeeze_eff := squeeze_line + maxf(breather_grace_m, 0.0)
+	var crush_line := max_depth + maxf(crush_bonus_m, 0.0)
 	if depth < 0.0:
 		state = State.DRY
 	elif depth <= WADING_DEPTH_M:
 		state = State.WADING
+	elif depth >= crush_line:
+		state = State.CRUSH
 	elif depth < squeeze_eff:
 		state = State.SUBMERGED
-	elif depth < max_depth:
-		state = State.SQUEEZE
 	else:
-		state = State.CRUSH
+		state = State.SQUEEZE
 
 	# SURFACE_SWIM: submerged band but head near the surface -- the
 	# top meter of the swim band lets you breathe (swim up and the

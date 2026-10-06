@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_trench_wyrm"
+display_name = "Trench Wyrm"
+description = "The leviathan of the Sundered trench, and the only body the deep stone has ever made room for. Thirty meters of rated depth: where every other creature is squeezed to paste, the wyrm swims on, patient and unbothered."
+icon_path = ""
+model_path = ""
+kind = 2
+speed_multiplier = 1.0
+swim_speed = 8.0
+squeeze_grace_m = 0.0
+crush_depth_bonus_m = 30.0
+current_immune = false
+hitbox_profile_id = "hitbox_swimmer_large"
+movement_profile_id = "movement_swim"
+required_level = 45
+faction_id = ""
+source = 0
+currency_id = ""
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(0.2, 0.25, 0.3, 1)

@@ -189,6 +189,17 @@ func current_at(pos: Vector3) -> Vector3:
 	return v.current_vector()
 
 
+## The drift a body actually FEELS: the volume's declared current,
+## zeroed for current-immune bodies (S14.6: the reef glider swims its
+## own vector; the sea does not carry it). The anticheat stamp reads
+## THIS, never current_at -- a zero stamp erases the passive-drift
+## forgiveness (still water judges again, the existing law).
+func effective_current(pos: Vector3, current_immune: bool = false) -> Vector3:
+	if current_immune:
+		return Vector3.ZERO
+	return current_at(pos)
+
+
 ## ---- S14.2: the swim driver -------------------------------------------------
 
 ## Per-body swim state (the below-the-waterline twin of the glider
@@ -201,8 +212,11 @@ var _swimmers: Dictionary = {}   # body_id -> SwimState
 ## drowning), and returns {state, depth, band, current, breath,
 ## pressure, drowning_s} -- everything the body's physics, the HUD,
 ## and the anticheat need, from ONE call. A body in no volume reads
-## DRY with no clocks.
-func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m: float = 0.0) -> Dictionary:
+## DRY with no clocks. S14.6: mount_grace_m (the mount's
+## squeeze_grace_m) ADDS to the breather's for the squeeze line;
+## crush_bonus_m (the mount's crush_depth_bonus_m) is the only thing
+## that moves CRUSH -- one derivation, same as band_for.
+func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m: float = 0.0, mount_grace_m: float = 0.0, crush_bonus_m: float = 0.0) -> Dictionary:
 	ensure_loaded()
 	var v = volume_at(pos)
 	var depth: float = sample_depth(pos, v)
@@ -210,16 +224,17 @@ func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m:
 	if s == null:
 		s = SwimStateScript.new()
 		_swimmers[body_id] = s
+	var total_grace: float = maxf(breather_grace_m, 0.0) + maxf(mount_grace_m, 0.0)
 	if v == null:
-		s.tick(delta, depth if depth < 0.0 else -1.0, 1.0, 1.0, 0.0, breather_grace_m)
+		s.tick(delta, depth if depth < 0.0 else -1.0, 1.0, 1.0, 0.0, total_grace, crush_bonus_m)
 		return {"state": s.state, "depth": depth, "band": OceanVolumeScript.DepthBand.DRY, \
 			"current": Vector3.ZERO, "breath": s.breath, "pressure": s.pressure, "drowning_s": s.drowning_s}
 	var squeeze_line: float = float(v.max_depth) - OceanVolumeScript.NATURAL_PRESSURE_FREE_M
 	if squeeze_line < 0.0:
 		squeeze_line = float(v.max_depth)
 	var state: int = s.tick(delta, depth, squeeze_line, float(v.max_depth), \
-		float(v.pressure_per_meter), breather_grace_m)
-	return {"state": state, "depth": depth, "band": v.band_for(depth, breather_grace_m), \
+		float(v.pressure_per_meter), total_grace, crush_bonus_m)
+	return {"state": state, "depth": depth, "band": v.band_for(depth, total_grace, crush_bonus_m), \
 		"current": v.current_vector(), "breath": s.breath, "pressure": s.pressure, \
 		"drowning_s": s.drowning_s}
 

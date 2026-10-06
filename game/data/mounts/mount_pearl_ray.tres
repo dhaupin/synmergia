@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_pearl_ray"
+display_name = "Pearl Ray"
+description = "A wide manta that flies underwater the way gulls fly in air -- steady, unhurried, faster than it has any right to be. Its wingbeat steadies the diver: six meters of squeeze, gone."
+icon_path = ""
+model_path = ""
+kind = 2
+speed_multiplier = 1.0
+swim_speed = 9.0
+squeeze_grace_m = 6.0
+crush_depth_bonus_m = 0.0
+current_immune = false
+hitbox_profile_id = "hitbox_swimmer_medium"
+movement_profile_id = "movement_swim"
+required_level = 30
+faction_id = ""
+source = 0
+currency_id = ""
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(0.75, 0.85, 0.95, 1)

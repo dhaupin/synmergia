@@ -92,17 +92,21 @@ const NATURAL_PRESSURE_FREE_M: float = 10.0
 ## The band a sample depth belongs to. Pure function of the depth
 ## and this volume's declared bands -- the same mapping for physics,
 ## renderer, and anticheat (one sampler, three readers).
-func band_for(depth_m: float, breather_grace_m: float = 0.0) -> DepthBand:
+func band_for(depth_m: float, breather_grace_m: float = 0.0, crush_bonus_m: float = 0.0) -> DepthBand:
 	if depth_m < 0.0:
 		return DepthBand.DRY
 	if depth_m <= 1.2:
 		return DepthBand.WADING
-	if depth_m >= max_depth:
+	# CRUSH moves ONLY for a rated body (S14.6: the trench wyrm's
+	# crush_depth_bonus_m is the body's rating). Gear grace -- breather
+	# or mount squeeze_grace_m -- never moves it: the stone bends for
+	# rated bodies, never for equipment.
+	if depth_m >= max_depth + maxf(crush_bonus_m, 0.0):
 		return DepthBand.CRUSH
-	# SQUEEZE line = max_depth - natural_free + breather_grace: the
-	# line DEEPENS as breathers improve (50 m -> 58 m with grace 8
-	# on a 60 m volume). A big enough grace removes the squeeze band
-	# entirely -- but CRUSH is checked first and never moves.
+	# SQUEEZE line = max_depth - natural_free + total gear grace: the
+	# line DEEPENS as breathers and mount grace improve (50 m -> 58 m
+	# with grace 8 on a 60 m volume). A big enough grace removes the
+	# squeeze band entirely.
 	if depth_m >= max_depth - NATURAL_PRESSURE_FREE_M + breather_grace_m:
 		return DepthBand.SQUEEZE
 	return DepthBand.SUBMERGED

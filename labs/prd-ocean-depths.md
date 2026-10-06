@@ -385,3 +385,59 @@ uncalled).
 cast-off boundary ambiguity, the phantom sailing after a full
 desertion, and (in the schedule test) three of my own wrong
 hand-derivations -- the primitive was right every time.
+
+## 15. S14.6 as built (2026-10-05): water mounts are rated bodies
+
+**The schema.** MountData gains the aquatic half: `swim_speed` (m/s
+underwater cruise -- the speed truth for a swimmer;
+`speed_multiplier` stays the land/air story), `squeeze_grace_m`
+(deepens the squeeze line), `crush_depth_bonus_m` (the BODY's crush
+rating), `current_immune`, `hitbox_profile_id` (water mounts share
+the HitboxProfile system), and `is_swimmer()` (kind AQUATIC AND a
+real cruise -- the kind alone is not enough; the speed is what the
+anticheat stamps). MountKind.AQUATIC was pre-declared; the data now
+honors it.
+
+**The three mounts.** `mount_reef_glider` (octopus, 7 m/s,
+current_immune -- the sea does not carry it), `mount_pearl_ray`
+(manta, 9 m/s, squeeze grace +6 -- the shallow diver), and
+`mount_trench_wyrm` (8 m/s, crush_depth_bonus_m 30 -- the only body
+the deep stone has made room for). Hitbox profiles
+`hitbox_swimmer_medium` (octopus + ray) and `hitbox_swimmer_large`
+(wyrm) join the HitboxProfile family.
+
+**The laws (one derivation, extended).** `MOUNT_DISMOUNT_ON_SUBMERGE`
+lands in swim_state as MOUNT_DISMOUNT_ON_FALL's water twin: land
+mounts bail at the waterline (allowed DRY/WADING only -- ankle-deep
+riding is honest, body-in-water riding is not), water mounts ride
+every band and their reach is the rating's job, never a second
+gate. The grace law extends cleanly: gear grace (breather + mount
+squeeze_grace_m) SUMS into the squeeze line; the crush bonus moves
+CRUSH and only a rated body's bonus can -- the stone bends for
+rated bodies, never for equipment. `band_for` and `tick` both grew
+a `crush_bonus_m` parameter in the same shape as S14.4's grace law.
+
+**The anticheat needs nothing new.** `set_aquatic_limits` already
+takes per-body maxima (the caller stamps the mount's cruise), and
+current immunity is a stamping rule: `OceanService.effective_current
+(pos, current_immune)` is the one seam -- the anticheat stamp reads
+THIS, never `current_at`, and a zero stamp erases the
+passive-drift forgiveness (the existing still-water law).
+
+**THE BUG THE PROBE CAUGHT (the round's lesson).** My first
+"fish" check failed for a boring reason (the validator's
+SPEED_LIMIT_MULTIPLIER of 2.5 makes the ray's ceiling 22.5 m/s -- a
+20 m/s body is legal; the honest hacker swims 30). The REAL catch
+was deeper: writing the gear-grace-vs-crush assert exposed that
+`tick` and `band_for` DISAGREED whenever gear grace pushed the
+squeeze line past max_depth (tick checked squeeze before crush, so
+62 m at grace 20 read SUBMERGED while band_for said CRUSH -- latent
+since S14.4 because no test had grace that large). Fixed by checking
+CRUSH first in tick (the band_for order); the probe now pins both
+sides of the law: gear never buys crush, ratings do.
+
+`probe_water_mounts.gd` (30 checks, in DEFAULT_SET) + the mount-law
+section (G) in the co-located `test_swim_state.gd`. The ocean family
+is green: probe_ocean, probe_swim, probe_ferry, test_ferry_schedule,
+data lint, movement profiles -- the ocean still never touches bout
+physics.

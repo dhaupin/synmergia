@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_reef_glider"
+display_name = "Reef Glider"
+description = "A grabby reef octopus that moves in jet bursts, siphon first. It holds its line in any current -- the sea argues with it and loses. The kelp-forest divers' first friend."
+icon_path = ""
+model_path = ""
+kind = 2
+speed_multiplier = 1.0
+swim_speed = 7.0
+squeeze_grace_m = 0.0
+crush_depth_bonus_m = 0.0
+current_immune = true
+hitbox_profile_id = "hitbox_swimmer_medium"
+movement_profile_id = "movement_swim"
+required_level = 20
+faction_id = ""
+source = 0
+currency_id = ""
+cost = 0
+source_ref = ""
+soulbound = true
+tint = Color(0.55, 0.4, 0.75, 1)

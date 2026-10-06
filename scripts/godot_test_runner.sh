@@ -57,6 +57,7 @@ frame/srv/test_markov
 probe_swim
 frame/srv/test_ferry_schedule
 probe_ferry
+probe_water_mounts
 probe_startup_flow
 frame/srv/test_resource_scan
 frame/srv/test_world_registry
