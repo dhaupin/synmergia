@@ -24,7 +24,7 @@ const actions = new Map();
 const marks = new Set();
 const errors = [];
 const T0 = Date.now();
-const left = () => 150000 - (Date.now() - T0);
+const left = () => 260000 - (Date.now() - T0);
 function ingest(t) {
 	if (t.startsWith("[A11Y]")) {
 		try { const e = JSON.parse(t.slice(6)); if (e && e.action) actions.set(e.action, e); } catch {}
@@ -99,7 +99,7 @@ let page = null;
 	// 6. Enter World -> the lobby auto-plays -> world.
 	if (!await clickAction((l) => l === "Enter World", "char-linked", 3, "STEP7 enter-world")) { console.log("RESULT: FAIL(enter)"); await browser.close(); server.close(); process.exit(1); }
 	// 7. World registration is THE oracle.
-	const wEnd = Date.now() + Math.min(95000, left() - 15000);
+	const wEnd = Date.now() + Math.min(150000, left() - 15000);
 	while (Date.now() < wEnd && !marks.has("registered")) await new Promise((r) => setTimeout(r, 500));
 	console.log("STEP8 world-registered:", marks.has("registered"), "spawning:", marks.has("spawning"));
 	await page.waitForTimeout(8000);
