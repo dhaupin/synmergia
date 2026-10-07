@@ -24,9 +24,22 @@ func _ready() -> void:
 	var ml := Engine.get_main_loop()
 	if ml is SceneTree:
 		_ride_service = (ml as SceneTree).root.get_node_or_null("RideService")
+	if _ride_service != null:
+		if not _ride_service.mount_summoned.is_connected(_on_ride_changed):
+			_ride_service.mount_summoned.connect(_on_ride_changed)
+		if not _ride_service.mount_dismounted.is_connected(_on_ride_changed):
+			_ride_service.mount_dismounted.connect(_on_ride_changed)
 	super._ready()
 	set_title("Mounts")
 	set_panel_size(Vector2(420, 380))
+
+
+## The stable rides the same wire the body does: a summon or a dismiss
+## anywhere in the session refreshes the panel live (active line and
+## button labels), no reopen needed. Grants arrive through purchase --
+## the buyer has the panel open, so the next refresh picks the row up.
+func _on_ride_changed(_player_id: String, _mount_id: String) -> void:
+	refresh()
 
 
 func _setup_content() -> void:

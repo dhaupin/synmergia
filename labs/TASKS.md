@@ -4278,4 +4278,81 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   anticheat, notification frame + toast, a11y service + contrast,
   riding).
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 46 (THE FAVOR PURSE, THE FACTION LAW, THE STABLE DOOR:
+  CurrencyData's wallet promise kept, the gullwing's people get
+  their bird back, the stable grows a door -- owner: "Let's keep
+  working on mount systems pls. Whatever we need, in addition to
+  3D mount models/camera-follow remain future seams since the
+  saddle is law-adoption"):
+  (1) Scoping followed the PRD's own debts, not new appetite: sec
+  8/9 left the favor wallet "waiting for the reclaimer economy,"
+  the gullwing's faction_id was data nobody read, and the stable
+  had no door a player could open. All three served by existing
+  idioms; 3D models and camera-follow stay future seams (the
+  saddle is law-adoption -- the owner's own boundary, kept).
+  (2) The R45 collision caught first: F was ALREADY bound.
+  HudHotkeys toggles FRIENDS on F, and the dismount action's raw
+  Input poll on F would tap the saddle every friends-list open.
+  The key is U now (physical 85; the probe asserts 85-not-70
+  straight from project.godot), the poll respects the text-entry
+  law (gui_get_focus_owner is LineEdit/TextEdit/CodeEdit --
+  InputManager's _is_text_entry_focused idiom, mirrored in the
+  body for --script mode), and HudHotkeys' U swallows the event
+  while mounted instead of fighting the body's poll -- one key,
+  two lawful meanings, the WoW saddle rule.
+  (3) The favor purse: InventoryComponent grew add_currency /
+  remove_currency / get_currency_amount + a currency_changed
+  signal, in the SAME purse the vendor chain already trusts;
+  to_dict/from_dict carry "currencies" (persistence survives a
+  save round trip). The laws: no minting (amounts <= 0 refused),
+  no invented money (an id the catalog does not know is
+  refused), the wallet_cap from the currency's data is a hard
+  ceiling. Gold stays on _gold -- one REGULAR currency is the
+  naming law; the ledger is for FAVOR/TOKEN/EVENT.
+  (4) The catalog speaks every vendor wallet: rows carry their
+  currency truth ("" = the default gold wallet, exactly as the
+  DATA says -- the R45 row that "read gold" never did), a
+  non-gold price is a shop good when its CurrencyData kind is
+  FAVOR/TOKEN/EVENT (BLACK_MARKET scrip waits for darker
+  vendors), and purchase_mount branches on the wallet with the
+  same gate chain and the same refund-on-ledger-refusal. The
+  gullwing buys for 400 Reclaimer Favor; 399 is one short.
+  (5) The faction ride law: summon AND purchase refuse a rider
+  whose species does not match the mount faction's species_id --
+  resolved through the .tres registry (DataService.get_faction,
+  the resources the faction system itself loads), NOT
+  FactionManager's book, which rehydrates from persistence and
+  fills only when a world loads (the diagnostic that found it:
+  get_faction("faction_human") null in a fresh script-mode run
+  while DataService held all four). Unknown rider, unknown
+  faction, empty species: fail-closed. Empty mount faction:
+  anyone rides.
+  (6) The stable door: "mount"/"stable" trigger the mounts island
+  in IslandRegistry's TRIGGERS; MenuManager carries the panel in
+  its own funnel (z 500, panel_closed bound, _get_panel route);
+  U toggles it unmounted; and the panel connects
+  mount_summoned/mount_dismounted so the open stable refreshes
+  live -- the wire already existed, the body was just the only
+  listener.
+  (7) Lessons: the .tres registry is the truth that works in every
+  mode -- a manager's runtime book can be empty exactly when a
+  law needs it; a new hotkey action must be grepped against
+  HudHotkeys/follow_manager BEFORE it ships (raw Input polling
+  leaks through other systems' bindings as surely as through UI
+  focus); and a null-check bug can hide behind a passing catalog
+  -- the add_currency unknown-id hole was caught because the
+  doc comment said one thing and the code did another (comments
+  are contracts too).
+  (8) Verification: probe_riding 88 -> 105 checks, 0 failures
+  (key law 85-not-70 with the poll armed in the bare harness;
+  ledger laws invented-id/zero/negative/short-purse plus the
+  to_dict round trip; currency-truth rows; the favor chain 399
+  short -> 400 buys -> purse 0 -> the gullwing answers the
+  whistle; the faction law both sides -- synthetic refused,
+  human granted rides; the stable door words + key, source-
+  checked; the live-refresh wire). The R45 legs (summit test,
+  perch, bail, gold chain, stable panel) unchanged and green.
+  Family: the FULL runner DEFAULT_SET, 60 tests in three
+  bounded chunks (21 + 20 + 19), all EXIT=0, zero FAIL lines.
+  Hygiene: tabs only, ASCII, extends-first intact.
 

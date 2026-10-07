@@ -70,6 +70,7 @@ const TRIGGERS: Dictionary = {
 	"guild": ["guild", "clan", "roster"],
 	"trade": ["trade", "buy", "sell", "vendor", "shop"],
 	"party": ["party", "group", "raid"],
+	"mounts": ["mount", "stable"],
 	"action_menu": ["examine", "use", "talk", "open"],
 }
 

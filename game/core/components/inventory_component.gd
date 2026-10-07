@@ -15,6 +15,7 @@ signal item_swapped(slot1: int, slot2: int)
 signal item_bound(item: Item, bind_type: String)	# Emitted when item becomes bound (bind_type: "pickup", "equip", "soulbound")
 signal inventory_full()
 signal gold_changed(amount: int)
+signal currency_changed(currency_id: String, amount: int)
 
 # Weight / Encumbrance
 signal weight_changed(current: float, max_weight: float, encumbered: bool)
@@ -25,6 +26,9 @@ signal weight_changed(current: float, max_weight: float, encumbered: bool)
 var _inventory: Array = []
 var _equipment: Dictionary = {}	 # EquipSlot -> Item
 var _gold: int = 0
+# Non-gold currency balances (currency_id -> int). Gold stays on _gold;
+# everything else (FAVOR/TOKEN/EVENT kinds) rides this ledger.
+var _currencies: Dictionary = {}
 
 # Set by parent entity (Player/Enemy) so child methods know which
 # owner to attribute actions to (e.g. security checks, chat).
@@ -67,6 +71,7 @@ func to_dict() -> Dictionary:
 		"inventory": inv_array,
 		"equipment": equip_dict,
 		"gold": _gold,
+		"currencies": _currencies,
 		"owner_id": _owner_id
 	}
 
@@ -75,6 +80,11 @@ static func from_dict(data: Dictionary) -> InventoryComponent:
 	var comp: InventoryComponent = __InventoryComponent__.new()
 	comp._owner_id = data.get("owner_id", "")
 	comp._gold = int(data.get("gold", 0))
+	comp._currencies = {}
+	var saved_currencies = data.get("currencies", {})
+	if saved_currencies is Dictionary:
+		for currency_id in saved_currencies.keys():
+			comp._currencies[str(currency_id)] = int(saved_currencies[currency_id])
 	var inv_array: Array = data.get("inventory", [])
 	comp._inventory = []
 	for item_data in inv_array:
@@ -342,6 +352,52 @@ func get_gold() -> int:
 ## Set gold (for loading saves)
 func set_gold(amount: int) -> void:
 	_gold = max(0, amount)
+
+
+# ---------------------------------------------------------------------
+# Currency ledger (R46) -- the favor purse. CurrencyData has promised
+# "wallets reference CurrencyData.id" since S14; gold was the only
+# wallet that existed. FAVOR/TOKEN/EVENT currencies (reclaimer favor,
+# junker scrip, conduit shards) now live here, in the SAME purse the
+# vendor chain already trusts. Gold stays on _gold; the ledger is for
+# everything else (one REGULAR currency is the game's own naming law).
+# ---------------------------------------------------------------------
+
+## Add units of a non-gold currency. Amounts <= 0 are refused (the
+## ledger never invents money); an id the catalog does not know is
+## refused when a catalog exists (DataService truth); the wallet cap
+## from the currency's data is a hard ceiling.
+func add_currency(currency_id: String, amount: int) -> bool:
+	if currency_id.is_empty() or amount <= 0:
+		return false
+	var ds: Node = _resolve_service("DataService")
+	var cap := 0
+	if ds != null:
+		var cd = ds.get_currency(currency_id)
+		if cd == null:
+			return false
+		cap = int(cd.wallet_cap)
+	if cap > 0 and int(_currencies.get(currency_id, 0)) + amount > cap:
+		return false
+	_currencies[currency_id] = int(_currencies.get(currency_id, 0)) + amount
+	currency_changed.emit(currency_id, amount)
+	return true
+
+## Spend units of a non-gold currency. Refused when the purse is
+## short -- the vendor chains roll back on false, exactly like gold.
+func remove_currency(currency_id: String, amount: int) -> bool:
+	if currency_id.is_empty() or amount <= 0:
+		return false
+	var have := int(_currencies.get(currency_id, 0))
+	if have < amount:
+		return false
+	_currencies[currency_id] = have - amount
+	currency_changed.emit(currency_id, -amount)
+	return true
+
+## Balance of a non-gold currency (0 when never held).
+func get_currency_amount(currency_id: String) -> int:
+	return int(_currencies.get(currency_id, 0))
 
 ## Get total stat contribution from equipment
 func get_equipment_stats() -> Dictionary:

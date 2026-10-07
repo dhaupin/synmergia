@@ -76,6 +76,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F:
 				_toggle_panel("friends")
 				get_viewport().set_input_as_handled()
+			KEY_U:
+				# The stable rides with the saddle: one key, two lawful
+				# meanings. Mounted, U taps out of the saddle (the body's
+				# poll dismisses this same frame; the toggle must not fight
+				# it, so the event is swallowed) -- unmounted, U opens the
+				# stable. F stays the friends panel exactly where it was.
+				var rider_id := ""
+				if GameManager and GameManager.selected_character_data:
+					rider_id = str(GameManager.selected_character_data.id)
+				if RideService != null and rider_id != "" \
+						and RideService.active_mount_id(rider_id) != "":
+					get_viewport().set_input_as_handled()
+				else:
+					_toggle_panel("mounts")
+					get_viewport().set_input_as_handled()
 			KEY_Q:
 				_toggle_panel("quests")
 				get_viewport().set_input_as_handled()

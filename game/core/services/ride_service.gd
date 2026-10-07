@@ -76,6 +76,30 @@ func _rider_level(player_id: String) -> int:
 	return int(cd.level)
 
 
+## The rider's species law, resolved through the faction registry's
+## .tres truth (DataService.get_faction -- the same Faction resources
+## the faction system loads; FactionManager's book rehydrates from
+## persistence and fills on world load, so the data registry is the
+## one truth available in every mode). Empty mount faction = anyone
+## may ride; an unknown faction id, an empty species, or an unknown
+## rider = fail-closed (an unknown law must never wave a rider
+## through).
+func _rider_faction_ok(player_id: String, mount) -> bool:
+	var wanted := str(mount.faction_id)
+	if wanted.is_empty():
+		return true
+	var cd = _rider_character(player_id)
+	if cd == null or not (cd is CharacterData):
+		return false
+	var species := str(cd.species_id)
+	if species.is_empty() or DataService == null:
+		return false
+	var f = DataService.get_faction(wanted)
+	if f == null:
+		return false
+	return str(f.species_id) == species
+
+
 ## The rider's voice: two mount toasts through the typed pipeline
 ## (summoned / back to the whistle). Safe in --script mode: the
 ## dispatcher self-heals when the HUD is absent.
@@ -183,6 +207,9 @@ func summon(player_id: String, mount_id: String) -> bool:
 	if rider_level >= 0 and rider_level < int(mount.required_level):
 		GameLog.warn("RideService: summon refused, level %d < %d for %s" % [rider_level, int(mount.required_level), mount_id])
 		return false
+	if not _rider_faction_ok(player_id, mount):
+		GameLog.warn("RideService: summon refused, faction gate for %s on %s" % [mount_id, player_id])
+		return false
 	_active[player_id] = mount_id
 	mount_summoned.emit(player_id, mount_id)
 	var profile = DataService.get_mount_movement_profile(mount)
@@ -198,12 +225,13 @@ func summon(player_id: String, mount_id: String) -> bool:
 
 ## -- The vendor door (grant wiring) -------------------------------------
 
-## The purchasable-mount catalog, built from DATA truth: every
-## mount with a vendor price (currency gold or empty; non-gold
-## currency wallets are a later economy round). Fields mirror
-## VendorService's catalog shape ({id, display_name, price, level,
-## kind}). No numbers are invented here -- the .tres is the price
-## tag.
+## The purchasable-mount catalog, built from DATA truth: every mount
+## with a vendor price -- the gold purse (currency gold or empty) or a
+## non-gold wallet whose CurrencyData carries a vendor kind (FAVOR,
+## TOKEN, EVENT; BLACK_MARKET scrip is not a shop good). Fields mirror
+## VendorService's catalog shape ({id, display_name, price, currency,
+## level, kind}). No numbers are invented here -- the .tres is the
+## price tag.
 func get_shop_catalog() -> Array:
 	var out: Array = []
 	if DataService == null:
@@ -214,27 +242,45 @@ func get_shop_catalog() -> Array:
 			continue
 		var cur := str(m.currency_id)
 		var cost := int(m.cost)
-		if cur != "" and cur != "currency_gold":
-			continue
 		if cost <= 0:
+			continue
+		if cur != "" and cur != "currency_gold" \
+				and not _vendor_currency(cur):
 			continue
 		out.append({
 			"id": str(m.id),
 			"display_name": str(m.display_name),
 			"price": cost,
+			"currency": cur,
 			"level": int(m.required_level),
 			"kind": int(m.kind),
 		})
 	return out
 
 
+## True when a non-gold currency id is a vendor wallet: the catalog
+## must know it (no invented ids) and its kind must be a shop good
+## (FAVOR/TOKEN/EVENT; BLACK_MARKET scrip is spent in darker places).
+func _vendor_currency(currency_id: String) -> bool:
+	var cd = DataService.get_currency(currency_id) if DataService != null else null
+	if cd == null:
+		return false
+	return int(cd.kind) == CurrencyData.CurrencyKind.FAVOR \
+		or int(cd.kind) == CurrencyData.CurrencyKind.TOKEN \
+		or int(cd.kind) == CurrencyData.CurrencyKind.EVENT
+
+
 ## The purchase door for mounts. One gate chain, each leg loud:
-## known mount -> priced (only priced mounts are shop goods) ->
+## known mount -> priced (gold or a vendor-kind currency) ->
 ## not already owned (the ledger refuses duplicates) -> level law
-## (world-entry truth when known) -> gold law -> grant through the
-## ONE ledger. Returns the VendorService {success, message} shape
-## plus "mount_id"; announces acquisition through the typed pipeline
-## (MOUNT_ACQUIRED -- the grantor announces acquisition, per sec 7).
+## (world-entry truth when known) -> faction law (species truth when
+## known; unknown riders pass service-level, the level gate's own
+## idiom) -> purse law (gold or the favor ledger; a ledger refusal
+## ROLLS BACK nothing -- the purse is checked before it is touched)
+## -> grant through the ONE ledger. Returns the VendorService
+## {success, message} shape plus "mount_id"; announces acquisition
+## through the typed pipeline (MOUNT_ACQUIRED -- the grantor announces
+## acquisition, per sec 7).
 func purchase_mount(player_id: String, mount_id: String) -> Dictionary:
 	var mount = DataService.get_mount(mount_id) if DataService != null else null
 	if mount == null:
@@ -242,7 +288,8 @@ func purchase_mount(player_id: String, mount_id: String) -> Dictionary:
 		return {"success": false, "message": "Unknown mount"}
 	var cur := str(mount.currency_id)
 	var cost := int(mount.cost)
-	if (cur != "" and cur != "currency_gold") or cost <= 0:
+	var favor := cur != "" and cur != "currency_gold" and _vendor_currency(cur)
+	if cost <= 0 or (cur != "" and cur != "currency_gold" and not favor):
 		return {"success": false, "message": "Not for sale"}
 	if owns_mount(player_id, mount_id):
 		return {"success": false, "message": "You already ride this one"}
@@ -250,15 +297,27 @@ func purchase_mount(player_id: String, mount_id: String) -> Dictionary:
 	if rider_level >= 0 and rider_level < int(mount.required_level):
 		GameLog.warn("RideService: purchase refused, level %d < %d for %s" % [rider_level, int(mount.required_level), mount_id])
 		return {"success": false, "message": "Requires level %d" % int(mount.required_level)}
+	if not _rider_faction_ok(player_id, mount):
+		GameLog.warn("RideService: purchase refused, faction gate for %s on %s" % [mount_id, player_id])
+		return {"success": false, "message": "Your people cannot ride this one"}
 	var inv = InventoryService.get_inventory(player_id) if InventoryService != null else null
 	if inv == null:
 		return {"success": false, "message": "No purse to pay with"}
-	if inv.get_gold() < cost:
-		return {"success": false, "message": "Not enough gold (need %d, have %d)" % [cost, inv.get_gold()]}
-	if not inv.remove_gold(cost):
-		return {"success": false, "message": "Not enough gold"}
+	if favor:
+		if inv.get_currency_amount(cur) < cost:
+			return {"success": false, "message": "Not enough %s (need %d, have %d)" % [str(mount.currency_id), cost, inv.get_currency_amount(cur)]}
+		if not inv.remove_currency(cur, cost):
+			return {"success": false, "message": "Not enough %s" % str(mount.currency_id)}
+	else:
+		if inv.get_gold() < cost:
+			return {"success": false, "message": "Not enough gold (need %d, have %d)" % [cost, inv.get_gold()]}
+		if not inv.remove_gold(cost):
+			return {"success": false, "message": "Not enough gold"}
 	if not grant_mount(player_id, mount_id):
-		inv.add_gold(cost)  # the ledger is the law; refund what the chain refused
+		if favor:
+			inv.add_currency(cur, cost)  # the ledger is the law; refund what the chain refused
+		else:
+			inv.add_gold(cost)
 		GameLog.warn("RideService: purchase rolled back after ledger refusal: " + mount_id)
 		return {"success": false, "message": "Purchase failed"}
 	_notify_mount(NotifKind.MOUNT_ACQUIRED, player_id, str(mount.display_name),

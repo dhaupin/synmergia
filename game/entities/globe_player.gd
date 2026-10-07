@@ -296,6 +296,21 @@ func is_mounted() -> bool:
 	return not mounted_mount_id.is_empty() and _mount_profile != null
 
 
+## True while the player is typing into a text control (chat input,
+## admin shell, settings fields). Raw Input polling leaks every key --
+## including the dismount key -- so the saddle poll must respect the
+## same text-entry law the event pipeline uses (InputManager's
+## `_is_text_entry_focused` idiom, mirrored here for --script tests).
+func _text_entry_focused() -> bool:
+	var loop := Engine.get_main_loop()
+	if loop == null or not (loop is SceneTree):
+		return false
+	var focus: Control = (loop as SceneTree).root.gui_get_focus_owner()
+	if focus == null:
+		return false
+	return focus is LineEdit or focus is TextEdit or focus is CodeEdit
+
+
 ## The mount's sprint law, resolved here (the body has no sprint
 ## profile field): profile sprint (0 = the body cannot sprint on this
 ## mount) x the saddle's low-gear scale. The anticheat is stamped by
@@ -606,7 +621,8 @@ func _physics_process(delta: float) -> void:
 	if _climbing:
 		_tick_climb(delta, up, wish, horizontal)
 		return
-	if is_mounted() and allow_jump_input and Input.is_action_just_pressed("dismount"):
+	if is_mounted() and allow_jump_input and not _text_entry_focused() \
+			and Input.is_action_just_pressed("dismount"):
 		ride_service.dismiss(entity_id)
 		return
 	if allow_jump_input and is_on_floor() and climb_stamina > 0.25 \

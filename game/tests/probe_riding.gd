@@ -35,6 +35,14 @@
 #      survives), the saddle lift never trips the perch law, a cliff
 #      fall BAILS the runner off the real body, and the vendor door
 #      + the MountUI stable ride the one ledger.
+#   J. R46: the favor purse (CurrencyData's wallet promise gets its
+#      first real non-gold ledger: cap law, refusal laws, round-trip),
+#      the faction ride law (species truth through FactionManager,
+#      fail-closed for unknown riders), the favor-priced catalog (the
+#      gullwing finally buys), and the stable door (mount/stable
+#      triggers; U opens the stable and F stays friends -- the R45
+#      dismount collision fixed, the poll respects the text-entry
+#      law).
 #
 # Script mode: autoloads resolved at runtime (RideService,
 # AntiCheatService, DataService).
@@ -336,8 +344,8 @@ func _run() -> void:
 	_check("the cliff law fires through the REAL body: the runner bails, the body hands back the humanoid", \
 		str(f5.get("action", "")) == "bail" and not body.is_mounted())
 
-	_check("the vendor door opens with data truth: exactly the gold-priced mounts (plains_runner; the 400-favor gullwing is OUT)", \
-		_buy_catalog_has(rides, "mount_plains_runner") and not _buy_catalog_has(rides, "mount_gullwing"))
+	_check("the vendor door opens with data truth: gold-priced mounts in (the runner); non-vendor wallets stay out", \
+		_buy_catalog_has(rides, "mount_plains_runner"))
 	var InvComp = load("res://core/components/inventory_component.gd")
 	var poor = InvComp.new()
 	poor.name = "ProbePurse"
@@ -400,6 +408,112 @@ func _run() -> void:
 		rides.active_mount_id("pr_buy").is_empty() \
 		and str(stable._active_label.text) == "Walking" \
 		and stable._list.get_child_count() == 1)
+
+	# -- J. R46: the favor purse, the faction law, the stable door -------
+	# The dismount key is U (physical 85), NOT F: HudHotkeys toggles the
+	# friends panel on F, and a raw Input poll on F would tap the saddle
+	# every time the rider opened their friends list (the R45
+	# collision, caught and fixed).
+	var proj_text := ""
+	var pf := FileAccess.open("res://project.godot", FileAccess.READ)
+	if pf != null:
+		proj_text = pf.get_as_text()
+	var dismount_block := ""
+	var d_idx := proj_text.find("dismount={")
+	if d_idx >= 0:
+		dismount_block = proj_text.substr(d_idx, 400)
+	_check("the dismount key is U (physical 85) -- F belongs to the friends panel", \
+		dismount_block.contains("physical_keycode\":85") \
+		and not dismount_block.contains("physical_keycode\":70"))
+	_check("the dismount poll respects the text-entry law (no focus owner in the bare harness: the poll stays armed)", \
+		not body._text_entry_focused())
+
+	# The favor purse: CurrencyData has promised "wallets reference
+	# CurrencyData.id" since S14 -- gold was the only wallet that
+	# existed. The ledger lives in the SAME purse the vendor chain
+	# already trusts.
+	_check("the ledger refuses invented currency (the catalog is the law)", \
+		not poor.add_currency("currency_unknown_favor", 10))
+	_check("the ledger refuses non-payment (zero and negative never mint)", \
+		not poor.add_currency("currency_reclaimer_favor", 0) \
+		and not poor.add_currency("currency_reclaimer_favor", -5))
+	_check("favor lands in the purse and the balance reads back", \
+		poor.add_currency("currency_reclaimer_favor", 400) \
+		and poor.get_currency_amount("currency_reclaimer_favor") == 400)
+	_check("a short purse cannot spend", \
+		not poor.remove_currency("currency_reclaimer_favor", 401) \
+		and poor.get_currency_amount("currency_reclaimer_favor") == 400)
+	_check("the purse round-trips through to_dict/from_dict (persistence law)", \
+		InvComp.from_dict(poor.to_dict()).get_currency_amount("currency_reclaimer_favor") == 400)
+
+	# The catalog speaks every vendor wallet: rows carry their currency
+	# truth, and the gullwing's 400 favor is a shop good at last.
+	var runner_cur := ""
+	var gull_cur := ""
+	for crow in rides.get_shop_catalog():
+		if str(crow.get("id", "")) == "mount_plains_runner":
+			runner_cur = str(crow.get("currency", ""))
+		if str(crow.get("id", "")) == "mount_gullwing":
+			gull_cur = str(crow.get("currency", ""))
+	_check("catalog rows carry their currency truth (the runner's default wallet reads empty; the gullwing speaks favor)", \
+		runner_cur == "" and gull_cur == "currency_reclaimer_favor")
+	var favor_purse = InvComp.new()
+	favor_purse.name = "ProbeFavorPurse"
+	root.add_child(favor_purse)
+	favor_purse.set_owner_id("pr_favor")
+	if inv_svc != null:
+		inv_svc.register_inventory("pr_favor", favor_purse)
+	failsafe_register("pr_favor", 30)
+	favor_purse.add_currency("currency_reclaimer_favor", 399)
+	_check("the favor gate: 399 of 400 is one short", \
+		not rides.purchase_mount("pr_favor", "mount_gullwing").get("success", true) \
+		and favor_purse.get_currency_amount("currency_reclaimer_favor") == 399)
+	favor_purse.add_currency("currency_reclaimer_favor", 1)
+	var favor_buy = rides.purchase_mount("pr_favor", "mount_gullwing")
+	_check("400 favor buys the gullwing: purse drained, the ONE ledger carries the grant", \
+		bool(favor_buy.get("success", false)) \
+		and favor_purse.get_currency_amount("currency_reclaimer_favor") == 0 \
+		and rides.owns_mount("pr_favor", "mount_gullwing"))
+	_check("the gullwing answers the whistle once it is owned (summon + dismiss)", \
+		rides.summon("pr_favor", "mount_gullwing") and rides.dismiss("pr_favor"))
+
+	# The faction law: the gullwing rides for the humans (its Currency
+	# carries faction_human too, but the FACTION .tres is the gate).
+	var gsyn = load("res://core/schemas/character_data.gd").new("synthetic", "synthetic_mender", "Rust Cousin")
+	gsyn.level = 30
+	var gm2 = root.get_node_or_null("GameManager")
+	if gm2 != null:
+		gm2.notify_player_entered_world("pr_syn", gsyn)
+	rides.grant_mount("pr_syn", "mount_gullwing")
+	_check("the faction law is fail-closed: a synthetic does not summon the humans' gullwing", \
+		not rides.summon("pr_syn", "mount_gullwing"))
+	_check("the faction law opens for the right people: a human of level rides it once granted", \
+		failsafe_register("pr_gull", 30) and rides.grant_mount("pr_gull", "mount_gullwing") \
+		and rides.summon("pr_gull", "mount_gullwing"))
+	rides.dismiss("pr_gull")
+
+	# The stable door: words and a key. The MenuManager funnel and the
+	# HudHotkeys U binding are wired to the same "mounts" island the
+	# registry resolves.
+	var IR = load("res://ui/islands/island_registry.gd")
+	_check("the stable door has words: 'mount' and 'stable' trigger the mounts island", \
+		IR.islands_triggered_by("where is the stable").has("mounts") \
+		and IR.islands_triggered_by("summon my mount").has("mounts"))
+	var hh_src := ""
+	var hh := FileAccess.open("res://ui/hud/hud_hotkeys.gd", FileAccess.READ)
+	if hh != null:
+		hh_src = hh.get_as_text()
+	_check("the stable door has a key: U routes to the mounts panel and F stays friends", \
+		hh_src.contains("KEY_U") and hh_src.contains("_toggle_panel(\"mounts\")") \
+		and hh_src.contains("_toggle_panel(\"friends\")"))
+
+	# The stable rides the wire: the panel refreshes on the same signals
+	# the body listens to -- no reopen needed.
+	_check("the stable rides the wire: a summon refreshes the open panel live", \
+		rides.summon("pr_buy", "mount_plains_runner") \
+		and str(stable._active_label.text) == "Riding: Plains Runner")
+	_check("and a dismiss walks it back", \
+		rides.dismiss("pr_buy") and str(stable._active_label.text) == "Walking")
 
 	print("probe_riding: %d checks, %d failures" % [_checks, _fails])
 	quit(0 if _fails == 0 else 1)

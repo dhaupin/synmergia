@@ -259,3 +259,64 @@ new systems, three doors into the layer R41 built.
   ledger live. Family batch 8/0 (naming lint, movement profiles,
   anticheat, notification frame + toast, a11y service + contrast,
   riding).
+
+## 10. Round Five as Built (2026-10-07): the favor purse, the faction law, the stable door
+
+R45 left three truths half-served: CurrencyData's wallet promise was
+still gold-only, the gullwing's faction_id was data nobody read, and
+the stable had no door a player could open. R46 serves all three.
+
+- **The favor purse (`inventory_component.gd`).** CurrencyData has
+  said "wallets reference CurrencyData.id" since S14; gold was the
+  only wallet that existed. The ledger lives in the SAME purse the
+  vendor chain already trusts: `add_currency` / `remove_currency` /
+  `get_currency_amount` beside the gold calls, a
+  `currency_changed` signal in the gold signal's shape, and the
+  balances round-trip through `to_dict`/`from_dict`. The laws: no
+  minting (amounts <= 0 refused), no invented money (an id the
+  catalog does not know is refused), the wallet cap from the
+  currency's data is a hard ceiling. Gold stays on `_gold` -- the
+  ledger is for everything else, and one REGULAR currency remains
+  the game's naming law.
+- **The catalog speaks every vendor wallet (`ride_service.gd`).**
+  Rows carry their currency truth (`""` = the default gold wallet --
+  the DATA says so, so the row says so). A non-gold price is a shop
+  good when its CurrencyData kind is FAVOR, TOKEN, or EVENT;
+  BLACK_MARKET scrip is spent in darker places. `purchase_mount`
+  branches on the wallet: same gate chain, same VendorService shape,
+  a favor purse checked then drained (and refunded on a ledger
+  refusal, like the gold roll-back). The gullwing buys for 400
+  Reclaimer Favor at last.
+- **The faction ride law.** The gullwing's `faction_id` finally gets
+  a reader: summon AND purchase refuse a rider whose species does
+  not match the faction's `species_id` -- resolved through the
+  .tres registry (DataService.get_faction, the resources the
+  faction system itself loads), because FactionManager's book
+  rehydrates from persistence and fills on world load, and a law
+  that works only after someone loaded a world is no law. Empty
+  mount faction = anyone; unknown faction id, unknown rider, empty
+  species = fail-closed.
+- **The stable door.** Words and a key: "mount"/"stable" trigger
+  the mounts island (IslandRegistry TRIGGERS), MenuManager carries
+  the panel in its own funnel (z 500, panel_closed bound), and U
+  toggles it -- unmounted. Mounted, U is the dismount and the
+  hotkey handler swallows the event instead of fighting the body's
+  poll (one key, two lawful meanings, the WoW saddle rule). The
+  panel also rides the wire now: a summon or dismiss anywhere in
+  the session refreshes the open stable live.
+- **The R45 collision, caught and fixed.** F was already bound:
+  HudHotkeys toggles FRIENDS on F, and a raw Input poll on F would
+  have tapped the saddle every time the rider opened their friends
+  list. The dismount action is U now (physical 85), and the poll
+  respects the text-entry law (`gui_get_focus_owner` is a
+  LineEdit/TextEdit/CodeEdit = no dismount while typing -- the
+  InputManager idiom, mirrored in the body for --script mode).
+- **Verification.** probe_riding 88 -> 105 checks, 0 failures: the
+  key law (85 not 70, poll armed with no focus owner), the ledger
+  laws (invented id, zero, negative, short purse, round-trip), the
+  currency-truth catalog rows, the favor chain (399 short -> 400
+  buys -> purse 0 -> the gullwing answers the whistle), the faction
+  law both sides (synthetic refused, human granted rides), the
+  stable door (triggers + key binding source-checked), and the
+  live-refresh wire. Family: the FULL DEFAULT_SET (60 tests) in
+  three bounded chunks, all EXIT=0, zero FAIL lines.

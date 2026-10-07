@@ -31,6 +31,7 @@ var _achievement_panel: Control
 var _title_panel: Control
 var _dialog_panel: Control
 var _shop_panel: Control
+var _mount_panel: Control
 var _transfer_panel: Control
 var _trade_panel: Control
 var _admin_panel: Control
@@ -204,6 +205,13 @@ func _initialize_panels() -> void:
 	_bank_panel.z_index = 500
 	add_child(_bank_panel)
 
+	# Stable panel (R46): the mounts island gets a door -- same shape
+	# as every other panel, announced through the one funnel.
+	_mount_panel = preload("res://ui/components/mount_ui.gd").new()
+	_mount_panel.name = "MountUI"
+	_mount_panel.z_index = 500
+	add_child(_mount_panel)
+
 	# Blacksmith panel
 	_blacksmith_panel = preload("res://ui/components/blacksmith_ui.gd").new()
 	_blacksmith_panel.name = "BlacksmithUI"
@@ -228,6 +236,7 @@ func _initialize_panels() -> void:
 	_friends_panel.panel_closed.connect(_on_panel_closed.bind("friends"))
 	_quest_panel.panel_closed.connect(_on_panel_closed.bind("quests"))
 	_bank_panel.panel_closed.connect(_on_panel_closed.bind("bank"))
+	_mount_panel.panel_closed.connect(_on_panel_closed.bind("mounts"))
 	_blacksmith_panel.panel_closed.connect(_on_panel_closed.bind("blacksmith"))
 	_skill_academy_panel.panel_closed.connect(_on_panel_closed.bind("skill_academy"))
 
@@ -865,6 +874,7 @@ func _get_panel(menu_name: String) -> Control:
 		"chat": return _chat_panel
 		"quests": return _quest_panel
 		"bank": return _bank_panel
+		"mounts": return _mount_panel
 		"blacksmith": return _blacksmith_panel
 		"skill_academy": return _skill_academy_panel
 		"faction": return _faction_panel
