@@ -51,6 +51,7 @@ const DEFAULT_BUTTONS: Array = [
 	{"action": "jump", "text": "JMP", "pos": Vector2(0.955, 0.655), "size": Vector2(72, 72), "repeat": false},
 	{"action": "crouch", "text": "CRH", "pos": Vector2(0.755, 0.925), "size": Vector2(72, 72), "repeat": false},
 	{"action": "dodge", "text": "DSL", "pos": Vector2(0.655, 0.795), "size": Vector2(80, 80), "repeat": false},
+	{"action": "dismount", "text": "MNT", "pos": Vector2(0.555, 0.795), "size": Vector2(64, 64), "repeat": false},
 	{"action": "interact", "text": "ACT", "pos": Vector2(0.555, 0.905), "size": Vector2(64, 64), "repeat": false},
 	{"action": "ability_1", "text": "1", "pos": Vector2(0.555, 0.655), "size": Vector2(56, 56), "repeat": false},
 	{"action": "ability_2", "text": "2", "pos": Vector2(0.635, 0.565), "size": Vector2(56, 56), "repeat": false},
@@ -157,7 +158,7 @@ func _create_buttons() -> void:
 		# agents; the annotated action names the VERB ("Attack", "Jump").
 		var verb_map := {
 			"attack": "Attack", "jump": "Jump", "crouch": "Crouch",
-			"dodge": "Dodge", "interact": "Interact",
+			"dodge": "Dodge", "dismount": "Mounts", "interact": "Interact",
 			"ability_1": "Use ability 1", "ability_2": "Use ability 2",
 			"ability_3": "Use ability 3", "ability_4": "Use ability 4",
 		}

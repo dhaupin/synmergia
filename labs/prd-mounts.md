@@ -320,3 +320,46 @@ the stable had no door a player could open. R46 serves all three.
   stable door (triggers + key binding source-checked), and the
   live-refresh wire. Family: the FULL DEFAULT_SET (60 tests) in
   three bounded chunks, all EXIT=0, zero FAIL lines.
+
+### 10.1 One patch later (R46.1): the mobile rider, the frozen saddle, the camera seat
+
+The owner asked the mobile question -- are there mount buttons on
+the touch HUD? -- and the QC pass the answer demanded caught a
+frozen saddle. Models stay future seams (workflow still hashing);
+this is the camera-follow SETUP the owner asked for.
+
+- **The mobile rider.** The touch HUD had attack/jump/crouch/dodge/
+  interact/abilities and nothing for mounts: a mobile rider could
+  summon (stable panel) but never tap out of the saddle. A MNT
+  button joins the cluster beside dodge (edit-mode draggable and
+  persisted like every button, annotated "Mounts" for the a11y
+  layer), wired through the SAME parse_input_event bridge as JMP --
+  the body's dismount poll consumes it unchanged.
+- **The frozen saddle (QC, caught).** The R45 saddle gate sat
+  inside the glide block, which runs EVERY frame -- so every mounted
+  globe body returned BEFORE the shared move_and_slide tail: laws
+  adopted, physics never run. Value-based probes could not see it
+  (the physics loop does not run headless; probe_glider says so
+  itself). The gate now integrates and validates the frame before
+  returning. Lesson: a control-flow seam needs a control-flow
+  assertion, not a value assertion.
+- **The air-tap demount.** The owner's mobile law -- press jump in
+  air, demounts if mounted -- is now real for EVERY input path: an
+  airborne jump TAP dismisses (keyboard jump, touch JMP, the same
+  action). Grounded taps stay hops (the not-on-floor gate), so a
+  gallop's first beat never throws the rider. U and the MNT button
+  still dismount anywhere.
+- **The camera-follow setup.** The globe rig is the body's
+  CameraPivot with a code-built camera seat (0, 2.2, 4.5) from
+  globe_world. The body now holds CAMERA_SEAT / MOUNT_CAMERA_SEAT
+  and swaps to the wider mount seat (0, 3.4, 7.0) ONLY over the
+  walk rig's own seat -- a world scene that placed its own camera
+  keeps it. Model-ready hook for later: the seat is data on the
+  body, one const per mount class.
+- **Verification.** probe_riding 105 -> 109 checks, 0 failures
+  (MNT button + verb annotation on the touch bridge; the mounted
+  frame integrates -- tab-exact source assertion, comments never
+  count; the air-tap law with the ground-hop gate; the camera seat
+  coupled to the walk rig's exact seat). Family re-run in four
+  bounded chunks covering the FULL DEFAULT_SET, all EXIT=0, zero
+  FAIL lines.

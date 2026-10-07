@@ -4355,4 +4355,55 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   Family: the FULL runner DEFAULT_SET, 60 tests in three
   bounded chunks (21 + 20 + 19), all EXIT=0, zero FAIL lines.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 46.1 (THE MOBILE RIDER, THE FROZEN SADDLE, THE CAMERA
+  SEAT: the touch HUD answers the mount question, the QC pass frees
+  a saddle that never moved, the camera-follow setup lands --
+  owner: "Are there mobile hud buttons for mounts? And confirm the
+  glide mobile stuff is working (press jump in air to glide, demounts
+  if mounted) ... Then we can do camera follow work to set it up. And
+  any qc needed for mounts systems we have so far"):
+  (1) The owner held 3D models (workflow hashing) and asked for
+  mobile mount buttons, the mobile glide/demount flow, camera-follow
+  setup, and a QC pass. The QC pass outranked the features: it
+  caught a saddle that never physically moved.
+  (2) The frozen saddle: the R45 mounted gate sat INSIDE the glide
+  block (glider != null runs every frame), so every mounted globe
+  body returned BEFORE the shared move_and_slide tail -- laws
+  adopted, physics never integrated. Value-based probes could not
+  see it (headless runs no physics; probe_glider documents the
+  constraint). Fixed: the gate integrates + validates, then returns.
+  Lesson: a control-flow seam needs a control-flow assertion -- the
+  probe pins the shipped lines tab-exact (gate -> move_and_slide ->
+  _validate_movement -> return), prose in comments never counts.
+  (3) The mobile rider: the touch HUD had no mount button at all
+  (summon via the stable panel, but never tap out). MNT joins the
+  cluster beside dodge -- edit-mode draggable, persisted, annotated
+  "Mounts" for the a11y layer -- wired through the SAME
+  parse_input_event bridge as JMP, so the body's dismount poll
+  consumes it unchanged.
+  (4) The air-tap demount, the owner's mobile law, now real for
+  every input path: an airborne jump TAP dismisses (touch JMP and
+  keyboard jump feed the same action). Grounded taps stay hops (the
+  not-on-floor gate -- a gallop's first beat never throws the
+  rider). U and MNT still dismount anywhere.
+  (5) The camera-follow setup: the globe rig is the body's
+  CameraPivot with globe_world's code-built seat (0, 2.2, 4.5);
+  the body holds CAMERA_SEAT / MOUNT_CAMERA_SEAT and swaps to the
+  wider mount seat (0, 3.4, 7.0) only over the walk rig's own seat
+  (a world scene with its own camera keeps it). One const per mount
+  class is the model-ready hook for later.
+  (6) Lessons: grep the real UI before answering "is there a
+  button?" (the honest answer was no); run the QC pass BEFORE the
+  features it gates; and a generic "Hygiene:" anchor in TASKS
+  copied an entry 19 times over -- the repair was an honest restore
+  from HEAD plus a unique anchor (the R46 entry's own chunk
+  counts), because entries are contracts too.
+  (7) Verification: probe_riding 105 -> 109 checks, 0 failures
+  (MNT button + verb annotation; the mounted frame integrates,
+  tab-exact; the air-tap law with the ground-hop gate; the camera
+  seat coupled to the walk rig's exact seat). Family re-run in
+  four bounded chunks covering the FULL DEFAULT_SET (round2_ui
+  constructs the real joystick and builds the MNT button live),
+  all EXIT=0, zero FAIL lines.
+  Hygiene: tabs only, ASCII, extends-first intact.
 

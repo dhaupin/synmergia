@@ -43,6 +43,12 @@
 #      triggers; U opens the stable and F stays friends -- the R45
 #      dismount collision fixed, the poll respects the text-entry
 #      law).
+#   K. R46.1 mobile + QC: the touch HUD gains a MNT (dismount) button
+#      wired through the same parse_input_event bridge as JMP; the
+#      mounted frame INTEGRATES (the R45 frozen-saddle: the glide
+#      block returned before the shared move_and_slide tail); an
+#      airborne jump TAP demounts (grounded taps stay hops); and the
+#      camera seat setup couples to the walk rig's code-built seat.
 #
 # Script mode: autoloads resolved at runtime (RideService,
 # AntiCheatService, DataService).
@@ -514,6 +520,41 @@ func _run() -> void:
 		and str(stable._active_label.text) == "Riding: Plains Runner")
 	_check("and a dismiss walks it back", \
 		rides.dismiss("pr_buy") and str(stable._active_label.text) == "Walking")
+
+	# -- K. R46.1: the mobile rider and the QC pass -----------------------
+	# The physics loop does not run headless (probe_glider's own
+	# constraint), so the mounted-integration and air-tap laws are
+	# pinned at the SOURCE level -- the exact lines that ship.
+	var gp_src := ""
+	var gp_file := FileAccess.open("res://entities/globe_player.gd", FileAccess.READ)
+	if gp_file != null:
+		gp_src = gp_file.get_as_text()
+	var vj_src := ""
+	var vj_file := FileAccess.open("res://ui/components/virtual_joystick.gd", FileAccess.READ)
+	if vj_file != null:
+		vj_src = vj_file.get_as_text()
+	_check("the touch HUD carries a MNT dismount button on the same bridge as JMP", \
+		vj_src.contains("\"action\": \"dismount\", \"text\": \"MNT\"") \
+		and vj_src.contains("\"dismount\": \"Mounts\""))
+	var mount_gate := gp_src.find("if is_mounted():")
+	var integrate_ok := false
+	if mount_gate >= 0:
+		var window := gp_src.substr(mount_gate, 600)
+		# Tab-exact code lines: the gate's body must integrate, validate,
+		# and THEN return (prose inside comments must never count).
+		integrate_ok = window.contains("\n\t\t\tmove_and_slide()") \
+			and window.contains("\n\t\t\t_validate_movement()") \
+			and window.contains("\n\t\t\treturn") \
+			and window.rfind("\n\t\t\treturn") > window.rfind("\n\t\t\tmove_and_slide()")
+	_check("QC: the mounted frame INTEGRATES -- the glide block's saddle gate runs move_and_slide before returning (the R45 frozen saddle, fixed)", \
+		integrate_ok)
+	_check("QC: an airborne jump TAP demounts (the mobile JMP button is the key); the ground tap stays a hop (not-on-floor gate)", \
+		gp_src.contains("if is_mounted() and not is_on_floor() and allow_jump_input") \
+		and gp_src.contains("Input.is_action_just_pressed(\"jump\"):\n\t\tride_service.dismiss(entity_id)"))
+	_check("the camera seat setup couples to the walk rig: the mount seat applies only over globe_world's code-built (0, 2.2, 4.5)", \
+		body.CAMERA_SEAT == Vector3(0, 2.2, 4.5) \
+		and body.MOUNT_CAMERA_SEAT.length() > body.CAMERA_SEAT.length() \
+		and gp_src.contains("seat.position == CAMERA_SEAT"))
 
 	print("probe_riding: %d checks, %d failures" % [_checks, _fails])
 	quit(0 if _fails == 0 else 1)

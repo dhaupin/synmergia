@@ -229,6 +229,12 @@ var mounted_mount_id: String = ""       # the mount's data id ("" = unmounted)
 var _mount_profile = null               # the resolved MovementProfile
 var _humanoid_gravity: float = -1.0     # pre-mount gravity, restored on dismount
 const SADDLE_LIFT: float = 0.4          # m above the surface law (hooves, not boots)
+# R46 camera-follow setup: the mount camera pulls back so the beast
+# fits the frame. The seat is applied only when the pivot still
+# carries the walk rig's code-built camera position (a world scene
+# that places its own camera keeps it).
+const CAMERA_SEAT: Vector3 = Vector3(0, 2.2, 4.5)
+const MOUNT_CAMERA_SEAT: Vector3 = Vector3(0, 3.4, 7.0)
 
 
 ## S16.4: bind this body to a lattice world. Per-world physics is a
@@ -654,6 +660,16 @@ func _physics_process(delta: float) -> void:
 		if is_sprinting and not is_crouching and mount_sprint_speed() > 0.0:
 			speed = mount_sprint_speed()
 
+	# The air-tap demount (R46, mobile first): a jump TAP while mounted
+	# and airborne taps out of the saddle -- the touch JMP button feeds
+	# this same action, so the mobile rider needs no new button to
+	# bail off a cliff. Grounded taps stay hops: a gallop's first beat
+	# must never dismiss the mount (hence the not-on-floor gate).
+	if is_mounted() and not is_on_floor() and allow_jump_input \
+			and Input.is_action_just_pressed("jump"):
+		ride_service.dismiss(entity_id)
+		return
+
 	# S12 glider: feed the state machine (altitude above the surface,
 	# no thermal model on the globe yet -- thermal zones land later),
 	# then apply its vertical speed instead of raw gravity.
@@ -666,6 +682,14 @@ func _physics_process(delta: float) -> void:
 		var altitude: float = _radial_altitude(up)
 		_feed_mount_fall_law(delta, up, true, altitude)
 		if is_mounted():
+			# THE MOUNTED FRAME INTEGRATES (R46 QC): a saddle here used
+			# to return BEFORE the shared move_and_slide tail -- the body
+			# kept its adopted laws but never moved (the frozen saddle:
+			# value probes passed, physics never ran). Integrate and
+			# validate, then rejoin the tick AFTER the glider machine,
+			# which stays walk-surface law -- the saddle is, too.
+			move_and_slide()
+			_validate_movement()
 			return
 		var gstate: int = glider.tick(delta, maxf(altitude, 0.0), 0.0)
 		# S16.4 vacuum rule: no atmosphere, no wing. If the machine
@@ -829,6 +853,15 @@ func _physics_process(delta: float) -> void:
 	# Keep the camera pivot aligned with local up, then apply the
 	# look orbit (yaw around local up, pitch around local east). With no
 	# look input yet this reproduces the original fixed frame exactly.
+	# The mounted camera pulls back so the beast fits the frame (R46
+	# camera-follow setup; models stay future seams). Exact seat, only
+	# when the pivot still carries the walk rig's code-built camera --
+	# a world scene that placed its own camera keeps it. No lerp: the
+	# pivot is teleported to the body every frame anyway.
+	if pivot != null and is_mounted():
+		var seat: Camera3D = pivot.get_node_or_null("Camera3D")
+		if seat != null and seat.position == CAMERA_SEAT:
+			seat.position = MOUNT_CAMERA_SEAT
 	if pivot:
 		var xform: Transform3D = pivot.global_transform
 		xform.basis = Basis(east, up, -north)
