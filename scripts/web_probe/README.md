@@ -17,6 +17,7 @@ entity entries).
 |------|--------------|
 | `probe_boot.js` | Boot smoke: serves `web/`, launches chromium, waits for canvas + cross-origin isolation + the Godot banner. Exit 0 = the engine booted. |
 | `probe_a11y.js` | Full journey: Start -> Guest -> Create New -> species -> class -> Enter World (each hop verified by log marks), pause/resume, then the in-world entity step (spawn-dependent, reported not hard-failed). |
+| `probe_mount_journey.js` | The mount journey (R47): guest -> world -> menu bar -> the Mounts stable -> BUY the starter (lawful: role-0 starter kit 500g, the 150g level-1 Meadow Pacer) -> summon -> gallop -> air-tap demount. Oracles are RideService's GameLog audit marks PLUS batching-proof a11y label transitions (Buy -> Ride -> Dismiss -> Ride). |
 
 ## Setup
 
@@ -39,6 +40,7 @@ entity entries).
     sh scripts/pack_web.sh                           # refresh web/game.pck
     xvfb-run -a node scripts/web_probe/probe_boot.js
     xvfb-run -a node scripts/web_probe/probe_a11y.js
+    xvfb-run -a node scripts/web_probe/probe_mount_journey.js
 
 ## Env vars
 

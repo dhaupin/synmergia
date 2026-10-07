@@ -220,6 +220,7 @@ func summon(player_id: String, mount_id: String) -> bool:
 			AntiCheatService.set_profile_limits(player_id, "movement_standard")
 	_notify_mount(NotifKind.MOUNT_SUMMONED, player_id, str(mount.display_name),
 		"You summon the %s" % str(mount.display_name))
+	GameLog.info("RideService: mount summoned: %s (%s)" % [mount_id, player_id])
 	return true
 
 
@@ -320,6 +321,10 @@ func purchase_mount(player_id: String, mount_id: String) -> Dictionary:
 			inv.add_gold(cost)
 		GameLog.warn("RideService: purchase rolled back after ledger refusal: " + mount_id)
 		return {"success": false, "message": "Purchase failed"}
+	# The stable audit (R47): the purchase/summon/dismiss trio through
+	# ONE channel -- the web journey probe's game-side oracles ride
+	# these marks the way the menu journey rides the a11y stream.
+	GameLog.info("RideService: mount purchased: %s (%s)" % [mount_id, player_id])
 	_notify_mount(NotifKind.MOUNT_ACQUIRED, player_id, str(mount.display_name),
 		"You have acquired the %s" % str(mount.display_name))
 	return {"success": true, "message": "Purchased %s" % str(mount.display_name), "mount_id": mount_id}
@@ -340,6 +345,7 @@ func dismiss(player_id: String) -> bool:
 		AntiCheatService.set_profile_limits(player_id, "movement_standard")
 	_notify_mount(NotifKind.MOUNT_DISMISSED, player_id, mount_name,
 		"The %s returns to its whistle" % mount_name)
+	GameLog.info("RideService: mount dismissed: %s (%s)" % [mount_id, player_id])
 	return true
 
 

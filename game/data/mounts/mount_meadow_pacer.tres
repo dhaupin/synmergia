@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mount_meadow_pacer"
+display_name = "Meadow Pacer"
+description = "The starter stable's gentlest pacer. Every rider's first horse -- slow, sure, and always glad to see you."
+icon_path = "res://icons/mounts/meadow_pacer.png"
+model_path = ""
+kind = 0
+speed_multiplier = 1.15
+required_level = 1
+faction_id = ""
+source = 2
+currency_id = ""
+cost = 150
+source_ref = ""
+soulbound = true
+tint = Color(0.62, 0.52, 0.38, 1)

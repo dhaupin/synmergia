@@ -4406,4 +4406,62 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   constructs the real joystick and builds the MNT button live),
   all EXIT=0, zero FAIL lines.
   Hygiene: tabs only, ASCII, extends-first intact.
+- [x] Round 47 (THE STABLE SELLS, THE JOURNEY RIDES: the shop window
+  closes R46's open product gap, the Meadow Pacer makes ownership
+  lawful for a fresh guest, and the mount journey runs green in a
+  real browser -- owner: "Sure let's do it : That mount-journey
+  probe (guest -> world -> stable -> summon -> walk -> air-tap
+  demount) is the ready next slice"):
+  (1) The probe's first demand exposed the gap before a single line
+  of probe code: purchase_mount existed since R46 but the STABLE
+  HAD NO SHOP WINDOW, and grant_mount has no production caller
+  besides the GM auto-grant -- a fresh guest could not own a mount
+  lawfully at all. The product got the window; the probe just
+  walked through it.
+  (2) The starter economy: the Meadow Pacer (mount_meadow_pacer,
+  GROUND, level 1, 150 gold, VENDOR, soulbound, kind default to
+  movement_quadruped). Role 0 spawns 500 gold (StarterKitService);
+  the level-5 250-gold runner stays out of reach at level 1 --
+  acquisition difficulty is DATA and the entry tier is real.
+  (3) MountUI: shop rows from get_shop_catalog (unowned vendor-
+  priced mounts only; the gullwing's favor wallet included; the
+  owned vanish), the SAME gate chain on a buy press, refusals
+  spoken through GameLog, refresh() re-reading truth. And the
+  Godot rename trap, caught by the DIAG print: queue_free'd rows
+  still OWN their names, so a same-frame refresh burst auto-
+  renamed fresh rows to @HBoxContainer@N and orphaned every
+  lookup -- _clear_container removes immediately (frees the name)
+  and frees deferred (emission-safe). Buttons speak unique verbs
+  (Buy/Ride/Dismiss <name>); the node names keep the wire
+  contract.
+  (4) The clickable stable door: the menu bar's Mounts item ([U])
+  beside the hotkey -- keyboardless players had no door at all.
+  MainMenuBar -> MenuManager "mounts" -> the stable, the one
+  funnel.
+  (5) The probe (probe_mount_journey.js): the a11y stream ONLY for
+  action discovery/clicks, oracles = RideService's new audit trio
+  (mount purchased/summoned/dismissed -- one channel) PLUS label
+  transitions (Buy -> Ride -> Dismiss -> Ride), because wasm
+  stdout batching kills GameLog marks at slow fps -- the world
+  gate reads the HUD's "=" button, not the registered mark.
+  (6) QC the probe forced into the open: a11y rects are canvas-
+  space and a 640x360 viewport desyncs them (the fps lever is
+  not a viewport squeeze); a "Buy " prefix predicate clicks
+  whichever Buy announced first (three Buys; the gullwing ate
+  the first run -- exact labels are the law); stale entries
+  linger in the action map (screen truth is a fresh predicate);
+  the char-list/species screens swallow slow clicks (retry on
+  the next screen's announcement, not the click's dispatch).
+  (7) Verification: probe_riding 109 -> 117 checks, 0 failures
+  (pacer data truth incl. the kind default; young buyer: refused
+  the runner, BUYS the pacer, summons, dismisses; shop window's
+  exact rows/label; the window button BUYS through the chain,
+  purse 150 lighter, row leaves the window; unique verbs; the
+  menu door). Family green (naming lint, movement profiles,
+  notification frame). THE WEB JOURNEY: RESULT: PASS, EXIT=0,
+  ERRORS: [] -- boot + purchased + summoned marks, the demount
+  label transition, 79 actions announced, zero script errors.
+  web/game.pck re-packed for the run (export carries the shop +
+  pacer); the README table carries the new probe.
+  Hygiene: tabs only, ASCII, extends-first intact.
 

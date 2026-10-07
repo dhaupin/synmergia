@@ -296,6 +296,7 @@ func _create_expanded_panel() -> void:
 		{"id": "friends", "text": "Friends", "hotkey": "F", "icon": "[F]"},
 		{"id": "quests", "text": "Quests", "hotkey": "Q", "icon": "[Q]"},
 		{"id": "bank", "text": "Bank/Vault", "hotkey": "B", "icon": "[B]"},
+		{"id": "mounts", "text": "Mounts", "hotkey": "U", "icon": "[U]"},
 		{"id": "blacksmith", "text": "Blacksmith", "hotkey": "H", "icon": "[H]"},
 		{"id": "world_map", "text": "World Map", "hotkey": "M", "icon": "[M]"},
 		{"id": "faction", "text": "Faction", "hotkey": "N", "icon": "[N]"},

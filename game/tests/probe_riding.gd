@@ -43,6 +43,13 @@
 #      triggers; U opens the stable and F stays friends -- the R45
 #      dismount collision fixed, the poll respects the text-entry
 #      law).
+#   L. R47 the stable SELLS + the journey door: a level-1 gold-priced
+#      starter mount (the Meadow Pacer) makes ownership lawful for a
+#      fresh guest; the stable panel grows a SHOP window (buy rows
+#      from get_shop_catalog -- R46 built the vendor door with no
+#      window); buttons speak unique verbs (Ride/Dismiss/Buy <name>);
+#      and the menu bar carries the Mounts item (the clickable door
+#      beside the U key).
 #   K. R46.1 mobile + QC: the touch HUD gains a MNT (dismount) button
 #      wired through the same parse_input_event bridge as JMP; the
 #      mounted frame INTEGRATES (the R45 frozen-saddle: the glide
@@ -555,6 +562,52 @@ func _run() -> void:
 		body.CAMERA_SEAT == Vector3(0, 2.2, 4.5) \
 		and body.MOUNT_CAMERA_SEAT.length() > body.CAMERA_SEAT.length() \
 		and gp_src.contains("seat.position == CAMERA_SEAT"))
+
+	# -- L. R47: the stable sells, the journey door ------------------------
+	var dsvc = root.get_node_or_null("DataService")
+	var pacer = dsvc.get_mount("mount_meadow_pacer") if dsvc != null else null
+	_check("the Meadow Pacer loads: filename == id, GROUND, level 1, 150 gold, VENDOR-sourced", \
+		pacer != null and str(pacer.id) == "mount_meadow_pacer" \
+		and int(pacer.kind) == 0 and int(pacer.required_level) == 1 \
+		and int(pacer.cost) == 150 and str(pacer.currency_id) == "" \
+		and int(pacer.source) == 2)
+	_check("the catalog carries the starter (the pacer rides the kind default to movement_quadruped)", \
+		_buy_catalog_has(rides, "mount_meadow_pacer") \
+		and str((dsvc.get_mount_movement_profile(pacer) if dsvc != null else null).id) == "movement_quadruped")
+	var young = InvComp.new()
+	young.name = "ProbeYoungPurse"
+	root.add_child(young)
+	young.set_owner_id("pr_young")
+	if inv_svc != null:
+		inv_svc.register_inventory("pr_young", young)
+	young.add_gold(200)
+	_check("the starter is truly entry-level: the level-4 young buyer, refused the level-5 runner, BUYS the pacer", \
+		not rides.purchase_mount("pr_young", "mount_plains_runner").get("success", true) \
+		and rides.purchase_mount("pr_young", "mount_meadow_pacer").get("success", false))
+	_check("the purchase rings the stable bell (summon + dismiss on the young buyer's new pacer)", \
+		rides.summon("pr_young", "mount_meadow_pacer") and rides.dismiss("pr_young"))
+	var shop_label = spanel.get_node_or_null("Main/ShopList/ShopRow_mount_meadow_pacer/ShopLabel_mount_meadow_pacer")
+	_check("the stable's shop window: a buy row for the unowned pacer, none for the owned runner", \
+		spanel.get_node_or_null("Main/ShopList/ShopRow_mount_meadow_pacer/Buy_mount_meadow_pacer") is Button \
+		and spanel.get_node_or_null("Main/ShopList/ShopRow_mount_plains_runner") == null \
+		and shop_label != null and str(shop_label.text) == "Meadow Pacer -- 150 gold")
+	var pbtn: Button = spanel.get_node_or_null("Main/ShopList/ShopRow_mount_meadow_pacer/Buy_mount_meadow_pacer")
+	var purse_before: int = poor.get_gold()
+	if pbtn is Button:
+		pbtn.pressed.emit()
+		await process_frame
+	_check("the window's button BUYS through the one gate chain: the runner's owner adds the pacer, the purse pays 150", \
+		rides.owns_mount("pr_buy", "mount_meadow_pacer") \
+		and poor.get_gold() == purse_before - 150 \
+		and spanel.get_node_or_null("Main/ShopList/ShopRow_mount_meadow_pacer") == null)
+	_check("buttons speak unique verbs: the idle row reads 'Ride Plains Runner' (Dismiss when active)", \
+		str(spanel.get_node_or_null("Main/MountList/Row_mount_plains_runner/Summon_mount_plains_runner").text) == "Ride Plains Runner")
+	var mmb_src := ""
+	var mmb := FileAccess.open("res://ui/components/main_menu_bar.gd", FileAccess.READ)
+	if mmb != null:
+		mmb_src = mmb.get_as_text()
+	_check("the journey door is clickable: the menu bar carries the Mounts item (U) beside the hotkey", \
+		mmb_src.contains("\"id\": \"mounts\", \"text\": \"Mounts\""))
 
 	print("probe_riding: %d checks, %d failures" % [_checks, _fails])
 	quit(0 if _fails == 0 else 1)

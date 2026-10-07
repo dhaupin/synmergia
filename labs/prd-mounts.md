@@ -363,3 +363,62 @@ this is the camera-follow SETUP the owner asked for.
   coupled to the walk rig's exact seat). Family re-run in four
   bounded chunks covering the FULL DEFAULT_SET, all EXIT=0, zero
   FAIL lines.
+
+## 11. Round Six as Built (2026-10-07): the stable sells, the journey rides
+
+R46.1 left the mount systems verified everywhere except the one
+place a player actually lives: the browser. The owner asked for the
+mount-journey probe -- and the probe's first demand exposed the
+product gap R46 left open: purchase_mount existed, but the STABLE
+HAD NO SHOP WINDOW. A fresh guest could not own a mount lawfully at
+all (the warden auto-grant is GM-only, grant_mount has no other
+production caller).
+
+- **The starter economy.** The Meadow Pacer joins the mounts
+  (mount_meadow_pacer.tres): GROUND, level 1, 150 gold, VENDOR-
+  sourced, soulbound, the GROUND kind default (movement_quadruped)
+  -- a lawful first mount for a role-0 guest (StarterKitService
+  spawns 500 gold; the level-5, 250-gold Plains Runner stays
+  genuinely out of reach at level 1). Elite pricing untouched; the
+  entry tier is DATA, where acquisition difficulty lives.
+- **The stable SELLS.** MountUI grew a shop window: one row per
+  vendor-priced mount the rider does NOT own, from get_shop_catalog
+  (the gullwing's favor wallet included; owned mounts vanish from
+  the window). A buy press rides the SAME gate chain the headless
+  probe rode, refusals are SPOKEN (short purses say so through
+  GameLog), and refresh() re-reads truth. Buttons speak unique
+  verbs now -- "Buy/Ride/Dismiss <name>" reads one meaning to
+  eyes, screen readers, and agents; the Summon_/Buy_ node names
+  keep the headless probe's wire contract.
+- **The clickable stable door.** The menu bar gains the Mounts item
+  ([U]) beside the hotkey -- R46 bound U but keyboardless players
+  had no door at all. MainMenuBar -> MenuManager "mounts" -> the
+  stable panel, the same funnel every panel rides.
+- **The journey probe** (probe_mount_journey.js): guest -> world ->
+  menu -> stable -> BUY the starter -> summon -> gallop -> air-tap
+  demount, acting ONLY through the a11y stream and verified by
+  RideService's NEW audit trio (mount purchased/summoned/dismissed
+  -- one channel, the same way the menu journey rides the a11y
+  stream) PLUS batching-proof label transitions (Buy -> Ride ->
+  Dismiss -> Ride on the panel). The world gate and the final
+  oracle both read a11y truth, not stdout marks, because wasm
+  stdout batches away at slow fps -- the registered mark died of
+  old age even in a PASS run.
+- **QC catches the probe forced into the open:** the a11y rects are
+  canvas-space -- a 640x360 viewport desyncs them from page
+  coordinates (clicks land 2x off; the fps lever is NOT a viewport
+  squeeze); a prefix "Buy " predicate clicks whichever Buy announced
+  first (the shop carries three; the gullwing ate the first run);
+  and stale a11y entries linger in the map, so screen truth is a
+  fresh predicate, not an old label's presence.
+- **Verification.** probe_riding 109 -> 117 checks, 0 failures
+  (pacer data truth incl. the kind default; the young-buyer path:
+  refused the level-5 runner, BUYS the level-1 pacer, summons,
+  dismisses; the shop window's exact rows and label; the window's
+  button BUYS through the one chain, purse pays 150, the row
+  leaves the window; unique verb labels; the menu door). Family
+  green (naming lint, movement profiles, notification frame). The
+  WEB JOURNEY: RESULT: PASS, EXIT=0, ERRORS: [] -- boot mark,
+  purchased mark, summoned mark, the demount label transition,
+  79 actions announced, zero script errors. web/game.pck re-packed
+  for the run (the export carries the shop and the pacer).
