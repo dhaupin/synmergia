@@ -153,6 +153,30 @@ func _initialize() -> void:
 		return
 	print("[OK] tribal loop: 3 observers -> code assembled -> DOOR OPEN")
 
+	# 3b. S16.5 world-state law: the door's open is a WORLD DELTA in
+	#	the shared StateTree -- provenance (actor = door, epoch = the
+	#	sky clock), readable by any citizen through the one chain.
+	var proj = root.get_node_or_null("WorldStateProjection")
+	if proj == null:
+		push_error("FAIL: WorldStateProjection autoload missing")
+		inst.free()
+		quit(1)
+		return
+	var ws = proj.world_state()
+	var delta: Dictionary = ws.get_world_state("main", "gates/%s" % str(door.name))
+	var dpl: Dictionary = delta.get("payload", {}) if delta.get("payload", {}) is Dictionary else {}
+	if int(dpl.get("opened_for_day", -1)) != door._resolve_day():
+		push_error("FAIL: door delta missing/ wrong day: %s" % str(delta))
+		inst.free()
+		quit(1)
+		return
+	if str(delta.get("actor", "")) != str(door.name):
+		push_error("FAIL: door delta provenance wrong: %s" % str(delta))
+		inst.free()
+		quit(1)
+		return
+	print("[OK] world delta recorded: gates/%s (actor=%s, epoch=%.2f)" % [str(door.name), str(delta.get("actor", "")), float(delta.get("epoch", 0.0))])
+
 	# 3d. Payoff spectacle (batch 14): the open erupts a light pillar
 	#	and a light flash at the door, and the sky renderer owns the
 	#	shard-wide amber flash API.

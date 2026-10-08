@@ -834,8 +834,24 @@ func send_full_scope_sync(client_id: int) -> void:
 	# Use a parent scope path that encompasses all AOI chunks
 	var scope_path: String = "world"
 
-	# Get full snapshot of the scope
-	var full_snapshot: Array = _state_tree.get_full_scope_snapshot(scope_path)
+	# S16.5 world-scoped resync: the player's OWN world, not the whole
+	# tree. ScopeService.world_of is the truth ("main" for globe/bout
+	# scopes); the projection unions that world's zones + its state
+	# deltas. A moon client's resync never pulls main-globe horde
+	# state, and vice versa. Fallback: unscoped snapshot when the
+	# projection is absent (deep script mode).
+	var full_snapshot: Array = []
+	var proj := get_node_or_null("/root/WorldStateProjection")
+	if proj != null and proj.has_method("snapshot_for_world"):
+		var wid: String = "main"
+		var ss := get_node_or_null("/root/ScopeService")
+		if ss != null and ss.has_method("world_of"):
+			var pw: Variant = ss.world_of(player_id)
+			if pw != null and str(pw) != "":
+				wid = str(pw)
+		full_snapshot = proj.snapshot_for_world(wid)
+	if full_snapshot.is_empty():
+		full_snapshot = _state_tree.get_full_scope_snapshot(scope_path)
 	if full_snapshot.is_empty():
 		return
 

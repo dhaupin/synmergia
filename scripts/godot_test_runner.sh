@@ -85,6 +85,7 @@ probe_glider
 probe_thermals
 probe_royale_storm
 probe_world_lattice
+probe_world_state
 probe_underworld
 probe_world_scoping
 probe_round2_ui

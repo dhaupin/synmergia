@@ -1689,6 +1689,52 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   so scopes are baked in. Cairn lesson logged in vant
   models/public/cairn/lessons.md; vant_old install now obsolete
   (kept until next check-in).
+- [x] S16.5 world-state engine V1 SHIPPED (2026-10-08, owner:
+  "V1 slice: World-state engine first... Best to solidify world
+  state"; synthetics are the agent species, species-agnostic bodies).
+  The STATE half of the clock thesis (S16.1 shipped geometry; this
+  ships state): WorldState frame primitive
+  (core/frame/srv/world_state.gd, no autoload/class_name) -- world
+  deltas under /world/w/<id>/state/<key> in the SAME StateTree every
+  other service writes (one book, no side doors). GEOMETRY vs STATE
+  law: WorldRegistry owns derived geometry (seed functions, nothing
+  stored players did not choose); WorldState owns the deltas players
+  and agents cause (harvested nodes, opened gates) -- each write
+  carries PROVENANCE {payload, actor, epoch}; erasure is itself a
+  delta ({cleared: true, actor, epoch}) so an audited world answers
+  who cleared what. Hierarchical keys ("harvest/iron_1") nest as
+  T3 paths. AGENT-CITIZEN LAW: no species or role special-casing --
+  a synthetic rides the same write_entity path as a human, and the
+  probe proves identical projection + readback + provenance shape.
+  WorldStateProjection grew the world dimension ADDITIVELY (no AOI
+  rewrite): identity nodes stamp world_id (ZoneData.world_id, empty
+  = main), _zone_worlds maps zone->world, snapshot_for_world unions
+  a world's zones + its deltas (the underworld resync: main-globe
+  hordes never cross the namespace), active_worlds() diagnostics.
+  probe_world_state 17 checks in DEFAULT_SET (incl. the real-zone
+  union branch: ZoneManager boots empty in script mode -- load_zones
+  then stamp -- and the zone half of the no-bleed proof); regression
+  73/0; lint EXIT 1 but pre-existing on main (status_effect/skill/entity
+  cyclic preloads + durable_store class_name-first), verified via
+  stash on clean HEAD. Lesson: T3 normalizes paths (no leading
+  slash) and get_state returns {type, entity_id, payload} -- a
+  provenance envelope must BE the payload, not wrap it twice.
+- [x] S16.5.2 live world deltas + world-scoped resync SHIPPED
+  (2026-10-08). FIRST LIVE WRITER: AncientDoor._open/_reseal record
+  gates/<door> deltas through the one chain -- provenance actor=door,
+  epoch=SignService.sky_epoch_days() (the S16.2 clock, not wall
+  time); re-seal is the auditable cleared record. probe_ancient_loop
+  grew the delta assertion (open loop -> gates/AncientDoor reads
+  back with the right day + actor; 13 OKs, exit 0). WORLD-SCOPED
+  RESYNC: TickService.send_full_scope_sync used to ship the ENTIRE
+  world scope to any requesting client; now it resolves the player's
+  world via ScopeService.world_of and sends
+  WorldStateProjection.snapshot_for_world(wid) -- a moon client's
+  resync never pulls main-globe horde state; unscoped fallback kept
+  for deep script mode. probe_world_scoping/probe_world_lattice/
+  probe_world_state all exit 0. NEXT: loot/gatherable writes (no
+  harvest system exists yet -- the service is the prerequisite),
+  agent accounts (synthetics through the lawful login chain).
 - [x] S16.1 multiworld lattice SHIPPED (2026-09-29, owner: "let's
   take it all the way"). The clock thesis in code: WorldData schema
   (core/schemas/world_data.gd, world_ prefix, filename == id) with

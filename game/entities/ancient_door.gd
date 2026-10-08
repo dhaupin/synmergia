@@ -42,6 +42,13 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 signal door_opened(day_index: int)
 signal interact_failed(reason: String)
 
+## S16.5 world-state law: the door's open/re-seal are WORLD DELTAS,
+## recorded with provenance (actor = door, epoch = the sky clock) in
+## the same StateTree everything else writes. Re-seal is an ERASURE
+## delta: the record is replaced by {cleared: true} so the audit
+## trail answers who opened and when the way closed.
+const WorldStateProjectionScript = preload("res://core/services/world_state_projection.gd")
+
 var _is_open: bool = false
 var _last_known_unlocked: bool = false
 var _glow: MeshInstance3D = null
@@ -119,6 +126,7 @@ func _open(day: int) -> void:
 			{"day_index": day, "door": name}
 		)
 	door_opened.emit(day)
+	_record_world_delta(false, day)
 	GameLog.info("AncientDoor: %s opened for day %d" % [display_name, day])
 
 
@@ -198,6 +206,7 @@ func _play_payoff_effects() -> void:
 
 ## The dawn moment: the slab rises again (inverse of _play_open_animation).
 func _reseal() -> void:
+	_record_world_delta(true, _last_unlock_day)
 	if _slab != null:
 		_slab.position = _slab_home
 	var mat: StandardMaterial3D = null
@@ -289,3 +298,24 @@ func _build_visuals() -> void:
 	shape.position = Vector3(0, 1.4, 0)
 	body.add_child(shape)
 	add_child(body)
+
+
+## S16.5: open/re-seal become world deltas under gates/<door>. The
+## epoch is the canonical sky clock (S16.2's single sky time), the
+## actor is this door -- the delta ledger is the audit trail for
+## "when did the way stand open?" Defensive: no projection (deep
+## script mode) skips the write; a door still opens.
+func _record_world_delta(cleared: bool, day: int) -> void:
+	var proj = get_node_or_null("/root/WorldStateProjection")
+	if proj == null or not proj.has_method("world_state"):
+		return
+	var ws = proj.world_state()
+	var epoch: float = -1.0
+	if SignService != null and SignService.has_method("sky_epoch_days"):
+		epoch = SignService.sky_epoch_days()
+	var payload: Dictionary = {"opened_for_day": day} if not cleared else {"cleared": true, "resealed": true}
+	var key: String = "gates/%s" % str(name)
+	if cleared:
+		ws.erase_world_state("main", key, str(name), epoch)
+	else:
+		ws.set_world_state("main", key, payload, str(name), epoch)

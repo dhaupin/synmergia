@@ -28,6 +28,8 @@ extends Node
 const StateTreeScript = preload("res://core/frame/kv/state_tree.gd")
 const StateSchemaScript = preload("res://core/frame/schemas/state_schema.gd")
 const ProgressBridgeScript = preload("res://core/frame/bridge/progress_bridge.gd")
+## V1 world-state engine slice: world-scoped deltas share THIS tree.
+const WorldStateScript = preload("res://core/frame/srv/world_state.gd")
 
 ## Coalesce window before a tick drains the queue (seconds). Marked
 ## dirty twice inside one window = one tree write.
@@ -36,6 +38,10 @@ const FLUSH_INTERVAL := 0.5
 ## Max player live-state nodes projected per zone snapshot (horde guard:
 ## a 1000-player zone still returns a bounded snapshot; clients AOI-cull).
 const MAX_ZONE_SNAPSHOT_NODES := 2000
+
+## Shared WorldState primitive over the same tree (one book). Lazily
+## built; probes without autoloads get the standalone fallback tree.
+var _world_state: WorldStateScript = null
 
 var _dirty: Dictionary = {}
 var _flush_accum: float = 0.0
@@ -215,18 +221,14 @@ func write_entity(entity_id: String, data: Dictionary) -> bool:
 	var tree := _tree()
 	var base := _entity_base(zone, eid)
 
-	var identity := {
-		"kind": str(data.get("kind", "enemy")),
-		"display_name": str(data.get("display_name", "")),
-		"level": int(data.get("level", 1)),
-	}
-	tree.insert_state(base + "identity", eid, "other", identity)
+	tree.insert_state(base + "identity", eid, "other", _identity_payload(zone, data))
 
 	var health := {
 		"current": int(data.get("current_health", 0)),
 		"max": int(data.get("max_health", 0)),
 	}
 	tree.insert_state(base + "health", eid, "health", health)
+	_stamp_zone_world(zone)
 	_active_zones[zone] = true
 	_touch()
 	return true
@@ -238,11 +240,8 @@ func queue_entity_write(entity_id: String, data: Dictionary) -> void:
 		return
 	var zone := _entity_zone_id(eid)
 	var base := _entity_base(zone, eid)
-	_queue_insert(base + "identity", eid, "other", {
-		"kind": str(data.get("kind", "enemy")),
-		"display_name": str(data.get("display_name", "")),
-		"level": int(data.get("level", 1)),
-	})
+	_queue_insert(base + "identity", eid, "other", _identity_payload(zone, data))
+	_stamp_zone_world(zone)
 	_active_zones[zone] = true
 
 ## Remove every node for one entity (death/despawn/zone move).
@@ -304,11 +303,8 @@ func _drain_identity(immediate: bool) -> int:
 			continue
 		if immediate:
 			var zid := _entity_zone_id(str(pid))
-			_tree().insert_state(_entity_base(zid, str(pid)) + "identity", str(pid), "other", {
-				"kind": str(data.get("kind", "enemy")),
-				"display_name": str(data.get("display_name", "")),
-				"level": int(data.get("level", 1)),
-			})
+			_tree().insert_state(_entity_base(zid, str(pid)) + "identity", str(pid), "other", _identity_payload(zid, data))
+			_stamp_zone_world(zid)
 			_active_zones[zid] = true
 		else:
 			queue_entity_write(str(pid), data)
@@ -352,6 +348,7 @@ func _flush_mob_health(immediate: bool) -> int:
 			_queue_insert(base + "health", str(eid), "health", health)
 		else:
 			_tree().insert_state(base + "health", str(eid), "health", health)
+		_stamp_zone_world(zone)
 		_active_zones[zone] = true
 		written += 1
 	return written
@@ -449,6 +446,7 @@ func _flush_players(immediate: bool) -> int:
 			_queue_insert(base + "live", str(pid), "other", payload)
 		else:
 			_tree().insert_state(base + "live", str(pid), "other", payload)
+		_stamp_zone_world(zone)
 		_active_zones[zone] = true
 		written += 1
 	return written
@@ -507,6 +505,40 @@ func snapshot_for_instance(scope: String) -> Array:
 ## Which zones currently hold projected state (diagnostics + tests).
 func active_zones() -> Array:
 	return _active_zones.keys()
+
+## ---------------------------------------------------------------------------
+## Per-world snapshots (V1 world-state engine slice)
+## ---------------------------------------------------------------------------
+
+## A zone id -> world map kept alongside _active_zones. Written on the
+## same paths identity writes take, so snapshot_for_world can union a
+## world's zone scopes without asking ZoneManager per node.
+var _zone_worlds: Dictionary = {}
+
+## Bounded WORLD-scoped snapshot: every zone of one world plus that
+## world's state deltas. The underworld resync: a client entering the
+## underworld hydrates from underworld state only -- main-globe hordes
+## never cross the namespace. Same node cap as the zone snapshot.
+func snapshot_for_world(world_id: String) -> Array:
+	var wid := str(world_id)
+	if wid.is_empty():
+		wid = "main"
+	var snapshot: Array = []
+	for zone_id in _zone_worlds.keys():
+		if str(_zone_worlds[zone_id]) != wid:
+			continue
+		snapshot.append_array(_tree().get_full_scope_snapshot("/world/zones/%s" % str(zone_id)))
+	snapshot.append_array(_tree().get_full_scope_snapshot("/world/w/%s" % wid))
+	if snapshot.size() <= MAX_ZONE_SNAPSHOT_NODES:
+		return snapshot
+	return snapshot.slice(0, MAX_ZONE_SNAPSHOT_NODES)
+
+## Which worlds currently hold projected state (diagnostics + tests).
+func active_worlds() -> Array:
+	var worlds: Dictionary = {}
+	for zone_id in _zone_worlds.keys():
+		worlds[str(_zone_worlds[zone_id])] = true
+	return worlds.keys()
 
 ## ---------------------------------------------------------------------------
 ## Helpers
@@ -589,6 +621,52 @@ static func _entity_base(zone_id: String, entity_id: String) -> String:
 
 static func _player_base(zone_id: String, player_id: String) -> String:
 	return _scope_base(zone_id, "players", player_id)
+
+## Zone -> world bookkeeping for the per-world snapshot union. Cheap
+## (cached per zone; ZoneData lookup only on first sight). Instance
+## scopes stay main-world (planar rooms of the main globe, V1).
+func _stamp_zone_world(zone_or_scope: String) -> void:
+	var token := str(zone_or_scope)
+	if token == "" or token == "unzoned" or token.begins_with("instance:"):
+		return
+	if _zone_worlds.has(token):
+		return
+	_zone_worlds[token] = _world_id_for_scope(token)
+
+## Identity payload shared by the direct and queued write paths.
+## V1 world-state engine slice: identity nodes carry the OWNING WORLD
+## (from ZoneData.world_id, "main" when empty) so the state tree
+## answers "which world holds this entity" without a ZoneManager ask.
+func _identity_payload(zone_or_scope: String, data: Dictionary) -> Dictionary:
+	return {
+		"kind": str(data.get("kind", "enemy")),
+		"display_name": str(data.get("display_name", "")),
+		"level": int(data.get("level", 1)),
+		"world_id": _world_id_for_scope(zone_or_scope),
+	}
+
+## Zone/scope -> owning world id. ZoneData.world_id (empty = main) is
+## the truth; instance scopes inherit the main world in V1 (bout rooms
+## are planar rooms of the main globe); unknown/unzoned -> main.
+func _world_id_for_scope(zone_or_scope: String) -> String:
+	var token := str(zone_or_scope)
+	if token.begins_with("instance:"):
+		return "main"
+	var zm := get_node_or_null("/root/ZoneManager")
+	if zm != null and zm.has_method("get_zone"):
+		var zone = zm.get_zone(token)
+		if zone != null and "world_id" in zone:
+			var wid := str(zone.world_id)
+			return wid if wid != "" else "main"
+	return "main"
+
+## The shared WorldState primitive over this service's tree. One book:
+## world deltas, zone/instance projections, player live state -- all
+## in the same StateTree, all readable through one chain.
+func world_state() -> WorldStateScript:
+	if _world_state == null:
+		_world_state = WorldStateScript.new(_tree())
+	return _world_state
 
 ## Live scope for an entity: explicit instance override first, then
 ## ZoneManager's tracked zone id, else "unzoned" (deterministic fallback
