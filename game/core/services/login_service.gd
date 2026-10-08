@@ -155,9 +155,23 @@ func register(account_id: String, password: String, display_name: String = "") -
 	return login(account_id, password)
 
 func login_as_guest() -> bool:
+	# Resume law (the web reload problem): `guest_<ticks>` is minted
+	# fresh every call, so a browser reload stranded the stable's
+	# ownership ledger behind a brand-new id. When WebIdBridge holds a
+	# remembered guest id for THIS device, resume that account instead
+	# of minting a new one -- the owned mounts and the wallet come back
+	# with the rider. Desktop/`--script` mode: the bridge answers ""
+	# (invisible contract) and this mints a fresh guest as before.
+	var remembered := ""
+	if WebIdBridge:
+		remembered = WebIdBridge.get_last_guest_id()
+	if remembered != "" and AccountService and not AccountService.get_account(remembered).is_empty():
+		return _login_existing_guest(remembered)
 	var guest_id := "guest_%d" % Time.get_ticks_msec()
 	if AccountService:
 		AccountService.create_account(guest_id, "")
+	if WebIdBridge:
+		WebIdBridge.remember_guest(guest_id)
 	_current_account_id = guest_id
 	_current_session_token = _mint_session_token()
 	_is_guest = true
@@ -174,6 +188,31 @@ func login_as_guest() -> bool:
 	login_succeeded.emit(guest_id, true)
 	return true
 
+
+## The resume path: an existing guest account id re-enters WITHOUT
+## re-creating it (the account's characters and the stable's
+## ownership ledger are exactly what a reload must keep). Same shape
+## as login_as_guest's tail, minus the mint.
+func _login_existing_guest(guest_id: String) -> bool:
+	if AccountService and AccountService.get_account(guest_id).is_empty():
+		return false
+	if WebIdBridge:
+		WebIdBridge.remember_guest(guest_id)
+	_current_account_id = guest_id
+	_current_session_token = _mint_session_token()
+	_is_guest = true
+	if AccountRollup:
+		AccountRollup.rebuild_rollup_static(guest_id)
+
+	var ar = _adapter_registry()
+	var session_cache: CacheStore = ar.get_cache(_session_cache_name) if ar else null
+	if session_cache:
+		session_cache.store(_session_key_prefix + _current_session_token, guest_id, SESSION_TTL_SEC)
+
+	GameLog.info("LoginService: Guest session resumed %s" % guest_id)
+	login_succeeded.emit(guest_id, true)
+	return true
+
 func logout() -> void:
 	if _current_account_id == "":
 		return
@@ -182,6 +221,11 @@ func logout() -> void:
 	_current_account_id = ""
 	_current_session_token = ""
 	_is_guest = false
+	# An explicit logout is an explicit goodbye: forget the remembered
+	# guest id (a reload after logout must mint a fresh guest, not
+	# resurrect the logged-out account).
+	if WebIdBridge and prev.begins_with("guest_"):
+		WebIdBridge.forget_guest()
 
 	# Remove session from cache
 	if prev_token != "":

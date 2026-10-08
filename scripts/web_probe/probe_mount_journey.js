@@ -23,9 +23,13 @@ const server = http.createServer((req, res) => {
 });
 const actions = new Map();
 const marks = new Set();
+let enteringCount = 0; // count-based: the SECOND world load must be observable (the Set only remembers the first)
 const errors = [];
 const T0 = Date.now();
-const left = () => 280000 - (Date.now() - T0);
+// 420s: the R48 journey is TWO world loads (the reload leg boots the
+// whole engine a second time) -- at software-GL fps the old 280s
+// budget collapsed the final world window to seconds.
+const left = () => 420000 - (Date.now() - T0);
 function ingest(t) {
 	if (t.startsWith("[A11Y]")) {
 		try { const e = JSON.parse(t.slice(6)); if (e && e.action) actions.set(e.action, e); } catch {}
@@ -35,11 +39,12 @@ function ingest(t) {
 	else if (/RideService: mount purchased/.test(t)) marks.add("bought");
 	else if (/RideService: mount summoned/.test(t)) marks.add("summoned");
 	else if (/RideService: mount dismissed/.test(t)) marks.add("dismounted");
-	else if (/Entering gameplay/.test(t)) marks.add("entering");
+	else if (/Entering gameplay/.test(t)) { marks.add("entering"); enteringCount++; }
 	else if (/Click: StartButton/.test(t)) marks.add("start-clicked");
 	else if (/Click: GuestButton/.test(t)) marks.add("guest-clicked");
 	else if (/Linked new character/.test(t)) marks.add("char-linked");
 	else if (/SCRIPT ERROR/.test(t)) errors.push(t.slice(0, 140));
+	else if (/WebIdBridge:/.test(t)) console.log("BRIDGE:", t.slice(0, 100));
 	return false;
 }
 const waitForMark = async (tag, ms) => {
@@ -182,11 +187,69 @@ function ACTIONS_NOW() { return "ACTIONS_NOW: " + JSON.stringify(Array.from(acti
 	// (active -> idle) -- the saddle's air-tap law, read off the panel.
 	const backToIdle = await waitForAction((l) => l === "Ride Meadow Pacer", 15000);
 	console.log("STEP16 air-tap demount:", backToIdle ? "label-transition OK" : "NOT observed", "audit-mark:", marks.has("dismounted"));
+	if (!backToIdle) { console.log(ACTIONS_NOW(), "MARKS:", JSON.stringify(Array.from(marks)), "RESULT: FAIL(no-dismount)"); await browser.close().catch(() => {}); server.close(); process.exit(1); }
+
+	// R48 THE RELOAD LEG: the ownership ledger must survive a page
+	// reload. Reload, boot again, press the SAME guest button (which
+	// now reads "Continue as guest" -- WebIdBridge remembers the id in
+	// browser local storage), enter the world, open the stable, and
+	// the owned row must be there WITHOUT a second buy. The pacer row
+	// is the oracle: ownership is ledger truth, session-riding is not.
+	console.log("STEP17 reloading the page...");
+	actions.clear();
+	await page.reload({ waitUntil: "load", timeout: 30000 });
+	if (!await clickAction((l) => l === "Start playing", null, 3, "STEP18 start-again")) { console.log(ACTIONS_NOW(), "RESULT: FAIL(restart)"); await browser.close(); server.close(); process.exit(1); }
+	// The resume door: the guest button relabeled when the user://
+	// identity file survived (WebIdBridge v2 -- NOT localStorage, which
+	// failed silently through Godot's JS-worker bridge). Failing back
+	// to the plain label is a soft miss; the ledger oracle below is
+	// the hard law either way.
+	const resumeLabel = await waitForAction((l) => l === "Continue as guest" || l === "Play without an account", 25000);
+	console.log("STEP19 guest door:", resumeLabel ? resumeLabel.label : "(no door announced)");
+	if (!await clickAction((l) => l === "Continue as guest" || l === "Play without an account", null, 3, "STEP20 resume-guest")) { console.log(ACTIONS_NOW(), "RESULT: FAIL(resume)"); await browser.close(); server.close(); process.exit(1); }
+	// Step 20 pressed the guest door. The resumed lobby lists the old
+	// character ("Play selected character") AND volunteers the class-
+	// select "Enter World" hop EITHER way: the resumed path can stay in
+	// the lobby (old character -> Enter World) or come back through the
+	// class-select card. Both roads end with the world gate below.
+	const resumeChar = await waitForAction((l) => l === "Play selected character", 25000);
+	console.log("STEP21 old character listed:", resumeChar ? "yes" : "NO (fresh guest)");
+	if (resumeChar) {
+		await clickAction((l) => l === "Play selected character", null, 2, "STEP22a play-selected");
+		// The class-select hop may reappear on the resumed path (slow fps:
+		// give it a wide window -- the first run's STEP8 needed it too).
+		const ew = await waitForAction((l) => l === "Enter World", 35000);
+		if (ew) {
+			console.log("STEP22b Enter World hop (class-select)");
+			if (!await clickAction((l) => l === "Enter World", null, 3, "STEP22c enter-world-again")) { console.log(ACTIONS_NOW(), "RESULT: FAIL(reenter)"); await browser.close(); server.close(); process.exit(1); }
+		}
+	}
+	const w2End = Date.now() + Math.min(120000, left() - 30000);
+	let world2Live = false;
+	while (Date.now() < w2End && !world2Live) {
+		if (enteringCount >= 2) { world2Live = true; break; }
+		if (await waitForAction((l) => l === "=", 2500)) world2Live = true;
+	}
+	console.log("STEP24 world-live-again:", world2Live, "entering-count:", enteringCount);
+	if (!world2Live) { await page.screenshot({ path: "/tmp/syn_mj_world2_stuck.png" }); console.log("MARKS:", JSON.stringify(Array.from(marks)), "ERRORS:", JSON.stringify(errors.slice(0, 5)), "RESULT: FAIL(world2)"); await browser.close().catch(() => {}); server.close(); process.exit(1); }
+	// Open the stable: the owned row must appear WITHOUT any Buy press.
+	const rideRow2 = await waitForAction((l) => l === "Ride Meadow Pacer", 6000);
+	if (!await clickAction((l) => l === "=", null, 3, "STEP25 open menu again")) { console.log(ACTIONS_NOW(), "RESULT: FAIL(no-menu2)"); await browser.close(); server.close(); process.exit(1); }
+	const mountsItem2 = await waitForAction((l) => /\bMounts\b/.test(l) && l.includes("[U]"), 15000);
+	if (!mountsItem2) { console.log(ACTIONS_NOW(), "RESULT: FAIL(no-mounts-item2)"); await browser.close(); server.close(); process.exit(1); }
+	let survivedRow = rideRow2;
+	if (!survivedRow) survivedRow = await waitForAction((l) => l === "Ride Meadow Pacer", 8000);
+	for (let attempt = 0; attempt < 3 && !survivedRow; attempt++) {
+		const mr2 = mountsItem2.e.rect;
+		await page.mouse.click(mr2.x + mr2.w / 2, mr2.y + mr2.h / 2);
+		survivedRow = await waitForAction((l) => l === "Ride Meadow Pacer", 12000);
+	}
+	console.log("STEP26 ownership survived the reload:", survivedRow ? "YES" : "NO");
 	await page.screenshot({ path: "/tmp/syn_mj_final.png" });
 	console.log("MARKS:", JSON.stringify(Array.from(marks)));
 	console.log("ACTIONS_SEEN:", actions.size);
 	console.log("ERRORS:", JSON.stringify(errors.slice(0, 5)));
-	const pass = backToIdle && errors.length === 0;
+	const pass = survivedRow && errors.length === 0;
 	console.log("RESULT:", pass ? "PASS" : "FAIL");
 	await browser.close().catch(() => {});
 	server.close();

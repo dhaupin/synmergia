@@ -119,7 +119,11 @@ func _owned_key(player_id: String) -> String:
 func _load_owned(player_id: String) -> void:
 	if _owned.has(player_id):
 		return
-	var store := DictStore.new()
+	# R48: the ownership ledger rides the RELOAD-DURABLE store -- a
+	# fresh guest who re-enters after a browser reload must still own
+	# what they bought. "default" was memory-only: the wasm heap died
+	# on F5 and the pacer vanished.
+	var store := DictStore.new("durable_mounts")
 	var row = store.get_kv(_owned_key(player_id), null)
 	var book: Dictionary = {}
 	if row is Dictionary:
@@ -129,7 +133,7 @@ func _load_owned(player_id: String) -> void:
 
 
 func _persist_owned(player_id: String) -> void:
-	var store := DictStore.new()
+	var store := DictStore.new("durable_mounts")
 	var book: Dictionary = _owned.get(player_id, {})
 	if book.is_empty():
 		store.erase(_owned_key(player_id))

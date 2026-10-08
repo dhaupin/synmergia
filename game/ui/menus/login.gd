@@ -39,6 +39,7 @@ func _ready() -> void:
 	if LoginService:
 		LoginService.login_failed.connect(_on_login_failed)
 		LoginService.login_succeeded.connect(_on_login_succeeded)
+	_resume_guest_door()
 
 func _apply_styles() -> void:
 	if not UIStyles:
@@ -140,6 +141,24 @@ func _on_password_submitted(text: String) -> void:
 		_show_error("Enter a password")
 		return
 	_on_login_pressed()
+
+## The resume door (the web reload problem): when this browser
+## remembers a guest id, the guest button RESUMES it instead of
+## minting a new one -- relabeling the SAME button ("Continue as
+## guest") rather than adding a second door, so the a11y contract
+## stays one button and the probe's "Play without an account" press
+## resumes automatically after a reload. Desktop/`--script` mode:
+## the bridge is invisible and the label never changes.
+func _resume_guest_door() -> void:
+	if not WebIdBridge or not WebIdBridge.has_last_guest():
+		return
+	var id := WebIdBridge.get_last_guest_id()
+	if AccountService and not AccountService.has_account(id):
+		WebIdBridge.forget_guest()
+		return
+	_guest_btn.text = "Continue as guest"
+	_guest_btn.accessibility_name = "Continue as guest"
+	_guest_btn.accessibility_description = "Resumes the guest session this browser already played"
 
 # TAB = focus navigation (accessibility). Former F5/F6 auto-login
 # debug hotkeys removed: they fired real account actions from any

@@ -6,6 +6,13 @@ const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persis
 
 var _store: PersistenceStore = null
 var _expires: Dictionary = {}
+## Which registry persistence store this DictStore rides. "default"
+## for the vast majority; services with reload-critical ledgers name
+## their own durable store (RideService -> "durable_mounts", R48).
+var _store_name: String = "default"
+
+func _init(p_store_name: String = "default") -> void:
+	_store_name = p_store_name
 
 static var _adapter_registry = null
 # Shared fallback backend: all DictStore instances must see the same KV
@@ -28,14 +35,14 @@ func _ensure_store() -> void:
 		_store = _shared_fallback
 		return
 	if reg and reg.has_method("get_persistence"):
-		_store = reg.get_persistence("default")
+		_store = reg.get_persistence(_store_name)
 	if _store == null:
 		if _shared_fallback == null:
 			_shared_fallback = MemoryPersistenceStore.new()
 			_shared_fallback.open({})
 		_store = _shared_fallback
 		if reg and reg.has_method("register_persistence"):
-			reg.register_persistence("default", _store)
+			reg.register_persistence(_store_name, _store)
 
 func _is_expired(key: String) -> bool:
 	if not _expires.has(key):

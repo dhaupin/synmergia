@@ -457,7 +457,21 @@ func _register_bag() -> void:
 	var root_node: Node = Engine.get_main_loop().root
 	var InvSvc = root_node.get_node_or_null("InventoryService")
 	if InvSvc != null and InvSvc.has_method("register_inventory"):
-		InvSvc.register_inventory(str(entity_id), _inventory_bag)
+		# ONE PURSE PER PLAYER (R48): if the service already holds a LIVE
+		# bag for this id -- a boot-restored wallet, or a purse a service
+		# registered before this body spawned -- the body ADOPTS it
+		# instead of clobbering it. A fresh bag here used to overwrite
+		# the registration AND _persist_inventory would immediately save
+		# the empty bag over the player's real wallet (the probe's buy
+		# race: 'Not enough gold (need 150, have 0)'). A freed stale
+		# registration still yields to the fresh bag.
+		var existing = InvSvc.get_inventory(str(entity_id)) if InvSvc.has_method("get_inventory") else null
+		if existing != null and is_instance_valid(existing) and existing != _inventory_bag:
+			_inventory_bag.queue_free()
+			_inventory_bag = existing
+			inventory_component = existing
+		else:
+			InvSvc.register_inventory(str(entity_id), _inventory_bag)
 
 ## Deferred stamp so entity_id is final (the planar controller's
 ## pattern). Defensive: missing AC is a no-op (deep script mode).

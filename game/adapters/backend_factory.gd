@@ -36,6 +36,18 @@ const MigrationRunner = preload("res://adapters/migrations/migration_runner.gd")
 
 const MemoryPersistenceStore = preload("res://adapters/persistence/memory_persistence_store.gd")
 const PostgresStore = preload("res://adapters/persistence/postgres_store.gd")
+## The reload-durable store (R48): memory semantics + a user:// JSON
+## snapshot on every write. Web builds: user:// is IndexedDB, so the
+## snapshot survives a page reload. Registered ONLY for the store
+## names a browser guest needs to come back with (identity, chars,
+## wallets, settings) -- heavy session stores stay on plain memory.
+const DurableStore = preload("res://adapters/persistence/durable_store.gd")
+## The store names that must survive a browser reload. Everything
+## else in the manifest registers the chosen backend unchanged.
+const DURABLE_STORES := [
+	"accounts", "characters", "inventories", "equipment", "vaults",
+	"player_settings", "sessions", "durable_mounts",
+]
 
 # Store name -> which service consumes it. Just a comment map for now;
 # the real wiring happens when each service calls AdapterRegistry at runtime.
@@ -90,6 +102,7 @@ const STORE_MANIFEST := {
 	"agent_connectors": "ConnectorService",
 	"agent_actions": "ConnectorService",
 	"player_settings": "PlayerConfig",
+	"durable_mounts": "RideService owned-mount ledger (R48: survives the web reload)",
 	"npc_offerings": "VendorService",
 	"container_configs": "SlotService",
 	"target_schemas": "TargetingManager",
@@ -170,6 +183,14 @@ func boot_defaults() -> void:
 		# Skip cache-only and memory-only entries.
 		if _is_cache_only(store_name) or _is_memory_only(store_name):
 			continue
+		# Reload-durable names get the snapshotting store regardless of
+		# the chosen backend (web memory backend is the whole point; a
+		# Postgres deployment has a real DB and does not need it).
+		if storage_backend == "memory" and DURABLE_STORES.has(store_name):
+			var durable: PersistenceStore = DurableStore.new()
+			if durable.open({"store_name": store_name}) == 0:
+				reg.register_persistence(store_name, durable)
+				continue
 		reg.register_persistence(store_name, persistence_store)
 
 	# Run schema migrations against the persistence backend (blocking

@@ -341,7 +341,18 @@ func _ready() -> void:
 		entity_id = _inv_id
 	inventory_component.set_owner_id(_inv_id)
 	if InventoryService and InventoryService.has_method("register_inventory"):
-		InventoryService.register_inventory(_inv_id, inventory_component)
+		# ONE PURSE PER PLAYER (R48): adopt a live registration for this
+		# id (a boot-restored wallet, or a purse registered before this
+		# body's _ready) instead of clobbering it with a fresh empty bag
+		# -- the clobber overwrote the registration and persisted the
+		# empty bag over the player's real wallet. A freed stale
+		# registration still yields to the fresh bag.
+		var _existing_bag = InventoryService.get_inventory(_inv_id) if InventoryService.has_method("get_inventory") else null
+		if _existing_bag != null and is_instance_valid(_existing_bag) and _existing_bag != inventory_component:
+			inventory_component.queue_free()
+			inventory_component = _existing_bag
+		else:
+			InventoryService.register_inventory(_inv_id, inventory_component)
 
 	# Duck-typed respawn fields RespawnService/Ankh read (CharacterBody3D
 	# has none of them natively; Ankh.bind_player sets respawn_ankh_id).
