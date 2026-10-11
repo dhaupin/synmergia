@@ -24,6 +24,13 @@ const SpawnMetadataScript = preload("res://core/events/spawn_metadata.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 const ANKH_SCRIPT_PATH := "res://core/schemas/ankh.gd"  # runtime load (class_name Ankh)
 
+## Placeable stations: the FUNCTIONAL dwellings whose provides_function
+## is the station law. One door, mirroring NPCData.get_crafting_station:
+## "blacksmith" = the smithy UI (repair), "crafting_forge"/
+## "crafting_workbench"/"crafting_alchemy" = RecipeData.Station ids.
+## A placed station crafts through the SAME CraftingService.craft gate
+## as an NPC's bench -- the world place is a station host, never a
+## second gate.
 signal plot_purchased(player_id: String, plot_id: String, price: int)
 signal object_placed(player_id: String, plot_id: String, object_type: String, object_id: String)
 signal object_removed(player_id: String, plot_id: String, object_type: String, object_id: String)
@@ -37,6 +44,14 @@ const PERSONAL_ANKH_COST := 100000
 
 var _plots: Dictionary = {}        # plot_id -> Dictionary
 var _test_overrides: Dictionary = {}  # service name -> node (test seams)
+
+## The function -> RecipeData.Station map (the placed-station arm of
+## the station law; NPCData.get_crafting_station is the NPC arm).
+const STATION_FUNCTIONS: Dictionary = {
+	"crafting_forge": 1,
+	"crafting_workbench": 2,
+	"crafting_alchemy": 3,
+}
 
 func _ready() -> void:
 	GameLog.info("DwellingService ready")
@@ -226,6 +241,144 @@ func place_personal_ankh(player, plot_id: String):
 	ankh.queue_free()
 	return null
 
+## Place a CRAFT/BUILD station (anvil, forge, workbench, cauldron) on
+## an owned plot. dwelling_id is a FUNCTIONAL DwellingData id from
+## data/dwellings/. Two station kinds exist:
+##   "blacksmith"          -> the repair station (opens BlacksmithUI)
+##   "crafting_*"          -> a RecipeData.Station (opens WorkbenchUI
+##                            at STATION_FUNCTIONS[function])
+## The item is CONSUMED from the crafter's purse (a thing you placed is
+## a thing you no longer carry), records the placed object on the plot
+## under stations[function], and the interaction law lives in the data
+## (is_interactable + interaction_type). Access is STAMPED with the
+## plot's PlacementAccess like every other placed object.
+func place_station(player, plot_id: String, dwelling_id: String) -> Dictionary:
+	if player == null or not ("entity_id" in player):
+		return {"ok": false, "reason": "invalid_player"}
+	var pid := str(player.entity_id)
+	var plot: Dictionary = _plots.get(plot_id, {})
+	if plot.is_empty():
+		return {"ok": false, "reason": "unknown_plot"}
+	if str(plot["owner_id"]) != pid:
+		return {"ok": false, "reason": "not_owner"}
+	var ds = _svc("DataService")
+	# The station law reads the ITEM catalog: placeable dwellings are
+	# Item-scripted .tres (merged into _items by load_dwellings), and
+	# get_item is the one door that resolves them (get_dwelling's pure
+	# DwellingData registry never carries these).
+	var dwelling = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
+	if dwelling == null or not bool(dwelling.get("is_placeable")):
+		return {"ok": false, "reason": "unknown_dwelling"}
+	var function := str(dwelling.get("provides_function"))
+	if function != "blacksmith" and not STATION_FUNCTIONS.has(function):
+		return {"ok": false, "reason": "not_a_station"}
+	if not plot.has("stations") or plot["stations"] == null:
+		plot["stations"] = {}
+	var stations: Dictionary = plot["stations"]
+	if stations.has(function):
+		return {"ok": false, "reason": "station_slot_taken"}
+	# The citizen's purse pays IN GOODS, not gold: consume ONE dwelling
+	# item from the bag (all-or-nothing; duplicates never eat).
+	var inv_svc = _svc("InventoryService")
+	var bag = inv_svc.get_inventory(pid) if inv_svc != null and inv_svc.has_method("get_inventory") else null
+	if bag == null or not bag.has_method("remove_item_by_id"):
+		return {"ok": false, "reason": "no_inventory"}
+	if not bag.remove_item_by_id(dwelling_id, 1):
+		return {"ok": false, "reason": "item_not_in_bag"}
+
+	# Place a visual anchor node at the plot (the station's world
+	# body). Geometry is a plain pedestal box; the craft/repair UI
+	# opens from the player's interaction with THIS node.
+	var station_node := _build_station_node(dwelling_id, function)
+	if not _spawn_at(station_node, plot):
+		station_node.queue_free()
+		# Refund: the purse never loses the thing.
+		var refund_item = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
+		if refund_item != null and bag.has_method("add_item"):
+			bag.add_item(refund_item, 1)
+		return {"ok": false, "reason": "spawn_failed"}
+	stations[function] = {
+		"dwelling_id": dwelling_id,
+		"node_id": station_node.name,
+	}
+	if plot.has("access") and plot["access"] != null:
+		station_node.set_meta("placement_access", plot["access"])
+	object_placed.emit(pid, plot_id, "station", dwelling_id)
+	GameLog.info("DwellingService: %s placed %s (%s) on plot %s" % [pid, dwelling_id, function, plot_id])
+	return {"ok": true, "station": stations[function], "function": function}
+
+## The station law read for a PLOT: which stations have been placed
+## there ({function: true}), so interaction resolution answers
+## "can this plot host a craft menu" through data truth, not position
+## heuristics. "blacksmith" included -- the repair station is a station.
+func get_plot_stations(plot_id: String) -> Dictionary:
+	var out := {}
+	for function in _plots.get(plot_id, {}).get("stations", {}):
+		out[str(function)] = true
+	return out
+
+## Remove a placed station from YOUR plot: frees the node, clears the
+## slot, and REFUNDS the dwelling item to the bag (a placed thing is
+## yours to take back -- unlike the guard, who was paid in gold).
+func remove_station(player, plot_id: String, function: String) -> Dictionary:
+	if player == null or not ("entity_id" in player):
+		return {"ok": false, "reason": "invalid_player"}
+	var pid := str(player.entity_id)
+	var plot: Dictionary = _plots.get(plot_id, {})
+	if plot.is_empty():
+		return {"ok": false, "reason": "unknown_plot"}
+	if str(plot["owner_id"]) != pid:
+		return {"ok": false, "reason": "not_owner"}
+	var stations: Dictionary = plot.get("stations", {})
+	if not stations.has(function):
+		return {"ok": false, "reason": "not_placed"}
+	var entry: Dictionary = stations[function]
+	var node_id := str(entry.get("node_id", ""))
+	var parent: Node = get_tree().current_scene if is_inside_tree() else null
+	if parent != null:
+		var node = parent.get_node_or_null(node_id)
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	stations.erase(function)
+	# Refund the dwelling item (placed from the PURSE in Item shape,
+	# so it returns in Item shape through get_item).
+	var ds = _svc("DataService")
+	var inv_svc2 = _svc("InventoryService")
+	var bag2 = inv_svc2.get_inventory(pid) if inv_svc2 != null and inv_svc2.has_method("get_inventory") else null
+	var dwelling_id := str(entry.get("dwelling_id", ""))
+	var as_item = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
+	if bag2 != null and as_item != null and bag2.has_method("add_item"):
+		bag2.add_item(as_item, 1)
+	object_removed.emit(pid, plot_id, "station", dwelling_id)
+	GameLog.info("DwellingService: %s removed station %s from plot %s" % [pid, function, plot_id])
+	return {"ok": true}
+
+## The placed station's world node: a simple pedestal; visuals upgrade
+## later, the INTERACTION is what's load-bearing (the node is what
+## interaction resolution targets). Named deterministically so
+## remove_station can find it after a save/reload.
+func _build_station_node(dwelling_id: String, function: String) -> StaticBody3D:
+	var node := StaticBody3D.new()
+	node.name = "station_%s_%d" % [function, Time.get_ticks_msec()]
+	node.set_meta("dwelling_id", dwelling_id)
+	node.set_meta("provides_function", function)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.0, 1.0, 1.0)
+	shape.shape = box
+	node.add_child(shape)
+	var mesh := MeshInstance3D.new()
+	var box_mesh := BoxMesh.new()
+	box_mesh.size = Vector3(1.0, 1.0, 1.0)
+	var mat := StandardMaterial3D.new()
+	# Forge/anvil get smithy charcoal; the rest get carpenter oak.
+	mat.albedo_color = Color(0.25, 0.22, 0.2) if function == "blacksmith" or function == "crafting_forge" else Color(0.55, 0.38, 0.22)
+	box_mesh.material = mat
+	mesh.mesh = box_mesh
+	node.add_child(mesh)
+	return node
+
+
 ## Shared spawn: parent to the scene (or root in script mode), put the
 ## object at the plot center.
 func _spawn_at(node: Node3D, plot: Dictionary) -> bool:
@@ -294,6 +447,10 @@ func handle_dwelling_command(sender_id: String, command: String, args: Array) ->
 			return _cmd_dismiss_guard(sender_id, player, pos)
 		"buildhouse":
 			return _cmd_build_house(sender_id, player, pos)
+		"placestation":
+			return _cmd_place_station(sender_id, player, pos, args)
+		"removestation":
+			return _cmd_remove_station(sender_id, player, pos)
 		"plotinfo":
 			var plot := get_nearest_plot(pos, "")
 			if plot.is_empty():
@@ -304,10 +461,60 @@ func handle_dwelling_command(sender_id: String, command: String, args: Array) ->
 				str(plot["id"]),
 				"owned by %s" % owner if owner != "" else "for sale",
 				int(plot["price"])]
+			var stations: Dictionary = plot.get("stations", {})
+			if not stations.is_empty():
+				desc += " | stations: " + ", ".join(stations.keys())
 			_notify(sender_id, desc)
 			return true
 		_:
 			return false
+
+## /placestation <dwelling_id>: place a FUNCTIONAL dwelling (anvil,
+## forge, workbench, cauldron) on YOUR plot. The item is consumed from
+## the purse; the interaction then opens the craft/repair UI at that
+## station (same gate as an NPC bench).
+func _cmd_place_station(sender_id: String, player, pos: Vector3, args: Array) -> bool:
+	var plot := get_nearest_plot(pos, "owned")
+	if plot.is_empty() or str(plot["owner_id"]) != sender_id:
+		_notify(sender_id, "You must stand on your own plot.")
+		return true
+	if args.is_empty() or str(args[0]).strip_edges().is_empty():
+		_notify(sender_id, "Usage: placestation <dwelling_id>")
+		return true
+	var dwelling_id := str(args[0]).strip_edges()
+	var result := place_station(player, str(plot["id"]), dwelling_id)
+	if result.get("ok", false):
+		_notify(sender_id, "%s placed. %s your hall now hosts it." % [dwelling_id, str(result.get("function", ""))])
+	else:
+		var why := str(result.get("reason", "failed"))
+		var friendly: Dictionary = {
+			"unknown_dwelling": "No such dwelling: %s" % dwelling_id,
+			"not_a_station": "%s is not a functional station." % dwelling_id,
+			"station_slot_taken": "This plot already hosts that kind of station.",
+			"item_not_in_bag": "You are not carrying a %s." % dwelling_id,
+		}
+		_notify(sender_id, str(friendly.get(why, "Place failed: %s." % why)))
+	return true
+
+## /removestation <function>: take a placed station back (item
+## refunded to the purse).
+func _cmd_remove_station(sender_id: String, player, pos: Vector3) -> bool:
+	var plot := get_nearest_plot(pos, "owned")
+	if plot.is_empty() or str(plot["owner_id"]) != sender_id:
+		_notify(sender_id, "You must stand on your own plot.")
+		return true
+	var stations: Dictionary = plot.get("stations", {})
+	if stations.is_empty():
+		_notify(sender_id, "You have no stations here.")
+		return true
+	# Without args, remove the first station (a plot tends to host one).
+	var function := str(stations.keys()[0])
+	var result := remove_station(player, str(plot["id"]), function)
+	if result.get("ok", false):
+		_notify(sender_id, "%s station taken back (item refunded)." % function)
+	else:
+		_notify(sender_id, "Remove failed: %s." % str(result.get("reason", "failed")))
+	return true
 
 func _cmd_place(sender_id: String, player, pos: Vector3, kind: String, args: Array) -> bool:
 	var plot := get_nearest_plot(pos, "owned")

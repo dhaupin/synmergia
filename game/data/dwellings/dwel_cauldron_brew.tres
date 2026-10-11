@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dwel_cauldron_brew"
+display_name = "Brew Cauldron"
+description = "A squat cauldron over a low flame. The alchemy station awaits its recipes; placing it now prepares your hall for them."
+icon_path = "res://icons/dwellings/cauldron_brew.png"
+item_category = 7
+rarity = 2
+equip_slot = 0
+stack_size = 1
+sell_price = 700
+buy_price = 14000
+required_level = 0
+dwelling_category = "functional"
+is_placeable = true
+is_interactable = true
+interaction_type = "craft"
+interaction_radius = 1.5
+provides_function = "crafting_alchemy"
+function_capacity = 0
+tax_modifier = 0.05
+maintenance_cost = 8.0
+decay_time_days = 0.0
+allow_guild_access = true
+allow_friends_access = true
+allow_public_view = true
+dyeable = false
+dismantle_returns = [{
+"amount": 10,
+"id": "res_stone",
+"type": "resource"
+}, {
+"amount": 3,
+"id": "res_iron_ore",
+"type": "resource"
+}]

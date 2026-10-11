@@ -230,6 +230,37 @@ func _dup_item(src: Item) -> Item:
 				dup.set(pname, src.get(pname))
 	return dup
 
+
+## Remove by ID: stack-aware consume of `quantity` of item_id. Returns
+## true when ALL were consumed (refuses with NOTHING eaten when the
+## purse holds less -- the same no-partial-consumes law the crafting
+## gate uses). The by-id seam DwellingService.place_station pays
+## stations through.
+func remove_item_by_id(item_id: String, quantity: int = 1) -> bool:
+	if item_id.is_empty() or quantity <= 0:
+		return false
+	# Count first (no partial eats).
+	var have := 0
+	for slot_item in _inventory:
+		if slot_item != null and slot_item.id == item_id:
+			have += maxi(1, int(slot_item.current_stack))
+	if have < quantity:
+		return false
+	var left := quantity
+	for i in range(_inventory.size()):
+		if left <= 0:
+			break
+		var slot_item: Item = _inventory[i]
+		if slot_item == null or slot_item.id != item_id:
+			continue
+		var stack: int = maxi(1, int(slot_item.current_stack))
+		var take: int = mini(left, stack)
+		remove_item(i, take)
+		if _inventory[i] != null and _inventory[i].id == item_id:
+			continue  # partially eaten stack still feeds the next take
+		left -= take
+	return left <= 0
+
 func remove_item(slot: int, quantity: int = -1) -> Item:
 	if slot < 0 or slot >= _inventory.size():
 		return null

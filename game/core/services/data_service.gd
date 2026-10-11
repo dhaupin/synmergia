@@ -210,10 +210,21 @@ func load_events() -> void:
 	_events = _scan_directory(_data_path + "events", "event")
 	GameLog.info("DataService: Loaded %d events" % _events.size())
 
-## Load dwellings from data/dwellings/
+## Load dwellings from data/dwellings/. Item-scripted dwellings (the
+	# placeable furniture: chairs, fireplaces, craft stations) MERGE into
+	# _items like accessories do -- the purse carries them as plain
+	# Items, so placeable stations are bought/held/crafted goods. Pure
+	# DwellingData entries stay dwelling-only.
 func load_dwellings() -> void:
-	_dwellings = _scan_directory(_data_path + "dwellings", "dwelling")
-	GameLog.info("DataService: Loaded %d dwellings" % _dwellings.size())
+	var dwelling_paths := _scan_directory(_data_path + "dwellings", "dwelling")
+	_dwellings = dwelling_paths
+	var dwelling_items := 0
+	for id in dwelling_paths:
+		var dw = dwelling_paths[id]
+		if dw != null and dw.get_script() != null and dw is Item:
+			_items.merge({str(id): dw})
+			dwelling_items += 1
+	GameLog.info("DataService: Loaded %d dwellings (%d purse-carried items)" % [_dwellings.size(), dwelling_items])
 
 ## Load NPCs from data/npc/
 func load_npcs() -> void:
@@ -558,7 +569,7 @@ func get_event(id: String) -> EventData:
 	GameLog.warn("DataService: Event not found: " + id)
 	return null
 
-func get_dwelling(id: String) -> DwellingData:
+func get_dwelling(id: String) -> Resource:
 	if _dwellings.has(id):
 		return _dwellings.get(id)
 	GameLog.warn("DataService: Dwelling not found: " + id)

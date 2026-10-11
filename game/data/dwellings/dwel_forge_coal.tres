@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dwel_forge_coal"
+display_name = "Coal Forge"
+description = "A house forge fed by charcoal bellows. Smelts ore and hammers ingots at home, failure roll and all. Interact once placed to open the craft table at the FORGE."
+icon_path = "res://icons/dwellings/forge_coal.png"
+item_category = 7
+rarity = 3
+equip_slot = 0
+stack_size = 1
+sell_price = 1800
+buy_price = 36000
+required_level = 0
+dwelling_category = "functional"
+is_placeable = true
+is_interactable = true
+interaction_type = "craft"
+interaction_radius = 1.5
+provides_function = "crafting_forge"
+function_capacity = 0
+tax_modifier = 0.1
+maintenance_cost = 25.0
+decay_time_days = 0.0
+allow_guild_access = true
+allow_friends_access = true
+allow_public_view = true
+dyeable = false
+dismantle_returns = [{
+"amount": 20,
+"id": "res_stone",
+"type": "resource"
+}, {
+"amount": 8,
+"id": "res_iron_ore",
+"type": "resource"
+}]

@@ -175,10 +175,30 @@ enum EquipSlot {
 @export var color: Color = Color.WHITE
 
 # Dwelling/Housing specific
-@export var dwelling_category: String = ""  # furniture, decoration, lighting, storage, etc.
+@export var dwelling_category: String = ""  # furniture, decoration, lighting, storage, functional, etc.
 @export var dwelling_size: Vector3 = Vector3.ONE  # Size in housing grid units
 @export var is_placeable: bool = false
 @export var placement_zones: Array[String] = []  # Where it can be placed
+
+# PLACEABLE STATION law (the functional arm of dwelling placement):
+# interaction + the provided function, readable by the placement
+# service and the interaction resolver. "blacksmith" = the repair
+# station; "crafting_forge"/"crafting_workbench"/"crafting_alchemy" =
+# a RecipeData.Station host (DwellingService.STATION_FUNCTIONS maps
+# them; NPCData.get_crafting_station is the NPC arm).
+@export var is_interactable: bool = false
+@export var interaction_type: String = ""  # "craft", "blacksmith", "open_chest", "sit", "light_fire"...
+@export var interaction_radius: float = 1.5
+@export var provides_function: String = ""  # "crafting_forge", "blacksmith", "ambient_light", "storage_100"...
+@export var function_capacity: int = 0
+@export var tax_modifier: float = 0.0
+@export var maintenance_cost: float = 0.0
+@export var decay_time_days: float = 0.0
+@export var allow_guild_access: bool = false
+@export var allow_friends_access: bool = false
+@export var allow_public_view: bool = false
+@export var dyeable: bool = false
+@export var dismantle_returns: Array[Dictionary] = []  # [{"id": "res_stone", "amount": 20, "type": "resource"}]
 
 # Event specific
 @export var event_id: String = ""  # Links to event_system event
@@ -431,6 +451,9 @@ static func from_dict(data: Dictionary) -> Item:
 	item.bind_on_pickup = data.get("bind_on_pickup", false)
 	item.soulbound = data.get("soulbound", false)
 	item.unique = data.get("unique", false)
+	# The placeable-station law rides to_dict/from_dict too, so a
+	# placed-then-loaded station keeps its interaction law.
+	item.is_placeable = bool(data.get("is_placeable", false))
 	item.weight = float(data.get("weight", 0.0))
 	item.sell_price = int(data.get("sell_price", 0))
 	item.buy_price = int(data.get("buy_price", 0))

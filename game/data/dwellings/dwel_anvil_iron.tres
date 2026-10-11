@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dwel_anvil_iron"
+display_name = "Iron Anvil"
+description = "A blacksmith's anvil for your hall. Repair worn blades at home -- no more hauling to the village smithy. Interact once placed to open the smithy at this anvil."
+icon_path = "res://icons/dwellings/anvil_iron.png"
+item_category = 7
+rarity = 2
+equip_slot = 0
+stack_size = 1
+sell_price = 1200
+buy_price = 24000
+required_level = 0
+dwelling_category = "functional"
+is_placeable = true
+is_interactable = true
+interaction_type = "blacksmith"
+interaction_radius = 1.5
+provides_function = "blacksmith"
+function_capacity = 0
+tax_modifier = 0.08
+maintenance_cost = 15.0
+decay_time_days = 0.0
+allow_guild_access = true
+allow_friends_access = true
+allow_public_view = true
+dyeable = false
+dismantle_returns = [{
+"amount": 12,
+"id": "res_iron_ore",
+"type": "resource"
+}, {
+"amount": 6,
+"id": "res_stone",
+"type": "resource"
+}]

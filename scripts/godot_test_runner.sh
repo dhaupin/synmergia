@@ -97,6 +97,7 @@ probe_world_state
 probe_harvest
 probe_crafting
 probe_crafting_ui
+probe_placeable_stations
 probe_underworld
 probe_world_scoping
 probe_water_mounts

@@ -4930,3 +4930,47 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   probe_startup_flow PASS 18, charset lint 3/3, naming lint exit 0,
   tsc exit 0, sync:data emits recipes:3. NOT changed: the gate chain,
   no service assertions weakened, no probe set weakened.
+
+## 2026-10-11 -- placeable crafting stations (S16.9 slice 3)
+
+  The request: NPCs to visit, places to install your own bench. The
+  NPC arm already stood (station law = NPCData.get_crafting_station,
+  forge/workbench_service.tres); this slice builds the PLOT arm so a
+  house or guildhall can host its own smithy.
+  (1) DATA: four FUNCTIONAL dwellings in data/dwellings/ --
+  dwel_anvil_iron (blacksmith/repair), dwel_forge_coal
+  (crafting_forge), dwel_workbench_oak (crafting_workbench),
+  dwel_cauldron_brew (crafting_alchemy). Item-scripted like the
+  existing fireplace/chair (the purse carries them; buy_price 14k-36k,
+  dismantle_returns refund bill). DataService.load_dwellings merges
+  item-scripted dwellings into _items (the accessory idiom);
+  Item.gained the station law fields (provides_function,
+  interaction_type, is_interactable, tax/maintenance, refund bill).
+  get_dwelling's return type widened to Resource (Item-scripted
+  entries were rejected by the DwellingData-typed door).
+  (2) SERVICE: DwellingService.place_station(player, plot_id,
+  dwelling_id) -- the PLOT LAW: owner-only, one station per function
+  per plot (the slot key IS the function), paid in GOODS not gold
+  (remove_item_by_id; no partial eats), a world node stamped with the
+  plot's PlacementAccess, object_placed emitted. STATION_FUNCTIONS
+  maps provided function -> the SAME RecipeData.Station ids the NPC
+  door reads; "blacksmith" is the repair station. remove_station
+  refunds the item through the same purse law. Commands:
+  /placestation <dwelling_id>, /removestation; /plotinfo lists
+  stations. InventoryService.remove_item_by_id: the by-id stack-aware
+  seam (count-first, no partial consumes).
+  (3) PARITY: the WorkbenchUI opened at a placed station's
+  RecipeData.Station lists the same catalog and presses the SAME
+  CraftingService.craft gate -- a place is a station host, never a
+  second gate. A kite crafted at a PLACED bench rides RideService;
+  the bag never smells a wing; provenance actor = the placer.
+  Probes/scripts: probe_placeable_stations (16 checks: data truth,
+  station-law map, plot law, goods payment, slot uniqueness,
+  non-station refusal, station filter, gate parity, mount law,
+  provenance, refund) joins DEFAULT_SET after probe_crafting_ui.
+  Verification: placement tests 65/0, probe_placeable_stations 16,
+  probe_crafting 13, probe_crafting_ui 20, startup 18, riding 117/0,
+  charset lint 3/3, naming lint exit 0, tsc exit 0, sync exit 0.
+  NOT changed: the gate chain, the NPC station door, the service
+  assertions. Pre-existing lint cyclic-preload/extends-order failures
+  untouched (different systems).
