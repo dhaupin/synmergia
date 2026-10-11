@@ -384,7 +384,14 @@ func _persist_inventory(player_id: String) -> void:
 	var store := DictStore.new()
 	if _player_inventories.has(player_id):
 		var inv: InventoryComponent = _player_inventories[player_id]
-		store.set_kv(_kv_prefix + player_id, inv.to_dict())
+		# A null bag (registered for the no-purse law checks, or a slot
+		# freed before its registration was cleaned up) erases its save
+		# rather than crashing on to_dict -- a purse that is not held
+		# is a purse that does not persist.
+		if inv != null:
+			store.set_kv(_kv_prefix + player_id, inv.to_dict())
+		else:
+			store.erase(_kv_prefix + player_id)
 	else:
 		store.erase(_kv_prefix + player_id)
 

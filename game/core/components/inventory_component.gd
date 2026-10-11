@@ -256,8 +256,13 @@ func remove_item_by_id(item_id: String, quantity: int = 1) -> bool:
 		var stack: int = maxi(1, int(slot_item.current_stack))
 		var take: int = mini(left, stack)
 		remove_item(i, take)
-		if _inventory[i] != null and _inventory[i].id == item_id:
-			continue  # partially eaten stack still feeds the next take
+		# The take is ALWAYS accounted: a partially-eaten stack (take <
+		# stack) leaves the remainder in the slot AND pays its share of
+		# the quantity. The old continue-when-remainder keep the loop
+		# honest only for a full-slot consume: on a stacked item the
+		# left counter never moved and the call returned false WITH one
+		# unit already eaten (the double-charge bug the skiff ticket
+		# redemption tripped: the purse lost a chit AND the gold).
 		left -= take
 	return left <= 0
 

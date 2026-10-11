@@ -195,6 +195,65 @@ func _run() -> void:
 		store.erase("ferry_wake:" + pid)
 		invs.unregister_inventory(pid)
 
+	# ---- G. THE TICKET LAW (the chit is the fare; gold is the fallback) --------
+	# The quay's cellar closed the DATA gap (item_skiff_ticket is real
+	# item data); this closes the REDEMPTION gap: charter_skiff spends
+	# the chit first, gold second. Based from F2's barque-forward
+	# position: deckhand still holds wake rights of "deckhand|id" but
+	# the manifest is empty (abandoned above).
+	fs._clock_override = epoch
+	var InvComp2 = load("res://core/components/inventory_component.gd")
+	var TicketItem = load("res://core/schemas/item.gd")
+	var chit_holder = InvComp2.new()
+	root.add_child(chit_holder)
+	invs.register_inventory("chit_holder", chit_holder)
+	chit_holder.add_gold(100)
+	var ticket_item: Item = TicketItem.new()
+	ticket_item.id = "item_skiff_ticket"
+	ticket_item.display_name = "Chartered Skiff Ticket"
+	ticket_item.current_stack = 3
+	chit_holder._inventory.append(ticket_item)
+	fs._record_wake("chit_holder", id)
+	var ticketed: Dictionary = fs.charter_skiff("chit_holder", id)
+	_check("the chit is the fare (a ticketed wake sails)", \
+		bool(ticketed["ok"]) and bool(ticketed["skiff"]))
+	_check("the ticket is the fare -- the gold is UNTOUCHED (100 stays)", \
+		chit_holder.get_gold() == 100)
+	var chit_left := 0
+	for slot_item2 in chit_holder._inventory:
+		if slot_item2 != null and slot_item2.id == "item_skiff_ticket":
+			chit_left += maxi(1, int(slot_item2.current_stack))
+	_check("ONE chit spent (3 - 1 = 2 left, no partial eats)", chit_left == 2)
+	fs.abandon_riding("chit_holder")
+	fs._sailings.erase(id)
+	fs._manifests[id] = {}
+
+	# The wake law gates first -- order the purse check the same way:
+	# a wake with NO purse registered refuses at the purse gate.
+	invs.register_inventory("purseless", null)
+	fs._record_wake("purseless", id)
+	var no_purse: Dictionary = fs.charter_skiff("purseless", id)
+	invs._player_inventories.erase("purseless")
+	_check("no purse at all --> no ride (the law keeps a body)", \
+		not bool(no_purse["ok"]) and str(no_purse["reason"]).contains("purse"))
+
+	# Gold fallback still sails after the chit runs dry: exhaust the
+	# remaining chits FIRST (the chit law would rightly take precedence
+	# while one is still in the purse).
+	while chit_holder.remove_item_by_id("item_skiff_ticket", 1):
+		pass
+	var chit_none := true
+	for last_slot in chit_holder._inventory:
+		if last_slot != null and last_slot.id == "item_skiff_ticket":
+			chit_none = false
+	_check("the chits run dry (exhausted honestly, 0 left)", chit_none)
+	fs._manifests[id] = {}
+	fs._sailings.erase(id)
+	var faller: Dictionary = fs.charter_skiff("chit_holder", id, 10)
+	_check("gold is the FALLBACK fare (10 gold charge accepted)", \
+		bool(faller["ok"]) and chit_holder.get_gold() == 90)
+	fs.abandon_riding("chit_holder")
+
 	if _fails == 0:
 		print("FERRY PROBE PASSED (%d checks)" % _checks)
 		quit(0)

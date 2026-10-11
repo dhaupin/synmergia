@@ -5062,3 +5062,35 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   Verification: probe_shipwreck_quay 53/53 PASSED (exit 0),
   probe_ferry 28 PASSED, probe_placeable_stations 25 PASSED,
   probe_crafting 13 PASSED, charset lint 3/0 (exit 0).
+
+## 2026-10-11 -- the ticket law + the double-charge fix (the limitation pair closes)
+
+  The final-check limitations, both fixed at the ROOT:
+  (1) THE TICKET LAW (ferry_service.charter_skiff): the chartered
+  skiff chit (item_skiff_ticket) is now the LAWFUL FARE -- a chit in
+  the purse is spent FIRST (count-first, no partial eats, the
+  place_station goods seam) and the gold fare is the FALLBACK for
+  travelers who never pre-paid (the sink stays; the chit is not a
+  tax). Wake law gates BOTH fares. No purse at all = no ride.
+  (2) THE DOUBLE-CHARGE BUG (inventory_component.remove_item_by_id):
+  the consume loop never decremented `left` on a PARTIAL take -- a
+  stacked item (skiff ticket stack 3, take 1) ate one unit AND
+  returned false, so upstream callers replayed the gold charge on
+  top. The old path only succeeded for stack_size==1 items
+  (dwellings), which is why place_station never tripped it. Fix: the
+  take is ALWAYS accounted; a partially-eaten stack leaves the
+  remainder in the slot AND pays its share. Direct dev probe:
+  remove("item_skiff_ticket",1) -> true, stack 3->2.
+  (3) THE NULL-BAG PERSIST CRASH (inventory_service._persist_inventory):
+  a null registered bag (no-purse law checks) crashed to_dict at
+  register time. A purse that is not held erases its save instead.
+  Probes/tests: probe_ferry grew G-section THE TICKET LAW (chit is
+  the fare / gold untouched / one chit spent / no-purse refusal /
+  chits exhausted then gold fallback) -- 28 -> 34 checks.
+  Verification (exit statuses): probe_ferry 34/34 exit 0, probe_
+  shipwreck_quay 53 PASSED, probe_placeable_stations 25 PASSED,
+  probe_crafting 13 PASSED, probe_crafting_ui 20 PASSED, charset
+  lint 3/0 (exit 0).
+  NOT changed: the ferry schedule primitive, the manifest/riding
+  book, the wake persistence law, the place_station payment path
+  (it now benefits from the honest partial-take accounting).

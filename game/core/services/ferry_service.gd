@@ -191,6 +191,15 @@ func board_ferry(player_id: String, vehicle_id: String) -> Dictionary:
 ## The chartered skiff (tier 2): 2.5x speed, ticket-priced, and the
 ## WAKE LAW -- a player who has never ridden this route rides the
 ## ferry first; the world makes you take the sea at least once.
+##
+## THE TICKET LAW (the quay's cellar shelves closed the data gap; this
+## closes the redemption gap): the chartered skiff ticket
+## (item_skiff_ticket) is the lawful fare. A chit in the purse is
+## spent FIRST -- you pre-paid for the ticket, it gets used -- and
+## the gold fare is the FALLBACK for travelers who never bought one
+## (the sink stays, the ticket is not a tax). The wake law gates
+## BOTH fares: never a free ride, only a different purse.
+const SKIFF_TICKET_ITEM_ID := "item_skiff_ticket"
 func charter_skiff(player_id: String, vehicle_id: String, ticket_cost: int = DEFAULT_SKIFF_TICKET) -> Dictionary:
 	var v = _ferries.get(vehicle_id)
 	if v == null:
@@ -205,15 +214,22 @@ func charter_skiff(player_id: String, vehicle_id: String, ticket_cost: int = DEF
 		return {"ok": false, "reason": "the dock is empty -- the ferry is at sea"}
 	if _manifests[vehicle_id].has(player_id):
 		return {"ok": false, "reason": "already aboard"}
-	# The ticket: gold through the player's inventory (the sink).
-	if ticket_cost > 0:
-		var inv = InventoryService.get_inventory(player_id) if InventoryService != null else null
-		if inv == null or not inv.has_method("remove_gold"):
-			return {"ok": false, "reason": "no purse"}
-		if not inv.remove_gold(ticket_cost):
-			return {"ok": false, "reason": "not enough gold (the skiff costs %d)" % ticket_cost}
-		if InventoryService.has_method("persist_inventory"):
-			InventoryService.persist_inventory(player_id)
+	# THE TICKET LAW: the chit is the fare. First the purse is read for
+	# an unspent ticket (count-first, no partial eats -- the same seam
+	# the placed stations pay goods through); one ticket covers one
+	# crossing. Gold is the FALLBACK fare (the sink stays for
+	# travelers who never bought the chit). No purse at all = no ride.
+	var inv = InventoryService.get_inventory(player_id) if InventoryService != null else null
+	if inv == null:
+		return {"ok": false, "reason": "no purse"}
+	var paid_with_ticket := false
+	if inv.has_method("remove_item_by_id") and inv.remove_item_by_id(SKIFF_TICKET_ITEM_ID, 1):
+		paid_with_ticket = true
+	elif ticket_cost > 0:
+		if not inv.has_method("remove_gold") or not inv.remove_gold(ticket_cost):
+			return {"ok": false, "reason": "no ticket and not enough gold (the skiff costs %d)" % ticket_cost}
+	if InventoryService.has_method("persist_inventory"):
+		InventoryService.persist_inventory(player_id)
 	_manifests[vehicle_id][player_id] = true
 	# The skiff leaves NOW (it does not wait for the schedule): its
 	# crossing is the ferry's divided by the multiplier.
