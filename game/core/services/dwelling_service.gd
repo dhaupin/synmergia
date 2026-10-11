@@ -289,7 +289,7 @@ func place_station(player, plot_id: String, dwelling_id: String) -> Dictionary:
 	# Place a visual anchor node at the plot (the station's world
 	# body). Geometry is a plain pedestal box; the craft/repair UI
 	# opens from the player's interaction with THIS node.
-	var station_node := _build_station_node(dwelling_id, function)
+	var station_node := _build_station_node(dwelling_id, function, stations.size())
 	if not _spawn_at(station_node, plot):
 		station_node.queue_free()
 		# Refund: the purse never loses the thing.
@@ -355,13 +355,18 @@ func remove_station(player, plot_id: String, function: String) -> Dictionary:
 
 ## The placed station's world node: a simple pedestal; visuals upgrade
 ## later, the INTERACTION is what's load-bearing (the node is what
-## interaction resolution targets). Named deterministically so
-## remove_station can find it after a save/reload.
-func _build_station_node(dwelling_id: String, function: String) -> StaticBody3D:
+## interaction resolution targets). Joins the "placed_stations" group
+## so the E-key chain resolves it; named deterministically so
+## remove_station can find it after a save/reload. Each extra station
+## offsets 1.5 m on X from the plot center so two stations in one hall
+## never coincide (the nearest-node law would tie) and never overlap.
+func _build_station_node(dwelling_id: String, function: String, slot_index: int = 0) -> StaticBody3D:
 	var node := StaticBody3D.new()
 	node.name = "station_%s_%d" % [function, Time.get_ticks_msec()]
 	node.set_meta("dwelling_id", dwelling_id)
 	node.set_meta("provides_function", function)
+	node.add_to_group("placed_stations")
+	node.position = Vector3(float(slot_index) * 1.5, 0, 0)
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = Vector3(1.0, 1.0, 1.0)
@@ -379,6 +384,49 @@ func _build_station_node(dwelling_id: String, function: String) -> StaticBody3D:
 	return node
 
 
+## The E-key resolve: the nearest placed station within interaction
+## radius of the player (the node's own item data carries the radius
+## law; default 1.5 m matches every .tres). Returns {ok, node,
+## function, dwelling_id, interaction_type} or {ok: false} -- the ONE
+## resolving door for `_use_nearby_station` in PlayerController, so
+## the walk-up-and-press law never re-derives from position guesses
+## or a second meta read.
+func resolve_nearby_station(player, max_radius: float = -1.0) -> Dictionary:
+	if player == null or not ("global_position" in player):
+		return {"ok": false}
+	var origin: Vector3 = player.global_position
+	var best: Node = null
+	var best_dist := INF
+	for node in get_tree().get_nodes_in_group("placed_stations"):
+		if not is_instance_valid(node) or not (node is Node3D):
+			continue
+		# Radius law from the node's own dwelling data (the .tres truth).
+		var dwelling_id := str(node.get_meta("dwelling_id", ""))
+		var ds = _svc("DataService")
+		var item = ds.get_item(dwelling_id) if ds != null and ds.has_method("get_item") else null
+		var radius := 1.5
+		if item != null:
+			# Typed Item: one-arg Object.get + null-coalesce (the
+			# established law; the two-arg Variant form throws here).
+			var r_raw = item.get("interaction_radius")
+			if r_raw != null and float(r_raw) > 0.0:
+				radius = float(r_raw)
+		if max_radius > 0.0:
+			radius = minf(radius, max_radius)
+		var dist: float = (node as Node3D).global_position.distance_to(origin)
+		if dist <= radius and dist < best_dist:
+			best_dist = dist
+			best = node
+	if best == null:
+		return {"ok": false}
+	return {
+		"ok": true,
+		"node": best,
+		"function": str(best.get_meta("provides_function", "")),
+		"dwelling_id": str(best.get_meta("dwelling_id", "")),
+		"interaction_type": "craft",  # refined below by the caller if needed
+	}
+
 ## Shared spawn: parent to the scene (or root in script mode), put the
 ## object at the plot center.
 func _spawn_at(node: Node3D, plot: Dictionary) -> bool:
@@ -389,7 +437,11 @@ func _spawn_at(node: Node3D, plot: Dictionary) -> bool:
 	if parent == null:
 		parent = tree.root
 	parent.add_child(node)
-	node.position = plot["center"]
+	# ADD the node's own local offset (stations slot 1.5 m apart on X;
+	# a bare overwrite used to stack every station on the same tile,
+	# which tied the nearest-node law). The offset was composed by the
+	# builder; here it lands relative to the plot center.
+	node.position = plot["center"] + node.position
 	return true
 
 func _register_with_entity_service(entity, zone_id: String) -> void:

@@ -4974,3 +4974,29 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   NOT changed: the gate chain, the NPC station door, the service
   assertions. Pre-existing lint cyclic-preload/extends-order failures
   untouched (different systems).
+
+## 2026-10-11 -- the walk-up seam + the smithy list fix (slice 3 hardening)
+
+  Two real bugs found the moment the placed-bench probe went interactive:
+  (1) WALK-UP PURSE MISMATCH: PlayerControllerproximity opened the
+  bench UI keyed on str(player_id) (the fallback int "1") while EVERY
+  other service (InventoryService, CraftingService, RideService) keys
+  the purse on entity_id. A walk-up player got an EMPTY inventory and
+  a craft gate that read "missing inputs" forever. Fix: keying off
+  entity_id -- the same id every purse-reading service stamps.
+  (2) BLACKSMITH REPAIR LIST: _get_repairable_items matched a
+  nonexistent item_type STRING property with two-arg Variant gets --
+  both fatal on typed Items (the get throws) and matched nothing even
+  when it didn't (the property was item_category, an ItemCategory
+  int). Fix: compare ItemCategory ids (WEAPON/ARMOR/ACCESSORY) with
+  null-safe one-arg gets + int coercion. The smithy list was empty
+  whenever it ran through a typed-bag path.
+  (3) PROBE FIX: probe_placeable_stations line-join mangle at 260
+  un-mangled; probe now 26 checks (walk-up seam included).
+  (4) _spawn_at ADDITIVE POSITIONING: DwellingService._spawn_at no
+  longer clobbers a node's own offset with the plot center -- node
+  offset respects the plot via addition.
+  Verification: probe_placeable_stations 26/26 PASSED, probe_crafting
+  13 PASSED, probe_crafting_ui 20 PASSED, probe_forge 11 PASSED,
+  probe_harvest 23/0, probe_riding 117/0, charset lint 3/0.
+  NOT changed: the gate chain, the station law, the payment law.

@@ -1053,18 +1053,64 @@ func _on_player_input(action: String, pressed: bool) -> void:
 				use_skill(slot)
 
 ## Interact (E / F / gamepad A / right-click): pick up the nearest
-## ground drop in range, else activate a nearby ankh (bind respawn
-## point). Objects declare themselves via groups ("ground_drops" are
-## resolved by GroundLootService; ankhs by RespawnService).
+## ground drop in range, else use a nearby PLACED station (the
+## walk-up-and-press law: DwellingService.resolve_nearby_station is
+## the ONE resolving door; the bench opens at the station's own law),
+## else activate a nearby ankh (bind respawn point). Objects declare
+## themselves via groups ("ground_drops" are resolved by
+## GroundLootService; placed stations by DwellingService; ankhs by
+## RespawnService).
 func _try_interact() -> void:
 	if _ground_loot() and _ground_loot().has_method("try_pickup"):
 		var picked: Array = _ground_loot().try_pickup(self)
 		if not picked.is_empty():
 			return
+	if _use_nearby_placed_station():
+		return
 	_activate_nearby_ankh()
 	_activate_nearby_ancient_door()
 	_activate_nearby_concord_stone()
 	_activate_nearby_moon_gate()
+
+## A placed crafting/repair station in range: open ITS UI at ITS
+## station (repair -> BlacksmithUI; crafting_* -> WorkbenchUI at the
+## STATION_FUNCTIONS id). Every craft still executes through
+## CraftingService.craft -- the walk-up path is the same gate the NPC
+## context action uses, just resolved by proximity instead of target.
+func _use_nearby_placed_station() -> bool:
+	var dw = get_node_or_null("/root/DwellingService")
+	if dw == null or not dw.has_method("resolve_nearby_station"):
+		return false
+	var hit: Dictionary = dw.resolve_nearby_station(self)
+	if not bool(hit.get("ok", false)):
+		return false
+	var function := str(hit.get("function", ""))
+	# The purse keys off the CANONICAL entity id (the id every service
+	# registers under -- the int player_id's str() fallback "1" once
+	# desynced the whole service family; see _ready's ONE PURSE law).
+	var pid := entity_id if entity_id != "" else str(player_id)
+	var inventory: InventoryComponent = null
+	if _inv_svc():
+		inventory = _inv_svc().get_inventory(pid)
+	if function == "blacksmith":
+		# The home smithy: the plot host has no NPC pricing, so the
+		# bench runs at face costs (1.0 modifier, no bulk discount).
+		if not _blacksmith_ui:
+			_blacksmith_ui = BlacksmithUI.new()
+			add_child(_blacksmith_ui)
+		_blacksmith_ui.set_inventory(inventory)
+		_blacksmith_ui.open_for_player(pid)
+		return true
+	var stations: Dictionary = dw.STATION_FUNCTIONS if "STATION_FUNCTIONS" in dw else {}
+	var station: int = int(stations.get(function, -1))
+	if station < 0:
+		return false
+	if not _workbench_ui:
+		_workbench_ui = WorkbenchUI.new()
+		add_child(_workbench_ui)
+	_workbench_ui.set_inventory(inventory)
+	_workbench_ui.open_for_player(pid, station)
+	return true
 
 ## Walk-over auto-loot. Enabled via Settings > Gameplay > Auto-loot
 ## Items (_pcfg() "auto_loot"). Skipped entirely in full-loot PvP

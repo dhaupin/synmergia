@@ -17,10 +17,22 @@
 #      PLACED workbench rides the RideService ledger -- never the bag.
 #   E. Removal refunds through the same purse law (bag regains the
 #      dwelling item, plot loses the slot, the node is gone).
+#   F. THE WALK-UP LAW: E near a placed node resolves through
+#      DwellingService.resolve_nearby_station (the one door) and
+#      PlayerController._use_nearby_placed_station opens the right UI
+#      at the station's law -- out-of-range refuses; in-range opens;
+#      a placed anvil routes to the SMITHY UI, not the craft table.
 extends SceneTree
 
 var _checks: int = 0
 var _fails: int = 0
+
+var PlayerControllerScript = null
+
+func _find_station_by_name(node_name: String) -> Node:
+	if node_name.is_empty():
+		return null
+	return root.get_node_or_null("root/" + node_name) if root.has_node("root/" + node_name) else root.get_node_or_null(NodePath(node_name))
 
 func _check(label: String, cond: bool) -> void:
 	_checks += 1
@@ -183,6 +195,70 @@ func _run() -> void:
 	_check("taking the station back refunds the dwelling item to the bag", \
 		bool(removed.get("ok")) and _count_id(bag, "dwel_workbench_oak") == 1 \
 		and not dwell_svc.get_plot_stations("probe_plot_craft").has("crafting_workbench"))
+
+	# ---- F. the WALK-UP law: E resolves the nearest placed node -------
+	var upc = root.get_node_or_null("/root/PlayerManager")
+	PlayerControllerScript = load("res://entities/player/player_controller.gd")
+	var walker = PlayerControllerScript.new()
+	walker.entity_id = "hall_owner"
+	walker.is_local_player = true
+	if upc != null and upc.has_method("set"):
+		upc.local_player = walker
+	root.add_child(walker)
+	# Script-mode SceneTree has NO current_scene: the plot nodes spawn
+	# under root. A deferred _find helper replaces the node-path lookup
+	# (the service's _spawn_at handles its own fallback).
+	await process_frame
+	await process_frame
+
+	# Re-place the workbench (E removed it above) exactly at the plot;
+	# fund its item again first.
+	bag.add_item(ds.get_item("dwel_workbench_oak"), 1)
+	var placed2: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_workbench_oak")
+	_check("re-place after refund succeeds (slot free again)", bool(placed2.get("ok")))
+	var station_node = _find_station_by_name(str(placed2.get("station", {}).get("node_id", "")))
+	_check("the placed node joins the placed_stations group", \
+		station_node != null and station_node.is_in_group("placed_stations"))
+
+	# Walk the player somewhere FAR from the plot: E must refuse.
+	var far = dwell_svc.get_plot("probe_plot_craft")["center"] + Vector3(40, 0, 0)
+	walker.global_position = far
+	var miss: Dictionary = dwell_svc.resolve_nearby_station(walker)
+	_check("E far from any placed station resolves nothing (no phantom bench)", not bool(miss.get("ok")))
+	var opened_far: bool = walker._use_nearby_placed_station()
+	_check("the E-key path far away opens NO bench", not opened_far)
+
+	# Walk onto the plot: E resolves the node and the bench opens at
+	# the WORKBENCH station (station law, proximity-resolved).
+	walker.global_position = dwell_svc.get_plot("probe_plot_craft")["center"]
+	var hit: Dictionary = dwell_svc.resolve_nearby_station(walker)
+	_check("E in range resolves the placed node with its function", \
+		bool(hit.get("ok")) and str(hit.get("function")) == "crafting_workbench")
+	var opened: bool = walker._use_nearby_placed_station()
+	var wb_ui = walker._workbench_ui
+	_check("the E-key path opens the bench at station 2 (WORKBENCH law, purse wired)", \
+		opened and wb_ui != null and wb_ui.station == RecipeDataScript.Station.WORKBENCH \
+		and wb_ui.inventory == bag and wb_ui._player_id == "hall_owner")
+
+	# The BLACKSMITH routing: place the anvil next to the workbench,
+	# stand nearer the anvil, and E must open the SMITHY (repair UI),
+	# not the craft table.
+	bag.add_item(ds.get_item("dwel_anvil_iron"), 1)
+	var anvil_placed: Dictionary = dwell_svc.place_station(placer, "probe_plot_craft", "dwel_anvil_iron")
+	_check("the anvil places on its own function slot (repair + craft co-exist)", \
+		bool(anvil_placed.get("ok")) and dwell_svc.get_plot_stations("probe_plot_craft").has("blacksmith"))
+	var anvil_node = _find_station_by_name(str(anvil_placed.get("station", {}).get("node_id", "")))
+	if station_node != null and anvil_node != null:
+		# Stand half a meter from the anvil, two from the workbench:
+		# nearest-node law picks the ANVIL.
+		walker.global_position = (anvil_node as Node3D).global_position + Vector3(0.5, 0, 0)
+		var smith_hit: Dictionary = dwell_svc.resolve_nearby_station(walker)
+		_check("standing at the anvil resolves the repair station", \
+			bool(smith_hit.get("ok")) and str(smith_hit.get("function")) == "blacksmith")
+		var smith_opened: bool = walker._use_nearby_placed_station()
+		var bs_ui = walker._blacksmith_ui
+		_check("E at the placed anvil opens the SMITHY (repair UI, purse set)", \
+			smith_opened and bs_ui != null and bs_ui.visible and bs_ui._inventory == bag)
 
 	if _fails == 0:
 		print("PLACED STATIONS PROBE PASSED (%d checks)" % _checks)

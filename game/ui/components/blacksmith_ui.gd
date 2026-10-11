@@ -34,6 +34,8 @@ func set_inventory(inventory: InventoryComponent) -> void:
 	_inventory = inventory
 	_refresh_items()
 
+const ItemScript = preload("res://core/schemas/item.gd")
+
 var _item_list: VBoxContainer
 var _total_label: Label
 var _gold_label: Label
@@ -316,18 +318,38 @@ func _get_repairable_items() -> Array:
 	var items := []
 	if not _inventory:
 		return items
+	# Repairable category law: WEAPON/ARMOR/ACCESSORY ItemCategory ids
+	# (0/1/2). The old filter matched a nonexistent item_type STRING
+	# property with two-arg gets -- both fatal on typed Items: the
+	# two-arg Variant get throws and "" matched nothing, so the smithy
+	# list was EMPTY whenever it ran through a typed-bag path.
+	var repairable_ids := [
+		ItemScript.ItemCategory.WEAPON,
+		ItemScript.ItemCategory.ARMOR,
+		ItemScript.ItemCategory.ACCESSORY,
+	]
 	var inv_items = _inventory.get_all_items()
 	for item in inv_items:
-		if item.get("durability", 100) < item.get("max_durability", 100):
-			if item.get("item_type", "") in ["weapon", "armor", "accessory"]:
-				items.append(item)
+		if item == null:
+			continue
+		var max_dur_raw = item.get("max_durability")
+		var max_dur := int(max_dur_raw) if max_dur_raw != null else 100
+		var dur_raw = item.get("durability")
+		var dur := int(dur_raw) if dur_raw != null else 100
+		var cat_raw = item.get("item_category")
+		var cat := int(cat_raw) if cat_raw != null else -1
+		if cat in repairable_ids and dur < max_dur:
+			items.append(item)
 	return items
 
 func _calculate_total_cost(items: Array) -> int:
 	var total := 0
 	for item in items:
-		var max_dur = item.get("max_durability", 100)
-		var dur = item.get("durability", max_dur)
+		# One-arg get + null-coalesce (typed Items; see the list filter).
+		var max_dur_raw = item.get("max_durability")
+		var max_dur := int(max_dur_raw) if max_dur_raw != null else 100
+		var dur_raw = item.get("durability")
+		var dur := int(dur_raw) if dur_raw != null else max_dur
 		total += int((1.0 - float(dur) / float(max_dur)) * 50 * _cost_modifier)
 	return total
 
