@@ -58,6 +58,11 @@ class GatewayRecord:
 	var is_locked: bool = false
 	var unlock_requirement: String = ""
 	var activation_radius: float = 3.0
+	## Authored gateway class (GatewayData.GatewayType: WAYPOINT=1,
+	## SHIP=4, ...) forwarded from data/gateways/*.tres -- the walk-up
+	## law reads it (a SHIP pin is a dock face; ad-hoc runtime
+	## registrations use the default, teleport-as-before).
+	var gateway_type: int = 4
 
 	func can_use(entity) -> bool:
 		if is_locked:
@@ -77,6 +82,7 @@ class GatewayRecord:
 func _ready() -> void:
 	GameLog.info("WorldService: Ready")
 	_load_gateways()
+	_register_authored_gateways()
 	_load_events()
 	_setup_event_scheduler()
 
@@ -295,6 +301,7 @@ func register_gateway(config: Dictionary) -> String:
 	gateway.unlock_requirement = config.get("unlock_requirement", "")
 	gateway.radius = config.get("radius", 5.0)
 	gateway.activation_radius = config.get("activation_radius", 3.0)
+	gateway.gateway_type = config.get("gateway_type", 4)
 
 	_gateways[gateway_id] = gateway
 	GameLog.debug("WorldService: Registered gateway %s" % gateway_id)
@@ -836,6 +843,45 @@ func _persist_gateway(gateway_id: String) -> void:
 		store.set_kv(_kv_prefix + "gateway:" + gateway_id, _gateways[gateway_id])
 	else:
 		store.erase(_kv_prefix + "gateway:" + gateway_id)
+
+## Authoring-to-world seam (S16.10): every SHIP/waypoint .tres in
+## data/gateways/ becomes a live GatewayRecord so proximity law (the
+## auto-trigger walk-over AND the player's E-interact dock seam) sees
+## the authored pins. No recorded keys were loaded here before -- the
+## SHIP pins existed as data truth but had NO world presence, which is
+## why the moor dock could only open through Old Brack's fence.
+## Authored .tres ids register verbatim (waypoint_strait_moor, ...);
+## runtime ad-hoc registrations keep the gateway_%s_to_%s shape. An
+## authored id that was already persistence-loaded is skipped, so
+## player-unlocked waypoint states survive.
+func _register_authored_gateways() -> void:
+	var scan := preload("res://core/frame/srv/resource_scan.gd").list_resources("res://data/gateways")
+	var registered := 0
+	for p in scan:
+		var g := load(p)
+		if g == null or not "id" in g:
+			continue
+		var gid := str(g.id)
+		if gid.is_empty() or _gateways.has(gid):
+			continue
+		var rec := GatewayRecord.new()
+		rec.id = gid
+		rec.display_name = str(g.display_name)
+		rec.position = Vector3(g.source_position)
+		rec.from_zone_id = str(g.source_zone_id)
+		rec.to_zone_id = str(g.destination_zone_id)
+		rec.to_position = Vector3(g.destination_position)
+		rec.required_level = int(g.min_level)
+		rec.is_locked = false
+		# SHIP/WAYPOINT types share the waypoint radius; a generous
+		# dock radius means a water-adjacent player can reach the face.
+		rec.radius = 6.0
+		rec.activation_radius = 7.0
+		rec.gateway_type = int(g.gateway_type)
+		_gateways[gid] = rec
+		registered += 1
+	if registered > 0:
+		GameLog.info("WorldService: registered %d authored gateways (the pins are IN the world)" % registered)
 
 func _load_events() -> void:
 	var store := DictStore.new()

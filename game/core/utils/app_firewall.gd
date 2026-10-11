@@ -686,3 +686,29 @@ func _on_recursion_block(context: String, current_depth: int, max_depth: int) ->
 ## the same security-tracked instance.
 func get_recursion_guard() -> RecursionGuard:
 	return _recursion_guard
+
+
+## The exit-time leak fix (was: "1 resources still in use at exit",
+## res://core/frame/srv/scope.gd's GDScript). The scope tree apps
+## circularly: every child Scope holds `parent`, and every parent's
+## `children: Array[Scope]` holds the child back -- RefCounted pairs
+## never drop to zero. Godot's exit teardown removes the autoload's
+## script reference but the CYCLE keeps the script resource alive.
+## Break the cycle when the autoload tree unwinds: sever the child
+## links (the parent back-refs die with the objects). Idempotent: a
+## second call is a no-op, so a scene-change + reboot round-trip is
+## safe.
+func _exit_tree() -> void:
+	_sever_scope_tree()
+
+func _sever_scope_tree() -> void:
+	var stack: Array = [_ip_scope, _player_scope, _instance_scope, _shard_scope, _world_scope]
+	for s in stack:
+		if s != null and is_instance_valid(s):
+			s.children.clear()
+	_ip_scope = null
+	_player_scope = null
+	_instance_scope = null
+	_shard_scope = null
+	_world_scope = null
+	_scope_stack = []

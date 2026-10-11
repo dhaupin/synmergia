@@ -1067,6 +1067,7 @@ func _try_interact() -> void:
 			return
 	if _use_nearby_placed_station():
 		return
+	_open_nearby_ship_dock()
 	_activate_nearby_ankh()
 	_activate_nearby_ancient_door()
 	_activate_nearby_concord_stone()
@@ -1084,7 +1085,6 @@ func _use_nearby_placed_station() -> bool:
 	var hit: Dictionary = dw.resolve_nearby_station(self)
 	if not bool(hit.get("ok", false)):
 		return false
-	var function := str(hit.get("function", ""))
 	# The purse keys off the CANONICAL entity id (the id every service
 	# registers under -- the int player_id's str() fallback "1" once
 	# desynced the whole service family; see _ready's ONE PURSE law).
@@ -1092,6 +1092,7 @@ func _use_nearby_placed_station() -> bool:
 	var inventory: InventoryComponent = null
 	if _inv_svc():
 		inventory = _inv_svc().get_inventory(pid)
+	var function := str(hit.get("function", ""))
 	if function == "blacksmith":
 		# The home smithy: the plot host has no NPC pricing, so the
 		# bench runs at face costs (1.0 modifier, no bulk discount).
@@ -1111,6 +1112,47 @@ func _use_nearby_placed_station() -> bool:
 	_workbench_ui.set_inventory(inventory)
 	_workbench_ui.open_for_player(pid, station)
 	return true
+
+## Walk-up law for the sea: a SHIP-classed gateway pin in range opens
+## the ferry dock panel (the moor pin is the dock face -- the panel
+## scopes to the vessel whose route names that pin's shoreline, so a
+## walk-up at the moor reads the barque's schedule, not whatever dict
+## order says). One front-end, no side-doors: the dock's own Board/
+## Charter presses route through the same gated chain the NPC fence
+## opens. Gateways declare themselves on the WorldService registry
+## (data/gateways/*.tres: the SHIP gateway_type = 4 arrows), so the
+## E-interact resolves against the same data truth the probe pinned.
+func _open_nearby_ship_dock() -> void:
+	var ws = get_node_or_null("/root/WorldService")
+	if ws == null or not ws.has_method("get_nearby_gateway"):
+		return
+	var gw = ws.get_nearby_gateway(self)
+	if gw == null or not ("gateway_type" in gw) or int(gw.gateway_type) != 4:
+		return
+	var mm = get_node_or_null("/root/MenuManager")
+	if mm != null:
+		mm.open_menu("dock")
+	var dock_panel = mm.get_panel_node("dock") if mm else null
+	if dock_panel != null and dock_panel.has_method("open_for_player"):
+		dock_panel.vehicle_id = _dock_vehicle_for_pin(str(gw.id))
+		dock_panel.open_for_player(entity_id if entity_id != "" else str(player_id))
+
+## The vessel a dock pin fronts: the ferry whose ROUTE names the pin
+## (moor/seaward -> the Sundered Barque; village/nexus -> the Haven
+## Ferry; island_dock -> the Island Ferry). One truth door: the pin
+## id only resolves through a vehicle's data-truth route gateways --
+## no pin-to-boat lookup table to drift.
+func _dock_vehicle_for_pin(gateway_pin_id: String) -> String:
+	var ds = get_node_or_null("/root/DataService")
+	if ds == null:
+		return ""
+	for v in ds.get_all_vehicles():
+		if v == null or int(v.ferries_per_day) <= 0:
+			continue
+		for port in v.route_gateways:
+			if str(port) == gateway_pin_id:
+				return str(v.id)
+	return ""
 
 ## Walk-over auto-loot. Enabled via Settings > Gameplay > Auto-loot
 ## Items (_pcfg() "auto_loot"). Skipped entirely in full-loot PvP

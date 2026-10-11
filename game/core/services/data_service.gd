@@ -448,6 +448,12 @@ func get_vehicle(id: String) -> VehicleData:
 	GameLog.warn("DataService: Vehicle not found: " + id)
 	return null
 
+## All scheduled vehicles (the walk-up dock seam iterates ROUTES, not
+## ids: a pin resolves to the boat whose route_gateways names it --
+## no pin-to-boat lookup table to drift). S16.10.
+func get_all_vehicles() -> Array:
+	return _vehicles.values()
+
 func get_movement_profile(id: String) -> MovementProfile:
 	if _movement_profiles.has(id):
 		return _movement_profiles.get(id)

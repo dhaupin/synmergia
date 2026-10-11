@@ -219,6 +219,41 @@ func _run() -> void:
 			"a no-wake actor hears the wake law spoken IN the panel (refusal is never swallowed)")
 	fs._clock_override = -1.0
 
+	# ---- H. THE WALK-UP DOCK SEAM (the moor pin has a world body) -----------
+	# The dock used to open ONLY through Brack's fence; this pins the
+	# walk-up law: the authored SHIP pins are live GatewayRecords (the
+	# data seams to the world), a player near the pin is offered IT by
+	# proximity, the E-interact arm opens the dock SCOPED to the vessel
+	# whose route names the pin (moor -> barque), and a NON-ship pin
+	# never opens a dock.
+	var ws = root.get_node_or_null("WorldService")
+	_check(ws != null, "WorldService present (the proximity law keeps a house)")
+	if ws != null:
+		var moor_rec = ws.get_gateway("waypoint_strait_moor")
+		_check(moor_rec != null, "the authored moor pin is a LIVE GatewayRecord (data -> world seam)")
+		if moor_rec != null:
+			_check(int(moor_rec.gateway_type) == 4,
+				"the moor record carries the SHIP class (the walk-up law can tell a dock from a door)")
+			var shore_rec = ws.get_gateway("waypoint_village_center")
+			_check(shore_rec == null or int(shore_rec.gateway_type) != 4,
+				"non-dock pins are not SHIP-classed (a village waypoint is not a dock face)")
+		# The player arm resolves the pin's vessel through data truth.
+		# GDScript methods live on the script's authored object -- an
+		# actual player_controller.gd instance (set_script AFTER new()
+		# loses the script's members to the base class body).
+		var pc = load("res://entities/player/player_controller.gd").new()
+		root.add_child(pc)
+		await process_frame
+		_check(pc.has_method("_dock_vehicle_for_pin"),
+			"the walker caries the pin->boat resolver (the seam is scripted)")
+		_check(str(pc._dock_vehicle_for_pin("waypoint_strait_moor")) == "veh_sundered_barque",
+			"the moor pin resolves to THE BARQUE through route data truth")
+		_check(str(pc._dock_vehicle_for_pin("waypoint_village_center")) == "veh_haven_ferry",
+			"the village pin resolves to the Haven Ferry (same door, other boat)")
+		_check(str(pc._dock_vehicle_for_pin("waypoint_nowhere")) == "",
+			"an unknown pin resolves to NO boat (the resolver invents nothing)")
+		pc.queue_free()
+
 	if _fails == 0:
 		print("SHIPWRECK QUAY PROBE PASSED (%d checks)" % _checks)
 		quit(0)

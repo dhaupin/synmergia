@@ -5133,3 +5133,71 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   stations 25 PASSED, probe_crafting_ui 20 PASSED, charset lint 3/0.
   NOT changed: FerryService (the seam was already lawful), the wake
   book, the schedule primitive.
+
+## 2026-10-11 -- the walk-up dock seam + the leak audit (the pins enter the world)
+
+  Both final-check limitations + the unwired-systems audit, in one
+  slice.
+  (1) THE WALK-UP DOCK SEAM: the dock existed (f38331f) but ONLY
+  opened through Old Brack's fence. Three honest gaps closed:
+  a. GatewayRecord grew gateway_type (forwarded from the authored
+     .tres through register_gateway config) -- the runtime record
+     never carried the class, so nothing could tell a dock pin from
+     a dungeon door. Default 4 (SHIP) for legacy ad-hoc records,
+     preserving prior behavior.
+  b. THE PINS ENTER THE WORLD: WorldService._register_authored_
+     gateways scans data/gateways/*.tres at _ready and registers
+     every authored pin verbatim as a live GatewayRecord. Before
+     this the SHIP pins were data truth with NO world body -- the
+     probe chart checked the .tres files, but the walk-over law and
+     proximity checks never saw them (world_playable only registered
+     the one dungeon portal ad hoc). Authored ids that the
+     persistence layer already loaded are skipped, so waypoint
+     unlock states survive a reboot.
+  c. PlayerController._open_nearby_ship_dock: the E-interact law
+     grows the SHIP arm -- a SHIP-classed pin in activation range
+     opens the dock panel SCOPED to the pin's vessel via
+     _dock_vehicle_for_pin (the ferry whose route_gateways NAMES the
+     pin: moor/seaward -> the barque, village/nexus -> the Haven
+     Ferry, island_dock -> the Island Ferry -- no lookup table, one
+     data-truth door). _try_interact order: loot -> stations -> dock
+     (a station plot shared with a dock face belongs to the plot).
+  d. DataService.get_all_vehicles: the accessor the seam exposed
+     (was: vehicles had a get-one door but no all-door; the resolver
+     iterates ROUTES, not ids).
+  Probes: probe_shipwreck_quay grew H-section THE WALK-UP DOCK SEAM
+  (authored pins are live records with SHIP class; non-dock pins are
+  NOT SHIP; the walker caries the pin->boat resolver; moor->barque,
+  village->Haven Ferry, unknown->"" -- the resolver invents nothing).
+  65 -> 73 checks. GDScript note pinned: has_method is instance-side
+  -- probing the walker needs the authored instance, not set_script.
+  (2) THE EXIT-TIME LEAK, root-caused: "1 resources still in use"
+  fires on an EMPTY SceneTree probe too (leak_isolate2 -- Godot
+  boots 40+ autoloads off project.godot; the warning is engine-exit
+  teardown noise from the boot graph itself, not repo code). The
+  honest repo-side hygiene still landed: AppFirewall._exit_tree
+  severs the Scope tree (child Scope holds parent; parent's
+  children: Array holds the child back -- a RefCounted cycle the
+  engine cannot free cleanly). The warning may persist on exit
+  (engine-side); the CYCLE is our fault and is fixed.
+  (3) THE UNWIRED-SYSTEMS AUDIT (the asking question: what is
+  probe-covered but faceless?): sweep of 50 panels + HUD against the
+  services:
+  - WIRED: RideService (MountUI),_vendor (ShopUI), LootService
+    (loot_drop_visual + hud), FriendsService (3 UI refs),
+   -cliChronicleService (ChronicleUI via MenuManager),
+    WeatherEventService (sky_totem, wire-only by design),
+    housing/harvest (chat commands /buyplot /placestation /
+    plotinfo + E-interact placed stations), signs (SignService +
+    insight), HordeEventService (HordeBar).
+  - PARTIAL (the honest remainder, NOT blocking): CosmeticsService
+    has no dedicated panel (cosmetics ride the variety pass);
+    CosmicService surfaces only through sky_totem's lore lines
+    (a cosmic almanac page is the natural next panel); harvesting
+    relies on E-interact proximity + chat, no harvest progress UI.
+  Verification (exit statuses): probe_shipwreck_quay 73/73 exit 0
+  (twice: after the seam and after the audit), probe_ferry 34,
+  probe_crafting 13, probe_placeable_stations 25,
+  probe_crafting_ui 20, charset lint 3/0 exit 0.
+  NOT changed: FerryService, the dock panel's own law, the schedule
+  primitive, any .tres content truths (only the wiring).
