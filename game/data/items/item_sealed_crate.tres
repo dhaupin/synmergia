@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_sealed_crate"
+display_name = "Sealed Crate"
+description = "Mag's chalk-marked freight, coastal-lashed but chamber-dry. Don't ask what's inside -- the stamp says the crew gets first look, and Brack's crew reads stamps before labels."
+icon_path = "res://icons/items/sealed_crate.png"
+item_category = 8
+rarity = 1
+equip_slot = 0
+stack_size = 3
+sell_price = 2
+buy_price = 0
+is_quest_item = true
+quest_id = "quest_shoal_freight"
+keep_after_turn_in = false
+usable_during_quest_only = true
+required_level = 0
+weight = 2.0

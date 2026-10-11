@@ -5201,3 +5201,54 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   probe_crafting_ui 20, charset lint 3/0 exit 0.
   NOT changed: FerryService, the dock panel's own law, the schedule
   primitive, any .tres content truths (only the wiring).
+
+## 2026-10-11 -- the maintenance pass (stale / not-wired / not-in-world / security health)
+
+  The audit you asked for, findings fixed at the ROOT:
+  (1) STALE: .godot/imported was EMPTY in the workspace -- five audio
+  resources (ancient_door_open, mystery_solved, ui_click, thunder,
+  whistler) failed to load at runtime (the .import remaps pointed at
+  samples that no longer existed). FIXED by the standard re-import
+  pass (godot --headless --path . --import): 302 imported samples
+  restored, load errors gone. Data-reference sweep (offerings,
+  recipes, quests, loot tables, vehicles, NPC zone/scene paths): all
+  resolve (the 9 "missing zone" rows in the first scan were the
+  scanner not lazy-loading ZoneManager; the glider recipe output
+  resolves through the mounts merge).
+  (2) NOT-IN-WORLD, the top finding: two live quests were DEAD-END
+  quests -- the collect targets did not exist as items anywhere:
+  * quest_herb_gathering: "Moonpetal Flower" (x5) -- no item .tres.
+  * quest_shoal_freight: "Sealed Crate" (x3) -- no item .tres.
+  FIX AT THE ROOT, both halves:
+  * res_moonpetal.tres (RESOURCE, stack 50, the alchemist's herb)
+    + item_sealed_crate.tres (MISC quest item, quest_id wired to
+    quest_shoal_freight, turn-in-expires). The collect law
+    (QuestService._on_item_picked_up_for_quest matches
+    item.display_name against the objective target) now resolves.
+  * WORLD PRESENCE: the streamer's biome law is what a seeded
+    gatherable must ride. MEADOW bushes now yield the meadow's
+    herb: ALPINE_MEADOW bushes register "res_moonpetal" (was:
+    every bush in every biome yielded res_iron_ore -- shrubs
+    pretending to be a mine; grass/forest/taiga bushes keep ore
+    only where the mine law already runs them ALPINE/TUNDRA).
+  * THE STRAIT FREIGHT SEED: faces whose center lies on the
+    authored corridor chart register the quest's 3 crates
+    ("freight_<face>_<k>") on zone_sundered_sea through
+    HarvestService, seed-stable ids, respawn past the tide turn --
+    the walk the quest demands exists on the actual strait floor.
+  (3) SECURITY / QoS / ANTICHEAT HEALTH: all three chains are LIVE
+  and wired -- AntiCheatService registered (project.godot
+  AntiCheatService), movement/lift validation called per physics
+  tick from BOTH player rigs (player_controller + globe_player),
+  mount profiles stamp their movement limits through it;
+  QoSService.rate_limit guards 29 call sites (crafting, dialogue,
+  inventory transfer, etc.); SecurityService feeds
+  webhook_manager.exploit_detected. No maintenance action needed;
+  the health probe family is green.
+  Verification (exit statuses): probe_shipwreck_quay 73/73 exit 0,
+  probe_harvest 23/0, probe_ferry 34, probe_crafting 13,
+  probe_placeable_stations 25, probe_crafting_ui 20, charset lint
+  3/0 exit 0, re-import restored 302 samples.
+  NOT changed: the quest .tres files (their display-name law was
+  right; the WORLD owed the items), the collect law, the harvest
+  gate chain, services' security calls.

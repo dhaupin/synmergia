@@ -906,6 +906,12 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 	var patch_center: Vector3 = FacePatches.face_center(face) * (radius + TILE_LIFT)
 	var scaled: float = radius + TILE_LIFT
 	var sea: float = TerrainGen.sea_level(world_seed)
+	# THE STRAIT FREIGHT SEED (quest_shoal_freight): faces whose CENTER
+	# lies on the authored corridor chart near the shoal carry Mag's
+	# marked crates as gatherable nodes (the quest's world presence the
+	# strait owed). Chalk-marked, chamber-dry, always the harvest.
+	if terrain_on:
+		_register_strait_freight(face, FacePatches.face_center(face).normalized(), world_seed)
 	# Batch accumulators (only used when batched).
 	var batch_xforms: Array = []
 	var canopy_batch_xforms: Array = []
@@ -1144,9 +1150,15 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			prop.name = "Bush%d" % i
 			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h + r_b * 0.25)
 			# THE LIVE HARVEST SEED (prd-gathering): the placement law is
-			# one law -- the drawn bush is a gatherable (seed-stable id:
-			# a face reload re-registers over the same node identity).
-			_register_harvest_node(face, i, "res_iron_ore" if false else "res_iron_ore", dir, 45.0)
+			# one law -- the drawn bush is a gatherable, and the BUSH YIELDS
+			# THE BIOME'S OWN GROWTH: a meadow bush is the Moonpetal patch
+			# the herb quest asks the world for (was: every bush yielded
+			# "res_iron_ore" -- shrubs pretending to be a mine). Seed-stable
+			# id: a face reload re-registers the same node identity.
+			var bush_item := "res_iron_ore"
+			if bid == TerrainGen.BiomeId.ALPINE_MEADOW:
+				bush_item = "res_moonpetal"  # the meadow's herb law
+			_register_harvest_node(face, i, bush_item, dir, 45.0)
 		var up: Vector3 = dir
 		if is_bush:
 			prop.basis = Basis()
@@ -1167,6 +1179,43 @@ func _register_harvest_node(face: int, idx: int, item_id: String, dir: Vector3, 
 	var svc = (hs as SceneTree).root.get_node_or_null(NodePath("HarvestService"))
 	if svc != null and svc.has_method("register_node"):
 		svc.register_node("hs_%d_%d" % [face, idx], "zone_starter_plains", item_id, dir * radius, 1, respawn_sec)
+
+## THE STRAIT FREIGHT (quest_shoal_freight's world presence): a face
+## whose center lies ON the authored corridor chart gets Mag's
+## chalk-marked crates as gather nodes (seed-stable id, respawn well
+## past the tide turn). Chart x in the corridor band + the strait zone:
+## the ford and the channel bottom are the crates' tide-line. Silent
+## no-op when BackpackService/HarvestService is absent (script mode).
+func _register_strait_freight(face: int, center_dir: Vector3, world_seed_v: PackedByteArray) -> void:
+	var Chart = load("res://core/services/strait_chart.gd")
+	if Chart == null:
+		return
+	var ch: Vector2 = Chart.Backend._chart(center_dir)
+	# Corridor band: walkable ford approach (before RUN_LO the moat
+	# holds the crates' wet feet; past run_hi it is open sea).3 to
+	# PAST half-past the shoal (x ~ .55 binge) — the tide moves them.
+	if ch.x < 0.02 or ch.x > 0.34 or absf(ch.y) > 0.05:
+		return
+	var hs = Engine.get_main_loop()
+	if hs == null or not (hs is SceneTree):
+		return
+	var svc = (hs as SceneTree).root.get_node_or_null(NodePath("HarvestService"))
+	if svc == null or not svc.has_method("register_node"):
+		return
+	# Three crates along the corridor (the quest's count), seeded
+	# stably so a reload re-claims the SAME node identity.
+	var acc := 0
+	for b in TerrainGen.face_seed_bytes(world_seed_v, face):
+		acc = (acc * 131 + b) % 9007199254740991
+	var rng := RandomNumberGenerator.new()
+	rng.seed = acc
+	for k in range(3):
+		var crate_x: float = lerpf(0.05, 0.30, 0.15 + 0.3 * k)
+		var crate_y: float = 0.0
+		var crate_dir: Vector3 = Chart.dir_from_chart(crate_x, crate_y)
+		var nid := "freight_%d_%d" % [face, k]
+		svc.register_node(nid, "zone_sundered_sea", "item_sealed_crate", \
+			crate_dir * radius, 1, 620.0)
 
 ## How many loaded patches are actually VISIBLE in the tree right now
 ## (the round-12 web question: truth line said dry + meshes loaded, but

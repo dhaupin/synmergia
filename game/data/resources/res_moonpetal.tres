@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_moonpetal"
+display_name = "Moonpetal Flower"
+description = "A pale five-petaled bloom that opens after dusk in the meadows. The alchemist pays for the fresh ones -- day-old petals are just salad."
+icon_path = "res://icons/resources/moonpetal.png"
+item_category = 4
+rarity = 1
+equip_slot = 0
+stack_size = 50
+sell_price = 4
+buy_price = 8
+required_level = 0
+weight = 0.05
