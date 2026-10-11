@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sundered_ferry_talk"
+npc_id = "npc_ferryman_sundered"
+display_name = "Old Brack, the Ferryman"
+nodes = [
+	{
+		"speaker": "Old Brack",
+		"text": "Tide's turning. You crossing, or just gawking at the wreck? The barque runs the strait six sailings a day -- moor pin to the seaward buoy and back. Two coin if you'd rather I row you out of schedule.",
+		"choices": [
+			{"text": "Tell me about the wreck shoal.", "next_node": 1},
+			{"text": "What happened to the crossing?", "next_node": 2},
+			{"text": "Any work going?", "next_node": 3},
+			{"text": "Farewell.", "next_node": -1}
+		]
+	},
+	{
+		"speaker": "Old Brack",
+		"text": "The shoal took the barque once -- HER, the first one. Now she's the ford itself: an hour before low tide you can walk it, wet to the knee, if the sea grants it. My barque knows the channel under it better than any chart. Do not follow her in the dark.",
+		"choices": [
+			{"text": "Back to the moor.", "next_node": 0}
+		]
+	},
+	{
+		"speaker": "Old Brack",
+		"text": "When the strait closed, four lengths of rock wall split the sea from the harbor folk. I kept a dinghy alive through what the wall scattered. Now that it's open again, the Sundered Sea owes nobody -- but it remembers who kept sailing her.",
+		"choices": [
+			{"text": "Back to the moor.", "next_node": 0}
+		]
+	},
+	{
+		"speaker": "Old Brack",
+		"text": "Mag marks crates the tide keeps lifting along the shoal. Haul three onto the headland before the turn and the crew splits the freight coin with you. Talk to her -- she'll rope you in.",
+		"choices": [
+			{"text": "Back to the moor.", "next_node": 0}
+		]
+	}
+]

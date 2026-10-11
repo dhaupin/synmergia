@@ -23,5 +23,6 @@ buy_categories = ["MISC"]
 sell_categories = ["MISC"]
 includes = [
   {"type": "dialogue", "dialogue_id": "sundered_ferry_talk"},
-  {"type": "offering", "ref_id": "ferry_passage_sundered"}
+  {"type": "offering", "ref_id": "ferry_passage_sundered"},
+  {"type": "offering", "ref_id": "shoal_freight_quests"}
 ]

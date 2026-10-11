@@ -5000,3 +5000,42 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   13 PASSED, probe_crafting_ui 20 PASSED, probe_forge 11 PASSED,
   probe_harvest 23/0, probe_riding 117/0, charset lint 3/0.
   NOT changed: the gate chain, the station law, the payment law.
+
+## 2026-10-11 -- the shipwreck quay lands (the strait content slice)
+
+  The roadmap's declared next slice (ferry line ride-through content +
+  shoreline town content near the moat), built as DATA TRUTH first:
+  the audit found the strait arm was hollow -- the two NPCs shipped
+  with DANGLING include refs (salvor_stock, ferry_passage_sundered
+  loaded no offering), both dialogue ids (sundered_salvor_talk,
+  sundered_ferry_talk) loaded no tree, the shoal freight quest had no
+  giver wiring, and both SHIP gateways sat at Vector3(0,0,0) -- the
+  zone bind point inside the moat ring, nowhere near the channel the
+  barque sails.
+  (1) OFFERINGS: salvor_stock (timber/ore/stone/slag, shoal prices,
+  buys WHAT+MISC), ferry_passage_sundered (Brack's ticket hut),
+  shoal_freight_quests (wires quest_shoal_freight into BOTH parties:
+  Mag gives, Brack turns in, both sell it).
+  (2) DIALOGUES: sundered_salvor_talk + sundered_ferry_talk (both
+  4-node trees voiced from the NPCs' own greeting/farewell lines --
+  wreck lore, salvage law, the freight job).
+  (3) THE STRAIT CHART (core/services/strait_chart.gd): content-side
+  resolver over backend_sundered's exact tangent frame -- ONE
+  derivation, two readers (the terrain field + the .tres anchors), so
+  content can never disagree with the terrain it sits on. Anchors are
+  chart coords -> world positions at the planet radius (20000 m).
+  (4) GATEWAY POSITIONS AUTHORED: waypoint_strait_moor (x=0.045,
+  channel mouth), waypoint_strait_seaward (x=0.310, past the shoal),
+  waypoint_shipwreck_quay (NEW, x=0.060 y=0.0135 on the north
+  headland -- the shoreline town anchor, two-way link home).
+  Probes: probe_shipwreck_quay, 32 checks (include refs resolve,
+  dialogue trees loadable + owner-matched, quest wiring lawful,
+  round-trip chart inversion, corridor-band placement, route port
+  truth, schedule honesty). NEVER returns placeholder-origin.
+  Verification: probe_shipwreck_quay 32/32 PASSED, probe_ferry 28
+  PASSED, probe_sundered_sea 13/0, probe_terrain_backend 11/0,
+  probe_placeable_stations 25 PASSED, probe_crafting 13 PASSED,
+  charset lint 3/0 (exit 0).
+  NOT changed: the backend field (terrain law untouched), the ferry
+  service, the schedule primitive, any .gd service logic beyond the
+  new additive StraitChart resolver.

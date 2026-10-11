@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DialogueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/dialogue_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sundered_salvor_talk"
+npc_id = "npc_salvor_wreck"
+display_name = "Mag the Salvor"
+nodes = [
+	{
+		"speaker": "Mag",
+		"text": "You'll be wanting rope, boots, and nerve. The shoal takes all three. I mark what the tide gives back and file what it keeps -- the good stuff is still in the barque's hold, under the wet.",
+		"choices": [
+			{"text": "The barque's hold is full?", "next_node": 1},
+			{"text": "What do you sell?", "next_node": 2},
+			{"text": "Any work going?", "next_node": 3},
+			{"text": "Farewell.", "next_node": -1}
+		]
+	},
+	{
+		"speaker": "Mag",
+		"text": "Claims it, anyway. Nobody has paid my diving fee to find out -- and I do NOT lie about the fee. The strait keeps the first barque; timbers, fittings, half a cargo manifest, all wedged in the shoal's spine. Bring the fee and we'll both be rich or both be wet.",
+		"choices": [
+			{"text": "Back to work.", "next_node": 0}
+		]
+	},
+	{
+		"speaker": "Mag",
+		"text": "Timber, ore, stone -- what the strait beats loose. Slag for the forge-minders. Salvage isn't fashion, it's patience: I sell what drifts, I buy what you haul. Prices are shoal prices -- far from anywhere, worth more.",
+		"choices": [
+			{"text": "Back to work.", "next_node": 0}
+		]
+	},
+	{
+		"speaker": "Mag",
+		"text": "Freight. Three sealed crates the tide keeps moving along the shoal, living in the wet. Haul them up this headland before the turn of the tide and Brack's crew splits the coin. Take the ford at low water -- the barque does not slow for cargo-waders.",
+		"choices": [
+			{"text": "Back to work.", "next_node": 0}
+		]
+	}
+]
