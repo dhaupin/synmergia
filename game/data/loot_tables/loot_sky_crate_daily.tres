@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_sky_crate_daily"
+name = "Sky Crate Daily Loot"
+description = "Rewards from the Concord's daily sky observation crate. Contents lean toward coin and soul; storm days may yet surprise."
+level = 1
+min_items_dropped = 1
+max_items_dropped = 2
+base_drop_chance = 1.0
+entries = [{
+"item_id": "potion_health_small",
+"min_quantity": 1,
+"max_quantity": 3,
+"drop_rate": 0.6,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "potion_soul_gem",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.3,
+"rarity_weight": 0.5,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "item_ancient_coin",
+"min_quantity": 2,
+"max_quantity": 8,
+"drop_rate": 0.45,
+"rarity_weight": 0.7,
+"is_guaranteed": false,
+"conditions": []
+}]
+currency_drops = [{
+"currency_id": "currency_gold",
+"min_amount": 15,
+"max_amount": 40,
+"drop_rate": 1.0,
+"is_guaranteed": true
+}]
+rarity_weights = {
+"COMMON": 1.0,
+"UNCOMMON": 0.5,
+"RARE": 0.2,
+"EPIC": 0.05,
+"LEGENDARY": 0.01
+}
+auto_loot = false
+share_loot = true
+need_before_greed = false

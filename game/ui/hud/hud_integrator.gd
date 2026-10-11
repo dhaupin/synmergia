@@ -33,6 +33,8 @@ var _tooltip: Node
 
 ## Track active target so the boss bar can fall back when clearing.
 var _current_target: Dictionary = {}
+## SkyTotem (aurora windows) — WeatherEventService wiring below.
+var _sky_totem: Node
 
 
 func bind(hud: CanvasLayer) -> void:
@@ -45,6 +47,7 @@ func bind(hud: CanvasLayer) -> void:
 	_target_frame = _find("TargetFrame")
 	_boss_health_bar = _find("BossHealthBar")
 	_horde_bar = _find("HordeBar")
+	_sky_totem = _find("SkyTotem")
 	_minimap = _find("Minimap")
 	_world_map = _find("WorldMap")
 	_chat = _find("ChatUI")
@@ -138,6 +141,47 @@ func _connect_all() -> void:
 
 	# Horde event signals -> HordeBar.
 	_bind_horde_signals()
+	_bind_sky_totem_signals()
+
+
+## WeatherEventService signals -> SkyTotem. The service owns the
+## authoritative close time: it pushes the mystery id + seconds at
+## open, and the countdown re-pushes every tick so a server/restart
+## never lies to the player.
+func _bind_sky_totem_signals() -> void:
+	var we := get_weather_event_service()
+	if we == null or _sky_totem == null:
+		return
+	if we.has_signal("aurora_window_opened"):
+		we.aurora_window_opened.connect(_on_aurora_window_opened)
+	if we.has_signal("aurora_window_closed"):
+		we.aurora_window_closed.connect(func(_mid: String) -> void: _sky_totem.hide_window())
+	# Authoritative countdown: re-push each service tick if the totem is up.
+	if we.has_signal("aurora_window_time"):
+		we.aurora_window_time.connect(func(mid: String, sec_total: float, _t: float) -> void:
+			_sky_totem.set_window_remaining(mid, sec_total, sec_total))
+
+## The service is a world-scene child ("WeatherEvents"), not an
+## autoload — the totem binding waits for the playable scene to exist
+## (the /root lookup misses; the scene-scoped lookup hits once the
+## world is up).
+func get_weather_event_service() -> Node:
+	var svc := get_node_or_null("/root/WeatherEventService")
+	if svc != null:
+		return svc
+	var scene_root: Node = get_tree().current_scene if get_tree() != null else null
+	if scene_root != null:
+		return scene_root.get_node_or_null("WeatherEvents")
+	return null
+
+
+func _on_aurora_window_opened(mystery_id: String) -> void:
+	var we := get_weather_event_service()
+	var total: float = 1800.0
+	if we != null and "AURORA_WINDOW_SEC" in we:
+		total = float(we.AURORA_WINDOW_SEC)
+	_sky_totem.show_window(mystery_id)
+	_sky_totem.set_window_remaining(mystery_id, total, total)
 
 
 ## HordeEventService signals -> HordeBar. Every service signal carries

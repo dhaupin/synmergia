@@ -4,6 +4,12 @@
 ## Proximity auto-closes at 8m.
 extends "res://ui/components/ui_panel.gd"
 class_name ShopUI
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
 const NPCOffering = preload("res://core/schemas/npc_offering.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const VendorService = preload("res://core/services/vendor_service.gd")
@@ -393,10 +399,12 @@ func _refresh_gold() -> void:
 	if _player_id.is_empty():
 		_gold_label.text = "0"
 		return
-	if InventoryService:
+	var tree := Engine.get_main_loop() as SceneTree
+	var inv_service := tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+	if inv_service:
 		# InventoryService is an autoload instance; call get_gold on it
 		# directly (there is no .singleton() accessor on the script).
-		var gold: int = InventoryService.get_gold(_player_id)
+		var gold: int = inv_service.get_gold(_player_id)
 		_gold_label.text = str(gold)
 	else:
 		_gold_label.text = "0"
@@ -607,9 +615,9 @@ func _process(_delta: float) -> void:
 	# Use canonical distance check with configurable threshold
 	if not check_interact_distance(player.global_position, _npc_position):
 		close()
-		if NotificationService:
+		if _notify_svc():
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
-			NotificationService.notify(NotifKind.CUSTOM, "Moved too far from the shop.",
+			_notify_svc().notify(NotifKind.CUSTOM, "Moved too far from the shop.",
 				"ShopUI", "shop_out_of_range", {}, _player_id)
 
 

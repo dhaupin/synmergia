@@ -54,9 +54,29 @@ func _ready() -> void:
 ## the push never fires) rendered only skeletons. Self-resolve here:
 ## GameManager's selected character when the panel holds none, then
 ## refresh every tab so there is always real content on screen.
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _gmanager() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
+
+func _inv_service() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
+func _title_service() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TitleService")) if tree and tree.root else null
+
 func _on_open() -> void:
-	if _char_data == null and GameManager and "selected_character_data" in GameManager:
-		var data = GameManager.selected_character_data
+	var _tree := Engine.get_main_loop() as SceneTree
+	var game_manager := _tree.root.get_node_or_null(NodePath("GameManager")) if _tree and _tree.root else null
+	if _char_data == null and game_manager and "selected_character_data" in game_manager:
+		var data = game_manager.selected_character_data
 		if data != null:
 			_char_data = data
 	refresh_inventory()
@@ -400,15 +420,17 @@ func _create_equip_slot_row(slot_data: Dictionary) -> HBoxContainer:
 func _on_equip_slot_clicked(slot_id: int) -> void:
 	_selected_equip_slot = slot_id
 
-	if not InventoryService:
+	var panel_tree := Engine.get_main_loop() as SceneTree
+	var inv_service := panel_tree.root.get_node_or_null(NodePath("InventoryService")) if panel_tree and panel_tree.root else null
+	if not inv_service:
 		show_notification("InventoryService unavailable", false)
 		return
 
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = inv_service.get_inventory(player_id)
 	if inv == null:
 		show_notification("Could not load inventory", false)
 		return
@@ -455,15 +477,17 @@ func _show_empty_slot_menu(slot_id: int) -> void:
 	_show_equip_item_picker(slot_id)
 
 func _show_equip_item_picker(slot_id: int) -> void:
-	if not InventoryService:
+	var panel_tree := Engine.get_main_loop() as SceneTree
+	var inv_service := panel_tree.root.get_node_or_null(NodePath("InventoryService")) if panel_tree and panel_tree.root else null
+	if not inv_service:
 		show_notification("InventoryService unavailable", false)
 		return
 
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = inv_service.get_inventory(player_id)
 	if inv == null:
 		show_notification("Could not load inventory", false)
 		return
@@ -560,14 +584,15 @@ func _equip_item_from_picker(inv: InventoryComponent, item: Item, slot_id: int) 
 		show_notification("Failed to equip item", false)
 
 func _unequip_item(slot_id: int) -> void:
-	if not InventoryService:
+	var inv_service := _inv_service()
+	if not inv_service:
 		return
 
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = inv_service.get_inventory(player_id)
 	if inv == null:
 		return
 
@@ -869,19 +894,19 @@ func _refresh_inventory_grid() -> void:
 			stale_hint.queue_free()
 
 ## Resolve the player's live inventory component. Tries the typed
-## InventoryService path first, then a defensive InventoryComponent
+## _inv_service() path first, then a defensive InventoryComponent
 ## lookup on the player node (the single-player scene wires the
 ## component directly on the player).
 func _resolve_inventory():
 	var player_id := ""
-	if PlayerManager and PlayerManager.has_method("get_local_player_id"):
-		player_id = str(PlayerManager.get_local_player_id())
-	if player_id.is_empty() and GameManager and "selected_character_data" in GameManager:
-		var cd = GameManager.selected_character_data
+	if _pm() and _pm().has_method("get_local_player_id"):
+		player_id = str(_pm().get_local_player_id())
+	if player_id.is_empty() and _gmanager() and "selected_character_data" in _gmanager():
+		var cd = _gmanager().selected_character_data
 		if cd != null and "character_id" in cd:
 			player_id = str(cd.character_id)
-	if InventoryService and not player_id.is_empty():
-		var inv = InventoryService.get_inventory(player_id)
+	if _inv_service() and not player_id.is_empty():
+		var inv = _inv_service().get_inventory(player_id)
 		if inv != null:
 			return inv
 	var player := _get_local_player()
@@ -1171,8 +1196,11 @@ func _on_title_color_changed(color: Color) -> void:
 	_update_title_preview_color(color)
 
 func _show_title_selection_popup(slot: String) -> void:
-	var player_id := TitleService.get_local_player_id()
-	var titles: Array = TitleService.get_unlocked_titles(player_id)
+	var title_service := _title_service()
+	if title_service == null:
+		return
+	var player_id: String = title_service.get_local_player_id()
+	var titles: Array = title_service.get_unlocked_titles(player_id)
 
 	if titles.is_empty():
 		show_notification("No titles unlocked yet")
@@ -1215,7 +1243,7 @@ func _show_title_selection_popup(slot: String) -> void:
 			var idx := list.get_selected_items()
 			if not idx.is_empty() and idx[0] < valid_titles.size():
 				var title = valid_titles[idx[0]]
-				TitleService.equip(player_id, title.id, slot)
+				title_service.equip(player_id, title.id, slot)
 				refresh_titles()
 				show_notification("Title equipped!")
 			dialog.queue_free()
@@ -1225,7 +1253,7 @@ func _show_title_selection_popup(slot: String) -> void:
 		var unequip_btn := Button.new()
 		unequip_btn.text = "Unequip"
 		unequip_btn.pressed.connect(func() -> void:
-			TitleService.unequip(player_id, slot)
+			title_service.unequip(player_id, slot)
 			refresh_titles()
 			show_notification("Title unequipped")
 			dialog.queue_free()
@@ -1257,7 +1285,10 @@ func refresh_titles() -> void:
 	if not container:
 		return
 
-	var player_id := TitleService.get_local_player_id()
+	var title_service := _title_service()
+	if title_service == null:
+		return
+	var player_id: String = title_service.get_local_player_id()
 	if player_id.is_empty():
 		return
 
@@ -1267,7 +1298,7 @@ func refresh_titles() -> void:
 		var preview_lbl: Label = preview_box.get_node_or_null("PreviewLabel")
 		if preview_lbl:
 			var base_name := "PlayerName"
-			var full_name := TitleService.get_display_name(player_id, base_name)
+			var full_name: String = title_service.get_display_name(player_id, base_name)
 			preview_lbl.text = full_name
 
 	# Update equipped labels
@@ -1277,21 +1308,21 @@ func refresh_titles() -> void:
 		if prefix_box:
 			var prefix_val: Label = prefix_box.get_node_or_null("PrefixValue")
 			if prefix_val:
-				var prefix: TitleData = TitleService.get_equipped_prefix(player_id)
+				var prefix: TitleData = title_service.get_equipped_prefix(player_id)
 				prefix_val.text = "[%s]" % prefix.prefix_form if prefix else "[None]"
 
 		var suffix_box: VBoxContainer = equipped_box.get_node_or_null("SuffixBox")
 		if suffix_box:
 			var suffix_val: Label = suffix_box.get_node_or_null("SuffixValue")
 			if suffix_val:
-				var suffix: TitleData = TitleService.get_equipped_suffix(player_id)
+				var suffix: TitleData = title_service.get_equipped_suffix(player_id)
 				suffix_val.text = suffix.suffix_form if suffix else "[None]"
 
 	# Update titles list
 	var titles_list: ItemList = container.get_node_or_null("TitlesList")
 	if titles_list:
 		titles_list.clear()
-		var titles: Array = TitleService.get_unlocked_titles(player_id)
+		var titles: Array = title_service.get_unlocked_titles(player_id)
 		for title in titles:
 			var display: String = str(title.display_name)
 			if title.has_prefix():

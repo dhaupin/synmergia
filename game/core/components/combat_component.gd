@@ -11,6 +11,16 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 const SkillSchema = preload("res://core/schemas/skill.gd")
 const CharacterData := preload("res://core/schemas/character_data.gd")
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 signal attack_started()
 signal attack_finished()
 signal skill_started(skill: Skill)
@@ -122,12 +132,14 @@ func execute_skill(skill: Skill, target = null, ground_pos: Vector3 = Vector3.ZE
 	var entity = get_parent()
 	if entity and "entity_id" in entity and entity.entity_id != "":
 		if not QoSService.rate_limit(entity.entity_id, "combat"):
-			GameLog.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
-			return false
-
-		# AntiCheat: Record combat action for analysis
-		if AntiCheatService:
-			AntiCheatService.record_action(entity.entity_id, "combat_skill", entity.global_position if ("global_position" in entity) else Vector3.ZERO)
+			var gl := _glog()
+			if gl:
+				gl.debug("CombatComponent: Rate limited skill %s for %s" % [skill.skill_name, entity.entity_id])
+			return false			# AntiCheat: Record combat action for analysis
+			var tree := Engine.get_main_loop() as SceneTree
+			var anti_cheat := tree.root.get_node_or_null(NodePath("AntiCheatService")) if tree and tree.root else null
+			if anti_cheat:
+				anti_cheat.record_action(entity.entity_id, "combat_skill", entity.global_position if ("global_position" in entity) else Vector3.ZERO)
 
 	# Apply Skill Academy upgrade deltas (returns duplicated schema with bonuses applied)
 	var upgraded_skill: Skill = _apply_skill_upgrade_deltas(skill, entity)
@@ -144,7 +156,9 @@ func execute_skill(skill: Skill, target = null, ground_pos: Vector3 = Vector3.ZE
 			# Hitbox family: CombatSystem owns costs, execution, the hitbox
 			# sweep, skill_executed and combo tracking.
 			var ground: Vector3 = ground_pos if (upgraded_skill.is_ground_targeted and ground_pos != Vector3.ZERO) else Vector3.ZERO
-			if not CombatSystem.execute_skill(get_parent(), upgraded_skill, target, ground):
+			var cs_tree := Engine.get_main_loop() as SceneTree
+			var combat_system := cs_tree.root.get_node_or_null(NodePath("CombatSystem")) if cs_tree and cs_tree.root else null
+			if combat_system == null or not combat_system.execute_skill(get_parent(), upgraded_skill, target, ground):
 				return false
 			gcd_remaining = gcd_duration
 			skill_finished.emit(upgraded_skill)
@@ -181,8 +195,10 @@ func _apply_skill_upgrade_deltas(schema, _entity) -> Skill:
 
 	# Get upgrade level from CharacterData via GameManager
 	var upgrade_level: int = 0
-	if GameManager and is_instance_valid(GameManager.selected_character_data):
-		var cd = GameManager.selected_character_data
+	var gm_tree := Engine.get_main_loop() as SceneTree
+	var game_manager := gm_tree.root.get_node_or_null(NodePath("GameManager")) if gm_tree and gm_tree.root else null
+	if game_manager and is_instance_valid(game_manager.selected_character_data):
+		var cd = game_manager.selected_character_data
 		if cd != null and "id" in schema and cd.has_method("get_skill_upgrade_level"):
 			upgrade_level = cd.get_skill_upgrade_level(schema.id)
 	if upgrade_level <= 0:
@@ -283,8 +299,10 @@ func _can_execute_skill(skill: Skill) -> bool:
 		return false
 
 	# SECURITY: Cannot cast skills if locked (trade, follow, etc)
-	if PlayerLockService and "entity_id" in entity and entity.entity_id != "" \
-			and PlayerLockService.are_skills_blocked(entity.entity_id):
+	var lock_tree := Engine.get_main_loop() as SceneTree
+	var player_lock := lock_tree.root.get_node_or_null(NodePath("PlayerLockService")) if lock_tree and lock_tree.root else null
+	if player_lock and "entity_id" in entity and entity.entity_id != "" \
+			and player_lock.are_skills_blocked(entity.entity_id):
 		return false
 
 	# Check can_cast on skill
@@ -347,7 +365,9 @@ func on_damage_taken(damage: int, source = null, damage_type: String = "physical
 	# Roll for resistance
 	if randf() < resistance:
 		# Resisted!
-		EventHub.interrupt_resisted.emit(entity, skill)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("interrupt_resisted", entity, skill)
 		return false
 
 	# Interrupted!
@@ -374,7 +394,9 @@ func _interrupt_cast(reason: String) -> void:
 
 	if skill:
 		interrupted.emit(skill, reason)
-		EventHub.entity_interrupted.emit(get_parent(), skill, reason)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("entity_interrupted", get_parent(), skill, reason)
 
 ## Check if can be interrupted
 func can_be_interrupted() -> bool:
@@ -414,7 +436,9 @@ func _execute_channel_tick() -> void:
 
 	if target and is_instance_valid(target):
 		channel_skill.execute(entity, target)
-		EventHub.channel_tick.emit(entity, channel_skill)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("channel_tick", entity, channel_skill)
 
 func _finish_channel(completed: bool) -> void:
 	var skill: Skill = channel_skill
@@ -465,7 +489,9 @@ func _emit_skill_used(entity, skill: Skill, target) -> void:
 	var target_ids: Array = []
 	if target != null and "entity_id" in target and target.entity_id != "":
 		target_ids.append(str(target.entity_id))
-	EventHub.skill_executed.emit(caster_id, skill.skill_id, target_ids)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("skill_executed", caster_id, skill.skill_id, target_ids)
 
 ## Basic auto-attack
 func auto_attack(target, damage: int) -> void:
@@ -526,7 +552,9 @@ func _enter_combat() -> void:
 	_current_mana_regen_multiplier = mana_regen_combat
 
 	combat_entered.emit()
-	EventHub.entity_entered_combat.emit(get_parent())
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("entity_entered_combat", get_parent())
 
 func _exit_combat() -> void:
 	if not in_combat:
@@ -537,7 +565,9 @@ func _exit_combat() -> void:
 	_current_mana_regen_multiplier = mana_regen_rest
 
 	combat_exited.emit()
-	EventHub.entity_exited_combat.emit(get_parent())
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("entity_exited_combat", get_parent())
 
 ## Called when entity deals or takes damage
 func on_damage_dealt(damage: int, target = null, damage_type: String = "physical") -> void:
@@ -650,12 +680,16 @@ func _apply_durability_loss(combat_minutes: float) -> void:
 			total_loss += loss
 
 			if loss > 0:
-				GameLog.debug("CombatComponent: %s lost %d durability on %s" % [entity.name, loss, item.display_name])
+				var gl := _glog()
+				if gl:
+					gl.debug("CombatComponent: %s lost %d durability on %s" % [entity.name, loss, item.display_name])
 
 			# Check if item broke
 			if item.is_broken():
 				item_broken.emit(item.id)
-				GameLog.warn("CombatComponent: %s's %s broke!" % [entity.name, item.display_name])
+				var gl := _glog()
+				if gl:
+					gl.warn("CombatComponent: %s's %s broke!" % [entity.name, item.display_name])
 
 	if total_loss > 0:
 		durability_tick.emit(total_loss)

@@ -3,6 +3,22 @@
 ## Provides visual interface for admin commands and player management
 extends "res://ui/components/ui_panel.gd"
 class_name AdminDashboard
+
+## Runtime autoload lookup (script-mode-safe; the bare
+## identifier fails compile when autoloads are absent -- test_islands).
+func ars() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("AutoResponseService")) if tree and tree.root else null
+
+## Runtime autoload lookup (script-mode-safe; the bare
+## identifier fails compile when autoloads are absent -- test_islands).
+func pmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+func glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
 const AdminShell = preload("res://core/admin/admin_shell.gd")
 
 
@@ -368,11 +384,11 @@ func _on_player_search(text: String) -> void:
 
 
 func _bind_admin_signals() -> void:
-	if AutoResponseService:
-		if AutoResponseService.has_signal("action_taken") and not AutoResponseService.action_taken.is_connected(_on_auto_response_action):
-			AutoResponseService.action_taken.connect(_on_auto_response_action)
-		if AutoResponseService.has_signal("player_warned") and not AutoResponseService.player_warned.is_connected(_on_auto_response_warn):
-			AutoResponseService.player_warned.connect(_on_auto_response_warn)
+	if ars():
+		if ars().has_signal("action_taken") and not ars().action_taken.is_connected(_on_auto_response_action):
+			ars().action_taken.connect(_on_auto_response_action)
+		if ars().has_signal("player_warned") and not ars().player_warned.is_connected(_on_auto_response_warn):
+			ars().player_warned.connect(_on_auto_response_warn)
 
 
 func _on_auto_response_action(player_id: String, action: int, exploit_type: String, reason: String) -> void:
@@ -472,21 +488,25 @@ func _autocomplete() -> void:
 
 func set_admin_id(admin_id: String) -> void:
 	# Validate admin has proper permissions
-	if PermissionManager:
-		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.MOD):
-			GameLog.warn("AdminDashboard: Access denied for %s - insufficient permissions" % admin_id)
+	if pmgr():
+		if not pmgr().has_permission(admin_id, pmgr().Level.MOD):
+			var gl1 := glog()
+			if gl1:
+				gl1.warn("AdminDashboard: Access denied for %s - insufficient permissions" % admin_id)
 			_admin_id = ""
 			return
-		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.ADMIN):
+		if not pmgr().has_permission(admin_id, pmgr().Level.ADMIN):
 			# Show MOD-level warning in UI
 			_show_permission_warning()
 
 	_admin_id = admin_id
-	GameLog.info("AdminDashboard: Admin %s connected" % admin_id)
+	var gl2 := glog()
+	if gl2:
+		gl2.info("AdminDashboard: Admin %s connected" % admin_id)
 
-	# Connect to PermissionManager signals for real-time updates
-	if PermissionManager:
-		PermissionManager.admin_action.connect(_on_admin_action)
+	# Connect to pmgr() signals for real-time updates
+	if pmgr():
+		pmgr().admin_action.connect(_on_admin_action)
 
 func execute_command(cmd: String) -> void:
 	_on_command_submitted(cmd)
@@ -507,14 +527,14 @@ func _on_admin_action(entry) -> void:
 func has_permission(required_level: int) -> bool:
 	if _admin_id == "":
 		return false
-	if PermissionManager:
-		return PermissionManager.has_permission(_admin_id, required_level)
+	if pmgr():
+		return pmgr().has_permission(_admin_id, required_level)
 	return false
 
 ## Check if user is admin level
 func is_admin() -> bool:
-	return has_permission(PermissionManager.Level.ADMIN if PermissionManager else 50)
+	return has_permission(pmgr().Level.ADMIN if pmgr() else 50)
 
 ## Check if user is moderator level
 func is_moderator() -> bool:
-	return has_permission(PermissionManager.Level.MOD if PermissionManager else 10)
+	return has_permission(pmgr().Level.MOD if pmgr() else 10)

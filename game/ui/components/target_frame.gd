@@ -263,24 +263,29 @@ func _setup_ui() -> void:
 	add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 
 func _connect_signals() -> void:
-	if TargetingManager:
-		TargetingManager.target_acquired.connect(_on_target_acquired)
-		TargetingManager.target_cleared.connect(_on_target_cleared)
-		TargetingManager.target_updated.connect(_on_target_updated)
+	var _tree := Engine.get_main_loop() as SceneTree
+	var targeting_manager := _tree.root.get_node_or_null(NodePath("TargetingManager")) if _tree and _tree.root else null
+	var hub := _tree.root.get_node_or_null(NodePath("EventHub")) if _tree and _tree.root else null
+	if targeting_manager:
+		targeting_manager.target_acquired.connect(_on_target_acquired)
+		targeting_manager.target_cleared.connect(_on_target_cleared)
+		targeting_manager.target_updated.connect(_on_target_updated)
 	# Effect signals live on EventHub only when provided; EntityService
 	# The hub now declares entity_effect_added/removed (aura_component
 	# emits snapshot dicts); the has_signal guard stays as belt-and-braces.
-	if EventHub and EventHub.has_signal("entity_effect_added"):
-		EventHub.entity_effect_added.connect(_on_effect_added)
-	if EventHub and EventHub.has_signal("entity_effect_removed"):
-		EventHub.entity_effect_removed.connect(_on_effect_removed)
+	if hub and hub.has_signal("entity_effect_added"):
+		hub.entity_effect_added.connect(_on_effect_added)
+	if hub and hub.has_signal("entity_effect_removed"):
+		hub.entity_effect_removed.connect(_on_effect_removed)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			# Left click - re-target with the entity's schema type
-			if _target_id != "" and TargetingManager:
-				TargetingManager.set_target(_target_id, _target_schema_id)
+			var input_tree := Engine.get_main_loop() as SceneTree
+			var tm := input_tree.root.get_node_or_null(NodePath("TargetingManager")) if input_tree and input_tree.root else null
+			if _target_id != "" and tm:
+				tm.set_target(_target_id, _target_schema_id)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			# Right click - show action menu
 			if _target_id != "" and ActionMenu:

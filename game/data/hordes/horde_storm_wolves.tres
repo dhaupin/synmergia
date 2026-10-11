@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="HordeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/horde_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm_wolves"
+display_name = "Storm Wolves"
+waves = [{
+"spawns": [{
+"template_id": "wolf",
+"count": 4
+}],
+"reward_gold": -1,
+"reward_xp": -1
+}, {
+"spawns": [{
+"template_id": "wolf",
+"count": 5
+}, {
+"template_id": "slime",
+"count": 3
+}],
+"reward_gold": -1,
+"reward_xp": -1
+}]
+boss_template_id = ""
+boss_name = ""
+reward_gold = 200
+reward_xp = 120
+scale_levels = true
+inter_wave_delay = 5.0

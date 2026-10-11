@@ -1,5 +1,6 @@
-## FriendsListUI - In-game friends management panel
-## Migrated onto UIPanel base class.
+
+
+
 extends "res://ui/components/ui_panel.gd"
 class_name FriendsListUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
@@ -10,6 +11,15 @@ const CharacterData = preload("res://core/schemas/character_data.gd")
 ## deliberately differs from class_name InteractionModal to avoid the
 ## shadow AGENTS.md warns about.
 const InteractionModalLib = preload("res://ui/components/interaction_modal.gd")
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _friendsservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("FriendsService")) if tree and tree.root else null
+
+## FriendsListUI - In-game friends management panel
+## Migrated onto UIPanel base class.
 
 var _tab_container: TabContainer
 var _friends_list: ItemList
@@ -32,7 +42,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	pass
 
 func _bind_service_signals() -> void:
-	if not FriendsService:
+	if not _friendsservice():
 		return
 	var sigs := {
 		"friend_added": _on_friends_changed,
@@ -49,10 +59,10 @@ func _bind_service_signals() -> void:
 		"player_unignored": _on_friends_changed,
 	}
 	for sig_name in sigs:
-		if FriendsService.has_signal(sig_name):
+		if _friendsservice().has_signal(sig_name):
 			var handler = sigs[sig_name]
-			if not FriendsService.get(sig_name).is_connected(handler):
-				FriendsService.get(sig_name).connect(handler)
+			if not _friendsservice().get(sig_name).is_connected(handler):
+				_friendsservice().get(sig_name).connect(handler)
 
 
 func _on_friends_changed(_a = null, _b = null) -> void:
@@ -203,10 +213,10 @@ func _refresh_friends() -> void:
 	if not _friends_list:
 		return
 	_friends_list.clear()
-	if not FriendsService:
+	if not _friendsservice():
 		return
 
-	var friends: Array = FriendsService.get_friends(_player_id)
+	var friends: Array = _friendsservice().get_friends(_player_id)
 	for friend in friends:
 		var friend_data: Dictionary = friend
 		var friend_name: String = friend_data.get("player_name", "Unknown")
@@ -232,10 +242,10 @@ func _refresh_requests() -> void:
 	if not _requests_list:
 		return
 	_requests_list.clear()
-	if not FriendsService:
+	if not _friendsservice():
 		return
 
-	var requests: Array = FriendsService.get_pending_requests_received(_player_id)
+	var requests: Array = _friendsservice().get_pending_requests_received(_player_id)
 	for req in requests:
 		var req_data: Dictionary = req
 		var from_name: String = req_data.get("from_player_name", "Unknown")
@@ -245,17 +255,17 @@ func _refresh_blocked() -> void:
 	if not _blocked_list:
 		return
 	_blocked_list.clear()
-	if not FriendsService:
+	if not _friendsservice():
 		return
 
-	var blocked: Array = FriendsService.get_blocked_players(_player_id)
+	var blocked: Array = _friendsservice().get_blocked_players(_player_id)
 	for player_id in blocked:
 		_blocked_list.add_item(str(player_id))
 
 func _on_friend_selected(index: int) -> void:
-	if not FriendsService:
+	if not _friendsservice():
 		return
-	var friends: Array = FriendsService.get_friends(_player_id)
+	var friends: Array = _friendsservice().get_friends(_player_id)
 	if index < friends.size():
 		var friend: Dictionary = friends[index]
 		var friend_id: String = friend.get("player_id", "")
@@ -272,8 +282,8 @@ func _show_friend_options(friend_id: String, friend_name: String) -> void:
 		func(_text: String) -> void: _remove_friend(friend_id_ref))
 
 func _remove_friend(friend_id: String) -> void:
-	if FriendsService:
-		FriendsService.remove_friend(_player_id, friend_id)
+	if _friendsservice():
+		_friendsservice().remove_friend(_player_id, friend_id)
 		_refresh_friends()
 
 func _on_add_friend() -> void:
@@ -286,50 +296,51 @@ func _on_add_friend() -> void:
 	InteractionModalLib.show_modal(self, "Add Friend",
 		"Enter the player name to add:", "Add", true,
 		func(player_name: String) -> void:
-			if player_name != "" and FriendsService:
+			if player_name != "" and _friendsservice():
 				# NOTE: signature is send_friend_request(from_id, from_name, to_id).
 				# Pre-existing call passes _player_id twice; preserved here until Phase C
 				# passes the real from_name via the player's CharacterData.
-				var result: Dictionary = FriendsService.send_friend_request(_player_id, _player_id, player_name)
+				var result: Dictionary = _friendsservice().send_friend_request(_player_id, _player_id, player_name)
 				_show_notification(result.get("message", "Request sent")))
 
 func _on_accept_request() -> void:
-	if not _requests_list or not FriendsService:
+	if not _requests_list or not _friendsservice():
 		return
 	var selected: PackedInt32Array = _requests_list.get_selected_items()
 	if selected.is_empty():
 		return
 
-	var requests: Array = FriendsService.get_pending_requests_received(_player_id)
+	var requests: Array = _friendsservice().get_pending_requests_received(_player_id)
 	if selected[0] < requests.size():
 		var request: Dictionary = requests[selected[0]]
-		FriendsService.accept_friend_request(_player_id, request.get("id", ""))
+		_friendsservice().accept_friend_request(_player_id, request.get("id", ""))
 		_refresh_all()
 
 func _on_decline_request() -> void:
-	if not _requests_list or not FriendsService:
+	if not _requests_list or not _friendsservice():
 		return
 	var selected: PackedInt32Array = _requests_list.get_selected_items()
 	if selected.is_empty():
 		return
 
-	var requests: Array = FriendsService.get_pending_requests_received(_player_id)
+	var requests: Array = _friendsservice().get_pending_requests_received(_player_id)
 	if selected[0] < requests.size():
 		var request: Dictionary = requests[selected[0]]
-		FriendsService.decline_friend_request(_player_id, request.get("id", ""))
+		_friendsservice().decline_friend_request(_player_id, request.get("id", ""))
 		_refresh_all()
 
 func _on_unblock() -> void:
-	if not _blocked_list or not FriendsService:
+	if not _blocked_list or not _friendsservice():
 		return
 	var selected: PackedInt32Array = _blocked_list.get_selected_items()
 	if selected.is_empty():
 		return
 
-	var blocked: Array = FriendsService.get_blocked_players(_player_id)
+	var blocked: Array = _friendsservice().get_blocked_players(_player_id)
 	if selected[0] < blocked.size():
-		FriendsService.unblock_player(_player_id, str(blocked[selected[0]]))
+		_friendsservice().unblock_player(_player_id, str(blocked[selected[0]]))
 		_refresh_blocked()
+
 
 func _show_notification(message: String) -> void:
 	var notif := Label.new()

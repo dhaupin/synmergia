@@ -5,6 +5,22 @@ extends Node
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
 
+## Tree-safe GameLog lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+## Tree-safe PermissionManager lookup (script-mode-safe).
+func _pmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+## Tree-safe NotificationService lookup (script-mode-safe).
+func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
 
 ## Report types
 enum ReportType {
@@ -160,7 +176,7 @@ const MAX_REPORTS_PER_HOUR: int = 10
 var _hourly_reports: Dictionary = {}  # reporter_id -> {count, window_start}
 
 func _ready() -> void:
-	GameLog.info("PlayerReporter: Initialized")
+	_glog().info("PlayerReporter: Initialized")
 
 ## ============================================================================
 ## PUBLIC API
@@ -319,8 +335,9 @@ func update_report_status(admin_id: String, report_id: String, new_status: Statu
 		notes: String = "") -> Dictionary:
 
 	# Verify admin permission
-	if PermissionManager:
-		if not PermissionManager.has_permission(admin_id, PermissionManager.Level.MOD):
+	var pm := _pmgr()
+	if pm:
+		if not pm.has_permission(admin_id, pm.Level.MOD):
 			return {"success": false, "message": "MOD level required"}
 
 	if not _reports.has(report_id):
@@ -335,7 +352,7 @@ func update_report_status(admin_id: String, report_id: String, new_status: Statu
 		report.assigned_to = admin_id
 
 	# Log status change
-	GameLog.info("PlayerReporter: Report %s status changed to %s by %s" % [report_id, new_status, admin_id])
+	_glog().info("PlayerReporter: Report %s status changed to %s by %s" % [report_id, new_status, admin_id])
 
 	# Notify reporter
 	_notify_reporter(report)
@@ -400,14 +417,15 @@ func _log_report(report: Report) -> void:
 		log_msg += " against %s" % report.target_id
 
 	if report.priority == Priority.URGENT:
-		GameLog.warn(log_msg)
+		_glog().warn(log_msg)
 	elif report.priority == Priority.HIGH:
-		GameLog.info(log_msg)
+		_glog().info(log_msg)
 	else:
-		GameLog.debug(log_msg)
+		_glog().debug(log_msg)
 
 func _notify_reporter(report: Report) -> void:
-	if NotificationService:
+	var nf := _notify_svc()
+	if nf:
 		var status_msg := ""
 		match report.status:
 			Status.RESOLVED:
@@ -424,8 +442,8 @@ func _notify_reporter(report: Report) -> void:
 			# status so a /status check on the same report doesn't
 			# double-toast, but a status change to resolved then
 			# escalated will.
-			if is_instance_valid(NotificationService):
-				NotificationService.notify(
+			if is_instance_valid(nf):
+				nf.notify(
 					NotifKind.CUSTOM,
 					status_msg,
 					"PlayerReporter",
@@ -439,7 +457,7 @@ func _emit_urgent_alert(report: Report) -> void:
 	urgent_report.emit(report)
 
 	# Log prominently
-	GameLog.warn("URGENT REPORT: %s - %s" % [report.id, report.subject])
+	_glog().warn("URGENT REPORT: %s - %s" % [report.id, report.subject])
 
 ## ============================================================================
 ## MAINTENANCE

@@ -19,6 +19,49 @@ const BlessedMarkScript = preload("res://entities/blessed_mark.gd")
 # blocked/limited message (rate-limit, validation, restriction), so
 # the Kind is SECURITY_BLOCKED uniformly.
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const ReportKind = preload("res://core/admin/player_reporter.gd")
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+static func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+static func _gconfig() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameConfig")) if tree and tree.root else null
+
+static func _entity_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EntityService")) if tree and tree.root else null
+
+static func _player_m() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+static func _security_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SecurityService")) if tree and tree.root else null
+
+static func _party_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PartyService")) if tree and tree.root else null
+
+static func _guild_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GuildService")) if tree and tree.root else null
+
+static func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
+static func _reporter() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerReporter")) if tree and tree.root else null
+
+static func _sign_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SignService")) if tree and tree.root else null
 
 # Chat channels
 enum Channel {
@@ -65,7 +108,9 @@ var _ignored_players: Dictionary = {}
 
 # Chat history (limited per channel)
 var _chat_history: Dictionary = {}
-const MAX_HISTORY_PER_CHANNEL: int = GameConfig.Chat.MAX_HISTORY_PER_CHANNEL
+## Runtime-resolved; resolved lazily (script-mode-safe).
+var MAX_HISTORY_PER_CHANNEL: int = 30
+@warning_ignore("unused_private_class_variable")
 
 # Channel subscriptions (entity_id -> [channels])
 var _subscriptions: Dictionary = {}
@@ -74,7 +119,7 @@ var _subscriptions: Dictionary = {}
 var _player_last_message: Dictionary = {}	 # entity_id -> timestamp
 const SPAM_COOLDOWN_MS: int = 500	 # Half second between messages
 const SPAM_THRESHOLD: int = 5	 # Messages per time window
-const MAX_MESSAGE_LENGTH: int = GameConfig.Chat.MAX_MESSAGE_LENGTH
+var MAX_MESSAGE_LENGTH: int = 200
 var _spam_count: Dictionary = {}	# entity_id -> count
 
 # Whisper tracking (sender_id -> last whisper target entity_id)
@@ -95,7 +140,15 @@ const _kv_ignored := "chat:ignored:"
 const _kv_player_settings := "chat:settings:"
 
 func _ready() -> void:
-	GameLog.info("ChatService: Ready")
+	var gl := _glog()
+	if gl:
+		gl.info("ChatService: Ready")
+	# Pull the real limits when GameConfig is live (script-mode fallbacks
+	# above stay only when neither exists).
+	var gc := _gconfig()
+	if gc and gc.get("Chat") != null:
+		MAX_HISTORY_PER_CHANNEL = gc.Chat.MAX_HISTORY_PER_CHANNEL
+		MAX_MESSAGE_LENGTH = gc.Chat.MAX_MESSAGE_LENGTH
 
 		# Initialize history for each channel
 	for channel in Channel:
@@ -108,8 +161,8 @@ func _ready() -> void:
 func open_whisper(target_id: String) -> void:
 	if not target_id.is_empty():
 		# Store this as the last whisper target for reply functionality
-		if PlayerManager:
-			var sender_id := str(PlayerManager.get_local_player_id())
+		if _player_m():
+			var sender_id := str(_player_m().get_local_player_id())
 			if not sender_id.is_empty():
 				_player_last_whisper[sender_id] = target_id
 		# Emit signal so UI can focus on whisper input
@@ -131,7 +184,7 @@ func send_message(sender_id: String, channel: Channel, message: String, target_i
 		return false
 
 		# Security: Validate message content
-	var validation := SecurityService.validate_message(message, sender_id)
+	var validation = _security_svc().validate_message(message, sender_id)
 	if not validation.valid:
 		_notify_player(sender_id, "Message blocked: %s" % validation.reason)
 		return false
@@ -200,12 +253,12 @@ func _check_spam(entity_id: String) -> bool:
 
 ## Load profanity word list from file
 func _load_profanity_list() -> void:
-	_profanity_filter_enabled = GameConfig.Chat.PROFANITY_FILTER_ENABLED
+	_profanity_filter_enabled = _gconfig().Chat.PROFANITY_FILTER_ENABLED
 	if not _profanity_filter_enabled:
-		GameLog.info("ChatService: Profanity filter disabled")
+		_glog().info("ChatService: Profanity filter disabled")
 		return
 
-	var file_path := GameConfig.Chat.PROFANITY_WORDS_FILE
+	var file_path: String = _gconfig().Chat.PROFANITY_WORDS_FILE
 	var file := FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		# Try user:// path as fallback
@@ -213,7 +266,7 @@ func _load_profanity_list() -> void:
 		file = FileAccess.open(file_path, FileAccess.READ)
 
 	if file == null:
-		GameLog.warn("ChatService: Profanity word list not found at %s (filter disabled)" % file_path)
+		_glog().warn("ChatService: Profanity word list not found at %s (filter disabled)" % file_path)
 		_profanity_list = []
 		return
 
@@ -225,7 +278,7 @@ func _load_profanity_list() -> void:
 		_profanity_list.append(line.to_lower())
 
 	file.close()
-	GameLog.info("ChatService: Loaded %d profanity filter words" % _profanity_list.size())
+	_glog().info("ChatService: Loaded %d profanity filter words" % _profanity_list.size())
 
 ## Filter profanity
 func _filter_profanity(message: String) -> String:
@@ -235,7 +288,7 @@ func _filter_profanity(message: String) -> String:
 	for word in _profanity_list:
 		var regex := RegEx.new()
 		regex.compile(word)
-		var replacement := GameConfig.Chat.PROFANITY_REPLACEMENT_CHAR.repeat(word.length())
+		var replacement: String = _gconfig().Chat.PROFANITY_REPLACEMENT_CHAR.repeat(word.length())
 		message = regex.sub(message, replacement, true)
 	return message
 
@@ -261,14 +314,15 @@ func _get_channel_targets(sender_id: String, channel: Channel, target_id: String
 
 ## Get players in range
 func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array:
-	if not EntityService:
-		GameLog.warn("ChatService: EntityService not available for range check")
+	var _ent_svc_check := _entity_svc()
+	if not _ent_svc_check:
+		_glog().warn("ChatService: _entity_svc() not available for range check")
 		return []
 
 		# Get sender entity
-	var sender = EntityService.get_entity(sender_id)
+	var sender = _entity_svc().get_entity(sender_id)
 	if not sender or not is_instance_valid(sender):
-		GameLog.warn("ChatService: Sender entity not found for range check: %s" % sender_id)
+		_glog().warn("ChatService: Sender entity not found for range check: %s" % sender_id)
 		return []
 
 		# Get range from channel config
@@ -304,27 +358,28 @@ func _get_players_in_channel_range(sender_id: String, channel: Channel) -> Array
 
 ## Get all players in the same zone
 func _get_players_in_same_zone(sender_id: String) -> Array[String]:
-	if not EntityService:
+	var _ent_svc_check := _entity_svc()
+	if not _ent_svc_check:
 		return []
 
-	var sender = EntityService.get_entity(sender_id)
+	var sender = _entity_svc().get_entity(sender_id)
 	if not sender or not is_instance_valid(sender):
 		return []
 
 		# Get sender's zone from metadata
-	var metadata: SpawnMetadata = EntityService.get_entity_metadata(sender_id)
+	var metadata: SpawnMetadata = _entity_svc().get_entity_metadata(sender_id)
 	if not metadata or metadata.zone_id == "":
-		GameLog.debug("ChatService: No zone info for sender, returning empty range list")
+		_glog().debug("ChatService: No zone info for sender, returning empty range list")
 		return []
 
 		# Find all players in the same zone
-	var all_players := EntityService.get_all_players()
+	var all_players: Array = _entity_svc().get_all_players()
 	var zone_players: Array[String] = []
 
 	for player in all_players:
 		if not is_instance_valid(player) or player.entity_id == sender_id:
 			continue
-		var player_metadata: SpawnMetadata = EntityService.get_entity_metadata(player.entity_id)
+		var player_metadata: SpawnMetadata = _entity_svc().get_entity_metadata(player.entity_id)
 		if player_metadata and player_metadata.zone_id == metadata.zone_id:
 			zone_players.append(player.entity_id)
 
@@ -332,22 +387,22 @@ func _get_players_in_same_zone(sender_id: String) -> Array[String]:
 
 ## Get party members
 func _get_party_members(player_id: String) -> Array:
-	if PartyService and PartyService.is_in_party(player_id):
-		return PartyService.get_party_members(PartyService.get_player_party(player_id).get("id", ""))
+	if _party_svc() and _party_svc().is_in_party(player_id):
+		return _party_svc().get_party_members(_party_svc().get_player_party(player_id).get("id", ""))
 	return []
 
 ## Get guild members
 func _get_guild_members(player_id: String) -> Array[String]:
-	if GuildService and GuildService.is_in_guild(player_id):
-		return GuildService.get_guild_roster(GuildService.get_player_guild(player_id).get("id", ""))
+	if _guild_svc() and _guild_svc().is_in_guild(player_id):
+		return _guild_svc().get_guild_roster(_guild_svc().get_player_guild(player_id).get("id", ""))
 	return []
 
 ## Send guild announcement (from guild system)
 func send_guild_announcement(guild_id: String, message: String, sender_name: String = "Guild") -> void:
-	if GuildService:
-		var guild := GuildService.get_guild(guild_id)
+	if _guild_svc():
+		var guild = _guild_svc().get_guild(guild_id)
 		if not guild.is_empty():
-			var roster: Array = GuildService.get_guild_roster(guild_id)
+			var roster: Array = _guild_svc().get_guild_roster(guild_id)
 			var member_ids: Array[String] = []
 			for member in roster:
 				if member is Dictionary and "id" in member:
@@ -359,9 +414,9 @@ func send_guild_announcement(guild_id: String, message: String, sender_name: Str
 
 ## Get alliance members
 func _get_alliance_members(player_id: String) -> Array[String]:
-	if GuildService and GuildService.is_in_guild(player_id):
-		var guild := GuildService.get_player_guild(player_id)
-		var alliance := GuildService.get_guild_alliance(guild.get("id", ""))
+	if _guild_svc() and _guild_svc().is_in_guild(player_id):
+		var guild: Dictionary = _guild_svc().get_player_guild(player_id)
+		var alliance: Dictionary = _guild_svc().get_guild_alliance(guild.get("id", ""))
 		return alliance.get("guild_ids", [])
 	return []
 
@@ -374,7 +429,7 @@ func _route_message(sender_id: String, channel: Channel, message: String, target
 
 		# Log chat
 	var channel_name: String = _channel_info[channel]["name"]
-	GameLog.debug("ChatService: [%s] %s: %s" % [channel_name, sender_id, message])
+	_glog().debug("ChatService: [%s] %s: %s" % [channel_name, sender_id, message])
 
 ## Handle chat commands
 func _handle_command(sender_id: String, channel: Channel, command: String, target_id: String) -> bool:
@@ -439,6 +494,8 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 			return _cmd_dwelling(sender_id, "plotinfo", args)
 		"horde":
 			return _cmd_horde(sender_id, args)
+		"weather-event":
+			return _cmd_weather_event(sender_id, args)
 		"boss":
 			return _cmd_boss(sender_id, args)
 		"spawn":
@@ -447,7 +504,7 @@ func _handle_command(sender_id: String, channel: Channel, command: String, targe
 	return false
 
 ## Deliver a one-player system line (command feedback). Delegates to
-## _notify_player (NotificationService typed pipeline) -- same path the
+## _notify_player (_notify_svc() typed pipeline) -- same path the
 ## other command feedback uses.
 func _send_system_message(sender_id: String, message: String) -> void:
 	_notify_player(sender_id, message)
@@ -458,8 +515,8 @@ func _sender_zone(sender_id: String) -> String:
 	var zm = get_node_or_null(NodePath("/root/ZoneManager"))
 	if zm == null or not zm.has_method("get_entity_zone_id"):
 		return ""
-	var es = get_node_or_null(NodePath("/root/EntityService"))
-	var pm = get_node_or_null(NodePath("/root/PlayerManager"))
+	var es = get_node_or_null(NodePath("/root/_entity_svc()"))
+	var pm = get_node_or_null(NodePath("/root/_player_m()"))
 	var player = null
 	if es != null and pm != null and pm.has_method("get_local_player_id"):
 		player = es.get_entity(pm.get_local_player_id())
@@ -474,6 +531,67 @@ func _require_admin(sender_id: String, command: String) -> bool:
 	if perm == null or not perm.has_method("is_admin") or not perm.is_admin(sender_id):
 		_send_system_message(sender_id, "[%s] Admin permission required." % command)
 		return false
+	return true
+
+## The WeatherEventService lookup: a root-level service node when one
+## is armed (test harnesses, headless boots) — else the world scene's
+## scoped child "WeatherEvents" (the WorldPlayable convention, same
+## dual path HudIntegrator.get_weather_event_service() uses). Chat
+## lives outside the world scene, so the scene-scoped lookup is the
+## only one that hits in a live world.
+func _find_weather_event_service() -> Node:
+	var svc := get_node_or_null(NodePath("/root/WeatherEventService"))
+	if svc != null:
+		return svc
+	var tree := get_tree()
+	var scene_root: Node = tree.current_scene if tree != null else null
+	if scene_root != null:
+		return scene_root.get_node_or_null("WeatherEvents")
+	return null
+
+## Command: /weather-event [config_id] [zone_id]
+## Sun-to-sword admin surface: bare lists the armed weather event
+## configs (the .tres law catalog), an id force-fires it NOW through
+## WeatherEventService.force_fire — the exact same _actions pipeline a
+## real spark/band trigger runs (cooldown bypassed, never a second
+## law). zone_id (optional) overrides the config's zone convention;
+## without one, the config's own zone_ids/starter-plains default
+## applies — the same authority a real trigger has.
+## WeatherEventService registers after ChatService: lazy.
+## Permission: admins (PermissionManager.Level.ADMIN) only.
+func _cmd_weather_event(sender_id: String, args: Array) -> bool:
+	var we = _find_weather_event_service()
+	if we == null:
+		return false
+	if not _require_admin(sender_id, "weather-event"):
+		return true
+	if args.is_empty():
+		var list: Array = we.list_configs() if we.has_method("list_configs") else []
+		if list.is_empty():
+			_send_system_message(sender_id, "[weather-event] No weather event configs armed.")
+			return true
+		var parts: Array = []
+		for cfg in list:
+			parts.append(str(cfg.get("id", "?")))
+		_send_system_message(sender_id, "[weather-event] Armed configs: %s" % ", ".join(parts))
+		return true
+	var event_id := str(args[0])
+	# Optional zone override: args[1] when present, else the sender's
+	# tracked zone ("" keeps the config's own convention).
+	var zone_override: String = ""
+	if args.size() > 1:
+		zone_override = str(args[1])
+	else:
+		zone_override = _sender_zone(sender_id)
+	var fired: String = we.force_fire(event_id, zone_override) if we.has_method("force_fire") else ""
+	if fired == "":
+		var list: Array = we.list_configs() if we.has_method("list_configs") else []
+		var names: Array = []
+		for cfg in list:
+			names.append(str(cfg.get("id", "?")))
+		_send_system_message(sender_id, "[weather-event] Unknown config '%s'. Available: %s" % [event_id, ", ".join(names)])
+		return true
+	_send_system_message(sender_id, "[weather-event] Fired %s." % fired)
 	return true
 
 ## Command: /boss <template_id> [zone_id] [name...] [world|zone|none]
@@ -524,15 +642,16 @@ func _cmd_boss(sender_id: String, args: Array) -> bool:
 	var boss_name := " ".join(name_parts)
 	var metadata_type: int = SpawnMetadata.SpawnType.BOSS
 	var scopes: Array = []
+	var nf := _notify_svc()
 	match alert:
 		"world":
 			metadata_type = SpawnMetadata.SpawnType.WORLD_BOSS
-			scopes = [NotificationService.AlertScope.server_wide()]
+			if nf: scopes = [nf.AlertScope.server_wide()]
 		"none":
 			metadata_type = SpawnMetadata.BOSS_SILENT  # no spawn announcement
 		_:
 			alert = "zone"
-			scopes = [NotificationService.AlertScope.zone(zone_id, true)]
+			if nf: scopes = [nf.AlertScope.zone(zone_id, true)]
 	var boss = ss.spawn_boss(template_id, _zone_spawn_pos(zone_id), zone_id, boss_name, scopes, metadata_type)
 	if boss == null:
 		_send_system_message(sender_id, "[boss] Unknown template '%s'." % template_id)
@@ -847,11 +966,12 @@ func _cmd_duel_concede(sender_id: String) -> bool:
 
 ## Find player ID by name (case-insensitive partial match)
 func _find_player_id_by_name(player_name: String) -> String:
-	if not EntityService:
+	var _ent_svc_check := _entity_svc()
+	if not _ent_svc_check:
 		return ""
 
 	var name_lower := player_name.to_lower()
-	var all_players := EntityService.get_all_players()
+	var all_players: Array = _entity_svc().get_all_players()
 
 	for player in all_players:
 		if not is_instance_valid(player):
@@ -953,8 +1073,8 @@ func _cmd_report(sender_id: String, args: Array) -> bool:
 	var target: String = args[0]
 	var reason := " ".join(args.slice(1, args.size()))
 
-	if PlayerReporter:
-		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.ABUSE, {
+	if _reporter():
+		var result = _reporter().submit_report(sender_id, ReportKind.ReportType.ABUSE, {
 			"target": target,
 			"reason": reason
 		})
@@ -976,8 +1096,8 @@ func _cmd_bug(sender_id: String, args: Array) -> bool:
 
 	var description := " ".join(args)
 
-	if PlayerReporter:
-		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.BUG, {
+	if _reporter():
+		var result = _reporter().submit_report(sender_id, ReportKind.ReportType.BUG, {
 			"description": description
 		})
 		if result.success:
@@ -998,8 +1118,8 @@ func _cmd_feedback(sender_id: String, args: Array) -> bool:
 
 	var message: String = " ".join(args)
 
-	if PlayerReporter:
-		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.FEEDBACK, {
+	if _reporter():
+		var result = _reporter().submit_report(sender_id, ReportKind.ReportType.FEEDBACK, {
 			"message": message
 		})
 		if result.success:
@@ -1020,8 +1140,8 @@ func _cmd_suggest(sender_id: String, args: Array) -> bool:
 
 	var suggestion := " ".join(args)
 
-	if PlayerReporter:
-		var result := PlayerReporter.submit_report(sender_id, PlayerReporter.ReportType.SUGGESTION, {
+	if _reporter():
+		var result = _reporter().submit_report(sender_id, ReportKind.ReportType.SUGGESTION, {
 			"suggestion": suggestion
 		})
 		if result.success:
@@ -1108,7 +1228,7 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 	var is_gm: bool = false
 	var is_blessed: bool = false
 	if sender_id != "":
-		var entity = EntityService.get_entity(sender_id) if EntityService else null
+		var entity = _entity_svc().get_entity(sender_id) if _entity_svc() else null
 		if entity:
 			var char_data = entity.get("character_data") if entity else null
 			if char_data:
@@ -1120,9 +1240,9 @@ func format_message(sender_id: String, channel: Channel, message: String, sender
 			# class chats with the (*) sigil in sky-cyan. Never on GM
 			# lines -- staff gold and the sky's palette do not mix.
 			if not is_gm and "character_class" in entity \
-					and SignService != null \
-					and SignService.has_method("is_class_blessed"):
-				is_blessed = SignService.is_class_blessed(str(entity.character_class))
+					and _sign_svc() != null \
+					and _sign_svc().has_method("is_class_blessed"):
+				is_blessed = _sign_svc().is_class_blessed(str(entity.character_class))
 
 	# Add GM indicator to name
 	var display_name: String = sender_name
@@ -1156,33 +1276,33 @@ func _get_channel_restriction_message(player_id: String, channel: Channel) -> St
 	match channel:
 		Channel.SAY, Channel.YELL, Channel.ZONE, Channel.GLOBAL, Channel.TRADE, Channel.COMBAT, Channel.EMOTE:
 		# General chat channels - check "chat" restriction
-			if SecurityService.is_restricted(player_id, "chat"):
+			if _security_svc().is_restricted(player_id, "chat"):
 				return "You are muted and cannot send messages."
 
 		Channel.WHISPER:
 		# Whisper channel - check "chat" restriction
-			if SecurityService.is_restricted(player_id, "chat"):
+			if _security_svc().is_restricted(player_id, "chat"):
 				return "You are muted and cannot send whispers."
 
 		Channel.PARTY:
 		# Party chat - check party restriction
-			if SecurityService.is_restricted(player_id, "party"):
+			if _security_svc().is_restricted(player_id, "party"):
 				return "You are restricted from party chat."
-			if SecurityService.is_restricted(player_id, "chat"):
+			if _security_svc().is_restricted(player_id, "chat"):
 				return "You are muted and cannot send party messages."
 
 		Channel.GUILD:
 		# Guild chat - check guild restriction
-			if SecurityService.is_restricted(player_id, "guild"):
+			if _security_svc().is_restricted(player_id, "guild"):
 				return "You are restricted from guild chat."
-			if SecurityService.is_restricted(player_id, "chat"):
+			if _security_svc().is_restricted(player_id, "chat"):
 				return "You are muted and cannot send guild messages."
 
 		Channel.ALLIANCE:
 		# Alliance chat - check guild restriction (alliance uses guild perms)
-			if SecurityService.is_restricted(player_id, "guild"):
+			if _security_svc().is_restricted(player_id, "guild"):
 				return "You are restricted from alliance chat."
-			if SecurityService.is_restricted(player_id, "chat"):
+			if _security_svc().is_restricted(player_id, "chat"):
 				return "You are muted and cannot send alliance messages."
 
 		Channel.SYSTEM:
@@ -1199,8 +1319,9 @@ func _notify_player(player_id: String, message: String) -> void:
 	# disables dedupe for SECURITY_BLOCKED (rate-limit feedback must
 	# always show), so we don't pass a per-call dedupe_key -- the
 	# kind-level policy wins regardless.
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
+	var _nf := _notify_svc()
+	if is_instance_valid(_nf):
+		_notify_svc().notify(
 			NotifKind.SECURITY_BLOCKED,
 			message,
 			"ChatService",
@@ -1208,7 +1329,7 @@ func _notify_player(player_id: String, message: String) -> void:
 			{"player_id": player_id},
 			player_id
 		)
-	GameLog.debug("ChatService: Notified %s: %s" % [player_id, message])
+	_glog().debug("ChatService: Notified %s: %s" % [player_id, message])
 
 ## == Persistence ============================================================
 

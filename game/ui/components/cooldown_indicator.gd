@@ -1,12 +1,31 @@
+
+
+
+extends Control
+
 ## CooldownIndicator - Visual feedback for rate-limited actions
 ## Uses UIStyles for default styling
 ## Shows a countdown timer when an action is on cooldown
-extends Control
+
 class_name CooldownIndicator
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _gamelog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+
 
 ## Emitted when cooldown completes
 signal cooldown_complete(action_type: String)
@@ -37,11 +56,11 @@ func _ready() -> void:
 	# Load bar scene
 	_bar_scene = preload("res://ui/components/cooldown_bar.tscn")
 
-	# Wire via NotificationService to catch RATE_LIMITED toasts
-	if NotificationService:
-		if NotificationService.has_signal("notification_sent"):
-			if not NotificationService.notification_sent.is_connected(_on_notification_sent):
-				NotificationService.notification_sent.connect(_on_notification_sent)
+	# Wire via _notify_svc() to catch RATE_LIMITED toasts
+	if _notify_svc():
+		if _notify_svc().has_signal("notification_sent"):
+			if not _notify_svc().notification_sent.is_connected(_on_notification_sent):
+				_notify_svc().notification_sent.connect(_on_notification_sent)
 
 	hide()
 

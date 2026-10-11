@@ -2,6 +2,13 @@
 ## Replaces the deprecated StateMachine class. Used by player controller.
 extends Node
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _r_gamelog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+
 signal state_changed(from: String, to: String)
 signal state_entered(state_name: String)
 signal state_exited(state_name: String)
@@ -41,7 +48,7 @@ func _physics_process(delta: float) -> void:
 
 func transition_to(state_name: String, data: Dictionary = {}) -> void:
 	if not states.has(state_name):
-		GameLog.warn("State '%s' not found in StateMachine" % state_name)
+		_r_gamelog().warn("State '%s' not found in StateMachine" % state_name)
 		return
 
 	var new_state: Node = states[state_name]

@@ -1,9 +1,25 @@
-## WorldMap - Full-screen world map with quest waypoints
-## Expanded from Minimap, supports click-to-navigate
+
+
+
 extends Control
 class_name WorldMap
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _targetingmanager() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TargetingManager")) if tree and tree.root else null
+
+## WorldMap - Full-screen world map with quest waypoints
+## Expanded from Minimap, supports click-to-navigate
 
 
 ## Singleton
@@ -55,10 +71,12 @@ func _ready() -> void:
 
 
 func _bind_zone_signals() -> void:
-	if ZoneManager:
-		if ZoneManager.has_signal("zone_loaded"):
-			if not ZoneManager.zone_loaded.is_connected(_on_zone_loaded):
-				ZoneManager.zone_loaded.connect(_on_zone_loaded)
+	var _tree := Engine.get_main_loop() as SceneTree
+	var zone_manager := _tree.root.get_node_or_null(NodePath("ZoneManager")) if _tree and _tree.root else null
+	if zone_manager:
+		if zone_manager.has_signal("zone_loaded"):
+			if not zone_manager.zone_loaded.is_connected(_on_zone_loaded):
+				zone_manager.zone_loaded.connect(_on_zone_loaded)
 
 
 func _on_zone_loaded(zone_data) -> void:
@@ -427,7 +445,8 @@ func _ensure_world_canvas() -> void:
 	if _canvas_texture == null:
 		# Retry on the next open (boot-order races heal themselves);
 		# meanwhile show a non-black chart so the map stays usable.
-		GameLog.warn("WorldMap: terrain canvas generation failed; showing fallback ocean chart")
+		var glw := _glog()
+		if glw: glw.warn("WorldMap: terrain canvas generation failed; showing fallback ocean chart")
 		var fb := Image.create(384, 384, false, Image.FORMAT_RGBA8)
 		fb.fill(Color(0.07, 0.20, 0.30))
 		_map_texture.texture = ImageTexture.create_from_image(fb)
@@ -653,6 +672,7 @@ func _on_zoom_in() -> void:
 
 func _on_zoom_out() -> void:
 	_zoom_level = maxi(_zoom_level / 1.5, 0.5)
+
 
 func _on_center_pressed() -> void:
 	_pan_offset = Vector2.ZERO

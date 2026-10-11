@@ -286,6 +286,11 @@ func _on_tick() -> void:
 	_flywheel_update_sub_meters()
 	_update_tick_interval()
 
+	# The cosmic wheel (CosmicService) decays on the same tick — one
+	# heartbeat drives both laws so the sky and the shard stay in lockstep.
+	if CosmicService != null and CosmicService.has_method("steer_decay"):
+		CosmicService.steer_decay(_tick_interval / 1000.0)
+
 	# Mark tree read-only between ticks
 	_is_read_only = true
 
@@ -623,7 +628,12 @@ func _decay_effects() -> Dictionary:
 	var dt: float = _tick_interval / 1000.0
 	var entities = EntityService.get_all_entities()
 	for entity in entities:
-		if entity == null or not is_instance_valid(entity) or not entity.is_alive():
+		if entity == null or not is_instance_valid(entity):
+			continue
+		# Duck-type the liveness gate (the Entity/Enemy convention):
+		# PlayerController is a CharacterBody3D with an implicit alive
+		# state (no is_alive() method), Entities/Enemies have it.
+		if entity.has_method("is_alive") and not entity.is_alive():
 			continue
 		if "status_effects" not in entity or entity.status_effects.is_empty():
 			continue
@@ -664,7 +674,12 @@ func _regen_entities() -> void:
 	var dt: float = _tick_interval / 1000.0
 	var entities = EntityService.get_all_entities()
 	for entity in entities:
-		if entity == null or not is_instance_valid(entity) or not entity.is_alive():
+		if entity == null or not is_instance_valid(entity):
+			continue
+		# Duck-type the liveness gate (the Entity/Enemy convention):
+		# PlayerController is a CharacterBody3D with an implicit alive
+		# state (no is_alive() method), Entities/Enemies have it.
+		if entity.has_method("is_alive") and not entity.is_alive():
 			continue
 		var eid: String = str(entity.entity_id)
 		if eid == "":

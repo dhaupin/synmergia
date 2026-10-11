@@ -44,6 +44,10 @@ test_combat_stack_live
 test_blessed_mark
 test_mysteries
 test_audio_service
+test_ambience_driver
+test_cosmic_service
+test_flywheel_service
+test_weather_events
 frame/math/test_spherical
 frame/math/test_icosahedral_faces
 frame/kv/test_folded_shell
@@ -54,6 +58,7 @@ probe_ocean
 frame/srv/test_swim_state
 test_scope_stack_order
 frame/srv/test_markov
+frame/srv/test_cosmic_entropy
 probe_swim
 frame/srv/test_ferry_schedule
 probe_ferry
@@ -69,6 +74,9 @@ probe_planet_scale_20km
 test_world_shape
 test_terrain_determinism
 probe_terrain_planet
+probe_terrain_backend
+probe_terrain_climate
+probe_sundered_sea
 test_instance_contract
 probe_arena_instance
 probe_arena_trigger
@@ -86,6 +94,7 @@ probe_thermals
 probe_royale_storm
 probe_world_lattice
 probe_world_state
+probe_harvest
 probe_underworld
 probe_world_scoping
 probe_round2_ui
@@ -95,6 +104,9 @@ probe_climb
 probe_calibration
 globe_driver
 probe_ancient_loop
+frame/srv/test_cosmic_rng
+frame/srv/test_weather
+probe_sky_crate
 probe_blacksmith_model
 probe_wolf_model
 probe_anim_play
@@ -128,7 +140,7 @@ for t in ${TESTS}; do
 		continue
 	fi
 	echo "[runner] == ${t}"
-	if (cd "${GAME_DIR}" && timeout 120 godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${t##*/}.log" 2>&1); then
+	if (cd "${GAME_DIR}" && timeout 240 godot --headless --path . --script "${RES_PATH}" >"/tmp/syn_${t##*/}.log" 2>&1); then
 		echo "[runner]    PASS ${t}"
 		pass=$((pass + 1))
 	else

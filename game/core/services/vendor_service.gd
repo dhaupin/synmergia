@@ -11,6 +11,16 @@
 ## Location modifiers come from NPCData.location_type.
 extends Node
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _data_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+
+func _inv_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
 ## Singleton instance
 static var _instance = null
 static func singleton():
@@ -227,7 +237,7 @@ func _resolve_catalog_items(offering, npc_data) -> Array:
 
 func _get_items_by_categories(categories: Array[int]) -> Array:
 	var result: Array = []
-	var all_items: Array = DataService.get_all_items() if DataService else []
+	var all_items: Array = _data_svc().get_all_items() if _data_svc() else []
 	for item in all_items:
 		if item != null and categories.has(item.item_category):
 			result.append(item)
@@ -240,7 +250,7 @@ func _get_items_by_id_list(catalog_items: Array[Dictionary]) -> Array:
 		var item_id: String = entry.get("item_id", "")
 		if item_id.is_empty():
 			continue
-		var item: Item = DataService.get_item(item_id) if DataService else null
+		var item: Item = _data_svc().get_item(item_id) if _data_svc() else null
 		if item != null:
 			result.append(item)
 	return result
@@ -354,37 +364,37 @@ func _full_restock(offering) -> void:
 ## ============================================================================
 
 func _get_player_inventory(player_id: String) -> InventoryComponent:
-	if InventoryService == null:
+	if _inv_svc() == null:
 		return null
-	return InventoryService.get_inventory(player_id)
+	return _inv_svc().get_inventory(player_id)
 
 
 func _get_player_gold(player_id: String) -> int:
-	if InventoryService == null:
+	if _inv_svc() == null:
 		return 0
-	return InventoryService.get_gold(player_id)
+	return _inv_svc().get_gold(player_id)
 
 
 func _add_player_gold(player_id: String, amount: int) -> void:
-	if InventoryService == null:
+	if _inv_svc() == null:
 		return
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = _inv_svc().get_inventory(player_id)
 	if inv:
 		inv.add_gold(amount)
 
 
 func _remove_player_gold(player_id: String, amount: int) -> void:
-	if InventoryService == null:
+	if _inv_svc() == null:
 		return
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = _inv_svc().get_inventory(player_id)
 	if inv:
 		inv.remove_gold(amount)
 
 
 func _add_item_to_player_inventory(player_id: String, item: Item, qty: int) -> void:
-	if InventoryService == null:
+	if _inv_svc() == null:
 		return
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = _inv_svc().get_inventory(player_id)
 	if inv:
 		var instance := item.duplicate()
 		instance.current_stack = mini(qty, item.stack_size)
@@ -392,9 +402,9 @@ func _add_item_to_player_inventory(player_id: String, item: Item, qty: int) -> v
 
 
 func _remove_item_from_inventory(player_id: String, slot: int, qty: int) -> void:
-	if InventoryService == null:
+	if _inv_svc() == null:
 		return
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = _inv_svc().get_inventory(player_id)
 	if inv:
 		inv.remove_item(slot, qty)
 
@@ -406,8 +416,8 @@ func _count_empty_slots(inv: InventoryComponent) -> int:
 
 
 func _find_item(item_id: String) -> Item:
-	if DataService and DataService.has_method("get_item"):
-		return DataService.get_item(item_id)
+	if _data_svc() and _data_svc().has_method("get_item"):
+		return _data_svc().get_item(item_id)
 	return null
 
 

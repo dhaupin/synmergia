@@ -429,11 +429,13 @@ func get_slot_item(index: int) -> Dictionary:
 	return _slot_items.get(index, {})
 
 func load_from_inventory() -> void:
-	if not InventoryService:
+	var _tree := Engine.get_main_loop() as SceneTree
+	var inv_service := _tree.root.get_node_or_null(NodePath("InventoryService")) if _tree and _tree.root else null
+	if not inv_service:
 		return
 
 	# get_inventory returns an InventoryComponent, not an Array.
-	var inv: InventoryComponent = InventoryService.get_inventory("")
+	var inv: InventoryComponent = inv_service.get_inventory("")
 	if inv == null:
 		return
 

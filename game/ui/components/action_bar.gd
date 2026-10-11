@@ -97,14 +97,24 @@ func _build_keybinds() -> void:
 			11: key = KEY_EQUAL
 		_keybinds.append(key)
 
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent).
+func _data_svc() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	var tree := ml as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree.root else null
+
 func load_from_character(char_data: CharacterData) -> void:
 	_char_data = char_data
+	var data_svc := _data_svc()
 	for bar in range(BAR_COUNT):
 		for i in range(SLOTS_PER_BAR):
 			var global_index = bar * SLOTS_PER_BAR + i
 			var skill_id := char_data.get_action_slot(global_index)
 			if not skill_id.is_empty():
-				var skill_schema := DataService.get_skill(skill_id)
+				var skill_schema = data_svc.get_skill(skill_id) if data_svc else null
 				if skill_schema:
 					var skill_dict := _schema_to_dict(skill_schema, char_data)
 					update_slot(global_index, skill_dict)
@@ -339,8 +349,10 @@ func _get_keybind_text(index: int, bar_index: int = 0) -> String:
 	return str(index + 1)
 
 func _connect_signals() -> void:
-	if InputManager:
-		InputManager.player_input.connect(_on_player_input)
+	var tree := Engine.get_main_loop() as SceneTree
+	var input_manager := tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
+	if input_manager:
+		input_manager.player_input.connect(_on_player_input)
 
 func _on_page_button_pressed(bar_index: int) -> void:
 	if bar_index == _current_bar:

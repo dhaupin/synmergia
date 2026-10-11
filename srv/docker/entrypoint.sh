@@ -53,7 +53,7 @@ if [[ "$START_MODE" == "test" ]]; then
     REDIS_BRIDGE_PID=$!
     # Give the sidecars a moment to bind their ports.
     sleep 1
-    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID"
+    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID  noaa-kp: not started in test mode"
 
     cleanup_bridges() {
         kill "$PG_BRIDGE_PID" 2>/dev/null || true
@@ -154,9 +154,18 @@ if [[ "$START_MODE" == "prod" ]]; then
     python3 /workspace/project/srv/redis-bridge/main.py &
     REDIS_BRIDGE_PID=$!
 
+    # NOAA Kp sidecar: feeds the CosmicService flywheel with real
+    # planetary K-index (solar wind -> weather). Fails soft: the game
+    # keeps its last reading and weather demotes to trad via the
+    # frame's staleness law.
+    log "Starting noaa-kp sidecar..."
+    NOAA_SIDECAR_HOST="127.0.0.1" NOAA_SIDECAR_PORT="8082" \
+    python3 /workspace/project/srv/noaa_kp_sidecar.py &
+    NOAA_KPID=$!
+
     # Give the sidecars a moment to bind their ports.
     sleep 1
-    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID"
+    log "pg-bridge pid=$PG_BRIDGE_PID  redis-bridge pid=$REDIS_BRIDGE_PID  noaa-kp pid=$NOAA_KPID"
 
     # nginx (HTTP + HTTPS if certs exist)
     _setup_nginx

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "quest_shoal_freight"
+display_name = "Freight from the Wreck"
+description = "Mag the Salvor marks three crates the tide keeps moving along the shoal. Haul them onto the headland before the turn, and the ferry crew will split the freight coin."
+quest_type = 1
+difficulty = 1
+giver_npc_id = "npc_salvor_wreck"
+turn_in_npc_id = "npc_ferryman_sundered"
+min_level = 1
+max_level = 30
+required_quests = []
+required_faction = ""
+required_faction_rank = 0
+zone_restriction = "zone_sundered_sea"
+objectives = [{"id": "haul_crates", "type": 1, "target": "Sealed Crate", "count": 3}]
+rewards = [{"type": "gold", "id": "", "quantity": 120}, {"type": "experience", "id": "", "quantity": 150}]
+reward_choice_count = 0
+gold_reward = 120
+xp_reward = 150
+icon_path = "res://icons/quests/wreck.png"
+map_marker = "collect"

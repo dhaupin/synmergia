@@ -15,12 +15,40 @@
 ## the 3D world and below any full-screen menu.
 extends CanvasLayer
 class_name HudLayer
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _perm_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+func _gcfg() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameConfig")) if tree and tree.root else null
+
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _gm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
+
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 
 const LAYER_HUD: int = 10
 
 static var instance: CanvasLayer = null
+
+## Tree-safe GameLog lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+static func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+func _event_hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
 
 ## THE one playable-HUD init (feedback #5): every playable scene calls
 ## HudLayer.ensure_installed(scene_root) and gets the same composition
@@ -36,12 +64,16 @@ static func ensure_installed(scene_root: Node) -> void:
 		return
 	var packed: PackedScene = load("res://ui/hud/hud_layer.tscn")
 	if packed == null:
-		GameLog.warn("HudLayer: hud_layer.tscn missing; HUD disabled")
+		var gl := _glog()
+		if gl:
+			gl.warn("HudLayer: hud_layer.tscn missing; HUD disabled")
 		return
 	var hud: CanvasLayer = packed.instantiate()
 	hud.name = "HudLayer"
 	scene_root.add_child(hud)
-	GameLog.info("HudLayer: installed on %s (single playable-HUD init)" % scene_root.name)
+	var gl_ok := _glog()
+	if gl_ok:
+		gl_ok.info("HudLayer: installed on %s (single playable-HUD init)" % scene_root.name)
 
 ## All widget children are optional; missing widgets just disable their
 ## own panel. We look them up by name and skip wiring if absent.
@@ -82,10 +114,11 @@ func _ready() -> void:
 func _setup_accessibility() -> void:
 	# CanvasLayer doesn't have accessibility properties; skip
 	# Connect to accessibility setting changes from SettingsPanel
-	if EventHub:
-		EventHub.connect("accessibility_text_scale_changed", _on_text_scale_changed)
-		EventHub.connect("accessibility_reduce_motion_changed", _on_reduce_motion_changed)
-		EventHub.connect("accessibility_high_contrast_changed", _on_high_contrast_changed)
+	var hub := _event_hub()
+	if hub:
+		hub.connect("accessibility_text_scale_changed", _on_text_scale_changed)
+		hub.connect("accessibility_reduce_motion_changed", _on_reduce_motion_changed)
+		hub.connect("accessibility_high_contrast_changed", _on_high_contrast_changed)
 
 func _on_text_scale_changed(scale: float) -> void:
 	# Propagate text scale changes to all child widgets
@@ -115,6 +148,13 @@ func _install_horde_bar() -> void:
 	var horde_bar: Control = HordeBarScript.new()
 	horde_bar.name = "HordeBar"
 	add_child(horde_bar)
+	# Sky totem: aurora-window display (weather events). Same optional-
+	# at-runtime convention; created right under the horde bar slot.
+	var SkyTotemScript := load("res://ui/components/sky_totem.gd")
+	if SkyTotemScript:
+		var totem: Control = SkyTotemScript.new()
+		totem.name = "SkyTotem"
+		add_child(totem)
 
 
 ## Installs the StormBar widget (S13 ROYALE fog-wall display), same
@@ -203,26 +243,26 @@ func _wire_widgets() -> void:
 		if _minimap.has_signal("map_button_pressed"):
 			_minimap.map_button_pressed.connect(_toggle_world_map)
 
-	# Connect to PermissionManager for admin/debug visibility updates
-	if PermissionManager:
-		PermissionManager.admin_action.connect(_on_admin_action)
+	# Connect to _perm_svc() for admin/debug visibility updates
+	if _perm_svc():
+		_perm_svc().admin_action.connect(_on_admin_action)
 
 func _on_admin_action(entry) -> void:
 	# Update admin/debug visibility in main menu bar when permissions change
 	if _main_menu_bar and _main_menu_bar.has_method("update_admin_debug_visibility"):
 		var is_admin_or_mod := _is_moderator_or_admin()
-		var is_dev_mode := _is_admin() or (GameConfig and GameConfig.Debug.ALLOW_CHEATS)
+		var is_dev_mode: bool = _is_admin() or _gcfg() != null
 		_main_menu_bar.update_admin_debug_visibility(is_admin_or_mod, is_dev_mode)
 
 func _is_moderator_or_admin() -> bool:
-	if not PermissionManager:
+	if not _perm_svc():
 		return false
 	var player_id: String = "local"
-	if PlayerManager and "character_name" in PlayerManager:
-		player_id = PlayerManager.character_name
-	if GameManager and GameManager.selected_character_data:
-		player_id = GameManager.selected_character_data.id
-	return PermissionManager.has_permission(player_id, PermissionManager.Level.MOD)
+	if _pm() and "character_name" in _pm():
+		player_id = _pm().character_name
+	if _gm() and _gm().selected_character_data:
+		player_id = _gm().selected_character_data.id
+	return _perm_svc().has_permission(player_id, _perm_svc().Level.MOD)
 
 func _on_panel_closed() -> void:
 	# Handle panel close - could update some state if needed
@@ -230,14 +270,14 @@ func _on_panel_closed() -> void:
 
 
 func _bind_to_world() -> void:
-	if GameManager:
-		GameManager.game_state_changed.connect(_on_state_changed)
-		visible = GameManager.is_gameplay_active()
+	if _gm():
+		_gm().game_state_changed.connect(_on_state_changed)
+		visible = _gm().is_gameplay_active()
 		_push_character_to_widgets()
 
 
 func _push_character_to_widgets() -> void:
-	var data: Resource = GameManager.selected_character_data
+	var data: Resource = _gm().selected_character_data
 	if not (data is CharacterData):
 		return
 	if _action_bar and _action_bar.has_method("set_player_name"):
@@ -245,8 +285,11 @@ func _push_character_to_widgets() -> void:
 
 
 func _on_state_changed(_state: int) -> void:
-	var st := GameManager.get_state()
-	visible = st == GameManager.GameState.PLAYING or st == GameManager.GameState.PAUSED
+	var gm_h := _gm()
+	if gm_h == null:
+		return
+	var st: int = gm_h.get_state()
+	visible = st == gm_h.GameState.PLAYING or st == gm_h.GameState.PAUSED
 
 
 func _setup_main_menu_bar() -> void:
@@ -254,14 +297,14 @@ func _setup_main_menu_bar() -> void:
 		_main_menu_bar.bind(self, _menu_manager)
 	
 	# Update character info when available
-	if GameManager and GameManager.selected_character_data:
+	if _gm() and _gm().selected_character_data:
 		_push_character_to_main_menu()
 
 
 func _push_character_to_main_menu() -> void:
 	if not _main_menu_bar or not _main_menu_bar.has_method("update_character_info"):
 		return
-	var data: Resource = GameManager.selected_character_data
+	var data: Resource = _gm().selected_character_data
 	if not (data is CharacterData):
 		return
 	
@@ -283,13 +326,13 @@ func _toggle_world_map() -> void:
 
 
 func _is_admin() -> bool:
-	if not PermissionManager:
+	if not _perm_svc():
 		return false
 	# In single-player / dev mode the local player IS the admin.
 	var player_id: String = "local"
-	if PlayerManager and "character_name" in PlayerManager:
-		player_id = PlayerManager.character_name
-	return PermissionManager.has_permission(player_id, GameConfig.Security.ADMIN_LEVEL) if GameConfig else false
+	if _pm() and "character_name" in _pm():
+		player_id = _pm().character_name
+	return _perm_svc().has_permission(player_id, _gcfg().Security.ADMIN_LEVEL) if _gcfg() else false
 
 
 func open_settings() -> void:

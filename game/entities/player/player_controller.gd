@@ -3,6 +3,123 @@
 extends CharacterBody3D
 class_name PlayerController
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _ds() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+const _ac_script = preload("res://core/services/anticheat_service.gd")
+
+## Runtime autoload lookup (script-mode-safe).
+func _anti_cheat() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("AntiCheatService")) if tree and tree.root else null
+
+func _im() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
+
+func _pmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _tm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TargetingManager")) if tree and tree.root else null
+
+func _inv_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
+func _il() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InteractionLayer")) if tree and tree.root else null
+
+func _chat_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("ChatService")) if tree and tree.root else null
+
+func _party_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PartyService")) if tree and tree.root else null
+
+func _guild_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GuildService")) if tree and tree.root else null
+
+func _trade_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TradeService")) if tree and tree.root else null
+
+func _friends_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("FriendsService")) if tree and tree.root else null
+
+func _loot_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("LootService")) if tree and tree.root else null
+
+func _ground_loot() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GroundLootService")) if tree and tree.root else null
+
+func _dialog_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DialogService")) if tree and tree.root else null
+
+func _mmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("MenuManager")) if tree and tree.root else null
+
+func _entity_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EntityService")) if tree and tree.root else null
+
+func _zone_mgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("ZoneManager")) if tree and tree.root else null
+
+func _world_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("WorldService")) if tree and tree.root else null
+
+func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
+func _gm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
+
+func _lock_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerLockService")) if tree and tree.root else null
+
+func _follow_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("FollowService")) if tree and tree.root else null
+
+func _pcfg() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerConfig")) if tree and tree.root else null
+
+func _a11y() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("A11yService")) if tree and tree.root else null
+
+func _cs() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("CombatSystem")) if tree and tree.root else null
+
+func _hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const Skill = preload("res://core/combat/skill.gd")
@@ -26,7 +143,7 @@ const SkillAcademyUI = preload("res://ui/components/skill_academy_ui.gd")
 # Movement
 ## Data-driven profile (Movement Design System). Speeds/gravity below
 ## are FALLBACKS only; _ready() resolves movement_standard from
-## DataService and overrides every field the profile defines. Editing
+## _ds() and overrides every field the profile defines. Editing
 ## feel is now a .tres edit, not a code edit.
 @export var movement_profile_id: String = "movement_standard"
 @export var move_speed: float = 5.0
@@ -74,16 +191,18 @@ var current_target: Node3D = null
 @onready var state_machine: Node = $StateMachine
 @onready var camera_pivot: Node3D = $CameraPivot
 
-## Movement Design System: pull the profile from DataService and stamp
+## Movement Design System: pull the profile from _ds() and stamp
 ## its values over the fallback exports. Profile fields only overwrite
 ## what they define (profiles are authoritative, exports are defaults).
 ## Species speed_modifier still multiplies on top via Entity stats.
 func _apply_movement_profile() -> void:
-	if DataService == null:
+	if _ds() == null:
 		return
-	var profile: MovementProfile = DataService.get_movement_profile(movement_profile_id)
+	var profile: MovementProfile = _ds().get_movement_profile(movement_profile_id)
 	if profile == null:
-		GameLog.warn("PlayerController: movement profile '%s' missing -- using built-in defaults" % movement_profile_id)
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: movement profile '%s' missing -- using built-in defaults" % movement_profile_id)
 		return
 	move_speed = profile.walk_speed
 	sprint_speed = profile.sprint_speed
@@ -94,54 +213,58 @@ func _apply_movement_profile() -> void:
 	allow_sprint = profile.allow_sprint
 	allow_jump_input = profile.allow_jump
 	allow_crouch = profile.allow_crouch
-	GameLog.info("PlayerController: applied movement profile '%s'" % profile.id)
+	var gl := _glog()
+	if gl:
+		gl.info("PlayerController: applied movement profile '%s'" % profile.id)
 
 
-## Give AntiCheatService the hard limits derived from THIS player's
+## Give _anti_cheat() the hard limits derived from THIS player's
 ## profile so movement validation always matches legal game feel (a
 ## .tres retune retunes the anticheat with it). GM characters exempt
 ## themselves here -- the service stays role-blind.
 func _stamp_anticheat() -> void:
-	if AntiCheatService == null or entity_id.is_empty():
+	if _anti_cheat() == null or entity_id.is_empty():
 		return
 	var profile: MovementProfile = null
-	if DataService != null:
-		profile = DataService.get_movement_profile(movement_profile_id)
+	if _ds() != null:
+		profile = _ds().get_movement_profile(movement_profile_id)
 	if profile == null:
 		# Built-in fallbacks mirror the historical defaults (5.0/10.0/10.0).
-		AntiCheatService.set_movement_limits(entity_id, 25.0, 25.0, 110.0)
+		_anti_cheat().set_movement_limits(entity_id, 25.0, 25.0, 110.0)
 		return
 	var char_data := _get_character_data()
 	var gm: bool = char_data != null and char_data.is_gm()
 	if gm:
-		AntiCheatService.set_movement_exempt(entity_id, true)
+		_anti_cheat().set_movement_exempt(entity_id, true)
 		return
 	var fastest_legal: float = maxf(profile.sprint_speed, profile.walk_speed * 1.9)
-	AntiCheatService.set_movement_limits(
+	_anti_cheat().set_movement_limits(
 		entity_id,
-		fastest_legal * AntiCheatService.SPEED_LIMIT_MULTIPLIER,
-		profile.jump_force * AntiCheatService.JUMP_LIMIT_MULTIPLIER,
-		profile.terminal_fall_speed * AntiCheatService.FALL_LIMIT_MULTIPLIER
+		fastest_legal * _ac_script.SPEED_LIMIT_MULTIPLIER,
+		profile.jump_force * _ac_script.JUMP_LIMIT_MULTIPLIER,
+		profile.terminal_fall_speed * _ac_script.FALL_LIMIT_MULTIPLIER
 	)
 
 
 ## Hitbox Profile System: resolve + apply the player collision shape.
 ## FAIRNESS RULE (species PvP): resolution goes through the species-fair
-## path (DataService.resolve_player_hitbox_profile) so every playable
+## path (_ds().resolve_player_hitbox_profile) so every playable
 ## species lands on the SAME profile. Species, sex, and body_type never
 ## scale or swap the player hitbox; hitbox_player.tres clamps scale to
 ## 1.0 hard, so even a bad future export cannot shrink or grow one
 ## species's capsule relative to another.
 func _apply_hitbox_profile() -> void:
-	if DataService == null:
+	if _ds() == null:
 		return
 	var species_id := "human"
 	var char_data := _get_character_data()
 	if char_data != null and not char_data.species_id.is_empty():
 		species_id = char_data.species_id
-	_hitbox_profile = DataService.resolve_player_hitbox_profile(species_id)
+	_hitbox_profile = _ds().resolve_player_hitbox_profile(species_id)
 	if _hitbox_profile == null:
-		GameLog.warn("PlayerController: hitbox profile missing -- keeping scene capsule")
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: hitbox profile missing -- keeping scene capsule")
 		return
 	var shape_node := get_node_or_null("CollisionShape3D") as CollisionShape3D
 	if shape_node == null:
@@ -152,7 +275,9 @@ func _apply_hitbox_profile() -> void:
 	shape_node.shape = _hitbox_profile.build_shape(1.0, _hitbox_stance)
 	var dims: Dictionary = _hitbox_profile.get_dims(1.0, _hitbox_stance)
 	shape_node.position = Vector3(0.0, float(dims["offset"]), 0.0)
-	GameLog.info("PlayerController: applied hitbox profile '%s' (species-fair: %s)" % [_hitbox_profile.id, str(_hitbox_profile.pvp_fair)])
+	var gl := _glog()
+	if gl:
+		gl.info("PlayerController: applied hitbox profile '%s' (species-fair: %s)" % [_hitbox_profile.id, str(_hitbox_profile.pvp_fair)])
 
 
 ## Stance swap for Crouch/Slide states: same profile, same species,
@@ -181,7 +306,7 @@ var respawn_ankh_id: String = ""
 var respawn_point: Vector3 = Vector3.ZERO
 
 ## Player bag (GroundLootService routes pickups here via
-## InventoryService). Created in _ready -- every PlayerController gets
+## _inv_svc()). Created in _ready -- every PlayerController gets
 ## one regardless of which scene instantiates it.
 var inventory_component: InventoryComponent = null
 
@@ -195,7 +320,7 @@ var entity_id: String = ""
 const LOCAL_PLAYER_ID := "player_1"
 
 # --- Combat surface ------------------------------------------------------
-# EnemyAI, Skill, and EntityService treat all combatants uniformly via this
+# EnemyAI, Skill, and _entity_svc() treat all combatants uniformly via this
 # duck-typed surface. PlayerController is a CharacterBody3D (not an Entity
 # subclass), so these mirror the Entity API at runtime.
 const HealthComponent = preload("res://core/components/health_component.gd")
@@ -228,7 +353,7 @@ var current_health: int = 100
 var team_id: int = 0
 
 # Allegiance alias (Entity.Relation.HOSTILE etc.) read by
-# EntityService.is_enemy via `entity.faction`.
+# _entity_svc().is_enemy via `entity.faction`.
 var faction: int = 0
 var relation: int = 0
 # Entity parity: services (FactionManager wars, RespawnService rez rules,
@@ -242,9 +367,10 @@ var _skill_academy_ui: SkillAcademyUI = null
 var _blacksmith_ui: BlacksmithUI = null
 var _character_stats_ui: CharacterStatsUI = null
 var _blessed_mark: Node3D = null
-var _current_target_info: TargetingManager.TargetInfo = null
+var _current_target_info: _tm_script.TargetInfo = null
 
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const _tm_script = preload("res://core/targeting/targeting_manager.gd")
 
 ## The blessed-class visual (prd-psy.md section 8): sky-cyan motes
 ## only while SignService says the class is the wheel's pick on an
@@ -266,8 +392,8 @@ func _attach_blessed_mark() -> void:
 
 func _ready() -> void:
 	# Connect to input
-	InputManager.player_input.connect(_on_player_input)
-	PlayerManager.set_local_player(self)
+	_im().player_input.connect(_on_player_input)
+	_pmgr().set_local_player(self)
 	add_to_group("players")
 	_apply_movement_profile()
 	_setup_starting_skills()
@@ -294,8 +420,8 @@ func _ready() -> void:
 	if basic_attack == null:
 		basic_attack = _create_basic_attack()
 
-	# Register with TargetingManager
-	TargetingManager.register_targetable(
+	# Register with _tm()
+	_tm().register_targetable(
 		entity_id,
 		"player",
 		self,
@@ -304,17 +430,17 @@ func _ready() -> void:
 		Entity.EntityType.PLAYER
 	)
 
-	# Set local player for TargetingManager
-	TargetingManager.set_local_player(entity_id)
+	# Set local player for _tm()
+	_tm().set_local_player(entity_id)
 
 	# Mirror the live targeting context so context-menu actions (Talk,
 	# Trade->vendor shop, loot) can resolve NPC data/position. Without this
 	# _current_target_info stayed null and NPC vendor routing silently fell
 	# through to player-to-player trade.
-	TargetingManager.target_acquired.connect(_on_target_acquired)
-	TargetingManager.target_cleared.connect(_on_target_cleared)
+	_tm().target_acquired.connect(_on_target_acquired)
+	_tm().target_cleared.connect(_on_target_cleared)
 
-	# Connect to InteractionLayer for touch targeting
+	# Connect to _il() for touch targeting
 	_connect_interaction_layer()
 
 	# Health component: created here (not a scene child) so every
@@ -326,7 +452,7 @@ func _ready() -> void:
 		add_child(health_component)
 
 	# Inventory component: was never created for the local player, so
-	# loot pickups had nowhere to land. Register with InventoryService
+	# loot pickups had nowhere to land. Register with _inv_svc()
 	# (GroundLootService routes pickups through it by entity_id).
 	if inventory_component == null:
 		inventory_component = InventoryComponent.new()
@@ -334,25 +460,26 @@ func _ready() -> void:
 		add_child(inventory_component)
 	# Stable id BEFORE anything else keys off it: world_playable only fills
 	# entity_id when it's still empty, so an int fallback here (str(1) -> "1")
-	# used to win the race and desync InventoryService/EntityService/quest
+	# used to win the race and desync _inv_svc()/_entity_svc()/quest
 	# credit from the canonical "player_1". Use the scene-agnostic string id.
 	var _inv_id := entity_id if entity_id != "" else LOCAL_PLAYER_ID
 	if entity_id == "":
 		entity_id = _inv_id
 	inventory_component.set_owner_id(_inv_id)
-	if InventoryService and InventoryService.has_method("register_inventory"):
+	var inv_svc := _inv_svc()
+	if inv_svc and inv_svc.has_method("register_inventory"):
 		# ONE PURSE PER PLAYER (R48): adopt a live registration for this
 		# id (a boot-restored wallet, or a purse registered before this
 		# body's _ready) instead of clobbering it with a fresh empty bag
 		# -- the clobber overwrote the registration and persisted the
 		# empty bag over the player's real wallet. A freed stale
 		# registration still yields to the fresh bag.
-		var _existing_bag = InventoryService.get_inventory(_inv_id) if InventoryService.has_method("get_inventory") else null
+		var _existing_bag = _inv_svc().get_inventory(_inv_id) if _inv_svc().has_method("get_inventory") else null
 		if _existing_bag != null and is_instance_valid(_existing_bag) and _existing_bag != inventory_component:
 			inventory_component.queue_free()
 			inventory_component = _existing_bag
 		else:
-			InventoryService.register_inventory(_inv_id, inventory_component)
+			inv_svc.register_inventory(_inv_id, inventory_component)
 
 	# Duck-typed respawn fields RespawnService/Ankh read (CharacterBody3D
 	# has none of them natively; Ankh.bind_player sets respawn_ankh_id).
@@ -362,7 +489,9 @@ func _ready() -> void:
 	# Add GM indicator if this is a GM character
 	_add_gm_indicator()
 
-	GameLog.info("PlayerController ready")
+	var gl := _glog()
+	if gl:
+		gl.info("PlayerController ready")
 
 func _add_gm_indicator() -> void:
 	var char_data := _get_character_data()
@@ -370,14 +499,16 @@ func _add_gm_indicator() -> void:
 		var indicator := GMIndicator.new()
 		indicator.name = "GMIndicator"
 		add_child(indicator)
-		GameLog.info("Added GM star indicator")
+		var gl := _glog()
+		if gl:
+			gl.info("Added GM star indicator")
 
 func _connect_interaction_layer() -> void:
-	if InteractionLayer:
-		InteractionLayer.tap.connect(_on_interaction_tap)
-		InteractionLayer.double_tap.connect(_on_interaction_double_tap)
-		InteractionLayer.long_press.connect(_on_interaction_long_press)
-		InteractionLayer.action_triggered.connect(_on_interaction_action)
+	if _il():
+		_il().tap.connect(_on_interaction_tap)
+		_il().double_tap.connect(_on_interaction_double_tap)
+		_il().long_press.connect(_on_interaction_long_press)
+		_il().action_triggered.connect(_on_interaction_action)
 
 ## Handle tap (touch) - target entity
 func _on_interaction_tap(position: Vector2) -> void:
@@ -407,11 +538,11 @@ func _on_interaction_long_press(position: Vector2) -> void:
 	# Raycast to find target
 	var camera := _get_camera()
 	if camera:
-		var target_info: Variant = TargetingManager.raycast_from_touch(position, camera)
+		var target_info: Variant = _tm().raycast_from_touch(position, camera)
 		if target_info:
 			_show_target_context_menu(target_info)
 
-## Handle action triggers from InteractionLayer
+## Handle action triggers from _il()
 func _on_interaction_action(action_name: String) -> void:
 	if not is_local_player:
 		return
@@ -431,7 +562,7 @@ func _on_interaction_action(action_name: String) -> void:
 
 ## Target self
 func _target_self() -> void:
-	TargetingManager.set_target(
+	_tm().set_target(
 		entity_id,
 		"player",
 		name,
@@ -442,7 +573,7 @@ func _target_self() -> void:
 	is_targeting = false  # Self-target doesn't enable targeting mode
 
 ## Show target context menu
-func _show_target_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+func _show_target_context_menu(target_info: _tm_script.TargetInfo) -> void:
 	match target_info.entity_type:
 		Entity.EntityType.PLAYER:
 			_show_player_context_menu(target_info)
@@ -453,21 +584,21 @@ func _show_target_context_menu(target_info: TargetingManager.TargetInfo) -> void
 		Entity.EntityType.TELEPORT:
 			_show_gateway_context_menu(target_info)
 
-func _show_npc_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+func _show_npc_context_menu(target_info: _tm_script.TargetInfo) -> void:
 	if not _action_menu:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
 		_action_menu.action_selected.connect(_on_context_action)
 	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type, target_info.npc_data)
 
-func _show_loot_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+func _show_loot_context_menu(target_info: _tm_script.TargetInfo) -> void:
 	if not _action_menu:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
 		_action_menu.action_selected.connect(_on_context_action)
 	_action_menu.show_menu(get_viewport().get_mouse_position(), target_info.id, target_info.entity_type)
 
-func _show_gateway_context_menu(target_info: TargetingManager.TargetInfo) -> void:
+func _show_gateway_context_menu(target_info: _tm_script.TargetInfo) -> void:
 	if not _action_menu:
 		_action_menu = ActionMenu.new()
 		add_child(_action_menu)
@@ -484,20 +615,20 @@ func _show_player_context_menu(target_info) -> void:
 func _on_context_action(action_id: String, target_id: String) -> void:
 	match action_id:
 		"whisper":
-			ChatService.send_whisper(player_id, target_id, "")
+			_chat_svc().send_whisper(player_id, target_id, "")
 		"invite_party":
-			if PartyService: PartyService.invite_player(str(player_id), target_id)
+			if _party_svc(): _party_svc().invite_player(str(player_id), target_id)
 		"invite_guild":
-			if GuildService: GuildService.invite_player(str(player_id), target_id)
+			if _guild_svc(): _guild_svc().invite_player(str(player_id), target_id)
 		"trade":
 			# NPC vendors open the shop panel; players open the trade panel.
 			if _current_target_info and _current_target_info.id == target_id \
 					and _current_target_info.entity_type == Entity.EntityType.NPC:
 				_open_npc_vendor(target_id, _current_target_info)
-			elif TradeService:
-				TradeService.initiate_trade(str(player_id), target_id)
+			elif _trade_svc():
+				_trade_svc().initiate_trade(str(player_id), target_id)
 		"add_friend":
-			if FriendsService: FriendsService.send_friend_request(str(player_id), str(player_id), target_id)
+			if _friends_svc(): _friends_svc().send_friend_request(str(player_id), str(player_id), target_id)
 		"report":
 			_open_report_dialog(target_id)
 		"talk":
@@ -505,13 +636,13 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 		"quest":
 			_open_npc_quests(target_id)
 		"bank":
-			if MenuManager:
-				MenuManager.open_menu("bank")
+			if _mmgr():
+				_mmgr().open_menu("bank")
 		"loot":
 			_pickup_loot_target(target_id)
 		"pass":
-			if LootService:
-				LootService.pass_loot(target_id, str(player_id))
+			if _loot_svc():
+				_loot_svc().pass_loot(target_id, str(player_id))
 		"enter":
 			_activate_gateway_target(target_id)
 
@@ -534,23 +665,31 @@ func _find_npc_dialogue_id(target_id: String) -> String:
 func _open_npc_dialogue(target_id: String) -> void:
 	var dialogue_id := _find_npc_dialogue_id(target_id)
 	if dialogue_id.is_empty():
-		GameLog.warn("PlayerController: NPC %s has no dialogue offering" % target_id)
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: NPC %s has no dialogue offering" % target_id)
 		return
-	if DialogService and DialogService.start_dialogue(target_id, dialogue_id):
-		GameLog.info("PlayerController: dialogue started with %s (%s)" % [target_id, dialogue_id])
+	if _dialog_svc() and _dialog_svc().start_dialogue(target_id, dialogue_id):
+		var gl := _glog()
+		if gl:
+			gl.info("PlayerController: dialogue started with %s (%s)" % [target_id, dialogue_id])
 	else:
-		GameLog.warn("PlayerController: failed to start dialogue %s" % dialogue_id)
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: failed to start dialogue %s" % dialogue_id)
 
 
 ## Open the QuestUI tab for an NPC's quest offering, if it has one.
 func _open_npc_quests(target_id: String) -> void:
 	var quest_ids := _npc_quest_ids_for_target(target_id)
 	if quest_ids.is_empty():
-		GameLog.warn("PlayerController: NPC %s has no quest offering" % target_id)
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: NPC %s has no quest offering" % target_id)
 		return
-	if MenuManager:
-		MenuManager.open_menu("quests")
-		var panel: Control = MenuManager.get_panel_node("quests")
+	if _mmgr():
+		_mmgr().open_menu("quests")
+		var panel: Control = _mmgr().get_panel_node("quests")
 		if panel and panel.has_method("refresh_quest_list"):
 			panel.refresh_quest_list()
 
@@ -582,7 +721,9 @@ func _open_npc_vendor(target_id: String, target_info) -> void:
 	var npc_data: NPCData = _npc_data_for_target(target_id)
 	var vendor_offering: Resource = npc_data.get_vendor_offering() if npc_data else null
 	if vendor_offering == null:
-		GameLog.warn("PlayerController: NPC %s has no vendor offering" % target_id)
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: NPC %s has no vendor offering" % target_id)
 		return
 	var npc_pos: Vector3 = target_info.world_position if target_info else Vector3.ZERO
 	ShopUI.open_for_offering(str(player_id), vendor_offering, npc_data, npc_pos)
@@ -590,22 +731,22 @@ func _open_npc_vendor(target_id: String, target_info) -> void:
 
 
 ## Keep the context-action mirror of the current target in sync. These
-## fire from TargetingManager whenever the player acquires/clears a
+## fire from _tm() whenever the player acquires/clears a
 ## target (long-press context menu, [E] interact, tab-targeting).
-func _on_target_acquired(target: TargetingManager.TargetInfo) -> void:
+func _on_target_acquired(target: _tm_script.TargetInfo) -> void:
 	if target != null:
 		_current_target_info = target
 
 
-func _on_target_cleared(_previous: TargetingManager.TargetInfo) -> void:
+func _on_target_cleared(_previous: _tm_script.TargetInfo) -> void:
 	_current_target_info = null
 
 
 ## Resolve the live NPCData for a target id (entity node first, then
-## the TargetingManager snapshot from the active context menu).
+## the _tm() snapshot from the active context menu).
 func _npc_data_for_target(target_id: String) -> NPCData:
-	if EntityService:
-		var npc: Variant = EntityService.get_entity(target_id)
+	if _entity_svc():
+		var npc: Variant = _entity_svc().get_entity(target_id)
 		if npc != null and is_instance_valid(npc) and "npc_data" in npc \
 				and npc.npc_data != null:
 			return npc.npc_data as NPCData
@@ -621,24 +762,28 @@ func _npc_data_for_target(target_id: String) -> NPCData:
 func _pickup_loot_target(target_id: String) -> void:
 	var pid := str(player_id)
 	var picked: Array = []
-	if LootService and LootService.has_method("pickup_loot"):
-		picked = LootService.pickup_loot(pid, target_id)
-	if picked.is_empty() and GroundLootService and GroundLootService.has_method("try_pickup"):
-		picked = GroundLootService.try_pickup(self, target_id)
+	if _loot_svc() and _loot_svc().has_method("pickup_loot"):
+		picked = _loot_svc().pickup_loot(pid, target_id)
+	if picked.is_empty() and _ground_loot() and _ground_loot().has_method("try_pickup"):
+		picked = _ground_loot().try_pickup(self, target_id)
 	if picked.is_empty():
-		GameLog.info("PlayerController: nothing to loot at %s" % target_id)
+		var gl := _glog()
+		if gl:
+			gl.info("PlayerController: nothing to loot at %s" % target_id)
 
 
-## Walk the player through a gateway via WorldService.use_gateway.
+## Walk the player through a gateway via _world_svc().use_gateway.
 func _activate_gateway_target(gateway_id: String) -> void:
-	if not WorldService:
+	if not _world_svc():
 		return
-	var destination: Dictionary = WorldService.use_gateway(gateway_id, self)
+	var destination: Dictionary = _world_svc().use_gateway(gateway_id, self)
 	if destination.is_empty():
-		GameLog.warn("PlayerController: gateway %s cannot be used" % gateway_id)
+		var gl := _glog()
+		if gl:
+			gl.warn("PlayerController: gateway %s cannot be used" % gateway_id)
 		return
-	if is_instance_valid(NotificationService):
-		NotificationService.notify(
+	if is_instance_valid(_notify_svc()):
+		_notify_svc().notify(
 			NotifKind.CUSTOM,
 			"You pass through the gateway.",
 			"PlayerController",
@@ -649,16 +794,16 @@ func _activate_gateway_target(gateway_id: String) -> void:
 
 
 func _get_character_data() -> CharacterData:
-	if GameManager and is_instance_valid(GameManager.selected_character_data):
-		return GameManager.selected_character_data as CharacterData
+	if _gm() and is_instance_valid(_gm().selected_character_data):
+		return _gm().selected_character_data as CharacterData
 	return null
 
 func _get_inventory_books() -> Array:
 	var books: Array = []
-	if InventoryService:
+	if _inv_svc():
 		# get_player_items() never existed; the registered
 		# InventoryComponent is the authoritative item store.
-		var inv: InventoryComponent = InventoryService.get_inventory(str(player_id))
+		var inv: InventoryComponent = _inv_svc().get_inventory(str(player_id))
 		if inv != null:
 			for item in inv.get_all_items():
 				if item is SkillBook:
@@ -677,8 +822,8 @@ func _open_blacksmith_ui() -> void:
 		_blacksmith_ui = BlacksmithUI.new()
 		add_child(_blacksmith_ui)
 	var inventory: InventoryComponent = null
-	if InventoryService:
-		inventory = InventoryService.get_inventory(str(player_id))
+	if _inv_svc():
+		inventory = _inv_svc().get_inventory(str(player_id))
 	var cost_modifier: float = 1.0
 	var offers_discount: bool = true
 	if _current_target_info and _current_target_info.npc_data:
@@ -715,11 +860,11 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# SECURITY: Block movement if player is locked
-	if PlayerLockService and entity_id and PlayerLockService.is_movement_blocked(entity_id):
+	if _lock_svc() and entity_id and _lock_svc().is_movement_blocked(entity_id):
 		return
 
 	# Handle follow mode - if following, auto-move to target
-	if FollowService and entity_id and FollowService.is_following(entity_id):
+	if _follow_svc() and entity_id and _follow_svc().is_following(entity_id):
 		_handle_follow_movement()
 		return
 
@@ -755,21 +900,21 @@ func _physics_process(delta: float) -> void:
 ## their respawn point (spawn position by default) and re-ground the
 ## state machine through Land. The cooldown guards against a broken
 ## respawn point retriggering every frame.
-## One frame of movement telemetry to AntiCheatService. The service
+## One frame of movement telemetry to _anti_cheat(). The service
 ## owns the hard limits (stamped from our profile at spawn), the
 ## sustained-streak logic, and escalation; this is just the feed. Cheap
 ## by design: vector math + a Dictionary lookup, no allocation.
 func _report_movement_frame(delta: float) -> void:
-	if AntiCheatService == null or entity_id.is_empty():
+	if _anti_cheat() == null or entity_id.is_empty():
 		return
-	AntiCheatService.validate_movement(entity_id, global_position, velocity, delta)
+	_anti_cheat().validate_movement(entity_id, global_position, velocity, delta)
 
 
 func _exit_tree() -> void:
 	# Drop per-player anticheat state (limits, streaks, exemption) so a
 	# departed player's entry can't leak into a recycled entity id.
-	if AntiCheatService != null and not entity_id.is_empty():
-		AntiCheatService.unregister_player(entity_id)
+	if _anti_cheat() != null and not entity_id.is_empty():
+		_anti_cheat().unregister_player(entity_id)
 
 
 func _void_recovery(delta: float) -> void:
@@ -779,9 +924,11 @@ func _void_recovery(delta: float) -> void:
 	if global_position.y >= void_kill_y:
 		return
 	_void_recovery_cooldown = 0.5
-	GameLog.warn("Void recovery: %s fell out of the world" % entity_id)
-	if is_instance_valid(NotificationService) and NotificationService.has_method("notify"):
-		NotificationService.notify(
+	var gl := _glog()
+	if gl:
+		gl.warn("Void recovery: %s fell out of the world" % entity_id)
+	if is_instance_valid(_notify_svc()) and _notify_svc().has_method("notify"):
+		_notify_svc().notify(
 			NotifKind.PLAYER_WARNED,
 			"You fell out of the world!",
 			"PlayerController",
@@ -794,23 +941,23 @@ func _void_recovery(delta: float) -> void:
 
 ## Handle automatic follow movement
 func _handle_follow_movement() -> void:
-	if not FollowService or not entity_id:
+	if not _follow_svc() or not entity_id:
 		return
 
-	var target_pos: Vector3 = FollowService.get_target_position(entity_id)
-	var distance: float = FollowService.get_distance_to_target(entity_id)
-	var state: int = FollowService.get_follow_state(entity_id)
+	var target_pos: Vector3 = _follow_svc().get_target_position(entity_id)
+	var distance: float = _follow_svc().get_distance_to_target(entity_id)
+	var state: int = _follow_svc().get_follow_state(entity_id)
 
 	if target_pos == Vector3.INF or distance < 0:
 		return
 
 	# Only actively move if catching up
-	if state == FollowService.FollowState.CATCHING_UP:
+	if state == _follow_svc().FollowState.CATCHING_UP:
 		var direction: Vector3 = (target_pos - global_position).normalized()
 		direction.y = 0  # Keep on ground
 
 		# Apply speed boost for catching up
-		var speed: float = move_speed * FollowService.DEFAULT_FOLLOW_SPEED_BUFF
+		var speed: float = move_speed * _follow_svc().DEFAULT_FOLLOW_SPEED_BUFF
 
 		velocity = direction * speed
 		move_and_slide()
@@ -819,11 +966,11 @@ func _handle_follow_movement() -> void:
 		velocity = Vector3.ZERO
 
 func is_moving() -> bool:
-	var input := InputManager.get_movement_input()
+	var input = _im().get_movement_input()
 	return input.length() > 0.1
 
 func get_movement_direction() -> Vector3:
-	var input := InputManager.get_movement_input()
+	var input = _im().get_movement_input()
 	var cam_basis := get_camera_basis()
 
 	var forward: Vector3 = -cam_basis.z
@@ -838,7 +985,7 @@ func get_movement_direction() -> Vector3:
 	# so half-stick = half-speed walking. Normalizing here collapsed
 	# every stick deflection to full run speed (observed: half-stick
 	# drag measured 5.0 u/s, identical to a full push).
-	var direction := (forward * input.y + right * input.x)
+	var direction: Vector3 = (forward * input.y + right * input.x)
 	return direction if direction.length() <= 1.0 else direction.normalized()
 
 func get_camera_basis() -> Basis:
@@ -869,7 +1016,7 @@ func _on_player_input(action: String, pressed: bool) -> void:
 		"target_self":
 			# F1: target yourself (healers/casters, self-buff flow).
 			if pressed:
-				TargetingManager.set_target(
+				_tm().set_target(
 					entity_id, "player", display_name, global_position, self, entity_type)
 				is_targeting = true
 		"interact":
@@ -888,8 +1035,8 @@ func _on_player_input(action: String, pressed: bool) -> void:
 ## point). Objects declare themselves via groups ("ground_drops" are
 ## resolved by GroundLootService; ankhs by RespawnService).
 func _try_interact() -> void:
-	if GroundLootService and GroundLootService.has_method("try_pickup"):
-		var picked: Array = GroundLootService.try_pickup(self)
+	if _ground_loot() and _ground_loot().has_method("try_pickup"):
+		var picked: Array = _ground_loot().try_pickup(self)
 		if not picked.is_empty():
 			return
 	_activate_nearby_ankh()
@@ -898,25 +1045,25 @@ func _try_interact() -> void:
 	_activate_nearby_moon_gate()
 
 ## Walk-over auto-loot. Enabled via Settings > Gameplay > Auto-loot
-## Items (PlayerConfig "auto_loot"). Skipped entirely in full-loot PvP
+## Items (_pcfg() "auto_loot"). Skipped entirely in full-loot PvP
 ## zones so looting a battlefield is always a deliberate act.
 func _try_auto_loot() -> void:
-	if GroundLootService == null or not GroundLootService.has_method("find_nearest_pickup"):
+	if _ground_loot() == null or not _ground_loot().has_method("find_nearest_pickup"):
 		return
-	if PlayerConfig and not bool(PlayerConfig.get_account_setting("auto_loot", false)):
+	if _pcfg() and not bool(_pcfg().get_account_setting("auto_loot", false)):
 		return
 	var zone_id := ""
-	if ZoneManager != null and ZoneManager.has_method("get_entity_zone_id"):
-		zone_id = str(ZoneManager.get_entity_zone_id(self))
-	if zone_id != "" and ZoneManager.has_method("get_zone"):
-		var zone = ZoneManager.get_zone(zone_id)
+	if _zone_mgr() != null and _zone_mgr().has_method("get_entity_zone_id"):
+		zone_id = str(_zone_mgr().get_entity_zone_id(self))
+	if zone_id != "" and _zone_mgr().has_method("get_zone"):
+		var zone = _zone_mgr().get_zone(zone_id)
 		if zone != null and "pvp_mode" in zone \
 				and (zone.pvp_mode == ZoneData.PvPZoneMode.WARZONE \
 					or zone.pvp_mode == ZoneData.PvPZoneMode.FREE_PVP):
 			return
-	if GroundLootService.find_nearest_pickup(self).is_empty():
+	if _ground_loot().find_nearest_pickup(self).is_empty():
 		return
-	GroundLootService.try_pickup(self)
+	_ground_loot().try_pickup(self)
 
 ## Bind to the closest ankh within activation range.
 ## Skyward Concord consumer: press E at an Ancient Door. Resolves the
@@ -937,8 +1084,8 @@ func _activate_nearby_ancient_door() -> void:
 	if best == null or best_dist > 4.0:
 		return
 	var result: Dictionary = best.try_interact(self)
-	if NotificationService:
-		NotificationService.notify(
+	if _notify_svc():
+		_notify_svc().notify(
 			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
 			str(result.get("message", "")),
 			"AncientDoor",
@@ -965,8 +1112,8 @@ func _activate_nearby_moon_gate() -> void:
 	if best == null or best_dist > 4.0:
 		return
 	var result: Dictionary = best.try_interact(self)
-	if NotificationService:
-		NotificationService.notify(
+	if _notify_svc():
+		_notify_svc().notify(
 			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
 			str(result.get("message", "")),
 			"MoonGate",
@@ -993,8 +1140,8 @@ func _activate_nearby_concord_stone() -> void:
 	if best == null or best_dist > 4.0:
 		return
 	var result: Dictionary = best.try_interact(self)
-	if NotificationService:
-		NotificationService.notify(
+	if _notify_svc():
+		_notify_svc().notify(
 			NotifKind.CUSTOM if bool(result.get("ok", false)) else NotifKind.SIGN_INSIGHT_RECORDED,
 			str(result.get("message", "")),
 			"ConcordStone",
@@ -1019,18 +1166,22 @@ func _activate_nearby_ankh() -> void:
 			best = ankh
 	if best != null and best.has_method("bind_player"):
 		if best.bind_player(self):
-			GameLog.info("Bound to ankh: %s" % best.display_name)
-			if is_instance_valid(NotificationService) and NotificationService.has_method("notify_ankh_bound"):
-				NotificationService.notify_ankh_bound(entity_id, str(best.display_name))
+			var gl := _glog()
+			if gl:
+				gl.info("Bound to ankh: %s" % best.display_name)
+			if is_instance_valid(_notify_svc()) and _notify_svc().has_method("notify_ankh_bound"):
+				_notify_svc().notify_ankh_bound(entity_id, str(best.display_name))
 		else:
 			# Scoped ankhs explain themselves: guild/faction/personal
 			# denials surface as toasts instead of failing silently.
 			var reason: String = ""
 			if best.has_method("describe_bind_denial"):
 				reason = best.describe_bind_denial(self)
-			GameLog.info("Cannot bind to ankh: %s (%s)" % [best.display_name, reason])
-			if is_instance_valid(NotificationService) and NotificationService.has_method("notify"):
-				NotificationService.notify(
+			var gl := _glog()
+			if gl:
+				gl.info("Cannot bind to ankh: %s (%s)" % [best.display_name, reason])
+			if is_instance_valid(_notify_svc()) and _notify_svc().has_method("notify"):
+				_notify_svc().notify(
 					preload("res://core/notifications/notification_kind.gd").NotifKind.PLAYER_WARNED,
 					"You cannot bind to %s yet. (%s)" % [str(best.display_name), reason],
 					"PlayerController",
@@ -1045,10 +1196,10 @@ func cycle_target() -> void:
 
 	# Raycast in look direction to find targetable
 	var look_dir := -camera.global_transform.basis.z
-	var target_info: Variant = TargetingManager.get_target_in_direction(global_position, look_dir, 50.0)
+	var target_info: Variant = _tm().get_target_in_direction(global_position, look_dir, 50.0)
 
 	if target_info:
-		TargetingManager.set_target(
+		_tm().set_target(
 			target_info.id,
 			target_info.schema_id,
 			target_info.display_name,
@@ -1063,7 +1214,7 @@ func cycle_target() -> void:
 
 ## Cycle to previous target (Shift+Tab)
 func cycle_target_previous() -> void:
-	TargetingManager.restore_previous()
+	_tm().restore_previous()
 
 func _find_and_set_nearest_target() -> void:
 	# Get all enemies and find nearest
@@ -1079,7 +1230,7 @@ func _find_and_set_nearest_target() -> void:
 	# Target nearest
 	var nearest = enemies[0]
 	if nearest.has("entity_id"):
-		TargetingManager.set_target(
+		_tm().set_target(
 			nearest.entity_id,
 			"enemy",
 			nearest.get("display_name") if nearest.get("display_name") != null else "Enemy",
@@ -1102,7 +1253,7 @@ func take_damage(amount: int, source = null, damage_type: String = "physical") -
 		# the component owns the damage path (same dual-store miss the
 		# Enemy fix closed; R37 audit).
 		health_changed.emit(health_component.current_health, health_component.max_health, -dealt)
-		GameLog.info("Player hit: %d %s damage (HP %d/%d)" % [
+		_glog().info("Player hit: %d %s damage (HP %d/%d)" % [
 			dealt, damage_type, health_component.current_health, health_component.max_health])
 	return dealt
 
@@ -1137,10 +1288,10 @@ func get_crit_multiplier() -> float:
 	return 1.5
 
 # --- Progression surface (duck-typed Entity API) --------------------------
-# Mirrors PlayerManager's add_experience/add_gold so the XP/kill-reward
+# Mirrors _pmgr()'s add_experience/add_gold so the XP/kill-reward
 # hook (core/services/kill_rewards.gd) can pay any combatant through the
 # same duck-typed convention as the combat surface above. The node-level
-# values are authoritative for the player in the world; PlayerManager is
+# values are authoritative for the player in the world; _pmgr() is
 # the persistent mirror the HUD reads.
 
 var experience: int = 0
@@ -1180,7 +1331,7 @@ func add_experience(amount: int) -> void:
 		experience -= experience_to_next_level
 		level += 1
 		experience_to_next_level = int(experience_to_next_level * 1.5)
-		# Full restore on level up, mirroring PlayerManager.
+		# Full restore on level up, mirroring _pmgr().
 		if health_component != null:
 			max_health += 10
 			# Sync into the component: it owns the damage/heal path, so
@@ -1190,7 +1341,9 @@ func add_experience(amount: int) -> void:
 			current_health = max_health
 			health_component.current_health = current_health
 		leveled_up.emit(level)
-		GameLog.info("Player level up: now level %d" % level)
+		var gl := _glog()
+		if gl:
+			gl.info("Player level up: now level %d" % level)
 	experience_changed.emit(experience, level)
 
 func add_gold(amount: int) -> void:
@@ -1206,13 +1359,13 @@ func get_stat(stat_name: String) -> int:
 
 ## Populate the skillbar from the character's class data. The class
 ## schema (core/schemas/character_class.gd) declares starting_skills;
-## DataService resolves the ids to loaded Skill resources. Was never
+## _ds() resolves the ids to loaded Skill resources. Was never
 ## called before, so the skillbar (and thus keys 1-8) started empty.
 func _setup_starting_skills() -> void:
 	if not skillbar.is_empty():
 		return
 	var class_data = null
-	var char_data = GameManager.selected_character_data if is_instance_valid(GameManager) else null
+	var char_data = _gm().selected_character_data if is_instance_valid(_gm()) else null
 	if char_data != null and "class_data" in char_data and char_data.class_data != null:
 		class_data = char_data.class_data
 	else:			# Boot paths without login (demo scene, showcases) run the
@@ -1220,8 +1373,8 @@ func _setup_starting_skills() -> void:
 		var class_id: String = "human_warrior"
 		if char_data != null and "class_id" in char_data and str(char_data.class_id) != "":
 			class_id = str(char_data.class_id)
-		if is_instance_valid(DataService) and DataService.has_method("get_character_class"):
-			class_data = DataService.get_character_class(class_id)
+		if is_instance_valid(_ds()) and _ds().has_method("get_character_class"):
+			class_data = _ds().get_character_class(class_id)
 	# Keep can_cast's class gate consistent with the skillbar source.
 	if class_data != null and "id" in class_data and str(class_data.id) != "":
 		character_class = str(class_data.id)
@@ -1229,14 +1382,16 @@ func _setup_starting_skills() -> void:
 			or class_data.starting_skills.is_empty():
 		return
 	for skill_id: String in class_data.starting_skills:
-		if is_instance_valid(DataService) and DataService.has_method("get_skill"):
-			var schema = DataService.get_skill(skill_id)
+		if is_instance_valid(_ds()) and _ds().has_method("get_skill"):
+			var schema = _ds().get_skill(skill_id)
 			if schema != null:
 				# .tres skills load as SkillSchema; the skillbar + combat
 				# pipeline run on the runtime Skill class.
 				skillbar.append(Skill.from_schema(schema))
 	if not skillbar.is_empty():
-		GameLog.info("Player skillbar loaded: %d starting skill(s)" % skillbar.size())
+		var gl := _glog()
+		if gl:
+			gl.info("Player skillbar loaded: %d starting skill(s)" % skillbar.size())
 
 
 ## COMBAT EFFECT STACK (R28)
@@ -1296,14 +1451,14 @@ func use_skill(slot: int) -> void:
 
 	var skill: Skill = skillbar[slot]
 	if skill and skill.can_cast(self):
-		# Get target from TargetingManager
+		# Get target from _tm()
 		var target: Node = null
-		var target_info: Variant = TargetingManager.get_current_target()
+		var target_info: Variant = _tm().get_current_target()
 		if target_info:
 			target = target_info.node
 
 		# Route through the component when present (GCD, casting state,
-		# anticheat); it forwards the hitbox family to CombatSystem itself,
+		# anticheat); it forwards the hitbox family to _cs() itself,
 		# so the live execution path is unchanged.
 		if combat_component:
 			if skill.is_ground_targeted:
@@ -1315,16 +1470,16 @@ func use_skill(slot: int) -> void:
 		# Legacy fallback (no component attached)
 		if skill.is_ground_targeted:
 			var ground_pos := _get_ground_target_position(skill.ground_target_range)
-			CombatSystem.execute_skill(self, skill, null, ground_pos)
+			_cs().execute_skill(self, skill, null, ground_pos)
 		else:
-			CombatSystem.execute_skill(self, skill, target as Entity)
+			_cs().execute_skill(self, skill, target as Entity)
 
 func _get_ground_target_position(max_range: float) -> Vector3:
-	var direction: Vector2 = InputManager.last_direction
+	var direction: Vector2 = _im().last_direction
 	if direction == Vector2.ZERO:
 		direction = Vector2(0, -1)  # Default forward
 
-	return CombatSystem.get_ground_target_position(self, direction, max_range)
+	return _cs().get_ground_target_position(self, direction, max_range)
 
 ## TARGETING
 
@@ -1351,11 +1506,11 @@ func _handle_left_click(screen_pos: Vector2) -> void:
 		return
 
 	# Raycast from camera
-	var target_info: Variant = TargetingManager.raycast_from_camera(screen_pos, camera)
+	var target_info: Variant = _tm().raycast_from_camera(screen_pos, camera)
 
 	if target_info:
 		# Target the entity
-		TargetingManager.set_target(
+		_tm().set_target(
 			target_info.id,
 			target_info.schema_id,
 			target_info.display_name,
@@ -1373,12 +1528,12 @@ func _handle_left_click(screen_pos: Vector2) -> void:
 			clear_target()
 
 func _handle_right_click() -> void:
-	if TargetingManager.has_target():
-		var target_info = TargetingManager.get_current_target()
+	if _tm().has_target():
+		var target_info = _tm().get_current_target()
 		_show_target_context_menu(target_info)
 
 func clear_target() -> void:
-	TargetingManager.clear_target()
+	_tm().clear_target()
 	is_targeting = false
 	_hide_target_tooltip()
 
@@ -1407,9 +1562,10 @@ func _is_click_on_ui(screen_pos: Vector2) -> bool:
 				return true
 	return false
 
-func _show_target_tooltip(target_info: TargetingManager.TargetInfo) -> void:
+func _show_target_tooltip(target_info: _tm_script.TargetInfo) -> void:
 	# Emit signal or show tooltip UI
-	EventHub.entity_targeted.emit(entity_id, target_info.id, target_info.entity_type)
+	var hub := _hub()
+	if hub: hub.emit_signal("entity_targeted", entity_id, target_info.id, target_info.entity_type)
 
 func _hide_target_tooltip() -> void:
 	# Hide tooltip UI
@@ -1418,7 +1574,7 @@ func _hide_target_tooltip() -> void:
 ## HITBOX & COMBAT
 
 func create_hitbox(skill: Skill, target: Entity = null, ground_pos: Vector3 = Vector3.ZERO) -> void:
-	CombatSystem.create_hitbox(self, skill, target, ground_pos)
+	_cs().create_hitbox(self, skill, target, ground_pos)
 
 func show_aoe_indicator(skill: Skill) -> void:
 	# Visual indicator for ground-targeted AoE

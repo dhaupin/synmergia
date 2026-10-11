@@ -1,12 +1,25 @@
-## ReportDialog - Modal dialog for submitting player reports
-## Migrated onto UIPanel base class.
+
+
 
 extends "res://ui/components/ui_panel.gd"
 class_name ReportDialog
 
-# SecurityService is an autoload singleton. It is accessed bare so
+const ReportKind = preload("res://core/admin/player_reporter.gd")
+
+func _reporter() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerReporter")) if tree and tree.root else null
+
+func _securityservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SecurityService")) if tree and tree.root else null
+
+## ReportDialog - Modal dialog for submitting player reports
+## Migrated onto UIPanel base class.
+
+# _securityservice() is an autoload singleton. It is accessed bare so
 # the singleton instance is used -- preloading it here would shadow
-# the singleton and make SecurityService.validate_message(...) resolve
+# the singleton and make _securityservice().validate_message(...) resolve
 # to the class (non-static method), which the parser rejects.
 #
 # UIPanel is also preloaded here because the base class is referenced
@@ -219,9 +232,9 @@ func _on_submit() -> void:
 		_show_error("Description too long (max %d characters)" % MAX_DESCRIPTION_LENGTH)
 		return
 
-	# Security: Validate via SecurityService if available
-	if SecurityService:
-		var validation := SecurityService.validate_message(description, _reporter_id)
+	# Security: Validate via _securityservice() if available
+	if _securityservice():
+		var validation = _securityservice().validate_message(description, _reporter_id)
 		if not validation.valid:
 			_show_error("Invalid input: " + validation.reason)
 			return
@@ -238,9 +251,9 @@ func _on_submit() -> void:
 			_show_error("Player name too long")
 			return
 
-		# Security: Validate target name via SecurityService
-		if SecurityService:
-			var target_validation := SecurityService.validate_player_name(target)
+		# Security: Validate target name via _securityservice()
+		if _securityservice():
+			var target_validation = _securityservice().validate_player_name(target)
 			if not target_validation.valid:
 				_show_error("Invalid player name: " + target_validation.reason)
 				return
@@ -250,17 +263,17 @@ func _on_submit() -> void:
 		"target": target,
 	}
 
-	if PlayerReporter:
+	if _reporter():
 		var report_type: int
 		match _report_type:
-			ReportType.PLAYER_ABUSE: report_type = PlayerReporter.ReportType.ABUSE
-			ReportType.BUG: report_type = PlayerReporter.ReportType.BUG
-			ReportType.FEEDBACK: report_type = PlayerReporter.ReportType.FEEDBACK
-			ReportType.SUGGESTION: report_type = PlayerReporter.ReportType.SUGGESTION
-			ReportType.EXPLOIT: report_type = PlayerReporter.ReportType.EXPLOIT
-			_: report_type = PlayerReporter.ReportType.OTHER
+			ReportType.PLAYER_ABUSE: report_type = ReportKind.ReportType.ABUSE
+			ReportType.BUG: report_type = ReportKind.ReportType.BUG
+			ReportType.FEEDBACK: report_type = ReportKind.ReportType.FEEDBACK
+			ReportType.SUGGESTION: report_type = ReportKind.ReportType.SUGGESTION
+			ReportType.EXPLOIT: report_type = ReportKind.ReportType.EXPLOIT
+			_: report_type = ReportKind.ReportType.OTHER
 
-		var result: Dictionary = PlayerReporter.submit_report(_reporter_id, report_type, data)
+		var result: Dictionary = _reporter().submit_report(_reporter_id, report_type, data)
 
 		if result.get("success", false):
 			_start_cooldown()
@@ -336,6 +349,7 @@ func open_bug_report(reporter_id: String) -> void:
 
 func open_feedback(reporter_id: String) -> void:
 	open(reporter_id, ReportType.FEEDBACK, "")
+
 
 func open_suggestion(reporter_id: String) -> void:
 	open(reporter_id, ReportType.SUGGESTION, "")

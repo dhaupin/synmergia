@@ -210,6 +210,26 @@ func _run() -> void:
 	ok = _check("mesh: patch winding matches a Godot sphere (patch %.4f vs sphere %.4f)" % [patch_mean, ref_mean], \
 		patch_tris > 0 and signf(patch_mean) == signf(ref_mean) and absf(patch_mean) > 0.001) and ok
 
+	# TERRAIN LOD: the NEAR law. Faces whose ground reaches within one
+	# tile edge of the player ride the full base level; farther
+	# active-set members demote one level. The spawn sits ON the
+	# equatorial edge two faces share, so BOTH must hold full detail
+	# (the boundary-flip repair this probe pins). The walk law is
+	# level-independent (the analytic heightfield), so the snapped
+	# walker must not drift when neighbors are coarse.
+	var near_face: int = load("res://core/frame/math/icosahedral_faces.gd").face_for_direction(d_spawn)
+	var near_lvl: int = int(_globe.streamer._patch_lvl.get(near_face, -1))
+	ok = _check("lod: spawn face rides the base level (%d)" % near_lvl, \
+		near_lvl == _globe.streamer._level_for_edge()) and ok
+	# The whole streamed world is the analytic law: near or coarse, the
+	# walk surface is the same answer per face.
+	for f in _globe.streamer.active_faces():
+		var fc: Vector3 = load("res://core/frame/math/icosahedral_faces.gd").face_center(f)
+		var meshes_h: float = _globe.streamer.walk_surface_h(fc)
+		var law_h: float = Gen.terrain_height(fc, seed_b) + Gen.rock_top_height(fc, seed_b, f, R20KM)
+		ok = _check("lod: face %d ground law is level-independent" % f, \
+			absf(meshes_h - law_h) < 0.01) and ok
+
 	# The provider really feeds the terrain law: sample it at the body.
 	var d_body: Vector3 = (player.global_position - _globe.planet_center).normalized()
 	var prov: float = player.snap_height_provider.call(player.global_position)
@@ -230,6 +250,88 @@ func _run() -> void:
 	ok = _check("walk: glued after a 2.5 s walk (err %.2f m)" % gap2, \
 		absf(gap2) < 2.5) and ok
 	ok = _check("walk: the walk moved the body", player.path_walked > 3.0) and ok
+
+	# TERRAIN LOD (NEAR law, planet scale): after the walk the player is
+	# ~15 m mid-face; faces whose ground reaches one tile edge of the
+	# player keep the base level, farther ACTIVE-SET members demote one
+	# level (the boundary-tie repair: ownership is not the gate).
+	var base_lvl: int = _globe.streamer._level_for_edge()
+	var near_count := 0
+	for f in _globe.streamer.active_faces():
+		if int(_globe.streamer._patch_lvl.get(f, -1)) == base_lvl:
+			near_count += 1
+	ok = _check("lod: near faces hold base level (%d of %d)" % [near_count, _globe.streamer.active_faces().size()], \
+		near_count >= 1 and near_count < _globe.streamer.active_faces().size()) and ok
+
+	# SKIRT pin (the T-junction repair): every terrain-on patch carries
+	# a surface-1 skirt (perimeter drop strips) whose tri count is a
+	# positive multiple of 2, and whose perimeter edge count matches
+	# the subdivision math (3 * 2^level edges per face). Surface 0 is
+	# untouched: the vertex-law checks above sampled it clean.
+	var skirt_ok := true
+	var skirt_faces := 0
+	for f in _globe.streamer.active_faces():
+		var st_count: int = int(_globe.streamer._patch_skirt_tris.get(f, 0))
+		var patch_mi: MeshInstance3D = _globe.streamer._patches.get(f)
+		var own_lvl: int = int(_globe.streamer._patch_lvl.get(f, 0))
+		var want_edges: int = 3 * (1 << own_lvl)  # 3 border arcs x 2^lvl tile edges per face
+		if st_count <= 0 or st_count % 2 != 0 or (st_count / 2) != want_edges or patch_mi == null or patch_mi.mesh == null or patch_mi.mesh.get_surface_count() != 2:
+			skirt_ok = false
+		else:
+			skirt_faces += 1
+	ok = _check("lod: skirts on every streamed patch (%d faces, 6 verts/edge strip on surface 1)" % skirt_faces, skirt_ok) and ok
+
+	# HYSTERESIS pin (the edge pump repair): a face BETWEEN the inner
+	# and outer bands must NOT change level frame-to-frame, and a face
+	# beyond the outer band must survive LOD_FAR_TICKS - 1 frames
+	# before demoting. Drive _demanded_level directly (the law is
+	# pure except for the tick dwell).
+	var own_face: int = load("res://core/frame/math/icosahedral_faces.gd").face_for_direction(d_body)
+	var base2: int = _globe.streamer._level_for_edge()
+	var reach2: float = _globe.streamer._face_reach(near_face)
+	var band_in: float = _globe.streamer._near_band(base2)
+	var band_out: float = band_in * (1.0 + _globe.streamer.LOD_HYSTERESIS_MARGIN)
+	var between_dir: Vector3 = load("res://core/frame/math/icosahedral_faces.gd").face_center(near_face) \
+		.rotated(load("res://core/frame/math/icosahedral_faces.gd").face_center(near_face).cross(Vector3(0, 1, 0)).normalized(), reach2 + (band_in + band_out) * 0.5)
+	_globe.streamer._patch_lvl[near_face] = base2 - 1  # suppose it demoted earlier
+	var held: int = _globe.streamer._demanded_level(near_face, between_dir, base2 - 1)
+	ok = _check("lod: between-band level stands (cur kept)", held == base2 - 1) and ok
+	# Far beyond the outer band: demote only after the dwell.
+	var far_dir: Vector3 = load("res://core/frame/math/icosahedral_faces.gd").face_center(near_face) \
+		.rotated(load("res://core/frame/math/icosahedral_faces.gd").face_center(near_face).cross(Vector3(0, 1, 0)).normalized(), reach2 + band_out * 3.0)
+	var dwell_ok := true
+	for t in range(_globe.streamer.LOD_FAR_TICKS - 1):
+		if _globe.streamer._demanded_level(near_face, far_dir, base2 - 1) != base2 - 1:
+			dwell_ok = false
+			break
+	_globe.streamer._patch_lvl[near_face] = base2  # restore
+	ok = _check("lod: far face survives the dwell before demoting", dwell_ok) and ok
+	var promoted: int = _globe.streamer._demanded_level(near_face, load("res://core/frame/math/icosahedral_faces.gd").face_center(near_face), base2 - 1)
+	ok = _check("lod: promote is instant (no dwell)", promoted == base2) and ok
+
+	# HOT REUSE pin (the reload-cost repair): a level change rebuilds
+	# ONLY the mesh; the prop holder (rocks/trees/boulders + colliders)
+	# grafts across so rock NODES keep identity -- the walk law and the
+	# services keyed on those bodies never notice. Force a real hot
+	# swap (demote then promote the spawn face) and demand: the SAME
+	# rock instance objects are still in _patch_rocks after both.
+	var reuse_face: int = near_face
+	var rocks_before_ids: Array = []
+	for r in (_globe.streamer._patch_rocks.get(reuse_face, []) as Array):
+		rocks_before_ids.append(r.get_instance_id())
+	var hot_lvl: int = base2 - 1
+	var hot_ok: bool = _globe.streamer._hot_reload(reuse_face, hot_lvl)
+	var hot_back: bool = _globe.streamer._hot_reload(reuse_face, base2)
+	var rocks_after_ids: Array = []
+	for r in (_globe.streamer._patch_rocks.get(reuse_face, []) as Array):
+		rocks_after_ids.append(r.get_instance_id())
+	ok = _check("lod: hot demote+promote grafted (both true)", hot_ok and hot_back) and ok
+	ok = _check("lod: rock NODES survive the level change (identity kept)", \
+		rocks_before_ids == rocks_after_ids and not rocks_before_ids.is_empty()) and ok
+	var reuse_mesh: MeshInstance3D = _globe.streamer._patches.get(reuse_face)
+	ok = _check("lod: hot swap resets the mesh to base level", \
+		reuse_mesh != null and int(_globe.streamer._patch_lvl.get(reuse_face, -1)) == base2 \
+		and reuse_mesh.mesh.get_surface_count() == 2) and ok
 
 	# ---- C. The water shell is the sea line -------------------------
 	if _globe.water_body != null:
@@ -276,6 +378,87 @@ func _run() -> void:
 				expected += 1
 	ok = _check("boulder: every on-land spec spawned (live %d == expected %d)" % [live_boulders, expected], \
 		live_boulders == expected) and ok
+
+	# ---- Bf. The FORD LAW (slice 3 downstream, drive-the-body) --------
+	# A river channel is shallow enough to walk honestly: put the REAL
+	# SPAWNED walker in the channel bed and OUTSIDE any channel, and
+	# read the body's own law (not the analytic field) both times:
+	#  - IN the bed: _wading true, measured walk speed ~ WADE_MULT of
+	#    the dry cap (the body crosses slower, no jump).
+	#  - DRY (antipode of the spring, no channel there): _wading false,
+	#    full walk speed again.
+	var ford_ok := false
+	var dry_ok := false
+	var ford_found := false
+	var ford_depth := 0.0
+	var ford_speed_ratio := 0.0
+	var RADIUS_TEST: float = R20KM
+	var GPlayer = load("res://entities/globe_player.gd")
+	var seed_p: PackedByteArray = _globe.streamer.world_seed
+	var fc: Vector3 = Vector3.ZERO
+	var fdry: Vector3 = Vector3.ZERO
+	for spec in Gen.river_specs_cached(seed_p):
+		var pts: PackedVector3Array = spec.path
+		# Two-band law (the body's own): channel water + gated table.
+		for k in range(pts.size()):
+			var mid: Vector3 = pts[k].normalized()
+			if mid.angle_to(Gen.SPAWN_CENTER) < Gen.Hydro.SUPPRESS_IN:
+				continue
+			var chan: float = Gen.river_channel(mid, seed_p)
+			var depth: float = Gen.Hydro.RIVER_BED_DEPTH * chan if chan > 0.25 else 0.0
+			var surf: float = Gen.hydro_water_surface(mid, seed_p)
+			if surf > -1e8:
+				depth = maxf(depth, surf - Gen.terrain_height(mid, seed_p))
+			if depth > 0.2 and depth <= 1.55:
+				fc = mid
+				fdry = (mid * -1.0).normalized()
+				ford_depth = depth
+	if fc != Vector3.ZERO:
+		var wader: CharacterBody3D = GPlayer.new()
+		wader.planet_radius = R20KM
+		wader.planet_center = Vector3.ZERO
+		wader.entity_id = "probe_ford"
+		wader.snap_height_provider = Callable()
+		# Parent UNDER the globe so terrain_on_local() resolves the
+		# streamer's terrain_on_flag seam (the ford law needs it).
+		_globe.add_child(wader)
+		wader.global_position = fc * (R20KM + 0.52 + Gen.terrain_height(fc, _globe.streamer.world_seed) - 0.2)
+		var aut: float = wader._wade_depth_at()
+		ford_found = true
+		ford_ok = aut > 0.15
+		# Measured speed: one second of steady auto-walk at BOTH sites
+		# (10 ramp frames dropped at each; `path_walked` reset first so
+		# only the measured leg counts).
+		wader.auto_walk = true
+		wader.auto_walk_yaw = 0.0
+		for i in range(10):
+			await root.get_tree().physics_frame
+		wader.path_walked = 0.0
+		for i in range(60):
+			await root.get_tree().physics_frame
+		var wet_speed: float = wader.path_walked / 1.0
+		# The wade flag is read at the WET site (the dry leg below
+		# overwrites the body state).
+		var wet_wading: bool = wader._wading
+		ford_ok = ford_ok and wet_wading
+		wader.auto_walk = false
+		wader.global_position = fdry * (R20KM + 0.52 + Gen.terrain_height(fdry, _globe.streamer.world_seed))
+		wader.velocity = Vector3.ZERO
+		wader.auto_walk = true
+		for i in range(10):
+			await root.get_tree().physics_frame
+		wader.path_walked = 0.0
+		for i in range(60):
+			await root.get_tree().physics_frame
+		var dry_speed: float = wader.path_walked / 1.0
+		dry_ok = (not wader._wading) and (not wader._wade_stamp_live)
+		ford_speed_ratio = wet_speed / maxf(dry_speed, 0.01)
+		wader.queue_free()
+	ok = _check("ford: a wadeable river section exists on the planet (%s)" % ford_found, ford_found) and ok
+	ok = _check("ford: body wades in the channel bed (depth %.2f m)" % ford_depth, ford_ok) and ok
+	ok = _check("ford: dry ground reads no wade (antipodal bank)", dry_ok) and ok
+	ok = _check("ford: waded walk is slowed (speed ratio %.2f, band [0.3, 0.95])" % ford_speed_ratio, \
+		ford_speed_ratio > 0.3 and ford_speed_ratio < 0.95) and ok
 
 	if _globe and is_instance_valid(_globe):
 		_globe.queue_free()

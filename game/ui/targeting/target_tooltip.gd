@@ -1,7 +1,29 @@
-## TargetTooltip - Generic tooltip for any targeting system
-## Wired to TargetingManager for unified targeting display
+
+
+
 extends Control
+
+## TargetTooltip - Generic tooltip for any targeting system
+## Wired to _targetingmanager() for unified targeting display
+
 class_name TargetTooltip
+
+## Script-class reference (script-mode-safe; mirrors ChatSvcScript):
+## TargetInfo is a nested class on the service resource, not a global.
+const TargetingScript = preload("res://core/targeting/targeting_manager.gd")
+const InteractionLayerLib = preload("res://core/input/interaction_layer.gd")
+
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+func _perm_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+func _hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
 # QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
@@ -13,7 +35,15 @@ const Entity = preload("res://core/entities/entity.gd")
 
 const CharacterData := preload("res://core/schemas/character_data.gd")
 
-var _interaction_layer: InteractionLayer
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _targetingmanager() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TargetingManager")) if tree and tree.root else null
+
+
+
+var _interaction_layer  # InteractionLayerLib instance (runtime-resolved)
 var _current_target_id: String = ""
 var _current_entity_type: int = 0
 
@@ -42,29 +72,31 @@ func _ready() -> void:
 	hide()
 
 func _connect_signals() -> void:
-	if TargetingManager:
-		TargetingManager.target_acquired.connect(_on_target_acquired)
-		TargetingManager.target_cleared.connect(_on_target_cleared)
-		TargetingManager.target_updated.connect(_on_target_updated)
-		TargetingManager.target_type_changed.connect(_on_target_type_changed)
+	if _targetingmanager():
+		_targetingmanager().target_acquired.connect(_on_target_acquired)
+		_targetingmanager().target_cleared.connect(_on_target_cleared)
+		_targetingmanager().target_updated.connect(_on_target_updated)
+		_targetingmanager().target_type_changed.connect(_on_target_type_changed)
 
-	if InteractionLayer:
-		_interaction_layer = InteractionLayer
-		InteractionLayer.tap.connect(_on_interaction_tap)
+	if _interaction_layer == null:
+		var il_tree := Engine.get_main_loop() as SceneTree
+		_interaction_layer = il_tree.root.get_node_or_null(NodePath("InteractionLayer")) if il_tree and il_tree.root else null
+	if _interaction_layer:
+		_interaction_layer.tap.connect(_on_interaction_tap)
 
-func set_interaction_layer(layer: InteractionLayer) -> void:
+func set_interaction_layer(layer) -> void:
 	_interaction_layer = layer
 
 ## ============================================================================
 ## SIGNAL HANDLERS
 ## ============================================================================
 
-func _on_target_acquired(target: TargetingManager.TargetInfo) -> void:
-	if not TargetingManager:
+func _on_target_acquired(target: TargetingScript.TargetInfo) -> void:
+	if not _targetingmanager():
 		return
 
 	# Only show tooltip for local player targeting
-	var local_id: int = TargetingManager.get_local_player_id()
+	var local_id: int = _targetingmanager().get_local_player_id()
 	if target.id == "" or not target.node:
 		return
 
@@ -77,7 +109,7 @@ func _on_target_acquired(target: TargetingManager.TargetInfo) -> void:
 	# Animate in
 	_fade_in()
 
-func _on_target_cleared(previous_target: TargetingManager.TargetInfo) -> void:
+func _on_target_cleared(previous_target: TargetingScript.TargetInfo) -> void:
 	if _is_sticky:
 		return
 
@@ -86,7 +118,7 @@ func _on_target_cleared(previous_target: TargetingManager.TargetInfo) -> void:
 	hide()
 	tooltip_closed.emit()
 
-func _on_target_updated(target: TargetingManager.TargetInfo) -> void:
+func _on_target_updated(target: TargetingScript.TargetInfo) -> void:
 	# Refresh tooltip on any update (e.g., health change)
 	if _current_target_id != "" and target.id == _current_target_id:
 		_refresh_tooltip()
@@ -108,7 +140,7 @@ func _on_interaction_tap(position: Vector2) -> void:
 	if not tooltip_rect.has_point(position):
 		# Tapped outside tooltip - close unless sticky
 		if not _is_sticky:
-			TargetingManager.clear_target()
+			_targetingmanager().clear_target()
 
 ## ============================================================================
 ## UI SETUP
@@ -206,7 +238,7 @@ func _setup_ui() -> void:
 ## ============================================================================
 
 func _refresh_tooltip() -> void:
-	var target: Variant = TargetingManager.get_current_target()
+	var target: Variant = _targetingmanager().get_current_target()
 	if not target:
 		return
 
@@ -229,7 +261,7 @@ func _refresh_tooltip() -> void:
 	_header_label.add_theme_color_override("font_color", _get_name_color(target.entity_type, is_gm_player))
 
 	# Entity type info
-	var type_str: String = TargetingManager.entity_type_to_string(target.entity_type)
+	var type_str: String = _targetingmanager().entity_type_to_string(target.entity_type)
 	if is_gm_player:
 		type_str = " GAME MASTER"
 	_info_label.text = type_str
@@ -257,7 +289,7 @@ func _get_name_color(entity_type: int, is_gm: bool = false) -> Color:
 		Entity.EntityType.TELEPORT: return Color(0.6, 0.3, 1.0) # Purple
 		_: return Color(1.0, 1.0, 1.0)
 
-func _get_status_text(target: TargetingManager.TargetInfo, is_gm: bool = false) -> String:
+func _get_status_text(target: TargetingScript.TargetInfo, is_gm: bool = false) -> String:
 	match target.entity_type:
 		Entity.EntityType.PLAYER:
 			var online_val = target.node.get("is_online") if target.node else null
@@ -289,10 +321,10 @@ func _update_action_buttons_from_schema(schema_id: String) -> void:
 		btn.queue_free()
 	_action_buttons.clear()
 
-	if not TargetingManager:
+	if not _targetingmanager():
 		return
 
-	var schema: Variant = TargetingManager.get_schema(schema_id)
+	var schema: Variant = _targetingmanager().get_schema(schema_id)
 	if not schema:
 		return
 
@@ -306,7 +338,7 @@ func _update_action_buttons_from_schema(schema_id: String) -> void:
 		_action_buttons.append(btn)
 
 func _create_action_button(action_id: String, size: Vector2) -> Button:
-	var action_def: Variant = TargetingManager.get_action_definition(action_id)
+	var action_def: Variant = _targetingmanager().get_action_definition(action_id)
 
 	var btn := Button.new()
 	btn.text = _get_action_icon(action_id) + " " + _get_action_name(action_id)
@@ -402,36 +434,38 @@ func _get_action_category(action_id: String) -> String:
 ## ============================================================================
 
 func _on_action_button_pressed(action_id: String, target_id: String) -> void:
-	if not TargetingManager or not QoSService:
+	if not _targetingmanager() or not QoSService:
 		action_clicked.emit(action_id, target_id)
 		return
 
 	# Rate limit check
 	if QoSService.rate_limit(_current_target_id, "tooltip_action"):
-		GameLog.debug("TargetTooltip: Rate limited action %s" % action_id)
+		if _glog(): _glog().debug("TargetTooltip: Rate limited action %s" % action_id)
 		_flash_rate_limit_warning()
 		return
 
-	# Permission check for sensitive actions (scaffold: wire to PermissionManager
+	# Permission check for sensitive actions (scaffold: wire to _perm_svc()
 	# once player-id propagation is in place). For now, let all actions through.
 	if _requires_permission(action_id) and false:
-		if not PermissionManager or not PermissionManager.has_permission(action_id, PermissionManager.Level.PLAYER):
+		if not _perm_svc() or not _perm_svc().has_permission(action_id, _perm_svc().Level.PLAYER):
 			_show_permission_denied(action_id)
 			return
 
-	# Execute action through TargetingManager
-	var result: Dictionary = TargetingManager.execute_action_on(action_id, target_id)
+	# Execute action through _targetingmanager()
+	var result: Dictionary = _targetingmanager().execute_action_on(action_id, target_id)
 	var success: bool = result.get("success") if result.get("success") != null else false
 
 	if success:
 		action_clicked.emit(action_id, target_id)
 		# Emit to EventBus for other systems
-		EventHub.target_action_executed.emit(
-			TargetingManager.get_local_player_id(),
-			target_id,
-			action_id,
-			true
-		)
+		var hub := _hub()
+		if hub:
+			hub.emit_signal("target_action_executed",
+				_targetingmanager().get_local_player_id(),
+				target_id,
+				action_id,
+				true
+			)
 	else:
 		_show_action_failed(action_id)
 
@@ -505,7 +539,7 @@ func _fade_out() -> void:
 func close_tooltip() -> void:
 	_is_sticky = false
 	_pin_btn.text = ""
-	TargetingManager.clear_target()
+	_targetingmanager().clear_target()
 	hide()
 	tooltip_closed.emit()
 

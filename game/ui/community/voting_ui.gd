@@ -2,6 +2,13 @@
 ## Migrated onto UIPanel base class.
 extends "res://ui/components/ui_panel.gd"
 class_name VotingUI
+
+## Runtime autoload lookup (script-mode-safe; the bare
+## identifier fails compile when autoloads are absent -- test_islands).
+func cg() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("CommunityGovernance")) if tree and tree.root else null
+
 var _tab_container: TabContainer
 var _vote_list: ItemList
 var _vote_detail: VBoxContainer
@@ -18,17 +25,17 @@ func _ready() -> void:
 
 
 func _bind_service_signals() -> void:
-	if not CommunityGovernance:
+	if not cg():
 		return
-	if CommunityGovernance.has_signal("vote_created"):
-		if not CommunityGovernance.vote_created.is_connected(_on_vote_created):
-			CommunityGovernance.vote_created.connect(_on_vote_created)
-	if CommunityGovernance.has_signal("vote_closed"):
-		if not CommunityGovernance.vote_closed.is_connected(_on_vote_closed):
-			CommunityGovernance.vote_closed.connect(_on_vote_closed)
-	if CommunityGovernance.has_signal("vote_expired"):
-		if not CommunityGovernance.vote_expired.is_connected(_on_vote_expired):
-			CommunityGovernance.vote_expired.connect(_on_vote_expired)
+	if cg().has_signal("vote_created"):
+		if not cg().vote_created.is_connected(_on_vote_created):
+			cg().vote_created.connect(_on_vote_created)
+	if cg().has_signal("vote_closed"):
+		if not cg().vote_closed.is_connected(_on_vote_closed):
+			cg().vote_closed.connect(_on_vote_closed)
+	if cg().has_signal("vote_expired"):
+		if not cg().vote_expired.is_connected(_on_vote_expired):
+			cg().vote_expired.connect(_on_vote_expired)
 
 
 func _on_vote_created(_vote) -> void:
@@ -160,10 +167,10 @@ func _refresh_vote_list() -> void:
 		return
 	_vote_list.clear()
 
-	if not CommunityGovernance:
+	if not cg():
 		return
 
-	var votes: Array = CommunityGovernance.get_open_votes()
+	var votes: Array = cg().get_open_votes()
 
 	for vote_data in votes:
 		var vote: Dictionary = vote_data
@@ -173,10 +180,10 @@ func _refresh_vote_list() -> void:
 		_vote_list.add_item(display)
 
 func _on_vote_selected(index: int) -> void:
-	if not CommunityGovernance:
+	if not cg():
 		return
 
-	var votes: Array = CommunityGovernance.get_open_votes()
+	var votes: Array = cg().get_open_votes()
 	if index < votes.size():
 		var vote_data: Dictionary = votes[index]
 		_show_vote_detail(vote_data.get("id", ""))
@@ -187,10 +194,10 @@ func _show_vote_detail(vote_id: String) -> void:
 	for child in _vote_detail.get_children():
 		child.queue_free()
 
-	if not CommunityGovernance:
+	if not cg():
 		return
 
-	var vote_data: Dictionary = CommunityGovernance.get_vote(vote_id)
+	var vote_data: Dictionary = cg().get_vote(vote_id)
 
 	if vote_data.is_empty():
 		return
@@ -252,10 +259,10 @@ func _show_vote_detail(vote_id: String) -> void:
 			_vote_detail.add_child(result_label)
 
 func _cast_vote(option_id: int) -> void:
-	if not CommunityGovernance or _current_voter == "":
+	if not cg() or _current_voter == "":
 		return
 
-	var result: Dictionary = CommunityGovernance.cast_vote(_current_voter, _current_vote_id, option_id)
+	var result: Dictionary = cg().cast_vote(_current_voter, _current_vote_id, option_id)
 
 	if result.get("success", false):
 		_show_notification("Vote cast!")
@@ -276,7 +283,7 @@ func _show_notification(message: String) -> void:
 	notif.queue_free()
 
 # VotingUI uses 'voter_id' as the player id; UIPanel's open(player_id) routes
-# it to _player_id, but the CommunityGovernance API expects voter_id. We
+# it to _player_id, but the cg() API expects voter_id. We
 # mirror it into _current_voter for clarity.
 func open(voter_id: String) -> void:
 	_current_voter = voter_id

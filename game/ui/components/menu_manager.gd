@@ -9,6 +9,20 @@ const HudLayerScript = preload("res://ui/hud/hud_layer.gd")
 ## Singleton
 static var instance: MenuManager = null
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _pmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+func _gmanager() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
+
+func _notif_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
 ## UI references
 var _action_bar: HBoxContainer
 var _quick_access_bar: HBoxContainer
@@ -472,8 +486,10 @@ func _create_progress_bar(color: Color) -> PanelContainer:
 
 func _connect_signals() -> void:
 	# ChatService messages
-	if ChatService:
-		ChatService.message_received.connect(_on_chat_message_received)
+	var sig_tree := Engine.get_main_loop() as SceneTree
+	var chat_service := sig_tree.root.get_node_or_null(NodePath("ChatService")) if sig_tree and sig_tree.root else null
+	if chat_service:
+		chat_service.message_received.connect(_on_chat_message_received)
 	# Text-scale broadcast (round 9): the settings panel emits this and
 	# the HUD widgets refresh live. It was emitted with zero listeners
 	# before -- the broadcast went nowhere.
@@ -974,28 +990,32 @@ func _on_main_menu_panel_requested(panel_id: String) -> void:
 	
 	# Permission check for admin panel
 	if internal_name == "admin":
-		if not PermissionManager:
-			NotificationService.notify(NotifKind.SECURITY_WARNING, "Admin panel unavailable", "MenuManager", "admin_unavail", {})
+		if not _pmgr():
+			_notif_svc().notify(NotifKind.SECURITY_WARNING, "Admin panel unavailable", "MenuManager", "admin_unavail", {})
 			return
 		var player_id := ""
-		if GameManager and GameManager.selected_character_data:
-			player_id = GameManager.selected_character_data.id
-		if not PermissionManager.has_permission(player_id, PermissionManager.Level.MOD):
-			NotificationService.notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Admin Panel", "MenuManager", "admin_perm", {}, player_id)
+		if _gmanager() and _gmanager().selected_character_data:
+			player_id = _gmanager().selected_character_data.id
+		var pm := _pmgr()
+		if not pm.has_permission(player_id, pm.Level.MOD):
+			_notif_svc().notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Admin Panel", "MenuManager", "admin_perm", {}, player_id)
 			return
 	
 	# Permission check for debug panel
 	if internal_name == "debug":
-		if not PermissionManager:
-			NotificationService.notify(NotifKind.SECURITY_WARNING, "Debug panel unavailable", "MenuManager", "debug_unavail", {})
+		if not _pmgr():
+			_notif_svc().notify(NotifKind.SECURITY_WARNING, "Debug panel unavailable", "MenuManager", "debug_unavail", {})
 			return
 		var player_id := ""
-		if GameManager and GameManager.selected_character_data:
-			player_id = GameManager.selected_character_data.id
-		var is_admin := PermissionManager.has_permission(player_id, PermissionManager.Level.ADMIN)
-		var is_dev := GameConfig and GameConfig.Debug.ALLOW_CHEATS
+		if _gmanager() and _gmanager().selected_character_data:
+			player_id = _gmanager().selected_character_data.id
+		var pm2 := _pmgr()
+		var is_admin: bool = pm2.has_permission(player_id, pm2.Level.ADMIN)
+		var cfg := Engine.get_main_loop() as SceneTree
+		var game_config := cfg.root.get_node_or_null(NodePath("GameConfig")) if cfg and cfg.root else null
+		var is_dev: bool = game_config and game_config.get("Debug") and game_config.Debug.ALLOW_CHEATS
 		if not is_admin and not is_dev:
-			NotificationService.notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Debug Panel", "MenuManager", "debug_perm", {}, player_id)
+			_notif_svc().notify(NotifKind.SECURITY_WARNING, "Insufficient permissions for Debug Panel", "MenuManager", "debug_perm", {}, player_id)
 			return
 	
 	_toggle_menu_internal(internal_name)
@@ -1144,10 +1164,12 @@ func _update_debug_sys_info(label: Label) -> void:
 	]
 
 func _update_debug_net_info(label: Label) -> void:
+	var net_tree := Engine.get_main_loop() as SceneTree
+	var net_manager := net_tree.root.get_node_or_null(NodePath("NetworkManager")) if net_tree and net_tree.root else null
 	label.text = "NetworkManager: %s\nQoSService: %s\nPeers: %d" % [
-		"Loaded" if NetworkManager else "Not Loaded",
+		"Loaded" if net_manager else "Not Loaded",
 		"Loaded" if get_tree().root.get_node_or_null("QoSService") else "Not Loaded",
-		NetworkManager.get_peer_count() if NetworkManager and NetworkManager.has_method("get_peer_count") else 0
+		net_manager.get_peer_count() if net_manager and net_manager.has_method("get_peer_count") else 0
 	]
 
 func _update_debug_perf_info(label: Label) -> void:
@@ -1158,7 +1180,9 @@ func _update_debug_perf_info(label: Label) -> void:
 	]
 
 func _update_debug_entity_info(label: Label) -> void:
+	var ent_tree := Engine.get_main_loop() as SceneTree
+	var entity_service := ent_tree.root.get_node_or_null(NodePath("EntityService")) if ent_tree and ent_tree.root else null
 	label.text = "EntityService: %s\nEntities: %d" % [
-		"Loaded" if EntityService else "Not Loaded",
-		EntityService.get_entity_count() if EntityService and EntityService.has_method("get_entity_count") else 0
+		"Loaded" if entity_service else "Not Loaded",
+		entity_service.get_entity_count() if entity_service and entity_service.has_method("get_entity_count") else 0
 	]

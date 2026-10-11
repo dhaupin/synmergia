@@ -4,6 +4,47 @@ extends Node
 # QoSService uses static shim methods (AGENTS.md allowlist); the const is required.
 const QoSService = preload("res://core/autoload/qos_service.gd")
 
+## Tree-safe GameLog lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+## Tree-safe QuestService lookup (script-mode-safe).
+func _quest_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("QuestService")) if tree and tree.root else null
+
+## Tree-safe FollowService lookup (script-mode-safe).
+func _follow_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("FollowService")) if tree and tree.root else null
+
+## Tree-safe WaypointService lookup (script-mode-safe).
+func _waypoint_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("WaypointService")) if tree and tree.root else null
+
+## Tree-safe InventoryService lookup (script-mode-safe).
+func _inv_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
+## Tree-safe TitleService lookup (script-mode-safe).
+func _title_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TitleService")) if tree and tree.root else null
+
+## Tree-safe SkillAcademyService lookup (script-mode-safe).
+func _academy_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SkillAcademyService")) if tree and tree.root else null
+
+## Tree-safe _pmgr() lookup (script-mode-safe).
+func _pmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
 ## Singleton instance (use singleton() to access)
 static var _instance: Node = null
 func _enter_tree() -> void:
@@ -47,7 +88,9 @@ signal action_executed(action_type: int, action_data: Dictionary)
 
 func _ready() -> void:
 	_load_dialogues()
-	GameLog.info("DialogService: Loaded %d dialogues" % _dialogues.size())
+	var _gl := _glog()
+	if _gl:
+		_gl.info("DialogService: Loaded %d dialogues" % _dialogues.size())
 
 const ResourceScan = preload("res://core/frame/srv/resource_scan.gd")
 
@@ -55,7 +98,9 @@ func _load_dialogues() -> void:
 	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
 	var paths := ResourceScan.list_resources("res://data/dialogues")
 	if paths.is_empty() and DirAccess.open("res://data/dialogues") == null:
-		GameLog.warn("DialogService: No data/dialogues/ directory")
+		var _gl := _glog()
+		if _gl:
+			_gl.warn("DialogService: No data/dialogues/ directory")
 		return
 	for p in paths:
 		var dialogue: DialogueData = load(p)
@@ -73,7 +118,9 @@ func start_dialogue(npc_id: String, dialogue_id: String) -> bool:
 
 	var dialogue: DialogueData = get_dialogue(dialogue_id)
 	if dialogue == null:
-		GameLog.warn("DialogService: Dialogue not found: %s" % _esc(dialogue_id))
+		var _gl := _glog()
+		if _gl:
+			_gl.warn("DialogService: Dialogue not found: %s" % _esc(dialogue_id))
 		return false
 	_current_dialogue = dialogue
 	_current_node = 0
@@ -157,24 +204,24 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 			return true
 		DialogActionType.GIVE_QUEST:
 			var quest_id: String = action_data.get("quest_id", "")
-			if QuestService and quest_id:
-				return QuestService.accept_quest(player_id, quest_id)
+			if _quest_svc() and quest_id:
+				return _quest_svc().accept_quest(player_id, quest_id)
 		DialogActionType.COMPLETE_QUEST:
 			var quest_id: String = action_data.get("quest_id", "")
-			if QuestService and quest_id:
-				return QuestService.turn_in_quest(player_id, quest_id)
+			if _quest_svc() and quest_id:
+				return _quest_svc().turn_in_quest(player_id, quest_id)
 		DialogActionType.ABANDON_QUEST:
 			var quest_id: String = action_data.get("quest_id", "")
-			if QuestService and quest_id:
-				QuestService.abandon_quest(player_id, quest_id)
+			if _quest_svc() and quest_id:
+				_quest_svc().abandon_quest(player_id, quest_id)
 				return true
 		DialogActionType.START_FOLLOW:
 			var target_id: String = action_data.get("target_id", "")
-			if FollowService and target_id:
-				return FollowService.request_follow(player_id, target_id)
+			if _follow_svc() and target_id:
+				return _follow_svc().request_follow(player_id, target_id)
 		DialogActionType.STOP_FOLLOW:
-			if FollowService:
-				FollowService.cancel_follow(player_id)
+			if _follow_svc():
+				_follow_svc().cancel_follow(player_id)
 				return true
 		DialogActionType.OPEN_SHOP:
 			var shop_id: String = action_data.get("shop_id", "")
@@ -197,41 +244,47 @@ func execute_action(action_type: int, action_data: Dictionary, player_id: String
 		DialogActionType.SET_WAYPOINT:
 			var wp_name: String = action_data.get("name", "Marker")
 			var color: int = action_data.get("color", 0)
-			if WaypointService:
-				# WaypointService.create_waypoint would be called with player pos
-				GameLog.debug("DialogAction: SET_WAYPOINT '%s'" % wp_name)
+			if _waypoint_svc():
+				# _waypoint_svc().create_waypoint would be called with player pos
+				var _gl := _glog()
+				if _gl:
+					_gl.debug("DialogAction: SET_WAYPOINT '%s'" % wp_name)
 				return true
 		DialogActionType.GIVE_ITEM:
 			var item_id: String = action_data.get("item_id", "")
 			var quantity: int = action_data.get("quantity", 1)
-			if InventoryService and item_id:
-				InventoryService.add_item(player_id, item_id, quantity)
+			if _inv_svc() and item_id:
+				_inv_svc().add_item(player_id, item_id, quantity)
 				return true
 		DialogActionType.GIVE_CURRENCY:
 			var amount: int = action_data.get("amount", 0)
 			var currency: String = action_data.get("currency", "gold")
-			GameLog.debug("DialogAction: GIVE_CURRENCY %d %s" % [amount, currency])
+			var _gl := _glog()
+			if _gl:
+				_gl.debug("DialogAction: GIVE_CURRENCY %d %s" % [amount, currency])
 			return true
 		DialogActionType.UNLOCK_TITLE:
 			# Resource.get(key, default) was removed in 4.7.2; the
 			# guard already exists, so drop the default arg.
 			var title_id: String = action_data.get("title_id")
-			if TitleService and title_id:
-				TitleService.unlock_title(player_id, title_id)
+			if _title_svc() and title_id:
+				_title_svc().unlock_title(player_id, title_id)
 				return true
 		DialogActionType.TEACH_SKILL:
 			var skill_id: String = action_data.get("skill_id")
-			if SkillAcademyService and skill_id:
-				SkillAcademyService.unlock_skill(player_id, skill_id)
+			if _academy_svc() and skill_id:
+				_academy_svc().unlock_skill(player_id, skill_id)
 				return true
 		_:
-			GameLog.warn("DialogAction: Unknown action type %d" % action_type)
+			var _gl := _glog()
+			if _gl:
+				_gl.warn("DialogAction: Unknown action type %d" % action_type)
 			return false
 	return false
 
 func get_local_player_id() -> String:
-	if PlayerManager:
-		var player = PlayerManager.get_local_player()
+	if _pmgr():
+		var player = _pmgr().get_local_player()
 		if player and "entity_id" in player:
 			return player.entity_id
 	return ""

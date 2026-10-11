@@ -1,9 +1,27 @@
-## QuestUI - Quest journal panel
-## Shows active quests, objectives, and quest log
+
+
+
 extends "res://ui/components/ui_panel.gd"
 class_name QuestUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 const QuestData = preload("res://core/schemas/quest_data.gd")
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _local_entity_id() -> String:
+	var pm := _pm()
+	return str(pm.local_player.entity_id) if pm and pm.local_player else ""
+
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _questservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("QuestService")) if tree and tree.root else null
+
+## QuestUI - Quest journal panel
+## Shows active quests, objectives, and quest log
 
 ## Escape BBCode brackets in user-supplied content.
 static func _esc(text: String) -> String:
@@ -135,14 +153,15 @@ func _setup_ui() -> void:
 	_show_empty_detail()
 
 func _connect_signals() -> void:
-	if QuestService:
-		QuestService.quest_accepted.connect(_on_quest_accepted)
-		QuestService.quest_updated.connect(_on_quest_updated)
-		QuestService.quest_completed.connect(_on_quest_completed)
-		QuestService.quest_rewarded.connect(_on_quest_rewarded)
+	if _questservice():
+		_questservice().quest_accepted.connect(_on_quest_accepted)
+		_questservice().quest_updated.connect(_on_quest_updated)
+		_questservice().quest_completed.connect(_on_quest_completed)
+		_questservice().quest_rewarded.connect(_on_quest_rewarded)
 
 	# Load quests for local player
-	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
+	var pmq := _pm()
+	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
 	if not local_id.is_empty():
 		refresh_quest_list()
 
@@ -168,18 +187,19 @@ func refresh_quest_list() -> void:
 	for child in _quest_list.get_children():
 		child.queue_free()
 
-	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
+	var pmq := _pm()
+	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
 	if local_id.is_empty():
 		return
 
 	var quests: Array = []
 	match _current_tab:
 		Tab.ACTIVE:
-			quests = QuestService.get_active_quests(local_id)
+			quests = _questservice().get_active_quests(local_id)
 		Tab.COMPLETE:
 			quests = _get_completed_quests(local_id)
 		Tab.AVAILABLE:
-			quests = QuestService.get_available_quests(local_id)
+			quests = _questservice().get_available_quests(local_id)
 
 	if quests.is_empty():
 		var empty := Label.new()
@@ -190,7 +210,7 @@ func refresh_quest_list() -> void:
 
 	# The three tabs yield different element shapes: ACTIVE/COMPLETE are
 	# id strings, AVAILABLE is {id, name, description, min_level} dicts
-	# (QuestService.get_available_quests). Normalize to the id the button
+	# (_questservice().get_available_quests). Normalize to the id the button
 	# is built from -- passing a Dictionary into _create_quest_button's
 	# String param is a runtime "Cannot convert" error. Round 20.
 	for quest in quests:
@@ -202,7 +222,7 @@ func refresh_quest_list() -> void:
 
 func _get_completed_quests(player_id: String) -> Array:
 	var completed := []
-	var player_quests: Dictionary = QuestService.get_player_quests(player_id)
+	var player_quests: Dictionary = _questservice().get_player_quests(player_id)
 	for quest_id in player_quests:
 		var state: int = player_quests[quest_id].get("state", QuestData.QuestState.LOCKED)
 		if state == QuestData.QuestState.COMPLETE:
@@ -225,7 +245,7 @@ func _create_quest_button(quest_id: String) -> Button:
 	return btn
 
 func _get_quest_name(quest_id: String) -> String:
-	var progress := QuestService.get_quest_progress("", quest_id)
+	var progress: Dictionary = _questservice().get_quest_progress("", quest_id)
 	if not progress.is_empty():
 		var data: QuestData = progress.get("data")
 		if data:
@@ -242,8 +262,9 @@ func _show_quest_detail(quest_id: String) -> void:
 	for child in _quest_detail.get_children():
 		child.queue_free()
 
-	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
-	var progress := QuestService.get_quest_progress(local_id, quest_id)
+	var pmq := _pm()
+	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
+	var progress: Dictionary = _questservice().get_quest_progress(local_id, quest_id)
 	if progress.is_empty():
 		_show_empty_detail()
 		return
@@ -286,7 +307,7 @@ func _show_quest_detail(quest_id: String) -> void:
 
 	# Objectives list
 	var objectives: Array = progress.get("objectives", [])
-	for obj_text in QuestService.get_quest_objectives_text(local_id, quest_id):
+	for obj_text in _questservice().get_quest_objectives_text(local_id, quest_id):
 		var obj_label := RichTextLabel.new()
 		obj_label.bbcode_enabled = true
 		obj_label.text = "[bullet] %s" % _esc(str(obj_text))
@@ -345,48 +366,52 @@ func _get_quest_type_color(state: int) -> Color:
 	return UIStyles.COLORS.text_primary
 
 func _on_accept_quest(quest_id: String) -> void:
-	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
+	var pmq := _pm()
+	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
 	if local_id.is_empty():
 		return
 
-	if QuestService.accept_quest(local_id, quest_id):
+	if _questservice().accept_quest(local_id, quest_id):
 		show_notification("Quest accepted!")
 		_current_tab = Tab.ACTIVE
 		refresh_quest_list()
 
 func _on_turn_in_quest(quest_id: String) -> void:
-	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
+	var pmq := _pm()
+	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
 	if local_id.is_empty():
 		return
 
-	if QuestService.turn_in_quest(local_id, quest_id):
+	if _questservice().turn_in_quest(local_id, quest_id):
 		show_notification("Quest completed! Rewards received.")
 		_current_tab = Tab.COMPLETE
 		refresh_quest_list()
 
 func _on_abandon_quest(quest_id: String) -> void:
-	var local_id := str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "" if PlayerManager else ""
+	var pmq := _pm()
+	var local_id: String = str(pmq.local_player.entity_id) if pmq and pmq.local_player else ""
 	if local_id.is_empty():
 		return
 
-	if QuestService.abandon_quest(local_id, quest_id):
+	if _questservice().abandon_quest(local_id, quest_id):
 		show_notification("Quest abandoned.", false)
 		refresh_quest_list()
 		_show_empty_detail()
 
 func _on_quest_accepted(player_id: String, quest_id: String) -> void:
-	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
+	if player_id == _local_entity_id():
 		refresh_quest_list()
 
 func _on_quest_updated(player_id: String, quest_id: String, objective_id: String, progress: int) -> void:
-	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
+	if player_id == _local_entity_id():
 		if _selected_quest == quest_id:
 			_show_quest_detail(quest_id)
 
 func _on_quest_completed(player_id: String, quest_id: String) -> void:
-	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
+	if player_id == _local_entity_id():
 		refresh_quest_list()
 
+
 func _on_quest_rewarded(player_id: String, quest_id: String, rewards: Dictionary) -> void:
-	if player_id == str(PlayerManager.local_player.entity_id) if PlayerManager.local_player else "":
+	if player_id == _local_entity_id():
 		refresh_quest_list()

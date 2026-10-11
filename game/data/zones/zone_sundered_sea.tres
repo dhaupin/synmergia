@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/zone_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "zone_sundered_sea"
+display_name = "Sundered Sea"
+description = "The strait the sundered world remembers. Two headlands pin the ferry moat into a channel, a wreck shoal crosses it, and the last barques still route through. Sail or ford at low tide."
+pvp_mode = 0
+level_requirement = 1
+max_level = 999
+allowed_factions = []
+blocked_species = []
+respawn_at_bind = true
+respawn_timer = 8.0
+bounds = null
+zone_center = Vector3(0, 0, 0)
+zone_radius = 300.0
+ambient_light_color = Color(0.55, 0.68, 0.78, 1)
+ambient_light_energy = 1.05
+environment_path = "res://environments/day_01.tres"
+has_weather = true
+weather_type = "clear"
+spawn_points = [Vector3(0, 0, 0)]

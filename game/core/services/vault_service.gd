@@ -2,6 +2,25 @@
 ## Handles secure item and gold storage
 extends Node
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _inv_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
+func _rollup() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("AccountRollup")) if tree and tree.root else null
+
+func _gamelog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+func _eventhub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+
+
 ## Singleton
 static var instance: Node
 
@@ -52,7 +71,7 @@ signal permission_changed(guild_id: String, member_id: String, new_permissions: 
 
 func _ready() -> void:
 	instance = self
-	GameLog.info("VaultService: Ready")
+	_gamelog().info("VaultService: Ready")
 
 	_load_vaults()
 
@@ -70,7 +89,7 @@ func init_personal_vault(player_id: String) -> void:
 			"expanded": false
 		}
 		_persist_personal(player_id)
-	GameLog.debug("VaultService: Initialized personal vault for %s" % player_id)
+	_gamelog().debug("VaultService: Initialized personal vault for %s" % player_id)
 
 func init_guild_vault(guild_id: String, founder_id: String) -> void:
 	if not _guild_vaults.has(guild_id):
@@ -85,7 +104,7 @@ func init_guild_vault(guild_id: String, founder_id: String) -> void:
 		# Founder gets all permissions
 		_grant_guild_permissions(guild_id, founder_id, Permission.VIEW | Permission.DEPOSIT | Permission.WITHDRAW | Permission.MANAGE)
 		_persist_guild(guild_id)
-	GameLog.debug("VaultService: Initialized guild vault for %s" % guild_id)
+	_gamelog().debug("VaultService: Initialized guild vault for %s" % guild_id)
 
 func init_account_vault(account_id: String) -> void:
 	if not _account_vaults.has(account_id):
@@ -96,7 +115,7 @@ func init_account_vault(account_id: String) -> void:
 			"size": ACCOUNT_VAULT_SIZE
 		}
 		_persist_account(account_id)
-	GameLog.debug("VaultService: Initialized account vault for %s" % account_id)
+	_gamelog().debug("VaultService: Initialized account vault for %s" % account_id)
 
 ## ============================================================================
 ## VAULT ACCESS
@@ -137,7 +156,7 @@ func close_vault(player_id: String, vault_type: VaultType) -> void:
 
 func deposit_item(player_id: String, vault_type: VaultType, item_data: Dictionary, quantity: int = 1) -> bool:
 	if not _can_deposit(player_id, vault_type):
-		GameLog.warn("VaultService: Player %s cannot deposit to vault type %d" % [player_id, vault_type])
+		_gamelog().warn("VaultService: Player %s cannot deposit to vault type %d" % [player_id, vault_type])
 		return false
 
 	var vault: Dictionary = _get_vault(player_id, vault_type)
@@ -156,7 +175,7 @@ func deposit_item(player_id: String, vault_type: VaultType, item_data: Dictionar
 		# Find empty slot
 		slot_index = _find_empty_slot(vault)
 		if slot_index < 0:
-			GameLog.warn("VaultService: Vault is full")
+			_gamelog().warn("VaultService: Vault is full")
 			return false
 
 		# Create new slot
@@ -170,12 +189,12 @@ func deposit_item(player_id: String, vault_type: VaultType, item_data: Dictionar
 	_persist_vault(player_id, vault_type)
 
 	item_deposited.emit(player_id, vault_type, item_id, quantity)
-	GameLog.debug("VaultService: %s deposited %d x %s" % [player_id, quantity, item_id])
+	_gamelog().debug("VaultService: %s deposited %d x %s" % [player_id, quantity, item_id])
 	return true
 
 func withdraw_item(player_id: String, vault_type: VaultType, slot_index: int, quantity: int = 1) -> Dictionary:
 	if not _can_withdraw(player_id, vault_type):
-		GameLog.warn("VaultService: Player %s cannot withdraw from vault type %d" % [player_id, vault_type])
+		_gamelog().warn("VaultService: Player %s cannot withdraw from vault type %d" % [player_id, vault_type])
 		return {}
 
 	var vault: Dictionary = _get_vault(player_id, vault_type)
@@ -201,7 +220,7 @@ func withdraw_item(player_id: String, vault_type: VaultType, slot_index: int, qu
 	_persist_vault(player_id, vault_type)
 
 	item_withdrawn.emit(player_id, vault_type, item_id, to_withdraw)
-	GameLog.debug("VaultService: %s withdrew %d x %s" % [player_id, to_withdraw, item_id])
+	_gamelog().debug("VaultService: %s withdrew %d x %s" % [player_id, to_withdraw, item_id])
 
 	return {
 		"id": item_id,
@@ -250,7 +269,7 @@ func deposit_gold(player_id: String, vault_type: VaultType, amount: int) -> bool
 	_persist_vault(player_id, vault_type)
 
 	gold_deposited.emit(player_id, vault_type, amount)
-	GameLog.debug("VaultService: %s deposited %d gold" % [player_id, amount])
+	_gamelog().debug("VaultService: %s deposited %d gold" % [player_id, amount])
 	return true
 
 func withdraw_gold(player_id: String, vault_type: VaultType, amount: int) -> bool:
@@ -269,7 +288,7 @@ func withdraw_gold(player_id: String, vault_type: VaultType, amount: int) -> boo
 	_persist_vault(player_id, vault_type)
 
 	gold_withdrawn.emit(player_id, vault_type, amount)
-	GameLog.debug("VaultService: %s withdrew %d gold" % [player_id, amount])
+	_gamelog().debug("VaultService: %s withdrew %d gold" % [player_id, amount])
 	return true
 
 ## ============================================================================
@@ -338,14 +357,14 @@ func expand_vault(player_id: String, vault_type: VaultType, slots: int) -> bool:
 
 	# Check if player can afford it
 	if gold_cost > 0:
-		var player_gold: int = InventoryService.get_gold(player_id) if InventoryService else 0
+		var player_gold: int = _inv_svc().get_gold(player_id) if _inv_svc() else 0
 		if player_gold < gold_cost:
-			GameLog.warn("VaultService: Player %s cannot afford expansion (%d gold needed, %d owned)" % [player_id, gold_cost, player_gold])
+			_gamelog().warn("VaultService: Player %s cannot afford expansion (%d gold needed, %d owned)" % [player_id, gold_cost, player_gold])
 			return false
 
 		# Deduct gold
-		if InventoryService and not InventoryService.modify_gold(player_id, -gold_cost):
-			GameLog.warn("VaultService: Failed to deduct gold from player %s" % player_id)
+		if _inv_svc() and not _inv_svc().modify_gold(player_id, -gold_cost):
+			_gamelog().warn("VaultService: Failed to deduct gold from player %s" % player_id)
 			return false
 
 	# Maximum expansion limits
@@ -355,8 +374,8 @@ func expand_vault(player_id: String, vault_type: VaultType, slots: int) -> bool:
 
 	if current_size + slots > max_size:
 		# Refund if can't expand to requested amount
-		if gold_cost > 0 and InventoryService:
-			InventoryService.modify_gold(player_id, gold_cost)
+		if gold_cost > 0 and _inv_svc():
+			_inv_svc().modify_gold(player_id, gold_cost)
 		return false
 
 	# Expand vault
@@ -365,7 +384,7 @@ func expand_vault(player_id: String, vault_type: VaultType, slots: int) -> bool:
 	_persist_vault(player_id, vault_type)
 
 	vault_expanded.emit(player_id, vault_type, vault.size)
-	GameLog.info("VaultService: Player %s expanded vault to %d slots for %d gold" % [player_id, vault.size, gold_cost])
+	_gamelog().info("VaultService: Player %s expanded vault to %d slots for %d gold" % [player_id, vault.size, gold_cost])
 	return true
 
 func get_expansion_cost(vault_type: VaultType, current_size: int) -> Dictionary:
@@ -444,8 +463,8 @@ func _persist_account(account_id: String) -> void:
 		store.set_value(key, _account_vaults[account_id])
 	else:
 		store.erase(key)
-	if AccountRollup:
-		AccountRollup.on_account_vault_changed(account_id)
+	if _rollup():
+		_rollup().on_account_vault_changed(account_id)
 
 func _load_vaults() -> void:
 	var store := DictStore.new()
@@ -513,15 +532,15 @@ func _get_player_account_id(player_id: String) -> String:
 	return ""
 
 func _deduct_player_gold(player_id: String, amount: int) -> bool:
-	if not InventoryService:
-		GameLog.warn("VaultService: InventoryService not available for gold deduction")
+	if not _inv_svc():
+		_gamelog().warn("VaultService: _inv_svc() not available for gold deduction")
 		return false
-	return InventoryService.modify_gold(player_id, -amount)
+	return _inv_svc().modify_gold(player_id, -amount)
 func _add_player_gold(player_id: String, amount: int) -> bool:
-	if not InventoryService:
-		GameLog.warn("VaultService: InventoryService not available for gold addition")
+	if not _inv_svc():
+		_gamelog().warn("VaultService: _inv_svc() not available for gold addition")
 		return false
-	return InventoryService.modify_gold(player_id, amount)
+	return _inv_svc().modify_gold(player_id, amount)
 
 
 func persist_all() -> void:

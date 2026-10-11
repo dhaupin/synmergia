@@ -1,9 +1,16 @@
+
+
 ## CharacterStatsUI - In-game character stats panel
 ## Shows all stats, allocated points, and allows allocation
-
 extends "res://ui/components/ui_panel.gd"
 class_name CharacterStatsUI
 const CharacterData = preload("res://core/schemas/character_data.gd")
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _r_gamemanager() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
 
 
 func open(player_id: String) -> void:
@@ -351,8 +358,8 @@ func _notify_change() -> void:
 		entity.on_stats_changed()
 
 func _get_entity():
-	if GameManager and _player_id != "":
-		return GameManager.get_player_entity(_player_id)
+	if _r_gamemanager() and _player_id != "":
+		return _r_gamemanager().get_player_entity(_player_id)
 	return null
 
 func _open_impl(player_id: String) -> void:

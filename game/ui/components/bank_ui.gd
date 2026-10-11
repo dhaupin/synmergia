@@ -7,7 +7,26 @@ class_name BankUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 const IconResolver = preload("res://core/utils/icon_resolver.gd")
 const Item = preload("res://core/schemas/item.gd")
+const VaultSvcScript = preload("res://core/services/vault_service.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
+
+## Runtime autoload lookups (script-mode-safe; bare identifiers fail
+## compile when autoloads are absent -- test_islands).
+func _vault_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("VaultService")) if tree and tree.root else null
+
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _guild_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GuildService")) if tree and tree.root else null
+
+func _inv_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
 
 ## Vault tabs
 enum VaultTab { PERSONAL, GUILD, ACCOUNT }
@@ -135,11 +154,11 @@ func _setup_ui() -> void:
 var _scroll: ScrollContainer
 
 func _connect_signals() -> void:
-	if VaultService:
-		VaultService.item_deposited.connect(_on_item_changed)
-		VaultService.item_withdrawn.connect(_on_item_changed)
-		VaultService.gold_deposited.connect(_on_gold_changed)
-		VaultService.gold_withdrawn.connect(_on_gold_changed)
+	if _vault_svc():
+		_vault_svc().item_deposited.connect(_on_item_changed)
+		_vault_svc().item_withdrawn.connect(_on_item_changed)
+		_vault_svc().gold_deposited.connect(_on_gold_changed)
+		_vault_svc().gold_withdrawn.connect(_on_gold_changed)
 
 func _on_tab_clicked(tab_id: int) -> void:
 	_update_tabs(tab_id)
@@ -160,35 +179,35 @@ func _update_tabs(active_index: int) -> void:
 	_tab_buttons[VaultTab.GUILD].disabled = not can_access_guild
 
 func _can_access_guild_vault() -> bool:
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return false
-	if not GuildService:
+	if not _guild_svc():
 		return false
-	if not GuildService.has_method("is_in_guild"):
+	if not _guild_svc().has_method("is_in_guild"):
 		return false
-	return GuildService.is_in_guild(player_id)
+	return _guild_svc().is_in_guild(player_id)
 
 func _on_open() -> void:
 	_refresh_vault()
 
 func _refresh_vault() -> void:
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
 	var vault_type: int
 	match _current_tab:
 		VaultTab.PERSONAL:
-			vault_type = VaultService.VaultType.PERSONAL
+			vault_type = VaultSvcScript.VaultType.PERSONAL
 		VaultTab.GUILD:
-			vault_type = VaultService.VaultType.GUILD
+			vault_type = VaultSvcScript.VaultType.GUILD
 		VaultTab.ACCOUNT:
-			vault_type = VaultService.VaultType.ACCOUNT
+			vault_type = VaultSvcScript.VaultType.ACCOUNT
 		_:
 			return
 
-	_vault_data = VaultService.open_vault(player_id, vault_type)
+	_vault_data = _vault_svc().open_vault(player_id, vault_type)
 
 	# Update UI
 	_update_gold_display()
@@ -296,19 +315,20 @@ func _on_slot_clicked(index: int) -> void:
 	_populate_grid()
 
 func _on_deposit() -> void:
-	if not VaultService:
+	if not _vault_svc():
 		show_notification("VaultService unavailable", false)
 		return
 
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
-	if not InventoryService:
+	var inv_svc: Node = _inv_svc()
+	if inv_svc == null:
 		show_notification("InventoryService unavailable", false)
 		return
 
-	var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+	var inv: InventoryComponent = inv_svc.get_inventory(player_id)
 	if inv == null:
 		show_notification("Could not load inventory", false)
 		return
@@ -364,21 +384,21 @@ func _show_deposit_dialog(items: Array) -> void:
 	dialog.popup_centered(Vector2(350, 300))
 
 func _deposit_item(item: Item) -> void:
-	if VaultService == null or item == null:
+	if _vault_svc() == null or item == null:
 		return
 
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
-	var vault_type: VaultService.VaultType
+	var vault_type: int
 	match _current_tab:
 		VaultTab.PERSONAL:
-			vault_type = VaultService.VaultType.PERSONAL
+			vault_type = VaultSvcScript.VaultType.PERSONAL
 		VaultTab.GUILD:
-			vault_type = VaultService.VaultType.GUILD
+			vault_type = VaultSvcScript.VaultType.GUILD
 		VaultTab.ACCOUNT:
-			vault_type = VaultService.VaultType.ACCOUNT
+			vault_type = VaultSvcScript.VaultType.ACCOUNT
 		_:
 			return
 
@@ -389,7 +409,7 @@ func _deposit_item(item: Item) -> void:
 		"rarity": int(item.get("rarity") if item.has("rarity") else 0),
 		"stack_size": int(item.get("stack_size") if item.has("stack_size") else 1),
 	}
-	var success: bool = VaultService.deposit_item(player_id, vault_type, item_dict)
+	var success: bool = _vault_svc().deposit_item(player_id, vault_type, item_dict)
 	if not success:
 		show_notification("Failed to deposit item", false)
 	else:
@@ -401,26 +421,26 @@ func _on_withdraw() -> void:
 	if _selected_slot < 0:
 		show_notification("Select a slot to withdraw from", false)
 		return
-	if not VaultService:
+	if not _vault_svc():
 		show_notification("VaultService unavailable", false)
 		return
 
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
 	var vault_type: int
 	match _current_tab:
 		VaultTab.PERSONAL:
-			vault_type = VaultService.VaultType.PERSONAL
+			vault_type = VaultSvcScript.VaultType.PERSONAL
 		VaultTab.GUILD:
-			vault_type = VaultService.VaultType.GUILD
+			vault_type = VaultSvcScript.VaultType.GUILD
 		VaultTab.ACCOUNT:
-			vault_type = VaultService.VaultType.ACCOUNT
+			vault_type = VaultSvcScript.VaultType.ACCOUNT
 		_:
 			return
 
-	var result: Dictionary = VaultService.withdraw_item(player_id, vault_type, _selected_slot)
+	var result: Dictionary = _vault_svc().withdraw_item(player_id, vault_type, _selected_slot)
 	if result.is_empty():
 		show_notification("Failed to withdraw item", false)
 	else:
@@ -429,23 +449,23 @@ func _on_withdraw() -> void:
 		_refresh_vault()
 
 func _on_expand() -> void:
-	if not VaultService:
+	if not _vault_svc():
 		show_notification("VaultService unavailable", false)
 		return
 
 	var size: int = _vault_data.get("size") if "size" in _vault_data else 0
-	var vt: VaultService.VaultType
+	var vt: int
 	match _current_tab:
 		VaultTab.PERSONAL:
-			vt = VaultService.VaultType.PERSONAL
+			vt = VaultSvcScript.VaultType.PERSONAL
 		VaultTab.GUILD:
-			vt = VaultService.VaultType.GUILD
+			vt = VaultSvcScript.VaultType.GUILD
 		VaultTab.ACCOUNT:
-			vt = VaultService.VaultType.ACCOUNT
+			vt = VaultSvcScript.VaultType.ACCOUNT
 		_:
-			vt = VaultService.VaultType.PERSONAL
-	var cost := VaultService.get_expansion_cost(vt, size)
-	var gold_cost: int = cost.get("gold") if "gold" in cost else 0
+			vt = VaultSvcScript.VaultType.PERSONAL
+	var cost: Dictionary = _vault_svc().get_expansion_cost(vt, size)
+	var gold_cost: int = cost.get("gold", 0) if cost is Dictionary else 0
 
 	var dialog := ConfirmationDialog.new()
 	dialog.title = "Expand Vault"
@@ -457,22 +477,22 @@ func _on_expand() -> void:
 	dialog.popup_centered()
 
 func _on_expand_confirmed(gold_cost: int) -> void:
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if player_id.is_empty():
 		return
 
 	var vault_type: int
 	match _current_tab:
 		VaultTab.PERSONAL:
-			vault_type = VaultService.VaultType.PERSONAL
+			vault_type = VaultSvcScript.VaultType.PERSONAL
 		VaultTab.GUILD:
-			vault_type = VaultService.VaultType.GUILD
+			vault_type = VaultSvcScript.VaultType.GUILD
 		VaultTab.ACCOUNT:
-			vault_type = VaultService.VaultType.ACCOUNT
+			vault_type = VaultSvcScript.VaultType.ACCOUNT
 		_:
 			return
 
-	var result: bool = VaultService.expand_vault(player_id, vault_type, 10)
+	var result: bool = _vault_svc().expand_vault(player_id, vault_type, 10)
 	if result:
 		show_notification("Vault expanded by 10 slots!")
 		_refresh_vault()
@@ -486,16 +506,16 @@ func _on_gold_changed(player_id: String, vault_type: int, amount: int) -> void:
 	_refresh_vault()
 
 func close() -> void:
-	var player_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var player_id := str(_pm().get_local_player_id()) if _pm() else ""
 	if not player_id.is_empty():
 		var vault_type: int
 		match _current_tab:
 			VaultTab.PERSONAL:
-				vault_type = VaultService.VaultType.PERSONAL
+				vault_type = VaultSvcScript.VaultType.PERSONAL
 			VaultTab.GUILD:
-				vault_type = VaultService.VaultType.GUILD
+				vault_type = VaultSvcScript.VaultType.GUILD
 			VaultTab.ACCOUNT:
-				vault_type = VaultService.VaultType.ACCOUNT
-		VaultService.close_vault(player_id, vault_type)
+				vault_type = VaultSvcScript.VaultType.ACCOUNT
+		_vault_svc().close_vault(player_id, vault_type)
 
 	super.close()

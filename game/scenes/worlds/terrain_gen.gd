@@ -19,15 +19,41 @@
 ##
 ## Also owns the walk-over height provider: small rock tops raise the
 ## player's radial snap height so colliders decorate, not block.
-## RefCounted static helper (preloaded by the terrain streamer).
+## v3 CLIMATE ARC (prd-terrain.md): pure climate fields on the same
+## seed discipline -- temperature (latitude band + altitude lapse +
+## noise), moisture (octave noise shaped by land mass), and the biome
+## resolution law (discrete id + smooth blend weights for rendering).
+## Hydrology (slice 3) now joins as a FIRST-CLASS height-independent
+## law: standing water can sit at ANY elevation (a mountain lake is
+## legal), carried by a water-table field -- not by pushing terrain
+## down to one global sea shell. Rivers are carved polylines in the
+## law itself (data, not nodes). RefCounted static helper (preloaded
+## by the terrain streamer).
 extends RefCounted
 
 const SeedChain = preload("res://core/frame/kv/seed_chain.gd")
 const Faces = preload("res://core/frame/math/icosahedral_faces.gd")
+const LRU_CACHE = preload("res://core/frame/kv/lru_cache.gd")
+const SECTOR_CACHE = preload("res://core/frame/kv/sector_cache.gd")
+
+## THE CANONICAL CACHE SYSTEM (frame/kv/sector_cache.gd): all five
+## statics below ride the one seeded quantized-sector primitive --
+## a String key of (2048-quantized dir, seed hex) backed by an O(1)
+## LRUCache, so bounds EVICT the least-recently-used sector instead
+## of clearing the class wholesale (multi-world hot swaps keep the
+## hot set; nothing but a reinstall flushes anything). Defaults keep
+## the legacy 524288-entry law.
+static var _height_cache = SECTOR_CACHE.new()
+static var _water_surface_cache = SECTOR_CACHE.new()
+static var _blend_cache = SECTOR_CACHE.new()
+static var _channel_cache = SECTOR_CACHE.new()
+static var _river_spec_cache = LRU_CACHE.new(8)
 
 ## Bump to invalidate all derived content deliberately. v2: the
 ## heightfield + boulders join the world (all rocks/trees re-derive).
-const RULESET_VERSION: String = "terrain_v2"
+## v3: climate + hydrology join (biome ids/weights re-derive; the
+## height law stays BIT-IDENTICAL -- see the v3 contract below).
+const RULESET_VERSION: String = "terrain_v3"
 
 ## Project default world seed (dev). Shards override per-shard later.
 const DEFAULT_WORLD_SEED: String = "synmergia-alpha-1"
@@ -244,55 +270,152 @@ static func _island_shape(d: Vector3) -> float:
 	return smoothstep(0.0, 1.0, clampf(t * 1.8, 0.0, 1.0))
 
 
-## THE GROUND LAW. Height (meters) of the walkable terrain above the
-## base surface at world direction `dir`. Continuous everywhere
-## (smoothstep blends; max/lerp of continuous fields). Bands: ocean
-## floor -> continental shelf -> beach -> plains -> hills -> mountains
-## -> snowline ceiling; the lake and island override their bowls; the
-## spawn plaza flattens last (guaranteed flat ground under the boot).
-static func terrain_height(dir: Vector3, world_seed: PackedByteArray) -> float:
+## THE GROUND LAW (v2 core, renamed at v3). Height (meters) of the
+## walkable terrain above the base surface at world direction `dir`
+## BEFORE hydrology carving. Continuous everywhere (smoothstep blends;
+## max/lerp of continuous fields). Bands: ocean floor -> continental
+## shelf -> beach -> plains -> hills -> mountains -> snowline ceiling;
+## the lake and island override their bowls; the spawn plaza flattens
+## last (guaranteed flat ground under the boot). The PUBLIC
+## terrain_height() now wraps this with the hydrology carve (lakes +
+## river channels, prd-terrain.md) and delegates -- spawn carving
+## stays LAST so the apron stays dry.
+## PERFORMANCE LAW (v3, measured): the mesh pass now samples slopes
+## too, so quantized-direction memoization lives HERE (the law is
+## pure per direction; read-cache law as per the header block). world_seed
+## keys the cache so multi-world callers never cross-contaminate.
+
+
+## -- EXTERNAL TERRAIN BACKEND (the heightfield source seam) ----------
+## An installable provider REPLACES the natural analytic landfield as
+## the raw ground: imported heightmaps / server continents / any other
+## height source flow through the WHOLE chain -- LOD, skirts, the walk
+## law, the biome fields, the hydrology carve, the props -- because
+## every downstream law reads terrain_height(). The contract for a
+## backend Callable: (unit_dir: Vector3, seed_bytes: PackedByteArray)
+## -> float (meters above the base surface, may be negative).
+##
+## What a backend does NOT own (the laws that stay LAW-NATIVE on top):
+##   - the sculpt laws (mountain lake bowl, ferry island plateau,
+##     the island moat) -- still applied over the imported field;
+##   - the spawn guarantee (plaza flatten + dry shore apron) -- the
+##     boot lands dry on ANY backend;
+##   - the hydrology carve (lake basins + river channels) -- rivers
+##     and lakes sit on top of whatever heightfield is installed;
+##   - TERRAIN_MAX (the hard ceiling) -- no backend grows a mesa wall.
+## The default is UNINSTALLED (analytic law runs as before): the natural analytic law is the body of
+## the law and an install is an opt-in change of behavior only.
+## Uninstall clears the height cache so a re-install never serves
+## stale sectors.
+static var _height_backend: Callable = Callable()
+static func install_terrain_backend(backend: Callable) -> void:
+	_height_backend = backend
+	# The one LEGAL wholesale flush: the LAW changed, so warm sectors
+	# are not stale-able but wrong. Capacity eviction (the LRU path)
+	# never lands here.
+	_height_cache.clear()      # fresh sectors: no stale law answers
+	_channel_cache.clear()     # channel field rides the ground law
+	_temperature_cache.clear() # lapse rides the ground law
+	_water_table_cache.clear() # perch rides the ground law
+	_river_spec_cache.clear()  # springs/pathing re-derive under the seam
+
+
+static func uninstall_terrain_backend() -> void:
+	_height_backend = Callable()
+	_height_cache.clear()
+	_channel_cache.clear()
+	_temperature_cache.clear()
+	_water_table_cache.clear()
+	_river_spec_cache.clear()
+
+
+static func terrain_backend_installed() -> bool:
+	return _height_backend.is_valid()
+
+
+static func _terrain_height_base(dir: Vector3, world_seed: PackedByteArray) -> float:
+	dir = dir.normalized()
+	var cached = _height_cache.get_value(dir, world_seed)
+	if cached != null:
+		return float(cached)
+	var h: float = _terrain_height_base_nowrap(dir, world_seed)
+	if _height_cache.set_value(dir, world_seed, h):
+		return h
+	# Poison guard tripped (a rogue backend answer): serve the
+	# honest clamped number WITHOUT caching it -- the law stays
+	# total, no poisoned sector ever enters (and can't be served		# forever by a hot key).
+	return clampf(h, -TERRAIN_MAX, TERRAIN_MAX)
+
+
+## THE RAW v2 height body (the cache wrapper's callee). TWO FIELDS,
+## ONE TAIL: the raw landfield is either the installed EXTERNAL
+## BACKEND or the analytic law (the uninstalled fallback, bit-identical
+## to every pre-seam world) -- then BOTH paths run the same sculpt +
+## spawn tail (ferry island + moat, spawn plaza, dry apron), so the
+## law-native guarantees survive ANY backend. The TERRAIN_MAX ceiling
+## roofs the raw field on BOTH paths; the mountain-lake bowl stays
+## analytic-only (a foreign field brings its own water).
+static func _terrain_height_base_nowrap(dir: Vector3, world_seed: PackedByteArray) -> float:
 	var d: Vector3 = dir.normalized()
-	var salt: int = _seed_salt(world_seed, "terrain")
 	var sea: float = sea_level(world_seed)
+	if _height_backend.is_valid():
+		# Backend contract: (unit_dir, seed_bytes) -> meters (may be
+		# negative). Sector memoization is owned by _terrain_height_base
+		# (the same quantized cache the analytic path uses).
+		var bk: float = float(_height_backend.call(d, world_seed))
+		if not is_finite(bk):
+			bk = 0.0  # rogue backend: the law stays total (plaza-flat fall-through)
+		var bh: float = minf(bk, TERRAIN_MAX)
+		# The island's lower ramp reads a shelf-floor number; under a
+		# backend the analytic seafloor noise is not ours to read, so
+		# the ramp blends from the flat nominal floor.
+		return _sculpt_and_spawn(d, bh, sea, sea - OCEAN_DEPTH_MIN)
+	var raw_h: float = _natural_raw(d, world_seed)
+	return _sculpt_and_spawn(d, raw_h, sea, -3.0)
 
-	# The homeland dome is folded into _land_mass (bays and points
-	# carved by the same detail noise), so one land law reads it.
+
+## The NATURAL analytic raw field (shelf -> land -> hills -> mountains
+## -> native lake bowl), WITHOUT the island/moat/spawn tail. Named and
+## public so authored backends can COMPOSE over the home world
+## (sundered_sea: carve the strait INTO the natural land) instead of
+## reimplementing geology. Bit-identical to the pre-seam analytic
+## body: same band law, same noise streams, same TERRAIN_MAX clamp.
+static func _natural_raw(d: Vector3, world_seed: PackedByteArray) -> float:
+	var sea: float = sea_level(world_seed)
+	var salt: int = _seed_salt(world_seed, "terrain")
 	var land: float = _land_mass(d, salt)
-
-	# Continental shelf: ocean floor blends into the land level across
-	# the near-shore band (no coast kink -- the sea floor is a beach
-	# in slow motion).
 	var ocean_floor: float = sea - (OCEAN_DEPTH_MIN + OCEAN_DEPTH_SPAN * _vnoise(d, salt + 7, 6.0))
 	var land_h: float = -3.0 + land * 17.0
-	# Rolling hills (inland only; the shelf stays smooth for wading).
 	var inland: float = smoothstep(0.18, 0.5, land)
 	land_h += inland * (_vnoise(d, salt + 4, 9.0) * 6.0 - 2.0)
-	# Mountains: rare deep-inland noise cells grow peaks (amplitude
-	# and mask tuned so peaks stay under TERRAIN_MAX naturally -- a
-	# clipped ceiling reads as an artificial mesa wall).
 	var mnoise: float = _vnoise(d, salt + 3, 3.0)
 	var mask: float = smoothstep(0.62, 0.9, mnoise) * smoothstep(0.35, 0.6, land)
 	land_h += mask * pow(mnoise, 2.5) * 20.0
-	var h: float = lerpf(ocean_floor, land_h, smoothstep(0.0, 0.18, land))
-	h = minf(h, TERRAIN_MAX)
-
-	# The mountain lake: a bowl pressed to LAKE_DROP below the sea
-	# line (only where there is land to hold it).
+	var h: float = minf(lerpf(ocean_floor, land_h, smoothstep(0.0, 0.18, land)), TERRAIN_MAX)
 	var bowl: float = _lake_bowl(d) * smoothstep(0.1, 0.3, land)
 	if bowl > 0.0:
 		h = lerpf(h, sea - LAKE_DROP, bowl)
+	return h
 
-	# The island: volcanic plateau rising from the ocean floor.
+
+## The SHARED sculpt + spawn tail (island + moat, spawn plaza, dry
+## apron): applied over whichever landfield was installed, so the ferry
+## crossing and the dry boot survive ANY backend. `island_floor` is the
+## number the island's lower ramp blends from (the analytic seafloor
+## field on the native path, the flat nominal floor under a backend).
+static func _sculpt_and_spawn(d: Vector3, h_in: float, sea: float, island_floor: float) -> float:
+	d = d.normalized()
+	var h: float = h_in
+	# The island: volcanic plateau rising from the (floor) ocean.
 	var isl: float = _island_shape(d)
 	if isl > 0.0:
 		var top: float = sea + 2.0 + isl * ISLAND_PLATEAU
-		h = maxf(h, lerpf(ocean_floor, top, isl))
+		h = maxf(h, lerpf(island_floor, top, isl))
 	# The moat: a deep channel ringing the island (the ferry's
 	# crossing, cut even where the continent reaches).
 	var ang_isl: float = d.angle_to(ISLAND_CENTER)
 	if ang_isl > ISLAND_ANGULAR_REACH and ang_isl < ISLAND_MOAT_OUTER:
 		h = minf(h, sea - ISLAND_MOAT_DEPTH)
-
 	# Spawn plaza: flatten last -- the boot always lands on known
 	# ground (ramp reaches full flat at half the plaza radius).
 	var ang_spawn: float = d.angle_to(SPAWN_CENTER)
@@ -307,12 +430,6 @@ static func terrain_height(dir: Vector3, world_seed: PackedByteArray) -> float:
 	# 4 m ramp-continuity bound the probe pins).
 	var ang_apron: float = d.angle_to(SPAWN_CENTER)
 	if ang_apron >= SPAWN_FLAT_ANG and ang_apron < SPAWN_APRON_OUTER_ANG:
-		# Inner tier: ramp the plaza height down to the shore floor
-		# across SPAWN_APRON_ANG. Outer tier: HOLD the shore floor to
-		# the apron edge (round 9) so no water shows within the boot
-		# horizon. The worst-case step down to the natural dome terrain
-		# at the outer edge stays under the 4 m ramp-continuity bound
-		# the probe pins.
 		var apron_floor: float = sea + SPAWN_APRON_SEA_MARGIN
 		if ang_apron < SPAWN_APRON_ANG:
 			var t_apron: float = 1.0 - (ang_apron - SPAWN_FLAT_ANG) / (SPAWN_APRON_ANG - SPAWN_FLAT_ANG)
@@ -403,6 +520,689 @@ static func fingerprint(world_seed: PackedByteArray, face: int) -> String:
 	for s in specs:
 		parts.append("%s|%.4f|%.4f" % [s.dir, s.scale, s.yaw])
 	return "%d rocks: %s" % [specs.size(), "; ".join(parts)]
+
+
+# -- v3 CLIMATE ARC (prd-terrain.md slice 1) ---------------------------
+
+## Stable biome integer codes (inner-class pattern like RockSpec).
+## NEVER rennumber -- saves/worlds derive content from these.
+class BiomeId:
+	const OCEAN_DEEP: int = 0
+	const OCEAN_SHELF: int = 1
+	const SHORE: int = 2
+	const ALPINE: int = 3
+	const TUNDRA: int = 4
+	const DESERT: int = 5
+	const SWAMP: int = 6
+	const TAIGA: int = 7
+	const FOREST: int = 8
+	const GRASSLAND: int = 9
+	const ALPINE_MEADOW: int = 10
+	const LAKE: int = 11
+	const RIVER: int = 12
+
+
+## Land boundary for the ocean bands (same _land_mass the height law
+## reads: below this the heightfield is underwater).
+const OCEAN_LAND_LINE: float = 0.18
+
+## Temperature law bands (fractions, pure in [0,1]).
+const TEMP_LAPSE_CEIL: float = 26.0  # meters of height over which heat falls off
+const TEMP_LAPSE_RATE: float = 0.55  # fraction lost over the ceiling
+
+## Moisture cells (wavelength inside a lattice cell; no seam law needed
+## at this fidelity -- the noise family's own law).
+const MOIST_FREQ_COARSE: float = 3.0
+const MOIST_FREQ_FINE: float = 7.0
+
+## Biome resolution thresholds (documented, pinned by probe).
+const SNOWLINE_T: float = 0.22   # temperature below this freezes
+const ALPINE_T: float = 0.34     # freeze-adjacent stone band
+const DRY_T: float = 0.32        # moisture below this in warmth = desert
+const SWAMP_T: float = 0.68      # moisture above this + low = swamp
+
+
+## Possessive classes, named for the probes: what a climate reading
+## resolves to at ONE direction.
+class ClimateSample:
+	var temperature: float
+	var moisture: float
+	var land: float
+	var height: float
+	var biome: int
+	var wetness: float  # blend weight toward the biome palette (slice 2)
+
+
+## TEMPERATURE: latitude in [0, 1] heat (1 at the equator, 0 at the
+## poles, smoothstep), plus altitude lapse, plus seeded noise jitter.
+## PERF: sector-memoized (the canonical quantized law -- the mesh pass
+## asks temperature at every vertex corner through biome weights).
+static var _temperature_cache = SECTOR_CACHE.new()
+static func climate_temperature(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	var cached = _temperature_cache.get_value(d, world_seed)
+	if cached != null:
+		return float(cached)
+	var lat: float = absf(90.0 - rad_to_deg(acos(clampf(d.y, -1.0, 1.0))))
+	var t: float = 1.0 - smoothstep(0.0, 90.0, lat)
+	var salt: int = _seed_salt(world_seed, "climate_temp")
+	var jitter: float = (_vnoise(d, salt, 4.0) - 0.5) * 0.18
+	var h: float = terrain_height(d, world_seed)
+	var lapse: float = clampf(h, 0.0, TEMP_LAPSE_CEIL) / TEMP_LAPSE_CEIL * TEMP_LAPSE_RATE
+	var out: float = clampf(t + jitter - lapse, 0.0, 1.0)
+	_temperature_cache.set_value(d, world_seed, out)
+	# Note: by construction the output is clamped finite, so the
+	# poison guard can never trip here; set_value's bool is ignored.
+	return out
+
+
+## MOISTURE: two octave noises shaped by land (interiors hold more;
+## nothing reads below the shore line where sea spray owns the air).
+static func climate_moisture(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	# RIVER RIPPLE (prd-terrain.md: rivers make downstream biome edges
+	# real): the channel capsule lifts the moisture FIELD continuously,
+	# so banks run wetter than their dry cell -- floodplain green on
+	# rivers and a natural swamp tendency at their mouths. Pure: the
+	# channel law reads only the carved specs (no moisture reads). The
+	# RAW field stays exposed for probes (the boost is an exact,
+	# checkable delta on top of it).
+	var m_raw: float = clampf(climate_moisture_field(d, world_seed), 0.0, 1.0)
+	var c: float = river_channel(d, world_seed)
+	return clampf(m_raw + Hydro.RIVER_MOIST_BOOST * c, 0.0, 1.0)
+
+
+## The moisture FIELD law (the raw, ripple-free body the ripple law
+## rides: two-octave noise shaped by land; sea air stays moist). The
+## ripple lives in climate_moisture; probes pin the boost as the exact
+## delta between the two calls at the same direction.
+static func climate_moisture_field(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	var salt: int = _seed_salt(world_seed, "climate_moist")
+	var m: float = 0.62 * _vnoise(d, salt, MOIST_FREQ_COARSE) + 0.38 * _vnoise(d, salt + 1, MOIST_FREQ_FINE)
+	var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
+	if land <= OCEAN_LAND_LINE:
+		return clampf(m * 0.4 + 0.5, 0.0, 1.0)  # sea air is moist
+	return clampf(m + land * 0.1, 0.0, 1.0)
+
+## THE BIOME RESOLUTION LAW. Discrete id at one direction. Order
+## reads: ocean bands (the land law carries them), then the river
+## channel (running water crosses every other band), then standing
+## water at ANY height (the LAKE law: the GATED water surface -- the
+## same basin+spawn gate the carve uses -- over the carved bed), then
+## the damp shore ring, then the freeze ladder, swamp, desert, and
+## the green ladder. `height`/`surface` are pre-read by the
+## hydrology-aware caller; the plain path reads them itself.
+static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: float, surface: float) -> int:
+	var t: float = climate_temperature(d, world_seed)
+	var m: float = climate_moisture(d, world_seed)
+	var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
+	# Ocean bands by the land law (deep vs shelf by depth).
+	if land < OCEAN_LAND_LINE:
+		if height < sea_level(world_seed) - OCEAN_DEPTH_MIN * 0.5:
+			return BiomeId.OCEAN_DEEP
+		return BiomeId.OCEAN_SHELF
+	# River channel: running water above every other land band.
+	if river_channel(d, world_seed) > 0.55:
+		return BiomeId.RIVER
+	# Standing water at ANY elevation (the lake law). The surface is
+	# the GATED one (basin + spawn), so this fires only where a real
+	# carved bed holds real water -- height here is the CARVED height.
+	if surface - height > Hydro.BEACH_MIN:
+		return BiomeId.LAKE
+	# Damp shore ring above the waterline.
+	if height < sea_level(world_seed) + 1.0:
+		return BiomeId.SHORE
+	# Freeze ladder (temperature bands, altitude-aware via the lapse
+	# already inside temperature).
+	if t < SNOWLINE_T:
+		return BiomeId.ALPINE if m > 0.45 else BiomeId.TUNDRA
+	if t < ALPINE_T:
+		return BiomeId.ALPINE_MEADOW if m > 0.5 else BiomeId.TUNDRA
+	# Wet hollows: the marsh ring -- gated-adjacent ground near the
+	# water surface (the hydrology law carries the gate; see
+	# climate_swamp_wetness).
+	if m > SWAMP_T and climate_swamp_wetness(d, world_seed, height, surface) > 0.5:
+		return BiomeId.SWAMP
+	# Dry warmth: desert.
+	if m < DRY_T and t > 0.55:
+		return BiomeId.DESERT
+	# The green ladder.
+	if m > 0.55:
+		return BiomeId.FOREST if t > ALPINE_T else BiomeId.TAIGA
+	return BiomeId.GRASSLAND
+
+
+## The SWAMP WETNESS law: the marsh RING around gated water (a band
+## of waterlogged ground straddling the surface line, at ANY height,
+## where the basin gate stands). Pure; the probe pins its rim law.
+static func climate_swamp_wetness(d: Vector3, world_seed: PackedByteArray, height: float, surface: float) -> float:
+	if surface < -1e8:
+		return 0.0  # no basin support here: bone dry swampwise
+	var near_shore: float = clampf(1.0 - absf(surface - height) / 1.5, 0.0, 1.0)
+	return near_shore * clampf(1.0 - (height - sea_level(world_seed)) / 12.0, 0.0, 1.0)
+
+
+## Convenience: the discrete biome at one direction (the plain path).
+static func climate_biome_id(d: Vector3, world_seed: PackedByteArray) -> int:
+	d = d.normalized()
+	return climate_biome_at(d, world_seed, terrain_height(d, world_seed), hydro_water_surface(d, world_seed))
+
+
+## THE GATED WATER SURFACE: where standing water actually IS. The raw
+## table filtered by the shared gates, with the surface FADED to the
+## bed at the fill window's rim (so it joins the ground continuously
+## with the carve: the biome law and the mesh layer never disagree).
+## -1e9 = no standing water here.
+## PERFORMANCE LAW: per-direction results cache on the QUANTIZED
+## direction (same law as the height cache) -- the mesh pass asks
+## this once per corner, and each call re-runs the whole water-table
+## law (noise + perch + height); without the cache a level-6 patch
+## re-did the work for every triangle that shares the corner. Same
+## answer per quantized sector, so the law stays pure-reading.
+static func hydro_water_surface(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	var cached = _water_surface_cache.get_value(d, world_seed)
+	if cached != null:
+		return float(cached)
+	var gates: Vector2 = _hydro_gates(d, world_seed)
+	var out: float = -1e9
+	if gates.y > 0.0:  # spawn-suppressed: no standing water
+		var table: float = water_table_raw(d, world_seed)
+		var h: float = terrain_height(d, world_seed)
+		var window: float = smoothstep(0.0, Hydro.LAKE_CARVE_MAX, h - (table - Hydro.LAKE_BEDDROP))
+		var surface: float = lerpf(table, h, window)
+		out = lerpf(surface, h, 1.0 - gates.x)  # gate fades it into the ground
+	_water_surface_cache.set_value(d, world_seed, out)  # bounds evict, never clear
+	return out
+
+
+## THE BIOME PALETTE (slice 2, prd-terrain.md): the albedo law. One
+## color per biome id, consumed by the streamer's vertex-tint pass via
+## climate_biome_weights (band edges blend, no hard rings).
+static func biome_color(id: int, world_seed: PackedByteArray, d: Vector3) -> Color:
+	var c: Color
+	match id:
+		BiomeId.OCEAN_DEEP:
+			c = Color(0.16, 0.26, 0.32)
+		BiomeId.OCEAN_SHELF:
+			c = Color(0.30, 0.44, 0.46)
+		BiomeId.SHORE:
+			c = Color(0.72, 0.64, 0.45)
+		BiomeId.ALPINE:
+			c = Color(0.55, 0.53, 0.50)
+		BiomeId.TUNDRA:
+			c = Color(0.70, 0.70, 0.62)
+		BiomeId.DESERT:
+			c = Color(0.80, 0.68, 0.42)
+		BiomeId.SWAMP:
+			c = Color(0.38, 0.40, 0.24)
+		BiomeId.TAIGA:
+			c = Color(0.26, 0.42, 0.32)
+		BiomeId.FOREST:
+			c = Color(0.22, 0.45, 0.24)
+		BiomeId.GRASSLAND:
+			c = Color(0.40, 0.56, 0.30)
+		BiomeId.ALPINE_MEADOW:
+			c = Color(0.48, 0.58, 0.40)
+		BiomeId.LAKE:
+			c = Color(0.28, 0.37, 0.46)
+		BiomeId.RIVER:
+			c = Color(0.30, 0.40, 0.45)
+		_:
+			c = Color(0.42, 0.42, 0.40)
+	# Per-direction variation: a gentle seeded lightness wobble so
+	# tiles do not read as flat paint (deterministic, no order deps).
+	var salt: int = _seed_salt(world_seed, "tint_wobble")
+	var w: float = (_vnoise(d.normalized(), salt, 8.0) - 0.5) * 0.10
+	return Color(clampf(c.r + w, 0.0, 1.0), clampf(c.g + w, 0.0, 1.0), clampf(c.b + w, 0.0, 1.0))
+
+
+## THE VERTEX COLOR LAW (slice 2 entry point for the streamer): blended
+## biome palette + the slope/snow physics. `steep` is [0, 1] slope
+## factor (the streamer computes it from the local height gradient);
+## steep ground blends toward rock gray. The snowline rides temperature
+## (not a fixed lift) EXCEPT the spawn apron (dry boot ground). Below
+## the waterline everything dims (the shell paints depth through it).
+## PERFORMANCE LAW: the biome BLEND (weights x palette x wobble) is
+## pure per direction, so it memoizes on the quantized direction +
+## seed (same law as the height cache). `steep`/`lift` stay OUT of
+## the cache -- the slope rock, snowline, and wet dim blend on top of
+## the memoized base, so every vertex keeps its own physics dollar.
+static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, steep: float) -> Color:
+	d = d.normalized()
+	var base_c = _blend_cache.get_value(d, world_seed)
+	var base: Color
+	if base_c is Color:
+		base = base_c
+	else:
+		var c0: Color = Color(0, 0, 0)
+		var weights: Dictionary = climate_biome_weights(d, world_seed)
+		for id in weights:
+			var bc: Color = biome_color(int(id), world_seed, d)
+			var w: float = float(weights[id])
+			c0 = Color(c0.r + bc.r * w, c0.g + bc.g * w, c0.b + bc.b * w)
+		base = c0
+		_blend_cache.set_value(d, world_seed, base)  # bounds evict, never clear
+	var sea: float = sea_level(world_seed)
+	var c: Color = base
+	# Slope physics: steep ground reads rock (bands: shallow slopes keep
+	# their biome; cliffs gray out).
+	c = c.lerp(Color(0.46, 0.42, 0.38), clampf(steep * 0.75, 0.0, 1.0))
+	# Snowline via temperature: below the freeze band, snow takes over
+	# (spawn apron excepted -- the boot stays dry-green).
+	var t: float = climate_temperature(d, world_seed)
+	if t < SNOWLINE_T + 0.04:
+		var ang_spawn: float = d.normalized().angle_to(SPAWN_CENTER)
+		if ang_spawn > SPAWN_APRON_OUTER_ANG:
+			var snow: float = clampf((SNOWLINE_T + 0.04 - t) / 0.08, 0.0, 1.0)
+			c = c.lerp(Color(0.88, 0.90, 0.93), snow * 0.85)
+	# Wet dimming below the waterline (the ocean shell paints the water
+	# body; the dimmed ground reads as depth through it).
+	if lift < sea - 0.2:
+		c = c.darkened(0.45)
+	return c
+
+
+## BLEND WEIGHTS for rendering (slice 2): a Dictionary of biome ->
+## weight (fractions, sum: within 0.03 of 1.0). Consumed by
+## vertex_color below. The WEIGHTS law: primary biome carries the
+## bulk; adjacent bands carry a pinch -- colors blend across band edges.
+static func climate_biome_weights(d: Vector3, world_seed: PackedByteArray) -> Dictionary:
+	d = d.normalized()
+	var id: int = climate_biome_id(d, world_seed)
+	var sea: float = sea_level(world_seed)
+	var weights: Dictionary = {id: 1.0}
+	# Neighbors: a two-field soft ladder by temperature and moisture.
+	var t: float = climate_temperature(d, world_seed)
+	var m: float = climate_moisture(d, world_seed)
+	var pinch: float = 0.12
+	var h: float = terrain_height(d, world_seed)
+	var surface: float = hydro_water_surface(d, world_seed)
+	if id == BiomeId.GRASSLAND:
+		if m > SWAMP_T - 0.08:
+			weights[BiomeId.SWAMP] = pinch
+			weights[id] = 1.0 - pinch
+		if t > 0.55 and m < DRY_T + 0.06:
+			weights[BiomeId.DESERT] = pinch
+			weights[id] = 1.0 - pinch
+		if h > sea + 16.0:
+			weights[BiomeId.FOREST] = pinch
+			weights[id] = 1.0 - pinch
+	elif id == BiomeId.FOREST or id == BiomeId.TAIGA:
+		weights[BiomeId.GRASSLAND] = pinch
+		weights[id] = 1.0 - pinch
+	elif id == BiomeId.SHORE:
+		weights[BiomeId.OCEAN_SHELF] = pinch
+		weights[id] = 1.0 - pinch
+	return weights
+
+
+# -- v3 HYDROLOGY (prd-terrain.md slice 3, shipped with the climate) ----
+
+## HYDRO constants (the height independence IS the law): standing
+## water may sit at ANY height; the sea is just the water table at
+## elevation zero.
+class Hydro:
+	const MIN_TABLE_SPAN: float = 0.5  # table field resolution (m)
+	const BEACH_MIN: float = 0.35      # min water depth for a beach reading
+	const CARVE_MAX: float = 4.0       # max carve step (the continuity law)
+	const RIVER_STEP_ANG: float = 0.02 # river walk step (radians)
+	const RIVER_MAX_STEPS: int = 64
+	const RIVER_RADIUS_ANG: float = 0.018
+	## ESTUARY LAW: how much a sea-terminating river's capsule widens
+	## at its mouth (radius multiplier at t=1). Quadratic ramp; 1.8 =
+	## an 80% wider bed at the mouth (a fordable fan, not a bay).
+	const ESTUARY_WIDEN: float = 1.8
+	const SWAMP_GAP: float = 0.62       # film band edge (m gap = swamp grade)
+	const RIVER_BED_DEPTH: float = 1.8  # channel carve depth (m)
+	const TABLE_LIFT: float = 9.0       # wet-cell table lift (m)
+	const TABLE_PERCH: float = 0.6      # wet tables perch up to 60% of rel. elevation
+	const BASIN_T: float = 0.6          # coarse-cell basin district band [T, T+0.35)
+	const LAKE_BEDDROP: float = 0.9     # bed sits this far below the table
+	const LAKE_CARVE_MAX: float = 10.0  # basin press depth (continuity is the GATE's smoothness, not this cap)
+	const SUPPRESS_IN: float = 0.10     # hydrology suppress near spawn...
+	const SUPPRESS_OUT: float = 0.15    # ...fully ON past this angle
+	const RIVER_MOIST_BOOST: float = 0.22  # moisture lift on the channel capsule (floodplain law)
+
+
+## The WATER TABLE: the local standing-water surface height. Pure.
+## A two-octave noise field in meters, riden by moisture (wet climate
+## cells hold their table high; dry cells hold it below the shelf).
+## NO cover clamp: a wet film over dry ground is NOT a lake -- the
+## lake band comes only from CARVED basins (the basin gate below),
+## and the swamp band reads the near-zero film gap. Returns meters.
+static func water_table(d: Vector3, world_seed: PackedByteArray) -> float:
+	return water_table_raw(d, world_seed)
+
+
+## The RAW water table (the field the carve law and the biome law
+## both read; one definition, no recursion). The MOUNTAIN LAW lives
+## here: wet climates PERCH their table with the terrain (up to
+## TABLE_PERCH of the local relief), so high bowls can hold standing
+## water at ANY elevation -- the user's law, not a sea-only trick.
+## PERF: sector-memoized (read by BOTH the water-surface law and the
+## lake carve at every corner; two noise octaves + moisture + perch
+## per miss is the priciest non-river corner call).
+static var _water_table_cache = SECTOR_CACHE.new()
+static func water_table_raw(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	var cached = _water_table_cache.get_value(d, world_seed)
+	if cached != null:
+		return float(cached)
+	var salt: int = _seed_salt(world_seed, "hydro_table")
+	var sea: float = sea_level(world_seed)
+	var base: float = _vnoise(d, salt, 2.0)
+	var fine: float = 0.6 * _vnoise(d, salt + 1, 5.0)
+	var raw: float = base * 0.75 + fine * 0.25
+	var moist: float = climate_moisture(d, world_seed)
+	var lift: float = smoothstep(DRY_T, SWAMP_T, moist) * Hydro.TABLE_LIFT
+	var perch: float = smoothstep(SWAMP_T - 0.2, SWAMP_T + 0.1, moist) \
+		* Hydro.TABLE_PERCH * maxf(_terrain_height_base(d, world_seed) - sea, 0.0)
+	var out: float = sea - 4.0 + raw * 14.0 + lift * moist + perch
+	_water_table_cache.set_value(d, world_seed, out)
+	return out
+
+
+
+## THE HYDRO GATES (the ONE definition both the carve law and the
+## water-surface law read): (gate, suppress). Gate = the basin
+## DISTRICT band (a bump over the coarse cell: basins are discrete
+## lake districts, not a planet-wide damp). Suppress = the spawn law
+## (the boot plaza + apron stay dry). Both factors continuous.
+static func _hydro_gates(d: Vector3, world_seed: PackedByteArray) -> Vector2:
+	d = d.normalized()
+	var salt: int = _seed_salt(world_seed, "hydro_table")
+	var cell: float = _vnoise(d, salt, 2.0)
+	var gate: float = smoothstep(Hydro.BASIN_T, Hydro.BASIN_T + 0.05, cell) \
+		* (1.0 - smoothstep(Hydro.BASIN_T + 0.25, Hydro.BASIN_T + 0.35, cell))
+	# The SPAWN LAW is independent of the basin gate: a river that flows
+	# through the spawn apron still needs its suppress honest (the FORD
+	# law reads the water surface, not the lake carve). Suppress-only
+	# when the basin closes: (0, suppress).	
+	var ang_spawn: float = d.angle_to(SPAWN_CENTER)
+	var suppress: float = 1.0 - smoothstep(Hydro.SUPPRESS_IN, Hydro.SUPPRESS_OUT, ang_spawn)
+	if gate <= 0.0:
+		return Vector2(0.0, suppress)
+	return Vector2(gate, suppress)
+
+
+## THE RIVER CHANNEL field: how deep the river bed at a direction is
+## (0 outside a channel). The channel is a capsule along each river
+## segment: inside RIVER_RADIUS_ANG of the segment chord, depth falls
+## off smoothly from the channel floor.
+## PERFORMANCE LAW: per-direction results cache on the QUANTIZED
+## direction (the same law the streamer's height cache reads) -- the
+## mesh pass asks ~50k corners, each a O(rivers x steps) capsule
+## sweep; without the cache a level-6 patch build hung the probe
+## (measured: continent walk stalled). Same answer per quantized
+## sector, so the law stays pure-reading.
+## NOTE: cleared together with the height cache on any backend
+## install/uninstall (the channel field and the spring/path derive
+## both read the ground law; a stale cache would carve rivers with
+## the OLD field's heights after a seam change).
+## ESTUARY LAW (S14.7): a river's capsule radius GROWS toward its
+## mouth. `mouth_factor` in [0,1]: 0 = spring end, 1 = the sea-side
+## endpoint where the poly terminates against the sea line -- measured
+## from the SEED (terminating height), so it is pure. Lake/hollow
+## termini get 0 (no estuary on dry land). Sampled from paths the
+## carve pass shares, so the channel field, bed carve, and the biome
+## moisture ripple all widen together.
+static func river_mouth_factor(seg_dir: Vector3, world_seed: PackedByteArray) -> float:
+	var sea: float = sea_level(world_seed)
+	for spec in river_specs_cached(world_seed):
+		var n: int = spec.path.size()
+		if n < 2:
+			continue
+		for i in range(n - 1):
+			var p0: Vector3 = spec.path[i]
+			var p1: Vector3 = spec.path[i + 1]
+			var seg_len: float = p0.angle_to(p1)
+			if seg_len < 1e-9:
+				continue
+			# Slerp position along the segment; mouth moves 0 -> 1 as
+			# the terminating endpoint's BASE height approaches sea.
+			var end_h: float = _terrain_height_base(spec.path[n - 1], world_seed)
+			var t_l: float = clampf((end_h - sea) / 4.0, 0.0, 1.0)
+			# Find the domain point's position along the whole path:
+			# cheap version — the point's PROXIMITY to the mouth end
+			# decides the factor (angular distance to path end,
+			# normalized by the path span).
+			if seg_dir.angle_to(spec.path[n - 1]) < seg_len * 4.0:
+				return 1.0 - t_l
+	return 0.0
+
+
+static func river_channel(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	# Seed-tagged in the shared key law: different world seeds never
+	# share a bucket (the untagged key read foreign specs' channels in
+	# multi-seed callers).
+	var cached = _channel_cache.get_value(d, world_seed)
+	if cached != null:
+		return float(cached)
+	var best: float = 0.0
+	var d_n: Vector3 = d
+	var sea: float = sea_level(world_seed)
+	for spec in river_specs_cached(world_seed):
+		# PHY: the river's terminating BASE height decides the estuary:
+		# sea-terminating poly = widen-to-mouth, otherwise constant.
+		var end_h: float = _terrain_height_base(spec.path[spec.path.size() - 1], world_seed)
+		var estuary_x: float = 0.0 if end_h > sea else 1.0
+		var n: int = spec.path.size()
+		for i in range(spec.path.size() - 1):
+			var p0: Vector3 = spec.path[i]
+			var p1: Vector3 = spec.path[i + 1]
+			# Capsule test: min angle from d_n to the segment chord.
+			var seg_len: float = p0.angle_to(p1)
+			if seg_len < 1e-9:
+				var ang: float = d_n.angle_to(p0)
+				if ang < Hydro.RIVER_RADIUS_ANG:
+					best = maxf(best, 1.0 - ang / Hydro.RIVER_RADIUS_ANG)
+				continue
+			# Slerp the chord: sample a few interior directions (a capsule
+			# via direction-space samples, exact enough for a soft field).
+			for si in range(1, 4):
+				var t: float = float(si) / 4.0
+				var axis: Vector3 = p0.cross(p1)
+				if axis.length() < 1e-9:
+					continue
+				var mid: Vector3 = p0.rotated(axis.normalized(), seg_len * t).normalized()
+				# ESTUARY: the radius at this sample grows toward the
+				# mouth (t goes 0 spring-side -> 1 mouth-side along the
+				# segment). i/(n-1) anchors the segment near the mouth.
+				var mouth_t: float = clampf((float(i) + t) / maxf(float(n - 1), 1.0), 0.0, 1.0)
+				var rad: float = Hydro.RIVER_RADIUS_ANG * (1.0 + Hydro.ESTUARY_WIDEN \
+					* estuary_x * mouth_t * mouth_t)
+				var ang2: float = d_n.angle_to(mid)
+				if ang2 < rad:
+					best = maxf(best, 1.0 - ang2 / rad)
+		# Endpoints matter: the spring head + the mouth also carry a
+		# round channel (the chord test above reads in-between samples
+		# but a capsule END needs the endpoint disk).
+		for ei in [0, spec.path.size() - 1]:
+			var p: Vector3 = spec.path[ei]
+			var pt: float = float(ei) / maxf(float(n - 1), 1.0)
+			var rad_p: float = Hydro.RIVER_RADIUS_ANG * (1.0 + Hydro.ESTUARY_WIDEN \
+				* estuary_x * pt * pt)
+			var ang3: float = d_n.angle_to(p)
+			if ang3 < rad_p:
+				best = maxf(best, 1.0 - ang3 / rad_p)
+	var out: float = clampf(best, 0.0, 1.0)
+	_channel_cache.set_value(d, world_seed, out)  # bounds evict, never clear
+	return out## The spring/path cache: one derive per process (deterministic). The
+## carve and the channel field both read ONLY this cache.
+
+
+static func river_specs_cached(world_seed: PackedByteArray) -> Array:
+	var key: String = world_seed.hex_encode()
+	var cached = _river_spec_cache.get_value(key)
+	if cached != null:
+		return cached
+	var specs: Array = river_specs(world_seed)
+	_river_spec_cache.set_value(key, specs)
+	return specs
+
+
+## PRIME seam: the boot must call this ONCE before any terrain height
+## read (the hydrology carve reads springs/paths). Cheap (24 springs,
+## 64 steps each). Returns the prime count for probes.
+static func hydrology_prime(world_seed: PackedByteArray) -> int:
+	var springs: Array = river_springs(world_seed)
+	var key: String = world_seed.hex_encode()
+	var filtered: Array = springs.filter(func(s): return s.path.size() >= 2)
+	_river_spec_cache.set_value(key, filtered)
+	return springs.size()
+
+
+## Carved height law: terrain, then lakes/basins, then river channels.
+## mode "_raw" = river carving ONLY (the flow law reads no lakes to
+## avoid recursion); plain mode = full v3 law (lakes + channels).
+static func terrain_height_carved(d: Vector3, world_seed: PackedByteArray, mode: String = "") -> float:
+	var h: float = _terrain_height_base(d, world_seed)
+	if mode != "_raw":
+		h = hydro_lake_carve(d, world_seed, h)
+	var channel: float = river_channel(d, world_seed)
+	if channel > 0.0:
+		var bed: float = minf(h - Hydro.RIVER_BED_DEPTH * channel, water_table_raw(d, world_seed) - 0.3)
+		h = lerpf(h, bed, channel)
+	return h
+
+
+## The basin-carrying height component of standing water: press the
+## bed toward (table - LAKE_BEDDROP), gated by the BASIN law (coarse
+## cell support: a lone damp sample never carves) and the SPAWN law
+## (the boot plaza + apron stay dry), bounded by CARVE_MAX (the
+## continuity law). Every factor is continuous => the carve is.
+static func hydro_lake_carve(d: Vector3, world_seed: PackedByteArray, h: float) -> float:
+	d = d.normalized()
+	# BASIN gate: the coarse hydrology cell must approve.
+	var salt: int = _seed_salt(world_seed, "hydro_table")
+	var cell: float = _vnoise(d, salt, 2.0)
+	var gate: float = smoothstep(Hydro.BASIN_T, Hydro.BASIN_T + 0.15, cell)
+	if gate <= 0.0:
+		return h
+	var gates: Vector2 = _hydro_gates(d, world_seed)
+	if gates.y <= 0.0:  # spawn law: dry ground by the boot
+		return h
+	var table: float = water_table_raw(d, world_seed)
+	var bed_target: float = table - Hydro.LAKE_BEDDROP
+	# The FILL WINDOW: the press fades over a LAKE_CARVE_MAX band
+	# (ground too far above the bed target is barely dampened, so the
+	# carve is continuous by construction: no reachability cliff).
+	var window: float = 1.0 - smoothstep(0.0, Hydro.LAKE_CARVE_MAX, h - bed_target)
+	var press: float = minf(h - bed_target, Hydro.LAKE_CARVE_MAX)
+	var carve: float = press * window * gates.x * gates.y
+	return h - carve
+
+
+## The v2 height law, kept bit-identical as _terrain_height_base.
+static func terrain_height(dir: Vector3, world_seed: PackedByteArray) -> float:
+	return terrain_height_carved(dir, world_seed, "")
+
+
+## A river's spec: one carved polyline per spring.
+class RiverSpec:
+	var spring: Vector3
+	var path: PackedVector3Array  # unit dirs, spring -> sea/lake
+
+
+## SPRINGS: seed-derived river sources. One per land noise cell (the
+## coarse moisture grid). Pure: same seed, same springs everywhere.
+## IMPORTANT: springs/pathing read the BASE heightfield only (the
+## carve law reads THEM -- no cycle back).
+static func river_springs(world_seed: PackedByteArray) -> Array:
+	var salt: int = _seed_salt(world_seed, "hydro_springs")
+	var out: Array = []
+	for i in range(24):
+		var acc: int = salt
+		acc = (acc * 131 + i) % 9007199254740991
+		var rng := RandomNumberGenerator.new()
+		rng.seed = acc
+		# A random unit direction per spring (deterministic stream).
+		var d: Vector3 = Vector3(rng.randf() * 2.0 - 1.0, rng.randf() * 2.0 - 1.0, rng.randf() * 2.0 - 1.0)
+		if d.length() < 0.001:
+			continue
+		d = d.normalized()
+		# Springs are LAND law only: air-starts die here.
+		var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
+		if land < 0.3:
+			continue
+		var h: float = _terrain_height_base(d, world_seed)
+		if h < sea_level(world_seed):
+			continue
+		var spec := RiverSpec.new()
+		spec.spring = d
+		spec.path = river_path(d, world_seed)
+		out.append(spec)
+	return out
+
+
+## THE RIVER FLOW LAW: greedy steepest descent (deterministic ties by
+## spring direction's own axes), max RIVER_MAX_STEPS steps of
+## RIVER_STEP_ANG, until the sea or a deep table basin. Pure.
+static func river_path(spring: Vector3, world_seed: PackedByteArray) -> PackedVector3Array:
+	var out: PackedVector3Array = PackedVector3Array([spring.normalized()])
+	var cur: Vector3 = spring.normalized()
+	var sea: float = sea_level(world_seed)
+	for _step in range(Hydro.RIVER_MAX_STEPS):
+		var best_dir: Vector3 = Vector3.ZERO
+		var best_h: float = 1e9
+		# Tangent frame around cur (deterministic: built from cur).
+		var hint: Vector3 = Vector3(0, 1, 0) if absf(cur.dot(Vector3(0, 1, 0))) < 0.9 else Vector3(1, 0, 0)
+		var t1: Vector3 = cur.cross(hint).normalized()
+		var t2: Vector3 = cur.cross(t1).normalized()
+		for k in range(8):
+			var ang: float = TAU * float(k) / 8.0
+			# Tangent ring around cur at RIVER_STEP_ANG: candidates sit
+			# along the LOCAL surface tangent (great-circle sense), so the
+			# ring is real directions on the sphere, not stretched chords
+			# of (cur + tan) sums.
+			var tangent: Vector3 = t1 * cos(ang) + t2 * sin(ang)
+			var rot_axis: Vector3 = tangent.cross(cur)
+			if rot_axis.length() <= 1e-9:
+				rot_axis = t1
+			var cand: Vector3 = cur.rotated(rot_axis.normalized(), Hydro.RIVER_STEP_ANG).normalized()
+			var hh: float = _terrain_height_base(cand, world_seed)
+			if hh < best_h:
+				best_h = hh
+				best_dir = cand
+		# Kill: reached the sea.
+		if best_h <= sea + 0.2 or best_dir.is_zero_approx():
+			if not best_dir.is_zero_approx():
+				out.append(best_dir)
+			return out
+		# HOLLOW LAW: no downhill step left => the river ENDS here (it
+		# feeds a hollow -- a pond, a marsh, a basin lake). Greedy rivers
+		# never climb: taking an uphill best-candidate was the bug the
+		# probe caught (a 1.17 m up-step on a ridge crest).
+		if best_h >= _terrain_height_base(cur, world_seed) - 0.05:
+			return out
+		cur = best_dir
+		out.append(cur)
+	return out
+
+
+## The CLEARANCE law (probe-pin helper): does a river REALLY run
+## downhill, step by step, and terminate? Strict L1 check.
+static func river_goes_downhill(path: PackedVector3Array, world_seed: PackedByteArray) -> float:
+	var worst: float = 0.0
+	for i in range(path.size() - 1):
+		var h0: float = terrain_height(path[i], world_seed)
+		var h1: float = terrain_height(path[i + 1], world_seed)
+		worst = maxf(worst, h1 - h0)  # punish any up-step
+	return worst  # <= ~0 means strictly downhill (within noise)
+
+
+## Rivers that exist (specs with path length >= 2, land-legal).
+## The streamer carves the bed + raises the local table by these in
+## slice 3's render pass; the LAW already carries them as data.
+static func river_specs(world_seed: PackedByteArray) -> Array:
+	var out: Array = []
+	for spec in river_springs(world_seed):
+		if spec.path.size() >= 2:
+			out.append(spec)
+	return out
 
 
 ## Height (meters above the base surface) of the rock cap at world

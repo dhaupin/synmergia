@@ -2,7 +2,40 @@
 ## Uses UIStyles for consistent theming
 extends Control
 class_name ChatUI
+
+## Script-class reference (ChatService is an autoload in-game; loading
+## the script directly gives us its enum/constants without the global --
+## script-mode-safe; mirrors the ReportKind idiom in chat_service).
+const ChatSvcScript = preload("res://core/services/chat_service.gd")
 const UIStyles = preload("res://ui/components/ui_styles.gd")
+
+func _chat_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("ChatService")) if tree and tree.root else null
+
+func _pmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _entity_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EntityService")) if tree and tree.root else null
+
+func _perm_mgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
+func _admin_cmds() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("AdminCommands")) if tree and tree.root else null
+
+func _security_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SecurityService")) if tree and tree.root else null
 
 
 ## Escape BBCode brackets in user-supplied content.
@@ -15,7 +48,7 @@ var _chat_input: LineEdit
 var _channel_selector: OptionButton
 
 ## State
-var _current_channel: int = ChatService.Channel.SAY
+var _current_channel: int = ChatSvcScript.Channel.SAY
 var _is_visible: bool = true
 var _max_messages: int = 100
 var _message_count: int = 0
@@ -128,23 +161,24 @@ func _setup_ui() -> void:
 	_chat_input = LineEdit.new()
 	_chat_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_chat_input.placeholder_text = "Press Enter to chat..."
-	_chat_input.max_length = ChatService.MAX_MESSAGE_LENGTH
+	var svc := _chat_svc()
+	_chat_input.max_length = svc.MAX_MESSAGE_LENGTH if svc else 200
 	_chat_input.focus_mode = Control.FOCUS_ALL
 	_chat_input.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 	_chat_input.text_submitted.connect(_on_message_submitted)
 	input_container.add_child(_chat_input)
 
 	# Set initial channel
-	_set_active_channel(ChatService.Channel.SAY)
+	_set_active_channel(ChatSvcScript.Channel.SAY)
 
 func _create_channel_tabs() -> void:
 	# Create tabs for common channels
 	var channels := [
-		{"id": ChatService.Channel.SAY, "name": "Say", "color": UIStyles.COLORS.text_primary},
-		{"id": ChatService.Channel.ZONE, "name": "Zone", "color": Color(0.0, 1.0, 0.0)},
-		{"id": ChatService.Channel.PARTY, "name": "Party", "color": Color(0.0, 1.0, 0.53)},
-		{"id": ChatService.Channel.GUILD, "name": "Guild", "color": Color(1.0, 0.67, 0.0)},
-		{"id": ChatService.Channel.WHISPER, "name": "Whisper", "color": Color(1.0, 0.6, 1.0)},
+		{"id": ChatSvcScript.Channel.SAY, "name": "Say", "color": UIStyles.COLORS.text_primary},
+		{"id": ChatSvcScript.Channel.ZONE, "name": "Zone", "color": Color(0.0, 1.0, 0.0)},
+		{"id": ChatSvcScript.Channel.PARTY, "name": "Party", "color": Color(0.0, 1.0, 0.53)},
+		{"id": ChatSvcScript.Channel.GUILD, "name": "Guild", "color": Color(1.0, 0.67, 0.0)},
+		{"id": ChatSvcScript.Channel.WHISPER, "name": "Whisper", "color": Color(1.0, 0.6, 1.0)},
 	]
 
 	for ch in channels:
@@ -163,17 +197,18 @@ func _create_channel_tabs() -> void:
 
 func _populate_channel_dropdown() -> void:
 	_channel_selector.clear()
-	_channel_selector.add_item("Say", ChatService.Channel.SAY)
-	_channel_selector.add_item("Zone", ChatService.Channel.ZONE)
-	_channel_selector.add_item("Party", ChatService.Channel.PARTY)
-	_channel_selector.add_item("Guild", ChatService.Channel.GUILD)
-	_channel_selector.add_item("Whisper", ChatService.Channel.WHISPER)
-	_channel_selector.add_item("Trade", ChatService.Channel.TRADE)
-	_channel_selector.add_item("Yell", ChatService.Channel.YELL)
+	_channel_selector.add_item("Say", ChatSvcScript.Channel.SAY)
+	_channel_selector.add_item("Zone", ChatSvcScript.Channel.ZONE)
+	_channel_selector.add_item("Party", ChatSvcScript.Channel.PARTY)
+	_channel_selector.add_item("Guild", ChatSvcScript.Channel.GUILD)
+	_channel_selector.add_item("Whisper", ChatSvcScript.Channel.WHISPER)
+	_channel_selector.add_item("Trade", ChatSvcScript.Channel.TRADE)
+	_channel_selector.add_item("Yell", ChatSvcScript.Channel.YELL)
 
 func _connect_signals() -> void:
-	if ChatService:
-		ChatService.message_received.connect(_on_chat_message)
+	var svc_sig := _chat_svc()
+	if svc_sig:
+		svc_sig.message_received.connect(_on_chat_message)
 
 	# System messages on startup
 	add_system_message("Chat loaded. Press Enter to chat, click tabs to switch channels.")
@@ -201,10 +236,10 @@ func _set_active_channel(channel: int) -> void:
 
 	# Update player info channel label
 	if _player_info_label:
-		_player_info_label.text = ChatService.get_channel_name(channel)
+		_player_info_label.text = _chat_svc().get_channel_name(channel)
 
 	# Update input placeholder
-	var channel_name := ChatService.get_channel_name(channel)
+	var channel_name: String = _chat_svc().get_channel_name(channel)
 	_chat_input.placeholder_text = "Chat in %s..." % channel_name
 
 func _on_message_submitted(text: String) -> void:
@@ -216,12 +251,14 @@ func _on_message_submitted(text: String) -> void:
 		_handle_command(text)
 		return
 
-	# Send via ChatService
+	# Send via _chat_svc()
 	var local_player_id := ""
-	if PlayerManager and PlayerManager.local_player:
-		local_player_id = str(PlayerManager.local_player.entity_id)
+	var sig_tree := Engine.get_main_loop() as SceneTree
+	var player_manager := sig_tree.root.get_node_or_null(NodePath("PlayerManager")) if sig_tree and sig_tree.root else null
+	if player_manager and player_manager.local_player:
+		local_player_id = str(player_manager.local_player.entity_id)
 
-	var success := ChatService.send_message(
+	var success: bool = _chat_svc().send_message(
 		local_player_id,
 		_current_channel,
 		text
@@ -243,12 +280,12 @@ func _handle_command(text: String) -> void:
 				# /w PlayerName message
 				var target_name: String = target_and_msg[0]
 				var msg: String = target_and_msg[1]
-				ChatService.send_whisper("", target_name, msg)
+				_chat_svc().send_whisper("", target_name, msg)
 			else:
 				add_system_message("Usage: /w PlayerName message")
 		"r", "reply":
 			# Reply to last whisper
-			ChatService.send_whisper_to_last("", args)
+			_chat_svc().send_whisper_to_last("", args)
 		"party":
 			add_system_message("Party commands: /invite, /leave, /kick")
 		"guild":
@@ -256,8 +293,8 @@ func _handle_command(text: String) -> void:
 		"me":
 			# Emote
 			if not args.is_empty():
-				var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
-				ChatService.send_emote(local_id, args)
+				var local_id := str(_pmgr().get_local_player_id()) if _pmgr() else ""
+				_chat_svc().send_emote(local_id, args)
 		_:
 			add_system_message("Unknown command: %s" % cmd)
 
@@ -266,7 +303,7 @@ func _on_chat_message(sender_id: String, channel: int, message: String, targets:
 
 func add_message(sender_id: String, channel: int, message: String) -> void:
 	var sender_name := _get_sender_name(sender_id)
-	var formatted := ChatService.format_message(sender_id, channel, message, sender_name)
+	var formatted: String = _chat_svc().format_message(sender_id, channel, message, sender_name)
 	_chat_history.append_text(formatted + "\n")
 	_message_count += 1
 
@@ -281,8 +318,8 @@ func add_system_message(message: String) -> void:
 
 func _get_sender_name(sender_id: String) -> String:
 	var name: String = sender_id
-	if EntityService:
-		var entity = EntityService.get_entity(sender_id)
+	if _entity_svc():
+		var entity = _entity_svc().get_entity(sender_id)
 		if entity and entity.has("character_data"):
 			var char_data = entity.character_data
 			if char_data.has("player_name"):
@@ -347,11 +384,11 @@ func _add_player_info_header(header: HBoxContainer) -> void:
 		header.add_child(admin_btn)
 
 func _is_admin() -> bool:
-	var local_id := str(PlayerManager.get_local_player_id()) if PlayerManager else ""
+	var local_id := str(_pmgr().get_local_player_id()) if _pmgr() else ""
 	if local_id.is_empty():
 		return false
-	if PermissionManager:
-		return PermissionManager.is_admin(local_id) or PermissionManager.is_gm(local_id)
+	if _perm_mgr():
+		return _perm_mgr().is_admin(local_id) or _perm_mgr().is_gm(local_id)
 	return false
 
 func _toggle_admin_shell() -> void:
@@ -445,7 +482,7 @@ func _on_admin_command(text: String) -> void:
 			if args.is_empty():
 				result = "[color=%s]Usage: /announce <message>[/color]" % UIStyles.COLORS.error.to_html()
 			else:
-				NotificationService.broadcast_alert(args, [NotificationService.AlertScope.server_wide()], NotificationService.NotificationType.ALERT)
+				_notify_svc().broadcast_alert(args, [_notify_svc().AlertScope.server_wide()], _notify_svc().NotificationType.ALERT)
 				result = "[color=%s]Announcement sent:[/color] %s" % [UIStyles.COLORS.success.to_html(), _esc(args)]
 		"kick":
 			if args.is_empty():
@@ -453,7 +490,8 @@ func _on_admin_command(text: String) -> void:
 			else:
 				var target: String = args.split(" ")[0]
 				var reason: String = " ".join(args.split(" ").slice(1)) if args.split(" ").size() > 1 else "No reason"
-				AdminCommands.kick_player(target, reason)
+				var _adm := _admin_cmds()
+				if _adm: _adm.kick_player(target, reason)
 				result = "[color=%s]Kicked:[/color] %s (reason: %s)" % [UIStyles.COLORS.warning.to_html(), _esc(target), _esc(reason)]
 		"ban":
 			if args.is_empty():
@@ -461,7 +499,8 @@ func _on_admin_command(text: String) -> void:
 			else:
 				var target: String = args.split(" ")[0]
 				var reason: String = " ".join(args.split(" ").slice(1)) if args.split(" ").size() > 1 else "Banned by admin"
-				AdminCommands.ban_player(target, reason)
+				var _adm := _admin_cmds()
+				if _adm: _adm.ban_player(target, reason)
 				result = "[color=%s]Banned:[/color] %s" % [UIStyles.COLORS.error.to_html(), _esc(target)]
 		"mute":
 			if args.is_empty():
@@ -469,14 +508,14 @@ func _on_admin_command(text: String) -> void:
 			else:
 				var target: String = args.split(" ")[0]
 				var duration: String = args.split(" ")[1] if args.split(" ").size() > 1 else "60"
-				SecurityService.restrict_player(target, "chat", int(duration))
+				_security_svc().restrict_player(target, "chat", int(duration))
 				result = "[color=%s]Muted:[/color] %s for %s seconds" % [UIStyles.COLORS.warning.to_html(), _esc(target), _esc(duration)]
 		"teleport", "tp":
 			var coords: PackedStringArray = args.split(" ")
 			if coords.size() >= 3:
 				var pos := Vector3(float(coords[0]), float(coords[1]), float(coords[2]))
-				if PlayerManager:
-					var local_player = PlayerManager.local_player
+				if _pmgr():
+					var local_player = _pmgr().local_player
 					if local_player:
 						local_player.global_position = pos
 					result = "[color=%s]Teleported:[/color] to %s" % [UIStyles.COLORS.success.to_html(), _esc(str(pos))]
@@ -488,8 +527,8 @@ func _on_admin_command(text: String) -> void:
 			else:
 				result = "[color=%s]Spawn:[/color] %s (use admin console for full spawn)" % [UIStyles.COLORS.info.to_html(), _esc(args)]
 		"heal":
-			if PlayerManager:
-				var local_player = PlayerManager.local_player
+			if _pmgr():
+				var local_player = _pmgr().local_player
 				if local_player and local_player.has("health_component"):
 					local_player.health_component.current_health = local_player.health_component.max_health
 					result = "[color=%s]Healed:[/color] You are now at full health" % UIStyles.COLORS.success.to_html()
@@ -499,7 +538,7 @@ func _on_admin_command(text: String) -> void:
 			else:
 				result = "[color=%s]Stats:[/color] Use character panel for detailed stats" % UIStyles.COLORS.info.to_html()
 		"online":
-			result = "[color=%s]Online:[/color] %d players" % [UIStyles.COLORS.info.to_html(), EntityService.get_player_count() if EntityService else 0]
+			result = "[color=%s]Online:[/color] %d players" % [UIStyles.COLORS.info.to_html(), _entity_svc().get_player_count() if _entity_svc() else 0]
 		"clear":
 			admin_output.clear()
 			return

@@ -2,6 +2,16 @@
 ## Can be instant, channeled, or ground-targeted
 extends Resource
 class_name Skill
+
+## Tree-safe EventHub emit (script-mode-safe; mirrors the resolver idiom
+## in entity.gd / kill_rewards.gd -- the bare identifier fails compile
+## when autoloads are absent).
+func _hub_emit(sig_name: String, args: Array) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	var hub := tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+	if hub and hub.has_signal(sig_name):
+		hub.emit_signal(sig_name, args) if args.is_empty() else hub.emit_signal("%s" % sig_name, args[0], args[1] if args.size() > 1 else null, args[2] if args.size() > 2 else null, args[3] if args.size() > 3 else null, args[4] if args.size() > 4 else null)
+
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 # CombatMath runs the MWo-style hit table (miss/dodge/parry/block/crit)
@@ -274,11 +284,11 @@ func execute(caster, target = null, ground_position: Vector3 = Vector3.ZERO, def
 				# take_damage(0) (Enemy's armor floor would chip 1). The HUD
 				# learns about it through hit_resolved.
 				result.whiff = true
-				EventHub.hit_resolved.emit(caster, target, _last_hit_result, self, 0)
+				_hub_emit("hit_resolved", [caster, target, _last_hit_result, self, 0])
 			else:
 				target.take_damage(actual_damage, caster, damage_type, _last_was_crit)
 				result.targets_hit.append(target)
-				EventHub.hit_resolved.emit(caster, target, _last_hit_result, self, actual_damage)
+				_hub_emit("hit_resolved", [caster, target, _last_hit_result, self, actual_damage])
 
 	# Apply healing
 	if heal_amount > 0:

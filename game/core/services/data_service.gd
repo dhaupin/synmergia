@@ -62,6 +62,8 @@ var _achievements: Dictionary = {}
 var _gateways: Dictionary = {}
 var _titles: Dictionary = {}
 var _hordes: Dictionary = {}
+var _weather_events: Dictionary = {}
+
 
 var _data_path: String = "res://data/"
 var _loaded: bool = false
@@ -90,6 +92,7 @@ func load_all_data() -> void:
 	load_achievements()
 	load_gateways()
 	load_hordes()
+	load_weather_events()
 	load_currencies()
 	load_mounts()
 	load_vehicles()
@@ -326,6 +329,15 @@ func load_gateways() -> void:
 func load_hordes() -> void:
 	_hordes = _scan_directory(_data_path + "hordes", "horde")
 	GameLog.info("DataService: Loaded %d horde configs" % _hordes.size())
+
+## Load weather-triggered event configs from data/weather_events/
+## (the WeatherEventData content pipeline — designers author the
+## sun->sword law as .tres, not code). Catalog keys on the resource's
+## id field, callers may pass the file-stem form (weather_<id>), same
+## normalization as get_horde.
+func load_weather_events() -> void:
+	_weather_events = _scan_directory(_data_path + "weather_events", "weather")
+	GameLog.info("DataService: Loaded %d weather event configs" % _weather_events.size())
 
 ## Get methods. Returns SkillSchema (the .tres class); the return type
 ## must be SkillSchema -- the global class_name Skill (combat) shadowed
@@ -571,6 +583,18 @@ func get_horde(id: String):
 
 func get_all_hordes() -> Array:
 	return _hordes.values()
+
+func get_weather_event(id: String):
+	var cid := id.strip_edges().trim_prefix("weather_")
+	if _weather_events.has(cid):
+		return _weather_events.get(cid)
+	if _weather_events.has("weather_" + cid):
+		return _weather_events.get("weather_" + cid)
+	GameLog.warn("DataService: Weather event config not found: " + id)
+	return null
+
+func get_all_weather_events() -> Array:
+	return _weather_events.values()
 
 ## Get all of a type
 func get_all_skills() -> Array:

@@ -55,6 +55,7 @@ func _ready() -> void:
 	_setup_portal()
 	_setup_ancient_door()
 	_setup_sky_sun()
+	_setup_ambience()
 	_setup_ground_detail()
 	_setup_moon_gate()
 	_setup_ascent_gate()
@@ -443,6 +444,47 @@ func _setup_sky_sun() -> void:
 	sun.set_script(sun_script)
 	add_child(sun)
 	GameLog.info("WorldPlayable: the sun hangs on the Concord clock (dawn east, dusk west)")
+	# The moon rises too: the pale stone rides the same epoch (disc +
+	# synodic phase shading + moonlight that yields to the sun at dusk).
+	var moon_script = load("res://entities/sky_moon.gd")
+	if moon_script != null:
+		var moon := Node3D.new()
+		moon.name = "SkyMoon"
+		moon.set_script(moon_script)
+		add_child(moon)
+		GameLog.info("WorldPlayable: the moon rides the same clock (synodic phases, moonlit nights)")
+
+
+## Ambience driver (entities/ambience_driver.gd): resolves weather at
+## the player every 2s and feeds AudioService.apply_weather. The sky
+## you see and the sky you hear follow the same resolve().
+func _setup_ambience() -> void:
+	var amb_script = load("res://entities/ambience_driver.gd")
+	if amb_script == null:
+		return
+	var amb := Node3D.new()
+	amb.name = "AmbienceDriver"
+	amb.set_script(amb_script)
+	add_child(amb)
+	_setup_weather_events()
+	GameLog.info("WorldPlayable: ambience driver active (the weather sings)")
+
+
+## WeatherEventService (core/services/weather_event_service.gd): the
+## sun-to-sword seam. Listens to CosmicService sparks + the weather
+## band and stages the world's reaction (stirred packs, aurora mystery
+## windows). Child of the scene so it follows the world's lifecycle
+## (the AmbienceDriver pattern) and stays out of headless boot paths
+## that never load this scene.
+func _setup_weather_events() -> void:
+	var we_script = load("res://core/services/weather_event_service.gd")
+	if we_script == null:
+		return
+	var we := Node3D.new()
+	we.name = "WeatherEvents"
+	we.set_script(we_script)
+	add_child(we)
+	GameLog.info("WorldPlayable: weather events armed (the sky stirs the world)")
 
 
 func _setup_ancient_door() -> void:

@@ -1,8 +1,10 @@
 extends SceneTree
 
-## AudioService smoke test (batch 14): the generated WAVs load, the
-## round-robin pool cycles, unknown names are rejected loudly, and
-## repeated plays never crash the pool. Headless Godot has no audio
+## AudioService smoke test: the generated WAVs load, the round-robin
+## pools cycle, unknown names are rejected loudly, repeated plays never
+## crash the pool, and the weather hookup obeys the audio_layers()
+## contract (loops start/stop with gains, accents arm with storms,
+## clear weather silences everything). Headless Godot has no audio
 ## device -- the API is exercised structurally (no assertion on actual
 ## sound output). Run:
 ##   godot --headless --path . --script res://tests/test_audio_service.gd
@@ -25,6 +27,10 @@ func _initialize() -> void:
 	ok = _test_pool_ready() and ok
 	ok = _test_unknown_rejected() and ok
 	ok = _test_play_all() and ok
+	ok = _test_weather_clear_is_silent() and ok
+	ok = _test_weather_storm_layers() and ok
+	ok = _test_weather_gains_bounded() and ok
+	ok = _test_positional_and_music() and ok
 
 	print("--- AUDIO SERVICE: ok=%s ---" % str(ok))
 	quit(0 if ok else 1)
@@ -78,4 +84,93 @@ func _test_play_all() -> bool:
 			_audio._next, expected, before, plays, _audio._pool.size()])
 		return false
 	print("[OK] all sounds play across the pool; round-robin advances %d -> %d" % [before, _audio._next])
+	return true
+
+
+func _test_positional_and_music() -> bool:
+	# Positional pool exists and accepts both one-shot and accent names.
+	if _audio._positional_pool.size() != _audio.POSITIONAL_POOL_SIZE:
+		push_error("FAIL: positional pool size %d" % _audio._positional_pool.size())
+		return false
+	for p in _audio._positional_pool:
+		if p == null or not is_instance_valid(p):
+			push_error("FAIL: invalid positional pool player")
+			return false
+	_audio.play_at("ancient_door_open", Vector3.ZERO, 0.0)
+	_audio.play_at("thunder", Vector3(10, 0, 10), -4.0)
+	_audio.play_at("not_a_real_sound", Vector3.ZERO)  # warns, no-op
+	# Music contract: missing track warns; stop_music is idempotent.
+	_audio.play_music("no_such_track")
+	_audio.stop_music()
+	print("[OK] positional pool of %d ready; play_at + music contract exercised" % _audio._positional_pool.size())
+	return true
+
+
+## audio_layers() contract: clear weather = soft wind bed ONLY (wind
+## 0.1 -> one quiet loop), no rain/aurora, accents unarmed.
+func _test_weather_clear_is_silent() -> bool:
+	var WeatherScript = load("res://core/frame/srv/weather.gd")
+	var layers: Dictionary = WeatherScript.audio_layers(WeatherScript.STATES[0])
+	_audio.apply_weather(layers)
+	if _audio._loop_players.size() != 1 or not _audio._loop_players.has("wind"):
+		push_error("FAIL: clear weather loops = %s, expected just soft wind" % str(_audio._loop_players.keys()))
+		return false
+	var got: Dictionary = _audio.current_layers()
+	if got.get("wind_loop", -1.0) != layers["wind_loop"]:
+		push_error("FAIL: current_layers() round-trip mismatch")
+		return false
+	if _audio._accents_armed:
+		push_error("FAIL: clear weather armed accents")
+		return false
+	print("[OK] clear weather: soft wind bed only, layers round-trip, accents unarmed")
+	return true
+
+
+## audio_layers() contract: storm = wind+rain loops running, accents
+## armed (timer alive).
+func _test_weather_storm_layers() -> bool:
+	var WeatherScript = load("res://core/frame/srv/weather.gd")
+	var layers: Dictionary = WeatherScript.audio_layers(WeatherScript.STATES[3])
+	_audio.apply_weather(layers)
+	if not _audio._loop_players.has("wind") or not _audio._loop_players.has("rain"):
+		push_error("FAIL: storm did not start wind+rain loops")
+		return false
+	for key in ["wind", "rain"]:
+		var p: AudioStreamPlayer = _audio._loop_players[key]
+		if not is_instance_valid(p):
+			push_error("FAIL: storm loop '%s' invalid" % key)
+			return false
+	if not _audio._accents_armed:
+		push_error("FAIL: storm did not arm the accents")
+		return false
+	print("[OK] storm weather: wind+rain loops live, accents armed")
+	return true
+
+
+## All weather states apply without error and gains stay in [0,1]
+## (clamped before the dB conversion; volume_db finite).
+func _test_weather_gains_bounded() -> bool:
+	var WeatherScript = load("res://core/frame/srv/weather.gd")
+	for state in WeatherScript.STATES:
+		var layers: Dictionary = WeatherScript.audio_layers(state)
+		_audio.apply_weather(layers)
+		for loop_name in _audio._loop_players.keys():
+			var p = _audio._loop_players[loop_name]
+			if not is_instance_valid(p):
+				push_error("FAIL: loop '%s' invalid for state %s" % [loop_name, state.get("name", "?")])
+				return false
+			if is_nan(p.volume_db) or is_inf(p.volume_db):
+				push_error("FAIL: non-finite volume_db for '%s'" % loop_name)
+				return false
+		# Accents armed iff thunder or whistlers present.
+		var want: bool = float(layers.get("thunder_chance", 0.0)) > 0.0 \
+			or bool(layers.get("whistler_enabled", false))
+		if _audio._accents_armed != want:
+			push_error("FAIL: accents armed=%s, contract wants %s (state %s)" % [str(_audio._accents_armed), str(want), state.get("name", "?")])
+			return false
+	_audio.stop_ambience()
+	if _audio._loop_players.size() != 0:
+		push_error("FAIL: stop_ambience left loops running")
+		return false
+	print("[OK] all weather states apply; gains finite; accents track the contract")
 	return true

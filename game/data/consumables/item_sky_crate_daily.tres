@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_sky_crate_daily"
+display_name = "Sky Crate"
+description = "A small Concord crate, sealed with the day's sky-sign. The seal changes when the sky does. Rewarded for one honest gaze a day."
+icon_path = "res://icons/items/crate_sky.png"
+item_category = 3
+rarity = 1
+equip_slot = 0
+stack_size = 5
+sell_price = 10
+buy_price = 0
+required_level = 0
+use_skill_id = ""
+cooldown = 0.0
+duration = 0.0
+buff_effects = []

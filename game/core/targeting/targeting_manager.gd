@@ -5,7 +5,7 @@
 ## - Data-driven via TargetSchema (.tres files)
 ## - Schema caching with memoization
 ## - EventBus integration for entity registration
-## - Action execution with PermissionManager
+## - Action execution with _perm_svc()
 ## - 3D highlight management
 ## - Target history (restore previous)
 extends Node
@@ -15,6 +15,56 @@ extends Node
 # Entity's class_name to be registered at parse time. Preload it
 # here -- no shadow: Entity is a class_name, not an autoload.
 const Entity = preload("res://core/entities/entity.gd")
+
+## Tree-safe GameLog lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+func _hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+
+func _respawn_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("RespawnService")) if tree and tree.root else null
+
+func _chat_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("ChatService")) if tree and tree.root else null
+
+func _party_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PartyService")) if tree and tree.root else null
+
+func _guild_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GuildService")) if tree and tree.root else null
+
+func _friends_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("FriendsService")) if tree and tree.root else null
+
+func _trade_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TradeService")) if tree and tree.root else null
+
+func _duel_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DuelService")) if tree and tree.root else null
+
+func _perm_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+func _admin_cmds() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("AdminCommands")) if tree and tree.root else null
+
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
 
 
 
@@ -186,19 +236,21 @@ func _ready() -> void:
 	# Connect to EventBus for entity registration
 	_connect_eventbus()
 
-	GameLog.info("TargetingManager: Initialized with %d schemas, %d actions" % [
+	var _glt := _glog()
+	if _glt: _glt.info("TargetingManager: Initialized with %d schemas, %d actions" % [
 		_schema_cache.size(), _actions.size()
 	])
 
 func _connect_eventbus() -> void:
-	if EventHub:
+	var hub := _hub()
+	if hub:
 		# Entity events
-		EventHub.entity_spawned.connect(_on_entity_spawned)
-		EventHub.entity_despawned.connect(_on_entity_despawned)
-		EventHub.entity_died.connect(_on_entity_died)
+		hub.entity_spawned.connect(_on_entity_spawned)
+		hub.entity_despawned.connect(_on_entity_despawned)
+		hub.entity_died.connect(_on_entity_died)
 
 		# Combat events
-		EventHub.skill_executed.connect(_on_skill_executed)
+		hub.skill_executed.connect(_on_skill_executed)
 
 ## ============================================================================
 ## SCHEMA LOADING
@@ -211,14 +263,18 @@ func _load_schemas() -> void:
 	# Export-safe scan: the pack stores .tres as .res + .tres.remap.
 	var paths := ResourceScan.list_resources(schema_dir)
 	if paths.is_empty() and DirAccess.open(schema_dir) == null:
-		GameLog.warn("TargetingManager: Cannot open schema directory: " + schema_dir)
+		var _glt := _glog()
+		if _glt:
+			_glt.warn("TargetingManager: Cannot open schema directory: " + schema_dir)
 		return
 	for p in paths:
 		var schema: TargetSchema = load(p)
 		if schema and schema.id != "":
 			_schema_cache[schema.id] = schema
 			_entity_type_to_schema[schema.entity_type] = schema.id
-			GameLog.debug("TargetingManager: Loaded schema: " + schema.id)
+			var _glt := _glog()
+			if _glt:
+				_glt.debug("TargetingManager: Loaded schema: " + schema.id)
 
 ## Get schema by ID (with caching)
 func get_schema(schema_id: String) -> TargetSchema:
@@ -379,22 +435,23 @@ func _register_default_actions() -> void:
 ## ============================================================================
 
 func _action_whisper(source_id: String, target_id: String) -> Dictionary:
-	if ChatService:
-		ChatService.start_whisper(target_id)
+	if _chat_svc():
+		_chat_svc().start_whisper(target_id)
 		return {"success": true, "message": "Opening whisper with %s" % target_id}
 	return {"success": false, "message": "Chat service unavailable"}
 
 func _action_invite_party(source_id: String, target_id: String) -> Dictionary:
-	if PartyService:
-		var result: bool = PartyService.invite_player(source_id, target_id)
+	if _party_svc():
+		var party := _party_svc()
+		var result: bool = party.invite_player(source_id, target_id)
 		if result:
 			return {"success": true, "message": "Party invite sent to %s" % target_id}
 		return {"success": false, "message": "Failed to invite %s to party" % target_id}
 	return {"success": false, "message": "Party service unavailable"}
 
 func _action_invite_guild(source_id: String, target_id: String) -> Dictionary:
-	if GuildService:
-		var result: bool = GuildService.invite_player(source_id, target_id)
+	if _guild_svc():
+		var result: bool = _guild_svc().invite_player(source_id, target_id)
 		if result:
 			return {"success": true, "message": "Guild invite sent to %s" % target_id}
 		return {"success": false, "message": "Failed to invite %s to guild" % target_id}
@@ -404,8 +461,8 @@ func _action_add_friend(_source_id: String, target_id: String) -> Dictionary:
 	return {"success": true, "message": "Friend request sent to %s" % target_id}
 
 func _action_ignore(source_id: String, target_id: String) -> Dictionary:
-	if ChatService:
-		ChatService.ignore_player(source_id, target_id)
+	if _chat_svc():
+		_chat_svc().ignore_player(source_id, target_id)
 		return {"success": true, "message": "%s ignored" % target_id}
 	return {"success": false, "message": "Chat service unavailable"}
 
@@ -416,31 +473,31 @@ func _action_trade(_source_id: String, target_id: String) -> Dictionary:
 	return {"success": true, "message": "Trade request sent to %s" % target_id}
 
 func _action_mute(source_id: String, target_id: String) -> Dictionary:
-	if PermissionManager:
-		return PermissionManager.mute(source_id, target_id, 300)
+	if _perm_svc():
+		return _perm_svc().mute(source_id, target_id, 300)
 	return {"success": false, "message": "Permission manager unavailable"}
 
 func _action_kick(source_id: String, target_id: String) -> Dictionary:
-	if PermissionManager:
-		return PermissionManager.kick(source_id, target_id, "Kicked by %s" % source_id)
+	if _perm_svc():
+		return _perm_svc().kick(source_id, target_id, "Kicked by %s" % source_id)
 	return {"success": false, "message": "Permission manager unavailable"}
 
 func _action_lookup(source_id: String, target_id: String) -> Dictionary:
-	if PermissionManager:
-		var result := PermissionManager.lookup_player(source_id, target_id)
+	if _perm_svc():
+		var result = _perm_svc().lookup_player(source_id, target_id)
 		if result.success:
 			return {"success": true, "message": "Player info retrieved", "data": result.info}
 		return result
 	return {"success": false, "message": "Permission manager unavailable"}
 
 func _action_ban(source_id: String, target_id: String) -> Dictionary:
-	if PermissionManager:
-		return PermissionManager.ban(source_id, target_id, -1, "Banned by %s" % source_id)
+	if _perm_svc():
+		return _perm_svc().ban(source_id, target_id, -1, "Banned by %s" % source_id)
 	return {"success": false, "message": "Permission manager unavailable"}
 
 func _action_restrict(source_id: String, target_id: String) -> Dictionary:
-	if PermissionManager:
-		return PermissionManager.restrict(source_id, target_id, "all", 3600, "Restricted by %s" % source_id)
+	if _perm_svc():
+		return _perm_svc().restrict(source_id, target_id, "all", 3600, "Restricted by %s" % source_id)
 	return {"success": false, "message": "Permission manager unavailable"}
 
 func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
@@ -467,15 +524,15 @@ func _action_resurrect(source_id: String, target_id: String) -> Dictionary:
 	if player_level < mod_level:
 		return {"success": false, "message": "Permission denied"}
 
-	# Perform resurrection via AdminCommands
-	if AdminCommands:
-		var result = AdminCommands._do_resurrect(target_entity, 1.0, 1.0)
+	# Perform resurrection via _admin_cmds()
+	if _admin_cmds():
+		var result = _admin_cmds()._do_resurrect(target_entity, 1.0, 1.0)
 		if result.get("success", false):
 			return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
 		else:
 			return {"success": false, "message": result.get("reason", "Failed to resurrect")}
 
-	# Fallback if AdminCommands not available
+	# Fallback if _admin_cmds() not available
 	_do_resurrect_fallback(target_entity)
 	return {"success": true, "message": "Resurrected %s" % target_entity.display_name}
 
@@ -494,9 +551,11 @@ func _do_resurrect_fallback(entity) -> void:
 
 	# Clear death state
 	entity.health_component.respawned.emit()
-	EventHub.entity_spawned.emit(entity, null)
-	EventHub.player_resurrected.emit(entity, "tooltip_action")
-	EventHub.player_respawned.emit(entity, entity.global_position, RespawnService.RespawnMode.REVIVE)
+	var hub := _hub()
+	if hub:
+		hub.emit_signal("entity_spawned", entity, null)
+		hub.emit_signal("player_resurrected", entity, "tooltip_action")
+		hub.emit_signal("player_respawned", entity, entity.global_position, _respawn_svc().RespawnMode.REVIVE)
 
 func _action_talk(_source_id: String, _target_id: String) -> Dictionary:
 	return {"success": true, "message": "Opening dialogue", "action": "open_dialogue"}
@@ -1075,13 +1134,13 @@ func _add_to_history(target: TargetInfo) -> void:
 func _get_player_permission_level() -> int:
 	if _local_player_id == "":
 		return 0
-	if PermissionManager:
-		return PermissionManager.get_player_level(_local_player_id)
+	if _perm_svc():
+		return _perm_svc().get_player_level(_local_player_id)
 	return 0
 
 func _is_target_online(target_id: String) -> bool:
-	if PlayerManager:
-		return PlayerManager.is_player_online(target_id)
+	if _pm():
+		return _pm().is_player_online(target_id)
 	return false
 
 func _infer_schema_id(entity: Node) -> String:

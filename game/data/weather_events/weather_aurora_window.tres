@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeatherEventData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/weather_event_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "aurora_window"
+display_name = "Aurora Window"
+trigger_kinds = Array[int]([2])
+band_names = Array[String]([])
+aurora_min = 0.5
+cooldown_sec = 600.0
+zone_ids = Array[String]([])
+stir_horde_config = ""
+stir_waves = 2
+open_window_sec = 1800.0
+notify_message = "An aurora unfolds — the sky is writing. Something may be answered."

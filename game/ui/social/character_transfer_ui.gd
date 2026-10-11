@@ -1,7 +1,17 @@
-## CharacterTransferUI - Quick transfer between own characters
-## Migrated onto UIPanel base class.
+
+
+
 extends "res://ui/components/ui_panel.gd"
 class_name CharacterTransferUI
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _sameaccounttransferservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SameAccountTransferService")) if tree and tree.root else null
+
+## CharacterTransferUI - Quick transfer between own characters
+## Migrated onto UIPanel base class.
 var _targets_list: ItemList
 var _gold_input: SpinBox
 var _transfer_btn: Button
@@ -17,20 +27,20 @@ func _ready() -> void:
 
 
 func _bind_service_signals() -> void:
-	if not SameAccountTransferService:
+	if not _sameaccounttransferservice():
 		return
-	if SameAccountTransferService.has_signal("transfer_completed"):
-		if not SameAccountTransferService.transfer_completed.is_connected(_on_transfer_completed):
-			SameAccountTransferService.transfer_completed.connect(_on_transfer_completed)
-	if SameAccountTransferService.has_signal("transfer_cancelled"):
-		if not SameAccountTransferService.transfer_cancelled.is_connected(_on_transfer_cancelled):
-			SameAccountTransferService.transfer_cancelled.connect(_on_transfer_cancelled)
-	if SameAccountTransferService.has_signal("transfer_limit_reached"):
-		if not SameAccountTransferService.transfer_limit_reached.is_connected(_on_transfer_limit_reached):
-			SameAccountTransferService.transfer_limit_reached.connect(_on_transfer_limit_reached)
-	if SameAccountTransferService.has_signal("cooldown_active"):
-		if not SameAccountTransferService.cooldown_active.is_connected(_on_cooldown_active):
-			SameAccountTransferService.cooldown_active.connect(_on_cooldown_active)
+	if _sameaccounttransferservice().has_signal("transfer_completed"):
+		if not _sameaccounttransferservice().transfer_completed.is_connected(_on_transfer_completed):
+			_sameaccounttransferservice().transfer_completed.connect(_on_transfer_completed)
+	if _sameaccounttransferservice().has_signal("transfer_cancelled"):
+		if not _sameaccounttransferservice().transfer_cancelled.is_connected(_on_transfer_cancelled):
+			_sameaccounttransferservice().transfer_cancelled.connect(_on_transfer_cancelled)
+	if _sameaccounttransferservice().has_signal("transfer_limit_reached"):
+		if not _sameaccounttransferservice().transfer_limit_reached.is_connected(_on_transfer_limit_reached):
+			_sameaccounttransferservice().transfer_limit_reached.connect(_on_transfer_limit_reached)
+	if _sameaccounttransferservice().has_signal("cooldown_active"):
+		if not _sameaccounttransferservice().cooldown_active.is_connected(_on_cooldown_active):
+			_sameaccounttransferservice().cooldown_active.connect(_on_cooldown_active)
 
 
 func _on_transfer_completed(_from: String, _to: String, _gold: int, _items: Array) -> void:
@@ -154,11 +164,11 @@ func _refresh_targets() -> void:
 		return
 	_targets_list.clear()
 
-	if not SameAccountTransferService:
+	if not _sameaccounttransferservice():
 		_targets_list.add_item("Service not available")
 		return
 
-	var targets: Array = SameAccountTransferService.get_transfer_targets(_player_id)
+	var targets: Array = _sameaccounttransferservice().get_transfer_targets(_player_id)
 	if targets.is_empty():
 		_targets_list.add_item("No other characters found")
 		return
@@ -172,10 +182,10 @@ func _refresh_targets() -> void:
 		_targets_list.add_item("%s%s (Lv.%d)" % [status, tname, level])
 
 func _update_cooldown() -> void:
-	if not SameAccountTransferService or not _cooldown_label:
+	if not _sameaccounttransferservice() or not _cooldown_label:
 		return
 
-	var cooldown: int = SameAccountTransferService.get_cooldown_remaining(_player_id)
+	var cooldown: int = _sameaccounttransferservice().get_cooldown_remaining(_player_id)
 	if cooldown > 0:
 		_cooldown_label.text = "Cooldown: %d seconds" % cooldown
 		_transfer_btn.disabled = true
@@ -187,25 +197,25 @@ func _update_limits() -> void:
 	if not _limits_label:
 		return
 
-	if not SameAccountTransferService:
+	if not _sameaccounttransferservice():
 		_limits_label.text = ""
 		return
 
-	var remaining: Dictionary = SameAccountTransferService.get_remaining_limits(_player_id)
+	var remaining: Dictionary = _sameaccounttransferservice().get_remaining_limits(_player_id)
 	_limits_label.text = "Daily: %d gold, %d items remaining" % [
 		remaining.get("gold_remaining", 0),
 		remaining.get("items_remaining", 0)
 	]
 
 func _on_transfer() -> void:
-	if not SameAccountTransferService:
+	if not _sameaccounttransferservice():
 		return
 	var selected: PackedInt32Array = _targets_list.get_selected_items()
 	if selected.is_empty():
 		show_notification("Please select a target character")
 		return
 
-	var targets: Array = SameAccountTransferService.get_transfer_targets(_player_id)
+	var targets: Array = _sameaccounttransferservice().get_transfer_targets(_player_id)
 	var idx: int = selected[0]
 	if idx >= targets.size():
 		show_notification("Invalid target selection")
@@ -215,7 +225,7 @@ func _on_transfer() -> void:
 	var target_id: String = target.get("id", "")
 	var gold: int = int(_gold_input.value)
 
-	var result: Dictionary = SameAccountTransferService.transfer(_player_id, target_id, gold, [])
+	var result: Dictionary = _sameaccounttransferservice().transfer(_player_id, target_id, gold, [])
 
 	if result.get("success", false):
 		show_notification("Transfer complete!", true)
@@ -223,6 +233,7 @@ func _on_transfer() -> void:
 		_update_limits()
 	else:
 		show_notification("Transfer failed: " + result.get("message", ""))
+
 
 func show_notification(message: String, success: bool = false) -> void:
 	var notif := Label.new()

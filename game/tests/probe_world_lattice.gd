@@ -376,6 +376,37 @@ func _run() -> void:
 		moon_w.spin_period_days = 0.0
 		_check("lock restored", WR.parent_beat_period_days(moon_w) < 0.0)
 
+		# The CME-shield theorem (the moon as a physical windbreak).
+		# A CME blows anti-solar: the moon shields `main` only when it
+		# stands in the windward lobe (orbital angle aligned with the
+		# anti-solar azimuth on its inclined plane). Penumbra half-width
+		# is the angular size asin(radius_m / orbit_radius_m).
+		var shield_w = reg.get_world("moon")
+		var penumbra: float = asin(1200.0 / 90000.0)
+		# Apex table for world_moon.tres (P = 8 d, phase = 0.7): at
+		# epoch 0 the orbital angle EQUALS the phase -- that is the
+		# sunward apex, wind fully in the face (factor 1). Half a
+		# period later the angle is phase + PI -- the anti-solar
+		# apex, moon square in the stream (factor 0). The penumbra
+		# half-width is the angular size asin(radius/orbit_radius).
+		var e_shield: float = float(shield_w.orbit_period_days) * 0.5
+		var e_clear: float = 0.0
+		var f_shield: float = WR.cme_shield_factor(shield_w, e_shield)
+		var f_clear: float = WR.cme_shield_factor(shield_w, e_clear)
+		_check("windward moon shields fully (factor ~0)", absf(f_shield) < 0.02)
+		_check("sunward moon is no shield (factor 1)", f_clear == 1.0)
+		# One penumbra-width off the anti-solar apex: convert the ANGLE
+		# to an epoch offset via the orbital rate (TAU / P radians per
+		# day), we expect the factor to have fully opened (>= 1 - eps).
+		var e_open: float = e_shield + penumbra * float(shield_w.orbit_period_days) / TAU
+		var f_open: float = WR.cme_shield_factor(shield_w, e_open)
+		_check("one penumbra out, the wind is back (factor ~1)", f_open > 0.999)
+		_check("shield is a pure function of the epoch", \
+			f_shield == WR.cme_shield_factor(shield_w, e_shield))
+		_check("static / null bodies never shield (factor 1)", \
+			WR.cme_shield_factor(reg.get_world("main"), 1.0) == 1.0 \
+			and WR.cme_shield_factor(null, 1.0) == 1.0)
+
 		# The honest sky: the disc hangs at the closed-form direction.
 		var PSS: GDScript = load("res://entities/parent_sky.gd")
 		_check("parent_sky.gd loads", PSS != null)
@@ -389,6 +420,56 @@ func _run() -> void:
 			_check("parent disc built and hung in the sky", \
 				disc != null and disc.visible and (disc.position as Vector3).length() > 7000.0)
 			sky.queue_free()
+
+	# ---- H2. The moon in Synmergia's sky (SkyMoon entity) -------------------
+	var SMScript: GDScript = load("res://entities/sky_moon.gd")
+	_check("sky_moon.gd loads", SMScript != null)
+	if SMScript != null:
+		var sky_moon = SMScript.new()
+		root.add_child(sky_moon)
+		await process_frame
+		await process_frame
+		var mdisc = sky_moon.get_node_or_null("MoonDisc")
+		var mlight = sky_moon.get_node_or_null("MoonLight")
+		_check("moon disc + moonlight built", mdisc != null and mlight != null)
+		_check("moon disc hung at entity distance", \
+			mdisc != null and mdisc.visible and absf((mdisc.position as Vector3).length() - 260.0) < 0.5)
+		# Phase law: at epoch P/2 the moon is 0.35*0.63 rad past the sun's
+		# NEAR-sun apex (epoch 0: orbital angle == phase == sun_angle=0 is
+		# WRONG here -- the sun angle reads the DAY fraction, orbit angle
+		# the period). Drive the pure methods directly: two epochs half a
+		# period apart must disagree (the moon moves), and the lit
+		# fraction must span (0,1] across the period.
+		var Pm: float = 8.0
+		var sm_early: float = sky_moon._lit_fraction(moon, 0.3)
+		var sm_late: float = sky_moon._lit_fraction(moon, 0.3 + Pm * 0.5)
+		_check("moon moves across half a period (phase differs)", \
+			not is_equal_approx(sm_early, sm_late))
+		_check("lit fraction stays a fraction", sm_early >= 0.0 and sm_early <= 1.0 and sm_late >= 0.0 and sm_late <= 1.0)
+		_check("synodic phase is periodic (one lap returns)", \
+			is_equal_approx(sky_moon._lit_fraction(moon, 0.3 + Pm), sm_early))
+		# Moonlight pins to the phase x the night curve: bounded [0, ceel].
+		var energy := float(mlight.light_energy)
+		_check("moonlight bounded on the live clock", energy >= 0.0 and energy <= 0.35001)
+		# Terminal law: the disc rides the TERMINATOR SHADER (world-
+		# normal x sun-dir geometry, not a mirrored emission knob) and
+		# the shader's sun_dir parameter tracks the epoch's arc.
+		var tmat: ShaderMaterial = mdisc.mesh.material if mdisc.mesh != null else null
+		_check("moon disc carries the terminator ShaderMaterial", \
+			tmat != null and tmat.shader != null)
+		if tmat != null:
+			var sd_t0: Vector3 = tmat.get_shader_parameter("sun_dir")
+			sky_moon._update_terminator(0.25)   # noon phase: sun overhead, tilted south
+			var sd_noon: Vector3 = tmat.get_shader_parameter("sun_dir")
+			sky_moon._update_terminator(0.5)    # dusk: sun west
+			var sd_dusk: Vector3 = tmat.get_shader_parameter("sun_dir")
+			_check("terminator sun_dir tracks the epoch arc", \
+				sd_noon.length() > 0.99 and not sd_noon.is_equal_approx(sd_dusk) \
+				and not sd_t0.is_equal_approx(sd_noon))
+			_check("terminator keeps earthshine params", \
+				float(tmat.get_shader_parameter("night_floor")) >= 0.09 \
+				and float(tmat.get_shader_parameter("lit_gain")) > 1.0)
+		sky_moon.queue_free()
 
 	# ---- I. Transfer windows at the gate (S16.5) ----------------------------
 	# The window law layers onto the entry law: entry first (does the

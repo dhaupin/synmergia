@@ -73,14 +73,37 @@ func _run() -> void:
 
 	player.auto_walk = true
 	var waited: float = 0.0
-	var last_face: int = start_face
-	while streamer.current_face == start_face and waited < 45.0:
-		await root.get_tree().physics_frame
-		waited += 1.0 / 60.0
+	var crossed := false
+	var walked_to_cross: float = 0.0
+	# SEED-ROBUST LAW (the v3 ruleset re-derives rocks/trees, so a re-
+	# rolled boulder CAN sit in the straight path on a 30 m prototype
+	# face): the walk tries a small fan of headings, one after another,
+	# until the face boundary swaps under the player OR the clock runs
+	# out. The pin is the FLOW LAW (crossing swaps the stale set), not
+	# "the seed placed no tree at lat 19.4712".
+	for _heading in range(9):
+		# Steer: the prototype walker walks its own facing; nudge it by
+		# rotating the target around the planet axis via a position
+		# teleport to a heading-perturbed point INSIDE the same face.
+		if _heading > 0:
+			var cur: Vector3 = player.global_position
+			var perturbed: Vector3 = cur.rotated(Vector3(0, 1, 0), float(_heading) * 0.18) \
+				.normalized() * cur.length()
+			player.global_position = perturbed
+			player.velocity = Vector3.ZERO
+			await root.get_tree().physics_frame
+		player.auto_walk = true
+		var last_face: int = streamer.current_face
+		waited = 0.0
+		while streamer.current_face == last_face and waited < 6.0:
+			await root.get_tree().physics_frame
+			waited += 1.0 / 60.0
+		walked_to_cross += player.path_walked
+		if streamer.current_face != last_face:
+			crossed = true
+			break
 	player.auto_walk = false
-	var walked_to_cross: float = player.path_walked
-	var crossed: bool = streamer.current_face != start_face
-	ok = _check("face crossed in %.1f m (face %d -> %d)" % [walked_to_cross, start_face, streamer.current_face], crossed) and ok
+	ok = _check("face crossed within %d m across heading fan (face %d -> %d)" % [int(walked_to_cross), start_face, streamer.current_face], crossed) and ok
 
 	# The stale set changed: old face far from the new one is gone.
 	var after_set: Array = _globe.stream_active_faces()
@@ -91,6 +114,18 @@ func _run() -> void:
 	ok = _check("stale patch unloaded on crossing", changed) and ok
 	ok = _check("steady state holds 4 patches (got %d)" % _globe.stream_active_faces().size(), \
 		_globe.stream_active_faces().size() == 4) and ok
+
+	# TERRAIN LOD (the NEAR law): after a mid-face crossing point on a
+	# 100 m prototype knob... the prototype is TERRAIN OFF, so the
+	# lean must be level-neutral there. The planet-scale demotion is
+	# pinned by probe_terrain_planet via the mesh-vertex spacing; here
+	# we pin that terrain_off keeps every patch at the base level.
+	var base_lvl: int = streamer._level_for_edge()
+	var lvl_ok := true
+	for f in streamer.active_faces():
+		if int(streamer._patch_lvl.get(f, -1)) != base_lvl:
+			lvl_ok = false
+	ok = _check("terrain-off globe keeps uniform detail (LOD dormant)", lvl_ok) and ok
 	ok = _check("current face is loaded", streamer.is_loaded(streamer.current_face)) and ok
 	_shoot("stream_stage2")
 
@@ -109,6 +144,56 @@ func _run() -> void:
 	ok = _check("all 20 faces stream (4-patch steady state)", sweep_ok) and ok
 
 	ProjectSettings.set_setting("synmergia/world/planet_radius", 20000.0)
+
+	# --- Tie-together: the seeded continent walks the FULL LOD path. --
+	# Boot a planet-scale globe (terrain on), then traverse ALL 20 face
+	# centers through the live update() one frame apart: this drives
+	# cold spawns, cross-face hot swaps (demote+promote), the skirt
+	# taper, and the prop-holder graft in one pass with the REAL
+	# heightfield. Assertions per stop: the walk law the faces serve
+	# equals the analytic law at that face's center (one ground truth
+	# with no cracks), and the props that streamed in SURVIVE their
+	# own face's unload/reload cycles (no corpses in the audit).
+	var packed_big: PackedScene = load(GLOBE_SCENE)
+	var globe_big: Node3D = packed_big.instantiate()
+	root.add_child(globe_big)
+	await root.get_tree().process_frame
+	await root.get_tree().physics_frame
+	var st_big = globe_big.get("streamer")
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	var seed_big: PackedByteArray = st_big.world_seed
+	var tie_ok := true
+	var live_rocks := 0
+	var stale_refs := 0
+	for f in range(F.face_count()):
+		var cdir: Vector3 = F.face_center(f)
+		st_big.update(cdir * 20000.0)
+		await root.get_tree().physics_frame
+		# One ground truth: the streamed walk law at this face's center
+		# equals the analytic heightfield + its rocks (LOD or not).
+		var streamed_h: float = st_big.walk_surface_h(cdir)
+		var law_h: float = Gen.terrain_height(cdir, seed_big) + Gen.rock_top_height(cdir, seed_big, f, 20000.0)
+		if absf(streamed_h - law_h) > 0.01:
+			tie_ok = false
+			print("TIE-FAIL face=%d streamed=%.3f law=%.3f" % [f, streamed_h, law_h])
+		# Audit the whole walk so far: no freed refs anywhere.
+		for fa in st_big.active_faces():
+			for r in (st_big._patch_rocks.get(fa, []) as Array):
+				live_rocks += 1
+				if not is_instance_valid(r):
+					stale_refs += 1
+	var totals: Array = [live_rocks, stale_refs]
+	ok = _check("continent walk: analysis == streamed ground law on all 20 faces", tie_ok) and ok
+	ok = _check("continent walk: %d live rocks, %d stale refs after the full hot-path traversal" % totals, \
+		stale_refs == 0 and live_rocks > 0) and ok
+	var surfaces_ok := true
+	for fa in st_big.active_faces():
+		var mi_f: MeshInstance3D = st_big._patches.get(fa)
+		if mi_f == null or mi_f.mesh == null or mi_f.mesh.get_surface_count() != 2:
+			surfaces_ok = false
+	ok = _check("continent walk: ground + skirt surfaces on every streamed face", surfaces_ok) and ok
+	globe_big.queue_free()
+	await root.get_tree().process_frame
 	if not ok:
 		push_error("TERRAIN STREAM PROBE FAILED")
 	quit(0 if ok else 1)

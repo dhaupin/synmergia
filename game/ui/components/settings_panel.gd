@@ -13,6 +13,24 @@ enum Category {
 	ACCESSIBILITY = 4,
 	SOCIAL = 5
 }
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _player_config() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerConfig")) if tree and tree.root else null
+
+func _event_hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+
+func _input_manager() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InputManager")) if tree and tree.root else null
+
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 
 const MenuManagerScript = preload("res://ui/components/menu_manager.gd")
 
@@ -50,7 +68,7 @@ func _ready() -> void:
 	set_title("Settings")
 	set_panel_size(Vector2(700, 550))
 	_setup_ui()
-	if PlayerConfig:
+	if _player_config():
 		_load_from_config()
 	_apply_current_settings()
 	_adopt_into_menu_manager()
@@ -204,7 +222,7 @@ func _create_slider_row(setting_key: String, label_text: String, min_val: float,
 	slider.max_value = max_val
 	# Hydrate from PlayerConfig so the panel shows the SAVED value, not
 	# the hardcoded default (a saved 2.5 sensitivity used to render 1.0).
-	var saved: Variant = PlayerConfig.get_account_setting(setting_key, default_val) if PlayerConfig else default_val
+	var saved: Variant = _player_config().get_account_setting(setting_key, default_val) if _player_config() else default_val
 	slider.value = clampf(float(saved), min_val, max_val)
 	slider.step = step
 	slider.custom_minimum_size.x = 200
@@ -224,7 +242,7 @@ func _create_slider_row(setting_key: String, label_text: String, min_val: float,
 func _create_toggle_row(setting_key: String, label_text: String, default_val: bool, tooltip: String = "") -> HBoxContainer:
 	var row := _create_setting_row(label_text, tooltip)
 	var toggle := CheckButton.new()
-	toggle.button_pressed = bool(PlayerConfig.get_account_setting(setting_key, default_val)) if PlayerConfig else default_val
+	toggle.button_pressed = bool(_player_config().get_account_setting(setting_key, default_val)) if _player_config() else default_val
 	toggle.toggled.connect(_on_toggle_changed.bind(setting_key))
 	row.add_child(toggle)
 	_setting_controls[setting_key] = {"type": "toggle", "control": toggle}
@@ -240,7 +258,7 @@ func _create_dropdown_row(setting_key: String, label_text: String, options: Arra
 	# the hardcoded default (sliders/toggles already did this; dropdowns
 	# always rendered default_idx until reopened via _load_from_config,
 	# and never hydrate if that key has no saved value).
-	var saved: Variant = PlayerConfig.get_account_setting(setting_key, default_idx) if PlayerConfig else default_idx
+	var saved: Variant = _player_config().get_account_setting(setting_key, default_idx) if _player_config() else default_idx
 	var sel := int(saved) if saved != null else default_idx
 	dropdown.selected = clampi(sel, 0, maxi(options.size() - 1, 0))
 	dropdown.custom_minimum_size.x = 200
@@ -423,8 +441,8 @@ func _apply_keybind_remap(new_key: int) -> void:
 	data.button.add_theme_color_override("font_color", UIStyles.COLORS.text_primary)
 	data.button.button_pressed = false
 
-	if PlayerConfig:
-		PlayerConfig.set_account_setting(_remapping_action, new_key, false)
+	if _player_config():
+		_player_config().set_account_setting(_remapping_action, new_key, false)
 
 	_remapping_action = ""
 	_remap_button = null
@@ -445,7 +463,7 @@ func _load_from_config() -> void:
 		var ctrl = info.get("control")
 		if not ctrl:
 			continue
-		var val = PlayerConfig.get_account_setting(key)
+		var val = _player_config().get_account_setting(key)
 		if val == null:
 			continue
 		match info.get("type"):
@@ -473,8 +491,8 @@ func _load_from_config() -> void:
 						var idx := opts.find(val)
 						ctrl.selected = idx if idx >= 0 else ctrl.selected
 						# Persist the coerced index so the next load is clean.
-						if idx >= 0 and PlayerConfig:
-							PlayerConfig.set_account_setting(key, idx, true)
+						if idx >= 0 and _player_config():
+							_player_config().set_account_setting(key, idx, true)
 			"keybind":
 				if ctrl is Button:
 					var kb_data: Dictionary = _keybind_actions.get(key, {})
@@ -489,8 +507,8 @@ func _apply_current_settings() -> void:
 	_apply_high_contrast()
 
 func _on_slider_changed(value: float, key: String) -> void:
-	if PlayerConfig:
-		PlayerConfig.set_account_setting(key, value, false)
+	if _player_config():
+		_player_config().set_account_setting(key, value, false)
 	var info: Dictionary = _setting_controls.get(key, {})
 	var lbl = info.get("label")
 	var fmt: String = info.get("format", "%.2f")
@@ -503,8 +521,8 @@ func _on_slider_changed(value: float, key: String) -> void:
 		_apply_text_scale()
 
 func _on_toggle_changed(value: bool, key: String) -> void:
-	if PlayerConfig:
-		PlayerConfig.set_account_setting(key, value, false)
+	if _player_config():
+		_player_config().set_account_setting(key, value, false)
 
 	if key == "colorblind_mode":
 		_apply_colorblind_shader()
@@ -516,20 +534,20 @@ func _on_toggle_changed(value: bool, key: String) -> void:
 		_apply_screen_shake()
 	elif key == "touch_controls":
 		# Live-apply: show/hide the touch HUD immediately.
-		if InputManager:
-			InputManager.set_touch_ui_visible(value)
+		if _input_manager():
+			_input_manager().set_touch_ui_visible(value)
 
 func _on_dropdown_changed(index: int, key: String) -> void:
-	if PlayerConfig:
-		PlayerConfig.set_account_setting(key, index, false)
+	if _player_config():
+		_player_config().set_account_setting(key, index, false)
 
 	if key == "colorblind_type":
 		_apply_colorblind_shader()
 
 func _apply_ui_scale() -> void:
-	if PlayerConfig == null:
+	if _player_config() == null:
 		return
-	var scale: float = PlayerConfig.get_account_setting("ui_scale", 1.0)
+	var scale: float = _player_config().get_account_setting("ui_scale", 1.0)
 	if scale < 0.75:
 		scale = 0.75
 	elif scale > 1.5:
@@ -547,9 +565,9 @@ func _apply_ui_scale() -> void:
 		root.content_scale_factor = scale
 
 func _apply_text_scale() -> void:
-	if PlayerConfig == null:
+	if _player_config() == null:
 		return
-	var scale: float = PlayerConfig.get_account_setting("ui_text_scale", 1.0)
+	var scale: float = _player_config().get_account_setting("ui_text_scale", 1.0)
 	if scale < 0.8:
 		scale = 0.8
 	elif scale > 1.5:
@@ -557,55 +575,55 @@ func _apply_text_scale() -> void:
 	
 	# Broadcast text scale change to all UI components
 	# Components that listen for this will update themselves
-	if EventHub:
-		EventHub.emit_signal("accessibility_text_scale_changed", scale)
+	if _event_hub():
+		_event_hub().emit_signal("accessibility_text_scale_changed", scale)
 
 func _apply_colorblind_shader() -> void:
-	if PlayerConfig == null:
+	if _player_config() == null:
 		return
-	var enabled: bool = PlayerConfig.get_account_setting("colorblind_mode", false)
-	var type_idx: int = PlayerConfig.get_account_setting("colorblind_type", 0)
+	var enabled: bool = _player_config().get_account_setting("colorblind_mode", false)
+	var type_idx: int = _player_config().get_account_setting("colorblind_type", 0)
 	
 	## Shader application would go here
 	## For now we just store the setting; actual shader application
 	## requires a ShaderMaterial on the viewport or CanvasLayer
 	if enabled:
 		var mode_names := ["Deuteranopia", "Protanopia", "Tritanopia"]
-		GameLog.info("Colorblind mode: %s" % mode_names[type_idx])
+		_glog().info("Colorblind mode: %s" % mode_names[type_idx])
 	else:
-		GameLog.info("Colorblind mode: Off")
+		_glog().info("Colorblind mode: Off")
 
 func _apply_reduce_motion() -> void:
-	if PlayerConfig == null:
+	if _player_config() == null:
 		return
-	var enabled: bool = PlayerConfig.get_account_setting("reduce_motion", false)
+	var enabled: bool = _player_config().get_account_setting("reduce_motion", false)
 	if enabled:
-		GameLog.info("Reduce motion: Enabled (disabling UI animations)")
+		_glog().info("Reduce motion: Enabled (disabling UI animations)")
 	else:
-		GameLog.info("Reduce motion: Disabled")
+		_glog().info("Reduce motion: Disabled")
 	
 	# Broadcast reduce motion change to all UI components
-	if EventHub:
-		EventHub.emit_signal("accessibility_reduce_motion_changed", enabled)
+	if _event_hub():
+		_event_hub().emit_signal("accessibility_reduce_motion_changed", enabled)
 
 func _apply_high_contrast() -> void:
-	if PlayerConfig == null:
+	if _player_config() == null:
 		return
-	var enabled: bool = PlayerConfig.get_account_setting("high_contrast", false)
+	var enabled: bool = _player_config().get_account_setting("high_contrast", false)
 	if enabled:
-		GameLog.info("High contrast: Enabled")
+		_glog().info("High contrast: Enabled")
 	else:
-		GameLog.info("High contrast: Disabled")
+		_glog().info("High contrast: Disabled")
 	
 	# Broadcast high contrast change to all UI components
-	if EventHub:
-		EventHub.emit_signal("accessibility_high_contrast_changed", enabled)
+	if _event_hub():
+		_event_hub().emit_signal("accessibility_high_contrast_changed", enabled)
 
 func _apply_screen_shake() -> void:
-	if PlayerConfig == null:
+	if _player_config() == null:
 		return
-	var enabled: bool = PlayerConfig.get_account_setting("screen_shake", true)
-	GameLog.info("Screen shake: %s" % ("Enabled" if enabled else "Disabled"))
+	var enabled: bool = _player_config().get_account_setting("screen_shake", true)
+	_glog().info("Screen shake: %s" % ("Enabled" if enabled else "Disabled"))
 
 func _populate_graphics_settings(parent: VBoxContainer) -> void:
 	var scroll := ScrollContainer.new()
@@ -714,7 +732,7 @@ func _populate_controls_settings(parent: VBoxContainer) -> void:
 	section2.add_theme_font_size_override("font_size", 14)
 	content.add_child(section2)
 
-	content.add_child(_create_toggle_row("touch_controls", "On-screen Controls (touch HUD)", InputManager.is_mobile() if InputManager else false))
+	content.add_child(_create_toggle_row("touch_controls", "On-screen Controls (touch HUD)", _input_manager().is_mobile() if _input_manager() else false))
 
 	var touch_hint := Label.new()
 	touch_hint.text = "COD-style stick (left half), camera look (right half), action cluster with editable layout. Hold ATK to auto-repeat; hold full stick to auto-sprint."
@@ -919,9 +937,9 @@ func _populate_social_settings(parent: VBoxContainer) -> void:
 	content.add_child(_create_toggle_row("notify_achievement", "Achievement Alerts", true))
 
 func _on_save() -> void:
-	if PlayerConfig:
-		PlayerConfig.save_account_settings()
-		GameLog.info("SettingsPanel: Settings saved to PlayerConfig")
+	if _player_config():
+		_player_config().save_account_settings()
+		_glog().info("SettingsPanel: Settings saved to PlayerConfig")
 	show_notification("Settings saved")
 	close()
 
@@ -931,8 +949,8 @@ func _on_cancel() -> void:
 	close()
 
 func _on_defaults() -> void:
-	if PlayerConfig:
-		PlayerConfig.reset_account_settings()
+	if _player_config():
+		_player_config().reset_account_settings()
 	_load_from_config()
 	_apply_current_settings()
 	show_notification("Settings reset to defaults")

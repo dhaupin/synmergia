@@ -54,6 +54,21 @@ var inventory_component = null
 ## PLAYER near the world origin (floating origin); the planet moves.
 ## All radial quantities derive from (global_position - planet_center).
 var planet_center: Vector3 = Vector3.ZERO
+## HEALTH + MANA (the planar controller's law, line-for-line): the
+## TickService regen step sweeps every registered entity's health/
+## mana fields, and the globe body had neither -- the first tick with
+## a globe body registered (the lattice probe leaves `gate_walker` in
+## EntityService) used to print a script error and skip the sweep.
+## The component owns the damage/heal path; the fields mirror it for
+## the service's direct reads (the same dual-store the planar body
+## keeps -- R37 audit).
+var health_component: HealthComponent = null
+var max_health: int = 100
+var current_health: int = 100
+var current_mana: int = 100
+var max_mana: int = 100
+signal health_changed(current: int, maximum: int, delta: int)
+signal mana_changed(current: int, maximum: int)
 ## S8: height of the WALKABLE SURFACE above planet_radius. Zero for
 ## the bare shell; the streamed patch tiles sit TILE_LIFT (0.52) above
 ## it, so a streaming globe sets this and every height that matters
@@ -134,10 +149,24 @@ var snap_height_provider: Callable = Callable()
 ## gravity still pulls, so the probe can separate snap interaction
 ## from raw contact physics. Default true = unchanged behavior.
 var snap_enabled: bool = true
+## RIVER FORD LAW (slice 3 downstream): the shallow water of a
+## river/lake channel is walkable honestly -- depth of the carved
+## water over the carved terrain at the body's direction. Wading
+## bands: FORD (shallower than WADE_FORD_DEPTH, full speed) -> WADE
+## (slow) -> SWIM (deeper than WADE_MAX_DEPTH: the aquatic service
+## owns that band). Read on the TERRAIN LAWS only (no mesh reads),
+## so the ford check cannot disagree with the ground draw.
+var _wading: bool = false
+var _wade_depth: float = 0.0
+var _wade_stamp_live: bool = false  # the anticheat stamp owns this body
+const WADE_MULT: float = 0.55       # wading walk multiplier
+const WADE_FORD_DEPTH: float = 0.15 # deeper than this = feet in water (not a bridge)
+const WADE_MAX_DEPTH: float = 1.6   # deeper than this is the swim service's band
 
 ## Collision-bit law (round 10): named bits from the LayerProfile
 ## (data/physics_layers/), no magic numbers at the physics calls.
 const Layers = preload("res://core/schemas/layer_profile.gd")
+const HealthComponent = preload("res://core/components/health_component.gd")
 
 var _surface_normal: Vector3 = Vector3.UP
 ## Accumulated path length (for the probe's curvature assertion).
@@ -187,6 +216,12 @@ func _set_ac_gliding(gliding: bool) -> void:
 ## ceilings are ENFORCED on the globe, not just declared. The launch
 ## ticket book (ThermalService -> grant_launch_grace) forgives the
 ## upward vector while an ancient launcher throws this body.
+## FORD LAW seam: a wading body is stamped with a wade cap (walk-law
+## speed x WADE_MULT, the honest max in the band) so the aquatic
+## override never masks a wade-speed hack, and the stamp clears when
+## the body leaves the band (the aquatic service's own stamp, if one
+## is live for a DEEPER band, owns the body and is never clobbered --
+## the wade stamp only ever LOWERS the max).
 func _validate_movement() -> void:
 	var ml := Engine.get_main_loop()
 	if ml == null or not (ml is SceneTree):
@@ -194,6 +229,14 @@ func _validate_movement() -> void:
 	var ac = (ml as SceneTree).root.get_node_or_null("AntiCheatService")
 	if ac != null and ac.has_method("validate_movement"):
 		ac.validate_movement(entity_id, global_position, velocity, get_physics_process_delta_time())
+	if ac != null and ac.has_method("set_aquatic_limits") and terrain_on_local():
+		if _wading:
+			ac.set_aquatic_limits(entity_id, walk_speed * WADE_MULT, 0.0, 110.0)
+		elif _wade_stamp_live:
+			ac.set_aquatic_limits(entity_id, walk_speed, 0.0, 110.0)  # back to dry-law speeds
+			_wade_stamp_live = false
+	if _wading and not _wade_stamp_live:
+		_wade_stamp_live = true
 
 func planet_up() -> Vector3:
 	return (global_position - planet_center).normalized()
@@ -375,6 +418,15 @@ func _ready() -> void:
 	# collision.
 	collision_layer = Layers.layer_bit("entity")
 	collision_mask = collision_mask | Layers.layer_bit("solid")
+	# Health component: created here (not a scene child) so every globe
+	# body gets one regardless of which scene instantiates them (the
+	# planar controller's identical law).
+	if health_component == null:
+		health_component = HealthComponent.new()
+		health_component.max_health = max_health
+		health_component.current_health = current_health
+		add_child(health_component)
+		health_component.health_changed.connect(_on_component_health_changed)
 	# INVENTORY BAG (round 7, item 3): the globe body never carried one,
 	# so the globe world had NO inventory loop at all -- no bag for the
 	# starter kit to land in (tabs rendered blank), nothing to receive
@@ -423,6 +475,42 @@ func _ready() -> void:
 
 func _on_sprint_override(active: bool) -> void:
 	_sprint_override_on = active
+
+
+## --- Combat surface (the planar controller's convention, line-for-
+## line): combatants and services duck-type these on the local body.
+## Receive damage from any combatant (enemies route through
+## EnemyAI._perform_attack and skill.gd's untyped take_damage).
+func take_damage(amount: int, source = null, damage_type: String = "physical") -> int:
+	if health_component == null:
+		return 0
+	var dealt: int = health_component.take_damage(amount, source, damage_type)
+	if dealt > 0:
+		# Emit the health_component truth, not the stale local field --
+		# the component owns the damage path (the R37 dual-store lesson).
+		health_changed.emit(health_component.current_health, health_component.max_health, -dealt)
+		GameLog.info("Player hit: %d %s damage (HP %d/%d)" % [
+			dealt, damage_type, health_component.current_health, health_component.max_health])
+	return dealt
+
+
+## Heal (skill.gd target.heal / self-heal path).
+func heal(amount: int, source = null) -> int:
+	if health_component == null:
+		return 0
+	return health_component.heal(amount, source)
+
+
+func is_dead() -> bool:
+	return health_component != null and health_component.is_dead()
+
+
+## Mirror the component back into the fields the live HUD and the
+## regen step read (the planar double-store kept intentionally).
+func _on_component_health_changed(current: int, maximum: int, _delta: int) -> void:
+	current_health = current
+	max_health = maximum
+
 
 ## Create + register the inventory bag (round-7 item 3). Deferred id
 ## stamp like the anticheat stamp: the scene fills entity_id after
@@ -632,6 +720,19 @@ func _physics_process(delta: float) -> void:
 
 	var speed: float = walk_speed * mult
 
+	# -- RIVER FORD LAW (walkable shallow water) -------------------------
+	# Depth of the carved water over the carved terrain at THIS body's
+	# direction. In the WADE band (feet in water above the ford line,
+	# below the swim handoff): the walk slows and jumps stop -- a river
+	# is a stamina-free crossing, not a trampoline. FORD band (barely
+	# wet): honest dry-foot speed, so shallow crossings stay real
+	# bridges. Deeper than WADE_MAX: the aquatic service owns the body
+	# (world scenes with swim law read their own band there).
+	_wade_depth = _wade_depth_at()
+	_wading = _wade_depth > WADE_FORD_DEPTH and _wade_depth <= WADE_MAX_DEPTH
+	if _wading:
+		speed *= WADE_MULT
+
 	# -- CLIMB LAW -------------------------------------------------------
 	# Engage: jump HELD (not the tap that hops) + ground contact + a
 	# steep/climbable face within reach ahead. While climbing, the body
@@ -663,7 +764,8 @@ func _physics_process(delta: float) -> void:
 	# snap means is_on_floor() is always true at rest -- gate on radial
 	# speed so a hop is never re-fired mid-air).
 	if allow_jump_input and is_on_floor() \
-			and Input.is_action_just_pressed("jump"):
+			and Input.is_action_just_pressed("jump") \
+			and not _wading:
 		vertical += up * jump_force
 		snap_enabled = false
 	elif is_mounted() and wish.length_squared() > 0.0001:
@@ -1031,8 +1133,54 @@ func world_seed_bytes_local() -> PackedByteArray:
 	return TerrainGen.world_seed_bytes()
 
 
+## The terrain-on flag for the wade law (the streamer's live flag,
+## resolved up the parent chain like terrain_h_at).
+func terrain_on_local() -> bool:
+	var node: Node = self
+	for _hop in range(3):
+		node = node.get_parent() if node != null else null
+		if node == null:
+			break
+		if node.has_method("terrain_on_flag"):
+			return node.terrain_on_flag()
+	return false
+
+
 ## The surface gap the re-arm law accepts: the walk surface at the
 ## body's direction (terrain + cap), or 0 on the prototype shell.
+## Depth of standing water at the body's direction: the gated water
+## surface MINUS the carved terrain (both TerrainGen statics; the same
+## Depth of standing water at the body's direction. TWO sources, both
+## the same laws the mesh reads:
+##  1. LAKE band: the gated water surface MINUS the carved terrain.
+##  2. RIVER band: the channel capsule carries RIVER_BED_DEPTH x
+##     channel of carved, flow-filled water (the river's bed IS the
+##     carve; the deepest line runs the center, banks wade shallow --
+##     cross at the slope, not the middle).
+## 0.0 = dry. The SPAWN law applies to both (the apron stays dry --
+## the river that would cross the boot plaza stays suppressed).
+func _wade_depth_at() -> float:
+	if not terrain_on_local():
+		return 0.0
+	var seed_b: PackedByteArray = world_seed_bytes_local()
+	var d: Vector3 = (global_position - planet_center).normalized()
+	# The SPAWN law: the same suppress band the hydro gates use
+	# (SUPPRESS_IN..SUPPRESS_OUT around the boot plaza).
+	if d.angle_to(TerrainGen.SPAWN_CENTER) < TerrainGen.Hydro.SUPPRESS_IN:
+		return 0.0
+	var depth: float = 0.0
+	# Lake band.
+	var surf: float = TerrainGen.hydro_water_surface(d, seed_b)
+	if surf > -1e8:
+		var ground: float = TerrainGen.terrain_height(d, seed_b)
+		depth = maxf(depth, surf - ground)
+	# River band: channel water fills the carved bed.
+	var chan: float = TerrainGen.river_channel(d, seed_b)
+	if chan > 0.25:
+		depth = maxf(depth, TerrainGen.Hydro.RIVER_BED_DEPTH * chan)
+	return depth
+
+
 func lift_expected() -> float:
 	if snap_height_provider.is_valid():
 		return maxf(snap_height_provider.call(global_position), 0.0)

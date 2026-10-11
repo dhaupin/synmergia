@@ -1,8 +1,18 @@
-## PartyUI - Party management panel
-## Migrated onto UIPanel base class.
+
+
+
 extends "res://ui/components/ui_panel.gd"
 class_name PartyUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _partyservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PartyService")) if tree and tree.root else null
+
+## PartyUI - Party management panel
+## Migrated onto UIPanel base class.
 
 var _members_list: ItemList
 var _pending_list: ItemList
@@ -23,7 +33,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	pass
 
 func _bind_service_signals() -> void:
-	if not PartyService:
+	if not _partyservice():
 		return
 	var sigs := {
 		"party_member_updated": _on_party_updated,
@@ -38,10 +48,10 @@ func _bind_service_signals() -> void:
 		"loot_rule_changed": _on_party_updated,
 	}
 	for sig_name in sigs:
-		if PartyService.has_signal(sig_name):
+		if _partyservice().has_signal(sig_name):
 			var handler = sigs[sig_name]
-			if not PartyService.get(sig_name).is_connected(handler):
-				PartyService.get(sig_name).connect(handler)
+			if not _partyservice().get(sig_name).is_connected(handler):
+				_partyservice().get(sig_name).connect(handler)
 
 
 func _on_party_updated(_party_id: String = "", _pid: String = "") -> void:
@@ -147,10 +157,10 @@ func _refresh_members() -> void:
 	if not _members_list:
 		return
 	_members_list.clear()
-	if not PartyService:
+	if not _partyservice():
 		return
 
-	var party_data: Dictionary = PartyService.get_player_party(_player_id)
+	var party_data: Dictionary = _partyservice().get_player_party(_player_id)
 	if party_data.is_empty():
 		_members_list.add_item("Not in a party")
 		return
@@ -160,7 +170,7 @@ func _refresh_members() -> void:
 		_members_list.add_item("Not in a party")
 		return
 
-	var members: Array = PartyService.get_party_member_details(party_id)
+	var members: Array = _partyservice().get_party_member_details(party_id)
 	for member in members:
 		var member_data: Dictionary = member
 		var member_name: String = member_data.get("name", "?")
@@ -175,10 +185,10 @@ func _refresh_pending() -> void:
 	if not _pending_list:
 		return
 	_pending_list.clear()
-	if not PartyService:
+	if not _partyservice():
 		return
 
-	var party_data: Dictionary = PartyService.get_player_party(_player_id)
+	var party_data: Dictionary = _partyservice().get_player_party(_player_id)
 	if party_data.is_empty():
 		return
 
@@ -186,7 +196,7 @@ func _refresh_pending() -> void:
 	if party_id == "":
 		return
 
-	var pending: Array = PartyService.get_pending_invites(party_id)
+	var pending: Array = _partyservice().get_pending_invites(party_id)
 	for p in pending:
 		var pending_data: Dictionary = p
 		_pending_list.add_item("Invite: %s" % pending_data.get("player_name", "?"))
@@ -202,25 +212,26 @@ func _on_invite() -> void:
 	var target_name: String = dialog.dialog_text.strip_edges()
 	dialog.queue_free()
 
-	if target_name != "" and PartyService:
-		var ok: bool = PartyService.invite_player(_player_id, target_name)
+	if target_name != "" and _partyservice():
+		var ok: bool = _partyservice().invite_player(_player_id, target_name)
 		show_notification("Invite sent." if ok else "Failed to send invite.")
 
 func _on_leave() -> void:
-	if PartyService:
-		var ok: bool = PartyService.leave_party(_player_id)
+	if _partyservice():
+		var ok: bool = _partyservice().leave_party(_player_id)
 		show_notification("Left the party." if ok else "Failed to leave the party.", ok)
 		_refresh_members()
 
 func _on_disband() -> void:
-	if not PartyService:
+	if not _partyservice():
 		return
-	var party_data: Dictionary = PartyService.get_player_party(_player_id)
+	var party_data: Dictionary = _partyservice().get_player_party(_player_id)
 	var party_id: String = party_data.get("id", "")
 	if party_id != "":
-		var ok: bool = PartyService.disband_party(party_id)
+		var ok: bool = _partyservice().disband_party(party_id)
 		if ok:
 			close()
+
 
 func show_notification(message: String, _success: bool = true) -> void:
 	var notif := Label.new()

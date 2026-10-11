@@ -111,6 +111,7 @@ func _ready() -> void:
 	_build_surface_pad()
 	_build_sun()
 	_build_sky_sun()
+	_build_sky_moon()
 	# Streamer FIRST: the player spawn height rides the terrain law
 	# (walk surface at the spawn direction), so the ground must exist
 	# before the boot lands on it.
@@ -247,6 +248,12 @@ func terrain_h_at(wpos: Vector3) -> float:
 	if streamer == null:
 		return 0.0
 	return streamer.terrain_h((wpos - planet_center).normalized())
+
+
+## The ford law's flag seam (globe_player.terrain_on_local resolves
+## this up the parent chain): one truthful answer, no re-derivation.
+func terrain_on_flag() -> bool:
+	return streamer != null and streamer.terrain_on
 
 
 func _physics_process(delta: float) -> void:
@@ -463,6 +470,25 @@ func _build_sky_sun() -> void:
 		sun.set_meta("adopt_by_player", true)
 
 
+## The moon in the globe sky: same entity the planar world mounts
+## (disc + synodic phase shading + moonlight). Built beside the sun
+## so the player adoption re-parents them together.
+func _build_sky_moon() -> void:
+	var moon_script: GDScript = load("res://entities/sky_moon.gd")
+	if moon_script == null:
+		return
+	var moon := Node3D.new()
+	moon.name = "SkyMoon"
+	moon.set_script(moon_script)
+	if player != null:
+		player.add_child(moon)
+	else:
+		# Player not built yet (build order); fall back to the scene
+		# and let the player adopt it after _build_player (the sun's
+		# fallback pattern; the adopt block re-parents it).
+		add_child(moon)
+
+
 func _build_sun() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-45.0, 30.0, 0.0)
@@ -608,6 +634,13 @@ func _build_player() -> void:
 		sky_sun.position = Vector3.ZERO
 		sky_sun.get_parent().remove_child(sky_sun)
 		player.add_child(sky_sun)
+	# Adopt the moon the same way: the pale stone rides the celestial
+	# frame next to the sun (the floating-origin law, one frame).
+	var sky_moon := get_node_or_null("SkyMoon")
+	if sky_moon != null:
+		sky_moon.position = Vector3.ZERO
+		sky_moon.get_parent().remove_child(sky_moon)
+		player.add_child(sky_moon)
 	player.begin_loop()
 	# WORLD ENTRY (round 7, item 3): world_playable emits
 	# player_entered_world so StarterKitService grants the kit; the

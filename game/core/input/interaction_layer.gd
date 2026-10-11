@@ -4,6 +4,12 @@
 ## Autoload: Access via `InteractionLayer` globally
 extends Node
 
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 static var instance: InteractionLayer
 
 enum Platform {
@@ -53,7 +59,8 @@ signal platform_changed(platform: Platform)
 func _ready() -> void:
 	instance = self
 	_detect_platform()
-	GameLog.info("InteractionLayer: Initialized for %s" % _get_platform_name())
+	var gl := _glog()
+	if gl: gl.info("InteractionLayer: Initialized for %s" % _get_platform_name())
 
 func _input(event: InputEvent) -> void:
 	_process_input(event)

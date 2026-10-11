@@ -29,6 +29,17 @@ const NotifKind = preload("res://core/notifications/notification_kind.gd").Notif
 
 signal sign_window_changed(sign_id: String, window_index: int, day_index: int)
 signal insight_recorded(player_id: String, sign_id: String, window_index: int)
+
+## Aurora-window tie-in (WeatherEventService): mark a Sign window as
+## aurora-lit for the given unix day/window key so its glyph reveals
+## at a reduced observer threshold while the sky is glowing. Negative
+## effect (false) unmarks. Idempotent both ways.
+func set_aurora_support(day: int, window_index: int, lit: bool = true) -> void:
+	var key := _window_key(day, window_index)
+	if lit:
+		_aurora_windows[key] = true
+	else:
+		_aurora_windows.erase(key)
 signal ancient_unlocked(for_day_index: int, code: String)
 
 ## Four 6-hour windows per day (UTC-aligned; the world clock IS the sky).
@@ -55,6 +66,13 @@ var _initialized: bool = false
 var _insights: Dictionary = {}
 ## window_key -> true (glyph public for this window)
 var _revealed: Dictionary = {}
+## Aurora-assisted windows (WeatherEventService tie-in): key-window ->
+## true. While an aurora window is lit on a Sign window, fewer distinct
+## observers are needed to reveal the glyph — the sky is glowing and
+## more tribal eyes are looking up. Set/cleared by the aurora window
+## law (set_aurora_support); a fresh window that overlaps an aurora
+## reads the reduced threshold.
+var _aurora_windows: Dictionary = {}
 ## day_index -> true (that day's Ancient door is unlocked server-wide)
 var _unlocked_days: Dictionary = {}
 
@@ -325,7 +343,11 @@ func record_insight(player_id: String) -> Dictionary:
 	insight_recorded.emit(player_id, sign.id, win)
 	_save_insights()
 	var revealed_now := false
-	if not _revealed.has(key) and window_observers.size() >= REVEAL_OBSERVERS:
+	# Aurora-assist: an aurora-lit window reveals at a reduced observer
+	# threshold (2 instead of the tribal 3). The reveal law itself is
+	# unchanged — only the threshold, only while the sky glows.
+	var needed: int = REVEAL_OBSERVERS / 2 if _aurora_windows.has(key) else REVEAL_OBSERVERS
+	if not _revealed.has(key) and window_observers.size() >= needed:
 		_revealed[key] = true
 		revealed_now = true
 		_save_revealed()

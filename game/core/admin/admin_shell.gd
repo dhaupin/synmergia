@@ -3,6 +3,28 @@
 ## Not connected to OS shell - game-internal commands only
 extends Node
 
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _pmgr() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PermissionManager")) if tree and tree.root else null
+
+func _sec_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SecurityService")) if tree and tree.root else null
+
+func _admin_cmds() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("AdminCommands")) if tree and tree.root else null
+
+func _player_m() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _entity_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EntityService")) if tree and tree.root else null
+
 const EntityScript = preload("res://core/entities/entity.gd")
 ## Named collision bits (round 10): data/physics_layers/ LayerProfile.
 const Layers = preload("res://core/schemas/layer_profile.gd")
@@ -181,12 +203,12 @@ func _get_general_help() -> String:
 
 func _has_permission(player_id: String, required_level: int) -> bool:
 	# Use PermissionManager for ALL permission checks
-	if PermissionManager:
-		return PermissionManager.has_permission(player_id, required_level)
+	if _pmgr():
+		return _pmgr().has_permission(player_id, required_level)
 
 	# Fallback (should not be used in production)
-	if SecurityService:
-		return SecurityService.get_player_permission_level(player_id) >= required_level
+	if _sec_svc():
+		return _sec_svc().get_player_permission_level(player_id) >= required_level
 	return required_level <= GameConfig.Security.PLAYER_LEVEL
 
 func _register_default_commands() -> void:
@@ -255,8 +277,8 @@ func _cmd_lookup(args: String, executor_id: String) -> CommandResult:
 	var player_id: String = args.strip_edges()
 
 	# Use PermissionManager for secured lookup
-	if PermissionManager:
-		var result := PermissionManager.lookup_player(executor_id, player_id)
+	if _pmgr():
+		var result = _pmgr().lookup_player(executor_id, player_id)
 		if result.success:
 			return CommandResult.new(true, _format_player_info(result.info), "")
 		else:
@@ -279,7 +301,8 @@ func _cmd_players(args: String, executor_id: String) -> CommandResult:
 		var id: String = player if player is String else str(player)
 		if filter == "" or id.to_lower().contains(filter):
 			var restricted: String = ""
-			if SecurityService and SecurityService.is_restricted(id, "chat"):
+			var sec := _sec_svc()
+			if sec and sec.is_restricted(id, "chat"):
 				restricted = " [color=red](MUTED)[/color]"
 			output += "  %s%s\n" % [_esc(id), restricted]
 			count += 1
@@ -304,8 +327,8 @@ func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
 		duration = int(parts[2])
 
 	# Use PermissionManager for secured operation
-	if PermissionManager:
-		var result := PermissionManager.restrict(executor_id, player_id, restriction_type, duration)
+	if _pmgr():
+		var result = _pmgr().restrict(executor_id, player_id, restriction_type, duration)
 		if result.success:
 			var type_str: String = restriction_type if restriction_type != "chat" else "mute"
 			return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
@@ -313,10 +336,10 @@ func _cmd_restrict(args: String, executor_id: String) -> CommandResult:
 			return CommandResult.new(false, "", "Failed: %s" % result.message)
 
 	# Fallback
-	if not SecurityService:
+	if not _sec_svc():
 		return CommandResult.new(false, "", "SecurityService not available")
 
-	SecurityService.restrict_player(player_id, restriction_type, duration)
+	_sec_svc().restrict_player(player_id, restriction_type, duration)
 	var type_str: String = restriction_type if restriction_type != "chat" else "mute"
 	return CommandResult.new(true, "Restricted %s: %s for %d seconds" % [player_id, type_str, duration], "")
 
@@ -329,18 +352,18 @@ func _cmd_unrestrict(args: String, executor_id: String) -> CommandResult:
 	var restriction_type: String = "" if parts.size() < 2 else parts[1].strip_edges()
 
 	# Use PermissionManager for secured operation
-	if PermissionManager:
-		var result := PermissionManager.unrestrict(executor_id, player_id, restriction_type)
+	if _pmgr():
+		var result = _pmgr().unrestrict(executor_id, player_id, restriction_type)
 		if result.success:
 			return CommandResult.new(true, "Unrestricted %s" % player_id, "")
 		else:
 			return CommandResult.new(false, "", "Failed: %s" % result.message)
 
 	# Fallback
-	if not SecurityService:
+	if not _sec_svc():
 		return CommandResult.new(false, "", "SecurityService not available")
 
-	SecurityService.unrestrict_player(player_id, restriction_type)
+	_sec_svc().unrestrict_player(player_id, restriction_type)
 	return CommandResult.new(true, "Unrestricted %s" % player_id, "")
 
 func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
@@ -349,8 +372,8 @@ func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
 
 	if player_id != "":
 		output += "[color=cyan]Player:[/color] %s\n\n" % _esc(player_id)
-		if SecurityService:
-			var restrictions: Array = SecurityService.get_active_restrictions(player_id)
+		if _sec_svc():
+			var restrictions: Array = _sec_svc().get_active_restrictions(player_id)
 			if restrictions.is_empty():
 				output += "  No active restrictions"
 			else:
@@ -360,8 +383,8 @@ func _cmd_restrictions(args: String, executor_id: String) -> CommandResult:
 					output += "  [color=red]%s[/color] - expires in %s\n" % [r.get("type", "?"), time_str]
 	else:
 		# List all restrictions
-		if SecurityService:
-			var all: Dictionary = SecurityService.get_all_restrictions()
+		if _sec_svc():
+			var all: Dictionary = _sec_svc().get_all_restrictions()
 			if all.is_empty():
 				output += "  No active restrictions"
 			else:
@@ -382,8 +405,8 @@ func _cmd_mute(args: String, executor_id: String) -> CommandResult:
 		duration = int(parts[1])
 
 	# Use PermissionManager for secured operation
-	if PermissionManager:
-		var result := PermissionManager.mute(executor_id, player_id, duration)
+	if _pmgr():
+		var result = _pmgr().mute(executor_id, player_id, duration)
 		if result.success:
 			return CommandResult.new(true, "Muted %s for %d seconds" % [player_id, duration], "")
 		else:
@@ -399,8 +422,8 @@ func _cmd_unmute(args: String, executor_id: String) -> CommandResult:
 	var player_id: String = args.strip_edges()
 
 	# Use PermissionManager for secured operation
-	if PermissionManager:
-		var result := PermissionManager.unmute(executor_id, player_id)
+	if _pmgr():
+		var result = _pmgr().unmute(executor_id, player_id)
 		if result.success:
 			return CommandResult.new(true, "Unmuted %s" % player_id, "")
 		else:
@@ -418,8 +441,8 @@ func _cmd_kick(args: String, executor_id: String) -> CommandResult:
 	var reason: String = "" if parts.size() < 2 else parts[1]
 
 	# Use PermissionManager for secured operation (includes hierarchy check)
-	if PermissionManager:
-		var result := PermissionManager.kick(executor_id, player_id, reason)
+	if _pmgr():
+		var result = _pmgr().kick(executor_id, player_id, reason)
 		if result.success:
 			return CommandResult.new(true, "Kicked %s: %s" % [player_id, reason], "")
 		else:
@@ -443,8 +466,8 @@ func _cmd_ban(args: String, executor_id: String) -> CommandResult:
 	var reason: String = "" if parts.size() < 3 else parts[2]
 
 	# Use PermissionManager for secured operation (includes hierarchy check)
-	if PermissionManager:
-		var result := PermissionManager.ban(executor_id, player_id, duration, reason)
+	if _pmgr():
+		var result = _pmgr().ban(executor_id, player_id, duration, reason)
 		if result.success:
 			var dur_str := "permanently" if duration == -1 else "for %d seconds" % duration
 			return CommandResult.new(true, "Banned %s %s: %s" % [player_id, dur_str, reason], "")
@@ -452,9 +475,9 @@ func _cmd_ban(args: String, executor_id: String) -> CommandResult:
 			return CommandResult.new(false, "", "Failed: %s" % result.message)
 
 	# Fallback
-	if SecurityService:
+	if _sec_svc():
 		var actual_duration: int = 31536000 if duration == -1 else duration
-		SecurityService.restrict_player(player_id, "all", actual_duration)
+		_sec_svc().restrict_player(player_id, "all", actual_duration)
 
 	player_banned.emit(player_id, duration, reason, executor_id)
 	var dur_str := "permanently" if duration == -1 else "for %d seconds" % duration
@@ -516,8 +539,8 @@ func _cmd_whoami(args: String, executor_id: String) -> CommandResult:
 	var output: String = "[color=yellow]=== Current Admin ===[/color]\n"
 	output += "  ID: %s\n" % (_current_executor_id if _current_executor_id != "" else "(none)")
 
-	if SecurityService and _current_executor_id != "":
-		var level: int = SecurityService.get_player_permission_level(_current_executor_id)
+	if _sec_svc() and _current_executor_id != "":
+		var level: int = _sec_svc().get_player_permission_level(_current_executor_id)
 		output += "  Level: %d\n" % level
 
 	return CommandResult.new(true, output, "")
@@ -530,16 +553,18 @@ func _cmd_status(args: String, executor_id: String) -> CommandResult:
 	output += "[color=green]Players online:[/color] %d\n" % players.size()
 
 	# Restrictions
-	if SecurityService:
-		var restrictions: Dictionary = SecurityService.get_all_restrictions()
+	if _sec_svc():
+		var restrictions: Dictionary = _sec_svc().get_all_restrictions()
 		output += "[color=red]Active restrictions:[/color] %d\n" % restrictions.size()
 
 	# Services
 	output += "\n[color=cyan]Services:[/color]\n"
-	output += "  SecurityService: %s\n" % ("[color=green]OK[/color]" if SecurityService else "[color=red]OFFLINE[/color]")
+	output += "  SecurityService: %s\n" % ("[color=green]OK[/color]" if _sec_svc() else "[color=red]OFFLINE[/color]")
 	var qos: Object = _get_qos_service()
 	output += "  QoSService: %s\n" % ("[color=green]OK[/color]" if qos else "[color=red]OFFLINE[/color]")
-	output += "  NotificationService: %s\n" % ("[color=green]OK[/color]" if NotificationService else "[color=red]OFFLINE[/color]")
+	var status_tree := Engine.get_main_loop() as SceneTree
+	var notif_status := status_tree.root.get_node_or_null(NodePath("NotificationService")) if status_tree and status_tree.root else null
+	output += "  NotificationService: %s\n" % ("[color=green]OK[/color]" if notif_status else "[color=red]OFFLINE[/color]")
 
 	return CommandResult.new(true, output, "")
 
@@ -560,8 +585,8 @@ func _cmd_stats(args: String, executor_id: String) -> CommandResult:
 		output += "  Total checks: %d\n" % stats.get("total_checks", 0)
 		output += "  Rate limited: %d\n" % stats.get("rate_limited_count", 0)
 
-	if SecurityService:
-		var stats: Dictionary = SecurityService.get_statistics()
+	if _sec_svc():
+		var stats: Dictionary = _sec_svc().get_statistics()
 		output += "[color=cyan]Security:[/color]\n"
 		output += "  Blocks: %d\n" % stats.get("blocks", 0)
 		output += "  Restrictions: %d\n" % stats.get("restrictions", 0)
@@ -602,8 +627,8 @@ func _get_player_info(player_id: String) -> String:
 	info += "[color=cyan]Status:[/color] %s\n" % ("[color=green]Online[/color]" if online else "[color=gray]Offline[/color]")
 
 	# Permissions
-	if SecurityService:
-		var level: int = SecurityService.get_player_permission_level(player_id)
+	if _sec_svc():
+		var level: int = _sec_svc().get_player_permission_level(player_id)
 		var perm_name: String = "Player"
 		if level >= GameConfig.Security.ADMIN_LEVEL:
 			perm_name = "Admin"
@@ -614,11 +639,11 @@ func _get_player_info(player_id: String) -> String:
 		info += "[color=cyan]Permission:[/color] %s (level %d)\n" % [perm_name, level]
 
 	# Restrictions
-	if SecurityService:
-		var restricted: bool = SecurityService.is_restricted(player_id, "chat")
+	if _sec_svc():
+		var restricted: bool = _sec_svc().is_restricted(player_id, "chat")
 		if restricted:
 			info += "[color=red]MUTED[/color]\n"
-		restricted = SecurityService.is_restricted(player_id, "trade")
+		restricted = _sec_svc().is_restricted(player_id, "trade")
 		if restricted:
 			info += "[color=red]TRADE RESTRICTED[/color]\n"
 
@@ -636,11 +661,11 @@ func _get_player_info(player_id: String) -> String:
 func _is_player_online(player_id: String) -> bool:
 	# This should check the actual player manager
 	# For now, return true if we have any data about them
-	return PlayerManager != null and PlayerManager.has_player(player_id)
+	return _player_m() != null and _player_m().has_player(player_id)
 
 func _get_online_players() -> Array:
-	if PlayerManager and PlayerManager.has_method("get_online_player_ids"):
-		return PlayerManager.get_online_player_ids()
+	if _player_m() and _player_m().has_method("get_online_player_ids"):
+		return _player_m().get_online_player_ids()
 	return []
 
 func _cmd_audit(args: String, executor_id: String) -> CommandResult:
@@ -658,8 +683,8 @@ func _cmd_audit(args: String, executor_id: String) -> CommandResult:
 		action_filter = parts[2]
 
 	# Use PermissionManager to get audit log
-	if PermissionManager:
-		var log: Array = PermissionManager.get_audit_log(limit, admin_filter, action_filter)
+	if _pmgr():
+		var log: Array = _pmgr().get_audit_log(limit, admin_filter, action_filter)
 		var output: String = "[color=yellow]=== Admin Audit Log ===[/color]\n\n"
 
 		if log.is_empty():
@@ -860,18 +885,18 @@ func _cmd_heal(args: String, executor_id: String) -> CommandResult:
 	return CommandResult.new(true, "Healed %s to full HP" % target_name, "")
 
 func _get_executor_entity(executor_id: String) -> Object:
-	if executor_id == "" and PlayerManager:
-		var local: Object = PlayerManager.get_local_player()
+	if executor_id == "" and _player_m():
+		var local: Object = _player_m().get_local_player()
 		return local
 	return _find_entity_by_id_shell(executor_id)
 
 func _find_entity_by_id_shell(entity_id: String) -> Object:
-	if EntityService:
-		var entity: Object = EntityService.get_entity(entity_id)
+	if _entity_svc():
+		var entity: Object = _entity_svc().get_entity(entity_id)
 		if entity:
 			return entity
-	if PlayerManager:
-		var players: Array = PlayerManager.get_all_players()
+	if _player_m():
+		var players: Array = _player_m().get_all_players()
 		for p: Object in players:
 			if p.get("entity_id") == entity_id or p.get("name") == entity_id:
 				return p as Object

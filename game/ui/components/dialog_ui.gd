@@ -30,8 +30,11 @@ func _ready() -> void:
 	_bind_signals()
 	panel_closed.connect(_on_panel_closed)
 
+## Script-class reference (script-mode-safe; the bare autoload
+## identifier fails compile when autoloads are absent).
+const DialogServiceClass = preload("res://core/services/dialog_service.gd")
+
 func _bind_signals() -> void:
-	var DialogServiceClass = preload("res://core/services/dialog_service.gd")
 	if DialogServiceClass:
 		var svc = DialogServiceClass.singleton()
 		if svc:
@@ -144,7 +147,7 @@ func show_dialog(npc_id: String, dialogue_id: String) -> void:
 	# Store NPC position for distance check
 	_npc_position = _get_npc_position(npc_id)
 	set_max_interact_distance(5.0)  # Default dialog range
-	var svc = DialogService.singleton()
+	var svc = DialogServiceClass.singleton()
 	if svc and svc.start_dialogue(npc_id, dialogue_id):
 		open("")
 		return
@@ -219,7 +222,7 @@ func _show_node_data(node: Dictionary) -> void:
 		_continue_btn.visible = true
 
 func _on_choice_selected(choice_index: int) -> void:
-	var svc = DialogService.singleton()
+	var svc = DialogServiceClass.singleton()
 	if svc:
 		svc.select_choice(choice_index)
 		return

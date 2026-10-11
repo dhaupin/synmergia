@@ -1,11 +1,19 @@
 ## FlywheelService - Centralized load tracking and anomaly detection
 ##
-## Implements the flywheel pattern for both shard-level and per-player chaos accumulation.
+## Implements the flywheel pattern for both shard-level and per-player chaos accumulation,
+## on the frame's CANONICAL Flywheel primitive (core/frame/srv/flywheel.gd).
+## Every wheel here is a real Flywheel instance, so "accumulate, decay,
+## spark" means exactly what it means in CosmicEntropy's weather wheel —
+## same thresholds/decay shape, same spark payload, different domain:
 ##
-## The flywheel measures work (chaos) accumulated over time and triggers snapshots
-## when the system becomes "hot" (near capacity). It serves two purposes:
-## 1. **Shard-level**: Load profiling for performance tuning, postmortem analysis
-## 2. **Per-player**: Security/anticheat by detecting anomalous player behavior
+## - Shard wheels (one per shard id): momentum up to MAX_MOMENTUM; the
+##   SNAPSHOT (postmortem/load-profile) fires at >80% momentum — that's
+##   this service's snapshot trigger, wired as the wheel's own spark
+##   threshold (0.8 * MAX_MOMENTUM).
+## - Per-player wheels (SECURITY/ANTICHEAT): sub-metered usage tracks
+##   keyed by player id; the per-submeter warn/trigger thresholds are
+##   the same"> shape as before, now reported through the shared
+##   momentum vocabulary.
 ##
 ## The flywheel is the awareness layer for the system - it tells us
 ## *how much* work is happening, *where* it's happening, and *who* is driving it.
@@ -13,6 +21,7 @@ extends Node
 
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 const NotifKind = preload("res://core/notifications/notification_kind.gd").NotifKind
+const FlywheelScript = preload("res://core/frame/srv/flywheel.gd")
 
 ## ============================================================================
 ## SIGNALS
@@ -44,13 +53,19 @@ const CHAOS_WEIGHTS: Dictionary = {
 	"other_observable": 1,
 }
 
+## Shard spark threshold: the >80%-momentum "shard is hot" trigger,
+## expressed as the wheel's own spark threshold on the shared law.
+const SHARD_SPARK_THRESHOLD: float = MAX_MOMENTUM * 0.8
+
 ## ============================================================================
 ## STATE
 ## ============================================================================
 
-## Shard-level flywheel state
+## Shard-level flywheel state: shard_id -> Flywheel primitive instance
+var _shard_wheels: Dictionary = {}
+## Sub-meter counters (usage tracking; snapshots bake them in)
 var _shard_flywheels: Dictionary = {}
-var _shard_momenta: Dictionary = {}  # shard_id -> current momentum
+var _shard_momenta: Dictionary = {}  # shard_id -> current momentum (mirror of the wheel, cheap read)
 
 ## Per-player flywheel state (in-memory cache)
 var _player_flywheels: Dictionary = {}  # player_id -> PlayerFlywheelState
@@ -87,26 +102,40 @@ func _process(delta: float) -> void:
 ## SHARD-LEVEL FLYWHEEL
 ## ============================================================================
 
-## Update the shard-level flywheel with accumulated chaos
-func update_shard_flywheel(shard_id: String, chaos_delta: float, source_kind: String, source_id: String = "") -> void:
-	if not _shard_momenta.has(shard_id):
-		_shard_momenta[shard_id] = 0
+func _shard_wheel(shard_id: String) -> FlywheelScript:
+	if not _shard_wheels.has(shard_id):
+		var w: FlywheelScript = FlywheelScript.new("shard:%s" % shard_id)
+		w.spark_threshold = SHARD_SPARK_THRESHOLD
+		w.momentum_cap = float(MAX_MOMENTUM)
+		w.on_spark(_on_shard_spark)
+		_shard_wheels[shard_id] = w
+	return _shard_wheels[shard_id]
 
-	# Apply source weight
+## A shard wheel spark == the old "high_entropy snapshot trigger"
+## (>80% momentum). Same record shape, emitted through the shared
+## payload so every wheel in the game reports along.
+## NOTE: the primitive zeroes momentum BEFORE dispatching listeners, so
+## the spark-time value must come off the payload, not the wheel or the
+## mirror both read post-spark.
+func _on_shard_spark(payload: Dictionary) -> void:
+	var shard_id: String = str(payload.get("wheel", "")).trim_prefix("shard:")
+	var at_spark: float = float(payload.get("momentum", 0.0))
+	_shard_momenta[shard_id] = at_spark
+	_check_shard_snapshot_triggers(shard_id)
+
+## Update the shard-level flywheel with accumulated chaos (canonical
+## wheel accumulate: weight * delta in, cap, spark at the threshold).
+func update_shard_flywheel(shard_id: String, chaos_delta: float, source_kind: String, source_id: String = "") -> void:
 	var weight: float = CHAOS_WEIGHTS.get(source_kind, CHAOS_WEIGHTS["other_observable"])
 	var weighted_delta: float = chaos_delta * weight
+	_shard_wheel(shard_id).accumulate(weighted_delta, {"shard_id": shard_id, "source_kind": source_kind, "source_id": source_id})
 
-	# Add to momentum (can't exceed max)
-	_shard_momenta[shard_id] = min(_shard_momenta[shard_id] + weighted_delta, MAX_MOMENTUM)
-
-	# Decay the momentum
-	_shard_momenta[shard_id] = max(_shard_momenta[shard_id] - DEFAULT_DECAY_PER_TICK, 0)
+	# Mirror the momentum for cheap reads/legacy consumers.
+	var wheel: FlywheelScript = _shard_wheels[shard_id]
+	_shard_momenta[shard_id] = wheel.momentum
 
 	# Update sub-meters
 	_update_shard_sub_meters(shard_id, source_kind)
-
-	# Check for snapshot triggers
-	_check_shard_snapshot_triggers(shard_id)
 
 ## Add wall-clock pulse (heartbeat) - always +1 per tick
 func tick_heartbeat(shard_id: String) -> void:
@@ -149,15 +178,17 @@ func _update_shard_sub_meters(shard_id: String, source_kind: String) -> void:
 			sub["other"] += CHAOS_WEIGHTS["other_observable"]
 
 func _check_shard_snapshot_triggers(shard_id: String) -> void:
-	var momentum: float = _shard_momenta[shard_id]
+	var momentum: float = _shard_momenta.get(shard_id, 0.0)
 	var max_momentum: float = MAX_MOMENTUM
 	var momentum_ratio: float = momentum / max_momentum
 
 	# Check triggers (OR logic - any true fires snapshot)
 	var trigger: String = ""
 
-	# 1. High-entropy threshold crossed
-	if momentum_ratio > 0.8:
+	# 1. High-entropy threshold crossed. Same >= semantics as the
+	# primitive's spark law (momentum >= threshold), so the wheel firing
+	# and the snapshot agreeing is the SAME event, not two thresholds.
+	if momentum >= SHARD_SPARK_THRESHOLD:
 		trigger = "high_entropy"
 
 	# 2. Resource pressure (checked elsewhere, but can trigger here)
@@ -172,7 +203,7 @@ func _check_shard_snapshot_triggers(shard_id: String) -> void:
 		_take_shard_snapshot(shard_id, trigger, momentum_ratio)
 
 func _take_shard_snapshot(shard_id: String, trigger: String, momentum_ratio: float) -> void:
-	var momentum: float = _shard_momenta[shard_id]
+	var momentum: float = _shard_momenta.get(shard_id, 0.0)
 	var max_momentum: float = MAX_MOMENTUM
 	var now: int = Time.get_unix_time_from_system() * 1000
 
@@ -226,6 +257,7 @@ func _restore_shard_flywheel(shard_id: String, snapshot: Dictionary) -> void:
 
 	# Only restore if snapshot is fresh (< 1 hour old)
 	if age_seconds < SNAPSHOT_KEY_TTL_SECONDS:
+		_shard_wheel(shard_id).momentum = momentum
 		_shard_momenta[shard_id] = momentum
 
 		# Restore sub-meters

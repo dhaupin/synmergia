@@ -1,3 +1,36 @@
+
+
+
+extends "res://ui/components/ui_panel.gd"
+class_name SkillAcademyUI
+
+func _r_gm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
+
+func _entity_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EntityService")) if tree and tree.root else null
+
+func _notify_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
+func _inv_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree and tree.root else null
+
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _skillacademyservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SkillAcademyService")) if tree and tree.root else null
+
 ## SkillAcademyUI - Skill book upgrades and Skill Academy NPC panel
 ##
 ## 5 tabs:
@@ -7,15 +40,12 @@
 ##   4. Signature -- choose 1 of 3 class signatures (level 10+)
 ##   5. Respec    -- reset all upgrades (books NOT returned)
 
-extends "res://ui/components/ui_panel.gd"
-class_name SkillAcademyUI
-
 const CharacterData = preload("res://core/schemas/character_data.gd")
 const SkillBook = preload("res://core/schemas/skill_book.gd")
 const SkillSchema = preload("res://core/schemas/skill.gd")
 const Item = preload("res://core/schemas/item.gd")
 const InventoryComponent = preload("res://core/components/inventory_component.gd")
-# SkillAcademyService and InventoryService are autoloads, accessed by bare identifier
+# _skillacademyservice() and _inv_svc() are autoloads, accessed by bare identifier
 
 ## Stub methods mirroring UIPanel -- real wiring via .tscn scene setup
 
@@ -124,7 +154,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 
 
 func _bind_service_signals() -> void:
-	var svc = SkillAcademyService
+	var svc = _skillacademyservice()
 	if not svc:
 		return
 	if svc.has_signal("upgrade_applied"):
@@ -284,7 +314,7 @@ func _build_books_tab() -> Control:
 
 	var buy_label := Label.new()
 	buy_label.name = "BuyLabel"
-	buy_label.text = "Buy Common Skill Book (%d gold)" % SkillAcademyService.COMMON_BOOK_PRICE
+	buy_label.text = "Buy Common Skill Book (%d gold)" % _skillacademyservice().COMMON_BOOK_PRICE
 	wrapper.add_child(buy_label)
 
 	var buy_row := HBoxContainer.new()
@@ -566,7 +596,7 @@ func _refresh_stats_tab() -> void:
 
 	# Update respec cost
 	var total_allocated := _skill_data.get_total_allocated_points()
-	var respec_cost := SkillAcademyService.get_stat_respec_cost(total_allocated)
+	var respec_cost: int = _skillacademyservice().get_stat_respec_cost(total_allocated)
 	_stat_respec_button.text = "Respec Stats (%d gold)" % respec_cost
 	_stat_respec_button.disabled = total_allocated <= 0
 
@@ -590,7 +620,7 @@ func _on_stat_respec_pressed() -> void:
 	if _skill_data == null:
 		return
 
-	var preview: Dictionary = SkillAcademyService.preview_stat_respec(_skill_data)
+	var preview: Dictionary = _skillacademyservice().preview_stat_respec(_skill_data)
 	var downgrades: Array = preview.get("affected_skills", [])
 
 	if not downgrades.is_empty():
@@ -603,9 +633,9 @@ func _on_stat_respec_pressed() -> void:
 		_stat_warnings_label.text = ""
 
 func _notify_stat_changed() -> void:
-	# Notify GameManager that player stats changed (for derived stat recalculation)
-	if GameManager and _player_id != "":
-		var entity = EntityService.get_entity(_player_id)
+	# Notify _r_gm() that player stats changed (for derived stat recalculation)
+	if _r_gm() and _player_id != "":
+		var entity = _entity_svc().get_entity(_player_id)
 		if entity and entity.has_method("on_stats_changed"):
 			entity.on_stats_changed()
 
@@ -694,15 +724,15 @@ func _refresh_skills_tab() -> void:
 	if not is_instance_valid(_skill_data):
 		return
 
-	var catalog_ids: Array = SkillAcademyService.get_catalog_skill_ids()
+	var catalog_ids: Array = _skillacademyservice().get_catalog_skill_ids()
 	for skill_id in catalog_ids:
-		var schema: SkillSchema = SkillAcademyService.get_skill_schema(skill_id)
+		var schema: SkillSchema = _skillacademyservice().get_skill_schema(skill_id)
 		if schema == null:
 			continue
 
 		var current_level: int = _skill_data.get_skill_upgrade_level(skill_id)
 		var maxed: bool = current_level >= 5
-		var next_tier: String = SkillAcademyService.get_next_tier_name(skill_id, current_level)
+		var next_tier: String = _skillacademyservice().get_next_tier_name(skill_id, current_level)
 
 		var row := HBoxContainer.new()
 		row.custom_minimum_size.y = SLOT_SIZE
@@ -741,9 +771,9 @@ func _refresh_books_tab() -> void:
 	# Rebuild buy-picker with current catalog
 	if _buy_skill_picker:
 		_buy_skill_picker.clear()
-		var skill_ids: Array = SkillAcademyService.get_catalog_skill_ids()
+		var skill_ids: Array = _skillacademyservice().get_catalog_skill_ids()
 		for sid in skill_ids:
-			var schema: SkillSchema = SkillAcademyService.get_skill_schema(sid)
+			var schema: SkillSchema = _skillacademyservice().get_skill_schema(sid)
 			var label: String = schema.display_name if schema else sid
 			_buy_skill_picker.add_item(label)
 
@@ -806,7 +836,7 @@ func _refresh_upgrade_tab() -> void:
 		_upgrade_button.disabled = true
 		return
 
-	var schema: SkillSchema = SkillAcademyService.get_skill_schema(_selected_skill_id)
+	var schema: SkillSchema = _skillacademyservice().get_skill_schema(_selected_skill_id)
 	if schema == null:
 		_upgrade_skill_label.text = "Unknown skill."
 		return
@@ -823,7 +853,7 @@ func _refresh_upgrade_tab() -> void:
 
 	_upgrade_skill_label.text = "%s -- Level %d / 5" % [schema.display_name, current_level]
 
-	var preview: Dictionary = SkillAcademyService.get_upgrade_preview(_selected_skill_id, current_level)
+	var preview: Dictionary = _skillacademyservice().get_upgrade_preview(_selected_skill_id, current_level)
 	if preview.is_empty() or preview.get("maxed", false):
 		_upgrade_preview_label.text = "No more upgrade tiers."
 		_upgrade_button.disabled = true
@@ -852,7 +882,7 @@ func _on_upgrade_pressed() -> void:
 	if _selected_skill_id == "" or not is_instance_valid(_skill_data):
 		return
 
-	var result: Dictionary = SkillAcademyService.apply_upgrade(
+	var result: Dictionary = _skillacademyservice().apply_upgrade(
 		_player_id, _selected_skill_id, _skill_data, _inventory_books
 	)
 
@@ -881,11 +911,11 @@ func _refresh_signature_tab() -> void:
 
 	# Get player level from entity
 	var player_level: int = 1
-	var player: Node = EntityService.get_entity(_player_id) if EntityService else null
+	var player: Node = _entity_svc().get_entity(_player_id) if _entity_svc() else null
 	if player and "level" in player:
 		player_level = player.level
 
-	var info: Dictionary = SkillAcademyService.get_signature_info(_skill_data, player_level)
+	var info: Dictionary = _skillacademyservice().get_signature_info(_skill_data, player_level)
 
 	# Update info text based on state
 	var info_lbl: Label = panel.get_node_or_null("Main/ContentStack/SignatureTab/Info")
@@ -971,7 +1001,7 @@ func _refresh_respec_tab() -> void:
 		_respec_label.text = "No skill points spent. Nothing to reset."
 		_respec_button.disabled = true
 	else:
-		var cost: int = SkillAcademyService.get_respec_cost(total_spent)
+		var cost: int = _skillacademyservice().get_respec_cost(total_spent)
 		_respec_label.text = "You have spent %d skill points on %d upgrade levels." % [total_spent, _skill_data.get_total_upgrade_levels()]
 		_respec_cost_label.text = "Respec cost: %d gold" % cost
 		_respec_button.disabled = false
@@ -981,7 +1011,7 @@ func _on_signature_selected(sig_id: String) -> void:
 		return
 
 	var player_level: int = 1
-	var player: Node = EntityService.get_entity(_player_id) if EntityService else null
+	var player: Node = _entity_svc().get_entity(_player_id) if _entity_svc() else null
 	if player and "level" in player:
 		player_level = player.level
 
@@ -991,7 +1021,7 @@ func _on_signature_selected(sig_id: String) -> void:
 		inventory = player.inventory_component
 		gold = inventory.get_gold()
 
-	var result: Dictionary = SkillAcademyService.change_signature(
+	var result: Dictionary = _skillacademyservice().change_signature(
 		_player_id, _skill_data, sig_id, player_level, gold, inventory
 	)
 
@@ -1008,13 +1038,13 @@ func _on_respec_pressed() -> void:
 	if not is_instance_valid(_skill_data):
 		return
 
-	var player: Node = EntityService.get_entity(_player_id)
+	var player: Node = _entity_svc().get_entity(_player_id)
 	if not player or not player.inventory_component:
 		return
 	var inventory: Node = player.inventory_component
 	var gold: int = inventory.get_gold()
 
-	var result: Dictionary = SkillAcademyService.respec(_player_id, _skill_data, gold, player)
+	var result: Dictionary = _skillacademyservice().respec(_player_id, _skill_data, gold, player)
 	if result.get("success", false):
 		show_notification("Respec complete. %d points refunded for %d gold." % [result.get("points_refunded", 0), result.get("cost", 0)])
 		_refresh_all()
@@ -1025,12 +1055,12 @@ func _on_buy_book_pressed() -> void:
 	if not _buy_skill_picker or _buy_skill_picker.selected < 0:
 		return
 
-	var skill_ids: Array = SkillAcademyService.get_catalog_skill_ids()
+	var skill_ids: Array = _skillacademyservice().get_catalog_skill_ids()
 	if _buy_skill_picker.selected >= skill_ids.size():
 		return
 
 	var skill_id: String = skill_ids[_buy_skill_picker.selected]
-	var player: Node = EntityService.get_entity(_player_id)
+	var player: Node = _entity_svc().get_entity(_player_id)
 	if not player or not player.inventory_component:
 		_buy_result_label.text = "Cannot access inventory."
 		return
@@ -1038,7 +1068,7 @@ func _on_buy_book_pressed() -> void:
 	var inventory: InventoryComponent = player.inventory_component
 	var gold: int = inventory.get_gold()
 
-	var result: Dictionary = SkillAcademyService.purchase_book(_player_id, skill_id, gold)
+	var result: Dictionary = _skillacademyservice().purchase_book(_player_id, skill_id, gold)
 	if result.get("success", false):
 		inventory.remove_gold(result.get("cost", 0))
 		var book: Item = result.get("book")
@@ -1085,15 +1115,15 @@ func _process(_delta: float) -> void:
 		return
 	if player.global_position.distance_to(_npc_position) > 8.0:
 		close()
-		if NotificationService:
+		if _notify_svc():
 			var NotifKind = load("res://core/notifications/notification_kind.gd").NotifKind
-			NotificationService.notify(NotifKind.CUSTOM, "Moved too far from the trainer.",
+			_notify_svc().notify(NotifKind.CUSTOM, "Moved too far from the trainer.",
 				"SkillAcademyUI", "sac_out_of_range", {}, _player_id)
 
 
 func _get_local_player() -> Node:
-	if PlayerManager and PlayerManager.has_method("get_local_player"):
-		return PlayerManager.get_local_player()
+	if _pm() and _pm().has_method("get_local_player"):
+		return _pm().get_local_player()
 	return null
 
 
@@ -1112,6 +1142,7 @@ func open_with_context(player_id: String, skill_data: CharacterData, inventory_b
 	_selected_skill_id = ""
 	open(player_id)
 
+
 ## Load skill data and inventory from the current player context.
 ## Called by player_controller when opening the UI.
 func load_player_context(player_id: String) -> void:
@@ -1119,18 +1150,18 @@ func load_player_context(player_id: String) -> void:
 	_skill_data = null
 	_inventory_books = []
 
-	if not GameManager:
+	if not _r_gm():
 		return
 
-	var player_entity = EntityService.get_entity(player_id)
+	var player_entity = _entity_svc().get_entity(player_id)
 	# NOTE: Node has no .has(); use the `in` operator (4.7.2).
 	if player_entity != null and "character_data" in player_entity:
 		_skill_data = player_entity.character_data
 
-	if InventoryService:
+	if _inv_svc():
 		# get_player_items() never existed; the registered
 		# InventoryComponent is the authoritative item store.
-		var inv: InventoryComponent = InventoryService.get_inventory(player_id)
+		var inv: InventoryComponent = _inv_svc().get_inventory(player_id)
 		if inv != null:
 			var inv_items: Array = inv.get_all_items()
 			for item in inv_items:

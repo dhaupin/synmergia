@@ -1,6 +1,21 @@
 ## AntiCheatService - Detects and prevents cheating for humans AND agents
 ## Includes bot detection, macro detection, speed hacks, and anomaly detection
 extends Node
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _r_securityservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SecurityService")) if tree and tree.root else null
+
+func _r_dataservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+
+func _r_gamelog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 const DictStore = preload("res://adapters/persistence/dict_store.gd")
 
 signal cheat_detected(player_id: String, cheat_type: String, confidence: float, evidence: Dictionary)
@@ -90,13 +105,13 @@ class PlayerProfile:
 		last_action_time = session_start
 
 ## Boot: restore persisted suspicion/ban state and wire the escalation
-## chain -- cheat_detected -> SecurityService.exploit_detected so
+## chain -- cheat_detected -> _r_securityservice().exploit_detected so
 ## hard-limit confirmations join AutoResponseService's speedhack rules
 ## (3 confirmations -> admin review; auto-ban stays config-gated).
 func _ready() -> void:
 	_load_state()
-	if SecurityService and SecurityService.has_method("report_anticheat_finding"):
-		cheat_detected.connect(SecurityService.report_anticheat_finding)
+	if _r_securityservice() and _r_securityservice().has_method("report_anticheat_finding"):
+		cheat_detected.connect(_r_securityservice().report_anticheat_finding)
 
 
 ## Register a new player
@@ -105,7 +120,7 @@ func register_player(player_id: String, is_agent: bool = false) -> void:
 		_player_profiles[player_id] = PlayerProfile.new(player_id, is_agent)
 		_suspicion_scores[player_id] = 0.0
 		_persist_suspicion(player_id)
-		GameLog.info("AntiCheatService: Monitoring %s (%s)" % [player_id, "Agent" if is_agent else "Human"])
+		_r_gamelog().info("AntiCheatService: Monitoring %s (%s)" % [player_id, "Agent" if is_agent else "Human"])
 
 ## Unregister player
 func unregister_player(player_id: String) -> void:
@@ -191,8 +206,8 @@ func set_aquatic_limits(player_id: String, swim_speed: float, dive_speed: float,
 ## previous limits).
 func set_profile_limits(player_id: String, profile_id: String) -> bool:
 	var profile = null
-	if DataService:
-		profile = DataService.get_movement_profile(profile_id)
+	if _r_dataservice():
+		profile = _r_dataservice().get_movement_profile(profile_id)
 	if profile == null:
 		return false
 	var lim: Dictionary = _limits_from_profile(profile)
@@ -280,7 +295,7 @@ func set_glide_active(player_id: String, gliding: bool) -> void:
 		_movement_limits[player_id]["gliding"] = gliding
 
 ## Resolve the hard limits for a player. Falls back to the standard
-## humanoid profile bounds when nothing was stamped (DataService may be
+## humanoid profile bounds when nothing was stamped (_r_dataservice() may be
 ## absent in tool contexts; the constants then stand alone).
 func get_movement_limits(player_id: String) -> Dictionary:
 	if _movement_limits.has(player_id):
@@ -293,8 +308,8 @@ func get_movement_limits(player_id: String) -> Dictionary:
 			}
 		return limits
 	var fallback := {"max_speed": 25.0, "max_jump": 25.0, "max_fall": 110.0, "max_glide_speed": GLIDE_MAX_SPEED, "max_glide_fall": GLIDE_MAX_FALL, "gliding": false}
-	if DataService:
-		var profile = DataService.get_movement_profile("movement_standard")
+	if _r_dataservice():
+		var profile = _r_dataservice().get_movement_profile("movement_standard")
 		if profile != null:
 			fallback = _limits_from_profile(profile)
 	return fallback
@@ -389,7 +404,7 @@ func validate_movement(player_id: String, position: Vector3, velocity: Vector3, 
 				details["vector"] = "absurd_vertical"
 			_suspicion_scores[player_id] = clampf(_suspicion_scores.get(player_id, 0.0) + 0.15, 0.0, 1.0)
 			_persist_suspicion(player_id)
-			GameLog.warn("AntiCheatService: %s movement violation (%s) streak=%d %.1f m/s" % [player_id, details["vector"], profile.speed_violation_streak, horizontal])
+			_r_gamelog().warn("AntiCheatService: %s movement violation (%s) streak=%d %.1f m/s" % [player_id, details["vector"], profile.speed_violation_streak, horizontal])
 			cheat_detected.emit(player_id, "speed_hack", 0.6 + 0.1 * float(profile.speed_violation_streak / SUSTAINED_FRAME_LIMIT), details)
 			return true
 	else:
@@ -612,7 +627,7 @@ func _check_action_rate(profile: PlayerProfile) -> float:
 ## Flag a player for review
 func _flag_player(player_id: String, flag_type: String) -> void:
 	player_flagged.emit(player_id, flag_type)
-	GameLog.warn("AntiCheatService: Player %s flagged: %s" % [player_id, flag_type])
+	_r_gamelog().warn("AntiCheatService: Player %s flagged: %s" % [player_id, flag_type])
 
 ## Check if player is banned
 func is_banned(player_id: String) -> bool:
@@ -625,14 +640,14 @@ func ban_player(player_id: String, reason: String) -> void:
 		"timestamp": Time.get_ticks_msec()
 	}
 	player_banned.emit(player_id, reason)
-	GameLog.info("AntiCheatService: Player %s banned: %s" % [player_id, reason])
+	_r_gamelog().info("AntiCheatService: Player %s banned: %s" % [player_id, reason])
 
 ## Unban a player
 func unban_player(player_id: String) -> void:
 	_banned_players.erase(player_id)
 	_suspicion_scores[player_id] = 0.0
 	player_unbanned.emit(player_id)
-	GameLog.info("AntiCheatService: Player %s unbanned" % player_id)
+	_r_gamelog().info("AntiCheatService: Player %s unbanned" % player_id)
 
 ## Get suspicion score
 func get_suspicion(player_id: String) -> float:

@@ -1732,9 +1732,42 @@ splash, ui_alive, interaction (zero SCRIPT ERROR requirement).
   WorldStateProjection.snapshot_for_world(wid) -- a moon client's
   resync never pulls main-globe horde state; unscoped fallback kept
   for deep script mode. probe_world_scoping/probe_world_lattice/
-  probe_world_state all exit 0. NEXT: loot/gatherable writes (no
-  harvest system exists yet -- the service is the prerequisite),
-  agent accounts (synthetics through the lawful login chain).
+  probe_world_state all exit 0.
+- [x] S16.5.3 HarvestService SHIPPED (2026-10-08, the live-delta
+  thread complete). Gatherable nodes: register_node (data truth --
+  unknown item refused, world resolved from ZoneData), harvest gate
+  chain {ok, message} (no purse refused -- the world drops nothing
+  into the void; QoS rate limit; grant rides InventoryService
+  add_item), deplete + world delta harvest/<node_id> with provenance
+  (actor=harvester, epoch=sky clock), timed respawn -> ERASE delta
+  (auditable cleared record, actor=world). Agent-citizen law proven
+  end to end: a synthetic harvests the SAME node through the SAME
+  chain -- identical answer shape, purse grant, delta provenance.
+  probe_harvest 16 checks in DEFAULT_SET, exit 0. FOUND + FIXED a
+  real production bug: InventoryComponent._try_stack_item read
+  weight_per_unit (not an Item property -- the export is weight),
+  so every SECOND add of a stackable item crashed and the caller
+  got a silent refusal; test_ground_loot 44/0 + probe_character_panel
+  14/0 after the fix. Bag quirk noted: add_item quantity is only
+  honored via stacking (a non-stacked add grants 1) -- inventory-
+  layer wart for a future pass.
+- [x] S16.6 AGENT LAW reframed + PRD skeleton SHIPPED (2026-10-08,
+  owner directive). THE REFRAME: agent law is NOT agent
+  special-casing -- it is a BEHAVIORAL INTEGRITY LAYER over
+  AnticheatService for EVERY account (humans cheat; species is not
+  the threat model). Detector classes: economy (dup patterns,
+  harvest cadence, trade asymmetry), input humanity (entropy --
+  scripted input is too clean), session shape (sequences no human
+  walk produces). THE A11Y ADVANTAGE: the a11y rig already gives
+  the server a clean SEMANTIC action stream -- typed, attributable
+  events -- so cheater tooling must mimic it perfectly or betray
+  itself; the a11y law doubles as the integrity law without
+  degrading the a11y experience. Synthetics are ACCOUNTS through
+  the lawful login chain; AnticheatService.register_player's
+  is_agent flag tunes (no unearned grace), never exempts. PRD:
+  labs/prd-agent-law.md. Build order: synthetic accounts ->
+  semantic action ledger -> measured detectors -> tribunal riding
+  the existing flag/ban spine.
 - [x] S16.1 multiworld lattice SHIPPED (2026-09-29, owner: "let's
   take it all the way"). The clock thesis in code: WorldData schema
   (core/schemas/world_data.gd, world_ prefix, filename == id) with
@@ -2407,9 +2440,105 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   village-tier NPCs `zone_id = "zone_village_center"` so they spawn
   via the data-driven placement from the zone_id migration; the
   capital/town/outpost tier stays authored-but-unplaced until those
-  zones exist.- [ ] Islands suite: ~20 bare-autoload script-mode compile notes
-  (batched runtime-lookup conversion).
+  zones exist.- [x] S14.7 Sundered Sea content pass SHIPPED 2026-10-10 (NOT the
+  Round-41 riding slice that shares the name -- that S14.7 slot above
+  is the mount-acquisition pass). The content pass turned the river
+  fork-under-island seam into a destination: a carved strait where the
+  ferry moat law (ISLAND_MOAT_OUTER) and the offshore shelf meet, so
+  Sundered Sea reads as a PLACE, not a gap. All four scope legs
+  landed:
+  (1) terrain_gen: one SunderedStraits sculpt (two headlands pinching
+  the moat ring into a channel + a wreck shoal law site),
+  RULESET_VERSION stays terrain_v3 (additive; the v3 bit-identity
+  contract held -- test_terrain_determinism PASS after the edits).
+  (2) The backend seam landed FIRST: backend_sundered.gd (NEW) ships
+  the authored site law (strait center, headlands, wreck shoal,
+  ferry line) through install_terrain_backend() with an EXACT
+  radial/chart round-trip (sinc correction on _chart, r=|x,y|), so
+  authored content no longer grows the analytic law forever.
+  probe_terrain_backend PASS.
+  (3) Hydrology: ESTUARY_WIDEN 1.8 -- sea-terminating river mouths
+  now widen their capsule radius quadratically toward the mouth at
+  2 (moisture ripple already live).
+  (4) Content staged DATA ONLY (backend-seam-first policy -- no code
+  till the site renders): zone_sundered_sea.tres, npc_ferryman_sundered.tres,
+  npc_salvor_wreck.tres, quest_shoal_freight.tres.
+  Verification: probe_sundered_sea 13/13 PASS (site law, strait
+  geometry on the chart, headland shoulders, shoal crest +4.07 m
+  above the moat floor, ferry line clearance, channel half-width,
+  round-trip), probe_terrain_planet, probe_terrain_stream,
+  probe_terrain_climate, probe_ancient_loop all PASS. Both probes
+  + climate are in the runner DEFAULT_SET.
+- [x] Islands suite: ~30 bare-autoload script-mode compile notes
+  CONVERTED 2026-10-10 (batched runtime-lookup pass). Root cause:
+  --script-mode runs parse BEFORE autoloads exist, so any bare
+  `X.y` reference to an autoload global fails to COMPILE (not just
+  resolve). The conversion law (mirrors kill_rewards.gd,
+  inventory_component._resolve_service, and the QoSService\n  singleton idiom): a per-file static-ish helper `_resolver() ->
+  Node` reads `Engine.get_main_loop() as SceneTree` and
+  `root.get_node_or_null(NodePath("Name"))` -- null outside a live
+  tree, the bare identifier nowhere. Scope crossed three layers:
+  (1) the entity core chain (entity.gd damage/heal events,
+ aura/combat/inventory/health components, skill.gd hit_resolved,
+  vendor/dialog/vault/security(chat+admin) services, targeting
+  manager + its action map),
+  (2) the island UI panels (bank, shop, inventory, character,
+  quick-access, minimap, world-map, target-frame, settings, mount,
+  dialog, quest, skill-academy, title, voting, admin dashboard +
+  toolbar, menu manager, main menu, chat UI, social party/guild/
+  friends/trade/faction/transfer, report dialog, targeting tooltip,
+  cooldown indicator),
+  (3) the UIPanel base + hud_layer + player_controller autoload
+  touch-points (anticheat stamp, input, lock, follow, looting,
+  dialog, notifications, loot collect/drop, respawn, zones,
+  gateways, self-rez, hub emit).
+  Two compile-law ripples fixed along the way: class_name must
+  appear BEFORE any func in a class body (v4.7 pride) so the
+  batch-insert helper blocks were moved below the header consts
+  (13 files), and typed-inference on dynamic lookups
+  (`var x := resolver().y`) needed explicit types (bank_ui cost
+  Dictionary, chat_service player arrays, minimap/quest progress,
+  player_controller movement Vector3 -- forward * input.y + right * input.x is
+  Vector3, don't "fix" it to Vector2).
+  ChatService/chat_ui got enum-import-via-preload const (`Channel`
+  read from the script resource, not the global)
+  and AdminCommands / ReportType / TitleService the same way.
+  Constants that ate the runtime pull (MAX_MESSAGE_LENGTH +
+  MAX_HISTORY_PER_CHANNEL) became lazy vars initialized in _ready
+  (GameConfig fallbacks when absent); the parse-time const read of
+  them stayed out.
+  Verification: test_islands 19/19 ZERO identifier errors,
+  probe_round2_ui, probe_character_panel, probe_riding,
+  test_combat_stack_live, test_anticheat_limits,
+  test_movement_profiles, test_hitbox_profiles, test_data_naming_lint,
+  test_a11y_service, probe_startup_flow, probe_ferry,
+  probe_water_mounts, probe_glider, probe_playtest_r12,
+  probe_bout_flow all PASS (nothing behind the islands pane
+  regressed).
 - [ ] WebInputBridge browser e2e once a full web export lands.
+- [x] Harness LOD slice (streamer draw-call cut): TREE MULTI-MESH
+  BATCHING in globe_terrain_streamer._spawn_trees. The law: a tree
+  on the BASE-level face is a real Node3D (its trunk still mounts
+  PropCollider.attach_trunk -- NEAR faces are walkable). A tree on a
+  DEMOTED face (far/horizon) is pure detail: the SAME deterministic
+  scatter (same seed acc, same rng draws, same biome gates) is
+  batched into two MultiMeshInstances (BatchedTrunks: unit cylinder
+  scaled per-instance by trunk height; BatchedCanopies: unit sphere
+  scaled by crown), cutting up to 2xN draw calls per far face to
+  exactly 2. Far trunks carry NO collider (the horizon can't be
+  walked to; the collider law re-arms for free when the face
+  promotes and re-spawns per-tree). Poses are identical between
+  modes: the batch path computes the same radial placement +
+  radial-up Basis the per-tree path does, then composes
+  tree-pose x trunk-local/canopy-local. Face seed stream UNCHANGED
+  (all rng draws happen in the same order both paths), so the
+  deterministic content contract (S7 + the v3 bit-identity claims
+  in terrain_gen) never notices the render path.
+  Verification: probe_terrain_stream (4-patch steady state +
+  continent walk + rock audit), test_terrain_determinism,
+  probe_planet_scale_20km, probe_terrain_planet (shore fan),
+  probe_sundered_sea, probe_globe_world, test_world_shape,
+  test_world_chunks, probe_terrain_backend all PASS.
 - [ ] Zone data is concentric discs sharing one center; real region
   shapes would exercise the overlap resolver more meaningfully.
 - [ ] Wolf spawn-camp mitigated by sanctuary; revisit levels/positions
@@ -4511,3 +4640,126 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   pacer); the README table carries the new probe.
   Hygiene: tabs only, ASCII, extends-first intact.
 
+- [x] THE CANONICAL SECTOR CACHE (frame/kv/sector_cache.gd, 2026-10-11).
+  The quantized-direction memoization terrain_gen grew by hand is now
+  a frame primitive and terrain_gen rides it wholesale. Context: the
+  previous note ("Adding a quantized cache (same pattern as the
+  streamer's dir_h)") + the flagged future work: "Cache bounds (524 k
+  per-class statics) cleared wholesale on overflow -- bounded memory,
+  not optimal hit-rate; multi-world hot-swapping clears rather than
+  LRU-evicts; not exercised by any probe."
+  (1) Frame primitive: core/frame/kv/sector_cache.gd (SectorCache, no
+  autoload, no class_name -- preload-const like definition_tree /
+  folded_shell). One String key law for the whole repo:
+  str(2048->quantized Vector3i) + "|" + seed hex (SECTOR key constant
+  SECTORS_PER_AXIS = 2048, the same bucketing every old cache used, so
+  no cross-swap invalidation question can even arise). Backing store
+  = the existing frame LRUCache (O(1) intrusive recency order): bounds
+  EVICT the least-recently-used sector; nothing clears wholesale for
+  capacity. Defaults keep the legacy 524288 law. Co-located
+  test_sector_cache.gd 5 suites: key stability/seed separation,
+  bound-by-eviction, evict-then-rederive-answers-the-same (pure-law
+  discipline), MULTI-SEED COEXISTENCE (two seeds alternating stay
+  fully warm -- the exact hot-swap hole this closes), full-flush law.
+  (2) terrain_gen adoption: height, water surface, biome blend, and
+  river channel statics all ride SectorCache now (identical key law);
+  the per-seed river-spec table rides a tiny LRUCache(8) instead of
+  pinning every world's rivers forever; the four separate 524288
+  per-class bounds collapsed into four independent per-cache bounds.
+  install/uninstall_terrain_backend keeps the only legal wholesale
+  flush (the LAW changed; warm sectors are not stale-able but wrong).
+  (3) Probe repair (the one direct internal-stdout touch): 
+  probe_terrain_climate.gd pinned determinism by erasing one seed's
+  specs from the old Dictionary; now _river_spec_cache.delete(key) --
+  evict-one, same assertion, stricter isolation than a table clear.
+  Verification (exit statuses captured): frame/kv/test_lru_cache +
+  test_terrain_determinism + frame/kv/test_sector_cache 3/3 PASS;
+  probe_terrain_stream PASS; probe_terrain_planet + probe_sundered_sea
+  2/2 PASS; probe_terrain_backend + probe_terrain_climate (rerun after
+  the erase->delete repair) + probe_startup_flow 3/3 PASS; charset
+  lint PASS (exit 0). No probe loosened: every failure that surfaced
+  was fixed at its cause (the deleted static), no assertions weakened.
+- [x] SECTOR-CACHE WAVE 2 (the remaining hot pure fields, 2026-10-11).
+  Scan for further hand-rolled memoization to consolidate onto the
+  canonical frame SectorCache after the round-1 conversion (height,
+  water surface, blend, channel, river specs):
+  (1) CONVERTED: climate_temperature (lapse reads terrain_height --
+  the mesh pass asks temperature per vertex corner via biome weights)
+  and water_table_raw (TWO noise octaves + moisture + perch per miss;
+  read by both the water-surface law and the lake carve at every
+  corner -- priciest non-river corner call). Both keep bit-identical
+  answers (pure per quantized sector); both newly flush at the
+  backend install/uninstall seam (lapse + perch ride the ground law).
+  (2) DELIBERATELY NOT CONVERTED: the streamer's per-patch dir_h --
+  it is ALREADY the same pattern (quantized globe dir -> displaced
+  radius, 4096 sectors) but scoped to ONE patch build and thrown
+  away; converting it buys a hit-rate the height SectorCache already
+  provides underneath (every dir_h miss IS a terrain_height call,
+  which now hits the frame cache across patches). No double-keying.
+  Scope-engine/adapter caches call the persistence sidecars (I/O
+  bounds, not pure functions) -- wrong shape for SectorCache.
+  Verification (exit statuses captured): probe_terrain_climate +
+  probe_terrain_backend 2/2 PASS; probe_sundered_sea +
+  probe_terrain_stream 2/2 PASS; test_terrain_determinism +
+  probe_startup_flow 2/2 PASS; charset lint PASS (exit 0); terrain_gen
+  parse check exit 0.
+- [x] CACHE HARDENING WAVE: the poison guard + the architecture
+  answers on record (2026-10-11). User asked: Redis? T3? TTL? clear/
+  mitigate? poisoning protection (seeds+states)? What else for
+  robust+secure caching?
+  (1) THE ARCHITECTURE (durable doc below): the terrain SectorCaches
+  are IN-PROCESS Godot memory -- deliberately NOT the Redis bridge
+  adapters and NOT the T3 Merkle tree. Both are the WRONG layer: T3
+  is the persistence/hash substrate (indexed canonical state, not
+  float memoization), redis-bridge is a cross-process/session store
+  (these caches are per-process derivative computation, and a
+  WRONG-net Redis read would need the full t3-hash verification chain
+  -- more cost than re-deriving). The canonical sector law is:
+  process-local, LRU-bounded, seed-scoped, flushed on law change.
+  (2) TTL: NONE, on purpose. TTL expiry is a staleness patch for
+  caches whose backing data can change WITHOUT their key changing.
+  A pure function's backing data IS its key (dir sector + seed hex +
+  law constant) -- the value cannot go stale, only evicted. The two
+  honest staleness points in this system already self-manage:
+  install/uninstall_terrain_backend does the full flush (the LAW
+  changed), and kernel upgrades of the law itself are covered by the
+  RULESET_VERSION bump contract (content re-derives deliberately).
+  (3) CLEAR/MITIGATE: three ranked levers, all wired -- LRU eviction
+  at the per-cache bound (capacity, automatic, hot set survives);
+  .clear() (the legal LAW-CHANGED full flush, called at the backend
+  seam today); .delete() per-key (probe-verified, one seed's worth
+  out without touching the hot set). Uninstall also full-flushes --
+  even though seeds key the caches, uninstall clearing is DEFENSE IN
+  DEPTH (the layer above)\n: a re-install under the same rule must
+  never serve a stale sector no matter what.
+  (4) POISONING: two layers shipped. The seed-and-state theory: the
+  cache key binds (quantized dir, seed, field) so cross-world
+  contamination is structurally impossible (different seeds never
+  share a bucket -- test-suite pinned); the state layer is the
+  backend SEAM itself (whoever installs a backend changes the LAW,
+  and install/uninstall flushes everything). The remaining vector
+  was VALUE poisoning: a misbehaving backend returning NaN/inf --
+  stored forever once written, evictable-but-re-servable, and a NaN
+  dodges every equality pin (NaN == NaN is false), so determinism
+  probes CANNOT catch it. Shipped: SectorCache.set_value REJECTS
+  non-finite floats (returns false, nothing written) and non-finite
+  color components (component-wise); terrain_gen honors the reject
+  (never caches, returns the honest clampf answer; rogue backend
+  non-finite raw values fall to the plaza-flat fall-through -- the
+  law stays total). Co-located test suite 6 now: poison guard
+  accepts finite, rejects +/- INF and NAN and poisoned color tuples,
+  writes nothing on reject.
+  (5) What else robust+secure caching WOULD need (future law, not
+  now): if any of these caches ever cross a process boundary (a
+  server sharing height answers with clients, or persistence to
+  disk), THEN Redis/T3-shape becomes right, and the checklist is --
+  integrity stamp on entries (t3 hash of (key, value, law version)),
+  bounded replay (never deserialize an entry the CURRENT law cannot
+  re-validate), and an admin surface to flush per-seed and per-cache
+  from the permission_manager chain. None of it applies while the
+  caches are process-local and re-derivable.
+  Verification (exit statuses captured): frame/kv/test_sector_cache
+  + frame/kv/test_lru_cache 2/2 PASS (6th suite = poison guard);
+  probe_terrain_backend + probe_terrain_climate 2/2 PASS; 
+  test_terrain_determinism + probe_sundered_sea 2/2 PASS; charset
+  lint PASS (exit 0); terrain_gen parse check exit 0.

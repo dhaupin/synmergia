@@ -441,8 +441,10 @@ func _on_context_menu_action(item_id: int) -> void:
 		4: _open_world_map(world_pos)
 
 func _open_quest_tracker(position: Vector3) -> void:
-	if QuestService and QuestService.has_method("get_quests_near_position"):
-		var quests = QuestService.get_quests_near_position(position, 50.0)
+	var _tree := Engine.get_main_loop() as SceneTree
+	var quest_service := _tree.root.get_node_or_null(NodePath("QuestService")) if _tree and _tree.root else null
+	if quest_service and quest_service.has_method("get_quests_near_position"):
+		var quests = quest_service.get_quests_near_position(position, 50.0)
 		if quests.size() > 0:
 			quest_track_requested.emit(quests[0].get("id", ""))
 
@@ -452,28 +454,32 @@ func _open_world_map(position: Vector3) -> void:
 		WorldMap.instance.show_position(position)
 
 func _connect_signals() -> void:
-	if not ZoneManager:
+	var _tree := Engine.get_main_loop() as SceneTree
+	var zone_manager := _tree.root.get_node_or_null(NodePath("ZoneManager")) if _tree and _tree.root else null
+	if not zone_manager:
 		return
-	if ZoneManager.has_signal("zone_loaded"):
-		if not ZoneManager.zone_loaded.is_connected(_on_zone_loaded):
-			ZoneManager.zone_loaded.connect(_on_zone_loaded)
-	if ZoneManager.has_signal("player_entered_zone"):
-		if not ZoneManager.player_entered_zone.is_connected(_on_player_entered_zone):
-			ZoneManager.player_entered_zone.connect(_on_player_entered_zone)
+	if zone_manager.has_signal("zone_loaded"):
+		if not zone_manager.zone_loaded.is_connected(_on_zone_loaded):
+			zone_manager.zone_loaded.connect(_on_zone_loaded)
+	if zone_manager.has_signal("player_entered_zone"):
+		if not zone_manager.player_entered_zone.is_connected(_on_player_entered_zone):
+			zone_manager.player_entered_zone.connect(_on_player_entered_zone)
 
 	# Time of day comes from WorldService (no TimeOfDay service exists).
-	if WorldService and WorldService.has_signal("time_changed"):
-		if not WorldService.time_changed.is_connected(_on_time_changed):
-			WorldService.time_changed.connect(_on_time_changed)
+	var world_service := _tree.root.get_node_or_null(NodePath("WorldService")) if _tree and _tree.root else null
+	if world_service and world_service.has_signal("time_changed"):
+		if not world_service.time_changed.is_connected(_on_time_changed):
+			world_service.time_changed.connect(_on_time_changed)
 
-	if EntityService and EntityService.has_signal("entity_spawned"):
-		EntityService.entity_spawned.connect(_on_entity_spawned)
+	var entity_service := _tree.root.get_node_or_null(NodePath("EntityService")) if _tree and _tree.root else null
+	if entity_service and entity_service.has_signal("entity_spawned"):
+		entity_service.entity_spawned.connect(_on_entity_spawned)
 	# The despawn-side signal is entity_unregistered(entity, metadata)
 	# -- EntityService has no "entity_despawned" signal, so the old
 	# guarded connect silently never fired and markers piled up.
-	if EntityService and EntityService.has_signal("entity_unregistered"):
-		if not EntityService.entity_unregistered.is_connected(_on_entity_despawned):
-			EntityService.entity_unregistered.connect(_on_entity_despawned)
+	if entity_service and entity_service.has_signal("entity_unregistered"):
+		if not entity_service.entity_unregistered.is_connected(_on_entity_despawned):
+			entity_service.entity_unregistered.connect(_on_entity_despawned)
 
 func _on_zone_loaded(zone_data) -> void:
 	# ZoneData is a Resource: use `in` (Resources have no .has(); the
@@ -509,13 +515,15 @@ func _on_time_changed(time_of_day, hour) -> void:
 func _on_entity_spawned(entity, metadata) -> void:
 	if not is_instance_valid(entity):
 		return
+	var _spawn_tree := Engine.get_main_loop() as SceneTree
+	var party_service := _spawn_tree.root.get_node_or_null(NodePath("PartyService")) if _spawn_tree and _spawn_tree.root else null
 
 	var entity_type = entity.get("entity_type", 0)
 	var marker_type = 0
 
 	match entity_type:
 		Entity.EntityType.PLAYER:
-			if PartyService and PartyService.is_in_same_party(entity.entity_id):
+			if party_service and party_service.is_in_same_party(entity.entity_id):
 				marker_type = MARKER_PARTY
 			else:
 				return

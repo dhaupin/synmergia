@@ -209,6 +209,16 @@ func apply_species(new_species) -> void:
 
 ## HEALTH
 
+## Runtime autoload lookup (the --script-mode law: never the bare
+## identifier, which fails compile when autoloads are absent; mirrors
+## kill_rewards._resolve_autoload).
+func _hub() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	var tree := ml as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree.root else null
+
 func take_damage(amount: int, source = null, damage_type: String = "physical", is_crit: bool = false) -> int:
 	if is_dead:
 		return 0
@@ -216,7 +226,9 @@ func take_damage(amount: int, source = null, damage_type: String = "physical", i
 	var damage := _calculate_damage_received(amount, damage_type)
 	current_health = max(0, current_health - damage)
 	health_changed.emit(current_health, max_health)
-	EventHub.damage_dealt.emit(source, self, damage, damage_type, is_crit)
+	var hub := _hub()
+	if hub and hub.has_signal("damage_dealt"):
+		hub.emit_signal("damage_dealt", source, self, damage, damage_type, is_crit)
 
 	if current_health <= 0:
 		die(source)
@@ -232,7 +244,9 @@ func heal(amount: int) -> void:
 	current_health = min(max_health, current_health + amount)
 	health_changed.emit(current_health, max_health)
 	# HUD feed parity with damage: heal floats + combat-log lines.
-	EventHub.heal_dealt.emit(null, self, actual)
+	var hub := _hub()
+	if hub and hub.has_signal("heal_dealt"):
+		hub.emit_signal("heal_dealt", null, self, actual)
 
 func heal_percentage(percent: float) -> void:
 	heal(int(max_health * percent))

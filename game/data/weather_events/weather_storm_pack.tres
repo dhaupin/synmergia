@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeatherEventData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/weather_event_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm_pack"
+display_name = "Storm Pack"
+trigger_kinds = Array[int]([0, 1])
+band_names = Array[String](["storm", "tempest", "rain"])
+aurora_min = 0.5
+cooldown_sec = 240.0
+zone_ids = Array[String]([])
+stir_horde_config = "storm_wolves"
+stir_waves = 2
+open_window_sec = 0.0
+notify_message = "The storm stirs the wilds — something is coming."

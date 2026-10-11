@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="NPCData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/npc_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "npc_ferryman_sundered"
+display_name = "Old Brack, the Ferryman"
+description = "He kept the crossing alive when the strait closed. Now that the Sundered Sea is open again, the barque sails twice a tide -- if someone pays the crew."
+npc_type = 6
+level = 1
+faction = "friendly"
+scene_path = "res://scenes/npcs/merchant_general.tscn"
+zone_id = "zone_sundered_sea"
+spawn_offset = Vector3(2, 0, -4)
+greeting = "Tide's turning. You crossing, or just gawking at the wreck?"
+farewell = "Mind the shoal. She took the barque; she'll take slower ships."
+shop_title = "Ferry Passage"
+location_type = 1
+buy_multiplier = 0.5
+sell_multiplier = 1.0
+buy_categories = ["MISC"]
+sell_categories = ["MISC"]
+includes = [
+  {"type": "dialogue", "dialogue_id": "sundered_ferry_talk"},
+  {"type": "offering", "ref_id": "ferry_passage_sundered"}
+]

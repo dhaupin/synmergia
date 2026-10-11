@@ -89,4 +89,8 @@ enum NotifKind {
 	KILL_STREAK,
 	CONNECTION_QUALITY,
 	CUSTOM,
+
+	# Weather-driven world events (WeatherEventService, sun->sword loop)
+	WEATHER_STORM_STIRRED,
+	WEATHER_AURORA_WINDOW,
 }

@@ -18,6 +18,16 @@ var _empty_label: Label
 var _shop_list: VBoxContainer
 var _ride_service = null  # RideService autoload (resolved before super._ready)
 
+## Runtime autoload lookups (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _data_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DataService")) if tree and tree.root else null
+
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 
 func _ready() -> void:
 	# Resolve BEFORE super._ready(): the base chain calls
@@ -148,7 +158,7 @@ func _on_summon_pressed(player_id: String, mount_id: String) -> void:
 ## not a good). One button, one meaning: "Buy <name> (N gold)".
 func _shop_rows(player_id: String) -> Array:
 	var rows: Array = []
-	if _ride_service == null or DataService == null:
+	if _ride_service == null or _data_svc() == null:
 		return rows
 	var owned: Dictionary = {}
 	for mid in _owned_mount_ids(player_id):
@@ -161,8 +171,8 @@ func _shop_rows(player_id: String) -> Array:
 		var display: String = str(mount.display_name) if mount != null else mount_id
 		var currency := str(entry.get("currency", ""))
 		var cur_name := "gold"
-		if currency != "" and DataService.get_currency(currency) != null:
-			cur_name = str(DataService.get_currency(currency).display_name)
+		if currency != "" and _data_svc().get_currency(currency) != null:
+			cur_name = str(_data_svc().get_currency(currency).display_name)
 		var row := HBoxContainer.new()
 		row.name = "ShopRow_" + mount_id
 		var label := Label.new()
@@ -188,7 +198,9 @@ func _on_buy_pressed(player_id: String, mount_id: String) -> void:
 	var answer: Dictionary = _ride_service.purchase_mount(player_id, mount_id)
 	if not bool(answer.get("success", false)):
 		# The refusal is spoken, never swallowed -- a short purse must say so.
-		GameLog.info("MountUI: buy refused for %s: %s" % [mount_id, str(answer.get("message", "refused"))])
+		var gl := _glog()
+		if gl:
+			gl.info("MountUI: buy refused for %s: %s" % [mount_id, str(answer.get("message", "refused"))])
 	refresh()
 
 
@@ -214,8 +226,8 @@ func _owned_mount_ids(player_id: String) -> Array:
 
 
 func _mount_data(mount_id: String):
-	if DataService != null:
-		return DataService.get_mount(mount_id)
+	if _data_svc() != null:
+		return _data_svc().get_mount(mount_id)
 	return null
 
 

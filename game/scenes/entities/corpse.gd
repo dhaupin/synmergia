@@ -3,6 +3,12 @@
 extends Node3D
 class_name Corpse
 
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 
 signal corpse_looted(corpse: Corpse, looter: Entity)
 signal corpse_despawned(corpse: Corpse, reason: String)
@@ -106,7 +112,7 @@ func _start_decay_visual() -> void:
 	# Visual decay effect: start fading out the corpse
 	# This would typically modify the mesh material's albedo alpha
 	# For now, just log it - actual implementation would depend on visual system
-	GameLog.debug("Corpse %s: Starting decay visual (will fade out)" % corpse_id)
+	if _glog(): _glog().debug("Corpse %s: Starting decay visual (will fade out)" % corpse_id)
 
 ## Check if a player can SEE this corpse (visibility)
 func can_see(observer) -> bool:

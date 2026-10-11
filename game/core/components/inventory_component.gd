@@ -109,7 +109,6 @@ func _resolve_service(service_name: String) -> Node:
 	if ml == null or not (ml is SceneTree):
 		return null
 	return (ml as SceneTree).root.get_node_or_null(service_name)
-
 func add_item(item: Item, quantity: int = 1) -> bool:
 	# Security: Check for item duplication exploit. The component may
 	# live outside the scene tree (pre-boot stubs, detached pickups), and
@@ -126,28 +125,60 @@ func add_item(item: Item, quantity: int = 1) -> bool:
 					gl.warn("InventoryComponent: Item duplication detected for player %s" % _owner_id)
 				return false
 
-	# Try to stack first
-	if item.stack_size > 1:
-		var stacked: int = _try_stack_item(item, quantity)
-		if stacked >= quantity:
-			return true
-		quantity -= stacked
+	# QUANTITY LAW (S16.7 wart, fixed): the old code stacked, then
+	# placed ONE slot and silently dropped the remaining quantity --
+	# and it placed the SHARED DataService instance, so later stack
+	# adds mutated current_stack for every player holding the same
+	# item id. Now: all-or-nothing pre-flight (stack space + empty
+	# slots + weight must hold the FULL quantity), then place
+	# per-slot DUPLICATES so no two bags share an Item instance.
+	# An EXPLICIT quantity > 1 means "add N". The default call means
+	# "take the stack the item carries" (ground-loot drops pass a stack
+	# with current_stack already set -- stomping it to 1 destroyed the
+	# drop's quantity).
+	var want: int = quantity if quantity > 1 else maxi(1, int(item.current_stack))
+	var stackable: bool = item.stack_size > 1
 
-	# Check weight limit
-	if not can_carry(item):
-		return false
-
-	# Find empty slot
-	var empty_slot: int = _find_empty_slot()
-	if empty_slot < 0:
+	# -- Pre-flight: can the bag hold ALL of it? (all-or-nothing) --
+	var stack_space := 0
+	if stackable:
+		for i in range(_inventory.size()):
+			var slot_item: Item = _inventory[i]
+			if slot_item and slot_item.id == item.id:
+				stack_space += maxi(0, slot_item.stack_size - slot_item.current_stack)
+	var empty_count: int = maxi(0, max_inventory_slots - _inventory.size())
+	for i in range(_inventory.size()):
+		if _inventory[i] == null:
+			empty_count += 1
+	var per_slot: int = item.stack_size if stackable else 1
+	var slot_capacity: int = stack_space + empty_count * per_slot
+	if want > slot_capacity:
 		inventory_full.emit()
-		EventHub.inventory_full.emit(get_parent())
+		var hub := _resolve_service("EventHub")
+		if hub:
+			hub.emit_signal("inventory_full", get_parent())
+		return false
+	if _current_weight + float(want) * item.weight > _max_weight:
 		return false
 
-	_inventory[empty_slot] = item
-	item_added.emit(item, empty_slot)
-	EventHub.item_picked_up.emit(get_parent(), item)
-	_update_weight(item)
+	# -- Place: stack first, then per-slot duplicates --
+	var remaining: int = want
+	if stackable:
+		remaining -= _try_stack_item(item, remaining)
+	while remaining > 0:
+		var empty_slot: int = _find_empty_slot()
+		if empty_slot < 0:
+			break
+		var placed: Item = _dup_item(item)
+		var n: int = mini(remaining, per_slot)
+		placed.current_stack = n
+		_inventory[empty_slot] = placed
+		item_added.emit(placed, empty_slot)
+		var hub := _resolve_service("EventHub")
+		if hub:
+			hub.emit_signal("item_picked_up", get_parent(), placed)
+		_update_weight(placed)
+		remaining -= n
 	return true
 
 ## Try to stack item with existing stack
@@ -160,8 +191,11 @@ func _try_stack_item(item: Item, quantity: int) -> int:
 				var to_add: int = mini(space, quantity)
 				var old_stack: int = slot_item.current_stack
 				slot_item.current_stack += to_add
-				# Update weight for stacked items
-				_current_weight += (slot_item.current_stack - old_stack) * slot_item.weight_per_unit
+				# Update weight for stacked items (the export is `weight` --
+				# this used to read weight_per_unit, a property that does
+				# not exist on Item: every second add of a stackable item
+				# crashed here and the caller got a silent refusal).
+				_current_weight += (slot_item.current_stack - old_stack) * slot_item.weight
 				weight_changed.emit(_current_weight, _max_weight, is_encumbered())
 				return to_add
 	return 0
@@ -181,6 +215,21 @@ func _find_empty_slot() -> int:
 	return -1
 
 ## Remove item from inventory
+## Duplicate an Item PRESERVING plain script variables. Resource
+## .duplicate() copies only exported properties in 4.7: a runtime
+## SkillBook's book_skill_id/book_upgrade_level (plain vars) came
+## back empty, so the placed copy was an unidentifiable husk. This
+## re-copies every script variable after the engine duplicate.
+func _dup_item(src: Item) -> Item:
+	var dup: Item = src.duplicate() as Item
+	if dup != null:
+		for prop in src.get_property_list():
+			var pname: String = str(prop.get("name", ""))
+			var usage: int = int(prop.get("usage", 0))
+			if pname != "" and pname != "script" and (usage & PROPERTY_USAGE_SCRIPT_VARIABLE) != 0:
+				dup.set(pname, src.get(pname))
+	return dup
+
 func remove_item(slot: int, quantity: int = -1) -> Item:
 	if slot < 0 or slot >= _inventory.size():
 		return null
@@ -192,7 +241,9 @@ func remove_item(slot: int, quantity: int = -1) -> Item:
 	if quantity < 0 or quantity >= item.current_stack:
 		_inventory[slot] = null
 		item_removed.emit(item, slot)
-		EventHub.item_dropped.emit(get_parent(), item)
+		var hub := _resolve_service("EventHub")
+		if hub:
+			hub.emit_signal("item_dropped", get_parent(), item)
 	else:
 		item.current_stack -= quantity
 		if item.current_stack <= 0:
@@ -334,7 +385,9 @@ func add_gold(amount: int) -> void:
 		return
 	_gold += amount
 	gold_changed.emit(amount)
-	EventHub.gold_changed.emit(get_parent(), amount)
+	var hub := _resolve_service("EventHub")
+	if hub:
+		hub.emit_signal("gold_changed", get_parent(), amount)
 
 ## Remove gold
 func remove_gold(amount: int) -> bool:
@@ -342,7 +395,9 @@ func remove_gold(amount: int) -> bool:
 		return false
 	_gold -= amount
 	gold_changed.emit(-amount)
-	EventHub.gold_changed.emit(get_parent(), -amount)
+	var hub := _resolve_service("EventHub")
+	if hub:
+		hub.emit_signal("gold_changed", get_parent(), -amount)
 	return true
 
 ## Get gold
@@ -576,7 +631,9 @@ func expand_inventory() -> bool:
 	_unlocked_bags += 1
 
 	bag_expanded.emit(_unlocked_bags - 1, BAG_SIZE)
-	GameLog.info("InventoryComponent: Expanded inventory with bag %d" % (_unlocked_bags - 1))
+	var gl = _resolve_service("GameLog")
+	if gl:
+		gl.info("InventoryComponent: Expanded inventory with bag %d" % (_unlocked_bags - 1))
 	return true
 
 ## Get total inventory slots (base + bags)
@@ -712,7 +769,9 @@ func expand_bank() -> bool:
 	_bank_expansion_count += 1
 
 	bank_expanded.emit(_bank_size)
-	GameLog.info("InventoryComponent: Bank expanded to %d slots" % _bank_size)
+	var gl = _resolve_service("GameLog")
+	if gl:
+		gl.info("InventoryComponent: Bank expanded to %d slots" % _bank_size)
 	return true
 
 ## Get all bank items
@@ -777,7 +836,9 @@ func sell_item(slot: int, quantity: int = -1) -> int:
 
 	add_gold(price)
 	item_sold.emit(item, price)
-	GameLog.info("InventoryComponent: Sold %s for %d gold" % [item.display_name, price])
+	var gl_sold = _resolve_service("GameLog")
+	if gl_sold:
+		gl_sold.info("InventoryComponent: Sold %s for %d gold" % [item.display_name, price])
 
 	return price
 
@@ -789,6 +850,11 @@ func _calculate_sell_price(item: Item, quantity: int = -1) -> int:
 		quantity = item.current_stack
 	return int(base_price * _sell_price_multiplier * quantity)
 
+func _gl_destroyed(msg: String) -> void:
+	var gl = _resolve_service("GameLog")
+	if gl:
+		gl.info("InventoryComponent: Destroyed " + msg)
+
 ## Destroy item (removes without gold)
 func destroy_item(slot: int, quantity: int = -1) -> bool:
 	var item: Item = _inventory[slot]
@@ -798,10 +864,10 @@ func destroy_item(slot: int, quantity: int = -1) -> bool:
 	if quantity < 0 or quantity >= item.current_stack:
 		_inventory[slot] = null
 		item_removed.emit(item, slot)
-		GameLog.info("InventoryComponent: Destroyed %s" % item.display_name)
+		_gl_destroyed("%s" % item.display_name)
 	else:
 		item.current_stack -= quantity
-		GameLog.info("InventoryComponent: Destroyed %d x %s" % [quantity, item.display_name])
+		_gl_destroyed("%d x %s" % [quantity, item.display_name])
 
 	item_destroyed.emit(item)
 	return true

@@ -6,6 +6,17 @@ const Buff = preload("res://core/combat/buff.gd")
 const StatusEffect = preload("res://core/entities/status_effect.gd")
 const AuraBuffScript = preload("res://core/combat/aura_buff.gd")
 
+## Runtime autoload lookup (script-mode-safe; mirrors
+## inventory_component._resolve_service -- the bare identifier fails
+## compile when autoloads are absent).
+func _hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
 
 signal buff_added(buff: Buff)
 signal buff_removed(buff: Buff)
@@ -41,14 +52,18 @@ func track_effect(effect) -> void:
 			_active_buffs.pop_at(0)
 		_active_buffs.append(effect)
 		buff_added.emit(effect)
-		EventHub.buff_applied.emit(get_parent(), effect, effect.source)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("buff_applied", get_parent(), effect, effect.source)
 		_emit_hub_effect_added(effect)
 	elif effect.effect_type == StatusEffect.EffectType.DEBUFF:
 		if _active_debuffs.size() >= max_debuffs:
 			_active_debuffs.pop_at(0)
 		_active_debuffs.append(effect)
 		debuff_added.emit(effect)
-		EventHub.debuff_applied.emit(get_parent(), effect, effect.source)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("debuff_applied", get_parent(), effect, effect.source)
 		_emit_hub_effect_added(effect)
 
 ## Mirror untrack (called by Entity on every canonical removal).
@@ -58,12 +73,16 @@ func untrack_effect(effect) -> void:
 	if _active_buffs.has(effect):
 		_active_buffs.erase(effect)
 		buff_removed.emit(effect)
-		EventHub.buff_removed.emit(get_parent(), effect)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("buff_removed", get_parent(), effect)
 		_emit_hub_effect_removed(effect)
 	elif _active_debuffs.has(effect):
 		_active_debuffs.erase(effect)
 		debuff_removed.emit(effect)
-		EventHub.debuff_removed.emit(get_parent(), effect)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("debuff_removed", get_parent(), effect)
 		_emit_hub_effect_removed(effect)
 
 ## EventHub.entity_effect_added payload: a plain snapshot Dictionary
@@ -74,7 +93,9 @@ func _emit_hub_effect_added(effect) -> void:
 	var parent = get_parent()
 	if parent == null or not ("entity_id" in parent):
 		return
-	EventHub.entity_effect_added.emit(parent.entity_id, {
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("entity_effect_added", parent.entity_id, {
 		"id": effect.effect_id,
 		"name": effect.effect_name,
 		"description": effect.description,
@@ -88,7 +109,9 @@ func _emit_hub_effect_removed(effect) -> void:
 	var parent = get_parent()
 	if parent == null or not ("entity_id" in parent):
 		return
-	EventHub.entity_effect_removed.emit(parent.entity_id, effect.effect_id)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("entity_effect_removed", parent.entity_id, effect.effect_id)
 
 ## Add a buff. Delegates to the parent's canonical apply_status_effect
 ## (single store; the component mirrors via track_effect). The direct
@@ -116,7 +139,9 @@ func add_buff(buff, source: Entity = null) -> bool:
 
 	buff.apply(parent)
 	buff_added.emit(buff)
-	EventHub.buff_applied.emit(parent, buff, source)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("buff_applied", parent, buff, source)
 
 	return true
 
@@ -134,7 +159,9 @@ func remove_buff(buff) -> void:
 	_active_buffs.erase(buff)
 
 	buff_removed.emit(buff)
-	EventHub.buff_removed.emit(parent, buff)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("buff_removed", parent, buff)
 
 ## Add a debuff (same canonical delegation as add_buff)
 func add_debuff(debuff, source: Entity = null) -> bool:
@@ -160,7 +187,9 @@ func add_debuff(debuff, source: Entity = null) -> bool:
 
 	debuff.apply(parent)
 	debuff_added.emit(debuff)
-	EventHub.debuff_applied.emit(parent, debuff, source)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("debuff_applied", parent, debuff, source)
 
 	return true
 
@@ -178,7 +207,9 @@ func remove_debuff(debuff) -> void:
 	_active_debuffs.erase(debuff)
 
 	debuff_removed.emit(debuff)
-	EventHub.debuff_removed.emit(parent, debuff)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("debuff_removed", parent, debuff)
 
 ## Add an aura (toggleable buff)
 func add_aura(aura: AuraBuffScript, source: Entity = null) -> bool:
@@ -192,7 +223,9 @@ func add_aura(aura: AuraBuffScript, source: Entity = null) -> bool:
 
 	aura.apply(get_parent())
 	aura_activated.emit(aura)
-	EventHub.aura_activated.emit(get_parent(), aura)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("aura_activated", get_parent(), aura)
 
 	return true
 
@@ -205,7 +238,9 @@ func remove_aura(aura: AuraBuffScript) -> void:
 	_active_auras.erase(aura)
 
 	aura_deactivated.emit(aura)
-	EventHub.aura_deactivated.emit(get_parent(), aura)
+	var evt := _hub()
+	if evt:
+		evt.emit_signal("aura_deactivated", get_parent(), aura)
 
 ## Toggle an aura on/off
 func toggle_aura(aura: AuraBuffScript, enabled: bool) -> void:
@@ -377,7 +412,9 @@ func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
 	for debuff in debuffs_to_remove:
 		remove_debuff(debuff)
 		dispelled += 1
-		EventHub.effect_dispelled.emit(get_parent(), debuff, caster)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("effect_dispelled", get_parent(), debuff, caster)
 
 	# Check auras (some auras are dispellable)
 	var auras_to_remove := []
@@ -387,7 +424,9 @@ func _dispel_by_category(categories: Array[int], caster: Entity = null) -> int:
 	for aura in auras_to_remove:
 		remove_aura(aura)
 		dispelled += 1
-		EventHub.aura_dispelled.emit(get_parent(), aura, caster)
+		var evt := _hub()
+		if evt:
+			evt.emit_signal("aura_dispelled", get_parent(), aura, caster)
 
 	return dispelled
 

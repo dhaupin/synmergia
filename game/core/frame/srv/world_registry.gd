@@ -238,6 +238,40 @@ static func observable_radius_m(origin_unix: float, epoch_days: float, light_spe
 	return cosmic_age_s(origin_unix, epoch_days) * light_speed_m_s
 
 
+## ---- CME shielding (the moon as a physical windbreak) ---------------------
+
+## Upstream solar-wind factor through an orbiting body's shadow,
+## evaluated at a sky epoch. Returns the FRACTION of the upstream flux
+## that reaches the parent (1.0 = the shield is elsewhere, 0.0 = the
+## body sits squarely in the wind). Pure function of the epoch, like
+## every other orbit answer.
+##
+## The geometry, closed form: a CME is an anti-solar blast (the sun at
+## +X by orbital convention, so the wind blows along -X). The body
+## shadows the parent only when it stands in the WINDWARD lobe: the
+## direction from parent to body is anti-solar. We compare the body's
+## orbital angle against the anti-solar azimuth on its inclined plane,
+## and the shielding deepens as that alignment closes. The penumbra
+## width scales with the angular size the body subtends at the parent
+## (asin(radius / orbit_radius)) -- the moon's own weather, not a
+## global switch.
+static func cme_shield_factor(child, epoch: float) -> float:
+	if child == null or float(child.orbit_radius_m) <= 0.0 or float(child.orbit_period_days) <= 0.0:
+		return 1.0
+	# Anti-solar azimuth on the body's inclined orbital plane: +PI from
+	# the phase-0 convention (orbit_phase_rad anchors the sweep).
+	var anti_solar := float(child.orbit_phase_rad) + PI
+	var a: float = _orbit_angle(child, epoch)
+	var diff: float = absf(fposmod(a - anti_solar, TAU))
+	if diff > PI:
+		diff = TAU - diff
+	# Angular radius the body subtends from the parent: the penumbra
+	# half-width. A body whose disc covers the anti-solar point gets
+	# factor 0; one a full penumbra away lets the wind through whole.
+	var penumbra: float = asin(clampf(float(child.radius_m) / maxf(float(child.orbit_radius_m), 0.001), 0.0, 0.9999))
+	return clampf(diff / maxf(penumbra, 0.0001), 0.0, 1.0)
+
+
 ## ---- Bytes helper (hex constant -> PackedByteArray) -----------------------
 
 static func _hex_to_bytes(hex: String) -> PackedByteArray:

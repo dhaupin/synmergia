@@ -1,8 +1,18 @@
-## TitleUI - Title management panel
-## Allows players to view unlocked titles and equip/unequip prefix/suffix titles
+
+
+
 extends "res://ui/components/ui_panel.gd"
 class_name TitleUI
 const TitleData = preload("res://core/schemas/title_data.gd")
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _titleservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("TitleService")) if tree and tree.root else null
+
+## TitleUI - Title management panel
+## Allows players to view unlocked titles and equip/unequip prefix/suffix titles
 
 ## Title color options (excluding gold - reserved for GM)
 const TITLE_COLORS: Array[Color] = [
@@ -182,7 +192,7 @@ func _on_open() -> void:
 
 func _refresh() -> void:
 	if _player_id.is_empty():
-		_player_id = TitleService.get_local_player_id()
+		_player_id = _titleservice().get_local_player_id()
 
 	if _player_id.is_empty():
 		return
@@ -192,7 +202,7 @@ func _refresh() -> void:
 		return
 
 	# Load unlocked titles
-	_unlocked_titles = TitleService.get_unlocked_titles(_player_id)
+	_unlocked_titles = _titleservice().get_unlocked_titles(_player_id)
 
 	# Update UI
 	_update_equipped_display()
@@ -203,8 +213,8 @@ func _update_equipped_display() -> void:
 	# Labels are built lazily; this can run before they exist.
 	if _equipped_prefix_label == null or _equipped_suffix_label == null:
 		return
-	var prefix: TitleData = TitleService.get_equipped_prefix(_player_id)
-	var suffix: TitleData = TitleService.get_equipped_suffix(_player_id)
+	var prefix: TitleData = _titleservice().get_equipped_prefix(_player_id)
+	var suffix: TitleData = _titleservice().get_equipped_suffix(_player_id)
 
 	if prefix != null:
 		_equipped_prefix_label.text = "[%s]" % prefix.prefix_form
@@ -233,8 +243,8 @@ func _update_titles_list() -> void:
 
 func _update_preview() -> void:
 	var base_name := "PlayerName"
-	var prefix: TitleData = TitleService.get_equipped_prefix(_player_id)
-	var suffix: TitleData = TitleService.get_equipped_suffix(_player_id)
+	var prefix: TitleData = _titleservice().get_equipped_prefix(_player_id)
+	var suffix: TitleData = _titleservice().get_equipped_suffix(_player_id)
 
 	var full_name := base_name
 	if prefix != null:
@@ -298,19 +308,19 @@ func _show_equip_dialog(title: TitleData) -> void:
 	dialog.popup_centered(Vector2(300, 150))
 
 func _equip_title(title_id: String, slot: String) -> void:
-	if TitleService.equip(_player_id, title_id, slot):
+	if _titleservice().equip(_player_id, title_id, slot):
 		show_notification("Title equipped!")
 		_refresh()
 	else:
 		show_notification("Failed to equip title", false)
 
 func _on_unequip_prefix() -> void:
-	TitleService.unequip(_player_id, "prefix")
+	_titleservice().unequip(_player_id, "prefix")
 	show_notification("Prefix title unequipped")
 	_refresh()
 
 func _on_unequip_suffix() -> void:
-	TitleService.unequip(_player_id, "suffix")
+	_titleservice().unequip(_player_id, "suffix")
 	show_notification("Suffix title unequipped")
 	_refresh()
 
@@ -319,6 +329,7 @@ func _on_prefix_color_clicked() -> void:
 
 func _on_suffix_color_clicked() -> void:
 	_show_color_picker("suffix")
+
 
 func _show_color_picker(slot: String) -> void:
 	var dialog := AcceptDialog.new()

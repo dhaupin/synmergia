@@ -3,6 +3,12 @@
 extends UIWidget
 class_name AdminToolbar
 
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _pm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerManager")) if tree and tree.root else null
+
 const UIStyles = preload("res://ui/components/ui_styles.gd")
 
 # Typed loosely because AdminDashboard itself has a pre-existing parse
@@ -71,8 +77,8 @@ func _on_dashboard_closed() -> void:
 func _get_admin_id() -> String:
 	# Get current admin ID from game state.
 	# This should be connected to your actual player session.
-	if PlayerManager and PlayerManager.local_player:
-		var player: Node = PlayerManager.local_player
+	if _pm() and _pm().local_player:
+		var player: Node = _pm().local_player
 		# Duck-typed: Player entities expose either `.id` (var) or
 		# `get_id()` (method) depending on the entity class.
 		if "id" in player and player.id is String and player.id != "":

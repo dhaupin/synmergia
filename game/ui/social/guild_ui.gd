@@ -4,6 +4,12 @@ extends "res://ui/components/ui_panel.gd"
 class_name GuildUI
 const UIPanel = preload("res://ui/components/ui_panel.gd")
 
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _guild_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GuildService")) if tree and tree.root else null
+
 var _tab_container: TabContainer
 var _members_list: ItemList
 var _pending_list: ItemList
@@ -24,7 +30,7 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 	pass
 
 func _bind_service_signals() -> void:
-	if not GuildService:
+	if not _guild_svc():
 		return
 	var sigs := {
 		"guild_info_updated": _on_guild_updated,
@@ -45,10 +51,10 @@ func _bind_service_signals() -> void:
 		"alliance_guild_left": _on_guild_updated,
 	}
 	for sig_name in sigs:
-		if GuildService.has_signal(sig_name):
+		if _guild_svc().has_signal(sig_name):
 			var handler = sigs[sig_name]
-			if not GuildService.get(sig_name).is_connected(handler):
-				GuildService.get(sig_name).connect(handler)
+			if not _guild_svc().get(sig_name).is_connected(handler):
+				_guild_svc().get(sig_name).connect(handler)
 
 
 func _on_guild_updated(_guild_id: String = "") -> void:
@@ -188,10 +194,10 @@ func _refresh_members() -> void:
 	if not _members_list:
 		return
 	_members_list.clear()
-	if not GuildService:
+	if not _guild_svc():
 		return
 
-	var guild_data: Dictionary = GuildService.get_player_guild(_player_id)
+	var guild_data: Dictionary = _guild_svc().get_player_guild(_player_id)
 	if guild_data.is_empty():
 		_members_list.add_item("Not in a guild")
 		return
@@ -201,7 +207,7 @@ func _refresh_members() -> void:
 		_members_list.add_item("Not in a guild")
 		return
 
-	var members: Array = GuildService.get_guild_members(guild_id)
+	var members: Array = _guild_svc().get_guild_members(guild_id)
 	for member in members:
 		var member_data: Dictionary = member
 		var member_name: String = member_data.get("name", "?")
@@ -212,10 +218,10 @@ func _refresh_invites() -> void:
 	if not _pending_list:
 		return
 	_pending_list.clear()
-	if not GuildService:
+	if not _guild_svc():
 		return
 
-	var guild_data: Dictionary = GuildService.get_player_guild(_player_id)
+	var guild_data: Dictionary = _guild_svc().get_player_guild(_player_id)
 	if guild_data.is_empty():
 		return
 
@@ -223,7 +229,7 @@ func _refresh_invites() -> void:
 	if guild_id == "":
 		return
 
-	var invites: Array = GuildService.get_pending_invites(guild_id)
+	var invites: Array = _guild_svc().get_pending_invites(guild_id)
 	for invite in invites:
 		var invite_data: Dictionary = invite
 		var player_name: String = invite_data.get("player_name", "?")
@@ -240,8 +246,8 @@ func _on_invite_player() -> void:
 	var target_name: String = dialog.dialog_text.strip_edges()
 	dialog.queue_free()
 
-	if target_name != "" and GuildService:
-		var ok: bool = GuildService.invite_player(_player_id, target_name)
+	if target_name != "" and _guild_svc():
+		var ok: bool = _guild_svc().invite_player(_player_id, target_name)
 		show_notification("Invite sent." if ok else "Failed to send invite.")
 
 func _on_leave_guild() -> void:
@@ -253,8 +259,8 @@ func _on_leave_guild() -> void:
 	await confirm.confirmed
 	confirm.queue_free()
 
-	if GuildService:
-		var ok: bool = GuildService.leave_guild(_player_id)
+	if _guild_svc():
+		var ok: bool = _guild_svc().leave_guild(_player_id)
 		if ok:
 			show_notification("Left the guild.")
 			close()

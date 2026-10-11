@@ -1,11 +1,41 @@
+
+
+
+extends Control
+const UIStyles = preload("res://ui/components/ui_styles.gd")
+const Brand = preload("res://core/utils/branding.gd")
+
+## Runtime autoload lookups (script-mode-safe; the bare identifiers
+## fail compile when autoloads are absent -- test_islands).
+func _gamelog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+func _notificationservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
+func _securityservice() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("SecurityService")) if tree and tree.root else null
+
+func _gm() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameManager")) if tree and tree.root else null
+
+func _a11y() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("A11yService")) if tree and tree.root else null
+
+func _debugoverlay() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("DebugOverlay")) if tree and tree.root else null
+
 ## MainMenu - Main menu controller with UIStyles integration
 ## Round-6 simplification: ONE button, "Start" (the old Account flow:
 ## login / register / guest -> lobby -> play). The separate "Play"
 ## button and its direct-to-character-select flow are gone -- one
 ## button, one flow, no dead paths (play-test round 6, item 6).
-extends Control
-const UIStyles = preload("res://ui/components/ui_styles.gd")
-const Brand = preload("res://core/utils/branding.gd")
 
 
 @onready var start_button: Button = $MenuButtons/StartButton
@@ -61,13 +91,13 @@ func _apply_styles() -> void:
 		subtitle.add_theme_color_override("font_color", UIStyles.COLORS.text_secondary)
 
 func _on_start_pressed() -> void:
-	if DebugOverlay:
-		DebugOverlay.log_click("StartButton", "goto_login", true)
+	if _debugoverlay():
+		_debugoverlay().log_click("StartButton", "goto_login", true)
 	# One flow: login / register / guest -> lobby (per-account character
 	# list) -> play. The old Account path -- the only wired flow since
 	# round 3, so nothing is lost by dropping Play.
-	if GameManager:
-		GameManager.change_state(GameManager.GameState.LOGIN)
+	if _gm():
+		_gm().change_state(_gm().GameState.LOGIN)
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
@@ -90,12 +120,13 @@ func _on_settings_pressed() -> void:
 
 var _settings_panel: Control = null
 
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_TAB:
-			# Focus cycling lives on A11yService (one implementation for
+			# Focus cycling lives on _a11y() (one implementation for
 			# every menu; prd-accessibility.md sec 8 disposition).
 			if event.shift:
-				A11yService.focus_prev()
+				_a11y().focus_prev()
 			else:
-				A11yService.focus_next()
+				_a11y().focus_next()

@@ -55,12 +55,22 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 						if current_size > 0:
 							label.add_theme_font_size_override("font_size", int(current_size * scale))
 
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent).
+func _inv_svc() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml == null or not (ml is SceneTree):
+		return null
+	var tree := ml as SceneTree
+	return tree.root.get_node_or_null(NodePath("InventoryService")) if tree.root else null
+
 func _bind_service_signals() -> void:
-	if _inv_bind_done or not is_instance_valid(InventoryService):
+	var svc := _inv_svc()
+	if _inv_bind_done or svc == null or not is_instance_valid(svc):
 		return
 	_inv_bind_done = true
-	InventoryService.item_transferred.connect(_on_inventory_changed)
-	InventoryService.gold_transferred.connect(_on_inventory_changed)
+	svc.item_transferred.connect(_on_inventory_changed)
+	svc.gold_transferred.connect(_on_inventory_changed)
 
 func _on_inventory_changed(_from_id: String = "", _to_id: String = "", _item = null, _qty: int = 0, _amount: int = 0) -> void:
 	# Connected to item_transferred(from, to, item, qty) and
@@ -196,9 +206,10 @@ func _refresh_inventory() -> void:
 		_gold_label.text = "Gold: %d" % gold
 
 func _get_inventory_component() -> InventoryComponent:
-	if not InventoryService or _player_id == "":
+	var svc := _inv_svc()
+	if svc == null or _player_id == "":
 		return null
-	return InventoryService.get_inventory(_player_id)
+	return svc.get_inventory(_player_id)
 
 func _create_slot(index: int) -> PanelContainer:
 	var slot := PanelContainer.new()

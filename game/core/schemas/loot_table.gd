@@ -83,7 +83,7 @@ func roll_drop(rng: RandomNumberGenerator = null) -> Dictionary:
 		"got_any": false
 	}
 
-	if randf() <= base_drop_chance:
+	if rng.randf() <= base_drop_chance:
 		result.rolled = true
 
 		for d in entries:
@@ -95,13 +95,13 @@ func roll_drop(rng: RandomNumberGenerator = null) -> Dictionary:
 		var n := mini(entries.size(), rng.randi_range(min_items_dropped, max_items_dropped))
 		for i in range(n):
 			var d: Dictionary = entries[rng.randi() % entries.size()]
-			if randf() <= d.get("drop_rate", 1.0):
+			if rng.randf() <= d.get("drop_rate", 1.0):
 				var qty := rng.randi_range(d.get("min_quantity", 1), d.get("max_quantity", 1))
 				result.items.append({"item_id": d.get("item_id", ""), "quantity": qty})
 				result.got_any = true
 
 	for d in currency_drops:
-		if d.get("is_guaranteed", false) or randf() <= d.get("drop_rate", 1.0):
+		if d.get("is_guaranteed", false) or rng.randf() <= d.get("drop_rate", 1.0):
 			var amount := rng.randi_range(d.get("min_amount", 0), d.get("max_amount", 0))
 			var cid: String = d.get("currency_id", "gold")
 			result.currency[cid] = result.currency.get(cid, 0) + amount

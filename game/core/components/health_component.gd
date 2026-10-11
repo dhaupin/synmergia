@@ -5,6 +5,37 @@ class_name HealthComponent
 const Item = preload("res://core/schemas/item.gd")
 const Corpse = preload("res://scenes/entities/corpse.gd")
 
+func _party() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PartyService")) if tree and tree.root else null
+
+func _glog() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("GameLog")) if tree and tree.root else null
+
+func _lock_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("PlayerLockService")) if tree and tree.root else null
+
+func _follow_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("FollowService")) if tree and tree.root else null
+
+func _respawn_svc() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("RespawnService")) if tree and tree.root else null
+
+func _hub() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("EventHub")) if tree and tree.root else null
+
+
+## Runtime autoload lookup (script-mode-safe; the bare identifier
+## fails compile when autoloads are absent -- test_islands).
+func _notif() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null(NodePath("NotificationService")) if tree and tree.root else null
+
 
 signal health_changed(current: int, maximum: int, delta: int)
 signal health_depleted()
@@ -23,7 +54,7 @@ var _respawn_timer: float = 0.0
 var _respawn_time: float = 10.0
 var _bind_position: Vector3 = Vector3.ZERO
 var _killer: Node3D = null
-# Service-aware death handling: RespawnService owns the respawn cycle
+# Service-aware death handling: _respawn_svc() owns the respawn cycle
 # (modes, delays, positions) for entities that registered with it
 # (players). While _death_hold is set, the built-in auto-respawn timer
 # below is suspended so the UI/service decides when and where the
@@ -52,17 +83,17 @@ func _on_health_depleted() -> void:
 		elif "faction_id" in _killer and "faction_id" in entity and _killer.faction_id != entity.faction_id:
 			killer_type = "pvp"
 
-	if NotificationService:
-		NotificationService.notify_death(entity.entity_id, killer_name, killer_type)
+	if _notif():
+		_notif().notify_death(entity.entity_id, killer_name, killer_type)
 
 		# Notify party members
 		if entity.has_method("get_party_id"):
 			var party_id = entity.get_party_id()
 			if party_id != "":
-				var party = PartyService.get_party(party_id) if PartyService else null
+				var party = _party().get_party(party_id) if _party() else null
 				if party:
 					for member_id in party.get("members", []):
-						NotificationService.notify_party_member_died(member_id, entity.display_name, killer_name)
+						_notif().notify_party_member_died(member_id, entity.display_name, killer_name)
 
 ## Take damage
 func take_damage(amount: int, source: Entity = null, damage_type: String = "physical") -> int:
@@ -85,7 +116,8 @@ func take_damage(amount: int, source: Entity = null, damage_type: String = "phys
 	health_changed.emit(current_health, max_health, -actual_damage)
 
 	# Emit combat events
-	EventHub.damage_dealt.emit(source, get_parent(), actual_damage, damage_type, false)
+	var hub := _hub()
+	if hub: hub.emit_signal("damage_dealt", source, get_parent(), actual_damage, damage_type, false)
 
 	if current_health <= 0:
 		die(source)
@@ -103,7 +135,8 @@ func heal(amount: int, source: Entity = null) -> int:
 	# HUD feed: heal floats + combat-log lines. Zero-heals (full HP)
 	# stay silent to avoid regen spam.
 	if actual_heal > 0:
-		EventHub.heal_dealt.emit(source, get_parent(), actual_heal)
+		var hub := _hub()
+		if hub: hub.emit_signal("heal_dealt", source, get_parent(), actual_heal)
 
 	return actual_heal
 
@@ -119,7 +152,7 @@ func is_dead() -> bool:
 
 
 ## Revive where we stand (no respawn-location change). Clears the dead
-## flag and restores full health. RespawnService drives the full
+## flag and restores full health. _respawn_svc() drives the full
 ## respawn flow; this lightweight variant is for in-place revives and
 ## drivers that need a live entity without a respawn cycle.
 func revive_in_place() -> void:
@@ -144,31 +177,32 @@ func die(killer: Node3D = null) -> void:
 		entity.combat_component.interrupt()
 
 	# SECURITY: Cancel any active locks on death
-	if entity.entity_id and PlayerLockService:
-		PlayerLockService.cancel_on_death(entity.entity_id)
+	if entity.entity_id and _lock_svc():
+		_lock_svc().cancel_on_death(entity.entity_id)
 		# Also cancel follow
-		if FollowService:
-			FollowService.cancel_all_for_player(entity.entity_id)
+		if _follow_svc():
+			_follow_svc().cancel_all_for_player(entity.entity_id)
 
 	# Create corpse
 	_create_corpse(killer)
 
 	health_depleted.emit()
-	EventHub.entity_died.emit(entity, killer, null)
+	var hub := _hub()
+	if hub: hub.emit_signal("entity_died", entity, killer, null)
 
 	# Emit player-specific signals
 	if entity is PlayerController:
-		EventHub.player_died.emit(entity, killer)
+		if hub: hub.emit_signal("player_died", entity, killer)
 
 	# Emit entity killed (for kill streak tracking)
 	if killer:
-		EventHub.entity_killed.emit(killer, entity, "physical")
+		if hub: hub.emit_signal("entity_killed", killer, entity, "physical")
 
 		# Emit player_killed_player for PvP tracking
 		if killer is PlayerController and entity is PlayerController:
-			EventHub.player_killed_player.emit(killer, entity)
+			if hub: hub.emit_signal("player_killed_player", killer, entity)
 
-	# Service-managed death (players): RespawnService listens for
+	# Service-managed death (players): _respawn_svc() listens for
 	# player_died and drives the respawn cycle (mode choice via the UI,
 	# zone-configured delay, spawn point). The legacy timer below would
 	# otherwise race it and teleport the corpse-held player to an unset
@@ -176,7 +210,7 @@ func die(killer: Node3D = null) -> void:
 	if entity != null and "entity_id" in entity:
 		# Clear any stale flag from a previous service respawn so the
 		# legacy timer can act as fallback for this death if
-		# RespawnService never takes it (initiate fails / no modes).
+		# _respawn_svc() never takes it (initiate fails / no modes).
 		# The hold itself is set by begin_service_respawn(), called
 		# synchronously inside the player_died signal below -- so there
 		# is no frame in which a service-managed death falls through to
@@ -203,10 +237,13 @@ func _create_corpse(killer: Node3D) -> void:
 		_corpse.global_position = entity.global_position
 		if _corpse.has_method("setup"):
 			_corpse.setup(entity, killer)
-		EventHub.corpse_created.emit(entity, _corpse, killer)
-		GameLog.debug("HealthComponent: Created corpse at %s" % entity.global_position)
+		var corpse_hub := _hub()
+		if corpse_hub: corpse_hub.emit_signal("corpse_created", entity, _corpse, killer)
+		var gl := _glog()
+		if gl: gl.debug("HealthComponent: Created corpse at %s" % entity.global_position)
 	else:
-		GameLog.warn("HealthComponent: Corpse scene not found at %s" % corpse_scene_path)
+		var glw := _glog()
+		if glw: glw.warn("HealthComponent: Corpse scene not found at %s" % corpse_scene_path)
 
 ## Remove corpse
 func _remove_corpse() -> void:
@@ -271,7 +308,9 @@ func _do_respawn_at(position: Vector3) -> void:
 	entity.global_position = position
 
 	respawned.emit()
-	EventHub.entity_spawned.emit(entity, null)
+	var hub := _hub()
+	if hub:
+		hub.emit_signal("entity_spawned", entity, null)
 
 ## Start respawn process
 func _start_respawn() -> void:
@@ -291,7 +330,7 @@ func force_respawn() -> void:
 	_do_respawn()
 
 
-## Called by RespawnService when a death enters the service-managed
+## Called by _respawn_svc() when a death enters the service-managed
 ## cycle. Suspends the legacy auto-respawn timer for `delay` seconds,
 ## then asks the service to execute (mode + position it already chose).
 func begin_service_respawn(delay: float = 0.0) -> void:
@@ -299,7 +338,7 @@ func begin_service_respawn(delay: float = 0.0) -> void:
 	_respawn_timer = maxf(0.0, delay)
 
 
-## True while the entity is dead and held for RespawnService (UI showing,
+## True while the entity is dead and held for _respawn_svc() (UI showing,
 ## timed delay running). Used by tests and by _process to gate the legacy
 ## timer.
 func death_hold_active() -> bool:
@@ -308,7 +347,7 @@ func death_hold_active() -> bool:
 
 ## Execute a service-driven respawn: clears death state, moves the
 ## entity to `position`, and re-broadcasts the unified spawn signals.
-## `mode` is a RespawnService.RespawnMode int (or -1 when unknown); it
+## `mode` is a _respawn_svc().RespawnMode int (or -1 when unknown); it
 ## is forwarded on player_respawned so death-feature tracking (streak
 ## reset, respawn invincibility) sees the same event as the service.
 func service_respawn(position: Vector3, mode: int = -1) -> void:
@@ -324,13 +363,16 @@ func service_respawn(position: Vector3, mode: int = -1) -> void:
 		entity.global_position = position
 
 	respawned.emit()
-	EventHub.entity_spawned.emit(entity, null)
+	var hub := _hub()
+	if hub:
+		hub.emit_signal("entity_spawned", entity, null)
 	if mode >= 0 and entity != null and "entity_id" in entity:
-		EventHub.player_respawned.emit(entity, position, mode)
+		if hub:
+			hub.emit_signal("player_respawned", entity, position, mode)
 
 func _process(delta: float) -> void:
 	if _is_dead:
-		# Service-held deaths (RespawnService cycle) never use the legacy
+		# Service-held deaths (_respawn_svc() cycle) never use the legacy
 		# timer; the service calls service_respawn() when the delay ends.
 		if _death_hold or _service_respawn:
 			return
@@ -364,7 +406,9 @@ func _do_respawn() -> void:
 	entity.global_position = _bind_position
 
 	respawned.emit()
-	EventHub.entity_spawned.emit(entity, null)
+	var hub := _hub()
+	if hub:
+		hub.emit_signal("entity_spawned", entity, null)
 
 ## Set max health
 func set_max_health(new_max: int) -> void:
@@ -421,7 +465,7 @@ func use_self_rez_item(item: Item) -> Dictionary:
 		return {"success": false, "reason": "Item cannot self-resurrect"}
 
 	# Check if being revived (prevent self-rez while healer is casting)
-	if RespawnService and RespawnService.is_being_revived(get_parent().entity_id):
+	if _respawn_svc() and _respawn_svc().is_being_revived(get_parent().entity_id):
 		return {"success": false, "reason": "Cannot self-rez while being revived"}
 
 	# Check cooldown
@@ -458,18 +502,21 @@ func use_self_rez_item(item: Item) -> Dictionary:
 	_remove_corpse()
 
 	# Cancel any active revive on this player
-	if RespawnService:
-		RespawnService.interrupt_revival(entity.entity_id, "Self-rez used")
+	if _respawn_svc():
+		_respawn_svc().interrupt_revival(entity.entity_id, "Self-rez used")
 
 	# Set cooldown
 	_self_rez_cooldown = item.self_rez_cooldown if item.self_rez_cooldown > 0 else GameConfig.Respawn.SELF_REZ_COOLDOWN
 
 	# Emit signals
 	respawned.emit()
-	EventHub.entity_spawned.emit(entity, null)
-	EventHub.self_resurrected.emit(entity, item)
+	var hub := _hub()
+	if hub:
+		hub.emit_signal("entity_spawned", entity, null)
+		hub.emit_signal("self_resurrected", entity, item)
 
-	GameLog.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])
+	var gl := _glog()
+	if gl: gl.info("HealthComponent: %s self-resurrected using %s" % [entity.display_name, item.display_name])
 
 	return {
 		"success": true,

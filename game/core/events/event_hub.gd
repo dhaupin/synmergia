@@ -151,6 +151,16 @@ func _on_entity_died(entity_id: String, killer_id: String, damage_type: String) 
 	player_died.emit(entity_id, killer_id)
 	entity_died.emit(entity_id, killer_id, null)
 
+## Cosmic weather spark (CosmicService bridges the canonical wheel's
+## spark here). Payload is the wheel's spark Dictionary {wheel: "cosmic",
+## kp, momentum, sparks, total_chaos}. Emitted via emit_cosmic_weather_spark()
+## so gameplay hooks (thunder staging, aurora visuals, quest beats) can
+## react to real solar-entropy weather without touching the frame.
+signal cosmic_weather_spark(payload: Dictionary)
+
+func emit_cosmic_weather_spark(payload: Dictionary) -> void:
+	cosmic_weather_spark.emit(payload)
+
 ## Get event summary for debugging
 func get_summary() -> Dictionary:
 	return {
