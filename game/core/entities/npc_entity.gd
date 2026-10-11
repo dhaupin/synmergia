@@ -254,5 +254,15 @@ func _dispatch_service(offering: Resource, player: Entity) -> void:
 			if MenuManager:
 				MenuManager.open_menu("tavern")
 
+		"FerryService":
+			# The dock gets its own door (S16.10): the dock panel reads
+			# FerryService truth live (schedule, boarding window, the
+			# skiff's ticket law). One gate chain, same as blacksmith.
+			if MenuManager:
+				MenuManager.open_menu("dock")
+			var dock_panel := MenuManager.get_panel_node("dock") if MenuManager else null
+			if dock_panel != null and dock_panel.has_method("open_for_player"):
+				dock_panel.open_for_player(player_id)
+
 		_:
 			push_warning("NPCEntity: Unknown service_id: " + str(offering.service_id))

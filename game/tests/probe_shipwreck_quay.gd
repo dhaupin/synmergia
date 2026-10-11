@@ -131,6 +131,94 @@ func _run() -> void:
 		_check(int(quest.gold_reward) > 0 and int(quest.xp_reward) > 0,
 			"reward law: lawful gold+xp rewards (%d g / %d xp)" % [int(quest.gold_reward), int(quest.xp_reward)])
 
+	# ---- F. THE DOCK UI (the front-end finally exists) ----------------------
+	# The service seam has been lawful since the ticket law; this pins
+	# the WALLET-SIDE: the dock panel exists, resolves FerryService
+	# truth (route row reads the barque), shows the boarding-window
+	# law (no Board button when she is not boarding), speaks refusals,
+	# and its Board press rides the SAME charted chain the probe rode
+	# (no side-door boarding exists in the UI any more than in the
+	# service). Old Brack's offering dispatch now carries the dock.
+	var dock_script: Resource = load("res://ui/components/ferry_dock_ui.gd")
+	_check(dock_script != null, "FerryDockUI script loads (the front-end exists)")
+	var dock = dock_script.new()
+	dock.vehicle_id = "veh_sundered_barque"  # the moor-side dock names its boat
+	root.add_child(dock)
+	await process_frame
+	await process_frame
+	var fs = root.get_node_or_null("FerryService")
+	if fs != null:
+		fs.ensure_loaded()
+		# The panel's route row reads the barque.
+		fs._clock_override = 100.0 + 5.44 / 24.0  # pre-window: no board
+		dock.open_for_player("dockhand")
+		await process_frame
+		var route_row = dock.get_panel().get_node_or_null("Main/RouteRow")
+		_check(route_row != null and str(route_row.text).contains("Sundered Barque"),
+			"the dock's route row names the barque (truth, not flavor)")
+		var board_btn = dock.get_panel().get_node_or_null("Main/BoardButton")
+		_check(board_btn != null and not board_btn.visible,
+			"outside the window the Board button LIED DOWN (the schedule law is the UI's law too)")
+		# In the window: the button stands and the press rides the gate.
+		fs._clock_override = 100.0 + 5.48 / 24.0
+		dock.refresh()
+		await process_frame
+		_check(board_btn != null and board_btn.visible,
+			"inside the boarding window the Board button stands")
+		# Register a purse for the UI actor (the wake was recorded in D;
+		# the purse rides InventoryService).
+		var invs = root.get_node_or_null("InventoryService")
+		var InvComp = load("res://core/components/inventory_component.gd")
+		var ui_bag = InvComp.new()
+		invs.register_inventory("dockhand", ui_bag)
+		ui_bag.add_gold(50)
+		board_btn.pressed.emit()
+		await process_frame
+		_check(fs._manifests["veh_sundered_barque"].has("dockhand"),
+			"the UI Board press boarded the manifest (the gate chain is the SAME chain)")
+		_check(ui_bag.get_gold() == 50,
+			"the ferry tier is free -- a press never billed the purse")
+		# Cast off + arrive: the tick driver records the wake honestly
+		# (the same loop the headless probe rode).
+		fs._sailings["veh_sundered_barque"] = {"remaining_s": 0.01}
+		fs.tick(0.02)
+		# The skiff press: the chit is consumed first (the ticket law).
+		var TicketItem = load("res://core/schemas/item.gd")
+		var chit: Item = TicketItem.new()
+		chit.id = "item_skiff_ticket"
+		chit.current_stack = 2
+		ui_bag._inventory.append(chit)
+		fs.abandon_riding("dockhand")
+		fs._manifests["veh_sundered_barque"] = {}
+		var skiff_btn = dock.get_panel().get_node_or_null("Main/SkiffButton")
+		_check(skiff_btn != null, "the Skiff button exists (the priced tier has a face)")
+		skiff_btn.pressed.emit()
+		await process_frame
+		var chit_after := 0
+		for s in ui_bag._inventory:
+			if s != null and s.id == "item_skiff_ticket":
+				chit_after += maxi(1, int(s.current_stack))
+		_check(chit_after == 1, "the UI skiff press spent the CHIT (2 - 1 = 1 left, the ticket law through the UI)")
+		_check(ui_bag.get_gold() == 50, "the chit covered the crossing -- the coin never moved")
+		# The skiff sails: its own crossing clock lands the rider and
+		# records the SECOND wake (the book rode).
+		fs._sailings["veh_sundered_barque"] = {"remaining_s": 0.01, "cross_s": 864.0}
+		fs.tick(0.02)
+		var wake_after: int = fs.rides_recorded("dockhand", "veh_sundered_barque")
+		_check(wake_after >= 2, "the UI skiff ride recorded the wake (the book rode)")
+		# The refusal line: a no-wake actor hears the law spoken IN the panel.
+		var InvComp2 = load("res://core/components/inventory_component.gd")
+		var green_bag = InvComp2.new()
+		invs.register_inventory("greenhorn", green_bag)
+		green_bag.add_gold(30)
+		dock._player_id = "greenhorn"
+		dock._on_skiff_pressed()
+		await process_frame
+		var status_row = dock.get_panel().get_node_or_null("Main/StatusRow")
+		_check(status_row != null and str(status_row.text).contains("wake"),
+			"a no-wake actor hears the wake law spoken IN the panel (refusal is never swallowed)")
+	fs._clock_override = -1.0
+
 	if _fails == 0:
 		print("SHIPWRECK QUAY PROBE PASSED (%d checks)" % _checks)
 		quit(0)

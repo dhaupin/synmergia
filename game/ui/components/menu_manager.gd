@@ -39,6 +39,7 @@ var _friends_panel: Control
 var _quest_panel: Control
 var _bank_panel: Control
 var _blacksmith_panel: Control
+var _dock_panel: Control
 var _skill_academy_panel: Control
 var _faction_panel: Control
 var _achievement_panel: Control
@@ -232,6 +233,14 @@ func _initialize_panels() -> void:
 	_blacksmith_panel.z_index = 500
 	add_child(_blacksmith_panel)
 
+	# Ferry dock panel (S16.10): the dock gets a door -- the sea
+	# crossing front-end reads FerryService truth (schedule chart,
+	# boarding window, the skiff's ticket law).
+	_dock_panel = preload("res://ui/components/ferry_dock_ui.gd").new()
+	_dock_panel.name = "FerryDockUI"
+	_dock_panel.z_index = 500
+	add_child(_dock_panel)
+
 	# Skill Academy panel
 	_skill_academy_panel = preload("res://ui/components/skill_academy_ui.gd").new()
 	_skill_academy_panel.name = "SkillAcademyUI"
@@ -252,6 +261,7 @@ func _initialize_panels() -> void:
 	_bank_panel.panel_closed.connect(_on_panel_closed.bind("bank"))
 	_mount_panel.panel_closed.connect(_on_panel_closed.bind("mounts"))
 	_blacksmith_panel.panel_closed.connect(_on_panel_closed.bind("blacksmith"))
+	_dock_panel.panel_closed.connect(_on_panel_closed.bind("dock"))
 	_skill_academy_panel.panel_closed.connect(_on_panel_closed.bind("skill_academy"))
 
 	# Faction panel
@@ -892,6 +902,7 @@ func _get_panel(menu_name: String) -> Control:
 		"bank": return _bank_panel
 		"mounts": return _mount_panel
 		"blacksmith": return _blacksmith_panel
+		"dock": return _dock_panel
 		"skill_academy": return _skill_academy_panel
 		"faction": return _faction_panel
 		"achievement": return _achievement_panel

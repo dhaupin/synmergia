@@ -5094,3 +5094,42 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   NOT changed: the ferry schedule primitive, the manifest/riding
   book, the wake persistence law, the place_station payment path
   (it now benefits from the honest partial-take accounting).
+
+## 2026-10-11 -- the dock front-end exists (S16.10: the sea crossing's UI)
+
+  The audit-of-unwired-seams slice: FerryService was fully lawful
+  service-side (schedule primitive, ticket law, wake book -- all
+  probe-covered) and had ZERO UI entry. The almanac's sailing page
+  read the schedule chart but nobody could BOARD or CHARTER from any
+  panel. This builds it the same way every other island got built.
+  (1) FerryDockUI (ui/components/ferry_dock_ui.gd): extends UIPanel
+  the MountUI way. The dock invents nothing -- the route row reads
+  FerryService.route_status live (the same chart the almanac's page
+  reads; they cannot disagree), the Board button stands only inside
+  the boarding window (the schedule law is the UI's law too: the
+  button LIES DOWN outside the window), every press rides the SAME
+  gate chain the headless probe rode (board_ferry / charter_skiff),
+  refusals are spoken IN the panel (the wake law announces itself to
+  a greenhorn), and the skiff's ticket law surfaces explicitly in
+  the button text.
+  (2) WIRING: MenuManager grows the "dock" panel (_dock_panel;
+  get_panel/closed-signal wired like every other island);
+  ferry_dock_service.tres (NPCOffering, service_id FerryService)
+  added and included on npc_ferryman_sundered (after his dialogue);
+  NPCEntity._dispatch_service grew the FerryService arm: opens the
+  dock panel AND hands it the acting player (open_for_player) --
+  one gate chain, same as blacksmith.
+  (3) PANEL SCOPING: the dock panel takes vehicle_id (a shoreline
+  knows its boat -- the moor-side dock names the barque, not
+  "whatever dict order says"; empty = the first scheduled ferry).
+  Probes: probe_shipwreck_quay grew F-section THE DOCK UI (script
+  loads, route row reads the barque, Board lies down outside the
+  window, stands inside, press boards the manifest via the same
+  chain, ferry tier never bills the purse, skiff press spends the
+  CHIT through the UI, the wake records on the skiff's own arrival
+  clock, the refusal line speaks). 53 -> 65 checks.
+  Verification (exit statuses): probe_shipwreck_quay 65/65 exit 0,
+  probe_ferry 34 PASSED, probe_crafting 13 PASSED, probe_placeable_
+  stations 25 PASSED, probe_crafting_ui 20 PASSED, charset lint 3/0.
+  NOT changed: FerryService (the seam was already lawful), the wake
+  book, the schedule primitive.
