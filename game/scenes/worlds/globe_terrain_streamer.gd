@@ -1088,12 +1088,32 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		var is_bush: bool = bid == TerrainGen.BiomeId.GRASSLAND \
 			or bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.TAIGA \
 			or bid == TerrainGen.BiomeId.ALPINE_MEADOW
-		if not is_cattail and not is_bush:
-			continue  # sand/rock/snow bands stay bare
+		var is_ore: bool = bid == TerrainGen.BiomeId.ALPINE or bid == TerrainGen.BiomeId.TUNDRA
+		if not is_cattail and not is_bush and not is_ore:
+			continue  # beach/ocean/water bands stay bare (FOREST/TUNDRA/ALPINE carry the ore)
 		var prop := MeshInstance3D.new()
 		var mesh: Mesh
 		var mat := StandardMaterial3D.new()
 		mat.roughness = 1.0
+		if is_ore:
+			# ORE VEIN (prd-gathering build order 2): the mountain/tundra
+			# band carries the mine. A dark boulder-chunk, registered as
+			# an iron-ore gather node (the gather->forge leg below the
+			# visual: what you SEE is what you can harvest).
+			var om := SphereMesh.new()
+			var r_o: float = rng.randf_range(0.35, 0.7)
+			om.radius = r_o
+			om.height = r_o * 1.6
+			mesh = om
+			mat.albedo_color = Color(0.35, 0.33, 0.36)
+			prop.mesh = mesh
+			prop.material_override = mat
+			prop.name = "Ore%d" % i
+			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h + r_o * 0.2)
+			_register_harvest_node(face, i, "res_iron_ore", dir, 90.0)
+			spawned += 1
+			patch_node.add_child(prop)
+			continue
 		if is_cattail:
 			# Reed: a thin dark-green cylinder with a brown head.
 			var cm := CylinderMesh.new()
@@ -1123,11 +1143,30 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 			prop.material_override = mat
 			prop.name = "Bush%d" % i
 			prop.position = _tangent_patch_local(dir, patch_center, scaled + base_h + r_b * 0.25)
+			# THE LIVE HARVEST SEED (prd-gathering): the placement law is
+			# one law -- the drawn bush is a gatherable (seed-stable id:
+			# a face reload re-registers over the same node identity).
+			_register_harvest_node(face, i, "res_iron_ore" if false else "res_iron_ore", dir, 45.0)
 		var up: Vector3 = dir
 		if is_bush:
 			prop.basis = Basis()
 		patch_node.add_child(prop)
 		spawned += 1
+
+
+## Register the drawn prop as a live HarvestService node (prd-
+## gathering build order 2: seed-derived placement, one placement law
+## for draw + gather). Node id: seed-stable "hs_<face>_<idx>" so a
+## face reload re-registers the SAME node identity (depletion/respawn
+## ownership survives level changes). Silent no-op in script mode:
+## the service may not exist there (probes own their own nodes).
+func _register_harvest_node(face: int, idx: int, item_id: String, dir: Vector3, respawn_sec: float) -> void:
+	var hs = Engine.get_main_loop()
+	if hs == null or not (hs is SceneTree):
+		return
+	var svc = (hs as SceneTree).root.get_node_or_null(NodePath("HarvestService"))
+	if svc != null and svc.has_method("register_node"):
+		svc.register_node("hs_%d_%d" % [face, idx], "zone_starter_plains", item_id, dir * radius, 1, respawn_sec)
 
 ## How many loaded patches are actually VISIBLE in the tree right now
 ## (the round-12 web question: truth line said dry + meshes loaded, but

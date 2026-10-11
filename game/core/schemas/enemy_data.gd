@@ -61,6 +61,10 @@ enum EnemyType {
 
 # Loot
 @export var loot_table_id: String = ""
+## The elite/boss seam: a SECOND table (elites carry a skill-book
+## drop AND a forge-grade seam drop) rolled and APPENDED. Optional;
+## empty means none.
+@export var secondary_loot_table_id: String = ""
 @export var gold_min: int = 0
 @export var gold_max: int = 10
 @export var xp_reward: int = 10
@@ -147,6 +151,18 @@ func roll_loot() -> Dictionary:
 			loot["items"] = roll_result.get("items", [])
 			if roll_result.get("currency"):
 				loot["gold"] += roll_result["currency"].get("gold", 0)
+	## The secondary seam (elites/bosses): a SECOND table rolled and
+	## APPENDED. Its items join the primary roll, its currency merges
+	## into gold. Same resolver law: bare id through the data
+	## directory, res:// path tolerated. Empty = none.
+	if not secondary_loot_table_id.is_empty():
+		var seam = LootTableResolver.load_table(secondary_loot_table_id)
+		if seam != null:
+			var seam_roll: Dictionary = seam.roll_drop()
+			for it in seam_roll.get("items", []):
+				loot["items"].append(it)
+			if seam_roll.get("currency"):
+				loot["gold"] += seam_roll["currency"].get("gold", 0)
 	return loot
 
 ## Get display info for UI

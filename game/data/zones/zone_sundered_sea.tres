@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "zone_sundered_sea"
+world_id = "main"
 display_name = "Sundered Sea"
 description = "The strait the sundered world remembers. Two headlands pin the ferry moat into a channel, a wreck shoal crosses it, and the last barques still route through. Sail or ford at low tide."
 pvp_mode = 0

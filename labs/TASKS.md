@@ -4763,3 +4763,126 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   probe_terrain_backend + probe_terrain_climate 2/2 PASS; 
   test_terrain_determinism + probe_sundered_sea 2/2 PASS; charset
   lint PASS (exit 0); terrain_gen parse check exit 0.
+- [x] THE AUTHORED TERRAFORM GOES LIVE (2026-10-11). User asked:
+  what's next in terrain building; is biomes/water actually rendering
+  in game; terraform the continent/island/oceans and make it real.
+  (1) THE STATE OF RENDER (the honest audit): biome vertex tint,
+  species-tree scatter over biome ids, standing-water sheets
+  (surface 2), the ocean shell at the sea line, wet-dimmed seabed
+  hunks, the homeland plateau + island + moat + spawn apron -- ALL
+  already live in the planet-scale streamer/water path. The oceans'
+  bottom IS the displaced terrain (one ground law; no fake faces).
+  (2) THE REAL GAP: the authored SUNDERED STRAIT lived only in a
+  probe (probe_terrain_backend/probe_sundered_sea install it
+  script-side and uninstall at exit). The playable world never saw
+  it. SHIPPED: data-driven per-world terraform -- new WorldData
+  field terrain_backend_id (empty = natural analytic law, the
+  declaration is the difference); globe_world._install_world_backend
+  resolves the id to res://scenes/worlds/backend_<id>.gd and installs
+  through the seam BEFORE the streamer's first height read (no
+  two-frame flash of the natural world); unknown id logs loud and
+  still boots (natural law renders -- the world stays playable).
+  world_main.tres now declares terrain_backend_id = "sundered":
+  the playable home world renders the strait, the headland mounds,
+  and the wreck shoal the ferry content was authored against.
+  (3) What "real" still owes: the strait is a channel through the
+  home continent; the ferry (veh_haven_ferry / ride chain) can cross;
+  next slices = the ferry line ride-through content and shoreline
+  town content near the moat (content, not laws).
+  Verification (exit statuses captured): probe_globe_world +
+  probe_startup_flow 2/2 PASS (a real scene boot through the new
+  install path, world_main's sundered declaration LIVE);
+  probe_sundered_sea + probe_terrain_backend 2/2 PASS (the strait
+  still laws bit-identical through the data path);
+  probe_terrain_stream + probe_terrain_planet 2/2 PASS;
+  test_terrain_determinism + probe_terrain_climate +
+  probe_terrain_backend 3/3 PASS; charset lint PASS (exit 0).
+  No aborts weakened: the silent-uninstall contract stays, the canal
+  law is the same code the S14.7 probe pinned, and the world data
+  declaration is idempotent with the probe's install path.
+- [x] THE PRD GOODIES LAND: scoping pin, the strait ferry, and the
+  crafting gate (2026-10-11).
+  (1) TERRAFORM SCOPE PIN (the completion check's follow-up):
+  probe_world_scoping grew the authored-backend scoping check --
+  world_main declares sundered, the moon declares NOTHING (its ground
+  is the natural analytic law). Data is the single authority; the pin
+  guards the .tres the boot reads. probe_terrain_backend +
+  probe_water_mounts joined the runner DEFAULT_SET (backend seam +
+  wet-mount law ride the regression floor now).
+  (2) THE STRAIT FERRY IS REAL DATA (the ferry ride-through): two
+  SHIP gateways on the strait zone -- waypoint_strait_moor (moat-side
+  pin) + waypoint_strait_seaward (past the wreck shoal) -- and
+  veh_sundered_barque (Old Brack's barque, 6 sailings/day, 0.6 h
+  crossing, moor->seaward). zone_sundered_sea now carries world_id =
+  "main" (the zone scopes to the authored terraform). probe_ferry
+  grew the F2 suite: the barque is scheduled data through the SAME
+  DataService scan, both pins resolve on the strait zone, and the
+  chart law agrees with the primitive on the barque's OWN schedule
+  (5.3 h clock, 4 h step => 5.5/9.5/13.5 cast-offs; the 0.25 h
+  boarding window is the page's law -- found + fixed the probe's own
+  clock misread, no service change needed).
+  (3) THE CRAFTING GATE (prd-crafting.md slice 1, the missing third
+  economy leg): RecipeData schema (inputs/station/output/byproducts/
+  failure posture, data truth), DataService recipe scan
+  (data/recipes/) + get_recipe, CraftingService autoload with the
+  gate chain -- unknown recipe refused, unknown input in a recipe is
+  a DATA defect (loud, refused, no invention), purse checked for ALL
+  inputs (no partial consumes), QoS cadence, failure roll (inputs
+  GONE, byproducts drop), success grant, ONE world delta per craft
+  call with actor + full bill provenance (craft/<recipe>/<nonce>).
+  First recipe: recipe_iron_ingot (2 ore -> 1 ingot @ the forge, 10%
+  failure, slag byproduct) + res_iron_ingot + res_slag items -- the
+  gather->craft loop the blacksmith feeds from. probe_crafting in
+  DEFAULT_SET: recipes-are-data, gate chain (broke purse, honest
+  bill, posture law), data-defect refusal, delta provenance, and the
+  citizen law (a synthetic crafts through the SAME chain -- identical
+  answer shape).
+  (4) THE LIVE HARVEST SEED (prd-gathering build order 2): the
+  streamer's detail-prop placement pass now registers its drawn
+  props as HarvestService nodes -- bushes register gather nodes
+  (45 s respawn) and the ALPINE/TUNDRA band draws ORE VEINS (dark
+  chunks, 90 s respawn, res_iron_ore). One placement law: seed-
+  derived, seed-stable node identity (hs_<face>_<idx>) so a face
+  reload re-registers the same node; what you SEE is what you can
+  harvest; the gather->forge surface closes the ore leg on the
+  authored terrain itself.
+  Verification (exit statuses captured): probe_world_scoping ->
+  PASS (terraform scope); probe_ferry -> PASS (barque data + pins +
+  chart law); probe_crafting -> PASS (the gate chain); probe_harvest
+  -> PASS (placement law symmetric); probe_startup_flow PASS (boot
+  through the recipe scan + new services); probe_globe_world PASS
+  (globe boots with the gatherable pass live); probe_terrain_stream
+  + probe_terrain_climate + probe_terrain_backend PASS (terrain laws
+  untouched); test_terrain_determinism PASS; probe_water_mounts
+  PASS; charset lint PASS (exit 0). parse checks on crafting_service
+  + globe_terrain_streamer exit 0. NOT changed: no service assertions
+  weakened; the ferry probe's own clock read was the bug (fixed at
+  the probe, the schedule law stays).
+
+## 2026-10-11 -- the craft->mount seam closes (breather + kite steady)
+
+  probe_crafting extended to the equippable crafts and the parse error
+  that hid them is GONE:
+  (1) The probe file itself had a collapsed line-continuation (a stray
+  backslash folding three lines into one) -- GDScript could not parse
+  it; splitting it fixed even the pre-existing syntax. Also fixed the
+  probe's own stale read (broke["attempts"][0] -> results; attempts is
+  an int count).
+  (2) DataService.load_mounts now scans data/gliders/ INTO the mount
+  registry (a sewn glider IS a MountData -- MountKind.FLYING,
+  movement_glider). One get_mount door; the craft/ride/ledger paths
+  resolve a craft output glider through the same resolution the
+  whistle mounts use. No second registry to drift.
+  (3) THE DATA BUG the probe was guarding all along: glider_weaver_kite
+  .tres shipped WITHOUT its `script = ExtResource("1")` line -- Godot
+  loaded it as a bare Resource (id=null, script=null), so CraftingService's
+  mount-output grant silently refused an unregistered id. Restored the
+  script line; the mount grant into RideService's OWNERSHIP ledger now
+  works end-to-end and the mount never lands in the bag.
+  (4) probe_crafting coverage now: the reed breather crafts as an ITEM
+  through the purse; the weaver's kite crafts a MOUNT into the ledger
+  (6 timber + 1 stone, bill consumed exactly); a short purse refuses
+  WHOLE at the kite gate (missing_inputs, no partial eats).
+  Verification: probe_crafting PASS 13 checks; probe_riding PASS 117
+  checks 0 failures; probe_glider PASS 10; probe_bout_flow PASS 26;
+  probe_forge PASS 11; probe_harvest PASS 23; probe_startup_flow PASS 18.

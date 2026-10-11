@@ -4,6 +4,11 @@
 ## 2. zone_deep_root_camp must still be registered (quest/EXPLORE law).
 ## 3. Planar zone detectors must ignore the subworld zone even when an
 ##    entity physically sits at its (subworld-frame) center.
+## 4. THE TERRAFORM SCOPE PIN (authored-backend scoping): the world
+##    DATA declarations scope the heightfield per world -- world_main
+##    declares the sundered backend, the moon declares NOTHING (its
+##    ground stays the natural analytic law). Strictly structural: the
+##    .tres declarations and the registered worlds must agree.
 extends SceneTree
 
 var _checks := 0
@@ -30,6 +35,21 @@ func _run() -> void:
 		return
 	if zm._zones.is_empty():
 		zm.load_zones()
+
+	# --- Terraform scoping: the DATA declares, per world. The boot
+	# resolves the declaration; the pin guards the DATA, which is the
+	# single authority (the same .tres the scene read at boot).
+	var main_data = load("res://data/worlds/world_main.tres")
+	var moon_data = load("res://data/worlds/world_moon.tres")
+	var terra_ok := true
+	if main_data == null or moon_data == null:
+		terra_ok = false
+	else:
+		if str(main_data.terrain_backend_id) != "sundered":
+			terra_ok = false
+		if not str(moon_data.terrain_backend_id).is_empty():
+			terra_ok = false  # the moon's ground is the natural law
+	ok = _check("terraform scope: main declares sundered, moon declares nothing", terra_ok) and ok
 
 	var zone = zm.get_zone("zone_deep_root_camp")
 	ok = _check("zone_deep_root_camp registered", zone != null) and ok

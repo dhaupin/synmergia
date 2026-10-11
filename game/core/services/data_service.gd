@@ -60,6 +60,7 @@ var _status_effects: Dictionary = {}
 var _quests: Dictionary = {}
 var _achievements: Dictionary = {}
 var _gateways: Dictionary = {}
+var _recipes: Dictionary = {}
 var _titles: Dictionary = {}
 var _hordes: Dictionary = {}
 var _weather_events: Dictionary = {}
@@ -140,9 +141,10 @@ func _get_resource_id(resource: Resource, filename: String) -> String:
 	var base: String = ResourceScan.resource_base(filename)
 	return base.to_lower()
 
-## Load skills from data/skills/
+## Load skills + recipes (data/skills/, data/recipes/)
 func load_skills() -> void:
 	_skills = _scan_directory(_data_path + "skills", "skill")
+	_recipes = _scan_directory(_data_path + "recipes", "recipe")
 	GameLog.info("DataService: Loaded %d skills" % _skills.size())
 
 ## Load items from categorized subdirectories
@@ -223,10 +225,14 @@ func load_currencies() -> void:
 	_currencies = _scan_directory(_data_path + "currencies", "currency")
 	GameLog.info("DataService: Loaded %d currencies" % _currencies.size())
 
-## Load mounts from data/mounts/
+## Load mounts from data/mounts/ + data/gliders/ (S12.4: a sewn
+## glider is a mount -- MountKind.FLYING, movement_glider -- and the
+## craft/ride/ledger paths resolve it through the same get_mount
+## door; no second registry to drift).
 func load_mounts() -> void:
 	_mounts = _scan_directory(_data_path + "mounts", "mount")
-	GameLog.info("DataService: Loaded %d mounts" % _mounts.size())
+	_mounts.merge(_scan_directory(_data_path + "gliders", "mount"))
+	GameLog.info("DataService: Loaded %d mounts (incl. gliders)" % _mounts.size())
 
 ## Load ward gates from data/gates/ (the hard gate registry).
 func load_gates() -> void:
@@ -321,6 +327,22 @@ func load_achievements() -> void:
 	GameLog.info("DataService: Loaded %d achievements" % _achievements.size())
 
 ## Load gateways from data/gateways/
+func load_recipes() -> void:
+	_recipes = _scan_directory(_data_path + "recipes", "recipe")
+	GameLog.info("DataService: Loaded %d recipes" % _recipes.size())
+
+## One recipe by id (data/recipes/*.tres, the catalog law). Typed
+## loosely (the class_name registration is editor-side; script mode
+## parses before globals register -- the RecipeData preloads fine).
+func get_recipe(id: String):
+	if _recipes.has(id):
+		return _recipes.get(id)
+	GameLog.warn("DataService: Recipe not found: " + id)
+	return null
+
+func get_all_recipes() -> Array:
+	return _recipes.values()
+
 func load_gateways() -> void:
 	_gateways = _scan_directory(_data_path + "gateways", "gateway")
 	GameLog.info("DataService: Loaded %d gateways" % _gateways.size())

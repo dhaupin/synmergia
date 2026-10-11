@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_reed_breather"
+display_name = "Bore a Hollow Reed"
+description = "A dawn-cut marsh reed bored through with a hot wire. Hand-crafted anywhere the marsh gives; the water lets you stay twice as long."
+station = 0
+inputs = [{"item_id": "res_timber", "qty": 1}]
+output = {"item_id": "acc_breather_reed", "qty": 1}
+byproducts = []
+craft_time_sec = 0.0
+required_level = 2
+failure_rate = 0.0

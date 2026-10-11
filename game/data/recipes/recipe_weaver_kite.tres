@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/recipe_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "recipe_weaver_kite"
+display_name = "Sew a Weaver's Kite"
+description = "Six billets of pine and a tail stone to keep the nose honest. The workbench does the sewing; the wind does the rest."
+station = 2
+inputs = [{"item_id": "res_timber", "qty": 6}, {"item_id": "res_stone", "qty": 1}]
+output = {"item_id": "glider_weaver_kite", "qty": 1}
+byproducts = []
+craft_time_sec = 0.0
+required_level = 5
+failure_rate = 0.0

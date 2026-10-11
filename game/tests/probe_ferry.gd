@@ -149,6 +149,37 @@ func _run() -> void:
 		fs._manifests[id].is_empty() and not fs._sailings.has(id) \
 		and fs.rides_recorded("deserter", id) == 0)
 
+	# ---- F2. THE SUNDERED BARQUE (the authored-site route) --------------------------
+	# The strait ferry is real DATA through the real DataService scan:
+	# two ports (moor pin -> seaward pin), both on the strait zone,
+	# the vehicle declared with its own schedule. AND the crossing is
+	# honest about the TERRAIN: the moor-side port rides a direction
+	# whose ground law (through the authored backend seam) is below
+	# the sea line (a ferry dock sits in water); the shoal crest
+	# direction stands its WET pin (probe_sundered_sea's crest).
+	var b_id := "veh_sundered_barque"
+	var barque = fs.get_ferry(b_id)
+	_check("the Sundered barque is scheduled data (6 a day, moor -> seaward)", \
+		barque != null and int(barque.ferries_per_day) == 6 \
+		and str(barque.route_gateways[0]) == "waypoint_strait_moor" \
+		and str(barque.route_gateways[1]) == "waypoint_strait_seaward")
+	var ds2 = root.get_node_or_null("DataService")
+	var moor = ds2.get_gateway("waypoint_strait_moor") if ds2 else null
+	var seaward = ds2.get_gateway("waypoint_strait_seaward") if ds2 else null
+	_check("both barque pins resolve through the DataService scan", \
+		moor != null and seaward != null \
+		and str(moor.source_zone_id) == "zone_sundered_sea" \
+		and str(seaward.source_zone_id) == "zone_sundered_sea")
+	# The strait ferry's route_status reads the SAME primitive law on
+	# its OWN schedule (5:30 start, 6 ferries, 4 h step => cast-offs
+	# at 5.5, 9.5, 13.5...). The boarding window is 0.25 h before the
+	# cast-off, so 05:30 - 11 min (5.52 -> in_h 0.08) is boarding.
+	fs._clock_override = 100.0 + 5.48 / 24.0
+	var st_barque: Dictionary = fs.route_status(b_id)
+	_check("the barque's dock chart is live (boarding on its own clock)", \
+		str(st_barque.get("status", "")) == "boarding")
+	fs._clock_override = -1.0
+
 	# ---- F. The wake survives a reboot --------------------------------------------
 	fs._record_wake("deckhand", id)  # second crossing
 	var fs2 = load("res://core/services/ferry_service.gd").new()

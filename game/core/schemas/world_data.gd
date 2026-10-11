@@ -61,6 +61,16 @@ enum OfflineState {
 ## Worldbuilding flavor (what the almanac says about this place).
 @export_multiline var lore: String = ""
 
+## TERRAIN BACKEND (the heightfield-source seam, terrain_gen.gd):
+## which AUTHORED backend legally reshapes this world's raw land, if
+## any. Empty = the natural analytic law (the home world as geology
+## made it). Data-driven so authored terrain is a DECLARATION on the
+## world, not a code install in the boot. The globe scene resolves
+## the id to a backend class at ready and installs it through the
+## seam (sculpt/guarantee laws stay law-native on top; the seed law
+## keys everything, so the same declaration is the same world).
+@export var terrain_backend_id: String = ""
+
 
 ## Derivation path for this world's seed, under the universe root.
 ## Pure function: the registry feeds it to SeedChain.derive_seed as

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "loot_slime"
 name = "Slime Loot"
-description = "Drops from Slime enemies. Mostly gel and junk, rare gel-core."
+description = "Drops from Slime enemies. Mostly gel and junk; even the junk includes common seam-ore (slimes sift the ground)."
 level = 1
 min_items_dropped = 0
 max_items_dropped = 2

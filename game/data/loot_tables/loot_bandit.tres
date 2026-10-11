@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "loot_bandit"
 name = "Bandit Loot"
-description = "Drops from Bandit enemies"
+description = "Drops from Bandit enemies. Road-dogs rob ore carts as much as coin: their hauls carry silver and golden seam."
 level = 5
 min_items_dropped = 1
 max_items_dropped = 4
@@ -40,6 +40,22 @@ entries = [{
 "min_quantity": 1,
 "max_quantity": 1,
 "drop_rate": 0.05,
+"rarity_weight": 2.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_ore_silver",
+"min_quantity": 1,
+"max_quantity": 3,
+"drop_rate": 0.25,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_ore_golden",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.12,
 "rarity_weight": 2.0,
 "is_guaranteed": false,
 "conditions": []

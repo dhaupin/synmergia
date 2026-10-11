@@ -95,8 +95,11 @@ probe_royale_storm
 probe_world_lattice
 probe_world_state
 probe_harvest
+probe_crafting
 probe_underworld
 probe_world_scoping
+probe_water_mounts
+probe_terrain_backend
 probe_round2_ui
 probe_character_panel
 probe_playtest_r12

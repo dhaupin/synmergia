@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ForgeBalanceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/forge_balance_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "forge_balance"
+base_chance = [0.90, 0.80, 0.70, 0.60, 0.50]
+ore_bonus_delta = [-0.15, 0.0, 0.10, 0.20, 0.40]
+soft_cap_grade = 2
+endurance_damage_min = 1
+endurance_damage_max = 10
+downgrade_on_failure = true
+upgrade_hard_cap = 8
+gold_cost_per_grade = 0

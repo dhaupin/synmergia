@@ -1,0 +1,20 @@
+extends SceneTree
+func _init() -> void:
+	call_deferred("_run")
+func _run() -> void:
+	var OVS = load("res://core/schemas/ocean_volume.gd")
+	var v = OVS.new()
+	print("TYPE=", typeof(OVS.DepthBand), " DRY=", OVS.DepthBand.get("DRY") if OVS.DepthBand.get("DRY") != null else "n/a")
+	print("DRY direct=", OVS.DepthBand.DRY)
+	print("band_for(10)=", v.band_for(10.0, 0.0))
+	print("band_for(-0.5)=", v.band_for(-0.5, 0.0))
+	print("band_for(1.0)=", v.band_for(1.0, 0.0))
+	var svc = root.get_node_or_null("OceanService")
+	svc.ensure_loaded()
+	var crater = svc.get_volume("ocean_lunar_crater")
+	var shelf = svc.get_volume("ocean_haven_shelf")
+	print("crater surface=", crater.surface_height, " floor_r=", crater.floor_radius)
+	print("shelf sample(0,-5,0)=", svc.sample_depth(Vector3(0,-5,0), shelf))
+	print("crater sample(0,-10,0)=", svc.sample_depth(Vector3(0,-10,0), crater))
+	print("depth calc shelf: surface-pos = ", float(shelf.surface_height) - (-5.0))
+	quit(0)

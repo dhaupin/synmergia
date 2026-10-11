@@ -34,6 +34,7 @@ is_elite = false
 is_boss = true
 is_social = false
 loot_table_id = "loot_skill_books"
+secondary_loot_table_id = "loot_elite_ore"
 gold_min = 500
 gold_max = 1000
 xp_reward = 5000

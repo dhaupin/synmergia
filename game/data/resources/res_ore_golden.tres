@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_ore_golden"
+display_name = "Golden Ore"
+description = "Vein-gold, warm to the touch even underground. Heroes trade whole purses for a seam of it."
+icon_path = "res://icons/resources/ore_golden.png"
+item_category = 4
+rarity = 3
+equip_slot = 0
+stack_size = 100
+sell_price = 40
+buy_price = 95
+required_level = 0

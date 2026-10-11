@@ -122,4 +122,31 @@ func _run() -> void:
 	_check("respawn leaves the auditable cleared record (actor = world)",
 		bool(back.get("payload", {}).get("cleared", false)) and str(back.get("actor", "")) == "world")
 
+	# -- F. Timber + stone (the Gloomwood chop + the quarry) ----------
+	# Registering a lumber node: DataService truth only -- the service
+	# refuses unknown items, so these checks double as data-law proof
+	# that res_timber / res_stone actually EXIST in the registry.
+	var tree_nid: String = hs.register_node("hs_gloomwood_pine_1", "zone_forest_meadow", "res_timber", Vector3(6, 0, 2), 2, 30.0)
+	_check("a tree registers as a timber node (chop the Gloomwood)",
+		tree_nid == "hs_gloomwood_pine_1")
+	var rock_nid: String = hs.register_node("hs_quarry_boulder_1", "zone_forest_meadow", "res_stone", Vector3(7, 0, 4), 1, 30.0)
+	_check("a boulder registers as a stone node (the quarry gives)",
+		rock_nid == "hs_quarry_boulder_1")
+	var chop: Dictionary = hs.harvest("hs_human", tree_nid)
+	_check("chopping the tree grants timber through the SAME purse chain",
+		bool(chop.get("ok", false)) and str(chop.get("item_id", "")) == "res_timber" \
+		and int(chop.get("quantity", 0)) == 2)
+	_check("the purse holds the timber (2 per chop)",
+		_count_id(inv, "res_timber") == 2)
+	var mine: Dictionary = hs.harvest("hs_synth_1", rock_nid)
+	_check("a synthetic mines the boulder: stone rides the same law",
+		bool(mine.get("ok", false)) and str(mine.get("item_id", "")) == "res_stone" \
+		and _count_id(synth_inv, "res_stone") == 1)
+	_check("both nodes depleted on their harvest (the world remembers the take)",
+		hs.is_depleted(tree_nid) and hs.is_depleted(rock_nid))
+	var chop_delta: Dictionary = ws.get_world_state("main", "harvest/%s" % tree_nid)
+	_check("the chop delta carries actor + timber provenance",
+		str(chop_delta.get("actor", "")) == "hs_human" \
+		and str(chop_delta.get("payload", {}).get("item_id", "")) == "res_timber")
+
 	print("probe_harvest: %d checks, %d failures" % [_checks, _fails])

@@ -156,6 +156,15 @@ enum EquipSlot {
 @export var durability_loss_rate: float = 1.0  # Durability per minute of combat at rate 1.0
 @export var can_repair: bool = true
 
+# THE FORGE'S TALLY (prd-blacksmith sec 6, the RYL2 addendum): an
+# item's upgrade level (+0 floor, hard cap from BalanceData) and its
+# max endurance -- a FAILED forge can strip 1-10 max endurance AND
+# downgrade one level. A sword that survives five failures is
+# SCARRED, and scars are character. current_endurance is runtime.
+@export var upgrade_level: int = 0
+@export var max_endurance: int = 100
+@export var current_endurance: int = 100
+
 # Consumable-specific
 @export var use_skill_id: String = ""  # Skill to execute on use
 @export var cooldown: float = 0.0

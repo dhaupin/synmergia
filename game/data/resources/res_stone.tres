@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_stone"
+display_name = "Stone"
+description = "A rough-cut block of haven granite. Heavy, honest, and always wanted somewhere: walls, forges, and the ferry landings."
+icon_path = "res://icons/resources/stone.png"
+item_category = 4
+rarity = 0
+equip_slot = 0
+stack_size = 100
+sell_price = 3
+buy_price = 8
+required_level = 0

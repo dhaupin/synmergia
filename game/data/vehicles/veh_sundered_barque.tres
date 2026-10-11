@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="VehicleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/vehicle_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "veh_sundered_barque"
+display_name = "Sundered Barque"
+description = "Old Brack's barque, the last boat that kept the crossing alive when the strait closed. She knows the channel under the wreck shoal better than any chart. Runs the strait between the moor pin and the seaward pin."
+icon_path = "res://icons/vehicles/ferry.png"
+model_path = ""
+kind = 1
+speed_multiplier = 1.1
+seat_count = 8
+cargo_capacity = 20
+required_level = 1
+guild_owned = false
+source = 0
+currency_id = ""
+cost = 0
+route_gateways = ["waypoint_strait_moor", "waypoint_strait_seaward"]
+soulbound = false
+ferries_per_day = 6
+first_departure_hour = 5.5
+crossing_hours = 0.6

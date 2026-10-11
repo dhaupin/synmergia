@@ -109,6 +109,7 @@ func _ready() -> void:
 	add_child(world_root)
 	_build_shell()
 	_build_surface_pad()
+	_install_world_backend()
 	_build_sun()
 	_build_sky_sun()
 	_build_sky_moon()
@@ -131,6 +132,54 @@ func _ready() -> void:
 	# HERE, after _install_hud(): _build_player runs before the HUD
 	# exists, and the line parents into it.
 	_build_spawn_truth()
+
+
+## THE AUTHORED TERRAFORM (data-driven, backend-seam-first): the
+## world's WorldData declares `terrain_backend_id` -- which authored
+## heightfield legally reshapes THIS world's raw land. Empty = the
+## natural analytic law (no declaration, no install). THE STREAMER
+## MUST SEE IT: install BEFORE _setup_streamer() reads its first
+## height, so patch 0 renders the authored world, not a two-frame
+## flash of the natural one. The id resolves through the BACKEND
+## REGISTRY (terrain backends class_name map); an unknown id is a
+## DATA error and logs loud (fail the lore, not the boot -- the
+## natural law still renders and the world stays playable).
+func _install_world_backend() -> void:
+	var wd = _world_data()
+	if wd == null or str(wd.terrain_backend_id).is_empty():
+		return
+	var ids := str(wd.terrain_backend_id)
+	var script_path := "res://scenes/worlds/backend_%s.gd" % ids
+	if not ResourceLoader.exists(script_path):
+		_log_backend("error", "world '%s' declares terrain_backend_id '%s' -- no res://scenes/worlds/backend_%s.gd. Natural law renders; fix the declaration or ship the backend." % [wd.id, ids, ids])
+		return
+	var backend_script = load(script_path)
+	var Gen = load("res://scenes/worlds/terrain_gen.gd")
+	Gen.install_terrain_backend(Callable(backend_script, "field"))
+	_log_backend("info", "authored terrain backend '%s' installed for world '%s' (the strait is real)" % [ids, wd.id])
+
+
+## The islands-suite law: bare autoload reads fail --script-mode
+## compilation, so every autoload touch goes through root lookup.
+func _log_backend(level: String, msg: String) -> void:
+	var log4 = get_node_or_null("/root/GameLog")
+	if log4 == null:
+		return
+	var callable: Callable = Callable(log4, level)
+	if callable.is_valid():
+		callable.call(msg)
+
+
+## This scene's WorldData: probed via the boot sequence's world id if
+## available (meta "world_id" set by the boot/lobby journey), else
+## the MAIN world (the playable home is world_main's declaration).
+func _world_data():
+	var wid := str(get_meta("world_id", "main"))
+	var reg = get_node_or_null("/root/WorldRegistry")
+	if reg != null and reg.has_method("get_world"):
+		return reg.get_world(wid)
+	var packed = load("res://data/worlds/world_%s.tres" % wid)
+	return packed if packed != null else null
 
 
 ## S8 floating-origin rebase: when the player has drifted SHIFT_RADIUS

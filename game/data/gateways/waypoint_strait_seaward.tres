@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GatewayData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/gateway_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "waypoint_strait_seaward"
+display_name = "Seaward Waypoint"
+description = "The open-water ferry pin past the wreck shoal, where the barque turns for the open sea and the headlands sink behind you."
+gateway_type = 4
+source_zone_id = "zone_sundered_sea"
+source_position = Vector3(0, 0, 0)
+destination_zone_id = "zone_sundered_sea"
+destination_position = Vector3(0, 0, 0)
+model_path = ""
+particle_effect = "waypoint_glow_blue"
+icon_path = "res://icons/waypoint.png"
+min_level = 1
+is_two_way = true

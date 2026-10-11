@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_ore_mythril"
+display_name = "Mythril Ore"
+description = "The forge-king's ore. It nearly never fails (the Concord says nine in ten attempts live). Something titanic guards every seam of it."
+icon_path = "res://icons/resources/ore_mythril.png"
+item_category = 4
+rarity = 5
+equip_slot = 0
+stack_size = 20
+sell_price = 600
+buy_price = 1200
+required_level = 0

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "res_iron_ingot"
+display_name = "Iron Ingot"
+description = "Two ores made one at the forge. Honest bar stock for the blacksmith's anvil work."
+icon_path = "res://icons/resources/iron_ingot.png"
+item_category = 4
+rarity = 1
+equip_slot = 0
+stack_size = 100
+sell_price = 8
+buy_price = 18
+required_level = 0

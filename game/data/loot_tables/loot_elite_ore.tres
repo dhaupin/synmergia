@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "loot_elite_ore"
+name = "Elite Seam Drops"
+description = "Ore from elite and boss pursuits. The big guards carry the deep grades: troll caches hold golden and starmetal, and what a void lord sheds is beyond (starmetal always, mythril vanishingly)."
+level = 30
+min_items_dropped = 0
+max_items_dropped = 2
+base_drop_chance = 1.0
+entries = [{
+"item_id": "res_ore_golden",
+"min_quantity": 1,
+"max_quantity": 3,
+"drop_rate": 0.45,
+"rarity_weight": 1.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_ore_starmetal",
+"min_quantity": 1,
+"max_quantity": 2,
+"drop_rate": 0.20,
+"rarity_weight": 2.0,
+"is_guaranteed": false,
+"conditions": []
+}, {
+"item_id": "res_ore_mythril",
+"min_quantity": 1,
+"max_quantity": 1,
+"drop_rate": 0.02,
+"rarity_weight": 4.0,
+"is_guaranteed": false,
+"conditions": []
+}]
+currency_drops = []
