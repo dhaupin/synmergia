@@ -5039,3 +5039,26 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   NOT changed: the backend field (terrain law untouched), the ferry
   service, the schedule primitive, any .gd service logic beyond the
   new additive StraitChart resolver.
+
+## 2026-10-11 -- the quay's cellar shelves (real item data for the strait arm)
+
+  The quay slice's honest gap closed: the two strait vendors now sell
+  REAL item data, not catalog shells.
+  (1) DATA: three new items -- item_scrap_lumber (RESOURCE, drift
+  wood the strait beat loose, bought by the forge loop's stock),
+  item_strait_charm (MISC, pitch-sealed barque-rope luck trinket, 2
+  coin), item_skiff_ticket (MISC, the chartered skiff chit, 25 coin
+  = FerryService.DEFAULT_SKIFF_TICKET; the wake law is printed on
+  the item's own description).
+  (2) CATALOGS: salvor_stock gains the scrap lumber entry;
+  ferry_passage_sundered stops being an empty shell and stocks the
+  charm + the ticket.
+  (3) PROBE: probe_shipwreck_quay grew the CATALOG LAW -- every
+  vendor stock item_id resolves to real Item data, pricing is
+  lawful (sell <= buy, never negative), qty is lawful. 32 -> 53
+  checks. The probe's own offer-check bug fixed honestly: an
+  include entry of type != offering no longer loads "" and fails
+  (guard restructured, not assertions weakened).
+  Verification: probe_shipwreck_quay 53/53 PASSED (exit 0),
+  probe_ferry 28 PASSED, probe_placeable_stations 25 PASSED,
+  probe_crafting 13 PASSED, charset lint 3/0 (exit 0).

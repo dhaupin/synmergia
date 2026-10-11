@@ -54,10 +54,20 @@ func _run() -> void:
 			var off: Resource = null
 			if t == "offering" and not ref_id.is_empty():
 				off = load("res://data/npc_offerings/%s.tres" % ref_id)
-				var off_type := str(off.get("type")) if off != null else "?"
+			var off_type := str(off.get("type")) if off != null else "?"
+			if t == "offering" or off != null:
 				_check(off != null, "%s include -> offering '%s' resolves (type=%s)" % [npc_file, ref_id, off_type])
-				if off != null and str(off.get("type")) == "quest":
-					for qq: Variant in off.quest_ids:
+			# Catalog law: every stock id resolves to real Item data.
+			if off != null and str(off.get("type")) == "vendor":
+				for entry: Dictionary in off.catalog_items:
+					var iid := str(entry.get("item_id", ""))
+					var it: Resource = DS.get_item(iid)
+					_check(it != null, "%s vendor '%s' stock item '%s' resolves to Item data" % [npc_file, ref_id, iid])
+					if it != null:
+						_check(int(it.buy_price) >= 0 and int(it.sell_price) <= int(it.buy_price), "stock item '%s' pricing lawful (buy %d >= sell %d)" % [iid, int(it.buy_price), int(it.sell_price)])
+					_check(int(entry.get("qty", 0)) > 0, "stock item '%s' has a lawful qty" % iid)
+			if off != null and str(off.get("type")) == "quest":
+				for qq: Variant in off.quest_ids:
 						_check(DS.get_quest(str(qq)) != null, "quest offering '%s' resolves (quest data truth)" % str(qq))
 			var dlg_id := str(inc.get("dialogue_id", ""))
 			if t == "dialogue" and not dlg_id.is_empty():

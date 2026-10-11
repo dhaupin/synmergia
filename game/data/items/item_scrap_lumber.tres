@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_scrap_lumber"
+display_name = "Scrap Lumber"
+description = "Drift-sanded planks the strait beat loose off the first barque. Sound heartwood under the salt -- the forge-minders pay for salvaged stock."
+icon_path = "res://icons/items/scrap_lumber.png"
+item_category = 4
+rarity = 0
+stack_size = 50
+buy_price = 3
+sell_price = 1
+weight = 0.4

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_strait_charm"
+display_name = "Strait Charm"
+description = "A knot of barque rope sealed in pitch, sold at the moor for a coin. The ferryfolk say the sea keeps count of who wears one. It keeps no stat; it keeps hope."
+icon_path = "res://icons/items/strait_charm.png"
+item_category = 8
+rarity = 1
+stack_size = 1
+buy_price = 2
+sell_price = 0
+weight = 0.05

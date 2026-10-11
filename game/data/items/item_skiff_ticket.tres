@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "item_skiff_ticket"
+display_name = "Chartered Skiff Ticket"
+description = "A punched chit good for one out-of-schedule crossing at 2.5x speed. Old Brack sells them when the tide and your patience disagree. The wake must be yours first -- the sea makes you row it once."
+icon_path = "res://icons/items/skiff_ticket.png"
+item_category = 8
+rarity = 1
+stack_size = 10
+buy_price = 25
+sell_price = 5
+weight = 0.01
