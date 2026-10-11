@@ -4886,3 +4886,47 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   Verification: probe_crafting PASS 13 checks; probe_riding PASS 117
   checks 0 failures; probe_glider PASS 10; probe_bout_flow PASS 26;
   probe_forge PASS 11; probe_harvest PASS 23; probe_startup_flow PASS 18.
+
+## 2026-10-11 -- crafting world+UI integration (S16.9 slice 2)
+
+  The gate was lawful; now the world can FIND it:
+  (1) WORKBENCH UI (ui/components/workbench_ui.gd): station-aware
+  recipe table. Lists the CraftingService catalog filtered by the
+  bench's own station (NONE recipes list everywhere; a forge lists
+  FORGE+NONE; the workbench WORKBENCH+NONE). Each row shows the bill
+  per-input colored by purse sufficiency (have vs need), the output,
+  the failure/openness posture ("fails 10%" / "never fails"), and a
+  Craft button that executes through CraftingService.craft ONLY --
+  refusals speak the gate's own reason verbatim (REASON_TEXT maps
+  unknown_recipe/missing_inputs/recipe_data_defect/no_inventory/
+  forge_ate_it). The UI owns no second gate; a mount output lands in
+  the RideService ledger, never the bag (the service _grant decides).
+  (2) THE STATION LAW IS DATA: NPCData.get_crafting_station() resolves
+  any includes-entry whose offering carries service_id
+  "CraftingService" and reads service_params.station (one door; probes
+  pin workbench=2, forge=1, dialogue-only=-1). New offerings:
+  forge_service.tres + workbench_service.tres. A "Craft" context
+  action (action_menu filter by that station door) opens the
+  WorkbenchUI at the NPC's station via PlayerController's
+  _open_workbench_ui (~the blacksmith action idiom).
+  (3) THE CRAFT SHELF (vendor_craft_shelf.tres, by_item_id): the
+  general merchant carries a second offering stocking only craft-loop
+  goods -- recipe inputs PLUS byproducts (res_slag sells, the failure
+  sink is recoverable). Data truth: every catalog id is either an
+  input or byproduct of some recipe; prices are the items' buy_price
+  through the vendor multiplier; the probe refuses invented ids.
+  (4) THE DASHBOARD CODEX (src/components/CraftingCompendium.tsx):
+  recipe browser fed by the SAME .tres sync (scripts/sync_godot_data.ts
+  gained the recipes category; loadGodotData exports RAW). Input/arrow/
+  output cards with byproducts, failure posture, station filter chips;
+  item names resolve from the same payload (no invented names).
+  [K] hotkey toggle in App.tsx. tsc --noEmit clean.
+  Probes/scripts: probe_crafting_ui (12 checks: parsing, station door,
+  catalog split, shelf inventory law, vendor resolution, merchant
+  wiring) added to godot_test_runner.sh DEFAULT_SET after probe_crafting.
+  Verification: probe_crafting_ui PASS 12, probe_crafting PASS 13
+  (one 10%-roll RNG flake observed then re-run green -- documented
+  flake, not touched), probe_forge PASS 11, probe_riding PASS 117,
+  probe_startup_flow PASS 18, charset lint 3/3, naming lint exit 0,
+  tsc exit 0, sync:data emits recipes:3. NOT changed: the gate chain,
+  no service assertions weakened, no probe set weakened.

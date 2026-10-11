@@ -132,6 +132,7 @@ const InventoryComponent = preload("res://core/components/inventory_component.gd
 # here -- no shadow: Entity is a class_name, not an autoload.
 const Entity = preload("res://core/entities/entity.gd")
 const BlacksmithUI = preload("res://ui/components/blacksmith_ui.gd")
+const WorkbenchUI = preload("res://ui/components/workbench_ui.gd")
 # Named collision bits (round 10): data/physics_layers/ LayerProfile.
 const Layers = preload("res://core/schemas/layer_profile.gd")
 const CharacterStatsUI = preload("res://ui/menus/character_stats_ui.gd")
@@ -365,6 +366,7 @@ var faction_id: String = ""
 var _action_menu: ActionMenu = null
 var _skill_academy_ui: SkillAcademyUI = null
 var _blacksmith_ui: BlacksmithUI = null
+var _workbench_ui: WorkbenchUI = null
 var _character_stats_ui: CharacterStatsUI = null
 var _blessed_mark: Node3D = null
 var _current_target_info: _tm_script.TargetInfo = null
@@ -650,6 +652,8 @@ func _on_context_action(action_id: String, target_id: String) -> void:
 			_open_skill_academy_ui()
 		"blacksmith":
 			_open_blacksmith_ui()
+		"craft":
+			_open_workbench_ui()
 		"character_stats":
 			_open_character_stats_ui()
 
@@ -816,6 +820,24 @@ func _open_skill_academy_ui() -> void:
 		add_child(_skill_academy_ui)
 	_skill_academy_ui.load_player_context(str(player_id))
 	_skill_academy_ui.open_with_context(str(player_id), _get_character_data(), _get_inventory_books())
+
+## Open the crafting recipe table at the target NPC's station (the
+## station law is DATA truth: npc_data.get_crafting_station, the
+## offering's service_params.station). Every craft still executes
+## through CraftingService.craft -- the UI owns no gate of its own.
+func _open_workbench_ui() -> void:
+	if not _workbench_ui:
+		_workbench_ui = WorkbenchUI.new()
+		add_child(_workbench_ui)
+	var inventory: InventoryComponent = null
+	if _inv_svc():
+		inventory = _inv_svc().get_inventory(str(player_id))
+	_workbench_ui.set_inventory(inventory)
+	var station := -1
+	if _current_target_info and _current_target_info.npc_data \
+			and _current_target_info.npc_data.has_method("get_crafting_station"):
+		station = _current_target_info.npc_data.get_crafting_station()
+	_workbench_ui.open_for_player(str(player_id), station)
 
 func _open_blacksmith_ui() -> void:
 	if not _blacksmith_ui:

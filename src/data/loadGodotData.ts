@@ -18,7 +18,9 @@ import type {
   EquipSlot,
 } from '../types';
 
-const RAW = godotData as any;
+// Exported for sibling components (CraftingCompendium) that need the
+// raw synced payload (recipes, mounts, etc.) un-transformed.
+export const RAW = godotData as any;
 
 // --- Helpers ---
 function colorToHex(c: { r: number; g: number; b: number; a?: number } | string): string {

@@ -43,6 +43,7 @@ import { InventoryModal } from './components/InventoryModal';
 import { QuestModal } from './components/QuestModal';
 import { ShopModal } from './components/ShopModal';
 import { BlacksmithModal } from './components/BlacksmithModal';
+import { CraftingCompendium } from './components/CraftingCompendium';
 import { WorldMapModal } from './components/WorldMapModal';
 import { ChatBox } from './components/ChatBox';
 import { AchievementsModal } from './components/AchievementsModal';
@@ -361,6 +362,7 @@ export default function App() {
   const [isBlacksmithOpen, setIsBlacksmithOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
+  const [isCraftingOpen, setIsCraftingOpen] = useState(false);
 
   // Mobile Touch Joystick
   const [joystickVector, setJoystickVector] = useState<{ x: number; y: number } | null>(null);
@@ -1134,6 +1136,7 @@ export default function App() {
       if (key === 'l') setIsQuestOpen((prev) => !prev);
       if (key === 'm') setIsMapOpen((prev) => !prev);
       if (key === 'h') setIsAchievementsOpen((prev) => !prev);
+      if (key === 'k') setIsCraftingOpen((prev) => !prev);
 
       // Escape to close open dialogs or deselect
       if (key === 'escape') {
@@ -1144,6 +1147,7 @@ export default function App() {
         setIsBlacksmithOpen(false);
         setIsMapOpen(false);
         setIsAchievementsOpen(false);
+        setIsCraftingOpen(false);
         setSelectedEnemy(null);
         setSelectedNpc(null);
       }
@@ -1870,6 +1874,10 @@ export default function App() {
         isOpen={isAchievementsOpen}
         unlockedIds={unlockedAchievementIds} engineState={achievementEngineRef.current}
         onClose={() => setIsAchievementsOpen(false)}
+      />
+      <CraftingCompendium
+        isOpen={isCraftingOpen}
+        onClose={() => setIsCraftingOpen(false)}
       />
       <AchievementToast
         toasts={achievementToasts}

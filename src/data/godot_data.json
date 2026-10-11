@@ -1,26 +1,27 @@
 {
-  "lastSyncedAt": "2026-09-26T21:23:28.632Z",
+  "lastSyncedAt": "2026-10-11T18:25:20.641Z",
   "counts": {
     "classes": 39,
     "weapons": 2,
     "armors": 2,
-    "consumables": 2,
+    "consumables": 3,
     "enemies": 8,
-    "zones": 5,
+    "zones": 11,
     "skills": 163,
-    "quests": 5,
+    "quests": 9,
     "buffs": 0,
     "factions": 4,
-    "achievements": 25,
-    "titles": 11,
+    "achievements": 32,
+    "titles": 12,
     "species": 3,
-    "dialogues": 2,
+    "dialogues": 3,
     "currencies": 4,
-    "mounts": 2,
-    "vehicles": 1,
-    "resources": 1,
+    "mounts": 11,
+    "vehicles": 3,
+    "resources": 9,
     "items": 3,
-    "accessories": 4
+    "accessories": 6,
+    "recipes": 3
   },
   "classes": {
     "akkan_attacker": {
@@ -2122,6 +2123,28 @@
     }
   },
   "consumables": {
+    "item_sky_crate_daily": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "item_sky_crate_daily",
+      "display_name": "Sky Crate",
+      "description": "A small Concord crate, sealed with the day's sky-sign. The seal changes when the sky does. Rewarded for one honest gaze a day.",
+      "icon_path": "res://icons/items/crate_sky.png",
+      "item_category": 3,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 5,
+      "sell_price": 10,
+      "buy_price": 0,
+      "required_level": 0,
+      "use_skill_id": "",
+      "cooldown": 0,
+      "duration": 0,
+      "buff_effects": [],
+      "_sourceFile": "game/data/consumables/item_sky_crate_daily.tres",
+      "_scriptClass": "Item"
+    },
     "potion_health_small": {
       "script": {
         "_extResource": "1"
@@ -2454,6 +2477,7 @@
       "is_boss": false,
       "is_social": true,
       "loot_table_id": "loot_skill_books",
+      "secondary_loot_table_id": "loot_elite_ore",
       "gold_min": 60,
       "gold_max": 120,
       "xp_reward": 450,
@@ -2502,6 +2526,7 @@
       "is_boss": true,
       "is_social": false,
       "loot_table_id": "loot_skill_books",
+      "secondary_loot_table_id": "loot_elite_ore",
       "gold_min": 500,
       "gold_max": 1000,
       "xp_reward": 5000,
@@ -2568,6 +2593,190 @@
     }
   },
   "zones": {
+    "zone_arena_coliseum": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_arena_coliseum",
+      "display_name": "Haven Coliseum",
+      "description": "The reclaimed arena at Haven's edge. Six species fought their wars here once; now it hosts duels under one unbroken sky. Instanced: twelve fighters per bout (full 6v6 parties), free PvP, full loot on the sand.",
+      "pvp_mode": 3,
+      "level_requirement": 1,
+      "max_level": 999,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": false,
+      "respawn_timer": 8,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "zone_radius": 120,
+      "ambient_light_color": {
+        "r": 0.85,
+        "g": 0.8,
+        "b": 0.72,
+        "a": 1
+      },
+      "ambient_light_energy": 1,
+      "environment_path": "",
+      "has_weather": false,
+      "weather_type": "clear",
+      "spawn_points": [
+        {
+          "v3": [
+            0,
+            1,
+            -40
+          ]
+        },
+        {
+          "v3": [
+            0,
+            1,
+            40
+          ]
+        }
+      ],
+      "bind_point": {
+        "x": 0,
+        "y": 1,
+        "z": -40
+      },
+      "npcs": [],
+      "loot_multiplier": 1,
+      "xp_multiplier": 1,
+      "is_instanced": true,
+      "instance_capacity": 12,
+      "horde_config_id": "",
+      "instance_entry_deadline": 60,
+      "_sourceFile": "game/data/zones/zone_arena_coliseum.tres",
+      "_scriptClass": "ZoneData"
+    },
+    "zone_arena_sandpit": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_arena_sandpit",
+      "display_name": "Haven Sandpit",
+      "description": "The training pit beside the Coliseum, widened for real bouts. Two parties enter behind rock cover; the first to twenty kills takes the sand. Falls never end a bout here -- you rise again under the marshals' shield, but swing once and it is gone.",
+      "pvp_mode": 3,
+      "level_requirement": 1,
+      "max_level": 999,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": false,
+      "respawn_timer": 5,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "zone_radius": 220,
+      "ambient_light_color": {
+        "r": 0.82,
+        "g": 0.78,
+        "b": 0.65,
+        "a": 1
+      },
+      "ambient_light_energy": 1,
+      "environment_path": "",
+      "has_weather": false,
+      "weather_type": "clear",
+      "spawn_points": [
+        {
+          "v3": [
+            0,
+            1,
+            -90
+          ]
+        },
+        {
+          "v3": [
+            0,
+            1,
+            90
+          ]
+        }
+      ],
+      "bind_point": {
+        "x": 0,
+        "y": 1,
+        "z": -90
+      },
+      "npcs": [],
+      "loot_multiplier": 1,
+      "xp_multiplier": 1,
+      "is_instanced": true,
+      "instance_capacity": 12,
+      "horde_config_id": "",
+      "instance_entry_deadline": 60,
+      "instance_mode": 1,
+      "instance_kill_target": 20,
+      "instance_time_limit": 480,
+      "instance_spawn_shield": 4,
+      "_sourceFile": "game/data/zones/zone_arena_sandpit.tres",
+      "_scriptClass": "ZoneData"
+    },
+    "zone_deep_root_camp": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_deep_root_camp",
+      "display_name": "The Root Camp",
+      "description": "A strata-lit shelf in the Deep Root, where the Warden keeps a hearth for travelers the sun never finds.",
+      "pvp_mode": 0,
+      "level_requirement": 1,
+      "max_level": 30,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": true,
+      "respawn_timer": 6,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 2000,
+        "z": 0
+      },
+      "zone_radius": 60,
+      "ambient_light_color": {
+        "r": 0.9,
+        "g": 0.62,
+        "b": 0.38,
+        "a": 1
+      },
+      "ambient_light_energy": 0.6,
+      "environment_path": "",
+      "has_weather": false,
+      "weather_type": "clear",
+      "spawn_points": [
+        {
+          "v3": [
+            0,
+            2000,
+            0
+          ]
+        }
+      ],
+      "bind_point": {
+        "x": 0,
+        "y": 2000,
+        "z": 0
+      },
+      "npcs": [
+        "npc_deep_warden"
+      ],
+      "world_id": "underworld",
+      "loot_multiplier": 1,
+      "xp_multiplier": 1.1,
+      "is_instanced": false,
+      "instance_capacity": 0,
+      "_sourceFile": "game/data/zones/zone_deep_root_camp.tres",
+      "_scriptClass": "ZoneData"
+    },
     "zone_dungeon_forest_depths": {
       "script": {
         "_extResource": "1"
@@ -2618,6 +2827,7 @@
       "xp_multiplier": 2,
       "is_instanced": true,
       "instance_capacity": 5,
+      "instance_time_limit": 3600,
       "horde_config_id": "vault_seal",
       "_sourceFile": "game/data/zones/zone_dungeon_forest_depths.tres",
       "_scriptClass": "ZoneData"
@@ -2696,6 +2906,49 @@
       "_sourceFile": "game/data/zones/zone_forest_meadow.tres",
       "_scriptClass": "ZoneData"
     },
+    "zone_gull_island": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_gull_island",
+      "display_name": "Gull Island",
+      "description": "A volcanic plateau offshore of the spawn shore. The gulls hold it, the Concord charted it, and the ferry will bring you to it. No main-world law applies: its zone id is all it claims.",
+      "pvp_mode": 0,
+      "level_requirement": 1,
+      "max_level": 999,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": true,
+      "respawn_timer": 8,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "zone_radius": 250,
+      "ambient_light_color": {
+        "r": 0.6,
+        "g": 0.7,
+        "b": 0.8,
+        "a": 1
+      },
+      "ambient_light_energy": 1,
+      "environment_path": "res://environments/day_01.tres",
+      "has_weather": false,
+      "weather_type": "clear",
+      "spawn_points": [
+        {
+          "v3": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/zones/zone_gull_island.tres",
+      "_scriptClass": "ZoneData"
+    },
     "zone_nexus_central": {
       "script": {
         "_extResource": "1"
@@ -2766,6 +3019,88 @@
       "_sourceFile": "game/data/zones/zone_nexus_central.tres",
       "_scriptClass": "ZoneData"
     },
+    "zone_royale_valley": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_royale_valley",
+      "display_name": "The Sundered Valley",
+      "description": "A rift-scarred valley kept sealed since the last war. The marshals dream of bouts where thirty enter and one walks out -- the bounds themselves will close in. Reserved for a future season.",
+      "pvp_mode": 3,
+      "level_requirement": 10,
+      "max_level": 999,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": false,
+      "respawn_timer": 10,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "zone_radius": 400,
+      "ambient_light_color": {
+        "r": 0.7,
+        "g": 0.72,
+        "b": 0.8,
+        "a": 1
+      },
+      "ambient_light_energy": 1,
+      "environment_path": "",
+      "has_weather": true,
+      "weather_type": "fog",
+      "spawn_points": [
+        {
+          "v3": [
+            -120,
+            1,
+            -120
+          ]
+        },
+        {
+          "v3": [
+            120,
+            1,
+            -120
+          ]
+        },
+        {
+          "v3": [
+            -120,
+            1,
+            120
+          ]
+        },
+        {
+          "v3": [
+            120,
+            1,
+            120
+          ]
+        }
+      ],
+      "bind_point": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "npcs": [],
+      "loot_multiplier": 1,
+      "xp_multiplier": 1,
+      "is_instanced": true,
+      "instance_capacity": 30,
+      "horde_config_id": "",
+      "instance_entry_deadline": 90,
+      "instance_mode": 2,
+      "instance_kill_target": 0,
+      "instance_time_limit": 900,
+      "instance_spawn_shield": 0,
+      "instance_storm_start": 45,
+      "instance_storm_scale": 1,
+      "_sourceFile": "game/data/zones/zone_royale_valley.tres",
+      "_scriptClass": "ZoneData"
+    },
     "zone_starter_plains": {
       "script": {
         "_extResource": "1"
@@ -2831,6 +3166,50 @@
       "is_instanced": false,
       "instance_capacity": 0,
       "_sourceFile": "game/data/zones/zone_starter_plains.tres",
+      "_scriptClass": "ZoneData"
+    },
+    "zone_sundered_sea": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "zone_sundered_sea",
+      "world_id": "main",
+      "display_name": "Sundered Sea",
+      "description": "The strait the sundered world remembers. Two headlands pin the ferry moat into a channel, a wreck shoal crosses it, and the last barques still route through. Sail or ford at low tide.",
+      "pvp_mode": 0,
+      "level_requirement": 1,
+      "max_level": 999,
+      "allowed_factions": [],
+      "blocked_species": [],
+      "respawn_at_bind": true,
+      "respawn_timer": 8,
+      "bounds": null,
+      "zone_center": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "zone_radius": 300,
+      "ambient_light_color": {
+        "r": 0.55,
+        "g": 0.68,
+        "b": 0.78,
+        "a": 1
+      },
+      "ambient_light_energy": 1.05,
+      "environment_path": "res://environments/day_01.tres",
+      "has_weather": true,
+      "weather_type": "clear",
+      "spawn_points": [
+        {
+          "v3": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "_sourceFile": "game/data/zones/zone_sundered_sea.tres",
       "_scriptClass": "ZoneData"
     },
     "zone_village_center": {
@@ -7609,6 +7988,46 @@
     }
   },
   "quests": {
+    "quest_arena_trial": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_arena_trial",
+      "display_name": "Prove Yourself",
+      "description": "Marshal Thane watches every stone. Step into a trial bout at a queue stone and defeat the marshal's dummies to earn the marshal's nod -- and your first taste of real bouts.",
+      "quest_type": 0,
+      "difficulty": 0,
+      "giver_npc_id": "npc_village_elder",
+      "turn_in_npc_id": "npc_village_elder",
+      "min_level": 1,
+      "max_level": 8,
+      "objectives": [
+        {
+          "id": "win_trial",
+          "type": 0,
+          "target": "marshal's dummies",
+          "count": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 50
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 60
+        }
+      ],
+      "gold_reward": 50,
+      "xp_reward": 60,
+      "icon_path": "res://icons/quests/arena_trial.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_arena_trial.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_herb_gathering": {
       "script": {
         "_extResource": "1"
@@ -7649,6 +8068,52 @@
       "icon_path": "res://icons/quests/herb.png",
       "map_marker": "collect",
       "_sourceFile": "game/data/quests/quest_herb_gathering.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_listen_to_the_deep": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_listen_to_the_deep",
+      "display_name": "Listen to the Deep",
+      "description": "The Deep Warden asks you to stand at the shelf's edge and give the Deep Root one honest ear. The glow tide will do the rest.",
+      "quest_type": 1,
+      "difficulty": 0,
+      "giver_npc_id": "npc_deep_warden",
+      "turn_in_npc_id": "npc_deep_warden",
+      "min_level": 1,
+      "max_level": 30,
+      "objectives": [
+        {
+          "id": "hear_the_deep",
+          "type": 4,
+          "target": "zone_deep_root_camp",
+          "count": 1
+        },
+        {
+          "id": "report_to_warden",
+          "type": 5,
+          "target": "npc_deep_warden",
+          "count": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 60
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 120
+        }
+      ],
+      "gold_reward": 60,
+      "xp_reward": 120,
+      "icon_path": "",
+      "map_marker": "explore",
+      "_sourceFile": "game/data/quests/quest_listen_to_the_deep.tres",
       "_scriptClass": "QuestData"
     },
     "quest_main_awakening": {
@@ -7731,6 +8196,51 @@
       "_sourceFile": "game/data/quests/quest_main_teachings.tres",
       "_scriptClass": "QuestData"
     },
+    "quest_shoal_freight": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_shoal_freight",
+      "display_name": "Freight from the Wreck",
+      "description": "Mag the Salvor marks three crates the tide keeps moving along the shoal. Haul them onto the headland before the turn, and the ferry crew will split the freight coin.",
+      "quest_type": 1,
+      "difficulty": 1,
+      "giver_npc_id": "npc_salvor_wreck",
+      "turn_in_npc_id": "npc_ferryman_sundered",
+      "min_level": 1,
+      "max_level": 30,
+      "required_quests": [],
+      "required_faction": "",
+      "required_faction_rank": 0,
+      "zone_restriction": "zone_sundered_sea",
+      "objectives": [
+        {
+          "id": "haul_crates",
+          "type": 1,
+          "target": "Sealed Crate",
+          "count": 3
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 120
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 150
+        }
+      ],
+      "reward_choice_count": 0,
+      "gold_reward": 120,
+      "xp_reward": 150,
+      "icon_path": "res://icons/quests/wreck.png",
+      "map_marker": "collect",
+      "_sourceFile": "game/data/quests/quest_shoal_freight.tres",
+      "_scriptClass": "QuestData"
+    },
     "quest_watch_the_sky": {
       "script": {
         "_extResource": "1"
@@ -7762,6 +8272,12 @@
           "type": "experience",
           "id": "",
           "quantity": 50
+        },
+        {
+          "type": "item",
+          "id": "item_sky_crate_daily",
+          "quantity": 1,
+          "chance": 1
         }
       ],
       "gold_reward": 25,
@@ -7771,6 +8287,46 @@
       "is_repeatable": true,
       "max_completions": 0,
       "_sourceFile": "game/data/quests/quest_watch_the_sky.tres",
+      "_scriptClass": "QuestData"
+    },
+    "quest_wings_over_haven": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "quest_wings_over_haven",
+      "display_name": "Wings Over Haven",
+      "description": "Elder Sela squints at the sky. 'The ancients did not build stairs. Take a wing off the Rise, find the warm columns, and do not land until the village looks small.' Glide 300 meters total.",
+      "quest_type": 0,
+      "difficulty": 1,
+      "giver_npc_id": "npc_village_elder",
+      "turn_in_npc_id": "npc_village_elder",
+      "min_level": 1,
+      "max_level": 12,
+      "objectives": [
+        {
+          "id": "glide_distance",
+          "type": 0,
+          "target": "glide 300 meters",
+          "count": 1
+        }
+      ],
+      "rewards": [
+        {
+          "type": "gold",
+          "id": "",
+          "quantity": 75
+        },
+        {
+          "type": "experience",
+          "id": "",
+          "quantity": 90
+        }
+      ],
+      "gold_reward": 75,
+      "xp_reward": 90,
+      "icon_path": "res://icons/quests/arena_trial.png",
+      "map_marker": "kill",
+      "_sourceFile": "game/data/quests/quest_wings_over_haven.tres",
       "_scriptClass": "QuestData"
     },
     "quest_wolves_hunt": {
@@ -8073,6 +8629,26 @@
       "_sourceFile": "game/data/achievements/achievement_guild_member.tres",
       "_scriptClass": "AchievementData"
     },
+    "high_alts_100": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "high_alts_100",
+      "display_name": "Cloudkiss",
+      "description": "Reach 100 meters of altitude on a glider",
+      "achievement_type": 1,
+      "category": 0,
+      "rarity": 0,
+      "target": 100,
+      "target_type": "glide_altitude",
+      "gold_reward": 30,
+      "xp_reward": 40,
+      "title_reward": "",
+      "icon_path": "res://icons/achievements/first_blood.png",
+      "sort_order": 41,
+      "_sourceFile": "game/data/achievements/achievement_high_alts_100.tres",
+      "_scriptClass": "AchievementData"
+    },
     "horde_breaker_5": {
       "script": {
         "_extResource": "1"
@@ -8364,6 +8940,89 @@
       "_sourceFile": "game/data/achievements/achievement_ob_wake.tres",
       "_scriptClass": "AchievementData"
     },
+    "royale_first_win": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "royale_first_win",
+      "display_name": "Last Light",
+      "description": "Win a Last Light in the Sundered Valley",
+      "achievement_type": 0,
+      "category": 0,
+      "rarity": 3,
+      "target": 1,
+      "target_type": "royale_win",
+      "required_achievements": [],
+      "gold_reward": 50,
+      "xp_reward": 100,
+      "title_reward": "last_light",
+      "icon_path": "res://icons/achievements/first_pvp_kill.png",
+      "sort_order": 56,
+      "_sourceFile": "game/data/achievements/achievement_royale_first_win.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "royale_streak_5": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "royale_streak_5",
+      "display_name": "Fog Reaper",
+      "description": "Take 5 lives in a single Last Light",
+      "achievement_type": 1,
+      "category": 0,
+      "rarity": 2,
+      "target": 5,
+      "target_type": "royale_kill",
+      "required_achievements": [],
+      "gold_reward": 40,
+      "xp_reward": 60,
+      "title_reward": "",
+      "icon_path": "res://icons/achievements/first_pvp_kill.png",
+      "sort_order": 57,
+      "_sourceFile": "game/data/achievements/achievement_royale_streak_5.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "royale_survivor_10": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "royale_survivor_10",
+      "display_name": "Fog Walker",
+      "description": "Survive 10 Last Lights",
+      "achievement_type": 1,
+      "category": 0,
+      "rarity": 1,
+      "target": 10,
+      "target_type": "royale_survival",
+      "required_achievements": [],
+      "gold_reward": 30,
+      "xp_reward": 50,
+      "title_reward": "",
+      "icon_path": "res://icons/achievements/first_pvp_kill.png",
+      "sort_order": 58,
+      "_sourceFile": "game/data/achievements/achievement_royale_survivor_10.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "sky_trail_500": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "sky_trail_500",
+      "display_name": "Sky Trail",
+      "description": "Glide 500 meters total",
+      "achievement_type": 1,
+      "category": 0,
+      "rarity": 0,
+      "target": 500,
+      "target_type": "glide_distance",
+      "gold_reward": 30,
+      "xp_reward": 40,
+      "title_reward": "",
+      "icon_path": "res://icons/achievements/first_blood.png",
+      "sort_order": 40,
+      "_sourceFile": "game/data/achievements/achievement_sky_trail_500.tres",
+      "_scriptClass": "AchievementData"
+    },
     "slayer_10": {
       "script": {
         "_extResource": "1"
@@ -8432,6 +9091,46 @@
       "icon_path": "res://icons/achievements/trader.png",
       "sort_order": 30,
       "_sourceFile": "game/data/achievements/achievement_trader.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "trial_by_fire": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "trial_by_fire",
+      "display_name": "Trial by Fire",
+      "description": "Win a trial bout against the marshal's dummies",
+      "achievement_type": 1,
+      "category": 0,
+      "rarity": 0,
+      "target": 1,
+      "target_type": "bout_win",
+      "gold_reward": 25,
+      "xp_reward": 30,
+      "title_reward": "",
+      "icon_path": "res://icons/achievements/first_blood.png",
+      "sort_order": 2,
+      "_sourceFile": "game/data/achievements/achievement_trial_by_fire.tres",
+      "_scriptClass": "AchievementData"
+    },
+    "wind_rider_60": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "wind_rider_60",
+      "display_name": "Wind Rider",
+      "description": "Spend 60 seconds airborne on a glider",
+      "achievement_type": 1,
+      "category": 0,
+      "rarity": 0,
+      "target": 60,
+      "target_type": "glide_time",
+      "gold_reward": 45,
+      "xp_reward": 60,
+      "title_reward": "wind_rider",
+      "icon_path": "res://icons/achievements/first_blood.png",
+      "sort_order": 42,
+      "_sourceFile": "game/data/achievements/achievement_wind_rider_60.tres",
       "_scriptClass": "AchievementData"
     }
   },
@@ -8506,6 +9205,24 @@
       "is_account_title": false,
       "sort_order": 11,
       "_sourceFile": "game/data/titles/title_guild_founder.tres",
+      "_scriptClass": "TitleData"
+    },
+    "last_light": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "last_light",
+      "display_name": "The Last Light",
+      "description": "Win the first Last Light in the Sundered Valley",
+      "prefix_form": "The Last Light",
+      "suffix_form": "the last light",
+      "category": 0,
+      "rarity": 3,
+      "unlock_method": 0,
+      "unlock_source": "royale_first_win",
+      "is_account_title": false,
+      "sort_order": 14,
+      "_sourceFile": "game/data/titles/title_last_light.tres",
       "_scriptClass": "TitleData"
     },
     "slayer": {
@@ -8935,6 +9652,17 @@
     }
   },
   "dialogues": {
+    "deep_warden_greeting": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "deep_warden_greeting",
+      "npc_id": "npc_deep_warden",
+      "display_name": "Deep Warden Greeting",
+      "nodes": "[\n{\n\"speaker\": \"Deep Warden\",\n\"text\": \"A visitor. Look at that -- the strata brightened the moment you landed. The Deep Root knows when someone is watching. Welcome to the camp, traveler.\",\n\"choices\": [\n{\"text\": \"Where are we exactly?\", \"next_node\": 1},\n{\"text\": \"Why is the rock glowing?\", \"next_node\": 2},\n{\"text\": \"Do you have work for me?\", \"next_node\": 3},\n{\"text\": \"Farewell.\", \"next_node\": -1}\n]",
+      "_sourceFile": "game/data/dialogues/deep_warden_greeting.tres",
+      "_scriptClass": "DialogueData"
+    },
     "merchant_greeting": {
       "script": {
         "_extResource": "1"
@@ -9041,6 +9769,39 @@
     }
   },
   "mounts": {
+    "mount_gm_skywarden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_gm_skywarden",
+      "display_name": "Skywarden",
+      "description": "The stewards' wind given a body. It does not belong to the wilds and was never wild -- it answered the first warden's whistle before there was a word for whistle, and it has answered every warden since. No vendor sells it, no drop carries it, and no quest ends with it: it simply arrives, the way the law arrives.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1,
+      "movement_profile_id": "movement_gm_sky",
+      "required_level": 1,
+      "faction_id": "",
+      "source": 5,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 1,
+        "g": 0.82,
+        "b": 0.3,
+        "a": 1
+      },
+      "swim_speed": 0,
+      "squeeze_grace_m": 0,
+      "crush_depth_bonus_m": 0,
+      "current_immune": false,
+      "hitbox_profile_id": "hitbox_beast_medium",
+      "_sourceFile": "game/data/mounts/mount_gm_skywarden.tres",
+      "_scriptClass": "MountData"
+    },
     "mount_gullwing": {
       "script": {
         "_extResource": "1"
@@ -9066,6 +9827,99 @@
         "a": 1
       },
       "_sourceFile": "game/data/mounts/mount_gullwing.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_meadow_pacer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_meadow_pacer",
+      "display_name": "Meadow Pacer",
+      "description": "The starter stable's gentlest pacer. Every rider's first horse -- slow, sure, and always glad to see you.",
+      "icon_path": "res://icons/mounts/meadow_pacer.png",
+      "model_path": "",
+      "kind": 0,
+      "speed_multiplier": 1.15,
+      "required_level": 1,
+      "faction_id": "",
+      "source": 2,
+      "currency_id": "",
+      "cost": 150,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.62,
+        "g": 0.52,
+        "b": 0.38,
+        "a": 1
+      },
+      "_sourceFile": "game/data/mounts/mount_meadow_pacer.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_moonwing_moth": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_moonwing_moth",
+      "display_name": "Moonwing",
+      "description": "A vast pale moth out of the Watched Stone's crater gardens, dusted with regolith glow. It falls like a sigh and turns like a thought. Whoever it follows was trusted by something that does not explain itself.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1,
+      "movement_profile_id": "movement_sky_moth",
+      "required_level": 50,
+      "faction_id": "",
+      "source": 4,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.9,
+        "g": 0.88,
+        "b": 0.8,
+        "a": 1
+      },
+      "swim_speed": 0,
+      "squeeze_grace_m": 0,
+      "crush_depth_bonus_m": 0,
+      "current_immune": false,
+      "hitbox_profile_id": "hitbox_beast_medium",
+      "_sourceFile": "game/data/mounts/mount_moonwing_moth.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_pearl_ray": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_pearl_ray",
+      "display_name": "Pearl Ray",
+      "description": "A wide manta that flies underwater the way gulls fly in air -- steady, unhurried, faster than it has any right to be. Its wingbeat steadies the diver: six meters of squeeze, gone.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 2,
+      "speed_multiplier": 1,
+      "swim_speed": 9,
+      "squeeze_grace_m": 6,
+      "crush_depth_bonus_m": 0,
+      "current_immune": false,
+      "hitbox_profile_id": "hitbox_swimmer_medium",
+      "movement_profile_id": "movement_swim",
+      "required_level": 30,
+      "faction_id": "",
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.75,
+        "g": 0.85,
+        "b": 0.95,
+        "a": 1
+      },
+      "_sourceFile": "game/data/mounts/mount_pearl_ray.tres",
       "_scriptClass": "MountData"
     },
     "mount_plains_runner": {
@@ -9094,6 +9948,171 @@
       },
       "_sourceFile": "game/data/mounts/mount_plains_runner.tres",
       "_scriptClass": "MountData"
+    },
+    "mount_reef_glider": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_reef_glider",
+      "display_name": "Reef Glider",
+      "description": "A grabby reef octopus that moves in jet bursts, siphon first. It holds its line in any current -- the sea argues with it and loses. The kelp-forest divers' first friend.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 2,
+      "speed_multiplier": 1,
+      "swim_speed": 7,
+      "squeeze_grace_m": 0,
+      "crush_depth_bonus_m": 0,
+      "current_immune": true,
+      "hitbox_profile_id": "hitbox_swimmer_medium",
+      "movement_profile_id": "movement_swim",
+      "required_level": 20,
+      "faction_id": "",
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.55,
+        "g": 0.4,
+        "b": 0.75,
+        "a": 1
+      },
+      "_sourceFile": "game/data/mounts/mount_reef_glider.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_skyreef_soarer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_skyreef_soarer",
+      "display_name": "Skyreef Soarer",
+      "description": "A manta of the high air, wings wide as a dockyard door, cruising the thermal ring where the reef gardens shimmer far below. It bonds to one rider in its whole long life, and only across a crossing made together.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1,
+      "movement_profile_id": "movement_sky_soarer",
+      "required_level": 55,
+      "faction_id": "",
+      "source": 1,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.7,
+        "g": 0.85,
+        "b": 0.9,
+        "a": 1
+      },
+      "swim_speed": 0,
+      "squeeze_grace_m": 0,
+      "crush_depth_bonus_m": 0,
+      "current_immune": false,
+      "hitbox_profile_id": "hitbox_sky_large",
+      "_sourceFile": "game/data/mounts/mount_skyreef_soarer.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_storm_lancer": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_storm_lancer",
+      "display_name": "Storm Lancer",
+      "description": "A raptor the color of falling weather. It was born in the ROYALE storm's skirt and never really left -- riders say the lightning follows it out of jealousy. The fastest creature anyone has tamed, and the one that has tamed the fewest riders.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1,
+      "movement_profile_id": "movement_sky_lancer",
+      "required_level": 50,
+      "faction_id": "",
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.45,
+        "g": 0.5,
+        "b": 0.7,
+        "a": 1
+      },
+      "swim_speed": 0,
+      "squeeze_grace_m": 0,
+      "crush_depth_bonus_m": 0,
+      "current_immune": false,
+      "hitbox_profile_id": "hitbox_beast_medium",
+      "_sourceFile": "game/data/mounts/mount_storm_lancer.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_trench_wyrm": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_trench_wyrm",
+      "display_name": "Trench Wyrm",
+      "description": "The leviathan of the Sundered trench, and the only body the deep stone has ever made room for. Thirty meters of rated depth: where every other creature is squeezed to paste, the wyrm swims on, patient and unbothered.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 2,
+      "speed_multiplier": 1,
+      "swim_speed": 8,
+      "squeeze_grace_m": 0,
+      "crush_depth_bonus_m": 30,
+      "current_immune": false,
+      "hitbox_profile_id": "hitbox_swimmer_large",
+      "movement_profile_id": "movement_swim",
+      "required_level": 45,
+      "faction_id": "",
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.2,
+        "g": 0.25,
+        "b": 0.3,
+        "a": 1
+      },
+      "_sourceFile": "game/data/mounts/mount_trench_wyrm.tres",
+      "_scriptClass": "MountData"
+    },
+    "mount_vesper_whale": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "mount_vesper_whale",
+      "display_name": "Vesper",
+      "description": "A shadow the size of a harbor that swims the dark between the world's curve and the Watched Stone. The crater gardens sent the moth down; the leviathans stayed. When one answers a whistle it keeps the low road home in its bones -- it does not fall, it remembers the way down. Nobody has ever seen two at once, and nobody who has ridden one will say where it goes when the whistle fades.",
+      "icon_path": "",
+      "model_path": "",
+      "kind": 3,
+      "speed_multiplier": 1,
+      "movement_profile_id": "movement_leviathan",
+      "required_level": 60,
+      "faction_id": "",
+      "source": 4,
+      "currency_id": "",
+      "cost": 0,
+      "source_ref": "",
+      "soulbound": true,
+      "tint": {
+        "r": 0.62,
+        "g": 0.66,
+        "b": 0.82,
+        "a": 1
+      },
+      "swim_speed": 0,
+      "squeeze_grace_m": 0,
+      "crush_depth_bonus_m": 0,
+      "current_immune": false,
+      "hitbox_profile_id": "hitbox_sky_large",
+      "_sourceFile": "game/data/mounts/mount_vesper_whale.tres",
+      "_scriptClass": "MountData"
     }
   },
   "vehicles": {
@@ -9120,11 +10139,90 @@
         "waypoint_nexus_central"
       ],
       "soulbound": false,
+      "ferries_per_day": 8,
+      "first_departure_hour": 6,
+      "crossing_hours": 0.5,
       "_sourceFile": "game/data/vehicles/veh_haven_ferry.tres",
+      "_scriptClass": "VehicleData"
+    },
+    "veh_island_ferry": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "veh_island_ferry",
+      "display_name": "Gullwing Ferry",
+      "description": "A shallow-draft skiff with one wide gullwing sail. Runs the open water from the village docks out to the island - the Concord keeps the schedule honest even when the wind does not.",
+      "icon_path": "res://icons/vehicles/ferry.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.15,
+      "seat_count": 6,
+      "cargo_capacity": 24,
+      "required_level": 1,
+      "guild_owned": false,
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "route_gateways": [
+        "waypoint_village_center",
+        "waypoint_island_dock"
+      ],
+      "soulbound": false,
+      "ferries_per_day": 6,
+      "first_departure_hour": 7,
+      "crossing_hours": 0.75,
+      "_sourceFile": "game/data/vehicles/veh_island_ferry.tres",
+      "_scriptClass": "VehicleData"
+    },
+    "veh_sundered_barque": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "veh_sundered_barque",
+      "display_name": "Sundered Barque",
+      "description": "Old Brack's barque, the last boat that kept the crossing alive when the strait closed. She knows the channel under the wreck shoal better than any chart. Runs the strait between the moor pin and the seaward pin.",
+      "icon_path": "res://icons/vehicles/ferry.png",
+      "model_path": "",
+      "kind": 1,
+      "speed_multiplier": 1.1,
+      "seat_count": 8,
+      "cargo_capacity": 20,
+      "required_level": 1,
+      "guild_owned": false,
+      "source": 0,
+      "currency_id": "",
+      "cost": 0,
+      "route_gateways": [
+        "waypoint_strait_moor",
+        "waypoint_strait_seaward"
+      ],
+      "soulbound": false,
+      "ferries_per_day": 6,
+      "first_departure_hour": 5.5,
+      "crossing_hours": 0.6,
+      "_sourceFile": "game/data/vehicles/veh_sundered_barque.tres",
       "_scriptClass": "VehicleData"
     }
   },
   "resources": {
+    "res_iron_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_iron_ingot",
+      "display_name": "Iron Ingot",
+      "description": "Two ores made one at the forge. Honest bar stock for the blacksmith's anvil work.",
+      "icon_path": "res://icons/resources/iron_ingot.png",
+      "item_category": 4,
+      "rarity": 1,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 8,
+      "buy_price": 18,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_iron_ingot.tres",
+      "_scriptClass": "Item"
+    },
     "res_iron_ore": {
       "script": {
         "_extResource": "1"
@@ -9141,6 +10239,132 @@
       "buy_price": 5,
       "required_level": 0,
       "_sourceFile": "game/data/resources/res_iron_ore.tres",
+      "_scriptClass": "Item"
+    },
+    "res_ore_golden": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_ore_golden",
+      "display_name": "Golden Ore",
+      "description": "Vein-gold, warm to the touch even underground. Heroes trade whole purses for a seam of it.",
+      "icon_path": "res://icons/resources/ore_golden.png",
+      "item_category": 4,
+      "rarity": 3,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 40,
+      "buy_price": 95,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_ore_golden.tres",
+      "_scriptClass": "Item"
+    },
+    "res_ore_mythril": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_ore_mythril",
+      "display_name": "Mythril Ore",
+      "description": "The forge-king's ore. It nearly never fails (the Concord says nine in ten attempts live). Something titanic guards every seam of it.",
+      "icon_path": "res://icons/resources/ore_mythril.png",
+      "item_category": 4,
+      "rarity": 5,
+      "equip_slot": 0,
+      "stack_size": 20,
+      "sell_price": 600,
+      "buy_price": 1200,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_ore_mythril.tres",
+      "_scriptClass": "Item"
+    },
+    "res_ore_silver": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_ore_silver",
+      "display_name": "Silver Ore",
+      "description": "Bright-seamed ore from the deep runs. The forge wants it for serious work; the packs that carry it bite.",
+      "icon_path": "res://icons/resources/ore_silver.png",
+      "item_category": 4,
+      "rarity": 2,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 12,
+      "buy_price": 30,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_ore_silver.tres",
+      "_scriptClass": "Item"
+    },
+    "res_ore_starmetal": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_ore_starmetal",
+      "display_name": "Starmetal Ore",
+      "description": "Fallen-sky iron. The great beasts that roost where meteors land wear it in their hides -- take it from them or starve the forge.",
+      "icon_path": "res://icons/resources/ore_starmetal.png",
+      "item_category": 4,
+      "rarity": 4,
+      "equip_slot": 0,
+      "stack_size": 50,
+      "sell_price": 140,
+      "buy_price": 320,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_ore_starmetal.tres",
+      "_scriptClass": "Item"
+    },
+    "res_slag": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_slag",
+      "display_name": "Forge Slag",
+      "description": "The forge's leavings: stony, ugly, and still worth a coin to the right buyer. Even a failed smelt feeds somebody.",
+      "icon_path": "res://icons/resources/slag.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 1,
+      "buy_price": 3,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_slag.tres",
+      "_scriptClass": "Item"
+    },
+    "res_stone": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_stone",
+      "display_name": "Stone",
+      "description": "A rough-cut block of haven granite. Heavy, honest, and always wanted somewhere: walls, forges, and the ferry landings.",
+      "icon_path": "res://icons/resources/stone.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 3,
+      "buy_price": 8,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_stone.tres",
+      "_scriptClass": "Item"
+    },
+    "res_timber": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "res_timber",
+      "display_name": "Timber",
+      "description": "A straight-cut billet of Gloomwood pine. The village carpenters want it; so does every axe handle in the reclaim.",
+      "icon_path": "res://icons/resources/timber.png",
+      "item_category": 4,
+      "rarity": 0,
+      "equip_slot": 0,
+      "stack_size": 100,
+      "sell_price": 3,
+      "buy_price": 8,
+      "required_level": 0,
+      "_sourceFile": "game/data/resources/res_timber.tres",
       "_scriptClass": "Item"
     }
   },
@@ -9234,6 +10458,54 @@
       "_sourceFile": "game/data/accessories/acc_belt_reclaimer.tres",
       "_scriptClass": "Item"
     },
+    "acc_breather_lungshell": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_breather_lungshell",
+      "display_name": "Lungshell",
+      "description": "A spiral shell the size of a head, mouth-blown through its apex by divers who swear it 'remembers the air'. Four breaths for every one, and the squeeze line opens eight meters deeper -- the shelf's far wall is suddenly a swim, not a wall.",
+      "icon_path": "res://icons/items/breather_lungshell.png",
+      "item_category": 2,
+      "rarity": 2,
+      "equip_slot": 11,
+      "accessory_type": 6,
+      "breath_multiplier": 4,
+      "squeeze_grace_m": 8,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 40,
+      "buy_price": 220,
+      "item_level": 9,
+      "required_level": 6,
+      "stats": {},
+      "_sourceFile": "game/data/accessories/acc_breather_lungshell.tres",
+      "_scriptClass": "Item"
+    },
+    "acc_breather_reed": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "acc_breather_reed",
+      "display_name": "Hollow Reed",
+      "description": "A marsh reed cut at dawn, bored through with a hot wire. Doesn't look like much -- but cup it in your teeth and the water lets you stay twice as long, and the squeeze of the deep forgives two more meters.",
+      "icon_path": "res://icons/items/breather_reed.png",
+      "item_category": 2,
+      "rarity": 1,
+      "equip_slot": 11,
+      "accessory_type": 6,
+      "breath_multiplier": 2,
+      "squeeze_grace_m": 2,
+      "stack_size": 1,
+      "bind_on_equip": true,
+      "sell_price": 12,
+      "buy_price": 60,
+      "item_level": 3,
+      "required_level": 2,
+      "stats": {},
+      "_sourceFile": "game/data/accessories/acc_breather_reed.tres",
+      "_scriptClass": "Item"
+    },
     "acc_cloak_wanderer": {
       "script": {
         "_extResource": "1"
@@ -9307,6 +10579,92 @@
       },
       "_sourceFile": "game/data/accessories/acc_ring_first_light.tres",
       "_scriptClass": "Item"
+    }
+  },
+  "recipes": {
+    "recipe_iron_ingot": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_iron_ingot",
+      "display_name": "Smelt Iron Ingot",
+      "description": "Two ores, one honest ingot. The forge does the work; the ingot carries it.",
+      "station": 1,
+      "inputs": [
+        {
+          "item_id": "res_iron_ore",
+          "qty": 2
+        }
+      ],
+      "output": {
+        "item_id": "res_iron_ingot",
+        "qty": 1
+      },
+      "byproducts": [
+        {
+          "item_id": "res_slag",
+          "qty": 1
+        }
+      ],
+      "craft_time_sec": 0,
+      "required_level": 1,
+      "failure_rate": 0.1,
+      "_sourceFile": "game/data/recipes/recipe_iron_ingot.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_reed_breather": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_reed_breather",
+      "display_name": "Bore a Hollow Reed",
+      "description": "A dawn-cut marsh reed bored through with a hot wire. Hand-crafted anywhere the marsh gives; the water lets you stay twice as long.",
+      "station": 0,
+      "inputs": [
+        {
+          "item_id": "res_timber",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "acc_breather_reed",
+        "qty": 1
+      },
+      "byproducts": [],
+      "craft_time_sec": 0,
+      "required_level": 2,
+      "failure_rate": 0,
+      "_sourceFile": "game/data/recipes/recipe_reed_breather.tres",
+      "_scriptClass": "RecipeData"
+    },
+    "recipe_weaver_kite": {
+      "script": {
+        "_extResource": "1"
+      },
+      "id": "recipe_weaver_kite",
+      "display_name": "Sew a Weaver's Kite",
+      "description": "Six billets of pine and a tail stone to keep the nose honest. The workbench does the sewing; the wind does the rest.",
+      "station": 2,
+      "inputs": [
+        {
+          "item_id": "res_timber",
+          "qty": 6
+        },
+        {
+          "item_id": "res_stone",
+          "qty": 1
+        }
+      ],
+      "output": {
+        "item_id": "glider_weaver_kite",
+        "qty": 1
+      },
+      "byproducts": [],
+      "craft_time_sec": 0,
+      "required_level": 5,
+      "failure_rate": 0,
+      "_sourceFile": "game/data/recipes/recipe_weaver_kite.tres",
+      "_scriptClass": "RecipeData"
     }
   }
 }

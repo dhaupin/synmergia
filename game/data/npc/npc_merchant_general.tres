@@ -23,5 +23,6 @@ buy_categories = ["MISC", "RESOURCE"]
 sell_categories = ["CONSUMABLE", "ACCESSORY", "MISC"]
 includes = [
   {"type": "dialogue", "dialogue_id": "merchant_greeting"},
-  {"type": "offering", "ref_id": "general_store"}
+  {"type": "offering", "ref_id": "general_store"},
+  {"type": "offering", "ref_id": "vendor_craft_shelf"}
 ]

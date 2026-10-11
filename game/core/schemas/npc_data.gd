@@ -123,6 +123,25 @@ func get_vendor_offering() -> Resource:
 				return res
 	return null
 
+## The crafting station this NPC hosts (RecipeData.Station; -1 when
+## none). The offering shape is service_id == "CraftingService" with
+## station in service_params -- the data truth, resolved here once so
+## every consumer (UI, action menu, probes) reads ONE door.
+func get_crafting_station() -> int:
+	for inc in includes:
+		var t := str(inc.get("type", ""))
+		if t != "service" and t != "offering":
+			continue
+		var ref_id := str(inc.get("ref_id", inc.get("ref_id", "")))
+		if ref_id.is_empty():
+			continue
+		var res := load("res://data/npc_offerings/%s.tres" % ref_id)
+		if res != null and str(res.get("service_id")) == "CraftingService":
+			var params: Dictionary = res.get("service_params")
+			if params.has("station"):
+				return int(params.get("station", -1))
+	return -1
+
 ## True when the NPC provides an offering of the given type
 ## ("dialogue", "vendor", "quest", "bank", "service", ...).
 func has_offering(offering_type: String) -> bool:
