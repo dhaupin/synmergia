@@ -27,6 +27,12 @@ const REASON_TEXT: Dictionary = {
 	"recipe_data_defect": "That recipe's data is broken (the service refuses).",
 	"no_inventory": "You have no purse to craft with.",
 	"forge_ate_it": "The forge ate it — but the byproducts keep the loop fed.",
+	# The gate emits two more reachable reasons (empty crafter id, and
+	# the QoS cadence limit when a craft bot spams the bench). Every
+	# reason the gate CAN speak must be mapped here -- a raw key on the
+	# status line would be the UI inventing a message the gate didn't.
+	"no_crafter": "No crafter stood at this bench.",
+	"rate_limited": "Catch your breath between crafts.",
 }
 
 const STATION_NAMES: Dictionary = {
@@ -46,10 +52,15 @@ var _status_label: Label
 
 func open_for_player(player_id: String, at_station: int = RecipeData.Station.NONE) -> void:
 	station = at_station
-	refresh_purse()
 	if not _is_open:
 		open(player_id)
 	else:
+		# Already-open re-offer (the bench handed to the NEXT crafter
+		# without a close in between): rebind the crafter id, or the
+		# craft press still bills the PREVIOUS crafter's purse (the
+		# probe pinned exactly that with two owners on one bench).
+		_player_id = player_id
+		refresh_purse()
 		_refresh_recipes()
 
 
@@ -199,7 +210,12 @@ func _refresh_recipes() -> void:
 		var recipe = cs.call("get_recipe", rid)
 		if recipe == null:
 			continue
-		var recipe_station := int(recipe.get("station", 0))
+		# A TYPED Resource's Object.get(property) is 1-arg-only (the
+		# two-arg Variant form throws), but the one-arg call returns null
+		# for an absent property -- so coalesce the default ourselves
+		# (the probe pinned the 2-arg crash on the WORKBENCH branch).
+		var station_raw = recipe.get("station")
+		var recipe_station := int(station_raw if station_raw != null else RecipeData.Station.NONE)
 		# StationNONE (0) recipes list everywhere; others only at home.
 		if recipe_station == RecipeData.Station.NONE or recipe_station == station:
 			recipes.append(recipe)
@@ -211,24 +227,36 @@ func _refresh_recipes() -> void:
 		_recipe_list.add_child(lbl)
 		return
 
-	recipes.sort_custom(func(a, b): return str(a.get("display_name", "")) < str(b.get("display_name", "")))
-
+	recipes.sort_custom(Callable(self, "_by_display_name"))
 	for recipe in recipes:
 		_add_recipe_row(recipe, ds)
 
 
-func _add_recipe_row(recipe, ds) -> void:
-	# recipe is an untyped Resource from the service catalog (script-mode
-	# class_name registration timing); the plain Variant get() carries
-	# the default argument (Object.get does not).
-	var recipe_id := str(recipe.get("id", ""))
-	var recipe_name := str(recipe.get("display_name", recipe_id))
-	var recipe_station := int(recipe.get("station", 0))
-	var description := str(recipe.get("description", ""))
-	var inputs: Array = recipe.get("inputs", [])
-	var output: Dictionary = recipe.get("output", {})
-	var byproducts: int = recipe.get("byproducts", []).size() if recipe.get("byproducts") is Array else 0
-	var failure_rate := float(recipe.get("failure_rate", 0.0))
+## The typed-Resource property read: one-arg get(), null-coalesced to
+## the default. Works on typed RecipeData AND dictionary-backed
+## entries alike (a two-arg Variant get would throw on the former).
+func _prop(thing, property: String, default):
+	var value = thing.get(property)
+	return default if value == null else value
+
+
+## Sort helper: the typed-Resource law on both sides of the compare.
+func _by_display_name(a, b) -> bool:
+	return str(_prop(a, "display_name", "")) < str(_prop(b, "display_name", ""))
+
+
+func _add_recipe_row(recipe, ds) -> void:		# The typed-Resource get law (see _refresh_recipes): one-arg get
+		# + null-coalesce; Dict-typed props tolerate the two-arg form.
+
+	var recipe_id := str(_prop(recipe, "id", ""))
+	var recipe_name := str(_prop(recipe, "display_name", recipe_id))
+	var recipe_station := int(_prop(recipe, "station", RecipeData.Station.NONE))
+	var description := str(_prop(recipe, "description", ""))
+	var inputs: Array = _prop(recipe, "inputs", [])
+	var output: Dictionary = _prop(recipe, "output", {})
+	var by_raw = _prop(recipe, "byproducts", [])
+	var byproducts: int = (by_raw as Array).size() if by_raw is Array else 0
+	var failure_rate := float(_prop(recipe, "failure_rate", 0.0))
 
 	var row := PanelContainer.new()
 	row.custom_minimum_size.y = 96
@@ -280,7 +308,7 @@ func _add_recipe_row(recipe, ds) -> void:
 		input_lbl.text = "• %d× %s — have %d" % [need, display, have]
 		input_lbl.add_theme_font_size_override("font_size", 12)
 		input_lbl.add_theme_color_override("font_color",
-			UIStyles.COLORS.success if enough else UIStyles.COLORS.danger)
+			UIStyles.COLORS.success if enough else UIStyles.COLORS.error)
 		info.add_child(input_lbl)
 
 	# Posture line: output + failure honesty.
@@ -341,7 +369,20 @@ func _on_craft_pressed(recipe_id: String) -> void:
 		_set_status("Crafted %s." % out, true)
 	else:
 		# The gate's own reason is the UI's law: speak it verbatim.
-		var reason := str(result.get("reason", "refused"))
+		# The answer shape keeps a BATCH-level refusal reason at top
+		# level (unknown_recipe, recipe_data_defect, no_inventory,
+		# no_crafter); the per-craft refusal (missing_inputs,
+		# rate_limited, forge_ate_it) opens the door in results[0]
+		# with the top-level key ABSENT. Prefer the per-attempt
+		# reason, fall back to the batch reason, and only then the
+		# neutral fallback (previously every refusal rendered as the
+		# raw string "refused" -- the player never saw WHY).
+		var reason := ""
+		var per_attempt: Array = result.get("results", [])
+		if not per_attempt.is_empty():
+			reason = str(per_attempt[0].get("reason", ""))
+		if reason.is_empty():
+			reason = str(result.get("reason", "refused"))
 		var human: String = REASON_TEXT.get(reason, reason)
 		_set_status(human, false)
 	_refresh_recipes()
@@ -355,5 +396,8 @@ func refresh_purse() -> void:
 func _set_status(msg: String, ok: bool) -> void:
 	if _status_label and is_instance_valid(_status_label):
 		_status_label.text = msg
+		# COLORS.danger does not exist (the stylesheet's key is "error");
+		# an absent-key read throws and the refusal never renders. Use
+		# the dict's OWN error red, like every other UI does.
 		_status_label.add_theme_color_override("font_color",
-			UIStyles.COLORS.success if ok else UIStyles.COLORS.danger)
+			UIStyles.COLORS.success if ok else UIStyles.COLORS.error)
