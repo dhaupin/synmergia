@@ -5596,3 +5596,137 @@ Verification: pentagrid 23/23 PASS (exit 0), penrose 10/10, cosmic_rng 23/23,
 mesh probe 7/7, crafting 13/13, charset lint 3/3. Remaining open (1 item):
 the runtime LOD policy between charts (rendering-engine concern beyond the
 frame layer; the data layer is delivered).
+
+## 2026-10-12 (turn 6): the chart LOD policy -- the last open item closed
+
+- PenroseChartLod (game/scenes/worlds/penrose_chart_lod.gd): the runtime
+  LOD policy the frame layer deliberately left to the renderer. Pure
+  static functions on the delivered data layer -- no Nodes, no RNG, no
+  wall clock: the plan is a pure function of player position, so it is
+  replayable exactly like the anticheat wants every world decision.
+  Policy laws: (1) PYRAMID LADDER, desired_subdiv is monotone non-
+  increasing in angular distance, annular bands [cap*k/n, cap*(k+1)/n)
+  mapping innermost band -> LADDER_TOP; (2) SAFETY BASE, rung 0 is the
+  always-provided floor (base 12-center layout covers the planet alone);
+  (3) NEIGHBOR CONTRACT, settle_seams caps any chart-vs-neighbor ladder
+  gap at MAX_NEIGHBOR_GAP=1 (the half-step law; fixed-point iterate);
+  (4) LADDER CLAMP at LADDER_TOP=2; (5) DETERMINISM. plan_safe emits the
+  settled {index: {subdiv, skirt_depth}} shape; skirt_for grows the rim
+  with density (0.25 + 0.25*rung, same units skirt_strip takes), and
+  SKIRT_REBUILD_PADDING exists for the delayed-rebuild rim pad. plan_delta
+  returns only the changed indices -- the renderer consumes the diff,
+  never the whole map.
+- Probe: game/tests/probe_chart_lod.gd pins all five laws headlessly
+  (ladder monotonicity + band membership over 2001 distance samples,
+  neighbor contract over 4 scattered observers, determinism, audit-delta
+  completeness both directions). First run caught a real bug: the band
+  loop returned the OUTERMOST hit first, so rung LADDER_TOP was
+  unreachable and the center pinned to rung 0 -- fixed to innermost-first
+  bands (rungs-1-k). After the fix the probe runs green.
+Verification: probe_chart_lod 0 failures (exit 0), charset lint 3/3 PASS.
+Remaining open: NONE on the chart-atlas track (frame layer + policy both
+delivered; the renderer hands the emitted deltas to skirt_strip/atlas
+rebuilds at integration time).
+
+## 2026-10-12 (turn 7): the wiring -- deltas land in the renderer feed
+
+- PenroseChartAdapter (game/scenes/worlds/penrose_chart_adapter.gd):
+  the runtime layer between the policy's emitted deltas and the frame
+  layer's rebuild primitives. One stateful object owns the per-chart
+  rung state; callers feed observer positions and take WORK ORDERS.
+  Laws: (W1) APPLY-ON-DELTA, apply_plan queues orders for changed
+  charts only, cold start queues every chart, unchanged observer
+  queues zero; (W2) REBUILD CONTRACT, each order carries rung,
+  half_extent (grows 4/6/8 tiling units per rung), skirt_depth,
+  base_subdiv, and the SHARED chart_boundary_samples set identical
+  for both seam partners; (W3) STABLE IDS, identities are the dense-
+  layout indices throughout; (W4) TRAILING-NEIGHBOR SKIRT PAD,
+  padded_skirt() adds SKIRT_REBUILD_PADDING exactly once when a seam
+  neighbor still sits on a lower rung, in skirt_strip's own units.
+  Pure state machine over plans (no RNG, no wall clock) -- the same
+  observer sequence replays the same order sequence.
+- probe_chart_lod Part 2: W1-W4 probed (cold/equal/moved observer
+  coverage, order id sets exactly covering deltas across two refs,
+  the full contract shape per order, seam-sample identity with the
+  frame layer, replay determinism across instances, and the pad
+  firing exactly once for a synthetic trailing neighbor while never
+  firing on a settled floor-rung chart). 0 failures, exit 0.
+Verification: probe_chart_lod 0 failures (exit 0), charset lint 3/3
+PASS. Remaining open: NONE on the chart-atlas track -- policy + data
+layer + wiring all delivered; the remaining scene-level glue (a
+world node calling adapter.update_observer() from its player tick
+and feeding orders to PenroseMeshBuilder/skirt_strip lanes) is a
+normal gameplay-tuning slice, not an open design question.
+
+## 2026-10-12 (turn 8): the scene glue -- the LOD climb is LIVE
+
+- GlobeWorld chart-LOD glue (game/scenes/worlds/globe_world.gd):
+  _setup_chart_lod (adapter + ChartLodRoot under world_root, called
+  from _setup_streamer) and _update_chart_lod (2 Hz throttle banked
+  with the truth line; player lat/lon via the SHARED spherical
+  convention; the padded plan goes through the adapter so each work
+  order carries the skirt depth the seam needs RIGHT NOW; orders
+  become real MeshInstance3D overlays -- PenroseMeshBuilder's gnomonic
+  draw with a skirt_strip third surface, color-tagged seam fabric),
+  swap-in-place with queue_free of the replaced rung's node. The
+  overlays are planet-relative under world_root so the floating-
+  origin shift moves them with the planet (streamer.update already
+  established that chain).
+- probe_chart_lod_scene (game/tests/probe_chart_lod_scene.gd): the
+  four scene laws probed headlessly -- G1 boot (adapter + root live
+  behind the streamer), G2 funnel (one forced 1.0 s tick meshes EVERY
+  cold-boot chart overlay, each with surface + skirt surfaces), G3
+  the ladder is position-driven (two far-apart observers produce
+  different rung maps), G4 the at-throttle repeat queues zero orders
+  (2 Hz economy holds in the live scene, not just the unit probe).
+  49 passed, 0 failed, exit 0. Probe cadence note: headless script
+  mode does not accrue physics delta in two process frames, so G2
+  drives the funnel with delta=1.0 directly instead of waiting.
+Verification: probe_chart_lod_scene 49/49 (exit 0), probe_chart_lod
+0 failures, probe_penrose_mesh 7/7 (regression), charset lint 3/3
+PASS. Remaining open: NONE on the chart-atlas track -- data layer,
+policy, wiring, and the live scene climb all delivered and pinned.
+
+## 2026-10-12 (turn 9): THE LATTICE IS THE PLANET -- Penrose ground
+
+- TerrainBackendPenrose (game/scenes/worlds/backend_penrose.gd): the
+  second authored installation on terrain_gen's external heightfield
+  seam, and the big-slice answer to the endgame question -- the
+  Penrose lattice IS the walkable ground, not an overlay. Backend
+  CONTRACT honored: (unit_dir, seed) -> raw meters; sculpt/plaza/
+  apron/spawn guarantees stay law-native upstream; the ocean rides
+  the radial sea law downstream. The law: direction -> OWNINC chart
+  via the BASE 12-center atlas (index-stable nearest-dot, cone
+  tan(31.7 deg) ~ 0.62 planar units > one tile extent so grooves
+  live INSIDE cones) -> inverse-gnomonic into the chart frame (with
+  a POLE LAW: the frame-reference axis swaps from UP to +X when
+  |n . UP| ~ 1, else n.cross(UP) is the zero vector at the pole
+  charts) -> tile_at + exact edge-distance -> LATTICE_BASE minus a
+  GROOVE depth (exp falloff, sigma retuned to 0.14 so bench
+  interiors recover >= 80% depth; fat rhombi are ~1.4 units wide and
+  bound the inradius at ~0.36) with a CONE-RIM FADE (smoothstep
+  0.42->0.60 of the ownership radius): both seam partners serve the
+  FLAT BENCH at the boundary plane, so the ground law is continuous
+  across charts BY CONSTRUCTION even though neighboring cones' local
+  lattices differ. Pure: no RNG, no clock; sector-cached upstream.
+- world_main.tres declares terrain_backend_id = "penrose" (the data
+  law: the .tres is the declaration; the lore line grows the re-tile
+  sentence).
+- probe_backend_penrose: P1 determinism (exact twice), P2 bench+groove
+  laws sampled through the frame itself (tile centroids vs edge-mid-
+  points, chart-ownership-filtered), P3 seam walk max jump bound,
+  P4 the sea line is seed-sourced, NOT our field, P5 the spawn
+  plaza guarantee rides the backend (flat, above sea), uninstall
+  restores the natural law. 10/10 (exit 0). Probing caught one REAL
+  backend bug on the way: _chart_center maximized dot against an
+  initialized-INF so every direction mapped to the north pole --
+  caught because the tile round-trips went wildly off; fix verified
+  (origin-owned round trip 3.7e-9). Terrain-backend regression suite
+  11/11 (exit 0): the sundered/backend contract, hydrology carve,
+  walk law through the seam, and cache laws all still hold with the
+  penrose backend registered alongside.
+Verification: probe_backend_penrose 10/10, probe_terrain_backend
+11/11, charset lint 3/3 (all exit 0). Remaining open: the RENDER half
+(spawning the walk-law reads the lattice benches everywhere -- that
+is the existing backend consumers just working; visual polish of the
+lattice look is a material/color tuning pass).

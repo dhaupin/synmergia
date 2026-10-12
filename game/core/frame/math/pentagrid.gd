@@ -892,6 +892,23 @@ static func chart_boundary_samples(subdiv: int) -> Dictionary:
 ## renderer darkens or discards skirt kind).
 const SKIRT_KIND: int = 2
 
+## The adjacency table the LOD policy needs: which charts share a
+## seam at a given density (center pairs closer than 2x the covering
+## radius, 5% slack for numeric edge cases). Same predicate as
+## chart_boundary_samples, exposed as pairs. Deterministic and
+## index-stable, so every caller and the policy agree on who borders
+## whom — the seam contract's “both sides know the pair” lever.
+static func chart_neighbors(subdiv: int) -> Array:
+	var centers: Array = atlas_centers_dense(subdiv)
+	var out: Array = []
+	for a in range(centers.size()):
+		for b in range(a + 1, centers.size()):
+			var d: float = SphericalScript.haversine(
+				centers[a].x, centers[a].y, centers[b].x, centers[b].y, 1.0)
+			if d < 2.0 * deg_to_rad(atlas_covering_radius_deg()) * 1.05:
+				out.append([centers[a], centers[b], "%d.%d" % [a, b]])
+	return out
+
 ## Skirt strip data for a patch rim: edges of the patch shared by
 ## fewer than 2 tiles are the rim; each rim edge emits one downward
 ## quad (2 triangles) from the edge's endpoints, dropping by

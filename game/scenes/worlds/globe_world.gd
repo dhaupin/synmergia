@@ -95,6 +95,22 @@ var _truth_accum: float = 0.0
 ## The truth line itself (built into the playable HUD CanvasLayer).
 var _truth_label: Label = null
 
+## CHART-LOD GLUE (turn 8): the scene-level wiring -- the adapter feeds
+## the player's live lat/lon into the PenroseChartLod policy and turns
+## the emitted work orders into REAL MeshInstance3D chart overlays
+## under world_root (PenroseMeshBuilder draw + skirt_strip rims).
+## Untyped per this scene's preload-by-path dispatch law.
+var chart_lod  # PenroseChartAdapter; untyped - preload-by-path pattern
+var chart_lod_root: Node3D = null
+## chart_index -> MeshInstance3D of the current climb overlay.
+var _chart_nodes: Dictionary = {}
+## LOD tick throttle: the policy is cheap but the ORDER consumer is a
+## mesh build; run at 2 Hz alongside the truth line.
+var _chart_accum: float = 0.0
+## Last observer lat/lon fed to the adapter (probe readout).
+var last_chart_lat: float = 0.0
+var last_chart_lon: float = 0.0
+
 
 func _ready() -> void:
 	# The canon radius comes from world_main.tres (20000, the v1 planet
@@ -262,6 +278,7 @@ func _setup_streamer() -> void:
 	# keeps its geometry).
 	streamer.terrain_on = planet_radius > PLANAR_SHELL_MAX_R
 	streamer.update(_spawn_dir() * planet_radius)
+	_setup_chart_lod()
 	# SPAWN MESH GATE (round 10): the boot must be able to SEE its own
 	# ground. The first update is synchronous, so an unloaded spawn face
 	# means the streamer is broken -- fail LOUD here instead of booting
@@ -275,6 +292,21 @@ func _setup_streamer() -> void:
 	else:
 		if log4:
 			log4.error("GlobeWorld: spawn face %d did NOT load at boot -- the world will render as bare shell/water. Streamer load path is broken." % streamer.current_face)
+
+
+## CHART-LOD GLUE setup: the adapter + the overlay root under
+## world_root. Kept SEPARATE from the terrain streamer's heightfield
+## patches: the chart overlays are the penrose lattice climbing
+## beside it, occasionally denser but never competing with the
+## heightfield's own seam laws (same takeaway as the prd's
+## "rendering-engine heartbeat" scoping).
+func _setup_chart_lod() -> void:
+	# The adapter owns the policy chain (it preloads the LOD policy +
+	# the pentagrid frame script itself).
+	chart_lod = load("res://scenes/worlds/penrose_chart_adapter.gd").new()
+	chart_lod_root = Node3D.new()
+	chart_lod_root.name = "ChartLodRoot"
+	world_root.add_child(chart_lod_root)
 
 
 ## The player's radial snap rides the WALK SURFACE (displaced terrain
@@ -305,6 +337,82 @@ func terrain_on_flag() -> bool:
 	return streamer != null and streamer.terrain_on
 
 
+## CHART-LOD GLUE tick (2 Hz alongside the truth line): feed the
+## player's live lat/lon to the adapter, apply the padded skirts to
+## the plan BEFORE ordering, then funnel each work order into a real
+## mesh build (PenroseMeshBuilder for the surface + skirt_strip data
+## appended as a third, darker surface). Empty delta = no-op.
+func _update_chart_lod(delta: float) -> void:
+	if chart_lod == null or player == null:
+		return
+	_chart_accum += delta
+	if _chart_accum < 0.5:
+		return
+	_chart_accum = 0.0
+	var Sph = load("res://core/frame/math/spherical.gd")
+	var dir: Vector3 = (player.global_position - planet_center).normalized()
+	var ll: Vector2 = Sph.cartesian_to_spherical(dir * planet_radius, planet_radius)
+	last_chart_lat = ll.x
+	last_chart_lon = ll.y
+	# The padded plan: settle seams first, then pad trailing rims so
+	# orders carry the REAL skirt depth the seam needs right now.
+	var policy = load("res://scenes/worlds/penrose_chart_lod.gd")
+	var plan: Dictionary = policy.plan_safe(ll.x, ll.y, 1)
+	var orders: Array = chart_lod.apply_plan(plan, 1)
+	if orders.is_empty():
+		return
+	var builder = load("res://scenes/worlds/penrose_mesh_builder.gd")
+	for o in orders:
+		var idx: int = int(o["chart_index"])
+		var center: Vector2 = load("res://core/frame/math/pentagrid.gd").atlas_centers_dense(1)[idx]
+		var patch: Array = policy.PentagridScript.build_region(
+			policy.PentagridScript.GAMMA, float(o["half_extent"]))
+		var mi: MeshInstance3D = builder.build_instance(
+			patch, "ChartLod_%d" % idx, false, 1.0, center.x, center.y, planet_radius)
+		# Skirt rim: same patch, padded depth, sphere-projected -- append
+		# as an extra darkened surface so the rim reads as seam fabric,
+		# not terrain.
+		var padded: float = chart_lod.padded_skirt(idx, plan, 1)
+		var skirt: Dictionary = policy.PentagridScript.skirt_strip(patch, padded, 1.0, 0.0)
+		if not (skirt["positions"] as PackedVector3Array).is_empty():
+			var skirt_arrays := []
+			skirt_arrays.resize(Mesh.ARRAY_MAX)
+			skirt_arrays[Mesh.ARRAY_VERTEX] = _project_skirt(skirt["positions"], center, planet_radius)
+			skirt_arrays[Mesh.ARRAY_NORMAL] = skirt_arrays[Mesh.ARRAY_VERTEX]
+			skirt_arrays[Mesh.ARRAY_COLOR] = _skirt_colors((skirt_arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size(), Color(0.16, 0.13, 0.10))
+			mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, skirt_arrays)
+		# Swap in the overlay root (planet-relative parent chain).
+		var old: MeshInstance3D = _chart_nodes.get(idx, null)
+		if old != null and is_instance_valid(old):
+			old.queue_free()
+		mi.name = "ChartLod_%d" % idx
+		chart_lod_root.add_child(mi)
+		_chart_nodes[idx] = mi
+
+
+## Project skirt positions (planar tiling coords) onto the sphere via
+## the chart's tangent plane, matching PenroseMeshBuilder's gnomonic
+## path (the skirt lands exactly where the surface's rim dropped).
+func _project_skirt(pos: PackedVector3Array, center: Vector2, radius: float) -> PackedVector3Array:
+	var PG = load("res://core/frame/math/pentagrid.gd")
+	var out := PackedVector3Array()
+	for p in pos:
+		# skirt_strip emits (x*scale, y*scale, z) in tiling units where
+		# x,y already carry the scale: unpack to the planar Vector2 the
+		# gnomonic path expects by undoing the z-only split.
+		out.append(PG.gnomonic_project(Vector2(p.x, p.y), center.x, center.y, radius))
+	return out
+
+
+## Flat skirt colors (one authored color; the tag nuance is a
+## future material pass).
+func _skirt_colors(count: int, color: Color) -> PackedColorArray:
+	var out := PackedColorArray()
+	for _i in range(count):
+		out.append(color)
+	return out
+
+
 func _physics_process(delta: float) -> void:
 	if player == null:
 		return
@@ -318,6 +426,7 @@ func _physics_process(delta: float) -> void:
 		# the planet CENTER, never the world origin (invariant across
 		# floating-origin shifts).
 		streamer.update(player.global_position - planet_center)
+		_update_chart_lod(delta)
 	_maybe_shift_world()
 	# SPAWN TRUTH (round 7, item 4): keep the on-screen position line
 	# fresh at 2 Hz. No-op until _build_spawn_truth() made the label
