@@ -59,6 +59,26 @@ var _entity_markers: Dictionary = {}
 var _minimap_size: Vector2 = Vector2(150, 150)
 var _world_size: Vector2 = Vector2(8192, 8192)  # 8km x 8km world
 
+## CHUNKED CANVAS GENERATION (the menu-freeze fix): _ensure_world_canvas
+## used to sample terrain_height 384 x 384 = 147,456 times in ONE
+## synchronous loop; under the penrose ground backend each sample is
+## far costlier (chart frame + tile lookup), so opening the map pegged
+## the main thread for tens of seconds — the "opened the menu, hit
+## scroll to map, nothing opens, phone hammered" report. The canvas
+## now paints in ROW CHUNKS spread across frames (await), resolution
+## is 192x192 (a 4x sample cut; bilinear-stretch reads fine at map
+## scale), and the SOP (start of paint) shows the fallback chart so
+## the map opens INSTANTLY and fills in live.
+signal _canvas_row_range(first_row: int, last_row: int)
+var _generating: bool = false
+var _generator: RefCounted = null
+class _RowBank:
+	var img: Image
+	var seed_bytes: PackedByteArray
+	var sea: float
+	var R: float
+var _bank: _RowBank = null
+
 signal waypoint_clicked(position: Vector3)
 signal map_clicked(position: Vector3)
 
@@ -410,50 +430,78 @@ func _position_player_marker() -> void:
 ## palette; water shades by depth. 384x384 = ~147k pure-function calls,
 ## a one-time sub-second cost on first open.
 func _ensure_world_canvas() -> void:
-	if _canvas_texture != null:
+	if _canvas_texture != null or _generating:
 		return
 	var Sph = load("res://core/frame/math/spherical.gd")
-	var R := 20000.0
 	var seed_bytes: PackedByteArray = TerrainGen.world_seed_bytes()
-	# A broken dependency must not silently yield the raw-black overlay:
-	# Image.create starts TRANSPARENT black, and a GDScript runtime error
-	# inside the loop does NOT abort it -- the pixels just never get
-	# painted, and the map shows the dark backdrop = "the map is a black
-	# overlay" (the exact round-14 report). Verify preconditions before
-	# the loop and painted coverage after it.
-	if Sph != null and seed_bytes.size() > 0:
-		var sea: float = TerrainGen.sea_level(seed_bytes)
-		var img := Image.create(384, 384, false, Image.FORMAT_RGBA8)
-		var painted := 0
-		for py in range(384):
-			# Inverse of lat_lon_to_uv: row 0 MUST be the north pole
-			# (Image row 0 is the top row; the old -90 start painted the
-			# map upside down).
-			var lat := 90.0 - 180.0 * (float(py) + 0.5) / 384.0
-			for px in range(384):
-				var lon := -180.0 + 360.0 * (float(px) + 0.5) / 384.0
-				var d: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, R).normalized()
-				var h: float = TerrainGen.terrain_height(d, seed_bytes)
-				var c: Color = _canvas_color(h, sea)
-				img.set_pixel(px, py, c)
-				if c.a > 0.5:
-					painted += 1
-		# The law always returns opaque colors; a mostly-transparent image
-		# means the dependency errored per pixel. Do NOT cache that.
-		if painted > 384 * 384 / 2:
-			_canvas_texture = ImageTexture.create_from_image(img)
-	if _canvas_texture == null:
-		# Retry on the next open (boot-order races heal themselves);
-		# meanwhile show a non-black chart so the map stays usable.
-		var glw := _glog()
-		if glw: glw.warn("WorldMap: terrain canvas generation failed; showing fallback ocean chart")
-		var fb := Image.create(384, 384, false, Image.FORMAT_RGBA8)
+	var sea: float = 0.0
+	var ok: bool = Sph != null and seed_bytes.size() > 0
+	if ok:
+		sea = TerrainGen.sea_level(seed_bytes)
+		_bank = _RowBank.new()
+		_bank.img = Image.create(192, 192, false, Image.FORMAT_RGBA8)
+		_bank.seed_bytes = seed_bytes
+		_bank.sea = sea
+		_bank.R = 20000.0
+		_generating = true
+		# Show the fallback chart IMMEDIATELY (the map opens live); rows
+		# fill in as chunks complete.
+		var fb := Image.create(192, 192, false, Image.FORMAT_RGBA8)
 		fb.fill(Color(0.07, 0.20, 0.30))
 		_map_texture.texture = ImageTexture.create_from_image(fb)
 		_position_player_marker()
+		_run_canvas_generation(Sph)
+	if _canvas_texture == null and not _generating:
+		# Broken dependency (no sphere law / no seed): the fallback chart
+		# stands (same law as before, minus the synchronous freeze).
+		var glw := _glog()
+		if glw: glw.warn("WorldMap: terrain canvas generation failed; showing fallback ocean chart")
+		var fb2 := Image.create(192, 192, false, Image.FORMAT_RGBA8)
+		fb2.fill(Color(0.07, 0.20, 0.30))
+		_map_texture.texture = ImageTexture.create_from_image(fb2)
+		_position_player_marker()
 		return
-	_map_texture.texture = _canvas_texture
-	_position_player_marker()
+
+## The CHUNKED generator: sampe ROWS_PER_CHUNK rows per await frame.
+## Each chunk is bounded (192/4 = 48 rows * 192 px = ~9k terrain picks
+## per frame -- fast even under the penrose backend), then control
+## returns to the main loop so input and rendering never starve.
+## Amendments: painted-coverage law and texture commit live here now.
+const CANVAS_SIZE: int = 192
+const ROWS_PER_CHUNK: int = 4
+const PAINTED_MIN: int = (CANVAS_SIZE * CANVAS_SIZE) / 2
+func _run_canvas_generation(Sph) -> void:
+	var img: Image = _bank.img
+	var painted := 0
+	var py := 0
+	while py < CANVAS_SIZE:
+		var last_row: int = mini(py + ROWS_PER_CHUNK, CANVAS_SIZE)
+		for row in range(py, last_row):
+			# Inverse of lat_lon_to_uv: row 0 is the north pole (Image
+			# row 0 is the top row; the old -90 start painted the map
+			# upside down).
+			var lat := 90.0 - 180.0 * (float(row) + 0.5) / float(CANVAS_SIZE)
+			for px in range(CANVAS_SIZE):
+				var lon := -180.0 + 360.0 * (float(px) + 0.5) / float(CANVAS_SIZE)
+				var d: Vector3 = Sph.spherical_to_cartesian(lat, lon, 1.0, _bank.R).normalized()
+				var h: float = TerrainGen.terrain_height(d, _bank.seed_bytes)
+				var c: Color = _canvas_color(h, _bank.sea)
+				img.set_pixel(px, row, c)
+				if c.a > 0.5:
+					painted += 1
+		py = last_row
+		# Commit partial texture every chunk so the map fills in live.
+		_canvas_texture = ImageTexture.create_from_image(img)
+		_map_texture.texture = _canvas_texture
+		_position_player_marker()
+		await get_tree().process_frame
+	# The law always returns opaque colors; a mostly-transparent image
+	# means the dependency errored per pixel. Do NOT cache that.
+	if painted < PAINTED_MIN:
+		_canvas_texture = null
+		var glw := _glog()
+		if glw: glw.warn("WorldMap: canvas coverage law failed (%d < %d); fallback stands" % [painted, PAINTED_MIN])
+	_generating = false
 
 ## Height-band canvas colors (the tile palette, map-styled).
 func _canvas_color(h: float, sea: float) -> Color:
