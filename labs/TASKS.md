@@ -5549,3 +5549,28 @@ Verification record (exit codes captured headless per run):
   passed on the immediate re-run WITH NO CODE CHANGE (a data-chance
   flake in a pre-existing probe, noted as follow-up material, not a
   regression of this turn).
+
+## 2026-10-12 (turn 4): the five limitations, paper-free, all closed or reduced to one
+
+- 1-atlas needs PAPER FIGURES: DEAD ROAD retired. The vertex-star atlas is
+  DERIVED from the construction (pentagrid.vertex_star_cycles, 12 lawful
+  cycles at two region sizes unioned): no transcription step exists anymore.
+  validate_patch enforces the Conway vertex-star law; law 19 proves the
+  derived atlas REJECTS the MathPages ten-thin extendability trap (the
+  case the 1-atlas escalation existed for) while law 18 proves real AND
+  mirrored patches still pass (isometry stability). 21/21 pentagrid laws.
+- GLYPH-LEVEL arrow labels: delivered (arrow marks carry the exact
+  (family, level) grid-line identity alongside the parity mult; law 20).
+- WHOLE-SPHERE STITCHING: reduced to a single-owner local task by
+  delivering chart placement + assignment (atlas_centers/chart_owner,
+  covering-radius formula law = geometry cross-check vs sampled sphere;
+  law 21). The stitch polygons themselves remain the last open item.
+- RENDERER FEED caller-side: shipped PenroseMeshBuilder + probe_penrose_mesh
+  (7/7 PASS, runner registered): fat/thin 2-surface ArrayMeshes with vertex
+  colors, planar AND sphere-projected routes, MeshInstance3D mounting.
+- probe_crafting roll flake: fixed roll-agnostically (assert the bill:
+  ore_eaten == 2 * attempts, attempts in 1..4; the 10% die no longer matters).
+Verification: pentagrid 21/21 PASS, cosmic_rng 23/23 PASS, mesh probe 7/7
+PASS, crafting probe 13/13 PASS, charset lint 3/3 PASS. Remaining open: ONLY
+the chart-boundary stitch polygons (+ the extendability decider, not needed
+for local legality).

@@ -117,8 +117,20 @@ func _run() -> void:
 	synth_bag.add_item(ds.get_item("res_iron_ore"), 4)
 	var synth: Dictionary = cs.craft("craft_synth", "recipe_iron_ingot")
 	var synth_ok: bool = bool(synth["ok"]) and _count_id(synth_bag, "res_iron_ingot") == 1
+	# The smelt roll fails 10% of the time, so the SAME chain may retry:
+	# each attempt consumes exactly 2 ore and one success yields the
+	# ingot. The roll-agnostic laws (not 'attempts == 1', which flaked
+	# when the die came up the bad way):
+	#   * attempts >= 1 (the forge tried at least once)
+	#   * ore consumed == 2 * attempts (the bill never lies)
+	#   * attempts <= 4 (four ore -> at most two failures then success;
+	#     a full-failure run of 2 attempts is the only legal wipe-out,
+	#     and ok=true bounds attempts anyway since a third attempt
+	#     would need 8 ore and the bag only held 4)
+	var attempts: int = int(synth["attempts"])
+	var ore_eaten: int = 4 - _count_id(synth_bag, "res_iron_ore")
 	_check("a synthetic crafts the SAME recipe through the SAME chain", \
-		synth_ok and int(synth["attempts"]) == 1 and 4 - _count_id(synth_bag, "res_iron_ore") == 2)
+		synth_ok and attempts >= 1 and ore_eaten == 2 * attempts and attempts <= 4)
 
 	# ---- E. The equippable crafts (breather + glider) ---------------
 	# 1. The reed breather: an ITEM output -> rides the purse like any

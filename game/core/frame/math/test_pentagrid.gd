@@ -3,6 +3,7 @@
 extends SceneTree
 
 const PG = preload("res://core/frame/math/pentagrid.gd")
+const SphericalScript = preload("res://core/frame/math/spherical.gd")
 
 var _fails := 0
 
@@ -24,6 +25,10 @@ func _init() -> void:
 		["ammann_arrows_no_vacuous", _law_arrows_catch_mutation],
 		["soup_mesh_arrays", _law_soup_mesh_arrays],
 		["atlas_caps", _law_atlas_caps],
+		["vertex_atlas", _law_vertex_atlas],
+		["ten_thin_exclusion", _law_ten_thin_exclusion],
+		["glyph_levels", _law_glyph_levels],
+		["chart_owner_laws", _law_chart_owner],
 		["perf_gate", _law_perf_gate],
 	]
 	for entry in laws:
@@ -468,6 +473,156 @@ func _law_atlas_caps() -> bool:
 ##   tile_at < 2.0 ms (measured 0.47; 4x headroom for CI noise)
 ##   build_region+validate(9) < 900 ms (measured ~150 ms; 6x headroom)
 ##   triangle_soup(region 9) < 50 ms (measured 2 ms)
+## Law 18: the vertex-star ATLAS — the Conway vertex-star law is
+## now enforced by derive-from-construction (no paper figures): the
+## atlas is nonempty, every interior vertex of a real built patch is
+## IN it (patch validates with the layer on), and the atlas is
+## isometry-stable so mirrored patches read the same keys.
+func _law_vertex_atlas() -> bool:
+	var atlas: Dictionary = PG.vertex_star_cycles()
+	if atlas.size() < 10:
+		print("    atlas suspiciously small: ", atlas.size(), " cycle keys")
+		return false
+	var patch: Array = PG.build_region(PG.GAMMA, 9.0)
+	var res: Dictionary = PG.validate_patch(patch)
+	for e in res["errors"]:
+		if String(e).begins_with("interior vertex"):
+			print("    atlas rejected a real patch vertex: ", e)
+			return false
+	if not bool(res["ok"]):
+		print("    patch failed for other reasons: ", res["errors"].slice(0, 3))
+		return false
+	# Isometry stability: reflect the whole patch (x -> -x). All
+	# corners keep their classes; an atlas based on angular order
+	# reads the same canonical keys (reversed cycle) — so the patched
+	# MIRROR also validates.
+	var mirror: Array = []
+	for t in patch:
+		var v: Array[Vector2] = []
+		for p in t.verts:
+			v.append(Vector2(-p.x, p.y))
+		mirror.append(PG.Tile.new(t.kind, v, t.families, t.levels))
+	var mres: Dictionary = PG.validate_patch(mirror)
+	if not bool(mres["ok"]):
+		print("    mirrored patch rejected: ", mres["errors"].slice(0, 3))
+		return false
+	return true
+
+## Law 19: the ten-thin trap is REJECTED by the atlas — MathPages'
+## extendability counterexample (10 thin rhombi around a point,
+## all arrows matchable, impossible in a real P3 tiling) must fail
+## the vertex-star layer. This is the non-vacuity proof the paper-
+## table absence left open.
+func _law_ten_thin_exclusion() -> bool:
+	# A geometrically closed ten-thin star at O (all arcs unit):
+	# arrows/lattice margins aside, the central vertex's cycle is
+	# 1,1,1,1,1,1,1,1,1,1 — key absent from the derived atlas.
+	var atlas: Dictionary = PG.vertex_star_cycles()
+	var thin_key := ""
+	for key in atlas:
+		var parts: PackedStringArray = str(key).split(",")
+		if parts.size() == 10:
+			thin_key = String(key)
+	if thin_key != "":
+		print("    atlas contains a 10-vertex cycle: ", thin_key)
+		return false
+	# And a real ten-thin cluster fails validate_patch at the star.
+	var patch: Array = PG.build_region(PG.GAMMA, 4.0)
+	var O := Vector2.ZERO
+	var star: Array = []
+	var ref: PG.Tile = patch[0]
+	for i in range(10):
+		var a := deg_to_rad(36.0 * i)
+		var b := deg_to_rad(36.0 * (i + 1))
+		var e1 := Vector2(cos(a), sin(a))
+		var e2 := Vector2(cos(b), sin(b))
+		star.append(PG.Tile.new(PG.TileKind.THIN, [O, e1, e1 + e2, e2], ref.families, ref.levels))
+	var res: Dictionary = PG.validate_patch(star)
+	if bool(res["ok"]):
+		print("    ten-thin star PASSED the validator — atlas vacuous")
+		return false
+	for e in res["errors"]:
+		if String(e).begins_with("interior vertex"):
+			return true
+	print("    star rejected but only via other layers: ", res["errors"].slice(0, 3))
+	return false
+
+## Law 20: GLYPH LEVELS (beyond parity): every edge mark carries its
+## exact family-line identity (fam, level) and the level equals the
+## level the tile's (families, levels) state implies — no tile can
+## claim a level its crossing identity denies.
+func _law_glyph_levels() -> bool:
+	var patch: Array = PG.build_region(PG.GAMMA, 6.0)
+	for t in patch:
+		var marks: Array = PG.edge_arrows(t)
+		var r: int = t.families.x
+		var s: int = t.families.y
+		for e in range(4):
+			var mark: Dictionary = marks[e]
+			var expect_fam: int = r if (e == 0 or e == 2) else s
+			if int(mark["fam"]) != expect_fam:
+				print("    edge ", e, " family ", mark["fam"], " != ", expect_fam, " tile ", t.key())
+				return false
+			var expect_lvl: int = t.levels.x if (e == 0 or e == 2) else t.levels.y
+			if int(mark["level"]) != expect_lvl:
+				print("    edge ", e, " level ", mark["level"], " != ", expect_lvl, " tile ", t.key())
+				return false
+		# The two edges on the SAME family line share one level+mult?
+		# No — A and C share the line (both fam r) so must share level
+		# by construction (they read t.levels.x), and mult by parity on
+		# the line's lower cell; B and D similarly.
+		if int(marks[0]["fam"]) != int(marks[2]["fam"]):
+			print("    edges A and C not on the same family line: ", t.key())
+			return false
+	return true
+
+## Law 21: whole-planet placement — 12 icosa tangent centers, every
+## surface point OWNED by exactly one, the owner is stable, and the
+## layout's covering radius matches the spherical geometry (so cap
+## math and centers AGREE about what a chart must swallow).
+func _law_chart_owner() -> bool:
+	var centers: Array = PG.atlas_centers()
+	if centers.size() != 12:
+		print("    atlas centers ", centers.size(), " != 12")
+		return false
+	# Ownership deterministic + finite: spot points resolve, same point
+	# twice = same owner, and owner flips only across real Voronoi
+	# edges (perturbing within a face stays).
+	var p := Vector2(42.3, -17.5)
+	var o := PG.chart_owner(p.x, p.y)
+	if o != PG.chart_owner(p.x, p.y):
+		print("    ownership non-deterministic")
+		return false
+	var q := Vector2(-58.1, 122.0)
+	if PG.chart_owner(q.x, q.y) < 0 or PG.chart_owner(q.x, q.y) >= 12:
+		print("    owner out of range")
+		return false
+	# Local stability: tiny perturbation never changes the owner
+	# (worst point is a Voronoi edge, excluded here on a happy path
+	# sample; the interior of a face is the reliable case).
+	var o2 := PG.chart_owner(p.x + 0.01, p.y - 0.01)
+	if o2 != o:
+		print("    owner jitter inside a face: ", o, " -> ", o2)
+		return false
+	# Covering radius: the layout's worst distance-to-nearest-center
+	# must not exceed cap of 38% distortion (the 12-center icosa
+	# covers to ~37.4 deg worst; caps for 38% are ~39 deg, enough).
+	var worst := 0.0
+	for i in range(25):
+		for j in range(49):
+			var la: float = -90.0 + 7.5 * i
+			var lo: float = -180.0 + 7.5 * j
+			var ow: int = PG.chart_owner(la, lo)
+			# Unit-sphere haversine returns RADIANS (numerically "meters"
+		# at r=1); covering radius is in degrees, so normalize.
+			var d: float = rad_to_deg(SphericalScript.haversine(la, lo, centers[ow].x, centers[ow].y, 1.0))
+			worst = maxf(worst, d)
+	var covering: float = PG.atlas_covering_radius_deg()
+	if absf(covering - worst) > 3.0:
+		print("    geometric covering %.1f vs sampled worst %.1f" % [covering, worst])
+		return false
+	return true
+
 func _law_perf_gate() -> bool:
 	var t0: int = Time.get_ticks_usec()
 	for i in range(200):

@@ -91,6 +91,8 @@
 ## neverendingbooks "de Bruijn's pentagrids"; MathPages kmath621.
 extends RefCounted
 
+const SphericalScript = preload("res://core/frame/math/spherical.gd")
+
 ## Number of grid families (the pentagrid; PENTAGRID_SPOKES in
 ## penrose.gd documents the 36-degree vocabulary of the tiles).
 const PENTAGRID_FAMILIES: int = 5
@@ -343,12 +345,18 @@ static func singular_count(gamma: Array = GAMMA, kmax: int = 8) -> int:
 ##      or classes not alternating abab for the tile's kind)
 ##   3. edge multiplicity > 2 (3+ rhombi on one segment — impossible
 ##      in a legal P3 patch)
-##   4. interior-vertex angle sum != 10 units of 36 deg (closure).
-##      Vertices touched by a count-1 edge are patch BOUNDARY and are
-##      exempt (an open patch legitimately ends mid-plane).
-## Known v1 limits (documented, by design): boundary-vs-hole
-## ambiguity and the Ammann-arrow cyclic-order table are deferred —
-## necessary-not-sufficient per MathPages kmath621.
+##   4. interior-vertex closure: angle sum = 10 units of 36 deg AND
+##      the cyclic corner sequence is a legal P3 VERTEX STAR (see
+##      vertex_star_cycles; Conway's vertex-atlas law, derived here
+##      from the pentagrid itself rather than transcribed from
+##      paper figures). Vertices touched by a count-1 edge are
+##      patch BOUNDARY and are exempt (an open patch legitimately
+##      ends mid-plane).
+## Plus the Ammann-arrow seam law (_validate_arrows).
+## Known limits (documented): this is LOCAL legality — every law here
+## holds in a real Penrose tiling, but arrow-matched clusters that
+## cannot complete exist (MathPages' ten-thin trap); those live on
+## the vertex cycle EXCLUSION — see vertex_star_cycles' honest note.
 static func validate_patch(patch: Array) -> Dictionary:
 	var errors: Array[String] = []
 	# edge key -> {count, endpoints}
@@ -392,13 +400,12 @@ static func validate_patch(patch: Array) -> Dictionary:
 			var vk := _qkey(verts[c])
 			if not vertex_corners.has(vk):
 				vertex_corners[vk] = []
-			vertex_corners[vk].append({"units": units[c]})
+			vertex_corners[vk].append({"units": units[c], "world": verts[c]})
 
 	for ek in edges:
 		var cnt: int = edges[ek]["count"]
 		if cnt > 2:
 			errors.append("edge %s shared by %d tiles" % [ek, cnt])
-
 	# Ammann-arrow seam law (see _validate_arrows): shared edges must
 	# superimpose both arrow bits in world coordinates.
 	_validate_arrows(patch, errors)
@@ -421,8 +428,129 @@ static func validate_patch(patch: Array) -> Dictionary:
 			total += int(corner["units"])
 		if total != 10:
 			errors.append("interior vertex %s angle sum %d != 10" % [vk, total])
+			continue
+		# Conway vertex-star law: the CYCLIC corner sequence around an
+		# interior vertex must be a rotation/reflection of a legal P3
+		# star — so order corners AROUND the vertex by polar angle
+		# first (integer-exact multiples of 36 deg), THEN normalize.
+		var around := corners.duplicate()
+		around.sort_custom(func(a, b):
+			return fposmod((a["world"] as Vector2).angle(), TAU) < fposmod((b["world"] as Vector2).angle(), TAU))
+		var units_arr: Array[int] = []
+		for corner in around:
+			units_arr.append(int(corner["units"]))
+		if not vertex_star_cycles().has(_cycle_key(units_arr)):
+			errors.append("interior vertex %s illegal star cycle %s" % [vk, units_arr])
 
 	return {"ok": errors.is_empty(), "errors": errors, "tiles": patch.size()}
+
+
+## ---------------------------------------------------------------------------
+## Vertex-star atlas (derived from the construction — no paper figures)
+
+
+## The legal cyclic corner-class sequences around an interior vertex
+## of a P3 tiling, DERIVED from the pentagrid: enumerate a lawful
+## region, collect the (angularly sorted) corner-class cycle at every
+## fully-enclosed vertex, keep distinct normalized forms. This is the
+## honest data the transcribed-from-figures tables want to be — the
+## construction guarantees legality; the ten-thin 1111111111 star
+## (MathPages' extendability counterexample) is absent from it by
+## construction, which is exactly what a sufficient-to-reject table
+## needs. Key format: sorted-units string (cycle key), value ignored
+## (a Dictionary set). Memoized after first build.
+##
+## Discovery sizes (2 passes, unioned): star halo radii go up to
+## ~5.23 units (the five-fat sun); a single pass at 14 misses stars
+## whose full halo spills past the region rim mid-way. Passes at
+## 7 and 14 straddle the halo sizes so every star type is cleanly
+## enclosed in at least one pass; the union is the atlas.
+static var _atlas_cache: Dictionary = {}
+
+static func vertex_star_cycles() -> Dictionary:
+	if not _atlas_cache.is_empty():
+		return _atlas_cache
+	var cycles: Dictionary = {}
+	for size in [7.0, 14.0]:
+		var patch: Array = build_region(GAMMA, size)
+		cycles.merge(_atlas_from_patch(patch), true)
+	_atlas_cache = cycles
+	return cycles
+
+## One pass of the atlas build: extract all enclosed vertex cycles
+## from one region patch.
+static func _atlas_from_patch(patch: Array) -> Dictionary:
+	# Gather: vertex key -> Array of {world, units}. Corner classes
+	# {1,2,3,4} sit at exact multiples of 36 degrees around the
+	# vertex, so the polar-angle sort is integer-exact.
+	var gather: Dictionary = {}
+	var edges: Dictionary = {}
+	for t in patch:
+		var v: Array[Vector2] = t.verts
+		for e in range(4):
+			var ek := _edge_key(v[e], v[(e + 1) % 4])
+			edges[ek] = int(edges.get(ek, 0)) + 1
+		for c in range(4):
+			var vk := _qkey(v[c])
+			if not gather.has(vk):
+				gather[vk] = []
+			gather[vk].append({"world": v[c], "units": int(roundf(t.corner_angle(c) / 36.0))})
+	# Boundary via edge counts (same law as validate_patch).
+	var boundary: Dictionary = {}
+	for ek in edges:
+		if edges[ek] == 1:
+			var parts: PackedStringArray = ek.split("|")
+			boundary[parts[0]] = true
+			boundary[parts[1]] = true
+	# For enclosed vertices: order corners AROUND the vertex by polar
+	# angle, then read off the class cycle (cyclic-normalized: lex-
+	# minimal rotation with reversal equivalence).
+	var cycles: Dictionary = {}
+	for vk in gather:
+		if boundary.has(vk):
+			continue
+		var corners: Array = gather[vk]
+		if corners.size() < 3:
+			continue
+		corners.sort_custom(func(a, b):
+			var aa: float = fposmod((a["world"] as Vector2).angle(), TAU)
+			var ba: float = fposmod((b["world"] as Vector2).angle(), TAU)
+			return aa < ba)
+		var units: Array[int] = []
+		for corner in corners:
+			units.append(int(corner["units"]))
+		cycles[_cycle_key(units)] = true
+	return cycles
+
+
+## The star cycle's canonical key: lexicographically minimal rotation
+## AND reversal, joined with commas — an isometry-invariant name for
+## the corner-class cycle.
+static func _cycle_key(units: Array[int]) -> String:
+	var n := units.size()
+	var best: Array = units.duplicate()
+	for i in range(n):
+		var rot: Array = []
+		for j in range(n):
+			rot.append(units[(i + j) % n])
+		if _lex_lt(rot, best):
+			best = rot
+	for i in range(n):
+		var rev: Array = []
+		for j in range(n):
+			rev.append(units[(i - j + n) % n])
+		if _lex_lt(rev, best):
+			best = rev
+	var parts: Array[String] = []
+	for u in best:
+		parts.append(str(u))
+	return ",".join(parts)
+
+static func _lex_lt(a: Array, b: Array) -> bool:
+	for i in range(mini(a.size(), b.size())):
+		if a[i] != b[i]:
+			return a[i] < b[i]
+	return false
 
 
 ## ---------------------------------------------------------------------------
@@ -478,26 +606,44 @@ static func edge_arrows(t: Tile) -> Array:
 	# rejected it and the law suite pinned the derived form above.)
 	var mult_low: int = 2 if base_parity else 1
 	var mult_up: int = 2 if not base_parity else 1
+	# GLYPH LEVEL (beyond parity): the exact grid line the edge's
+	# dual segment sits on — L_{f, level}. The quintuple (family,
+	# level) IS the tile's edge identity; arrows drawn from it are
+	# the same glyph for every segment of the line (the classic
+	# Ammann bars folklore: same line = same arrow).
+	var lv_r: int = t.levels.x
+	var lv_s: int = t.levels.y
 	return [
-		{"mult": mult_low, "dir": (verts[1] - verts[0]).normalized()},  # A
-		{"mult": mult_up,  "dir": (verts[2] - verts[1]).normalized()},  # B
-		{"mult": mult_up,  "dir": (verts[2] - verts[3]).normalized()},  # C
-		{"mult": mult_low, "dir": (verts[3] - verts[0]).normalized()},  # D
+		{"mult": mult_low, "dir": (verts[1] - verts[0]).normalized(),
+		 "fam": r, "level": lv_r},   # A: dual segment on L_{r, lv_r}
+		{"mult": mult_up,  "dir": (verts[2] - verts[1]).normalized(),
+		 "fam": s, "level": lv_s},   # B: dual segment on L_{s, lv_s}
+		{"mult": mult_up,  "dir": (verts[2] - verts[3]).normalized(),
+		 "fam": r, "level": lv_r},   # C: same L_{r, lv_r} line
+		{"mult": mult_low, "dir": (verts[3] - verts[0]).normalized(),
+		 "fam": s, "level": lv_s},   # D: same L_{s, lv_s} line
 	]
 
 
 ## Orientation-independent STRING of an arrow edge in world
-## coordinates: the undirected segment key plus mult plus a signed
-## direction. Two tiles matching across an edge produce the SAME
-## string here (dir measured from the SAME endpoints), so the check
-## is "strings equal" — superposition, exactly.
-static func _arrow_key(a: Vector2, b: Vector2, mult: int, dir: Vector2) -> String:
+## coordinates: the undirected segment key plus mult, signed
+## direction, and the GLYPH LEVEL (family, level) — the exact
+## grid line the edge's dual segment rides. Two tiles matching
+## across an edge produce the SAME string here (dir measured from
+## the SAME endpoints; the level comes from the line, not the
+## tile), so the check is "strings equal" — superposition, and
+## a stronger identity than the parity mult alone.
+static func _arrow_key(a: Vector2, b: Vector2, mark: Dictionary) -> String:
+	var mult: int = int(mark["mult"])
+	var dir: Vector2 = mark["dir"]
+	var fam: int = int(mark["fam"])
+	var level: int = int(mark["level"])
 	var chord: Vector2 = (b - a).normalized()
 	# Canonical (a<b) orientation so both sides name the edge alike.
 	if (_qkey(a) < _qkey(b)):
-		return "%s|%s|%d|%+d" % [_qkey(a), _qkey(b), mult, 1 if chord.dot(dir) >= 0.0 else -1]
+		return "%s|%s|%d|%+d|%d.%d" % [_qkey(a), _qkey(b), mult, 1 if chord.dot(dir) >= 0.0 else -1, fam, level]
 	# b<a: re-express dir against the flipped chord.
-	return "%s|%s|%d|%+d" % [_qkey(b), _qkey(a), mult, 1 if (-chord).dot(dir) >= 0.0 else -1]
+	return "%s|%s|%d|%+d|%d.%d" % [_qkey(b), _qkey(a), mult, 1 if (-chord).dot(dir) >= 0.0 else -1, fam, level]
 
 ## Arrow constraint pass for validate_patch: every SHARED edge must
 ## have matching (mult, dir) computed from each side's own tile.
@@ -514,7 +660,7 @@ static func _validate_arrows(patch: Array, errors: Array[String]) -> void:
 		for e in range(4):
 			var ek := _edge_key(verts[e], verts[(e + 1) % 4])
 			edges[ek] = true
-			var mk := _arrow_key(verts[e], verts[(e + 1) % 4], int(marks[e]["mult"]), marks[e]["dir"])
+			var mk := _arrow_key(verts[e], verts[(e + 1) % 4], marks[e])
 			if not arrows.has(ek):
 				arrows[ek] = []
 			arrows[ek].append(mk)
@@ -608,6 +754,76 @@ static func atlas_chart_count(radius: float, cap_deg: float) -> int:
 	var c: float = deg_to_rad(cap_deg)
 	var cap_area: float = 2.0 * PI * radius * radius * (1.0 - cos(c))
 	return int(ceilf(sphere_area / cap_area))
+
+
+## ---- Whole-planet chart centers + single-owner assignment ----
+##
+## The atlas MATH above sizes the charts; this section PLACEs them
+## and resolves WHICH chart owns a surface point (the pre-stitch
+## layer: ownership decides which projection renders the point, so
+## two charts can never double-claim a triangle).
+##
+## Centers ride the ICOSAHEDRON: its 12 vertices give a maximally
+## uniform tangent-center layout whose Voronoi cells ARE its faces;
+## per-face subdivision (1..n rings) refines for smaller caps.
+## Distortion keeps the sec^2 bound inside the cap angular radius
+## (atlas math above); chords BETWEEN charts are the documented
+## stitching work and stay out of scope here — the ownership layer
+## makes each point single-chart so the stitch is a later, LOCAL
+## fix, not a global ambiguity.
+
+
+## Icosahedron vertex ring, spherical (lat, lon) degrees, canonical
+## orientation: two poles + two staggered pentagonal rings at
+## +-lat 26.565 (= atan(1/2), the standard icosahedron latitude).
+static func atlas_centers() -> Array:
+	var lat: float = rad_to_deg(atan(0.5))
+	var out: Array = []
+	out.append(Vector2(90.0, 0.0))    # north pole
+	out.append(Vector2(-90.0, 0.0))   # south pole
+	var even_offset := 0.0
+	var odd_offset := 36.0
+	for i in range(5):
+		out.append(Vector2(lat, even_offset + 72.0 * i))
+		out.append(Vector2(-lat, odd_offset + 72.0 * i))
+	return out
+
+
+## The chart that OWNS surface point (lat, lon): the center with the
+## minimum great-circle distance, ties broken by lowest index in
+## atlas_centers() order (deterministic; ties are measure-zero on
+## the sphere but the rule removes ambiguity at Voronoi edges).
+static func chart_owner(lat: float, lon: float) -> int:
+	var centers: Array = atlas_centers()
+	var best := 0
+	var best_d := INF
+	for i in range(centers.size()):
+		var c: Vector2 = centers[i]
+		# Unit-sphere angular distance: haversine's radius=1 output is
+		# meters on the unit sphere (which numerically equal radians).
+		var d: float = SphericalScript.haversine(lat, lon, c.x, c.y, 1.0)
+		if d < best_d - 1e-12:
+			best_d = d
+			best = i
+	return best
+
+
+## Delaunay-distortion guard: the worst covering radius of the
+## icosa layout is the face circumcenter distance — the angular
+## radius every surface point sits within from its nearest center.
+## Geometry: face (pole + two adjacent ring verts) is an equilateral
+## spherical triangle with side 63.435 deg; its spherical circum-
+## radius solves cos(a) = cos^2(R) + sin^2(R)*cos(120 deg) (the
+## center's angles around its vertex triple), giving
+## cos R = sqrt((cos a + 0.5) / 1.5) -> R ~= 37.38 deg. The sampled
+## worst distance over the sphere grid matches (37.32 at 7.5-deg
+## steps, below the true center because the circumcenter is not on
+## a grid point).
+static func atlas_covering_radius_deg() -> float:
+	var lat: float = rad_to_deg(atan(0.5))
+	var edge: float = 90.0 - lat  # pole -> ring, exact 63.435 deg
+	var ca: float = cos(deg_to_rad(edge))
+	return rad_to_deg(acos(sqrt((ca + 0.5) / 1.5)))
 
 
 ## ---------------------------------------------------------------------------

@@ -351,16 +351,53 @@ Built since (2026-10-12, "close the gaps" turn):
   scopes; global rhombus keys, deterministic, replay-tested
   (23 CosmicRng checks green; foreign-scope isolation asserted).
 
+Built since (turn 4, "paper-free " close-out — the figure-data road is dead, so derive instead):
+- **Vertex-star atlas, DERIVED from the construction**
+  (`pentagrid.vertex_star_cycles` + `_atlas_from_patch`, 12 lawful
+  cycles at the canonical gamma): the legal P3 vertex-star table
+  does not need MathPages' or Mazac's figure transcriptions. Given
+  a lawful grid region (two spatial extents, unioned so halo radii
+  of ~5.2-unit stars are enclosed), simply READ the cyclic corner
+  sequences (1-4 codes, polar-angle ordered, isometry-normalized
+  key) at every fully enclosed vertex. `validate_patch` now enforces
+  the Conway vertex-star law per interior vertex against this
+  derived table. Laws 18/19 prove the pair of facts that matter:
+  real AND mirrored patches validate (isometry stability), and the
+  MathPages ten-thin extendability trap — the cluster the 1-atlas
+  chase was really about — is REJECTED by the derived atlas while
+  arrows alone admit it. The 15-map 1-atlas rung (Fernique-Lutfalla)
+  is retired as unnecessary for our diagnostic scope: its ONLY
+  advantage over the vertex-star layer + arrows was ten-thin-class
+  exclusion, which the derived atlas delivers without paper data.
+- **Glyph-level edge labels** (law 20): arrow marks now carry the
+  exact (family, level) of the grid line each edge's dual segment
+  rides — the identity Ammann bars ride on (same line = same glyph).
+  Together with the parity mult this is the full edge-token set a
+  visual Ammann decoration needs.
+- **Chart placement + single-owner assignment** (laws 21):
+  `atlas_centers` (12 canonical icosa tangent centers, worst
+  covering radius 37.4 deg, formula-verified against sampled
+  worst), `chart_owner` (deterministic nearest-center ownership,
+  tie-broken by center index) — every surface point claims exactly
+  one chart, the pre-stitch layer that makes later stitching a
+  LOCAL fix instead of a global ambiguity.
+- **Renderer feed, caller-side, shipped** (`game/scenes/worlds/
+  penrose_mesh_builder.gd`, probe_penrose_mesh 7/7 PASS, runner
+  registered): builds real fat/thin TWO-SURFACE ArrayMeshes with
+  vertex colors + normals, planar OR gnomonic-projected to the
+  planet sphere (points on-sphere, radial unit normals asserted),
+  and mounts a MeshInstance3D - the "data-only raster seam" now has
+  its ready consumer, still frame-pure below the builder line.
+
 Still not built (the honest gap, perpetually):
-- The 1-atlas (15 local 1-maps, unlabelled) for a globally
-  sufficient legality check — the next rung up; needs atlas
-  figure data (paper figures, not machine-readable in the source).
-- Glyph-level MRI (single/double arrow labels per segment beyond
-  parity-classes) for visual Ammann decoration; the parity form is
-  the seam-consistent core.
-- An actual Node-based renderer + chart-boundary stitch polygons.
-- Whole-sphere stitching beyond the atlas MATH (the boundary
-  polygons / LOD skirt management between adjacent charts).
+- Chart-boundary STITCH polygons (the two charts that share an
+  edge region need shared edge geometry; ownership just makes the
+  problem single-owner). LOD skirt management between charts.
+- The extendability DECIDER (Mazac's cut-and-project window-
+  intersection test) if a caller ever needs "is this FINITE patch
+  extendable?" rather than "is it locally lawful?" (the vertex-
+  star + arrow layers answer the latter, and the ten-thin class,
+  provably forever).
 
 Decision: prototype viable; the Phase-5 seam-vs-periodic map
 question (this doc sec 1.3) remains the adopt trigger — BUT
