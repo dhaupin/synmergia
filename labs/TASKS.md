@@ -5320,11 +5320,11 @@ BUGS FOUND BY THE PROBE (probe-first paid for itself):
   await frame.
 
 VERIFICATION (exit statuses): test_notification_toast 11/0 exit 0,
-test_hud_widgets 3/0 exit 0 (new: mounts both faces on the live
-scene, drives a CORNER notification through NotificationService.py
+test_hud_widgets 10/0 exit 0 (new: mounts both faces on the live
+scene, drives a CORNER notification through NotificationService
 into the dedicated face, blocks CHAT_LOG, pins one-send-one-toast
 dedupe, pins the 5-stack flood cap, drives PartyFrames visible ->
-render -> empty-hides -> 5-fashion frame cap),
+render -> empty-hides -> frame render cap (5/7 pushed)),
 test_notification_frame 26/0 exit 0, lint charset 3/0 exit 0.
 NOT changed: TooltipManager's show_toast (still the fallback face),
 NotificationService's kind/priority maps, RecursionGuard's depth

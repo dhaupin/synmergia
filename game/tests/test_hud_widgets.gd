@@ -49,10 +49,10 @@ func _initialize() -> void:
 		_ok("PartyFrames mounted on HUD scene (starts hidden: %s)" % str(not party.visible))
 
 	if toast != null:
-		_run_toast_checks(toast)
+		await _run_toast_checks(toast)
 
 	if party != null:
-		_run_party_checks(party)
+		await _run_party_checks(party)
 
 	hud.queue_free()
 	await process_frame
@@ -116,9 +116,6 @@ func _run_toast_checks(toast: Control) -> void:
 
 
 func _run_party_checks(party: Control) -> void:
-	# PartyService's own signal surface is pinned by the party tests; this
-	# probe pins the FACE: what it renders for the member dicts the
-	# integrator/services push into it.
 	party._member_data.clear()
 	party.update_party([_fake_member()])
 	await process_frame
