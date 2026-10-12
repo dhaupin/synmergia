@@ -109,6 +109,8 @@ probe_climb
 probe_calibration
 globe_driver
 probe_ancient_loop
+frame/math/test_penrose
+frame/math/test_pentagrid
 frame/srv/test_cosmic_rng
 frame/srv/test_weather
 probe_sky_crate

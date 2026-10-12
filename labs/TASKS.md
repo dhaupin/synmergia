@@ -5388,3 +5388,164 @@ exit 0, fail_flags empty, surface lift 10.52 m, path 39.5 m. Headless
 family re-run green (terrain stream 13/0, widgets 10/0, toast 11/0).
 NOT changed: terrain gen, streamer, ocean volumes, backend sundered,
 mask/skirt -- they were right.
+
+## 2026-10-12 — the aperiodic frame piece lands (Penrose P3)
+
+**Premise beaten into code:** early vant ("the dhaupin/vant"),
+which inspired synmergia, played with Penrose tilings (Bielefeld
+P3-rhomb substitution page). The world-building research doc had
+it as Phase-6 research-only. User said build it. Landed as a
+frame primitive + the rng seam within one session.
+
+* `core/frame/math/penrose.gd` (new): canonical P3 substitution —
+  fat/thin rhomb seeds split into Robinson-triangle halves sharing
+  a base exactly; `subdivide_once` (L -> L,S,L; S -> S,L; count
+  matrix [[2,1],[1,1]] with eigenvalue phi^2); exact phi psi psi2
+  and cos/sin 36/72 constants; mirrored (handedness) flag carried
+  through every generation; `deflate_n`; recursive-deflation point
+  lookup (barycentric containment with edge slop, deterministic
+  first-hit) yielding per-level ANNOTATION digits (child index
+  0..2), the address "window"; `scope_for_point` -> "penrose.<w>";
+  adjacency by shared-edge matching with self-identity guard;
+  `base_child_edges` (the cut points along base a-c) for the
+  matching-rule work the frame does not yet have.
+* `core/frame/math/test_penrose.gd` (new): 10 laws ALL PASS —
+  area conservation, M^2 counts (10 L / 6 S after two deflations
+  from a fat rhomb = rows of M^2 = [[5,3],[3,2]] x halves),
+  children-inside-parents 3 generations, containment/escape
+  (centroid + base midpoint resolve; far point escapes to
+  "penrose.escape"), annotation determinism, 500-probe density
+  (digits in 0..2, >=2 distinct first digits), scope prefix law,
+  grandchild partition area law, seed base pairing (psi cut on
+  both sides for L, whole edge for S), adjacency symmetry
+  including the NOT-adjacent-to-itself identity case.
+* `core/frame/srv/cosmic_rng.gd`: Aperiodic rng seam LIVE —
+  `penrose_unit(p)` / `penrose_randi(p, from, to)` derive streams
+  from `penrose.<window>` scopes, riding the existing replay
+  contract ((pool_state, scope) -> identical stream). 2 new tests
+  in test_cosmic_rng (deterministic point roll + snapshot replay)
+  green; the full rng suite still passes end to end.
+* `scripts/godot_test_runner.sh`: `frame/math/test_penrose` added
+  to the regression set. Runner output: `frame/math/test_penrose`
+  PASS; rng, spherical, icosahedral all still PASS (5 suite runs
+  this session).
+* Lint charset on the two new files: clean (no non-ASCII in
+  strings/tab literals beyond the allowlisted projector frames).
+* NOT built (honest gap): renderer/raster of the rhombi, de Bruijn
+  pentagrid / cut-and-project family (constant-angle construction
+  over the substitution's canonical one), spherical projection,
+  matching-rule (arrow/arc) validator, global addressing beyond
+  the handed seed triangle, and a perf benchmark. The rng seam
+  needs none of those to be usable — it ships live for any caller
+  that wants aperiodic audit keys today.
+
+### 2026-10-12 (late session): the missing pieces — de Bruijn pentagrid, global addressing, validator v1, raster + spherical seams, benchmark
+* `core/frame/math/pentagrid.gd`: NEW frame primitive, the de Bruijn
+  1981 five-grid dual of the Penrose P3 (the constant-angle
+  construction). Five line families with 72-degree-spaced normals,
+  Penrose-class shifts gamma = [0.3, 0.2, -0.1, -0.4, 0.0]
+  (phase-sum 0, reference sample), cell->vertex / crossing->rhombus
+  duality via Cramer, and `tile_at(p)` GLOBAL point lookup: any
+  point in the plane resolves to its rhombus in <= 40 candidate
+  tests via the F(K) = 2.5*x + C window correspondence.
+* Global vs seed-bounded: 300-probe containment law passes, far
+  law passes (points at |p| ~ 50-350 resolve while penrose.gd's
+  substitution-seeded lookup escapes all six) — the gap this
+  session closed, verified empirically by the tests themselves.
+* Matching-rule validator v1 (`validate_patch`): unit edges,
+  corner classes in {36,72,108,144}, abab alternation permit an
+  edge shared by at most 2 tiles, interior-vertex angle sums of
+  10 units of 36 degrees (boundary exempt). Built regions validate
+  clean at half-extents 4, 8 and 9; the stretched-tile mutation
+  law proves the validator is not vacuously green. The
+  Ammann-arrow cyclic-order check is the remaining legality
+  condition beyond v1 (documented per MathPages).
+* Raster seam (`triangle_soup`): patches -> PackedVector3Array
+  positions + PackedInt32Array fat/thin per-triangle kinds (2 tris
+  per tile). Data-only; the ArrayMesh feed is the caller's move.
+* Spherical seam (`gnomonic_project`, `project_patch`): planar
+  tiles -> planet-sphere points through an orthonormal tangent
+  basis (east/north), radius honored, tangent point preserved.
+  Per-patch use documented (sec2 distortion far out).
+* Benchmark (`core/frame/math/bench_penrose.gd`): measured headless
+  Godot 4.7.2: annotation lookup 0.032/0.046 ms @ depths 4/6,
+  pentagrid tile_at 0.47 ms/probe, deflate_n(seed, 8) 26 ms,
+  build_region(10) 93 ms, validate_patch 111 ms (~1487 tiles,
+  valid), triangle_soup 2 ms (2038 tris). The sec-1.5 game-scale
+  budget (sub-millisecond point-to-tile) is met for point lookups;
+  region build/validate is a load-time cost.
+* `core/frame/math/test_pentagrid.gd`: 12 laws ALL PASS
+  (gamma phase-sum, canonical grid regular via 3+-line
+  singular count = 0 over kmax 8, single-cell index invariant
+  S in {1..4} x400 probes, unit-rhomb shape law (edges 1, areas
+  sin72/sin36, angle sets), 300-probe containment tile_at, far-
+  field global tile_at, tile key determinism + same-tile sharing,
+  build-region census ratio 1.674 ~ phi, built patch validates,
+  mutation caught, gnomonic tangent/sphere/near-tangent laws,
+  triangle soup counts/z/kind laws). Runner registered as
+  frame/math/test_pentagrid; full frame/math + cosmic suites
+  re-run PASS after it (exit codes captured per run).
+
+## 2026-10-12 (turn 3): the §1.9 gap list, post-mortem on all four, plus the game hookup
+
+Status of the "still not built" list from last turn — every item closed, upgraded, or honestly re-scoped:
+
+- Ammann-arrow cyclic-order check: DELIVERED as the parity-strip-index seam law
+  (`pentagrid.edge_arrows` + `_validate_arrows`, integrated into `validate_patch`).
+  Key finding en route and documented: the glyph-table's "fat = one mult class
+  on all four edges" bit is provably GLOBALLY inconsistent when enforced
+  seam-crossing under the same-world-amos-per-edge requirement; the parity of
+  the lower corner cell of the pair a shared edge straddles is the mark
+  (mult, dir)-piece that superimposes BY CONSTRUCTION on seams, no winding
+  dependence, [x,!x,!x,x] mult shape per tile (test law 13 pins the
+  structural fact). Necessary-not-sufficient for extendability remains true
+  (MathPages ten-thin trap) — that final rung is the 1-atlas (15 1-maps,
+  Fernique-Lutfalla), open precisely because its atlas is PAPER-FACT data.
+- Data-only raster seam: CLOSED at the data boundary (`soup_to_mesh_arrays`,
+  law 15 round-trips to a real committed ArrayMesh with 1 surface and exact
+  vertices) — node creation deliberately stays caller-side, 5 lines.
+- Spherical per-patch gnomonic: delivered the WHOLE-PLANET ATLAS MATH
+  (cap-vs-distortion: 17.5 deg at 10% sec2, 24.1 at 20% per Snyder,
+  hex-spacing cap*sqrt(3), chart-count estimate 40-90 @ 20 km planet and
+  10% cap). Whole-sphere STITCHING (boundary polygons across adjacent
+  charts) stays the honest open item: the research turn found NO verified
+  literal P3-on-sphere construction in the literature (T-K spherical
+  Penrose-like is the nearest prior art, not P3) — so this is a THIS ROAD
+  that ends in real work, not a hidden gap.
+- Perf numbers with no CI gate: DELIVERED as Law 17 (perf gate in
+  test_pentagrid.gd, 4x/13x/20x observed headroom; runs AND gates on every
+  suite invocation). benchmark script stays the human-readable report.
+
+Game-system hookup (this turn):
+- CosmicRng gained the pentagrid global seam (`pentagrid_scope/_unit/_randi`)
+  mirroring the proven penrose window seam but plane-global: rhombus-key
+  scopes, deterministic per fixed gamma, replay-tested. 23/23 CosmicRng
+  checks PASS (foreign-scope isolation + snapshot-replay pinned).
+
+Deliverables (all fresh, all verified):
+- game/core/frame/math/pentagrid.gd: edge_arrows + _validate_arrows (the new
+  legality layer), soup_to_mesh_arrays, patch_cap_deg / atlas_spacing_deg /
+  atlas_chart_count, doc-comment corrections.
+- game/core/frame/math/test_pentagrid.gd: laws 13-17 added (arrows lawful on
+  real patches, mirrored-seam mutation caught, soup-to-arraymesh roundtrip,
+  atlas caps vs Snyder, perf gate), 17/17 suites PASS.
+- game/core/frame/srv/cosmic_rng.gd + test_cosmic_rng.gd: pentagrid seam +
+  6 new checks, 23/23 PASS.
+- web/index.html + src/components/wasm/GodotClientView.tsx: the
+  permission-prompt explainer (Android/Chromium's opaque
+  "other apps and services" = the standard loopback-network consent;
+  Blocking is safe; what it actually gates is stated). Visible on mobile
+  UA in the stale loading screen AND in the shell toolbar drawer.
+- labs/world-building-research.md sec 1.9 refreshed (deliveries +
+  re-scoped honest gap).
+
+Verification record (exit codes captured headless per run):
+- test_pentagrid 17/17 PASS; test_penrose 10/10 PASS; test_cosmic_rng 23/23
+  PASS; charset lint 3/3 PASS exit 0; TSX typecheck tsc -b --noEmit clean.
+- Full runner default set: chunked PASS (16 + 16 + 11 + singulars + 9) —
+  every named test in scripts/godot_test_runner.sh's DEFAULT_SET ran green
+  this turn after the new laws landed, including terrain/globe/probes.
+  probe_crafting once flaked its 10%-roll `attempts == 1` assumption,
+  passed on the immediate re-run WITH NO CODE CHANGE (a data-chance
+  flake in a pre-existing probe, noted as follow-up material, not a
+  regression of this turn).

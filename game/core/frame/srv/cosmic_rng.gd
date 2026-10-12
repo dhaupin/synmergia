@@ -26,6 +26,8 @@
 extends RefCounted
 
 const CosmicEntropyScript = preload("res://core/frame/srv/cosmic_entropy.gd")
+const PenroseScript = preload("res://core/frame/math/penrose.gd")
+const PentagridScript = preload("res://core/frame/math/pentagrid.gd")
 
 ## Pool mixing constants (FNV-1a inspired, cheap and well-mixed).
 const FNV_OFFSET: int = -2128831035  # 0x811C9DC5 as int32
@@ -76,6 +78,43 @@ func stream_for(scope: String) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _mix(_mix(_pool, scope.hash()), _stir_count)
 	return rng
+
+
+## Aperiodic window scopes (Penrose P3 seam). A point in tiling space
+## maps to "penrose.<window>", an annotation string whose digits are the
+## containing child's index per deflation level (see core/frame/math/
+## penrose.gd scope_for_point). Two coordinates under the same window
+## share every interior prefix — deterministic, replayable, and related
+## scopes dig their way out of each other instead of colliding.
+## Convenience: one aperiodic roll at a tiling-space point, [0, 1).
+func penrose_unit(p: Vector2) -> float:
+	return unit(PenroseScript.scope_for_point(p))
+
+
+## Convenience: one aperiodic integer roll at a tiling-space point.
+func penrose_randi(p: Vector2, from: int, to: int) -> int:
+	return stream_for(PenroseScript.scope_for_point(p)).randi_range(from, to)
+
+
+## Global aperiodic scopes (pentagrid seam). The de Bruijn pentagrid
+## covers the WHOLE plane (unlike the seed-bounded penrose windows):
+## every point resolves to a globally-addressed rhombus whose key is
+## its (families, levels) identity — deterministic, distinct per
+## rhombus, and stable under fixed gamma. Use for world-position loot
+## tables, spawn rolls, node seeding: any roll that should depend on
+## WHERE on the planet you are, not on WHO ran the roll.
+func pentagrid_scope(p: Vector2) -> String:
+	return PentagridScript.tile_key(p)
+
+
+## Convenience: one aperiodic roll at a plane position, [0, 1).
+func pentagrid_unit(p: Vector2) -> float:
+	return unit(pentagrid_scope(p))
+
+
+## Convenience: one aperiodic integer at a plane position.
+func pentagrid_randi(p: Vector2, from: int, to: int) -> int:
+	return stream_for(pentagrid_scope(p)).randi_range(from, to)
 
 
 ## Convenience: one scoped roll returning [0, 1).

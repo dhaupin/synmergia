@@ -208,6 +208,16 @@ export const GodotClientView: React.FC<GodotClientViewProps> = ({ onSwitchToComp
           </div>
 
           <div>
+            <label className="block text-slate-400 font-medium mb-1">Device Permission Prompt</label>
+            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+              On Android browsers the game surface may ask to "access other apps and services on this
+              device" — that is the browser's standard <span className="text-slate-300">local-network/loopback</span> consent,
+              not something custom. Synmergia plays fine with it <span className="text-amber-300">Blocked</span>;&nbsp;
+              only <span className="text-slate-300">Allow</span> if you deliberately run the local 2D companion on this device.
+            </p>
+          </div>
+
+          <div>
             <label className="block text-slate-400 font-medium mb-1">Cross-Origin Isolation</label>
             <div className="flex items-center gap-2 mt-1">
               <span

@@ -9,6 +9,7 @@ extends SceneTree
 
 const RngScript = preload("res://core/frame/srv/cosmic_rng.gd")
 const CosmicScript = preload("res://core/frame/srv/cosmic_entropy.gd")
+const PenroseScript = preload("res://core/frame/math/penrose.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -23,6 +24,9 @@ func _init() -> void:
 	_test_helpers()
 	_test_snapshot_restore()
 	_test_audit_ring()
+	_test_penrose_point_seam()
+	_test_penrose_replay()
+	_test_pentagrid_seam()
 	print("CosmicRng tests: %d passed, %d failed" % [_passed, _failed])
 	quit(0 if _failed == 0 else 1)
 
@@ -111,6 +115,58 @@ func _test_audit_ring() -> void:
 	var tail: Array[Dictionary] = a.audit_tail(4)
 	_check("audit ring bounded", tail.size() == 4)
 	_check("audit tail is the most recent stirs", tail[3]["detail"] == 99)
+
+func _test_penrose_point_seam() -> void:
+	var a = RngScript.new(true)
+	var p := Vector2(0.3, 0.4)
+	var r1: float = a.penrose_unit(p)
+	var r2: float = a.penrose_unit(p)
+	_check("penrose_unit deterministic at same point", r1 == r2)
+	var q := Vector2(0.7, 0.2)
+	_check("penrose_unit differs across windows", a.penrose_unit(q) != r1)
+	var ri: int = a.penrose_randi(p, 1, 6)
+	_check("penrose_randi in range", ri >= 1 and ri <= 6)
+	var ri2: int = a.penrose_randi(p, 1, 6)
+	_check("penrose_randi deterministic", ri == ri2)
+
+
+func _test_penrose_replay() -> void:
+	# Replay contract: (snapshot, window scope) alone reproduces rolls.
+	var a = RngScript.new(true)
+	a.stir("hand", 7)
+	var snap: Dictionary = a.snapshot()
+	var p := Vector2(0.45, 0.55)
+	var roll_a: float = a.penrose_unit(p)
+	var b = RngScript.new(true)
+	b.restore(snap)
+	var roll_b: float = b.penrose_unit(p)
+	_check("penrose replay from snapshot matches", roll_a == roll_b)
+
+
+func _test_pentagrid_seam() -> void:
+	# Global tiling-space seam: any point on the whole plane resolves
+	# to a stable rhombus scope; same point -> same roll, differing
+	# points differ, foreign scopes stay distinct, replay holds.
+	var a = RngScript.new(true)
+	var p1 := Vector2(12.3, -7.7)
+	var s1: String = a.pentagrid_scope(p1)
+	_check("pentagrid scope is a global tile key", s1.begins_with("pentagrid."))
+	_check("pentagrid scope deterministic", s1 == a.pentagrid_scope(p1))
+	var r1: float = a.pentagrid_unit(p1)
+	_check("pentagrid_unit deterministic at a point", r1 == a.pentagrid_unit(p1))
+	var p2 := Vector2(-99.4, 55.1)
+	var s2: String = a.pentagrid_scope(p2)
+	_check("distant points scope to different rhombi", s1 != s2 and a.pentagrid_unit(p2) != r1)
+	_check("pentagrid and penrose rivers stay separate", a.unit(s1) != 0.0 and s1 != PenroseScript.scope_for_point(p1))
+	var ri: int = a.pentagrid_randi(p1, 1, 20)
+	_check("pentagrid_randi deterministic and ranged", ri >= 1 and ri <= 20 and ri == a.pentagrid_randi(p1, 1, 20))
+	# Replay: (snapshot, plane position) alone reproduces the roll.
+	a.stir("hand", 99)
+	var snap: Dictionary = a.snapshot()
+	var roll_a: float = a.pentagrid_unit(p1)
+	var b = RngScript.new(true)
+	b.restore(snap)
+	_check("pentagrid replay from snapshot matches", b.pentagrid_unit(p1) == roll_a)
 
 
 func _check(label: String, cond: bool) -> void:

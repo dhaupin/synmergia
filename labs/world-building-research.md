@@ -234,10 +234,139 @@ issue and Phase 6 doesn't happen.
 
 ### 1.9 Current status
 
-- Research: started in this document.
-- Prototype code: not yet.
-- Performance numbers: not yet.
-- Decision: pending Phase 5 user-testing data.
+**Prototype landed 2026-10-12** (the "user said build it all"
+session). What exists now:
+
+- `game/core/frame/math/penrose.gd` — the P3 substitution
+  primitive: canonical fat/thin rhomb seeds (Robinson-triangle
+  halves, exact phi/psi cuts), `subdivide_once` (L -> L,S,L;
+  S -> S,L; count matrix M = [[2,1],[1,1]], eigenvalue phi^2),
+  `deflate_n`, recursive-deflation point lookup with
+  barycentric edge-slop handling, per-level annotation strings
+  (child index digits), scope-key generation, adjacency via
+  shared-edge matching with a self-identity guard, and
+  `base_child_edges` for matching-rule-side work later.
+- `game/core/frame/math/test_penrose.gd` — 10 laws, ALL PASS:
+  area conservation, count matrix M^2 (10/6 fat, 6/4 thin),
+  children-inside-parents x3 generations, containment/escape,
+  annotation determinism, 500-probe density, scope prefix,
+  children partition parents, seed base pairing, adjacency
+  symmetry. Wired into `scripts/godot_test_runner.sh` as
+  `frame/math/test_penrose`.
+- CosmicRng seam (`game/core/frame/srv/cosmic_rng.gd`):
+  `penrose_unit(p)` / `penrose_randi(p, from, to)` derive
+  streams from `"penrose.<window>"` annotation scopes — the
+  aperiodic roll surface. Two new replay laws in
+  `frame/srv/test_cosmic_rng` (point-seam determinism +
+  snapshot replay), all green.
+
+Second build landed 2026-10-12 (the "missing pieces" session) —
+game/core/frame/math/pentagrid.gd, the de Bruijn 1981 five-grid
+dual, closing most of the earlier gaps:
+
+- GLOBAL addressing: `tile_at(p)` resolves any point in the plane
+  (<= 40 candidate rhombi per probe). 300-probe and far-field laws
+  (points at |p| ~ 50-350, i.e. dozens of inflation levels past the
+  substitution seed) all resolve; the seed-bounded lookup escapes
+  all 6 far probes, which is exactly the difference the pentagrid
+  closes.
+- Construction verified, not assumed: canonical shift
+  gamma = [0.3, 0.2, -0.1, -0.4, 0.0] (phase-sum 0, the worked
+  sample of the reference implementation mdickinson/pentagrid),
+  72-degree-spaced normals, single-cell index invariant
+  S in {1..4}, zero singular (3+-line) crossings over the built
+  region, and the fat:thin census ratio 1.674 ~ phi at half-extent
+  12. Twelve laws in core/frame/math/test_pentagrid.gd, ALL PASS,
+  wired into scripts/godot_test_runner.sh as
+  frame/math/test_pentagrid.
+- Matching-rule validator v1 (geometric closure): unit edges,
+  corner-class + abab alternation, edge multiplicity <= 2, and
+  interior-vertex angle sums of 10 x 36 deg (patch-boundary
+  vertices exempt). Built regions validate clean; the validator
+  catches a stretched-tile mutation (not vacuously green).
+- Raster seam: `triangle_soup(patch, scale, z)` emits drawable
+  PackedVector3Array + per-triangle fat/thin kind ids (2 tris per
+  tile) — no Node created, renderer stays a caller.
+- Spherical seam: gnomonic projection at a tangent point with an
+  orthonormal east/north basis, per-patch; rhombus edges stay
+  great-circle arcs. Not a whole-planet map (sec2 distortion past
+  the patch).
+- Benchmark harness: core/frame/math/bench_penrose.gd. Measured
+  headless (Godot 4.7.2, this machine): annotation lookup
+  0.032 ms @ depth 4 / 0.046 ms @ depth 6 per probe;
+  pentagrid tile_at 0.47 ms per probe; deflate_n(seed,8)
+  26 ms; build_region(10) 93 ms + validate 111 ms for ~1487
+  tiles; triangle_soup 2 ms for 2038 tris. Point lookups clear
+  the sub-millisecond game-scale target from sec 1.5; region
+  build/validate is a load-time cost. (The CI perf gate is live
+  in law 17 of test_pentagrid.gd; the benchmark still reports
+  exact numbers, additionally.) validate now includes the arrow
+  pass at 26 ms extra (validate 170 ms for ~2038 tiles incl.
+  arrows this turn), same asymptotics.
+
+Built since (2026-10-12, "close the gaps" turn):
+- **Ammann-arrow seam law, parity form** (`pentagrid.edge_arrows`,
+  `_validate_arrows`): the non-vacuous joint the naive glyph table
+  cannot give. Derivation: every tiling edge is dual to a grid
+  segment on line L_{f,m}; the edge's arrow mult = parity of the
+  LOWER cell of the (m, m+1) pair — both incident tiles share that
+  cell's index, so the (mult, dir) mark superimposes BY CONSTRUCTION
+  on any shared edge (world-coordinate superposition, no perimeter-
+  winding dependence). Within-tile structure is the [x, !x, !x, x]
+  mult pattern (law 13 pins it). The naive "fat = one mult class all
+  four edges" glyph-table bit (MathPages) is documented as globally
+  inconsistent (with it, fat/fat-seam mult must be equal per family
+  and unequal per other — unsatisfiable); the parity form is the
+  permit-to-run core that stays seam-consistent. Laws 13/14 prove
+  both directions: real patches validate WITH arrows; a mirrored-
+  seam mutation is caught. Still necessary-not-sufficient for
+  global extendability (MathPages kmath621; ten-thin cluster),
+  documented as the 1-atlas rung (Fernique-Lutfalla arXiv:2211.08239
+  characterizes the unlabelled tilings with 15 1-maps) — now the
+  ONLY remaining legality condition beyond v1.
+- **Raster feed helper** (`soup_to_mesh_arrays`): a Mesh-ready
+  positions+indices transform of a triangle_soup, validated (mult-3,
+  kind-array length, loud push_error on corrupt data). Law 15
+  feeds the result through ArrayMesh.add_surface_from_arrays and
+  asserts 1 surface / correct vertices — the ArrayMesh seam is now
+  CLOSABLE by the caller in 5 lines, still node-free here.
+- **Whole-planet atlas math** (`patch_cap_deg`,
+  `atlas_spacing_deg`, `atlas_chart_count`): the gnomonic cap for a
+  chosen worst-direction scale-error (sec^2; 10% <-> 17.5 deg, 20%
+  <-> 24.1 deg, Snyder-derived; law 16 pins both), hex-lattice
+  covering spacing (cap * sqrt(3)), chart-count estimate (sphere
+  area / cap area; ~40-90 charts for a 20 km planet at 10% tops).
+  Researching further: literal P3-on-sphere has NO verified
+  construction (Todd 2018's T-K "spherical Penrose-like" is related
+  prior art, not P3); chart-boundary stitching stays the explicit
+  boundary problem documented in sec 1.5 (shared edge polygons per
+  Ralith's planetary-terrain practice).
+- **Perf gate in CI** (law 17): the benchmark numbers above are now
+  ARGUED by an always-on gate in the law suite (tile_at < 2 ms,
+  region-9 build < 900 ms, soup+mesh < 50 ms; observed headroom
+  4x/13x/20x on the authoring machine). "Numbers stand as recorded"
+  becomes "numbers BLOCK when they rot".
+- **CosmicRng pentagrid seam** (`pentagrid_scope/_unit/_randi`):
+  whole-plane aperiodic audit scopes ON TOP OF the penrose window
+  scopes; global rhombus keys, deterministic, replay-tested
+  (23 CosmicRng checks green; foreign-scope isolation asserted).
+
+Still not built (the honest gap, perpetually):
+- The 1-atlas (15 local 1-maps, unlabelled) for a globally
+  sufficient legality check — the next rung up; needs atlas
+  figure data (paper figures, not machine-readable in the source).
+- Glyph-level MRI (single/double arrow labels per segment beyond
+  parity-classes) for visual Ammann decoration; the parity form is
+  the seam-consistent core.
+- An actual Node-based renderer + chart-boundary stitch polygons.
+- Whole-sphere stitching beyond the atlas MATH (the boundary
+  polygons / LOD skirt management between adjacent charts).
+
+Decision: prototype viable; the Phase-5 seam-vs-periodic map
+question (this doc sec 1.3) remains the adopt trigger — BUT
+the rng seam (`CosmicRng.penrose_*`) is live for any caller
+that wants aperiodic audit keys today, regardless of the
+world-map question.
 
 ---
 

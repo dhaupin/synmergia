@@ -43,6 +43,28 @@
 			border-color: #e8b64c;
 			color: #e8b64c;
 		}
+		/* Device-permission explainer (see the note in #loading-screen). */
+		#permission-note {
+			width: min(420px, 72vw);
+			margin: 16px auto 0;
+			padding: 10px 14px;
+			border: 1px solid #2a3245;
+			border-radius: 8px;
+			background: #141926;
+			color: #8a8aa8;
+			font-size: 12px;
+			line-height: 1.5;
+			text-align: left;
+		}
+		#permission-note[hidden] { display: none; }
+		#permission-note .perm-heading {
+			margin: 0 0 4px;
+			font-size: 12px;
+			font-weight: 600;
+			color: #d7dce8;
+		}
+		#permission-note .perm-copy { margin: 0; }
+		#permission-note b { color: #e8b64c; }
 	</style>
 </head>
 <body>
@@ -53,6 +75,21 @@
 			<p id="loading-text">Loading Synmergia...</p>
 			<div id="loading-bar"><div id="loading-bar-fill"></div></div>
 			<button id="fullscreen-btn">Fullscreen</button>
+			<!-- The device-permission explainer: Android/Chromium surfaces a
+			     scary-sounding system consent ("wants to access other apps
+			     and services on this device") for LOOPBACK-NETWORK access.
+			     A webpage cannot customize the native dialog's wording, so
+			     we tell the player what it is BEFORE it can appear. It is
+			     only triggered if the game opts into a local companion
+			     service; Blocking it is safe and game-complete. -->
+			<div id="permission-note" hidden>
+				<p class="perm-heading">A browser permission prompt may appear</p>
+				<p class="perm-copy">If your browser asks to "access other apps and services on this device",
+				that is its standard question about contacting LOCAL services (apps on the
+				same machine). Synmergia does not need it to play: you can safely
+				<b>Block</b> it. Only Allow if you are running the optional local companion
+				(2D companion client) on this device.</p>
+			</div>
 		</div>
 		<div id="error-screen" class="hidden">
 			<h2>Failed to load</h2>
@@ -169,10 +206,22 @@
 			},
 		};
 
-		if (typeof Engine === "undefined") {
-			fail("game.js failed to load (Engine unavailable). The client must be served from /web/ -- a reload usually fixes a stale deploy.");
-			return;
-		}
+	// Show the device-permission explainer on mobile browsers: Android
+	// Chromium surfaces the loopback-network consent with opaque wording
+	// ("access other apps and services"); the note tells the player what
+	// the prompt actually is and that Blocking is safe. Desktop browsers
+	// do not prompt this way, so the note stays hidden there.
+	var permissionNote = document.getElementById("permission-note");
+	var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+	if (permissionNote && isMobile) {
+		permissionNote.hidden = false;
+		setTimeout(function () { permissionNote.hidden = true; }, 20000);
+	}
+
+	if (typeof Engine === "undefined") {
+		fail("game.js failed to load (Engine unavailable). The client must be served from /web/ -- a reload usually fixes a stale deploy.");
+		return;
+	}
 
 		var missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
 		if (missing.length !== 0) {
