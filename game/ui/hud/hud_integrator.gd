@@ -30,6 +30,31 @@ var _minimap: Node
 var _world_map: Node
 var _chat: Node
 var _tooltip: Node
+## Dedicated toast face (ui/components/notification_toast.gd) -- the rich
+## corner stack with types/click actions/notification center. Legacy
+## TooltipManager.show_toast() remains the fallback for HUD scenes that
+## predate this wiring.
+var _toast_face: Node
+## Rolling 5s gate for the double-wired notification_sent/
+## notification_received pair: one send() hits _on_notification twice with
+## identical payloads, and the toast stack should only see it once.
+var _toast_seen: Dictionary = {}
+
+## True when a toast with this key fired inside the last 5 seconds.
+func _toast_dedupe_key(key: String) -> bool:
+	var now := Time.get_ticks_msec()
+	var seen_at: int = int(_toast_seen.get(key, -100000))
+	if now - seen_at < 5000:
+		return true
+	_toast_seen[key] = now
+	# Sweep stale keys so the map cannot grow unbounded.
+	if _toast_seen.size() > 64:
+		for k in _toast_seen.keys():
+			if now - int(_toast_seen[k]) >= 5000:
+				_toast_seen.erase(k)
+	if _toast_seen.size() > 128:
+		_toast_seen.clear()
+	return false
 
 ## Track active target so the boss bar can fall back when clearing.
 var _current_target: Dictionary = {}
@@ -52,6 +77,7 @@ func bind(hud: CanvasLayer) -> void:
 	_world_map = _find("WorldMap")
 	_chat = _find("ChatUI")
 	_tooltip = _find("TooltipManager")
+	_toast_face = _find("NotificationToast")
 	_action_menu = _find("ActionMenu")
 	_connect_all()
 	_push_initial_state()
@@ -439,8 +465,7 @@ func _on_chat_received(sender_id: String, channel: int, message: String, _target
 func _on_notification(_entity_id: String, notification: Dictionary) -> void:
 	# NotificationService passes a Dictionary; render the text into the
 	# combat log as a system message so it shows up in the same stream
-	# the player already watches. We also fall through to a ToastBar if
-	# the HUD has one.
+	# the player already watches.
 	if not notification:
 		return
 	var text: String = str(notification.get("message", notification.get("text", "")))
@@ -448,7 +473,27 @@ func _on_notification(_entity_id: String, notification: Dictionary) -> void:
 		return
 	var color: Color = _notification_color(notification)
 	_log(text, color)
-	if _tooltip and _tooltip.has_method("show_toast"):
+
+	# Corner toast: route by location -- NotificationService.send_event()
+	# already maps HIGH+ kinds to CENTER_SCREEN and everything else to
+	# CORNER. Only the CORNER entries belong on the toast stack; the
+	# center-screen ones have their own billboard/showcase face upstream.
+	# Prefer the dedicated NotificationToast face (rich stack: types,
+	# click actions, notification center); fall back to TooltipManager's
+	# legacy bar when the new face is absent (HUD scenes installed before
+	# this wiring).
+	var location: Variant = notification.get("location", NotificationService.DisplayLocation.CHAT_LOG)
+	if int(location) != NotificationService.DisplayLocation.CORNER:
+		return
+	# Legacy single-signal shape: the old notifications carried their
+	# location inside the dict; double-reporting comes from BOTH the
+	# notification_sent and notification_received connections on the same
+	# send() call, so gate identical payloads with a rolling 5s key.
+	if _toast_dedupe_key("hud_toast:%s" % text.md5_text()):
+		return
+	if _toast_face and _toast_face.has_method("show_toast"):
+		_toast_face.show_toast(text, NotificationToast.ToastType.INFO, "", 5.0)
+	elif _tooltip and _tooltip.has_method("show_toast"):
 		_tooltip.show_toast(text, color, 3.0)
 
 

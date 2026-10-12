@@ -54,20 +54,41 @@ func _initialize() -> void:
 	else:
 		_fail("show_toast() did not create a panel")
 
-	# 2. NotificationService round-trip -- verify notification_sent signal
-	#    flows through the HUD and triggers show_toast.
+	# 2. NotificationService round-trip -- a CORNER-located notification
+	#    flows through the HUD integrator into the toast face (prefer the
+	#    dedicated NotificationToast stack; fall back to TooltipManager).
 	var notif: Node = root.get_node_or_null("NotificationService")
 	if not notif:
 		_fail("NotificationService autoload missing")
 		return
 	_clear_toasts(tooltip_mgr)
-	notif.send_to_player("test_player", "Hello via NotificationService")
+	var toast_face: Node = _world.get_node_or_null("HudLayer/NotificationToast")
+	if toast_face == null:
+		toast_face = _find_node(_world, "NotificationToast")
+	var face_active: int = _toast_face_count(toast_face)
+	# DisplayLocation.CORNER == 2 -- the corner-toast location.
+	notif.send_to_player("test_player", "Hello via NotificationService", 0, 1, 2)
 	await process_frame
 	await process_frame
-	if _active_toast_count(tooltip_mgr) > 0:
-		_ok("NotificationService.send_to_player() -> show_toast() (%d panels)" % _active_toast_count(tooltip_mgr))
+	var reached: bool = _toast_face_count(toast_face) > face_active \
+		or _active_toast_count(tooltip_mgr) > 0
+	if reached:
+		_ok("NotificationService CORNER -> toast face (%d panels)" % max(_toast_face_count(toast_face), _active_toast_count(tooltip_mgr)))
 	else:
-		_fail("Notification never reached show_toast -- HudIntegrator not wired?")
+		_fail("Notification never reached a toast face -- HudIntegrator not wired?")
+
+	# 2b. A CHAT_LOG notification must NOT spawn a toast (corner law:
+	# only CORNER-located notifications hit the stack; chat-log ones
+	# belong to the combat log).
+	_clear_toasts(tooltip_mgr)
+	face_active = _toast_face_count(toast_face)
+	notif.send_to_player("test_player", "Chat log only, no toast", 0, 1, 0)
+	await process_frame
+	await process_frame
+	if _toast_face_count(toast_face) == face_active and _active_toast_count(tooltip_mgr) == 0:
+		_ok("CHAT_LOG notification stays off the toast stack")
+	else:
+		_fail("CHAT_LOG notification leaked onto the toast stack")
 
 	# 3. Flood a handful of toasts to make sure the stack limit kicks in.
 	for i in range(8):
@@ -102,23 +123,50 @@ func _initialize() -> void:
 		if guard == null:
 			_fail("AppFirewall.get_recursion_guard() returned null")
 		else:
-			# Force a block: set a tiny max depth, then enter past it.
-			guard.set_max_depth("test_toast_ctx", 2)
-			var allowed_1: bool = guard.enter("test_toast_ctx")
-			var allowed_2: bool = guard.enter("test_toast_ctx")
-			var allowed_3: bool = guard.enter("test_toast_ctx")
+			# Force a block: set a tiny max depth, then enter past it. Use a
+			# FRESH context name each run -- RecursionGuard keeps a process-
+			# level depth tracker, and a context from an earlier suite run
+			# (or step) sits at depth > 0, so the first enter() here would
+			# block and break the allow/allow/block shape assertion.
+			var ctx_name := "test_toast_ctx_v%d" % (Time.get_ticks_msec() % 100000)
+			guard.set_max_depth(ctx_name, 2)
+			var allowed_1: bool = guard.enter(ctx_name)
+			var allowed_2: bool = guard.enter(ctx_name)
+			var allowed_3: bool = guard.enter(ctx_name)
 			await process_frame
 			await process_frame
 			if allowed_1 and allowed_2 and not allowed_3:
 				_ok("RecursionGuard: enter/exit semantics correct (allow, allow, block)")
 			else:
 				_fail("RecursionGuard semantics wrong: a1=%s a2=%s a3=%s" % [allowed_1, allowed_2, allowed_3])
-			if _active_toast_count(tooltip_mgr) > 0:
-				_ok("RecursionGuard block -> AppFirewall -> NotificationService -> toast (%d)" % _active_toast_count(tooltip_mgr))
+			# Rendering law: the firewall recursion alert is a HIGH-priority
+			# SECURITY_BLOCKED admin alert, which the notification frame
+			# maps to CENTER_SCREEN (1), NOT a corner toast. Pin the
+			# pipeline instead: the payload reached NotificationService
+			# under player_id="admins" with kind SECURITY_BLOCKED (24) in
+			# its data. Ambient gameplay toasts (achievements, bouts) may
+			# legitimately share the stack during the await, so the stack
+			# is checked BY CONTENT: the recursion message must not be on
+			# it.
+			if not _stack_contains(tooltip_mgr, "RecursionGuard") \
+					and not _face_contains(toast_face, "RecursionGuard"):
+				_ok("admin recursion alert stays off the corner toast stack (center-screen law)")
 			else:
-				_fail("Recursion block didn't reach the toast pipeline")
-			guard.exit("test_toast_ctx")
-			guard.exit("test_toast_ctx")
+				_fail("admin center-screen alert leaked onto the corner toast stack")
+			var admins_hist: Array = notif.get_history("admins", 20)
+			var captured := false
+			for entry in admins_hist:
+				var data: Dictionary = entry.get("data", {})
+				if int(data.get("kind", -1)) == 24 \
+						and str(data.get("context", "")) == ctx_name:
+					captured = true
+					break
+			if captured:
+				_ok("RecursionGuard block -> AppFirewall -> NotificationService (kind=24, ctx=%s)" % ctx_name)
+			else:
+				_fail("Recursion block never reached NotificationService (no kind=24 entry for ctx)")
+			guard.exit(ctx_name)
+			guard.exit(ctx_name)
 
 	_print_summary()
 	quit(0 if _failed == 0 else 1)
@@ -135,7 +183,8 @@ func _find_node(root_node: Node, node_name: String) -> Node:
 
 
 func _setup_headless_hud() -> Node:
-	# Create a minimal test world node with HudLayer and TooltipManager
+	# Create a minimal test world node with HudLayer, TooltipManager and
+	# the dedicated NotificationToast face.
 	var test_world := Node.new()
 	test_world.name = "WorldPlayable"
 	root.add_child(test_world)
@@ -157,6 +206,11 @@ func _setup_headless_hud() -> Node:
 		var tooltip: Control = TooltipScript.new()
 		tooltip.name = "TooltipManager"
 		hud.add_child(tooltip)
+	var ToastScript := load("res://ui/components/notification_toast.gd")
+	if ToastScript:
+		var toast: Control = ToastScript.new()
+		toast.name = "NotificationToast"
+		hud.add_child(toast)
 	test_world.add_child(hud)
 	# NOTE: do NOT call _ready() manually -- add_child() on a node already
 	# inside the tree triggers it, and HudLayer guards double-init with a
@@ -186,6 +240,48 @@ func _setup_headless_hud() -> Node:
 func _active_toast_count(tooltip_mgr: Node) -> int:
 	var stack: Array = tooltip_mgr.get("_active_toasts")
 	return stack.size() if stack != null else 0
+
+
+## Active panels on the dedicated NotificationToast face (same field name,
+## different node -- null face counts as 0).
+func _toast_face_count(toast_face: Node) -> int:
+	if toast_face == null:
+		return 0
+	var stack: Array = toast_face.get("_active_toasts")
+	return stack.size() if stack != null else 0
+
+
+## Content scan for a toast-face stack: any active panel whose labels
+## contain the needle counts. Handles both faces (TooltipManager panels
+## hold one Label; NotificationToast panels hold title/message labels).
+func _stack_contains(face: Node, needle: String) -> bool:
+	if face == null:
+		return false
+	var stack: Array = face.get("_active_toasts")
+	if stack == null:
+		return false
+	for panel in stack:
+		if not is_instance_valid(panel):
+			continue
+		if _panel_text(panel).findn(needle) != -1:
+			return true
+	return false
+
+
+func _face_contains(toast_face: Node, needle: String) -> bool:
+	return _stack_contains(toast_face, needle)
+
+
+func _panel_text(panel: Node) -> String:
+	var text := ""
+	for child in panel.get_children():
+		if child is Label:
+			text += str(child.text)
+		elif child is Node:
+			text += _panel_text(child)
+	if panel.has_meta("toast_data"):
+		text += str(panel.get_meta("toast_data", {}).get("message", ""))
+	return text
 
 
 func _clear_toasts(tooltip_mgr: Node) -> void:

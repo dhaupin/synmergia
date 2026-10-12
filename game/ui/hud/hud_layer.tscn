@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://ui/hud/hud_layer.gd" id="1_hud_root"]
 [ext_resource type="Script" path="res://ui/components/follow_manager.gd" id="23_follow"]
@@ -25,6 +25,8 @@
 [ext_resource type="Script" path="res://ui/components/quest_ui.gd" id="21_quest"]
 [ext_resource type="Script" path="res://ui/components/title_ui.gd" id="22_title"]
 [ext_resource type="Script" path="res://ui/components/main_menu_bar.gd" id="26_main_menu"]
+[ext_resource type="Script" path="res://ui/components/notification_toast.gd" id="27_toasts"]
+[ext_resource type="Script" path="res://ui/components/party_frames.gd" id="28_party"]
 
 [node name="HudLayer" type="CanvasLayer"]
 layer = 10
@@ -260,3 +262,21 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("26_main_menu")
+
+[node name="NotificationToast" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("27_toasts")
+
+[node name="PartyFrames" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("28_party")

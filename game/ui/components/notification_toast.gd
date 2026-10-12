@@ -14,22 +14,25 @@ enum ToastType {
 	ACHIEVEMENT = 5  # Purple
 }
 
+## Bare enum members do not resolve inside const-dict literals (GDScript
+## const-context scoping); keys must be ToastType-qualified or the whole
+## script fails to parse and the toast face silently dies.
 const TOAST_COLORS: Dictionary = {
-	INFO: Color(0.3, 0.6, 1.0),
-	WARNING: Color(1.0, 0.8, 0.2),
-	ERROR: Color(1.0, 0.3, 0.3),
-	SUCCESS: Color(0.2, 0.8, 0.3),
-	LOOT: Color(1.0, 0.85, 0.1),
-	ACHIEVEMENT: Color(0.8, 0.3, 1.0)
+	ToastType.INFO: Color(0.3, 0.6, 1.0),
+	ToastType.WARNING: Color(1.0, 0.8, 0.2),
+	ToastType.ERROR: Color(1.0, 0.3, 0.3),
+	ToastType.SUCCESS: Color(0.2, 0.8, 0.3),
+	ToastType.LOOT: Color(1.0, 0.85, 0.1),
+	ToastType.ACHIEVEMENT: Color(0.8, 0.3, 1.0)
 }
 
 const TOAST_ICONS: Dictionary = {
-	INFO: "[i]",
-	WARNING: "[!]",
-	ERROR: "[X]",
-	SUCCESS: "[+]",
-	LOOT: "[*]",
-	ACHIEVEMENT: "[A]"
+	ToastType.INFO: "[i]",
+	ToastType.WARNING: "[!]",
+	ToastType.ERROR: "[X]",
+	ToastType.SUCCESS: "[+]",
+	ToastType.LOOT: "[*]",
+	ToastType.ACHIEVEMENT: "[A]"
 }
 
 ## Configuration
@@ -83,10 +86,10 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			for label_name in ["Message", "ProgressBar"]:
 				var label: Label = child.get_node_or_null(label_name)
 				if label:
-					var current_size := label.get_theme_font_size("font_size")
+					var current_size: int = label.get_theme_font_size("font_size")
 					if current_size > 0:
 						label.add_theme_font_size_override("font_size", int(current_size * scale))
-	
+
 	# Update notification center
 	if _notification_center and is_instance_valid(_notification_center):
 		_notification_center.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
@@ -101,12 +104,12 @@ func update_accessibility_settings(high_contrast: bool, text_scale: float, reduc
 			elif child is Button:
 				child.add_theme_stylebox_override("focus", UIStyles.create_focus_style())
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 			elif child is Label:
 				var scale = UIStyles.get_text_scale()
-				var current_size := child.get_theme_font_size("font_size")
+				var current_size: int = child.get_theme_font_size("font_size")
 				if current_size > 0:
 					child.add_theme_font_size_override("font_size", int(current_size * scale))
 
@@ -203,8 +206,15 @@ func _create_notification_center() -> Control:
 	return panel
 
 func _connect_input() -> void:
-	# N key toggles notification center
-	Input.map_action("toggle_notifications", [KEY_N])
+	# N key toggles notification center (InputMap law: register the
+	# action once; Input has no static map_action). The _input() handler
+	# below still reads the raw keycode, so the action is only here for
+	# other UI consumers to query.
+	if not InputMap.has_action("toggle_notifications"):
+		InputMap.add_action("toggle_notifications")
+		var ev := InputEventKey.new()
+		ev.keycode = KEY_N
+		InputMap.action_add_event("toggle_notifications", ev)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:

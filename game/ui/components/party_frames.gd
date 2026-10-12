@@ -161,10 +161,12 @@ func _create_member_frame(index: int) -> Control:
 
 	# Info column (name, level, distance)
 	var info_vbox := VBoxContainer.new()
+	info_vbox.name = "InfoColumn"
 	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(info_vbox)
 
 	var name_row := HBoxContainer.new()
+	name_row.name = "NameRow"
 	info_vbox.add_child(name_row)
 
 	var name_label := Label.new()
@@ -276,104 +278,115 @@ func _update_member_frame(index: int, data: Dictionary) -> void:
 
 	frame.visible = true
 
-	var class_icon := frame.get_node("ClassIcon") as TextureRect
-	var role_icon := frame.get_node("RoleIcon") as TextureRect
-	var name_label := frame.get_node("NameLabel") as Label
-	var level_label := frame.get_node("LevelLabel") as Label
-	var distance_label := frame.get_node("DistanceLabel") as Label
-	var leader_icon := frame.get_node("LeaderIcon") as Label
-	var ready_icon := frame.get_node("ReadyIcon") as Label
-	var hp_bar := frame.get_node("HPBar") as ProgressBar
-	var mp_bar := frame.get_node("MPBar") as ProgressBar
+	# Named widgets live under the HBox built in _create_member_frame();
+	# get_node_or_null so a rebuilt/foreign frame never crashes the
+	# update tick (missing pieces are just skipped).
+	var class_icon := frame.get_node_or_null("HBoxContainer/ClassIcon") as TextureRect
+	var role_icon := frame.get_node_or_null("HBoxContainer/RoleIcon") as TextureRect
+	var info_vbox: VBoxContainer = frame.get_node_or_null("HBoxContainer/InfoColumn") as VBoxContainer
+	if info_vbox == null:
+		var hbox: Node = frame.get_node_or_null("HBoxContainer")
+		if hbox != null:
+			for child in hbox.get_children():
+				if child is VBoxContainer:
+					info_vbox = child
+					break
+	var name_label: Label = info_vbox.get_node_or_null("NameRow/NameLabel") as Label if info_vbox != null else null
+	var level_label: Label = info_vbox.get_node_or_null("NameRow/LevelLabel") as Label if info_vbox != null else null
+	var distance_label: Label = info_vbox.get_node_or_null("NameRow/DistanceLabel") as Label if info_vbox != null else null
+	var leader_icon: Label = info_vbox.get_node_or_null("NameRow/LeaderIcon") as Label if info_vbox != null else null
+	var ready_icon: Label = info_vbox.get_node_or_null("NameRow/ReadyIcon") as Label if info_vbox != null else null
+	var hp_bar: ProgressBar = info_vbox.get_node_or_null("HPBar") as ProgressBar if info_vbox != null else null
+	var mp_bar: ProgressBar = info_vbox.get_node_or_null("MPBar") as ProgressBar if info_vbox != null else null
 
 	# Name and level
-	name_label.text = data.get("name", "Unknown")
-	level_label.text = "Lv.%d" % data.get("level", 1)
+	if name_label:
+		name_label.text = str(data.get("name", "Unknown"))
+	if level_label:
+		level_label.text = "Lv.%d" % data.get("level", 1)
 
 	# Distance
-	var distance: float = data.get("distance", 0.0)
-	if distance > 0:
-		distance_label.text = "%.1fm" % distance
-		# Dim if out of range (>40m)
-		if distance > 40.0:
-			distance_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
-			frame.modulate = Color(1, 1, 1, 0.5)
+	if distance_label:
+		var distance: float = data.get("distance", 0.0)
+		if distance > 0:
+			distance_label.text = "%.1fm" % distance
+			# Dim if out of range (>40m)
+			if distance > 40.0:
+				distance_label.add_theme_color_override("font_color", UIStyles.COLORS.warning)
+				frame.modulate = Color(1, 1, 1, 0.5)
+			else:
+				distance_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
+				frame.modulate = Color(1, 1, 1, 1)
 		else:
-			distance_label.add_theme_color_override("font_color", UIStyles.COLORS.info)
-			frame.modulate = Color(1, 1, 1, 1)
-	else:
-		distance_label.text = ""
+			distance_label.text = ""
 
 	# Class icon
-	var class_name_str: String = data.get("class", "").to_lower()
-	if class_name_str != "":
-		var icon_path := "res://ui/textures/classes/%s.png" % class_name_str
-		var texture := IconResolver.get_icon_for_path(icon_path)
-		if texture:
+	if class_icon:
+		var class_name_str: String = data.get("class", "").to_lower()
+		if class_name_str != "":
+			var icon_path := "res://ui/textures/classes/%s.png" % class_name_str
+			var texture := IconResolver.get_icon_for_path(icon_path)
 			class_icon.texture = texture
 		else:
 			class_icon.texture = null
-	else:
-		class_icon.texture = null
 
 	# Role icon
-	var role: int = data.get("role", Role.DPS)
-	role_icon.texture = _get_role_icon(role)
+	if role_icon:
+		var role: int = data.get("role", Role.DPS)
+		role_icon.texture = _get_role_icon(role)
 
 	# Leader crown
-	if data.get("is_leader", false):
-		leader_icon.text = "[LEADER]"
-	else:
-		leader_icon.text = ""
+	if leader_icon:
+		leader_icon.text = "[LEADER]" if data.get("is_leader", false) else ""
 
 	# Ready check
-	if data.get("ready_check", false):
-		ready_icon.text = "[READY]"
-	else:
-		ready_icon.text = ""
+	if ready_icon:
+		ready_icon.text = "[READY]" if data.get("ready_check", false) else ""
 
 	# Health bar
-	var current_hp: int = data.get("health", 100)
-	var max_hp: int = data.get("max_health", 100)
-	hp_bar.max_value = max_hp if max_hp > 0 else 1
-	hp_bar.value = current_hp
+	if hp_bar:
+		var current_hp: int = data.get("health", 100)
+		var max_hp: int = data.get("max_health", 100)
+		hp_bar.max_value = max_hp if max_hp > 0 else 1
+		hp_bar.value = current_hp
 
-	var hp_percent: float = 0.0
-	if max_hp > 0:
-		hp_percent = float(current_hp) / float(max_hp)
+		var hp_percent: float = 0.0
+		if max_hp > 0:
+			hp_percent = float(current_hp) / float(max_hp)
 
-	# Low health flash (<30%)
-	if hp_percent < 0.3 and hp_percent > 0:
-		# Pulse animation
-		if not hp_bar.has_meta("pulsing"):
-			hp_bar.set_meta("pulsing", true)
-			var tween := hp_bar.create_tween()
-			tween.set_loops()
-			tween.tween_property(hp_bar, "modulate:a", 0.3, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			tween.tween_property(hp_bar, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	else:
-		hp_bar.modulate = Color(1, 1, 1, 1)
-		hp_bar.remove_meta("pulsing")
-
-	# HP bar color based on percentage
-	var hp_fill_style: StyleBoxFlat = hp_bar.get_theme_stylebox("fill") as StyleBoxFlat
-	if hp_fill_style:
-		if hp_percent > 0.5:
-			hp_fill_style.bg_color = UIStyles.COLORS.success
-		elif hp_percent > 0.25:
-			hp_fill_style.bg_color = UIStyles.COLORS.warning
+		# Low health flash (<30%)
+		if hp_percent < 0.3 and hp_percent > 0:
+			# Pulse animation
+			if not hp_bar.has_meta("pulsing"):
+				hp_bar.set_meta("pulsing", true)
+				var tween := hp_bar.create_tween()
+				tween.set_loops()
+				tween.tween_property(hp_bar, "modulate:a", 0.3, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+				tween.tween_property(hp_bar, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		else:
-			hp_fill_style.bg_color = UIStyles.COLORS.error
+			hp_bar.modulate = Color(1, 1, 1, 1)
+			hp_bar.remove_meta("pulsing")
+
+		# HP bar color based on percentage
+		var hp_fill_style: StyleBoxFlat = hp_bar.get_theme_stylebox("fill") as StyleBoxFlat
+		if hp_fill_style:
+			if hp_percent > 0.5:
+				hp_fill_style.bg_color = UIStyles.COLORS.success
+			elif hp_percent > 0.25:
+				hp_fill_style.bg_color = UIStyles.COLORS.warning
+			else:
+				hp_fill_style.bg_color = UIStyles.COLORS.error
 
 	# Mana bar
-	var current_mp: int = data.get("mana", 100)
-	var max_mp: int = data.get("max_mana", 100)
-	mp_bar.max_value = max_mp if max_mp > 0 else 1
-	mp_bar.value = current_mp
+	if mp_bar:
+		var max_mp: int = data.get("max_mana", 100)
+		mp_bar.max_value = max_mp if max_mp > 0 else 1
+		mp_bar.value = data.get("mana", 100)
 
 	# Store data for click handling
 	frame.set_meta("player_id", data.get("player_id", ""))
-	frame.gui_input.connect(func(event: InputEvent) -> void: _on_member_gui_input(frame, event))
+	if not frame.gui_input.is_connected(_on_member_gui_input):
+		frame.gui_input.connect(_on_member_gui_input.bind(frame))
 
 func _get_role_icon(role: int) -> Texture2D:
 	var icon_path := ""
@@ -420,8 +433,15 @@ func _on_ready_check_pressed() -> void:
 	if PartyService:
 		PartyService.start_ready_check()
 
-func update_party(party_members: Array[Dictionary]) -> void:
-	_member_data = party_members.duplicate()
+func update_party(party_members: Array) -> void:
+	# Untyped parameter: scene-tree callers (HUD integrator, PartyService
+	# bridges, probes) pass plain arrays; re-type locally so older
+	# Godot 4.x Array/Array[Dictionary] mixed callers all still bind.
+	var typed_members: Array[Dictionary] = []
+	for m in party_members:
+		if m is Dictionary:
+			typed_members.append(m)
+	_member_data = typed_members
 	_update_all_frames()
 	
 	if _member_data.size() > 0:

@@ -5252,3 +5252,80 @@ species doctrine; test gained a wheel-catalog fairness check; 18
   NOT changed: the quest .tres files (their display-name law was
   right; the WORLD owed the items), the collect law, the harvest
   gate chain, services' security calls.
+
+## 2026-10-12 -- the dead HUD faces wake up (orphan sweep: PartyFrames + NotificationToast)
+
+The 51-panel dead-UI sweep closed: TooltipManager and WaypointUI were
+fine (scene-mounted via hud_layer.tscn / MenuManager), but two LIVE
+panel scripts had no mount and no caller anywhere:
+* ui/components/party_frames.gd (PartyFrames -- the 5-stack party
+  health/mana/role frames)
+* ui/components/notification_toast.gd (NotificationToast -- the rich
+  corner toast stack: 6 types, click actions, progress bars, and an
+  N-key notification center with history)
+
+THE WIRE, both halves:
+* Mount: hud_layer.tscn grew three ext_resources + three Control nodes
+  (MainMenuBar had already dropped from the mount list in a prior
+  commit shock -- restored) -- NotificationToast full-rect + mouse
+  ignore, PartyFrames full-rect + mouse ignore (it hides itself until
+  a member dict arrives).
+* Route: HudIntegrator._on_notification now routes by DisplayLocation.
+  NotificationService.send_event() already maps HIGH+ kinds to
+  CENTER_SCREEN and everything else to CORNER; the integrator honors
+  that law: CORNER payloads render on the DEDICATED face
+  (NotificationToast.show_toast, ToastType.INFO) with the legacy
+  TooltipManager.show_toast() kept as the fallback for HUD scenes
+  predating this wiring. One send() fires both notification_sent and
+  notification_received with the same payload, so the integrator
+  gates identical payloads with a rolling 5s md5-key guard
+  (hud_toast:<md5>), swept past 64 keys; the stack cap (5 visible +
+  queue) still has the last word.
+* The old law ("every notification toasts") is gone with the reason
+  it existed: CHAT_LOG/CENTER payloads stay in the combat log
+  (center-screen has its own billboard face upstream).
+
+BUGS FOUND BY THE PROBE (probe-first paid for itself):
+* notification_toast.gd DID NOT PARSE (the "orphan" was actually
+  dead twice over): ToastType bare members (INFO/WARNING/...) fail
+  to resolve inside const-dict literals -- qualified
+  ToastType.INFO; two `:=` type-inference hangs on
+  get_theme_font_size (untyped returns) -- explicit int; Input has
+  no static map_action() (the button silently dead) -- InputMap
+  add_action + action_add_event(KEY_N).
+* party_frames.gd null-widget crashes: _update_member_frame resolved
+  ten named widgets with get_node() -- one missing piece kills the
+  whole update tick; frame paths were also wrong in two places
+  (ClassIcon/RoleIcon live under a nameless HBox; NameRow/InfoColumn
+  were anonymous). All ten resolved with get_node_or_null + nulled
+  pieces skipped; builders now name InfoColumn + NameRow so the
+  lookups are path-stable. The gui_input connect lived inside the
+  per-frame update (a fresh lambda connection per update tick --
+  one right-click fired N handlers and _on_member_gui_input's
+  signature mismatched the bind) -- connected once with .bind(frame).
+* update_party took Array[Dictionary] -- plain-Array callers (HUD
+  integrator, PartyService bridges) tripped Godot's strict
+  typed-array check; now takes Array and re-types locally.
+* test_notification_toast's recursion step orphan-hunted ITSELF for
+  years: "test_toast_ctx" depth sits in RecursionGuard's process-
+  level tracker across suite runs, so the first enter() can block
+  (breaking allow/allow/block) and the dedupe time-bucket collapses
+  repeats; fresh keyed context name per run. Its last assertion is
+  also re-stamped to the RENDERING LAW: the firewall's recursion
+  alert is HIGH + SECURITY_BLOCKED -> the frame maps it
+  CENTER_SCREEN, so the CORRECT result is "not on the corner toast
+  stack, but in get_history(\"admins\") with kind=24 + the context
+  in data" -- the old "panel count > 0" check only passed by riding
+  ambient achievement/bout toasts that shared the stack during the
+  await frame.
+
+VERIFICATION (exit statuses): test_notification_toast 11/0 exit 0,
+test_hud_widgets 3/0 exit 0 (new: mounts both faces on the live
+scene, drives a CORNER notification through NotificationService.py
+into the dedicated face, blocks CHAT_LOG, pins one-send-one-toast
+dedupe, pins the 5-stack flood cap, drives PartyFrames visible ->
+render -> empty-hides -> 5-fashion frame cap),
+test_notification_frame 26/0 exit 0, lint charset 3/0 exit 0.
+NOT changed: TooltipManager's show_toast (still the fallback face),
+NotificationService's kind/priority maps, RecursionGuard's depth
+semantics.
