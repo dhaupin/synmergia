@@ -153,7 +153,7 @@ func _resume_guest_door() -> void:
 	if not WebIdBridge or not WebIdBridge.has_last_guest():
 		return
 	var id := WebIdBridge.get_last_guest_id()
-	if AccountService and not AccountService.has_account(id):
+	if AccountService and AccountService.get_account(id).is_empty():
 		WebIdBridge.forget_guest()
 		return
 	_guest_btn.text = "Continue as guest"

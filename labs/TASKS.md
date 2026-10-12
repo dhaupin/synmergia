@@ -5329,3 +5329,62 @@ test_notification_frame 26/0 exit 0, lint charset 3/0 exit 0.
 NOT changed: TooltipManager's show_toast (still the fallback face),
 NotificationService's kind/priority maps, RecursionGuard's depth
 semantics.
+
+## 2026-10-12 -- the son-and-dad play hour: the world boots playable and the driver proves it
+
+The report: "in about an hour we will try it together" -- so the
+whole playable state got pinned end to end, headless AND rendered:
+what happens when you land, whether terrain renders, whether you can
+reach a coast/ocean.
+
+TERRAIN GROUND TRUTH (headless, all exit 0):
+* probe_terrain_stream 13/0 (streaming order/unload + 20-face walk),
+  probe_terrain_planet 43 PASS, probe_terrain_climate 26 PASS,
+  probe_globe_world 23/0 (walk/camera/HUD on the live globe scene),
+  probe_ocean 44 checks, probe_sundered_sea -- the terrain, the sea
+  line, the strait, the water worlds are all healthy. Nothing to fix
+  there.
+
+THE WEB CLIENT WAS STALE: web/game.pck was 4 days old (Oct 8) -- a
+week of engine fixes (login door, terrain backend, notification face)
+never reached the shell the browser loads. Re-exported the pack from
+the current source (12.9 MB) and rewrote web/game.pck.hash; the
+content-addressed cache-buster in index.html picks it up.
+
+THE ONE REAL BOOT BUG: ui/menus/login.gd called
+AccountService.has_account(id) -- a method that does not exist
+(AccountService exposes get_account(); the caller wanted an existence
+check). The login scene script errorred at _ready, the guest door
+broke, and the globe driver's flow stalled at login every run. Fixed
+to AccountService.get_account(id).is_empty() -- the same check the
+rest of the account surface uses.
+
+THE DRIVER ITSELF (the honest test rig for "can we play together"):
+* Time dilation diagnosis: frame-counted waits under xvfb+llvmpipe
+  (the globe world is a 20 km planet; software GL renders ~1-2 fps)
+  turn a "2 s" settle into minutes of wall time. Every earlier stall
+  ("coroutine never resumes!") was just this. The runner now waits in
+  WALL-CLOCK create_timer terms everywhere.
+* Stale assertion fixed: the stage-5 ground truth pinned the S5b
+  PROTOTYPE radius (|player.r - 101| <= 0.5) while the shipped config
+  is planet_radius=20000 -- the driver's "off_shell_63.67" verdict was
+  thedriver's own ruler, not the game. The law it now pins: the body
+  sits WITHIN ~12 m surface lift of the LIVE globe's planet_radius
+  (10.52 m measured -- right at the walk-surface 9.0 m + lift).
+* Structure: the flow stages live in globe_driver_runner.gd (a plain
+  Node added by the wrapper under tree root), since SceneTree-script
+  coroutines and frame loops both proved fragile against the world's
+  boot-time suspended signal handlers + dilation.
+* The full real player flow, via the real menus and handlers: main
+  menu → Start → guest login → lobby → Create New → species human →
+  class warrior → Enter World → GlobeWorld boots (4 faces / 16k tris
+  mesh-ready at boot, walk surface 9.0 m, sea line 6.0 m, playable
+  HUD installed) → auto-walk 39.5 m riding the sphere → HUD panel.
+  Six screenshots land in /tmp/play/globe_flow_*.png fresh each run;
+  sweep_spawn_truth / the ALT+mesh tag work rides in-game.
+
+VERDICT (exit statuses): GODOT_PROBE_XVFB=1 xvfb-run globe_driver
+exit 0, fail_flags empty, surface lift 10.52 m, path 39.5 m. Headless
+family re-run green (terrain stream 13/0, widgets 10/0, toast 11/0).
+NOT changed: terrain gen, streamer, ocean volumes, backend sundered,
+mask/skirt -- they were right.
