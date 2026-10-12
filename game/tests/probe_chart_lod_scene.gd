@@ -52,8 +52,16 @@ func _run() -> void:
 	# at 0.5 s of accumulated delta -- headless script mode does not
 	# accrue that in two process frames). One forced tick at fullDelta
 	# must mesh at least one chart overlay with surface + skirt.
+	# BOOT CRASH GATE: the funnel is gated OFF by default in the scene
+	# (the play-day crash: one cold tick meshed ~42 overlays during
+	# the boot window and starved the engine's progress signal). The
+	# probe flips the gate on -- that is the point: the GATED-ON path
+	# is probed here, players boot with it off.
+	globe.chart_overlays_on = true
 	globe._update_chart_lod(1.0)
 	await process_frame
+	_check(not globe.chart_overlays_on or globe._chart_nodes.size() <= globe.MAX_ORDERS_PER_TICK + globe.MAX_ORDERS_PER_TICK + 1,
+		"per-tick order budget bounds the cold-start work (%d nodes <= budget+1)" % globe._chart_nodes.size())
 	var nodes := 0
 	for c in globe.chart_lod_root.get_children():
 		if c is MeshInstance3D:

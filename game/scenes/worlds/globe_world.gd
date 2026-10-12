@@ -342,6 +342,27 @@ func terrain_on_flag() -> bool:
 ## the plan BEFORE ordering, then funnel each work order into a real
 ## mesh build (PenroseMeshBuilder for the surface + skirt_strip data
 ## appended as a third, darker surface). Empty delta = no-op.
+##
+## BOOT CRASH LAW (the play-day crash report: playable loads ~60 s,
+## then dies; cold-start figure: ONE tick meshes ~42 chart overlays
+## synchronously -- build_region + sphere projection + skirt PER
+## CHART -- a multi-second main-thread hang in the boot window that
+## starves the engine's progress signal and trips the shell watchdog).
+## FIX, two layers:
+##   1. GATE: overlay builds are OFF by default (chart_overlays_on =
+##      false). The Turn-9 ground backend now carries the Penrose
+##      identity on the REAL terrain, so the overlays are redundant
+##      decoration; the policy/adapter probes still exercise the full
+##      path by driving the funnel directly (probe_chart_lod_scene
+##      flips the gate on).
+##   2. BUDGET: when the gate is on, at most MAX_ORDERS_PER_TICK
+##      meshes build per tick; the adapter's last_plan state only
+##      advances for the orders actually APPLIED, so the rest re-queue
+##      next tick (trickle, never a spike).
+var chart_overlays_on: bool = false
+const MAX_ORDERS_PER_TICK: int = 2
+var _chart_room_x: float = 0.0
+var _chart_room_y: float = 0.0
 func _update_chart_lod(delta: float) -> void:
 	if chart_lod == null or player == null:
 		return
@@ -361,8 +382,26 @@ func _update_chart_lod(delta: float) -> void:
 	var orders: Array = chart_lod.apply_plan(plan, 1)
 	if orders.is_empty():
 		return
+	# BUDGET (the cold-start trickle): only the first
+	# MAX_ORDERS_PER_TICK orders build this tick. The adapter's state
+	# advances ONLY for what we apply, so unapplied orders re-queue on
+	# the next 2 Hz tick — the boot window stays smooth and the shell
+	# watchdog never starves.
+	var applied: Array = orders.slice(0, MAX_ORDERS_PER_TICK)
+	var deferred: Array = orders.slice(MAX_ORDERS_PER_TICK)
+	if not deferred.is_empty():
+		# Roll last_plan back to cover only the applied prefix, so the
+		# deferred half re-emerges as the delta next tick.
+		var partial: Dictionary = {}
+		var applied_ids := {}
+		for o in applied:
+			applied_ids[int(o["chart_index"])] = true
+		for i in chart_lod.last_plan:
+			if applied_ids.has(int(i)):
+				partial[i] = chart_lod.last_plan[i]
+		chart_lod.last_plan = partial
 	var builder = load("res://scenes/worlds/penrose_mesh_builder.gd")
-	for o in orders:
+	for o in applied:
 		var idx: int = int(o["chart_index"])
 		var center: Vector2 = load("res://core/frame/math/pentagrid.gd").atlas_centers_dense(1)[idx]
 		var patch: Array = policy.PentagridScript.build_region(
@@ -426,7 +465,10 @@ func _physics_process(delta: float) -> void:
 		# the planet CENTER, never the world origin (invariant across
 		# floating-origin shifts).
 		streamer.update(player.global_position - planet_center)
-		_update_chart_lod(delta)
+		if chart_overlays_on:
+			_update_chart_lod(delta)
+		else:
+			_chart_accum = 0.0
 	_maybe_shift_world()
 	# SPAWN TRUTH (round 7, item 4): keep the on-screen position line
 	# fresh at 2 Hz. No-op until _build_spawn_truth() made the label
