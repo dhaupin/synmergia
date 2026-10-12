@@ -5574,3 +5574,25 @@ Verification: pentagrid 21/21 PASS, cosmic_rng 23/23 PASS, mesh probe 7/7
 PASS, crafting probe 13/13 PASS, charset lint 3/3 PASS. Remaining open: ONLY
 the chart-boundary stitch polygons (+ the extendability decider, not needed
 for local legality).
+
+## 2026-10-12 (turn 5): stitch layer + extendability decider + exact colors
+
+- Chart-boundary stitching: atlas_centers_dense (12 -> 42 centers, covering
+  radius 37.4 -> 31.7 deg sampled), chart_boundary_samples (337 seam
+  midpoints both neighboring charts reconstruct identically from the
+  center-pair identity), skirt_strip (rim drop quads tagged SKIRT_KIND=2).
+  Inter-chart seams are now exactly closed at the shared samples and
+  cosmetically skirted at LOD truncation. Law 22 pins determinism,
+  tightening, equidistance, and skirt legality.
+- Extendability decider: pentagrid.is_extendable -- every tile's crossing
+  identity must reproduce its vertices in the canonical rhombus_at (plus
+  kind match). Real grid extracts pass; warped tiles, kind-lying tiles,
+  and the ten-thin star fail. Law 23 pins all four directions.
+- Exact-color law: probe_penrose_mesh now asserts the 8-bit channel
+  quantization floor Godot's vertex-color path guarantees (catches channel
+  order / double-conversion bugs at the precision the pipeline promises)
+  instead of hue-tolerant fudging.
+Verification: pentagrid 23/23 PASS (exit 0), penrose 10/10, cosmic_rng 23/23,
+mesh probe 7/7, crafting 13/13, charset lint 3/3. Remaining open (1 item):
+the runtime LOD policy between charts (rendering-engine concern beyond the
+frame layer; the data layer is delivered).

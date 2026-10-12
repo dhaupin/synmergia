@@ -29,6 +29,8 @@ func _init() -> void:
 		["ten_thin_exclusion", _law_ten_thin_exclusion],
 		["glyph_levels", _law_glyph_levels],
 		["chart_owner_laws", _law_chart_owner],
+		["stitch_layer", _law_stitch_layer],
+		["extendability_decider", _law_extendability],
 		["perf_gate", _law_perf_gate],
 	]
 	for entry in laws:
@@ -622,6 +624,113 @@ func _law_chart_owner() -> bool:
 		print("    geometric covering %.1f vs sampled worst %.1f" % [covering, worst])
 		return false
 	return true
+
+## Law 22: the stitch layer — dense centers tighten the covering
+## radius, boundary samples exist and are deterministic, skirt strips
+## tag SKIRT_KIND triangles on rim edges only.
+func _law_stitch_layer() -> bool:
+	# Dense layout: subdiv 0 is the base 12; subdiv 1 subdivides 20
+	# faces to 30 more centers (42 total) and TIGHTENS coverage.
+	var centers0: Array = PG.atlas_centers_dense(0)
+	var centers1: Array = PG.atlas_centers_dense(1)
+	if centers0.size() != 12 or centers1.size() <= centers0.size():
+		print("    dense centers wrong (0: ", centers0.size(), " 1: ", centers1.size(), ")")
+		return false
+	var c1_again: Array = PG.atlas_centers_dense(1)
+	if c1_again.size() != centers1.size():
+		print("    dense centers not index-stable")
+		return false
+	var worst1 := 0.0
+	for i in range(19):
+		for j in range(37):
+			var la: float = -90.0 + 10.0 * i
+			var lo: float = -180.0 + 10.0 * j
+			var ow: int = PG.chart_owner_dense(la, lo, 1)
+			var d: float = rad_to_deg(PG.SphericalScript.haversine(la, lo, centers1[ow].x, centers1[ow].y, 1.0))
+			worst1 = maxf(worst1, d)
+	if worst1 >= 37.0:
+		print("    dense covering did not tighten: ", worst1)
+		return false
+	# Boundary samples: deterministic, nonempty, and every sample is
+	# genuinely equidistant from its two centers (great-circle mid).
+	var samples: Dictionary = PG.chart_boundary_samples(1)
+	var samples2: Dictionary = PG.chart_boundary_samples(1)
+	if samples.is_empty() or samples.size() != samples2.size():
+		print("    boundary samples empty or nondeterministic: ", samples.size())
+		return false
+	var probe_key: String = samples.keys()[0]
+	var mid: Vector2 = samples[probe_key]
+	var parts: PackedStringArray = probe_key.split(".")
+	var ca: Vector2 = centers1[int(parts[0])]
+	var cb: Vector2 = centers1[int(parts[1])]
+	var d1: float = rad_to_deg(PG.SphericalScript.haversine(mid.x, mid.y, ca.x, ca.y, 1.0))
+	var d2: float = rad_to_deg(PG.SphericalScript.haversine(mid.x, mid.y, cb.x, cb.y, 1.0))
+	if absf(d1 - d2) > 0.5:
+		print("    boundary sample not equidistant: ", d1, " vs ", d2)
+		return false
+	# Skirt strip: rim edges only, all SKIRT_KIND.
+	var patch: Array = PG.build_region(PG.GAMMA, 4.0)
+	var skirt: Dictionary = PG.skirt_strip(patch, 0.5)
+	var kinds: PackedInt32Array = skirt["tri_kind"]
+	if kinds.size() == 0:
+		print("    no skirt triangles")
+		return false
+	for k in kinds:
+		if int(k) != PG.SKIRT_KIND:
+			print("    skirt strip leaked a non-skirt kind")
+			return false
+	var pos: PackedVector3Array = skirt["positions"]
+	# Skirt quads drop DOWN: some vertex pairs differ only in z.
+	var drops := 0
+	for i in range(0, pos.size(), 3):
+		if absf(pos[i].z - pos[i + 1].z) > 0.0001 and absf(pos[i].x - pos[i + 1].x) > 0.0001:
+			drops += 1
+	_check_count(drops, 1, "skirt triangles have vertical extent")
+	return drops >= 1
+
+## Law 23: the extendability DECIDER — a real grid extract is
+## extendable; a warped-off-grid tile, a kind-lying tile, and the
+## ten-thin star are NOT.
+func _law_extendability() -> bool:
+	var patch: Array = PG.build_region(PG.GAMMA, 5.0)
+	var sub: Array = patch.slice(10, 60)
+	var r: Dictionary = PG.is_extendable(sub)
+	if not bool(r["ok"]):
+		print("    real extract not extendable: ", r["errors"].slice(0, 3))
+		return false
+	# Warp a vertex: geometry can't be the canonical rhombus.
+	var t0: PG.Tile = patch[0]
+	var warped: Array[Vector2] = [t0.verts[0], t0.verts[1] + Vector2(0.5, 0.5), t0.verts[2], t0.verts[3]]
+	var rw: Dictionary = PG.is_extendable([PG.Tile.new(t0.kind, warped, t0.families, t0.levels)])
+	if bool(rw["ok"]):
+		print("    warped tile passed the decider")
+		return false
+	# Kind-lying tile: geometry matches but kind defies the grid.
+	for t in patch:
+		if t.kind == PG.TileKind.FAT:
+			var rl: Dictionary = PG.is_extendable([PG.Tile.new(PG.TileKind.THIN, t.verts, t.families, t.levels)])
+			if bool(rl["ok"]):
+				print("    kind-lying tile passed the decider")
+				return false
+			break
+	# Ten-thin star: locally arrow-lawful, unplaceable here.
+	var O := Vector2.ZERO
+	var star: Array = []
+	for i in range(10):
+		var a := deg_to_rad(36.0 * i)
+		var b := deg_to_rad(36.0 * (i + 1))
+		var e1 := Vector2(cos(a), sin(a))
+		var e2 := Vector2(cos(b), sin(b))
+		star.append(PG.Tile.new(PG.TileKind.THIN, [O, e1, e1 + e2, e2], patch[0].families, patch[0].levels))
+	var rs: Dictionary = PG.is_extendable(star)
+	if bool(rs["ok"]):
+		print("    ten-thin star passed the decider")
+		return false
+	return true
+
+func _check_count(got: int, want: int, label: String) -> void:
+	if got < want:
+		print("    COUNT %s: got %d want >= %d" % [label, got, want])
 
 func _law_perf_gate() -> bool:
 	var t0: int = Time.get_ticks_usec()

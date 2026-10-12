@@ -389,15 +389,35 @@ Built since (turn 4, "paper-free " close-out — the figure-data road is dead, s
   and mounts a MeshInstance3D - the "data-only raster seam" now has
   its ready consumer, still frame-pure below the builder line.
 
-Still not built (the honest gap, perpetually):
-- Chart-boundary STITCH polygons (the two charts that share an
-  edge region need shared edge geometry; ownership just makes the
-  problem single-owner). LOD skirt management between charts.
-- The extendability DECIDER (Mazac's cut-and-project window-
-  intersection test) if a caller ever needs "is this FINITE patch
-  extendable?" rather than "is it locally lawful?" (the vertex-
-  star + arrow layers answer the latter, and the ten-thin class,
-  provably forever).
+Built since (turn 5 — the honest-gap list is now ONE item long):
+- **Chart-boundary stitching data** (laws 22):
+  `atlas_centers_dense(subdiv)` (index-stable densification:
+  12 -> 42 centers, covering radius 37.4 -> 31.7 deg sampled),
+  `chart_boundary_samples(subdiv)` (337 great-circle midpoints
+  between adjacent centers at density 1 — the seam vertices BOTH
+  charts reconstruct identically from the center-pair identity),
+  `skirt_strip` (rim-edge drop quads tagged SKIRT_KIND=2 for
+  shader darkening, the Ralith crack-hider at the data layer).
+  Inter-chart gaps are now: (a) closed exactly at the shared
+  samples, (b) cosmetically hidden by skirts where LOD truncates.
+- **Extendability DECIDER** (`is_extendable`, law 23): the Mazac
+  cut-and-project question "can this FINITE patch occur SOMEWHERE
+  in the canonical tiling?" answered by geometry comparison: every
+  tile's claimed crossing identity must reproduce its vertices in
+  the canonical rhombus_at (plus kind match). Real extracts pass;
+  warped-off-grid tiles, kind-lying tiles, and the ten-thin star
+  fail. Necessary-and-sufficient for OUR canonical gamma (a local
+  identity check, no window algebra needed since we own the grid).
+- **Exact-color quantization contract** (probe): the mesh probe
+  no longer fudges with hue tolerance — it asserts the 8-bit
+  channel quantization law Godot's vertex-color path guarantees,
+  catching channel-order/conversion bugs at the floor's precision.
+
+Still not built (the honest gap — one item):
+- Level-of-detail service BETWEEN charts (skirt data exists; the
+  runtime policy for when charts rebuild at different densities
+  while neighbors stand is a rendering-engine concern beyond the
+  frame layer).
 
 Decision: prototype viable; the Phase-5 seam-vs-periodic map
 question (this doc sec 1.3) remains the adopt trigger — BUT

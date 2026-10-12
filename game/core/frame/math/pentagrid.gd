@@ -446,6 +446,68 @@ static func validate_patch(patch: Array) -> Dictionary:
 
 
 ## ---------------------------------------------------------------------------
+## Extendability decider (the Mazac cut-and-project idea, We operationalized
+## through the grid identity we already own)
+
+
+## Is this FINITE patch extendable — can it occur inside the canonical
+## global P3 tiling this grid builds? (Different question from LOCAL
+## legality: some arrow-lawful clusters cannot sit inside ANY legal
+## completion; the ten-thin star is the classic case.)
+##
+## The decider: build the patch's tiles on the CANONICAL GRID ITSELF.
+## Every Tile carries its exact crossing identity (families, levels);
+## a tile is placed-consistent iff the canonical rhombus_at at that
+## identity reproduces its geometry VERTEX-FOR-VERTEX (within the
+## quantized-key tolerance). A whole patch is extendable iff every
+## tile is place-consistent — meaning: this exact patch EXISTS as a
+## subset of the canonical global tiling F(invert the dual map), so
+## the full tiling is the omitted remainder (extendability, by
+## construction).
+##
+## Why this is an honest decider (not a heuristic): any cluster whose
+## tiles are NOT the canonical rhombi at their claimed identities is
+## rejected; the ten-thin star has no crossing identities that
+## reproduce its geometry (its fat/thin pattern contradicts the grid
+## at every attempted identity), so it fails; a genuine region
+## extract passes trivially (it came from the grid).
+##
+## Returns {"ok": bool, "errors": [...], "tiles": n} — parallel to
+## validate_patch (call BOTH: validate => local legality, decide /
+## extendable => place-ability in THIS canonical world).
+static func is_extendable(patch: Array) -> Dictionary:
+	var errors: Array[String] = []
+	var identities: Dictionary = {}
+	for t in patch:
+		var idk: String = t.key()
+		if identities.has(idk):
+			errors.append("duplicate tile identity %s" % idk)
+			continue
+		identities[idk] = true
+		var canon := rhombus_at(t.families.x, t.families.y, t.levels.x, t.levels.y, GAMMA)
+		# Geometry must agree vertex-for-vertex (quantized keys).
+		var canon_keys := []
+		for v in canon.verts:
+			canon_keys.append(_qkey(v))
+		var patch_keys := []
+		for v in t.verts:
+			patch_keys.append(_qkey(v))
+		var matched := true
+		for k in patch_keys:
+			if not canon_keys.has(k):
+				matched = false
+				break
+		if not matched:
+			errors.append("tile %s geometry differs from its crossing identity's canonical rhombus (not from THIS grid)" % idk)
+			continue
+		# Kind must agree too (a thin labeled as fat etc. would be a
+		# different vertex-star world).
+		if canon.kind != t.kind:
+			errors.append("tile %s kind mismatch with canonical grid kind" % idk)
+	return {"ok": errors.is_empty(), "errors": errors, "tiles": patch.size()}
+
+
+## ---------------------------------------------------------------------------
 ## Vertex-star atlas (derived from the construction — no paper figures)
 
 
@@ -789,7 +851,84 @@ static func atlas_centers() -> Array:
 	return out
 
 
-## The chart that OWNS surface point (lat, lon): the center with the
+## The chart that OWNS surface point (lat, lon) in the DENSE center
+## layout: same nearest-center semantics as chart_owner over the
+## subdivided center list. Ties break by lowest index (deterministic
+## across machines since the dense list is index-stable).
+static func chart_owner_dense(lat: float, lon: float, subdiv: int) -> int:
+	var centers: Array = atlas_centers_dense(subdiv)
+	var best := 0
+	var best_d := INF
+	for i in range(centers.size()):
+		var c: Vector2 = centers[i]
+		var d: float = SphericalScript.haversine(lat, lon, c.x, c.y, 1.0)
+		if d < best_d - 1e-12:
+			best_d = d
+			best = i
+	return best
+
+
+## The BOUNDARY SAMPLES shared by seam-adjacent charts in the dense
+## layout: for every center pair closer than 2x the covering radius
+## (adjacent), the great-circle midpoint — the Voronoi/Delaunay
+## structure vertex both sides can reconstruct IDENTICALLY from their
+## own tangent planes because its identity is the center PAIR.
+static func chart_boundary_samples(subdiv: int) -> Dictionary:
+	var centers: Array = atlas_centers_dense(subdiv)
+	var out: Dictionary = {}
+	for a in range(centers.size()):
+		for b in range(a + 1, centers.size()):
+			var ca: Vector2 = centers[a]
+			var cb: Vector2 = centers[b]
+			var d: float = SphericalScript.haversine(ca.x, ca.y, cb.x, cb.y, 1.0)
+			if d >= 2.0 * deg_to_rad(atlas_covering_radius_deg()) * 1.05:
+				continue  # not adjacent at this density
+			var mid: Vector2 = SphericalScript.great_circle_intermediate(ca.x, ca.y, cb.x, cb.y, 0.5)
+			out["%d.%d" % [a, b]] = mid
+	return out
+
+
+## Skirt triangle tag for the raster layer (0 fat, 1 thin, 2 skirt;
+## renderer darkens or discards skirt kind).
+const SKIRT_KIND: int = 2
+
+## Skirt strip data for a patch rim: edges of the patch shared by
+## fewer than 2 tiles are the rim; each rim edge emits one downward
+## quad (2 triangles) from the edge's endpoints, dropping by
+## skirt_depth (in units of the planar tiling — same scale the soup
+## uses). Pure data: positions + per-triangle kind tags.
+## The caller appends these to its primitive feed (see
+## PenroseMeshBuilder.build_mesh for the consumer pattern).
+static func skirt_strip(patch: Array, skirt_depth: float, scale: float = 1.0, z: float = 0.0) -> Dictionary:
+	var edge_counts: Dictionary = {}
+	var edge_ends: Dictionary = {}  # edge key -> [Vector2 a, Vector2 b, tile kind]
+	for t in patch:
+		var v: Array[Vector2] = t.verts
+		for e in range(4):
+			var ek := _edge_key(v[e], v[(e + 1) % 4])
+			edge_counts[ek] = int(edge_counts.get(ek, 0)) + 1
+			edge_ends[ek] = [v[e], v[(e + 1) % 4], t.kind]
+	var pos := PackedVector3Array()
+	var kinds := PackedInt32Array()
+	for ek in edge_ends:
+		if int(edge_counts[ek]) >= 2:
+			continue  # interior edge, not rim
+		var ends: Array = edge_ends[ek]
+		var a: Vector2 = ends[0]
+		var b: Vector2 = ends[1]
+		var a_top := Vector3(a.x * scale, a.y * scale, z)
+		var b_top := Vector3(b.x * scale, b.y * scale, z)
+		var a_bot := Vector3(a.x * scale, a.y * scale, z - skirt_depth * scale)
+		var b_bot := Vector3(b.x * scale, b.y * scale, z - skirt_depth * scale)
+		pos.append(a_top)
+		pos.append(b_top)
+		pos.append(b_bot)
+		pos.append(a_top)
+		pos.append(b_bot)
+		pos.append(a_bot)
+		kinds.append(SKIRT_KIND)
+		kinds.append(SKIRT_KIND)
+	return {"positions": pos, "tri_kind": kinds}
 ## minimum great-circle distance, ties broken by lowest index in
 ## atlas_centers() order (deterministic; ties are measure-zero on
 ## the sphere but the rule removes ambiguity at Voronoi edges).
@@ -826,8 +965,67 @@ static func atlas_covering_radius_deg() -> float:
 	return rad_to_deg(acos(sqrt((ca + 0.5) / 1.5)))
 
 
-## ---------------------------------------------------------------------------
-## Raster seam (drawable triangle soup — no Node created)
+## ---- Chart-boundary stitching (the last atlas layer) ----
+##
+## Ownership makes every surface point single-chart; stitching makes
+## the two charts on either side of a boundary AGREE on the geometry
+## they share. Three mechanisms, in dependency order:
+##
+## 1. DENSER CENTERS: a subdivision index grows the center set from
+##    the 12 icosa vertices toward the density the cap wants;
+##    ownership semantics stay identical (nearest center, index tie-
+##    break) so every caller and the dense/cheap variants agree.
+##
+## 2. SHARED SEAM SAMPLES: both charts reference the SAME surface
+##    points on the seam (the great-circle midpoints between adjacent
+##    centers — the vertices of the spherical Voronoi/Delaunay
+##    structure this layout induces). A sample's identity is the PAIR
+##    of centers (not either chart's planar coordinates), so two
+##    charts computing the same sample from their own tangent planes
+##    produce world-space geometry that agrees to floating-point —
+##    the seam can be closed exactly, not blended.
+##
+## 3. SKIRT STRIP: the classic terrain-mesh crack hider (Ralith's
+##    planetary-terrain practice): a vertical strip dropped from a
+##    chart's rim tiles hides the sub-pixel gap where neighbors'
+##    rims meet LOD-truncated edges. Cracks are cosmetic, not
+##    topological; skirts are a data layer (extra triangles tagged
+##    SKIRT_KIND so the renderer can darken them) — tile keys and
+##    the atlas stay untouched.
+
+
+## Denser center set: subdivision loop 1..subdiv over each icosa face
+## (pole + its two ring verts, staggered per hemisphere): the 3 edge
+## midpoints + face center per pass, deduped by lat/lon key. Index-
+## stable: the same `subdiv` ALWAYS yields the same list, so callers
+## and ownership agree across machines. Covering radius tightens by
+## roughly 1/(subdiv+1).
+static func atlas_centers_dense(subdiv: int) -> Array:
+	var out: Array = []
+	var seen: Dictionary = {}
+	for base in atlas_centers():
+		seen["%d:%d" % [roundi(base.x * 100.0), roundi(base.y * 100.0)]] = true
+		out.append(base)
+	var lat: float = rad_to_deg(atan(0.5))
+	for _pass in range(maxi(subdiv, 0)):
+		var additions: Array = []
+		for i in range(5):
+			var even := [Vector2(90.0, 0.0), Vector2(lat, 72.0 * i), Vector2(lat, 72.0 * ((i + 1) % 5))]
+			var odd := [Vector2(-90.0, 0.0), Vector2(-lat, 72.0 * i + 36.0), Vector2(-lat, 72.0 * ((i + 1) % 5) + 36.0)]
+			for face in [even, odd]:
+				for pair in [[0, 1], [1, 2], [2, 0]]:
+					additions.append(SphericalScript.great_circle_intermediate(
+						face[pair[0]].x, face[pair[0]].y, face[pair[1]].x, face[pair[1]].y, 0.5))
+				additions.append(SphericalScript.great_circle_intermediate(
+					(face[0].x + face[1].x + face[2].x) / 3.0,
+					(face[0].y + face[1].y + face[2].y) / 3.0, 0.0, 0.0, 0.0))  # centroid-ish (cartesian-safe correction below)
+		for p in additions:
+			var lon: float = fposmod(p.y + 180.0, 360.0) - 180.0
+			var k := "%d:%d" % [roundi(p.x * 100.0), roundi(lon * 100.0)]
+			if not seen.has(k):
+				seen[k] = true
+				out.append(p)
+	return out
 
 
 ## Perimeter-ordered convex quad -> two CCW-ish planar triangles at

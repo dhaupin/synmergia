@@ -47,12 +47,37 @@ func _check_planar() -> void:
 	_check("fat surface triangle count", fpos.size() == fat * 6)
 	_check("thin surface triangle count", tpos.size() == thin * 6)
 	var fcol: PackedColorArray = mesh.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
-	# Godot round-trips vertex colors through sRGB float; compare with
-	# a tolerance instead of exact equality (exact fails on 0.72 etc.).
+	# EXACT-COLOR LAW (the principled version of the old tolerant
+	# fudge): Godot stores vertex colors as 8-bit-per-channel floats,
+	# so ANY authored color reaches the mesh exactly on the sRGB path
+	# only to 1/255 quantization. The law asserts the QUANTIZATION
+	# CONTRACT, not a fuzzy hue: each channel of the authored color,
+	# multiplied by 255 and rounded, must equal the stored channel to
+	# within that floor. This catches real bugs (wrong channel order,
+	# zeroed colors, linear/sRGB double-conversion) while allowing
+	# the quantization floor Godot guarantees.
 	var col_ok: bool = fcol.size() == fpos.size()
 	if col_ok:
-		col_ok = (fcol[0] as Color).r > 0.6 and (fcol[0] as Color).g > 0.4 and (fcol[0] as Color).b < 0.4
-	_check("fat vertex colors present and brass-themed", col_ok)
+		var authored := B.FAT_COLOR
+		var stored := fcol[0] as Color
+		for ch in ["r", "g", "b"]:
+			var want_from: float = authored.r
+			var got_from: float = stored.r
+			if ch == "g":
+				want_from = authored.g
+				got_from = stored.g
+			elif ch == "b":
+				want_from = authored.b
+				got_from = stored.b
+			var want: int = roundi(want_from * 255.0)
+			var got: int = roundi(got_from * 255.0)
+			# Tolerance: the 8-bit floor, or 2 units for pipeline
+			# rounding variance (linear->sRGB round trip).
+			if absi(got - want) > 2:
+				col_ok = false
+				print("    color channel ", ch, " quantized mismatch: got ", got, " want ", want)
+				break
+	_check("fat vertex colors exact to the 8-bit quantization floor", col_ok)
 	# Front-facing: planar normals are +Z (mesh import quantizes, so
 	# allow tiny jitter; the law is z-dominant).
 	var fn: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
