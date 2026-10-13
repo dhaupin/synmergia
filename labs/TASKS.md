@@ -6108,3 +6108,30 @@ peak_height_scan) remain in game/debug.
 - Verification: globe probe 0 FAIL, world-scoping 8/8, touch-HUD
   suite all green (the GameLog check-only complaint is a script-mode
   autoload artifact present at HEAD too, not a change regression).
+
+## 2026-10-13 (turn 19): THE STARTER VILLAGE PROTO — the boots-and-stalls village boots on the plaza
+- THE VILLAGE (game/entities/starter_village.gd, wired into
+  globe_world._build_starter_village next to the arena gateway):
+  THREE authored structures ride laws that already exist -- NO new
+  terrain law needed. The plaza is flat at exactly SPAWN_HEIGHT out
+  to SPAWN_FLAT_ANG (the mesh saw it), the apron keeps the ring dry
+  AND owns its ground (the cartway is barred from carving or
+  tinting inside it), so the hall, forge stall, and way signpost
+  stand on guaranteed exact ground. Layout: tangent-frame bearings
+  (hall +8 deg / 0.017 rad, forge +48 deg / 0.019, sign -36 deg /
+  0.013) -- all inside the flat ring, spread to frame the boot
+  without crowding the spawn. Each structure rides the gateway's
+  own lift law (planet_radius + tile lift + walk_surface_h), aligns
+  its up to the radial, and carries PropCollider.attach (solid
+  layer, climbable group). Palette slice 0: lime stucco, dark
+  timber, terracotta prism roofs, stone forge, iron anvil -- plain
+  colors; the terrain vertex law owns the look budget.
+- THE PROBE (tests/probe_starter_village.gd) pins BOTH layers: LAW
+  (no scene) -- every foot is plaza-flat (h == SPAWN_HEIGHT), dry
+  above the sea line, inside the flat ring, AND keeps its exact
+  ground under the cartway law (the override is a no-op there; note
+  the pin tests the road's ACTION not its raw corridor reach); SCENE
+  -- the village boots into the world with the 3 named structures,
+  each carrying the PropBody in the climbable group, each riding
+  the walk law's lift. ALL PASS.
+- Verification: globe probe 0 FAIL, charset lint 3/3.

@@ -135,6 +135,7 @@ func _ready() -> void:
 	_setup_streamer()
 	_build_water()
 	_build_arena_gateway()
+	_build_starter_village()
 	_build_player()
 	planet_center = world_root.position
 	player.planet_center = planet_center
@@ -759,7 +760,22 @@ func _build_arena_gateway() -> void:
 	world_root.add_child(gateway)
 	arena_gateway = gateway
 
+
 var arena_gateway: Node3D = null
+
+
+## THE STARTER VILLAGE PROTO (the ledger's parked build): the authored
+## boots-and-stalls village on the spawn plaza flats -- hall, forge
+## stall, signpost riding the plaza's own laws (exact flat ground,
+## dry apron, cartway bent around the ring). Placed on the SAME frame
+## the gateway rides, colliders via the one-law prop belt.
+func _build_starter_village() -> void:
+	var SV: GDScript = load("res://entities/starter_village.gd")
+	starter_village = SV.build(world_root, planet_radius, STREAMER_TILE_LIFT, \
+		Callable(streamer, "walk_surface_h"))
+
+
+var starter_village: Node3D = null
 
 
 func _build_player() -> void:
