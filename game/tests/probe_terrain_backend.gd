@@ -108,9 +108,14 @@ func _run() -> void:
 	_check("backend: ferry island plateau stands (>= native top code)",
 		isl_top >= Gen.sea_level(seed_bytes) + 2.0 + 0.5 * Gen.ISLAND_PLATEAU - 0.01
 			or isl_top >= isl_java - 2.0)
-	# Moat direction: just outside the island reach.
+	# Moat direction: just outside the island reach. The rotation axis
+	# is PERPENDICULAR to the island center (the seat moved into the
+	# homeland's sea front; an oblique fixed axis short-changes the
+	# annulus step), so the sample lands the same annulus step for any
+	# seat - the assertion itself is untouched.
+	var isl_axis: Vector3 = Vector3(0, 1, 0).cross(Gen.ISLAND_CENTER.normalized()).normalized()
 	var moat_dir: Vector3 = Gen.ISLAND_CENTER.normalized() \
-		.rotated(Vector3(1, 0, 0), (Gen.ISLAND_ANGULAR_REACH + Gen.ISLAND_MOAT_OUTER) * 0.5)
+		.rotated(isl_axis, (Gen.ISLAND_ANGULAR_REACH + Gen.ISLAND_MOAT_OUTER) * 0.5)
 	var moat: float = Gen.terrain_height(moat_dir, seed_bytes)
 	_check("backend: fjord moat channel cut around the island",
 		moat <= Gen.sea_level(seed_bytes) - Gen.ISLAND_MOAT_DEPTH + 0.01)

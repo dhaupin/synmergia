@@ -80,10 +80,26 @@ func _run() -> void:
 	var cold_band_ok := true
 	var warm_land_ok := true
 	var band_ids := {}
+	# THE MEMBERSHIP LAW (variety: each new band pins its OWN axis --
+	# the resolution thresholds re-stated per id so a threshold move
+	# that leaks into the wrong band is caught, not just "similar").
+	var members_ok := true
+	var member_violation: String = ""
 	for d in _sweep(600):
 		var id: int = Gen.climate_biome_id(d, seed_b)
-		if id < 0 or id > 12:
+		if id < 0 or id > Gen.BiomeId.LAST:
 			faces_all_ok = false
+		var t: float = Gen.climate_temperature(d, seed_b)
+		var m: float = Gen.climate_moisture(d, seed_b)
+		if id == Gen.BiomeId.JUNGLE and not (t > Gen.JUNGLE_T - 0.02 and m > Gen.SAVANNA_M - 0.02):
+			members_ok = false; member_violation = "jungle t=%.2f m=%.2f" % [t, m]
+		if id == Gen.BiomeId.SAVANNA and not (t >= 0.55 and m >= Gen.DRY_T and m < Gen.SAVANNA_M + 0.03):
+			members_ok = false; member_violation = "savanna t=%.2f m=%.2f" % [t, m]
+		if id == Gen.BiomeId.STEPPE and not (m < Gen.STEPPE_M + 0.03 and t <= 0.55 + 0.05):
+			members_ok = false; member_violation = "steppe t=%.2f m=%.2f" % [t, m]
+		if id == Gen.BiomeId.BADLANDS and not (m < 0.48 and t > 0.5 \
+				and Gen.erosion_field(d, seed_b) >= Gen.EROSION_T - 0.02):
+			members_ok = false; member_violation = "badlands t=%.2f m=%.2f" % [t, m]
 		var lat: float = absf(90.0 - rad_to_deg(acos(clampf(d.y, -1.0, 1.0))))
 		if lat > 80.0 and id >= Gen.BiomeId.GRASSLAND:
 			cold_band_ok = false
@@ -94,7 +110,74 @@ func _run() -> void:
 	ok = _check("band: every swept direction resolves a valid biome", faces_all_ok) and ok
 	ok = _check("band: high latitudes never resolve a green band", cold_band_ok) and ok
 	ok = _check("band: solid inland homeland never reads deep ocean", warm_land_ok) and ok
+	ok = _check("variety: each new band answers its OWN axis (%s)" % member_violation, members_ok) and ok
+	# THE VARIETY CENSUS (the point of the slice): the planet resolves
+	# a rich band mix, not 3 paints on a globe. Land bands (>= ALPINE
+	# through LAST) counted across the sweep must show at least 6
+	# distinct bands. The REACHED law is honest-sampled (the mountain-
+	# water discipline): a 600-point sweep is provably blind to rare
+	# bands (~1 pt / 2 km2 on a 5000 km2 planet), so the four NEW ids
+	# are counted on a 2400-point hunt sweep -- seeded fields, so
+	# "exists somewhere on this seed" is an honest existence claim.
+	var land_census := 0
+	for bid in band_ids:
+		if bid >= Gen.BiomeId.ALPINE:
+			land_census += 1
+	ok = _check("variety: land band census >= 6 distinct (saw %d)" % land_census, land_census >= 6) and ok
+	var new_band_names := ["jungle", "savanna", "steppe", "badlands"]
+	var new_ids := [Gen.BiomeId.JUNGLE, Gen.BiomeId.SAVANNA, Gen.BiomeId.STEPPE, Gen.BiomeId.BADLANDS]
+	var new_found := {}
+	var ga2: float = PI * (3.0 - sqrt(5.0))
+	for i in range(2400):
+		var y2: float = 1.0 - 2.0 * (float(i) + 0.5) / 2400.0
+		var r2: float = sqrt(maxf(0.0, 1.0 - y2 * y2))
+		var th2: float = ga2 * float(i)
+		var d2: Vector3 = Vector3(cos(th2) * r2, y2, sin(th2) * r2).normalized()
+		var hunt_id: int = Gen.climate_biome_id(d2, seed_b)
+		for k in range(new_ids.size()):
+			if hunt_id == new_ids[k]:
+				new_found[new_band_names[k]] = int(new_found.get(new_band_names[k], 0)) + 1
+	ok = _check("variety: all four new bands reached on this seed (hunt census %s)" % str(new_found), \
+		new_found.size() == 4) and ok
 	print("  [info] biome id census: %s" % [band_ids])
+
+	# ---- B2. THE RANGE LAW (the 2026-10-13 retune) -----------------
+	# THE RING SWEEP: the range law ANCHORS crest to the ring band
+	# 0.26..0.74 rad around boot, so the band is the honest hunt
+	# range -- 36 bearings x 24 radii x BOTH hemispheres (lat +/-:
+	# the measured 368.7 m summit sits SOUTH of boot at 14.7 deg --
+	# the first north-only sweep missed it). Coarse uniform lattices
+	# (1,200 pts over 4 km2 cells) are provably blind to it.
+	var ring_alpine_found := false
+	for sign in [-1.0, 1.0]:
+		for b in range(36):
+			for rr in range(24):
+				var rrr: float = 0.26 + 0.48 * (float(rr) / 23.0)
+				var drr: Vector3 = Sph.spherical_to_cartesian(
+					sign * rad_to_deg(rrr), 10.0 * float(b), 0.0, 1.0)
+				var hrr: float = Gen.terrain_height(drr, seed_b)
+				if hrr > Gen.sea_level(seed_b) + 280.0 \
+						and Gen.climate_temperature(drr, seed_b) < Gen.ALPINE_T:
+					ring_alpine_found = true
+	ok = _check("range: the homeland ring carries an ALPINE summit (band sweep, both hemispheres)", ring_alpine_found) and ok
+	ok = _check("range: the homeland ring carries an ALPINE summit (band sweep, both hemispheres)", ring_alpine_found) and ok
+	# Plains law: inside the ring the hot bands yield to GRASSLAND.
+	var plains_ok := true
+	var plains_violation := ""
+	for k in range(18):
+		for j in range(12):
+			var lon_p: float = 30.0 * float(j)
+			var lat_p: float = -20.0 + 40.0 * (float(k) / 17.0)
+			var dp: Vector3 = Sph.spherical_to_cartesian(lat_p, lon_p, 0.0, 1.0)
+			if dp.angle_to(Gen.SPAWN_CENTER) >= Gen.HOMELAND_PLAINS_ANG * 0.9:
+				continue
+			var idp: int = Gen.climate_biome_id(dp, seed_b)
+			if idp == Gen.BiomeId.JUNGLE or idp == Gen.BiomeId.SAVANNA \
+					or idp == Gen.BiomeId.STEPPE or idp == Gen.BiomeId.BADLANDS \
+					or idp == Gen.BiomeId.DESERT:
+				plains_ok = false
+				plains_violation = "id=%v lat=%v lon=%v" % [idp, lat_p, lon_p]
+	ok = _check("range: homeland plains law holds (no hot bands inside the ring%s)" % plains_violation, plains_ok) and ok
 
 	# Continuity: a small angular step never jumps from one land biome
 	# THROUGH a non-adjacent band (the salt-and-pepper repair; tolerance
@@ -168,8 +251,13 @@ func _run() -> void:
 	ok = _check("hydro: every river steps downhill (worst up-step %.2f m <= 1.0)" % downhill_worst, \
 		downhill_worst <= 1.0) and ok
 
-	# Water can sit at ANY height (the user's law): a mountain-lake pin.
-	# Sweep for basins well above the sea line and count them.
+	# Water can sit at ANY height (the user's law): a mountain-tarn pin.
+	# The coarse sweep is blind to small district bowls by construction
+	# (~1.7 lattice samples/km2 vs bowls ~0.5-2 km2: the pass was
+	# sampling luck even before), so the sweep DISCOVERY runs first,
+	# and when it misses, a perched-table candidate ring search
+	# finishes the hunt. The LAW stays one: standing water somewhere
+	# above sea+10 m.
 	var any_upland_water := false
 	for d in _sweep(900):
 		var h: float = Gen.terrain_height(d, seed_b)
@@ -177,6 +265,33 @@ func _run() -> void:
 		if h > sea + 10.0 and tab - h > Gen.Hydro.BEACH_MIN:
 			any_upland_water = true
 			break
+	if not any_upland_water:
+		var perched := [Vector3(0, 1, 0), Vector3(0, -1, 0)]
+		perched.clear()
+		for dd in _sweep(12000):
+			var base: float = Gen._terrain_height_base(dd, seed_b)
+			if base > sea + 10.0 and Gen.water_table(dd, seed_b) > sea + 10.0 + Gen.Hydro.BEACH_MIN:
+				perched.append(dd)
+		for base_d in perched:
+			var east: Vector3 = Vector3(0.0, 1.0, 0.0).cross(base_d).normalized()
+			var north: Vector3 = base_d.cross(east).normalized()
+			var found := false
+			for ring in range(30):
+				var t: float = 0.00005 + 0.00004 * ring
+				for mode in range(4):
+					var dd2: Vector3 = (base_d \
+						+ (east if mode < 2 else north) \
+						* (t if mode % 2 == 0 else -t)).normalized()
+					var hh: float = Gen.terrain_height(dd2, seed_b)
+					var tt: float = Gen.water_table(dd2, seed_b)
+					if tt - hh > Gen.Hydro.BEACH_MIN and hh > sea + 10.0:
+						found = true
+						break
+				if found:
+					break
+			if found:
+				any_upland_water = true
+				break
 	ok = _check("hydro: standing water exists ABOVE sea+10 m (mountain water legal)", \
 		any_upland_water) and ok
 
@@ -249,7 +364,16 @@ func _run() -> void:
 	var c_seabed: Color = Gen.vertex_color(Sph.spherical_to_cartesian(-30.0, 180.0, 0.0, 1.0), seed_b, sea - 6.0, 0.0)
 	ok = _check("color: seabed dims wet (darker than 0.5 gray)", c_seabed.r < 0.5) and ok
 	var c_cliff: Color = Gen.vertex_color(d_home, seed_b, 15.0, 1.0)
-	ok = _check("color: steep ground reads rock-ish (r > biome green)", c_cliff.r > c_forest.r) and ok
+	# THE ROCK LAW, biome-agnostic: steep ground DESATURATES toward
+	# rock gray (the channel spread narrows). The r-only proxy was a
+	# green-ground artifact: the same physics on a golden savanna or
+	# rust badlands ground reads correctly but failed the proxy.
+	var spread_ground: float = maxf(maxf(c_forest.r, c_forest.g), c_forest.b) \
+		- minf(minf(c_forest.r, c_forest.g), c_forest.b)
+	var spread_cliff: float = maxf(maxf(c_cliff.r, c_cliff.g), c_cliff.b) \
+		- minf(minf(c_cliff.r, c_cliff.g), c_cliff.b)
+	ok = _check("color: steep ground desaturates toward rock (spread %.2f -> %.2f)" \
+		% [spread_ground, spread_cliff], spread_cliff < spread_ground * 0.6) and ok
 	var c_pole: Color = Gen.vertex_color(Vector3(0.0, 1.0, 0.0), seed_b, 20.0, 0.0)
 	ok = _check("color: polar snow takes over (near-white)", c_pole.r > 0.7 and c_pole.b > 0.7) and ok
 	var c_apron: Color = Gen.vertex_color(Sph.spherical_to_cartesian(0.0, Gen.SPAWN_APRON_ANG * 0.9, 0.0, 1.0), seed_b, Gen.SPAWN_HEIGHT, 0.0)

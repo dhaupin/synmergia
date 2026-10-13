@@ -620,7 +620,24 @@ func _water_surface(face: int, mi: MeshInstance3D, verts: Array, center: Vector3
 		# The tile's water plane: average table height (the three
 		# gated tables differ by millimeters inside one tile).
 		var t_h: float = (float(surf[0]) + float(surf[1]) + float(surf[2])) / 3.0
-		_emit_water_tri(st_w, tri, center, t_h)
+		# THE WATER TINT (visual polish): the sheet color reads the
+		# tile's own climate -- shallow film is pale cyan (rivers/ponds
+		# read as running water), depth beyond ~2 m desaturates toward
+		# deep blue, the freeze band turns the sheet icy pale, and a
+		# swamp basin goes murk green-brown (the biome law chooses).
+		var d_mid: Vector3 = ((tri[0] + tri[1] + tri[2]) / 3.0 + center).normalized()
+		var g_mid: float = (float(lifts[0]) + float(lifts[1]) + float(lifts[2])) / 3.0 - t_r
+		var depth: float = t_h - g_mid
+		var wcol: Color = Color(0.72, 0.82, 0.86).lerp( \
+			Color(0.42, 0.62, 0.68), clampf(depth / 2.0, 0.0, 1.0))
+		if depth > 2.0:
+			wcol = wcol.lerp(Color(0.30, 0.44, 0.55), clampf((depth - 2.0) / 4.0, 0.0, 1.0))
+		var w_temp: float = TerrainGen.climate_temperature(d_mid, world_seed)
+		if w_temp < TerrainGen.SNOWLINE_T:
+			wcol = wcol.lerp(Color(0.86, 0.90, 0.94), 0.8)  # frozen sheet
+		elif TerrainGen.climate_biome_id(d_mid, world_seed) == TerrainGen.BiomeId.SWAMP:
+			wcol = wcol.lerp(Color(0.42, 0.46, 0.30), 0.7)  # the marsh murk
+		_emit_water_tri(st_w, tri, center, t_h, wcol)
 		water_tris += 1
 	if water_tris > 0:
 		mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st_w.commit())
@@ -631,8 +648,9 @@ func _water_surface(face: int, mi: MeshInstance3D, verts: Array, center: Vector3
 	return water_tris
 
 
-## Emit ONE water triangle for tile `tri` at radius (tile_r + t_h).
-func _emit_water_tri(st_w: SurfaceTool, tri: Array, center: Vector3, t_h: float) -> void:
+## Emit ONE water triangle for tile `tri` at radius (tile_r + t_h)
+## with the tile's own lens color (the water tint law).
+func _emit_water_tri(st_w: SurfaceTool, tri: Array, center: Vector3, t_h: float, tint: Color) -> void:
 	var grand_r: float = radius + TILE_LIFT + t_h
 	var pts: Array = []
 	for i in range(3):
@@ -641,7 +659,7 @@ func _emit_water_tri(st_w: SurfaceTool, tri: Array, center: Vector3, t_h: float)
 	var n: Vector3 = ((pts[0] + center) + (pts[1] + center) + (pts[2] + center)).normalized()
 	for p in pts:
 		st_w.set_normal(n)
-		st_w.set_color(Color(0.72, 0.82, 0.86))
+		st_w.set_color(tint)
 		st_w.add_vertex(p)
 
 
@@ -919,17 +937,25 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 		var v: Vector3 = Icosahedral.VERTICES[verts[rng.randi_range(0, 2)]].normalized()
 		var dir: Vector3 = (FacePatches.face_center(face) * 0.55 + v * 0.45).normalized()
 		var base_h: float = _prop_ground_h(face, dir)
-		# WATER SKIP + tree line (terrain arc only; the prototype keeps
-		# its S7 greenery untouched).
-		if terrain_on and (base_h < sea - 0.6 or base_h > sea + 24.0):
+		# WATER SKIP (terrain arc only; the prototype keeps its S7
+		# greenery untouched). THE TREE LINE IS THE BIOME now (the
+		# lapse retune made the old flat 24 m cap a mid-altitude tree
+		# DROUGHT: temperate foothills above 24 m were treeless while
+		# green; the species law below already bars ALPINE/TUNDRA and
+		# the hot dry bands).
+		if terrain_on and base_h < sea - 0.6:
 			continue
 		# SPECIES LAW: the biome at the site chooses (water law, desert
-		# and pole bands grow; the dry hardpans do not). The prototype
-		# (terrain off) keeps its S7 greenery untouched.
+		# and pole bands grow; the dry hardpans do not). VARIETY LAW:
+		# JUNGLE grows dense like the forest band, SAVANNA grows sparse
+		# (30%) -- scattered acacias; STEPPE/BADLANDS stay bare like
+		# the high dry bands. The prototype (terrain off) keeps its S7
+		# greenery untouched.
 		if terrain_on:
 			var bid: int = TerrainGen.climate_biome_id(dir, world_seed)
 			var draw: float = rng.randf()
-			if bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.TAIGA:
+			if bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.TAIGA \
+					or bid == TerrainGen.BiomeId.JUNGLE:
 				pass  # always grows
 			elif bid == TerrainGen.BiomeId.SWAMP:
 				if draw > 0.5:
@@ -940,8 +966,11 @@ func _spawn_trees(face: int, patch_node: Node3D) -> void:
 			elif bid == TerrainGen.BiomeId.SHORE:
 				if draw > 0.25:
 					continue
+			elif bid == TerrainGen.BiomeId.SAVANNA:
+				if draw > 0.3:
+					continue
 			else:
-				continue  # desert / tundra / alpine / water bands: no trees
+				continue  # desert / steppe / badlands / tundra / alpine / water: no trees
 		var tree_name_idx := i
 		var trunk_height: float = rng.randf_range(1.8, 3.2)
 		var trunk_radius_top := 0.14
@@ -1093,8 +1122,11 @@ func _spawn_detail_props(face: int, patch_node: Node3D) -> void:
 		var is_cattail: bool = bid == TerrainGen.BiomeId.SWAMP
 		var is_bush: bool = bid == TerrainGen.BiomeId.GRASSLAND \
 			or bid == TerrainGen.BiomeId.FOREST or bid == TerrainGen.BiomeId.TAIGA \
-			or bid == TerrainGen.BiomeId.ALPINE_MEADOW
-		var is_ore: bool = bid == TerrainGen.BiomeId.ALPINE or bid == TerrainGen.BiomeId.TUNDRA
+			or bid == TerrainGen.BiomeId.ALPINE_MEADOW \
+			or bid == TerrainGen.BiomeId.JUNGLE or bid == TerrainGen.BiomeId.SAVANNA \
+			or bid == TerrainGen.BiomeId.STEPPE
+		var is_ore: bool = bid == TerrainGen.BiomeId.ALPINE or bid == TerrainGen.BiomeId.TUNDRA \
+			or bid == TerrainGen.BiomeId.BADLANDS
 		if not is_cattail and not is_bush and not is_ore:
 			continue  # beach/ocean/water bands stay bare (FOREST/TUNDRA/ALPINE carry the ore)
 		var prop := MeshInstance3D.new()

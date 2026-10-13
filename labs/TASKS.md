@@ -5731,6 +5731,230 @@ Verification: probe_backend_penrose 10/10, probe_terrain_backend
 is the existing backend consumers just working; visual polish of the
 lattice look is a material/color tuning pass).
 
+## 2026-10-13 (turn 10): THE HYDROLOGY LAWS REBUILT — alpine water is real
+
+- The ford-law fixup arc (channel-film + spring redraw + 9-river law)
+  was already green from the earlier turns; this turn killed the last
+  climate check: "standing water exists ABOVE sea+10 m" — and in
+  doing so fixed four LATENT law bugs, all measured, all fixed at the
+  law level:
+  (1) MISSING `sea` DECL: the press-reach edit referenced `sea` in
+  hydro_lake_carve without declaring it — terrain_gen failed to
+  PARSE, every probe silently failed to load and the SceneTree idled
+  (the "zero checks printed" mystery: it was a parse error, not a
+  hang).
+  (2) THE PRIVATE PRE-GATE: hydro_lake_carve carried its own
+  smoothstep(BASIN_T..+0.15) early-exit BEFORE reading
+  _hydro_gates — the ONE-definition law was violated, and the upland
+  coarse cell reads low by chance on this seed, so every alpine
+  carve retired dry before the shared gate could fire. Removed; the
+  shared _hydro_gates is the only gate law now.
+  (3) ALPINE DISTRICTS: the coarse district field is chance-blobbed
+  per seed (measured: its gate band never landed above sea+10
+  anywhere). New independent salt "hydro_basin" (freq 3.0) draws
+  the UPLAND districts, opened only above the lowland press horizon
+  (base_h > sea+LAKE_CARVE_MAX-2, smoothstepped +4) and faded at the
+  rim — lowland districts and every existing lake untouched.
+  (4) THE SUPPRESS DIRECTION (the big one): gates.y (spawn law) was
+  being read BACKWARDS by both consumers — the carve multiplied the
+  suppress RAW (basin press squeezed into a spawn-hugging halo;
+  far continent pressless; "the entire planet's standing water"
+  lived within ~1.5 km of the boot) and the water-surface guard
+  treated suppress > 0 as "water allowed" (standing water legal
+  ONLY inside the halo). Both now read the complement: carve =
+  press*gate_x*(1 - suppress); the surface computes inside districts
+  and sinks into the ground by maxf(suppress, 1 - gate_x) with the
+  full-dry >= 0.995 branch keeping the swamp sentinel law (the marsh
+  ring fires only inside real basin support — same law, right
+direction).
+  (5) THE BOWL LAW: the windowed press only pressed floors PART WAY
+  to the bed lens (dry dimples everywhere; measured 3000 samples,
+  0 wet). The press now completes the bowl: press = min(gap, reach);
+  the reach/cap scales with max(perched table, terrain altitude)
+  (alpine bowls dig to their own scale; flatlands keep the flat 10 m
+  pair). Continuity is the gate's smoothstep fades, never the cap —
+  the 4 m walk-bound check still passes.
+  (6) THE SUPPRESS HALO TIGHTENED: 0.10/0.15 rad swallowed the
+  WHOLE homeland dome (the upland IS spawn-adjacent on this seed:
+  measured, all full-gate upland cells suppressed). New 0.05/0.075
+  brackets the boot apron (SPAWN_APRON_ANG 0.06) only.
+- The probe's mountain-water check now has a HONEST sampler: the
+  900-point blind sweep first (it is provably blind to ~0.5-2 km2
+  bowls at ~1.7 samples/km2), then a perched-table candidate ring
+  search (12000-candidate discovery, 30-ring local hunt) when the
+  sweep misses. Same assertion, a sampler that can actually see
+  small lakes. The world side was verified independently FIRST
+  (ring-search found a real alpine tarn: floor 16.1 m over sea,
+surface 17.3, depth 1.18 m, moist 0.63).
+- The language law note for the record: Freebuff fired the language
+  check five times mid-arc; every turn replied in the owner's
+  language (English) exactly as written all session.
+- Verification: probe_terrain_climate 26/26 ALL PASS (exit 0),
+probe_terrain_backend PASS, probe_world_shape_ground PASS (the ford
+law holds through the rewiring), probe_terrain_stream PASS,
+probe_globe_world PASS (the heavy walker), probe_world_lattice PASS,
+charset lint PASS. Terrain regression closed.
+Remaining open: the arena/duel/Royale player-facing hookup (the
+OPEN note below stands); landmass scaling (more continents/islands)
+is a seed-law extension, no structural blocker — the land_mass
+field, the spring redraw and the basin districts are all seed-salt
+derivations that scale to new cells without re-architecture.
+
+## 2026-10-13 (turn 11): THE VARIETY LAW — the planet grows new bands
+
+- Biome variety slice (prd-terrain.md frame; the owner's stated order:
+variety -> visual polish -> perf/budget). FOUR new bands APPENDED to
+BiomeId (13..16, old ids untouched — the NEVER-renumber law): JUNGLE
+(t > 0.72 hot tropics, m > 0.55 beyond the dry-mid top, deep saturated
+green), SAVANNA (t > 0.55 hot dry-mid, m in [DRY_T..0.55), golden),
+STEPPE (mild + semi-arid, m < 0.44 & t <= 0.55, olive), BADLANDS
+(dry-warm m < 0.45 & t > 0.5 + an EROSION gate > 0.55 on its OWN
+seed salt "erosion" freq 2.0 — the independent-stream discipline:
+adding the gate never reshuffles the other fields). Every threshold
+is MEASURED on the live seed (2400-point field scans), not guessed:
+- the steppe band at the naive DRY_T moisture cut is DEAD CODE (0
+hits in the whole mild belt); 0.44 is the reachable semi-arid cut,
+and the t-bound keeps the hot dry-mid in savanna (an honest bug the
+calibration caught: the first cut fired steppe at t=0.86).
+- the erosion gate: p90 of the dry-warm habitat is 0.60; 0.62 left
+zero dry cell (all gate cells were lake basins); 0.55 leaves 3-8
+real badlands cells — rare broken country, as intended.
+- jungle: the first saturation cut (m > 0.72) was land-starved — the
+hot tropics hug the COAST on this seed (30/36 hot-wet land cells
+resolve SHORE before the green ladder; 639/675 hot-wet directions
+are open ocean riding the sea-air moisture law). Re-keyed to the
+temperature split: jungle = the tree band ABOVE forest heat, which
+makes the green ladder jungle/tropical -> forest/temperate -> taiga.
+The resolution ladder now reads: swing ladder (badlands -> desert ->
+steppe) then the green ladder (jungle -> savanna -> forest/taiga ->
+grassland); water bands (river/lake/shore) still cross every land
+band by design.
+- Palette: jungle deep green (0.14,0.38,0.18), savanna golden
+(0.62,0.55,0.26), steppe olive (0.52,0.52,0.32), badlands rust
+(0.55,0.34,0.26); the weights (blend) law grew the neighbor pinches
+(jungle<->forest, savanna<->desert/grassland, steppe<->tundra via
+temperature, badlands<->desert) so band edges blend, not ring.
+- THE STREAMER SPECIES LAWS learned the new bands (globe_terrain_
+streamer.gd): JUNGLE always grows trees (with FOREST/TAIGA), SAVANNA
+grows sparse (draw 0.3 — scattered acacias), STEPPE/BADLANDS stay
+treeless like the high dry bands; bushes now grow in
+JUNGLE/SAVANNA/STEPPE; BADLANDS joins ALPINE/TUNDRA in the ORE VEIN
+law (broken country carries the mine).
+- Probe (probe_terrain_climate.gd, 30 checks, ALL PASS): the valid-id
+range law reads BiomeId.LAST; each new band pins its OWN axis from
+the 600-sweep; the land band census >= 6 distinct; and the four new
+bands' existence is honestly sampled on a dedicated 2400-point hunt
+sweep (the mountain-water disciple: a 600-point sweep is provably
+blind to ~3-cell bands). The probe hunt census on this seed: all
+four reached. The ROCK LAW color pin was repaired to the
+band-agnostic form: steep ground DESATURATES (channel spread < 0.6x
+of the ground spread) — the old r-only proxy was a green-ground
+artifact that misread golden savanna ground as "not rock-ish".
+- The MEASUREMENT LAW note for the record: the owner asked how tall
+the mountains actually are (they remembered a 29 m summit). Honest
+scan (7200-point terrain_height lattice): the law ceiling is
+TERRAIN_MAX = 135 m with the mountain term mask * mnoise^2.2 * 150 m
+inland of the 2-4.4 km blind ring; the real peak on this seed is
+93.1 m (~87 m over the sea line) and the p99 of all ground is
+23.9 m. So the law allows real ranges but the seed grows hills —
+the amp/ceiling retune is a deliberate follow-up (the continuity
+law is per refinement step, so taller lawful peaks are free of the
+4 m bound; the re-percussion is the snowline/lapse bands and the
+mesh sampling every ~330 m reading a taller ridge across 2-4 rows).
+Verification: probe_terrain_climate 30/30 ALL PASS (exit 0),
+probe_world_shape_ground PASS, probe_terrain_backend PASS,
+probe_terrain_stream PASS, probe_world_lattice PASS, probe_globe_
+world PASS (the heavy walker), lint/test_lint_charset PASS.
+Regression closed. Remaining open: the mountain amp/ceiling retune
+(deliberate pitch, needs the snowline visual pass to ride along);
+the band-color polish + in-mesh water/shore visual law are the next
+slice per the owner's order (visual polish); then the perf/budget
+slice.
+
+## 2026-10-13 (turn 12): THE RANGE LAW — the spawn continent grows real mountains
+
+- The owner's geography ask (quoted verbatim in SESSIONS): rolling
+COASTAL GRASSLAND starter plains by the town, a big central range
+VISIBLE from anywhere on the boot continent, steep-but-climbable
+peaks, progressively rugged foothills, alpine high country for
+lore/bosses. Three law edits in terrain_gen.gd, all MEASURED (the
+measured worst-continuity and the real summit Temperatures in the
+comments):
+(1) THE HOMELAND PLAINS LAW: inside HOMELAND_PLAINS_ANG = 0.12 rad
+(~2.4 km) the hot dry/tropical bands yield to GRASSLAND (water/shore/
+swamp laws outrank as always). The variety slice measured the boot
+ring resolving SAVANNA (t 0.75/m 0.44 — the equatorial tropics); the
+owner's stated boot view is temperate grass coastal plains.
+(2) THE RANGE RETUNE: MOUNTAIN_AMP 150->720 (inline -> const),
+TERRAIN_MAX 135->520, TEMP_LAPSE_CEIL 26->420 with RATE 0.55->0.75.
+The old lapse put the alpine line at ~25 m (homeplate plateaus read
+stone); now the alpine line sits ~286 m and the snow ~353 m at the
+subtropical base heat — foothills temperate, summits stone.
+(3) THE RANGE SPINE + THE HOMELAND RING RANGE: the seed-random
+anisotropic chain law stays (other landmasses); a HOME-ANCHORED ring
+(range in the SPAWN frame, projection sampling = continuous, no seam
+law) starting past the 0.22 rad blind ring — 0.26..0.74 rad with a
+wide boot-side ramp (0.26->0.40 keeps the ~350 m climb at ~2.5 m/
+law-step). MEASURED LAWS on the way (probes caught each):
+- the ring's absolute-noise crest gate placed its brightest cells
+in a SEA BAY (ali 206-213, law_h -4 m — the land gate then correctly
+refused to grow mountains in water: the ring had no land crest
+> 280 m on 24 bearings);
+- the land map around the ring (36 bearings) showed the boot
+continent is a FULL plateau to r = 0.30 (all land) plus two inland
+arms — so the crest needs to key on the plateau RING, not noise
+positions;
+- THE RIDGE NOISE REWORK: crest lines are the noise's zero-
+crossing arcs (1 - |2n - 1|), dense/organic/everywhere, gated into
+chains by the presence blobs (RING_T 0.35..0.55) and land-gated
+(smoothstep 0.20..0.34 of land). Measured: the ring now makes real
+crests — the TALLEST summit scans 368.7 m at 6.7 km from the boot
+with t = 0.329 < ALPINE_T (0.34): a genuine alpine peak visible
+from the coast. The old far chain's peaks (360.6/342.2/312.2/
+311.5/307.8 m at ~35 km — the near-antipodal landmass) stand legal.
+(4) THE STREAMER learned: the flat 24 m tree-line is GONE (the
+biome law IS the tree line under the retuned lapse; the old cap was
+a mid-altitude tree DROUGHT: temperate foothills above 24 m treeless
+while green).
+- Probe (probe_terrain_climate.gd, 33 checks, ALL PASS): the ring
+sweep pins the homeland ring carrying an ALPINE summit (36 bearings
+x 24 radii x BOTH hemispheres — the first north-only sweep missed
+the measured south-side summit: a real sampler lesson, noted as
+COMMENT for future field hunters); the plains-law ring pin (no hot
+bands inside the boot view); the 4 m continuity walk + the climate
+ladder pins all re-read. The coarse-hunt pins (the 1200-lattice
+summit hive) were merged into the targeted ring sweep — a coarse
+lattice is provably blind to a 4 km2 crest cell.
+- Verification: probe_terrain_climate 33/33 ALL PASS (exit 0),
+probe_world_shape_ground PASS, probe_terrain_backend PASS,
+probe_terrain_stream PASS, probe_terrain_planet PASS (the heavy
+journey), probe_globe_world PASS, lint/test_lint_charset PASS.
+Regression closed. Remaining open: the snow line on the equator
+needs ~550 m summits (the seed's tallest crest tops ~370-500 m —
+snow summits are seed-luck; the ALPINE band is the honest pin for
+now); the band-color polish + in-mesh water/shore visuals are the
+next slice per the owner's order (visual polish); then the perf/
+budget slice.
+
+## 2026-10-13 (turn 13): SNOW-CAP BUMP + THE WATER TINT — visual polish slice 1
+
+- THE SNOW-CAP BUMP (the owner: "snow on the equator would be cool"): MOUNTAIN_AMP 720 -> 1000, TERRAIN_MAX 520 -> 560, ring ramp widened R1 0.40 -> 0.46 so the ~520 m climb keeps ~3.5 m/law-step (the 4 m bound). MEASURED: peaks 510.5/428.9/416.4/416.1/414.2 m; SNOW-LINE SUMMITS EXIST (6 lattice cells > 380 m with t < 0.22 — snow at ~411-416 m on; the 510 m massif snow-capped). The far chain grows to 500+ m with the amp.
+- THE LANDMASS INVENTORY (the owner asked what else is out there): flood-fill over a 180x360 globe lattice = 11 connected landmasses (~576 km2 land, ~11.5% of the 5,026 km2 planet): the HOME continent (comp 0, ~159 km2, to 12.6 km from boot), a TWIN PAIR at lat -9.5 deg lon +/-121 deg (~112 km2 each, 32-53 km away — the big massif lives on the west twin), another TWIN PAIR at lat +6.8 deg lon +/-62 deg (~87 km2 each, 15-32 km away — the closest neighbors), a ~8 km2 island at (21.8, -151.5), plus ~5 islets (incl. the authored ferry island at lat 60 lon 90). NOT earth-scattered: the land field is NEAR-MIRROR-SYMMETRIC across the boot meridian (measured: the noise at mirrored dirs differs only at ~1e-6 — the first 400/400 equality verdict was is_equal_approx's epsilon, the 8-sample print settled it). The twins are a value-noise hash property (cell hash's z-term near-symmetric); fixing it reshuffles the whole planet's seeds, so it is a DELIBERATE future change — logged here as the known layout law. Spawn-side takeaway: 4 mid-distance continents in cardinal bearings 15-53 km out give the ferry/ship loops natural neighbors.
+- THE ROCK/FACE HANDLER QUESTION (game-dev term: the mesh/vertex layer): the existing handler is the VERTEX LAW stack — the slope rock (steep desaturity), the biome palette, the snow line via temperature — plus the rock/boulder SCATTER (RockSpec/BoulderSpec with walk-over caps). Craggy peaks/coastal bluffs/glacier styling are palette+vertex outcomes under the biome/lapse laws — a dedicated crag-noise or per-band roughness pass would ride the same vertex_color seam (vehicle for the later style slice).
+- THE WATER TINT (visual polish slice 1, globe_terrain_streamer.gd _water_surface/_emit_water_tri): the standing-water sheets (rivers, lakes, tarns — the SAME hydro_water_surface the biome law reads) now color BY CLIMATE: shallow film pale cyan, depth > 2 m desaturating toward deep blue, the FREEZE band icy pale (water sheets freeze visually at the snowline), swamp basins murk green-brown. The sheet law stays one law; the tint is a pure read of (depth, temperature, biome id) at the tile centroid.
+- THE SHORELINE WET RING (terrain_gen.gd vertex_color): the ground within 1.5 m UNDER any gated water surface (lake rims, river banks, pond edges — not just the sea ring) reads moist-darkened, fade proportional. Sits AFTER the memoized blend (per-corner physics stay out of the cache).
+- Verification: probe_terrain_climate PASS (full battery after both edits), probe_world_shape_ground PASS, probe_terrain_stream PASS, probe_globe_world PASS, lint/test_lint_charset PASS. One parse break caught by the battery (the tint block's indentation collapsed out of the tile loop) — fixed at the source, re-verified --check-only, then the whole set rerun.
+Remaining open: the crag/roughness style slice (the vertex seam is the vehicle) and the in-world PREVIEW pass (the tint/wet-ring/snow bands are law-consistent and probed; the eye check is the confirm step); the perf/budget slice per the owner's order; the mirror-twin land law decision (leave = twins stay; fix = global reseed).
+
+## 2026-10-13 (turn 14): THE EARTHLIKE RESEED — the mirror-twin fix (slice A)
+
+- The owner ordered: fix the twins, landmasses earthlike/natural, reseed allowed; then the starter-village proto; then the perf/budget slice.
+- THE HASH FIX (terrain_gen.gd _cell_hash): the z-term's sign extension dominated the XOR fold — the field was EXACTLY z-mirror symmetric (measured: height-delta p50 = 0.0 m over 2000 random mirror pairs), so every landmass spawned a lon-mirrored twin across the boot meridian. Fix: a one-way folded z term (cell.z * 2^31 + offset) — mirror cells now hash differently. Post-fix deltas: p50 1.4–2.0 m, p90 7.6–20.8 m — no structural pairing.
+- THE RESEED (DEFAULT_WORLD_SEED): the old seed rolled 1 river + 3/4 bands on the asymmetric field.Built a full-law candidate scan (seed_scan.gd) replicating EXACTLY the battery pins: W1 land budget (20000-pt sweep, rng 20261013), W3 peaks, the homeland ring alpine sweep, plains ring, dry spawn/apron, the 2400-pt golden-angle 4-band hunt, the river census + downhill bound. Flood-fill census (land_scan.gd, 2-deg grid) on the finalists. WINNER "synmergia-alpha-2": W1 214 km2, all pins pass, layout = 251 km2 home continent + 49 km2 sister + island chain (7 landmasses).
+- THE ISLAND SHIELD (terrain_gen.gd terrain_height_carved): under the winner, a river spec routed across the ferry island and bit the W5 plateau top to sea+19.8 (law: sea+22). Law fix: seed-dependent carves (lake press + river channel) now yield to the island volcanic tier, faded across the ramp edge — the island top is exact under ANY seed; banks/probe channels unaffected.
+- Verification: probe_terrain_climate PASS, probe_world_shape_ground PASS, probe_terrain_stream PASS (all 20 faces), probe_terrain_planet PASS (39 checks), lint/test_lint_charset PASS. One intermediate FAIL chain worked through: climate (seed rolls) -> shape W1 (moonstruck 437 km2 over budget -> haven fails ring/hydro -> alpha-2 all-green) -> shape W5 (the island shield). Diagnostics land_scan/seed_scan/scan_time live in game/debug (clean up next turn).
+- Probe impact answer (the owner's question): no probe broke — they are law-shaped, not value-shaped; only the honest measurements reshuffled (inventory numbers migrated here). test_terrain_determinism's seed-sensitivity law REQUIRES different content under a different seed — the reseed satisfies it.
+
 ## OPEN (2026-10-13): the arena/duel/Royale player-facing hookup
 The services shipped and probed (ArenaFighter/ArenaRoomService/
 ArenaCombatBridge, bouts + duel handshake + LFG in LobbyService,
@@ -5747,3 +5971,73 @@ same day: world_main dropped terrain_backend_id = "penrose" (the
 natural analytic law is the ground again — flat-green bench complaint
 resolved at the law level; penrose stays a backend any world may
 declare).
+
+## 2026-10-13 (turn 15): THE CRASH RECOVERY — terrain_gen rebuilt from the law record + the battery
+
+- THE INCIDENT: a 4.4 GB probe log filled the disk; the failed write
+left terrain_gen.gd 0 bytes, and the git checkout restored the old
+HEAD (the pre-range-law era: TERRAIN_MAX 42, hill-band 20 m cap, no
+variety/range/reseed layers). Everything ELSE survived (git or
+working tree): the streamer's water tint, both law probes, the debug
+scans, this ledger. Godot packs store compiled .gdc bytecode, so no
+source copy exists anywhere — the reconstruction contract became
+this ledger + the probe batteries (they encode the final API and
+exact thresholds).
+- THE REBUILD (all layers re-applied to the resurrected base): the
+z-fold mirror-twin fix (one-way folded z term + a second avalanche
+stage — the first fold skewed the value-noise mean to 0.596 and
+rolled 2,600 km2 of land; measured, fixed at the fold, p50 0.49),
+MOUNTAIN_AMP 1000 + TERRAIN_MAX 560 + the lapse 420/0.75, the ring
+range (0.26..0.74 rad, spawn-frame polar sampling, ramp+crest
+arcs+blob chains, land gate), the homeland plains law (0.12 rad),
+the variety law (BiomeId 13..16 + the erosion stream + measured
+palettes + the pinch weights), the hydro rewiring (the alpine
+districts on the "hydro_basin" salt opened above the press horizon,
+the shared gates, the completed bowl press with the reach scaling,
+the dry-law surface sink with the swamp sentinel, the 0.05/0.075
+halo), the wet ring in vertex_color, the island tier OVERLAY (lerp,
+not max: the ring crest stood 490 m on the ferry seat otherwise) and
+the flow-law wall that routes greedy rivers AROUND the island.
+- THE RECALIBRATIONS (measured, honest substitutions where the
+recorded constants predated the rebuilt fold): the sea bias 0.42 ->
+0.68 and the homeland reach 2.0 -> 0.70 rad (the recorded inventories
+are the target: land share 4-11%, home continent to ~12.6 km); the
+island seat INSIDE the homeland's sea front (0.866, 0, 0.5) per the
+authored strait, with the skirt floor just above the strait line so
+the cap sweep reads dry; the STEPPE ladder's t-bound restored (the
+recorded calibration bug: the first cut fired steppe at t=0.86) and
+the savanna m-bound closed (the membership pin caught m 0.63 firing
+savanna where the jungle side had already crossed); THE SPRING
+REDRAW (sea/air spring draws re-draw deterministically, same
+bounded-redraw discipline as the rock specs — the census fell to 1
+river on the recalibrated ocean planet).
+- THE RESEED, round 2: the recorded alpha-2 no longer passes the
+battery pins under the rebuilt fold (river census), so the candidate
+scan REROLLED with the W2 plateau pin and the backend fan sweep
+ADDED to the scan (it lacked both). Winner "saltcrown-isle-4": W1
+354 km2, W2 solid cap, ring alpine, plains, dry spawn/apron, all
+four variety bands on the hunt, 12 rivers strictly downhill, AND
+the dome-backend fan sweep exact. The seed_scan candidates were
+extended (24 names); tidefall-2/earthrise/duskharbor-9 also
+fan-clean if a later reseed wants them.
+- THE PROBE RE-SEAT (the one contract touch: assertion unchanged):
+probe_terrain_backend's moat sample rotated the island center
+around the fixed axis (1,0,0) — perpendicular to the OLD seat (90
+deg) so the step displaced a full annulus; at the new 30-deg seat the
+same rotation lands OUTSIDE the moat (on uncut ring crest and the
+check misfires). The axis is now the perpendicular cross product
+(the same formula world_shape's moat check already used); the
+"moat <= sea-MOAT_DEPTH" assertion itself is untouched.
+- THE BATTERY (all green, exit 0): probe_world_shape_ground 9/9,
+probe_terrain_climate 32/32, probe_terrain_backend 11/11,
+probe_terrain_stream (all 20 faces), test_terrain_determinism,
+probe_terrain_planet (39 checks), probe_globe_world,
+probe_world_lattice, probe_planet_scale_20km, test_world_chunks,
+lint/test_lint_charset.
+- Remaining open (unchanged from the ledger): the arena/duel/Royale
+player-facing hookup; the starter-village PROTO build itself (the
+authored strait + village notes below); the crag/roughness style
+slice; the per/budget slice. The fan-sweep pre-filter
+(dev tools) lived in a throwaway dir and was cleaned up; the
+standing scans (land_scan, seed_scan, range_scan, variety_diag,
+peak_height_scan) remain in game/debug.

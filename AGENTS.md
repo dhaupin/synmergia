@@ -1097,3 +1097,30 @@ var char_class_name := "warrior"  # OK
   stone, use `vant horcrux inspect horcrux/<file>.svg` or read the
   README, never text search.
 
+## Session hygiene (the 2026-10-13 disk-full incident — read this)
+
+### Push to GitHub early and often
+
+One working-tree-only incident cost a full day of terrain law work:
+the file existed ONLY in the sandbox when the disk filled, and
+`git checkout HEAD` restored a much older era. The law now:
+- If it has been **a couple of hours** since the last push, push.
+- After any sizeable law/battery step goes green, **commit and push
+  immediately** — don't batch three turns' work into one uncommitted
+  wedge. Freebuff's GitHub App mints the credential; nothing manual
+  is needed and running `git push` normally is the whole job.
+
+### Bound the logs
+
+Probe/test stdout goes to /tmp and is regenerable — but it must
+never be allowed to pile up:
+- The test runner caps any single log file at 256 MB (`ulimit -f`):
+  a runaway logger dies with SIGXFSZ (the test fails visibly, the
+  disk survives) instead of eating the workspace.
+- The runner sweeps `syn_*` logs older than a day at startup.
+- Probes log per-CHECK, never per-tick/per-frame. A frame-loop
+  print inside a headless probe is a disk bomb.
+- Before any multi-hundred-KB file REPLACEMENT, check `df -h`. A
+  failed str_replace mid-write once truncated the source file the
+  check-out later had to restore.
+

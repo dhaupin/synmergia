@@ -23,6 +23,14 @@ if ! command -v godot >/dev/null 2>&1; then
 	exit 1
 fi
 
+# THE DISK-HYGIENE LAW (the 2026-10-13 incident: a runaway probe log
+# ate 4.4 GB and the disk-full truncation cost a day of terrain work):
+# (1) any single log file dies at the 256 MB cap - the writes fail
+# with SIGXFSZ visibly (the test fails, the disk survives);
+# (2) regenerable syn_* logs older than a day are swept at startup.
+ulimit -f 262144
+find /tmp -maxdepth 1 -name 'syn_*.log' -mtime +1 -delete 2>/dev/null
+
 # Default regression set: work streams that must never silently rot.
 DEFAULT_SET="
 test_data_naming_lint
@@ -119,6 +127,7 @@ probe_blacksmith_model
 probe_wolf_model
 probe_anim_play
 probe_blacksmith_scene
+probe_world_shape_ground
 "
 
 if [ "${1:-}" = "--all" ]; then

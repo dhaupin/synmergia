@@ -56,7 +56,7 @@ static var _river_spec_cache = LRU_CACHE.new(8)
 const RULESET_VERSION: String = "terrain_v3"
 
 ## Project default world seed (dev). Shards override per-shard later.
-const DEFAULT_WORLD_SEED: String = "synmergia-alpha-1"
+const DEFAULT_WORLD_SEED: String = "saltcrown-isle-4"
 const WORLD_SEED_SETTING: String = "synmergia/world/seed"
 
 ## Base rock size (meters) before per-rock scale. ROCK_EMBED is how
@@ -68,7 +68,24 @@ const ROCK_EMBED: float = 0.3
 
 ## -- Terrain arc constants (planet-scale law; all heights in meters) --
 ## Hard ceiling on the ground law: nothing grows above this.
-const TERRAIN_MAX: float = 42.0
+## THE RANGE RETUNE + SNOW-CAP BUMP: MOUNTAIN_AMP feeds BOTH mountain
+## streams (the seed-anisotropic far chain below + the HOME-ANCHORED
+## ring range, sampled in the SPAWN frame). The ~520 m climb through
+## the ring ramp keeps ~3.5 m/law-step (under the 4 m continuity
+## bound); TERRAIN_MAX 560 roofs the bump (snow-line summits legal at
+## ~380+ m on the equator).
+const MOUNTAIN_AMP: float = 1000.0
+const RING_R0: float = 0.26
+const RING_R1: float = 0.46
+const RING_R2: float = 0.74
+const RING_T_LO: float = 0.35
+const RING_T_HI: float = 0.55
+## THE HOMELAND PLAINS LAW: inside this angle of the boot the hot
+## dry/tropical bands yield to GRASSLAND (temperate coastal starter
+## plains by the town; water/shore/swamp laws outrank as always).
+const HOMELAND_PLAINS_ANG: float = 0.12
+## Hard ceiling on the ground law: nothing grows above this.
+const TERRAIN_MAX: float = 560.0
 ## The sea line above the base surface. Per-seed in a narrow band so
 ## shorelines shift between worlds but the shelf law holds.
 const SEA_LEVEL_MIN: float = 4.0
@@ -88,7 +105,11 @@ const LAKE_DROP: float = 7.5
 ## shelf -- an island in the sea, with the moat (below) cutting the
 ## channel the ferry owns. Angular reach 0.012 rad = a 240 m-radius
 ## island at the 20 km planet scale.
-const ISLAND_CENTER: Vector3 = Vector3(0.0, 0.866, 0.5)
+## THE AUTHORED STRAIT (turn 14, the starter-vista proto): the ferry
+## island moved INTO the homeland's sea front - yes at the coast
+## within the dome's falloff, so the moat law deliberately cuts the
+## crossing between the village harbor and the island.
+const ISLAND_CENTER: Vector3 = Vector3(0.866, 0.0, 0.5)
 const ISLAND_ANGULAR_REACH: float = 0.012
 const ISLAND_PLATEAU: float = 20.0
 ## The spawn shore: guaranteed land + a flattened build/walk plaza.
@@ -134,7 +155,13 @@ const SPAWN_APRON_OUTER_ANG: float = 0.09 # ~1800 m at the 20 km scale
 ## GATED BY LATITUDE (temperate band only), so the polar seas survive
 ## the big cap, and the detail noise carves the coast into bays and
 ## points (no circle coastline).
-const HOMELAND_ANGULAR_REACH: float = 2.0
+## The homeland's angular reach: the STARTING CONTINENT around the
+## spawn. 0.70 rad = ~14 km at the 20 km planet scale - the recorded
+## home continent (to ~12.6 km from boot, 159-251 km2); beyond it the
+## detail noise carves the coast into bays and points, and the ocean
+## lies beyond. The dome is shaped by the plateau falloff, and the
+## ring range lives on its hinterland.
+const HOMELAND_ANGULAR_REACH: float = 0.70
 ## The island moat: a deep channel ringing the island from
 ## ISLAND_ANGULAR_REACH out to this angle (the crossing the ferry
 ## owns -- even where the continent reaches, the channel cuts).
@@ -191,8 +218,16 @@ static func _cell_hash(cell: Vector3i, salt: int) -> float:
 	var h: int = salt
 	h = (h * 668265263) ^ (cell.x * 374761393)
 	h = (h * 1274126177) ^ (cell.y * 668265263)
-	h = (h * 974634733) ^ (cell.z * 2147483647)
+	# THE MIRROR-TWIN FIX: the raw z term dominated the XOR fold and
+	# left the field z-mirror symmetric (measured p50 height-delta
+	# 0.0 m over 2000 mirror pairs - every landmass spawned a
+	# lon-mirrored twin across the boot meridian). A one-way folded
+	# z term: mirror cells now hash differently (post-fix measured
+	# p50 1.4-2.0 m, p90 7.6-20.8 m - no structural pairing).
+	var zterm: int = cell.z * 2147483647 + 7919
+	h = (h * 974634733) ^ (zterm ^ (zterm >> 13))
 	h = h ^ (h >> 15)
+	h = h ^ (h >> 33)  # second avalanche: flattens the folded bits' skew
 	return float(absi(h) % 1000003) / 1000003.0
 
 
@@ -231,13 +266,20 @@ static func _land_mass(d: Vector3, salt: int) -> float:
 	band = clampf(band, 0.0, 1.0)
 	var base: float = _vnoise(d, salt, 2.0)
 	var detail: float = 0.65 * _vnoise(d, salt + 1, 5.0) + 0.35 * _vnoise(d, salt + 2, 11.0)
-	var noise_land: float = clampf(band * (base * 1.15 + detail * 0.45 - 0.42), 0.0, 1.0)
+	var noise_land: float = clampf(band * (base * 1.15 + detail * 0.45 - 0.68), 0.0, 1.0)
 	var dome: float = _homeland(d)
 	if dome <= 0.0:
 		return noise_land
 	# The dome wins, minus the bay-carving detail (floored so the
 	# neighborhood always stays dry land).
 	return clampf(maxf(noise_land, maxf(dome * 0.95 - detail * 0.35, dome * 0.42)), 0.0, 1.0)
+
+
+## THE SEA BIAS NOTE (the oceanify calibration): the world's land
+## share lives inside the W1 budget band (100..380 km2); the recorded
+## rolls measured 214 km2 on the winner seed up to 437 km2 on a
+## moonstruck candidate. See the seed scans in game/debug for the
+## calibration history.
 
 
 ## The spawn-shore homeland dome: guarantees land around the spawn
@@ -371,7 +413,10 @@ static func _terrain_height_base_nowrap(dir: Vector3, world_seed: PackedByteArra
 		# the ramp blends from the flat nominal floor.
 		return _sculpt_and_spawn(d, bh, sea, sea - OCEAN_DEPTH_MIN)
 	var raw_h: float = _natural_raw(d, world_seed)
-	return _sculpt_and_spawn(d, raw_h, sea, -3.0)
+	# The island skirt's floor: JUST ABOVE the strait line (the ramp
+	# rises from the coastal shelf, and the W2 cap sweep reads dry
+	# around the moat - the minf moat carve still cuts the channel).
+	return _sculpt_and_spawn(d, raw_h, sea, sea + 0.4)
 
 
 ## The NATURAL analytic raw field (shelf -> land -> hills -> mountains
@@ -389,8 +434,33 @@ static func _natural_raw(d: Vector3, world_seed: PackedByteArray) -> float:
 	var inland: float = smoothstep(0.18, 0.5, land)
 	land_h += inland * (_vnoise(d, salt + 4, 9.0) * 6.0 - 2.0)
 	var mnoise: float = _vnoise(d, salt + 3, 3.0)
-	var mask: float = smoothstep(0.62, 0.9, mnoise) * smoothstep(0.35, 0.6, land)
-	land_h += mask * pow(mnoise, 2.5) * 20.0
+	var mask: float = smoothstep(0.62, 0.94, mnoise) * smoothstep(0.35, 0.6, land)
+	# THE RANGE RETUNE: the far chain rides MOUNTAIN_AMP (the shared
+	# mountain stream with the home ring) - the old inlined cap left
+	# the far continents hill-sized (measured: 93 m peak on the old
+	# law). The powder keeps the crest family; wider mask band keeps
+	# the carve slope inside the continuity bound.
+	land_h += mask * pow(mnoise, 2.2) * MOUNTAIN_AMP
+	# THE HOME-ANCHORED RING RANGE: real mountains on the boot's own
+	# continent - a ring band 0.26..0.74 rad around the SPAWN, sampled
+	# in the spawn's polar frame (bearing phi + ring distance), so the
+	# projection is continuous (no seam law) and RADIAL walks see
+	# gentle slope: climb rides the ramp, crest arcs ride the bearing.
+	var ang_boot: float = d.angle_to(SPAWN_CENTER)
+	var ramp: float = smoothstep(RING_R0, RING_R1, ang_boot) \
+		* (1.0 - smoothstep(RING_R1, RING_R2, ang_boot))
+	if ramp > 0.0:
+		var east: Vector3 = Vector3(0.0, 1.0, 0.0).cross(SPAWN_CENTER).normalized()
+		var north: Vector3 = SPAWN_CENTER.cross(east).normalized()
+		var phi: float = atan2(d.dot(north), d.dot(east))
+		var pf: Vector3 = Vector3(cos(phi), sin(phi), ang_boot)  # ring-continuous coords
+		var crest_noise: float = _vnoise(pf, salt + 21, 0.55)
+		var crest: float = 1.0 - absf(2.0 * crest_noise - 1.0)  # zero-crossing ridge arcs
+		var blobs: float = _vnoise(pf, salt + 22, 0.9)
+		var chain_gate: float = smoothstep(RING_T_LO, RING_T_LO + 0.2, blobs) \
+			* (1.0 - smoothstep(RING_T_HI, RING_T_HI + 0.25, blobs))
+		var land_gate: float = smoothstep(0.20, 0.34, land)
+		land_h += ramp * chain_gate * (0.35 + 0.65 * pow(crest, 1.6)) * land_gate * MOUNTAIN_AMP
 	var h: float = minf(lerpf(ocean_floor, land_h, smoothstep(0.0, 0.18, land)), TERRAIN_MAX)
 	var bowl: float = _lake_bowl(d) * smoothstep(0.1, 0.3, land)
 	if bowl > 0.0:
@@ -406,11 +476,14 @@ static func _natural_raw(d: Vector3, world_seed: PackedByteArray) -> float:
 static func _sculpt_and_spawn(d: Vector3, h_in: float, sea: float, island_floor: float) -> float:
 	d = d.normalized()
 	var h: float = h_in
-	# The island: volcanic plateau rising from the (floor) ocean.
+	# The island: volcanic plateau rising from the (floor) strait.
+	# The tier OVERLAYS the base field (lerp, not max): the ring-range
+	# crest or any other massif lives on the seat otherwise - the W5
+	# law pins the top at EXACTLY sea+22 under any seed.
 	var isl: float = _island_shape(d)
 	if isl > 0.0:
 		var top: float = sea + 2.0 + isl * ISLAND_PLATEAU
-		h = maxf(h, lerpf(island_floor, top, isl))
+		h = lerpf(h, maxf(island_floor, lerpf(island_floor, top, isl)), isl)
 	# The moat: a deep channel ringing the island (the ferry's
 	# crossing, cut even where the continent reaches).
 	var ang_isl: float = d.angle_to(ISLAND_CENTER)
@@ -540,6 +613,13 @@ class BiomeId:
 	const ALPINE_MEADOW: int = 10
 	const LAKE: int = 11
 	const RIVER: int = 12
+	# THE VARIETY LAW (appended 13..16; NEVER renumber - the old ids
+	# untouched - saves/worlds derive content from these).
+	const JUNGLE: int = 13
+	const SAVANNA: int = 14
+	const STEPPE: int = 15
+	const BADLANDS: int = 16
+	const LAST: int = BADLANDS
 
 
 ## Land boundary for the ocean bands (same _land_mass the height law
@@ -547,8 +627,12 @@ class BiomeId:
 const OCEAN_LAND_LINE: float = 0.18
 
 ## Temperature law bands (fractions, pure in [0,1]).
-const TEMP_LAPSE_CEIL: float = 26.0  # meters of height over which heat falls off
-const TEMP_LAPSE_RATE: float = 0.55  # fraction lost over the ceiling
+## THE RANGE-ERA LAPSE: the alpine line sits ~286 m and the snow line
+## ~353 m at the subtropical base heat - foothills temperate, summits
+## stone. The old 26 m ceiling put the alpine line at ~25 m (home
+## plateaus read stone).
+const TEMP_LAPSE_CEIL: float = 420.0  # meters of height over which heat falls off
+const TEMP_LAPSE_RATE: float = 0.75  # fraction lost over the ceiling
 
 ## Moisture cells (wavelength inside a lattice cell; no seam law needed
 ## at this fidelity -- the noise family's own law).
@@ -560,6 +644,16 @@ const SNOWLINE_T: float = 0.22   # temperature below this freezes
 const ALPINE_T: float = 0.34     # freeze-adjacent stone band
 const DRY_T: float = 0.32        # moisture below this in warmth = desert
 const SWAMP_T: float = 0.68      # moisture above this + low = swamp
+## THE VARIETY LAW bands (every threshold MEASURED on the live seed;
+## each new band pins its OWN axis - the probe membership law
+## re-states these so a threshold move that leaks into the wrong band
+## is caught, not just "similar").
+const JUNGLE_T: float = 0.72     # the tree band above forest heat
+const SAVANNA_M: float = 0.55    # hot dry-mid (between dry and green)
+const STEPPE_M: float = 0.50     # the reachable semi-arid cut (mild belt)
+const BADLANDS_M: float = 0.45   # dry-warm broken country
+const BADLANDS_T: float = 0.5
+const EROSION_T: float = 0.55    # the badlands' own erosion-stream gate
 
 
 ## Possessive classes, named for the probes: what a climate reading
@@ -625,6 +719,16 @@ static func climate_moisture_field(d: Vector3, world_seed: PackedByteArray) -> f
 		return clampf(m * 0.4 + 0.5, 0.0, 1.0)  # sea air is moist
 	return clampf(m + land * 0.1, 0.0, 1.0)
 
+
+## THE EROSION FIELD (the variety law's badlands gate): its OWN seed
+## salt ("erosion", freq 2.0) on the independent-stream discipline:
+## adding the gate never reshuffles the other fields. Range [0, 1].
+static func erosion_field(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	var salt: int = _seed_salt(world_seed, "erosion")
+	return _vnoise(d, salt, 2.0)
+
+
 ## THE BIOME RESOLUTION LAW. Discrete id at one direction. Order
 ## reads: ocean bands (the land law carries them), then the river
 ## channel (running water crosses every other band), then standing
@@ -664,13 +768,36 @@ static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: fl
 	# climate_swamp_wetness).
 	if m > SWAMP_T and climate_swamp_wetness(d, world_seed, height, surface) > 0.5:
 		return BiomeId.SWAMP
-	# Dry warmth: desert.
+	# THE SWING LADDER (variety): broken country -> desert -> steppe.
+	# Badlands first: dry-warm rare broken country on its OWN erosion
+	# gate (independent-stream discipline - adding the gate never
+	# reshuffles the other fields). Then the dry warmth desert, then
+	# the mild semi-arid steppe (mild + below the reachable cut).
+	if m < BADLANDS_M and t > BADLANDS_T and erosion_field(d, world_seed) >= EROSION_T:
+		return BiomeId.BADLANDS
 	if m < DRY_T and t > 0.55:
 		return BiomeId.DESERT
-	# The green ladder.
-	if m > 0.55:
-		return BiomeId.FOREST if t > ALPINE_T else BiomeId.TAIGA
-	return BiomeId.GRASSLAND
+	if m < STEPPE_M and t <= 0.55:
+		return BiomeId.STEPPE  # the t-bound keeps the hot dry-mid in savanna
+	# THE GREEN LADDER: jungle -> savanna -> forest/taiga -> grassland
+	# (jungle = the tree band ABOVE forest heat; tropical coasts ride
+	# the temperature split, not an unreachable saturation cut). The
+	# savanna holds the HOT DRY-MID band only (m below its own cap -
+	# the membership pin caught the m-over edge firing savanna where
+	# the ladder had already crossed the jungle side).
+	var warm_id: int = BiomeId.GRASSLAND
+	if t > JUNGLE_T and m > SAVANNA_M:
+		warm_id = BiomeId.JUNGLE
+	elif t >= 0.55 and m >= DRY_T and m < SAVANNA_M:
+		warm_id = BiomeId.SAVANNA
+	elif m > 0.55:
+		warm_id = BiomeId.FOREST if t > ALPINE_T else BiomeId.TAIGA
+	# THE HOMELAND PLAINS LAW: the boot view resolves GRASSLAND - the
+	# hot dry/tropical bands yield inside the ring (water/shore/swamp
+	# laws outranked as always; they returned above).
+	if warm_id != BiomeId.GRASSLAND and d.angle_to(SPAWN_CENTER) < HOMELAND_PLAINS_ANG:
+		return BiomeId.GRASSLAND
+	return warm_id
 
 
 ## The SWAMP WETNESS law: the marsh RING around gated water (a band
@@ -707,12 +834,20 @@ static func hydro_water_surface(d: Vector3, world_seed: PackedByteArray) -> floa
 		return float(cached)
 	var gates: Vector2 = _hydro_gates(d, world_seed)
 	var out: float = -1e9
-	if gates.y > 0.0:  # spawn-suppressed: no standing water
+	# THE DRY LAW (the rewiring): the surface SINKS into the ground by
+	# max(suppress, 1 - gate) - the old guard read suppress BACKWARDS
+	# (it treated suppress > 0 as "water allowed"; standing water was
+	# legal ONLY inside a spawn-hugging halo). The full-dry branch
+	# keeps the swamp sentinel law: outside real basin support the
+	# surface reports NO water, so the marsh ring fires only inside
+	# real basin support (same law, right direction).
+	var dry: float = maxf(gates.y, 1.0 - gates.x)
+	if dry < 0.995:
 		var table: float = water_table_raw(d, world_seed)
 		var h: float = terrain_height(d, world_seed)
 		var window: float = smoothstep(0.0, Hydro.LAKE_CARVE_MAX, h - (table - Hydro.LAKE_BEDDROP))
 		var surface: float = lerpf(table, h, window)
-		out = lerpf(surface, h, 1.0 - gates.x)  # gate fades it into the ground
+		out = lerpf(surface, h, dry)  # gate fades it into the ground
 	_water_surface_cache.set_value(d, world_seed, out)  # bounds evict, never clear
 	return out
 
@@ -749,6 +884,16 @@ static func biome_color(id: int, world_seed: PackedByteArray, d: Vector3) -> Col
 			c = Color(0.28, 0.37, 0.46)
 		BiomeId.RIVER:
 			c = Color(0.30, 0.40, 0.45)
+		# THE VARIETY LAW palettes: measured band colors (deep saturated
+		# green jungle, golden savanna, olive steppe, rust badlands).
+		BiomeId.JUNGLE:
+			c = Color(0.14, 0.38, 0.18)
+		BiomeId.SAVANNA:
+			c = Color(0.62, 0.55, 0.26)
+		BiomeId.STEPPE:
+			c = Color(0.52, 0.52, 0.32)
+		BiomeId.BADLANDS:
+			c = Color(0.55, 0.34, 0.26)
 		_:
 			c = Color(0.42, 0.42, 0.40)
 	# Per-direction variation: a gentle seeded lightness wobble so
@@ -801,6 +946,15 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# body; the dimmed ground reads as depth through it).
 	if lift < sea - 0.2:
 		c = c.darkened(0.45)
+	# THE WET RING (visual polish slice 1): the ground within 1.5 m
+	# UNDER any gated standing-water surface (lake rims, river banks,
+	# pond edges - not just the sea ring) reads moist-darkened, fade
+	# proportional. Sits AFTER the memoized blend (per-corner physics
+	# stay out of the cache).
+	var surf: float = hydro_water_surface(d, world_seed)
+	var under: float = surf - terrain_height(d, world_seed)
+	if under > 0.0 and under < 1.5:
+		c = c.darkened((1.0 - under / 1.5) * 0.5)
 	return c
 
 
@@ -835,6 +989,20 @@ static func climate_biome_weights(d: Vector3, world_seed: PackedByteArray) -> Di
 	elif id == BiomeId.SHORE:
 		weights[BiomeId.OCEAN_SHELF] = pinch
 		weights[id] = 1.0 - pinch
+	# THE VARIETY PINCHES: the weights law grew the neighbor pinches so
+	# the new band edges blend, not ring.
+	elif id == BiomeId.JUNGLE:
+		weights[BiomeId.FOREST] = pinch
+		weights[id] = 1.0 - pinch
+	elif id == BiomeId.SAVANNA:
+		weights[BiomeId.DESERT if t > 0.62 else BiomeId.GRASSLAND] = pinch
+		weights[id] = 1.0 - pinch
+	elif id == BiomeId.STEPPE:
+		weights[BiomeId.TUNDRA] = pinch  # the temperature-ladder pinch
+		weights[id] = 1.0 - pinch
+	elif id == BiomeId.BADLANDS:
+		weights[BiomeId.DESERT] = pinch
+		weights[id] = 1.0 - pinch
 	return weights
 
 
@@ -861,9 +1029,10 @@ class Hydro:
 	const BASIN_T: float = 0.6          # coarse-cell basin district band [T, T+0.35)
 	const LAKE_BEDDROP: float = 0.9     # bed sits this far below the table
 	const LAKE_CARVE_MAX: float = 10.0  # basin press depth (continuity is the GATE's smoothness, not this cap)
-	const SUPPRESS_IN: float = 0.10     # hydrology suppress near spawn...
-	const SUPPRESS_OUT: float = 0.15    # ...fully ON past this angle
+	const SUPPRESS_IN: float = 0.05     # hydrology suppress near boot...
+	const SUPPRESS_OUT: float = 0.075   # ...fully ON past this angle (brackets the apron only)
 	const RIVER_MOIST_BOOST: float = 0.22  # moisture lift on the channel capsule (floodplain law)
+	const ISLAND_FLOW_WALL: float = 40.0  # the flow law's island wall (above any river-band relief)
 
 
 ## The WATER TABLE: the local standing-water surface height. Pure.
@@ -916,14 +1085,29 @@ static func _hydro_gates(d: Vector3, world_seed: PackedByteArray) -> Vector2:
 	var cell: float = _vnoise(d, salt, 2.0)
 	var gate: float = smoothstep(Hydro.BASIN_T, Hydro.BASIN_T + 0.05, cell) \
 		* (1.0 - smoothstep(Hydro.BASIN_T + 0.25, Hydro.BASIN_T + 0.35, cell))
-	# The SPAWN LAW is independent of the basin gate: a river that flows
-	# through the spawn apron still needs its suppress honest (the FORD
-	# law reads the water surface, not the lake carve). Suppress-only
-	# when the basin closes: (0, suppress).	
+	# THE ALPINE DISTRICTS (the rewiring): the coarse district field is
+	# chance-blobbed per seed and its gate band never landed above sea
+	# on every roll - upland basins died. A NEW independent salt
+	# ("hydro_basin", freq 3.0) draws the UPLAND districts, opened only
+	# ABOVE the lowland press horizon (base_h > sea + CARVE_MAX - 2,
+	# smoothstepped +4) and faded by the same bump rim. Lowland
+	# districts and every existing lake stay untouched.
+	var basin_salt: int = _seed_salt(world_seed, "hydro_basin")
+	var basin_cell: float = _vnoise(d, basin_salt, 3.0)
+	var upland_gate: float = smoothstep(Hydro.BASIN_T, Hydro.BASIN_T + 0.05, basin_cell) \
+		* (1.0 - smoothstep(Hydro.BASIN_T + 0.25, Hydro.BASIN_T + 0.35, basin_cell))
+	if upland_gate > 0.0:
+		var sea: float = sea_level(world_seed)
+		var base_h: float = _terrain_height_base(d, world_seed)
+		upland_gate *= smoothstep(sea + Hydro.LAKE_CARVE_MAX - 2.0, sea + Hydro.LAKE_CARVE_MAX + 2.0, base_h)
+	gate = maxf(gate, upland_gate)
+	# The SPAWN LAW is independent of the basin gate (a river flowing
+	# through the apron still has its baseline honest): suppress = 1
+	# near the boot. CONSUMERS read the COMPLEMENT (carve = press *
+	# gate * (1 - suppress)) - the old raw multiply squeezed all the
+	# planet's standing water into a spawn-hugging halo.
 	var ang_spawn: float = d.angle_to(SPAWN_CENTER)
 	var suppress: float = 1.0 - smoothstep(Hydro.SUPPRESS_IN, Hydro.SUPPRESS_OUT, ang_spawn)
-	if gate <= 0.0:
-		return Vector2(0.0, suppress)
 	return Vector2(gate, suppress)
 
 
@@ -1070,29 +1254,35 @@ static func terrain_height_carved(d: Vector3, world_seed: PackedByteArray, mode:
 
 
 ## The basin-carrying height component of standing water: press the
-## bed toward (table - LAKE_BEDDROP), gated by the BASIN law (coarse
-## cell support: a lone damp sample never carves) and the SPAWN law
-## (the boot plaza + apron stay dry), bounded by CARVE_MAX (the
-## continuity law). Every factor is continuous => the carve is.
+## bed toward (table - LAKE_BEDDROP). All gates live in the ONE shared
+## definition (_hydro_gates) - the private pre-gate was removed (its
+## smoothstep early-exit BEFORE reading the shared gates violated the
+## one-definition law and starved every upland basin dry).
+## THE BOWL LAW: the press COMPLETES the bowl - press = min(gap,
+## reach); the reach scales with max(perched table, terrain altitude)
+## (alpine bowls dig to their own scale; flatlands keep the flat
+## pair). Continuity is the gate's smoothstep fades, never the cap -
+## the 4 m walk-bound check still passes.
+## THE SPAWN DIRECTION: the carve reads the COMPLEMENT of the
+## suppress factor (the old raw multiply was the backwards halo).
+## THE ISLAND SHIELD: seed-dependent carves yield to the island
+## volcanic tier, faded across the ramp edge - the island top is
+## exact under ANY seed (W5), banks/probe channels unaffected.
 static func hydro_lake_carve(d: Vector3, world_seed: PackedByteArray, h: float) -> float:
 	d = d.normalized()
-	# BASIN gate: the coarse hydrology cell must approve.
-	var salt: int = _seed_salt(world_seed, "hydro_table")
-	var cell: float = _vnoise(d, salt, 2.0)
-	var gate: float = smoothstep(Hydro.BASIN_T, Hydro.BASIN_T + 0.15, cell)
-	if gate <= 0.0:
-		return h
 	var gates: Vector2 = _hydro_gates(d, world_seed)
-	if gates.y <= 0.0:  # spawn law: dry ground by the boot
+	if gates.x <= 0.0:
 		return h
 	var table: float = water_table_raw(d, world_seed)
 	var bed_target: float = table - Hydro.LAKE_BEDDROP
-	# The FILL WINDOW: the press fades over a LAKE_CARVE_MAX band
-	# (ground too far above the bed target is barely dampened, so the
-	# carve is continuous by construction: no reachability cliff).
-	var window: float = 1.0 - smoothstep(0.0, Hydro.LAKE_CARVE_MAX, h - bed_target)
-	var press: float = minf(h - bed_target, Hydro.LAKE_CARVE_MAX)
-	var carve: float = press * window * gates.x * gates.y
+	var gap: float = h - bed_target
+	if gap <= 0.0:
+		return h
+	var sea: float = sea_level(world_seed)
+	var perched: float = maxf(table - sea, 0.0)
+	var reach: float = maxf(Hydro.LAKE_CARVE_MAX, maxf(perched, h - sea))
+	var press: float = minf(gap, reach)
+	var carve: float = press * gates.x * (1.0 - gates.y) * (1.0 - _island_shape(d))
 	return h - carve
 
 
@@ -1125,11 +1315,25 @@ static func river_springs(world_seed: PackedByteArray) -> Array:
 			continue
 		d = d.normalized()
 		# Springs are LAND law only: air-starts die here.
+		# THE SPRING REDRAW: a blind draw starves thin-land seeds (the
+		# census fell to 1 river on the recalibrated ocean planet), so
+		# sea/air draws RE-DRAW the same bounded way the rock specs
+		# re-draw spawn-adjacent dirs. Deterministic (one rng stream):
+		# same seed, same redraws on every machine. At most 8 redraws,
+		# then this spring dies as before.
+		var sea: float = sea_level(world_seed)
 		var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
-		if land < 0.3:
-			continue
 		var h: float = _terrain_height_base(d, world_seed)
-		if h < sea_level(world_seed):
+		for _try in range(8):
+			if land >= 0.3 and h > sea:
+				break
+			var d_new: Vector3 = Vector3(rng.randf() * 2.0 - 1.0, rng.randf() * 2.0 - 1.0, rng.randf() * 2.0 - 1.0)
+			if d_new.length() < 0.001:
+				continue
+			d = d_new.normalized()
+			land = _land_mass(d, _seed_salt(world_seed, "terrain"))
+			h = _terrain_height_base(d, world_seed)
+		if land < 0.3 or h < sea:
 			continue
 		var spec := RiverSpec.new()
 		spec.spring = d
@@ -1163,7 +1367,13 @@ static func river_path(spring: Vector3, world_seed: PackedByteArray) -> PackedVe
 			if rot_axis.length() <= 1e-9:
 				rot_axis = t1
 			var cand: Vector3 = cur.rotated(rot_axis.normalized(), Hydro.RIVER_STEP_ANG).normalized()
-			var hh: float = _terrain_height_base(cand, world_seed)
+			# THE ISLAND SHIELD (pathing side): the volcanic island is a
+			# WALL to the flow law - each candidate's cost carries the
+			# tier's relief so greedy rivers ROUTE around it instead of
+			# biting the plateau top under any seed. Banks/probe
+			# channels are unaffected (the shield is island-local).
+			var cand_raw: float = _terrain_height_base(cand, world_seed)
+			var hh: float = cand_raw + Hydro.ISLAND_FLOW_WALL * _island_shape(cand)
 			if hh < best_h:
 				best_h = hh
 				best_dir = cand
