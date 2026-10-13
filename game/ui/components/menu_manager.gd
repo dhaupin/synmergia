@@ -592,6 +592,12 @@ func _open_menu_internal(menu_name: String) -> void:
 	if not _open_panels.has(menu_name):
 		_open_panels.append(menu_name)
 	_is_menu_open = true
+	# Same funnel sweep as _open_panel: the static open_menu() entry
+	# (scripts, hotkeys) must yield the touch HUD too, or a panel opened
+	# this way drew over the joystick while it kept capturing input.
+	var im_open = get_node_or_null("/root/InputManager")
+	if im_open != null and im_open.has_method("set_touch_hud_panels_open"):
+		im_open.set_touch_hud_panels_open(true)
 	panel.visible = true
 	menu_toggled.emit(menu_name, true)
 	_update_back_button()

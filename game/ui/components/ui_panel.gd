@@ -90,7 +90,7 @@ func _setup_standard_header() -> void:
 	if header.get_node_or_null("Title") == null and not _header_row_has_label(header):
 		var title := Label.new()
 		title.name = "Title"
-		title.text = _panel_title if not _panel_title.is_empty() else String(name)
+		title.text = _display_title()
 		title.add_theme_font_size_override("font_size", 18)
 		title.add_theme_color_override("font_color", UIStyles.COLORS.accent_gold)
 		header.add_child(title)
@@ -148,6 +148,46 @@ func _setup_content() -> void:
 ## ============================================================================
 
 ## Set the panel title for screen reader announcements
+## The friendly header fallback: raw node names ("SkillAcademyUI",
+## "inventory_ui") must never reach the player as a panel header.
+## The sweep law: set_panel_title still wins, but the UNTITLED panel
+## shows a cleaned title instead of an identifier. Splits node-name
+## suffixes (Ui/UI/Panel/Dialog/Dock), underscores, and camelCase.
+func _split_camel_words(word: String) -> String:
+	var parts: PackedStringArray = []
+	var cur := ""
+	for i in range(word.length()):
+		var ch: String = word[i]
+		var upper: bool = ch != ch.to_lower()
+		if upper and cur != "" and word[i - 1] == String(word[i - 1]).to_lower():
+			parts.append(cur)
+			cur = ch
+		else:
+			cur += ch
+	if cur != "":
+		parts.append(cur)
+	return " ".join(parts)
+
+func _display_title() -> String:
+	if not _panel_title.is_empty():
+		return _panel_title
+	var raw: String = String(name)
+	for suffix in ["Ui", "UI", "ui", "Panel", "Dialog", "DOCK", "Dock"]:
+		if raw.ends_with(suffix) and raw.length() > suffix.length():
+			raw = raw.substr(0, raw.length() - suffix.length())
+			break
+	raw = raw.replace("_", " ")
+	var parts: PackedStringArray = []
+	for w in raw.split(" ", false):
+		parts.append(_split_camel_words(w))
+	var text: String = " ".join(parts)
+	# Snake-case node names keep their lowercase first word ("inventory"
+	# -> "inventory Inventory"): anchor the title with a capital.
+	if not text.is_empty():
+		var head: String = text[0].to_upper()
+		text = head + text.substr(1)
+	return text if not text.is_empty() else String(name)
+
 func set_panel_title(title: String) -> void:
 	_panel_title = title
 	_apply_accessibility()
@@ -155,8 +195,7 @@ func set_panel_title(title: String) -> void:
 ## Get accessibility properties for screen readers
 func get_accessibility_info() -> Dictionary:
 	return {
-		"role": "dialog",
-		"label": _panel_title,
+		"role": "dialog",			"label": _display_title(),
 		"description": "Use Tab to navigate, Enter to activate, Escape to close"
 	}
 
@@ -169,7 +208,7 @@ func _apply_accessibility() -> void:
 	if has_node("Panel"):
 		var panel := get_node("Panel")
 		if panel is PanelContainer:
-			panel.tooltip_text = _panel_title if not _panel_title.is_empty() else name
+			panel.tooltip_text = _display_title()
 			panel.focus_mode = Control.FOCUS_ALL
 
 ## Apply visual settings (high contrast, text scale)

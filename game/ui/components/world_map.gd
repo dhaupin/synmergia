@@ -28,6 +28,20 @@ static var instance: WorldMap
 ## Components
 var _map_view: Control
 var _map_texture: TextureRect
+## The player-centered ORTHOGRAPHIC GLOBE view (play-day pass 3): the
+## equirect canvas folds onto a sphere disk — the "map looks odd"
+## report was the flat equirect stretching near the poles. The globe
+## draws into its own Image (row-chunked like the flat canvas so the
+## fold never blocks a frame), reprojected from the FINISHED equirect
+## pixels, NOT re-running terrain_height (cheap: one Image.get_pixel
+## per pixel). The mode toggles Globe/Flat; the player marker rides
+## the same lat/lon math in both modes.
+var _globe_texture: ImageTexture = null
+var _globe_image: Image = null
+var _globe_generating: bool = false
+var _globe_mode: bool = false
+var _globe_toggle_btn: Button = null
+
 var _marker_container: Control
 var _player_marker: Control
 var _compass: Control
@@ -44,6 +58,10 @@ var _drag_start: Vector2 = Vector2.ZERO
 ## registers with MenuManager's interaction stack so the Back button
 ## and the touch-HUD yield that every panel gets apply here too.
 var _canvas_texture: ImageTexture = null
+## The equirect SOURCE image (not the texture): headless build verifies
+## with it (ImageTexture.get_image() has no rasterizer to read back
+## under --headless) and the globe fold samples pixel data from it.
+var _canvas_image: Image = null
 var _registered := false
 var _yield_accum := 0.0
 var _player_lat := 999.0
@@ -182,6 +200,13 @@ func _setup_ui() -> void:
 	close_btn.offset_bottom = 106
 	close_btn.pressed.connect(_on_close_pressed)
 	controls.add_child(close_btn)
+	# The Globe/Flat toggle (pass 3): sits next to the title.
+	_globe_toggle_btn = Button.new()
+	_globe_toggle_btn.name = "GlobeToggle"
+	_globe_toggle_btn.text = "Globe View"
+	_globe_toggle_btn.position = Vector2(160, 12)
+	_globe_toggle_btn.pressed.connect(_toggle_globe_mode)
+	controls.add_child(_globe_toggle_btn)
 	# Title + hint so the surface never reads as an empty black sheet.
 	var title_lbl := Label.new()
 	title_lbl.name = "MapTitle"
@@ -324,6 +349,16 @@ func hide_map() -> void:
 func expand_to_fullscreen() -> void:
 	_set_fullmap_mode()
 	_ensure_world_canvas()
+	# Re-open in the mode the player left: a persisted _globe_mode must
+	# re-fold (or drop back to flat) here, not stay on whichever texture
+	# the last close left behind.
+	if _canvas_texture != null:
+		if _globe_mode:
+			_ensure_globe_texture()
+		else:
+			_map_texture.texture = _canvas_texture
+	if _globe_texture != null:
+		_position_player_marker()
 	_register_with_menu_manager(true)
 	_set_touch_hud_yield(true)
 	show()
@@ -412,6 +447,18 @@ func _position_player_marker() -> void:
 		return
 	if _player_lat > 90.0:
 		return
+	if _globe_mode and _globe_texture != null:
+		# GLOBE: the view IS player-centered orthographic, so the gold
+		# dot is the disk CENTER of the drawn (circular) area. Source
+		# is square (GLOBE_SIZE), so the drawn rect is size.y centered
+		# horizontally, same letterbox law as the flat map.
+		var gp_size := size
+		var gdrawn := gp_size.y
+		var gx0 := maxf(0.0, (gp_size.x - gdrawn) * 0.5)
+		_player_marker.position = Vector2(
+			gx0 + gdrawn * 0.5 - _player_marker.size.x * 0.5,
+			gp_size.y * 0.5 - _player_marker.size.y * 0.5)
+		return
 	var uv: Vector2 = lat_lon_to_uv(_player_lat, _player_lon)
 	var px: float = uv.x
 	var py: float = uv.y
@@ -448,6 +495,7 @@ func _ensure_world_canvas() -> void:
 		# fill in as chunks complete.
 		var fb := Image.create(192, 192, false, Image.FORMAT_RGBA8)
 		fb.fill(Color(0.07, 0.20, 0.30))
+		_canvas_image = fb
 		_map_texture.texture = ImageTexture.create_from_image(fb)
 		_position_player_marker()
 		_run_canvas_generation(Sph)
@@ -458,6 +506,7 @@ func _ensure_world_canvas() -> void:
 		if glw: glw.warn("WorldMap: terrain canvas generation failed; showing fallback ocean chart")
 		var fb2 := Image.create(192, 192, false, Image.FORMAT_RGBA8)
 		fb2.fill(Color(0.07, 0.20, 0.30))
+		_canvas_image = fb2
 		_map_texture.texture = ImageTexture.create_from_image(fb2)
 		_position_player_marker()
 		return
@@ -495,13 +544,98 @@ func _run_canvas_generation(Sph) -> void:
 		_map_texture.texture = _canvas_texture
 		_position_player_marker()
 		await get_tree().process_frame
+	# The full painted image is the globe's source from here on (the
+	# initial reference was the fallback ocean chart).
+	_canvas_image = img
 	# The law always returns opaque colors; a mostly-transparent image
 	# means the dependency errored per pixel. Do NOT cache that.
 	if painted < PAINTED_MIN:
 		_canvas_texture = null
+		_canvas_image = null
 		var glw := _glog()
 		if glw: glw.warn("WorldMap: canvas coverage law failed (%d < %d); fallback stands" % [painted, PAINTED_MIN])
 	_generating = false
+	# A globe fold requested while the equirect was still painting read
+	# only the PARTIAL canvas; re-fold now from the finished image.
+	if _globe_mode and _canvas_texture != null:
+		_ensure_globe_texture()
+
+## Globe/Flat toggle.
+func _toggle_globe_mode() -> void:
+	_globe_mode = not _globe_mode
+	_globe_toggle_btn.text = "Flat View" if _globe_mode else "Globe View"
+	if _globe_mode:
+		_ensure_globe_texture()
+	else:
+		_map_texture.texture = _canvas_texture
+		_position_player_marker()
+
+## ORTHOGRAPHIC FOLD: draw the equirect canvas as a player-centered
+## sphere disk. For each disk pixel: invert to the visible sphere
+## point (x,y,z), derive (lat, lon), sample the EQUIRECT image at that
+## (lat, lon), paint. Cheap per pixel (no terrain calls); row-chunked
+## exactly like the canvas generator so no frame blocks.
+const GLOBE_SIZE: int = 192
+const GLOBE_ROWS_PER_CHUNK: int = 8
+func _ensure_globe_texture() -> void:
+	var src: Image = _canvas_image
+	if src == null and _canvas_texture != null:
+		src = _canvas_texture.get_image()
+	if src == null or _globe_generating:
+		return
+	if _globe_image == null:
+		_globe_image = Image.create(GLOBE_SIZE, GLOBE_SIZE, false, Image.FORMAT_RGBA8)
+	_globe_generating = true
+	var center_lat: float = _player_lat
+	var center_lon: float = _player_lon
+	# Center reference frame (yaw around y, roll around east axis):
+	var cr: float = cos(deg_to_rad(90.0 - center_lat))
+	var sr: float = sin(deg_to_rad(90.0 - center_lat))
+	var cy: float = cos(deg_to_rad(center_lon))
+	var sy: float = sin(deg_to_rad(center_lon))
+	# Center basis: n = sphere point for (lat0, lon0); e/n basis for
+	# lon/lat corrections in the disk plane.
+	var n := Vector3(sr * cy, cr, sr * sy)
+	var e := Vector3(-sy, 0.0, cy)
+	var up := n.cross(e).normalized()
+	_run_globe_generation(src, n, e, up)
+
+func _run_globe_generation(src: Image, n: Vector3, e: Vector3, up: Vector3) -> void:
+	var half: float = GLOBE_SIZE * 0.5
+	var sw: float = float(src.get_width())
+	var sh: float = float(src.get_height())
+	var painted := 0
+	var py := 0
+	while py < GLOBE_SIZE:
+		var last_row: int = mini(py + GLOBE_ROWS_PER_CHUNK, GLOBE_SIZE)
+		for row in range(py, last_row):
+			var dy: float = (float(GLOBE_SIZE - 1 - row) - half + 0.5) / half  # +1 top
+			for px in range(GLOBE_SIZE):
+				var dx: float = (float(px) - half + 0.5) / half
+				var r2: float = dx * dx + dy * dy
+				if r2 > 1.0:
+					_globe_image.set_pixel(px, row, Color(0, 0, 0, 0))
+					continue
+				var dz: float = sqrt(1.0 - r2)  # front hemisphere
+				# Disk plane -> sphere direction, then to lat/lon.
+				var d: Vector3 = (n + dx * e + dy * up).normalized()
+				var lat: float = rad_to_deg(asin(clampf(d.y, -1.0, 1.0)))
+				var lon: float = rad_to_deg(atan2(d.z, d.x))
+				# Equirect sample: u = (lon+180)/360, v = (90-lat)/180.
+				var u: int = clampi(int((lon + 180.0) / 360.0 * sw), 0, int(sw) - 1)
+				var v: int = clampi(int((90.0 - lat) / 180.0 * sh), 0, int(sh) - 1)
+				var c: Color = src.get_pixel(u, v)
+				# Limb darkening reads as a sphere (cheap shading).
+				var shade: float = 0.55 + 0.45 * dz
+				c = Color(c.r * shade, c.g * shade, c.b * shade, 1.0)
+				_globe_image.set_pixel(px, row, c)
+				painted += 1
+		py = last_row
+		_globe_texture = ImageTexture.create_from_image(_globe_image)
+		_map_texture.texture = _globe_texture
+		_position_player_marker()
+		await get_tree().process_frame
+	_globe_generating = false
 
 ## Height-band canvas colors (the tile palette, map-styled).
 func _canvas_color(h: float, sea: float) -> Color:

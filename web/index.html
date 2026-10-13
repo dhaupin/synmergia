@@ -247,28 +247,49 @@
 			cfg.mainPack = packUrl;
 			var lastPct = -1;
 			var knownTotal = 0;
+			// Per-file display (pass 3): the real HEADed sizes live here so
+			// onProg (defined below, called later by the engine) can label
+			// WHICH file the player is waiting on.
+			var wasmSize = 0;
+			var pckSize = 0;
 			// The launcher reads progress from BOTH surfaces: the Engine
 			// config (onProgress at config level) and startGame options.
 			// Setting only the startGame option let some exports read the
 			// config-level key instead (play-day round 6: the pre-game
 			// loader showed no percent). Wire both; whichever surface the
 			// engine honors, the bar moves.
-			var onProg = function (current, total) {
-				anyProgressSeen = anyProgressSeen || current > 0;
-				// One file with an unknown size invalidates the engine's
-				// aggregate total (it zeroes it) -- fall back to the sum we
-				// HEADed before start. Cap at 100: a stale fallback size
-				// must not show a bar that runs past full.
-				var denom = total > 0 ? total : knownTotal;
-				if (current > 0 && denom > 0) {
-					var pct = Math.min(100, Math.round((current / denom) * 100));
-					if (pct !== lastPct) {
-						lastPct = pct;
-						barFill.style.width = pct + "%";
-						loadingText.textContent = "Loading Synmergia... " + pct + "% (" + (current / 1048576).toFixed(1) + " / " + (denom / 1048576).toFixed(1) + " MB)";
+		var onProg = function (current, total) {
+			anyProgressSeen = anyProgressSeen || current > 0;
+			// One file with an unknown size invalidates the engine's
+			// aggregate total (it zeroes it) -- fall back to the sum we
+			// HEADed before start. Cap at 100: a stale fallback size
+			// must not show a bar that runs past full.
+			var denom = total > 0 ? total : knownTotal;
+			if (current > 0 && denom > 0) {
+				var pct = Math.min(100, Math.round((current / denom) * 100));
+				if (pct !== lastPct) {
+					lastPct = pct;
+					barFill.style.width = pct + "%";
+					// Per-file truth line (play-day pass 3): the engine reports
+					// one aggregate counter over >50 MB of files, but the two
+					// halves age differently — the 38.8 MB engine pair usures
+					// immutable in the browser cache (1-year policy), the
+					// ~13 MB pack re-downloads whenever the hash changes.
+					// Guessing by the CURRENT byte count is exact whenever
+					// current sits inside one file's band (the engine loads
+					// wasm fully before touching the pack), and competitive
+					// per-file labels let the player KNOW what they wait on.
+					var mb = function (v) { return (v / 1048576).toFixed(1); };
+					var phase;
+					if (wasmSize > 0 && current < wasmSize) {
+						phase = "engine (cached after first visit) "+ mb(Math.min(current, wasmSize)) + " / " + mb(wasmSize) + " MB";
+					} else {
+						phase = "world data "+ mb(current - (wasmSize || 0)) + " / " + mb(pckSize || (denom - (wasmSize || 0))) + " MB";
 					}
+					loadingText.textContent = "Loading Synmergia... " + pct + "% — " + phase;
 				}
-			};
+			}
+		};
 			cfg.onProgress = onProg;
 			var headSize = function (url) {
 				return fetch(url, { method: "HEAD", cache: "no-cache" }).then(function (r) {
@@ -280,8 +301,10 @@
 			// the pack as the EXACT mainPack string (query included) -- plus
 			// the bare 'game.pck' key for any code path that asks for it.
 			Promise.all([headSize("game.wasm"), headSize(packUrl)]).then(function (sizes) {
-				var wasmSize = sizes[0] || (cfg.fileSizes["game.wasm"] || 0);
-				var pckSize = sizes[1] || (cfg.fileSizes["game.pck"] || 0);
+				// Assign to the OUTER vars (hoisted at startWithPack top) so
+				// onProg's per-file labels read the real HEADed sizes.
+				wasmSize = sizes[0] || (cfg.fileSizes["game.wasm"] || 0);
+				pckSize = sizes[1] || (cfg.fileSizes["game.pck"] || 0);
 				if (wasmSize > 0) cfg.fileSizes["game.wasm"] = wasmSize;
 				if (pckSize > 0) {
 					cfg.fileSizes["game.pck"] = pckSize;
