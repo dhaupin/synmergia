@@ -119,6 +119,12 @@ func _setup_panel() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.name = "Scroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Touch drag scrolling (play-day pass 2: scrolling worked via drag in
+	# the char equips tab but not reliably as a general UX between tabs
+	# and on phone — this is Godot's ScrollContainer's own touch law).
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.follow_focus = true
 	main.add_child(scroll)
 
 	var content := VBoxContainer.new()

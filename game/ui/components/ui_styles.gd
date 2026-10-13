@@ -388,6 +388,11 @@ static func apply_high_contrast_to_panel(panel: PanelContainer) -> void:
 
 ## Apply text scaling to a control and its children
 static func apply_text_scaling(control: Control, scale: float) -> void:
+	# Play-day pass 2: the slider only resized Label/Button/RichText —
+	# LineEdit/CheckBox/dropdown rows kept their size (the "doesn't size
+	# all text" report). Add the common input controls; keep the
+	# guard for controls with no explicit font size (they ride the
+	# theme default, which we do not touch).
 	if control is Label:
 		var current_size := control.get_theme_font_size("font_size")
 		if current_size > 0:
@@ -397,6 +402,18 @@ static func apply_text_scaling(control: Control, scale: float) -> void:
 		if current_size > 0:
 			control.add_theme_font_size_override("default_font_size", int(current_size * scale))
 	elif control is Button:
+		var current_size := control.get_theme_font_size("font_size")
+		if current_size > 0:
+			control.add_theme_font_size_override("font_size", int(current_size * scale))
+	elif control is LineEdit or control is TextEdit:
+		var current_size := control.get_theme_font_size("font_size")
+		if current_size > 0:
+			control.add_theme_font_size_override("font_size", int(current_size * scale))
+	elif control is CheckBox or control is CheckButton:
+		var current_size := control.get_theme_font_size("font_size")
+		if current_size > 0:
+			control.add_theme_font_size_override("font_size", int(current_size * scale))
+	elif control is OptionButton:
 		var current_size := control.get_theme_font_size("font_size")
 		if current_size > 0:
 			control.add_theme_font_size_override("font_size", int(current_size * scale))

@@ -666,7 +666,9 @@ func _populate_graphics_settings(parent: VBoxContainer) -> void:
 	section3.add_theme_font_size_override("font_size", 14)
 	content.add_child(section3)
 
-	content.add_child(_create_slider_row("ui_scale", "UI Scale:", 0.75, 1.5, 1.0, 0.05, "%.2fx", "Live preview - applies immediately"))
+	# Play-day pass 2: the old 0.75 floor read as "broken tiny text" and
+	# the top only helped some labels; 0.9..1.4 is the sane band.
+	content.add_child(_create_slider_row("ui_scale", "UI Text Scale:", 0.9, 1.4, 1.0, 0.05, "%.2fx", "Live preview - applies immediately"))
 	content.add_child(_create_toggle_row("show_damage_numbers", "Show Damage Numbers", true))
 	content.add_child(_create_toggle_row("player_nameplates", "Show Name Plates", true))
 	content.add_child(_create_toggle_row("show_health_bars", "Show Health Bars", true))

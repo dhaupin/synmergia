@@ -467,6 +467,14 @@ func open(player_id: String) -> void:
 	_player_id = player_id
 	_is_open = true
 	visible = true
+	# Touch-HUD yield (play-day pass 2: the joystick drew OVER the
+	# settings/char panels). Every opener path must feed the same
+	# funnel. UIpanel-derived panels open through open()/close(), so
+	# THIS is the guaranteed chokepoint — menu_manager's open path
+	# already calls it too, and set_panels_open is idempotent.
+	var im = Engine.get_main_loop().root.get_node_or_null("/root/InputManager") if Engine.get_main_loop() is SceneTree else null
+	if im != null and im.has_method("set_touch_hud_panels_open"):
+		im.set_touch_hud_panels_open(true)
 	# Re-clamp at open time: the viewport may have changed since ready
 	# (phone rotation, resize) and the guard must hold then too.
 	_clamp_panel_to_viewport()
@@ -494,6 +502,26 @@ func close() -> void:
 	visible = false
 	_on_close()
 	panel_closed.emit()
+	# Re-arm the touch HUD only when NO other panel is still open —
+	# this panel closing does not mean the stack is empty (nested
+	# opens exist). MenuManager keeps the authoritative stack; ask it.
+	var mm_loop := Engine.get_main_loop()
+	var mm: Node = null
+	if mm_loop is SceneTree:
+		var mm_script = load("res://ui/components/menu_manager.gd")
+		if mm_script != null and "instance" in mm_script:
+			mm = mm_script.instance
+	if mm != null and is_instance_valid(mm) and mm.get("_open_panels") != null:
+		var still_open: int = (mm.get("_open_panels") as Array).size()
+		var im2 = mm_loop.root.get_node_or_null("/root/InputManager")
+		if im2 != null and im2.has_method("set_touch_hud_panels_open") and still_open == 0:
+			im2.set_touch_hud_panels_open(false)
+	else:
+		# MenuManager not runtime-resolvable: conservatively re-arm.
+		if mm_loop is SceneTree:
+			var im3 = mm_loop.root.get_node_or_null("/root/InputManager")
+			if im3 != null and im3.has_method("set_touch_hud_panels_open"):
+				im3.set_touch_hud_panels_open(false)
 	# print removed: print("UIPanel: Closed %s" % name)
 
 func toggle(player_id: String) -> void:

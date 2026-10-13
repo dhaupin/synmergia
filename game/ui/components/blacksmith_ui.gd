@@ -112,6 +112,11 @@ func _setup_header() -> void:
 	main.add_child(header)
 	main.move_child(header, 0)
 
+	# Play-day pass 2: the screenshot showed "BlacksmithUi" as the panel
+	# label — UIPanel's title fallback echoes the NODE NAME when no
+	# explicit _panel_title is set. Set it (idempotent before the
+	# hand-rolled header builds, and again via set_panel_title after).
+	set_panel_title("The Smithy")
 	var title := Label.new()
 	title.text = "The Smithy"
 	title.add_theme_font_size_override("font_size", 20)
