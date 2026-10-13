@@ -421,10 +421,10 @@ func _run() -> void:
 		# The wader rides the SAME walk law the real player does. The old
 		# Callable() (shell ride) worked for the wet site only by
 		# coincidence: a shell rider placed by the terrain formula is
-		# airborne at any bank whose terrain sits above the baslLaw, the
+		# airborne at any bank whose terrain sits above the flat shell, the
 		# auto wing then opened mid-fall, the glider branch ate the whole
-		# measured window, and path_walked read 0 (the brake of dry_speed
-		# == 0). With the real provider, altitude reads 0 on both banks,
+		# measured window, and path_walked read 0 (hence dry_speed == 0).
+		# With the real provider, altitude reads 0 on both banks,
 		# no wing, and both legs measure their actual walk.
 		wader.snap_height_provider = Callable(_globe.streamer, "walk_surface_h")
 		# Parent UNDER the globe so terrain_on_local() resolves the
