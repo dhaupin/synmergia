@@ -6,8 +6,11 @@
 ##    entity physically sits at its (subworld-frame) center.
 ## 4. THE TERRAFORM SCOPE PIN (authored-backend scoping): the world
 ##    DATA declarations scope the heightfield per world -- world_main
-##    declares the sundered backend, the moon declares NOTHING (its
-##    ground stays the natural analytic law). Strictly structural: the
+##    declares NOTHING (the authored-backends round ended: the play
+##    world wants the natural analytic terrain; the penrose lattice
+##    backend stays available for any world that asks for it, none
+##    does right now) -- and the moon declares NOTHING too (both
+##    grounds are the natural analytic law). Strictly structural: the
 ##    .tres declarations and the registered worlds must agree.
 extends SceneTree
 
@@ -45,11 +48,11 @@ func _run() -> void:
 	if main_data == null or moon_data == null:
 		terra_ok = false
 	else:
-		if str(main_data.terrain_backend_id) != "sundered":
-			terra_ok = false
+		if not str(main_data.terrain_backend_id).is_empty():
+			terra_ok = false  # the main ground is the natural law now
 		if not str(moon_data.terrain_backend_id).is_empty():
 			terra_ok = false  # the moon's ground is the natural law
-	ok = _check("terraform scope: main declares sundered, moon declares nothing", terra_ok) and ok
+	ok = _check("terraform scope: main and moon both declare nothing (natural law)", terra_ok) and ok
 
 	var zone = zm.get_zone("zone_deep_root_camp")
 	ok = _check("zone_deep_root_camp registered", zone != null) and ok

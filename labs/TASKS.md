@@ -5730,3 +5730,20 @@ Verification: probe_backend_penrose 10/10, probe_terrain_backend
 (spawning the walk-law reads the lattice benches everywhere -- that
 is the existing backend consumers just working; visual polish of the
 lattice look is a material/color tuning pass).
+
+## OPEN (2026-10-13): the arena/duel/Royale player-facing hookup
+The services shipped and probed (ArenaFighter/ArenaRoomService/
+ArenaCombatBridge, bouts + duel handshake + LFG in LobbyService,
+Bouts/Duels/LFG tabs in LobbyUI, arena_gateway queue_mode stones,
+bout_rules + storm/AFK/return laws) — but the account audit with the
+owner records that the PLAYER-FACING hookup was never landed: no
+gateway stones placed in the playable world, no Bouts/Duels/LFG panel
+entries reachable from the HUD/menu flow, matchmaking never verified
+end-to-end in a live spherical boot. Next session: place the arena
+gateway stones (data/gateways, queue_mode), surface the lobby tabs in
+main_menu_bar/MenuManager, and run the full join -> assemble -> bout
+-> return journey in the globe world. Note the identity decision the
+same day: world_main dropped terrain_backend_id = "penrose" (the
+natural analytic law is the ground again — flat-green bench complaint
+resolved at the law level; penrose stays a backend any world may
+declare).
