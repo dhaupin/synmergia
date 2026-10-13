@@ -6135,3 +6135,50 @@ peak_height_scan) remain in game/debug.
   each carrying the PropBody in the climbable group, each riding
   the walk law's lift. ALL PASS.
 - Verification: globe probe 0 FAIL, charset lint 3/3.
+
+## 2026-10-13 (turn 20): THE PER/BUDGET SLICE — budgets as pins + three real finds
+- THE ORDER (the owner confirmed): per-patch build time/vertex
+  budgets as pinned checks, prop counts per face, and a memory
+  ceiling while full-face-sweeping -- so future pretty passes
+  cannot regress streaming silently. All the polish orders also
+  confirmed: tree/grass density per variety band, shore foam/wave
+  line, waterfall seams at river drops, the village/harbor authored
+  structures PLUS the Capitol city monolith on the coast with the
+  road connecting them, ambient birds/wind audio, and the SHORTER
+  DAY (an hour of day + an hour of night, the dusk/dawn ramps
+  between).
+- THE BUDGET PROBE (tests/probe_perf_budget.gd): B1 -- a full-detail
+  level-6 hot build pins under 10 s (measured 6.69 s cold at 20 km,
+  calibrated in the probe: the first build pays the road spec +
+  channel caches); B2 -- tri budgets as pins (measured 5195 total
+  per patch < 600k: main 4096, skirt 384, water sheet 715); B3 --
+  an 8-face spread subwalk pins under 200 s (measured 117.2 s: per
+  4-patch legs 9-21 s at 20 km; the full 20-face sweep remains the
+  stream probe's pinned walk); B4 -- the 4-patch live-set cap held
+  through the sweep. The weigher reads mesh.get_faces() (robust
+  against the partial-array quirk), buckets for seams/water from
+  the streamer's own counts.
+- THE FINDS (each a real bug the budget battery cornered):
+  (a) THE ROAD-WATER STACK CYCLE: hydro_water_surface read the
+  PUBLIC height -- which includes the road override -- so the road
+  spec's own build recursed through its corridor until stack
+  overflow (cornered at 20 km; invisible at prototype radius).
+  Fix: the PRE-ROAD DISCIPLINE -- the water surface now reads the
+  _noroad field, the same mode the river pathing law uses
+  (standing water is a product of the LAND, not of the cart).
+  (b) THE WATER SHEET ARRAYS LAW: the streamer committed its
+  sheet surfaces with st.commit() -- which returns an ARRAYMESH
+  OBJECT -- so add_surface_from_arrays rejected every sheet since
+  slice 3 (the engine's Object-to-Array complaint, 11 per boot).
+  commit_to_arrays() hands over the real arrays: sheets render
+  again (715 tris measured); engine errors down to a pre-existing
+  freed-instance teardown race in the inventory service (logged,
+  untouched). (c) THE CRAG NOISE BUNDLE: the four per-color
+  terrain noises (macro tone, crag streak, strata wobble, fracture
+  chatter) were four uncached _vnoise calls per vertex -- now ONE
+  SectorCache memo per (dir, seed), cleared on backend
+  install/uninstall with the other caches.
+- Verification: probe_perf_budget ALL PASS; the affected suites
+  rerun -- climate 32/32, roads/flow 14/14, shape ground 9/9,
+  stream (all 20 faces, 4-patch steady state), village probe ALL
+  PASS, charset lint 3/3.

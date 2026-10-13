@@ -47,6 +47,7 @@ static var _height_cache = SECTOR_CACHE.new()
 static var _water_surface_cache = SECTOR_CACHE.new()
 static var _blend_cache = SECTOR_CACHE.new()
 static var _channel_cache = SECTOR_CACHE.new()
+static var _crag_cache = SECTOR_CACHE.new()
 static var _river_spec_cache = LRU_CACHE.new(8)
 
 ## Bump to invalidate all derived content deliberately. v2: the
@@ -360,6 +361,7 @@ static func install_terrain_backend(backend: Callable) -> void:
 	_temperature_cache.clear() # lapse rides the ground law
 	_water_table_cache.clear() # perch rides the ground law
 	_river_spec_cache.clear()  # springs/pathing re-derive under the seam
+	_crag_cache.clear()        # the color noises ride the seed law
 
 
 static func uninstall_terrain_backend() -> void:
@@ -369,6 +371,7 @@ static func uninstall_terrain_backend() -> void:
 	_temperature_cache.clear()
 	_water_table_cache.clear()
 	_river_spec_cache.clear()
+	_crag_cache.clear()
 
 
 static func terrain_backend_installed() -> bool:
@@ -849,7 +852,15 @@ static func hydro_water_surface(d: Vector3, world_seed: PackedByteArray) -> floa
 	var dry: float = maxf(gates.y, 1.0 - gates.x)
 	if dry < 0.995:
 		var table: float = water_table_raw(d, world_seed)
-		var h: float = terrain_height(d, world_seed)
+		# THE PRE-ROAD DISCIPLINE (the stack cycle the perf-budget probe
+		# cornered at 20 km): _road_build reads THIS surface to place
+		# its water crossings, and this used to read the PUBLIC height
+		# -- which includes the road override -- so the spec build
+		# recursed through its own corridor forever. Standing water is
+		# a product of the LAND, not of the cart: the read rides the
+		# pre-road field (the same _noroad mode the river pathing law
+		# already uses).
+		var h: float = terrain_height_carved(d, world_seed, "_noroad")
 		var window: float = smoothstep(0.0, Hydro.LAKE_CARVE_MAX, h - (table - Hydro.LAKE_BEDDROP))
 		var surface: float = lerpf(table, h, window)
 		out = lerpf(surface, h, dry)  # gate fades it into the ground
@@ -919,6 +930,26 @@ static func biome_color(id: int, world_seed: PackedByteArray, d: Vector3) -> Col
 ## seed (same law as the height cache). `steep`/`lift` stay OUT of
 ## the cache -- the slope rock, snowline, and wet dim blend on top of
 ## the memoized base, so every vertex keeps its own physics dollar.
+## THE CRAG NOISE BUNDLE read: the four per-color terrain noises
+## (macro tone polish, crag streak, strata wobble, fracture chatter)
+## memoized per quantized direction + seed (the SectorCache law).
+## Recompute 4 _vnoise calls per vertex dominated the mesh pass after
+## the crag slice; the memo brings the build back inside the budget.
+static func _crag_noise(d: Vector3, world_seed: PackedByteArray) -> Vector4:
+	var cached = _crag_cache.get_value(d, world_seed)
+	if cached is Vector4:
+		return cached
+	var polish_salt: int = _seed_salt(world_seed, "polish")
+	var strata_salt: int = _seed_salt(world_seed, "strata")
+	var out := Vector4(
+		_vnoise(d, polish_salt, 2.2),
+		_vnoise(d, polish_salt + 1, 7.0),
+		_vnoise(d, strata_salt, 3.0),
+		_vnoise(d, strata_salt + 1, 14.0))
+	_crag_cache.set_value(d, world_seed, out)
+	return out
+
+
 static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, steep: float) -> Color:
 	d = d.normalized()
 	var base_c = _blend_cache.get_value(d, world_seed)
@@ -936,6 +967,14 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 		_blend_cache.set_value(d, world_seed, base)  # bounds evict, never clear
 	var sea: float = sea_level(world_seed)
 	var c: Color = base
+	# THE CRAG NOISE BUNDLE (the perf-budget catch): the four per-color
+	# terrain noises are pure per (direction, seed), so they share ONE
+	# quantized-direction memo (the same probability the height cache
+	# rides). Uncached, they cost ~3.5 ms per vertex (~4 s per level-6
+	# patch build); cached, the budget pin holds. Values:
+	# x = macro tone noise, y = crag streak, z = strata wobble,
+	# w = fracture chatter.
+	var cn: Vector4 = _crag_noise(d, world_seed)
 	# Slope physics: steep ground reads rock (bands: shallow slopes keep
 	# their biome; cliffs gray out).
 	c = c.lerp(Color(0.46, 0.42, 0.38), clampf(steep * 0.75, 0.0, 1.0))
@@ -949,13 +988,12 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	#   dark cracks on the roughest cuts (deep steep), light dusting
 	#   near the gentler ledge bands.
 	if steep > 0.05:
-		var strata_salt: int = _seed_salt(world_seed, "strata")
-		var fume: float = _vnoise(d, strata_salt, 3.0)
+		# The bundle read (see _crag_noise): fume + chatter come cached.
+		var fume: float = cn.z
 		var band: float = absf(fposmod(lift / 3.5 + fume, 1.0) * 2.0 - 1.0)
 		var strata: float = pow(band, 2.0) * smoothstep(0.05, 0.45, steep)
 		c = Color(c.r * (1.0 - strata * 0.20), c.g * (1.0 - strata * 0.24), c.b * (1.0 - strata * 0.20))
-		var chatter: float = _vnoise(d, strata_salt + 1, 14.0)
-		var fracture: float = smoothstep(0.62, 0.9, chatter) * smoothstep(0.3, 0.75, steep)
+		var fracture: float = smoothstep(0.62, 0.9, cn.w) * smoothstep(0.3, 0.75, steep)
 		c = c.darkened(fracture * 0.30)
 	# Snowline via temperature: below the freeze band, snow takes over
 	# (spawn apron excepted -- the boot stays dry-green).
@@ -988,12 +1026,14 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# THE GROUND POLISH PASS (the style slice the ledger parked): a
 	# wide macro tone patch so tiles never read as flat paint, plus
 	# the crag streaks on broken country (badlands/alpine ridges).
-	var polish_salt: int = _seed_salt(world_seed, "polish")
-	var macro: float = (_vnoise(d, polish_salt, 2.2) - 0.5) * 0.055
+	# The bundle read again: macro tone + crag streak from the cache
+	# (the whole color-noise family is pure per (dir, seed) -- one
+	# memo, no fresh noise per vertex pass).
+	var macro: float = (cn.x - 0.5) * 0.055
 	c = Color(clampf(c.r + macro, 0.0, 1.0), clampf(c.g + macro, 0.0, 1.0), clampf(c.b + macro, 0.0, 1.0))
 	var id_check: int = climate_biome_id(d, world_seed)
 	if id_check == BiomeId.BADLANDS or id_check == BiomeId.ALPINE:
-		var crag: float = pow(1.0 - absf(2.0 * _vnoise(d, polish_salt + 1, 7.0) - 1.0), 1.5)
+		var crag: float = pow(1.0 - absf(2.0 * cn.y - 1.0), 1.5)
 		c = c.lerp(Color(0.52, 0.48, 0.45), crag * 0.22)
 	# THE COASTAL BLUFF RIDER (the crag law's sea front): any face near
 	# the waterline that steepness already flagged gets the shoreline

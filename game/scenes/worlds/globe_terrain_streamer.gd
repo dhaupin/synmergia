@@ -640,7 +640,12 @@ func _water_surface(face: int, mi: MeshInstance3D, verts: Array, center: Vector3
 		_emit_water_tri(st_w, tri, center, t_h, wcol)
 		water_tris += 1
 	if water_tris > 0:
-		mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st_w.commit())
+		# THE ARRAYS LAW (the perf-budget probe cornered it): commit()
+		# returns an ArrayMesh OBJECT -- add_surface_from_arrays wanted
+		# the arrays, so every sheet since slice 3 died at this line
+		# (the engine's Object-to-Array complaint). commit_to_arrays()
+		# hands over the actual primitive arrays.
+		mi.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st_w.commit_to_arrays())
 		var wmat := StandardMaterial3D.new()
 		wmat.albedo_color = Color(0.24, 0.42, 0.50)
 		wmat.roughness = 0.1
