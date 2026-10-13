@@ -6069,3 +6069,27 @@ peak_height_scan) remain in game/debug.
   test_anticheat_limits (full [OK] list incl. swim/current/dive),
   probe_terrain_planet (40 checks), lint/test_lint_charset 3/3.
 - Remaining open: unchanged from turn 15's list.
+
+## 2026-10-13 (turn 17): THE CRAG LAW — rough faces stop being flat paint + the W5 cartway leak
+- THE CRAG SLICE (the parked style slice, finished in vertex_color):
+  a steep face now reads craggy in EVERY biome, not only
+  badlands/alpine. STRATA -- horizontal sediment bands: lift lands
+  in 3.5 m wavelength bands jittered by low-frequency field noise
+  (bedding planes wander), darkening scaled by a smooth steep step.
+  FRACTURE chatter -- high-frequency tone splits: deep-steep cuts
+  take dark cracks, the smoothstep keeps the gentle ledges clean.
+  COASTAL BLUFF RIDER -- any face the steep law already flagged and
+  that sits under sea+9 m takes the cut-cliff gray-brown with
+  spray-darkened feet, so sea edges read chiseled instead of
+  painted slope gray. The badlands/alpine streaks keep their reach.
+- THE W5 CARTWAY LEAK (found by re-running the FULL battery, not
+  just the touched probes -- the shape check had skipped turn 16's
+  loop): the island's BASE law is exact (sea+2+20 = 26.57 m), but
+  the public terrain_height read 74.91 -- the road corridor override
+  lerped the seat up to a ring-band mountain bed (the cartway
+  brushes the ring country behind the seat). Fix: THE ISLAND
+  SHIELD in road_state_at -- the corridor weight fades across the
+  island shape (the same complement law hydro_lake_carve's shield
+  uses). Measured: seat delta 0.0 under the current seed.
+- Verification: --check-only clean, shape ground 9/9, climate
+  32/32, roads/flow 14/14, charset lint 3/3.

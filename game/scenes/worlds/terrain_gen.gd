@@ -939,6 +939,24 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	# Slope physics: steep ground reads rock (bands: shallow slopes keep
 	# their biome; cliffs gray out).
 	c = c.lerp(Color(0.46, 0.42, 0.38), clampf(steep * 0.75, 0.0, 1.0))
+	# THE CRAG LAW (the parked style slice, finished): a steep face is
+	# no longer flat paint. Two roughness signals ride the slope so
+	# cliffs read craggy in EVERY biome, not only badlands/alpine:
+	#   STRATA -- horizontal sediment bands: the face's lift lands in
+	#   wavelength bands, jittered by low-frequency field noise so the
+	#   band edges wander like real bedding planes read.
+	#   FRACTURE chatter -- high-frequency tone splits along ledges:
+	#   dark cracks on the roughest cuts (deep steep), light dusting
+	#   near the gentler ledge bands.
+	if steep > 0.05:
+		var strata_salt: int = _seed_salt(world_seed, "strata")
+		var fume: float = _vnoise(d, strata_salt, 3.0)
+		var band: float = absf(fposmod(lift / 3.5 + fume, 1.0) * 2.0 - 1.0)
+		var strata: float = pow(band, 2.0) * smoothstep(0.05, 0.45, steep)
+		c = Color(c.r * (1.0 - strata * 0.20), c.g * (1.0 - strata * 0.24), c.b * (1.0 - strata * 0.20))
+		var chatter: float = _vnoise(d, strata_salt + 1, 14.0)
+		var fracture: float = smoothstep(0.62, 0.9, chatter) * smoothstep(0.3, 0.75, steep)
+		c = c.darkened(fracture * 0.30)
 	# Snowline via temperature: below the freeze band, snow takes over
 	# (spawn apron excepted -- the boot stays dry-green).
 	var t: float = climate_temperature(d, world_seed)
@@ -977,6 +995,14 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	if id_check == BiomeId.BADLANDS or id_check == BiomeId.ALPINE:
 		var crag: float = pow(1.0 - absf(2.0 * _vnoise(d, polish_salt + 1, 7.0) - 1.0), 1.5)
 		c = c.lerp(Color(0.52, 0.48, 0.45), crag * 0.22)
+	# THE COASTAL BLUFF RIDER (the crag law's sea front): any face near
+	# the waterline that steepness already flagged gets the shoreline
+	# treatment -- a cut-cliff gray-brown with spray-darkened feet, so
+	# the sea's edges read chiseled instead of painted slope gray.
+	var bluff := smoothstep(0.5, 0.8, steep) * (1.0 - smoothstep(sea + 0.5, sea + 9.0, lift))
+	if lift < sea + 9.0 and bluff > 0.01:
+		c = c.lerp(Color(0.42, 0.38, 0.32), bluff)
+		c = c.darkened(bluff * 0.5 * (1.0 - smoothstep(sea - 0.4, sea + 1.6, lift)))
 	return c
 
 
@@ -1840,7 +1866,16 @@ static func _road_probe(d: Vector3, world_seed: PackedByteArray, ang_radius: flo
 ## THE ROAD STATE at a direction: (corridor weight, deck weight, the
 ## walk surface - bed or deck height). Zero/zero/0 outside the road.
 static func road_state_at(d: Vector3, world_seed: PackedByteArray) -> Vector3:
-	return _road_probe(d, world_seed, ROAD_ANG)
+	var st: Vector3 = _road_probe(d, world_seed, ROAD_ANG)
+	if st.x > 0.0:
+		# THE ISLAND SHIELD (the W5 law): the volcanic tier outranks
+		# the cartway -- the corridor weight fades across the seat's
+		# ramp edge, so the island top reads EXACTLY sea+2+ISLAND_
+		# PLATEAU under any seed. The same complement law the hydro
+		# carve's shield uses; a road brushing the ring-band country
+		# behind the seat never regrades the ferry plateau.
+		st.x *= 1.0 - _island_shape(d)
+	return st
 
 
 ## THE ROAD HEIGHT: the carved law's corridor override (bed on land,
