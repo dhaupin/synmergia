@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/road_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "road_trail_dirt"
+display_name = "Dirt Trail"
+description = "A packed-earth footpath worn smooth by carts and boots. Beasts give it room."
+surface = 0
+speed_multiplier = 1.05
+clearance_m = 600.0
+tint = Color(0.5, 0.38, 0.26, 1)
+allow_bridges = true
+deck_visual_id = "plank_simple"
+quest_followable = true

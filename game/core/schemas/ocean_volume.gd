@@ -65,6 +65,11 @@ enum DepthBand {
 ## Currents are weather for water (prd sec 2): drift vector in m/s.
 @export var current_direction: Vector3 = Vector3.ZERO
 @export var current_strength: float = 0.0
+## THE TERRAIN CURRENTS (the river flow law): when on, this volume's
+## current composes with terrain_gen's river flow and standing-water
+## drift read at the body's planet direction (radial shells only --
+## floor_center names the planet center the law maps from).
+@export var terrain_currents: bool = false
 ## The depth tax (prd sec 4): pressure damage per second per meter
 ## in the SQUEEZE band. 0.0 = a tame pool (the moon crater starts
 ## tame -- it is a workshop test pool, not a monster).

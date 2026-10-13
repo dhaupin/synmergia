@@ -6041,3 +6041,31 @@ slice; the per/budget slice. The fan-sweep pre-filter
 (dev tools) lived in a throwaway dir and was cleaned up; the
 standing scans (land_scan, seed_scan, range_scan, variety_diag,
 peak_height_scan) remain in game/debug.
+
+## 2026-10-13 (turn 16): THE CARTWAY TRIAGE — spawn laws outrank the road, the grade clamp converges
+- THE GRADE CLAMP (the road engine's hill spike): two law fixes.
+  First the economics — the greedy path waded a sea bay because sea
+  cost (400) was cheaper than one mountain step (~300); sea joined
+  the ridge in the "uneconomical" bracket (4,000) and a defensive
+  causeway floor keeps any wet node honest. Second the clamp math —
+  the cascade now closes each non-pinned pair FULLY per pass (the
+  halved fixes migrated a ~140 m climb too slowly for 10 passes),
+  pinned deck pairs take the PLAIN full fix (the old fix*2.0
+  compensation overshot the pair past the bound into alternating
+  amplification: 1e38 over 64 passes), and the pass budget is
+  bumped. Result: grade violations EMPTY.
+- THE BOOT-RING PAIRS (two new climate-probe breaks from the road
+  meander): thecartway ran 0.99-weighted 3 deg off spawn, which (a)
+  painted the tested ground with road tint and hid the steep-
+  desaturation law, and (b) let the road bed re-grade ground the
+  spawn plaza laws own. Fixes: the spawn laws OUTRANK the cartway —
+  no road carve/tint inside the boot apron — and the path cost
+  bends the route around the plaza ring. Plus the river downhill
+  check read heights THROUGH road decks; the continuity pin now
+  reads the pre-road hydraulic field.
+- THE BATTERY (all green, exit 0): probe_terrain_climate 32/32,
+  probe_roads_flow 14/14, probe_terrain_backend 11/11,
+  probe_terrain_stream (all 20 faces, seams happy),
+  test_anticheat_limits (full [OK] list incl. swim/current/dive),
+  probe_terrain_planet (40 checks), lint/test_lint_charset 3/3.
+- Remaining open: unchanged from turn 15's list.

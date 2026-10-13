@@ -141,6 +141,12 @@ var world_id: String = ""
 ## the walk follows.
 var auto_walk: bool = false
 var auto_walk_yaw: float = 0.0
+## THE ROAD FOLLOW (the auto-walk extension): with auto_walk on AND
+## this on, the boot's heading snaps to the nearest cartway tangent -
+## the player picks a road and WALKS it, turning where the road
+## turns. The walk ends at the capitol anchor (the arrival law:
+## a destination, not an echo).
+var auto_walk_road: bool = false
 ## Optional provider: func(dir: Vector3) -> float, height above the
 ## base surface at that direction (rock tops). The radial snap rides
 ## rock tops smoothly so walk-over colliders decorate, not block.
@@ -159,6 +165,10 @@ var snap_enabled: bool = true
 var _wading: bool = false
 var _wade_depth: float = 0.0
 var _wade_stamp_live: bool = false  # the anticheat stamp owns this body
+## THE CURRENT LAW bookkeeping: the ford pull this frame + the cartway
+## underfoot (the road state vector: corridor weight, deck, surface).
+var _wade_flow: Vector3 = Vector3.ZERO
+var _road_underfoot: Vector3 = Vector3.ZERO
 const WADE_MULT: float = 0.55       # wading walk multiplier
 const WADE_FORD_DEPTH: float = 0.15 # deeper than this = feet in water (not a bridge)
 const WADE_MAX_DEPTH: float = 1.6   # deeper than this is the swim service's band
@@ -640,6 +650,20 @@ func _physics_process(delta: float) -> void:
 		# auto_walk_yaw (0 = straight ahead).
 		var dir: Vector3 = cam_fwd.rotated(up, auto_walk_yaw)
 		wish = (dir - up * dir.dot(up)).normalized()
+		# THE ROAD FOLLOW: the cartway's own tangent outranks the
+		# heading law (the boot rides the road, turning where it turns;
+		# off-corridor it keeps the cam-heading law until the road picks
+		# up again). The arrival law: inside the capitol anchor ring
+		# the walk ends honest - a destination, not an echo.
+		if auto_walk_road:
+			var body_dir: Vector3 = (global_position - planet_center).normalized()
+			if body_dir.angle_to(TerrainGen.capitol_plaza_dir()) < 0.012:
+				auto_walk = false
+				wish = Vector3.ZERO
+			else:
+				var road_dir: Vector3 = TerrainGen.road_walk_dir(body_dir, world_seed_bytes_local())
+				if road_dir.length_squared() > 0.0001:
+					wish = road_dir
 	else:
 		# Touch stick feeds the same pipeline as WASD: InputManager merges
 		# controller > touch joystick > keyboard into one vector. Input is
@@ -732,6 +756,24 @@ func _physics_process(delta: float) -> void:
 	_wading = _wade_depth > WADE_FORD_DEPTH and _wade_depth <= WADE_MAX_DEPTH
 	if _wading:
 		speed *= WADE_MULT
+		# THE CURRENT LAW (the river flow slice): wading water PULLS -
+		# walking against the local flow taxes the pace. The pull
+		# itself (at the velocity tail below) rides a capped fraction
+		# of the channel law so the wading stamp stays honest.
+		var ford_flow: Vector3 = TerrainGen.water_drift_at(_body_dir_law(), world_seed_bytes_local())
+		_wade_flow = ford_flow
+		if ford_flow.length_squared() > 0.0001 and wish.length_squared() > 0.001:
+			var against: float = maxf(0.0, -wish.normalized().dot(ford_flow.normalized()))
+			speed *= (1.0 - 0.45 * clampf(against, 0.0, 1.0))
+		else:
+			_wade_flow = Vector3.ZERO
+	# THE CARTWAY LAW: road underfoot carries its surface's pace (the
+	# dirt trail keeps a 1.05x walking pace; the RoadData speed law
+	# overrides when the data service loads the road resource).
+	var road_state: Vector3 = TerrainGen.road_state_at(_body_dir_law(), world_seed_bytes_local())
+	_road_underfoot = road_state
+	if road_state.x > 0.4:
+		speed *= 1.05
 
 	# -- CLIMB LAW -------------------------------------------------------
 	# Engage: jump HELD (not the tap that hops) + ground contact + a
@@ -898,6 +940,11 @@ func _physics_process(delta: float) -> void:
 		horizontal = horizontal.move_toward(Vector3.ZERO, walk_speed * 10.0 * delta)
 	vertical -= up * gravity_force * delta
 
+	# THE FORD PULL (the current law): the wading body drifts with its
+	# local flow at a capped walk-band fraction (0.4 m/s law), so the
+	# wading stamp reads a walk, never a teleport.
+	if _wading and _wade_flow.length_squared() > 0.0001:
+		horizontal += _wade_flow * 0.9
 	velocity = horizontal + vertical
 	var before: Vector3 = global_position
 	move_and_slide()
@@ -1131,6 +1178,12 @@ func _perch_height() -> float:
 ## mirrors TerrainGen.world_seed_bytes -- one source of truth).
 func world_seed_bytes_local() -> PackedByteArray:
 	return TerrainGen.world_seed_bytes()
+
+
+## THE BODY'S PLANET DIRECTION (the terrain law frame the current,
+## road, and clearance laws all read).
+func _body_dir_law() -> Vector3:
+	return (global_position - planet_center).normalized()
 
 
 ## The terrain-on flag for the wade law (the streamer's live flag,

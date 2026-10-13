@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/schemas/road_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "road_cobblestone"
+display_name = "Cobblestone Road"
+description = "The capitol's cartway: set stone that carries trade and travelers at a fair clip."
+surface = 2
+speed_multiplier = 1.15
+clearance_m = 700.0
+tint = Color(0.46, 0.44, 0.41, 1)
+allow_bridges = true
+deck_visual_id = "plank_simple"
+quest_followable = true

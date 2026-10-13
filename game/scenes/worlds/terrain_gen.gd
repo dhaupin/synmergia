@@ -741,18 +741,23 @@ static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: fl
 	var t: float = climate_temperature(d, world_seed)
 	var m: float = climate_moisture(d, world_seed)
 	var land: float = _land_mass(d, _seed_salt(world_seed, "terrain"))
+	# THE ROAD BRIDGE: a deck crossing reads as LAND (the deck stands
+	# above the water line and the road tint paints it - no water band
+	# under a solid cartway). Sector-cached, one read per direction.
+	var bridge: float = road_state_at(d, world_seed).y
 	# Ocean bands by the land law (deep vs shelf by depth).
 	if land < OCEAN_LAND_LINE:
 		if height < sea_level(world_seed) - OCEAN_DEPTH_MIN * 0.5:
 			return BiomeId.OCEAN_DEEP
 		return BiomeId.OCEAN_SHELF
-	# River channel: running water above every other land band.
-	if river_channel(d, world_seed) > 0.55:
+	# River channel: running water above every other land band (the
+	# bridge deck outranks it - see the road bridge law above).
+	if river_channel(d, world_seed) > 0.55 and bridge <= 0.4:
 		return BiomeId.RIVER
 	# Standing water at ANY elevation (the lake law). The surface is
 	# the GATED one (basin + spawn), so this fires only where a real
 	# carved bed holds real water -- height here is the CARVED height.
-	if surface - height > Hydro.BEACH_MIN:
+	if surface - height > Hydro.BEACH_MIN and bridge <= 0.4:
 		return BiomeId.LAKE
 	# Damp shore ring above the waterline.
 	if height < sea_level(world_seed) + 1.0:
@@ -765,8 +770,8 @@ static func climate_biome_at(d: Vector3, world_seed: PackedByteArray, height: fl
 		return BiomeId.ALPINE_MEADOW if m > 0.5 else BiomeId.TUNDRA
 	# Wet hollows: the marsh ring -- gated-adjacent ground near the
 	# water surface (the hydrology law carries the gate; see
-	# climate_swamp_wetness).
-	if m > SWAMP_T and climate_swamp_wetness(d, world_seed, height, surface) > 0.5:
+	# climate_swamp_wetness). Bridge decks outrank the marsh too.
+	if m > SWAMP_T and bridge <= 0.4 and climate_swamp_wetness(d, world_seed, height, surface) > 0.5:
 		return BiomeId.SWAMP
 	# THE SWING LADDER (variety): broken country -> desert -> steppe.
 	# Badlands first: dry-warm rare broken country on its OWN erosion
@@ -955,6 +960,23 @@ static func vertex_color(d: Vector3, world_seed: PackedByteArray, lift: float, s
 	var under: float = surf - terrain_height(d, world_seed)
 	if under > 0.0 and under < 1.5:
 		c = c.darkened((1.0 - under / 1.5) * 0.5)
+	# THE ROAD LAW TINT (v1): the cartway paints its material - the
+	# dirt trail reads packed earth, the bridge deck reads plank wood.
+	# Per-corner physics again: the road state cache answers both.
+	var road_state: Vector3 = road_state_at(d, world_seed)
+	if road_state.x > 0.0 and d.angle_to(SPAWN_CENTER) >= SPAWN_APRON_OUTER_ANG:
+		var road_c: Color = Color(0.50, 0.38, 0.26).lerp(Color(0.58, 0.42, 0.30), road_state.y)
+		c = c.lerp(road_c, road_state.x * 0.85)
+	# THE GROUND POLISH PASS (the style slice the ledger parked): a
+	# wide macro tone patch so tiles never read as flat paint, plus
+	# the crag streaks on broken country (badlands/alpine ridges).
+	var polish_salt: int = _seed_salt(world_seed, "polish")
+	var macro: float = (_vnoise(d, polish_salt, 2.2) - 0.5) * 0.055
+	c = Color(clampf(c.r + macro, 0.0, 1.0), clampf(c.g + macro, 0.0, 1.0), clampf(c.b + macro, 0.0, 1.0))
+	var id_check: int = climate_biome_id(d, world_seed)
+	if id_check == BiomeId.BADLANDS or id_check == BiomeId.ALPINE:
+		var crag: float = pow(1.0 - absf(2.0 * _vnoise(d, polish_salt + 1, 7.0) - 1.0), 1.5)
+		c = c.lerp(Color(0.52, 0.48, 0.45), crag * 0.22)
 	return c
 
 
@@ -1250,6 +1272,14 @@ static func terrain_height_carved(d: Vector3, world_seed: PackedByteArray, mode:
 	if channel > 0.0:
 		var bed: float = minf(h - Hydro.RIVER_BED_DEPTH * channel, water_table_raw(d, world_seed) - 0.3)
 		h = lerpf(h, bed, channel)
+	# THE ROAD LAW (v1): the cart path owns its corridor - a smoothed
+	# walk bed on land, a solid bridge deck over every water crossing
+	# (the deck stands ABOVE the water line, never submerged). The
+	# corridor fade keeps the 4 m walk-bound honest. "_noroad" serves
+	# the pre-road field (the pathing law reads it - no cycle);
+	# "_raw" is unchanged (river carving only).
+	if mode != "_raw" and mode != "_noroad":
+		h = road_height_override(d, world_seed, h)
 	return h
 
 
@@ -1394,12 +1424,15 @@ static func river_path(spring: Vector3, world_seed: PackedByteArray) -> PackedVe
 
 
 ## The CLEARANCE law (probe-pin helper): does a river REALLY run
-## downhill, step by step, and terminate? Strict L1 check.
+## downhill, step by step, and terminate? Strict L1 check. Reads the
+## PRE-ROAD field (_noroad): the hydraulic truth is the river's own
+## carve - a road deck or a graded bank landing on the channel is a
+## structure OVER the water, not the water's law.
 static func river_goes_downhill(path: PackedVector3Array, world_seed: PackedByteArray) -> float:
 	var worst: float = 0.0
 	for i in range(path.size() - 1):
-		var h0: float = terrain_height(path[i], world_seed)
-		var h1: float = terrain_height(path[i + 1], world_seed)
+		var h0: float = terrain_height_carved(path[i], world_seed, "_noroad")
+		var h1: float = terrain_height_carved(path[i + 1], world_seed, "_noroad")
 		worst = maxf(worst, h1 - h0)  # punish any up-step
 	return worst  # <= ~0 means strictly downhill (within noise)
 
@@ -1444,3 +1477,414 @@ static func walk_height(dir: Vector3, world_seed: PackedByteArray, face: int, ba
 	if terrain_on:
 		h = terrain_height(dir, world_seed)
 	return h + rock_top_height(dir, world_seed, face, base_radius)
+
+
+# -- THE RIVER FLOW LAW (the current slice, v1) -------------------------
+
+## Rivers RUN: water moves spring -> mouth through every channel
+## capsule, and standing water (lakes, ponds) drifts toward its
+## outlet. The flow is PURE derived data riding the carved river
+## specs (no per-tick state); the movement laws (the wade band, the
+## swim driver, the water mounts) apply it as positional drift or a
+## speed tax per their own profile. All heights/turns stay in the
+## planar-tangent frame (no radial component - the water stays in
+## its bed).
+
+## The flow profile: full channel pull on the spring side, eased in
+## the estuary (the mouth fans wide - the current dies there).
+const RIVER_FLOW_BASE: float = 2.4      # m/s channel cruise
+const RIVER_FLOW_MOUTH_EASE: float = 0.6
+const LAKE_DRIFT_SPEED: float = 0.35    # m/s standing-water drift
+
+static var _flow_cache = SECTOR_CACHE.new()
+static var _drift_cache = SECTOR_CACHE.new()
+
+
+## THE LOCAL FLOW DIRECTION (unit tangent, mouth-ward) at a
+## direction. Zero vector off every channel.
+static func river_flow_at(d: Vector3, world_seed: PackedByteArray) -> Vector3:
+	d = d.normalized()
+	var cached = _flow_cache.get_value(d, world_seed)
+	if cached != null:
+		return cached
+	var best: float = 0.0
+	var flow: Vector3 = Vector3.ZERO
+	for spec in river_specs_cached(world_seed):
+		var n: int = spec.path.size()
+		for i in range(n - 1):
+			var p0: Vector3 = spec.path[i]
+			var p1: Vector3 = spec.path[i + 1]
+			var seg_len: float = p0.angle_to(p1)
+			if seg_len < 1e-9:
+				continue
+			var axis: Vector3 = p0.cross(p1).normalized()
+			for si in range(1, 4):
+				var t: float = float(si) / 4.0
+				var mid: Vector3 = p0.rotated(axis, seg_len * t).normalized()
+				var ang: float = d.angle_to(mid)
+				if ang < Hydro.RIVER_RADIUS_ANG:
+					var w: float = 1.0 - ang / Hydro.RIVER_RADIUS_ANG
+					if w > best:
+						best = w
+						# The rotation derivative along p0 -> p1: the
+						# tangent poised mouth-ward (axis x mid).
+						flow = axis.cross(mid).normalized()
+		# The spring head: no upstream segment sits there, so the head
+		# disk carries the FIRST segment's tangent.
+		if n > 1:
+			var head: Vector3 = spec.path[0]
+			var ang_head: float = d.angle_to(head)
+			if ang_head < Hydro.RIVER_RADIUS_ANG \
+					and 1.0 - ang_head / Hydro.RIVER_RADIUS_ANG > best:
+				best = 1.0 - ang_head / Hydro.RIVER_RADIUS_ANG
+				flow = head.cross(spec.path[1]).normalized()
+	_flow_cache.set_value(d, world_seed, flow)  # bounds evict, never clear
+	return flow
+
+
+## THE FLOW SPEED (m/s) at a direction: the channel's pull, eased in
+## the estuary. Zero off-channel.
+static func river_flow_speed(d: Vector3, world_seed: PackedByteArray) -> float:
+	d = d.normalized()
+	var c: float = river_channel(d, world_seed)
+	if c <= 0.0:
+		return 0.0
+	var mouth: float = river_mouth_factor(d, world_seed)
+	return RIVER_FLOW_BASE * (1.0 - RIVER_FLOW_MOUTH_EASE * mouth)
+
+
+## THE STANDING-WATER DRIFT: lakes and ponds drift TOWARD their
+## outlet - the deepest rim direction of a small ring walk, applied
+## at a slow stroll. Zero on dry ground and in the channel core (the
+## river's own pull owns the river there).
+static func water_drift_at(d: Vector3, world_seed: PackedByteArray) -> Vector3:
+	d = d.normalized()
+	var cached = _drift_cache.get_value(d, world_seed)
+	if cached != null:
+		return cached
+	var out: Vector3 = Vector3.ZERO
+	var surface: float = hydro_water_surface(d, world_seed)
+	var h: float = terrain_height(d, world_seed)
+	if surface - h > Hydro.BEACH_MIN:
+		var c: float = river_channel(d, world_seed)
+		if c > 0.4:
+			out = river_flow_at(d, world_seed) * river_flow_speed(d, world_seed)
+		else:
+			# A small tangent-plane ring walk: the deepest neighbor
+			# decides the outlet direction (the drift follows it).
+			var frame: Vector3 = Vector3(0, 1, 0) if absf(d.dot(Vector3(0, 1, 0))) < 0.9 else Vector3(1, 0, 0)
+			var t1: Vector3 = d.cross(frame).normalized()
+			var t2: Vector3 = d.cross(t1).normalized()
+			var deep: Vector3 = Vector3.ZERO
+			var deep_h: float = h
+			for k in range(4):
+				var ang: float = TAU * float(k) / 4.0
+				var rot_axis: Vector3 = t1 * cos(ang) + t2 * sin(ang)
+				var cand: Vector3 = d.rotated(rot_axis, 0.003).normalized()
+				var ch: float = terrain_height(cand, world_seed)
+				if ch < deep_h:
+					deep_h = ch
+					deep = cand
+			if not deep.is_zero_approx():
+				var tangent: Vector3 = deep - d
+				tangent = (tangent - d * tangent.dot(d)).normalized()
+				out = tangent * LAKE_DRIFT_SPEED
+	_drift_cache.set_value(d, world_seed, out)  # bounds evict, never clear
+	return out
+
+
+# -- THE ROAD LAW (v1: the village -> capitol cart path) ----------------
+
+## An auto-generated cart road from the village harbor to the capitol
+## plaza: a seeded cross-country meander that prefers flat land and
+## river/lake crossings (every crossing gets a solid bridge deck),
+## carving a smooth walkable bed through its corridor. Same seed
+## discipline as every other law: pure, deterministic, data-first.
+
+## The road kind ids (the RoadData schema carries the data-driven
+## materials; the law carries the built-in palette defaults).
+class RoadKind:
+	const TRAIL: int = 0         # packed earth trail
+	const COBBLE: int = 1        # cobblestone highway
+
+const ROAD_STEP_ANG: float = 0.004        # 80 m segments at the 20 km planet
+const ROAD_ANG: float = 0.010             # the corridor half-width (~200 m)
+const ROAD_CLEAR_ANG: float = 0.030       # the respect belt (~600 m: spawns/aggro keep off)
+const ROAD_BRIDGE_DECK: float = 1.2       # deck sits this far above the local waterline
+const ROAD_CUT_MAX: float = 12.0          # max bed cut below the natural terrain
+const ROAD_MAX_STEPS: int = 320
+const ROAD_TURN_SPAN: int = 9             # aim-cone breadth (odd)
+
+static var _road_spec_cache = LRU_CACHE.new(4)
+# TWO state caches: the corridor probe and the respect belt probe ask
+# DIFFERENT radii over the same keys - one shared cache would serve
+# whichever radius ran first (a law break, caught at design time).
+static var _road_state_cache = SECTOR_CACHE.new()
+static var _road_clear_cache = SECTOR_CACHE.new()
+
+
+## A built road: the meander polyline + per-node walk surface
+## (bed or deck) + per-node deck weight (0 = open road bed, 1 = bridge).
+class RoadSpec:
+	var kind: int = RoadKind.TRAIL
+	var path: PackedVector3Array
+	var beds: PackedFloat32Array   # meters above the base surface, per node
+	var bridges: PackedFloat32Array
+
+
+## THE VILLAGE HARBOR: the mainland rim of the authored strait (the
+## settlement that owns the ferry crossing). Sits on the boot side of
+## the moat band, at the island's bearing.
+static func village_harbor_dir() -> Vector3:
+	var isl: Vector3 = ISLAND_CENTER.normalized()
+	return isl.rotated(Vector3(0, 1, 0), -(ISLAND_MOAT_OUTER + ISLAND_ANGULAR_REACH + 0.004)).normalized()
+
+
+## THE CAPITOL PLAZA: the opposite bearing at the same range - the
+## far coast of the starter continent (a real cart journey across
+## the homeland, up to the road law to route it).
+static func capitol_plaza_dir() -> Vector3:
+	return village_harbor_dir().rotated(Vector3(1, 0, 0), PI).normalized()
+
+
+static func road_spec_cached(world_seed: PackedByteArray) -> RoadSpec:
+	var key: String = world_seed.hex_encode()
+	var cached = _road_spec_cache.get_value(key)
+	if cached != null:
+		return cached
+	var spec: RoadSpec = _road_build(world_seed)
+	_road_spec_cache.set_value(key, spec)
+	return spec
+
+
+## THE ROAD PATH LAW: greedy aim-cone walk on the pre-road field,
+## costed by water (bridges cost; sea is impossible for a cart), by
+## slope (roads bend for passes), by a seeded meander (organic
+## curves), and by turn economy (no zigzag). Two rotational
+## smoothing passes follow, then the bed/deck law grades each node.
+static func _road_build(world_seed: PackedByteArray) -> RoadSpec:
+	var sea: float = sea_level(world_seed)
+	var meadow_salt: int = _seed_salt(world_seed, "road_meadow")
+	var village: Vector3 = village_harbor_dir()
+	var capitol: Vector3 = capitol_plaza_dir()
+	var path: PackedVector3Array = PackedVector3Array([village])
+	var cur: Vector3 = village
+	var prev_ang: float = 0.0
+	for step in range(ROAD_MAX_STEPS):
+		if cur.angle_to(capitol) < ROAD_STEP_ANG * 1.4:
+			break
+		# The aim cone: the capitol bearing plus span/2 offsets.
+		var aim_axis: Vector3 = cur.cross(capitol)
+		if aim_axis.length() < 1e-9:
+			aim_axis = Vector3(0, 1, 0)
+		aim_axis = aim_axis.normalized()
+		var prev_h: float = _terrain_height_base(cur, world_seed)
+		var best_cost: float = 1e18
+		var best_dir: Vector3 = Vector3.ZERO
+		var best_ang: float = 0.0
+		var mid: float = float(ROAD_TURN_SPAN - 1) / 2.0
+		for jj in range(ROAD_TURN_SPAN):
+			var ang: float = (float(jj) - mid) * ROAD_STEP_ANG * 0.45
+			var cand: Vector3 = cur.rotated(aim_axis.rotated(cur, ang).normalized(), ROAD_STEP_ANG).normalized()
+			var ch: float = _terrain_height_base(cand, world_seed)
+			var cost: float = absf(ang - prev_ang) * 4.0
+			cost += absf(ch - prev_h) * 1.5
+			cost += river_channel(cand, world_seed) * 22.0
+			var surf: float = hydro_water_surface(cand, world_seed)
+			if surf - ch > 0.4:
+				cost += 26.0
+			if ch < sea - 0.5:
+				cost += 4000.0  # a cart road never fords the sea (the ferry owns it)
+			# THE BOOT RING: the road bends around the spawn plaza ring
+		# (the plaza + apron laws outrank the cartway; traveling lands
+		# right past it either way).
+			if cand.angle_to(SPAWN_CENTER) < SPAWN_APRON_OUTER_ANG:
+				cost += 220.0
+			cost += _vnoise(cand, meadow_salt, 9.0) * 2.2
+			if cost < best_cost:
+				best_cost = cost
+				best_dir = cand
+				best_ang = ang
+		if best_dir.is_zero_approx():
+			break
+		cur = best_dir
+		prev_ang = best_ang
+		path.append(cur)
+	path.append(capitol)
+
+	# Rotational smoothing: two passes of geodesic midpoints (no zigzag).
+	for _pass in range(2):
+		var smooth_path: PackedVector3Array = PackedVector3Array([path[0]])
+		for i in range(1, path.size() - 1):
+			var m: Vector3 = (path[i - 1] + path[i + 1]).normalized()
+			smooth_path.append(m.normalized())
+		smooth_path.append(path[path.size() - 1])
+		path = smooth_path
+
+	# THE BED LAW: per-node walk surface graded under the continuity
+	# bound (80 m step law: 16 m/step cap at the 0.2 m/m ramp grade).
+	var spec := RoadSpec.new()
+	spec.path = path
+	var n: int = path.size()
+	var beds := PackedFloat32Array()
+	for i in range(n):
+		var raw: float = terrain_height_carved(path[i], world_seed, "_noroad")
+		beds.append(raw)
+	for _pass in range(3):
+		for i in range(1, n - 1):
+			beds[i] = (beds[i - 1] + beds[i] * 2.0 + beds[i + 1]) / 4.0
+	# THE CUT LAW first: the bed never trenches deeper than
+	# ROAD_CUT_MAX under the natural terrain (the road bends for
+	# passes instead of cutting canyons).
+	# THE CAUSEWAY FLOOR: a wet node (came through a coastal dip) sits
+	# dry above the waterline - the embankment law washes away the
+	# flood of a greedy wander (should be rare: the sea cost bends the
+	# path for the mountain pass instead).
+	for i in range(n):
+		var natural: float = terrain_height_carved(path[i], world_seed, "_noroad")
+		beds[i] = maxf(beds[i], natural - ROAD_CUT_MAX)
+		if natural < sea - 0.2:
+			beds[i] = maxf(beds[i], sea + 0.4)
+	# THE DECK LAW before the final grade: bridges stand above the
+	# waterline; their approach ramps ride the graded bank heights.
+	var bridges := PackedFloat32Array()
+	var deck_pins := PackedFloat32Array()
+	for i in range(n):
+		var node_bed: float = beds[i]
+		var channel_w: float = river_channel(path[i], world_seed)
+		var surf: float = hydro_water_surface(path[i], world_seed)
+		var bridge: float = maxf(smoothstep(0.15, 0.45, channel_w), smoothstep(0.15, 0.5, surf - node_bed))
+		if bridge > 0.0:
+			var riverline: float = node_bed + Hydro.RIVER_BED_DEPTH
+			if surf > -1e8:
+				riverline = surf
+			var deck: float = maxf(node_bed, riverline - 0.3 + ROAD_BRIDGE_DECK)
+			node_bed = lerpf(node_bed, deck, bridge)
+		beds[i] = node_bed
+		deck_pins.append(bridge)
+	# THE GRADE CLAMP (final): pull overshoots back onto the walk
+	# bound. Deck-pinned nodes never get pulled DOWN below their deck
+	# (the walk law pins the plank above the waterline) - the approach
+	# banks do the yielding toward the deck there. Running the clamp
+	# after the cut AND deck laws is the order the probe caught: the
+	# earlier orders re-introduced the breaks they had ironed out.
+	for _pass in range(64):
+		var worst: float = 0.0
+		for i in range(n - 1):
+			var gap: float = beds[i + 1] - beds[i]
+			if absf(gap) > 15.0:
+				worst = maxf(worst, absf(gap))
+				var fix: float = absf(gap) - 15.0
+				if gap > 0.0:
+					# beds[i+1] is the high side: lower it unless pinned
+					if deck_pins[i + 1] <= 0.4:
+						beds[i + 1] -= fix
+						beds[i] += fix
+					else:
+						beds[i] += fix
+				else:
+					if deck_pins[i] <= 0.4:
+						beds[i] -= fix
+						beds[i + 1] += fix
+					else:
+						beds[i + 1] += fix
+		if worst == 0.0:
+			break
+	spec.beds = beds
+	spec.bridges = deck_pins
+	spec.path = path
+	return spec
+
+
+## The corridor probe: (road weight, deck weight, walk surface) at a
+## direction from a membership radius. Cached per quantized sector.
+static func _road_probe(d: Vector3, world_seed: PackedByteArray, ang_radius: float) -> Vector3:
+	d = d.normalized()
+	var cache = _road_state_cache if ang_radius == ROAD_ANG else _road_clear_cache
+	var cached = cache.get_value(d, world_seed)
+	if cached != null:
+		return cached
+	var spec: RoadSpec = road_spec_cached(world_seed)
+	var w: float = 0.0
+	var br: float = 0.0
+	var bed: float = 0.0
+	var n: int = spec.path.size()
+	for i in range(n):
+		var p: Vector3 = spec.path[i]
+		var ang: float = d.angle_to(p)
+		if ang < ang_radius:
+			var node_w: float = 1.0 - ang / ang_radius
+			if node_w > w:
+				w = node_w
+				br = spec.bridges[i]
+				bed = spec.beds[i]
+		if i + 1 < n:
+			var p1: Vector3 = spec.path[i + 1]
+			var seg_len: float = p.angle_to(p1)
+			if seg_len >= 1e-9:
+				var axis: Vector3 = p.cross(p1).normalized()
+				for si in range(1, 3):
+					var mid: Vector3 = p.rotated(axis, seg_len * (float(si) / 3.0)).normalized()
+					var ang2: float = d.angle_to(mid)
+					if ang2 < ang_radius:
+						var w2: float = 1.0 - ang2 / ang_radius
+						if w2 > w:
+							w = w2
+							br = maxf(spec.bridges[i], spec.bridges[i + 1])
+							bed = maxf(spec.beds[i], spec.beds[i + 1])
+	var st: Vector3 = Vector3(clampf(w, 0.0, 1.0), clampf(br, 0.0, 1.0), bed)
+	cache.set_value(d, world_seed, st)
+	return st
+
+
+## THE ROAD STATE at a direction: (corridor weight, deck weight, the
+## walk surface - bed or deck height). Zero/zero/0 outside the road.
+static func road_state_at(d: Vector3, world_seed: PackedByteArray) -> Vector3:
+	return _road_probe(d, world_seed, ROAD_ANG)
+
+
+## THE ROAD HEIGHT: the carved law's corridor override (bed on land,
+## deck over water). Called by terrain_height_carved.
+static func road_height_override(d: Vector3, world_seed: PackedByteArray, h: float) -> float:
+	var st: Vector3 = road_state_at(d, world_seed)
+	if st.x <= 0.0:
+		return h
+	# THE SPAWN LAWS OUTRANK THE CARTWAY: the boot plaza is EXACTLY
+	# SPAWN_HEIGHT and the apron holds its dry floor - the road never
+	# regrades ground inside the apron ring (the path law bends
+	# around it; this guard is the defensive belt).
+	if d.angle_to(SPAWN_CENTER) < SPAWN_APRON_OUTER_ANG:
+		return h
+	return lerpf(h, st.z, st.x)
+
+
+## THE ROAD RESPECT (the enemy law): 1 far from the road, 0 on it,
+## smoothly across the respect belt - beasts spawn and hunt OUTSIDE
+## the cartway (the spawn placement law and the aggro gate read it).
+static func road_clearance_at(d: Vector3, world_seed: PackedByteArray) -> float:
+	var w: float = _road_probe(d, world_seed, ROAD_CLEAR_ANG).x
+	return clampf(1.0 - w * 2.0, 0.0, 1.0)
+
+
+## THE ROAD WALK DIRECTION at a direction (for the auto-follow law):
+## the tangent of the nearest corridor segment pointing toward the
+## capitol. Zero vector off the road.
+static func road_walk_dir(d: Vector3, world_seed: PackedByteArray) -> Vector3:
+	d = d.normalized()
+	var spec: RoadSpec = road_spec_cached(world_seed)
+	var best: float = 0.0
+	var walk: Vector3 = Vector3.ZERO
+	var n: int = spec.path.size()
+	for i in range(n - 1):
+		var p0: Vector3 = spec.path[i]
+		var p1: Vector3 = spec.path[i + 1]
+		var seg_len: float = p0.angle_to(p1)
+		if seg_len >= 1e-9:
+			var axis: Vector3 = p0.cross(p1).normalized()
+			for si in range(1, 3):
+				var mid: Vector3 = p0.rotated(axis, seg_len * (float(si) / 3.0)).normalized()
+				var ang: float = d.angle_to(mid)
+				if ang < ROAD_ANG and 1.0 - ang / ROAD_ANG > best:
+					best = 1.0 - ang / ROAD_ANG
+					walk = axis.cross(mid).normalized()
+	return walk

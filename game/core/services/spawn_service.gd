@@ -927,7 +927,18 @@ func _find_entity_spawn_point(entity_id: String) -> String:
 			return spawn_point_id
 	return ""
 
+## THE ROAD RESPECT (the enemy law): beasts spawn OUTSIDE the cartway
+## corridor. The globe world wires this supplier to a scene-position
+## mapper that reads terrain_gen.road_clearance_at (0 = on the road);
+## scene-space zone spawning uses the mapper, law-side truth stays in
+## terrain_gen (the one definition).
+var road_clear_supplier: Callable = Callable()
+
+
 func _is_spawn_point_safe(spawn_point: SpawnPoint) -> bool:
+	if road_clear_supplier.is_valid():
+		if float(road_clear_supplier.call(spawn_point.position)) < 0.5:
+			return false	 # the cartway corridor refuses beasts
 	var zone_manager = ZoneManager
 	if zone_manager == null:
 		return true	 # No zone manager, assume safe

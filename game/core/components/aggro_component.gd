@@ -15,6 +15,13 @@ signal out_of_combat()
 @export var threat_modifiers: Dictionary = {}
 
 @export var aggro_range: float = 15.0  # Detection radius
+## THE ROAD RESPECT (the enemy law): an optional supplier (target
+## position -> clearance 0..1). Clearance 0 = the target stands on a
+## cartway: the detection gate DROPS - travelers walking a road stay
+## un-harassed. The globe wires TerrainGen.road_clearance_at in via a
+## position mapper (the law's one definition lives in terrain_gen).
+@export var road_respect: bool = false
+@export var road_clear_supplier: Callable = Callable()
 @export var threat_decay_rate: float = 1.0  # Threat lost per second when out of combat
 @export var max_threat_per_target: int = 10000
 @export var threat_transfer_on_death: bool = true
@@ -248,6 +255,9 @@ func transfer_threat_to(source) -> void:
 
 ## Check if entity is in aggro range
 func is_in_aggro_range(position: Vector3, target_position: Vector3) -> bool:
+	if road_respect and road_clear_supplier.is_valid():
+		if float(road_clear_supplier.call(target_position)) < 0.5:
+			return false	 # the cartway is safe passage: no hunt
 	return position.distance_to(target_position) <= aggro_range
 
 ## Handle target death

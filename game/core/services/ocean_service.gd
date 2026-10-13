@@ -30,6 +30,8 @@
 ## Autoload: NO class_name (AGENTS rule).
 extends Node
 
+const TerrainGen = preload("res://scenes/worlds/terrain_gen.gd")
+
 const OceanVolumeScript = preload("res://core/schemas/ocean_volume.gd")
 const SwimStateScript = preload("res://core/frame/srv/swim_state.gd")
 
@@ -186,7 +188,22 @@ func current_at(pos: Vector3) -> Vector3:
 	var v = volume_at(pos)
 	if v == null:
 		return Vector3.ZERO
-	return v.current_vector()
+	return _volume_current(pos, v)
+
+
+## THE COMPOSED CURRENT: the volume's declared vector +, when the
+## volume opts in, the terrain law's river flow and standing-water
+## drift read at the body's planet direction. The anticheat's
+## current-only exemption reads this same path, so river pull stays
+## server-side honest.
+func _volume_current(pos: Vector3, v) -> Vector3:
+	var out: Vector3 = v.current_vector()
+	if v.terrain_currents and bool(v.floor_is_radial):
+		var d: Vector3 = (pos - v.floor_center).normalized()
+		var seed_b: PackedByteArray = TerrainGen.world_seed_bytes()
+		out += TerrainGen.river_flow_at(d, seed_b) * TerrainGen.river_flow_speed(d, seed_b)
+		out += TerrainGen.water_drift_at(d, seed_b)
+	return out
 
 
 ## The drift a body actually FEELS: the volume's declared current,
@@ -235,7 +252,7 @@ func tick_swimmer(body_id: String, pos: Vector3, delta: float, breather_grace_m:
 	var state: int = s.tick(delta, depth, squeeze_line, float(v.max_depth), \
 		float(v.pressure_per_meter), total_grace, crush_bonus_m)
 	return {"state": state, "depth": depth, "band": v.band_for(depth, total_grace, crush_bonus_m), \
-		"current": v.current_vector(), "breath": s.breath, "pressure": s.pressure, \
+		"current": _volume_current(pos, v), "breath": s.breath, "pressure": s.pressure, \
 		"drowning_s": s.drowning_s}
 
 
